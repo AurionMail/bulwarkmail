@@ -2298,7 +2298,15 @@ export function EmailViewer({
   [style*="height:100%"], [style*="height: 100%"] { height: auto !important; }
   body { margin: 0; padding: ${bodyPadding}; overflow-x: auto; overflow-y: hidden; height: auto !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a1a; background: #ffffff; word-wrap: break-word; overflow-wrap: break-word; }
   @media (max-width: 640px) { body { padding-left: ${mobileBodyPaddingX}; padding-right: ${mobileBodyPaddingX}; } }
-  img { max-width: 100% !important; height: auto !important; }
+  /* Only force the cap on images that set no width of their own: an
+     !important 100% also overrides a sender's inline max-width, and an
+     image sized by max-width + max-height + width:100% then grows to
+     the pane width while its max-height still clamps the height - the
+     picture renders stretched. Same reasoning as the table rule below (#790).
+     height stays !important so a fixed inline height cannot squash it. */
+  img:not([style*="max-width"]) { max-width: 100% !important; }
+  img[style*="max-width"] { max-width: 100%; }
+  img { height: auto !important; }
   a { color: #1a73e8; }
   /* Only force the cap on tables that set no width of their own: an
      !important 100% would also override a newsletter's inline
@@ -2685,7 +2693,15 @@ export function EmailViewer({
   .meta { font-size: 13px; color: #555; line-height: 1.6; }
   .meta strong { color: #000; }
   .body { font-size: 14px; line-height: 1.6; }
-  .body img { max-width: 100% !important; height: auto !important; }
+  /* Only force the cap on images that set no width of their own: an
+     !important 100% also overrides a sender's inline max-width, and an
+     image sized by max-width + max-height + width:100% then grows to
+     the pane width while its max-height still clamps the height - the
+     picture renders stretched. Matches the viewer's own image rule.
+     height stays !important so a fixed inline height cannot squash it. */
+  .body img:not([style*="max-width"]) { max-width: 100% !important; }
+  .body img[style*="max-width"] { max-width: 100%; }
+  .body img { height: auto !important; }
   @media print { body { margin: 20px; } }
 </style></head><body dir="auto">
 <div class="header">
