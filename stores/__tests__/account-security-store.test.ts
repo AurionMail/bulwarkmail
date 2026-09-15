@@ -187,12 +187,42 @@ describe('account-security-store', () => {
       expect(useAccountSecurityStore.getState().error).toBeNull();
     });
 
+    it('recognises the forbidden method error Stalwart actually sends and stays quiet', async () => {
+      // The passthrough surfaces a JMAP method error as Error(description)
+      // with the type alongside - the description never says "forbidden".
+      const refused = Object.assign(new Error('You are not authorized to perform this action'), {
+        status: 200,
+        methodError: { type: 'forbidden', description: 'You are not authorized to perform this action' },
+      });
+      mockedJmap.mockRejectedValueOnce(refused);
+      // mockRestore also clears the recorded calls, so count before restoring.
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      let errorLogs = 0;
+      try {
+        await useAccountSecurityStore.getState().fetchPrincipal();
+        errorLogs = consoleError.mock.calls.length;
+      } finally {
+        consoleError.mockRestore();
+      }
+
+      expect(useAccountSecurityStore.getState().isLoadingPrincipal).toBe(false);
+      expect(useAccountSecurityStore.getState().error).toBeNull();
+      expect(errorLogs).toBe(0);
+    });
+
     it('records non-forbidden errors', async () => {
       mockedJmap.mockRejectedValueOnce(new Error('network down'));
-
-      await useAccountSecurityStore.getState().fetchPrincipal();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      let errorLogs = 0;
+      try {
+        await useAccountSecurityStore.getState().fetchPrincipal();
+        errorLogs = consoleError.mock.calls.length;
+      } finally {
+        consoleError.mockRestore();
+      }
 
       expect(useAccountSecurityStore.getState().error).toBe('network down');
+      expect(errorLogs).toBe(1);
     });
   });
 
