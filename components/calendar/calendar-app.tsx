@@ -544,6 +544,18 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
     setNarrowSidebarOpen(false);
   }, [setSelectedDate, jumpTo, isMobile, normalizedViewMode, setViewMode]);
 
+  // The mini calendar is a navigation control: unlike a click in the week or
+  // month grid, which marks a day that is already on screen, picking a day
+  // here has to bring that day into view.
+  const handleMiniCalendarSelect = useCallback((date: Date) => {
+    jumpTo(date);
+    if (isMobile && normalizedViewMode === "month") {
+      setMobileReturnToMonth(true);
+      setViewMode("day");
+    }
+    setNarrowSidebarOpen(false);
+  }, [jumpTo, isMobile, normalizedViewMode, setViewMode]);
+
   const navigateBackToMonth = useCallback(() => {
     setMobileReturnToMonth(false);
     setViewMode("month");
@@ -1559,7 +1571,7 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
             <MiniCalendar
               selectedDate={selectedDate}
               displayMonth={miniMonth}
-              onSelectDate={handleSelectDate}
+              onSelectDate={handleMiniCalendarSelect}
               onChangeMonth={handleMiniMonthChange}
               events={events}
               firstDayOfWeek={firstDayOfWeek}
