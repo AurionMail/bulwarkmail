@@ -90,3 +90,22 @@ export function isMimeTypeSafeForInlinePreview(type?: string): boolean {
   if (INLINE_PREVIEW_SAFE_MIME_TYPES.has(mimeType)) return true;
   return INLINE_PREVIEW_SAFE_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix));
 }
+
+const INERT_BLOB_TYPE = 'application/octet-stream';
+
+/**
+ * MIME type for a Blob whose blob: URL ends up inside untrusted markup (the
+ * cid: parts of a rendered message body). Blob URLs inherit the creating
+ * document's origin, so a sender-declared text/html or image/svg+xml part
+ * navigated to as a top-level document would run script as the webmail origin
+ * (GHSA-xvjh-v9c6-qcvc). Inert types keep their MIME so img/video/audio keep
+ * rendering them; anything else becomes octet-stream, which no browser executes.
+ */
+export function inertBlobType(type?: string): string {
+  return type && isMimeTypeSafeForInlinePreview(type) ? type : INERT_BLOB_TYPE;
+}
+
+/** Re-type a fetched Blob per inertBlobType() without copying its bytes. */
+export function toInertBlob(blob: Blob): Blob {
+  return isMimeTypeSafeForInlinePreview(blob.type) ? blob : blob.slice(0, blob.size, INERT_BLOB_TYPE);
+}

@@ -420,6 +420,21 @@ export function isHttpLinkHref(href: string | null | undefined): boolean {
 }
 
 /**
+ * Whether a clicked message-body link may be handed to window.open(). Web links
+ * and links to external protocol handlers (tel:, sms:, ...) are fine. Anything
+ * that resolves inside our own origin is not: blob: URLs (a cid: part re-typed
+ * by the sender, GHSA-xvjh-v9c6-qcvc), data:, and bare relative paths, which
+ * would open a webmail route of the sender's choosing in a new tab.
+ */
+export function isOpenableLinkHref(href: string | null | undefined): boolean {
+  if (!href) return false;
+  if (isHttpLinkHref(href)) return true;
+  // eslint-disable-next-line no-control-regex
+  const normalized = href.replace(/[\u0000-\u0020]+/g, '');
+  return /^(?:ftps?|tel|sms|callto|xmpp):/i.test(normalized);
+}
+
+/**
  * Give one `<a>` the new-tab treatment uniformly across the iframe render paths
  * (the DOMPurify hook and the post-render DOM walk in email-viewer): http(s)
  * links get target=_blank + rel; other schemes have them stripped so they don't

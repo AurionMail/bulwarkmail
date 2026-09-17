@@ -51,7 +51,21 @@ function withMatchedChineseAcceptLanguage(request: NextRequest): NextRequest {
 // (e.g. `export const config = { matcher }`) is no longer allowed in the
 // proxy file. We replicate the previous matcher inline by short-circuiting
 // requests for API routes, Next internals and static assets.
-const PROXY_SKIP_PATTERN = /^\/(?:api|_next)(?:\/|$)|\.[^/]+$/;
+const PROXY_SKIP_PATTERN = /^\/(?:api|_next)(?:\/|$)/;
+
+// What Next serves from public/: a single dotted segment at the root
+// (/sw.js, /favicon.ico, /manifest.webmanifest) and the branding/ and
+// notification/ asset folders. The upstream matcher treated EVERY path whose
+// last segment has a dot as a static file, but the [[...segments]] catch-alls
+// under /<locale>/mail, /calendar, /contacts and /files make
+// /en/mail/folder/inbox/statement.pdf a real signed-in page, and it rendered
+// without a CSP or any other security header (GHSA-xvjh-v9c6-qcvc). Only what
+// is genuinely static may skip locale routing and the headers.
+const STATIC_ASSET_PATTERN = /^\/[^/]+\.[^/]+$|^\/(?:branding|notification)\//;
+
+export function isStaticAssetPath(pathname: string): boolean {
+  return STATIC_ASSET_PATTERN.test(pathname);
+}
 
 /**
  * Hand the route every request header the client sent, plus `extra`.
@@ -128,7 +142,7 @@ export async function proxy(request: NextRequest) {
       // Public read endpoint - serves wizard-uploaded branding assets so
       // image previews work during the wizard. No auth on the GET route.
       pathname.startsWith("/api/admin/branding/") ||
-      /\.[^/]+$/.test(pathname);
+      isStaticAssetPath(pathname);
 
     if (!allowed) {
       if (pathname.startsWith("/api/")) {
@@ -163,7 +177,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 });
   }
 
-  if (PROXY_SKIP_PATTERN.test(pathname)) {
+  if (PROXY_SKIP_PATTERN.test(pathname) || isStaticAssetPath(pathname)) {
     return NextResponse.next();
   }
 

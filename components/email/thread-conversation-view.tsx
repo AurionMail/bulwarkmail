@@ -36,7 +36,7 @@ import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useContactStore } from "@/stores/contact-store";
 import { useAuthStore } from "@/stores/auth-store";
-import { isFilePreviewable } from "@/lib/file-preview";
+import { isFilePreviewable, toInertBlob } from "@/lib/file-preview";
 
 interface ThreadConversationViewProps {
   thread: ThreadGroup;
@@ -299,7 +299,9 @@ function EmailCard({
       await Promise.all(cidAttachments.map(async (att) => {
         const cidValue = att.cid!.replace(/^<|>$/g, '');
         try {
-          const objectUrl = await client!.fetchBlobAsObjectUrl(att.blobId, att.name || 'inline', att.type);
+          // Re-type sender-declared script-bearing parts before they become a
+          // blob: URL in our origin (GHSA-xvjh-v9c6-qcvc).
+          const objectUrl = URL.createObjectURL(toInertBlob(await client!.fetchBlob(att.blobId, att.name || 'inline', att.type)));
           if (!cancelled) {
             urls[cidValue] = objectUrl;
             objectUrls.push(objectUrl);
