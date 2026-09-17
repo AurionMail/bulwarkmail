@@ -1,5 +1,155 @@
 # Changelog
 
+## 1.10.0 (2026-09-17)
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- [@windsource](https://github.com/windsource)
+
+**Monthly**
+
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@zeddD1abl0](https://github.com/zeddD1abl0)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Security
+
+This release fixes six vulnerabilities reported by Jan Kahmen (turingpoint). Please update.
+
+- **Mail**: HTML mail could run script in the webmail origin. `cid:` references were rewritten to `blob:` URLs that kept the sender's `Content-Type`, and the reverse proxy skipped every security header — CSP included — on app paths whose last segment contains a dot, although the signed-in mail, calendar, contacts and files routes render there. Blob URLs are now retyped as inert, link clicks from the message frame are gated by scheme, and the proxy only skips headers for an explicit static-asset allowlist (GHSA-xvjh-v9c6-qcvc, thanks @kah-ja)
+- **Auth**: `POST /api/auth/session` and `POST /api/auth/stalwart-context` minted identity cookies without checking the supplied credentials against the JMAP server, so anyone could obtain a cookie for an arbitrary username and read that user's server-side settings. Credentials are now verified upstream before a cookie is issued: Basic credentials are bound to the account they authenticate, Bearer tokens to the session's username and identity. Deployments whose webmail container cannot reach the JMAP server no longer receive identity cookies, so cross-device settings sync stops working there (GHSA-wxcm-j4jc-9fxq, thanks @kah-ja)
+- **Plugins**: The `/plugin-sandbox` runtime trusted whichever window posted the first message, so a foreign site could `window.open()` it, post its own `init`, and run code under the route's `unsafe-eval` CSP in the app origin — with or without plugins enabled. The sandbox now only accepts its framing window, and the proxy refuses to serve the route outside an iframe or when plugins are disabled (GHSA-96cx-gx36-3g79, thanks @kah-ja)
+- **Auth**: Encrypted payloads now carry a purpose, so a WOPI editor access token can no longer be presented as a `jmap_stalwart_ctx` session cookie (GHSA-cqqx-mjcf-mh55, thanks @kah-ja)
+- **Auth**: Reject cross-site requests to `/api/auth/*`. A malicious page could `POST` the victim's browser into an attacker-controlled account (session fixation) (GHSA-qvr9-m8cq-7wvg, thanks @kah-ja)
+- **Mail**: Strip CR/LF and other control characters from the header values of generated read receipts. A crafted, RFC 2047-encoded subject could inject additional headers into the receipt (GHSA-w38p-hpqv-g89c, thanks @kah-ja)
+- **Auth / Branding**: Pin the resolved IP at connect time for stored custom JMAP endpoints and branding URLs too, closing the DNS-rebinding gap left after GHSA-24w9-8r42-8jwm
+
+### Features
+
+- **Search**: Global search across mail, contacts, calendar and files — query parser, ranking and cross-account providers, a search palette, and a search tab in the Pro shell with avatars, tinted icons and structured previews (#641); hits open through the owning login on every surface (#847)
+- **Files**: Office document editing through WOPI — Collabora Online, OnlyOffice and EuroOffice (#425); the demo Files drive ships office document fixtures and a word-processor icon
+- **Calendar**: Freely scrolling month, week and day views (#759), infinite scroll in the agenda view, and a setting to turn free scrolling off
+- **Calendar**: Recurring occurrences use Stalwart's synthetic ids (#140)
+- **Calendar**: Attendee free/busy via `Principal/getAvailability`
+- **Calendar**: Invitations and updates surface from `CalendarEventNotification`, and invitations are organized as the default `ParticipantIdentity`
+- **Mail**: Per-message HTML / plain-text toggle (#1022)
+- **Mail**: Share mail folders with other users via `mail:share`; share notifications appear as toasts
+- **Mail**: Search hits are highlighted with `SearchSnippet/get`
+- **Mail**: Pushes are resolved with `Email/changes` and `Mailbox/changes` deltas instead of refetching the list
+- **Mail**: Attachments show on list rows and open from there (#947, thanks @shukiv)
+- **Mail**: Filter advanced search by message size
+- **Mail**: Deleting a non-empty folder offers to delete its messages along with it
+- **Mail**: "Clear search when switching folders" setting (#852, thanks @shukiv)
+- **Mail**: Default sidebar apps for all users (#931)
+- **Send**: Request delivery status notifications and REQUIRETLS when sending
+- **Reply**: Choose exact-address or same-domain matching for replying from the address a message was received at (#1000)
+- **Composer**: Sticky formatting toolbar, font-size picker and background colour (#987, thanks @ibayue)
+- **Contacts**: Sort contacts by last name (#963)
+- **Contacts**: Set an address book as default (#924)
+- **Mobile**: Search-first header replacing the second toolbar row, with the query clearable from the header (#945, thanks @shukiv)
+- **PWA**: The installed app icon shows the unread count via the Badging API (#934, thanks @dev-hive-kazniisa)
+- **Auth**: `prompt=select_account` is sent to the identity provider when adding another account (#979, thanks @Almost-Senseless-Coder)
+- **Admin**: Server-side switch for the Stalwart JMAP passthrough (#904)
+- **Plugins**: `ui.openDialog` and a `plugin-dialog` slot for large, clickable custom UI (#975, thanks @bartfaizoli76)
+- **Plugins**: `attachment-actions` and `composer-attachment-source` slots (#974, thanks @bartfaizoli76)
+- **Plugins**: OAuth callback handler, extended contacts and address-book API (#925, thanks @ponchofiesta)
+- **Accessibility**: Better labelling of the email list for screen readers (#1008, thanks @Almost-Senseless-Coder)
+- **i18n**: Norwegian Bokmål (#829, thanks @larstobi)
+- **i18n**: Traditional Chinese (Taiwan) (#932, thanks @kchuang1015)
+- **CI**: The test suite runs on every push and pull request (#647)
+- **Dev**: FileNode and blob round-trip in the mock JMAP server, and WOPI on the same-origin dev server
+
+### Changes
+
+- **Docs**: Installer section removed from the README and formatting cleaned up
+- **Security policy**: New vulnerability report email address
+
+### Fixes
+
+- **Filters**: Render the "Keep" action as `fileinto "INBOX"` (#1027)
+- **Mail**: List tagged mail from every account in the tag view, not just the selected folder's account (#1038)
+- **Mail**: Dragging a message out of the list could hang the tab when generated `.eml` file names collided (#1039)
+- **Mail**: Preserve label filtering during mailbox refreshes (#1017, thanks @ctaoist)
+- **Mail**: Hide body-embedded `cid:` parts declared as `application/octet-stream` from the attachment list (#1005, thanks @dealerweb)
+- **Mail**: Stop stretching images that carry their own max-width (#1034, thanks @shukiv), and let sender tables keep theirs (#790)
+- **Mail**: Refetch the body when JMAP truncates the displayed part instead of rendering a blank message (#928, thanks @hildebrandttk)
+- **Mail**: Auto-detect text direction in the read, print, plain-text, thread and `.eml` preview views (#663, thanks @shukiv)
+- **Mail**: Open search hits from shared folders in the right account (#923)
+- **Mail**: Collapse search hits for the same server object reached through several logins (#641)
+- **Mail**: Guard quick search against stale responses (#872, thanks @vj1235432)
+- **Mail**: Only show the unified mailbox section when it can be populated (#843), and stop it missing accounts that had not connected yet (#959, thanks @hildebrandttk)
+- **Mail**: Surface `Email/set` failures on delete and move (#956)
+- **Mail**: Report a missing archive mailbox instead of failing silently (#578), and archive shared-inbox mail into the owner's archive (#889)
+- **Mail**: Mark as spam from the viewer after the message left the list (#695)
+- **Mail**: Subscribe newly created mailboxes (#951)
+- **Mail**: Sort folders in the role assignment dropdown (#984)
+- **Mail**: Add the missing "Scheduled" folder role label (#495)
+- **Mail**: Wire the `x` shortcut to thread expansion (#683)
+- **Mail**: Keep the reading-mode toggle mounted so toolbar buttons stop jumping (#964)
+- **Mail**: Stop the batch toolbar hiding the message you just selected (#948, thanks @shukiv), keep rows in place when it opens, and drop the duplicate selection checkbox
+- **Mail**: Align the unread dot with the first line (#715, thanks @lucletoffe) and centre the sender avatar against the row (#953, thanks @shukiv)
+- **Mail**: Use Simplified Chinese for the selected-messages label (#786)
+- **Send**: Send from the address a message was delivered to (#991, thanks @rotterp)
+- **Send**: Set the answered flag when a reply goes out with a send delay (#985)
+- **Composer**: Upload attachments through the composing identity's account (#943)
+- **Composer**: Pro compose tabs default their From to the open mailbox (#990, thanks @rotterp)
+- **Calendar**: Jump to the day picked in the mini calendar (#1037, thanks @dealerweb)
+- **Calendar**: Wait for the JMAP client before loading the account principal, and recognise a refused principal read by its JMAP error type (#1036, thanks @dealerweb)
+- **Calendar**: Dedupe participants, resolve contact names across alias domains, and show the organizer's status (#986, thanks @ibayue)
+- **Calendar**: Linkify URLs in the event description (#968, thanks @lucletoffe)
+- **Calendar**: RSVP controls (#967, thanks @wrycu)
+- **Calendar**: Normalize task progress states (#994, thanks @mulatta) and omit `progressUpdated` from the task completion payload (#958, thanks @sanitz)
+- **Calendar**: Preserve task alarms that the edit dialog does not show (#504)
+- **Calendar**: Report calendar clear failures instead of counting zero (#434)
+- **Calendar**: Make the iCal subscription size limit configurable and show the real error (#692)
+- **Calendar**: Paginate the event fetch on import so UID deduplication sees all existing events (#113)
+- **Contacts**: Strip the local-account prefix from address-book ids on contact update (#1043)
+- **Contacts**: Set `name.full` on all write paths so vCards carry the mandatory `FN` (#430)
+- **Contacts**: Create new contacts in the selected address book (#940, thanks @ponchofiesta)
+- **Accounts**: Detect HTTP/2 from the initial navigation timing so accounts are not capped at five (#1003, thanks @lucamzanon)
+- **Auth**: Reject wrong passwords server-side so the browser never shows its Basic Auth dialog (#969)
+- **Auth**: Stop retrying token refreshes that fail permanently (#972)
+- **Auth**: Normalize the OAuth discovery base so a session `JMAP_SERVER_URL` refreshes (#971, thanks @thejdubb02)
+- **Auth**: Use the selected server's issuer for SSO discovery (#952)
+- **Auth**: Retry the JMAP session fetch when a redirect drops the auth header (#892)
+- **Auth**: Drop `max_age=0` from OIDC re-authentication requests (#938)
+- **Auth**: Require a session for the translate API (#903)
+- **Mobile**: Keep the actions panel below the status bar and pad attachment preview overlays for the iOS PWA safe area (#936)
+- **Mobile**: Render plain-text-only mail as text in the thread view (#489)
+- **Mobile**: Stop the More menu flashing open when a message is opened
+- **Mobile**: Dismiss the search panel once a search runs, open the folder drawer from the right in RTL (#944, thanks @shukiv), and keep the account switcher header on screen
+- **PWA**: Smaller margin for the app icons (#883, thanks @ponchofiesta)
+- **PWA**: Focus the client before navigating on notification click (#914, thanks @bitfactory-dk)
+- **Push**: Resolve push previews for shared and group mailboxes (#839)
+- **Plugins**: Allow sandbox chunk loading with CORS (#922, thanks @mulatta)
+- **Plugins**: Fail fast when the plugin storage database is blocked (#840)
+- **Plugins**: Refill missing managed bundles from the server (#636)
+- **Plugins**: Translations for plugins installed from the marketplace (#939, thanks @paulhenry46)
+- **Settings**: Index newer settings and the flat calendar toggles in the settings search
+- **Settings**: Invalidate the persisted update status after an upgrade
+- **UI**: Readable native `<select>` option lists in dark themes (#999)
+- **i18n**: German update (#1031, thanks @GyroGearl00se), "Forward as attachment" in more languages (#1016, thanks @dulinux), toolbar keys for nb and zh-TW (thanks @ibayue), and managed sidebar-app keys for zh-TW
+- **i18n**: Preserve locale cookie precedence and normalize Chinese proxy locale detection (thanks @kchuang1015); keep `basePath` when normalizing a Chinese `Accept-Language`
+
 ## 1.9.2 (2026-08-26)
 
 Thank you for your donations:
