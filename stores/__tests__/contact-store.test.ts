@@ -806,6 +806,156 @@ describe('contact-store', () => {
     });
   });
 
+  describe('address-book id namespacing on mutations (#133, #1043)', () => {
+    const makeClient = () => ({
+      getContactsAccountId: vi.fn(() => 'acct-primary'),
+      createContact: vi.fn(async (c: Partial<ContactCard>) => ({ ...makeContact(), ...c, id: 'created-id' })),
+      updateContact: vi.fn().mockResolvedValue(undefined),
+      deleteContact: vi.fn().mockResolvedValue(undefined),
+    });
+
+    it('strips the local-account prefix from a personal book on update', async () => {
+      // Multi-account Pro mode namespaces EVERY book, including the active
+      // account's own default one, as `local::bookId`. Updating such a contact
+      // used to send the namespaced id and Stalwart rejected the card with
+      // "Contact has to belong to at least one address book".
+      useContactStore.setState({
+        addressBooks: [
+          { id: 'me@host::ab-1', originalId: 'ab-1', localAccountId: 'me@host', name: 'Personal', isDefault: true },
+        ],
+        contacts: [makeContact({
+          id: 'me@host::c-1',
+          originalId: 'c-1',
+          localAccountId: 'me@host',
+          addressBookIds: { 'me@host::ab-1': true },
+        })],
+      });
+      const client = makeClient();
+
+      await useContactStore.getState().updateContact(
+        client as unknown as IJMAPClient,
+        'me@host::c-1',
+        { name: { components: [{ kind: 'given', value: 'Jane' }], isOrdered: true }, addressBookIds: { 'me@host::ab-1': true } },
+      );
+
+      expect(client.updateContact).toHaveBeenCalledWith(
+        'c-1',
+        expect.objectContaining({ addressBookIds: { 'ab-1': true } }),
+        undefined,
+      );
+      // Local state keeps the namespaced form the sidebar filters by.
+      expect(useContactStore.getState().contacts[0].addressBookIds).toEqual({ 'me@host::ab-1': true });
+    });
+
+    it('strips both local-account and shared-account prefixes on update', async () => {
+      useContactStore.setState({
+        addressBooks: [
+          { id: 'me@host::group-1:ab-7', originalId: 'ab-7', localAccountId: 'me@host', name: 'Team', isShared: true, accountId: 'group-1' },
+        ],
+        contacts: [makeContact({
+          id: 'me@host::group-1:c-9',
+          originalId: 'c-9',
+          localAccountId: 'me@host',
+          isShared: true,
+          accountId: 'group-1',
+          addressBookIds: { 'me@host::group-1:ab-7': true },
+        })],
+      });
+      const client = makeClient();
+
+      await useContactStore.getState().updateContact(
+        client as unknown as IJMAPClient,
+        'me@host::group-1:c-9',
+        { addressBookIds: { 'me@host::group-1:ab-7': true } },
+      );
+
+      expect(client.updateContact).toHaveBeenCalledWith('c-9', { addressBookIds: { 'ab-7': true } }, 'group-1');
+    });
+
+    it('falls back to prefix stripping when the book is not in state', async () => {
+      useContactStore.setState({
+        addressBooks: [],
+        contacts: [makeContact({
+          id: 'me@host::group-1:c-9',
+          originalId: 'c-9',
+          localAccountId: 'me@host',
+          isShared: true,
+          accountId: 'group-1',
+        })],
+      });
+      const client = makeClient();
+
+      await useContactStore.getState().updateContact(
+        client as unknown as IJMAPClient,
+        'me@host::group-1:c-9',
+        { addressBookIds: { 'me@host::group-1:ab-7': true } },
+      );
+
+      expect(client.updateContact).toHaveBeenCalledWith('c-9', { addressBookIds: { 'ab-7': true } }, 'group-1');
+    });
+
+    it('leaves raw ids untouched in single-account mode', async () => {
+      useContactStore.setState({
+        addressBooks: [{ id: 'ab-1', name: 'Personal', isDefault: true }],
+        contacts: [makeContact({ id: 'c-1' })],
+      });
+      const client = makeClient();
+
+      await useContactStore.getState().updateContact(
+        client as unknown as IJMAPClient,
+        'c-1',
+        { addressBookIds: { 'ab-1': true } },
+      );
+
+      expect(client.updateContact).toHaveBeenCalledWith('c-1', { addressBookIds: { 'ab-1': true } }, undefined);
+    });
+
+    it('strips the local-account prefix on create too', async () => {
+      useContactStore.setState({
+        addressBooks: [
+          { id: 'me@host::ab-1', originalId: 'ab-1', localAccountId: 'me@host', name: 'Personal', isDefault: true },
+        ],
+      });
+      const client = makeClient();
+
+      await useContactStore.getState().createContact(
+        client as unknown as IJMAPClient,
+        { addressBookIds: { 'me@host::ab-1': true } },
+      );
+
+      expect(client.createContact).toHaveBeenCalledWith(
+        expect.objectContaining({ addressBookIds: { 'ab-1': true } }),
+        undefined,
+      );
+    });
+
+    it('moves to a namespaced personal book with the raw id and keeps the display id locally', async () => {
+      const target = { id: 'me@host::ab-2', originalId: 'ab-2', localAccountId: 'me@host', name: 'Work' };
+      useContactStore.setState({
+        addressBooks: [
+          { id: 'me@host::ab-1', originalId: 'ab-1', localAccountId: 'me@host', name: 'Personal', isDefault: true },
+          target,
+        ],
+        contacts: [makeContact({
+          id: 'me@host::c-1',
+          originalId: 'c-1',
+          localAccountId: 'me@host',
+          addressBookIds: { 'me@host::ab-1': true },
+        })],
+      });
+      const client = makeClient();
+
+      await useContactStore.getState().moveContactToAddressBook(
+        client as unknown as IJMAPClient,
+        ['me@host::c-1'],
+        target,
+      );
+
+      expect(client.updateContact).toHaveBeenCalledWith('c-1', { addressBookIds: { 'ab-2': true } }, undefined);
+      expect(useContactStore.getState().contacts[0].addressBookIds).toEqual({ 'me@host::ab-2': true });
+    });
+  });
+
   describe('persistence/partialize', () => {
     it('should persist contacts when supportsSync is false', () => {
       const { partialize } = (useContactStore as unknown as { persist: { getOptions: () => { partialize: (state: Record<string, unknown>) => Record<string, unknown> } } }).persist.getOptions();

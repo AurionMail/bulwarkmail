@@ -122,6 +122,41 @@ function stripLocalAccountPrefix(id: string, localAccountId?: string): string {
   return id.startsWith(prefix) ? id.slice(prefix.length) : id;
 }
 
+/**
+ * Map the address-book ids the UI works with (namespaced per shared account
+ * as `accountId:bookId`, and per local account as `local::bookId` in
+ * multi-account Pro mode - possibly both) back to the raw server ids that
+ * `ContactCard/set` accepts. Resolution goes through the loaded address-book
+ * list first, since every book carries its `originalId`; ids that are not in
+ * the list (stale state, tests) fall back to stripping the known prefixes.
+ * Sending a namespaced id makes Stalwart reject the card with "Contact has
+ * to belong to at least one address book" (#133, #1043).
+ */
+function resolveRawAddressBookIds(
+  addressBookIds: Record<string, boolean>,
+  books: AddressBook[],
+  owner?: { localAccountId?: string; accountId?: string; isShared?: boolean },
+): { addressBookIds: Record<string, boolean>; sharedAccountId?: string; localAccountId?: string } {
+  const raw: Record<string, boolean> = {};
+  let sharedAccountId: string | undefined;
+  let localAccountId = owner?.localAccountId;
+  for (const [bookId, value] of Object.entries(addressBookIds)) {
+    const book = books.find(b => b.id === bookId);
+    if (book?.localAccountId) localAccountId = book.localAccountId;
+    if (book?.isShared && book.accountId) sharedAccountId = book.accountId;
+    if (book?.originalId) {
+      raw[book.originalId] = value;
+      continue;
+    }
+    let stripped = stripLocalAccountPrefix(bookId, localAccountId);
+    if (owner?.isShared && owner.accountId && stripped.startsWith(`${owner.accountId}:`)) {
+      stripped = stripped.slice(owner.accountId.length + 1);
+    }
+    raw[stripped] = value;
+  }
+  return { addressBookIds: raw, sharedAccountId, localAccountId };
+}
+
 export function getContactDisplayName(contact: ContactCard): string {
   if (contact.name) {
     // Try given + surname from components first
@@ -508,28 +543,15 @@ export const useContactStore = create<ContactStore>()(
           let cleanedContact = contact;
           let localAccountId = contact.localAccountId;
 
-          // De-namespace addressBookIds if they reference a shared address book
+          // De-namespace addressBookIds (shared and/or local-account prefixes)
           if (contact.addressBookIds) {
-            const books = get().addressBooks;
-            const deNamespaced: Record<string, boolean> = {};
-            let sharedAccountId: string | undefined;
-            for (const [bookId, value] of Object.entries(contact.addressBookIds)) {
-              const book = books.find(b => b.id === bookId);
-              if (book?.localAccountId) localAccountId = book.localAccountId;
-              if (book?.isShared && book.originalId) {
-                deNamespaced[book.originalId] = value;
-                sharedAccountId = book.accountId;
-              } else if (book?.originalId) {
-                deNamespaced[book.originalId] = value;
-              } else {
-                deNamespaced[bookId] = value;
-              }
-            }
-            if (sharedAccountId) {
-              accountId = sharedAccountId;
-              cleanedContact = { ...contact, addressBookIds: deNamespaced, isShared: true, accountId: sharedAccountId };
+            const resolved = resolveRawAddressBookIds(contact.addressBookIds, get().addressBooks, contact);
+            localAccountId = resolved.localAccountId;
+            if (resolved.sharedAccountId) {
+              accountId = resolved.sharedAccountId;
+              cleanedContact = { ...contact, addressBookIds: resolved.addressBookIds, isShared: true, accountId: resolved.sharedAccountId };
             } else {
-              cleanedContact = { ...contact, addressBookIds: deNamespaced };
+              cleanedContact = { ...contact, addressBookIds: resolved.addressBookIds };
             }
           }
 
@@ -562,17 +584,13 @@ export const useContactStore = create<ContactStore>()(
           const accountId = contact?.isShared ? contact.accountId : undefined;
           client = resolveAccountClient(client, contact?.localAccountId);
 
-          // De-namespace addressBookIds for shared contacts before sending to JMAP server
+          // De-namespace addressBookIds before sending to the JMAP server. This
+          // applies to personal books too: in multi-account Pro mode every id
+          // carries the `local::` prefix, and the server rejects it (#1043).
           let cleanedUpdates = updates;
-          if (contact?.isShared && contact?.accountId && updates.addressBookIds) {
-            const prefix = `${contact.accountId}:`;
-            const deNamespaced = Object.fromEntries(
-              Object.entries(updates.addressBookIds).map(([k, v]) => [
-                k.startsWith(prefix) ? k.slice(prefix.length) : k,
-                v
-              ])
-            );
-            cleanedUpdates = { ...updates, addressBookIds: deNamespaced };
+          if (updates.addressBookIds) {
+            const resolved = resolveRawAddressBookIds(updates.addressBookIds, get().addressBooks, contact);
+            cleanedUpdates = { ...updates, addressBookIds: resolved.addressBookIds };
           }
 
           await client.updateContact(originalId, cleanedUpdates, accountId);
@@ -969,12 +987,13 @@ export const useContactStore = create<ContactStore>()(
 
           // Same account: just update the addressBookIds
           if ((sourceAccountId || primaryAccountId) === (targetAccountId || primaryAccountId)) {
-            await client.updateContact(originalId, { addressBookIds: { [targetBookOriginalId]: true } }, sourceAccountId);
-            const isTargetPrimary = !targetAccountId || targetAccountId === primaryAccountId;
-            const localBookId = isTargetPrimary ? targetBookOriginalId : `${targetAccountId}:${targetBookOriginalId}`;
+            const ownerClient = resolveAccountClient(client, contact.localAccountId);
+            await ownerClient.updateContact(originalId, { addressBookIds: { [targetBookOriginalId]: true } }, sourceAccountId);
+            // Keep the id in the same (possibly namespaced) form the sidebar
+            // filters by; `addressBook.id` already is that form.
             set((state) => ({
               contacts: state.contacts.map(c =>
-                c.id === id ? { ...c, addressBookIds: { [localBookId]: true } } : c
+                c.id === id ? { ...c, addressBookIds: { [addressBook.id]: true } } : c
               ),
             }));
           } else {
