@@ -182,6 +182,25 @@ export async function proxy(request: NextRequest) {
     pathname === "/plugin-sandbox-privileged" ||
     pathname.startsWith("/plugin-sandbox-privileged/");
 
+  // The sandbox routes are only ever loaded as iframes by the host bridge.
+  // Refuse them as a top-level document (window.open() from another site, a
+  // typed URL): the browser sets `Sec-Fetch-Dest` and page script cannot
+  // forge it; browsers without it fall through to the runtime's own host gate.
+  // They also disappear entirely while the plugin feature is off, so a stock
+  // install never serves a document carrying 'unsafe-eval'
+  // (GHSA-96cx-gx36-3g79). Other destinations pass - `iframe` for the bridge,
+  // `empty` for the router's own RSC refetches - and cross-site framing is
+  // already blocked by the `frame-ancestors 'self'` below.
+  if (isSandboxPath) {
+    const pluginsEnabled = configManager.getPolicy().features?.pluginsEnabled === true;
+    if (!pluginsEnabled || request.headers.get("sec-fetch-dest") === "document") {
+      return new NextResponse("The plugin sandbox is only served inside the webmail.", {
+        status: 403,
+        headers: { "content-type": "text/plain" },
+      });
+    }
+  }
+
   const scriptSrc = isSandboxPath
     ? `'self' 'nonce-${nonce}' 'unsafe-eval'`
     : isDev

@@ -3,9 +3,9 @@
 // Runtime that boots inside the null-origin plugin sandbox iframe.
 //
 // Lifecycle:
-//   1. Iframe loads → posts 'sandbox-ready' to parent (targetOrigin '*' is OK;
-//      the message carries no secrets, and the parent's first inbound message
-//      gives us the origin to pin for everything that follows).
+//   1. Iframe loads → posts 'sandbox-ready' to the window that framed it
+//      (`window.parent`, targeted at this document's own URL origin - see
+//      `resolveHost`). A top-level load has no host and stays inert.
 //   2. Parent posts 'init' with the bundle code + manifest + mode/slot.
 //   3. We evaluate the bundle in a `new Function` scope with React/ReactDOM
 //      injected as globals; the bundle is CommonJS-style (`module.exports = {
@@ -68,6 +68,39 @@ const hookHandlers: Record<string, (...args: unknown[]) => unknown> = {};
 function sendToHost(msg: SandboxToHost): void {
   if (!parentWindow || !parentOrigin) return;
   parentWindow.postMessage(msg, parentOrigin);
+}
+
+// ─── Host binding ────────────────────────────────────────────
+
+/**
+ * The one window allowed to drive this runtime, and the origin it must post
+ * from. Both are fixed from browser-owned facts at load time and never
+ * learned from a message:
+ *
+ *  - `window.parent` is the document that framed us. The host bridge creates
+ *    that iframe itself, so this is the mirror of its own contentWindow check.
+ *    A top-level load (window.open from another site, a typed URL) has no
+ *    parent - `parent === window` - and gets no host at all: `window.opener`
+ *    is never a host.
+ *  - `location.origin` is the URL origin even when this iframe runs with an
+ *    opaque origin (sandbox="allow-scripts"), and the host page is served
+ *    from that same origin: the bridge loads a same-origin path and the route
+ *    CSP pins `frame-ancestors 'self'`.
+ *
+ * Pinning the first sender instead (pre-fix) let any website window.open()
+ * the route, post its own `init` before a real host could, and run its code
+ * under this document's `'unsafe-eval'` CSP in the webmail origin
+ * (GHSA-96cx-gx36-3g79). Returns null when there is no acceptable host.
+ */
+function resolveHost(): { window: Window; origin: string } | null {
+  if (typeof window === 'undefined') return null;
+  const parent = window.parent;
+  if (!parent || parent === window) return null;
+  const origin = window.location.origin;
+  // 'null' is what opaque URL origins (blob:, data:, file:) serialise to; an
+  // attacker frame could match it, so it never counts as a host origin.
+  if (!origin || origin === 'null') return null;
+  return { window: parent, origin };
 }
 
 // ─── Theme replay ────────────────────────────────────────────
@@ -643,14 +676,12 @@ async function handleInit(payload: InitPayload): Promise<void> {
 // ─── Host message handler ────────────────────────────────────
 
 function handleHostMessage(ev: MessageEvent): void {
-  // First inbound message pins source + origin. Reject everything else.
-  if (!parentWindow) {
-    if (!ev.source || ev.source === window) return;
-    parentWindow = ev.source as Window;
-    parentOrigin = ev.origin || null;
-  }
+  // Only the framing window, posting from our own origin, may talk to us.
+  // Both were bound by `resolveHost` before this listener was installed; a
+  // message never establishes them (GHSA-96cx-gx36-3g79).
+  if (!parentWindow || !parentOrigin) return;
   if (ev.source !== parentWindow) return;
-  if (parentOrigin && ev.origin !== parentOrigin) return;
+  if (ev.origin !== parentOrigin) return;
 
   const msg = ev.data as HostToSandbox;
   if (!msg || typeof (msg as { type?: unknown }).type !== 'string') return;
@@ -729,13 +760,20 @@ function handleHostMessage(ev: MessageEvent): void {
 
 export function SandboxRuntime(): React.JSX.Element {
   useEffect(() => {
+    // Not framed by a same-origin host: stay inert. No listener, no ping -
+    // nothing a window.open()-ing site could talk to.
+    const host = resolveHost();
+    if (!host) return;
+    parentWindow = host.window;
+    parentOrigin = host.origin;
     window.addEventListener('message', handleHostMessage);
-    // Initial ping. We don't know parent origin yet, so '*' is required.
-    // Guard at module scope so React strict mode's double-invoke doesn't
-    // re-post (and so a re-post can't race with the parent's init reply).
-    if (!readyPosted && window.parent && window.parent !== window) {
+    // Initial ping, targeted at the host origin so it can only land on the
+    // page that framed us. Guard at module scope so React strict mode's
+    // double-invoke doesn't re-post (and so a re-post can't race with the
+    // parent's init reply).
+    if (!readyPosted) {
       readyPosted = true;
-      window.parent.postMessage({ type: 'sandbox-ready' } satisfies SandboxToHost, '*');
+      sendToHost({ type: 'sandbox-ready' });
     }
     return () => {
       window.removeEventListener('message', handleHostMessage);
