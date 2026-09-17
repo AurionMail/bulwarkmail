@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
   const oauthEnabled = configManager.get<boolean>('oauthEnabled', false);
   const oauthOnly = oauthEnabled && configManager.get<boolean>('oauthOnly', false);
   const stalwartFeaturesEnabled = configManager.get<boolean>('stalwartFeaturesEnabled', true);
+  const stalwartJmapPassthroughEnabled =
+    stalwartFeaturesEnabled && configManager.get<boolean>('stalwartJmapPassthroughEnabled', true);
   const allowedFrameAncestors = configManager.get<string>('allowedFrameAncestors', '');
 
   return NextResponse.json(
@@ -64,6 +66,7 @@ export async function GET(request: NextRequest) {
       rememberMeEnabled: hasSessionSecret(),
       settingsSyncEnabled: configManager.get<boolean>('settingsSyncEnabled', false) && hasSessionSecret(),
       stalwartFeaturesEnabled,
+      stalwartJmapPassthroughEnabled,
       devMode: configManager.get<boolean>('devMode', false),
       faviconUrl: branded<string>('faviconUrl', '/branding/Bulwark_Favicon.svg'),
       appLogoLightUrl: branded<string>('appLogoLightUrl', ''),

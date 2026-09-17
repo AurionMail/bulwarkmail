@@ -152,6 +152,8 @@ vi.mock('@/lib/email-sanitization', () => ({
 vi.mock('@/lib/reply-identity', () => ({
   resolveReplyFrom: () => null,
   findComposeIdentityId: () => null,
+  findReplyIdentityId: () => null,
+  findDraftIdentityId: () => null,
 }));
 vi.mock('@/lib/email-threading', () => ({
   computeReplyThreadingHeaders: () => ({ inReplyTo: [], references: [] }),

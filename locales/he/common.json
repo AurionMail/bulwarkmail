@@ -190,6 +190,10 @@
     "and_others": "ו-{count}אחרים",
     "draft": "טְיוּטָה",
     "starred": "מסומן בכוכב",
+    "pinned": "מוצמד",
+    "replied": "נענה",
+    "forwarded": "הועבר",
+    "has_attachment": "כולל קובץ מצורף",
     "conversations_count": "{count}מתוך שיחות{total}",
     "conversations_count_plus": "{count}+ שיחות",
     "conversations_count_simple": "שיחות{count}",
@@ -244,6 +248,7 @@
     "forward": "העבר",
     "delete": "מחיקה",
     "archive": "ארכיון",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "כוכב",
     "unstar": "הסר כוכב",
     "mark_unread": "סמן כלא נקרא",
@@ -253,7 +258,7 @@
     "fullscreen": "מסך מלא",
     "exit_fullscreen": "יציאה ממסך מלא",
     "export_email": "ייצא כ-.eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "העבר כקובץ מצורף",
     "import_email": "ייבוא .eml",
     "keyboard_shortcuts": "קיצורי מקשים (?)",
     "email_source": "מקור דוא\"ל",
@@ -693,7 +698,11 @@
       "delete_column": "מחיקת עמודה",
       "toggle_header_row": "החלפת שורת כותרת",
       "delete_table": "מחיקת טבלה",
-      "pick_size": "בחירת גודל"
+      "pick_size": "בחירת גודל",
+      "font_size": "גודל גופן",
+      "font_size_default": "ברירת מחדל",
+      "background_color": "צבע רקע",
+      "remove_background_color": "הסר צבע רקע"
     },
     "send_filing_warning": "נשלח - אך הניקוי שלאחר השליחה נכשל, ייתכן שתישאר טיוטה ישנה."
   },
@@ -1281,6 +1290,12 @@
         "label": "בחירה אוטומטית בכתובת תשובה",
         "description": "בעת תשובה, העבר אוטומטית את הכתובת מאת לזהות שקיבלה את ההודעה במקור"
       },
+      "reply_identity_match": {
+        "label": "התאמת כתובת הקבלה",
+        "description": "אילו כתובות קבלה נחשבות לשלך. „כתובת מדויקת בלבד“ בוחרת רק אחת מהזהויות שהגדרת; „אותו דומיין“ מתייחסת גם לכל כתובת אחרת בדומייני הזהויות שלך ככינוי catch-all ומשכתבת אליה את כותרת השולח. בחר בכתובת מדויקת אם כתובות אלה הן רשימות תפוצה.",
+        "exact": "כתובת מדויקת בלבד",
+        "domain": "כל כתובת בדומיינים שלי"
+      },
       "attachment_click_action": {
         "label": "קובץ מצורף לחץ על פעולה",
         "description": "בחר אם לחיצה על קובץ מצורף תציג אותו בתצוגה מקדימה או תוריד אותו מיד",
@@ -1733,6 +1748,8 @@
       "role_trash": "אַשׁפָּה",
       "role_junk": "ספאם / זבל",
       "role_archive": "ארכיון",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "אין",
       "create_folder": "צור תיקיה",
       "create_subfolder": "צור תיקיית משנה",
@@ -1854,6 +1871,8 @@
       "categories_description": "שנה שם של קטגוריות אנשי קשר",
       "no_categories": "לא נמצאו קטגוריות",
       "group_by_letter_label": "קבוצה לפי אות ראשונה",
+      "sort_by_last_name_label": "מיון לפי שם משפחה",
+      "sort_by_last_name_description": "סידור רשימת אנשי הקשר לפי שם משפחה כך שבני אותה משפחה יופיעו יחד",
       "group_by_letter_description": "הצג כותרות חלקים אלפביתיים ברשימת אנשי הקשר"
     },
     "filters": {
@@ -2657,7 +2676,10 @@
       "any_month": "כל חודש",
       "has_email": "יש דוא״ל",
       "has_phone": "יש טלפון",
-      "has_photo": "יש תמונה"
+      "has_photo": "יש תמונה",
+      "sort_by": "מיון לפי",
+      "sort_first_name": "שם פרטי",
+      "sort_last_name": "שם משפחה"
     }
   },
   "calendar": {
@@ -2693,6 +2715,10 @@
       "duplicate": "שכפול",
       "today_header": "היום",
       "tomorrow_header": "מחר",
+      "agenda_show_earlier": "הצגת אירועים קודמים",
+      "agenda_loading": "טוען…",
+      "agenda_range_start": "אירועים מ-{date}",
+      "agenda_range_end": "אירועים עד {date}",
       "export_ics": "יצא כ .ics",
       "copy_title": "עותק כותרת",
       "copy_link": "עותק קישור פגישה",
@@ -2848,6 +2874,8 @@
       "show_time_in_month_view_desc": "הצג זמני אירועים בתצוגת לוח השנה של החודש",
       "show_week_numbers": "הצג מספרי שבוע",
       "show_week_numbers_desc": "הצג מספרי שבוע במיני-לוח שנה",
+      "calendar_free_scroll": "גלילה חופשית",
+      "calendar_free_scroll_desc": "גלילה רציפה בין חודשים, שבועות וימים במקום תקופה אחת בכל פעם",
       "enable_tasks": "אפשר משימות",
       "enable_tasks_desc": "הצג תצוגת משימות בלוח השנה לניהול מטלות",
       "show_tasks_on_calendar": "הצג משימות בלוח השנה",

@@ -59,11 +59,44 @@ function base64Body(text: string): string {
   return (utf8ToBase64(text).match(/.{1,76}/g) || []).join("\r\n");
 }
 
-/** RFC 2047 encoded-word for header values that contain non-ASCII characters. */
-function encodeHeaderWord(value: string): string {
+/**
+ * Remove the characters that must never reach a header we assemble as text:
+ * CR, LF, the remaining C0 controls and DEL. Runs collapse to one space.
+ *
+ * Every value that lands in a header here ultimately comes from the message
+ * we are answering (its Subject, Message-ID, Disposition-Notification-To),
+ * and Stalwart hands those back already RFC 2047-decoded. A sender can
+ * therefore smuggle a bare CRLF past SMTP inside an encoded-word; if it were
+ * interpolated verbatim it would terminate the header and let the sender
+ * append headers and a body of their choosing to a message the victim's own
+ * account submits (GHSA-w38p-hpqv-g89c).
+ */
+function stripHeaderControls(value: string): string {
   // eslint-disable-next-line no-control-regex
-  if (!/[^\x00-\x7F]/.test(value)) return value;
-  return `=?UTF-8?B?${utf8ToBase64(value)}?=`;
+  return value.replace(/[\x00-\x1F\x7F]+/g, " ").trim();
+}
+
+/** Address-like atoms (mailboxes, message-ids) may contain no whitespace at all. */
+function headerAtom(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\x00-\x20\x7F]+/g, "");
+}
+
+/**
+ * Header value safe to place after "Name: ". Control characters are stripped
+ * first; the result is RFC 2047-encoded when it contains non-ASCII.
+ */
+function encodeHeaderWord(value: string): string {
+  const clean = stripHeaderControls(value);
+  if (!/[^\x20-\x7E]/.test(clean)) return clean;
+  return `=?UTF-8?B?${utf8ToBase64(clean)}?=`;
+}
+
+/** Display-name for a mailbox: encoded-word if non-ASCII, quoted if it uses specials. */
+function displayName(value: string): string {
+  const encoded = encodeHeaderWord(value);
+  if (encoded.startsWith("=?") || !/[()<>[\]:;@\\,."]/.test(encoded)) return encoded;
+  return `"${encoded.replace(/["\\]/g, "\\$&")}"`;
 }
 
 function ensureAngles(messageId: string | string[] | undefined): string {
@@ -71,7 +104,7 @@ function ensureAngles(messageId: string | string[] | undefined): string {
   // normalize string | string[] | undefined down to a single bracketed id.
   const raw = Array.isArray(messageId) ? messageId[0] : messageId;
   if (typeof raw !== "string") return "";
-  const trimmed = raw.trim();
+  const trimmed = headerAtom(raw);
   if (!trimmed) return "";
   return trimmed.startsWith("<") ? trimmed : `<${trimmed}>`;
 }
@@ -86,15 +119,19 @@ function randomToken(): string {
  * by the MIME standard so the bytes import/transmit verbatim.
  */
 export function buildMdnMessage(opts: MdnOptions): string {
-  const finalRecipient = opts.originalRecipient || opts.fromEmail;
-  const domain = (opts.fromEmail.split("@")[1] || "localhost").trim();
+  // Everything interpolated into a header line goes through headerAtom /
+  // encodeHeaderWord so that no CR/LF (or other control) can split a line.
+  const to = headerAtom(opts.to);
+  const fromEmail = headerAtom(opts.fromEmail);
+  const originalRecipient = opts.originalRecipient ? headerAtom(opts.originalRecipient) : "";
+  const finalRecipient = originalRecipient || fromEmail;
+  const domain = fromEmail.split("@")[1] || "localhost";
   const messageId = `<mdn.${randomToken()}@${domain}>`;
   const boundary = `----=_MDN_${randomToken()}`;
   const origMsgId = ensureAngles(opts.originalMessageId); // normalized "<...>" or ""
 
-  const fromHeader = opts.fromName
-    ? `${encodeHeaderWord(opts.fromName)} <${opts.fromEmail}>`
-    : opts.fromEmail;
+  const fromName = opts.fromName ? displayName(opts.fromName) : "";
+  const fromHeader = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
 
   const subject = encodeHeaderWord(
     opts.subject ?? `Read: ${opts.originalSubject || ""}`.trim()
@@ -104,7 +141,7 @@ export function buildMdnMessage(opts: MdnOptions): string {
     ? "automatic-action/MDN-sent-automatically; displayed"
     : "manual-action/MDN-sent-manually; displayed";
 
-  const reportingUa = opts.reportingUa || `${domain}; Bulwark Webmail`;
+  const reportingUa = stripHeaderControls(opts.reportingUa || "") || `${domain}; Bulwark Webmail`;
 
   // Human-readable part. Caller passes a localized humanText; fall back to
   // English. Encoded as UTF-8/base64 below so any language survives.
@@ -120,7 +157,7 @@ export function buildMdnMessage(opts: MdnOptions): string {
   const mdnFields = [
     `Reporting-UA: ${reportingUa}`,
     `Final-Recipient: rfc822;${finalRecipient}`,
-    ...(opts.originalRecipient ? [`Original-Recipient: rfc822;${opts.originalRecipient}`] : []),
+    ...(originalRecipient ? [`Original-Recipient: rfc822;${originalRecipient}`] : []),
     ...(origMsgId ? [`Original-Message-ID: ${origMsgId}`] : []),
     `Disposition: ${disposition}`,
   ].join("\r\n");
@@ -128,7 +165,7 @@ export function buildMdnMessage(opts: MdnOptions): string {
   return [
     `Date: ${rfc5322Date()}`,
     `From: ${fromHeader}`,
-    `To: ${opts.to}`,
+    `To: ${to}`,
     `Subject: ${subject}`,
     `Message-ID: ${messageId}`,
     ...(origMsgId ? [`In-Reply-To: ${origMsgId}`] : []),

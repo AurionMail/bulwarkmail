@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
+import { useSettingsStore } from '@/stores/settings-store';
+import { useAuthStore } from '@/stores/auth-store';
 
 // ─── Heavy component mocks (mirrors recipient-paste.test.tsx) ─────────────────
 
@@ -17,9 +19,22 @@ vi.mock('@/components/files/file-preview-modal', () => ({ FilePreviewModal: () =
 vi.mock('@/hooks/use-focus-trap', () => ({
   useFocusTrap: () => ({ ref: { current: null } }),
 }));
+// Mutable so one test can turn the Pro cross-account identity list on; the
+// real hook namespaces every id as `<localAccountId>::<identityId>`.
+const proIdentities = vi.hoisted(() => ({
+  enabled: false,
+  groups: [] as unknown[],
+  allIdentities: [] as { id: string; email: string; name: string }[],
+}));
+
 vi.mock('@/hooks/use-pro-multi-account-identities', () => ({
-  useProMultiAccountIdentities: () => ({ enabled: false, groups: [], allIdentities: [] }),
-  stripCrossAccountIdentityPrefix: (id: string) => ({ localAccountId: null, rawId: id }),
+  useProMultiAccountIdentities: () => proIdentities,
+  stripCrossAccountIdentityPrefix: (id: string) => {
+    const at = id.indexOf('::');
+    return at === -1
+      ? { localAccountId: null, rawId: id }
+      : { localAccountId: id.slice(0, at), rawId: id.slice(at + 2) };
+  },
 }));
 
 // ─── Store mocks ──────────────────────────────────────────────────────────────
@@ -86,7 +101,8 @@ vi.mock('@/stores/settings-store', () => {
     timeFormat: '24h',
     plainTextMode: false,
     subAddressDelimiter: '+',
-    autoSelectReplyIdentity: true,
+    autoSelectReplyIdentity: false,
+    replyIdentityMatch: 'domain',
     attachmentReminderEnabled: false,
     attachmentReminderKeywords: [],
     sendDelaySeconds: 0,
@@ -183,6 +199,29 @@ const SELF_SENT = {
   subject: 'Re: Hello',
 };
 
+/** Delivered to an aliased/shared mailbox the user DOES hold an identity for. */
+const RECEIVED_SHARED = {
+  from: [{ email: 'bob@other.com', name: 'Bob' }],
+  to: [{ email: 'info@example.com', name: 'Info' }],
+  subject: 'Question for the team inbox',
+};
+
+/** The shared-mailbox shape: the team address in To, our own in Cc. */
+const RECEIVED_SHARED_WITH_US_IN_CC = {
+  from: [{ email: 'bob@other.com', name: 'Bob' }],
+  to: [{ email: 'info@example.com', name: 'Info' }],
+  cc: [{ email: 'me@example.com', name: 'Me' }],
+  subject: 'Question for the team inbox',
+};
+
+/** Delivered to a same-domain address that is NOT one of our identities -
+ *  the domain catch-all shape that rewrites the From header. */
+const RECEIVED_CATCH_ALL = {
+  from: [{ email: 'bob@other.com', name: 'Bob' }],
+  to: [{ email: 'colleague@example.com', name: 'A Colleague' }],
+  subject: 'Sent to a colleague on our domain',
+};
+
 /** Chip labels currently shown in a recipient row, in order. Chips are the
  *  draggable spans inside the row; next-intl is mocked to return the key, so
  *  the Cc row is found via its "cc_label" caption. */
@@ -194,8 +233,12 @@ const ccChips = () => chipsIn(screen.getByText('cc_label').parentElement as HTML
 
 const identitySelect = () => screen.getByTestId('composer-from') as HTMLSelectElement;
 
+const setAutoSelect = (on: boolean) =>
+  (useSettingsStore as unknown as { setState: (p: Record<string, unknown>) => void })
+    .setState({ autoSelectReplyIdentity: on });
+
 describe('composer reply addressing', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => { vi.clearAllMocks(); setAutoSelect(false); });
 
   it('addresses a reply to the sender of a received message', () => {
     render(<EmailComposer mode="reply" replyTo={RECEIVED} />);
@@ -224,5 +267,116 @@ describe('composer reply addressing', () => {
   it('sends the reply to our own message from the identity that sent it', () => {
     render(<EmailComposer mode="reply" replyTo={{ ...SELF_SENT, from: [{ email: 'info@example.com', name: 'Info' }] }} />);
     expect(identitySelect().value).toBe('id-info');
+  });
+
+  // Own-identity matching is unconditional: it only chooses which of the
+  // user's OWN addresses sends, so it carries no impersonation risk. Shipping
+  // it behind an off-by-default setting meant a shared mailbox always replied
+  // as the account owner.
+  it('replies from the address that received the original', () => {
+    render(<EmailComposer mode="reply" replyTo={RECEIVED_SHARED} />);
+    expect(identitySelect().value).toBe('id-info');
+  });
+
+  it('forwards from the address that received the original', () => {
+    render(<EmailComposer mode="forward" replyTo={RECEIVED_SHARED} />);
+    expect(identitySelect().value).toBe('id-info');
+  });
+
+  // Being copied on a message addressed to the team must not make it reply as
+  // us: the identity list is ordered login-first, so resolving by identity
+  // order rather than by To/Cc/Bcc rank would pick `id-me` here.
+  it('replies from the To address even when our own identity is in Cc', () => {
+    render(<EmailComposer mode="reply" replyTo={RECEIVED_SHARED_WITH_US_IN_CC} />);
+    expect(identitySelect().value).toBe('id-info');
+  });
+
+  // Deliberate boundary: a NEW message is still resolved only when the setting
+  // is on. `composeFromAccountEmail` falls back to the account's login address,
+  // frozen at first login, so preselecting unconditionally would override a
+  // user-chosen default sender identity (#507) on every new message.
+  it('leaves a new message on the primary identity while the setting is off', () => {
+    render(<EmailComposer mode="compose" composeFromAccountEmail="info@example.com" />);
+    expect(identitySelect().value).toBe('id-me');
+  });
+
+  // The catch-all From REWRITE is a different behaviour and stays opt-in: it
+  // puts an address the user has NOT configured into From, and on a multi-user
+  // domain that address can be a colleague's.
+  it('does not rewrite From to a same-domain non-identity while the setting is off', () => {
+    render(<EmailComposer mode="reply" replyTo={RECEIVED_CATCH_ALL} />);
+    expect(screen.queryByDisplayValue('colleague@example.com')).toBeNull();
+    expect(identitySelect().value).toBe('id-me');
+  });
+
+  // A forward introduces the rewritten From to a recipient the user just
+  // typed, who has no way to tell it is not really from that person - so
+  // forwards never take the rewrite, even when it is enabled.
+  // Control: the opt-in path itself still works on a reply, so the two tests
+  // above are proving the gate, not a broken resolver.
+  it('rewrites From to the catch-all address on a reply when the setting is on', () => {
+    setAutoSelect(true);
+    try {
+      render(<EmailComposer mode="reply" replyTo={RECEIVED_CATCH_ALL} />);
+      expect(screen.getByDisplayValue('colleague@example.com')).toBeTruthy();
+    } finally {
+      setAutoSelect(false);
+    }
+  });
+
+  // #1000: on a domain whose other addresses are distribution lists rather
+  // than catch-all aliases, the setting can stay on but limited to configured
+  // identities, so a reply to list@ gets no From override.
+  it('does not rewrite From when matching is limited to exact addresses', () => {
+    const settings = useSettingsStore as unknown as { setState: (p: Record<string, unknown>) => void };
+    settings.setState({ autoSelectReplyIdentity: true, replyIdentityMatch: 'exact' });
+    try {
+      render(<EmailComposer mode="reply" replyTo={RECEIVED_CATCH_ALL} />);
+      expect(screen.queryByDisplayValue('colleague@example.com')).toBeNull();
+      expect(identitySelect().value).toBe('id-me');
+    } finally {
+      settings.setState({ autoSelectReplyIdentity: false, replyIdentityMatch: 'domain' });
+    }
+  });
+
+  it('never rewrites From on a forward, even with the setting on', () => {
+    setAutoSelect(true);
+    try {
+      render(<EmailComposer mode="forward" replyTo={RECEIVED_CATCH_ALL} />);
+      expect(screen.queryByDisplayValue('colleague@example.com')).toBeNull();
+    } finally {
+      setAutoSelect(false);
+    }
+  });
+
+  // `composerClient` follows the selected identity, so auto-selecting an
+  // identity from another connected account would send this forward's inherited
+  // blobIds - and its autosaved draft - to a server that has never seen them.
+  // The From dropdown still offers that identity for manual selection.
+  it('never auto-selects an identity from another account', () => {
+    proIdentities.enabled = true;
+    proIdentities.allIdentities = [
+      { id: 'local-1::id-me', email: 'me@example.com', name: 'Me' },
+      { id: 'local-1::id-info', email: 'info@example.com', name: 'Info' },
+      { id: 'local-2::id-pers', email: 'personal@elsewhere.net', name: 'Personal' },
+    ];
+    (useAuthStore as unknown as { setState: (p: Record<string, unknown>) => void })
+      .setState({ activeAccountId: 'local-1' });
+    try {
+      render(
+        <EmailComposer
+          mode="forward"
+          replyTo={{
+            from: [{ email: 'bob@other.com', name: 'Bob' }],
+            to: [{ email: 'personal@elsewhere.net', name: 'Personal' }],
+            subject: 'Fwd',
+          }}
+        />,
+      );
+      expect(identitySelect().value).not.toBe('local-2::id-pers');
+    } finally {
+      proIdentities.enabled = false;
+      proIdentities.allIdentities = [];
+    }
   });
 });

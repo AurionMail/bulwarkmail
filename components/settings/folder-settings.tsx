@@ -16,7 +16,7 @@ import {
   AlertTriangle, NotebookPen, CalendarClock, BellOff,
   type LucideIcon,
 } from 'lucide-react';
-import { cn, buildMailboxTree, type MailboxNode } from '@/lib/utils';
+import { cn, buildMailboxTree, flattenMailboxTree, type MailboxNode } from '@/lib/utils';
 import {
   flattenVisibleTree, removeSubtree, getProjection, getDropPlan,
   type FlatFolder,
@@ -670,9 +670,13 @@ export function FolderSettings() {
       {/* Standard Folder Roles - advanced section */}
       <SettingsSection title={t('standard_roles')} description={t('standard_roles_description')}>
         {STANDARD_ROLES.map((role) => {
+          // Offer the folders in sidebar order (the built tree: role priority,
+          // then name, children under their parent) rather than raw server
+          // order, so the dropdown reads like the folder list. (#984)
+          const orderedMailboxes = flattenMailboxTree(folderTree);
           // Disambiguate duplicate folder names by appending parent path
           const nameCounts = new Map<string, number>();
-          ownMailboxes.forEach(mb => nameCounts.set(mb.name, (nameCounts.get(mb.name) || 0) + 1));
+          orderedMailboxes.forEach(mb => nameCounts.set(mb.name, (nameCounts.get(mb.name) || 0) + 1));
           const getParentPath = (mb: { parentId?: string; name: string }) => {
             if (!mb.parentId) return '';
             const parent = ownMailboxes.find(p => p.id === mb.parentId);
@@ -686,7 +690,7 @@ export function FolderSettings() {
                 onChange={(value) => handleRoleChange(role, value)}
                 options={[
                   { value: '', label: t('role_none') },
-                  ...ownMailboxes.map(mb => ({
+                  ...orderedMailboxes.map(mb => ({
                     value: mb.id,
                     label: (nameCounts.get(mb.name) || 0) > 1
                       ? `${getParentPath(mb)}${mb.name} (${mb.id.slice(-6)})`

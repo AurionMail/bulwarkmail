@@ -405,7 +405,7 @@ export interface IJMAPClient {
   getCalendarEvents(calendarIds?: string[], targetAccountId?: string): Promise<CalendarEvent[]>;
   getCalendarEvent(id: string, targetAccountId?: string): Promise<CalendarEvent | null>;
   createCalendarEvent(event: Partial<CalendarEvent>, sendSchedulingMessages?: boolean, targetAccountId?: string): Promise<CalendarEvent>;
-  batchCreateCalendarEvents(events: Partial<CalendarEvent>[], targetAccountId?: string): Promise<{ created: CalendarEvent[]; failed: string[] }>;
+  batchCreateCalendarEvents(events: Partial<CalendarEvent>[], targetAccountId?: string): Promise<{ created: CalendarEvent[]; failed: string[]; notCreated: Record<string, { type?: string; description?: string }> }>;
   updateCalendarEvent(
     eventId: string,
     updates: Partial<CalendarEvent>,
@@ -413,7 +413,7 @@ export interface IJMAPClient {
     targetAccountId?: string,
   ): Promise<void>;
   deleteCalendarEvent(eventId: string, sendSchedulingMessages?: boolean, targetAccountId?: string): Promise<void>;
-  batchDeleteCalendarEvents(eventIds: string[], targetAccountId?: string): Promise<{ destroyed: string[]; notDestroyed: string[] }>;
+  batchDeleteCalendarEvents(eventIds: string[], targetAccountId?: string): Promise<{ destroyed: string[]; notDestroyed: Record<string, { type?: string; description?: string }> }>;
   queryCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number, targetAccountId?: string): Promise<CalendarEvent[]>;
   queryAllCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number): Promise<CalendarEvent[]>;
   parseCalendarEvents(accountId: string, blobId: string): Promise<Partial<CalendarEvent>[]>;

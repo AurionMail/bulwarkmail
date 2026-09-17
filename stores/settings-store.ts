@@ -102,6 +102,7 @@ export type ListDensity = Density;
 export type DeleteAction = 'trash' | 'trash-and-read' | 'permanent';
 export type ReplyMode = 'reply' | 'replyAll';
 export type SignaturePosition = 'above_quote' | 'below_quote';
+export type ReplyIdentityMatch = 'exact' | 'domain';
 /** How to handle an incoming Disposition-Notification-To (read-receipt) request. */
 export type ReadReceiptResponse = 'ask' | 'always' | 'never';
 export type DateFormat = 'smart' | 'relative' | 'full';
@@ -343,6 +344,7 @@ interface SettingsState {
   sendConfirmation: boolean;
   defaultReplyMode: ReplyMode;
   autoSelectReplyIdentity: boolean;
+  replyIdentityMatch: ReplyIdentityMatch; // With autoSelectReplyIdentity on: 'exact' = configured identities only, 'domain' = also same-domain catch-all addresses (rewrites From) #1000
   plainTextMode: boolean; // Send plain text only (no rich text editor)
   rtlEditingSupport: boolean; // Show a per-paragraph LTR/RTL direction control in the composer (Gmail-style)
   subAddressDelimiter: string; // Character separating user from tag (e.g. "user+tag@")
@@ -367,6 +369,8 @@ interface SettingsState {
   // Calendar
   showTimeInMonthView: boolean;
   showWeekNumbers: boolean;
+  /** Scroll continuously through months/weeks/days (#759) instead of one period at a time. */
+  calendarFreeScroll: boolean;
   calendarHoverPreview: CalendarHoverPreview;
 
   // Calendar Tasks
@@ -384,6 +388,9 @@ interface SettingsState {
 
   // Contacts Display
   groupContactsByLetter: boolean;
+  // Sort (and group) the contact list by surname instead of given name so
+  // family members sit together (#963).
+  sortContactsByLastName: boolean;
 
   // Email Notifications
   emailNotificationsEnabled: boolean;
@@ -580,6 +587,7 @@ const DEFAULT_SETTINGS = {
   sendConfirmation: false,
   defaultReplyMode: 'reply' as ReplyMode,
   autoSelectReplyIdentity: false,
+  replyIdentityMatch: 'domain' as ReplyIdentityMatch,
   plainTextMode: false,
   rtlEditingSupport: false,
   subAddressDelimiter: DEFAULT_SUB_ADDRESS_DELIMITER,
@@ -600,6 +608,7 @@ const DEFAULT_SETTINGS = {
   // Calendar
   showTimeInMonthView: false,
   showWeekNumbers: false,
+  calendarFreeScroll: true,
   calendarHoverPreview: 'delay-500ms' as CalendarHoverPreview,
 
   // Calendar Tasks
@@ -614,6 +623,7 @@ const DEFAULT_SETTINGS = {
 
   // Contacts Display
   groupContactsByLetter: true,
+  sortContactsByLastName: false,
 
   // Email Notifications
   emailNotificationsEnabled: true,
@@ -805,6 +815,7 @@ export const useSettingsStore = create<SettingsState>()(
           sendConfirmation: state.sendConfirmation,
           defaultReplyMode: state.defaultReplyMode,
           autoSelectReplyIdentity: state.autoSelectReplyIdentity,
+          replyIdentityMatch: state.replyIdentityMatch,
           plainTextMode: state.plainTextMode,
           rtlEditingSupport: state.rtlEditingSupport,
           subAddressDelimiter: state.subAddressDelimiter,
@@ -828,9 +839,11 @@ export const useSettingsStore = create<SettingsState>()(
           birthdayCalendarColor: state.birthdayCalendarColor,
           sharedCalendarColors: state.sharedCalendarColors,
           groupContactsByLetter: state.groupContactsByLetter,
+          sortContactsByLastName: state.sortContactsByLastName,
           expandedFilterView: state.expandedFilterView,
           showTimeInMonthView: state.showTimeInMonthView,
           showWeekNumbers: state.showWeekNumbers,
+          calendarFreeScroll: state.calendarFreeScroll,
           calendarHoverPreview: state.calendarHoverPreview,
           toolbarPosition: state.toolbarPosition,
           hideAccountSwitcher: state.hideAccountSwitcher,
@@ -1386,8 +1399,10 @@ if (typeof window !== 'undefined') {
   };
   // Ensure template-store is loaded (and the bridge registered) even before
   // any UI component imports it, so the first sync push already carries the
-  // templates.
-  void import('./template-store');
+  // templates. Best effort: the UI imports the store itself when it needs it,
+  // and under vitest a short test file can finish (and tear its environment
+  // down) before this chain has loaded, which rejects the import.
+  import('./template-store').catch(() => {});
 }
 
 /**

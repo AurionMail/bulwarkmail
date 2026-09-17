@@ -19,7 +19,7 @@ import { buildQuotedHtmlBlock, serializeEditorContent } from "@/components/email
 import { buildSignatureBlock, containsEmbeddedSignature, SIGNATURE_RANGE_MARKER } from "@/components/email/signature-block";
 import { emailHooks, contactHooks, isExternalAttachmentResult } from "@/lib/plugin-hooks";
 import { onUploadProgress } from "@/lib/upload-progress";
-import type { AlmostSavedDraft, OutgoingEmail, RecipientSuggestion } from "@/lib/plugin-types";
+import type { AlmostSavedDraft, OutgoingEmail, PluginAttachmentUpload, RecipientSuggestion } from "@/lib/plugin-types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useIdentityStore } from "@/stores/identity-store";
 import { useProMultiAccountIdentities, stripCrossAccountIdentityPrefix } from "@/hooks/use-pro-multi-account-identities";
@@ -37,7 +37,7 @@ import { TemplatePicker } from "@/components/templates/template-picker";
 import { TemplateForm } from "@/components/templates/template-form";
 import type { EmailTemplate } from "@/lib/template-types";
 import { appendPlainTextSignature, getPlainTextSignature, plainTextBodyHasSignature, plainTextBodyWithoutSignature } from "@/lib/signature-utils";
-import { findComposeIdentityId, findDraftIdentityId, resolveReplyFrom } from "@/lib/reply-identity";
+import { findComposeIdentityId, findDraftIdentityId, findReplyIdentityId, resolveReplyFrom } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { RequestTimeoutError } from "@/lib/jmap/client";
@@ -180,11 +180,12 @@ interface EmailComposerProps {
   mode?: 'compose' | 'reply' | 'replyAll' | 'forward';
   /**
    * Email of the mailbox/account the user is viewing when they start a new
-   * message. When set (and `autoSelectReplyIdentity` is on), a fresh compose
-   * preselects the identity matching this address instead of the primary
-   * identity, so "New message" from info@ defaults its From to info@. Mirrors
-   * the reply-time identity match; ignored for reply/replyAll/forward (those
-   * resolve from the original recipients).
+   * message. When set, a fresh compose preselects the identity matching this
+   * address instead of the primary identity, so "New message" from info@
+   * defaults its From to info@. It matches the user's OWN identities only and
+   * is therefore not gated on `autoSelectReplyIdentity`, which gates the
+   * catch-all From rewrite. Mirrors the reply-time identity match; ignored for
+   * reply/replyAll/forward (those resolve from the original recipients).
    */
   composeFromAccountEmail?: string;
   replyTo?: {
@@ -311,6 +312,7 @@ export function EmailComposer({
   const plainTextMode = useSettingsStore((state) => state.plainTextMode);
   const subAddressDelimiter = useSettingsStore((state) => state.subAddressDelimiter);
   const autoSelectReplyIdentity = useSettingsStore((state) => state.autoSelectReplyIdentity);
+  const replyIdentityMatch = useSettingsStore((state) => state.replyIdentityMatch);
   const attachmentReminderEnabled = useSettingsStore((state) => state.attachmentReminderEnabled);
   const attachmentReminderKeywords = useSettingsStore((state) => state.attachmentReminderKeywords);
   const emptySubjectWarningEnabled = useSettingsStore((state) => state.emptySubjectWarningEnabled);
@@ -331,6 +333,19 @@ export function EmailComposer({
     ? multiAccountIdentities.groups
     : [];
   const primaryIdentity = activeIdentities[0] ?? null;
+  const activeAccountId = useAuthStore((s) => s.activeAccountId);
+  // Automatic selection stays on the active account: `composerClient` follows
+  // the chosen identity, and a reply/forward still carries the original
+  // message's blobIds, which only its own account's server can resolve. The
+  // From dropdown keeps offering every account's identities to pick by hand.
+  const sameAccountIdentities = useMemo(
+    () => (multiAccountIdentities.enabled
+      ? identities.filter(
+          (identity) => stripCrossAccountIdentityPrefix(identity.id).localAccountId === activeAccountId,
+        )
+      : identities),
+    [multiAccountIdentities.enabled, identities, activeAccountId],
+  );
 
   const { isFeatureEnabled } = usePolicyStore();
   const templatesEnabled = isFeatureEnabled('templatesEnabled');
@@ -692,6 +707,12 @@ export function EmailComposer({
   const composerClient = currentIdentityParts.localAccountId
     ? (useAuthStore.getState().getClientForAccount(currentIdentityParts.localAccountId) ?? client)
     : client;
+  // The upload callbacks below list only `client` as a dependency, so they read
+  // the composing identity's client through a ref: uploads must land in the
+  // account that owns the draft, and a direct substitution would capture a
+  // stale client. (#943)
+  const composerClientRef = useRef(composerClient);
+  composerClientRef.current = composerClient;
   const currentIdentityRawId = currentIdentityParts.rawId ?? currentIdentity?.id;
   // Alias identities often lack a configured signature - fall back to the primary
   // identity's signature so replies (which auto-select a matching alias) still
@@ -799,8 +820,12 @@ export function EmailComposer({
     setShowSendMenu(false);
   }, []);
 
+  // `autoSelectReplyIdentity` fused two behaviours: matching one of the user's
+  // OWN identities, which never rewrites `From:`, and the domain catch-all,
+  // which puts an address they have not configured into `From:`. Only the
+  // first is safe for everyone, so it is unconditional here; the rewrite stays
+  // behind the setting, which is what the setting's description promises.
   useEffect(() => {
-    if (!autoSelectReplyIdentity) return;
     if (selectedIdentityId || initialData?.selectedIdentityId) return;
 
     // New message started from a specific mailbox/account: default the From to
@@ -808,6 +833,11 @@ export function EmailComposer({
     // viewing info@ sends as info@. Reply/forward fall through to the
     // recipient-based resolution below.
     if (mode === 'compose') {
+      // Still gated. `composeFromAccountEmail` falls back to `AccountEntry.email`,
+      // which is written once at first login, so resolving it unconditionally
+      // would override a user-chosen default sender identity (#507) on every
+      // new message.
+      if (!autoSelectReplyIdentity) return;
       const composeIdentityId = findComposeIdentityId(identities, composeFromAccountEmail);
       if (composeIdentityId) {
         setSelectedIdentityId(composeIdentityId);
@@ -815,7 +845,10 @@ export function EmailComposer({
       return;
     }
 
-    if (mode !== 'reply' && mode !== 'replyAll') return;
+    // `forward` resolves like a reply: the address the original was delivered to
+    // is the one to send from. The comment above already promised it, and the
+    // neighbouring inline-image effect groups all three modes together.
+    if (mode !== 'reply' && mode !== 'replyAll' && mode !== 'forward') return;
 
     // Replying to our own message in a thread (#703): keep sending as the
     // identity that sent it. Resolving from the recipients here would pick the
@@ -829,20 +862,37 @@ export function EmailComposer({
       }
     }
 
-    const resolved = resolveReplyFrom(identities, {
+    const recipients = {
       to: replyTo?.to,
       cc: replyTo?.cc,
       bcc: replyTo?.bcc,
-    });
+    };
 
-    if (resolved) {
-      setSelectedIdentityId(resolved.identityId);
-      if (resolved.overrideEmail && !fromOverrideEnabled) {
-        setFromOverrideEnabled(true);
-        setFromOverrideEmail(resolved.overrideEmail);
-        if (resolved.overrideName) setFromOverrideName(resolved.overrideName);
-      }
+    // Own-identity match: unconditional, since it only ever selects one of the
+    // user's own configured addresses.
+    const ownIdentityId = findReplyIdentityId(sameAccountIdentities, recipients);
+    if (ownIdentityId) {
+      setSelectedIdentityId(ownIdentityId);
       return;
+    }
+
+    // Catch-all From rewrite: opt-in, and never on a forward. A reply continues
+    // a thread whose participants already know the addressing; a forward
+    // introduces the rewritten From to a recipient the user just typed, who has
+    // no way to tell it is not really from that person. `replyIdentityMatch`
+    // lets a user keep the setting on but limit it to configured identities,
+    // for domains where the other addresses are distribution lists (#1000).
+    if (autoSelectReplyIdentity && mode !== 'forward') {
+      const resolved = resolveReplyFrom(identities, recipients, replyIdentityMatch);
+      if (resolved) {
+        setSelectedIdentityId(resolved.identityId);
+        if (resolved.overrideEmail && !fromOverrideEnabled) {
+          setFromOverrideEnabled(true);
+          setFromOverrideEmail(resolved.overrideEmail);
+          if (resolved.overrideName) setFromOverrideName(resolved.overrideName);
+        }
+        return;
+      }
     }
 
     // Fallback: match identity by the account's email when replying from unified view
@@ -860,9 +910,11 @@ export function EmailComposer({
     }
   }, [
     autoSelectReplyIdentity,
+    replyIdentityMatch,
     composeFromAccountEmail,
     fromOverrideEnabled,
     identities,
+    sameAccountIdentities,
     initialData?.selectedIdentityId,
     mode,
     replyTo?.accountId,
@@ -1487,7 +1539,7 @@ export function EmailComposer({
 
           // Passing the signal also makes cancel abort the transfer itself,
           // instead of only being checked once the upload has finished.
-          const { blobId } = await client.uploadBlob(newFile, {
+          const { blobId } = await (composerClientRef.current ?? client).uploadBlob(newFile, {
             onProgress: reportProgress,
             signal: controller?.signal,
           });
@@ -1537,7 +1589,7 @@ export function EmailComposer({
         reader.readAsDataURL(file);
       });
       const [{ blobId }, dataUrl] = await Promise.all([
-        client.uploadBlob(file),
+        (composerClientRef.current ?? client).uploadBlob(file),
         readAsDataUrl,
       ]);
       if (!dataUrl) throw new Error('Failed to read image as data URL');
@@ -1615,6 +1667,24 @@ export function EmailComposer({
     att?.abortController?.abort();
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
+
+  // Lets a plugin attach a file it has already uploaded to the JMAP server
+  // (via api.jmap.uploadBlob) without going through the local file-picker /
+  // drag-drop path - e.g. a plugin that browses an external WebDAV store and
+  // offers "attach from there". No `file` is set, matching the existing
+  // draft-part hydration path above (a blobId-only attachment is already a
+  // supported shape, just never previously reachable from a plugin).
+  const handlePluginAttachmentAdd = useCallback((upload: PluginAttachmentUpload) => {
+    setAttachments(prev => [
+      ...prev,
+      {
+        name: upload.name,
+        type: upload.type,
+        size: upload.size,
+        blobId: upload.blobId,
+      },
+    ]);
+  }, []);
 
   // Inline preview for composer attachments, reusing the message viewer's
   // FilePreviewModal (so previewability and the open-in-new-tab safety gate are
@@ -2598,9 +2668,10 @@ export function EmailComposer({
         )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto">
-        {/* Fields section */}
-        <div className="space-y-0 border-b">
+      {/* Fields section - outside the scroll container so From/To/Cc/Bcc/
+          Subject stay reachable while scrolling long bodies, matching the
+          pinned formatting toolbar (see rich-text-editor.tsx). */}
+      <div className="shrink-0 space-y-0 border-b">
           {/* From field */}
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/50">
             <span className="text-sm text-muted-foreground w-12 md:w-16 shrink-0">{t('from')}:</span>
@@ -2879,8 +2950,9 @@ export function EmailComposer({
               className="flex-1 border-0 focus-visible:ring-0 h-8 px-0 text-sm"
             />
           </div>
-        </div>
+      </div>
 
+      <div className="flex-1 min-h-0 overflow-auto">
         {/* Body */}
         {plainTextMode ? (
           <textarea
@@ -3107,6 +3179,15 @@ export function EmailComposer({
               </Button>
             )}
             <PluginSlot name="composer-toolbar" />
+            {/* Lets a plugin offer an alternative attachment source (an
+                external file browser, cloud storage picker, etc). The plugin
+                calls `onAttach` once it has uploaded the chosen file to JMAP
+                itself (api.jmap.uploadBlob) and just wants it added to this
+                draft. */}
+            <PluginSlot
+              name="composer-attachment-source"
+              extraProps={{ onAttach: handlePluginAttachmentAdd }}
+            />
           </div>
 
           {/* Right side - Discard + Send (desktop) */}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { configManager } from '@/lib/admin/config-manager';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { JmapRedirectError, fetchJmapSession, postJmap, rebaseApiUrl } from '@/lib/stalwart/jmap-api';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
@@ -17,6 +18,18 @@ import { DisallowedUrlError } from '@/lib/security/url-guard';
  * methods under the `x:` namespace on the same endpoint.
  */
 export async function POST(request: NextRequest) {
+  // Registered unconditionally by Next, so the switch lives here: when the
+  // passthrough (or Stalwart features as a whole) is disabled the route
+  // does not exist as far as callers are concerned. Checked before the
+  // credential lookup so a disabled route never touches the session. (#904)
+  await configManager.ensureLoaded();
+  const passthroughEnabled =
+    configManager.get<boolean>('stalwartFeaturesEnabled', true) &&
+    configManager.get<boolean>('stalwartJmapPassthroughEnabled', true);
+  if (!passthroughEnabled) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const creds = await getStalwartCredentials(request);
     if (!creds) {

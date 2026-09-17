@@ -41,10 +41,14 @@ function escapeHtml(s: string): string {
 export function EmlPreview({ message }: { message: ParsedEml }) {
   const t = useTranslations("email_viewer");
 
+  // srcDoc gets a fragment, not a document, so the iframe's implicit <body>
+  // is the browser's - left-to-right regardless of what the mail is written
+  // in. dir="auto" on a wrapper we do control lets the first strong character
+  // pick the direction, matching the main viewer.
   const bodyDoc = message.html
-    ? sanitizeEmailHtmlForIframe(message.html)
+    ? `<div dir="auto">${sanitizeEmailHtmlForIframe(message.html)}</div>`
     : message.text
-      ? `<pre style="white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;margin:0;padding:8px">${escapeHtml(message.text)}</pre>`
+      ? `<pre dir="auto" style="white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;margin:0;padding:8px">${escapeHtml(message.text)}</pre>`
       : "";
 
   const downloadAttachment = (att: NonNullable<ParsedEml["attachments"]>[number]) => {

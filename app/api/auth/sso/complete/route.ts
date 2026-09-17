@@ -9,11 +9,16 @@ import {
 } from '@/lib/oauth/token-exchange';
 import { refreshTokenCookieName, refreshTokenServerCookieName } from '@/lib/oauth/tokens';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 
 const SSO_PENDING_COOKIE = 'sso_pending';
 const SSO_PENDING_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   const cookieStore = await cookies();
 
   try {
@@ -36,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No pending SSO session. Please start the login flow again.' }, { status: 400 });
     }
 
-    const pending = decryptPayload(pendingCookie);
+    const pending = decryptPayload(pendingCookie, 'sso-pending');
     if (!pending) {
       cookieStore.delete(SSO_PENDING_COOKIE);
       return NextResponse.json({ error: 'Invalid SSO session' }, { status: 400 });

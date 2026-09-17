@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { decryptPayload } from '@/lib/auth/crypto';
 import { exchangeCodeForTokens } from '@/lib/oauth/token-exchange';
 import { setPairReauth } from '@/lib/auth/pair-reauth';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 
 // Completes the step-up re-authentication for device pairing. The user was sent
 // to the IdP with prompt=login (see /api/auth/sso/start with purpose=reauth);
@@ -17,6 +18,10 @@ const SSO_PENDING_COOKIE = 'sso_pending';
 const SSO_PENDING_MAX_AGE_MS = 5 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   const cookieStore = await cookies();
   try {
     const { code, state } = await request.json();
@@ -29,7 +34,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No pending re-auth session' }, { status: 400 });
     }
 
-    const pending = decryptPayload(pendingCookie);
+    const pending = decryptPayload(pendingCookie, 'sso-pending');
     cookieStore.delete(SSO_PENDING_COOKIE);
     if (!pending) {
       return NextResponse.json({ error: 'Invalid re-auth session' }, { status: 400 });

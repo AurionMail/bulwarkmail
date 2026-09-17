@@ -73,8 +73,11 @@ export function ICalSubscriptionModal({ client, onClose, editSubscription, initi
           setError(t("error"));
         }
       }
-    } catch {
-      setError(isEdit ? t("update_error") : t("error"));
+    } catch (err) {
+      // The store rethrows the proxy's error text ("… larger than the 25 MB
+      // limit", "Remote server returned 404") - show it when there is one. (#692)
+      const message = err instanceof Error && err.message ? err.message : '';
+      setError(message || (isEdit ? t("update_error") : t("error")));
     } finally {
       setIsSubmitting(false);
     }

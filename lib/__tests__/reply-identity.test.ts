@@ -79,6 +79,62 @@ describe('findReplyIdentityId', () => {
 
     expect(selected).toBeNull();
   });
+
+  // The shared-mailbox shape: the team address in To, the member's own address
+  // in Cc. Scanning identities rather than recipients would answer with the
+  // member, because sortIdentities puts the login's own address first - i.e.
+  // exactly the "it replied as me again" complaint.
+  const shared: Identity[] = [
+    { id: 'owner', name: 'Owner', email: 'owner@example.com', mayDelete: false },
+    { id: 'team', name: 'Team', email: 'team@example.com', mayDelete: false },
+  ];
+
+  it('prefers a To recipient over a Cc one, whatever order the identities are in', () => {
+    const selected = findReplyIdentityId(shared, {
+      to: [{ email: 'team@example.com' }],
+      cc: [{ email: 'owner@example.com' }],
+    });
+
+    expect(selected).toBe('team');
+  });
+
+  it('ranks a Bcc identity below the address in To', () => {
+    const withArchive: Identity[] = [
+      { id: 'archive', name: 'Archive', email: 'archive@example.com', mayDelete: false },
+      { id: 'team', name: 'Team', email: 'team@example.com', mayDelete: false },
+    ];
+
+    const selected = findReplyIdentityId(withArchive, {
+      to: [{ email: 'team@example.com' }],
+      bcc: [{ email: 'archive@example.com' }],
+    });
+
+    expect(selected).toBe('team');
+  });
+
+  it('takes an exact match anywhere over a sub-address match in To', () => {
+    const selected = findReplyIdentityId(identities, {
+      to: [{ email: 'harry+news@primary.com' }],
+      cc: [{ email: 'harry@secondary.com' }],
+    });
+
+    expect(selected).toBe('secondary');
+  });
+
+  // A `+tag` identifies who the address was given to, so a delivery to an
+  // unknown tag must not answer with a sibling's tag and disclose it.
+  it('prefers the untagged identity over a differently-tagged sibling', () => {
+    const tagged: Identity[] = [
+      { id: 'eu', name: 'Sales EU', email: 'sales+eu@example.com', mayDelete: false },
+      { id: 'sales', name: 'Sales', email: 'sales@example.com', mayDelete: false },
+    ];
+
+    const selected = findReplyIdentityId(tagged, {
+      to: [{ email: 'sales+us@example.com' }],
+    });
+
+    expect(selected).toBe('sales');
+  });
 });
 
 describe('findComposeIdentityId', () => {
@@ -131,6 +187,21 @@ describe('resolveReplyFrom', () => {
       to: [{ email: 'harry@primary.com' }, { email: 'stripe@primary.com' }],
     });
     expect(result).toEqual({ identityId: 'primary' });
+  });
+
+  // #1000: a domain whose extra addresses are distribution lists, not
+  // catch-all aliases. Exact mode keeps the identity matching but never
+  // surfaces a From override.
+  it('returns null instead of a catch-all override in exact mode', () => {
+    expect(resolveReplyFrom(identities, { to: [{ email: 'stripe@primary.com', name: 'Stripe' }] }, 'exact'))
+      .toBeNull();
+  });
+
+  it('still matches configured identities (exact and +tag) in exact mode', () => {
+    expect(resolveReplyFrom(identities, { to: [{ email: 'harry@secondary.com' }] }, 'exact'))
+      .toEqual({ identityId: 'secondary' });
+    expect(resolveReplyFrom(identities, { to: [{ email: 'harry+news@primary.com' }] }, 'exact'))
+      .toEqual({ identityId: 'primary' });
   });
 
   it('returns null when recipients are on foreign domains', () => {

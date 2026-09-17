@@ -11,7 +11,7 @@ import { useLocaleStore } from '@/stores/locale-store';
 import { removeAllPluginHooks } from '@/lib/plugin-hooks';
 import { requestConsent } from '@/lib/plugin-sandbox/consent';
 import { sha256Hex } from '@/lib/plugin-sandbox/bundle-integrity';
-import { verifySignature } from '@/lib/plugin-sandbox/bundle-signing';
+import { downloadManagedBundle } from '@/lib/plugin-sandbox/bundle-fetch';
 import { usePolicyStore } from '@/stores/policy-store';
 import { apiFetch } from '@/lib/browser-navigation';
 import { IMPLICIT_PERMISSIONS } from '@/lib/plugin-types';
@@ -470,11 +470,22 @@ async function syncServerPlugins(
       }
 
       // Existing plugin. Re-download the bundle only when the code actually
-      // changed, but ALWAYS re-derive server-owned metadata from one place
-      // (serverMeta) so no passthrough field is silently dropped on a
-      // metadata-only change. Only write when something differs, to avoid a
-      // needless persist/re-render on every sync.
+      // changed or the local copy is gone, but ALWAYS re-derive server-owned
+      // metadata from one place (serverMeta) so no passthrough field is
+      // silently dropped on a metadata-only change. Only write when something
+      // differs, to avoid a needless persist/re-render on every sync.
+      //
+      // The record (persisted store) and the bundle (IndexedDB) have separate
+      // lifetimes: the bundle can be evicted, cleared, or never have been
+      // written in this browser while the record says everything is current.
+      // The loader used to strand such plugins on "No bundle in storage" with
+      // no way for a non-admin to recover (#636); a missing local copy is
+      // treated exactly like a changed one instead.
+      const hasLocalBundle = await pluginStorage.getCode(sp.id)
+        .then((code) => !!code)
+        .catch(() => false);
       const needsBundle =
+        !hasLocalBundle ||
         local.version !== sp.version ||
         // bundleHash mismatch covers re-uploads of the same version with new
         // code; a falsy local hash (older installs) also forces a refresh so
@@ -527,32 +538,17 @@ async function syncServerPlugins(
   }
 }
 
+/**
+ * Download + signature-check a managed bundle; `null` (after logging) on any
+ * failure so the sync loop skips that plugin and carries on with the rest.
+ * The sandbox loader shares the same download path
+ * (`lib/plugin-sandbox/bundle-fetch`) to refill a missing bundle at load time.
+ */
 async function downloadPluginBundle(pluginId: string, bundleHash?: string): Promise<string | null> {
   try {
-    // Append the hash as a query string so any intermediary HTTP cache
-    // (browser, service worker, CDN) treats each version as a distinct URL.
-    const suffix = bundleHash ? `?v=${encodeURIComponent(bundleHash)}` : '';
-    const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/bundle${suffix}`);
-    if (!res.ok) return null;
-    const code = await res.text();
-    // Ed25519 signature verification. Present on every server-managed bundle
-    // since the signing module is server-side; refuse to persist a bundle
-    // that fails verification. If the header is missing (older server / dev
-    // build with signing disabled) we log and allow - the SHA-256 hash check
-    // at load time still catches transport corruption.
-    const sig = res.headers.get('X-Bundle-Signature');
-    if (sig) {
-      const ok = await verifySignature(code, sig);
-      if (!ok) {
-        console.error(`[plugin-store] Refusing bundle for "${pluginId}": signature verification failed`);
-        return null;
-      }
-    } else {
-      console.warn(`[plugin-store] Bundle for "${pluginId}" has no Ed25519 signature; loading without it`);
-    }
-    return code;
-  } catch {
-    console.warn(`[plugin-store] Failed to download bundle for plugin "${pluginId}"`);
+    return await downloadManagedBundle(pluginId, bundleHash);
+  } catch (err) {
+    console.error(`[plugin-store] ${err instanceof Error ? err.message : String(err)}`);
     return null;
   }
 }

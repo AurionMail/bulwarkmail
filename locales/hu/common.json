@@ -225,6 +225,10 @@
     "and_others": "és {count} további",
     "draft": "Piszkozat",
     "starred": "Csillagozott",
+    "pinned": "Kitűzve",
+    "replied": "Megválaszolva",
+    "forwarded": "Továbbítva",
+    "has_attachment": "Melléklettel",
     "conversations_count": "{count} / {total} beszélgetés",
     "conversations_count_plus": "{count}+ beszélgetés",
     "conversations_count_simple": "{count} beszélgetés",
@@ -292,6 +296,7 @@
     "forward": "Továbbítás",
     "delete": "Törlés",
     "archive": "Archiválás",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Csillagozás",
     "unstar": "Csillagozás megszüntetése",
     "mark_unread": "Megjelölés olvasatlanként",
@@ -306,7 +311,7 @@
     "fullscreen": "Teljes képernyő",
     "exit_fullscreen": "Kilépés a teljes képernyőből",
     "export_email": "Exportálás .eml-ként",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Továbbítás mellékletként",
     "import_email": "Importálás .eml vagy .zip fájlból",
     "keyboard_shortcuts": "Billentyűparancsok (?)",
     "email_source": "E-mail forrás",
@@ -728,7 +733,11 @@
       "delete_column": "Oszlop törlése",
       "toggle_header_row": "Fejlécsor váltása",
       "delete_table": "Táblázat törlése",
-      "pick_size": "Méret kiválasztása"
+      "pick_size": "Méret kiválasztása",
+      "font_size": "Betűméret",
+      "font_size_default": "Alapértelmezett",
+      "background_color": "Háttérszín",
+      "remove_background_color": "Háttérszín eltávolítása"
     },
     "send_filing_warning": "Elküldve - de az utólagos rendrakás nem sikerült, egy elavult piszkozat megmaradhat."
   },
@@ -1330,6 +1339,12 @@
         "label": "Válasz a fogadott címről",
         "description": "Válaszküldéskor arról a címről küldjön, amelyre az üzenet eredetileg érkezett. Először identitásokat keres; tartományi catch-all kézbesítések esetén átírja a Feladó fejlécet az aliasra, miközben az elsődleges identitáson keresztül küld."
       },
+      "reply_identity_match": {
+        "label": "Fogadó cím egyeztetése",
+        "description": "Mely fogadó címek számítanak a sajátjának. A „Csak pontos cím” kizárólag a beállított identitásai közül választ; az „azonos domain” az identitás-domainjein lévő bármely más címet is catch-all aliasként kezeli, és arra írja át a Feladó fejlécet. Válassza a pontos címet, ha ezek a címek terjesztési listák.",
+        "exact": "Csak pontos cím",
+        "domain": "Bármely cím a domainjeimen"
+      },
       "signature_position": {
         "label": "Aláírás pozíciója",
         "description": "Hova kerüljön az aláírás a válaszokban és továbbításokban. Az idézett szöveg felett természetes lezárásként olvasható; alatta az eredeti üzenet marad egybefüggő.",
@@ -1772,6 +1787,8 @@
       "role_trash": "Kuka",
       "role_junk": "Spam",
       "role_archive": "Archívum",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Nincs",
       "create_folder": "Mappa létrehozása",
       "create_subfolder": "Almappa létrehozása",
@@ -1881,6 +1898,8 @@
       "title": "Névjegyek",
       "description": "Névjegyek importálása és exportálása",
       "group_by_letter_label": "Csoportosítás kezdőbetű szerint",
+      "sort_by_last_name_label": "Rendezés vezetéknév szerint",
+      "sort_by_last_name_description": "A névjegylista vezetéknév szerinti rendezése, hogy a családtagok egymás mellett legyenek",
       "group_by_letter_description": "ABC sorrendű fejléc mutatása a névjegy listában",
       "import_label": "Névjegyek importálása",
       "import_description": "Névjegyek importálása vCard (.vcf) fájlból",
@@ -2733,7 +2752,10 @@
       "any_month": "Bármely hónap",
       "has_email": "Van e-mail",
       "has_phone": "Van telefon",
-      "has_photo": "Van fotó"
+      "has_photo": "Van fotó",
+      "sort_by": "Rendezés",
+      "sort_first_name": "Keresztnév",
+      "sort_last_name": "Vezetéknév"
     }
   },
   "calendar": {
@@ -2769,6 +2791,10 @@
       "duplicate": "Duplikálás",
       "today_header": "Ma",
       "tomorrow_header": "Holnap",
+      "agenda_show_earlier": "Korábbi események megjelenítése",
+      "agenda_loading": "Betöltés…",
+      "agenda_range_start": "Események ettől: {date}",
+      "agenda_range_end": "Események eddig: {date}",
       "export_ics": "Exportálás .ics-ként",
       "copy_title": "Cím másolása",
       "copy_link": "Találkozó link másolása",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Események időpontjának mutatása a havi naptár nézetben",
       "show_week_numbers": "Hétszámok mutatása",
       "show_week_numbers_desc": "Hétszámok mutatása a mini naptárban",
+      "calendar_free_scroll": "Szabad görgetés",
+      "calendar_free_scroll_desc": "Folyamatos görgetés hónapok, hetek és napok között egyetlen időszak helyett",
       "enable_tasks": "Feladatok engedélyezése",
       "enable_tasks_desc": "Feladatnézet mutatása a naptárban a teendők kezeléséhez",
       "show_tasks_on_calendar": "Feladatok mutatása a naptárban",

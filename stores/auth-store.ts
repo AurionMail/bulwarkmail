@@ -90,6 +90,34 @@ function isRateLimitError(error: unknown): error is RateLimitError {
   return error instanceof RateLimitError;
 }
 
+/**
+ * Ask our own backend to try the Basic credentials before the browser does
+ * (#969). A wrong password answered straight from the JMAP server arrives as
+ * 401 + `WWW-Authenticate: Basic`, which makes the browser open its native
+ * login dialog on top of our form when the JMAP server shares our origin
+ * (reverse-proxied under the same host). Rejecting wrong credentials via a
+ * JSON reply from our origin sidesteps that. Only a definitive
+ * `unauthorized` short-circuits; anything else (route missing, backend can't
+ * reach the JMAP server, TOTP challenge, ...) falls through to the regular
+ * browser-side connect so no deployment loses the ability to log in.
+ */
+async function precheckBasicCredentials(serverUrl: string, username: string, password: string): Promise<boolean> {
+  // App-relative servers (the dev mock) never send a Basic challenge.
+  if (serverUrl.startsWith('/')) return false;
+  try {
+    const res = await apiFetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serverUrl, username, password }),
+    });
+    if (!res.ok) return false;
+    const body = await res.json().catch(() => null);
+    return body?.result === 'unauthorized';
+  } catch {
+    return false;
+  }
+}
+
 // An auth/session endpoint answered with a server-side error (5xx) - an
 // outage, not a rejection of our credentials.
 class TransientAuthError extends Error {
@@ -441,6 +469,36 @@ function nextRefreshRetrySeconds(accountId?: string): number {
 
 function resetRefreshBackoff(accountId?: string): void {
   refreshFailureCounts.delete(accountId ?? '__global__');
+  permanentRefreshFailureCounts.delete(accountId ?? '__global__');
+}
+
+// /api/auth/token answers 503 for an upstream outage (retry forever - the IdP
+// may come back) but 500/502 for a Bulwark-side failure (misconfiguration,
+// broken token response). The latter does not heal by waiting, so after this
+// many consecutive answers the account is evicted and the user asked to sign
+// in again instead of retrying silently forever. (#972)
+const MAX_PERMANENT_REFRESH_FAILURES = 5;
+const permanentRefreshFailureCounts = new Map<string, number>();
+
+function isPermanentRefreshFailure(status: number): boolean {
+  return status === 500 || status === 502;
+}
+
+/** Records a 500/502 refresh answer; true once the consecutive cap is reached. */
+function recordPermanentRefreshFailure(status: number, accountId?: string): boolean {
+  if (!isPermanentRefreshFailure(status)) return false;
+  const key = accountId ?? '__global__';
+  const failures = (permanentRefreshFailureCounts.get(key) ?? 0) + 1;
+  permanentRefreshFailureCounts.set(key, failures);
+  if (failures < MAX_PERMANENT_REFRESH_FAILURES) return false;
+  permanentRefreshFailureCounts.delete(key);
+  return true;
+}
+
+function notifySignInAgain(): void {
+  void import('@/stores/toast-store').then(({ toast }) => {
+    toast.error('Your session could not be renewed', 'Sign in again to continue.');
+  }).catch(() => {});
 }
 
 // Only re-arm a failed refresh while someone is still signed in to that
@@ -695,6 +753,9 @@ export const useAuthStore = create<AuthState>()(
             } else {
               // Legacy fallback for pre-0.16 Stalwart, which accepts the TOTP
               // appended to the password over basic auth.
+              if (await precheckBasicCredentials(serverUrl, username, `${password}$${totp}`)) {
+                throw new Error('Invalid username or password');
+              }
               client = new JMAPClient(serverUrl, username, `${password}$${totp}`);
               await client.connect();
               const { useTotpReauthStore } = await import('@/stores/totp-reauth-store');
@@ -702,6 +763,9 @@ export const useAuthStore = create<AuthState>()(
               debug.log('auth', 'TOTP re-auth enabled (legacy basic-auth path)');
             }
           } else {
+            if (await precheckBasicCredentials(serverUrl, username, password)) {
+              throw new Error('Invalid username or password');
+            }
             client = new JMAPClient(serverUrl, username, password);
             await client.connect();
           }
@@ -1211,6 +1275,17 @@ export const useAuthStore = create<AuthState>()(
                 notifyParent('sso:session-expired');
                 markSessionExpired();
                 get().logout();
+                return null;
+              }
+              // A Bulwark-side failure (500/502) that keeps repeating will not
+              // heal by waiting: stop retrying and ask for a fresh sign-in. (#972)
+              if (recordPermanentRefreshFailure(res.status, accountId ?? undefined)) {
+                debug.error(`Token refresh failed permanently (${res.status}) ${MAX_PERMANENT_REFRESH_FAILURES} times - signing out`);
+                resetRefreshBackoff(accountId ?? undefined);
+                notifySignInAgain();
+                notifyParent('sso:session-expired');
+                markSessionExpired();
+                if (accountId) get().removeAccount(accountId); else get().logout();
                 return null;
               }
               if (shouldRetryRefresh(accountId ?? undefined)) {
@@ -1752,9 +1827,12 @@ export const useAuthStore = create<AuthState>()(
                   await contextSync;
                   accountStore.updateAccount(account.id, { isConnected: true, hasError: false });
                   void syncAccountDisplayName(account.id, client);
-                } else if (res.status >= 500) {
+                } else if (res.status >= 500 && !recordPermanentRefreshFailure(res.status, account.id)) {
                   throw new TransientAuthError('Token refresh failed', res.status);
                 } else {
+                  // Repeated 500/502 (see recordPermanentRefreshFailure) falls
+                  // through here and evicts the account like a rejection. (#972)
+                  if (res.status >= 500) notifySignInAgain();
                   throw new Error(`Token refresh failed: ${res.status}`);
                 }
               } else {

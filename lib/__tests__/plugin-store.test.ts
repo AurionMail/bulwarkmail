@@ -26,14 +26,27 @@ vi.mock('@/lib/plugin-loader', () => ({
   deactivatePlugin: vi.fn(),
   setPluginStoreAccessor: vi.fn(),
   setupAutoDisable: vi.fn(),
+  setSandboxLocale: vi.fn(),
 }));
 
 vi.mock('@/lib/plugin-hooks', () => ({
   removeAllPluginHooks: vi.fn(),
 }));
 
+const mocks = vi.hoisted(() => ({
+  apiFetch: vi.fn(),
+  downloadManagedBundle: vi.fn(),
+}));
+vi.mock('@/lib/browser-navigation', () => ({
+  apiFetch: (...args: unknown[]) => mocks.apiFetch(...args),
+}));
+vi.mock('@/lib/plugin-sandbox/bundle-fetch', () => ({
+  downloadManagedBundle: (...args: unknown[]) => mocks.downloadManagedBundle(...args),
+}));
+
 // Import after mocks
 import { usePluginStore } from '@/stores/plugin-store';
+import { pluginStorage } from '@/lib/plugin-storage';
 
 function resetStore() {
   usePluginStore.setState({
@@ -112,6 +125,99 @@ describe('usePluginStore', () => {
       usePluginStore.setState({ plugins: [mockPlugin()] });
       usePluginStore.getState().uninstallPlugin('unknown');
       expect(usePluginStore.getState().plugins).toHaveLength(1);
+    });
+  });
+
+  describe('initializePlugins server sync', () => {
+    const serverPlugin = {
+      id: 'managed-plugin',
+      name: 'Managed',
+      version: '1.0.0',
+      author: 'admin',
+      description: '',
+      type: 'hook',
+      permissions: [],
+      entrypoint: 'index.js',
+      forceEnabled: true,
+      bundleHash: 'hash-v1',
+    };
+
+    // The record the sync creates for serverPlugin once it has run before.
+    function syncedRecord(overrides: Partial<InstalledPlugin> = {}): InstalledPlugin {
+      return mockPlugin({
+        id: 'managed-plugin',
+        name: 'Managed',
+        author: 'admin',
+        enabled: true,
+        status: 'enabled',
+        managed: true,
+        forceEnabled: true,
+        adminApproved: true,
+        bundleHash: 'hash-v1',
+        ...overrides,
+      });
+    }
+
+    beforeEach(() => {
+      localStorage.clear();
+      mocks.apiFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ plugins: [serverPlugin], themes: [] }),
+      });
+      mocks.downloadManagedBundle.mockResolvedValue('bundle-code');
+      vi.mocked(pluginStorage.getCode).mockResolvedValue(null);
+    });
+
+    it('installs a new server plugin and caches its bundle', async () => {
+      await usePluginStore.getState().initializePlugins();
+
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(pluginStorage.saveCode).toHaveBeenCalledWith('managed-plugin', 'bundle-code');
+      const p = usePluginStore.getState().plugins.find(x => x.id === 'managed-plugin');
+      expect(p).toMatchObject({ managed: true, enabled: true, bundleHash: 'hash-v1' });
+    });
+
+    it('re-downloads the bundle when the record is current but IndexedDB has no copy (#636)', async () => {
+      usePluginStore.setState({ plugins: [syncedRecord()] });
+      vi.mocked(pluginStorage.getCode).mockResolvedValue(null);
+
+      await usePluginStore.getState().initializePlugins();
+
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(pluginStorage.saveCode).toHaveBeenCalledWith('managed-plugin', 'bundle-code');
+      expect(usePluginStore.getState().plugins).toHaveLength(1);
+    });
+
+    it('leaves a current plugin alone when its bundle is cached', async () => {
+      usePluginStore.setState({ plugins: [syncedRecord()] });
+      vi.mocked(pluginStorage.getCode).mockResolvedValue('cached-code');
+
+      await usePluginStore.getState().initializePlugins();
+
+      expect(mocks.downloadManagedBundle).not.toHaveBeenCalled();
+      expect(pluginStorage.saveCode).not.toHaveBeenCalled();
+    });
+
+    it('re-downloads when the server hash changed even though a bundle is cached', async () => {
+      usePluginStore.setState({ plugins: [syncedRecord({ bundleHash: 'hash-v0' })] });
+      vi.mocked(pluginStorage.getCode).mockResolvedValue('cached-code');
+
+      await usePluginStore.getState().initializePlugins();
+
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(usePluginStore.getState().plugins[0].bundleHash).toBe('hash-v1');
+    });
+
+    it('keeps the record when the download fails so the error can surface at load time', async () => {
+      usePluginStore.setState({ plugins: [syncedRecord()] });
+      mocks.downloadManagedBundle.mockRejectedValue(new Error('Could not download the bundle (HTTP 503)'));
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await usePluginStore.getState().initializePlugins();
+
+      expect(pluginStorage.saveCode).not.toHaveBeenCalled();
+      expect(usePluginStore.getState().plugins).toHaveLength(1);
+      expect(usePluginStore.getState().initialized).toBe(true);
     });
   });
 });

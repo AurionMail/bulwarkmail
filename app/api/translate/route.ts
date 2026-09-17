@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 
 // Host-side proxy backing the "Translate" plugin (manifest apiPostPaths:
 // ["/api/translate"]). The plugin slot iframe POSTs { text, target, source,
@@ -256,6 +257,14 @@ async function translateLibre(
 // ─── Route ────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  // Same session gate as the other authenticated API routes: the plugin's
+  // api.http.post carries the session cookies, but nothing else should be
+  // able to relay requests through this deployment to the backends. (#903)
+  const creds = await getStalwartCredentials(request);
+  if (!creds) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
   let body: TranslateBody;
   try {
     body = (await request.json()) as TranslateBody;

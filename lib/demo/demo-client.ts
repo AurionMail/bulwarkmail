@@ -915,13 +915,13 @@ export class DemoJMAPClient implements IJMAPClient {
     return full;
   }
 
-  async batchCreateCalendarEvents(events: Partial<CalendarEvent>[]): Promise<{ created: CalendarEvent[]; failed: string[] }> {
+  async batchCreateCalendarEvents(events: Partial<CalendarEvent>[]): Promise<{ created: CalendarEvent[]; failed: string[]; notCreated: Record<string, { type?: string; description?: string }> }> {
     const created: CalendarEvent[] = [];
     for (const event of events) {
       const full = await this.createCalendarEvent(event);
       created.push(full);
     }
-    return { created, failed: [] };
+    return { created, failed: [], notCreated: {} };
   }
 
   async updateCalendarEvent(eventId: string, updates: Partial<CalendarEvent>): Promise<void> {
@@ -934,10 +934,10 @@ export class DemoJMAPClient implements IJMAPClient {
     this.data.calendarEvents = this.data.calendarEvents.filter(e => e.id !== eventId);
   }
 
-  async batchDeleteCalendarEvents(eventIds: string[]): Promise<{ destroyed: string[]; notDestroyed: string[] }> {
+  async batchDeleteCalendarEvents(eventIds: string[]): Promise<{ destroyed: string[]; notDestroyed: Record<string, { type?: string; description?: string }> }> {
     const idSet = new Set(eventIds);
     this.data.calendarEvents = this.data.calendarEvents.filter(e => !idSet.has(e.id));
-    return { destroyed: eventIds, notDestroyed: [] };
+    return { destroyed: eventIds, notDestroyed: {} };
   }
 
   async queryCalendarEvents(filter: CalendarEventFilter): Promise<CalendarEvent[]> {

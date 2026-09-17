@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { debug } from '@/lib/debug';
 import { useAuthStore } from '@/stores/auth-store';
 import { stalwartJmap, requireResult, type JmapMethodResponse } from '@/lib/stalwart/jmap-passthrough';
+import { isStalwartJmapPassthroughEnabled } from '@/lib/stalwart/principal';
 
 export type EncryptionType = 'Disabled' | 'Aes128' | 'Aes256';
 
@@ -285,7 +286,11 @@ export const useAccountSecurityStore = create<AccountSecurityState>()((set, get)
         set({ isProbing: false });
         return false;
       }
-      const isStalwart = !!client.hasAccountCapability?.('urn:stalwart:jmap');
+      // Every management call below goes through the server-side passthrough;
+      // when the operator switched it off, behave like a non-Stalwart server. (#904)
+      const isStalwart =
+        !!client.hasAccountCapability?.('urn:stalwart:jmap') &&
+        (await isStalwartJmapPassthroughEnabled());
       set({ isStalwart, isProbing: false });
       return isStalwart;
     } catch (error) {

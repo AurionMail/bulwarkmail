@@ -14,6 +14,7 @@ import {
   DEFAULT_BUNDLE_TEMPLATE,
   DEFAULT_EMAIL_TEMPLATE,
   emailExportFilename,
+  uniqueFilename,
   type EmailFilenameOptions,
 } from "@/lib/download-filename";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -87,8 +88,10 @@ async function buildEmailZip(client: IJMAPClient, emails: Email[], options: Emai
   await Promise.all(
     eligible.map(async (em) => {
       const base = emailExportFilename(em, options).replace(/\.eml$/, "");
-      let name = `${base}.eml`;
-      while (used.has(name)) name = `${base} [${em.id.slice(0, 6)}].eml`;
+      // Full id, not a prefix: messages in one thread share their leading
+      // characters (Stalwart packs the thread id into the high bits), and a
+      // prefix collision here used to spin the main thread forever (#1039).
+      const name = uniqueFilename(used, base, ".eml", em.id);
       used.add(name);
       try {
         const blob = await client.fetchBlob(em.blobId!, name, "message/rfc822");

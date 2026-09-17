@@ -56,7 +56,7 @@ describe('JMAP mailbox mutations use the requested account', () => {
     expect(captured[0][0]).toBe('Mailbox/set');
     expect(captured[0][1].accountId).toBe('shared-account');
     expect(Object.values(captured[0][1].create as Record<string, unknown>))
-      .toEqual([{ name: 'Child', parentId: 'parent-id' }]);
+      .toEqual([{ name: 'Child', parentId: 'parent-id', isSubscribed: true }]);
     expect(mailbox).toMatchObject({
       id: 'created-mailbox',
       accountId: 'shared-account',

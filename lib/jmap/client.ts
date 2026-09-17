@@ -17,6 +17,12 @@ import { decodeFileNodeName } from "./filenode-name";
 import { getEffectiveTimeZone } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
 
+// Cap for the follow-up Email/get issued when a displayed body part comes
+// back truncated at the normal 256000-byte limit (see refetchTruncatedBodyValues
+// / #884). Bounded well above the default so it stays rare in practice while
+// still guarding against unbounded memory use on a malicious/oversized body.
+const TRUNCATED_BODY_REFETCH_MAX_BYTES = 8_000_000;
+
 // Names of nodes created over WebDAV come back percent-encoded from
 // FileNode/get (see decodeFileNodeName / #869). Normalize at the boundary so
 // every consumer (browser, sidebar, breadcrumbs, path resolution) sees the
@@ -167,6 +173,12 @@ interface JMAPResponse {
   methodResponses: Array<[string, JMAPResponseResult, string]>;
 }
 
+/** Per-id failure entry of a CalendarEvent/set (`notCreated` / `notDestroyed`). */
+export interface CalendarSetError {
+  type?: string;
+  description?: string;
+}
+
 const DEFAULT_MAILBOX_RIGHTS = {
   mayReadItems: true,
   mayAddItems: true,
@@ -192,6 +204,9 @@ const EMAIL_LIST_PROPERTIES = [
   "subject",
   "preview",
   "hasAttachment",
+  // Attachment metadata (name / type / blobId) so list rows can offer the
+  // files directly. hasAttachment alone only supports a paperclip icon.
+  "attachments",
   // Needed so list rows can serve drag-out to the file system as .eml.
   "blobId",
 ] as const;
@@ -943,6 +958,15 @@ export class JMAPClient implements IJMAPClient {
   private async fetchSessionResponse(): Promise<Response> {
     const discoveryUrl = `${this.serverUrl}/.well-known/jmap`;
     const response = await this.authenticatedFetch(discoveryUrl, { method: 'GET' });
+    // A proxy in front of the session URL answers the header-less redirected
+    // request with 401 instead of Stalwart's silent 200 - the credentials are
+    // fine, Safari just dropped them. Retry the final URL directly. (#892)
+    if (response.redirected && response.status === 401) {
+      return fetch(response.url, {
+        method: 'GET',
+        headers: { 'Authorization': this.authHeader },
+      });
+    }
     if (!response.ok || !response.redirected) return response;
 
     const peek = await response.clone().json().catch(() => null);
@@ -1961,6 +1985,8 @@ export class JMAPClient implements IJMAPClient {
         namespaceMailboxIds([email], accountId);
       }
 
+      await this.refetchTruncatedBodyValues([email], targetAccountId);
+
       if (email.headers) {
         await this.parseEmailHeaders(email);
       }
@@ -1969,6 +1995,56 @@ export class JMAPClient implements IJMAPClient {
     } catch (error) {
       console.error('Failed to get email:', error);
       return null;
+    }
+  }
+
+  // The 256000-byte body cap keeps list/thread fetches fast for the common
+  // case, but truncation lands mid-tag on large HTML bodies (e.g. a data:image
+  // src cut in half), which drops the whole element and can render blank. Only
+  // the parts actually shown to the user are checked — fetchAllBodyValues also
+  // returns truncated text from attachment parts, which must not trigger a
+  // refetch. See #884.
+  private hasTruncatedDisplayedBody(email: Email): boolean {
+    const bodyValues = email.bodyValues;
+    if (!bodyValues) return false;
+    const htmlPartId = email.htmlBody?.[0]?.partId;
+    const textPartId = email.textBody?.[0]?.partId;
+    return Boolean(
+      (htmlPartId && bodyValues[htmlPartId]?.isTruncated) ||
+      (textPartId && bodyValues[textPartId]?.isTruncated)
+    );
+  }
+
+  private async refetchTruncatedBodyValues(emails: Email[], accountId: string): Promise<void> {
+    const truncated = emails.filter((email) => this.hasTruncatedDisplayedBody(email));
+    if (truncated.length === 0) return;
+
+    try {
+      const refetchedById = new Map<string, Email['bodyValues']>();
+      for (const batchIds of batched(truncated.map((email) => email.id), this.getMaxObjectsInGet())) {
+        const response = await this.request([
+          ["Email/get", {
+            accountId,
+            ids: batchIds,
+            properties: ["id", "bodyValues"],
+            fetchTextBodyValues: true,
+            fetchHTMLBodyValues: true,
+            fetchAllBodyValues: true,
+            maxBodyValueBytes: TRUNCATED_BODY_REFETCH_MAX_BYTES,
+          }, "0"],
+        ]);
+        for (const refetched of (response.methodResponses?.[0]?.[1]?.list || []) as Email[]) {
+          refetchedById.set(refetched.id, refetched.bodyValues);
+        }
+      }
+
+      for (const email of truncated) {
+        const bodyValues = refetchedById.get(email.id);
+        if (bodyValues) email.bodyValues = bodyValues;
+      }
+    } catch (error) {
+      // Degrade to the already-truncated values - no new error path for callers.
+      console.error('Failed to refetch truncated body values:', error);
     }
   }
 
@@ -2241,37 +2317,65 @@ export class JMAPClient implements IJMAPClient {
     return { migrated, refused: refusals };
   }
 
+  /**
+   * Reject an Email/set response that reports a method-level error or per-id
+   * `notUpdated`/`notDestroyed` failures. `request()` only throws on HTTP
+   * errors, so without this the store removes rows the server refused. (#956)
+   */
+  private assertEmailSetSucceeded(response: JMAPResponse, action: string): void {
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name === "error") {
+      throw new Error(`Failed to ${action}: ${result?.description || result?.type || 'unknown error'}`);
+    }
+    const failed: Record<string, { type?: string; description?: string }> = {
+      ...(result?.notUpdated ?? {}),
+      ...(result?.notDestroyed ?? {}),
+    };
+    const failedIds = Object.keys(failed);
+    if (failedIds.length === 0) return;
+    const first = failed[failedIds[0]];
+    const reason = first?.description || first?.type || 'unknown error';
+    throw new Error(
+      failedIds.length === 1
+        ? `Failed to ${action}: ${reason}`
+        : `Failed to ${action} ${failedIds.length} email(s); first error: ${reason}`,
+    );
+  }
+
   async deleteEmail(emailId: string, accountId?: string): Promise<void> {
-    await this.request([
+    const response = await this.request([
       ["Email/set", {
         accountId: accountId || this.accountId,
         destroy: [emailId],
       }, "0"],
     ]);
+    this.assertEmailSetSucceeded(response, 'delete email');
   }
 
   async moveToTrash(emailId: string, trashMailboxId: string, accountId?: string, markAsRead?: boolean): Promise<void> {
     const targetAccountId = accountId || this.accountId;
     const patch: Record<string, unknown> = { mailboxIds: { [trashMailboxId]: true } };
     if (markAsRead) patch["keywords/$seen"] = true;
-    await this.request([
+    const response = await this.request([
       ["Email/set", {
         accountId: targetAccountId,
         update: { [emailId]: patch },
       }, "0"],
     ]);
+    this.assertEmailSetSucceeded(response, 'move email to trash');
   }
 
   async batchDeleteEmails(emailIds: string[], accountId?: string): Promise<void> {
     if (emailIds.length === 0) return;
 
     for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
-      await this.request([
+      const response = await this.request([
         ["Email/set", {
           accountId: accountId || this.accountId,
           destroy: batch,
         }, "0"],
       ]);
+      this.assertEmailSetSucceeded(response, 'delete emails');
     }
   }
 
@@ -2285,9 +2389,10 @@ export class JMAPClient implements IJMAPClient {
     };
     for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
       const updates = Object.fromEntries(batch.map(id => [id, buildPatch()]));
-      await this.request([
+      const response = await this.request([
         ["Email/set", { accountId: accountId || this.accountId, update: updates }, "0"],
       ]);
+      this.assertEmailSetSucceeded(response, 'move emails');
     }
   }
 
@@ -2633,7 +2738,10 @@ export class JMAPClient implements IJMAPClient {
   async createMailbox(name: string, parentId?: string, accountId?: string): Promise<Mailbox> {
     const targetAccountId = accountId || this.accountId;
     const createId = `new-${Date.now()}`;
-    const createData: Record<string, unknown> = { name };
+    // Subscribe explicitly: IMAP clients that list folders via LSUB
+    // (Thunderbird) hide unsubscribed mailboxes, and the server default is
+    // not guaranteed to be true. (#951)
+    const createData: Record<string, unknown> = { name, isSubscribed: true };
     if (parentId) {
       createData.parentId = parentId;
     }
@@ -2988,6 +3096,11 @@ export class JMAPClient implements IJMAPClient {
       }
 
       if (emails.length > 0) {
+        // One batched refetch for the whole thread rather than per-message,
+        // to avoid an N+1 request pattern on threads with several oversized
+        // messages (#884).
+        await this.refetchTruncatedBodyValues(emails, targetAccountId);
+
         if (accountId && accountId !== this.accountId) {
           namespaceMailboxIds(emails, accountId);
         }
@@ -6430,8 +6543,8 @@ export class JMAPClient implements IJMAPClient {
   async batchCreateCalendarEvents(
     events: Partial<CalendarEvent>[],
     targetAccountId?: string,
-  ): Promise<{ created: CalendarEvent[]; failed: string[] }> {
-    if (events.length === 0) return { created: [], failed: [] };
+  ): Promise<{ created: CalendarEvent[]; failed: string[]; notCreated: Record<string, CalendarSetError> }> {
+    if (events.length === 0) return { created: [], failed: [], notCreated: {} };
 
     const accountId = targetAccountId || this.getCalendarsAccountId();
 
@@ -6439,6 +6552,7 @@ export class JMAPClient implements IJMAPClient {
 
     const createdIds: string[] = [];
     const failed: string[] = [];
+    const notCreated: Record<string, CalendarSetError> = {};
     const indexed = events.map((event, index) => ({ event, index }));
 
     for (const batch of batched(indexed, this.getMaxObjectsInSet())) {
@@ -6460,6 +6574,10 @@ export class JMAPClient implements IJMAPClient {
         ["CalendarEvent/set", { accountId, sendSchedulingMessages: false, create: createMap }, "0"]
       ], this.calendarUsing());
 
+      // A method-level error (unknown calendar, missing capability, …) is
+      // not a per-event failure: nothing was created, say so. (#434)
+      this.throwOnCalendarSetError(response, 'create calendar events');
+
       if (response.methodResponses?.[0]?.[0] === "CalendarEvent/set") {
         const result = response.methodResponses[0][1];
         for (const { index } of batch) {
@@ -6469,13 +6587,14 @@ export class JMAPClient implements IJMAPClient {
           } else if (result.notCreated?.[key]) {
             debug.warn('calendar', `CalendarEvent/batchCreate failed for ${key}`, result.notCreated[key]);
             failed.push(key);
+            notCreated[key] = result.notCreated[key];
           }
         }
       }
     }
 
     if (createdIds.length === 0) {
-      return { created: [], failed };
+      return { created: [], failed, notCreated };
     }
 
     // Fetch the created events back for their server-assigned properties
@@ -6504,7 +6623,7 @@ export class JMAPClient implements IJMAPClient {
       failed: failed.length,
     });
 
-    return { created: createdEvents, failed };
+    return { created: createdEvents, failed, notCreated };
   }
 
   async updateCalendarEvent(
@@ -6642,22 +6761,52 @@ export class JMAPClient implements IJMAPClient {
     throw new Error("Failed to delete calendar event");
   }
 
-  async batchDeleteCalendarEvents(eventIds: string[], targetAccountId?: string): Promise<{ destroyed: string[]; notDestroyed: string[] }> {
-    if (eventIds.length === 0) return { destroyed: [], notDestroyed: [] };
+  /**
+   * Reject a CalendarEvent/set response that came back as a method-level
+   * error. Without this the callers counted the (empty) results and
+   * reported "0 events cleared" with no error at all. (#434)
+   */
+  private throwOnCalendarSetError(response: JMAPResponse, action: string): void {
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name === "error") {
+      throw new Error(`Failed to ${action}: ${result?.description || result?.type || 'unknown error'}`);
+    }
+  }
+
+  /**
+   * Destroy events in batches. Per-id failures come back in `notDestroyed`
+   * (with the server's type/description) so the caller can report them;
+   * a method-level error, or a batch in which nothing at all could be
+   * destroyed, rejects with the first description. (#434)
+   */
+  async batchDeleteCalendarEvents(eventIds: string[], targetAccountId?: string): Promise<{ destroyed: string[]; notDestroyed: Record<string, CalendarSetError> }> {
+    if (eventIds.length === 0) return { destroyed: [], notDestroyed: {} };
 
     const accountId = targetAccountId || this.getCalendarsAccountId();
     const destroyed: string[] = [];
-    const notDestroyed: string[] = [];
+    const notDestroyed: Record<string, CalendarSetError> = {};
 
     for (const batch of batched(eventIds, this.getMaxObjectsInSet())) {
       const response = await this.request([
         ["CalendarEvent/set", { accountId, destroy: batch }, "0"]
       ], this.calendarUsing());
 
+      this.throwOnCalendarSetError(response, 'delete calendar events');
+
+      let destroyedInBatch = 0;
       if (response.methodResponses?.[0]?.[0] === "CalendarEvent/set") {
         const result = response.methodResponses[0][1];
-        if (result.destroyed) destroyed.push(...result.destroyed);
-        if (result.notDestroyed) notDestroyed.push(...Object.keys(result.notDestroyed));
+        if (result.destroyed) {
+          destroyed.push(...result.destroyed);
+          destroyedInBatch = result.destroyed.length;
+        }
+        if (result.notDestroyed) Object.assign(notDestroyed, result.notDestroyed);
+      }
+      if (destroyedInBatch === 0 && batch.length > 0) {
+        const first = Object.values(notDestroyed)[0];
+        throw new Error(
+          `Failed to delete calendar events: ${first?.description || first?.type || 'server refused the request'}`,
+        );
       }
     }
 
@@ -8376,7 +8525,9 @@ export class JMAPClient implements IJMAPClient {
           maxBodyValueBytes: 256000,
         }, '0'],
       ]);
-      for (const email of ((emailResponse.methodResponses?.[0]?.[1]?.list ?? []) as Email[])) {
+      const fetchedEmails = (emailResponse.methodResponses?.[0]?.[1]?.list ?? []) as Email[];
+      await this.refetchTruncatedBodyValues(fetchedEmails, accountId);
+      for (const email of fetchedEmails) {
         emailById.set(email.id, email);
       }
     }

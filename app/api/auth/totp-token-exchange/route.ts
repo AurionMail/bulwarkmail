@@ -11,6 +11,7 @@ import { parseJmapServers, findServerByUrl, findServerById } from '@/lib/admin/j
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { generateCodeVerifier, generateCodeChallenge } from '@/lib/oauth/pkce';
 import { DEFAULT_CLIENT_ID } from '@/lib/oauth/token-exchange';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 
 /**
  * Exchange a password + (optional) TOTP code for OAuth tokens.
@@ -183,6 +184,10 @@ async function attemptLogin(
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   try {
     const { serverUrl, username, password, totp, slot: bodySlot, server_id: bodyServerId, redirectUri: bodyRedirectUri } =
       await request.json();

@@ -225,6 +225,10 @@
     "and_others": "и ещё {count}",
     "draft": "Черновик",
     "starred": "Помечено",
+    "pinned": "Закреплено",
+    "replied": "Отвечено",
+    "forwarded": "Переслано",
+    "has_attachment": "С вложением",
     "conversations_count": "{count} из {total} бесед",
     "conversations_count_plus": "{count}+ бесед",
     "conversations_count_simple": "{count} бесед",
@@ -292,6 +296,7 @@
     "forward": "Переслать",
     "delete": "Удалить",
     "archive": "Архивировать",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Пометить",
     "unstar": "Снять пометку",
     "mark_unread": "Отметить непрочитанным",
@@ -306,7 +311,7 @@
     "fullscreen": "Во весь экран",
     "exit_fullscreen": "Выйти из полноэкранного режима",
     "export_email": "Экспортировать как .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Переслать как вложение",
     "import_email": "Импортировать .eml или .zip",
     "keyboard_shortcuts": "Сочетания клавиш (?)",
     "email_source": "Исходный код письма",
@@ -728,7 +733,11 @@
       "delete_column": "Удалить столбец",
       "toggle_header_row": "Переключить строку заголовка",
       "delete_table": "Удалить таблицу",
-      "pick_size": "Выбрать размер"
+      "pick_size": "Выбрать размер",
+      "font_size": "Размер шрифта",
+      "font_size_default": "По умолчанию",
+      "background_color": "Цвет фона",
+      "remove_background_color": "Убрать цвет фона"
     },
     "send_filing_warning": "Отправлено - но последующая очистка не удалась, может остаться устаревший черновик."
   },
@@ -1057,8 +1066,8 @@
         "description": "Показывает общее количество сообщений рядом с папками и метками, наряду с количеством непрочитанных. Отключите, чтобы показывать только непрочитанные."
       },
       "favicon_unread_badge": {
-        "label": "Unread Count on Tab Icon",
-        "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+        "label": "Счётчик непрочитанных на иконке вкладки и приложения",
+        "description": "Показывает количество непрочитанных писем значком на иконке вкладки браузера и, если поддерживается, на иконке установленного приложения — чтобы новая почта была видна без переключения на вкладку. Отключите, чтобы обе иконки оставались без значка."
       },
       "pro_interface": {
         "label": "Pro-интерфейс (экспериментальный)",
@@ -1321,6 +1330,12 @@
       "auto_select_reply_identity": {
         "label": "Автоматически выбирать адрес для ответа",
         "description": "При ответе автоматически переключать адрес отправителя на ту учетную запись, которая получила исходное сообщение"
+      },
+      "reply_identity_match": {
+        "label": "Сопоставление адреса получения",
+        "description": "Какие адреса получения считать вашими. «Только точный адрес» выбирает исключительно одну из настроенных личностей; «тот же домен» также считает любой другой адрес на доменах ваших личностей catch-all-псевдонимом и подставляет его в заголовок «От». Выберите точный адрес, если такие адреса являются списками рассылки.",
+        "exact": "Только точный адрес",
+        "domain": "Любой адрес на моих доменах"
       },
       "signature_position": {
         "label": "Положение подписи",
@@ -1769,6 +1784,8 @@
       "role_trash": "Корзина",
       "role_junk": "Спам",
       "role_archive": "Архив",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Нет",
       "create_folder": "Создать папку",
       "create_subfolder": "Создать подпапку",
@@ -1888,7 +1905,9 @@
       "categories_description": "Переименование категорий контактов",
       "no_categories": "Категории не найдены",
       "group_by_letter_description": "Показывать алфавитные заголовки разделов в списке контактов",
-      "group_by_letter_label": "Группировать по первой букве"
+      "group_by_letter_label": "Группировать по первой букве",
+      "sort_by_last_name_label": "Сортировать по фамилии",
+      "sort_by_last_name_description": "Упорядочить список контактов по фамилии, чтобы члены семьи шли подряд"
     },
     "downloads": {
       "title": "Загрузки",
@@ -2732,7 +2751,10 @@
       "any_month": "Любой месяц",
       "has_email": "С эл. почтой",
       "has_phone": "С телефоном",
-      "has_photo": "С фото"
+      "has_photo": "С фото",
+      "sort_by": "Сортировать по",
+      "sort_first_name": "Имя",
+      "sort_last_name": "Фамилия"
     },
     "open_categories": "Открыть категории"
   },
@@ -2769,6 +2791,10 @@
       "duplicate": "Дублировать",
       "today_header": "Сегодня",
       "tomorrow_header": "Завтра",
+      "agenda_show_earlier": "Показать более ранние события",
+      "agenda_loading": "Загрузка…",
+      "agenda_range_start": "События с {date}",
+      "agenda_range_end": "События до {date}",
       "export_ics": "Экспорт в .ics",
       "copy_title": "Скопировать название",
       "copy_link": "Скопировать ссылку встречи",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Отображать время события в виде месячного календаря",
       "show_week_numbers": "Показывать номера недель",
       "show_week_numbers_desc": "Отображать номера недель в мини-календаре",
+      "calendar_free_scroll": "Свободная прокрутка",
+      "calendar_free_scroll_desc": "Непрерывно прокручивать месяцы, недели и дни вместо одного периода за раз",
       "enable_tasks": "Включить задачи",
       "enable_tasks_desc": "Показывать представление задач в календаре для управления делами",
       "show_tasks_on_calendar": "Показывать задачи в календаре",

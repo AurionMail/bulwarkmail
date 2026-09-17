@@ -225,6 +225,10 @@
     "and_others": "و{count} آخرين",
     "draft": "مسودة",
     "starred": "مميزة بنجمة",
+    "pinned": "مثبتة",
+    "replied": "تم الرد عليها",
+    "forwarded": "تمت إعادة توجيهها",
+    "has_attachment": "تحتوي على مرفق",
     "conversations_count": "{count} من {total} محادثة",
     "conversations_count_plus": "{count}+ محادثة",
     "conversations_count_simple": "{count} محادثة",
@@ -292,6 +296,7 @@
     "forward": "إعادة توجيه",
     "delete": "حذف",
     "archive": "أرشفة",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "تمييز بنجمة",
     "unstar": "إزالة النجمة",
     "mark_unread": "تمييز كغير مقروءة",
@@ -306,7 +311,7 @@
     "fullscreen": "ملء الشاشة",
     "exit_fullscreen": "الخروج من ملء الشاشة",
     "export_email": "تصدير كملف ‎.eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "إعادة التوجيه كمرفق",
     "import_email": "استيراد ملف ‎.eml أو ‎.zip",
     "keyboard_shortcuts": "اختصارات لوحة المفاتيح (؟)",
     "email_source": "مصدر الرسالة",
@@ -728,7 +733,11 @@
       "delete_column": "حذف العمود",
       "toggle_header_row": "تبديل صف الرأس",
       "delete_table": "حذف الجدول",
-      "pick_size": "اختيار الحجم"
+      "pick_size": "اختيار الحجم",
+      "font_size": "حجم الخط",
+      "font_size_default": "افتراضي",
+      "background_color": "لون الخلفية",
+      "remove_background_color": "إزالة لون الخلفية"
     },
     "send_filing_warning": "تم الإرسال - لكن التنظيف بعد الإرسال فشل، وقد تبقى مسودة قديمة."
   },
@@ -1330,6 +1339,12 @@
         "label": "الرد من العنوان المستلَم إليه",
         "description": "عند الرد، الإرسال من العنوان الذي أُرسلت إليه الرسالة أصلًا. يطابق الهويات أولًا؛ وبالنسبة لعمليات التسليم الشاملة للنطاق، يعيد كتابة ترويسة \"من\" إلى العنوان البديل مع الإرسال عبر هويتك الأساسية."
       },
+      "reply_identity_match": {
+        "label": "مطابقة عنوان الاستلام",
+        "description": "أي عناوين الاستلام تُعدّ عناوينك. «العنوان المطابق فقط» يختار إحدى هوياتك المضبوطة فقط؛ أما «نفس النطاق» فيعامل أيضًا أي عنوان آخر على نطاقات هوياتك كاسم مستعار شامل ويستبدل به ترويسة المرسل. اختر العنوان المطابق إذا كانت تلك العناوين قوائم توزيع.",
+        "exact": "العنوان المطابق فقط",
+        "domain": "أي عنوان على نطاقاتي"
+      },
       "signature_position": {
         "label": "موضع التوقيع",
         "description": "أين يُدرج توقيعك في الردود وإعادة التوجيه. أعلى النص المقتبس يُقرأ بشكل طبيعي كخاتمة للرد؛ وأسفله يُبقي الرسالة الأصلية متصلة.",
@@ -1776,6 +1791,8 @@
       "role_trash": "المهملات",
       "role_junk": "البريد المزعج",
       "role_archive": "الأرشيف",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "بلا",
       "create_folder": "إنشاء مجلد",
       "create_subfolder": "إنشاء مجلد فرعي",
@@ -1885,6 +1902,8 @@
       "title": "جهات الاتصال",
       "description": "استيراد وتصدير جهات اتصالك",
       "group_by_letter_label": "التجميع حسب الحرف الأول",
+      "sort_by_last_name_label": "الترتيب حسب اسم العائلة",
+      "sort_by_last_name_description": "ترتيب قائمة جهات الاتصال حسب اسم العائلة بحيث يظهر أفراد العائلة معًا",
       "group_by_letter_description": "إظهار عناوين أقسام أبجدية في قائمة جهات الاتصال",
       "import_label": "استيراد جهات الاتصال",
       "import_description": "استيراد جهات الاتصال من ملف vCard (‎.vcf)",
@@ -2733,7 +2752,10 @@
       "any_month": "أي شهر",
       "has_email": "لديه بريد إلكتروني",
       "has_phone": "لديه هاتف",
-      "has_photo": "لديه صورة"
+      "has_photo": "لديه صورة",
+      "sort_by": "الترتيب حسب",
+      "sort_first_name": "الاسم الأول",
+      "sort_last_name": "اسم العائلة"
     }
   },
   "calendar": {
@@ -2769,6 +2791,10 @@
       "duplicate": "تكرار",
       "today_header": "اليوم",
       "tomorrow_header": "غدًا",
+      "agenda_show_earlier": "عرض الأحداث السابقة",
+      "agenda_loading": "جارٍ التحميل…",
+      "agenda_range_start": "الأحداث من {date}",
+      "agenda_range_end": "الأحداث حتى {date}",
       "export_ics": "التصدير كملف ‎.ics",
       "copy_title": "نسخ العنوان",
       "copy_link": "نسخ رابط الاجتماع",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "عرض أوقات الأحداث في عرض التقويم الشهري",
       "show_week_numbers": "إظهار أرقام الأسابيع",
       "show_week_numbers_desc": "عرض أرقام الأسابيع في التقويم المصغّر",
+      "calendar_free_scroll": "تمرير حر",
+      "calendar_free_scroll_desc": "التمرير باستمرار عبر الأشهر والأسابيع والأيام بدلاً من فترة واحدة في كل مرة",
       "enable_tasks": "تفعيل المهام",
       "enable_tasks_desc": "إظهار عرض للمهام في التقويم لإدارة قوائم المهام",
       "show_tasks_on_calendar": "إظهار المهام في التقويم",

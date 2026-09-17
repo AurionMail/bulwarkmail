@@ -225,6 +225,10 @@
     "and_others": "i {count} més",
     "draft": "Esborrany",
     "starred": "Destacat",
+    "pinned": "Fixat",
+    "replied": "Respost",
+    "forwarded": "Reenviat",
+    "has_attachment": "Té adjunt",
     "conversations_count": "{count} de {total} converses",
     "conversations_count_plus": "{count}+ converses",
     "conversations_count_simple": "{count} converses",
@@ -292,6 +296,7 @@
     "forward": "Reenvia",
     "delete": "Suprimeix",
     "archive": "Arxiva",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Marca amb estrella",
     "unstar": "Treu l'estrella",
     "mark_unread": "Marca com a no llegit",
@@ -306,7 +311,7 @@
     "fullscreen": "Pantalla completa",
     "exit_fullscreen": "Surt de la pantalla completa",
     "export_email": "Exporta com a .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Reenvia com a fitxer adjunt",
     "import_email": "Importa .eml o .zip",
     "keyboard_shortcuts": "Dreceres de teclat (?)",
     "email_source": "Codi font del correu",
@@ -728,7 +733,11 @@
       "delete_column": "Elimina la columna",
       "toggle_header_row": "Commuta la fila de capçalera",
       "delete_table": "Elimina la taula",
-      "pick_size": "Tria la mida"
+      "pick_size": "Tria la mida",
+      "font_size": "Mida de la lletra",
+      "font_size_default": "Per defecte",
+      "background_color": "Color de fons",
+      "remove_background_color": "Elimina el color de fons"
     },
     "send_filing_warning": "Enviat, però la neteja posterior a l'enviament ha fallat; és possible que quedi un esborrany obsolet."
   },
@@ -1330,6 +1339,12 @@
         "label": "Respon des de l'adreça de recepció",
         "description": "En respondre, envia des de l'adreça a la qual es va enviar originalment el missatge. Primer intenta coincidir amb les identitats; per als lliuraments de captura general de domini, reescriu la capçalera «De» amb l'àlies mentre envia a través de la identitat principal."
       },
+      "reply_identity_match": {
+        "label": "Coincidència de l'adreça de recepció",
+        "description": "Quines adreces de recepció compten com a teves. «Només l'adreça exacta» tria únicament una de les teves identitats configurades; «mateix domini» també tracta qualsevol altra adreça dels teus dominis d'identitat com un àlies catch-all i hi reescriu la capçalera De. Tria l'adreça exacta si aquestes adreces són llistes de distribució.",
+        "exact": "Només l'adreça exacta",
+        "domain": "Qualsevol adreça dels meus dominis"
+      },
       "signature_position": {
         "label": "Posició de la signatura",
         "description": "On inserir la signatura a les respostes i reenviaments. Abans del text citat es llegeix de manera natural com a tancament de la resposta; després manté el missatge original contigu.",
@@ -1776,6 +1791,8 @@
       "role_trash": "Paperera",
       "role_junk": "Correu brossa",
       "role_archive": "Arxiu",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Cap",
       "create_folder": "Crea una carpeta",
       "create_subfolder": "Crea una subcarpeta",
@@ -1885,6 +1902,8 @@
       "title": "Contactes",
       "description": "Importeu i exporteu els contactes",
       "group_by_letter_label": "Agrupa per lletra inicial",
+      "sort_by_last_name_label": "Ordena per cognom",
+      "sort_by_last_name_description": "Ordena la llista de contactes per cognom perquè els membres d'una família apareguin junts",
       "group_by_letter_description": "Mostra capçaleres de secció alfabètiques a la llista de contactes",
       "import_label": "Importa contactes",
       "import_description": "Importeu contactes des d'un fitxer vCard (.vcf)",
@@ -2733,7 +2752,10 @@
       "any_month": "Qualsevol mes",
       "has_email": "Té correu electrònic",
       "has_phone": "Té telèfon",
-      "has_photo": "Té foto"
+      "has_photo": "Té foto",
+      "sort_by": "Ordena per",
+      "sort_first_name": "Nom",
+      "sort_last_name": "Cognom"
     }
   },
   "calendar": {
@@ -2769,6 +2791,10 @@
       "duplicate": "Duplica",
       "today_header": "Avui",
       "tomorrow_header": "Demà",
+      "agenda_show_earlier": "Mostra esdeveniments anteriors",
+      "agenda_loading": "Carregant…",
+      "agenda_range_start": "Esdeveniments des del {date}",
+      "agenda_range_end": "Esdeveniments fins al {date}",
       "export_ics": "Exporta com a .ics",
       "copy_title": "Copia el títol",
       "copy_link": "Copia l'enllaç de la reunió",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Mostra l'hora dels esdeveniments a la vista mensual del calendari. En pantalles petites, això mostra entrades completes d'esdeveniment en lloc de punts.",
       "show_week_numbers": "Mostra els números de setmana",
       "show_week_numbers_desc": "Mostra els números de setmana al minicalendari",
+      "calendar_free_scroll": "Desplaçament lliure",
+      "calendar_free_scroll_desc": "Desplaça't de manera contínua per mesos, setmanes i dies en lloc d'un període cada vegada",
       "enable_tasks": "Activa les tasques",
       "enable_tasks_desc": "Mostra una vista de tasques al calendari per gestionar pendents",
       "show_tasks_on_calendar": "Mostra les tasques al calendari",

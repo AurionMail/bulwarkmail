@@ -225,6 +225,10 @@
     "and_others": "og {count} andre",
     "draft": "Utkast",
     "starred": "Stjernemerket",
+    "pinned": "Festet",
+    "replied": "Besvart",
+    "forwarded": "Videresendt",
+    "has_attachment": "Har vedlegg",
     "conversations_count": "{count} av {total} samtaler",
     "conversations_count_plus": "{count}+ samtaler",
     "conversations_count_simple": "{count} samtaler",
@@ -292,6 +296,7 @@
     "forward": "Videresend",
     "delete": "Slett",
     "archive": "Arkiver",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Stjernemerk",
     "unstar": "Fjern stjerne",
     "mark_unread": "Merk som ulest",
@@ -728,7 +733,11 @@
       "delete_column": "Slett kolonne",
       "toggle_header_row": "Slå overskriftsraden av eller på",
       "delete_table": "Slett tabell",
-      "pick_size": "Velg størrelse"
+      "pick_size": "Velg størrelse",
+      "font_size": "Skriftstørrelse",
+      "font_size_default": "Standard",
+      "background_color": "Bakgrunnsfarge",
+      "remove_background_color": "Fjern bakgrunnsfarge"
     },
     "send_filing_warning": "Meldingen ble sendt, men oppryddingen etterpå mislyktes. Et gammelt utkast kan bli liggende."
   },
@@ -1330,6 +1339,12 @@
         "label": "Svar fra mottatt adresse",
         "description": "Når du svarer, bruker Bulwark adressen meldingen opprinnelig ble sendt til. Programmet ser først etter en samsvarende identitet. For meldinger til et oppsamlingsdomene brukes aliaset i Fra-feltet, mens sendingen går gjennom hovedidentiteten din."
       },
+      "reply_identity_match": {
+        "label": "Samsvar for mottaksadresse",
+        "description": "Hvilke mottaksadresser som regnes som dine. «Kun nøyaktig adresse» velger bare en av dine oppsatte identiteter; «samme domene» behandler i tillegg enhver annen adresse på identitetsdomenene dine som et catch-all-alias og skriver om Fra-headeren til den. Velg nøyaktig adresse hvis disse adressene er distribusjonslister.",
+        "exact": "Kun nøyaktig adresse",
+        "domain": "Enhver adresse på mine domener"
+      },
       "signature_position": {
         "label": "Signaturposisjon",
         "description": "Velg hvor signaturen skal settes inn i svar og videresendinger. Over den siterte teksten fungerer den som en naturlig avslutning på svaret. Under den siterte teksten holdes den opprinnelige meldingen samlet.",
@@ -1776,6 +1791,8 @@
       "role_trash": "Papirkurv",
       "role_junk": "Søppelpost",
       "role_archive": "Arkiv",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Ingen",
       "create_folder": "Opprett mappe",
       "create_subfolder": "Opprett undermappe",
@@ -1885,6 +1902,8 @@
       "title": "Kontakter",
       "description": "Importer og eksporter kontaktene dine",
       "group_by_letter_label": "Grupper etter første bokstav",
+      "sort_by_last_name_label": "Sorter etter etternavn",
+      "sort_by_last_name_description": "Sorter kontaktlisten etter etternavn slik at familiemedlemmer står samlet",
       "group_by_letter_description": "Vis alfabetiske overskrifter i kontaktlisten",
       "import_label": "Importer kontakter",
       "import_description": "Importer kontakter fra en vCard-fil (.vcf).",
@@ -2733,7 +2752,10 @@
       "any_month": "Alle måneder",
       "has_email": "Har e-postadresse",
       "has_phone": "Har telefonnummer",
-      "has_photo": "Har bilde"
+      "has_photo": "Har bilde",
+      "sort_by": "Sorter etter",
+      "sort_first_name": "Fornavn",
+      "sort_last_name": "Etternavn"
     }
   },
   "calendar": {
@@ -2769,6 +2791,10 @@
       "duplicate": "Dupliser",
       "today_header": "I dag",
       "tomorrow_header": "I morgen",
+      "agenda_show_earlier": "Vis tidligere hendelser",
+      "agenda_loading": "Laster…",
+      "agenda_range_start": "Hendelser fra {date}",
+      "agenda_range_end": "Hendelser til {date}",
       "export_ics": "Eksporter som .ics",
       "copy_title": "Kopier tittel",
       "copy_link": "Kopier møtelenken",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Vis klokkeslettet for hendelser i månedsvisningen. På små skjermer vises hele hendelsesoppføringen i stedet for en prikk.",
       "show_week_numbers": "Vis ukenummer",
       "show_week_numbers_desc": "Vis ukenummer i minikalenderen",
+      "calendar_free_scroll": "Fri rulling",
+      "calendar_free_scroll_desc": "Rull fortløpende gjennom måneder, uker og dager i stedet for én periode om gangen",
       "enable_tasks": "Aktiver oppgaver",
       "enable_tasks_desc": "Vis en oppgavevisning i kalenderen for å administrere gjøremål",
       "show_tasks_on_calendar": "Vis oppgaver i kalenderen",

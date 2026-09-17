@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } fr
 import { useTranslations, useLocale } from "next-intl";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import {
   X, Clock, MapPin, Video, Users, Repeat, Bell, AlignLeft,
   Pencil, Trash2, Copy, Send, Check,
@@ -19,7 +20,7 @@ import {
   getUserStatus,
   getParticipantList,
 } from "@/lib/calendar-participants";
-import { getEventEditability } from "@/lib/calendar-editability";
+import { canUserRsvp, getEventEditability, type EditabilityContext } from "@/lib/calendar-editability";
 import { useFormatEventDate } from "@/hooks/use-format-event-date";
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 
@@ -167,16 +168,27 @@ export function EventDetailPopover({
   const alertLabel = useMemo(() => getAlertLabel(event, t), [event, t]);
 
   // Gate affordances on calendar rights, not identity (see calendar-editability).
-  const editability = useMemo(() => {
+  const editabilityCtx = useMemo<EditabilityContext>(() => {
     const calendarsById = new Map(calendar ? [[calendar.id, calendar]] : []);
-    return getEventEditability(event, {
+    return {
       calendarsById,
       userCalendarAddresses: currentUserEmails,
       isSubscriptionCalendar: isSubscriptionCalendar ?? (() => false),
-    });
-  }, [event, calendar, currentUserEmails, isSubscriptionCalendar]);
+    };
+  }, [calendar, currentUserEmails, isSubscriptionCalendar]);
+
+  const editability = useMemo(
+    () => getEventEditability(event, editabilityCtx),
+    [event, editabilityCtx]
+  );
   const canEditBody = editability === "editable";
-  const rsvpMode = editability === "rsvp-only";
+
+  // Asked separately from editability: a received invite lands in the user's own
+  // calendar and resolves to 'editable', which renders no RSVP bar (#937).
+  const canRsvp = useMemo(
+    () => canUserRsvp(event, editabilityCtx),
+    [event, editabilityCtx]
+  );
 
   const userParticipantId = useMemo(
     () => getUserParticipantId(event, currentUserEmails),
@@ -487,8 +499,8 @@ export function EventDetailPopover({
         {event.description && (
           <div className="flex items-start gap-2.5">
             <AlignLeft className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-3">
-              {event.description}
+            <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-3 break-words">
+              <LinkifiedText text={event.description} />
             </p>
           </div>
         )}
@@ -545,7 +557,7 @@ export function EventDetailPopover({
       )}
 
       {/* RSVP Bar (for attendees) */}
-      {rsvpMode && onRsvp && userParticipantId && (
+      {canRsvp && onRsvp && userParticipantId && (
         <div className="px-4 py-3 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground mb-2">
             {t("participants.rsvp_label")}

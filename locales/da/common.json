@@ -225,6 +225,10 @@
     "and_others": "og {count} andre",
     "draft": "Kladde",
     "starred": "Stjernemarkerede",
+    "pinned": "Fastgjort",
+    "replied": "Besvaret",
+    "forwarded": "Videresendt",
+    "has_attachment": "Har vedhæftning",
     "conversations_count": "{count} af {total} samtaler",
     "conversations_count_plus": "{count}+ samtaler",
     "conversations_count_simple": "{count} samtaler",
@@ -292,6 +296,7 @@
     "forward": "Videresend",
     "delete": "Slet",
     "archive": "Arkivér",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Stjernemarkér",
     "unstar": "Fjern stjernemarkering",
     "mark_unread": "Markér som ulæst",
@@ -306,7 +311,7 @@
     "fullscreen": "Fuld skærm",
     "exit_fullscreen": "Afslut fuld skærm",
     "export_email": "Eksportér som .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Videresend som vedhæftet fil",
     "import_email": "Importér .eml eller .zip",
     "keyboard_shortcuts": "Tastaturgenveje (?)",
     "email_source": "E-mail-kilde",
@@ -728,7 +733,11 @@
       "delete_column": "Slet kolonne",
       "toggle_header_row": "Slå overskriftsrække til/fra",
       "delete_table": "Slet tabel",
-      "pick_size": "Vælg størrelse"
+      "pick_size": "Vælg størrelse",
+      "font_size": "Skriftstørrelse",
+      "font_size_default": "Standard",
+      "background_color": "Baggrundsfarve",
+      "remove_background_color": "Fjern baggrundsfarve"
     },
     "send_filing_warning": "Sendt - men oprydningen bagefter mislykkedes, en forældet kladde kan blive stående."
   },
@@ -1330,6 +1339,12 @@
         "label": "Svar fra modtaget adresse",
         "description": "Når du svarer, send fra den adresse som beskeden oprindeligt blev sendt til. Matcher først identiteter; for domæne catch-all-leveringer omskriver Fra-headeren til aliaset, mens der sendes gennem din primære identitet."
       },
+      "reply_identity_match": {
+        "label": "Matchning af modtageradresse",
+        "description": "Hvilke modtageradresser der tæller som dine. „Kun præcis adresse“ vælger udelukkende en af dine opsatte identiteter; „samme domæne“ behandler desuden enhver anden adresse på dine identitetsdomæner som et catch-all-alias og omskriver Fra-headeren til den. Vælg præcis adresse, hvis disse adresser er distributionslister.",
+        "exact": "Kun præcis adresse",
+        "domain": "Enhver adresse på mine domæner"
+      },
       "signature_position": {
         "label": "Signaturplacering",
         "description": "Hvor din signatur indsættes i svar og videresendelser. Før citeret tekst læses naturligt som en afslutning på svaret; under bevarer den oprindelige besked sammenhængende.",
@@ -1772,6 +1787,8 @@
       "role_trash": "Papirkurv",
       "role_junk": "Spam",
       "role_archive": "Arkiv",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Ingen",
       "create_folder": "Opret mappe",
       "create_subfolder": "Opret undermappe",
@@ -1881,6 +1898,8 @@
       "title": "Kontakter",
       "description": "Importér og eksportér dine kontakter",
       "group_by_letter_label": "Gruppér efter første bogstav",
+      "sort_by_last_name_label": "Sortér efter efternavn",
+      "sort_by_last_name_description": "Sortér kontaktlisten efter efternavn, så familiemedlemmer står samlet",
       "group_by_letter_description": "Vis alfabetiske sektionsoverskrifter i kontaktlisten",
       "import_label": "Importér kontakter",
       "import_description": "Importér kontakter fra en vCard-fil (.vcf)",
@@ -2732,7 +2751,10 @@
       "any_month": "Enhver måned",
       "has_email": "Har e-mail",
       "has_phone": "Har telefon",
-      "has_photo": "Har billede"
+      "has_photo": "Har billede",
+      "sort_by": "Sortér efter",
+      "sort_first_name": "Fornavn",
+      "sort_last_name": "Efternavn"
     },
     "open_categories": "Åbn kategorier"
   },
@@ -2769,6 +2791,10 @@
       "duplicate": "Duplikér",
       "today_header": "I dag",
       "tomorrow_header": "I morgen",
+      "agenda_show_earlier": "Vis tidligere begivenheder",
+      "agenda_loading": "Indlæser…",
+      "agenda_range_start": "Begivenheder fra {date}",
+      "agenda_range_end": "Begivenheder til {date}",
       "export_ics": "Eksportér som .ics",
       "copy_title": "Kopier titel",
       "copy_link": "Kopier mødelink",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Vis begivenhedstider i månedskalendervisningen",
       "show_week_numbers": "Vis ugenumre",
       "show_week_numbers_desc": "Vis ugenumre i minikalenderen",
+      "calendar_free_scroll": "Fri rulning",
+      "calendar_free_scroll_desc": "Rul fortløbende gennem måneder, uger og dage i stedet for én periode ad gangen",
       "enable_tasks": "Aktivér opgaver",
       "enable_tasks_desc": "Vis en opgavevisning i kalenderen til styring af gøremål",
       "show_tasks_on_calendar": "Vis opgaver på kalender",

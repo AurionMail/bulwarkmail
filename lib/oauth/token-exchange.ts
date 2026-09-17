@@ -60,7 +60,11 @@ export function getRequiredConfig(serverId?: string | null, options?: ClientConf
 
   const clientId = entry?.oauth?.clientId || globalClientId || options?.fallbackClientId;
   const serverUrl = entry?.url || globalServerUrl;
-  const issuerUrl = entry?.oauth?.issuerUrl || globalIssuerUrl;
+  // When the user picked a server, discovery must stay on that server: its
+  // own issuer if configured, otherwise the server itself. The global
+  // OAUTH_ISSUER_URL only applies when no server entry was resolved, or it
+  // would silently send every server's SSO to server 1's IdP. (#952)
+  const issuerUrl = entry ? (entry.oauth?.issuerUrl || entry.url) : globalIssuerUrl;
 
   if (!clientId || !serverUrl) {
     throw new Error(`OAuth misconfigured: ${[!clientId && 'OAUTH_CLIENT_ID', !serverUrl && 'JMAP_SERVER_URL'].filter(Boolean).join(', ')} not set`);

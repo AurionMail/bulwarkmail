@@ -225,6 +225,10 @@
     "and_others": "ve {count} diğer",
     "draft": "Taslak",
     "starred": "Yıldızlı",
+    "pinned": "Sabitlendi",
+    "replied": "Yanıtlandı",
+    "forwarded": "İletildi",
+    "has_attachment": "Ek içeriyor",
     "conversations_count": "{total} konuşmadan {count} tanesi",
     "conversations_count_plus": "{count}+ konuşma",
     "conversations_count_simple": "{count} konuşma",
@@ -292,6 +296,7 @@
     "forward": "İlet",
     "delete": "Sil",
     "archive": "Arşivle",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Yıldızla",
     "unstar": "Yıldızı Kaldır",
     "mark_unread": "Okunmadı olarak işaretle",
@@ -306,7 +311,7 @@
     "fullscreen": "Tam ekran",
     "exit_fullscreen": "Tam ekrandan çık",
     "export_email": ".eml olarak dışa aktar",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Ek olarak ilet",
     "import_email": ".eml veya .zip içe aktar",
     "keyboard_shortcuts": "Klavye kısayolları (?)",
     "email_source": "E-posta Kaynağı",
@@ -728,7 +733,11 @@
       "delete_column": "Sütunu sil",
       "toggle_header_row": "Başlık satırını aç/kapat",
       "delete_table": "Tabloyu sil",
-      "pick_size": "Boyut seç"
+      "pick_size": "Boyut seç",
+      "font_size": "Yazı boyutu",
+      "font_size_default": "Varsayılan",
+      "background_color": "Arka plan rengi",
+      "remove_background_color": "Arka plan rengini kaldır"
     },
     "send_filing_warning": "Gönderildi - ancak sonrasındaki temizleme başarısız oldu, eski bir taslak kalabilir."
   },
@@ -1327,6 +1336,12 @@
         "label": "Yanıt Adresini Otomatik Seç",
         "description": "Yanıtlarken, Kimden adresini iletiyi başlangıçta alan kimliğe otomatik olarak değiştir"
       },
+      "reply_identity_match": {
+        "label": "Alıcı adresi eşleştirme",
+        "description": "Hangi alıcı adreslerinin sizin sayılacağı. „Yalnızca tam adres“ sadece yapılandırılmış kimliklerinizden birini seçer; „aynı alan adı“ ayrıca kimlik alan adlarınızdaki diğer tüm adresleri catch-all takma adı olarak değerlendirir ve Kimden başlığını buna göre yeniden yazar. Bu adresler dağıtım listesiyse tam adresi seçin.",
+        "exact": "Yalnızca tam adres",
+        "domain": "Alan adlarımdaki herhangi bir adres"
+      },
       "signature_position": {
         "label": "İmza konumu",
         "description": "Yanıtlarda ve iletmelerde imzanızın nereye ekleneceği. Alıntılanan metnin üzerinde, yanıt için doğal bir kapanış olarak okunur; altında ise orijinal mesajı bir bütün hâlinde tutar.",
@@ -1769,6 +1784,8 @@
       "role_trash": "Çöp Kutusu",
       "role_junk": "Spam / İstem Dışı",
       "role_archive": "Arşiv",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Yok",
       "create_folder": "Klasör Oluştur",
       "create_subfolder": "Alt Klasör Oluştur",
@@ -1878,6 +1895,8 @@
       "title": "Kişiler",
       "description": "Kişilerinizi içe ve dışa aktarın",
       "group_by_letter_label": "İlk harfe göre grupla",
+      "sort_by_last_name_label": "Soyada göre sırala",
+      "sort_by_last_name_description": "Aile üyeleri bir arada görünsün diye kişi listesini soyada göre sıralar",
       "group_by_letter_description": "Kişi listesinde alfabetik bölüm başlıkları göster",
       "import_label": "Kişileri İçe Aktar",
       "import_description": "Kişileri bir vCard (.vcf) dosyasından içe aktarın",
@@ -2732,7 +2751,10 @@
       "any_month": "Herhangi bir ay",
       "has_email": "E-postası var",
       "has_phone": "Telefonu var",
-      "has_photo": "Fotoğrafı var"
+      "has_photo": "Fotoğrafı var",
+      "sort_by": "Sıralama",
+      "sort_first_name": "Ad",
+      "sort_last_name": "Soyad"
     },
     "open_categories": "Kategorileri aç"
   },
@@ -2769,6 +2791,10 @@
       "duplicate": "Çoğalt",
       "today_header": "Bugün",
       "tomorrow_header": "Yarın",
+      "agenda_show_earlier": "Önceki etkinlikleri göster",
+      "agenda_loading": "Yükleniyor…",
+      "agenda_range_start": "{date} tarihinden itibaren etkinlikler",
+      "agenda_range_end": "{date} tarihine kadar etkinlikler",
       "export_ics": ".ics olarak dışa aktar",
       "copy_title": "Başlığı kopyala",
       "copy_link": "Toplantı bağlantısını kopyala",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Aylık takvim görünümünde etkinlik saatlerini görüntüle",
       "show_week_numbers": "Hafta numaralarını göster",
       "show_week_numbers_desc": "Mini takvimde hafta numaralarını görüntüle",
+      "calendar_free_scroll": "Serbest kaydırma",
+      "calendar_free_scroll_desc": "Tek seferde bir dönem yerine aylar, haftalar ve günler arasında kesintisiz kaydırın",
       "enable_tasks": "Görevleri etkinleştir",
       "enable_tasks_desc": "Yapılacaklar listesini yönetmek için takvimde görev görünümü göster",
       "show_tasks_on_calendar": "Görevleri takvimde göster",

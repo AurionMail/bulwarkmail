@@ -9,6 +9,7 @@ import { getOauthScopes } from '@/lib/oauth/tokens';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { configManager } from '@/lib/admin/config-manager';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 
 const SSO_PENDING_COOKIE = 'sso_pending';
 const SSO_PENDING_MAX_AGE = 300; // 5 minutes
@@ -20,6 +21,10 @@ const SSO_PENDING_MAX_AGE = 300; // 5 minutes
 const MOBILE_REDIRECT_SCHEME = 'bulwarkmobile://';
 
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   try {
     if (!hasSessionSecret()) {
       return NextResponse.json({ error: 'SESSION_SECRET is required for SSO' }, { status: 500 });
@@ -95,7 +100,7 @@ export async function POST(request: NextRequest) {
       ...(isReauth ? { purpose: 'reauth' } : {}),
     };
 
-    const encrypted = encryptPayload(pendingData);
+    const encrypted = encryptPayload(pendingData, 'sso-pending');
     const cookieStore = await cookies();
     const baseCookieOpts = getCookieOptions();
     cookieStore.set(SSO_PENDING_COOKIE, encrypted, {
@@ -121,12 +126,13 @@ export async function POST(request: NextRequest) {
       authUrl.searchParams.set('ui_locales', locale);
     }
 
-    // Force a fresh credential entry for step-up re-auth. prompt=login and
-    // max_age=0 both ask the IdP to re-authenticate even if it has an active
-    // session; honoring them depends on the IdP supporting these OIDC params.
+    // Force a fresh credential entry for step-up re-auth. prompt=login asks
+    // the IdP to re-authenticate even if it has an active session; honoring it
+    // depends on the IdP supporting this OIDC param. Deliberately no max_age=0:
+    // some IdPs (Authelia) re-evaluate max_age at the consent step and loop
+    // back to login forever, and nothing on our side reads auth_time.
     if (isReauth) {
       authUrl.searchParams.set('prompt', 'login');
-      authUrl.searchParams.set('max_age', '0');
     }
 
     return NextResponse.json({

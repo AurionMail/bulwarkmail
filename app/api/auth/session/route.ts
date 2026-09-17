@@ -4,12 +4,7 @@ import { logger } from '@/lib/logger';
 import { encryptSession, decryptSession } from '@/lib/auth/crypto';
 import { SESSION_COOKIE_MAX_AGE, sessionCookieName } from '@/lib/auth/session-cookie';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
-import {
-  JmapAuthVerificationError,
-  normalizeJmapServerUrl,
-  validateProxyAuthHeader,
-  verifyJmapAuth,
-} from '@/lib/auth/verify-jmap-auth';
+import { JmapAuthVerificationError, verifyJmapIdentity } from '@/lib/auth/verify-jmap-auth';
 import {
   clearStalwartAuthContextInStore,
   setStalwartAuthContextInStore,
@@ -19,6 +14,7 @@ import { isPublicHttpUrl } from '@/lib/security/url-guard';
 import { recordLogin } from '@/lib/telemetry/login-tracker';
 import { parseJmapServers, resolveTrustedJmapUrl } from '@/lib/admin/jmap-servers';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 
 function sessionCookieOptions() {
   return {
@@ -36,6 +32,10 @@ function getSlot(request: NextRequest): number {
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   try {
     const oauthEnabled = configManager.get<boolean>('oauthEnabled', false);
     const oauthOnly = configManager.get<boolean>('oauthOnly', false);
@@ -81,13 +81,16 @@ export async function POST(request: NextRequest) {
     const slot = typeof bodySlot === 'number' && bodySlot >= 0 && bodySlot < MAX_ACCOUNT_SLOTS ? bodySlot : getSlot(request);
     const cookieName = sessionCookieName(slot);
     const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-    // Trusted (admin-configured) URLs skip the upstream re-fetch: the cookie
-    // we write here is only ever consumed for requests on behalf of this same
-    // user, so bogus credentials would just yield 401s downstream rather than
-    // privilege escalation. Untrusted custom endpoints still verify upstream.
-    const normalizedServerUrl = upstreamTrusted
-      ? (validateProxyAuthHeader(authHeader), normalizeJmapServerUrl(upstreamUrl))
-      : await verifyJmapAuth(upstreamUrl, authHeader, { trusted: false });
+    // Always verify the credential upstream (GHSA-wxcm-j4jc-9fxq). The cookies
+    // written here are not only replayed as credentials (where a bogus
+    // password would just 401 downstream): the encrypted auth context is also
+    // accepted as proof of identity by routes that never contact the mail
+    // server, such as settings sync. Skipping the check for admin-configured
+    // servers let anyone mint a cookie for any username with a made-up
+    // password. `trusted` only relaxes the public-address requirement.
+    const normalizedServerUrl = await verifyJmapIdentity(upstreamUrl, authHeader, username, {
+      trusted: upstreamTrusted,
+    });
     const token = encryptSession(normalizedServerUrl, username, password);
     const cookieStore = await cookies();
     cookieStore.set(cookieName, token, sessionCookieOptions());
@@ -194,6 +197,10 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   try {
     const cookieStore = await cookies();
     const all = request.nextUrl.searchParams.get('all') === 'true';

@@ -225,6 +225,10 @@
     "and_others": "and {count} others",
     "draft": "Draft",
     "starred": "Starred",
+    "pinned": "Pinned",
+    "replied": "Replied",
+    "forwarded": "Forwarded",
+    "has_attachment": "Has attachment",
     "conversations_count": "{count} of {total} conversations",
     "conversations_count_plus": "{count}+ conversations",
     "conversations_count_simple": "{count} conversations",
@@ -292,6 +296,7 @@
     "forward": "Forward",
     "delete": "Delete",
     "archive": "Archive",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Star",
     "unstar": "Unstar",
     "mark_unread": "Mark as unread",
@@ -728,7 +733,11 @@
       "delete_column": "Delete column",
       "toggle_header_row": "Toggle header row",
       "delete_table": "Delete table",
-      "pick_size": "Pick size"
+      "pick_size": "Pick size",
+      "font_size": "Font size",
+      "font_size_default": "Default",
+      "background_color": "Background color",
+      "remove_background_color": "Remove background color"
     },
     "send_filing_warning": "Sent - but the post-send cleanup failed, a stale draft may remain."
   },
@@ -1031,7 +1040,7 @@
       },
       "unified_mailbox": {
         "label": "Unified Mailbox",
-        "description": "Show combined folders (Inbox, Sent, etc.) for the active account and its shared folders.",
+        "description": "Show combined folders (Inbox, Sent, etc.) for the active account and its shared folders. Needs more than one connected account (or a group inbox included below) before any folders appear here - with just one account, this only adds the section header. The All mail / Unread / Starred entries below are separate, admin-gated options that won't show up until your admin turns them on.",
         "cross_account": {
           "label": "Across all accounts",
           "description": "Merge the unified mailbox across every connected account instead of staying within the active account."
@@ -1060,8 +1069,8 @@
         "description": "Show the total message count next to folders and tags, alongside the unread count. Disable to show only unread counts."
       },
       "favicon_unread_badge": {
-        "label": "Unread Count on Tab Icon",
-        "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+        "label": "Unread Count on Tab and App Icon",
+        "description": "Show the inbox unread count as a badge on the browser tab icon, and on the installed app icon where supported, so new mail is visible when the tab is not focused. Disable to keep both icons unbadged."
       },
       "pro_interface": {
         "label": "Pro Interface (Experimental)",
@@ -1328,7 +1337,13 @@
       },
       "auto_select_reply_identity": {
         "label": "Reply From Received Address",
-        "description": "When replying, send from the address the message was originally sent to. Matches identities first; for domain catch-all deliveries, rewrites the From header to the alias while sending through your primary identity."
+        "description": "When replying, send from the address the message was originally sent to. Your configured identities always match; whether other addresses on your domains count too (catch-all) is set by “Received Address Matching” below."
+      },
+      "reply_identity_match": {
+        "label": "Received Address Matching",
+        "description": "Which received addresses count as yours. Exact address only picks one of your configured identities. Same domain also treats any other address on one of your identity domains as a catch-all alias and rewrites the From header to it. Choose exact address if those addresses are distribution lists rather than aliases.",
+        "exact": "Exact address only",
+        "domain": "Any address on my domains"
       },
       "signature_position": {
         "label": "Signature Position",
@@ -1776,6 +1791,8 @@
       "role_trash": "Trash",
       "role_junk": "Spam / Junk",
       "role_archive": "Archive",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "None",
       "create_folder": "Create Folder",
       "create_subfolder": "Create Subfolder",
@@ -1886,6 +1903,8 @@
       "description": "Import and export your contacts",
       "group_by_letter_label": "Group by first letter",
       "group_by_letter_description": "Show alphabetical section headers in the contact list",
+      "sort_by_last_name_label": "Sort by last name",
+      "sort_by_last_name_description": "Order the contact list by surname so family members appear together",
       "import_label": "Import Contacts",
       "import_description": "Import contacts from a vCard (.vcf) file",
       "export_label": "Export Contacts",
@@ -2733,7 +2752,10 @@
       "any_month": "Any month",
       "has_email": "Has email",
       "has_phone": "Has phone",
-      "has_photo": "Has photo"
+      "has_photo": "Has photo",
+      "sort_by": "Sort by",
+      "sort_first_name": "First name",
+      "sort_last_name": "Last name"
     }
   },
   "calendar": {
@@ -2769,6 +2791,10 @@
       "duplicate": "Duplicate",
       "today_header": "Today",
       "tomorrow_header": "Tomorrow",
+      "agenda_show_earlier": "Show earlier events",
+      "agenda_loading": "Loading…",
+      "agenda_range_start": "Showing events from {date}",
+      "agenda_range_end": "Showing events until {date}",
       "export_ics": "Export as .ics",
       "copy_title": "Copy title",
       "copy_link": "Copy meeting link",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Display event times in the month calendar view. On small screens this shows full event entries instead of dots.",
       "show_week_numbers": "Show week numbers",
       "show_week_numbers_desc": "Display week numbers in the mini-calendar",
+      "calendar_free_scroll": "Free scrolling",
+      "calendar_free_scroll_desc": "Scroll continuously through months, weeks and days instead of one period at a time",
       "enable_tasks": "Enable tasks",
       "enable_tasks_desc": "Show a tasks view in the calendar for managing to-dos",
       "show_tasks_on_calendar": "Show tasks on calendar",

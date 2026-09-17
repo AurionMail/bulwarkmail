@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 // ── module mocks (hoisted) ───────────────────────────────────────────────────
 vi.mock('next/server', () => {
@@ -53,6 +53,35 @@ describe('POST /api/fetch-ical', () => {
     mockCreds.mockReset();
     guardedFetch.mockReset();
     mockCreds.mockResolvedValue({ serverUrl: 'https://mail.example.com', authHeader: 'Basic x', username: 'u' });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  describe('response size limit (#692)', () => {
+    const bigBody = 'X'.repeat(26 * 1024 * 1024); // above the 25 MB default
+
+    it('returns 413 with the limit in the message for an over-limit body', async () => {
+      guardedFetch.mockResolvedValueOnce(new Response(bigBody, { status: 200, headers: { 'content-type': 'text/calendar' } }));
+      const res = (await POST(makeReq({ url: 'https://calendar.example.com/feed.ics' }))) as unknown as RouteResponse;
+      expect(res.status).toBe(413);
+      await expect(res.json?.()).resolves.toEqual({ error: expect.stringMatching(/25 MB limit.*ICAL_MAX_BYTES/) });
+    });
+
+    it('honours ICAL_MAX_BYTES to raise the cap', async () => {
+      vi.stubEnv('ICAL_MAX_BYTES', String(30 * 1024 * 1024));
+      guardedFetch.mockResolvedValueOnce(new Response(bigBody, { status: 200, headers: { 'content-type': 'text/calendar' } }));
+      const res = (await POST(makeReq({ url: 'https://calendar.example.com/feed.ics' }))) as unknown as RouteResponse;
+      expect(res.status).toBe(200);
+    });
+
+    it('honours ICAL_MAX_BYTES to lower the cap via content-length', async () => {
+      vi.stubEnv('ICAL_MAX_BYTES', '1024');
+      guardedFetch.mockResolvedValueOnce(ics(200, { 'content-length': '4096' }));
+      const res = (await POST(makeReq({ url: 'https://calendar.example.com/feed.ics' }))) as unknown as RouteResponse;
+      expect(res.status).toBe(413);
+    });
   });
 
   it('rejects unauthenticated callers before touching the network', async () => {

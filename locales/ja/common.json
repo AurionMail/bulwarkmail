@@ -225,6 +225,10 @@
     "and_others": "他{count}人",
     "draft": "下書き",
     "starred": "スター付き",
+    "pinned": "ピン留め",
+    "replied": "返信済み",
+    "forwarded": "転送済み",
+    "has_attachment": "添付ファイルあり",
     "conversations_count": "{total}件中{count}件の会話",
     "conversations_count_plus": "{count}件以上の会話",
     "conversations_count_simple": "{count}件の会話",
@@ -292,6 +296,7 @@
     "forward": "転送",
     "delete": "削除",
     "archive": "アーカイブ",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "スターを付ける",
     "unstar": "スターを外す",
     "mark_unread": "未読にする",
@@ -306,7 +311,7 @@
     "fullscreen": "全画面表示",
     "exit_fullscreen": "全画面表示を終了",
     "export_email": ".emlとしてエクスポート",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "添付ファイルとして転送",
     "import_email": ".eml または .zip をインポート",
     "keyboard_shortcuts": "キーボードショートカット (?)",
     "email_source": "メールソース",
@@ -728,7 +733,11 @@
       "delete_column": "列を削除",
       "toggle_header_row": "ヘッダー行の切り替え",
       "delete_table": "表を削除",
-      "pick_size": "サイズを選択"
+      "pick_size": "サイズを選択",
+      "font_size": "文字サイズ",
+      "font_size_default": "デフォルト",
+      "background_color": "背景色",
+      "remove_background_color": "背景色を削除"
     },
     "send_filing_warning": "送信されましたが、送信後の整理に失敗しました。古い下書きが残る場合があります。"
   },
@@ -1322,6 +1331,12 @@
         "label": "返信元アドレスを自動選択",
         "description": "返信時に、元のメッセージを受信したIDへ差出人アドレスを自動的に切り替えます"
       },
+      "reply_identity_match": {
+        "label": "受信アドレスの照合",
+        "description": "どの受信アドレスを自分のものとみなすか。「完全一致のみ」は設定済みのアイデンティティからのみ選択します。「同じドメイン」はアイデンティティのドメイン上の他のアドレスもキャッチオールのエイリアスとして扱い、From ヘッダーをそのアドレスに書き換えます。それらのアドレスが配布リストの場合は完全一致を選択してください。",
+        "exact": "完全一致のみ",
+        "domain": "自分のドメイン上の任意のアドレス"
+      },
       "signature_position": {
         "label": "署名の位置",
         "description": "返信や転送で署名を挿入する位置。引用テキストの上は返信の締めとして自然に読めます。下は元のメッセージを続けて表示します。",
@@ -1769,6 +1784,8 @@
       "role_trash": "ゴミ箱",
       "role_junk": "迷惑メール",
       "role_archive": "アーカイブ",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "なし",
       "create_folder": "フォルダーを作成",
       "create_subfolder": "サブフォルダーを作成",
@@ -1888,7 +1905,9 @@
       "categories_description": "連絡先カテゴリの名前を変更",
       "no_categories": "カテゴリが見つかりません",
       "group_by_letter_description": "連絡先リストにアルファベット順のセクション見出しを表示",
-      "group_by_letter_label": "頭文字でグループ化"
+      "group_by_letter_label": "頭文字でグループ化",
+      "sort_by_last_name_label": "姓で並べ替え",
+      "sort_by_last_name_description": "家族が並んで表示されるように、連絡先一覧を姓の順に並べ替えます"
     },
     "downloads": {
       "title": "ダウンロード",
@@ -2732,7 +2751,10 @@
       "any_month": "すべての月",
       "has_email": "メールあり",
       "has_phone": "電話あり",
-      "has_photo": "写真あり"
+      "has_photo": "写真あり",
+      "sort_by": "並べ替え",
+      "sort_first_name": "名",
+      "sort_last_name": "姓"
     },
     "open_categories": "カテゴリを開く"
   },
@@ -2769,6 +2791,10 @@
       "duplicate": "複製",
       "today_header": "今日",
       "tomorrow_header": "明日",
+      "agenda_show_earlier": "以前の予定を表示",
+      "agenda_loading": "読み込み中…",
+      "agenda_range_start": "{date}以降の予定",
+      "agenda_range_end": "{date}までの予定",
       "export_ics": ".icsとしてエクスポート",
       "copy_title": "タイトルをコピー",
       "copy_link": "会議リンクをコピー",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "月カレンダー表示でイベントの時刻を表示する",
       "show_week_numbers": "週番号を表示",
       "show_week_numbers_desc": "ミニカレンダーに週番号を表示する",
+      "calendar_free_scroll": "自由スクロール",
+      "calendar_free_scroll_desc": "1つの期間ずつではなく、月・週・日を連続してスクロールします",
       "enable_tasks": "タスクを有効化",
       "enable_tasks_desc": "カレンダーにタスク表示を追加して、ToDoを管理します",
       "show_tasks_on_calendar": "カレンダーにタスクを表示",

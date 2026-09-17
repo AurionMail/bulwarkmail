@@ -225,6 +225,10 @@
     "and_others": "та {count} інші",
     "draft": "Чернетка",
     "starred": "Позначено зірочкою",
+    "pinned": "Закріплено",
+    "replied": "Відповіли",
+    "forwarded": "Переслано",
+    "has_attachment": "З вкладенням",
     "conversations_count": "{count} з {total} розмов",
     "conversations_count_plus": "{count}+ розмов",
     "conversations_count_simple": "{count} розмов",
@@ -292,6 +296,7 @@
     "forward": "вперед",
     "delete": "Видалити",
     "archive": "Архів",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "зірка",
     "unstar": "Зняти зірочку",
     "mark_unread": "Позначити як непрочитане",
@@ -306,7 +311,7 @@
     "fullscreen": "На весь екран",
     "exit_fullscreen": "Вийти з повноекранного режиму",
     "export_email": "Експортувати як .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Переслати як вкладення",
     "import_email": "Імпорт .eml або .zip",
     "keyboard_shortcuts": "Комбінації клавіш (?)",
     "email_source": "Джерело електронної пошти",
@@ -728,7 +733,11 @@
       "delete_column": "Видалити стовпець",
       "toggle_header_row": "Переключити рядок заголовка",
       "delete_table": "Видалити таблицю",
-      "pick_size": "Вибрати розмір"
+      "pick_size": "Вибрати розмір",
+      "font_size": "Розмір шрифту",
+      "font_size_default": "За замовчуванням",
+      "background_color": "Колір фону",
+      "remove_background_color": "Прибрати колір фону"
     },
     "send_filing_warning": "Надіслано - але подальше очищення не вдалося, може залишитися застаріла чернетка."
   },
@@ -1327,6 +1336,12 @@
         "label": "Автоматичний вибір адреси для відповіді",
         "description": "Під час відповіді автоматично змінюйте адресу відправника на особу, яка спочатку отримала повідомлення"
       },
+      "reply_identity_match": {
+        "label": "Зіставлення адреси отримання",
+        "description": "Які адреси отримання вважати вашими. «Лише точна адреса» вибирає виключно одну з налаштованих ідентичностей; «той самий домен» також вважає будь-яку іншу адресу на доменах ваших ідентичностей catch-all-псевдонімом і підставляє її в заголовок «Від». Виберіть точну адресу, якщо такі адреси є списками розсилки.",
+        "exact": "Лише точна адреса",
+        "domain": "Будь-яка адреса на моїх доменах"
+      },
       "signature_position": {
         "label": "Розташування підпису",
         "description": "Куди вставляти підпис у відповідях і пересиланнях. Над цитованим текстом читається природно як завершення відповіді; під ним зберігає цілісність оригінального повідомлення.",
@@ -1769,6 +1784,8 @@
       "role_trash": "сміття",
       "role_junk": "Спам/сміття",
       "role_archive": "Архів",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Жодного",
       "create_folder": "Створити папку",
       "create_subfolder": "Створити вкладену папку",
@@ -1888,7 +1905,9 @@
       "categories_description": "Перейменувати категорії контактів",
       "no_categories": "Категорії не знайдено",
       "group_by_letter_description": "Показувати алфавітні заголовки розділів у списку контактів",
-      "group_by_letter_label": "Групувати за першою літерою"
+      "group_by_letter_label": "Групувати за першою літерою",
+      "sort_by_last_name_label": "Сортувати за прізвищем",
+      "sort_by_last_name_description": "Упорядкувати список контактів за прізвищем, щоб члени родини були поруч"
     },
     "downloads": {
       "title": "Завантаження",
@@ -2732,7 +2751,10 @@
       "any_month": "Будь-який місяць",
       "has_email": "З ел. поштою",
       "has_phone": "З телефоном",
-      "has_photo": "З фото"
+      "has_photo": "З фото",
+      "sort_by": "Сортувати за",
+      "sort_first_name": "Ім'я",
+      "sort_last_name": "Прізвище"
     },
     "open_categories": "Відкрити категорії"
   },
@@ -2769,6 +2791,10 @@
       "duplicate": "дублікат",
       "today_header": "Сьогодні",
       "tomorrow_header": "завтра",
+      "agenda_show_earlier": "Показати попередні події",
+      "agenda_loading": "Завантаження…",
+      "agenda_range_start": "Події з {date}",
+      "agenda_range_end": "Події до {date}",
       "export_ics": "Експортувати як .ics",
       "copy_title": "Скопіювати назву",
       "copy_link": "Скопіювати посилання зустрічі",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Відображення часу подій у місячному календарі",
       "show_week_numbers": "Показати номери тижнів",
       "show_week_numbers_desc": "Відображення номерів тижнів у міні-календарі",
+      "calendar_free_scroll": "Вільне прокручування",
+      "calendar_free_scroll_desc": "Безперервно прокручувати місяці, тижні та дні замість одного періоду за раз",
       "enable_tasks": "Увімкнути завдання",
       "enable_tasks_desc": "Показати перегляд завдань у календарі для керування справами",
       "show_tasks_on_calendar": "Показати завдання в календарі",

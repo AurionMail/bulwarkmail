@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useEmailStore } from '../email-store';
+import { useEmailStore, findArchiveMailbox } from '../email-store';
 import { useAuthStore } from '../auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import type { Email, Mailbox } from '@/lib/jmap/types';
@@ -61,6 +61,7 @@ function makeClient() {
     markAsRead: vi.fn().mockResolvedValue(undefined),
     toggleStar: vi.fn().mockResolvedValue(undefined),
     moveEmail: vi.fn().mockResolvedValue(undefined),
+    getThread: vi.fn().mockResolvedValue({ id: 'thread-1', emailIds: ['e1'] }),
     batchMarkAsRead: vi.fn().mockResolvedValue(undefined),
     batchDeleteEmails: vi.fn().mockResolvedValue(undefined),
     batchMoveEmails: vi.fn().mockResolvedValue(undefined),
@@ -152,6 +153,27 @@ describe('non-unified shared-folder batch action routing', () => {
       expect.anything(),
       'owner-x',
     );
+  });
+
+  it('single-email archive resolves the SHARED archive when a shared inbox is selected (#889)', async () => {
+    // mail-app's handleArchive resolves its target with the same helper as
+    // batchArchive; with the shared inbox selected it must pick the owner's
+    // archive, not the user's own one listed first in the merged list.
+    const { mailboxes, selectedMailbox } = useEmailStore.getState();
+    const archive = findArchiveMailbox(mailboxes, selectedMailbox);
+    expect(archive?.id).toBe('owner-x:x-archive');
+    expect(archive?.accountId).toBe('owner-x');
+
+    // Moving into that folder targets the owner account with the owner's bare id.
+    await useEmailStore.getState().moveThreadToMailbox(activeClient, 'e1', archive!.id);
+    expect(activeClient.moveEmail).toHaveBeenCalledWith('e1', 'x-archive', 'owner-x');
+  });
+
+  it('single-email archive resolves the OWN archive when an own folder is selected', () => {
+    const { mailboxes } = useEmailStore.getState();
+    expect(findArchiveMailbox(mailboxes, 'a-inbox')?.id).toBe('a-archive');
+    // Unified view pins the owning account explicitly.
+    expect(findArchiveMailbox(mailboxes, 'unified-inbox', 'owner-x')?.id).toBe('owner-x:x-archive');
   });
 
   it('leaves own-account batch delete untouched (no owner accountId)', async () => {

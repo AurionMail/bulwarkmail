@@ -13,7 +13,7 @@ const PAIR_REAUTH_TTL_MS = 5 * 60 * 1000; // 5 minutes — long enough to render
 
 export async function setPairReauth(): Promise<void> {
   const cookieStore = await cookies();
-  const value = encryptPayload({ purpose: 'pair', created_at: Date.now() });
+  const value = encryptPayload({ purpose: 'pair', created_at: Date.now() }, 'pair-reauth');
   cookieStore.set(PAIR_REAUTH_COOKIE, value, {
     ...getCookieOptions(),
     maxAge: Math.floor(PAIR_REAUTH_TTL_MS / 1000),
@@ -24,7 +24,7 @@ export async function hasValidPairReauth(): Promise<boolean> {
   const cookieStore = await cookies();
   const raw = cookieStore.get(PAIR_REAUTH_COOKIE)?.value;
   if (!raw) return false;
-  const data = decryptPayload(raw);
+  const data = decryptPayload(raw, 'pair-reauth');
   if (!data || data.purpose !== 'pair') return false;
   const createdAt = typeof data.created_at === 'number' ? data.created_at : 0;
   // Belt-and-suspenders alongside the cookie maxAge: a forged/old proof whose

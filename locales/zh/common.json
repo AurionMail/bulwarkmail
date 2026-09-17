@@ -225,6 +225,10 @@
     "and_others": "和 {count} 其他人",
     "draft": "草稿",
     "starred": "加星标",
+    "pinned": "已置顶",
+    "replied": "已回复",
+    "forwarded": "已转发",
+    "has_attachment": "有附件",
     "conversations_count": "共 {total} 个会话，当前显示 {count} 个",
     "conversations_count_plus": "{count}+ 个会话",
     "conversations_count_simple": "{count} 个会话",
@@ -234,7 +238,7 @@
     "batch_actions": {
       "select": "选择邮件",
       "select_all": "全选",
-      "selected_messages": "已選取 {count, plural, one {1} other {#}} 封電子郵件",
+      "selected_messages": "已选取 {count, plural, one {1} other {#}} 封电子邮件",
       "mark_read": "标记为已读",
       "mark_unread": "标记为未读",
       "delete": "删除",
@@ -292,6 +296,7 @@
     "forward": "转发",
     "delete": "删除",
     "archive": "归档",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "加星标",
     "unstar": "取消星标",
     "mark_unread": "标记为未读",
@@ -306,7 +311,7 @@
     "fullscreen": "全屏",
     "exit_fullscreen": "退出全屏",
     "export_email": "导出为 .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "作为附件转发",
     "import_email": "导入 .eml 或 .zip",
     "keyboard_shortcuts": "键盘快捷键（？）",
     "email_source": "邮件源码",
@@ -728,7 +733,11 @@
       "delete_column": "删除列",
       "toggle_header_row": "切换标题行",
       "delete_table": "删除表格",
-      "pick_size": "选择大小"
+      "pick_size": "选择大小",
+      "font_size": "字号",
+      "font_size_default": "默认",
+      "background_color": "背景颜色",
+      "remove_background_color": "移除背景颜色"
     },
     "send_filing_warning": "已发送，但发送后的清理失败，可能会残留旧草稿。"
   },
@@ -1327,6 +1336,12 @@
         "label": "自动选择回复地址",
         "description": "回复时自动将发件人地址切换为最初收到该邮件的身份"
       },
+      "reply_identity_match": {
+        "label": "接收地址匹配",
+        "description": "哪些接收地址算作您的地址。“仅精确地址”只从已配置的身份中选择；“相同域名”还会将身份域名下的其他任何地址视为 catch-all 别名，并将发件人标头改写为该地址。如果这些地址是分发列表，请选择精确地址。",
+        "exact": "仅精确地址",
+        "domain": "我的域名下的任意地址"
+      },
       "signature_position": {
         "label": "签名位置",
         "description": "在回复和转发中插入签名的位置。位于引用文本上方时，可作为回复的自然结尾；位于下方时，保持原始邮件连贯。",
@@ -1769,6 +1784,8 @@
       "role_trash": "已删除",
       "role_junk": "垃圾邮件",
       "role_archive": "归档",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "无",
       "create_folder": "创建文件夹",
       "create_subfolder": "新建子文件夹",
@@ -1888,7 +1905,9 @@
       "categories_description": "重命名联系人类别",
       "no_categories": "未找到类别",
       "group_by_letter_description": "在联系人列表中显示按字母顺序排列的分节标题",
-      "group_by_letter_label": "按首字母分组"
+      "group_by_letter_label": "按首字母分组",
+      "sort_by_last_name_label": "按姓氏排序",
+      "sort_by_last_name_description": "按姓氏排列联系人列表，使家庭成员显示在一起"
     },
     "downloads": {
       "title": "下载",
@@ -2732,7 +2751,10 @@
       "any_month": "任意月份",
       "has_email": "有邮箱",
       "has_phone": "有电话",
-      "has_photo": "有照片"
+      "has_photo": "有照片",
+      "sort_by": "排序方式",
+      "sort_first_name": "名",
+      "sort_last_name": "姓"
     },
     "open_categories": "打开分类"
   },
@@ -2769,6 +2791,10 @@
       "duplicate": "复制",
       "today_header": "今天",
       "tomorrow_header": "明天",
+      "agenda_show_earlier": "显示更早的日程",
+      "agenda_loading": "加载中…",
+      "agenda_range_start": "显示 {date} 起的日程",
+      "agenda_range_end": "显示至 {date} 的日程",
       "export_ics": "导出为 .ics",
       "copy_title": "复制标题",
       "copy_link": "复制会议链接",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "在月历视图中显示事件时间",
       "show_week_numbers": "显示周数",
       "show_week_numbers_desc": "在迷你日历中显示周数",
+      "calendar_free_scroll": "自由滚动",
+      "calendar_free_scroll_desc": "连续滚动浏览月、周和日，而不是一次只显示一个时段",
       "enable_tasks": "启用任务",
       "enable_tasks_desc": "在日历中显示任务视图以管理待办事项",
       "show_tasks_on_calendar": "在日历上显示任务",

@@ -225,6 +225,10 @@
     "and_others": "و {count} نفر دیگر",
     "draft": "پیش‌نویس",
     "starred": "ستاره‌دار",
+    "pinned": "سنجاق‌شده",
+    "replied": "پاسخ داده شده",
+    "forwarded": "بازارسال شده",
+    "has_attachment": "دارای پیوست",
     "conversations_count": "{count} از {total} مکالمه",
     "conversations_count_plus": "+{count} مکالمه",
     "conversations_count_simple": "{count} مکالمه",
@@ -292,6 +296,7 @@
     "forward": "ارسال مجدد",
     "delete": "حذف",
     "archive": "بایگانی",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "ستاره‌دار کردن",
     "unstar": "حذف ستاره",
     "mark_unread": "علامت‌گذاری خوانده نشده",
@@ -306,7 +311,7 @@
     "fullscreen": "تمام‌صفحه",
     "exit_fullscreen": "خروج از تمام‌صفحه",
     "export_email": "خروجی .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "ارسال به‌عنوان پیوست",
     "import_email": "وارد کردن .eml یا .zip",
     "keyboard_shortcuts": "میانبرهای صفحه کلید (?)",
     "email_source": "منبع ایمیل",
@@ -728,7 +733,11 @@
       "delete_column": "حذف ستون",
       "toggle_header_row": "تغییر وضعیت ردیف سرصفحه",
       "delete_table": "حذف جدول",
-      "pick_size": "انتخاب اندازه"
+      "pick_size": "انتخاب اندازه",
+      "font_size": "اندازه فونت",
+      "font_size_default": "پیش‌فرض",
+      "background_color": "رنگ پس‌زمینه",
+      "remove_background_color": "حذف رنگ پس‌زمینه"
     },
     "send_filing_warning": "ارسال شد - اما پاک‌سازی پس از ارسال ناموفق بود، ممکن است پیش‌نویس قدیمی باقی بماند."
   },
@@ -1330,6 +1339,12 @@
         "label": "پاسخ از آدرس دریافتی",
         "description": "ارسال با آدرس دریافت شده"
       },
+      "reply_identity_match": {
+        "label": "تطبیق نشانی دریافت",
+        "description": "کدام نشانی‌های دریافت به‌عنوان نشانی شما در نظر گرفته شوند. «فقط نشانی دقیق» تنها یکی از هویت‌های پیکربندی‌شدهٔ شما را انتخاب می‌کند؛ «همان دامنه» هر نشانی دیگری در دامنه‌های هویت شما را نیز نام مستعار catch-all در نظر می‌گیرد و سرآیند فرستنده را با آن بازنویسی می‌کند. اگر این نشانی‌ها فهرست توزیع هستند، نشانی دقیق را انتخاب کنید.",
+        "exact": "فقط نشانی دقیق",
+        "domain": "هر نشانی در دامنه‌های من"
+      },
       "signature_position": {
         "label": "موقعیت امضا",
         "description": "محل درج امضا",
@@ -1776,6 +1791,8 @@
       "role_trash": "زباله‌دان",
       "role_junk": "هرزنامه",
       "role_archive": "بایگانی",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "هیچکدام",
       "create_folder": "ایجاد پوشه",
       "create_subfolder": "ایجاد زیرپوشه",
@@ -1885,6 +1902,8 @@
       "title": "مخاطبین",
       "description": "وارد کردن و خروجی مخاطبین",
       "group_by_letter_label": "گروه‌بندی بر اساس حرف اول",
+      "sort_by_last_name_label": "مرتب‌سازی بر اساس نام خانوادگی",
+      "sort_by_last_name_description": "لیست مخاطبین را بر اساس نام خانوادگی مرتب کنید تا اعضای خانواده کنار هم نمایش داده شوند",
       "group_by_letter_description": "نمایش هدرهای الفبایی در لیست مخاطبین",
       "import_label": "وارد کردن مخاطبین",
       "import_description": "وارد کردن مخاطبین از فایل vCard (.vcf)",
@@ -2733,7 +2752,10 @@
       "any_month": "هر ماه",
       "has_email": "دارای ایمیل",
       "has_phone": "دارای تلفن",
-      "has_photo": "دارای عکس"
+      "has_photo": "دارای عکس",
+      "sort_by": "مرتب‌سازی بر اساس",
+      "sort_first_name": "نام",
+      "sort_last_name": "نام خانوادگی"
     }
   },
   "calendar": {
@@ -2769,6 +2791,10 @@
       "duplicate": "کپی",
       "today_header": "امروز",
       "tomorrow_header": "فردا",
+      "agenda_show_earlier": "نمایش رویدادهای قبلی",
+      "agenda_loading": "در حال بارگذاری…",
+      "agenda_range_start": "رویدادها از {date}",
+      "agenda_range_end": "رویدادها تا {date}",
       "export_ics": "خروجی .ics",
       "copy_title": "کپی عنوان",
       "copy_link": "کپی لینک جلسه",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "نمایش زمان رویدادها در نمای ماه تقویم",
       "show_week_numbers": "نمایش شماره هفته",
       "show_week_numbers_desc": "نمایش شماره هفته در تقویم کوچک",
+      "calendar_free_scroll": "پیمایش آزاد",
+      "calendar_free_scroll_desc": "پیمایش پیوسته در ماه‌ها، هفته‌ها و روزها به جای یک بازه در هر بار",
       "enable_tasks": "فعال کردن وظایف",
       "enable_tasks_desc": "نمایش نمای وظایف در تقویم برای مدیریت کارها",
       "show_tasks_on_calendar": "نمایش وظایف روی تقویم",

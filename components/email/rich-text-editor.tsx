@@ -9,8 +9,9 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextDirection } from "@/components/email/text-direction";
-import { TextStyle } from "@tiptap/extension-text-style";
+import { TextStyle, BackgroundColor } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
+import { FontSize, FONT_SIZES } from "@/components/email/font-size";
 import { ResizableImage } from "@/components/email/resizable-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Table } from "@tiptap/extension-table";
@@ -44,6 +45,7 @@ import {
   Heading2,
   Table as TableIcon,
   Baseline,
+  Highlighter,
   Trash2,
   Rows3,
   Columns3,
@@ -198,6 +200,8 @@ export function RichTextEditor({
       }),
       TextStyle,
       Color,
+      BackgroundColor,
+      FontSize,
       ResizableImage,
       Placeholder.configure({
         placeholder,
@@ -326,6 +330,21 @@ export function RichTextEditor({
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const colorWrapperRef = useRef<HTMLDivElement>(null);
+  const [bgColorMenuOpen, setBgColorMenuOpen] = useState(false);
+  const bgColorWrapperRef = useRef<HTMLDivElement>(null);
+  const [fontSizeMenuOpen, setFontSizeMenuOpen] = useState(false);
+  const fontSizeWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!fontSizeMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (fontSizeWrapperRef.current && !fontSizeWrapperRef.current.contains(e.target as Node)) {
+        setFontSizeMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [fontSizeMenuOpen]);
 
   useEffect(() => {
     if (!colorMenuOpen) return;
@@ -337,6 +356,17 @@ export function RichTextEditor({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [colorMenuOpen]);
+
+  useEffect(() => {
+    if (!bgColorMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (bgColorWrapperRef.current && !bgColorWrapperRef.current.contains(e.target as Node)) {
+        setBgColorMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [bgColorMenuOpen]);
 
   useEffect(() => {
     if (!tableMenuOpen) return;
@@ -355,10 +385,74 @@ export function RichTextEditor({
     );
   }
 
+  const currentFontSize: string | null = editor.getAttributes("textStyle").fontSize ?? null;
+  const currentBgColor: string | null = editor.getAttributes("textStyle").backgroundColor ?? null;
+
   return (
     <div className={cn("flex flex-col", hasError && "ring-2 ring-red-500 dark:ring-red-400 rounded", className)}>
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 px-3 py-1.5 border-b border-border/50 bg-muted/30">
+      {/* Toolbar - sticky within the composer's scroll container so it stays
+          visible while editing long bodies. The background stays at main's
+          bg-muted/30 in every state - backdrop-blur has no visual effect while
+          the toolbar rests on the solid page background, and blurs body text
+          sliding underneath only once pinned, so pinned legibility needs no
+          extra opaque overlay (an always-on stronger overlay would read darker
+          than main even at rest). */}
+      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 px-3 py-1.5 border-b border-border/50 bg-muted/30 backdrop-blur-sm">
+        {/* Font size - two baseline-aligned A's read as "size" at a glance;
+            once a size is chosen the button shows that number instead. */}
+        <div ref={fontSizeWrapperRef} className="relative">
+          <ToolbarButton
+            active={fontSizeMenuOpen || !!currentFontSize}
+            onClick={() => setFontSizeMenuOpen((v) => !v)}
+            title={tToolbar("font_size")}
+          >
+            {currentFontSize ? (
+              <span className="text-xs font-semibold min-w-6 text-center leading-4 tabular-nums">
+                {currentFontSize.replace("px", "")}
+              </span>
+            ) : (
+              <span className="flex items-baseline justify-center leading-none" aria-hidden>
+                <span className="text-sm font-semibold">A</span>
+                <span className="text-[9px] font-semibold">A</span>
+              </span>
+            )}
+          </ToolbarButton>
+          {fontSizeMenuOpen && (
+            <div className="absolute z-50 top-full start-0 mt-1 bg-popover border border-border rounded-md shadow-md p-1 min-w-[64px]">
+              {FONT_SIZES.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => {
+                    editor.chain().focus().setFontSize(size).run();
+                    setFontSizeMenuOpen(false);
+                  }}
+                  className={cn(
+                    "block w-full text-start px-2 py-1 rounded hover:bg-accent transition-colors",
+                    currentFontSize === size && "bg-accent text-accent-foreground"
+                  )}
+                  style={{ fontSize: size, lineHeight: 1.4 }}
+                >
+                  {size}
+                </button>
+              ))}
+              <div className="h-px bg-border my-1" />
+              <button
+                type="button"
+                className="flex items-center gap-2 px-2 py-1 text-sm rounded hover:bg-accent text-start w-full"
+                onClick={() => {
+                  editor.chain().focus().unsetFontSize().run();
+                  setFontSizeMenuOpen(false);
+                }}
+              >
+                <RemoveFormatting className="w-4 h-4" /> {tToolbar("font_size_default")}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <ToolbarSeparator />
+
         <ToolbarButton
           active={editor.isActive("bold")}
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -426,6 +520,60 @@ export function RichTextEditor({
                 }}
               >
                 <RemoveFormatting className="w-4 h-4" /> {tToolbar("remove_color")}
+              </button>
+            </div>
+          )}
+        </div>
+        {/* Background color - same palette, same grid and same swatch
+            styling as the text-colour picker above, so the two controls
+            read as siblings. The highlighter glyph previews the active
+            tint on its little bar. Inline style="background-color: …"
+            survives email round-trips like `color` does. */}
+        <div ref={bgColorWrapperRef} className="relative">
+          <ToolbarButton
+            active={!!currentBgColor}
+            onClick={() => setBgColorMenuOpen((v) => !v)}
+            title={tToolbar("background_color")}
+          >
+            <span className="relative inline-flex items-center justify-center">
+              <Highlighter className="w-4 h-4" />
+              <span
+                aria-hidden
+                className="absolute -bottom-[3px] left-1/2 h-[3px] w-3 -translate-x-1/2 rounded-[1px] border border-border/40"
+                style={{ backgroundColor: currentBgColor || undefined }}
+              />
+            </span>
+          </ToolbarButton>
+          {bgColorMenuOpen && (
+            <div className="absolute z-50 top-full start-0 mt-1 bg-popover border border-border rounded-md shadow-md p-2">
+              <div className="grid gap-0.5" style={{ gridTemplateColumns: "repeat(8, 1fr)" }}>
+                {TEXT_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    title={color}
+                    onClick={() => {
+                      editor.chain().focus().setBackgroundColor(color).run();
+                      setBgColorMenuOpen(false);
+                    }}
+                    className={cn(
+                      "w-4 h-4 border border-border/60 rounded-[2px] transition-transform hover:scale-110",
+                      currentBgColor === color && "ring-1 ring-ring ring-offset-1"
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+              <div className="h-px bg-border my-1.5" />
+              <button
+                type="button"
+                className="flex items-center gap-2 px-2 py-1 text-sm rounded hover:bg-accent text-start w-full"
+                onClick={() => {
+                  editor.chain().focus().unsetBackgroundColor().run();
+                  setBgColorMenuOpen(false);
+                }}
+              >
+                <RemoveFormatting className="w-4 h-4" /> {tToolbar("remove_background_color")}
               </button>
             </div>
           )}

@@ -225,6 +225,10 @@
     "and_others": "e {count} outros",
     "draft": "Rascunho",
     "starred": "Com Estrela",
+    "pinned": "Fixado",
+    "replied": "Respondido",
+    "forwarded": "Encaminhado",
+    "has_attachment": "Com anexo",
     "conversations_count": "{count} de {total} conversas",
     "conversations_count_plus": "{count}+ conversas",
     "conversations_count_simple": "{count} conversas",
@@ -292,6 +296,7 @@
     "forward": "Encaminhar",
     "delete": "Excluir",
     "archive": "Arquivar",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Adicionar Estrela",
     "unstar": "Remover Estrela",
     "mark_unread": "Marcar como não lido",
@@ -306,7 +311,7 @@
     "fullscreen": "Tela cheia",
     "exit_fullscreen": "Sair da tela cheia",
     "export_email": "Exportar como .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Encaminhar como anexo",
     "import_email": "Importar .eml ou .zip",
     "keyboard_shortcuts": "Atalhos de teclado (?)",
     "email_source": "Código-fonte do E-mail",
@@ -728,7 +733,11 @@
       "delete_column": "Excluir coluna",
       "toggle_header_row": "Alternar linha de cabeçalho",
       "delete_table": "Excluir tabela",
-      "pick_size": "Escolher tamanho"
+      "pick_size": "Escolher tamanho",
+      "font_size": "Tamanho da fonte",
+      "font_size_default": "Padrão",
+      "background_color": "Cor de fundo",
+      "remove_background_color": "Remover cor de fundo"
     },
     "send_filing_warning": "Enviado - mas a limpeza posterior falhou, um rascunho antigo pode permanecer."
   },
@@ -1322,6 +1331,12 @@
         "label": "Selecionar automaticamente o endereço de resposta",
         "description": "Ao responder, muda automaticamente o endereço do remetente para a identidade que recebeu a mensagem original"
       },
+      "reply_identity_match": {
+        "label": "Correspondência do endereço de receção",
+        "description": "Quais endereços de receção contam como seus. «Apenas endereço exato» escolhe somente uma das suas identidades configuradas; «mesmo domínio» trata também qualquer outro endereço dos seus domínios de identidade como alias catch-all e reescreve o cabeçalho De com ele. Escolha o endereço exato se esses endereços forem listas de distribuição.",
+        "exact": "Apenas endereço exato",
+        "domain": "Qualquer endereço dos meus domínios"
+      },
       "signature_position": {
         "label": "Posição da assinatura",
         "description": "Onde inserir a sua assinatura em respostas e encaminhamentos. Acima do texto citado lê-se naturalmente como fecho da resposta; abaixo mantém a mensagem original contígua.",
@@ -1769,6 +1784,8 @@
       "role_trash": "Lixeira",
       "role_junk": "Spam / Lixo eletrônico",
       "role_archive": "Arquivo",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Nenhum",
       "create_folder": "Criar pasta",
       "create_subfolder": "Criar subpasta",
@@ -1888,7 +1905,9 @@
       "categories_description": "Renomear categorias de contatos",
       "no_categories": "Nenhuma categoria encontrada",
       "group_by_letter_description": "Mostrar cabeçalhos de seção alfabéticos na lista de contatos",
-      "group_by_letter_label": "Agrupar pela primeira letra"
+      "group_by_letter_label": "Agrupar pela primeira letra",
+      "sort_by_last_name_label": "Ordenar por sobrenome",
+      "sort_by_last_name_description": "Ordenar a lista de contatos por sobrenome para que os membros da família apareçam juntos"
     },
     "downloads": {
       "title": "Downloads",
@@ -2732,7 +2751,10 @@
       "any_month": "Qualquer mês",
       "has_email": "Com e-mail",
       "has_phone": "Com telefone",
-      "has_photo": "Com foto"
+      "has_photo": "Com foto",
+      "sort_by": "Ordenar por",
+      "sort_first_name": "Nome",
+      "sort_last_name": "Sobrenome"
     },
     "open_categories": "Abrir categorias"
   },
@@ -2769,6 +2791,10 @@
       "duplicate": "Duplicar",
       "today_header": "Hoje",
       "tomorrow_header": "Amanhã",
+      "agenda_show_earlier": "Mostrar eventos anteriores",
+      "agenda_loading": "A carregar…",
+      "agenda_range_start": "Eventos a partir de {date}",
+      "agenda_range_end": "Eventos até {date}",
       "export_ics": "Exportar como .ics",
       "copy_title": "Copiar título",
       "copy_link": "Copiar link da reunião",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Exibir horários dos eventos na visualização mensal do calendário",
       "show_week_numbers": "Mostrar números da semana",
       "show_week_numbers_desc": "Exibir números da semana no minicalendário",
+      "calendar_free_scroll": "Deslocamento livre",
+      "calendar_free_scroll_desc": "Percorrer meses, semanas e dias de forma contínua em vez de um período de cada vez",
       "enable_tasks": "Ativar tarefas",
       "enable_tasks_desc": "Mostrar uma visualização de tarefas no calendário para gerenciar pendências",
       "show_tasks_on_calendar": "Mostrar tarefas no calendário",

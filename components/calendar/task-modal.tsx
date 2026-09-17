@@ -80,6 +80,10 @@ export function TaskModal({
     if (d) return String(parseInt(d[1]) * 1440) as AlertOption;
     return "none";
   });
+  // The control only shows the first alert (and only simple offset triggers),
+  // so writing `alerts` back on every save silently dropped the others. Track
+  // whether the user actually changed it and only patch alerts then. (#504)
+  const [alertTouched, setAlertTouched] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -102,20 +106,6 @@ export function TaskModal({
         }
       }
 
-      let alerts: Record<string, CalendarEventAlert> | null = null;
-      if (alertOption !== "none") {
-        const offset = alertOption === "at_time" ? "PT0S" : `-PT${alertOption}M`;
-        alerts = {
-          "default-alert": {
-            "@type": "Alert",
-            trigger: { "@type": "OffsetTrigger", offset, relativeTo: "start" },
-            action: "display",
-            acknowledged: null,
-            relatedTo: null,
-          },
-        };
-      }
-
       const data: Partial<CalendarTask> = {
         "@type": "Task",
         title: title.trim(),
@@ -125,8 +115,27 @@ export function TaskModal({
         priority: levelToPriority(priority),
         progress,
         calendarIds: { [calendarId]: true },
-        alerts,
       };
+
+      if (alertTouched) {
+        // Merge into the existing map: the control edits the first alert
+        // (the one it displayed) and leaves any others untouched. (#504)
+        const merged: Record<string, CalendarEventAlert> = { ...(task?.alerts ?? {}) };
+        const editedKey = Object.keys(merged)[0] ?? "default-alert";
+        if (alertOption === "none") {
+          delete merged[editedKey];
+        } else {
+          const offset = alertOption === "at_time" ? "PT0S" : `-PT${alertOption}M`;
+          merged[editedKey] = {
+            "@type": "Alert",
+            trigger: { "@type": "OffsetTrigger", offset, relativeTo: "start" },
+            action: "display",
+            acknowledged: null,
+            relatedTo: null,
+          };
+        }
+        data.alerts = Object.keys(merged).length > 0 ? merged : null;
+      }
 
       if (isEdit && task) {
         data.id = task.id;
@@ -137,7 +146,7 @@ export function TaskModal({
     } finally {
       setSaving(false);
     }
-  }, [title, description, dueDate, dueTime, showTime, priority, progress, calendarId, alertOption, isEdit, task, onSave, onClose]);
+  }, [title, description, dueDate, dueTime, showTime, priority, progress, calendarId, alertOption, alertTouched, isEdit, task, onSave, onClose]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
@@ -278,7 +287,10 @@ export function TaskModal({
           </label>
           <select
             value={alertOption}
-            onChange={(e) => setAlertOption(e.target.value as AlertOption)}
+            onChange={(e) => {
+              setAlertOption(e.target.value as AlertOption);
+              setAlertTouched(true);
+            }}
             className="rounded-md border border-input bg-background px-3 py-1.5 text-sm w-full"
           >
             <option value="none">{t("tasks.alert_none")}</option>

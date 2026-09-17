@@ -4,13 +4,15 @@ import React, { useCallback } from "react";
 import { formatDate, formatDateTime, stripInvisibleLeading } from "@/lib/utils";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { cn } from "@/lib/utils";
+import { AttachmentChips } from "./attachment-chips";
+import type { Attachment } from "@/lib/jmap/types";
 import { SelectableAvatar } from "@/components/email/selectable-avatar";
 import { Paperclip, Star, Pin, Circle, ChevronRight, ChevronDown, Loader2, MessageSquare, CheckSquare, Square, Reply, Forward, CalendarClock, Folder, Archive, Trash2, MailOpen, ShieldAlert } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useAccountStore } from "@/stores/account-store";
+import { useAccountStore, type AccountEntry } from "@/stores/account-store";
 import { getThreadTagIds, getEmailTagIds } from "@/lib/thread-utils";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
 import { useTagDisplay } from "@/hooks/use-tag-display";
@@ -23,6 +25,45 @@ import { ThreadEmailItem } from "./thread-email-item";
 import { EmailHoverActions } from "./email-hover-actions";
 import { SearchSnippetText } from "./search-snippet-text";
 import { useTranslations } from "next-intl";
+
+/**
+ * Unread bullet in the row gutter.
+ *
+ * It is absolutely positioned so it never widens the row, which means it has
+ * to be told where the row's *first* line sits: centring it on the row (the
+ * old `top-1/2`) drifts down as soon as the row grows a second and third line,
+ * leaving it visibly out of line with the checkbox and the avatar it reads as
+ * a column with. Anchor = top padding + half an avatar.
+ */
+function UnreadDot({ density, compactAvatar }: { density: string; compactAvatar: boolean }) {
+  const t = useTranslations('email_viewer');
+  const halfFirstLine = density === 'extra-compact' ? '0.625rem' : compactAvatar ? '1rem' : '1.25rem';
+  return (
+    <div
+      className="absolute start-0.5 -translate-y-1/2"
+      style={{ top: `calc(var(--density-item-py) + ${halfFirstLine})` }}
+    >
+      <Circle className="w-2 h-2 fill-unread text-unread" />
+      <span className="sr-only">{t('unread')}</span>
+    </div>
+  );
+}
+
+function StatusIcon({ icon: Icon, label, className }: { icon: LucideIcon; label: string; className: string }) {
+  return (
+    <>
+      <Icon className={className} />
+      <span className="sr-only">{label}</span>
+    </>
+  );
+}
+
+function describeAccount(label: string | undefined, account: AccountEntry | undefined): string | undefined {
+  const address = account?.email || account?.username;
+  if (!label) return address;
+  if (!address || address.toLowerCase() === label.toLowerCase()) return label;
+  return `${label}, ${address}`;
+}
 
 /**
  * Small chip showing the originating folder of a message, rendered in the
@@ -58,7 +99,8 @@ function ThreadCountPill({ count, hasUnread, title }: { count: number; hasUnread
       title={title}
     >
       <MessageSquare className="w-3 h-3" />
-      {count}
+      <span aria-hidden="true">{count}</span>
+      <span className="sr-only">{title}</span>
     </span>
   );
 }
@@ -82,6 +124,7 @@ interface ThreadListItemProps {
   onSetTag?: (emailId: string, tagId: string | null) => void;
   onMarkAsSpam?: (email: Email) => void;
   onUndoSpam?: (email: Email) => void;
+  onOpenAttachment?: (email: Email, attachment: Attachment) => void;
 }
 
 interface SingleEmailItemProps {
@@ -99,6 +142,7 @@ interface SingleEmailItemProps {
   onSetTag?: (tagId: string | null) => void;
   onMarkAsSpam?: () => void;
   onUndoSpam?: () => void;
+  onOpenAttachment?: (attachment: Attachment) => void;
 }
 
 // Visual + behaviour metadata for each mobile swipe action. Keyed by the
@@ -112,9 +156,10 @@ const SWIPE_ACTION_META: Record<Exclude<SwipeAction, 'none'>, { icon: LucideIcon
 };
 
 const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
-  function SingleEmailItem({ email, selected, onClick, onDoubleClick, onContextMenu, showPreview, rowTint, onToggleStar, onMarkAsRead, onDelete, onArchive, onSetTag, onMarkAsSpam, onUndoSpam }, ref) {
+  function SingleEmailItem({ email, selected, onClick, onDoubleClick, onContextMenu, showPreview, rowTint, onToggleStar, onMarkAsRead, onDelete, onArchive, onSetTag, onMarkAsSpam, onUndoSpam, onOpenAttachment }, ref) {
     const t = useTranslations('email_viewer');
     const tBatch = useTranslations('email_list.batch_actions');
+    const tStatus = useTranslations('email_list');
     const isUnread = !email.keywords?.$seen;
     const isStarred = email.keywords?.$flagged;
     const isPinned = email.keywords?.['$pinned'] === true;
@@ -139,7 +184,9 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     // Show the originating folder in the aggregate "All …" views.
     const showSourceFolder = isUnifiedView && !!email.sourceFolder;
     const getAccountById = useAccountStore((state) => state.getAccountById);
-    const accountColor = email.accountId ? getAccountById(email.accountId)?.avatarColor : undefined;
+    const account = email.accountId ? getAccountById(email.accountId) : undefined;
+    const accountColor = account?.avatarColor;
+    const accountDescription = describeAccount(email.accountLabel, account);
     const isChecked = selectedEmailIds.has(email.id);
     const isMobile = useUIStore((state) => state.isMobile);
     // The horizontal one-line "focus" layout doesn't fit on narrow screens; fall back to multi-line on mobile.
@@ -254,6 +301,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         data-subject={email.subject || ''}
         data-unread={isUnread ? 'true' : 'false'}
         data-starred={email.keywords?.$flagged ? 'true' : 'false'}
+        aria-current={selected ? 'true' : undefined}
         className={cn(
           "relative group cursor-pointer select-none transition-shadow duration-200 border-b border-border overflow-hidden",
           resolvedRowTint ? resolvedRowTint : (
@@ -303,6 +351,9 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
           {density === 'extra-compact' && selectedEmailIds.size > 0 && (
             <button
               onClick={handleCheckboxClick}
+              role="checkbox"
+              aria-checked={isChecked}
+              aria-label={tBatch('select')}
               className={cn(
                 "p-3 lg:p-1 rounded flex-shrink-0 transition-all duration-200",
                 !isFocusedMailLayout && 'mt-2',
@@ -320,23 +371,21 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
             </button>
           )}
 
-          {isUnread && (
-            <div className="absolute start-0.5 top-1/2 -translate-y-1/2">
-              <Circle className="w-2 h-2 fill-unread text-unread" />
-            </div>
-          )}
-
           {density !== 'extra-compact' && (
             <SelectableAvatar
               name={sender?.name}
               email={sender?.email}
               size={isFocusedMailLayout ? "sm" : "md"}
-              className="flex-shrink-0 shadow-sm"
+              className="flex-shrink-0 self-center shadow-sm"
               disableImages={hideJunkAvatarImages}
               checked={isChecked}
               onToggle={handleCheckboxClick}
               selectLabel={tBatch('select')}
             />
+          )}
+
+          {isUnread && (
+            <UnreadDot density={density} compactAvatar={isFocusedMailLayout} />
           )}
 
           <div className="flex-1 min-w-0">
@@ -347,8 +396,10 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                     <span
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: accountColor }}
-                      title={email.accountLabel}
-                    />
+                      title={accountDescription}
+                    >
+                      <span className="sr-only">{accountDescription}</span>
+                    </span>
                   )}
                   <span className={cn(
                     'w-32 shrink-0 truncate text-sm lg:w-40',
@@ -378,17 +429,17 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5 shrink-0">
-                  {isPinned && <Pin className="w-3.5 h-3.5 text-primary" />}
-                  {isStarred && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />}
-                  {isAnswered && !isForwarded && <Reply className="w-3.5 h-3.5 text-muted-foreground" />}
-                  {isForwarded && !isAnswered && <Forward className="w-3.5 h-3.5 text-muted-foreground" />}
+                  {isPinned && <StatusIcon icon={Pin} label={tStatus('pinned')} className="w-3.5 h-3.5 text-primary" />}
+                  {isStarred && <StatusIcon icon={Star} label={tStatus('starred')} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />}
+                  {isAnswered && !isForwarded && <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />}
+                  {isForwarded && !isAnswered && <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />}
                   {isAnswered && isForwarded && (
                     <>
-                      <Reply className="w-3.5 h-3.5 text-muted-foreground" />
-                      <Forward className="w-3.5 h-3.5 text-muted-foreground" />
+                      <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />
+                      <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
                     </>
                   )}
-                  {email.hasAttachment && <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />}
+                  {email.hasAttachment && <StatusIcon icon={Paperclip} label={tStatus('has_attachment')} className="w-3.5 h-3.5 text-muted-foreground" />}
                   {showSourceFolder && <SourceFolderTag name={email.sourceFolder!} />}
                   {scheduledSendLabel ? (
                     <span
@@ -416,8 +467,10 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                       <span
                         className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ backgroundColor: accountColor }}
-                        title={email.accountLabel}
-                      />
+                        title={accountDescription}
+                      >
+                        <span className="sr-only">{accountDescription}</span>
+                      </span>
                     )}
                     <span className={cn(
                       "truncate text-sm",
@@ -436,25 +489,25 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                   )}
                     <div className="flex items-center gap-1.5">
                       {isPinned && (
-                        <Pin className="w-3.5 h-3.5 text-primary" />
+                        <StatusIcon icon={Pin} label={tStatus('pinned')} className="w-3.5 h-3.5 text-primary" />
                       )}
                       {isStarred && (
-                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <StatusIcon icon={Star} label={tStatus('starred')} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                       )}
                       {isAnswered && !isForwarded && (
-                        <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                        <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />
                       )}
                       {isForwarded && !isAnswered && (
-                        <Forward className="w-3.5 h-3.5 text-muted-foreground" />
+                        <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
                       )}
                       {isAnswered && isForwarded && (
                         <>
-                          <Reply className="w-3.5 h-3.5 text-muted-foreground" />
-                          <Forward className="w-3.5 h-3.5 text-muted-foreground" />
+                          <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />
+                          <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
                         </>
                       )}
                       {email.hasAttachment && (
-                        <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
+                        <StatusIcon icon={Paperclip} label={tStatus('has_attachment')} className="w-3.5 h-3.5 text-muted-foreground" />
                       )}
                     </div>
                   </div>
@@ -509,6 +562,13 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                     {previewSnippet ? <SearchSnippetText snippet={previewSnippet} /> : (trimmedPreview || t('no_preview_available'))}
                   </p>
                 )}
+                {onOpenAttachment && (
+                  <AttachmentChips
+                    attachments={email.attachments}
+                    onOpen={onOpenAttachment}
+                    className="mt-1.5"
+                  />
+                )}
               </>
             )}
           </div>
@@ -537,6 +597,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
 
 export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemProps>(
   function ThreadListItem({
+    onOpenAttachment,
     thread,
     isExpanded,
     selectedEmailId,
@@ -559,6 +620,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     const t = useTranslations('threads');
     const tEmailViewer = useTranslations('email_viewer');
     const tBatch = useTranslations('email_list.batch_actions');
+    const tStatus = useTranslations('email_list');
     const showPreview = useSettingsStore((state) => state.showPreview);
     const density = useSettingsStore((state) => state.density);
     const mailLayout = useSettingsStore((state) => state.mailLayout);
@@ -582,7 +644,9 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     const { selectedMailbox, mailboxes, selectedEmailIds, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore();
     const showSourceFolder = isUnifiedView && !!latestEmail.sourceFolder;
     const getAccountById = useAccountStore((state) => state.getAccountById);
-    const threadAccountColor = latestEmail.accountId ? getAccountById(latestEmail.accountId)?.avatarColor : undefined;
+    const threadAccount = latestEmail.accountId ? getAccountById(latestEmail.accountId) : undefined;
+    const threadAccountColor = threadAccount?.avatarColor;
+    const threadAccountDescription = describeAccount(latestEmail.accountLabel, threadAccount);
     // In Sent/Drafts folders, show recipient instead of sender (which is always
     // "me"). Aggregate role-views use a virtual selected mailbox → fall back to
     // the unified role so junk-contextual UI and avatar hiding work.
@@ -644,6 +708,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           onSetTag={onSetTag ? (color) => onSetTag(latestEmail.id, color) : undefined}
           onMarkAsSpam={onMarkAsSpam ? () => onMarkAsSpam(latestEmail) : undefined}
           onUndoSpam={onUndoSpam ? () => onUndoSpam(latestEmail) : undefined}
+          onOpenAttachment={onOpenAttachment ? (a) => onOpenAttachment(latestEmail, a) : undefined}
         />
       );
     }
@@ -713,6 +778,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         <div
           {...dragHandlers}
           {...threadLongPressHandlers}
+          aria-current={isSelected ? 'true' : undefined}
           className={cn(
             "relative group cursor-pointer select-none transition-shadow duration-200 overflow-hidden",
             rowTint ? rowTint : (
@@ -749,6 +815,9 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
             {density === 'extra-compact' && selectedEmailIds.size > 0 && (
               <button
                 onClick={handleThreadCheckboxClick}
+                role="checkbox"
+                aria-checked={isChecked}
+                aria-label={tBatch('select')}
                 className={cn(
                   "p-3 lg:p-1 rounded flex-shrink-0 transition-all duration-200",
                   !isFocusedMailLayout && 'mt-2',
@@ -766,14 +835,8 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
               </button>
             )}
 
-            {hasUnread && (
-              <div className="absolute start-0.5 top-1/2 -translate-y-1/2">
-                <Circle className="w-2 h-2 fill-unread text-unread" />
-              </div>
-            )}
-
             {density !== 'extra-compact' && (
-              <div className="relative flex-shrink-0">
+              <div className="relative flex-shrink-0 self-center">
                 <SelectableAvatar
                   name={avatarPerson?.name}
                   email={avatarPerson?.email}
@@ -814,6 +877,10 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
               </div>
             )}
 
+            {hasUnread && (
+              <UnreadDot density={density} compactAvatar={isFocusedMailLayout} />
+            )}
+
             <div className="flex-1 min-w-0">
               {isFocusedMailLayout ? (
                 <div className="flex items-center justify-between gap-3">
@@ -822,8 +889,10 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                       <span
                         className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ backgroundColor: threadAccountColor }}
-                        title={latestEmail.accountLabel}
-                      />
+                        title={threadAccountDescription}
+                      >
+                        <span className="sr-only">{threadAccountDescription}</span>
+                      </span>
                     )}
                     <span className={cn(
                       // Matches SingleEmailItem: the sender column sets where
@@ -859,17 +928,17 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 shrink-0">
-                    {hasPinned && <Pin className="w-3.5 h-3.5 text-primary" />}
-                    {hasStarred && <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />}
-                    {hasAnswered && !hasForwarded && <Reply className="w-3.5 h-3.5 text-muted-foreground" />}
-                    {hasForwarded && !hasAnswered && <Forward className="w-3.5 h-3.5 text-muted-foreground" />}
+                    {hasPinned && <StatusIcon icon={Pin} label={tStatus('pinned')} className="w-3.5 h-3.5 text-primary" />}
+                    {hasStarred && <StatusIcon icon={Star} label={tStatus('starred')} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />}
+                    {hasAnswered && !hasForwarded && <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />}
+                    {hasForwarded && !hasAnswered && <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />}
                     {hasAnswered && hasForwarded && (
                       <>
-                        <Reply className="w-3.5 h-3.5 text-muted-foreground" />
-                        <Forward className="w-3.5 h-3.5 text-muted-foreground" />
+                        <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />
+                        <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
                       </>
                     )}
-                    {hasAttachment && <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />}
+                    {hasAttachment && <StatusIcon icon={Paperclip} label={tStatus('has_attachment')} className="w-3.5 h-3.5 text-muted-foreground" />}
                     {showSourceFolder && <SourceFolderTag name={latestEmail.sourceFolder!} />}
                     {scheduledSendLabel ? (
                       <span
@@ -897,8 +966,10 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                         <span
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: threadAccountColor }}
-                          title={latestEmail.accountLabel}
-                        />
+                          title={threadAccountDescription}
+                        >
+                          <span className="sr-only">{threadAccountDescription}</span>
+                        </span>
                       )}
                       <span className={cn(
                         "truncate text-sm",
@@ -920,25 +991,25 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                       </span>
                       <div className="flex items-center gap-1.5">
                         {hasPinned && (
-                          <Pin className="w-3.5 h-3.5 text-primary" />
+                          <StatusIcon icon={Pin} label={tStatus('pinned')} className="w-3.5 h-3.5 text-primary" />
                         )}
                         {hasStarred && (
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                          <StatusIcon icon={Star} label={tStatus('starred')} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         )}
                         {hasAnswered && !hasForwarded && (
-                          <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                          <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />
                         )}
                         {hasForwarded && !hasAnswered && (
-                          <Forward className="w-3.5 h-3.5 text-muted-foreground" />
+                          <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
                         )}
                         {hasAnswered && hasForwarded && (
                           <>
-                            <Reply className="w-3.5 h-3.5 text-muted-foreground" />
-                            <Forward className="w-3.5 h-3.5 text-muted-foreground" />
+                            <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />
+                            <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
                           </>
                         )}
                         {hasAttachment && (
-                          <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
+                          <StatusIcon icon={Paperclip} label={tStatus('has_attachment')} className="w-3.5 h-3.5 text-muted-foreground" />
                         )}
                       </div>
                     </div>
@@ -992,6 +1063,13 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     )}>
                       {previewSnippet ? <SearchSnippetText snippet={previewSnippet} /> : (trimmedPreview || tEmailViewer('no_preview_available'))}
                     </p>
+                  )}
+                  {onOpenAttachment && (
+                    <AttachmentChips
+                      attachments={latestEmail.attachments}
+                      onOpen={(a) => onOpenAttachment(latestEmail, a)}
+                      className="mt-1.5"
+                    />
                   )}
                 </>
               )}

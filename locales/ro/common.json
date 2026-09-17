@@ -225,6 +225,10 @@
     "and_others": "și {count} altele",
     "draft": "Ciorne",
     "starred": "Cu stea",
+    "pinned": "Fixat",
+    "replied": "Răspuns",
+    "forwarded": "Redirecționat",
+    "has_attachment": "Cu atașament",
     "conversations_count": "{count} din conversațiile de pe {total}",
     "conversations_count_plus": "{count}+ conversations",
     "conversations_count_simple": "{count} conversații",
@@ -292,6 +296,7 @@
     "forward": "Redirecționează",
     "delete": "Șterge",
     "archive": "Arhivează",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Stea",
     "unstar": "Anulează marcarea cu stea",
     "mark_unread": "Marcați ca necitit",
@@ -306,7 +311,7 @@
     "fullscreen": "Ecran complet",
     "exit_fullscreen": "Ieșire din ecran complet",
     "export_email": "Exportați ca fișier .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Redirecționează ca atașament",
     "import_email": "Importați fișiere .eml sau .zip",
     "keyboard_shortcuts": "Comenzi rapide de la tastatură (?)",
     "email_source": "Sursa e-mailului",
@@ -728,7 +733,11 @@
       "delete_column": "Șterge coloana",
       "toggle_header_row": "Comută rândul de antet",
       "delete_table": "Șterge tabelul",
-      "pick_size": "Alege dimensiunea"
+      "pick_size": "Alege dimensiunea",
+      "font_size": "Dimensiune font",
+      "font_size_default": "Implicit",
+      "background_color": "Culoarea fundalului",
+      "remove_background_color": "Elimină culoarea fundalului"
     },
     "send_filing_warning": "Trimis - dar curățarea ulterioară a eșuat, poate rămâne o ciornă veche."
   },
@@ -1330,6 +1339,12 @@
         "label": "Răspunde de la adresa de la care a fost primit mesajul",
         "description": "Când răspundeți, trimiteți mesajul de la adresa la care a fost trimis inițial. Se potrivesc mai întâi identitățile; pentru livrările de tip „catch-all” ale domeniului, antetul „De la” este rescris cu aliasul, în timp ce trimiterea se face prin identitatea dvs. principală."
       },
+      "reply_identity_match": {
+        "label": "Potrivirea adresei de primire",
+        "description": "Care adrese de primire sunt considerate ale tale. „Doar adresa exactă” alege numai una dintre identitățile configurate; „același domeniu” tratează și orice altă adresă de pe domeniile identităților tale ca alias catch-all și rescrie antetul De la cu ea. Alege adresa exactă dacă aceste adrese sunt liste de distribuție.",
+        "exact": "Doar adresa exactă",
+        "domain": "Orice adresă de pe domeniile mele"
+      },
       "signature_position": {
         "label": "Poziția semnăturii",
         "description": "Unde să inserați semnătura în răspunsuri și redirecționări. Deasupra textului citat, semnătura se citește în mod natural ca o încheiere a răspunsului; sub text, mesajul original rămâne contiguu.",
@@ -1776,6 +1791,8 @@
       "role_trash": "Coș de gunoi",
       "role_junk": "Spam / Mesaje nedorite",
       "role_archive": "Arhivă",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Niciunul",
       "create_folder": "Creați un dosar",
       "create_subfolder": "Creați un subfolder",
@@ -1885,6 +1902,8 @@
       "title": "Contacte",
       "description": "Importați și exportați contactele",
       "group_by_letter_label": "Grupați după prima literă",
+      "sort_by_last_name_label": "Sortare după nume de familie",
+      "sort_by_last_name_description": "Ordonați lista de contacte după numele de familie, astfel încât membrii familiei să apară împreună",
       "group_by_letter_description": "Afișați titlurile secțiunilor în ordine alfabetică în lista de contacte",
       "import_label": "Importați contactele",
       "import_description": "Importați contactele dintr-un fișier „vCard” (.vcf)",
@@ -2733,7 +2752,10 @@
       "any_month": "Orice lună",
       "has_email": "Are e-mail",
       "has_phone": "Are telefon",
-      "has_photo": "Are fotografie"
+      "has_photo": "Are fotografie",
+      "sort_by": "Sortare după",
+      "sort_first_name": "Prenume",
+      "sort_last_name": "Nume de familie"
     }
   },
   "calendar": {
@@ -2769,6 +2791,10 @@
       "duplicate": "Duplicare",
       "today_header": "Astăzi",
       "tomorrow_header": "Mâine",
+      "agenda_show_earlier": "Afișează evenimentele anterioare",
+      "agenda_loading": "Se încarcă…",
+      "agenda_range_start": "Evenimente de la {date}",
+      "agenda_range_end": "Evenimente până la {date}",
       "export_ics": "Exportați ca fișier .ics",
       "copy_title": "Copiați titlul",
       "copy_link": "Copiați linkul întâlnirii",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Afișați orele evenimentelor în vizualizarea calendarului lunar",
       "show_week_numbers": "Afișați numerele săptămânilor",
       "show_week_numbers_desc": "Afișați numerele săptămânilor în mini-calendar",
+      "calendar_free_scroll": "Derulare liberă",
+      "calendar_free_scroll_desc": "Derulează continuu prin luni, săptămâni și zile în loc de o singură perioadă odată",
       "enable_tasks": "Activați sarcinile",
       "enable_tasks_desc": "Afișați o vizualizare a sarcinilor în calendar pentru gestionarea sarcinilor de îndeplinit",
       "show_tasks_on_calendar": "Afișați sarcinile în calendar",

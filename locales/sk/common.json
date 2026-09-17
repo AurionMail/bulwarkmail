@@ -225,6 +225,10 @@
     "and_others": "a {count} ďalších",
     "draft": "Koncept",
     "starred": "S hviezdičkou",
+    "pinned": "Pripnuté",
+    "replied": "Zodpovedané",
+    "forwarded": "Preposlané",
+    "has_attachment": "Obsahuje prílohu",
     "conversations_count": "{count} z {total} konverzácií",
     "conversations_count_plus": "{count}+ konverzácií",
     "conversations_count_simple": "{count} konverzácií",
@@ -292,6 +296,7 @@
     "forward": "Preposlať",
     "delete": "Odstrániť",
     "archive": "Archivovať",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Označiť hviezdičkou",
     "unstar": "Odstrániť hviezdičku",
     "mark_unread": "Označiť ako neprečítané",
@@ -306,7 +311,7 @@
     "fullscreen": "Celá obrazovka",
     "exit_fullscreen": "Ukončiť režim celej obrazovky",
     "export_email": "Exportovať ako .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Preposlať ako prílohu",
     "import_email": "Importovať .eml alebo .zip",
     "keyboard_shortcuts": "Klávesové skratky (?)",
     "email_source": "Zdrojový kód e-mailu",
@@ -728,7 +733,11 @@
       "delete_column": "Odstrániť stĺpec",
       "toggle_header_row": "Prepnúť riadok záhlavia",
       "delete_table": "Odstrániť tabuľku",
-      "pick_size": "Vybrať veľkosť"
+      "pick_size": "Vybrať veľkosť",
+      "font_size": "Veľkosť písma",
+      "font_size_default": "Predvolené",
+      "background_color": "Farba pozadia",
+      "remove_background_color": "Odstrániť farbu pozadia"
     },
     "send_filing_warning": "Odoslané - ale následné upratovanie zlyhalo, môže zostať zastaraný koncept."
   },
@@ -1330,6 +1339,12 @@
         "label": "Odpovedať z prijatej adresy",
         "description": "Pri odpovedaní automaticky prepnúť adresu odosielateľa na identitu, ktorá pôvodne prijala správu"
       },
+      "reply_identity_match": {
+        "label": "Porovnávanie prijímacej adresy",
+        "description": "Ktoré prijímacie adresy sa považujú za vaše. „Iba presná adresa“ vyberie len jednu z vašich nastavených identít; „rovnaká doména“ navyše považuje akúkoľvek inú adresu na doménach vašich identít za catch-all alias a prepíše na ňu hlavičku Od. Ak sú tieto adresy distribučné zoznamy, zvoľte presnú adresu.",
+        "exact": "Iba presná adresa",
+        "domain": "Akákoľvek adresa na mojich doménach"
+      },
       "signature_position": {
         "label": "Pozícia podpisu",
         "description": "Kam vložiť podpis v odpovediach a preposlaniach.",
@@ -1776,6 +1791,8 @@
       "role_trash": "Kôš",
       "role_junk": "Spam / Nevyžiadaná pošta",
       "role_archive": "Archív",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Žiadna",
       "create_folder": "Vytvoriť priečinok",
       "create_subfolder": "Vytvoriť podpriečinok",
@@ -1885,6 +1902,8 @@
       "title": "Kontakty",
       "description": "Import a export kontaktov",
       "group_by_letter_label": "Zoskupiť podľa prvého písmena",
+      "sort_by_last_name_label": "Zoradiť podľa priezviska",
+      "sort_by_last_name_description": "Zoradiť zoznam kontaktov podľa priezviska, aby členovia rodiny boli pri sebe",
       "group_by_letter_description": "Zobraziť abecedné záhlavia sekcií v zozname kontaktov",
       "import_label": "Importovať kontakty",
       "import_description": "Importovať kontakty zo súboru vCard (.vcf)",
@@ -2733,7 +2752,10 @@
       "any_month": "Ktorýkoľvek mesiac",
       "has_email": "Má e-mail",
       "has_phone": "Má telefón",
-      "has_photo": "Má fotku"
+      "has_photo": "Má fotku",
+      "sort_by": "Zoradiť podľa",
+      "sort_first_name": "Meno",
+      "sort_last_name": "Priezvisko"
     }
   },
   "calendar": {
@@ -2769,6 +2791,10 @@
       "duplicate": "Duplikovať",
       "today_header": "Dnes",
       "tomorrow_header": "Zajtra",
+      "agenda_show_earlier": "Zobraziť skoršie udalosti",
+      "agenda_loading": "Načítava sa…",
+      "agenda_range_start": "Udalosti od {date}",
+      "agenda_range_end": "Udalosti do {date}",
       "export_ics": "Exportovať ako .ics",
       "copy_title": "Kopírovať názov",
       "copy_link": "Kopírovať odkaz na stretnutie",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Zobrazovať časy udalostí v mesačnom zobrazení kalendára",
       "show_week_numbers": "Zobraziť čísla týždňov",
       "show_week_numbers_desc": "Zobrazovať čísla týždňov v minikalendári",
+      "calendar_free_scroll": "Voľné posúvanie",
+      "calendar_free_scroll_desc": "Plynulo prechádzať mesiace, týždne a dni namiesto jedného obdobia naraz",
       "enable_tasks": "Povoliť úlohy",
       "enable_tasks_desc": "Zobrazovať zobrazenie úloh v kalendári",
       "show_tasks_on_calendar": "Zobraziť úlohy v kalendári",

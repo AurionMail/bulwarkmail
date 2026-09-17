@@ -225,6 +225,10 @@
     "and_others": "e altri {count}",
     "draft": "Bozza",
     "starred": "Speciale",
+    "pinned": "Fissato",
+    "replied": "Risposto",
+    "forwarded": "Inoltrato",
+    "has_attachment": "Con allegato",
     "conversations_count": "{count} di {total} conversazioni",
     "conversations_count_plus": "{count}+ conversazioni",
     "conversations_count_simple": "{count} conversazioni",
@@ -292,6 +296,7 @@
     "forward": "Inoltra",
     "delete": "Elimina",
     "archive": "Archivia",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Aggiungi stella",
     "unstar": "Rimuovi stella",
     "mark_unread": "Segna come non letto",
@@ -306,7 +311,7 @@
     "fullscreen": "Schermo intero",
     "exit_fullscreen": "Esci da schermo intero",
     "export_email": "Esporta come .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Inoltra come allegato",
     "import_email": "Importa .eml o .zip",
     "keyboard_shortcuts": "Scorciatoie da tastiera (?)",
     "email_source": "Sorgente del messaggio",
@@ -728,7 +733,11 @@
       "delete_column": "Elimina colonna",
       "toggle_header_row": "Attiva/disattiva riga di intestazione",
       "delete_table": "Elimina tabella",
-      "pick_size": "Scegli dimensione"
+      "pick_size": "Scegli dimensione",
+      "font_size": "Dimensione carattere",
+      "font_size_default": "Predefinita",
+      "background_color": "Colore di sfondo",
+      "remove_background_color": "Rimuovi colore di sfondo"
     },
     "send_filing_warning": "Inviato - ma la pulizia successiva non è riuscita, potrebbe restare una bozza obsoleta."
   },
@@ -1322,6 +1331,12 @@
         "label": "Seleziona automaticamente l'indirizzo di risposta",
         "description": "Quando rispondi, passa automaticamente l'indirizzo mittente all'identità che ha ricevuto il messaggio originale"
       },
+      "reply_identity_match": {
+        "label": "Corrispondenza dell'indirizzo di ricezione",
+        "description": "Quali indirizzi di ricezione contano come tuoi. «Solo indirizzo esatto» sceglie soltanto una delle tue identità configurate; «stesso dominio» tratta anche qualsiasi altro indirizzo dei tuoi domini di identità come alias catch-all e riscrive con esso l'intestazione Da. Scegli l'indirizzo esatto se quegli indirizzi sono liste di distribuzione.",
+        "exact": "Solo indirizzo esatto",
+        "domain": "Qualsiasi indirizzo dei miei domini"
+      },
       "signature_position": {
         "label": "Posizione della firma",
         "description": "Dove inserire la tua firma nelle risposte e negli inoltri. Sopra il testo citato si legge in modo naturale come chiusura della risposta; sotto mantiene il messaggio originale contiguo.",
@@ -1769,6 +1784,8 @@
       "role_trash": "Cestino",
       "role_junk": "Spam / Indesiderata",
       "role_archive": "Archivio",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Nessuno",
       "create_folder": "Crea cartella",
       "create_subfolder": "Crea sottocartella",
@@ -1888,7 +1905,9 @@
       "categories_description": "Rinomina le categorie dei contatti",
       "no_categories": "Nessuna categoria trovata",
       "group_by_letter_description": "Mostra intestazioni alfabetiche nell'elenco dei contatti",
-      "group_by_letter_label": "Raggruppa per prima lettera"
+      "group_by_letter_label": "Raggruppa per prima lettera",
+      "sort_by_last_name_label": "Ordina per cognome",
+      "sort_by_last_name_description": "Ordina l'elenco dei contatti per cognome così i familiari compaiono insieme"
     },
     "downloads": {
       "title": "Download",
@@ -2732,7 +2751,10 @@
       "any_month": "Qualsiasi mese",
       "has_email": "Con email",
       "has_phone": "Con telefono",
-      "has_photo": "Con foto"
+      "has_photo": "Con foto",
+      "sort_by": "Ordina per",
+      "sort_first_name": "Nome",
+      "sort_last_name": "Cognome"
     },
     "open_categories": "Apri categorie"
   },
@@ -2769,6 +2791,10 @@
       "duplicate": "Duplica",
       "today_header": "Oggi",
       "tomorrow_header": "Domani",
+      "agenda_show_earlier": "Mostra eventi precedenti",
+      "agenda_loading": "Caricamento…",
+      "agenda_range_start": "Eventi dal {date}",
+      "agenda_range_end": "Eventi fino al {date}",
       "export_ics": "Esporta come .ics",
       "copy_title": "Copia titolo",
       "copy_link": "Copia link riunione",
@@ -2924,6 +2950,8 @@
       "show_time_in_month_view_desc": "Visualizza gli orari degli eventi nella vista mensile del calendario",
       "show_week_numbers": "Mostra numeri di settimana",
       "show_week_numbers_desc": "Mostra i numeri di settimana nel mini-calendario",
+      "calendar_free_scroll": "Scorrimento libero",
+      "calendar_free_scroll_desc": "Scorri in modo continuo tra mesi, settimane e giorni invece di un periodo alla volta",
       "enable_tasks": "Abilita attività",
       "enable_tasks_desc": "Mostra una vista attività nel calendario per gestire le cose da fare",
       "show_tasks_on_calendar": "Mostra attività nel calendario",

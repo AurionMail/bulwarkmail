@@ -43,11 +43,18 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
           const session = (await res.json()) as {
             apiUrl?: string;
             primaryAccounts?: Record<string, string>;
+            accounts?: Record<string, unknown>;
           };
           const mailAccountId = session.primaryAccounts?.['urn:ietf:params:jmap:mail'];
           if (!session.apiUrl || !mailAccountId) return null;
-          if (mailAccountId !== accountId) return null;
-          return { authHeader: ctx.authHeader, apiUrl: session.apiUrl, accountId: mailAccountId, trusted };
+          // Shared and group mailboxes are never the primary mail account -
+          // they only appear in session.accounts. Accept those too, or the
+          // SW falls back to a generic "New mail" notification for them. (#839)
+          const isSharedAccount =
+            accountId !== mailAccountId &&
+            Object.prototype.hasOwnProperty.call(session.accounts ?? {}, accountId);
+          if (mailAccountId !== accountId && !isSharedAccount) return null;
+          return { authHeader: ctx.authHeader, apiUrl: session.apiUrl, accountId, trusted };
         } catch {
           return null;
         }

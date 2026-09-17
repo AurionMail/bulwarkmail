@@ -160,7 +160,11 @@ export default function LoginPage() {
   // Effective values: per-server overrides win, then global config.
   const serverUrl = selectedServer?.url || configuredServerUrl;
   const effectiveOauthClientId = selectedServer?.oauth?.clientId || globalOauthClientId;
-  const effectiveOauthIssuerUrl = selectedServer?.oauth?.issuerUrl || globalOauthIssuerUrl;
+  // A selected server discovers against itself unless it has its own issuer;
+  // the global issuer only applies without a server list (#952).
+  const effectiveOauthIssuerUrl = selectedServer
+    ? selectedServer.oauth?.issuerUrl || selectedServer.url
+    : globalOauthIssuerUrl;
   const [totpCode, setTotpCode] = useState("");
   const [showTotpField, setShowTotpField] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -620,6 +624,9 @@ export default function LoginPage() {
     authUrl.searchParams.set("state", state);
     authUrl.searchParams.set("code_challenge", challenge);
     authUrl.searchParams.set("code_challenge_method", "S256");
+    if (isAddAccountMode) {
+      authUrl.searchParams.set("prompt", "select_account");
+    }
 
     window.location.href = authUrl.toString();
   };

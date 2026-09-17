@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useEffect, useCallback } from "react";
+import { useMemo, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 import { format, isTomorrow, startOfDay } from "date-fns";
@@ -10,10 +10,11 @@ import { getEventColor } from "./event-card";
 import { getEventDayBounds, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
 import { displayNow, isDisplayToday } from "@/lib/timezone";
 import { getParticipantCount } from "@/lib/calendar-participants";
+import { useScrollWindow } from "@/hooks/use-scroll-window";
+import type { ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
 
-interface CalendarAgendaViewProps {
-  selectedDate: Date;
+interface CalendarAgendaViewProps extends ScrollWindowViewProps {
   events: CalendarEvent[];
   calendars: Calendar[];
   onSelectEvent: (event: CalendarEvent, anchorRect: DOMRect) => void;
@@ -30,9 +31,15 @@ interface DayGroup {
 }
 
 export function CalendarAgendaView({
-  selectedDate,
+  focus,
   events,
   calendars,
+  rangeStart,
+  rangeEnd,
+  windowKey,
+  onExtendStart,
+  onExtendEnd,
+  isLoading = false,
   onSelectEvent,
   onHoverEvent,
   onHoverLeave,
@@ -50,8 +57,8 @@ export function CalendarAgendaView({
     return map;
   }, [calendars]);
 
-  const todayRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
   const grouped = useMemo(() => {
     const sorted = [...events].sort((a, b) =>
@@ -79,37 +86,54 @@ export function CalendarAgendaView({
       } catch { /* skip invalid dates */ }
     });
 
-    // Always include today's date in the groups so the view has a "Today" anchor
-    const todayKey = format(displayNow(), "yyyy-MM-dd");
-    if (!groupMap.has(todayKey)) {
-      const todayGroup = { date: startOfDay(displayNow()), dateKey: todayKey, events: [] as CalendarEvent[] };
+    // Keep a "Today" row as an anchor, but only when today is actually part
+    // of the loaded window - otherwise it would claim there is nothing on a
+    // day that was never fetched.
+    const today = startOfDay(displayNow());
+    const todayKey = format(today, "yyyy-MM-dd");
+    if (!groupMap.has(todayKey) && today >= startOfDay(rangeStart) && today <= rangeEnd) {
+      const todayGroup = { date: today, dateKey: todayKey, events: [] as CalendarEvent[] };
       groupMap.set(todayKey, todayGroup);
       groups.push(todayGroup);
     }
 
     groups.sort((a, b) => a.date.getTime() - b.date.getTime());
     return groups;
-  }, [events]);
+  }, [events, rangeStart, rangeEnd]);
 
-  // Auto-scroll to today's section on mount and when selectedDate changes to today
-  const scrollToToday = useCallback(() => {
-    if (todayRef.current) {
-      todayRef.current.scrollIntoView({ block: "start" });
-    }
+  // The focus row is the first day at or after the focused day: where the
+  // list starts out, and where "Today" brings the user back to.
+  const focusKey = format(focus.date, "yyyy-MM-dd");
+  const focusIndex = grouped.findIndex((group) => group.dateKey >= focusKey);
+  const focusRowRef = useRef<HTMLDivElement>(null);
+  const scrollToFocus = useCallback(() => {
+    const el = scrollContainerRef.current;
+    const target = focusRowRef.current;
+    if (!el) return;
+    el.scrollTop = target
+      ? el.scrollTop + target.getBoundingClientRect().top - el.getBoundingClientRect().top
+      : 0;
   }, []);
 
-  useEffect(() => {
-    // Scroll to today on mount
-    const frame = requestAnimationFrame(scrollToToday);
-    return () => cancelAnimationFrame(frame);
-  }, [scrollToToday]);
+  const { requestStart, pendingSide } = useScrollWindow({
+    scrollRef: scrollContainerRef,
+    axis: "vertical",
+    isLoading,
+    windowKey,
+    focusNonce: focus.nonce,
+    scrollToFocus,
+    onExtendStart,
+    onExtendEnd,
+    endSentinelRef: bottomSentinelRef,
+    contentKey: grouped,
+    anchorSelector: "[data-agenda-day]",
+  });
 
-  useEffect(() => {
-    // Scroll to today when selectedDate changes to today
-    if (isDisplayToday(selectedDate)) {
-      scrollToToday();
-    }
-  }, [selectedDate, scrollToToday]);
+  // Wheeling up while already at the top reaches for earlier days. Touch
+  // users (and anyone whose list is too short to scroll) have the button.
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY < 0 && e.currentTarget.scrollTop <= 0) requestStart();
+  }, [requestStart]);
 
   const formatDateHeader = (date: Date): string => {
     if (isDisplayToday(date)) return t("events.today_header");
@@ -124,10 +148,40 @@ export function CalendarAgendaView({
     return format(date, "HH:mm");
   };
 
+  const formatRangeDate = (date: Date): string =>
+    intlFormatter.dateTime(date, { month: "short", day: "numeric", year: "numeric" });
+
+  const loadingPast = isLoading && pendingSide === "start";
+
   return (
-    <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
-      {grouped.map((group) => (
-        <div key={group.dateKey} ref={isDisplayToday(group.date) ? todayRef : undefined}>
+    <div
+      className="flex-1 overflow-y-auto [overflow-anchor:none]"
+      ref={scrollContainerRef}
+      onWheel={handleWheel}
+    >
+      <div className="px-4 py-2 text-center text-xs text-muted-foreground">
+        {onExtendStart ? (
+          <button
+            type="button"
+            onClick={requestStart}
+            disabled={isLoading}
+            className="rounded-md px-2 py-1 hover:bg-muted hover:text-foreground disabled:opacity-60"
+          >
+            {loadingPast ? t("events.agenda_loading") : t("events.agenda_show_earlier")}
+          </button>
+        ) : (
+          <span>{t("events.agenda_range_start", { date: formatRangeDate(rangeStart) })}</span>
+        )}
+      </div>
+
+      {grouped.length === 0 && !isLoading && (
+        <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+          {t("events.no_events")}
+        </div>
+      )}
+
+      {grouped.map((group, index) => (
+        <div key={group.dateKey} ref={index === focusIndex ? focusRowRef : undefined} data-agenda-day={group.dateKey}>
           <div className="sticky top-0 bg-muted/80 backdrop-blur-sm px-4 py-2 border-b border-border">
             <span className={cn(
               "text-sm font-medium",
@@ -219,6 +273,16 @@ export function CalendarAgendaView({
           )}
         </div>
       ))}
+
+      <div
+        ref={bottomSentinelRef}
+        data-testid="agenda-bottom-sentinel"
+        className="px-4 py-3 text-center text-xs text-muted-foreground"
+      >
+        {onExtendEnd
+          ? (isLoading && pendingSide === "end" ? t("events.agenda_loading") : " ")
+          : t("events.agenda_range_end", { date: formatRangeDate(rangeEnd) })}
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   EMAIL_IFRAME_SANITIZE_CONFIG,
   isExternalResourceUrl,
   isHttpLinkHref,
+  isOpenableLinkHref,
   applyNewTabToAnchor,
   sanitizeI18nHtml,
   sanitizePluginBodyHtml,
@@ -965,5 +966,34 @@ describe('email-sanitization', () => {
       expect(sanitizeEmailHtml('<img src="https://cdn.example/a.png">'))
         .toContain('https://cdn.example/a.png');
     });
+  });
+});
+
+describe('isOpenableLinkHref (message-body click -> window.open gate, GHSA-xvjh-v9c6-qcvc)', () => {
+  it('lets web links and external protocol handlers through', () => {
+    expect(isOpenableLinkHref('https://example.com/x')).toBe(true);
+    expect(isOpenableLinkHref('HTTP://example.com')).toBe(true);
+    expect(isOpenableLinkHref('//example.com/x')).toBe(true);
+    expect(isOpenableLinkHref('tel:+4912345')).toBe(true);
+    expect(isOpenableLinkHref('sms:+4912345')).toBe(true);
+    expect(isOpenableLinkHref('ftp://example.com/f')).toBe(true);
+  });
+
+  it('refuses anything that would open inside the webmail origin', () => {
+    expect(isOpenableLinkHref('blob:https://mail.example/0f3d-ab12')).toBe(false);
+    expect(isOpenableLinkHref('data:text/html,<script>alert(1)</script>')).toBe(false);
+    expect(isOpenableLinkHref('data:image/png;base64,AAAA')).toBe(false);
+    expect(isOpenableLinkHref('statement.pdf')).toBe(false);
+    expect(isOpenableLinkHref('/en/mail/folder/inbox/statement.pdf')).toBe(false);
+    expect(isOpenableLinkHref('./x')).toBe(false);
+    expect(isOpenableLinkHref('cid:unresolved')).toBe(false);
+    expect(isOpenableLinkHref('javascript:alert(1)')).toBe(false);
+    expect(isOpenableLinkHref('')).toBe(false);
+    expect(isOpenableLinkHref(null)).toBe(false);
+  });
+
+  it('ignores leading control characters and whitespace when reading the scheme', () => {
+    expect(isOpenableLinkHref('blob:https://mail.example/x')).toBe(false);
+    expect(isOpenableLinkHref(' 	tel:123')).toBe(true);
   });
 });

@@ -31,7 +31,7 @@ import { usePolicyStore } from "@/stores/policy-store";
 import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, buildUnifiedAccountClients } from "@/stores/email-store";
+import { useEmailStore, buildUnifiedAccountClients, ArchiveMailboxNotFoundError, findArchiveMailbox, resolveUnstampedEmailAccountId } from "@/stores/email-store";
 import { toast } from "@/stores/toast-store";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
@@ -69,6 +69,7 @@ import { DragDropProvider } from "@/contexts/drag-drop-context";
 import { isFilterEmpty, activeFilterCount } from "@/lib/jmap/search-utils";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
+import type { Attachment } from "@/lib/jmap/types";
 import { useSearchHistoryStore } from "@/stores/search-history-store";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
 import { NavigationRail } from "@/components/layout/navigation-rail";
@@ -85,10 +86,10 @@ import { isFilePreviewable } from "@/lib/file-preview";
 import { appendHtmlSignature, appendPlainTextSignature } from "@/lib/signature-utils";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
-import { findDraftIdentityId, resolveComposeAccountEmail, resolveReplyFrom, type ReplyFromResolution } from "@/lib/reply-identity";
+import { findDraftIdentityId, findReplyIdentityId, resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
-import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle } from "lucide-react";
+import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft } from "lucide-react";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { Button } from "@/components/ui/button";
 import { useConfig } from "@/hooks/use-config";
@@ -131,6 +132,9 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
   const tQuote = useTranslations('quote_header');
   const { appName } = useConfig();
   const mailLayout = useSettingsStore((state) => state.mailLayout);
+  // Phones present search full-screen from the header field rather than
+  // giving it a permanent second bar under the header.
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const [composerMode, setComposerMode] = useState<'compose' | 'reply' | 'replyAll' | 'forward'>('compose');
   const [composerDraftText, setComposerDraftText] = useState("");
@@ -701,6 +705,10 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
           await batchArchive(client);
         } catch (error) {
           console.error("Failed to batch archive:", error);
+          if (error instanceof ArchiveMailboxNotFoundError) {
+            const { toast } = await import('sonner');
+            toast.error(t('email_viewer.archive_mailbox_not_found'));
+          }
         }
       } else if (selectedEmail) {
         handleArchive();
@@ -813,6 +821,22 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
     },
     onDeselectAll: () => {
       clearSelection();
+    },
+    // `x` in the help modal: expand/collapse the selected email's thread. Same
+    // steps as EmailList.handleToggleThreadExpansion - expanding pulls the
+    // thread's messages and marks them read, collapsing only toggles. (#683)
+    onToggleThreadExpansion: () => {
+      if (isScheduledView || !client) return;
+      const threadId = selectedEmail?.threadId;
+      if (!threadId) return;
+      const store = useEmailStore.getState();
+      const wasExpanded = store.expandedThreadIds.has(threadId);
+      store.toggleThreadExpansion(threadId);
+      if (!wasExpanded) {
+        void store.fetchThreadEmails(client, threadId).then(() => {
+          void useEmailStore.getState().markThreadAsRead(client, threadId);
+        });
+      }
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailIds, mailboxes, isScheduledView]);
@@ -1689,15 +1713,12 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
         const toastInstance = (await import('sonner')).toast;
         toastInstance.warning(t('email_composer.send_filing_warning'));
       }
-      if (result.scheduled) {
-        await refreshScheduledMetadata(client);
-        if (isScheduledView) await fetchScheduledEmails(client);
-        return;
-      }
-
       // Mark the original email with $answered or $forwarded keyword. Route the
       // write to the email's own account so the flag lands on shared/group-mailbox
       // messages instead of being dropped against the reaching account. (#281)
+      // This runs before the scheduled early-return: the undo-send delay is a
+      // HOLDFOR submission, so `scheduled` is true for every delayed send and
+      // the flag was never set. (#985)
       if (originalEmailId && (effectiveMode === 'reply' || effectiveMode === 'replyAll' || effectiveMode === 'forward')) {
         const keyword = effectiveMode === 'forward' ? '$forwarded' : '$answered';
         try {
@@ -1705,6 +1726,12 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
         } catch (e) {
           debug.error(`Failed to set ${keyword} keyword:`, e);
         }
+      }
+
+      if (result.scheduled) {
+        await refreshScheduledMetadata(client);
+        if (isScheduledView) await fetchScheduledEmails(client);
+        return;
       }
 
       // Refresh the current mailbox to update the UI
@@ -2201,8 +2228,14 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
 
     const currentMailboxes = readMailboxes();
 
-    const archiveMailbox = currentMailboxes.find(m => m.role === "archive" || m.name.toLowerCase() === "archive");
-    if (!archiveMailbox) return;
+    // Scope like batchArchive: the owning account in unified view, otherwise
+    // the selected shared folder's owner, otherwise the user's own archive. (#889)
+    const archiveMailbox = findArchiveMailbox(currentMailboxes, selectedMailbox, archiveAccountId);
+    if (!archiveMailbox) {
+      const { toast } = await import('sonner');
+      toast.error(t('email_viewer.archive_mailbox_not_found'));
+      return;
+    }
 
     const { archiveMode } = useSettingsStore.getState();
 
@@ -2247,6 +2280,8 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
       void refreshMailboxes();
     } catch (error) {
       console.error("Failed to archive email:", error);
+      const { toast } = await import('sonner');
+      toast.error(error instanceof Error ? error.message : 'Failed to archive email');
     }
   };
 
@@ -2964,6 +2999,26 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
     return { blobClient, accountId, clientAccountId };
   }, [isUnifiedView, client]);
 
+  // Opening an attachment straight from a list row. Deliberately resolves
+  // the blob source from that row's own email rather than the selected one:
+  // in the unified inbox each row can belong to a different account, and
+  // the selected message may be from another one entirely — or none.
+  const handleOpenListAttachment = useCallback(async (email: Email, attachment: Attachment) => {
+    const { blobClient, accountId, clientAccountId } = resolveBlobSource(email);
+    const name = attachment.name;
+    if (!blobClient || !name) return;
+    try {
+      const { mailAttachmentAction } = useSettingsStore.getState();
+      if (mailAttachmentAction === 'preview' && isFilePreviewable(name, attachment.type)) {
+        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, clientAccountId });
+        return;
+      }
+      await blobClient.downloadBlob(attachment.blobId, name, attachment.type, accountId);
+    } catch (error) {
+      console.error("Failed to open attachment from the list:", error);
+    }
+  }, [resolveBlobSource]);
+
   const handleDownloadAttachment = async (blobId: string, name: string, type?: string, forceDownload?: boolean) => {
     const { blobClient, accountId, clientAccountId } = resolveBlobSource(selectedEmail);
     if (!blobClient) return;
@@ -3029,36 +3084,40 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
     }
 
     const primaryIdentity = identities[0];
-    const autoSelectReplyIdentity = useSettingsStore.getState().autoSelectReplyIdentity;
 
-    // Decide the sending identity and (for domain-catch-all) an optional
-    // header From override that matches the address the message was sent to.
-    // Our own message keeps the identity it was sent from - the recipients are
-    // the other party, so resolving from them would send as their address.
-    // When the setting is off, fall through to primary-identity behavior.
+    // Send from the address the message was delivered to, so a reply out of a
+    // shared or aliased mailbox does not go out as the account owner. Our own
+    // message keeps the identity it was sent from - the recipients are the
+    // other party, so resolving from them would send as their address.
+    //
+    // Quick reply resolves the user's OWN identities only. It deliberately does
+    // NOT take the domain catch-all `From:` rewrite that the full composer
+    // offers: this surface is a bare text box with no From row, so a rewritten
+    // From would be applied with nothing on screen to show it - or to correct
+    // it. A catch-all delivery quick-replies as the matching own identity, and
+    // the user can open the full composer when they need the rewrite.
     const selfSentIdentityId = isSelfSent(replySource, ownIdentityEmails)
       ? findDraftIdentityId(identities, selectedEmail.from?.[0])
       : null;
-    const resolved: ReplyFromResolution | null = !autoSelectReplyIdentity
-      ? null
-      : selfSentIdentityId
-        ? { identityId: selfSentIdentityId }
-        : resolveReplyFrom(identities, {
-            to: selectedEmail.to,
-            cc: selectedEmail.cc,
-            bcc: selectedEmail.bcc,
-          });
-    const sendingIdentity = resolved
-      ? (identities.find((i) => i.id === resolved.identityId) || primaryIdentity)
-      : primaryIdentity;
-    const headerFromEmail = resolved?.overrideEmail || sendingIdentity?.email;
-    const headerFromName = resolved?.overrideName || sendingIdentity?.name || undefined;
-    const envelopeMailFrom = resolved?.overrideEmail ? sendingIdentity?.email : undefined;
+    const sendingIdentityId = selfSentIdentityId ?? findReplyIdentityId(identities, {
+      to: selectedEmail.to,
+      cc: selectedEmail.cc,
+      bcc: selectedEmail.bcc,
+    });
+    const sendingIdentity =
+      (sendingIdentityId ? identities.find((i) => i.id === sendingIdentityId) : undefined) || primaryIdentity;
+    const headerFromEmail = sendingIdentity?.email;
+    const headerFromName = sendingIdentity?.name || undefined;
 
-    // Append signature from the sending identity (fall back to primary
-    // when the reply-from lives on the same identity but a different alias).
+    // Alias and shared identities frequently carry no signature of their own,
+    // so fall back to the primary's - the composer does the same
+    // (`signatureIdentity`). Without it, quick-replying from a shared mailbox
+    // silently drops the user's signature.
+    const signatureIdentity = (sendingIdentity?.htmlSignature || sendingIdentity?.textSignature)
+      ? sendingIdentity
+      : primaryIdentity;
     const separator = useSettingsStore.getState().signatureSeparatorEnabled;
-    const finalBody = appendPlainTextSignature(body, sendingIdentity, { separator });
+    const finalBody = appendPlainTextSignature(body, signatureIdentity, { separator });
 
     // When the identity has an HTML signature, send a matching HTML body so the
     // signature keeps its formatting; appendPlainTextSignature would otherwise
@@ -3069,8 +3128,8 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
-    const finalHtmlBody = sendingIdentity?.htmlSignature?.trim()
-      ? appendHtmlSignature(`<div>${escapedBody}</div>`, sendingIdentity, { separator })
+    const finalHtmlBody = signatureIdentity?.htmlSignature?.trim()
+      ? appendHtmlSignature(`<div>${escapedBody}</div>`, signatureIdentity, { separator })
       : undefined;
 
     const originalEmailId = selectedEmail.id;
@@ -3108,23 +3167,24 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
       threading?.inReplyTo,
       threading?.references,
       delayedUntil,
-      envelopeMailFrom,
+      undefined,
     );
-
-    if (result.scheduled) {
-      await refreshScheduledMetadata(client);
-      return;
-    }
 
     // Mark the original email as answered. Route the write to the email's own
     // account so the flag lands on shared/group-mailbox messages instead of
-    // being dropped against the reaching account. (#281)
+    // being dropped against the reaching account. (#281) Runs before the
+    // scheduled early-return so a delayed (undo-send) reply is flagged too. (#985)
     {
       try {
         await useEmailStore.getState().markEmailKeyword(client, originalEmailId, '$answered');
       } catch (e) {
         debug.error('Failed to set $answered keyword:', e);
       }
+    }
+
+    if (result.scheduled) {
+      await refreshScheduledMetadata(client);
+      return;
     }
 
     // Refresh emails to show the sent reply
@@ -3254,11 +3314,15 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
         ?? (viewingAccountId ? useAuthStore.getState().getClientForAccount(viewingAccountId) : undefined)
         ?? client;
 
+      // During an unscoped search the hit is the primary account's, not the
+      // selected shared folder's owner - see resolveUnstampedEmailAccountId. (#923)
       const accountId = listEmail?.sourceAccountId
-        ?? (() => {
-            const mailbox = viewMailboxes.find(mb => mb.id === selectedMailbox);
-            return mailbox?.isShared ? mailbox.accountId : undefined;
-          })();
+        ?? resolveUnstampedEmailAccountId({
+            mailboxes: viewMailboxes,
+            selectedMailbox,
+            searchActive: !!searchQuery || !isFilterEmpty(searchFilters),
+            searchMailboxId,
+          });
 
       const fullEmail = await fetchClient.getEmail(email.id, accountId);
       if (fullEmail) {
@@ -3481,16 +3545,20 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
             isEmbedded
               ? (isMobile || isTablet
                   ? cn(
-                      "absolute inset-y-0 left-0 w-72 pt-[env(safe-area-inset-top)]",
+                      "absolute inset-y-0 start-0 w-72 pt-[env(safe-area-inset-top)]",
                       "transform transition-transform duration-300 ease-in-out",
-                      !sidebarOpen && "-translate-x-full"
+                      // translate-x is physical, so RTL needs the opposite
+                      // sign or the drawer slides off the wrong edge.
+                      !sidebarOpen && "-translate-x-full rtl:translate-x-full"
                     )
                   : "relative translate-x-0")
               : cn(
                   // Mobile/Tablet: fixed overlay
-                  "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:w-72 max-lg:pt-[env(safe-area-inset-top)]",
+                  // start-0 rather than left-0: in RTL the drawer belongs on
+                  // the right, matching the hamburger that opens it.
+                  "max-lg:fixed max-lg:inset-y-0 max-lg:start-0 max-lg:w-72 max-lg:pt-[env(safe-area-inset-top)]",
                   "max-lg:transform max-lg:transition-transform max-lg:duration-300 max-lg:ease-in-out",
-                  !sidebarOpen && "max-lg:-translate-x-full",
+                  !sidebarOpen && "max-lg:-translate-x-full max-lg:rtl:translate-x-full",
                   // Desktop: normal flow
                   "lg:relative lg:translate-x-0"
                 ),
@@ -3594,10 +3662,36 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
             <MobileHeader
               title={currentMailboxName}
               sidebarId={sidebarId}
+              onOpenSearch={isMobile ? () => setMobileSearchOpen(true) : undefined}
+              searchPlaceholder={searchQuery || t('sidebar.search_placeholder_hint')}
+              searchActive={!!searchQuery}
+              onClearSearch={handleClearSearch}
             />
 
-            {/* Search Bar + Inline Advanced Filters */}
-            <div className="border-b border-border bg-background">
+            {/* Search Bar + Inline Advanced Filters. On phones this is not a
+                permanent second bar: the header carries a search field, and
+                tapping it presents this panel full-screen. Select-all and
+                refresh stay reachable there too, and long-press / pull-to-
+                refresh already cover them on the list itself. */}
+            {(!isMobile || mobileSearchOpen) && (
+            <div className={cn(
+              "border-b border-border bg-background",
+              isMobile && mobileSearchOpen && "fixed inset-0 z-50 overflow-y-auto"
+            )}>
+              {isMobile && mobileSearchOpen && (
+                <div className="h-14 px-2 flex items-center border-b border-border">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11"
+                    onClick={() => setMobileSearchOpen(false)}
+                    aria-label={t('sidebar.mobile.go_back')}
+                  >
+                    <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" />
+                  </Button>
+                  <span className="font-medium truncate">{t('sidebar.search_placeholder_hint')}</span>
+                </div>
+              )}
               <div className="px-3 h-14 flex items-center">
                 <div className="flex items-center gap-1.5 w-full">
                   {/* Select / Select All toggle */}
@@ -3636,9 +3730,13 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
                   <SearchBox
                     value={searchQuery}
                     onChange={setSearchQuery}
-                    onSubmit={handleSearch}
-                    onClear={handleClearSearch}
-                    onSelectContact={handleSelectContactSuggestion}
+                    autoFocus={isMobile && mobileSearchOpen}
+                    onSubmit={(query) => { handleSearch(query); setMobileSearchOpen(false); }}
+                    onClear={() => { handleClearSearch(); setMobileSearchOpen(false); }}
+                    onSelectContact={(contact, field) => {
+                      handleSelectContactSuggestion(contact, field);
+                      setMobileSearchOpen(false);
+                    }}
                     disabled={isScheduledView}
                     title={isScheduledView ? t('email_viewer.scheduled_actions_only') : undefined}
                   />
@@ -3847,6 +3945,7 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
                 </div>
               )}
             </div>
+            )}
 
             {(searchQuery || !isFilterEmpty(searchFilters)) && !activeIsLoading && !isScheduledView && (
               <div className="px-4 py-1.5 text-xs text-muted-foreground border-b border-border bg-muted/20">
@@ -3965,6 +4064,7 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
                 onUndoSpam={async (email) => {
                   await handleUndoSpam(email);
                 }}
+                onOpenAttachment={handleOpenListAttachment}
                 onEditDraft={(email) => {
                   handleEditDraft(email);
                 }}

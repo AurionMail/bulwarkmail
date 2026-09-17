@@ -11,6 +11,7 @@ import {
   emailVars,
   attachmentVars,
   buildSampleEmail,
+  uniqueFilename,
 } from '@/lib/download-filename';
 
 const makeEmail = (over: Partial<Email>): Email =>
@@ -142,5 +143,41 @@ describe('attachmentVars (extension split)', () => {
   it('defaults a missing name to "attachment"', () => {
     const v = attachmentVars(buildSampleEmail(), {});
     expect(v).toMatchObject({ filename: 'attachment', ext: '' });
+  });
+});
+
+describe('uniqueFilename (drag-out bundle dedupe, #1039)', () => {
+  it('returns the bare name when free', () => {
+    expect(uniqueFilename(new Set(), 'mail', '.eml', 'abc')).toBe('mail.eml');
+  });
+
+  it('falls back to the tag, then a counter', () => {
+    const used = new Set(['mail.eml']);
+    expect(uniqueFilename(used, 'mail', '.eml', 'abc')).toBe('mail [abc].eml');
+    used.add('mail [abc].eml');
+    expect(uniqueFilename(used, 'mail', '.eml', 'abc')).toBe('mail [abc] (2).eml');
+    used.add('mail [abc] (2).eml');
+    expect(uniqueFilename(used, 'mail', '.eml', 'abc')).toBe('mail [abc] (3).eml');
+  });
+
+  it('uses a counter alone when no tag is given', () => {
+    const used = new Set(['mail.eml', 'mail (2).eml']);
+    expect(uniqueFilename(used, 'mail', '.eml')).toBe('mail (3).eml');
+  });
+
+  it('terminates for a thread whose messages share stem and id prefix', () => {
+    // Stalwart ids in one thread share their leading characters; three
+    // Gmail-imported copies of one message also share date/from/to/subject.
+    // The old `while (used.has(name)) name = base [id.slice(0,6)]` loop never
+    // advanced past the second entry and hung the tab.
+    const ids = ['bmaaaaal', 'bmaaaaam', 'bmaaaaaq', 'bmaaaaar'];
+    const used = new Set<string>();
+    const names = ids.map((id) => {
+      const name = uniqueFilename(used, 'same', '.eml', id.slice(0, 6));
+      used.add(name);
+      return name;
+    });
+    expect(names).toEqual(['same.eml', 'same [bmaaaa].eml', 'same [bmaaaa] (2).eml', 'same [bmaaaa] (3).eml']);
+    expect(new Set(names).size).toBe(ids.length);
   });
 });

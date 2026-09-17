@@ -9,6 +9,11 @@ vi.mock('@/lib/stalwart/jmap-passthrough', () => ({
   },
 }));
 
+const fetchConfig = vi.fn();
+vi.mock('@/hooks/use-config', () => ({
+  fetchConfig: () => fetchConfig(),
+}));
+
 import { fetchPrincipalDisplayName } from '@/lib/stalwart/principal';
 import { stalwartJmap } from '@/lib/stalwart/jmap-passthrough';
 
@@ -23,6 +28,22 @@ const fakeClient = (opts: { stalwart?: boolean; accountId?: string } = {}) =>
 describe('fetchPrincipalDisplayName (#900)', () => {
   beforeEach(() => {
     mockedJmap.mockReset();
+    fetchConfig.mockReset();
+    fetchConfig.mockResolvedValue({ stalwartFeaturesEnabled: true, stalwartJmapPassthroughEnabled: true });
+  });
+
+  it('skips the lookup when the JMAP passthrough is disabled server-side (#904)', async () => {
+    fetchConfig.mockResolvedValue({ stalwartFeaturesEnabled: true, stalwartJmapPassthroughEnabled: false });
+
+    expect(await fetchPrincipalDisplayName(fakeClient())).toBeNull();
+    expect(mockedJmap).not.toHaveBeenCalled();
+  });
+
+  it('skips the lookup when Stalwart features are disabled entirely (#904)', async () => {
+    fetchConfig.mockResolvedValue({ stalwartFeaturesEnabled: false, stalwartJmapPassthroughEnabled: true });
+
+    expect(await fetchPrincipalDisplayName(fakeClient())).toBeNull();
+    expect(mockedJmap).not.toHaveBeenCalled();
   });
 
   it('reads the live principal description via x:Account/get on the given slot', async () => {

@@ -1005,10 +1005,13 @@ export const useCalendarStore = create<CalendarStore>()(
         for (let i = 0; i < prepared.length; i += BATCH_SIZE) {
           const batch = prepared.slice(i, i + BATCH_SIZE);
           try {
-            const { created, failed } = await client.batchCreateCalendarEvents(batch, targetAccountId);
+            const { created, failed, notCreated } = await client.batchCreateCalendarEvents(batch, targetAccountId);
             imported += created.length;
             if (failed.length > 0) {
-              debug.warn('calendar', `Import batch ${i / BATCH_SIZE + 1}: ${failed.length} events failed`);
+              const first = Object.values(notCreated)[0];
+              const reason = first?.description || first?.type || 'unknown error';
+              debug.warn('calendar', `Import batch ${i / BATCH_SIZE + 1}: ${failed.length} events failed (${reason})`);
+              set({ error: `${failed.length} event(s) could not be imported: ${reason}` });
             }
           } catch (error) {
             debug.error(`Import batch ${i / BATCH_SIZE + 1} failed:`, error);
@@ -1185,6 +1188,7 @@ export const useCalendarStore = create<CalendarStore>()(
           const targetAccountId = cal?.accountId;
           client = resolveAccountClient(client, cal?.localAccountId);
           let totalRemoved = 0;
+          let firstRefusalMessage = '';
           // Loop to handle pagination (getCalendarEvents has a 1000 limit)
           let hasMore = true;
           while (hasMore) {
@@ -1211,8 +1215,14 @@ export const useCalendarStore = create<CalendarStore>()(
 
             let removedThisPass = 0;
             if (idsToDelete.length > 0) {
-              const { destroyed } = await client.batchDeleteCalendarEvents(idsToDelete, targetAccountId);
+              // Rejects on a method-level error or when nothing could be
+              // destroyed; partial refusals are reported once below. (#434)
+              const { destroyed, notDestroyed } = await client.batchDeleteCalendarEvents(idsToDelete, targetAccountId);
               removedThisPass += destroyed.length;
+              const firstRefusal = Object.values(notDestroyed)[0];
+              if (firstRefusal && !firstRefusalMessage) {
+                firstRefusalMessage = firstRefusal.description || firstRefusal.type || 'server refused the request';
+              }
             }
             for (const { id, calendarIds } of eventsToUnlink) {
               try {
@@ -1224,10 +1234,15 @@ export const useCalendarStore = create<CalendarStore>()(
             }
             totalRemoved += removedThisPass;
 
-            // If we couldn't remove anything, stop to avoid infinite loop
+            // If we couldn't remove anything, stop to avoid infinite loop -
+            // and say why, instead of reporting "0 events cleared". (#434)
             if (removedThisPass === 0) {
               debug.warn('calendar', 'Could not clear any events, stopping. Remaining:', calendarEvents.length);
-              break;
+              throw new Error(
+                firstRefusalMessage
+                  ? `Failed to clear calendar events: ${firstRefusalMessage}`
+                  : 'Failed to clear calendar events: the server did not remove any of them',
+              );
             }
 
             // If we got fewer than the limit, we've fetched everything
@@ -1240,7 +1255,7 @@ export const useCalendarStore = create<CalendarStore>()(
           return totalRemoved;
         } catch (error) {
           debug.error('Failed to clear calendar events:', error);
-          set({ error: 'Failed to clear calendar events' });
+          set({ error: error instanceof Error ? error.message : 'Failed to clear calendar events' });
           throw error;
         }
       },
@@ -1327,7 +1342,9 @@ export const useCalendarStore = create<CalendarStore>()(
               events: state.events.filter(e => !e.calendarIds?.[calendarId]),
             }));
           }
-          return null;
+          // Rethrow so the dialog can show the server's reason (size limit,
+          // 404, timeout) instead of a generic failure. (#692)
+          throw error;
         }
       },
 

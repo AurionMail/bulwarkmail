@@ -22,6 +22,14 @@ function isValidContext(payload: unknown): payload is StalwartAuthContext {
   }
 
   const candidate = payload as Record<string, unknown>;
+  // A session context is exactly these three strings. The envelope purpose
+  // already keeps blobs minted elsewhere out; rejecting the markers those
+  // blobs carry is the second lock, so an office editor token or a pairing
+  // proof cannot be read back as a signed-in session even if it reaches this
+  // function by some other route (GHSA-cqqx-mjcf-mh55).
+  if (candidate.t !== undefined || candidate.purpose !== undefined) {
+    return false;
+  }
   return typeof candidate.serverUrl === 'string'
     && typeof candidate.username === 'string'
     && typeof candidate.authHeader === 'string';
@@ -39,8 +47,13 @@ export function readStalwartAuthContextFromStore(
   const token = cookieStore.get(stalwartAuthContextCookieName(slot))?.value;
   if (!token) return null;
 
-  const payload = decryptPayload(token);
-  return isValidContext(payload) ? payload : null;
+  const payload = decryptPayload(token, 'session-context');
+  if (!isValidContext(payload)) return null;
+
+  // Hand back exactly the declared shape: the envelope's own bookkeeping
+  // stays in the envelope rather than riding along into the credentials.
+  const { serverUrl, username, authHeader } = payload;
+  return { serverUrl, username, authHeader };
 }
 
 export async function readStalwartAuthContext(slot: number): Promise<StalwartAuthContext | null> {
@@ -55,7 +68,7 @@ export function setStalwartAuthContextInStore(
 ): void {
   cookieStore.set(
     stalwartAuthContextCookieName(slot),
-    encryptPayload(context as unknown as Record<string, unknown>),
+    encryptPayload(context as unknown as Record<string, unknown>, 'session-context'),
     getSessionCookieOptions(),
   );
 }

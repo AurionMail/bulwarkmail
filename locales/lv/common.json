@@ -225,6 +225,10 @@
     "and_others": "un vēl {count}",
     "draft": "Melnraksts",
     "starred": "Ar zvaigznīti",
+    "pinned": "Piesprausts",
+    "replied": "Atbildēts",
+    "forwarded": "Pārsūtīts",
+    "has_attachment": "Ar pielikumu",
     "conversations_count": "{count} no {total} sarunām",
     "conversations_count_plus": "{count}+ sarunas",
     "conversations_count_simple": "{count} sarunas",
@@ -292,6 +296,7 @@
     "forward": "Pārsūtīt",
     "delete": "Dzēst",
     "archive": "Arhivēt",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "Pievienot zvaigznīti",
     "unstar": "Noņemt zvaigznīti",
     "mark_unread": "Atzīmēt kā nelasītu",
@@ -306,7 +311,7 @@
     "fullscreen": "Pilnekrāna režīms",
     "exit_fullscreen": "Iziet no pilnekrāna režīma",
     "export_email": "Eksportēt kā .eml",
-    "forward_as_attachment": "Forward as attachment",
+    "forward_as_attachment": "Pārsūtīt kā pielikumu",
     "import_email": "Importēt .eml vai .zip",
     "keyboard_shortcuts": "Īsinājumtaustiņi (?)",
     "email_source": "Vēstules avota kods",
@@ -728,7 +733,11 @@
       "delete_column": "Dzēst kolonnu",
       "toggle_header_row": "Pārslēgt galvenes rindu",
       "delete_table": "Dzēst tabulu",
-      "pick_size": "Izvēlēties izmēru"
+      "pick_size": "Izvēlēties izmēru",
+      "font_size": "Fonta izmērs",
+      "font_size_default": "Noklusējums",
+      "background_color": "Fona krāsa",
+      "remove_background_color": "Noņemt fona krāsu"
     },
     "send_filing_warning": "Nosūtīts - bet pēcapstrāde neizdevās, var palikt novecojis melnraksts."
   },
@@ -1322,6 +1331,12 @@
         "label": "Automātiski izvēlēties atbildes adresi",
         "description": "Atbildot automātiski izmantot to kontu, uz kuru vēstule tika saņemta"
       },
+      "reply_identity_match": {
+        "label": "Saņemšanas adreses atbilstība",
+        "description": "Kuras saņemšanas adreses tiek uzskatītas par jūsu. „Tikai precīza adrese“ izvēlas vienīgi kādu no jūsu konfigurētajām identitātēm; „tas pats domēns“ arī jebkuru citu adresi jūsu identitāšu domēnos uzskata par catch-all aizstājvārdu un pārraksta ar to galveni „No“. Izvēlieties precīzu adresi, ja šīs adreses ir izplatīšanas saraksti.",
+        "exact": "Tikai precīza adrese",
+        "domain": "Jebkura adrese manos domēnos"
+      },
       "signature_position": {
         "label": "Paraksta novietojums",
         "description": "Kur ievietot jūsu parakstu atbildēs un pārsūtīšanā. Virs citētā teksta tas dabiski lasās kā atbildes noslēgums; zem tā saglabā oriģinālo ziņojumu vienkopus.",
@@ -1769,6 +1784,8 @@
       "role_trash": "Atkritne",
       "role_junk": "Mēstules",
       "role_archive": "Arhīvs",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "Nav",
       "create_folder": "Izveidot mapi",
       "create_subfolder": "Izveidot apakšmapi",
@@ -1888,7 +1905,9 @@
       "categories_description": "Pārdēvēt kontaktu kategorijas",
       "no_categories": "Kategorijas nav atrastas",
       "group_by_letter_description": "Rādīt alfabētiskos sadaļu virsrakstus kontaktu sarakstā",
-      "group_by_letter_label": "Grupēt pēc pirmā burta"
+      "group_by_letter_label": "Grupēt pēc pirmā burta",
+      "sort_by_last_name_label": "Kārtot pēc uzvārda",
+      "sort_by_last_name_description": "Kārtot kontaktu sarakstu pēc uzvārda, lai ģimenes locekļi būtu kopā"
     },
     "downloads": {
       "title": "Lejupielādes",
@@ -2732,7 +2751,10 @@
       "any_month": "Jebkurš mēnesis",
       "has_email": "Ar e-pastu",
       "has_phone": "Ar tālruni",
-      "has_photo": "Ar foto"
+      "has_photo": "Ar foto",
+      "sort_by": "Kārtot pēc",
+      "sort_first_name": "Vārds",
+      "sort_last_name": "Uzvārds"
     },
     "open_categories": "Atvērt kategorijas"
   },
@@ -2768,6 +2790,10 @@
       "duplicate": "Dublēt",
       "today_header": "Šodien",
       "tomorrow_header": "Rīt",
+      "agenda_show_earlier": "Rādīt agrākos notikumus",
+      "agenda_loading": "Ielādē…",
+      "agenda_range_start": "Notikumi no {date}",
+      "agenda_range_end": "Notikumi līdz {date}",
       "export_ics": "Eksportēt kā .ics",
       "copy_title": "Kopēt nosaukumu",
       "copy_link": "Kopēt sapulces saiti",
@@ -2923,6 +2949,8 @@
       "show_time_in_month_view_desc": "Rādīt pasākuma laiku mēneša kalendārā",
       "show_week_numbers": "Rādīt nedēļu numurus",
       "show_week_numbers_desc": "Rādīt nedēļu numurus mini kalendārā",
+      "calendar_free_scroll": "Brīva ritināšana",
+      "calendar_free_scroll_desc": "Nepārtraukti ritināt cauri mēnešiem, nedēļām un dienām, nevis pa vienam periodam",
       "enable_tasks": "Iespējot uzdevumus",
       "enable_tasks_desc": "Rādīt uzdevumu sadaļu kalendārā",
       "show_tasks_on_calendar": "Rādīt uzdevumus kalendārā",

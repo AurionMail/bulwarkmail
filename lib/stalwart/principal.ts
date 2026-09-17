@@ -1,8 +1,24 @@
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { stalwartJmap, requireResult } from '@/lib/stalwart/jmap-passthrough';
 import { debug } from '@/lib/debug';
+import { fetchConfig } from '@/hooks/use-config';
 
 export const STALWART_JMAP_CAPABILITY = 'urn:stalwart:jmap';
+
+/**
+ * Whether the server-side /api/account/stalwart/jmap passthrough is enabled
+ * (STALWART_JMAP_PASSTHROUGH_ENABLED, also off when Stalwart features are
+ * disabled). Callers skip the passthrough entirely when it is off instead of
+ * collecting a 404 on every login. Unknown config counts as enabled. (#904)
+ */
+export async function isStalwartJmapPassthroughEnabled(): Promise<boolean> {
+  try {
+    const config = await fetchConfig();
+    return config.stalwartFeaturesEnabled !== false && config.stalwartJmapPassthroughEnabled !== false;
+  } catch {
+    return true;
+  }
+}
 
 interface PrincipalGetResponse {
   list?: Array<{ description?: string | null }>;
@@ -31,6 +47,7 @@ export async function fetchPrincipalDisplayName(
   slot?: number,
 ): Promise<string | null> {
   if (!client.hasAccountCapability?.(STALWART_JMAP_CAPABILITY)) return null;
+  if (!(await isStalwartJmapPassthroughEnabled())) return null;
 
   try {
     const accountId = client.getAccountId();

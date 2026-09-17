@@ -202,6 +202,9 @@
     "delete_confirm": "您確定要刪除「{name}」嗎？",
     "no_apps": "尚未新增任何應用程式",
     "no_apps_hint": "在側邊欄新增自訂應用程式與連結",
+    "managed_title": "由您的管理員提供",
+    "managed_description": "這些應用程式為所有人統一設定，無法變更。",
+    "managed_badge": "受管理",
     "search_icons": "搜尋圖示…",
     "show_popular": "熱門",
     "show_all": "全部",
@@ -222,6 +225,10 @@
     "and_others": "另有 {count} 人",
     "draft": "草稿",
     "starred": "已加星號",
+    "pinned": "已釘選",
+    "replied": "已回覆",
+    "forwarded": "已轉寄",
+    "has_attachment": "有附件",
     "conversations_count": "顯示 {count} 個對話串，共 {total} 個",
     "conversations_count_plus": "{count}+ 個對話串",
     "conversations_count_simple": "{count} 個對話串",
@@ -289,6 +296,7 @@
     "forward": "轉寄",
     "delete": "刪除",
     "archive": "封存",
+    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
     "star": "加上星號",
     "unstar": "移除星號",
     "mark_unread": "標示為未讀",
@@ -303,7 +311,7 @@
     "fullscreen": "全螢幕",
     "exit_fullscreen": "離開全螢幕",
     "export_email": "匯出為 .eml",
-    "forward_as_attachment": "以附件轉寄",
+    "forward_as_attachment": "以附件形式轉寄",
     "import_email": "匯入 .eml 或 .zip",
     "keyboard_shortcuts": "鍵盤快速鍵 (?)",
     "email_source": "郵件原始碼",
@@ -725,7 +733,11 @@
       "delete_column": "刪除欄",
       "toggle_header_row": "切換標題列",
       "delete_table": "刪除表格",
-      "pick_size": "選取大小"
+      "pick_size": "選取大小",
+      "font_size": "字型大小",
+      "font_size_default": "預設",
+      "background_color": "背景顏色",
+      "remove_background_color": "移除背景顏色"
     },
     "send_filing_warning": "郵件已傳送，但寄送後清理失敗，可能仍保留舊草稿。"
   },
@@ -1327,6 +1339,12 @@
         "label": "使用收件地址回覆",
         "description": "回覆時，使用原始郵件的收件地址寄送。系統會先比對寄件身分；若是網域 catch-all 收件，則透過主要寄件身分傳送，但將 From 標頭改寫為別名地址。"
       },
+      "reply_identity_match": {
+        "label": "接收地址比對",
+        "description": "哪些接收地址算作您的地址。「僅精確地址」只從已設定的身分中選擇；「相同網域」還會將身分網域下的其他任何地址視為 catch-all 別名，並將寄件者標頭改寫為該地址。如果這些地址是通訊群組清單，請選擇精確地址。",
+        "exact": "僅精確地址",
+        "domain": "我的網域下的任意地址"
+      },
       "signature_position": {
         "label": "簽名檔位置",
         "description": "在回覆與轉寄中插入簽名檔的位置。放在引用文字上方可自然作為回覆結尾；放在下方則能保持原始郵件連續。",
@@ -1773,6 +1791,8 @@
       "role_trash": "垃圾桶",
       "role_junk": "垃圾郵件",
       "role_archive": "封存",
+      "role_scheduled": "Scheduled",
+      "role_snoozed": "Snoozed",
       "role_none": "無",
       "create_folder": "建立信件匣",
       "create_subfolder": "建立子信件匣",
@@ -1873,6 +1893,8 @@
       "description": "管理側邊欄中的自訂應用程式與連結",
       "keep_loaded": "保持應用程式載入",
       "keep_loaded_description": "切換內嵌應用程式時，讓其在背景繼續執行，以避免重新載入",
+      "managed_title": "由您的管理員提供",
+      "managed_description": "這些應用程式為所有人統一設定，無法變更。",
       "manage_title": "自訂應用程式",
       "manage_description": "在側邊欄新增、編輯或移除自訂應用程式"
     },
@@ -1880,6 +1902,8 @@
       "title": "聯絡人",
       "description": "匯入與匯出聯絡人",
       "group_by_letter_label": "依首字分組",
+      "sort_by_last_name_label": "依姓氏排序",
+      "sort_by_last_name_description": "依姓氏排列聯絡人清單，讓家庭成員顯示在一起",
       "group_by_letter_description": "在聯絡人清單中顯示依字母排列的分節標題",
       "import_label": "匯入聯絡人",
       "import_description": "從 vCard（.vcf）檔案匯入聯絡人",
@@ -2728,7 +2752,10 @@
       "any_month": "任何月份",
       "has_email": "有電子郵件地址",
       "has_phone": "有電話",
-      "has_photo": "有照片"
+      "has_photo": "有照片",
+      "sort_by": "排序方式",
+      "sort_first_name": "名",
+      "sort_last_name": "姓"
     }
   },
   "calendar": {
@@ -2764,6 +2791,10 @@
       "duplicate": "建立副本",
       "today_header": "今天",
       "tomorrow_header": "明天",
+      "agenda_show_earlier": "顯示更早的行程",
+      "agenda_loading": "載入中…",
+      "agenda_range_start": "顯示 {date} 起的行程",
+      "agenda_range_end": "顯示至 {date} 的行程",
       "export_ics": "匯出為 .ics",
       "copy_title": "複製標題",
       "copy_link": "複製會議連結",
@@ -2919,6 +2950,8 @@
       "show_time_in_month_view_desc": "在月檢視中顯示活動時間。小螢幕會顯示完整活動項目，而不只是圓點。",
       "show_week_numbers": "顯示週數",
       "show_week_numbers_desc": "在迷你行事曆中顯示週數",
+      "calendar_free_scroll": "自由捲動",
+      "calendar_free_scroll_desc": "連續捲動瀏覽月、週和日，而不是一次只顯示一個時段",
       "enable_tasks": "啟用任務",
       "enable_tasks_desc": "在行事曆中顯示任務檢視以管理待辦事項",
       "show_tasks_on_calendar": "在行事曆上顯示任務",

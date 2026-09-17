@@ -5,9 +5,8 @@ import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
 import {
-  startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addMonths, subMonths, addWeeks, subWeeks, addDays, subDays,
-  startOfDay, format, parseISO,
+  format, parseISO,
 } from "date-fns";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { isCalendarViewMode } from "@/stores/calendar-store";
@@ -75,6 +74,12 @@ import { appPath, buildCalendarPath, parseCalendarPath, type CalendarDeepLink } 
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
+import { useCalendarLocale } from "@/hooks/use-calendar-locale";
+import {
+  computeScrollWindow, fixedScrollWindowState, freshScrollWindowState, growScrollWindow, normalizeScrollWindowState,
+  scrollWindowContains, type CalendarFocus, type ScrollViewMode, type ScrollWindowOptions,
+  type ScrollWindowState, type ScrollWindowViewProps,
+} from "@/lib/calendar-scroll-window";
 
 type PendingScopeAction =
   | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; sendScheduling?: boolean }
@@ -344,42 +349,98 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
     }
   }, [showBirthdayCalendar]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Free scrolling (#759): every view keeps one window of days around the
+  // day the user navigated to (the "focus"). Reaching an edge of the view
+  // widens that side and the whole window is refetched. Grid clicks only
+  // change the selection; navigation moves the focus and, when that leaves
+  // the loaded window, starts a fresh window there.
+  const { weekStartsOn, getMonthGridDays } = useCalendarLocale();
+  const monthGridDaysRef = useRef(getMonthGridDays);
+  useEffect(() => {
+    monthGridDaysRef.current = getMonthGridDays;
+  }, [getMonthGridDays]);
+  const scrollWindowOptions = useMemo<ScrollWindowOptions>(
+    () => ({ weekStartsOn, monthGridDays: (date) => monthGridDaysRef.current(date) }),
+    [weekStartsOn],
+  );
+  const scrollMode: ScrollViewMode | null = normalizedViewMode === "tasks" ? null : normalizedViewMode;
+  const [focus, setFocus] = useState<CalendarFocus>(() => ({ date: selectedDate, nonce: 0 }));
+  const [visibleDate, setVisibleDate] = useState<Date | null>(null);
+  const [scrollWindowState, setScrollWindowState] = useState<ScrollWindowState>(
+    () => freshScrollWindowState(scrollMode ?? "month", selectedDate),
+  );
+  // With free scrolling off, every view shows exactly one period around the
+  // focus and the edges never widen it.
+  const calendarFreeScroll = useSettingsStore((s) => s.calendarFreeScroll);
+  const focusKey = format(focus.date, "yyyy-MM-dd");
+  const fixedWindowState = useMemo(
+    () => (scrollMode ? fixedScrollWindowState(scrollMode, parseISO(focusKey)) : null),
+    [scrollMode, focusKey],
+  );
+  const windowState = !scrollMode
+    ? null
+    : calendarFreeScroll
+      ? normalizeScrollWindowState(scrollWindowState, scrollMode, focus.date)
+      : fixedWindowState;
+  useEffect(() => {
+    if (windowState && windowState !== scrollWindowState) setScrollWindowState(windowState);
+  }, [windowState, scrollWindowState]);
+  const scrollWindow = useMemo(
+    () => windowState ? computeScrollWindow(windowState, scrollWindowOptions) : null,
+    [windowState, scrollWindowOptions],
+  );
+  const windowKey = windowState ? `${windowState.mode}:${windowState.anchorKey}` : "";
+
+  const jumpTo = useCallback((date: Date) => {
+    setSelectedDate(date);
+    setMiniMonth(date);
+    setVisibleDate(null);
+    setFocus((prev) => ({ date, nonce: prev.nonce + 1 }));
+    if (!scrollMode) return;
+    setScrollWindowState((prev) => {
+      const current = normalizeScrollWindowState(prev, scrollMode, date);
+      const loaded = computeScrollWindow(current, scrollWindowOptions);
+      return scrollWindowContains(loaded, scrollMode, date, scrollWindowOptions)
+        ? current
+        : freshScrollWindowState(scrollMode, date);
+    });
+  }, [setSelectedDate, scrollMode, scrollWindowOptions]);
+
+  const extendScrollWindow = useCallback((side: "before" | "after") => {
+    if (!scrollMode) return;
+    setScrollWindowState((prev) => growScrollWindow(normalizeScrollWindowState(prev, scrollMode, focus.date), side));
+  }, [scrollMode, focus.date]);
+  const extendWindowStart = useCallback(() => extendScrollWindow("before"), [extendScrollWindow]);
+  const extendWindowEnd = useCallback(() => extendScrollWindow("after"), [extendScrollWindow]);
+
+  // The views report the day they show as the user scrolls; the title and
+  // the mini calendar follow it, the selection does not.
+  const handleVisibleDateChange = useCallback((date: Date) => {
+    setVisibleDate(date);
+    setMiniMonth(date);
+  }, []);
+  useEffect(() => {
+    setVisibleDate(null);
+  }, [normalizedViewMode]);
+
+  const scrollViewProps: ScrollWindowViewProps = {
+    focus,
+    rangeStart: scrollWindow?.start ?? focus.date,
+    rangeEnd: scrollWindow?.end ?? focus.date,
+    windowKey,
+    onExtendStart: calendarFreeScroll && scrollWindow?.canExtendStart ? extendWindowStart : undefined,
+    onExtendEnd: calendarFreeScroll && scrollWindow?.canExtendEnd ? extendWindowEnd : undefined,
+    isLoading: isLoadingEvents,
+    onVisibleDateChange: handleVisibleDateChange,
+  };
+
   const dateRange = useMemo(() => {
-    const d = selectedDate;
-    switch (normalizedViewMode) {
-      case "month": {
-        const ms = startOfMonth(d);
-        const me = endOfMonth(d);
-        return {
-          start: format(startOfWeek(ms, { weekStartsOn: firstDayOfWeek }), "yyyy-MM-dd'T'00:00:00"),
-          end: format(endOfWeek(me, { weekStartsOn: firstDayOfWeek }), "yyyy-MM-dd'T'23:59:59"),
-        };
-      }
-      case "week": {
-        const ws = startOfWeek(d, { weekStartsOn: firstDayOfWeek });
-        return {
-          start: format(ws, "yyyy-MM-dd'T'00:00:00"),
-          end: format(addDays(ws, 6), "yyyy-MM-dd'T'23:59:59"),
-        };
-      }
-      case "day":
-        return {
-          start: format(d, "yyyy-MM-dd'T'00:00:00"),
-          end: format(d, "yyyy-MM-dd'T'23:59:59"),
-        };
-      case "agenda": {
-        // Agenda always starts from today at the earliest
-        const today = startOfDay(displayNow());
-        const agendaStart = d >= today ? d : today;
-        return {
-          start: format(agendaStart, "yyyy-MM-dd'T'00:00:00"),
-          end: format(addDays(agendaStart, 30), "yyyy-MM-dd'T'23:59:59"),
-        };
-      }
-      case "tasks":
-        return null;
-    }
-  }, [selectedDate, normalizedViewMode, firstDayOfWeek]);
+    if (!scrollWindow) return null;
+    return {
+      start: format(scrollWindow.start, "yyyy-MM-dd'T'00:00:00"),
+      end: format(scrollWindow.end, "yyyy-MM-dd'T'23:59:59"),
+    };
+  }, [scrollWindow]);
 
   // Fetch tasks when tasks view is active or when tasks are shown on calendar grid
   useEffect(() => {
@@ -405,36 +466,37 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
   const fetchAllAccountsCalendarsFn = useCalendarStore((s) => s.fetchAllAccountsCalendars);
   const fetchAllAccountsEventsFn = useCalendarStore((s) => s.fetchAllAccountsEvents);
 
+  // The arrows step from what is on screen, which may have been scrolled
+  // away from the selected day.
   const navigatePrev = useCallback(() => {
+    const base = visibleDate ?? selectedDate;
     let next: Date;
     switch (normalizedViewMode) {
-      case "month": next = subMonths(selectedDate, 1); break;
-      case "week": next = subWeeks(selectedDate, 1); break;
-      case "day": next = subDays(selectedDate, 1); break;
-      case "agenda": next = subMonths(selectedDate, 1); break;
+      case "month": next = subMonths(base, 1); break;
+      case "week": next = subWeeks(base, 1); break;
+      case "day": next = subDays(base, 1); break;
+      case "agenda": next = subMonths(base, 1); break;
       case "tasks": return;
     }
-    setSelectedDate(next);
-    setMiniMonth(next);
-  }, [normalizedViewMode, selectedDate, setSelectedDate]);
+    jumpTo(next);
+  }, [normalizedViewMode, selectedDate, visibleDate, jumpTo]);
 
   const navigateNext = useCallback(() => {
+    const base = visibleDate ?? selectedDate;
     let next: Date;
     switch (normalizedViewMode) {
-      case "month": next = addMonths(selectedDate, 1); break;
-      case "week": next = addWeeks(selectedDate, 1); break;
-      case "day": next = addDays(selectedDate, 1); break;
-      case "agenda": next = addMonths(selectedDate, 1); break;
+      case "month": next = addMonths(base, 1); break;
+      case "week": next = addWeeks(base, 1); break;
+      case "day": next = addDays(base, 1); break;
+      case "agenda": next = addMonths(base, 1); break;
       case "tasks": return;
     }
-    setSelectedDate(next);
-    setMiniMonth(next);
-  }, [normalizedViewMode, selectedDate, setSelectedDate]);
+    jumpTo(next);
+  }, [normalizedViewMode, selectedDate, visibleDate, jumpTo]);
 
   const goToToday = useCallback(() => {
-    setSelectedDate(displayNow());
-    setMiniMonth(displayNow());
-  }, [setSelectedDate]);
+    jumpTo(displayNow());
+  }, [jumpTo]);
 
   // Swipe navigation handlers for mobile
   const handleTouchStart = useCallback((e: ReactTouchEvent) => {
@@ -444,8 +506,8 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
 
   const handleTouchEnd = useCallback((e: ReactTouchEvent) => {
     if (!touchStartRef.current || !isMobile) return;
-    // Week view has its own horizontal scroll, skip swipe navigation
-    if (normalizedViewMode === 'week') { touchStartRef.current = null; return; }
+    // Week and day views scroll sideways themselves, skip swipe navigation
+    if (normalizedViewMode === 'week' || normalizedViewMode === 'day') { touchStartRef.current = null; return; }
     const touch = e.changedTouches[0];
     const dx = touch.clientX - touchStartRef.current.x;
     const dy = touch.clientY - touchStartRef.current.y;
@@ -468,16 +530,19 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
   }, [isMobile, normalizedViewMode, navigatePrev, navigateNext]);
 
   const handleSelectDate = useCallback((date: Date) => {
-    setSelectedDate(date);
-    setMiniMonth(date);
-    // On mobile month view, tapping a date switches to day view
+    // On mobile month view, tapping a date switches to day view on that day.
     if (isMobile && normalizedViewMode === "month") {
+      jumpTo(date);
       setMobileReturnToMonth(true);
       setViewMode("day");
+    } else {
+      // A click in the grid selects the day without moving the view.
+      setSelectedDate(date);
+      setMiniMonth(date);
     }
     // Close the narrow-pane sidebar overlay after the user picks a date.
     setNarrowSidebarOpen(false);
-  }, [setSelectedDate, isMobile, normalizedViewMode, setViewMode]);
+  }, [setSelectedDate, jumpTo, isMobile, normalizedViewMode, setViewMode]);
 
   const navigateBackToMonth = useCallback(() => {
     setMobileReturnToMonth(false);
@@ -485,9 +550,8 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
   }, [setViewMode]);
 
   const handleMiniMonthChange = useCallback((date: Date) => {
-    setMiniMonth(date);
-    setSelectedDate(date);
-  }, [setSelectedDate]);
+    jumpTo(date);
+  }, [jumpTo]);
 
   const openCreateModal = useCallback((date?: Date, endDate?: Date, allDay?: boolean) => {
     setEditEvent(null);
@@ -609,7 +673,7 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
   const applyCalendarDeepLink = (link: CalendarDeepLink) => {
     if (link.kind === 'view') {
       setViewMode(link.view);
-      if (link.date) setSelectedDate(link.date);
+      if (link.date) jumpTo(link.date);
       return;
     }
 
@@ -625,7 +689,7 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
           return;
         }
         const start = getEventStartDate(event);
-        if (start) setSelectedDate(start);
+        if (start) jumpTo(start);
         openEditModal(event);
       } catch (err) {
         debug.error('Failed to open calendar deep link:', err);
@@ -768,9 +832,8 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
       return;
     }
 
-    setSelectedDate(eventDate);
-    setMiniMonth(eventDate);
-  }, [setSelectedDate]);
+    jumpTo(eventDate);
+  }, [jumpTo]);
 
   const handleSaveEvent = useCallback(async (data: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => {
     if (!client) { toast.error(t("notifications.event_error")); return; }
@@ -1329,6 +1392,7 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
         case "month":
           return (
             <CalendarMonthView
+              {...scrollViewProps}
               selectedDate={selectedDate}
               events={visibleEvents}
               calendars={allCalendars}
@@ -1347,6 +1411,7 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
         case "week":
           return (
             <CalendarWeekView
+              {...scrollViewProps}
               selectedDate={selectedDate}
               events={visibleEvents}
               calendars={allCalendars}
@@ -1368,6 +1433,7 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
         case "day":
           return (
             <CalendarDayView
+              {...scrollViewProps}
               selectedDate={selectedDate}
               events={visibleEvents}
               calendars={allCalendars}
@@ -1387,7 +1453,7 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
         case "agenda":
           return (
             <CalendarAgendaView
-              selectedDate={selectedDate}
+              {...scrollViewProps}
               events={visibleEvents}
               calendars={allCalendars}
               onSelectEvent={handleSelectEvent}
@@ -1539,8 +1605,9 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
                 try {
                   const count = await clearCalendarEvents(client, cal.id);
                   toast.success(tMgmt("events_cleared", { count }));
-                } catch {
-                  toast.error(tMgmt("error_clear"));
+                } catch (err) {
+                  // The store rethrows the server's reason (#434).
+                  toast.error(err instanceof Error && err.message ? err.message : tMgmt("error_clear"));
                 }
               } : undefined}
               onDeleteCalendar={client ? async (cal: Calendar) => {
@@ -1583,6 +1650,7 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
       <div className="flex flex-col flex-1 min-w-0 min-h-0">
         <CalendarToolbar
           selectedDate={selectedDate}
+          visibleDate={visibleDate}
           viewMode={normalizedViewMode}
           onPrev={navigatePrev}
           onNext={navigateNext}
