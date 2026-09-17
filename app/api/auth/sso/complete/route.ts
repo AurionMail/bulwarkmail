@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No pending SSO session. Please start the login flow again.' }, { status: 400 });
     }
 
-    const pending = decryptPayload(pendingCookie);
+    const pending = decryptPayload(pendingCookie, 'sso-pending');
     if (!pending) {
       cookieStore.delete(SSO_PENDING_COOKIE);
       return NextResponse.json({ error: 'Invalid SSO session' }, { status: 400 });

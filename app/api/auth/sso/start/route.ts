@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       ...(isReauth ? { purpose: 'reauth' } : {}),
     };
 
-    const encrypted = encryptPayload(pendingData);
+    const encrypted = encryptPayload(pendingData, 'sso-pending');
     const cookieStore = await cookies();
     const baseCookieOpts = getCookieOptions();
     cookieStore.set(SSO_PENDING_COOKIE, encrypted, {

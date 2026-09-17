@@ -43,7 +43,7 @@ function fromBase64Url(token: string): string {
 
 export function mintWopiToken(payload: Omit<WopiTokenPayload, 'exp'>): { token: string; expiresAt: number } {
   const expiresAt = Date.now() + WOPI_TOKEN_TTL_MS;
-  const token = toBase64Url(encryptPayload({ v: 1, t: 'wopi', ...payload, exp: expiresAt }));
+  const token = toBase64Url(encryptPayload({ v: 1, t: 'wopi', ...payload, exp: expiresAt }, 'wopi-token'));
   return { token, expiresAt };
 }
 
@@ -53,7 +53,7 @@ export function mintWopiToken(payload: Omit<WopiTokenPayload, 'exp'>): { token: 
  */
 export function verifyWopiToken(token: string | null, fileId: string): WopiTokenPayload | null {
   if (!token) return null;
-  const raw = decryptPayload(fromBase64Url(token));
+  const raw = decryptPayload(fromBase64Url(token), 'wopi-token');
   if (!raw || raw.v !== 1 || raw.t !== 'wopi') return null;
   const p = raw as unknown as WopiTokenPayload;
   if (

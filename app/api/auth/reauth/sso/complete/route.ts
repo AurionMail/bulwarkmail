@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No pending re-auth session' }, { status: 400 });
     }
 
-    const pending = decryptPayload(pendingCookie);
+    const pending = decryptPayload(pendingCookie, 'sso-pending');
     cookieStore.delete(SSO_PENDING_COOKIE);
     if (!pending) {
       return NextResponse.json({ error: 'Invalid re-auth session' }, { status: 400 });
