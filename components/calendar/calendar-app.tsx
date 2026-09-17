@@ -15,10 +15,10 @@ import { useEmailStore } from "@/stores/email-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useIdentityStore } from "@/stores/identity-store";
 import { useAccountStore } from "@/stores/account-store";
-import { useAccountSecurityStore } from "@/stores/account-security-store";
 import { usePolicyStore } from "@/stores/policy-store";
 import { toast } from "@/stores/toast-store";
 import { useIsDesktop, useIsMobile } from "@/hooks/use-media-query";
+import { useAccountPrincipalEmails } from "@/hooks/use-account-principal-emails";
 import { Button } from "@/components/ui/button";
 import { CalendarToolbar } from "@/components/calendar/calendar-toolbar";
 import { CalendarMonthView } from "@/components/calendar/calendar-month-view";
@@ -130,17 +130,9 @@ export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
   const contacts = useContactStore((s) => s.contacts);
   const normalizedViewMode = isCalendarViewMode(viewMode) ? viewMode : "month";
 
-  // Aliases live on the principal, not on identities; fetch them so an
-  // alias-organized event is recognised as the user's own (see isOrganizer).
-  const accountEmails = useAccountSecurityStore((s) => s.emails);
-  const fetchPrincipal = useAccountSecurityStore((s) => s.fetchPrincipal);
-  const principalFetchedRef = useRef(false);
-  useEffect(() => {
-    if (principalFetchedRef.current) return;
-    principalFetchedRef.current = true;
-    if (accountEmails.length > 0) return; // already loaded elsewhere
-    void fetchPrincipal();
-  }, [accountEmails, fetchPrincipal]);
+  // Aliases live on the principal, not on identities; the calendar needs them
+  // so an alias-organized event is recognised as the user's own (see isOrganizer).
+  const accountEmails = useAccountPrincipalEmails(client);
 
   // The default ParticipantIdentity (draft-ietf-jmap-calendars §6) is the
   // address new invitations are organised from, so it goes first: the event
