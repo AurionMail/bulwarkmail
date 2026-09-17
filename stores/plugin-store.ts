@@ -16,6 +16,7 @@ import { usePolicyStore } from '@/stores/policy-store';
 import { apiFetch } from '@/lib/browser-navigation';
 import { IMPLICIT_PERMISSIONS } from '@/lib/plugin-types';
 import type { Permission } from '@/lib/plugin-types';
+import { IS_LITE } from '@/lib/lite';
 
 let pluginInitializationPromise: Promise<void> | null = null;
 // One-time guard so we attach the locale->sandbox subscription only once.
@@ -243,6 +244,9 @@ export const usePluginStore = create<PluginStoreState>()(
       },
 
       initializePlugins: async () => {
+        // Plugins need the sandbox routes and the plugin API; both are
+        // server-side, and policy pins pluginsEnabled off in the static build.
+        if (IS_LITE) return;
         if (get().initialized) return;
 
         if (pluginInitializationPromise) {

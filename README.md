@@ -91,6 +91,23 @@ npm run build && npm start
 # Then open http://localhost:3000 to run the setup wizard
 ```
 
+### Static Lite build
+
+Bulwark Lite is the same client exported as static files: no Node.js process, upload the folder to any static host (nginx, Caddy, Netlify, Cloudflare Pages, GitHub Pages, an S3 bucket). Mail, calendar, contacts and files talk to the JMAP server straight from the browser, so the only server-side requirement is CORS on the mail server (`http.permissive-cors = true` in Stalwart).
+
+Every release ships `bulwark-lite-<version>.zip`, and the **Build Static Lite** workflow can be dispatched with a fixed server URL, app name, sub-path mount, locale subset or the demo flag. To build locally:
+
+```bash
+git worktree add ../bulwark-lite HEAD   # disposable checkout: the build deletes server-only trees
+cd ../bulwark-lite && npm ci
+LITE_JMAP_SERVER_URL=https://mail.example.com npm run build:lite -- --in-place
+npm run lite:serve                       # http://localhost:4173/
+```
+
+`out/` then holds one shell per locale and surface plus the deployer files: `config.json` (server URL, app name, login branding; editable without a rebuild), `policy.json`, `manifest.webmanifest`, `_redirects` and `_headers` (Netlify/Cloudflare), `nginx.conf.example`, `Caddyfile.example`, a `404.html` that replays deep links on hosts without rewrite rules, and `LITE-README.md` with the three-step setup. Build inputs: `LITE_JMAP_SERVER_URL`, `LITE_APP_NAME`, `LITE_ALLOW_CUSTOM_ENDPOINT`, `LITE_REMEMBER_ME`, `LITE_DEMO_MODE`, `LITE_LOCALES` (e.g. `en,de`), `NEXT_PUBLIC_BASE_PATH`.
+
+Lite keeps everything that runs in the browser (multi-account, password and TOTP login, "remember me" via Stalwart refresh tokens, themes, deep links, demo mode). Server-backed features are off: the admin console and setup wizard, plugins and sidebar apps, settings sync, OAuth/SSO, the account security tab, ICS URL subscriptions and CalDAV discovery, sender favicons, office editing, web push, the update banner. `scripts/lite/verify.mjs` fails the build if a client chunk references a server endpoint that is not documented in `scripts/lite/lib.mjs`, and `npm run test:lite-smoke` drives a demo export with Playwright.
+
 ### Development
 
 ```bash

@@ -3,11 +3,24 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getPathPrefix } from "@/lib/browser-navigation";
+import { IS_LITE } from "@/lib/lite";
+import { liteSurfaceRootFor, stashPendingLitePath } from "@/lib/lite-link-segments";
 
 export default function NotFound() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
+    // Static Lite build on a host without rewrite rules (GitHub Pages): a deep
+    // link such as /en/mail/thread/abc lands here as 404.html. Park the link
+    // and load the owning surface, which replays it (hooks/use-lite-link-segments.ts).
+    if (IS_LITE) {
+      const target = liteSurfaceRootFor(window.location.pathname, getPathPrefix());
+      if (target) {
+        stashPendingLitePath(`${window.location.pathname}${window.location.search}`);
+        window.location.replace(target);
+        return;
+      }
+    }
     if (!isAuthenticated) {
       const prefix = getPathPrefix();
       // Don't redirect admin routes to the webmail login page. Admin paths

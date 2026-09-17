@@ -142,10 +142,19 @@ function PluginOAuthCallbackInner() {
   );
 }
 
-export default function PluginOAuthCallbackPage() {
+function PluginOAuthCallbackContent() {
   return (
     <Suspense fallback={<OAuthStatusCard title="" />}>
       <PluginOAuthCallbackInner />
+    </Suspense>
+  );
+}
+
+// useSearchParams() needs a Suspense boundary for prerendering (static Lite build).
+export default function PluginOAuthCallbackPage() {
+  return (
+    <Suspense fallback={null}>
+      <PluginOAuthCallbackContent />
     </Suspense>
   );
 }

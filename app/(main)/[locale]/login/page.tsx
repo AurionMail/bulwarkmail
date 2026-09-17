@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -19,6 +19,8 @@ import { type OAuthMetadata } from "@/lib/oauth/discovery";
 import { generateCodeVerifier, generateCodeChallenge, generateState } from "@/lib/oauth/pkce";
 import { useUpdateStore, selectBanner } from "@/stores/update-store";
 import type { PublicJmapServerEntry } from "@/lib/admin/jmap-servers";
+import { IS_LITE } from "@/lib/lite";
+import { probeLiteTokenLogin } from "@/lib/auth/lite-tokens";
 
 function findServerByDomain(servers: PublicJmapServerEntry[], email: string | undefined): PublicJmapServerEntry | undefined {
   if (!email || !email.includes("@")) return undefined;
@@ -114,7 +116,7 @@ function VersionBadge() {
 // that funnels password and token material to any caller-supplied URL.
 const MOBILE_REDIRECT_SCHEME = "bulwarkmobile://";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const t = useTranslations("login");
   const params = useParams();
@@ -168,6 +170,10 @@ export default function LoginPage() {
   const [totpCode, setTotpCode] = useState("");
   const [showTotpField, setShowTotpField] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  // Lite (no server session): "remember me" needs Stalwart's token login on the
+  // target server. Probe it once per URL and hide the box when it is missing;
+  // those sessions then only last as long as the tab (lib/auth/lite-tokens.ts).
+  const [liteTokenLoginSupported, setLiteTokenLoginSupported] = useState<boolean | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [shakeError, setShakeError] = useState(false);
@@ -202,6 +208,25 @@ export default function LoginPage() {
   useEffect(() => {
     initializeTheme();
   }, [initializeTheme]);
+
+  const probeTarget = hasServerList
+    ? selectedServer?.url ?? ""
+    : (allowCustomJmapEndpoint ? jmapEndpoint : serverUrl) || "";
+  useEffect(() => {
+    if (!IS_LITE || !probeTarget) return;
+    let cancelled = false;
+    // Debounced: the custom endpoint field fires per keystroke.
+    const timer = setTimeout(() => {
+      probeLiteTokenLogin(probeTarget).then((supported) => {
+        if (!cancelled) setLiteTokenLoginSupported(supported);
+      });
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [probeTarget]);
+  const showRememberMe = rememberMeEnabled && (!IS_LITE || liteTokenLoginSupported !== false);
 
   useEffect(() => {
     if (serverUrl) {
@@ -1235,7 +1260,7 @@ export default function LoginPage() {
                   )}
 
                   {/* Remember me */}
-                  {rememberMeEnabled && (
+                  {showRememberMe && (
                     <label className="flex items-center gap-2.5 cursor-pointer group select-none pt-1">
                       <span className="relative flex items-center justify-center">
                         <input
@@ -1408,5 +1433,15 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// useSearchParams() above must sit under a Suspense boundary for the route to
+// prerender (the static Lite build); at runtime the boundary never suspends.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

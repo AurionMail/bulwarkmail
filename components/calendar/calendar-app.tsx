@@ -80,6 +80,7 @@ import {
   scrollWindowContains, type CalendarFocus, type ScrollViewMode, type ScrollWindowOptions,
   type ScrollWindowState, type ScrollWindowViewProps,
 } from "@/lib/calendar-scroll-window";
+import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 
 type PendingScopeAction =
   | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; sendScheduling?: boolean }
@@ -94,7 +95,9 @@ export interface CalendarAppProps {
   linkSegments?: string[];
 }
 
-export function CalendarApp({ linkSegments }: CalendarAppProps = {}) {
+export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = {}) {
+  // Static Lite build: the route params are empty, read the link from the URL.
+  const linkSegments = useLiteLinkSegments('calendar', routeSegments);
   const router = useRouter();
   const t = useTranslations("calendar");
   const tWebcalAction = useTranslations("calendar.webcal_action");

@@ -7,6 +7,7 @@
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { EmailPushConfig, Mailbox } from '@/lib/jmap/types';
 import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
+import { IS_LITE } from '@/lib/lite';
 
 // Per-account keys: a single browser may be signed in to multiple accounts,
 // each with its own JMAP PushSubscription and its own relay record. Scoping
@@ -156,6 +157,9 @@ export class WebPushUnsupportedError extends Error {
 
 export function isWebPushSupported(): boolean {
   if (typeof window === 'undefined') return false;
+  // No service worker is registered in the static Lite build (see
+  // components/service-worker-registration.tsx), so push cannot be enabled.
+  if (IS_LITE) return false;
   return (
     'serviceWorker' in navigator &&
     'PushManager' in window &&

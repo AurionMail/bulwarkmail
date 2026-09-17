@@ -1,0 +1,139 @@
+name: Build Static Lite
+
+# Bulwark Lite: the static export of the webmail (see docs in README.md,
+# "Static Lite build"). Runs the build on every push as a regression check,
+# attaches the zip to releases, and lets maintainers build a custom variant
+# (fixed server URL, sub-path mount, locale subset, demo) on demand.
+#
+# scripts/lite/prepare.mjs deletes the server-only trees in place; that is
+# safe here because the Actions checkout is disposable (CI=true is the guard).
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      jmap_server_url:
+        description: "Default JMAP server URL baked into config.json (editable after download)"
+        required: false
+      app_name:
+        description: "App name"
+        required: false
+        default: "Bulwark Webmail"
+      base_path:
+        description: "Sub-path mount, e.g. /webmail (baked into asset URLs)"
+        required: false
+      locales:
+        description: "Comma-separated locale subset, e.g. en,de,fr (default: all)"
+        required: false
+      demo:
+        description: "Build the static demo (built-in demo account, no server)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export
+        env:
+          CI: "true"
+          GIT_COMMIT: ${{ github.sha }}
+          NEXT_PUBLIC_BASE_PATH: ${{ inputs.base_path }}
+          LITE_JMAP_SERVER_URL: ${{ inputs.jmap_server_url }}
+          LITE_APP_NAME: ${{ inputs.app_name }}
+          LITE_LOCALES: ${{ inputs.locales }}
+          LITE_DEMO_MODE: ${{ inputs.demo }}
+        run: npm run build:lite
+
+      - name: Package zip
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${REF_NAME#v}"
+          else
+            VERSION="$(cat VERSION)-${GITHUB_SHA::7}"
+          fi
+          ZIP="bulwark-lite-${VERSION}.zip"
+          (cd out && zip -qr "../${ZIP}" .)
+          echo "ZIP=${ZIP}" >> "$GITHUB_ENV"
+          ls -la "${ZIP}"
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG_NAME" "$ZIP" --clobber
+
+      - name: Upload artifact
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bulwark-lite
+          path: ${{ env.ZIP }}
+          retention-days: 7
+
+  smoke:
+    # Boots the demo export on a plain static server and drives it with
+    # Playwright: login, open a thread, switch surfaces, reload a deep link.
+    # No JMAP server involved, so it is cheap and deterministic.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # prepare.mjs prunes every test tree in the checkout; the smoke suite
+      # lives under scripts/lite/smoke, which it leaves alone.
+      - name: Build demo export
+        env:
+          CI: "true"
+          GIT_COMMIT: ${{ github.sha }}
+          LITE_DEMO_MODE: "true"
+          LITE_LOCALES: "en,de"
+        run: npm run build:lite
+
+      - name: Run smoke test
+        run: npm run test:lite-smoke
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lite-smoke-report
+          path: playwright-report
+          retention-days: 7

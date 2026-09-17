@@ -54,6 +54,15 @@ export default [
     },
   },
   {
+    // Node-only build tooling (Bulwark Lite pipeline).
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
     files: ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
     languageOptions: {
       globals: {

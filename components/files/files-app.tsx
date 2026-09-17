@@ -37,13 +37,16 @@ import { appPath, buildFilesPath, parseFilesPath, type FilesDeepLink } from "@/l
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
+import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 
 export interface FilesAppProps {
   /** Path segments after `/files` - the folder path, one segment per level. */
   linkSegments?: string[];
 }
 
-export function FilesApp({ linkSegments }: FilesAppProps = {}) {
+export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
+  // Static Lite build: the route params are empty, read the link from the URL.
+  const linkSegments = useLiteLinkSegments('files', routeSegments);
   const router = useRouter();
   const t = useTranslations("files");
   const tDeepLink = useTranslations("deep_link");

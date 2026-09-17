@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiFetch } from '@/lib/browser-navigation';
+import { IS_LITE } from '@/lib/lite';
 import type { UpdateStatus, UpdateSeverity } from '@/lib/version-check/types';
 
 const POLL_INTERVAL_MS = 15 * 60 * 1000;
@@ -51,7 +52,8 @@ export const useUpdateStore = create<UpdateState>()((set, get) => ({
   },
 
   startPolling: () => {
-    if (pollTimer) return;
+    // The update check is served by the Node.js backend; the static build has none.
+    if (IS_LITE || pollTimer) return;
     void get().fetchStatus();
     pollTimer = setInterval(() => {
       void get().fetchStatus();

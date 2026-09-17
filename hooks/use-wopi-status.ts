@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IS_LITE } from "@/lib/lite";
 
 /**
  * Whether a WOPI document editor is configured for this deployment and which
@@ -18,6 +19,8 @@ const DISABLED: WopiStatus = { enabled: false, editExtensions: [], viewExtension
 let statusPromise: Promise<WopiStatus> | null = null;
 
 function fetchWopiStatus(): Promise<WopiStatus> {
+  // The WOPI bridge is a server feature; the static build never has an editor.
+  if (IS_LITE) return Promise.resolve(DISABLED);
   if (!statusPromise) {
     statusPromise = fetch("/api/wopi/status")
       .then((res) => (res.ok ? res.json() : DISABLED))

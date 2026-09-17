@@ -19,6 +19,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useManagedAccountStore } from '@/stores/managed-account-store';
 import { apiFetch } from '@/lib/browser-navigation';
 import { CALENDAR_COLORS, sharedCalendarColorKey } from '@/lib/shared-calendar-colors';
+import { IS_LITE } from '@/lib/lite';
 
 function CalendarColorPicker({
   value,
@@ -192,7 +193,8 @@ export function CalendarManagementSettings() {
   }, [client, calendars.length, fetchCalendars]);
 
   useEffect(() => {
-    if (!client || !serverUrl || !username) {
+    // CalDAV discovery runs through /api/caldav/discover, absent in the static build.
+    if (!client || !serverUrl || !username || IS_LITE) {
       setDiscoveredCalDavUrls({});
       setWellKnownCalDavUrl(null);
       return;
@@ -615,14 +617,17 @@ export function CalendarManagementSettings() {
               <Upload className="w-4 h-4" />
               {tImport('title')}
             </button>
-            <button
-              type="button"
-              onClick={() => setShowSubscriptionModal(true)}
-              className="flex items-center gap-2 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors"
-            >
-              <Globe className="w-4 h-4" />
-              {tSub('title')}
-            </button>
+            {/* ICS URL subscriptions refresh via /api/fetch-ical, absent in the static build. */}
+            {!IS_LITE && (
+              <button
+                type="button"
+                onClick={() => setShowSubscriptionModal(true)}
+                className="flex items-center gap-2 py-2.5 px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border border-dashed border-border transition-colors"
+              >
+                <Globe className="w-4 h-4" />
+                {tSub('title')}
+              </button>
+            )}
           </div>
         )}
       </div>

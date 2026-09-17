@@ -117,6 +117,7 @@ import {
 import { consumePendingDeepLink, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 import type { QuoteHeader } from "@/lib/plugin-types";
+import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 
 export interface MailAppProps {
   /**
@@ -126,7 +127,9 @@ export interface MailAppProps {
   linkSegments?: string[];
 }
 
-export function MailApp({ linkSegments }: MailAppProps = {}) {
+export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
+  // Static Lite build: the route params are empty, read the link from the URL.
+  const linkSegments = useLiteLinkSegments('mail', routeSegments);
   const t = useTranslations();
   const tCommon = useTranslations('common');
   const tQuote = useTranslations('quote_header');

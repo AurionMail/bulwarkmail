@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/browser-navigation';
 import { getActiveAccountSlotHeaders } from '@/lib/auth/active-account-slot';
+import { IS_LITE } from '@/lib/lite';
 
 export type JmapMethodCall = [string, Record<string, unknown>, string];
 export type JmapMethodResponse = [string, Record<string, unknown>, string];
@@ -37,6 +38,11 @@ export async function stalwartJmap(
   methodCalls: JmapMethodCall[],
   options: StalwartJmapOptions = {},
 ): Promise<JmapMethodResponse[]> {
+  if (IS_LITE) {
+    // The static build has no server to hold the credentials; behave exactly
+    // like a deployment with the passthrough switched off (#904).
+    throw buildError('Stalwart management passthrough is not available in the static build', 404);
+  }
   const slotHeaders = typeof options.slot === 'number'
     ? { 'X-JMAP-Cookie-Slot': String(options.slot) }
     : getActiveAccountSlotHeaders();

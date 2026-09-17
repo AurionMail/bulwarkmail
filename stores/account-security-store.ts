@@ -475,6 +475,13 @@ export const useAccountSecurityStore = create<AccountSecurityState>()((set, get)
   fetchPrincipal: async () => {
     set({ isLoadingPrincipal: true, error: null });
     try {
+      // Without the passthrough (operator switched it off, or the static Lite
+      // build) the principal cannot be read at all; skip the round trip and
+      // leave the aliases unknown, as for a non-Stalwart server. (#904)
+      if (!(await isStalwartJmapPassthroughEnabled())) {
+        set({ isLoadingPrincipal: false });
+        return;
+      }
       const accountId = getPrimaryAccountId();
       const responses = await stalwartJmap([
         ['x:Account/get', { accountId, ids: [accountId] }, '0'],

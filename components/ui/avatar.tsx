@@ -7,6 +7,7 @@ import { useContactStore, getContactPhotoUri } from "@/stores/contact-store";
 import { useConfig } from "@/hooks/use-config";
 import { avatarHooks } from "@/lib/plugin-hooks";
 import { withBasePath } from "@/lib/browser-navigation";
+import { IS_LITE } from "@/lib/lite";
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
@@ -230,8 +231,9 @@ export function Avatar({ name, email, contactPhotoUri, size = "md", className, d
   };
 
   const profilePic = email && domain ? getProfilePictureUrl(email, domain, devMode, name) : null;
+  // Sender favicons come from the /api/favicon proxy, absent in the static build.
   const showFavicon =
-    !disableFavicon && senderFavicons && faviconDomain && !PERSONAL_DOMAINS.has(faviconDomain) && !imgError && !domainFailed;
+    !IS_LITE && !disableFavicon && senderFavicons && faviconDomain && !PERSONAL_DOMAINS.has(faviconDomain) && !imgError && !domainFailed;
 
   // Priority: contact photo > plugin avatar (e.g. Gravatar) > custom avatar > profile picture > company favicon > initials
   const customAvatar = devMode && email ? CUSTOM_AVATARS[email.toLowerCase()] : null;

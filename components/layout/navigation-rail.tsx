@@ -26,6 +26,7 @@ import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { apiFetch, getPathPrefix, withBasePath } from "@/lib/browser-navigation";
 import { Avatar } from "@/components/ui/avatar";
+import { IS_LITE } from "@/lib/lite";
 
 interface NavItem {
   id: string;
@@ -293,7 +294,8 @@ export function NavigationRail({
   useEffect(() => {
     let cancelled = false;
     const headers = getActiveAccountSlotHeaders();
-    if (!headers['X-JMAP-Cookie-Slot']) return;
+    // No admin console in the static Lite build.
+    if (IS_LITE || !headers['X-JMAP-Cookie-Slot']) return;
     apiFetch('/api/admin/auth', { headers })
       .then(res => res.json())
       .then(data => {

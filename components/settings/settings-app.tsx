@@ -100,6 +100,7 @@ import {
   tabKeywords,
   tabSearchPaths,
 } from '@/lib/settings-search';
+import { useLiteLinkSegments } from '@/hooks/use-lite-link-segments';
 
 type Tab = SettingsSearchTab;
 
@@ -209,7 +210,9 @@ export interface SettingsAppProps {
   linkSegments?: string[];
 }
 
-export function SettingsApp({ linkSegments }: SettingsAppProps = {}) {
+export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = {}) {
+  // Static Lite build: the route params are empty, read the link from the URL.
+  const linkSegments = useLiteLinkSegments('settings', routeSegments);
   const router = useRouter();
   const t = useTranslations('settings');
   const tSidebar = useTranslations('sidebar');

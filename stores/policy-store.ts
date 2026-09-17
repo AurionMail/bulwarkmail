@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { SettingsPolicy, FeatureGates, SettingRestriction, ThemePolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY, DEFAULT_THEME_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
+import { IS_LITE, LITE_POLICY_PATH } from '@/lib/lite';
+import { applyLitePolicy } from '@/lib/lite-config';
 
 interface PolicyState {
   policy: SettingsPolicy;
@@ -25,16 +27,20 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
   loaded: false,
 
   fetchPolicy: async () => {
+    // Static Lite build: an optional policy.json next to index.html stands in
+    // for the admin server; missing means defaults, and the gates that need
+    // the server stay pinned off either way (lib/lite-config.ts).
+    const fallback = IS_LITE ? { policy: applyLitePolicy({}) } : {};
     try {
-      const res = await apiFetch('/api/admin/policy');
+      const res = await apiFetch(IS_LITE ? LITE_POLICY_PATH : '/api/admin/policy', IS_LITE ? { cache: 'no-store' } : undefined);
       if (res.ok) {
         const data = await res.json();
-        set({ policy: data, loaded: true });
+        set({ policy: IS_LITE ? applyLitePolicy(data) : data, loaded: true });
       } else {
-        set({ loaded: true });
+        set({ ...fallback, loaded: true });
       }
     } catch {
-      set({ loaded: true });
+      set({ ...fallback, loaded: true });
     }
   },
 

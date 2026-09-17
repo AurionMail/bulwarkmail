@@ -24,6 +24,9 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
+    "build:lite": "node scripts/lite/build.mjs",
+    "lite:serve": "node scripts/lite/serve.mjs out 4173",
+    "test:lite-smoke": "playwright test -c scripts/lite/smoke/playwright.config.ts",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

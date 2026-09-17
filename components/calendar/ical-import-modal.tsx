@@ -12,6 +12,7 @@ import { useCalendarStore } from "@/stores/calendar-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { toast } from "@/stores/toast-store";
 import { apiFetch } from "@/lib/browser-navigation";
+import { IS_LITE } from "@/lib/lite";
 
 interface ICalImportModalProps {
   calendars: Calendar[];
@@ -276,17 +277,20 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
                   <Upload className="w-4 h-4" />
                   {t("tab_file")}
                 </button>
-                <button
-                  onClick={() => { setImportMode("url"); setError(null); }}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    importMode === "url"
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Globe className="w-4 h-4" />
-                  {t("tab_url")}
-                </button>
+                {/* URL import goes through the /api/fetch-ical CORS proxy, absent in the static build. */}
+                {!IS_LITE && (
+                  <button
+                    onClick={() => { setImportMode("url"); setError(null); }}
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      importMode === "url"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Globe className="w-4 h-4" />
+                    {t("tab_url")}
+                  </button>
+                )}
               </div>
 
               {importMode === "file" && (

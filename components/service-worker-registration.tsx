@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
+import { IS_LITE } from "@/lib/lite";
 
 const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
 
 export function ServiceWorkerRegistration() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+      return;
+    }
+    // sw.js enriches push notifications through /api/push/preview and serves
+    // icons from /api/pwa-icon; neither exists in the static build. Push stays
+    // off in Lite v1, so the worker is not registered at all.
+    if (IS_LITE) {
       return;
     }
 

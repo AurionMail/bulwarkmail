@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
@@ -42,6 +42,7 @@ import { appPath, buildContactsPath, parseContactsPath, type ContactDeepLink } f
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
+import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 
 type View =
   | "list"
@@ -58,7 +59,9 @@ export interface ContactsAppProps {
   linkSegments?: string[];
 }
 
-export function ContactsApp({ linkSegments }: ContactsAppProps = {}) {
+function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = {}) {
+  // Static Lite build: the route params are empty, read the link from the URL.
+  const linkSegments = useLiteLinkSegments('contacts', routeSegments);
   const t = useTranslations("contacts");
   const contactsEnabled = usePolicyStore((s) => s.isFeatureEnabled('contactsEnabled'));
   const { client, isAuthenticated, logout, checkAuth, isLoading: authLoading } = useAuthStore();
@@ -1167,5 +1170,15 @@ export function ContactsApp({ linkSegments }: ContactsAppProps = {}) {
       })()}
       </div>
     </div>
+  );
+}
+
+// useSearchParams() above needs a Suspense boundary for the surface to
+// prerender (static Lite build); at runtime it never suspends.
+export function ContactsApp(props: ContactsAppProps = {}) {
+  return (
+    <Suspense fallback={null}>
+      <ContactsAppContent {...props} />
+    </Suspense>
   );
 }
