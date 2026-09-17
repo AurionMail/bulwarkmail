@@ -1736,9 +1736,10 @@ export class JMAPClient implements IJMAPClient {
     return allEmails;
   }
 
-  async getTagCounts(tagIds: string[]): Promise<Record<string, { total: number; unread: number }>> {
+  async getTagCounts(tagIds: string[], accountId?: string): Promise<Record<string, { total: number; unread: number }>> {
     if (tagIds.length === 0) return {};
     const result: Record<string, { total: number; unread: number }> = {};
+    const targetAccountId = accountId || this.accountId;
 
     const CALLS_PER_TAG = 2;
     const perRequest = itemsPerRequest(this.getMaxCallsInRequest(), CALLS_PER_TAG);
@@ -1750,14 +1751,14 @@ export class JMAPClient implements IJMAPClient {
           const keyword = `$label:${batch[i]}`;
           // Total count for this tag
           methodCalls.push(["Email/query", {
-            accountId: this.accountId,
+            accountId: targetAccountId,
             filter: { hasKeyword: keyword },
             limit: 0,
             calculateTotal: true,
           }, `total_${i}`]);
           // Unread count for this tag
           methodCalls.push(["Email/query", {
-            accountId: this.accountId,
+            accountId: targetAccountId,
             filter: {
               operator: "AND",
               conditions: [

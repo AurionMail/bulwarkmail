@@ -64,13 +64,13 @@ describe('label views during refresh and navigation', () => {
     const client = clientFor([email('aws', false), voice, archived, email('apple', false)]);
 
     await useEmailStore.getState().fetchEmails(client);
-    expect(useEmailStore.getState().emails).toEqual([voice, archived]);
+    expect(useEmailStore.getState().emails.map(e => e.id)).toEqual([voice.id, archived.id]);
 
     await useEmailStore.getState().handleStateChange({
       '@type': 'StateChange', changed: { 'gmail-account': { Email: '2' } },
     }, client);
 
-    expect(useEmailStore.getState().emails).toEqual([voice, archived]);
+    expect(useEmailStore.getState().emails.map(e => e.id)).toEqual([voice.id, archived.id]);
     expect(useEmailStore.getState().totalEmails).toBe(2);
     expect(useEmailStore.getState().hasMoreEmails).toBe(false);
     expect(useEmailStore.getState().newEmailNotification).toBeNull();
@@ -85,7 +85,7 @@ describe('label views during refresh and navigation', () => {
     await useEmailStore.getState().loadMoreEmails(client);
     await useEmailStore.getState().refreshCurrentMailbox(client);
 
-    expect(useEmailStore.getState().emails).toEqual(rows);
+    expect(useEmailStore.getState().emails.map(e => e.id)).toEqual(rows.map(r => r.id));
     expect(useEmailStore.getState().totalEmails).toBe(3);
     expect(useEmailStore.getState().hasMoreEmails).toBe(false);
   });
@@ -102,7 +102,7 @@ describe('label views during refresh and navigation', () => {
     const voice = email('voice', true, 'archive');
     useEmailStore.setState({ selectedMailbox: '' });
     await useEmailStore.getState().refreshCurrentMailbox(clientFor([voice]));
-    expect(useEmailStore.getState().emails).toEqual([voice]);
+    expect(useEmailStore.getState().emails.map(e => e.id)).toEqual([voice.id]);
   });
 
   it('returns to normal folder filtering when the label is cleared', async () => {
@@ -113,11 +113,12 @@ describe('label views during refresh and navigation', () => {
     expect(useEmailStore.getState().emailListSync?.mailboxId).toBe('inbox');
   });
 
-  it('retains the shared account scope while querying a label across folders', async () => {
+  it('queries the label in the own AND the shared account, whichever folder is selected (#1038)', async () => {
     const sharedInbox = { ...inbox, id: 'owner:inbox', originalId: 'inbox', isShared: true, accountId: 'owner' };
-    useEmailStore.setState({ selectedMailbox: sharedInbox.id, mailboxes: [sharedInbox] });
+    useEmailStore.setState({ selectedMailbox: sharedInbox.id, mailboxes: [inbox, sharedInbox] });
     const client = clientFor([email('voice')]);
     await useEmailStore.getState().refreshCurrentMailbox(client);
+    expect(client.getEmails).toHaveBeenCalledWith(undefined, undefined, 2, 0, keyword, true, undefined, []);
     expect(client.getEmails).toHaveBeenCalledWith(undefined, 'owner', 2, 0, keyword, true, undefined, []);
   });
 

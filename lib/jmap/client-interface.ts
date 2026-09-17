@@ -170,7 +170,13 @@ export interface IJMAPClient {
   getEmailsInMailbox(mailboxId: string): Promise<Email[]>;
   getEmail(emailId: string, accountId?: string): Promise<Email | null>;
   getSomeEmails(emailsId: string[], accountId?: string): Promise<Email[]>
-  getTagCounts(tagIds: string[]): Promise<Record<string, { total: number; unread: number }>>;
+  /**
+   * Total / unread message counts per tag id. `accountId` scopes the count to
+   * a group/shared account reached through this client (defaults to the
+   * client's own account); the store sums it over every account a tag view
+   * spans (#1038).
+   */
+  getTagCounts(tagIds: string[], accountId?: string): Promise<Record<string, { total: number; unread: number }>>;
   /**
    * Enumerate account keywords for extensions. Servers supporting Keyword/get
    * can return exact counts and provider-label metadata; other servers use the

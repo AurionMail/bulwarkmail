@@ -492,6 +492,78 @@ export async function advancedSearchCrossViewEmails(
 }
 
 /**
+ * Fetches every message carrying a tag keyword across all the given accounts.
+ *
+ * A tag is a user-level concept: the same `$label:<id>` keyword is set on
+ * messages in the user's own account and in the group/shared accounts they
+ * can reach, and the sidebar tag entry should list all of them. Querying only
+ * the account of the folder that happened to be selected made the tag view
+ * flip between the personal and the group messages depending on which folder
+ * the user came from (#1038).
+ *
+ * No `inMailbox` constraint: a tag spans folders. Each account is asked for
+ * the same page (`limit`/`position`) with pinned-first ordering plus the
+ * configured list order, mirroring `fetchEmails`, and the pages are merged
+ * under that same order. Per-account failures land in `errors`.
+ */
+export async function fetchTagEmails(
+  accounts: UnifiedAccountClient[],
+  keyword: string,
+  limit: number,
+  position: number,
+  order: SortLevel[] = [],
+): Promise<UnifiedFetchResult> {
+  const errors = new Map<string, string>();
+
+  type AccountResult = {
+    account: UnifiedAccountClient;
+    result: { emails: Email[]; total: number; hasMore: boolean };
+  } | null;
+
+  const promises = accounts.map(async (account): Promise<AccountResult> => {
+    const jmapAccountId = account.isShared ? account.accountId : undefined;
+    try {
+      const result = await account.client.getEmails(
+        undefined, jmapAccountId, limit, position, keyword, true, undefined, order,
+      );
+      return { account, result };
+    } catch (err) {
+      errors.set(account.accountId, err instanceof Error ? err.message : String(err));
+      return null;
+    }
+  });
+
+  const results = await Promise.allSettled(promises);
+
+  let mergedEmails: Email[] = [];
+  let totalSum = 0;
+  let anyHasMore = false;
+
+  for (const outcome of results) {
+    if (outcome.status !== 'fulfilled' || outcome.value === null) continue;
+    const { account, result } = outcome.value;
+    // Decorate shallow copies, not the shared client-returned objects. The
+    // source stamps are what routes every later action (read, move, delete,
+    // thread expansion) back to the owning account.
+    const decorated = result.emails.map((email) => ({
+      ...email,
+      accountId: account.accountId,
+      accountLabel: account.accountLabel,
+      sourceClientAccountId: account.clientAccountId,
+      sourceAccountId: account.jmapAccountId,
+      sourceFolder: resolveSourceFolderName(email, account.mailboxes),
+    }));
+    mergedEmails = mergedEmails.concat(decorated);
+    totalSum += result.total;
+    if (result.hasMore) anyHasMore = true;
+  }
+
+  mergedEmails.sort(compareEmails(order, { pinnedFirst: true }));
+
+  return { emails: mergedEmails, total: totalSum, hasMore: anyHasMore, errors };
+}
+
+/**
  * Returns the list of unified roles that exist in at least one account's
  * mailboxes.
  */

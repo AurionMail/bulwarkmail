@@ -9,7 +9,7 @@ import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty }
 import { emailHooks } from "@/lib/plugin-hooks";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import type { ExternalSearchResult } from "@/lib/plugin-types";
-import { fetchUnifiedEmails, fetchUnifiedMailboxCounts, searchUnifiedEmails, advancedSearchUnifiedEmails, fetchCrossViewEmails, searchCrossViewEmails, advancedSearchCrossViewEmails, getCrossUnreadTotal, type UnifiedAccountClient, type UnifiedMailboxCounts } from "@/lib/unified-mailbox";
+import { fetchUnifiedEmails, fetchUnifiedMailboxCounts, searchUnifiedEmails, advancedSearchUnifiedEmails, fetchCrossViewEmails, searchCrossViewEmails, advancedSearchCrossViewEmails, fetchTagEmails, getCrossUnreadTotal, type UnifiedAccountClient, type UnifiedMailboxCounts } from "@/lib/unified-mailbox";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
@@ -950,6 +950,74 @@ export async function buildUnifiedAccountClients(
 }
 
 /**
+ * The accounts a tag view spans: the active/viewing login's own account plus
+ * every group/shared owner whose folders that login can see (#1038).
+ *
+ * A tag keyword is set on messages in all of them, so the sidebar tag entry
+ * fans out over the whole set instead of only the account of the folder that
+ * happened to be selected. Built synchronously from the mailbox list the
+ * sidebar already holds (own + delegated folders), so no extra round trip.
+ * Every entry reaches the server through the same login client; shared
+ * entries are flagged so JMAP requests target the owner's accountId.
+ */
+export function buildTagViewAccountClients(passedClient: IJMAPClient): UnifiedAccountClient[] {
+  const client = resolveActionClient(passedClient);
+  const mailboxes = resolveActionMailboxes();
+  const state = useEmailStore.getState();
+  const auth = useAuthStore.getState();
+  // AccountEntry.id of the login this client belongs to (`getClientForAccount`
+  // key), stamped as `sourceClientAccountId` so actions resolve the client.
+  let clientAccountId: string | undefined;
+  for (const [id, c] of auth.getAllConnectedClients()) {
+    if (c === client) { clientAccountId = id; break; }
+  }
+  clientAccountId ??= state.viewingAccountId ?? auth.activeAccountId ?? client.getAccountId();
+  const primaryJmapId = client.getAccountId();
+  const account = useAccountStore.getState().getAccountById(clientAccountId);
+
+  const own = mailboxes.filter((m) => !m.isShared);
+  const built: UnifiedAccountClient[] = [{
+    accountId: clientAccountId,
+    accountLabel: account?.label || account?.email || primaryJmapId,
+    client,
+    mailboxes: own,
+    clientAccountId,
+    jmapAccountId: primaryJmapId,
+    isShared: false,
+  }];
+
+  const sharedByOwner = new Map<string, Mailbox[]>();
+  for (const m of mailboxes) {
+    if (!m.isShared || !m.accountId || m.accountId === primaryJmapId) continue;
+    const list = sharedByOwner.get(m.accountId) ?? [];
+    list.push(m);
+    sharedByOwner.set(m.accountId, list);
+  }
+  for (const [ownerId, ownerMailboxes] of sharedByOwner) {
+    built.push({
+      accountId: ownerId,
+      accountLabel: ownerMailboxes.find((m) => m.accountName)?.accountName || ownerId,
+      client,
+      mailboxes: ownerMailboxes,
+      clientAccountId,
+      jmapAccountId: ownerId,
+      isShared: true,
+    });
+  }
+  return built;
+}
+
+/**
+ * Whether the current list mixes messages from several accounts, so actions
+ * must route by each email's source stamps rather than by the selected
+ * folder: the unified / cross-account views, and a tag view (#1038).
+ */
+function isAggregateListView(): boolean {
+  const s = useEmailStore.getState();
+  return s.isUnifiedView || !!s.selectedKeyword;
+}
+
+/**
  * After a mailbox-list mutation (create/rename/delete/etc.), refresh the
  * cache for whichever account we're operating on. Writes the result to the
  * standard `mailboxes` slot for the active account, or the per-account
@@ -1408,7 +1476,21 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         return;
       }
       const tagIds = keywords.map(k => k.id);
-      const counts = await resolveActionClient(client).getTagCounts(tagIds);
+      // The badge counts what the tag view lists: messages in the own account
+      // AND in the group/shared accounts this login reaches (#1038). Sum the
+      // per-account counts; an account that fails just contributes nothing.
+      const built = buildTagViewAccountClients(client);
+      const perAccount = await Promise.allSettled(
+        built.map((a) => a.client.getTagCounts(tagIds, a.isShared ? a.accountId : undefined)),
+      );
+      const counts: Record<string, { total: number; unread: number }> = {};
+      for (const outcome of perAccount) {
+        if (outcome.status !== 'fulfilled') continue;
+        for (const [id, c] of Object.entries(outcome.value)) {
+          const cur = counts[id] ?? { total: 0, unread: 0 };
+          counts[id] = { total: cur.total + c.total, unread: cur.unread + c.unread };
+        }
+      }
       set({ tagCounts: counts });
     } catch (error) {
       console.error('Failed to fetch tag counts:', error);
@@ -1621,6 +1703,39 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         return;
       }
 
+      // Get emails per page from settings
+      const emailsPerPage = useSettingsStore.getState().emailsPerPage;
+
+      // A tag view takes precedence over the selected folder. Tags span
+      // folders AND accounts: the same keyword sits on messages in the user's
+      // own account and in the group/shared accounts they can reach, so fan
+      // out over all of them instead of querying only the account of the
+      // folder that happened to be selected (#1038). A tag view has no role,
+      // so it only follows the list order under the "all folders" scope (#718).
+      const { selectedKeyword } = get();
+      if (selectedKeyword) {
+        const order = getMessageListOrderFor(null);
+        const built = buildTagViewAccountClients(client);
+        const result = await fetchTagEmails(built, `$label:${selectedKeyword}`, emailsPerPage, 0, order);
+        const enrichedEmails = await emailHooks.onEmailsFetched.transform(result.emails);
+        if (!isCurrentView()) return;
+        set({
+          emails: annotateScheduledEmails(enrichedEmails, get().scheduledSubmissionByEmailId),
+          hasMoreEmails: result.hasMore,
+          totalEmails: result.total,
+          listOrder: order,
+          // A server-side keyword filter cannot be delta-synced.
+          emailListSync: null,
+          threadEmailsCache: new Map(),
+          expandedThreadIds: new Set(),
+          isLoadingThread: null,
+          isLoading: false,
+          unifiedErrors: result.errors,
+        });
+        void get().fetchThreadEmailCounts(client);
+        return;
+      }
+
       const effectiveClient = resolveActionClient(client);
 
       // Find the mailbox to get its accountId (for shared folder support)
@@ -1631,42 +1746,30 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // Use originalId for JMAP queries (shared mailboxes use namespaced IDs in the store)
       const jmapMailboxId = mailbox?.originalId || targetMailboxId;
 
-      // Get emails per page from settings
-      const emailsPerPage = useSettingsStore.getState().emailsPerPage;
-
-      // Build keyword filter if a tag is selected
-      const { selectedKeyword } = get();
-      const keywordFilter = selectedKeyword ? `$label:${selectedKeyword}` : undefined;
-
       // Plugin-registered category tabs (Gmail-style) AND their resolved JMAP
-      // filter fragment into the mailbox view. Tag views take precedence.
-      const categoryFilter = selectedKeyword
-        ? null
-        : useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
+      // filter fragment into the mailbox view.
+      const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
 
-      // The configured list order (#718). A tag view spans folders and has no
-      // role, so it only follows the order under the "all folders" scope.
-      const order = getMessageListOrderFor(selectedKeyword ? null : mailbox?.role);
+      // The configured list order (#718).
+      const order = getMessageListOrderFor(mailbox?.role);
 
-      // When filtering by tag, omit the mailbox constraint so emails across
-      // all folders that carry the tag are returned.
       const result = await effectiveClient.getEmails(
-        selectedKeyword ? undefined : jmapMailboxId,
+        jmapMailboxId,
         accountId,
         emailsPerPage,
         0,
-        keywordFilter,
+        undefined,
         true,
         categoryFilter ?? undefined,
         order,
       );
       const enrichedEmails = await emailHooks.onEmailsFetched.transform(result.emails);
       if (!isCurrentView()) return;
-      // Only a plain folder list can be delta-synced; tag and category views
-      // filter server-side, and a delta cannot tell which changed rows would
-      // match that filter.
+      // Only a plain folder list can be delta-synced; category views filter
+      // server-side, and a delta cannot tell which changed rows would match
+      // that filter.
       const emailListSync: EmailListSync | null =
-        result.state && !selectedKeyword && !categoryFilter
+        result.state && !categoryFilter
           ? {
               state: result.state,
               accountId: accountId ?? effectiveClient.getAccountId(),
@@ -1832,6 +1935,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         } else {
           result = await effectiveClient.searchEmails(searchQuery, jmapMailboxId, accountId, emailsPerPage, position);
         }
+      } else if (selectedKeyword) {
+        // Tag view: the next page of the same cross-account fan-out the
+        // initial fetch ran (same keyword, no folder constraint, same order),
+        // so pagination spans the own and group accounts alike (#1038).
+        const built = buildTagViewAccountClients(client);
+        result = await fetchTagEmails(
+          built, `$label:${selectedKeyword}`, emailsPerPage, position, getMessageListOrderFor(null),
+        );
+        set({ unifiedErrors: result.errors });
       } else {
         // Load more from mailbox
         // Find the mailbox to get its accountId (for shared folder support)
@@ -1842,21 +1954,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // Use originalId for JMAP queries (shared mailboxes use namespaced IDs in the store)
         const jmapMailboxId = mailbox?.originalId || selectedMailbox;
 
-        // When filtering by tag, omit the mailbox constraint (same rationale as fetchEmails).
         // Category tabs (plugin-registered) must filter pagination the same
         // way as the initial fetch or pages would mix categories.
-        const categoryFilter = selectedKeyword
-          ? null
-          : useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
+        const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
         result = await effectiveClient.getEmails(
-          selectedKeyword ? undefined : jmapMailboxId,
+          jmapMailboxId,
           accountId,
           emailsPerPage,
           position,
-          selectedKeyword ? `$label:${selectedKeyword}` : undefined,
+          undefined,
           true,
           categoryFilter ?? undefined,
-          getMessageListOrderFor(selectedKeyword ? null : mailbox?.role),
+          getMessageListOrderFor(mailbox?.role),
         );
       }
 
@@ -2006,7 +2115,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // The email's current mailbox drives the junk auto-permanent-delete rule.
       // In unified view it comes from the email's own folders (matching the
       // unified role), not the active account's selected mailbox.
-      const currentMailbox = get().isUnifiedView
+      const currentMailbox = isAggregateListView()
         ? (mailboxes.find(mb => emailInMailbox(email, mb) && mb.role === get().unifiedRole)
             ?? mailboxes.find(mb => emailInMailbox(email, mb)))
         : mailboxes.find(mb => mb.id === get().selectedMailbox);
@@ -2332,14 +2441,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
 
     try {
-      const { emails, selectedMailbox, isUnifiedView } = get();
+      const { emails, selectedMailbox } = get();
       const mailboxes = resolveActionMailboxes();
       const destMailbox = mailboxes.find(mb => mb.id === destinationMailboxId);
       const jmapDestId = destMailbox?.originalId || destinationMailboxId;
       const idSet = new Set(emailIds);
       const affected = emails.filter(e => idSet.has(e.id));
 
-      if (isUnifiedView) {
+      if (isAggregateListView()) {
         // In unified view, emails may span accounts – group by owning JMAP account
         // and dispatch through the login client that can reach each one. The login
         // client is keyed by `sourceClientAccountId` (a real AccountEntry.id); the
@@ -2896,7 +3005,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     try {
       const emailIdsArray = Array.from(selectedEmailIds);
 
-      if (get().isUnifiedView) {
+      if (isAggregateListView()) {
         // Group by owning JMAP account; dispatch through the reaching login client.
         const bySource = new Map<string, { clientAccountId?: string; ids: string[] }>();
         for (const emailId of emailIdsArray) {
@@ -3109,7 +3218,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     try {
       const emailIdsArray = Array.from(selectedEmailIds);
 
-      if (get().isUnifiedView) {
+      if (isAggregateListView()) {
         // Group by owning JMAP account; dispatch through the reaching login client.
         const destMailbox = resolveActionMailboxes().find(mb => mb.id === toMailboxId);
         const jmapDestId = destMailbox?.originalId || toMailboxId;
@@ -3228,7 +3337,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // The email's current mailbox is what undo restores it to. In unified view
     // derive it from the email's own folders (preferring the unified role),
     // otherwise the active account's selected mailbox.
-    const currentMailbox = get().isUnifiedView
+    const currentMailbox = isAggregateListView()
       ? (mailboxes.find(mb => emailInMailbox(email, mb) && mb.role === get().unifiedRole)
           ?? mailboxes.find(mb => emailInMailbox(email, mb)))
       : mailboxes.find(m => m.id === get().selectedMailbox);
@@ -3592,14 +3701,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // changed - and only re-queried when the delta cannot be applied.
       const sync = get().emailListSync;
       const syncedAccountEmailState = sync ? change.changed[sync.accountId]?.Email : undefined;
-      if (accountChanges?.Email || syncedAccountEmailState) {
+      // A tag view and the sidebar tag badges span the own AND the group/shared
+      // accounts (#1038), so an Email change in any of them concerns them.
+      const anyEmailChanged = Object.values(change.changed).some((c) => c?.Email);
+      const tagViewChanged = !!get().selectedKeyword && anyEmailChanged;
+      if (accountChanges?.Email || syncedAccountEmailState || tagViewChanged) {
         const applied = syncedAccountEmailState
           ? await get().applyEmailDelta(client, syncedAccountEmailState)
           : false;
         if (!applied) {
           await get().refreshCurrentMailbox(client);
         }
-        if (accountChanges?.Email) {
+        if (anyEmailChanged) {
           get().fetchTagCounts(client);
         }
       }
@@ -3734,11 +3847,13 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         const jmapMailboxId = mailbox?.originalId || selectedMailbox;
         if (selectedKeyword) {
           // Match fetchEmails: tag views take precedence and query the label
-          // across all folders. They cannot establish a folder delta baseline.
-          result = await effectiveClient.getEmails(
-            undefined, accountId, emailsPerPage, 0, `$label:${selectedKeyword}`,
-            true, undefined, getMessageListOrderFor(null),
+          // across all folders and across the own + group accounts (#1038).
+          // They cannot establish a folder delta baseline.
+          const built = buildTagViewAccountClients(client);
+          result = await fetchTagEmails(
+            built, `$label:${selectedKeyword}`, emailsPerPage, 0, getMessageListOrderFor(null),
           );
+          unifiedErrors = result.errors;
         } else if (hasFilters || searchQuery) {
           // A refresh while a search is active must re-run it under the
           // search's own folder scope, which is independent of selectedMailbox.
@@ -3968,7 +4083,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // selected-mailbox shared-folder logic. (#281)
       const threadEmail = get().emails.find(e => e.threadId === threadId);
       const route = resolveThreadRoute({
-        isUnifiedView: get().isUnifiedView,
+        isUnifiedView: isAggregateListView(),
         ref: threadEmail,
         mailboxes,
         selectedMailbox,
@@ -3983,7 +4098,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
       // Re-stamp the source reference so actions on thread emails resolve to the
       // right account (the fetched objects don't carry it).
-      if (get().isUnifiedView && threadEmail) {
+      if (isAggregateListView() && threadEmail) {
         for (const e of emails) {
           e.accountId = threadEmail.accountId;
           e.accountLabel = threadEmail.accountLabel;
