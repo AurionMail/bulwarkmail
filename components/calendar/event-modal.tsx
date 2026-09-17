@@ -23,12 +23,13 @@ import {
   getStatusCounts,
   buildParticipantMap,
 } from "@/lib/calendar-participants";
-import { getEventEditability, canCreateEventsIn } from "@/lib/calendar-editability";
+import { canUserRsvp, getEventEditability, canCreateEventsIn } from "@/lib/calendar-editability";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { useSettingsStore } from "@/stores/settings-store";
 import { generateUUID } from "@/lib/utils";
 import { useFormatEventDate } from "@/hooks/use-format-event-date";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
+import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { calendarHooks } from "@/lib/plugin-hooks";
 import type { ConflictWarning } from "@/lib/plugin-types";
 
@@ -235,6 +236,21 @@ export function EventModal({
   const canEditBody = editability === "editable";
   const rsvpMode = editability === "rsvp-only";
 
+  // A received invite lands in the user's own calendar, resolves to 'editable',
+  // and so never reaches the rsvp-only view below.
+  const canRsvp = useMemo(() => {
+    if (!event) return false;
+    return canUserRsvp(event, {
+      calendarsById: new Map(calendars.map((c) => [c.id, c])),
+      userCalendarAddresses: currentUserEmails,
+      isSubscriptionCalendar: isSubscriptionCalendar ?? (() => false),
+    });
+  }, [event, calendars, currentUserEmails, isSubscriptionCalendar]);
+
+  // Bare addresses (the organizer above all — Stalwart drops its display name)
+  // render with the contact card's name instead of the raw email.
+  const resolveContactName = useContactNameResolver();
+
   const userParticipantId = useMemo(() => {
     if (!event) return null;
     return getUserParticipantId(event, currentUserEmails);
@@ -247,8 +263,8 @@ export function EventModal({
 
   const existingParticipants = useMemo(() => {
     if (!event) return [];
-    return getParticipantList(event);
-  }, [event]);
+    return getParticipantList(event, { resolveName: resolveContactName });
+  }, [event, resolveContactName]);
 
   const organizerInfo = useMemo(() => {
     if (!event?.participants) return null;
@@ -589,7 +605,10 @@ export function EventModal({
 
     if (effectiveAttendees.length > 0 && currentUserEmails.length > 0) {
       const organizerEmail = currentUserEmails[0];
-      const organizerName = existingParticipants.find(p => p.isOrganizer)?.name || "";
+      // On create there are no existing participants, so a fresh event would
+      // store an empty organizer name — fall back to the contact card.
+      const organizerName =
+        existingParticipants.find(p => p.isOrganizer)?.name || resolveContactName(organizerEmail) || "";
       data.participants = buildParticipantMap(
         { name: organizerName, email: organizerEmail },
         effectiveAttendees
@@ -613,7 +632,7 @@ export function EventModal({
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, recurrence, customRule, alertRows, attendees, sendInvitations, currentUserEmails, existingParticipants, event, onSave, isSaving]);
+  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, recurrence, customRule, alertRows, attendees, sendInvitations, currentUserEmails, existingParticipants, resolveContactName, event, onSave, isSaving]);
 
   const handleRsvp = useCallback((status: CalendarParticipant['participationStatus']) => {
     if (!event || !userParticipantId || !onRsvp) return;
@@ -697,7 +716,7 @@ export function EventModal({
     const startD = getEventStartDate(event);
     const endD = getEventEndDate(event);
     const locationName = event.locations ? Object.values(event.locations)[0]?.name : null;
-    const participants = getParticipantList(event);
+    const participants = getParticipantList(event, { resolveName: resolveContactName });
 
     return (
       <div ref={modalRef} role="dialog" aria-modal={isMobile || undefined} aria-label={event.title || t("events.no_title")} className={isMobile ? mobileRootClass : "flex flex-col h-full bg-background"}>
@@ -778,8 +797,13 @@ export function EventModal({
                 <div className="space-y-1 ps-5">
                   {participants.map(p => (
                     <div key={p.id} className="flex items-center justify-between text-sm">
-                      <span className="truncate">{p.name || p.email}</span>
-                      <StatusBadge status={p.status} isOrganizer={p.isOrganizer} t={t} />
+                      <span className="truncate">
+                        {p.name || p.email}
+                        {p.isOrganizer && (
+                          <span className="text-muted-foreground ms-1">({t("participants.organizer").toLowerCase()})</span>
+                        )}
+                      </span>
+                      <StatusBadge status={p.status} t={t} />
                     </div>
                   ))}
                 </div>
@@ -789,44 +813,7 @@ export function EventModal({
         </div>
 
         <div className="px-6 py-4 border-t border-border flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{t("participants.rsvp_label")}</span>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant={userCurrentStatus === "accepted" ? "default" : "outline"}
-                onClick={() => handleRsvp("accepted")}
-                className={userCurrentStatus === "accepted"
-                  ? "bg-success hover:bg-success/80 text-success-foreground"
-                  : "text-success border-success/30 hover:bg-success/10"}
-              >
-                {userCurrentStatus === "accepted" && <Check className="w-4 h-4 me-1" />}
-                {t("participants.accepted")}
-              </Button>
-              <Button
-                size="sm"
-                variant={userCurrentStatus === "tentative" ? "default" : "outline"}
-                onClick={() => handleRsvp("tentative")}
-                className={userCurrentStatus === "tentative"
-                  ? "bg-warning hover:bg-warning/80 text-warning-foreground"
-                  : "border border-warning/30 text-warning hover:bg-warning/10"}
-              >
-                {userCurrentStatus === "tentative" && <Check className="w-4 h-4 me-1" />}
-                {t("participants.tentative")}
-              </Button>
-              <Button
-                size="sm"
-                variant={userCurrentStatus === "declined" ? "default" : "ghost"}
-                onClick={() => handleRsvp("declined")}
-                className={userCurrentStatus === "declined"
-                  ? "bg-destructive hover:bg-destructive/80 text-destructive-foreground"
-                  : "text-destructive hover:bg-destructive/10"}
-              >
-                {userCurrentStatus === "declined" && <Check className="w-4 h-4 me-1" />}
-                {t("participants.declined")}
-              </Button>
-            </div>
-          </div>
+          <RsvpBar status={userCurrentStatus} onRespond={handleRsvp} t={t} />
         </div>
       </div>
     );
@@ -839,7 +826,7 @@ export function EventModal({
     const endD = getEventEndDate(event);
     const locationName = event.locations ? Object.values(event.locations)[0]?.name || null : null;
     const virtualLoc = event.virtualLocations ? Object.values(event.virtualLocations)[0]?.uri || null : null;
-    const viewParticipants = getParticipantList(event);
+    const viewParticipants = getParticipantList(event, { resolveName: resolveContactName });
     const recurrenceLabel = getRecurrenceLabel(event, t, locale);
     const alertLabel = getAlertLabel(event, t);
     const eventCalendar = calendars.find(c => event.calendarIds[c.id]);
@@ -966,7 +953,7 @@ export function EventModal({
                             <span className="text-muted-foreground ms-1">({t("participants.organizer").toLowerCase()})</span>
                           )}
                         </span>
-                        <StatusBadge status={p.status} isOrganizer={p.isOrganizer} t={t} />
+                        <StatusBadge status={p.status} t={t} />
                       </div>
                     ))}
                   </div>
@@ -1001,6 +988,16 @@ export function EventModal({
             )}
           </div>
         </div>
+
+        {/* RSVP:
+          The viewer owes a reply but may also edit their own copy,
+          so the rsvp-only branch above does not apply to this event.
+        */}
+        {canRsvp && onRsvp && userParticipantId && (
+          <div className="px-6 py-3 border-t border-border flex-shrink-0">
+          <RsvpBar status={userCurrentStatus} onRespond={handleRsvp} t={t} />
+          </div>
+        )}
 
         {/* Action Bar */}
         <div className="px-6 py-3 border-t border-border flex-shrink-0 flex items-center justify-between">
@@ -1448,14 +1445,65 @@ export function EventModal({
   );
 }
 
-function StatusBadge({ status, isOrganizer, t }: {
-  status: CalendarParticipant['participationStatus'];
-  isOrganizer: boolean;
+/**
+ * The accept / tentative / decline row. Shared by the rsvp-only view and by the
+ * read-only view that an *editable* received invite lands in - the latter is the
+ * case that had no way to answer an invite at all (#937).
+ */
+function RsvpBar({ status, onRespond, t }: {
+  status: CalendarParticipant['participationStatus'] | null;
+  onRespond: (status: CalendarParticipant['participationStatus']) => void;
   t: ReturnType<typeof useTranslations>;
 }) {
-  if (isOrganizer) {
-    return <span className="text-xs text-primary">{t("participants.organizer")}</span>;
-  }
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-medium">{t("participants.rsvp_label")}</span>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant={status === "accepted" ? "default" : "outline"}
+          onClick={() => onRespond("accepted")}
+          className={status === "accepted"
+            ? "bg-success hover:bg-success/80 text-success-foreground"
+            : "text-success border-success/30 hover:bg-success/10"}
+        >
+          {status === "accepted" && <Check className="w-4 h-4 me-1" />}
+          {t("participants.accepted")}
+        </Button>
+        <Button
+          size="sm"
+          variant={status === "tentative" ? "default" : "outline"}
+          onClick={() => onRespond("tentative")}
+          className={status === "tentative"
+            ? "bg-warning hover:bg-warning/80 text-warning-foreground"
+            : "border border-warning/30 text-warning hover:bg-warning/10"}
+        >
+          {status === "tentative" && <Check className="w-4 h-4 me-1" />}
+          {t("participants.tentative")}
+        </Button>
+        <Button
+          size="sm"
+          variant={status === "declined" ? "default" : "ghost"}
+          onClick={() => onRespond("declined")}
+          className={status === "declined"
+            ? "bg-destructive hover:bg-destructive/80 text-destructive-foreground"
+            : "text-destructive hover:bg-destructive/10"}
+        >
+          {status === "declined" && <Check className="w-4 h-4 me-1" />}
+          {t("participants.declined")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status, t }: {
+  status: CalendarParticipant['participationStatus'];
+  t: ReturnType<typeof useTranslations>;
+}) {
+  // The organizer is marked by the "(组织者)" suffix on the name; the badge
+  // shows their participation status (organizers default to accepted) rather
+  // than repeating the organizer label.
   const colors: Record<string, string> = {
     accepted: "text-success",
     declined: "text-destructive",
