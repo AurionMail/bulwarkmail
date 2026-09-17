@@ -585,6 +585,8 @@
     "read_receipt_off": "읽음 확인 요청",
     "dsn_on": "배달 알림 요청됨 (클릭하여 해제)",
     "dsn_off": "배달 알림 요청",
+    "format_plain_text": "일반 텍스트로 전환",
+    "format_rich_text": "서식 있는 텍스트(HTML)로 전환",
     "require_tls_on": "암호화 전송 필수 (클릭하여 해제)",
     "require_tls_off": "암호화 전송 필수 (TLS)",
     "new_message": "새 메시지",

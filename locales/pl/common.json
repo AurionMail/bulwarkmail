@@ -585,6 +585,8 @@
     "read_receipt_off": "Zażądaj potwierdzenia przeczytania",
     "dsn_on": "Zażądano powiadomienia o dostarczeniu (kliknij, aby wyłączyć)",
     "dsn_off": "Zażądaj powiadomienia o dostarczeniu",
+    "format_plain_text": "Przełącz na zwykły tekst",
+    "format_rich_text": "Przełącz na tekst sformatowany (HTML)",
     "require_tls_on": "Wymagane szyfrowane dostarczenie (kliknij, aby wyłączyć)",
     "require_tls_off": "Wymagaj szyfrowanego dostarczenia (TLS)",
     "new_message": "Nowa wiadomość",

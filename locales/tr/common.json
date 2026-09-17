@@ -585,6 +585,8 @@
     "read_receipt_off": "Okundu bilgisi iste",
     "dsn_on": "Teslimat bildirimi istendi (kapatmak için tıklayın)",
     "dsn_off": "Teslimat bildirimi iste",
+    "format_plain_text": "Düz metne geç",
+    "format_rich_text": "Zengin metne (HTML) geç",
     "require_tls_on": "Şifreli teslimat zorunlu (kapatmak için tıklayın)",
     "require_tls_off": "Şifreli teslimat zorunlu kıl (TLS)",
     "new_message": "Yeni İleti",

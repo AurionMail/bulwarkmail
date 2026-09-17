@@ -585,6 +585,8 @@
     "read_receipt_off": "Anmod om læsekvittering",
     "dsn_on": "Leveringsbesked anmodet (klik for at slå fra)",
     "dsn_off": "Anmod om leveringsbesked",
+    "format_plain_text": "Skift til ren tekst",
+    "format_rich_text": "Skift til formateret tekst (HTML)",
     "require_tls_on": "Krypteret levering påkrævet (klik for at slå fra)",
     "require_tls_off": "Kræv krypteret levering (TLS)",
     "new_message": "Ny besked",

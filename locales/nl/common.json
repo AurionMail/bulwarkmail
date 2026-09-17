@@ -585,6 +585,8 @@
     "read_receipt_off": "Leesbevestiging aanvragen",
     "dsn_on": "Bezorgmelding aangevraagd (klik om uit te schakelen)",
     "dsn_off": "Bezorgmelding aanvragen",
+    "format_plain_text": "Overschakelen naar platte tekst",
+    "format_rich_text": "Overschakelen naar opgemaakte tekst (HTML)",
     "require_tls_on": "Versleutelde bezorging vereist (klik om uit te schakelen)",
     "require_tls_off": "Versleutelde bezorging vereisen (TLS)",
     "new_message": "Nieuw bericht",

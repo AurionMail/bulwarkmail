@@ -585,6 +585,8 @@
     "read_receipt_off": "Solicitați o confirmare de citire",
     "dsn_on": "Notificare de livrare solicitată (clic pentru a dezactiva)",
     "dsn_off": "Solicită o notificare de livrare",
+    "format_plain_text": "Comută la text simplu",
+    "format_rich_text": "Comută la text formatat (HTML)",
     "require_tls_on": "Livrare criptată obligatorie (clic pentru a dezactiva)",
     "require_tls_off": "Impune livrare criptată (TLS)",
     "new_message": "Mesaj nou",

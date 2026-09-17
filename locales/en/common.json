@@ -585,6 +585,8 @@
     "read_receipt_off": "Request a read receipt",
     "dsn_on": "Delivery notification requested (click to disable)",
     "dsn_off": "Request a delivery notification",
+    "format_plain_text": "Switch to plain text",
+    "format_rich_text": "Switch to rich text (HTML)",
     "require_tls_on": "Encrypted delivery required (click to disable)",
     "require_tls_off": "Require encrypted delivery (TLS)",
     "new_message": "New Message",

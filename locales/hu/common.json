@@ -585,6 +585,8 @@
     "read_receipt_off": "Olvasási visszaigazolás kérése",
     "dsn_on": "Kézbesítési értesítés kérve (kattints a kikapcsoláshoz)",
     "dsn_off": "Kézbesítési értesítés kérése",
+    "format_plain_text": "Váltás egyszerű szövegre",
+    "format_rich_text": "Váltás formázott szövegre (HTML)",
     "require_tls_on": "Titkosított kézbesítés kötelező (kattints a kikapcsoláshoz)",
     "require_tls_off": "Titkosított kézbesítés megkövetelése (TLS)",
     "new_message": "Új üzenet",

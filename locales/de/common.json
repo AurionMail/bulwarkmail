@@ -585,6 +585,8 @@
     "read_receipt_off": "Lesebestätigung anfordern",
     "dsn_on": "Zustellbenachrichtigung angefordert (zum Deaktivieren klicken)",
     "dsn_off": "Zustellbenachrichtigung anfordern",
+    "format_plain_text": "Zu Nur-Text wechseln",
+    "format_rich_text": "Zu formatiertem Text (HTML) wechseln",
     "require_tls_on": "Verschlüsselte Zustellung erforderlich (zum Deaktivieren klicken)",
     "require_tls_off": "Verschlüsselte Zustellung verlangen (TLS)",
     "new_message": "Neue Nachricht",

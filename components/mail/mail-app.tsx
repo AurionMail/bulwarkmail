@@ -1922,6 +1922,11 @@ export function MailApp({ linkSegments }: MailAppProps = {}) {
       bcc: draft.bcc?.map(a => a.email).filter(Boolean).join(', ') || '',
       subject: draft.subject || '',
       body: htmlBody || bodyText,
+      // Re-open in the format the draft was written in: a text-only draft
+      // used to land raw in the rich-text editor (newlines collapsed) and an
+      // HTML draft raw in the plain-text textarea. Empty draft: the setting
+      // decides (#1022).
+      plainTextMode: htmlBody != null ? false : bodyText ? true : undefined,
       showCc: (draft.cc?.length || 0) > 0,
       showBcc: (draft.bcc?.length || 0) > 0,
       selectedIdentityId: matchedIdentityId,

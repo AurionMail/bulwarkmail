@@ -585,6 +585,8 @@
     "read_receipt_off": "Solicitar confirmación de lectura",
     "dsn_on": "Notificación de entrega solicitada (clic para desactivar)",
     "dsn_off": "Solicitar notificación de entrega",
+    "format_plain_text": "Cambiar a texto sin formato",
+    "format_rich_text": "Cambiar a texto enriquecido (HTML)",
     "require_tls_on": "Entrega cifrada obligatoria (clic para desactivar)",
     "require_tls_off": "Exigir entrega cifrada (TLS)",
     "new_message": "Nuevo Mensaje",

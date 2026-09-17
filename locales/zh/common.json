@@ -585,6 +585,8 @@
     "read_receipt_off": "请求已读回执",
     "dsn_on": "已请求投递通知（点击禁用）",
     "dsn_off": "请求投递通知",
+    "format_plain_text": "切换为纯文本",
+    "format_rich_text": "切换为富文本 (HTML)",
     "require_tls_on": "已要求加密投递（点击禁用）",
     "require_tls_off": "要求加密投递 (TLS)",
     "new_message": "新邮件",

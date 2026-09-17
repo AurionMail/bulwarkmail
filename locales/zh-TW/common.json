@@ -585,6 +585,8 @@
     "read_receipt_off": "請求已讀回執",
     "dsn_on": "已要求遞送通知（點擊停用）",
     "dsn_off": "要求遞送通知",
+    "format_plain_text": "切換為純文字",
+    "format_rich_text": "切換為 HTML 格式文字",
     "require_tls_on": "已要求加密遞送（點擊停用）",
     "require_tls_off": "要求加密遞送 (TLS)",
     "new_message": "新郵件",

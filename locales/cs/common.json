@@ -585,6 +585,8 @@
     "read_receipt_off": "Vyžádat potvrzení o přečtení",
     "dsn_on": "Oznámení o doručení vyžádáno (kliknutím vypnete)",
     "dsn_off": "Vyžádat oznámení o doručení",
+    "format_plain_text": "Přepnout na prostý text",
+    "format_rich_text": "Přepnout na formátovaný text (HTML)",
     "require_tls_on": "Šifrované doručení vyžadováno (kliknutím vypnete)",
     "require_tls_off": "Vyžadovat šifrované doručení (TLS)",
     "new_message": "Nová zpráva",

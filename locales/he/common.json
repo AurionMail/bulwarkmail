@@ -623,6 +623,8 @@
     "read_receipt_off": "בקש קבלת דואר",
     "dsn_on": "התבקש אישור מסירה (לחצו לביטול)",
     "dsn_off": "בקשת אישור מסירה",
+    "format_plain_text": "מעבר לטקסט רגיל",
+    "format_rich_text": "מעבר לטקסט עשיר (HTML)",
     "require_tls_on": "נדרשת מסירה מוצפנת (לחצו לביטול)",
     "require_tls_off": "דרישת מסירה מוצפנת (TLS)",
     "attach_photos": "תמונות וסרטונים",

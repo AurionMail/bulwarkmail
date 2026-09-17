@@ -585,6 +585,8 @@
     "read_receipt_off": "Sol·licita una confirmació de lectura",
     "dsn_on": "Notificació de lliurament sol·licitada (fes clic per desactivar)",
     "dsn_off": "Sol·licita una notificació de lliurament",
+    "format_plain_text": "Canvia a text sense format",
+    "format_rich_text": "Canvia a text enriquit (HTML)",
     "require_tls_on": "Lliurament xifrat obligatori (fes clic per desactivar)",
     "require_tls_off": "Exigeix lliurament xifrat (TLS)",
     "new_message": "Missatge nou",

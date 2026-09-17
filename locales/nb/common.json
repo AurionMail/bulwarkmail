@@ -585,6 +585,8 @@
     "read_receipt_off": "Be om lesebekreftelse",
     "dsn_on": "Leveringsvarsel forespurt (klikk for å slå av)",
     "dsn_off": "Be om leveringsvarsel",
+    "format_plain_text": "Bytt til ren tekst",
+    "format_rich_text": "Bytt til formatert tekst (HTML)",
     "require_tls_on": "Kryptert levering kreves (klikk for å slå av)",
     "require_tls_off": "Krev kryptert levering (TLS)",
     "new_message": "Ny melding",

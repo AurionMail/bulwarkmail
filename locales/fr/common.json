@@ -585,6 +585,8 @@
     "read_receipt_off": "Demander un accusé de lecture",
     "dsn_on": "Notification de remise demandée (cliquer pour désactiver)",
     "dsn_off": "Demander une notification de remise",
+    "format_plain_text": "Passer en texte brut",
+    "format_rich_text": "Passer en texte enrichi (HTML)",
     "require_tls_on": "Remise chiffrée exigée (cliquer pour désactiver)",
     "require_tls_off": "Exiger une remise chiffrée (TLS)",
     "new_message": "Nouveau message",

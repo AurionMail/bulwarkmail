@@ -585,6 +585,8 @@
     "read_receipt_off": "開封確認を要求する",
     "dsn_on": "配信通知を要求中（クリックで解除）",
     "dsn_off": "配信通知を要求する",
+    "format_plain_text": "プレーンテキストに切り替え",
+    "format_rich_text": "リッチテキスト (HTML) に切り替え",
     "require_tls_on": "暗号化配信を必須にしています（クリックで解除）",
     "require_tls_off": "暗号化配信を必須にする（TLS）",
     "new_message": "新規メッセージ",
