@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 import { localeFromAcceptLanguage } from "./i18n/locale-matcher";
+import { isSameOriginRequest } from "./lib/security/same-origin";
 import { getEnabledPluginFrameOrigins } from "./lib/admin/csp-frame-origins";
 import {
   APP_FRAME_ORIGINS_COOKIE,
@@ -153,6 +154,13 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/admin/login";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  // Outer CSRF gate for the unauthenticated auth routes (GHSA-qvr9-m8cq-7wvg).
+  // Each handler checks this itself as well; this layer covers any route
+  // added under /api/auth/ later. GET/HEAD/OPTIONS pass through untouched.
+  if (pathname.startsWith("/api/auth/") && !isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 });
   }
 
   if (PROXY_SKIP_PATTERN.test(pathname)) {

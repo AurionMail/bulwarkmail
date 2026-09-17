@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto';
 import { getSessionSecret } from '@/lib/auth/session-secret';
+import { isSameOriginRequest } from '@/lib/security/same-origin';
 import { ADMIN_SESSION_COOKIE, DEFAULT_ADMIN_SESSION_TTL } from './types';
 import type { AdminSessionPayload } from './types';
 
@@ -80,41 +81,10 @@ export function verifyAdminSession(token: string): AdminSessionPayload | null {
   }
 }
 
-/**
- * CSRF gate for cookie-authed admin requests.
- *
- * The admin session cookie is `SameSite=Lax`, which still allows top-level
- * cross-site POST navigations (e.g. a form auto-submitted by an attacker
- * page the admin is tricked into visiting). Without a CSRF check, any such
- * page can trigger arbitrary state changes carrying the admin cookie.
- *
- * Strategy: state-changing requests must come from the same origin. Modern
- * browsers (since 2020) always send `Sec-Fetch-Site` and that header
- * cannot be set by JS, so it is the authoritative signal. Older browsers
- * fall back to `Origin`. Non-browser clients (curl, scripts) send neither
- * header and cannot ride a victim's cookie cross-origin, so the absence
- * of both headers is allowed.
- */
-export function isSameOriginRequest(request: Request): boolean {
-  const method = request.method.toUpperCase();
-  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return true;
-
-  const fetchSite = request.headers.get('sec-fetch-site');
-  if (fetchSite !== null) {
-    return fetchSite === 'same-origin';
-  }
-
-  const origin = request.headers.get('origin');
-  if (!origin) return true;
-
-  try {
-    const originHost = new URL(origin).host;
-    const requestHost = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
-    return !!requestHost && originHost === requestHost;
-  } catch {
-    return false;
-  }
-}
+// The CSRF gate lives in lib/security/same-origin so the unauthenticated
+// /api/auth/* routes share it (GHSA-qvr9-m8cq-7wvg). Re-exported here for
+// the admin routes and their tests.
+export { isSameOriginRequest };
 
 /**
  * Validate the admin session from cookies. Returns the payload or a 401 response.

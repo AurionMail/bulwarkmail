@@ -7,6 +7,7 @@ import { getCookieOptions } from '@/lib/oauth/cookie-config';
 import { createPairing } from '@/lib/auth/pairing-store';
 import { hasValidPairReauth } from '@/lib/auth/pair-reauth';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 
 // Desktop side of the cross-device QR login. The caller must be a signed-in
 // webmail session (its refresh token lives in the httpOnly jmap_rt cookie). We
@@ -21,6 +22,10 @@ import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 // tokens, the two devices would fight over the latest token — such deployments
 // should disable rotation for this client or use a token-exchange grant.
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   const cookieStore = await cookies();
   try {
     // Step-up gate: minting a pairing code grants new-device access, so it

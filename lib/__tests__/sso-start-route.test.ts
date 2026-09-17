@@ -60,7 +60,10 @@ vi.mock('@/lib/admin/config-manager', () => ({
 function mockRequest(body: Record<string, unknown>): unknown {
   return {
     json: async () => body,
-    headers: { get: (k: string) => (k === 'origin' ? 'https://mail.example.com' : null) },
+    headers: {
+      get: (k: string) =>
+        k === 'origin' ? 'https://mail.example.com' : k === 'host' ? 'mail.example.com' : null,
+    },
     nextUrl: { origin: 'https://mail.example.com' },
   };
 }

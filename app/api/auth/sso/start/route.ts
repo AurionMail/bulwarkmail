@@ -9,6 +9,7 @@ import { getOauthScopes } from '@/lib/oauth/tokens';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { configManager } from '@/lib/admin/config-manager';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 
 const SSO_PENDING_COOKIE = 'sso_pending';
 const SSO_PENDING_MAX_AGE = 300; // 5 minutes
@@ -20,6 +21,10 @@ const SSO_PENDING_MAX_AGE = 300; // 5 minutes
 const MOBILE_REDIRECT_SCHEME = 'bulwarkmobile://';
 
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   try {
     if (!hasSessionSecret()) {
       return NextResponse.json({ error: 'SESSION_SECRET is required for SSO' }, { status: 500 });

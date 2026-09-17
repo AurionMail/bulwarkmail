@@ -4,6 +4,7 @@ import { JmapAuthVerificationError, verifyJmapAuth } from '@/lib/auth/verify-jma
 import { configManager } from '@/lib/admin/config-manager';
 import { isPublicHttpUrl } from '@/lib/security/url-guard';
 import { parseJmapServers, resolveTrustedJmapUrl } from '@/lib/admin/jmap-servers';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 
 /**
  * Server-side Basic-auth pre-check for the login form (#969).
@@ -30,6 +31,10 @@ function respond(result: VerifyResult) {
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-qvr9-m8cq-7wvg): cookies written here are SameSite=Lax,
+  // so a cross-site top-level POST would otherwise reach this handler.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   try {
     const body = await request.json().catch(() => null);
     const serverUrl = body?.serverUrl;

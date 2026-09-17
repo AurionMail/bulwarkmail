@@ -53,6 +53,8 @@ vi.mock('next/headers', () => ({
 
 function mockRequest(params: Record<string, string> = {}): unknown {
   return {
+    method: 'PUT',
+    headers: { get: () => null },
     nextUrl: { searchParams: { get: (k: string) => params[k] ?? null } },
   };
 }
