@@ -4,12 +4,7 @@ import { logger } from '@/lib/logger';
 import { encryptSession, decryptSession } from '@/lib/auth/crypto';
 import { SESSION_COOKIE_MAX_AGE, sessionCookieName } from '@/lib/auth/session-cookie';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
-import {
-  JmapAuthVerificationError,
-  normalizeJmapServerUrl,
-  validateProxyAuthHeader,
-  verifyJmapAuth,
-} from '@/lib/auth/verify-jmap-auth';
+import { JmapAuthVerificationError, verifyJmapIdentity } from '@/lib/auth/verify-jmap-auth';
 import {
   clearStalwartAuthContextInStore,
   setStalwartAuthContextInStore,
@@ -86,13 +81,16 @@ export async function POST(request: NextRequest) {
     const slot = typeof bodySlot === 'number' && bodySlot >= 0 && bodySlot < MAX_ACCOUNT_SLOTS ? bodySlot : getSlot(request);
     const cookieName = sessionCookieName(slot);
     const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-    // Trusted (admin-configured) URLs skip the upstream re-fetch: the cookie
-    // we write here is only ever consumed for requests on behalf of this same
-    // user, so bogus credentials would just yield 401s downstream rather than
-    // privilege escalation. Untrusted custom endpoints still verify upstream.
-    const normalizedServerUrl = upstreamTrusted
-      ? (validateProxyAuthHeader(authHeader), normalizeJmapServerUrl(upstreamUrl))
-      : await verifyJmapAuth(upstreamUrl, authHeader, { trusted: false });
+    // Always verify the credential upstream (GHSA-wxcm-j4jc-9fxq). The cookies
+    // written here are not only replayed as credentials (where a bogus
+    // password would just 401 downstream): the encrypted auth context is also
+    // accepted as proof of identity by routes that never contact the mail
+    // server, such as settings sync. Skipping the check for admin-configured
+    // servers let anyone mint a cookie for any username with a made-up
+    // password. `trusted` only relaxes the public-address requirement.
+    const normalizedServerUrl = await verifyJmapIdentity(upstreamUrl, authHeader, username, {
+      trusted: upstreamTrusted,
+    });
     const token = encryptSession(normalizedServerUrl, username, password);
     const cookieStore = await cookies();
     cookieStore.set(cookieName, token, sessionCookieOptions());

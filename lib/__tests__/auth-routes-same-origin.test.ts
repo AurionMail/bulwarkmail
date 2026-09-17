@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
  * GHSA-qvr9-m8cq-7wvg: the unauthenticated /api/auth/* routes write
@@ -150,12 +150,26 @@ describe('isSameOriginRequest', () => {
 });
 
 describe('POST /api/auth/session (GHSA-qvr9-m8cq-7wvg session fixation)', () => {
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     for (const k of Object.keys(config)) delete config[k];
     config.jmapServerUrl = TRUSTED;
     cookieSet.mockClear();
     setStalwartAuthContextInStore.mockClear();
     vi.resetModules();
+    // The route now verifies the credential upstream even for the configured
+    // server (GHSA-wxcm-j4jc-9fxq); stand in for a server that accepts it.
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({ apiUrl: `${TRUSTED}/jmap/`, username: SESSION_BODY.username, accounts: {} }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
   });
 
   it('refuses a cross-site form POST before reading the body and writes no cookie', async () => {
