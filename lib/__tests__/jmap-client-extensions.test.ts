@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { JMAPClient, submissionEnvelopeParameters } from '../jmap/client';
+import { isJmapSetError, jmapErrorType } from '../jmap/jmap-error';
 
 describe('submissionEnvelopeParameters', () => {
   it('is empty without options', () => {
@@ -430,5 +431,192 @@ describe('JMAP client extensions', () => {
       answer(() => ({ methodResponses: [['Mailbox/set', { notUpdated: { f1: { type: 'forbidden', description: 'no' } } }, '0']] }));
       await expect(client.setMailboxShare('f1', 'p1', null)).rejects.toThrow('no');
     });
+  });
+});
+
+/**
+ * PushSubscription/set refusals reach web-push as typed errors: a SetError
+ * (jmapSetError, the server refused this subscription) apart from a refused
+ * method call (plain jmapError). Bodies are Stalwart's (jmap/src/push/set.rs,
+ * identical on 0.16.16 to 0.16.23 and 1.0).
+ */
+describe('JMAP client push subscriptions', () => {
+  const EMAIL_PUSH = 'urn:ietf:params:jmap:emailpush';
+  const FORBIDDEN_MAP = { type: 'forbidden', description: 'No access to one of the accounts in the emailPush map.' };
+  const OVER_QUOTA = {
+    type: 'overQuota',
+    description: 'There are too many subscriptions, please delete some before adding a new one.',
+  };
+  const EMAIL_PUSH_MAP = {
+    'acct-1': { filter: { operator: 'AND', conditions: [{ notKeyword: '$junk' }] }, properties: ['id', 'threadId'] },
+    b: { filter: { operator: 'AND', conditions: [{ notKeyword: '$junk' }] }, properties: ['id', 'threadId'] },
+  };
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let client: JMAPClient;
+  let requests: RequestBody[];
+
+  // 0.16.16 to 0.16.23 and 1.0 advertise emailpush in the session; 0.16.6
+  // to 0.16.15 don't. `b` is a mailbox shared by ACL as 1.0 lists it:
+  // read-only, without emailpush and the other owner-only capabilities.
+  async function setup(withEmailPush: boolean) {
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const session = makeSession(withEmailPush ? { [EMAIL_PUSH]: {} } : {});
+    if (withEmailPush) (session.capabilities as Record<string, unknown>)[EMAIL_PUSH] = {};
+    (session.accounts as Record<string, unknown>).b = {
+      name: 'userb',
+      isPersonal: false,
+      isReadOnly: true,
+      accountCapabilities: {
+        'urn:ietf:params:jmap:mail': {},
+        'urn:ietf:params:jmap:calendars': { mayCreateCalendar: false },
+      },
+    };
+    fetchSpy.mockResolvedValueOnce(jsonResponse(session));
+    client = new JMAPClient('https://mail.example.com', 'user@test.com', 'pass123');
+    await client.connect();
+    fetchSpy.mockReset();
+    requests = [];
+  }
+
+  function answer(handler: (body: RequestBody) => unknown) {
+    fetchSpy.mockImplementation(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as RequestBody;
+      requests.push(body);
+      return jsonResponse(handler(body));
+    });
+  }
+
+  const newSubscription = {
+    deviceClientId: 'dcid',
+    url: 'https://relay.example/api/push/jmap/dcid',
+    types: ['EmailDelivery'],
+    emailPush: EMAIL_PUSH_MAP,
+  };
+
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    client?.disconnect();
+    vi.restoreAllMocks();
+  });
+
+  it('throws a forbidden SetError when Stalwart refuses the emailPush map on create (0.16.16+ and 1.0)', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { notCreated: { new: FORBIDDEN_MAP } }, '0']] }));
+
+    const err = await client.createPushSubscription(newSubscription).catch((e) => e);
+
+    expect(requests[0].using).toEqual(['urn:ietf:params:jmap:core', EMAIL_PUSH]);
+    expect(requests[0].methodCalls[0][1]).toEqual({ create: { new: { ...newSubscription } } });
+    expect(jmapErrorType(err)).toBe('forbidden');
+    expect(isJmapSetError(err)).toBe(true);
+    expect(err.message).toContain('No access to one of the accounts in the emailPush map.');
+    expect(err.message).not.toContain('{');
+  });
+
+  it('throws an overQuota SetError past the subscription limit', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { notCreated: { new: OVER_QUOTA } }, '0']] }));
+
+    const err = await client.createPushSubscription(newSubscription).catch((e) => e);
+
+    expect(jmapErrorType(err)).toBe('overQuota');
+    expect(isJmapSetError(err)).toBe(true);
+  });
+
+  it('returns the id Stalwart assigns', async () => {
+    await setup(true);
+    answer(() => ({
+      methodResponses: [['PushSubscription/set', {
+        created: { new: { id: 'k', keys: null, expires: '2026-10-02T15:00:00Z' } },
+      }, '0']],
+    }));
+
+    expect(await client.createPushSubscription(newSubscription)).toBe('k');
+  });
+
+  it('never puts emailpush in `using` or sends the map on 0.16.6 to 0.16.15', async () => {
+    await setup(false);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { created: { new: { id: 'k' } } }, '0']] }));
+
+    await client.createPushSubscription(newSubscription);
+
+    expect(requests[0].using).toEqual(['urn:ietf:params:jmap:core']);
+    expect(requests[0].methodCalls[0][1]).toEqual({
+      create: { new: { deviceClientId: 'dcid', url: newSubscription.url, types: ['EmailDelivery'] } },
+    });
+  });
+
+  it('throws a forbidden SetError when Stalwart refuses the emailPush map on update', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { notUpdated: { k: FORBIDDEN_MAP } }, '0']] }));
+
+    const err = await client
+      .updatePushSubscription('k', { expires: '2026-12-01T00:00:00Z', emailPush: EMAIL_PUSH_MAP })
+      .catch((e) => e);
+
+    expect(requests[0].methodCalls[0][1]).toEqual({
+      update: { k: { expires: '2026-12-01T00:00:00Z', emailPush: EMAIL_PUSH_MAP } },
+    });
+    expect(jmapErrorType(err)).toBe('forbidden');
+    expect(isJmapSetError(err)).toBe(true);
+  });
+
+  it('throws a notFound SetError for a subscription the server no longer has', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { notUpdated: { k: { type: 'notFound' } } }, '0']] }));
+
+    const err = await client.updatePushSubscription('k', { expires: '2026-12-01T00:00:00Z' }).catch((e) => e);
+
+    expect(jmapErrorType(err)).toBe('notFound');
+    expect(isJmapSetError(err)).toBe(true);
+  });
+
+  it('resolves when the update is applied', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { updated: { k: null } }, '0']] }));
+
+    await expect(client.updatePushSubscription('k', { expires: '2026-12-01T00:00:00Z' })).resolves.toBeUndefined();
+  });
+
+  it('throws a plain error, not a SetError, when the whole method call is refused', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['error', { type: 'forbidden', description: 'Not allowed' }, '0']] }));
+
+    const createErr = await client.createPushSubscription(newSubscription).catch((e) => e);
+    const updateErr = await client.updatePushSubscription('k', { expires: '2026-12-01T00:00:00Z' }).catch((e) => e);
+    const verifyErr = await client.verifyPushSubscription('k', 'code').catch((e) => e);
+
+    for (const err of [createErr, updateErr, verifyErr]) {
+      expect(jmapErrorType(err)).toBe('forbidden');
+      expect(isJmapSetError(err)).toBe(false);
+    }
+  });
+
+  it('throws instead of listing nothing when PushSubscription/get fails', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['error', { type: 'serverFail' }, '0']] }));
+
+    const err = await client.listPushSubscriptions().catch((e) => e);
+
+    expect(err).toBeInstanceOf(Error);
+    expect(jmapErrorType(err)).toBe('serverFail');
+  });
+
+  it('describes each session account without flattening its capabilities', async () => {
+    await setup(true);
+
+    expect(client.getAccountInfo('b')).toEqual({
+      isPersonal: false,
+      isReadOnly: true,
+      accountCapabilities: {
+        'urn:ietf:params:jmap:mail': {},
+        'urn:ietf:params:jmap:calendars': { mayCreateCalendar: false },
+      },
+    });
+    expect(client.getAccountInfo('acct-1')?.isPersonal).toBe(true);
+    expect(client.getAccountInfo('nope')).toBeNull();
   });
 });

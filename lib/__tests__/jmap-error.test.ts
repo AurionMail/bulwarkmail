@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { jmapError, jmapErrorProperties, jmapErrorType } from '../jmap/jmap-error';
+import { isJmapSetError, jmapError, jmapErrorProperties, jmapErrorType, jmapSetError } from '../jmap/jmap-error';
 
 describe('jmapError', () => {
   it('keeps the SetError type and properties on the thrown error', () => {
@@ -35,5 +35,26 @@ describe('jmapError', () => {
     expect(jmapErrorType(undefined)).toBeUndefined();
     expect(jmapErrorType('overQuota')).toBeUndefined();
     expect(jmapErrorProperties(null)).toEqual([]);
+  });
+});
+
+describe('jmapSetError', () => {
+  it('tells a refused object apart from a refused method call of the same type', () => {
+    const setError = jmapSetError('PushSubscription/set create failed', {
+      type: 'forbidden',
+      description: 'No access to one of the accounts in the emailPush map.',
+    });
+    const methodError = jmapError('PushSubscription/set failed', { type: 'forbidden' });
+
+    expect(jmapErrorType(setError)).toBe('forbidden');
+    expect(isJmapSetError(setError)).toBe(true);
+    expect(jmapErrorType(methodError)).toBe('forbidden');
+    expect(isJmapSetError(methodError)).toBe(false);
+  });
+
+  it('is false for anything that is not a SetError', () => {
+    expect(isJmapSetError(new Error('Failed to fetch'))).toBe(false);
+    expect(isJmapSetError(undefined)).toBe(false);
+    expect(isJmapSetError({ jmapSetError: 'yes' })).toBe(false);
   });
 });

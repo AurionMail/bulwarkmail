@@ -15,7 +15,7 @@ export interface JmapErrorInfo {
   properties?: string[];
 }
 
-export type JmapError = Error & { jmapType?: string; jmapProperties?: string[] };
+export type JmapError = Error & { jmapType?: string; jmapProperties?: string[]; jmapSetError?: boolean };
 
 /** An `Error` with `message` that keeps the server's error type and properties. */
 export function jmapError(message: string, info?: JmapErrorInfo | null): JmapError {
@@ -23,6 +23,24 @@ export function jmapError(message: string, info?: JmapErrorInfo | null): JmapErr
   if (info?.type) error.jmapType = info.type;
   if (info?.properties?.length) error.jmapProperties = [...info.properties];
   return error;
+}
+
+/**
+ * {@link jmapError} for a SetError: the server looked at one object of a /set
+ * call and refused it (`notCreated`, `notUpdated`, `notDestroyed`, RFC 8620
+ * §5.3), as opposed to refusing the whole method call. The same type can come
+ * either way (`forbidden` is both), and only the SetError says something about
+ * that object.
+ */
+export function jmapSetError(message: string, info?: JmapErrorInfo | null): JmapError {
+  const error = jmapError(message, info);
+  error.jmapSetError = true;
+  return error;
+}
+
+/** Whether a thrown value is a SetError (see {@link jmapSetError}). */
+export function isJmapSetError(error: unknown): boolean {
+  return (error as JmapError | null | undefined)?.jmapSetError === true;
 }
 
 /** The JMAP error type a thrown value carries, if any. */

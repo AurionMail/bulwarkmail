@@ -1218,7 +1218,10 @@
         "revoke": "Odvolať",
         "confirm_revoke_title": "Odvolať toto zariadenie?",
         "confirm_revoke_message": "Okamžite prestane prijímať oznámenia na pozadí. Opätovné zapnutie push na tom zariadení ho zaregistruje nanovo.",
-        "confirm_revoke_message_this": "Toto zariadenie okamžite prestane prijímať oznámenia na pozadí."
+        "confirm_revoke_message_this": "Toto zariadenie okamžite prestane prijímať oznámenia na pozadí.",
+        "shared_mailboxes_no_push": "Poštové schránky, ktoré s vami zdieľajú iní, neposielajú oznámenia na pozadí.",
+        "error_forbidden": "Poštový server pre tento účet nepovoľuje oznámenia na pozadí.",
+        "error_over_quota": "Tento účet má na poštovom serveri príliš veľa registrácií push (limit je zvyčajne 15). V nastaveniach oznámení odvolajte zariadenia, ktoré už nepoužívate, a skúste to znova."
       }
     },
     "language_region": {

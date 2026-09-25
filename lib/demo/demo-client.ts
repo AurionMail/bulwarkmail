@@ -1,5 +1,5 @@
 import type { IJMAPClient, KeywordDiscoveryResult, KeywordMigration } from '@/lib/jmap/client-interface';
-import type { Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, VacationResponse, Calendar, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, ScheduledEmail, SendEmailResult, SharedAccount } from '@/lib/jmap/types';
+import type { AccountInfo, Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, VacationResponse, Calendar, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, ScheduledEmail, SendEmailResult, SharedAccount } from '@/lib/jmap/types';
 import type { SieveScript, SieveCapabilities } from '@/lib/jmap/sieve-types';
 import { getDemoData, type DemoData } from './demo-data';
 import { generateDemoId } from './demo-utils';
@@ -71,6 +71,15 @@ export class DemoJMAPClient implements IJMAPClient {
     return capability === 'urn:ietf:params:jmap:submission';
   }
 
+  getAccountInfo(accountId: string): AccountInfo | null {
+    if (accountId !== this.getAccountId()) return null;
+    return {
+      isPersonal: true,
+      isReadOnly: false,
+      accountCapabilities: { 'urn:ietf:params:jmap:submission': {} },
+    };
+  }
+
   getCapabilities(): Record<string, unknown> {
     return {
       'urn:ietf:params:jmap:core': { maxSizeUpload: 50_000_000, maxCallsInRequest: 16, maxObjectsInGet: 500, maxObjectsInSet: 500 },
@@ -125,7 +134,9 @@ export class DemoJMAPClient implements IJMAPClient {
   async verifyPushSubscription(): Promise<void> {
     throw new Error('Push subscriptions are not available in demo mode');
   }
-  async updatePushSubscription(): Promise<boolean> { return false; }
+  async updatePushSubscription(): Promise<void> {
+    throw new Error('Push subscriptions are not available in demo mode');
+  }
   async destroyPushSubscription(): Promise<void> { /* no-op */ }
 
   // ── Quota ─────────────────────────────────────────────────────

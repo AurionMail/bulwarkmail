@@ -22,6 +22,17 @@ export interface SharedAccount {
   };
 }
 
+/**
+ * One account as the JMAP session describes it (RFC 8620 §2), unflattened:
+ * the raw per-account capability objects rather than SharedAccount's
+ * booleans, for callers that need a capability's fields.
+ */
+export interface AccountInfo {
+  isPersonal: boolean;
+  isReadOnly: boolean;
+  accountCapabilities: Record<string, unknown>;
+}
+
 export interface Email {
   id: string;
   threadId: string;

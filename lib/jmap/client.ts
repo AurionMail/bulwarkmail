@@ -15,12 +15,13 @@ import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
-import { jmapError, jmapErrorType, type JmapErrorInfo } from "./jmap-error";
+import { jmapError, jmapErrorType, jmapSetError, type JmapErrorInfo } from "./jmap-error";
 
 export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
 import { getEffectiveTimeZone, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
+import type { AccountInfo } from "./types";
 
 // Cap for the follow-up Email/get issued when a displayed body part comes
 // back truncated at the normal 256000-byte limit (see refetchTruncatedBodyValues
@@ -5022,6 +5023,16 @@ export class JMAPClient implements IJMAPClient {
     return !!caps && capability in caps;
   }
 
+  getAccountInfo(accountId: string): AccountInfo | null {
+    const account = this.accounts[accountId];
+    if (!account) return null;
+    return {
+      isPersonal: account.isPersonal === true,
+      isReadOnly: account.isReadOnly === true,
+      accountCapabilities: account.accountCapabilities ?? {},
+    };
+  }
+
   getMaxSizeAttachmentsPerEmail(): number {
     const mail = this.getAccountCapability("urn:ietf:params:jmap:mail") as { maxSizeAttachmentsPerEmail?: number } | undefined;
     return mail?.maxSizeAttachmentsPerEmail || 0;
@@ -9850,6 +9861,18 @@ export class JMAPClient implements IJMAPClient {
       : ['urn:ietf:params:jmap:core'];
   }
 
+  // The body of the one PushSubscription call in a response. A method-level
+  // error throws a plain jmapError: the server refused the whole call, which
+  // says nothing about any one subscription.
+  private pushMethodResult<T>(response: JMAPResponse, method: string): T {
+    const [name, body] = response.methodResponses?.[0] ?? [];
+    if (name !== method) {
+      const error = body as JmapErrorInfo | undefined;
+      throw jmapError(`${method} failed: ${error?.description || error?.type || 'no response'}`, error);
+    }
+    return (body ?? {}) as T;
+  }
+
   async listPushSubscriptions(): Promise<PushSubscription[]> {
     const emailPush = this.hasEmailPushCapability();
     // `emailPush` is not in the server's default property set, so ask for it
@@ -9862,8 +9885,9 @@ export class JMAPClient implements IJMAPClient {
       [['PushSubscription/get', args, '0']],
       this.pushUsing(emailPush),
     );
-    const [, body] = response.methodResponses[0] ?? [];
-    return ((body as { list?: PushSubscription[] } | undefined)?.list) ?? [];
+    // Throws rather than answering []: to web-push an empty list means "the
+    // server dropped our subscription", which forgets a working registration.
+    return this.pushMethodResult<{ list?: PushSubscription[] }>(response, 'PushSubscription/get').list ?? [];
   }
 
   async createPushSubscription(params: {
@@ -9886,14 +9910,22 @@ export class JMAPClient implements IJMAPClient {
       [['PushSubscription/set', { create: { new: created } }, '0']],
       this.pushUsing(withEmailPush),
     );
-    const [, body] = response.methodResponses[0] ?? [];
-    const result = (body as { created?: { new?: { id?: string } }; notCreated?: { new?: unknown } } | undefined);
-    const id = result?.created?.new?.id;
-    if (!id) {
-      throw new Error(
-        `PushSubscription/set create failed: ${JSON.stringify(result?.notCreated?.new ?? body)}`,
+    const result = this.pushMethodResult<{
+      created?: { new?: { id?: string } };
+      notCreated?: { new?: JmapErrorInfo };
+    }>(response, 'PushSubscription/set');
+    // Stalwart refuses the whole emailPush map as `forbidden` when it names an
+    // account the user doesn't own, and answers `overQuota` past its
+    // subscription limit (15 per account by default).
+    const refused = result.notCreated?.new;
+    if (refused) {
+      throw jmapSetError(
+        `PushSubscription/set create failed: ${refused.description || refused.type || 'unknown error'}`,
+        refused,
       );
     }
+    const id = result.created?.new?.id;
+    if (!id) throw new Error('PushSubscription/set create returned no id');
     return id;
   }
 
@@ -9902,19 +9934,27 @@ export class JMAPClient implements IJMAPClient {
       [['PushSubscription/set', { update: { [id]: { verificationCode } } }, '0']],
       ['urn:ietf:params:jmap:core'],
     );
-    const [, body] = response.methodResponses[0] ?? [];
-    const notUpdated = (body as { notUpdated?: Record<string, unknown> } | undefined)?.notUpdated?.[id];
-    if (notUpdated) {
-      throw new Error(`PushSubscription verification failed: ${JSON.stringify(notUpdated)}`);
+    const result = this.pushMethodResult<{ notUpdated?: Record<string, JmapErrorInfo> }>(
+      response,
+      'PushSubscription/set',
+    );
+    const refused = result.notUpdated?.[id];
+    if (refused) {
+      throw jmapSetError(
+        `PushSubscription verification failed: ${refused.description || refused.type || 'unknown error'}`,
+        refused,
+      );
     }
   }
 
-  // Returns false when the server rejects the update (e.g. the subscription
-  // was already destroyed) - the caller treats that as a signal to recreate.
+  // Throws when the server refuses the update: a jmapSetError with the
+  // SetError type (`notFound` once the subscription is gone, `forbidden` for
+  // an emailPush map naming an account the user may not subscribe to), a
+  // plain error for anything that says nothing about the subscription.
   async updatePushSubscription(
     id: string,
     patch: { expires?: string; types?: string[]; emailPush?: Record<string, EmailPushConfig> | null },
-  ): Promise<boolean> {
+  ): Promise<void> {
     const withEmailPush = patch.emailPush !== undefined && this.hasEmailPushCapability();
     const update: Record<string, unknown> = { ...patch };
     if (!withEmailPush) delete update.emailPush;
@@ -9922,10 +9962,20 @@ export class JMAPClient implements IJMAPClient {
       [['PushSubscription/set', { update: { [id]: update } }, '0']],
       this.pushUsing(withEmailPush),
     );
-    const [, body] = response.methodResponses[0] ?? [];
-    const r = body as { updated?: Record<string, unknown>; notUpdated?: Record<string, unknown> } | undefined;
-    if (r?.notUpdated?.[id]) return false;
-    return r?.updated?.[id] !== undefined;
+    const result = this.pushMethodResult<{
+      updated?: Record<string, unknown> | null;
+      notUpdated?: Record<string, JmapErrorInfo>;
+    }>(response, 'PushSubscription/set');
+    const refused = result.notUpdated?.[id];
+    if (refused) {
+      throw jmapSetError(
+        `PushSubscription/set update failed: ${refused.description || refused.type || 'unknown error'}`,
+        refused,
+      );
+    }
+    if (!result.updated || !(id in result.updated)) {
+      throw new Error(`PushSubscription/set did not report ${id} as updated`);
+    }
   }
 
   async destroyPushSubscription(id: string): Promise<void> {

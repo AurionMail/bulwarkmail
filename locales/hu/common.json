@@ -1192,7 +1192,10 @@
         "revoke": "Visszavonás",
         "confirm_revoke_title": "Visszavonja ezt az eszközt?",
         "confirm_revoke_message": "Azonnal nem kap több háttérértesítést. Ha az eszközön újra bekapcsolja a push értesítéseket, újra regisztrálódik.",
-        "confirm_revoke_message_this": "Ez az eszköz azonnal nem kap több háttérértesítést."
+        "confirm_revoke_message_this": "Ez az eszköz azonnal nem kap több háttérértesítést.",
+        "shared_mailboxes_no_push": "A mások által Önnel megosztott postafiókok nem küldenek háttérértesítéseket.",
+        "error_forbidden": "A levelezőszerver ennél a fióknál nem engedélyezi a háttérértesítéseket.",
+        "error_over_quota": "Ennek a fióknak túl sok push-regisztrációja van a levelezőszerveren (a korlát általában 15). Az értesítési beállításokban vonja vissza a már nem használt eszközöket, majd próbálja újra."
       },
       "sound_selection": {
         "title": "Értesítési hang",

@@ -1215,7 +1215,10 @@
         "revoke": "Revoca",
         "confirm_revoke_title": "Revocare questo dispositivo?",
         "confirm_revoke_message": "Smetterà subito di ricevere le notifiche in background. Riattivando il push su quel dispositivo verrà registrato di nuovo.",
-        "confirm_revoke_message_this": "Questo dispositivo smetterà subito di ricevere le notifiche in background."
+        "confirm_revoke_message_this": "Questo dispositivo smetterà subito di ricevere le notifiche in background.",
+        "shared_mailboxes_no_push": "Le caselle di posta che altri condividono con te non inviano notifiche in background.",
+        "error_forbidden": "Il server di posta non consente le notifiche in background per questo account.",
+        "error_over_quota": "Questo account ha troppe registrazioni push sul server di posta (il limite di solito è 15). Revoca i dispositivi che non usi più nelle impostazioni delle notifiche, poi riprova."
       }
     },
     "language_region": {

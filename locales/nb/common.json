@@ -1192,7 +1192,10 @@
         "revoke": "Tilbakekall",
         "confirm_revoke_title": "Vil du tilbakekalle tilgangen for denne enheten?",
         "confirm_revoke_message": "Enheten slutter umiddelbart å motta bakgrunnsvarsler. Hvis pushvarsler aktiveres på nytt på enheten, registreres den på nytt.",
-        "confirm_revoke_message_this": "Denne enheten slutter umiddelbart å motta bakgrunnsvarsler."
+        "confirm_revoke_message_this": "Denne enheten slutter umiddelbart å motta bakgrunnsvarsler.",
+        "shared_mailboxes_no_push": "Postbokser som andre deler med deg, sender ikke bakgrunnsvarsler.",
+        "error_forbidden": "E-postserveren tillater ikke bakgrunnsvarsler for denne kontoen.",
+        "error_over_quota": "Denne kontoen har for mange push-registreringer på e-postserveren (grensen er vanligvis 15). Tilbakekall enheter du ikke lenger bruker i varslingsinnstillingene, og prøv igjen."
       },
       "sound_selection": {
         "title": "Varslingslyd",

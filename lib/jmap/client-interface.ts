@@ -2,6 +2,7 @@ import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountSta
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { FileNameRules } from "@/lib/file-name-rules";
 import type { SortLevel } from "@/lib/message-list-order";
+import type { AccountInfo } from "./types";
 
 /** What `migrateKeyword` managed to do. */
 export interface KeywordMigration {
@@ -68,6 +69,8 @@ export interface IJMAPClient {
   // ── Capabilities ──────────────────────────────────────────────
   getCapabilities(): Record<string, unknown>;
   hasAccountCapability(capability: string, accountId?: string): boolean;
+  /** How the session describes an account; null when it doesn't list the id. */
+  getAccountInfo(accountId: string): AccountInfo | null;
   /** FileNode naming rules the server publishes (Stalwart 0.16.6+), if any. */
   getFileNameRules?(accountId?: string): FileNameRules | null;
   getMaxSizeUpload(): number;
@@ -101,6 +104,10 @@ export interface IJMAPClient {
   // ── PushSubscription (RFC 8620 §7.2) ───────────────────────────
   // Browser-driven Web Push setup: register a relay URL the JMAP server can
   // forward StateChange events to. Mobile uses the same primitives.
+  // A refused object throws a jmapSetError carrying the SetError type
+  // (`forbidden`, `overQuota`, `notFound`...); a refused method call throws a
+  // plain jmapError, so callers can tell the two apart (isJmapSetError).
+  /** Throws when the server can't be asked - never an empty list instead. */
   listPushSubscriptions(): Promise<PushSubscription[]>;
   createPushSubscription(params: {
     deviceClientId: string;
@@ -115,7 +122,7 @@ export interface IJMAPClient {
   updatePushSubscription(
     id: string,
     patch: { expires?: string; types?: string[]; emailPush?: Record<string, EmailPushConfig> | null },
-  ): Promise<boolean>;
+  ): Promise<void>;
   destroyPushSubscription(id: string): Promise<void>;
 
   // ── Quota ─────────────────────────────────────────────────────

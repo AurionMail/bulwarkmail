@@ -1192,7 +1192,10 @@
         "revoke": "Revocă",
         "confirm_revoke_title": "Revocați acest dispozitiv?",
         "confirm_revoke_message": "Va înceta imediat să primească notificări în fundal. Reactivarea push pe acel dispozitiv îl va înregistra din nou.",
-        "confirm_revoke_message_this": "Acest dispozitiv va înceta imediat să primească notificări în fundal."
+        "confirm_revoke_message_this": "Acest dispozitiv va înceta imediat să primească notificări în fundal.",
+        "shared_mailboxes_no_push": "Căsuțele poștale pe care alții le partajează cu dvs. nu trimit notificări în fundal.",
+        "error_forbidden": "Serverul de e-mail nu permite notificări în fundal pentru acest cont.",
+        "error_over_quota": "Acest cont are prea multe înregistrări push pe serverul de e-mail (limita este de obicei 15). Revocați din setările de notificări dispozitivele pe care nu le mai folosiți, apoi încercați din nou."
       },
       "sound_selection": {
         "title": "Sunet de notificare",

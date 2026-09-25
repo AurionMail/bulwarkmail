@@ -1215,7 +1215,10 @@
         "revoke": "Révoquer",
         "confirm_revoke_title": "Révoquer cet appareil ?",
         "confirm_revoke_message": "Il cessera immédiatement de recevoir les notifications en arrière-plan. Réactiver les notifications push sur cet appareil l’enregistrera à nouveau.",
-        "confirm_revoke_message_this": "Cet appareil cessera immédiatement de recevoir les notifications en arrière-plan."
+        "confirm_revoke_message_this": "Cet appareil cessera immédiatement de recevoir les notifications en arrière-plan.",
+        "shared_mailboxes_no_push": "Les boîtes aux lettres que d'autres personnes partagent avec vous n'envoient pas de notifications en arrière-plan.",
+        "error_forbidden": "Le serveur de messagerie n'autorise pas les notifications en arrière-plan pour ce compte.",
+        "error_over_quota": "Ce compte a trop d'enregistrements push sur le serveur de messagerie (la limite est généralement de 15). Révoquez les appareils que vous n'utilisez plus dans les paramètres de notification, puis réessayez."
       }
     },
     "language_region": {

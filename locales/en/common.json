@@ -1192,7 +1192,10 @@
         "revoke": "Revoke",
         "confirm_revoke_title": "Revoke this device?",
         "confirm_revoke_message": "It will stop receiving background notifications immediately. Enabling push again on that device registers it anew.",
-        "confirm_revoke_message_this": "This device will stop receiving background notifications immediately."
+        "confirm_revoke_message_this": "This device will stop receiving background notifications immediately.",
+        "shared_mailboxes_no_push": "Mailboxes others share with you don't send background notifications.",
+        "error_forbidden": "The mail server doesn't allow background notifications for this account.",
+        "error_over_quota": "This account has too many push registrations on the mail server (the limit is usually 15). Revoke devices you no longer use in the notification settings, then try again."
       },
       "sound_selection": {
         "title": "Notification Sound",

@@ -1215,7 +1215,10 @@
         "revoke": "Intrekken",
         "confirm_revoke_title": "Dit apparaat intrekken?",
         "confirm_revoke_message": "Het ontvangt meteen geen achtergrondmeldingen meer. Push opnieuw inschakelen op dat apparaat registreert het opnieuw.",
-        "confirm_revoke_message_this": "Dit apparaat ontvangt meteen geen achtergrondmeldingen meer."
+        "confirm_revoke_message_this": "Dit apparaat ontvangt meteen geen achtergrondmeldingen meer.",
+        "shared_mailboxes_no_push": "Mailboxen die anderen met u delen, sturen geen achtergrondmeldingen.",
+        "error_forbidden": "De mailserver staat voor dit account geen achtergrondmeldingen toe.",
+        "error_over_quota": "Dit account heeft te veel pushregistraties op de mailserver (de limiet is meestal 15). Trek in de meldingsinstellingen apparaten in die u niet meer gebruikt en probeer het opnieuw."
       }
     },
     "language_region": {

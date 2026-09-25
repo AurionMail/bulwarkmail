@@ -1192,7 +1192,10 @@
         "revoke": "撤銷",
         "confirm_revoke_title": "要撤銷此裝置的註冊嗎？",
         "confirm_revoke_message": "此裝置會立即停止接收背景通知。若在該裝置上再次啟用推送，將重新註冊。",
-        "confirm_revoke_message_this": "此裝置會立即停止接收背景通知。"
+        "confirm_revoke_message_this": "此裝置會立即停止接收背景通知。",
+        "shared_mailboxes_no_push": "其他人與您共用的信箱不會傳送背景通知。",
+        "error_forbidden": "郵件伺服器不允許此帳號使用背景通知。",
+        "error_over_quota": "此帳號在郵件伺服器上的推送註冊過多（上限通常為 15 個）。請在通知設定中撤銷不再使用的裝置，然後再試一次。"
       },
       "sound_selection": {
         "title": "通知聲音",

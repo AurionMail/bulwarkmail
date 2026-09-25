@@ -1215,7 +1215,10 @@
         "revoke": "Revogar",
         "confirm_revoke_title": "Revogar este dispositivo?",
         "confirm_revoke_message": "Ele deixará de receber notificações em segundo plano imediatamente. Ativar o push novamente nesse dispositivo o registrará de novo.",
-        "confirm_revoke_message_this": "Este dispositivo deixará de receber notificações em segundo plano imediatamente."
+        "confirm_revoke_message_this": "Este dispositivo deixará de receber notificações em segundo plano imediatamente.",
+        "shared_mailboxes_no_push": "Caixas de correio que outras pessoas compartilham com você não enviam notificações em segundo plano.",
+        "error_forbidden": "O servidor de e-mail não permite notificações em segundo plano para esta conta.",
+        "error_over_quota": "Esta conta tem registros push demais no servidor de e-mail (o limite costuma ser 15). Revogue os dispositivos que você não usa mais nas configurações de notificação e tente novamente."
       }
     },
     "language_region": {

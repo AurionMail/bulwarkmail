@@ -1192,7 +1192,10 @@
         "revoke": "Revoca",
         "confirm_revoke_title": "Voleu revocar aquest dispositiu?",
         "confirm_revoke_message": "Deixarà de rebre notificacions en segon pla immediatament. Si hi tornes a activar les notificacions push, es registrarà de nou.",
-        "confirm_revoke_message_this": "Aquest dispositiu deixarà de rebre notificacions en segon pla immediatament."
+        "confirm_revoke_message_this": "Aquest dispositiu deixarà de rebre notificacions en segon pla immediatament.",
+        "shared_mailboxes_no_push": "Les bústies que altres usuaris comparteixen amb vós no envien notificacions en segon pla.",
+        "error_forbidden": "El servidor de correu no permet notificacions en segon pla per a aquest compte.",
+        "error_over_quota": "Aquest compte té massa registres push al servidor de correu (el límit sol ser 15). Revoqueu els dispositius que ja no feu servir a la configuració de notificacions i torneu-ho a provar."
       },
       "sound_selection": {
         "title": "So de notificació",

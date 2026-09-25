@@ -1215,7 +1215,10 @@
         "revoke": "Unieważnij",
         "confirm_revoke_title": "Unieważnić to urządzenie?",
         "confirm_revoke_message": "Natychmiast przestanie odbierać powiadomienia w tle. Ponowne włączenie push na tym urządzeniu zarejestruje je od nowa.",
-        "confirm_revoke_message_this": "To urządzenie natychmiast przestanie odbierać powiadomienia w tle."
+        "confirm_revoke_message_this": "To urządzenie natychmiast przestanie odbierać powiadomienia w tle.",
+        "shared_mailboxes_no_push": "Skrzynki pocztowe udostępnione ci przez innych nie wysyłają powiadomień w tle.",
+        "error_forbidden": "Serwer poczty nie zezwala na powiadomienia w tle dla tego konta.",
+        "error_over_quota": "To konto ma zbyt wiele rejestracji push na serwerze poczty (limit wynosi zwykle 15). Unieważnij nieużywane urządzenia w ustawieniach powiadomień i spróbuj ponownie."
       }
     },
     "language_region": {
