@@ -55,12 +55,12 @@ import { sanitizeOutgoingCalendarEventData } from "@/lib/calendar-event-normaliz
 import {
   baseEventStoreId,
   buildFallbackExcludePatch,
-  buildFallbackOverridePatch,
   isBrowserExpandedOccurrence,
   isServerRecurrenceInstance,
   overrideContextOf,
-  withNewOverrideDetails,
 } from "@/lib/recurrence-instances";
+import { saveOccurrenceEdit, truncateSeriesAt, type EventEditorState } from "@/lib/recurrence-scope-edit";
+import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { getClientByLocalAccountId } from "@/stores/client-registry";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 import { getEventStartDate } from "@/lib/calendar-utils";
@@ -93,7 +93,7 @@ import {
 import { useLiteLinkSegments } from "@/hooks/use-lite-link-segments";
 
 type PendingScopeAction =
-  | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; sendScheduling?: boolean }
+  | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; editor?: EventEditorState; sendScheduling?: boolean }
   | { type: "delete"; event: CalendarEvent; sendScheduling?: boolean }
   | { type: "rsvp"; event: CalendarEvent; participantId: string; status: CalendarParticipant["participationStatus"] };
 
@@ -163,6 +163,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     ),
     [participantIdentities, identities, accountEmails]
   );
+  const resolveContactName = useContactNameResolver();
 
   const [showEventModal, setShowEventModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -872,7 +873,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     jumpTo(eventDate);
   }, [jumpTo]);
 
-  const handleSaveEvent = useCallback(async (data: Partial<CalendarEvent>, requestedScheduling?: boolean) => {
+  const handleSaveEvent = useCallback(async (data: Partial<CalendarEvent>, requestedScheduling?: boolean, editor?: EventEditorState) => {
     if (!client) { toast.error(t("notifications.event_error")); return; }
     const save = async (sendSchedulingMessages: boolean | undefined): Promise<void> => {
       try {
@@ -882,6 +883,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               type: "edit",
               event: editEvent,
               updates: data,
+              editor,
               sendScheduling: sendSchedulingMessages,
             });
             setShowEventModal(false);
@@ -966,28 +968,6 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     }
   }, [client, deleteEvent, events, editEvent, t]);
 
-  const truncateRecurrenceAtEvent = useCallback(async (event: CalendarEvent): Promise<{
-    master: CalendarEvent;
-    originalRules: CalendarEvent["recurrenceRules"];
-  } | null> => {
-    const master = await findMasterEvent(event);
-    if (!master) return null;
-    const originalRules = master.recurrenceRules
-      ? JSON.parse(JSON.stringify(master.recurrenceRules))
-      : null;
-    const occurrenceDate = event.recurrenceId || event.start;
-    const untilDate = new Date(occurrenceDate);
-    untilDate.setSeconds(untilDate.getSeconds() - 1);
-    const until = format(untilDate, "yyyy-MM-dd'T'HH:mm:ss");
-    const truncatedRules = (master.recurrenceRules || []).map(rule => ({
-      ...rule,
-      until,
-      count: null,
-    }));
-    await updateEvent(client!, master.id, { recurrenceRules: truncatedRules });
-    return { master, originalRules };
-  }, [client, findMasterEvent, updateEvent]);
-
   const submitRsvp = useCallback(async (
     eventId: string,
     participantId: string,
@@ -1013,84 +993,22 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     }
     const { type, event, sendScheduling } = pendingScopeAction;
     const updates = type === "edit" ? pendingScopeAction.updates : undefined;
+    const editor = type === "edit" ? pendingScopeAction.editor : undefined;
     setPendingScopeAction(null);
 
     try {
       if (type === "edit" && updates) {
-        switch (scope) {
-          case "this": {
-            if (isServerRecurrenceInstance(event) || isBrowserExpandedOccurrence(event)) {
-              // The store writes one occurrence through its own (synthetic)
-              // id, or as a recurrence override on the base event it was
-              // expanded from.
-              await updateEvent(client, event.id, updates, sendScheduling);
-              break;
-            }
-            // An override outside an expanded series: override it on the master.
-            const master = await findMasterEvent(event);
-            const occurrence = master && overrideContextOf(event, master);
-            const overridePatch = occurrence
-              && buildFallbackOverridePatch(occurrence, withNewOverrideDetails(occurrence, updates, { seriesKeys: true }));
-            if (master && overridePatch) {
-              await updateEvent(client, master.id, overridePatch, sendScheduling);
-            } else {
-              await updateEvent(client, event.id, updates, sendScheduling);
-            }
-            break;
-          }
-          case "this_and_future": {
-            const result = await truncateRecurrenceAtEvent(event);
-            if (!result) {
-              toast.error(t("notifications.event_error"));
-              return;
-            }
-            const { master, originalRules } = result;
-            const occurrenceStart = event.recurrenceId || event.start;
-            const newEventData: Partial<CalendarEvent> = {
-              title: master.title,
-              description: master.description,
-              duration: master.duration,
-              timeZone: master.timeZone,
-              calendarIds: { ...master.calendarIds },
-              status: master.status,
-              freeBusyStatus: master.freeBusyStatus,
-              privacy: master.privacy,
-              showWithoutTime: master.showWithoutTime,
-              recurrenceRules: originalRules,
-              ...updates,
-              start: updates.start || occurrenceStart,
-            };
-            delete (newEventData as Record<string, unknown>).id;
-            delete (newEventData as Record<string, unknown>).uid;
-            delete (newEventData as Record<string, unknown>).recurrenceId;
-            try {
-              await createEvent(client, newEventData, sendScheduling);
-            } catch (createError) {
-              debug.error("Failed to create new series, rolling back master truncation:", createError);
-              try {
-                await updateEvent(client, master.id, { recurrenceRules: originalRules });
-              } catch (rollbackError) {
-                debug.error("Rollback of master event also failed:", rollbackError);
-              }
-              throw createError;
-            }
-            break;
-          }
-          case "all": {
-            const master = await findMasterEvent(event);
-            if (!master) {
-              toast.error(t("notifications.event_error"));
-              return;
-            }
-            const allUpdates = { ...updates };
-            delete (allUpdates as Record<string, unknown>).recurrenceId;
-            await updateEvent(client, master.id, allUpdates, sendScheduling);
-            break;
-          }
-          default: {
-            const _exhaustive: never = scope;
-            throw new Error(`Unhandled scope: ${_exhaustive}`);
-          }
+        const saved = await saveOccurrenceEdit(scope, {
+          event,
+          updates,
+          editor,
+          sendScheduling,
+          userEmails: currentUserEmails,
+          resolveName: resolveContactName,
+        }, { client, updateEvent, createEvent, findMasterEvent });
+        if (!saved) {
+          toast.error(t("notifications.event_error"));
+          return;
         }
         toast.success(t("notifications.event_updated"));
       } else {
@@ -1113,7 +1031,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             break;
           }
           case "this_and_future": {
-            const result = await truncateRecurrenceAtEvent(event);
+            const result = await truncateSeriesAt(event, { client, updateEvent, findMasterEvent });
             if (!result) {
               toast.error(t("notifications.event_error"));
               return;
@@ -1144,7 +1062,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     } catch (error) {
       toast.error(describeError(error, t("notifications.event_error")));
     }
-  }, [client, pendingScopeAction, updateEvent, deleteEvent, createEvent, findMasterEvent, truncateRecurrenceAtEvent, refetchCurrentRange, submitRsvp, describeError, t]);
+  }, [client, pendingScopeAction, updateEvent, deleteEvent, createEvent, findMasterEvent, currentUserEmails, resolveContactName, refetchCurrentRange, submitRsvp, describeError, t]);
 
   const handleRsvp = useCallback(async (eventId: string, participantId: string, status: CalendarParticipant['participationStatus']) => {
     if (!client) return;

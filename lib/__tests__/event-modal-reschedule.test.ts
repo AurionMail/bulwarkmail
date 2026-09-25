@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { changesWhen } from '@/components/calendar/event-modal';
+import { changesWhen } from '@/lib/recurrence-scope-edit';
 import type { CalendarEvent } from '@/lib/jmap/types';
 
 // Whether the event editor's dates change when an event happens - what makes

@@ -4,6 +4,7 @@ import { EventModal } from '../event-modal';
 import type { Calendar, CalendarEvent, CalendarParticipant } from '@/lib/jmap/types';
 import { AUTO_TIME_ZONE } from '@/lib/timezone';
 import { useSettingsStore } from '@/stores/settings-store';
+import { getEventStartDate } from '@/lib/calendar-utils';
 
 // The editor rewrote the organizer on every save of an event with attendees,
 // to the user's first address, and put every attendee back to needs-action.
@@ -161,5 +162,30 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal answers after a
 
     expect(data.start).toBe('2026-10-12T22:00:00');
     expect(statuses(data)).toEqual({ boss: 'accepted', mine: 'accepted', bob: 'declined' });
+  });
+});
+
+// A save for every occurrence of a series applies what the user changed on
+// the occurrence the editor shows (lib/recurrence-scope-edit.ts): the save
+// carries the attendees the editor opened and saved with, and its dates.
+describe('EventModal editor state on save', () => {
+  it('passes the attendees it opened with, those it saved with, and when the event happens', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const event = meeting('me@example.com', {
+      org: participant('1.0', 'me@example.com', true, 'accepted'),
+      bob: participant('1.0', 'bob@example.org', false, 'accepted'),
+    });
+    render(<EventModal event={event} calendars={calendars} onSave={onSave} onClose={vi.fn()} currentUserEmails={['me@example.com']} />);
+    fireEvent.click(screen.getByText('events.edit'));
+    fireEvent.change(screen.getByPlaceholderText('email_placeholder'), { target: { value: 'carol@example.org' } });
+    fireEvent.click(screen.getByText('form.save'));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+    const editor = onSave.mock.calls[0][2];
+    expect(editor.initialAttendees).toEqual([{ name: '', email: 'bob@example.org' }]);
+    expect(editor.attendees).toEqual([{ name: '', email: 'bob@example.org' }, { name: '', email: 'carol@example.org' }]);
+    expect(editor.when.allDay).toBe(false);
+    expect(editor.when.start.getTime()).toBe(getEventStartDate(event).getTime());
+    expect(editor.when.end.getTime() - editor.when.start.getTime()).toBe(3_600_000);
   });
 });

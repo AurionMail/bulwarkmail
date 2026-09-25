@@ -25,6 +25,7 @@ import {
 } from "@/lib/calendar-participants";
 import { canUserRsvp, getEventEditability, canCreateEventsIn } from "@/lib/calendar-editability";
 import { withOwnAlertIds } from "@/lib/calendar-alerts";
+import { changesWhen, type EditorAttendee, type EventEditorState } from "@/lib/recurrence-scope-edit";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { useSettingsStore } from "@/stores/settings-store";
 import { generateUUID } from "@/lib/utils";
@@ -49,7 +50,11 @@ interface EventModalProps {
   defaultEndDate?: Date;
   defaultAllDay?: boolean;
   defaultCalendarId?: string;
-  onSave: (data: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => void | Promise<void>;
+  /**
+   * `editor` is what the editor had besides `data`, for a save that covers
+   * more than the event it was opened on (every occurrence of a series).
+   */
+  onSave: (data: Partial<CalendarEvent>, sendSchedulingMessages?: boolean, editor?: EventEditorState) => void | Promise<void>;
   onDelete?: (id: string, sendSchedulingMessages?: boolean) => void;
   onDuplicate?: (data: Partial<CalendarEvent>) => void;
   onRsvp?: (eventId: string, participantId: string, status: CalendarParticipant['participationStatus']) => void;
@@ -87,27 +92,6 @@ export function savedStatusFields(
 ): Partial<Pick<CalendarEvent, "status" | "freeBusyStatus" | "privacy">> {
   if (event) return {};
   return { status: "confirmed", freeBusyStatus: "busy", privacy: "public" };
-}
-
-/**
- * Whether the editor's dates change when `event` happens: it turns all-day
- * or timed, or its start or end moves - for an all-day event its first or
- * last day. The form's dates and the event's are display dates in the
- * user's zone, compared to the minute the form shows: saving the event in
- * the user's zone instead of its own is no change. Pure, for testing.
- */
-export function changesWhen(
-  event: CalendarEvent,
-  next: { allDay: boolean; start: Date; end: Date },
-): boolean {
-  if (!!event.showWithoutTime !== next.allDay) return true;
-  if (next.allDay) {
-    return !isSameDay(getEventStartDate(event), next.start)
-      || !isSameDay(getEventDisplayEndDate(event), next.end);
-  }
-  const minute = (date: Date) => Math.floor(date.getTime() / 60_000);
-  return minute(getEventStartDate(event)) !== minute(next.start)
-    || minute(getEventEndDate(event)) !== minute(next.end);
 }
 
 function formatDateInput(d: Date): string {
@@ -509,7 +493,9 @@ export function EventModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [attendees, setAttendees] = useState<{ name: string; email: string }[]>(() => {
+  // The attendees the editor opened with: a save for every occurrence of a
+  // series applies only those the user added or removed.
+  const [initialAttendees] = useState<EditorAttendee[]>(() => {
     if (!event?.participants) return [];
     // Never seed the invite list with the organizer or with a repeated address:
     // handleSave writes the organizer separately, so either would round-trip
@@ -528,6 +514,7 @@ export function EventModal({
         return acc;
       }, []);
   });
+  const [attendees, setAttendees] = useState<EditorAttendee[]>(initialAttendees);
   const [sendInvitations, setSendInvitations] = useState(true);
   const participantInputRef = useRef<ParticipantInputHandle>(null);
 
@@ -708,11 +695,15 @@ export function EventModal({
     const shouldSendScheduling = effectiveAttendees.length > 0 && sendInvitations;
     setIsSaving(true);
     try {
-      await onSave(data, shouldSendScheduling);
+      await onSave(data, shouldSendScheduling, {
+        initialAttendees,
+        attendees: effectiveAttendees,
+        when: { allDay, start, end },
+      });
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, sendInvitations, currentUserEmails, resolveContactName, event, onSave, isSaving]);
+  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, initialAttendees, sendInvitations, currentUserEmails, resolveContactName, event, onSave, isSaving]);
 
   const handleRsvp = useCallback((status: CalendarParticipant['participationStatus']) => {
     if (!event || !userParticipantId || !onRsvp) return;
