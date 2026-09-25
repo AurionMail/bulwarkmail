@@ -9,6 +9,7 @@ import { parseDuration } from '@/components/calendar/event-card';
 import { sanitizeOutgoingCalendarEventData } from '@/lib/calendar-event-normalization';
 import { expandRecurringEvents } from '@/lib/recurrence-expansion';
 import { SchedulingDeniedError } from '@/lib/jmap/scheduling-error';
+import { participantLimitOf } from '@/lib/calendar-participants';
 import {
   baseEventStoreId,
   buildFallbackExcludePatch,
@@ -829,8 +830,9 @@ export const useCalendarStore = create<CalendarStore>()(
         } catch (error) {
           debug.error('Failed to create event:', error);
           set({ error: 'Failed to create event' });
-          // The caller can offer to save it without the invitations.
-          if (error instanceof SchedulingDeniedError) throw error;
+          // The caller can offer to save it without the invitations, or say
+          // which limit the server holds it to.
+          if (error instanceof SchedulingDeniedError || participantLimitOf(error) !== null) throw error;
           return null;
         }
       },

@@ -2885,6 +2885,7 @@
       "you_organizer": "Siz organizatörsünüz",
       "you_attendee": "Siz bir katılımcısınız",
       "no_participants": "Katılımcı yok",
+      "limit_warning": "{max} katılımcıdan fazla: sunucu bu etkinliği kaydetmeyi reddedebilir. Bir yönetici bu sınırı yükseltebilir.",
       "count": "{count, plural, one {# katılımcı} other {# katılımcı}}"
     },
     "recurrence": {
@@ -3058,6 +3059,7 @@
       "save_without_invitations": "Davetsiz kaydet",
       "rsvp_updated": "Yanıt güncellendi",
       "rsvp_error": "Yanıt güncellenemedi",
+      "participant_limit": "Sunucu etkinlik başına en fazla {max} katılımcıya izin verdiği için bu değişikliği reddetti. Bir yönetici bu sınırı yükseltebilir.",
       "event_duplicated": "Etkinlik çoğaltıldı",
       "event_error": "Etkinlik kaydedilemedi",
       "task_due": "Görev süresi doldu",

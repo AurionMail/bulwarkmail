@@ -2885,6 +2885,7 @@
       "you_organizer": "You are the organizer",
       "you_attendee": "You are an attendee",
       "no_participants": "No participants",
+      "limit_warning": "More than {max} participants: the server may refuse to save this event. An administrator can raise the limit.",
       "count": "{count, plural, one {# participant} other {# participants}}"
     },
     "recurrence": {
@@ -3058,6 +3059,7 @@
       "save_without_invitations": "Save without invitations",
       "rsvp_updated": "Response updated",
       "rsvp_error": "Failed to update response",
+      "participant_limit": "The server allows at most {max} participants per event, so it refused this change. An administrator can raise the limit.",
       "event_duplicated": "Event duplicated",
       "event_error": "Failed to save event",
       "task_due": "Task due",

@@ -2885,6 +2885,7 @@
       "you_organizer": "Ste organizátorom",
       "you_attendee": "Ste účastníkom",
       "no_participants": "Žiadni účastníci",
+      "limit_warning": "Viac ako {max} účastníkov: server môže odmietnuť uloženie tejto udalosti. Správca môže limit zvýšiť.",
       "count": "{count, plural, one {# účastník} other {# účastníkov}}"
     },
     "recurrence": {
@@ -3058,6 +3059,7 @@
       "save_without_invitations": "Uložiť bez pozvánok",
       "rsvp_updated": "Odpoveď bola aktualizovaná",
       "rsvp_error": "Aktualizácia odpovede zlyhala",
+      "participant_limit": "Server povoľuje najviac {max} účastníkov na udalosť, preto túto zmenu odmietol. Správca môže limit zvýšiť.",
       "event_duplicated": "Udalosť bola duplikovaná",
       "event_error": "Uloženie udalosti zlyhalo",
       "task_due": "Termín úlohy",

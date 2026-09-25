@@ -2885,6 +2885,7 @@
       "you_organizer": "내가 주최자예요",
       "you_attendee": "나는 참석자예요",
       "no_participants": "참석자가 없어요",
+      "limit_warning": "참석자가 {max}명을 넘어요. 서버가 이 일정의 저장을 거부할 수 있어요. 관리자가 한도를 늘릴 수 있어요.",
       "count": "참석자 {count}명"
     },
     "recurrence": {
@@ -3032,6 +3033,7 @@
       "save_without_invitations": "초대장 없이 저장",
       "rsvp_updated": "응답이 업데이트되었어요",
       "rsvp_error": "응답을 업데이트하지 못했어요",
+      "participant_limit": "서버에서 일정당 참석자를 최대 {max}명까지만 허용해서 이 변경을 거부했어요. 관리자가 한도를 늘릴 수 있어요.",
       "event_duplicated": "일정이 복제되었어요",
       "event_error": "일정을 저장하지 못했어요",
       "task_due": "할 일 기한이 다가와요",

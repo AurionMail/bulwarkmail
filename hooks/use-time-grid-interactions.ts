@@ -46,6 +46,8 @@ interface UseTimeGridInteractionsOptions {
     created: string;
     error: string;
   };
+  /** The message for a refused move or resize, `fallback` when there is nothing more to say. */
+  describeError?: (error: unknown, fallback: string) => string;
   isMobile?: boolean;
 }
 
@@ -54,6 +56,7 @@ export function useTimeGridInteractions({
   calendars,
   onCreateRange,
   errorMessages,
+  describeError,
   isMobile,
 }: UseTimeGridInteractionsOptions) {
   const snapToMinutes = useCallback((clientY: number, containerTop: number): number => {
@@ -247,11 +250,11 @@ export function useTimeGridInteractions({
       await useCalendarStore.getState().updateEvent(client, resize.eventId, updates, hasParticipants || undefined);
     } catch (error) {
       debug.error("Failed to resize event:", resize.eventId, error);
-      toast.error(errorMessages.resize);
+      toast.error(describeError ? describeError(error, errorMessages.resize) : errorMessages.resize);
     } finally {
       setResizeVisual(null);
     }
-  }, [computeResize, errorMessages.resize]);
+  }, [computeResize, errorMessages.resize, describeError]);
 
   // --- Click / Double-click / Quick-create ---
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -380,10 +383,10 @@ export function useTimeGridInteractions({
       }
       const hasParticipants = event?.participants && Object.keys(event.participants).length > 0;
       await useCalendarStore.getState().updateEvent(client, data.eventId, { start: newStartISO }, hasParticipants || undefined);
-    } catch {
-      toast.error(errorMessages.move);
+    } catch (error) {
+      toast.error(describeError ? describeError(error, errorMessages.move) : errorMessages.move);
     }
-  }, [snapDragMinutes, errorMessages.move]);
+  }, [snapDragMinutes, errorMessages.move, describeError]);
 
   return {
     dragCreate,

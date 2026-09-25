@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EVENTS_LOAD_ERROR, useCalendarStore, resolveMutationTarget } from '../calendar-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { CalendarEvent } from '@/lib/jmap/types';
-import { jmapError } from '@/lib/jmap/jmap-error';
+import { jmapError, jmapSetError } from '@/lib/jmap/jmap-error';
 
 // Occurrences produced by server-side recurrence expansion carry synthetic
 // ids (lib/recurrence-instances.ts). The store writes "this occurrence only"
@@ -550,5 +550,23 @@ describe('editing one occurrence', () => {
     expect(client.updateCalendarEvent.mock.calls[0][1]).not.toHaveProperty('organizerCalendarAddress');
     expect(client.updateCalendarEvent.mock.calls[1][1]['recurrenceOverrides/2026-09-08T10:00:00'])
       .toMatchObject({ organizerCalendarAddress: 'mailto:org@example.com' });
+  });
+});
+
+// Stalwart 1.0 refuses an event with more participants than
+// maxParticipantsPerEvent; the calendar names that limit to the user.
+describe('an event over the participant limit', () => {
+  const refusal = () => jmapSetError('An event cannot have more than 20 participants.', {
+    type: 'invalidProperties', properties: ['participants'],
+  });
+
+  it('passes Stalwart 1.0’s refusal of a new event on to the caller', async () => {
+    const client = fakeClient({ createCalendarEvent: vi.fn().mockRejectedValue(refusal()) });
+    await expect(useCalendarStore.getState().createEvent(client, { title: 'All hands' })).rejects.toThrow(/more than 20/);
+  });
+
+  it('still answers null for any other failure to create', async () => {
+    const client = fakeClient({ createCalendarEvent: vi.fn().mockRejectedValue(new Error('boom')) });
+    await expect(useCalendarStore.getState().createEvent(client, { title: 'All hands' })).resolves.toBeNull();
   });
 });

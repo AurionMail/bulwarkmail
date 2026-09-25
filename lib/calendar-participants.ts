@@ -1,5 +1,6 @@
 import type { CalendarEvent, CalendarParticipant } from '@/lib/jmap/types';
 import { generateUUID } from '@/lib/utils';
+import { jmapErrorType } from '@/lib/jmap/jmap-error';
 
 export interface ParticipantInfo {
   id: string;
@@ -14,6 +15,19 @@ export interface StatusCounts {
   declined: number;
   tentative: number;
   'needs-action': number;
+}
+
+/**
+ * The limit a refusal names when the server turned an event down for having
+ * too many participants, or null for any other failure. Stalwart 1.0
+ * enforces maxParticipantsPerEvent on every create and update, answers to
+ * invitations included: invalidProperties on `participants`, "An event
+ * cannot have more than 20 participants.".
+ */
+export function participantLimitOf(error: unknown): number | null {
+  if (jmapErrorType(error) !== 'invalidProperties') return null;
+  const match = /more than (\d+) participants/i.exec(error instanceof Error ? error.message : '');
+  return match ? Number(match[1]) : null;
 }
 
 /**

@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LinkifiedText } from "@/components/ui/linkified-text";
-import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, Plus } from "@/components/icons";
+import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, Plus, AlertTriangle } from "@/components/icons";
 import { format, parseISO, addHours, addDays, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
 import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from "./recurrence-editor";
@@ -57,6 +57,8 @@ interface EventModalProps {
   onPreviewChange?: (preview: PendingEventPreview | null) => void;
   currentUserEmails?: string[];
   isSubscriptionCalendar?: (calendarId: string) => boolean;
+  /** The server's maxParticipantsPerEvent, for a warning; null when not advertised. */
+  maxParticipants?: number | null;
   isMobile?: boolean;
 }
 
@@ -292,6 +294,7 @@ export function EventModal({
   onPreviewChange,
   currentUserEmails = [],
   isSubscriptionCalendar,
+  maxParticipants = null,
   isMobile = false,
 }: EventModalProps) {
   const t = useTranslations("calendar");
@@ -1192,6 +1195,14 @@ export function EventModal({
               onAdd={handleAddAttendee}
               onRemove={handleRemoveAttendee}
             />
+            {/* Only a warning: 0.16 advertises the limit without enforcing
+                it, Stalwart 1.0 refuses to save more attendees. */}
+            {maxParticipants != null && attendees.length > maxParticipants && (
+              <p role="status" className="mt-1.5 flex items-start gap-1.5 text-xs text-warning">
+                <AlertTriangle className="mt-px h-3.5 w-3.5 flex-shrink-0" />
+                {t("participants.limit_warning", { max: maxParticipants })}
+              </p>
+            )}
             <ParticipantAvailability
               attendees={attendees}
               start={availabilityWindow.start}

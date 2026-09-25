@@ -9,7 +9,9 @@ import {
   getStatusCounts,
   getParticipantCount,
   buildParticipantMap,
+  participantLimitOf,
 } from '@/lib/calendar-participants';
+import { jmapError, jmapSetError } from '@/lib/jmap/jmap-error';
 
 function makeEvent(
   participants: Record<string, Partial<CalendarParticipant>> | null = null,
@@ -639,5 +641,21 @@ describe('buildParticipantMap', () => {
     );
     expect(Object.keys(map)).toHaveLength(2);
     expect(Object.values(map).some(p => p.name === 'Nobody')).toBe(false);
+  });
+});
+
+describe('participantLimitOf', () => {
+  it('reads the limit from Stalwart 1.0’s refusal', () => {
+    const refusal = jmapSetError('An event cannot have more than 20 participants.', {
+      type: 'invalidProperties', properties: ['participants'],
+    });
+    expect(participantLimitOf(refusal)).toBe(20);
+  });
+
+  it('is null for any other failure', () => {
+    expect(participantLimitOf(jmapSetError('Invalid property or value.', { type: 'invalidProperties', properties: ['participants'] }))).toBeNull();
+    expect(participantLimitOf(jmapError('An event cannot have more than 20 participants.', { type: 'forbidden' }))).toBeNull();
+    expect(participantLimitOf(new Error('An event cannot have more than 20 participants.'))).toBeNull();
+    expect(participantLimitOf(undefined)).toBeNull();
   });
 });

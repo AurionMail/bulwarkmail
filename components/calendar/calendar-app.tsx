@@ -62,6 +62,7 @@ import {
   withNewOverrideDetails,
 } from "@/lib/recurrence-instances";
 import { getClientByLocalAccountId } from "@/stores/client-registry";
+import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 import { getEventStartDate } from "@/lib/calendar-utils";
 import { displayNow } from "@/lib/timezone";
 import { useTaskStore } from "@/stores/task-store";
@@ -110,6 +111,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const linkSegments = useLiteLinkSegments('calendar', routeSegments);
   const router = useRouter();
   const t = useTranslations("calendar");
+  // The server's reason for a refused change, where the user can act on it.
+  const describeError = useCalendarErrorMessage();
   const tWebcalAction = useTranslations("calendar.webcal_action");
   const tDeepLink = useTranslations("deep_link");
   const isMobile = useIsMobile();
@@ -175,6 +178,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const { dialogProps: confirmDialogProps, confirm: confirmAction } = useConfirmDialog();
   const tMgmt = useTranslations("calendar.management");
   const [editEvent, setEditEvent] = useState<CalendarEvent | null>(null);
+  // The attendee limit of the account the edited (or a new) event is in, for
+  // the editor's warning.
+  const maxParticipants = useMemo(() => {
+    const accountClient = (editEvent?.localAccountId && getClientByLocalAccountId(editEvent.localAccountId)) || client;
+    return accountClient?.getMaxParticipantsPerEvent?.(editEvent?.accountId) ?? null;
+  }, [client, editEvent]);
   const [defaultModalDate, setDefaultModalDate] = useState<Date | undefined>();
   const [defaultModalEndDate, setDefaultModalEndDate] = useState<Date | undefined>();
   const [defaultModalAllDay, setDefaultModalAllDay] = useState(false);
@@ -912,11 +921,11 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           if (ok) await save(false);
           return;
         }
-        toast.error(t("notifications.event_error"));
+        toast.error(describeError(error, t("notifications.event_error")));
       }
     };
     await save(requestedScheduling);
-  }, [client, editEvent, createEvent, updateEvent, focusCalendarOnEvent, confirmAction, t]);
+  }, [client, editEvent, createEvent, updateEvent, focusCalendarOnEvent, confirmAction, describeError, t]);
 
   const handleDuplicateEvent = useCallback(async (data: Partial<CalendarEvent>) => {
     if (!client) { toast.error(t("notifications.event_error")); return; }
@@ -930,12 +939,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       toast.success(t("notifications.event_duplicated"));
       setEditEvent(created);
       setDefaultModalDate(undefined);
-    } catch {
-      toast.error(t("notifications.event_error"));
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.event_error")));
       setShowEventModal(false);
       setEditEvent(null);
     }
-  }, [client, createEvent, focusCalendarOnEvent, t]);
+  }, [client, createEvent, focusCalendarOnEvent, describeError, t]);
 
   const handleDeleteEvent = useCallback(async (id: string, sendSchedulingMessages?: boolean) => {
     if (!client) { toast.error(t("notifications.event_error")); return; }
@@ -990,10 +999,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     try {
       await rsvpEvent(client, eventId, participantId, status, undefined, scope);
       toast.success(t("notifications.rsvp_updated"));
-    } catch {
-      toast.error(t("notifications.rsvp_error"));
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.rsvp_error")));
     }
-  }, [client, rsvpEvent, t]);
+  }, [client, rsvpEvent, describeError, t]);
 
   const handleScopeSelect = useCallback(async (scope: RecurrenceEditScope) => {
     if (!client || !pendingScopeAction) { toast.error(t("notifications.event_error")); return; }
@@ -1133,10 +1142,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       } catch {
         debug.error("Failed to refresh calendar after scope operation");
       }
-    } catch {
-      toast.error(t("notifications.event_error"));
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.event_error")));
     }
-  }, [client, pendingScopeAction, updateEvent, deleteEvent, createEvent, findMasterEvent, truncateRecurrenceAtEvent, refetchCurrentRange, submitRsvp, t]);
+  }, [client, pendingScopeAction, updateEvent, deleteEvent, createEvent, findMasterEvent, truncateRecurrenceAtEvent, refetchCurrentRange, submitRsvp, describeError, t]);
 
   const handleRsvp = useCallback(async (eventId: string, participantId: string, status: CalendarParticipant['participationStatus']) => {
     if (!client) return;
@@ -1184,10 +1193,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         toast.success(t("notifications.event_duplicated"));
         openEditModal(created);
       }
-    } catch {
-      toast.error(t("notifications.event_error"));
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.event_error")));
     }
-  }, [detailEvent, client, createEvent, closeDetail, openEditModal, t]);
+  }, [detailEvent, client, createEvent, closeDetail, openEditModal, describeError, t]);
 
   const handleSaveNoteFromDetail = useCallback(async (note: string) => {
     if (!detailEvent || !client) return;
@@ -1200,10 +1209,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       await updateEvent(client, detailEvent.id, { description: newDescription });
       setDetailEvent({ ...detailEvent, description: newDescription });
       toast.success(t("detail.note_saved"));
-    } catch {
-      toast.error(t("notifications.event_error"));
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.event_error")));
     }
-  }, [detailEvent, client, updateEvent, t]);
+  }, [detailEvent, client, updateEvent, describeError, t]);
 
   const handleDuplicateContextMenu = useCallback(async (event: CalendarEvent) => {
     if (!client) { toast.error(t("notifications.event_error")); return; }
@@ -1231,10 +1240,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         toast.success(t("notifications.event_duplicated"));
         openEditModal(created);
       }
-    } catch {
-      toast.error(t("notifications.event_error"));
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.event_error")));
     }
-  }, [client, createEvent, openEditModal, t]);
+  }, [client, createEvent, openEditModal, describeError, t]);
 
   const handleExportICS = useCallback((event: CalendarEvent) => {
     try {
@@ -1776,6 +1785,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 onPreviewChange={setPendingPreview}
                 currentUserEmails={currentUserEmails}
                 isSubscriptionCalendar={isSubscriptionCalendar}
+                maxParticipants={maxParticipants}
                 isMobile={false}
               />
             </div>
@@ -1912,6 +1922,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           onClose={() => { setShowEventModal(false); setEditEvent(null); setDefaultCalendarIdForCreate(undefined); setDefaultModalAllDay(false); }}
           currentUserEmails={currentUserEmails}
           isSubscriptionCalendar={isSubscriptionCalendar}
+          maxParticipants={maxParticipants}
           isMobile={true}
         />
       )}

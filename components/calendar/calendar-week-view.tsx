@@ -17,6 +17,7 @@ import { useTimeGridInteractions } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
+import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 
 interface CalendarWeekViewProps extends ScrollWindowViewProps {
   selectedDate: Date;
@@ -69,6 +70,7 @@ export function CalendarWeekView({
   onToggleTaskComplete,
 }: CalendarWeekViewProps) {
   const t = useTranslations("calendar");
+  const describeError = useCalendarErrorMessage();
   // Grid days / event dates are display dates (local fields = wall-clock in
   // the user's zone); the app-wide formatter would shift them again (#755).
   const intlFormatter = useDisplayDateFormatter();
@@ -301,6 +303,7 @@ export function CalendarWeekView({
       created: t("notifications.event_created"),
       error: t("notifications.event_error"),
     },
+    describeError,
     isMobile,
   });
 

@@ -2885,6 +2885,7 @@
       "you_organizer": "Jesteś organizatorem",
       "you_attendee": "Jesteś uczestnikiem",
       "no_participants": "Brak uczestników",
+      "limit_warning": "Ponad {max} uczestników: serwer może odmówić zapisania tego wydarzenia. Administrator może zwiększyć limit.",
       "count": "{count, plural, one {# uczestnik} other {# uczestników}}"
     },
     "recurrence": {
@@ -3032,6 +3033,7 @@
       "save_without_invitations": "Zapisz bez zaproszeń",
       "rsvp_updated": "Odpowiedź zaktualizowano",
       "rsvp_error": "Nie udało się zaktualizować odpowiedzi",
+      "participant_limit": "Serwer pozwala na maksymalnie {max} uczestników wydarzenia, więc odrzucił tę zmianę. Administrator może zwiększyć limit.",
       "event_duplicated": "Wydarzenie zduplikowano",
       "event_error": "Nie udało się zapisać wydarzenia",
       "task_due": "Termin zadania",

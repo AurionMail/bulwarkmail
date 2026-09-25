@@ -15,6 +15,7 @@ import { toast } from "@/stores/toast-store";
 import { useCalendarLocale } from "@/hooks/use-calendar-locale";
 import { useScrollWindow } from "@/hooks/use-scroll-window";
 import { dayKey, parseDayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
+import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 
 interface CalendarMonthViewProps extends ScrollWindowViewProps {
   selectedDate: Date;
@@ -58,6 +59,7 @@ export function CalendarMonthView({
   pendingPreview,
 }: CalendarMonthViewProps) {
   const t = useTranslations("calendar");
+  const describeError = useCalendarErrorMessage();
   const showTimeInMonthView = useSettingsStore((state) => state.showTimeInMonthView);
   // On mobile the month view collapses events to dots unless the user opted
   // into full entries via "Show time in month view" (#666).
@@ -234,10 +236,10 @@ export function CalendarMonthView({
       if (!client) return;
       const hasParticipants = event?.participants && Object.keys(event.participants).length > 0;
       await useCalendarStore.getState().updateEvent(client, data.eventId, { start: newStartISO }, hasParticipants || undefined);
-    } catch {
-      toast.error(t("notifications.event_move_error"));
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.event_move_error")));
     }
-  }, [t]);
+  }, [t, describeError]);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden" role="grid" aria-label={formatFullDate(selectedDate)}>

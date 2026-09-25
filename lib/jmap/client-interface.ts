@@ -78,6 +78,8 @@ export interface IJMAPClient {
   getMaxSizeUpload(): number;
   /** RFC 8621 maxSizeAttachmentsPerEmail of the mail account (0 = unknown). */
   getMaxSizeAttachmentsPerEmail?(): number;
+  /** Calendars capability maxParticipantsPerEvent of the account (null = not advertised). */
+  getMaxParticipantsPerEvent?(accountId?: string): number | null;
   getMaxCallsInRequest(): number;
   getMaxObjectsInGet(): number;
   getMaxObjectsInSet(): number;

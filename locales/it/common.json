@@ -2885,6 +2885,7 @@
       "you_organizer": "Sei l'organizzatore",
       "you_attendee": "Sei un partecipante",
       "no_participants": "Nessun partecipante",
+      "limit_warning": "Più di {max} partecipanti: il server potrebbe rifiutarsi di salvare questo evento. Un amministratore può aumentare il limite.",
       "count": "{count, plural, one {# partecipante} other {# partecipanti}}"
     },
     "recurrence": {
@@ -3032,6 +3033,7 @@
       "save_without_invitations": "Salva senza inviti",
       "rsvp_updated": "Risposta aggiornata",
       "rsvp_error": "Impossibile aggiornare la risposta",
+      "participant_limit": "Il server consente al massimo {max} partecipanti per evento, quindi ha rifiutato la modifica. Un amministratore può aumentare il limite.",
       "event_duplicated": "Evento duplicato",
       "event_error": "Salvataggio dell'evento non riuscito",
       "task_due": "Attività in scadenza",

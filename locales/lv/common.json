@@ -2884,6 +2884,7 @@
       "you_organizer": "Jūs esat organizators",
       "you_attendee": "Jūs esat dalībnieks",
       "no_participants": "Nav dalībnieku",
+      "limit_warning": "Vairāk nekā {max} dalībnieki: serveris var atteikties saglabāt šo pasākumu. Administrators var palielināt ierobežojumu.",
       "count": "{count, plural, one {# dalībnieks} other {# dalībnieki}}"
     },
     "recurrence": {
@@ -3031,6 +3032,7 @@
       "save_without_invitations": "Saglabāt bez ielūgumiem",
       "rsvp_updated": "Atbilde atjaunināta",
       "rsvp_error": "Neizdevās atjaunināt atbildi",
+      "participant_limit": "Serveris atļauj ne vairāk kā {max} dalībniekus vienam pasākumam, tāpēc šīs izmaiņas tika noraidītas. Administrators var palielināt ierobežojumu.",
       "event_duplicated": "Pasākums dublēts",
       "event_error": "Neizdevās saglabāt pasākumu",
       "task_due": "Uzdevuma termiņš",

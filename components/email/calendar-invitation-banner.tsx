@@ -40,6 +40,7 @@ import {
 import { cn } from '@/lib/utils';
 import { sanitizeColor } from '@/components/calendar/event-card';
 import { RecipientPopover } from './recipient-popover';
+import { useCalendarErrorMessage } from '@/hooks/use-calendar-error-message';
 
 interface InvitationChangeItem {
   label: string;
@@ -361,6 +362,7 @@ type BannerState = 'loading' | 'parsed' | 'rsvp-sent' | 'imported' | 'error';
 
 export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProps) {
   const t = useTranslations('email_viewer.calendar_invitation');
+  const describeError = useCalendarErrorMessage();
   const format = useFormatter();
   const router = useRouter();
   const client = useAuthStore((s) => s.client);
@@ -648,7 +650,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       }
     } catch (err) {
       console.error('[CalendarInvitation] RSVP failed:', err);
-      setActionError(t('action_failed'));
+      setActionError(describeError(err, t('action_failed')));
     } finally {
       setIsProcessing(false);
     }

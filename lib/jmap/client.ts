@@ -5149,6 +5149,25 @@ export class JMAPClient implements IJMAPClient {
     };
   }
 
+  /**
+   * The most participants an event may have, from the account's calendars
+   * capability (`maxParticipantsPerEvent`; the primary calendar account's
+   * when the account names none), or null when it is not advertised.
+   * Stalwart 1.0 refuses to create or update an event with more ATTENDEEs,
+   * an answer to an invitation included; 0.16 advertises the same value
+   * without enforcing it.
+   */
+  getMaxParticipantsPerEvent(accountId?: string): number | null {
+    for (const id of [accountId, this.getCalendarsAccountId()]) {
+      if (!id) continue;
+      const capability = this.getAccountCapability("urn:ietf:params:jmap:calendars", id) as
+        { maxParticipantsPerEvent?: unknown } | undefined;
+      const max = capability?.maxParticipantsPerEvent;
+      if (typeof max === 'number' && max > 0) return max;
+    }
+    return null;
+  }
+
   getMaxSizeAttachmentsPerEmail(): number {
     const mail = this.getAccountCapability("urn:ietf:params:jmap:mail") as { maxSizeAttachmentsPerEmail?: number } | undefined;
     return mail?.maxSizeAttachmentsPerEmail || 0;
@@ -7505,7 +7524,7 @@ export class JMAPClient implements IJMAPClient {
         if (sendSchedulingMessages && error.type === 'forbidden') {
           throw new SchedulingDeniedError(error.description || 'forbidden');
         }
-        throw new Error(error.description || "Failed to create calendar event");
+        throw jmapSetError(error.description || "Failed to create calendar event", error);
       }
 
       const createdId = result.created?.["new-event"]?.id;
@@ -7689,7 +7708,7 @@ export class JMAPClient implements IJMAPClient {
         }
         // Keep the SetError type: the store retries some refusals
         // differently (isOverrideSeriesKeyRejection).
-        throw jmapError(error.description || "Failed to update calendar event", error);
+        throw jmapSetError(error.description || "Failed to update calendar event", error);
       }
       debug.log('calendar', 'CalendarEvent/set update full response', { methodName, result });
       debug.log('calendar', 'CalendarEvent/set update success', { eventId, updated: result.updated ? Object.keys(result.updated) : null });
