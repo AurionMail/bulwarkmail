@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useFileStore } from '../file-store';
+import { useFileStore, resourceServerRef } from '../file-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode } from '@/lib/jmap/types';
 
@@ -409,5 +409,17 @@ describe('file-store modification date (issue #700)', () => {
 
     await useFileStore.getState().navigate(null);
     expect(useFileStore.getState().resources[0].lastModified).toBe('2025-01-01T00:00:00Z');
+  });
+});
+
+describe('resourceServerRef', () => {
+  it('splits a shared drive\'s namespaced id into the owner account and the node id', () => {
+    expect(resourceServerRef({ id: 'owner1:n5', isShared: true, ownerAccountId: 'owner1' }))
+      .toEqual({ accountId: 'owner1', id: 'n5' });
+  });
+
+  it('keeps the id of a node in the user\'s own drive', () => {
+    expect(resourceServerRef({ id: 'n5' })).toEqual({ accountId: null, id: 'n5' });
+    expect(resourceServerRef({ id: 'n5', isShared: false, ownerAccountId: 'me' })).toEqual({ accountId: 'me', id: 'n5' });
   });
 });

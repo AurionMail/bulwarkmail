@@ -165,6 +165,21 @@ function isCrossAccountId(id: string | null): boolean {
   return id != null && id.includes(':');
 }
 
+/**
+ * The account and server id behind a listed resource, for calls made outside
+ * the JMAP client (the WOPI editor): a shared drive's node is listed as
+ * "<owner>:<id>". `accountId` is null when the listing didn't record one.
+ */
+export function resourceServerRef(
+  resource: Pick<FileResource, 'id' | 'isShared' | 'ownerAccountId'>,
+): { accountId: string | null; id: string } {
+  const owner = resource.ownerAccountId ?? null;
+  if (resource.isShared && owner && resource.id.startsWith(`${owner}:`)) {
+    return { accountId: owner, id: resource.id.slice(owner.length + 1) };
+  }
+  return { accountId: owner, id: resource.id };
+}
+
 function nodeToResource(node: FileNode): FileResource {
   const isDir = isFolder(node);
   return {

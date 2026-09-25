@@ -10,7 +10,7 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore } from "@/stores/file-store";
+import { useFileStore, resourceServerRef } from "@/stores/file-store";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
 import { NavigationRail } from "@/components/layout/navigation-rail";
@@ -721,17 +721,25 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       {/* WOPI document editor overlay (#425) */}
       {editFile && (() => {
         const editResource = resources.find(r => r.name === editFile);
-        return editResource ? (
+        if (!editResource) return null;
+        // A shared drive's node opens in its owner's account, by its own id.
+        const node = resourceServerRef(editResource);
+        // The Pro shell may be browsing a login other than the active one.
+        const slot = currentFilesAccountId
+          ? accounts.find((a) => a.id === currentFilesAccountId)?.cookieSlot
+          : undefined;
+        return (
           <WopiEditor
-            target={{ kind: "file", id: editResource.id, name: editResource.name }}
-            accountId={filesAccountId}
+            target={{ kind: "file", id: node.id, name: editResource.name }}
+            accountId={node.accountId ?? filesAccountId}
+            slot={slot}
             onClose={() => {
               setEditFile(null);
               // The editor may have saved new content - pick up size/mtime.
               refresh();
             }}
           />
-        ) : null;
+        );
       })()}
 
       {/* Legacy file migration progress (issue #379) */}

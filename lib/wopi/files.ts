@@ -1,5 +1,6 @@
 import { postJmap, fetchJmapSession, rebaseApiUrl } from '@/lib/stalwart/jmap-api';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
+import { jmapError, type JmapErrorInfo } from '@/lib/jmap/jmap-error';
 import type { FileNode } from '@/lib/jmap/types';
 
 /**
@@ -195,20 +196,27 @@ export async function updateFileNodeBlob(
   blobId: string,
 ): Promise<{ modified: string }> {
   const responses = await callJmap(ctx, [
-    ['FileNode/set', { accountId, update: { [fileId]: { blobId } } }, 's0'],
+    // `modified: null` has the server stamp the save. Stalwart 1.0 treats
+    // `modified` as the client's and leaves it alone on a content change
+    // unless asked, so the list kept the old date and the conflict check
+    // against other JMAP writers never fired. 0.16.6+ bump it either way.
+    ['FileNode/set', { accountId, update: { [fileId]: { blobId, modified: null } } }, 's0'],
     ['FileNode/get', { accountId, ids: [fileId], properties: ['id', 'modified'] }, 'g1'],
   ]);
 
   const [setName, setPayload] = responses[0] ?? [];
   if (setName !== 'FileNode/set') {
-    throw new Error((setPayload?.description as string) || 'FileNode/set failed');
+    throw jmapError((setPayload?.description as string) || 'FileNode/set failed', setPayload as JmapErrorInfo | undefined);
   }
-  const updated = setPayload?.updated as Record<string, unknown> | undefined;
+  const updated = setPayload?.updated as Record<string, { modified?: unknown } | null> | undefined;
   if (!updated || !(fileId in updated)) {
-    const notUpdated = setPayload?.notUpdated as Record<string, { description?: string }> | undefined;
-    throw new Error(notUpdated?.[fileId]?.description || 'FileNode content update rejected');
+    const notUpdated = setPayload?.notUpdated as Record<string, JmapErrorInfo> | undefined;
+    throw jmapError(notUpdated?.[fileId]?.description || 'FileNode content update rejected', notUpdated?.[fileId]);
   }
 
+  // 1.0 echoes the time it stamped; 0.16 answers `null` and the get reads it.
+  const stamped = updated[fileId]?.modified;
+  if (typeof stamped === 'string') return { modified: stamped };
   const getPayload = responses[1]?.[1];
   const node = ((getPayload?.list as FileNode[] | undefined) ?? [])[0];
   return { modified: node?.modified ?? new Date().toISOString() };

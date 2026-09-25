@@ -13,7 +13,8 @@ import { mintWopiToken, wopiDocumentId, type WopiTokenPayload } from '@/lib/wopi
  *   { blobId: string, name: string, type?: string, accountId?: string } - a mail attachment
  *
  * Mints a WOPI access token scoped to one document and returns the editor
- * URL to POST it to (#425). Attachments always open read-only (#1047).
+ * URL to POST it to (#425). Attachments always open read-only (#1047). A
+ * node in a shared drive is named by its owner's accountId and its own id.
  * Session-authenticated - this is the only WOPI route the browser calls;
  * everything under /api/wopi/files is called by the editor server-to-server
  * with the token minted here.
@@ -50,14 +51,19 @@ export async function POST(request: NextRequest) {
     const trusted = creds.trusted || new URL(serverUrl).origin === request.nextUrl.origin;
     const ctx = { serverUrl, authHeader: creds.authHeader, trusted };
 
+    // The account holding the document: the one the client names (a shared
+    // drive's owner, a shared mailbox), else the user's own. A file also
+    // needs the user's own account, where PutFile uploads (uploadAccountId).
     let accountId = str('accountId');
-    if (!accountId) {
+    let ownAccountId = '';
+    if (!accountId || !blobId) {
       const session = await fetchJmapSession(serverUrl, creds.authHeader, { trusted });
       const capability = blobId ? 'urn:ietf:params:jmap:mail' : 'urn:ietf:params:jmap:filenode';
-      accountId =
+      ownAccountId =
         session?.primaryAccounts?.[capability] ||
         Object.keys(session?.accounts ?? {})[0] ||
         '';
+      accountId ||= ownAccountId;
     }
     if (!accountId) {
       return NextResponse.json({ error: blobId ? 'No mail account' : 'No files account' }, { status: 404 });
@@ -106,6 +112,7 @@ export async function POST(request: NextRequest) {
       authHeader: creds.authHeader,
       username: creds.username,
       accountId,
+      ...(blobId ? {} : { uploadAccountId: ownAccountId || accountId }),
       ...document,
       canWrite: editable,
       origin: request.nextUrl.origin,

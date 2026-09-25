@@ -20,7 +20,15 @@ export interface WopiTokenPayload {
   serverUrl: string;
   authHeader: string;
   username: string;
+  /** Account holding the document: the owner's, for a node in a shared drive. */
   accountId: string;
+  /**
+   * The user's own account, which PutFile uploads new content into. An
+   * uploaded blob is reserved to its account and only that account's members
+   * may use it, so a sharee's save into the owner's drive would be refused.
+   * Absent on older tokens, which upload into `accountId`.
+   */
+  uploadAccountId?: string;
   /** FileNode id for 'file', blobId for 'attachment'. */
   fileId: string;
   /** Absent on tokens minted before attachments existed - those are files. */
@@ -96,6 +104,7 @@ export function verifyWopiToken(token: string | null, documentId: string): WopiT
     typeof p.exp !== 'number'
   ) return null;
   if (p.kind !== undefined && p.kind !== 'file' && p.kind !== 'attachment') return null;
+  if (p.uploadAccountId !== undefined && (typeof p.uploadAccountId !== 'string' || !p.uploadAccountId)) return null;
   if (wopiDocumentId(p) !== documentId) return null;
   if (Date.now() > p.exp) return null;
   return p;
