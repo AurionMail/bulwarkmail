@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Email, Mailbox } from '@/lib/jmap/types';
-import { SubmissionQuotaError } from '@/lib/jmap/client';
+import { NoLongerScheduledError, SubmissionQuotaError } from '@/lib/jmap/client';
 import { toast } from '@/stores/toast-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -15,6 +15,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 vi.mock('@/hooks/use-media-query', () => ({
   useDeviceDetection: () => ({ isMobile: false, isTablet: false, isDesktop: true }),
   useMediaQuery: () => false,
+  useIsDesktop: () => true,
 }));
 
 vi.mock('@/components/tour/tour-provider', () => ({
@@ -79,7 +80,7 @@ afterEach(() => {
 
 describe('viewer send failures', () => {
   it('reports a failed quick reply and keeps the text on Stalwart 1.0', async () => {
-    const onQuickReply = vi.fn().mockRejectedValue(new SubmissionQuotaError(QUOTA));
+    const onQuickReply = vi.fn().mockRejectedValue(new SubmissionQuotaError(QUOTA, true));
     render(
       <EmailViewer email={makeEmail()} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" onQuickReply={onQuickReply} />,
     );
@@ -93,18 +94,20 @@ describe('viewer send failures', () => {
     expect((box as HTMLTextAreaElement).value).toBe('Thanks!');
   });
 
-  it('waits for "Send now" and reports its failure on Stalwart 1.0', async () => {
-    const onRescheduleScheduled = vi.fn().mockRejectedValue(new SubmissionQuotaError(QUOTA));
+  const scheduled = () => makeEmail({
+    isScheduled: true,
+    scheduledUndoStatus: 'pending',
+    scheduledSendAt: new Date(Date.now() + 3_600_000).toISOString(),
+    emailSubmissionId: 'sub-1',
+    scheduledIdentityId: 'identity-1',
+    keywords: { $seen: true },
+  });
+
+  it('waits for "Send now" and says the message is still scheduled at a full quota on Stalwart 1.0', async () => {
+    const onRescheduleScheduled = vi.fn().mockRejectedValue(new SubmissionQuotaError(QUOTA, true));
     render(
       <EmailViewer
-        email={makeEmail({
-          isScheduled: true,
-          scheduledUndoStatus: 'pending',
-          scheduledSendAt: new Date(Date.now() + 3_600_000).toISOString(),
-          emailSubmissionId: 'sub-1',
-          scheduledIdentityId: 'identity-1',
-          keywords: { $seen: true },
-        })}
+        email={scheduled()}
         mailboxes={mailboxes}
         selectedMailbox="inbox"
         currentMailboxRole="inbox"
@@ -114,8 +117,50 @@ describe('viewer send failures', () => {
 
     fireEvent.click(screen.getAllByText('send_now').at(-1)!);
 
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith('submission_quota'));
+    // The i18n test mock renders keys: "still scheduled for {date}", then why.
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('still_scheduled_at', { message: 'submission_quota' }));
     expect(onRescheduleScheduled).toHaveBeenCalledTimes(1);
+  });
+
+  it('says the message was already sent when it went out while room was made on Stalwart 1.0', async () => {
+    const onRescheduleScheduled = vi.fn().mockRejectedValue(new NoLongerScheduledError(true));
+    render(
+      <EmailViewer
+        email={scheduled()}
+        mailboxes={mailboxes}
+        selectedMailbox="inbox"
+        currentMailboxRole="inbox"
+        onRescheduleScheduled={onRescheduleScheduled}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByText('send_now').at(-1)!);
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('already_sent', undefined));
+  });
+
+  it('explains a full submission quota when the unsubscribe mail cannot go out on Stalwart 1.0', async () => {
+    const sendEmail = vi.fn().mockRejectedValue(new SubmissionQuotaError(QUOTA, true));
+    useAuthStore.setState({ client: { sendEmail } as never });
+    try {
+      render(
+        <EmailViewer
+          email={makeEmail({ headers: { 'List-Unsubscribe': '<mailto:leave@lists.example.com?subject=unsubscribe>' } })}
+          mailboxes={mailboxes}
+          selectedMailbox="inbox"
+          currentMailboxRole="inbox"
+        />,
+      );
+
+      fireEvent.click(screen.getAllByText('email_viewer.unsubscribe_banner.button').at(-1)!);
+      fireEvent.click(screen.getAllByText('email_viewer.unsubscribe_banner.confirm_button').at(-1)!);
+
+      await waitFor(() => expect(toastError).toHaveBeenCalledWith('submission_quota'));
+      expect(sendEmail).toHaveBeenCalledWith(['leave@lists.example.com'], 'unsubscribe', '', undefined, undefined, undefined, undefined, undefined, undefined);
+      expect(screen.getAllByText('email_viewer.unsubscribe_banner.error').length).toBeGreaterThan(0);
+    } finally {
+      useAuthStore.setState({ client: null } as never);
+    }
   });
 
   describe('automatic read receipts', () => {
@@ -123,7 +168,7 @@ describe('viewer send failures', () => {
     let sendReadReceipt: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-      sendReadReceipt = vi.fn().mockRejectedValue(new SubmissionQuotaError(QUOTA));
+      sendReadReceipt = vi.fn().mockRejectedValue(new SubmissionQuotaError(QUOTA, true));
       useSettingsStore.setState({ readReceiptResponse: 'always' });
       useAuthStore.setState({
         client: { sendReadReceipt } as never,

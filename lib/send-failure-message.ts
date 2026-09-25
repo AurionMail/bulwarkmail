@@ -1,20 +1,85 @@
-import { RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError } from '@/lib/jmap/client';
+import { NoLongerScheduledError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError } from '@/lib/jmap/client';
+
+type Translate = (key: string, values?: Record<string, string>) => string;
+
+/**
+ * Thrown by "Undo send" and "Cancel and edit" when the cancel went through
+ * but a step after it failed: putting the message back in Drafts
+ * (`restore`), or removing the copy of an S/MIME message, which is composed
+ * again from scratch (`remove`). Nothing goes out; the message is still in
+ * Sent. Reported apart from a failed cancel, which may still let it go.
+ */
+export class SendCancelledCleanupError extends Error {
+  constructor(readonly step: 'restore' | 'remove', readonly reason: unknown) {
+    super(step === 'restore'
+      ? 'Sending was cancelled, but the message could not be put back in Drafts'
+      : 'Sending was cancelled, but the unsent message could not be removed from Sent');
+    this.name = 'SendCancelledCleanupError';
+  }
+}
 
 /**
  * What to tell the user about a send (or reschedule) that failed, from the
  * `email_composer` messages. Most errors carry the server's own description;
  * these are the ones it would misrepresent or leave unexplained:
- * - a full submission quota: Stalwart asks the user to "delete some", but
- *   the client has already removed every record it may, so only an
- *   administrator can help;
+ * - a full submission quota on Stalwart: it asks the user to "delete some",
+ *   but the client has already removed every record it may, so only an
+ *   administrator can help. Another server's overQuota may stand for any
+ *   sending limit, so its own description goes with a generic sentence;
  * - a timeout, which is not a clean failure: the submission may have reached
  *   the server and gone out, with only the answer lost. Saying "send failed"
  *   would invite a re-send and a duplicate, so point at Sent instead (#702);
  * - a hold beyond the server's limit.
  */
-export function sendFailureMessage(error: unknown, t: (key: string) => string): string {
-  if (error instanceof SubmissionQuotaError) return t('submission_quota');
+export function sendFailureMessage(error: unknown, t: Translate): string {
+  if (error instanceof SubmissionQuotaError) {
+    return error.countsRecords
+      ? t('submission_quota')
+      : t('submission_limit', { reason: error.description || error.jmapType });
+  }
   if (error instanceof RequestTimeoutError) return t('send_timeout');
   if (error instanceof ScheduleTooLateError) return t('schedule_send_too_late');
   return error instanceof Error && error.message ? error.message : t('send_failed');
+}
+
+/**
+ * The toast for a failed "Send now" or "Reschedule", from the `email_viewer`
+ * (`tViewer`) and `email_composer` (`tComposer`) messages. At a full
+ * submission quota no replacement was made, so the message still goes out at
+ * its old time, `scheduledAt` (formatted) when known. Making room takes a
+ * while, and the original may have gone out meanwhile.
+ */
+export function rescheduleFailureToast(
+  error: unknown,
+  tViewer: Translate,
+  tComposer: Translate,
+  scheduledAt?: string,
+): { title: string; message?: string } {
+  if (error instanceof NoLongerScheduledError) {
+    return { title: tViewer(error.sent ? 'already_sent' : 'no_longer_scheduled') };
+  }
+  if (error instanceof SubmissionQuotaError) {
+    return {
+      title: scheduledAt ? tViewer('still_scheduled_at', { date: scheduledAt }) : tViewer('still_scheduled'),
+      message: sendFailureMessage(error, tComposer),
+    };
+  }
+  return { title: sendFailureMessage(error, tComposer) };
+}
+
+/**
+ * The toast for a failed "Undo send" or "Cancel and edit". A failed cancel
+ * may still let the mail go, so it must never read as done: it gets
+ * `cancelFailedTitle` and the reason. One that went through while a step
+ * after it failed says where the message is instead.
+ */
+export function cancelFailureToast(
+  error: unknown,
+  tViewer: Translate,
+  cancelFailedTitle: string,
+): { title: string; message?: string } {
+  if (error instanceof SendCancelledCleanupError) {
+    return { title: tViewer(error.step === 'restore' ? 'send_cancelled_restore_failed' : 'send_cancelled_remove_failed') };
+  }
+  return { title: cancelFailedTitle, message: error instanceof Error ? error.message : undefined };
 }

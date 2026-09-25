@@ -209,9 +209,16 @@ describe('composer send failures', () => {
   });
 
   it('explains a full submission quota on Stalwart 1.0', async () => {
-    const message = await sendAndFail(new SubmissionQuotaError('There are too many email submissions, please delete some before adding a new one.'));
+    const message = await sendAndFail(new SubmissionQuotaError('There are too many email submissions, please delete some before adding a new one.', true));
 
     expect(message).toBe('submission_quota');
+  });
+
+  it("shows another server's own reason for its overQuota, not Stalwart's explanation", async () => {
+    const message = await sendAndFail(new SubmissionQuotaError('Daily sending limit exceeded', false));
+
+    // The i18n test mock renders the key; the reason goes in as a value.
+    expect(message).toBe('submission_limit');
   });
 
   it("shows the server's reason for other failures", async () => {

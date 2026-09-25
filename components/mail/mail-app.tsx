@@ -34,7 +34,7 @@ import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { useEmailStore, buildUnifiedAccountClients, ArchiveMailboxNotFoundError, findArchiveMailbox, resolveUnstampedEmailAccountId } from "@/stores/email-store";
 import { groupSearchScopeFolders } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
-import { sendFailureMessage } from "@/lib/send-failure-message";
+import { cancelFailureToast, rescheduleFailureToast } from "@/lib/send-failure-message";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
@@ -54,7 +54,7 @@ import { usePromptDialog } from "@/hooks/use-prompt-dialog";
 import { useBrowserNavigation, type NavSnapshot } from "@/hooks/use-browser-navigation";
 import { debug } from "@/lib/debug";
 import { playNotificationSound } from "@/lib/notification-sound";
-import { cn, getMailboxPath } from "@/lib/utils";
+import { cn, formatDateTime, getMailboxPath } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
 import { groupEmailsByThread, threadKeyFor, toggleTagKeywords } from "@/lib/thread-utils";
 import { resolveThreadRoute } from "@/lib/thread-routing";
@@ -141,6 +141,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const tCommon = useTranslations('common');
   const tQuote = useTranslations('quote_header');
   const tComposer = useTranslations('email_composer');
+  const tViewer = useTranslations('email_viewer');
   const { appName } = useConfig();
   const mailLayout = useSettingsStore((state) => state.mailLayout);
   // Phones present search full-screen from the header field rather than
@@ -1981,6 +1982,36 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (isMobile) setActiveView('viewer');
   };
 
+  /** When a scheduled message goes out, as the user reads times, if known. */
+  const scheduledTime = (sendAt: string | undefined) =>
+    sendAt ? formatDateTime(sendAt, useSettingsStore.getState().timeFormat) : undefined;
+
+  const toastCancelFailure = (error: unknown, cancelFailedTitle: string) => {
+    const { title, message } = cancelFailureToast(error, tViewer, cancelFailedTitle);
+    toast.error(title, message ? { message } : undefined);
+  };
+
+  // The send is cancelled and the message back in Drafts by then.
+  const reportDraftOpenFailure = (error: unknown) => {
+    console.error('Cancelled the scheduled send, but opening the draft failed:', error);
+  };
+
+  /**
+   * "Cancel and edit" from the list or the viewer, neither of which waits for
+   * it: the draft to open (null for S/MIME, which is composed again), or
+   * undefined once a failure is reported.
+   */
+  const cancelScheduledForEdit = async (email: Email): Promise<Email | null | undefined> => {
+    if (!client) return undefined;
+    try {
+      return await cancelScheduledEmailForEdit(client, email);
+    } catch (error) {
+      console.error('Failed to cancel the scheduled send for editing:', error);
+      toastCancelFailure(error, tViewer('cancel_scheduled_failed'));
+      return undefined;
+    }
+  };
+
   useEffect(() => {
     if (!pendingUndoSend || !client) return;
     if (lastUndoToastSubmissionRef.current === pendingUndoSend.submissionId) return;
@@ -2014,8 +2045,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   if (isScheduledView) await fetchScheduledEmails(client);
                 } catch (error) {
                   console.error('Failed to send now:', error);
-                  // The message stays scheduled; say why it did not go now.
-                  toast.error(sendFailureMessage(error, tComposer));
+                  const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(pending.sendAt));
+                  toast.error(title, message ? { message } : undefined);
                 }
               })();
             },
@@ -2025,18 +2056,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         label: t('email_viewer.undo_send'),
         onClick: () => {
           void (async () => {
+            let restored: Awaited<ReturnType<typeof cancelUndoSend>>;
             try {
-              const restored = await cancelUndoSend(undoClient, pending);
+              restored = await cancelUndoSend(undoClient, pending);
+            } catch (error) {
+              console.error('Failed to undo scheduled send:', error);
+              toastCancelFailure(error, t('email_viewer.undo_send_failed'));
+              return;
+            }
+            // The send is undone; opening the draft or refreshing the list
+            // failing is no reason to say otherwise.
+            try {
               if (restored && !pending.isSmime) {
                 await handleEditDraft(restored);
               }
               if (isScheduledView) await fetchScheduledEmails(client);
             } catch (error) {
-              console.error('Failed to undo scheduled send:', error);
-              // Silence here reads as "undone" while the mail may be on its way.
-              toast.error(t('email_viewer.undo_send_failed'), {
-                message: error instanceof Error ? error.message : undefined,
-              });
+              console.error('Undid the send, but reopening it failed:', error);
             }
           })();
         },
@@ -2052,7 +2088,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cancelUndoSend, clearPendingUndoSend, client, fetchScheduledEmails, isScheduledView, pendingUndoSend?.submissionId, sendDelaySeconds, t, tComposer]);
+  }, [cancelUndoSend, clearPendingUndoSend, client, fetchScheduledEmails, isScheduledView, pendingUndoSend?.submissionId, sendDelaySeconds, t, tComposer, tViewer]);
 
   const handleReplyAll = async () => {
     if (selectedEmail) {
@@ -4095,12 +4131,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onLoadMoreScheduled={() => client && loadMoreScheduledEmails(client)}
                 onCancelScheduledForEdit={async (email) => {
                   if (!client) return;
-                  const restored = await cancelScheduledEmailForEdit(client, email);
+                  // The context menu does not wait for this; report here.
+                  const restored = await cancelScheduledForEdit(email);
+                  if (restored === undefined) return;
                   if (email.isSmimeScheduled) {
                     setComposerMode('compose');
                     setPendingDraft(null);
                   } else if (restored) {
-                    await handleEditDraft(restored);
+                    await handleEditDraft(restored).catch(reportDraftOpenFailure);
                     return;
                   }
                   setShowComposer(true);
@@ -4114,7 +4152,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil);
                     } catch (error) {
                       console.error('Failed to reschedule the scheduled send:', error);
-                      toast.error(sendFailureMessage(error, tComposer));
+                      const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
+                      toast.error(title, message ? { message } : undefined);
                     }
                   }
                 }}
@@ -4428,13 +4467,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onEditDraft={handleEditDraft}
                     onCancelScheduledForEdit={async () => {
                       if (!client || !selectedEmail) return;
-                      const restored = await cancelScheduledEmailForEdit(client, selectedEmail);
+                      // The button does not wait for this; report here.
+                      const restored = await cancelScheduledForEdit(selectedEmail);
+                      if (restored === undefined) return;
                       if (selectedEmail.isSmimeScheduled) {
                         setComposerMode('compose');
                         setShowComposer(true);
                         return;
                       }
-                      if (restored) await handleEditDraft(restored);
+                      if (restored) await handleEditDraft(restored).catch(reportDraftOpenFailure);
                     }}
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JMAPClient, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
+import { JMAPClient, NoLongerScheduledError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
 import { jmapErrorType } from '../jmap/jmap-error';
 
 /**
@@ -628,8 +628,11 @@ describe('overQuota on EmailSubmission/set create', () => {
     const server = fakeStalwart({ version: '1.0', quota: 1 });
     fillWithOldRecords(server, 1);
 
-    await expect(send(createClient({ stalwart: false }))).rejects.toBeInstanceOf(SubmissionQuotaError);
+    const error = await send(createClient({ stalwart: false })).catch((e: unknown) => e);
 
+    expect(error).toBeInstanceOf(SubmissionQuotaError);
+    // Its overQuota need not be about submission records: no Stalwart wording.
+    expect((error as SubmissionQuotaError).countsRecords).toBe(false);
     expect(server.calls('EmailSubmission/query')).toHaveLength(1);
     expect(server.calls('EmailSubmission/changes')).toEqual([]);
   });
@@ -644,6 +647,7 @@ describe('overQuota on EmailSubmission/set create', () => {
 
     expect(error).toBeInstanceOf(SubmissionQuotaError);
     expect((error as Error).message).toBe(OVER_QUOTA_DESCRIPTION);
+    expect((error as SubmissionQuotaError).countsRecords).toBe(true);
     expect(jmapErrorType(error)).toBe('overQuota');
     expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(2);
     // The copy made for this attempt is gone; the user's own draft stays.
@@ -680,6 +684,127 @@ describe('overQuota on EmailSubmission/set create', () => {
     // Nothing was canceled: the mail still goes out at its original time.
     expect(original.canceled).toBe(false);
     expect(server.calls('EmailSubmission/set').filter((args) => args.update)).toEqual([]);
+  });
+
+  describe('when making room takes a while', () => {
+    const reschedule = (client: JMAPClient, delayedUntil: string) =>
+      client.rescheduleEmailSubmission('original', 'email-x', 'identity-1', delayedUntil, 'account-1');
+
+    it('stops without a replacement when the original went out meanwhile on Stalwart 1.0', async () => {
+      let original!: FakeSubmission;
+      const server = fakeStalwart({
+        version: '1.0',
+        quota: 2,
+        // Its sendAt comes while the prune looks for room.
+        intercept: ([name]) => {
+          if (name === 'EmailSubmission/query') original.queued = false;
+          return undefined;
+        },
+      });
+      original = server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + 1000), queued: true });
+      server.add({ accountId: 'account-1', id: 'held', sendAt: utcDate(Date.now() + DAY), queued: true });
+
+      // "Send now"
+      const error = await reschedule(createClient(), new Date(Date.now() + 1000).toISOString()).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NoLongerScheduledError);
+      expect((error as NoLongerScheduledError).sent).toBe(true);
+      // A second create would have sent the message twice.
+      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(1);
+      expect(server.calls('EmailSubmission/set').filter((args) => args.update)).toEqual([]);
+    });
+
+    it('stops when the original was cancelled elsewhere meanwhile on Stalwart 1.0', async () => {
+      let original!: FakeSubmission;
+      const server = fakeStalwart({
+        version: '1.0',
+        quota: 2,
+        intercept: ([name]) => {
+          if (name === 'EmailSubmission/query') {
+            original.canceled = true;
+            original.queued = false;
+          }
+          return undefined;
+        },
+      });
+      original = server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
+      server.add({ accountId: 'account-1', id: 'held', sendAt: utcDate(Date.now() + DAY), queued: true });
+
+      const error = await reschedule(createClient(), new Date(Date.now() + 2 * HOUR).toISOString()).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NoLongerScheduledError);
+      expect((error as NoLongerScheduledError).sent).toBe(false);
+      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(1);
+    });
+
+    it('takes the time spent off the hold of the replacement on Stalwart 1.0', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const start = Date.now();
+      const server = fakeStalwart({
+        version: '1.0',
+        quota: 2,
+        // Walking the change log takes ten minutes.
+        intercept: ([name]) => {
+          if (name === 'EmailSubmission/changes') vi.setSystemTime(Date.now() + 10 * 60 * 1000);
+          return undefined;
+        },
+      });
+      server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(start + 3 * HOUR), queued: true });
+      fillWithOldRecords(server, 1);
+
+      const result = await reschedule(createClient(), new Date(start + 2 * HOUR).toISOString());
+
+      const holds = server.calls('EmailSubmission/set')
+        .filter((args) => args.create)
+        .map((args) => (args.create as Record<string, { envelope: { mailFrom: { parameters: { HOLDFOR: string } } } }>)
+          .replacement.envelope.mailFrom.parameters.HOLDFOR);
+      expect(holds.map(Number)).toEqual([2 * 60 * 60, 2 * 60 * 60 - 10 * 60]);
+      expect(Math.abs(Date.parse(result.sendAt!) - (start + 2 * HOUR))).toBeLessThan(1000);
+    });
+  });
+
+  describe('when no room can be made', () => {
+    function fullOfHeldSends(options: FakeOptions = {}) {
+      const server = fakeStalwart({ version: '1.0', quota: 2, ...options });
+      server.add({ accountId: 'account-1', id: 'held-1', sendAt: utcDate(Date.now() + DAY), queued: true });
+      server.add({ accountId: 'account-1', id: 'held-2', sendAt: utcDate(Date.now() + 2 * DAY), queued: true });
+      return server;
+    }
+
+    it('does not search again for a few minutes after finding nothing that can go on Stalwart 1.0', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const server = fullOfHeldSends();
+      const client = createClient();
+      const searches = () => server.calls('EmailSubmission/query').length + server.calls('EmailSubmission/changes').length;
+
+      await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
+      expect(searches()).toBe(2);
+
+      // Every further attempt - a send, an automatic read receipt - only
+      // tries the create once more.
+      await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
+      expect(searches()).toBe(2);
+      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(4);
+
+      vi.setSystemTime(Date.now() + 5 * 60 * 1000);
+      await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
+      expect(searches()).toBe(4);
+    });
+
+    it('searches again right away when the search itself failed on Stalwart 1.0', async () => {
+      let failures = 1;
+      const server = fullOfHeldSends({
+        intercept: ([name, , callId]) => (name === 'EmailSubmission/query' && failures-- > 0
+          ? [['error', { type: 'serverFail', description: 'Temporary failure' }, callId]]
+          : undefined),
+      });
+      const client = createClient();
+
+      await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
+      await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
+
+      expect(server.calls('EmailSubmission/query')).toHaveLength(2);
+    });
   });
 
   it('reschedules once the prune made room on Stalwart 1.0', async () => {

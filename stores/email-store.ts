@@ -14,6 +14,7 @@ import { fetchUnifiedEmails, fetchUnifiedMailboxCounts, searchUnifiedEmails, adv
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
+import { SendCancelledCleanupError } from "@/lib/send-failure-message";
 
 type ScheduledSubmissionMetadata = {
   submissionId: string;
@@ -610,6 +611,19 @@ export class ArchiveMailboxNotFoundError extends Error {
   constructor() {
     super('Archive mailbox not found - cannot archive email');
     this.name = 'ArchiveMailboxNotFoundError';
+  }
+}
+
+/**
+ * Puts a message whose send was cancelled back in Drafts, out of Sent, where
+ * the send filed it as soon as the submission was created.
+ */
+async function restoreSentToDraft(client: IJMAPClient, known: Mailbox[], emailId: string): Promise<void> {
+  const mailboxes = known.length > 0 ? known : await client.getMailboxes();
+  const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
+  const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
+  if (draftsMailbox) {
+    await client.restoreEmailToDraft(emailId, draftsMailbox.originalId || draftsMailbox.id, sentMailbox?.originalId || sentMailbox?.id);
   }
 }
 
@@ -5075,24 +5089,28 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     if (get().pendingUndoSend?.submissionId === submissionId) {
       set({ pendingUndoSend: null });
     }
-    if (email.isSmimeScheduled) {
-      await client.deleteEmail(email.id);
-      set(state => ({
-        selectedEmail: state.selectedEmail?.id === email.id ? null : state.selectedEmail,
-        selectedEmailIds: new Set(Array.from(state.selectedEmailIds).filter(id => id !== email.id)),
-      }));
-      await get().fetchScheduledEmails(client);
-      return null;
-    }
-    const mailboxes = get().mailboxes.length > 0 ? get().mailboxes : await client.getMailboxes();
-    const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
-    const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
-    if (draftsMailbox) {
-      await client.restoreEmailToDraft(email.id, draftsMailbox.originalId || draftsMailbox.id, sentMailbox?.originalId || sentMailbox?.id);
+    // Nothing goes out any more; a failure from here on is not a failed cancel.
+    try {
+      if (email.isSmimeScheduled) {
+        await client.deleteEmail(email.id);
+        set(state => ({
+          selectedEmail: state.selectedEmail?.id === email.id ? null : state.selectedEmail,
+          selectedEmailIds: new Set(Array.from(state.selectedEmailIds).filter(id => id !== email.id)),
+        }));
+      } else {
+        await restoreSentToDraft(client, get().mailboxes, email.id);
+      }
+    } catch (error) {
+      void get().fetchScheduledEmails(client);
+      throw new SendCancelledCleanupError(email.isSmimeScheduled ? 'remove' : 'restore', error);
     }
     await get().fetchScheduledEmails(client);
-    const restored = await client.getEmail(email.id);
-    return restored;
+    if (email.isSmimeScheduled) return null;
+    // Back in Drafts either way; the caller opens it when it can.
+    return client.getEmail(email.id).catch((error) => {
+      console.error('Failed to load the restored draft:', error);
+      return null;
+    });
   },
 
   rescheduleScheduledEmail: async (client, submissionId, emailId, identityId, delayedUntil) => {
@@ -5125,23 +5143,30 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
   cancelUndoSend: async (client, pending) => {
     await client.cancelEmailSubmission(pending.submissionId, pending.submissionAccountId);
-    if (pending.emailId && pending.isSmime) {
-      await client.deleteEmail(pending.emailId);
-      set(state => ({
-        selectedEmail: state.selectedEmail?.id === pending.emailId ? null : state.selectedEmail,
-        selectedEmailIds: new Set(Array.from(state.selectedEmailIds).filter(id => id !== pending.emailId)),
-      }));
-    } else if (pending.emailId) {
-      const mailboxes = get().mailboxes.length > 0 ? get().mailboxes : await client.getMailboxes();
-      const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
-      const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
-      if (draftsMailbox) {
-        await client.restoreEmailToDraft(pending.emailId, draftsMailbox.originalId || draftsMailbox.id, sentMailbox?.originalId || sentMailbox?.id);
+    // Nothing goes out any more. A failure from here on must not read as a
+    // failed undo, which would tell the user the mail may still leave.
+    set({ pendingUndoSend: null });
+    try {
+      if (pending.emailId && pending.isSmime) {
+        await client.deleteEmail(pending.emailId);
+        set(state => ({
+          selectedEmail: state.selectedEmail?.id === pending.emailId ? null : state.selectedEmail,
+          selectedEmailIds: new Set(Array.from(state.selectedEmailIds).filter(id => id !== pending.emailId)),
+        }));
+      } else if (pending.emailId) {
+        await restoreSentToDraft(client, get().mailboxes, pending.emailId);
       }
+    } catch (error) {
+      void get().refreshScheduledMetadata(client);
+      throw new SendCancelledCleanupError(pending.isSmime ? 'remove' : 'restore', error);
     }
     await get().refreshScheduledMetadata(client);
-    set({ pendingUndoSend: null });
-    return pending.emailId && !pending.isSmime ? client.getEmail(pending.emailId) : null;
+    if (!pending.emailId || pending.isSmime) return null;
+    // Back in Drafts either way; the caller opens it when it can.
+    return client.getEmail(pending.emailId).catch((error) => {
+      console.error('Failed to load the restored draft:', error);
+      return null;
+    });
   },
 
   loadMockData: () => {

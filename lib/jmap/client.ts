@@ -194,18 +194,38 @@ export class ScheduleTooLateError extends Error {
 }
 
 /**
- * The server refused a new EmailSubmission because the account holds too many
- * submission records, and removing the ones that can no longer be cancelled
- * did not make room. Stalwart 1.0 counts every record, whatever its status or
- * age, against `maxSubmissions` (500 by default) and answers the create with
- * `overQuota` - not to be confused with Email/set's `overQuota`, which means
- * the mailbox storage is full.
+ * The server refused a new EmailSubmission with `overQuota`, and removing the
+ * records that can no longer be cancelled did not make room. Stalwart 1.0
+ * counts every record, whatever its status or age, against `maxSubmissions`
+ * (500 by default) - not to be confused with Email/set's `overQuota`, which
+ * means the mailbox storage is full.
  */
 export class SubmissionQuotaError extends Error {
   readonly jmapType = 'overQuota';
-  constructor(description?: string) {
+  constructor(
+    /** The server's own description, if it gave one. */
+    readonly description?: string,
+    /**
+     * The submission account is on Stalwart (`urn:stalwart:jmap`), whose
+     * limit is the count of submission records. Another server's overQuota
+     * may stand for any sending limit.
+     */
+    readonly countsRecords = false,
+  ) {
     super(description || 'There are too many email submissions');
     this.name = 'SubmissionQuotaError';
+  }
+}
+
+/**
+ * "Send now" or "Reschedule" found the original submission no longer pending
+ * after making room for its replacement, which can take a while: it went out
+ * (`sent`), or was cancelled or removed elsewhere. No replacement was made.
+ */
+export class NoLongerScheduledError extends Error {
+  constructor(readonly sent: boolean) {
+    super(sent ? 'The scheduled message was already sent' : 'The message is no longer scheduled');
+    this.name = 'NoLongerScheduledError';
   }
 }
 
@@ -214,6 +234,11 @@ export class SubmissionQuotaError extends Error {
  * (see JMAPClient.pruneEmailSubmissions).
  */
 const SUBMISSION_PRUNE_INTERVAL_MS = 10 * 60 * 1000;
+/**
+ * How long an account where making room found nothing that could go is not
+ * searched again; see makeRoomForSubmission.
+ */
+const SUBMISSION_ROOM_RECHECK_MS = 5 * 60 * 1000;
 /** Upper bound on the pages one prune or change-log walk reads. */
 const SUBMISSION_SCAN_MAX_PAGES = 40;
 
@@ -1214,6 +1239,8 @@ export class JMAPClient implements IJMAPClient {
   private learnedMaxDelayedSend: number | null = null;
   /** When each account's submission records were last pruned (epoch ms). */
   private submissionPrunedAt = new Map<string, number>();
+  /** Accounts where making room found nothing to free, until when (epoch ms). */
+  private submissionRoomRecheckAt = new Map<string, number>();
   // Consecutive keep-alive failures; failed pings skip upcoming ticks
   // (30s -> 1m -> 2m -> ~5m) instead of hammering a down server (#588).
   private pingFailureCount = 0;
@@ -4301,7 +4328,7 @@ export class JMAPClient implements IJMAPClient {
           await this.discardUnsentCopy(draftCopyId, targetAccountId);
           this.throwIfHoldTooLong(firstError);
           if (methodName === 'EmailSubmission/set' && firstError?.type === 'overQuota') {
-            throw new SubmissionQuotaError(firstError.description);
+            throw this.submissionQuotaError(firstError.description, submissionAccountId);
           }
           const propsHint = firstError?.properties?.length
             ? ` (properties: ${firstError.properties.join(', ')})`
@@ -5160,7 +5187,7 @@ export class JMAPClient implements IJMAPClient {
       // Nothing went out: take the receipt back out of Sent, where it would
       // pass for a sent one.
       await this.discardUnsentCopy(emailId, targetAccountId);
-      if (name === 'EmailSubmission/set' && error.type === 'overQuota') throw new SubmissionQuotaError(error.description);
+      if (name === 'EmailSubmission/set' && error.type === 'overQuota') throw this.submissionQuotaError(error.description, targetAccountId);
       throw jmapError(`MDN submission failed: ${error.description || error.type || 'unknown'}`, error);
     }
     await this.destroyImmediateSubmission(result?.created?.[subId]?.id, targetAccountId);
@@ -9698,7 +9725,7 @@ export class JMAPClient implements IJMAPClient {
     const result = response.methodResponses?.[0]?.[1];
     if (result?.notCreated?.['smime-submit']) {
       const err = result.notCreated['smime-submit'];
-      if (err.type === 'overQuota') throw new SubmissionQuotaError(err.description);
+      if (err.type === 'overQuota') throw this.submissionQuotaError(err.description, submissionAccountId);
       throw new Error(err.description || err.type || 'Failed to submit email');
     }
     await this.destroyImmediateSubmission(result?.created?.['smime-submit']?.id, submissionAccountId);
@@ -9888,7 +9915,7 @@ export class JMAPClient implements IJMAPClient {
         await this.discardUnsentCopy(importedId, this.accountId);
         this.throwIfHoldTooLong(firstErr);
         if (methodName === 'EmailSubmission/set' && firstErr?.type === 'overQuota') {
-          throw new SubmissionQuotaError(firstErr.description);
+          throw this.submissionQuotaError(firstErr.description, submissionAccountId);
         }
         throw jmapError(firstErr?.description || firstErr?.type || failureMessage, firstErr);
       }
@@ -10110,31 +10137,41 @@ export class JMAPClient implements IJMAPClient {
     const envelopeRecipients = existingEnvelope?.rcptTo?.length
       ? existingEnvelope.rcptTo
       : [...(email?.to || []), ...(email?.cc || []), ...(email?.bcc || [])];
-    const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdForSeconds, envelopeRecipients);
-    const createReplacement = () => this.request([
-      ['EmailSubmission/set', {
-        accountId: submissionAccountId,
-        create: { replacement: { emailId, identityId, ...(envelope ? { envelope } : {}) } },
-        ...(draftsMailbox && sentMailbox ? {
-          onSuccessUpdateEmail: {
-            '#replacement': {
-              ...mailboxIdsReplacement(sentMailbox.id),
-              'keywords/$draft': null,
+    const createReplacement = (holdFor: number) => {
+      const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdFor, envelopeRecipients);
+      return this.request([
+        ['EmailSubmission/set', {
+          accountId: submissionAccountId,
+          create: { replacement: { emailId, identityId, ...(envelope ? { envelope } : {}) } },
+          ...(draftsMailbox && sentMailbox ? {
+            onSuccessUpdateEmail: {
+              '#replacement': {
+                ...mailboxIdsReplacement(sentMailbox.id),
+                'keywords/$draft': null,
+              },
             },
-          },
-        } : {}),
-      }, '0'],
-    ]);
-    let response = await createReplacement();
+          } : {}),
+        }, '0'],
+      ]);
+    };
+    let response = await createReplacement(holdForSeconds);
     // The original is still pending, so a prune can't touch it.
     if (submissionCreateError(response, 'replacement')?.type === 'overQuota') {
       await this.makeRoomForSubmission(submissionAccountId);
-      response = await createReplacement();
+      // Making room can take a while - a prune, a walk through the change
+      // log - and meanwhile the original may have gone out: its sendAt came,
+      // or it was "Send now" of a message due any moment. A replacement then
+      // would send it a second time.
+      const original = await this.getSubmissionStatus(submissionId, submissionAccountId);
+      if (original !== 'pending') throw new NoLongerScheduledError(original === 'final');
+      // HOLDFOR counts from when the server takes the request, so take the
+      // time spent off it; a moment already past goes out at once.
+      response = await createReplacement(Math.max(1, Math.ceil((Date.parse(delayedUntil) - Date.now()) / 1000)));
     }
     const result = response.methodResponses?.[0]?.[1];
     const createError = result?.notCreated?.replacement;
     if (createError) {
-      if (createError.type === 'overQuota') throw new SubmissionQuotaError(createError.description);
+      if (createError.type === 'overQuota') throw this.submissionQuotaError(createError.description, submissionAccountId);
       throw jmapError(createError.description || createError.type || 'Failed to reschedule email', createError);
     }
     const replacementId = result?.created?.replacement?.id;
@@ -10293,6 +10330,18 @@ export class JMAPClient implements IJMAPClient {
   }
 
   /**
+   * The undoStatus EmailSubmission/get reports for a submission now, which
+   * Stalwart works out from its queue; undefined once the record is gone.
+   * Throws when the get fails.
+   */
+  private async getSubmissionStatus(submissionId: string, accountId: string): Promise<EmailSubmission['undoStatus'] | undefined> {
+    const response = await this.request([
+      ['EmailSubmission/get', { accountId, ids: [submissionId], properties: ['id', 'undoStatus'] }, '0'],
+    ]);
+    return this.submissionGetList(response, '0').find((submission) => submission.id === submissionId)?.undoStatus;
+  }
+
+  /**
    * Make room after an EmailSubmission/set create came back overQuota. Prunes
    * the account at once; when that frees nothing, the records taking up the
    * room are older than the query can see (sendAt more than three days back).
@@ -10301,24 +10350,52 @@ export class JMAPClient implements IJMAPClient {
    * are found there and pruned by the same rules. Never rejects: the caller
    * retries the create either way, since another tab may have made room in
    * the meantime.
+   *
+   * At a full quota every attempt ends up here - each send, reschedule and
+   * automatic read receipt. When a search found nothing that can go, the
+   * account is not searched again for a few minutes: what is left is pending
+   * or out of reach, and looking again right away would cost the prune, the
+   * change-log walk and the gets once more for the same answer.
    */
   private async makeRoomForSubmission(accountId: string): Promise<void> {
-    const freed = await this.pruneSubmissionAccount(accountId, true);
-    if (freed > 0 || !this.hasAccountCapability('urn:stalwart:jmap', accountId)) return;
-    try {
-      const ids = await this.submissionIdsFromChangeLog(accountId);
-      const now = Date.now();
-      const prunable: string[] = [];
-      for (const batch of batched(ids, Math.min(500, this.getMaxObjectsInGet()))) {
-        const response = await this.request([
-          ['EmailSubmission/get', { accountId, ids: batch, properties: ['id', 'sendAt', 'undoStatus'] }, '0'],
-        ]);
-        prunable.push(...prunableSubmissionIds(this.submissionGetList(response, '0'), now));
+    const recheckAt = this.submissionRoomRecheckAt.get(accountId);
+    if (recheckAt !== undefined && Date.now() < recheckAt) return;
+    const now = Date.now();
+    this.submissionPrunedAt.set(accountId, now);
+    let found = 0;
+    let freed = 0;
+    let complete = true;
+    const prune = async (lookUp: () => Promise<string[]>, what: string) => {
+      try {
+        const prunable = await lookUp();
+        found += prunable.length;
+        if (prunable.length > 0) freed += (await this.destroyEmailSubmissions(prunable, accountId)).length;
+      } catch (error) {
+        complete = false;
+        console.warn(`[EmailSubmission] looking up ${what} of ${accountId} failed:`, error);
       }
-      if (prunable.length > 0) await this.destroyEmailSubmissions(prunable, accountId);
-    } catch (error) {
-      console.warn(`[EmailSubmission] looking up older submissions of ${accountId} failed:`, error);
+    };
+    await prune(() => this.findPrunableSubmissions(accountId, now), 'recent submissions');
+    if (freed === 0 && this.hasAccountCapability('urn:stalwart:jmap', accountId)) {
+      await prune(() => this.findOlderPrunableSubmissions(accountId), 'older submissions');
     }
+    // A failed lookup proves nothing, so only an answer of "nothing" counts.
+    if (complete && found === 0) this.submissionRoomRecheckAt.set(accountId, Date.now() + SUBMISSION_ROOM_RECHECK_MS);
+    else this.submissionRoomRecheckAt.delete(accountId);
+  }
+
+  /** The records in the account's change log that can go (see submissionIdsFromChangeLog). */
+  private async findOlderPrunableSubmissions(accountId: string): Promise<string[]> {
+    const ids = await this.submissionIdsFromChangeLog(accountId);
+    const now = Date.now();
+    const prunable: string[] = [];
+    for (const batch of batched(ids, Math.min(500, this.getMaxObjectsInGet()))) {
+      const response = await this.request([
+        ['EmailSubmission/get', { accountId, ids: batch, properties: ['id', 'sendAt', 'undoStatus'] }, '0'],
+      ]);
+      prunable.push(...prunableSubmissionIds(this.submissionGetList(response, '0'), now));
+    }
+    return prunable;
   }
 
   /**
@@ -10359,6 +10436,16 @@ export class JMAPClient implements IJMAPClient {
     } catch (error) {
       console.warn('[EmailSubmission] could not remove the unsent message:', error);
     }
+  }
+
+  /**
+   * The error for a submission create the account refused with overQuota,
+   * noting whether the account is on Stalwart: its limit is the count of
+   * submission records, which only an administrator can raise once the
+   * prune freed nothing.
+   */
+  private submissionQuotaError(description: string | undefined, accountId: string): SubmissionQuotaError {
+    return new SubmissionQuotaError(description, this.hasAccountCapability('urn:stalwart:jmap', accountId));
   }
 
   // ── PushSubscription (RFC 8620 §7.2) ──────────────────────────────

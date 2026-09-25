@@ -90,7 +90,8 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { toast } from "@/stores/toast-store";
-import { sendFailureMessage } from "@/lib/send-failure-message";
+import { rescheduleFailureToast, sendFailureMessage } from "@/lib/send-failure-message";
+import { SubmissionQuotaError } from "@/lib/jmap/client";
 import { useDeviceDetection } from "@/hooks/use-media-query";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useAuthStore } from "@/stores/auth-store";
@@ -785,7 +786,15 @@ export function EmailViewer({
       ? undefined
       : identities.find(i => i.email && recipientAddresses.includes(i.email.toLowerCase()));
 
-    await sendClient.sendEmail(fields.to, fields.subject ?? '', fields.body ?? '', undefined, undefined, fromIdentity?.id, fromIdentity?.email, undefined, fromIdentity?.name);
+    try {
+      await sendClient.sendEmail(fields.to, fields.subject ?? '', fields.body ?? '', undefined, undefined, fromIdentity?.id, fromIdentity?.email, undefined, fromIdentity?.name);
+    } catch (error) {
+      // The banner only says the unsubscribe did not work. A full submission
+      // quota gets the same explanation as in the composer: retrying will
+      // not help until records are freed or the limit is raised.
+      if (error instanceof SubmissionQuotaError) toast.error(sendFailureMessage(error, tComposer));
+      throw error;
+    }
   };
   const promptForRescheduleDelayedUntil = useCallback((): string | null => {
     const value = window.prompt(t('reschedule_prompt'));
@@ -813,14 +822,18 @@ export function EmailViewer({
   // "Send now" and "Reschedule" submit a replacement and cancel the original;
   // either can fail (a full submission quota, the mail already gone), and the
   // failure used to end up as an unhandled rejection nobody saw.
+  const scheduledSendAt = email?.scheduledSendAt;
   const rescheduleScheduled = useCallback(async (delayedUntil: string) => {
     try {
       await onRescheduleScheduled?.(delayedUntil);
     } catch (error) {
       console.error('Failed to reschedule the scheduled send:', error);
-      toast.error(sendFailureMessage(error, tComposer));
+      const { title, message } = rescheduleFailureToast(
+        error, t, tComposer, scheduledSendAt ? formatDateTime(scheduledSendAt, timeFormat) : undefined,
+      );
+      toast.error(title, message ? { message } : undefined);
     }
-  }, [onRescheduleScheduled, tComposer]);
+  }, [onRescheduleScheduled, t, tComposer, scheduledSendAt, timeFormat]);
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const { startTour } = useTour();
   const [showFullHeaders, setShowFullHeaders] = useState(false);
