@@ -309,4 +309,33 @@ describe('keyword writes report what the server refused', () => {
     expect(jmapErrorType(error)).toBe('accountReadOnly');
     expect(jmapErrorFailedIds(error)).toEqual(['m3', 'm4']);
   });
+
+  // A request that failed outright - the connection dropped - used to count
+  // the whole selection as unchanged, although the batches before it were
+  // written, and those rows showed unread until the next refresh.
+  it.each([
+    ['batchMarkAsRead', (c: JMAPClient, ids: string[]) => c.batchMarkAsRead(ids, true)],
+    ['batchUpdateKeywords', (c: JMAPClient, ids: string[]) => c.batchUpdateKeywords(ids, { 'keywords/$label:work': true })],
+  ])('%s stops at a failed request and names only what was not written', async (_name, write) => {
+    const client = createClient();
+    Object.assign(client, { capabilities: { 'urn:ietf:params:jmap:core': { maxObjectsInSet: 2 } } });
+    const requested: string[][] = [];
+    const dropped = new TypeError('Failed to fetch');
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      const [call] = (JSON.parse((init as { body: string }).body) as { methodCalls: JMAPMethodCall[] }).methodCalls;
+      const ids = Object.keys((call[1].update ?? {}) as Record<string, unknown>);
+      requested.push(ids);
+      if (ids.includes('m3')) throw dropped;
+      return new Response(JSON.stringify({
+        methodResponses: [['Email/set', { accountId: call[1].accountId, newState: 's2', ...acceptAll(ids) }, call[2]]],
+      }), { status: 200 });
+    });
+
+    const error = await write(client, ['m1', 'm2', 'm3', 'm4', 'm5']).then(() => null, (e: unknown) => e);
+
+    expect(requested.filter((ids) => ids.includes('m5'))).toEqual([]);
+    expect(requested[0]).toEqual(['m1', 'm2']);
+    expect(error).toBeInstanceOf(Error);
+    expect(jmapErrorFailedIds(error)).toEqual(['m3', 'm4', 'm5']);
+  });
 });

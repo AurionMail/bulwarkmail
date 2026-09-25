@@ -237,7 +237,7 @@ export class NoLongerScheduledError extends Error {
 const SUBMISSION_PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 /**
  * How long an account where making room found nothing that could go is not
- * searched again; see makeRoomForSubmission.
+ * searched again for an automatic read receipt; see makeRoomForSubmission.
  */
 const SUBMISSION_ROOM_RECHECK_MS = 5 * 60 * 1000;
 /** Upper bound on the pages one prune or change-log walk reads. */
@@ -2745,13 +2745,19 @@ export class JMAPClient implements IJMAPClient {
 
     const batches = batched(emailIds, this.getMaxObjectsInSet());
     const responses: JMAPResponse[] = [];
+    let requestError: unknown;
     for (const batch of batches) {
       const updates = Object.fromEntries(batch.map(id => [id, { "keywords/$seen": read ? true : null }]));
-      responses.push(await this.request([
-        ["Email/set", { accountId: accountId || this.accountId, update: updates }, "0"],
-      ]));
+      try {
+        responses.push(await this.request([
+          ["Email/set", { accountId: accountId || this.accountId, update: updates }, "0"],
+        ]));
+      } catch (error) {
+        requestError = error;
+        break;
+      }
     }
-    this.assertEmailSetBatchesSucceeded(responses, batches, read ? "mark as read" : "mark as unread");
+    this.assertEmailSetBatchesSucceeded(responses, batches, read ? "mark as read" : "mark as unread", requestError);
   }
 
   async toggleStar(emailId: string, starred: boolean, accountId?: string): Promise<void> {
@@ -2823,13 +2829,19 @@ export class JMAPClient implements IJMAPClient {
     if (emailIds.length === 0 || Object.keys(patch).length === 0) return;
     const batches = batched(emailIds, this.getMaxObjectsInSet());
     const responses: JMAPResponse[] = [];
+    let requestError: unknown;
     for (const batch of batches) {
       const update = Object.fromEntries(batch.map(id => [id, { ...patch }]));
-      responses.push(await this.request([
-        ["Email/set", { accountId: accountId || this.accountId, update }, "0"],
-      ]));
+      try {
+        responses.push(await this.request([
+          ["Email/set", { accountId: accountId || this.accountId, update }, "0"],
+        ]));
+      } catch (error) {
+        requestError = error;
+        break;
+      }
     }
-    this.assertEmailSetBatchesSucceeded(responses, batches, "update keywords");
+    this.assertEmailSetBatchesSucceeded(responses, batches, "update keywords", requestError);
   }
 
   async migrateKeyword(oldKeyword: string, newKeyword: string): Promise<KeywordMigration> {
@@ -2995,8 +3007,12 @@ export class JMAPClient implements IJMAPClient {
    * message must not leave the rest of a selection unchanged. Throws for the
    * first refusal, naming what every batch left unchanged, so a caller can
    * show the rest as done.
+   *
+   * `requestError`: the request of the batch after the last response failed
+   * outright (the connection dropped), and the write stopped there. That batch
+   * and the ones after it count as unchanged, the ones before as written.
    */
-  private assertEmailSetBatchesSucceeded(responses: JMAPResponse[], batches: string[][], action: string): void {
+  private assertEmailSetBatchesSucceeded(responses: JMAPResponse[], batches: string[][], action: string, requestError?: unknown): void {
     let failure: JmapError | null = null;
     const failedIds: string[] = [];
     for (let i = 0; i < responses.length; i++) {
@@ -3006,6 +3022,10 @@ export class JMAPClient implements IJMAPClient {
         failure ??= error as JmapError;
         failedIds.push(...(jmapErrorFailedIds(error) ?? batches[i]));
       }
+    }
+    if (responses.length < batches.length) {
+      failure ??= (requestError instanceof Error ? requestError : new Error(`Failed to ${action}`)) as JmapError;
+      failedIds.push(...batches.slice(responses.length).flat());
     }
     if (failure) {
       failure.jmapFailedIds = failedIds;
@@ -5230,7 +5250,7 @@ export class JMAPClient implements IJMAPClient {
     ]);
     let response = await submit();
     if (submissionCreateError(response, subId)?.type === 'overQuota') {
-      await this.makeRoomForSubmission(targetAccountId);
+      await this.makeRoomForSubmission(targetAccountId, { automatic: params.automatic });
       response = await submit();
     }
     const [name, result] = response.methodResponses?.[0] ?? [];
@@ -5287,17 +5307,27 @@ export class JMAPClient implements IJMAPClient {
    * Null when the session doesn't advertise the blob capability, which then
    * must stay out of `using`. Blobs the server doesn't find are left out; once
    * a request fails, the blobs not fetched yet are listed in `failed`.
+   *
+   * Stalwart answers Blob/get only in accounts the user is a member of: an
+   * address book shared with the user is in an account that isn't one, and
+   * the call comes back `forbidden` ("You are not an owner of account ...").
+   * It checks the access to each blob by itself, though, whichever account the
+   * request names, so the rest are asked for in the user's own account.
    */
   async getBlobsAsBase64(blobIds: string[], accountId?: string): Promise<BlobBatch | null> {
     if (!this.hasCapability(BLOB_CAPABILITY)) return null;
-    const account = accountId || this.accountId;
+    let account = accountId || this.accountId;
     const ids = [...new Set(blobIds)];
     const data = new Map<string, string>();
     const blobGet = async (chunk: string[], property: "size" | "data:asBase64") => {
-      const response = await this.request([
+      const call = () => this.request([
         ["Blob/get", { accountId: account, ids: chunk, properties: [property] }, "0"],
       ], ["urn:ietf:params:jmap:core", BLOB_CAPABILITY]);
-      const [name, result] = response.methodResponses?.[0] ?? [];
+      let [name, result] = (await call()).methodResponses?.[0] ?? [];
+      if (name === "error" && result?.type === "forbidden" && account !== this.accountId) {
+        account = this.accountId;
+        [name, result] = (await call()).methodResponses?.[0] ?? [];
+      }
       if (name !== "Blob/get") {
         throw jmapError(`Blob/get failed: ${result?.description || result?.type || "unknown"}`, result);
       }
@@ -10475,14 +10505,17 @@ export class JMAPClient implements IJMAPClient {
    * the meantime.
    *
    * At a full quota every attempt ends up here - each send, reschedule and
-   * automatic read receipt. When a search found nothing that can go, the
-   * account is not searched again for a few minutes: what is left is pending
-   * or out of reach, and looking again right away would cost the prune, the
-   * change-log walk and the gets once more for the same answer.
+   * automatic read receipt. When a search found nothing that can go, it is
+   * not repeated for automatic read receipts for a few minutes: what is left
+   * is pending or out of reach, and looking again right away would cost the
+   * prune, the change-log walk and the gets once more for the same answer.
+   * A send the user starts always looks again: pending records - scheduled
+   * mail, undo-send holds - can go once their message is out, and until the
+   * next search every send would fail with "ask your administrator".
    */
-  private async makeRoomForSubmission(accountId: string): Promise<void> {
+  private async makeRoomForSubmission(accountId: string, options: { automatic?: boolean } = {}): Promise<void> {
     const recheckAt = this.submissionRoomRecheckAt.get(accountId);
-    if (recheckAt !== undefined && Date.now() < recheckAt) return;
+    if (options.automatic && recheckAt !== undefined && Date.now() < recheckAt) return;
     const now = Date.now();
     this.submissionPrunedAt.set(accountId, now);
     let found = 0;

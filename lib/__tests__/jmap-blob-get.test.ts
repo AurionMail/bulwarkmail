@@ -59,8 +59,17 @@ describe('JMAPClient.getBlobsAsBase64', () => {
     return client;
   }
 
-  /** A 1.0 server holding `blobs` (id -> size); records every request. */
-  function serve(blobs: Record<string, number>, refuse?: (call: Call, index: number) => Response | undefined) {
+  /**
+   * A 1.0 server holding `blobs` (id -> size); records every request. Like
+   * Stalwart (0.16 and 1.0), it answers Blob/get only in accounts the user is
+   * a member of - own and group accounts, not one that merely shares an
+   * address book - and then serves every blob the user may read.
+   */
+  function serve(
+    blobs: Record<string, number>,
+    refuse?: (call: Call, index: number) => Response | undefined,
+    memberOf: string[] = ['a', 'team'],
+  ) {
     const requests: Array<{ using: string[]; call: Call }> = [];
     fetchSpy.mockImplementation((async (_url: string, init: RequestInit) => {
       const body = JSON.parse(init.body as string);
@@ -69,6 +78,11 @@ describe('JMAPClient.getBlobsAsBase64', () => {
       const refused = refuse?.(call, requests.length - 1);
       if (refused) return refused;
       const [, args, callId] = call;
+      if (!memberOf.includes(args.accountId)) {
+        return jsonResponse({
+          methodResponses: [['error', { type: 'forbidden', description: `You are not an owner of account ${args.accountId}` }, callId]],
+        });
+      }
       const found = args.ids.filter((id) => id in blobs);
       return jsonResponse({
         methodResponses: [['Blob/get', {
@@ -87,13 +101,53 @@ describe('JMAPClient.getBlobsAsBase64', () => {
     const client = await connectedClient();
     const requests = serve({ dbcPhoto: 40_000, dbcLogo: 2_000 });
 
-    const batch = await client.getBlobsAsBase64(['dbcPhoto', 'dbcLogo', 'dbcPhoto'], 'shared-1');
+    const batch = await client.getBlobsAsBase64(['dbcPhoto', 'dbcLogo', 'dbcPhoto'], 'team');
 
     expect(requests).toHaveLength(1);
     expect(requests[0].using).toEqual(['urn:ietf:params:jmap:core', BLOB]);
     expect(requests[0].call[0]).toBe('Blob/get');
-    expect(requests[0].call[1]).toEqual({ accountId: 'shared-1', ids: ['dbcPhoto', 'dbcLogo'], properties: ['data:asBase64'] });
+    expect(requests[0].call[1]).toEqual({ accountId: 'team', ids: ['dbcPhoto', 'dbcLogo'], properties: ['data:asBase64'] });
     expect(batch).toEqual({ data: new Map([['dbcPhoto', btoa('dbcPhoto')], ['dbcLogo', btoa('dbcLogo')]]), failed: [] });
+  });
+
+  // Live: userc's Blob/get naming userb's account `e` (an address book shared
+  // with userc) is refused on 1.0 and on 0.16.23 alike; on 1.0 the same blobId
+  // asked for in userc's own account comes back. (0.16 keeps contact photos
+  // as data: URIs, so an export never gets here there.)
+  it('reads the photos of a shared address book through the own account on Stalwart 1.0 and 0.16', async () => {
+    const client = await connectedClient();
+    const requests = serve({ dbcPhoto: 40_000, dbcLogo: 2_000 });
+
+    const batch = await client.getBlobsAsBase64(['dbcPhoto', 'dbcLogo'], 'shared-1');
+
+    expect(requests.map(({ call }) => call[1].accountId)).toEqual(['shared-1', 'a']);
+    expect(requests[1].call[1]).toEqual({ accountId: 'a', ids: ['dbcPhoto', 'dbcLogo'], properties: ['data:asBase64'] });
+    expect(batch).toEqual({ data: new Map([['dbcPhoto', btoa('dbcPhoto')], ['dbcLogo', btoa('dbcLogo')]]), failed: [] });
+  });
+
+  it('switches to the own account once when a shared address book has many photos', async () => {
+    const client = await connectedClient();
+    const requests = serve({ a1: 3 * MiB, a2: 2 * MiB, a3: 2 * MiB });
+
+    const batch = await client.getBlobsAsBase64(['a1', 'a2', 'a3'], 'shared-1');
+
+    expect(requests.map(({ call }) => [call[1].accountId, call[1].properties[0]])).toEqual([
+      ['shared-1', 'size'],
+      ['a', 'size'],
+      ['a', 'data:asBase64'],
+      ['a', 'data:asBase64'],
+    ]);
+    expect([...batch!.data.keys()]).toEqual(['a1', 'a2', 'a3']);
+  });
+
+  it('does not retry a refusal in the own account', async () => {
+    const client = await connectedClient();
+    const requests = serve({ a1: 10 }, undefined, []);
+
+    const batch = await client.getBlobsAsBase64(['a1']);
+
+    expect(requests).toHaveLength(1);
+    expect(batch).toEqual({ data: new Map(), failed: ['a1'] });
   });
 
   it('asks for the sizes first and fetches the data in requests of about 4 MiB', async () => {

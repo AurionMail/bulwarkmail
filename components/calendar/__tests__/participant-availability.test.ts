@@ -73,14 +73,27 @@ const OWN_PRINCIPAL_0_16: MethodResponse = ['Principal/get', { accountId: 'me', 
   },
 }], notFound: [] }, '0'];
 
+// 1.0 with directory queries on, for a role that may look up free/busy.
+const OWN_PRINCIPAL_1_0: MethodResponse = ['Principal/get', { accountId: 'me', state: 'n', list: [{
+  id: 'me',
+  capabilities: {
+    'urn:ietf:params:jmap:principals': {},
+    'urn:ietf:params:jmap:calendars': { accountId: 'me', mayGetAvailability: true, mayShareWith: true, calendarAddress: 'mailto:me@example.com' },
+  },
+}], notFound: [] }, '0'];
+
 const NOT_AUTHORIZED: MethodResponse = ['error', { type: 'forbidden', description: 'You are not authorized to perform this action' }, '0'];
 const DIRECTORY_QUERIES_OFF: MethodResponse = ['error', { type: 'forbidden', description: 'The administrator has disabled directory queries.' }, '0'];
 const RATE_LIMITED: MethodResponse = ['error', { type: 'rateLimit', description: 'Too many availability requests, please try again later' }, '0'];
+const UNRESOLVED_REFERENCE: MethodResponse = ['error', { type: 'invalidResultReference', description: 'Result reference to 0#Principal/query not found.' }, '1'];
 
 interface ServerScript {
-  ownPrincipal: MethodResponse;
+  /** Answer to Principal/get of the user's own principal; throws for an HTTP failure. */
+  ownPrincipal: MethodResponse | (() => MethodResponse);
   /** Answer to the paged Principal/query + Principal/get; throws for an HTTP failure. */
   directory?: () => MethodResponse[];
+  /** Answer to Principal/get without ids (the principals the user knows); the own principal's otherwise. */
+  known?: MethodResponse;
   /** Answer to one Principal/getAvailability call; throws for an HTTP failure. */
   availability?: (principalId: string, callId: string) => MethodResponse;
 }
@@ -109,7 +122,10 @@ function makeClient(script: ServerScript) {
     .mockImplementation(async (calls: Call[]) => {
       requests.push(calls);
       const [method, args] = calls[0];
-      if (method === 'Principal/get') return { methodResponses: [script.ownPrincipal] };
+      if (method === 'Principal/get') {
+        if (args.ids === null && script.known) return { methodResponses: [script.known] };
+        return { methodResponses: [typeof script.ownPrincipal === 'function' ? script.ownPrincipal() : script.ownPrincipal] };
+      }
       if (method === 'Principal/query') {
         return { methodResponses: script.directory ? script.directory() : [
           ['Principal/query', { ids: DIRECTORY.map((p) => p.id) }, '0'],
@@ -301,5 +317,44 @@ describe('ParticipantAvailability', () => {
 
     await waitFor(() => expect(screen.getAllByText('error')).toHaveLength(2), { timeout: 2000 });
     expect(screen.queryByText('unknown')).toBeNull();
+  });
+
+  // Listing the directory (Principal/query) and looking up free/busy
+  // (Principal/getAvailability) are permissions of their own on 0.16 and 1.0,
+  // and both refuse a missing one with "You are not authorized to perform this
+  // action" before the method runs. Principal/get without ids still returns
+  // everyone there (0.16; 1.0 with directory queries on).
+  it.each([
+    ['0.16', OWN_PRINCIPAL_0_16],
+    ['1.0', OWN_PRINCIPAL_1_0],
+  ])('keeps checking attendees on Stalwart %s when the role may not list the directory', async (_version, ownPrincipal) => {
+    const { client } = makeClient({
+      ownPrincipal,
+      directory: () => [NOT_AUTHORIZED, UNRESOLVED_REFERENCE],
+      known: ['Principal/get', { accountId: 'me', state: 'n', list: DIRECTORY, notFound: [] }, '0'],
+      availability: (id, callId) => ['Principal/getAvailability', {
+        list: id === 'anna' ? [{ utcStart: '2026-09-01T10:30:00Z', utcEnd: '2026-09-01T11:30:00Z', busyStatus: 'confirmed' }] : [],
+      }, callId],
+    });
+    renderFor(client);
+
+    await waitFor(() => expect(screen.getByText('busy')).toBeInTheDocument(), { timeout: 2000 });
+    // Not a complete listing, so the outsider can't be called "not a user".
+    expect(screen.getByText('error')).toBeInTheDocument();
+    expect(screen.queryByText('unavailable_on_server')).toBeNull();
+  });
+
+  it('says free/busy is not available when Stalwart 1.0 lists no directory because directory queries are off', async () => {
+    // The own principal could not be read, so the listing's refusal is what tells.
+    const { client, requests } = makeClient({
+      ownPrincipal: http500,
+      directory: () => [DIRECTORY_QUERIES_OFF, UNRESOLVED_REFERENCE],
+      availability: () => DIRECTORY_QUERIES_OFF,
+    });
+    renderFor(client);
+
+    await waitFor(() => expect(screen.getByText('unavailable_on_server')).toBeInTheDocument(), { timeout: 2000 });
+    expect(screen.queryByTestId('participant-availability')).toBeNull();
+    expect(methodsOf(requests)).not.toContain('Principal/getAvailability');
   });
 });

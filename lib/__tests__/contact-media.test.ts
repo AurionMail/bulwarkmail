@@ -350,6 +350,9 @@ describe('inlineContactMediaForExport', () => {
     ]);
   });
 
+  // The batch names the card's account. Where that is an address book shared
+  // with the user, Stalwart refuses Blob/get in it, and the client asks in the
+  // user's own account instead (see jmap-blob-get.test.ts).
   it('asks each account and login for its own blobs', async () => {
     const own = exportClient({ data: new Map([['dbcA', 'QQ==']]), failed: [] });
     const other = exportClient({ data: new Map([['dbcB', 'Qg==']]), failed: [] });

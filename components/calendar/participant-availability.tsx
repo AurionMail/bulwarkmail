@@ -52,8 +52,8 @@ export function availabilityFor(periods: BusyPeriod[], start: Date, end: Date): 
 
 /**
  * The status of every address for the window, or null when the server won't
- * answer free/busy for this user: it refused the directory listing or a
- * lookup with `forbidden`.
+ * answer free/busy for this user: Stalwart 1.0 with directory queries off,
+ * or a lookup refused with `forbidden`.
  */
 async function lookUpStatuses(
   client: IJMAPClient,
@@ -62,7 +62,12 @@ async function lookUpStatuses(
   end: Date,
 ): Promise<Record<string, AvailabilityStatus> | null> {
   const directory = await loadPrincipalDirectory(client);
-  if (directory.status === "restricted") return null;
+  // With directory queries off, Stalwart 1.0 refuses availability lookups as
+  // well. Any other refused listing is a role without the permission to list
+  // principals, which is not the one for free/busy (0.16 and 1.0 check them
+  // one by one): the principals Principal/get still returned are looked up,
+  // and a lookup refused in turn says it.
+  if (directory.status === "restricted" && directory.directoryQueriesOff) return null;
   const byEmail = new Map<string, Principal>();
   for (const p of directory.principals) {
     if (p.email) byEmail.set(p.email.toLowerCase(), p);
@@ -157,8 +162,8 @@ export function ParticipantAvailability({ attendees, start, end }: ParticipantAv
   if (!wanted) return null;
   if (allowed === false) {
     // Stalwart 1.0 with directory queries off (its default), or a role without
-    // the principal permissions: the lookups are refused, so explain the gap
-    // instead of leaving the attendees without a word.
+    // the permission to look up free/busy: the lookups are refused, so explain
+    // the gap instead of leaving the attendees without a word.
     return (
       <p className="mt-1.5 text-xs text-muted-foreground" role="status" data-testid="participant-availability-unavailable">
         {t("unavailable_on_server")}

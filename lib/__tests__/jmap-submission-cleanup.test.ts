@@ -771,7 +771,7 @@ describe('overQuota on EmailSubmission/set create', () => {
       return server;
     }
 
-    it('does not search again for a few minutes after finding nothing that can go on Stalwart 1.0', async () => {
+    it('searches again for every send the user starts on Stalwart 1.0', async () => {
       vi.useFakeTimers({ toFake: ['Date'] });
       const server = fullOfHeldSends();
       const client = createClient();
@@ -780,15 +780,30 @@ describe('overQuota on EmailSubmission/set create', () => {
       await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
       expect(searches()).toBe(2);
 
-      // Every further attempt - a send, an automatic read receipt - only
-      // tries the create once more.
-      await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
-      expect(searches()).toBe(2);
-      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(4);
-
-      vi.setSystemTime(Date.now() + 5 * 60 * 1000);
       await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
       expect(searches()).toBe(4);
+    });
+
+    // A search that found nothing used to hold off the next one for five
+    // minutes, whoever sent: a held send that went out within them could not
+    // make room, and every send failed with "ask your administrator".
+    it('makes room once a held send went out, minutes after a search found nothing, on Stalwart 1.0', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      const server = fakeStalwart({ version: '1.0', quota: 2 });
+      const undoHold = server.add({ accountId: 'account-1', id: 'undo-hold', sendAt: utcDate(Date.now() + 60 * 1000), queued: true });
+      server.add({ accountId: 'account-1', id: 'scheduled', sendAt: utcDate(Date.now() + DAY), queued: true });
+      const client = createClient();
+
+      await expect(send(client)).rejects.toBeInstanceOf(SubmissionQuotaError);
+
+      // Two minutes later the undo hold has run out and its message left.
+      vi.setSystemTime(Date.now() + 2 * 60 * 1000);
+      undoHold.queued = false;
+      const result = await send(client);
+
+      expect(result.emailSubmissionId).toBeDefined();
+      expect(server.destroyedIds()).toContain('undo-hold');
+      expect(server.submissions.has('scheduled')).toBe(true);
     });
 
     it('searches again right away when the search itself failed on Stalwart 1.0', async () => {
@@ -965,6 +980,32 @@ describe('sendReadReceipt', () => {
 
     expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(2);
     expect(server.emails.size).toBe(0);
+  });
+
+  it('does not search again for automatic receipts for a few minutes after finding nothing that can go on Stalwart 1.0', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const server = fakeStalwart({ version: '1.0', quota: 1 });
+    server.add({ accountId: 'account-1', id: 'held', sendAt: utcDate(Date.now() + DAY), queued: true });
+    const client = mdnClient();
+    const searches = () => server.calls('EmailSubmission/query').length + server.calls('EmailSubmission/changes').length;
+    const automatic = { ...receipt, automatic: true };
+
+    await expect(client.sendReadReceipt(automatic)).rejects.toBeInstanceOf(SubmissionQuotaError);
+    expect(searches()).toBe(2);
+
+    // Every further automatic receipt only tries the create once more ...
+    await expect(client.sendReadReceipt(automatic)).rejects.toBeInstanceOf(SubmissionQuotaError);
+    expect(searches()).toBe(2);
+    expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(4);
+
+    // ... while one the user sends looks again,
+    await expect(client.sendReadReceipt(receipt)).rejects.toBeInstanceOf(SubmissionQuotaError);
+    expect(searches()).toBe(4);
+
+    // and so do automatic ones after a few minutes.
+    vi.setSystemTime(Date.now() + 5 * 60 * 1000);
+    await expect(client.sendReadReceipt(automatic)).rejects.toBeInstanceOf(SubmissionQuotaError);
+    expect(searches()).toBe(6);
   });
 });
 
