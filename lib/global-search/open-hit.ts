@@ -1,10 +1,11 @@
-import { setPendingDeepLink } from '@/lib/deep-link-handoff';
+import { deliverDeepLink, setPendingDeepLink } from '@/lib/deep-link-handoff';
 import {
   appPath,
   buildCalendarPath,
   buildContactsPath,
   buildFilesPath,
   buildMailPath,
+  sharedFilesSearch,
 } from '@/lib/deep-links';
 import type { GlobalSearchHit } from '@/lib/global-search/types';
 import { useAuthStore } from '@/stores/auth-store';
@@ -21,6 +22,12 @@ export interface OpenHitOptions {
 }
 
 function fileLinkFor(hit: Extract<GlobalSearchHit, { kind: 'files' }>): { segments: string[]; search?: string } {
+  // A node of a drive shared with the user has no path under the login's own
+  // root: the link names it by the id the Files store lists it under, and the
+  // Files app opens the shared folder (or shared-files page) it is listed in.
+  if (hit.node.isShared) {
+    return { segments: [], search: sharedFilesSearch(hit.node.id, hit.isFolder ? null : hit.node.name) };
+  }
   const folderSegments = hit.folderPath.split('/').filter(Boolean);
   if (hit.isFolder) return { segments: [...folderSegments, hit.node.name] };
   return { segments: folderSegments, search: `?preview=${encodeURIComponent(hit.node.name)}` };
@@ -72,9 +79,7 @@ export async function openHit(hit: GlobalSearchHit, options: OpenHitOptions): Pr
           }
         }
         tabs.openTab('files');
-        // A node in a shared drive has no path under the login's own root -
-        // land on the drive root instead of a folder that doesn't resolve.
-        const link = hit.node.isShared ? { segments: [] } : fileLinkFor(hit);
+        const link = fileLinkFor(hit);
         setPendingDeepLink('files', link.segments, link.search);
         return;
       }
@@ -95,9 +100,13 @@ export async function openHit(hit: GlobalSearchHit, options: OpenHitOptions): Pr
       navigate?.(appPath(buildCalendarPath({ view: 'month', date: null, eventId: hit.id, accountId: hit.jmapAccountId })));
       return;
     case 'files': {
-      const link = hit.node.isShared ? { segments: [] as string[], search: undefined } : fileLinkFor(hit);
-      const path = `/${link.segments.join('/')}`;
-      navigate?.(appPath(buildFilesPath(path, hit.isFolder || hit.node.isShared ? null : hit.node.name)));
+      const link = fileLinkFor(hit);
+      // A Files page that is already open reads the route only when it
+      // mounts, and Next keeps it mounted when a link changes only the query
+      // (a node of a shared drive): it takes the link directly instead.
+      if (isActiveLogin && deliverDeepLink('files', link.segments, link.search)) return;
+      const path = buildFilesPath(`/${link.segments.join('/')}`);
+      navigate?.(appPath(`${path}${link.search ?? ''}`));
       return;
     }
   }

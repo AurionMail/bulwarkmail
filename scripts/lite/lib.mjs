@@ -600,8 +600,10 @@ ${demoMode ? "Demo mode is ON: the login page offers a built-in demo account and
    or over JMAP as an administrator: \`x:Http/set\` with
    \`{"update": {"singleton": {"usePermissiveCors": true}}}\`. It applies once
    the settings are reloaded (the \`ReloadSettings\` action) or Stalwart
-   restarts. Stalwart 0.16 and later ignore the \`[http] permissive-cors\` key
-   of the old TOML configuration.
+   restarts. On the current 1.0 pre-releases \`ReloadSettings\` fails while the
+   stock spam-filter rules are loaded, so restart Stalwart there instead.
+   Stalwart 0.16 and later ignore the \`[http] permissive-cors\` key of the old
+   TOML configuration.
 
    A reverse-proxy rule works too if it allows your Lite origin with the
    \`Authorization\` and \`Content-Type\` headers on \`/.well-known/jmap\`, \`/jmap/*\`,
@@ -1371,10 +1373,13 @@ update right away.
 
 What a failed download does depends on the Stalwart version. On 0.16.23 the
 running bundle stays online. Older 0.16 releases and the 1.0 pre-releases
-unmount the Application until a later \`UpdateApps\` succeeds. On every
-version, a restart after the cached copy has expired, with \`resourceUrl\`
-unreachable, leaves the Application unmounted. So check that \`resourceUrl\`
-downloads before running \`UpdateApps\` or restarting.
+unmount the Application and drop the cached copy. The next restart,
+\`UpdateApps\` or reload of the Applications (the other nodes of a cluster
+reload them after \`UpdateApps\`) downloads \`resourceUrl\` again and mounts the
+bundle once that works. On every version, a restart after the cached copy
+has expired, with \`resourceUrl\` unreachable, leaves the Application
+unmounted. So check that \`resourceUrl\` downloads before running
+\`UpdateApps\` or restarting.
 
 Open tabs move to the new build on their next navigation (one full page
 load); a freshly opened tab gets it immediately. Nothing stays stuck on old

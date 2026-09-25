@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { JMAPClient } from '../jmap/client';
+import type { FileNodeListings } from '../jmap/client-interface';
 import { jmapErrorProperties, jmapErrorType } from '../jmap/jmap-error';
-import { fileErrorKind } from '../file-errors';
+import { fileErrorKind, isPartialCopy } from '../file-errors';
 
 type Call = [string, Record<string, unknown>, string];
 
@@ -14,6 +15,8 @@ interface FakeOptions {
   capability?: Record<string, unknown>;
   /** Null: "grp" lists no filenode capability, as a shared account may. */
   sharedCapability?: Record<string, unknown> | null;
+  /** Someone else puts a node into the created node of this name right after it is made. */
+  intrudeInto?: string;
 }
 
 // The rules Stalwart 1.0 publishes (0.16.23: the same with maxFileNodeDepth null).
@@ -45,6 +48,9 @@ function makeClient(nodes: Record<string, Array<Record<string, unknown>>>, optio
     .mockReturnValue(['me', 'grp']);
   const calls: Call[] = [];
   let seq = 0;
+  // Parent of every node the fake has created or been told about, to answer
+  // destroys the way Stalwart does.
+  const parents = new Map<string, string | null>();
   vi.spyOn(client as unknown as { request: (c: Call[]) => Promise<unknown> }, 'request')
     .mockImplementation(async (reqCalls: Call[]) => {
       const [method, args, id] = reqCalls[0];
@@ -57,9 +63,13 @@ function makeClient(nodes: Record<string, Array<Record<string, unknown>>>, optio
         return { methodResponses: [['Blob/copy', { copied: Object.fromEntries(blobIds.map(b => [b, `${b}-copy`])) }, id]] };
       }
       if (method === 'FileNode/set' && args.create) {
-        const refusal = options.refuseCreate?.((args.create as { n0: Record<string, unknown> }).n0);
+        const props = (args.create as { n0: Record<string, unknown> }).n0;
+        const refusal = options.refuseCreate?.(props);
         if (refusal) return { methodResponses: [['FileNode/set', { notCreated: { n0: refusal } }, id]] };
-        return { methodResponses: [['FileNode/set', { created: { n0: { id: `new${++seq}` } } }, id]] };
+        const created = `new${++seq}`;
+        parents.set(created, (props.parentId as string | undefined) ?? null);
+        if (props.name === options.intrudeInto) parents.set('theirs', created);
+        return { methodResponses: [['FileNode/set', { created: { n0: { id: created } } }, id]] };
       }
       if (method === 'FileNode/set' && args.update) {
         const ids = Object.keys(args.update as object);
@@ -71,15 +81,26 @@ function makeClient(nodes: Record<string, Array<Record<string, unknown>>>, optio
       }
       if (method === 'FileNode/set' && args.destroy) {
         const ids = args.destroy as string[];
-        const refused = ids.filter(k => options.refuse?.(k));
-        return { methodResponses: [['FileNode/set', {
-          destroyed: ids.filter(k => !refused.includes(k)),
-          notDestroyed: Object.fromEntries(refused.map(k => [k, options.refuse?.(k)])),
-        }, id]] };
+        const destroyed: string[] = [];
+        const notDestroyed: Record<string, unknown> = {};
+        // Without onDestroyRemoveChildren, a folder that still holds anything
+        // is refused. 0.16 checks against the tree as it was before the call,
+        // so children destroyed in the same call still count (willDestroy).
+        const childrenBefore = new Map(ids.map(k => [k, [...parents].filter(([, p]) => p === k).map(([c]) => c)]));
+        for (const k of ids) {
+          const refusal = options.refuse?.(k);
+          const children = childrenBefore.get(k) ?? [];
+          if (refusal) notDestroyed[k] = refusal;
+          else if (args.onDestroyRemoveChildren || children.length === 0) destroyed.push(k);
+          else if (children.some(c => ids.includes(c))) notDestroyed[k] = { type: 'willDestroy', description: 'File node or one of its children is already marked for deletion.' };
+          else notDestroyed[k] = { type: 'nodeHasChildren', description: 'Cannot delete non-empty folder.' };
+        }
+        for (const k of destroyed) parents.delete(k);
+        return { methodResponses: [['FileNode/set', { destroyed, notDestroyed }, id]] };
       }
       throw new Error(`unexpected ${method}`);
     });
-  return { client, calls };
+  return { client, calls, parents };
 }
 
 const sets = (calls: Call[]) => calls.filter(([m]) => m === 'FileNode/set').map(([, a]) => a);
@@ -233,6 +254,8 @@ describe('FileNode writes', () => {
     { id: 'f2', name: 'b.txt', parentId: 'd1', blobId: 'b2', type: 'text/plain', size: 4 },
   ];
 
+  const destroys = (calls: Call[]) => sets(calls).filter(a => a.destroy);
+
   it('removes the half-made copy and reports why when a create fails part-way on Stalwart 1.0', async () => {
     const { client, calls } = makeClient({ me: docs }, {
       // 1.0 once an administrator has set maxFiles.
@@ -241,8 +264,15 @@ describe('FileNode writes', () => {
         : undefined,
     });
 
-    await expect(client.copyFileNode('d1', 'Docs', 'grp:d9')).rejects.toThrow('There are too many files');
-    expect(sets(calls).at(-1)).toEqual({ accountId: 'grp', destroy: ['new1'], onDestroyRemoveChildren: true });
+    const refused = await client.copyFileNode('d1', 'Docs', 'grp:d9').catch((error: unknown) => error);
+    expect(refused).toBeInstanceOf(Error);
+    expect((refused as Error).message).toContain('There are too many files');
+    expect(isPartialCopy(refused)).toBe(false);
+    // Only what the copy made, the file before its folder.
+    expect(destroys(calls)).toEqual([
+      { accountId: 'grp', destroy: ['new2'] },
+      { accountId: 'grp', destroy: ['new1'] },
+    ]);
   });
 
   it('removes the half-made copy when the server refuses a blob on 0.16', async () => {
@@ -253,7 +283,50 @@ describe('FileNode writes', () => {
     });
 
     await expect(client.copyFileNode('grp:d1', 'Docs', null)).rejects.toThrow('You do not have access to blobId b2.');
-    expect(sets(calls).at(-1)).toEqual({ accountId: 'me', destroy: ['new1'], onDestroyRemoveChildren: true });
+    expect(destroys(calls)).toEqual([
+      { accountId: 'me', destroy: ['new2'] },
+      { accountId: 'me', destroy: ['new1'] },
+    ]);
+  });
+
+  // Docs > a.txt, Sub > b.txt, c.txt: c.txt is refused after the rest was made.
+  const nested = [
+    { id: 'd1', name: 'Docs', parentId: null, blobId: null },
+    { id: 'f1', name: 'a.txt', parentId: 'd1', blobId: 'b1', type: 'text/plain', size: 3 },
+    { id: 'd2', name: 'Sub', parentId: 'd1', blobId: null },
+    { id: 'f2', name: 'b.txt', parentId: 'd2', blobId: 'b2', type: 'text/plain', size: 4 },
+    { id: 'f3', name: 'c.txt', parentId: 'd1', blobId: 'b3', type: 'text/plain', size: 5 },
+  ];
+  const quotaOnC = (props: Record<string, unknown>) => props.name === 'c.txt'
+    ? { type: 'overQuota', description: 'There are too many files, please delete some before adding a new one.' }
+    : undefined;
+
+  it('takes a copy back one level per call, deepest first, without onDestroyRemoveChildren (0.16 and 1.0)', async () => {
+    // The fake answers like 0.16: a folder destroyed in the same call as its
+    // children is refused (willDestroy). 1.0 takes either.
+    const { client, calls, parents } = makeClient({ me: nested }, { refuseCreate: quotaOnC });
+
+    await expect(client.copyFileNode('d1', 'Docs', 'grp:d9')).rejects.toThrow('There are too many files');
+    expect(destroys(calls)).toEqual([
+      { accountId: 'grp', destroy: ['new4'] },
+      { accountId: 'grp', destroy: ['new2', 'new3'] },
+      { accountId: 'grp', destroy: ['new1'] },
+    ]);
+    expect([...parents.keys()]).toEqual([]);
+  });
+
+  it('leaves a folder of the copy that someone added to meanwhile, and says the copy is partly there (0.16 and 1.0)', async () => {
+    const { client, calls, parents } = makeClient({ me: nested }, { refuseCreate: quotaOnC, intrudeInto: 'Sub' });
+
+    const refused = await client.copyFileNode('d1', 'Docs', 'grp:d9').catch((error: unknown) => error);
+    expect(isPartialCopy(refused)).toBe(true);
+    // Still says why the copy stopped.
+    expect(fileErrorKind(refused)).toBe('overQuota');
+    expect((refused as Error).message).toContain('There are too many files');
+    // Their file stays, and so do Sub (new3) and Docs (new1) above it.
+    expect(destroys(calls).every(a => !('onDestroyRemoveChildren' in a))).toBe(true);
+    expect(destroys(calls).flatMap(a => a.destroy as string[])).not.toContain('theirs');
+    expect([...parents.keys()].sort()).toEqual(['new1', 'new3', 'theirs']);
   });
 
   it('has nothing to remove when the copy itself is refused', async () => {
@@ -348,5 +421,16 @@ describe('FileNode write errors, names and types', () => {
     const { client, calls } = makeClient({ me: tree }, { capability: { ...STALWART_10_CAPABILITY, maxFileNodeDepth: null } });
     await client.copyFileNode('src', 'src', 'target');
     expect(sets(calls)).toHaveLength(3);
+  });
+
+  it('reads each account\'s tree once for all the copies of one paste (Stalwart 1.0)', async () => {
+    const { client, calls } = makeClient({ me: tree, grp: tree }, { capability: STALWART_10_CAPABILITY });
+    const listings: FileNodeListings = new Map();
+    await client.copyFileNode('src', 'src', 'grp:target', listings);
+    await client.copyFileNode('f', 'f.txt', 'grp:target', listings);
+
+    // The source tree, then the target's for the depth check; not again per item.
+    expect(calls.filter(([m]) => m === 'FileNode/get').map(([, a]) => a.accountId)).toEqual(['me', 'grp']);
+    expect(sets(calls)).toHaveLength(4);
   });
 });

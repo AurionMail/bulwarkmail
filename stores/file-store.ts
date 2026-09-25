@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import type { IJMAPClient } from '@/lib/jmap/client-interface';
+import type { FileNodeListings, IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode, FileNodeRights } from '@/lib/jmap/types';
 import { fileNodeKind } from '@/lib/jmap/filenode-kind';
 import { fileNodeDepth } from '@/lib/jmap/filenode-depth';
+import { jmapError } from '@/lib/jmap/jmap-error';
 import { folderDepthError } from '@/lib/file-errors';
 
 export interface FileResource {
@@ -132,6 +133,13 @@ interface FileState {
   shareResource: (id: string, principalId: string, rights: FileNodeRights | null) => Promise<void>;
   /** Load the top-level nodes shared with the user by other principals. */
   loadSharedRoots: () => Promise<void>;
+  /**
+   * Open a node of a drive shared with the user, by the id the listings give
+   * it ("<owner>:<id>"), or a shared-files page: a folder opens itself,
+   * anything else the folder it is listed in. `sharedFilesName` titles an
+   * owner's shared-files page. False when the node is gone or not shared.
+   */
+  openSharedNode: (id: string, sharedFilesName: (ownerName: string) => string) => Promise<boolean>;
 }
 
 const DIRECTORY_TYPES = new Set(['d', 'application/x-directory', 'text/directory', 'httpd/unix-directory', 'inode/directory']);
@@ -177,6 +185,85 @@ function childrenOf(nodes: FileNode[], parentId: string | null): FileNode[] {
 // separator unambiguously marks a node we're browsing inside a shared account.
 function isCrossAccountId(id: string | null): boolean {
   return id != null && id.includes(':');
+}
+
+// Files shared with the user on their own, outside any folder shared with
+// them, have no folder to be listed in. Each owner's are listed on one page,
+// "<owner>:*": JMAP ids never contain "*", so the page can't be taken for a
+// node, and like the owner's nodes it counts as cross-account.
+const SHARED_FILES = ':*';
+
+/** The page listing the files `accountId` shares with the user outside any shared folder. */
+export function sharedFilesLocation(accountId: string): string {
+  return `${accountId}${SHARED_FILES}`;
+}
+
+function sharedFilesOwner(id: string | null): string | null {
+  return id !== null && id.endsWith(SHARED_FILES) ? id.slice(0, -SHARED_FILES.length) : null;
+}
+
+/**
+ * Whether a listing id is in a drive shared with the user: one of its
+ * folders or a shared-files page. Those have no path under the user's own
+ * root, so links name them by id.
+ */
+export function isSharedLocation(id: string | null): id is string {
+  return isCrossAccountId(id);
+}
+
+// A shared-files page lists files; nothing can be put into it.
+function assertCanAddTo(parentId: string | null): void {
+  if (sharedFilesOwner(parentId) !== null) {
+    throw jmapError('Nothing can be added to a list of shared files', { type: 'forbidden' });
+  }
+}
+
+// The top of what other accounts share with the user: shared nodes whose
+// parent the user can't open (none, or a folder not shared with them).
+// Stalwart 1.0 also lists the owner's folders above a shared node
+// (discoverableOnly); left in, the owner's top folder became the root and the
+// shared folder sat somewhere below it.
+function sharedRootsOf(nodes: FileNode[]): FileNode[] {
+  const visible = nodes.filter(n => !n.discoverableOnly);
+  const ids = new Set(visible.map(n => n.id));
+  return visible.filter(n => n.isShared && (n.parentId == null || !ids.has(n.parentId)));
+}
+
+/**
+ * Where a node of a shared drive is opened, as the breadcrumb trail from its
+ * shared root: a folder or shared-files page opens itself, anything else its
+ * folder, or its owner's shared-files page when that folder isn't shared
+ * with the user. A shared-files page has no name of its own (null); the
+ * caller words it.
+ */
+function findSharedPlace(
+  nodes: FileNode[],
+  id: string,
+): { trail: { id: string; name: string | null }[]; ownerName: string } | null {
+  const pageOwner = sharedFilesOwner(id);
+  if (pageOwner !== null) {
+    const files = sharedRootsOf(nodes).filter(n => n.accountId === pageOwner && !isFolder(n));
+    if (files.length === 0) return null;
+    return { trail: [{ id, name: null }], ownerName: files[0].accountName || pageOwner };
+  }
+
+  const visible = new Map(nodes.filter(n => !n.discoverableOnly).map(n => [n.id, n]));
+  const node = visible.get(id);
+  if (!node?.isShared || !node.accountId) return null;
+  const ownerName = node.accountName || node.accountId;
+  const folder = isFolder(node) ? node : node.parentId != null ? visible.get(node.parentId) : undefined;
+  if (!folder || !isFolder(folder)) {
+    return { trail: [{ id: sharedFilesLocation(node.accountId), name: null }], ownerName };
+  }
+  const trail: { id: string; name: string | null }[] = [];
+  const seen = new Set<string>();
+  let at: FileNode | undefined = folder;
+  while (at && !seen.has(at.id)) {
+    seen.add(at.id);
+    trail.unshift({ id: at.id, name: at.name });
+    at = at.parentId != null ? visible.get(at.parentId) : undefined;
+  }
+  return { trail, ownerName };
 }
 
 /**
@@ -246,6 +333,18 @@ function getUniqueName(name: string, existingNames: Set<string>): string {
   let counter = 1;
   while (existingNames.has(`${base} (${counter})${ext}`)) counter++;
   return `${base} (${counter})${ext}`;
+}
+
+// The files on a shared-files page come from any of the owner's folders, so
+// two may have the same name, while the Files view tells rows apart by name.
+// Later ones are numbered the way uploads are; serverName keeps the real name.
+function withUniqueNames(resources: FileResource[]): FileResource[] {
+  const used = new Set<string>();
+  return resources.map(r => {
+    const name = getUniqueName(r.name, used);
+    used.add(name);
+    return name === r.name ? r : { ...r, name };
+  });
 }
 
 function buildPathFromStack(stack: { id: string | null; name: string }[]): string {
@@ -518,6 +617,9 @@ export const useFileStore = create<FileState>((set, get) => ({
     let newStack: { id: string | null; name: string }[];
     if (parentId === null) {
       newStack = [{ id: null, name: '' }];
+    } else if (sharedFilesOwner(parentId) !== null) {
+      // A shared-files page sits right below Home, whatever was open before.
+      newStack = [{ id: null, name: '' }, { id: parentId, name: name || parentId }];
     } else {
       // Check if navigating to a parent in the stack
       const existingIdx = pathStack.findIndex(s => s.id === parentId);
@@ -543,11 +645,14 @@ export const useFileStore = create<FileState>((set, get) => ({
       const allNodes = isCrossAccountId(parentId)
         ? await client.listAllFileNodesAcrossAccounts()
         : await client.listAllFileNodes();
-      // The owner's folders on the way down to a shared node aren't shown
-      // (see loadSharedRoots); the user can do nothing in them.
-      const resources = sortResources(
-        childrenOf(allNodes, parentId).filter(n => !n.discoverableOnly).map(nodeToResource),
-      );
+      const owner = sharedFilesOwner(parentId);
+      const resources = owner !== null
+        ? withUniqueNames(sortResources(
+          sharedRootsOf(allNodes).filter(n => n.accountId === owner && !isFolder(n)).map(nodeToResource),
+        ))
+        // The owner's folders on the way down to a shared node aren't shown
+        // (see sharedRootsOf); the user can do nothing in them.
+        : sortResources(childrenOf(allNodes, parentId).filter(n => !n.discoverableOnly).map(nodeToResource));
 
       // Prune recent files whose backing node no longer exists on the server
       const { recentFiles } = get();
@@ -617,6 +722,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   createDirectory: async (name: string) => {
     const { client, currentParentId, refresh } = get();
     if (!client) return;
+    assertCanAddTo(currentParentId);
 
     await client.createFileDirectory(name, currentParentId);
     await refresh();
@@ -625,6 +731,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   uploadFile: async (file: File) => {
     const { client, currentParentId } = get();
     if (!client) return;
+    assertCanAddTo(currentParentId);
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -650,6 +757,7 @@ export const useFileStore = create<FileState>((set, get) => ({
     const { client, currentParentId, resources } = get();
     const report: UploadReport = { uploaded: 0, failed: [] };
     if (!client) return report;
+    assertCanAddTo(currentParentId);
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -697,6 +805,7 @@ export const useFileStore = create<FileState>((set, get) => ({
     const { client, currentParentId } = get();
     const report: UploadReport = { uploaded: 0, failed: [] };
     if (!client || files.length === 0) return report;
+    assertCanAddTo(currentParentId);
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -897,6 +1006,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   createTextFile: async (name: string) => {
     const { client, currentParentId, refresh } = get();
     if (!client) return;
+    assertCanAddTo(currentParentId);
 
     const emptyBlob = new File([''], name, { type: 'text/plain' });
     const { blobId } = await client.uploadBlob(emptyBlob);
@@ -910,6 +1020,7 @@ export const useFileStore = create<FileState>((set, get) => ({
 
     const resource = resources.find(r => r.name === name);
     if (!resource || resource.isSymlink) return;
+    assertCanAddTo(currentParentId);
 
     const dotIdx = name.lastIndexOf('.');
     const copyName = dotIdx > 0
@@ -976,7 +1087,12 @@ export const useFileStore = create<FileState>((set, get) => ({
     const picked = names
       .map(n => resources.find(r => r.name === n))
       .filter((r): r is FileResource => !!r && !r.isSymlink);
-    if (picked.length === 0) return;
+    if (picked.length === 0) {
+      // Nothing to copy replaces the clipboard too, instead of leaving an
+      // earlier cut or copy for the next paste.
+      set({ clipboard: null });
+      return;
+    }
     set({
       clipboard: {
         mode: 'copy',
@@ -992,8 +1108,11 @@ export const useFileStore = create<FileState>((set, get) => ({
   pasteResources: async () => {
     const { client, currentParentId, clipboard, refresh } = get();
     if (!client || !clipboard) return;
+    assertCanAddTo(currentParentId);
 
     const entries: UndoAction['entries'] = [];
+    // Each copy reads the source and target trees; read them once per paste.
+    const listings: FileNodeListings = new Map();
 
     for (let i = 0; i < clipboard.ids.length; i++) {
       const id = clipboard.ids[i];
@@ -1003,7 +1122,7 @@ export const useFileStore = create<FileState>((set, get) => ({
         await client.updateFileNode(id, { parentId: currentParentId });
         entries.push({ id, from: { parentId: clipboard.sourceParentId }, to: { parentId: currentParentId } });
       } else {
-        await client.copyFileNode(id, displayName, currentParentId);
+        await client.copyFileNode(id, displayName, currentParentId, listings);
       }
     }
 
@@ -1117,21 +1236,30 @@ export const useFileStore = create<FileState>((set, get) => ({
       return;
     }
     try {
-      // Stalwart 1.0 also lists the owner's folders above a shared node
-      // (discoverableOnly); left in, the owner's top folder became the root
-      // and the shared folder sat somewhere below it.
-      const all = (await client.listAllFileNodesAcrossAccounts()).filter(n => !n.discoverableOnly);
-      const idSet = new Set(all.map(n => n.id));
-      // A shared node is a "root" of the shared-with-me tree when its parent is
-      // not among the nodes the user can see (either null, or owned by a
-      // principal whose ancestor folders weren't shared).
-      const roots = all.filter(n =>
-        n.isShared && (n.parentId == null || !idSet.has(n.parentId)),
-      );
+      const roots = sharedRootsOf(await client.listAllFileNodesAcrossAccounts());
       set({ sharedRoots: sortResources(roots.map(nodeToResource)) });
     } catch (error) {
       console.error('[Files] Failed to load shared roots:', error);
       set({ sharedRoots: [] });
     }
+  },
+
+  openSharedNode: async (id: string, sharedFilesName: (ownerName: string) => string) => {
+    const { client, navigate } = get();
+    if (!client) return false;
+    let nodes: FileNode[];
+    try {
+      nodes = await client.listAllFileNodesAcrossAccounts();
+    } catch {
+      return false;
+    }
+    const place = findSharedPlace(nodes, id);
+    if (!place) return false;
+    const trail = place.trail.map(step => ({ id: step.id, name: step.name ?? sharedFilesName(place.ownerName) }));
+    const target = trail[trail.length - 1];
+    // The breadcrumb starts at the shared root, not below whatever was open.
+    set({ pathStack: [{ id: null, name: '' }, ...trail.slice(0, -1)] });
+    await navigate(target.id, target.name);
+    return true;
   },
 }));

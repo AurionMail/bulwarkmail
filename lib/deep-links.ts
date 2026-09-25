@@ -380,6 +380,12 @@ export interface FilesDeepLink {
   path: string;
   /** File name to preview once the folder has loaded, if the link named one. */
   preview?: string;
+  /**
+   * A node of a drive shared with the user, or a page of such a drive, by the
+   * id the Files store lists it under ("<owner>:<id>"). It has no path under
+   * the user's own root; the Files app opens where it is listed instead.
+   */
+  shared?: string;
 }
 
 export function buildFilesPath(currentPath: string, preview?: string | null): string {
@@ -388,14 +394,25 @@ export function buildFilesPath(currentPath: string, preview?: string | null): st
   return preview ? `${base}?preview=${encodeURIComponent(preview)}` : base;
 }
 
+/** The query of a link into a shared drive (see FilesDeepLink.shared), leading `?` included. */
+export function sharedFilesSearch(id: string, preview?: string | null): string {
+  const query = `?shared=${encodeURIComponent(id)}`;
+  return preview ? `${query}&preview=${encodeURIComponent(preview)}` : query;
+}
+
+export function buildSharedFilesPath(id: string, preview?: string | null): string {
+  return `/files${sharedFilesSearch(id, preview)}`;
+}
+
 export function parseFilesPath(
   segments: string[] = [],
   search?: URLSearchParams,
 ): FilesDeepLink | null {
   const parts = segments.map(decodeSegment).filter(Boolean);
   const preview = search?.get('preview') ?? undefined;
-  if (parts.length === 0 && !preview) return null;
-  return { path: `/${parts.join('/')}`, preview };
+  const shared = search?.get('shared') || undefined;
+  if (parts.length === 0 && !preview && !shared) return null;
+  return { path: `/${parts.join('/')}`, preview, ...(shared ? { shared } : {}) };
 }
 
 // ---------------------------------------------------------------------------

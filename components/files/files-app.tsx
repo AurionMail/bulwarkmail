@@ -10,8 +10,8 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, resourceServerRef, type UploadReport } from "@/stores/file-store";
-import { fileErrorKind } from "@/lib/file-errors";
+import { useFileStore, isSharedLocation, resourceServerRef, type UploadReport } from "@/stores/file-store";
+import { fileErrorKind, isPartialCopy } from "@/lib/file-errors";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
 import { NavigationRail } from "@/components/layout/navigation-rail";
@@ -34,7 +34,7 @@ import type { FolderLayout } from "@/components/files/files-settings-dialog";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { AlertTriangle, Loader2 } from "@/components/icons";
 import { isFilePreviewable } from "@/lib/file-preview";
-import { appPath, buildFilesPath, parseFilesPath, type FilesDeepLink } from "@/lib/deep-links";
+import { appPath, buildFilesPath, buildSharedFilesPath, parseFilesPath, type FilesDeepLink } from "@/lib/deep-links";
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
@@ -108,6 +108,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     undoLastAction,
     lastAction,
     shareResource,
+    openSharedNode,
   } = useFileStore();
 
   const isMobile = useIsMobile();
@@ -223,23 +224,40 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     return link;
   }, []);
 
-  // Pro shell only: this surface stays mounted for the whole session, so links
-  // arriving after mount are delivered live instead of being parked forever.
-  // The bootstrap has already run by then - walk the drive directly and let
-  // the preview effect below claim `pendingPreviewRef` once the listing lands.
-  // Embedded-only: during a cold-load redirect the standard instance renders
-  // briefly and must not steal the link parked for the Pro one.
+  // A node of a drive shared with the user has no path under the user's own
+  // root, so its link names it by id and the store opens where it is listed.
+  // False when it is gone or no longer shared.
+  const openSharedLink = useCallback(async (id: string): Promise<boolean> => {
+    if (await openSharedNode(id, (name) => t("shared_files_from", { name }))) return true;
+    toast.error(tDeepLink(pendingPreviewRef.current !== null ? "file_not_found" : "folder_not_found"));
+    // Not a file of the same name in whatever folder is open instead.
+    pendingPreviewRef.current = null;
+    return false;
+  }, [openSharedNode, t, tDeepLink]);
+  const openSharedLinkRef = useRef(openSharedLink);
+  openSharedLinkRef.current = openSharedLink;
+
+  // Links arriving after mount are delivered live. The Pro shell keeps this
+  // surface mounted for the whole session, and so does Next for the standard
+  // page when a link changes only the query (`?shared=`), while the route is
+  // read on mount only. The bootstrap has already run by then - walk the
+  // drive directly and let the preview effect below claim `pendingPreviewRef`
+  // once the listing lands. While the Pro interface is on, the standard
+  // instance renders only during a cold-load redirect and must not steal the
+  // link parked for the Pro one.
+  const proInterfaceActive = useProInterfaceActive();
   const navigateByPathRef = useRef(navigateByPath);
   navigateByPathRef.current = navigateByPath;
   useEffect(() => {
-    if (!isEmbedded) return;
+    if (!isEmbedded && proInterfaceActive) return;
     return subscribePendingDeepLink('files', (segments, search) => {
       const link = parseFilesPath(segments, new URLSearchParams(search ?? window.location.search));
       if (!link) return;
       if (link.preview) pendingPreviewRef.current = link.preview;
-      void navigateByPathRef.current(link.path);
+      if (link.shared) void openSharedLinkRef.current(link.shared);
+      else void navigateByPathRef.current(link.path);
     });
-  }, [isEmbedded]);
+  }, [isEmbedded, proInterfaceActive]);
 
   // Check support and load the first listing after the client is initialized.
   // One effect, run once: `checkSupport` publishes `supportsFiles` before it
@@ -267,7 +285,8 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       // listing the root first would strand the user there and rewrite the
       // URL they arrived on.
       const link = takeFilesLink();
-      if (link && link.path !== '/') await navigateByPath(link.path);
+      if (link?.shared && await openSharedLinkRef.current(link.shared)) return;
+      if (link && !link.shared && link.path !== '/') await navigateByPath(link.path);
       else if (firstCheck) await navigate(null);
     })();
   }, [storeClient, supportsFiles, checkSupport, migrateLegacyFlatNodes, navigate, navigateByPath, takeFilesLink]);
@@ -310,7 +329,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   // What the server said went wrong, as the second line under an action's
   // own error message; undefined when it said nothing specific.
-  const failureReason = useCallback((err: unknown): string | undefined => {
+  const serverReason = useCallback((err: unknown): string | undefined => {
     switch (fileErrorKind(err)) {
       case "overQuota": return t("error_over_quota");
       case "tooDeep": return t("error_too_deep");
@@ -320,6 +339,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       default: return undefined;
     }
   }, [t]);
+  // A copy that stopped part-way and could not all be taken back says so too.
+  const failureReason = useCallback((err: unknown): string | undefined => {
+    const reason = serverReason(err);
+    if (!isPartialCopy(err)) return reason;
+    return reason ? `${reason} ${t("error_partial_copy")}` : t("error_partial_copy");
+  }, [serverReason, t]);
 
   // An upload goes on past a file the server refuses; the refused ones are
   // reported once it is done.
@@ -536,9 +561,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   // The permalink for the folder on screen. In the Pro shell only the focused
   // tab writes the address bar; the standard instance that renders while Pro
   // takes over a route stays silent.
-  const proInterfaceActive = useProInterfaceActive();
   const isFocusedProTab = useIsFocusedProTab();
-  const filesLinkPath = appPath(buildFilesPath(currentPath, previewFile));
+  // A shared drive's folders and pages are linked by id (see openSharedLink).
+  const currentParentId = useFileStore((s) => s.currentParentId);
+  const filesLinkPath = appPath(isSharedLocation(currentParentId)
+    ? buildSharedFilesPath(currentParentId, previewFile)
+    : buildFilesPath(currentPath, previewFile));
   useDeepLinkUrl(
     isEmbedded
       ? (isFocusedProTab ? filesLinkPath : null)

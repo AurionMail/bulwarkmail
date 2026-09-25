@@ -2282,6 +2282,7 @@ function handleFileNodeSet(args: MethodArgs, callId: string): MethodResult {
   const updated: Record<string, unknown> = {};
   const notUpdated: Record<string, unknown> = {};
   const destroyed: string[] = [];
+  const notDestroyed: Record<string, unknown> = {};
 
   if (args.create) {
     for (const [tempId, props] of Object.entries(args.create as Record<string, Record<string, unknown>>)) {
@@ -2336,9 +2337,17 @@ function handleFileNodeSet(args: MethodArgs, callId: string): MethodResult {
   }
 
   if (Array.isArray(args.destroy)) {
-    // The client always sends onDestroyRemoveChildren: true, so a destroyed
-    // folder takes its subtree with it.
-    const toDestroy = new Set(args.destroy as string[]);
+    const toDestroy = new Set<string>();
+    for (const id of args.destroy as string[]) {
+      // Like Stalwart, a folder that still holds anything goes only with
+      // onDestroyRemoveChildren (the rollback of a failed copy leaves it out).
+      if (!args.onDestroyRemoveChildren && fileNodes.some((n) => n.parentId === id)) {
+        notDestroyed[id] = { type: 'nodeHasChildren', description: 'Cannot delete non-empty folder.' };
+      } else {
+        toDestroy.add(id);
+      }
+    }
+    // A destroyed folder takes its subtree with it.
     let grew = true;
     while (grew) {
       grew = false;
@@ -2366,6 +2375,7 @@ function handleFileNodeSet(args: MethodArgs, callId: string): MethodResult {
     updated,
     notUpdated,
     destroyed,
+    notDestroyed,
   }, callId];
 }
 

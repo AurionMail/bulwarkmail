@@ -1,4 +1,4 @@
-import { postJmap, fetchJmapSession, rebaseApiUrl } from '@/lib/stalwart/jmap-api';
+import { postJmap, fetchJmapSession, rebaseApiUrl, type JmapSessionDocument } from '@/lib/stalwart/jmap-api';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { jmapError, type JmapErrorInfo } from '@/lib/jmap/jmap-error';
 import type { FileNode } from '@/lib/jmap/types';
@@ -50,6 +50,26 @@ async function callJmap(ctx: WopiJmapContext, methodCalls: unknown[]): Promise<J
   }
   const json = (await response.json()) as { methodResponses?: JmapMethodResponse[] };
   return json.methodResponses ?? [];
+}
+
+/**
+ * Whether saving into another account's node takes the Modify right
+ * (`mayRename`) on top of `mayModifyContent`. Stalwart 0.16 refuses any
+ * update a sharee makes without Modify in the node's own grants, which its
+ * `myRights` reports, content changes included; 1.0 asks for the content
+ * right alone. 1.0 advertises `maxFileNodeDepth` (64) and 0.16 null. A
+ * shared account without the capability goes by the user's own.
+ */
+export function shareeSavesNeedRename(
+  session: JmapSessionDocument | null,
+  accountId: string,
+  ownAccountId: string,
+): boolean {
+  const filenode = (id: string) => {
+    const account = session?.accounts?.[id] as { accountCapabilities?: Record<string, unknown> } | undefined;
+    return account?.accountCapabilities?.['urn:ietf:params:jmap:filenode'] as { maxFileNodeDepth?: unknown } | undefined;
+  };
+  return typeof (filenode(accountId) ?? filenode(ownAccountId))?.maxFileNodeDepth !== 'number';
 }
 
 export async function getWopiFileNode(

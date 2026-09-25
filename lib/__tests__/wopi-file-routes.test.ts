@@ -36,7 +36,7 @@ import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { getWopiActions } from '@/lib/wopi/discovery';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { fetchJmapSession, postJmap } from '@/lib/stalwart/jmap-api';
-import { updateFileNodeBlob } from '@/lib/wopi/files';
+import { shareeSavesNeedRename, updateFileNodeBlob } from '@/lib/wopi/files';
 import { mintWopiToken, wopiDocumentId } from '@/lib/wopi/token';
 
 const ORIGIN = 'https://webmail.example.com';
@@ -69,7 +69,13 @@ type MethodCall = [string, Record<string, unknown>, string];
 
 let version: '0.16' | '1.0';
 let drives: Record<string, Record<string, FakeNode>>;
+// Accounts the user is a member of: their own, and a group drive if a test adds one.
+let memberOf: Set<string>;
 let sent: MethodCall[];
+
+const filenodeAccount = (depth: number | null = version === '1.0' ? 64 : null) => ({
+  accountCapabilities: { 'urn:ietf:params:jmap:filenode': { maxFileNodeDepth: depth, maxSizeFileNodeName: 255 } },
+});
 
 const node = (id: string, rights = ALL_RIGHTS): FakeNode => ({
   id, parentId: null, name: 'Report.docx', type: DOCX, blobId: `G-old-${id}`, size: 10, modified: LOADED, myRights: rights,
@@ -78,9 +84,10 @@ const node = (id: string, rights = ALL_RIGHTS): FakeNode => ({
 /**
  * FileNode/get and FileNode/set the way Stalwart answers them. A blob can
  * only be used by members of the account it was uploaded into (Stalwart's
- * `has_access_blob`, the same on 0.16 and 1.0); the user is a member of
- * their own account only. 1.0 stamps `modified` on a content update only
- * when the patch asks for it and echoes it in `updated`; 0.16.6+ always
+ * `has_access_blob`, the same on 0.16 and 1.0). A sharee needs
+ * mayModifyContent for a content update on 1.0, and mayRename (the Modify
+ * right) for any update on 0.16. 1.0 stamps `modified` on a content update
+ * only when the patch asks for it and echoes it in `updated`; 0.16.6+ always
  * bump it and answer `updated: {id: null}`.
  */
 function fakeJmapServer() {
@@ -99,12 +106,21 @@ function fakeJmapServer() {
       if (method === 'FileNode/set') {
         const updated: Record<string, unknown> = {};
         const notUpdated: Record<string, unknown> = {};
+        const sharee = !memberOf.has(args.accountId as string);
         for (const [id, patch] of Object.entries(args.update as Record<string, { blobId: string; modified?: null }>)) {
-          if (!patch.blobId.startsWith(`G-${OWN}-`)) {
+          if (!memberOf.has(patch.blobId.split('-')[1])) {
             notUpdated[id] = { type: 'forbidden', description: `You do not have access to blobId ${patch.blobId}.` };
             continue;
           }
           const target = drive[id];
+          if (sharee && version === '0.16' && !target.myRights.mayRename) {
+            notUpdated[id] = { type: 'forbidden', description: 'You are not allowed to modify this file node.' };
+            continue;
+          }
+          if (sharee && version === '1.0' && !target.myRights.mayModifyContent) {
+            notUpdated[id] = { type: 'forbidden', description: 'You are not allowed to modify the content of this file node.' };
+            continue;
+          }
           target.blobId = patch.blobId;
           target.size = 5;
           if (version === '1.0') {
@@ -167,6 +183,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   version = '1.0';
   drives = { [OWN]: { f1: node('f1') }, [OWNER]: {} };
+  memberOf = new Set([OWN]);
   sent = [];
   (getStalwartCredentials as Mock).mockResolvedValue({
     serverUrl: SERVER,
@@ -177,12 +194,13 @@ beforeEach(() => {
     hasSessionCookie: true,
   });
   (getWopiActions as Mock).mockResolvedValue({ edit: { docx: OFFICE }, view: {} });
-  (fetchJmapSession as Mock).mockResolvedValue({
+  (fetchJmapSession as Mock).mockImplementation(async () => ({
     primaryAccounts: { 'urn:ietf:params:jmap:mail': OWN, 'urn:ietf:params:jmap:filenode': OWN },
-    accounts: { [OWN]: {}, [OWNER]: {} },
+    // 1.0 advertises maxFileNodeDepth 64, 0.16 null, on the shared account too.
+    accounts: { [OWN]: filenodeAccount(), [OWNER]: filenodeAccount() },
     downloadUrl: 'https://public.example.com/jmap/download/{accountId}/{blobId}/{name}?accept={type}',
     uploadUrl: 'https://public.example.com/jmap/upload/{accountId}/',
-  });
+  }));
   (fetchJmapServer as Mock).mockImplementation(async (url: string, init?: RequestInit) => {
     if (init?.method === 'POST') {
       const account = decodeURIComponent(new URL(url).pathname.split('/')[3]);
@@ -286,16 +304,66 @@ describe('WOPI for a node in a shared drive', () => {
     expect(uploads()).toEqual([]);
   });
 
-  it('keeps uploading into the document\'s account for tokens minted before the upload account existed', async () => {
-    const payload = {
-      serverUrl: SERVER, authHeader: 'Basic dXNlcjpwYXNz', username: 'user@example.com',
-      accountId: OWN, fileId: 'f1', kind: 'file' as const, canWrite: true, origin: ORIGIN,
-    };
-    const documentId = wopiDocumentId(payload);
-    const { token } = mintWopiToken(payload);
+  // A share with the content right but not the rename right.
+  const CONTENT_ONLY = { ...ALL_RIGHTS, mayRename: false, mayAddChildren: false, mayDelete: false, mayShare: false };
 
-    const res = await save({ documentId, token: `access_token=${encodeURIComponent(token)}` });
+  it('opens read-only on 0.16 for a sharee who may change the content but not rename, since 0.16 refuses that save', async () => {
+    version = '0.16';
+    drives[OWNER].n5.myRights = CONTENT_ONLY;
+    const { data } = await launchFile({ fileId: 'n5', accountId: OWNER });
+    expect(data.readOnly).toBe(true);
+
+    // What an editable token would have run into on every save.
+    const editable = mintEditableToken(OWNER, 'n5', OWN);
+    expect((await save(editable)).status).toBe(500);
+    expect(setCalls()).toEqual([{ accountId: OWNER, update: { n5: { blobId: `G-${OWN}-1`, modified: null } } }]);
+  });
+
+  it('opens editable on Stalwart 1.0 for a sharee with the content right alone', async () => {
+    drives[OWNER].n5.myRights = CONTENT_ONLY;
+    const { data } = await launchFile({ fileId: 'n5', accountId: OWNER });
+    expect(data.readOnly).toBe(false);
+    expect(await save(editorCall(data))).toEqual({ status: 200, data: { LastModifiedTime: SAVED } });
+  });
+
+  it('opens editable on 0.16 once the sharee may rename too', async () => {
+    version = '0.16';
+    drives[OWNER].n5.myRights = { ...CONTENT_ONLY, mayRename: true };
+    const { data } = await launchFile({ fileId: 'n5', accountId: OWNER });
+    expect(data.readOnly).toBe(false);
+    expect(await save(editorCall(data))).toEqual({ status: 200, data: { LastModifiedTime: SAVED } });
+  });
+
+  it('keeps uploading into the document\'s account for tokens minted before the upload account existed', async () => {
+    // A group drive the user belongs to, so a blob uploaded there is theirs to use.
+    memberOf.add(OWNER);
+    const res = await save(mintEditableToken(OWNER, 'n5'));
     expect(res.status).toBe(200);
-    expect(uploads()).toEqual([`${SERVER}/jmap/upload/${OWN}/`]);
+    expect(uploads()).toEqual([`${SERVER}/jmap/upload/${OWNER}/`]);
+    expect(setCalls()).toEqual([{ accountId: OWNER, update: { n5: { blobId: `G-${OWNER}-1`, modified: null } } }]);
   });
 });
+
+describe('shareeSavesNeedRename', () => {
+  it('asks a sharee for mayRename on 0.16 only, told apart by maxFileNodeDepth', () => {
+    const session = (shared: object) => ({ accounts: { [OWN]: filenodeAccount(64), [OWNER]: shared } });
+    expect(shareeSavesNeedRename({ accounts: { [OWN]: filenodeAccount(null), [OWNER]: filenodeAccount(null) } }, OWNER, OWN)).toBe(true);
+    expect(shareeSavesNeedRename(session(filenodeAccount(64)), OWNER, OWN)).toBe(false);
+    // A shared account that lists no filenode capability goes by the user's own.
+    expect(shareeSavesNeedRename(session({}), OWNER, OWN)).toBe(false);
+    // Without a session, the stricter rule: better read-only than an editor that can't save.
+    expect(shareeSavesNeedRename(null, OWNER, OWN)).toBe(true);
+  });
+});
+
+/** An editable token; without `uploadAccountId` as launches minted before it existed. */
+function mintEditableToken(accountId: string, fileId: string, uploadAccountId?: string) {
+  const payload = {
+    serverUrl: SERVER, authHeader: 'Basic dXNlcjpwYXNz', username: 'user@example.com',
+    accountId, fileId, kind: 'file' as const, canWrite: true, origin: ORIGIN,
+    ...(uploadAccountId ? { uploadAccountId } : {}),
+  };
+  const documentId = wopiDocumentId(payload);
+  const { token } = mintWopiToken(payload);
+  return { documentId, token: `access_token=${encodeURIComponent(token)}` };
+}

@@ -62,6 +62,13 @@ export interface CalendarQueryOptions {
   signal?: AbortSignal;
 }
 
+/**
+ * FileNode trees by account, shared by the copies of one paste so that each
+ * account is read once rather than once per pasted item (see copyFileNode).
+ * Start each paste with an empty map.
+ */
+export type FileNodeListings = Map<string, Promise<FileNode[]>>;
+
 export interface IJMAPClient {
   // ── Connection lifecycle ──────────────────────────────────────
   connect(): Promise<void>;
@@ -541,7 +548,7 @@ export interface IJMAPClient {
   updateFileNode(id: string, updates: Partial<Pick<FileNode, 'name' | 'parentId'>>): Promise<void>;
   updateFileNodes(updates: Record<string, Partial<Pick<FileNode, 'name' | 'parentId'>>>): Promise<{ updated: string[]; notUpdated: Record<string, string> }>;
   destroyFileNodes(ids: string[]): Promise<{ destroyed: string[]; notDestroyed: string[] }>;
-  copyFileNode(id: string, newName: string, parentId: string | null): Promise<FileNode>;
+  copyFileNode(id: string, newName: string, parentId: string | null, listings?: FileNodeListings): Promise<FileNode>;
 
   // ── S/MIME raw-email helpers ──────────────────────────────────
   importRawEmail(blob: Blob, mailboxIds: Record<string, boolean>, keywords?: Record<string, boolean>, accountId?: string): Promise<string>;

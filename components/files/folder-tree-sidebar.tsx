@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import {
+  File,
   Folder,
   FolderOpen,
   ChevronRight,
@@ -11,7 +12,7 @@ import {
   Share2,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { useFileStore, type FileResource } from "@/stores/file-store";
+import { useFileStore, sharedFilesLocation, type FileResource } from "@/stores/file-store";
 
 interface FolderNode {
   id: string;
@@ -132,6 +133,21 @@ export function FolderTreeSidebar({ currentPath, onNavigate, listByParentId, wid
     onNavigate(path, id);
   }, [onNavigate]);
 
+  const sharedFolders = sharedRoots.filter(r => r.isDirectory);
+  // Files shared on their own sit in no shared folder; each owner's are
+  // listed on one page.
+  const fileOwners = new Map<string, string>();
+  for (const r of sharedRoots) {
+    if (!r.isDirectory && r.ownerAccountId) fileOwners.set(r.ownerAccountId, r.ownerName || r.ownerAccountId);
+  }
+  const sharedFilePages = [...fileOwners]
+    .sort(([, a], [, b]) => a.localeCompare(b))
+    .map(([accountId, ownerName]) => ({
+      id: sharedFilesLocation(accountId),
+      name: t("shared_files_from", { name: ownerName }),
+      ownerName,
+    }));
+
   return (
     <div
       className={cn(
@@ -186,14 +202,14 @@ export function FolderTreeSidebar({ currentPath, onNavigate, listByParentId, wid
           ))
         )}
 
-        {/* Shared with me: folders another principal has shared with the user */}
-        {sharedRoots.filter(r => r.isDirectory).length > 0 && (
+        {/* Shared with me: what another principal has shared with the user */}
+        {(sharedFolders.length > 0 || sharedFilePages.length > 0) && (
           <div className="mt-2 pt-2 border-t border-border/60">
             <div className="px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
               <Share2 className="w-3 h-3" />
               <span className="truncate">{t("shared_with_me")}</span>
             </div>
-            {sharedRoots.filter(r => r.isDirectory).map(r => {
+            {sharedFolders.map(r => {
               const path = `/${r.name}`;
               const isSelected = currentPath === path;
               return (
@@ -213,6 +229,30 @@ export function FolderTreeSidebar({ currentPath, onNavigate, listByParentId, wid
                   >
                     <Folder className="w-4 h-4 flex-shrink-0 me-2 text-primary" />
                     <span className="truncate">{r.name}</span>
+                  </button>
+                </div>
+              );
+            })}
+            {sharedFilePages.map(page => {
+              const path = `/${page.name}`;
+              const isSelected = currentPath === path;
+              return (
+                <div
+                  key={page.id}
+                  style={{ paddingBlock: "var(--density-sidebar-py)" }}
+                  className={cn(
+                    "group w-full flex items-center max-lg:min-h-[44px] text-sm transition-all duration-200 px-2",
+                    isSelected ? "bg-accent text-accent-foreground" : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  <button
+                    onClick={() => handleFolderClick(path, page.id)}
+                    className="flex items-center px-1 rounded transition-colors duration-150 flex-1 text-start min-w-0"
+                    style={{ paddingBlock: "var(--density-sidebar-py)", paddingLeft: "24px" }}
+                    title={t("shared_by", { name: page.ownerName })}
+                  >
+                    <File className="w-4 h-4 flex-shrink-0 me-2 text-primary" />
+                    <span className="truncate">{page.name}</span>
                   </button>
                 </div>
               );

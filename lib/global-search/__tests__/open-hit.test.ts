@@ -1,0 +1,107 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FileHit } from '../types';
+import type { FileNode } from '@/lib/jmap/types';
+import { appPath } from '@/lib/deep-links';
+
+// Opening a Files hit: a node of a drive shared with the user has no path
+// under the login's own root, so its link names it by id.
+
+const setPendingDeepLink = vi.fn();
+// Whether a Files page is open and listening (see deliverDeepLink).
+const deliverDeepLink = vi.fn((..._args: unknown[]) => false);
+vi.mock('@/lib/deep-link-handoff', () => ({
+  setPendingDeepLink: (...args: unknown[]) => setPendingDeepLink(...args),
+  deliverDeepLink: (...args: unknown[]) => deliverDeepLink(...args),
+}));
+
+function storeHook(state: object) {
+  const hook = (selector?: (s: object) => unknown) => (typeof selector === 'function' ? selector(state) : state);
+  hook.getState = () => state;
+  hook.setState = (patch: object) => Object.assign(state, patch);
+  hook.subscribe = () => () => {};
+  return hook;
+}
+
+const authState = { activeAccountId: 'login-a', getClientForAccount: () => undefined, switchAccount: vi.fn() };
+const fileState = { currentAccountId: 'login-a', initClient: vi.fn() };
+const tabState = { openTab: vi.fn(), openEmailTab: vi.fn() };
+vi.mock('@/stores/auth-store', () => ({ useAuthStore: storeHook(authState) }));
+vi.mock('@/stores/file-store', () => ({ useFileStore: storeHook(fileState) }));
+vi.mock('@/stores/pro-tab-store', () => ({ useProTabStore: storeHook(tabState) }));
+
+const { openHit } = await import('../open-hit');
+
+const T = '2026-09-01T08:00:00Z';
+
+function hit(node: Partial<FileNode> & Pick<FileNode, 'id' | 'name'>, folderPath: string, isFolder = false): FileHit {
+  const full: FileNode = {
+    parentId: null, type: isFolder ? '' : 'application/pdf', blobId: isFolder ? null : 'b1', size: 1, created: T, modified: T, ...node,
+  };
+  return {
+    kind: 'files',
+    localAccountId: 'login-a',
+    jmapAccountId: full.accountId ?? 'me',
+    id: full.id.includes(':') ? full.id.split(':')[1] : full.id,
+    accountLabel: 'A',
+    title: full.name,
+    subtitle: folderPath,
+    date: T,
+    source: 'remote',
+    node: full,
+    folderPath,
+    isFolder,
+  };
+}
+
+// A file shared on its own (its folder isn't shared), a shared folder, and a
+// file of the user's own drive.
+const sharedFile = hit({ id: 'owner1:n5', name: 'Q3 plan.pdf', parentId: 'owner1:d0', isShared: true, accountId: 'owner1' }, '/Documents');
+const sharedFolder = hit({ id: 'owner1:d1', name: 'Project X', isShared: true, accountId: 'owner1' }, '/', true);
+const ownFile = hit({ id: 'f1', name: 'a.txt', parentId: 'd1' }, '/Docs');
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  deliverDeepLink.mockReturnValue(false);
+});
+
+describe('openHit for Files', () => {
+  it('links a shared file by id, with the file to preview, in the standard layout', async () => {
+    const navigate = vi.fn();
+    await openHit(sharedFile, { proShell: false, navigate });
+    expect(navigate).toHaveBeenCalledWith(appPath('/files?shared=owner1%3An5&preview=Q3%20plan.pdf'));
+
+    await openHit(sharedFolder, { proShell: false, navigate });
+    expect(navigate).toHaveBeenLastCalledWith(appPath('/files?shared=owner1%3Ad1'));
+  });
+
+  it('keeps linking the user\'s own files by path', async () => {
+    const navigate = vi.fn();
+    await openHit(ownFile, { proShell: false, navigate });
+    expect(navigate).toHaveBeenCalledWith(appPath('/files/Docs?preview=a.txt'));
+  });
+
+  it('hands the shared link to the Files tab in the Pro shell', async () => {
+    await openHit(sharedFile, { proShell: true });
+    expect(tabState.openTab).toHaveBeenCalledWith('files');
+    expect(setPendingDeepLink).toHaveBeenCalledWith('files', [], '?shared=owner1%3An5&preview=Q3%20plan.pdf');
+  });
+
+  it('hands the link to a Files page that is already open instead of navigating, in the standard layout', async () => {
+    // Next keeps the page mounted when only the query changes, and the page
+    // reads the route only when it mounts.
+    deliverDeepLink.mockReturnValue(true);
+    const navigate = vi.fn();
+    await openHit(sharedFile, { proShell: false, navigate });
+    expect(deliverDeepLink).toHaveBeenCalledWith('files', [], '?shared=owner1%3An5&preview=Q3%20plan.pdf');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('navigates for a hit of another login, which has to switch logins first', async () => {
+    deliverDeepLink.mockReturnValue(true);
+    const navigate = vi.fn();
+    await openHit({ ...sharedFile, localAccountId: 'login-b' }, { proShell: false, navigate });
+    expect(authState.switchAccount).toHaveBeenCalledWith('login-b');
+    expect(deliverDeepLink).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(appPath('/files?shared=owner1%3An5&preview=Q3%20plan.pdf'));
+  });
+});

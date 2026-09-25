@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   setPendingDeepLink,
+  deliverDeepLink,
   consumePendingDeepLink,
   consumePendingDeepLinkEntry,
   subscribePendingDeepLink,
@@ -79,6 +80,18 @@ describe('deep-link handoff', () => {
     const unsubscribe = subscribePendingDeepLink('files', listener);
     setPendingDeepLink('files', ['Documents'], '?preview=notes.txt');
     expect(listener).toHaveBeenCalledWith(['Documents'], '?preview=notes.txt');
+    expect(consumePendingDeepLinkEntry('files')).toBeNull();
+    unsubscribe();
+  });
+
+  it('delivers only to a mounted surface and parks nothing when none listens', () => {
+    expect(deliverDeepLink('files', [], '?shared=owner1%3An5')).toBe(false);
+    expect(consumePendingDeepLinkEntry('files')).toBeNull();
+
+    const listener = vi.fn();
+    const unsubscribe = subscribePendingDeepLink('files', listener);
+    expect(deliverDeepLink('files', [], '?shared=owner1%3An5')).toBe(true);
+    expect(listener).toHaveBeenCalledWith([], '?shared=owner1%3An5');
     expect(consumePendingDeepLinkEntry('files')).toBeNull();
     unsubscribe();
   });

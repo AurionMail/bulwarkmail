@@ -1,7 +1,7 @@
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
-import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
+import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileNodeListings, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { textConditions, textFilter } from "./search-utils";
 import { batched, batchedBySize, itemsPerRequest } from "./request-limits";
@@ -23,7 +23,7 @@ import { isServerSetKeyword } from "./server-keywords";
 
 export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
-import { folderDepthError } from "@/lib/file-errors";
+import { folderDepthError, partialCopyError } from "@/lib/file-errors";
 import { mediaTypeEssence, OCTET_STREAM } from "@/lib/media-type";
 import { canonicalTimeZone, getEffectiveTimeZone, moveLocalDateTime, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, hasTextLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
@@ -8876,12 +8876,22 @@ export class JMAPClient implements IJMAPClient {
    * drives. Blob/copy reserved the content to the target account, which only
    * that account's members may use: copying into someone else's shared drive
    * failed with it.
+   *
+   * `listings` lets the copies of one paste share the trees they read.
    */
-  async copyFileNode(id: string, newName: string, parentId: string | null): Promise<FileNode> {
+  async copyFileNode(id: string, newName: string, parentId: string | null, listings?: FileNodeListings): Promise<FileNode> {
     const source = this.resolveFileNodeId(id);
     const target = this.resolveFileNodeId(parentId);
+    const listing = (accountId: string): Promise<FileNode[]> => {
+      let nodes = listings?.get(accountId);
+      if (!nodes) {
+        nodes = this.fetchAllFileNodes(accountId);
+        listings?.set(accountId, nodes);
+      }
+      return nodes;
+    };
 
-    const tree = await this.fetchAllFileNodes(source.accountId);
+    const tree = await listing(source.accountId);
     const original = tree.find(n => n.id === source.id);
     if (!original) throw new Error('File node not found');
     // Symlinks (Stalwart 1.0) are left out: there is no content to copy, and
@@ -8920,41 +8930,82 @@ export class JMAPClient implements IJMAPClient {
         1 + entry.children.reduce((tallest, child) => Math.max(tallest, height(child)), 0);
       const targetTree = target.accountId === source.accountId
         ? tree
-        : await this.fetchAllFileNodes(target.accountId).catch(() => null);
+        : await listing(target.accountId).catch(() => null);
       if (targetTree && fileNodeDepth(targetTree, target.id) + height(plan) > maxDepth) {
         throw folderDepthError();
       }
     }
 
-    const createCopy = (node: FileNode, name: string, parent: string | null): Promise<FileNode> => {
+    // The ids this copy creates, by level below the copy (0 is the copy
+    // itself), so that a failure takes back exactly those.
+    const made: string[][] = [];
+    const createCopy = async (node: FileNode, name: string, parent: string | null, level: number): Promise<FileNode> => {
       const props: Record<string, unknown> = { name };
       if (parent !== null) props.parentId = parent;
       if (!isFolderNode(node)) {
         props.type = this.fileNodeType(target.accountId, node.type);
         props.blobId = node.blobId;
       }
-      return this.createFileNodeIn(target.accountId, props, 'copy');
+      const created = await this.createFileNodeIn(target.accountId, props, 'copy');
+      (made[level] ??= []).push(created.id);
+      return created;
     };
-    const copyChildren = async (entry: CopyEntry, parent: string): Promise<void> => {
+    const copyChildren = async (entry: CopyEntry, parent: string, level: number): Promise<void> => {
       for (const child of entry.children) {
-        const created = await createCopy(child.node, child.node.name, parent);
-        await copyChildren(child, created.id);
+        const created = await createCopy(child.node, child.node.name, parent, level);
+        await copyChildren(child, created.id, level + 1);
       }
     };
 
-    const root = await createCopy(plan.node, newName, target.id);
+    const root = await createCopy(plan.node, newName, target.id, 0);
     const copy = this.namespaceFileNode(root, target.accountId);
     try {
-      await copyChildren(plan, root.id);
+      await copyChildren(plan, root.id, 1);
     } catch (error) {
-      // Take the half-made copy away again (its children go with it) and
-      // report what stopped it.
-      await this.destroyFileNodes([copy.id]).catch((cleanup) => {
-        console.warn('[Files] Could not remove a partly created copy:', cleanup instanceof Error ? cleanup.message : cleanup);
-      });
+      // Take the half-made copy away again and report what stopped it. A
+      // large copy runs for minutes: whatever someone put into its folders
+      // meanwhile stays, and so do the folders holding it.
+      const kept = await this.destroyFileNodesBottomUp(target.accountId, made);
+      if (kept > 0) {
+        console.warn(`[Files] ${kept} node(s) of a failed copy were left in place`);
+        throw partialCopyError(error);
+      }
       throw error;
     }
     return copy;
+  }
+
+  /**
+   * Destroy nodes of one account level by level, the deepest first, without
+   * onDestroyRemoveChildren, so a folder that holds anything else is refused
+   * (`nodeHasChildren`) and stays. Stalwart 0.16 checks a destroy against the
+   * tree as it was before the call and refuses a folder whose children go in
+   * the same call (`willDestroy`), hence one call per level. Returns how many
+   * of the nodes are still there.
+   */
+  private async destroyFileNodesBottomUp(accountId: string, levels: string[][]): Promise<number> {
+    let kept = 0;
+    for (let level = levels.length - 1; level >= 0; level--) {
+      for (const batch of batched(levels[level] ?? [], this.getMaxObjectsInSet())) {
+        try {
+          const response = await this.request(
+            [["FileNode/set", { accountId, destroy: batch }, "fns0"]],
+            this.fileUsing(),
+          );
+          const result = response.methodResponses?.[0];
+          if (!result || result[0] === "error") {
+            kept += batch.length;
+            continue;
+          }
+          const refused = Object.values(result[1].notDestroyed || {}) as Array<{ type?: string } | null>;
+          // Gone already is as good as destroyed.
+          kept += refused.filter(err => err?.type !== "notFound").length;
+        } catch {
+          kept += batch.length;
+        }
+      }
+    }
+    return kept;
   }
 
   async downloadBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<void> {

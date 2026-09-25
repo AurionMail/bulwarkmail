@@ -196,6 +196,9 @@ describe('lite build helpers', () => {
     expect(readme).toContain('stalwart-cli update Http --field usePermissiveCors=true');
     expect(readme).toContain('{"update": {"singleton": {"usePermissiveCors": true}}}');
     expect(readme).toContain('ReloadSettings');
+    // The 1.0 pre-releases can't reload settings while the stock spam-filter
+    // rules use a function 1.0 removed; a restart applies the change there.
+    expect(readme).toMatch(/On the current 1\.0 pre-releases `ReloadSettings` fails while the\s+stock spam-filter rules are loaded, so restart Stalwart there instead\./);
     expect(readme).not.toContain('permissive-cors = true');
     expect(readme).toContain('currently `https://m.example`');
   });
@@ -599,13 +602,17 @@ describe('Stalwart target: the entry document', () => {
     const readme = buildStalwartReadme({ version: '1.10.0', commit: 'abc1234', locales: ['en'], buildId: 'b' });
     expect(readme).toContain('Requires: Stalwart 0.16.6 or later (0.16.19 for `oauthClientId`).');
     // Only 0.16.23 keeps the running bundle; 0.16.0-0.16.22 and the 1.0
-    // pre-releases unmount the Application, and a restart with an expired cache
-    // and an unreachable URL leaves it unmounted everywhere.
+    // pre-releases unmount the Application and delete the cached zip, so any
+    // later unpack downloads again: a restart, UpdateApps, or a reload of the
+    // Applications (cluster peers run one after UpdateApps). A restart with an
+    // expired cache and an unreachable URL leaves it unmounted everywhere.
     expect(readme).not.toContain('A failed download keeps the previous bundle online');
     expect(readme).toMatch(/On 0\.16\.23 the\s+running bundle stays online/);
-    expect(readme).toMatch(/Older 0\.16 releases and the 1\.0 pre-releases\s+unmount the Application until a later `UpdateApps` succeeds/);
-    expect(readme).toMatch(/On every\s+version, a restart after the cached copy has expired/);
-    expect(readme).toMatch(/check that `resourceUrl`\s+downloads before running `UpdateApps`/);
+    expect(readme).not.toContain('until a later `UpdateApps` succeeds');
+    expect(readme).toMatch(/Older 0\.16 releases and the 1\.0 pre-releases\s+unmount the Application and drop the cached copy\./);
+    expect(readme).toMatch(/The next restart,\s+`UpdateApps` or reload of the Applications \(the other nodes of a cluster\s+reload them after `UpdateApps`\) downloads `resourceUrl` again and mounts the\s+bundle once that works\./);
+    expect(readme).toMatch(/On every version, a restart after the cached copy\s+has expired/);
+    expect(readme).toMatch(/check that `resourceUrl` downloads before running\s+`UpdateApps`/);
   });
 });
 

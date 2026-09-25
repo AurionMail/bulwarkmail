@@ -463,5 +463,22 @@ describe('dev-jmap mock server', () => {
       expect(created.uploaded.size).toBe(5);
       expect(created.copied.size).toBe(148480);
     });
+
+    it('keeps a folder that still holds something unless onDestroyRemoveChildren is set, like a real server', async () => {
+      const fileNodeSet = async (args: Record<string, unknown>) => {
+        const res = await POST(makeRequest('http://localhost:3000/api/dev-jmap/api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+          body: JSON.stringify({ methodCalls: [['FileNode/set', { accountId: 'dev-account-001', ...args }, '0']] }),
+        }), { params: Promise.resolve({ path: ['api'] }) });
+        return (await res.json()).methodResponses[0][1];
+      };
+      const folder = (await fileNodeSet({ create: { f: { name: 'Rollback test' } } })).created.f.id;
+      const inside = (await fileNodeSet({ create: { x: { name: 'x.pdf', type: 'application/pdf', blobId: 'demo-blob-file-2', parentId: folder } } })).created.x.id;
+
+      expect((await fileNodeSet({ destroy: [folder] })).notDestroyed[folder].type).toBe('nodeHasChildren');
+      expect((await fileNodeSet({ destroy: [inside] })).destroyed).toEqual([inside]);
+      expect((await fileNodeSet({ destroy: [folder] })).destroyed).toEqual([folder]);
+    });
   });
 });

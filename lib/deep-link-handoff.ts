@@ -52,6 +52,19 @@ export function setPendingDeepLink(surface: AppSurface, segments: string[], sear
   pending.set(surface, { segments, search });
 }
 
+/**
+ * Hands a link to a surface that is mounted and listening, and says whether
+ * one was. Unlike setPendingDeepLink it never parks the link: without a
+ * listener the caller navigates instead, and the surface reads the link from
+ * the route when it mounts.
+ */
+export function deliverDeepLink(surface: AppSurface, segments: string[], search?: string): boolean {
+  const live = listeners.get(surface);
+  if (!live || live.size === 0) return false;
+  setPendingDeepLink(surface, segments, search);
+  return true;
+}
+
 /** Returns the parked link once, then forgets it. */
 export function consumePendingDeepLinkEntry(surface: AppSurface): PendingDeepLink | null {
   const entry = pending.get(surface);
@@ -67,10 +80,11 @@ export function consumePendingDeepLink(surface: AppSurface): string[] | null {
 
 /**
  * Live delivery for an already-mounted surface (the Pro shell keeps surfaces
- * mounted for the whole session). Returns the unsubscribe function. Only the
- * embedded (Pro) instance of a surface should subscribe - during a cold-load
- * redirect the standard instance briefly renders too and must not steal the
- * link parked for the Pro instance that mounts right after.
+ * mounted for the whole session). Returns the unsubscribe function. While the
+ * Pro interface is on, only the embedded (Pro) instance of a surface should
+ * subscribe - during a cold-load redirect the standard instance briefly
+ * renders too and must not steal the link parked for the Pro instance that
+ * mounts right after.
  */
 export function subscribePendingDeepLink(
   surface: AppSurface,

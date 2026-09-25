@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useFileStore, resourceServerRef } from '../file-store';
+import { useFileStore, resourceServerRef, sharedFilesLocation } from '../file-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode } from '@/lib/jmap/types';
 import { jmapError } from '@/lib/jmap/jmap-error';
@@ -420,9 +420,9 @@ describe('file-store "Shared with me"', () => {
   const T = '2026-09-01T08:00:00Z';
 
   // Another user's nodes as listAllFileNodesAcrossAccounts hands them over.
-  const shared = (id: string, name: string, parentId: string | null, blobId: string | null = null): FileNode => ({
-    id: `owner:${id}`, parentId: parentId && `owner:${parentId}`, name, type: blobId ? 'text/plain' : '', blobId, size: blobId ? 3 : 0,
-    created: T, modified: T, myRights: READ, isShared: true, accountId: 'owner', accountName: 'Owner',
+  const shared = (id: string, name: string, parentId: string | null, blobId: string | null = null, owner = 'owner'): FileNode => ({
+    id: `${owner}:${id}`, parentId: parentId && `${owner}:${parentId}`, name, type: blobId ? 'text/plain' : '', blobId, size: blobId ? 3 : 0,
+    created: T, modified: T, myRights: READ, isShared: true, accountId: owner, accountName: owner === 'owner' ? 'Owner' : 'Other',
   });
   // Stalwart 1.0's ancestors of a shared node: no dates, no rights.
   const placeholder = (id: string, name: string, parentId: string | null): FileNode => ({
@@ -478,6 +478,149 @@ describe('file-store "Shared with me"', () => {
     await useFileStore.getState().navigate('owner:f', 'Shared');
     expect(useFileStore.getState().resources.map(r => r.name)).toEqual(['old.txt']);
   });
+
+  // Owner's drive on Stalwart 1.0: a file shared on its own below a folder
+  // that isn't shared, one at the top, and a shared folder; plus another
+  // owner's file.
+  const drive10 = () => [
+    placeholder('docs', 'Documents', null),
+    shared('plan', 'plan.pdf', 'docs', 'b1'),
+    shared('notes', 'notes.txt', null, 'b2'),
+    shared('x', 'Project X', null),
+    shared('sub', 'Sub', 'x'),
+    shared('report', 'report.txt', 'sub', 'b3'),
+    shared('theirs', 'theirs.txt', null, 'b4', 'other'),
+  ];
+
+  it('lists files shared on their own on their owner\'s page, on Stalwart 1.0', async () => {
+    const client = withSharedDrive(drive10());
+    useFileStore.getState().initClient(client);
+
+    await useFileStore.getState().loadSharedRoots();
+    expect(useFileStore.getState().sharedRoots.map(r => r.name)).toEqual(['Project X', 'notes.txt', 'plan.pdf', 'theirs.txt']);
+
+    // Opened from wherever the user was, the page sits right below Home.
+    useFileStore.setState({ pathStack: [{ id: null, name: '' }, { id: 'mine', name: 'Mine' }] });
+    await useFileStore.getState().navigate(sharedFilesLocation('owner'), 'Files from Owner');
+    const state = useFileStore.getState();
+    expect(state.resources.map(r => r.name)).toEqual(['notes.txt', 'plan.pdf']);
+    expect(state.resources[0]).toMatchObject({ id: 'owner:notes', blobId: 'b2', isShared: true, ownerAccountId: 'owner' });
+    expect(state.currentPath).toBe('/Files from Owner');
+    expect(state.pathStack.map(s => s.id)).toEqual([null, 'owner:*']);
+  });
+
+  it('lists a file shared on its own on its owner\'s page on 0.16, which leaves the folder above it out', async () => {
+    useFileStore.getState().initClient(withSharedDrive([shared('plan', 'plan.pdf', 'unlisted', 'b1')]));
+
+    await useFileStore.getState().loadSharedRoots();
+    expect(useFileStore.getState().sharedRoots.map(r => r.name)).toEqual(['plan.pdf']);
+    await useFileStore.getState().navigate(sharedFilesLocation('owner'), 'Files from Owner');
+    expect(useFileStore.getState().resources.map(r => r.name)).toEqual(['plan.pdf']);
+  });
+
+  it('numbers same-named files from different folders on a shared-files page, so each row can be opened', async () => {
+    const client = withSharedDrive([
+      placeholder('a', 'A', null),
+      placeholder('b', 'B', null),
+      shared('p1', 'plan.pdf', 'a', 'b1'),
+      shared('p2', 'plan.pdf', 'b', 'b2'),
+    ]);
+    Object.assign(client, { fetchBlobAsObjectUrl: async (blobId: string) => `blob:${blobId}` });
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(sharedFilesLocation('owner'), 'Files from Owner');
+
+    const rows = useFileStore.getState().resources;
+    expect(rows.map(r => [r.name, r.serverName, r.id])).toEqual([
+      ['plan.pdf', 'plan.pdf', 'owner:p1'],
+      ['plan (1).pdf', 'plan.pdf', 'owner:p2'],
+    ]);
+    // Actions find a row by its name.
+    expect(await useFileStore.getState().getImageUrl('plan (1).pdf')).toBe('blob:b2');
+  });
+
+  it('refuses to add anything to a shared-files page', async () => {
+    const client = withSharedDrive(drive10());
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(sharedFilesLocation('owner'), 'Files from Owner');
+    const store = useFileStore.getState();
+    const refusal = (promise: Promise<unknown>) => promise.then(() => null, (error: unknown) => fileErrorKind(error));
+
+    expect(await refusal(store.createDirectory('New'))).toBe('forbidden');
+    expect(await refusal(store.createTextFile('a.txt'))).toBe('forbidden');
+    expect(await refusal(store.uploadFiles([new File(['x'], 'a.txt')]))).toBe('forbidden');
+    expect(await refusal(store.uploadFolder([new File(['x'], 'a.txt')]))).toBe('forbidden');
+    expect(await refusal(store.duplicateResource('notes.txt'))).toBe('forbidden');
+    useFileStore.setState({ clipboard: { mode: 'copy', ids: ['owner:plan'], names: ['plan.pdf'], serverNames: ['plan.pdf'], sourceParentId: null, sourcePath: '/' } });
+    expect(await refusal(useFileStore.getState().pasteResources())).toBe('forbidden');
+    expect(client._nodes()).toEqual([]);
+  });
+
+  it('opens a shared node where it is listed, on Stalwart 1.0 and 0.16', async () => {
+    useFileStore.getState().initClient(withSharedDrive(drive10()));
+    const name = (owner: string) => `Files from ${owner}`;
+    const open = async (id: string) => {
+      const opened = await useFileStore.getState().openSharedNode(id, name);
+      const state = useFileStore.getState();
+      return { opened, parent: state.currentParentId, path: state.currentPath, listed: state.resources.map(r => r.name) };
+    };
+
+    // A file in a shared folder: that folder, with the trail from the shared root.
+    expect(await open('owner:report')).toEqual({ opened: true, parent: 'owner:sub', path: '/Project X/Sub', listed: ['report.txt'] });
+    // A folder opens itself.
+    expect(await open('owner:x')).toEqual({ opened: true, parent: 'owner:x', path: '/Project X', listed: ['Sub'] });
+    // A file shared on its own, below a 1.0 placeholder or at the top: its
+    // owner's page.
+    expect(await open('owner:plan')).toEqual({ opened: true, parent: 'owner:*', path: '/Files from Owner', listed: ['notes.txt', 'plan.pdf'] });
+    expect(await open('other:theirs')).toEqual({ opened: true, parent: 'other:*', path: '/Files from Other', listed: ['theirs.txt'] });
+    expect(await open(sharedFilesLocation('owner'))).toMatchObject({ opened: true, parent: 'owner:*' });
+
+    // Gone, a placeholder, or not shared at all.
+    for (const id of ['owner:gone', 'owner:docs', sharedFilesLocation('nobody')]) {
+      expect(await useFileStore.getState().openSharedNode(id, name)).toBe(false);
+    }
+    expect(useFileStore.getState().currentParentId).toBe(sharedFilesLocation('owner'));
+
+    // 0.16 leaves the unshared folder above the file out altogether.
+    useFileStore.getState().initClient(withSharedDrive([shared('plan', 'plan.pdf', 'unlisted', 'b1')]));
+    expect(await open('owner:plan')).toEqual({ opened: true, parent: 'owner:*', path: '/Files from Owner', listed: ['plan.pdf'] });
+  });
+});
+
+describe('file-store paste', () => {
+  beforeEach(() => {
+    useFileStore.setState({
+      client: null,
+      currentParentId: null,
+      currentPath: '/',
+      pathStack: [{ id: null, name: '' }],
+      resources: [],
+      selectedResources: new Set(),
+      clipboard: null,
+      lastAction: null,
+    });
+  });
+
+  it('hands every copy of one paste the same listings, so each tree is read once', async () => {
+    const client = makeMockClient([dir('docs', 'Docs', null), file('a', 'a.txt', null), file('b', 'b.txt', null)]);
+    const copyFileNode = client.copyFileNode.bind(client);
+    const listingsSeen: unknown[] = [];
+    Object.assign(client, {
+      copyFileNode: async (id: string, name: string, parentId: string | null, listings?: unknown) => {
+        listingsSeen.push(listings);
+        return copyFileNode(id, name, parentId);
+      },
+    });
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    useFileStore.getState().copyResources(['a.txt', 'b.txt']);
+    await useFileStore.getState().navigate('docs', 'Docs');
+    await useFileStore.getState().pasteResources();
+
+    expect(listingsSeen).toHaveLength(2);
+    expect(listingsSeen[0]).toBeInstanceOf(Map);
+    expect(listingsSeen[1]).toBe(listingsSeen[0]);
+  });
 });
 
 describe('file-store symlinks (Stalwart 1.0)', () => {
@@ -522,11 +665,23 @@ describe('file-store symlinks (Stalwart 1.0)', () => {
 
     useFileStore.getState().copyResources(['a.txt', 'latest']);
     expect(useFileStore.getState().clipboard).toMatchObject({ mode: 'copy', ids: ['f'], names: ['a.txt'] });
-    useFileStore.getState().copyResources(['latest']);
-    expect(useFileStore.getState().clipboard).toMatchObject({ ids: ['f'] });
 
     await useFileStore.getState().duplicateResource('latest');
     expect(client._nodes()).toHaveLength(2);
+  });
+
+  it('empties the clipboard when only symlinks are copied, so an earlier cut is not pasted', async () => {
+    const client = makeMockClient([dir('docs', 'Docs', null), file('f', 'a.txt', null), link('l', 'latest', null)]);
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    useFileStore.getState().cutResources(['a.txt']);
+    useFileStore.getState().copyResources(['latest']);
+    expect(useFileStore.getState().clipboard).toBeNull();
+
+    await useFileStore.getState().navigate('docs', 'Docs');
+    await useFileStore.getState().pasteResources();
+    expect(client._nodes().find(n => n.id === 'f')?.parentId).toBeNull();
   });
 });
 

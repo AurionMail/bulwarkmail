@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fileErrorKind, folderDepthError } from '../file-errors';
+import { fileErrorKind, folderDepthError, isPartialCopy, partialCopyError } from '../file-errors';
 import { jmapError } from '../jmap/jmap-error';
 
 // SetErrors as Stalwart words them (1.0: jmap/src/file/*.rs; 0.16.23:
@@ -29,6 +29,17 @@ describe('fileErrorKind', () => {
     expect(fileErrorKind(setError('forbidden', 'You are not allowed to create file nodes in this folder.'))).toBe('forbidden');
     expect(fileErrorKind(setError('forbidden', 'You do not have access to blobId b2.'))).toBe('forbidden');
     expect(fileErrorKind(setError('forbidden', 'You are not allowed to modify this file node.'))).toBe('forbidden');
+  });
+
+  it('keeps why a copy stopped when part of it was left in place', () => {
+    const cause = setError('overQuota', 'There are too many files, please delete some before adding a new one.');
+    const partial = partialCopyError(cause);
+    expect(isPartialCopy(partial)).toBe(true);
+    expect(fileErrorKind(partial)).toBe('overQuota');
+    expect(partial.message).toBe(cause.message);
+    expect(fileErrorKind(partialCopyError(folderDepthError()))).toBe('tooDeep');
+    expect(isPartialCopy(partialCopyError(new TypeError('Failed to fetch')))).toBe(true);
+    expect(isPartialCopy(cause)).toBe(false);
   });
 
   it('has nothing to add for other errors', () => {

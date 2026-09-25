@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { configManager } from '@/lib/admin/config-manager';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
-import { fetchJmapSession } from '@/lib/stalwart/jmap-api';
+import { fetchJmapSession, type JmapSessionDocument } from '@/lib/stalwart/jmap-api';
 import { getWopiActions, buildWopiActionUrl } from '@/lib/wopi/discovery';
-import { getWopiFileNode, probeBlob } from '@/lib/wopi/files';
+import { getWopiFileNode, probeBlob, shareeSavesNeedRename } from '@/lib/wopi/files';
 import { mintWopiToken, wopiDocumentId, type WopiTokenPayload } from '@/lib/wopi/token';
 
 /**
@@ -56,8 +56,9 @@ export async function POST(request: NextRequest) {
     // needs the user's own account, where PutFile uploads (uploadAccountId).
     let accountId = str('accountId');
     let ownAccountId = '';
+    let session: JmapSessionDocument | null = null;
     if (!accountId || !blobId) {
-      const session = await fetchJmapSession(serverUrl, creds.authHeader, { trusted });
+      session = await fetchJmapSession(serverUrl, creds.authHeader, { trusted });
       const capability = blobId ? 'urn:ietf:params:jmap:mail' : 'urn:ietf:params:jmap:filenode';
       ownAccountId =
         session?.primaryAccounts?.[capability] ||
@@ -90,7 +91,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'File not found' }, { status: 404 });
       }
       name = node.name;
-      canWrite = node.myRights ? !!node.myRights.mayModifyContent : true;
+      // Editable only with the rights a save needs, or every save fails:
+      // Stalwart 0.16 also wants the Modify right (mayRename) from a sharee.
+      const rights = node.myRights;
+      const needsRename = accountId !== ownAccountId && shareeSavesNeedRename(session, accountId, ownAccountId);
+      canWrite = !rights || (!!rights.mayModifyContent && (!needsRename || !!rights.mayRename));
       document = { kind: 'file', fileId };
     }
 

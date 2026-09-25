@@ -3271,6 +3271,7 @@
     "error_invalid_name": "השרת אינו מקבל את השם הזה.",
     "error_forbidden": "אין לך הרשאה לבצע פעולה זו כאן.",
     "error_too_large": "הקובץ הזה גדול מדי עבור השרת.",
+    "error_partial_copy": "חלק מההעתק נשאר במקומו.",
     "create_folder_success": "התיקיה נוצרה",
     "create_folder_error": "יצירת התיקיה נכשלה",
     "delete_success": "נמחק בהצלחה",
@@ -3354,6 +3355,7 @@
     "shared": "משותף",
     "shared_with_me": "משותף איתי",
     "shared_by": "משותף על ידי {name}",
+    "shared_files_from": "קבצים מאת {name}",
     "open_folder_tree": "פתח עץ תיקייה",
     "migration_title": "עדכון הקבצים שלך…",
     "migration_description": "ארגון תיקיות וקבצים לתוך המבנה הנכון שלהם. זה קורה רק פעם אחת."
