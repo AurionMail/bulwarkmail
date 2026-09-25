@@ -80,6 +80,30 @@ describe('validateTabsConfig', () => {
       tabs: [{ id: 'a', label: 'A', query: huge }, { id: 'b', label: 'B' }],
     })).toThrow(/exceeds/);
   });
+
+  // Stalwart 1.0 parses JMAP Metadata filter conditions, then hits `todo!()`
+  // in Email/query and panics; 0.16 answers `unsupportedFilter`.
+  it('rejects JMAP Metadata filter conditions at any depth (they panic Stalwart 1.0)', () => {
+    const tabsWith = (query: Record<string, unknown>) => ({
+      tabs: [{ id: 'a', label: 'A', query }, { id: 'b', label: 'B' }],
+    });
+    expect(() => validateTabsConfig(tabsWith({ metadataExists: 'example.com/category' })))
+      .toThrow('tab "a" query may not filter on JMAP Metadata ("metadataExists")');
+    expect(() => validateTabsConfig(tabsWith({
+      operator: 'OR',
+      conditions: [
+        { from: 'news@example.com' },
+        { operator: 'NOT', conditions: [{ privateMetadataTextContains: { path: 'x/y', value: 'z' } }] },
+      ],
+    }))).toThrow(/JMAP Metadata \("privateMetadataTextContains"\)/);
+    expect(() => validateTabsConfig(tabsWith({ MetadataTextEquals: 'x' }))).toThrow(/JMAP Metadata/);
+  });
+
+  it('accepts ordinary filters that only mention metadata in values', () => {
+    const query = { operator: 'AND', conditions: [{ header: ['X-Metadata', 'yes'] }, { subject: 'metadata' }] };
+    const v = validateTabsConfig({ tabs: [{ id: 'a', label: 'A', query }, { id: 'b', label: 'B' }] });
+    expect(v.tabs[0].query).toEqual(query);
+  });
 });
 
 describe('resolveTabFilter', () => {

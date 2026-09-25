@@ -412,6 +412,28 @@ const ADDRESS_BOOK_PROPERTIES = [
 // and sharers.
 const PRINCIPAL_PROPERTIES = ["id", "type", "name", "description", "email"] as const;
 
+// The Mailbox properties the folder list reads (RFC 8621 §2), which is also
+// the default list on 0.16 and 1.0. Stalwart 1.0 advertises JMAP Metadata
+// but its handlers are still `todo!()`: a get that selects `metadata` or
+// `privateMetadata` panics on the server. An explicit list keeps them out
+// even if a later release adds them to the default.
+const MAILBOX_PROPERTIES = [
+  "id",
+  "name",
+  "parentId",
+  "role",
+  "sortOrder",
+  "totalEmails",
+  "unreadEmails",
+  "totalThreads",
+  "unreadThreads",
+  "myRights",
+  "isSubscribed",
+] as const;
+
+// SieveScript properties (RFC 9661 §2), explicit for the same reason.
+const SIEVE_SCRIPT_PROPERTIES = ["id", "name", "blobId", "isActive"] as const;
+
 /**
  * Detect whether a calendar object returned by the server is actually a
  * task (VTODO) rather than an event (VEVENT).  CalDAV clients like
@@ -1688,7 +1710,7 @@ export class JMAPClient implements IJMAPClient {
     const acctId = accountId || this.accountId;
     try {
       const response = await this.request([
-        ["Mailbox/get", { accountId: acctId }, "0"]
+        ["Mailbox/get", { accountId: acctId, properties: MAILBOX_PROPERTIES }, "0"]
       ]);
 
       if (response.methodResponses?.[0]?.[0] === "Mailbox/get") {
@@ -1777,6 +1799,7 @@ export class JMAPClient implements IJMAPClient {
           const response = await this.request([
             ["Mailbox/get", {
               accountId: accountId,
+              properties: MAILBOX_PROPERTIES,
             }, "0"]
           ]);
 
@@ -1881,7 +1904,7 @@ export class JMAPClient implements IJMAPClient {
     const mailboxes: Mailbox[] = [];
     for (const batchIds of batched(ids, this.getMaxObjectsInGet())) {
       const response = await this.request([
-        ["Mailbox/get", { accountId: acctId, ids: batchIds }, "0"],
+        ["Mailbox/get", { accountId: acctId, ids: batchIds, properties: MAILBOX_PROPERTIES }, "0"],
       ]);
       if (response.methodResponses?.[0]?.[0] !== "Mailbox/get") {
         throw new Error('Unexpected response format');
@@ -3897,7 +3920,7 @@ export class JMAPClient implements IJMAPClient {
       this.accounts[id]?.name?.toLowerCase() === fromEmail.toLowerCase()
     )) || this.accountId;
     const mboxResp = await this.request([
-      ["Mailbox/get", { accountId: targetAccountId }, "0"]
+      ["Mailbox/get", { accountId: targetAccountId, properties: ["id", "role"] }, "0"]
     ]);
     const mailboxes = (mboxResp.methodResponses?.[0]?.[1]?.list || []) as Mailbox[];
     const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
@@ -5406,6 +5429,7 @@ export class JMAPClient implements IJMAPClient {
     const response = await this.request([
       ["SieveScript/get", {
         accountId: accountId || this.getSieveAccountId(),
+        properties: SIEVE_SCRIPT_PROPERTIES,
       }, "0"]
     ], this.sieveUsing());
 
