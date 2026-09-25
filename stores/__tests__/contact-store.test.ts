@@ -44,6 +44,7 @@ const defaultState = {
   activeTab: 'all' as const,
   directoryPrincipals: [],
   directoryLoaded: false,
+  directoryStatus: null,
 };
 
 describe('contact-store', () => {
@@ -422,6 +423,41 @@ describe('contact-store', () => {
       });
       const results = useContactStore.getState().getAutocomplete('jane');
       expect(results).toEqual([{ name: 'janedoe', email: 'jane.doe@example.com' }]);
+    });
+  });
+
+  describe('fetchDirectory', () => {
+    it('keeps what a restricted listing offers on Stalwart 1.0 with directory queries off, without logging an error', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const client = {
+        supportsPrincipals: () => true,
+        getPrincipals: vi.fn(),
+        listPrincipals: vi.fn().mockResolvedValue({
+          status: 'restricted',
+          principals: [{ id: 'grp', type: 'group', name: 'sales@example.com', description: 'Sales', email: 'sales@example.com' }],
+        }),
+      } as unknown as IJMAPClient;
+
+      await useContactStore.getState().fetchDirectory(client);
+
+      const state = useContactStore.getState();
+      expect(state.directoryStatus).toBe('restricted');
+      expect(state.directoryLoaded).toBe(true);
+      expect(state.directoryPrincipals).toEqual([{ name: 'Sales', email: 'sales@example.com', description: 'Sales' }]);
+      expect(errors).not.toHaveBeenCalled();
+      errors.mockRestore();
+    });
+
+    it('counts a client without listPrincipals (demo) as a complete listing', async () => {
+      const client = {
+        supportsPrincipals: () => true,
+        getPrincipals: vi.fn().mockResolvedValue([{ id: 'a', type: 'individual', name: 'anna@example.com', email: 'anna@example.com' }]),
+      } as unknown as IJMAPClient;
+
+      await useContactStore.getState().fetchDirectory(client);
+
+      expect(useContactStore.getState().directoryStatus).toBe('ok');
+      expect(useContactStore.getState().directoryPrincipals).toEqual([{ name: 'anna@example.com', email: 'anna@example.com', description: undefined }]);
     });
   });
 

@@ -311,6 +311,90 @@ describe('JMAP client extensions', () => {
         { utcStart: '2026-09-01T12:00:00Z', utcEnd: '2026-09-01T13:00:00Z', busyStatus: null },
       ]);
     });
+
+    async function setupAvailability() {
+      client?.disconnect();
+      vi.restoreAllMocks();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const session = makeSession({ 'urn:ietf:params:jmap:principals': { currentUserPrincipalId: 'p-me' } });
+      (session.capabilities as Record<string, unknown>)['urn:ietf:params:jmap:principals'] = {};
+      (session.capabilities as Record<string, unknown>)['urn:ietf:params:jmap:principals:availability'] = { maxAvailabilityDuration: 'P365D' };
+      fetchSpy.mockResolvedValueOnce(jsonResponse(session));
+      client = new JMAPClient('https://mail.example.com', 'user@test.com', 'pass123');
+      await client.connect();
+      fetchSpy.mockReset();
+      requests = [];
+    }
+
+    it('reads mayGetAvailability from the own principal and is false on Stalwart 1.0 with directory queries off', async () => {
+      await setupAvailability();
+      answer(() => ({
+        methodResponses: [['Principal/get', { accountId: 'acct-1', state: 'n', list: [{
+          id: 'p-me',
+          capabilities: {
+            'urn:ietf:params:jmap:mail': {},
+            'urn:ietf:params:jmap:contacts': {},
+            'urn:ietf:params:jmap:filenode': {},
+            'urn:ietf:params:jmap:principals': {},
+            'urn:ietf:params:jmap:calendars': { accountId: 'p-me', mayGetAvailability: false, mayShareWith: false, calendarAddress: 'mailto:user@test.com' },
+          },
+        }], notFound: [] }, '0']],
+      }));
+
+      expect(await client.mayGetAvailability()).toBe(false);
+      // currentUserPrincipalId, not the account id, names the own principal.
+      expect(requests[0].methodCalls[0]).toEqual(['Principal/get', { accountId: 'acct-1', ids: ['p-me'], properties: ['id', 'capabilities'] }, '0']);
+    });
+
+    it('goes ahead on Stalwart 0.16, whose principal capabilities are empty objects', async () => {
+      await setupAvailability();
+      answer(() => ({
+        methodResponses: [['Principal/get', { accountId: 'acct-1', state: 'n', list: [{
+          id: 'p-me',
+          capabilities: {
+            'urn:ietf:params:jmap:mail': {},
+            'urn:ietf:params:jmap:contacts': {},
+            'urn:ietf:params:jmap:calendars': {},
+            'urn:ietf:params:jmap:filenode': {},
+            'urn:ietf:params:jmap:principals': {},
+          },
+        }], notFound: [] }, '0']],
+      }));
+
+      expect(await client.mayGetAvailability()).toBe(true);
+    });
+
+    it('says no when the role may not read principals and throws on other failures', async () => {
+      await setupAvailability();
+      answer(() => ({
+        methodResponses: [['error', { type: 'forbidden', description: 'You are not authorized to perform this action' }, '0']],
+      }));
+      expect(await client.mayGetAvailability()).toBe(false);
+
+      answer(() => ({
+        methodResponses: [['error', { type: 'serverUnavailable', description: 'This server is temporarily unavailable.' }, '0']],
+      }));
+      await expect(client.mayGetAvailability()).rejects.toMatchObject({ jmapType: 'serverUnavailable' });
+    });
+
+    it('throws getAvailability refusals with their JMAP type', async () => {
+      await setupAvailability();
+      const window = [new Date('2026-09-01T09:00:00Z'), new Date('2026-09-01T17:00:00Z')] as const;
+
+      answer(() => ({
+        methodResponses: [['error', { type: 'forbidden', description: 'The administrator has disabled directory queries.' }, '0']],
+      }));
+      await expect(client.getPrincipalAvailability('p1', ...window)).rejects.toMatchObject({
+        jmapType: 'forbidden',
+        message: 'The administrator has disabled directory queries.',
+      });
+
+      answer(() => ({
+        methodResponses: [['error', { type: 'rateLimit', description: 'Too many availability requests, please try again later' }, '0']],
+      }));
+      await expect(client.getPrincipalAvailability('p1', ...window)).rejects.toMatchObject({ jmapType: 'rateLimit' });
+    });
   });
 
   describe('mailbox sharing', () => {

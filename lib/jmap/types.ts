@@ -524,6 +524,22 @@ export interface Principal {
 }
 
 /**
+ * How complete a principal listing is:
+ * - `ok`: the whole directory;
+ * - `restricted`: the server refused to list its directory (Stalwart 1.0 with
+ *   directory queries off, or a role without the permission). The principals
+ *   are what Principal/get without ids still returns, on 1.0 the user's own
+ *   account, their groups and the accounts that shared something with them;
+ * - `error`: the listing failed part-way; the principals are what arrived.
+ */
+export type PrincipalDirectoryStatus = 'ok' | 'restricted' | 'error';
+
+export interface PrincipalListing {
+  principals: Principal[];
+  status: PrincipalDirectoryStatus;
+}
+
+/**
  * One busy interval from Principal/getAvailability (RFC 9670 §2.5 /
  * draft-ietf-jmap-calendars). `busyStatus` null means the server did not
  * classify the period (treated as busy).

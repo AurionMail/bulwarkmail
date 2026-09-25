@@ -1,5 +1,5 @@
 import { generateUUID } from '@/lib/utils';
-import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
+import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalListing, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
@@ -15,7 +15,7 @@ import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
-import { jmapError, jmapErrorType } from "./jmap-error";
+import { jmapError, jmapErrorType, type JmapErrorInfo } from "./jmap-error";
 
 export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
@@ -386,6 +386,12 @@ const ADDRESS_BOOK_PROPERTIES = [
   "shareWith",
   "myRights",
 ] as const;
+
+// The Principal properties Bulwark reads. 0.16's default list is the same;
+// 1.0's adds `capabilities` for every principal and `accounts`, a whole
+// account object with every account capability for the user, their groups
+// and sharers.
+const PRINCIPAL_PROPERTIES = ["id", "type", "name", "description", "email"] as const;
 
 /**
  * Detect whether a calendar object returned by the server is actually a
@@ -5789,36 +5795,79 @@ export class JMAPClient implements IJMAPClient {
   }
 
   /**
-   * List all principals visible to the user (RFC 9670); callers filter
-   * client-side. Paged by maxObjectsInGet: an unbounded query hands every id
-   * to the chained Principal/get, which the server refuses with
-   * `requestTooLarge` once the directory holds more than that (500).
+   * List all principals visible to the user (RFC 9670), and how complete the
+   * list is; callers filter client-side. Paged by maxObjectsInGet: an
+   * unbounded query hands every id to the chained Principal/get, which the
+   * server refuses with `requestTooLarge` once the directory holds more than
+   * that (500).
+   *
+   * Stalwart 1.0 refuses Principal/query with `forbidden` unless the
+   * administrator allows directory queries, which is off by default; 0.16
+   * does the same for a role without the query permission. The chained get
+   * then fails with `invalidResultReference`, so only the query's own error
+   * says why. The listing is then `restricted` to what Principal/get without
+   * ids still returns.
    */
-  async getPrincipals(targetAccountId?: string): Promise<Principal[]> {
-    if (!this.supportsPrincipals()) return [];
+  async listPrincipals(targetAccountId?: string): Promise<PrincipalListing> {
+    if (!this.supportsPrincipals()) return { principals: [], status: "ok" };
     const accountId = targetAccountId || this.accountId;
     const pageSize = this.getMaxObjectsInGet();
     const MAX_PRINCIPALS = 20000;
+    const all: Principal[] = [];
     try {
-      const all: Principal[] = [];
       for (let position = 0; position < MAX_PRINCIPALS;) {
         const response = await this.request([
           ["Principal/query", { accountId, position, limit: pageSize }, "0"],
           ["Principal/get", {
             accountId,
             "#ids": { resultOf: "0", name: "Principal/query", path: "/ids" },
+            properties: PRINCIPAL_PROPERTIES,
           }, "1"],
         ], this.principalsUsing());
 
-        const ids: string[] = response.methodResponses?.find((r) => r[0] === "Principal/query")?.[1]?.ids ?? [];
-        const getResp = response.methodResponses?.find((r) => r[0] === "Principal/get");
-        if (!getResp) break;
+        const responses = response.methodResponses ?? [];
+        const queryResp = responses.find((r) => r[0] === "Principal/query");
+        const getResp = responses.find((r) => r[0] === "Principal/get");
+        if (!queryResp || !getResp) {
+          const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
+          if (error?.type === "forbidden") {
+            return { principals: await this.getKnownPrincipals(accountId), status: "restricted" };
+          }
+          console.error("Failed to fetch principals:", error);
+          return { principals: all, status: "error" };
+        }
+        const ids: string[] = queryResp[1]?.ids ?? [];
         const list = (getResp[1].list || []) as Principal[];
         all.push(...list.map((p) => ({ ...p, accountId })));
         if (ids.length < pageSize) break;
         position += ids.length;
       }
-      return all;
+      return { principals: all, status: "ok" };
+    } catch (error) {
+      console.error("Failed to fetch principals:", error);
+      return { principals: all, status: "error" };
+    }
+  }
+
+  /** The principals of {@link listPrincipals}, without the status. */
+  async getPrincipals(targetAccountId?: string): Promise<Principal[]> {
+    return (await this.listPrincipals(targetAccountId)).principals;
+  }
+
+  /**
+   * Principal/get without ids. When the directory can't be listed, Stalwart
+   * 1.0 still returns the principals the user already knows: their own
+   * account, their groups and the accounts that shared something with them.
+   * Empty when that is refused too.
+   */
+  private async getKnownPrincipals(accountId: string): Promise<Principal[]> {
+    try {
+      const response = await this.request([
+        ["Principal/get", { accountId, ids: null, properties: PRINCIPAL_PROPERTIES }, "0"],
+      ], this.principalsUsing());
+      const [method, result] = response.methodResponses?.[0] ?? [];
+      if (method !== "Principal/get") return [];
+      return ((result as { list?: Principal[] }).list ?? []).map((p) => ({ ...p, accountId }));
     } catch (error) {
       console.error("Failed to fetch principals:", error);
       return [];
@@ -5911,9 +5960,40 @@ export class JMAPClient implements IJMAPClient {
   }
 
   /**
+   * Whether this user may ask for other people's free/busy. The session
+   * advertises free/busy either way, so the answer comes from the user's own
+   * principal: Stalwart 1.0 sets `capabilities[calendars].mayGetAvailability`
+   * to false while the administrator has directory queries off, and answers
+   * every getAvailability with `forbidden` then. 0.16 leaves that object
+   * empty, which means go ahead. A `forbidden` answer here (a role without
+   * the principal permissions) means no as well; other failures throw.
+   */
+  async mayGetAvailability(): Promise<boolean> {
+    if (!this.supportsAvailability()) return false;
+    const principals = this.getAccountCapability("urn:ietf:params:jmap:principals") as
+      { currentUserPrincipalId?: string | null } | undefined;
+    const ownId = principals?.currentUserPrincipalId || this.accountId;
+    const response = await this.request([
+      ["Principal/get", { accountId: this.accountId, ids: [ownId], properties: ["id", "capabilities"] }, "0"],
+    ], this.principalsUsing());
+    const [method, result] = response.methodResponses?.[0] ?? [];
+    if (method !== "Principal/get") {
+      const error = result as JmapErrorInfo | undefined;
+      if (error?.type === "forbidden") return false;
+      throw jmapError(error?.description || "Failed to read the user's principal", error);
+    }
+    const own = ((result as { list?: Principal[] }).list ?? []).find((p) => p.id === ownId);
+    const calendars = own?.capabilities?.["urn:ietf:params:jmap:calendars"] as { mayGetAvailability?: boolean } | undefined;
+    return calendars?.mayGetAvailability !== false;
+  }
+
+  /**
    * The busy periods of a principal between `utcStart` and `utcEnd`
    * (Principal/getAvailability). Event details are never requested: this
    * only tells whether an attendee is free, not what they are doing.
+   * A refusal throws with the JMAP error type: `forbidden` when the server
+   * won't answer free/busy for this user, `rateLimit` on Stalwart 1.0 after
+   * 100 calls a minute.
    */
   async getPrincipalAvailability(principalId: string, utcStart: Date, utcEnd: Date): Promise<BusyPeriod[]> {
     if (!this.supportsAvailability()) return [];
@@ -5928,7 +6008,8 @@ export class JMAPClient implements IJMAPClient {
     ], [...this.principalsUsing(), JMAPClient.PRINCIPALS_AVAILABILITY_CAPABILITY]);
     const [method, result] = response.methodResponses?.[0] ?? [];
     if (method !== "Principal/getAvailability") {
-      throw new Error((result as { description?: string })?.description || "Failed to query availability");
+      const error = result as JmapErrorInfo | undefined;
+      throw jmapError(error?.description || "Failed to query availability", error);
     }
     return ((result as { list?: Array<{ utcStart: string; utcEnd: string; busyStatus?: BusyPeriod['busyStatus'] }> }).list ?? [])
       .map((p) => ({ utcStart: p.utcStart, utcEnd: p.utcEnd, busyStatus: p.busyStatus ?? null }));

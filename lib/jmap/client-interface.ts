@@ -1,4 +1,4 @@
-import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
+import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PrincipalListing, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { FileNameRules } from "@/lib/file-name-rules";
 import type { SortLevel } from "@/lib/message-list-order";
@@ -152,6 +152,7 @@ export interface IJMAPClient {
   setDefaultParticipantIdentity?(id: string): Promise<void>;
   // Free/busy (Principal/getAvailability, principals:availability). Optional.
   supportsAvailability?(): boolean;
+  mayGetAvailability?(): Promise<boolean>;
   getPrincipalAvailability?(principalId: string, utcStart: Date, utcEnd: Date): Promise<BusyPeriod[]>;
   // ShareNotification (RFC 9670 §3): who shared what with this user. Optional
   // (demo client).
@@ -474,6 +475,8 @@ export interface IJMAPClient {
   // ── Sharing (RFC 9670 Principals) ─────────────────────────────
   supportsPrincipals(): boolean;
   getPrincipals(targetAccountId?: string): Promise<Principal[]>;
+  // The same list with how complete it is. Optional (demo client).
+  listPrincipals?(targetAccountId?: string): Promise<PrincipalListing>;
   setCalendarShare(calendarId: string, principalId: string, rights: CalendarRights | null, targetAccountId?: string): Promise<void>;
   setAddressBookShare(addressBookId: string, principalId: string, rights: AddressBookRights | null, targetAccountId?: string): Promise<void>;
   setFileNodeShare(fileNodeId: string, principalId: string, rights: FileNodeRights | null, targetAccountId?: string): Promise<void>;

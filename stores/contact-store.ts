@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ContactCard, AddressBook, AddressBookRights, ContactName, ContactMedia } from '@/lib/jmap/types';
+import type { ContactCard, AddressBook, AddressBookRights, ContactName, ContactMedia, PrincipalDirectoryStatus } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
+import { loadPrincipalDirectory } from '@/lib/jmap/principal-directory';
 import { generateUUID } from '@/lib/utils';
 import { debug } from '@/lib/debug';
 import { getClientByLocalAccountId } from './client-registry';
@@ -392,6 +393,9 @@ interface ContactStore {
   // augment recipient autocomplete. Runtime only, not persisted.
   directoryPrincipals: Array<{ name: string; email: string; description?: string }>;
   directoryLoaded: boolean;
+  // How complete directoryPrincipals is (see PrincipalDirectoryStatus); null
+  // until loaded.
+  directoryStatus: PrincipalDirectoryStatus | null;
 
   fetchContacts: (client: IJMAPClient) => Promise<void>;
   fetchDirectory: (client: IJMAPClient) => Promise<void>;
@@ -505,6 +509,7 @@ export const useContactStore = create<ContactStore>()(
       activeTab: 'all' as const,
       directoryPrincipals: [],
       directoryLoaded: false,
+      directoryStatus: null,
 
       fetchContacts: async (client) => {
         set({ isLoading: true, error: null });
@@ -520,7 +525,8 @@ export const useContactStore = create<ContactStore>()(
       fetchDirectory: async (client) => {
         if (!client.supportsPrincipals()) return;
         try {
-          const principals = await client.getPrincipals();
+          const { principals, status } = await loadPrincipalDirectory(client);
+          if (status !== 'ok') debug.log('contacts', `Directory listing is ${status}; autocomplete offers ${principals.length} principals`);
           const entries: Array<{ name: string; email: string; description?: string }> = [];
           for (const p of principals) {
             // Stalwart reports a principal's account name in `email`; only those
@@ -533,7 +539,7 @@ export const useContactStore = create<ContactStore>()(
               description: p.description ?? undefined,
             });
           }
-          set({ directoryPrincipals: entries, directoryLoaded: true });
+          set({ directoryPrincipals: entries, directoryLoaded: true, directoryStatus: status });
         } catch (error) {
           debug.error('Failed to fetch directory principals:', error);
         }
@@ -728,6 +734,7 @@ export const useContactStore = create<ContactStore>()(
         activeTab: 'all',
         directoryPrincipals: [],
         directoryLoaded: false,
+        directoryStatus: null,
       }),
 
       getAutocomplete: (query) => {
