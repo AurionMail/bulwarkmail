@@ -45,6 +45,9 @@ export const RECURRENCE_BASE_PROPERTIES = [
   'showWithoutTime',
   'timeZone',
   'duration',
+  'title',
+  'locations',
+  'description',
 ] as const;
 
 /**
@@ -414,6 +417,28 @@ function collapseDuplicateInstances(
   return result;
 }
 
+/**
+ * Complete an occurrence built from a reply stub. 0.16 stored an attendee's
+ * answer to one occurrence as an override holding little more than that
+ * attendee - no SUMMARY, LOCATION or DESCRIPTION - and Stalwart 1.0 builds
+ * such an occurrence from the override alone, so it shows untitled. The
+ * title comes from the series unless the override sets one itself; the
+ * place and description only when the override removes the title, which is
+ * what a stub looks like as 1.0 returns it (`title: null` in the PatchObject).
+ */
+function fillReplyStub(
+  occurrence: CalendarEvent,
+  base: Partial<CalendarEvent>,
+  override: Partial<CalendarEvent> | undefined,
+): void {
+  if (!occurrence.title && base.title && typeof override?.title !== 'string') {
+    occurrence.title = base.title;
+  }
+  if (override?.title !== null) return;
+  if (occurrence.locations == null && base.locations) occurrence.locations = base.locations;
+  if (!occurrence.description && base.description) occurrence.description = base.description;
+}
+
 function shiftIso(from: string | null | undefined, seconds: number): string | null {
   if (!from) return null;
   const ms = Date.parse(from);
@@ -428,8 +453,9 @@ function shiftIso(from: string | null | undefined, seconds: number): string | nu
  * flag, and - for an override that does not set its own duration - the
  * inherited duration (RFC 8984 §4.3.4: an override is a patch on the base
  * event; the server's own computed duration for such overrides has been seen
- * to be wrong). Occurrences whose base event is not in `bases` are returned
- * unchanged.
+ * to be wrong). A title the occurrence lacks comes from the series as well
+ * (see fillReplyStub). Occurrences whose base event is not in `bases` are
+ * returned unchanged.
  */
 export function hydrateRecurrenceInstances(
   instances: CalendarEvent[],
@@ -454,6 +480,7 @@ export function hydrateRecurrenceInstances(
     const overrideKey = resolveOverrideKey(instance, base.recurrenceOverrides);
     if (overrideKey) hydrated.recurrenceId = overrideKey;
     const override = overrideKey ? base.recurrenceOverrides?.[overrideKey] : undefined;
+    fillReplyStub(hydrated, base, override);
     if (override && override.duration == null && base.duration && hydrated.duration !== base.duration) {
       hydrated.duration = base.duration;
       const seconds = parseDurationSeconds(base.duration);

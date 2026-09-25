@@ -103,8 +103,8 @@ describe('server-side recurrence expansion with synthetic ids', () => {
       if (method === 'CalendarEvent/get') {
         const ids = args.ids as string[];
         const byId: Record<string, unknown> = { maaaaab: OCCURRENCE, eaaaaad: SINGLE, d: { ...SINGLE, id: 'd' } };
-        // The base-event hydration get asks only for recurrence properties.
-        byId.b = (args.properties as string[]).includes('title') ? MASTER : BASE;
+        // The base-event hydration get asks for the series context, no utc*.
+        byId.b = (args.properties as string[]).includes('utcStart') ? MASTER : BASE;
         return ['CalendarEvent/get', { list: ids.map((id) => byId[id]).filter(Boolean) }];
       }
       return ['Calendar/get', { list: [] }];
@@ -153,12 +153,13 @@ describe('server-side recurrence expansion with synthetic ids', () => {
     const events = await client.queryCalendarEvents(RANGE);
 
     // One extra get for the distinct base ids of recurring occurrences only
-    // (the non-recurring one needs nothing), asking for recurrence data only.
+    // (the non-recurring one needs nothing), asking for the series context.
     const baseGet = gets().find((g) => (g.args.ids as string[]).includes('b'));
     expect(baseGet).toBeDefined();
     expect(baseGet!.args.ids).toEqual(['b']);
     expect(baseGet!.args.properties).toEqual(expect.arrayContaining(['recurrenceRule', 'recurrenceOverrides', 'showWithoutTime']));
-    expect(baseGet!.args.properties).not.toContain('title');
+    expect(baseGet!.args.properties).toEqual(expect.arrayContaining(['title', 'locations', 'description']));
+    expect(baseGet!.args.properties).not.toContain('utcStart');
 
     const occurrence = events.find((e) => e.id === 'maaaaab')!;
     expect(occurrence.baseEventId).toBe('b');
