@@ -86,7 +86,7 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
         sendData.references,
         sendData.delayedUntil,
         sendData.envelopeMailFrom,
-        { localAccountId: sendData.localAccountId },
+        { localAccountId: sendData.localAccountId, draftAccountId: sendData.draftAccountId },
       );
       submitted = true;
 
@@ -158,10 +158,15 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
     });
   }, [closeTab]);
 
-  const handleDiscardDraft = useCallback(async (draftId: string) => {
+  const handleDiscardDraft = useCallback(async (draftId: string, draft?: { accountId?: string; localAccountId?: string }) => {
     if (!client) return;
+    // Same routing as the inline composer's discard: the login the draft was
+    // saved with, and the account it lives in (see ComposerDraftData).
+    const draftClient = draft?.localAccountId
+      ? (useAuthStore.getState().getClientForAccount(draft.localAccountId) ?? client)
+      : client;
     try {
-      await client.deleteEmail(draftId);
+      await draftClient.deleteEmail(draftId, draft?.accountId);
     } catch (error) {
       console.error('Failed to discard draft:', error);
     }

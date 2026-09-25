@@ -341,4 +341,34 @@ describe('JMAPClient post-send mailbox filing', () => {
     expect(capturedUpdate!.mailboxIds).toEqual({ '0': true });
     expect(capturedUpdate!['keywords/$draft']).toBe(true);
   });
+
+  // Mail sent from a group identity lives in the group's account (Stalwart 1.0
+  // and 0.16.23 alike), and ids repeat across accounts: restoring it in the own
+  // account moved an unrelated message there into Drafts.
+  it('restoreEmailToDraft updates the message in the account it was sent from', async () => {
+    const client = createClient();
+    const calls: Array<Record<string, unknown>> = [];
+    vi.spyOn(client as unknown as { request: JMAPClient['request'] }, 'request')
+      .mockImplementation(async (methodCalls) => {
+        calls.push(methodCalls[0][1] as Record<string, unknown>);
+        return { methodResponses: [['Email/set', { updated: { eaaaaab: null } }, '0']] };
+      });
+
+    await client.restoreEmailToDraft('eaaaaab', 'd', 'e', 'c');
+    await client.restoreEmailToDraft('eaaaaab', 'd', 'e');
+
+    expect(calls.map(call => call.accountId)).toEqual(['c', 'account-1']);
+    expect(calls[0].update).toEqual({ eaaaaab: { mailboxIds: { d: true }, 'keywords/$draft': true, 'keywords/$seen': true } });
+  });
+
+  it('restoreEmailToDraft fails when the server refuses the call or the message', async () => {
+    const client = createClient();
+    const request = vi.spyOn(client as unknown as { request: JMAPClient['request'] }, 'request');
+    // The whole call refused, e.g. access to the group account taken away.
+    request.mockResolvedValueOnce({ methodResponses: [['error', { type: 'forbidden', description: 'You do not have access to account c' }, '0']] });
+    request.mockResolvedValueOnce({ methodResponses: [['Email/set', { notUpdated: { eaaaaab: { type: 'notFound' } } }, '0']] });
+
+    await expect(client.restoreEmailToDraft('eaaaaab', 'd', 'e', 'c')).rejects.toMatchObject({ jmapType: 'forbidden' });
+    await expect(client.restoreEmailToDraft('eaaaaab', 'd', 'e', 'c')).rejects.toMatchObject({ jmapType: 'notFound', jmapSetError: true });
+  });
 });

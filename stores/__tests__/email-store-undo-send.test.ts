@@ -35,6 +35,7 @@ describe('cancelling a send and restoring the draft', () => {
     vi.restoreAllMocks();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     client = {
+      getAccountId: vi.fn(() => 'account-1'),
       pruneEmailSubmissions: vi.fn(() => new Promise<number>(() => {})),
       getScheduledEmails: vi.fn().mockResolvedValue({ emails: [], hasMore: false, total: 0, nextPosition: 0 }),
       cancelEmailSubmission: vi.fn().mockResolvedValue(undefined),
@@ -107,5 +108,136 @@ describe('cancelling a send and restoring the draft', () => {
     expect(cancelFailed).not.toBeInstanceOf(SendCancelledCleanupError);
 
     await expect(useEmailStore.getState().cancelScheduledEmailForEdit(client, scheduled)).resolves.toEqual({ id: 'sent-1' });
+  });
+
+  it('restores mail sent from the own identity in the own Drafts, as before', async () => {
+    const restored = await useEmailStore.getState().cancelUndoSend(client, { ...pending, submissionAccountId: 'account-1' });
+
+    expect(client.restoreEmailToDraft).toHaveBeenCalledWith('sent-1', 'mb-drafts', 'mb-sent');
+    expect(client.getMailboxes).not.toHaveBeenCalled();
+    expect(client.getEmail).toHaveBeenCalledWith('sent-1', 'account-1');
+    expect(restored).toEqual({ id: 'sent-1' });
+  });
+});
+
+// userb's session on the test servers: the own account `e` and the group
+// team@example.org as account `c`. Mail sent from the team identity is created
+// in `c` together with its submission. Email ids are per account and repeat:
+// live, `eaaaaab` is userb's first own message and the team account's too (on
+// Stalwart 1.0 and 0.16.23). The group's folders come back in a different
+// order on the two versions; the ids are the same.
+const GROUP_MAILBOXES = {
+  '1.0': [['a', 'inbox'], ['d', 'drafts'], ['c', 'junk'], ['b', 'trash'], ['e', 'sent']],
+  '0.16': [['e', 'sent'], ['d', 'drafts'], ['a', 'inbox'], ['c', 'junk'], ['b', 'trash']],
+} as const;
+
+type StoredEmail = { mailboxIds: Record<string, boolean>; keywords: Record<string, boolean>; subject: string };
+
+/** A client for userb that keeps each account's messages apart, as the server does. */
+function twoAccountClient(version: keyof typeof GROUP_MAILBOXES) {
+  const accounts: Record<string, Record<string, StoredEmail>> = {
+    e: { eaaaaab: { mailboxIds: { a: true }, keywords: { $seen: true }, subject: 'Unrelated message in the own inbox' } },
+    c: { eaaaaab: { mailboxIds: { e: true }, keywords: { $seen: true }, subject: 'Sent from team@example.org' } },
+  };
+  const at = (accountId?: string) => accounts[accountId ?? 'e'];
+  const client = {
+    getAccountId: () => 'e',
+    pruneEmailSubmissions: vi.fn(() => new Promise<number>(() => {})),
+    getScheduledEmails: vi.fn().mockResolvedValue({ emails: [], hasMore: false, total: 0, nextPosition: 0 }),
+    cancelEmailSubmission: vi.fn().mockResolvedValue(undefined),
+    getMailboxes: vi.fn(async (accountId?: string) => (accountId === 'c' ? GROUP_MAILBOXES[version] : GROUP_MAILBOXES['1.0'])
+      .map(([id, role]) => mailbox(id, role))),
+    restoreEmailToDraft: vi.fn(async (emailId: string, draftMailboxId: string, _sentMailboxId?: string, accountId?: string) => {
+      const email = at(accountId)[emailId];
+      if (!email) throw new Error('notFound');
+      email.mailboxIds = { [draftMailboxId]: true };
+      email.keywords = { ...email.keywords, $draft: true, $seen: true };
+    }),
+    deleteEmail: vi.fn(async (emailId: string, accountId?: string) => {
+      delete at(accountId)[emailId];
+    }),
+    getEmail: vi.fn(async (emailId: string, accountId?: string) => {
+      const email = at(accountId)[emailId];
+      return email ? { id: emailId, ...email } : null;
+    }),
+  };
+  return { client: client as unknown as IJMAPClient, accounts };
+}
+
+// The store's merged folder list: the own folders by their ids, the group's
+// namespaced by account.
+const OWN_AND_GROUP_FOLDERS = [
+  mailbox('a', 'inbox'), mailbox('d', 'drafts'), mailbox('e', 'sent'),
+  { ...mailbox('c:d', 'drafts'), originalId: 'd', accountId: 'c', isShared: true },
+  { ...mailbox('c:e', 'sent'), originalId: 'e', accountId: 'c', isShared: true },
+] as Mailbox[];
+
+describe.each(['1.0', '0.16'] as const)('undoing a send from a group identity on Stalwart %s', (version) => {
+  const groupPending = {
+    submissionId: 'sub-team',
+    emailId: 'eaaaaab',
+    identityId: 'b',
+    sendAt: new Date(Date.now() + 10_000).toISOString(),
+    isSmime: false,
+    submissionAccountId: 'c',
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    useEmailStore.setState({ emails: [], mailboxes: OWN_AND_GROUP_FOLDERS, pendingUndoSend: groupPending });
+  });
+
+  it('puts the message back in the group account\'s Drafts and leaves the own message with the same id alone', async () => {
+    const { client, accounts } = twoAccountClient(version);
+
+    const restored = await useEmailStore.getState().cancelUndoSend(client, groupPending);
+
+    expect(client.cancelEmailSubmission).toHaveBeenCalledWith('sub-team', 'c');
+    expect(client.getMailboxes).toHaveBeenCalledWith('c');
+    expect(client.restoreEmailToDraft).toHaveBeenCalledWith('eaaaaab', 'd', 'e', 'c');
+    expect(accounts.c.eaaaaab).toEqual({
+      mailboxIds: { d: true }, keywords: { $seen: true, $draft: true }, subject: 'Sent from team@example.org',
+    });
+    expect(accounts.e.eaaaaab).toEqual({
+      mailboxIds: { a: true }, keywords: { $seen: true }, subject: 'Unrelated message in the own inbox',
+    });
+    // The draft handed to the composer is the group's message.
+    expect(client.getEmail).toHaveBeenCalledWith('eaaaaab', 'c');
+    expect(restored).toMatchObject({ id: 'eaaaaab', subject: 'Sent from team@example.org' });
+  });
+
+  it('"Cancel and edit" restores a scheduled group message in the group account', async () => {
+    const { client, accounts } = twoAccountClient(version);
+    const scheduledTeam = { id: 'eaaaaab', emailSubmissionId: 'sub-team', scheduledAccountId: 'c', isSmimeScheduled: false } as unknown as Email;
+
+    const restored = await useEmailStore.getState().cancelScheduledEmailForEdit(client, scheduledTeam);
+
+    expect(client.cancelEmailSubmission).toHaveBeenCalledWith('sub-team', 'c');
+    expect(accounts.c.eaaaaab.mailboxIds).toEqual({ d: true });
+    expect(accounts.e.eaaaaab.mailboxIds).toEqual({ a: true });
+    expect(accounts.e.eaaaaab.keywords.$draft).toBeUndefined();
+    expect(restored).toMatchObject({ subject: 'Sent from team@example.org' });
+  });
+
+  it('"Cancel and compose again" removes an S/MIME group message in the group account only', async () => {
+    const { client, accounts } = twoAccountClient(version);
+    const scheduledTeam = { id: 'eaaaaab', emailSubmissionId: 'sub-team', scheduledAccountId: 'c', isSmimeScheduled: true } as unknown as Email;
+
+    await expect(useEmailStore.getState().cancelScheduledEmailForEdit(client, scheduledTeam)).resolves.toBeNull();
+
+    expect(client.deleteEmail).toHaveBeenCalledWith('eaaaaab', 'c');
+    expect(accounts.c.eaaaaab).toBeUndefined();
+    expect(accounts.e.eaaaaab.subject).toBe('Unrelated message in the own inbox');
+  });
+
+  it('reports a restore the group account refused as a cancelled send, touching nothing else', async () => {
+    const { client, accounts } = twoAccountClient(version);
+    delete accounts.c.eaaaaab;
+
+    const error = await useEmailStore.getState().cancelUndoSend(client, groupPending).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(SendCancelledCleanupError);
+    expect(accounts.e.eaaaaab.mailboxIds).toEqual({ a: true });
   });
 });

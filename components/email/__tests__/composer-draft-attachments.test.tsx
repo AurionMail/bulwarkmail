@@ -292,3 +292,99 @@ describe('re-opened draft attachments (#849)', () => {
     expect(createDraft.mock.calls[0][8]).toEqual([]);
   });
 });
+
+/**
+ * An undone send from a group identity is back in the group account's Drafts
+ * (Stalwart 1.0 and 0.16.23 file group mail there, beside its submission).
+ * Email ids repeat across accounts - live, `eaaaaab` is userb's own first
+ * message and the team account's too - so every step that removes the old
+ * version must name the account it lives in.
+ */
+const GROUP_DRAFT = { ...REOPENED_DRAFT, draftId: 'eaaaaab', draftAccountId: 'c', attachments: [] };
+
+describe('a re-opened draft that lives in a group account', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    useAuthStore.setState({ client: null });
+    vi.clearAllMocks();
+  });
+
+  async function editSubject(from: string, to: string) {
+    fireEvent.change(screen.getByDisplayValue(from), { target: { value: to } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+  }
+
+  it('removes the old version in the group account on the first save, then saves as usual', async () => {
+    const { createDraft } = mockClient();
+    render(<EmailComposer initialData={GROUP_DRAFT} onClose={vi.fn()} />);
+
+    await editSubject('Quarterly numbers', 'Quarterly numbers v2');
+    expect(createDraft).toHaveBeenCalledTimes(1);
+    expect(createDraft.mock.calls[0][7]).toBe('eaaaaab');
+    expect(createDraft.mock.calls[0][11]).toBe('c');
+
+    // The new version was saved in the own Drafts, like every draft.
+    await editSubject('Quarterly numbers v2', 'Quarterly numbers v3');
+    expect(createDraft).toHaveBeenCalledTimes(2);
+    expect(createDraft.mock.calls[1][7]).toBe('draft-v2');
+    expect(createDraft.mock.calls[1][11]).toBeUndefined();
+  });
+
+  it('tells the host where the draft lives when it is sent unchanged', async () => {
+    mockClient();
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    render(<EmailComposer initialData={GROUP_DRAFT} onSend={onSend} />);
+
+    fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ draftId: 'eaaaaab', draftAccountId: 'c' }));
+  });
+
+  it('sends a version saved on the way without the group account', async () => {
+    const { createDraft } = mockClient();
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    render(<EmailComposer initialData={GROUP_DRAFT} onSend={onSend} />);
+
+    // Edited, and sent before the autosave ran: the send saves first.
+    fireEvent.change(screen.getByDisplayValue('Quarterly numbers'), { target: { value: 'Quarterly numbers v2' } });
+    fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    expect(createDraft.mock.calls[0][11]).toBe('c');
+    expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ draftId: 'draft-v2', draftAccountId: undefined }));
+  });
+
+  it('tells the host where the draft lives when it is discarded', async () => {
+    mockClient();
+    const onDiscardDraft = vi.fn();
+    const requestCloseRef = { current: null } as React.MutableRefObject<((afterClose?: () => void) => void) | null>;
+    render(<EmailComposer initialData={GROUP_DRAFT} onDiscardDraft={onDiscardDraft} requestCloseRef={requestCloseRef} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByDisplayValue('Quarterly numbers'), { target: { value: 'Quarterly numbers v2' } });
+    act(() => requestCloseRef.current!());
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByText('discard'));
+
+    expect(onDiscardDraft).toHaveBeenCalledWith('eaaaaab', { accountId: 'c', localAccountId: undefined });
+  });
+
+  it('keeps an own draft in the own account throughout', async () => {
+    const { createDraft } = mockClient();
+    const onDiscardDraft = vi.fn();
+    const requestCloseRef = { current: null } as React.MutableRefObject<((afterClose?: () => void) => void) | null>;
+    render(<EmailComposer initialData={REOPENED_DRAFT} onDiscardDraft={onDiscardDraft} requestCloseRef={requestCloseRef} onClose={vi.fn()} />);
+
+    await editSubject('Quarterly numbers', 'Quarterly numbers v2');
+    expect(createDraft.mock.calls[0][7]).toBe('draft-v1');
+    expect(createDraft.mock.calls[0][11]).toBeUndefined();
+
+    fireEvent.change(screen.getByDisplayValue('Quarterly numbers v2'), { target: { value: 'Quarterly numbers v3' } });
+    act(() => requestCloseRef.current!());
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByText('discard'));
+    expect(onDiscardDraft).toHaveBeenCalledWith('draft-v2', { accountId: undefined, localAccountId: undefined });
+  });
+});

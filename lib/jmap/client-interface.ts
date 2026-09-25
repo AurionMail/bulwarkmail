@@ -324,6 +324,9 @@ export interface IJMAPClient {
     attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>,
     fromName?: string,
     htmlBody?: string,
+    // The account the previous version (`draftId`) lives in, when it is not
+    // the client's own; the new version is always saved in the own account.
+    draftAccountId?: string,
   ): Promise<string>;
 
   sendEmail(
@@ -347,8 +350,9 @@ export interface IJMAPClient {
     envelopeMailFrom?: string,
     // requestDsn / requireTls map to RFC 3461 / RFC 8689 envelope parameters
     // and need the matching `submissionExtensions` entry (see
-    // supportsSubmissionExtension).
-    options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean },
+    // supportsSubmissionExtension). `draftAccountId` is the account `draftId`
+    // lives in, when it is not the client's own (see createDraft).
+    options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; draftAccountId?: string },
   ): Promise<SendEmailResult>;
   /** Whether the submission account advertises an SMTP extension ("DSN", "REQUIRETLS", …). */
   supportsSubmissionExtension?(extension: string, accountId?: string): boolean;
@@ -392,8 +396,13 @@ export interface IJMAPClient {
    * `force` is set. Resolves with the number destroyed; never rejects.
    */
   pruneEmailSubmissions(options?: { force?: boolean }): Promise<number>;
-  /** `sentMailboxId` is accepted for backwards compatibility but ignored: the message is placed in Drafts only. */
-  restoreEmailToDraft(emailId: string, draftMailboxId: string, sentMailboxId?: string): Promise<void>;
+  /**
+   * `sentMailboxId` is accepted for backwards compatibility but ignored: the
+   * message is placed in Drafts only. `accountId` is the account the message
+   * lives in (a group or shared one for mail sent from its identity), and
+   * `draftMailboxId` must be that account's Drafts.
+   */
+  restoreEmailToDraft(emailId: string, draftMailboxId: string, sentMailboxId?: string, accountId?: string): Promise<void>;
 
   sendImipReply(opts: {
     organizerEmail: string;

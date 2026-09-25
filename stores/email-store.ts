@@ -215,7 +215,7 @@ interface EmailStore {
   loadMoreEmails: (client: IJMAPClient) => Promise<void>;
   fetchEmailContent: (client: IJMAPClient, emailId: string) => Promise<Email | null>;
   fetchQuota: (client: IJMAPClient) => Promise<void>;
-  sendEmail: (client: IJMAPClient, to: string[], subject: string, body: string, cc?: string[], bcc?: string[], identityId?: string, fromEmail?: string, draftId?: string, fromName?: string, htmlBody?: string, attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>, inReplyTo?: string[], references?: string[], delayedUntil?: string, envelopeMailFrom?: string, options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; localAccountId?: string }) => Promise<SendEmailResult>;
+  sendEmail: (client: IJMAPClient, to: string[], subject: string, body: string, cc?: string[], bcc?: string[], identityId?: string, fromEmail?: string, draftId?: string, fromName?: string, htmlBody?: string, attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>, inReplyTo?: string[], references?: string[], delayedUntil?: string, envelopeMailFrom?: string, options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; localAccountId?: string; draftAccountId?: string }) => Promise<SendEmailResult>;
   sendRawEmail: (client: IJMAPClient, rawMimeBlob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[]) => Promise<SendEmailResult>;
   deleteEmail: (client: IJMAPClient, emailId: string, forceDelete?: boolean) => Promise<void>;
   markAsRead: (client: IJMAPClient, emailId: string, read: boolean) => Promise<void>;
@@ -623,8 +623,22 @@ export class ArchiveMailboxNotFoundError extends Error {
 /**
  * Puts a message whose send was cancelled back in Drafts, out of Sent, where
  * the send filed it as soon as the submission was created.
+ *
+ * `accountId` is the account the message was sent from. Mail sent from a
+ * group or shared identity lives in that account, beside its submission, and
+ * goes back to that account's Drafts. Email ids repeat across accounts, so the
+ * user's own account may hold an unrelated message under the same id.
  */
-async function restoreSentToDraft(client: IJMAPClient, known: Mailbox[], emailId: string): Promise<void> {
+async function restoreSentToDraft(client: IJMAPClient, known: Mailbox[], emailId: string, accountId?: string): Promise<void> {
+  if (accountId && accountId !== client.getAccountId()) {
+    const mailboxes = await client.getMailboxes(accountId);
+    const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
+    const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
+    if (draftsMailbox) {
+      await client.restoreEmailToDraft(emailId, draftsMailbox.id, sentMailbox?.id, accountId);
+    }
+    return;
+  }
   const mailboxes = known.length > 0 ? known : await client.getMailboxes();
   const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
   const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
@@ -5113,7 +5127,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     const owner = get().scheduledEmails.find(email => email.emailSubmissionId === submissionId);
     await client.cancelEmailSubmission(submissionId, owner?.scheduledAccountId);
     if (emailId) {
-      await client.deleteEmail(emailId);
+      // The message lives beside its submission, not always in the own account.
+      await client.deleteEmail(emailId, owner?.scheduledAccountId);
       set(state => ({
         selectedEmail: state.selectedEmail?.id === emailId ? null : state.selectedEmail,
         selectedEmailIds: new Set(Array.from(state.selectedEmailIds).filter(id => id !== emailId)),
@@ -5128,20 +5143,22 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   cancelScheduledEmailForEdit: async (client, email) => {
     const submissionId = email.emailSubmissionId;
     if (!submissionId) return null;
-    await client.cancelEmailSubmission(submissionId, email.scheduledAccountId);
+    // The message lives beside its submission (see getScheduledEmails).
+    const accountId = email.scheduledAccountId;
+    await client.cancelEmailSubmission(submissionId, accountId);
     if (get().pendingUndoSend?.submissionId === submissionId) {
       set({ pendingUndoSend: null });
     }
     // Nothing goes out any more; a failure from here on is not a failed cancel.
     try {
       if (email.isSmimeScheduled) {
-        await client.deleteEmail(email.id);
+        await client.deleteEmail(email.id, accountId);
         set(state => ({
           selectedEmail: state.selectedEmail?.id === email.id ? null : state.selectedEmail,
           selectedEmailIds: new Set(Array.from(state.selectedEmailIds).filter(id => id !== email.id)),
         }));
       } else {
-        await restoreSentToDraft(client, get().mailboxes, email.id);
+        await restoreSentToDraft(client, get().mailboxes, email.id, accountId);
       }
     } catch (error) {
       void get().fetchScheduledEmails(client);
@@ -5150,7 +5167,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     await get().fetchScheduledEmails(client);
     if (email.isSmimeScheduled) return null;
     // Back in Drafts either way; the caller opens it when it can.
-    return client.getEmail(email.id).catch((error) => {
+    return client.getEmail(email.id, accountId).catch((error) => {
       console.error('Failed to load the restored draft:', error);
       return null;
     });
@@ -5185,19 +5202,23 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   cancelUndoSend: async (client, pending) => {
-    await client.cancelEmailSubmission(pending.submissionId, pending.submissionAccountId);
+    // A submission refers to an Email of its own account, so the message is
+    // where the submission is: in the group or shared account when it was
+    // sent from that account's identity.
+    const accountId = pending.submissionAccountId;
+    await client.cancelEmailSubmission(pending.submissionId, accountId);
     // Nothing goes out any more. A failure from here on must not read as a
     // failed undo, which would tell the user the mail may still leave.
     set({ pendingUndoSend: null });
     try {
       if (pending.emailId && pending.isSmime) {
-        await client.deleteEmail(pending.emailId);
+        await client.deleteEmail(pending.emailId, accountId);
         set(state => ({
           selectedEmail: state.selectedEmail?.id === pending.emailId ? null : state.selectedEmail,
           selectedEmailIds: new Set(Array.from(state.selectedEmailIds).filter(id => id !== pending.emailId)),
         }));
       } else if (pending.emailId) {
-        await restoreSentToDraft(client, get().mailboxes, pending.emailId);
+        await restoreSentToDraft(client, get().mailboxes, pending.emailId, accountId);
       }
     } catch (error) {
       void get().refreshScheduledMetadata(client);
@@ -5206,7 +5227,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     await get().refreshScheduledMetadata(client);
     if (!pending.emailId || pending.isSmime) return null;
     // Back in Drafts either way; the caller opens it when it can.
-    return client.getEmail(pending.emailId).catch((error) => {
+    return client.getEmail(pending.emailId, accountId).catch((error) => {
       console.error('Failed to load the restored draft:', error);
       return null;
     });

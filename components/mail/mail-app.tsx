@@ -1692,6 +1692,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     body: string;
     htmlBody?: string;
     draftId?: string;
+    /** JMAP account `draftId` lives in, when not the own one. */
+    draftAccountId?: string;
     fromEmail?: string;
     fromName?: string;
     identityId?: string;
@@ -1728,7 +1730,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const effectiveMode = pendingDraft?.mode ?? composerMode;
       const originalEmailId = selectedEmail?.id;
 
-      const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, localAccountId: data.localAccountId });
+      const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, localAccountId: data.localAccountId, draftAccountId: data.draftAccountId });
       submitted = true;
       setShowComposer(false);
       // Sending an edited draft destroys it server-side - and every autosave
@@ -1813,11 +1815,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
-  const handleDiscardDraft = async (draftId: string) => {
+  const handleDiscardDraft = async (draftId: string, draft?: { accountId?: string; localAccountId?: string }) => {
     if (!client) return;
+    // Through the login the draft was saved with, as a send is (#461), and in
+    // the account it lives in: a draft back from an undone group send is in
+    // the group's Drafts, and the own account may hold another message under
+    // the same id.
+    const draftClient = draft?.localAccountId
+      ? (useAuthStore.getState().getClientForAccount(draft.localAccountId) ?? client)
+      : client;
 
     try {
-      await client.deleteEmail(draftId);
+      await draftClient.deleteEmail(draftId, draft?.accountId);
     } catch (error) {
       console.error("Failed to discard draft:", error);
     }
@@ -1908,7 +1917,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (isMobile) setActiveView('viewer');
   };
 
-  const handleEditDraft = async (email?: Email) => {
+  /**
+   * `draftAccountId`: the account the draft lives in, given for a message
+   * whose send was just undone or cancelled - the account it was sent from,
+   * a group or shared one for mail sent from its identity.
+   */
+  const handleEditDraft = async (email?: Email, draftAccountId?: string) => {
     if (!client) return;
     const draftCandidate = email && typeof email === 'object' && typeof email.id === 'string'
       ? email
@@ -1916,11 +1930,16 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     let draft = draftCandidate;
     if (!draft) return;
 
+    // A draft in a shared or group folder lives in the folder's account. The
+    // composer removes the old version there when it saves, sends or
+    // discards: email ids repeat across accounts, so the own account may hold
+    // an unrelated message under the same id.
+    const mailbox = mailboxes.find(mb => mb.id === selectedMailbox);
+    const accountId = draftAccountId ?? (mailbox?.isShared ? mailbox.accountId : undefined);
+
     // The email list only fetches limited properties (no bodyValues/htmlBody/bcc).
     // Fetch the full email so the composer gets all draft content.
     if (!draft.bodyValues) {
-      const mailbox = mailboxes.find(mb => mb.id === selectedMailbox);
-      const accountId = mailbox?.isShared ? mailbox.accountId : undefined;
       const fullDraft = await client.getEmail(draft.id, accountId);
       if (!fullDraft) return;
       draft = fullDraft;
@@ -1970,6 +1989,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       subAddressTag: '',
       mode: 'compose',
       draftId: draft.id,
+      draftAccountId: accountId,
       // Existing server-side attachments must ride along, or the composer
       // starts empty and the next save/send silently rebuilds the draft
       // without them (#849).
@@ -2075,7 +2095,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             // failing is no reason to say otherwise.
             try {
               if (restored && !pending.isSmime) {
-                await handleEditDraft(restored);
+                // Back in the Drafts of the account it was sent from.
+                await handleEditDraft(restored, pending.submissionAccountId);
               }
               if (isScheduledView) await fetchScheduledEmails(client);
             } catch (error) {
@@ -4145,7 +4166,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     setComposerMode('compose');
                     setPendingDraft(null);
                   } else if (restored) {
-                    await handleEditDraft(restored).catch(reportDraftOpenFailure);
+                    await handleEditDraft(restored, email.scheduledAccountId).catch(reportDraftOpenFailure);
                     return;
                   }
                   setShowComposer(true);
@@ -4368,8 +4389,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     }
                   }}
                   requestCloseRef={composerRequestCloseRef}
-                  onDiscardDraft={(draftId) => {
-                    handleDiscardDraft(draftId);
+                  onDiscardDraft={(draftId, draft) => {
+                    handleDiscardDraft(draftId, draft);
                     setPendingDraft(null);
                   }}
                 />
@@ -4494,7 +4515,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                         setShowComposer(true);
                         return;
                       }
-                      if (restored) await handleEditDraft(restored).catch(reportDraftOpenFailure);
+                      if (restored) await handleEditDraft(restored, selectedEmail.scheduledAccountId).catch(reportDraftOpenFailure);
                     }}
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {

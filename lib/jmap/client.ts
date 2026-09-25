@@ -3992,7 +3992,11 @@ export class JMAPClient implements IJMAPClient {
     draftId?: string,
     attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>,
     fromName?: string,
-    htmlBody?: string
+    htmlBody?: string,
+    // Account the previous version (`draftId`) lives in, when it is not this
+    // one: a send undone from a group or shared identity goes back to that
+    // account's Drafts. The new version is saved here, as every draft is.
+    draftAccountId?: string,
   ): Promise<string> {
     const mailboxes = await this.getMailboxes();
     const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
@@ -4076,7 +4080,7 @@ export class JMAPClient implements IJMAPClient {
         if (draftId) {
           try {
             const destroyResponse = await this.request([
-              ["Email/set", { accountId: this.accountId, destroy: [draftId] }, "0"],
+              ["Email/set", { accountId: draftAccountId || this.accountId, destroy: [draftId] }, "0"],
             ]);
             const destroyResult = destroyResponse.methodResponses?.[0]?.[1];
             if (destroyResult?.notDestroyed) {
@@ -4111,7 +4115,9 @@ export class JMAPClient implements IJMAPClient {
     references?: string[],
     delayedUntil?: string,
     envelopeMailFrom?: string,
-    options?: SubmissionSendOptions
+    // `draftAccountId`: the account `draftId` lives in when it is not this
+    // one (see createDraft).
+    options?: SubmissionSendOptions & { draftAccountId?: string }
   ): Promise<SendEmailResult> {
     const holdForSeconds = delayedUntil ? this.validateDelayedUntil(delayedUntil) : undefined;
     const emailId = `send-${Date.now()}`;
@@ -4434,7 +4440,7 @@ export class JMAPClient implements IJMAPClient {
     if (draftId && createdEmailId) {
       try {
         const cleanupCalls: JMAPMethodCall[] = [
-          ["Email/set", { accountId: this.accountId, destroy: [draftId] }, "0"],
+          ["Email/set", { accountId: options?.draftAccountId || this.accountId, destroy: [draftId] }, "0"],
         ];
         if (submissionToDestroy) {
           cleanupCalls.push(submissionDestroyCall([submissionToDestroy], submissionAccountId, "1"));
@@ -10311,7 +10317,11 @@ export class JMAPClient implements IJMAPClient {
   // A full mailboxIds replacement (rather than mailboxIds/<id> pointer patches)
   // both drops the Sent copy without needing its id and stays safe for numeric
   // mailbox ids — see mailboxIdsReplacement().
-  async restoreEmailToDraft(emailId: string, draftMailboxId: string, _sentMailboxId?: string): Promise<void> {
+  // `accountId` is the account the message was sent from: a group or shared
+  // account for mail sent from its identity, with `draftMailboxId` that
+  // account's Drafts. Email ids repeat across accounts, so the update must
+  // name it.
+  async restoreEmailToDraft(emailId: string, draftMailboxId: string, _sentMailboxId?: string, accountId?: string): Promise<void> {
     const update: Record<string, unknown> = {
       ...mailboxIdsReplacement(draftMailboxId),
       'keywords/$draft': true,
@@ -10319,14 +10329,17 @@ export class JMAPClient implements IJMAPClient {
     };
     const response = await this.request([
       ['Email/set', {
-        accountId: this.accountId,
+        accountId: accountId || this.accountId,
         update: { [emailId]: update },
       }, '0'],
     ]);
-    const result = response.methodResponses?.[0]?.[1];
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name === 'error') {
+      throw jmapError(result?.description || result?.type || 'Failed to restore email to drafts', result);
+    }
     const error = result?.notUpdated?.[emailId];
     if (error) {
-      throw new Error(error.description || error.type || 'Failed to restore email to drafts');
+      throw jmapSetError(error.description || error.type || 'Failed to restore email to drafts', error);
     }
   }
 

@@ -358,6 +358,9 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
         subAddressTag: '',
         mode: 'compose',
         draftId: email.id,
+        // A draft in a shared or group folder is removed there when the
+        // composer replaces, sends or discards it (see ComposerDraftData).
+        draftAccountId: accountId,
         // The draft's already-uploaded parts - the classic path carries them
         // since #849; without this the Pro draft tab still opened the
         // composer without its files and the next save stripped them.
@@ -365,7 +368,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
       },
     });
     onClose();
-  }, [email, identities, multiAccountIdentities, openComposeTab, onClose, t]);
+  }, [email, accountId, identities, multiAccountIdentities, openComposeTab, onClose, t]);
 
   return (
     <div className={cn("flex h-full flex-col bg-background", className)}>
