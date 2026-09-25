@@ -4,6 +4,7 @@ import {
   compareEmails,
   detectPreset,
   hasKeywordLevels,
+  hasTextLevels,
   isDefaultOrder,
   keywordFirst,
   levelKeyword,
@@ -100,6 +101,21 @@ describe('keyword semantics', () => {
     expect(hasKeywordLevels([], true)).toBe(true);
     expect(hasKeywordLevels([{ criterion: 'size', direction: 'desc' }])).toBe(false);
     expect(hasKeywordLevels(UNREAD_FIRST)).toBe(true);
+  });
+});
+
+describe('hasTextLevels', () => {
+  // Only the server knows the collation of a sender or subject order.
+  it('is true for any order with a sender or subject level', () => {
+    expect(hasTextLevels([{ criterion: 'from', direction: 'asc' }])).toBe(true);
+    expect(hasTextLevels([{ criterion: 'subject', direction: 'desc' }])).toBe(true);
+    expect(hasTextLevels([...UNREAD_FIRST, { criterion: 'from', direction: 'asc' }])).toBe(true);
+  });
+
+  it('is false for date, size and keyword orders', () => {
+    expect(hasTextLevels([])).toBe(false);
+    expect(hasTextLevels([...UNREAD_FIRST, ...STARRED_FIRST, { criterion: 'size', direction: 'desc' }])).toBe(false);
+    expect(hasTextLevels([{ criterion: 'receivedAt', direction: 'asc' }, { criterion: 'sentAt', direction: 'desc' }])).toBe(false);
   });
 });
 

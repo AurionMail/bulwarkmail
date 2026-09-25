@@ -1,5 +1,5 @@
 import type { Email, ThreadGroup } from "./jmap/types";
-import { compareEmails, type SortLevel } from "./message-list-order";
+import { compareEmails, hasTextLevels, type SortLevel } from "./message-list-order";
 
 /**
  * Client-side identity of a thread.
@@ -109,8 +109,16 @@ export function groupEmailsByThread(
  * takes the position of whichever of its emails sorts first under `order`
  * (RFC 8621 §4.4.3 thread collapsing semantics) - with the default order that
  * is the latest email's receivedAt date, newest first.
+ *
+ * A sender or subject order only the server can apply (see `hasTextLevels`).
+ * The groups arrive in fetched order - groupEmailsByThread keeps the order in
+ * which each thread first appears - so each thread already sits where its
+ * first-ranked email does, and only pinned threads move.
  */
 export function sortThreadGroups(groups: ThreadGroup[], order: SortLevel[] = []): ThreadGroup[] {
+  if (hasTextLevels(order)) {
+    return [...groups].sort((a, b) => (b.hasPinned ? 1 : 0) - (a.hasPinned ? 1 : 0));
+  }
   const compare = compareEmails(order);
   const representative = new Map<ThreadGroup, Email>();
   for (const group of groups) {

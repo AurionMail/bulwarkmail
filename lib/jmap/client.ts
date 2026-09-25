@@ -26,7 +26,7 @@ import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/f
 import { folderDepthError } from "@/lib/file-errors";
 import { mediaTypeEssence, OCTET_STREAM } from "@/lib/media-type";
 import { getEffectiveTimeZone, toLocalDateTime } from "@/lib/timezone";
-import { buildEmailSort, compareEmails, hasKeywordLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
+import { buildEmailSort, compareEmails, hasKeywordLevels, hasTextLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
 import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
 
@@ -2147,10 +2147,19 @@ export class JMAPClient implements IJMAPClient {
 
       if (response.methodResponses?.[1]?.[0] === "Email/get" && getResponse) {
         const emails = (getResponse.list || []) as Email[];
-        // Sort client-side as safety net - some servers may not honour
-        // the query sort for large mailboxes without additional filters.
-        // Must mirror the query sort, or it would undo the configured order.
-        emails.sort(compareEmails(order, { pinnedFirst }));
+        if (hasTextLevels(order)) {
+          // A sender or subject order is the server's collation, which the
+          // client comparator contradicts (Stalwart 1.0 compares byte-order
+          // sort keys, empty values last). Keep the query's order: /get may
+          // return the objects in any order (RFC 8620 section 5.1).
+          const rank = new Map(((queryResponse?.ids ?? []) as string[]).map((id, i) => [id, i]));
+          emails.sort((a, b) => (rank.get(a.id) ?? rank.size) - (rank.get(b.id) ?? rank.size));
+        } else {
+          // Sort client-side as safety net - some servers may not honour
+          // the query sort for large mailboxes without additional filters.
+          // Must mirror the query sort, or it would undo the configured order.
+          emails.sort(compareEmails(order, { pinnedFirst }));
+        }
         const total = queryResponse?.total || 0;
         const hasMore = computeHasMore(position, emails.length, total, limit);
 

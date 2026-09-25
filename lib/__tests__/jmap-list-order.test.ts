@@ -191,4 +191,63 @@ describe('JMAPClient list ordering', () => {
       [{ property: 'receivedAt', isAscending: false }],
     ]);
   });
+
+  describe('sender and subject orders keep the server order', () => {
+    const sender = (id: string, name: string, address: string, receivedAt: string) => ({
+      id, threadId: `t-${id}`, keywords: { $seen: true }, receivedAt, mailboxIds: {}, size: 1, hasAttachment: false,
+      from: address ? [{ name, email: address }] : [],
+    });
+    const zoe = sender('zoe', 'Zoe', 'zoe@example.org', '2026-01-01T00:00:00Z');
+    const emile = sender('emile', 'Émile', 'emile@example.org', '2026-01-02T00:00:00Z');
+    const nobody = sender('nobody', '', '', '2026-01-03T00:00:00Z');
+
+    /** A folder query answered in `queryOrder`, with Email/get listing the objects in `getOrder`. */
+    function replyInOrder(queryOrder: typeof zoe[], getOrder: typeof zoe[]) {
+      return (methodCalls: MethodCall[]) => ({
+        methodResponses: [
+          ['Email/query', { ids: queryOrder.map((e) => e.id), total: queryOrder.length }, methodCalls[0][2]],
+          ['Email/get', { list: getOrder }, methodCalls[1][2]],
+        ],
+      });
+    }
+
+    it('keeps Stalwart 1.0 byte order with the empty sender last', async () => {
+      // 1.0 ranks lowercased "name address" keys by bytes, so "zoe ..." sorts
+      // before "émile ..." and a message without a sender comes last. The
+      // client comparator (localeCompare, empty first) would reverse all three.
+      const client = await connectedClient();
+      const sent = recordRequests(replyInOrder([zoe, emile, nobody], [nobody, emile, zoe]));
+
+      const { emails } = await client.getEmails('inbox', undefined, 50, 0, undefined, false, undefined, [{ criterion: 'from', direction: 'asc' }]);
+
+      expect(folderQueries(sent)).toEqual([[
+        { property: 'from', isAscending: true },
+        { property: 'receivedAt', isAscending: false },
+      ]]);
+      expect(emails.map((e) => e.id)).toEqual(['zoe', 'emile', 'nobody']);
+    });
+
+    it('keeps whatever order Stalwart 0.16 returns when a subject level follows another', async () => {
+      // 0.16 leaves the collation to its search store.
+      const client = await connectedClient();
+      recordRequests(replyInOrder([emile, nobody, zoe], [zoe, nobody, emile]));
+
+      const { emails } = await client.getEmails('inbox', undefined, 50, 0, undefined, false, undefined, [
+        { criterion: 'size', direction: 'desc' },
+        { criterion: 'subject', direction: 'asc' },
+      ]);
+
+      expect(emails.map((e) => e.id)).toEqual(['emile', 'nobody', 'zoe']);
+    });
+
+    it('still re-sorts a page ordered without text levels', async () => {
+      // The safety net for servers that ignore the sort stays for everything else.
+      const client = await connectedClient();
+      recordRequests(replyInOrder([zoe, emile, nobody], [zoe, emile, nobody]));
+
+      const { emails } = await client.getEmails('inbox', undefined, 50, 0, undefined, false, undefined, [{ criterion: 'receivedAt', direction: 'desc' }]);
+
+      expect(emails.map((e) => e.id)).toEqual(['nobody', 'emile', 'zoe']);
+    });
+  });
 });

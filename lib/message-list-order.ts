@@ -149,6 +149,20 @@ export function hasKeywordLevels(levels: SortLevel[], pinnedFirst = false): bool
   return pinnedFirst || levels.some(l => levelKeyword(l) !== null);
 }
 
+// Sender and subject orders are collated by the server. Stalwart 1.0 compares
+// byte-order sort keys (lowercased name and address, the thread name for the
+// subject) and puts empty values last in both directions; 0.16 leaves it to
+// its search store. `compareEmails` approximates neither.
+const TEXT_CRITERIA: ReadonlySet<SortCriterion> = new Set(['from', 'subject']);
+
+/**
+ * True when the order compares text: the list keeps the order the server
+ * returned instead of being re-sorted on the client.
+ */
+export function hasTextLevels(levels: SortLevel[]): boolean {
+  return levels.some(l => TEXT_CRITERIA.has(l.criterion));
+}
+
 /** A "chronological" order: nothing configured, or only newest-first. */
 export function isDefaultOrder(levels: SortLevel[]): boolean {
   return levels.length === 0
@@ -244,7 +258,9 @@ function compareValues(a: number | string, b: number | string): number {
  * Client-side mirror of `buildEmailSort` for the same level list. Used as the
  * within-page safety net (some servers ignore the sort on unfiltered queries),
  * for merging per-account pages in the unified view, for the demo client, and
- * to keep thread grouping from undoing the server order.
+ * to keep thread grouping from undoing the server order. Sender and subject
+ * levels are an approximation (see `hasTextLevels`), so a single-account list
+ * with one keeps the server's order.
  */
 export function compareEmails(
   levels: SortLevel[],

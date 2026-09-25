@@ -193,6 +193,30 @@ describe('sortThreadGroups', () => {
     ];
     expect(groupEmailsByThread(emails)[0].hasPinned).toBe(true);
   });
+
+  it('keeps the fetched order of a sender order, as Stalwart 1.0 collates it', () => {
+    // The server's byte order puts "zoe" before "émile" and the message
+    // without a sender last; a localeCompare re-sort would turn that around.
+    const fetched = [
+      makeEmail({ id: 'z', threadId: 'tz', from: [{ name: 'Zoe', email: 'zoe@example.org' }] }),
+      makeEmail({ id: 'e1', threadId: 'te', from: [{ name: 'Émile', email: 'emile@example.org' }] }),
+      makeEmail({ id: 'n', threadId: 'tn', from: [] }),
+      makeEmail({ id: 'e2', threadId: 'te', from: [{ name: 'Émile', email: 'emile@example.org' }], receivedAt: '2024-02-01T00:00:00Z' }),
+    ];
+    const order = [{ criterion: 'from' as const, direction: 'asc' as const }];
+    expect(sortThreadGroups(groupEmailsByThread(fetched), order).map(g => g.threadId)).toEqual(['tz', 'te', 'tn']);
+  });
+
+  it('still lifts pinned threads above a subject order, and otherwise keeps the fetched order', () => {
+    // Same subject everywhere: a client re-sort would fall back to newest first.
+    const groups = [
+      makeGroup('first', '2024-01-01T00:00:00Z'),
+      makeGroup('second', '2024-06-01T00:00:00Z'),
+      makeGroup('pinned', '2024-03-01T00:00:00Z', true),
+    ];
+    const sorted = sortThreadGroups(groups, [{ criterion: 'subject', direction: 'asc' }]);
+    expect(sorted.map(g => g.threadId)).toEqual(['pinned', 'first', 'second']);
+  });
 });
 
 describe('getThreadParticipants', () => {
