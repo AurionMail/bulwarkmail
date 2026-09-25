@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useEmailStore } from '../email-store';
+import { useEmailStore, buildUnifiedAccountClients } from '../email-store';
 import { useAuthStore } from '../auth-store';
+import { useAccountStore } from '../account-store';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { UnifiedAccountClient } from '@/lib/unified-mailbox';
@@ -55,6 +56,7 @@ function makeClient() {
     markAsRead: vi.fn().mockResolvedValue(undefined),
     toggleStar: vi.fn().mockResolvedValue(undefined),
     moveEmail: vi.fn().mockResolvedValue(undefined),
+    moveToTrash: vi.fn().mockResolvedValue(undefined),
     batchMarkAsRead: vi.fn().mockResolvedValue(undefined),
     batchDeleteEmails: vi.fn().mockResolvedValue(undefined),
     batchMoveEmails: vi.fn().mockResolvedValue(undefined),
@@ -336,5 +338,134 @@ describe('unified-view single-email action routing (#281)', () => {
 
     expect(activeClient.markAsRead).toHaveBeenCalledWith('email-a', true, undefined);
     expect(accountBClient.markAsRead).not.toHaveBeenCalled();
+  });
+});
+
+// JMAP account ids are only unique per server. Stalwart numbers accounts the
+// same way on every install: userb logged in to the Stalwart 0.16.23 and the
+// 1.0 test server is account `e` on both, and the team group is `c` on both
+// (message ids repeat too). Batch writes in the unified view used to be
+// grouped by account id alone, so both logins' messages went into one group
+// and out through whichever login's client came first - to a server where the
+// same ids name other messages.
+describe('unified-view batch actions with two logins that share account ids', () => {
+  let client016: IJMAPClient; // userb on 0.16.23, the active login
+  let client10: IJMAPClient;  // userb on 1.0
+
+  // Two installs need not number their folders alike: here the 1.0 login's
+  // Deleted Items are `k` (own) and `q` (team), the 0.16.23 login's `b`.
+  const own016 = [makeMailbox({ id: 'a', role: 'inbox', accountId: 'e' }), makeMailbox({ id: 'b', name: 'Deleted Items', role: 'trash', accountId: 'e' })];
+  const own10 = [makeMailbox({ id: 'a', role: 'inbox', accountId: 'e' }), makeMailbox({ id: 'k', name: 'Deleted Items', role: 'trash', accountId: 'e' })];
+  const team016 = [makeMailbox({ id: 'c:b', originalId: 'b', name: 'Deleted Items', role: 'trash', isShared: true, accountId: 'c' })];
+  const team10 = [makeMailbox({ id: 'c:q', originalId: 'q', name: 'Deleted Items', role: 'trash', isShared: true, accountId: 'c' })];
+
+  beforeEach(() => {
+    client016 = makeClient();
+    client10 = makeClient();
+    useAuthStore.setState({
+      activeAccountId: 'userb@v016',
+      getClientForAccount: (id: string) =>
+        (id === 'userb@v016' ? client016 : id === 'userb@v10' ? client10 : undefined) as never,
+    } as never);
+    useEmailStore.setState({
+      isUnifiedView: true,
+      unifiedRole: 'inbox',
+      viewingAccountId: null,
+      selectedMailbox: '',
+      selectedKeyword: null,
+      mailboxes: own016,
+      // What buildUnifiedAccountClients leaves behind: the bare account ids
+      // hold the list of the login fetched last.
+      accountMailboxes: {
+        'userb@v016': own016,
+        'userb@v10': own10,
+        e: own10,
+        c: team10,
+        'userb@v016|e': own016,
+        'userb@v10|e': own10,
+        'userb@v016|c': team016,
+        'userb@v10|c': team10,
+      },
+      emails: [
+        makeEmail({ id: 'm016', sourceClientAccountId: 'userb@v016', sourceAccountId: 'e', mailboxIds: { a: true } }),
+        makeEmail({ id: 'm10', sourceClientAccountId: 'userb@v10', sourceAccountId: 'e', mailboxIds: { a: true } }),
+        makeEmail({ id: 't016', sourceClientAccountId: 'userb@v016', sourceAccountId: 'c', mailboxIds: { a: true } }),
+        makeEmail({ id: 't10', sourceClientAccountId: 'userb@v10', sourceAccountId: 'c', mailboxIds: { a: true } }),
+      ],
+      selectedEmail: null,
+      selectedEmailIds: new Set(['m016', 'm10', 't016', 't10']),
+      processingReadStatus: new Set(),
+      unifiedScope: [],
+      unifiedCounts: [],
+      crossUnreadCount: 0,
+    });
+  });
+
+  const callsOf = (fn: unknown) => (fn as ReturnType<typeof vi.fn>).mock.calls;
+
+  it('marks each login\'s messages read through its own client', async () => {
+    await useEmailStore.getState().batchMarkAsRead(client016, true);
+
+    expect(callsOf(client016.batchMarkAsRead)).toEqual([[['m016'], true, 'e'], [['t016'], true, 'c']]);
+    expect(callsOf(client10.batchMarkAsRead)).toEqual([[['m10'], true, 'e'], [['t10'], true, 'c']]);
+  });
+
+  it('destroys each login\'s messages through its own client', async () => {
+    await useEmailStore.getState().batchDelete(client016, true);
+
+    expect(callsOf(client016.batchDeleteEmails)).toEqual([[['m016'], 'e'], [['t016'], 'c']]);
+    expect(callsOf(client10.batchDeleteEmails)).toEqual([[['m10'], 'e'], [['t10'], 'c']]);
+  });
+
+  it('moves each login\'s messages to that login\'s own Deleted Items', async () => {
+    await useEmailStore.getState().batchDelete(client016, false);
+
+    expect(callsOf(client016.batchMoveEmails)).toEqual([[['m016'], 'b', 'e', false], [['t016'], 'b', 'c', false]]);
+    expect(callsOf(client10.batchMoveEmails)).toEqual([[['m10'], 'k', 'e', false], [['t10'], 'q', 'c', false]]);
+  });
+
+  it('moves a selection through each login\'s own client', async () => {
+    await useEmailStore.getState().batchMoveToMailbox(client016, 'archive');
+
+    expect(callsOf(client016.batchMoveEmails)).toEqual([[['m016'], 'archive', 'e'], [['t016'], 'archive', 'c']]);
+    expect(callsOf(client10.batchMoveEmails)).toEqual([[['m10'], 'archive', 'e'], [['t10'], 'archive', 'c']]);
+  });
+
+  it('moves dropped messages through each login\'s own client', async () => {
+    await useEmailStore.getState().moveEmailsToMailbox(client016, ['m016', 'm10', 't10'], 'archive');
+
+    expect(callsOf(client016.batchMoveEmails)).toEqual([[['m016'], 'archive', 'e']]);
+    expect(callsOf(client10.batchMoveEmails)).toEqual([[['m10'], 'archive', 'e'], [['t10'], 'archive', 'c']]);
+  });
+
+  it('deletes a single message into its own login\'s Deleted Items', async () => {
+    // The bare `e` entry holds the 1.0 login's folders; this is the other one's.
+    await useEmailStore.getState().deleteEmail(client016, 'm016');
+
+    expect(client016.moveToTrash).toHaveBeenCalledWith('m016', 'b', 'e', false);
+    expect(client10.moveToTrash).not.toHaveBeenCalled();
+  });
+
+  it('caches each login\'s folder lists apart when building the unified view', async () => {
+    Object.assign(client016, { getAccountId: () => 'e', getAllMailboxes: vi.fn().mockResolvedValue([...own016, ...team016]) });
+    Object.assign(client10, { getAccountId: () => 'e', getAllMailboxes: vi.fn().mockResolvedValue([...own10, ...team10]) });
+    useAccountStore.setState({
+      accounts: [
+        { id: 'userb@v016', label: 'userb (0.16)', email: 'userb@example.org', isConnected: true },
+        { id: 'userb@v10', label: 'userb (1.0)', email: 'userb@example.org', isConnected: true },
+      ],
+    } as never);
+    useAuthStore.setState({
+      getAllConnectedClients: () => new Map([['userb@v016', client016], ['userb@v10', client10]]),
+    } as never);
+    useEmailStore.setState({ accountMailboxes: {} });
+
+    await buildUnifiedAccountClients({ includeGroup: true });
+
+    const cached = useEmailStore.getState().accountMailboxes;
+    expect(cached['userb@v016|e']).toEqual(own016);
+    expect(cached['userb@v10|e']).toEqual(own10);
+    expect(cached['userb@v016|c']).toEqual(team016);
+    expect(cached['userb@v10|c']).toEqual(team10);
   });
 });

@@ -848,8 +848,9 @@ function resolveCrossIncludedMailboxIds(accountId: string, ownMailboxes: Mailbox
  * is lost on the next reload (issue #281). We always pass `sourceAccountId` as
  * the JMAP accountId: for personal sources it equals the client's primary (a
  * no-op, no namespacing), for shared/group sources it targets the owner. The
- * owner's mailbox list (cached by `buildUnifiedAccountClients` under that JMAP
- * id) resolves role-based destinations like trash/archive.
+ * owner's mailbox list (cached by `buildUnifiedAccountClients` under the login
+ * and that JMAP id, see sourceMailboxes) resolves role-based destinations like
+ * trash/archive.
  *
  * For the normal single-account / viewing-account flow this preserves the
  * existing behavior exactly: the active/viewing client, its mailbox list, and
@@ -874,7 +875,7 @@ function resolveEmailActionContext(
   if (email.sourceClientAccountId && email.sourceAccountId) {
     return {
       client: useAuthStore.getState().getClientForAccount(email.sourceClientAccountId) ?? resolveActionClient(passedClient),
-      mailboxes: state.accountMailboxes[email.sourceAccountId] ?? state.mailboxes,
+      mailboxes: sourceMailboxes(state, email.sourceClientAccountId, email.sourceAccountId) ?? state.mailboxes,
       accountId: email.sourceAccountId,
     };
   }
@@ -979,8 +980,11 @@ export async function buildUnifiedAccountClients(
       built.push({ accountId: a.id, accountLabel: a.label || a.email, client: c, mailboxes: ownMailboxes, clientAccountId: a.id, jmapAccountId: primaryJmapId, isShared: false, crossIncludedMailboxIds: resolveCrossIncludedMailboxIds(a.id, ownMailboxes) });
       fetchedMailboxes[a.id] = ownMailboxes;
       // Also cache under the JMAP id so `accountMailboxes[email.sourceAccountId]`
-      // resolves uniformly for personal and shared sources alike.
+      // resolves uniformly for personal and shared sources alike, and under
+      // login plus JMAP id, which stays apart when another login's server uses
+      // the same account id (sourceMailboxes).
       fetchedMailboxes[primaryJmapId] = ownMailboxes;
+      fetchedMailboxes[sourceMailboxesKey(a.id, primaryJmapId)] = ownMailboxes;
 
       if (includeGroup) {
         const sharedByOwner = new Map<string, Mailbox[]>();
@@ -1005,6 +1009,7 @@ export async function buildUnifiedAccountClients(
           // and batch actions can resolve role-based destinations (trash/archive)
           // in the owner account instead of falling back to the active account.
           fetchedMailboxes[ownerId] = ownerMailboxes;
+          fetchedMailboxes[sourceMailboxesKey(a.id, ownerId)] = ownerMailboxes;
         }
       }
     } catch {
@@ -1099,6 +1104,69 @@ function isUnscopedSearchActive(
 function isAggregateListView(): boolean {
   const s = useEmailStore.getState();
   return s.isUnifiedView || !!s.selectedKeyword || isUnscopedSearchActive(s);
+}
+
+/** A batch write's share for one source of an aggregate list (see groupBySource). */
+interface SourceBatch {
+  /** Login that reaches the messages (`sourceClientAccountId`). */
+  clientAccountId?: string;
+  /** JMAP account that owns them; undefined for undecorated messages. */
+  accountId?: string;
+  ids: string[];
+}
+
+/**
+ * Groups the messages of a batch write by the login that reaches each one and
+ * the JMAP account that owns it. Account ids are only unique per server: two
+ * logins on different servers often share them (Stalwart numbers accounts b,
+ * c, d, ... on every install), and a group keyed on the account alone sent one
+ * login's messages through the other's client - to a server where the same
+ * message ids name other messages. Messages without source stamps (a plain
+ * folder view) form one group without an account, for the caller's client.
+ */
+function groupBySource(
+  messages: Array<{ id: string; sourceClientAccountId?: string; sourceAccountId?: string }>,
+): SourceBatch[] {
+  const groups = new Map<string, SourceBatch>();
+  for (const message of messages) {
+    const accountId = message.sourceAccountId || undefined;
+    const clientAccountId = accountId ? message.sourceClientAccountId : undefined;
+    const key = accountId ? `${clientAccountId ?? ''}|${accountId}` : '';
+    const group = groups.get(key) ?? { clientAccountId, accountId, ids: [] };
+    group.ids.push(message.id);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
+}
+
+/**
+ * The client for a SourceBatch: the stamped login's, or the caller's for
+ * undecorated messages. Undefined when the login is gone - never another
+ * login's client, which would write to the wrong server.
+ */
+function sourceBatchClient(batch: SourceBatch, passedClient: IJMAPClient): IJMAPClient | undefined {
+  if (!batch.accountId) return resolveActionClient(passedClient);
+  return batch.clientAccountId ? useAuthStore.getState().getClientForAccount(batch.clientAccountId) : undefined;
+}
+
+/**
+ * Key of the folder list of one source of an aggregate list in
+ * `accountMailboxes`: the login plus the JMAP account. The list is cached
+ * under the bare JMAP id as well, but with two logins that share account ids
+ * that entry holds whichever login's list was fetched last.
+ */
+function sourceMailboxesKey(clientAccountId: string, jmapAccountId: string): string {
+  return `${clientAccountId}|${jmapAccountId}`;
+}
+
+/** The cached folder list of a source of an aggregate list, if any (see sourceMailboxesKey). */
+function sourceMailboxes(
+  state: { accountMailboxes: Record<string, Mailbox[]> },
+  clientAccountId: string | undefined,
+  jmapAccountId: string,
+): Mailbox[] | undefined {
+  return (clientAccountId ? state.accountMailboxes[sourceMailboxesKey(clientAccountId, jmapAccountId)] : undefined)
+    ?? state.accountMailboxes[jmapAccountId];
 }
 
 /**
@@ -2593,23 +2661,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const affected = emails.filter(e => idSet.has(e.id));
 
       if (isAggregateListView()) {
-        // In unified view, emails may span accounts – group by owning JMAP account
-        // and dispatch through the login client that can reach each one. The login
-        // client is keyed by `sourceClientAccountId` (a real AccountEntry.id); the
-        // owning account is `sourceAccountId` (passed for owner-scoped routing).
-        const bySource = new Map<string, { clientAccountId?: string; ids: string[] }>();
-        for (const e of affected) {
-          const key = e.sourceAccountId || '__default__';
-          if (!bySource.has(key)) bySource.set(key, { clientAccountId: e.sourceClientAccountId, ids: [] });
-          bySource.get(key)!.ids.push(e.id);
-        }
-        await Promise.all(Array.from(bySource.entries()).map(async ([sourceAccountId, { clientAccountId, ids }]) => {
-          const acctClient = sourceAccountId === '__default__'
-            ? resolveActionClient(client)
-            : (clientAccountId ? useAuthStore.getState().getClientForAccount(clientAccountId) : undefined);
+        // In unified view, emails may span accounts – group by login and owning
+        // JMAP account and dispatch through the login client that can reach each
+        // one: `sourceClientAccountId` (a real AccountEntry.id) picks the client,
+        // `sourceAccountId` is passed for owner-scoped routing (groupBySource).
+        await Promise.all(groupBySource(affected).map(async (batch) => {
+          const acctClient = sourceBatchClient(batch, client);
           if (!acctClient) return;
-          const jmapAccountId = sourceAccountId === '__default__' ? undefined : sourceAccountId;
-          await acctClient.batchMoveEmails(ids, jmapDestId, jmapAccountId);
+          await acctClient.batchMoveEmails(batch.ids, jmapDestId, batch.accountId);
         }));
       } else {
         const currentMailbox = mailboxes.find(mb => mb.id === selectedMailbox);
@@ -3199,24 +3258,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
       const writes: { ids: string[]; write: () => Promise<void> }[] = [];
       if (isAggregateListView()) {
-        // Group by owning JMAP account; dispatch through the reaching login client.
-        const bySource = new Map<string, { clientAccountId?: string; ids: string[] }>();
-        for (const emailId of emailIdsArray) {
-          const email = emails.find(e => e.id === emailId);
-          const key = email?.sourceAccountId || '__default__';
-          if (!bySource.has(key)) bySource.set(key, { clientAccountId: email?.sourceClientAccountId, ids: [] });
-          bySource.get(key)!.ids.push(emailId);
-        }
-
-        for (const [sourceAccountId, { clientAccountId, ids }] of bySource) {
-          const acctClient = sourceAccountId === '__default__'
-            ? resolveActionClient(client)
-            : (clientAccountId ? useAuthStore.getState().getClientForAccount(clientAccountId) : undefined);
-          const jmapAccountId = sourceAccountId === '__default__' ? undefined : sourceAccountId;
+        // Group by login and owning JMAP account; dispatch through the reaching
+        // login client (groupBySource).
+        for (const batch of groupBySource(emailIdsArray.map(id => emails.find(e => e.id === id) ?? { id }))) {
+          const acctClient = sourceBatchClient(batch, client);
           writes.push({
-            ids,
+            ids: batch.ids,
             write: acctClient
-              ? () => acctClient.batchMarkAsRead(ids, read, jmapAccountId)
+              ? () => acctClient.batchMarkAsRead(batch.ids, read, batch.accountId)
               : () => Promise.reject(new Error('Not connected')),
           });
         }
@@ -3321,68 +3370,60 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const forceDestroy = permanent || isInTrash || (isInJunk && permanentlyDeleteJunk);
       const alsoMarkRead = useSettingsStore.getState().deleteAction === 'trash-and-read';
 
-      // Group emails by owning JMAP account (handles unified view and search results
-      // spanning accounts). Each group resolves the reaching login client via
-      // `sourceClientAccountId` and routes JMAP via `sourceAccountId`. Undecorated
-      // emails (normal single-mailbox view) fall into '__default__' = active client.
+      // Group emails by login and owning JMAP account (handles unified view and
+      // search results spanning accounts). Each group resolves the reaching login
+      // client via `sourceClientAccountId` and routes JMAP via `sourceAccountId`.
+      // Undecorated emails (normal single-mailbox view) form one group for the
+      // active client (groupBySource).
       const accountMailboxes = get().accountMailboxes;
-      const bySource = new Map<string, { clientAccountId?: string; ids: string[] }>();
-      for (const emailId of emailIdsArray) {
-        const email = emails.find(e => e.id === emailId);
-        const key = email?.sourceAccountId || '__default__';
-        if (!bySource.has(key)) bySource.set(key, { clientAccountId: email?.sourceClientAccountId, ids: [] });
-        bySource.get(key)!.ids.push(emailId);
-      }
+      const batches = groupBySource(emailIdsArray.map(id => emails.find(e => e.id === id) ?? { id }));
 
       // Undecorated emails viewed in a shared/group folder directly (non-unified)
       // are reached through the active client but must carry the owner accountId,
       // or the move/destroy silently no-ops on the user's own account (see
       // resolveViewAccountId). undefined for a normal own-account view.
       const viewAccountId = currentMailbox?.isShared ? currentMailbox.accountId : undefined;
-      const getClient = (sourceAccountId: string, clientAccountId?: string) =>
-        sourceAccountId === '__default__'
-          ? resolveActionClient(client)
-          : (clientAccountId ? useAuthStore.getState().getClientForAccount(clientAccountId) : undefined);
-      const mailboxesFor = (sourceAccountId: string) =>
-        sourceAccountId === '__default__'
+      // Each group's trash comes from its own login's folder list: another
+      // login may use the same account id for an account with other folders.
+      const mailboxesFor = (batch: SourceBatch) =>
+        !batch.accountId
           ? (viewAccountId ? (accountMailboxes[viewAccountId] ?? mailboxes) : mailboxes)
-          : (accountMailboxes[sourceAccountId] ?? mailboxes);
-      const jmapIdFor = (sourceAccountId: string) =>
-        sourceAccountId === '__default__' ? viewAccountId : sourceAccountId;
+          : (sourceMailboxes({ accountMailboxes }, batch.clientAccountId, batch.accountId) ?? mailboxes);
+      const jmapIdFor = (batch: SourceBatch) => batch.accountId ?? viewAccountId;
 
       if (forceDestroy) {
-        const promises = Array.from(bySource.entries()).map(async ([sourceAccountId, { clientAccountId, ids }]) => {
-          const acctClient = getClient(sourceAccountId, clientAccountId);
+        const promises = batches.map(async (batch) => {
+          const acctClient = sourceBatchClient(batch, client);
           if (!acctClient) return;
-          await acctClient.batchDeleteEmails(ids, jmapIdFor(sourceAccountId));
+          await acctClient.batchDeleteEmails(batch.ids, jmapIdFor(batch));
         });
         await Promise.allSettled(promises);
       } else {
         // Move to trash per account.
-        const failedAccounts: string[] = [];
+        let failedAccounts = 0;
         const movedEmailIds = new Set<string>();
-        const promises = Array.from(bySource.entries()).map(async ([sourceAccountId, { clientAccountId, ids }]) => {
-          const acctClient = getClient(sourceAccountId, clientAccountId);
+        const promises = batches.map(async (batch) => {
+          const acctClient = sourceBatchClient(batch, client);
           if (!acctClient) {
-            failedAccounts.push(sourceAccountId);
+            failedAccounts++;
             return;
           }
-          const trashMailbox = findTrashMailbox(mailboxesFor(sourceAccountId), {
-            accountId: jmapIdFor(sourceAccountId),
+          const trashMailbox = findTrashMailbox(mailboxesFor(batch), {
+            accountId: jmapIdFor(batch),
           });
           if (!trashMailbox) {
             // No trash for this account: skip rather than silently destroying.
             // The user asked to move to trash, not permanently delete.
-            failedAccounts.push(sourceAccountId);
+            failedAccounts++;
             return;
           }
           const trashId = trashMailbox.originalId || trashMailbox.id;
-          await acctClient.batchMoveEmails(ids, trashId, jmapIdFor(sourceAccountId), alsoMarkRead);
-          ids.forEach(id => movedEmailIds.add(id));
+          await acctClient.batchMoveEmails(batch.ids, trashId, jmapIdFor(batch), alsoMarkRead);
+          batch.ids.forEach(id => movedEmailIds.add(id));
         });
         await Promise.allSettled(promises);
 
-        if (failedAccounts.length > 0 && movedEmailIds.size === 0) {
+        if (failedAccounts > 0 && movedEmailIds.size === 0) {
           // Nothing moved - bail out so the UI doesn't drop the emails from view.
           throw new Error('Trash mailbox not found - cannot move emails to trash');
         }
@@ -3435,24 +3476,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const emailIdsArray = Array.from(selectedEmailIds);
 
       if (isAggregateListView()) {
-        // Group by owning JMAP account; dispatch through the reaching login client.
+        // Group by login and owning JMAP account; dispatch through the reaching
+        // login client (groupBySource).
         const destMailbox = resolveActionMailboxes().find(mb => mb.id === toMailboxId);
         const jmapDestId = destMailbox?.originalId || toMailboxId;
-        const bySource = new Map<string, { clientAccountId?: string; ids: string[] }>();
-        for (const emailId of emailIdsArray) {
-          const email = emails.find(e => e.id === emailId);
-          const key = email?.sourceAccountId || '__default__';
-          if (!bySource.has(key)) bySource.set(key, { clientAccountId: email?.sourceClientAccountId, ids: [] });
-          bySource.get(key)!.ids.push(emailId);
-        }
-
-        const promises = Array.from(bySource.entries()).map(async ([sourceAccountId, { clientAccountId, ids }]) => {
-          const acctClient = sourceAccountId === '__default__'
-            ? resolveActionClient(client)
-            : (clientAccountId ? useAuthStore.getState().getClientForAccount(clientAccountId) : undefined);
+        const batches = groupBySource(emailIdsArray.map(id => emails.find(e => e.id === id) ?? { id }));
+        const promises = batches.map(async (batch) => {
+          const acctClient = sourceBatchClient(batch, client);
           if (!acctClient) return;
-          const jmapAccountId = sourceAccountId === '__default__' ? undefined : sourceAccountId;
-          await acctClient.batchMoveEmails(ids, jmapDestId, jmapAccountId);
+          await acctClient.batchMoveEmails(batch.ids, jmapDestId, batch.accountId);
         });
         await Promise.allSettled(promises);
       } else {
@@ -3646,7 +3678,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       if (listEmail?.sourceClientAccountId && listEmail?.sourceAccountId) {
         undoClient = useAuthStore.getState().getClientForAccount(listEmail.sourceClientAccountId) ?? undoClient;
         accountId = listEmail.sourceAccountId;
-        inboxMailboxes = get().accountMailboxes[listEmail.sourceAccountId] ?? mailboxes;
+        inboxMailboxes = sourceMailboxes(get(), listEmail.sourceClientAccountId, listEmail.sourceAccountId) ?? mailboxes;
       } else {
         const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
         accountId = currentMailbox?.accountId;
