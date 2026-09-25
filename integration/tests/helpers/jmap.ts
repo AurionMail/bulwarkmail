@@ -145,7 +145,17 @@ export class JmapClient {
       ],
       [CORE, PRINCIPALS],
     );
-    const list = r.methodResponses[1][1].list as Array<{ id: string; email?: string }>;
+    const [method, result] = r.methodResponses[0];
+    if (method === 'error') {
+      // Stalwart 1.0 answers `forbidden` ("The administrator has disabled
+      // directory queries.") unless the Sharing setting allowDirectoryQueries
+      // is on; the account plan turns it on.
+      const hint = result.type === 'forbidden'
+        ? ' Is Sharing.allowDirectoryQueries on (see stalwart/plan-accounts.ndjson.tpl)?'
+        : '';
+      throw new Error(`Principal/query for ${email} failed: ${result.type}: ${result.description ?? ''}${hint}`);
+    }
+    const list = (r.methodResponses[1][1].list ?? []) as Array<{ id: string; email?: string }>;
     const match = list.find((p) => p.email === email) ?? list[0];
     if (!match) throw new Error(`No principal found for ${email}`);
     return match.id;

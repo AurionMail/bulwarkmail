@@ -10,6 +10,9 @@ services:
   stalwart:
     build:
       context: stalwart
+      args:
+        # The Stalwart image the test server is built on (see run-tests.sh).
+        STALWART_IMAGE: ${STALWART_IMAGE:-stalwartlabs/stalwart:v0.16}
     container_name: bulwark-it-stalwart
     # JMAP + Webmail + admin on 8025, SMTP submission on 1025 (internal 587),
     # IMAP on 1143 (internal 143). The browser talks JMAP to localhost:8025;
