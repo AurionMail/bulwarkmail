@@ -182,11 +182,25 @@ function sameEmailPush(
   return normalizeEmailPush(a) === normalizeEmailPush(b);
 }
 
+// RFC 9670. Stalwart 1.0 lists it in every account's accountCapabilities,
+// 0.16 in none.
+const PRINCIPALS_OWNER_CAPABILITY = 'urn:ietf:params:jmap:principals:owner';
+
+/**
+ * Whether the account capabilities name the accounts a subscription reaches:
+ * Stalwart 1.0 lists emailpush on the user's own account and their groups
+ * only. 0.16.16 to 0.16.23 list it on every account, ACL shares included, and
+ * 0.16.6 to 0.16.15 on none, so there the client has to work it out.
+ */
+function emailPushCapabilityIsExact(client: IJMAPClient): boolean {
+  return client.hasAccountCapability(PRINCIPALS_OWNER_CAPABILITY, client.getAccountId());
+}
+
 // Stalwart marks the accounts a user owns - their own and the groups they
 // belong to - through the create flags of its per-account collection
 // capabilities: true there, false on accounts shared with them by ACL. A user
 // without calendars, contacts or files has none of the flags, so their groups
-// don't look owned either.
+// don't look owned either; ownGroupAccounts finds those on 0.16.
 const OWNERSHIP_FLAGS: ReadonlyArray<readonly [string, string]> = [
   ['urn:ietf:params:jmap:calendars', 'mayCreateCalendar'],
   ['urn:ietf:params:jmap:contacts', 'mayCreateAddressBook'],
@@ -204,25 +218,49 @@ function looksOwned(info: AccountInfo | null): boolean {
 }
 
 /**
+ * Which of `accountIds` are groups the user belongs to, as far as Stalwart
+ * 0.16 shows it: it gives a group's members an identity for each of the
+ * group's addresses and names the group's account after its address. An
+ * account shared by ACL has neither. A group whose identity the member
+ * deleted goes unrecognised.
+ */
+function ownGroupAccounts(client: IJMAPClient, accountIds: Iterable<string>, identityEmails: Iterable<string>): Set<string> {
+  const addresses = new Set(Array.from(identityEmails, (email) => email.trim().toLowerCase()));
+  return new Set(Array.from(accountIds).filter((id) => {
+    const info = client.getAccountInfo(id);
+    return !!info && !info.isPersonal && addresses.has(info.name.trim().toLowerCase());
+  }));
+}
+
+/**
  * The emailPush maps to try, widest first. Stalwart refuses the whole map as
  * `forbidden` when it names an account the user neither owns nor belongs to
  * as a group member - a mailbox shared by ACL - and only fans a subscription
- * out to owned accounts anyway, so dropping the others loses nothing. 0.16
- * lists both kinds as isPersonal:false, isReadOnly:false, so the first
- * fallback keeps the accounts that look owned (see OWNERSHIP_FLAGS) and the
- * last keeps only the primary account, which is always accepted.
+ * out to owned accounts anyway, so dropping the others loses nothing.
+ *
+ * On 1.0 the map already holds only the accounts the capabilities allow, so
+ * the only fallback is the primary account, which is always accepted. 0.16
+ * lists both kinds of account as isPersonal:false, isReadOnly:false, so its
+ * first fallback keeps the groups the user's identities reveal and the
+ * accounts that look owned (see OWNERSHIP_FLAGS), and its last the primary
+ * account alone.
  */
-function emailPushFallbacks(
+async function emailPushFallbacks(
+  client: IJMAPClient,
   desired: Record<string, EmailPushConfig>,
-  primaryAccountId: string,
-  accountInfo: (accountId: string) => AccountInfo | null,
-): Record<string, EmailPushConfig>[] {
+): Promise<Record<string, EmailPushConfig>[]> {
+  const primary = client.getAccountId();
   const keep = (predicate: (id: string) => boolean) =>
-    Object.fromEntries(
-      Object.entries(desired).filter(([id]) => id === primaryAccountId || predicate(id)),
-    );
+    Object.fromEntries(Object.entries(desired).filter(([id]) => id === primary || predicate(id)));
+  const steps = [keep(() => false)];
+  if (!emailPushCapabilityIsExact(client)) {
+    // Without the identities no group is recognised, as before.
+    const identities = await client.getIdentities().catch(() => []);
+    const groups = ownGroupAccounts(client, Object.keys(desired), identities.map((identity) => identity.email));
+    steps.unshift(keep((id) => groups.has(id) || looksOwned(client.getAccountInfo(id))));
+  }
   const out = [desired];
-  for (const next of [keep((id) => looksOwned(accountInfo(id))), keep(() => false)]) {
+  for (const next of steps) {
     // Only steps that actually drop an account are worth another round-trip.
     if (Object.keys(next).length < Object.keys(out[out.length - 1]).length) out.push(next);
   }
@@ -241,15 +279,16 @@ async function writeWithEmailPush<T>(
   emailPush: Record<string, EmailPushConfig> | null,
   write: (emailPush: Record<string, EmailPushConfig> | null) => Promise<T>,
 ): Promise<{ result: T; emailPush: Record<string, EmailPushConfig> | null }> {
-  const attempts = emailPush
-    ? emailPushFallbacks(emailPush, client.getAccountId(), (id) => client.getAccountInfo(id))
-    : [null];
+  let attempts: (Record<string, EmailPushConfig> | null)[] = [emailPush];
   for (let i = 0; ; i++) {
     try {
       return { result: await write(attempts[i]), emailPush: attempts[i] };
     } catch (err) {
-      const mapRefused = isJmapSetError(err) && jmapErrorType(err) === 'forbidden';
-      if (!mapRefused || i === attempts.length - 1) throw err;
+      // Only a refused map is worth retrying with a narrower one.
+      if (!emailPush || !isJmapSetError(err) || jmapErrorType(err) !== 'forbidden') throw err;
+      // The narrower maps are worked out only once the server refused one.
+      if (i === 0) attempts = await emailPushFallbacks(client, emailPush);
+      if (i === attempts.length - 1) throw err;
     }
   }
 }
@@ -292,22 +331,26 @@ function withoutAccounts(
  * Stalwart only fans a subscription out to the user's own account and their
  * groups, whatever the emailPush map says, on every version.
  *
- * 1.0 leaves emailpush out of exactly those accounts' capabilities, so an
- * account without it settles the question for every account. 0.16.16 to
- * 0.16.23 list emailpush everywhere (and 0.16.6 to 0.16.15 nowhere), so there
- * it is the accounts the server refused in the map, and the ones that don't
- * look owned.
+ * 1.0 leaves emailpush out of exactly those accounts' capabilities, and that
+ * settles it. 0.16 doesn't say, so there it is the accounts the server refused
+ * in the map and the ones that don't look owned, minus the groups the user's
+ * identities (`identityEmails`) reveal: a group member without calendars,
+ * contacts or files has no create flag to go by.
  */
-export function mailAccountsWithoutPush(client: IJMAPClient, accountIds: Iterable<string>): string[] {
+export function mailAccountsWithoutPush(
+  client: IJMAPClient,
+  accountIds: Iterable<string>,
+  identityEmails: Iterable<string> = [],
+): string[] {
   const primary = client.getAccountId();
   const others = Array.from(new Set(accountIds)).filter((id) => id && id !== primary);
   if (others.length === 0) return [];
-  if (serverSupportsEmailPush(client)) {
-    const withoutEmailPush = others.filter((id) => !client.hasAccountCapability(EMAIL_PUSH_CAPABILITY, id));
-    if (withoutEmailPush.length > 0) return withoutEmailPush;
+  if (emailPushCapabilityIsExact(client)) {
+    return others.filter((id) => !client.hasAccountCapability(EMAIL_PUSH_CAPABILITY, id));
   }
+  const groups = ownGroupAccounts(client, others, identityEmails);
   const refused = readRefusedEmailPushAccounts(primary);
-  return others.filter((id) => refused.includes(id) || !looksOwned(client.getAccountInfo(id)));
+  return others.filter((id) => !groups.has(id) && (refused.includes(id) || !looksOwned(client.getAccountInfo(id))));
 }
 
 export interface EnableWebPushParams {
@@ -655,7 +698,10 @@ export async function enableWebPush(
   // A forced re-registration re-learns which accounts the server accepts in
   // the emailPush map.
   if (params.forceRecreate) localStorage.removeItem(emailPushRefusedKey(accountId));
-  const refusedBefore = readRefusedEmailPushAccounts(accountId);
+  // On 1.0 the capabilities the map is built from already leave out every
+  // account the server refuses; a list remembered under 0.16 could only keep
+  // a group out.
+  const refusedBefore = emailPushCapabilityIsExact(params.client) ? [] : readRefusedEmailPushAccounts(accountId);
   const emailPush = serverSupportsEmailPush(params.client)
     ? withoutAccounts(await buildEmailPushConfig(params.client, params.inboxOnly), refusedBefore)
     : null;
@@ -708,7 +754,7 @@ export async function enableWebPush(
     }
   }
 
-  const created = await writeWithEmailPush(params.client, emailPush, (filter) =>
+  const create = () => writeWithEmailPush(params.client, emailPush, (filter) =>
     params.client.createPushSubscription({
       deviceClientId,
       url: buildRelayUrl(relayBaseUrl, `/api/push/jmap/${encodeURIComponent(deviceClientId)}`),
@@ -717,6 +763,21 @@ export async function enableWebPush(
       ...(filter ? { emailPush: filter } : {}),
     }),
   );
+  let created: Awaited<ReturnType<typeof create>>;
+  try {
+    created = await create();
+  } catch (err) {
+    // Stalwart caps the subscriptions of an account (15 by default) and counts
+    // the one being replaced, so at the cap Re-register could never create
+    // its replacement. The user asked for a new record: free the old one's
+    // place and try once more. Should that fail too, push is off and the
+    // error says why.
+    if (!params.forceRecreate || !replacedServerId || jmapErrorType(err) !== 'overQuota') throw err;
+    await params.client.destroyPushSubscription(replacedServerId);
+    localStorage.removeItem(subIdKey);
+    replacedServerId = null;
+    created = await create();
+  }
   const serverAssignedId = created.result;
   rememberRefusedEmailPushAccounts(accountId, refusedBefore, emailPush, created.emailPush);
 

@@ -87,24 +87,30 @@ function collectionCaps(owned: boolean): Record<string, unknown> {
   };
 }
 
-function account(isPersonal: boolean, isReadOnly: boolean, caps: Record<string, unknown>): AccountInfo {
-  return { isPersonal, isReadOnly, accountCapabilities: caps };
+// Stalwart names an account after its principal's address.
+const ACCOUNT_NAME = 'me@example.com';
+const GROUP_NAME = 'team@example.com';
+const ACL_NAME = 'colleague@example.com';
+const NAMES: Record<string, string> = { [ACCOUNT_ID]: ACCOUNT_NAME, [GROUP_ACCOUNT_ID]: GROUP_NAME, [ACL_ACCOUNT_ID]: ACL_NAME };
+
+function account(id: string, isPersonal: boolean, isReadOnly: boolean, caps: Record<string, unknown>): AccountInfo {
+  return { name: NAMES[id], isPersonal, isReadOnly, accountCapabilities: caps };
 }
 
 // Stalwart 0.16.16 to 0.16.23 (jmap/src/api/session.rs): every secondary
 // account lists emailpush, ACL shares included, and all of them are
 // isPersonal:false, isReadOnly:false.
 const SESSION_0_16: Record<string, AccountInfo> = {
-  [ACCOUNT_ID]: account(true, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...collectionCaps(true) }),
-  [GROUP_ACCOUNT_ID]: account(false, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...collectionCaps(true) }),
-  [ACL_ACCOUNT_ID]: account(false, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...collectionCaps(false) }),
+  [ACCOUNT_ID]: account(ACCOUNT_ID, true, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...collectionCaps(true) }),
+  [GROUP_ACCOUNT_ID]: account(GROUP_ACCOUNT_ID, false, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...collectionCaps(true) }),
+  [ACL_ACCOUNT_ID]: account(ACL_ACCOUNT_ID, false, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...collectionCaps(false) }),
 };
 
 // Stalwart 0.16.6 to 0.16.15: no emailpush anywhere.
 const SESSION_0_16_15: Record<string, AccountInfo> = {
-  [ACCOUNT_ID]: account(true, false, { [MAIL_CAP]: {}, ...collectionCaps(true) }),
-  [GROUP_ACCOUNT_ID]: account(false, false, { [MAIL_CAP]: {}, ...collectionCaps(true) }),
-  [ACL_ACCOUNT_ID]: account(false, false, { [MAIL_CAP]: {}, ...collectionCaps(false) }),
+  [ACCOUNT_ID]: account(ACCOUNT_ID, true, false, { [MAIL_CAP]: {}, ...collectionCaps(true) }),
+  [GROUP_ACCOUNT_ID]: account(GROUP_ACCOUNT_ID, false, false, { [MAIL_CAP]: {}, ...collectionCaps(true) }),
+  [ACL_ACCOUNT_ID]: account(ACL_ACCOUNT_ID, false, false, { [MAIL_CAP]: {}, ...collectionCaps(false) }),
 };
 
 // Stalwart 1.0: accounts the user isn't a member of lose submission,
@@ -114,13 +120,21 @@ const owner = (principalId: string) => ({
   'urn:ietf:params:jmap:principals:owner': { accountIdForPrincipal: ACCOUNT_ID, principalId },
 });
 const SESSION_1_0: Record<string, AccountInfo> = {
-  [ACCOUNT_ID]: account(true, false, {
+  [ACCOUNT_ID]: account(ACCOUNT_ID, true, false, {
     [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...collectionCaps(true), ...owner(ACCOUNT_ID),
   }),
-  [GROUP_ACCOUNT_ID]: account(false, false, {
+  [GROUP_ACCOUNT_ID]: account(GROUP_ACCOUNT_ID, false, false, {
     [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...collectionCaps(true), ...owner(GROUP_ACCOUNT_ID),
   }),
-  [ACL_ACCOUNT_ID]: account(false, true, { [MAIL_CAP]: {}, ...collectionCaps(false), ...owner(ACL_ACCOUNT_ID) }),
+  [ACL_ACCOUNT_ID]: account(ACL_ACCOUNT_ID, false, true, { [MAIL_CAP]: {}, ...collectionCaps(false), ...owner(ACL_ACCOUNT_ID) }),
+};
+
+// A group member whose role has no calendars, contacts or files: the group's
+// account carries no create flag to tell it from an ACL share.
+const MAIL_ONLY_GROUP_0_16 = { ...SESSION_0_16, [GROUP_ACCOUNT_ID]: account(GROUP_ACCOUNT_ID, false, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {} }) };
+const MAIL_ONLY_GROUP_1_0 = {
+  ...SESSION_1_0,
+  [GROUP_ACCOUNT_ID]: account(GROUP_ACCOUNT_ID, false, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {}, ...owner(GROUP_ACCOUNT_ID) }),
 };
 
 // Stalwart's refusal of an emailPush map naming a non-member (push/set.rs
@@ -141,6 +155,9 @@ function makeClient(
     // Accounts the server accepts in an emailPush map: Stalwart's is_member,
     // the user's own account and their groups.
     members?: string[];
+    // The addresses of the user's identities. Stalwart 0.16 gives a group's
+    // members one with the group's address.
+    identities?: string[];
   } = {},
 ): FakeClient & IJMAPClient {
   const destroyed: string[] = [];
@@ -149,6 +166,7 @@ function makeClient(
     [GROUP_ACCOUNT_ID]: SESSION_0_16[GROUP_ACCOUNT_ID],
   };
   const members = options.members ?? [ACCOUNT_ID, GROUP_ACCOUNT_ID];
+  const identities = options.identities ?? [ACCOUNT_NAME, GROUP_NAME];
   const accept = (emailPush?: Record<string, EmailPushConfig> | null) => {
     if (emailPush && Object.keys(emailPush).some((id) => !members.includes(id))) throw refusedMap();
   };
@@ -167,6 +185,8 @@ function makeClient(
     hasAccountCapability: (capability: string, accountId?: string) =>
       capability in (accounts[accountId || ACCOUNT_ID]?.accountCapabilities ?? {}),
     getAccountInfo: (accountId: string) => accounts[accountId] ?? null,
+    getIdentities: vi.fn(async () =>
+      identities.map((email, i) => ({ id: `identity-${i}`, name: email, email, mayDelete: i > 0 }))),
     getAllMailboxes: vi.fn(async () => [
       mailbox('mb-inbox', 'inbox', ACCOUNT_ID),
       mailbox(JUNK_ID, 'junk', ACCOUNT_ID),
@@ -300,6 +320,72 @@ describe('enableWebPush', () => {
     const verify = client.verifyPushSubscription as ReturnType<typeof vi.fn>;
     const destroyOld = destroy.mock.invocationCallOrder[destroy.mock.calls.findIndex((c) => c[0] === 'push-old')];
     expect(destroyOld).toBeGreaterThan(verify.mock.invocationCallOrder[0]);
+  });
+
+  // Stalwart refuses a 16th subscription (the default limit is 15) and counts
+  // the one Re-register replaces, which is only destroyed after its
+  // replacement is verified.
+  const overQuota = () => jmapSetError(`PushSubscription/set create failed: ${OVER_QUOTA.description}`, OVER_QUOTA);
+
+  it('frees the recorded subscription\'s place and retries once when Re-register hits the limit', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    const create = vi.fn()
+      .mockRejectedValueOnce(overQuota())
+      .mockResolvedValueOnce('push-new');
+    client.createPushSubscription = create as unknown as IJMAPClient['createPushSubscription'];
+    installFetch({});
+
+    const result = await enableWebPush({ client, relayBaseUrl: RELAY, forceRecreate: true, inboxOnly: false });
+
+    expect(result.subscriptionId).toBe('push-new');
+    expect(localStorage.getItem(SUB_KEY)).toBe('push-new');
+    expect(create).toHaveBeenCalledTimes(2);
+    const destroy = client.destroyPushSubscription as ReturnType<typeof vi.fn>;
+    expect(destroy.mock.calls).toEqual([['push-old']]);
+    expect(destroy.mock.invocationCallOrder[0]).toBeGreaterThan(create.mock.invocationCallOrder[0]);
+    expect(destroy.mock.invocationCallOrder[0]).toBeLessThan(create.mock.invocationCallOrder[1]);
+  });
+
+  it('reports the limit and leaves push off when the retry is refused too', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    client.createPushSubscription = vi.fn(async () => {
+      throw overQuota();
+    }) as unknown as IJMAPClient['createPushSubscription'];
+    installFetch({});
+
+    const err = await enableWebPush({ client, relayBaseUrl: RELAY, forceRecreate: true, inboxOnly: false }).catch((e) => e);
+
+    expect(jmapErrorType(err)).toBe('overQuota');
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(2);
+    expect(client.destroyed).toEqual(['push-old']);
+    expect(localStorage.getItem(SUB_KEY)).toBeNull();
+  });
+
+  it('keeps the working subscription at the limit when no Re-register was asked for', async () => {
+    // Every map is refused on refresh, so a replacement is created, and the
+    // server has no room for it: the old record keeps delivering.
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)], {
+      emailPushCapability: true,
+      accounts: SESSION_0_16,
+      members: [],
+    });
+    client.createPushSubscription = vi.fn(async () => {
+      throw overQuota();
+    }) as unknown as IJMAPClient['createPushSubscription'];
+    installFetch({});
+
+    const err = await enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false }).catch((e) => e);
+
+    expect(jmapErrorType(err)).toBe('overQuota');
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(1);
+    expect(client.destroyed).toEqual([]);
+    expect(localStorage.getItem(SUB_KEY)).toBe('push-old');
   });
 
   it('leaves another device alone when the relay cannot vouch for it', async () => {
@@ -656,6 +742,55 @@ describe('enableWebPush with a mailbox shared by ACL', () => {
     expect(JSON.parse(localStorage.getItem(REFUSED_KEY)!)).toEqual([ACL_ACCOUNT_ID]);
   });
 
+  it('keeps a group without create flags in the narrowed map on Stalwart 0.16, going by its identity', async () => {
+    // Dropping the group would not silence it (the server still fans out to
+    // it) but would take its junk filter away.
+    const client = makeClient([], { emailPushCapability: true, accounts: MAIL_ONLY_GROUP_0_16 });
+
+    const result = await enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(result.subscriptionId).toBe('push-new');
+    const creates = createCalls(client);
+    expect(creates).toHaveLength(2);
+    expect(mapKeys(creates[1].emailPush)).toEqual([ACCOUNT_ID, GROUP_ACCOUNT_ID].sort());
+    expect(JSON.parse(localStorage.getItem(REFUSED_KEY)!)).toEqual([ACL_ACCOUNT_ID]);
+  });
+
+  it('asks for the identities only once the server refused a map on Stalwart 0.16', async () => {
+    localStorage.setItem(REFUSED_KEY, JSON.stringify([ACL_ACCOUNT_ID]));
+    const client = makeClient([], { emailPushCapability: true, accounts: MAIL_ONLY_GROUP_0_16 });
+
+    await enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(createCalls(client)).toHaveLength(1);
+    expect(client.getIdentities).not.toHaveBeenCalled();
+  });
+
+  it('ignores refusals remembered under 0.16 once the server is Stalwart 1.0', async () => {
+    // A group dropped as collateral on 0.16 belongs in the map again.
+    localStorage.setItem(REFUSED_KEY, JSON.stringify([GROUP_ACCOUNT_ID, ACL_ACCOUNT_ID]));
+    const client = makeClient([], { emailPushCapability: true, accounts: SESSION_1_0 });
+
+    await enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+
+    const creates = createCalls(client);
+    expect(creates).toHaveLength(1);
+    expect(creates[0].emailPush).toEqual(EXPECTED_EMAIL_PUSH);
+  });
+
+  it('falls back to the primary account alone when Stalwart 1.0 refuses the map, with no identity lookup', async () => {
+    // A membership that ended after the session was read: the capability map
+    // is refused, and nothing on 1.0 makes a better guess than the primary.
+    const client = makeClient([], { emailPushCapability: true, accounts: SESSION_1_0, members: [ACCOUNT_ID] });
+
+    const result = await enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(result.subscriptionId).toBe('push-new');
+    const creates = createCalls(client);
+    expect(creates.map((c) => mapKeys(c.emailPush))).toEqual([[ACCOUNT_ID, GROUP_ACCOUNT_ID].sort(), [ACCOUNT_ID]]);
+    expect(client.getIdentities).not.toHaveBeenCalled();
+  });
+
   it('leaves the ACL share out without a refused call on Stalwart 1.0', async () => {
     const client = makeClient([], { emailPushCapability: true, accounts: SESSION_1_0 });
 
@@ -831,10 +966,30 @@ describe('mailAccountsWithoutPush', () => {
   it('names the account without emailpush on Stalwart 1.0, and nothing else', () => {
     // Groups count as owned even without the create flags: on 1.0 the
     // capability list is exact.
-    const mailOnly = { ...SESSION_1_0, [GROUP_ACCOUNT_ID]: account(false, false, { [MAIL_CAP]: {}, [EMAIL_PUSH_CAP]: {} }) };
-    const client = makeClient([], { emailPushCapability: true, accounts: mailOnly });
+    const client = makeClient([], { emailPushCapability: true, accounts: MAIL_ONLY_GROUP_1_0 });
 
     expect(mailAccountsWithoutPush(client, [GROUP_ACCOUNT_ID, ACL_ACCOUNT_ID])).toEqual([ACL_ACCOUNT_ID]);
+  });
+
+  it('trusts the capability alone on Stalwart 1.0: no guess from create flags, no remembered refusal', () => {
+    // Only a group is shared with this user. Its account lists emailpush, so
+    // it gets push, whatever its create flags or a list kept under 0.16 say.
+    localStorage.setItem(REFUSED_KEY, JSON.stringify([GROUP_ACCOUNT_ID]));
+    const client = makeClient([], { emailPushCapability: true, accounts: MAIL_ONLY_GROUP_1_0, identities: [ACCOUNT_NAME] });
+
+    expect(mailAccountsWithoutPush(client, [GROUP_ACCOUNT_ID])).toEqual([]);
+  });
+
+  it('does not name a group of the user that has no create flags on Stalwart 0.16', () => {
+    // The user's identities include the group's address; an ACL share's
+    // owner address never is one of them.
+    const client = makeClient([], { emailPushCapability: true, accounts: MAIL_ONLY_GROUP_0_16 });
+
+    expect(mailAccountsWithoutPush(client, [GROUP_ACCOUNT_ID, ACL_ACCOUNT_ID], [ACCOUNT_NAME, 'Team@Example.com']))
+      .toEqual([ACL_ACCOUNT_ID]);
+    // Without the group's identity it cannot be told from an ACL share.
+    expect(mailAccountsWithoutPush(client, [GROUP_ACCOUNT_ID, ACL_ACCOUNT_ID], [ACCOUNT_NAME]))
+      .toEqual([GROUP_ACCOUNT_ID, ACL_ACCOUNT_ID]);
   });
 
   it('names the account that does not look owned on Stalwart 0.16', () => {

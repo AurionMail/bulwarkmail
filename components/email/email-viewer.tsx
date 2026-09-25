@@ -137,7 +137,11 @@ interface EmailViewerProps {
   onDelete?: () => void;
   onArchive?: () => void;
   onToggleStar?: () => void;
-  onMarkAsRead?: (emailId: string, read: boolean) => void;
+  /**
+   * `automatic` is the mark-as-read on opening a message. A refusal of that
+   * (a read-only shared folder) is not the user's doing and needs no notice.
+   */
+  onMarkAsRead?: (emailId: string, read: boolean, opts?: { automatic?: boolean }) => void;
   onSetTag?: (emailId: string, tagId: string | null) => void;
   onDownloadAttachment?: (blobId: string, name: string, type?: string, forceDownload?: boolean) => void;
   onQuickReply?: (body: string) => Promise<void>;
@@ -1278,14 +1282,14 @@ export function EmailViewer({
     // Instant mark
     if (markAsReadDelay === 0) {
       autoMarkedEmailRef.current = email.id;
-      onMarkAsRead(email.id, true);
+      onMarkAsRead(email.id, true, { automatic: true });
       return;
     }
 
     // Delayed mark
     const timeout = setTimeout(() => {
       autoMarkedEmailRef.current = email.id;
-      onMarkAsRead(email.id, true);
+      onMarkAsRead(email.id, true, { automatic: true });
     }, markAsReadDelay);
 
     return () => clearTimeout(timeout);

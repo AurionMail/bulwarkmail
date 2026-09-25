@@ -242,6 +242,25 @@ describe('categorizeEmails', () => {
     expect(emitted).not.toHaveBeenCalled();
   });
 
+  it('moves what the server accepted of a partly refused batch on Stalwart 1.0', async () => {
+    // batchUpdateKeywords names the refused messages on its error; the rest
+    // of the batch was written.
+    const refusal = jmapError('Failed to update keywords: An email cannot have more than 100 keywords.', {
+      type: 'tooManyKeywords', description: 'An email cannot have more than 100 keywords.', properties: ['keywords'],
+    });
+    refusal.jmapFailedIds = ['m1'];
+    useEmailStore.setState({ emails: [email('m1'), email('m3')] });
+    const batchUpdateKeywords = vi.fn().mockRejectedValue(refusal);
+
+    await expect(useMessageListTabsStore.getState()
+      .categorizeEmails({ batchUpdateKeywords } as unknown as IJMAPClient, ['m1', 'm3'], 'promotions')).rejects.toBe(refusal);
+
+    expect(batchUpdateKeywords).toHaveBeenCalledTimes(1);
+    const [m1, m3] = useEmailStore.getState().emails;
+    expect(m1.keywords).toEqual({ $seen: true });
+    expect(m3.keywords).toEqual({ $seen: true, '$category-promotions': true });
+  });
+
   it('writes a unified-view message to its own JMAP account, not the login named for display', async () => {
     const batchUpdateKeywords = vi.fn().mockResolvedValue(undefined);
 

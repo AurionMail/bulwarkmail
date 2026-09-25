@@ -18,7 +18,7 @@ import { fileNodeKind } from "./filenode-kind";
 import { fileNodeDepth } from "./filenode-depth";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
-import { jmapError, jmapErrorType, jmapSetError, type JmapErrorInfo } from "./jmap-error";
+import { jmapError, jmapErrorFailedIds, jmapErrorType, jmapSetError, type JmapError, type JmapErrorInfo } from "./jmap-error";
 import { isServerSetKeyword } from "./server-keywords";
 
 export { SchedulingDeniedError };
@@ -27,6 +27,7 @@ import { folderDepthError } from "@/lib/file-errors";
 import { mediaTypeEssence, OCTET_STREAM } from "@/lib/media-type";
 import { canonicalTimeZone, getEffectiveTimeZone, moveLocalDateTime, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, hasTextLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
+import { emailMatchesLogin, sortIdentities } from "@/lib/identity-order";
 import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
 
@@ -2079,6 +2080,9 @@ export class JMAPClient implements IJMAPClient {
       // log but restarted the counters lower (1.0 counts per collection where
       // 0.16 counted per account) - and it then answers an old state with an
       // empty delta, skipping every change since. Take the full fetch instead.
+      // A multi-node 1.0 cluster can trip this harmlessly: a node answers from
+      // its cache for up to 5 seconds, so it may be behind a state another
+      // node already handed out. That costs one extra full fetch.
       if (this.hasAccountCapability('urn:stalwart:jmap', targetAccountId)) {
         const since = stalwartChangeId(sinceState);
         const next = stalwartChangeId(r.newState);
@@ -2739,18 +2743,15 @@ export class JMAPClient implements IJMAPClient {
   async batchMarkAsRead(emailIds: string[], read: boolean = true, accountId?: string): Promise<void> {
     if (emailIds.length === 0) return;
 
+    const batches = batched(emailIds, this.getMaxObjectsInSet());
     const responses: JMAPResponse[] = [];
-    for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
+    for (const batch of batches) {
       const updates = Object.fromEntries(batch.map(id => [id, { "keywords/$seen": read ? true : null }]));
       responses.push(await this.request([
         ["Email/set", { accountId: accountId || this.accountId, update: updates }, "0"],
       ]));
     }
-    // Every batch is sent before a refusal is reported: one refused message
-    // must not leave the rest of the selection unchanged.
-    for (const response of responses) {
-      this.assertEmailSetSucceeded(response, read ? "mark as read" : "mark as unread");
-    }
+    this.assertEmailSetBatchesSucceeded(responses, batches, read ? "mark as read" : "mark as unread");
   }
 
   async toggleStar(emailId: string, starred: boolean, accountId?: string): Promise<void> {
@@ -2820,16 +2821,15 @@ export class JMAPClient implements IJMAPClient {
    */
   async batchUpdateKeywords(emailIds: string[], patch: Record<string, boolean | null>, accountId?: string): Promise<void> {
     if (emailIds.length === 0 || Object.keys(patch).length === 0) return;
+    const batches = batched(emailIds, this.getMaxObjectsInSet());
     const responses: JMAPResponse[] = [];
-    for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
+    for (const batch of batches) {
       const update = Object.fromEntries(batch.map(id => [id, { ...patch }]));
       responses.push(await this.request([
         ["Email/set", { accountId: accountId || this.accountId, update }, "0"],
       ]));
     }
-    for (const response of responses) {
-      this.assertEmailSetSucceeded(response, "update keywords");
-    }
+    this.assertEmailSetBatchesSucceeded(responses, batches, "update keywords");
   }
 
   async migrateKeyword(oldKeyword: string, newKeyword: string): Promise<KeywordMigration> {
@@ -2961,11 +2961,15 @@ export class JMAPClient implements IJMAPClient {
    * Reject an Email/set response that reports a method-level error or per-id
    * `notUpdated`/`notDestroyed` failures. `request()` only throws on HTTP
    * errors, so without this the store removes rows the server refused. (#956)
+   * The error names the ids left unchanged (jmapErrorFailedIds): the refused
+   * ones, or every one of `ids` when the whole call was refused.
    */
-  private assertEmailSetSucceeded(response: JMAPResponse, action: string): void {
+  private assertEmailSetSucceeded(response: JMAPResponse, action: string, ids?: string[]): void {
     const [name, result] = response.methodResponses?.[0] ?? [];
     if (name === "error") {
-      throw jmapError(`Failed to ${action}: ${result?.description || result?.type || 'unknown error'}`, result);
+      const error = jmapError(`Failed to ${action}: ${result?.description || result?.type || 'unknown error'}`, result);
+      if (ids) error.jmapFailedIds = [...ids];
+      throw error;
     }
     const failed: Record<string, JmapErrorInfo> = {
       ...(result?.notUpdated ?? {}),
@@ -2975,12 +2979,38 @@ export class JMAPClient implements IJMAPClient {
     if (failedIds.length === 0) return;
     const first = failed[failedIds[0]];
     const reason = first?.description || first?.type || 'unknown error';
-    throw jmapError(
+    const error = jmapError(
       failedIds.length === 1
         ? `Failed to ${action}: ${reason}`
         : `Failed to ${action} ${failedIds.length} email(s); first error: ${reason}`,
       first,
     );
+    error.jmapFailedIds = failedIds;
+    throw error;
+  }
+
+  /**
+   * {@link assertEmailSetSucceeded} for a write sent in batches, one response
+   * per entry of `batches`, checked once all of them were sent: one refused
+   * message must not leave the rest of a selection unchanged. Throws for the
+   * first refusal, naming what every batch left unchanged, so a caller can
+   * show the rest as done.
+   */
+  private assertEmailSetBatchesSucceeded(responses: JMAPResponse[], batches: string[][], action: string): void {
+    let failure: JmapError | null = null;
+    const failedIds: string[] = [];
+    for (let i = 0; i < responses.length; i++) {
+      try {
+        this.assertEmailSetSucceeded(responses[i], action, batches[i]);
+      } catch (error) {
+        failure ??= error as JmapError;
+        failedIds.push(...(jmapErrorFailedIds(error) ?? batches[i]));
+      }
+    }
+    if (failure) {
+      failure.jmapFailedIds = failedIds;
+      throw failure;
+    }
   }
 
   async deleteEmail(emailId: string, accountId?: string): Promise<void> {
@@ -4114,7 +4144,14 @@ export class JMAPClient implements IJMAPClient {
         finalIdentityId = targetAccountId;
       }
       if (identityResponse.methodResponses?.[0]?.[0] === "Identity/get") {
-        const identities = (identityResponse.methodResponses[0][1].list || []) as Identity[];
+        // In the user's order, not the server's: Stalwart 1.0 lists a group's
+        // identity before the member's own, and a send that names no sender
+        // (a List-Unsubscribe mailto: from the unified view) would go out
+        // from the group's address.
+        const identities = sortIdentities(
+          (identityResponse.methodResponses[0][1].list || []) as Identity[],
+          this.username,
+        );
         if (identities.length > 0) {
           // A requested MAIL FROM that is itself one of the account's
           // identities is sent through that identity, so the server accepts
@@ -4126,9 +4163,9 @@ export class JMAPClient implements IJMAPClient {
             matchingIdentity = identities.find((id) => id.id === identityId);
           }
           if (!matchingIdentity) {
+            // Addresses compared as the server does: regardless of case.
             const target = fromEmail || this.username;
-            matchingIdentity = identities.find((id) => id.email === target)
-              || (!target.includes('@') ? identities.find((id) => id.email.split('@')[0] === target) : undefined);
+            matchingIdentity = identities.find((id) => emailMatchesLogin(id.email, target));
           }
           finalIdentityId = matchingIdentity?.id || identities[0].id;
           identityReplyTo = matchingIdentity?.replyTo || identities[0].replyTo;
@@ -5328,6 +5365,7 @@ export class JMAPClient implements IJMAPClient {
     const account = this.accounts[accountId];
     if (!account) return null;
     return {
+      name: account.name ?? '',
       isPersonal: account.isPersonal === true,
       isReadOnly: account.isReadOnly === true,
       accountCapabilities: account.accountCapabilities ?? {},

@@ -237,11 +237,17 @@ export function EmailList({
 
   const hasSelection = selectedEmailIds.size > 0;
 
+  // The store reports a refused message (a read-only shared folder) through
+  // its error; the rest of the selection is marked.
+  const markSelectionRead = (read: boolean) => client
+    ? runBatchEmailAction(() => batchMarkAsRead(client, read), { error: tNotifications('error_updating') })
+    : Promise.resolve();
+
   const handleBatchMarkAsRead = async (read: boolean) => {
     if (!client || isProcessing) return;
     setIsProcessing(true);
     try {
-      await batchMarkAsRead(client, read);
+      await markSelectionRead(read);
     } finally {
       setTimeout(() => setIsProcessing(false), 500);
     }
@@ -650,7 +656,7 @@ export function EmailList({
           onEditDraft={() => onEditDraft?.(contextMenuEmail!)}
           onCancelScheduledForEdit={onCancelScheduledForEdit ? () => onCancelScheduledForEdit(contextMenuEmail!) : undefined}
           onRescheduleScheduled={onRescheduleScheduled ? () => onRescheduleScheduled(contextMenuEmail!) : undefined}
-          onBatchMarkAsRead={(read) => client && batchMarkAsRead(client, read)}
+          onBatchMarkAsRead={(read) => markSelectionRead(read)}
           onBatchDelete={async () => {
             if (!client) return;
             const count = selectedEmailIds.size;

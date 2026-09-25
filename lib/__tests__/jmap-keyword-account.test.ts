@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
-import { jmapErrorProperties, jmapErrorType } from '../jmap/jmap-error';
+import { jmapErrorFailedIds, jmapErrorProperties, jmapErrorType } from '../jmap/jmap-error';
 
 // Regression coverage for the shared-account keyword write path (#281): keyword
 // mutations (tags, $answered/$forwarded) on a unified-inbox message must target
@@ -274,5 +274,39 @@ describe('keyword writes report what the server refused', () => {
     captured.length = 0;
     await expect(client.batchMarkAsRead(['m1', 'm2'], true)).rejects.toThrow(/mark as read/);
     expect(captured).toHaveLength(2);
+  });
+
+  // The rest of a batch was written, so a caller can show it as done.
+  it('names the messages a batched write left unchanged (Stalwart 1.0)', async () => {
+    const client = createClient();
+    Object.assign(client, { capabilities: { 'urn:ietf:params:jmap:core': { maxObjectsInSet: 2 } } });
+    mockEmailSetResult((ids) => ({
+      ...acceptAll(ids.filter((id) => id !== 'm2')),
+      ...(ids.includes('m2') ? { notUpdated: { m2: TOO_MANY } } : {}),
+    }));
+
+    const error = await client.batchUpdateKeywords(['m1', 'm2', 'm3'], { 'keywords/$label:work': true })
+      .then(() => null, (e: unknown) => e);
+
+    expect(jmapErrorType(error)).toBe('tooManyKeywords');
+    expect(jmapErrorFailedIds(error)).toEqual(['m2']);
+  });
+
+  it('counts every message of a batch whose call was refused as unchanged', async () => {
+    const client = createClient();
+    Object.assign(client, { capabilities: { 'urn:ietf:params:jmap:core': { maxObjectsInSet: 2 } } });
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      const [call] = (JSON.parse((init as { body: string }).body) as { methodCalls: JMAPMethodCall[] }).methodCalls;
+      const ids = Object.keys((call[1].update ?? {}) as Record<string, unknown>);
+      const methodResponses = ids.includes('m3')
+        ? [['error', { type: 'accountReadOnly' }, call[2]]]
+        : [['Email/set', { accountId: call[1].accountId, newState: 's2', ...acceptAll(ids) }, call[2]]];
+      return new Response(JSON.stringify({ methodResponses }), { status: 200 });
+    });
+
+    const error = await client.batchMarkAsRead(['m1', 'm2', 'm3', 'm4'], true).then(() => null, (e: unknown) => e);
+
+    expect(jmapErrorType(error)).toBe('accountReadOnly');
+    expect(jmapErrorFailedIds(error)).toEqual(['m3', 'm4']);
   });
 });

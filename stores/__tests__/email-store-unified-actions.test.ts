@@ -4,6 +4,7 @@ import { useAuthStore } from '../auth-store';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { UnifiedAccountClient } from '@/lib/unified-mailbox';
+import { jmapError } from '@/lib/jmap/jmap-error';
 
 // Regression coverage for issue #281: single-email actions performed in the
 // unified inbox must be routed to the *email's own account* client, not the
@@ -172,6 +173,55 @@ describe('unified-view single-email action routing (#281)', () => {
     const s = useEmailStore.getState();
     expect(s.mailboxes[0].unreadEmails).toBe(4);                     // active account: -1
     expect(s.accountMailboxes['account-b'][0].unreadEmails).toBe(2); // account-b: -1
+  });
+
+  describe('when the server refuses part of a selection (read-only shared folder, Stalwart 0.16 and 1.0)', () => {
+    // What JMAPClient.batchMarkAsRead throws for a `notUpdated` answer: the
+    // refused ids ride on the error, the rest of the batch was written.
+    const refusal = () => {
+      const error = jmapError('Failed to mark as read: forbidden', { type: 'forbidden' });
+      error.jmapFailedIds = ['x2'];
+      return error;
+    };
+
+    beforeEach(() => {
+      useEmailStore.setState({
+        emails: [
+          makeEmail({ id: 'a1', sourceClientAccountId: 'account-a', sourceAccountId: 'account-a', keywords: {}, mailboxIds: { inbox: true } }),
+          makeEmail({ id: 'x1', sourceClientAccountId: 'account-a', sourceAccountId: 'owner-x', keywords: {}, mailboxIds: { 'x-inbox': true } }),
+          makeEmail({ id: 'x2', sourceClientAccountId: 'account-a', sourceAccountId: 'owner-x', keywords: {}, mailboxIds: { 'x-inbox': true } }),
+        ],
+        selectedEmailIds: new Set(['a1', 'x1', 'x2']),
+      });
+    });
+
+    const seen = (id: string) => useEmailStore.getState().emails.find((e) => e.id === id)?.keywords?.$seen;
+
+    it('marks what the server accepted and reports the rest', async () => {
+      (activeClient.batchMarkAsRead as ReturnType<typeof vi.fn>).mockImplementation(
+        async (_ids: string[], _read: boolean, accountId?: string) => {
+          if (accountId === 'owner-x') throw refusal();
+        },
+      );
+
+      await useEmailStore.getState().batchMarkAsRead(activeClient, true);
+
+      expect([seen('a1'), seen('x1'), seen('x2')]).toEqual([true, true, undefined]);
+      const s = useEmailStore.getState();
+      expect(s.error).toBe('Failed to mark as read: forbidden');
+      expect(s.selectedEmailIds.size).toBe(0);
+    });
+
+    it('changes nothing and keeps the selection when every message is refused', async () => {
+      (activeClient.batchMarkAsRead as ReturnType<typeof vi.fn>).mockRejectedValue(new TypeError('Failed to fetch'));
+
+      await useEmailStore.getState().batchMarkAsRead(activeClient, true);
+
+      expect([seen('a1'), seen('x1'), seen('x2')]).toEqual([undefined, undefined, undefined]);
+      const s = useEmailStore.getState();
+      expect(s.error).toBe('Failed to fetch');
+      expect(s.selectedEmailIds).toEqual(new Set(['a1', 'x1', 'x2']));
+    });
   });
 
   it('routes a shared/group email through the delegating login client + owner accountId', async () => {

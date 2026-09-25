@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useEmailStore } from '@/stores/email-store';
+import { useIdentityStore } from '@/stores/identity-store';
 import { jmapErrorType } from '@/lib/jmap/jmap-error';
 import { SettingsSection, SettingItem, ToggleSwitch, Select } from './settings-section';
 import { playNotificationSound, NOTIFICATION_SOUNDS } from '@/lib/notification-sound';
@@ -127,12 +128,15 @@ export function NotificationSettings() {
   // mailboxes shared by other users stay silent in the background (they still
   // update while the app is open). Say so instead of leaving users to wonder.
   const mailboxes = useEmailStore((s) => s.mailboxes);
+  // On 0.16 the user's identities tell their groups from mailboxes shared by
+  // ACL (see mailAccountsWithoutPush).
+  const identities = useIdentityStore((s) => s.identities);
   const sharedMailboxesWithoutPush = useMemo(() => {
     // Re-read after each enable run too: it may have added refused accounts.
     if (!client || pushStatus.kind === 'unsupported') return false;
     const accountIds = mailboxes.flatMap((m) => (m.isShared && m.accountId ? [m.accountId] : []));
-    return mailAccountsWithoutPush(client, accountIds).length > 0;
-  }, [client, mailboxes, pushStatus.kind]);
+    return mailAccountsWithoutPush(client, accountIds, identities.map((identity) => identity.email)).length > 0;
+  }, [client, mailboxes, identities, pushStatus.kind]);
 
   // The refusals a user can do something about get readable text; anything
   // else keeps the error's own message.

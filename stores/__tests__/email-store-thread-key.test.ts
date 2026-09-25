@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEmailStore } from '../email-store';
 import { useAuthStore } from '../auth-store';
 import { threadKeyFor } from '@/lib/thread-utils';
+import { jmapError } from '@/lib/jmap/jmap-error';
 import { CROSS_ALL } from '@/lib/jmap/types';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
@@ -174,6 +175,25 @@ describe('thread identity across accounts (#1012)', () => {
     await useEmailStore.getState().markThreadAsRead(clientA, threadKeyFor(plain('m1')));
 
     expect(clientA.batchMarkAsRead).toHaveBeenCalledWith(['m1', 'm2'], true, 'acct-team');
+  });
+
+  it('marks the messages of a thread the server accepted when it refuses some (Stalwart 0.16 and 1.0)', async () => {
+    // A message the user may not mark in a shared folder stays unread; the
+    // error names it, the rest of the batch was written.
+    const g1 = inAccount('a', 'g1', { threadId: 'c', sourceAccountId: 'acct-team' });
+    const g2 = inAccount('a', 'g2', { threadId: 'c', sourceAccountId: 'acct-team' });
+    useEmailStore.setState({ emails: [a1, b1, g1, g2] });
+    const refusal = jmapError('Failed to mark as read: forbidden', { type: 'forbidden' });
+    refusal.jmapFailedIds = ['g2'];
+    clientA.batchMarkAsRead.mockRejectedValueOnce(refusal);
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await useEmailStore.getState().markThreadAsRead(clientA, threadKeyFor(g1));
+
+    const byId = new Map(useEmailStore.getState().emails.map((e) => [e.id, e]));
+    expect(byId.get('g1')?.keywords?.$seen).toBe(true);
+    expect(byId.get('g2')?.keywords?.$seen).toBeUndefined();
+    logged.mockRestore();
   });
 
   it('keeps expansion state apart for same-id threads of different accounts', () => {

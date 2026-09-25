@@ -74,6 +74,7 @@ export class DemoJMAPClient implements IJMAPClient {
   getAccountInfo(accountId: string): AccountInfo | null {
     if (accountId !== this.getAccountId()) return null;
     return {
+      name: this.getUsername(),
       isPersonal: true,
       isReadOnly: false,
       accountCapabilities: { 'urn:ietf:params:jmap:submission': {} },

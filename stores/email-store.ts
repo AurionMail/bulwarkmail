@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { Email, Mailbox, StateChange, ScheduledEmail, SendEmailResult, isUnifiedMailboxId, isCrossViewId } from "@/lib/jmap/types";
 import type { UnifiedMailboxRole, CrossView } from "@/lib/jmap/types";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
+import { jmapErrorFailedIds } from "@/lib/jmap/jmap-error";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, type SortLevel } from "@/lib/message-list-order";
@@ -3182,6 +3183,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     try {
       const emailIdsArray = Array.from(selectedEmailIds);
 
+      const writes: { ids: string[]; write: () => Promise<void> }[] = [];
       if (isAggregateListView()) {
         // Group by owning JMAP account; dispatch through the reaching login client.
         const bySource = new Map<string, { clientAccountId?: string; ids: string[] }>();
@@ -3192,30 +3194,51 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           bySource.get(key)!.ids.push(emailId);
         }
 
-        const promises = Array.from(bySource.entries()).map(async ([sourceAccountId, { clientAccountId, ids }]) => {
+        for (const [sourceAccountId, { clientAccountId, ids }] of bySource) {
           const acctClient = sourceAccountId === '__default__'
             ? resolveActionClient(client)
             : (clientAccountId ? useAuthStore.getState().getClientForAccount(clientAccountId) : undefined);
-          if (!acctClient) return;
           const jmapAccountId = sourceAccountId === '__default__' ? undefined : sourceAccountId;
-          await acctClient.batchMarkAsRead(ids, read, jmapAccountId);
-        });
-        await Promise.allSettled(promises);
+          writes.push({
+            ids,
+            write: acctClient
+              ? () => acctClient.batchMarkAsRead(ids, read, jmapAccountId)
+              : () => Promise.reject(new Error('Not connected')),
+          });
+        }
       } else {
         // Non-unified: route to the viewed shared/group account (if any), reached
         // through the active client; undefined for a normal own-account view.
-        await resolveActionClient(client).batchMarkAsRead(emailIdsArray, read, resolveViewAccountId());
+        writes.push({
+          ids: emailIdsArray,
+          write: () => resolveActionClient(client).batchMarkAsRead(emailIdsArray, read, resolveViewAccountId()),
+        });
       }
+
+      // A message the server refused (a read-only shared folder) keeps its
+      // state; the rest of the selection is written and shown as such, and
+      // the refusal is reported through `error`.
+      const outcomes = await Promise.allSettled(writes.map(({ write }) => write()));
+      const refused = new Set<string>();
+      let failure: unknown = null;
+      for (let i = 0; i < outcomes.length; i++) {
+        const outcome = outcomes[i];
+        if (outcome.status === 'fulfilled') continue;
+        failure ??= outcome.reason;
+        for (const id of jmapErrorFailedIds(outcome.reason) ?? writes[i].ids) refused.add(id);
+      }
+      const changed = new Set(emailIdsArray.filter(id => !refused.has(id)));
+      if (failure && changed.size === 0) throw failure;
 
       // Update local state
       const updatedEmails = emails.map(email =>
-        selectedEmailIds.has(email.id)
+        changed.has(email.id)
           ? { ...email, keywords: { ...email.keywords, $seen: read } }
           : email
       );
 
       // Update mailbox counters per the email's own account list (#281).
-      const affectedEmails = emails.filter(e => selectedEmailIds.has(e.id));
+      const affectedEmails = emails.filter(e => changed.has(e.id));
       const mailboxPatch = applyBatchMailboxCounterUpdate(get(), affectedEmails, (mailbox, group) => {
         let deltaUnread = 0;
         for (const email of group as Email[]) {
@@ -3255,7 +3278,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         tagCounts,
         retainedInViewIds,
         selectedEmailIds: new Set(),
-        isLoading: false
+        isLoading: false,
+        error: failure ? (failure instanceof Error ? failure.message : "Failed to update emails") : null,
       });
       refillAfterKeywordChange(get, client, ['$seen']);
     } catch (error) {
@@ -4402,23 +4426,28 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       groups.set(actionClient, byAccount);
     }
 
-    // Mark all as read on the server
-    try {
-      await Promise.all(
-        Array.from(groups.entries()).flatMap(([actionClient, byAccount]) =>
-          Array.from(byAccount.entries()).map(([accountId, emailIds]) =>
-            actionClient.batchMarkAsRead(emailIds, true, accountId)
-          )
-        )
-      );
-    } catch (error) {
-      console.error('Failed to mark thread as read:', error);
-      return;
+    // Mark all as read on the server. A message the server refused (a
+    // read-only shared folder) stays unread; the others are marked.
+    const writes = Array.from(groups.entries()).flatMap(([actionClient, byAccount]) =>
+      Array.from(byAccount.entries()).map(([accountId, emailIds]) => ({
+        emailIds,
+        done: actionClient.batchMarkAsRead(emailIds, true, accountId),
+      }))
+    );
+    const outcomes = await Promise.allSettled(writes.map(({ done }) => done));
+    const refused = new Set<string>();
+    for (let i = 0; i < outcomes.length; i++) {
+      const outcome = outcomes[i];
+      if (outcome.status === 'fulfilled') continue;
+      console.error('Failed to mark thread as read:', outcome.reason);
+      for (const id of jmapErrorFailedIds(outcome.reason) ?? writes[i].emailIds) refused.add(id);
     }
+    const markedIds = unreadIds.filter(id => !refused.has(id));
+    if (markedIds.length === 0) return;
 
     // Update local state
     set((state) => {
-      const unreadSet = new Set(unreadIds);
+      const unreadSet = new Set(markedIds);
 
       const updatedEmails = state.emails.map(e =>
         unreadSet.has(e.id) ? { ...e, keywords: { ...e.keywords, $seen: true } } : e

@@ -672,6 +672,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     buildUrl: buildMailUrl,
   });
 
+  // A read or star change the server refused (a read-only shared folder)
+  // leaves the message as it was; say so rather than fail silently.
+  const toastUpdateFailure = (error: unknown) => {
+    console.error("Failed to update email:", error);
+    toast.error(t('notifications.error_updating'));
+  };
+
   // Keyboard shortcuts handlers
   const keyboardHandlers = useMemo(() => ({
     onNextEmail: () => {
@@ -767,18 +774,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (isScheduledView) return;
       if (!client) return;
       if (selectedEmailIds.size > 0) {
-        await batchMarkAsRead(client, false);
+        await runBatchEmailAction(() => batchMarkAsRead(client, false), { error: t('notifications.error_updating') });
       } else if (selectedEmail) {
-        await markAsRead(client, selectedEmail.id, false);
+        await markAsRead(client, selectedEmail.id, false).catch(toastUpdateFailure);
       }
     },
     onMarkAsRead: async () => {
       if (isScheduledView) return;
       if (!client) return;
       if (selectedEmailIds.size > 0) {
-        await batchMarkAsRead(client, true);
+        await runBatchEmailAction(() => batchMarkAsRead(client, true), { error: t('notifications.error_updating') });
       } else if (selectedEmail) {
-        await markAsRead(client, selectedEmail.id, true);
+        await markAsRead(client, selectedEmail.id, true).catch(toastUpdateFailure);
       }
     },
     onToggleSpam: async () => {
@@ -4195,12 +4202,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 }}
                 onMarkAsRead={async (email, read) => {
                   if (client) {
-                    await markAsRead(client, email.id, read);
+                    await markAsRead(client, email.id, read).catch(toastUpdateFailure);
                   }
                 }}
                 onToggleStar={async (email) => {
                   if (client) {
-                    await toggleStar(client, email.id);
+                    await toggleStar(client, email.id).catch(toastUpdateFailure);
                   }
                 }}
                 onTogglePinned={async (email) => {
@@ -4414,8 +4421,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onForward={handleConversationForward}
                 onDownloadAttachment={handleDownloadAttachment}
                 onMarkAsRead={async (emailId, read) => {
+                  // Only ever the mark-as-read on expanding a message: a refusal
+                  // (a read-only shared folder) just leaves it unread.
                   if (client) {
-                    await markAsRead(client, emailId, read);
+                    await markAsRead(client, emailId, read).catch((error) => {
+                      debug.warn('email', '[Mark as Read] Failed:', error);
+                    });
                   }
                 }}
               />
@@ -4445,9 +4456,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onSetTag={handleSetTag}
                     onMarkAsSpam={() => handleMarkAsSpam()}
                     onUndoSpam={() => handleUndoSpam()}
-                    onMarkAsRead={async (emailId, read) => {
+                    onMarkAsRead={async (emailId, read, opts) => {
                       if (client) {
-                        await markAsRead(client, emailId, read);
+                        try {
+                          await markAsRead(client, emailId, read);
+                        } catch (error) {
+                          // Refused: the message stays as it was, and open.
+                          // Opening it is no request to report back on.
+                          if (opts?.automatic) debug.warn('email', '[Mark as Read] Failed:', error);
+                          else toastUpdateFailure(error);
+                          return;
+                        }
                         // Marking the open message unread returns to the list
                         // (Gmail-style, gated on returnToListAfterAction). Staying
                         // in the reading pane would just re-mark it read on view.

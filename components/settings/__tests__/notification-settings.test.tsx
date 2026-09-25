@@ -6,6 +6,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useEmailStore } from '@/stores/email-store';
+import { useIdentityStore } from '@/stores/identity-store';
 import { jmapSetError } from '@/lib/jmap/jmap-error';
 import type { Mailbox } from '@/lib/jmap/types';
 import * as webPush from '@/lib/web-push';
@@ -143,6 +144,13 @@ describe('NotificationSettings - mailboxes shared by ACL', () => {
         mailbox('acct-acl:projects', 'acct-acl', true),
       ],
     });
+    // Stalwart 0.16 gives a group's members an identity with its address.
+    useIdentityStore.setState({
+      identities: [
+        { id: 'i-own', name: 'Me', email: 'me@example.com', mayDelete: false },
+        { id: 'i-group', name: 'Team', email: 'team@example.com', mayDelete: true },
+      ],
+    });
   });
 
   it('says that mailboxes shared by other users send no background notifications', async () => {
@@ -151,7 +159,12 @@ describe('NotificationSettings - mailboxes shared by ACL', () => {
     const { findByText } = render(<NotificationSettings />);
 
     await findByText('push.shared_mailboxes_no_push');
-    expect(webPush.mailAccountsWithoutPush).toHaveBeenCalledWith(fakeClient, ['acct-group', 'acct-acl']);
+    // The identities tell the user's groups apart on Stalwart 0.16.
+    expect(webPush.mailAccountsWithoutPush).toHaveBeenCalledWith(
+      fakeClient,
+      ['acct-group', 'acct-acl'],
+      ['me@example.com', 'team@example.com'],
+    );
   });
 
   it('says nothing when every shared mailbox is covered', async () => {

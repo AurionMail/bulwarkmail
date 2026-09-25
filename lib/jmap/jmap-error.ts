@@ -15,7 +15,12 @@ export interface JmapErrorInfo {
   properties?: string[];
 }
 
-export type JmapError = Error & { jmapType?: string; jmapProperties?: string[]; jmapSetError?: boolean };
+export type JmapError = Error & {
+  jmapType?: string;
+  jmapProperties?: string[];
+  jmapSetError?: boolean;
+  jmapFailedIds?: string[];
+};
 
 /** An `Error` with `message` that keeps the server's error type and properties. */
 export function jmapError(message: string, info?: JmapErrorInfo | null): JmapError {
@@ -51,4 +56,13 @@ export function jmapErrorType(error: unknown): string | undefined {
 /** The properties an `invalidProperties` error named, if any. */
 export function jmapErrorProperties(error: unknown): string[] {
   return (error as JmapError | null | undefined)?.jmapProperties ?? [];
+}
+
+/**
+ * The objects a write of several left unchanged, when the error names them: a
+ * /set refuses objects one by one and applies the rest. Null when it doesn't
+ * say (after a failed request, for one), so any of them may be unchanged.
+ */
+export function jmapErrorFailedIds(error: unknown): string[] | null {
+  return (error as JmapError | null | undefined)?.jmapFailedIds ?? null;
 }

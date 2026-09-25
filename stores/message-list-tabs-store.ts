@@ -15,6 +15,7 @@ import type { MessageListTab, MessageListTabsConfig } from '@/lib/plugin-types';
 import { MAX_MESSAGE_LIST_TABS } from '@/lib/plugin-types';
 import { messageListTabHooks } from '@/lib/plugin-hooks';
 import { keywordPointer } from '@/lib/jmap/patch-pointer';
+import { jmapErrorFailedIds } from '@/lib/jmap/jmap-error';
 import { SERVER_SET_KEYWORDS } from '@/lib/jmap/server-keywords';
 import { resolveKeywordActionContext, useEmailStore } from './email-store';
 
@@ -344,8 +345,9 @@ export const useMessageListTabsStore = create<MessageListTabsStore>()((set, get)
     }
     // A refused write (a read-only shared folder; Stalwart 1.0 also refuses a
     // 101st keyword on a message) fails the move: the plugin's promise rejects
-    // with the server's reason and the categorize hooks stay quiet. The other
-    // accounts are still written, and their messages still move locally.
+    // with the server's reason and the categorize hooks stay quiet. What the
+    // server did accept still moves locally: the other accounts, and the rest
+    // of a batch it refused only some messages of.
     const written: string[] = [];
     let failure: unknown = null;
     for (const [writeClient, byAccount] of groups) {
@@ -355,6 +357,8 @@ export const useMessageListTabsStore = create<MessageListTabsStore>()((set, get)
           written.push(...ids);
         } catch (err) {
           failure ??= err;
+          const refused = jmapErrorFailedIds(err);
+          if (refused) written.push(...ids.filter((id) => !refused.includes(id)));
         }
       }
     }

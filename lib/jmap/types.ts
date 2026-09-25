@@ -28,6 +28,8 @@ export interface SharedAccount {
  * booleans, for callers that need a capability's fields.
  */
 export interface AccountInfo {
+  /** Stalwart names an account after its principal's address, a group's too. */
+  name: string;
   isPersonal: boolean;
   isReadOnly: boolean;
   accountCapabilities: Record<string, unknown>;

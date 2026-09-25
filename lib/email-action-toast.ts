@@ -2,13 +2,14 @@ import { toast } from "@/stores/toast-store";
 import { useEmailStore } from "@/stores/email-store";
 
 /**
- * Runs a bulk email-store action and toasts the outcome. Most batch actions
- * report failure through `state.error` instead of throwing (batchArchive does
- * both), so a resolved promise alone does not mean the mail moved.
+ * Runs a bulk email-store action and toasts the outcome: a failure always, a
+ * success when there is a message for it. Most batch actions report failure
+ * through `state.error` instead of throwing (batchArchive does both), so a
+ * resolved promise alone does not mean the mail moved.
  */
 export async function runBatchEmailAction(
   run: () => Promise<void>,
-  messages: { success: string; error: string; describeError?: (error: unknown) => string | undefined },
+  messages: { success?: string; error: string; describeError?: (error: unknown) => string | undefined },
 ): Promise<void> {
   try {
     await run();
@@ -21,7 +22,7 @@ export async function runBatchEmailAction(
   const storeError = useEmailStore.getState().error;
   if (storeError) {
     toast.error(messages.error, storeError);
-  } else {
+  } else if (messages.success) {
     toast.success(messages.success);
   }
 }

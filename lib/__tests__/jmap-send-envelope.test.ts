@@ -6,12 +6,12 @@ import { JMAPClient } from '../jmap/client';
 
 type MethodCall = [string, Record<string, unknown>, string];
 
-function createClient(): JMAPClient {
-  const client = new JMAPClient('https://jmap.example.com', 'user@example.com', 'pass');
+function createClient(username = 'user@example.com'): JMAPClient {
+  const client = new JMAPClient('https://jmap.example.com', username, 'pass');
   Object.assign(client, {
     apiUrl: 'https://jmap.example.com/api',
     accountId: 'account-1',
-    username: 'user@example.com',
+    username,
   });
   return client;
 }
@@ -52,15 +52,16 @@ const IDENTITIES = [
  * submission the way Stalwart 1.0 does at its `maxSubmissions` limit - before
  * it looks at the envelope.
  */
-function mockServer(options: { refuseMailFrom?: boolean; overQuotaOnce?: boolean } = {}) {
+function mockServer(options: { refuseMailFrom?: boolean; overQuotaOnce?: boolean; identities?: typeof IDENTITIES } = {}) {
   const submissions: Array<Record<string, unknown>> = [];
+  const identities = options.identities ?? IDENTITIES;
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
     const { methodCalls } = JSON.parse((init as { body: string }).body) as { methodCalls: MethodCall[] };
     const methodResponses = methodCalls.map(([name, args, callId]) => {
       if (name === 'Mailbox/get') {
         return [name, { list: [{ id: 'mb-drafts', name: 'Drafts', role: 'drafts' }, { id: 'mb-sent', name: 'Sent', role: 'sent' }] }, callId];
       }
-      if (name === 'Identity/get') return [name, { list: IDENTITIES }, callId];
+      if (name === 'Identity/get') return [name, { list: identities }, callId];
       if (name === 'Email/set') {
         const created = Object.keys((args.create ?? {}) as object);
         return [name, { created: Object.fromEntries(created.map((id) => [id, { id: 'email-9' }])) }, callId];
@@ -71,7 +72,7 @@ function mockServer(options: { refuseMailFrom?: boolean; overQuotaOnce?: boolean
         if (options.overQuotaOnce && submissions.length === 1) {
           return [name, { notCreated: { '1': { type: 'overQuota', description: 'There are too many email submissions, please delete some before adding a new one.' } } }, callId];
         }
-        const identity = IDENTITIES.find((i) => i.id === create.identityId);
+        const identity = identities.find((i) => i.id === create.identityId);
         const mailFrom = (create.envelope as { mailFrom?: { email: string } } | undefined)?.mailFrom?.email;
         if (options.refuseMailFrom && mailFrom && mailFrom.toLowerCase() !== identity?.email.toLowerCase()) {
           return [name, { notCreated: { '1': { type: 'forbiddenFrom', description: 'Envelope mailFrom does not match identity email address.' } } }, callId];
@@ -162,5 +163,45 @@ describe('JMAPClient.sendEmail envelope MAIL FROM (#1009)', () => {
 
     expect(submissions).toHaveLength(1);
     expect(submissions[0].envelope).toMatchObject({ mailFrom: { email: 'user@example.com' } });
+  });
+});
+
+// A send that names neither identity nor From - the List-Unsubscribe mailto:
+// path of the unified view - goes out from the login's own identity.
+describe('JMAPClient.sendEmail without a named sender', () => {
+  // Identity/get order for a member of team@: Stalwart 1.0 lists the group's
+  // identity first, 0.16.23 the member's own.
+  const GROUP = { id: 'identity-team', email: 'team@example.org', mayDelete: false };
+  const OWN = { id: 'identity-own', email: 'usera@example.org', mayDelete: false };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const sendUnnamed = (client: JMAPClient) =>
+    client.sendEmail(['list-unsubscribe@lists.example'], 'unsubscribe', '', undefined, undefined, undefined, undefined);
+
+  it.each([
+    ['Stalwart 1.0', [GROUP, OWN]],
+    ['Stalwart 0.16', [OWN, GROUP]],
+  ])("sends from the login's own identity on %s, whatever case the login was typed in", async (_server, identities) => {
+    const submissions = mockServer({ identities });
+
+    await sendUnnamed(createClient('UserA@Example.org'));
+
+    expect(submissions[0].identityId).toBe('identity-own');
+  });
+
+  it.each([
+    ['Stalwart 1.0', [GROUP, OWN]],
+    ['Stalwart 0.16', [OWN, GROUP]],
+  ])('matches a From address regardless of case on %s', async (_server, identities) => {
+    const submissions = mockServer({ identities });
+
+    await createClient('usera@example.org').sendEmail(
+      ['rcpt@example.net'], 'Subject', 'body', undefined, undefined, undefined, 'Team@Example.org',
+    );
+
+    expect(submissions[0].identityId).toBe('identity-team');
   });
 });

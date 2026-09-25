@@ -181,6 +181,33 @@ describe('KeywordSettings', () => {
     expect(screen.getByText('add').closest('button')).toBeDisabled();
   });
 
+  it('still saves a new colour for a tag whose id predates the limit', () => {
+    // 128 characters, 135 bytes as a keyword: created when the limit was the
+    // RFC's 255.
+    const parentId = 'a'.repeat(120);
+    const oldId = `${parentId}/old-tag`;
+    useSettingsStore.setState({
+      emailKeywords: [
+        { id: parentId, label: 'Deep', color: 'blue' },
+        { id: oldId, label: 'Old tag', color: 'blue' },
+      ],
+      nestedTags: true,
+    });
+    render(<KeywordSettings />);
+
+    fireEvent.click(screen.getAllByTitle('edit')[1]);
+    fireEvent.click(screen.getByLabelText('green'));
+
+    expect(screen.queryByText('too_long')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('save'));
+    expect(useSettingsStore.getState().emailKeywords.find((k) => k.id === oldId)?.color).toBe('green');
+
+    // Renaming it would make a new id, which has to fit.
+    fireEvent.click(screen.getAllByTitle('edit')[1]);
+    fireEvent.change(screen.getByDisplayValue('Old tag'), { target: { value: 'Renamed tag' } });
+    expect(screen.getByText('too_long')).toBeInTheDocument();
+  });
+
   it('locks the name and the delete action of a tag that has nested tags', () => {
     useSettingsStore.setState({
       emailKeywords: [

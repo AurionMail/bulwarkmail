@@ -613,10 +613,17 @@ async function doJmapImportRaw(
   copy.set(view);
   const blob = new Blob([copy.buffer], { type: 'message/rfc822' });
 
+  // Stalwart 1.0 sets the attachment keyword an imported message deserves and
+  // keeps any other it is given: a `$hasattachment` from the plugin would make
+  // `hasAttachment` true for a message without attachments.
+  const keywords = opts?.keywords
+    ? Object.fromEntries(Object.entries(opts.keywords).filter(([keyword]) => !isServerSetKeyword(keyword)))
+    : undefined;
+
   return client.importRawEmail(
     blob,
     mailboxIds,
-    opts?.keywords,
+    keywords,
     opts?.accountId,
   );
 }
@@ -1259,7 +1266,13 @@ async function doJmapGetKeywords(value?: unknown) {
 }
 
 async function doKeywordsDiscover(value?: unknown) {
-  return requireClient().discoverKeywords(keywordDiscoveryOptions(value, 'keywords.discover'));
+  const scan = await requireClient().discoverKeywords(keywordDiscoveryOptions(value, 'keywords.discover'));
+  // Stalwart 1.0 puts an attachment keyword on every message. Nobody applied
+  // it, and the plugin keyword API refuses to set or remove it.
+  return {
+    ...scan,
+    keywords: Object.fromEntries(Object.entries(scan.keywords).filter(([keyword]) => !isServerSetKeyword(keyword))),
+  };
 }
 
 async function doKeywordsRefreshCounts(): Promise<Record<string, { total: number; unread: number }>> {

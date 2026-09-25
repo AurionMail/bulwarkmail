@@ -741,6 +741,7 @@ describe('JMAP client push subscriptions', () => {
     await setup(true);
 
     expect(client.getAccountInfo('b')).toEqual({
+      name: 'userb',
       isPersonal: false,
       isReadOnly: true,
       accountCapabilities: {
