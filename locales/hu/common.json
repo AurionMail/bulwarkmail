@@ -3071,6 +3071,7 @@
       "loading_calendars": "Naptárak betöltése...",
       "loading_events": "Események betöltése...",
       "events_load_failed": "Nem sikerült betölteni az eseményeket. Előfordulhat, hogy a naptár nem naprakész.",
+      "tasks_load_failed": "Nem sikerült betölteni a feladatokat. Előfordulhat, hogy a lista nem naprakész.",
       "retry": "Próbáld újra"
     },
     "quick_create": {

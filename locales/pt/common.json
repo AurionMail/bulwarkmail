@@ -3071,6 +3071,7 @@
       "loading_calendars": "Carregando calendários...",
       "loading_events": "Carregando eventos...",
       "events_load_failed": "Não foi possível carregar os eventos. O calendário pode estar desatualizado.",
+      "tasks_load_failed": "Não foi possível carregar as tarefas. A lista pode estar desatualizada.",
       "retry": "Tentar novamente"
     },
     "quick_create": {

@@ -65,7 +65,7 @@ import { getClientByLocalAccountId } from "@/stores/client-registry";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 import { getEventStartDate } from "@/lib/calendar-utils";
 import { displayNow } from "@/lib/timezone";
-import { useTaskStore } from "@/stores/task-store";
+import { TASKS_LOAD_ERROR, useTaskStore } from "@/stores/task-store";
 import { useContactStore } from "@/stores/contact-store";
 import { cn } from "@/lib/utils";
 import type { Calendar, CalendarEvent, CalendarParticipant, CalendarRights } from "@/lib/jmap/types";
@@ -1542,6 +1542,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         case "tasks":
           return (
             <div className="flex flex-col h-full">
+              {taskStore.error === TASKS_LOAD_ERROR && (
+                <CalendarLoadErrorNotice what="tasks" onRetry={() => { if (client) void fetchTasksFn(client); }} />
+              )}
               <TaskToolbar
                 filter={taskStore.filter}
                 showCompleted={taskStore.showCompleted}

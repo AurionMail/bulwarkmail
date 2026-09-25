@@ -3071,6 +3071,7 @@
       "loading_calendars": "Indlæser kalendere...",
       "loading_events": "Indlæser begivenheder...",
       "events_load_failed": "Begivenhederne kunne ikke indlæses. Kalenderen er muligvis ikke opdateret.",
+      "tasks_load_failed": "Opgaverne kunne ikke indlæses. Listen er muligvis ikke opdateret.",
       "retry": "Prøv igen"
     },
     "quick_create": {

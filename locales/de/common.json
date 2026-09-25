@@ -3045,6 +3045,7 @@
       "loading_calendars": "Kalender werden geladen...",
       "loading_events": "Termine werden geladen...",
       "events_load_failed": "Termine konnten nicht geladen werden. Der Kalender ist möglicherweise nicht aktuell.",
+      "tasks_load_failed": "Aufgaben konnten nicht geladen werden. Die Liste ist möglicherweise nicht aktuell.",
       "retry": "Erneut versuchen"
     },
     "quick_create": {

@@ -3071,6 +3071,7 @@
       "loading_calendars": "Načítavanie kalendárov...",
       "loading_events": "Načítavanie udalostí...",
       "events_load_failed": "Udalosti sa nepodarilo načítať. Kalendár nemusí byť aktuálny.",
+      "tasks_load_failed": "Úlohy sa nepodarilo načítať. Zoznam nemusí byť aktuálny.",
       "retry": "Skúsiť znova"
     },
     "quick_create": {

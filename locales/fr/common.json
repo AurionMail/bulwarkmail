@@ -3071,6 +3071,7 @@
       "loading_calendars": "Chargement des calendriers...",
       "loading_events": "Chargement des événements...",
       "events_load_failed": "Impossible de charger les événements. Le calendrier n'est peut-être pas à jour.",
+      "tasks_load_failed": "Impossible de charger les tâches. La liste n'est peut-être pas à jour.",
       "retry": "Réessayer"
     },
     "quick_create": {

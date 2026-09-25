@@ -3071,6 +3071,7 @@
       "loading_calendars": "Carregant els calendaris...",
       "loading_events": "Carregant els esdeveniments...",
       "events_load_failed": "No s'han pogut carregar els esdeveniments. És possible que el calendari no estigui actualitzat.",
+      "tasks_load_failed": "No s'han pogut carregar les tasques. És possible que la llista no estigui actualitzada.",
       "retry": "Torna-ho a provar"
     },
     "quick_create": {

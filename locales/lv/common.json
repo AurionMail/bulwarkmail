@@ -3044,6 +3044,7 @@
       "loading_calendars": "Ielādē kalendārus...",
       "loading_events": "Ielādē pasākumus...",
       "events_load_failed": "Neizdevās ielādēt pasākumus. Kalendārs var nebūt aktuāls.",
+      "tasks_load_failed": "Neizdevās ielādēt uzdevumus. Saraksts var nebūt aktuāls.",
       "retry": "Mēģināt vēlreiz"
     },
     "quick_create": {

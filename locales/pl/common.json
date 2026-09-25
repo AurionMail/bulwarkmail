@@ -3045,6 +3045,7 @@
       "loading_calendars": "Ładowanie kalendarzy...",
       "loading_events": "Ładowanie wydarzeń...",
       "events_load_failed": "Nie udało się wczytać wydarzeń. Kalendarz może być nieaktualny.",
+      "tasks_load_failed": "Nie udało się wczytać zadań. Lista może być nieaktualna.",
       "retry": "Spróbuj ponownie"
     },
     "quick_create": {

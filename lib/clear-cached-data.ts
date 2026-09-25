@@ -17,11 +17,33 @@ const CACHE_STORAGE_KEYS = [
 ];
 
 /**
+ * The user's iCal subscriptions exist only in the calendar store's persisted
+ * state, next to its caches: keep them and drop the rest.
+ */
+function clearCalendarStorage(storage: Storage): void {
+  let persisted: { state?: { icalSubscriptions?: unknown }; version?: unknown } | null = null;
+  try {
+    persisted = JSON.parse(storage.getItem('calendar-storage') ?? 'null');
+  } catch {
+    /* not ours to read: drop it */
+  }
+  const subscriptions = persisted?.state?.icalSubscriptions;
+  if (!Array.isArray(subscriptions) || subscriptions.length === 0) {
+    storage.removeItem('calendar-storage');
+    return;
+  }
+  storage.setItem('calendar-storage', JSON.stringify({
+    state: { icalSubscriptions: subscriptions },
+    version: persisted?.version ?? 0,
+  }));
+}
+
+/**
  * Clear cached, server-derived data (contacts, calendars, identities, and the
  * in-memory per-account snapshots), then reload so everything is re-fetched
- * fresh for the active account. Accounts and sessions are preserved — this is
- * the non-destructive alternative to the browser's "clear site data", which
- * also wipes the account list.
+ * fresh for the active account. Accounts, sessions and iCal subscriptions are
+ * preserved — this is the non-destructive alternative to the browser's
+ * "clear site data", which also wipes the account list.
  */
 export function clearCachedData(): void {
   // Drop the in-memory per-account store snapshots so a reload can't restore
@@ -36,7 +58,8 @@ export function clearCachedData(): void {
 
   for (const key of CACHE_STORAGE_KEYS) {
     try {
-      window.localStorage.removeItem(key);
+      if (key === 'calendar-storage') clearCalendarStorage(window.localStorage);
+      else window.localStorage.removeItem(key);
     } catch {
       /* ignore storage access errors */
     }

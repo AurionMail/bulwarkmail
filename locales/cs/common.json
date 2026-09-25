@@ -3045,6 +3045,7 @@
       "loading_calendars": "Načítání kalendářů...",
       "loading_events": "Načítání událostí...",
       "events_load_failed": "Události se nepodařilo načíst. Kalendář nemusí být aktuální.",
+      "tasks_load_failed": "Úkoly se nepodařilo načíst. Seznam nemusí být aktuální.",
       "retry": "Zkusit znovu"
     },
     "quick_create": {

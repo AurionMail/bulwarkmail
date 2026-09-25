@@ -3071,6 +3071,7 @@
       "loading_calendars": "Loading calendars...",
       "loading_events": "Loading events...",
       "events_load_failed": "Couldn't load events. The calendar may be out of date.",
+      "tasks_load_failed": "Couldn't load tasks. The list may be out of date.",
       "retry": "Try again"
     },
     "quick_create": {

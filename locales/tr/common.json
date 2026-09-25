@@ -3071,6 +3071,7 @@
       "loading_calendars": "Takvimler yükleniyor...",
       "loading_events": "Etkinlikler yükleniyor...",
       "events_load_failed": "Etkinlikler yüklenemedi. Takvim güncel olmayabilir.",
+      "tasks_load_failed": "Görevler yüklenemedi. Liste güncel olmayabilir.",
       "retry": "Tekrar dene"
     },
     "quick_create": {

@@ -7953,18 +7953,26 @@ export class JMAPClient implements IJMAPClient {
       }, "0"]
     ], this.calendarUsing());
 
-    const result = response.methodResponses?.[0]?.[1];
+    let result: JMAPResponseResult;
+    try {
+      // A method-level error (unknown calendar, missing capability) means
+      // nothing was created.
+      result = methodResult(response, "0", "CalendarEvent/set");
+    } catch (error) {
+      debug.groupEnd();
+      throw error;
+    }
     debug.log('tasks', 'CalendarTask/create raw set response', result);
 
-    if (result?.notCreated?.["new-task"]) {
+    if (result.notCreated?.["new-task"]) {
       const error = result.notCreated["new-task"];
       debug.warn('tasks', 'CalendarTask/create REJECTED by server', error);
       debug.groupEnd();
-      throw new Error(error.description || "Failed to create task");
+      throw jmapSetError(error.description || "Failed to create task", error);
     }
 
-    const createdId = result?.created?.["new-task"]?.id;
-    const serverCreated = result?.created?.["new-task"];
+    const createdId = result.created?.["new-task"]?.id;
+    const serverCreated = result.created?.["new-task"];
     debug.log('tasks', 'CalendarTask/create server acknowledged', { createdId, serverCreated });
 
     if (!createdId) {

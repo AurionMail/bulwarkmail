@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
 import type { CalendarTask } from '../jmap/types';
+import { jmapErrorType } from '../jmap/jmap-error';
 
 function makeSession() {
   return {
@@ -157,5 +158,16 @@ describe('JMAPClient task operations (#958)', () => {
     }));
 
     await expect(client.getCalendarTasks()).rejects.toThrow(/Store unavailable/);
+  });
+
+  it('createCalendarTask fails with the error type when the server refuses the whole call', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(async () => jsonResponse({
+      methodResponses: [['error', { type: 'invalidArguments', description: 'Invalid calendar id' }, '0']],
+    }));
+
+    const error = await client.createCalendarTask({ title: 'New Task' }).then(() => null, (e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain('Invalid calendar id');
+    expect(jmapErrorType(error)).toBe('invalidArguments');
   });
 });

@@ -3045,6 +3045,7 @@
       "loading_calendars": "Cargando calendarios...",
       "loading_events": "Cargando eventos...",
       "events_load_failed": "No se pudieron cargar los eventos. Es posible que el calendario no esté actualizado.",
+      "tasks_load_failed": "No se pudieron cargar las tareas. Es posible que la lista no esté actualizada.",
       "retry": "Intentar de nuevo"
     },
     "quick_create": {

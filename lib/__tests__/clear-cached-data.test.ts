@@ -49,4 +49,22 @@ describe('clearCachedData', () => {
     clearCachedData();
     expect(reload).toHaveBeenCalledOnce();
   });
+
+  it('keeps the iCal subscriptions, which exist nowhere else, and drops the rest of the calendar state', () => {
+    const subscription = { id: 's1', url: 'https://example.com/holidays.ics', calendarId: 'c9', name: 'Holidays', color: '#ff0000', refreshInterval: 60, lastRefreshed: null };
+    localStorage.setItem('calendar-storage', JSON.stringify({
+      state: { selectedCalendarIds: ['c1', 'c9'], viewMode: 'week', icalSubscriptions: [subscription] },
+      version: 0,
+    }));
+
+    clearCachedData();
+
+    expect(JSON.parse(localStorage.getItem('calendar-storage')!)).toEqual({ state: { icalSubscriptions: [subscription] }, version: 0 });
+  });
+
+  it('removes calendar state without subscriptions entirely', () => {
+    localStorage.setItem('calendar-storage', JSON.stringify({ state: { viewMode: 'week', icalSubscriptions: [] }, version: 0 }));
+    clearCachedData();
+    expect(localStorage.getItem('calendar-storage')).toBeNull();
+  });
 });

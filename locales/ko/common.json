@@ -3045,6 +3045,7 @@
       "loading_calendars": "캘린더를 불러오는 중...",
       "loading_events": "일정을 불러오는 중...",
       "events_load_failed": "일정을 불러오지 못했어요. 캘린더가 최신 상태가 아닐 수 있어요.",
+      "tasks_load_failed": "할 일을 불러오지 못했어요. 목록이 최신 상태가 아닐 수 있어요.",
       "retry": "다시 시도"
     },
     "quick_create": {

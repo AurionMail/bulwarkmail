@@ -3045,6 +3045,7 @@
       "loading_calendars": "Agenda's laden...",
       "loading_events": "Evenementen laden...",
       "events_load_failed": "Evenementen konden niet worden geladen. De agenda is mogelijk niet actueel.",
+      "tasks_load_failed": "Taken konden niet worden geladen. De lijst is mogelijk niet actueel.",
       "retry": "Opnieuw proberen"
     },
     "quick_create": {
