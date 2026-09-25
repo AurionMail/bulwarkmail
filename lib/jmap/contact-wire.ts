@@ -17,6 +17,15 @@ const CLIENT_ONLY_KEYS = [
 /** vCard CALURI / FBURL / CALADRURI, kept flat in the UI. */
 const URI_KEYS = ['calendarUri', 'freeBusyUri', 'schedulingUri', 'source'] as const;
 
+/**
+ * Properties an update never clears. A null `id` fails the whole update ("The
+ * id property is immutable.") and so does a null `addressBookIds` ("Invalid
+ * patch operation for addressBookIds."). A null `uid` is refused by Stalwart
+ * 1.0 ("You cannot change the UID of a contact.") and on 0.16 silently
+ * deletes the card's UID.
+ */
+const NEVER_CLEARED_KEYS = ['id', 'uid', 'addressBookIds'] as const;
+
 const LEGACY_ADDRESS_FIELDS: Array<[keyof ContactAddress, AddressComponent['kind']]> = [
   ['street', 'name'],
   ['locality', 'locality'],
@@ -49,12 +58,14 @@ type Mode = 'create' | 'update';
  * The card as ContactCard/set expects it. On `update`, a key that is present
  * with the value `undefined` means "the user cleared it" and is sent as
  * `null`: JSON drops undefined, and an omitted property keeps its old value.
+ * `id`, `uid` and `addressBookIds` without a value are left out instead.
  */
 export function contactToWire(card: Partial<ContactCard>, mode: Mode): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(card)) {
     if ((CLIENT_ONLY_KEYS as readonly string[]).includes(key)) continue;
     if ((URI_KEYS as readonly string[]).includes(key)) continue;
+    if (mode === 'update' && value == null && (NEVER_CLEARED_KEYS as readonly string[]).includes(key)) continue;
     if (value === undefined) {
       if (mode === 'update') out[key] = null;
       continue;

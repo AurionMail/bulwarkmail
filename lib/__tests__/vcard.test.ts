@@ -540,6 +540,46 @@ describe("organization-only cards (issue #701)", () => {
   });
 });
 
+describe("MEMBER export", () => {
+  const group = (members: Record<string, boolean>): ContactCard => ({
+    id: "g1",
+    addressBookIds: {},
+    kind: "group",
+    name: { full: "Team" },
+    members,
+  });
+
+  it("writes a member key that is already a URI as it is", () => {
+    // Groups made in Bulwark key members by uid (urn:uuid:); CardDAV groups
+    // keep whatever MEMBER value the client sent.
+    const vcf = generateVCard([group({ "urn:uuid:0f3c9d2e": true, "mailto:ann@example.com": true })]);
+    const lines = vcf.split("\r\n");
+    expect(lines).toContain("MEMBER:urn:uuid:0f3c9d2e");
+    expect(lines).toContain("MEMBER:mailto:ann@example.com");
+    expect(vcf).not.toContain("urn:uuid:urn:uuid:");
+  });
+
+  it("prefixes a bare key with urn:uuid:", () => {
+    expect(generateVCard([group({ "0f3c9d2e": true, gone: false })]).split("\r\n").filter(l => l.startsWith("MEMBER:")))
+      .toEqual(["MEMBER:urn:uuid:0f3c9d2e"]);
+  });
+
+  it("round-trips members through import and export", () => {
+    const [parsed] = parseVCard([
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      "FN:Team",
+      "KIND:group",
+      "MEMBER:urn:uuid:member-1",
+      "MEMBER:mailto:ann@example.com",
+      "END:VCARD",
+    ].join("\r\n"));
+    const [reparsed] = parseVCard(generateVCard([parsed]));
+    expect(reparsed.members).toEqual(parsed.members);
+    expect(generateVCard([parsed])).toContain("MEMBER:urn:uuid:member-1");
+  });
+});
+
 describe("round-trip: parse → generate → parse", () => {
   it("produces structurally equivalent data", () => {
     const original = [

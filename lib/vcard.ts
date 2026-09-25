@@ -1405,7 +1405,11 @@ function generateSingleVCard(contact: ContactCard): string {
   if (contact.members) {
     for (const memberId of Object.keys(contact.members)) {
       if (contact.members[memberId]) {
-        lines.push(`MEMBER:urn:uuid:${memberId}`);
+        // Keys are URIs already for groups made here (members are keyed by
+        // uid, a urn:uuid:) and for groups from CardDAV clients (Stalwart
+        // keeps MEMBER values verbatim); only a bare key gets the prefix.
+        const uri = /^[a-z][a-z0-9+.-]*:/i.test(memberId) ? memberId : `urn:uuid:${memberId}`;
+        lines.push(`MEMBER:${uri}`);
       }
     }
   }

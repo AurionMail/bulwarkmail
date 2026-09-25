@@ -32,6 +32,21 @@ describe('contactToWire', () => {
     expect(contactToWire(cleared, 'create')).toEqual({});
   });
 
+  it('never clears id, uid or addressBookIds on update', () => {
+    const wire = contactToWire({
+      id: undefined, uid: undefined, addressBookIds: undefined, nicknames: undefined,
+    } as Partial<ContactCard>, 'update');
+    expect(wire).toEqual({ nicknames: null });
+
+    const nulls = contactToWire({ id: null, uid: null, addressBookIds: null } as unknown as Partial<ContactCard>, 'update');
+    expect(nulls).toEqual({});
+  });
+
+  it('still sends a uid or addressBookIds that has a value', () => {
+    expect(contactToWire({ uid: 'urn:uuid:1', addressBookIds: { ab: true } }, 'update'))
+      .toEqual({ uid: 'urn:uuid:1', addressBookIds: { ab: true } });
+  });
+
   it('leaves calendar links alone when the update does not mention them', () => {
     expect(contactToWire({ keywords: { vip: true } }, 'update')).toEqual({ keywords: { vip: true } });
   });

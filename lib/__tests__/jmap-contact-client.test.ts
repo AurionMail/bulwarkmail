@@ -589,6 +589,34 @@ describe('JMAPClient contact methods', () => {
         .rejects.toThrow('Failed to update contact');
     });
 
+    it.each(['1.0', '0.16'] as const)('leaves a cleared id, uid and addressBookIds out of the update on Stalwart %s', async (version) => {
+      const client = createClient();
+      // What ContactCard/set answers to those keys set to null (1.0 contact/set.rs:
+      // 229-249, 602-607, 669-671; 0.16.23 set.rs:187-199, 524-529, 591-593).
+      const answer = (update: Record<string, unknown>) => {
+        const refuse = (property: string, description: string) =>
+          ({ notUpdated: { 'contact-1': { type: 'invalidProperties', properties: [property], description } } });
+        if ('id' in update) return refuse('id', 'The id property is immutable.');
+        if (update.addressBookIds === null) return refuse('addressBookIds', 'Invalid patch operation for addressBookIds.');
+        // 0.16 takes a null uid and drops the card's UID without a word.
+        if (update.uid === null && version === '1.0') return refuse('uid', 'You cannot change the UID of a contact.');
+        return { updated: { 'contact-1': null } };
+      };
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+        const update = JSON.parse(String(init?.body)).methodCalls[0][1].update['contact-1'];
+        const body = { methodResponses: [['ContactCard/set', answer(update), '0']] };
+        return { ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(body)) } as Response;
+      });
+
+      // A plugin passes the card back with the keys it did not set.
+      await client.updateContact('contact-1', {
+        id: undefined, uid: undefined, addressBookIds: undefined, name: mockContact.name,
+      } as never);
+
+      const sent = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string).methodCalls[0][1].update['contact-1'];
+      expect(sent).toEqual({ name: mockContact.name });
+    });
+
     it('passes a Stalwart 1.0 blob photo through unchanged', async () => {
       const client = createClient();
       const fetchSpy = mockFetch({
