@@ -22,6 +22,7 @@ import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/f
 import { getEffectiveTimeZone, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
 import type { AccountInfo } from "./types";
+import { stalwartChangeId } from "./stalwart-state";
 
 // Cap for the follow-up Email/get issued when a displayed body part comes
 // back truncated at the normal 256000-byte limit (see refetchTruncatedBodyValues
@@ -1877,9 +1878,10 @@ export class JMAPClient implements IJMAPClient {
   /**
    * Generic `Foo/changes` (RFC 8620 §5.2). Returns null when the server can
    * no longer compute a delta from `sinceState` (`cannotCalculateChanges`,
-   * a too-old state, or any other error) - the caller then falls back to a
-   * full re-fetch. `hasMoreChanges` is surfaced rather than paged through:
-   * a delta that large is cheaper to resolve with a fresh query.
+   * a too-old state, a state that went backwards, or any other error) - the
+   * caller then falls back to a full re-fetch. `hasMoreChanges` is surfaced
+   * rather than paged through: a delta that large is cheaper to resolve with
+   * a fresh query.
    */
   private async getCollectionChanges(type: 'Email' | 'Mailbox', sinceState: string, accountId?: string, maxChanges?: number): Promise<CollectionChanges | null> {
     const targetAccountId = accountId || this.accountId;
@@ -1905,6 +1907,19 @@ export class JMAPClient implements IJMAPClient {
         updatedProperties?: string[] | null;
       };
       if (typeof r.newState !== 'string') return null;
+      // Stalwart's change ids only grow. A newState below sinceState means its
+      // counters went back - a restore, or an upgrade that kept the old change
+      // log but restarted the counters lower (1.0 counts per collection where
+      // 0.16 counted per account) - and it then answers an old state with an
+      // empty delta, skipping every change since. Take the full fetch instead.
+      if (this.hasAccountCapability('urn:stalwart:jmap', targetAccountId)) {
+        const since = stalwartChangeId(sinceState);
+        const next = stalwartChangeId(r.newState);
+        if (since !== null && next !== null && next < since) {
+          debug.warn('jmap', `[JMAP] ${type}/changes went back from ${sinceState} to ${r.newState}, falling back to a full fetch`);
+          return null;
+        }
+      }
       return {
         oldState: r.oldState ?? sinceState,
         newState: r.newState,

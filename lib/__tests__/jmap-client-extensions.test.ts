@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { JMAPClient, submissionEnvelopeParameters } from '../jmap/client';
 import { isJmapSetError, jmapErrorType } from '../jmap/jmap-error';
+import { stalwartExactState, stalwartIntermediateState } from './helpers/stalwart-state';
 
 describe('submissionEnvelopeParameters', () => {
   it('is empty without options', () => {
@@ -141,6 +142,79 @@ describe('JMAP client extensions', () => {
       const page = await client.getEmails('inbox');
       expect(page.state).toBe('e9');
       expect(page.emails).toHaveLength(1);
+    });
+
+    // Stalwart lists urn:stalwart:jmap on every account (0.16.6 through 1.0).
+    const STALWART = { 'urn:stalwart:jmap': {} };
+    const changes = (type: string, oldState: string, newState: string) => ({
+      methodResponses: [[
+        `${type}/changes`,
+        { accountId: 'acct-1', oldState, newState, hasMoreChanges: false, created: [], updated: [], destroyed: [] },
+        '0',
+      ]],
+    });
+
+    it.each(['Email', 'Mailbox'])(
+      'falls back to a full fetch when Stalwart answers %s/changes with a lower state (upgrade with restarted counters)',
+      async (type) => {
+        await setup(STALWART);
+        // The old change log survived with its ids, the counter restarted
+        // lower: Stalwart accepts the old state and reports nothing since.
+        const since = stalwartExactState(12_345_678);
+        answer(() => changes(type, since, stalwartExactState(16_384)));
+
+        const delta = type === 'Email' ? await client.getEmailChanges(since) : await client.getMailboxChanges(since);
+
+        expect(delta).toBeNull();
+      },
+    );
+
+    it('trips on the states Stalwart 0.16.23 and 1.0 actually return', async () => {
+      await setup(STALWART);
+      // `sba` (8) from 0.16.23 answered with `sau` (5) from 1.0.
+      answer(() => changes('Email', 'sba', 'sau'));
+      expect(await client.getEmailChanges('sba')).toBeNull();
+
+      answer(() => changes('Email', 'sau', 'sba'));
+      expect(await client.getEmailChanges('sau')).toMatchObject({ oldState: 'sau', newState: 'sba' });
+    });
+
+    it('never trips while Stalwart states go up or stay put', async () => {
+      await setup(STALWART);
+      const big = (n: number | string) => BigInt(n);
+      // Every LEB128 byte boundary, and ids past 2^53.
+      const ids = [
+        big(0), big(1), big(126), big(127), big(128), big(129), big(16_383), big(16_384),
+        big(2_097_151), big(2_097_152), big(2) ** big(32) - big(1), big(2) ** big(32),
+        big(2) ** big(53), big(2) ** big(53) + big(1), big(2) ** big(64) - big(2), big(2) ** big(64) - big(1),
+      ];
+      for (let i = 0; i < ids.length; i++) {
+        for (const next of [ids[i], ids[i + 1]]) {
+          if (next === undefined) continue;
+          const since = stalwartExactState(ids[i]);
+          const newState = stalwartExactState(next);
+          answer(() => changes('Email', since, newState));
+          expect(await client.getEmailChanges(since)).toMatchObject({ oldState: since, newState });
+        }
+      }
+    });
+
+    it('leaves states in any other format alone', async () => {
+      await setup(STALWART);
+      // An intermediate state (a delta cut short by maxChanges) on either side.
+      const intermediate = stalwartIntermediateState(1024, 2048, 100);
+      answer(() => changes('Email', stalwartExactState(5000), intermediate));
+      expect(await client.getEmailChanges(stalwartExactState(5000))).toMatchObject({ newState: intermediate });
+
+      answer(() => changes('Email', intermediate, stalwartExactState(1)));
+      expect(await client.getEmailChanges(intermediate)).toMatchObject({ newState: stalwartExactState(1) });
+    });
+
+    it('does not read states of servers other than Stalwart', async () => {
+      await setup();
+      // Same strings, but the session doesn't list urn:stalwart:jmap.
+      answer(() => changes('Email', 'sba', 'sau'));
+      expect(await client.getEmailChanges('sba')).toMatchObject({ newState: 'sau' });
     });
   });
 
