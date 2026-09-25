@@ -758,6 +758,24 @@ describe('JMAPClient contact methods', () => {
       expect(body.methodCalls[0][1].filter).toEqual({ text: 'Jane' });
     });
 
+    it('should AND quoted phrases and prefixes as separate text conditions', async () => {
+      const client = createClient();
+      const fetchSpy = mockFetch({
+        methodResponses: [
+          ['ContactCard/query', { ids: [] }, '0'],
+          ['ContactCard/get', { list: [] }, '1'],
+        ],
+      });
+
+      await client.searchContacts('"Anna Muster" firm*');
+
+      const body = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
+      expect(body.methodCalls[0][1].filter).toEqual({
+        operator: 'AND',
+        conditions: [{ text: '"Anna Muster"' }, { text: 'firm*' }],
+      });
+    });
+
     it('should return empty array when no results', async () => {
       const client = createClient();
       mockFetch({

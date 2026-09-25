@@ -106,6 +106,23 @@ describe('mail provider', () => {
     expect(filter).toEqual({ operator: 'AND', conditions: [{ text: 'x' }, { inMailbox: 'tr' }] });
   });
 
+  it('sends every quoted phrase as its own condition beside the folder conditions', () => {
+    const boxes = [mailbox('in', 'inbox'), mailbox('tr', 'trash'), mailbox('ju', 'junk')];
+    const filter = mailFilterFor(parseSearchQuery('"annual report" 2024 "draft"'), entry(boxes) as never);
+    expect(filter).toEqual({
+      operator: 'AND',
+      conditions: [
+        { text: '"annual report"' }, { text: '2024' }, { text: '"draft"' },
+        { inMailboxOtherThan: ['tr', 'ju'] },
+      ],
+    });
+    const trash = mailFilterFor(parseSearchQuery('in:trash "annual report" budg*'), entry(boxes) as never);
+    expect(trash).toEqual({
+      operator: 'AND',
+      conditions: [{ text: '"annual report"' }, { text: 'budg*' }, { inMailbox: 'tr' }],
+    });
+  });
+
   it('flattens extra conditions into an existing AND', () => {
     expect(andFilters({ operator: 'AND', conditions: [{ a: 1 }] }, { b: 2 }))
       .toEqual({ operator: 'AND', conditions: [{ a: 1 }, { b: 2 }] });
@@ -177,12 +194,38 @@ describe('contacts provider', () => {
     expect(result.hits[0]).toMatchObject({ id: 'c7', storeId: 'login-a::c7', jmapAccountId: 'jmap-a' });
     expect(result.hits[1]).toMatchObject({ id: 'c8', storeId: 'login-a::owner:c8', jmapAccountId: 'owner' });
   });
+
+  it('remote hands the client the quoted phrases, which it splits into conditions', async () => {
+    const searchContacts = vi.fn(async () => []);
+    await contactsProvider.remote(parseSearchQuery('"bob miller" in:contacts firma'), account('login-a', { searchContacts }), { limit: 10, signal });
+    expect(searchContacts).toHaveBeenCalledWith('"bob miller" firma');
+  });
 });
 
 describe('calendar provider', () => {
   it('translates day bounds into instants for the server filter', () => {
     expect(calendarFilterFor(parseSearchQuery('sync after:2026-01-01 before:2026-02-01')))
       .toEqual({ text: 'sync', after: '2026-01-01T00:00:00Z', before: '2026-02-01T23:59:59Z' });
+  });
+
+  it('ANDs several text parts with the bounds, one key per condition', () => {
+    const filter = calendarFilterFor(parseSearchQuery('"team sync" budget after:2026-01-01 before:2026-02-01'));
+    expect(filter).toEqual({
+      operator: 'AND',
+      conditions: [
+        { after: '2026-01-01T00:00:00Z' },
+        { before: '2026-02-01T23:59:59Z' },
+        { text: '"team sync"' },
+        { text: 'budget' },
+      ],
+    });
+    // With expandRecurrences, Stalwart 1.0 accepts only one AND group, and a
+    // condition with two keys would open a second one.
+    for (const condition of filter.conditions ?? []) expect(Object.keys(condition)).toHaveLength(1);
+    expect(calendarFilterFor(parseSearchQuery('"team sync" budget'))).toEqual({
+      operator: 'AND',
+      conditions: [{ text: '"team sync"' }, { text: 'budget' }],
+    });
   });
 
   it('matches cached events on title/location and applies day bounds locally', () => {
@@ -247,6 +290,13 @@ describe('calendar provider', () => {
     const result = await calendarProvider.remote(parseSearchQuery('sync'), account('login-a', { queryAllCalendarEvents }), { limit: 10, signal });
     expect(queryAllCalendarEvents).toHaveBeenCalledWith({ text: 'sync' }, [{ property: 'start', isAscending: false }], 10);
     expect(result.hits[0]).toMatchObject({ id: 'e9', isRecurring: true, localAccountId: 'login-a' });
+
+    await calendarProvider.remote(parseSearchQuery('"weekly sync" plan*'), account('login-a', { queryAllCalendarEvents }), { limit: 10, signal });
+    expect(queryAllCalendarEvents).toHaveBeenLastCalledWith(
+      { operator: 'AND', conditions: [{ text: '"weekly sync"' }, { text: 'plan*' }] },
+      [{ property: 'start', isAscending: false }],
+      10,
+    );
   });
 });
 

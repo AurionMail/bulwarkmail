@@ -241,12 +241,42 @@ describe('JMAP client extensions', () => {
       expect(snippetCall[0]).toBe('SearchSnippet/get');
       expect(snippetCall[1]).toEqual({
         accountId: 'acct-1',
-        // The wildcard the search adds for prefix matching is stripped again.
+        // A plain query goes to the snippets as it went to Email/query.
         filter: { operator: 'AND', conditions: [{ inMailbox: 'inbox' }, { text: 'invoice' }] },
         '#emailIds': { resultOf: '0', name: 'Email/query', path: '/ids' },
       });
       expect(result.emails[0].searchSnippet).toEqual({ subject: '<mark>Invoice</mark>', preview: 'your <mark>invoice</mark> is attached' });
       expect(result.emails[1].searchSnippet).toBeUndefined();
+    });
+
+    it('sends quoted phrases as conditions of their own and unquotes them for the snippets', async () => {
+      await setup();
+      answer(() => ({
+        methodResponses: [
+          ['Email/query', { ids: [], total: 0 }, '0'],
+          ['Email/get', { list: [] }, '1'],
+          ['SearchSnippet/get', { list: [] }, 'snippets'],
+        ],
+      }));
+
+      await client.searchEmails('"annual report" 2024 "draft"', 'inbox');
+      const [query, , snippets] = requests[0].methodCalls;
+      // One joined value would be one phrase on Stalwart 1.0.
+      expect(query[1].filter).toEqual({
+        operator: 'AND',
+        conditions: [{ inMailbox: 'inbox' }, { text: '"annual report"' }, { text: '2024' }, { text: '"draft"' }],
+      });
+      // A quoted term switches the whole snippet request to exact mode.
+      expect(snippets[1].filter).toEqual({
+        operator: 'AND',
+        conditions: [{ inMailbox: 'inbox' }, { text: 'annual report' }, { text: '2024' }, { text: 'draft' }],
+      });
+
+      await client.searchEmails('project budg*');
+      expect(requests[1].methodCalls[0][1].filter).toEqual({
+        operator: 'AND',
+        conditions: [{ text: 'project' }, { text: 'budg*' }],
+      });
     });
 
     it('sends a no-op instead of SearchSnippet/get for a structural filter', async () => {

@@ -1588,6 +1588,32 @@ function handleMailboxSet(args: MethodArgs, callId: string): MethodResult {
   return ['Mailbox/set', { accountId: ACCOUNT_ID, oldState: nextState(), newState: nextState(), created, updated, destroyed, notCreated: null, notUpdated: null, notDestroyed: null }, callId];
 }
 
+/**
+ * A loose stand-in for Stalwart's text conditions, enough for the shapes the
+ * app sends (see splitSearchText): a value wrapped in quotes is a phrase,
+ * anything else needs every word, with a trailing `*` dropped. Substrings
+ * stand in for the server's word and stem matching.
+ */
+function matchesText(value: string, fields: Array<string | null | undefined>): boolean {
+  const haystack = fields.filter(Boolean).join('\n').toLowerCase();
+  const needle = value.trim().toLowerCase();
+  const phrase = /^(["'])([\s\S]*)\1$/.exec(needle)?.[2].trim();
+  if (phrase !== undefined) return phrase !== '' && haystack.includes(phrase);
+  const words = needle.replace(/\*$/, '').split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.every((word) => haystack.includes(word));
+}
+
+/** Resolves AND / OR / NOT operators down to `matches`, the test for one condition. */
+function matchesFilter(filter: Record<string, unknown>, matches: (condition: Record<string, unknown>) => boolean): boolean {
+  if (typeof filter.operator === 'string') {
+    const conditions = (Array.isArray(filter.conditions) ? filter.conditions : []) as Record<string, unknown>[];
+    if (filter.operator === 'AND') return conditions.every((c) => matchesFilter(c, matches));
+    if (filter.operator === 'OR') return conditions.some((c) => matchesFilter(c, matches));
+    return !conditions.some((c) => matchesFilter(c, matches));
+  }
+  return matches(filter);
+}
+
 function handleEmailQuery(args: MethodArgs, callId: string): MethodResult {
   const filter = args.filter as Record<string, unknown> | undefined;
   const limit = (args.limit as number) || 50;
@@ -1612,13 +1638,9 @@ function handleEmailQuery(args: MethodArgs, callId: string): MethodResult {
       result = result.filter((e) => e.mailboxIds[f.inMailbox as string]);
     }
     if (f.text) {
-      const q = (f.text as string).toLowerCase();
-      result = result.filter(
-        (e) =>
-          (e.subject?.toLowerCase().includes(q)) ||
-          (e.preview?.toLowerCase().includes(q)) ||
-          e.from?.some((addr) => addr.name?.toLowerCase().includes(q) || addr.email.toLowerCase().includes(q)),
-      );
+      const q = f.text as string;
+      result = result.filter((e) =>
+        matchesText(q, [e.subject, e.preview, ...(e.from ?? []).flatMap((addr) => [addr.name, addr.email])]));
     }
     if (f.hasKeyword) {
       const kw = f.hasKeyword as string;
@@ -1629,16 +1651,16 @@ function handleEmailQuery(args: MethodArgs, callId: string): MethodResult {
       result = result.filter((e) => !e.keywords[kw]);
     }
     if (f.from) {
-      const q = (f.from as string).toLowerCase();
-      result = result.filter((e) => e.from?.some((addr) => addr.name?.toLowerCase().includes(q) || addr.email.toLowerCase().includes(q)));
+      const q = f.from as string;
+      result = result.filter((e) => matchesText(q, (e.from ?? []).flatMap((addr) => [addr.name, addr.email])));
     }
     if (f.to) {
-      const q = (f.to as string).toLowerCase();
-      result = result.filter((e) => e.to?.some((addr) => addr.name?.toLowerCase().includes(q) || addr.email.toLowerCase().includes(q)));
+      const q = f.to as string;
+      result = result.filter((e) => matchesText(q, (e.to ?? []).flatMap((addr) => [addr.name, addr.email])));
     }
     if (f.subject) {
-      const q = (f.subject as string).toLowerCase();
-      result = result.filter((e) => e.subject?.toLowerCase().includes(q));
+      const q = f.subject as string;
+      result = result.filter((e) => matchesText(q, [e.subject]));
     }
     if (f.hasAttachment === true) {
       result = result.filter((e) => e.hasAttachment);
@@ -2026,19 +2048,23 @@ function handleCalendarEventGet(args: MethodArgs, callId: string): MethodResult 
 
 function handleCalendarEventQuery(args: MethodArgs, callId: string): MethodResult {
   const filter = args.filter as Record<string, unknown> | undefined;
-  let filtered = [...calendarEvents];
-  const needle = [filter?.text, filter?.title].find((v): v is string => typeof v === 'string')?.toLowerCase();
-  if (needle) {
-    filtered = filtered.filter((e) => {
+  // Global search sends several text parts, and then its bounds, as an AND.
+  const matches = (e: (typeof calendarEvents)[number], condition: Record<string, unknown>): boolean => {
+    const needle = [condition.text, condition.title].find((v): v is string => typeof v === 'string');
+    if (needle) {
       const event = e as { title?: string; description?: string; locations?: Record<string, { name?: string }> | null };
-      const locations = Object.values(event.locations ?? {}).map((l) => l?.name ?? '').join(' ');
-      return ((event.title ?? '') + ' ' + (event.description ?? '') + ' ' + locations).toLowerCase().includes(needle);
-    });
-  }
-  if (filter?.inCalendars) {
-    const calIds = filter.inCalendars as string[];
-    filtered = filtered.filter((e) => calIds.some((cid) => (e.calendarIds as Record<string, boolean>)[cid]));
-  }
+      const locations = Object.values(event.locations ?? {}).map((l) => l?.name);
+      if (!matchesText(needle, [event.title, event.description, ...locations])) return false;
+    }
+    if (condition.inCalendars) {
+      const calIds = condition.inCalendars as string[];
+      if (!calIds.some((cid) => (e.calendarIds as Record<string, boolean>)[cid])) return false;
+    }
+    return true;
+  };
+  const filtered = filter
+    ? calendarEvents.filter((e) => matchesFilter(filter, (condition) => matches(e, condition)))
+    : [...calendarEvents];
   const ids = filtered.map((e) => e.id);
   return ['CalendarEvent/query', { accountId: ACCOUNT_ID, queryState: nextState(), ids, total: ids.length, position: 0, canCalculateChanges: false }, callId];
 }
@@ -2407,15 +2433,17 @@ const METHOD_HANDLERS: Record<string, MethodHandler> = {
   },
   'ContactCard/query': (args, callId) => {
     const filter = args.filter as Record<string, unknown> | undefined;
-    const needle = [filter?.text, filter?.name, filter?.email].find((v): v is string => typeof v === 'string')?.toLowerCase();
-    const list = needle
-      ? contacts.filter((c) => {
-          const card = c as { name?: { components?: Array<{ value?: string }> }; emails?: Record<string, { address?: string }>; organizations?: Record<string, { name?: string }> };
-          const names = (card.name?.components ?? []).map((p) => p.value ?? '').join(' ');
-          const emails = Object.values(card.emails ?? {}).map((e) => e.address ?? '').join(' ');
-          const orgs = Object.values(card.organizations ?? {}).map((o) => o.name ?? '').join(' ');
-          return (names + ' ' + emails + ' ' + orgs).toLowerCase().includes(needle);
-        })
+    const matches = (c: (typeof contacts)[number], condition: Record<string, unknown>): boolean => {
+      const needle = [condition.text, condition.name, condition.email].find((v): v is string => typeof v === 'string');
+      if (!needle) return true;
+      const card = c as { name?: { components?: Array<{ value?: string }> }; emails?: Record<string, { address?: string }>; organizations?: Record<string, { name?: string }> };
+      const names = (card.name?.components ?? []).map((p) => p.value ?? '').join(' ');
+      const emails = Object.values(card.emails ?? {}).map((e) => e.address);
+      const orgs = Object.values(card.organizations ?? {}).map((o) => o.name);
+      return matchesText(needle, [names, ...emails, ...orgs]);
+    };
+    const list = filter
+      ? contacts.filter((c) => matchesFilter(filter, (condition) => matches(c, condition)))
       : contacts;
     return ['ContactCard/query', { accountId: ACCOUNT_ID, queryState: nextState(), ids: list.map(c => c.id), total: list.length, position: 0 }, callId];
   },

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { splitSearchText } from '@/lib/jmap/search-utils';
 import { accountMatches, matchesTerms, parseSearchQuery, tokenizeQuery, withScopeAndAccount } from '../query-parser';
 
 describe('parseSearchQuery', () => {
@@ -14,6 +15,25 @@ describe('parseSearchQuery', () => {
     const parsed = parseSearchQuery('"Q3 planning" budget');
     expect(parsed.text).toBe('"Q3 planning" budget');
     expect(parsed.terms).toEqual(['q3 planning', 'budget']);
+    // The search paths split the text again, one condition per phrase.
+    expect(splitSearchText(parsed.text)).toEqual(['"Q3 planning"', 'budget']);
+  });
+
+  it('produces text that splits into the same parts as the typed query', () => {
+    const typed = [
+      '"annual report" 2024 "draft"',
+      'project budg*',
+      '"half typed',
+      '"a b" c d*',
+      "'annual' 2024 'draft'",
+      '"" * budget',
+      're: meeting 10:30',
+    ];
+    for (const raw of typed) {
+      expect(splitSearchText(parseSearchQuery(raw).text)).toEqual(splitSearchText(raw));
+    }
+    const withOperators = parseSearchQuery('from:anna "annual report" in:mail 2024 after:2026-01-01 "draft"');
+    expect(splitSearchText(withOperators.text)).toEqual(['"annual report"', '2024', '"draft"']);
   });
 
   it('tolerates an unterminated quote while the user is still typing', () => {

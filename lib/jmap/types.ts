@@ -884,6 +884,12 @@ export interface CalendarEventNotification {
 }
 
 export interface CalendarEventFilter {
+  /**
+   * A FilterOperator (RFC 8620 §5.5) sets these and no property keys:
+   * Stalwart rejects a filter that mixes the two.
+   */
+  operator?: 'AND' | 'OR' | 'NOT';
+  conditions?: CalendarEventFilter[];
   inCalendars?: string[];
   after?: string;
   before?: string;

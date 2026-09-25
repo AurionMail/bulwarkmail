@@ -3,6 +3,7 @@ import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountSta
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
+import { textConditions, textFilter } from "./search-utils";
 import { batched, itemsPerRequest } from "./request-limits";
 import { keywordPointer } from "./patch-pointer";
 import { FirstTouchGate } from "./first-touch-gate";
@@ -3268,22 +3269,21 @@ export class JMAPClient implements IJMAPClient {
     try {
       const targetAccountId = accountId || this.accountId;
 
-      // Use the JMAP "text" filter which searches across from, to, cc, bcc,
-      // subject, and body. It matches whole words (stemmed on Stalwart);
-      // there is no prefix syntax, a trailing "*" is simply dropped.
-      const textFilter: Record<string, unknown> = { text: query.trim() };
-
+      // The JMAP "text" filter searches from, to, cc, bcc, subject and body.
+      // Quoted phrases and `word*` prefixes go out as conditions of their
+      // own (see splitSearchText). inMailbox joins them in the same AND: a
+      // FilterOperator cannot also carry property keys.
       let filter: Record<string, unknown>;
       if (mailboxId) {
         filter = {
           operator: "AND",
           conditions: [
             { inMailbox: mailboxId },
-            textFilter,
+            ...textConditions(query),
           ],
         };
       } else {
-        filter = textFilter;
+        filter = textFilter(query);
       }
 
       const response = await this.request([
@@ -6471,7 +6471,8 @@ export class JMAPClient implements IJMAPClient {
           const response = await this.request([
             ["ContactCard/query", {
               accountId,
-              filter: { text: query },
+              // Same text rules as mail search (see splitSearchText).
+              filter: textFilter(query),
               limit: 50,
             }, "0"],
             ["ContactCard/get", {

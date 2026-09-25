@@ -121,6 +121,29 @@ describe('search folder scope (#788)', () => {
     expect(accountId).toBe('owner-x');
   });
 
+  it('puts the folder next to the phrase conditions, not into an operator object', async () => {
+    useEmailStore.getState().setSearchMailboxId('owner-x:x-inbox');
+    useEmailStore.setState({
+      searchQuery: '"annual report" 2024',
+      searchFilters: { ...DEFAULT_SEARCH_FILTERS, from: 'bob@example.com' },
+    });
+
+    await useEmailStore.getState().advancedSearch(client);
+
+    // Stalwart rejects an operator object that also carries inMailbox.
+    const [filter, accountId] = (client.advancedSearchEmails as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(filter).toEqual({
+      operator: 'AND',
+      conditions: [
+        { text: '"annual report"' },
+        { text: '2024' },
+        { from: 'bob@example.com' },
+        { inMailbox: 'x-inbox' },
+      ],
+    });
+    expect(accountId).toBe('owner-x');
+  });
+
   it('keeps the chosen scope when the user navigates the mail list', () => {
     useEmailStore.getState().setSearchMailboxId('inbox');
     useEmailStore.getState().selectMailbox('sent');

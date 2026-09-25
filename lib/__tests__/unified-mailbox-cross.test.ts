@@ -7,6 +7,7 @@ import {
   getCrossUnreadTotal,
   fetchCrossViewEmails,
   advancedSearchCrossViewEmails,
+  searchCrossViewEmails,
   resolveSourceFolderName,
   type UnifiedAccountClient,
 } from '@/lib/unified-mailbox';
@@ -227,5 +228,30 @@ describe('advancedSearchCrossViewEmails', () => {
 
     const [filter] = advancedSearchEmails.mock.calls[0];
     expect(filter).toEqual({ inMailbox: 'inbox' });
+  });
+});
+
+describe('searchCrossViewEmails', () => {
+  it('ANDs a plain query onto the cross-view membership as one text condition', async () => {
+    const advancedSearchEmails = vi.fn().mockResolvedValue({ emails: [], total: 0, hasMore: false });
+    const a = makeAccount({ accountId: 'a', mailboxes: [mb('inbox', 'inbox')] }, { advancedSearchEmails });
+
+    await searchCrossViewEmails([a], 'all', 'project budget', 50, 0);
+
+    const [filter] = advancedSearchEmails.mock.calls[0];
+    expect(filter).toEqual({ operator: 'AND', conditions: [{ inMailbox: 'inbox' }, { text: 'project budget' }] });
+  });
+
+  it('gives every quoted phrase and prefix a condition of its own', async () => {
+    const advancedSearchEmails = vi.fn().mockResolvedValue({ emails: [], total: 0, hasMore: false });
+    const a = makeAccount({ accountId: 'a', mailboxes: [mb('inbox', 'inbox'), mb('projects', undefined)] }, { advancedSearchEmails });
+
+    await searchCrossViewEmails([a], 'unread', '"annual report" budg*', 50, 0);
+
+    const [filter] = advancedSearchEmails.mock.calls[0];
+    expect(filter).toEqual({
+      operator: 'AND',
+      conditions: [buildCrossFilter('unread', ['inbox', 'projects']), { text: '"annual report"' }, { text: 'budg*' }],
+    });
   });
 });

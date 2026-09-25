@@ -117,6 +117,45 @@ describe('dev-jmap mock server', () => {
     });
   });
 
+  describe('POST /api - text conditions as the app sends them', () => {
+    // Search sends each quoted phrase and each `word*` as its own condition.
+    async function queryIds(method: string, filter: Record<string, unknown>): Promise<string[]> {
+      const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+        body: JSON.stringify({ methodCalls: [[method, { accountId: 'dev-account-001', filter }, 'c0']] }),
+      });
+      const res = await POST(req, { params: Promise.resolve({ path: ['api'] }) });
+      const data = await res.json();
+      return data.methodResponses[0][1].ids;
+    }
+
+    it('matches a quoted phrase ANDed with a prefix in Email/query', async () => {
+      const found = await queryIds('Email/query', { operator: 'AND', conditions: [{ text: '"sprint priorities"' }, { text: 'wee*' }] });
+      expect(found.length).toBeGreaterThan(0);
+      expect(await queryIds('Email/query', { operator: 'AND', conditions: [{ text: '"priorities sprint"' }, { text: 'wee*' }] })).toEqual([]);
+    });
+
+    it('resolves an AND of bounds and text parts in CalendarEvent/query', async () => {
+      expect(await queryIds('CalendarEvent/query', {
+        operator: 'AND',
+        conditions: [
+          { after: '2000-01-01T00:00:00Z' },
+          { before: '2100-01-01T23:59:59Z' },
+          { text: '"sprint planning"' },
+          { text: 'plan*' },
+        ],
+      })).toEqual(['evt-002']);
+    });
+
+    it('resolves an AND of text parts in ContactCard/query', async () => {
+      expect(await queryIds('ContactCard/query', {
+        operator: 'AND',
+        conditions: [{ text: '"sophie müller"' }, { text: 'euro*' }],
+      })).toEqual(['contact-001']);
+    });
+  });
+
   describe('POST /api - Email/get', () => {
     it('should return emails by ids', async () => {
       const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {

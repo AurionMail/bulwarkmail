@@ -983,16 +983,28 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async queryCalendarEvents(filter: CalendarEventFilter): Promise<CalendarEvent[]> {
-    return this.data.calendarEvents.filter(e => {
-      if (filter.after && e.start < filter.after) return false;
-      if (filter.before && e.start > filter.before) return false;
-      const q = (filter.text ?? filter.title)?.toLowerCase();
-      if (q) {
-        const locations = Object.values(e.locations ?? {}).map(l => l?.name ?? '').join(' ');
-        if (!(e.title + ' ' + e.description + ' ' + locations).toLowerCase().includes(q)) return false;
+    return this.data.calendarEvents.filter(e => this.eventMatchesFilter(e, filter));
+  }
+
+  private eventMatchesFilter(e: CalendarEvent, filter: CalendarEventFilter): boolean {
+    if (filter.operator) {
+      const conditions = filter.conditions ?? [];
+      switch (filter.operator) {
+        case 'AND': return conditions.every(c => this.eventMatchesFilter(e, c));
+        case 'OR': return conditions.some(c => this.eventMatchesFilter(e, c));
+        case 'NOT': return !conditions.some(c => this.eventMatchesFilter(e, c));
       }
-      return true;
-    });
+    }
+    if (filter.after && e.start < filter.after) return false;
+    if (filter.before && e.start > filter.before) return false;
+    // Global search sends a quoted phrase or a `word*` prefix as a text
+    // condition of its own.
+    const q = (filter.text ?? filter.title)?.replace(/^"([\s\S]*)"$/, '$1').replace(/\*$/, '').toLowerCase();
+    if (q) {
+      const locations = Object.values(e.locations ?? {}).map(l => l?.name ?? '').join(' ');
+      if (!(e.title + ' ' + e.description + ' ' + locations).toLowerCase().includes(q)) return false;
+    }
+    return true;
   }
 
   async queryAllCalendarEvents(filter: CalendarEventFilter): Promise<CalendarEvent[]> {
