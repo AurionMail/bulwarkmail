@@ -22,6 +22,7 @@ import type { Identity } from '@/lib/jmap/types';
 import { authHooks } from '@/lib/plugin-hooks';
 import { IS_LITE, IS_LITE_STALWART } from '@/lib/lite';
 import { toAsciiEmail } from '@/lib/idn';
+import { sortIdentities } from '@/lib/identity-order';
 import {
   LiteLoginError,
   clearAllLiteSessions,
@@ -653,28 +654,6 @@ function bindClientStatusHandlers(
         errorMessage: rateLimited ? 'Temporarily rate limited by server' : undefined,
       });
     }
-  });
-}
-
-function emailMatchesUsername(email: string, username: string): boolean {
-  if (email === username) return true;
-  // Handle local-part login: username "user" should match "user@domain.tld"
-  if (!username.includes('@') && email.split('@')[0] === username) return true;
-  return false;
-}
-
-function sortIdentities(rawIdentities: Identity[], username: string): Identity[] {
-  return [...rawIdentities].sort((a, b) => {
-    const aMatch = emailMatchesUsername(a.email, username);
-    const bMatch = emailMatchesUsername(b.email, username);
-    if (aMatch && !bMatch) return -1;
-    if (!aMatch && bMatch) return 1;
-    // Among matching identities, prefer canonical (non-deletable) over aliases
-    if (aMatch && bMatch) {
-      if (!a.mayDelete && b.mayDelete) return -1;
-      if (a.mayDelete && !b.mayDelete) return 1;
-    }
-    return 0;
   });
 }
 

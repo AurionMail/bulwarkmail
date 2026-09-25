@@ -110,3 +110,28 @@ describe('auth-store syncIdentities', () => {
     expect(useAuthStore.getState().identities[0].textSignature).toBe('Regards, Me');
   });
 });
+
+describe('auth-store refreshIdentities', () => {
+  beforeEach(() => {
+    useIdentityStore.setState({ identities: [], preferredPrimaryId: null });
+  });
+
+  // Seen on a live Stalwart 1.0 server: for a member of team@example.org the
+  // group's identity comes first in Identity/get. The login must still send
+  // from its own address by default, even when it was typed in another case.
+  it("makes the login's own identity primary when Stalwart 1.0 lists the group's first", async () => {
+    const fromServer = [
+      makeIdentity({ id: 'team', email: 'team@example.org', mayDelete: false }),
+      makeIdentity({ id: 'usera', email: 'usera@example.org', mayDelete: false }),
+    ];
+    useAuthStore.setState({
+      client: { getIdentities: async () => fromServer } as never,
+      username: 'UserA@Example.org',
+    });
+
+    await useAuthStore.getState().refreshIdentities();
+
+    expect(useAuthStore.getState().primaryIdentity?.id).toBe('usera');
+    expect(useIdentityStore.getState().identities.map((i) => i.id)).toEqual(['usera', 'team']);
+  });
+});
