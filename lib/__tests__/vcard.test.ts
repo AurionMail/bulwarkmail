@@ -446,6 +446,42 @@ describe("generateVCard", () => {
     expect(vcf).toContain("SOURCE:https://example.com/jane.vcf");
   });
 
+  it("exports photos whose data: URI names no media type (Stalwart 0.16)", () => {
+    const contact: ContactCard = {
+      id: "c-photo",
+      addressBookIds: {},
+      name: { full: "Ann" },
+      media: {
+        // 0.16.23 (calcard 0.3.14) with the type in mediaType, 0.16.0 (calcard 0.3.2) with none.
+        a: { kind: "photo", uri: "data:;base64,/9j/", mediaType: "image/jpeg" },
+        b: { kind: "photo", uri: "data:base64,iVBO" },
+        c: { kind: "logo", uri: "data:image/png;base64,iVBO", mediaType: "image/png" },
+      },
+    };
+
+    const lines = generateVCard([contact]).split("\r\n");
+    expect(lines).toContain("PHOTO;ENCODING=b;TYPE=image/jpeg:/9j/");
+    expect(lines).toContain("PHOTO;ENCODING=b:iVBO");
+    expect(lines).toContain("LOGO;ENCODING=b;TYPE=image/png:iVBO");
+
+    const [reparsed] = parseVCard(generateVCard([contact]));
+    expect(Object.values(reparsed.media ?? {}).map(m => m.uri)).toEqual([
+      "data:image/jpeg;base64,/9j/",
+      "data:image/jpeg;base64,iVBO",
+      "data:image/png;base64,iVBO",
+    ]);
+  });
+
+  it("writes nothing for a blob photo that was not downloaded first (Stalwart 1.0)", () => {
+    const contact: ContactCard = {
+      id: "c-blob",
+      addressBookIds: {},
+      name: { full: "Ann" },
+      media: { photo: { kind: "photo", blobId: "dbcX", mediaType: "image/jpeg" } },
+    };
+    expect(generateVCard([contact])).not.toContain("PHOTO");
+  });
+
   it("encodes special characters in values", () => {
     const contact: ContactCard = {
       id: "c3",

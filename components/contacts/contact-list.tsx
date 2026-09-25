@@ -10,7 +10,7 @@ import { ContactContextMenu } from "./contact-context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { cn } from "@/lib/utils";
 import type { AnniversaryDate, ContactCard } from "@/lib/jmap/types";
-import { getContactDisplayName, getContactPhotoUri, getContactSortName } from "@/stores/contact-store";
+import { getContactDisplayName, getContactSortName, hasContactPhoto } from "@/stores/contact-store";
 import { useSettingsStore } from "@/stores/settings-store";
 
 type TriState = boolean | null;
@@ -170,7 +170,7 @@ export function ContactList({
 
       if (!matchTri(emails.length > 0, filters.hasEmail)) return false;
       if (!matchTri(phones.length > 0, filters.hasPhone)) return false;
-      if (!matchTri(!!getContactPhotoUri(c), filters.hasPhoto)) return false;
+      if (!matchTri(hasContactPhoto(c), filters.hasPhoto)) return false;
 
       if (orgLower) {
         const match = orgs.some((o) => {

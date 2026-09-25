@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ContactForm } from '../contact-form';
-import type { ContactCard } from '@/lib/jmap/types';
+import type { ContactCard, ContactMedia } from '@/lib/jmap/types';
+import { useAuthStore } from '@/stores/auth-store';
+import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
 
 const existingContact: ContactCard = {
   id: '1',
@@ -81,6 +83,146 @@ describe('ContactForm', () => {
 
     const savedData = onSave.mock.calls[0][0];
     expect(savedData.media).toBeNull();
+  });
+
+  describe('photos (P0-3)', () => {
+    // The same PHOTO as ContactCard/get returns it on each version.
+    const photo0_16_23: ContactMedia = { kind: 'photo', uri: 'data:image/jpeg;base64,/9j/', mediaType: 'image/jpeg' };
+    const photo0_16_0: ContactMedia = { kind: 'photo', uri: 'data:base64,/9j/' };
+    const photo1_0: ContactMedia = { kind: 'photo', blobId: 'dbcX', mediaType: 'image/jpeg' };
+    const logo1_0: ContactMedia = { kind: 'logo', blobId: 'dbcLogo', mediaType: 'image/png' };
+    const fetchBlob = vi.fn(async () => new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }));
+
+    beforeEach(() => {
+      clearContactPhotoCache();
+      fetchBlob.mockClear();
+      vi.spyOn(URL, 'createObjectURL').mockImplementation(() => 'blob:preview');
+      vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+      useAuthStore.setState({ client: { fetchBlob } as never });
+    });
+
+    afterEach(() => {
+      useAuthStore.setState({ client: null });
+      clearContactPhotoCache();
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    });
+
+    const withMedia = (media: Record<string, ContactMedia>): ContactCard => ({ ...existingContact, media });
+
+    async function submitPhoneChange(contact: ContactCard) {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      render(<ContactForm contact={contact} onSave={onSave} onCancel={vi.fn()} />);
+      fireEvent.change(screen.getByDisplayValue('+33612345678'), { target: { value: '+33699999999' } });
+      fireEvent.submit(screen.getByText('save').closest('form')!);
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      return onSave;
+    }
+
+    it('leaves media out when only the phone changes on Stalwart 1.0', async () => {
+      const onSave = await submitPhoneChange(withMedia({ photo: photo1_0, logo: logo1_0 }));
+      expect('media' in onSave.mock.calls[0][0]).toBe(false);
+      expect(onSave.mock.calls[0]).toHaveLength(1);
+    });
+
+    it.each([
+      ['0.16.23', photo0_16_23],
+      ['0.16.0', photo0_16_0],
+    ])('leaves media out when only the phone changes on Stalwart %s', async (_version, photo) => {
+      const onSave = await submitPhoneChange(withMedia({ m0: photo }));
+      expect('media' in onSave.mock.calls[0][0]).toBe(false);
+    });
+
+    it('shows a Stalwart 1.0 photo in the preview by downloading it', async () => {
+      render(<ContactForm contact={withMedia({ photo: photo1_0 })} onSave={vi.fn()} onCancel={vi.fn()} />);
+
+      await waitFor(() => expect(document.querySelector('img')?.getAttribute('src')).toBe('blob:preview'));
+      expect(fetchBlob).toHaveBeenCalledWith('dbcX', 'photo', 'image/jpeg', undefined);
+      expect(screen.getByText('remove_photo')).toBeInTheDocument();
+    });
+
+    it('keeps the logo when the Stalwart 1.0 photo is removed', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      render(<ContactForm contact={withMedia({ photo: photo1_0, logo: logo1_0 })} onSave={onSave} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByText('remove_photo'));
+      fireEvent.submit(screen.getByText('save').closest('form')!);
+
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0][0].media).toEqual({ logo: logo1_0 });
+    });
+
+    it('sends media: null when the only Stalwart 1.0 photo is removed', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      render(<ContactForm contact={withMedia({ photo: photo1_0 })} onSave={onSave} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByText('remove_photo'));
+      expect(screen.queryByText('remove_photo')).not.toBeInTheDocument();
+      fireEvent.submit(screen.getByText('save').closest('form')!);
+
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0][0].media).toBeNull();
+    });
+
+    it('puts a new photo under the old key as a data: URI, keeps the logo and names it for the upload', async () => {
+      // processImageFile draws the picked file onto a canvas.
+      vi.stubGlobal('Image', class {
+        width = 1024;
+        height = 768;
+        onload: (() => void) | null = null;
+        set src(_value: string) { setTimeout(() => this.onload?.(), 0); }
+      });
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: vi.fn() } as never);
+      vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,/9j/NEW');
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const { container } = render(
+        <ContactForm contact={withMedia({ photo: photo1_0, logo: logo1_0 })} onSave={onSave} onCancel={vi.fn()} />,
+      );
+      await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:preview'));
+
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [new File(['jpeg'], 'me.jpg', { type: 'image/jpeg' })] } });
+      await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).toBe('data:image/jpeg;base64,/9j/NEW'));
+      fireEvent.submit(screen.getByText('save').closest('form')!);
+
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      const [saved, options] = onSave.mock.calls[0];
+      expect(saved.media).toEqual({
+        photo: { kind: 'photo', uri: 'data:image/jpeg;base64,/9j/NEW', mediaType: 'image/jpeg' },
+        logo: logo1_0,
+      });
+      expect(options).toEqual({ photoKey: 'photo' });
+      // The downloaded preview is an object URL; it must never be written back.
+      expect(JSON.stringify(saved)).not.toContain('blob:');
+    });
+
+    it('gives a first photo a key no other entry uses', async () => {
+      vi.stubGlobal('Image', class {
+        width = 10;
+        height = 10;
+        onload: (() => void) | null = null;
+        set src(_value: string) { setTimeout(() => this.onload?.(), 0); }
+      });
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: vi.fn() } as never);
+      vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,/9j/NEW');
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const { container } = render(
+        <ContactForm contact={withMedia({ photo: logo1_0 })} onSave={onSave} onCancel={vi.fn()} />,
+      );
+
+      fireEvent.change(container.querySelector('input[type="file"]') as HTMLInputElement, {
+        target: { files: [new File(['jpeg'], 'me.jpg', { type: 'image/jpeg' })] },
+      });
+      await waitFor(() => expect(screen.getByText('remove_photo')).toBeInTheDocument());
+      fireEvent.submit(screen.getByText('save').closest('form')!);
+
+      await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+      expect(onSave.mock.calls[0][0].media).toEqual({
+        photo: logo1_0,
+        photo1: { kind: 'photo', uri: 'data:image/jpeg;base64,/9j/NEW', mediaType: 'image/jpeg' },
+      });
+      expect(onSave.mock.calls[0][1]).toEqual({ photoKey: 'photo1' });
+    });
   });
 
   it('submits form data correctly', async () => {

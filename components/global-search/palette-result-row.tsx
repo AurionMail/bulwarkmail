@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/avatar";
 import { parseSearchSnippet, type SnippetSegment } from "@/lib/search-snippet";
 import type { GlobalSearchHit } from "@/lib/global-search/types";
-import { getContactDisplayName, getContactPhotoUri, getContactPrimaryEmail } from "@/stores/contact-store";
+import { getContactDisplayName, getContactPhotoRef, getContactPrimaryEmail } from "@/stores/contact-store";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,7 +22,7 @@ function LeadingVisual({ hit }: { hit: GlobalSearchHit }) {
       <Avatar
         name={getContactDisplayName(hit.contact) || undefined}
         email={getContactPrimaryEmail(hit.contact) || undefined}
-        contactPhotoUri={getContactPhotoUri(hit.contact)}
+        contactPhoto={getContactPhotoRef(hit.contact) ?? null}
         size="sm"
         className="mt-0.5 shrink-0"
       />

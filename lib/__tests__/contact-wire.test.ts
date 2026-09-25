@@ -36,6 +36,14 @@ describe('contactToWire', () => {
     expect(contactToWire({ keywords: { vip: true } }, 'update')).toEqual({ keywords: { vip: true } });
   });
 
+  it('leaves media out of an update that does not mention it, which keeps the photos on both versions', () => {
+    // An omitted property keeps its value; `media: null` would delete every
+    // photo, logo and sound (1.0 contact/set.rs:609-611, same on 0.16).
+    const wire = contactToWire({ phones: { p0: { number: '+33612345678' } } }, 'update');
+    expect(wire).toEqual({ phones: { p0: { number: '+33612345678' } } });
+    expect('media' in wire).toBe(false);
+  });
+
   it('converts flat vCard addresses to components and SOURCE to a directory entry', () => {
     const wire = contactToWire({
       addresses: { a0: { street: 'Main St 1', locality: 'Town', country: 'DE', fullAddress: 'Main St 1, Town', contexts: { work: true } } },

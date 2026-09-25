@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ContactList } from '../contact-list';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -77,6 +77,24 @@ describe('ContactList', () => {
     render(<ContactList {...defaultProps} selectedContactIds={new Set(['1'])} />);
     expect(screen.getByText('bulk.delete')).toBeInTheDocument();
     expect(screen.getByText('bulk.export')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['1.0', { kind: 'photo' as const, blobId: 'dbcX', mediaType: 'image/jpeg' }],
+    ['0.16', { kind: 'photo' as const, uri: 'data:image/jpeg;base64,/9j/', mediaType: 'image/jpeg' }],
+  ])('counts a Stalwart %s photo for the "has photo" filter', (_version, photo) => {
+    const carla = makeContact({
+      id: '5',
+      name: { components: [{ kind: 'given', value: 'Carla' }, { kind: 'surname', value: 'Diaz' }], isOrdered: true },
+      media: { photo },
+    });
+    render(<ContactList {...defaultProps} contacts={[alice, carla]} />);
+
+    fireEvent.click(screen.getByLabelText('filters.toggle'));
+    fireEvent.click(screen.getByText('filters.has_photo'));
+
+    expect(screen.getByText('Carla Diaz')).toBeInTheDocument();
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
   });
 
   describe('sort order (#963)', () => {

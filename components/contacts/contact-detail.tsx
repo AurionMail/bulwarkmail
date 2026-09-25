@@ -8,7 +8,7 @@ import { MailtoLink } from "@/components/ui/mailto-link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ContactCard, AnniversaryDate, PartialDate } from "@/lib/jmap/types";
-import { getContactDisplayName, getContactPrimaryEmail, getContactPhotoUri } from "@/stores/contact-store";
+import { getContactDisplayName, getContactPrimaryEmail, getContactPhotoRef } from "@/stores/contact-store";
 import { ContactActivity } from "./contact-activity";
 import { toast } from "@/stores/toast-store";
 import { exportContact } from "./contact-export";
@@ -134,16 +134,16 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   const name = getContactDisplayName(contact);
   const email = getContactPrimaryEmail(contact);
-  const photoUri = getContactPhotoUri(contact);
+  const photo = getContactPhotoRef(contact) ?? null;
   const phone = contact.phones ? Object.values(contact.phones)[0]?.number : undefined;
 
-  const handleExport = () => {
-    exportContact(contact);
+  const handleExport = async () => {
+    await exportContact(contact);
     toast.success(t("export.success", { count: 1 }));
   };
 
   const handlePrint = () => {
-    printContact(contact, name);
+    void printContact(contact, name);
   };
 
   const moreItems: MoreItem[] = [];
@@ -188,7 +188,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
       <div className={cn("border-b border-border", isMobile ? "px-4 py-4" : "px-6 py-6")}>
         <div className={cn("flex gap-4", isMobile ? "flex-col" : "items-start justify-between")}>
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <Avatar name={name} email={email} contactPhotoUri={photoUri} size={isMobile ? "md" : "lg"} />
+            <Avatar name={name} email={email} contactPhoto={photo} size={isMobile ? "md" : "lg"} />
             <div className="min-w-0 flex-1">
               <h2 className={cn("font-semibold truncate", isMobile ? "text-lg" : "text-xl")}>{name || "-"}</h2>
               {hasNickname && (

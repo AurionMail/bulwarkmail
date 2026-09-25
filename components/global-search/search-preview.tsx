@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/avatar";
 import { ProEmailView } from "@/components/pro/pro-email-tab-body";
 import type { CalendarHit, ContactHit, FileHit, GlobalSearchHit } from "@/lib/global-search/types";
-import { getContactDisplayName, getContactPhotoUri, getContactPrimaryEmail } from "@/stores/contact-store";
+import { getContactDisplayName, getContactPhotoRef, getContactPrimaryEmail } from "@/stores/contact-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn, formatFileSize } from "@/lib/utils";
 
@@ -81,7 +81,7 @@ function ContactPreview({ hit, onOpen, openLabel }: { hit: ContactHit; onOpen: (
   return (
     <div className="p-4 flex flex-col gap-4">
       <PreviewHeader
-        visual={<Avatar name={name} email={getContactPrimaryEmail(contact) || undefined} contactPhotoUri={getContactPhotoUri(contact)} size="lg" className="shrink-0" />}
+        visual={<Avatar name={name} email={getContactPrimaryEmail(contact) || undefined} contactPhoto={getContactPhotoRef(contact) ?? null} size="lg" className="shrink-0" />}
         title={name}
         subtitle={[hit.accountLabel, hit.subtitle].filter(Boolean).join(' · ')}
         action={<OpenButton hit={hit} onOpen={onOpen} label={openLabel} />}

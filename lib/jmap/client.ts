@@ -1009,6 +1009,9 @@ export class JMAPClient implements IJMAPClient {
   private keywordSortProbes = new Map<string, Promise<KeywordSortPolarity>>();
   // Accounts whose server refused a hasKeyword comparator with unsupportedSort.
   private keywordSortUnsupported = new Set<string>();
+  // Accounts whose server refused a blobId in ContactCard media although the
+  // capability suggested it takes one; see supportsContactBlobMedia.
+  private contactBlobMediaRejected = new Set<string>();
   private lastRateLimitNoticeAt: number = 0;
   // Serialises the first calendar/contacts request per account so Stalwart's
   // lazy default-calendar/address-book creation can't run twice (#907).
@@ -5474,6 +5477,25 @@ export class JMAPClient implements IJMAPClient {
     return calendarsAccount || this.accountId;
   }
 
+  /**
+   * Whether ContactCard/set in the account takes a `media` entry that carries
+   * a blobId. Stalwart 1.0 embeds contact media as blobs and lists ContactCard
+   * among the blob capability's supportedTypeNames (RFC 9404); 0.16 lists only
+   * Email, Thread and SieveScript, and refuses such an entry with
+   * invalidProperties ("blobIds in media is not supported."). A refusal seen
+   * at runtime (rejectContactBlobMedia) wins for the rest of the session.
+   */
+  supportsContactBlobMedia(accountId?: string): boolean {
+    const id = accountId || this.getContactsAccountId();
+    if (this.contactBlobMediaRejected.has(id)) return false;
+    const blob = this.getAccountCapability("urn:ietf:params:jmap:blob", id) as { supportedTypeNames?: unknown } | undefined;
+    return Array.isArray(blob?.supportedTypeNames) && blob.supportedTypeNames.includes("ContactCard");
+  }
+
+  rejectContactBlobMedia(accountId?: string): void {
+    this.contactBlobMediaRejected.add(accountId || this.getContactsAccountId());
+  }
+
   private contactUsing(): string[] {
     const using = ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:contacts"];
     if (this.hasCapability("urn:ietf:params:jmap:principals:owner")) {
@@ -6151,7 +6173,7 @@ export class JMAPClient implements IJMAPClient {
 
       if (result.notCreated?.["new-contact"]) {
         const error = result.notCreated["new-contact"];
-        throw new Error(error.description || "Failed to create contact");
+        throw jmapError(error.description || "Failed to create contact", error);
       }
 
       const createdId = result.created?.["new-contact"]?.id;
@@ -6183,7 +6205,7 @@ export class JMAPClient implements IJMAPClient {
 
       if (result.notUpdated?.[contactId]) {
         const error = result.notUpdated[contactId];
-        throw new Error(error.description || "Failed to update contact");
+        throw jmapError(error.description || "Failed to update contact", error);
       }
       return;
     }

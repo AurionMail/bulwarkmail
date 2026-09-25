@@ -434,6 +434,10 @@ export interface IJMAPClient {
   createContact(contact: Partial<ContactCard>, targetAccountId?: string): Promise<ContactCard>;
   updateContact(contactId: string, updates: Partial<ContactCard>, targetAccountId?: string): Promise<void>;
   deleteContact(contactId: string, targetAccountId?: string): Promise<void>;
+  /** Whether ContactCard/set in the account takes media entries that carry a blobId (Stalwart 1.0). */
+  supportsContactBlobMedia?(accountId?: string): boolean;
+  /** The account refused a blobId in media: supportsContactBlobMedia answers false from now on. */
+  rejectContactBlobMedia?(accountId?: string): void;
   searchContacts(query: string): Promise<ContactCard[]>;
 
   // ── Calendars ─────────────────────────────────────────────────

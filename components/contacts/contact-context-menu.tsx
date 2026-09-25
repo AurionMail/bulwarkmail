@@ -101,12 +101,11 @@ export function ContactContextMenu({
   };
 
   const handleExport = () => {
-    exportContact(contact);
-    toast.success(t("export.success", { count: 1 }));
+    void exportContact(contact).then(() => toast.success(t("export.success", { count: 1 })));
   };
 
   const handlePrint = () => {
-    printContact(contact);
+    void printContact(contact);
   };
 
   if (showBatchActions) {

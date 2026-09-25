@@ -6,7 +6,8 @@ import { X, Plus, ChevronDown, ChevronRight, User, Building, MapPin, Globe, Cake
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
-import { normalizeContactPhotoUri } from "@/stores/contact-store";
+import { findContactPhotoEntry, getContactPhotoRef, type ContactPhotoRef } from "@/stores/contact-store";
+import type { ContactSaveOptions } from "@/lib/contact-media";
 import { cn } from "@/lib/utils";
 import type { ContactCard, ContactOnlineService, ContactAnniversary, ContactPersonalInfo, AddressBook, AnniversaryDate, PartialDate, ContactAddress, ContactMedia } from "@/lib/jmap/types";
 
@@ -54,8 +55,22 @@ interface ContactFormProps {
   defaultAddressBookId?: string;
   /** Prefills the create form (ignored when `contact` is set). */
   prefill?: { email?: string; name?: string };
-  onSave: (data: Partial<ContactCard>) => Promise<void>;
+  /** `options.photoKey` names the `media` entry holding a newly picked photo. */
+  onSave: (data: Partial<ContactCard>, options?: ContactSaveOptions) => Promise<void>;
   onCancel: () => void;
+}
+
+/** What the user did to the photo: nothing, picked a new one (a data: URI), or removed it. */
+type PhotoEdit =
+  | { kind: "unchanged" }
+  | { kind: "new"; uri: string; mediaType: string }
+  | { kind: "removed" };
+
+/** A `media` key for a new photo that no other entry uses. */
+function freeMediaKey(media: Record<string, ContactMedia>): string {
+  let key = "photo";
+  for (let n = 1; key in media; n++) key = `photo${n}`;
+  return key;
 }
 
 function FormSection({ icon: Icon, title, children, collapsible, defaultOpen = true }: {
@@ -369,17 +384,14 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   }, [contact, defaultAddressBookId, addressBooks]);
   const [selectedBookId, setSelectedBookId] = useState(currentBookId);
 
-  const initialPhotoEntry = useMemo(() => {
-    if (!contact?.media) return null;
-    for (const [key, m] of Object.entries(contact.media)) {
-      if (m.kind === "photo" && m.uri) {
-        return { key, uri: normalizeContactPhotoUri(m.uri, m.mediaType), mediaType: m.mediaType };
-      }
-    }
-    return null;
-  }, [contact]);
-  const [photoUri, setPhotoUri] = useState<string | undefined>(initialPhotoEntry?.uri);
-  const [photoMediaType, setPhotoMediaType] = useState<string | undefined>(initialPhotoEntry?.mediaType);
+  // The stored photo may be a data: URI (Stalwart 0.16) or a blob (1.0); the
+  // form only ever writes the photo the user picks, never the one it shows.
+  const initialPhotoKey = useMemo(() => (contact ? findContactPhotoEntry(contact)?.[0] : undefined), [contact]);
+  const [photoEdit, setPhotoEdit] = useState<PhotoEdit>({ kind: "unchanged" });
+  const previewPhoto: ContactPhotoRef | null =
+    photoEdit.kind === "new" ? { uri: photoEdit.uri }
+      : photoEdit.kind === "unchanged" && contact ? getContactPhotoRef(contact) ?? null
+        : null;
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -404,8 +416,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
     setPhotoUploading(true);
     try {
       const { uri, mediaType } = await processImageFile(file);
-      setPhotoUri(uri);
-      setPhotoMediaType(mediaType);
+      setPhotoEdit({ kind: "new", uri, mediaType });
     } catch {
       setPhotoError(t("photo_invalid"));
     } finally {
@@ -414,8 +425,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   };
 
   const handlePhotoRemove = () => {
-    setPhotoUri(undefined);
-    setPhotoMediaType(undefined);
+    setPhotoEdit({ kind: "removed" });
     setPhotoError(null);
   };
 
@@ -549,21 +559,22 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
       });
     }
 
-    const mediaMap: Record<string, ContactMedia> = {};
-    if (contact?.media) {
-      for (const [key, m] of Object.entries(contact.media)) {
-        if (m.kind !== "photo") mediaMap[key] = m;
+    // `media` goes out only when the photo changed. An update without it keeps
+    // every entry on the server, while a map replaces them all, and `null`
+    // deletes them. The other entries go back verbatim: a data: URI on 0.16, a
+    // blobId on 1.0, which resolves it again.
+    let mediaValue: Record<string, ContactMedia> | null | undefined;
+    let photoKey: string | undefined;
+    if (photoEdit.kind === "new" || (photoEdit.kind === "removed" && initialPhotoKey)) {
+      const others: Record<string, ContactMedia> = { ...(contact?.media ?? {}) };
+      if (initialPhotoKey) delete others[initialPhotoKey];
+      if (photoEdit.kind === "new") {
+        photoKey = initialPhotoKey ?? freeMediaKey(others);
+        mediaValue = { ...others, [photoKey]: { kind: "photo", uri: photoEdit.uri, mediaType: photoEdit.mediaType } };
+      } else {
+        mediaValue = Object.keys(others).length > 0 ? others : null;
       }
     }
-    if (photoUri) {
-      const photoKey = initialPhotoEntry?.key || "photo";
-      mediaMap[photoKey] = { kind: "photo", uri: photoUri, mediaType: photoMediaType };
-    }
-
-    // Set mediaVluae to null if we are removing media, so the server removes it
-    const hadMedia = !!contact?.media && Object.keys(contact.media).length > 0;
-    const mediaValue: Record<string, ContactMedia> | null | undefined =
-      Object.keys(mediaMap).length > 0 ? mediaMap : (hadMedia ? null : undefined);
 
     // Only send `kind` when this form owns the answer: switching a card between
     // person and organization. Leave other kinds (group, location, ...) untouched.
@@ -597,13 +608,14 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
       calendarUri: calendarUri.trim() || undefined,
       schedulingUri: schedulingUri.trim() || undefined,
       freeBusyUri: freeBusyUri.trim() || undefined,
-      media: mediaValue as Record<string, ContactMedia> | undefined,
+      // Absent, not undefined: contactToWire sends an undefined key as null.
+      ...(mediaValue !== undefined ? { media: mediaValue as Record<string, ContactMedia> } : {}),
       ...(selectedBookId ? { addressBookIds: { [selectedBookId]: true } } : {}),
     };
 
     setIsSaving(true);
     try {
-      await onSave(data);
+      await (photoKey ? onSave(data, { photoKey }) : onSave(data));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("save_failed"));
     } finally {
@@ -645,7 +657,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
               <Avatar
                 name={previewName || undefined}
                 email={previewEmail || undefined}
-                contactPhotoUri={photoUri}
+                contactPhoto={previewPhoto}
                 size="lg"
                 className="!w-20 !h-20 !text-xl"
               />
@@ -669,7 +681,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
               {photoError && (
                 <p className="text-xs text-red-600 dark:text-red-400">{photoError}</p>
               )}
-              {photoUri && (
+              {previewPhoto && (
                 <button
                   type="button"
                   onClick={handlePhotoRemove}

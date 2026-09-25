@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ContactCard, AddressBook, AddressBookRights, ContactName } from '@/lib/jmap/types';
+import type { ContactCard, AddressBook, AddressBookRights, ContactName, ContactMedia } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { generateUUID } from '@/lib/utils';
 import { debug } from '@/lib/debug';
 import { getClientByLocalAccountId } from './client-registry';
 import { sanitizeDisplayName, splitMailbox } from '@/lib/rfc5322-mailbox';
+import { inlineContactMedia, writeContactWithNewPhoto, type ContactSaveOptions } from '@/lib/contact-media';
 
 /** One compose-autocomplete suggestion: a person, or a contact group. */
 type RecipientSuggestion = { name: string; email: string; group?: { id: string; memberCount: number } };
@@ -232,14 +233,70 @@ export function normalizeContactPhotoUri(uri: string, mediaType?: string): strin
   return uri;
 }
 
-export function getContactPhotoUri(contact: ContactCard): string | undefined {
-  if (!contact.media) return undefined;
-  for (const media of Object.values(contact.media)) {
-    if (media.kind === 'photo' && media.uri) {
-      return normalizeContactPhotoUri(media.uri, media.mediaType);
-    }
+/**
+ * A contact photo as something to show: a URI (https, or a data: URI with
+ * its media type fixed), or a blob that still has to be downloaded. Stalwart
+ * 1.0 returns every embedded photo as a blob; 0.16 as a data: URI.
+ */
+export type ContactPhotoRef =
+  | { uri: string }
+  | { blobId: string; mediaType?: string; accountId?: string; localAccountId?: string };
+
+/**
+ * The card's photo entry and its key: the `media` entry of kind photo with
+ * the lowest `pref` (RFC 9553: unset counts as least preferred), the first
+ * one on a tie.
+ */
+export function findContactPhotoEntry(contact: Pick<ContactCard, 'media'>): [string, ContactMedia] | undefined {
+  let found: [string, ContactMedia] | undefined;
+  for (const [key, media] of Object.entries(contact.media ?? {})) {
+    if (media?.kind !== 'photo' || !(media.uri || media.blobId)) continue;
+    if (!found || (media.pref ?? Infinity) < (found[1].pref ?? Infinity)) found = [key, media];
+  }
+  return found;
+}
+
+export function getContactPhotoRef(contact: ContactCard): ContactPhotoRef | undefined {
+  const media = findContactPhotoEntry(contact)?.[1];
+  if (media?.uri) return { uri: normalizeContactPhotoUri(media.uri, media.mediaType) };
+  if (media?.blobId) {
+    return { blobId: media.blobId, mediaType: media.mediaType, accountId: contact.accountId, localAccountId: contact.localAccountId };
   }
   return undefined;
+}
+
+export function hasContactPhoto(contact: ContactCard): boolean {
+  return !!findContactPhotoEntry(contact);
+}
+
+/** The photo URI, for callers that cannot download a blob photo. */
+export function getContactPhotoUri(contact: ContactCard): string | undefined {
+  const ref = getContactPhotoRef(contact);
+  return ref && 'uri' in ref ? ref.uri : undefined;
+}
+
+const photoIndexes = new WeakMap<ContactCard[], Map<string, ContactPhotoRef>>();
+
+/**
+ * Lowercased address to the photo of the first contact that has both, built
+ * once per contacts array. Every avatar looks its sender up here; scanning
+ * all contacts per avatar was quadratic on the mail list.
+ */
+export function getContactPhotoIndex(contacts: ContactCard[]): Map<string, ContactPhotoRef> {
+  let index = photoIndexes.get(contacts);
+  if (!index) {
+    index = new Map();
+    for (const contact of contacts) {
+      const photo = getContactPhotoRef(contact);
+      if (!photo) continue;
+      for (const entry of Object.values(contact.emails ?? {})) {
+        const address = entry?.address?.toLowerCase();
+        if (address && !index.has(address)) index.set(address, photo);
+      }
+    }
+    photoIndexes.set(contacts, index);
+  }
+  return index;
 }
 
 export const TRUSTED_SENDERS_BOOK_NAME = 'Trusted Senders';
@@ -341,8 +398,8 @@ interface ContactStore {
   fetchAddressBooks: (client: IJMAPClient) => Promise<void>;
   fetchAllAccountsContacts: (accounts: ContactAccountClient[]) => Promise<void>;
   fetchAllAccountsAddressBooks: (accounts: ContactAccountClient[]) => Promise<void>;
-  createContact: (client: IJMAPClient, contact: Partial<ContactCard>) => Promise<void>;
-  updateContact: (client: IJMAPClient, id: string, updates: Partial<ContactCard>) => Promise<void>;
+  createContact: (client: IJMAPClient, contact: Partial<ContactCard>, options?: ContactSaveOptions) => Promise<void>;
+  updateContact: (client: IJMAPClient, id: string, updates: Partial<ContactCard>, options?: ContactSaveOptions) => Promise<void>;
   deleteContact: (client: IJMAPClient, id: string) => Promise<void>;
 
   addLocalContact: (contact: ContactCard) => void;
@@ -533,7 +590,7 @@ export const useContactStore = create<ContactStore>()(
         }
       },
 
-      createContact: async (client, contact) => {
+      createContact: async (client, contact, options) => {
         set({ isLoading: true, error: null });
         try {
           // Determine target account from the selected address book. Also
@@ -555,8 +612,11 @@ export const useContactStore = create<ContactStore>()(
             }
           }
 
-          client = resolveAccountClient(client, localAccountId);
-          const created = await client.createContact(cleanedContact, accountId);
+          const owner = resolveAccountClient(client, localAccountId);
+          const created = options?.photoKey
+            ? await writeContactWithNewPhoto(owner, accountId, cleanedContact, options.photoKey,
+              (card) => owner.createContact(card, accountId))
+            : await owner.createContact(cleanedContact, accountId);
           // Preserve shared account metadata
           if (contact.isShared && contact.accountId) {
             created.accountId = contact.accountId;
@@ -576,13 +636,13 @@ export const useContactStore = create<ContactStore>()(
         }
       },
 
-      updateContact: async (client, id, updates) => {
+      updateContact: async (client, id, updates, options) => {
         set({ error: null });
         try {
           const contact = get().contacts.find(c => c.id === id);
           const originalId = contact?.originalId || stripLocalAccountPrefix(id, contact?.localAccountId);
           const accountId = contact?.isShared ? contact.accountId : undefined;
-          client = resolveAccountClient(client, contact?.localAccountId);
+          const owner = resolveAccountClient(client, contact?.localAccountId);
 
           // De-namespace addressBookIds before sending to the JMAP server. This
           // applies to personal books too: in multi-account Pro mode every id
@@ -593,7 +653,12 @@ export const useContactStore = create<ContactStore>()(
             cleanedUpdates = { ...updates, addressBookIds: resolved.addressBookIds };
           }
 
-          await client.updateContact(originalId, cleanedUpdates, accountId);
+          if (options?.photoKey) {
+            await writeContactWithNewPhoto(owner, accountId, cleanedUpdates, options.photoKey,
+              (card) => owner.updateContact(originalId, card, accountId));
+          } else {
+            await owner.updateContact(originalId, cleanedUpdates, accountId);
+          }
           set((state) => ({
             contacts: state.contacts.map(c =>
               c.id === id ? { ...c, ...updates } : c
@@ -999,8 +1064,17 @@ export const useContactStore = create<ContactStore>()(
           } else {
             // Cross-account: create in target, delete from source
             const { originalId: _oid, accountId: _aid, accountName: _an, isShared: _is, id: _id, ...contactData } = contact;
+            // A blobId names a photo in the source account and need not resolve
+            // for the target one; send the bytes. If a download fails the entry
+            // goes as it is: the create then either resolves it or fails, and
+            // the source card is only deleted after a successful create.
+            const media = await inlineContactMedia(contact.media, {
+              client: resolveAccountClient(client, contact.localAccountId),
+              accountId: contact.accountId,
+              localAccountId: contact.localAccountId,
+            }, 'keep');
             const newContact = await client.createContact(
-              { ...contactData, addressBookIds: { [targetBookOriginalId]: true } },
+              { ...contactData, media, addressBookIds: { [targetBookOriginalId]: true } },
               targetAccountId
             );
             await client.deleteContact(originalId, sourceAccountId);

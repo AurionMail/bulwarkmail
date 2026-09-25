@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
+import { jmapErrorProperties, jmapErrorType } from '../jmap/jmap-error';
 
 const mockContact = {
   id: 'contact-1',
@@ -586,6 +587,87 @@ describe('JMAPClient contact methods', () => {
 
       await expect(client.updateContact('contact-1', { name: mockContact.name }))
         .rejects.toThrow('Failed to update contact');
+    });
+
+    it('passes a Stalwart 1.0 blob photo through unchanged', async () => {
+      const client = createClient();
+      const fetchSpy = mockFetch({
+        methodResponses: [['ContactCard/set', { updated: { 'contact-1': null } }, '0']],
+      });
+      const media = {
+        photo: { kind: 'photo' as const, blobId: 'dbcX', mediaType: 'image/jpeg' },
+        logo: { kind: 'logo' as const, blobId: 'dbcLogo', mediaType: 'image/png' },
+      };
+
+      await client.updateContact('contact-1', { media });
+
+      const body = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
+      expect(body.methodCalls[0][1].update['contact-1'].media).toEqual(media);
+    });
+
+    it('keeps the error type and properties when 0.16 refuses a blobId in media', async () => {
+      const client = createClient();
+      mockFetch({
+        methodResponses: [['ContactCard/set', {
+          notUpdated: { 'contact-1': { type: 'invalidProperties', properties: ['media'], description: 'blobIds in media is not supported.' } },
+        }, '0']],
+      });
+
+      const error = await client.updateContact('contact-1', {
+        media: { photo: { kind: 'photo', blobId: 'Gupload1', mediaType: 'image/jpeg' } },
+      }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe('blobIds in media is not supported.');
+      expect(jmapErrorType(error)).toBe('invalidProperties');
+      expect(jmapErrorProperties(error)).toEqual(['media']);
+    });
+  });
+
+  describe('supportsContactBlobMedia', () => {
+    function withBlobCapability(client: JMAPClient, supportedTypeNames?: string[]) {
+      Object.assign(client, {
+        session: {
+          primaryAccounts: { 'urn:ietf:params:jmap:contacts': 'account-1' },
+          accounts: {
+            'account-1': {
+              name: 'test',
+              isPersonal: true,
+              accountCapabilities: supportedTypeNames
+                ? { 'urn:ietf:params:jmap:blob': { supportedTypeNames, supportedDigestAlgorithms: ['sha'] } }
+                : {},
+            },
+          },
+        },
+      });
+    }
+
+    it('is true on Stalwart 1.0, whose blob capability lists ContactCard', () => {
+      const client = createClient();
+      withBlobCapability(client, ['Email', 'Thread', 'SieveScript', 'CalendarEvent', 'ContactCard']);
+      expect(client.supportsContactBlobMedia()).toBe(true);
+      expect(client.supportsContactBlobMedia('account-1')).toBe(true);
+    });
+
+    it('is false on Stalwart 0.16, which lists only Email, Thread and SieveScript', () => {
+      const client = createClient();
+      withBlobCapability(client, ['Email', 'Thread', 'SieveScript']);
+      expect(client.supportsContactBlobMedia()).toBe(false);
+    });
+
+    it('is false without the blob capability or for an unknown account', () => {
+      const client = createClient();
+      withBlobCapability(client);
+      expect(client.supportsContactBlobMedia()).toBe(false);
+      withBlobCapability(client, ['ContactCard']);
+      expect(client.supportsContactBlobMedia('other')).toBe(false);
+    });
+
+    it('is false for an account that refused a blobId, for the rest of the session', () => {
+      const client = createClient();
+      withBlobCapability(client, ['ContactCard']);
+      client.rejectContactBlobMedia('account-1');
+      expect(client.supportsContactBlobMedia()).toBe(false);
     });
   });
 

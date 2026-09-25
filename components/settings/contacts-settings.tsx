@@ -35,9 +35,9 @@ export function ContactsSettings() {
     );
   }, [supportsSync, client, importContacts]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (individuals.length > 0) {
-      exportContacts(individuals);
+      await exportContacts(individuals);
       toast.success(t("export.success", { count: individuals.length }));
     }
   };

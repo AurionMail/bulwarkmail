@@ -419,10 +419,17 @@ export interface ContactNote {
   author?: { name?: string; uri?: string };
 }
 
+// RFC 9553 Media. The bytes are either at `uri` (an https or data: URI) or in
+// a blob: Stalwart 1.0 returns every embedded PHOTO, LOGO and SOUND as a
+// `blobId` without `uri`, while 0.16 returns them as data: URIs.
 export interface ContactMedia {
   kind: 'photo' | 'sound' | 'logo';
-  uri: string;
+  uri?: string;
+  blobId?: string;
   mediaType?: string;
+  label?: string;
+  pref?: number;
+  contexts?: Record<string, boolean>;
 }
 
 // RFC 9553 PartialDate
