@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { parseISO } from 'date-fns';
 import { expandRecurringEvents } from '../recurrence-expansion';
+import { computeFireTime } from '../calendar-alerts';
 import type { CalendarEvent, CalendarRecurrenceRule } from '@/lib/jmap/types';
 
 /**
@@ -424,6 +426,110 @@ describe('expandRecurringEvents', () => {
       // The other occurrences keep the series' values.
       expect(result[0].participants?.att.participationStatus).toBe('needs-action');
       expect(result[0].locations?.l1.name).toBe('Room A');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // A master's utcStart/utcEnd that are not its own
+  // -----------------------------------------------------------------------
+  // 0.16.23 answered utcStart = utcEnd = "32548-12-04T15:30:07Z" for the
+  // master of a counted series once every occurrence was overridden or
+  // excluded, and shifted them to the next plain occurrence once the first
+  // one was. 1.0 answers the master's own times. The expansion used to take
+  // the occurrences' length from those instants, copy them onto occurrences
+  // it could not time otherwise, and drop a moved occurrence whose copied
+  // end did not parse.
+  describe("a master's instants that are not its own", () => {
+    const BOGUS = '32548-12-04T15:30:07Z';
+    // Read back from the test servers: a daily series of five in Berlin
+    // (UTC+2 in October), every occurrence overridden or excluded.
+    const countedSeries = (instants: Pick<CalendarEvent, 'utcStart' | 'utcEnd'>) => makeEvent({
+      start: '2026-10-05T10:00:00',
+      timeZone: 'Europe/Berlin',
+      duration: 'PT1H',
+      ...instants,
+      recurrenceRules: [rule({ '@type': 'RecurrenceRule', frequency: 'daily', count: 5 })],
+      recurrenceOverrides: {
+        '2026-10-05T10:00:00': { title: 'Device renamed' },
+        '2026-10-06T10:00:00': { title: 'Renamed occurrence' },
+        '2026-10-07T10:00:00': { excluded: true } as Partial<CalendarEvent> & { excluded?: boolean },
+        '2026-10-08T10:00:00': { start: '2026-10-08T14:00:00', title: 'Moved standup' },
+        '2026-10-09T10:00:00': { title: 'With organizer' },
+      },
+    });
+
+    it.each<[string, Pick<CalendarEvent, 'utcStart' | 'utcEnd'>]>([
+      ['0.16.23', { utcStart: BOGUS, utcEnd: BOGUS }],
+      ['1.0', { utcStart: '2026-10-05T08:00:00Z', utcEnd: '2026-10-05T09:00:00Z' }],
+    ])('times every occurrence from its own start and the duration on Stalwart %s', (_version, instants) => {
+      const result = expand(countedSeries(instants), '2026-10-01T00:00:00', '2026-10-31T00:00:00');
+
+      expect(result.map(e => [e.recurrenceId, e.title, e.utcStart, e.utcEnd])).toEqual([
+        ['2026-10-05T10:00:00', 'Device renamed', '2026-10-05T08:00:00.000Z', '2026-10-05T09:00:00.000Z'],
+        ['2026-10-06T10:00:00', 'Renamed occurrence', '2026-10-06T08:00:00.000Z', '2026-10-06T09:00:00.000Z'],
+        // Moved to 14:00; it was dropped while its end was the master's.
+        ['2026-10-08T10:00:00', 'Moved standup', '2026-10-08T12:00:00.000Z', '2026-10-08T13:00:00.000Z'],
+        ['2026-10-09T10:00:00', 'With organizer', '2026-10-09T08:00:00.000Z', '2026-10-09T09:00:00.000Z'],
+      ]);
+    });
+
+    it("gives no occurrence the master's instants when it cannot time one (0.16.23)", () => {
+      // No time zone: occurrences are timed from the master's offset, which
+      // these instants do not give.
+      const floating = { ...countedSeries({ utcStart: BOGUS, utcEnd: BOGUS }), timeZone: null };
+
+      const result = expand(floating, '2026-10-01T00:00:00', '2026-10-31T00:00:00');
+
+      expect(result.map(e => e.recurrenceId)).toEqual([
+        '2026-10-05T10:00:00', '2026-10-06T10:00:00', '2026-10-08T10:00:00', '2026-10-09T10:00:00',
+      ]);
+      for (const occurrence of result) {
+        expect(occurrence).not.toHaveProperty('utcStart');
+        expect(occurrence).not.toHaveProperty('utcEnd');
+      }
+    });
+
+    it.each<[string, string]>([
+      ['shifted a day to the next plain occurrence (0.16.23)', '2026-10-06T08:00:00Z'],
+      ['that parse but are far off', '2999-01-01T08:00:00Z'],
+    ])('takes no offset from instants %s', (_label, utcStart) => {
+      const floating = makeEvent({
+        start: '2026-10-05T10:00:00',
+        timeZone: null,
+        utcStart,
+        utcEnd: utcStart.replace('T08', 'T09'),
+        recurrenceRules: [rule({ '@type': 'RecurrenceRule', frequency: 'daily', count: 3 })],
+      });
+
+      const result = expand(floating, '2026-10-01T00:00:00', '2026-10-31T00:00:00');
+
+      expect(result.map(e => [e.start, e.utcStart, e.utcEnd])).toEqual([
+        ['2026-10-05T10:00:00', undefined, undefined],
+        ['2026-10-06T10:00:00', undefined, undefined],
+        ['2026-10-07T10:00:00', undefined, undefined],
+      ]);
+    });
+
+    it("keeps the master's instants off the other occurrences of an all-day series", () => {
+      const event = makeEvent({
+        start: '2025-01-06T00:00:00',
+        showWithoutTime: true,
+        duration: 'P1D',
+        utcStart: '2025-01-05T23:00:00Z',
+        utcEnd: '2025-01-06T23:00:00Z',
+        recurrenceRules: [rule({ '@type': 'RecurrenceRule', frequency: 'weekly' })],
+      });
+
+      const result = expand(event, '2025-01-06T00:00:00', '2025-01-21T00:00:00');
+
+      expect(result.map(e => [e.start, e.utcStart])).toEqual([
+        ['2025-01-06T00:00:00', undefined],
+        ['2025-01-13T00:00:00', undefined],
+        ['2025-01-20T00:00:00', undefined],
+      ]);
+      // An alert goes off before its own day, not before the series' first.
+      expect(computeFireTime(result[1], { '@type': 'OffsetTrigger', offset: '-PT15M', relativeTo: 'start' }))
+        .toBe(parseISO('2025-01-13T00:00:00').getTime() - 15 * 60_000);
     });
   });
 

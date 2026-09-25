@@ -160,14 +160,56 @@ function isInRange(
 ): boolean {
   const moved = !!override && Object.keys(override).some((key) => TIMING_KEYS.has(key.split('/', 1)[0]));
   if (!moved) return date >= rangeStart && date < rangeEnd;
-  const timed = !occurrence.showWithoutTime;
-  const start = timed && occurrence.utcStart ? parseISO(occurrence.utcStart) : parseISO(occurrence.start);
-  if (isNaN(start.getTime())) return false;
-  const end = timed && occurrence.utcEnd
-    ? parseISO(occurrence.utcEnd)
-    : new Date(start.getTime() + (parseDurationSeconds(occurrence.duration) ?? 0) * 1000);
+  const own = occurrence.showWithoutTime ? null : plausibleInstants(occurrence);
+  const start = own?.start ?? validDate(occurrence.start);
+  if (!start) return false;
+  const end = own?.end ?? new Date(start.getTime() + (parseDurationSeconds(occurrence.duration) ?? 0) * 1000);
   if (end <= start) return start >= rangeStart && start < rangeEnd;
   return start < rangeEnd && end > rangeStart;
+}
+
+// UTC-12 to UTC+14: the furthest an instant is from the wall clock it names.
+const MAX_ZONE_OFFSET_MS = 14 * 60 * 60 * 1000;
+
+/** `value` parsed, or null when it is missing or does not parse. */
+function validDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = parseISO(value);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+/** The wall-clock fields of a parsed LocalDateTime, read as UTC. */
+function wallAsUtc(wall: Date): number {
+  return Date.UTC(
+    wall.getFullYear(), wall.getMonth(), wall.getDate(),
+    wall.getHours(), wall.getMinutes(), wall.getSeconds(),
+  );
+}
+
+/** `value` parsed, when it is within a time zone's offset of the wall clock `wallMs`. */
+function instantNear(value: string | null | undefined, wallMs: number): Date | null {
+  const instant = validDate(value);
+  return instant && Math.abs(instant.getTime() - wallMs) <= MAX_ZONE_OFFSET_MS ? instant : null;
+}
+
+/**
+ * An event's utcStart and utcEnd, where they can be its own: each within a
+ * time zone's offset of the wall-clock start and end, the end not before the
+ * start. `end` is null when only the start passes. For a series' master
+ * 0.16.23 has answered both with "32548-12-04T15:30:07Z" once every
+ * occurrence was overridden or excluded, and with the next plain
+ * occurrence's times once the first one was.
+ */
+function plausibleInstants(
+  event: Pick<CalendarEvent, 'start' | 'duration' | 'utcStart' | 'utcEnd'>,
+): { start: Date; end: Date | null } | null {
+  const wall = validDate(event.start);
+  if (!wall) return null;
+  const wallStart = wallAsUtc(wall);
+  const start = instantNear(event.utcStart, wallStart);
+  if (!start) return null;
+  const end = instantNear(event.utcEnd, wallStart + (parseDurationSeconds(event.duration) ?? 0) * 1000);
+  return { start, end: end && end >= start ? end : null };
 }
 
 // Cache Intl formatters per IANA timezone id - constructing them is expensive
@@ -218,13 +260,10 @@ function wallClockAsUtcTimestamp(formatter: Intl.DateTimeFormat, instant: number
 function zonedWallTimeToUtc(wall: Date, timeZone: string): Date | null {
   const formatter = getTzFormatter(timeZone);
   if (!formatter) return null;
-  const wallAsUtc = Date.UTC(
-    wall.getFullYear(), wall.getMonth(), wall.getDate(),
-    wall.getHours(), wall.getMinutes(), wall.getSeconds(),
-  );
-  let guess = wallAsUtc;
+  const wallMs = wallAsUtc(wall);
+  let guess = wallMs;
   for (let i = 0; i < 2; i++) {
-    guess = wallAsUtc - (wallClockAsUtcTimestamp(formatter, guess) - guess);
+    guess = wallMs - (wallClockAsUtcTimestamp(formatter, guess) - guess);
   }
   return new Date(guess);
 }
@@ -255,14 +294,18 @@ function createOccurrence(
   let utcEnd: string | undefined;
   const wall = parseISO(start);
   if (!occurrence.showWithoutTime && !isNaN(wall.getTime())) {
-    // Unless the override sets its own duration, the master's length.
+    // Unless the override sets its own duration, the master's length: from
+    // its instants when they are its own, else from its duration.
+    const masterInstants = plausibleInstants(master);
     let durationMs: number | null = null;
     const ownDuration = override && 'duration' in override ? parseDurationSeconds(occurrence.duration) : null;
     if (ownDuration !== null) {
       durationMs = ownDuration * 1000;
-    } else if (master.utcStart && master.utcEnd) {
-      const ms = parseISO(master.utcEnd).getTime() - parseISO(master.utcStart).getTime();
-      if (!isNaN(ms)) durationMs = ms;
+    } else if (masterInstants?.end) {
+      durationMs = masterInstants.end.getTime() - masterInstants.start.getTime();
+    } else {
+      const seconds = parseDurationSeconds(master.duration);
+      if (seconds !== null) durationMs = seconds * 1000;
     }
 
     // Convert the occurrence's wall time using the event's own timezone, so
@@ -275,12 +318,10 @@ function createOccurrence(
       if (durationMs !== null) {
         utcEnd = new Date(zoned.getTime() + durationMs).toISOString();
       }
-    } else if (master.utcStart && master.start) {
+    } else if (masterInstants) {
       // Floating events (or an unrecognized timezone id): keep the master's
       // offset, which by definition doesn't vary.
-      const masterLocal = parseISO(master.start);
-      const masterUtc = parseISO(master.utcStart);
-      const offsetMs = masterUtc.getTime() - masterLocal.getTime();
+      const offsetMs = masterInstants.start.getTime() - parseISO(master.start).getTime();
       utcStart = new Date(wall.getTime() + offsetMs).toISOString();
       if (durationMs !== null) {
         utcEnd = new Date(wall.getTime() + offsetMs + durationMs).toISOString();
@@ -288,8 +329,11 @@ function createOccurrence(
     }
   }
 
+  // The master's utcStart/utcEnd place its first occurrence, not this one:
+  // an occurrence carries the instants worked out for it, or none.
+  const { utcStart: _masterStart, utcEnd: _masterEnd, ...series } = occurrence;
   return {
-    ...occurrence,
+    ...series,
     id: `${master.id}:${recurrenceId}`,
     originalId: master.originalId || master.id,
     uid: master.uid,
@@ -301,7 +345,7 @@ function createOccurrence(
     recurrenceRules: master.recurrenceRules,
     recurrenceOverrides: master.recurrenceOverrides,
     excludedRecurrenceRules: master.excludedRecurrenceRules,
-  };
+  } as CalendarEvent;
 }
 
 // ---------------------------------------------------------------------------

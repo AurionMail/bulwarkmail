@@ -9,6 +9,7 @@ import {
   getStatusCounts,
   getParticipantCount,
   buildParticipantMap,
+  participantFieldsToSave,
   participantLimitOf,
 } from '@/lib/calendar-participants';
 import { jmapError, jmapSetError } from '@/lib/jmap/jmap-error';
@@ -641,6 +642,110 @@ describe('buildParticipantMap', () => {
     );
     expect(Object.keys(map)).toHaveLength(2);
     expect(Object.values(map).some(p => p.name === 'Nobody')).toBe(false);
+  });
+
+  it('keeps the id and answer of an address the event already lists, whatever its case', () => {
+    const map = buildParticipantMap(
+      { name: 'Alice', email: 'alice@example.com' },
+      [{ name: 'Bob', email: 'bob@example.com' }, { name: 'Carol', email: 'carol@example.com' }],
+      {
+        org: { '@type': 'Participant', calendarAddress: 'mailto:alice@example.com' },
+        b1: { '@type': 'Participant', calendarAddress: 'mailto:BOB@Example.com', participationStatus: 'declined' },
+      } as unknown as Record<string, CalendarParticipant>,
+    );
+
+    // The organizer, listed without an answer, stays accepted.
+    expect(map.org).toMatchObject({ calendarAddress: 'mailto:alice@example.com', participationStatus: 'accepted' });
+    expect(map.b1).toMatchObject({ email: 'bob@example.com', participationStatus: 'declined' });
+    const carol = Object.entries(map).find(([, p]) => p.email === 'carol@example.com')!;
+    expect(['org', 'b1']).not.toContain(carol[0]);
+    expect(carol[1].participationStatus).toBe('needs-action');
+  });
+
+  it('takes the real answer of an address listed twice', () => {
+    const map = buildParticipantMap(
+      { name: 'Alice', email: 'alice@example.com' },
+      [{ name: 'Bob', email: 'bob@example.com' }],
+      {
+        first: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.com', participationStatus: 'needs-action' },
+        second: { '@type': 'Participant', email: 'bob@example.com', participationStatus: 'tentative' },
+      } as unknown as Record<string, CalendarParticipant>,
+    );
+    expect(map.first.participationStatus).toBe('tentative');
+    expect(map).not.toHaveProperty('second');
+  });
+});
+
+// The editor rewrote the organizer on every save of an event with attendees:
+// participants rebuilt around the user's first address, organizerCalendarAddress
+// set to it, and every attendee back to needs-action. On an invitation that
+// made the user its organizer; on a series organized under another address or
+// letter case it gave one occurrence another owner (Stalwart 1.0 refuses the
+// organizerCalendarAddress there: "This property cannot be modified on a
+// single occurrence."), and every save dropped the answers.
+describe('participantFieldsToSave', () => {
+  const me = { userEmail: 'me@example.com', resolveName: (email: string) => (email === 'me@example.com' ? 'Me Myself' : undefined) };
+  const rows = (...emails: string[]) => emails.map((email) => ({ name: '', email }));
+
+  it('keeps the sender of an invitation as its organizer and everyone\'s answer', () => {
+    const invitation = makeEvent({
+      boss: { '@type': 'Participant', calendarAddress: 'mailto:boss@example.org' },
+      mine: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { attendee: true }, participationStatus: 'accepted' },
+      bob: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.org', roles: { attendee: true }, participationStatus: 'declined' },
+    }, { organizerCalendarAddress: 'mailto:boss@example.org' });
+
+    const fields = participantFieldsToSave(invitation, rows('me@example.com', 'bob@example.org'), me);
+
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+    expect(Object.keys(fields.participants!).sort()).toEqual(['bob', 'boss', 'mine']);
+    expect(fields.participants!.boss).toMatchObject({ calendarAddress: 'mailto:boss@example.org', roles: { owner: true } });
+    expect(fields.participants!.mine.participationStatus).toBe('accepted');
+    expect(fields.participants!.bob.participationStatus).toBe('declined');
+  });
+
+  it('keeps the address a series is organized under, letter case included (Stalwart 1.0 checks it on one occurrence)', () => {
+    const series = makeEvent({
+      org: { '@type': 'Participant', calendarAddress: 'mailto:ME@Example.com', roles: { owner: true }, participationStatus: 'accepted' },
+      guest: { '@type': 'Participant', calendarAddress: 'mailto:guest@example.net', roles: { attendee: true }, participationStatus: 'accepted' },
+    }, { organizerCalendarAddress: 'mailto:ME@Example.com' });
+
+    const fields = participantFieldsToSave(series, rows('guest@example.net'), me);
+
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+    expect(fields.participants!.org).toMatchObject({ calendarAddress: 'mailto:ME@Example.com', roles: { owner: true } });
+    expect(fields.participants!.guest.participationStatus).toBe('accepted');
+  });
+
+  it('takes the organizer from organizerCalendarAddress when no participant is marked as one', () => {
+    const event = makeEvent({
+      guest: { '@type': 'Participant', calendarAddress: 'mailto:guest@example.net', roles: { attendee: true } },
+    }, { organizerCalendarAddress: 'mailto:alias@example.com' });
+
+    const fields = participantFieldsToSave(event, rows('guest@example.net'), me);
+
+    const organizer = Object.values(fields.participants!).find((p) => p.roles?.owner);
+    expect(organizer?.calendarAddress).toBe('mailto:alias@example.com');
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+  });
+
+  it('makes the user the organizer of an event that has none', () => {
+    for (const event of [null, makeEvent(null)]) {
+      const fields = participantFieldsToSave(event, rows('guest@example.net'), me);
+
+      expect(fields.organizerCalendarAddress).toBe('mailto:me@example.com');
+      const organizer = Object.values(fields.participants!).find((p) => p.roles?.owner);
+      expect(organizer).toMatchObject({ name: 'Me Myself', calendarAddress: 'mailto:me@example.com', participationStatus: 'accepted' });
+    }
+  });
+
+  it('removes the participants, the organizer and replyTo with the last attendee', () => {
+    const event = makeEvent({
+      org: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { owner: true } },
+      guest: { '@type': 'Participant', calendarAddress: 'mailto:guest@example.net', roles: { attendee: true } },
+    }, { organizerCalendarAddress: 'mailto:me@example.com', replyTo: { imip: 'mailto:me@example.com' } });
+
+    expect(participantFieldsToSave(event, [], me)).toEqual({ participants: null, organizerCalendarAddress: null, replyTo: null });
+    expect(participantFieldsToSave(makeEvent(null), [], me)).toEqual({});
   });
 });
 

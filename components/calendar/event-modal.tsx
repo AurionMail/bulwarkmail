@@ -21,7 +21,7 @@ import {
   getUserStatus,
   getParticipantList,
   getStatusCounts,
-  buildParticipantMap,
+  participantFieldsToSave,
 } from "@/lib/calendar-participants";
 import { canUserRsvp, getEventEditability, canCreateEventsIn } from "@/lib/calendar-editability";
 import { withOwnAlertIds } from "@/lib/calendar-alerts";
@@ -668,27 +668,13 @@ export function EventModal({
       .flatMap((c) => [...Object.keys(c.defaultAlertsWithTime ?? {}), ...Object.keys(c.defaultAlertsWithoutTime ?? {})]);
     Object.assign(data, buildAlertsPatch(event, alertRows, preservedAlertsRef.current, defaultAlertIds));
 
-    if (effectiveAttendees.length > 0 && currentUserEmails.length > 0) {
-      const organizerEmail = currentUserEmails[0];
-      // On create there are no existing participants, so a fresh event would
-      // store an empty organizer name — fall back to the contact card.
-      const organizerName =
-        existingParticipants.find(p => p.isOrganizer)?.name || resolveContactName(organizerEmail) || "";
-      data.participants = buildParticipantMap(
-        { name: organizerName, email: organizerEmail },
-        effectiveAttendees
-      ) as Record<string, CalendarParticipant>;
-      // Stalwart (calcard) derives the iCalendar ORGANIZER property solely from
-      // organizerCalendarAddress; without it no ORGANIZER is emitted and iTIP
-      // scheduling is silently skipped (NoSchedulingInfo), so no invites are sent.
-      // The RFC 8984 replyTo property is retired in jscalendarbis and ignored.
-      data.organizerCalendarAddress = `mailto:${organizerEmail}`;
-    } else if (effectiveAttendees.length === 0 && event?.participants) {
-      data.participants = null;
-      // Also clear the retired replyTo that older releases (<= 1.7.6) wrote.
-      data.replyTo = null;
-      data.organizerCalendarAddress = null;
-    }
+    // Keeps the event's own organizer - an invitation's sender, the exact
+    // address a series is organized under - and the answers of attendees who
+    // stay; the user organizes an event that has no organizer yet.
+    Object.assign(data, participantFieldsToSave(event, effectiveAttendees, {
+      userEmail: currentUserEmails[0],
+      resolveName: resolveContactName,
+    }));
 
     const shouldSendScheduling = effectiveAttendees.length > 0 && sendInvitations;
     setIsSaving(true);
@@ -697,7 +683,7 @@ export function EventModal({
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, sendInvitations, currentUserEmails, existingParticipants, resolveContactName, event, onSave, isSaving]);
+  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, sendInvitations, currentUserEmails, resolveContactName, event, onSave, isSaving]);
 
   const handleRsvp = useCallback((status: CalendarParticipant['participationStatus']) => {
     if (!event || !userParticipantId || !onRsvp) return;

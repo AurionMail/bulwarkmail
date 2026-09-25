@@ -246,18 +246,52 @@ export function getParticipantCount(event: CalendarEvent): number {
   return count;
 }
 
+type ParticipationStatus = CalendarParticipant['participationStatus'];
+
+/**
+ * An event's participants by address (lowercased): the id each was first
+ * listed under, and its answer - a real one over a missing or needs-action
+ * one when an address is listed twice (see getParticipantList).
+ */
+function participantsByAddress(
+  participants: CalendarEvent['participants'] | null | undefined,
+): Map<string, { id: string; status: ParticipationStatus | undefined }> {
+  const known = new Map<string, { id: string; status: ParticipationStatus | undefined }>();
+  for (const [id, p] of Object.entries(participants ?? {})) {
+    const key = getParticipantEmail(p).trim().toLowerCase();
+    if (!key) continue;
+    const seen = known.get(key);
+    if (!seen) known.set(key, { id, status: p.participationStatus });
+    else if ((!seen.status || seen.status === 'needs-action') && p.participationStatus) seen.status = p.participationStatus;
+  }
+  return known;
+}
+
+/**
+ * The participants an editor save writes: the organizer, then each attendee
+ * once. `existing` is the event's current map. An address already in it
+ * keeps its participant id and its answer, so a save neither resets the
+ * attendees' answers - the user's own on an invitation included - nor leaves
+ * a recurrence override pointing at a participant id that is gone.
+ */
 export function buildParticipantMap(
   organizer: { name: string; email: string },
-  attendees: { name: string; email: string }[]
+  attendees: { name: string; email: string }[],
+  existing?: CalendarEvent['participants'] | null,
 ): Record<string, Partial<CalendarParticipant>> {
   const participants: Record<string, Partial<CalendarParticipant>> = {};
-
-  const generateId = () => generateUUID();
+  const known = participantsByAddress(existing);
+  const idFor = (key: string) => {
+    const id = known.get(key)?.id;
+    return id && !(id in participants) ? id : generateUUID();
+  };
 
   // calendarAddress is the scheduling address in draft-ietf-calext-jscalendarbis
   // (implemented by Stalwart); the RFC 8984 sendTo property is retired there and
   // stored as an inert JSPROP, so it is intentionally not sent.
-  participants[generateId()] = {
+  const organizerKey = organizer.email.trim().toLowerCase();
+  const organizerStatus = known.get(organizerKey)?.status;
+  participants[idFor(organizerKey)] = {
     '@type': 'Participant',
     name: organizer.name,
     email: organizer.email,
@@ -266,7 +300,7 @@ export function buildParticipantMap(
     // scheduling emits the organizer as an ATTENDEE line in addition to the
     // ORGANIZER line, so the recipient sees the organizer listed twice.
     roles: { owner: true },
-    participationStatus: 'accepted',
+    participationStatus: organizerStatus && organizerStatus !== 'needs-action' ? organizerStatus : 'accepted',
     scheduleAgent: 'server',
     expectReply: false,
     kind: 'individual',
@@ -274,7 +308,7 @@ export function buildParticipantMap(
 
   // The organizer already has an entry above, and an address must not appear
   // twice in the invite list, so drop both cases case-insensitively (#731).
-  const seen = new Set<string>([organizer.email.trim().toLowerCase()]);
+  const seen = new Set<string>([organizerKey]);
 
   attendees.forEach((a) => {
     const email = a.email.trim();
@@ -282,13 +316,13 @@ export function buildParticipantMap(
     if (!key || seen.has(key)) return;
     seen.add(key);
 
-    participants[generateId()] = {
+    participants[idFor(key)] = {
       '@type': 'Participant',
       name: a.name,
       email,
       calendarAddress: `mailto:${email}`,
       roles: { attendee: true },
-      participationStatus: 'needs-action',
+      participationStatus: known.get(key)?.status ?? 'needs-action',
       scheduleAgent: 'server',
       expectReply: true,
       kind: 'individual',
@@ -296,4 +330,68 @@ export function buildParticipantMap(
   });
 
   return participants;
+}
+
+/**
+ * The event's own organizer: the organizer participant, else the address in
+ * `organizerCalendarAddress` or the retired `replyTo`. Null for an event
+ * without one.
+ */
+function eventOrganizer(event: CalendarEvent): { name: string; email: string } | null {
+  const participant = getParticipantList(event).find((p) => p.isOrganizer && p.email.trim());
+  if (participant) return { name: participant.name, email: participant.email.trim() };
+  const address = event.organizerCalendarAddress || Object.values(event.replyTo ?? {})[0];
+  const email = address?.replace(/^mailto:/i, '').trim();
+  return email ? { name: '', email } : null;
+}
+
+export interface ParticipantSaveContext {
+  /** The user's first calendar address: the organizer of an event that has none yet. */
+  userEmail: string | undefined;
+  /** A name for an organizer the event data carries none for (the contact card). */
+  resolveName?: (email: string) => string | undefined;
+}
+
+/**
+ * The participant fields an editor save writes.
+ *
+ * With attendees, the participants are rebuilt around the event's own
+ * organizer: an invitation keeps whoever sent it, and a series the exact
+ * address it is organized under (Stalwart 1.0 checks it on single
+ * occurrences). Only an event without an organizer gets the user, and only
+ * then is `organizerCalendarAddress` written: Stalwart derives the
+ * iCalendar ORGANIZER solely from it, so without one no invitations go out.
+ * Participants that stay keep their id and answer (buildParticipantMap).
+ *
+ * Without attendees, an event that had participants loses them, its
+ * organizer and the retired `replyTo` older releases wrote.
+ */
+export function participantFieldsToSave(
+  event: CalendarEvent | null | undefined,
+  attendees: { name: string; email: string }[],
+  context: ParticipantSaveContext,
+): Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress' | 'replyTo'>> {
+  const { userEmail, resolveName } = context;
+  if (attendees.length > 0 && userEmail) {
+    const organizer = (event ? eventOrganizer(event) : null) ?? { name: '', email: userEmail };
+    const fields: Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress'>> = {
+      participants: buildParticipantMap(
+        // A new event has no participants yet, so it would store an empty
+        // organizer name.
+        { name: organizer.name || resolveName?.(organizer.email) || '', email: organizer.email },
+        attendees,
+        event?.participants,
+      ) as Record<string, CalendarParticipant>,
+    };
+    if (!event?.organizerCalendarAddress) fields.organizerCalendarAddress = `mailto:${organizer.email}`;
+    return fields;
+  }
+  if (attendees.length === 0 && event?.participants && Object.keys(event.participants).length > 0) {
+    return {
+      participants: null,
+      ...(event.replyTo ? { replyTo: null } : {}),
+      ...(event.organizerCalendarAddress ? { organizerCalendarAddress: null } : {}),
+    };
+  }
+  return {};
 }
