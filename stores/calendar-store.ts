@@ -10,6 +10,8 @@ import { sanitizeOutgoingCalendarEventData } from '@/lib/calendar-event-normaliz
 import { expandRecurringEvents } from '@/lib/recurrence-expansion';
 import { SchedulingDeniedError } from '@/lib/jmap/scheduling-error';
 import { participantLimitOf } from '@/lib/calendar-participants';
+import { withOwnAlertIds } from '@/lib/calendar-alerts';
+import { jmapSetError } from '@/lib/jmap/jmap-error';
 import {
   baseEventStoreId,
   buildFallbackExcludePatch,
@@ -211,6 +213,31 @@ async function updateOccurrence(
   await updateBaseEvent(client, instance.baseEventId, fallback, sendSchedulingMessages, targetAccountId);
 }
 
+/**
+ * Turn the calendar's default alerts off for a whole series, keeping the
+ * alerts it shows as its own - before one occurrence's alerts change in a
+ * way that turns them off (buildAlertsPatch). While a series uses them,
+ * Stalwart 1.0 shows the calendar's defaults in place of any occurrence's
+ * own alerts, and refuses useDefaultAlerts on a single occurrence ("This
+ * property cannot be modified on a single occurrence."): the occurrence's
+ * change was stored and never shown. 0.16 stores and shows it either way;
+ * its series keeps the same alerts.
+ */
+async function stopSeriesDefaultAlerts(
+  client: IJMAPClient,
+  baseId: string,
+  targetAccountId: string | undefined,
+): Promise<void> {
+  const base = await client.getCalendarEvent(baseId, targetAccountId);
+  if (!base?.useDefaultAlerts) return;
+  const shown = base.alerts ?? {};
+  await client.updateCalendarEvent(baseId, {
+    useDefaultAlerts: false,
+    // Under ids of their own: 1.0 drops alerts saved under a default alert's id.
+    alerts: Object.keys(shown).length > 0 ? withOwnAlertIds(Object.values(shown), Object.keys(shown)) : null,
+  }, false, targetAccountId);
+}
+
 /** Destroy one expanded occurrence; falls back to excluding it on the base event like `updateOccurrence`. */
 async function destroyOccurrence(
   client: IJMAPClient,
@@ -293,6 +320,11 @@ async function destroyBrowserOccurrence(
 // update stays in place until then. Concurrent callers share one fetch.
 let refetchVisibleRange: (() => Promise<void>) | null = null;
 let refetchVisibleRangeInFlight: Promise<void> | null = null;
+
+// Range loads overlap when the view moves on while one is still out. Only the
+// latest writes the store - its events, its range and whether it failed; an
+// earlier one that finishes after it, well or not, is dropped.
+let rangeLoadSeq = 0;
 
 async function refetchAfterOccurrenceMutation(): Promise<void> {
   if (!refetchVisibleRange) return;
@@ -552,7 +584,18 @@ interface CalendarStore {
   updateEvent: (client: IJMAPClient, id: string, updates: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => Promise<void>;
   deleteEvent: (client: IJMAPClient, id: string, sendSchedulingMessages?: boolean) => Promise<void>;
   rsvpEvent: (client: IJMAPClient, eventId: string, participantId: string, status: string, replyTo?: Record<string, string> | null, scope?: 'occurrence' | 'series') => Promise<void>;
-  importEvents: (client: IJMAPClient, events: Partial<CalendarEvent>[], calendarId: string) => Promise<number>;
+  /**
+   * Create `events` in the calendar, linking those whose UID the account
+   * already has; resolves to how many were created or linked. With
+   * `throwIfNoneImported`, rejects with the server's first refusal (its
+   * SetError type kept) when none was.
+   */
+  importEvents: (
+    client: IJMAPClient,
+    events: Partial<CalendarEvent>[],
+    calendarId: string,
+    options?: { throwIfNoneImported?: boolean },
+  ) => Promise<number>;
   updateCalendar: (client: IJMAPClient, calendarId: string, updates: Partial<Calendar>) => Promise<void>;
   setDefaultCalendar: (client: IJMAPClient, calendarId: string) => Promise<void>;
   shareCalendar: (client: IJMAPClient, calendarId: string, principalId: string, rights: CalendarRights | null) => Promise<void>;
@@ -647,12 +690,14 @@ export const useCalendarStore = create<CalendarStore>()(
 
       fetchEvents: async (client, start, end, options) => {
         refetchVisibleRange = () => get().fetchEvents(client, start, end, { silent: true });
+        const seq = ++rangeLoadSeq;
         set(options?.silent ? { error: null } : { isLoadingEvents: true, error: null });
         try {
           const rawEvents = await client.queryAllCalendarEvents({
             after: start,
             before: end,
           });
+          if (seq !== rangeLoadSeq) return;
           // Filter out malformed events missing required 'start' field, or
           // whose start string fails to parse (would otherwise crash format()
           // calls in the rendering path - #316).
@@ -678,10 +723,11 @@ export const useCalendarStore = create<CalendarStore>()(
           }
           set({ events, isLoadingEvents: false, eventsLoadError: false, dateRange: { start, end } });
         } catch (error) {
+          debug.error('Failed to fetch events:', error);
+          if (seq !== rangeLoadSeq) return;
           // Keep the events already on screen - an empty grid would read as
           // "no events" - and take the range as asked for, so a push or a
           // refresh reloads it rather than the one loaded before.
-          debug.error('Failed to fetch events:', error);
           set({ eventsLoadError: true, isLoadingEvents: false, dateRange: { start, end } });
         }
       },
@@ -716,6 +762,7 @@ export const useCalendarStore = create<CalendarStore>()(
 
       fetchAllAccountsEvents: async (accounts, start, end, options) => {
         refetchVisibleRange = () => get().fetchAllAccountsEvents(accounts, start, end, { silent: true });
+        const seq = ++rangeLoadSeq;
         set(options?.silent ? { error: null } : { isLoadingEvents: true, error: null });
         try {
           let failed = false;
@@ -736,6 +783,7 @@ export const useCalendarStore = create<CalendarStore>()(
               }
             }),
           );
+          if (seq !== rangeLoadSeq) return;
           set({
             events: results.flat(),
             isLoadingEvents: false,
@@ -744,6 +792,7 @@ export const useCalendarStore = create<CalendarStore>()(
           });
         } catch (error) {
           debug.error('Failed to fetch all-account events:', error);
+          if (seq !== rangeLoadSeq) return;
           set({ eventsLoadError: true, isLoadingEvents: false, dateRange: { start, end } });
         }
       },
@@ -832,10 +881,10 @@ export const useCalendarStore = create<CalendarStore>()(
           return mappedCreated;
         } catch (error) {
           debug.error('Failed to create event:', error);
-          set({ error: 'Failed to create event' });
           // The caller can offer to save it without the invitations, or say
-          // which limit the server holds it to.
+          // which limit the server holds it to - and says so itself.
           if (error instanceof SchedulingDeniedError || participantLimitOf(error) !== null) throw error;
+          set({ error: 'Failed to create event' });
           return null;
         }
       },
@@ -866,13 +915,19 @@ export const useCalendarStore = create<CalendarStore>()(
             }
             cleanUpdates.calendarIds = remapped;
           }
+          // An occurrence's alerts that turn the calendar's defaults off.
+          const stopsDefaultAlerts = cleanUpdates.useDefaultAlerts === false && 'alerts' in cleanUpdates;
           if (target.isOccurrence && storeEvent) {
+            if (stopsDefaultAlerts && storeEvent.baseEventId) {
+              await stopSeriesDefaultAlerts(client, storeEvent.baseEventId, targetAccountId);
+            }
             await updateOccurrence(
               client, storeEvent, realId,
               (options) => withNewOverrideDetails(storeEvent, cleanUpdates, options),
               sendSchedulingMessages, targetAccountId,
             );
           } else if (target.isBrowserOccurrence) {
+            if (stopsDefaultAlerts) await stopSeriesDefaultAlerts(client, realId, targetAccountId);
             await updateBrowserOccurrence(client, target, cleanUpdates, sendSchedulingMessages);
           } else {
             await updateBaseEvent(client, realId, cleanUpdates, sendSchedulingMessages, targetAccountId);
@@ -912,8 +967,9 @@ export const useCalendarStore = create<CalendarStore>()(
           // `sendSchedulingMessages` argument already passed above - a manual
           // iMIP send here produced duplicate emails.
         } catch (error) {
+          // Every caller says what went wrong, in the user's language (see
+          // useCalendarErrorMessage); a store error would toast it twice.
           debug.error('Failed to update event:', error);
-          set({ error: 'Failed to update event' });
           throw error;
         }
       },
@@ -986,7 +1042,7 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
 
-      importEvents: async (client, events, calendarId) => {
+      importEvents: async (client, events, calendarId, options) => {
         // Resolve shared calendar IDs
         const cal = get().calendars.find(c => c.id === calendarId);
         const realCalendarId = cal?.originalId || stripLocalAccountPrefix(calendarId, cal?.localAccountId);
@@ -1148,6 +1204,9 @@ export const useCalendarStore = create<CalendarStore>()(
         // Batch create in chunks of 50 to avoid oversized requests
         const BATCH_SIZE = 50;
         let imported = 0;
+        // The first refusal, for a caller that asked to be told.
+        let refusal: unknown = null;
+        let failedMessage: string | null = null;
         for (let i = 0; i < prepared.length; i += BATCH_SIZE) {
           const batch = prepared.slice(i, i + BATCH_SIZE);
           try {
@@ -1157,12 +1216,16 @@ export const useCalendarStore = create<CalendarStore>()(
               const first = Object.values(notCreated)[0];
               const reason = first?.description || first?.type || 'unknown error';
               debug.warn('calendar', `Import batch ${i / BATCH_SIZE + 1}: ${failed.length} events failed (${reason})`);
-              set({ error: `${failed.length} event(s) could not be imported: ${reason}` });
+              refusal ??= jmapSetError(first?.description || 'Failed to import event', first);
+              failedMessage = `${failed.length} event(s) could not be imported: ${reason}`;
             }
           } catch (error) {
             debug.error(`Import batch ${i / BATCH_SIZE + 1} failed:`, error);
+            refusal ??= error;
           }
         }
+        if (options?.throwIfNoneImported && imported + linked === 0 && refusal) throw refusal;
+        if (failedMessage) set({ error: failedMessage });
 
         // Re-fetch all events properly so the store state is consistent
         // (with recurrence expansion, multi-account mapping, etc.)
@@ -1692,6 +1755,8 @@ export const useCalendarStore = create<CalendarStore>()(
 
       clearState: () => {
         refetchVisibleRange = null;
+        // A load still out for the account being left must not land.
+        rangeLoadSeq++;
         // Preserve iCal subscriptions across the account-switch teardown.
         // They're now scoped per-account via sub.accountId - wiping them
         // here would lose them from localStorage on every switch.

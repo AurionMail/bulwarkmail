@@ -410,6 +410,112 @@ describe('expanded ranges longer than maxExpandedQueryDuration', () => {
     await expect(client.queryCalendarEvents(WINDOW)).rejects.toThrow(/single FilterCondition/);
     expect(server.queries()).toHaveLength(3);
   });
+
+  // 1.0 expands recurrences only for one AND of single conditions; an OR,
+  // a NOT or a condition of several keys next to the bounds is refused.
+  it.each<[string, Record<string, unknown>]>([
+    ['an OR', { operator: 'OR', conditions: [{ text: 'budget' }, { text: 'review' }] }],
+    ['a condition of two keys', { title: 'budget', description: 'review' }],
+  ])('sends an AND holding %s as it is, not expanded, on Stalwart 1.0', async (_label, other) => {
+    await connect('1.0');
+    const filter = { operator: 'AND' as const, conditions: [{ after: WINDOW.after }, { before: WINDOW.before }, other] };
+
+    await client.queryCalendarEvents(filter);
+
+    expect(expandedQueries()).toHaveLength(0);
+    expect(server.queries().map((q) => q.args.filter)).toEqual([filter]);
+  });
+});
+
+// With a limit, the chunks of a long range go out a few per request in the
+// sort order. When one of them needs another query - it was refused and is
+// halved, or it filled its page with an occurrence found before - the chunks
+// after it in that request are asked again after it, and what they returned
+// is dropped: the result keeps the sort order.
+describe('limited reads of several chunks per request', () => {
+  // Chunks of 99 days from 2025-01-01, four per request.
+  const WINDOW = { after: '2025-01-01T00:00:00', before: '2027-02-16T23:59:59' };
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let client: JMAPClient;
+  let server: StalwartCalendarMock;
+
+  async function connect(version: StalwartVersion, occurrences: RangeOccurrence[], maxInstances?: number) {
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    client = await connectCalendarClient(fetchSpy, stalwartCalendarSession(version, { maxExpandedQueryDuration: 'P100D' }));
+    server = installStalwartCalendarMock(fetchSpy, {
+      version,
+      objects: {
+        series: {
+          id: 'series', '@type': 'Event', uid: 'series@example.com', title: 'Standup', baseEventId: 'series',
+          start: '2025-01-02T09:00:00', duration: 'PT1H', recurrenceRule: { frequency: 'daily' },
+          recurrenceOverrides: null, calendarIds: { cal: true },
+        },
+      },
+      occurrences: occurrenceObjects('series', occurrences),
+      answer: expandingQueryAnswer(version, { seriesId: 'series', occurrences, maxInstances }),
+    });
+  }
+
+  afterEach(() => {
+    client.disconnect();
+    fetchSpy.mockRestore();
+  });
+
+  const byRequest = () => {
+    const requests = new Map<number, Array<{ after: string; before: string; position: unknown }>>();
+    for (const q of server.queries().filter((query) => query.args.expandRecurrences)) {
+      const filter = q.args.filter as { after: string; before: string };
+      requests.set(q.request, [...(requests.get(q.request) ?? []), { after: filter.after, before: filter.before, position: q.args.position }]);
+    }
+    return [...requests.values()];
+  };
+
+  it('asks again after a chunk that filled its page with an occurrence found before on Stalwart 1.0', async () => {
+    await connect('1.0', [
+      { id: 'o-a', start: '2025-01-02T09:00:00', seconds: 3600 },
+      // Across the border of the fourth and fifth chunk: both find it.
+      { id: 'o-b', start: '2026-01-31T23:30:00', seconds: 3600 },
+      { id: 'o-c', start: '2026-03-01T09:00:00', seconds: 3600 },
+      { id: 'o-d', start: '2026-04-01T09:00:00', seconds: 3600 },
+    ]);
+
+    const events = await client.queryCalendarEvents(WINDOW, [{ property: 'start', isAscending: true }], 3);
+
+    const [first, second, third] = byRequest();
+    expect(first).toHaveLength(4);
+    // The fifth chunk's page of one is o-b again: it is asked on from
+    // there, with the three chunks after it.
+    expect(second).toHaveLength(4);
+    expect(third).toHaveLength(4);
+    expect(third[0]).toEqual({ ...second[0], position: 1 });
+    expect(third.slice(1)).toEqual(second.slice(1));
+    expect(events.map((e) => e.id)).toEqual(['o-a', 'o-b', 'o-c']);
+  });
+
+  it.each<[StalwartVersion]>([['0.16'], ['1.0']])(
+    'asks the rest of a request again after the halves of a refused chunk on Stalwart %s',
+    async (version) => {
+      // The first chunk expands to three occurrences, one more than allowed.
+      await connect(version, [
+        { id: 'o-jan', start: '2025-01-02T09:00:00', seconds: 3600 },
+        { id: 'o-feb', start: '2025-02-02T09:00:00', seconds: 3600 },
+        { id: 'o-mar', start: '2025-03-02T09:00:00', seconds: 3600 },
+        { id: 'o-may', start: '2025-05-01T09:00:00', seconds: 3600 },
+      ], 2);
+
+      const events = await client.queryCalendarEvents(WINDOW, [{ property: 'start', isAscending: true }], 4);
+
+      const [first, second] = byRequest();
+      expect(first).toHaveLength(4);
+      // The halves of the first chunk, then the second and third chunks again.
+      expect(second).toHaveLength(4);
+      expect(second[0].after).toBe(first[0].after);
+      expect(second[1].before).toBe(first[0].before);
+      expect(second.slice(2)).toEqual(first.slice(1, 3));
+      expect(byRequest()).toHaveLength(2);
+      expect(events.map((e) => e.id)).toEqual(['o-jan', 'o-feb', 'o-mar', 'o-may']);
+    },
+  );
 });
 
 // Stalwart 1.0 fails every CalendarEvent get and query whose `timeZone` its
@@ -520,6 +626,17 @@ describe('a time zone the server does not know', () => {
     expect(new Set(zones())).toEqual(new Set([ZONE]));
     expect(server.queries().find((q) => q.args.expandRecurrences)!.args.filter).toEqual(GRID);
     expect(events.map((e) => e.id)).toEqual(['maaaaab']);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('sends a zone typed in another letter case as Intl spells it on Stalwart 1.0', async () => {
+    await connect('1.0');
+    useSettingsStore.setState({ timeZone: 'europe/berlin' });
+
+    await client.getAllCalendars();
+    await client.queryCalendarEvents(GRID);
+
+    expect(zones().every((zone) => zone === 'Europe/Berlin')).toBe(true);
     expect(warn).not.toHaveBeenCalled();
   });
 

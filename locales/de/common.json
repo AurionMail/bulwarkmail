@@ -2895,7 +2895,7 @@
       "you_organizer": "Sie sind der Organisator",
       "you_attendee": "Sie sind ein Teilnehmer",
       "no_participants": "Keine Teilnehmer",
-      "limit_warning": "Mehr als {max} Teilnehmer: Der Server lehnt das Speichern dieses Termins möglicherweise ab. Ihr Administrator kann das Limit erhöhen.",
+      "limit_warning": "Mehr als {max, plural, one {# Teilnehmer} other {# Teilnehmer}}, den Organisator mitgezählt: Der Server lehnt das Speichern dieses Termins möglicherweise ab. Ihr Administrator kann das Limit erhöhen.",
       "count": "{count, plural, one {# Teilnehmer} other {# Teilnehmer}}"
     },
     "recurrence": {
@@ -3043,7 +3043,7 @@
       "save_without_invitations": "Ohne Einladungen speichern",
       "rsvp_updated": "Antwort aktualisiert",
       "rsvp_error": "Antwort konnte nicht aktualisiert werden",
-      "participant_limit": "Der Server erlaubt höchstens {max} Teilnehmer pro Termin und hat die Änderung deshalb abgelehnt. Ihr Administrator kann das Limit erhöhen.",
+      "participant_limit": "Der Server erlaubt höchstens {max, plural, one {# Teilnehmer} other {# Teilnehmer}} pro Termin, den Organisator mitgezählt, und hat die Änderung deshalb abgelehnt. Ihr Administrator kann das Limit erhöhen.",
       "event_duplicated": "Termin dupliziert",
       "event_error": "Termin konnte nicht gespeichert werden",
       "task_due": "Aufgabe fällig",

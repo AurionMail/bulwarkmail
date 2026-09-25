@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useCalendarStore, resolveMutationTarget } from '../calendar-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { CalendarEvent } from '@/lib/jmap/types';
-import { jmapError, jmapSetError } from '@/lib/jmap/jmap-error';
+import { jmapError, jmapErrorType, jmapSetError } from '@/lib/jmap/jmap-error';
 
 // Occurrences produced by server-side recurrence expansion carry synthetic
 // ids (lib/recurrence-instances.ts). The store writes "this occurrence only"
@@ -142,7 +142,8 @@ describe('updateEvent on an expanded occurrence', () => {
 
     await expect(useCalendarStore.getState().updateEvent(client, 'maaaaab', { title: 'x' })).rejects.toThrow('single occurrence');
     expect(client.updateCalendarEvent).toHaveBeenCalledTimes(1);
-    expect(useCalendarStore.getState().error).toBe('Failed to update event');
+    // The caller reports it, translated; a store error would toast it again.
+    expect(useCalendarStore.getState().error).toBeNull();
   });
 
   it('targets the base event for the single occurrence of a non-recurring event', async () => {
@@ -585,10 +586,210 @@ describe('an event over the participant limit', () => {
   it('passes Stalwart 1.0’s refusal of a new event on to the caller', async () => {
     const client = fakeClient({ createCalendarEvent: vi.fn().mockRejectedValue(refusal()) });
     await expect(useCalendarStore.getState().createEvent(client, { title: 'All hands' })).rejects.toThrow(/more than 20/);
+    // The caller says it, translated; a store error would toast it twice.
+    expect(useCalendarStore.getState().error).toBeNull();
   });
 
   it('still answers null for any other failure to create', async () => {
     const client = fakeClient({ createCalendarEvent: vi.fn().mockRejectedValue(new Error('boom')) });
     await expect(useCalendarStore.getState().createEvent(client, { title: 'All hands' })).resolves.toBeNull();
+    expect(useCalendarStore.getState().error).toBe('Failed to create event');
+  });
+});
+
+// Stalwart 1.0 shows a calendar's default alerts in place of an event's own
+// while the event uses them, for its occurrences too, and refuses
+// useDefaultAlerts on a single occurrence. An alert changed on one occurrence
+// was stored and never shown ("Event updated", the default still there). The
+// series now stops using the defaults first, keeping the alerts it shows as
+// its own; then the occurrence's alerts go out. 0.16.23 stores and shows the
+// occurrence's alerts either way.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('changing the alerts of one occurrence of a series on default alerts on Stalwart %s', (version) => {
+  const alert = (offset: string) => ({
+    '@type': 'Alert', trigger: { '@type': 'OffsetTrigger', offset, relativeTo: 'start' }, action: 'display',
+  }) as unknown as NonNullable<CalendarEvent['alerts']>[string];
+  // What the series shows: the calendar's default under its id on 1.0, the
+  // copy 0.16 made of it when the series was created.
+  const shown: Record<string, ReturnType<typeof alert>> = version === '1.0'
+    ? { 'default-15': alert('-PT15M') }
+    : { a1: alert('-PT15M') };
+  // What the editor sends (buildAlertsPatch): the changed alert under an id
+  // of its own, and the defaults off.
+  const EDIT = { alerts: { alert1: alert('-PT1H') }, useDefaultAlerts: false } as Partial<CalendarEvent>;
+
+  function onDefaults(extra: Partial<Record<keyof IJMAPClient, unknown>> = {}) {
+    return fakeClient({
+      getCalendarEvent: vi.fn().mockResolvedValue({ id: 'b', useDefaultAlerts: true, alerts: shown }),
+      ...extra,
+    });
+  }
+
+  it('turns the defaults off for the series, keeping its alerts, then writes the occurrence', async () => {
+    const client = onDefaults();
+    useCalendarStore.setState({ events: [occurrence({ useDefaultAlerts: true, alerts: shown })] });
+
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', EDIT);
+
+    expect(client.getCalendarEvent).toHaveBeenCalledWith('b', undefined);
+    const [first, second] = client.updateCalendarEvent.mock.calls;
+    expect(first).toEqual(['b', { useDefaultAlerts: false, alerts: { alert1: alert('-PT15M') } }, false, undefined]);
+    expect(second[0]).toBe('maaaaab');
+    expect(second[1]).toMatchObject({ alerts: { alert1: alert('-PT1H') } });
+    // Refused on one occurrence by 1.0; the series carries it now.
+    expect(second[1]).not.toHaveProperty('useDefaultAlerts');
+  });
+
+  it('leaves a series that no longer uses the defaults alone', async () => {
+    const client = onDefaults({
+      getCalendarEvent: vi.fn().mockResolvedValue({ id: 'b', useDefaultAlerts: false, alerts: { alert1: alert('-PT15M') } }),
+    });
+    useCalendarStore.setState({ events: [occurrence({ useDefaultAlerts: true, alerts: shown })] });
+
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', EDIT);
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledTimes(1);
+    expect(client.updateCalendarEvent.mock.calls[0][0]).toBe('maaaaab');
+  });
+
+  it('asks nothing about the series for any other change of the occurrence', async () => {
+    const client = onDefaults();
+    useCalendarStore.setState({ events: [occurrence({ useDefaultAlerts: true, alerts: shown })] });
+
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', { title: 'Renamed' });
+
+    expect(client.getCalendarEvent).not.toHaveBeenCalled();
+    expect(client.updateCalendarEvent).toHaveBeenCalledTimes(1);
+  });
+});
+
+it('turns the defaults off before writing the override of an occurrence the browser expanded (0.16 before 0.16.20)', async () => {
+  const alert = { '@type': 'Alert', trigger: { '@type': 'OffsetTrigger', offset: '-PT15M', relativeTo: 'start' }, action: 'display' };
+  const client = fakeClient({
+    getCalendarEvent: vi.fn().mockResolvedValue({ id: 'b', useDefaultAlerts: true, alerts: { a1: alert } }),
+  });
+  const expanded = occurrence({
+    id: 'b:2026-09-08T10:00:00', originalId: 'b', baseEventId: undefined, useDefaultAlerts: true,
+    alerts: { a1: alert } as unknown as CalendarEvent['alerts'],
+  });
+  useCalendarStore.setState({ events: [expanded] });
+
+  await useCalendarStore.getState().updateEvent(client, 'b:2026-09-08T10:00:00', {
+    alerts: { alert1: { ...alert, trigger: { ...alert.trigger, offset: '-PT1H' } } } as unknown as CalendarEvent['alerts'],
+    useDefaultAlerts: false,
+  });
+
+  const [first, second] = client.updateCalendarEvent.mock.calls;
+  expect(first).toEqual(['b', { useDefaultAlerts: false, alerts: { alert1: alert } }, false, undefined]);
+  expect(second[0]).toBe('b');
+  expect(Object.keys(second[1])).toEqual(['recurrenceOverrides/2026-09-08T10:00:00']);
+});
+
+// Two range loads out at once - the view moved on - finish in either order;
+// the store keeps the latest one's events, range and failure flag.
+describe('range loads that finish out of order', () => {
+  const NEXT = ['2026-10-01T00:00:00', '2026-10-31T23:59:59'] as const;
+  const later = () => {
+    let settle!: { resolve: (v: CalendarEvent[]) => void; reject: (e: unknown) => void };
+    const promise = new Promise<CalendarEvent[]>((resolve, reject) => { settle = { resolve, reject }; });
+    return { promise, ...settle };
+  };
+
+  it('drops an earlier load that fails after the latest one succeeded on Stalwart 1.0', async () => {
+    const client = fakeClient();
+    const first = later();
+    client.queryAllCalendarEvents.mockReturnValueOnce(first.promise).mockResolvedValueOnce([occurrence({ title: 'October' })]);
+
+    const loading = useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+    await useCalendarStore.getState().fetchEvents(client, NEXT[0], NEXT[1]);
+    first.reject(new Error('Store unavailable'));
+    await loading;
+
+    const state = useCalendarStore.getState();
+    expect(state.dateRange).toEqual({ start: NEXT[0], end: NEXT[1] });
+    expect(state.eventsLoadError).toBe(false);
+    expect(state.events.map((e) => e.title)).toEqual(['October']);
+  });
+
+  it('drops an earlier load that succeeds after the latest one failed on Stalwart 1.0', async () => {
+    const client = fakeClient();
+    const first = later();
+    client.queryAllCalendarEvents.mockReturnValueOnce(first.promise).mockRejectedValueOnce(new Error('Store unavailable'));
+
+    const loading = useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+    await useCalendarStore.getState().fetchEvents(client, NEXT[0], NEXT[1]);
+    first.resolve([occurrence({ title: 'September' })]);
+    await loading;
+
+    const state = useCalendarStore.getState();
+    expect(state.dateRange).toEqual({ start: NEXT[0], end: NEXT[1] });
+    expect(state.eventsLoadError).toBe(true);
+    expect(state.events).toEqual([]);
+  });
+
+  it('drops a load of every account that finishes after a later one', async () => {
+    const client = fakeClient();
+    const first = later();
+    client.queryAllCalendarEvents.mockReturnValueOnce(first.promise).mockResolvedValueOnce([occurrence({ title: 'October' })]);
+    const accounts = [{ localAccountId: 'A@h', client }];
+
+    const loading = useCalendarStore.getState().fetchAllAccountsEvents(accounts, RANGE[0], RANGE[1]);
+    await useCalendarStore.getState().fetchAllAccountsEvents(accounts, NEXT[0], NEXT[1]);
+    first.resolve([occurrence({ title: 'September' })]);
+    await loading;
+
+    expect(useCalendarStore.getState().dateRange).toEqual({ start: NEXT[0], end: NEXT[1] });
+    expect(useCalendarStore.getState().events.map((e) => e.title)).toEqual(['October']);
+  });
+
+  it('drops a load for the account the user left', async () => {
+    const client = fakeClient();
+    const first = later();
+    client.queryAllCalendarEvents.mockReturnValueOnce(first.promise);
+
+    const loading = useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+    useCalendarStore.getState().clearState();
+    first.resolve([occurrence()]);
+    await loading;
+
+    expect(useCalendarStore.getState().events).toEqual([]);
+    expect(useCalendarStore.getState().dateRange).toBeNull();
+  });
+});
+
+// An invitation answered or added from the mail view is imported first.
+// When Stalwart refuses it, the banner has to say why - the participant
+// limit on 1.0 above all.
+describe('importEvents and the server refusing an event', () => {
+  const LIMIT = {
+    type: 'invalidProperties', description: 'An event cannot have more than 20 participants.', properties: ['participants'],
+  };
+
+  function refusing() {
+    return fakeClient({
+      getCalendarEvents: vi.fn().mockResolvedValue([]),
+      batchCreateCalendarEvents: vi.fn().mockResolvedValue({ created: [], failed: ['e0'], notCreated: { e0: LIMIT } }),
+    });
+  }
+
+  it('rejects with the refusal when asked to and nothing was imported, on Stalwart 1.0', async () => {
+    useCalendarStore.setState({ calendars: [{ id: 'cal', name: 'Personal' } as never] });
+
+    const error = await useCalendarStore.getState()
+      .importEvents(refusing(), [{ uid: 'u1', title: 'All hands', start: '2026-10-12T10:00:00' }], 'cal', { throwIfNoneImported: true })
+      .then(() => null, (e: unknown) => e);
+
+    expect(jmapErrorType(error)).toBe('invalidProperties');
+    expect((error as Error).message).toBe(LIMIT.description);
+    expect(useCalendarStore.getState().error).toBeNull();
+  });
+
+  it('still counts for the import dialog, and keeps its error for it', async () => {
+    useCalendarStore.setState({ calendars: [{ id: 'cal', name: 'Personal' } as never] });
+
+    const count = await useCalendarStore.getState()
+      .importEvents(refusing(), [{ uid: 'u1', title: 'All hands', start: '2026-10-12T10:00:00' }], 'cal');
+
+    expect(count).toBe(0);
+    expect(useCalendarStore.getState().error).toBe(`1 event(s) could not be imported: ${LIMIT.description}`);
   });
 });

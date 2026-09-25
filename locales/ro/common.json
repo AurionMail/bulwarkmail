@@ -2895,7 +2895,7 @@
       "you_organizer": "Tu ești organizatorul",
       "you_attendee": "Sunteți participant",
       "no_participants": "Nu există participanți",
-      "limit_warning": "Mai mult de {max} participanți: serverul poate refuza salvarea acestui eveniment. Un administrator poate mări limita.",
+      "limit_warning": "Mai mult de {max, plural, one {# participant} few {# participanți} other {# de participanți}}, inclusiv organizatorul: serverul poate refuza salvarea acestui eveniment. Un administrator poate mări limita.",
       "count": "{count, plural, one {# participant} few {# participanți} other {# de participanți}}"
     },
     "recurrence": {
@@ -3069,7 +3069,7 @@
       "save_without_invitations": "Salvează fără invitații",
       "rsvp_updated": "Răspuns actualizat",
       "rsvp_error": "Nu s-a putut actualiza răspunsul",
-      "participant_limit": "Serverul permite cel mult {max} participanți per eveniment, așa că a respins această modificare. Un administrator poate mări limita.",
+      "participant_limit": "Serverul permite cel mult {max, plural, one {# participant} few {# participanți} other {# de participanți}} per eveniment, inclusiv organizatorul, așa că a respins această modificare. Un administrator poate mări limita.",
       "event_duplicated": "Eveniment duplicat",
       "event_error": "Nu s-a putut salva evenimentul",
       "task_due": "Termen de finalizare a sarcinii",

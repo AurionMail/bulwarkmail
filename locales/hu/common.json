@@ -2895,7 +2895,7 @@
       "you_organizer": "Te vagy a szervező",
       "you_attendee": "Résztvevő vagy",
       "no_participants": "Nincs résztvevő",
-      "limit_warning": "Több mint {max} résztvevő: a szerver elutasíthatja az esemény mentését. A rendszergazda megemelheti a korlátot.",
+      "limit_warning": "Több mint {max, plural, one {# résztvevő} other {# résztvevő}}, a szervezőt is beleértve: a szerver elutasíthatja az esemény mentését. A rendszergazda megemelheti a korlátot.",
       "count": "{count, plural, one {# résztvevő} other {# résztvevő}}"
     },
     "recurrence": {
@@ -3069,7 +3069,7 @@
       "save_without_invitations": "Mentés meghívók nélkül",
       "rsvp_updated": "Válasz frissítve",
       "rsvp_error": "Nem sikerült frissíteni a választ",
-      "participant_limit": "A szerver eseményenként legfeljebb {max} résztvevőt enged, ezért elutasította a módosítást. A rendszergazda megemelheti a korlátot.",
+      "participant_limit": "A szerver eseményenként legfeljebb {max, plural, one {# résztvevőt} other {# résztvevőt}} enged, a szervezőt is beleértve, ezért elutasította a módosítást. A rendszergazda megemelheti a korlátot.",
       "event_duplicated": "Esemény duplikálva",
       "event_error": "Nem sikerült menteni az eseményt",
       "task_due": "Feladat határidős",

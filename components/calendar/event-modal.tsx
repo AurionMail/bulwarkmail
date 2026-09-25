@@ -1211,8 +1211,9 @@ export function EventModal({
               onRemove={handleRemoveAttendee}
             />
             {/* Only a warning: 0.16 advertises the limit without enforcing
-                it, Stalwart 1.0 refuses to save more attendees. */}
-            {maxParticipants != null && attendees.length > maxParticipants && (
+                it, Stalwart 1.0 refuses to save more participants - the
+                organizer entry a save adds counts too. */}
+            {maxParticipants != null && attendees.length > 0 && attendees.length + 1 > maxParticipants && (
               <p role="status" className="mt-1.5 flex items-start gap-1.5 text-xs text-warning">
                 <AlertTriangle className="mt-px h-3.5 w-3.5 flex-shrink-0" />
                 {t("participants.limit_warning", { max: maxParticipants })}

@@ -2895,7 +2895,7 @@
       "you_organizer": "Sou l'organitzador",
       "you_attendee": "Sou un assistent",
       "no_participants": "Cap participant",
-      "limit_warning": "Més de {max} participants: és possible que el servidor es negui a desar aquest esdeveniment. Un administrador pot augmentar el límit.",
+      "limit_warning": "Més de {max, plural, one {# participant} other {# participants}}, inclòs l'organitzador: és possible que el servidor es negui a desar aquest esdeveniment. Un administrador pot augmentar el límit.",
       "count": "{count, plural, one {# participant} other {# participants}}"
     },
     "recurrence": {
@@ -3069,7 +3069,7 @@
       "save_without_invitations": "Desa sense invitacions",
       "rsvp_updated": "Resposta actualitzada",
       "rsvp_error": "No s'ha pogut actualitzar la resposta",
-      "participant_limit": "El servidor permet com a màxim {max} participants per esdeveniment, per això ha rebutjat aquest canvi. Un administrador pot augmentar el límit.",
+      "participant_limit": "El servidor permet com a màxim {max, plural, one {# participant} other {# participants}} per esdeveniment, inclòs l'organitzador, per això ha rebutjat aquest canvi. Un administrador pot augmentar el límit.",
       "event_duplicated": "Esdeveniment duplicat",
       "event_error": "No s'ha pogut desar l'esdeveniment",
       "task_due": "Tasca pendent",

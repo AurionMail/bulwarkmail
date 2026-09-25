@@ -9,6 +9,7 @@ import {
   getWallClock,
   isDisplayToday,
   isValidTimeZone,
+  canonicalTimeZone,
   listTimeZones,
   moveLocalDateTime,
   resolveTimeZone,
@@ -46,6 +47,14 @@ describe('resolveTimeZone', () => {
 
   it('returns a valid explicit zone unchanged', () => {
     expect(resolveTimeZone('Asia/Tokyo', 'Europe/Berlin')).toBe('Asia/Tokyo');
+  });
+
+  // Stalwart 1.0 refuses "europe/berlin" as a query's timeZone, and both
+  // 0.16 and 1.0 drop it from an event, storing the event as floating.
+  it('spells a zone typed in another case the way Intl does', () => {
+    expect(resolveTimeZone('europe/berlin', 'UTC')).toBe('Europe/Berlin');
+    expect(canonicalTimeZone('AMERICA/NEW_YORK')).toBe('America/New_York');
+    expect(canonicalTimeZone('Mars/Olympus_Mons')).toBeNull();
   });
 
   it('validates zone ids against Intl', () => {

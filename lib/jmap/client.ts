@@ -25,7 +25,7 @@ export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
 import { folderDepthError } from "@/lib/file-errors";
 import { mediaTypeEssence, OCTET_STREAM } from "@/lib/media-type";
-import { getEffectiveTimeZone, moveLocalDateTime, toLocalDateTime } from "@/lib/timezone";
+import { canonicalTimeZone, getEffectiveTimeZone, moveLocalDateTime, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, hasTextLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
 import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
@@ -612,11 +612,14 @@ function normalizeCalendarTask(task: CalendarTask): CalendarTask {
  * shifts range boundaries and floating-event times for any user not in UTC.
  * A zone the server's time zone database lacks is read as UTC by 0.16 and
  * refused by 1.0, which fails the whole call; JMAPClient.calendarTimeZone
- * decides what is actually sent.
+ * decides what is actually sent. The name goes out as Intl spells it: 1.0
+ * matches it exactly, so a setting typed "europe/berlin" would read as
+ * unknown.
  */
 function getUserTimeZone(): string | undefined {
   try {
-    return getEffectiveTimeZone() || undefined;
+    const zone = getEffectiveTimeZone();
+    return (zone && canonicalTimeZone(zone)) || undefined;
   } catch {
     return undefined;
   }
@@ -858,10 +861,14 @@ interface QueryRange {
  * conditions of a top-level AND - how global search sends a range with
  * several text parts. Rebuilt, such an AND stays flat: Stalwart 1.0 expands
  * recurrences only for a single FilterCondition, and reads a condition of
- * two keys as an AND of its own.
+ * two keys as an AND of its own. An AND that holds anything else - an OR, a
+ * NOT, a condition of several keys - is no range: 1.0 would refuse to expand
+ * it, so it goes out as it is.
  */
 function rangeOf(filter: CalendarEventFilter): QueryRange {
   if (filter.operator === 'AND' && Array.isArray(filter.conditions)) {
+    const plain = (condition: CalendarEventFilter) => !condition.operator && Object.keys(condition).length === 1;
+    if (!filter.conditions.every(plain)) return { withBounds: () => ({ ...filter }) };
     let after: string | undefined;
     let before: string | undefined;
     const rest = filter.conditions.filter((condition) => {

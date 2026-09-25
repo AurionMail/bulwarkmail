@@ -2895,7 +2895,7 @@
       "you_organizer": "Você é o organizador",
       "you_attendee": "Você é um participante",
       "no_participants": "Sem participantes",
-      "limit_warning": "Mais de {max} participantes: o servidor pode se recusar a salvar este evento. Um administrador pode aumentar o limite.",
+      "limit_warning": "Mais de {max, plural, one {# participante} other {# participantes}}, incluindo o organizador: o servidor pode se recusar a salvar este evento. Um administrador pode aumentar o limite.",
       "count": "{count, plural, one {# participante} other {# participantes}}"
     },
     "recurrence": {
@@ -3069,7 +3069,7 @@
       "save_without_invitations": "Guardar sem convites",
       "rsvp_updated": "Resposta atualizada",
       "rsvp_error": "Falha ao atualizar resposta",
-      "participant_limit": "O servidor permite no máximo {max} participantes por evento, por isso recusou esta alteração. Um administrador pode aumentar o limite.",
+      "participant_limit": "O servidor permite no máximo {max, plural, one {# participante} other {# participantes}} por evento, incluindo o organizador, por isso recusou esta alteração. Um administrador pode aumentar o limite.",
       "event_duplicated": "Evento duplicado",
       "event_error": "Falha ao salvar o evento",
       "task_due": "Tarefa vencendo",

@@ -2895,7 +2895,7 @@
       "you_organizer": "您是主辦人",
       "you_attendee": "您是與會者",
       "no_participants": "沒有參與者",
-      "limit_warning": "參與者超過 {max} 位：伺服器可能會拒絕儲存此活動。管理員可以提高此限制。",
+      "limit_warning": "參與者（含主辦人）超過 {max, plural, other {# 位}}：伺服器可能會拒絕儲存此活動。管理員可以提高此限制。",
       "count": "{count, plural, one {# 位參與者} other {# 位參與者}}"
     },
     "recurrence": {
@@ -3069,7 +3069,7 @@
       "save_without_invitations": "不傳送邀請並儲存",
       "rsvp_updated": "回覆已更新",
       "rsvp_error": "無法更新回覆",
-      "participant_limit": "伺服器每個活動最多允許 {max} 位參與者，因此拒絕了這項變更。管理員可以提高此限制。",
+      "participant_limit": "伺服器每個活動最多允許 {max, plural, other {# 位}}參與者（含主辦人），因此拒絕了這項變更。管理員可以提高此限制。",
       "event_duplicated": "已建立活動副本",
       "event_error": "無法儲存活動",
       "task_due": "任務到期",

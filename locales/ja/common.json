@@ -2895,7 +2895,7 @@
       "you_organizer": "あなたは主催者です",
       "you_attendee": "あなたは参加者です",
       "no_participants": "参加者なし",
-      "limit_warning": "参加者が{max}人を超えています。サーバーがこの予定の保存を拒否する可能性があります。管理者が上限を引き上げることができます。",
+      "limit_warning": "参加者が主催者を含めて{max, plural, other {#人}}を超えています。サーバーがこの予定の保存を拒否する可能性があります。管理者が上限を引き上げることができます。",
       "count": "{count}人の参加者"
     },
     "recurrence": {
@@ -3043,7 +3043,7 @@
       "save_without_invitations": "招待状なしで保存",
       "rsvp_updated": "回答を更新しました",
       "rsvp_error": "回答の更新に失敗しました",
-      "participant_limit": "サーバーでは1件の予定につき参加者は{max}人までのため、この変更は拒否されました。管理者が上限を引き上げることができます。",
+      "participant_limit": "サーバーでは1件の予定につき参加者は主催者を含めて{max, plural, other {#人}}までのため、この変更は拒否されました。管理者が上限を引き上げることができます。",
       "event_duplicated": "予定を複製しました",
       "event_error": "予定の保存に失敗しました",
       "task_due": "タスクの期限です",

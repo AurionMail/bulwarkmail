@@ -6,7 +6,8 @@ import type { Calendar, CalendarEvent } from '@/lib/jmap/types';
 // Stalwart 1.0 refuses to save an event with more participants than the
 // calendars capability's maxParticipantsPerEvent (20 by default); 0.16
 // advertises the same value without enforcing it. The editor warns, and
-// still saves.
+// still saves. The organizer entry a save adds counts: live on 1.0, 19
+// attendees and the organizer are accepted, 20 and the organizer refused.
 
 vi.mock('../participant-availability', () => ({ ParticipantAvailability: () => null }));
 
@@ -50,13 +51,13 @@ function editMeeting(attendees: number, maxParticipants: number | null) {
 }
 
 describe('EventModal participant limit', () => {
-  it('warns when the event has more attendees than the server allows on Stalwart 1.0', () => {
-    editMeeting(3, 2);
+  it('warns when the attendees and the organizer are more than the server allows on Stalwart 1.0', () => {
+    editMeeting(20, 20);
     expect(screen.getByRole('status')).toHaveTextContent('participants.limit_warning');
   });
 
-  it('stays quiet within the limit', () => {
-    editMeeting(2, 2);
+  it('stays quiet within the limit, the organizer counted', () => {
+    editMeeting(19, 20);
     expect(screen.queryByText('participants.limit_warning')).toBeNull();
   });
 

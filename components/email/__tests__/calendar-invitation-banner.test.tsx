@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CalendarInvitationBanner } from '../calendar-invitation-banner';
 import type { Email } from '@/lib/jmap/types';
+import { jmapSetError } from '@/lib/jmap/jmap-error';
 
 const mocks = vi.hoisted(() => {
   const pushMock = vi.fn();
@@ -113,6 +114,7 @@ vi.mock('next-intl', () => ({
       maybe: 'Maybe',
       decline: 'Decline',
       select_calendar: 'Select calendar',
+      participant_limit: 'The server allows at most {max} participants per event.',
     };
 
     let message = strings[key] ?? key;
@@ -747,5 +749,87 @@ describe('CalendarInvitationBanner', () => {
     });
 
     expect(screen.getByText('Proposed changes applied.')).toBeInTheDocument();
+  });
+
+  // Stalwart 1.0 refuses an event with more participants than
+  // maxParticipantsPerEvent; the banner says so instead of "could not
+  // complete".
+  describe('when Stalwart 1.0 refuses the participant count', () => {
+    const LIMIT = jmapSetError('An event cannot have more than 20 participants.', {
+      type: 'invalidProperties', properties: ['participants'],
+    });
+    const invitation = {
+      uid: 'uid-9',
+      title: 'All hands',
+      start: '2026-03-28T10:00:00Z',
+      participants: {
+        attendee: {
+          '@type': 'Participant', email: 'user@example.com', name: 'User',
+          roles: { attendee: true }, participationStatus: 'needs-action',
+        },
+      },
+    };
+
+    it('says so when adding the invitation to the calendar', async () => {
+      mocks.calendarState.importEvents.mockRejectedValue(LIMIT);
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([invitation]);
+      render(<CalendarInvitationBanner email={makeEmail({ id: 'email-9' })} />);
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'All hands' })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Add to calendar'));
+
+      await waitFor(() => {
+        expect(screen.getByText('The server allows at most 20 participants per event.')).toBeInTheDocument();
+      });
+      expect(mocks.calendarState.importEvents).toHaveBeenCalledWith(
+        expect.anything(), [expect.objectContaining({ uid: 'uid-9' })], 'cal-1', { throwIfNoneImported: true },
+      );
+    });
+
+    it('says so when answering an invitation that is not in the calendar yet', async () => {
+      mocks.calendarState.importEvents.mockRejectedValue(LIMIT);
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([invitation]);
+      render(<CalendarInvitationBanner email={makeEmail({ id: 'email-10' })} />);
+      await waitFor(() => expect(screen.getByText('Accept')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Accept'));
+
+      await waitFor(() => {
+        expect(screen.getByText('The server allows at most 20 participants per event.')).toBeInTheDocument();
+      });
+      // Asked to reject: it used to resolve to 0 and say nothing more.
+      expect(mocks.calendarState.importEvents).toHaveBeenCalledWith(
+        expect.anything(), [expect.objectContaining({ uid: 'uid-9' })], 'cal-1', { throwIfNoneImported: true },
+      );
+    });
+
+    it('says so when applying a proposal', async () => {
+      mocks.calendarState.updateEvent = vi.fn().mockRejectedValue(LIMIT);
+      mocks.calendarState.events = [{
+        id: 'event-11', uid: 'uid-11', title: 'Sync', start: '2026-03-27T09:00:00Z', duration: 'PT1H',
+        participants: {
+          organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+          attendee: { '@type': 'Participant', email: 'alice@example.com', roles: { attendee: true }, participationStatus: 'tentative' },
+        },
+      }];
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([{
+        uid: 'uid-11', title: 'Sync', start: '2026-03-27T10:00:00Z', duration: 'PT1H',
+        participants: {
+          organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+          attendee: { '@type': 'Participant', email: 'alice@example.com', roles: { attendee: true }, participationStatus: 'tentative' },
+        },
+      }]);
+      render(<CalendarInvitationBanner email={makeEmail({
+        id: 'email-11',
+        attachments: [{ partId: '1', blobId: 'blob-11', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }],
+      })} />);
+      await waitFor(() => expect(screen.getByText('Apply proposed changes')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Apply proposed changes'));
+
+      await waitFor(() => {
+        expect(screen.getByText('The server allows at most 20 participants per event.')).toBeInTheDocument();
+      });
+    });
   });
 });

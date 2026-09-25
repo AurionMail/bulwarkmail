@@ -627,7 +627,9 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       } else if (eventForRsvp) {
         setActionError(t('action_failed'));
       } else if (calId) {
-        const imported = await importEvents(client, [parsedEvent], calId);
+        // A refusal (Stalwart 1.0's participant limit, say) lands in the
+        // catch below and is said as it is.
+        const imported = await importEvents(client, [parsedEvent], calId, { throwIfNoneImported: true });
         if (imported > 0) {
           const newEvent = useCalendarStore.getState().events.find(
             (e) => e.uid === parsedEvent.uid
@@ -683,15 +685,15 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     setActionError(null);
     setIsProcessing(true);
     try {
-      const count = await importEvents(client, [parsedEvent], calId);
+      const count = await importEvents(client, [parsedEvent], calId, { throwIfNoneImported: true });
       if (count > 0) {
         setActionNotice(t('added'));
         setState('parsed');
       } else {
         setActionError(t('action_failed'));
       }
-    } catch {
-      setActionError(t('action_failed'));
+    } catch (err) {
+      setActionError(describeError(err, t('action_failed')));
     } finally {
       setIsProcessing(false);
     }
@@ -746,8 +748,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       setActionNotice(t('proposal_applied'));
       setState('parsed');
       setRsvpStatus(null);
-    } catch {
-      setActionError(t('action_failed'));
+    } catch (err) {
+      setActionError(describeError(err, t('action_failed')));
     } finally {
       setIsProcessing(false);
     }

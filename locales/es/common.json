@@ -2895,7 +2895,7 @@
       "you_organizer": "Eres el organizador",
       "you_attendee": "Eres un participante",
       "no_participants": "Sin participantes",
-      "limit_warning": "Más de {max} participantes: es posible que el servidor se niegue a guardar este evento. Un administrador puede aumentar el límite.",
+      "limit_warning": "Más de {max, plural, one {# participante} other {# participantes}}, incluido el organizador: es posible que el servidor se niegue a guardar este evento. Un administrador puede aumentar el límite.",
       "count": "{count, plural, one {# participante} other {# participantes}}"
     },
     "recurrence": {
@@ -3043,7 +3043,7 @@
       "save_without_invitations": "Guardar sin invitaciones",
       "rsvp_updated": "Respuesta actualizada",
       "rsvp_error": "Error al actualizar la respuesta",
-      "participant_limit": "El servidor permite como máximo {max} participantes por evento, por lo que rechazó este cambio. Un administrador puede aumentar el límite.",
+      "participant_limit": "El servidor permite como máximo {max, plural, one {# participante} other {# participantes}} por evento, incluido el organizador, por lo que rechazó este cambio. Un administrador puede aumentar el límite.",
       "event_duplicated": "Evento duplicado",
       "event_error": "Error al guardar el evento",
       "task_due": "Tarea vencida",

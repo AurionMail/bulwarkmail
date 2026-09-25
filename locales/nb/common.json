@@ -2895,7 +2895,7 @@
       "you_organizer": "Du er arrangøren",
       "you_attendee": "Du er deltaker",
       "no_participants": "Ingen deltakere",
-      "limit_warning": "Mer enn {max} deltakere: serveren kan nekte å lagre denne hendelsen. En administrator kan øke grensen.",
+      "limit_warning": "Mer enn {max, plural, one {# deltaker} other {# deltakere}}, arrangøren medregnet: serveren kan nekte å lagre denne hendelsen. En administrator kan øke grensen.",
       "count": "{count, plural, one {# deltaker} other {# deltakere}}"
     },
     "recurrence": {
@@ -3069,7 +3069,7 @@
       "save_without_invitations": "Lagre uten invitasjoner",
       "rsvp_updated": "Svaret er oppdatert",
       "rsvp_error": "Kunne ikke oppdatere svaret",
-      "participant_limit": "Serveren tillater høyst {max} deltakere per hendelse, så endringen ble avvist. En administrator kan øke grensen.",
+      "participant_limit": "Serveren tillater høyst {max, plural, one {# deltaker} other {# deltakere}} per hendelse, arrangøren medregnet, så endringen ble avvist. En administrator kan øke grensen.",
       "event_duplicated": "Hendelsen er duplisert",
       "event_error": "Kunne ikke lagre hendelsen",
       "task_due": "Oppgaven forfaller",

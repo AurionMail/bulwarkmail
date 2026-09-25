@@ -480,8 +480,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const fetchAllAccountsCalendarsFn = useCalendarStore((s) => s.fetchAllAccountsCalendars);
   const fetchAllAccountsEventsFn = useCalendarStore((s) => s.fetchAllAccountsEvents);
 
-  // Loads the range the view shows now - not the store's dateRange, which a
-  // failed load leaves at the range loaded before it.
+  // Loads the range the view shows now - after a failed load the same as the
+  // store's dateRange, which then holds the range asked for.
   const retryEventsLoad = useCallback(() => {
     if (!client || !dateRange) return;
     if (multiAccountEnabled && accountClients.length > 0) {
