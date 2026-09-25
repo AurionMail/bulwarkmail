@@ -2084,6 +2084,7 @@
       "validation_empty_name": "规则名称为必填项",
       "validation_empty_conditions": "至少需要一个具有值的条件",
       "validation_empty_actions": "至少需要执行一项操作",
+      "validation_header_name": "标头名称只能包含字母 A-Z、数字、连字符和下划线",
       "templates_section": "从模板开始",
       "template_newsletters": "将订阅邮件移至文件夹",
       "template_receipts": "自动归档收据",

@@ -2091,6 +2091,7 @@
       "validation_empty_name": "Rule name is required",
       "validation_empty_conditions": "At least one condition with a value is required",
       "validation_empty_actions": "At least one action is required",
+      "validation_header_name": "Header names may only contain the letters A-Z, digits, hyphens and underscores",
       "templates_section": "Start from template",
       "template_newsletters": "Move newsletters to folder",
       "template_receipts": "Auto-archive receipts",

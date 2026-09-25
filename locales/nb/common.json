@@ -2091,6 +2091,7 @@
       "validation_empty_name": "Regelnavn må fylles ut",
       "validation_empty_conditions": "Minst ett vilkår må ha en verdi",
       "validation_empty_actions": "Du må legge til minst én handling",
+      "validation_header_name": "Navn på meldingshoder kan bare inneholde bokstavene A-Z, sifre, bindestreker og understreker",
       "templates_section": "Start med en mal",
       "template_newsletters": "Flytt nyhetsbrev til mappe",
       "template_receipts": "Arkiver kvitteringer automatisk",

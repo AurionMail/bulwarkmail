@@ -2084,6 +2084,7 @@
       "validation_empty_name": "O nome da regra é obrigatório",
       "validation_empty_conditions": "É necessária pelo menos uma condição com um valor",
       "validation_empty_actions": "É necessária pelo menos uma ação",
+      "validation_header_name": "Os nomes de cabeçalho só podem conter as letras A-Z, algarismos, hífenes e sublinhados",
       "templates_section": "Começar com modelo",
       "template_newsletters": "Mover newsletters para pasta",
       "template_receipts": "Arquivar recibos automaticamente",

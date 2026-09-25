@@ -2087,6 +2087,7 @@
       "validation_empty_name": "A szabály neve kötelező",
       "validation_empty_conditions": "Legalább egy feltétel szükséges értékkel",
       "validation_empty_actions": "Legalább egy művelet szükséges",
+      "validation_header_name": "A fejlécnevek csak az A-Z betűket, számjegyeket, kötőjeleket és aláhúzásjeleket tartalmazhatják",
       "templates_section": "Kezdés sablonból",
       "template_newsletters": "Hírlevelek áthelyezése mappába",
       "template_receipts": "Nyugták automatikus archiválása",

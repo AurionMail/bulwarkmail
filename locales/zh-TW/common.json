@@ -2091,6 +2091,7 @@
       "validation_empty_name": "規則名稱為必填欄位",
       "validation_empty_conditions": "至少需要一個具有值的條件",
       "validation_empty_actions": "至少需要一個動作",
+      "validation_header_name": "標頭名稱只能包含字母 A-Z、數字、連字號和底線",
       "templates_section": "從範本開始",
       "template_newsletters": "將訂閱郵件移至信件匣",
       "template_receipts": "自動封存收據",

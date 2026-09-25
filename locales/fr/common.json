@@ -2084,6 +2084,7 @@
       "validation_empty_name": "Le nom de la règle est requis",
       "validation_empty_conditions": "Au moins une condition avec une valeur est requise",
       "validation_empty_actions": "Au moins une action est requise",
+      "validation_header_name": "Les noms d'en-tête ne peuvent contenir que les lettres A-Z, des chiffres, des traits d'union et des tirets bas",
       "templates_section": "Partir d'un modèle",
       "template_newsletters": "Déplacer les newsletters dans un dossier",
       "template_receipts": "Archiver les reçus automatiquement",

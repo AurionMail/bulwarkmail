@@ -12,6 +12,33 @@ function escapeString(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
+/**
+ * Header names Stalwart's Sieve compiler accepts (sieve-rs, 0.16 and 1.0).
+ * Anything else - a space, a dot, a colon - fails the whole script with
+ * "Invalid header name".
+ */
+const SIEVE_HEADER_NAME_RE = /^[A-Za-z0-9_-]+$/;
+
+export function isValidSieveHeaderName(name: string): boolean {
+  return SIEVE_HEADER_NAME_RE.test(name);
+}
+
+/** The header a condition tests; a header condition without a name tests X-Unknown. */
+function conditionHeaderName(condition: FilterCondition): string {
+  return condition.field === 'header'
+    ? (condition.headerName?.trim() || 'X-Unknown')
+    : HEADER_MAP[condition.field];
+}
+
+/**
+ * A rule name as it appears on the `# Rule:` comment line. A hash comment
+ * ends at the line break, so one inside the name would turn the rest into
+ * script code.
+ */
+export function ruleCommentName(name: string): string {
+  return name.replace(/[\r\n]+/g, ' ');
+}
+
 // Normalise the condition value to a non-empty string array. Single-value
 // conditions stay one-element; arrays are filtered for empty strings.
 function toValueList(value: string | string[]): string[] {
@@ -67,9 +94,7 @@ function generateCondition(condition: FilterCondition): string {
     return `header :mime :anychild :matches ["Content-Disposition", "Content-Type"] ${formatStringArg(normalised, (ext) => `*.${ext}*`)}`;
   }
 
-  const headerName = field === 'header'
-    ? (condition.headerName || 'X-Unknown')
-    : HEADER_MAP[field];
+  const headerName = conditionHeaderName(condition);
 
   switch (comparator) {
     case 'contains':
@@ -272,7 +297,11 @@ export function generateScript(
   if (options.includeVacation) {
     metadata.includeVacation = true;
   }
-  const metadataJson = JSON.stringify(metadata);
+  // The JSON sits in a bracket comment, which the first `*/` ends - one in a
+  // rule name, a value or the vacation text would leak the rest of the JSON
+  // into the script. `\/` is a valid JSON escape for `/`, so every JSON
+  // parser, older Bulwark versions included, reads it back unchanged.
+  const metadataJson = JSON.stringify(metadata).replace(/\*\//g, '*\\/');
   const lines: string[] = [];
 
   lines.push('/* @metadata:begin');
@@ -316,9 +345,19 @@ export function generateScript(
       debug.warn('filters', `Skipping rule "${rule.name}": empty conditions or actions`);
       continue;
     }
+    // The server would refuse the whole script, every other rule with it.
+    // The rule stays in the metadata, so it can still be corrected.
+    const badHeader = rule.conditions
+      .filter(c => c.field === 'header')
+      .map(conditionHeaderName)
+      .find(name => !isValidSieveHeaderName(name));
+    if (badHeader !== undefined) {
+      debug.warn('filters', `Skipping rule "${rule.name}": invalid header name "${badHeader}"`);
+      continue;
+    }
 
     lines.push('');
-    lines.push(`# Rule: ${rule.name}`);
+    lines.push(`# Rule: ${ruleCommentName(rule.name)}`);
 
     const conditions = rule.conditions.map(generateCondition);
     let conditionStr: string;

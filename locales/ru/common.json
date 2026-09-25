@@ -2084,6 +2084,7 @@
       "validation_empty_name": "Требуется название правила",
       "validation_empty_conditions": "Требуется хотя бы одно условие со значением",
       "validation_empty_actions": "Требуется хотя бы одно действие",
+      "validation_header_name": "Имя заголовка может содержать только буквы A-Z, цифры, дефисы и подчёркивания",
       "templates_section": "Начать с шаблона",
       "template_newsletters": "Перемещать рассылки в папку",
       "template_receipts": "Автоархивировать квитанции",

@@ -2091,6 +2091,7 @@
       "validation_empty_name": "Názov pravidla je povinný",
       "validation_empty_conditions": "Je potrebná aspoň jedna podmienka s hodnotou",
       "validation_empty_actions": "Je potrebná aspoň jedna akcia",
+      "validation_header_name": "Názvy hlavičiek môžu obsahovať iba písmená A-Z, číslice, spojovníky a podčiarkovníky",
       "templates_section": "Začať zo šablóny",
       "template_newsletters": "Presunúť newslettery do priečinka",
       "template_receipts": "Automaticky archivovať účtenky",

@@ -2084,6 +2084,7 @@
       "validation_empty_name": "Il nome della regola è obbligatorio",
       "validation_empty_conditions": "È necessaria almeno una condizione con un valore",
       "validation_empty_actions": "È necessaria almeno un'azione",
+      "validation_header_name": "I nomi delle intestazioni possono contenere solo le lettere A-Z, cifre, trattini e trattini bassi",
       "templates_section": "Parti da un modello",
       "template_newsletters": "Sposta newsletter in cartella",
       "template_receipts": "Archivia ricevute automaticamente",

@@ -2084,6 +2084,7 @@
       "validation_empty_name": "Kural adı gerekli",
       "validation_empty_conditions": "En az bir değeri olan koşul gerekli",
       "validation_empty_actions": "En az bir işlem gerekli",
+      "validation_header_name": "Başlık adları yalnızca A-Z harflerini, rakamları, kısa çizgileri ve alt çizgileri içerebilir",
       "templates_section": "Şablondan başla",
       "template_newsletters": "Bültenleri klasöre taşı",
       "template_receipts": "Makbuzları otomatik arşivle",

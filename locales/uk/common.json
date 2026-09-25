@@ -2084,6 +2084,7 @@
       "validation_empty_name": "Потрібно вказати назву правила",
       "validation_empty_conditions": "Потрібна принаймні одна умова зі значенням",
       "validation_empty_actions": "Необхідна принаймні одна дія",
+      "validation_header_name": "Назва заголовка може містити лише літери A-Z, цифри, дефіси та підкреслення",
       "templates_section": "Почніть із шаблону",
       "template_newsletters": "Перемістити інформаційні бюлетені в папку",
       "template_receipts": "Автоматичне архівування квитанцій",

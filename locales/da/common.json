@@ -2087,6 +2087,7 @@
       "validation_empty_name": "Regelnavn er påkrævet",
       "validation_empty_conditions": "Mindst én betingelse med en værdi er påkrævet",
       "validation_empty_actions": "Mindst én handling er påkrævet",
+      "validation_header_name": "Headernavne må kun indeholde bogstaverne A-Z, cifre, bindestreger og understregninger",
       "templates_section": "Start fra skabelon",
       "template_newsletters": "Flyt nyhedsbreve til mappe",
       "template_receipts": "Auto-arkiver kvitteringer",

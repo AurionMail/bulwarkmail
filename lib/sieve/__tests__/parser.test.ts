@@ -25,6 +25,45 @@ describe('parseScript', () => {
     expect(result.rules).toEqual(rules);
   });
 
+  it('round-trips names and values containing */, which would end the metadata comment', () => {
+    const rules = [
+      makeRule({
+        id: 'r1',
+        name: 'Receipts */ and more',
+        conditions: [
+          { field: 'subject', comparator: 'contains', value: ['*/', 'a */ b'] },
+          { field: 'body', comparator: 'contains', value: 'end */ of comment' },
+        ],
+        actions: [{ type: 'add_label', value: 'bills' }],
+      }),
+      makeRule({ id: 'r2', name: 'Second' }),
+    ];
+    const vacation = { isEnabled: true, subject: 'Out */', textBody: 'Reply */ later' };
+
+    const result = parseScript(generateScript(rules, vacation));
+
+    expect(result.isOpaque).toBe(false);
+    expect(result.rules).toEqual(rules);
+    expect(result.vacation).toEqual(vacation);
+  });
+
+  it('reads back metadata a newer Bulwark wrote with */ escaped (older clients parse it too)', () => {
+    // JSON.parse turns `\/` back into `/`, so no reader needs to know.
+    const script = '/* @metadata:begin\n{"version":1,"rules":[{"id":"x","name":"a *\\/ b","enabled":true,"matchType":"all",'
+      + '"conditions":[{"field":"from","comparator":"contains","value":"c"}],"actions":[{"type":"discard"}],"stopProcessing":false}]}\n@metadata:end */\n';
+    expect(parseScript(script).rules[0].name).toBe('a */ b');
+  });
+
+  it('recognises its own rule block when the rule name had a line break', () => {
+    // The # Rule: line flattens the break; the block must still be matched to
+    // the rule, or the next save would copy it as an "external" rule.
+    const rules = [makeRule({ name: 'Two\nlines' })];
+    const result = parseScript(generateScript(rules));
+
+    expect(result.rules).toEqual(rules);
+    expect(result.rules.some((r) => r.origin === 'external')).toBe(false);
+  });
+
   it('parses external rules when no Bulwark metadata is present', () => {
     const result = parseScript('require ["fileinto"];\nif header :contains "From" "x" { fileinto "Y"; }');
     expect(result.isOpaque).toBe(false);

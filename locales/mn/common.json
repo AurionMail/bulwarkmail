@@ -2091,6 +2091,7 @@
       "validation_empty_name": "Дүрмийн нэр шаардлагатай",
       "validation_empty_conditions": "Дор хаяж нэг утга бүхий нөхцөл шаардлагатай",
       "validation_empty_actions": "Дор хаяж нэг үйлдэл хийх шаардлагатай",
+      "validation_header_name": "Толгойн нэрэнд зөвхөн A-Z үсэг, тоо, зураас, доогуур зураас ашиглаж болно",
       "templates_section": "Загвар",
       "template_newsletters": "Мэдээллийн хуудсыг хавтас руу зөөх",
       "template_receipts": "Автоматаар архивлах баримт",

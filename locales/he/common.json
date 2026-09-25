@@ -2004,6 +2004,7 @@
       "validation_empty_name": "נדרש שם כלל",
       "validation_empty_conditions": "נדרש לפחות תנאי אחד עם ערך",
       "validation_empty_actions": "נדרשת לפחות פעולה אחת",
+      "validation_header_name": "שמות כותרות יכולים להכיל רק את האותיות A-Z, ספרות, מקפים וקווים תחתונים",
       "templates_section": "התחל מהתבנית",
       "template_newsletters": "העבר ניוזלטרים לתיקיה",
       "template_receipts": "העבר קבלות לארכיון אוטומטי",

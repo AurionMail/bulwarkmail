@@ -2084,6 +2084,7 @@
       "validation_empty_name": "Nazwa reguły jest wymagana",
       "validation_empty_conditions": "Wymagany jest co najmniej jeden warunek z wartością",
       "validation_empty_actions": "Wymagana jest co najmniej jedna akcja",
+      "validation_header_name": "Nazwy nagłówków mogą zawierać tylko litery A-Z, cyfry, łączniki i podkreślenia",
       "templates_section": "Rozpocznij od szablonu",
       "template_newsletters": "Przenieś newslettery do folderu",
       "template_receipts": "Automatycznie archiwizuj rachunki",

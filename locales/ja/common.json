@@ -2084,6 +2084,7 @@
       "validation_empty_name": "ルール名は必須です",
       "validation_empty_conditions": "値を持つ条件が少なくとも1つ必要です",
       "validation_empty_actions": "少なくとも1つのアクションが必要です",
+      "validation_header_name": "ヘッダー名に使用できるのは英字（A-Z）、数字、ハイフン、アンダースコアのみです",
       "templates_section": "テンプレートから作成",
       "template_newsletters": "ニュースレターをフォルダに移動",
       "template_receipts": "領収書を自動アーカイブ",

@@ -2084,6 +2084,7 @@
       "validation_empty_name": "Regelname ist erforderlich",
       "validation_empty_conditions": "Mindestens eine Bedingung mit einem Wert ist erforderlich",
       "validation_empty_actions": "Mindestens eine Aktion ist erforderlich",
+      "validation_header_name": "Header-Namen dürfen nur die Buchstaben A-Z, Ziffern, Bindestriche und Unterstriche enthalten",
       "templates_section": "Von Vorlage starten",
       "template_newsletters": "Newsletter in Ordner verschieben",
       "template_receipts": "Quittungen automatisch archivieren",

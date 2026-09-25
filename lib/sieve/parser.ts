@@ -8,6 +8,7 @@ import type {
   VacationSieveConfig,
 } from '@/lib/jmap/sieve-types';
 import { debug } from '@/lib/debug';
+import { ruleCommentName } from '@/lib/sieve/generator';
 
 export interface ParseResult {
   rules: FilterRule[];
@@ -834,7 +835,8 @@ export function parseScript(content: string): ParseResult {
       const match = raw.match(/#\s*Rule:\s*(.+?)\s*$/m);
       if (match) {
         const name = match[1].trim();
-        if (bulwarkRules.some(b => b.name === name)) return false;
+        // The comment line carries the name with its line breaks flattened.
+        if (bulwarkRules.some(b => ruleCommentName(b.name).trim() === name)) return false;
       }
       if (/#\s*Vacation auto-reply/i.test(raw)) return false;
       return true;

@@ -2091,6 +2091,7 @@
       "validation_empty_name": "Numele regulii este obligatoriu",
       "validation_empty_conditions": "Este necesară cel puțin o condiție cu o valoare",
       "validation_empty_actions": "Este necesară cel puțin o acțiune",
+      "validation_header_name": "Numele antetelor pot conține doar literele A-Z, cifre, cratime și liniuțe de subliniere",
       "templates_section": "Începeți de la șablon",
       "template_newsletters": "Mutați buletinele informative în dosar",
       "template_receipts": "Arhivarea automată a confirmărilor de primire",

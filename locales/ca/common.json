@@ -2091,6 +2091,7 @@
       "validation_empty_name": "El nom de la regla és obligatori",
       "validation_empty_conditions": "Cal com a mínim una condició amb un valor",
       "validation_empty_actions": "Cal com a mínim una acció",
+      "validation_header_name": "Els noms de capçalera només poden contenir les lletres A-Z, xifres, guionets i guions baixos",
       "templates_section": "Comença des d'una plantilla",
       "template_newsletters": "Mou els butlletins a una carpeta",
       "template_receipts": "Arxiva automàticament els rebuts",

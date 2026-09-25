@@ -2091,6 +2091,7 @@
       "validation_empty_name": "اسم القاعدة مطلوب",
       "validation_empty_conditions": "مطلوب شرط واحد على الأقل بقيمة",
       "validation_empty_actions": "مطلوب إجراء واحد على الأقل",
+      "validation_header_name": "يمكن أن يحتوي اسم الترويسة على الأحرف A-Z والأرقام والشرطات والشرطات السفلية فقط",
       "templates_section": "البدء من قالب",
       "template_newsletters": "نقل النشرات البريدية إلى مجلد",
       "template_receipts": "أرشفة الإيصالات تلقائيًا",

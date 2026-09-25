@@ -2091,6 +2091,7 @@
       "validation_empty_name": "نام قانون الزامی است",
       "validation_empty_conditions": "حداقل یک شرط با مقدار الزامی است",
       "validation_empty_actions": "حداقل یک عملیات الزامی است",
+      "validation_header_name": "نام هدر فقط می‌تواند شامل حروف A-Z، ارقام، خط تیره و زیرخط باشد",
       "templates_section": "شروع از قالب",
       "template_newsletters": "انتقال خبرنامه‌ها به پوشه",
       "template_receipts": "بایگانی خودکار رسیدها",
