@@ -69,6 +69,12 @@ export function computeFireTime(
   return baseTime + offsetMs;
 }
 
+/**
+ * The alerts an event fires: the calendar's default alerts while the event
+ * uses them, its own otherwise - never both. Stalwart 1.0 also fills the
+ * defaults into the `alerts` of such an event, under the default alerts'
+ * ids; reading one or the other keeps each alert firing once.
+ */
 export function getEffectiveAlerts(
   event: CalendarEvent,
   calendars: Calendar[]
@@ -92,6 +98,30 @@ export function getEffectiveAlerts(
 
 export function buildAlertKey(eventId: string, alertId: string, fireTimeMs: number): string {
   return `${eventId}:${alertId}:${fireTimeMs}`;
+}
+
+/**
+ * `alerts` under new ids (alert1, alert2, ...), none of them in `taken`.
+ *
+ * For an event or task that turns its calendar's default alerts off: while
+ * `useDefaultAlerts` is on, Stalwart 1.0 shows the defaults in `alerts`
+ * under the default alerts' ids, and on save it drops every alert whose id
+ * is one of those. Alerts the user keeps have to be saved under ids of their
+ * own, or they vanish with the defaults.
+ */
+export function withOwnAlertIds(
+  alerts: CalendarEventAlert[],
+  taken: Iterable<string>,
+): Record<string, CalendarEventAlert> {
+  const used = new Set(taken);
+  const result: Record<string, CalendarEventAlert> = {};
+  let n = 0;
+  for (const alert of alerts) {
+    let id: string;
+    do id = `alert${++n}`; while (used.has(id));
+    result[id] = alert;
+  }
+  return result;
 }
 
 export function getPendingAlerts(

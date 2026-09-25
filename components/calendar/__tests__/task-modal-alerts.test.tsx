@@ -80,3 +80,48 @@ describe('TaskModal alert preservation (#504)', () => {
     expect(Object.keys(patch.alerts!)).toEqual(['a-abs']);
   });
 });
+
+// Stalwart 1.0 shows a task's calendar defaults in `alerts`, under the
+// default alerts' ids, while `useDefaultAlerts` is on, and drops alerts with
+// those ids on save.
+describe('TaskModal alerts of a task that uses the calendar defaults', () => {
+  const defaultsTask = () => ({
+    ...makeTask(),
+    useDefaultAlerts: true,
+    alerts: {
+      'default-15': {
+        '@type': 'Alert',
+        trigger: { '@type': 'OffsetTrigger', offset: '-PT15M', relativeTo: 'start' },
+        action: 'display',
+        acknowledged: null,
+        relatedTo: null,
+      },
+    },
+  } as unknown as CalendarTask);
+
+  it('turns the defaults off and moves the alerts to ids of their own when the alert changes on Stalwart 1.0', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TaskModal task={defaultsTask()} calendars={calendars} onSave={onSave} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByDisplayValue('tasks.alert_15min'), { target: { value: '60' } });
+    fireEvent.click(screen.getByText('tasks.save'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    const patch = onSave.mock.calls[0][0] as Partial<CalendarTask>;
+    expect(patch.useDefaultAlerts).toBe(false);
+    expect(Object.keys(patch.alerts!)).toEqual(['alert1']);
+    expect(patch.alerts!.alert1.trigger).toMatchObject({ offset: '-PT60M' });
+  });
+
+  it('leaves the defaults alone when the alert was not touched', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<TaskModal task={defaultsTask()} calendars={calendars} onSave={onSave} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByText('tasks.save'));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    const patch = onSave.mock.calls[0][0] as Partial<CalendarTask>;
+    expect(patch).not.toHaveProperty('alerts');
+    expect(patch).not.toHaveProperty('useDefaultAlerts');
+  });
+});

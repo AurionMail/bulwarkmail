@@ -5,10 +5,13 @@ import {
   getEffectiveAlerts,
   buildAlertKey,
   getPendingAlerts,
+  getPendingTaskAlerts,
+  withOwnAlertIds,
 } from '../calendar-alerts';
 import type {
   CalendarEvent,
   CalendarEventAlert,
+  CalendarTask,
   Calendar,
 } from '@/lib/jmap/types';
 
@@ -419,5 +422,45 @@ describe('getPendingAlerts', () => {
     const result = getPendingAlerts([event], calendars, new Set(), now);
     expect(result).toHaveLength(1);
     expect(result[0].calendarName).toBeNull();
+  });
+});
+
+// Stalwart 1.0 fills a calendar's default alerts into `alerts` while
+// `useDefaultAlerts` is on, under the default alerts' own ids (for tasks as
+// well). 0.16 copied the defaults into `alerts` once, when the event was
+// created. Either way each alert fires once.
+describe('default alerts filled in by the server', () => {
+  const eventStart = new Date('2026-03-01T10:00:00Z').getTime();
+  const defaults = { 'default-5': makeAlert(), 'default-mail': makeAlert({ action: 'email' }) };
+  const calendars = [makeCalendar({ defaultAlertsWithTime: defaults })];
+
+  it('fires each default alert of an event once on Stalwart 1.0', () => {
+    const event = makeEvent({ useDefaultAlerts: true, alerts: { ...defaults } });
+    const pending = getPendingAlerts([event], calendars, new Set(), eventStart - 5 * 60 * 1000 + 1000);
+    expect(pending.map((p) => p.alertId)).toEqual(['default-5']);
+  });
+
+  it('fires each default alert of an event once on 0.16', () => {
+    // Copied in at create time, under ids of 0.16's own.
+    const event = makeEvent({ useDefaultAlerts: true, alerts: { copied: makeAlert() } });
+    const pending = getPendingAlerts([event], calendars, new Set(), eventStart - 5 * 60 * 1000 + 1000);
+    expect(pending.map((p) => p.alertId)).toEqual(['default-5']);
+  });
+
+  it('fires the default alerts filled into a task once on Stalwart 1.0', () => {
+    const task = {
+      id: 'task-1', '@type': 'Task', title: 'Pay rent', calendarIds: { 'cal-1': true },
+      due: '2026-03-01T10:00:00Z', progress: 'needs-action', useDefaultAlerts: true, alerts: { ...defaults },
+    } as unknown as CalendarTask;
+    const pending = getPendingTaskAlerts([task], calendars, new Set(), eventStart - 5 * 60 * 1000 + 1000);
+    expect(pending.map((p) => p.alertId)).toEqual(['default-5']);
+  });
+});
+
+describe('withOwnAlertIds', () => {
+  it('numbers the alerts past the ids that are taken', () => {
+    const [a, b] = [makeAlert({ trigger: { '@type': 'OffsetTrigger', offset: '-PT5M', relativeTo: 'start' } }), makeAlert()];
+    expect(withOwnAlertIds([a, b], ['alert1', 'default-5'])).toEqual({ alert2: a, alert3: b });
+    expect(withOwnAlertIds([], ['alert1'])).toEqual({});
   });
 });

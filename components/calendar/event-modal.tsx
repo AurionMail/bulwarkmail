@@ -24,6 +24,7 @@ import {
   buildParticipantMap,
 } from "@/lib/calendar-participants";
 import { canUserRsvp, getEventEditability, canCreateEventsIn } from "@/lib/calendar-editability";
+import { withOwnAlertIds } from "@/lib/calendar-alerts";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { useSettingsStore } from "@/stores/settings-store";
 import { generateUUID } from "@/lib/utils";
@@ -115,10 +116,12 @@ type RecurrenceOption = "none" | "daily" | "weekly" | "monthly" | "yearly" | "cu
 
 type AlertUnit = "at_time" | "minutes" | "hours" | "days" | "weeks";
 
-interface AlertRow {
+export interface AlertRow {
   id: string;
   value: number;
   unit: AlertUnit;
+  /** The event alert the row shows, and what the row read when loaded. */
+  source?: { alertId: string; value: number; unit: AlertUnit };
 }
 
 let alertRowSeq = 0;
@@ -157,6 +160,82 @@ function offsetToAlertRow(offset: string): AlertRow | null {
     return newAlertRow(mins, "minutes");
   }
   return null;
+}
+
+/**
+ * The editor rows for an event's alerts, and the alerts the rows cannot
+ * show (absolute triggers, email actions, unusual offsets), which a save
+ * keeps as they are.
+ */
+export function alertRowsOf(alerts: CalendarEvent["alerts"] | undefined): {
+  rows: AlertRow[];
+  preserved: Record<string, CalendarEventAlert>;
+} {
+  const rows: AlertRow[] = [];
+  const preserved: Record<string, CalendarEventAlert> = {};
+  for (const [id, alert] of Object.entries(alerts ?? {})) {
+    const row = alert.trigger["@type"] === "OffsetTrigger" && alert.action === "display"
+      ? offsetToAlertRow(alert.trigger.offset)
+      : null;
+    if (!row) {
+      preserved[id] = alert;
+      continue;
+    }
+    rows.push({ ...row, source: { alertId: id, value: row.value, unit: row.unit } });
+  }
+  return { rows, preserved };
+}
+
+/**
+ * What a save sends for the alerts: nothing when they are as the event had
+ * them. Rows the user left alone keep their alert as it was, under its id;
+ * new and changed rows become new alerts.
+ *
+ * On an event that uses its calendar's default alerts, a change turns them
+ * off for the event, as the native app does: while `useDefaultAlerts` is on,
+ * Stalwart 1.0 fills the defaults into `alerts` and shows those instead of
+ * the event's own, so a change would not stick. The alerts then get ids of
+ * their own (withOwnAlertIds), away from the event's and the calendar's
+ * default ids (`reservedIds`). 0.16 stores the alerts either way.
+ */
+export function buildAlertsPatch(
+  event: Pick<CalendarEvent, "alerts" | "useDefaultAlerts"> | null | undefined,
+  rows: AlertRow[],
+  preserved: Record<string, CalendarEventAlert>,
+  reservedIds: Iterable<string> = [],
+): Partial<Pick<CalendarEvent, "alerts" | "useDefaultAlerts">> {
+  const original = event?.alerts ?? {};
+  const kept: Record<string, CalendarEventAlert> = { ...preserved };
+  const added: CalendarEventAlert[] = [];
+  for (const row of rows) {
+    const offset = alertRowToOffset(row);
+    if (offset === null) continue;
+    const { source } = row;
+    if (source && row.value === source.value && row.unit === source.unit && original[source.alertId]) {
+      kept[source.alertId] = original[source.alertId];
+      continue;
+    }
+    added.push({
+      "@type": "Alert",
+      trigger: { "@type": "OffsetTrigger", offset, relativeTo: "start" },
+      action: "display",
+      acknowledged: null,
+      relatedTo: null,
+    });
+  }
+
+  const keptAll = Object.keys(original).every((id) => id in kept);
+  if (added.length === 0 && keptAll) return {};
+
+  const taken = [...Object.keys(original), ...reservedIds];
+  const alerts = event?.useDefaultAlerts
+    ? withOwnAlertIds([...Object.values(kept), ...added], taken)
+    : { ...kept, ...withOwnAlertIds(added, taken) };
+  const patch: Partial<Pick<CalendarEvent, "alerts" | "useDefaultAlerts">> = {
+    alerts: Object.keys(alerts).length > 0 ? alerts : null,
+  };
+  if (event?.useDefaultAlerts) patch.useDefaultAlerts = false;
+  return patch;
 }
 
 function formatAlertRowLabel(
@@ -386,24 +465,11 @@ export function EventModal({
     () => (customRule ? buildRecurrenceSummary(customRule, t, locale) : null),
     [customRule, t, locale]
   );
+  // Alerts this UI can't represent survive a save as they are.
   const preservedAlertsRef = useRef<Record<string, CalendarEventAlert>>({});
   const [alertRows, setAlertRows] = useState<AlertRow[]>(() => {
-    if (!event?.alerts) return [];
-    const rows: AlertRow[] = [];
-    for (const [id, alert] of Object.entries(event.alerts)) {
-      // Preserve alerts we can't represent in this UI (absolute triggers,
-      // email actions, offsets with non-canonical shapes) so they survive a save.
-      if (alert.trigger["@type"] !== "OffsetTrigger" || alert.action !== "display") {
-        preservedAlertsRef.current[id] = alert;
-        continue;
-      }
-      const row = offsetToAlertRow(alert.trigger.offset);
-      if (!row) {
-        preservedAlertsRef.current[id] = alert;
-        continue;
-      }
-      rows.push(row);
-    }
+    const { rows, preserved } = alertRowsOf(event?.alerts);
+    preservedAlertsRef.current = preserved;
     return rows;
   });
 
@@ -594,26 +660,10 @@ export function EventModal({
       if (event.excludedRecurrenceRules) data.excludedRecurrenceRules = null;
     }
 
-    const builtAlerts: Record<string, CalendarEventAlert> = { ...preservedAlertsRef.current };
-    let alertIdx = 0;
-    for (const row of alertRows) {
-      const offset = alertRowToOffset(row);
-      if (offset === null) continue;
-      let key = `alert${++alertIdx}`;
-      while (key in builtAlerts) key = `alert${++alertIdx}`;
-      builtAlerts[key] = {
-        "@type": "Alert",
-        trigger: { "@type": "OffsetTrigger", offset, relativeTo: "start" },
-        action: "display",
-        acknowledged: null,
-        relatedTo: null,
-      };
-    }
-    if (Object.keys(builtAlerts).length > 0) {
-      data.alerts = builtAlerts;
-    } else if (event && event.alerts && Object.keys(event.alerts).length > 0) {
-      data.alerts = null;
-    }
+    const defaultAlertIds = calendars
+      .filter((c) => c.id === calendarId || event?.calendarIds?.[c.id])
+      .flatMap((c) => [...Object.keys(c.defaultAlertsWithTime ?? {}), ...Object.keys(c.defaultAlertsWithoutTime ?? {})]);
+    Object.assign(data, buildAlertsPatch(event, alertRows, preservedAlertsRef.current, defaultAlertIds));
 
     if (effectiveAttendees.length > 0 && currentUserEmails.length > 0) {
       const organizerEmail = currentUserEmails[0];
@@ -644,7 +694,7 @@ export function EventModal({
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, recurrence, customRule, alertRows, attendees, sendInvitations, currentUserEmails, existingParticipants, resolveContactName, event, onSave, isSaving]);
+  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, sendInvitations, currentUserEmails, existingParticipants, resolveContactName, event, onSave, isSaving]);
 
   const handleRsvp = useCallback((status: CalendarParticipant['participationStatus']) => {
     if (!event || !userParticipantId || !onRsvp) return;

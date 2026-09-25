@@ -848,6 +848,8 @@ export interface CalendarTask {
   created: string | null;
   updated: string;
   recurrenceRules: CalendarRecurrenceRule[] | null;
+  // While on, Stalwart 1.0 fills the calendar's default alerts into `alerts`.
+  useDefaultAlerts?: boolean;
   alerts: Record<string, CalendarEventAlert> | null;
   relatedTo: Record<string, CalendarRelation> | null;
 }
