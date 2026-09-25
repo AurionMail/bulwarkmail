@@ -97,6 +97,8 @@ export function rawFileNodeId(node: FileNode): string {
 function filterNodes(parsed: ParsedQuery, nodes: FileNode[], account: SearchAccount, limit: number, source: 'local' | 'remote'): FileHit[] {
   const hits: FileHit[] = [];
   for (const node of nodes) {
+    // The owner's folders above a shared node only feed the path below.
+    if (node.discoverableOnly) continue;
     if (!matchesTerms(parsed.terms, [node.name, isFolderNode(node) ? 'folder' : node.type])) continue;
     const folderPath = pathOfNode(nodes, node);
     hits.push({

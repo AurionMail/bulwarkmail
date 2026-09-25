@@ -528,7 +528,11 @@ export const useFileStore = create<FileState>((set, get) => ({
       const allNodes = isCrossAccountId(parentId)
         ? await client.listAllFileNodesAcrossAccounts()
         : await client.listAllFileNodes();
-      const resources = sortResources(childrenOf(allNodes, parentId).map(nodeToResource));
+      // The owner's folders on the way down to a shared node aren't shown
+      // (see loadSharedRoots); the user can do nothing in them.
+      const resources = sortResources(
+        childrenOf(allNodes, parentId).filter(n => !n.discoverableOnly).map(nodeToResource),
+      );
 
       // Prune recent files whose backing node no longer exists on the server
       const { recentFiles } = get();
@@ -1048,7 +1052,10 @@ export const useFileStore = create<FileState>((set, get) => ({
       return;
     }
     try {
-      const all = await client.listAllFileNodesAcrossAccounts();
+      // Stalwart 1.0 also lists the owner's folders above a shared node
+      // (discoverableOnly); left in, the owner's top folder became the root
+      // and the shared folder sat somewhere below it.
+      const all = (await client.listAllFileNodesAcrossAccounts()).filter(n => !n.discoverableOnly);
       const idSet = new Set(all.map(n => n.id));
       // A shared node is a "root" of the shared-with-me tree when its parent is
       // not among the nodes the user can see (either null, or owned by a

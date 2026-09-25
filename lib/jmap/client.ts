@@ -82,6 +82,18 @@ function fromWireFileNode(node: FileNode): FileNode {
 }
 
 /**
+ * A folder Stalwart 1.0 lists only as the way down to something shared
+ * with the user: the ancestors of a shared node come back with a name and
+ * parent but no dates and every right false. A node the user may read always
+ * has both dates, and 0.16 never leaves `modified` out.
+ */
+function isDiscoverableOnly(node: FileNode): boolean {
+  const rights = node.myRights;
+  return node.modified == null && node.created == null
+    && !!rights && Object.values(rights).every(granted => !granted);
+}
+
+/**
  * RFC 7617 Basic credentials, UTF-8 encoded (what Stalwart decodes). `btoa`
  * alone is Latin-1: it garbles `ü` and throws on anything past U+00FF, such
  * as an unconverted IDN login or a password with `€` in it.
@@ -8032,7 +8044,8 @@ export class JMAPClient implements IJMAPClient {
    * shared accounts. Nodes owned by another principal (shared with the user)
    * are tagged with `isShared: true` and the owning `accountId`/`accountName`,
    * and their ids are namespaced `accountId:nodeId` so they don't collide with
-   * the primary account's ids. Mirrors getAllCalendars().
+   * the primary account's ids. Folders listed only as the way down to a shared
+   * node are marked `discoverableOnly`. Mirrors getAllCalendars().
    */
   async listAllFileNodesAcrossAccounts(): Promise<FileNode[]> {
     const primaryId = this.getFilesAccountId();
@@ -8045,8 +8058,9 @@ export class JMAPClient implements IJMAPClient {
       try {
         const nodes = await this.fetchAllFileNodes(accountId);
         for (const node of nodes) {
+          const wire = fromWireFileNode(node);
           all.push({
-            ...fromWireFileNode(node),
+            ...wire,
             id: isPrimary ? node.id : `${accountId}:${node.id}`,
             parentId: node.parentId == null
               ? null
@@ -8054,6 +8068,7 @@ export class JMAPClient implements IJMAPClient {
             accountId,
             accountName: account?.name || (isPrimary ? this.username : accountId),
             isShared: !isPrimary,
+            ...(!isPrimary && isDiscoverableOnly(wire) ? { discoverableOnly: true } : {}),
           });
         }
       } catch (error) {

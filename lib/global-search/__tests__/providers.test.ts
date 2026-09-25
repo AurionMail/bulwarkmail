@@ -343,4 +343,17 @@ describe('files provider', () => {
     const retry = await filesProvider.remote(parseSearchQuery('zebra'), acc, { limit: 10, signal });
     expect(retry.hits).toHaveLength(2);
   });
+
+  it('leaves the owner\'s folders above a shared node out of the hits but not out of its path on Stalwart 1.0', async () => {
+    const shared = [
+      // An ancestor listed only as the way down (no dates, no rights).
+      { id: 'owner:a', parentId: null, name: 'zebra archive', type: null, blobId: null, size: null, created: null, modified: null, accountId: 'owner', isShared: true, discoverableOnly: true },
+      { id: 'owner:x', parentId: 'owner:a', name: 'zebra project', type: null, blobId: null, size: null, created: '2026-01-01T00:00:00Z', modified: '2026-01-01T00:00:00Z', accountId: 'owner', isShared: true },
+    ];
+    invalidateFileSearchCache();
+    const acc = account('login-s', { listAllFileNodesAcrossAccounts: vi.fn(async () => shared) });
+    const { hits } = await filesProvider.remote(parseSearchQuery('zebra'), acc, { limit: 10, signal });
+    expect(hits.map((h) => h.id)).toEqual(['x']);
+    expect(hits[0]).toMatchObject({ folderPath: '/zebra archive', isFolder: true, jmapAccountId: 'owner' });
+  });
 });

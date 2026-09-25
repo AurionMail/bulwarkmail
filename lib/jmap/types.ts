@@ -1019,6 +1019,10 @@ export interface FileNode {
   // True when this node was fetched from another principal's account that was
   // shared with the logged-in user (mirrors Calendar.isShared / AddressBook.isShared).
   isShared?: boolean;
+  // A folder of another account that is listed only because something below
+  // it was shared with the user (Stalwart 1.0): name and place in the tree,
+  // no dates, no rights. It leads to the shared node but is not shown itself.
+  discoverableOnly?: boolean;
   // Owning account's JMAP id and display name, set when aggregating nodes
   // across connected/shared accounts so mutations route to the right account.
   accountId?: string;

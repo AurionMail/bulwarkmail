@@ -412,6 +412,72 @@ describe('file-store modification date (issue #700)', () => {
   });
 });
 
+describe('file-store "Shared with me"', () => {
+  const NO_RIGHTS = { mayRead: false, mayAddChildren: false, mayRename: false, mayDelete: false, mayModifyContent: false, mayShare: false };
+  const READ = { ...NO_RIGHTS, mayRead: true };
+  const T = '2026-09-01T08:00:00Z';
+
+  // Another user's nodes as listAllFileNodesAcrossAccounts hands them over.
+  const shared = (id: string, name: string, parentId: string | null, blobId: string | null = null): FileNode => ({
+    id: `owner:${id}`, parentId: parentId && `owner:${parentId}`, name, type: blobId ? 'text/plain' : '', blobId, size: blobId ? 3 : 0,
+    created: T, modified: T, myRights: READ, isShared: true, accountId: 'owner', accountName: 'Owner',
+  });
+  // Stalwart 1.0's ancestors of a shared node: no dates, no rights.
+  const placeholder = (id: string, name: string, parentId: string | null): FileNode => ({
+    ...shared(id, name, parentId), created: null as unknown as string, modified: null as unknown as string,
+    myRights: NO_RIGHTS, discoverableOnly: true,
+  });
+
+  function withSharedDrive(nodes: FileNode[]) {
+    const client = makeMockClient([]);
+    Object.assign(client, { listAllFileNodesAcrossAccounts: async () => nodes.map(n => ({ ...n })) });
+    return client;
+  }
+
+  beforeEach(() => {
+    useFileStore.setState({
+      client: null,
+      currentParentId: null,
+      currentPath: '/',
+      pathStack: [{ id: null, name: '' }],
+      resources: [],
+      sharedRoots: [],
+    });
+  });
+
+  it('shows the shared folder as the root, not the owner\'s folders above it, on Stalwart 1.0', async () => {
+    useFileStore.getState().initClient(withSharedDrive([
+      placeholder('docs', 'Documents', null),
+      placeholder('projects', 'Projects', 'docs'),
+      shared('x', 'Project X', 'projects'),
+      shared('report', 'report.txt', 'x', 'b1'),
+      // A subfolder the owner took back, with something below it still shared.
+      placeholder('private', 'Private', 'x'),
+      shared('deep', 'Deep', 'private'),
+    ]));
+
+    await useFileStore.getState().loadSharedRoots();
+    expect(useFileStore.getState().sharedRoots.map(r => r.name)).toEqual(['Deep', 'Project X']);
+
+    await useFileStore.getState().navigate('owner:x', 'Project X');
+    expect(useFileStore.getState().resources.map(r => r.name)).toEqual(['report.txt']);
+  });
+
+  it('keeps a child that reports no rights but has dates, as 0.16 lists one the share predates', async () => {
+    useFileStore.getState().initClient(withSharedDrive([
+      // 0.16 leaves the owner's folders above a share out of the listing.
+      shared('f', 'Shared', 'unlisted'),
+      { ...shared('old', 'old.txt', 'f', 'b1'), myRights: NO_RIGHTS },
+    ]));
+
+    await useFileStore.getState().loadSharedRoots();
+    expect(useFileStore.getState().sharedRoots.map(r => r.name)).toEqual(['Shared']);
+
+    await useFileStore.getState().navigate('owner:f', 'Shared');
+    expect(useFileStore.getState().resources.map(r => r.name)).toEqual(['old.txt']);
+  });
+});
+
 describe('resourceServerRef', () => {
   it('splits a shared drive\'s namespaced id into the owner account and the node id', () => {
     expect(resourceServerRef({ id: 'owner1:n5', isShared: true, ownerAccountId: 'owner1' }))
