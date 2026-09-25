@@ -1,35 +1,58 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { generateVCard } from "@/lib/vcard";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactDisplayName } from "@/stores/contact-store";
-import { hasBlobMedia, inlineContactMedia } from "@/lib/contact-media";
+import { inlineContactMediaForExport } from "@/lib/contact-media";
 import { getContactPhotoClient } from "@/hooks/use-contact-photo";
 
-export async function exportContact(contact: ContactCard): Promise<void> {
-  const vcf = generateVCard([await withInlineMedia(contact)]);
-  const name = getContactDisplayName(contact) || "contact";
-  downloadVcf(vcf, `${sanitizeFilename(name)}.vcf`);
+// On Stalwart 1.0 an export first downloads every photo, which takes a while
+// for a large address book; a second click meanwhile would start it all over.
+let exporting = false;
+const busyListeners = new Set<() => void>();
+
+function setExporting(value: boolean): void {
+  exporting = value;
+  for (const listener of busyListeners) listener();
 }
 
-export async function exportContacts(contacts: ContactCard[]): Promise<void> {
-  const vcf = generateVCard(await Promise.all(contacts.map(withInlineMedia)));
-  downloadVcf(vcf, `contacts-${new Date().toISOString().slice(0, 10)}.vcf`);
+function subscribeExporting(listener: () => void): () => void {
+  busyListeners.add(listener);
+  return () => {
+    busyListeners.delete(listener);
+  };
+}
+
+/** Whether a vCard export is running; the export buttons show it and wait. */
+export function useContactExportBusy(): boolean {
+  return useSyncExternalStore(subscribeExporting, () => exporting, () => false);
 }
 
 /**
- * The card with its blob media (Stalwart 1.0) downloaded into data: URIs,
- * which a vCard carries inline. A photo that cannot be downloaded is left out
- * rather than failing the export.
+ * Builds the .vcf and hands it to the browser. Resolves false, doing nothing,
+ * while another export is still running.
  */
-async function withInlineMedia(contact: ContactCard): Promise<ContactCard> {
-  if (!hasBlobMedia(contact.media)) return contact;
-  const media = await inlineContactMedia(contact.media, {
-    client: getContactPhotoClient(contact.localAccountId),
-    accountId: contact.accountId,
-    localAccountId: contact.localAccountId,
-  }, "drop");
-  return { ...contact, media };
+async function runExport(contacts: ContactCard[], filename: string): Promise<boolean> {
+  if (exporting) return false;
+  setExporting(true);
+  try {
+    // Blob media (Stalwart 1.0) become data: URIs, which a vCard carries inline.
+    const cards = await inlineContactMediaForExport(contacts, getContactPhotoClient);
+    downloadVcf(generateVCard(cards), filename);
+    return true;
+  } finally {
+    setExporting(false);
+  }
+}
+
+export function exportContact(contact: ContactCard): Promise<boolean> {
+  const name = getContactDisplayName(contact) || "contact";
+  return runExport([contact], `${sanitizeFilename(name)}.vcf`);
+}
+
+export function exportContacts(contacts: ContactCard[]): Promise<boolean> {
+  return runExport(contacts, `contacts-${new Date().toISOString().slice(0, 10)}.vcf`);
 }
 
 function downloadVcf(content: string, filename: string) {

@@ -6,16 +6,22 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getClientByLocalAccountId } from "@/stores/client-registry";
 import type { ContactPhotoRef } from "@/stores/contact-store";
 import {
+  contactPhotoConcurrency,
   contactPhotoKey,
   peekContactPhoto,
   requestContactPhoto,
   subscribeContactPhotos,
 } from "@/lib/contact-photo-cache";
 
-/** The client that downloads blobs of a card from the given login (multi-account mode), else the active one. */
+/**
+ * The client that downloads blobs of a card: the one of the card's login in
+ * multi-account mode, else the active one. Null when that login has no
+ * client (signed out, not connected yet): the active client would ask another
+ * server, and its refusal would stick to the photo as a failure.
+ */
 export function getContactPhotoClient(localAccountId?: string): IJMAPClient | null {
-  const active = useAuthStore.getState().client;
-  return (localAccountId ? getClientByLocalAccountId(localAccountId) : undefined) ?? active;
+  if (localAccountId) return getClientByLocalAccountId(localAccountId) ?? null;
+  return useAuthStore.getState().client;
 }
 
 const visibilityCallbacks = new Map<Element, (visible: boolean) => void>();
@@ -55,6 +61,8 @@ export function useContactPhotoSrc(photo: ContactPhotoRef | null | undefined): {
     () => (key ? peekContactPhoto(key) : undefined),
     () => undefined,
   );
+  // Asks again once a client comes along (sign-in, account switch).
+  const activeClient = useAuthStore((s) => s.client);
   const [element, setElement] = useState<Element | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -69,14 +77,15 @@ export function useContactPhotoSrc(photo: ContactPhotoRef | null | undefined): {
   const localAccountId = blob?.localAccountId;
   useEffect(() => {
     if (!key || !blobId || !visible) return;
+    const client = getContactPhotoClient(localAccountId);
+    if (!client) return;
     // Also re-runs when the cached copy goes (evicted, cache cleared) while
     // the avatar is still on screen.
     return requestContactPhoto(key, async () => {
-      const client = getContactPhotoClient(localAccountId);
-      if (!client) throw new Error("Not connected");
-      return client.fetchBlob(blobId, "photo", mediaType, accountId);
-    });
-  }, [key, blobId, mediaType, accountId, localAccountId, visible, blobUrl]);
+      const current = getContactPhotoClient(localAccountId);
+      return current ? current.fetchBlob(blobId, "photo", mediaType, accountId) : null;
+    }, { concurrency: contactPhotoConcurrency(client.getMaxConcurrentRequests?.()) });
+  }, [key, blobId, mediaType, accountId, localAccountId, visible, blobUrl, activeClient]);
 
   return { src: photo && "uri" in photo ? photo.uri : blobUrl, observe: setElement };
 }

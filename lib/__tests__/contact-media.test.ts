@@ -5,10 +5,11 @@ import { clearContactPhotoCache } from '../contact-photo-cache';
 import {
   hasBlobMedia,
   inlineContactMedia,
+  inlineContactMediaForExport,
   isBlobMediaRejection,
   writeContactWithNewPhoto,
 } from '../contact-media';
-import type { IJMAPClient } from '../jmap/client-interface';
+import type { BlobBatch, IJMAPClient } from '../jmap/client-interface';
 import type { ContactCard, ContactMedia } from '../jmap/types';
 
 // The blob capability as each version advertises it (common/src/config/mailstore/capabilities.rs).
@@ -213,11 +214,24 @@ describe('isBlobMediaRejection', () => {
     expect(isBlobMediaRejection(jmapError(REFUSED_0_16.description, REFUSED_0_16))).toBe(true);
   });
 
+  it('also counts a refusal that names an entry below media, whatever it says', () => {
+    const entry = { type: 'invalidProperties', properties: ['media/photo'], description: 'Unsupported media.' };
+    const field = { type: 'invalidProperties', properties: ['name', 'media/photo/blobId'] };
+    expect(isBlobMediaRejection(jmapError(entry.description, entry))).toBe(true);
+    expect(isBlobMediaRejection(jmapError('Invalid', field))).toBe(true);
+  });
+
   it('leaves out an unresolvable blobId on Stalwart 1.0, which names no property', () => {
     // blob/embedded.rs:425-437
     const unresolved = { type: 'invalidProperties', description: 'The following blobIds do not exist or are not accessible: dbcX.' };
     expect(isBlobMediaRejection(jmapError(unresolved.description, unresolved))).toBe(false);
     expect(isBlobMediaRejection(new Error('network'))).toBe(false);
+  });
+
+  it('leaves out refusals of other properties', () => {
+    const other = { type: 'invalidProperties', properties: ['mediaType', 'emails/e0/address'] };
+    expect(isBlobMediaRejection(jmapError('Invalid', other))).toBe(false);
+    expect(isBlobMediaRejection(jmapError('Too large', { type: 'tooLarge', properties: ['media'] }))).toBe(false);
   });
 });
 
@@ -255,20 +269,142 @@ describe('inlineContactMedia', () => {
   });
 
   it('drops a blob entry whose download fails, or keeps it as it is', async () => {
-    const client = { fetchBlob: vi.fn().mockRejectedValue(new Error('Failed to fetch blob: 404')) } as unknown as IJMAPClient;
+    const fetchBlob = vi.fn().mockRejectedValue(new Error('Failed to fetch blob: 404'));
+    const client = { fetchBlob } as unknown as IJMAPClient;
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
     const dropped = inlineContactMedia({ photo: photo1_0, logo: LOGO_1_0 }, { client }, 'drop');
     await vi.advanceTimersByTimeAsync(1000);
     expect(await dropped).toEqual({});
+    // Each blob was tried twice: once, and once more a second later.
+    expect(fetchBlob).toHaveBeenCalledTimes(4);
 
+    // The cache would answer from its memory of the failure without asking.
+    clearContactPhotoCache();
+    fetchBlob.mockClear();
     const kept = inlineContactMedia({ photo: photo1_0 }, { client }, 'keep');
+    await vi.advanceTimersByTimeAsync(1000);
     expect(await kept).toEqual({ photo: photo1_0 });
+    expect(fetchBlob).toHaveBeenCalledTimes(2);
   });
 
   it('knows which media still need downloading', () => {
     expect(hasBlobMedia({ photo: photo1_0 })).toBe(true);
     expect(hasBlobMedia({ photo: photo0_16 })).toBe(false);
     expect(hasBlobMedia(undefined)).toBe(false);
+  });
+});
+
+describe('inlineContactMediaForExport', () => {
+  beforeEach(() => {
+    clearContactPhotoCache();
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => 'blob:x');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    clearContactPhotoCache();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  const card = (id: string, media: ContactCard['media'], extra: Partial<ContactCard> = {}): ContactCard =>
+    ({ id, addressBookIds: {}, name: { full: id }, media, ...extra });
+  const jpeg = () => new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' });
+
+  function exportClient(batch: BlobBatch | null | Error | undefined) {
+    return {
+      getContactsAccountId: () => 'a',
+      fetchBlob: vi.fn(async () => jpeg()),
+      ...(batch === undefined ? {} : {
+        getBlobsAsBase64: vi.fn(async () => {
+          if (batch instanceof Error) throw batch;
+          return batch;
+        }),
+      }),
+    };
+  }
+
+  it('fetches the blob media of every card in one batch on Stalwart 1.0', async () => {
+    const client = exportClient({ data: new Map([['dbcA', '/9j/A'], ['dbcLogo', 'iVBO'], ['dbcB', '/9j/B']]), failed: [] });
+    const legacy: ContactMedia = { kind: 'photo', uri: 'data:image/jpeg;base64,/9j/', mediaType: 'image/jpeg' };
+
+    const cards = await inlineContactMediaForExport([
+      card('1', { photo: { kind: 'photo', blobId: 'dbcA', mediaType: 'image/jpeg', pref: 1 }, logo: LOGO_1_0 }),
+      card('2', { photo: { kind: 'photo', blobId: 'dbcB', mediaType: 'image/jpeg' } }),
+      card('3', { photo: legacy }),
+      card('4', undefined),
+    ], () => client as unknown as IJMAPClient);
+
+    expect(client.getBlobsAsBase64).toHaveBeenCalledTimes(1);
+    expect(client.getBlobsAsBase64).toHaveBeenCalledWith(['dbcA', 'dbcLogo', 'dbcB'], 'a');
+    expect(client.fetchBlob).not.toHaveBeenCalled();
+    expect(cards.map((c) => c.media)).toEqual([
+      {
+        photo: { kind: 'photo', mediaType: 'image/jpeg', pref: 1, uri: 'data:image/jpeg;base64,/9j/A' },
+        logo: { kind: 'logo', mediaType: 'image/png', uri: 'data:image/png;base64,iVBO' },
+      },
+      { photo: { kind: 'photo', mediaType: 'image/jpeg', uri: 'data:image/jpeg;base64,/9j/B' } },
+      { photo: legacy },
+      undefined,
+    ]);
+  });
+
+  it('asks each account and login for its own blobs', async () => {
+    const own = exportClient({ data: new Map([['dbcA', 'QQ==']]), failed: [] });
+    const other = exportClient({ data: new Map([['dbcB', 'Qg==']]), failed: [] });
+    const clientFor = vi.fn((login?: string) => (login === 'other@host' ? other : own) as unknown as IJMAPClient);
+
+    const cards = await inlineContactMediaForExport([
+      card('1', { photo: { kind: 'photo', blobId: 'dbcA', mediaType: 'image/jpeg' } }, { accountId: 'shared-1' }),
+      card('2', { photo: { kind: 'photo', blobId: 'dbcB', mediaType: 'image/jpeg' } }, { localAccountId: 'other@host' }),
+    ], clientFor);
+
+    expect(own.getBlobsAsBase64).toHaveBeenCalledWith(['dbcA'], 'shared-1');
+    expect(other.getBlobsAsBase64).toHaveBeenCalledWith(['dbcB'], 'a');
+    expect(clientFor).toHaveBeenCalledWith('other@host');
+    expect(cards.map((c) => c.media?.photo.uri)).toEqual(['data:image/jpeg;base64,QQ==', 'data:image/jpeg;base64,Qg==']);
+  });
+
+  it.each([
+    ['the session lacks the blob capability', null],
+    ['the batch request fails', new Error('Request failed: 500')],
+    ['the client cannot batch', undefined],
+  ])('downloads the blobs one by one when %s', async (_why, batch) => {
+    const client = exportClient(batch as BlobBatch | null | Error | undefined);
+
+    const [exported] = await inlineContactMediaForExport([
+      card('1', { photo: { kind: 'photo', blobId: 'dbcA', mediaType: 'image/jpeg' } }, { accountId: 'a' }),
+    ], () => client as unknown as IJMAPClient);
+
+    expect(client.fetchBlob).toHaveBeenCalledWith('dbcA', 'photo', 'image/jpeg', 'a');
+    expect(exported.media?.photo.uri).toBe('data:image/jpeg;base64,/9j/');
+  });
+
+  it('downloads only what the batch left unfetched, and leaves out what the server no longer has', async () => {
+    // dbcGone is in neither list: Blob/get reported it notFound.
+    const client = exportClient({ data: new Map([['dbcA', 'QQ==']]), failed: ['dbcB'] });
+
+    const cards = await inlineContactMediaForExport([
+      card('1', { photo: { kind: 'photo', blobId: 'dbcA', mediaType: 'image/jpeg' } }),
+      card('2', { photo: { kind: 'photo', blobId: 'dbcB', mediaType: 'image/jpeg' } }),
+      card('3', { photo: { kind: 'photo', blobId: 'dbcGone', mediaType: 'image/jpeg' } }),
+    ], () => client as unknown as IJMAPClient);
+
+    expect(client.fetchBlob).toHaveBeenCalledTimes(1);
+    expect(client.fetchBlob).toHaveBeenCalledWith('dbcB', 'photo', 'image/jpeg', undefined);
+    expect(cards.map((c) => c.media)).toEqual([
+      { photo: { kind: 'photo', mediaType: 'image/jpeg', uri: 'data:image/jpeg;base64,QQ==' } },
+      { photo: { kind: 'photo', mediaType: 'image/jpeg', uri: 'data:image/jpeg;base64,/9j/' } },
+      {},
+    ]);
+  });
+
+  it('leaves the photos out when the card\'s login has no client', async () => {
+    const cards = await inlineContactMediaForExport([
+      card('1', { photo: { kind: 'photo', blobId: 'dbcA' }, logo: { kind: 'logo', uri: 'https://x.test/l.png' } }, { localAccountId: 'gone@host' }),
+    ], () => null);
+
+    expect(cards[0].media).toEqual({ logo: { kind: 'logo', uri: 'https://x.test/l.png' } });
   });
 });

@@ -404,6 +404,8 @@ interface ContactStore {
   fetchAllAccountsAddressBooks: (accounts: ContactAccountClient[]) => Promise<void>;
   createContact: (client: IJMAPClient, contact: Partial<ContactCard>, options?: ContactSaveOptions) => Promise<void>;
   updateContact: (client: IJMAPClient, id: string, updates: Partial<ContactCard>, options?: ContactSaveOptions) => Promise<void>;
+  /** The card as its server has it now, or null when it can't be read. */
+  fetchContactFromServer: (client: IJMAPClient, id: string) => Promise<ContactCard | null>;
   deleteContact: (client: IJMAPClient, id: string) => Promise<void>;
 
   addLocalContact: (contact: ContactCard) => void;
@@ -675,6 +677,13 @@ export const useContactStore = create<ContactStore>()(
           set({ error: msg });
           throw error;
         }
+      },
+
+      fetchContactFromServer: async (client, id) => {
+        const contact = get().contacts.find(c => c.id === id);
+        const originalId = contact?.originalId || stripLocalAccountPrefix(id, contact?.localAccountId);
+        const accountId = contact?.isShared ? contact.accountId : undefined;
+        return resolveAccountClient(client, contact?.localAccountId).getContact(originalId, accountId);
       },
 
       deleteContact: async (client, id) => {

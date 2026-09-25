@@ -58,6 +58,12 @@ interface ContactFormProps {
   /** `options.photoKey` names the `media` entry holding a newly picked photo. */
   onSave: (data: Partial<ContactCard>, options?: ContactSaveOptions) => Promise<void>;
   onCancel: () => void;
+  /**
+   * Reads the card as the server has it now, or null when it can't. When the
+   * photo changed, `media` is rebuilt on it instead of on `contact`, which
+   * may be older.
+   */
+  loadCurrentMedia?: () => Promise<Pick<ContactCard, "media"> | null>;
 }
 
 /** What the user did to the photo: nothing, picked a new one (a data: URI), or removed it. */
@@ -71,6 +77,47 @@ function freeMediaKey(media: Record<string, ContactMedia>): string {
   let key = "photo";
   for (let n = 1; key in media; n++) key = `photo${n}`;
   return key;
+}
+
+/**
+ * The `media` map to send for a photo edit, built on `base`: the card's media
+ * as the server has it now when it could be read, else the form's copy
+ * (`known`). `shownKey` is the photo the form showed.
+ *
+ * - A new photo takes the shown one's key and place, with its `pref`,
+ *   `label` and `contexts`, so on a card with several photos it is still the
+ *   one shown (the lowest pref wins).
+ * - Removing the photo removes every photo the form's copy had, not only the
+ *   shown one: the next would otherwise take its place after the save, while
+ *   the form showed none. Logos and sounds stay; so do photos added
+ *   elsewhere since.
+ */
+function mediaForPhotoEdit(
+  base: Record<string, ContactMedia>,
+  known: Record<string, ContactMedia>,
+  shownKey: string | undefined,
+  edit: Exclude<PhotoEdit, { kind: "unchanged" }>,
+): { media: Record<string, ContactMedia> | null; photoKey?: string } {
+  if (edit.kind === "removed") {
+    const others = Object.fromEntries(Object.entries(base).filter(
+      ([key, entry]) => !(entry?.kind === "photo" && known[key]?.kind === "photo"),
+    ));
+    return { media: Object.keys(others).length > 0 ? others : null };
+  }
+  const shown = shownKey ? (base[shownKey]?.kind === "photo" ? base[shownKey] : known[shownKey]) : undefined;
+  const photoKey = shownKey && (!base[shownKey] || base[shownKey]?.kind === "photo") ? shownKey : freeMediaKey(base);
+  const photo: ContactMedia = {
+    kind: "photo",
+    uri: edit.uri,
+    mediaType: edit.mediaType,
+    ...(shown?.pref !== undefined ? { pref: shown.pref } : {}),
+    ...(shown?.label !== undefined ? { label: shown.label } : {}),
+    ...(shown?.contexts !== undefined ? { contexts: shown.contexts } : {}),
+  };
+  const media: Record<string, ContactMedia> = {};
+  for (const [key, entry] of Object.entries(base)) media[key] = key === photoKey ? photo : entry;
+  media[photoKey] = photo;
+  return { media, photoKey };
 }
 
 function FormSection({ icon: Icon, title, children, collapsible, defaultOpen = true }: {
@@ -162,7 +209,7 @@ function Select({ value, onChange, children, className }: {
   );
 }
 
-export function ContactForm({ contact, addressBooks, allKeywords, defaultAddressBookId, prefill, onSave, onCancel }: ContactFormProps) {
+export function ContactForm({ contact, addressBooks, allKeywords, defaultAddressBookId, prefill, onSave, onCancel, loadCurrentMedia }: ContactFormProps) {
   const t = useTranslations("contacts.form");
   const isEditing = !!contact;
 
@@ -559,23 +606,6 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
       });
     }
 
-    // `media` goes out only when the photo changed. An update without it keeps
-    // every entry on the server, while a map replaces them all, and `null`
-    // deletes them. The other entries go back verbatim: a data: URI on 0.16, a
-    // blobId on 1.0, which resolves it again.
-    let mediaValue: Record<string, ContactMedia> | null | undefined;
-    let photoKey: string | undefined;
-    if (photoEdit.kind === "new" || (photoEdit.kind === "removed" && initialPhotoKey)) {
-      const others: Record<string, ContactMedia> = { ...(contact?.media ?? {}) };
-      if (initialPhotoKey) delete others[initialPhotoKey];
-      if (photoEdit.kind === "new") {
-        photoKey = initialPhotoKey ?? freeMediaKey(others);
-        mediaValue = { ...others, [photoKey]: { kind: "photo", uri: photoEdit.uri, mediaType: photoEdit.mediaType } };
-      } else {
-        mediaValue = Object.keys(others).length > 0 ? others : null;
-      }
-    }
-
     // Only send `kind` when this form owns the answer: switching a card between
     // person and organization. Leave other kinds (group, location, ...) untouched.
     const kindValue: ContactCard["kind"] | undefined =
@@ -608,13 +638,27 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
       calendarUri: calendarUri.trim() || undefined,
       schedulingUri: schedulingUri.trim() || undefined,
       freeBusyUri: freeBusyUri.trim() || undefined,
-      // Absent, not undefined: contactToWire sends an undefined key as null.
-      ...(mediaValue !== undefined ? { media: mediaValue as Record<string, ContactMedia> } : {}),
       ...(selectedBookId ? { addressBookIds: { [selectedBookId]: true } } : {}),
     };
 
     setIsSaving(true);
     try {
+      // `media` goes out only when the photo changed. An update without it
+      // keeps every entry on the server, while a map replaces them all, and
+      // `null` deletes them. The other entries go back as the server has them
+      // now: a data: URI on 0.16, a blobId on 1.0, which resolves it again. A
+      // blobId from an older copy of the card, say of a logo changed
+      // elsewhere since, makes 1.0 refuse the whole update ("The following
+      // blobIds do not exist or are not accessible").
+      let photoKey: string | undefined;
+      if (photoEdit.kind === "new" || (photoEdit.kind === "removed" && initialPhotoKey)) {
+        const current = contact && loadCurrentMedia ? await loadCurrentMedia().catch(() => null) : null;
+        const known = contact?.media ?? {};
+        const edited = mediaForPhotoEdit(current ? current.media ?? {} : known, known, initialPhotoKey, photoEdit);
+        // Absent, not undefined: contactToWire sends an undefined key as null.
+        data.media = edited.media as Record<string, ContactMedia>;
+        photoKey = edited.photoKey;
+      }
       await (photoKey ? onSave(data, { photoKey }) : onSave(data));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("save_failed"));

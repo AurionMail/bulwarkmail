@@ -2724,7 +2724,8 @@
     },
     "export": {
       "title": "Exportați contactele",
-      "success": "{count, plural, one {1 contact exportat} few {# contacte exportate} other {# de contacte exportate}}"
+      "success": "{count, plural, one {1 contact exportat} few {# contacte exportate} other {# de contacte exportate}}",
+      "exporting": "Se exportă..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 selectat} few {# selectat} other {# de selectat}}",

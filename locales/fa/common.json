@@ -2724,7 +2724,8 @@
     },
     "export": {
       "title": "خروجی مخاطبین",
-      "success": "{count, plural, one {۱ مخاطب خروجی گرفته شد} other {# مخاطب خروجی گرفته شد}}"
+      "success": "{count, plural, one {۱ مخاطب خروجی گرفته شد} other {# مخاطب خروجی گرفته شد}}",
+      "exporting": "در حال خروجی گرفتن..."
     },
     "bulk": {
       "selected": "{count, plural, one {۱ انتخاب شده} other {# انتخاب شده}}",

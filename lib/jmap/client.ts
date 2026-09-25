@@ -1,10 +1,10 @@
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
-import type { CalendarEventUpdateOptions, CalendarQueryOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
+import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { textConditions, textFilter } from "./search-utils";
-import { batched, itemsPerRequest } from "./request-limits";
+import { batched, batchedBySize, itemsPerRequest } from "./request-limits";
 import { keywordPointer } from "./patch-pointer";
 import { FirstTouchGate } from "./first-touch-gate";
 import { debug } from "@/lib/debug";
@@ -691,6 +691,16 @@ const CONCURRENT_REQUEST_RETRY_DELAYS_MS = [200, 400, 800];
 const FILE_NODE_QUERY_PAGE = 5000;
 /** Safety bound on how many FileNode ids one listing pages through. */
 const FILE_NODE_MAX_IDS = 200_000;
+
+/** RFC 9404; Blob/get needs it in `using`. */
+const BLOB_CAPABILITY = "urn:ietf:params:jmap:blob";
+/**
+ * Bytes of blob data one Blob/get in getBlobsAsBase64 asks for. They come
+ * back as base64 inside the JSON, a third larger.
+ */
+const BLOB_BATCH_BYTES = 4 * 1024 * 1024;
+/** The largest contact photo Stalwart 1.0 takes by default (maxMediaSize). */
+const BLOB_LARGE_BYTES = 2 * 1024 * 1024;
 
 function computeHasMore(position: number, emailCount: number, total: number, limit: number): boolean {
   if (total > 0) return (position + emailCount) < total;
@@ -5178,6 +5188,66 @@ export class JMAPClient implements IJMAPClient {
     return URL.createObjectURL(blob);
   }
 
+  /**
+   * The contents of many blobs as base64, through Blob/get (RFC 9404), for an
+   * export that needs a lot of them: one download per blob queues behind the
+   * server's per-user limits (Stalwart: 4 requests at a time, 1000 a minute),
+   * while one Blob/get returns many.
+   *
+   * More blobs than two of the largest photos would fill are first asked for
+   * their sizes, then fetched in requests of about BLOB_BATCH_BYTES, so a
+   * response stays bounded however large the photos are.
+   *
+   * Null when the session doesn't advertise the blob capability, which then
+   * must stay out of `using`. Blobs the server doesn't find are left out; once
+   * a request fails, the blobs not fetched yet are listed in `failed`.
+   */
+  async getBlobsAsBase64(blobIds: string[], accountId?: string): Promise<BlobBatch | null> {
+    if (!this.hasCapability(BLOB_CAPABILITY)) return null;
+    const account = accountId || this.accountId;
+    const ids = [...new Set(blobIds)];
+    const data = new Map<string, string>();
+    const blobGet = async (chunk: string[], property: "size" | "data:asBase64") => {
+      const response = await this.request([
+        ["Blob/get", { accountId: account, ids: chunk, properties: [property] }, "0"],
+      ], ["urn:ietf:params:jmap:core", BLOB_CAPABILITY]);
+      const [name, result] = response.methodResponses?.[0] ?? [];
+      if (name !== "Blob/get") {
+        throw jmapError(`Blob/get failed: ${result?.description || result?.type || "unknown"}`, result);
+      }
+      return (result.list ?? []) as Array<Record<string, unknown>>;
+    };
+
+    let chunks: string[][] = ids.length > 0 ? [ids] : [];
+    if (ids.length * BLOB_LARGE_BYTES > BLOB_BATCH_BYTES) {
+      const sizes = new Map<string, number | undefined>();
+      try {
+        for (const chunk of batched(ids, this.getMaxObjectsInGet())) {
+          for (const blob of await blobGet(chunk, "size")) {
+            if (typeof blob.id === "string") sizes.set(blob.id, typeof blob.size === "number" ? blob.size : undefined);
+          }
+        }
+      } catch (error) {
+        debug.warn("jmap", "Blob/get of sizes failed:", error);
+        return { data, failed: ids };
+      }
+      chunks = batchedBySize(ids.filter((id) => sizes.has(id)), (id) => sizes.get(id), BLOB_BATCH_BYTES, this.getMaxObjectsInGet());
+    }
+
+    for (let i = 0; i < chunks.length; i++) {
+      try {
+        for (const blob of await blobGet(chunks[i], "data:asBase64")) {
+          const base64 = blob["data:asBase64"];
+          if (typeof blob.id === "string" && typeof base64 === "string") data.set(blob.id, base64);
+        }
+      } catch (error) {
+        debug.warn("jmap", "Blob/get failed:", error);
+        return { data, failed: chunks.slice(i).flat() };
+      }
+    }
+    return { data, failed: [] };
+  }
+
   getCapabilities(): Record<string, unknown> {
     return this.capabilities;
   }
@@ -5251,6 +5321,11 @@ export class JMAPClient implements IJMAPClient {
   getMaxObjectsInSet(): number {
     const coreCapability = this.capabilities["urn:ietf:params:jmap:core"] as { maxObjectsInSet?: number } | undefined;
     return coreCapability?.maxObjectsInSet || 500;
+  }
+
+  getMaxConcurrentRequests(): number {
+    const coreCapability = this.capabilities["urn:ietf:params:jmap:core"] as { maxConcurrentRequests?: number } | undefined;
+    return coreCapability?.maxConcurrentRequests || 4;
   }
 
   getMaxDelayedSend(accountId?: string): number {

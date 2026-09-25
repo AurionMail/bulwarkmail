@@ -2723,7 +2723,8 @@
     },
     "export": {
       "title": "Eksportér kontakter",
-      "success": "{count, plural, one {1 kontakt eksporteret} other {# kontakter eksporteret}}"
+      "success": "{count, plural, one {1 kontakt eksporteret} other {# kontakter eksporteret}}",
+      "exporting": "Eksporterer..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 valgt} other {# valgte}}",

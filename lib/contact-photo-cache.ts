@@ -11,7 +11,10 @@ import { toInertBlob } from '@/lib/file-preview';
  * avatars look photos up by sender, so one screen can ask for dozens at once.
  * Hence:
  * - one download per `${localAccountId}|${blobId}`, shared by every caller;
- * - at most 2 at a time, and after a first burst a paced start rate;
+ * - at most half the server's maxConcurrentRequests at a time, and after a
+ *   first burst a paced start rate;
+ * - avatars and print go first; downloads only an export asked for wait
+ *   behind them and leave part of the burst to them;
  * - a queued download that no avatar on screen wants any more is dropped
  *   before it starts;
  * - a failed download is tried once more a little later, since the server
@@ -22,13 +25,30 @@ import { toInertBlob } from '@/lib/file-preview';
  */
 
 const MAX_ENTRIES = 300;
-const MAX_CONCURRENT = 2;
+// Half of the 4 requests at a time Stalwart takes from a user, for a server
+// that doesn't say.
+const DEFAULT_CONCURRENCY = 2;
 const BURST = 40;
 const REFILL_PER_SECOND = 6;
+// Export downloads only take a token while this many are left, so a long
+// export never spends the burst that avatars coming on screen need.
+const BACKGROUND_RESERVE = BURST / 2;
 const RETRY_DELAY_MS = 1000;
 const FAILURE_TTL_MS = 2 * 60_000;
 
-type Fetcher = () => Promise<Blob>;
+/**
+ * Resolves the photo's bytes, or null when there is nothing to ask right now
+ * (no client for the card's login): that is neither retried nor remembered
+ * as a failure.
+ */
+type Fetcher = () => Promise<Blob | null>;
+
+export interface ContactPhotoDownloadOptions {
+  /** Downloads allowed at once for this photo's server; see contactPhotoConcurrency. */
+  concurrency?: number;
+  /** Only an export wants it: it waits behind avatars and print. */
+  background?: boolean;
+}
 
 interface Download {
   fetcher: Fetcher;
@@ -38,6 +58,8 @@ interface Download {
   forced: boolean;
   /** Keep the result for display; a download only for export is not cached. */
   keep: boolean;
+  background: boolean;
+  concurrency: number;
   retried: boolean;
   waiters: Array<(blob: Blob | null) => void>;
 }
@@ -46,14 +68,26 @@ const photos = new Map<string, { blob: Blob; url: string }>();
 const failedUntil = new Map<string, number>();
 const downloads = new Map<string, Download>();
 const queue: string[] = [];
+const backgroundQueue: string[] = [];
 const listeners = new Set<() => void>();
 let running = 0;
 let tokens = BURST;
 let refilledAt = 0;
 let pumpTimer: ReturnType<typeof setTimeout> | null = null;
+let pumpAt = 0;
 // Bumped by clearContactPhotoCache, so a download that was running across a
 // clear is not stored into the next account's cache.
 let generation = 0;
+
+/**
+ * Photo downloads to run at once for a server that takes
+ * `maxConcurrentRequests` requests from a user at a time (RFC 8620 core
+ * capability): half of them, so JMAP calls keep the other half.
+ */
+export function contactPhotoConcurrency(maxConcurrentRequests: number | undefined): number {
+  if (!maxConcurrentRequests || maxConcurrentRequests < 0) return DEFAULT_CONCURRENCY;
+  return Math.max(1, Math.floor(maxConcurrentRequests / 2));
+}
 
 export function contactPhotoKey(localAccountId: string | undefined, blobId: string): string {
   return `${localAccountId ?? ''}|${blobId}`;
@@ -93,12 +127,29 @@ function recentlyFailed(key: string): boolean {
   return false;
 }
 
-function enqueue(key: string, fetcher: Fetcher): Download {
+function enqueue(key: string, fetcher: Fetcher, options: ContactPhotoDownloadOptions): Download {
   let download = downloads.get(key);
   if (!download) {
-    download = { fetcher, viewers: 0, forced: false, keep: false, retried: false, waiters: [] };
+    download = {
+      fetcher,
+      viewers: 0,
+      forced: false,
+      keep: false,
+      background: !!options.background,
+      concurrency: options.concurrency ?? DEFAULT_CONCURRENCY,
+      retried: false,
+      waiters: [],
+    };
     downloads.set(key, download);
-    queue.push(key);
+    (download.background ? backgroundQueue : queue).push(key);
+  } else if (download.background && !options.background) {
+    // An avatar or print now wants what only an export asked for.
+    download.background = false;
+    const at = backgroundQueue.indexOf(key);
+    if (at >= 0) {
+      backgroundQueue.splice(at, 1);
+      queue.push(key);
+    }
   }
   return download;
 }
@@ -108,9 +159,13 @@ function enqueue(key: string, fetcher: Fetcher): Download {
  * the cache (peekContactPhoto) and subscribers are told. Call the returned
  * function when the avatar unmounts or scrolls away.
  */
-export function requestContactPhoto(key: string, fetcher: Fetcher): () => void {
+export function requestContactPhoto(
+  key: string,
+  fetcher: Fetcher,
+  options: Pick<ContactPhotoDownloadOptions, 'concurrency'> = {},
+): () => void {
   if (touch(key) || recentlyFailed(key)) return () => {};
-  const download = enqueue(key, fetcher);
+  const download = enqueue(key, fetcher, options);
   download.viewers++;
   download.keep = true;
   pump();
@@ -126,44 +181,61 @@ export function requestContactPhoto(key: string, fetcher: Fetcher): () => void {
  * The bytes of a photo for print, export or copying a card, from the cache
  * when it has them. Resolves null when the download fails.
  */
-export function loadContactPhotoBlob(key: string, fetcher: Fetcher): Promise<Blob | null> {
+export function loadContactPhotoBlob(
+  key: string,
+  fetcher: Fetcher,
+  options: ContactPhotoDownloadOptions = {},
+): Promise<Blob | null> {
   const cached = touch(key);
   if (cached) return Promise.resolve(cached.blob);
   if (recentlyFailed(key)) return Promise.resolve(null);
-  const download = enqueue(key, fetcher);
+  const download = enqueue(key, fetcher, options);
   download.forced = true;
   const result = new Promise<Blob | null>((resolve) => download.waiters.push(resolve));
   pump();
   return result;
 }
 
-function takeToken(): boolean {
+function refill(): void {
   const now = Date.now();
   tokens = Math.min(BURST, tokens + (Math.max(0, now - refilledAt) / 1000) * REFILL_PER_SECOND);
   refilledAt = now;
-  if (tokens < 1) return false;
-  tokens -= 1;
-  return true;
+}
+
+function schedulePump(delayMs: number): void {
+  const at = Date.now() + delayMs;
+  // A foreground download waits for the next token, not for the later one a
+  // background download was scheduled for.
+  if (pumpTimer && pumpAt <= at) return;
+  if (pumpTimer) clearTimeout(pumpTimer);
+  pumpAt = at;
+  pumpTimer = setTimeout(() => {
+    pumpTimer = null;
+    pump();
+  }, delayMs);
 }
 
 function pump(): void {
-  while (running < MAX_CONCURRENT && queue.length > 0) {
-    const key = queue[0];
+  for (;;) {
+    const from = queue.length > 0 ? queue : backgroundQueue.length > 0 ? backgroundQueue : null;
+    if (!from) return;
+    const key = from[0];
     const download = downloads.get(key);
     if (!download || (!download.forced && download.viewers <= 0)) {
       // Scrolled away or unmounted before its turn came.
-      queue.shift();
+      from.shift();
       downloads.delete(key);
       continue;
     }
-    if (!takeToken()) {
-      pumpTimer ??= setTimeout(() => {
-        pumpTimer = null;
-        pump();
-      }, Math.ceil(((1 - tokens) / REFILL_PER_SECOND) * 1000));
+    if (running >= download.concurrency) return;
+    const reserve = from === backgroundQueue ? BACKGROUND_RESERVE : 0;
+    refill();
+    if (tokens < 1 + reserve) {
+      schedulePump(Math.ceil(((1 + reserve - tokens) / REFILL_PER_SECOND) * 1000));
       return;
     }
-    queue.shift();
+    tokens -= 1;
+    from.shift();
     start(key, download);
   }
 }
@@ -171,25 +243,26 @@ function pump(): void {
 function start(key: string, download: Download): void {
   running++;
   const startedIn = generation;
-  let fetched: Promise<Blob>;
+  let fetched: Promise<Blob | null>;
   try {
     fetched = download.fetcher();
   } catch (error) {
     fetched = Promise.reject(error);
   }
   fetched.then(
-    (blob) => finish(key, download, startedIn, blob),
-    () => finish(key, download, startedIn, null),
+    (blob) => finish(key, download, startedIn, blob, false),
+    () => finish(key, download, startedIn, null, true),
   );
 }
 
-function finish(key: string, download: Download, startedIn: number, blob: Blob | null): void {
-  running--;
-  if (!blob && !download.retried && startedIn === generation) {
+function finish(key: string, download: Download, startedIn: number, blob: Blob | null, failed: boolean): void {
+  // A download from before a clear no longer counts against the new account.
+  if (startedIn === generation) running--;
+  if (failed && !download.retried && startedIn === generation) {
     download.retried = true;
     setTimeout(() => {
       if (downloads.get(key) !== download) return;
-      queue.push(key);
+      (download.background ? backgroundQueue : queue).push(key);
       pump();
     }, RETRY_DELAY_MS);
     pump();
@@ -197,8 +270,8 @@ function finish(key: string, download: Download, startedIn: number, blob: Blob |
   }
   if (startedIn === generation) {
     downloads.delete(key);
-    if (!blob) failedUntil.set(key, Date.now() + FAILURE_TTL_MS);
-    else if (download.keep) remember(key, blob);
+    if (failed) failedUntil.set(key, Date.now() + FAILURE_TTL_MS);
+    else if (blob && download.keep) remember(key, blob);
   }
   for (const resolve of download.waiters) resolve(blob);
   pump();
@@ -227,8 +300,10 @@ export function clearContactPhotoCache(): void {
     for (const resolve of download.waiters) resolve(null);
   }
   queue.length = 0;
+  backgroundQueue.length = 0;
   downloads.clear();
   // The limits are per account, and a clear means another account.
+  running = 0;
   tokens = BURST;
   refilledAt = 0;
   if (pumpTimer) {

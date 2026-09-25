@@ -2723,7 +2723,8 @@
     },
     "export": {
       "title": "导出联系人",
-      "success": "{count, plural, one {已导出 1 位联系人} other {已导出 # 位联系人}}"
+      "success": "{count, plural, one {已导出 1 位联系人} other {已导出 # 位联系人}}",
+      "exporting": "导出中..."
     },
     "bulk": {
       "selected": "{count, plural, one {已选择 1 项} other {已选择 # 项}}",

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
-import { batched, itemsPerRequest } from '../jmap/request-limits';
+import { batched, batchedBySize, itemsPerRequest } from '../jmap/request-limits';
 
 // Stalwart allows 16 method calls and 500 objects per request by default. A
 // batch built from a list the user controls - tags, a multi-select, an import -
@@ -50,6 +50,30 @@ describe('batched', () => {
   it('never produces an empty batch for a nonsensical size', () => {
     expect(batched([1, 2], 0)).toEqual([[1], [2]]);
     expect(batched([1, 2], -5)).toEqual([[1], [2]]);
+  });
+});
+
+describe('batchedBySize', () => {
+  const size = (n: number) => n;
+
+  it('fills each batch up to the budget', () => {
+    expect(batchedBySize([3, 2, 2, 1, 4], size, 4, 10)).toEqual([[3], [2, 2], [1], [4]]);
+  });
+
+  it('gives an item over the budget a batch of its own', () => {
+    expect(batchedBySize([1, 9, 1], size, 4, 10)).toEqual([[1], [9], [1]]);
+  });
+
+  it('counts an item without a size as the whole budget', () => {
+    expect(batchedBySize(['a', 'b', 'c'], (item) => (item === 'b' ? undefined : 1), 4, 10)).toEqual([['a'], ['b'], ['c']]);
+  });
+
+  it('never puts more than maxCount items in a batch', () => {
+    expect(batchedBySize([1, 1, 1, 1, 1], size, 100, 2)).toEqual([[1, 1], [1, 1], [1]]);
+  });
+
+  it('returns nothing for an empty list', () => {
+    expect(batchedBySize([], size, 4, 10)).toEqual([]);
   });
 });
 

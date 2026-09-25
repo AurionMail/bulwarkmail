@@ -2724,7 +2724,8 @@
     },
     "export": {
       "title": "تصدير جهات الاتصال",
-      "success": "{count, plural, one {تم تصدير جهة اتصال واحدة} other {تم تصدير # جهة اتصال}}"
+      "success": "{count, plural, one {تم تصدير جهة اتصال واحدة} other {تم تصدير # جهة اتصال}}",
+      "exporting": "جارٍ التصدير..."
     },
     "bulk": {
       "selected": "{count, plural, one {تم تحديد واحدة} other {تم تحديد #}}",

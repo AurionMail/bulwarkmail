@@ -2719,7 +2719,8 @@
     },
     "export": {
       "title": "Kontaktu eksports",
-      "success": "Eksportēts {count, plural, one {1 kontakts} other {# kontakti}}"
+      "success": "Eksportēts {count, plural, one {1 kontakts} other {# kontakti}}",
+      "exporting": "Eksportē..."
     },
     "bulk": {
       "selected": "Atlasīts {count, plural, one {1 kontakts} other {# kontakti}}",

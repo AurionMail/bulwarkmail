@@ -2723,7 +2723,8 @@
     },
     "export": {
       "title": "Kişileri Dışa Aktar",
-      "success": "{count, plural, one {1 kişi dışa aktarıldı} other {# kişi dışa aktarıldı}}"
+      "success": "{count, plural, one {1 kişi dışa aktarıldı} other {# kişi dışa aktarıldı}}",
+      "exporting": "Dışa aktarılıyor..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 seçildi} other {# seçildi}}",

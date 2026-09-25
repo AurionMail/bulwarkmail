@@ -11,7 +11,7 @@ import type { ContactCard, AnniversaryDate, PartialDate } from "@/lib/jmap/types
 import { getContactDisplayName, getContactPrimaryEmail, getContactPhotoRef } from "@/stores/contact-store";
 import { ContactActivity } from "./contact-activity";
 import { toast } from "@/stores/toast-store";
-import { exportContact } from "./contact-export";
+import { exportContact, useContactExportBusy } from "./contact-export";
 import { printContact } from "./contact-print";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
@@ -22,6 +22,7 @@ type MoreItem =
       label: string;
       onClick: () => void;
       destructive?: boolean;
+      disabled?: boolean;
       separator?: false;
     }
   | { separator: true };
@@ -122,6 +123,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   const cryptoKeys = contact?.cryptoKeys ? Object.values(contact.cryptoKeys) : [];
   const hasCryptoKeysSlotOffers = usePluginSlotOffers('contact-cryptokeys').length > 0;
+  const exporting = useContactExportBusy();
 
   if (!contact) {
     return (
@@ -138,8 +140,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
   const phone = contact.phones ? Object.values(contact.phones)[0]?.number : undefined;
 
   const handleExport = async () => {
-    await exportContact(contact);
-    toast.success(t("export.success", { count: 1 }));
+    if (await exportContact(contact)) toast.success(t("export.success", { count: 1 }));
   };
 
   const handlePrint = () => {
@@ -153,7 +154,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
   if (onDuplicate) {
     moreItems.push({ icon: Copy, label: t("context_menu.duplicate"), onClick: onDuplicate });
   }
-  moreItems.push({ icon: Download, label: t("context_menu.export_vcard"), onClick: handleExport });
+  moreItems.push({ icon: Download, label: t("context_menu.export_vcard"), onClick: handleExport, disabled: exporting });
   moreItems.push({ icon: Printer, label: t("context_menu.print"), onClick: handlePrint });
   moreItems.push({ separator: true });
   moreItems.push({ icon: Trash2, label: t("context_menu.delete"), onClick: onDelete, destructive: true });
@@ -593,12 +594,14 @@ function MoreActionsMenu({ items, label }: { items: MoreItem[]; label: string })
                 key={i}
                 type="button"
                 role="menuitem"
+                disabled={item.disabled}
                 onClick={() => {
                   item.onClick();
                   setOpen(false);
                 }}
                 className={cn(
                   "w-full flex items-center gap-2 px-3 py-1.5 text-sm text-start hover:bg-muted focus:bg-muted focus:outline-none transition-colors",
+                  "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
                   item.destructive && "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 focus:bg-red-50 dark:focus:bg-red-950",
                 )}
               >

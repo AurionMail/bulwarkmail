@@ -2723,7 +2723,8 @@
     },
     "export": {
       "title": "연락처 내보내기",
-      "success": "{count}개의 연락처를 성공적으로 내보냈어요"
+      "success": "{count}개의 연락처를 성공적으로 내보냈어요",
+      "exporting": "내보내는 중..."
     },
     "bulk": {
       "selected": "{count}개 선택됨",

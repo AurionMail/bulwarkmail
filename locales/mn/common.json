@@ -2724,7 +2724,8 @@
     },
     "export": {
       "title": "Харилцагчдыг экспортлох",
-      "success": "{count, plural, one {1 контакт экспортлогдлоо} other {# контакт экспортлогдлоо}}"
+      "success": "{count, plural, one {1 контакт экспортлогдлоо} other {# контакт экспортлогдлоо}}",
+      "exporting": "Экспорт хийж байна..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 сонгогдсон} other {# сонгогдсон}}",

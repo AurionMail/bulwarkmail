@@ -875,6 +875,31 @@ describe('contact-store', () => {
     });
   });
 
+  describe('fetchContactFromServer', () => {
+    // The contact form rebuilds `media` on this when the photo changed: the
+    // list's copy may carry a blobId Stalwart 1.0 no longer resolves.
+    it('reads a shared card from its account by its server id', async () => {
+      useContactStore.setState({
+        contacts: [makeContact({ id: 'shared-1:c-9', originalId: 'c-9', isShared: true, accountId: 'shared-1' })],
+      });
+      const current = makeContact({ id: 'c-9', media: { logo: { kind: 'logo', blobId: 'dbcLogoNew' } } });
+      const client = { getContact: vi.fn(async () => current) };
+
+      const card = await useContactStore.getState().fetchContactFromServer(client as unknown as IJMAPClient, 'shared-1:c-9');
+
+      expect(client.getContact).toHaveBeenCalledWith('c-9', 'shared-1');
+      expect(card).toBe(current);
+    });
+
+    it('reads an own card from the default account', async () => {
+      useContactStore.setState({ contacts: [makeContact({ id: 'c-1' })] });
+      const client = { getContact: vi.fn(async () => null) };
+
+      expect(await useContactStore.getState().fetchContactFromServer(client as unknown as IJMAPClient, 'c-1')).toBeNull();
+      expect(client.getContact).toHaveBeenCalledWith('c-1', undefined);
+    });
+  });
+
   describe('moving a contact to another account', () => {
     beforeEach(() => {
       clearContactPhotoCache();

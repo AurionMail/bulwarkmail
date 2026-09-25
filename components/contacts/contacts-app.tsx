@@ -82,6 +82,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     fetchContacts,
     createContact,
     updateContact,
+    fetchContactFromServer,
     deleteContact,
     addLocalContact,
     updateLocalContact,
@@ -728,8 +729,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
 
   const handleBulkExport = async () => {
     const toExport = contacts.filter(c => selectedContactIds.has(c.id));
-    if (toExport.length > 0) {
-      await exportContacts(toExport);
+    if (toExport.length > 0 && await exportContacts(toExport)) {
       toast.success(t("export.success", { count: toExport.length }));
       clearSelection();
     }
@@ -766,6 +766,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             allKeywords={allKeywords}
             onSave={handleSaveEdit}
             onCancel={handleCancel}
+            loadCurrentMedia={supportsSync && client ? () => fetchContactFromServer(client, selectedContact.id) : undefined}
           />
         );
 

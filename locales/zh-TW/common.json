@@ -2724,7 +2724,8 @@
     },
     "export": {
       "title": "匯出聯絡人",
-      "success": "{count, plural, one {已匯出 1 位聯絡人} other {已匯出 # 位聯絡人}}"
+      "success": "{count, plural, one {已匯出 1 位聯絡人} other {已匯出 # 位聯絡人}}",
+      "exporting": "正在匯出…"
     },
     "bulk": {
       "selected": "{count, plural, one {已選取 1 項} other {已選取 # 項}}",

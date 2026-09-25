@@ -2723,7 +2723,8 @@
     },
     "export": {
       "title": "Exportar contatos",
-      "success": "{count, plural, one {1 contato exportado} other {# contatos exportados}}"
+      "success": "{count, plural, one {1 contato exportado} other {# contatos exportados}}",
+      "exporting": "Exportando..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 selecionado} other {# selecionados}}",

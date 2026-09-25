@@ -1,7 +1,10 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ContactList } from '../contact-list';
+import { exportContacts } from '../contact-export';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useAuthStore } from '@/stores/auth-store';
+import type { BlobBatch } from '@/lib/jmap/client-interface';
 import type { ContactCard } from '@/lib/jmap/types';
 
 function makeContact(overrides: Partial<ContactCard> & { id: string }): ContactCard {
@@ -77,6 +80,40 @@ describe('ContactList', () => {
     render(<ContactList {...defaultProps} selectedContactIds={new Set(['1'])} />);
     expect(screen.getByText('bulk.delete')).toBeInTheDocument();
     expect(screen.getByText('bulk.export')).toBeInTheDocument();
+  });
+
+  it('shows the bulk export as busy and takes no click while a vCard export runs', async () => {
+    // On Stalwart 1.0 the export first fetches every photo.
+    let deliver!: (batch: BlobBatch) => void;
+    useAuthStore.setState({
+      client: {
+        getContactsAccountId: () => 'a',
+        getBlobsAsBase64: () => new Promise<BlobBatch>((resolve) => { deliver = resolve; }),
+      } as never,
+    });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:vcf');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const onBulkExport = vi.fn();
+    try {
+      render(<ContactList {...defaultProps} onBulkExport={onBulkExport} selectedContactIds={new Set(['1'])} />);
+      let running!: Promise<boolean>;
+      act(() => { running = exportContacts([{ ...alice, media: { photo: { kind: 'photo', blobId: 'dbcX' } } }]); });
+
+      const busy = screen.getByText('export.exporting').closest('button')!;
+      expect(busy).toBeDisabled();
+      fireEvent.click(busy);
+      expect(onBulkExport).not.toHaveBeenCalled();
+
+      await act(async () => {
+        deliver({ data: new Map([['dbcX', '/9j/']]), failed: [] });
+        await running;
+      });
+      expect(screen.getByText('bulk.export').closest('button')).not.toBeDisabled();
+    } finally {
+      useAuthStore.setState({ client: null });
+      vi.restoreAllMocks();
+    }
   });
 
   it.each([

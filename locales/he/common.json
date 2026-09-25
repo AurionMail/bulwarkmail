@@ -2633,7 +2633,8 @@
     },
     "export": {
       "title": "ייצוא אנשי קשר",
-      "success": "{count, plural, one {יוצא איש קשר אחד} other {יוצאו # אנשי קשר}}"
+      "success": "{count, plural, one {יוצא איש קשר אחד} other {יוצאו # אנשי קשר}}",
+      "exporting": "מייצא..."
     },
     "bulk": {
       "selected": "{count, plural, one {נבחר אחד} other {נבחרו #}}",

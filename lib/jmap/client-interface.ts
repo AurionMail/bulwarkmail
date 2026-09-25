@@ -33,6 +33,14 @@ export interface KeywordDiscoveryResult {
   complete: boolean;
 }
 
+/** What `getBlobsAsBase64` brought back. */
+export interface BlobBatch {
+  /** Contents as base64 by blobId, for every blob the server returned. */
+  data: Map<string, string>;
+  /** Blobs left unfetched because a request failed; they can still be downloaded one by one. */
+  failed: string[];
+}
+
 /**
  * Interface defining the public JMAP client contract.
  *
@@ -88,6 +96,8 @@ export interface IJMAPClient {
   getMaxCallsInRequest(): number;
   getMaxObjectsInGet(): number;
   getMaxObjectsInSet(): number;
+  /** RFC 8620 maxConcurrentRequests: API calls and downloads the server runs at once for the user. */
+  getMaxConcurrentRequests?(): number;
   getMaxDelayedSend(accountId?: string): number;
   hasDelayedSend(accountId?: string): boolean;
   getEventSourceUrl(): string | null;
@@ -410,6 +420,11 @@ export interface IJMAPClient {
   fetchBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<Blob>;
   fetchBlobAsObjectUrl(blobId: string, name?: string, type?: string, accountId?: string): Promise<string>;
   fetchBlobArrayBuffer(blobId: string, name?: string, type?: string, accountId?: string, rangeHeader?: number): Promise<ArrayBuffer>;
+  /**
+   * Many blobs at once through Blob/get (RFC 9404), for exports; null when
+   * the session doesn't advertise the blob capability.
+   */
+  getBlobsAsBase64?(blobIds: string[], accountId?: string): Promise<BlobBatch | null>;
   downloadBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<void>;
 
   // ── Identities ────────────────────────────────────────────────

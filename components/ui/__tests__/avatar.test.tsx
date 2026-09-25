@@ -61,6 +61,7 @@ describe('Avatar', () => {
       useAuthStore.setState({ client: null });
       useContactStore.setState({ contacts: [] });
       clearContactPhotoCache();
+      vi.useRealTimers();
       vi.unstubAllGlobals();
       vi.restoreAllMocks();
     });
@@ -117,13 +118,38 @@ describe('Avatar', () => {
       expect(fetchBlob).toHaveBeenCalledTimes(1);
     });
 
-    it('shows initials when the download fails', async () => {
+    it('shows initials when the download fails, after trying once more', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
       fetchBlob.mockRejectedValue(new Error('Failed to fetch blob: 404'));
       const { container } = render(<Avatar name="Ann Lee" contactPhoto={{ blobId: 'dbcGone' }} />);
 
-      await waitFor(() => expect(fetchBlob).toHaveBeenCalled());
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(fetchBlob).toHaveBeenCalledTimes(1);
+      // The cache asks again after a second, since the server refuses a
+      // download over its concurrency limit outright; then it gives up.
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+      expect(fetchBlob).toHaveBeenCalledTimes(2);
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+
+      expect(fetchBlob).toHaveBeenCalledTimes(2);
       expect(img(container)).toBeNull();
       expect(container.textContent).toBe('AL');
+    });
+
+    it.each([
+      [4, 2],
+      [8, 4],
+    ])('downloads photos %i / 2 = %i at a time for a server with that maxConcurrentRequests', async (limit, atOnce) => {
+      const pending: Array<() => void> = [];
+      fetchBlob.mockImplementation(() => new Promise<Blob>((resolve) => pending.push(() => resolve(jpeg()))));
+      useAuthStore.setState({ client: { fetchBlob, getMaxConcurrentRequests: () => limit } as never });
+
+      render(<>{[0, 1, 2, 3, 4, 5].map((i) => <Avatar key={i} name="Ann" contactPhoto={{ blobId: `dbc${i}` }} />)}</>);
+      await act(async () => {});
+
+      expect(fetchBlob).toHaveBeenCalledTimes(atOnce);
+      clearContactPhotoCache();
+      pending.forEach((resolve) => resolve());
     });
 
     it('falls back to initials when a downloaded photo does not render', async () => {
@@ -146,6 +172,33 @@ describe('Avatar', () => {
         const { container } = render(
           <Avatar name="Ann" contactPhoto={{ blobId: 'dbcAnn', mediaType: 'image/jpeg', localAccountId: 'other@host' }} />,
         );
+        await waitFor(() => expect(img(container)?.getAttribute('src')).toBe('blob:photo'));
+        expect(otherFetch).toHaveBeenCalledTimes(1);
+        expect(fetchBlob).not.toHaveBeenCalled();
+      } finally {
+        useAuthStore.setState({ getClientForAccount: original });
+      }
+    });
+
+    it("asks no other server when the card's login has no client, and tries again once it has one", async () => {
+      const original = useAuthStore.getState().getClientForAccount;
+      const otherFetch = vi.fn(async () => jpeg());
+      let connected = false;
+      useAuthStore.setState({
+        getClientForAccount: (id: string) => (connected && id === 'other@host' ? { fetchBlob: otherFetch } as never : undefined),
+      });
+      try {
+        const { container } = render(
+          <Avatar name="Ann Lee" contactPhoto={{ blobId: 'dbcAnn', mediaType: 'image/jpeg', localAccountId: 'other@host' }} />,
+        );
+        await act(async () => {});
+        // The active client belongs to another login, maybe another server.
+        expect(fetchBlob).not.toHaveBeenCalled();
+        expect(container.textContent).toBe('AL');
+
+        // Nothing was remembered as a failure: once connected, the photo comes.
+        connected = true;
+        act(() => useAuthStore.setState({ client: { fetchBlob } as never }));
         await waitFor(() => expect(img(container)?.getAttribute('src')).toBe('blob:photo'));
         expect(otherFetch).toHaveBeenCalledTimes(1);
         expect(fetchBlob).not.toHaveBeenCalled();

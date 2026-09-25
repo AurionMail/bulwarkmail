@@ -2723,7 +2723,8 @@
     },
     "export": {
       "title": "Exportovat kontakty",
-      "success": "{count, plural, one {Exportován 1 kontakt} few {Exportovány # kontakty} other {Exportováno # kontaktů}}"
+      "success": "{count, plural, one {Exportován 1 kontakt} few {Exportovány # kontakty} other {Exportováno # kontaktů}}",
+      "exporting": "Exportování..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 vybrán} few {# vybrány} other {# vybráno}}",

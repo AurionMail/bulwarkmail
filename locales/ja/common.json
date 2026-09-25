@@ -2723,7 +2723,8 @@
     },
     "export": {
       "title": "連絡先をエクスポート",
-      "success": "{count, plural, other {#件の連絡先をエクスポートしました}}"
+      "success": "{count, plural, other {#件の連絡先をエクスポートしました}}",
+      "exporting": "エクスポート中..."
     },
     "bulk": {
       "selected": "{count, plural, other {#件選択中}}",

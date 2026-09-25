@@ -20,6 +20,30 @@ export function batched<T>(items: T[], size: number): T[][] {
   return result;
 }
 
+/**
+ * Split `items` into consecutive batches whose sizes add up to at most
+ * `budget`, and of at most `maxCount` entries. An item larger than the budget
+ * gets a batch of its own; an item without a size counts as the whole budget.
+ */
+export function batchedBySize<T>(items: T[], sizeOf: (item: T) => number | undefined, budget: number, maxCount: number): T[][] {
+  const limit = Math.max(1, Math.floor(maxCount));
+  const result: T[][] = [];
+  let batch: T[] = [];
+  let total = 0;
+  for (const item of items) {
+    const size = sizeOf(item) ?? budget;
+    if (batch.length > 0 && (total + size > budget || batch.length >= limit)) {
+      result.push(batch);
+      batch = [];
+      total = 0;
+    }
+    batch.push(item);
+    total += size;
+  }
+  if (batch.length > 0) result.push(batch);
+  return result;
+}
+
 /** How many items fit in one request when each item costs `callsPerItem` method calls. */
 export function itemsPerRequest(maxCalls: number, callsPerItem: number): number {
   return Math.max(1, Math.floor(maxCalls / callsPerItem));

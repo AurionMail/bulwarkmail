@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   clearContactPhotoCache,
+  contactPhotoConcurrency,
   contactPhotoKey,
   loadContactPhotoBlob,
   peekContactPhoto,
@@ -59,7 +60,7 @@ describe('contact photo cache', () => {
     expect(listener).toHaveBeenCalled();
   });
 
-  it('runs at most two downloads at a time, so JMAP calls keep two of the four slots', async () => {
+  it("runs at most two downloads at a time by default, so JMAP calls keep two of Stalwart's four slots", async () => {
     const pending = [deferred(), deferred(), deferred(), deferred()];
     const fetchers = pending.map((d) => vi.fn(() => d.promise));
     fetchers.forEach((fetcher, i) => requestContactPhoto(`|b${i}`, fetcher));
@@ -76,6 +77,101 @@ describe('contact photo cache', () => {
     expect(fetchers[3]).toHaveBeenCalledTimes(1);
     pending[3].resolve(jpeg());
     await flush();
+  });
+
+  it("takes half of the server's maxConcurrentRequests, and at least one", () => {
+    // Stalwart 0.16 and 1.0 both advertise 4 (core capability).
+    expect(contactPhotoConcurrency(4)).toBe(2);
+    expect(contactPhotoConcurrency(8)).toBe(4);
+    expect(contactPhotoConcurrency(3)).toBe(1);
+    expect(contactPhotoConcurrency(1)).toBe(1);
+    expect(contactPhotoConcurrency(undefined)).toBe(2);
+  });
+
+  it("runs as many downloads at once as the server's share allows", async () => {
+    const pending = Array.from({ length: 6 }, () => deferred());
+    const fetchers = pending.map((d) => vi.fn(() => d.promise));
+    fetchers.forEach((fetcher, i) => requestContactPhoto(`|c${i}`, fetcher, { concurrency: 4 }));
+
+    expect(fetchers.map((f) => f.mock.calls.length)).toEqual([1, 1, 1, 1, 0, 0]);
+
+    pending.forEach((d) => d.resolve(jpeg()));
+    await flush();
+    expect(fetchers.every((f) => f.mock.calls.length === 1)).toBe(true);
+  });
+
+  it("starts an avatar's download before the ones only an export asked for", async () => {
+    const exports = [deferred(), deferred()];
+    const exported = [...exports.map((d) => vi.fn(() => d.promise)), vi.fn(() => Promise.resolve(jpeg()))];
+    exported.forEach((fetcher, i) => void loadContactPhotoBlob(`|e${i}`, fetcher, { background: true }));
+    expect(exported.map((f) => f.mock.calls.length)).toEqual([1, 1, 0]);
+
+    const avatar = deferred();
+    const shown = vi.fn(() => avatar.promise);
+    requestContactPhoto('|a0', shown);
+    exports[0].resolve(jpeg());
+    await flush();
+    expect(shown).toHaveBeenCalledTimes(1);
+    expect(exported[2]).not.toHaveBeenCalled();
+
+    avatar.resolve(jpeg());
+    await flush();
+    expect(exported[2]).toHaveBeenCalledTimes(1);
+    expect(peekContactPhoto('|a0')).toBeDefined();
+    exports[1].resolve(jpeg());
+    await flush();
+  });
+
+  it('moves a photo an export queued up once an avatar wants it too', async () => {
+    const busy = [deferred(), deferred()];
+    busy.forEach((d, i) => requestContactPhoto(`|busy${i}`, () => d.promise));
+    const started: string[] = [];
+    const fetcherFor = (name: string) => () => {
+      started.push(name);
+      return Promise.resolve(jpeg());
+    };
+    const exported = loadContactPhotoBlob('|x0', fetcherFor('export only'), { background: true });
+    void loadContactPhotoBlob('|x1', fetcherFor('export and avatar'), { background: true });
+    requestContactPhoto('|x1', fetcherFor('export and avatar'));
+
+    busy[0].resolve(jpeg());
+    busy[1].resolve(jpeg());
+    expect(await exported).not.toBeNull();
+
+    expect(started).toEqual(['export and avatar', 'export only']);
+    expect(peekContactPhoto('|x1')).toBeDefined();
+  });
+
+  it('leaves part of the burst to avatars while an export downloads', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const exported = vi.fn(() => Promise.resolve(jpeg()));
+    for (let i = 0; i < 30; i++) void loadContactPhotoBlob(`|x${i}`, exported, { background: true });
+    await flush();
+    expect(exported).toHaveBeenCalledTimes(20);
+
+    const shown = vi.fn(() => Promise.resolve(jpeg()));
+    for (let i = 0; i < 20; i++) requestContactPhoto(`|v${i}`, shown);
+    await flush();
+    expect(shown).toHaveBeenCalledTimes(20);
+    expect(exported).toHaveBeenCalledTimes(20);
+  });
+
+  it('neither retries nor remembers a download that had no client to ask', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const fetcher = vi.fn(async () => null);
+
+    requestContactPhoto('|offline', fetcher);
+    await flush();
+    vi.advanceTimersByTime(1000);
+    await flush();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(peekContactPhoto('|offline')).toBeUndefined();
+
+    // Asked again once there is a client: not held back as a failure.
+    requestContactPhoto('|offline', fetcher);
+    await flush();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(await loadContactPhotoBlob('|offline', fetcher)).toBeNull();
   });
 
   it('drops a queued download once no avatar on screen wants it', async () => {
@@ -195,6 +291,21 @@ describe('contact photo cache', () => {
     await flush();
     expect(peekContactPhoto('|late')).toBeUndefined();
     expect(createObjectURL).toHaveBeenCalledTimes(1);
+  });
+
+  it('frees the slots of downloads still running for the account before a switch', async () => {
+    const hung = [deferred(), deferred()];
+    hung.forEach((d, i) => requestContactPhoto(`|old${i}`, () => d.promise));
+    clearContactPhotoCache();
+
+    const fetcher = vi.fn(() => Promise.resolve(jpeg()));
+    requestContactPhoto('|new', fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    hung.forEach((d) => d.resolve(jpeg()));
+    await flush();
+    expect(peekContactPhoto('|old0')).toBeUndefined();
+    expect(peekContactPhoto('|new')).toBeDefined();
   });
 
   it('gives print and export the bytes, from the cache when it has them', async () => {

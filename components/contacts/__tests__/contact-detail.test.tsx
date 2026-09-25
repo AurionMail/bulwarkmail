@@ -1,7 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ContactDetail } from '../contact-detail';
+import { exportContacts } from '../contact-export';
 import type { ContactCard } from '@/lib/jmap/types';
+import type { BlobBatch } from '@/lib/jmap/client-interface';
 import { useAuthStore } from '@/stores/auth-store';
 import { useContactStore } from '@/stores/contact-store';
 import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
@@ -104,6 +106,30 @@ describe('ContactDetail', () => {
 
       await waitFor(() => expect(container.querySelector('img')?.getAttribute('src')).toBe('blob:photo'));
       expect(fetchBlob).toHaveBeenCalledWith('dbcX', 'photo', 'image/jpeg', 'a');
+    });
+
+    it('greys out "Export as vCard" while an export runs', async () => {
+      let deliver!: (batch: BlobBatch) => void;
+      useAuthStore.setState({
+        client: {
+          ...(useAuthStore.getState().client as object),
+          getContactsAccountId: () => 'a',
+          getBlobsAsBase64: () => new Promise<BlobBatch>((resolve) => { deliver = resolve; }),
+        } as never,
+      });
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      render(<ContactDetail contact={contact} onEdit={vi.fn()} onDelete={vi.fn()} />);
+      let running!: Promise<boolean>;
+      act(() => { running = exportContacts([{ ...contact, media: { photo: { kind: 'photo', blobId: 'dbcX' } } }]); });
+
+      fireEvent.click(screen.getByLabelText('detail.more_actions'));
+      expect(screen.getByRole('menuitem', { name: /context_menu\.export_vcard/ })).toBeDisabled();
+
+      await act(async () => {
+        deliver({ data: new Map([['dbcX', '/9j/']]), failed: [] });
+        await running;
+      });
+      expect(screen.getByRole('menuitem', { name: /context_menu\.export_vcard/ })).not.toBeDisabled();
     });
 
     it('does not show another card\'s photo for the same address', () => {

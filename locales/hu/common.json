@@ -2724,7 +2724,8 @@
     },
     "export": {
       "title": "Névjegyek exportálása",
-      "success": "{count, plural, one {1 névjegy exportálva} other {# névjegy exportálva}}"
+      "success": "{count, plural, one {1 névjegy exportálva} other {# névjegy exportálva}}",
+      "exporting": "Exportálás..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 kijelölve} other {# kijelölve}}",

@@ -2724,7 +2724,8 @@
     },
     "export": {
       "title": "Exporta contactes",
-      "success": "{count, plural, one {1 contacte exportat} other {# contactes exportats}}"
+      "success": "{count, plural, one {1 contacte exportat} other {# contactes exportats}}",
+      "exporting": "Exportant..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 seleccionat} other {# seleccionats}}",
