@@ -3319,6 +3319,7 @@
     "type": "类型",
     "folder": "文件夹",
     "file": "文件",
+    "symlink": "符号链接",
     "parent_directory": "父目录",
     "breadcrumb_root": "根目录",
     "drop_files_here": "将文件或文件夹拖放到此处进行上传",

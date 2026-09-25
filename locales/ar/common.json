@@ -3364,6 +3364,7 @@
     "type": "النوع",
     "folder": "مجلد",
     "file": "ملف",
+    "symlink": "رابط رمزي",
     "parent_directory": "المجلد الأصل",
     "breadcrumb_root": "الرئيسية",
     "other_accounts": "حسابات أخرى",

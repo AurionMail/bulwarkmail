@@ -3319,6 +3319,7 @@
     "type": "Veids",
     "folder": "Mape",
     "file": "Fails",
+    "symlink": "Simboliskā saite",
     "parent_directory": "Augstāka līmeņa mape",
     "breadcrumb_root": "Sākums",
     "drop_files_here": "Velciet failus vai mapes šeit, lai augšupielādētu",

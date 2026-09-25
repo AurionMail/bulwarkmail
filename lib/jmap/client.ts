@@ -14,6 +14,7 @@ import { findTasksOnlyCalendarIds, isTaskLikeObject, type ScannedCalendarObject 
 import { DEFAULT_CALENDAR_COMPONENTS, mkCalendarCollection, newCalendarCollectionName } from "@/lib/webdav/calendar-collection";
 import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
+import { fileNodeKind } from "./filenode-kind";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
 import { jmapError, jmapErrorType, jmapSetError, type JmapErrorInfo } from "./jmap-error";
@@ -7874,6 +7875,8 @@ export class JMAPClient implements IJMAPClient {
 
   private static FILE_NODE_PROPERTIES = [
     "id", "parentId", "name", "type", "blobId", "size", "created", "modified",
+    // Tells 1.0's symlinks from folders (see fileNodeKind).
+    "nodeType",
     // Stalwart omits shareWith/myRights from FileNode/get unless requested
     // explicitly, so the share dialog and indicators can't see existing
     // shares without naming them here (same as CALENDAR_PROPERTIES).
@@ -8393,7 +8396,10 @@ export class JMAPClient implements IJMAPClient {
     const tree = await this.fetchAllFileNodes(source.accountId);
     const original = tree.find(n => n.id === source.id);
     if (!original) throw new Error('File node not found');
-    const isFolderNode = (n: FileNode) => n.blobId == null;
+    // Symlinks (Stalwart 1.0) are left out: there is no content to copy, and
+    // the blobId rule used to recreate them as empty folders.
+    if (fileNodeKind(original) === 'symlink') throw new Error('Symbolic links cannot be copied');
+    const isFolderNode = (n: FileNode) => fileNodeKind(n) === 'directory';
 
     // The whole subtree is laid out from one listing before the first create.
     const childrenOf = new Map<string, FileNode[]>();
@@ -8410,7 +8416,9 @@ export class JMAPClient implements IJMAPClient {
       const below = isFolderNode(node) ? childrenOf.get(node.id) ?? [] : [];
       return {
         node: withDecodedName(node),
-        children: below.filter(child => !seen.has(child.id)).map(collect),
+        children: below
+          .filter(child => !seen.has(child.id) && fileNodeKind(child) !== 'symlink')
+          .map(collect),
       };
     };
     const plan = collect(original);

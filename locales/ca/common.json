@@ -3364,6 +3364,7 @@
     "type": "Tipus",
     "folder": "Carpeta",
     "file": "Fitxer",
+    "symlink": "Enllaç simbòlic",
     "parent_directory": "Directori superior",
     "breadcrumb_root": "Inici",
     "other_accounts": "Altres comptes",

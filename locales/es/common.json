@@ -3319,6 +3319,7 @@
     "type": "Tipo",
     "folder": "Carpeta",
     "file": "Archivo",
+    "symlink": "Enlace simbólico",
     "parent_directory": "Directorio superior",
     "breadcrumb_root": "Inicio",
     "drop_files_here": "Suelte archivos o carpetas aquí para subirlos",

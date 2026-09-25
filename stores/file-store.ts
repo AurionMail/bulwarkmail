@@ -1,12 +1,16 @@
 import { create } from 'zustand';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode, FileNodeRights } from '@/lib/jmap/types';
+import { fileNodeKind } from '@/lib/jmap/filenode-kind';
 
 export interface FileResource {
   id: string;
   name: string;
   serverName: string;
   isDirectory: boolean;
+  // A symbolic link (Stalwart 1.0). Shown, renamed, moved and deleted like
+  // any node, but it has no content and holds nothing, so it can't be opened.
+  isSymlink?: boolean;
   contentType: string;
   contentLength: number;
   lastModified: string;
@@ -145,12 +149,11 @@ function isDirectoryType(type: string | undefined): boolean {
   return DIRECTORY_TYPES.has(type) || type.includes('directory');
 }
 
-// A FileNode is a folder iff it has no content blob. This is the authoritative
-// signal in the JMAP FileNode spec and in Stalwart (a node is a container when
-// its `file`/`blobId` is null); a `type` of "d" is not — older builds created
-// "folders" as blob-backed files, which can't hold children (#379).
-function isFolder(node: Pick<FileNode, 'blobId'>): boolean {
-  return node.blobId == null;
+// Whether a FileNode is a folder, by `nodeType` or else by having no content
+// blob (see fileNodeKind). A `type` of "d" doesn't make one: older builds
+// created "folders" as blob-backed files, which can't hold children (#379).
+function isFolder(node: Pick<FileNode, 'nodeType' | 'blobId'>): boolean {
+  return fileNodeKind(node) === 'directory';
 }
 
 // Direct children of a given parent in the FileNode hierarchy.
@@ -181,13 +184,14 @@ export function resourceServerRef(
 }
 
 function nodeToResource(node: FileNode): FileResource {
-  const isDir = isFolder(node);
+  const kind = fileNodeKind(node);
   return {
     id: node.id,
     name: node.name,
     serverName: node.name,
-    isDirectory: isDir,
-    contentType: isDir ? '' : node.type,
+    isDirectory: kind === 'directory',
+    isSymlink: kind === 'symlink',
+    contentType: kind === 'file' ? node.type : '',
     contentLength: node.size,
     lastModified: node.modified || node.created,
     blobId: node.blobId,
@@ -371,7 +375,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       // Safety net: a real folder has no content blob. If the server (or a stale
       // build of createFileDirectory) hands back a blob-backed node, it is NOT a
       // folder - abort before we delete anything irreversible (see below).
-      if (created.blobId != null) {
+      if (!isFolder(created)) {
         creationBroken = true;
         throw new Error('createFileDirectory returned a non-folder (has a blobId)');
       }
@@ -856,7 +860,7 @@ export const useFileStore = create<FileState>((set, get) => ({
     if (!client) return;
 
     const resource = resources.find(r => r.name === name);
-    if (!resource) return;
+    if (!resource || resource.isSymlink) return;
 
     const dotIdx = name.lastIndexOf('.');
     const copyName = dotIdx > 0
@@ -919,9 +923,21 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   copyResources: (names: string[]) => {
     const { currentPath, currentParentId, resources } = get();
-    const ids = names.map(n => resources.find(r => r.name === n)?.id).filter(Boolean) as string[];
-    const serverNames = names.map(n => resources.find(r => r.name === n)?.serverName).filter(Boolean) as string[];
-    set({ clipboard: { mode: 'copy', ids, names, serverNames, sourceParentId: currentParentId, sourcePath: currentPath } });
+    // A symlink has nothing to copy (see copyFileNode), so it stays behind.
+    const picked = names
+      .map(n => resources.find(r => r.name === n))
+      .filter((r): r is FileResource => !!r && !r.isSymlink);
+    if (picked.length === 0) return;
+    set({
+      clipboard: {
+        mode: 'copy',
+        ids: picked.map(r => r.id),
+        names: picked.map(r => r.name),
+        serverNames: picked.map(r => r.serverName),
+        sourceParentId: currentParentId,
+        sourcePath: currentPath,
+      },
+    });
   },
 
   pasteResources: async () => {

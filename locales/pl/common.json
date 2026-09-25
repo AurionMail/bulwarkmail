@@ -3319,6 +3319,7 @@
     "type": "Typ",
     "folder": "Folder",
     "file": "Plik",
+    "symlink": "Dowiązanie symboliczne",
     "parent_directory": "Katalog nadrzędny",
     "breadcrumb_root": "Strona główna",
     "drop_files_here": "Upuść pliki lub foldery tutaj, aby je przesłać",

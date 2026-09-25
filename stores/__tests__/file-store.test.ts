@@ -478,6 +478,56 @@ describe('file-store "Shared with me"', () => {
   });
 });
 
+describe('file-store symlinks (Stalwart 1.0)', () => {
+  // A 1.0 symlink: no blob, size or type, like a folder, but nodeType says so.
+  const link = (id: string, name: string, parentId: string | null): FileNode => ({
+    id, parentId, name, nodeType: 'symlink', type: null as unknown as string, blobId: null, size: null as unknown as number,
+    created: '2026-09-01T08:00:00Z', modified: '2026-09-01T08:00:00Z',
+  });
+
+  beforeEach(() => {
+    useFileStore.setState({
+      client: null,
+      currentParentId: null,
+      currentPath: '/',
+      pathStack: [{ id: null, name: '' }],
+      resources: [],
+      selectedResources: new Set(),
+      clipboard: null,
+      lastAction: null,
+    });
+  });
+
+  it('lists a symlink as its own kind of row, not as a folder', async () => {
+    const client = makeMockClient([dir('docs', 'Docs', null), link('l', 'latest', null)]);
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    expect(useFileStore.getState().resources.find(r => r.name === 'latest'))
+      .toMatchObject({ isDirectory: false, isSymlink: true, contentType: '' });
+    expect(useFileStore.getState().resources.find(r => r.name === 'Docs'))
+      .toMatchObject({ isDirectory: true, isSymlink: false });
+
+    // A path through it doesn't resolve to a folder.
+    await useFileStore.getState().navigateByPath('/latest');
+    expect(useFileStore.getState().currentPath).toBe('/');
+  });
+
+  it('keeps symlinks out of copies and duplicates', async () => {
+    const client = makeMockClient([file('f', 'a.txt', null), link('l', 'latest', null)]);
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    useFileStore.getState().copyResources(['a.txt', 'latest']);
+    expect(useFileStore.getState().clipboard).toMatchObject({ mode: 'copy', ids: ['f'], names: ['a.txt'] });
+    useFileStore.getState().copyResources(['latest']);
+    expect(useFileStore.getState().clipboard).toMatchObject({ ids: ['f'] });
+
+    await useFileStore.getState().duplicateResource('latest');
+    expect(client._nodes()).toHaveLength(2);
+  });
+});
+
 describe('resourceServerRef', () => {
   it('splits a shared drive\'s namespaced id into the owner account and the node id', () => {
     expect(resourceServerRef({ id: 'owner1:n5', isShared: true, ownerAccountId: 'owner1' }))

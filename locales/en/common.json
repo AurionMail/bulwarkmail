@@ -3364,6 +3364,7 @@
     "type": "Type",
     "folder": "Folder",
     "file": "File",
+    "symlink": "Symbolic link",
     "parent_directory": "Parent directory",
     "breadcrumb_root": "Home",
     "other_accounts": "Other accounts",

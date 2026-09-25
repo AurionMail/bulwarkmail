@@ -3319,6 +3319,7 @@
     "type": "Typ",
     "folder": "Složka",
     "file": "Soubor",
+    "symlink": "Symbolický odkaz",
     "parent_directory": "Nadřazený adresář",
     "breadcrumb_root": "Domů",
     "drop_files_here": "Přetáhněte sem soubory nebo složky pro jejich nahrání",

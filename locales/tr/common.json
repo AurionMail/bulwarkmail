@@ -3364,6 +3364,7 @@
     "type": "Tür",
     "folder": "Klasör",
     "file": "Dosya",
+    "symlink": "Sembolik bağlantı",
     "parent_directory": "Üst dizin",
     "breadcrumb_root": "Ana Sayfa",
     "drop_files_here": "Yüklemek için dosya veya klasörleri buraya bırakın",

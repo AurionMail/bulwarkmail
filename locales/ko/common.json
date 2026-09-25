@@ -3319,6 +3319,7 @@
     "type": "유형",
     "folder": "폴더",
     "file": "파일",
+    "symlink": "심볼릭 링크",
     "parent_directory": "상위 폴더",
     "breadcrumb_root": "홈",
     "drop_files_here": "여기에 파일이나 폴더를 끌어다 놓으세요",

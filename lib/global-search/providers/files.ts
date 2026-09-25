@@ -1,6 +1,7 @@
 import { matchesTerms, type ParsedQuery } from '@/lib/global-search/query-parser';
 import type { FileHit, SearchAccount, SearchProvider } from '@/lib/global-search/types';
 import type { FileNode } from '@/lib/jmap/types';
+import { fileNodeKind } from '@/lib/jmap/filenode-kind';
 import { useFileStore } from '@/stores/file-store';
 
 /**
@@ -66,10 +67,6 @@ export function peekFileListing(localAccountId: string): FileNode[] | null {
   return cached?.nodes ?? null;
 }
 
-export function isFolderNode(node: Pick<FileNode, 'blobId'>): boolean {
-  return node.blobId == null;
-}
-
 /** Inverse of the Files store's `resolvePathToId`: the folder path a node lives in. */
 export function pathOfNode(nodes: FileNode[], node: FileNode): string {
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -99,7 +96,10 @@ function filterNodes(parsed: ParsedQuery, nodes: FileNode[], account: SearchAcco
   for (const node of nodes) {
     // The owner's folders above a shared node only feed the path below.
     if (node.discoverableOnly) continue;
-    if (!matchesTerms(parsed.terms, [node.name, isFolderNode(node) ? 'folder' : node.type])) continue;
+    const kind = fileNodeKind(node);
+    // A symlink has nothing a hit could open.
+    if (kind === 'symlink') continue;
+    if (!matchesTerms(parsed.terms, [node.name, kind === 'directory' ? 'folder' : node.type])) continue;
     const folderPath = pathOfNode(nodes, node);
     hits.push({
       kind: 'files',
@@ -114,7 +114,7 @@ function filterNodes(parsed: ParsedQuery, nodes: FileNode[], account: SearchAcco
       source,
       node,
       folderPath,
-      isFolder: isFolderNode(node),
+      isFolder: kind === 'directory',
     });
     if (hits.length >= limit) break;
   }

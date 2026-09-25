@@ -3364,6 +3364,7 @@
     "type": "Type",
     "folder": "Mappe",
     "file": "Fil",
+    "symlink": "Symbolsk lenke",
     "parent_directory": "Overordnet mappe",
     "breadcrumb_root": "Hjem",
     "other_accounts": "Andre kontoer",

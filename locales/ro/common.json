@@ -3364,6 +3364,7 @@
     "type": "Tastați",
     "folder": "Dosar",
     "file": "Fișier",
+    "symlink": "Legătură simbolică",
     "parent_directory": "Directorul părinte",
     "breadcrumb_root": "Acasă",
     "other_accounts": "Alte conturi",

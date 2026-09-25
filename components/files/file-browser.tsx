@@ -11,7 +11,7 @@ import {
   AlertCircle, Star, Clock, FolderUp,
   FileArchive, FileSpreadsheet, Presentation, FileCode,
   Box, PenTool, Terminal as TerminalIcon, Database, Type as TypeIcon,
-  Menu, Users, Share2, SquarePen,
+  Menu, Users, Share2, SquarePen, Link,
 } from "@/components/icons";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
@@ -239,17 +239,28 @@ function getFileIconByName(name: string, size: "sm" | "lg") {
   return <File className={`${cls} text-muted-foreground`} />;
 }
 
-function getFileIcon(resource: FileResource) {
+// A symlink's icon, whatever its name suggests: it has no content to open.
+function SymlinkIcon({ className, label }: { className: string; label: string }) {
+  return (
+    <Link className={`${className} text-muted-foreground`} aria-label={label}>
+      <title>{label}</title>
+    </Link>
+  );
+}
+
+function getFileIcon(resource: FileResource, symlinkLabel: string) {
   if (resource.isDirectory) {
     return <Folder className="w-5 h-5 text-blue-500" />;
   }
+  if (resource.isSymlink) return <SymlinkIcon className="w-5 h-5" label={symlinkLabel} />;
   return getFileIconByName(resource.name, "sm");
 }
 
-function getGridIcon(resource: FileResource) {
+function getGridIcon(resource: FileResource, symlinkLabel: string) {
   if (resource.isDirectory) {
     return <Folder className="w-10 h-10 text-blue-500" />;
   }
+  if (resource.isSymlink) return <SymlinkIcon className="w-10 h-10" label={symlinkLabel} />;
   return getFileIconByName(resource.name, "lg");
 }
 
@@ -418,8 +429,15 @@ export function FileBrowser({
   // it (not a shared-with-me node), and holds the mayShare right (owned nodes
   // report full rights; treat missing myRights as allowed).
   const canShare = useCallback((r: FileResource | null | undefined): boolean =>
-    !!(sharingEnabled && onShare && client && r && !r.isShared && (r.myRights?.mayShare ?? true)),
+    !!(sharingEnabled && onShare && client && r && !r.isShared && !r.isSymlink && (r.myRights?.mayShare ?? true)),
     [sharingEnabled, onShare, client]);
+  // Files have content to preview, open, download or duplicate. Folders and
+  // symlinks don't: a symlink row only supports rename, move and delete.
+  const hasContent = useCallback((name: string): boolean => {
+    const r = resources.find(res => res.name === name);
+    return !!r && !r.isDirectory && !r.isSymlink;
+  }, [resources]);
+  const symlinkLabel = t("symlink");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; name: string } | null>(null);
   const [emptyContextMenu, setEmptyContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [showNewTextFile, setShowNewTextFile] = useState(false);
@@ -700,6 +718,7 @@ export function FileBrowser({
   }, [marquee, onSetSelection]);
 
   const handleResourceDoubleClick = (resource: FileResource) => {
+    if (resource.isSymlink) return;
     if (resource.isDirectory) {
       const newPath = currentPath === '/'
         ? `/${resource.name}`
@@ -929,7 +948,7 @@ export function FileBrowser({
             ? `/${resource.name}`
             : `${currentPath}/${resource.name}`;
           onNavigate(newPath, resource.id);
-        } else if (resource) {
+        } else if (resource && !resource.isSymlink) {
           onDownload(resource.name);
         }
         return;
@@ -1003,10 +1022,10 @@ export function FileBrowser({
                 variant="ghost"
                 size="sm"
                 className="h-8"
-                onClick={() => onBatchDownload([...selectedResources].filter(n => !resources.find(r => r.name === n)?.isDirectory))}
+                onClick={() => onBatchDownload([...selectedResources].filter(hasContent))}
               >
                 <Download className="w-4 h-4 me-1" />
-                {t("download")} ({[...selectedResources].filter(n => !resources.find(r => r.name === n)?.isDirectory).length})
+                {t("download")} ({[...selectedResources].filter(hasContent).length})
               </Button>
               <Button
                 variant="ghost"
@@ -1512,9 +1531,9 @@ export function FileBrowser({
                       data-checked={selectedResources.has(resource.name)}
                       onClick={(e) => e.stopPropagation()}
                     />
-                    {showThumbnails && isImageFile(resource.name)
+                    {showThumbnails && !resource.isSymlink && isImageFile(resource.name)
                       ? <Thumbnail name={resource.name} getImageUrl={getImageUrl} size="lg" />
-                      : getGridIcon(resource)}
+                      : getGridIcon(resource, symlinkLabel)}
                     <span className="text-xs truncate w-full text-center flex items-center justify-center gap-1" title={resource.name}>
                       <span className="truncate">{resource.name}</span>
                       <ShareBadge resource={resource} t={t} />
@@ -1662,15 +1681,15 @@ export function FileBrowser({
                         className="w-4 h-4 rounded border-border accent-primary cursor-pointer shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       />
-                      {showThumbnails && isImageFile(resource.name)
+                      {showThumbnails && !resource.isSymlink && isImageFile(resource.name)
                         ? <Thumbnail name={resource.name} getImageUrl={getImageUrl} size="sm" />
-                        : getFileIcon(resource)}
+                        : getFileIcon(resource, symlinkLabel)}
                       <span className="truncate">{resource.name}</span>
                       <ShareBadge resource={resource} t={t} />
                     </div>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell tabular-nums">
-                    {resource.isDirectory ? "-" : formatFileSize(resource.contentLength)}
+                    {resource.isDirectory || resource.isSymlink ? "-" : formatFileSize(resource.contentLength)}
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground hidden lg:table-cell tabular-nums">
                     {formatDate(resource.lastModified)}
@@ -1702,7 +1721,7 @@ export function FileBrowser({
             style={{ left: contextMenu.x, top: contextMenu.y }}
             onClick={(e) => e.stopPropagation()}
           >
-            {!resources.find(r => r.name === contextMenu.name)?.isDirectory && isPreviewable(contextMenu.name) && (
+            {hasContent(contextMenu.name) && isPreviewable(contextMenu.name) && (
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
                 onClick={() => {
@@ -1718,7 +1737,7 @@ export function FileBrowser({
                 {t("preview")}
               </button>
             )}
-            {!resources.find(r => r.name === contextMenu.name)?.isDirectory && isOfficeEditable?.(contextMenu.name) && onEditFile && (
+            {hasContent(contextMenu.name) && isOfficeEditable?.(contextMenu.name) && onEditFile && (
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
                 onClick={() => {
@@ -1730,7 +1749,7 @@ export function FileBrowser({
                 {t("office_edit")}
               </button>
             )}
-            {!resources.find(r => r.name === contextMenu.name)?.isDirectory && (
+            {hasContent(contextMenu.name) && (
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
                 onClick={() => {
@@ -1752,16 +1771,18 @@ export function FileBrowser({
               <Scissors className="w-4 h-4" />
               {t("cut")}
             </button>
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                onCopy([contextMenu.name]);
-                setContextMenu(null);
-              }}
-            >
-              <Copy className="w-4 h-4" />
-              {t("copy")}
-            </button>
+            {!resources.find(r => r.name === contextMenu.name)?.isSymlink && (
+              <button
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
+                onClick={() => {
+                  onCopy([contextMenu.name]);
+                  setContextMenu(null);
+                }}
+              >
+                <Copy className="w-4 h-4" />
+                {t("copy")}
+              </button>
+            )}
             {clipboard && (
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
@@ -1774,7 +1795,7 @@ export function FileBrowser({
                 {t("paste")}
               </button>
             )}
-            {!resources.find(r => r.name === contextMenu.name)?.isDirectory && (
+            {hasContent(contextMenu.name) && (
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
                 onClick={() => {
@@ -1971,15 +1992,21 @@ export function FileBrowser({
             <div className="flex flex-col items-center gap-3 mb-4">
               {detailResource.isDirectory
                 ? <Folder className="w-12 h-12 text-blue-500" />
-                : getFileIconByName(detailResource.name, "lg")}
+                : detailResource.isSymlink
+                  ? <SymlinkIcon className="w-12 h-12" label={symlinkLabel} />
+                  : getFileIconByName(detailResource.name, "lg")}
               <p className="text-sm font-medium text-center break-all">{detailResource.name}</p>
             </div>
             <dl className="space-y-3 text-sm">
               <div>
                 <dt className="text-muted-foreground text-xs">{t("type")}</dt>
-                <dd>{detailResource.isDirectory ? t("folder") : (detailResource.contentType || t("file"))}</dd>
+                <dd>
+                  {detailResource.isDirectory
+                    ? t("folder")
+                    : detailResource.isSymlink ? symlinkLabel : (detailResource.contentType || t("file"))}
+                </dd>
               </div>
-              {!detailResource.isDirectory && (
+              {!detailResource.isDirectory && !detailResource.isSymlink && (
                 <div>
                   <dt className="text-muted-foreground text-xs">{t("size")}</dt>
                   <dd className="tabular-nums">{formatFileSize(detailResource.contentLength)}</dd>

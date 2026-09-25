@@ -3319,6 +3319,7 @@
     "type": "種類",
     "folder": "フォルダー",
     "file": "ファイル",
+    "symlink": "シンボリックリンク",
     "parent_directory": "親ディレクトリ",
     "breadcrumb_root": "ホーム",
     "drop_files_here": "ここにファイルまたはフォルダをドロップしてアップロード",

@@ -3319,6 +3319,7 @@
     "type": "Typ",
     "folder": "Ordner",
     "file": "Datei",
+    "symlink": "Symbolischer Link",
     "parent_directory": "Übergeordnetes Verzeichnis",
     "breadcrumb_root": "Startseite",
     "drop_files_here": "Dateien oder Ordner hier ablegen zum Hochladen",

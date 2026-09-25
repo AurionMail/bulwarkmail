@@ -997,11 +997,16 @@ export interface AccountStates {
 
 // JMAP FileNode types (draft-ietf-jmap-filenode / Stalwart implementation)
 
+export type FileNodeType = 'file' | 'directory' | 'symlink';
+
 export interface FileNode {
   id: string;
   parentId: string | null;
   name: string;
   type: string; // "d" for directory, MIME type for files
+  // Returned by Stalwart 0.16.6+; 1.0 adds symlinks. Read it through
+  // fileNodeKind(), and never send it in FileNode/set.
+  nodeType?: FileNodeType;
   blobId: string | null;
   size: number;
   created: string;

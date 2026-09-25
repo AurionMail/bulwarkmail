@@ -3364,6 +3364,7 @@
     "type": "نوع",
     "folder": "پوشه",
     "file": "فایل",
+    "symlink": "پیوند نمادین",
     "parent_directory": "پوشه والد",
     "breadcrumb_root": "خانه",
     "other_accounts": "سایر حساب‌ها",

@@ -3364,6 +3364,7 @@
     "type": "Típus",
     "folder": "Mappa",
     "file": "Fájl",
+    "symlink": "Szimbolikus hivatkozás",
     "parent_directory": "Szülő könyvtár",
     "breadcrumb_root": "Kezdőlap",
     "other_accounts": "További fiókok",

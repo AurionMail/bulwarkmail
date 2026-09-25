@@ -3364,6 +3364,7 @@
     "type": "Type",
     "folder": "Mappe",
     "file": "Fil",
+    "symlink": "Symbolsk link",
     "parent_directory": "Overordnet mappe",
     "breadcrumb_root": "Hjem",
     "drop_files_here": "Træk filer eller mapper hertil for at uploade",

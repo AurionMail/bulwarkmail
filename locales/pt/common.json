@@ -3319,6 +3319,7 @@
     "type": "Tipo",
     "folder": "Pasta",
     "file": "Arquivo",
+    "symlink": "Link simbólico",
     "parent_directory": "Diretório superior",
     "breadcrumb_root": "Início",
     "drop_files_here": "Largue arquivos ou pastas aqui para carregar",

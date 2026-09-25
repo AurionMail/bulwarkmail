@@ -3319,6 +3319,7 @@
     "type": "Type",
     "folder": "Map",
     "file": "Bestand",
+    "symlink": "Symbolische koppeling",
     "parent_directory": "Bovenliggende map",
     "breadcrumb_root": "Start",
     "drop_files_here": "Sleep bestanden of mappen hierheen om te uploaden",

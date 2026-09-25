@@ -97,6 +97,32 @@ describe('FileNode writes', () => {
     expect(calls.some(([m]) => m === 'Blob/copy')).toBe(false);
   });
 
+  it('leaves symlinks out of a folder copy instead of making them empty folders (Stalwart 1.0)', async () => {
+    const { client, calls } = makeClient({
+      me: [
+        { id: 'd1', name: 'Docs', parentId: null, nodeType: 'directory', blobId: null, type: null, size: null },
+        { id: 'l1', name: 'latest', parentId: 'd1', nodeType: 'symlink', blobId: null, type: null, size: null },
+        { id: 'f1', name: 'a.txt', parentId: 'd1', nodeType: 'file', blobId: 'b1', type: 'text/plain', size: 3 },
+      ],
+    });
+    await client.copyFileNode('d1', 'Docs (copy)', null);
+
+    // Nor is nodeType ever sent: 1.0 treats it as immutable.
+    const creates = sets(calls).map(a => (a.create as { n0: Record<string, unknown> }).n0);
+    expect(creates).toEqual([
+      { name: 'Docs (copy)' },
+      { name: 'a.txt', parentId: 'new1', type: 'text/plain', blobId: 'b1' },
+    ]);
+  });
+
+  it('refuses to copy a symlink itself', async () => {
+    const { client, calls } = makeClient({
+      me: [{ id: 'l1', name: 'latest', parentId: null, nodeType: 'symlink', blobId: null, type: null, size: null }],
+    });
+    await expect(client.copyFileNode('l1', 'latest (copy)', null)).rejects.toThrow('Symbolic links');
+    expect(sets(calls)).toEqual([]);
+  });
+
   it('copies WebDAV-created names inside a folder the way they are shown (#869)', async () => {
     const { client, calls } = makeClient({
       me: [

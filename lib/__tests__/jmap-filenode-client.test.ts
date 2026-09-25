@@ -155,6 +155,17 @@ describe('JMAPClient FileNode listing past maxObjectsInGet (#1069)', () => {
     const nodes = await client.listAllFileNodesAcrossAccounts();
     expect(sortedIds(nodes)).toEqual(['f0', 'f1', 'f2', 'f3']);
   });
+
+  it('asks for nodeType, which tells Stalwart 1.0 symlinks from folders', async () => {
+    const all = [folder('d1'), file('f0'), file('f1'), file('f2')];
+    const client = createLimitedClient({ maxObjectsInGet: 2 });
+    const sent = fakeFilesServer(all, { maxObjectsInGet: 2 });
+
+    await client.listAllFileNodes();
+    const gets = sent.flat().filter(([method]) => method === 'FileNode/get');
+    expect(gets.length).toBeGreaterThan(1);
+    for (const [, args] of gets) expect(args.properties).toContain('nodeType');
+  });
 });
 
 describe('JMAPClient FileNode name decoding (#869)', () => {

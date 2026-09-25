@@ -3364,6 +3364,7 @@
     "type": "Typ",
     "folder": "Priečinok",
     "file": "Súbor",
+    "symlink": "Symbolický odkaz",
     "parent_directory": "Nadradený adresár",
     "breadcrumb_root": "Domov",
     "other_accounts": "Ostatné účty",

@@ -3364,6 +3364,7 @@
     "type": "Төрөл",
     "folder": "Хавтас",
     "file": "Файл",
+    "symlink": "Симбол холбоос",
     "parent_directory": "Эцэг эх лавлах",
     "breadcrumb_root": "Гэр",
     "other_accounts": "Бусад дансууд",

@@ -3242,6 +3242,7 @@
     "type": "הקלד",
     "folder": "תיקיה",
     "file": "קובץ",
+    "symlink": "קישור סמלי",
     "parent_directory": "ספריית הורים",
     "breadcrumb_root": "בית",
     "drop_files_here": "שחרר כאן קבצים או תיקיות כדי להעלות",

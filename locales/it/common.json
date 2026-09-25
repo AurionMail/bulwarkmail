@@ -3319,6 +3319,7 @@
     "type": "Tipo",
     "folder": "Cartella",
     "file": "File",
+    "symlink": "Collegamento simbolico",
     "parent_directory": "Directory superiore",
     "breadcrumb_root": "Home",
     "drop_files_here": "Trascina file o cartelle qui per caricarli",

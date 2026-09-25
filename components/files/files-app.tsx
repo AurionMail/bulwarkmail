@@ -279,7 +279,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     const resource = resources.find((r) => r.name === pending);
     if (!resource) return;
     pendingPreviewRef.current = null;
-    if (isFilePreviewable(pending)) {
+    if (!resource.isSymlink && isFilePreviewable(pending)) {
       setPreviewFile(pending);
     } else {
       toast.error(tDeepLink('file_not_found'));

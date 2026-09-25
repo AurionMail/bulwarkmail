@@ -3319,6 +3319,7 @@
     "type": "Type",
     "folder": "Dossier",
     "file": "Fichier",
+    "symlink": "Lien symbolique",
     "parent_directory": "Répertoire parent",
     "breadcrumb_root": "Accueil",
     "drop_files_here": "Déposez des fichiers ou dossiers ici pour les téléverser",

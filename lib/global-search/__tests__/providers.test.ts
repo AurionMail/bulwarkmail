@@ -356,4 +356,16 @@ describe('files provider', () => {
     expect(hits.map((h) => h.id)).toEqual(['x']);
     expect(hits[0]).toMatchObject({ folderPath: '/zebra archive', isFolder: true, jmapAccountId: 'owner' });
   });
+
+  it('tells folders by nodeType and leaves Stalwart 1.0 symlinks out of the hits', async () => {
+    const listing = [
+      { id: 'd', parentId: null, name: 'zebra folder', nodeType: 'directory', type: null, blobId: null, size: null, created: '', modified: '' },
+      { id: 'l', parentId: null, name: 'zebra link', nodeType: 'symlink', type: null, blobId: null, size: null, created: '', modified: '' },
+    ];
+    invalidateFileSearchCache();
+    const acc = account('login-l', { listAllFileNodesAcrossAccounts: vi.fn(async () => listing) });
+    const { hits } = await filesProvider.remote(parseSearchQuery('zebra'), acc, { limit: 10, signal });
+    expect(hits.map((h) => h.id)).toEqual(['d']);
+    expect(hits[0]).toMatchObject({ isFolder: true });
+  });
 });
