@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseSearchQuery } from '../query-parser';
 import type { SearchAccount } from '../types';
+import {
+  connectCalendarClient,
+  expandingQueryAnswer,
+  installStalwartCalendarMock,
+  occurrenceObjects,
+  stalwartCalendarSession,
+} from '../../__tests__/helpers/stalwart-calendar';
 
 // ---------------------------------------------------------------------------
 // Store mocks. Providers read caches via `useXStore.getState()` and resolve
@@ -194,6 +201,43 @@ describe('calendar provider', () => {
     ];
     const hits = calendarProvider.local(parseSearchQuery('sync'), [account('login-a')], 10);
     expect(hits).toHaveLength(1);
+  });
+
+  it('searches more than a year between after: and before: in chunks on Stalwart 1.0', async () => {
+    // Stalwart 1.0 refuses an expanded query over more than
+    // maxExpandedQueryDuration (365 days); the client splits the range.
+    const occurrences = [
+      { id: 'o-2024', start: '2024-03-05T09:00:00', seconds: 3600 },
+      { id: 'o-2025', start: '2025-06-10T09:00:00', seconds: 3600 },
+      { id: 'o-2026', start: '2026-08-20T09:00:00', seconds: 3600 },
+    ];
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const client = await connectCalendarClient(fetchSpy, stalwartCalendarSession('1.0'));
+    const server = installStalwartCalendarMock(fetchSpy, {
+      version: '1.0',
+      objects: { series: { id: 'series', recurrenceRule: { frequency: 'yearly' }, showWithoutTime: false, duration: 'PT1H' } },
+      occurrences: occurrenceObjects('series', occurrences),
+      answer: expandingQueryAnswer('1.0', { seriesId: 'series', occurrences }),
+    });
+    try {
+      const result = await calendarProvider.remote(
+        parseSearchQuery('standup after:2024-01-01 before:2026-12-31'),
+        { ...account('login-a'), client },
+        { limit: 10, signal },
+      );
+
+      expect(result.hits.map((h) => h.id).sort()).toEqual(['o-2024', 'o-2025', 'o-2026']);
+      // Three years in chunks of 364 days, the latest first, each still
+      // filtered by the search text.
+      const expanded = server.queries().filter((q) => q.args.expandRecurrences);
+      expect(expanded).toHaveLength(4);
+      const bounds = expanded.map((q) => q.args.filter as { after: string; before: string; text: string });
+      expect(bounds.every((filter) => filter.text === 'standup')).toBe(true);
+      expect(bounds[0].before > bounds[1].before && bounds[1].before > bounds[2].before).toBe(true);
+    } finally {
+      client.disconnect();
+      fetchSpy.mockRestore();
+    }
   });
 
   it('remote queries every JMAP account of the login and flags recurring masters', async () => {

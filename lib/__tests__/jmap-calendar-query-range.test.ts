@@ -1,7 +1,19 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
 import { jmapErrorType } from '../jmap/jmap-error';
 import { toLocalDateTime } from '../timezone';
+import {
+  connectCalendarClient,
+  expandingQueryAnswer,
+  installStalwartCalendarMock,
+  localSeconds,
+  occurrenceObjects,
+  stalwartCalendarSession,
+  tooManyOccurrences,
+  type RangeOccurrence,
+  type StalwartCalendarMock,
+  type StalwartVersion,
+} from './helpers/stalwart-calendar';
 
 type Call = [string, Record<string, unknown>, string];
 
@@ -49,23 +61,30 @@ describe('queryCalendarEvents range handling', () => {
     expect(filter.after.endsWith('Z')).toBe(false);
   });
 
-  it('falls back to series when the range expands past the server limit on 0.16', async () => {
-    const { client, queries } = clientAnswering((args) => args.expandRecurrences
-      ? ['error', { type: 'invalidArguments', description: 'The number of expanded recurrences exceeds the server limit' }]
-      : ['CalendarEvent/query', { ids: ['s1'] }]);
-    const events = await client.queryCalendarEvents({ after: '2020-01-01T00:00:00', before: '2030-01-01T00:00:00' });
-    expect(queries.map((q) => !!q.expandRecurrences)).toEqual([true, false]);
-    expect(events.map((e) => e.id)).toEqual(['s1']);
-  });
+  it.each<[StalwartVersion]>([['0.16'], ['1.0']])(
+    'falls back to series when even a week expands to too many occurrences on Stalwart %s',
+    async (version) => {
+      const { client, queries } = clientAnswering((args) => args.expandRecurrences
+        ? ['error', tooManyOccurrences(version)]
+        : ['CalendarEvent/query', { ids: ['s1'] }]);
+      const events = await client.queryCalendarEvents({ after: '2026-09-01T00:00:00', before: '2026-09-30T23:59:59' });
 
-  it('falls back to series on Stalwart 1.0 cannotCalculateOccurrences', async () => {
-    const { client, queries } = clientAnswering((args) => args.expandRecurrences
-      ? ['error', { type: 'cannotCalculateOccurrences', description: 'The number of expanded recurrences exceeds the server limit' }]
-      : ['CalendarEvent/query', { ids: ['s1'] }]);
-    const events = await client.queryCalendarEvents({ after: '2026-09-01T00:00:00', before: '2026-09-30T23:59:59' });
-    expect(queries.map((q) => !!q.expandRecurrences)).toEqual([true, false]);
-    expect(events.map((e) => e.id)).toEqual(['s1']);
-  });
+      // 30 days, halved to 15, 7.5 and 3.75: a chunk of a week or less that
+      // is still refused gives up on server expansion for the whole range.
+      const expanded = queries.filter((q) => q.expandRecurrences);
+      const days = expanded.map((q) => {
+        const filter = q.filter as { after: string; before: string };
+        return (localSeconds(filter.before) - localSeconds(filter.after)) / 86_400;
+      });
+      const levels = [30, 15, 15, 7.5, 7.5, 7.5, 7.5, ...Array(8).fill(3.75)];
+      expect(days).toHaveLength(levels.length);
+      days.forEach((span, i) => expect(span).toBeCloseTo(levels[i], 0));
+      expect(queries).toHaveLength(expanded.length + 1);
+      expect(queries.at(-1)).toMatchObject({ filter: { after: '2026-09-01T00:00:00', before: '2026-09-30T23:59:59' } });
+      expect(queries.at(-1)!.expandRecurrences).toBeUndefined();
+      expect(events.map((e) => e.id)).toEqual(['s1']);
+    },
+  );
 
   it('fails the range when Stalwart 1.0 refuses the query, instead of returning no events', async () => {
     const { client } = clientAnswering(() => ['error', { type: 'invalidArguments', description: 'Invalid timeZone "Mars/Olympus"' }]);
@@ -91,5 +110,240 @@ describe('queryCalendarEvents range handling', () => {
     await client.queryCalendarEvents({ after: '2026-09-01T00:00:00', before: '2026-10-01T00:00:00' }, undefined, 2);
     expect(queries).toHaveLength(1);
     expect(queries[0].limit).toBe(2);
+  });
+});
+
+// An expanded range may span at most maxExpandedQueryDuration (the account's
+// calendars capability, an iCalendar duration). 1.0 enforces it with
+// expandDurationTooLarge; every 0.16 advertises 365 days and never checks.
+// A longer range goes out in chunks a day shorter than the limit, sharing a
+// second at each border.
+describe('expanded ranges longer than maxExpandedQueryDuration', () => {
+  const DAY = 86_400;
+  // 777 days, the longest window the month view scrolls to.
+  const WINDOW = { after: '2025-01-01T00:00:00', before: '2027-02-16T23:59:59' };
+  const occurrences: RangeOccurrence[] = [
+    { id: 'o-first', start: '2025-01-02T09:00:00', seconds: 3600 },
+    // Across the first border (2025-12-31T00:00:00): found by both chunks.
+    { id: 'o-across', start: '2025-12-30T23:30:00', seconds: 3600 },
+    // Zero-length, exactly on that border: only the overlap finds it.
+    { id: 'o-border', start: '2025-12-31T00:00:00', seconds: 0 },
+    { id: 'o-middle', start: '2026-07-01T09:00:00', seconds: 3600 },
+    { id: 'o-late', start: '2027-02-10T09:00:00', seconds: 3600 },
+    // Outside the window.
+    { id: 'o-after', start: '2027-02-17T09:00:00', seconds: 3600 },
+  ];
+  const IN_WINDOW = ['o-first', 'o-across', 'o-border', 'o-middle', 'o-late'];
+  const SERIES = {
+    id: 'series', '@type': 'Event', uid: 'series@example.com', title: 'Standup', baseEventId: 'series',
+    start: '2025-01-02T09:00:00', duration: 'PT1H', recurrenceRule: { frequency: 'daily' },
+    recurrenceOverrides: null, calendarIds: { cal: true },
+  };
+
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let client: JMAPClient;
+  let server: StalwartCalendarMock;
+
+  async function connect(
+    version: StalwartVersion,
+    options: {
+      maxExpandedQueryDuration?: string | null;
+      maxSpanSeconds?: number;
+      maxInstances?: number;
+      maxCallsInRequest?: number;
+    } = {},
+  ) {
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    client = await connectCalendarClient(fetchSpy, stalwartCalendarSession(version, options));
+    server = installStalwartCalendarMock(fetchSpy, {
+      version,
+      objects: { series: SERIES },
+      occurrences: occurrenceObjects('series', occurrences),
+      answer: expandingQueryAnswer(version, { seriesId: 'series', occurrences, ...options }),
+    });
+  }
+
+  const expandedQueries = () => server.queries().filter((q) => q.args.expandRecurrences);
+  const bounds = () => expandedQueries().map((q) => {
+    const filter = q.args.filter as { after: string; before: string };
+    return [filter.after, filter.before];
+  });
+
+  afterEach(() => {
+    client.disconnect();
+    fetchSpy.mockRestore();
+  });
+
+  describe.each(['P365D', 'P52W1D', 'PT8760H'])('with maxExpandedQueryDuration %s', (duration) => {
+    it(`splits a 777-day window into three chunks sent in one request on Stalwart 1.0`, async () => {
+      await connect('1.0', { maxExpandedQueryDuration: duration });
+
+      const events = await client.queryCalendarEvents(WINDOW);
+
+      expect(bounds()).toEqual([
+        ['2025-01-01T00:00:00', '2025-12-31T00:00:00'],
+        ['2025-12-30T23:59:59', '2026-12-29T23:59:59'],
+        ['2026-12-29T23:59:58', '2027-02-16T23:59:59'],
+      ]);
+      for (const [after, before] of bounds()) {
+        expect(localSeconds(before) - localSeconds(after)).toBeLessThanOrEqual(364 * DAY);
+      }
+      expect(new Set(expandedQueries().map((q) => q.request)).size).toBe(1);
+      // Each occurrence once, the border ones included.
+      expect(events.map((e) => e.id).sort()).toEqual([...IN_WINDOW].sort());
+    });
+  });
+
+  it('gets the same occurrences from 0.16, which advertises the limit but does not enforce it', async () => {
+    await connect('0.16');
+    const events = await client.queryCalendarEvents(WINDOW);
+
+    expect(bounds()).toHaveLength(3);
+    expect(events.map((e) => e.id).sort()).toEqual([...IN_WINDOW].sort());
+    // The occurrences are hydrated from their series, once.
+    expect(events.find((e) => e.id === 'o-middle')?.recurrenceRules).toEqual([{ frequency: 'daily' }]);
+    expect(server.gets().filter((g) => (g.args.ids as string[]).includes('series'))).toHaveLength(1);
+  });
+
+  it('halves a chunk the server finds too long on Stalwart 1.0', async () => {
+    // The server enforces less than it advertises.
+    await connect('1.0', { maxSpanSeconds: 200 * DAY });
+
+    const events = await client.queryCalendarEvents(WINDOW);
+
+    const spans = bounds().map(([after, before]) => (localSeconds(before) - localSeconds(after)) / DAY);
+    // The two 364-day chunks are refused and halved; the 49-day one is not.
+    expect(spans.filter((days) => days > 200)).toHaveLength(2);
+    expect(spans.filter((days) => days <= 200)).toHaveLength(5);
+    expect(events.map((e) => e.id).sort()).toEqual([...IN_WINDOW].sort());
+  });
+
+  it('splits when refused even without the capability on Stalwart 1.0', async () => {
+    await connect('1.0', { maxExpandedQueryDuration: null });
+
+    const events = await client.queryCalendarEvents(WINDOW);
+
+    // One query for the whole window, refused; its halves (388.5 days),
+    // refused; their halves.
+    expect(bounds()[0]).toEqual([WINDOW.after, WINDOW.before]);
+    expect(bounds()).toHaveLength(1 + 2 + 4);
+    expect(events.map((e) => e.id).sort()).toEqual([...IN_WINDOW].sort());
+  });
+
+  it.each<[StalwartVersion]>([['0.16'], ['1.0']])(
+    'halves chunks that expand to too many occurrences on Stalwart %s',
+    async (version) => {
+      // Only a chunk holding at most two occurrences is answered.
+      await connect(version, { maxInstances: 2 });
+
+      const events = await client.queryCalendarEvents(WINDOW);
+
+      expect(expandedQueries().length).toBeGreaterThan(3);
+      expect(server.queries().every((q) => q.args.expandRecurrences)).toBe(true);
+      expect(events.map((e) => e.id).sort()).toEqual([...IN_WINDOW].sort());
+    },
+  );
+
+  it.each<[StalwartVersion]>([['0.16'], ['1.0']])(
+    'expands the whole range on the client when a week is still too much on Stalwart %s',
+    async (version) => {
+      await connect(version, { maxInstances: 0 });
+
+      const events = await client.queryCalendarEvents(WINDOW);
+
+      // One query for the series over the whole window; none of the
+      // occurrences found by chunks before giving up are mixed in.
+      const plain = server.queries().filter((q) => !q.args.expandRecurrences);
+      expect(plain).toHaveLength(1);
+      expect(plain[0].args.filter).toMatchObject(WINDOW);
+      expect(events.map((e) => e.id)).toEqual(['series']);
+      expect(events[0].recurrenceRules).toEqual([{ frequency: 'daily' }]);
+    },
+  );
+
+  it('sends as many chunks per request as maxCallsInRequest allows', async () => {
+    await connect('1.0', { maxCallsInRequest: 2 });
+
+    await client.queryCalendarEvents(WINDOW);
+
+    expect(expandedQueries().map((q) => q.request)).toEqual([
+      expandedQueries()[0].request, expandedQueries()[0].request, expandedQueries()[0].request + 1,
+    ]);
+  });
+
+  it('reads the chunks one at a time in start order and stops at the limit (contact activity) on Stalwart 1.0', async () => {
+    await connect('1.0');
+
+    const events = await client.queryCalendarEvents(WINDOW, [{ property: 'start', isAscending: true }], 2);
+
+    // The first chunk fills the limit: no other chunk is asked.
+    expect(bounds()).toEqual([['2025-01-01T00:00:00', '2025-12-31T00:00:00']]);
+    expect(expandedQueries()[0].args.limit).toBe(2);
+    expect(events.map((e) => e.id).sort()).toEqual(['o-across', 'o-first']);
+  });
+
+  it('reads the latest chunk first for a descending sort (search) on Stalwart 1.0', async () => {
+    await connect('1.0');
+
+    const events = await client.queryCalendarEvents(WINDOW, [{ property: 'start', isAscending: false }], 2);
+
+    // The last chunk holds one; the middle one supplies the second.
+    expect(bounds()).toEqual([
+      ['2026-12-29T23:59:58', '2027-02-16T23:59:59'],
+      ['2025-12-30T23:59:59', '2026-12-29T23:59:59'],
+    ]);
+    expect(expandedQueries().map((q) => q.args.limit)).toEqual([2, 1]);
+    expect(expandedQueries()[0].request).not.toBe(expandedQueries()[1].request);
+    expect(events.map((e) => e.id).sort()).toEqual(['o-late', 'o-middle']);
+  });
+
+  it('pages on within a chunk when an occurrence both chunks share fills the page on Stalwart 1.0', async () => {
+    await connect('1.0');
+
+    // First chunk: o-first, o-across. Second chunk (by start): o-across,
+    // o-border, o-middle - the shared one comes back again and is skipped.
+    const events = await client.queryCalendarEvents(WINDOW, [{ property: 'start', isAscending: true }], 3);
+
+    expect(expandedQueries().map((q) => [q.args.position, q.args.limit])).toEqual([[0, 3], [0, 1], [1, 1]]);
+    expect(events.map((e) => e.id).sort()).toEqual(['o-across', 'o-border', 'o-first']);
+  });
+
+  it('loads the contact activity look-ahead (365 days of UTC bounds, by start, limited) on Stalwart 1.0', async () => {
+    await connect('1.0');
+    const now = new Date('2026-03-01T12:00:00Z');
+
+    const events = await client.queryAllCalendarEvents(
+      { after: now.toISOString(), before: new Date(now.getTime() + 365 * DAY * 1000).toISOString() },
+      [{ property: 'start', isAscending: true }],
+      500,
+    );
+
+    expect(bounds()).toHaveLength(2);
+    expect(events.map((e) => e.id).sort()).toEqual(['o-after', 'o-late', 'o-middle']);
+  });
+
+  it('asks for two chunks for a 365-day look-ahead on Stalwart 1.0', async () => {
+    await connect('1.0');
+
+    await client.queryCalendarEvents({ after: '2026-01-01T00:00:00', before: '2027-01-01T00:00:00' });
+
+    expect(bounds()).toEqual([
+      ['2026-01-01T00:00:00', '2026-12-31T00:00:00'],
+      ['2026-12-30T23:59:59', '2027-01-01T00:00:00'],
+    ]);
+  });
+
+  it('reports a refusal it cannot split as a failure on Stalwart 1.0', async () => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    client = await connectCalendarClient(fetchSpy, stalwartCalendarSession('1.0'));
+    server = installStalwartCalendarMock(fetchSpy, {
+      version: '1.0',
+      answer: (call) => call.method === 'CalendarEvent/query'
+        ? ['error', { type: 'invalidArguments', description: 'Invalid timeZone "Mars/Olympus"' }]
+        : undefined,
+    });
+
+    await expect(client.queryCalendarEvents(WINDOW)).rejects.toThrow(/Invalid timeZone/);
+    expect(server.queries()).toHaveLength(3);
   });
 });
