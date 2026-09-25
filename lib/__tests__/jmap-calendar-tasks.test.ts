@@ -151,11 +151,11 @@ describe('JMAPClient task operations (#958)', () => {
     expect(sentCalls.filter((c) => c.method === 'CalendarEvent/set')).toHaveLength(1);
   });
 
-  it('getCalendarTasks fails instead of returning no tasks when Stalwart 1.0 refuses the query', async () => {
+  it('getCalendarTasks fails instead of returning no tasks when the server refuses the query', async () => {
     vi.mocked(globalThis.fetch).mockImplementation(async () => jsonResponse({
-      methodResponses: [['error', { type: 'invalidArguments', description: 'Invalid timeZone "Mars/Olympus"' }, '0']],
+      methodResponses: [['error', { type: 'serverFail', description: 'Store unavailable' }, '0']],
     }));
 
-    await expect(client.getCalendarTasks()).rejects.toThrow(/Invalid timeZone/);
+    await expect(client.getCalendarTasks()).rejects.toThrow(/Store unavailable/);
   });
 });

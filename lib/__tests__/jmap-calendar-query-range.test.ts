@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
 import { jmapErrorType } from '../jmap/jmap-error';
-import { toLocalDateTime } from '../timezone';
+import { AUTO_TIME_ZONE, toLocalDateTime } from '../timezone';
+import { useSettingsStore } from '@/stores/settings-store';
 import {
   connectCalendarClient,
   expandingQueryAnswer,
@@ -87,11 +88,11 @@ describe('queryCalendarEvents range handling', () => {
   );
 
   it('fails the range when Stalwart 1.0 refuses the query, instead of returning no events', async () => {
-    const { client } = clientAnswering(() => ['error', { type: 'invalidArguments', description: 'Invalid timeZone "Mars/Olympus"' }]);
+    const { client } = clientAnswering(() => ['error', { type: 'invalidArguments', description: 'The filter must be a single FilterCondition when expanding recurrences' }]);
     const error = await client.queryCalendarEvents({ after: '2026-09-01T00:00:00', before: '2026-09-30T23:59:59' })
       .then(() => null, (e: unknown) => e);
     expect(jmapErrorType(error)).toBe('invalidArguments');
-    expect((error as Error).message).toContain('Invalid timeZone');
+    expect((error as Error).message).toContain('single FilterCondition');
   });
 
   it('pages through more than one page of ids', async () => {
@@ -339,11 +340,135 @@ describe('expanded ranges longer than maxExpandedQueryDuration', () => {
     server = installStalwartCalendarMock(fetchSpy, {
       version: '1.0',
       answer: (call) => call.method === 'CalendarEvent/query'
-        ? ['error', { type: 'invalidArguments', description: 'Invalid timeZone "Mars/Olympus"' }]
+        ? ['error', { type: 'invalidArguments', description: 'The filter must be a single FilterCondition when expanding recurrences' }]
         : undefined,
     });
 
-    await expect(client.queryCalendarEvents(WINDOW)).rejects.toThrow(/Invalid timeZone/);
+    await expect(client.queryCalendarEvents(WINDOW)).rejects.toThrow(/single FilterCondition/);
     expect(server.queries()).toHaveLength(3);
+  });
+});
+
+// Stalwart 1.0 fails every CalendarEvent get and query whose `timeZone` its
+// time zone database lacks, with invalidArguments "Invalid timeZone \"X\"";
+// 0.16 reads such a zone as UTC. The session's first calendar list checks the
+// user's zone on the way. Once refused, the zone is replaced by UTC, range
+// bounds included, with one console warning.
+describe('a time zone the server does not know', () => {
+  // UTC+9 all year, so the expected bounds do not depend on DST.
+  const ZONE = 'Asia/Tokyo';
+  const GRID = { after: '2026-09-01T00:00:00', before: '2026-09-30T23:59:59' };
+  const GRID_IN_UTC = { after: '2026-08-31T15:00:00', before: '2026-09-30T14:59:59' };
+  const SERIES = {
+    id: 'b', '@type': 'Event', uid: 'series@example.com', title: 'Standup', baseEventId: 'b',
+    start: '2026-09-07T10:00:00', duration: 'PT1H', recurrenceRule: { frequency: 'daily' },
+    recurrenceOverrides: null, calendarIds: { cal: true },
+  };
+  const TASK = { id: 't', '@type': 'Task', uid: 'task@example.com', title: 'Pay rent', due: '2026-09-10T00:00:00', calendarIds: { cal: true } };
+  const OCCURRENCE = {
+    ...SERIES, id: 'maaaaab', recurrenceRule: null, start: '2026-09-08T10:00:00', recurrenceId: '2026-09-08T10:00:00',
+  };
+
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let warn: ReturnType<typeof vi.spyOn>;
+  let client: JMAPClient;
+  let server: StalwartCalendarMock;
+
+  async function connect(version: StalwartVersion) {
+    useSettingsStore.setState({ timeZone: ZONE });
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    client = await connectCalendarClient(fetchSpy, stalwartCalendarSession(version));
+    server = installStalwartCalendarMock(fetchSpy, {
+      version,
+      objects: { b: SERIES, t: TASK },
+      occurrences: { maaaaab: OCCURRENCE },
+      knownTimeZones: ['UTC', 'Europe/Berlin'],
+    });
+  }
+
+  afterEach(() => {
+    useSettingsStore.setState({ timeZone: AUTO_TIME_ZONE });
+    client.disconnect();
+    fetchSpy.mockRestore();
+    warn.mockRestore();
+  });
+
+  const zones = () => server.calls
+    .filter((c) => c.method === 'CalendarEvent/get' || c.method === 'CalendarEvent/query')
+    .map((c) => c.args.timeZone);
+
+  it('checks the zone with the first calendar list and asks in UTC from then on on Stalwart 1.0', async () => {
+    await connect('1.0');
+
+    await client.getAllCalendars();
+    const events = await client.queryCalendarEvents(GRID);
+
+    // The check rode along with Calendar/get: a get of no events.
+    const probe = server.calls.find((c) => c.method === 'CalendarEvent/get' && (c.args.ids as string[]).length === 0)!;
+    expect(probe.request).toBe(server.calls.find((c) => c.method === 'Calendar/get')!.request);
+    expect(probe.args).toMatchObject({ properties: ['id'], timeZone: ZONE });
+    // Everything after it asks in UTC, with the grid's wall-clock bounds moved along.
+    expect(zones()).toEqual([ZONE, ...zones().slice(1).map(() => 'UTC')]);
+    const query = server.queries().find((q) => q.args.expandRecurrences)!;
+    expect(query.args.filter).toEqual(GRID_IN_UTC);
+    expect(events.map((e) => e.id)).toEqual(['maaaaab']);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain(ZONE);
+  });
+
+  it('asks once more in UTC when a read comes before any check on Stalwart 1.0', async () => {
+    await connect('1.0');
+
+    const events = await client.queryCalendarEvents(GRID);
+
+    const [refused, ...rest] = server.queries();
+    expect(refused.args).toMatchObject({ timeZone: ZONE, filter: GRID });
+    expect(rest.map((q) => [q.args.timeZone, q.args.filter])).toEqual([['UTC', GRID_IN_UTC]]);
+    expect(events.map((e) => e.id)).toEqual(['maaaaab']);
+
+    // Later reads go out in UTC straight away.
+    server.calls.length = 0;
+    await expect(client.getCalendarEvent('b')).resolves.toMatchObject({ title: 'Standup' });
+    await expect(client.getCalendarTasks()).resolves.toMatchObject([{ id: 't' }]);
+    await expect(client.getCalendarEvents()).resolves.toMatchObject([{ id: 'b' }]);
+    expect(new Set(zones())).toEqual(new Set(['UTC']));
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('moves UTC bounds (search, reminders) to the UTC wall clock after a refusal on Stalwart 1.0', async () => {
+    await connect('1.0');
+
+    await client.queryCalendarEvents({ after: '2026-09-01T00:00:00Z', before: '2026-09-02T00:00:00Z' });
+
+    expect(server.queries().map((q) => [q.args.timeZone, q.args.filter])).toEqual([
+      [ZONE, { after: '2026-09-01T09:00:00', before: '2026-09-02T09:00:00' }],
+      ['UTC', { after: '2026-09-01T00:00:00', before: '2026-09-02T00:00:00' }],
+    ]);
+  });
+
+  it('keeps the user’s zone on 0.16, which reads an unknown zone as UTC without complaint', async () => {
+    await connect('0.16');
+
+    await client.getAllCalendars();
+    const events = await client.queryCalendarEvents(GRID);
+    await client.getCalendarTasks();
+
+    expect(new Set(zones())).toEqual(new Set([ZONE]));
+    expect(server.queries().find((q) => q.args.expandRecurrences)!.args.filter).toEqual(GRID);
+    expect(events.map((e) => e.id)).toEqual(['maaaaab']);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('sends a zone Stalwart 1.0 knows as it is', async () => {
+    await connect('1.0');
+    useSettingsStore.setState({ timeZone: 'Europe/Berlin' });
+
+    await client.getAllCalendars();
+    await client.queryCalendarEvents(GRID);
+
+    expect(new Set(zones())).toEqual(new Set(['Europe/Berlin']));
+    expect(server.queries().find((q) => q.args.expandRecurrences)!.args.filter).toEqual(GRID);
+    expect(warn).not.toHaveBeenCalled();
   });
 });

@@ -10,6 +10,7 @@ import {
   isDisplayToday,
   isValidTimeZone,
   listTimeZones,
+  moveLocalDateTime,
   resolveTimeZone,
   toDisplayDate,
   toZonedDisplayDate,
@@ -107,6 +108,18 @@ describe('wall-clock helpers', () => {
         expect(fromZonedDisplayDate(shifted, zone).getTime(), `${iso} in ${zone}`).toBe(instant.getTime());
       }
     }
+  });
+
+  it('moves a LocalDateTime from one zone to another at the same instant', () => {
+    expect(moveLocalDateTime('2026-09-01T00:00:00', 'Europe/Berlin', 'UTC')).toBe('2026-08-31T22:00:00');
+    expect(moveLocalDateTime('2026-09-30T23:59:59', 'Asia/Tokyo', 'UTC')).toBe('2026-09-30T14:59:59');
+    // Just after the spring-forward gap in New York (EDT, UTC-4).
+    expect(moveLocalDateTime('2026-03-08T03:30:00', 'America/New_York', 'UTC')).toBe('2026-03-08T07:30:00');
+    expect(moveLocalDateTime('2026-09-01T00:00:00', 'UTC', 'Asia/Tokyo')).toBe('2026-09-01T09:00:00');
+    // Same zone, a value with an offset, and garbage stay as they are.
+    expect(moveLocalDateTime('2026-09-01T00:00:00', 'Asia/Tokyo', 'Asia/Tokyo')).toBe('2026-09-01T00:00:00');
+    expect(moveLocalDateTime('2026-09-01T00:00:00Z', 'Asia/Tokyo', 'UTC')).toBe('2026-09-01T00:00:00Z');
+    expect(moveLocalDateTime('soon', 'Asia/Tokyo', 'UTC')).toBe('soon');
   });
 
   it('keeps invalid dates invalid instead of throwing', () => {

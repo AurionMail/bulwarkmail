@@ -139,11 +139,12 @@ describe('server-side recurrence expansion with synthetic ids', () => {
     await client.getAllCalendars();
     const events = await client.queryCalendarEvents(RANGE);
 
-    // One request carried both Calendar/get and the probe; the range query
-    // then already knew the verdict and asked for server-side expansion.
+    // One request carried both Calendar/get and the probe (and the time
+    // zone check, unless the zone is UTC); the range query then already knew
+    // the verdict and asked for server-side expansion.
     expect(probes()).toHaveLength(1);
     const firstRequest = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
-    expect(firstRequest.methodCalls.map((c: unknown[]) => c[0])).toEqual(['Calendar/get', 'CalendarEvent/set']);
+    expect(firstRequest.methodCalls.map((c: unknown[]) => c[0]).slice(0, 2)).toEqual(['Calendar/get', 'CalendarEvent/set']);
     expect(queries()[0].args.expandRecurrences).toBe(true);
     expect(events.map((e) => e.id)).toEqual(['maaaaab', 'eaaaaad']);
   });

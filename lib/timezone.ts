@@ -152,6 +152,27 @@ export function toLocalDateTime(value: string, timeZone?: string): string {
   return `${pad(w.year, 4)}-${pad(w.month)}-${pad(w.day)}T${pad(w.hour)}:${pad(w.minute)}:${pad(w.second)}`;
 }
 
+/**
+ * A LocalDateTime ("YYYY-MM-DDTHH:mm:ss") read as the wall clock in
+ * `fromZone`, as the wall clock in `toZone` at the same instant. Anything else
+ * (a value with `Z` or an offset, or one that does not parse) is returned as
+ * it is.
+ */
+export function moveLocalDateTime(value: string, fromZone: string, toZone: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/.exec(value);
+  if (!match || fromZone === toZone) return value;
+  const [year, month, day, hour, minute, second] = match.slice(1).map(Number);
+  const wall = new Date(0);
+  wall.setUTCFullYear(year, month - 1, day);
+  wall.setUTCHours(hour, minute, second, 0);
+  const asUtc = wall.getTime();
+  // Two offset lookups, as in fromZonedDisplayDate, for wall clocks next to a
+  // DST transition.
+  const guess = asUtc - getTimeZoneOffsetMs(new Date(asUtc), fromZone);
+  const instant = new Date(asUtc - getTimeZoneOffsetMs(new Date(guess), fromZone));
+  return toLocalDateTime(instant.toISOString(), toZone);
+}
+
 /** UTC offset of `timeZone` at the given instant, in milliseconds (east = positive). */
 export function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
   const w = getWallClock(date, timeZone);

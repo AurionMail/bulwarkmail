@@ -3,6 +3,9 @@
 // - 1.0 refuses a CalendarEvent/get that asks for `recurrenceOverrides`
 //   together with `utcStart`/`utcEnd` (jmap/src/calendar_event/get.rs,
 //   ProjectionRequest::new), before reading any id;
+// - 1.0 refuses a CalendarEvent/get or /query whose `timeZone` its time zone
+//   database lacks (jmap-proto/src/object/calendar_event.rs,
+//   resolved_time_zone); 0.16 reads it as UTC;
 // - 0.16 answers any property list.
 // Both advertise `maxExpandedQueryDuration` in the account's calendars
 // capability (0.16 hardcodes 365 days and never enforces it).
@@ -46,6 +49,13 @@ export interface StalwartCalendarMockOptions {
   syntheticIds?: boolean;
   /** Answer a call yourself; return undefined for the default answer. */
   answer?: (call: RecordedCall) => MethodAnswer | undefined;
+  /** The time zones the server's database has; 1.0 refuses any other (all known when unset). */
+  knownTimeZones?: string[];
+}
+
+/** Stalwart 1.0's answer to a calendar get or query naming a zone it does not know. */
+export function invalidTimeZone(timeZone: string): MethodAnswer {
+  return ['error', { type: 'invalidArguments', description: `Invalid timeZone ${JSON.stringify(timeZone)}` }];
 }
 
 export interface StalwartCalendarMock {
@@ -186,7 +196,11 @@ export function installStalwartCalendarMock(
     for (const [method, args, callId] of body.methodCalls ?? []) {
       const call: RecordedCall = { method, args, callId, request };
       calls.push(call);
-      const answer = options.answer?.(call) ?? defaultAnswer(call);
+      const timeZone = args?.timeZone;
+      const refusesTimeZone = options.version === '1.0' && typeof timeZone === 'string'
+        && !!options.knownTimeZones && !options.knownTimeZones.includes(timeZone)
+        && (method === 'CalendarEvent/get' || method === 'CalendarEvent/query');
+      const answer = refusesTimeZone ? invalidTimeZone(timeZone) : options.answer?.(call) ?? defaultAnswer(call);
       methodResponses.push([...answer, callId]);
     }
     return jsonResponse({ methodResponses });

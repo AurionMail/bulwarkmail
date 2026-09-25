@@ -25,7 +25,7 @@ export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
 import { folderDepthError } from "@/lib/file-errors";
 import { mediaTypeEssence, OCTET_STREAM } from "@/lib/media-type";
-import { getEffectiveTimeZone, toLocalDateTime } from "@/lib/timezone";
+import { getEffectiveTimeZone, moveLocalDateTime, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, hasTextLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
 import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
@@ -578,7 +578,9 @@ function normalizeCalendarTask(task: CalendarTask): CalendarTask {
  * LocalDateTime `after`/`before` filter values and computes utcStart/utcEnd
  * for floating events in this zone, defaulting to UTC when absent - which
  * shifts range boundaries and floating-event times for any user not in UTC.
- * Stalwart ignores unparseable values, so sending it is always safe.
+ * A zone the server's time zone database lacks is read as UTC by 0.16 and
+ * refused by 1.0, which fails the whole call; JMAPClient.calendarTimeZone
+ * decides what is actually sent.
  */
 function getUserTimeZone(): string | undefined {
   try {
@@ -763,6 +765,19 @@ function isOccurrenceLimitError(error: unknown): boolean {
   const type = jmapErrorType(error);
   if (type === 'cannotCalculateOccurrences') return true;
   return type === 'invalidArguments' && /exceeds/i.test(error instanceof Error ? error.message : '');
+}
+
+/**
+ * Whether a CalendarEvent get or query failed on its `timeZone` argument:
+ * Stalwart 1.0 answers a zone its time zone database lacks with
+ * `invalidArguments` "Invalid timeZone \"X\"" (0.16 reads it as UTC).
+ */
+function isTimeZoneRefusal(type: string | undefined, description: string | undefined): boolean {
+  return type === 'invalidArguments' && /invalid timeZone/i.test(description ?? '');
+}
+
+function isTimeZoneRefusalError(error: unknown): boolean {
+  return isTimeZoneRefusal(jmapErrorType(error), error instanceof Error ? error.message : undefined);
 }
 
 const DAY_SECONDS = 86_400;
@@ -6589,17 +6604,23 @@ export class JMAPClient implements IJMAPClient {
   /**
    * Calendar/get for one account. The session's first one on the primary
    * calendar account also carries the synthetic-id probe (see
-   * supportsSyntheticCalendarIds), so the range query that follows needs no
-   * round trip of its own for it.
+   * supportsSyntheticCalendarIds) and the time zone probe (see
+   * calendarTimeZone), so the reads that follow need no round trip of their
+   * own for them.
    */
   private requestCalendars(accountId: string): Promise<JMAPResponse> {
     const methodCalls: JMAPMethodCall[] = [
       ["Calendar/get", { accountId, properties: CALENDAR_PROPERTIES }, "0"],
     ];
-    const carriesProbe = !this.syntheticCalendarIdSupport && accountId === this.getCalendarsAccountId();
+    const isPrimary = accountId === this.getCalendarsAccountId();
+    const carriesProbe = !this.syntheticCalendarIdSupport && isPrimary;
     if (carriesProbe) methodCalls.push(this.syntheticIdProbeCall(accountId));
+    const timeZone = getUserTimeZone();
+    const checksTimeZone = isPrimary && !!timeZone && timeZone !== 'UTC' && !this.timeZoneProbes.has(timeZone);
+    if (checksTimeZone) methodCalls.push(this.timeZoneProbeCall(accountId, timeZone));
     const pending = this.request(methodCalls, this.calendarUsing());
     if (carriesProbe) this.rememberSyntheticIdProbe(pending);
+    if (checksTimeZone) this.rememberTimeZoneProbe(timeZone, pending);
     return pending;
   }
 
@@ -6639,7 +6660,7 @@ export class JMAPClient implements IJMAPClient {
     const QUERY_PAGE = 500;
     const MAX_SCAN = 5000; // safety bound; beyond this we fail open
     const PROPERTIES = ['id', '@type', 'due', 'progress', 'percentComplete', 'calendarIds'];
-    const timeZone = getUserTimeZone();
+    const timeZone = await this.calendarTimeZone();
     const objects: ScannedCalendarObject[] = [];
     const remaining = new Set(rawCalendarIds); // calendars not yet known to hold an event
 
@@ -6928,8 +6949,10 @@ export class JMAPClient implements IJMAPClient {
    */
   async getCalendarEvents(calendarIds?: string[], targetAccountId?: string): Promise<CalendarEvent[]> {
     const accountId = targetAccountId || this.getCalendarsAccountId();
-    const timeZone = getUserTimeZone();
+    return this.withCalendarTimeZone((timeZone) => this.listCalendarEvents(accountId, calendarIds, timeZone));
+  }
 
+  private async listCalendarEvents(accountId: string, calendarIds: string[] | undefined, timeZone: string | undefined): Promise<CalendarEvent[]> {
     // Page through the query to collect ALL ids. Callers (import UID
     // deduplication, clear-calendar, subscription refresh) rely on this being
     // the complete list; a single capped query silently hid everything past
@@ -7057,6 +7080,73 @@ export class JMAPClient implements IJMAPClient {
     );
   }
 
+  // Time zones checked with the server (see calendarTimeZone): the probe of
+  // each zone, settled or in flight, and the zones the server refused.
+  private timeZoneProbes = new Map<string, Promise<void>>();
+  private refusedTimeZones = new Set<string>();
+
+  private static readonly TIME_ZONE_PROBE_CALL_ID = 'time-zone-probe';
+
+  /** A get of no events, which the server only answers if it knows `timeZone`. */
+  private timeZoneProbeCall(accountId: string, timeZone: string): JMAPMethodCall {
+    return ["CalendarEvent/get", { accountId, ids: [], properties: ["id"], timeZone }, JMAPClient.TIME_ZONE_PROBE_CALL_ID];
+  }
+
+  /** Derive the verdict on `timeZone` from a response that carried its probe. */
+  private rememberTimeZoneProbe(timeZone: string, pending: Promise<JMAPResponse>): void {
+    this.timeZoneProbes.set(timeZone, pending.then(
+      (response) => {
+        const entry = response.methodResponses?.find((r) => r[2] === JMAPClient.TIME_ZONE_PROBE_CALL_ID);
+        if (entry?.[0] === 'error' && isTimeZoneRefusal(entry[1]?.type, entry[1]?.description)) {
+          this.refuseTimeZone(timeZone);
+        }
+      },
+      // No verdict: the zone goes out, and a refusal is still caught
+      // (withCalendarTimeZone).
+      () => undefined,
+    ));
+  }
+
+  private refuseTimeZone(timeZone: string): void {
+    if (this.refusedTimeZones.has(timeZone)) return;
+    this.refusedTimeZones.add(timeZone);
+    console.warn(
+      `Calendar: the server does not know the time zone "${timeZone}"; asking it for UTC times instead. `
+      + 'Events without a time zone of their own may show shifted.',
+    );
+  }
+
+  /**
+   * The `timeZone` argument for CalendarEvent/get and /query: the user's zone
+   * (getUserTimeZone), or UTC once the server refused it. Stalwart 1.0 fails
+   * every calendar get and query that names a zone its time zone database
+   * lacks; 0.16 reads such a zone as UTC. The session's first calendar list
+   * checks the zone on the way (requestCalendars); a read that starts before
+   * that answer, or without one, sends the user's zone and is repeated with
+   * UTC if refused (withCalendarTimeZone).
+   */
+  private async calendarTimeZone(): Promise<string | undefined> {
+    const timeZone = getUserTimeZone();
+    if (!timeZone) return undefined;
+    await this.timeZoneProbes.get(timeZone);
+    return this.refusedTimeZones.has(timeZone) ? 'UTC' : timeZone;
+  }
+
+  /**
+   * Run a calendar read with calendarTimeZone, and once more with UTC when
+   * the server refuses that zone.
+   */
+  private async withCalendarTimeZone<T>(read: (timeZone: string | undefined) => Promise<T>): Promise<T> {
+    const timeZone = await this.calendarTimeZone();
+    try {
+      return await read(timeZone);
+    } catch (error) {
+      if (!timeZone || timeZone === 'UTC' || !isTimeZoneRefusalError(error)) throw error;
+      this.refuseTimeZone(timeZone);
+      return read('UTC');
+    }
+  }
+
   async queryAllCalendarEvents(
     filter: CalendarEventFilter,
     sort?: Array<{ property: string; isAscending: boolean }>,
@@ -7107,75 +7197,8 @@ export class JMAPClient implements IJMAPClient {
   ): Promise<CalendarEvent[]> {
     const accountId = targetAccountId || this.getCalendarsAccountId();
     try {
-      const timeZone = getUserTimeZone();
-
-      const queryArgs: Record<string, unknown> = {
-        accountId,
-        filter: {
-          ...filter,
-          ...(filter.after ? { after: toLocalDateTime(filter.after, timeZone) } : {}),
-          ...(filter.before ? { before: toLocalDateTime(filter.before, timeZone) } : {}),
-        },
-      };
-      // Interpret the LocalDateTime after/before filter values in the user's
-      // time zone (Stalwart defaults to UTC, shifting range boundaries).
-      // UTC bounds are converted to that wall clock above, because Stalwart
-      // drops a `Z` or offset rather than honouring it.
-      if (timeZone) {
-        queryArgs.timeZone = timeZone;
-      }
-      // Let the server expand recurring series into one synthetic id per
-      // occurrence when it also accepts those ids in CalendarEvent/set
-      // (Stalwart >= 0.16.20; the server needs both range bounds for it).
-      // Older servers keep the client-side expansion in
-      // lib/recurrence-expansion.ts, which runs on whatever comes back.
-      let expandRecurrences = Boolean(filter.after && filter.before)
-        && await this.supportsSyntheticCalendarIds();
-      if (sort) {
-        queryArgs.sort = sort;
-      }
-
-      let ids: string[] | null = null;
-      if (expandRecurrences) {
-        ids = await this.queryExpandedCalendarEventIds(accountId, queryArgs, limit);
-        if (!ids) {
-          // The server will not expand this range within its limits. Ask
-          // for the series instead; lib/recurrence-expansion.ts expands
-          // them on the client.
-          debug.log('calendar', 'Range expands past the server limits; expanding on the client instead');
-          expandRecurrences = false;
-        }
-      }
-      ids ??= await this.queryCalendarEventIds(queryArgs, limit);
-      if (ids.length === 0) return [];
-
-      // Only series the client expands itself need their overrides here; a
-      // server-expanded occurrence gets them from its base event below.
-      const allEvents = await this.fetchCalendarEventsById(accountId, ids, CALENDAR_EVENT_PROPERTIES, {
-        withOverrides: !expandRecurrences,
-        timeZone,
-      });
-      const normalized = (allEvents as unknown as CalendarEvent[])
-        .filter((event) => !isTaskObject(event))
-        .map((event) => normalizeCalendarEventLike(event));
-      const filtered = expandRecurrences
-        ? await this.hydrateExpandedOccurrences(normalized, accountId, timeZone)
-        : normalized;
-
-      const eventsWithParticipants = filtered.filter(e => e.participants && Object.keys(e.participants).length > 0);
-      debug.log('calendar', 'queryCalendarEvents participant summary', {
-        totalEvents: filtered.length,
-        eventsWithParticipants: eventsWithParticipants.length,
-        details: eventsWithParticipants.map(e => ({
-          id: e.id,
-          title: e.title,
-          participantCount: Object.keys(e.participants!).length,
-          participants: e.participants,
-          replyTo: e.replyTo,
-        })),
-      });
-
-      return filtered;
+      return await this.withCalendarTimeZone((timeZone) =>
+        this.queryCalendarEventsIn(accountId, filter, sort, limit, timeZone));
     } catch (error) {
       // The fan-out over shared accounts probes on suspicion (see
       // getCalendarCapableAccountIds) and may hit accounts that grant no
@@ -7192,6 +7215,90 @@ export class JMAPClient implements IJMAPClient {
       }
       throw error;
     }
+  }
+
+  /** queryCalendarEvents with `timeZone` as the request's time zone. */
+  private async queryCalendarEventsIn(
+    accountId: string,
+    filter: CalendarEventFilter,
+    sort: Array<{ property: string; isAscending: boolean }> | undefined,
+    limit: number | undefined,
+    timeZone: string | undefined,
+  ): Promise<CalendarEvent[]> {
+    // Stalwart reads the LocalDateTime after/before filter values in the
+    // request's time zone (UTC without one, shifting range boundaries), and
+    // drops a `Z` or offset rather than honouring it: UTC bounds become that
+    // wall clock. A bound without offset is the user's wall clock (the
+    // grid's display dates); it moves along when the server refused the
+    // user's zone and the request is in UTC.
+    const userTimeZone = getUserTimeZone();
+    const bound = (value: string) => toLocalDateTime(
+      userTimeZone && timeZone ? moveLocalDateTime(value, userTimeZone, timeZone) : value,
+      timeZone,
+    );
+    const queryArgs: Record<string, unknown> = {
+      accountId,
+      filter: {
+        ...filter,
+        ...(filter.after ? { after: bound(filter.after) } : {}),
+        ...(filter.before ? { before: bound(filter.before) } : {}),
+      },
+    };
+    if (timeZone) {
+      queryArgs.timeZone = timeZone;
+    }
+    // Let the server expand recurring series into one synthetic id per
+    // occurrence when it also accepts those ids in CalendarEvent/set
+    // (Stalwart >= 0.16.20; the server needs both range bounds for it).
+    // Older servers keep the client-side expansion in
+    // lib/recurrence-expansion.ts, which runs on whatever comes back.
+    let expandRecurrences = Boolean(filter.after && filter.before)
+      && await this.supportsSyntheticCalendarIds();
+    if (sort) {
+      queryArgs.sort = sort;
+    }
+
+    let ids: string[] | null = null;
+    if (expandRecurrences) {
+      ids = await this.queryExpandedCalendarEventIds(accountId, queryArgs, limit);
+      if (!ids) {
+        // The server will not expand this range within its limits. Ask
+        // for the series instead; lib/recurrence-expansion.ts expands
+        // them on the client.
+        debug.log('calendar', 'Range expands past the server limits; expanding on the client instead');
+        expandRecurrences = false;
+      }
+    }
+    ids ??= await this.queryCalendarEventIds(queryArgs, limit);
+    if (ids.length === 0) return [];
+
+    // Only series the client expands itself need their overrides here; a
+    // server-expanded occurrence gets them from its base event below.
+    const allEvents = await this.fetchCalendarEventsById(accountId, ids, CALENDAR_EVENT_PROPERTIES, {
+      withOverrides: !expandRecurrences,
+      timeZone,
+    });
+    const normalized = (allEvents as unknown as CalendarEvent[])
+      .filter((event) => !isTaskObject(event))
+      .map((event) => normalizeCalendarEventLike(event));
+    const filtered = expandRecurrences
+      ? await this.hydrateExpandedOccurrences(normalized, accountId, timeZone)
+      : normalized;
+
+    const eventsWithParticipants = filtered.filter(e => e.participants && Object.keys(e.participants).length > 0);
+    debug.log('calendar', 'queryCalendarEvents participant summary', {
+      totalEvents: filtered.length,
+      eventsWithParticipants: eventsWithParticipants.length,
+      details: eventsWithParticipants.map(e => ({
+        id: e.id,
+        title: e.title,
+        participantCount: Object.keys(e.participants!).length,
+        participants: e.participants,
+        replyTo: e.replyTo,
+      })),
+    });
+
+    return filtered;
   }
 
   /**
@@ -7347,10 +7454,8 @@ export class JMAPClient implements IJMAPClient {
   /** One event with its recurrence overrides, or null when the server has no such id. */
   async getCalendarEvent(id: string, targetAccountId?: string): Promise<CalendarEvent | null> {
     const accountId = targetAccountId || this.getCalendarsAccountId();
-    const [event] = await this.fetchCalendarEventsById(accountId, [id], CALENDAR_EVENT_PROPERTIES, {
-      withOverrides: true,
-      timeZone: getUserTimeZone(),
-    });
+    const [event] = await this.withCalendarTimeZone((timeZone) =>
+      this.fetchCalendarEventsById(accountId, [id], CALENDAR_EVENT_PROPERTIES, { withOverrides: true, timeZone }));
     return event ? normalizeCalendarEventLike(event as unknown as CalendarEvent) : null;
   }
 
@@ -7508,7 +7613,8 @@ export class JMAPClient implements IJMAPClient {
     // any event it does not return.
     let fetched: Record<string, unknown>[] = [];
     try {
-      fetched = await this.fetchCalendarEventsById(accountId, createdIds, CALENDAR_EVENT_PROPERTIES, { timeZone: getUserTimeZone() });
+      fetched = await this.withCalendarTimeZone((timeZone) =>
+        this.fetchCalendarEventsById(accountId, createdIds, CALENDAR_EVENT_PROPERTIES, { timeZone }));
     } catch (error) {
       debug.warn('calendar', 'CalendarEvent/batchCreate could not read the created events back', error);
     }
@@ -7737,36 +7843,7 @@ export class JMAPClient implements IJMAPClient {
     debug.log('tasks', 'CalendarTask/fetch start', { accountId, calendarIds: calendarIds || 'all' });
 
     try {
-      // Page through the query to collect all object ids.
-      const QUERY_PAGE = 1000;
-      const MAX_IDS = 50000; // safety bound
-      const timeZone = getUserTimeZone();
-      const ids: string[] = [];
-      for (let position = 0; position < MAX_IDS;) {
-        const queryArgs: Record<string, unknown> = { accountId, limit: QUERY_PAGE, position };
-        if (timeZone) {
-          queryArgs.timeZone = timeZone;
-        }
-        if (calendarIds && calendarIds.length > 0) {
-          queryArgs.filter = buildInCalendarFilter(calendarIds);
-        }
-        const response = await this.request([
-          ["CalendarEvent/query", queryArgs, "0"],
-        ], this.calendarUsing());
-        const pageIds: string[] = methodResult(response, "0", "CalendarEvent/query").ids || [];
-        ids.push(...pageIds);
-        if (pageIds.length < QUERY_PAGE) break;
-        position += pageIds.length;
-      }
-
-      debug.log('tasks', 'CalendarTask/fetch query returned', ids.length, 'object ids');
-      if (ids.length === 0) {
-        debug.groupEnd();
-        return [];
-      }
-
-      // Fetch the objects in batches that respect the server's /get limit.
-      const allObjects = await this.fetchCalendarEventsById(accountId, ids, CALENDAR_TASK_PROPERTIES, { timeZone });
+      const allObjects = await this.withCalendarTimeZone((timeZone) => this.fetchTaskObjects(accountId, calendarIds, timeZone));
 
       const tasks: CalendarTask[] = [];
       for (const obj of allObjects) {
@@ -7799,6 +7876,45 @@ export class JMAPClient implements IJMAPClient {
       debug.groupEnd();
       throw error;
     }
+  }
+
+  /**
+   * Every object of the account (or of `calendarIds`) with the task
+   * properties. Stalwart has no filter for tasks, so events come too.
+   */
+  private async fetchTaskObjects(
+    accountId: string,
+    calendarIds: string[] | undefined,
+    timeZone: string | undefined,
+  ): Promise<Record<string, unknown>[]> {
+    // Page through the query to collect all object ids.
+    const QUERY_PAGE = 1000;
+    const MAX_IDS = 50000; // safety bound
+    const ids: string[] = [];
+    for (let position = 0; position < MAX_IDS;) {
+      const queryArgs: Record<string, unknown> = { accountId, limit: QUERY_PAGE, position };
+      if (timeZone) {
+        queryArgs.timeZone = timeZone;
+      }
+      if (calendarIds && calendarIds.length > 0) {
+        queryArgs.filter = buildInCalendarFilter(calendarIds);
+      }
+      const response = await this.request([
+        ["CalendarEvent/query", queryArgs, "0"],
+      ], this.calendarUsing());
+      const pageIds: string[] = methodResult(response, "0", "CalendarEvent/query").ids || [];
+      ids.push(...pageIds);
+      if (pageIds.length < QUERY_PAGE) break;
+      position += pageIds.length;
+    }
+
+    debug.log('tasks', 'CalendarTask/fetch query returned', ids.length, 'object ids');
+    if (ids.length === 0) {
+      return [];
+    }
+
+    // Fetch the objects in batches that respect the server's /get limit.
+    return this.fetchCalendarEventsById(accountId, ids, CALENDAR_TASK_PROPERTIES, { timeZone });
   }
 
   async createCalendarTask(task: Partial<CalendarTask>, targetAccountId?: string): Promise<CalendarTask> {
@@ -7844,7 +7960,8 @@ export class JMAPClient implements IJMAPClient {
     debug.log('calendar', 'CalendarTask/create re-fetching with task properties', { createdId, properties: [...CALENDAR_TASK_PROPERTIES] });
     let fetched: Record<string, unknown> | undefined;
     try {
-      [fetched] = await this.fetchCalendarEventsById(accountId, [createdId], CALENDAR_TASK_PROPERTIES, { timeZone: getUserTimeZone() });
+      [fetched] = await this.withCalendarTimeZone((timeZone) =>
+        this.fetchCalendarEventsById(accountId, [createdId], CALENDAR_TASK_PROPERTIES, { timeZone }));
     } catch (error) {
       debug.warn('tasks', 'CalendarTask/create could not read the created task back', error);
     }
