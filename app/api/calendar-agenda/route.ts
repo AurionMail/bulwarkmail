@@ -37,6 +37,8 @@ const EVENT_PROPERTIES = [
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const GET_BATCH = 100;
+// Stalwart's default maxCallsInRequest, for a session that names none.
+const MAX_CALLS_FALLBACK = 16;
 
 interface AgendaEvent {
   id: string;
@@ -154,10 +156,11 @@ export async function POST(request: NextRequest) {
     windowStart.setHours(0, 0, 0, 0);
 
     // ── 1) Query the occurrences in range + load calendars (colours) ──
-    // expandRecurrences returns one id per occurrence (it needs both bounds).
-    // A range that expands to more occurrences than Stalwart allows in one
-    // query is refused; the agenda then looks less far ahead instead of
-    // failing.
+    // expandRecurrences returns one id per occurrence (it needs both bounds),
+    // the earliest first so the limit keeps the next ones. A range the server
+    // will not expand - more occurrences than it allows in one query, or
+    // longer than its maxExpandedQueryDuration - is refused; the agenda then
+    // looks less far ahead instead of failing.
     let queryRes: unknown;
     let queryResp: Record<string, unknown> | null;
     for (;;) {
@@ -170,6 +173,7 @@ export async function POST(request: NextRequest) {
               accountId,
               filter: { after: windowStart.toISOString(), before: horizon.toISOString() },
               expandRecurrences: true,
+              sort: [{ property: 'start', isAscending: true }],
               limit: 1000,
             },
             '0',
@@ -185,7 +189,7 @@ export async function POST(request: NextRequest) {
       if (queryResp) break;
       const err = findResponse(queryRes, 'error', '0');
       const span = horizon.getTime() - now.getTime();
-      if (isOccurrenceLimit(err) && span > DAY_MS) {
+      if ((isOccurrenceLimit(err) || err?.type === 'expandDurationTooLarge') && span > DAY_MS) {
         horizon = new Date(now.getTime() + Math.max(DAY_MS, Math.floor(span / 2)));
         continue;
       }
@@ -211,22 +215,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ events: [], generatedAt: now.toISOString() });
     }
 
-    // ── 2) Fetch the occurrences (batched) ──
+    // ── 2) Fetch the occurrences (batched, several gets per request) ──
+    const coreCapability = session.capabilities?.['urn:ietf:params:jmap:core'] as { maxCallsInRequest?: unknown } | undefined;
+    const maxCalls = typeof coreCapability?.maxCallsInRequest === 'number' && coreCapability.maxCallsInRequest > 0
+      ? coreCapability.maxCallsInRequest
+      : MAX_CALLS_FALLBACK;
     const getEvents = async (eventIds: string[], properties: readonly string[]) => {
       const list: Array<Record<string, unknown>> = [];
-      for (let i = 0; i < eventIds.length; i += GET_BATCH) {
+      const batches: string[][] = [];
+      for (let i = 0; i < eventIds.length; i += GET_BATCH) batches.push(eventIds.slice(i, i + GET_BATCH));
+      for (let first = 0; first < batches.length; first += maxCalls) {
+        const group = batches.slice(first, first + maxCalls);
         const getRes = await jmapPost(apiUrl, creds.authHeader, {
           using,
-          methodCalls: [
-            ['CalendarEvent/get', { accountId, ids: eventIds.slice(i, i + GET_BATCH), properties }, '0'],
-          ],
+          methodCalls: group.map((ids, i) => ['CalendarEvent/get', { accountId, ids, properties }, String(i)]),
         }, fetchOptions);
-        const getResp = findResponse(getRes, 'CalendarEvent/get', '0');
-        if (!getResp) {
-          const err = findResponse(getRes, 'error', '0');
-          throw new AgendaFetchError((err?.description as string) || 'CalendarEvent/get failed');
+        for (const [i] of group.entries()) {
+          const getResp = findResponse(getRes, 'CalendarEvent/get', String(i));
+          if (!getResp) {
+            const err = findResponse(getRes, 'error', String(i));
+            throw new AgendaFetchError((err?.description as string) || 'CalendarEvent/get failed');
+          }
+          list.push(...((getResp.list as Array<Record<string, unknown>>) || []));
         }
-        list.push(...((getResp.list as Array<Record<string, unknown>>) || []));
       }
       return list;
     };

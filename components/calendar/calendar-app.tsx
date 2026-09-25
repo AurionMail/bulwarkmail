@@ -8,7 +8,7 @@ import {
   addMonths, subMonths, addWeeks, subWeeks, addDays, subDays,
   format, parseISO,
 } from "date-fns";
-import { EVENTS_LOAD_ERROR, useCalendarStore } from "@/stores/calendar-store";
+import { useCalendarStore } from "@/stores/calendar-store";
 import { isCalendarViewMode } from "@/stores/calendar-store";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useEmailStore } from "@/stores/email-store";
@@ -129,7 +129,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const { quota, isPushConnected } = useEmailStore();
   const {
     calendars, events, selectedDate, viewMode, selectedCalendarIds,
-    isLoading, isLoadingEvents, supportsCalendar, error,
+    isLoading, isLoadingEvents, supportsCalendar, error, eventsLoadError,
     fetchCalendars, fetchEvents, createEvent, updateEvent, deleteEvent, rsvpEvent,
     setSelectedDate, setViewMode, toggleCalendarVisibility, updateCalendar, shareCalendar,
     removeCalendar, clearCalendarEvents,
@@ -246,8 +246,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   }, [initialCheckDone, isAuthenticated, authLoading, client, calendarEnabled, supportsCalendar, pendingWebcalAccountChoice, isProtocolAccountSwitching, pendingSubscription, showWebcalActionChoice, router]);
 
   useEffect(() => {
-    // A failed range load gets the notice above the grid instead.
-    if (error && error !== EVENTS_LOAD_ERROR) {
+    if (error) {
       toast.error(error);
     }
   }, [error]);
@@ -1574,7 +1573,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
     return (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        {error === EVENTS_LOAD_ERROR && normalizedViewMode !== "tasks" && (
+        {eventsLoadError && normalizedViewMode !== "tasks" && (
           <CalendarLoadErrorNotice onRetry={retryEventsLoad} />
         )}
         {viewContent}

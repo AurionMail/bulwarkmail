@@ -272,14 +272,30 @@ describe('expanded ranges longer than maxExpandedQueryDuration', () => {
     ]);
   });
 
-  it('reads the chunks one at a time in start order and stops at the limit (contact activity) on Stalwart 1.0', async () => {
+  it('reads the chunks in start order, a few per request, and keeps what fits the limit (contact activity) on Stalwart 1.0', async () => {
     await connect('1.0');
 
     const events = await client.queryCalendarEvents(WINDOW, [{ property: 'start', isAscending: true }], 2);
 
-    // The first chunk fills the limit: no other chunk is asked.
-    expect(bounds()).toEqual([['2025-01-01T00:00:00', '2025-12-31T00:00:00']]);
-    expect(expandedQueries()[0].args.limit).toBe(2);
+    // One request asks all three chunks; the first fills the limit, and
+    // what the others returned is dropped.
+    expect(bounds()).toEqual([
+      ['2025-01-01T00:00:00', '2025-12-31T00:00:00'],
+      ['2025-12-30T23:59:59', '2026-12-29T23:59:59'],
+      ['2026-12-29T23:59:58', '2027-02-16T23:59:59'],
+    ]);
+    expect(new Set(expandedQueries().map((q) => q.request)).size).toBe(1);
+    expect(events.map((e) => e.id).sort()).toEqual(['o-across', 'o-first']);
+  });
+
+  it('asks the next few chunks only when the first ones fall short of the limit on Stalwart 1.0', async () => {
+    // Chunks of 99 days: eight for the window, four per request.
+    await connect('1.0', { maxExpandedQueryDuration: 'P100D' });
+
+    const events = await client.queryCalendarEvents(WINDOW, [{ property: 'start', isAscending: true }], 2);
+
+    expect(expandedQueries()).toHaveLength(4);
+    expect(new Set(expandedQueries().map((q) => q.request)).size).toBe(1);
     expect(events.map((e) => e.id).sort()).toEqual(['o-across', 'o-first']);
   });
 
@@ -292,14 +308,15 @@ describe('expanded ranges longer than maxExpandedQueryDuration', () => {
     expect(bounds()).toEqual([
       ['2026-12-29T23:59:58', '2027-02-16T23:59:59'],
       ['2025-12-30T23:59:59', '2026-12-29T23:59:59'],
+      ['2025-01-01T00:00:00', '2025-12-31T00:00:00'],
     ]);
-    expect(expandedQueries().map((q) => q.args.limit)).toEqual([2, 1]);
-    expect(expandedQueries()[0].request).not.toBe(expandedQueries()[1].request);
+    expect(new Set(expandedQueries().map((q) => q.request)).size).toBe(1);
     expect(events.map((e) => e.id).sort()).toEqual(['o-late', 'o-middle']);
   });
 
   it('pages on within a chunk when an occurrence both chunks share fills the page on Stalwart 1.0', async () => {
-    await connect('1.0');
+    // One chunk per request, so the paging is what the requests show.
+    await connect('1.0', { maxCallsInRequest: 1 });
 
     // First chunk: o-first, o-across. Second chunk (by start): o-across,
     // o-border, o-middle - the shared one comes back again and is skipped.
@@ -323,6 +340,23 @@ describe('expanded ranges longer than maxExpandedQueryDuration', () => {
     expect(events.map((e) => e.id).sort()).toEqual(['o-after', 'o-late', 'o-middle']);
   });
 
+  it('stops between requests when the caller aborts on Stalwart 1.0', async () => {
+    await connect('1.0', { maxCallsInRequest: 1 });
+    const controller = new AbortController();
+    const answering = fetchSpy.getMockImplementation()!;
+    fetchSpy.mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const response = await answering(url, init);
+      if (String(init?.body).includes('"expandRecurrences":true')) controller.abort();
+      return response;
+    });
+
+    const error = await client.queryCalendarEvents(WINDOW, undefined, undefined, undefined, { signal: controller.signal })
+      .then(() => null, (e: unknown) => e);
+
+    expect((error as Error).name).toBe('AbortError');
+    expect(expandedQueries()).toHaveLength(1);
+  });
+
   it('asks for two chunks for a 365-day look-ahead on Stalwart 1.0', async () => {
     await connect('1.0');
 
@@ -333,6 +367,35 @@ describe('expanded ranges longer than maxExpandedQueryDuration', () => {
       ['2026-12-30T23:59:59', '2027-01-01T00:00:00'],
     ]);
   });
+
+  // Global search sends a query of several text parts as a flat AND of
+  // single-key conditions, the range among them. 1.0 expands recurrences for
+  // that shape (one AND), not for one where a condition holds both bounds.
+  it.each<[StalwartVersion]>([['0.16'], ['1.0']])(
+    'expands and chunks a range given as conditions of an AND on Stalwart %s',
+    async (version) => {
+      await connect(version);
+
+      const events = await client.queryCalendarEvents({
+        operator: 'AND',
+        conditions: [{ after: WINDOW.after }, { before: WINDOW.before }, { text: 'budget' }, { text: 'review' }],
+      });
+
+      expect(expandedQueries()).toHaveLength(3);
+      for (const query of expandedQueries()) {
+        const filter = query.args.filter as { operator: string; conditions: Array<Record<string, unknown>> };
+        expect(filter.operator).toBe('AND');
+        expect(filter.conditions.slice(2)).toEqual([{ text: 'budget' }, { text: 'review' }]);
+        expect(filter.conditions.every((condition) => Object.keys(condition).length === 1)).toBe(true);
+      }
+      expect(expandedQueries().map((q) => (q.args.filter as { conditions: unknown[] }).conditions.slice(0, 2))).toEqual([
+        [{ after: '2025-01-01T00:00:00' }, { before: '2025-12-31T00:00:00' }],
+        [{ after: '2025-12-30T23:59:59' }, { before: '2026-12-29T23:59:59' }],
+        [{ after: '2026-12-29T23:59:58' }, { before: '2027-02-16T23:59:59' }],
+      ]);
+      expect(events.map((e) => e.id).sort()).toEqual([...IN_WINDOW].sort());
+    },
+  );
 
   it('reports a refusal it cannot split as a failure on Stalwart 1.0', async () => {
     fetchSpy = vi.spyOn(globalThis, 'fetch');

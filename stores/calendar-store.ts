@@ -518,12 +518,6 @@ export interface FetchEventsOptions {
   silent?: boolean;
 }
 
-/**
- * The `error` a failed range load leaves. The events loaded before stay in
- * the store; the calendar shows a notice for it instead of a toast.
- */
-export const EVENTS_LOAD_ERROR = 'Failed to load events';
-
 interface CalendarStore {
   calendars: Calendar[];
   events: CalendarEvent[];
@@ -535,6 +529,13 @@ interface CalendarStore {
   isLoadingEvents: boolean;
   supportsCalendar: boolean;
   error: string | null;
+  /**
+   * The last range load failed. The events loaded before it stay, and the
+   * calendar says they may be out of date. Only a successful range load
+   * clears it, so other actions that reset `error` leave it alone.
+   */
+  eventsLoadError: boolean;
+  /** The range last asked for, loaded or not: push and refresh reload it. */
   dateRange: { start: string; end: string } | null;
   // The user's ParticipantIdentity list (calendar addresses to organise
   // as); the default one is used as organizer of new invitations.
@@ -585,6 +586,7 @@ const initialState = {
   supportsCalendar: false,
   participantIdentities: [],
   error: null as string | null,
+  eventsLoadError: false,
   dateRange: null as { start: string; end: string } | null,
   icalSubscriptions: [] as ICalSubscription[],
 };
@@ -674,12 +676,13 @@ export const useCalendarStore = create<CalendarStore>()(
           if (droppedEvents > 0) {
             debug.warn('calendar', 'Calendar fetchEvents dropped malformed events without a start field', { droppedEvents });
           }
-          set({ events, isLoadingEvents: false, dateRange: { start, end } });
+          set({ events, isLoadingEvents: false, eventsLoadError: false, dateRange: { start, end } });
         } catch (error) {
-          // Keep the events already on screen: an empty grid would read as
-          // "no events".
+          // Keep the events already on screen - an empty grid would read as
+          // "no events" - and take the range as asked for, so a push or a
+          // refresh reloads it rather than the one loaded before.
           debug.error('Failed to fetch events:', error);
-          set({ error: EVENTS_LOAD_ERROR, isLoadingEvents: false });
+          set({ eventsLoadError: true, isLoadingEvents: false, dateRange: { start, end } });
         }
       },
 
@@ -736,12 +739,12 @@ export const useCalendarStore = create<CalendarStore>()(
           set({
             events: results.flat(),
             isLoadingEvents: false,
+            eventsLoadError: failed,
             dateRange: { start, end },
-            ...(failed ? { error: EVENTS_LOAD_ERROR } : {}),
           });
         } catch (error) {
           debug.error('Failed to fetch all-account events:', error);
-          set({ error: EVENTS_LOAD_ERROR, isLoadingEvents: false });
+          set({ eventsLoadError: true, isLoadingEvents: false, dateRange: { start, end } });
         }
       },
 

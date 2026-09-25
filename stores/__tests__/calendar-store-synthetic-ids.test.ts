@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EVENTS_LOAD_ERROR, useCalendarStore, resolveMutationTarget } from '../calendar-store';
+import { useCalendarStore, resolveMutationTarget } from '../calendar-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { CalendarEvent } from '@/lib/jmap/types';
 import { jmapError, jmapSetError } from '@/lib/jmap/jmap-error';
@@ -389,15 +389,36 @@ describe('a range that fails to load', () => {
 
     const state = useCalendarStore.getState();
     expect(state.events.map((e) => e.id)).toEqual(['maaaaab']);
-    expect(state.error).toBe(EVENTS_LOAD_ERROR);
+    expect(state.eventsLoadError).toBe(true);
     expect(state.isLoadingEvents).toBe(false);
-    // Still the range that is actually loaded.
-    expect(state.dateRange).toEqual({ start: RANGE[0], end: RANGE[1] });
+    // The range asked for, so a push or a refresh reloads that one.
+    expect(state.dateRange).toEqual({ start: NEXT[0], end: NEXT[1] });
 
     client.queryAllCalendarEvents.mockResolvedValueOnce([]);
     await useCalendarStore.getState().fetchEvents(client, NEXT[0], NEXT[1]);
-    expect(useCalendarStore.getState().error).toBeNull();
+    expect(useCalendarStore.getState().eventsLoadError).toBe(false);
     expect(useCalendarStore.getState().events).toEqual([]);
+  });
+
+  it('keeps reporting the failure through other actions and reloads the range asked for on Stalwart 1.0', async () => {
+    const client = fakeClient({ getAllCalendars: vi.fn().mockResolvedValue([]) });
+    client.queryAllCalendarEvents.mockResolvedValueOnce([occurrence()]);
+    await useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+    // From here on every range load fails.
+    client.queryAllCalendarEvents.mockRejectedValue(refused());
+    await useCalendarStore.getState().fetchEvents(client, NEXT[0], NEXT[1]);
+
+    // A change, and the calendar list reloading, reset `error`.
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', { title: 'Renamed' });
+    await useCalendarStore.getState().fetchCalendars(client);
+    expect(useCalendarStore.getState().error).toBeNull();
+    expect(useCalendarStore.getState().eventsLoadError).toBe(true);
+
+    // What a push does: reload the store's range - the one that failed.
+    const { dateRange } = useCalendarStore.getState();
+    await useCalendarStore.getState().fetchEvents(client, dateRange!.start, dateRange!.end);
+    expect(client.queryAllCalendarEvents).toHaveBeenLastCalledWith({ after: NEXT[0], before: NEXT[1] });
+    expect(useCalendarStore.getState().eventsLoadError).toBe(true);
   });
 
   it('keeps the events of an account that fails when loading every account', async () => {
@@ -417,7 +438,8 @@ describe('a range that fails to load', () => {
       ['A@h::maaaaab', 'First'],
       ['B@h::maaaaab', 'Second, loaded before'],
     ]);
-    expect(state.error).toBe(EVENTS_LOAD_ERROR);
+    expect(state.eventsLoadError).toBe(true);
+    expect(state.dateRange).toEqual({ start: NEXT[0], end: NEXT[1] });
   });
 });
 

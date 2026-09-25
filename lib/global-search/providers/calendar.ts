@@ -110,6 +110,7 @@ export const calendarProvider: SearchProvider = {
       calendarFilterFor(parsed),
       [{ property: 'start', isAscending: false }],
       limit,
+      { signal },
     );
     if (signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
     const { calendars } = useCalendarStore.getState();

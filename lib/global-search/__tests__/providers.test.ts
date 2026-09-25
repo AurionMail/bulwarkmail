@@ -270,13 +270,88 @@ describe('calendar provider', () => {
       );
 
       expect(result.hits.map((h) => h.id).sort()).toEqual(['o-2024', 'o-2025', 'o-2026']);
-      // Three years in chunks of 364 days, the latest first, each still
-      // filtered by the search text.
+      // Three years in chunks of 364 days, the latest first, sent together,
+      // each still filtered by the search text.
       const expanded = server.queries().filter((q) => q.args.expandRecurrences);
       expect(expanded).toHaveLength(4);
+      expect(new Set(expanded.map((q) => q.request)).size).toBe(1);
       const bounds = expanded.map((q) => q.args.filter as { after: string; before: string; text: string });
       expect(bounds.every((filter) => filter.text === 'standup')).toBe(true);
       expect(bounds[0].before > bounds[1].before && bounds[1].before > bounds[2].before).toBe(true);
+    } finally {
+      client.disconnect();
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('searches several words over more than a year in chunks on Stalwart 1.0', async () => {
+    // The words go out as an AND of one-key conditions with the bounds among
+    // them. Each chunk keeps that one flat AND with its own bounds: 1.0
+    // expands recurrences for a single AND of single conditions only.
+    const occurrences = [
+      { id: 'o-2024', start: '2024-03-05T09:00:00', seconds: 3600 },
+      { id: 'o-2026', start: '2026-08-20T09:00:00', seconds: 3600 },
+    ];
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const client = await connectCalendarClient(fetchSpy, stalwartCalendarSession('1.0'));
+    const server = installStalwartCalendarMock(fetchSpy, {
+      version: '1.0',
+      objects: { series: { id: 'series', recurrenceRule: { frequency: 'yearly' }, showWithoutTime: false, duration: 'PT1H' } },
+      occurrences: occurrenceObjects('series', occurrences),
+      answer: expandingQueryAnswer('1.0', { seriesId: 'series', occurrences }),
+    });
+    try {
+      const result = await calendarProvider.remote(
+        parseSearchQuery('"team sync" budget after:2024-01-01 before:2026-12-31'),
+        { ...account('login-a'), client },
+        { limit: 10, signal },
+      );
+
+      expect(result.hits.map((h) => h.id).sort()).toEqual(['o-2024', 'o-2026']);
+      const expanded = server.queries().filter((q) => q.args.expandRecurrences);
+      expect(expanded).toHaveLength(4);
+      for (const query of expanded) {
+        const filter = query.args.filter as { operator: string; conditions: Array<Record<string, string>> };
+        expect(filter.operator).toBe('AND');
+        expect(filter.conditions.map((condition) => Object.keys(condition))).toEqual([['after'], ['before'], ['text'], ['text']]);
+        expect(filter.conditions.slice(2)).toEqual([{ text: '"team sync"' }, { text: 'budget' }]);
+        // Wall clock of the request's time zone, as for a filter of bounds.
+        expect(filter.conditions[0].after.endsWith('Z')).toBe(false);
+      }
+      expect(server.queries().filter((q) => !q.args.expandRecurrences)).toHaveLength(0);
+    } finally {
+      client.disconnect();
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('stops a search the user replaced before its next request on Stalwart 1.0', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const client = await connectCalendarClient(fetchSpy, stalwartCalendarSession('1.0'));
+    const occurrences = [{ id: 'o-2025', start: '2025-06-10T09:00:00', seconds: 3600 }];
+    const server = installStalwartCalendarMock(fetchSpy, {
+      version: '1.0',
+      objects: { series: { id: 'series', recurrenceRule: { frequency: 'yearly' }, showWithoutTime: false, duration: 'PT1H' } },
+      occurrences: occurrenceObjects('series', occurrences),
+      answer: expandingQueryAnswer('1.0', { seriesId: 'series', occurrences }),
+    });
+    const controller = new AbortController();
+    const answering = fetchSpy.getMockImplementation()!;
+    fetchSpy.mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const response = await answering(url, init);
+      if (String(init?.body).includes('"expandRecurrences":true')) controller.abort();
+      return response;
+    });
+    try {
+      const error = await calendarProvider.remote(
+        parseSearchQuery('standup after:2024-01-01 before:2026-12-31'),
+        { ...account('login-a'), client },
+        { limit: 10, signal: controller.signal },
+      ).then(() => null, (e: unknown) => e);
+
+      expect((error as Error).name).toBe('AbortError');
+      // The chunk queries went out; the occurrences were not fetched.
+      expect(server.gets().filter((g) => (g.args.ids as string[]).includes('o-2025'))).toHaveLength(0);
     } finally {
       client.disconnect();
       fetchSpy.mockRestore();
@@ -288,7 +363,7 @@ describe('calendar provider', () => {
       { id: 'e9', title: 'Weekly sync', start: '2026-04-01T09:00:00', calendarIds: {}, accountId: 'jmap-a', recurrenceRules: [{}], recurrenceId: null },
     ]);
     const result = await calendarProvider.remote(parseSearchQuery('sync'), account('login-a', { queryAllCalendarEvents }), { limit: 10, signal });
-    expect(queryAllCalendarEvents).toHaveBeenCalledWith({ text: 'sync' }, [{ property: 'start', isAscending: false }], 10);
+    expect(queryAllCalendarEvents).toHaveBeenCalledWith({ text: 'sync' }, [{ property: 'start', isAscending: false }], 10, { signal });
     expect(result.hits[0]).toMatchObject({ id: 'e9', isRecurring: true, localAccountId: 'login-a' });
 
     await calendarProvider.remote(parseSearchQuery('"weekly sync" plan*'), account('login-a', { queryAllCalendarEvents }), { limit: 10, signal });
@@ -296,6 +371,7 @@ describe('calendar provider', () => {
       { operator: 'AND', conditions: [{ text: '"weekly sync"' }, { text: 'plan*' }] },
       [{ property: 'start', isAscending: false }],
       10,
+      { signal },
     );
   });
 });

@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
-import { OVERRIDES_WITH_UTC_ERROR, asksForOverridesWithUtc, type StalwartVersion } from './helpers/stalwart-calendar';
+import {
+  EXPAND_DURATION_TOO_LARGE,
+  OVERRIDES_WITH_UTC_ERROR,
+  asksForOverridesWithUtc,
+  type StalwartVersion,
+} from './helpers/stalwart-calendar';
 
 // ── module mocks (hoisted) ───────────────────────────────────────────────────
 vi.mock('next/server', () => {
@@ -92,8 +97,9 @@ describe('calendar-agenda route (principals:owner declaration)', () => {
 // fills in the series context from the base events, so it never needs
 // `recurrenceOverrides` next to utcStart/utcEnd - a get Stalwart 1.0 refuses.
 describe.each<StalwartVersion>(['0.16', '1.0'])('calendar-agenda route on Stalwart %s', (version) => {
-  type Call = { method: string; args: Record<string, unknown> };
+  type Call = { method: string; args: Record<string, unknown>; request: number };
   let calls: Call[];
+  let requests: number;
   let answer: (call: Call) => [string, Record<string, unknown>] | undefined;
 
   const OCCURRENCES: Record<string, Record<string, unknown>> = {
@@ -123,7 +129,7 @@ describe.each<StalwartVersion>(['0.16', '1.0'])('calendar-agenda route on Stalwa
     if (version === '1.0' && asksForOverridesWithUtc(args)) return ['error', { ...OVERRIDES_WITH_UTC_ERROR }];
     const properties = args.properties as string[];
     const list = (args.ids as string[]).map((id) => {
-      const source = OCCURRENCES[id] ?? BASES[id];
+      const source = OCCURRENCES[id] ?? BASES[id] ?? { id };
       return Object.fromEntries(Object.entries(source).filter(([key]) => key === 'id' || properties.includes(key)));
     });
     return ['CalendarEvent/get', { list }];
@@ -134,12 +140,14 @@ describe.each<StalwartVersion>(['0.16', '1.0'])('calendar-agenda route on Stalwa
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-25T08:00:00Z'));
     calls = [];
+    requests = 0;
     answer = () => undefined;
     mockCreds.mockResolvedValue({ serverUrl: 'https://mail.example.com', username: 'user@example.com', authHeader: 'Basic abc' });
     mockSession.mockResolvedValue(makeSession({ 'urn:ietf:params:jmap:core': {}, [CALENDAR_CAP]: {} }));
     mockPost.mockImplementation(async (_url: string, _auth: string, body: string) => {
+      const request = requests++;
       const methodResponses = JSON.parse(body).methodCalls.map(([method, args, callId]: [string, Record<string, unknown>, string]) => {
-        const call = { method, args };
+        const call = { method, args, request };
         calls.push(call);
         return [...(answer(call) ?? defaultAnswer(call)), callId];
       });
@@ -160,6 +168,8 @@ describe.each<StalwartVersion>(['0.16', '1.0'])('calendar-agenda route on Stalwa
 
     const query = calls.find((c) => c.method === 'CalendarEvent/query')!;
     expect(query.args.expandRecurrences).toBe(true);
+    // The earliest first, so the query's limit keeps the next occurrences.
+    expect(query.args.sort).toEqual([{ property: 'start', isAscending: true }]);
     expect(gets().filter((g) => asksForOverridesWithUtc(g.args))).toEqual([]);
     const [instanceGet, baseGet] = gets();
     expect(instanceGet.args.properties).not.toContain('recurrenceOverrides');
@@ -199,5 +209,54 @@ describe.each<StalwartVersion>(['0.16', '1.0'])('calendar-agenda route on Stalwa
     });
     expect(spans).toEqual([80, 40, 20]);
     expect(((await res.json()) as { events: unknown[] }).events).toHaveLength(2);
+  });
+
+  it(`looks less far ahead when the range is longer than the server expands on Stalwart ${version}`, async () => {
+    // An administrator set maxExpandedQueryDuration to 30 days. 1.0 refuses a
+    // longer expanded range; 0.16 never checks.
+    answer = ({ method, args }) => {
+      if (method !== 'CalendarEvent/query' || version !== '1.0') return undefined;
+      const filter = args.filter as { after: string; before: string };
+      return Date.parse(filter.before) - Date.parse(filter.after) > 30 * 86_400_000
+        ? ['error', { ...EXPAND_DURATION_TOO_LARGE }]
+        : undefined;
+    };
+
+    const res = await POST({ json: async () => ({ days: 80 }) } as unknown as Parameters<typeof POST>[0]);
+
+    expect(res.status).toBe(200);
+    const spans = calls.filter((c) => c.method === 'CalendarEvent/query').map((c) => {
+      const filter = c.args.filter as { after: string; before: string };
+      return (Date.parse(filter.before) - Date.parse('2026-09-25T08:00:00Z')) / 86_400_000;
+    });
+    expect(spans).toEqual(version === '1.0' ? [80, 40, 20] : [80]);
+    expect(((await res.json()) as { events: unknown[] }).events).toHaveLength(2);
+  });
+
+  it(`fetches many occurrences with several gets per request on Stalwart ${version}`, async () => {
+    const many = [...Object.keys(OCCURRENCES), ...Array.from({ length: 248 }, (_, i) => `x${i}`)];
+    answer = ({ method }) => method === 'CalendarEvent/query' ? ['CalendarEvent/query', { ids: many }] : undefined;
+
+    const res = await POST(makeReq());
+
+    expect(res.status).toBe(200);
+    const occurrenceGets = gets().filter((g) => !(g.args.ids as string[]).includes('b'));
+    expect(occurrenceGets.map((g) => (g.args.ids as string[]).length)).toEqual([100, 100, 50]);
+    expect(new Set(occurrenceGets.map((g) => g.request)).size).toBe(1);
+    expect(((await res.json()) as { events: unknown[] }).events).toHaveLength(2);
+  });
+
+  it(`keeps to the session's maxCallsInRequest when fetching occurrences on Stalwart ${version}`, async () => {
+    mockSession.mockResolvedValue(makeSession({ 'urn:ietf:params:jmap:core': { maxCallsInRequest: 2 }, [CALENDAR_CAP]: {} }));
+    const many = [...Object.keys(OCCURRENCES), ...Array.from({ length: 248 }, (_, i) => `x${i}`)];
+    answer = ({ method }) => method === 'CalendarEvent/query' ? ['CalendarEvent/query', { ids: many }] : undefined;
+
+    const res = await POST(makeReq());
+
+    expect(res.status).toBe(200);
+    const occurrenceGets = gets().filter((g) => !(g.args.ids as string[]).includes('b'));
+    const [first, , last] = occurrenceGets;
+    expect(occurrenceGets.map((g) => g.request)).toEqual([first.request, first.request, first.request + 1]);
+    expect((last.args.ids as string[]).length).toBe(50);
   });
 });

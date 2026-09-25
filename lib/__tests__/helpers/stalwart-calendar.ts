@@ -248,12 +248,52 @@ export function occurrenceObjects(seriesId: string, occurrences: RangeOccurrence
   }]));
 }
 
+type FilterNode = Record<string, unknown> & { operator?: string; conditions?: FilterNode[] };
+
+/** Stalwart 1.0's refusal of an expanded query whose filter is more than one FilterCondition. */
+export const NOT_A_SINGLE_CONDITION = {
+  type: 'invalidArguments',
+  description: 'The filter must be a single FilterCondition when expanding recurrences',
+} as const;
+
+/**
+ * Whether Stalwart 1.0 expands recurrences for `filter`: no OR or NOT, and at
+ * most one AND - a condition of two keys counts as an AND of its own
+ * (jmap-proto/src/method/query.rs; calendar_event/query.rs).
+ */
+export function isSingleFilterCondition(filter: FilterNode): boolean {
+  let ands = 0;
+  const walk = (node: FilterNode): boolean => {
+    if (node.operator) {
+      if (node.operator !== 'AND') return false;
+      ands++;
+      return (node.conditions ?? []).every(walk);
+    }
+    if (Object.keys(node).length > 1) ands++;
+    return true;
+  };
+  return walk(filter) && ands <= 1;
+}
+
+/** The after/before of a filter: keys of its own, or conditions anywhere in it. */
+export function boundsOf(filter: FilterNode): { after?: string; before?: string } {
+  const bounds: { after?: string; before?: string } = {};
+  const walk = (node: FilterNode) => {
+    if (typeof node.after === 'string') bounds.after = node.after;
+    if (typeof node.before === 'string') bounds.before = node.before;
+    for (const condition of node.conditions ?? []) walk(condition);
+  };
+  walk(filter);
+  return bounds;
+}
+
 /**
  * Answers CalendarEvent/query the way Stalwart expands a range: occurrences
  * that overlap (after, before) strictly, sorted by start when asked, paged.
- * 1.0 refuses a span over `maxSpanSeconds` (0.16 never checks it), and both
- * refuse a query that expands to more than `maxInstances` occurrences. A
- * query without expansion finds the series itself.
+ * 1.0 refuses a span over `maxSpanSeconds` (0.16 never checks it) and a
+ * filter that is more than a single FilterCondition, and both refuse a
+ * query that expands to more than `maxInstances` occurrences. A query
+ * without expansion finds the series itself.
  */
 export function expandingQueryAnswer(
   version: StalwartVersion,
@@ -263,9 +303,11 @@ export function expandingQueryAnswer(
     if (call.method !== 'CalendarEvent/query') return undefined;
     const { args } = call;
     if (!args.expandRecurrences) return ['CalendarEvent/query', { ids: [options.seriesId], position: 0 }];
-    const filter = args.filter as { after: string; before: string };
-    const after = localSeconds(filter.after);
-    const before = localSeconds(filter.before);
+    const filter = args.filter as FilterNode;
+    if (version === '1.0' && !isSingleFilterCondition(filter)) return ['error', { ...NOT_A_SINGLE_CONDITION }];
+    const bounds = boundsOf(filter);
+    const after = localSeconds(bounds.after ?? '');
+    const before = localSeconds(bounds.before ?? '');
     if (version === '1.0' && before - after > (options.maxSpanSeconds ?? 365 * 86_400)) {
       return ['error', { ...EXPAND_DURATION_TOO_LARGE }];
     }

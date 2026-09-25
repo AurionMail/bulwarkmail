@@ -1,7 +1,7 @@
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
-import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
+import type { CalendarEventUpdateOptions, CalendarQueryOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { textConditions, textFilter } from "./search-utils";
 import { batched, itemsPerRequest } from "./request-limits";
@@ -791,6 +791,66 @@ const EXPANDED_CHUNK_SLACK = DAY_SECONDS;
 const MIN_OCCURRENCE_CHUNK = 7 * DAY_SECONDS;
 const MIN_DURATION_CHUNK = 3600;
 const MAX_EXPANDED_CHUNKS = 64;
+// With a limit the chunks are read in the sort order, a few per request:
+// what later chunks return past the limit is dropped.
+const LIMITED_CHUNKS_PER_REQUEST = 4;
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+/** The range of an expanded CalendarEvent/query, and its filter for other bounds. */
+interface QueryRange {
+  after?: string;
+  before?: string;
+  withBounds: (after?: string, before?: string) => Record<string, unknown>;
+}
+
+/**
+ * The after/before bounds of a CalendarEvent filter, and the filter rebuilt
+ * for other bounds. The bounds are keys of the filter itself, or single-key
+ * conditions of a top-level AND - how global search sends a range with
+ * several text parts. Rebuilt, such an AND stays flat: Stalwart 1.0 expands
+ * recurrences only for a single FilterCondition, and reads a condition of
+ * two keys as an AND of its own.
+ */
+function rangeOf(filter: CalendarEventFilter): QueryRange {
+  if (filter.operator === 'AND' && Array.isArray(filter.conditions)) {
+    let after: string | undefined;
+    let before: string | undefined;
+    const rest = filter.conditions.filter((condition) => {
+      const keys = Object.keys(condition);
+      if (keys.length !== 1) return true;
+      if (keys[0] === 'after' && typeof condition.after === 'string') {
+        after = condition.after;
+        return false;
+      }
+      if (keys[0] === 'before' && typeof condition.before === 'string') {
+        before = condition.before;
+        return false;
+      }
+      return true;
+    });
+    return {
+      after,
+      before,
+      withBounds: (from, to) => ({
+        operator: 'AND',
+        conditions: [...(from ? [{ after: from }] : []), ...(to ? [{ before: to }] : []), ...rest],
+      }),
+    };
+  }
+  const { after, before, ...rest } = filter;
+  return {
+    after,
+    before,
+    withBounds: (from, to) => ({ ...rest, ...(from ? { after: from } : {}), ...(to ? { before: to } : {}) }),
+  };
+}
 
 /**
  * Part of an expanded CalendarEvent/query range, in seconds of the request
@@ -7169,7 +7229,8 @@ export class JMAPClient implements IJMAPClient {
   async queryAllCalendarEvents(
     filter: CalendarEventFilter,
     sort?: Array<{ property: string; isAscending: boolean }>,
-    limit?: number
+    limit?: number,
+    options?: CalendarQueryOptions,
   ): Promise<CalendarEvent[]> {
     const allEvents: CalendarEvent[] = [];
     const primaryId = this.getCalendarsAccountId();
@@ -7179,15 +7240,16 @@ export class JMAPClient implements IJMAPClient {
       const isPrimary = accountId === primaryId;
       if (!isPrimary && this.calendarAccessDenied.has(accountId)) continue;
       const account = this.accounts[accountId];
+      throwIfAborted(options?.signal);
 
       let events: CalendarEvent[];
       try {
-        events = await this.queryCalendarEvents(filter, sort, limit, accountId);
+        events = await this.queryCalendarEvents(filter, sort, limit, accountId, options);
       } catch (error) {
         // The user's own calendars failing fails the whole range - an empty
         // answer would read as "no events". A shared account that fails is
         // left out of the result.
-        if (isPrimary) throw error;
+        if (isPrimary || isAbortError(error)) throw error;
         console.error(`Failed to query calendar events for account ${accountId}:`, error);
         continue;
       }
@@ -7212,12 +7274,13 @@ export class JMAPClient implements IJMAPClient {
     filter: CalendarEventFilter,
     sort?: Array<{ property: string; isAscending: boolean }>,
     limit?: number,
-    targetAccountId?: string
+    targetAccountId?: string,
+    options?: CalendarQueryOptions,
   ): Promise<CalendarEvent[]> {
     const accountId = targetAccountId || this.getCalendarsAccountId();
     try {
       return await this.withCalendarTimeZone((timeZone) =>
-        this.queryCalendarEventsIn(accountId, filter, sort, limit, timeZone));
+        this.queryCalendarEventsIn(accountId, filter, sort, limit, timeZone, options?.signal));
     } catch (error) {
       // The fan-out over shared accounts probes on suspicion (see
       // getCalendarCapableAccountIds) and may hit accounts that grant no
@@ -7243,6 +7306,7 @@ export class JMAPClient implements IJMAPClient {
     sort: Array<{ property: string; isAscending: boolean }> | undefined,
     limit: number | undefined,
     timeZone: string | undefined,
+    signal?: AbortSignal,
   ): Promise<CalendarEvent[]> {
     // Stalwart reads the LocalDateTime after/before filter values in the
     // request's time zone (UTC without one, shifting range boundaries), and
@@ -7255,14 +7319,10 @@ export class JMAPClient implements IJMAPClient {
       userTimeZone && timeZone ? moveLocalDateTime(value, userTimeZone, timeZone) : value,
       timeZone,
     );
-    const queryArgs: Record<string, unknown> = {
-      accountId,
-      filter: {
-        ...filter,
-        ...(filter.after ? { after: bound(filter.after) } : {}),
-        ...(filter.before ? { before: bound(filter.before) } : {}),
-      },
-    };
+    const range = rangeOf(filter);
+    const after = range.after ? bound(range.after) : undefined;
+    const before = range.before ? bound(range.before) : undefined;
+    const queryArgs: Record<string, unknown> = { accountId, filter: range.withBounds(after, before) };
     if (timeZone) {
       queryArgs.timeZone = timeZone;
     }
@@ -7271,7 +7331,7 @@ export class JMAPClient implements IJMAPClient {
     // (Stalwart >= 0.16.20; the server needs both range bounds for it).
     // Older servers keep the client-side expansion in
     // lib/recurrence-expansion.ts, which runs on whatever comes back.
-    let expandRecurrences = Boolean(filter.after && filter.before)
+    let expandRecurrences = Boolean(after && before)
       && await this.supportsSyntheticCalendarIds();
     if (sort) {
       queryArgs.sort = sort;
@@ -7279,7 +7339,7 @@ export class JMAPClient implements IJMAPClient {
 
     let ids: string[] | null = null;
     if (expandRecurrences) {
-      ids = await this.queryExpandedCalendarEventIds(accountId, queryArgs, limit);
+      ids = await this.queryExpandedCalendarEventIds(accountId, queryArgs, { ...range, after, before }, limit, signal);
       if (!ids) {
         // The server will not expand this range within its limits. Ask
         // for the series instead; lib/recurrence-expansion.ts expands
@@ -7290,6 +7350,7 @@ export class JMAPClient implements IJMAPClient {
     }
     ids ??= await this.queryCalendarEventIds(queryArgs, limit);
     if (ids.length === 0) return [];
+    throwIfAborted(signal);
 
     // Only series the client expands itself need their overrides here; a
     // server-expanded occurrence gets them from its base event below.
@@ -7371,18 +7432,19 @@ export class JMAPClient implements IJMAPClient {
    * down to about a week. Past that the whole range is given up - mixing
    * server- and client-expanded occurrences would show series twice.
    *
-   * With a limit the chunks are queried one at a time in the sort order (by
-   * start), until the limit is reached.
+   * With a limit the chunks are read in the sort order (by start), a few
+   * per request, until the limit is reached.
    */
   private async queryExpandedCalendarEventIds(
     accountId: string,
     queryArgs: Record<string, unknown>,
+    range: QueryRange,
     limit?: number,
+    signal?: AbortSignal,
   ): Promise<string[] | null> {
     const expandedArgs = { ...queryArgs, expandRecurrences: true };
-    const filter = queryArgs.filter as Record<string, unknown>;
-    const start = wallClockSeconds(filter.after);
-    const end = wallClockSeconds(filter.before);
+    const start = wallClockSeconds(range.after);
+    const end = wallClockSeconds(range.before);
     if (start === null || end === null || end <= start) {
       try {
         return await this.queryCalendarEventIds(expandedArgs, limit);
@@ -7406,22 +7468,27 @@ export class JMAPClient implements IJMAPClient {
     const maxIds = limit || 20000;
     const ids = new Set<string>();
     let pending = chunks;
-    let chunksSent = 0;
+    // Pages are bounded by maxIds; splitting is what has to stop somewhere.
+    const chunksSent = new Set<RangeChunk>();
     while (pending.length > 0 && ids.size < maxIds) {
-      const batch = pending.splice(0, limit ? 1 : this.getMaxCallsInRequest());
-      // Pages are bounded by maxIds; splitting is what has to stop somewhere.
-      chunksSent += batch.filter((chunk) => chunk.position === 0).length;
-      if (chunksSent > MAX_EXPANDED_CHUNKS) return null;
+      throwIfAborted(signal);
+      const batch = pending.splice(0, limit
+        ? Math.min(LIMITED_CHUNKS_PER_REQUEST, this.getMaxCallsInRequest())
+        : this.getMaxCallsInRequest());
+      for (const chunk of batch) if (chunk.position === 0) chunksSent.add(chunk);
+      if (chunksSent.size > MAX_EXPANDED_CHUNKS) return null;
       const size = limit ? limit - ids.size : pageSize;
       const response = await this.request(batch.map((chunk, i): JMAPMethodCall => ["CalendarEvent/query", {
         ...expandedArgs,
-        filter: { ...filter, after: localDateTimeOf(chunk.start), before: localDateTimeOf(chunk.end) },
+        filter: range.withBounds(localDateTimeOf(chunk.start), localDateTimeOf(chunk.end)),
         position: chunk.position,
         limit: size,
       }, String(i)]), this.calendarUsing());
 
       // The halves of a refused chunk, and the next page of a full one, go
-      // to the front of the queue.
+      // to the front of the queue. With a limit, a chunk that needs another
+      // query comes before the rest of its batch in the sort order: what the
+      // later chunks returned is dropped and asked for again after it.
       const again: RangeChunk[] = [];
       for (const [i, chunk] of batch.entries()) {
         let page: string[];
@@ -7431,13 +7498,24 @@ export class JMAPClient implements IJMAPClient {
           const halves = splitRefusedChunk(chunk, error);
           if (!halves) return null;
           again.push(...(latestFirst ? halves.reverse() : halves));
+          if (limit) {
+            again.push(...batch.slice(i + 1));
+            break;
+          }
           continue;
         }
         for (const id of page) {
           if (ids.size >= maxIds) break;
           ids.add(id);
         }
-        if (page.length === size) again.push({ ...chunk, position: chunk.position + page.length });
+        if (ids.size >= maxIds) break;
+        if (page.length === size) {
+          again.push({ ...chunk, position: chunk.position + page.length });
+          if (limit) {
+            again.push(...batch.slice(i + 1));
+            break;
+          }
+        }
       }
       pending = [...again, ...pending];
     }

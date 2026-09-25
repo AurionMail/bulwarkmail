@@ -49,6 +49,11 @@ export interface CalendarEventUpdateOptions {
   keepSequence?: boolean;
 }
 
+export interface CalendarQueryOptions {
+  /** Stops a query of several requests (a long range, several accounts) between them. */
+  signal?: AbortSignal;
+}
+
 export interface IJMAPClient {
   // ── Connection lifecycle ──────────────────────────────────────
   connect(): Promise<void>;
@@ -474,8 +479,8 @@ export interface IJMAPClient {
   ): Promise<void>;
   deleteCalendarEvent(eventId: string, sendSchedulingMessages?: boolean, targetAccountId?: string): Promise<void>;
   batchDeleteCalendarEvents(eventIds: string[], targetAccountId?: string): Promise<{ destroyed: string[]; notDestroyed: Record<string, { type?: string; description?: string }> }>;
-  queryCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number, targetAccountId?: string): Promise<CalendarEvent[]>;
-  queryAllCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number): Promise<CalendarEvent[]>;
+  queryCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number, targetAccountId?: string, options?: CalendarQueryOptions): Promise<CalendarEvent[]>;
+  queryAllCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number, options?: CalendarQueryOptions): Promise<CalendarEvent[]>;
   parseCalendarEvents(accountId: string, blobId: string): Promise<Partial<CalendarEvent>[]>;
 
   // ── Calendar Tasks ────────────────────────────────────────────
