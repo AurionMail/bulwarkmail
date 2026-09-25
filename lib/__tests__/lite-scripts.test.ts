@@ -614,6 +614,17 @@ describe('Stalwart target: the entry document', () => {
     expect(readme).toMatch(/On every version, a restart after the cached copy\s+has expired/);
     expect(readme).toMatch(/check that `resourceUrl` downloads before running\s+`UpdateApps`/);
   });
+
+  it('names the web admin action, asks for HTTPS and keeps single sign-on off the missing list', () => {
+    const readme = buildStalwartReadme({ version: '1.10.0', commit: 'abc1234', locales: ['en'], buildId: 'b' });
+    expect(readme).toContain('**Actions > Update applications**');
+    // Without a secure context there is no crypto.subtle for PKCE, so the
+    // sign-in falls back to a tab-scoped password session.
+    expect(readme).toMatch(/Serve Stalwart over HTTPS\./);
+    // Outside CI the build refuses to delete files unless told the tree is throwaway.
+    expect(readme).toContain('npm run build:lite -- --in-place --target=stalwart');
+    expect(readme).not.toContain('OAuth/SSO via an external identity provider');
+  });
 });
 
 describe('Stalwart target: zip and emulator', () => {

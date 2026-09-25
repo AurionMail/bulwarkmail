@@ -1322,7 +1322,7 @@ it) and \`actionUpdateApps\`. Any of these is equivalent:
 
 - Web admin: **Settings > Web Applications > Create**, description
   \`Bulwark Webmail\`, resource URL \`${url}\`, URL prefix \`/webmail\`; then run
-  the update-applications action (or restart Stalwart).
+  **Actions > Update applications** (or restart Stalwart).
 - CLI:
 
   \`\`\`bash
@@ -1397,6 +1397,11 @@ Passwords (and TOTP codes) go to Stalwart's \`/api/auth\` and are exchanged at
 origin. "Remember me" keeps the refresh token in localStorage, otherwise it
 lives with the tab.
 
+Serve Stalwart over HTTPS. On a plain \`http://\` address other than
+\`localhost\`, browsers withhold the Web Crypto API this sign-in needs, so the
+webmail falls back to a password sign-in that lasts only as long as the tab:
+"Remember me" has no effect and single sign-on does not work.
+
 The OAuth client id is the Application's \`oauthClientId\` (Stalwart writes it
 into index.html) or \`bulwark-webmail\` when that field is empty. If your
 server requires registered OAuth clients, register that client id with the
@@ -1435,8 +1440,8 @@ for every account.
 
 The bundle is read-only once Stalwart has unpacked it. To change the app
 name, turn "remember me" off or build any other variant, run the
-**Build Static Lite** workflow (or \`npm run build:lite -- --target=stalwart\`)
-with your settings, publish the resulting \`${STALWART_ZIP_NAME}\` at a URL
+**Build Static Lite** workflow (or, in a throwaway checkout,
+\`npm run build:lite -- --in-place --target=stalwart\`) with your settings, publish the resulting \`${STALWART_ZIP_NAME}\` at a URL
 you control, and use that URL as \`resourceUrl\`. \`config.json\` and
 \`policy.json\` inside the zip take the same keys as in the static-host build.
 
@@ -1451,9 +1456,10 @@ you control, and use that URL as \`resourceUrl\`. \`config.json\` and
 - \`manifest.json\` replaces \`manifest.webmanifest\` (Stalwart would serve the
   latter as \`application/octet-stream\`).
 
-Everything the static-host build leaves out (admin console, plugins,
-settings sync, OAuth/SSO via an external identity provider, web push, office
-editing, ICS subscriptions) is also missing here.
+Everything else the static-host build leaves out (admin console, plugins,
+settings sync, web push, office editing, ICS subscriptions) is also missing
+here. Single sign-on is the exception: it works in this bundle, as described
+above.
 `;
 }
 
