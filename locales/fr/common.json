@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "Chargement des calendriers...",
-      "loading_events": "Chargement des événements..."
+      "loading_events": "Chargement des événements...",
+      "events_load_failed": "Impossible de charger les événements. Le calendrier n'est peut-être pas à jour.",
+      "retry": "Réessayer"
     },
     "quick_create": {
       "placeholder": "Titre du nouvel événement",

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { JMAPClient } from '../jmap/client';
+import { jmapErrorType } from '../jmap/jmap-error';
 import { toLocalDateTime } from '../timezone';
 
 type Call = [string, Record<string, unknown>, string];
@@ -11,19 +12,18 @@ function clientAnswering(answer: (args: Record<string, unknown>) => [string, Rec
   vi.spyOn(client as unknown as { supportsSyntheticCalendarIds: () => Promise<boolean> }, 'supportsSyntheticCalendarIds')
     .mockResolvedValue(true);
   vi.spyOn(client as unknown as { request: (c: Call[]) => Promise<unknown> }, 'request')
-    .mockImplementation(async (calls: Call[]) => {
-      const [method, args, id] = calls[0];
-      if (method === 'CalendarEvent/query') {
-        queries.push(args);
-        return { methodResponses: [[...answer(args), id]] };
-      }
-      const ids = (args.ids as string[]) ?? [];
-      return {
-        methodResponses: [['CalendarEvent/get', {
+    .mockImplementation(async (calls: Call[]) => ({
+      methodResponses: calls.map(([method, args, id]) => {
+        if (method === 'CalendarEvent/query') {
+          queries.push(args);
+          return [...answer(args), id];
+        }
+        const ids = (args.ids as string[]) ?? [];
+        return ['CalendarEvent/get', {
           list: ids.map((eid) => ({ id: eid, '@type': 'Event', start: '2026-09-22T10:00:00', duration: 'PT1H', calendarIds: { c: true } })),
-        }, id]],
-      };
-    });
+        }, id];
+      }),
+    }));
   return { client, queries };
 }
 
@@ -49,13 +49,30 @@ describe('queryCalendarEvents range handling', () => {
     expect(filter.after.endsWith('Z')).toBe(false);
   });
 
-  it('falls back to series when the range expands past the server limit', async () => {
+  it('falls back to series when the range expands past the server limit on 0.16', async () => {
     const { client, queries } = clientAnswering((args) => args.expandRecurrences
       ? ['error', { type: 'invalidArguments', description: 'The number of expanded recurrences exceeds the server limit' }]
       : ['CalendarEvent/query', { ids: ['s1'] }]);
     const events = await client.queryCalendarEvents({ after: '2020-01-01T00:00:00', before: '2030-01-01T00:00:00' });
     expect(queries.map((q) => !!q.expandRecurrences)).toEqual([true, false]);
     expect(events.map((e) => e.id)).toEqual(['s1']);
+  });
+
+  it('falls back to series on Stalwart 1.0 cannotCalculateOccurrences', async () => {
+    const { client, queries } = clientAnswering((args) => args.expandRecurrences
+      ? ['error', { type: 'cannotCalculateOccurrences', description: 'The number of expanded recurrences exceeds the server limit' }]
+      : ['CalendarEvent/query', { ids: ['s1'] }]);
+    const events = await client.queryCalendarEvents({ after: '2026-09-01T00:00:00', before: '2026-09-30T23:59:59' });
+    expect(queries.map((q) => !!q.expandRecurrences)).toEqual([true, false]);
+    expect(events.map((e) => e.id)).toEqual(['s1']);
+  });
+
+  it('fails the range when Stalwart 1.0 refuses the query, instead of returning no events', async () => {
+    const { client } = clientAnswering(() => ['error', { type: 'invalidArguments', description: 'Invalid timeZone "Mars/Olympus"' }]);
+    const error = await client.queryCalendarEvents({ after: '2026-09-01T00:00:00', before: '2026-09-30T23:59:59' })
+      .then(() => null, (e: unknown) => e);
+    expect(jmapErrorType(error)).toBe('invalidArguments');
+    expect((error as Error).message).toContain('Invalid timeZone');
   });
 
   it('pages through more than one page of ids', async () => {

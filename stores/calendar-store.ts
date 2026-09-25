@@ -479,6 +479,12 @@ export interface FetchEventsOptions {
   silent?: boolean;
 }
 
+/**
+ * The `error` a failed range load leaves. The events loaded before stay in
+ * the store; the calendar shows a notice for it instead of a toast.
+ */
+export const EVENTS_LOAD_ERROR = 'Failed to load events';
+
 interface CalendarStore {
   calendars: Calendar[];
   events: CalendarEvent[];
@@ -631,8 +637,10 @@ export const useCalendarStore = create<CalendarStore>()(
           }
           set({ events, isLoadingEvents: false, dateRange: { start, end } });
         } catch (error) {
+          // Keep the events already on screen: an empty grid would read as
+          // "no events".
           debug.error('Failed to fetch events:', error);
-          set({ error: 'Failed to load events', isLoadingEvents: false });
+          set({ error: EVENTS_LOAD_ERROR, isLoadingEvents: false });
         }
       },
 
@@ -668,6 +676,7 @@ export const useCalendarStore = create<CalendarStore>()(
         refetchVisibleRange = () => get().fetchAllAccountsEvents(accounts, start, end, { silent: true });
         set(options?.silent ? { error: null } : { isLoadingEvents: true, error: null });
         try {
+          let failed = false;
           const results = await Promise.all(
             accounts.map(async ({ client, localAccountId }) => {
               try {
@@ -679,14 +688,21 @@ export const useCalendarStore = create<CalendarStore>()(
                 return prefixEventsWithLocalAccount(expanded, localAccountId);
               } catch (error) {
                 debug.error(`Failed to fetch events for account ${localAccountId}:`, error);
-                return [] as CalendarEvent[];
+                failed = true;
+                // Keep what this account showed instead of blanking it.
+                return get().events.filter(e => e.localAccountId === localAccountId);
               }
             }),
           );
-          set({ events: results.flat(), isLoadingEvents: false, dateRange: { start, end } });
+          set({
+            events: results.flat(),
+            isLoadingEvents: false,
+            dateRange: { start, end },
+            ...(failed ? { error: EVENTS_LOAD_ERROR } : {}),
+          });
         } catch (error) {
           debug.error('Failed to fetch all-account events:', error);
-          set({ error: 'Failed to load events', isLoadingEvents: false });
+          set({ error: EVENTS_LOAD_ERROR, isLoadingEvents: false });
         }
       },
 

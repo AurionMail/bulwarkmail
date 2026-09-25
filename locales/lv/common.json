@@ -3032,7 +3032,9 @@
     },
     "status": {
       "loading_calendars": "Ielādē kalendārus...",
-      "loading_events": "Ielādē pasākumus..."
+      "loading_events": "Ielādē pasākumus...",
+      "events_load_failed": "Neizdevās ielādēt pasākumus. Kalendārs var nebūt aktuāls.",
+      "retry": "Mēģināt vēlreiz"
     },
     "quick_create": {
       "placeholder": "Jauna pasākuma nosaukums",

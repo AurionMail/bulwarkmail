@@ -3033,7 +3033,9 @@
     },
     "status": {
       "loading_calendars": "正在加载日历...",
-      "loading_events": "正在加载事件..."
+      "loading_events": "正在加载事件...",
+      "events_load_failed": "无法加载事件。日历可能不是最新的。",
+      "retry": "再试一次"
     },
     "quick_create": {
       "placeholder": "新活动标题",

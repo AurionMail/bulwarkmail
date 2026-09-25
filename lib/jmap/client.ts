@@ -15,7 +15,7 @@ import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
-import { jmapError } from "./jmap-error";
+import { jmapError, jmapErrorType } from "./jmap-error";
 
 export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
@@ -381,6 +381,10 @@ function isTaskObject(obj: { '@type'?: string; progress?: unknown; due?: unknown
   return false;
 }
 
+// Stalwart 1.0 fails a CalendarEvent/get that asks for `recurrenceOverrides`
+// together with `utcStart` or `utcEnd` (invalidArguments, before any id is
+// read), so no property list may hold both. Where a caller needs the
+// overrides, fetchCalendarEventsById reads them with a get of their own.
 const CALENDAR_EVENT_PROPERTIES = [
   'id',
   '@type',
@@ -414,7 +418,6 @@ const CALENDAR_EVENT_PROPERTIES = [
   'recurrenceId',
   'recurrenceIdTimeZone',
   'recurrenceRule',
-  'recurrenceOverrides',
   'excludedRecurrenceRule',
   'useDefaultAlerts',
   'alerts',
@@ -427,7 +430,25 @@ const CALENDAR_EVENT_PROPERTIES = [
   'baseEventId',
 ] as const;
 
-// Task-specific properties for CalendarEvent/get when fetching Task objects
+/** The second get of fetchCalendarEventsById: the overrides, by id. */
+const OVERRIDE_PROPERTIES = ['id', 'recurrenceOverrides'] as const;
+
+// getCalendarEvents' callers (import de-duplication, clearing a calendar,
+// iCal subscription refresh) match events by uid and calendar only; the task
+// keys let isTaskObject keep tasks out.
+const CALENDAR_EVENT_IDENTITY_PROPERTIES = [
+  'id',
+  '@type',
+  'uid',
+  'calendarIds',
+  'due',
+  'progress',
+  'percentComplete',
+] as const;
+
+// Task-specific properties for CalendarEvent/get when fetching Task objects.
+// No utcStart/utcEnd: the task UI works from `due`, and asking for them next
+// to recurrenceOverrides fails the get on Stalwart 1.0.
 const CALENDAR_TASK_PROPERTIES = [
   'id',
   '@type',
@@ -443,8 +464,6 @@ const CALENDAR_TASK_PROPERTIES = [
   'duration',
   'timeZone',
   'showWithoutTime',
-  'utcStart',
-  'utcEnd',
   'progress',
   'priority',
   'privacy',
@@ -645,6 +664,33 @@ function assertQuerySucceeded(response: JMAPResponse, what: string): void {
   if (name === 'error') {
     throw jmapError(`${what} failed: ${result?.description || result?.type || 'unknown error'}`, result);
   }
+}
+
+/**
+ * The answer to call `callId` of a request. A method error throws with its
+ * JMAP type: read as an empty list, a refused calendar get or query used to
+ * show an empty calendar instead of a failure.
+ */
+function methodResult(response: JMAPResponse, callId: string, what: string): JMAPResponseResult {
+  const entry = response.methodResponses?.find((r) => r[2] === callId);
+  if (!entry) throw new Error(`${what} failed: no response`);
+  const [name, result] = entry;
+  if (name === 'error') {
+    throw jmapError(`${what} failed: ${result?.description || result?.type || 'unknown error'}`, result);
+  }
+  return result;
+}
+
+/**
+ * Whether an expanded CalendarEvent/query failed on the server's cap on
+ * occurrences per query: `cannotCalculateOccurrences` on Stalwart 1.0,
+ * `invalidArguments` ("The number of expanded recurrences exceeds the server
+ * limit") on 0.16.
+ */
+function isOccurrenceLimitError(error: unknown): boolean {
+  const type = jmapErrorType(error);
+  if (type === 'cannotCalculateOccurrences') return true;
+  return type === 'invalidArguments' && /exceeds/i.test(error instanceof Error ? error.message : '');
 }
 
 function hasSubmissionMethod(methodCalls: JMAPMethodCall[]): boolean {
@@ -6409,9 +6455,12 @@ export class JMAPClient implements IJMAPClient {
     throw new Error("Failed to delete calendar");
   }
 
+  /**
+   * Every event of the account (or of `calendarIds`), with only the
+   * identity properties (CALENDAR_EVENT_IDENTITY_PROPERTIES) filled in.
+   */
   async getCalendarEvents(calendarIds?: string[], targetAccountId?: string): Promise<CalendarEvent[]> {
     const accountId = targetAccountId || this.getCalendarsAccountId();
-    const GET_BATCH_SIZE = this.getMaxObjectsInGet();
     const timeZone = getUserTimeZone();
 
     // Page through the query to collect ALL ids. Callers (import UID
@@ -6434,14 +6483,7 @@ export class JMAPClient implements IJMAPClient {
       const queryResponse = await this.request([
         ["CalendarEvent/query", queryArgs, "0"],
       ], this.calendarUsing());
-
-      // Check for JMAP method-level errors
-      if (queryResponse.methodResponses?.[0]?.[0] === "error") {
-        const error = queryResponse.methodResponses[0][1];
-        throw new Error(error?.description || error?.type || "CalendarEvent/query failed");
-      }
-
-      const pageIds: string[] = queryResponse.methodResponses?.[0]?.[1]?.ids || [];
+      const pageIds: string[] = methodResult(queryResponse, "0", "CalendarEvent/query").ids || [];
       ids.push(...pageIds);
       if (pageIds.length < QUERY_PAGE) break;
       position += pageIds.length;
@@ -6449,28 +6491,47 @@ export class JMAPClient implements IJMAPClient {
 
     if (ids.length === 0) return [];
 
-    // Batch the /get calls to stay within server max-objects limit
-    const allEvents: CalendarEvent[] = [];
-    for (let i = 0; i < ids.length; i += GET_BATCH_SIZE) {
-      const batchIds = ids.slice(i, i + GET_BATCH_SIZE);
-      const getResponse = await this.request([
-        ["CalendarEvent/get", {
-          accountId,
-          properties: [...CALENDAR_EVENT_PROPERTIES],
-          ids: batchIds,
-          ...(timeZone ? { timeZone } : {}),
-        }, "0"]
-      ], this.calendarUsing());
-
-      if (getResponse.methodResponses?.[0]?.[0] === "CalendarEvent/get") {
-        const events = (getResponse.methodResponses[0][1].list || []) as CalendarEvent[];
-        allEvents.push(...events);
-      }
-    }
-
-    return allEvents
+    const allEvents = await this.fetchCalendarEventsById(accountId, ids, CALENDAR_EVENT_IDENTITY_PROPERTIES, { timeZone });
+    return (allEvents as unknown as CalendarEvent[])
       .filter((event) => !isTaskObject(event))
       .map((event) => normalizeCalendarEventLike(event));
+  }
+
+  /**
+   * CalendarEvent/get of `ids` in batches of maxObjectsInGet. With
+   * `withOverrides`, each batch also asks for OVERRIDE_PROPERTIES in a second
+   * call of the same request, and the overrides are merged in by id: Stalwart
+   * 1.0 refuses `recurrenceOverrides` in the same get as `utcStart`/`utcEnd`.
+   * A method error on either call fails the whole fetch.
+   */
+  private async fetchCalendarEventsById(
+    accountId: string,
+    ids: string[],
+    properties: readonly string[],
+    options: { withOverrides?: boolean; timeZone?: string } = {},
+  ): Promise<Record<string, unknown>[]> {
+    const { withOverrides = false, timeZone } = options;
+    const objects: Record<string, unknown>[] = [];
+    for (const batch of batched(ids, this.getMaxObjectsInGet())) {
+      const args = { accountId, ids: batch, ...(timeZone ? { timeZone } : {}) };
+      const calls: JMAPMethodCall[] = [["CalendarEvent/get", { ...args, properties: [...properties] }, "0"]];
+      if (withOverrides) {
+        calls.push(["CalendarEvent/get", { ...args, properties: [...OVERRIDE_PROPERTIES] }, "1"]);
+      }
+      const response = await this.request(calls, this.calendarUsing());
+      const list = (methodResult(response, "0", "CalendarEvent/get").list || []) as Record<string, unknown>[];
+      if (withOverrides) {
+        const overrides = new Map<unknown, unknown>();
+        for (const entry of (methodResult(response, "1", "CalendarEvent/get").list || []) as Record<string, unknown>[]) {
+          if ('recurrenceOverrides' in entry) overrides.set(entry.id, entry.recurrenceOverrides);
+        }
+        for (const object of list) {
+          if (overrides.has(object.id)) object.recurrenceOverrides = overrides.get(object.id);
+        }
+      }
+      objects.push(...list);
+    }
+    return objects;
   }
 
   // Shared accounts the server rejected calendar access for - probed once,
@@ -6534,41 +6595,41 @@ export class JMAPClient implements IJMAPClient {
     sort?: Array<{ property: string; isAscending: boolean }>,
     limit?: number
   ): Promise<CalendarEvent[]> {
-    try {
-      const allEvents: CalendarEvent[] = [];
-      const primaryId = this.getCalendarsAccountId();
-      const accountIds = this.getCalendarCapableAccountIds();
+    const allEvents: CalendarEvent[] = [];
+    const primaryId = this.getCalendarsAccountId();
+    const accountIds = this.getCalendarCapableAccountIds();
 
-      for (const accountId of accountIds) {
-        const isPrimary = accountId === primaryId;
-        if (!isPrimary && this.calendarAccessDenied.has(accountId)) continue;
-        const account = this.accounts[accountId];
+    for (const accountId of accountIds) {
+      const isPrimary = accountId === primaryId;
+      if (!isPrimary && this.calendarAccessDenied.has(accountId)) continue;
+      const account = this.accounts[accountId];
 
-        try {
-          const events = await this.queryCalendarEvents(filter, sort, limit, accountId);
-          const mapped = events.map((event) => ({
-            ...event,
-            id: isPrimary ? event.id : `${accountId}:${event.id}`,
-            originalId: event.id,
-            originalCalendarIds: event.calendarIds,
-            calendarIds: isPrimary ? (event.calendarIds || {}) : Object.fromEntries(
-              Object.entries(event.calendarIds || {}).map(([calId, v]) => [`${accountId}:${calId}`, v])
-            ),
-            accountId,
-            accountName: account?.name || (isPrimary ? this.username : accountId),
-            isShared: !isPrimary,
-          }));
-          allEvents.push(...mapped);
-        } catch (error) {
-          console.error(`Failed to query calendar events for account ${accountId}:`, error);
-        }
+      let events: CalendarEvent[];
+      try {
+        events = await this.queryCalendarEvents(filter, sort, limit, accountId);
+      } catch (error) {
+        // The user's own calendars failing fails the whole range - an empty
+        // answer would read as "no events". A shared account that fails is
+        // left out of the result.
+        if (isPrimary) throw error;
+        console.error(`Failed to query calendar events for account ${accountId}:`, error);
+        continue;
       }
-
-      return allEvents;
-    } catch (error) {
-      console.error('Failed to query all calendar events:', error);
-      return this.queryCalendarEvents(filter, sort, limit);
+      allEvents.push(...events.map((event) => ({
+        ...event,
+        id: isPrimary ? event.id : `${accountId}:${event.id}`,
+        originalId: event.id,
+        originalCalendarIds: event.calendarIds,
+        calendarIds: isPrimary ? (event.calendarIds || {}) : Object.fromEntries(
+          Object.entries(event.calendarIds || {}).map(([calId, v]) => [`${accountId}:${calId}`, v])
+        ),
+        accountId,
+        accountName: account?.name || (isPrimary ? this.username : accountId),
+        isShared: !isPrimary,
+      })));
     }
+
+    return allEvents;
   }
 
   async queryCalendarEvents(
@@ -6577,8 +6638,8 @@ export class JMAPClient implements IJMAPClient {
     limit?: number,
     targetAccountId?: string
   ): Promise<CalendarEvent[]> {
+    const accountId = targetAccountId || this.getCalendarsAccountId();
     try {
-      const accountId = targetAccountId || this.getCalendarsAccountId();
       const timeZone = getUserTimeZone();
 
       const queryArgs: Record<string, unknown> = {
@@ -6603,75 +6664,33 @@ export class JMAPClient implements IJMAPClient {
       // lib/recurrence-expansion.ts, which runs on whatever comes back.
       let expandRecurrences = Boolean(filter.after && filter.before)
         && await this.supportsSyntheticCalendarIds();
-      if (expandRecurrences) {
-        queryArgs.expandRecurrences = true;
-      }
       if (sort) {
         queryArgs.sort = sort;
       }
 
-      const GET_BATCH_SIZE = this.getMaxObjectsInGet();
-      // Without an explicit limit, page through the whole range: a busy
-      // calendar (or a long expanded range) holds more than one page.
-      const pageSize = limit || 1000;
-      const maxIds = limit || 20000;
-
-      // First, query to get IDs
-      const ids: string[] = [];
-      for (let position = 0; ids.length < maxIds;) {
-        const queryResponse = await this.request([
-          ["CalendarEvent/query", { ...queryArgs, limit: pageSize, position }, "0"],
-        ], this.calendarUsing());
-        const [name, result] = queryResponse.methodResponses?.[0] ?? [];
-
-        if (name === "error") {
-          // Stalwart fails the whole query once a range expands to more than
-          // maxRecurrenceExpansions occurrences. Ask for the series instead;
+      let ids: string[] | null = null;
+      if (expandRecurrences) {
+        try {
+          ids = await this.queryCalendarEventIds({ ...queryArgs, expandRecurrences: true }, limit);
+        } catch (error) {
+          // Stalwart fails the whole query once a range expands to more
+          // occurrences than it allows. Ask for the series instead;
           // lib/recurrence-expansion.ts expands them on the client.
-          if (expandRecurrences && result?.type === "invalidArguments" &&
-              /expanded recurrences exceeds/i.test(result?.description ?? "")) {
-            debug.log('calendar', 'Range expands past the server limit; expanding on the client instead');
-            expandRecurrences = false;
-            delete queryArgs.expandRecurrences;
-            ids.length = 0;
-            position = 0;
-            continue;
-          }
-          // Keep the JMAP error type so the catch below can tell an expected
-          // access rejection apart from a genuine failure.
-          throw Object.assign(
-            new Error(result?.description || result?.type || "CalendarEvent/query failed"),
-            { jmapErrorType: result?.type },
-          );
+          if (!isOccurrenceLimitError(error)) throw error;
+          debug.log('calendar', 'Range expands past the server limit; expanding on the client instead');
+          expandRecurrences = false;
         }
-
-        const page: string[] = result?.ids || [];
-        ids.push(...page);
-        if (limit || page.length < pageSize) break;
-        position += page.length;
       }
+      ids ??= await this.queryCalendarEventIds(queryArgs, limit);
       if (ids.length === 0) return [];
 
-      // Batch the /get calls to stay within server max-objects limit
-      const allEvents: CalendarEvent[] = [];
-      for (let i = 0; i < ids.length; i += GET_BATCH_SIZE) {
-        const batchIds = ids.slice(i, i + GET_BATCH_SIZE);
-        const getResponse = await this.request([
-          ["CalendarEvent/get", {
-            accountId,
-            properties: [...CALENDAR_EVENT_PROPERTIES],
-            ids: batchIds,
-            ...(timeZone ? { timeZone } : {}),
-          }, "0"]
-        ], this.calendarUsing());
-
-        if (getResponse.methodResponses?.[0]?.[0] === "CalendarEvent/get") {
-          const events = (getResponse.methodResponses[0][1].list || []) as CalendarEvent[];
-          allEvents.push(...events);
-        }
-      }
-
-      const normalized = allEvents
+      // Only series the client expands itself need their overrides here; a
+      // server-expanded occurrence gets them from its base event below.
+      const allEvents = await this.fetchCalendarEventsById(accountId, ids, CALENDAR_EVENT_PROPERTIES, {
+        withOverrides: !expandRecurrences,
+        timeZone,
+      });
+      const normalized = (allEvents as unknown as CalendarEvent[])
         .filter((event) => !isTaskObject(event))
         .map((event) => normalizeCalendarEventLike(event));
       const filtered = expandRecurrences
@@ -6696,18 +6715,39 @@ export class JMAPClient implements IJMAPClient {
       // The fan-out over shared accounts probes on suspicion (see
       // getCalendarCapableAccountIds) and may hit accounts that grant no
       // calendar access at all. Remember the rejection and go quiet instead
-      // of re-probing - and re-logging - on every range change.
-      const type = (error as { jmapErrorType?: string } | null)?.jmapErrorType;
+      // of re-probing - and re-logging - on every range change. Anything
+      // else, and any failure of the user's own calendars, is the caller's.
+      const type = jmapErrorType(error);
       const denied = type === 'forbidden' || type === 'accountNotFound' ||
         /not have access/i.test(error instanceof Error ? error.message : '');
-      if (targetAccountId && denied) {
+      if (targetAccountId && accountId !== this.getCalendarsAccountId() && denied) {
         this.calendarAccessDenied.add(targetAccountId);
         debug.log('calendar', `No calendar access to account ${targetAccountId} - skipping it from now on`);
         return [];
       }
-      console.error('Failed to query calendar events:', error);
-      return [];
+      throw error;
     }
+  }
+
+  /**
+   * The ids a CalendarEvent/query matches. Without `limit` it pages through
+   * the whole result: a busy calendar (or a long expanded range) holds more
+   * than one page.
+   */
+  private async queryCalendarEventIds(queryArgs: Record<string, unknown>, limit?: number): Promise<string[]> {
+    const pageSize = limit || 1000;
+    const maxIds = limit || 20000;
+    const ids: string[] = [];
+    for (let position = 0; ids.length < maxIds;) {
+      const response = await this.request([
+        ["CalendarEvent/query", { ...queryArgs, limit: pageSize, position }, "0"],
+      ], this.calendarUsing());
+      const page: string[] = methodResult(response, "0", "CalendarEvent/query").ids || [];
+      ids.push(...page);
+      if (limit || page.length < pageSize) break;
+      position += page.length;
+    }
+    return ids;
   }
 
   /**
@@ -6730,45 +6770,20 @@ export class JMAPClient implements IJMAPClient {
     if (baseIds.length === 0) return events;
 
     const bases = new Map<string, Partial<CalendarEvent>>();
-    for (const batch of batched(baseIds, this.getMaxObjectsInGet())) {
-      const response = await this.request([
-        ["CalendarEvent/get", {
-          accountId,
-          properties: [...RECURRENCE_BASE_PROPERTIES],
-          ids: batch,
-          ...(timeZone ? { timeZone } : {}),
-        }, "0"],
-      ], this.calendarUsing());
-      if (response.methodResponses?.[0]?.[0] !== "CalendarEvent/get") continue;
-      for (const base of (response.methodResponses[0][1].list || []) as Partial<CalendarEvent>[]) {
-        if (base.id) bases.set(base.id, normalizeCalendarEventLike(base));
-      }
+    for (const base of await this.fetchCalendarEventsById(accountId, baseIds, RECURRENCE_BASE_PROPERTIES, { timeZone })) {
+      if (typeof base.id === 'string') bases.set(base.id, normalizeCalendarEventLike(base as Partial<CalendarEvent>));
     }
     return hydrateRecurrenceInstances(events, bases);
   }
 
+  /** One event with its recurrence overrides, or null when the server has no such id. */
   async getCalendarEvent(id: string, targetAccountId?: string): Promise<CalendarEvent | null> {
-    try {
-      const accountId = targetAccountId || this.getCalendarsAccountId();
-      const timeZone = getUserTimeZone();
-      const response = await this.request([
-        ["CalendarEvent/get", {
-          accountId,
-          properties: [...CALENDAR_EVENT_PROPERTIES],
-          ids: [id],
-          ...(timeZone ? { timeZone } : {}),
-        }, "0"]
-      ], this.calendarUsing());
-
-      if (response.methodResponses?.[0]?.[0] === "CalendarEvent/get") {
-        const list = response.methodResponses[0][1].list || [];
-        return list[0] ? normalizeCalendarEventLike(list[0] as CalendarEvent) : null;
-      }
-      return null;
-    } catch (error) {
-      console.error('Failed to get calendar event:', error);
-      return null;
-    }
+    const accountId = targetAccountId || this.getCalendarsAccountId();
+    const [event] = await this.fetchCalendarEventsById(accountId, [id], CALENDAR_EVENT_PROPERTIES, {
+      withOverrides: true,
+      timeZone: getUserTimeZone(),
+    });
+    return event ? normalizeCalendarEventLike(event as unknown as CalendarEvent) : null;
   }
 
   async createCalendarEvent(event: Partial<CalendarEvent>, sendSchedulingMessages?: boolean, targetAccountId?: string): Promise<CalendarEvent> {
@@ -6827,37 +6842,28 @@ export class JMAPClient implements IJMAPClient {
       });
 
       if (createdId) {
-        const created = await this.getCalendarEvent(createdId, targetAccountId);
+        // The event exists from here on, and its invitations are on their
+        // way: a failed read-back must not report a failed create, or a
+        // retry creates the event twice. Fall back to what was sent.
+        let created: CalendarEvent | null = null;
+        try {
+          created = await this.getCalendarEvent(createdId, targetAccountId);
+        } catch (refetchError) {
+          debug.warn('calendar', 'CalendarEvent/create could not read the created event back', refetchError);
+        }
+        if (!created) {
+          debug.warn('calendar', 'CalendarEvent/create returns the sent event for the created id', { createdId, targetAccountId });
+          created = normalizeCalendarEventLike({ ...cleanEvent, ...result.created["new-event"], id: createdId } as CalendarEvent);
+        }
         debug.log('calendar', 'CalendarEvent/create fetched created event', {
           ...getCalendarEventDebugSnapshot(created),
-          hasParticipants: !!created?.participants,
-          participantCount: created?.participants ? Object.keys(created.participants).length : 0,
-          participants: created?.participants || null,
-          replyTo: created?.replyTo || null,
+          hasParticipants: !!created.participants,
+          participantCount: created.participants ? Object.keys(created.participants).length : 0,
+          participants: created.participants || null,
+          replyTo: created.replyTo || null,
         });
-
-        if (created?.uid) {
-          try {
-            const verificationMatches = await this.queryCalendarEvents({ uid: created.uid }, undefined, undefined, targetAccountId);
-            debug.log('calendar', 'CalendarEvent/create verification query by uid', {
-              uid: created.uid,
-              matchCount: verificationMatches.length,
-              matches: verificationMatches.map((match) => getCalendarEventDebugSnapshot(match)),
-            });
-          } catch (verificationError) {
-            debug.warn('calendar', 'CalendarEvent/create verification query failed', verificationError);
-          }
-        }
-
-        if (created) {
-          debug.groupEnd();
-          return created;
-        }
-
-        debug.warn('calendar', 'CalendarEvent/create server returned created id but CalendarEvent/get returned null', {
-          createdId,
-          targetAccountId,
-        });
+        debug.groupEnd();
+        return created;
       }
     }
 
@@ -6881,6 +6887,7 @@ export class JMAPClient implements IJMAPClient {
     debug.log('calendar', 'CalendarEvent/batchCreate', { count: events.length, accountId });
 
     const createdIds: string[] = [];
+    const sentById = new Map<string, Record<string, unknown>>();
     const failed: string[] = [];
     const notCreated: Record<string, CalendarSetError> = {};
     const indexed = events.map((event, index) => ({ event, index }));
@@ -6914,6 +6921,7 @@ export class JMAPClient implements IJMAPClient {
           const key = `new-${index}`;
           if (result.created?.[key]?.id) {
             createdIds.push(result.created[key].id);
+            sentById.set(result.created[key].id, { ...createMap[key], ...result.created[key] });
           } else if (result.notCreated?.[key]) {
             debug.warn('calendar', `CalendarEvent/batchCreate failed for ${key}`, result.notCreated[key]);
             failed.push(key);
@@ -6927,25 +6935,18 @@ export class JMAPClient implements IJMAPClient {
       return { created: [], failed, notCreated };
     }
 
-    // Fetch the created events back for their server-assigned properties
-    const refetchTimeZone = getUserTimeZone();
-    const createdEvents: CalendarEvent[] = [];
-
-    for (const batchIds of batched(createdIds, this.getMaxObjectsInGet())) {
-      const getResponse = await this.request([
-        ["CalendarEvent/get", {
-          accountId,
-          properties: [...CALENDAR_EVENT_PROPERTIES],
-          ids: batchIds,
-          ...(refetchTimeZone ? { timeZone: refetchTimeZone } : {}),
-        }, "0"]
-      ], this.calendarUsing());
-
-      if (getResponse.methodResponses?.[0]?.[0] === "CalendarEvent/get") {
-        const list = getResponse.methodResponses[0][1].list || [];
-        createdEvents.push(...list.map((e: CalendarEvent) => normalizeCalendarEventLike(e)));
-      }
+    // Read the created events back for their server-assigned properties.
+    // They exist whatever the read-back says, so what was sent stands in for
+    // any event it does not return.
+    let fetched: Record<string, unknown>[] = [];
+    try {
+      fetched = await this.fetchCalendarEventsById(accountId, createdIds, CALENDAR_EVENT_PROPERTIES, { timeZone: getUserTimeZone() });
+    } catch (error) {
+      debug.warn('calendar', 'CalendarEvent/batchCreate could not read the created events back', error);
     }
+    const fetchedById = new Map(fetched.map((event) => [event.id, event]));
+    const createdEvents = createdIds.map((id) =>
+      normalizeCalendarEventLike((fetchedById.get(id) ?? sentById.get(id)) as unknown as CalendarEvent));
 
     debug.log('calendar', 'CalendarEvent/batchCreate result', {
       requested: events.length,
@@ -7182,15 +7183,7 @@ export class JMAPClient implements IJMAPClient {
         const response = await this.request([
           ["CalendarEvent/query", queryArgs, "0"],
         ], this.calendarUsing());
-
-        if (response.methodResponses?.[0]?.[0] === "error") {
-          const error = response.methodResponses[0][1];
-          debug.warn('tasks', 'CalendarTask/fetch query failed', error);
-          debug.groupEnd();
-          return [];
-        }
-
-        const pageIds: string[] = response.methodResponses?.[0]?.[1]?.ids || [];
+        const pageIds: string[] = methodResult(response, "0", "CalendarEvent/query").ids || [];
         ids.push(...pageIds);
         if (pageIds.length < QUERY_PAGE) break;
         position += pageIds.length;
@@ -7203,23 +7196,7 @@ export class JMAPClient implements IJMAPClient {
       }
 
       // Fetch the objects in batches that respect the server's /get limit.
-      const GET_BATCH_SIZE = this.getMaxObjectsInGet();
-      const allObjects: Record<string, unknown>[] = [];
-      for (let i = 0; i < ids.length; i += GET_BATCH_SIZE) {
-        const batchIds = ids.slice(i, i + GET_BATCH_SIZE);
-        const getResponse = await this.request([
-          ["CalendarEvent/get", {
-            accountId,
-            properties: [...CALENDAR_TASK_PROPERTIES],
-            ids: batchIds,
-            ...(timeZone ? { timeZone } : {}),
-          }, "0"]
-        ], this.calendarUsing());
-
-        if (getResponse.methodResponses?.[0]?.[0] === "CalendarEvent/get") {
-          allObjects.push(...(getResponse.methodResponses[0][1].list || []));
-        }
-      }
+      const allObjects = await this.fetchCalendarEventsById(accountId, ids, CALENDAR_TASK_PROPERTIES, { timeZone });
 
       const tasks: CalendarTask[] = [];
       for (const obj of allObjects) {
@@ -7246,9 +7223,11 @@ export class JMAPClient implements IJMAPClient {
       debug.groupEnd();
       return tasks;
     } catch (error) {
+      // A refused query or get is a failure, not an empty task list: the
+      // task store keeps showing what it has.
       debug.error('CalendarTask/fetch failed', error);
       debug.groupEnd();
-      return [];
+      throw error;
     }
   }
 
@@ -7289,43 +7268,34 @@ export class JMAPClient implements IJMAPClient {
       throw new Error("Failed to create task - no id returned");
     }
 
-    // Fetch back with task-specific properties
+    // Read the task back with the task properties. It exists whatever the
+    // read-back says: fall back to what was sent rather than report a failed
+    // create, which a retry would duplicate.
     debug.log('calendar', 'CalendarTask/create re-fetching with task properties', { createdId, properties: [...CALENDAR_TASK_PROPERTIES] });
-    const refetchTimeZone = getUserTimeZone();
-    const getResponse = await this.request([
-      ["CalendarEvent/get", {
-        accountId,
-        properties: [...CALENDAR_TASK_PROPERTIES],
-        ids: [createdId],
-        ...(refetchTimeZone ? { timeZone: refetchTimeZone } : {}),
-      }, "0"]
-    ], this.calendarUsing());
-
-    if (getResponse.methodResponses?.[0]?.[0] === "CalendarEvent/get") {
-      const list = getResponse.methodResponses[0][1].list || [];
-      const notFound = getResponse.methodResponses[0][1].notFound || [];
-      debug.log('calendar', 'CalendarTask/create get response', { found: list.length, notFound });
-      if (list[0]) {
-        const created = normalizeCalendarTask({ ...list[0], '@type': 'Task' as const } as CalendarTask);
-        debug.log('tasks', 'CalendarTask/create final task object', {
-          id: created.id,
-          uid: created.uid,
-          '@type': created['@type'],
-          title: created.title,
-          due: created.due,
-          start: created.start,
-          progress: created.progress,
-          showWithoutTime: created.showWithoutTime,
-          calendarIds: created.calendarIds,
-        });
-        debug.groupEnd();
-        return created;
-      }
+    let fetched: Record<string, unknown> | undefined;
+    try {
+      [fetched] = await this.fetchCalendarEventsById(accountId, [createdId], CALENDAR_TASK_PROPERTIES, { timeZone: getUserTimeZone() });
+    } catch (error) {
+      debug.warn('tasks', 'CalendarTask/create could not read the created task back', error);
     }
-
-    debug.warn('tasks', 'CalendarTask/create re-fetch returned nothing for id', createdId);
+    if (!fetched) debug.warn('tasks', 'CalendarTask/create returns the sent task for id', createdId);
+    const created = normalizeCalendarTask({
+      ...(fetched ?? { ...cleanTask, ...serverCreated, id: createdId }),
+      '@type': 'Task' as const,
+    } as CalendarTask);
+    debug.log('tasks', 'CalendarTask/create final task object', {
+      id: created.id,
+      uid: created.uid,
+      '@type': created['@type'],
+      title: created.title,
+      due: created.due,
+      start: created.start,
+      progress: created.progress,
+      showWithoutTime: created.showWithoutTime,
+      calendarIds: created.calendarIds,
+    });
     debug.groupEnd();
-    throw new Error("Failed to fetch created task");
+    return created;
   }
 
   async updateCalendarTask(taskId: string, updates: Partial<CalendarTask>, targetAccountId?: string): Promise<void> {

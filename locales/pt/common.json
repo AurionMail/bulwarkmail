@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "Carregando calendários...",
-      "loading_events": "Carregando eventos..."
+      "loading_events": "Carregando eventos...",
+      "events_load_failed": "Não foi possível carregar os eventos. O calendário pode estar desatualizado.",
+      "retry": "Tentar novamente"
     },
     "quick_create": {
       "placeholder": "Título do novo evento",

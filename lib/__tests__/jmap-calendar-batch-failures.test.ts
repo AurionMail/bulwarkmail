@@ -124,4 +124,47 @@ describe('calendar batch failures surface (#434)', () => {
     expect(result.failed).toEqual(['new-0']);
     expect(result.notCreated['new-0']).toMatchObject({ description: 'Missing start' });
   });
+
+  it('batchCreateCalendarEvents reads the events back without their overrides', async () => {
+    const client = await connectedClient();
+    fetchSpy
+      .mockResolvedValueOnce(jsonResponse({
+        methodResponses: [['CalendarEvent/set', { created: { 'new-0': { id: 'ev1' } } }, '0']],
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        methodResponses: [['CalendarEvent/get', { list: [{ id: 'ev1', title: 'A', start: '2026-09-22T10:00:00' }] }, '0']],
+      }));
+
+    const result = await client.batchCreateCalendarEvents([{ title: 'A', start: '2026-09-22T10:00:00' }]);
+
+    expect(result.created).toMatchObject([{ id: 'ev1', title: 'A' }]);
+    const readBack = JSON.parse(String((fetchSpy.mock.calls[1][1] as RequestInit).body));
+    expect(readBack.methodCalls).toHaveLength(1);
+    expect(readBack.methodCalls[0][1].properties).toContain('utcStart');
+    expect(readBack.methodCalls[0][1].properties).not.toContain('recurrenceOverrides');
+  });
+
+  it('batchCreateCalendarEvents still counts the created events when Stalwart 1.0 refuses the read-back', async () => {
+    const client = await connectedClient();
+    fetchSpy
+      .mockResolvedValueOnce(jsonResponse({
+        methodResponses: [['CalendarEvent/set', {
+          created: { 'new-0': { id: 'ev1' }, 'new-1': { id: 'ev2' } },
+        }, '0']],
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        methodResponses: [['error', {
+          type: 'invalidArguments',
+          description: 'recurrenceOverrides cannot be requested together with utcStart or utcEnd',
+        }, '0']],
+      }));
+
+    const result = await client.batchCreateCalendarEvents([
+      { title: 'A', start: '2026-09-22T10:00:00' },
+      { title: 'B', start: '2026-09-23T10:00:00' },
+    ]);
+
+    expect(result.created).toMatchObject([{ id: 'ev1', title: 'A' }, { id: 'ev2', title: 'B' }]);
+    expect(result.failed).toEqual([]);
+  });
 });

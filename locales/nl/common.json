@@ -3033,7 +3033,9 @@
     },
     "status": {
       "loading_calendars": "Agenda's laden...",
-      "loading_events": "Evenementen laden..."
+      "loading_events": "Evenementen laden...",
+      "events_load_failed": "Evenementen konden niet worden geladen. De agenda is mogelijk niet actueel.",
+      "retry": "Opnieuw proberen"
     },
     "quick_create": {
       "placeholder": "Titel nieuw evenement",

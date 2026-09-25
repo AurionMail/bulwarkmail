@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "Načítavanie kalendárov...",
-      "loading_events": "Načítavanie udalostí..."
+      "loading_events": "Načítavanie udalostí...",
+      "events_load_failed": "Udalosti sa nepodarilo načítať. Kalendár nemusí byť aktuálny.",
+      "retry": "Skúsiť znova"
     },
     "quick_create": {
       "placeholder": "Názov novej udalosti",

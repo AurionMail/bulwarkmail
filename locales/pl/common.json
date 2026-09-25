@@ -3033,7 +3033,9 @@
     },
     "status": {
       "loading_calendars": "Ładowanie kalendarzy...",
-      "loading_events": "Ładowanie wydarzeń..."
+      "loading_events": "Ładowanie wydarzeń...",
+      "events_load_failed": "Nie udało się wczytać wydarzeń. Kalendarz może być nieaktualny.",
+      "retry": "Spróbuj ponownie"
     },
     "quick_create": {
       "placeholder": "Tytuł nowego wydarzenia",

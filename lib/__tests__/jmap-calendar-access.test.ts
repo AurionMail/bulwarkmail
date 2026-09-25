@@ -95,3 +95,64 @@ describe('calendar fan-out to shared accounts without access', () => {
     expect(callsForAccount('acct-1')).toHaveLength(1);
   });
 });
+
+describe('calendar fan-out when an account fails', () => {
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let client: JMAPClient;
+  let failing: Record<string, { type: string; description: string }>;
+
+  beforeEach(async () => {
+    failing = {};
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    fetchSpy.mockResolvedValueOnce(jsonResponse(makeSession()));
+    client = new JMAPClient('https://mail.example.com', 'user@test.com', 'pass123');
+    await client.connect();
+    fetchSpy.mockReset();
+
+    fetchSpy.mockImplementation(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? '{}'));
+      const methodResponses = (body.methodCalls ?? []).map(([method, args, callId]: [string, Record<string, unknown>, string]) => {
+        const failure = failing[args.accountId as string];
+        if (failure) return ['error', failure, callId];
+        if (method === 'CalendarEvent/query') return ['CalendarEvent/query', { ids: ['e1'] }, callId];
+        return ['CalendarEvent/get', {
+          list: [{ id: 'e1', '@type': 'Event', title: `Event of ${args.accountId}`, start: '2026-09-22T10:00:00', calendarIds: { c: true } }],
+        }, callId];
+      });
+      return jsonResponse({ methodResponses });
+    });
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    client.disconnect();
+    consoleErrorSpy.mockRestore();
+    fetchSpy.mockRestore();
+  });
+
+  it('fails the whole query when the user’s own calendars fail on Stalwart 1.0', async () => {
+    failing['acct-1'] = { type: 'invalidArguments', description: 'recurrenceOverrides cannot be requested together with utcStart or utcEnd' };
+
+    await expect(client.queryAllCalendarEvents({})).rejects.toThrow(/recurrenceOverrides cannot be requested/);
+  });
+
+  it('does not take a refusal of the user’s own account for a share without access on 0.16', async () => {
+    failing['acct-1'] = { type: 'forbidden', description: 'You do not have access to this account' };
+    await expect(client.queryAllCalendarEvents({})).rejects.toThrow(/do not have access/);
+
+    // Not remembered as "no access": the next load asks again.
+    delete failing['acct-1'];
+    const events = await client.queryAllCalendarEvents({});
+    expect(events.map((e) => e.title)).toEqual(['Event of acct-1', 'Event of ev']);
+  });
+
+  it('leaves out a shared account that fails for another reason and keeps the rest on 0.16', async () => {
+    failing.ev = { type: 'serverFail', description: 'Temporary failure' };
+
+    const events = await client.queryAllCalendarEvents({});
+
+    expect(events.map((e) => e.title)).toEqual(['Event of acct-1']);
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+  });
+});

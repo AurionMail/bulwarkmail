@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "正在載入行事曆…",
-      "loading_events": "正在載入活動…"
+      "loading_events": "正在載入活動…",
+      "events_load_failed": "無法載入活動。行事曆可能不是最新狀態。",
+      "retry": "再試一次"
     },
     "quick_create": {
       "placeholder": "新活動標題",

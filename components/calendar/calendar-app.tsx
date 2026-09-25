@@ -8,7 +8,7 @@ import {
   addMonths, subMonths, addWeeks, subWeeks, addDays, subDays,
   format, parseISO,
 } from "date-fns";
-import { useCalendarStore } from "@/stores/calendar-store";
+import { EVENTS_LOAD_ERROR, useCalendarStore } from "@/stores/calendar-store";
 import { isCalendarViewMode } from "@/stores/calendar-store";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useEmailStore } from "@/stores/email-store";
@@ -26,6 +26,7 @@ import { CalendarWeekView } from "@/components/calendar/calendar-week-view";
 import { CalendarDayView } from "@/components/calendar/calendar-day-view";
 import { CalendarAgendaView } from "@/components/calendar/calendar-agenda-view";
 import { TaskListView } from "@/components/calendar/task-list-view";
+import { CalendarLoadErrorNotice } from "@/components/calendar/calendar-load-error-notice";
 import { TaskToolbar } from "@/components/calendar/task-toolbar";
 import { TaskModal } from "@/components/calendar/task-modal";
 import { MiniCalendar } from "@/components/calendar/mini-calendar";
@@ -236,7 +237,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   }, [initialCheckDone, isAuthenticated, authLoading, client, calendarEnabled, supportsCalendar, pendingWebcalAccountChoice, isProtocolAccountSwitching, pendingSubscription, showWebcalActionChoice, router]);
 
   useEffect(() => {
-    if (error) {
+    // A failed range load gets the notice above the grid instead.
+    if (error && error !== EVENTS_LOAD_ERROR) {
       toast.error(error);
     }
   }, [error]);
@@ -469,6 +471,17 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   );
   const fetchAllAccountsCalendarsFn = useCalendarStore((s) => s.fetchAllAccountsCalendars);
   const fetchAllAccountsEventsFn = useCalendarStore((s) => s.fetchAllAccountsEvents);
+
+  // Loads the range the view shows now - not the store's dateRange, which a
+  // failed load leaves at the range loaded before it.
+  const retryEventsLoad = useCallback(() => {
+    if (!client || !dateRange) return;
+    if (multiAccountEnabled && accountClients.length > 0) {
+      void fetchAllAccountsEventsFn(accountClients, dateRange.start, dateRange.end);
+      return;
+    }
+    void fetchEvents(client, dateRange.start, dateRange.end);
+  }, [client, dateRange, multiAccountEnabled, accountClients, fetchAllAccountsEventsFn, fetchEvents]);
 
   // The arrows step from what is on screen, which may have been scrolled
   // away from the selected day.
@@ -1549,6 +1562,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
 
     return (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        {error === EVENTS_LOAD_ERROR && normalizedViewMode !== "tasks" && (
+          <CalendarLoadErrorNotice onRetry={retryEventsLoad} />
+        )}
         {viewContent}
         {isLoadingEvents && calendars.length > 0 && events.length === 0 && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center pointer-events-none">

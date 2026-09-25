@@ -121,4 +121,41 @@ describe('JMAPClient task operations (#958)', () => {
     expect(createPayload.title).toBe('New Task');
     expect(createPayload).not.toHaveProperty('progressUpdated');
   });
+
+  it('createCalendarTask reads the task back without utcStart/utcEnd', async () => {
+    await client.createCalendarTask({ title: 'New Task' });
+
+    const getCall = sentCalls.find((c) => c.method === 'CalendarEvent/get');
+    expect(getCall?.args.properties).toEqual(expect.arrayContaining(['due', 'progress', 'recurrenceOverrides']));
+    expect(getCall?.args.properties).not.toContain('utcStart');
+    expect(getCall?.args.properties).not.toContain('utcEnd');
+  });
+
+  it('createCalendarTask returns the created task when Stalwart 1.0 refuses the read-back, without creating it twice', async () => {
+    const answer = vi.mocked(globalThis.fetch).getMockImplementation()!;
+    vi.mocked(globalThis.fetch).mockImplementation(async (url, init) => {
+      const body = JSON.parse((init?.body as string) || '{}');
+      if (body.methodCalls?.[0]?.[0] === 'CalendarEvent/get') {
+        sentCalls.push({ method: 'CalendarEvent/get', args: body.methodCalls[0][1] });
+        return jsonResponse({ methodResponses: [['error', {
+          type: 'invalidArguments',
+          description: 'recurrenceOverrides cannot be requested together with utcStart or utcEnd',
+        }, '0']] });
+      }
+      return answer(url, init);
+    });
+
+    const created = await client.createCalendarTask({ title: 'New Task', due: '2026-09-30T00:00:00', calendarIds: { 'cal-1': true } });
+
+    expect(created).toMatchObject({ id: 'created-id-123', '@type': 'Task', title: 'New Task', due: '2026-09-30T00:00:00' });
+    expect(sentCalls.filter((c) => c.method === 'CalendarEvent/set')).toHaveLength(1);
+  });
+
+  it('getCalendarTasks fails instead of returning no tasks when Stalwart 1.0 refuses the query', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(async () => jsonResponse({
+      methodResponses: [['error', { type: 'invalidArguments', description: 'Invalid timeZone "Mars/Olympus"' }, '0']],
+    }));
+
+    await expect(client.getCalendarTasks()).rejects.toThrow(/Invalid timeZone/);
+  });
 });

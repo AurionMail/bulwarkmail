@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "Laster inn kalendere...",
-      "loading_events": "Laster inn hendelser..."
+      "loading_events": "Laster inn hendelser...",
+      "events_load_failed": "Kunne ikke laste inn hendelser. Kalenderen er kanskje ikke oppdatert.",
+      "retry": "Prøv igjen"
     },
     "quick_create": {
       "placeholder": "Tittel på ny hendelse",

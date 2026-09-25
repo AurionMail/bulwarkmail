@@ -2957,7 +2957,9 @@
     },
     "status": {
       "loading_calendars": "טוען יומנים...",
-      "loading_events": "טוען אירועים..."
+      "loading_events": "טוען אירועים...",
+      "events_load_failed": "לא ניתן לטעון את האירועים. ייתכן שהיומן אינו מעודכן.",
+      "retry": "נסה שוב"
     },
     "quick_create": {
       "placeholder": "כותרת אירוע חדשה",

@@ -3033,7 +3033,9 @@
     },
     "status": {
       "loading_calendars": "Kalender werden geladen...",
-      "loading_events": "Termine werden geladen..."
+      "loading_events": "Termine werden geladen...",
+      "events_load_failed": "Termine konnten nicht geladen werden. Der Kalender ist möglicherweise nicht aktuell.",
+      "retry": "Erneut versuchen"
     },
     "quick_create": {
       "placeholder": "Titel des neuen Termins",

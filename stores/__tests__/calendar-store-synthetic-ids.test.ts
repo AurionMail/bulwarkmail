@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useCalendarStore, resolveMutationTarget } from '../calendar-store';
+import { EVENTS_LOAD_ERROR, useCalendarStore, resolveMutationTarget } from '../calendar-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { CalendarEvent } from '@/lib/jmap/types';
+import { jmapError } from '@/lib/jmap/jmap-error';
 
 // Occurrences produced by server-side recurrence expansion carry synthetic
 // ids (lib/recurrence-instances.ts). The store writes "this occurrence only"
@@ -367,5 +368,55 @@ describe('rsvpEvent on an expanded occurrence', () => {
       useCalendarStore.getState().rsvpEvent(client, 'maaaaab', 'p2', 'declined', undefined, 'occurrence'),
     ).rejects.toThrow();
     expect(client.updateCalendarEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('a range that fails to load', () => {
+  // What an unfixed client got from Stalwart 1.0 for every range.
+  const refused = () => jmapError(
+    'CalendarEvent/get failed: recurrenceOverrides cannot be requested together with utcStart or utcEnd',
+    { type: 'invalidArguments' },
+  );
+  const NEXT = ['2026-10-01T00:00:00', '2026-10-31T23:59:59'] as const;
+
+  it('keeps the events on screen and reports the failure on Stalwart 1.0', async () => {
+    const client = fakeClient();
+    client.queryAllCalendarEvents.mockResolvedValueOnce([occurrence()]);
+    await useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+
+    client.queryAllCalendarEvents.mockRejectedValueOnce(refused());
+    await useCalendarStore.getState().fetchEvents(client, NEXT[0], NEXT[1]);
+
+    const state = useCalendarStore.getState();
+    expect(state.events.map((e) => e.id)).toEqual(['maaaaab']);
+    expect(state.error).toBe(EVENTS_LOAD_ERROR);
+    expect(state.isLoadingEvents).toBe(false);
+    // Still the range that is actually loaded.
+    expect(state.dateRange).toEqual({ start: RANGE[0], end: RANGE[1] });
+
+    client.queryAllCalendarEvents.mockResolvedValueOnce([]);
+    await useCalendarStore.getState().fetchEvents(client, NEXT[0], NEXT[1]);
+    expect(useCalendarStore.getState().error).toBeNull();
+    expect(useCalendarStore.getState().events).toEqual([]);
+  });
+
+  it('keeps the events of an account that fails when loading every account', async () => {
+    const first = fakeClient();
+    first.queryAllCalendarEvents.mockResolvedValue([occurrence({ title: 'First' })]);
+    const second = fakeClient();
+    second.queryAllCalendarEvents
+      .mockResolvedValueOnce([occurrence({ title: 'Second, loaded before' })])
+      .mockRejectedValueOnce(refused());
+    const accounts = [{ localAccountId: 'A@h', client: first }, { localAccountId: 'B@h', client: second }];
+
+    await useCalendarStore.getState().fetchAllAccountsEvents(accounts, RANGE[0], RANGE[1]);
+    await useCalendarStore.getState().fetchAllAccountsEvents(accounts, NEXT[0], NEXT[1]);
+
+    const state = useCalendarStore.getState();
+    expect(state.events.map((e) => [e.id, e.title])).toEqual([
+      ['A@h::maaaaab', 'First'],
+      ['B@h::maaaaab', 'Second, loaded before'],
+    ]);
+    expect(state.error).toBe(EVENTS_LOAD_ERROR);
   });
 });

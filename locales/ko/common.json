@@ -3033,7 +3033,9 @@
     },
     "status": {
       "loading_calendars": "캘린더를 불러오는 중...",
-      "loading_events": "일정을 불러오는 중..."
+      "loading_events": "일정을 불러오는 중...",
+      "events_load_failed": "일정을 불러오지 못했어요. 캘린더가 최신 상태가 아닐 수 있어요.",
+      "retry": "다시 시도"
     },
     "quick_create": {
       "placeholder": "새 일정 제목",

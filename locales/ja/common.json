@@ -3033,7 +3033,9 @@
     },
     "status": {
       "loading_calendars": "カレンダーを読み込み中...",
-      "loading_events": "予定を読み込み中..."
+      "loading_events": "予定を読み込み中...",
+      "events_load_failed": "予定を読み込めませんでした。カレンダーが最新でない可能性があります。",
+      "retry": "再試行"
     },
     "quick_create": {
       "placeholder": "新しい予定のタイトル",

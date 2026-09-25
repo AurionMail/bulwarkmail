@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "Takvimler yükleniyor...",
-      "loading_events": "Etkinlikler yükleniyor..."
+      "loading_events": "Etkinlikler yükleniyor...",
+      "events_load_failed": "Etkinlikler yüklenemedi. Takvim güncel olmayabilir.",
+      "retry": "Tekrar dene"
     },
     "quick_create": {
       "placeholder": "Yeni etkinlik başlığı",

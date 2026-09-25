@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "Se încarcă calendarele...",
-      "loading_events": "Se încarcă evenimente..."
+      "loading_events": "Se încarcă evenimente...",
+      "events_load_failed": "Nu s-au putut încărca evenimentele. Este posibil ca calendarul să nu fie actualizat.",
+      "retry": "Încercați din nou"
     },
     "quick_create": {
       "placeholder": "Titlul unui eveniment nou",

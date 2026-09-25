@@ -3033,7 +3033,9 @@
     },
     "status": {
       "loading_calendars": "Načítání kalendářů...",
-      "loading_events": "Načítání událostí..."
+      "loading_events": "Načítání událostí...",
+      "events_load_failed": "Události se nepodařilo načíst. Kalendář nemusí být aktuální.",
+      "retry": "Zkusit znovu"
     },
     "quick_create": {
       "placeholder": "Název nové události",

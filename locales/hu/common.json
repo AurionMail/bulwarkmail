@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "Naptárak betöltése...",
-      "loading_events": "Események betöltése..."
+      "loading_events": "Események betöltése...",
+      "events_load_failed": "Nem sikerült betölteni az eseményeket. Előfordulhat, hogy a naptár nem naprakész.",
+      "retry": "Próbáld újra"
     },
     "quick_create": {
       "placeholder": "Új esemény címe",

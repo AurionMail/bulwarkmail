@@ -171,7 +171,7 @@ describe('server-side recurrence expansion with synthetic ids', () => {
     expect(single.recurrenceRules ?? null).toBeNull();
   });
 
-  it('keeps client-side expansion (no expandRecurrences) when the server rejects synthetic ids', async () => {
+  it('keeps client-side expansion (no expandRecurrences) when the server rejects synthetic ids on 0.16.19', async () => {
     serverSupportsSyntheticIds = false;
     const events = await client.queryCalendarEvents(RANGE);
     await client.queryCalendarEvents(RANGE);
@@ -181,13 +181,16 @@ describe('server-side recurrence expansion with synthetic ids', () => {
       expect(query.args.expandRecurrences).toBeUndefined();
     }
     // Raw base events with real ids come back for the browser to expand -
-    // one full get per query, no base-event hydration get.
+    // per query one full get plus a get of the overrides in the same
+    // request (Stalwart 1.0 refuses both in one get), no hydration get.
     expect(events.map((e) => e.id)).toEqual(['b', 'd']);
     expect(events[0].recurrenceRules).toEqual([{ frequency: 'daily', count: 5 }]);
-    expect(gets()).toHaveLength(2);
-    for (const get of gets()) {
-      expect(get.args.properties).toContain('title');
-    }
+    expect(events[0].recurrenceOverrides).toEqual({ '2026-09-10T10:00:00': { excluded: true } });
+    expect(gets().map((g) => g.args.properties)).toEqual([
+      expect.arrayContaining(['title', 'utcStart']), ['id', 'recurrenceOverrides'],
+      expect.arrayContaining(['title', 'utcStart']), ['id', 'recurrenceOverrides'],
+    ]);
+    expect(gets()[0].args.properties).not.toContain('recurrenceOverrides');
   });
 
   it('treats a failed probe as unsupported', async () => {

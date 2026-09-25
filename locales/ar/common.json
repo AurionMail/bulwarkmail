@@ -3059,7 +3059,9 @@
     },
     "status": {
       "loading_calendars": "جارٍ تحميل التقويمات...",
-      "loading_events": "جارٍ تحميل الأحداث..."
+      "loading_events": "جارٍ تحميل الأحداث...",
+      "events_load_failed": "تعذّر تحميل الأحداث. قد لا يكون التقويم محدَّثًا.",
+      "retry": "حاول مرة أخرى"
     },
     "quick_create": {
       "placeholder": "عنوان الحدث الجديد",
