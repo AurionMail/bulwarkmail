@@ -69,6 +69,7 @@ import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
 import { isFilterEmpty, activeFilterCount } from "@/lib/jmap/search-utils";
+import { jmapErrorType } from "@/lib/jmap/jmap-error";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
 import type { Attachment } from "@/lib/jmap/types";
@@ -2878,7 +2879,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       await deleteMailbox(client, mailboxId);
       toast.success(tCtxMenu('mailbox_context_menu.toast_folder_deleted'));
     } catch (err: unknown) {
-      const jmapType = (err as Error & { jmapType?: string })?.jmapType;
+      const jmapType = jmapErrorType(err);
       if (jmapType === 'mailboxHasChild') {
         toast.error(tCtxMenu('mailbox_context_menu.toast_error_delete_has_children'));
       } else if (jmapType === 'mailboxHasEmail') {

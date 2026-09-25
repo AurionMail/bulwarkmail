@@ -15,6 +15,7 @@ import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
+import { jmapError } from "./jmap-error";
 
 export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
@@ -642,9 +643,7 @@ function numberedFileName(name: string, n: number): string {
 function assertQuerySucceeded(response: JMAPResponse, what: string): void {
   const [name, result] = response.methodResponses?.[0] ?? [];
   if (name === 'error') {
-    const error = new Error(`${what} failed: ${result?.description || result?.type || 'unknown error'}`);
-    (error as Error & { jmapType?: string }).jmapType = result?.type;
-    throw error;
+    throw jmapError(`${what} failed: ${result?.description || result?.type || 'unknown error'}`, result);
   }
 }
 
@@ -3017,9 +3016,7 @@ export class JMAPClient implements IJMAPClient {
     const result = response.methodResponses?.[0]?.[1];
     if (result?.notDestroyed?.[mailboxId]) {
       const err = result.notDestroyed[mailboxId];
-      const error = new Error(err.description || `Failed to delete mailbox: ${err.type || 'unknown error'}`);
-      (error as Error & { jmapType?: string }).jmapType = err.type;
-      throw error;
+      throw jmapError(err.description || `Failed to delete mailbox: ${err.type || 'unknown error'}`, err);
     }
   }
 
