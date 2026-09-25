@@ -8212,14 +8212,18 @@ export class JMAPClient implements IJMAPClient {
     return this.namespaceFileNode(created, parent.accountId);
   }
 
-  async createFileNode(name: string, blobId: string, type: string, size: number, parentId: string | null): Promise<FileNode> {
+  /**
+   * `size` is not sent: every server works it out from the blob, and
+   * Stalwart 1.0 refuses a create whose size differs from the blob's.
+   */
+  async createFileNode(name: string, blobId: string, type: string, _size: number, parentId: string | null): Promise<FileNode> {
     const parent = this.resolveFileNodeId(parentId);
 
     // Servers before 0.16.6 refuse MIME types over 30 characters (most OOXML
     // types); later ones take up to 255.
     const maxTypeLength = this.isLegacyFileNodeServer(parent.accountId) ? 30 : 255;
     const safeType = type.length > maxTypeLength ? 'application/octet-stream' : type;
-    const fileProps: Record<string, unknown> = { name, type: safeType, blobId, size };
+    const fileProps: Record<string, unknown> = { name, type: safeType, blobId };
     if (parent.id !== null) {
       fileProps.parentId = parent.id;
     }
@@ -8359,7 +8363,13 @@ export class JMAPClient implements IJMAPClient {
    * Copy a file, or a folder with everything in it, into `parentId` (which
    * may be in another account). A folder node carries no content, so creating
    * one "copy" node would only make an empty folder: the subtree is recreated
-   * level by level. Across accounts the file contents go through Blob/copy.
+   * level by level.
+   *
+   * The copies point at the source's blobs. Stalwart lets anyone who may read
+   * a FileNode use its blobId in any account, so this works both ways between
+   * drives. Blob/copy reserved the content to the target account, which only
+   * that account's members may use: copying into someone else's shared drive
+   * failed with it.
    */
   async copyFileNode(id: string, newName: string, parentId: string | null): Promise<FileNode> {
     const source = this.resolveFileNodeId(id);
@@ -8370,38 +8380,55 @@ export class JMAPClient implements IJMAPClient {
     if (!original) throw new Error('File node not found');
     const isFolderNode = (n: FileNode) => n.blobId == null;
 
-    const copyBlob = async (blobId: string): Promise<string> => {
-      if (source.accountId === target.accountId) return blobId;
-      const response = await this.request([
-        ["Blob/copy", { fromAccountId: source.accountId, accountId: target.accountId, blobIds: [blobId] }, "bc0"],
-      ], this.fileUsing());
-      const result = response.methodResponses?.[0];
-      const copied = result?.[0] === "Blob/copy" ? result[1].copied?.[blobId] : undefined;
-      if (!copied) {
-        throw new Error(result?.[1]?.notCopied?.[blobId]?.description || result?.[1]?.description || "Failed to copy file content");
-      }
-      return copied as string;
+    // The whole subtree is laid out from one listing before the first create.
+    const childrenOf = new Map<string, FileNode[]>();
+    for (const node of tree) {
+      if (node.parentId == null) continue;
+      const siblings = childrenOf.get(node.parentId);
+      if (siblings) siblings.push(node);
+      else childrenOf.set(node.parentId, [node]);
+    }
+    type CopyEntry = { node: FileNode; children: CopyEntry[] };
+    const seen = new Set<string>();
+    const collect = (node: FileNode): CopyEntry => {
+      seen.add(node.id);
+      const below = isFolderNode(node) ? childrenOf.get(node.id) ?? [] : [];
+      return {
+        node: withDecodedName(node),
+        children: below.filter(child => !seen.has(child.id)).map(collect),
+      };
     };
+    const plan = collect(original);
 
-    const copyInto = async (node: FileNode, name: string, parent: string | null): Promise<FileNode> => {
+    const createCopy = (node: FileNode, name: string, parent: string | null): Promise<FileNode> => {
       const props: Record<string, unknown> = { name };
       if (parent !== null) props.parentId = parent;
       if (!isFolderNode(node)) {
         props.type = node.type;
-        props.blobId = await copyBlob(node.blobId as string);
-        props.size = node.size;
+        props.blobId = node.blobId;
       }
-      const created = await this.createFileNodeIn(target.accountId, props, 'copy');
-      if (isFolderNode(node)) {
-        for (const child of tree.filter(n => n.parentId === node.id)) {
-          await copyInto(child, child.name, created.id);
-        }
+      return this.createFileNodeIn(target.accountId, props, 'copy');
+    };
+    const copyChildren = async (entry: CopyEntry, parent: string): Promise<void> => {
+      for (const child of entry.children) {
+        const created = await createCopy(child.node, child.node.name, parent);
+        await copyChildren(child, created.id);
       }
-      return created;
     };
 
-    const created = await copyInto(withDecodedName(original), newName, target.id);
-    return this.namespaceFileNode(created, target.accountId);
+    const root = await createCopy(plan.node, newName, target.id);
+    const copy = this.namespaceFileNode(root, target.accountId);
+    try {
+      await copyChildren(plan, root.id);
+    } catch (error) {
+      // Take the half-made copy away again (its children go with it) and
+      // report what stopped it.
+      await this.destroyFileNodes([copy.id]).catch((cleanup) => {
+        console.warn('[Files] Could not remove a partly created copy:', cleanup instanceof Error ? cleanup.message : cleanup);
+      });
+      throw error;
+    }
+    return copy;
   }
 
   async downloadBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<void> {

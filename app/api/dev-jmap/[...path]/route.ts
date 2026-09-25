@@ -2292,6 +2292,11 @@ function handleFileNodeSet(args: MethodArgs, callId: string): MethodResult {
       }
       const blobId = typeof props.blobId === 'string' ? props.blobId : null;
       const now = new Date().toISOString();
+      // The client leaves `size` to the server, which reads it off the blob:
+      // an upload from this process, or the blob of the node being copied.
+      const blobSize = blobId
+        ? uploadedBlobs.get(blobId)?.bytes.byteLength ?? fileNodes.find((n) => n.blobId === blobId)?.size ?? 0
+        : 0;
       const node: FileNode = {
         id: generateDemoId('file'),
         parentId: typeof props.parentId === 'string' ? props.parentId : null,
@@ -2299,7 +2304,7 @@ function handleFileNodeSet(args: MethodArgs, callId: string): MethodResult {
         // A node without a blob is a folder (draft-ietf-jmap-filenode).
         type: blobId ? (typeof props.type === 'string' ? props.type : 'application/octet-stream') : 'd',
         blobId,
-        size: typeof props.size === 'number' ? props.size : 0,
+        size: typeof props.size === 'number' ? props.size : blobSize,
         created: now,
         modified: now,
       };

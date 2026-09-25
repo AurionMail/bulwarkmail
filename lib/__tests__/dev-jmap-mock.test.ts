@@ -435,4 +435,33 @@ describe('dev-jmap mock server', () => {
       expect(data.type).toBe('image/png');
     });
   });
+
+  describe('POST /api - FileNode/set', () => {
+    it('reads the size of a new file off its blob, like a real server', async () => {
+      const upload = await POST(makeRequest('http://localhost:3000/api/dev-jmap/upload/dev-account-001/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain', host: 'localhost:3000' },
+        body: 'hello',
+      }), { params: Promise.resolve({ path: ['upload', 'dev-account-001'] }) });
+      const { blobId } = await upload.json();
+
+      const res = await POST(makeRequest('http://localhost:3000/api/dev-jmap/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+        body: JSON.stringify({
+          methodCalls: [['FileNode/set', {
+            accountId: 'dev-account-001',
+            create: {
+              uploaded: { name: 'hello.txt', type: 'text/plain', blobId },
+              // A copy points at the blob of a seeded node.
+              copied: { name: 'copy.pdf', type: 'application/pdf', blobId: 'demo-blob-file-2' },
+            },
+          }, '0']],
+        }),
+      }), { params: Promise.resolve({ path: ['api'] }) });
+      const { created } = (await res.json()).methodResponses[0][1];
+      expect(created.uploaded.size).toBe(5);
+      expect(created.copied.size).toBe(148480);
+    });
+  });
 });
