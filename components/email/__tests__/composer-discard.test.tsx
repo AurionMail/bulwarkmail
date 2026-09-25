@@ -227,7 +227,7 @@ describe('composer Discard button', () => {
 
     fireEvent.click(within(dialog).getByText('discard'));
 
-    expect(onDiscardDraft).toHaveBeenCalledWith('draft-1');
+    expect(onDiscardDraft).toHaveBeenCalledWith('draft-1', undefined, undefined);
   });
 
   it('closes an empty, never saved composer without asking', () => {
