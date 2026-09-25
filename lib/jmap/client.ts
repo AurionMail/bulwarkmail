@@ -2273,17 +2273,19 @@ export class JMAPClient implements IJMAPClient {
 
       if (response.methodResponses?.[1]?.[0] === "Email/get" && getResponse) {
         const emails = (getResponse.list || []) as Email[];
-        if (hasTextLevels(order)) {
-          // A sender or subject order is the server's collation, which the
-          // client comparator contradicts (Stalwart 1.0 compares byte-order
-          // sort keys, empty values last). Keep the query's order: /get may
-          // return the objects in any order (RFC 8620 section 5.1).
+        if (hasTextLevels(order) && this.keepsServerTextOrder(targetAccountId)) {
+          // Stalwart 1.0's sender or subject collation, which the client
+          // comparator would only disturb (see keepsServerTextOrder). Keep
+          // the query's order: /get may return the objects in any order
+          // (RFC 8620 section 5.1).
           const rank = new Map(((queryResponse?.ids ?? []) as string[]).map((id, i) => [id, i]));
           emails.sort((a, b) => (rank.get(a.id) ?? rank.size) - (rank.get(b.id) ?? rank.size));
         } else {
           // Sort client-side as safety net - some servers may not honour
           // the query sort for large mailboxes without additional filters.
           // Must mirror the query sort, or it would undo the configured order.
+          // On Stalwart 0.16 this also turns a sender or subject page from
+          // raw byte order (capitals first) into a case-insensitive one.
           emails.sort(compareEmails(order, { pinnedFirst }));
         }
         const total = queryResponse?.total || 0;
@@ -5308,6 +5310,18 @@ export class JMAPClient implements IJMAPClient {
     const id = accountId || this.accountId;
     const caps = this.session?.accounts?.[id]?.accountCapabilities;
     return !!caps && capability in caps;
+  }
+
+  /**
+   * Whether a sender or subject sorted list of the account keeps the order
+   * the server returned. Stalwart 1.0 collates those itself (lowercased
+   * byte-order keys, empty values last), which the client comparator would
+   * only disturb. 0.16 compares the raw bytes, capitals before lowercase, so
+   * its pages are re-sorted case-insensitively. Every 1.0 account lists
+   * principals:owner in its accountCapabilities; 0.16 never does.
+   */
+  keepsServerTextOrder(accountId?: string): boolean {
+    return this.hasAccountCapability("urn:ietf:params:jmap:principals:owner", accountId);
   }
 
   getAccountInfo(accountId: string): AccountInfo | null {

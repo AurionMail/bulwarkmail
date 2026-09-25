@@ -82,6 +82,11 @@ interface EmailStore {
   // The configured message-list order the current folder view was fetched
   // with (#718); empty for chronological. Thread grouping mirrors it.
   listOrder: SortLevel[];
+  // Whether the list keeps the server's order for listOrder's sender and
+  // subject levels: a folder of an account whose server collates them itself
+  // (Stalwart 1.0, see JMAPClient.keepsServerTextOrder). Otherwise thread
+  // grouping re-sorts them on the client, as the fetch did per page.
+  listKeepsServerTextOrder: boolean;
   isPushConnected: boolean; // Track if push notifications are connected
   lastPushUpdate: number | null; // Timestamp of last push update
   // Delta sync (RFC 8620 §5.2). The Email collection state the plain
@@ -879,7 +884,7 @@ function resolveEmailActionContext(
  * unknown email keeps the previous behaviour instead: no explicit accountId,
  * i.e. the reaching client's own account.
  */
-function resolveKeywordActionContext(
+export function resolveKeywordActionContext(
   emailId: string,
   passedClient: IJMAPClient,
 ): { client: IJMAPClient; accountId: string | undefined } {
@@ -1422,6 +1427,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   hasMoreEmails: false,
   totalEmails: 0,
   listOrder: [],
+  listKeepsServerTextOrder: false,
   isPushConnected: false,
   lastPushUpdate: null,
   emailListSync: null,
@@ -1764,6 +1770,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           hasMoreEmails: result.hasMore,
           totalEmails: result.total,
           listOrder: crossView || hasFilters || searchQuery ? [] : getMessageListOrderFor(unifiedRole),
+          // Merged from several accounts with the client comparator.
+          listKeepsServerTextOrder: false,
           emailListSync: null,
           threadEmailsCache: new Map(),
           expandedThreadIds: new Set(),
@@ -1805,6 +1813,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           hasMoreEmails: result.hasMore,
           totalEmails: result.total,
           listOrder: order,
+          // Merged from several accounts with the client comparator.
+          listKeepsServerTextOrder: false,
           // A server-side keyword filter cannot be delta-synced.
           emailListSync: null,
           threadEmailsCache: new Map(),
@@ -1862,6 +1872,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         hasMoreEmails: result.hasMore,
         totalEmails: result.total,
         listOrder: order,
+        listKeepsServerTextOrder: effectiveClient.keepsServerTextOrder?.(accountId) ?? false,
         emailListSync,
         // Clear thread caches since the email list was fully replaced
         threadEmailsCache: new Map(),
@@ -4378,24 +4389,26 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
     if (unreadIds.length === 0) return;
 
-    // Group by account for unified view support
-    const emailsById = new Map<string, Email>();
-    for (const e of allEmailMap.values()) emailsById.set(e.id, e);
-
-    // Group unread IDs by account client
-    const groups = new Map<IJMAPClient, string[]>();
+    // Group the unread ids by the client and the JMAP account that own them.
+    // Ids repeat across accounts (#847): a write without the owner's account
+    // id lands in the login's own account, where the server answers notFound
+    // or marks an unrelated message that happens to share the id. So a thread
+    // in a shared or group folder has to name its account.
+    const groups = new Map<IJMAPClient, Map<string | undefined, string[]>>();
     for (const id of unreadIds) {
-      const email = emailsById.get(id)!;
-      const { client: actionClient } = resolveEmailActionContext(email, client);
-      if (!groups.has(actionClient)) groups.set(actionClient, []);
-      groups.get(actionClient)!.push(id);
+      const { client: actionClient, accountId } = resolveEmailActionContext(allEmailMap.get(id)!, client);
+      const byAccount = groups.get(actionClient) ?? new Map<string | undefined, string[]>();
+      byAccount.set(accountId, [...(byAccount.get(accountId) ?? []), id]);
+      groups.set(actionClient, byAccount);
     }
 
     // Mark all as read on the server
     try {
       await Promise.all(
-        Array.from(groups.entries()).map(([actionClient, emailIds]) =>
-          actionClient.batchMarkAsRead(emailIds, true)
+        Array.from(groups.entries()).flatMap(([actionClient, byAccount]) =>
+          Array.from(byAccount.entries()).map(([accountId, emailIds]) =>
+            actionClient.batchMarkAsRead(emailIds, true, accountId)
+          )
         )
       );
     } catch (error) {
@@ -4815,6 +4828,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         hasMoreEmails: result.hasMore,
         totalEmails: result.total,
         listOrder: order,
+        listKeepsServerTextOrder: false,
         isLoading: false,
         unifiedErrors: result.errors,
       });

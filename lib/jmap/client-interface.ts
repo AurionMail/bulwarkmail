@@ -84,6 +84,8 @@ export interface IJMAPClient {
   hasAccountCapability(capability: string, accountId?: string): boolean;
   /** How the session describes an account; null when it doesn't list the id. */
   getAccountInfo(accountId: string): AccountInfo | null;
+  /** Whether sender and subject sorted lists of the account keep the server's order (Stalwart 1.0). */
+  keepsServerTextOrder?(accountId?: string): boolean;
   /** FileNode naming rules the server publishes (Stalwart 0.16.6+), if any. */
   getFileNameRules?(accountId?: string): FileNameRules | null;
   /** How deep a FileNode may sit (Stalwart 1.0: 64), or null for no limit. */

@@ -11,7 +11,7 @@ import { useEmailStore } from '@/stores/email-store';
 import { messageListTabHooks } from '@/lib/plugin-hooks';
 import { jmapError } from '@/lib/jmap/jmap-error';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
-import type { Email } from '@/lib/jmap/types';
+import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { MessageListTab } from '@/lib/plugin-types';
 
 const GMAIL_STYLE = {
@@ -184,10 +184,14 @@ describe('store registration', () => {
 });
 
 describe('categorizeEmails', () => {
-  const email = (id: string, accountId?: string) => ({
+  // `sourceAccountId`: the JMAP account a unified-view message lives in, as
+  // the list stamps it; the display-only `accountId` names the login.
+  const email = (id: string, sourceAccountId?: string) => ({
     id, threadId: `t-${id}`, keywords: { $seen: true }, mailboxIds: { inbox: true },
-    from: [{ email: `${id}@example.com` }], accountId,
+    from: [{ email: `${id}@example.com` }],
+    ...(sourceAccountId ? { accountId: 'login-1', sourceClientAccountId: 'login-1', sourceAccountId } : {}),
   }) as unknown as Email;
+  const PATCH = { 'keywords/$category-updates': null, 'keywords/$category-promotions': true };
 
   beforeEach(() => {
     useEmailStore.setState({ emails: [email('m1'), email('m2', 'shared')], mailboxes: [], selectedMailbox: '' });
@@ -236,5 +240,31 @@ describe('categorizeEmails', () => {
     expect(m2.keywords).toEqual({ $seen: true });
     // No per-sender override is recorded for a move that did not happen.
     expect(emitted).not.toHaveBeenCalled();
+  });
+
+  it('writes a unified-view message to its own JMAP account, not the login named for display', async () => {
+    const batchUpdateKeywords = vi.fn().mockResolvedValue(undefined);
+
+    await useMessageListTabsStore.getState()
+      .categorizeEmails({ batchUpdateKeywords } as unknown as IJMAPClient, ['m2'], 'promotions');
+
+    expect(batchUpdateKeywords).toHaveBeenCalledWith(['m2'], PATCH, 'shared');
+    expect(batchUpdateKeywords).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), 'login-1');
+  });
+
+  it('writes to the group account whose inbox is open in the shared section', async () => {
+    // Those messages carry no source stamps: the open folder names the
+    // account. An unrouted write lands in the login's own account.
+    const groupInbox = {
+      id: 'team:inbox', originalId: 'inbox', accountId: 'team', isShared: true, role: 'inbox', name: 'Inbox',
+    } as unknown as Mailbox;
+    useEmailStore.setState({ emails: [email('g1'), email('g2')], mailboxes: [groupInbox], selectedMailbox: groupInbox.id });
+    const batchUpdateKeywords = vi.fn().mockResolvedValue(undefined);
+
+    await useMessageListTabsStore.getState()
+      .categorizeEmails({ batchUpdateKeywords } as unknown as IJMAPClient, ['g1', 'g2'], 'promotions');
+
+    expect(batchUpdateKeywords).toHaveBeenCalledTimes(1);
+    expect(batchUpdateKeywords).toHaveBeenCalledWith(['g1', 'g2'], PATCH, 'team');
   });
 });

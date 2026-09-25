@@ -11,13 +11,12 @@
 
 import { create } from 'zustand';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
-import type { Email } from '@/lib/jmap/types';
 import type { MessageListTab, MessageListTabsConfig } from '@/lib/plugin-types';
 import { MAX_MESSAGE_LIST_TABS } from '@/lib/plugin-types';
 import { messageListTabHooks } from '@/lib/plugin-hooks';
 import { keywordPointer } from '@/lib/jmap/patch-pointer';
 import { SERVER_SET_KEYWORDS } from '@/lib/jmap/server-keywords';
-import { useEmailStore } from './email-store';
+import { resolveKeywordActionContext, useEmailStore } from './email-store';
 
 // ─── Validation ──────────────────────────────────────────────
 
@@ -331,14 +330,17 @@ export const useMessageListTabsStore = create<MessageListTabsStore>()((set, get)
     for (const k of keywordsRemoved) patch[keywordPointer(k)] = null;
     if (keywordAdded) patch[keywordPointer(keywordAdded)] = true;
 
-    // Group by owning account so shared-mailbox messages patch correctly.
-    const byAccount = new Map<string | undefined, string[]>();
+    // Group by the client and JMAP account that own each message, the way the
+    // email store routes its keyword writes: a listed message's `accountId`
+    // is only a display reference, and a write without the owner's account id
+    // lands in the login's own account (a group inbox with tabs, the unified
+    // views).
+    const groups = new Map<IJMAPClient, Map<string | undefined, string[]>>();
     for (const id of emailIds) {
-      const email = affected.find((e) => e.id === id) as (Email & { accountId?: string }) | undefined;
-      const acct = email?.accountId;
-      const list = byAccount.get(acct) ?? [];
-      list.push(id);
-      byAccount.set(acct, list);
+      const { client: writeClient, accountId } = resolveKeywordActionContext(id, client);
+      const byAccount = groups.get(writeClient) ?? new Map<string | undefined, string[]>();
+      byAccount.set(accountId, [...(byAccount.get(accountId) ?? []), id]);
+      groups.set(writeClient, byAccount);
     }
     // A refused write (a read-only shared folder; Stalwart 1.0 also refuses a
     // 101st keyword on a message) fails the move: the plugin's promise rejects
@@ -346,12 +348,14 @@ export const useMessageListTabsStore = create<MessageListTabsStore>()((set, get)
     // accounts are still written, and their messages still move locally.
     const written: string[] = [];
     let failure: unknown = null;
-    for (const [acct, ids] of byAccount) {
-      try {
-        await client.batchUpdateKeywords(ids, patch, acct);
-        written.push(...ids);
-      } catch (err) {
-        failure ??= err;
+    for (const [writeClient, byAccount] of groups) {
+      for (const [accountId, ids] of byAccount) {
+        try {
+          await writeClient.batchUpdateKeywords(ids, patch, accountId);
+          written.push(...ids);
+        } catch (err) {
+          failure ??= err;
+        }
       }
     }
 

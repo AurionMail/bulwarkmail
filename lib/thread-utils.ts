@@ -110,13 +110,18 @@ export function groupEmailsByThread(
  * (RFC 8621 §4.4.3 thread collapsing semantics) - with the default order that
  * is the latest email's receivedAt date, newest first.
  *
- * A sender or subject order only the server can apply (see `hasTextLevels`).
+ * A sender or subject order the list keeps as the server collated it
+ * (`keepServerTextOrder`, Stalwart 1.0; see `hasTextLevels`) is not re-sorted.
  * The groups arrive in fetched order - groupEmailsByThread keeps the order in
  * which each thread first appears - so each thread already sits where its
  * first-ranked email does, and only pinned threads move.
  */
-export function sortThreadGroups(groups: ThreadGroup[], order: SortLevel[] = []): ThreadGroup[] {
-  if (hasTextLevels(order)) {
+export function sortThreadGroups(
+  groups: ThreadGroup[],
+  order: SortLevel[] = [],
+  opts: { keepServerTextOrder?: boolean } = {},
+): ThreadGroup[] {
+  if (opts.keepServerTextOrder && hasTextLevels(order)) {
     return [...groups].sort((a, b) => (b.hasPinned ? 1 : 0) - (a.hasPinned ? 1 : 0));
   }
   const compare = compareEmails(order);

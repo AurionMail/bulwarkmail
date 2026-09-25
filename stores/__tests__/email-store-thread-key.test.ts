@@ -134,11 +134,46 @@ describe('thread identity across accounts (#1012)', () => {
   it('marks only the owning account\'s messages read when a thread is expanded', async () => {
     await useEmailStore.getState().markThreadAsRead(clientA, threadKeyFor(a1));
 
-    expect(clientA.batchMarkAsRead).toHaveBeenCalledWith(['a1'], true);
+    expect(clientA.batchMarkAsRead).toHaveBeenCalledWith(['a1'], true, 'acct-a');
     expect(clientB.batchMarkAsRead).not.toHaveBeenCalled();
     const byId = new Map(useEmailStore.getState().emails.map((e) => [e.id, e]));
     expect(byId.get('a1')?.keywords?.$seen).toBe(true);
     expect(byId.get('b1')?.keywords?.$seen).toBeUndefined();
+  });
+
+  it('marks a thread of a shared account read in that account, through the login that reaches it', async () => {
+    // A group's mailbox in the unified view: reached through login a, owned
+    // by the group's JMAP account. Without the account id the write lands in
+    // the login's own account, where Stalwart answers notFound or marks an
+    // unrelated message with the same id.
+    const shared = inAccount('a', 'g1', { threadId: 'c', sourceAccountId: 'acct-team' });
+    useEmailStore.setState({ emails: [a1, b1, shared] });
+
+    await useEmailStore.getState().markThreadAsRead(clientA, threadKeyFor(shared));
+
+    expect(clientA.batchMarkAsRead).toHaveBeenCalledTimes(1);
+    expect(clientA.batchMarkAsRead).toHaveBeenCalledWith(['g1'], true, 'acct-team');
+    expect(useEmailStore.getState().emails.find((e) => e.id === 'g1')?.keywords?.$seen).toBe(true);
+  });
+
+  it('marks a thread read in the group account whose folder is open, outside the unified view', async () => {
+    // The sidebar's shared section lists a group folder's mail without source
+    // stamps; the open folder names the account.
+    const groupInbox = makeMailbox({ id: 'acct-team:inbox', originalId: 'inbox', accountId: 'acct-team', isShared: true });
+    const plain = (id: string) => inAccount('a', id, {
+      threadId: 't7', sourceClientAccountId: undefined, sourceAccountId: undefined, accountId: undefined,
+    });
+    useEmailStore.setState({
+      isUnifiedView: false,
+      crossView: null,
+      selectedMailbox: groupInbox.id,
+      mailboxes: [makeMailbox(), groupInbox],
+      emails: [plain('m1'), plain('m2')],
+    });
+
+    await useEmailStore.getState().markThreadAsRead(clientA, threadKeyFor(plain('m1')));
+
+    expect(clientA.batchMarkAsRead).toHaveBeenCalledWith(['m1', 'm2'], true, 'acct-team');
   });
 
   it('keeps expansion state apart for same-id threads of different accounts', () => {

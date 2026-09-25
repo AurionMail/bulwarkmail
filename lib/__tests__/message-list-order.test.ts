@@ -215,6 +215,21 @@ describe('compareEmails', () => {
     expect([a, b, c].sort(compareEmails([{ criterion: 'size', direction: 'desc' }])).map(e => e.id)).toEqual(['b', 'c', 'a']);
   });
 
+  it('puts a message without a sender or subject last in both directions, as Stalwart 0.16 and 1.0 do', () => {
+    const named = makeEmail({ id: 'named', from: [{ name: 'Eve', email: 'eve@x.test' }], subject: 'Mango' });
+    const lower = makeEmail({ id: 'lower', from: [{ name: 'bea', email: 'bea@x.test' }], subject: 'apple pie' });
+    const bare = makeEmail({ id: 'bare', from: [], subject: undefined });
+    // A subject that is nothing but a reply prefix has an empty thread name.
+    const onlyPrefix = makeEmail({ id: 'only-prefix', from: [{ name: '', email: '' }], subject: 'Re:', receivedAt: '2025-01-01T00:00:00Z' });
+
+    for (const criterion of ['from', 'subject'] as const) {
+      expect([bare, named, onlyPrefix, lower].sort(compareEmails([{ criterion, direction: 'asc' }])).map(e => e.id))
+        .toEqual(['lower', 'named', 'bare', 'only-prefix']);
+      expect([bare, lower, onlyPrefix, named].sort(compareEmails([{ criterion, direction: 'desc' }])).map(e => e.id))
+        .toEqual(['named', 'lower', 'bare', 'only-prefix']);
+    }
+  });
+
   it('applies levels in priority order', () => {
     const starredOld = makeEmail({ id: 'starred-old', receivedAt: '2026-01-01T00:00:00Z', keywords: { $flagged: true, $seen: true } });
     const sorted = [readNewest, starredOld, unreadNew].sort(compareEmails([

@@ -196,7 +196,7 @@ describe('sortThreadGroups', () => {
 
   it('keeps the fetched order of a sender order, as Stalwart 1.0 collates it', () => {
     // The server's byte order puts "zoe" before "émile" and the message
-    // without a sender last; a localeCompare re-sort would turn that around.
+    // without a sender last; a localeCompare re-sort would swap the first two.
     const fetched = [
       makeEmail({ id: 'z', threadId: 'tz', from: [{ name: 'Zoe', email: 'zoe@example.org' }] }),
       makeEmail({ id: 'e1', threadId: 'te', from: [{ name: 'Émile', email: 'emile@example.org' }] }),
@@ -204,18 +204,36 @@ describe('sortThreadGroups', () => {
       makeEmail({ id: 'e2', threadId: 'te', from: [{ name: 'Émile', email: 'emile@example.org' }], receivedAt: '2024-02-01T00:00:00Z' }),
     ];
     const order = [{ criterion: 'from' as const, direction: 'asc' as const }];
-    expect(sortThreadGroups(groupEmailsByThread(fetched), order).map(g => g.threadId)).toEqual(['tz', 'te', 'tn']);
+    expect(sortThreadGroups(groupEmailsByThread(fetched), order, { keepServerTextOrder: true }).map(g => g.threadId))
+      .toEqual(['tz', 'te', 'tn']);
   });
 
-  it('still lifts pinned threads above a subject order, and otherwise keeps the fetched order', () => {
+  it('still lifts pinned threads above a subject order on Stalwart 1.0, and otherwise keeps the fetched order', () => {
     // Same subject everywhere: a client re-sort would fall back to newest first.
     const groups = [
       makeGroup('first', '2024-01-01T00:00:00Z'),
       makeGroup('second', '2024-06-01T00:00:00Z'),
       makeGroup('pinned', '2024-03-01T00:00:00Z', true),
     ];
-    const sorted = sortThreadGroups(groups, [{ criterion: 'subject', direction: 'asc' }]);
+    const sorted = sortThreadGroups(groups, [{ criterion: 'subject', direction: 'asc' }], { keepServerTextOrder: true });
     expect(sorted.map(g => g.threadId)).toEqual(['pinned', 'first', 'second']);
+  });
+
+  it('re-sorts a sender order case-insensitively on Stalwart 0.16, the empty sender last', () => {
+    // 0.16 pages come in raw byte order, capitals first; the loaded pages are
+    // sorted as one list, as before 1.0.
+    const fetched = [
+      makeEmail({ id: 'a', threadId: 'ta', from: [{ name: 'Adam', email: 'adam@x.test' }] }),
+      makeEmail({ id: 'c', threadId: 'tc', from: [{ name: 'Carla', email: 'carla@x.test' }] }),
+      makeEmail({ id: 'n', threadId: 'tn', from: [] }),
+      makeEmail({ id: 'b', threadId: 'tb', from: [{ name: 'bea', email: 'bea@x.test' }] }),
+      makeEmail({ id: 'd', threadId: 'td', from: [{ name: 'dave', email: 'dave@x.test' }] }),
+    ];
+    const order = [{ criterion: 'from' as const, direction: 'asc' as const }];
+    expect(sortThreadGroups(groupEmailsByThread(fetched), order).map(g => g.threadId))
+      .toEqual(['ta', 'tb', 'tc', 'td', 'tn']);
+    expect(sortThreadGroups(groupEmailsByThread(fetched), [{ criterion: 'from', direction: 'desc' }]).map(g => g.threadId))
+      .toEqual(['td', 'tc', 'tb', 'ta', 'tn']);
   });
 });
 
