@@ -56,7 +56,7 @@ import { debug } from "@/lib/debug";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { cn, getMailboxPath } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
-import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, groupEmailsByThread, threadKeyFor } from "@/lib/thread-utils";
+import { groupEmailsByThread, threadKeyFor, toggleTagKeywords } from "@/lib/thread-utils";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import {
   ErrorBoundary,
@@ -1589,19 +1589,25 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const markAsReadDelay = useSettingsStore.getState().markAsReadDelay;
     debug.log('email', '[Mark as Read] Delay setting:', markAsReadDelay, 'ms for email:', selectedEmail.id);
 
+    // The server may refuse (a shared folder without the right to set seen);
+    // the message then just stays unread.
+    const markRead = () => markAsRead(client, selectedEmail.id, true).catch((error) => {
+      debug.warn('email', '[Mark as Read] Failed:', error);
+    });
+
     if (markAsReadDelay === -1) {
       // Never mark as read automatically
       debug.log('email', '[Mark as Read] Never mode - email will stay unread');
     } else if (markAsReadDelay === 0) {
       // Mark as read instantly
       debug.log('email', '[Mark as Read] Instant mode - marking as read now');
-      markAsRead(client, selectedEmail.id, true);
+      void markRead();
     } else {
       // Mark as read after delay
       debug.log('email', '[Mark as Read] Delayed mode - will mark as read in', markAsReadDelay, 'ms');
       markAsReadTimeoutRef.current = setTimeout(() => {
         debug.log('email', '[Mark as Read] Timeout fired - marking as read now');
-        markAsRead(client, selectedEmail.id, true);
+        void markRead();
         markAsReadTimeoutRef.current = null;
       }, markAsReadDelay);
     }
@@ -2426,33 +2432,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client) return;
 
     try {
-      // Remove any existing tag keywords
       const email = emails.find(e => e.id === emailId);
       if (!email) return;
 
-      const keywords = { ...email.keywords };
-
-      if (tagId === null) {
-        // Remove all tag keywords
-        Object.keys(keywords).forEach(key => {
-          if (key.startsWith(KEYWORD_PREFIX) || key.startsWith(KEYWORD_PREFIX_LEGACY)) {
-            keywords[key] = false;
-          }
-        });
-      } else {
-        // Both prefixes name the same tag when read, so taking one off has to
-        // clear whichever spellings are actually set.
-        const activeKeys = [KEYWORD_PREFIX + tagId, KEYWORD_PREFIX_LEGACY + tagId]
-          .filter(key => keywords[key]);
-        if (activeKeys.length > 0) {
-          activeKeys.forEach(key => {
-            keywords[key] = false;
-          });
-        } else {
-          // Add the tag without disturbing others
-          keywords[KEYWORD_PREFIX + tagId] = true;
-        }
-      }
+      // The whole keyword map is written, so it may only hold keywords that
+      // are set: a removed tag is left out rather than sent as false.
+      const keywords = toggleTagKeywords(email.keywords, tagId);
 
       // Routes the write to the email's own account, then patches the email in
       // place so the list keeps its scroll/pagination state instead of being
@@ -2465,7 +2450,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // Refresh tag counts
       fetchTagCounts(client);
     } catch (error) {
+      // The message keeps its old tags. Stalwart 1.0 refuses keywords over
+      // 128 bytes and more than 100 on one message.
       console.error("Failed to set tag:", error);
+      toast.error(t('notifications.tag_failed'));
     }
   };
 

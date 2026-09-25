@@ -163,8 +163,10 @@ describe('KeywordSettings', () => {
     expect(screen.getByText('$label:work/clients')).toBeInTheDocument();
   });
 
-  it('rejects a path that would exceed the keyword length limit', () => {
-    const deepId = 'a'.repeat(240);
+  it('rejects a path that would exceed the 128-byte keyword limit of Stalwart', () => {
+    // `$label:` + 110 + `/overflowing-name` is 134 bytes: fine by the RFC's
+    // 255, refused by Stalwart 1.0 and cut short by 0.16.
+    const deepId = 'a'.repeat(110);
     useSettingsStore.setState({
       emailKeywords: [{ id: deepId, label: 'Deep', color: 'blue' }],
       nestedTags: true,

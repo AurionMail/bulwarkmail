@@ -19,6 +19,7 @@ import { fileNodeDepth } from "./filenode-depth";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
 import { jmapError, jmapErrorType, jmapSetError, type JmapErrorInfo } from "./jmap-error";
+import { isServerSetKeyword } from "./server-keywords";
 
 export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
@@ -2346,7 +2347,12 @@ export class JMAPClient implements IJMAPClient {
 
     if (!supportsKeywordGet) {
       const scan = await this.discoverKeywords(options);
-      const labels: KeywordInfo[] = Object.entries(scan.keywords).map(([id, total]) => ({
+      // Stalwart 1.0 sets an attachment keyword on every message; it is not a
+      // label anyone applied.
+      const keywords = Object.fromEntries(
+        Object.entries(scan.keywords).filter(([id]) => !isServerSetKeyword(id)),
+      );
+      const labels: KeywordInfo[] = Object.entries(keywords).map(([id, total]) => ({
         id,
         name: id.startsWith('$label:') ? id.slice('$label:'.length) : id,
         color: null,
@@ -2355,7 +2361,7 @@ export class JMAPClient implements IJMAPClient {
         isProviderLabel: false,
         source: 'message',
       }));
-      return { ...scan, labels };
+      return { ...scan, keywords, labels };
     }
 
     if (options?.signal?.aborted) {
@@ -2571,10 +2577,16 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
+  // The keyword writers below check the Email/set outcome: the server refuses
+  // a keyword per message in `notUpdated`, not as a request error. Stalwart
+  // 1.0 refuses keywords over 128 bytes (invalidProperties) and more than 100
+  // keywords on one message (tooManyKeywords); a read-only shared folder
+  // refuses any. Unchecked, the UI showed the change until the next reload.
+
   async markAsRead(emailId: string, read: boolean = true, accountId?: string): Promise<void> {
     const targetAccountId = accountId || this.accountId;
 
-    await this.request([
+    const response = await this.request([
       ["Email/set", {
         accountId: targetAccountId,
         update: {
@@ -2584,21 +2596,28 @@ export class JMAPClient implements IJMAPClient {
         },
       }, "0"],
     ]);
+    this.assertEmailSetSucceeded(response, read ? "mark as read" : "mark as unread");
   }
 
   async batchMarkAsRead(emailIds: string[], read: boolean = true, accountId?: string): Promise<void> {
     if (emailIds.length === 0) return;
 
+    const responses: JMAPResponse[] = [];
     for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
       const updates = Object.fromEntries(batch.map(id => [id, { "keywords/$seen": read ? true : null }]));
-      await this.request([
+      responses.push(await this.request([
         ["Email/set", { accountId: accountId || this.accountId, update: updates }, "0"],
-      ]);
+      ]));
+    }
+    // Every batch is sent before a refusal is reported: one refused message
+    // must not leave the rest of the selection unchanged.
+    for (const response of responses) {
+      this.assertEmailSetSucceeded(response, read ? "mark as read" : "mark as unread");
     }
   }
 
   async toggleStar(emailId: string, starred: boolean, accountId?: string): Promise<void> {
-    await this.request([
+    const response = await this.request([
       ["Email/set", {
         accountId: accountId || this.accountId,
         update: {
@@ -2608,23 +2627,29 @@ export class JMAPClient implements IJMAPClient {
         },
       }, "0"],
     ]);
+    this.assertEmailSetSucceeded(response, starred ? "star the email" : "unstar the email");
   }
 
   async updateEmailKeywords(emailId: string, keywords: Record<string, boolean>, accountId?: string): Promise<void> {
-    await this.request([
+    // Every value of a full keyword map must be true (RFC 8621 section
+    // 4.1.1). Callers start from local copies, where marking a message unread
+    // or unstarred leaves `$seen: false` / `$flagged: false` behind.
+    const keywordSet = Object.fromEntries(Object.entries(keywords).filter(([, value]) => value === true));
+    const response = await this.request([
       ["Email/set", {
         accountId: accountId || this.accountId,
         update: {
           [emailId]: {
-            keywords,
+            keywords: keywordSet,
           },
         },
       }, "0"],
     ]);
+    this.assertEmailSetSucceeded(response, "update keywords");
   }
 
   async setKeyword(emailId: string, keyword: string, accountId?: string): Promise<void> {
-    await this.request([
+    const response = await this.request([
       ["Email/set", {
         accountId: accountId || this.accountId,
         update: {
@@ -2634,10 +2659,11 @@ export class JMAPClient implements IJMAPClient {
         },
       }, "0"],
     ]);
+    this.assertEmailSetSucceeded(response, `set ${keyword}`);
   }
 
   async removeKeyword(emailId: string, keyword: string, accountId?: string): Promise<void> {
-    await this.request([
+    const response = await this.request([
       ["Email/set", {
         accountId: accountId || this.accountId,
         update: {
@@ -2647,6 +2673,7 @@ export class JMAPClient implements IJMAPClient {
         },
       }, "0"],
     ]);
+    this.assertEmailSetSucceeded(response, `remove ${keyword}`);
   }
 
   /**
@@ -2656,11 +2683,15 @@ export class JMAPClient implements IJMAPClient {
    */
   async batchUpdateKeywords(emailIds: string[], patch: Record<string, boolean | null>, accountId?: string): Promise<void> {
     if (emailIds.length === 0 || Object.keys(patch).length === 0) return;
+    const responses: JMAPResponse[] = [];
     for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
       const update = Object.fromEntries(batch.map(id => [id, { ...patch }]));
-      await this.request([
+      responses.push(await this.request([
         ["Email/set", { accountId: accountId || this.accountId, update }, "0"],
-      ]);
+      ]));
+    }
+    for (const response of responses) {
+      this.assertEmailSetSucceeded(response, "update keywords");
     }
   }
 
@@ -2797,9 +2828,9 @@ export class JMAPClient implements IJMAPClient {
   private assertEmailSetSucceeded(response: JMAPResponse, action: string): void {
     const [name, result] = response.methodResponses?.[0] ?? [];
     if (name === "error") {
-      throw new Error(`Failed to ${action}: ${result?.description || result?.type || 'unknown error'}`);
+      throw jmapError(`Failed to ${action}: ${result?.description || result?.type || 'unknown error'}`, result);
     }
-    const failed: Record<string, { type?: string; description?: string }> = {
+    const failed: Record<string, JmapErrorInfo> = {
       ...(result?.notUpdated ?? {}),
       ...(result?.notDestroyed ?? {}),
     };
@@ -2807,10 +2838,11 @@ export class JMAPClient implements IJMAPClient {
     if (failedIds.length === 0) return;
     const first = failed[failedIds[0]];
     const reason = first?.description || first?.type || 'unknown error';
-    throw new Error(
+    throw jmapError(
       failedIds.length === 1
         ? `Failed to ${action}: ${reason}`
         : `Failed to ${action} ${failedIds.length} email(s); first error: ${reason}`,
+      first,
     );
   }
 
@@ -9251,7 +9283,9 @@ export class JMAPClient implements IJMAPClient {
     destMailboxId: string,
   ): Promise<string> {
     // Email/copy drops keywords unless the create sets them, so carry the
-    // source's over — otherwise the moved message shows up as unread.
+    // source's over — otherwise the moved message shows up as unread. All of
+    // them: Stalwart 1.0 also takes the copy's `$hasattachment` /
+    // `$hasnoattachment`, and with them its hasAttachment, only from here.
     const srcResp = await this.request([
       ["Email/get", { accountId: fromAccountId, ids: [emailId], properties: ["keywords"] }, "0"],
     ]);

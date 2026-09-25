@@ -21,6 +21,7 @@ import type { MessageListTabsConfig } from '../plugin-types';
 import { apiFetch, getPathPrefix } from '../browser-navigation';
 import { reportUploadProgress } from '../upload-progress';
 import { DEFAULT_KEYWORD_SCAN_LIMIT } from '../jmap/client';
+import { isServerSetKeyword } from '../jmap/server-keywords';
 import { suggestKeywordColor } from '../keyword-discovery';
 import { MAX_KEYWORD_LENGTH } from '../keyword-nesting';
 import { KEYWORD_PREFIX } from '../thread-utils';
@@ -993,6 +994,11 @@ const PLUGIN_KEYWORD_RE = /^[a-z0-9$][a-z0-9$_.:-]{0,127}$/i;
 function assertPluginKeyword(keyword: unknown): string {
   if (typeof keyword !== 'string' || !PLUGIN_KEYWORD_RE.test(keyword)) {
     throw new Error(`Invalid JMAP keyword "${String(keyword)}"`);
+  }
+  // Stalwart 1.0 derives hasAttachment from these; adding or removing one
+  // would misreport the message.
+  if (isServerSetKeyword(keyword)) {
+    throw new Error(`JMAP keyword "${keyword}" is set by the server`);
   }
   return keyword;
 }

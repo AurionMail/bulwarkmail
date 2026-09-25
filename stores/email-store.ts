@@ -2671,6 +2671,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
               throw new Error('Source email has no raw blob to copy');
             }
             const blob = await sourceClient.fetchBlob(full.blobId, undefined, undefined, sourceJmapAccountId);
+            // Every keyword, the server's attachment ones included (see
+            // lib/jmap/server-keywords.ts).
             const keywords: Record<string, boolean> = { ...(full.keywords ?? {}) };
             await destClient.importRawEmail(blob, { [destMailboxId]: true }, keywords, destJmapAccountId);
             await sourceClient.deleteEmail(emailId, sourceJmapAccountId);

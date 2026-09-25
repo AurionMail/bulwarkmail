@@ -304,4 +304,30 @@ describe('native keyword extension API', () => {
       expect(error).toMatch(/No active session/);
     }
   });
+
+  // Stalwart 1.0 derives hasAttachment from these, so a plugin adding or
+  // removing one would misreport the message.
+  it('keeps plugins off the attachment keywords Stalwart 1.0 sets itself', async () => {
+    const setKeyword = vi.fn();
+    const removeKeyword = vi.fn();
+    const updateEmailKeywords = vi.fn();
+    useAuthStore.setState({ client: { setKeyword, removeKeyword, updateEmailKeywords } as never });
+    const writer = plugin({ permissions: ['email:write'], grantedPermissions: ['email:write'] });
+
+    for (const method of ['jmap.setKeyword', 'jmap.removeKeyword', 'email.setKeyword', 'email.removeKeyword']) {
+      for (const keyword of ['$hasattachment', '$hasnoattachment', '$HasAttachment']) {
+        expect(await gateError(writer, method, ['email-1', keyword])).toMatch(/is set by the server/);
+      }
+    }
+    expect(await gateError(writer, 'jmap.setKeywords', ['email-1', { '$seen': true, '$hasattachment': true }]))
+      .toMatch(/"\$hasattachment" is set by the server/);
+
+    expect(setKeyword).not.toHaveBeenCalled();
+    expect(removeKeyword).not.toHaveBeenCalled();
+    expect(updateEmailKeywords).not.toHaveBeenCalled();
+
+    // Other keywords still go through.
+    await dispatchApiCall(writer, 'jmap.setKeyword', ['email-1', '$label:work']);
+    expect(setKeyword).toHaveBeenCalledWith('email-1', '$label:work', undefined);
+  });
 });

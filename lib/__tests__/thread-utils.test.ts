@@ -10,6 +10,7 @@ import {
   getThreadTagIds,
   threadKeyFor,
   threadIdFromKey,
+  toggleTagKeywords,
 } from '../thread-utils';
 import type { Email, ThreadGroup } from '../jmap/types';
 
@@ -303,6 +304,41 @@ describe('getEmailTagIds', () => {
   it('is empty for an untagged message or none at all', () => {
     expect(getEmailTagIds({ $seen: true })).toEqual([]);
     expect(getEmailTagIds(undefined)).toEqual([]);
+  });
+});
+
+// The result is written as the message's whole keyword map, where RFC 8621
+// allows only true values: a removed tag must be missing, not false.
+describe('toggleTagKeywords', () => {
+  it('adds a tag without disturbing the other keywords', () => {
+    expect(toggleTagKeywords({ $seen: true, '$label:red': true }, 'work'))
+      .toEqual({ $seen: true, '$label:red': true, '$label:work': true });
+  });
+
+  it('takes a set tag off by leaving its key out, under either prefix', () => {
+    const next = toggleTagKeywords({ $seen: true, '$label:red': true, '$color:red': true, '$label:work': true }, 'red');
+    expect(next).toEqual({ $seen: true, '$label:work': true });
+    expect(Object.values(next).every((value) => value === true)).toBe(true);
+  });
+
+  it('clears every tag, whatever the prefix, and keeps the rest', () => {
+    expect(toggleTagKeywords({ $flagged: true, '$label:red': true, '$color:blue': true }, null))
+      .toEqual({ $flagged: true });
+  });
+
+  it('drops keywords the local copy only marks false', () => {
+    // Marking a message unread or unstarred leaves these behind locally.
+    expect(toggleTagKeywords({ $seen: false, $flagged: false, '$label:red': false }, 'red'))
+      .toEqual({ '$label:red': true });
+  });
+
+  it('keeps the server-set attachment keyword Stalwart 1.0 reports', () => {
+    expect(toggleTagKeywords({ $hasattachment: true }, 'work')).toEqual({ $hasattachment: true, '$label:work': true });
+  });
+
+  it('starts from nothing when the message has no keywords', () => {
+    expect(toggleTagKeywords(undefined, 'work')).toEqual({ '$label:work': true });
+    expect(toggleTagKeywords(undefined, null)).toEqual({});
   });
 });
 

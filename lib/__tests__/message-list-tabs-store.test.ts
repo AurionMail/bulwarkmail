@@ -1,12 +1,17 @@
 // Contract tests for the plugin-facing message-list category tabs
 // (api.tabs.set → stores/message-list-tabs-store.ts).
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   useMessageListTabsStore,
   validateTabsConfig,
   resolveTabFilter,
 } from '@/stores/message-list-tabs-store';
+import { useEmailStore } from '@/stores/email-store';
+import { messageListTabHooks } from '@/lib/plugin-hooks';
+import { jmapError } from '@/lib/jmap/jmap-error';
+import type { IJMAPClient } from '@/lib/jmap/client-interface';
+import type { Email } from '@/lib/jmap/types';
 import type { MessageListTab } from '@/lib/plugin-types';
 
 const GMAIL_STYLE = {
@@ -58,6 +63,17 @@ describe('validateTabsConfig', () => {
       tabs: [{ id: 'a', label: 'A', keyword: '$label.x' }, { id: 'b', label: 'B' }],
     })).toThrow(/reserved/);
   });
+
+  // Stalwart 1.0 sets one of these on every message and derives hasAttachment
+  // from it; a tab move would add or strip it.
+  it.each(['$hasattachment', '$hasnoattachment', '$HasAttachment'])(
+    'rejects the server-set attachment keyword %s (Stalwart 1.0)',
+    (keyword) => {
+      expect(() => validateTabsConfig({
+        tabs: [{ id: 'a', label: 'A', keyword }, { id: 'b', label: 'B' }],
+      })).toThrow(/reserved keyword "\$has(no)?attachment"/);
+    },
+  );
 
   it('rejects duplicate ids, multiple default tabs, and single-tab configs', () => {
     expect(() => validateTabsConfig({
@@ -164,5 +180,61 @@ describe('store registration', () => {
     store.registerTabs('category-tabs', GMAIL_STYLE);
     store.setActiveTab('promotions', 'inbox-id');
     expect(useMessageListTabsStore.getState().getCategoryFilter('inbox')).toEqual({ hasKeyword: '$category-promotions' });
+  });
+});
+
+describe('categorizeEmails', () => {
+  const email = (id: string, accountId?: string) => ({
+    id, threadId: `t-${id}`, keywords: { $seen: true }, mailboxIds: { inbox: true },
+    from: [{ email: `${id}@example.com` }], accountId,
+  }) as unknown as Email;
+
+  beforeEach(() => {
+    useEmailStore.setState({ emails: [email('m1'), email('m2', 'shared')], mailboxes: [], selectedMailbox: '' });
+    useMessageListTabsStore.getState().registerTabs('category-tabs', GMAIL_STYLE);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    useEmailStore.setState({ emails: [] });
+  });
+
+  it('patches the category keywords and moves the messages locally', async () => {
+    const batchUpdateKeywords = vi.fn().mockResolvedValue(undefined);
+    const emitted = vi.spyOn(messageListTabHooks.onEmailCategorize, 'emit');
+
+    await expect(useMessageListTabsStore.getState()
+      .categorizeEmails({ batchUpdateKeywords } as unknown as IJMAPClient, ['m1'], 'promotions')).resolves.toBe(true);
+
+    expect(batchUpdateKeywords).toHaveBeenCalledWith(
+      ['m1'],
+      { 'keywords/$category-updates': null, 'keywords/$category-promotions': true },
+      undefined,
+    );
+    expect(useEmailStore.getState().emails[0].keywords).toEqual({ $seen: true, '$category-promotions': true });
+    expect(emitted).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects when Stalwart 1.0 refuses the keyword, leaving the refused messages as they were', async () => {
+    // What batchUpdateKeywords throws for a `notUpdated` entry on 1.0, here
+    // for a message that already has 100 keywords.
+    const refusal = jmapError('Failed to update keywords: An email cannot have more than 100 keywords.', {
+      type: 'tooManyKeywords', description: 'An email cannot have more than 100 keywords.', properties: ['keywords'],
+    });
+    const batchUpdateKeywords = vi.fn(async (_ids: string[], _patch: unknown, accountId?: string) => {
+      if (accountId === 'shared') throw refusal;
+    });
+    const emitted = vi.spyOn(messageListTabHooks.onEmailCategorize, 'emit');
+
+    await expect(useMessageListTabsStore.getState()
+      .categorizeEmails({ batchUpdateKeywords } as unknown as IJMAPClient, ['m1', 'm2'], 'promotions')).rejects.toBe(refusal);
+
+    // Both accounts were written; only the one the server accepted moved.
+    expect(batchUpdateKeywords).toHaveBeenCalledTimes(2);
+    const [m1, m2] = useEmailStore.getState().emails;
+    expect(m1.keywords).toEqual({ $seen: true, '$category-promotions': true });
+    expect(m2.keywords).toEqual({ $seen: true });
+    // No per-sender override is recorded for a move that did not happen.
+    expect(emitted).not.toHaveBeenCalled();
   });
 });

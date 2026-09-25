@@ -16,15 +16,19 @@ import type { MessageListTab, MessageListTabsConfig } from '@/lib/plugin-types';
 import { MAX_MESSAGE_LIST_TABS } from '@/lib/plugin-types';
 import { messageListTabHooks } from '@/lib/plugin-hooks';
 import { keywordPointer } from '@/lib/jmap/patch-pointer';
+import { SERVER_SET_KEYWORDS } from '@/lib/jmap/server-keywords';
 import { useEmailStore } from './email-store';
 
 // ─── Validation ──────────────────────────────────────────────
 
 // System keywords a tab may never claim: filtering the inbox by these would
-// hijack read/star/pin semantics, and `$label:` keywords belong to user tags.
+// hijack read/star/pin semantics, moving mail between tabs would add and
+// remove the server's own attachment keywords (flipping `hasAttachment`), and
+// `$label:` keywords belong to user tags.
 const RESERVED_KEYWORDS = new Set([
   '$seen', '$flagged', '$draft', '$answered', '$forwarded',
   '$recent', '$junk', '$notjunk', '$phishing', '$pinned',
+  ...SERVER_SET_KEYWORDS,
 ]);
 
 const TAB_ID_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/i;
@@ -336,31 +340,45 @@ export const useMessageListTabsStore = create<MessageListTabsStore>()((set, get)
       list.push(id);
       byAccount.set(acct, list);
     }
+    // A refused write (a read-only shared folder; Stalwart 1.0 also refuses a
+    // 101st keyword on a message) fails the move: the plugin's promise rejects
+    // with the server's reason and the categorize hooks stay quiet. The other
+    // accounts are still written, and their messages still move locally.
+    const written: string[] = [];
+    let failure: unknown = null;
     for (const [acct, ids] of byAccount) {
-      await client.batchUpdateKeywords(ids, patch, acct);
+      try {
+        await client.batchUpdateKeywords(ids, patch, acct);
+        written.push(...ids);
+      } catch (err) {
+        failure ??= err;
+      }
     }
 
     // Optimistic local update: fix keywords in place, and drop moved messages
     // from a keyword-filtered view they no longer belong to. (Query-based
     // active tabs are left as-is — membership there is server-derived.)
-    const idSet = new Set(emailIds);
+    const idSet = new Set(written);
     const activeTab = tabs.find((t) => t.id === get().activeTabId);
     const shouldDrop = !!activeTab && !activeTab.query && activeTab.id !== toTabId
       && get().isEnabledForRole(
         emailState.mailboxes.find((mb) => mb.id === emailState.selectedMailbox)?.role ?? null,
       );
-    useEmailStore.setState((state) => ({
-      emails: state.emails
-        .map((e) => {
-          if (!idSet.has(e.id)) return e;
-          const keywords = { ...e.keywords };
-          for (const k of keywordsRemoved) delete keywords[k];
-          if (keywordAdded) keywords[keywordAdded] = true;
-          return { ...e, keywords };
-        })
-        .filter((e) => !shouldDrop || !idSet.has(e.id)),
-    }));
+    if (idSet.size > 0) {
+      useEmailStore.setState((state) => ({
+        emails: state.emails
+          .map((e) => {
+            if (!idSet.has(e.id)) return e;
+            const keywords = { ...e.keywords };
+            for (const k of keywordsRemoved) delete keywords[k];
+            if (keywordAdded) keywords[keywordAdded] = true;
+            return { ...e, keywords };
+          })
+          .filter((e) => !shouldDrop || !idSet.has(e.id)),
+      }));
+    }
 
+    if (failure) throw failure;
     void messageListTabHooks.onEmailCategorize.emit(ctx);
     return true;
   },

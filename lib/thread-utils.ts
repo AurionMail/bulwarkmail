@@ -232,6 +232,37 @@ export function getEmailTagIds(keywords: Record<string, boolean> | undefined): s
 }
 
 /**
+ * The complete keyword map after toggling one tag, or after clearing every tag
+ * (`tagId` null), for writing as a whole. Every value in such a map must be
+ * true (RFC 8621 section 4.1.1), so a tag comes off by leaving its key out,
+ * and so do keywords the local copy only marks false (`$seen: false` after
+ * marking a message unread). Both prefixes name the same tag, so taking a tag
+ * off clears whichever spellings are set.
+ */
+export function toggleTagKeywords(
+  keywords: Record<string, boolean> | undefined,
+  tagId: string | null,
+): Record<string, true> {
+  const next: Record<string, true> = {};
+  for (const [key, value] of Object.entries(keywords ?? {})) {
+    if (value === true) next[key] = true;
+  }
+  if (tagId === null) {
+    for (const key of Object.keys(next)) {
+      if (key.startsWith(KEYWORD_PREFIX) || key.startsWith(KEYWORD_PREFIX_LEGACY)) delete next[key];
+    }
+    return next;
+  }
+  const activeKeys = [KEYWORD_PREFIX + tagId, KEYWORD_PREFIX_LEGACY + tagId].filter((key) => next[key]);
+  if (activeKeys.length > 0) {
+    for (const key of activeKeys) delete next[key];
+  } else {
+    next[KEYWORD_PREFIX + tagId] = true;
+  }
+  return next;
+}
+
+/**
  * Gets the first tag id set on a message, if any.
  * Reads both the current $label: prefix and the legacy $color: prefix.
  * @deprecated Use getEmailTagIds for multi-tag support.
