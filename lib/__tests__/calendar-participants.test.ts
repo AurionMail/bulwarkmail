@@ -749,6 +749,60 @@ describe('participantFieldsToSave', () => {
   });
 });
 
+// RFC 5546: an organizer who moves an event asks the attendees again, and
+// Stalwart's update to them carries each attendee's stored answer (it adds
+// needs-action only where there is none). So when the user, as organizer,
+// changes when an event happens, the other attendees go back to
+// needs-action; every other save keeps the answers.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('participantFieldsToSave for a moved event on Stalwart %s', (version) => {
+  // As each version stores them: 0.16.23 drops an attendee's roles, 1.0 keeps them.
+  const attendee = (address: string, participationStatus: CalendarParticipant['participationStatus']) => ({
+    '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address, participationStatus,
+    ...(version === '1.0' ? { roles: { attendee: true } } : {}),
+  }) as Partial<CalendarParticipant>;
+  const organizer = (address: string) => ({
+    '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address, roles: { owner: true }, participationStatus: 'accepted',
+  }) as Partial<CalendarParticipant>;
+  const rows = (...emails: string[]) => emails.map((email) => ({ name: '', email }));
+  const me = { userEmail: 'me@example.com', userEmails: ['me@example.com', 'me-alias@example.com'] };
+
+  // Organized under the user's alias, in another letter case.
+  const own = () => makeEvent({
+    org: organizer('Me-Alias@Example.com'),
+    bob: attendee('bob@example.org', 'accepted'),
+    carol: attendee('carol@example.org', 'declined'),
+  }, { organizerCalendarAddress: 'mailto:Me-Alias@Example.com' });
+
+  it('asks the other attendees again when the user organizes it', () => {
+    const fields = participantFieldsToSave(own(), rows('bob@example.org', 'carol@example.org'), { ...me, rescheduled: true });
+
+    expect(fields.participants!.org).toMatchObject({ calendarAddress: 'mailto:Me-Alias@Example.com', participationStatus: 'accepted' });
+    expect(fields.participants!.bob.participationStatus).toBe('needs-action');
+    expect(fields.participants!.carol.participationStatus).toBe('needs-action');
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+  });
+
+  it('keeps the answers when the event is not moved', () => {
+    const fields = participantFieldsToSave(own(), rows('bob@example.org', 'carol@example.org'), { ...me, rescheduled: false });
+
+    expect(fields.participants!.bob.participationStatus).toBe('accepted');
+    expect(fields.participants!.carol.participationStatus).toBe('declined');
+  });
+
+  it('never asks again for an event someone else organizes', () => {
+    const invitation = makeEvent({
+      boss: organizer('boss@example.org'),
+      mine: attendee('me@example.com', 'accepted'),
+      bob: attendee('bob@example.org', 'declined'),
+    }, { organizerCalendarAddress: 'mailto:boss@example.org' });
+
+    const fields = participantFieldsToSave(invitation, rows('me@example.com', 'bob@example.org'), { ...me, rescheduled: true });
+
+    expect(fields.participants!.mine.participationStatus).toBe('accepted');
+    expect(fields.participants!.bob.participationStatus).toBe('declined');
+  });
+});
+
 describe('participantLimitOf', () => {
   it('reads the limit from Stalwart 1.0’s refusal', () => {
     const refusal = jmapSetError('An event cannot have more than 20 participants.', {

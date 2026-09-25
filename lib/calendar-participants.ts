@@ -272,12 +272,14 @@ function participantsByAddress(
  * once. `existing` is the event's current map. An address already in it
  * keeps its participant id and its answer, so a save neither resets the
  * attendees' answers - the user's own on an invitation included - nor leaves
- * a recurrence override pointing at a participant id that is gone.
+ * a recurrence override pointing at a participant id that is gone. With
+ * `askAgain` every attendee but the organizer answers anew (needs-action).
  */
 export function buildParticipantMap(
   organizer: { name: string; email: string },
   attendees: { name: string; email: string }[],
   existing?: CalendarEvent['participants'] | null,
+  options: { askAgain?: boolean } = {},
 ): Record<string, Partial<CalendarParticipant>> {
   const participants: Record<string, Partial<CalendarParticipant>> = {};
   const known = participantsByAddress(existing);
@@ -322,7 +324,7 @@ export function buildParticipantMap(
       email,
       calendarAddress: `mailto:${email}`,
       roles: { attendee: true },
-      participationStatus: known.get(key)?.status ?? 'needs-action',
+      participationStatus: (options.askAgain ? undefined : known.get(key)?.status) ?? 'needs-action',
       scheduleAgent: 'server',
       expectReply: true,
       kind: 'individual',
@@ -348,8 +350,12 @@ function eventOrganizer(event: CalendarEvent): { name: string; email: string } |
 export interface ParticipantSaveContext {
   /** The user's first calendar address: the organizer of an event that has none yet. */
   userEmail: string | undefined;
+  /** All of the user's calendar addresses (identities, aliases): whether the user organizes the event. */
+  userEmails?: string[];
   /** A name for an organizer the event data carries none for (the contact card). */
   resolveName?: (email: string) => string | undefined;
+  /** The save changes when the event happens: its start or end instant, or whether it is all-day. */
+  rescheduled?: boolean;
 }
 
 /**
@@ -361,7 +367,11 @@ export interface ParticipantSaveContext {
  * occurrences). Only an event without an organizer gets the user, and only
  * then is `organizerCalendarAddress` written: Stalwart derives the
  * iCalendar ORGANIZER solely from it, so without one no invitations go out.
- * Participants that stay keep their id and answer (buildParticipantMap).
+ * Participants that stay keep their id and answer (buildParticipantMap),
+ * unless the user as the organizer moves the event: then the other
+ * attendees are asked again, as RFC 5546 has an organizer do when an
+ * event is rescheduled, and the server's update asks them with
+ * needs-action.
  *
  * Without attendees, an event that had participants loses them, its
  * organizer and the retired `replyTo` older releases wrote.
@@ -374,6 +384,8 @@ export function participantFieldsToSave(
   const { userEmail, resolveName } = context;
   if (attendees.length > 0 && userEmail) {
     const organizer = (event ? eventOrganizer(event) : null) ?? { name: '', email: userEmail };
+    const userAddresses = [userEmail, ...(context.userEmails ?? [])].map((address) => address.trim().toLowerCase());
+    const askAgain = !!context.rescheduled && userAddresses.includes(organizer.email.toLowerCase());
     const fields: Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress'>> = {
       participants: buildParticipantMap(
         // A new event has no participants yet, so it would store an empty
@@ -381,6 +393,7 @@ export function participantFieldsToSave(
         { name: organizer.name || resolveName?.(organizer.email) || '', email: organizer.email },
         attendees,
         event?.participants,
+        { askAgain },
       ) as Record<string, CalendarParticipant>,
     };
     if (!event?.organizerCalendarAddress) fields.organizerCalendarAddress = `mailto:${organizer.email}`;

@@ -89,6 +89,27 @@ export function savedStatusFields(
   return { status: "confirmed", freeBusyStatus: "busy", privacy: "public" };
 }
 
+/**
+ * Whether the editor's dates change when `event` happens: it turns all-day
+ * or timed, or its start or end moves - for an all-day event its first or
+ * last day. The form's dates and the event's are display dates in the
+ * user's zone, compared to the minute the form shows: saving the event in
+ * the user's zone instead of its own is no change. Pure, for testing.
+ */
+export function changesWhen(
+  event: CalendarEvent,
+  next: { allDay: boolean; start: Date; end: Date },
+): boolean {
+  if (!!event.showWithoutTime !== next.allDay) return true;
+  if (next.allDay) {
+    return !isSameDay(getEventStartDate(event), next.start)
+      || !isSameDay(getEventDisplayEndDate(event), next.end);
+  }
+  const minute = (date: Date) => Math.floor(date.getTime() / 60_000);
+  return minute(getEventStartDate(event)) !== minute(next.start)
+    || minute(getEventEndDate(event)) !== minute(next.end);
+}
+
 function formatDateInput(d: Date): string {
   return format(d, "yyyy-MM-dd");
 }
@@ -587,6 +608,8 @@ export function EventModal({
 
     const start = allDay ? parseISO(startStr) : new Date(startStr);
     let duration: string;
+    // The last day of an all-day event, the end of a timed one.
+    let end: Date;
 
     if (allDay) {
       let inclusiveEnd = new Date(`${endDate}T00:00:00`);
@@ -594,9 +617,10 @@ export function EventModal({
         inclusiveEnd = new Date(start);
       }
       duration = buildAllDayDuration(start, inclusiveEnd);
+      end = inclusiveEnd;
     } else {
       const endStr = `${endDate}T${endTime}:00`;
-      let end = new Date(endStr);
+      end = new Date(endStr);
       if (end <= start) {
         end = new Date(start.getTime() + 3600000);
       }
@@ -670,10 +694,15 @@ export function EventModal({
 
     // Keeps the event's own organizer - an invitation's sender, the exact
     // address a series is organized under - and the answers of attendees who
-    // stay; the user organizes an event that has no organizer yet.
+    // stay; the user organizes an event that has no organizer yet. Moved by
+    // the user as its organizer, the others are asked again. The dates are
+    // those of the event the editor was opened on - one occurrence of a
+    // series - so a move applies to whichever occurrences the save covers.
     Object.assign(data, participantFieldsToSave(event, effectiveAttendees, {
       userEmail: currentUserEmails[0],
+      userEmails: currentUserEmails,
       resolveName: resolveContactName,
+      rescheduled: !!event && changesWhen(event, { allDay, start, end }),
     }));
 
     const shouldSendScheduling = effectiveAttendees.length > 0 && sendInvitations;

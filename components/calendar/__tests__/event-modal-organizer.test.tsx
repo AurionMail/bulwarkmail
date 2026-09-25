@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventModal } from '../event-modal';
 import type { Calendar, CalendarEvent, CalendarParticipant } from '@/lib/jmap/types';
+import { AUTO_TIME_ZONE } from '@/lib/timezone';
+import { useSettingsStore } from '@/stores/settings-store';
 
 // The editor rewrote the organizer on every save of an event with attendees,
 // to the user's first address, and put every attendee back to needs-action.
@@ -80,5 +82,84 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal organizer and a
     const participants = data.participants as Record<string, CalendarParticipant>;
     expect(participants.org.calendarAddress).toBe('mailto:ME@Example.com');
     expect(participants.guest.participationStatus).toBe('tentative');
+  });
+});
+
+// RFC 5546: when the organizer moves an event, the attendees are asked
+// again; every other save keeps their answers. The editor shows and writes
+// the event in the user's zone (here Tokyo, UTC+9), which is no move by
+// itself.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal answers after a move on Stalwart %s', (version) => {
+  beforeEach(() => useSettingsStore.setState({ timeZone: 'Asia/Tokyo' }));
+  afterEach(() => useSettingsStore.setState({ timeZone: AUTO_TIME_ZONE }));
+
+  // 08:00-09:00 in New York (UTC-4 in October): 21:00-22:00 in Tokyo.
+  function inNewYork(organizer: string, participants: Record<string, unknown>): CalendarEvent {
+    return {
+      ...meeting(organizer, participants),
+      start: '2026-10-12T08:00:00', timeZone: 'America/New_York',
+      utcStart: '2026-10-12T12:00:00Z', utcEnd: '2026-10-12T13:00:00Z',
+    } as CalendarEvent;
+  }
+  const own = () => inNewYork('me@example.com', {
+    org: participant(version, 'me@example.com', true, 'accepted'),
+    bob: participant(version, 'bob@example.org', false, 'accepted'),
+    carol: participant(version, 'carol@example.org', false, 'declined'),
+  });
+
+  async function save(event: CalendarEvent, edit: (container: HTMLElement) => void): Promise<Partial<CalendarEvent>> {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <EventModal event={event} calendars={calendars} onSave={onSave} onClose={vi.fn()} currentUserEmails={['me@example.com']} />,
+    );
+    fireEvent.click(screen.getByText('events.edit'));
+    edit(container);
+    fireEvent.click(screen.getByText('form.save'));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    return onSave.mock.calls[0][0] as Partial<CalendarEvent>;
+  }
+  const moveStartTo = (time: string) => (container: HTMLElement) => {
+    const [startTime] = container.querySelectorAll('input[type="time"]');
+    fireEvent.change(startTime, { target: { value: time } });
+  };
+  const statuses = (data: Partial<CalendarEvent>) => Object.fromEntries(
+    Object.entries(data.participants as Record<string, CalendarParticipant>).map(([id, p]) => [id, p.participationStatus]),
+  );
+
+  it('asks the attendees again when the user moves their event', async () => {
+    const data = await save(own(), moveStartTo('22:00'));
+
+    expect(data.start).toBe('2026-10-12T22:00:00');
+    expect(statuses(data)).toEqual({ org: 'accepted', bob: 'needs-action', carol: 'needs-action' });
+  });
+
+  it('keeps the answers when only the time zone is rewritten', async () => {
+    const data = await save(own(), () => {});
+
+    // Written in the user's zone, at the same instant.
+    expect(data).toMatchObject({ start: '2026-10-12T21:00:00', timeZone: 'Asia/Tokyo', duration: 'PT1H' });
+    expect(statuses(data)).toEqual({ org: 'accepted', bob: 'accepted', carol: 'declined' });
+  });
+
+  it('keeps the answers when the title changes', async () => {
+    const data = await save(own(), () => {
+      fireEvent.change(screen.getByPlaceholderText('form.title'), { target: { value: 'Planning, room 2' } });
+    });
+
+    expect(data.title).toBe('Planning, room 2');
+    expect(statuses(data)).toEqual({ org: 'accepted', bob: 'accepted', carol: 'declined' });
+  });
+
+  it('never asks again when the user did not organize the event', async () => {
+    const invitation = inNewYork('boss@example.org', {
+      boss: participant(version, 'boss@example.org', true, 'accepted'),
+      mine: participant(version, 'me@example.com', false, 'accepted'),
+      bob: participant(version, 'bob@example.org', false, 'declined'),
+    });
+
+    const data = await save(invitation, moveStartTo('22:00'));
+
+    expect(data.start).toBe('2026-10-12T22:00:00');
+    expect(statuses(data)).toEqual({ boss: 'accepted', mine: 'accepted', bob: 'declined' });
   });
 });
