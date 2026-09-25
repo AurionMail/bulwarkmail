@@ -2864,7 +2864,8 @@
         "no_busy_times": "Geen bezette tijden gedeeld",
         "unknown": "Geen gebruiker op deze server",
         "error": "Kon niet controleren",
-        "checking": "Controleren…"
+        "checking": "Controleren…",
+        "unavailable_on_server": "Vrij/bezet-informatie is niet beschikbaar op deze server"
       },
       "title": "Deelnemers",
       "add": "Deelnemer toevoegen",
@@ -3586,6 +3587,7 @@
     "no_principals": "Geen andere gebruikers of groepen gevonden.",
     "no_match": "Geen overeenkomsten.",
     "directory_restricted": "Uw server staat het doorbladeren van de gebruikersdirectory niet toe, daarom worden alleen uw groepen en personen die iets met u hebben gedeeld weergegeven. Een beheerder kan directoryquery's inschakelen in de instellingen voor delen van Stalwart.",
+    "directory_not_browsable": "Uw server staat u niet toe de gebruikersdirectory te doorbladeren.",
     "directory_failed": "Kan de lijst met gebruikers en groepen niet laden.",
     "remove": "Toegang intrekken",
     "group": "Groep",

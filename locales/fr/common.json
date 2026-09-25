@@ -2864,7 +2864,8 @@
         "no_busy_times": "Aucune plage occupée partagée",
         "unknown": "Pas un utilisateur de ce serveur",
         "error": "Vérification impossible",
-        "checking": "Vérification…"
+        "checking": "Vérification…",
+        "unavailable_on_server": "Les informations libre/occupé ne sont pas disponibles sur ce serveur"
       },
       "title": "Participants",
       "add": "Ajouter un participant",
@@ -3586,6 +3587,7 @@
     "no_principals": "Aucun autre utilisateur ou groupe trouvé.",
     "no_match": "Aucun résultat.",
     "directory_restricted": "Votre serveur ne permet pas de parcourir son annuaire d'utilisateurs, seuls vos groupes et les personnes ayant partagé quelque chose avec vous sont donc listés. Un administrateur peut activer les requêtes d'annuaire dans les paramètres de partage de Stalwart.",
+    "directory_not_browsable": "Votre serveur ne vous permet pas de parcourir son annuaire d'utilisateurs.",
     "directory_failed": "Impossible de charger la liste des utilisateurs et des groupes.",
     "remove": "Révoquer l'accès",
     "group": "Groupe",

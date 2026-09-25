@@ -107,6 +107,7 @@ describe('listPrincipals', () => {
     const listing = await client.listPrincipals();
 
     expect(listing.status).toBe('restricted');
+    expect(listing.directoryQueriesOff).toBe(true);
     expect(listing.principals.map((p) => p.id)).toEqual(['me', 'grp', 'jane']);
     expect(listing.principals.every((p) => p.accountId === 'me')).toBe(true);
     expect(requests).toHaveLength(2);
@@ -123,6 +124,25 @@ describe('listPrincipals', () => {
       : [['error', { type: 'forbidden', description: 'You are not authorized to perform this action' }, '0']]));
 
     expect(await client.listPrincipals()).toEqual({ principals: [], status: 'restricted' });
+  });
+
+  it('does not blame the directory setting when a 0.16 role may get principals but not query them', async () => {
+    // 0.16's Principal/get without ids returns every principal (get.rs), and
+    // its directory setting has no effect over JMAP.
+    const client = makeClient();
+    answer(client, (calls) => (calls[0][0] === 'Principal/query'
+      ? NOT_AUTHORIZED
+      : [['Principal/get', { accountId: 'me', state: 'n', list: [
+        { id: 'me', type: 'individual', name: 'me@example.com', description: null, email: 'me@example.com' },
+        { id: 'a', type: 'individual', name: 'anna@example.com', description: null, email: 'anna@example.com' },
+        { id: 'b', type: 'individual', name: 'bob@example.com', description: null, email: 'bob@example.com' },
+      ], notFound: [] }, '0']]));
+
+    const listing = await client.listPrincipals();
+
+    expect(listing.status).toBe('restricted');
+    expect(listing.directoryQueriesOff).toBeUndefined();
+    expect(listing.principals.map((p) => p.id)).toEqual(['me', 'a', 'b']);
   });
 
   it('keeps the pages already fetched when a later page fails', async () => {

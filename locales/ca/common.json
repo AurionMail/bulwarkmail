@@ -2864,7 +2864,8 @@
         "no_busy_times": "No hi ha hores ocupades compartides",
         "unknown": "No és un usuari d'aquest servidor",
         "error": "No s'ha pogut comprovar",
-        "checking": "Comprovant…"
+        "checking": "Comprovant…",
+        "unavailable_on_server": "La informació de lliure/ocupat no està disponible en aquest servidor"
       },
       "title": "Participants",
       "add": "Afegeix un participant",
@@ -3267,6 +3268,7 @@
     "no_principals": "No s'ha trobat cap altre usuari o grup.",
     "no_match": "Cap coincidència.",
     "directory_restricted": "El vostre servidor no permet explorar el directori d'usuaris, així que només es mostren els vostres grups i les persones que han compartit alguna cosa amb vós. Un administrador pot activar les consultes al directori a la configuració de compartició de Stalwart.",
+    "directory_not_browsable": "El vostre servidor no us permet explorar el directori d'usuaris.",
     "directory_failed": "No s'ha pogut carregar la llista d'usuaris i grups.",
     "remove": "Elimina l'accés",
     "group": "Grup",

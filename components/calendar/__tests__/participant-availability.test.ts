@@ -148,18 +148,34 @@ describe('ParticipantAvailability', () => {
     vi.restoreAllMocks();
   });
 
-  it('stays hidden on Stalwart 1.0 with directory queries off, without looking anyone up', async () => {
+  it('says free/busy is not available on Stalwart 1.0 with directory queries off, without looking anyone up', async () => {
     const { client, requests } = makeClient({ ownPrincipal: OWN_PRINCIPAL_1_0_DIRECTORY_OFF });
     renderFor(client);
-    // Nothing shows while the server is asked, either.
+    // Nothing shows while the server is asked.
     expect(screen.queryByTestId('participant-availability')).toBeNull();
+    expect(screen.queryByTestId('participant-availability-unavailable')).toBeNull();
 
-    await waitFor(() => expect(requests).toHaveLength(1));
+    // The i18n test mock renders the translation key.
+    await waitFor(() => expect(screen.getByText('unavailable_on_server')).toBeInTheDocument());
     await settle();
 
     expect(screen.queryByTestId('participant-availability')).toBeNull();
+    expect(screen.getAllByTestId('participant-availability-unavailable')).toHaveLength(1);
     expect(methodsOf(requests)).toEqual(['Principal/get']);
     expect(requests[0][0]).toEqual(['Principal/get', { accountId: 'me', ids: ['me'], properties: ['id', 'capabilities'] }, '0']);
+  });
+
+  it('renders nothing when the server offers no free/busy at all', async () => {
+    const { client, requests } = makeClient({ ownPrincipal: OWN_PRINCIPAL_0_16 });
+    // No urn:ietf:params:jmap:principals:availability in the session.
+    const capabilities = (client as unknown as { capabilities: Record<string, unknown> }).capabilities;
+    delete capabilities['urn:ietf:params:jmap:principals:availability'];
+    const { container } = renderFor(client);
+
+    await settle();
+
+    expect(container).toBeEmptyDOMElement();
+    expect(requests).toHaveLength(0);
   });
 
   it('checks attendees on Stalwart 0.16, whose principal capabilities are empty', async () => {
@@ -177,28 +193,30 @@ describe('ParticipantAvailability', () => {
     expect(screen.getByText('unknown')).toBeInTheDocument();
   });
 
-  it('hides the block once getAvailability is refused with forbidden, and stays hidden', async () => {
+  it('says free/busy is not available once getAvailability is refused with forbidden, and asks no more', async () => {
     const { client, requests } = makeClient({
       ownPrincipal: OWN_PRINCIPAL_0_16,
       availability: () => DIRECTORY_QUERIES_OFF,
     });
     const first = renderFor(client);
     await waitFor(() => expect(methodsOf(requests)).toContain('Principal/getAvailability'), { timeout: 2000 });
-    await waitFor(() => expect(screen.queryByTestId('participant-availability')).toBeNull());
+    await waitFor(() => expect(screen.getByText('unavailable_on_server')).toBeInTheDocument());
+    expect(screen.queryByTestId('participant-availability')).toBeNull();
     first.unmount();
 
     const calls = requests.length;
     renderFor(client);
     await settle();
+    expect(screen.getByText('unavailable_on_server')).toBeInTheDocument();
     expect(screen.queryByTestId('participant-availability')).toBeNull();
     expect(requests).toHaveLength(calls);
   });
 
-  it('stays hidden when the role may not read principals', async () => {
+  it('says free/busy is not available when the role may not read principals (0.16 and 1.0)', async () => {
     const { client, requests } = makeClient({ ownPrincipal: NOT_AUTHORIZED });
     renderFor(client);
 
-    await waitFor(() => expect(requests).toHaveLength(1));
+    await waitFor(() => expect(screen.getByText('unavailable_on_server')).toBeInTheDocument());
     await settle();
 
     expect(screen.queryByTestId('participant-availability')).toBeNull();

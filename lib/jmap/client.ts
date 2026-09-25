@@ -435,6 +435,13 @@ const MAILBOX_PROPERTIES = [
 // SieveScript properties (RFC 9661 §2), explicit for the same reason.
 const SIEVE_SCRIPT_PROPERTIES = ["id", "name", "blobId", "isActive"] as const;
 
+// How Stalwart 1.0 words its refusal of Principal/query while the
+// administrator has directory queries off (jmap/src/principal/query.rs). A
+// role without the permission gets `forbidden` too, as "You are not
+// authorized to perform this action", so only the wording tells the two
+// apart; it picks the explanation shown, never what Bulwark does.
+const DIRECTORY_QUERIES_OFF = "The administrator has disabled directory queries.";
+
 /**
  * Detect whether a calendar object returned by the server is actually a
  * task (VTODO) rather than an event (VEVENT).  CalDAV clients like
@@ -6088,7 +6095,8 @@ export class JMAPClient implements IJMAPClient {
    * does the same for a role without the query permission. The chained get
    * then fails with `invalidResultReference`, so only the query's own error
    * says why. The listing is then `restricted` to what Principal/get without
-   * ids still returns.
+   * ids still returns: on 1.0 the principals the user knows, on 0.16
+   * everyone, unless the role may not read principals either.
    */
   async listPrincipals(targetAccountId?: string): Promise<PrincipalListing> {
     if (!this.supportsPrincipals()) return { principals: [], status: "ok" };
@@ -6113,7 +6121,11 @@ export class JMAPClient implements IJMAPClient {
         if (!queryResp || !getResp) {
           const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
           if (error?.type === "forbidden") {
-            return { principals: await this.getKnownPrincipals(accountId), status: "restricted" };
+            return {
+              principals: await this.getKnownPrincipals(accountId),
+              status: "restricted",
+              ...(error.description === DIRECTORY_QUERIES_OFF ? { directoryQueriesOff: true } : {}),
+            };
           }
           console.error("Failed to fetch principals:", error);
           return { principals: all, status: "error" };

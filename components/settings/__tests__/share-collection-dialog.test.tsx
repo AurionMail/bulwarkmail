@@ -21,6 +21,13 @@ const DIRECTORY_OFF: MethodResponse[] = [
   ['error', { type: 'invalidResultReference', description: 'Result reference to 0#Principal/query not found.' }, '1'],
 ];
 
+// A role without the query permission: 0.16's dispatcher refuses before the
+// handler runs (api/auth.rs), whatever the directory setting says.
+const NOT_AUTHORIZED: MethodResponse[] = [
+  ['error', { type: 'forbidden', description: 'You are not authorized to perform this action' }, '0'],
+  ['error', { type: 'invalidResultReference', description: 'Result reference to 0#Principal/query not found.' }, '1'],
+];
+
 const READ: CalendarRights = {
   mayReadFreeBusy: true, mayReadItems: true, mayWriteAll: false, mayWriteOwn: false,
   mayUpdatePrivate: false, mayRSVP: false, mayShare: false, mayDelete: false,
@@ -91,11 +98,27 @@ describe('ShareCollectionDialog directory', () => {
     fireEvent.click(screen.getByText('add_person'));
 
     await waitFor(() => expect(screen.getByText('directory_restricted')).toBeInTheDocument());
+    expect(screen.queryByText('directory_not_browsable')).toBeNull();
     expect(screen.getByText('Sales')).toBeInTheDocument();
     expect(screen.queryByText('me@example.com')).toBeNull();
 
     fireEvent.click(screen.getByText('Jane'));
     await waitFor(() => expect(onShare).toHaveBeenCalledWith('jane', READ));
+  });
+
+  it('says only that the directory cannot be browsed when a 0.16 role may not query it, and lists whoever comes back', async () => {
+    // Principal/get without ids returns everyone on 0.16, so the 1.0 wording
+    // ("only your groups and people who have shared with you") and its hint
+    // about Stalwart's sharing settings would both be wrong.
+    renderDialog(makeClient((calls) => (calls[0][0] === 'Principal/query'
+      ? NOT_AUTHORIZED
+      : [['Principal/get', { list: [ME, ANNA, SALES], notFound: [] }, '0']])));
+    fireEvent.click(screen.getByText('add_person'));
+
+    await waitFor(() => expect(screen.getByText('directory_not_browsable')).toBeInTheDocument());
+    expect(screen.queryByText('directory_restricted')).toBeNull();
+    expect(screen.getByText('anna@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Sales')).toBeInTheDocument();
   });
 
   it('shows the notice instead of "no users found" when a restricted list offers no one', async () => {

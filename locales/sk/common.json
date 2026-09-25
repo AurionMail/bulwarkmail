@@ -2864,7 +2864,8 @@
         "no_busy_times": "Žiadne zdieľané obsadené časy",
         "unknown": "Nie je používateľom tohto servera",
         "error": "Nepodarilo sa overiť",
-        "checking": "Overuje sa…"
+        "checking": "Overuje sa…",
+        "unavailable_on_server": "Informácie o voľnom/obsadenom čase nie sú na tomto serveri dostupné"
       },
       "title": "Účastníci",
       "add": "Pridať účastníka",
@@ -3267,6 +3268,7 @@
     "no_principals": "Neboli nájdení žiadni ďalší používatelia ani skupiny.",
     "no_match": "Žiadne výsledky.",
     "directory_restricted": "Váš server nepovoľuje prehliadať adresár používateľov, preto sa zobrazujú iba vaše skupiny a ľudia, ktorí s vami niečo zdieľali. Správca môže zapnúť dopyty na adresár v nastaveniach zdieľania servera Stalwart.",
+    "directory_not_browsable": "Váš server vám nepovoľuje prehliadať adresár používateľov.",
     "directory_failed": "Zoznam používateľov a skupín sa nepodarilo načítať.",
     "remove": "Odstrániť prístup",
     "group": "Skupina",

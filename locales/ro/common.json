@@ -2864,7 +2864,8 @@
         "no_busy_times": "Niciun interval ocupat partajat",
         "unknown": "Nu este un utilizator al acestui server",
         "error": "Nu s-a putut verifica",
-        "checking": "Se verifică…"
+        "checking": "Se verifică…",
+        "unavailable_on_server": "Informațiile liber/ocupat nu sunt disponibile pe acest server"
       },
       "title": "Participanți",
       "add": "Adăugați un participant",
@@ -3267,6 +3268,7 @@
     "no_principals": "Nu s-au găsit alți utilizatori sau grupuri.",
     "no_match": "Nu s-au găsit rezultate.",
     "directory_restricted": "Serverul dvs. nu permite răsfoirea directorului de utilizatori, așa că sunt afișate doar grupurile dvs. și persoanele care au partajat ceva cu dvs. Un administrator poate activa interogările directorului în setările de partajare ale Stalwart.",
+    "directory_not_browsable": "Serverul dvs. nu vă permite să răsfoiți directorul de utilizatori.",
     "directory_failed": "Lista de utilizatori și grupuri nu a putut fi încărcată.",
     "remove": "Eliminați accesul",
     "group": "Grup",

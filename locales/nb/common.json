@@ -2864,7 +2864,8 @@
         "no_busy_times": "Ingen delte opptatt-tider",
         "unknown": "Ikke en bruker på denne serveren",
         "error": "Kunne ikke sjekke",
-        "checking": "Sjekker…"
+        "checking": "Sjekker…",
+        "unavailable_on_server": "Ledig/opptatt-informasjon er ikke tilgjengelig på denne serveren"
       },
       "title": "Deltakere",
       "add": "Legg til deltaker",
@@ -3267,6 +3268,7 @@
     "no_principals": "Ingen andre brukere eller grupper funnet.",
     "no_match": "Ingen treff.",
     "directory_restricted": "Serveren din tillater ikke å bla gjennom brukerkatalogen, så bare gruppene dine og personer som har delt noe med deg, vises. En administrator kan slå på katalogspørringer i delingsinnstillingene i Stalwart.",
+    "directory_not_browsable": "Serveren din lar deg ikke bla gjennom brukerkatalogen.",
     "directory_failed": "Kunne ikke laste inn listen over brukere og grupper.",
     "remove": "Fjern tilgang",
     "group": "Gruppe",

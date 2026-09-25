@@ -2863,7 +2863,8 @@
         "no_busy_times": "Nav kopīgotu aizņemto laiku",
         "unknown": "Nav šī servera lietotājs",
         "error": "Neizdevās pārbaudīt",
-        "checking": "Pārbauda…"
+        "checking": "Pārbauda…",
+        "unavailable_on_server": "Informācija par brīvo/aizņemto laiku šajā serverī nav pieejama"
       },
       "title": "Dalībnieki",
       "add": "Pievienot dalībnieku",
@@ -3586,6 +3587,7 @@
     "no_principals": "Citi lietotāji vai grupas nav atrastas.",
     "no_match": "Nav atbilstību.",
     "directory_restricted": "Jūsu serveris neļauj pārlūkot tā lietotāju direktoriju, tāpēc tiek parādītas tikai jūsu grupas un personas, kas ar jums kaut ko kopīgojušas. Administrators var ieslēgt direktorija vaicājumus Stalwart kopīgošanas iestatījumos.",
+    "directory_not_browsable": "Jūsu serveris neļauj jums pārlūkot tā lietotāju direktoriju.",
     "directory_failed": "Neizdevās ielādēt lietotāju un grupu sarakstu.",
     "remove": "Noņemt piekļuvi",
     "group": "Grupa",

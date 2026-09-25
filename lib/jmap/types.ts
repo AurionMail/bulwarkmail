@@ -548,6 +548,12 @@ export type PrincipalDirectoryStatus = 'ok' | 'restricted' | 'error';
 export interface PrincipalListing {
   principals: Principal[];
   status: PrincipalDirectoryStatus;
+  /**
+   * With `restricted`: the administrator turned directory queries off, as
+   * Stalwart 1.0 says in its refusal, rather than the user's role lacking
+   * the permission. 0.16 has no such refusal over JMAP.
+   */
+  directoryQueriesOff?: boolean;
 }
 
 /**

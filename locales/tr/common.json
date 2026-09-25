@@ -2864,7 +2864,8 @@
         "no_busy_times": "Paylaşılan meşgul zaman yok",
         "unknown": "Bu sunucuda kullanıcı değil",
         "error": "Kontrol edilemedi",
-        "checking": "Kontrol ediliyor…"
+        "checking": "Kontrol ediliyor…",
+        "unavailable_on_server": "Müsait/meşgul bilgisi bu sunucuda kullanılamıyor"
       },
       "title": "Katılımcılar",
       "add": "Katılımcı ekle",
@@ -3267,6 +3268,7 @@
     "no_principals": "Başka kullanıcı veya grup bulunamadı.",
     "no_match": "Eşleşme yok.",
     "directory_restricted": "Sunucunuz kullanıcı dizinine göz atılmasına izin vermiyor, bu nedenle yalnızca gruplarınız ve sizinle bir şey paylaşmış kişiler listeleniyor. Bir yönetici, Stalwart'ın paylaşım ayarlarından dizin sorgularını açabilir.",
+    "directory_not_browsable": "Sunucunuz kullanıcı dizinine göz atmanıza izin vermiyor.",
     "directory_failed": "Kullanıcı ve grup listesi yüklenemedi.",
     "remove": "Erişimi kaldır",
     "group": "Grup",

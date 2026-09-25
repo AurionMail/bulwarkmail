@@ -2864,7 +2864,8 @@
         "no_busy_times": "Keine belegten Zeiten freigegeben",
         "unknown": "Kein Benutzer auf diesem Server",
         "error": "Konnte nicht geprüft werden",
-        "checking": "Wird geprüft…"
+        "checking": "Wird geprüft…",
+        "unavailable_on_server": "Frei/Belegt-Informationen sind auf diesem Server nicht verfügbar"
       },
       "title": "Teilnehmer",
       "add": "Teilnehmer hinzufügen",
@@ -3586,6 +3587,7 @@
     "no_principals": "Keine weiteren Benutzer oder Gruppen gefunden.",
     "no_match": "Keine Treffer.",
     "directory_restricted": "Ihr Server erlaubt kein Durchsuchen seines Benutzerverzeichnisses, daher werden nur Ihre Gruppen und Personen aufgeführt, die etwas mit Ihnen geteilt haben. Ein Administrator kann Verzeichnisabfragen in den Freigabeeinstellungen von Stalwart aktivieren.",
+    "directory_not_browsable": "Ihr Server erlaubt Ihnen nicht, sein Benutzerverzeichnis zu durchsuchen.",
     "directory_failed": "Die Liste der Benutzer und Gruppen konnte nicht geladen werden.",
     "remove": "Zugriff entfernen",
     "group": "Gruppe",

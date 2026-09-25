@@ -154,6 +154,7 @@ export function ShareCollectionDialog({
   const modalRef = useRef<HTMLDivElement>(null);
   const [allPrincipals, setAllPrincipals] = useState<Principal[]>([]);
   const [directoryStatus, setDirectoryStatus] = useState<PrincipalDirectoryStatus>("ok");
+  const [directoryQueriesOff, setDirectoryQueriesOff] = useState(false);
   const [loadingPrincipals, setLoadingPrincipals] = useState(true);
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -163,10 +164,11 @@ export function ShareCollectionDialog({
   useEffect(() => {
     let cancelled = false;
     setLoadingPrincipals(true);
-    void loadPrincipalDirectory(client).then(({ principals, status }) => {
+    void loadPrincipalDirectory(client).then(({ principals, status, directoryQueriesOff }) => {
       if (cancelled) return;
       setAllPrincipals(principals);
       setDirectoryStatus(status);
+      setDirectoryQueriesOff(!!directoryQueriesOff);
       setLoadingPrincipals(false);
     });
     return () => { cancelled = true; };
@@ -374,10 +376,15 @@ export function ShareCollectionDialog({
                 autoFocus
               />
               {/* The list below is partial or empty for a reason the user
-                  can't see otherwise; say so instead of "no users found". */}
+                  can't see otherwise; say so instead of "no users found". Only
+                  Stalwart 1.0's own refusal says who is still listed and what
+                  an administrator can do: a 0.16 role without the permission
+                  gets another refusal, and a list of everyone after it. */}
               {!loadingPrincipals && directoryStatus !== "ok" && (
                 <p className="text-xs text-muted-foreground" role="status">
-                  {directoryStatus === "restricted" ? t("directory_restricted") : t("directory_failed")}
+                  {directoryStatus === "error"
+                    ? t("directory_failed")
+                    : directoryQueriesOff ? t("directory_restricted") : t("directory_not_browsable")}
                 </p>
               )}
               <div className="max-h-48 overflow-y-auto -mx-1">

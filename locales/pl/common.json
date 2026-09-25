@@ -2864,7 +2864,8 @@
         "no_busy_times": "Brak udostępnionych zajętych terminów",
         "unknown": "Nie jest użytkownikiem tego serwera",
         "error": "Nie udało się sprawdzić",
-        "checking": "Sprawdzanie…"
+        "checking": "Sprawdzanie…",
+        "unavailable_on_server": "Informacje wolny/zajęty nie są dostępne na tym serwerze"
       },
       "title": "Uczestnicy",
       "add": "Dodaj uczestnika",
@@ -3586,6 +3587,7 @@
     "no_principals": "Nie znaleziono innych użytkowników ani grup.",
     "no_match": "Brak wyników.",
     "directory_restricted": "Twój serwer nie pozwala przeglądać katalogu użytkowników, dlatego widoczne są tylko Twoje grupy i osoby, które coś Ci udostępniły. Administrator może włączyć zapytania do katalogu w ustawieniach udostępniania Stalwart.",
+    "directory_not_browsable": "Twój serwer nie pozwala Ci przeglądać katalogu użytkowników.",
     "directory_failed": "Nie udało się wczytać listy użytkowników i grup.",
     "remove": "Usuń dostęp",
     "group": "Grupa",

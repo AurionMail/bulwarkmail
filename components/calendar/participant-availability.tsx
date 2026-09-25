@@ -93,8 +93,9 @@ async function lookUpStatuses(
 /**
  * Free/busy of the invited attendees for the event window
  * (Principal/getAvailability). Only attendees that are principals on this
- * server can be checked; external addresses show as unknown. Nothing is shown
- * when the server won't answer free/busy for this user.
+ * server can be checked; external addresses show as unknown. When the server
+ * won't answer free/busy for this user, one line says so; nothing is shown
+ * when it doesn't offer free/busy at all.
  */
 export function ParticipantAvailability({ attendees, start, end }: ParticipantAvailabilityProps) {
   const t = useTranslations("calendar.participants.availability");
@@ -153,7 +154,18 @@ export function ParticipantAvailability({ attendees, start, end }: ParticipantAv
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, wanted, allowed, emailsKey, startMs, endMs]);
 
-  if (!wanted || allowed !== true) return null;
+  if (!wanted) return null;
+  if (allowed === false) {
+    // Stalwart 1.0 with directory queries off (its default), or a role without
+    // the principal permissions: the lookups are refused, so explain the gap
+    // instead of leaving the attendees without a word.
+    return (
+      <p className="mt-1.5 text-xs text-muted-foreground" role="status" data-testid="participant-availability-unavailable">
+        {t("unavailable_on_server")}
+      </p>
+    );
+  }
+  if (allowed !== true) return null;
 
   return (
     <ul className="mt-1.5 space-y-0.5" aria-label={t("title")} data-testid="participant-availability">

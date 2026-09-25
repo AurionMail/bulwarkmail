@@ -2864,7 +2864,8 @@
         "no_busy_times": "Ingen delte optagede tider",
         "unknown": "Ikke en bruger på denne server",
         "error": "Kunne ikke kontrollere",
-        "checking": "Kontrollerer…"
+        "checking": "Kontrollerer…",
+        "unavailable_on_server": "Ledig/optaget-oplysninger er ikke tilgængelige på denne server"
       },
       "title": "Deltagere",
       "add": "Tilføj deltager",
@@ -3267,6 +3268,7 @@
     "no_principals": "Ingen andre brugere eller grupper fundet.",
     "no_match": "Ingen match.",
     "directory_restricted": "Din server tillader ikke, at brugerkataloget gennemses, så kun dine grupper og personer, der har delt noget med dig, vises. En administrator kan slå katalogforespørgsler til i Stalwarts delingsindstillinger.",
+    "directory_not_browsable": "Din server lader dig ikke gennemse brugerkataloget.",
     "directory_failed": "Kunne ikke indlæse listen over brugere og grupper.",
     "remove": "Fjern adgang",
     "group": "Gruppe",

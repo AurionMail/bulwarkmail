@@ -2864,7 +2864,8 @@
         "no_busy_times": "Nessun orario occupato condiviso",
         "unknown": "Non è un utente di questo server",
         "error": "Impossibile verificare",
-        "checking": "Verifica in corso…"
+        "checking": "Verifica in corso…",
+        "unavailable_on_server": "Le informazioni libero/occupato non sono disponibili su questo server"
       },
       "title": "Partecipanti",
       "add": "Aggiungi partecipante",
@@ -3586,6 +3587,7 @@
     "no_principals": "Nessun altro utente o gruppo trovato.",
     "no_match": "Nessun risultato.",
     "directory_restricted": "Il tuo server non consente di sfogliare la directory degli utenti, quindi vengono elencati solo i tuoi gruppi e le persone che hanno condiviso qualcosa con te. Un amministratore può attivare le query sulla directory nelle impostazioni di condivisione di Stalwart.",
+    "directory_not_browsable": "Il tuo server non ti consente di sfogliare la directory degli utenti.",
     "directory_failed": "Impossibile caricare l'elenco di utenti e gruppi.",
     "remove": "Rimuovi accesso",
     "group": "Gruppo",

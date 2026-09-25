@@ -2864,7 +2864,8 @@
         "no_busy_times": "Nincsenek megosztott foglalt időszakok",
         "unknown": "Nem felhasználó ezen a kiszolgálón",
         "error": "Nem sikerült ellenőrizni",
-        "checking": "Ellenőrzés…"
+        "checking": "Ellenőrzés…",
+        "unavailable_on_server": "A szabad/foglalt információ nem érhető el ezen a szerveren"
       },
       "title": "Résztvevők",
       "add": "Résztvevő hozzáadása",
@@ -3267,6 +3268,7 @@
     "no_principals": "Nincs más felhasználó vagy csoport.",
     "no_match": "Nincs találat.",
     "directory_restricted": "A szervered nem engedi a felhasználói címtár böngészését, ezért csak a csoportjaid és azok jelennek meg, akik megosztottak veled valamit. Egy rendszergazda a Stalwart megosztási beállításaiban engedélyezheti a címtár-lekérdezéseket.",
+    "directory_not_browsable": "A szervered nem engedi, hogy böngészd a felhasználói címtárát.",
     "directory_failed": "Nem sikerült betölteni a felhasználók és csoportok listáját.",
     "remove": "Hozzáférés eltávolítása",
     "group": "Csoport",
