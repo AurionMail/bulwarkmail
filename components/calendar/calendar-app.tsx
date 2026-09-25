@@ -52,14 +52,8 @@ import { useIsFocusedProTab } from "@/hooks/use-pane-context";
 import { useProMultiAccountCalendars } from "@/hooks/use-pro-multi-account-calendars";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { sanitizeOutgoingCalendarEventData } from "@/lib/calendar-event-normalization";
-import {
-  baseEventStoreId,
-  buildFallbackExcludePatch,
-  isBrowserExpandedOccurrence,
-  isServerRecurrenceInstance,
-  overrideContextOf,
-} from "@/lib/recurrence-instances";
-import { saveOccurrenceEdit, truncateSeriesAt, type EventEditorState } from "@/lib/recurrence-scope-edit";
+import { baseEventStoreId, isServerRecurrenceInstance } from "@/lib/recurrence-instances";
+import { deleteOccurrence, saveOccurrenceEdit, type EventEditorState } from "@/lib/recurrence-scope-edit";
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { getClientByLocalAccountId } from "@/stores/client-registry";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
@@ -1012,48 +1006,14 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
         }
         toast.success(t("notifications.event_updated"));
       } else {
-        switch (scope) {
-          case "this": {
-            if (isServerRecurrenceInstance(event) || isBrowserExpandedOccurrence(event)) {
-              // The store destroys a server occurrence, or excludes a
-              // browser-expanded one on its base event.
-              await deleteEvent(client, event.id, sendScheduling);
-              break;
-            }
-            // An override outside an expanded series: exclude it on the master.
-            const delMaster = await findMasterEvent(event);
-            const excludePatch = delMaster && buildFallbackExcludePatch(overrideContextOf(event, delMaster));
-            if (delMaster && excludePatch) {
-              await updateEvent(client, delMaster.id, excludePatch, sendScheduling);
-            } else {
-              await deleteEvent(client, event.id, sendScheduling);
-            }
-            break;
-          }
-          case "this_and_future": {
-            const result = await truncateSeriesAt(event, { client, updateEvent, findMasterEvent }, {
-              sendScheduling,
-              userEmails: currentUserEmails,
-            });
-            if (!result) {
-              toast.error(t("notifications.event_error"));
-              return;
-            }
-            break;
-          }
-          case "all": {
-            const master = await findMasterEvent(event);
-            if (!master) {
-              toast.error(t("notifications.event_error"));
-              return;
-            }
-            await deleteEvent(client, master.id, sendScheduling);
-            break;
-          }
-          default: {
-            const _exhaustive: never = scope;
-            throw new Error(`Unhandled scope: ${_exhaustive}`);
-          }
+        const deleted = await deleteOccurrence(scope, {
+          event,
+          sendScheduling,
+          userEmails: currentUserEmails,
+        }, { client, updateEvent, deleteEvent, findMasterEvent });
+        if (!deleted) {
+          toast.error(t("notifications.event_error"));
+          return;
         }
         toast.success(t("notifications.event_deleted"));
       }

@@ -973,6 +973,12 @@ export const useCalendarStore = create<CalendarStore>()(
           }
 
           set((state) => ({ events: [...state.events, mappedCreated] }));
+          // A series shows as its occurrences, which only the range load
+          // expands (on the server, or in the browser): until then the grid
+          // had the series itself, once, at its first occurrence.
+          if ((mappedCreated.recurrenceRules?.length ?? 0) > 0) {
+            await refetchAfterOccurrenceMutation();
+          }
           // Invitation emails are sent by the server: `sendSchedulingMessages`
           // on CalendarEvent/set makes Stalwart queue the iTIP REQUEST itself.
           // Sending a client-side iMIP copy here produced duplicate emails.
@@ -1068,7 +1074,10 @@ export const useCalendarStore = create<CalendarStore>()(
               return merged;
             }),
           }));
-          if (target.isOccurrence || target.isBrowserOccurrence || hasExpandedOccurrencesOf(get().events, realId, target)) {
+          // A change to a series - or one that makes an event a series or a
+          // single event again - changes which occurrences the grid shows.
+          const changesSeries = 'recurrenceRules' in cleanUpdates || (storeEvent?.recurrenceRules?.length ?? 0) > 0;
+          if (target.isOccurrence || target.isBrowserOccurrence || changesSeries || hasExpandedOccurrencesOf(get().events, realId, target)) {
             await refetchAfterOccurrenceMutation();
           }
           // Update emails (iTIP REQUEST/REPLY) are sent by the server via the

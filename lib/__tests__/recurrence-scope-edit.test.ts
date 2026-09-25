@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { addDays, addHours, addMinutes, startOfDay } from 'date-fns';
 import {
+  deleteOccurrence,
   followingSeriesData,
   saveOccurrenceEdit,
   seriesUpdatesFromOccurrence,
@@ -389,5 +390,151 @@ describe.each(occurrences)('saving one occurrence on Stalwart %s', (_label, vers
     await saveOccurrenceEdit('this', { event: occurrence, updates, sendScheduling: false, userEmails: [ATTENDEE] }, deps);
 
     expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, occurrence.id, updates, false, { asOrganizer: false });
+  });
+});
+
+
+// A series the calendar has not expanded - one just created, one opened from
+// a link - shows as the series itself, once, at its first occurrence. "This
+// occurrence" of it went to the series: the editor's data rewrote every
+// occurrence (live on 1.0 and 0.16.23, the request an update of the series'
+// id with its title, start and rule), and deleting it deleted the series.
+describe.each<[string, Version]>([['1.0', '1.0'], ['0.16', '0.16']])('the series itself standing for its first occurrence on Stalwart %s', (_label, version) => {
+  // As CalendarEvent/get returns the base event: on 1.0 (and 0.16.20 on) it
+  // names itself as its base event.
+  const base = (overrides: Partial<CalendarEvent> = {}) => ({
+    ...series(version), ...(version === '1.0' ? { baseEventId: 'b' } : {}), recurrenceOverrides: null, ...overrides,
+  }) as CalendarEvent;
+  function seriesActions(master: CalendarEvent | null) {
+    return { ...actions(master), deleteEvent: vi.fn().mockResolvedValue(undefined) };
+  }
+
+  it('changes only the first occurrence for "this occurrence"', async () => {
+    const master = base();
+    const deps = seriesActions(master);
+
+    const saved = await saveOccurrenceEdit('this', {
+      event: master, updates: editorUpdates(master, { title: 'Kick-off', recurrenceId: undefined }), sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    expect(saved).toBe(true);
+    const [, id, patch, send] = deps.updateEvent.mock.calls[0];
+    expect([id, send]).toEqual(['b', true]);
+    // The whole map, as the series has no overrides yet; nothing of the series changes.
+    expect(Object.keys(patch)).toEqual(['recurrenceOverrides']);
+    expect(patch.recurrenceOverrides['2026-10-05T10:00:00']).toMatchObject({ start: '2026-10-05T10:00:00', title: 'Kick-off' });
+  });
+
+  it('adds the override to those the series has', async () => {
+    const master = base({ recurrenceOverrides: series(version).recurrenceOverrides });
+    const deps = seriesActions(master);
+
+    await saveOccurrenceEdit('this', {
+      event: master, updates: editorUpdates(master, { title: 'Kick-off', recurrenceId: undefined }), sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    expect(Object.keys(deps.updateEvent.mock.calls[0][2])).toEqual(['recurrenceOverrides/2026-10-05T10:00:00']);
+  });
+
+  it('changes the whole series for "this and following" from its first occurrence', async () => {
+    const master = base();
+    const deps = seriesActions(master);
+
+    await saveOccurrenceEdit('this_and_future', {
+      event: master, updates: editorUpdates(master, { title: 'Kick-off', recurrenceId: undefined }), editor: editorOn(master),
+      sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    // Not ended before its first occurrence, no new series: the series itself changes.
+    expect(deps.createEvent).not.toHaveBeenCalled();
+    expect(deps.updateEvent).toHaveBeenCalledTimes(1);
+    const [, id, patch] = deps.updateEvent.mock.calls[0];
+    expect(id).toBe('b');
+    expect(patch).toMatchObject({ title: 'Kick-off', recurrenceRules: master.recurrenceRules });
+  });
+
+  it('excludes the first occurrence for "delete this occurrence"', async () => {
+    const master = base();
+    const deps = seriesActions(master);
+
+    const deleted = await deleteOccurrence('this', { event: master, sendScheduling: true, userEmails: [ORGANIZER] }, deps);
+
+    expect(deleted).toBe(true);
+    expect(deps.deleteEvent).not.toHaveBeenCalled();
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', {
+      recurrenceOverrides: { '2026-10-05T10:00:00': { excluded: true } },
+    }, true);
+  });
+
+  it('deletes the whole series for "delete this and following" from its first occurrence', async () => {
+    const master = base();
+    const deps = seriesActions(master);
+
+    await deleteOccurrence('this_and_future', { event: master, sendScheduling: true, userEmails: [ORGANIZER] }, deps);
+
+    expect(deps.deleteEvent).toHaveBeenCalledWith(deps.client, 'b', true);
+    expect(deps.updateEvent).not.toHaveBeenCalled();
+  });
+
+  it('refuses rather than touch a series it cannot find', async () => {
+    const deps = seriesActions(null);
+
+    expect(await saveOccurrenceEdit('this', { event: base(), updates: { title: 'x' }, userEmails: [ORGANIZER] }, deps)).toBe(false);
+    expect(await deleteOccurrence('this', { event: base(), userEmails: [ORGANIZER] }, deps)).toBe(false);
+    expect(deps.updateEvent).not.toHaveBeenCalled();
+    expect(deps.deleteEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe.each(occurrences)('deleting part of a series from one occurrence on Stalwart %s', (_label, version, make) => {
+  function deleteActions() {
+    return { ...actions(series(version)), deleteEvent: vi.fn().mockResolvedValue(undefined) };
+  }
+
+  it('deletes that occurrence alone through the store', async () => {
+    const occurrence = make();
+    const deps = deleteActions();
+
+    await deleteOccurrence('this', { event: occurrence, sendScheduling: true, userEmails: [ORGANIZER] }, deps);
+
+    expect(deps.deleteEvent).toHaveBeenCalledWith(deps.client, occurrence.id, true);
+  });
+
+  it('ends the series before it, telling the attendees', async () => {
+    const occurrence = make();
+    const deps = deleteActions();
+
+    await deleteOccurrence('this_and_future', { event: occurrence, sendScheduling: true, userEmails: [ORGANIZER] }, deps);
+
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', {
+      recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: null, until: '2026-10-19T09:59:59' }],
+    }, true);
+    expect(deps.deleteEvent).not.toHaveBeenCalled();
+  });
+
+  it('deletes the series for every occurrence', async () => {
+    const deps = deleteActions();
+
+    await deleteOccurrence('all', { event: make(), sendScheduling: true, userEmails: [ORGANIZER] }, deps);
+
+    expect(deps.deleteEvent).toHaveBeenCalledWith(deps.client, 'b', true);
+  });
+});
+
+// An invitation to one occurrence alone: the server keeps it as an event of
+// its own, with a recurrence id and no series to find.
+describe('one occurrence the server keeps as its own event', () => {
+  const lone = () => ({
+    ...serverOccurrence('1.0'), id: 'lone', baseEventId: undefined, recurrenceRules: null, recurrenceOverrides: null,
+  }) as unknown as CalendarEvent;
+
+  it('is itself what changes, and what is deleted', async () => {
+    const deps = { ...actions(null), deleteEvent: vi.fn().mockResolvedValue(undefined) };
+
+    await saveOccurrenceEdit('this', { event: lone(), updates: { title: 'Mine' }, userEmails: [ATTENDEE] }, deps);
+    await deleteOccurrence('this', { event: lone(), userEmails: [ATTENDEE] }, deps);
+
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'lone', { title: 'Mine' }, undefined);
+    expect(deps.deleteEvent).toHaveBeenCalledWith(deps.client, 'lone', undefined);
   });
 });

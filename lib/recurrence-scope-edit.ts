@@ -4,7 +4,7 @@
  * occurrence, it and the ones after it, or all of them.
  */
 
-import { differenceInCalendarDays, format, isSameDay } from 'date-fns';
+import { differenceInCalendarDays, format, isSameDay, parseISO } from 'date-fns';
 import type { RecurrenceEditScope } from '@/components/calendar/recurrence-scope-dialog';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { CalendarEvent } from '@/lib/jmap/types';
@@ -18,6 +18,7 @@ import {
   type ParticipantSaveContext,
 } from '@/lib/calendar-participants';
 import {
+  buildFallbackExcludePatch,
   buildFallbackOverridePatch,
   isBrowserExpandedOccurrence,
   isServerRecurrenceInstance,
@@ -234,21 +235,45 @@ export interface OccurrenceEdit {
   resolveName?: (email: string) => string | undefined;
 }
 
+/** A series itself, not one of its occurrences: it has rules and no recurrence id. */
+function isSeries(event: CalendarEvent): boolean {
+  return (event.recurrenceRules?.length ?? 0) > 0 && !event.recurrenceId;
+}
+
 /**
- * End `occurrence`'s series just before it. With `sendScheduling`, when the
- * user organizes the series, the attendees are told: Stalwart sends them
- * the shortened series, and their copies end there too (they kept every
- * occurrence before). Resolves to the series, its rules as they were and
- * whether the attendees were told, for a rollback; null when the series is
- * not found.
+ * `event` as an occurrence of `master`, to override or exclude on it: itself
+ * when it is one, the series' first occurrence when it is the series itself.
+ * The calendar shows a series it has not expanded - one just created, one
+ * opened from a link - as the series, once, at its first occurrence; a
+ * change to "this occurrence" of it went to the series and rewrote every
+ * occurrence, and deleting it deleted them all.
  */
-export async function truncateSeriesAt(
+function asOccurrenceOf(event: CalendarEvent, master: CalendarEvent): CalendarEvent {
+  const occurrence = event.recurrenceId
+    ? event
+    : { ...event, recurrenceId: master.start, recurrenceIdTimeZone: master.timeZone ?? null };
+  return overrideContextOf(occurrence, master);
+}
+
+/** Whether `event` is `master`'s first occurrence, or the series itself standing for it. */
+function isFirstOccurrence(event: CalendarEvent, master: CalendarEvent): boolean {
+  if (!event.recurrenceId) return true;
+  return parseISO(event.recurrenceId).getTime() === parseISO(master.start).getTime();
+}
+
+/**
+ * End the series `master` just before `occurrence`. With `sendScheduling`,
+ * when the user organizes the series, the attendees are told: Stalwart
+ * sends them the shortened series, and their copies end there too (they
+ * kept every occurrence before). Resolves to the series' rules as they were
+ * and whether the attendees were told, for a rollback.
+ */
+async function truncateSeries(
+  master: CalendarEvent,
   occurrence: CalendarEvent,
-  actions: Pick<OccurrenceEditActions, 'client' | 'updateEvent' | 'findMasterEvent'>,
+  actions: Pick<OccurrenceEditActions, 'client' | 'updateEvent'>,
   scheduling: { sendScheduling?: boolean; userEmails?: string[] } = {},
-): Promise<{ master: CalendarEvent; originalRules: CalendarEvent['recurrenceRules']; announced: true | undefined } | null> {
-  const master = await actions.findMasterEvent(occurrence);
-  if (!master) return null;
+): Promise<{ originalRules: CalendarEvent['recurrenceRules']; announced: true | undefined }> {
   const originalRules = master.recurrenceRules
     ? JSON.parse(JSON.stringify(master.recurrenceRules))
     : null;
@@ -263,7 +288,7 @@ export async function truncateSeriesAt(
   }));
   const announced = scheduling.sendScheduling && userOrganizes(master, scheduling.userEmails ?? []) ? true : undefined;
   await actions.updateEvent(actions.client, master.id, { recurrenceRules: truncatedRules }, announced);
-  return { master, originalRules, announced };
+  return { originalRules, announced };
 }
 
 /**
@@ -329,22 +354,30 @@ export async function saveOccurrenceEdit(
         await updateEvent(client, event.id, updates, sendScheduling, { asOrganizer });
         return true;
       }
-      // An override outside an expanded series: override it on the master.
+      // An override outside an expanded series, or the series itself standing
+      // for its first occurrence: override that occurrence on the series,
+      // never write it to the series itself.
       const master = await findMasterEvent(event);
-      const occurrence = master && overrideContextOf(event, master);
-      const overridePatch = occurrence
-        && buildFallbackOverridePatch(occurrence, withNewOverrideDetails(occurrence, updates, { seriesKeys: true }));
-      if (master && overridePatch) {
+      if (master) {
+        const occurrence = asOccurrenceOf(event, master);
+        const overridePatch = buildFallbackOverridePatch(occurrence, withNewOverrideDetails(occurrence, updates, { seriesKeys: true }));
+        if (!overridePatch) return false;
         await updateEvent(client, master.id, overridePatch, sendScheduling);
-      } else {
-        await updateEvent(client, event.id, updates, sendScheduling);
+        return true;
       }
+      // One occurrence the server keeps as an event of its own (an
+      // invitation to that occurrence alone) is itself what changes.
+      if (isSeries(event)) return false;
+      await updateEvent(client, event.id, updates, sendScheduling);
       return true;
     }
     case 'this_and_future': {
-      const result = await truncateSeriesAt(event, actions, { sendScheduling, userEmails: edit.userEmails });
-      if (!result) return false;
-      const { master, originalRules, announced } = result;
+      const master = await findMasterEvent(event);
+      if (!master) return false;
+      // From the first occurrence on is the whole series; ended before its
+      // first occurrence, the series would be left with none.
+      if (isFirstOccurrence(event, master)) return saveOccurrenceEdit('all', edit, actions);
+      const { originalRules, announced } = await truncateSeries(master, event, actions, { sendScheduling, userEmails: edit.userEmails });
       const newEventData = followingSeriesData(event, master, updates, originalRules);
       try {
         await createEvent(client, newEventData, sendScheduling);
@@ -374,6 +407,67 @@ export async function saveOccurrenceEdit(
         delete seriesUpdates.recurrenceId;
       }
       await updateEvent(client, master.id, seriesUpdates, sendScheduling);
+      return true;
+    }
+    default: {
+      const exhaustive: never = scope;
+      throw new Error(`Unhandled scope: ${exhaustive}`);
+    }
+  }
+}
+
+/** What deleting part of a series works with: the calendar store's actions and the app's series lookup. */
+export interface OccurrenceDeleteActions extends Pick<OccurrenceEditActions, 'client' | 'updateEvent' | 'findMasterEvent'> {
+  deleteEvent: (client: IJMAPClient, id: string, sendSchedulingMessages?: boolean) => Promise<void>;
+}
+
+/**
+ * Delete the part of a series `scope` names, from `event`, the occurrence
+ * the user picked it on. Resolves to false when the series cannot be found.
+ */
+export async function deleteOccurrence(
+  scope: RecurrenceEditScope,
+  deletion: { event: CalendarEvent; sendScheduling?: boolean; userEmails: string[] },
+  actions: OccurrenceDeleteActions,
+): Promise<boolean> {
+  const { client, updateEvent, deleteEvent, findMasterEvent } = actions;
+  const { event, sendScheduling } = deletion;
+  switch (scope) {
+    case 'this': {
+      if (isServerRecurrenceInstance(event) || isBrowserExpandedOccurrence(event)) {
+        // The store destroys a server occurrence, or excludes one the
+        // browser expanded on its base event.
+        await deleteEvent(client, event.id, sendScheduling);
+        return true;
+      }
+      // An override outside an expanded series, or the series itself standing
+      // for its first occurrence: exclude that occurrence on the series,
+      // never delete the series.
+      const master = await findMasterEvent(event);
+      if (master) {
+        const excludePatch = buildFallbackExcludePatch(asOccurrenceOf(event, master));
+        if (!excludePatch) return false;
+        await updateEvent(client, master.id, excludePatch, sendScheduling);
+        return true;
+      }
+      if (isSeries(event)) return false;
+      await deleteEvent(client, event.id, sendScheduling);
+      return true;
+    }
+    case 'this_and_future': {
+      const master = await findMasterEvent(event);
+      if (!master) return false;
+      if (isFirstOccurrence(event, master)) {
+        await deleteEvent(client, master.id, sendScheduling);
+        return true;
+      }
+      await truncateSeries(master, event, actions, { sendScheduling, userEmails: deletion.userEmails });
+      return true;
+    }
+    case 'all': {
+      const master = await findMasterEvent(event);
+      if (!master) return false;
+      await deleteEvent(client, master.id, sendScheduling);
       return true;
     }
     default: {

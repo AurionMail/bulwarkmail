@@ -941,3 +941,48 @@ describe('a first change to one occurrence of a meeting the user organizes', () 
     expect(client.updateCalendarEvent).toHaveBeenCalledTimes(2);
   });
 });
+
+
+// The grid shows a series as the occurrences the range load expands - on the
+// server, or in the browser. A series just created was the series itself,
+// once, at its first occurrence, until the page was reloaded (live on 1.0
+// and 0.16.23): the later ones did not appear, and "this occurrence" of the
+// first went to the series.
+describe('a series created or changed', () => {
+  const series = (overrides: Partial<CalendarEvent> = {}) => occurrence({
+    id: 'b', originalId: 'b', baseEventId: 'b', recurrenceId: null, recurrenceOverrides: null, ...overrides,
+  });
+
+  it('reloads the visible range after a series is created', async () => {
+    const client = fakeClient({ createCalendarEvent: vi.fn().mockResolvedValue(series()) });
+    await useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+    client.queryAllCalendarEvents.mockResolvedValue([occurrence(), occurrence({ id: 'maaaaac', originalId: 'maaaaac', recurrenceId: '2026-09-09T10:00:00' })]);
+
+    await useCalendarStore.getState().createEvent(client, { title: 'Daily standup', recurrenceRules: series().recurrenceRules });
+
+    expect(client.queryAllCalendarEvents).toHaveBeenCalledTimes(2);
+    expect(useCalendarStore.getState().events.map((e) => e.id)).toEqual(['maaaaab', 'maaaaac']);
+  });
+
+  it('does not reload after a single event is created', async () => {
+    const client = fakeClient({ createCalendarEvent: vi.fn().mockResolvedValue(series({ recurrenceRules: null })) });
+    await useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+
+    await useCalendarStore.getState().createEvent(client, { title: 'Once' });
+
+    expect(client.queryAllCalendarEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it('reloads after a change to a series the grid shows as itself, or one that makes an event a series', async () => {
+    const client = fakeClient();
+    await useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+    useCalendarStore.setState({ events: [series(), series({ id: 'x', originalId: 'x', baseEventId: 'x', recurrenceRules: null })] });
+
+    await useCalendarStore.getState().updateEvent(client, 'b', { title: 'Renamed' });
+    expect(client.queryAllCalendarEvents).toHaveBeenCalledTimes(2);
+
+    useCalendarStore.setState({ events: [series({ id: 'x', originalId: 'x', baseEventId: 'x', recurrenceRules: null })] });
+    await useCalendarStore.getState().updateEvent(client, 'x', { recurrenceRules: series().recurrenceRules });
+    expect(client.queryAllCalendarEvents).toHaveBeenCalledTimes(3);
+  });
+});
