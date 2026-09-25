@@ -174,6 +174,30 @@ export class ScheduleTooLateError extends Error {
 }
 
 /**
+ * The server refused a new EmailSubmission because the account holds too many
+ * submission records, and removing the ones that can no longer be cancelled
+ * did not make room. Stalwart 1.0 counts every record, whatever its status or
+ * age, against `maxSubmissions` (500 by default) and answers the create with
+ * `overQuota` - not to be confused with Email/set's `overQuota`, which means
+ * the mailbox storage is full.
+ */
+export class SubmissionQuotaError extends Error {
+  readonly jmapType = 'overQuota';
+  constructor(description?: string) {
+    super(description || 'There are too many email submissions');
+    this.name = 'SubmissionQuotaError';
+  }
+}
+
+/**
+ * How often the background prune may sweep one account's submission records
+ * (see JMAPClient.pruneEmailSubmissions).
+ */
+const SUBMISSION_PRUNE_INTERVAL_MS = 10 * 60 * 1000;
+/** Upper bound on the pages one prune or change-log walk reads. */
+const SUBMISSION_SCAN_MAX_PAGES = 40;
+
+/**
  * Stalwart advertises `maxDelayedSend` as a fixed 30 days, while its MTA
  * rejects any hold beyond the `futureRelease` limit, 7 days by default,
  * with "501 5.5.4 Requested hold time exceeds maximum of N seconds".
@@ -697,6 +721,68 @@ function hasSubmissionMethod(methodCalls: JMAPMethodCall[]): boolean {
   return methodCalls.some(([method]) => method.startsWith('Identity/') || method.startsWith('EmailSubmission/'));
 }
 
+/** A SetError (RFC 8620 §5.3) as returned in notCreated / notUpdated / notDestroyed. */
+interface JMAPSetError {
+  type?: string;
+  description?: string;
+  properties?: string[];
+}
+
+/** The SetError an EmailSubmission/set create came back with, if it failed that way. */
+function submissionCreateError(response: JMAPResponse, creationId: string): JMAPSetError | undefined {
+  return response.methodResponses
+    ?.find(([name]) => name === 'EmailSubmission/set')?.[1]?.notCreated?.[creationId];
+}
+
+function submissionDestroyCall(ids: string[], accountId: string, callId: string): JMAPMethodCall {
+  return ['EmailSubmission/set', { accountId, destroy: ids }, callId];
+}
+
+/**
+ * The ids an EmailSubmission/set destroy removed. `notFound` means the record
+ * is gone already - another tab or device got there first - which is what the
+ * caller wanted. Any other failure is only logged: a leftover record costs
+ * quota, never mail.
+ */
+function readSubmissionDestroy(response: JMAPResponse, callId: string): string[] {
+  const [name, result] = response.methodResponses?.find(([, , id]) => id === callId) ?? [];
+  if (name !== 'EmailSubmission/set') {
+    console.warn('[EmailSubmission] destroy failed:', result);
+    return [];
+  }
+  const failures = Object.entries((result?.notDestroyed ?? {}) as Record<string, JMAPSetError>)
+    .filter(([, error]) => error?.type !== 'notFound');
+  if (failures.length > 0) {
+    console.warn('[EmailSubmission] not destroyed:', Object.fromEntries(failures));
+  }
+  return Array.isArray(result?.destroyed) ? result.destroyed as string[] : [];
+}
+
+/**
+ * The submissions that can no longer be cancelled, going by the undoStatus
+ * EmailSubmission/get reports: canceled ones, and final ones whose sendAt has
+ * passed. Stalwart computes that status from its queue on every version, so
+ * it is the one to trust - unlike the status a create returns (0.16.10-0.16.16
+ * say final for a held send) or the query's undoStatus filter (0.16.6-0.16.16
+ * match the stored status). A pending submission is never among them, whatever
+ * its sendAt: the queue still holds its mail, held or retrying, and without
+ * the record it could no longer be cancelled - while destroying it would not
+ * stop the delivery either.
+ */
+export function prunableSubmissionIds(
+  submissions: Array<Pick<EmailSubmission, 'id' | 'sendAt' | 'undoStatus'>>,
+  now: number,
+): string[] {
+  return submissions
+    .filter((submission) => {
+      if (submission.undoStatus === 'canceled') return true;
+      if (submission.undoStatus !== 'final' || !submission.sendAt) return false;
+      const sendAt = Date.parse(submission.sendAt);
+      return Number.isFinite(sendAt) && sendAt <= now;
+    })
+    .map((submission) => submission.id);
+}
+
 function isSmimeEmail(email: Email): boolean {
   const types: string[] = [];
   const collect = (part: Email['bodyStructure']): void => {
@@ -901,6 +987,8 @@ export class JMAPClient implements IJMAPClient {
   private intentionallyDisconnected = false;
   /** Hold limit learned from a rejected scheduled send (seconds). */
   private learnedMaxDelayedSend: number | null = null;
+  /** When each account's submission records were last pruned (epoch ms). */
+  private submissionPrunedAt = new Map<string, number>();
   // Consecutive keep-alive failures; failed pings skip upcoming ticks
   // (30s -> 1m -> 2m -> ~5m) instead of hammering a down server (#588).
   private pingFailureCount = 0;
@@ -3827,6 +3915,10 @@ export class JMAPClient implements IJMAPClient {
       return { "1": create };
     };
     const firstMailFrom = requestedMailFrom || identityMailFrom;
+    // The account the submission is created in — the shared account when
+    // sending from a shared identity. Returned so undo/send-now can address it
+    // directly instead of searching for it. See #874.
+    const submissionAccountId = this.getSubmissionAccountId(targetAccountId);
 
     // The old draft is destroyed in a separate request only after the
     // submission succeeded (see below, #849). Destroying it up front in the
@@ -3838,38 +3930,53 @@ export class JMAPClient implements IJMAPClient {
       create: { [emailId]: emailCreate },
     }, "0"]);
     methodCalls.push(["EmailSubmission/set", {
-      accountId: this.getSubmissionAccountId(targetAccountId),
+      accountId: submissionAccountId,
       create: buildSubmissionCreate(`#${emailId}`, firstMailFrom),
       onSuccessUpdateEmail,
     }, "1"]);
 
     let response = await this.request(methodCalls);
 
-    // The server may refuse a MAIL FROM other than the identity's own address
-    // (RFC 8621 §7.5.1 forbiddenMailFrom). Stalwart always does, and reports
-    // it as forbiddenFrom. The message exists in Drafts by then, so submit it
-    // once more with the identity's address instead of failing the send; the
-    // composer warns about this before sending (#1009).
-    if (firstMailFrom.toLowerCase() !== identityMailFrom.toLowerCase()) {
-      const refusal = response.methodResponses
-        ?.find(([name]) => name === 'EmailSubmission/set')?.[1]?.notCreated?.['1'] as { type?: string } | undefined;
-      const draftCopyId = response.methodResponses
-        ?.find(([name]) => name === 'Email/set')?.[1]?.created?.[emailId]?.id as string | undefined;
-      if (draftCopyId && (refusal?.type === 'forbiddenMailFrom' || refusal?.type === 'forbiddenFrom')) {
-        debug.warn('email', `[sendEmail] server refused ${firstMailFrom} as MAIL FROM (${refusal.type}), sending with ${identityMailFrom}`);
-        const retry = await this.request([["EmailSubmission/set", {
-          accountId: this.getSubmissionAccountId(targetAccountId),
-          create: buildSubmissionCreate(draftCopyId, identityMailFrom),
-          onSuccessUpdateEmail,
-        }, "1"]]);
-        response = {
-          ...retry,
-          methodResponses: [
-            ...response.methodResponses.filter(([name]) => name === 'Email/set'),
-            ...(retry.methodResponses ?? []),
-          ],
-        };
+    // The message exists in Drafts from here on, sent or not. Two refusals of
+    // the submission can be worked around by submitting that copy once more:
+    // - overQuota: Stalwart 1.0 counts every submission record against a
+    //   per-account limit, so remove the ones that can go and try again;
+    // - a MAIL FROM other than the identity's own address (RFC 8621 §7.5.1
+    //   forbiddenMailFrom; Stalwart always refuses it, as forbiddenFrom): use
+    //   the identity's address - the composer warns about this before sending
+    //   (#1009).
+    // Stalwart checks the quota first, so both can happen, one after the other.
+    const draftCopyId = response.methodResponses
+      ?.find(([name]) => name === 'Email/set')?.[1]?.created?.[emailId]?.id as string | undefined;
+    let mailFrom = firstMailFrom;
+    let madeRoom = false;
+    for (;;) {
+      const refusal = submissionCreateError(response, '1');
+      if (!draftCopyId || !refusal) break;
+      if (refusal.type === 'overQuota' && !madeRoom) {
+        madeRoom = true;
+        await this.makeRoomForSubmission(submissionAccountId);
+      } else if (
+        (refusal.type === 'forbiddenMailFrom' || refusal.type === 'forbiddenFrom') &&
+        mailFrom.toLowerCase() !== identityMailFrom.toLowerCase()
+      ) {
+        debug.warn('email', `[sendEmail] server refused ${mailFrom} as MAIL FROM (${refusal.type}), sending with ${identityMailFrom}`);
+        mailFrom = identityMailFrom;
+      } else {
+        break;
       }
+      const retry = await this.request([["EmailSubmission/set", {
+        accountId: submissionAccountId,
+        create: buildSubmissionCreate(draftCopyId, mailFrom),
+        onSuccessUpdateEmail,
+      }, "1"]]);
+      response = {
+        ...retry,
+        methodResponses: [
+          ...response.methodResponses.filter(([name]) => name === 'Email/set'),
+          ...(retry.methodResponses ?? []),
+        ],
+      };
     }
 
     let createdEmailId: string | undefined;
@@ -3880,7 +3987,8 @@ export class JMAPClient implements IJMAPClient {
     const { failure, filing } = sendMethodErrors(response.methodResponses);
     if (failure) {
       console.error('[sendEmail] JMAP method error:', failure);
-      throw new Error(failure.description || `Failed to send email: ${failure.type}`);
+      await this.discardUnsentCopy(draftCopyId, targetAccountId);
+      throw jmapError(failure.description || `Failed to send email: ${failure.type}`, failure);
     }
     if (filing) {
       console.error('[sendEmail] post-send method error:', filing);
@@ -3905,13 +4013,21 @@ export class JMAPClient implements IJMAPClient {
             `[sendEmail] ${methodName} notCreated:`,
             JSON.stringify(errors, null, 2),
           );
+          // Nothing was sent, so the copy made for this attempt goes; the
+          // user's own draft (`draftId`) stays. Each attempt makes a new copy,
+          // so keeping them piled up duplicates in Drafts.
+          await this.discardUnsentCopy(draftCopyId, targetAccountId);
           this.throwIfHoldTooLong(firstError);
+          if (methodName === 'EmailSubmission/set' && firstError?.type === 'overQuota') {
+            throw new SubmissionQuotaError(firstError.description);
+          }
           const propsHint = firstError?.properties?.length
             ? ` (properties: ${firstError.properties.join(', ')})`
             : '';
           const typeHint = firstError?.type ? ` [${firstError.type}]` : '';
-          throw new Error(
+          throw jmapError(
             `${firstError?.description || firstError?.type || 'Failed to send email'}${typeHint}${propsHint}`,
+            firstError,
           );
         }
 
@@ -3943,30 +4059,46 @@ export class JMAPClient implements IJMAPClient {
       }
     }
 
+    // An immediate send's submission record has done its job once the
+    // request that created it returned: the message is queued and filed, and
+    // with no hold there is nothing to cancel. Stalwart 1.0 stops accepting
+    // submissions once an account holds `maxSubmissions` records, so drop it
+    // now. Stalwart's destroy only removes the record, never the queued
+    // message; other servers are left to the prune. Decided by the request,
+    // not the created undoStatus, which 0.16.10-0.16.16 report as final even
+    // for a held send.
+    const submissionToDestroy = !delayedUntil && emailSubmissionId &&
+      this.hasAccountCapability('urn:stalwart:jmap', submissionAccountId)
+      ? emailSubmissionId
+      : undefined;
+
     // The message is out (or scheduled) - now it is safe to drop the old
     // draft. A failure here leaves an orphan in Drafts, which is reported as
-    // a filing warning rather than a failed send (#849).
+    // a filing warning rather than a failed send (#849). The submission
+    // record rides along, and nothing about it may turn into a warning.
     if (draftId && createdEmailId) {
       try {
-        const destroyResponse = await this.request([
+        const cleanupCalls: JMAPMethodCall[] = [
           ["Email/set", { accountId: this.accountId, destroy: [draftId] }, "0"],
-        ]);
-        const destroyResult = destroyResponse.methodResponses?.[0]?.[1];
+        ];
+        if (submissionToDestroy) {
+          cleanupCalls.push(submissionDestroyCall([submissionToDestroy], submissionAccountId, "1"));
+        }
+        const destroyResponse = await this.request(cleanupCalls);
+        const destroyResult = destroyResponse.methodResponses?.find(([, , callId]) => callId === "0")?.[1];
         if (destroyResult?.notDestroyed && Object.keys(destroyResult.notDestroyed).length) {
           console.error('[sendEmail] old draft cleanup notDestroyed:', JSON.stringify(destroyResult.notDestroyed, null, 2));
           const first = Object.values(destroyResult.notDestroyed as Record<string, { type?: string; description?: string }>)[0];
           filingError = filingError ?? (first?.description || first?.type || 'old draft cleanup failed');
         }
+        if (submissionToDestroy) readSubmissionDestroy(destroyResponse, "1");
       } catch (err) {
         console.error('[sendEmail] old draft cleanup failed:', err);
         filingError = filingError ?? 'old draft cleanup failed';
       }
+    } else if (submissionToDestroy) {
+      await this.destroyEmailSubmissions([submissionToDestroy], submissionAccountId);
     }
-
-    // The account the submission was created in — the shared account when
-    // sending from a shared identity. Returned so undo/send-now can address it
-    // directly instead of searching for it. See #874.
-    const submissionAccountId = this.getSubmissionAccountId(targetAccountId);
 
     if (delayedUntil && emailSubmissionId && !serverSendAt) {
       serverSendAt = await this.getEmailSubmissionSendAt(emailSubmissionId, submissionAccountId);
@@ -4720,7 +4852,7 @@ export class JMAPClient implements IJMAPClient {
     if (!emailId) throw new Error('MDN import failed');
 
     const subId = `mdnsub-${Date.now()}`;
-    const response = await this.request([
+    const submit = () => this.request([
       ["EmailSubmission/set", {
         accountId: targetAccountId,
         create: {
@@ -4735,11 +4867,21 @@ export class JMAPClient implements IJMAPClient {
         },
       }, "0"],
     ]);
-    const subRes = response.methodResponses?.[0];
-    const notCreated = (subRes?.[1] as { notCreated?: Record<string, { type?: string; description?: string }> })?.notCreated?.[subId];
-    if (notCreated) {
-      throw new Error(`MDN submission failed: ${notCreated.description || notCreated.type || 'unknown'}`);
+    let response = await submit();
+    if (submissionCreateError(response, subId)?.type === 'overQuota') {
+      await this.makeRoomForSubmission(targetAccountId);
+      response = await submit();
     }
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    const error: JMAPSetError | undefined = name === 'error' ? result : result?.notCreated?.[subId];
+    if (error) {
+      // Nothing went out: take the receipt back out of Sent, where it would
+      // pass for a sent one.
+      await this.discardUnsentCopy(emailId, targetAccountId);
+      if (name === 'EmailSubmission/set' && error.type === 'overQuota') throw new SubmissionQuotaError(error.description);
+      throw jmapError(`MDN submission failed: ${error.description || error.type || 'unknown'}`, error);
+    }
+    await this.destroyImmediateSubmission(result?.created?.[subId]?.id, targetAccountId);
   }
 
   getBlobDownloadUrl(blobId: string, name?: string, type?: string, accountId?: string): string {
@@ -8724,18 +8866,26 @@ export class JMAPClient implements IJMAPClient {
 
   /** Submit an already-imported email for delivery. */
   async submitEmail(emailId: string, identityId: string): Promise<void> {
-    const response = await this.request([
+    const submissionAccountId = this.getSubmissionAccountId();
+    const submit = () => this.request([
       ['EmailSubmission/set', {
-        accountId: this.getSubmissionAccountId(),
+        accountId: submissionAccountId,
         create: { 'smime-submit': { emailId, identityId } },
       }, '0'],
     ]);
+    let response = await submit();
+    if (submissionCreateError(response, 'smime-submit')?.type === 'overQuota') {
+      await this.makeRoomForSubmission(submissionAccountId);
+      response = await submit();
+    }
 
     const result = response.methodResponses?.[0]?.[1];
     if (result?.notCreated?.['smime-submit']) {
       const err = result.notCreated['smime-submit'];
+      if (err.type === 'overQuota') throw new SubmissionQuotaError(err.description);
       throw new Error(err.description || err.type || 'Failed to submit email');
     }
+    await this.destroyImmediateSubmission(result?.created?.['smime-submit']?.id, submissionAccountId);
   }
 
   /**
@@ -8761,8 +8911,11 @@ export class JMAPClient implements IJMAPClient {
     const identities = await this.getIdentities();
     const identity = identities.find(item => item.id === identityId);
     const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdForSeconds, envelopeRecipients);
+    // These raw/S-MIME paths submit through the primary submission account, so
+    // report that as the owning account rather than leaving it unset.
+    const submissionAccountId = this.getSubmissionAccountId();
 
-    const methodCalls: [string, Record<string, unknown>, string][] = [
+    const { emailId, submissionId: emailSubmissionId, sendAt } = await this.importAndSubmitRaw(
       ['Email/import', {
         accountId: this.accountId,
         emails: {
@@ -8773,11 +8926,13 @@ export class JMAPClient implements IJMAPClient {
           },
         },
       }, '0'],
-      ['EmailSubmission/set', {
-        accountId: this.getSubmissionAccountId(),
+      'raw-import',
+      submissionAccountId,
+      (submitEmailId) => ({
+        accountId: submissionAccountId,
         create: {
           'raw-submit': {
-            emailId: '#raw-import',
+            emailId: submitEmailId,
             identityId,
             ...(envelope ? { envelope } : {}),
           },
@@ -8790,43 +8945,15 @@ export class JMAPClient implements IJMAPClient {
             },
           },
         } : {}),
-      }, '1'],
-    ];
-
-    const response = await this.request(methodCalls);
-    let emailId: string | undefined;
-    let emailSubmissionId: string | undefined;
-    let serverSendAt: string | undefined;
-
-    // Check for errors
-    const { failure } = sendMethodErrors(response.methodResponses);
-    if (failure) {
-      throw new Error(failure.description || `Failed: ${failure.type}`);
-    }
-    for (const [methodName, result] of response.methodResponses ?? []) {
-      const r = result as { notCreated?: Record<string, { description?: string; type?: string }> };
-      if (r.notCreated) {
-        const firstErr = Object.values(r.notCreated)[0];
-        this.throwIfHoldTooLong(firstErr);
-        throw new Error(firstErr?.description || firstErr?.type || 'Failed to send raw email');
-      }
-      if (methodName === 'Email/import') {
-        emailId = (result as { created?: Record<string, { id?: string }> }).created?.['raw-import']?.id;
-      }
-      if (methodName === 'EmailSubmission/set') {
-        const created = (result as { created?: Record<string, { id?: string; sendAt?: string }> }).created?.['raw-submit'];
-        emailSubmissionId = created?.id;
-        serverSendAt = created?.sendAt;
-      }
-    }
-
-    // These raw/S-MIME paths submit through the primary submission account, so
-    // report that as the owning account rather than leaving it unset.
-    const submissionAccountId = this.getSubmissionAccountId();
+      }),
+      'Failed to send raw email',
+    );
+    let serverSendAt = sendAt;
 
     if (delayedUntil && emailSubmissionId && !serverSendAt) {
       serverSendAt = await this.getEmailSubmissionSendAt(emailSubmissionId, submissionAccountId);
     }
+    await this.destroyImmediateSubmission(emailSubmissionId, submissionAccountId, delayedUntil);
 
     return delayedUntil
       ? { scheduled: true, emailId, emailSubmissionId, sendAt: serverSendAt, submissionAccountId, isSmime: true }
@@ -8856,10 +8983,11 @@ export class JMAPClient implements IJMAPClient {
     const identities = await this.getIdentities();
     const identity = identities.find(item => item.id === identityId);
     const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdForSeconds, envelopeRecipients);
+    const submissionAccountId = this.getSubmissionAccountId();
 
-    //Temporarily import the raw email into Drafts to satisfy JMAP's requirement that an EmailSubmission references an existing Email. 
+    //Temporarily import the raw email into Drafts to satisfy JMAP's requirement that an EmailSubmission references an existing Email.
     // The Email will be destroyed after submission.
-    const methodCalls: [string, Record<string, unknown>, string][] = [
+    const { submissionId: emailSubmissionId, sendAt } = await this.importAndSubmitRaw(
       ['Email/import', {
         accountId: this.accountId,
         emails: {
@@ -8870,51 +8998,101 @@ export class JMAPClient implements IJMAPClient {
           },
         },
       }, '0'],
-      ['EmailSubmission/set', {
-        accountId: this.getSubmissionAccountId(),
+      'temp-submit',
+      submissionAccountId,
+      (submitEmailId) => ({
+        accountId: submissionAccountId,
         create: {
           'raw-submit': {
-            emailId: '#temp-submit',
+            emailId: submitEmailId,
             identityId,
             ...(envelope ? { envelope } : {}),
           },
         },
         //destroy the temporary email after submission to avoid leaving a draft behind.
         onSuccessDestroyEmail: ['#raw-submit'],
-      }, '1'],
-    ];
-
-    const response = await this.request(methodCalls);
-    let emailSubmissionId: string | undefined;
-    let serverSendAt: string | undefined;
-
-    const { failure } = sendMethodErrors(response.methodResponses);
-    if (failure) {
-      throw new Error(failure.description || `Failed: ${failure.type}`);
-    }
-    for (const [methodName, result] of response.methodResponses ?? []) {
-      const r = result as { notCreated?: Record<string, { description?: string; type?: string }> };
-      if (r.notCreated) {
-        const firstErr = Object.values(r.notCreated)[0];
-        this.throwIfHoldTooLong(firstErr);
-        throw new Error(firstErr?.description || firstErr?.type || 'Failed to submit raw email');
-      }
-      if (methodName === 'EmailSubmission/set') {
-        const created = (result as { created?: Record<string, { id?: string; sendAt?: string }> }).created?.['raw-submit'];
-        emailSubmissionId = created?.id;
-        serverSendAt = created?.sendAt;
-      }
-    }
-
-    const submissionAccountId = this.getSubmissionAccountId();
+      }),
+      'Failed to submit raw email',
+    );
+    let serverSendAt = sendAt;
 
     if (delayedUntil && emailSubmissionId && !serverSendAt) {
       serverSendAt = await this.getEmailSubmissionSendAt(emailSubmissionId, submissionAccountId);
     }
+    await this.destroyImmediateSubmission(emailSubmissionId, submissionAccountId, delayedUntil);
 
     return delayedUntil
       ? { scheduled: true, emailSubmissionId, sendAt: serverSendAt, submissionAccountId, isSmime: true }
       : { scheduled: false, emailSubmissionId, submissionAccountId, isSmime: true };
+  }
+
+  /**
+   * The Email/import + EmailSubmission/set request of the raw send paths.
+   * An overQuota refusal is tried once more after making room - the import
+   * exists by then, so it is submitted by id. Any other refusal takes the
+   * import back out: nothing was sent, and it would otherwise stay in Drafts
+   * (or in Sent, where it passes for a sent message).
+   */
+  private async importAndSubmitRaw(
+    importCall: JMAPMethodCall,
+    importCreationId: string,
+    submissionAccountId: string,
+    submissionSet: (emailId: string) => Record<string, unknown>,
+    failureMessage: string,
+  ): Promise<{ emailId?: string; submissionId?: string; sendAt?: string }> {
+    let response = await this.request([
+      importCall,
+      ['EmailSubmission/set', submissionSet(`#${importCreationId}`), '1'],
+    ]);
+    const importedId = response.methodResponses
+      ?.find(([name]) => name === 'Email/import')?.[1]?.created?.[importCreationId]?.id as string | undefined;
+    if (importedId && submissionCreateError(response, 'raw-submit')?.type === 'overQuota') {
+      await this.makeRoomForSubmission(submissionAccountId);
+      const retry = await this.request([['EmailSubmission/set', submissionSet(importedId), '1']]);
+      response = {
+        ...retry,
+        methodResponses: [
+          ...response.methodResponses.filter(([name]) => name === 'Email/import'),
+          ...(retry.methodResponses ?? []),
+        ],
+      };
+    }
+
+    const { failure } = sendMethodErrors(response.methodResponses);
+    if (failure) {
+      await this.discardUnsentCopy(importedId, this.accountId);
+      throw jmapError(failure.description || `Failed: ${failure.type}`, failure);
+    }
+    let submissionId: string | undefined;
+    let sendAt: string | undefined;
+    for (const [methodName, result] of response.methodResponses ?? []) {
+      const r = result as { notCreated?: Record<string, JMAPSetError> };
+      if (r.notCreated) {
+        const firstErr = Object.values(r.notCreated)[0];
+        await this.discardUnsentCopy(importedId, this.accountId);
+        this.throwIfHoldTooLong(firstErr);
+        if (methodName === 'EmailSubmission/set' && firstErr?.type === 'overQuota') {
+          throw new SubmissionQuotaError(firstErr.description);
+        }
+        throw jmapError(firstErr?.description || firstErr?.type || failureMessage, firstErr);
+      }
+      if (methodName === 'EmailSubmission/set') {
+        const created = (result as { created?: Record<string, { id?: string; sendAt?: string }> }).created?.['raw-submit'];
+        submissionId = created?.id;
+        sendAt = created?.sendAt;
+      }
+    }
+    return { emailId: importedId, submissionId, sendAt };
+  }
+
+  /**
+   * Destroy the record of a submission sent without a hold, as sendEmail
+   * does (see there): gated on Stalwart and on the request, never on the
+   * undoStatus the create returned.
+   */
+  private async destroyImmediateSubmission(submissionId: string | undefined, accountId: string, delayedUntil?: string): Promise<void> {
+    if (delayedUntil || !submissionId || !this.hasAccountCapability('urn:stalwart:jmap', accountId)) return;
+    await this.destroyEmailSubmissions([submissionId], accountId);
   }
 
   async getScheduledEmails(limit = 50, position = 0): Promise<{ emails: ScheduledEmail[]; hasMore: boolean; total: number; totalByAccount?: Record<string, number>; nextPosition: number }> {
@@ -8941,11 +9119,16 @@ export class JMAPClient implements IJMAPClient {
 
       try {
         do {
+          // `total` only comes back with calculateTotal. Without it the loop
+          // stopped after the first page, and since the query lists records
+          // oldest sendAt first, mail scheduled furthest ahead dropped off the
+          // list once the three-day window held more than a page of records.
           const queryResponse = await this.request([
             ['EmailSubmission/query', {
               accountId: submissionAccountId,
               limit: pageSize,
               position: rawPosition,
+              calculateTotal: true,
             }, '0'],
           ]);
 
@@ -9066,10 +9249,20 @@ export class JMAPClient implements IJMAPClient {
         update: { [submissionId]: { undoStatus: 'canceled' } },
       }, '0'],
     ]);
-    const result = response.methodResponses?.[0]?.[1];
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name === 'error') {
+      throw jmapError(result?.description || result?.type || 'Failed to cancel scheduled send', result);
+    }
     const error = result?.notUpdated?.[submissionId];
     if (error) {
-      throw new Error(error.description || error.type || 'Failed to cancel scheduled send');
+      throw jmapError(error.description || error.type || 'Failed to cancel scheduled send', error);
+    }
+    // The canceled record is dead weight against the submission limit.
+    // Destroyed in a request of its own, and only once the cancel is
+    // confirmed: had the two gone together and the cancel failed, the mail
+    // would still be queued with no record left to cancel it through.
+    if (result?.updated && submissionId in result.updated) {
+      await this.destroyEmailSubmissions([submissionId], submissionAccountId);
     }
   }
 
@@ -9102,7 +9295,7 @@ export class JMAPClient implements IJMAPClient {
       ? existingEnvelope.rcptTo
       : [...(email?.to || []), ...(email?.cc || []), ...(email?.bcc || [])];
     const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdForSeconds, envelopeRecipients);
-    const response = await this.request([
+    const createReplacement = () => this.request([
       ['EmailSubmission/set', {
         accountId: submissionAccountId,
         create: { replacement: { emailId, identityId, ...(envelope ? { envelope } : {}) } },
@@ -9116,10 +9309,17 @@ export class JMAPClient implements IJMAPClient {
         } : {}),
       }, '0'],
     ]);
+    let response = await createReplacement();
+    // The original is still pending, so a prune can't touch it.
+    if (submissionCreateError(response, 'replacement')?.type === 'overQuota') {
+      await this.makeRoomForSubmission(submissionAccountId);
+      response = await createReplacement();
+    }
     const result = response.methodResponses?.[0]?.[1];
     const createError = result?.notCreated?.replacement;
     if (createError) {
-      throw new Error(createError.description || createError.type || 'Failed to reschedule email');
+      if (createError.type === 'overQuota') throw new SubmissionQuotaError(createError.description);
+      throw jmapError(createError.description || createError.type || 'Failed to reschedule email', createError);
     }
     const replacementId = result?.created?.replacement?.id;
     const serverSendAt = result?.created?.replacement?.sendAt;
@@ -9127,6 +9327,8 @@ export class JMAPClient implements IJMAPClient {
       throw new Error('Server did not return a replacement scheduled send ID');
     }
     const finalSendAt = serverSendAt || await this.getEmailSubmissionSendAt(replacementId, submissionAccountId);
+    // Either cancel also destroys the record it canceled, so a reschedule
+    // leaves only the replacement behind.
     try {
       await this.cancelEmailSubmission(submissionId, submissionAccountId);
     } catch (error) {
@@ -9162,6 +9364,184 @@ export class JMAPClient implements IJMAPClient {
     const error = result?.notUpdated?.[emailId];
     if (error) {
       throw new Error(error.description || error.type || 'Failed to restore email to drafts');
+    }
+  }
+
+  // ── EmailSubmission records ───────────────────────────────────────
+  // Every send leaves an EmailSubmission record behind. Stalwart 1.0 counts
+  // all of them, whatever their status or age, against a per-account limit
+  // (`maxSubmissions`, 500 by default) and its own purge of old records never
+  // runs, so an account that never removes them stops sending for good.
+  // Destroying a record only removes the record - on 0.16 and 1.0 it neither
+  // cancels nor stops the delivery - but a still-pending submission whose
+  // record is gone can no longer be cancelled. So only records that can't be
+  // cancelled any more are ever destroyed.
+
+  /**
+   * Destroy EmailSubmission records, in batches the server accepts. Callers
+   * must only pass records that can no longer be cancelled.
+   *
+   * Resolves with the ids the server destroyed. Ids it no longer has count as
+   * done; other failures are logged. Never rejects, so no send fails over it.
+   */
+  async destroyEmailSubmissions(ids: string[], accountId?: string): Promise<string[]> {
+    const submissionAccountId = accountId ?? this.getSubmissionAccountId();
+    const destroyed: string[] = [];
+    for (const batch of batched([...new Set(ids)], this.getMaxObjectsInSet())) {
+      try {
+        const response = await this.request([submissionDestroyCall(batch, submissionAccountId, '0')]);
+        destroyed.push(...readSubmissionDestroy(response, '0'));
+      } catch (error) {
+        console.warn('[EmailSubmission] destroy failed:', error);
+      }
+    }
+    return destroyed;
+  }
+
+  /**
+   * Destroy, in every submission account, the records that can no longer be
+   * cancelled: canceled ones, and final ones whose sendAt has passed (see
+   * prunableSubmissionIds). That includes other clients' and other group
+   * members' records - the limit is per account. EmailSubmission/query only
+   * sees records whose sendAt is at most three days back, so older ones are
+   * left to makeRoomForSubmission.
+   *
+   * Runs at most once per account every ten minutes unless `force` is set.
+   * Resolves with the number of records destroyed; never rejects.
+   */
+  async pruneEmailSubmissions(options: { force?: boolean } = {}): Promise<number> {
+    let destroyed = 0;
+    for (const accountId of this.getSubmissionAccountIds()) {
+      destroyed += await this.pruneSubmissionAccount(accountId, options.force ?? false);
+    }
+    return destroyed;
+  }
+
+  private async pruneSubmissionAccount(accountId: string, force: boolean): Promise<number> {
+    const now = Date.now();
+    const lastRun = this.submissionPrunedAt.get(accountId);
+    if (!force && lastRun !== undefined && now - lastRun < SUBMISSION_PRUNE_INTERVAL_MS) return 0;
+    this.submissionPrunedAt.set(accountId, now);
+    try {
+      const prunable = await this.findPrunableSubmissions(accountId, now);
+      if (prunable.length === 0) return 0;
+      return (await this.destroyEmailSubmissions(prunable, accountId)).length;
+    } catch (error) {
+      console.warn(`[EmailSubmission] pruning ${accountId} failed:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * Page through the records the query can see that might go - past sendAt
+   * or canceled, a superset either way - and let EmailSubmission/get decide.
+   */
+  private async findPrunableSubmissions(accountId: string, now: number): Promise<string[]> {
+    const pageSize = Math.min(500, this.getMaxObjectsInGet());
+    const before = new Date(now).toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const prunable: string[] = [];
+    let position = 0;
+    for (let page = 0; page < SUBMISSION_SCAN_MAX_PAGES; page++) {
+      const response = await this.request([
+        ['EmailSubmission/query', {
+          accountId,
+          filter: { operator: 'OR', conditions: [{ before }, { undoStatus: 'canceled' }] },
+          position,
+          limit: pageSize,
+          calculateTotal: true,
+        }, '0'],
+        ['EmailSubmission/get', {
+          accountId,
+          '#ids': { resultOf: '0', name: 'EmailSubmission/query', path: '/ids' },
+          properties: ['id', 'sendAt', 'undoStatus'],
+        }, '1'],
+      ]);
+      assertQuerySucceeded(response, 'EmailSubmission/query');
+      const query = response.methodResponses[0][1] as { ids?: string[]; total?: number };
+      const ids = query.ids ?? [];
+      prunable.push(...prunableSubmissionIds(this.submissionGetList(response, '1'), now));
+      position += ids.length;
+      const done = typeof query.total === 'number' ? position >= query.total : ids.length < pageSize;
+      if (ids.length === 0 || done) break;
+    }
+    return prunable;
+  }
+
+  /** The list of an EmailSubmission/get response; throws when the get failed. */
+  private submissionGetList(response: JMAPResponse, callId: string): Array<Pick<EmailSubmission, 'id' | 'sendAt' | 'undoStatus'>> {
+    const [name, result] = response.methodResponses?.find(([, , id]) => id === callId) ?? [];
+    if (name !== 'EmailSubmission/get') {
+      throw jmapError(`EmailSubmission/get failed: ${result?.description || result?.type || 'unknown error'}`, result);
+    }
+    return (result?.list ?? []) as Array<Pick<EmailSubmission, 'id' | 'sendAt' | 'undoStatus'>>;
+  }
+
+  /**
+   * Make room after an EmailSubmission/set create came back overQuota. Prunes
+   * the account at once; when that frees nothing, the records taking up the
+   * room are older than the query can see (sendAt more than three days back).
+   * On Stalwart their ids are still in the change log (the last 10,000
+   * changes by default), and get and destroy by id work at any age, so they
+   * are found there and pruned by the same rules. Never rejects: the caller
+   * retries the create either way, since another tab may have made room in
+   * the meantime.
+   */
+  private async makeRoomForSubmission(accountId: string): Promise<void> {
+    const freed = await this.pruneSubmissionAccount(accountId, true);
+    if (freed > 0 || !this.hasAccountCapability('urn:stalwart:jmap', accountId)) return;
+    try {
+      const ids = await this.submissionIdsFromChangeLog(accountId);
+      const now = Date.now();
+      const prunable: string[] = [];
+      for (const batch of batched(ids, Math.min(500, this.getMaxObjectsInGet()))) {
+        const response = await this.request([
+          ['EmailSubmission/get', { accountId, ids: batch, properties: ['id', 'sendAt', 'undoStatus'] }, '0'],
+        ]);
+        prunable.push(...prunableSubmissionIds(this.submissionGetList(response, '0'), now));
+      }
+      if (prunable.length > 0) await this.destroyEmailSubmissions(prunable, accountId);
+    } catch (error) {
+      console.warn(`[EmailSubmission] looking up older submissions of ${accountId} failed:`, error);
+    }
+  }
+
+  /**
+   * Every submission id still in the account's change log. Stalwart reads
+   * sinceState "n" as its initial state and answers with the whole log, with
+   * a record created and destroyed within it left out.
+   */
+  private async submissionIdsFromChangeLog(accountId: string): Promise<string[]> {
+    const ids = new Set<string>();
+    let sinceState = 'n';
+    for (let page = 0; page < SUBMISSION_SCAN_MAX_PAGES; page++) {
+      const response = await this.request([
+        ['EmailSubmission/changes', { accountId, sinceState }, '0'],
+      ]);
+      const [name, result] = response.methodResponses?.[0] ?? [];
+      if (name !== 'EmailSubmission/changes') {
+        throw jmapError(`EmailSubmission/changes failed: ${result?.description || result?.type || 'unknown error'}`, result);
+      }
+      for (const id of [...(result.created ?? []), ...(result.updated ?? [])] as string[]) ids.add(id);
+      for (const id of (result.destroyed ?? []) as string[]) ids.delete(id);
+      if (!result.hasMoreChanges || !result.newState || result.newState === sinceState) break;
+      sinceState = result.newState;
+    }
+    return [...ids];
+  }
+
+  /**
+   * Destroy the message a send created for a submission that then failed:
+   * sendEmail's Drafts copy, an imported read receipt or raw message. Nothing
+   * was sent, and leaving it would make it look sent (in Sent) or pile up one
+   * duplicate per attempt (in Drafts). Best effort: the send error is what
+   * the caller reports.
+   */
+  private async discardUnsentCopy(emailId: string | undefined, accountId: string): Promise<void> {
+    if (!emailId) return;
+    try {
+      await this.deleteEmail(emailId, accountId);
+    } catch (error) {
+      console.warn('[EmailSubmission] could not remove the unsent message:', error);
     }
   }
 

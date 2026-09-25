@@ -562,6 +562,7 @@
     "scheduled_actions_only": "La vista Programmate supporta solo azioni di programmazione",
     "undo_send_scheduled": "Messaggio programmato per l’invio",
     "undo_send": "Annulla invio",
+    "undo_send_failed": "Impossibile annullare l'invio",
     "contact_sidebar": {
       "title": "Contatto",
       "close": "Chiudi barra laterale",
@@ -673,6 +674,7 @@
     "smime_unlock_button": "Sblocca",
     "smime_passphrase_placeholder": "Passphrase S/MIME",
     "send_timeout": "Il server ha smesso di rispondere. Controlli la cartella Posta inviata prima di inviare di nuovo: il messaggio potrebbe essere già partito.",
+    "submission_quota": "Il server conserva troppi record di messaggi inviati per questo account. Bulwark ha rimosso quelli che poteva; se il problema si ripete, chieda all'amministratore di aumentare il limite di invii di posta.",
     "continue_draft": "Continua bozza",
     "close_draft_title": "Salvare o eliminare la bozza?",
     "close_draft_message": "Hai modifiche non salvate. Vuoi salvare come bozza o eliminare?",

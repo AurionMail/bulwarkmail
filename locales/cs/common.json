@@ -562,6 +562,7 @@
     "scheduled_actions_only": "Zobrazení Naplánováno podporuje pouze akce plánování",
     "undo_send_scheduled": "Zpráva je naplánována k odeslání",
     "undo_send": "Vrátit odeslání",
+    "undo_send_failed": "Odeslání se nepodařilo vrátit",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Zavřít postranní panel",
@@ -666,6 +667,7 @@
     "show_less": "Zobrazit méně",
     "send_failed": "Odeslání zprávy selhalo",
     "send_timeout": "Server přestal odpovídat. Než odešlete znovu, zkontrolujte složku Odeslané – zpráva už mohla odejít.",
+    "submission_quota": "Server má pro tento účet příliš mnoho záznamů o odeslaných zprávách. Bulwark odstranil ty, které mohl; pokud se to bude opakovat, požádejte správce o zvýšení limitu odesílání e-mailů.",
     "continue_draft": "Pokračovat v úpravě konceptu",
     "close_draft_title": "Uložit nebo zahodit koncept?",
     "close_draft_message": "Máte neuložené změny. Chcete je uložit jako koncept, nebo zahodit?",

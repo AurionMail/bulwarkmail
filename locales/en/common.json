@@ -562,6 +562,7 @@
     "scheduled_actions_only": "Scheduled view supports scheduled actions only",
     "undo_send_scheduled": "Message scheduled for sending",
     "undo_send": "Undo send",
+    "undo_send_failed": "Undo send failed",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Close sidebar",
@@ -669,6 +670,7 @@
     "show_less": "Show less",
     "send_failed": "Failed to send email",
     "send_timeout": "The server stopped responding. Check your Sent folder before sending again — the message may have gone out.",
+    "submission_quota": "The server has too many sent-message records for this account. Bulwark removed the ones it could; if this keeps happening, ask your administrator to raise the email submission limit.",
     "continue_draft": "Continue draft",
     "close_draft_title": "Save or discard draft?",
     "close_draft_message": "You have unsaved changes. Would you like to save this as a draft or discard it?",

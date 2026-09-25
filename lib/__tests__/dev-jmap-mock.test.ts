@@ -274,6 +274,34 @@ describe('dev-jmap mock server', () => {
     });
   });
 
+  describe('POST /api - EmailSubmission destroy', () => {
+    async function call(methodCalls: unknown[]) {
+      const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+        body: JSON.stringify({ methodCalls }),
+      });
+      const res = await POST(req, { params: Promise.resolve({ path: ['api'] }) });
+      return (await res.json()).methodResponses;
+    }
+
+    it('removes a canceled scheduled submission and reports unknown ids as notFound', async () => {
+      const [[, created]] = await call([['EmailSubmission/set', {
+        accountId: 'dev-account-001',
+        create: { s1: { emailId: 'email-001', identityId: 'identity-001', envelope: { mailFrom: { email: 'me@example.com', parameters: { HOLDFOR: '3600' } }, rcptTo: [] } } },
+      }, 'c0']]);
+      const id = created.created.s1.id as string;
+      await call([['EmailSubmission/set', { accountId: 'dev-account-001', update: { [id]: { undoStatus: 'canceled' } } }, 'u0']]);
+
+      const [[, result]] = await call([['EmailSubmission/set', { accountId: 'dev-account-001', destroy: [id, 'submission-unknown'] }, 'd0']]);
+
+      expect(result.destroyed).toEqual([id]);
+      expect(result.notDestroyed).toEqual({ 'submission-unknown': { type: 'notFound' } });
+      const [[, got]] = await call([['EmailSubmission/get', { accountId: 'dev-account-001', ids: [id] }, 'g0']]);
+      expect(got.list).toEqual([]);
+    });
+  });
+
   describe('POST /api - back-references', () => {
     it('should resolve #ids from Email/query result', async () => {
       const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {

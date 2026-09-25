@@ -1259,6 +1259,10 @@ export class DemoJMAPClient implements IJMAPClient {
     return { scheduled: true, emailId, emailSubmissionId: replacement, sendAt: delayedUntil };
   }
 
+  // The demo has no submission limit to keep under.
+  async destroyEmailSubmissions(): Promise<string[]> { return []; }
+  async pruneEmailSubmissions(): Promise<number> { return 0; }
+
   // Mirrors JMAPClient.restoreEmailToDraft: the third parameter is ignored and
   // the message ends up in Drafts only (full mailboxIds replacement).
   async restoreEmailToDraft(emailId: string, draftMailboxId: string, _sentMailboxId?: string): Promise<void> {

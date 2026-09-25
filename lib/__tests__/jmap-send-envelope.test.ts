@@ -48,9 +48,11 @@ const IDENTITIES = [
 /**
  * Answers the requests sendEmail makes; `refuseMailFrom` makes every
  * EmailSubmission/set whose envelope asks for another MAIL FROM than the
- * identity's fail the way Stalwart does.
+ * identity's fail the way Stalwart does. `overQuotaOnce` refuses the first
+ * submission the way Stalwart 1.0 does at its `maxSubmissions` limit - before
+ * it looks at the envelope.
  */
-function mockServer(options: { refuseMailFrom?: boolean } = {}) {
+function mockServer(options: { refuseMailFrom?: boolean; overQuotaOnce?: boolean } = {}) {
   const submissions: Array<Record<string, unknown>> = [];
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
     const { methodCalls } = JSON.parse((init as { body: string }).body) as { methodCalls: MethodCall[] };
@@ -66,6 +68,9 @@ function mockServer(options: { refuseMailFrom?: boolean } = {}) {
       if (name === 'EmailSubmission/set') {
         const create = (args.create as Record<string, Record<string, unknown>>)['1'];
         submissions.push(create);
+        if (options.overQuotaOnce && submissions.length === 1) {
+          return [name, { notCreated: { '1': { type: 'overQuota', description: 'There are too many email submissions, please delete some before adding a new one.' } } }, callId];
+        }
         const identity = IDENTITIES.find((i) => i.id === create.identityId);
         const mailFrom = (create.envelope as { mailFrom?: { email: string } } | undefined)?.mailFrom?.email;
         if (options.refuseMailFrom && mailFrom && mailFrom.toLowerCase() !== identity?.email.toLowerCase()) {
@@ -125,6 +130,19 @@ describe('JMAPClient.sendEmail envelope MAIL FROM (#1009)', () => {
     expect(submissions).toHaveLength(2);
     expect(submissions[1]).toEqual({ emailId: 'email-9', identityId: 'identity-1' });
     expect(result).toMatchObject({ emailId: 'email-9', emailSubmissionId: 'sub-2' });
+  });
+
+  it("makes room at a full quota, then falls back to the identity's address on Stalwart 1.0", async () => {
+    const submissions = mockServer({ refuseMailFrom: true, overQuotaOnce: true });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await send(createClient(), 'alias@example.com', 'alias@example.com');
+
+    const mailFroms = submissions.map((s) => (s.envelope as { mailFrom?: { email: string } } | undefined)?.mailFrom?.email ?? 'identity');
+    expect(mailFroms).toEqual(['alias@example.com', 'alias@example.com', 'identity']);
+    expect(submissions[1].emailId).toBe('email-9');
+    expect(result).toMatchObject({ emailId: 'email-9', emailSubmissionId: 'sub-3' });
   });
 
   it('sends through the identity that owns the override address', async () => {

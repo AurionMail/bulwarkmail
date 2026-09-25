@@ -2145,6 +2145,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const result = await client.sendEmail(to, subject, body, cc, bcc, identityId, fromEmail, draftId, fromName, htmlBody, attachments, inReplyTo, references, delayedUntil, envelopeMailFrom, options);
+      // Each send leaves a submission record; sweep the ones that can go
+      // (throttled per account by the client).
+      void client.pruneEmailSubmissions();
       // Refresh handled by UI layer for immediate feedback
       set({
         isLoading: false,
@@ -2180,6 +2183,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       if (!sentMailbox) throw new Error('No sent mailbox found');
       const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
       const result = await client.sendRawEmail(rawMimeBlob, identityId, sentMailbox.id, draftsMailbox?.id, delayedUntil, envelopeRecipients);
+      void client.pruneEmailSubmissions();
       set({
         isLoading: false,
         pendingUndoSend: result.scheduled && result.emailSubmissionId && result.sendAt
@@ -4999,6 +5003,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   refreshScheduledMetadata: async (client) => {
+    // This runs at startup, after scheduled sends and undo, and whenever
+    // EmailSubmission state changes - the moments submission records pile up
+    // or turn prunable. The client throttles the prune per account; the list
+    // doesn't depend on it, so it isn't awaited.
+    void client.pruneEmailSubmissions();
     try {
       const emailsPerPage = useSettingsStore.getState().emailsPerPage;
       const allEmails: ScheduledEmail[] = [];

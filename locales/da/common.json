@@ -562,6 +562,7 @@
     "scheduled_actions_only": "Planlagt-visningen understøtter kun planlagte handlinger",
     "undo_send_scheduled": "Besked planlagt til afsendelse",
     "undo_send": "Fortryd afsendelse",
+    "undo_send_failed": "Afsendelsen kunne ikke fortrydes",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Luk sidepanel",
@@ -668,6 +669,7 @@
     "show_less": "Vis mindre",
     "send_failed": "Kunne ikke sende e-mail",
     "send_timeout": "Serveren holdt op med at svare. Tjek mappen Sendt, før du sender igen — beskeden er måske allerede afsendt.",
+    "submission_quota": "Serveren har for mange registreringer af sendte beskeder for denne konto. Bulwark har fjernet dem, den kunne; hvis det bliver ved med at ske, så bed din administrator om at hæve grænsen for afsendelse af e-mails.",
     "continue_draft": "Fortsæt kladde",
     "close_draft_title": "Gem eller kassér kladde?",
     "close_draft_message": "Du har ugemte ændringer. Vil du gemme dette som en kladde eller kassere det?",

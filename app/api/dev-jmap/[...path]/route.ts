@@ -1897,7 +1897,31 @@ function handleEmailSubmissionSet(args: MethodArgs, callId: string): MethodResul
       }
     }
   }
-  return ['EmailSubmission/set', { accountId: ACCOUNT_ID, oldState: nextState(), newState: nextState(), created, updated, notCreated: null, notUpdated: null }, callId];
+  // Like Stalwart, destroying removes only the record. Immediate sends are
+  // never recorded here, so their ids come back notFound, as they would once
+  // another client had pruned them.
+  const destroyed: string[] = [];
+  const notDestroyed: Record<string, { type: string }> = {};
+  for (const id of (args.destroy as string[] | undefined) ?? []) {
+    const index = scheduledSubmissions.findIndex(s => s.id === id);
+    if (index === -1) {
+      notDestroyed[id] = { type: 'notFound' };
+    } else {
+      scheduledSubmissions.splice(index, 1);
+      destroyed.push(id);
+    }
+  }
+  return ['EmailSubmission/set', {
+    accountId: ACCOUNT_ID,
+    oldState: nextState(),
+    newState: nextState(),
+    created,
+    updated,
+    destroyed,
+    notCreated: null,
+    notUpdated: null,
+    notDestroyed: Object.keys(notDestroyed).length > 0 ? notDestroyed : null,
+  }, callId];
 }
 
 function handleEmailSubmissionQuery(args: MethodArgs, callId: string): MethodResult {

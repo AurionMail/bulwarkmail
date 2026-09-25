@@ -46,7 +46,7 @@ import { appendPlainTextSignature, getPlainTextSignature, plainTextBodyHasSignat
 import { findComposeIdentityId, findDraftIdentityId, findReplyIdentityId, resolveReplyFrom } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
-import { RequestTimeoutError, ScheduleTooLateError } from "@/lib/jmap/client";
+import { sendFailureMessage } from "@/lib/send-failure-message";
 import {
   rewriteCidImagesForEditor,
   replaceInlineImagePlaceholders,
@@ -2421,16 +2421,7 @@ export function EmailComposer({
       stateRef.current = { to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false, selectedIdentityId: null, subAddressTag: '', draftId: null, fromOverrideEnabled: false, fromOverrideEmail: '', fromOverrideName: '', attachments: [], plainTextMode };
     } catch (err) {
       debug.error('Failed to send email:', err);
-      // A timeout is not a clean failure: the submission may have reached the
-      // server and gone out, with only the answer lost. Saying "send failed"
-      // would invite a re-send and a duplicate, so point at Sent instead (#702).
-      toast.error(
-        err instanceof RequestTimeoutError
-          ? t('send_timeout')
-          : err instanceof ScheduleTooLateError
-            ? t('schedule_send_too_late')
-            : err instanceof Error ? err.message : t('send_failed')
-      );
+      toast.error(sendFailureMessage(err, t));
     } finally {
       isSendingRef.current = false;
       setIsSending(false);

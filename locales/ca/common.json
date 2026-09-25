@@ -562,6 +562,7 @@
     "scheduled_actions_only": "La vista de programats només admet accions de programació",
     "undo_send_scheduled": "Missatge programat per enviar-se",
     "undo_send": "Desfés l'enviament",
+    "undo_send_failed": "No s'ha pogut desfer l'enviament",
     "contact_sidebar": {
       "title": "Contacte",
       "close": "Tanca la barra lateral",
@@ -669,6 +670,7 @@
     "show_less": "Mostra'n menys",
     "send_failed": "No s'ha pogut enviar el correu",
     "send_timeout": "El servidor ha deixat de respondre. Comproveu la carpeta Enviats abans de tornar a enviar: el missatge pot haver sortit.",
+    "submission_quota": "El servidor té massa registres de missatges enviats per a aquest compte. Bulwark ha eliminat els que ha pogut; si torna a passar, demaneu a l'administrador que augmenti el límit d'enviaments de correu.",
     "continue_draft": "Continua l'esborrany",
     "close_draft_title": "Voleu desar o descartar l'esborrany?",
     "close_draft_message": "Teniu canvis sense desar. Voleu desar-los com a esborrany o descartar-los?",

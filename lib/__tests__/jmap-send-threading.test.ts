@@ -262,6 +262,13 @@ describe('JMAPClient.sendEmail threading headers', () => {
     expect(requestSpy).toHaveBeenCalledWith(expect.arrayContaining([
       expect.arrayContaining(['EmailSubmission/set', expect.objectContaining({ update: { 'sub-new': { undoStatus: 'canceled' } } })]),
     ]));
+    // The canceled replacement's record goes too, in a request after the
+    // cancel; the original is still pending and keeps its record.
+    const calls = requestSpy.mock.calls.map(([methodCalls]) => methodCalls[0][1] as { update?: object; destroy?: string[] });
+    const cancelIndex = calls.findIndex((args) => args.update && 'sub-new' in args.update);
+    const destroys = calls.map((args, index) => ({ index, ids: args.destroy })).filter((call) => call.ids);
+    expect(destroys).toEqual([{ index: expect.any(Number), ids: ['sub-new'] }]);
+    expect(destroys[0].index).toBeGreaterThan(cancelIndex);
   });
 });
 

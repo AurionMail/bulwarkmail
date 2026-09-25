@@ -90,6 +90,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { toast } from "@/stores/toast-store";
+import { sendFailureMessage } from "@/lib/send-failure-message";
 import { useDeviceDetection } from "@/hooks/use-media-query";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useAuthStore } from "@/stores/auth-store";
@@ -148,7 +149,7 @@ interface EmailViewerProps {
   onShowShortcuts?: () => void;
   onEditDraft?: () => void;
   onCancelScheduledForEdit?: () => void;
-  onRescheduleScheduled?: (delayedUntil: string) => void;
+  onRescheduleScheduled?: (delayedUntil: string) => void | Promise<void>;
   onCompose?: () => void;
   /**
    * Fullscreen reading toggle (standard interface only - Pro email tabs are
@@ -809,6 +810,17 @@ export function EmailViewer({
     }
     return new Date(time).toISOString();
   }, [client, t, tComposer]);
+  // "Send now" and "Reschedule" submit a replacement and cancel the original;
+  // either can fail (a full submission quota, the mail already gone), and the
+  // failure used to end up as an unhandled rejection nobody saw.
+  const rescheduleScheduled = useCallback(async (delayedUntil: string) => {
+    try {
+      await onRescheduleScheduled?.(delayedUntil);
+    } catch (error) {
+      console.error('Failed to reschedule the scheduled send:', error);
+      toast.error(sendFailureMessage(error, tComposer));
+    }
+  }, [onRescheduleScheduled, tComposer]);
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const { startTour } = useTour();
   const [showFullHeaders, setShowFullHeaders] = useState(false);
@@ -840,6 +852,8 @@ export function EmailViewer({
       setIsQuickReplyFocused(false);
     } catch (error) {
       console.error("Failed to send quick reply:", error);
+      // The text stays in the box, so say why it did not go out.
+      toast.error(sendFailureMessage(error, tComposer));
     } finally {
       setIsSendingQuickReply(false);
     }
@@ -2867,17 +2881,24 @@ export function EmailViewer({
         subject: t('read_receipt.mdn_subject', { subject: email.subject || '' }),
         humanText: t('read_receipt.mdn_body', { recipient: receiptIdentity.email }),
       });
-      await useEmailStore.getState().markEmailKeyword(client, email.id, '$mdnsent');
     } catch (err) {
       // Surface the failure instead of silently resetting the banner so we can
       // see which step (upload / import / submission) failed.
       console.error('Read-receipt (MDN) send failed:', err);
       toast.error(t('read_receipt.send_failed'), {
-        message: err instanceof Error ? err.message : String(err),
+        message: sendFailureMessage(err, tComposer),
       });
       throw err;
     }
-  }, [client, email, readReceiptRequestedBy, receiptIdentity, t]);
+    // The receipt is out. Failing to flag that must not read as a failed
+    // send, nor let the "always" mode send it again.
+    try {
+      await useEmailStore.getState().markEmailKeyword(client, email.id, '$mdnsent');
+    } catch (err) {
+      console.error('Read receipt sent, but setting $MDNSent failed:', err);
+      setMdnHandledLocally(true);
+    }
+  }, [client, email, readReceiptRequestedBy, receiptIdentity, t, tComposer]);
 
   const ignoreReadReceipt = useCallback(async () => {
     setMdnHandledLocally(true);
@@ -2888,14 +2909,22 @@ export function EmailViewer({
     }
   }, [client, email]);
 
-  // "always" mode: auto-send the MDN once when the message is opened.
+  // "always" mode: auto-send the MDN once when the message is opened. A
+  // failure is not retried while the message stays open: the attempt itself
+  // changes Sent (the receipt is imported, then taken back out), every change
+  // hands the viewer a new `email`, and clearing the guard on failure made
+  // that one more attempt and error toast per refresh - without end once the
+  // submission quota is full. Opening the message again retries.
   const autoMdnRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (autoMdnRef.current !== email?.id) autoMdnRef.current = null;
+  }, [email?.id]);
   useEffect(() => {
     if (readReceiptResponse !== 'always') return;
     if (!shouldOfferReadReceipt || !email) return;
     if (autoMdnRef.current === email.id) return;
     autoMdnRef.current = email.id;
-    sendReadReceiptNow(true).catch(() => { autoMdnRef.current = null; });
+    sendReadReceiptNow(true).catch(() => { /* reported by sendReadReceiptNow */ });
     // email is already captured via email?.id and sendReadReceiptNow (which
     // depends on `email`); the autoMdnRef guard prevents a double send.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3046,7 +3075,7 @@ export function EmailViewer({
             <Button
               variant="default"
               size="sm"
-              onClick={() => onRescheduleScheduled?.(new Date(Date.now() + 1000).toISOString())}
+              onClick={() => void rescheduleScheduled(new Date(Date.now() + 1000).toISOString())}
               className="sm:flex sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0"
               title={t('send_now')}
             >
@@ -3058,7 +3087,7 @@ export function EmailViewer({
               size="sm"
               onClick={() => {
                 const delayedUntil = promptForRescheduleDelayedUntil();
-                if (delayedUntil) onRescheduleScheduled?.(delayedUntil);
+                if (delayedUntil) void rescheduleScheduled(delayedUntil);
               }}
               className="hidden sm:flex sm:h-8 sm:gap-1.5 sm:py-0"
               title={t('reschedule_send')}
@@ -4711,7 +4740,7 @@ export function EmailViewer({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onRescheduleScheduled?.(new Date(Date.now() + 1000).toISOString())}
+                      onClick={() => void rescheduleScheduled(new Date(Date.now() + 1000).toISOString())}
                       className="gap-1.5"
                     >
                       <Send className="w-3.5 h-3.5" />
@@ -4722,7 +4751,7 @@ export function EmailViewer({
                       variant="outline"
                       onClick={() => {
                         const delayedUntil = promptForRescheduleDelayedUntil();
-                        if (delayedUntil) onRescheduleScheduled?.(delayedUntil);
+                        if (delayedUntil) void rescheduleScheduled(delayedUntil);
                       }}
                       className="gap-1.5"
                     >

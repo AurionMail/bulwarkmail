@@ -34,6 +34,7 @@ import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { useEmailStore, buildUnifiedAccountClients, ArchiveMailboxNotFoundError, findArchiveMailbox, resolveUnstampedEmailAccountId } from "@/stores/email-store";
 import { groupSearchScopeFolders } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
+import { sendFailureMessage } from "@/lib/send-failure-message";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
@@ -139,6 +140,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const t = useTranslations();
   const tCommon = useTranslations('common');
   const tQuote = useTranslations('quote_header');
+  const tComposer = useTranslations('email_composer');
   const { appName } = useConfig();
   const mailLayout = useSettingsStore((state) => state.mailLayout);
   // Phones present search full-screen from the header field rather than
@@ -2006,6 +2008,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   if (isScheduledView) await fetchScheduledEmails(client);
                 } catch (error) {
                   console.error('Failed to send now:', error);
+                  // The message stays scheduled; say why it did not go now.
+                  toast.error(sendFailureMessage(error, tComposer));
                 }
               })();
             },
@@ -2023,6 +2027,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               if (isScheduledView) await fetchScheduledEmails(client);
             } catch (error) {
               console.error('Failed to undo scheduled send:', error);
+              // Silence here reads as "undone" while the mail may be on its way.
+              toast.error(t('email_viewer.undo_send_failed'), {
+                message: error instanceof Error ? error.message : undefined,
+              });
             }
           })();
         },
@@ -2038,7 +2046,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cancelUndoSend, clearPendingUndoSend, client, fetchScheduledEmails, isScheduledView, pendingUndoSend?.submissionId, sendDelaySeconds, t]);
+  }, [cancelUndoSend, clearPendingUndoSend, client, fetchScheduledEmails, isScheduledView, pendingUndoSend?.submissionId, sendDelaySeconds, t, tComposer]);
 
   const handleReplyAll = async () => {
     if (selectedEmail) {
@@ -3289,35 +3297,42 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     toast.success(t('notifications.email_sent'));
 
-    // Refresh emails to show the sent reply
-    await refreshCurrentMailbox(client);
-    // Re-fetch the replied thread's cross-folder data so the expanded
-    // view shows the newly sent reply without collapsing.
-    const emailState = useEmailStore.getState();
-    const repliedEmail = emailState.emails.find(e => e.id === originalEmailId);
-    if (repliedEmail?.threadId && emailState.expandedThreadIds.has(threadKeyFor(repliedEmail))) {
-      // Route to the email's own account so shared/group threads refresh from
-      // the right server, not the active one. (#281, #814)
-      const route = resolveThreadRoute({
-        isUnifiedView: emailState.isUnifiedView,
-        ref: repliedEmail,
-        mailboxes: viewMailboxes,
-        selectedMailbox: emailState.selectedMailbox,
-      });
-      const threadClient = route.clientAccountId
-        ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
-        : client;
-      const fullEmails = await threadClient.getThreadEmails(
-        repliedEmail.threadId,
-        route.accountId ?? client.getAccountId(),
-      );
-      if (fullEmails.length > 0) {
-        useEmailStore.setState((state) => {
-          const c = new Map(state.threadEmailsCache);
-          c.set(threadKeyFor(repliedEmail), fullEmails);
-          return { threadEmailsCache: c };
+    // The reply is out: a failed refresh from here on must not reach the
+    // quick-reply box, which would report the send as failed and invite a
+    // duplicate.
+    try {
+      // Refresh emails to show the sent reply
+      await refreshCurrentMailbox(client);
+      // Re-fetch the replied thread's cross-folder data so the expanded
+      // view shows the newly sent reply without collapsing.
+      const emailState = useEmailStore.getState();
+      const repliedEmail = emailState.emails.find(e => e.id === originalEmailId);
+      if (repliedEmail?.threadId && emailState.expandedThreadIds.has(threadKeyFor(repliedEmail))) {
+        // Route to the email's own account so shared/group threads refresh from
+        // the right server, not the active one. (#281, #814)
+        const route = resolveThreadRoute({
+          isUnifiedView: emailState.isUnifiedView,
+          ref: repliedEmail,
+          mailboxes: viewMailboxes,
+          selectedMailbox: emailState.selectedMailbox,
         });
+        const threadClient = route.clientAccountId
+          ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
+          : client;
+        const fullEmails = await threadClient.getThreadEmails(
+          repliedEmail.threadId,
+          route.accountId ?? client.getAccountId(),
+        );
+        if (fullEmails.length > 0) {
+          useEmailStore.setState((state) => {
+            const c = new Map(state.threadEmailsCache);
+            c.set(threadKeyFor(repliedEmail), fullEmails);
+            return { threadEmailsCache: c };
+          });
+        }
       }
+    } catch (error) {
+      console.error('Quick reply sent, but refreshing the view failed:', error);
     }
   };
 
@@ -4106,7 +4121,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onRescheduleScheduled={async (email) => {
                   const delayedUntil = promptForRescheduleDelayedUntil();
                   if (delayedUntil && client && email.emailSubmissionId && email.scheduledIdentityId) {
-                    await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil);
+                    // The context menu does not wait for this; report here.
+                    try {
+                      await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil);
+                    } catch (error) {
+                      console.error('Failed to reschedule the scheduled send:', error);
+                      toast.error(sendFailureMessage(error, tComposer));
+                    }
                   }
                 }}
                 onEmailSelect={handleEmailSelect}

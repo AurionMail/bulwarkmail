@@ -562,6 +562,7 @@
     "scheduled_actions_only": "Die Geplant-Ansicht unterstützt nur Planungsaktionen",
     "undo_send_scheduled": "Nachricht ist zum Senden geplant",
     "undo_send": "Senden rückgängig",
+    "undo_send_failed": "Senden konnte nicht rückgängig gemacht werden",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Seitenleiste schließen",
@@ -673,6 +674,7 @@
     "smime_unlock_button": "Entsperren",
     "smime_passphrase_placeholder": "S/MIME-Passphrase",
     "send_timeout": "Der Server antwortet nicht mehr. Prüfen Sie den Ordner „Gesendet“, bevor Sie erneut senden – die Nachricht wurde möglicherweise bereits verschickt.",
+    "submission_quota": "Der Server hat für dieses Konto zu viele Einträge zu gesendeten Nachrichten. Bulwark hat entfernt, was möglich war; wenn das weiterhin vorkommt, bitten Sie Ihren Administrator, das Limit für E-Mail-Übermittlungen zu erhöhen.",
     "continue_draft": "Entwurf fortsetzen",
     "close_draft_title": "Entwurf speichern oder verwerfen?",
     "close_draft_message": "Sie haben ungespeicherte Änderungen. Möchten Sie diese als Entwurf speichern oder verwerfen?",

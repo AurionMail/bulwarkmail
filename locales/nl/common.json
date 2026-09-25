@@ -562,6 +562,7 @@
     "scheduled_actions_only": "De geplande weergave ondersteunt alleen geplande acties",
     "undo_send_scheduled": "Bericht gepland voor verzending",
     "undo_send": "Verzenden ongedaan maken",
+    "undo_send_failed": "Verzenden kon niet ongedaan worden gemaakt",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Zijbalk sluiten",
@@ -673,6 +674,7 @@
     "smime_unlock_button": "Ontgrendelen",
     "smime_passphrase_placeholder": "S/MIME-wachtwoordzin",
     "send_timeout": "De server reageert niet meer. Controleer de map Verzonden voordat u opnieuw verstuurt — het bericht is mogelijk al verzonden.",
+    "submission_quota": "De server bewaart te veel records van verzonden berichten voor dit account. Bulwark heeft verwijderd wat kon; blijft dit gebeuren, vraag uw beheerder dan de limiet voor e-mailverzendingen te verhogen.",
     "continue_draft": "Concept voortzetten",
     "close_draft_title": "Concept opslaan of verwijderen?",
     "close_draft_message": "U heeft niet-opgeslagen wijzigingen. Wilt u dit als concept opslaan of verwijderen?",

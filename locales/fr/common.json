@@ -562,6 +562,7 @@
     "scheduled_actions_only": "La vue Planifiés prend uniquement en charge les actions de planification",
     "undo_send_scheduled": "Message planifié pour envoi",
     "undo_send": "Annuler l’envoi",
+    "undo_send_failed": "Impossible d’annuler l’envoi",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Fermer le panneau",
@@ -673,6 +674,7 @@
     "smime_unlock_button": "Déverrouiller",
     "smime_passphrase_placeholder": "Phrase secrète S/MIME",
     "send_timeout": "Le serveur ne répond plus. Vérifiez le dossier Envoyés avant de renvoyer : le message est peut-être déjà parti.",
+    "submission_quota": "Le serveur conserve trop d’enregistrements de messages envoyés pour ce compte. Bulwark a supprimé ceux qu’il pouvait ; si cela se reproduit, demandez à votre administrateur de relever la limite d’envois de courriels.",
     "continue_draft": "Continuer le brouillon",
     "close_draft_title": "Enregistrer ou supprimer le brouillon ?",
     "close_draft_message": "Vous avez des modifications non enregistrées. Voulez-vous enregistrer comme brouillon ou supprimer ?",

@@ -178,7 +178,7 @@ describe('draft replace lifecycle (#849)', () => {
     }
   });
 
-  it('sendEmail keeps the draft when the submission fails', async () => {
+  it('sendEmail keeps the draft but removes its own Drafts copy when the submission fails', async () => {
     const client = createClient();
     const captured = mockFlow({ failSubmission: true });
 
@@ -188,9 +188,35 @@ describe('draft replace lifecycle (#849)', () => {
       'draft-old-1',
     )).rejects.toThrow();
 
-    for (const set of emailSetCalls(captured)) {
-      expect(set.destroy).toBeUndefined();
-    }
+    // Every attempt creates a fresh copy to submit; left behind, each failed
+    // send added one more duplicate to Drafts. The user's draft stays.
+    const destroyed = emailSetCalls(captured).flatMap(set => (set.destroy as string[] | undefined) ?? []);
+    expect(destroyed).toEqual(['email-new-1']);
+  });
+
+  it('sendEmail removes its Drafts copy when the submission call fails outright', async () => {
+    const client = createClient();
+    const captured = mockFlow();
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const answer = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url, init) => {
+      const response = await answer(url, init);
+      const payload = await response.json() as { methodResponses: Array<[string, unknown, string]> };
+      // A method-level error instead of EmailSubmission/set's answer.
+      const methodResponses = payload.methodResponses.map(([name, result, callId]) => (
+        name === 'EmailSubmission/set' ? ['error', { type: 'serverFail', description: 'Temporary failure' }, callId] : [name, result, callId]
+      ));
+      return { ok: true, status: 200, text: () => Promise.resolve(JSON.stringify({ methodResponses })) } as Response;
+    });
+
+    await expect(client.sendEmail(
+      ['bob@example.com'], 'Subject', 'body',
+      undefined, undefined, 'identity-1', 'user@example.com',
+      'draft-old-1',
+    )).rejects.toThrow('Temporary failure');
+
+    const destroyed = emailSetCalls(captured).flatMap(set => (set.destroy as string[] | undefined) ?? []);
+    expect(destroyed).toEqual(['email-new-1']);
   });
 
   it('createDraft round-trips cid and disposition on attachments', async () => {

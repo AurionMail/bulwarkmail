@@ -562,6 +562,7 @@
     "scheduled_actions_only": "计划发送视图仅支持计划操作",
     "undo_send_scheduled": "邮件已计划发送",
     "undo_send": "撤销发送",
+    "undo_send_failed": "无法撤销发送",
     "contact_sidebar": {
       "title": "联系人",
       "close": "关闭侧边栏",
@@ -666,6 +667,7 @@
     "show_less": "收起",
     "send_failed": "发送邮件失败",
     "send_timeout": "服务器已停止响应。再次发送前请检查“已发送”文件夹——邮件可能已经发出。",
+    "submission_quota": "服务器上此账户的已发送邮件记录过多。Bulwark 已删除了能删除的记录；如果问题仍然出现，请让管理员提高邮件提交数量上限。",
     "continue_draft": "继续编辑草稿",
     "close_draft_title": "保存或丢弃草稿？",
     "close_draft_message": "您有未保存的更改。要将其保存为草稿还是丢弃？",

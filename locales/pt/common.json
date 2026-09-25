@@ -562,6 +562,7 @@
     "scheduled_actions_only": "A visualização Agendados permite apenas ações de agendamento",
     "undo_send_scheduled": "Mensagem agendada para envio",
     "undo_send": "Desfazer envio",
+    "undo_send_failed": "Não foi possível desfazer o envio",
     "contact_sidebar": {
       "title": "Contato",
       "close": "Fechar barra lateral",
@@ -673,6 +674,7 @@
     "smime_unlock_button": "Desbloquear",
     "smime_passphrase_placeholder": "Frase secreta S/MIME",
     "send_timeout": "O servidor deixou de responder. Verifique a pasta Enviados antes de enviar novamente — a mensagem pode já ter saído.",
+    "submission_quota": "O servidor tem registros de mensagens enviadas demais para esta conta. O Bulwark removeu os que pôde; se isso continuar acontecendo, peça ao seu administrador para aumentar o limite de envios de e-mail.",
     "continue_draft": "Continuar rascunho",
     "close_draft_title": "Salvar ou descartar rascunho?",
     "close_draft_message": "Você tem alterações não salvas. Deseja salvar como rascunho ou descartar?",

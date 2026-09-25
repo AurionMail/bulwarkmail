@@ -562,6 +562,7 @@
     "scheduled_actions_only": "Vizualizarea programată acceptă numai acțiuni programate",
     "undo_send_scheduled": "Mesaj programat pentru trimitere",
     "undo_send": "Anulează trimiterea",
+    "undo_send_failed": "Trimiterea nu a putut fi anulată",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Închide bara laterală",
@@ -669,6 +670,7 @@
     "show_less": "Afișați mai puțin",
     "send_failed": "Nu s-a putut trimite e-mailul",
     "send_timeout": "Serverul a încetat să răspundă. Verificați folderul Trimise înainte de a trimite din nou — mesajul poate să fi plecat deja.",
+    "submission_quota": "Serverul păstrează prea multe înregistrări de mesaje trimise pentru acest cont. Bulwark le-a eliminat pe cele pe care a putut; dacă problema persistă, cereți administratorului să mărească limita de trimiteri de e-mail.",
     "continue_draft": "Continuă schița",
     "close_draft_title": "Să salvați sau să renunțați la schiță?",
     "close_draft_message": "Aveți modificări nesalvate. Doriți să salvați acest mesaj ca schiță sau să îl ignorați?",

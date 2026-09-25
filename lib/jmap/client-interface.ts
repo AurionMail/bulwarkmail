@@ -340,8 +340,21 @@ export interface IJMAPClient {
   sendRawEmail(blob: Blob, identityId: string, sentMailboxId: string, draftMailboxId?: string, delayedUntil?: string, envelopeRecipients?: string[]): Promise<SendEmailResult>;
   submitRawEmail(blob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[]): Promise<SendEmailResult>;
   getScheduledEmails(limit?: number, position?: number): Promise<{ emails: ScheduledEmail[]; hasMore: boolean; total: number; totalByAccount?: Record<string, number>; nextPosition: number }>;
+  /** Cancels a pending submission, then destroys its record. */
   cancelEmailSubmission(submissionId: string, accountId?: string): Promise<void>;
   rescheduleEmailSubmission(submissionId: string, emailId: string, identityId: string, delayedUntil: string, accountId?: string): Promise<SendEmailResult>;
+  /**
+   * Destroys EmailSubmission records, which never stops their delivery - but
+   * a pending one could no longer be cancelled, so only pass records that
+   * can't be. Resolves with the ids destroyed; never rejects.
+   */
+  destroyEmailSubmissions(ids: string[], accountId?: string): Promise<string[]>;
+  /**
+   * Destroys the canceled and delivered submission records of every
+   * submission account, at most once per account every few minutes unless
+   * `force` is set. Resolves with the number destroyed; never rejects.
+   */
+  pruneEmailSubmissions(options?: { force?: boolean }): Promise<number>;
   /** `sentMailboxId` is accepted for backwards compatibility but ignored: the message is placed in Drafts only. */
   restoreEmailToDraft(emailId: string, draftMailboxId: string, sentMailboxId?: string): Promise<void>;
 

@@ -562,6 +562,7 @@
     "scheduled_actions_only": "La vista Programados solo admite acciones de programación",
     "undo_send_scheduled": "Mensaje programado para envío",
     "undo_send": "Deshacer envío",
+    "undo_send_failed": "No se pudo deshacer el envío",
     "contact_sidebar": {
       "title": "Contacto",
       "close": "Cerrar panel",
@@ -673,6 +674,7 @@
     "smime_unlock_button": "Desbloquear",
     "smime_passphrase_placeholder": "Contraseña S/MIME",
     "send_timeout": "El servidor dejó de responder. Compruebe la carpeta Enviados antes de volver a enviar: el mensaje puede haber salido.",
+    "submission_quota": "El servidor tiene demasiados registros de mensajes enviados para esta cuenta. Bulwark eliminó los que pudo; si esto sigue ocurriendo, pida a su administrador que aumente el límite de envíos de correo.",
     "continue_draft": "Continuar borrador",
     "close_draft_title": "¿Guardar o descartar borrador?",
     "close_draft_message": "Tiene cambios sin guardar. ¿Desea guardar esto como borrador o descartarlo?",

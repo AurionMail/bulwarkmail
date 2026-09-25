@@ -562,6 +562,7 @@
     "scheduled_actions_only": "Ieplānoto skatā ir pieejamas tikai ieplānošanas darbības",
     "undo_send_scheduled": "Ziņojums ir ieplānots nosūtīšanai",
     "undo_send": "Atsaukt sūtīšanu",
+    "undo_send_failed": "Sūtīšanu neizdevās atsaukt",
     "contact_sidebar": {
       "title": "Kontaktpersona",
       "close": "Aizvērt sānjoslu",
@@ -666,6 +667,7 @@
     "show_less": "Rādīt mazāk",
     "send_failed": "Neizdevās nosūtīt vēstuli",
     "send_timeout": "Serveris pārstāja atbildēt. Pirms sūtīt vēlreiz, pārbaudiet mapi Nosūtītie — ziņojums, iespējams, jau ir aizsūtīts.",
+    "submission_quota": "Serverī šim kontam ir pārāk daudz nosūtīto ziņojumu ierakstu. Bulwark noņēma tos, ko varēja; ja tas atkārtojas, lūdziet administratoram palielināt e-pasta sūtījumu ierobežojumu.",
     "continue_draft": "Turpināt melnrakstu",
     "close_draft_title": "Saglabāt vai atmest melnrakstu?",
     "close_draft_message": "Ir nesaglabātas izmaiņas. Vai vēlaties saglabāt kā melnrakstu vai atmest?",

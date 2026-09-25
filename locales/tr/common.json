@@ -562,6 +562,7 @@
     "scheduled_actions_only": "Zamanlandı görünümü yalnızca zamanlama işlemlerini destekler",
     "undo_send_scheduled": "İleti gönderim için zamanlandı",
     "undo_send": "Göndermeyi geri al",
+    "undo_send_failed": "Gönderme geri alınamadı",
     "contact_sidebar": {
       "title": "Kişi",
       "close": "Kenar çubuğunu kapat",
@@ -669,6 +670,7 @@
     "show_less": "Daha az göster",
     "send_failed": "E-posta gönderilemedi",
     "send_timeout": "Sunucu yanıt vermeyi bıraktı. Yeniden göndermeden önce Gönderilenler klasörünü kontrol edin — ileti gönderilmiş olabilir.",
+    "submission_quota": "Sunucuda bu hesap için çok fazla gönderilmiş ileti kaydı var. Bulwark kaldırabildiklerini kaldırdı; bu durum sürerse yöneticinizden e-posta gönderim sınırını yükseltmesini isteyin.",
     "continue_draft": "Taslağa devam et",
     "close_draft_title": "Taslak kaydedilsin mi yoksa silinsin mi?",
     "close_draft_message": "Kaydedilmemiş değişiklikleriniz var. Bunu taslak olarak kaydetmek ister misiniz yoksa vazgeçmek mi?",
