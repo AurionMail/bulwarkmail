@@ -679,6 +679,8 @@
     "send_timeout": "The server stopped responding. Check your Sent folder before sending again — the message may have gone out.",
     "submission_quota": "The server has too many sent-message records for this account. Bulwark removed the ones it could; if this keeps happening, ask your administrator to raise the email submission limit.",
     "submission_limit": "The server refused to send the message because a limit was reached: {reason}",
+    "recipients_refused": "Not sent: the server refused {recipients}.",
+    "recipients_partly_refused": "The server refused {recipients}. The other recipients get the message.",
     "continue_draft": "Continue draft",
     "close_draft_title": "Save or discard draft?",
     "close_draft_message": "You have unsaved changes. Would you like to save this as a draft or discard it?",

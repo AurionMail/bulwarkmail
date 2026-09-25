@@ -679,6 +679,8 @@
     "send_timeout": "Sunucu yanıt vermeyi bıraktı. Yeniden göndermeden önce Gönderilenler klasörünü kontrol edin — ileti gönderilmiş olabilir.",
     "submission_quota": "Sunucuda bu hesap için çok fazla gönderilmiş ileti kaydı var. Bulwark kaldırabildiklerini kaldırdı; bu durum sürerse yöneticinizden e-posta gönderim sınırını yükseltmesini isteyin.",
     "submission_limit": "Bir sınıra ulaşıldığı için sunucu iletiyi göndermeyi reddetti: {reason}",
+    "recipients_refused": "Gönderilmedi: sunucu şu alıcıları reddetti: {recipients}.",
+    "recipients_partly_refused": "Sunucu şu alıcıları reddetti: {recipients}. Diğer alıcılar iletiyi alır.",
     "continue_draft": "Taslağa devam et",
     "close_draft_title": "Taslak kaydedilsin mi yoksa silinsin mi?",
     "close_draft_message": "Kaydedilmemiş değişiklikleriniz var. Bunu taslak olarak kaydetmek ister misiniz yoksa vazgeçmek mi?",

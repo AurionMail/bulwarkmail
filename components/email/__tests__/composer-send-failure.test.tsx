@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
-import { SubmissionQuotaError } from '@/lib/jmap/client';
+import { RecipientsRefusedError, SubmissionQuotaError } from '@/lib/jmap/client';
 
 // ─── Heavy component mocks (mirrors composer-reopened-draft-signature.test.tsx) ─
 
@@ -225,5 +225,14 @@ describe('composer send failures', () => {
     const message = await sendAndFail(new Error('Envelope mailFrom does not match identity email address. [forbiddenFrom]'));
 
     expect(message).toBe('Envelope mailFrom does not match identity email address. [forbiddenFrom]');
+  });
+
+  // Stalwart 0.16 and 1.0 take the submission but refuse the recipient at
+  // RCPT; the send fails and the composer keeps the message.
+  it('says the message was not sent when the server refused every recipient', async () => {
+    const message = await sendAndFail(new RecipientsRefusedError([{ email: 'nobody@example.net', smtpReply: '550 5.1.2 Relay not allowed.' }]));
+
+    expect(message).toBe('recipients_refused');
+    expect(screen.getByDisplayValue('Hello')).toBeInTheDocument();
   });
 });

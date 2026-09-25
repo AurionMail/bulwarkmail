@@ -683,6 +683,8 @@
     "send_timeout": "O servidor deixou de responder. Verifique a pasta Enviados antes de enviar novamente — a mensagem pode já ter saído.",
     "submission_quota": "O servidor tem registros de mensagens enviadas demais para esta conta. O Bulwark removeu os que pôde; se isso continuar acontecendo, peça ao seu administrador para aumentar o limite de envios de e-mail.",
     "submission_limit": "O servidor se recusou a enviar a mensagem porque um limite foi atingido: {reason}",
+    "recipients_refused": "Não enviado: o servidor recusou {recipients}.",
+    "recipients_partly_refused": "O servidor recusou {recipients}. Os demais destinatários recebem a mensagem.",
     "continue_draft": "Continuar rascunho",
     "close_draft_title": "Salvar ou descartar rascunho?",
     "close_draft_message": "Você tem alterações não salvas. Deseja salvar como rascunho ou descartar?",

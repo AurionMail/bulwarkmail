@@ -1,5 +1,5 @@
 import { generateUUID } from '@/lib/utils';
-import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
+import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, EmailSubmission, RefusedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileNodeListings, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
@@ -228,6 +228,50 @@ export class NoLongerScheduledError extends Error {
     super(sent ? 'The scheduled message was already sent' : 'The message is no longer scheduled');
     this.name = 'NoLongerScheduledError';
   }
+}
+
+/**
+ * The server took a submission but refused every one of its recipients, so
+ * nothing was queued: nothing goes out, and no bounce will say so. Stalwart
+ * answers this way to a relay it doesn't allow ("550 5.1.2 Relay not
+ * allowed.") and to a throttle that is used up ("452 4.4.5 Rate limit
+ * exceeded, try again later."), on 0.16 and 1.0 alike.
+ */
+export class RecipientsRefusedError extends Error {
+  constructor(readonly recipients: RefusedRecipient[]) {
+    super(`The server refused ${recipients.map((r) => (r.smtpReply ? `${r.email} (${r.smtpReply})` : r.email)).join(', ')}`);
+    this.name = 'RecipientsRefusedError';
+  }
+}
+
+/**
+ * EmailSubmission/get of the submission a /set creates in the same request,
+ * named by its creation id. The server runs the SMTP RCPT stage while it
+ * creates the submission - for a held send as well, only the delivery waits -
+ * and records a refused recipient right away as `delivered: "no"` with its
+ * reply. The create's own answer carries no deliveryStatus (0.16 and 1.0).
+ */
+function deliveryStatusCall(accountId: string, creationId: string, callId: string): JMAPMethodCall {
+  return ['EmailSubmission/get', { accountId, ids: [`#${creationId}`], properties: ['id', 'deliveryStatus'] }, callId];
+}
+
+/**
+ * The recipients a new submission's server refused, from the answer to
+ * deliveryStatusCall, and whether it refused every one. Nothing is known when
+ * that get failed or the server keeps no delivery status.
+ */
+function refusedRecipients(
+  answer: [string, JMAPResponseResult, string] | undefined,
+): { recipients: RefusedRecipient[]; all: boolean } {
+  const [name, result] = answer ?? [];
+  const status = name === 'EmailSubmission/get'
+    ? (result?.list?.[0] as { deliveryStatus?: Record<string, { delivered?: string; smtpReply?: string }> } | undefined)?.deliveryStatus
+    : undefined;
+  const entries = Object.entries(status ?? {});
+  const recipients = entries
+    .filter(([, delivery]) => delivery?.delivered === 'no')
+    .map(([email, delivery]) => ({ email, ...(delivery.smtpReply ? { smtpReply: delivery.smtpReply } : {}) }));
+  return { recipients, all: recipients.length > 0 && recipients.length === entries.length };
 }
 
 /**
@@ -1247,6 +1291,12 @@ export class JMAPClient implements IJMAPClient {
   private learnedMaxDelayedSend: number | null = null;
   /** When each account's submission records were last pruned (epoch ms). */
   private submissionPrunedAt = new Map<string, number>();
+  /**
+   * Shared accounts that advertise EmailSubmission but refused this login's
+   * calls with `forbidden` - on 0.16, an account that only shared an address
+   * book or a calendar. Left out of getSubmissionAccountIds for the session.
+   */
+  private refusedSubmissionAccounts = new Set<string>();
   /** Accounts where making room found nothing to free, until when (epoch ms). */
   private submissionRoomRecheckAt = new Map<string, number>();
   // Consecutive keep-alive failures; failed pings skip upcoming ticks
@@ -4315,6 +4365,9 @@ export class JMAPClient implements IJMAPClient {
       create: buildSubmissionCreate(`#${emailId}`, firstMailFrom),
       onSuccessUpdateEmail,
     }, "1"]);
+    // Which recipients the server took. A refused one is lost without a
+    // bounce while the create succeeds and files the message in Sent.
+    methodCalls.push(deliveryStatusCall(submissionAccountId, "1", "2"));
 
     let response = await this.request(methodCalls);
 
@@ -4350,7 +4403,7 @@ export class JMAPClient implements IJMAPClient {
         accountId: submissionAccountId,
         create: buildSubmissionCreate(draftCopyId, mailFrom),
         onSuccessUpdateEmail,
-      }, "1"]]);
+      }, "1"], deliveryStatusCall(submissionAccountId, "1", "2")]);
       response = {
         ...retry,
         methodResponses: [
@@ -4359,6 +4412,11 @@ export class JMAPClient implements IJMAPClient {
         ],
       };
     }
+
+    // The get goes on its own: it fails whenever the create did, and must not
+    // count as a failed send or filing either way.
+    const deliveryAnswer = response.methodResponses?.find(([, , callId]) => callId === "2");
+    response = { ...response, methodResponses: (response.methodResponses ?? []).filter(([, , callId]) => callId !== "2") };
 
     let createdEmailId: string | undefined;
     let emailSubmissionId: string | undefined;
@@ -4440,6 +4498,22 @@ export class JMAPClient implements IJMAPClient {
       }
     }
 
+    // Every recipient refused: nothing was queued, so nothing goes out, held
+    // or not, and no bounce will tell. That is a failed send. The copy made
+    // for it goes, as after any failed send - onSuccessUpdateEmail filed it in
+    // Sent, where it passes for a sent message - while the user's draft stays
+    // and the composer keeps the text, so the address can be fixed and the
+    // message sent again. The record can neither go out nor be cancelled.
+    const delivery = emailSubmissionId ? refusedRecipients(deliveryAnswer) : { recipients: [], all: false };
+    if (delivery.all) {
+      console.error('[sendEmail] every recipient refused:', JSON.stringify(delivery.recipients));
+      await this.discardUnsentCopy(createdEmailId ?? draftCopyId, targetAccountId);
+      if (this.hasAccountCapability('urn:stalwart:jmap', submissionAccountId)) {
+        await this.destroyEmailSubmissions([emailSubmissionId!], submissionAccountId);
+      }
+      throw new RecipientsRefusedError(delivery.recipients);
+    }
+
     // An immediate send's submission record has done its job once the
     // request that created it returned: the message is queued and filed, and
     // with no hold there is nothing to cancel. Stalwart 1.0 stops accepting
@@ -4485,9 +4559,12 @@ export class JMAPClient implements IJMAPClient {
       serverSendAt = await this.getEmailSubmissionSendAt(emailSubmissionId, submissionAccountId);
     }
 
+    // Some recipients refused: the others get the message, the caller says
+    // who doesn't.
+    const refused = delivery.recipients.length > 0 ? { refusedRecipients: delivery.recipients } : {};
     return delayedUntil
-      ? { scheduled: true, emailId: createdEmailId, emailSubmissionId, sendAt: serverSendAt, submissionAccountId, filingError }
-      : { scheduled: false, emailId: createdEmailId, emailSubmissionId, submissionAccountId, filingError };
+      ? { scheduled: true, emailId: createdEmailId, emailSubmissionId, sendAt: serverSendAt, submissionAccountId, filingError, ...refused }
+      : { scheduled: false, emailId: createdEmailId, emailSubmissionId, submissionAccountId, filingError, ...refused };
   }
 
   /**
@@ -5563,7 +5640,7 @@ export class JMAPClient implements IJMAPClient {
     const primary = this.getSubmissionAccountId();
     if (primary) ids.push(primary);
     for (const [accountId, account] of Object.entries(this.session?.accounts ?? {})) {
-      if (ids.includes(accountId)) continue;
+      if (ids.includes(accountId) || this.refusedSubmissionAccounts.has(accountId)) continue;
       if (account?.accountCapabilities?.['urn:ietf:params:jmap:submission']) ids.push(accountId);
     }
     return ids;
@@ -10298,6 +10375,7 @@ export class JMAPClient implements IJMAPClient {
             },
           } : {}),
         }, '0'],
+        deliveryStatusCall(submissionAccountId, 'replacement', '1'),
       ]);
     };
     let response = await createReplacement(holdForSeconds);
@@ -10325,6 +10403,17 @@ export class JMAPClient implements IJMAPClient {
     if (!replacementId) {
       throw new Error('Server did not return a replacement scheduled send ID');
     }
+    // The recipients are checked again for the replacement, and a throttle
+    // used up since the original was taken refuses them all: nothing was
+    // queued, and cancelling the original would lose the message. It goes at
+    // its old time instead; the replacement's record is dead weight.
+    const delivery = refusedRecipients(response.methodResponses?.find(([, , callId]) => callId === '1'));
+    if (delivery.all) {
+      if (this.hasAccountCapability('urn:stalwart:jmap', submissionAccountId)) {
+        await this.destroyEmailSubmissions([replacementId], submissionAccountId);
+      }
+      throw new RecipientsRefusedError(delivery.recipients);
+    }
     const finalSendAt = serverSendAt || await this.getEmailSubmissionSendAt(replacementId, submissionAccountId);
     // Either cancel also destroys the record it canceled, so a reschedule
     // leaves only the replacement behind.
@@ -10339,7 +10428,10 @@ export class JMAPClient implements IJMAPClient {
       const message = error instanceof Error ? error.message : 'Failed to cancel original scheduled send';
       throw new Error(`Reschedule created a replacement but could not cancel the original: ${message}`);
     }
-    return { scheduled: true, emailId, emailSubmissionId: replacementId, sendAt: finalSendAt };
+    return {
+      scheduled: true, emailId, emailSubmissionId: replacementId, sendAt: finalSendAt,
+      ...(delivery.recipients.length > 0 ? { refusedRecipients: delivery.recipients } : {}),
+    };
   }
 
   // The third parameter is intentionally unused: this restores an undo-send /
@@ -10433,6 +10525,15 @@ export class JMAPClient implements IJMAPClient {
       if (prunable.length === 0) return 0;
       return (await this.destroyEmailSubmissions(prunable, accountId)).length;
     } catch (error) {
+      // Stalwart 0.16 lists an account that shared only an address book or a
+      // calendar with the submission capability, then refuses its records
+      // ("You are not an owner of account ..."). Nothing of this login's is
+      // there, so the account is left alone for the rest of the session.
+      if (jmapErrorType(error) === 'forbidden' && accountId !== this.getSubmissionAccountId()) {
+        this.refusedSubmissionAccounts.add(accountId);
+        debug.log('email', `[EmailSubmission] ${accountId} refuses this login's submissions; not asking again`);
+        return 0;
+      }
       console.warn(`[EmailSubmission] pruning ${accountId} failed:`, error);
       return 0;
     }

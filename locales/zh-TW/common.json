@@ -679,6 +679,8 @@
     "send_timeout": "伺服器停止回應。再次傳送前，請先檢查「寄件備份」信件匣，因為郵件可能已經寄出。",
     "submission_quota": "伺服器上此帳戶的已寄出郵件記錄過多。Bulwark 已移除可以移除的記錄；如果問題持續發生，請要求管理員提高郵件提交數量上限。",
     "submission_limit": "由於達到上限，伺服器拒絕傳送此郵件：{reason}",
+    "recipients_refused": "未傳送：伺服器拒絕了 {recipients}。",
+    "recipients_partly_refused": "伺服器拒絕了 {recipients}。其他收件者會收到此郵件。",
     "continue_draft": "繼續編輯草稿",
     "close_draft_title": "要儲存還是捨棄草稿？",
     "close_draft_message": "您有尚未儲存的變更。要將這封郵件儲存為草稿，還是捨棄？",

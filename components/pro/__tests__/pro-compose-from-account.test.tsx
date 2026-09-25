@@ -29,7 +29,8 @@ vi.mock('@/components/error', () => ({
 
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@/lib/debug', () => ({ debug: { log: () => {}, warn: () => {}, error: () => {} } }));
-vi.mock('@/stores/toast-store', () => ({ toast: { error: () => {}, success: () => {}, warning: () => {} } }));
+const { toastWarning } = vi.hoisted(() => ({ toastWarning: vi.fn() }));
+vi.mock('@/stores/toast-store', () => ({ toast: { error: () => {}, success: () => {}, warning: toastWarning } }));
 
 const { emailState, authState } = vi.hoisted(() => ({
   emailState: {
@@ -169,5 +170,29 @@ describe('Pro compose tab - a draft that lives in a group account', () => {
     // (client, to, subject, body, cc, bcc, identityId, fromEmail, draftId, ..., options)
     expect(sendEmail.mock.calls[0][8]).toBe('eaaaaab');
     expect(sendEmail.mock.calls[0][16]).toEqual({ localAccountId: undefined, draftAccountId: 'c' });
+  });
+});
+
+// Stalwart 0.16 and 1.0 refuse a recipient at RCPT (relay not allowed, a
+// used-up throttle) while the send goes to the others.
+describe('Pro compose tab - recipients the server refused', () => {
+  const saved = emailState.sendEmail;
+
+  afterEach(() => {
+    emailState.sendEmail = saved;
+    toastWarning.mockClear();
+  });
+
+  it('says which recipients never get the message', async () => {
+    emailState.sendEmail = vi.fn().mockResolvedValue({
+      scheduled: false,
+      refusedRecipients: [{ email: 'nobody@example.net', smtpReply: '550 5.1.2 Relay not allowed.' }],
+    });
+    render(<ProComposeTabBody tabId="tab-1" data={TAB_DATA} />);
+    const onSend = composerProps.current?.onSend as (data: Record<string, unknown>) => Promise<void>;
+
+    await onSend({ to: ['bob@example.org', 'nobody@example.net'], cc: [], bcc: [], subject: 'Hi', body: 'Hi' });
+
+    expect(toastWarning).toHaveBeenCalledWith('email_composer.recipients_partly_refused');
   });
 });

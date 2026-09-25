@@ -676,6 +676,8 @@
     "send_timeout": "서버가 응답을 멈췄습니다. 다시 보내기 전에 보낸 편지함을 확인하세요. 메시지가 이미 발송되었을 수 있습니다.",
     "submission_quota": "서버에 이 계정의 보낸 메시지 기록이 너무 많습니다. Bulwark가 삭제할 수 있는 기록은 삭제했습니다. 이 문제가 계속되면 관리자에게 메일 발송 한도를 늘려 달라고 요청하세요.",
     "submission_limit": "한도에 도달하여 서버가 메시지 전송을 거부했습니다: {reason}",
+    "recipients_refused": "보내지 못했습니다: 서버가 {recipients}을(를) 거부했습니다.",
+    "recipients_partly_refused": "서버가 {recipients}을(를) 거부했습니다. 다른 받는 사람에게는 메시지가 전달됩니다.",
     "continue_draft": "이어서 작성하기",
     "close_draft_title": "임시보관함에 저장할까요?",
     "close_draft_message": "저장되지 않은 내용이 있어요. 임시보관함에 저장할까요, 아니면 삭제할까요?",

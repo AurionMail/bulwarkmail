@@ -679,6 +679,8 @@
     "send_timeout": "A kiszolgáló nem válaszol többé. Újraküldés előtt ellenőrizze az Elküldött mappát – az üzenet lehet, hogy már kiment.",
     "submission_quota": "A kiszolgáló túl sok elküldött üzenetről szóló bejegyzést tárol ehhez a fiókhoz. A Bulwark eltávolította, amit tudott; ha ez továbbra is előfordul, kérje meg a rendszergazdát, hogy emelje meg az e-mail-küldési korlátot.",
     "submission_limit": "A kiszolgáló elutasította az üzenet küldését, mert elért egy korlátot: {reason}",
+    "recipients_refused": "Nincs elküldve: a kiszolgáló elutasította a következőt: {recipients}.",
+    "recipients_partly_refused": "A kiszolgáló elutasította a következőt: {recipients}. A többi címzett megkapja az üzenetet.",
     "continue_draft": "Piszkozat folytatása",
     "close_draft_title": "Piszkozat mentése vagy elvetése?",
     "close_draft_message": "Nem mentett változtatások vannak. Szeretnéd piszkozatként menteni vagy elvetni?",

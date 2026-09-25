@@ -683,6 +683,8 @@
     "send_timeout": "El servidor dejó de responder. Compruebe la carpeta Enviados antes de volver a enviar: el mensaje puede haber salido.",
     "submission_quota": "El servidor tiene demasiados registros de mensajes enviados para esta cuenta. Bulwark eliminó los que pudo; si esto sigue ocurriendo, pida a su administrador que aumente el límite de envíos de correo.",
     "submission_limit": "El servidor se negó a enviar el mensaje porque se alcanzó un límite: {reason}",
+    "recipients_refused": "No enviado: el servidor rechazó {recipients}.",
+    "recipients_partly_refused": "El servidor rechazó {recipients}. Los demás destinatarios reciben el mensaje.",
     "continue_draft": "Continuar borrador",
     "close_draft_title": "¿Guardar o descartar borrador?",
     "close_draft_message": "Tiene cambios sin guardar. ¿Desea guardar esto como borrador o descartarlo?",

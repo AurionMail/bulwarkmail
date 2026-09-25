@@ -676,6 +676,8 @@
     "send_timeout": "Serwer przestał odpowiadać. Przed ponownym wysłaniem sprawdź folder Wysłane — wiadomość mogła już zostać wysłana.",
     "submission_quota": "Serwer przechowuje zbyt wiele rekordów wysłanych wiadomości dla tego konta. Bulwark usunął te, które mógł; jeśli to się powtarza, poproś administratora o podniesienie limitu wysyłek e-mail.",
     "submission_limit": "Serwer odmówił wysłania wiadomości, ponieważ osiągnięto limit: {reason}",
+    "recipients_refused": "Nie wysłano: serwer odrzucił {recipients}.",
+    "recipients_partly_refused": "Serwer odrzucił {recipients}. Pozostali odbiorcy otrzymają wiadomość.",
     "continue_draft": "Kontynuuj szkic",
     "close_draft_title": "Zapisać czy odrzucić szkic?",
     "close_draft_message": "Masz niezapisane zmiany. Czy chcesz zapisać jako szkic czy odrzucić?",

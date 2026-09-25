@@ -679,6 +679,8 @@
     "send_timeout": "Serveren sluttet å svare. Sjekk Sendt-mappen før du sender på nytt – meldingen kan ha blitt sendt.",
     "submission_quota": "Serveren har for mange registreringer av sendte meldinger for denne kontoen. Bulwark fjernet dem den kunne; hvis dette fortsetter, be administratoren din om å øke grensen for innsending av e-post.",
     "submission_limit": "Serveren nektet å sende meldingen fordi en grense er nådd: {reason}",
+    "recipients_refused": "Ikke sendt: serveren avviste {recipients}.",
+    "recipients_partly_refused": "Serveren avviste {recipients}. De andre mottakerne får meldingen.",
     "continue_draft": "Fortsett å skrive",
     "close_draft_title": "Lagre eller forkast utkast?",
     "close_draft_message": "Du har ulagrede endringer. Vil du lagre dette som et utkast eller forkaste det?",

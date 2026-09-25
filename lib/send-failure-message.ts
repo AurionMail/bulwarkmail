@@ -1,6 +1,12 @@
-import { NoLongerScheduledError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError } from '@/lib/jmap/client';
+import { NoLongerScheduledError, RecipientsRefusedError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError } from '@/lib/jmap/client';
+import type { RefusedRecipient } from '@/lib/jmap/types';
 
 type Translate = (key: string, values?: Record<string, string>) => string;
+
+/** "nobody@example.net (550 5.1.2 Relay not allowed.)", one per refused recipient. */
+export function formatRefusedRecipients(recipients: RefusedRecipient[]): string {
+  return recipients.map((r) => (r.smtpReply ? `${r.email} (${r.smtpReply})` : r.email)).join(', ');
+}
 
 /**
  * Thrown by "Undo send" and "Cancel and edit" when the cancel went through
@@ -29,7 +35,10 @@ export class SendCancelledCleanupError extends Error {
  * - a timeout, which is not a clean failure: the submission may have reached
  *   the server and gone out, with only the answer lost. Saying "send failed"
  *   would invite a re-send and a duplicate, so point at Sent instead (#702);
- * - a hold beyond the server's limit.
+ * - a hold beyond the server's limit;
+ * - every recipient refused: the server took the submission, so nothing
+ *   else would say that the message went nowhere. Its reply per address
+ *   goes with it.
  */
 export function sendFailureMessage(error: unknown, t: Translate): string {
   if (error instanceof SubmissionQuotaError) {
@@ -39,6 +48,9 @@ export function sendFailureMessage(error: unknown, t: Translate): string {
   }
   if (error instanceof RequestTimeoutError) return t('send_timeout');
   if (error instanceof ScheduleTooLateError) return t('schedule_send_too_late');
+  if (error instanceof RecipientsRefusedError) {
+    return t('recipients_refused', { recipients: formatRefusedRecipients(error.recipients) });
+  }
   return error instanceof Error && error.message ? error.message : t('send_failed');
 }
 
@@ -47,7 +59,8 @@ export function sendFailureMessage(error: unknown, t: Translate): string {
  * (`tViewer`) and `email_composer` (`tComposer`) messages. At a full
  * submission quota no replacement was made, so the message still goes out at
  * its old time, `scheduledAt` (formatted) when known. Making room takes a
- * while, and the original may have gone out meanwhile.
+ * while, and the original may have gone out meanwhile. When the server
+ * refused every recipient of the replacement, the original was kept too.
  */
 export function rescheduleFailureToast(
   error: unknown,
@@ -58,11 +71,12 @@ export function rescheduleFailureToast(
   if (error instanceof NoLongerScheduledError) {
     return { title: tViewer(error.sent ? 'already_sent' : 'no_longer_scheduled') };
   }
+  const stillScheduled = scheduledAt ? tViewer('still_scheduled_at', { date: scheduledAt }) : tViewer('still_scheduled');
   if (error instanceof SubmissionQuotaError) {
-    return {
-      title: scheduledAt ? tViewer('still_scheduled_at', { date: scheduledAt }) : tViewer('still_scheduled'),
-      message: sendFailureMessage(error, tComposer),
-    };
+    return { title: stillScheduled, message: sendFailureMessage(error, tComposer) };
+  }
+  if (error instanceof RecipientsRefusedError) {
+    return { title: sendFailureMessage(error, tComposer), message: stillScheduled };
   }
   return { title: sendFailureMessage(error, tComposer) };
 }

@@ -683,6 +683,8 @@
     "send_timeout": "Der Server antwortet nicht mehr. Prüfen Sie den Ordner „Gesendet“, bevor Sie erneut senden – die Nachricht wurde möglicherweise bereits verschickt.",
     "submission_quota": "Der Server hat für dieses Konto zu viele Einträge zu gesendeten Nachrichten. Bulwark hat entfernt, was möglich war; wenn das weiterhin vorkommt, bitten Sie Ihren Administrator, das Limit für E-Mail-Übermittlungen zu erhöhen.",
     "submission_limit": "Der Server hat das Senden abgelehnt, weil ein Limit erreicht ist: {reason}",
+    "recipients_refused": "Nicht gesendet: Der Server hat {recipients} abgelehnt.",
+    "recipients_partly_refused": "Der Server hat {recipients} abgelehnt. Die anderen Empfänger erhalten die Nachricht.",
     "continue_draft": "Entwurf fortsetzen",
     "close_draft_title": "Entwurf speichern oder verwerfen?",
     "close_draft_message": "Sie haben ungespeicherte Änderungen. Möchten Sie diese als Entwurf speichern oder verwerfen?",

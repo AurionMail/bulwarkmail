@@ -34,7 +34,7 @@ import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { useEmailStore, buildUnifiedAccountClients, ArchiveMailboxNotFoundError, findArchiveMailbox, resolveUnstampedEmailAccountId } from "@/stores/email-store";
 import { groupSearchScopeFolders } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
-import { cancelFailureToast, rescheduleFailureToast } from "@/lib/send-failure-message";
+import { cancelFailureToast, formatRefusedRecipients, rescheduleFailureToast } from "@/lib/send-failure-message";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
@@ -1749,6 +1749,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         // and re-sent (#592).
         toast.warning(t('email_composer.send_filing_warning'));
       }
+      if (result.refusedRecipients?.length) {
+        // The server refused some recipients outright; nothing else, not
+        // even a bounce, would tell the user they never get the message.
+        toast.warning(t('email_composer.recipients_partly_refused', {
+          recipients: formatRefusedRecipients(result.refusedRecipients),
+        }));
+      }
       // Mark the original email with $answered or $forwarded keyword. Route the
       // write to the email's own account so the flag lands on shared/group-mailbox
       // messages instead of being dropped against the reaching account. (#281)
@@ -1770,8 +1777,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         return;
       }
 
-      // Delayed sends get the undo toast instead; a filing error already warned.
-      if (!result.filingError) toast.success(t('notifications.email_sent'));
+      // Delayed sends get the undo toast instead; a filing error or refused
+      // recipients already warned.
+      if (!result.filingError && !result.refusedRecipients?.length) toast.success(t('notifications.email_sent'));
 
       // Refresh the current mailbox to update the UI
       if (!isScheduledView) {

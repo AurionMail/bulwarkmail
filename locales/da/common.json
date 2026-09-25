@@ -678,6 +678,8 @@
     "send_timeout": "Serveren holdt op med at svare. Tjek mappen Sendt, før du sender igen — beskeden er måske allerede afsendt.",
     "submission_quota": "Serveren har for mange registreringer af sendte beskeder for denne konto. Bulwark har fjernet dem, den kunne; hvis det bliver ved med at ske, så bed din administrator om at hæve grænsen for afsendelse af e-mails.",
     "submission_limit": "Serveren afviste at sende beskeden, fordi en grænse er nået: {reason}",
+    "recipients_refused": "Ikke sendt: serveren afviste {recipients}.",
+    "recipients_partly_refused": "Serveren afviste {recipients}. De øvrige modtagere får beskeden.",
     "continue_draft": "Fortsæt kladde",
     "close_draft_title": "Gem eller kassér kladde?",
     "close_draft_message": "Du har ugemte ændringer. Vil du gemme dette som en kladde eller kassere det?",

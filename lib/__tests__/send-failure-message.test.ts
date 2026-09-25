@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { NoLongerScheduledError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError } from '../jmap/client';
-import { SendCancelledCleanupError, cancelFailureToast, rescheduleFailureToast, sendFailureMessage } from '../send-failure-message';
+import { NoLongerScheduledError, RecipientsRefusedError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError } from '../jmap/client';
+import { SendCancelledCleanupError, cancelFailureToast, formatRefusedRecipients, rescheduleFailureToast, sendFailureMessage } from '../send-failure-message';
 
 // Keys of a namespace, returned with their values so the test sees which
 // message was chosen and what went into it.
@@ -36,6 +36,26 @@ describe('sendFailureMessage', () => {
     expect(sendFailureMessage(new Error(''), t)).toBe('email_composer.send_failed');
     expect(sendFailureMessage('nope', t)).toBe('email_composer.send_failed');
   });
+
+  // Stalwart 0.16 and 1.0 take the submission and refuse the recipients at
+  // RCPT, each with its own reply.
+  it('says the message was not sent and names every refused recipient with its reply', () => {
+    const error = new RecipientsRefusedError([
+      { email: 'nobody@example.net', smtpReply: '550 5.1.2 Relay not allowed.' },
+      { email: 'busy@example.org', smtpReply: '452 4.4.5 Rate limit exceeded, try again later.' },
+    ]);
+
+    expect(sendFailureMessage(error, t)).toBe(
+      'email_composer.recipients_refused {"recipients":"nobody@example.net (550 5.1.2 Relay not allowed.), busy@example.org (452 4.4.5 Rate limit exceeded, try again later.)"}',
+    );
+  });
+});
+
+describe('formatRefusedRecipients', () => {
+  it('lists an address without its reply when the server gave none', () => {
+    expect(formatRefusedRecipients([{ email: 'a@example.net' }, { email: 'b@example.net', smtpReply: '550 5.1.1 No such user' }]))
+      .toBe('a@example.net, b@example.net (550 5.1.1 No such user)');
+  });
 });
 
 describe('rescheduleFailureToast', () => {
@@ -54,6 +74,15 @@ describe('rescheduleFailureToast', () => {
       .toEqual({ title: 'email_viewer.already_sent' });
     expect(rescheduleFailureToast(new NoLongerScheduledError(false), tViewer, t))
       .toEqual({ title: 'email_viewer.no_longer_scheduled' });
+  });
+
+  it('says the message is still scheduled when the server refused every recipient of the replacement', () => {
+    const error = new RecipientsRefusedError([{ email: 'bob@example.org', smtpReply: '452 4.4.5 Rate limit exceeded, try again later.' }]);
+
+    expect(rescheduleFailureToast(error, tViewer, t, 'Sep 26, 10:00')).toEqual({
+      title: 'email_composer.recipients_refused {"recipients":"bob@example.org (452 4.4.5 Rate limit exceeded, try again later.)"}',
+      message: 'email_viewer.still_scheduled_at {"date":"Sep 26, 10:00"}',
+    });
   });
 
   it('falls back to the send failure message otherwise', () => {

@@ -131,6 +131,19 @@ export interface SendEmailResult {
    * old draft). The mail left the server - callers should warn, not fail.
    */
   filingError?: string;
+  /**
+   * Recipients the server refused while it took the submission; the others
+   * get the message. When it refused every one, the send throws
+   * RecipientsRefusedError instead.
+   */
+  refusedRecipients?: RefusedRecipient[];
+}
+
+/** A recipient the server refused to take a message for (EmailSubmission deliveryStatus `delivered: "no"`). */
+export interface RefusedRecipient {
+  email: string;
+  /** The server's SMTP reply, e.g. "550 5.1.2 Relay not allowed." */
+  smtpReply?: string;
 }
 
 export interface ScheduledEmail extends Email {

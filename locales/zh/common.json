@@ -676,6 +676,8 @@
     "send_timeout": "服务器已停止响应。再次发送前请检查“已发送”文件夹——邮件可能已经发出。",
     "submission_quota": "服务器上此账户的已发送邮件记录过多。Bulwark 已删除了能删除的记录；如果问题仍然出现，请让管理员提高邮件提交数量上限。",
     "submission_limit": "由于达到上限，服务器拒绝发送此邮件：{reason}",
+    "recipients_refused": "未发送：服务器拒绝了 {recipients}。",
+    "recipients_partly_refused": "服务器拒绝了 {recipients}。其他收件人会收到此邮件。",
     "continue_draft": "继续编辑草稿",
     "close_draft_title": "保存或丢弃草稿？",
     "close_draft_message": "您有未保存的更改。要将其保存为草稿还是丢弃？",

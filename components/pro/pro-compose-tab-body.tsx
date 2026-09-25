@@ -12,6 +12,7 @@ import { toast } from "@/stores/toast-store";
 import { useProTabStore, registerProTabCloseInterceptor, type ProComposeTabData } from "@/stores/pro-tab-store";
 import { debug } from "@/lib/debug";
 import { threadKeyFor } from "@/lib/thread-utils";
+import { formatRefusedRecipients } from "@/lib/send-failure-message";
 
 interface ProComposeTabBodyProps {
   tabId: string;
@@ -89,6 +90,12 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
         { localAccountId: sendData.localAccountId, draftAccountId: sendData.draftAccountId },
       );
       submitted = true;
+      if (result.refusedRecipients?.length) {
+        // As in the inline composer: nothing else would say who never gets it.
+        toast.warning(t('email_composer.recipients_partly_refused', {
+          recipients: formatRefusedRecipients(result.refusedRecipients),
+        }));
+      }
 
       if (result.scheduled) {
         await handleScheduledSendCreated();

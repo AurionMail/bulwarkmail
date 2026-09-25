@@ -683,6 +683,8 @@
     "send_timeout": "De server reageert niet meer. Controleer de map Verzonden voordat u opnieuw verstuurt — het bericht is mogelijk al verzonden.",
     "submission_quota": "De server bewaart te veel records van verzonden berichten voor dit account. Bulwark heeft verwijderd wat kon; blijft dit gebeuren, vraag uw beheerder dan de limiet voor e-mailverzendingen te verhogen.",
     "submission_limit": "De server weigerde het bericht te verzenden omdat een limiet is bereikt: {reason}",
+    "recipients_refused": "Niet verzonden: de server heeft {recipients} geweigerd.",
+    "recipients_partly_refused": "De server heeft {recipients} geweigerd. De andere ontvangers krijgen het bericht.",
     "continue_draft": "Concept voortzetten",
     "close_draft_title": "Concept opslaan of verwijderen?",
     "close_draft_message": "U heeft niet-opgeslagen wijzigingen. Wilt u dit als concept opslaan of verwijderen?",

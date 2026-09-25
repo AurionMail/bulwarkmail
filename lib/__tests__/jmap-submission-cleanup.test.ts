@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JMAPClient, NoLongerScheduledError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
+import { JMAPClient, NoLongerScheduledError, RecipientsRefusedError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
 import { jmapErrorType } from '../jmap/jmap-error';
 
 /**
@@ -30,7 +30,13 @@ interface FakeSubmission {
   canceled: boolean;
   /** Still in the queue: held, or retrying. */
   queued: boolean;
+  /** What the RCPT stage answered, per recipient (EmailSubmission deliveryStatus). */
+  deliveryStatus?: Record<string, { delivered: string; smtpReply: string; displayed: string }>;
 }
+
+// Stalwart's replies to recipients it refuses at RCPT (live, 0.16.23 and 1.0).
+const RELAY_DENIED = '550 5.1.2 Relay not allowed.';
+const RATE_LIMITED = '452 4.4.5 Rate limit exceeded, try again later.';
 
 const OVER_QUOTA_DESCRIPTION = 'There are too many email submissions, please delete some before adding a new one.';
 const HOUR = 60 * 60 * 1000;
@@ -56,12 +62,14 @@ interface FakeOptions {
   emailCreateError?: SetError;
   /** Answer a call before the fake does. */
   intercept?: (call: MethodCall) => Array<[string, Record<string, unknown>, string]> | undefined;
+  /** The SMTP reply the RCPT stage refuses a recipient with; undefined takes it. */
+  refuseRecipient?: (email: string) => string | undefined;
 }
 
 function fakeStalwart(options: FakeOptions = {}) {
   const version = options.version ?? '1.0';
   const submissions = new Map<string, FakeSubmission>();
-  const emails = new Map<string, { accountId: string; mailboxIds: Record<string, boolean> }>();
+  const emails = new Map<string, { accountId: string; mailboxIds: Record<string, boolean>; recipients?: string[] }>();
   const requests: MethodCall[][] = [];
   let next = 1;
 
@@ -132,13 +140,14 @@ function fakeStalwart(options: FakeOptions = {}) {
         if (args.create) {
           const created: Record<string, { id: string }> = {};
           const notCreated: Record<string, SetError> = {};
-          for (const [key, value] of Object.entries(args.create as Record<string, { mailboxIds: Record<string, boolean> }>)) {
+          for (const [key, value] of Object.entries(args.create as Record<string, { mailboxIds: Record<string, boolean>; to?: Array<{ email: string }>; cc?: Array<{ email: string }>; bcc?: Array<{ email: string }> }>)) {
             if (options.emailCreateError) {
               notCreated[key] = options.emailCreateError;
               continue;
             }
             const id = newId('email');
-            emails.set(id, { accountId, mailboxIds: value.mailboxIds });
+            const recipients = [...(value.to ?? []), ...(value.cc ?? []), ...(value.bcc ?? [])].map((a) => a.email);
+            emails.set(id, { accountId, mailboxIds: value.mailboxIds, recipients });
             created[key] = { id };
           }
           if (Object.keys(created).length) result.created = created;
@@ -209,11 +218,22 @@ function fakeStalwart(options: FakeOptions = {}) {
             }
           }
           const holdFor = Number((create.envelope as { mailFrom?: { parameters?: { HOLDFOR?: string } } } | undefined)?.mailFrom?.parameters?.HOLDFOR ?? 0);
-          const submission = add({ accountId, emailId, sendAt: utcDate(Date.now() + holdFor * 1000), queued: true });
+          // The RCPT stage runs while the submission is created, held or
+          // not. A refused recipient is not queued; with none taken, nothing is.
+          const recipients = (create.envelope as { rcptTo?: Array<{ email: string }> } | undefined)?.rcptTo?.map((r) => r.email)
+            ?? emails.get(emailId)?.recipients ?? [];
+          const deliveryStatus = Object.fromEntries(recipients.map((email) => {
+            const reply = options.refuseRecipient?.(email);
+            return [email, reply
+              ? { delivered: 'no', smtpReply: reply, displayed: 'unknown' }
+              : { delivered: 'queued', smtpReply: '250 2.1.5 Queued', displayed: 'unknown' }];
+          }));
+          const taken = recipients.length === 0 || Object.values(deliveryStatus).some((d) => d.delivered !== 'no');
+          const submission = add({ accountId, emailId, sendAt: utcDate(Date.now() + holdFor * 1000), queued: taken, deliveryStatus });
           successEmails[key] = emailId;
           created[key] = version === '0.16.6'
             ? { id: submission.id }
-            : { id: submission.id, sendAt: submission.sendAt, undoStatus: version === '1.0' ? 'pending' : 'final' };
+            : { id: submission.id, sendAt: submission.sendAt, undoStatus: version === '1.0' && taken ? 'pending' : 'final' };
         }
         const responses: Array<[string, Record<string, unknown>, string]> = [[name, {
           accountId,
@@ -256,7 +276,15 @@ function fakeStalwart(options: FakeOptions = {}) {
         }, callId]];
       }
       case 'EmailSubmission/get': {
-        const ids = (args.ids as string[] | null) ?? [];
+        // A creation id ("#1") names a submission created earlier in the same
+        // request; unknown, the whole call is refused (as Stalwart does).
+        const created = earlier.find(([method]) => method === 'EmailSubmission/set')?.[1].created as Record<string, { id: string }> | undefined;
+        const requested = (args.ids as string[] | null) ?? [];
+        const unresolved = requested.find((id) => id.startsWith('#') && !created?.[id.slice(1)]);
+        if (unresolved) {
+          return [['error', { type: 'invalidResultReference', description: `Id reference "${unresolved.slice(1)}" not found.` }, callId]];
+        }
+        const ids = requested.map((id) => (id.startsWith('#') ? created![id.slice(1)].id : id));
         const list: Array<Record<string, unknown>> = [];
         const notFound: string[] = [];
         for (const id of ids) {
@@ -265,7 +293,10 @@ function fakeStalwart(options: FakeOptions = {}) {
             notFound.push(id);
             continue;
           }
-          list.push({ id: s.id, emailId: s.emailId, identityId: 'identity-1', ...(s.sendAt ? { sendAt: s.sendAt } : {}), undoStatus: computedStatus(s) });
+          list.push({
+            id: s.id, emailId: s.emailId, identityId: 'identity-1', ...(s.sendAt ? { sendAt: s.sendAt } : {}), undoStatus: computedStatus(s),
+            ...(s.deliveryStatus ? { deliveryStatus: s.deliveryStatus } : {}),
+          });
         }
         return [[name, { accountId, state: 's1', list, notFound }, callId]];
       }
@@ -594,15 +625,16 @@ describe('overQuota on EmailSubmission/set create', () => {
     const methods = server.requests.map((r) => r.map(([name, args]) => (
       name === 'EmailSubmission/set' ? `${name} ${Object.keys(args).find((k) => ['create', 'destroy', 'update'].includes(k))}` : name
     )).join(' + '));
+    // Each create carries the get of its delivery status.
     expect(methods).toEqual([
       'Mailbox/get',
       'Identity/get',
-      'Email/set + EmailSubmission/set create',
+      'Email/set + EmailSubmission/set create + EmailSubmission/get',
       'EmailSubmission/query + EmailSubmission/get',
       'EmailSubmission/changes',
       'EmailSubmission/get',
       'EmailSubmission/set destroy',
-      'EmailSubmission/set create',
+      'EmailSubmission/set create + EmailSubmission/get',
       'Email/set + EmailSubmission/set destroy',
     ]);
     expect(server.calls('EmailSubmission/changes')[0]).toEqual({ accountId: 'account-1', sinceState: 'n' });
@@ -1019,5 +1051,155 @@ describe('getScheduledEmails', () => {
 
     expect(result.emails.map((email) => email.emailSubmissionId)).toEqual(['later']);
     expect(server.calls('EmailSubmission/query').map((q) => q.position)).toEqual([0, 50]);
+  });
+});
+
+/**
+ * Stalwart runs the SMTP RCPT stage while it creates a submission, held or
+ * not, and records each refused recipient as `delivered: "no"` with its reply:
+ * a relay it doesn't allow ("550 5.1.2 Relay not allowed.") or a throttle that
+ * is used up ("452 4.4.5 Rate limit exceeded, try again later."). The create
+ * still succeeds - undoStatus final when it took nobody - and
+ * onSuccessUpdateEmail files the message in Sent. Seen live on 0.16.23 and
+ * 1.0; 0.16.6 records it the same way (submission/set.rs).
+ */
+describe('recipients the server refuses', () => {
+  const relayOff = (email: string) => (email.endsWith('@example.net') ? RELAY_DENIED : undefined);
+
+  function sendTo(client: JMAPClient, to: string[], opts: { draftId?: string; delayedUntil?: string } = {}) {
+    return client.sendEmail(
+      to, 'Subject', 'body',
+      undefined, undefined, 'identity-1', 'user@example.com',
+      opts.draftId,
+      undefined, undefined, undefined, undefined, undefined,
+      opts.delayedUntil,
+    );
+  }
+
+  it.each(['1.0', '0.16.12', '0.16.6'] as const)('fails a send that every recipient was refused for on Stalwart %s, keeping the draft', async (version) => {
+    const server = fakeStalwart({ version, refuseRecipient: relayOff });
+
+    const error = await sendTo(createClient(), ['nobody@example.net'], { draftId: 'draft-old-1' }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(RecipientsRefusedError);
+    expect((error as RecipientsRefusedError).recipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
+    // The copy filed in Sent is gone, the user's draft is not ...
+    expect(server.emails.size).toBe(0);
+    const destroyedEmails = server.calls('Email/set').flatMap((args) => (args.destroy as string[] | undefined) ?? []);
+    expect(destroyedEmails).not.toContain('draft-old-1');
+    // ... and so is the record, which can neither go out nor be cancelled.
+    expect(server.submissions.size).toBe(0);
+  });
+
+  it('fails a held send (undo send) the same way on Stalwart 1.0: it is refused when created', async () => {
+    const server = fakeStalwart({ version: '1.0', refuseRecipient: relayOff });
+
+    const error = await sendTo(createClient(), ['nobody@example.net'], { delayedUntil: new Date(Date.now() + 10_000).toISOString() })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(RecipientsRefusedError);
+    expect(server.emails.size).toBe(0);
+    expect(server.submissions.size).toBe(0);
+  });
+
+  it('takes a used-up throttle for a refusal too on Stalwart 1.0', async () => {
+    fakeStalwart({ version: '1.0', refuseRecipient: () => RATE_LIMITED });
+
+    const error = await sendTo(createClient(), ['bob@example.org']).catch((e: unknown) => e);
+
+    expect((error as RecipientsRefusedError).recipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
+  });
+
+  it.each(['1.0', '0.16.12'] as const)('names the refused recipients and sends to the others on Stalwart %s', async (version) => {
+    const server = fakeStalwart({ version, refuseRecipient: relayOff });
+
+    const result = await sendTo(createClient(), ['bob@example.org', 'nobody@example.net'], { draftId: 'draft-old-1' });
+
+    expect(result.refusedRecipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
+    expect(result.filingError).toBeUndefined();
+    // Sent as usual: the draft goes, the message stays in Sent.
+    expect(server.calls('Email/set').flatMap((args) => (args.destroy as string[] | undefined) ?? [])).toEqual(['draft-old-1']);
+    expect(server.emails.size).toBe(1);
+  });
+
+  it('reads the delivery status in the send request, before the record is destroyed, on Stalwart 1.0', async () => {
+    const server = fakeStalwart({ version: '1.0', refuseRecipient: relayOff });
+
+    const result = await sendTo(createClient(), ['bob@example.org', 'nobody@example.net']);
+
+    expect(server.requests[2].map(([name]) => name)).toEqual(['Email/set', 'EmailSubmission/set', 'EmailSubmission/get']);
+    expect(server.requests[2][2][1]).toEqual({ accountId: 'account-1', ids: ['#1'], properties: ['id', 'deliveryStatus'] });
+    expect(server.requests.at(-1)).toEqual([['EmailSubmission/set', { accountId: 'account-1', destroy: [result.emailSubmissionId] }, '0']]);
+  });
+
+  it('sends as before when the server tells nothing about the recipients', async () => {
+    fakeStalwart({
+      version: '1.0',
+      refuseRecipient: relayOff,
+      intercept: ([name, , callId]) => (name === 'EmailSubmission/get' ? [['error', { type: 'unknownMethod' }, callId]] : undefined),
+    });
+
+    const result = await sendTo(createClient(), ['nobody@example.net']);
+
+    expect(result.emailSubmissionId).toBeDefined();
+    expect(result.refusedRecipients).toBeUndefined();
+    // The get's own failure is neither a failed send nor a filing problem.
+    expect(result.filingError).toBeUndefined();
+  });
+
+  it("reports a refused create with the create's own reason, not the get's", async () => {
+    fakeStalwart({ version: '1.0', createAnswer: () => ({ type: 'forbiddenToSend', description: 'Sending is disabled for this account.' }) });
+
+    const error = await sendTo(createClient(), ['bob@example.org']).catch((e: unknown) => e);
+
+    expect(jmapErrorType(error)).toBe('forbiddenToSend');
+    expect((error as Error).message).toContain('Sending is disabled for this account.');
+  });
+
+  it('keeps the original when every recipient of a reschedule is refused on Stalwart 1.0', async () => {
+    let throttled = false;
+    const server = fakeStalwart({ version: '1.0', refuseRecipient: () => (throttled ? RATE_LIMITED : undefined) });
+    const original = server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
+    throttled = true;
+
+    const error = await createClient()
+      .rescheduleEmailSubmission('original', 'email-x', 'identity-1', new Date(Date.now() + 1000).toISOString(), 'account-1')
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(RecipientsRefusedError);
+    // Still goes at its old time; the dead replacement record is gone.
+    expect(original.canceled).toBe(false);
+    expect(server.calls('EmailSubmission/set').filter((args) => args.update)).toEqual([]);
+    expect([...server.submissions.keys()]).toEqual(['original']);
+  });
+});
+
+describe('shared accounts that refuse the submission prune', () => {
+  const refuseShared = (accountId: string) => ([, args, callId]: MethodCall) => (args.accountId === accountId
+    ? [['error', { type: 'forbidden', description: `You are not an owner of account ${accountId}` }, callId]] as Array<[string, Record<string, unknown>, string]>
+    : undefined);
+
+  // 0.16.23 lists an account that shared only an address book or a calendar
+  // with the submission capability, then refuses its records.
+  it('leaves such an account alone for the session, without a warning, on 0.16', async () => {
+    const server = fakeStalwart({ version: '0.16.12', intercept: refuseShared('userb') });
+    const client = createClient({ accounts: ['account-1', 'userb'] });
+
+    await client.pruneEmailSubmissions({ force: true });
+    await client.pruneEmailSubmissions({ force: true });
+    await client.getScheduledEmails();
+
+    expect(server.calls('EmailSubmission/query').map((q) => q.accountId)).toEqual(['account-1', 'userb', 'account-1', 'account-1']);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('keeps pruning a group account the user belongs to on 1.0', async () => {
+    const server = fakeStalwart({ version: '1.0' });
+    const client = createClient({ accounts: ['account-1', 'team'] });
+
+    await client.pruneEmailSubmissions({ force: true });
+    await client.pruneEmailSubmissions({ force: true });
+
+    expect(server.calls('EmailSubmission/query').map((q) => q.accountId)).toEqual(['account-1', 'team', 'account-1', 'team']);
   });
 });

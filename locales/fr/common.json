@@ -683,6 +683,8 @@
     "send_timeout": "Le serveur ne répond plus. Vérifiez le dossier Envoyés avant de renvoyer : le message est peut-être déjà parti.",
     "submission_quota": "Le serveur conserve trop d’enregistrements de messages envoyés pour ce compte. Bulwark a supprimé ceux qu’il pouvait ; si cela se reproduit, demandez à votre administrateur de relever la limite d’envois de courriels.",
     "submission_limit": "Le serveur a refusé d’envoyer le message, car une limite est atteinte : {reason}",
+    "recipients_refused": "Non envoyé : le serveur a refusé {recipients}.",
+    "recipients_partly_refused": "Le serveur a refusé {recipients}. Les autres destinataires reçoivent le message.",
     "continue_draft": "Continuer le brouillon",
     "close_draft_title": "Enregistrer ou supprimer le brouillon ?",
     "close_draft_message": "Vous avez des modifications non enregistrées. Voulez-vous enregistrer comme brouillon ou supprimer ?",

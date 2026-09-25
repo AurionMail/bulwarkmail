@@ -676,6 +676,8 @@
     "send_timeout": "Server přestal odpovídat. Než odešlete znovu, zkontrolujte složku Odeslané – zpráva už mohla odejít.",
     "submission_quota": "Server má pro tento účet příliš mnoho záznamů o odeslaných zprávách. Bulwark odstranil ty, které mohl; pokud se to bude opakovat, požádejte správce o zvýšení limitu odesílání e-mailů.",
     "submission_limit": "Server odmítl zprávu odeslat, protože byl dosažen limit: {reason}",
+    "recipients_refused": "Neodesláno: server odmítl {recipients}.",
+    "recipients_partly_refused": "Server odmítl {recipients}. Ostatní příjemci zprávu dostanou.",
     "continue_draft": "Pokračovat v úpravě konceptu",
     "close_draft_title": "Uložit nebo zahodit koncept?",
     "close_draft_message": "Máte neuložené změny. Chcete je uložit jako koncept, nebo zahodit?",
