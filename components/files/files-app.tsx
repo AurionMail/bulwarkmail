@@ -10,7 +10,8 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, resourceServerRef } from "@/stores/file-store";
+import { useFileStore, resourceServerRef, type UploadReport } from "@/stores/file-store";
+import { fileErrorKind } from "@/lib/file-errors";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
 import { NavigationRail } from "@/components/layout/navigation-rail";
@@ -307,15 +308,41 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [navigate, navigateByPath, isEmbedded]);
 
+  // What the server said went wrong, as the second line under an action's
+  // own error message; undefined when it said nothing specific.
+  const failureReason = useCallback((err: unknown): string | undefined => {
+    switch (fileErrorKind(err)) {
+      case "overQuota": return t("error_over_quota");
+      case "tooDeep": return t("error_too_deep");
+      case "invalidName": return t("error_invalid_name");
+      case "forbidden": return t("error_forbidden");
+      case "tooLarge": return t("error_too_large");
+      default: return undefined;
+    }
+  }, [t]);
+
+  // An upload goes on past a file the server refuses; the refused ones are
+  // reported once it is done.
+  const showUploadReport = useCallback((report: UploadReport) => {
+    if (report.uploaded > 0) {
+      toast.success(t("upload_success", { count: report.uploaded }));
+    }
+    if (report.failed.length === 0) return;
+    const names = report.failed.slice(0, 3).map((f) => f.name).join(", ")
+      + (report.failed.length > 3 ? ", …" : "");
+    const reason = failureReason(report.failed[0].error);
+    toast.error(t("upload_failed", { count: report.failed.length }), reason ? `${names}: ${reason}` : names);
+  }, [t, failureReason]);
+
   const handleCreateFolder = useCallback(async (name: string) => {
     try {
       await createDirectory(name);
       toast.success(t("create_folder_success"));
     } catch (err) {
       console.error("Failed to create folder:", err);
-      toast.error(t("create_folder_error"));
+      toast.error(t("create_folder_error"), failureReason(err));
     }
-  }, [createDirectory, t]);
+  }, [createDirectory, t, failureReason]);
 
   const maxSizeUpload = client?.getMaxSizeUpload() || 0;
 
@@ -329,13 +356,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
     if (files.length === 0) return;
     try {
-      await uploadFiles(files);
-      toast.success(t("upload_success", { count: files.length }));
+      showUploadReport(await uploadFiles(files));
     } catch (err) {
       console.error("Failed to upload files:", err);
-      toast.error(t("upload_error"));
+      toast.error(t("upload_error"), failureReason(err));
     }
-  }, [uploadFiles, t, maxSizeUpload]);
+  }, [uploadFiles, t, maxSizeUpload, showUploadReport, failureReason]);
 
   const handleUploadFolder = useCallback(async (files: File[]) => {
     if (maxSizeUpload > 0) {
@@ -347,13 +373,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
     if (files.length === 0) return;
     try {
-      await uploadFolder(files);
-      toast.success(t("upload_success", { count: files.length }));
+      showUploadReport(await uploadFolder(files));
     } catch (err) {
       console.error("Failed to upload folder:", err);
-      toast.error(t("upload_error"));
+      toast.error(t("upload_error"), failureReason(err));
     }
-  }, [uploadFolder, t, maxSizeUpload]);
+  }, [uploadFolder, t, maxSizeUpload, showUploadReport, failureReason]);
 
   const handleDelete = useCallback(async (name: string) => {
     const confirmed = await confirmDialog({
@@ -369,9 +394,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("delete_success"));
     } catch (err) {
       console.error("Failed to delete:", err);
-      toast.error(t("delete_error"));
+      toast.error(t("delete_error"), failureReason(err));
     }
-  }, [deleteResource, confirmDialog, t]);
+  }, [deleteResource, confirmDialog, t, failureReason]);
 
   const handleBatchDelete = useCallback(async (names: string[]) => {
     const confirmed = await confirmDialog({
@@ -387,9 +412,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("batch_delete_success", { count: names.length }));
     } catch (err) {
       console.error("Failed to batch delete:", err);
-      toast.error(t("delete_error"));
+      toast.error(t("delete_error"), failureReason(err));
     }
-  }, [deleteResources, confirmDialog, t]);
+  }, [deleteResources, confirmDialog, t, failureReason]);
 
   const handleUndo = useCallback(async () => {
     try {
@@ -397,9 +422,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("undo_success"));
     } catch (err) {
       console.error("Failed to undo:", err);
-      toast.error(t("undo_error"));
+      toast.error(t("undo_error"), failureReason(err));
     }
-  }, [undoLastAction, t]);
+  }, [undoLastAction, t, failureReason]);
 
   const handleRename = useCallback(async (oldName: string, newName: string) => {
     try {
@@ -409,9 +434,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to rename:", err);
-      toast.error(t("rename_error"));
+      toast.error(t("rename_error"), failureReason(err));
     }
-  }, [renameResource, t, handleUndo]);
+  }, [renameResource, t, handleUndo, failureReason]);
 
   const findResourceId = useCallback((name: string) => {
     const r = resources.find(res => res.name === name);
@@ -443,9 +468,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("create_file_success"));
     } catch (err) {
       console.error("Failed to create file:", err);
-      toast.error(t("create_file_error"));
+      toast.error(t("create_file_error"), failureReason(err));
     }
-  }, [createTextFile, t]);
+  }, [createTextFile, t, failureReason]);
 
   const handleDuplicate = useCallback(async (name: string) => {
     try {
@@ -453,9 +478,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("duplicate_success"));
     } catch (err) {
       console.error("Failed to duplicate:", err);
-      toast.error(t("duplicate_error"));
+      toast.error(t("duplicate_error"), failureReason(err));
     }
-  }, [duplicateResource, t]);
+  }, [duplicateResource, t, failureReason]);
 
   const handleMoveToFolder = useCallback(async (names: string[], targetFolder: string) => {
     try {
@@ -465,9 +490,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to move:", err);
-      toast.error(t("move_error"));
+      toast.error(t("move_error"), failureReason(err));
     }
-  }, [moveToFolder, t, handleUndo]);
+  }, [moveToFolder, t, handleUndo, failureReason]);
 
   const handleMoveToParent = useCallback(async (names: string[]) => {
     try {
@@ -477,9 +502,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to move:", err);
-      toast.error(t("move_error"));
+      toast.error(t("move_error"), failureReason(err));
     }
-  }, [moveToParent, t, handleUndo]);
+  }, [moveToParent, t, handleUndo, failureReason]);
 
   const handlePaste = useCallback(async () => {
     try {
@@ -489,9 +514,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to paste:", err);
-      toast.error(t("paste_error"));
+      toast.error(t("paste_error"), failureReason(err));
     }
-  }, [pasteResources, t, lastAction, handleUndo]);
+  }, [pasteResources, t, lastAction, handleUndo, failureReason]);
 
   const handlePreviewImage = useCallback((name: string) => {
     setPreviewImage(name);

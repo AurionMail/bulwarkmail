@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode, FileNodeRights } from '@/lib/jmap/types';
 import { fileNodeKind } from '@/lib/jmap/filenode-kind';
+import { fileNodeDepth } from '@/lib/jmap/filenode-depth';
+import { folderDepthError } from '@/lib/file-errors';
 
 export interface FileResource {
   id: string;
@@ -32,6 +34,15 @@ interface UploadProgress {
   total: number;
   current: number;
   totalFiles: number;
+}
+
+/**
+ * What an upload batch did. A file the server refuses doesn't stop the rest;
+ * it is listed here (by its path inside an uploaded folder) with the error.
+ */
+export interface UploadReport {
+  uploaded: number;
+  failed: { name: string; error: unknown }[];
 }
 
 interface ClipboardState {
@@ -90,8 +101,8 @@ interface FileState {
   refresh: () => Promise<void>;
   createDirectory: (name: string) => Promise<void>;
   uploadFile: (file: File) => Promise<void>;
-  uploadFiles: (files: File[]) => Promise<void>;
-  uploadFolder: (files: File[]) => Promise<void>;
+  uploadFiles: (files: File[]) => Promise<UploadReport>;
+  uploadFolder: (files: File[]) => Promise<UploadReport>;
   cancelUpload: () => void;
   deleteResource: (name: string) => Promise<void>;
   deleteResources: (names: string[]) => Promise<void>;
@@ -637,7 +648,8 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   uploadFiles: async (files: File[]) => {
     const { client, currentParentId, resources } = get();
-    if (!client) return;
+    const report: UploadReport = { uploaded: 0, failed: [] };
+    if (!client) return report;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -662,14 +674,15 @@ export const useFileStore = create<FileState>((set, get) => ({
         if (abortController.signal.aborted) break;
         set({ uploadProgress: { name: file.name, loaded: file.size, total: file.size, current: i + 1, totalFiles } });
         await client.createFileNode(uniqueName, blobId, type || file.type || 'application/octet-stream', file.size, currentParentId);
+        report.uploaded++;
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') break;
-        set({ uploadProgress: null, uploadAbortController: null });
-        throw err;
+        report.failed.push({ name: file.name, error: err });
       }
     }
     set({ uploadProgress: null, uploadAbortController: null });
     await get().refresh();
+    return report;
   },
 
   cancelUpload: () => {
@@ -682,41 +695,68 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   uploadFolder: async (files: File[]) => {
     const { client, currentParentId } = get();
-    if (!client || files.length === 0) return;
+    const report: UploadReport = { uploaded: 0, failed: [] };
+    if (!client || files.length === 0) return report;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
     const totalFiles = files.length;
+    const relativePathOf = (file: File) => (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+    const levelsOf = (path: string) => (path ? path.split('/').length : 0);
 
     // Collect unique directory paths (relative to the dropped folder) and
     // create them as real nested directories, mapping each path to its node id.
     const dirs = new Set<string>();
     for (const file of files) {
-      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-      const parts = relativePath.split('/');
+      const parts = relativePathOf(file).split('/');
       for (let i = 1; i < parts.length; i++) {
         dirs.add(parts.slice(0, i).join('/'));
       }
     }
 
-    // Map a directory path to its created node id. Root ('') maps to the
-    // current folder we are uploading into.
-    const dirIds = new Map<string, string | null>();
-    dirIds.set('', currentParentId);
+    // Stalwart 1.0 refuses nodes deeper than maxFileNodeDepth (64). Find out
+    // up front what won't fit below the current folder.
+    const maxDepth = client.getMaxFileNodeDepth?.() ?? null;
+    let baseDepth = 0;
+    if (maxDepth !== null && currentParentId !== null) {
+      try {
+        const nodes = isCrossAccountId(currentParentId)
+          ? await client.listAllFileNodesAcrossAccounts()
+          : await client.listAllFileNodes();
+        baseDepth = fileNodeDepth(nodes, currentParentId);
+      } catch {
+        // The server still refuses what doesn't fit.
+      }
+    }
+    const tooDeep = (levels: number) => maxDepth !== null && baseDepth + levels > maxDepth;
 
-    const sortedDirs = [...dirs].sort((a, b) => a.split('/').length - b.split('/').length);
+    // Map a directory path to its created node id. Root ('') maps to the
+    // current folder we are uploading into. A folder that can't be created
+    // keeps its error, and everything inside it is skipped with that error
+    // instead of landing in the folder the upload started in.
+    const dirIds = new Map<string, string | null>([['', currentParentId]]);
+    const dirErrors = new Map<string, unknown>();
+
+    const sortedDirs = [...dirs].sort((a, b) => levelsOf(a) - levelsOf(b));
     for (const dir of sortedDirs) {
       if (abortController.signal.aborted) break;
       const slash = dir.lastIndexOf('/');
       const parentPath = slash >= 0 ? dir.slice(0, slash) : '';
       const dirName = slash >= 0 ? dir.slice(slash + 1) : dir;
-      const parentId = dirIds.get(parentPath) ?? currentParentId;
+      const parentId = dirIds.get(parentPath);
+      if (parentId === undefined) {
+        dirErrors.set(dir, dirErrors.get(parentPath));
+        continue;
+      }
+      if (tooDeep(levelsOf(dir))) {
+        dirErrors.set(dir, folderDepthError());
+        continue;
+      }
       try {
         const created = await client.createFileDirectory(dirName, parentId);
         dirIds.set(dir, created.id);
-      } catch {
-        // Directory may already exist - leave it unmapped; files fall back to
-        // the closest known parent below.
+      } catch (err) {
+        dirErrors.set(dir, err);
       }
     }
 
@@ -724,10 +764,18 @@ export const useFileStore = create<FileState>((set, get) => ({
     for (let i = 0; i < files.length; i++) {
       if (abortController.signal.aborted) break;
       const file = files[i];
-      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+      const relativePath = relativePathOf(file);
       const slash = relativePath.lastIndexOf('/');
       const dirPath = slash >= 0 ? relativePath.slice(0, slash) : '';
-      const parentId = dirIds.get(dirPath) ?? currentParentId;
+      const parentId = dirIds.get(dirPath);
+      if (parentId === undefined) {
+        report.failed.push({ name: relativePath, error: dirErrors.get(dirPath) });
+        continue;
+      }
+      if (tooDeep(levelsOf(dirPath) + 1)) {
+        report.failed.push({ name: relativePath, error: folderDepthError() });
+        continue;
+      }
 
       set({ uploadProgress: { name: relativePath, loaded: 0, total: file.size, current: i + 1, totalFiles } });
 
@@ -736,14 +784,15 @@ export const useFileStore = create<FileState>((set, get) => ({
         if (abortController.signal.aborted) break;
         set({ uploadProgress: { name: relativePath, loaded: file.size, total: file.size, current: i + 1, totalFiles } });
         await client.createFileNode(file.name, blobId, type || file.type || 'application/octet-stream', file.size, parentId);
+        report.uploaded++;
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') break;
-        set({ uploadProgress: null, uploadAbortController: null });
-        throw err;
+        report.failed.push({ name: relativePath, error: err });
       }
     }
     set({ uploadProgress: null, uploadAbortController: null });
     await get().refresh();
+    return report;
   },
 
   deleteResource: async (name: string) => {

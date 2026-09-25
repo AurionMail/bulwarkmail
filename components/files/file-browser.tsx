@@ -416,7 +416,12 @@ export function FileBrowser({
   const validateFileName = useCallback((name: string) => {
     const problem = fileNameProblem(name, fileNameRules);
     if (!problem) return null;
-    return problem.kind === "chars" ? t("name_forbidden_chars", { chars: problem.chars }) : t("name_reserved");
+    switch (problem.kind) {
+      case "chars": return t("name_forbidden_chars", { chars: problem.chars });
+      case "control": return t("name_control_chars");
+      case "tooLong": return t("name_too_long");
+      case "reserved": return t("name_reserved");
+    }
   }, [fileNameRules, t]);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [renameTarget, setRenameTarget] = useState<string | null>(null);

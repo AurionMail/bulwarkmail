@@ -1,25 +1,44 @@
 import { describe, it, expect, vi } from 'vitest';
 import { JMAPClient } from '../jmap/client';
+import { jmapErrorProperties, jmapErrorType } from '../jmap/jmap-error';
+import { fileErrorKind } from '../file-errors';
 
 type Call = [string, Record<string, unknown>, string];
 
 interface FakeOptions {
   /** The SetError the server answers a create with, if it refuses it. */
   refuseCreate?: (props: Record<string, unknown>) => Record<string, unknown> | undefined;
+  /** The SetError the server answers an update or destroy of `id` with. */
+  refuse?: (id: string) => Record<string, unknown> | undefined;
+  /** The filenode account capability of "me" (and of "grp", unless `sharedCapability` says otherwise). */
+  capability?: Record<string, unknown>;
+  /** Null: "grp" lists no filenode capability, as a shared account may. */
+  sharedCapability?: Record<string, unknown> | null;
 }
+
+// The rules Stalwart 1.0 publishes (0.16.23: the same with maxFileNodeDepth null).
+const STALWART_10_CAPABILITY = {
+  maxFileNodeDepth: 64,
+  maxSizeFileNodeName: 255,
+  forbiddenNameChars: '/<>:"\\|?*',
+  forbiddenNodeNames: ['.', '..', 'CON', 'PRN', 'AUX', 'NUL', 'COM1', 'LPT1'],
+};
 
 // A primary account "me" plus a shared drive "grp", as listed by
 // listAllFileNodesAcrossAccounts ("grp:<id>").
 function makeClient(nodes: Record<string, Array<Record<string, unknown>>>, options: FakeOptions = {}) {
   const client = new JMAPClient('https://jmap.example.com', 'user@example.com', 'pass');
-  const fileCap = { 'urn:ietf:params:jmap:filenode': {} };
+  const fileCap = { 'urn:ietf:params:jmap:filenode': options.capability ?? {} };
+  const sharedCap = options.sharedCapability === null
+    ? {}
+    : { 'urn:ietf:params:jmap:filenode': options.sharedCapability ?? options.capability ?? {} };
   Object.assign(client, {
     accountId: 'me',
     capabilities: { 'urn:ietf:params:jmap:filenode': {} },
-    accounts: { me: { accountCapabilities: fileCap, isPersonal: true }, grp: { accountCapabilities: fileCap, isPersonal: false } },
+    accounts: { me: { accountCapabilities: fileCap, isPersonal: true }, grp: { accountCapabilities: sharedCap, isPersonal: false } },
     session: {
       primaryAccounts: { 'urn:ietf:params:jmap:filenode': 'me' },
-      accounts: { me: { accountCapabilities: fileCap, isPersonal: true }, grp: { accountCapabilities: fileCap, isPersonal: false } },
+      accounts: { me: { accountCapabilities: fileCap, isPersonal: true }, grp: { accountCapabilities: sharedCap, isPersonal: false } },
     },
   });
   vi.spyOn(client as unknown as { getFilesCapableAccountIds: () => string[] }, 'getFilesCapableAccountIds')
@@ -43,10 +62,20 @@ function makeClient(nodes: Record<string, Array<Record<string, unknown>>>, optio
         return { methodResponses: [['FileNode/set', { created: { n0: { id: `new${++seq}` } } }, id]] };
       }
       if (method === 'FileNode/set' && args.update) {
-        return { methodResponses: [['FileNode/set', { updated: Object.fromEntries(Object.keys(args.update as object).map(k => [k, null])) }, id]] };
+        const ids = Object.keys(args.update as object);
+        const refused = ids.filter(k => options.refuse?.(k));
+        return { methodResponses: [['FileNode/set', {
+          updated: Object.fromEntries(ids.filter(k => !refused.includes(k)).map(k => [k, null])),
+          notUpdated: Object.fromEntries(refused.map(k => [k, options.refuse?.(k)])),
+        }, id]] };
       }
       if (method === 'FileNode/set' && args.destroy) {
-        return { methodResponses: [['FileNode/set', { destroyed: args.destroy }, id]] };
+        const ids = args.destroy as string[];
+        const refused = ids.filter(k => options.refuse?.(k));
+        return { methodResponses: [['FileNode/set', {
+          destroyed: ids.filter(k => !refused.includes(k)),
+          notDestroyed: Object.fromEntries(refused.map(k => [k, options.refuse?.(k)])),
+        }, id]] };
       }
       throw new Error(`unexpected ${method}`);
     });
@@ -234,5 +263,90 @@ describe('FileNode writes', () => {
 
     await expect(client.copyFileNode('d1', 'Docs', 'grp:d9')).rejects.toThrow('not allowed');
     expect(sets(calls).some(a => a.destroy)).toBe(false);
+  });
+});
+
+describe('FileNode write errors, names and types', () => {
+  const caught = (promise: Promise<unknown>) => promise.then(() => null, (error: unknown) => error);
+
+  it('keeps the SetError\'s type and properties on what it throws on Stalwart 1.0', async () => {
+    const { client } = makeClient({}, {
+      refuseCreate: () => ({ type: 'invalidProperties', description: 'Maximum folder depth exceeded.', properties: ['parentId'] }),
+      refuse: (id) => id === 'n1'
+        ? { type: 'forbidden', description: 'You are not allowed to rename or move this file node.' }
+        : { type: 'overQuota', description: 'There are too many folders, please delete some before adding a new one.' },
+    });
+
+    const tooDeep = await caught(client.createFileDirectory('Deeper', 'd63'));
+    expect(jmapErrorType(tooDeep)).toBe('invalidProperties');
+    expect(jmapErrorProperties(tooDeep)).toEqual(['parentId']);
+    expect(fileErrorKind(tooDeep)).toBe('tooDeep');
+
+    const renamed = await caught(client.updateFileNode('n1', { name: 'x' }));
+    expect(renamed).toBeInstanceOf(Error);
+    expect(fileErrorKind(renamed)).toBe('forbidden');
+
+    expect(fileErrorKind(await caught(client.destroyFileNodes(['n2'])))).toBe('overQuota');
+  });
+
+  it('keeps the type of a name 0.16 refuses', async () => {
+    const { client } = makeClient({}, {
+      refuseCreate: () => ({ type: 'invalidProperties', description: 'Name is reserved and cannot be used.', properties: ['name'] }),
+    });
+    expect(fileErrorKind(await caught(client.createFileNode('x', 'b1', 'text/plain', 1, null)))).toBe('invalidName');
+  });
+
+  it('sends the bare media type Stalwart 1.0 insists on, when creating and copying', async () => {
+    const { client, calls } = makeClient({
+      me: [{ id: 'f1', name: 'data.csv', parentId: null, blobId: 'b1', type: 'TEXT/CSV', size: 3 }],
+    }, { capability: STALWART_10_CAPABILITY });
+
+    await client.createFileNode('a.txt', 'b0', 'Text/Plain; charset=utf-8', 3, null);
+    // A type no browser sends, as old builds stored for folder markers.
+    await client.createFileNode('marker', 'b9', 'd', 0, null);
+    await client.copyFileNode('f1', 'data (copy).csv', null);
+
+    expect(sets(calls).map(a => (a.create as { n0: { type: string } }).n0.type))
+      .toEqual(['text/plain', 'application/octet-stream', 'text/csv']);
+  });
+
+  it('names a node in a shared drive by the user\'s own rules when the drive lists none', async () => {
+    const { client, calls } = makeClient({}, { capability: STALWART_10_CAPABILITY, sharedCapability: null });
+    await client.createFileNode('con.txt', 'b1', 'text/plain', 3, 'grp:d9');
+    expect(sets(calls)[0]).toMatchObject({ accountId: 'grp', create: { n0: { name: 'con_.txt', parentId: 'd9' } } });
+  });
+
+  // Three levels: top > mid > target.
+  const tree = [
+    { id: 'top', name: 'top', parentId: null, blobId: null },
+    { id: 'mid', name: 'mid', parentId: 'top', blobId: null },
+    { id: 'target', name: 'target', parentId: 'mid', blobId: null },
+    { id: 'src', name: 'src', parentId: null, blobId: null },
+    { id: 'inner', name: 'inner', parentId: 'src', blobId: null },
+    { id: 'f', name: 'f.txt', parentId: 'inner', blobId: 'b1', type: 'text/plain', size: 1 },
+  ];
+
+  it('stops a copy that would go past maxFileNodeDepth before creating anything (Stalwart 1.0)', async () => {
+    // target sits at level 3; src/inner/f.txt adds three more.
+    const { client, calls } = makeClient({ me: tree }, { capability: { ...STALWART_10_CAPABILITY, maxFileNodeDepth: 5 } });
+    const refused = await caught(client.copyFileNode('src', 'src', 'target'));
+    expect(fileErrorKind(refused)).toBe('tooDeep');
+    expect(sets(calls)).toEqual([]);
+  });
+
+  it('copies when it fits, and checks the other account\'s tree for a shared drive', async () => {
+    const fits = makeClient({ me: tree }, { capability: { ...STALWART_10_CAPABILITY, maxFileNodeDepth: 6 } });
+    await fits.client.copyFileNode('src', 'src', 'target');
+    expect(sets(fits.calls)).toHaveLength(3);
+
+    const shared = makeClient({ me: tree, grp: tree }, { capability: { ...STALWART_10_CAPABILITY, maxFileNodeDepth: 5 } });
+    expect(fileErrorKind(await caught(shared.client.copyFileNode('src', 'src', 'grp:target')))).toBe('tooDeep');
+    expect(sets(shared.calls)).toEqual([]);
+  });
+
+  it('has no depth to check on 0.16, which advertises maxFileNodeDepth null', async () => {
+    const { client, calls } = makeClient({ me: tree }, { capability: { ...STALWART_10_CAPABILITY, maxFileNodeDepth: null } });
+    await client.copyFileNode('src', 'src', 'target');
+    expect(sets(calls)).toHaveLength(3);
   });
 });

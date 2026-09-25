@@ -15,12 +15,15 @@ import { DEFAULT_CALENDAR_COMPONENTS, mkCalendarCollection, newCalendarCollectio
 import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
 import { fileNodeKind } from "./filenode-kind";
+import { fileNodeDepth } from "./filenode-depth";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
 import { jmapError, jmapErrorType, jmapSetError, type JmapErrorInfo } from "./jmap-error";
 
 export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
+import { folderDepthError } from "@/lib/file-errors";
+import { mediaTypeEssence, OCTET_STREAM } from "@/lib/media-type";
 import { getEffectiveTimeZone, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
 import type { AccountInfo } from "./types";
@@ -8141,6 +8144,17 @@ export class JMAPClient implements IJMAPClient {
   }
 
   /**
+   * The filenode capability whose limits apply in `accountId`. Stalwart
+   * publishes the same ones for every account, and a shared account may
+   * come without any (see getFilesCapableAccountIds), so the user's own
+   * files account stands in.
+   */
+  private fileNodeLimits(accountId?: string): Record<string, unknown> | undefined {
+    const own = this.getFilesAccountId();
+    return this.fileNodeCapability(accountId || own) ?? this.fileNodeCapability(own);
+  }
+
+  /**
    * Stalwart before 0.16.6 implements an older File Storage draft (old
    * rights names, 30-character MIME types, no naming rules). The draft update
    * added `forbiddenNameChars` to the capability, which tells them apart.
@@ -8152,7 +8166,24 @@ export class JMAPClient implements IJMAPClient {
 
   /** Naming rules for new FileNodes in `accountId`, if the server publishes any. */
   getFileNameRules(accountId?: string): FileNameRules | null {
-    return fileNameRulesFrom(this.fileNodeCapability(accountId || this.getFilesAccountId()));
+    return fileNameRulesFrom(this.fileNodeLimits(accountId));
+  }
+
+  /**
+   * How deep a node may sit (`maxFileNodeDepth`: 64 on Stalwart 1.0), or
+   * null for no limit (0.16 advertises null).
+   */
+  getMaxFileNodeDepth(accountId?: string): number | null {
+    const depth = this.fileNodeLimits(accountId)?.maxFileNodeDepth;
+    return typeof depth === 'number' && depth > 0 ? depth : null;
+  }
+
+  /** The `type` to create a file node in `accountId` with. */
+  private fileNodeType(accountId: string, type: string | null | undefined): string {
+    // Stalwart 1.0 only takes a bare, valid media type; servers before
+    // 0.16.6 refuse more than 30 characters (most OOXML types).
+    const essence = mediaTypeEssence(type);
+    return this.isLegacyFileNodeServer(accountId) && essence.length > 30 ? OCTET_STREAM : essence;
   }
 
   /** Namespace a node created in `accountId` the way the listings do. */
@@ -8198,7 +8229,7 @@ export class JMAPClient implements IJMAPClient {
       );
       const result = response.methodResponses?.[0];
       if (!result || result[0] === "error") {
-        throw new Error(result?.[1]?.description || "FileNode/set create failed");
+        throw jmapError(result?.[1]?.description || "FileNode/set create failed", result?.[1]);
       }
       const created = result[1].created?.n0;
       if (created) {
@@ -8209,7 +8240,7 @@ export class JMAPClient implements IJMAPClient {
       const err = result[1].notCreated?.n0;
       // Servers before 0.16.6 ignore onExists and refuse the clash instead.
       if (attempt < 20 && /already exists/i.test(err?.description ?? '')) continue;
-      throw new Error(err?.description || `Failed to create ${what}`);
+      throw jmapError(err?.description || `Failed to create ${what}`, err);
     }
   }
 
@@ -8237,11 +8268,7 @@ export class JMAPClient implements IJMAPClient {
   async createFileNode(name: string, blobId: string, type: string, _size: number, parentId: string | null): Promise<FileNode> {
     const parent = this.resolveFileNodeId(parentId);
 
-    // Servers before 0.16.6 refuse MIME types over 30 characters (most OOXML
-    // types); later ones take up to 255.
-    const maxTypeLength = this.isLegacyFileNodeServer(parent.accountId) ? 30 : 255;
-    const safeType = type.length > maxTypeLength ? 'application/octet-stream' : type;
-    const fileProps: Record<string, unknown> = { name, type: safeType, blobId };
+    const fileProps: Record<string, unknown> = { name, type: this.fileNodeType(parent.accountId, type), blobId };
     if (parent.id !== null) {
       fileProps.parentId = parent.id;
     }
@@ -8267,10 +8294,11 @@ export class JMAPClient implements IJMAPClient {
 
     const result = response.methodResponses?.[0];
     if (!result || result[0] === "error") {
-      throw new Error(result?.[1]?.description || "FileNode/set update failed");
+      throw jmapError(result?.[1]?.description || "FileNode/set update failed", result?.[1]);
     }
-    if (result[1].notUpdated?.[node.id as string]) {
-      throw new Error(result[1].notUpdated[node.id as string].description || "Failed to update file node");
+    const refused = result[1].notUpdated?.[node.id as string];
+    if (refused) {
+      throw jmapError(refused.description || "Failed to update file node", refused);
     }
   }
 
@@ -8359,7 +8387,7 @@ export class JMAPClient implements IJMAPClient {
 
         const result = response.methodResponses?.[0];
         if (!result || result[0] === "error") {
-          throw new Error(result?.[1]?.description || "FileNode/set destroy failed");
+          throw jmapError(result?.[1]?.description || "FileNode/set destroy failed", result?.[1]);
         }
 
         const notDestroyedMap: Record<string, { type?: string; description?: string }> = result[1].notDestroyed || {};
@@ -8367,7 +8395,7 @@ export class JMAPClient implements IJMAPClient {
 
         if (notDestroyedIds.length > 0) {
           const firstError = notDestroyedMap[notDestroyedIds[0]];
-          throw new Error(firstError?.description || `Failed to delete ${notDestroyedIds.length} file(s)`);
+          throw jmapError(firstError?.description || `Failed to delete ${notDestroyedIds.length} file(s)`, firstError);
         }
 
         destroyed.push(...((result[1].destroyed || []) as string[]).map(rawId => byRawId.get(rawId) ?? rawId));
@@ -8401,7 +8429,8 @@ export class JMAPClient implements IJMAPClient {
     if (fileNodeKind(original) === 'symlink') throw new Error('Symbolic links cannot be copied');
     const isFolderNode = (n: FileNode) => fileNodeKind(n) === 'directory';
 
-    // The whole subtree is laid out from one listing before the first create.
+    // The whole subtree is laid out from one listing and checked before the
+    // first create.
     const childrenOf = new Map<string, FileNode[]>();
     for (const node of tree) {
       if (node.parentId == null) continue;
@@ -8423,11 +8452,25 @@ export class JMAPClient implements IJMAPClient {
     };
     const plan = collect(original);
 
+    // Stalwart 1.0 refuses nodes below maxFileNodeDepth; a copy that would
+    // reach past it fails here rather than part-way.
+    const maxDepth = this.getMaxFileNodeDepth(target.accountId);
+    if (maxDepth !== null) {
+      const height = (entry: CopyEntry): number =>
+        1 + entry.children.reduce((tallest, child) => Math.max(tallest, height(child)), 0);
+      const targetTree = target.accountId === source.accountId
+        ? tree
+        : await this.fetchAllFileNodes(target.accountId).catch(() => null);
+      if (targetTree && fileNodeDepth(targetTree, target.id) + height(plan) > maxDepth) {
+        throw folderDepthError();
+      }
+    }
+
     const createCopy = (node: FileNode, name: string, parent: string | null): Promise<FileNode> => {
       const props: Record<string, unknown> = { name };
       if (parent !== null) props.parentId = parent;
       if (!isFolderNode(node)) {
-        props.type = node.type;
+        props.type = this.fileNodeType(target.accountId, node.type);
         props.blobId = node.blobId;
       }
       return this.createFileNodeIn(target.accountId, props, 'copy');

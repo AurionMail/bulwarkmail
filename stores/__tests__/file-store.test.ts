@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useFileStore, resourceServerRef } from '../file-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode } from '@/lib/jmap/types';
+import { jmapError } from '@/lib/jmap/jmap-error';
+import { fileErrorKind } from '@/lib/file-errors';
 
 // Minimal in-memory FileNode backend that models the JMAP hierarchy via
 // parentId links (the behaviour issue #379 asks for).
@@ -525,6 +527,112 @@ describe('file-store symlinks (Stalwart 1.0)', () => {
 
     await useFileStore.getState().duplicateResource('latest');
     expect(client._nodes()).toHaveLength(2);
+  });
+});
+
+describe('file-store upload batches', () => {
+  // A file dropped as part of a folder carries its path inside it.
+  const inFolder = (path: string) => {
+    const file = new File(['x'], path.split('/').pop()!, { type: 'text/plain' });
+    Object.defineProperty(file, 'webkitRelativePath', { value: path });
+    return file;
+  };
+
+  beforeEach(() => {
+    useFileStore.setState({
+      client: null,
+      currentParentId: null,
+      currentPath: '/',
+      pathStack: [{ id: null, name: '' }],
+      resources: [],
+      selectedResources: new Set(),
+      clipboard: null,
+      lastAction: null,
+    });
+  });
+
+  it('goes on past a file the server refuses and reports it at the end', async () => {
+    const client = makeMockClient([]);
+    const createFileNode = client.createFileNode.bind(client);
+    Object.assign(client, {
+      createFileNode: async (name: string, ...rest: [string, string, number, string | null]) => {
+        if (name === 'b.txt') {
+          // 1.0 once an administrator has set maxFiles.
+          throw jmapError('There are too many files, please delete some before adding a new one.', { type: 'overQuota' });
+        }
+        return createFileNode(name, ...rest);
+      },
+    });
+    useFileStore.getState().initClient(client);
+
+    const report = await useFileStore.getState().uploadFiles(
+      ['a.txt', 'b.txt', 'c.txt'].map(n => new File(['x'], n, { type: 'text/plain' })),
+    );
+
+    expect(report.uploaded).toBe(2);
+    expect(report.failed.map(f => f.name)).toEqual(['b.txt']);
+    expect(fileErrorKind(report.failed[0].error)).toBe('overQuota');
+    expect(client._nodes().map(n => n.name)).toEqual(['a.txt', 'c.txt']);
+  });
+
+  it('skips the files of a folder it could not create instead of putting them in the upload\'s folder', async () => {
+    const client = makeMockClient([dir('here', 'Here', null)]);
+    const createFileDirectory = client.createFileDirectory.bind(client);
+    Object.assign(client, {
+      createFileDirectory: async (name: string, parentId: string | null) => {
+        if (name === 'Locked') {
+          throw jmapError('You are not allowed to create file nodes in this folder.', { type: 'forbidden' });
+        }
+        return createFileDirectory(name, parentId);
+      },
+    });
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate('here', 'Here');
+
+    const report = await useFileStore.getState().uploadFolder([
+      inFolder('Photos/a.jpg'),
+      inFolder('Photos/Locked/b.jpg'),
+      inFolder('Photos/Locked/Inner/c.jpg'),
+    ]);
+
+    expect(report.uploaded).toBe(1);
+    expect(report.failed.map(f => f.name)).toEqual(['Photos/Locked/b.jpg', 'Photos/Locked/Inner/c.jpg']);
+    expect(report.failed.every(f => fileErrorKind(f.error) === 'forbidden')).toBe(true);
+
+    const nodes = client._nodes();
+    const photos = nodes.find(n => n.name === 'Photos')!;
+    expect(nodes.filter(n => n.parentId === 'here').map(n => n.name)).toEqual(['Photos']);
+    expect(nodes.filter(n => n.parentId === photos.id).map(n => n.name)).toEqual(['a.jpg']);
+  });
+
+  it('leaves out what would sit deeper than maxFileNodeDepth (Stalwart 1.0)', async () => {
+    // Uploading into Stuff/Nonsense, level 2, with a limit of 4 levels.
+    const client = makeMockClient([dir('stuff', 'Stuff', null), dir('nonsense', 'Nonsense', 'stuff')]);
+    Object.assign(client, { getMaxFileNodeDepth: () => 4 });
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate('stuff', 'Stuff');
+    await useFileStore.getState().navigate('nonsense', 'Nonsense');
+
+    const report = await useFileStore.getState().uploadFolder([
+      inFolder('Up/a.txt'),
+      inFolder('Up/Deep/b.txt'),
+      inFolder('Up/Deep/Deeper/c.txt'),
+    ]);
+
+    expect(report.uploaded).toBe(1);
+    expect(report.failed.map(f => f.name)).toEqual(['Up/Deep/b.txt', 'Up/Deep/Deeper/c.txt']);
+    expect(report.failed.every(f => fileErrorKind(f.error) === 'tooDeep')).toBe(true);
+    expect(client._nodes().map(n => n.name)).toEqual(['Stuff', 'Nonsense', 'Up', 'Deep', 'a.txt']);
+  });
+
+  it('has no depth to check on 0.16', async () => {
+    const client = makeMockClient([dir('stuff', 'Stuff', null), dir('nonsense', 'Nonsense', 'stuff')]);
+    Object.assign(client, { getMaxFileNodeDepth: () => null });
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate('nonsense', 'Nonsense');
+
+    const report = await useFileStore.getState().uploadFolder([inFolder('Up/Deep/Deeper/c.txt')]);
+    expect(report).toEqual({ uploaded: 1, failed: [] });
   });
 });
 
