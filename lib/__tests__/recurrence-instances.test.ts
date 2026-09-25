@@ -369,6 +369,36 @@ describe('buildFallbackOverridePatch', () => {
     expect(buildFallbackOverridePatch(instance({ recurrenceId: null }), { title: 'x' })).toBeNull();
   });
 
+  it('merges into an override Stalwart 1.0 returned as a PatchObject, without keys that are prefixes of one another', () => {
+    const occ = instance({
+      recurrenceOverrides: {
+        '2026-09-08T10:00:00': {
+          start: '2026-09-08T10:00:00',
+          'participants/tom/participationStatus': 'declined',
+          locations: { l1: { '@type': 'Location', name: 'Room A' } },
+        } as unknown as Partial<CalendarEvent>,
+        '2026-09-09T10:00:00': { excluded: true } as unknown as Partial<CalendarEvent>,
+      },
+    });
+    const participants = {
+      tom: { '@type': 'Participant', participationStatus: 'accepted' },
+    } as unknown as CalendarEvent['participants'];
+
+    // A whole participants map replaces the patches beneath it; a pointer
+    // goes into the whole locations value the entry already sets.
+    expect(buildFallbackOverridePatch(occ, {
+      participants,
+      'locations/l1/name': 'Room B',
+    } as unknown as Partial<CalendarEvent>)).toEqual({
+      'recurrenceOverrides/2026-09-08T10:00:00': {
+        start: '2026-09-08T10:00:00',
+        duration: 'PT1H',
+        participants,
+        locations: { l1: { '@type': 'Location', name: 'Room B' } },
+      },
+    });
+  });
+
   it('keeps privacy and the organizer in the override, as 0.16 has always been sent them', () => {
     const patch = buildFallbackOverridePatch(instance({ recurrenceOverrides: null }), {
       title: 'x', privacy: 'public', organizerCalendarAddress: 'mailto:org@example.com',
@@ -541,5 +571,27 @@ describe('hydrateRecurrenceInstances with an occurrence listed twice', () => {
   it('leaves distinct occurrences alone', () => {
     const other = instance({ id: 'maaaaac', recurrenceId: '2026-09-09T10:00:00', start: '2026-09-09T10:00:00' });
     expect(hydrateRecurrenceInstances([series, other], bases).map((e) => e.id)).toEqual(['maaaaab', 'maaaaac']);
+  });
+
+  it('tells the override from the series by the members its PatchObject sets on Stalwart 1.0', () => {
+    const declined = instance({
+      title: 'Team sync',
+      participants: {
+        ...series.participants,
+        att: { '@type': 'Participant', calendarAddress: 'mailto:b@example.org', participationStatus: 'declined' },
+      } as unknown as CalendarEvent['participants'],
+    });
+    const patchBases = new Map<string, Partial<CalendarEvent>>([['b', {
+      id: 'b', duration: 'PT1H',
+      recurrenceOverrides: {
+        '2026-09-08T10:00:00': { 'participants/att/participationStatus': 'declined' } as unknown as Partial<CalendarEvent>,
+      },
+    }]]);
+    for (const order of [[series, declined], [declined, series]]) {
+      const [merged, ...rest] = hydrateRecurrenceInstances(order, patchBases);
+      expect(rest).toEqual([]);
+      expect(merged.participants?.att.participationStatus).toBe('declined');
+      expect(merged.participants?.org.participationStatus).toBe('accepted');
+    }
   });
 });

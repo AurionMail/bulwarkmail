@@ -24,6 +24,7 @@
 import type { CalendarEvent, CalendarParticipant } from '@/lib/jmap/types';
 import { parseDurationSeconds } from '@/lib/calendar-event-normalization';
 import { jmapErrorType } from '@/lib/jmap/jmap-error';
+import { pointerTokenValue } from '@/lib/jmap/patch-pointer';
 import { RECURRENCE_OVERRIDE_IMMUTABLE_KEYS } from '@/lib/recurrence-overrides';
 
 /**
@@ -271,6 +272,89 @@ export function mergeOverrideParticipants(
   return merged;
 }
 
+/** The members a PatchObject key points at (RFC 6901 tokens, decoded). */
+function pointerPath(key: string): string[] {
+  return key.split('/').map(pointerTokenValue);
+}
+
+/**
+ * A copy of `target` with the member at `path` set to `value` - or removed,
+ * when `value` is null - copying every object on the way. Removing beneath
+ * a member that is not there changes nothing; setting creates it.
+ */
+function patchedAt(target: object, path: string[], value: unknown): Record<string, unknown> {
+  const copy = (Array.isArray(target) ? [...target] : { ...target }) as Record<string, unknown>;
+  const [name, ...rest] = path;
+  if (rest.length === 0) {
+    if (value === null) delete copy[name];
+    else copy[name] = value;
+    return copy;
+  }
+  const child = copy[name];
+  if (child !== null && typeof child === 'object') copy[name] = patchedAt(child, rest, value);
+  else if (value !== null) copy[name] = patchedAt({}, rest, value);
+  return copy;
+}
+
+function valueAt(target: unknown, key: string): unknown {
+  let value = target;
+  for (const name of pointerPath(key)) {
+    if (value === null || typeof value !== 'object') return undefined;
+    value = (value as Record<string, unknown>)[name];
+  }
+  return value;
+}
+
+/**
+ * `event` with a recurrence override applied. An override is an RFC 8984
+ * PatchObject: every key a JSON Pointer into the occurrence, null removing
+ * what it points at. Stalwart 1.0 returns minimal ones such as
+ * `participants/p1/participationStatus`; 0.16 returns whole top-level
+ * values, which apply the same way. Shorter paths go first, so a pointer
+ * refines a value the same patch sets whole, and a whole `participants` map
+ * is completed from the series (mergeOverrideParticipants).
+ */
+export function applyOverridePatch<T extends Partial<CalendarEvent>>(event: T, patch: Record<string, unknown>): T {
+  let result: Record<string, unknown> = { ...event };
+  const keys = Object.keys(patch).sort((a, b) => a.split('/').length - b.split('/').length);
+  for (const key of keys) {
+    const value = patch[key];
+    if (key === 'participants' && value) {
+      result.participants = mergeOverrideParticipants(
+        result.participants as CalendarEvent['participants'],
+        value as CalendarEvent['participants'],
+      );
+    } else {
+      result = patchedAt(result, pointerPath(key), value);
+    }
+  }
+  return result as T;
+}
+
+/**
+ * An override entry with `updates` merged in, without keys that are prefixes
+ * of one another (RFC 8984 does not allow those in one PatchObject): a key
+ * replaces whatever the entry patches beneath it, and one beneath a value the
+ * entry sets goes into that value.
+ */
+function mergeOverrideEntry(entry: Record<string, unknown>, updates: Record<string, unknown>): Record<string, unknown> {
+  const merged = { ...entry };
+  for (const [key, value] of Object.entries(updates)) {
+    for (const existing of Object.keys(merged)) {
+      if (existing.startsWith(`${key}/`)) delete merged[existing];
+    }
+    const holder = Object.keys(merged).find((existing) => key.startsWith(`${existing}/`));
+    const held = holder === undefined ? undefined : merged[holder];
+    if (holder !== undefined && held !== null && typeof held === 'object') {
+      merged[holder] = patchedAt(held, pointerPath(key.slice(holder.length + 1)), value);
+      continue;
+    }
+    if (holder !== undefined) delete merged[holder];
+    merged[key] = value;
+  }
+  return merged;
+}
+
 /**
  * Stalwart lists an occurrence twice under one id - once as the series
  * generates it, once from its override - when the override ranks below the
@@ -300,14 +384,18 @@ function collapseDuplicateInstances(
     if (!entry) {
       return group.reduce((a, b) => (Object.keys(b).length > Object.keys(a).length ? b : a));
     }
-    const overrideKeys = Object.keys(entry).filter((k) => k !== 'updated' && !k.includes('/'));
-    const score = (instance: CalendarEvent) => overrideKeys
-      .filter((k) => stableJson((instance as unknown as Record<string, unknown>)[k]) === stableJson(entry[k]))
+    // The entry may patch members (Stalwart 1.0 returns overrides as
+    // PatchObjects such as `participants/p1/participationStatus`): score each
+    // instance by the members it matches, and take the override's whole
+    // top-level values for what the entry touches.
+    const patchKeys = Object.keys(entry).filter((k) => k !== 'updated');
+    const score = (instance: CalendarEvent) => patchKeys
+      .filter((k) => stableJson(valueAt(instance, k)) === stableJson(entry[k]))
       .length;
     const override = group.reduce((a, b) => (score(b) > score(a) ? b : a));
     const series = group.find((instance) => instance !== override) ?? first;
     const merged: Record<string, unknown> = { ...series };
-    for (const k of overrideKeys) {
+    for (const k of new Set(patchKeys.map(firstPointerSegment))) {
       merged[k] = k === 'participants'
         ? mergeOverrideParticipants(series.participants, override.participants)
         : (override as unknown as Record<string, unknown>)[k];
@@ -456,12 +544,11 @@ export function buildFallbackOverridePatch(
   if (!key) return null;
   const existing = (instance.recurrenceOverrides?.[key] ?? {}) as Record<string, unknown>;
   const { updated: _updated, ...kept } = existing;
-  return overrideEntryPatch(instance, key, {
-    ...kept,
+  return overrideEntryPatch(instance, key, mergeOverrideEntry(kept, {
     start: instance.start,
     duration: instance.duration,
     ...overrideEntryFields(patch),
-  });
+  }));
 }
 
 /** Destroying one occurrence as an override on its base event: exclude it. */
