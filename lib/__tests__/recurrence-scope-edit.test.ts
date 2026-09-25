@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { addDays, addHours, addMinutes, startOfDay } from 'date-fns';
 import {
+  followingSeriesData,
   saveOccurrenceEdit,
   seriesUpdatesFromOccurrence,
   type EventEditorState,
@@ -232,15 +233,16 @@ describe('changing every occurrence of a series in another time zone', () => {
   });
 });
 
+function actions(master: CalendarEvent | null) {
+  return {
+    client: {} as IJMAPClient,
+    updateEvent: vi.fn().mockResolvedValue(undefined),
+    createEvent: vi.fn().mockResolvedValue(null),
+    findMasterEvent: vi.fn().mockResolvedValue(master),
+  } satisfies OccurrenceEditActions;
+}
+
 describe('saveOccurrenceEdit for every occurrence', () => {
-  function actions(master: CalendarEvent | null) {
-    return {
-      client: {} as IJMAPClient,
-      updateEvent: vi.fn().mockResolvedValue(undefined),
-      createEvent: vi.fn().mockResolvedValue(null),
-      findMasterEvent: vi.fn().mockResolvedValue(master),
-    } satisfies OccurrenceEditActions;
-  }
 
   it('writes the series\' own change to its base event on Stalwart 1.0', async () => {
     const occurrence = serverOccurrence('1.0');
@@ -273,5 +275,95 @@ describe('saveOccurrenceEdit for every occurrence', () => {
 
     expect(saved).toBe(false);
     expect(deps.updateEvent).not.toHaveBeenCalled();
+  });
+});
+
+
+// "This and the following occurrences" ends the series before the
+// occurrence and makes a new series of the rest. The new series kept the
+// answers, and Stalwart invites to a new event only attendees without one:
+// everyone who had answered lost the following occurrences without a word.
+// The series was also ended without telling anyone, so the attendees kept
+// every occurrence of it.
+describe.each(occurrences)('saving this and the following occurrences on Stalwart %s', (_label, version, make) => {
+  const truncated = [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: null, until: '2026-10-19T09:59:59' }];
+
+  it('tells the attendees the series ends there, and asks all of them to the new one', async () => {
+    const occurrence = make();
+    const deps = actions(series(version));
+
+    const saved = await saveOccurrenceEdit('this_and_future', {
+      event: occurrence, updates: editorUpdates(occurrence, { title: 'Planning, room 2' }), editor: editorOn(occurrence),
+      sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    expect(saved).toBe(true);
+    expect(deps.updateEvent).toHaveBeenCalledTimes(1);
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', { recurrenceRules: truncated }, true);
+    const [, created, send] = deps.createEvent.mock.calls[0];
+    expect(send).toBe(true);
+    expect(created).toMatchObject({ title: 'Planning, room 2', start: '2026-10-19T10:00:00', recurrenceRules: series(version).recurrenceRules });
+    for (const key of ['id', 'uid', 'recurrenceId']) expect(created).not.toHaveProperty(key);
+    expect(statusOf(created.participants, ORGANIZER)).toBe('accepted');
+    expect(statusOf(created.participants, ATTENDEE)).toBe('needs-action');
+  });
+
+  it('puts the series back, telling the attendees again, when the new one cannot be created', async () => {
+    const occurrence = make();
+    const deps = actions(series(version));
+    deps.createEvent.mockRejectedValue(new Error('An event cannot have more than 20 participants.'));
+
+    await expect(saveOccurrenceEdit('this_and_future', {
+      event: occurrence, updates: editorUpdates(occurrence), editor: editorOn(occurrence), sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps)).rejects.toThrow('more than 20');
+
+    expect(deps.updateEvent).toHaveBeenLastCalledWith(deps.client, 'b', { recurrenceRules: series(version).recurrenceRules }, true);
+  });
+
+  it('ends an attendee\'s own copy quietly', async () => {
+    const occurrence = make();
+    const deps = actions(series(version));
+
+    await saveOccurrenceEdit('this_and_future', {
+      event: occurrence, updates: editorUpdates(occurrence), editor: editorOn(occurrence), sendScheduling: true, userEmails: [ATTENDEE],
+    }, deps);
+
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', { recurrenceRules: truncated }, undefined);
+  });
+});
+
+describe('the new series from this and the following occurrences', () => {
+  it('starts at the occurrence and leaves the old series\' identity behind', () => {
+    const occurrence = serverOccurrence('1.0');
+    const data = followingSeriesData(occurrence, series('1.0'), { title: 'Moved on', recurrenceId: occurrence.recurrenceId }, null);
+
+    expect(data).toMatchObject({ title: 'Moved on', start: '2026-10-19T10:00:00', recurrenceRules: null, timeZone: 'Europe/Berlin' });
+    expect(data).not.toHaveProperty('recurrenceId');
+    // Without participants in the change there are none to ask.
+    expect(data).not.toHaveProperty('participants');
+  });
+});
+
+// A first change to one occurrence goes out in two steps when the user
+// organizes the event (see the calendar store's updateEvent).
+describe.each(occurrences)('saving one occurrence on Stalwart %s', (_label, version, make) => {
+  it('tells the store the user organizes the event', async () => {
+    const occurrence = make();
+    const deps = actions(series(version));
+    const updates = editorUpdates(occurrence, { title: 'Planning, room 2' });
+
+    await saveOccurrenceEdit('this', { event: occurrence, updates, sendScheduling: true, userEmails: [ORGANIZER] }, deps);
+
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, occurrence.id, updates, true, { asOrganizer: true });
+  });
+
+  it('and that an attendee does not', async () => {
+    const occurrence = make();
+    const deps = actions(series(version));
+    const updates = editorUpdates(occurrence, { title: 'My note' });
+
+    await saveOccurrenceEdit('this', { event: occurrence, updates, sendScheduling: false, userEmails: [ATTENDEE] }, deps);
+
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, occurrence.id, updates, false, { asOrganizer: false });
   });
 });

@@ -530,7 +530,7 @@ function knownOverrides(occurrence: Partial<CalendarEvent>): OverrideMap | null 
 }
 
 /** True when a change to `occurrence` creates its override, false when one exists or it is unknown. */
-function createsOverride(occurrence: Partial<CalendarEvent>): boolean {
+export function createsOverride(occurrence: Partial<CalendarEvent>): boolean {
   const overrides = knownOverrides(occurrence);
   if (overrides === undefined || !occurrence.recurrenceId) return false;
   const key = resolveOverrideKey({ start: occurrence.start ?? '', recurrenceId: occurrence.recurrenceId }, overrides);

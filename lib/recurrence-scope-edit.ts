@@ -10,7 +10,13 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { CalendarEvent } from '@/lib/jmap/types';
 import { getEventDisplayEndDate, getEventEndDate, getEventStartDate } from '@/lib/calendar-utils';
 import { parseDurationSeconds } from '@/lib/calendar-event-normalization';
-import { getParticipantList, participantFieldsToSave, type ParticipantSaveContext } from '@/lib/calendar-participants';
+import {
+  getParticipantList,
+  isOrganizer,
+  participantFieldsToSave,
+  participantsAskedAgain,
+  type ParticipantSaveContext,
+} from '@/lib/calendar-participants';
 import {
   buildFallbackOverridePatch,
   isBrowserExpandedOccurrence,
@@ -224,13 +230,18 @@ export interface OccurrenceEdit {
 }
 
 /**
- * End `occurrence`'s series just before it. Resolves to the series and its
- * rules as they were, for a rollback; null when the series is not found.
+ * End `occurrence`'s series just before it. With `sendScheduling`, when the
+ * user organizes the series, the attendees are told: Stalwart sends them
+ * the shortened series, and their copies end there too (they kept every
+ * occurrence before). Resolves to the series, its rules as they were and
+ * whether the attendees were told, for a rollback; null when the series is
+ * not found.
  */
 export async function truncateSeriesAt(
   occurrence: CalendarEvent,
   actions: Pick<OccurrenceEditActions, 'client' | 'updateEvent' | 'findMasterEvent'>,
-): Promise<{ master: CalendarEvent; originalRules: CalendarEvent['recurrenceRules'] } | null> {
+  scheduling: { sendScheduling?: boolean; userEmails?: string[] } = {},
+): Promise<{ master: CalendarEvent; originalRules: CalendarEvent['recurrenceRules']; announced: true | undefined } | null> {
   const master = await actions.findMasterEvent(occurrence);
   if (!master) return null;
   const originalRules = master.recurrenceRules
@@ -245,8 +256,49 @@ export async function truncateSeriesAt(
     until,
     count: null,
   }));
-  await actions.updateEvent(actions.client, master.id, { recurrenceRules: truncatedRules });
-  return { master, originalRules };
+  const announced = scheduling.sendScheduling && isOrganizer(master, scheduling.userEmails ?? []) ? true : undefined;
+  await actions.updateEvent(actions.client, master.id, { recurrenceRules: truncatedRules }, announced);
+  return { master, originalRules, announced };
+}
+
+/**
+ * The new series "this and the following occurrences" becomes: the old
+ * series' details with the editor's changes, from `occurrence` on. It is a
+ * new event with a UID of its own, so every attendee is asked
+ * (participantsAskedAgain): Stalwart invites to a new event only attendees
+ * who have not answered, and with the answers the old series had, those
+ * who had answered never got the new one.
+ */
+export function followingSeriesData(
+  occurrence: CalendarEvent,
+  master: CalendarEvent,
+  updates: Partial<CalendarEvent>,
+  originalRules: CalendarEvent['recurrenceRules'],
+): Partial<CalendarEvent> {
+  const data: Partial<CalendarEvent> = {
+    title: master.title,
+    description: master.description,
+    duration: master.duration,
+    timeZone: master.timeZone,
+    calendarIds: { ...master.calendarIds },
+    status: master.status,
+    freeBusyStatus: master.freeBusyStatus,
+    privacy: master.privacy,
+    showWithoutTime: master.showWithoutTime,
+    recurrenceRules: originalRules,
+    ...updates,
+    start: updates.start || occurrence.recurrenceId || occurrence.start,
+  };
+  delete data.id;
+  delete data.uid;
+  delete data.recurrenceId;
+  if (data.participants) {
+    data.participants = participantsAskedAgain({
+      participants: data.participants,
+      organizerCalendarAddress: data.organizerCalendarAddress ?? master.organizerCalendarAddress,
+    }) ?? data.participants;
+  }
+  return data;
 }
 
 /**
@@ -265,7 +317,11 @@ export async function saveOccurrenceEdit(
       if (isServerRecurrenceInstance(event) || isBrowserExpandedOccurrence(event)) {
         // The store writes one occurrence through its own (synthetic) id, or
         // as a recurrence override on the base event it was expanded from.
-        await updateEvent(client, event.id, updates, sendScheduling);
+        const asOrganizer = isOrganizer({
+          ...event,
+          participants: updates.participants === undefined ? event.participants : updates.participants,
+        }, edit.userEmails);
+        await updateEvent(client, event.id, updates, sendScheduling, { asOrganizer });
         return true;
       }
       // An override outside an expanded series: override it on the master.
@@ -281,33 +337,16 @@ export async function saveOccurrenceEdit(
       return true;
     }
     case 'this_and_future': {
-      const result = await truncateSeriesAt(event, actions);
+      const result = await truncateSeriesAt(event, actions, { sendScheduling, userEmails: edit.userEmails });
       if (!result) return false;
-      const { master, originalRules } = result;
-      const occurrenceStart = event.recurrenceId || event.start;
-      const newEventData: Partial<CalendarEvent> = {
-        title: master.title,
-        description: master.description,
-        duration: master.duration,
-        timeZone: master.timeZone,
-        calendarIds: { ...master.calendarIds },
-        status: master.status,
-        freeBusyStatus: master.freeBusyStatus,
-        privacy: master.privacy,
-        showWithoutTime: master.showWithoutTime,
-        recurrenceRules: originalRules,
-        ...updates,
-        start: updates.start || occurrenceStart,
-      };
-      delete (newEventData as Record<string, unknown>).id;
-      delete (newEventData as Record<string, unknown>).uid;
-      delete (newEventData as Record<string, unknown>).recurrenceId;
+      const { master, originalRules, announced } = result;
+      const newEventData = followingSeriesData(event, master, updates, originalRules);
       try {
         await createEvent(client, newEventData, sendScheduling);
       } catch (createError) {
         debug.error('Failed to create new series, rolling back master truncation:', createError);
         try {
-          await updateEvent(client, master.id, { recurrenceRules: originalRules });
+          await updateEvent(client, master.id, { recurrenceRules: originalRules }, announced);
         } catch (rollbackError) {
           debug.error('Rollback of master event also failed:', rollbackError);
         }

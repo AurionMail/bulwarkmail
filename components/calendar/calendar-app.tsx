@@ -1031,7 +1031,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             break;
           }
           case "this_and_future": {
-            const result = await truncateSeriesAt(event, { client, updateEvent, findMasterEvent });
+            const result = await truncateSeriesAt(event, { client, updateEvent, findMasterEvent }, {
+              sendScheduling,
+              userEmails: currentUserEmails,
+            });
             if (!result) {
               toast.error(t("notifications.event_error"));
               return;

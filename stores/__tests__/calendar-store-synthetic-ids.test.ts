@@ -793,3 +793,151 @@ describe('importEvents and the server refusing an event', () => {
     expect(useCalendarStore.getState().error).toBe(`1 event(s) could not be imported: ${LIMIT.description}`);
   });
 });
+
+
+// Stalwart sends an occurrence that gets its own override, like a new event,
+// only to attendees who have not answered, and a change to an existing
+// override to everyone who has not declined (groupware scheduling,
+// send_invite_messages / send_update_messages; 0.16.6 to 0.16.23 and 1.0
+// alike). A first change that kept the answers reached none of the
+// attendees who had accepted. The occurrence now gets its override as it is
+// first, without messages, and the change goes out as a change of it.
+describe('a first change to one occurrence of a meeting the user organizes', () => {
+  const RID = '2026-09-08T10:00:00';
+  const meeting = {
+    org: { '@type': 'Participant', calendarAddress: 'mailto:org@example.com', email: 'org@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+    bob: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.org', email: 'bob@example.org', roles: { attendee: true }, participationStatus: 'accepted' },
+  } as unknown as NonNullable<CalendarEvent['participants']>;
+  const serverOccurrence = (overrides: Partial<CalendarEvent> = {}) => occurrence({
+    organizerCalendarAddress: 'mailto:org@example.com', participants: meeting, sequence: 1, ...overrides,
+  });
+  // What the server expands once the occurrence has its override.
+  const overridden = (id: string) => serverOccurrence({
+    id, originalId: id,
+    recurrenceOverrides: { ...occurrence().recurrenceOverrides, [RID]: { title: 'Daily standup' } },
+  });
+  const CHANGE = { title: 'Standup in room 2', participants: meeting } as Partial<CalendarEvent>;
+
+  it('overrides the occurrence quietly, then changes it with messages on Stalwart 1.0', async () => {
+    const client = fakeClient({ queryCalendarEvents: vi.fn().mockResolvedValue([overridden('maaaaab')]) });
+    useCalendarStore.setState({ events: [serverOccurrence()] });
+
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', CHANGE, true, { asOrganizer: true });
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledTimes(2);
+    // As the occurrence is, the answers as they are, no messages.
+    expect(client.updateCalendarEvent).toHaveBeenNthCalledWith(
+      1, 'maaaaab', { title: 'Daily standup', participants: meeting, sequence: 1 }, false, undefined, { keepSequence: true },
+    );
+    expect(client.queryCalendarEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ uid: 'series@example.com' }), undefined, undefined, undefined,
+    );
+    expect(client.updateCalendarEvent).toHaveBeenNthCalledWith(
+      2, 'maaaaab', { title: 'Standup in room 2', participants: meeting }, true, undefined, undefined,
+    );
+  });
+
+  it('changes the occurrence under the id 0.16.20 gives it once it has an override', async () => {
+    const client = fakeClient({ queryCalendarEvents: vi.fn().mockResolvedValue([
+      serverOccurrence({ id: 'maaaaaa', originalId: 'maaaaaa', recurrenceId: '2026-09-07T10:00:00' }),
+      overridden('maaaaaf'),
+    ]) });
+    useCalendarStore.setState({ events: [serverOccurrence()] });
+
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', CHANGE, true, { asOrganizer: true });
+
+    expect(client.updateCalendarEvent.mock.calls.map((call) => [call[0], call[2]])).toEqual([['maaaaab', false], ['maaaaaf', true]]);
+  });
+
+  it('overrides an occurrence expanded in the browser on its base event, then changes that override (0.16 before 0.16.20)', async () => {
+    const browserOccurrence = serverOccurrence({ id: `b:${RID}`, originalId: 'b', baseEventId: undefined, privacy: 'public' });
+    const firstEntry = {
+      start: RID, duration: 'PT1H', title: 'Daily standup', participants: meeting, sequence: 1,
+      privacy: 'public', organizerCalendarAddress: 'mailto:org@example.com',
+    };
+    const client = fakeClient({
+      getCalendarEvent: vi.fn().mockResolvedValue({
+        id: 'b', uid: 'series@example.com',
+        recurrenceOverrides: { ...occurrence().recurrenceOverrides, [RID]: firstEntry },
+      }),
+    });
+    useCalendarStore.setState({ events: [browserOccurrence] });
+
+    await useCalendarStore.getState().updateEvent(client, browserOccurrence.id, CHANGE, true, { asOrganizer: true });
+
+    expect(client.updateCalendarEvent).toHaveBeenNthCalledWith(1, 'b', { [`recurrenceOverrides/${RID}`]: firstEntry }, false, undefined);
+    expect(client.getCalendarEvent).toHaveBeenCalledWith('b', undefined);
+    expect(client.updateCalendarEvent).toHaveBeenNthCalledWith(2, 'b', {
+      [`recurrenceOverrides/${RID}`]: { ...firstEntry, title: 'Standup in room 2' },
+    }, true, undefined);
+  });
+
+  it('writes both steps without series keys once Stalwart 1.0 refused them inside an override', async () => {
+    const refusing = vi.fn(async (_id: string, patch: Record<string, unknown>, _send?: boolean) => {
+      const entry = patch[`recurrenceOverrides/${RID}`] as Record<string, unknown> | undefined;
+      if (entry && ('privacy' in entry || 'organizerCalendarAddress' in entry)) {
+        throw jmapError('privacy cannot be set inside recurrenceOverrides.', {
+          type: 'invalidProperties', properties: ['recurrenceOverrides'],
+        });
+      }
+    });
+    // Expanded in the browser on 1.0: the fallback for a range that would
+    // expand past the server's limits.
+    const browserOccurrence = serverOccurrence({ id: `b:${RID}`, originalId: 'b', baseEventId: undefined, privacy: 'public' });
+    const client = fakeClient({
+      updateCalendarEvent: refusing,
+      getCalendarEvent: vi.fn().mockResolvedValue({
+        id: 'b', uid: 'series@example.com',
+        recurrenceOverrides: { ...occurrence().recurrenceOverrides, [RID]: { title: 'Daily standup' } },
+      }),
+    });
+    useCalendarStore.setState({ events: [browserOccurrence] });
+
+    await useCalendarStore.getState().updateEvent(client, browserOccurrence.id, CHANGE, true, { asOrganizer: true });
+
+    const sent = refusing.mock.calls.map((call) => [call[1][`recurrenceOverrides/${RID}`] as Record<string, unknown>, call[2]]);
+    expect(sent).toHaveLength(3);
+    expect(sent[1]).toEqual([{ start: RID, duration: 'PT1H', title: 'Daily standup', participants: meeting, sequence: 1 }, false]);
+    expect(sent[2][0]).not.toHaveProperty('organizerCalendarAddress');
+    expect(sent[2]).toEqual([expect.objectContaining({ title: 'Standup in room 2' }), true]);
+  });
+
+  it.each<[string, Partial<CalendarEvent>, boolean | undefined, { asOrganizer?: boolean } | undefined]>([
+    ['an attendee\'s change', CHANGE, true, { asOrganizer: false }],
+    ['a change without messages', CHANGE, false, { asOrganizer: true }],
+    ['a move that asks everyone again', {
+      start: '2026-09-08T11:00:00',
+      participants: { ...meeting, bob: { ...meeting.bob, participationStatus: 'needs-action' } },
+    }, true, { asOrganizer: true }],
+  ])('writes %s in one go', async (_label, change, send, options) => {
+    const client = fakeClient({ queryCalendarEvents: vi.fn() });
+    useCalendarStore.setState({ events: [serverOccurrence()] });
+
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', change, send, options);
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledTimes(1);
+    expect(client.queryCalendarEvents).not.toHaveBeenCalled();
+  });
+
+  it('writes a change to an occurrence that already has its override in one go', async () => {
+    const client = fakeClient({ queryCalendarEvents: vi.fn() });
+    useCalendarStore.setState({ events: [overridden('maaaaab')] });
+
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', CHANGE, true, { asOrganizer: true });
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledTimes(1);
+    expect(client.updateCalendarEvent).toHaveBeenCalledWith('maaaaab', CHANGE, true, undefined, undefined);
+  });
+
+  it('reports a failed change after the quiet override', async () => {
+    const client = fakeClient({ queryCalendarEvents: vi.fn().mockResolvedValue([overridden('maaaaab')]) });
+    client.updateCalendarEvent
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(jmapError('An event cannot have more than 20 participants.', { type: 'invalidProperties' }));
+    useCalendarStore.setState({ events: [serverOccurrence()] });
+
+    await expect(useCalendarStore.getState().updateEvent(client, 'maaaaab', CHANGE, true, { asOrganizer: true }))
+      .rejects.toThrow('more than 20');
+    expect(client.updateCalendarEvent).toHaveBeenCalledTimes(2);
+  });
+});

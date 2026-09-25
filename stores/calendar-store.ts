@@ -3,13 +3,13 @@ import { persist } from 'zustand/middleware';
 import type { CalendarEventUpdateOptions, IJMAPClient } from '@/lib/jmap/client-interface';
 import type { Calendar, CalendarEvent, CalendarParticipant, CalendarParticipantIdentity, CalendarRights, CreateCalendarOptions } from '@/lib/jmap/types';
 import { debug } from '@/lib/debug';
-import { normalizeAllDayDuration } from '@/lib/calendar-utils';
+import { getEventStartDate, normalizeAllDayDuration } from '@/lib/calendar-utils';
 import { displayNow } from '@/lib/timezone';
 import { parseDuration } from '@/components/calendar/event-card';
 import { sanitizeOutgoingCalendarEventData } from '@/lib/calendar-event-normalization';
 import { expandRecurringEvents } from '@/lib/recurrence-expansion';
 import { SchedulingDeniedError } from '@/lib/jmap/scheduling-error';
-import { participantLimitOf } from '@/lib/calendar-participants';
+import { hasAnsweredAttendees, participantLimitOf } from '@/lib/calendar-participants';
 import { withOwnAlertIds } from '@/lib/calendar-alerts';
 import { jmapSetError } from '@/lib/jmap/jmap-error';
 import {
@@ -18,15 +18,18 @@ import {
   buildFallbackOverridePatch,
   buildOccurrencePatch,
   buildOccurrenceRsvpPatch,
+  createsOverride,
   isBrowserExpandedOccurrence,
   isOverrideSeriesKeyRejection,
+  overrideContextOf,
   withNewOverrideDetails,
   withoutOverrideSeriesKeys,
   isServerRecurrenceInstance,
   isSyntheticIdMutationUnsupported,
   type OverridePatchOptions,
 } from '@/lib/recurrence-instances';
-import { parseISO } from 'date-fns';
+import type { EventUpdateOptions } from '@/lib/recurrence-scope-edit';
+import { addDays, format, parseISO } from 'date-fns';
 import { generateUUID } from '@/lib/utils';
 import { apiFetch } from '@/lib/browser-navigation';
 import { explainServerAuthError } from '@/lib/server-auth-status';
@@ -300,6 +303,95 @@ async function updateBrowserOccurrence(
   const patch = buildFallbackOverridePatch(occurrence, withNewOverrideDetails(occurrence, updates, { seriesKeys: true }));
   if (!patch) throw new Error('Cannot resolve the occurrence to override');
   await updateBaseEvent(client, target.realId, patch, sendSchedulingMessages, target.targetAccountId);
+}
+
+/**
+ * Whether a change to one occurrence goes out in two steps
+ * (updateNewOverrideForEveryone): the user organizes the event and sends the
+ * change to its attendees, the change gives the occurrence its own
+ * override, and an attendee who has answered stays in it.
+ */
+function reachesOnlyUnanswered(
+  occurrence: CalendarEvent,
+  updates: Partial<CalendarEvent>,
+  sendSchedulingMessages: boolean | undefined,
+  options: EventUpdateOptions | undefined,
+): boolean {
+  if (!options?.asOrganizer || !sendSchedulingMessages || !createsOverride(occurrence)) return false;
+  return hasAnsweredAttendees({
+    ...occurrence,
+    participants: updates.participants === undefined ? occurrence.participants : updates.participants,
+  });
+}
+
+/**
+ * `occurrence` as the server expands it now, found by its recurrence id
+ * among the occurrences of its series around it. Stalwart 0.16.20 numbers
+ * the occurrences of a series, and an override renumbers them; the ids are
+ * stable from 0.16.21 on.
+ */
+async function occurrenceAgain(
+  client: IJMAPClient,
+  occurrence: CalendarEvent,
+  targetAccountId: string | undefined,
+): Promise<CalendarEvent> {
+  const start = getEventStartDate(occurrence);
+  const day = (offset: number) => format(addDays(start, offset), "yyyy-MM-dd'T'00:00:00");
+  const around = await client.queryCalendarEvents(
+    { uid: occurrence.uid, after: day(-2), before: day(3) }, undefined, undefined, targetAccountId,
+  );
+  const found = around.find((e) => e.recurrenceId === occurrence.recurrenceId && isServerRecurrenceInstance(e));
+  if (!found) throw new Error('Cannot find the occurrence again after giving it its own override');
+  return found;
+}
+
+/**
+ * Change one occurrence that has no override yet so that the change reaches
+ * every attendee who has not declined. Stalwart sends an occurrence that
+ * gets its own override, like a new event, only to attendees who have not
+ * answered (PARTSTAT absent or NEEDS-ACTION), and a change to an existing
+ * override to everyone who has not declined (groupware scheduling,
+ * send_invite_messages and send_update_messages; the same on 0.16). A first
+ * change that kept the answers - a new title, another room - reached none of
+ * the attendees who had answered. So the occurrence first gets its override
+ * as it is, without scheduling messages, and the change then goes out as a
+ * change of that override. Should the second write fail, the first leaves
+ * an override identical to the occurrence.
+ */
+async function updateNewOverrideForEveryone(
+  client: IJMAPClient,
+  target: MutationTarget,
+  updates: Partial<CalendarEvent>,
+  sendSchedulingMessages: boolean | undefined,
+): Promise<void> {
+  const occurrence = target.storeEvent!;
+  if (target.isOccurrence) {
+    await updateOccurrence(
+      client, occurrence, target.realId,
+      (options) => withNewOverrideDetails(occurrence, {}, options),
+      false, target.targetAccountId,
+    );
+    // Written through the synthetic id: change it there too.
+    if (!syntheticIdRejected.has(client)) {
+      const again = await occurrenceAgain(client, occurrence, target.targetAccountId);
+      await updateOccurrence(
+        client, again, again.id,
+        (options) => withNewOverrideDetails(again, updates, options),
+        sendSchedulingMessages, target.targetAccountId,
+      );
+      return;
+    }
+  } else {
+    await updateBrowserOccurrence(client, target, {}, false);
+  }
+  // Written on the base event: change the override there, as it is now.
+  const baseId = target.isOccurrence ? occurrence.baseEventId : target.realId;
+  const base = baseId ? await client.getCalendarEvent(baseId, target.targetAccountId) : null;
+  if (!baseId || !base) throw new Error('Cannot find the series of the occurrence');
+  const context = overrideContextOf(occurrence, base);
+  const patch = buildFallbackOverridePatch(context, withNewOverrideDetails(context, updates, { seriesKeys: true }));
+  if (!patch) throw new Error('Cannot resolve the occurrence to override');
+  await updateBaseEvent(client, baseId, patch, sendSchedulingMessages, target.targetAccountId);
 }
 
 /** Delete one occurrence the browser expanded by excluding it on its base event. */
@@ -581,7 +673,13 @@ interface CalendarStore {
   fetchAllAccountsCalendars: (accounts: CalendarAccountClient[]) => Promise<void>;
   fetchAllAccountsEvents: (accounts: CalendarAccountClient[], start: string, end: string, options?: FetchEventsOptions) => Promise<void>;
   createEvent: (client: IJMAPClient, event: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => Promise<CalendarEvent | null>;
-  updateEvent: (client: IJMAPClient, id: string, updates: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => Promise<void>;
+  updateEvent: (
+    client: IJMAPClient,
+    id: string,
+    updates: Partial<CalendarEvent>,
+    sendSchedulingMessages?: boolean,
+    options?: EventUpdateOptions,
+  ) => Promise<void>;
   deleteEvent: (client: IJMAPClient, id: string, sendSchedulingMessages?: boolean) => Promise<void>;
   rsvpEvent: (client: IJMAPClient, eventId: string, participantId: string, status: string, replyTo?: Record<string, string> | null, scope?: 'occurrence' | 'series') => Promise<void>;
   /**
@@ -889,7 +987,7 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
 
-      updateEvent: async (client, id, updates, sendSchedulingMessages) => {
+      updateEvent: async (client, id, updates, sendSchedulingMessages, options) => {
         set({ error: null });
         try {
           // Resolve shared event IDs and client-side expanded occurrence IDs
@@ -917,18 +1015,28 @@ export const useCalendarStore = create<CalendarStore>()(
           }
           // An occurrence's alerts that turn the calendar's defaults off.
           const stopsDefaultAlerts = cleanUpdates.useDefaultAlerts === false && 'alerts' in cleanUpdates;
+          const inTwoSteps = !!storeEvent && (target.isOccurrence || !!target.isBrowserOccurrence)
+            && reachesOnlyUnanswered(storeEvent, cleanUpdates, sendSchedulingMessages, options);
           if (target.isOccurrence && storeEvent) {
             if (stopsDefaultAlerts && storeEvent.baseEventId) {
               await stopSeriesDefaultAlerts(client, storeEvent.baseEventId, targetAccountId);
             }
-            await updateOccurrence(
-              client, storeEvent, realId,
-              (options) => withNewOverrideDetails(storeEvent, cleanUpdates, options),
-              sendSchedulingMessages, targetAccountId,
-            );
+            if (inTwoSteps) {
+              await updateNewOverrideForEveryone(client, target, cleanUpdates, sendSchedulingMessages);
+            } else {
+              await updateOccurrence(
+                client, storeEvent, realId,
+                (overrideOptions) => withNewOverrideDetails(storeEvent, cleanUpdates, overrideOptions),
+                sendSchedulingMessages, targetAccountId,
+              );
+            }
           } else if (target.isBrowserOccurrence) {
             if (stopsDefaultAlerts) await stopSeriesDefaultAlerts(client, realId, targetAccountId);
-            await updateBrowserOccurrence(client, target, cleanUpdates, sendSchedulingMessages);
+            if (inTwoSteps) {
+              await updateNewOverrideForEveryone(client, target, cleanUpdates, sendSchedulingMessages);
+            } else {
+              await updateBrowserOccurrence(client, target, cleanUpdates, sendSchedulingMessages);
+            }
           } else {
             await updateBaseEvent(client, realId, cleanUpdates, sendSchedulingMessages, targetAccountId);
           }

@@ -248,6 +248,50 @@ export function getParticipantCount(event: CalendarEvent): number {
 
 type ParticipationStatus = CalendarParticipant['participationStatus'];
 
+/** Whether `p` is `event`'s organizer: the owner participant, or the one at the organizer's address. */
+function isOrganizerEntry(p: CalendarParticipant, organizerEmails: string[]): boolean {
+  const email = getParticipantEmail(p).trim().toLowerCase();
+  return !!p.roles?.owner || (!!email && organizerEmails.includes(email));
+}
+
+/**
+ * Whether an attendee of `event` has answered and not declined: someone
+ * Stalwart sends a change of the event to, but not a new occurrence
+ * override or a new event (see participantsAskedAgain).
+ */
+export function hasAnsweredAttendees(event: Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress' | 'replyTo'>>): boolean {
+  const organizerEmails = getEventOrganizerEmails(event as CalendarEvent);
+  return Object.values(event.participants ?? {}).some((p) => !isOrganizerEntry(p, organizerEmails)
+    && !!p.participationStatus && p.participationStatus !== 'needs-action' && p.participationStatus !== 'declined');
+}
+
+/**
+ * `event`'s participants with every attendee asked to answer again - back
+ * at needs-action - and the organizer's entries as they are. What its
+ * organizer does when an event moves (RFC 5546), and what a new event made
+ * from it needs: Stalwart sends a new event, and a new override of one
+ * occurrence, only to attendees without an answer (PARTSTAT absent or
+ * NEEDS-ACTION; groupware scheduling, send_invite_messages), and a change
+ * to an existing one carries each attendee's stored answer. Null when no
+ * attendee has answered.
+ */
+export function participantsAskedAgain(
+  event: Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress' | 'replyTo'>>,
+): Record<string, CalendarParticipant> | null {
+  const organizerEmails = getEventOrganizerEmails(event as CalendarEvent);
+  let asked = false;
+  const participants: Record<string, CalendarParticipant> = {};
+  for (const [id, p] of Object.entries(event.participants ?? {})) {
+    if (isOrganizerEntry(p, organizerEmails) || !p.participationStatus || p.participationStatus === 'needs-action') {
+      participants[id] = p;
+      continue;
+    }
+    participants[id] = { ...p, participationStatus: 'needs-action' };
+    asked = true;
+  }
+  return asked ? participants : null;
+}
+
 /**
  * An event's participants by address (lowercased): the id each was first
  * listed under, and its answer - a real one over a missing or needs-action

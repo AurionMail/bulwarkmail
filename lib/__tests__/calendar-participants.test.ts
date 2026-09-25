@@ -11,6 +11,8 @@ import {
   buildParticipantMap,
   participantFieldsToSave,
   participantLimitOf,
+  participantsAskedAgain,
+  hasAnsweredAttendees,
 } from '@/lib/calendar-participants';
 import { jmapError, jmapSetError } from '@/lib/jmap/jmap-error';
 
@@ -800,6 +802,52 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('participantFieldsToSave fo
 
     expect(fields.participants!.mine.participationStatus).toBe('accepted');
     expect(fields.participants!.bob.participationStatus).toBe('declined');
+  });
+});
+
+// What Stalwart sends: a new event, and an occurrence that gets its own
+// override, reach only attendees without an answer (PARTSTAT absent or
+// NEEDS-ACTION); a change to an existing one reaches everyone who has not
+// declined, with the answer stored for them.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('asking the attendees again on Stalwart %s', (version) => {
+  // As each version stores them: 0.16.23 drops an attendee's roles, 1.0 keeps them.
+  const attendee = (address: string, participationStatus?: CalendarParticipant['participationStatus']) => ({
+    '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address,
+    ...(participationStatus ? { participationStatus } : {}),
+    ...(version === '1.0' ? { roles: { attendee: true } } : {}),
+  }) as Partial<CalendarParticipant>;
+  const meeting = () => makeEvent({
+    org: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+    // The organizer listed as an attendee as well, as Google writes it.
+    orgAgain: attendee('ME@example.com', 'accepted'),
+    bob: attendee('bob@example.org', 'accepted'),
+    carol: attendee('carol@example.org', 'declined'),
+    dave: attendee('dave@example.org'),
+  }, { organizerCalendarAddress: 'mailto:me@example.com' });
+
+  it('puts every attendee back to needs-action and leaves the organizer as it is', () => {
+    const asked = participantsAskedAgain(meeting())!;
+
+    expect(asked.org.participationStatus).toBe('accepted');
+    expect(asked.orgAgain.participationStatus).toBe('accepted');
+    expect(asked.bob).toEqual({ ...meeting().participants!.bob, participationStatus: 'needs-action' });
+    expect(asked.carol.participationStatus).toBe('needs-action');
+    expect(asked.dave).toEqual(meeting().participants!.dave);
+  });
+
+  it('changes nothing when no attendee has answered', () => {
+    expect(participantsAskedAgain(makeEvent({
+      org: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+      dave: attendee('dave@example.org', 'needs-action'),
+    }, { organizerCalendarAddress: 'mailto:me@example.com' }))).toBeNull();
+    expect(participantsAskedAgain(makeEvent(null))).toBeNull();
+  });
+
+  it('tells whether an attendee answered and did not decline', () => {
+    expect(hasAnsweredAttendees(meeting())).toBe(true);
+    const { bob: _bob, ...withoutBob } = meeting().participants!;
+    expect(hasAnsweredAttendees({ ...meeting(), participants: withoutBob })).toBe(false);
+    expect(hasAnsweredAttendees(makeEvent(null))).toBe(false);
   });
 });
 
