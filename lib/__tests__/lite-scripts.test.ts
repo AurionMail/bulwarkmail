@@ -190,7 +190,13 @@ describe('lite build helpers', () => {
     const readme = buildReadme({ version: '1.10.0', commit: 'abc1234', basePath: '/w', locales: ['en'], jmapServerUrl: 'https://m.example', demoMode: true });
     expect(readme).toContain('# Bulwark Lite 1.10.0 (abc1234)');
     expect(readme).toContain('Demo mode is ON');
-    expect(readme).toContain('permissive-cors = true');
+    // Since 0.16 CORS is the registry setting Http.usePermissiveCors (the same
+    // on 1.0); the old TOML key is not read.
+    expect(readme).toContain('Settings > Network > HTTP > Security');
+    expect(readme).toContain('stalwart-cli update Http --field usePermissiveCors=true');
+    expect(readme).toContain('{"update": {"singleton": {"usePermissiveCors": true}}}');
+    expect(readme).toContain('ReloadSettings');
+    expect(readme).not.toContain('permissive-cors = true');
     expect(readme).toContain('currently `https://m.example`');
   });
 
@@ -582,9 +588,24 @@ describe('Stalwart target: the entry document', () => {
     expect(readme).toContain('sysApplicationCreate');
     expect(readme).toContain('actionUpdateApps');
     expect(readme).toContain('autoUpdateFrequency');
-    expect(readme).toContain(`releases/download/v1.10.0/${STALWART_ZIP_NAME}`);
+    // Release tags carry no "v" prefix (since 1.3.0); the v-URL 404s.
+    expect(readme).toContain(`releases/download/1.10.0/${STALWART_ZIP_NAME}`);
+    expect(readme).not.toContain('releases/download/v1.10.0/');
     expect(readme).toContain('https://mail.example.com/webmail/');
     for (const segment of ['`mail`', '`calendar`', '`admin`', '`account`']) expect(readme).toContain(segment);
+  });
+
+  it('states the Stalwart floor and what a failed download does on each version', () => {
+    const readme = buildStalwartReadme({ version: '1.10.0', commit: 'abc1234', locales: ['en'], buildId: 'b' });
+    expect(readme).toContain('Requires: Stalwart 0.16.6 or later (0.16.19 for `oauthClientId`).');
+    // Only 0.16.23 keeps the running bundle; 0.16.0-0.16.22 and the 1.0
+    // pre-releases unmount the Application, and a restart with an expired cache
+    // and an unreachable URL leaves it unmounted everywhere.
+    expect(readme).not.toContain('A failed download keeps the previous bundle online');
+    expect(readme).toMatch(/On 0\.16\.23 the\s+running bundle stays online/);
+    expect(readme).toMatch(/Older 0\.16 releases and the 1\.0 pre-releases\s+unmount the Application until a later `UpdateApps` succeeds/);
+    expect(readme).toMatch(/On every\s+version, a restart after the cached copy has expired/);
+    expect(readme).toMatch(/check that `resourceUrl`\s+downloads before running `UpdateApps`/);
   });
 });
 

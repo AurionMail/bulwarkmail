@@ -587,14 +587,23 @@ ${demoMode ? "Demo mode is ON: the login page offers a built-in demo account and
      while \`jmapServerUrl\` is empty.
    - \`rememberMeEnabled\`: \`false\` hides "remember me" (sessions then end with the tab).
    Optional keys: \`demoMode\`, \`jmapServers\`, \`jmapServerAutoPickByDomain\`, the login logo/company/link keys and \`loginShow*\` toggles (same names as the Docker env vars, camelCased).
-3. Allow the browser to talk to the mail server (CORS). In Stalwart:
+3. Allow the browser to talk to the mail server (CORS). In Stalwart, turn on
+   the \`usePermissiveCors\` setting of the \`Http\` object: in the web admin
+   under **Settings > Network > HTTP > Security** ("Permissive CORS policy"),
+   or with
 
-   \`\`\`toml
-   [http]
-   permissive-cors = true
+   \`\`\`bash
+   stalwart-cli update Http --field usePermissiveCors=true
+   stalwart-cli create Action/ReloadSettings
    \`\`\`
 
-   or an equivalent reverse-proxy rule that allows your Lite origin with the
+   or over JMAP as an administrator: \`x:Http/set\` with
+   \`{"update": {"singleton": {"usePermissiveCors": true}}}\`. It applies once
+   the settings are reloaded (the \`ReloadSettings\` action) or Stalwart
+   restarts. Stalwart 0.16 and later ignore the \`[http] permissive-cors\` key
+   of the old TOML configuration.
+
+   A reverse-proxy rule works too if it allows your Lite origin with the
    \`Authorization\` and \`Content-Type\` headers on \`/.well-known/jmap\`, \`/jmap/*\`,
    \`/api/auth\` and \`/auth/token\`.
 
@@ -1297,7 +1306,8 @@ no server URL, no CORS, no second web server.
 
 Build: ${buildId}
 Locales: ${locales.join(", ")}
-Requires: Stalwart 0.16.0 or later (0.16.19 or later to use \`oauthClientId\`).
+Requires: Stalwart 0.16.6 or later (0.16.19 for \`oauthClientId\`). Stalwart 1.0
+pre-releases work too.
 ${demoMode ? "\nDemo mode is ON in this build: the login page offers the built-in demo account.\n" : ""}
 ## Install
 
@@ -1357,7 +1367,14 @@ Stalwart keeps the downloaded zip for \`autoUpdateFrequency\` (default 90
 days) and downloads \`resourceUrl\` again at the first restart or
 \`UpdateApps\` after that, so the \`latest/download\` URL above follows new
 releases on that schedule. \`UpdateApps\` always downloads again: run it to
-update right away. A failed download keeps the previous bundle online.
+update right away.
+
+What a failed download does depends on the Stalwart version. On 0.16.23 the
+running bundle stays online. Older 0.16 releases and the 1.0 pre-releases
+unmount the Application until a later \`UpdateApps\` succeeds. On every
+version, a restart after the cached copy has expired, with \`resourceUrl\`
+unreachable, leaves the Application unmounted. So check that \`resourceUrl\`
+downloads before running \`UpdateApps\` or restarting.
 
 Open tabs move to the new build on their next navigation (one full page
 load); a freshly opened tab gets it immediately. Nothing stays stuck on old
@@ -1366,7 +1383,7 @@ index.html: every file the app fetches without a content hash carries the
 build id.
 
 To pin a version, point \`resourceUrl\` at a tagged release instead:
-\`https://github.com/bulwarkmail/webmail/releases/download/v${version}/${STALWART_ZIP_NAME}\`.
+\`https://github.com/bulwarkmail/webmail/releases/download/${version}/${STALWART_ZIP_NAME}\`.
 
 ## Sign-in
 
