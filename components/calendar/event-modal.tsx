@@ -72,6 +72,20 @@ export function shiftedEnd(oldStart: Date, oldEnd: Date, newStart: Date): Date |
   return new Date(newStart.getTime() + durationMs);
 }
 
+/**
+ * Status, free/busy and privacy for a save. The editor has no controls for
+ * them, so only a new event gets them (the defaults) and an edit keeps what
+ * the event has. Every edit used to reset them to confirmed, busy and public,
+ * and Stalwart 1.0 refuses an edit of one occurrence whose privacy differs
+ * from its series'. Pure, for testing.
+ */
+export function savedStatusFields(
+  event: CalendarEvent | null | undefined,
+): Partial<Pick<CalendarEvent, "status" | "freeBusyStatus" | "privacy">> {
+  if (event) return {};
+  return { status: "confirmed", freeBusyStatus: "busy", privacy: "public" };
+}
+
 function formatDateInput(d: Date): string {
   return format(d, "yyyy-MM-dd");
 }
@@ -532,9 +546,7 @@ export function EventModal({
       timeZone: allDay ? null : timeZone,
       showWithoutTime: allDay,
       calendarIds: { [calendarId]: true },
-      status: "confirmed",
-      freeBusyStatus: "busy",
-      privacy: "public",
+      ...savedStatusFields(event),
     };
 
     if (!event) {

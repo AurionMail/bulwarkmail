@@ -7347,7 +7347,7 @@ export class JMAPClient implements IJMAPClient {
       const errorType = result?.type || 'unknown';
       const errorDesc = result?.description || '';
       debug.error('CalendarEvent/set update returned JMAP error', { type: errorType, description: errorDesc });
-      throw new Error(`JMAP error (${errorType}): ${errorDesc}`);
+      throw jmapError(`JMAP error (${errorType}): ${errorDesc}`, result);
     }
 
     if (methodName === "CalendarEvent/set") {
@@ -7357,7 +7357,9 @@ export class JMAPClient implements IJMAPClient {
         if (sendSchedulingMessages && error.type === 'forbidden') {
           throw new SchedulingDeniedError(error.description || 'forbidden');
         }
-        throw new Error(error.description || "Failed to update calendar event");
+        // Keep the SetError type: the store retries some refusals
+        // differently (isOverrideSeriesKeyRejection).
+        throw jmapError(error.description || "Failed to update calendar event", error);
       }
       debug.log('calendar', 'CalendarEvent/set update full response', { methodName, result });
       debug.log('calendar', 'CalendarEvent/set update success', { eventId, updated: result.updated ? Object.keys(result.updated) : null });

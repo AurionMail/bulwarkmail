@@ -1022,7 +1022,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             const master = await findMasterEvent(event);
             const occurrence = master && overrideContextOf(event, master);
             const overridePatch = occurrence
-              && buildFallbackOverridePatch(occurrence, withNewOverrideDetails(occurrence, updates));
+              && buildFallbackOverridePatch(occurrence, withNewOverrideDetails(occurrence, updates, { seriesKeys: true }));
             if (master && overridePatch) {
               await updateEvent(client, master.id, overridePatch, sendScheduling);
             } else {
