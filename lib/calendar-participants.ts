@@ -391,6 +391,38 @@ function eventOrganizer(event: CalendarEvent): { name: string; email: string } |
   return email ? { name: '', email } : null;
 }
 
+/**
+ * Whether the user, under any of `userEmails`, organizes `event`, or would
+ * on saving it with attendees: an event that names no organizer gets the
+ * user (participantFieldsToSave). Decides whether a change of when the
+ * event happens asks the attendees again, in the editor and elsewhere.
+ */
+export function userOrganizes(event: CalendarEvent, userEmails: string[]): boolean {
+  return !eventOrganizer(event) || isOrganizer(event, userEmails);
+}
+
+/**
+ * A move that does not go through the editor - a drag, a resize - saved
+ * the way the editor saves one (participantFieldsToSave): when the user
+ * organizes the event, its attendees are asked again, and the move goes out
+ * to them; anyone else moves their own copy without messages. Stalwart's
+ * update carries each attendee's stored answer, and one occurrence that
+ * gets its own override reaches only attendees without an answer: a dragged
+ * occurrence reached no attendee who had answered, a dragged event kept
+ * their answers for the new time.
+ */
+export function movedEventUpdates<T extends Partial<CalendarEvent>>(
+  event: CalendarEvent | undefined,
+  updates: T,
+  userEmails: string[],
+): { updates: T & Partial<Pick<CalendarEvent, 'participants'>>; sendSchedulingMessages: true | undefined } {
+  if (!event?.participants || Object.keys(event.participants).length === 0 || !userOrganizes(event, userEmails)) {
+    return { updates, sendSchedulingMessages: undefined };
+  }
+  const participants = participantsAskedAgain(event);
+  return { updates: participants ? { ...updates, participants } : updates, sendSchedulingMessages: true };
+}
+
 export interface ParticipantSaveContext {
   /** The user's first calendar address: the organizer of an event that has none yet. */
   userEmail: string | undefined;
@@ -398,7 +430,10 @@ export interface ParticipantSaveContext {
   userEmails?: string[];
   /** A name for an organizer the event data carries none for (the contact card). */
   resolveName?: (email: string) => string | undefined;
-  /** The save changes when the event happens: its start or end instant, or whether it is all-day. */
+  /**
+   * The save changes when the event happens: its start or end instant,
+   * whether it is all-day, or the recurrence of a series.
+   */
   rescheduled?: boolean;
 }
 
@@ -409,13 +444,14 @@ export interface ParticipantSaveContext {
  * organizer: an invitation keeps whoever sent it, and a series the exact
  * address it is organized under (Stalwart 1.0 checks it on single
  * occurrences). Only an event without an organizer gets the user, and only
- * then is `organizerCalendarAddress` written: Stalwart derives the
- * iCalendar ORGANIZER solely from it, so without one no invitations go out.
- * Participants that stay keep their id and answer (buildParticipantMap),
- * unless the user as the organizer moves the event: then the other
- * attendees are asked again, as RFC 5546 has an organizer do when an
- * event is rescheduled, and the server's update asks them with
- * needs-action.
+ * then is `organizerCalendarAddress` written. Stalwart takes the iCalendar
+ * ORGANIZER from it, and from the owner participant when it is not set
+ * (0.16 and 1.0 alike), so an event that has an organizer keeps it either
+ * way. Participants that stay keep their id and answer
+ * (buildParticipantMap), unless the user as the organizer moves the event
+ * or changes its recurrence: then the other attendees are asked again, as
+ * RFC 5546 has an organizer do when an event is rescheduled, and the
+ * server's update asks them with needs-action.
  *
  * Without attendees, an event that had participants loses them, its
  * organizer and the retired `replyTo` older releases wrote.
@@ -428,8 +464,7 @@ export function participantFieldsToSave(
   const { userEmail, resolveName } = context;
   if (attendees.length > 0 && userEmail) {
     const organizer = (event ? eventOrganizer(event) : null) ?? { name: '', email: userEmail };
-    const userAddresses = [userEmail, ...(context.userEmails ?? [])].map((address) => address.trim().toLowerCase());
-    const askAgain = !!context.rescheduled && userAddresses.includes(organizer.email.toLowerCase());
+    const askAgain = !!context.rescheduled && (!event || userOrganizes(event, [userEmail, ...(context.userEmails ?? [])]));
     const fields: Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress'>> = {
       participants: buildParticipantMap(
         // A new event has no participants yet, so it would store an empty

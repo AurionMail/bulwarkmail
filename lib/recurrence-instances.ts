@@ -629,17 +629,36 @@ export interface OverridePatchOptions {
 }
 
 /**
+ * `patch` for an occurrence's existing override on the base event, with the
+ * series' organizer when that override names none - as every editor save
+ * wrote it before 4c20b09c: 0.16.19 refuses an answer to one occurrence
+ * whose override has no organizer (see buildOccurrenceRsvpPatch). Stalwart
+ * 1.0 refuses the key inside an override, and the store then writes the
+ * override once more without series keys; through a synthetic id it is
+ * never sent.
+ */
+function withOverrideOrganizer(occurrence: Partial<CalendarEvent>, patch: Partial<CalendarEvent>): Partial<CalendarEvent> {
+  if (!occurrence.organizerCalendarAddress || 'organizerCalendarAddress' in patch || !occurrence.recurrenceId) return patch;
+  const overrides = knownOverrides(occurrence);
+  const key = resolveOverrideKey({ start: occurrence.start ?? '', recurrenceId: occurrence.recurrenceId }, overrides);
+  const entry = key ? overrides?.[key] : undefined;
+  if (!entry || 'organizerCalendarAddress' in entry) return patch;
+  return { ...patch, organizerCalendarAddress: occurrence.organizerCalendarAddress };
+}
+
+/**
  * `patch` plus the occurrence details a new override needs
  * (NEW_OVERRIDE_COPIED_KEYS). Nothing is added when the occurrence already
  * has an override - an attendee may not add most of these to the organizer's
- * - or when that is unknown.
+ * - or when that is unknown; an existing override written on the base event
+ * gets the series' organizer if it has none (withOverrideOrganizer).
  */
 export function withNewOverrideDetails(
   occurrence: Partial<CalendarEvent>,
   patch: Partial<CalendarEvent>,
   options: OverridePatchOptions = {},
 ): Partial<CalendarEvent> {
-  if (!createsOverride(occurrence)) return patch;
+  if (!createsOverride(occurrence)) return options.seriesKeys ? withOverrideOrganizer(occurrence, patch) : patch;
   const names = options.seriesKeys ? [...NEW_OVERRIDE_COPIED_KEYS, ...NEW_OVERRIDE_SERIES_KEYS] : NEW_OVERRIDE_COPIED_KEYS;
   const details: Record<string, unknown> = {};
   for (const name of names) {

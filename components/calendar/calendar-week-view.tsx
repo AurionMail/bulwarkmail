@@ -34,6 +34,8 @@ interface CalendarWeekViewProps extends ScrollWindowViewProps {
   timeFormat?: "12h" | "24h";
   isMobile?: boolean;
   pendingPreview?: PendingEventPreview | null;
+  /** The user's calendar addresses: moving an event they organize asks its attendees again. */
+  currentUserEmails?: string[];
   tasks?: CalendarTask[];
   onToggleTaskComplete?: (task: CalendarTask) => void;
 }
@@ -66,6 +68,7 @@ export function CalendarWeekView({
   timeFormat = "24h",
   isMobile,
   pendingPreview,
+  currentUserEmails,
   tasks,
   onToggleTaskComplete,
 }: CalendarWeekViewProps) {
@@ -304,6 +307,7 @@ export function CalendarWeekView({
       error: t("notifications.event_error"),
     },
     describeError,
+    currentUserEmails,
     isMobile,
   });
 

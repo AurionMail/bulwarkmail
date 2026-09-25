@@ -6,6 +6,7 @@ import { toast } from "@/stores/toast-store";
 import { debug } from "@/lib/debug";
 import { formatIsoInTimeZone } from "@/lib/calendar-utils";
 import { fromDisplayDate, getEffectiveTimeZone } from "@/lib/timezone";
+import { movedEventUpdates } from "@/lib/calendar-participants";
 import type { Calendar } from "@/lib/jmap/types";
 
 interface DragCreateState {
@@ -48,6 +49,8 @@ interface UseTimeGridInteractionsOptions {
   };
   /** The message for a refused move or resize, `fallback` when there is nothing more to say. */
   describeError?: (error: unknown, fallback: string) => string;
+  /** The user's calendar addresses: moving an event they organize asks its attendees again. */
+  currentUserEmails?: string[];
   isMobile?: boolean;
 }
 
@@ -57,6 +60,7 @@ export function useTimeGridInteractions({
   onCreateRange,
   errorMessages,
   describeError,
+  currentUserEmails,
   isMobile,
 }: UseTimeGridInteractionsOptions) {
   const snapToMinutes = useCallback((clientY: number, containerTop: number): number => {
@@ -239,7 +243,6 @@ export function useTimeGridInteractions({
 
     try {
       const event = useCalendarStore.getState().events.find(ev => ev.id === resize.eventId);
-      const hasParticipants = event?.participants && Object.keys(event.participants).length > 0;
       const updates: { start?: string; duration: string } = { duration: dur };
       if (startChanged && event?.start) {
         // Shift the event's floating `start` wall-clock by the delta (preserves event.timeZone).
@@ -247,14 +250,15 @@ export function useTimeGridInteractions({
         const shifted = new Date(parseISO(event.start).getTime() + deltaMinutes * 60000);
         updates.start = format(shifted, "yyyy-MM-dd'T'HH:mm:ss");
       }
-      await useCalendarStore.getState().updateEvent(client, resize.eventId, updates, hasParticipants || undefined);
+      const moved = movedEventUpdates(event, updates, currentUserEmails ?? []);
+      await useCalendarStore.getState().updateEvent(client, resize.eventId, moved.updates, moved.sendSchedulingMessages);
     } catch (error) {
       debug.error("Failed to resize event:", resize.eventId, error);
       toast.error(describeError ? describeError(error, errorMessages.resize) : errorMessages.resize);
     } finally {
       setResizeVisual(null);
     }
-  }, [computeResize, errorMessages.resize, describeError]);
+  }, [computeResize, errorMessages.resize, describeError, currentUserEmails]);
 
   // --- Click / Double-click / Quick-create ---
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -381,12 +385,12 @@ export function useTimeGridInteractions({
         toast.error(errorMessages.move);
         return;
       }
-      const hasParticipants = event?.participants && Object.keys(event.participants).length > 0;
-      await useCalendarStore.getState().updateEvent(client, data.eventId, { start: newStartISO }, hasParticipants || undefined);
+      const moved = movedEventUpdates(event, { start: newStartISO }, currentUserEmails ?? []);
+      await useCalendarStore.getState().updateEvent(client, data.eventId, moved.updates, moved.sendSchedulingMessages);
     } catch (error) {
       toast.error(describeError ? describeError(error, errorMessages.move) : errorMessages.move);
     }
-  }, [snapDragMinutes, errorMessages.move, describeError]);
+  }, [snapDragMinutes, errorMessages.move, describeError, currentUserEmails]);
 
   return {
     dragCreate,

@@ -749,6 +749,35 @@ describe('CalendarInvitationBanner', () => {
     });
 
     expect(screen.getByText('Proposed changes applied.')).toBeInTheDocument();
+    // Another time: the attendees are asked again, as for any move by the
+    // organizer; the organizer keeps their answer.
+    const [, , patch, send] = mocks.calendarState.updateEvent.mock.calls[0];
+    expect(patch).toMatchObject({ start: '2026-03-27T10:00:00Z' });
+    expect(patch.participants.organizer.participationStatus).toBe('accepted');
+    expect(patch.participants.attendee.participationStatus).toBe('needs-action');
+    expect(send).toBe(true);
+  });
+
+  it('keeps the answers when an applied proposal does not change the time', async () => {
+    mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(undefined);
+    const event = (room: string) => ({
+      uid: 'uid-6', title: 'Sync', start: '2026-03-27T09:00:00Z', duration: 'PT1H',
+      locations: { room: { '@type': 'Location', name: room } },
+      participants: {
+        organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+        attendee: { '@type': 'Participant', email: 'alice@example.com', roles: { attendee: true }, participationStatus: 'accepted' },
+      },
+    });
+    mocks.calendarState.events = [{ id: 'event-6', ...event('Room A') }];
+    mocks.clientMock.parseCalendarEvents.mockResolvedValue([event('Room B')]);
+
+    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-6', attachments: [{ partId: '1', blobId: 'blob-6', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
+    await waitFor(() => expect(screen.getByText('Proposed changes')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Apply proposed changes'));
+    await waitFor(() => expect(mocks.calendarState.updateEvent).toHaveBeenCalledTimes(1));
+
+    const [, , patch] = mocks.calendarState.updateEvent.mock.calls[0];
+    expect(patch).toEqual({ locations: { room: { '@type': 'Location', name: 'Room B' } } });
   });
 
   // Stalwart 1.0 refuses an event with more participants than

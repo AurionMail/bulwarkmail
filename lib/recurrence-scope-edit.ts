@@ -12,9 +12,9 @@ import { getEventDisplayEndDate, getEventEndDate, getEventStartDate } from '@/li
 import { parseDurationSeconds } from '@/lib/calendar-event-normalization';
 import {
   getParticipantList,
-  isOrganizer,
   participantFieldsToSave,
   participantsAskedAgain,
+  userOrganizes,
   type ParticipantSaveContext,
 } from '@/lib/calendar-participants';
 import {
@@ -45,6 +45,8 @@ export interface EventEditorState {
   initialAttendees: EditorAttendee[];
   attendees: EditorAttendee[];
   when: EventWhen;
+  /** The user changed the recurrence rule: a series then happens on other days. */
+  ruleChanged?: boolean;
 }
 
 /**
@@ -138,13 +140,16 @@ function attendeesOf(event: CalendarEvent): EditorAttendee[] {
  * The series' participants after the editor changed one occurrence's: the
  * series' own, with the attendees the user added in the editor or removed
  * from it. Nothing when neither happened and the series does not move -
- * the series keeps its participants and their answers as they are.
+ * the series keeps its participants and their answers as they are - and
+ * nothing when someone else organizes the series.
  */
 function seriesParticipants(
   master: CalendarEvent,
   editor: EventEditorState,
   context: ParticipantSaveContext,
 ): Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress' | 'replyTo'>> {
+  const userEmails = [context.userEmail ?? '', ...(context.userEmails ?? [])].filter(Boolean);
+  if (!userOrganizes(master, userEmails)) return {};
   const key = (email: string) => email.trim().toLowerCase();
   const before = new Set(editor.initialAttendees.map((a) => key(a.email)));
   const after = new Set(editor.attendees.map((a) => key(a.email)));
@@ -185,7 +190,7 @@ export function seriesUpdatesFromOccurrence(
   Object.assign(series, when);
   Object.assign(series, seriesParticipants(master, editor, {
     ...context,
-    rescheduled: Object.keys(when).length > 0,
+    rescheduled: Object.keys(when).length > 0 || !!editor.ruleChanged,
   }));
   return series;
 }
@@ -256,7 +261,7 @@ export async function truncateSeriesAt(
     until,
     count: null,
   }));
-  const announced = scheduling.sendScheduling && isOrganizer(master, scheduling.userEmails ?? []) ? true : undefined;
+  const announced = scheduling.sendScheduling && userOrganizes(master, scheduling.userEmails ?? []) ? true : undefined;
   await actions.updateEvent(actions.client, master.id, { recurrenceRules: truncatedRules }, announced);
   return { master, originalRules, announced };
 }
@@ -317,7 +322,7 @@ export async function saveOccurrenceEdit(
       if (isServerRecurrenceInstance(event) || isBrowserExpandedOccurrence(event)) {
         // The store writes one occurrence through its own (synthetic) id, or
         // as a recurrence override on the base event it was expanded from.
-        const asOrganizer = isOrganizer({
+        const asOrganizer = userOrganizes({
           ...event,
           participants: updates.participants === undefined ? event.participants : updates.participants,
         }, edit.userEmails);

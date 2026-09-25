@@ -12,16 +12,16 @@ import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from
 import { parseDuration, getEventColor } from "./event-card";
 import { buildAllDayDuration, getEventDisplayEndDate, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
 import { displayNow, getEffectiveTimeZone } from "@/lib/timezone";
-import { createRecurrenceRule } from "@/lib/recurrence-rule";
+import { createRecurrenceRule, sameRecurrenceRules } from "@/lib/recurrence-rule";
 import { ParticipantInput, type ParticipantInputHandle } from "./participant-input";
 import { ParticipantAvailability } from "./participant-availability";
 import {
-  isOrganizer,
   getUserParticipantId,
   getUserStatus,
   getParticipantList,
   getStatusCounts,
   participantFieldsToSave,
+  userOrganizes,
 } from "@/lib/calendar-participants";
 import { canUserRsvp, getEventEditability, canCreateEventsIn } from "@/lib/calendar-editability";
 import { withOwnAlertIds } from "@/lib/calendar-alerts";
@@ -318,10 +318,12 @@ export function EventModal({
   const formatEventDate = useFormatEventDate();
   const [mode, setMode] = useState<"view" | "edit">(isEdit ? "view" : "edit");
 
+  // Only the organizer invites: someone else's invitation keeps its
+  // attendees as the organizer sent them, and a save of the user's own copy
+  // sends no messages.
   const userIsOrganizer = useMemo(() => {
-    if (!event) return true;
-    if (!event.participants) return true;
-    return isOrganizer(event, currentUserEmails);
+    if (!event?.participants) return true;
+    return userOrganizes(event, currentUserEmails);
   }, [event, currentUserEmails]);
 
   // Gate affordances on calendar rights, not identity (see calendar-editability).
@@ -452,6 +454,9 @@ export function EventModal({
     const rule = event.recurrenceRules[0];
     return isSimpleRecurrenceRule(rule) ? null : rule;
   });
+  // The recurrence the editor opened with: a rule the user did not touch is
+  // no change, however the server spells it.
+  const initialRecurrenceRef = useRef({ recurrence, customRule });
   const [showRecurrenceEditor, setShowRecurrenceEditor] = useState(false);
   // Dropdown value to restore when the custom editor is cancelled without a saved rule.
   const recurrenceBeforeCustomRef = useRef<RecurrenceOption>("none");
@@ -608,7 +613,11 @@ export function EventModal({
     } else {
       const endStr = `${endDate}T${endTime}:00`;
       end = new Date(endStr);
-      if (end <= start) {
+      // An end at or before the start becomes an hour - but an event that
+      // lasts no time (a deadline, a reminder) keeps doing so.
+      const lastedNoTime = !!event && !event.showWithoutTime
+        && getEventEndDate(event).getTime() === getEventStartDate(event).getTime();
+      if (end < start || (end.getTime() === start.getTime() && !lastedNoTime)) {
         end = new Date(start.getTime() + 3600000);
       }
       duration = buildDuration(start, end);
@@ -679,31 +688,42 @@ export function EventModal({
       .flatMap((c) => [...Object.keys(c.defaultAlertsWithTime ?? {}), ...Object.keys(c.defaultAlertsWithoutTime ?? {})]);
     Object.assign(data, buildAlertsPatch(event, alertRows, preservedAlertsRef.current, defaultAlertIds));
 
+    // A rule the user did not touch is no change, however the server spells it.
+    const initial = initialRecurrenceRef.current;
+    const ruleChanged = !!event && (recurrence !== initial.recurrence || customRule !== initial.customRule)
+      && !sameRecurrenceRules(event.recurrenceRules, data.recurrenceRules === undefined ? event.recurrenceRules : data.recurrenceRules);
+
     // Keeps the event's own organizer - an invitation's sender, the exact
     // address a series is organized under - and the answers of attendees who
     // stay; the user organizes an event that has no organizer yet. Moved by
-    // the user as its organizer, the others are asked again. The dates are
-    // those of the event the editor was opened on - one occurrence of a
-    // series - so a move applies to whichever occurrences the save covers.
-    Object.assign(data, participantFieldsToSave(event, effectiveAttendees, {
-      userEmail: currentUserEmails[0],
-      userEmails: currentUserEmails,
-      resolveName: resolveContactName,
-      rescheduled: !!event && changesWhen(event, { allDay, start, end }),
-    }));
+    // the user as its organizer, or given another recurrence, the others are
+    // asked again. The dates are those of the event the editor was opened on
+    // - one occurrence of a series - so a move applies to whichever
+    // occurrences the save covers; a rule changes only with the series, so
+    // on one occurrence it is no move. Someone else's event keeps its
+    // participants as its organizer sent them.
+    if (userIsOrganizer) {
+      Object.assign(data, participantFieldsToSave(event, effectiveAttendees, {
+        userEmail: currentUserEmails[0],
+        userEmails: currentUserEmails,
+        resolveName: resolveContactName,
+        rescheduled: !!event && (changesWhen(event, { allDay, start, end }) || (ruleChanged && !event.recurrenceId)),
+      }));
+    }
 
-    const shouldSendScheduling = effectiveAttendees.length > 0 && sendInvitations;
+    const shouldSendScheduling = userIsOrganizer && effectiveAttendees.length > 0 && sendInvitations;
     setIsSaving(true);
     try {
       await onSave(data, shouldSendScheduling, {
         initialAttendees,
         attendees: effectiveAttendees,
         when: { allDay, start, end },
+        ruleChanged,
       });
     } finally {
       setIsSaving(false);
     }
-  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, initialAttendees, sendInvitations, currentUserEmails, resolveContactName, event, onSave, isSaving]);
+  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, initialAttendees, sendInvitations, currentUserEmails, userIsOrganizer, resolveContactName, event, onSave, isSaving]);
 
   const handleRsvp = useCallback((status: CalendarParticipant['participationStatus']) => {
     if (!event || !userParticipantId || !onRsvp) return;
@@ -1195,11 +1215,14 @@ export function EventModal({
                 {t("participants.title")}
               </span>
             </label>
+            {/* The organizer decides who is invited; an attendee's save
+                keeps the list as it came. */}
             <ParticipantInput
               ref={participantInputRef}
               participants={attendees}
               onAdd={handleAddAttendee}
               onRemove={handleRemoveAttendee}
+              disabled={!userIsOrganizer}
             />
             {/* Only a warning: 0.16 advertises the limit without enforcing
                 it, Stalwart 1.0 refuses to save more participants - the
@@ -1427,7 +1450,9 @@ export function EventModal({
             </button>
           </div>
 
-          {attendees.length > 0 && (
+          {/* Only the organizer's messages: the editor never changes the
+              user's own answer, which the answer buttons send. */}
+          {attendees.length > 0 && userIsOrganizer && (
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"

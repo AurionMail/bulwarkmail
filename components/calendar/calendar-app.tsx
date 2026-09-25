@@ -1402,6 +1402,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               firstDayOfWeek={firstDayOfWeek}
               isMobile={isMobile}
               pendingPreview={pendingPreview}
+              currentUserEmails={currentUserEmails}
             />
           );
         case "week":
@@ -1422,6 +1423,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               timeFormat={timeFormat}
               isMobile={isMobile}
               pendingPreview={pendingPreview}
+              currentUserEmails={currentUserEmails}
               tasks={enableCalendarTasks && showTasksOnCalendar ? taskStore.tasks : undefined}
               onToggleTaskComplete={(task) => { if (client) taskStore.toggleTaskComplete(client, task); }}
             />
@@ -1442,6 +1444,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
               timeFormat={timeFormat}
               isMobile={isMobile}
               pendingPreview={pendingPreview}
+              currentUserEmails={currentUserEmails}
               tasks={enableCalendarTasks && showTasksOnCalendar ? taskStore.tasks : undefined}
               onToggleTaskComplete={(task) => { if (client) taskStore.toggleTaskComplete(client, task); }}
             />

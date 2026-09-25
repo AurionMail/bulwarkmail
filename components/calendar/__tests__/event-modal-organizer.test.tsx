@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventModal } from '../event-modal';
 import type { Calendar, CalendarEvent, CalendarParticipant } from '@/lib/jmap/types';
@@ -40,8 +40,7 @@ function meeting(organizer: string, participants: Record<string, unknown>): Cale
   } as unknown as CalendarEvent;
 }
 
-async function saveUnchanged(event: CalendarEvent): Promise<Partial<CalendarEvent>> {
-  const onSave = vi.fn().mockResolvedValue(undefined);
+async function saveUnchanged(event: CalendarEvent, onSave = vi.fn().mockResolvedValue(undefined)): Promise<Partial<CalendarEvent>> {
   render(
     <EventModal
       event={event}
@@ -58,19 +57,41 @@ async function saveUnchanged(event: CalendarEvent): Promise<Partial<CalendarEven
 }
 
 describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal organizer and answers on Stalwart %s', (version) => {
-  it('keeps the sender of an invitation and the user\'s answer', async () => {
-    const data = await saveUnchanged(meeting('boss@example.org', {
-      boss: participant(version, 'boss@example.org', true, 'accepted'),
-      mine: participant(version, 'me@example.com', false, 'accepted'),
-      bob: participant(version, 'bob@example.org', false, 'declined'),
-    }));
+  const invitation = () => meeting('boss@example.org', {
+    boss: participant(version, 'boss@example.org', true, 'accepted'),
+    mine: participant(version, 'me@example.com', false, 'accepted'),
+    bob: participant(version, 'bob@example.org', false, 'declined'),
+  });
 
+  // The user's own copy of someone else's meeting: a save (an alert, a note)
+  // used to rewrite the participants and send the organizer a reply.
+  it('leaves the participants of an invitation alone and sends no messages', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const data = await saveUnchanged(invitation(), onSave);
+
+    expect(data).not.toHaveProperty('participants');
     expect(data).not.toHaveProperty('organizerCalendarAddress');
-    const participants = data.participants as Record<string, CalendarParticipant>;
-    expect(Object.keys(participants).sort()).toEqual(['bob', 'boss', 'mine']);
-    expect(participants.boss).toMatchObject({ calendarAddress: 'mailto:boss@example.org', roles: { owner: true } });
-    expect(participants.mine.participationStatus).toBe('accepted');
-    expect(participants.bob.participationStatus).toBe('declined');
+    expect(onSave.mock.calls[0][1]).toBe(false);
+  });
+
+  it('offers no invitations and no attendee changes on an invitation', () => {
+    render(<EventModal event={invitation()} calendars={calendars} onSave={vi.fn()} onClose={vi.fn()} currentUserEmails={['me@example.com']} />);
+    fireEvent.click(screen.getByText('events.edit'));
+
+    expect(screen.queryByText('participants.send_invitations')).toBeNull();
+    expect(screen.getByPlaceholderText('email_placeholder')).toBeDisabled();
+  });
+
+  it('offers both on the user\'s own meeting', () => {
+    const own = meeting('me@example.com', {
+      org: participant(version, 'me@example.com', true, 'accepted'),
+      bob: participant(version, 'bob@example.org', false, 'declined'),
+    });
+    render(<EventModal event={own} calendars={calendars} onSave={vi.fn()} onClose={vi.fn()} currentUserEmails={['me@example.com']} />);
+    fireEvent.click(screen.getByText('events.edit'));
+
+    expect(screen.getByText('participants.send_invitations')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('email_placeholder')).toBeEnabled();
   });
 
   it('keeps the letter case a series is organized under', async () => {
@@ -160,8 +181,54 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal answers after a
 
     const data = await save(invitation, moveStartTo('22:00'));
 
+    // The user's own copy moves; the organizer's participants stay as they are.
     expect(data.start).toBe('2026-10-12T22:00:00');
-    expect(statuses(data)).toEqual({ boss: 'accepted', mine: 'accepted', bob: 'declined' });
+    expect(data).not.toHaveProperty('participants');
+  });
+
+  // A series that happens on other days is a move as well.
+  const weekly = (rule: Record<string, unknown>, extra: Partial<CalendarEvent> = {}) => ({
+    ...own(), recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', ...rule }], ...extra,
+  }) as CalendarEvent;
+  // The recurrence dropdown, found by the option it shows.
+  const pickRecurrence = (from: string, to: string) => (container: HTMLElement) => {
+    const select = Array.from(container.querySelectorAll('select')).find((element) => element.value === from)!;
+    fireEvent.change(select, { target: { value: to } });
+  };
+
+  it('asks the attendees again when the user gives their series another rule', async () => {
+    const data = await save(weekly({}), pickRecurrence('weekly', 'daily'));
+
+    expect(statuses(data)).toEqual({ org: 'accepted', bob: 'needs-action', carol: 'needs-action' });
+  });
+
+  it('keeps the answers when the user leaves a custom rule alone', async () => {
+    // A custom rule as 1.0 returns it: typed NDay, no interval.
+    const custom = weekly({ byDay: [{ '@type': 'NDay', day: 'mo' }], count: 5 });
+    const touched = await save(custom, pickRecurrence('custom', 'weekly'));
+    cleanup();
+    const untouched = await save(custom, () => {});
+
+    // Switched to a plain weekly rule: a change.
+    expect(statuses(touched)).toEqual({ org: 'accepted', bob: 'needs-action', carol: 'needs-action' });
+    expect(statuses(untouched)).toEqual({ org: 'accepted', bob: 'accepted', carol: 'declined' });
+  });
+
+  it('keeps the answers when a rule is changed on one occurrence, where it does not apply', async () => {
+    const occurrence = weekly({}, { recurrenceId: '2026-10-12T08:00:00' });
+
+    const data = await save(occurrence, pickRecurrence('weekly', 'daily'));
+
+    expect(statuses(data)).toEqual({ org: 'accepted', bob: 'accepted', carol: 'declined' });
+  });
+
+  it('keeps an event that lasts no time as it is, answers included', async () => {
+    const deadline = { ...own(), duration: 'PT0M', utcEnd: '2026-10-12T12:00:00Z' } as CalendarEvent;
+
+    const data = await save(deadline, () => {});
+
+    expect(data.duration).toBe('PT0M');
+    expect(statuses(data)).toEqual({ org: 'accepted', bob: 'accepted', carol: 'declined' });
   });
 });
 

@@ -13,6 +13,8 @@ import {
   participantLimitOf,
   participantsAskedAgain,
   hasAnsweredAttendees,
+  movedEventUpdates,
+  userOrganizes,
 } from '@/lib/calendar-participants';
 import { jmapError, jmapSetError } from '@/lib/jmap/jmap-error';
 
@@ -848,6 +850,60 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('asking the attendees again
     const { bob: _bob, ...withoutBob } = meeting().participants!;
     expect(hasAnsweredAttendees({ ...meeting(), participants: withoutBob })).toBe(false);
     expect(hasAnsweredAttendees(makeEvent(null))).toBe(false);
+  });
+});
+
+// A drag or a resize saved the way the editor saves a move: the organizer
+// asks the attendees again and tells them; anyone else moves their own copy
+// quietly. Live on 1.0 and 0.16.23 a dragged event stayed "accepted" for
+// the new time, and a dragged occurrence reached no one who had answered.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('movedEventUpdates on Stalwart %s', (version) => {
+  const attendee = (address: string, participationStatus: CalendarParticipant['participationStatus']) => ({
+    '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address, participationStatus,
+    ...(version === '1.0' ? { roles: { attendee: true } } : {}),
+  }) as Partial<CalendarParticipant>;
+  const meeting = (organizer: string) => makeEvent({
+    org: { '@type': 'Participant', calendarAddress: `mailto:${organizer}`, roles: { owner: true }, participationStatus: 'accepted' },
+    bob: attendee('bob@example.org', 'accepted'),
+    me: attendee('me@example.com', 'tentative'),
+  }, { organizerCalendarAddress: `mailto:${organizer}` });
+  const MOVE = { start: '2026-03-01T11:00:00' };
+
+  it('asks the attendees again and tells them when the user organizes the event', () => {
+    const { updates, sendSchedulingMessages } = movedEventUpdates(meeting('ME@example.com'), MOVE, ['me@example.com']);
+
+    expect(sendSchedulingMessages).toBe(true);
+    expect(updates.start).toBe(MOVE.start);
+    expect(updates.participants!.org.participationStatus).toBe('accepted');
+    expect(updates.participants!.bob.participationStatus).toBe('needs-action');
+  });
+
+  it('moves someone else\'s event quietly, answers as they are', () => {
+    expect(movedEventUpdates(meeting('boss@example.org'), MOVE, ['me@example.com']))
+      .toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
+  });
+
+  it('moves an event without participants quietly', () => {
+    expect(movedEventUpdates(makeEvent(null), MOVE, ['me@example.com'])).toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
+    expect(movedEventUpdates(undefined, MOVE, ['me@example.com'])).toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
+  });
+
+  it('tells, and changes no answer, when nobody has answered yet', () => {
+    const fresh = makeEvent({
+      org: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+      bob: attendee('bob@example.org', 'needs-action'),
+    }, { organizerCalendarAddress: 'mailto:me@example.com' });
+
+    expect(movedEventUpdates(fresh, MOVE, ['me@example.com'])).toEqual({ updates: MOVE, sendSchedulingMessages: true });
+  });
+});
+
+describe('userOrganizes', () => {
+  it('is the user under any of their addresses, or anyone for an event without an organizer', () => {
+    const own = makeEvent({ org: { '@type': 'Participant', calendarAddress: 'mailto:Alias@Example.com', roles: { owner: true } } });
+    expect(userOrganizes(own, ['me@example.com', 'alias@example.com'])).toBe(true);
+    expect(userOrganizes(own, ['me@example.com'])).toBe(false);
+    expect(userOrganizes(makeEvent({ bob: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.org' } }), ['me@example.com'])).toBe(true);
   });
 });
 

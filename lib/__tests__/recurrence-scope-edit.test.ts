@@ -205,6 +205,30 @@ describe.each(occurrences)('changing every occurrence from one of them on Stalwa
     expect(updates.participants).toBeNull();
     expect(updates.organizerCalendarAddress).toBeNull();
   });
+
+  it('asks the attendees again when the series gets another rule', () => {
+    const occurrence = make();
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, series(version),
+      editorUpdates(occurrence, { recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'daily', count: 5 } as never] }),
+      editorOn(occurrence, { ruleChanged: true }), context,
+    );
+
+    expect(updates).not.toHaveProperty('start');
+    expect(statusOf(updates.participants, ATTENDEE)).toBe('needs-action');
+  });
+
+  it('moves an attendee\'s own copy of the series and leaves its participants alone', () => {
+    const occurrence = make();
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, series(version), editorUpdates(occurrence, { participants: undefined }),
+      editorOn(occurrence, { when: { allDay: false, start: addHours(getEventStartDate(occurrence), 1), end: addHours(getEventEndDate(occurrence), 1) } }),
+      { userEmail: ATTENDEE, userEmails: [ATTENDEE] },
+    );
+
+    expect(updates.start).toBe('2026-10-05T11:00:00');
+    expect(updates).not.toHaveProperty('participants');
+  });
 });
 
 describe('changing every occurrence of a series in another time zone', () => {

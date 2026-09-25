@@ -9,6 +9,7 @@ import { buildWeekSegments, getEventDayBounds, getPrimaryCalendarId } from "@/li
 import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCalendarStore } from "@/stores/calendar-store";
+import { movedEventUpdates } from "@/lib/calendar-participants";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { PendingEventPreview } from "./event-modal";
 import { toast } from "@/stores/toast-store";
@@ -31,6 +32,8 @@ interface CalendarMonthViewProps extends ScrollWindowViewProps {
   firstDayOfWeek?: number;
   isMobile?: boolean;
   pendingPreview?: PendingEventPreview | null;
+  /** The user's calendar addresses: moving an event they organize asks its attendees again. */
+  currentUserEmails?: string[];
 }
 
 /** Fraction of the viewport height at which the "current month" is sampled. */
@@ -57,6 +60,7 @@ export function CalendarMonthView({
   onCreateAtTime,
   isMobile,
   pendingPreview,
+  currentUserEmails,
 }: CalendarMonthViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -234,12 +238,12 @@ export function CalendarMonthView({
       if (newStartISO === data.originalStart) return;
       const client = useAuthStore.getState().client;
       if (!client) return;
-      const hasParticipants = event?.participants && Object.keys(event.participants).length > 0;
-      await useCalendarStore.getState().updateEvent(client, data.eventId, { start: newStartISO }, hasParticipants || undefined);
+      const moved = movedEventUpdates(event, { start: newStartISO }, currentUserEmails ?? []);
+      await useCalendarStore.getState().updateEvent(client, data.eventId, moved.updates, moved.sendSchedulingMessages);
     } catch (error) {
       toast.error(describeError(error, t("notifications.event_move_error")));
     }
-  }, [t, describeError]);
+  }, [t, describeError, currentUserEmails]);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden" role="grid" aria-label={formatFullDate(selectedDate)}>

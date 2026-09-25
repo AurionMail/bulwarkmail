@@ -37,6 +37,7 @@ import {
   type InvitationMethod,
   type InvitationTrustAssessment,
 } from '@/lib/calendar-invitation';
+import { participantsAskedAgain } from '@/lib/calendar-participants';
 import { cn } from '@/lib/utils';
 import { sanitizeColor } from '@/components/calendar/event-card';
 import { RecipientPopover } from './recipient-popover';
@@ -744,7 +745,11 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     setIsProcessing(true);
 
     try {
-      await updateEvent(client, existingEvent.id, proposalPatch, true);
+      // A proposal for another time moves the event: its attendees are asked
+      // again, as the editor and a drag ask them (participantsAskedAgain).
+      const moves = (['start', 'duration', 'timeZone', 'showWithoutTime'] as const).some((key) => key in proposalPatch);
+      const participants = moves ? participantsAskedAgain(existingEvent) : null;
+      await updateEvent(client, existingEvent.id, participants ? { ...proposalPatch, participants } : proposalPatch, true);
       setActionNotice(t('proposal_applied'));
       setState('parsed');
       setRsvpStatus(null);

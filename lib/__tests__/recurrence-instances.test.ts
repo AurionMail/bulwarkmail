@@ -640,3 +640,33 @@ describe('hydrateRecurrenceInstances with an occurrence listed twice', () => {
     }
   });
 });
+
+
+// Until 4c20b09c every editor save wrote the organizer into the override it
+// rewrote; 0.16.19 refuses an answer to an occurrence whose override names
+// none. An override on the base event gets the series' organizer back when
+// it has none; through a synthetic id it is never sent.
+describe('the organizer of an existing override written on the base event', () => {
+  const occurrence = (entry: Record<string, unknown>) => ({
+    id: 'b:2026-09-08T10:00:00', originalId: 'b', start: '2026-09-08T10:00:00', recurrenceId: '2026-09-08T10:00:00',
+    recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'daily' }],
+    organizerCalendarAddress: 'mailto:org@example.com',
+    recurrenceOverrides: { '2026-09-08T10:00:00': entry },
+  }) as unknown as CalendarEvent;
+
+  it('adds it to an override that has none, as 0.16 before 0.16.20 stores it', () => {
+    expect(withNewOverrideDetails(occurrence({ title: 'Moved' }), { title: 'Renamed' }, { seriesKeys: true }))
+      .toEqual({ title: 'Renamed', organizerCalendarAddress: 'mailto:org@example.com' });
+  });
+
+  it('leaves an override that has one, and a patch that sets one, alone', () => {
+    const named = occurrence({ title: 'Moved', organizerCalendarAddress: 'mailto:org@example.com' });
+    expect(withNewOverrideDetails(named, { title: 'Renamed' }, { seriesKeys: true })).toEqual({ title: 'Renamed' });
+    expect(withNewOverrideDetails(occurrence({}), { organizerCalendarAddress: null } as never, { seriesKeys: true }))
+      .toEqual({ organizerCalendarAddress: null });
+  });
+
+  it('sends nothing of the series through a synthetic id', () => {
+    expect(withNewOverrideDetails(occurrence({ title: 'Moved' }), { title: 'Renamed' })).toEqual({ title: 'Renamed' });
+  });
+});
