@@ -2859,6 +2859,7 @@
         "free": "空闲",
         "busy": "忙碌",
         "tentative": "暂定",
+        "no_busy_times": "未共享忙碌时间",
         "unknown": "不是此服务器上的用户",
         "error": "无法检查",
         "checking": "正在检查…"

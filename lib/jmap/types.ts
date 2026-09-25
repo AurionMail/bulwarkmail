@@ -561,6 +561,13 @@ export interface BusyPeriod {
   busyStatus: 'confirmed' | 'tentative' | 'unavailable' | null;
 }
 
+/**
+ * One principal's answer to Principal/getAvailability: its busy periods, or
+ * the JMAP error type the call was refused with (`forbidden`, `rateLimit`,
+ * `notFound`, ...).
+ */
+export type PrincipalAvailability = { periods: BusyPeriod[] } | { error: string };
+
 export interface VacationResponse {
   id: string;
   isEnabled: boolean;

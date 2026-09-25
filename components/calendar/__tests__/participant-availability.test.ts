@@ -46,6 +46,7 @@ type MethodResponse = [string, Record<string, unknown>, string];
 const DIRECTORY = [
   { id: 'me', type: 'individual', name: 'me@example.com', description: 'Me', email: 'me@example.com' },
   { id: 'anna', type: 'individual', name: 'anna@example.com', description: 'Anna', email: 'anna@example.com' },
+  { id: 'bob', type: 'individual', name: 'bob@example.com', description: 'Bob', email: 'bob@example.com' },
 ];
 
 // The user's own principal as each server version returns it for
@@ -218,6 +219,58 @@ describe('ParticipantAvailability', () => {
     renderFor(client);
 
     await waitFor(() => expect(screen.getByText('error')).toBeInTheDocument(), { timeout: 2000 });
+  });
+
+  it('shows "no busy times shared", not "available", for an empty answer', async () => {
+    // Both versions answer list:[] as well for someone whose free/busy the
+    // user may not see.
+    const { client } = makeClient({
+      ownPrincipal: OWN_PRINCIPAL_0_16,
+      availability: (_id, callId) => ['Principal/getAvailability', { list: [] }, callId],
+    });
+    renderFor(client);
+
+    await waitFor(() => expect(screen.getByText('no_busy_times')).toBeInTheDocument(), { timeout: 2000 });
+    expect(screen.queryByText('free')).toBeNull();
+  });
+
+  it('asks for all attendees in one request and answers a new time on the same day from the cache', async () => {
+    // Local times: the cache holds whole local days.
+    const tenOclock = new Date(2026, 8, 1, 10);
+    const { client, requests } = makeClient({
+      ownPrincipal: OWN_PRINCIPAL_0_16,
+      availability: (id, callId) => ['Principal/getAvailability', {
+        list: [{ utcStart: new Date(2026, 8, 1, 10, 30).toISOString(), utcEnd: new Date(2026, 8, 1, 11, 30).toISOString(), busyStatus: id === 'anna' ? 'confirmed' : 'tentative' }],
+      }, callId],
+    });
+    useAuthStore.setState({ client } as never);
+    const people = [{ name: 'Anna', email: 'anna@example.com' }, { name: 'Bob', email: 'bob@example.com' }];
+    const view = render(createElement(ParticipantAvailability, { attendees: people, start: tenOclock, end: new Date(2026, 8, 1, 11) }));
+
+    await waitFor(() => expect(screen.getByText('busy')).toBeInTheDocument(), { timeout: 2000 });
+    expect(screen.getByText('tentative')).toBeInTheDocument();
+    const lookups = requests.filter((calls) => calls[0][0] === 'Principal/getAvailability');
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0].map(([, args]) => args.id)).toEqual(['anna', 'bob']);
+
+    view.rerender(createElement(ParticipantAvailability, { attendees: people, start: new Date(2026, 8, 1, 14), end: new Date(2026, 8, 1, 15) }));
+
+    await waitFor(() => expect(screen.getAllByText('free')).toHaveLength(2), { timeout: 2000 });
+    expect(requests.filter((calls) => calls[0][0] === 'Principal/getAvailability')).toHaveLength(1);
+  });
+
+  it('stops asking after rateLimit on Stalwart 1.0 and keeps saying it could not check', async () => {
+    const { client, requests } = makeClient({ ownPrincipal: OWN_PRINCIPAL_0_16, availability: () => RATE_LIMITED });
+    useAuthStore.setState({ client } as never);
+    const people = [{ name: 'Anna', email: 'anna@example.com' }];
+    const view = render(createElement(ParticipantAvailability, { attendees: people, start: new Date(2026, 8, 1, 10), end: new Date(2026, 8, 1, 11) }));
+    await waitFor(() => expect(screen.getByText('error')).toBeInTheDocument(), { timeout: 2000 });
+
+    view.rerender(createElement(ParticipantAvailability, { attendees: people, start: new Date(2026, 8, 1, 14), end: new Date(2026, 8, 1, 15) }));
+    expect(screen.queryByText('error')).toBeNull();
+
+    await waitFor(() => expect(screen.getByText('error')).toBeInTheDocument(), { timeout: 2000 });
+    expect(requests.filter((calls) => calls[0][0] === 'Principal/getAvailability')).toHaveLength(1);
   });
 
   it('calls no one "not a user" when the directory listing failed', async () => {

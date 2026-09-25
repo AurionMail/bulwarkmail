@@ -6,9 +6,8 @@ import { Loader2 } from "@/components/icons";
 import { useAuthStore } from "@/stores/auth-store";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { BusyPeriod, Principal } from "@/lib/jmap/types";
-import { jmapErrorType } from "@/lib/jmap/jmap-error";
 import { loadPrincipalDirectory } from "@/lib/jmap/principal-directory";
-import { checkAvailabilityAccess, knownAvailabilityAccess, revokeAvailabilityAccess } from "@/lib/jmap/free-busy";
+import { checkAvailabilityAccess, knownAvailabilityAccess, lookUpAvailability, revokeAvailabilityAccess } from "@/lib/jmap/free-busy";
 import { cn } from "@/lib/utils";
 
 interface Attendee {
@@ -18,9 +17,11 @@ interface Attendee {
 
 /**
  * `unknown`: the address is not a user in a complete directory listing.
+ * `no_busy_times`: the server returned no busy time for the attendee's day.
+ * It says the same when the user may not see that person's free/busy.
  * `error`: the lookup failed or was rate-limited, so nothing is known.
  */
-export type AvailabilityStatus = "free" | "busy" | "tentative" | "unknown" | "error" | "checking";
+export type AvailabilityStatus = "free" | "busy" | "tentative" | "no_busy_times" | "unknown" | "error" | "checking";
 
 interface ParticipantAvailabilityProps {
   attendees: Attendee[];
@@ -33,7 +34,7 @@ interface ParticipantAvailabilityProps {
  * The status of one attendee for the window, given their busy periods:
  * any confirmed/unavailable overlap wins over a tentative one.
  */
-export function availabilityFor(periods: BusyPeriod[], start: Date, end: Date): Exclude<AvailabilityStatus, "unknown" | "error" | "checking"> {
+export function availabilityFor(periods: BusyPeriod[], start: Date, end: Date): "free" | "busy" | "tentative" {
   let status: "free" | "busy" | "tentative" = "free";
   for (const p of periods) {
     const pStart = new Date(p.utcStart).getTime();
@@ -66,22 +67,27 @@ async function lookUpStatuses(
   for (const p of directory.principals) {
     if (p.email) byEmail.set(p.email.toLowerCase(), p);
   }
-  let refused = false;
-  const results = await Promise.all(
-    emails.map(async (email): Promise<[string, AvailabilityStatus]> => {
-      const principal = byEmail.get(email);
+  const principalIds = emails.flatMap((email) => byEmail.get(email)?.id ?? []);
+  const answers = await lookUpAvailability(client, principalIds, start, end);
+  const statuses: Record<string, AvailabilityStatus> = {};
+  for (const email of emails) {
+    const principal = byEmail.get(email);
+    if (!principal) {
       // Only a complete listing shows that an address is not a user here.
-      if (!principal) return [email, directory.status === "ok" ? "unknown" : "error"];
-      try {
-        const periods = await client.getPrincipalAvailability!(principal.id, start, end);
-        return [email, availabilityFor(periods, start, end)];
-      } catch (err) {
-        if (jmapErrorType(err) === "forbidden") refused = true;
-        return [email, "error"];
-      }
-    }),
-  );
-  return refused ? null : Object.fromEntries(results);
+      statuses[email] = directory.status === "ok" ? "unknown" : "error";
+      continue;
+    }
+    const answer = answers[principal.id];
+    if ("error" in answer) {
+      if (answer.error === "forbidden") return null;
+      statuses[email] = "error";
+    } else {
+      // An empty answer is also what someone gets who may not see this
+      // person's free/busy, so it doesn't mean "available".
+      statuses[email] = answer.periods.length === 0 ? "no_busy_times" : availabilityFor(answer.periods, start, end);
+    }
+  }
+  return statuses;
 }
 
 /**
@@ -93,7 +99,7 @@ async function lookUpStatuses(
 export function ParticipantAvailability({ attendees, start, end }: ParticipantAvailabilityProps) {
   const t = useTranslations("calendar.participants.availability");
   const client = useAuthStore((s) => s.client);
-  const supported = !!client?.supportsAvailability?.() && !!client.getPrincipalAvailability;
+  const supported = !!client?.supportsAvailability?.() && !!client.getPrincipalsAvailability;
   const [statuses, setStatuses] = useState<Record<string, AvailabilityStatus>>({});
   const [access, setAccess] = useState<{ client: IJMAPClient; allowed: boolean } | null>(null);
   const requestSeq = useRef(0);
@@ -161,7 +167,7 @@ export function ParticipantAvailability({ attendees, start, end }: ParticipantAv
                 status === "free" && "bg-emerald-500",
                 status === "busy" && "bg-red-500",
                 status === "tentative" && "bg-amber-500",
-                (status === "unknown" || status === "error" || status === "checking") && "bg-muted-foreground/40",
+                (status === "no_busy_times" || status === "unknown" || status === "error" || status === "checking") && "bg-muted-foreground/40",
               )}
               aria-hidden="true"
             />

@@ -2859,6 +2859,7 @@
         "free": "가능",
         "busy": "바쁨",
         "tentative": "미정",
+        "no_busy_times": "공유된 바쁜 시간 없음",
         "unknown": "이 서버의 사용자가 아님",
         "error": "확인할 수 없음",
         "checking": "확인 중…"

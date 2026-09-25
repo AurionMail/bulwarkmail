@@ -2859,6 +2859,7 @@
         "free": "Dostępny",
         "busy": "Zajęty",
         "tentative": "Wstępnie",
+        "no_busy_times": "Brak udostępnionych zajętych terminów",
         "unknown": "Nie jest użytkownikiem tego serwera",
         "error": "Nie udało się sprawdzić",
         "checking": "Sprawdzanie…"

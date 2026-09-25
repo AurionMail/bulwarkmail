@@ -2858,6 +2858,7 @@
         "free": "Pieejams",
         "busy": "Aizņemts",
         "tentative": "Provizoriski",
+        "no_busy_times": "Nav kopīgotu aizņemto laiku",
         "unknown": "Nav šī servera lietotājs",
         "error": "Neizdevās pārbaudīt",
         "checking": "Pārbauda…"

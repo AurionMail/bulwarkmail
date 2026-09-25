@@ -1,5 +1,5 @@
 import { generateUUID } from '@/lib/utils';
-import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalListing, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
+import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
@@ -801,6 +801,12 @@ function splitRefusedChunk(chunk: RangeChunk, error: unknown): RangeChunk[] | nu
     { start: chunk.start, end: middle, position: 0 },
     { start: middle - 1, end: chunk.end, position: 0 },
   ];
+}
+
+/** The busy periods of a Principal/getAvailability response. */
+function busyPeriodsOf(result: JMAPResponseResult | undefined): BusyPeriod[] {
+  const list = (result?.list ?? []) as Array<{ utcStart: string; utcEnd: string; busyStatus?: BusyPeriod['busyStatus'] }>;
+  return list.map((p) => ({ utcStart: p.utcStart, utcEnd: p.utcEnd, busyStatus: p.busyStatus ?? null }));
 }
 
 function hasSubmissionMethod(methodCalls: JMAPMethodCall[]): boolean {
@@ -6009,21 +6015,50 @@ export class JMAPClient implements IJMAPClient {
   async getPrincipalAvailability(principalId: string, utcStart: Date, utcEnd: Date): Promise<BusyPeriod[]> {
     if (!this.supportsAvailability()) return [];
     const response = await this.request([
-      ["Principal/getAvailability", {
-        accountId: this.accountId,
-        id: principalId,
-        utcStart: utcStart.toISOString().replace(/\.\d{3}Z$/, 'Z'),
-        utcEnd: utcEnd.toISOString().replace(/\.\d{3}Z$/, 'Z'),
-        showDetails: false,
-      }, "0"],
+      ["Principal/getAvailability", this.availabilityArgs(principalId, utcStart, utcEnd), "0"],
     ], [...this.principalsUsing(), JMAPClient.PRINCIPALS_AVAILABILITY_CAPABILITY]);
     const [method, result] = response.methodResponses?.[0] ?? [];
     if (method !== "Principal/getAvailability") {
       const error = result as JmapErrorInfo | undefined;
       throw jmapError(error?.description || "Failed to query availability", error);
     }
-    return ((result as { list?: Array<{ utcStart: string; utcEnd: string; busyStatus?: BusyPeriod['busyStatus'] }> }).list ?? [])
-      .map((p) => ({ utcStart: p.utcStart, utcEnd: p.utcEnd, busyStatus: p.busyStatus ?? null }));
+    return busyPeriodsOf(result);
+  }
+
+  /**
+   * The busy periods of several principals over one window, batched into as
+   * few requests as maxCallsInRequest allows: Principal/getAvailability takes
+   * a single id. Each principal gets its periods, or the error type its call
+   * was refused with. Batching saves round trips only: Stalwart 1.0 counts
+   * every call against its limit of 100 a minute. A failed request throws.
+   */
+  async getPrincipalsAvailability(principalIds: string[], utcStart: Date, utcEnd: Date): Promise<Record<string, PrincipalAvailability>> {
+    const results: Record<string, PrincipalAvailability> = {};
+    if (!this.supportsAvailability()) return results;
+    for (const batch of batched(principalIds, this.getMaxCallsInRequest())) {
+      const response = await this.request(
+        batch.map((id, i): JMAPMethodCall => ["Principal/getAvailability", this.availabilityArgs(id, utcStart, utcEnd), String(i)]),
+        [...this.principalsUsing(), JMAPClient.PRINCIPALS_AVAILABILITY_CAPABILITY],
+      );
+      const byCallId = new Map((response.methodResponses ?? []).map((r) => [r[2], r]));
+      batch.forEach((id, i) => {
+        const [method, result] = byCallId.get(String(i)) ?? [];
+        results[id] = method === "Principal/getAvailability"
+          ? { periods: busyPeriodsOf(result) }
+          : { error: (result as JmapErrorInfo | undefined)?.type || "serverFail" };
+      });
+    }
+    return results;
+  }
+
+  private availabilityArgs(principalId: string, utcStart: Date, utcEnd: Date): Record<string, unknown> {
+    return {
+      accountId: this.accountId,
+      id: principalId,
+      utcStart: utcStart.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+      utcEnd: utcEnd.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+      showDetails: false,
+    };
   }
 
   // ── ShareNotification (RFC 9670 §3) ────────────────────────────

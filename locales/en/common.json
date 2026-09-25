@@ -2859,6 +2859,7 @@
         "free": "Available",
         "busy": "Busy",
         "tentative": "Tentative",
+        "no_busy_times": "No busy times shared",
         "unknown": "Not a user on this server",
         "error": "Couldn't check",
         "checking": "Checking…"

@@ -2859,6 +2859,7 @@
         "free": "Ledig",
         "busy": "Opptatt",
         "tentative": "Foreløpig",
+        "no_busy_times": "Ingen delte opptatt-tider",
         "unknown": "Ikke en bruker på denne serveren",
         "error": "Kunne ikke sjekke",
         "checking": "Sjekker…"

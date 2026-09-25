@@ -2859,6 +2859,7 @@
         "free": "Verfügbar",
         "busy": "Beschäftigt",
         "tentative": "Vorläufig",
+        "no_busy_times": "Keine belegten Zeiten freigegeben",
         "unknown": "Kein Benutzer auf diesem Server",
         "error": "Konnte nicht geprüft werden",
         "checking": "Wird geprüft…"

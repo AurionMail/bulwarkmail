@@ -2859,6 +2859,7 @@
         "free": "Disponibil",
         "busy": "Ocupat",
         "tentative": "Provizoriu",
+        "no_busy_times": "Niciun interval ocupat partajat",
         "unknown": "Nu este un utilizator al acestui server",
         "error": "Nu s-a putut verifica",
         "checking": "Se verifică…"

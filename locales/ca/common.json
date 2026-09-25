@@ -2859,6 +2859,7 @@
         "free": "Disponible",
         "busy": "Ocupat",
         "tentative": "Provisional",
+        "no_busy_times": "No hi ha hores ocupades compartides",
         "unknown": "No és un usuari d'aquest servidor",
         "error": "No s'ha pogut comprovar",
         "checking": "Comprovant…"

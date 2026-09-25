@@ -396,6 +396,34 @@ describe('JMAP client extensions', () => {
       }));
       await expect(client.getPrincipalAvailability('p1', ...window)).rejects.toMatchObject({ jmapType: 'rateLimit' });
     });
+
+    it('batches several principals per request up to maxCallsInRequest and keeps each answer apart', async () => {
+      await setupAvailability();
+      (client as unknown as { capabilities: Record<string, unknown> }).capabilities['urn:ietf:params:jmap:core'] = { maxCallsInRequest: 2 };
+      answer((body) => ({
+        methodResponses: body.methodCalls.map(([, args, callId]) => (args.id === 'p2'
+          // Stalwart 1.0 past 100 calls a minute; the calls before it still answer.
+          ? ['error', { type: 'rateLimit', description: 'Too many availability requests, please try again later' }, callId]
+          : ['Principal/getAvailability', { list: args.id === 'p1'
+            ? [{ utcStart: '2026-09-01T10:00:00Z', utcEnd: '2026-09-01T11:00:00Z', busyStatus: 'confirmed' }]
+            : [] }, callId])),
+      }));
+
+      const answers = await client.getPrincipalsAvailability(['p1', 'p2', 'p3'], new Date('2026-09-01T00:00:00Z'), new Date('2026-09-02T00:00:00Z'));
+
+      expect(requests.map((r) => r.methodCalls.map(([method, args, callId]) => [method, args.id, callId]))).toEqual([
+        [['Principal/getAvailability', 'p1', '0'], ['Principal/getAvailability', 'p2', '1']],
+        [['Principal/getAvailability', 'p3', '0']],
+      ]);
+      expect(requests[0].methodCalls[0][1]).toEqual({
+        accountId: 'acct-1', id: 'p1', utcStart: '2026-09-01T00:00:00Z', utcEnd: '2026-09-02T00:00:00Z', showDetails: false,
+      });
+      expect(answers).toEqual({
+        p1: { periods: [{ utcStart: '2026-09-01T10:00:00Z', utcEnd: '2026-09-01T11:00:00Z', busyStatus: 'confirmed' }] },
+        p2: { error: 'rateLimit' },
+        p3: { periods: [] },
+      });
+    });
   });
 
   describe('mailbox sharing', () => {

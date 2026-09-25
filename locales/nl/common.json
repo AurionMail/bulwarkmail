@@ -2859,6 +2859,7 @@
         "free": "Beschikbaar",
         "busy": "Bezet",
         "tentative": "Voorlopig",
+        "no_busy_times": "Geen bezette tijden gedeeld",
         "unknown": "Geen gebruiker op deze server",
         "error": "Kon niet controleren",
         "checking": "Controleren…"

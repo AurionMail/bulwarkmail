@@ -2859,6 +2859,7 @@
         "free": "Volný",
         "busy": "Zaneprázdněn",
         "tentative": "Předběžně",
+        "no_busy_times": "Žádné sdílené obsazené časy",
         "unknown": "Není uživatelem tohoto serveru",
         "error": "Nepodařilo se ověřit",
         "checking": "Ověřuje se…"

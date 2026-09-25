@@ -2859,6 +2859,7 @@
         "free": "Disponible",
         "busy": "Occupé",
         "tentative": "Provisoire",
+        "no_busy_times": "Aucune plage occupée partagée",
         "unknown": "Pas un utilisateur de ce serveur",
         "error": "Vérification impossible",
         "checking": "Vérification…"

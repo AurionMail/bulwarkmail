@@ -1,4 +1,4 @@
-import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PrincipalListing, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
+import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { FileNameRules } from "@/lib/file-name-rules";
 import type { SortLevel } from "@/lib/message-list-order";
@@ -161,6 +161,7 @@ export interface IJMAPClient {
   supportsAvailability?(): boolean;
   mayGetAvailability?(): Promise<boolean>;
   getPrincipalAvailability?(principalId: string, utcStart: Date, utcEnd: Date): Promise<BusyPeriod[]>;
+  getPrincipalsAvailability?(principalIds: string[], utcStart: Date, utcEnd: Date): Promise<Record<string, PrincipalAvailability>>;
   // ShareNotification (RFC 9670 §3): who shared what with this user. Optional
   // (demo client).
   supportsShareNotifications?(): boolean;

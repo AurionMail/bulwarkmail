@@ -2859,6 +2859,7 @@
         "free": "Szabad",
         "busy": "Foglalt",
         "tentative": "Feltételes",
+        "no_busy_times": "Nincsenek megosztott foglalt időszakok",
         "unknown": "Nem felhasználó ezen a kiszolgálón",
         "error": "Nem sikerült ellenőrizni",
         "checking": "Ellenőrzés…"
