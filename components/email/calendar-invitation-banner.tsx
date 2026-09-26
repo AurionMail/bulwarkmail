@@ -38,6 +38,7 @@ import {
   type InvitationTrustAssessment,
 } from '@/lib/calendar-invitation';
 import { participantsAskedAgain } from '@/lib/calendar-participants';
+import { isValidTimeZone, moveLocalDateTime } from '@/lib/timezone';
 import { cn } from '@/lib/utils';
 import { sanitizeColor } from '@/components/calendar/event-card';
 import { RecipientPopover } from './recipient-popover';
@@ -206,6 +207,31 @@ function getViewActionLabel(
   }
 
   return t('view_in_calendar');
+}
+
+/** Whether two events name the same occurrence: their recurrence ids at the same moment, each in its own zone. */
+function sameRecurrenceId(a: Partial<CalendarEvent>, b: Partial<CalendarEvent>): boolean {
+  if (!a.recurrenceId || !b.recurrenceId) return false;
+  const zoneA = a.recurrenceIdTimeZone ?? a.timeZone ?? null;
+  const zoneB = b.recurrenceIdTimeZone ?? b.timeZone ?? null;
+  const bInA = zoneA && zoneB && isValidTimeZone(zoneA) && isValidTimeZone(zoneB)
+    ? moveLocalDateTime(b.recurrenceId.slice(0, 19), zoneB, zoneA)
+    : b.recurrenceId;
+  return a.recurrenceId.slice(0, 19) === bInA.slice(0, 19);
+}
+
+/**
+ * The event in the calendar a counter proposal is about. An attendee's
+ * proposal for one occurrence of a recurring meeting names that occurrence
+ * by its recurrence id, one for the whole meeting names none. Matched on the
+ * uid alone, the first event with it got the proposal - any occurrence in
+ * view. A proposal for a whole series of which only occurrences are in view
+ * has no event here, and is not applied to one of them.
+ */
+function counterTarget(events: CalendarEvent[], proposal: Partial<CalendarEvent>): CalendarEvent | null {
+  const sameUid = events.filter((event) => event.uid === proposal.uid);
+  if (!proposal.recurrenceId) return sameUid.find((event) => !event.recurrenceId) ?? null;
+  return sameUid.find((event) => sameRecurrenceId(event, proposal)) ?? null;
 }
 
 function buildProposalPatch(
@@ -553,7 +579,9 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   // the import-then-find-participant flow for this case.
   const canRespond = supportsCalendar && allowsRsvp && !isResponseOnly && !userIsOrganizer
     && (Boolean(myParticipant) || method === 'request');
-  const proposalPatch = existingEvent && parsedEvent ? buildProposalPatch(existingEvent, parsedEvent) : null;
+  // A counter proposal applies to the occurrence it names, or to the meeting itself.
+  const proposalTarget = method === 'counter' && parsedEvent ? counterTarget(storeEvents, parsedEvent) : existingEvent;
+  const proposalPatch = proposalTarget && parsedEvent ? buildProposalPatch(proposalTarget, parsedEvent) : null;
 
   const resolveExistingEventForRsvp = async () => {
     if (!client || !existingEvent) {
@@ -723,12 +751,12 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     });
   };
 
-  const proposedChanges = method === 'counter' && existingEvent && parsedEvent
-    ? buildInvitationChangeItems(t, existingEvent, parsedEvent, formatDateTime)
+  const proposedChanges = method === 'counter' && proposalTarget && parsedEvent
+    ? buildInvitationChangeItems(t, proposalTarget, parsedEvent, formatDateTime)
     : [];
   const canApplyProposal = Boolean(
     client
-    && existingEvent?.id
+    && proposalTarget?.id
     && userIsOrganizer
     && method === 'counter'
     && proposalPatch
@@ -736,7 +764,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const viewActionLabel = getViewActionLabel(t, method, userIsOrganizer);
 
   const handleApplyProposal = async () => {
-    if (!client || !existingEvent?.id || !proposalPatch || isProcessing) {
+    if (!client || !proposalTarget?.id || !proposalPatch || isProcessing) {
       return;
     }
 
@@ -748,8 +776,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       // A proposal for another time moves the event: its attendees are asked
       // again, as the editor and a drag ask them (participantsAskedAgain).
       const moves = (['start', 'duration', 'timeZone', 'showWithoutTime'] as const).some((key) => key in proposalPatch);
-      const participants = moves ? participantsAskedAgain(existingEvent) : null;
-      await updateEvent(client, existingEvent.id, participants ? { ...proposalPatch, participants } : proposalPatch, true);
+      const participants = moves ? participantsAskedAgain(proposalTarget) : null;
+      await updateEvent(client, proposalTarget.id, participants ? { ...proposalPatch, participants } : proposalPatch, true);
       setActionNotice(t('proposal_applied'));
       setState('parsed');
       setRsvpStatus(null);

@@ -758,6 +758,56 @@ describe('CalendarInvitationBanner', () => {
     expect(send).toBe(true);
   });
 
+  // A proposal for one occurrence of a recurring meeting names it by its
+  // recurrence id; it went to the first event with the uid, any occurrence
+  // in view.
+  describe('a proposal for a recurring meeting', () => {
+    const participants = {
+      organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+      attendee: { '@type': 'Participant', email: 'alice@example.com', roles: { attendee: true }, participationStatus: 'accepted' },
+    };
+    // Two occurrences of a weekly meeting at 09:00 in Berlin, as the server expands them.
+    const occurrence = (id: string, day: string) => ({
+      id, uid: 'uid-7', title: 'Weekly', start: `2026-03-${day}T09:00:00`, duration: 'PT1H', timeZone: 'Europe/Berlin',
+      recurrenceId: `2026-03-${day}T09:00:00`, recurrenceIdTimeZone: 'Europe/Berlin',
+      recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly' }], participants,
+    });
+    const counter = (extra: Record<string, unknown>) => ({
+      uid: 'uid-7', title: 'Weekly', start: '2026-03-27T10:00:00', duration: 'PT1H', timeZone: 'Europe/Berlin', participants, ...extra,
+    });
+    const openCounter = async (id: string) => {
+      render(<CalendarInvitationBanner email={makeEmail({ id, attachments: [{ partId: '1', blobId: `blob-${id}`, size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
+      await waitFor(() => expect(screen.getByText('Review proposal')).toBeInTheDocument());
+    };
+
+    beforeEach(() => {
+      mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(undefined);
+      mocks.calendarState.events = [occurrence('occ-20', '20'), occurrence('occ-27', '27')];
+    });
+
+    it('applies a proposal for one occurrence to that occurrence', async () => {
+      // Named in UTC: 08:00Z is 09:00 in Berlin in March.
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([counter({ recurrenceId: '2026-03-27T08:00:00', recurrenceIdTimeZone: 'Etc/UTC' })]);
+
+      await openCounter('email-7');
+      fireEvent.click(screen.getByText('Apply proposed changes'));
+      await waitFor(() => expect(mocks.calendarState.updateEvent).toHaveBeenCalledTimes(1));
+
+      const [, id, patch] = mocks.calendarState.updateEvent.mock.calls[0];
+      expect(id).toBe('occ-27');
+      expect(patch).toMatchObject({ start: '2026-03-27T10:00:00' });
+    });
+
+    it('does not apply a proposal for the whole meeting to one of its occurrences', async () => {
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([counter({})]);
+
+      await openCounter('email-8');
+
+      expect(screen.queryByText('Apply proposed changes')).toBeNull();
+      expect(mocks.calendarState.updateEvent).not.toHaveBeenCalled();
+    });
+  });
+
   it('keeps the answers when an applied proposal does not change the time', async () => {
     mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(undefined);
     const event = (room: string) => ({
