@@ -10435,6 +10435,8 @@ export class JMAPClient implements IJMAPClient {
     // too loses nothing (without a delivery status of the original, every
     // one counts as taken). Should the replacement refuse to be cancelled,
     // the reschedule goes on, and the caller names the refused recipients.
+    // A cancel whose answer got lost is read back: when it went through,
+    // going on would cancel the original too and reach nobody.
     const delivery = refusedRecipients(response.methodResponses?.find(([, , callId]) => callId === '1'));
     const refusedBefore = new Set(Object.entries(original?.deliveryStatus ?? {})
       .filter(([, status]) => status?.delivered === 'no')
@@ -10450,8 +10452,12 @@ export class JMAPClient implements IJMAPClient {
         try {
           await this.cancelEmailSubmission(replacementId, submissionAccountId);
         } catch (error) {
-          console.error('Failed to cancel a replacement some recipients were refused for:', error);
-          withdrawn = false;
+          // 0.16 and 1.0 report `canceled` for a cancelled submission.
+          const status = await this.getSubmissionStatus(replacementId, submissionAccountId).catch(() => undefined);
+          if (status !== 'canceled') {
+            console.error('Failed to cancel a replacement some recipients were refused for:', error);
+            withdrawn = false;
+          }
         }
       }
       if (withdrawn) throw new RecipientsRefusedError(lost);

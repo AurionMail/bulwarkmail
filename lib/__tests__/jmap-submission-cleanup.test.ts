@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JMAPClient, NoLongerScheduledError, RecipientsRefusedError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
+import { JMAPClient, NoLongerScheduledError, RecipientsRefusedError, RequestTimeoutError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
 import { jmapErrorType } from '../jmap/jmap-error';
 
 /**
@@ -1244,6 +1244,31 @@ describe('recipients the server refuses', () => {
 
       expect(result.refusedRecipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
       expect(original.canceled).toBe(true);
+    });
+
+    it.each(['1.0', '0.16.12'] as const)('keeps the original when the answer to withdrawing the replacement is lost, on Stalwart %s', async (version) => {
+      const server = fakeStalwart({ version, refuseRecipient: throttledFor('bob@example.org') });
+      const original = addOriginal(server, { 'alice@example.org': 'queued', 'bob@example.org': 'queued' });
+      // The server cancels the replacement, but its answer never arrives (a
+      // timeout, which the client doesn't retry).
+      const fetchMock = vi.mocked(globalThis.fetch);
+      const serve = fetchMock.getMockImplementation()!;
+      fetchMock.mockImplementation(async (url, init) => {
+        const response = await serve(url, init);
+        const { methodCalls } = JSON.parse((init as { body: string }).body) as { methodCalls: MethodCall[] };
+        if (methodCalls.some(([name, args]) => name === 'EmailSubmission/set' && args.update && !('original' in (args.update as object)))) {
+          throw new RequestTimeoutError(30_000);
+        }
+        return response;
+      });
+
+      const error = await sendNow().catch((e: unknown) => e);
+
+      // Going ahead would cancel the original as well and reach nobody: it
+      // still goes at its old time to both.
+      expect(error).toBeInstanceOf(RecipientsRefusedError);
+      expect(original.canceled).toBe(false);
+      expect([...server.submissions.values()].filter((s) => s.id !== 'original').map((s) => s.canceled)).toEqual([true]);
     });
   });
 });
