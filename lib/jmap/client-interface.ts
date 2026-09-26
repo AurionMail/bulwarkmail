@@ -52,7 +52,8 @@ export interface CalendarEventUpdateOptions {
   /**
    * Send `sequence` instead of stripping it with the other server-managed
    * fields. Only for a patch that creates a recurrence override and must carry
-   * the series' sequence (see buildOccurrenceRsvpPatch).
+   * the series' sequence (see buildOccurrenceRsvpPatch), or a change of a
+   * whole series that raises it (see withRaisedSequences).
    */
   keepSequence?: boolean;
 }

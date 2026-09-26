@@ -506,6 +506,63 @@ export interface EventUpdateOptions {
    * (see the calendar store's updateEvent).
    */
   asOrganizer?: boolean;
+  /** The update sets `sequence` itself (withRaisedSequences); it is not stripped. */
+  keepSequence?: boolean;
+}
+
+/** Changes of a series its attendees see - Stalwart announces them, and 1.0 raises the SEQUENCE for them. */
+const ANNOUNCED_KEYS = [
+  'title', 'description', 'locations', 'virtualLocations', 'status', 'participants', 'recurrenceRules',
+  'excludedRecurrenceRules', 'recurrenceOverrides', ...WHEN_KEYS,
+] as const;
+
+/**
+ * `series`, a change to the series `master` its attendees are told of, with
+ * the SEQUENCE of the series and of each of its changed occurrences one up.
+ *
+ * 0.16 (0.16.6 to 0.16.23) sends the change of one occurrence with that
+ * occurrence's SEQUENCE raised, but does not keep the raise itself (in
+ * organizer.rs the list of components to raise is shadowed for such
+ * changes). A later change of every occurrence that does not raise the
+ * number again - a new title - then carried a lower SEQUENCE for that
+ * occurrence than the attendee's copy has, and the attendee's server
+ * refused the whole change as out of sequence: the mail arrived, the copy
+ * stayed as it was (live on 0.16.23). One up from what the organizer's
+ * copy holds is at least what the attendees got. 1.0 raises every
+ * occurrence's SEQUENCE the same way itself for a change it announces, and
+ * keeps a number it would have given (live: the same result with and
+ * without).
+ */
+function withRaisedSequences(series: Partial<CalendarEvent>, master: CalendarEvent): Partial<CalendarEvent> {
+  const base = master.sequence ?? 0;
+  const raised: Record<string, unknown> = { ...series, sequence: base + 1 };
+  const raise = (entry: OverrideEntry) => (entry.excluded ? entry : { ...entry, sequence: Number(entry.sequence ?? base) + 1 });
+  if (series.recurrenceOverrides !== undefined) {
+    if (series.recurrenceOverrides) {
+      raised.recurrenceOverrides = Object.fromEntries(Object.entries(series.recurrenceOverrides)
+        .map(([key, entry]) => [key, raise(entry as OverrideEntry)]));
+    }
+  } else {
+    for (const [key, entry] of Object.entries(master.recurrenceOverrides ?? {})) {
+      if (!(entry as OverrideEntry).excluded) raised[`recurrenceOverrides/${key}/sequence`] = raise(entry as OverrideEntry).sequence;
+    }
+  }
+  return raised as Partial<CalendarEvent>;
+}
+
+/**
+ * Whether saving `series` for every occurrence of `master` raises their
+ * SEQUENCE (withRaisedSequences): the user organizes the series and tells
+ * its attendees of a change they see, and it has occurrences of its own a
+ * change of one of them may have left behind.
+ */
+function raisesSequences(series: Partial<CalendarEvent>, master: CalendarEvent, edit: OccurrenceEdit): boolean {
+  return !!edit.sendScheduling
+    && !!edit.editor
+    && Object.keys(master.participants ?? {}).length > 0
+    && userOrganizes(master, edit.userEmails)
+    && Object.values(master.recurrenceOverrides ?? {}).some((entry) => !(entry as OverrideEntry).excluded)
+    && ANNOUNCED_KEYS.some((key) => key in series);
 }
 
 /** What saving an occurrence edit works with: the calendar store's actions and the app's series lookup. */
@@ -914,6 +971,10 @@ export async function saveOccurrenceEdit(
       } else {
         seriesUpdates = { ...updates };
         delete seriesUpdates.recurrenceId;
+      }
+      if (raisesSequences(seriesUpdates, master, edit)) {
+        await updateEvent(client, master.id, withRaisedSequences(seriesUpdates, master), sendScheduling, { keepSequence: true });
+        return true;
       }
       await updateEvent(client, master.id, seriesUpdates, sendScheduling);
       return true;

@@ -191,6 +191,18 @@ describe('updateEvent on an expanded occurrence', () => {
     expect(client.queryAllCalendarEvents).toHaveBeenCalledTimes(2);
   });
 
+  // A change of every occurrence that raises their SEQUENCE sends it (see
+  // withRaisedSequences in lib/recurrence-scope-edit.ts).
+  it('keeps the sequence of a change to the whole series when asked to', async () => {
+    const client = fakeClient();
+    client.queryAllCalendarEvents.mockResolvedValue([occurrence()]);
+    await useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
+
+    await useCalendarStore.getState().updateEvent(client, 'b', { title: 'Whole series', sequence: 3 }, true, { keepSequence: true });
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledWith('b', { title: 'Whole series', sequence: 3 }, true, undefined, { keepSequence: true });
+  });
+
   it('does not reload after changing an ordinary event', async () => {
     const client = fakeClient();
     const plain = occurrence({ id: 'x', originalId: 'x', baseEventId: 'x', recurrenceId: null, recurrenceRules: null });

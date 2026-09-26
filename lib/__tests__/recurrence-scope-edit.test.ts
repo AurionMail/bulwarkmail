@@ -744,8 +744,12 @@ describe('saveOccurrenceEdit for every occurrence', () => {
     expect(saved).toBe(true);
     expect(deps.findMasterEvent).toHaveBeenCalledWith(occurrence);
     // What the user changed, and only that: the calendar, the description
-    // and the rule the editor wrote as they were stay the series' own.
-    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', { title: 'Planning, room 2' }, true);
+    // and the rule the editor wrote as they were stay the series' own. The
+    // attendees are told, and 19 October has an override: the SEQUENCE goes
+    // up (see below).
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', {
+      title: 'Planning, room 2', sequence: 1, 'recurrenceOverrides/2026-10-19T10:00:00/sequence': 1,
+    }, true, { keepSequence: true });
   });
 
   it('reports a series it cannot find', async () => {
@@ -761,6 +765,64 @@ describe('saveOccurrenceEdit for every occurrence', () => {
   });
 });
 
+
+// 0.16 sends the change of one occurrence with its SEQUENCE raised, without
+// keeping the raise itself. A later rename of every occurrence carried the
+// lower number for it, and the attendee's server refused the whole change:
+// the mail arrived, the copy stayed as it was (live on 0.16.23). 1.0 raises
+// every occurrence's SEQUENCE the same way itself for a change it sends.
+describe.each<[string, Version]>([['1.0', '1.0'], ['0.16', '0.16']])('the SEQUENCE of a changed series on Stalwart %s', (_label, version) => {
+  // Five Mondays from 5 October, 19 October with an override: on 0.16 it
+  // holds a sequence of its own (copied when it got the override), on 1.0
+  // the PatchObject leaves it out while it is the series'.
+  const withSequences = (overrides: CalendarEvent['recurrenceOverrides'] = series(version).recurrenceOverrides) => ({
+    ...series(version), sequence: 2,
+    recurrenceOverrides: version === '1.0'
+      ? overrides
+      : Object.fromEntries(Object.entries(overrides ?? {}).map(([key, entry]) => [key, { ...entry, sequence: 2 }])),
+  }) as CalendarEvent;
+  const save = (master: CalendarEvent, change: Partial<CalendarEvent>, extra: Partial<Parameters<typeof saveOccurrenceEdit>[1]> = {}, editor = {}) => {
+    const occurrence = { ...serverOccurrence(version), id: 'maaaaad', start: '2026-10-26T10:00:00', recurrenceId: '2026-10-26T10:00:00', utcStart: '2026-10-26T09:00:00Z', utcEnd: '2026-10-26T10:00:00Z' } as CalendarEvent;
+    const deps = actions(master);
+    return saveOccurrenceEdit('all', {
+      event: occurrence, updates: editorUpdates(occurrence, change), editor: editorOn(occurrence, editor),
+      sendScheduling: true, userEmails: [ORGANIZER], ...extra,
+    }, deps).then(() => deps.updateEvent.mock.calls[0]);
+  };
+
+  it('raises the series\' and each changed occurrence\'s by one on a new title', async () => {
+    const [, id, patch, send, options] = await save(withSequences(), { title: 'Planning, room 2' });
+
+    expect([id, send, options]).toEqual(['b', true, { keepSequence: true }]);
+    expect(patch).toEqual({ title: 'Planning, room 2', sequence: 3, 'recurrenceOverrides/2026-10-19T10:00:00/sequence': 3 });
+  });
+
+  it('raises them inside the overrides when the series moves', async () => {
+    const occurrenceStart = getEventStartDate({ ...serverOccurrence(version), start: '2026-10-26T10:00:00', utcStart: '2026-10-26T09:00:00Z' } as CalendarEvent);
+    const retitled = withSequences({ '2026-10-19T10:00:00': { title: 'Planning, special' } } as never);
+    const [, , patch, , options] = await save(retitled, {}, {}, {
+      when: { allDay: false, start: addHours(occurrenceStart, 1), end: addHours(occurrenceStart, 2) },
+    });
+
+    expect(options).toEqual({ keepSequence: true });
+    expect(patch.sequence).toBe(3);
+    expect(patch.recurrenceOverrides['2026-10-19T11:00:00'].sequence).toBe(3);
+    expect(Object.keys(patch).some((key: string) => key.startsWith('recurrenceOverrides/'))).toBe(false);
+  });
+
+  it('leaves them alone when nothing goes out, nothing the attendees see changes, or no occurrence has an override', async () => {
+    const quiet = await save(withSequences(), { title: 'Planning, room 2' }, { sendScheduling: false });
+    const alerts = await save(withSequences(), {
+      alerts: { a1: { '@type': 'Alert', trigger: { '@type': 'OffsetTrigger', offset: '-PT5M', relativeTo: 'start' }, action: 'display' } } as never,
+    });
+    const plain = await save({ ...withSequences(), recurrenceOverrides: null } as CalendarEvent, { title: 'Planning, room 2' });
+
+    for (const [, , patch, , options] of [quiet, alerts, plain]) {
+      expect(patch).not.toHaveProperty('sequence');
+      expect(options).toBeUndefined();
+    }
+  });
+});
 
 // "This and the following occurrences" ends the series before the
 // occurrence and makes a new series of the rest. The new series kept the

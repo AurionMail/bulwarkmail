@@ -165,19 +165,23 @@ async function updateBaseEvent(
   updates: Partial<CalendarEvent>,
   sendSchedulingMessages: boolean | undefined,
   targetAccountId: string | undefined,
+  options?: CalendarEventUpdateOptions,
 ): Promise<void> {
+  const write = (patch: Partial<CalendarEvent>) => (options
+    ? client.updateCalendarEvent(id, patch, sendSchedulingMessages, targetAccountId, options)
+    : client.updateCalendarEvent(id, patch, sendSchedulingMessages, targetAccountId));
   const writesOverrides = Object.keys(updates).some((key) => key.split('/', 1)[0] === 'recurrenceOverrides');
   if (writesOverrides && overrideSeriesKeysRejected.has(client)) {
-    await client.updateCalendarEvent(id, withoutOverrideSeriesKeys(updates), sendSchedulingMessages, targetAccountId);
+    await write(withoutOverrideSeriesKeys(updates));
     return;
   }
   try {
-    await client.updateCalendarEvent(id, updates, sendSchedulingMessages, targetAccountId);
+    await write(updates);
   } catch (error) {
     if (!writesOverrides || !isOverrideSeriesKeyRejection(error)) throw error;
     overrideSeriesKeysRejected.add(client);
     debug.log('calendar', 'Server refuses series keys inside recurrence overrides; writing them without');
-    await client.updateCalendarEvent(id, withoutOverrideSeriesKeys(updates), sendSchedulingMessages, targetAccountId);
+    await write(withoutOverrideSeriesKeys(updates));
   }
 }
 
@@ -1044,7 +1048,10 @@ export const useCalendarStore = create<CalendarStore>()(
               await updateBrowserOccurrence(client, target, cleanUpdates, sendSchedulingMessages);
             }
           } else {
-            await updateBaseEvent(client, realId, cleanUpdates, sendSchedulingMessages, targetAccountId);
+            await updateBaseEvent(
+              client, realId, cleanUpdates, sendSchedulingMessages, targetAccountId,
+              options?.keepSequence ? { keepSequence: true } : undefined,
+            );
           }
           set((state) => ({
             events: state.events.map(e => {
