@@ -91,10 +91,23 @@ describe('useMailboxDrop', () => {
     await drop(mailbox({}), ['m016', 't016']);
 
     expect(moveEmailsToMailbox.mock.calls).toEqual([
-      [client016, ['m016', 't016'], 'f', 'userb@v10'],
-      [client016, ['m016', 't016'], 'f', 'userb@v016'],
+      [client016, ['m016', 't016'], 'f', 'userb@v10', drag.draggedEmails],
+      [client016, ['m016', 't016'], 'f', 'userb@v016', drag.draggedEmails],
     ]);
     expect(crossAccountMoveEmails).not.toHaveBeenCalled();
+  });
+
+  // The team's `x` and usera's own `x` are unrelated messages; one of them
+  // is dragged.
+  it('hands the store the dragged row, not only its id, in a list that mixes accounts', async () => {
+    useEmailStore.setState({ isUnifiedView: true, selectedMailbox: '__unified_inbox' });
+    drag.sourceMailboxId = '__unified_inbox';
+    const dragged = email({ id: 'x', sourceClientAccountId: 'userb@v016', sourceAccountId: 'c' });
+    drag.draggedEmails = [dragged];
+
+    await drop(mailbox({}), ['x']);
+
+    expect(moveEmailsToMailbox).toHaveBeenCalledWith(client016, ['x'], 'f', 'userb@v016', [dragged]);
   });
 
   it('moves a drop onto another login\'s folder across accounts, although both logins are account `e`', async () => {

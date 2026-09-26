@@ -3128,13 +3128,24 @@ export class JMAPClient implements IJMAPClient {
       if (markAsRead) patch["keywords/$seen"] = true;
       return patch;
     };
-    for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
+    // A refused batch doesn't stop the others, and the error names every
+    // message left where it was: the batches after one that failed used to
+    // stay unsent while a caller counted them as moved.
+    const batches = batched(emailIds, this.getMaxObjectsInSet());
+    const responses: JMAPResponse[] = [];
+    let requestError: unknown;
+    for (const batch of batches) {
       const updates = Object.fromEntries(batch.map(id => [id, buildPatch()]));
-      const response = await this.request([
-        ["Email/set", { accountId: accountId || this.accountId, update: updates }, "0"],
-      ]);
-      this.assertEmailSetSucceeded(response, 'move emails');
+      try {
+        responses.push(await this.request([
+          ["Email/set", { accountId: accountId || this.accountId, update: updates }, "0"],
+        ]));
+      } catch (error) {
+        requestError = error;
+        break;
+      }
     }
+    this.assertEmailSetBatchesSucceeded(responses, batches, 'move emails', requestError);
   }
 
   async batchArchiveEmails(

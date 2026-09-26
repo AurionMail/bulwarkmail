@@ -124,8 +124,9 @@ export function useMailboxDrop({ mailbox, accountId, onDropComplete, onSuccess, 
         // A list that mixes accounts (unified, tag and "All folders" views)
         // stamps every row with its login and account. The store moves each
         // of those groups apart - in place only in the folder's own account,
-        // across accounts for the others.
-        await moveEmailsToMailbox(client, emailIds, mailbox.id, destAccountId);
+        // across accounts for the others. It gets the dragged rows: their
+        // ids alone can name other accounts' rows too.
+        await moveEmailsToMailbox(client, emailIds, mailbox.id, destAccountId, draggedEmails);
       } else {
         // Group dragged emails by source account. In single-account flows this
         // collapses to one bucket; in the Pro multi-account sidebar a single

@@ -668,3 +668,209 @@ describe('unified-view batch actions with two logins that share account ids', ()
     expect(cached['userb@v10|c']).toEqual(team10);
   });
 });
+
+// A tag view and the default "All folders" search stamp their rows with
+// login and account like the unified views, but only the unified views cache
+// their sources' folder lists; the Pro shell keeps the login browsed before a
+// list that mixes accounts opens; and a selected id can be a member of an
+// expanded thread only, or name rows of two accounts.
+describe('lists that mix accounts, without the unified views\' cache and after browsing another login', () => {
+  let client016: IJMAPClient; // usera on 0.16.23, the active login
+  let client10: IJMAPClient;  // usera on 1.0
+
+  // usera is account `d` on both servers, with the team `c` on 0.16.23.
+  // Folder ids repeat across servers: `f` is the 0.16.23 login's Archive and
+  // the 1.0 login's "Old stuff".
+  const own016 = [
+    makeMailbox({ id: 'a', role: 'inbox', accountId: 'd' }),
+    makeMailbox({ id: 'b', name: 'Deleted Items', role: 'trash', accountId: 'd' }),
+    makeMailbox({ id: 'c', name: 'Junk Mail', role: 'junk', accountId: 'd' }),
+    makeMailbox({ id: 'f', name: 'Archive', role: 'archive', accountId: 'd' }),
+  ];
+  const team016 = [
+    makeMailbox({ id: 'c:a', originalId: 'a', name: 'Inbox', role: 'inbox', isShared: true, accountId: 'c' }),
+    makeMailbox({ id: 'c:c', originalId: 'c', name: 'Junk Mail', role: 'junk', isShared: true, accountId: 'c' }),
+    makeMailbox({ id: 'c:g', originalId: 'g', name: 'Archive', role: 'archive', isShared: true, accountId: 'c' }),
+  ];
+  const own10 = [
+    makeMailbox({ id: 'a', role: 'inbox', accountId: 'd' }),
+    makeMailbox({ id: 'k', name: 'Deleted Items', role: 'trash', accountId: 'd' }),
+    makeMailbox({ id: 'f', name: 'Old stuff', accountId: 'd' }),
+    makeMailbox({ id: 'h', name: 'Archive', role: 'archive', accountId: 'd' }),
+  ];
+  const row = (id: string, login: string, account: string, extra: Partial<Email> = {}) =>
+    makeEmail({ id, sourceClientAccountId: login, sourceAccountId: account, mailboxIds: { a: true }, ...extra });
+
+  beforeEach(() => {
+    client016 = Object.assign(makeClient(), { getAccountId: () => 'd' });
+    client10 = Object.assign(makeClient(), { getAccountId: () => 'd' });
+    useSettingsStore.setState({ archiveMode: 'single', deleteAction: 'trash' } as never);
+    useAuthStore.setState({
+      activeAccountId: 'usera@v016',
+      getClientForAccount: (id: string) =>
+        (id === 'usera@v016' ? client016 : id === 'usera@v10' ? client10 : undefined) as never,
+    } as never);
+    useEmailStore.setState({
+      isUnifiedView: false,
+      unifiedRole: null,
+      crossView: null,
+      viewingAccountId: null,
+      selectedMailbox: 'a',
+      selectedKeyword: null,
+      searchQuery: '',
+      searchMailboxId: '',
+      mailboxes: [...own016, ...team016],
+      // Nothing cached by login and account: no unified view was built. The
+      // Pro sidebar holds the 1.0 login's folders under its login.
+      accountMailboxes: { 'usera@v10': own10 },
+      emails: [row('m1', 'usera@v016', 'd'), row('m2', 'usera@v016', 'd')],
+      threadEmailsCache: new Map(),
+      selectedEmail: null,
+      selectedEmailIds: new Set(['m1', 'm2']),
+      error: null,
+      isLoading: false,
+      crossAccountMoveEmails: vi.fn().mockResolvedValue(undefined) as never,
+      refreshCurrentMailbox: vi.fn().mockResolvedValue(undefined) as never,
+    });
+  });
+
+  afterEach(() => {
+    useEmailStore.setState({ crossAccountMoveEmails: realCrossAccountMoveEmails, refreshCurrentMailbox: realRefreshCurrentMailbox });
+  });
+
+  const callsOf = (fn: unknown) => (fn as ReturnType<typeof vi.fn>).mock.calls;
+  const archiveCalls = (client: IJMAPClient) => callsOf(client.batchArchiveEmails)
+    .map(([emails, archiveId, , , accountId]) => [(emails as Array<{ id: string }>).map((e) => e.id), archiveId, accountId]);
+  const listed = () => useEmailStore.getState().emails.map((e) => `${e.sourceClientAccountId}/${e.sourceAccountId}/${e.id}`);
+
+  it('archives an "All folders" search\'s own messages into the own Archive', async () => {
+    useEmailStore.setState({ searchQuery: 'invoice' });
+
+    await useEmailStore.getState().batchArchive(client016);
+
+    expect(archiveCalls(client016)).toEqual([[['m1', 'm2'], 'f', 'd']]);
+    expect(listed()).toEqual([]);
+    expect(useEmailStore.getState().error).toBeNull();
+  });
+
+  it('archives a tag view\'s own messages into the own Archive', async () => {
+    useEmailStore.setState({ selectedKeyword: 'work' });
+
+    await useEmailStore.getState().batchArchive(client016);
+
+    expect(archiveCalls(client016)).toEqual([[['m1', 'm2'], 'f', 'd']]);
+  });
+
+  it('puts a tag view\'s messages back in their own Inbox with "Not spam", entered from Junk', async () => {
+    useEmailStore.setState({ selectedKeyword: 'work', selectedMailbox: 'c' });
+
+    await useEmailStore.getState().batchUndoSpam(client016, ['m1', 'm2']);
+
+    expect(callsOf(client016.undoSpam)).toEqual([['m1', 'a', 'd'], ['m2', 'a', 'd']]);
+  });
+
+  // Pro shell: a folder of the 1.0 login browsed, then a tag. A unified view
+  // built earlier left the 0.16.23 login's list under the bare account id `d`.
+  describe('in a tag view of the 1.0 login browsed in the Pro shell', () => {
+    beforeEach(() => {
+      useEmailStore.setState({
+        viewingAccountId: 'usera@v10',
+        selectedKeyword: 'work',
+        accountMailboxes: { 'usera@v10': own10, 'usera@v016|d': own016, d: own016 },
+        emails: [row('m10', 'usera@v10', 'd')],
+        selectedEmailIds: new Set(['m10']),
+      });
+    });
+
+    it('archives into that login\'s own Archive, not the folder with the other server\'s Archive id', async () => {
+      await useEmailStore.getState().batchArchive(client016);
+
+      expect(archiveCalls(client016)).toEqual([]);
+      expect(archiveCalls(client10)).toEqual([[['m10'], 'h', 'd']]);
+    });
+
+    it('deletes into that login\'s own Deleted Items', async () => {
+      await useEmailStore.getState().batchDelete(client016, false);
+
+      expect(callsOf(client10.batchMoveEmails)).toEqual([[['m10'], 'k', 'd', false]]);
+      expect(callsOf(client016.batchMoveEmails)).toEqual([]);
+    });
+  });
+
+  // Pro shell: a folder of the 1.0 login browsed, then "All Inboxes". The
+  // "Move to" menus list the active login's folders.
+  it('moves into the folder "Move to" offers, the active login\'s, after another login was browsed', async () => {
+    useEmailStore.setState({
+      isUnifiedView: true,
+      unifiedRole: 'inbox',
+      selectedMailbox: '__unified_inbox',
+      viewingAccountId: 'usera@v10',
+      emails: [row('m016', 'usera@v016', 'd'), row('m10', 'usera@v10', 'd')],
+      selectedEmailIds: new Set(['m016', 'm10']),
+    });
+
+    await useEmailStore.getState().batchMoveToMailbox(client016, 'f');
+
+    expect(callsOf(client016.batchMoveEmails)).toEqual([[['m016'], 'f', 'd']]);
+    expect(callsOf(client10.batchMoveEmails)).toEqual([]);
+    expect(callsOf(useEmailStore.getState().crossAccountMoveEmails)).toEqual([
+      [new Map([['usera@v10', ['m10']]]), 'usera@v016', 'f', undefined, 'd'],
+    ]);
+  });
+
+  it('moves one dragged row, not the team\'s unrelated message with the same id', async () => {
+    const own = row('x', 'usera@v016', 'd');
+    useEmailStore.setState({
+      isUnifiedView: true,
+      unifiedRole: 'inbox',
+      selectedMailbox: '__unified_inbox',
+      emails: [own, row('x', 'usera@v016', 'c', { mailboxIds: { 'c:a': true } })],
+      selectedEmailIds: new Set(),
+    });
+
+    await useEmailStore.getState().moveEmailsToMailbox(client016, ['x'], 'f', 'usera@v016', [own]);
+
+    expect(callsOf(client016.batchMoveEmails)).toEqual([[['x'], 'f', 'd']]);
+    expect(callsOf(useEmailStore.getState().crossAccountMoveEmails)).toEqual([]);
+    expect(listed()).toEqual(['usera@v016/c/x']);
+  });
+
+  // A thread of the team is expanded and one of its members that is not a
+  // row of the list is selected. Its id also names usera's own first message
+  // (`eaaaaab` on both test servers).
+  describe('with a selected member of an expanded thread', () => {
+    beforeEach(() => {
+      useEmailStore.setState({
+        isUnifiedView: true,
+        unifiedRole: 'inbox',
+        selectedMailbox: '__unified_inbox',
+        emails: [row('other', 'usera@v016', 'c', { threadId: 'tt', mailboxIds: { 'c:a': true } })],
+        threadEmailsCache: new Map([['tt', [row('eaaaaab', 'usera@v016', 'c', { threadId: 'tt', mailboxIds: { 'c:a': true } })]]]),
+        selectedEmailIds: new Set(['eaaaaab']),
+      });
+    });
+
+    it('marks it as spam in the team account', async () => {
+      await useEmailStore.getState().batchMarkAsSpam(client016, ['eaaaaab']);
+
+      expect(callsOf(client016.markAsSpam)).toEqual([['eaaaaab', 'c', false]]);
+    });
+
+    it('puts it back in the team\'s Inbox with "Not spam" in "All Junk"', async () => {
+      useEmailStore.setState({ unifiedRole: 'junk', selectedMailbox: '__unified_junk' });
+
+      await useEmailStore.getState().batchUndoSpam(client016, ['eaaaaab']);
+
+      expect(callsOf(client016.undoSpam)).toEqual([['eaaaaab', 'a', 'c']]);
+    });
+
+    it('reports a selected id found neither listed nor in a thread, and writes nothing for it', async () => {
+      useEmailStore.setState({ selectedEmailIds: new Set(['gone']) });
+
+      await expect(useEmailStore.getState().batchMarkAsSpam(client016, ['gone'])).rejects.toThrow(/not found/);
+
+      expect(callsOf(client016.markAsSpam)).toEqual([]);
+      expect(useEmailStore.getState().selectedEmailIds).toEqual(new Set(['gone']));
+    });
+  });
+});
