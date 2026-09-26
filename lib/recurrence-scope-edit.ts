@@ -816,7 +816,10 @@ function followingOverrides(
     const target = targets.get(key);
     if (!target) continue;
     const opened = key === splitKey;
-    const { updated: _updated, ...rest } = override as OverrideEntry;
+    // The new series starts at a SEQUENCE of its own. The old series' number
+    // came along, and 0.16.23 listed that occurrence twice in the new series,
+    // changed and as the series has it (live, organizer and attendee alike).
+    const { updated: _updated, sequence: _sequence, ...rest } = override as OverrideEntry;
     let entry = withParticipantsOf(rest, to.participants);
     if (!entry.excluded) {
       if (turned) {
@@ -911,12 +914,18 @@ export function followingSeriesData(
   delete data.recurrenceId;
   delete data.recurrenceOverrides;
   if (data.participants) {
+    // The series' organizer, by the exact address it is organized under: the
+    // editor writes one only for an event that had none. Created without it,
+    // 0.16.23 made the user who created the rest its organizer, whatever the
+    // owner participant says - a sharee who split the owner's meeting, the
+    // main address for a series organized under an alias. 1.0 takes the
+    // owner participant (live).
+    data.organizerCalendarAddress ??= master.organizerCalendarAddress;
     data.participants = participantsAskedAgain({
       participants: data.participants,
-      organizerCalendarAddress: data.organizerCalendarAddress ?? master.organizerCalendarAddress,
+      organizerCalendarAddress: data.organizerCalendarAddress,
     }) ?? data.participants;
   }
-
   const overrides = followingOverrides(
     options.overrides, splitKey,
     { start: master.start, timeZone: master.timeZone, showWithoutTime: !!master.showWithoutTime, recurrenceRules: originalRules },
