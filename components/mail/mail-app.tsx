@@ -790,12 +790,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     onToggleSpam: async () => {
       if (isScheduledView) return;
-      const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
+      // An aggregate role view ("All Junk") selects a virtual folder: its
+      // role decides, as for the list's batch actions.
+      const currentRole = mailboxes.find(m => m.id === selectedMailbox)?.role
+        ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
       // Marking your own outgoing mail as spam makes no sense - the toolbar
       // and menus hide the action in Sent/Drafts/Scheduled, so the shortcut
       // is a no-op there too.
-      if (['sent', 'drafts', 'scheduled'].includes(currentMailbox?.role || '')) return;
-      const isInJunk = currentMailbox?.role === 'junk';
+      if (['sent', 'drafts', 'scheduled'].includes(currentRole || '')) return;
+      const isInJunk = currentRole === 'junk';
       if (selectedEmailIds.size > 0 && client) {
         const ids = Array.from(selectedEmailIds);
         try {
@@ -868,7 +871,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailIds, mailboxes, isScheduledView]);
+  }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailIds, mailboxes, isScheduledView, isUnifiedView, unifiedRole]);
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts({

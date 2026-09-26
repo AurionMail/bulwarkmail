@@ -228,7 +228,12 @@ interface EmailStore {
    * single-account `moveToMailbox` when source and destination share an account.
    */
   moveToMailboxCrossAware: (client: IJMAPClient, emailId: string, mailboxId: string) => Promise<void>;
-  moveEmailsToMailbox: (client: IJMAPClient, emailIds: string[], mailboxId: string) => Promise<void>;
+  /**
+   * `destLocalAccountId`: the login whose folder list `mailboxId` is from (a
+   * drop target in the multi-account sidebar); by default the viewed one's.
+   * Only a list that mixes accounts needs it.
+   */
+  moveEmailsToMailbox: (client: IJMAPClient, emailIds: string[], mailboxId: string, destLocalAccountId?: string | null) => Promise<void>;
   moveThreadToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string) => Promise<void>;
   /**
    * Move emails across JMAP accounts. JMAP has no native cross-account move,
@@ -1101,18 +1106,44 @@ function isUnscopedSearchActive(
  * folder: the unified / cross-account views, a tag view (#1038) and an
  * "All folders" search (#1082).
  */
-function isAggregateListView(): boolean {
+export function isAggregateListView(): boolean {
   const s = useEmailStore.getState();
   return s.isUnifiedView || !!s.selectedKeyword || isUnscopedSearchActive(s);
 }
 
 /** A batch write's share for one source of an aggregate list (see groupBySource). */
-interface SourceBatch {
+interface SourceBatch<T extends SourceStamped = SourceStamped> {
   /** Login that reaches the messages (`sourceClientAccountId`). */
   clientAccountId?: string;
   /** JMAP account that owns them; undefined for undecorated messages. */
   accountId?: string;
   ids: string[];
+  messages: T[];
+}
+
+type SourceStamped = { id: string; sourceClientAccountId?: string; sourceAccountId?: string };
+
+/** The login and account a message was stamped with; '' for an undecorated one. */
+function sourceKey(message: { sourceClientAccountId?: string; sourceAccountId?: string }): string {
+  return message.sourceAccountId ? `${message.sourceClientAccountId ?? ''}|${message.sourceAccountId}` : '';
+}
+
+/**
+ * One row of an aggregate list: its source and its id. The id alone can name
+ * rows of several accounts, since ids repeat across accounts and servers.
+ */
+function sourceRowKey(message: SourceStamped): string {
+  return `${sourceKey(message)}#${message.id}`;
+}
+
+/**
+ * Whether the open message is one of the rows `rowKeys` names (sourceRowKey).
+ * A copy without the list's source stamps goes by its id.
+ */
+function isOneOfRows(email: SourceStamped | null | undefined, rowKeys: Set<string>): boolean {
+  if (!email) return false;
+  if (email.sourceAccountId) return rowKeys.has(sourceRowKey(email));
+  return [...rowKeys].some(key => key.endsWith(`#${email.id}`));
 }
 
 /**
@@ -1124,19 +1155,33 @@ interface SourceBatch {
  * message ids name other messages. Messages without source stamps (a plain
  * folder view) form one group without an account, for the caller's client.
  */
-function groupBySource(
-  messages: Array<{ id: string; sourceClientAccountId?: string; sourceAccountId?: string }>,
-): SourceBatch[] {
-  const groups = new Map<string, SourceBatch>();
+function groupBySource<T extends SourceStamped>(messages: T[]): SourceBatch<T>[] {
+  const groups = new Map<string, SourceBatch<T>>();
   for (const message of messages) {
     const accountId = message.sourceAccountId || undefined;
     const clientAccountId = accountId ? message.sourceClientAccountId : undefined;
-    const key = accountId ? `${clientAccountId ?? ''}|${accountId}` : '';
-    const group = groups.get(key) ?? { clientAccountId, accountId, ids: [] };
+    const key = sourceKey(message);
+    const group = groups.get(key) ?? { clientAccountId, accountId, ids: [], messages: [] };
     group.ids.push(message.id);
+    group.messages.push(message);
     groups.set(key, group);
   }
   return [...groups.values()];
+}
+
+/** Messages of a batch write that were left as they were, and why. */
+type BatchFailure = { ids: string[]; error: unknown };
+
+/**
+ * What a batch write reports when some of its groups failed: the reason when
+ * one group failed, else how many messages were left as they were and the
+ * first reason.
+ */
+function batchFailureMessage(failures: BatchFailure[], action: string): string {
+  const reason = (error: unknown) => (error instanceof Error && error.message ? error.message : `Failed to ${action}`);
+  if (failures.length === 1) return reason(failures[0].error);
+  const count = failures.reduce((sum, failure) => sum + failure.ids.length, 0);
+  return `Failed to ${action} ${count} emails; first error: ${reason(failures[0].error)}`;
 }
 
 /**
@@ -1167,6 +1212,272 @@ function sourceMailboxes(
 ): Mailbox[] | undefined {
   return (clientAccountId ? state.accountMailboxes[sourceMailboxesKey(clientAccountId, jmapAccountId)] : undefined)
     ?? state.accountMailboxes[jmapAccountId];
+}
+
+/**
+ * The folders a SourceBatch's role-based destinations (Archive, Junk, Inbox)
+ * come from: its source's own list, or the viewed account's for undecorated
+ * messages.
+ */
+function sourceBatchMailboxes(batch: SourceBatch): Mailbox[] {
+  return batch.accountId
+    ? (sourceMailboxes(useEmailStore.getState(), batch.clientAccountId, batch.accountId) ?? [])
+    : resolveActionMailboxes();
+}
+
+/** A folder that messages of an aggregate list are moved to (resolveMoveDestination). */
+interface MoveDestination {
+  /** The login whose folder list the folder was picked from. */
+  localAccountId: string | null;
+  /** The store id the folder was picked by. */
+  storeId: string;
+  /** The account that owns the folder, and the folder's id there. */
+  accountId: string | undefined;
+  mailboxId: string;
+  isShared: boolean;
+}
+
+/**
+ * The folder `storeId` names in the folder list of `localAccountId` - the
+ * login a drop target is listed under - or, by default, of the account being
+ * viewed, whose list "Move to" offers.
+ */
+function resolveMoveDestination(passedClient: IJMAPClient, storeId: string, localAccountId?: string | null): MoveDestination {
+  const state = useEmailStore.getState();
+  const auth = useAuthStore.getState();
+  const mailboxes = localAccountId
+    ? ((localAccountId === auth.activeAccountId ? state.mailboxes : state.accountMailboxes[localAccountId]) ?? [])
+    : resolveActionMailboxes();
+  const mailbox = mailboxes.find((mb) => mb.id === storeId);
+  const client = localAccountId ? auth.getClientForAccount(localAccountId) : resolveActionClient(passedClient);
+  return {
+    localAccountId: localAccountId ?? state.viewingAccountId ?? auth.activeAccountId,
+    storeId,
+    accountId: mailbox?.accountId ?? client?.getAccountId(),
+    mailboxId: mailbox?.originalId || storeId,
+    isShared: !!mailbox?.isShared,
+  };
+}
+
+/**
+ * Moves the messages of an aggregate list into one folder. Only the messages
+ * of the login and account that own the folder change folders in place: a
+ * mailbox id means nothing in another account, where the same id - Stalwart
+ * numbers the folders of every account alike - names that account's own
+ * folder, or another one. The others go through the cross-account move
+ * (crossAccountMoveEmails): Email/copy within one login, a download and an
+ * import across logins. Messages whose login is gone stay where they are.
+ *
+ * Returns the rows moved in place (the cross-account move takes the rows it
+ * moved off the list itself) and what failed.
+ */
+async function moveSourceBatches<T extends SourceStamped>(
+  batches: SourceBatch<T>[],
+  destination: MoveDestination,
+  passedClient: IJMAPClient,
+): Promise<{ moved: T[]; failures: BatchFailure[] }> {
+  const callerLogin = useEmailStore.getState().viewingAccountId ?? useAuthStore.getState().activeAccountId;
+  const moved: T[] = [];
+  const failures: BatchFailure[] = [];
+  const inPlace: Array<{ batch: SourceBatch<T>; client: IJMAPClient }> = [];
+  const across: Array<{ batch: SourceBatch<T>; login: string }> = [];
+  for (const batch of batches) {
+    const client = sourceBatchClient(batch, passedClient);
+    const login = batch.accountId ? batch.clientAccountId : callerLogin;
+    if (!client || !login) {
+      failures.push({ ids: batch.ids, error: new Error('Not connected') });
+    } else if (login === destination.localAccountId && (batch.accountId ?? client.getAccountId()) === destination.accountId) {
+      inPlace.push({ batch, client });
+    } else {
+      across.push({ batch, login });
+    }
+  }
+
+  const outcomes = await Promise.allSettled(
+    inPlace.map(({ batch, client }) => client.batchMoveEmails(batch.ids, destination.mailboxId, batch.accountId)),
+  );
+  outcomes.forEach((outcome, i) => {
+    const { batch } = inPlace[i];
+    if (outcome.status === 'fulfilled') {
+      moved.push(...batch.messages);
+      return;
+    }
+    // A refusal names the messages the server left alone; the rest moved.
+    const refused = new Set(jmapErrorFailedIds(outcome.reason) ?? batch.ids);
+    moved.push(...batch.messages.filter((message) => !refused.has(message.id)));
+    failures.push({ ids: batch.ids.filter((id) => refused.has(id)), error: outcome.reason });
+  });
+
+  // One at a time: each run reports through the store's loading state.
+  for (const { batch, login } of across) {
+    try {
+      if (!destination.localAccountId) throw new Error('Destination account is not connected');
+      await useEmailStore.getState().crossAccountMoveEmails(
+        new Map([[login, batch.ids]]),
+        destination.localAccountId,
+        destination.mailboxId,
+        destination.isShared ? destination.accountId : undefined,
+        batch.accountId,
+      );
+    } catch (error) {
+      const listed = new Set(useEmailStore.getState().emails.map((email) => email.id));
+      failures.push({ ids: batch.ids.filter((id) => listed.has(id)), error });
+    }
+  }
+  return { moved, failures };
+}
+
+/**
+ * Moves rows of an aggregate list into one folder (moveSourceBatches). The
+ * rows that moved leave the list and the selection, with their folders'
+ * counters; the others stay. Returns what failed.
+ */
+async function moveRowsToMailbox(rows: Email[], destination: MoveDestination, passedClient: IJMAPClient): Promise<BatchFailure[]> {
+  const { moved, failures } = await moveSourceBatches(groupBySource(rows), destination, passedClient);
+  if (moved.length === 0) return failures;
+  const movedKeys = new Set(moved.map(sourceRowKey));
+  const unread = moved.filter((email) => !email.keywords?.$seen).length;
+  const arrive = (mailbox: Mailbox) => (mailbox.id === destination.storeId
+    ? { ...mailbox, totalEmails: mailbox.totalEmails + moved.length, unreadEmails: mailbox.unreadEmails + unread }
+    : mailbox);
+  useEmailStore.setState((state) => {
+    // Out of each message's own account list, into the folder's login's list.
+    const patch = applyBatchMailboxCounterUpdate(state, moved, applyMoveOutCounters);
+    const activeId = useAuthStore.getState().activeAccountId;
+    if (!destination.localAccountId || destination.localAccountId === activeId) {
+      patch.mailboxes = patch.mailboxes.map(arrive);
+    } else if (patch.accountMailboxes[destination.localAccountId]) {
+      patch.accountMailboxes[destination.localAccountId] = patch.accountMailboxes[destination.localAccountId].map(arrive);
+    }
+    const selectedEmailIds = new Set(state.selectedEmailIds);
+    for (const email of moved) selectedEmailIds.delete(email.id);
+    return {
+      emails: state.emails.filter((email) => !movedKeys.has(sourceRowKey(email))),
+      selectedEmail: isOneOfRows(state.selectedEmail, movedKeys) ? null : state.selectedEmail,
+      selectedEmailIds,
+      ...patch,
+    };
+  });
+  return failures;
+}
+
+/**
+ * Batch archive in a list that mixes accounts: each login and account
+ * archives into its own Archive. One Archive for the whole selection moved
+ * every message by its id in that Archive's account, where the ids of the
+ * other accounts' messages name unrelated messages - or none. The rows that
+ * were archived leave the list and the selection, the others stay and the
+ * failure is reported through `error`. Throws when nothing was archived.
+ */
+async function archiveAggregateSelection(passedClient: IJMAPClient, selected: Email[]): Promise<void> {
+  if (selected.length === 0) return;
+  const mode = useSettingsStore.getState().archiveMode;
+  useEmailStore.setState({ isLoading: true, error: null });
+
+  const archived: Email[] = [];
+  const failures: BatchFailure[] = [];
+  await Promise.all(groupBySource(selected).map(async (batch) => {
+    const client = sourceBatchClient(batch, passedClient);
+    const mailboxes = sourceBatchMailboxes(batch);
+    const archive = batch.accountId
+      ? findArchiveMailbox(mailboxes, undefined, batch.accountId)
+      : findArchiveMailbox(mailboxes, useEmailStore.getState().selectedMailbox);
+    try {
+      if (!client) throw new Error('Not connected');
+      if (!archive) throw new ArchiveMailboxNotFoundError();
+      await client.batchArchiveEmails(
+        batch.messages.map(e => ({ id: e.id, receivedAt: e.receivedAt })),
+        archive.originalId || archive.id,
+        mode,
+        mailboxes,
+        archive.accountId,
+      );
+      archived.push(...batch.messages);
+    } catch (error) {
+      failures.push({ ids: batch.ids, error });
+    }
+  }));
+
+  const error = failures.length > 0 ? batchFailureMessage(failures, 'archive') : null;
+  if (archived.length === 0) {
+    useEmailStore.setState({ error, isLoading: false });
+    throw failures[0].error;
+  }
+  const archivedKeys = new Set(archived.map(sourceRowKey));
+  useEmailStore.setState((state) => {
+    const selectedEmailIds = new Set(state.selectedEmailIds);
+    for (const email of archived) selectedEmailIds.delete(email.id);
+    return {
+      emails: state.emails.filter(e => !archivedKeys.has(sourceRowKey(e))),
+      selectedEmailIds,
+      isLoading: false,
+      error,
+    };
+  });
+
+  // A year/month archive can create new sub-folders.
+  await refreshMailboxesForViewingAccount(passedClient);
+  await useEmailStore.getState().refreshCurrentMailbox(passedClient);
+}
+
+/** Messages of a batch spam write that live in one account, and how to reach it. */
+interface SpamWriteTarget {
+  messages: Email[];
+  client: IJMAPClient | undefined;
+  /** Their account; undefined for the client's own. */
+  accountId: string | undefined;
+  /** "Not spam": the id of that account's Inbox, if it has one. */
+  mailboxId?: string;
+}
+
+/**
+ * Runs a batch "Spam" or "Not spam" message by message, as the client moves
+ * them, and updates the list: the messages that moved leave it and the
+ * selection, from their folders' counters into the `role` folder of their
+ * account; the others stay. Throws after that when any was left where it was,
+ * so the caller doesn't report the whole selection as moved.
+ */
+async function writeSpamBatches(
+  targets: SpamWriteTarget[],
+  write: (target: SpamWriteTarget, email: Email) => Promise<void>,
+  counters: { role: string; arriveRead: boolean },
+  action: string,
+): Promise<void> {
+  const done: Email[] = [];
+  const accountOf = new Map<Email, string | undefined>();
+  const failures: BatchFailure[] = [];
+  for (const target of targets) {
+    if (!target.client) {
+      failures.push({ ids: target.messages.map(e => e.id), error: new Error('Not connected') });
+      continue;
+    }
+    for (const email of target.messages) {
+      try {
+        await write(target, email);
+        done.push(email);
+        accountOf.set(email, target.accountId);
+      } catch (error) {
+        failures.push({ ids: [email.id], error });
+      }
+    }
+  }
+
+  if (done.length > 0) {
+    const doneKeys = new Set(done.map(sourceRowKey));
+    useEmailStore.setState(state => {
+      const patch = applyBatchMailboxCounterUpdate(
+        state, done, applyRoleMoveCounters(counters.role, email => accountOf.get(email), counters.arriveRead));
+      const selectedEmailIds = new Set(state.selectedEmailIds);
+      for (const email of done) selectedEmailIds.delete(email.id);
+      return {
+        emails: state.emails.filter(e => !doneKeys.has(sourceRowKey(e))),
+        selectedEmail: isOneOfRows(state.selectedEmail, doneKeys) ? null : state.selectedEmail,
+        selectedEmailIds,
+        ...patch,
+      };
+    });
+  }
+  if (failures.length > 0) throw new Error(batchFailureMessage(failures, action));
 }
 
 /**
@@ -1331,6 +1642,55 @@ function applyDeleteCounters(
     unreadEmails: Math.max(0, mailbox.unreadEmails + dUnread),
     totalThreads: Math.max(0, mailbox.totalThreads + dTotal),
     unreadThreads: Math.max(0, mailbox.unreadThreads + dUnread),
+  };
+}
+
+// Per-mailbox counter map (for applyBatchMailboxCounterUpdate) for moving a
+// group of emails out of their folders: message counts only, like the
+// destination's gain.
+function applyMoveOutCounters(
+  mailbox: Mailbox,
+  group: Array<{ sourceClientAccountId?: string }>,
+): Mailbox {
+  let dTotal = 0;
+  let dUnread = 0;
+  for (const email of group as Email[]) {
+    if (emailInMailbox(email, mailbox)) {
+      dTotal--;
+      if (!email.keywords?.$seen) dUnread--;
+    }
+  }
+  return dTotal === 0 && dUnread === 0 ? mailbox : {
+    ...mailbox,
+    totalEmails: Math.max(0, mailbox.totalEmails + dTotal),
+    unreadEmails: Math.max(0, mailbox.unreadEmails + dUnread),
+  };
+}
+
+// Per-mailbox counter map (for applyBatchMailboxCounterUpdate) for emails
+// moved to the folder with `role` (Junk, Inbox) of their own account: they
+// leave their folders and join that one, unread unless `arriveRead`.
+// `accountOf` names an email's account; undefined stands for the own one.
+function applyRoleMoveCounters(role: string, accountOf: (email: Email) => string | undefined, arriveRead: boolean) {
+  return (mailbox: Mailbox, group: Array<{ sourceClientAccountId?: string }>): Mailbox => {
+    let dTotal = 0;
+    let dUnread = 0;
+    for (const email of group as Email[]) {
+      const unread = !email.keywords?.$seen;
+      const accountId = accountOf(email);
+      if (emailInMailbox(email, mailbox)) {
+        dTotal--;
+        if (unread) dUnread--;
+      } else if (mailbox.role === role && (accountId ? mailbox.accountId === accountId : !mailbox.isShared)) {
+        dTotal++;
+        if (unread && !arriveRead) dUnread++;
+      }
+    }
+    return dTotal === 0 && dUnread === 0 ? mailbox : {
+      ...mailbox,
+      totalEmails: Math.max(0, mailbox.totalEmails + dTotal),
+      unreadEmails: Math.max(0, mailbox.unreadEmails + dUnread),
+    };
   };
 }
 
@@ -2546,6 +2906,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     const email = state.emails.find((e) => e.id === emailId);
     if (!email) return;
 
+    // A list that mixes accounts offers the viewed account's folders, and
+    // the message may be in any account (moveSourceBatches). Its own folder
+    // list would take the id for one of that account's folders.
+    if (isAggregateListView() && email.sourceAccountId) {
+      const failures = await moveRowsToMailbox([email], resolveMoveDestination(client, destinationMailboxId), client);
+      if (failures.length > 0) throw failures[0].error;
+      return;
+    }
+
     const { mailboxes } = resolveEmailActionContext(email, client);
     const find = (id: string) =>
       mailboxes.find((mb) => mb.id === id) ?? state.mailboxes.find((mb) => mb.id === id);
@@ -2645,8 +3014,27 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
   },
 
-  moveEmailsToMailbox: async (client, emailIds, destinationMailboxId) => {
+  moveEmailsToMailbox: async (client, emailIds, destinationMailboxId, destLocalAccountId) => {
     if (emailIds.length === 0) return;
+    const idSet = new Set(emailIds);
+
+    if (isAggregateListView()) {
+      // Emails may span logins and accounts: each group changes folders in
+      // place only in the folder's own account (moveSourceBatches). Rows
+      // that could not be moved stay.
+      const failures = await moveRowsToMailbox(
+        get().emails.filter(e => idSet.has(e.id)),
+        resolveMoveDestination(client, destinationMailboxId, destLocalAccountId),
+        client,
+      );
+      if (failures.length > 0) {
+        const error = new Error(batchFailureMessage(failures, 'move'));
+        set({ error: error.message });
+        throw error;
+      }
+      return;
+    }
+
     if (emailIds.length === 1) {
       await get().moveToMailbox(client, emailIds[0], destinationMailboxId);
       return;
@@ -2657,24 +3045,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const mailboxes = resolveActionMailboxes();
       const destMailbox = mailboxes.find(mb => mb.id === destinationMailboxId);
       const jmapDestId = destMailbox?.originalId || destinationMailboxId;
-      const idSet = new Set(emailIds);
       const affected = emails.filter(e => idSet.has(e.id));
 
-      if (isAggregateListView()) {
-        // In unified view, emails may span accounts – group by login and owning
-        // JMAP account and dispatch through the login client that can reach each
-        // one: `sourceClientAccountId` (a real AccountEntry.id) picks the client,
-        // `sourceAccountId` is passed for owner-scoped routing (groupBySource).
-        await Promise.all(groupBySource(affected).map(async (batch) => {
-          const acctClient = sourceBatchClient(batch, client);
-          if (!acctClient) return;
-          await acctClient.batchMoveEmails(batch.ids, jmapDestId, batch.accountId);
-        }));
-      } else {
-        const currentMailbox = mailboxes.find(mb => mb.id === selectedMailbox);
-        const accountId = currentMailbox?.isShared ? currentMailbox.accountId : undefined;
-        await resolveActionClient(client).batchMoveEmails(emailIds, jmapDestId, accountId);
-      }
+      const currentMailbox = mailboxes.find(mb => mb.id === selectedMailbox);
+      const accountId = currentMailbox?.isShared ? currentMailbox.accountId : undefined;
+      await resolveActionClient(client).batchMoveEmails(emailIds, jmapDestId, accountId);
 
       // Adjust counters and drop moved emails from the current view.
       let unreadDelta = 0;
@@ -2685,21 +3060,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
       set((state) => {
         // Decrement source folders per the email's own account list (#281).
-        const patch = applyBatchMailboxCounterUpdate(state, affected, (mb, group) => {
-          let dTotal = 0;
-          let dUnread = 0;
-          for (const e of group as Email[]) {
-            if (emailInMailbox(e, mb)) {
-              dTotal--;
-              if (!e.keywords?.$seen) dUnread--;
-            }
-          }
-          return dTotal === 0 && dUnread === 0 ? mb : {
-            ...mb,
-            totalEmails: Math.max(0, mb.totalEmails + dTotal),
-            unreadEmails: Math.max(0, mb.unreadEmails + dUnread),
-          };
-        });
+        const patch = applyBatchMailboxCounterUpdate(state, affected, applyMoveOutCounters);
         // The destination folder (picked from the active/viewing list) gains them.
         patch.mailboxes = patch.mailboxes.map(mb => mb.id === destinationMailboxId
           ? { ...mb, totalEmails: mb.totalEmails + movedCount, unreadEmails: mb.unreadEmails + unreadDelta }
@@ -3476,17 +3837,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const emailIdsArray = Array.from(selectedEmailIds);
 
       if (isAggregateListView()) {
-        // Group by login and owning JMAP account; dispatch through the reaching
-        // login client (groupBySource).
-        const destMailbox = resolveActionMailboxes().find(mb => mb.id === toMailboxId);
-        const jmapDestId = destMailbox?.originalId || toMailboxId;
-        const batches = groupBySource(emailIdsArray.map(id => emails.find(e => e.id === id) ?? { id }));
-        const promises = batches.map(async (batch) => {
-          const acctClient = sourceBatchClient(batch, client);
-          if (!acctClient) return;
-          await acctClient.batchMoveEmails(batch.ids, jmapDestId, batch.accountId);
-        });
-        await Promise.allSettled(promises);
+        // Only messages in the folder's own login and account change folders
+        // in place; the others are moved across accounts (moveSourceBatches).
+        // What could not be moved stays listed and selected.
+        const failures = await moveRowsToMailbox(
+          emails.filter(e => selectedEmailIds.has(e.id)),
+          resolveMoveDestination(client, toMailboxId),
+          client,
+        );
+        set({ isLoading: false, error: failures.length > 0 ? batchFailureMessage(failures, 'move') : null });
       } else {
         // Non-unified: route to the viewed shared/group account (if any), reached
         // through the active client. Resolve the destination to its bare owner id
@@ -3495,16 +3854,16 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         const destMailbox = resolveActionMailboxes().find(mb => mb.id === toMailboxId);
         const jmapDestId = destMailbox?.originalId || toMailboxId;
         await resolveActionClient(client).batchMoveEmails(emailIdsArray, jmapDestId, viewAccountId);
+
+        // Update local state - remove from current view since they moved
+        const remainingEmails = emails.filter(e => !selectedEmailIds.has(e.id));
+
+        set({
+          emails: remainingEmails,
+          selectedEmailIds: new Set(),
+          isLoading: false
+        });
       }
-
-      // Update local state - remove from current view since they moved
-      const remainingEmails = emails.filter(e => !selectedEmailIds.has(e.id));
-
-      set({
-        emails: remainingEmails,
-        selectedEmailIds: new Set(),
-        isLoading: false
-      });
 
       // Refresh emails to get updated list (honors active search/filters)
       if (!get().isUnifiedView) {
@@ -3522,6 +3881,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     const { selectedEmailIds, emails } = get();
     const mailboxes = resolveActionMailboxes();
     if (selectedEmailIds.size === 0) return;
+
+    if (isAggregateListView()) {
+      await archiveAggregateSelection(client, emails.filter(e => selectedEmailIds.has(e.id)));
+      return;
+    }
 
     // Scope the archive folder to the viewed shared/group account (if any) so the
     // move lands on the owner account, not the user's own archive (which appears
@@ -3733,67 +4097,32 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
   batchMarkAsSpam: async (client, emailIds) => {
     const { selectedMailbox, emails } = get();
-    const mailboxes = resolveActionMailboxes();
-    const effectiveClient = resolveActionClient(client);
-
-    const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
-    if (!currentMailbox) return;
-
     const alsoMarkRead = useSettingsStore.getState().deleteAction === 'trash-and-read';
+    const rows = emailIds.map(id => emails.find(e => e.id === id) ?? ({ id } as Email));
+
+    // Each message goes to the Junk of its own account: in a list that mixes
+    // accounts the one it is stamped with (the selected folder is a virtual
+    // one there), otherwise the viewed folder's.
+    let targets: SpamWriteTarget[];
+    if (isAggregateListView()) {
+      targets = groupBySource(rows).map(batch => ({
+        messages: batch.messages, client: sourceBatchClient(batch, client), accountId: batch.accountId,
+      }));
+    } else {
+      const currentMailbox = resolveActionMailboxes().find(m => m.id === selectedMailbox);
+      // Throw rather than return: the caller reports the mail as moved. (#695)
+      if (!currentMailbox) throw new Error('Mailbox not found - cannot mark as spam');
+      targets = [{ messages: rows, client: resolveActionClient(client), accountId: currentMailbox.accountId }];
+    }
 
     try {
-      for (const emailId of emailIds) {
-        const email = emails.find(e => e.id === emailId);
-        const markRead = alsoMarkRead && !!email && !email.keywords?.$seen;
-        await effectiveClient.markAsSpam(emailId, currentMailbox.accountId, markRead);
-      }
-
-      // Adjust counters and drop the emails from the current view. Junk is
-      // resolved the same way the client did for the move itself.
-      const affected = emails.filter(e => emailIds.includes(e.id));
-      const junkMailbox = mailboxes.find(m =>
-        currentMailbox.accountId
-          ? (m.role === 'junk' && m.accountId === currentMailbox.accountId)
-          : (m.role === 'junk' && !m.isShared)
-      );
-      let junkTotal = 0;
-      let junkUnread = 0;
-      for (const e of affected) {
-        junkTotal += 1;
+      await writeSpamBatches(
+        targets,
+        (target, email) => target.client!.markAsSpam(email.id, target.accountId, alsoMarkRead && !!email.keywords && !email.keywords.$seen),
         // After marking read in the same request, the email arrives in junk as read.
-        if (!e.keywords?.$seen && !alsoMarkRead) junkUnread += 1;
-      }
-
-      set(state => {
-        // Decrement source folders per the email's own account list (#281).
-        const patch = applyBatchMailboxCounterUpdate(state, affected, (mb, group) => {
-          let dTotal = 0;
-          let dUnread = 0;
-          for (const e of group as Email[]) {
-            if (emailInMailbox(e, mb)) {
-              dTotal--;
-              if (!e.keywords?.$seen) dUnread--;
-            }
-          }
-          return dTotal === 0 && dUnread === 0 ? mb : {
-            ...mb,
-            totalEmails: Math.max(0, mb.totalEmails + dTotal),
-            unreadEmails: Math.max(0, mb.unreadEmails + dUnread),
-          };
-        });
-        // The junk folder (picked from the active/viewing list) gains them.
-        if (junkMailbox) {
-          patch.mailboxes = patch.mailboxes.map(mb => mb.id === junkMailbox.id
-            ? { ...mb, totalEmails: mb.totalEmails + junkTotal, unreadEmails: mb.unreadEmails + junkUnread }
-            : mb);
-        }
-        return {
-          emails: state.emails.filter(e => !emailIds.includes(e.id)),
-          selectedEmail: emailIds.includes(state.selectedEmail?.id || '') ? null : state.selectedEmail,
-          selectedEmailIds: new Set(),
-          ...patch,
-        };
-      });
+        { role: 'junk', arriveRead: alsoMarkRead },
+        'mark as spam',
+      );
     } catch (error) {
       console.error('Failed to batch mark as spam:', error);
       throw error;
@@ -3801,63 +4130,46 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   batchUndoSpam: async (client: IJMAPClient, emailIds: string[]) => {
-    const { selectedMailbox } = get();
-    const mailboxes = resolveActionMailboxes();
-    const effectiveClient = resolveActionClient(client);
+    const { selectedMailbox, emails } = get();
+    const rows = emailIds.map(id => emails.find(e => e.id === id) ?? ({ id } as Email));
 
-    // Find inbox (batch operations don't preserve original mailboxes)
-    const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
-    const accountId = currentMailbox?.accountId;
-
-    const inboxMailbox = mailboxes.find(m =>
-      m.role === 'inbox' &&
-      (accountId ? m.accountId === accountId : !m.accountId)
-    );
-
-    if (!inboxMailbox) {
-      throw new Error('Inbox not found');
+    // Back to the Inbox of each message's own account (batch operations don't
+    // preserve original mailboxes): in a list that mixes accounts ("All
+    // Junk") the one it is stamped with, otherwise the viewed folder's.
+    let targets: SpamWriteTarget[];
+    if (isAggregateListView()) {
+      targets = groupBySource(rows).map(batch => {
+        const inbox = sourceBatchMailboxes(batch).find(m =>
+          m.role === 'inbox' && (batch.accountId ? m.accountId === batch.accountId : !m.isShared));
+        return {
+          messages: batch.messages, client: sourceBatchClient(batch, client), accountId: batch.accountId,
+          mailboxId: inbox ? (inbox.originalId || inbox.id) : undefined,
+        };
+      });
+    } else {
+      const mailboxes = resolveActionMailboxes();
+      const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
+      const accountId = currentMailbox?.accountId;
+      const inboxMailbox = mailboxes.find(m =>
+        m.role === 'inbox' &&
+        (accountId ? m.accountId === accountId : !m.accountId)
+      );
+      if (!inboxMailbox) {
+        throw new Error('Inbox not found');
+      }
+      targets = [{ messages: rows, client: resolveActionClient(client), accountId, mailboxId: inboxMailbox.originalId || inboxMailbox.id }];
     }
 
     try {
-      for (const emailId of emailIds) {
-        await effectiveClient.undoSpam(emailId, inboxMailbox.originalId || inboxMailbox.id, accountId);
-      }
-
-      // Adjust counters and drop the restored emails from the junk view.
-      const affected = get().emails.filter(e => emailIds.includes(e.id));
-      let unreadDelta = 0;
-      for (const e of affected) {
-        if (!e.keywords?.$seen) unreadDelta += 1;
-      }
-
-      set(state => {
-        // Decrement source folders per the email's own account list (#281).
-        const patch = applyBatchMailboxCounterUpdate(state, affected, (mb, group) => {
-          let dTotal = 0;
-          let dUnread = 0;
-          for (const e of group as Email[]) {
-            if (emailInMailbox(e, mb)) {
-              dTotal--;
-              if (!e.keywords?.$seen) dUnread--;
-            }
-          }
-          return dTotal === 0 && dUnread === 0 ? mb : {
-            ...mb,
-            totalEmails: Math.max(0, mb.totalEmails + dTotal),
-            unreadEmails: Math.max(0, mb.unreadEmails + dUnread),
-          };
-        });
-        // The inbox (picked from the active/viewing list) gains them.
-        patch.mailboxes = patch.mailboxes.map(mb => mb.id === inboxMailbox.id
-          ? { ...mb, totalEmails: mb.totalEmails + affected.length, unreadEmails: mb.unreadEmails + unreadDelta }
-          : mb);
-        return {
-          emails: state.emails.filter(e => !emailIds.includes(e.id)),
-          selectedEmail: emailIds.includes(state.selectedEmail?.id || '') ? null : state.selectedEmail,
-          selectedEmailIds: new Set(),
-          ...patch,
-        };
-      });
+      await writeSpamBatches(
+        targets,
+        (target, email) => {
+          if (!target.mailboxId) throw new Error('Inbox not found');
+          return target.client!.undoSpam(email.id, target.mailboxId, target.accountId);
+        },
+        { role: 'inbox', arriveRead: false },
+        'mark as not spam',
+      );
     } catch (error) {
       console.error('Failed to batch restore emails:', error);
       throw error;

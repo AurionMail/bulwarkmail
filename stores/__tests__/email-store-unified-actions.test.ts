@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useEmailStore, buildUnifiedAccountClients } from '../email-store';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useEmailStore, buildUnifiedAccountClients, ArchiveMailboxNotFoundError } from '../email-store';
 import { useAuthStore } from '../auth-store';
 import { useAccountStore } from '../account-store';
+import { useSettingsStore } from '../settings-store';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { UnifiedAccountClient } from '@/lib/unified-mailbox';
@@ -60,8 +61,16 @@ function makeClient() {
     batchMarkAsRead: vi.fn().mockResolvedValue(undefined),
     batchDeleteEmails: vi.fn().mockResolvedValue(undefined),
     batchMoveEmails: vi.fn().mockResolvedValue(undefined),
+    batchArchiveEmails: vi.fn().mockResolvedValue(undefined),
+    markAsSpam: vi.fn().mockResolvedValue(undefined),
+    undoSpam: vi.fn().mockResolvedValue(undefined),
+    getMailboxes: vi.fn().mockResolvedValue([]),
   } as unknown as IJMAPClient;
 }
+
+// Some tests replace these with spies.
+const realCrossAccountMoveEmails = useEmailStore.getState().crossAccountMoveEmails;
+const realRefreshCurrentMailbox = useEmailStore.getState().refreshCurrentMailbox;
 
 describe('unified-view single-email action routing (#281)', () => {
   let activeClient: IJMAPClient; // account-a, also the "passed" client
@@ -354,10 +363,31 @@ describe('unified-view batch actions with two logins that share account ids', ()
 
   // Two installs need not number their folders alike: here the 1.0 login's
   // Deleted Items are `k` (own) and `q` (team), the 0.16.23 login's `b`.
-  const own016 = [makeMailbox({ id: 'a', role: 'inbox', accountId: 'e' }), makeMailbox({ id: 'b', name: 'Deleted Items', role: 'trash', accountId: 'e' })];
-  const own10 = [makeMailbox({ id: 'a', role: 'inbox', accountId: 'e' }), makeMailbox({ id: 'k', name: 'Deleted Items', role: 'trash', accountId: 'e' })];
-  const team016 = [makeMailbox({ id: 'c:b', originalId: 'b', name: 'Deleted Items', role: 'trash', isShared: true, accountId: 'c' })];
-  const team10 = [makeMailbox({ id: 'c:q', originalId: 'q', name: 'Deleted Items', role: 'trash', isShared: true, accountId: 'c' })];
+  // Folders the users made get the next free id of their account: the
+  // 0.16.23 login's own Archive is `f`, and so is the team's "Projects".
+  const own016 = [
+    makeMailbox({ id: 'a', role: 'inbox', accountId: 'e' }),
+    makeMailbox({ id: 'b', name: 'Deleted Items', role: 'trash', accountId: 'e' }),
+    makeMailbox({ id: 'c', name: 'Junk Mail', role: 'junk', accountId: 'e' }),
+    makeMailbox({ id: 'f', name: 'Archive', role: 'archive', accountId: 'e' }),
+  ];
+  const own10 = [
+    makeMailbox({ id: 'a', role: 'inbox', accountId: 'e' }),
+    makeMailbox({ id: 'k', name: 'Deleted Items', role: 'trash', accountId: 'e' }),
+    makeMailbox({ id: 'c', name: 'Junk Mail', role: 'junk', accountId: 'e' }),
+    makeMailbox({ id: 'h', name: 'Archive', role: 'archive', accountId: 'e' }),
+  ];
+  const team016 = [
+    makeMailbox({ id: 'c:a', originalId: 'a', name: 'Inbox', role: 'inbox', isShared: true, accountId: 'c' }),
+    makeMailbox({ id: 'c:b', originalId: 'b', name: 'Deleted Items', role: 'trash', isShared: true, accountId: 'c' }),
+    makeMailbox({ id: 'c:f', originalId: 'f', name: 'Projects', isShared: true, accountId: 'c' }),
+    makeMailbox({ id: 'c:g', originalId: 'g', name: 'Archive', role: 'archive', isShared: true, accountId: 'c' }),
+  ];
+  const team10 = [
+    makeMailbox({ id: 'c:a', originalId: 'a', name: 'Inbox', role: 'inbox', isShared: true, accountId: 'c' }),
+    makeMailbox({ id: 'c:q', originalId: 'q', name: 'Deleted Items', role: 'trash', isShared: true, accountId: 'c' }),
+    makeMailbox({ id: 'c:i', originalId: 'i', name: 'Archive', role: 'archive', isShared: true, accountId: 'c' }),
+  ];
 
   beforeEach(() => {
     client016 = makeClient();
@@ -398,10 +428,20 @@ describe('unified-view batch actions with two logins that share account ids', ()
       unifiedScope: [],
       unifiedCounts: [],
       crossUnreadCount: 0,
+      error: null,
+      // The cross-account move and the list refresh have tests of their own.
+      crossAccountMoveEmails: vi.fn().mockResolvedValue(undefined) as never,
+      refreshCurrentMailbox: vi.fn().mockResolvedValue(undefined) as never,
     });
   });
 
+  afterEach(() => {
+    useEmailStore.setState({ crossAccountMoveEmails: realCrossAccountMoveEmails, refreshCurrentMailbox: realRefreshCurrentMailbox });
+  });
+
   const callsOf = (fn: unknown) => (fn as ReturnType<typeof vi.fn>).mock.calls;
+  const crossMoves = () => callsOf(useEmailStore.getState().crossAccountMoveEmails);
+  const listed = () => useEmailStore.getState().emails.map((e) => `${e.sourceClientAccountId}/${e.sourceAccountId}/${e.id}`);
 
   it('marks each login\'s messages read through its own client', async () => {
     await useEmailStore.getState().batchMarkAsRead(client016, true);
@@ -424,18 +464,177 @@ describe('unified-view batch actions with two logins that share account ids', ()
     expect(callsOf(client10.batchMoveEmails)).toEqual([[['m10'], 'k', 'e', false], [['t10'], 'q', 'c', false]]);
   });
 
-  it('moves a selection through each login\'s own client', async () => {
-    await useEmailStore.getState().batchMoveToMailbox(client016, 'archive');
+  // "Move to" offers the viewed login's folders. A folder id means nothing in
+  // another account: the team's `f` is its "Projects", and the 1.0 server's
+  // `e` has folders of its own.
+  it('moves a selection in place only in the folder\'s own login and account (0.16.23 and 1.0 logins)', async () => {
+    await useEmailStore.getState().batchMoveToMailbox(client016, 'f');
 
-    expect(callsOf(client016.batchMoveEmails)).toEqual([[['m016'], 'archive', 'e'], [['t016'], 'archive', 'c']]);
-    expect(callsOf(client10.batchMoveEmails)).toEqual([[['m10'], 'archive', 'e'], [['t10'], 'archive', 'c']]);
+    expect(callsOf(client016.batchMoveEmails)).toEqual([[['m016'], 'f', 'e']]);
+    expect(callsOf(client10.batchMoveEmails)).toEqual([]);
+    // The others are moved across accounts, each from its own login and account.
+    expect(crossMoves()).toEqual([
+      [new Map([['userb@v10', ['m10']]]), 'userb@v016', 'f', undefined, 'e'],
+      [new Map([['userb@v016', ['t016']]]), 'userb@v016', 'f', undefined, 'c'],
+      [new Map([['userb@v10', ['t10']]]), 'userb@v016', 'f', undefined, 'c'],
+    ]);
+    expect(listed()).not.toContain('userb@v016/e/m016');
+    expect(useEmailStore.getState().error).toBeNull();
   });
 
-  it('moves dropped messages through each login\'s own client', async () => {
-    await useEmailStore.getState().moveEmailsToMailbox(client016, ['m016', 'm10', 't10'], 'archive');
+  it('moves a selection into a group folder in place only in that group account of the same login', async () => {
+    useEmailStore.setState({ mailboxes: [...own016, ...team016] });
 
-    expect(callsOf(client016.batchMoveEmails)).toEqual([[['m016'], 'archive', 'e']]);
-    expect(callsOf(client10.batchMoveEmails)).toEqual([[['m10'], 'archive', 'e'], [['t10'], 'archive', 'c']]);
+    await useEmailStore.getState().batchMoveToMailbox(client016, 'c:g');
+
+    expect(callsOf(client016.batchMoveEmails)).toEqual([[['t016'], 'g', 'c']]);
+    expect(callsOf(client10.batchMoveEmails)).toEqual([]);
+    expect(crossMoves()).toEqual([
+      [new Map([['userb@v016', ['m016']]]), 'userb@v016', 'g', 'c', 'e'],
+      [new Map([['userb@v10', ['m10']]]), 'userb@v016', 'g', 'c', 'e'],
+      [new Map([['userb@v10', ['t10']]]), 'userb@v016', 'g', 'c', 'c'],
+    ]);
+  });
+
+  it('keeps what could not be moved listed and selected, and says why', async () => {
+    const refusal = jmapError('Failed to move emails: forbidden', { type: 'forbidden' });
+    refusal.jmapFailedIds = ['m016'];
+    (client016.batchMoveEmails as ReturnType<typeof vi.fn>).mockRejectedValue(refusal);
+    // As crossAccountMoveEmails does: what it moved leaves the list and the selection.
+    useEmailStore.setState({
+      crossAccountMoveEmails: vi.fn(async (bySource: Map<string, string[]>) => {
+        const [[login, ids]] = [...bySource];
+        if (login === 'userb@v10' && ids.includes('m10')) throw new Error('Failed to move email: Failed to import email');
+        useEmailStore.setState((s) => ({
+          emails: s.emails.filter((e) => !ids.includes(e.id)),
+          selectedEmailIds: new Set([...s.selectedEmailIds].filter((id) => !ids.includes(id))),
+        }));
+      }) as never,
+    });
+
+    await useEmailStore.getState().batchMoveToMailbox(client016, 'f');
+
+    const s = useEmailStore.getState();
+    expect(listed()).toEqual(['userb@v016/e/m016', 'userb@v10/e/m10']);
+    expect(s.selectedEmailIds).toEqual(new Set(['m016', 'm10']));
+    expect(s.error).toBe('Failed to move 2 emails; first error: Failed to move emails: forbidden');
+  });
+
+  it('moves dropped messages in place only in the login the folder is listed under', async () => {
+    // Dropped on the 1.0 login's Archive (`h`) in the multi-account sidebar.
+    await useEmailStore.getState().moveEmailsToMailbox(client016, ['m016', 'm10', 't10'], 'h', 'userb@v10');
+
+    expect(callsOf(client10.batchMoveEmails)).toEqual([[['m10'], 'h', 'e']]);
+    expect(callsOf(client016.batchMoveEmails)).toEqual([]);
+    expect(crossMoves()).toEqual([
+      [new Map([['userb@v016', ['m016']]]), 'userb@v10', 'h', undefined, 'e'],
+      [new Map([['userb@v10', ['t10']]]), 'userb@v10', 'h', undefined, 'c'],
+    ]);
+    expect(listed()).toEqual(['userb@v016/e/m016', 'userb@v016/c/t016', 'userb@v10/c/t10']);
+  });
+
+  it('moves one dropped group message across accounts, not into the group folder with the same id', async () => {
+    await useEmailStore.getState().moveEmailsToMailbox(client016, ['t016'], 'f');
+
+    expect(callsOf(client016.moveEmail)).toEqual([]);
+    expect(callsOf(client016.batchMoveEmails)).toEqual([]);
+    expect(crossMoves()).toEqual([[new Map([['userb@v016', ['t016']]]), 'userb@v016', 'f', undefined, 'c']]);
+  });
+
+  it('throws for a drop that left messages where they were, keeping their rows', async () => {
+    (client10.batchMoveEmails as ReturnType<typeof vi.fn>).mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(useEmailStore.getState().moveEmailsToMailbox(client016, ['m10'], 'h', 'userb@v10'))
+      .rejects.toThrow('Failed to fetch');
+    expect(listed()).toContain('userb@v10/e/m10');
+  });
+
+  it('"Move to" on one group message moves it across accounts, and on an own one in place', async () => {
+    await useEmailStore.getState().moveToMailboxCrossAware(client016, 't016', 'f');
+    await useEmailStore.getState().moveToMailboxCrossAware(client016, 'm016', 'f');
+
+    expect(callsOf(client016.moveEmail)).toEqual([]);
+    expect(crossMoves()).toEqual([[new Map([['userb@v016', ['t016']]]), 'userb@v016', 'f', undefined, 'c']]);
+    expect(callsOf(client016.batchMoveEmails)).toEqual([[['m016'], 'f', 'e']]);
+  });
+
+  const archiveCalls = (client: IJMAPClient) => callsOf(client.batchArchiveEmails)
+    .map(([emails, archiveId, mode, , accountId]) => [(emails as Array<{ id: string }>).map((e) => e.id), archiveId, mode, accountId]);
+
+  it('archives each login\'s and account\'s messages into their own Archive (0.16.23 and 1.0 logins)', async () => {
+    useSettingsStore.setState({ archiveMode: 'single' } as never);
+
+    await useEmailStore.getState().batchArchive(client016);
+
+    expect(archiveCalls(client016)).toEqual([[['m016'], 'f', 'single', 'e'], [['t016'], 'g', 'single', 'c']]);
+    expect(archiveCalls(client10)).toEqual([[['m10'], 'h', 'single', 'e'], [['t10'], 'i', 'single', 'c']]);
+    expect(listed()).toEqual([]);
+    expect(useEmailStore.getState().selectedEmailIds.size).toBe(0);
+  });
+
+  it('archives in a tag view by each message\'s account, not by the group folder still selected underneath', async () => {
+    useSettingsStore.setState({ archiveMode: 'single' } as never);
+    useEmailStore.setState({ isUnifiedView: false, unifiedRole: null, selectedKeyword: 'work', selectedMailbox: 'c:a', mailboxes: [...own016, ...team016] });
+
+    await useEmailStore.getState().batchArchive(client016);
+
+    expect(archiveCalls(client016)).toEqual([[['m016'], 'f', 'single', 'e'], [['t016'], 'g', 'single', 'c']]);
+    expect(archiveCalls(client10)).toEqual([[['m10'], 'h', 'single', 'e'], [['t10'], 'i', 'single', 'c']]);
+  });
+
+  it('keeps the messages of an account without an Archive listed and selected, archiving the others', async () => {
+    useSettingsStore.setState({ archiveMode: 'single' } as never);
+    useEmailStore.setState((s) => ({
+      accountMailboxes: { ...s.accountMailboxes, 'userb@v10|c': team10.filter((m) => m.role !== 'archive') },
+    }));
+
+    await useEmailStore.getState().batchArchive(client016);
+
+    const s = useEmailStore.getState();
+    expect(listed()).toEqual(['userb@v10/c/t10']);
+    expect(s.selectedEmailIds).toEqual(new Set(['t10']));
+    expect(s.error).toMatch(/archive mailbox not found/i);
+  });
+
+  it('rejects with ArchiveMailboxNotFoundError when no message could be archived', async () => {
+    useEmailStore.setState({
+      accountMailboxes: {},
+      selectedEmailIds: new Set(['m10']),
+    });
+
+    await expect(useEmailStore.getState().batchArchive(client016)).rejects.toBeInstanceOf(ArchiveMailboxNotFoundError);
+    expect(callsOf(client10.batchArchiveEmails)).toEqual([]);
+    expect(listed()).toContain('userb@v10/e/m10');
+    expect(useEmailStore.getState().selectedEmailIds).toEqual(new Set(['m10']));
+  });
+
+  it('marks each message as spam in its own login and account', async () => {
+    useSettingsStore.setState({ deleteAction: 'trash' } as never);
+
+    await useEmailStore.getState().batchMarkAsSpam(client016, ['m016', 'm10', 't016', 't10']);
+
+    expect(callsOf(client016.markAsSpam)).toEqual([['m016', 'e', false], ['t016', 'c', false]]);
+    expect(callsOf(client10.markAsSpam)).toEqual([['m10', 'e', false], ['t10', 'c', false]]);
+    expect(listed()).toEqual([]);
+  });
+
+  it('rejects for a message the server would not mark as spam and keeps it, moving the others', async () => {
+    useSettingsStore.setState({ deleteAction: 'trash' } as never);
+    (client10.markAsSpam as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Failed to mark as spam: forbidden'));
+
+    await expect(useEmailStore.getState().batchMarkAsSpam(client016, ['m016', 'm10'])).rejects.toThrow('Failed to mark as spam: forbidden');
+
+    expect(listed()).toEqual(['userb@v10/e/m10', 'userb@v016/c/t016', 'userb@v10/c/t10']);
+  });
+
+  it('puts each message back in the Inbox of its own login and account ("All Junk")', async () => {
+    useEmailStore.setState({ unifiedRole: 'junk' });
+
+    await useEmailStore.getState().batchUndoSpam(client016, ['m016', 'm10', 't016', 't10']);
+
+    expect(callsOf(client016.undoSpam)).toEqual([['m016', 'a', 'e'], ['t016', 'a', 'c']]);
+    expect(callsOf(client10.undoSpam)).toEqual([['m10', 'a', 'e'], ['t10', 'a', 'c']]);
+    expect(listed()).toEqual([]);
   });
 
   it('deletes a single message into its own login\'s Deleted Items', async () => {
