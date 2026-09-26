@@ -570,6 +570,7 @@
     "still_scheduled": "Meldingen er fortsatt planlagt.",
     "already_sent": "Denne meldingen er allerede sendt.",
     "no_longer_scheduled": "Denne meldingen er ikke lenger planlagt.",
+    "reschedule_recipients_refused": "Ingenting ble endret: serveren avviste {recipients}.",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Lukk sidefeltet",

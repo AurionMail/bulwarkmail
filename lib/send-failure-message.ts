@@ -60,7 +60,9 @@ export function sendFailureMessage(error: unknown, t: Translate): string {
  * submission quota no replacement was made, so the message still goes out at
  * its old time, `scheduledAt` (formatted) when known. Making room takes a
  * while, and the original may have gone out meanwhile. When the server
- * refused every recipient of the replacement, the original was kept too.
+ * refused recipients of the replacement that the original had taken, the
+ * original was kept too, for all of its recipients - a headline saying the
+ * mail wasn't sent would invite sending it a second time.
  */
 export function rescheduleFailureToast(
   error: unknown,
@@ -76,9 +78,24 @@ export function rescheduleFailureToast(
     return { title: stillScheduled, message: sendFailureMessage(error, tComposer) };
   }
   if (error instanceof RecipientsRefusedError) {
-    return { title: sendFailureMessage(error, tComposer), message: stillScheduled };
+    return {
+      title: stillScheduled,
+      message: tViewer('reschedule_recipients_refused', { recipients: formatRefusedRecipients(error.recipients) }),
+    };
   }
   return { title: sendFailureMessage(error, tComposer) };
+}
+
+/**
+ * The warning after a send, "Send now" or reschedule that the server took for
+ * some recipients only (`refusedRecipients`), from the `email_composer`
+ * messages; null when it took them all. Nothing else, not even a bounce,
+ * tells the user who never gets the message.
+ */
+export function partlyRefusedWarning(result: { refusedRecipients?: RefusedRecipient[] }, tComposer: Translate): string | null {
+  return result.refusedRecipients?.length
+    ? tComposer('recipients_partly_refused', { recipients: formatRefusedRecipients(result.refusedRecipients) })
+    : null;
 }
 
 /**

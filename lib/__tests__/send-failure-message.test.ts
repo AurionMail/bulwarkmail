@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NoLongerScheduledError, RecipientsRefusedError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError } from '../jmap/client';
-import { SendCancelledCleanupError, cancelFailureToast, formatRefusedRecipients, rescheduleFailureToast, sendFailureMessage } from '../send-failure-message';
+import { SendCancelledCleanupError, cancelFailureToast, formatRefusedRecipients, partlyRefusedWarning, rescheduleFailureToast, sendFailureMessage } from '../send-failure-message';
 
 // Keys of a namespace, returned with their values so the test sees which
 // message was chosen and what went into it.
@@ -76,19 +76,34 @@ describe('rescheduleFailureToast', () => {
       .toEqual({ title: 'email_viewer.no_longer_scheduled' });
   });
 
-  it('says the message is still scheduled when the server refused every recipient of the replacement', () => {
+  // The original is kept for all of its recipients, so the headline must not
+  // read as "not sent", which invites sending the message a second time.
+  it('leads with the kept schedule when the server refused recipients of the replacement (Stalwart 0.16 and 1.0)', () => {
     const error = new RecipientsRefusedError([{ email: 'bob@example.org', smtpReply: '452 4.4.5 Rate limit exceeded, try again later.' }]);
 
     expect(rescheduleFailureToast(error, tViewer, t, 'Sep 26, 10:00')).toEqual({
-      title: 'email_composer.recipients_refused {"recipients":"bob@example.org (452 4.4.5 Rate limit exceeded, try again later.)"}',
-      message: 'email_viewer.still_scheduled_at {"date":"Sep 26, 10:00"}',
+      title: 'email_viewer.still_scheduled_at {"date":"Sep 26, 10:00"}',
+      message: 'email_viewer.reschedule_recipients_refused {"recipients":"bob@example.org (452 4.4.5 Rate limit exceeded, try again later.)"}',
     });
+    expect(rescheduleFailureToast(error, tViewer, t).title).toBe('email_viewer.still_scheduled');
   });
 
   it('falls back to the send failure message otherwise', () => {
     expect(rescheduleFailureToast(new RequestTimeoutError(30_000), tViewer, t, 'Sep 26, 10:00'))
       .toEqual({ title: 'email_composer.send_timeout' });
     expect(rescheduleFailureToast(new Error('cannotUnsend'), tViewer, t)).toEqual({ title: 'cannotUnsend' });
+  });
+});
+
+describe('partlyRefusedWarning', () => {
+  it('names the recipients the server refused while it took the others', () => {
+    expect(partlyRefusedWarning({ refusedRecipients: [{ email: 'nobody@example.net', smtpReply: '550 5.1.2 Relay not allowed.' }] }, t))
+      .toBe('email_composer.recipients_partly_refused {"recipients":"nobody@example.net (550 5.1.2 Relay not allowed.)"}');
+  });
+
+  it('says nothing when the server took every recipient', () => {
+    expect(partlyRefusedWarning({}, t)).toBeNull();
+    expect(partlyRefusedWarning({ refusedRecipients: [] }, t)).toBeNull();
   });
 });
 

@@ -35,7 +35,7 @@ import { useEmailStore, buildUnifiedAccountClients, ArchiveMailboxNotFoundError,
 import { findDraftIdentityIdForLogin, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { groupSearchScopeFolders } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
-import { cancelFailureToast, formatRefusedRecipients, rescheduleFailureToast } from "@/lib/send-failure-message";
+import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from "@/lib/send-failure-message";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
@@ -1753,13 +1753,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         // and re-sent (#592).
         toast.warning(t('email_composer.send_filing_warning'));
       }
-      if (result.refusedRecipients?.length) {
-        // The server refused some recipients outright; nothing else, not
-        // even a bounce, would tell the user they never get the message.
-        toast.warning(t('email_composer.recipients_partly_refused', {
-          recipients: formatRefusedRecipients(result.refusedRecipients),
-        }));
-      }
+      // The server refused some recipients outright; nothing else, not even
+      // a bounce, would tell the user they never get the message.
+      const refused = partlyRefusedWarning(result, tComposer);
+      if (refused) toast.warning(refused);
       // Mark the original email with $answered or $forwarded keyword. Route the
       // write to the email's own account so the flag lands on shared/group-mailbox
       // messages instead of being dropped against the reaching account. (#281)
@@ -2079,7 +2076,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             onClick: () => {
               void (async () => {
                 try {
-                  await undoClient.rescheduleEmailSubmission(
+                  const result = await undoClient.rescheduleEmailSubmission(
                     pending.submissionId,
                     pending.emailId!,
                     pending.identityId!,
@@ -2088,6 +2085,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     pending.submissionAccountId,
                   );
                   clearPendingUndoSend();
+                  // The recipients are checked again for the release.
+                  const refused = partlyRefusedWarning(result, tComposer);
+                  if (refused) toast.warning(refused);
                   if (isScheduledView) await fetchScheduledEmails(client);
                 } catch (error) {
                   console.error('Failed to send now:', error);
@@ -3349,6 +3349,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       delayedUntil,
       undefined,
     );
+    // As after the composer's send: the server refused some recipients, held
+    // reply or not, and nothing else would say they never get it.
+    const refused = partlyRefusedWarning(result, tComposer);
+    if (refused) toast.warning(refused);
 
     // Mark the original email as answered. Route the write to the email's own
     // account so the flag lands on shared/group-mailbox messages instead of
@@ -3367,7 +3371,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       return;
     }
 
-    toast.success(t('notifications.email_sent'));
+    if (!refused) toast.success(t('notifications.email_sent'));
 
     // The reply is out: a failed refresh from here on must not reach the
     // quick-reply box, which would report the send as failed and invite a
@@ -4197,7 +4201,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   if (delayedUntil && client && email.emailSubmissionId && email.scheduledIdentityId) {
                     // The context menu does not wait for this; report here.
                     try {
-                      await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil);
+                      const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil);
+                      const refused = partlyRefusedWarning(result, tComposer);
+                      if (refused) toast.warning(refused);
                     } catch (error) {
                       console.error('Failed to reschedule the scheduled send:', error);
                       const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
@@ -4539,7 +4545,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     }}
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {
-                        await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil);
+                        const result = await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil);
+                        const refused = partlyRefusedWarning(result, tComposer);
+                        if (refused) toast.warning(refused);
                       }
                     }}
                     onCompose={() => {

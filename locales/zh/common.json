@@ -570,6 +570,7 @@
     "still_scheduled": "邮件仍处于定时发送状态。",
     "already_sent": "此邮件已发送。",
     "no_longer_scheduled": "此邮件已不在定时发送中。",
+    "reschedule_recipients_refused": "未作任何更改：服务器拒绝了 {recipients}。",
     "contact_sidebar": {
       "title": "联系人",
       "close": "关闭侧边栏",

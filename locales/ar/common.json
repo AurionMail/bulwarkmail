@@ -570,6 +570,7 @@
     "still_scheduled": "لا تزال الرسالة مجدولة.",
     "already_sent": "أُرسلت هذه الرسالة بالفعل.",
     "no_longer_scheduled": "لم تعد هذه الرسالة مجدولة.",
+    "reschedule_recipients_refused": "لم يتغيّر شيء: رفض الخادم {recipients}.",
     "contact_sidebar": {
       "title": "جهة الاتصال",
       "close": "إغلاق الشريط الجانبي",

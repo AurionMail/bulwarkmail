@@ -21,7 +21,7 @@ export interface OpenHitOptions {
   navigate?: (path: string) => void;
 }
 
-function fileLinkFor(hit: Extract<GlobalSearchHit, { kind: 'files' }>): { segments: string[]; search?: string } {
+function fileLinkFor(hit: Extract<GlobalSearchHit, { kind: 'files' }>): { segments: string[]; search: string } {
   // A node of a drive shared with the user has no path under the login's own
   // root: the link names it by the id the Files store lists it under, and the
   // Files app opens the shared folder (or shared-files page) it is listed in.
@@ -29,7 +29,10 @@ function fileLinkFor(hit: Extract<GlobalSearchHit, { kind: 'files' }>): { segmen
     return { segments: [], search: sharedFilesSearch(hit.node.id, hit.isFolder ? null : hit.node.name) };
   }
   const folderSegments = hit.folderPath.split('/').filter(Boolean);
-  if (hit.isFolder) return { segments: [...folderSegments, hit.node.name] };
+  // An own folder's link has no query, and says so: a Files page that takes
+  // a link without one reads the address bar instead, which may still name
+  // the shared folder or file on screen (`?shared=`, `?preview=`).
+  if (hit.isFolder) return { segments: [...folderSegments, hit.node.name], search: '' };
   return { segments: folderSegments, search: `?preview=${encodeURIComponent(hit.node.name)}` };
 }
 
@@ -106,7 +109,7 @@ export async function openHit(hit: GlobalSearchHit, options: OpenHitOptions): Pr
       // (a node of a shared drive): it takes the link directly instead.
       if (isActiveLogin && deliverDeepLink('files', link.segments, link.search)) return;
       const path = buildFilesPath(`/${link.segments.join('/')}`);
-      navigate?.(appPath(`${path}${link.search ?? ''}`));
+      navigate?.(appPath(`${path}${link.search}`));
       return;
     }
   }

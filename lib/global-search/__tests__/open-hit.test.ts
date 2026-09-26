@@ -80,6 +80,18 @@ describe('openHit for Files', () => {
     expect(navigate).toHaveBeenCalledWith(appPath('/files/Docs?preview=a.txt'));
   });
 
+  // A Files page takes a link without a query from the address bar instead,
+  // where a shared folder on screen still says `?shared=`.
+  it('hands an own folder over with an empty query, in both layouts', async () => {
+    const ownFolder = hit({ id: 'd7', name: 'Docs' }, '/', true);
+    deliverDeepLink.mockReturnValue(true);
+    await openHit(ownFolder, { proShell: false, navigate: vi.fn() });
+    expect(deliverDeepLink).toHaveBeenCalledWith('files', ['Docs'], '');
+
+    await openHit(ownFolder, { proShell: true });
+    expect(setPendingDeepLink).toHaveBeenCalledWith('files', ['Docs'], '');
+  });
+
   it('hands the shared link to the Files tab in the Pro shell', async () => {
     await openHit(sharedFile, { proShell: true });
     expect(tabState.openTab).toHaveBeenCalledWith('files');

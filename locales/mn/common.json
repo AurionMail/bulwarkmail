@@ -570,6 +570,7 @@
     "still_scheduled": "Мессеж товлогдсон хэвээр байна.",
     "already_sent": "Энэ мессеж аль хэдийн илгээгдсэн.",
     "no_longer_scheduled": "Энэ мессеж товлогдоогүй болсон.",
+    "reschedule_recipients_refused": "Юу ч өөрчлөгдсөнгүй: сервер дараах хүлээн авагчдыг татгалзлаа: {recipients}.",
     "contact_sidebar": {
       "title": "Холбоо барих",
       "close": "Хажуугийн самбарыг хаах",

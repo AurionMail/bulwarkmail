@@ -570,6 +570,7 @@
     "still_scheduled": "Het bericht staat nog steeds gepland.",
     "already_sent": "Dit bericht is al verzonden.",
     "no_longer_scheduled": "Dit bericht staat niet meer gepland.",
+    "reschedule_recipients_refused": "Er is niets gewijzigd: de server heeft {recipients} geweigerd.",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Zijbalk sluiten",

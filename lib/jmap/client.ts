@@ -5599,16 +5599,26 @@ export class JMAPClient implements IJMAPClient {
     return submission?.sendAt;
   }
 
-  private async getEmailSubmissionEnvelope(submissionId: string, accountId?: string): Promise<{ rcptTo?: Array<{ email: string }> } | undefined> {
+  /**
+   * The envelope of a submission, and what the server answered for each of
+   * its recipients (`deliveryStatus`): `no` for one it refused, `queued` for
+   * one it took and holds (Stalwart 0.16 and 1.0).
+   */
+  private async getEmailSubmissionEnvelope(submissionId: string, accountId?: string): Promise<{
+    envelope?: { rcptTo?: Array<{ email: string }> };
+    deliveryStatus?: Record<string, { delivered?: string }>;
+  } | undefined> {
     const response = await this.request([
       ['EmailSubmission/get', {
         accountId: accountId ?? await this.resolveSubmissionAccountId(submissionId),
         ids: [submissionId],
-        properties: ['envelope'],
+        properties: ['envelope', 'deliveryStatus'],
       }, '0'],
     ]);
-    const submission = response.methodResponses?.[0]?.[1]?.list?.[0] as { envelope?: { rcptTo?: Array<{ email: string }> } } | undefined;
-    return submission?.envelope;
+    return response.methodResponses?.[0]?.[1]?.list?.[0] as {
+      envelope?: { rcptTo?: Array<{ email: string }> };
+      deliveryStatus?: Record<string, { delivered?: string }>;
+    } | undefined;
   }
 
   private getSubmissionAccountId(accountId?: string): string {
@@ -10355,7 +10365,8 @@ export class JMAPClient implements IJMAPClient {
     } catch (error) {
       console.error('Failed to get identity for reschedule:', error);
     }
-    const existingEnvelope = await this.getEmailSubmissionEnvelope(submissionId, submissionAccountId);
+    const original = await this.getEmailSubmissionEnvelope(submissionId, submissionAccountId);
+    const existingEnvelope = original?.envelope;
     const email = existingEnvelope?.rcptTo?.length ? undefined : await this.getEmail(emailId, submissionAccountId);
     const envelopeRecipients = existingEnvelope?.rcptTo?.length
       ? existingEnvelope.rcptTo
@@ -10404,15 +10415,35 @@ export class JMAPClient implements IJMAPClient {
       throw new Error('Server did not return a replacement scheduled send ID');
     }
     // The recipients are checked again for the replacement, and a throttle
-    // used up since the original was taken refuses them all: nothing was
-    // queued, and cancelling the original would lose the message. It goes at
-    // its old time instead; the replacement's record is dead weight.
+    // used up since the original was taken can refuse some or all of them.
+    // Cancelling the original would lose the message for a recipient it took
+    // and the replacement didn't, so the original is kept then - it still
+    // goes at its old time to everyone it took - and the replacement goes:
+    // its record when it took nobody, else the replacement itself, which
+    // would send the others a second copy. A recipient the original refused
+    // too loses nothing (without a delivery status of the original, every
+    // one counts as taken). Should the replacement refuse to be cancelled,
+    // the reschedule goes on, and the caller names the refused recipients.
     const delivery = refusedRecipients(response.methodResponses?.find(([, , callId]) => callId === '1'));
-    if (delivery.all) {
-      if (this.hasAccountCapability('urn:stalwart:jmap', submissionAccountId)) {
-        await this.destroyEmailSubmissions([replacementId], submissionAccountId);
+    const refusedBefore = new Set(Object.entries(original?.deliveryStatus ?? {})
+      .filter(([, status]) => status?.delivered === 'no')
+      .map(([address]) => address.toLowerCase()));
+    const lost = delivery.recipients.filter((recipient) => !refusedBefore.has(recipient.email.toLowerCase()));
+    if (lost.length > 0) {
+      let withdrawn = true;
+      if (delivery.all) {
+        if (this.hasAccountCapability('urn:stalwart:jmap', submissionAccountId)) {
+          await this.destroyEmailSubmissions([replacementId], submissionAccountId);
+        }
+      } else {
+        try {
+          await this.cancelEmailSubmission(replacementId, submissionAccountId);
+        } catch (error) {
+          console.error('Failed to cancel a replacement some recipients were refused for:', error);
+          withdrawn = false;
+        }
       }
-      throw new RecipientsRefusedError(delivery.recipients);
+      if (withdrawn) throw new RecipientsRefusedError(lost);
     }
     const finalSendAt = serverSendAt || await this.getEmailSubmissionSendAt(replacementId, submissionAccountId);
     // Either cancel also destroys the record it canceled, so a reschedule

@@ -52,8 +52,13 @@ export function ProInterfaceRedirect() {
     // mounted the handoff delivers live, and its handler may itself open a
     // tab (a message permalink opens an email tab) that must keep focus.
     useProTabStore.getState().openTab(SURFACE_TO_TAB[match.surface]);
-    if (match.segments.length > 0) {
-      setPendingDeepLink(match.surface, match.segments);
+    // The query half goes with it (`?shared=` of a shared drive's folder,
+    // `?preview=`, `?account=`): /pro has none left by the time the surface
+    // reads the link, and a link that is only a query - a shared folder is
+    // named by id - would be lost on reload.
+    const search = window.location.search;
+    if (match.segments.length > 0 || search) {
+      setPendingDeepLink(match.surface, match.segments, search || undefined);
     }
     router.replace('/pro');
   }, [proInterface, isDesktop, pathname, router]);

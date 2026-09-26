@@ -570,6 +570,7 @@
     "still_scheduled": "Az üzenet továbbra is ütemezve van.",
     "already_sent": "Ez az üzenet már el lett küldve.",
     "no_longer_scheduled": "Ez az üzenet már nincs ütemezve.",
+    "reschedule_recipients_refused": "Semmi sem változott: a kiszolgáló elutasította a következőt: {recipients}.",
     "contact_sidebar": {
       "title": "Névjegy",
       "close": "Oldalsáv bezárása",

@@ -52,6 +52,12 @@ interface ClipboardState {
   names: string[];
   serverNames: string[];
   sourceParentId: string | null;
+  /**
+   * Cut: the folder each node was in, which an undo of the paste moves it
+   * back to. Not always `sourceParentId`: a "Files from" page lists nodes of
+   * folders the user can't open, and its own id names no folder.
+   */
+  sourceParentIds?: (string | null)[];
   sourcePath: string;
 }
 
@@ -209,6 +215,25 @@ function sharedFilesOwner(id: string | null): string | null {
  */
 export function isSharedLocation(id: string | null): id is string {
   return isCrossAccountId(id);
+}
+
+/**
+ * The listed file a deep link asks to preview. A link into a shared drive
+ * that names the file itself by id (`?shared=<id>&preview=<name>`, from
+ * search) is matched by that id: the "Files from" page listing it may hold
+ * another file of the same name, and lists the two under numbered names. A
+ * link that names the folder or page instead (`sharedId` is the listing on
+ * screen, a permalink) and one into the own drive match the name the file has
+ * in the listing.
+ */
+export function linkedPreviewResource(
+  resources: FileResource[],
+  link: { name: string; sharedId?: string },
+  currentParentId: string | null,
+): FileResource | undefined {
+  return link.sharedId !== undefined && link.sharedId !== currentParentId
+    ? resources.find(r => r.id === link.sharedId)
+    : resources.find(r => r.name === link.name);
 }
 
 // A shared-files page lists files; nothing can be put into it.
@@ -1076,9 +1101,20 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   cutResources: (names: string[]) => {
     const { currentPath, currentParentId, resources } = get();
-    const ids = names.map(n => resources.find(r => r.name === n)?.id).filter(Boolean) as string[];
-    const serverNames = names.map(n => resources.find(r => r.name === n)?.serverName).filter(Boolean) as string[];
-    set({ clipboard: { mode: 'cut', ids, names, serverNames, sourceParentId: currentParentId, sourcePath: currentPath } });
+    const picked = names
+      .map(n => resources.find(r => r.name === n))
+      .filter((r): r is FileResource => !!r);
+    set({
+      clipboard: {
+        mode: 'cut',
+        ids: picked.map(r => r.id),
+        names: picked.map(r => r.name),
+        serverNames: picked.map(r => r.serverName),
+        sourceParentId: currentParentId,
+        sourceParentIds: picked.map(r => r.parentId ?? null),
+        sourcePath: currentPath,
+      },
+    });
   },
 
   copyResources: (names: string[]) => {
@@ -1120,7 +1156,8 @@ export const useFileStore = create<FileState>((set, get) => ({
 
       if (clipboard.mode === 'cut') {
         await client.updateFileNode(id, { parentId: currentParentId });
-        entries.push({ id, from: { parentId: clipboard.sourceParentId }, to: { parentId: currentParentId } });
+        const from = clipboard.sourceParentIds ? clipboard.sourceParentIds[i] : clipboard.sourceParentId;
+        entries.push({ id, from: { parentId: from }, to: { parentId: currentParentId } });
       } else {
         await client.copyFileNode(id, displayName, currentParentId, listings);
       }

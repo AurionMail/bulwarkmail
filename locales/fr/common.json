@@ -570,6 +570,7 @@
     "still_scheduled": "Le message reste planifié.",
     "already_sent": "Ce message a déjà été envoyé.",
     "no_longer_scheduled": "Ce message n’est plus planifié.",
+    "reschedule_recipients_refused": "Rien n’a été modifié : le serveur a refusé {recipients}.",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Fermer le panneau",

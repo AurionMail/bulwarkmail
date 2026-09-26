@@ -570,6 +570,7 @@
     "still_scheduled": "메시지는 여전히 예약되어 있습니다.",
     "already_sent": "이 메시지는 이미 보냈습니다.",
     "no_longer_scheduled": "이 메시지는 더 이상 예약되어 있지 않습니다.",
+    "reschedule_recipients_refused": "변경된 내용이 없습니다: 서버가 {recipients}을(를) 거부했습니다.",
     "contact_sidebar": {
       "title": "연락처",
       "close": "사이드바 닫기",

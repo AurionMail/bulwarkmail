@@ -570,6 +570,7 @@
     "still_scheduled": "Лист і далі заплановано.",
     "already_sent": "Цей лист уже надіслано.",
     "no_longer_scheduled": "Цей лист більше не заплановано.",
+    "reschedule_recipients_refused": "Нічого не змінено: сервер відхилив {recipients}.",
     "contact_sidebar": {
       "title": "Контакт",
       "close": "Закрити бічну панель",

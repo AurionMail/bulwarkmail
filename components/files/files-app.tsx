@@ -10,7 +10,7 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, isSharedLocation, resourceServerRef, type UploadReport } from "@/stores/file-store";
+import { useFileStore, isSharedLocation, linkedPreviewResource, resourceServerRef, type UploadReport } from "@/stores/file-store";
 import { fileErrorKind, isPartialCopy } from "@/lib/file-errors";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
@@ -205,7 +205,10 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   // bootstrap that runs after a capability check on a cold load, or the effect
   // for when the store already knows files are supported.
   const filesLinkRef = useRef<FilesDeepLink | null>(null);
-  const pendingPreviewRef = useRef<string | null>(null);
+  // The file to preview once its listing arrives: `name`, and for a link
+  // into a shared drive the id the link names (`?shared=`), see the preview
+  // effect below.
+  const pendingPreviewRef = useRef<{ name: string; sharedId?: string } | null>(null);
   useEffect(() => {
     // Inside the Pro shell the route is /pro, so the segments arrive through
     // the handoff the redirect parked rather than as route params.
@@ -220,7 +223,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   const takeFilesLink = useCallback(() => {
     const link = filesLinkRef.current;
     filesLinkRef.current = null;
-    if (link?.preview) pendingPreviewRef.current = link.preview;
+    if (link?.preview) pendingPreviewRef.current = { name: link.preview, sharedId: link.shared };
     return link;
   }, []);
 
@@ -253,7 +256,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     return subscribePendingDeepLink('files', (segments, search) => {
       const link = parseFilesPath(segments, new URLSearchParams(search ?? window.location.search));
       if (!link) return;
-      if (link.preview) pendingPreviewRef.current = link.preview;
+      if (link.preview) pendingPreviewRef.current = { name: link.preview, sharedId: link.shared };
       if (link.shared) void openSharedLinkRef.current(link.shared);
       else void navigateByPathRef.current(link.path);
     });
@@ -292,15 +295,16 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   }, [storeClient, supportsFiles, checkSupport, migrateLegacyFlatNodes, navigate, navigateByPath, takeFilesLink]);
 
   // The preview waits for the folder listing: the modal is keyed by file name
-  // and can only render once that name is in `resources`.
+  // and can only render once the file is in `resources` - found by the id a
+  // link into a shared drive names it by (linkedPreviewResource).
   useEffect(() => {
     const pending = pendingPreviewRef.current;
     if (!pending) return;
-    const resource = resources.find((r) => r.name === pending);
+    const resource = linkedPreviewResource(resources, pending, useFileStore.getState().currentParentId);
     if (!resource) return;
     pendingPreviewRef.current = null;
-    if (!resource.isSymlink && isFilePreviewable(pending)) {
-      setPreviewFile(pending);
+    if (!resource.isSymlink && isFilePreviewable(resource.name)) {
+      setPreviewFile(resource.name);
     } else {
       toast.error(tDeepLink('file_not_found'));
     }

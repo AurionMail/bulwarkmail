@@ -570,6 +570,7 @@
     "still_scheduled": "メッセージは引き続き送信予定です。",
     "already_sent": "このメッセージはすでに送信されています。",
     "no_longer_scheduled": "このメッセージはもう送信予定ではありません。",
+    "reschedule_recipients_refused": "何も変更されていません: サーバーが {recipients} を拒否しました。",
     "contact_sidebar": {
       "title": "連絡先",
       "close": "サイドバーを閉じる",

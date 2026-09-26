@@ -32,6 +32,8 @@ interface FakeSubmission {
   queued: boolean;
   /** What the RCPT stage answered, per recipient (EmailSubmission deliveryStatus). */
   deliveryStatus?: Record<string, { delivered: string; smtpReply: string; displayed: string }>;
+  /** The envelope the submission was created with, when it had one. */
+  envelope?: { mailFrom: { email: string }; rcptTo: Array<{ email: string }> };
 }
 
 // Stalwart's replies to recipients it refuses at RCPT (live, 0.16.23 and 1.0).
@@ -296,6 +298,7 @@ function fakeStalwart(options: FakeOptions = {}) {
           list.push({
             id: s.id, emailId: s.emailId, identityId: 'identity-1', ...(s.sendAt ? { sendAt: s.sendAt } : {}), undoStatus: computedStatus(s),
             ...(s.deliveryStatus ? { deliveryStatus: s.deliveryStatus } : {}),
+            ...(s.envelope ? { envelope: s.envelope } : {}),
           });
         }
         return [[name, { accountId, state: 's1', list, notFound }, callId]];
@@ -1171,6 +1174,77 @@ describe('recipients the server refuses', () => {
     expect(original.canceled).toBe(false);
     expect(server.calls('EmailSubmission/set').filter((args) => args.update)).toEqual([]);
     expect([...server.submissions.keys()]).toEqual(['original']);
+  });
+
+  // "Send now" and "Reschedule" create a replacement and then cancel the
+  // original. The server checks the recipients again for the replacement: the
+  // 25/h throttle may be used up for one of them by now.
+  describe('when a reschedule\'s replacement is refused for some recipients', () => {
+    // A message held for an hour, with what the server answered when it took it.
+    const addOriginal = (server: ReturnType<typeof fakeStalwart>, status: Record<string, 'queued' | 'no'>) => server.add({
+      accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true,
+      envelope: { mailFrom: { email: 'user@example.com' }, rcptTo: Object.keys(status).map((email) => ({ email })) },
+      deliveryStatus: Object.fromEntries(Object.entries(status).map(([email, delivered]) => [email, {
+        delivered, smtpReply: delivered === 'no' ? RELAY_DENIED : '250 2.1.5 Queued', displayed: 'unknown',
+      }])),
+    });
+    const sendNow = () => createClient()
+      .rescheduleEmailSubmission('original', 'email-x', 'identity-1', new Date(Date.now() + 1000).toISOString(), 'account-1');
+    const throttledFor = (address: string) => (email: string) => (email === address ? RATE_LIMITED : undefined);
+
+    it.each(['1.0', '0.16.12'] as const)('keeps the original for a recipient it had taken and withdraws the replacement on Stalwart %s', async (version) => {
+      const server = fakeStalwart({ version, refuseRecipient: throttledFor('bob@example.org') });
+      const original = addOriginal(server, { 'alice@example.org': 'queued', 'bob@example.org': 'queued' });
+
+      const error = await sendNow().catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(RecipientsRefusedError);
+      expect((error as RecipientsRefusedError).recipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
+      // Bob still gets it at the old time, and alice only once: the
+      // replacement she was taken for is cancelled, not just its record.
+      expect(original.canceled).toBe(false);
+      const cancelled = server.calls('EmailSubmission/set').filter((args) => args.update).map((args) => Object.keys(args.update as object)[0]);
+      expect(cancelled).toHaveLength(1);
+      expect(cancelled).not.toContain('original');
+      expect([...server.submissions.keys()]).toEqual(['original']);
+    });
+
+    it('keeps the original when the server told nothing about whom it took on Stalwart 1.0', async () => {
+      const server = fakeStalwart({ version: '1.0', refuseRecipient: throttledFor('bob@example.org') });
+      const original = server.add({
+        accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true,
+        envelope: { mailFrom: { email: 'user@example.com' }, rcptTo: [{ email: 'alice@example.org' }, { email: 'bob@example.org' }] },
+      });
+
+      await expect(sendNow()).rejects.toBeInstanceOf(RecipientsRefusedError);
+      expect(original.canceled).toBe(false);
+    });
+
+    it.each(['1.0', '0.16.12'] as const)('goes ahead when only a recipient the original was refused for is refused again, and names it, on Stalwart %s', async (version) => {
+      const server = fakeStalwart({ version, refuseRecipient: (email) => (email.endsWith('@example.net') ? RELAY_DENIED : undefined) });
+      const original = addOriginal(server, { 'alice@example.org': 'queued', 'nobody@example.net': 'no' });
+
+      const result = await sendNow();
+
+      expect(result.refusedRecipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
+      expect(original.canceled).toBe(true);
+      expect([...server.submissions.keys()]).toEqual([result.emailSubmissionId]);
+    });
+
+    it('goes ahead with the replacement, naming the refused, when it can\'t be withdrawn on Stalwart 1.0', async () => {
+      // Cancelling both would leave alice with nothing; keeping both, with two copies.
+      const server = fakeStalwart({
+        version: '1.0',
+        refuseRecipient: throttledFor('bob@example.org'),
+        updateAnswer: (id, callId) => (id === 'original' ? undefined : ['error', { type: 'serverFail', description: 'Temporary failure' }, callId]),
+      });
+      const original = addOriginal(server, { 'alice@example.org': 'queued', 'bob@example.org': 'queued' });
+
+      const result = await sendNow();
+
+      expect(result.refusedRecipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
+      expect(original.canceled).toBe(true);
+    });
   });
 });
 

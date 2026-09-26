@@ -535,6 +535,7 @@
     "still_scheduled": "ההודעה עדיין מתוזמנת.",
     "already_sent": "ההודעה הזו כבר נשלחה.",
     "no_longer_scheduled": "ההודעה הזו כבר אינה מתוזמנת.",
+    "reschedule_recipients_refused": "דבר לא השתנה: השרת דחה את {recipients}.",
     "contact_sidebar": {
       "title": "איש קשר",
       "close": "סגור סרגל צד",

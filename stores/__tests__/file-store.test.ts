@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useFileStore, resourceServerRef, sharedFilesLocation } from '../file-store';
+import { useFileStore, linkedPreviewResource, resourceServerRef, sharedFilesLocation } from '../file-store';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode } from '@/lib/jmap/types';
 import { jmapError } from '@/lib/jmap/jmap-error';
@@ -536,6 +536,35 @@ describe('file-store "Shared with me"', () => {
     ]);
     // Actions find a row by its name.
     expect(await useFileStore.getState().getImageUrl('plan (1).pdf')).toBe('blob:b2');
+
+    // A search hit's link names the file by id, and gets that row, not the
+    // first one called plan.pdf; the page's own permalink names it as listed.
+    expect(linkedPreviewResource(rows, { name: 'plan.pdf', sharedId: 'owner:p2' }, 'owner:*')?.id).toBe('owner:p2');
+    expect(linkedPreviewResource(rows, { name: 'plan (1).pdf', sharedId: 'owner:*' }, 'owner:*')?.id).toBe('owner:p2');
+    // The page isn't listed yet: nothing to open.
+    expect(linkedPreviewResource([], { name: 'plan.pdf', sharedId: 'owner:p2' }, 'owner:*')).toBeUndefined();
+  });
+
+  it('moves files cut on their owner\'s page back to their own folders on undo, not to the page', async () => {
+    const client = withSharedDrive(drive10());
+    const moves: Array<[string, unknown]> = [];
+    Object.assign(client, { updateFileNode: async (id: string, updates: unknown) => { moves.push([id, updates]); } });
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(sharedFilesLocation('owner'), 'Files from Owner');
+
+    useFileStore.getState().cutResources(['plan.pdf', 'notes.txt']);
+    await useFileStore.getState().navigate('owner:x', 'Project X');
+    await useFileStore.getState().pasteResources();
+    await useFileStore.getState().undoLastAction();
+
+    expect(moves).toEqual([
+      ['owner:plan', { parentId: 'owner:x' }],
+      ['owner:notes', { parentId: 'owner:x' }],
+      // The folder the user can't open, and the top of the owner's drive -
+      // "owner:*" names no folder (the server got parentId "*").
+      ['owner:plan', { parentId: 'owner:docs' }],
+      ['owner:notes', { parentId: null }],
+    ]);
   });
 
   it('refuses to add anything to a shared-files page', async () => {

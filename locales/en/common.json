@@ -570,6 +570,7 @@
     "still_scheduled": "The message is still scheduled.",
     "already_sent": "This message was already sent.",
     "no_longer_scheduled": "This message is no longer scheduled.",
+    "reschedule_recipients_refused": "Nothing was changed: the server refused {recipients}.",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Close sidebar",

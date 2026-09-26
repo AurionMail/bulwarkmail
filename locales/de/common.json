@@ -570,6 +570,7 @@
     "still_scheduled": "Die Nachricht ist weiterhin geplant.",
     "already_sent": "Diese Nachricht wurde bereits gesendet.",
     "no_longer_scheduled": "Diese Nachricht ist nicht mehr geplant.",
+    "reschedule_recipients_refused": "Nichts wurde geändert: Der Server hat {recipients} abgelehnt.",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Seitenleiste schließen",
