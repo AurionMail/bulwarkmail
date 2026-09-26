@@ -794,16 +794,34 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('participantFieldsToSave fo
   });
 
   it('never asks again for an event someone else organizes', () => {
+    // The user's copy of an invitation: not the organizer's (isOrigin).
     const invitation = makeEvent({
       boss: organizer('boss@example.org'),
       mine: attendee('me@example.com', 'accepted'),
       bob: attendee('bob@example.org', 'declined'),
-    }, { organizerCalendarAddress: 'mailto:boss@example.org' });
+    }, { organizerCalendarAddress: 'mailto:boss@example.org', isOrigin: false });
 
     const fields = participantFieldsToSave(invitation, rows('me@example.com', 'bob@example.org'), { ...me, rescheduled: true });
 
     expect(fields.participants!.mine.participationStatus).toBe('accepted');
     expect(fields.participants!.bob.participationStatus).toBe('declined');
+  });
+
+  // userc shares a calendar with the user (read & write): userc's meeting in
+  // it is the organizer's copy, and a move there goes out from userc.
+  it('asks again when the user moves the owner\'s meeting in a calendar shared with them', () => {
+    const shared = makeEvent({
+      owner: organizer('userc@example.org'),
+      anna: attendee('usera@example.org', 'accepted'),
+      mine: attendee('me@example.com', 'tentative'),
+    }, { organizerCalendarAddress: 'mailto:userc@example.org', isOrigin: true, isShared: true, accountId: 'f' });
+
+    const fields = participantFieldsToSave(shared, rows('usera@example.org', 'me@example.com'), { ...me, rescheduled: true });
+
+    expect(fields.participants!.owner).toMatchObject({ calendarAddress: 'mailto:userc@example.org', participationStatus: 'accepted' });
+    expect(fields.participants!.anna.participationStatus).toBe('needs-action');
+    expect(fields.participants!.mine.participationStatus).toBe('needs-action');
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
   });
 });
 
@@ -862,11 +880,13 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('movedEventUpdates on Stalw
     '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address, participationStatus,
     ...(version === '1.0' ? { roles: { attendee: true } } : {}),
   }) as Partial<CalendarParticipant>;
-  const meeting = (organizer: string) => makeEvent({
+  // isOrigin as the server says it: whether the organizer is an address of
+  // the account the event is in.
+  const meeting = (organizer: string, extra: Partial<CalendarEvent> = {}) => makeEvent({
     org: { '@type': 'Participant', calendarAddress: `mailto:${organizer}`, roles: { owner: true }, participationStatus: 'accepted' },
     bob: attendee('bob@example.org', 'accepted'),
     me: attendee('me@example.com', 'tentative'),
-  }, { organizerCalendarAddress: `mailto:${organizer}` });
+  }, { organizerCalendarAddress: `mailto:${organizer}`, isOrigin: organizer.toLowerCase() === 'me@example.com', ...extra });
   const MOVE = { start: '2026-03-01T11:00:00' };
 
   it('asks the attendees again and tells them when the user organizes the event', () => {
@@ -880,6 +900,25 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('movedEventUpdates on Stalw
 
   it('moves someone else\'s event quietly, answers as they are', () => {
     expect(movedEventUpdates(meeting('boss@example.org'), MOVE, ['me@example.com']))
+      .toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
+  });
+
+  // userc's meeting in userc's calendar, shared with the user read & write:
+  // Stalwart sends the move from userc. It went out to nobody, and the
+  // attendees kept the old time (live on 1.0 and 0.16.23).
+  it('asks the attendees again and tells them when the user moves the owner\'s meeting in a shared calendar', () => {
+    const { updates, sendSchedulingMessages } = movedEventUpdates(
+      meeting('userc@example.org', { isOrigin: true, isShared: true, accountId: 'f' }), MOVE, ['me@example.com'],
+    );
+
+    expect(sendSchedulingMessages).toBe(true);
+    expect(updates.participants!.org.participationStatus).toBe('accepted');
+    expect(updates.participants!.bob.participationStatus).toBe('needs-action');
+    expect(updates.participants!.me.participationStatus).toBe('needs-action');
+  });
+
+  it('moves the owner\'s copy of someone else\'s meeting in a shared calendar quietly', () => {
+    expect(movedEventUpdates(meeting('boss@example.org', { isShared: true, accountId: 'f' }), MOVE, ['me@example.com']))
       .toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
   });
 
@@ -900,10 +939,31 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('movedEventUpdates on Stalw
 
 describe('userOrganizes', () => {
   it('is the user under any of their addresses, or anyone for an event without an organizer', () => {
-    const own = makeEvent({ org: { '@type': 'Participant', calendarAddress: 'mailto:Alias@Example.com', roles: { owner: true } } });
+    const own = makeEvent({ org: { '@type': 'Participant', calendarAddress: 'mailto:Alias@Example.com', roles: { owner: true } } }, { isOrigin: false });
     expect(userOrganizes(own, ['me@example.com', 'alias@example.com'])).toBe(true);
     expect(userOrganizes(own, ['me@example.com'])).toBe(false);
-    expect(userOrganizes(makeEvent({ bob: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.org' } }), ['me@example.com'])).toBe(true);
+    expect(userOrganizes(makeEvent({ bob: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.org' } }, { isOrigin: false }), ['me@example.com'])).toBe(true);
+  });
+
+  // What userb sees in userc's calendar, shared read & write, as each version
+  // returns it (live): isOrigin is true where userc organizes, false for an
+  // invitation userc got, for the event and for each expanded occurrence.
+  describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('in a calendar shared with the user on Stalwart %s', (version) => {
+    const inShared = (organizer: string, isOrigin: boolean) => makeEvent({
+      org: { '@type': 'Participant', calendarAddress: `mailto:${organizer}`, roles: { owner: true }, participationStatus: 'accepted' },
+      b: {
+        '@type': 'Participant', calendarAddress: 'mailto:userb@example.org', participationStatus: 'accepted',
+        ...(version === '1.0' ? { roles: { attendee: true } } : {}),
+      },
+    }, { organizerCalendarAddress: `mailto:${organizer}`, isOrigin, isShared: true, accountId: 'f' });
+
+    it('is the owner\'s meeting: the server schedules it from the owner', () => {
+      expect(userOrganizes(inShared('userc@example.org', true), ['userb@example.org'])).toBe(true);
+    });
+
+    it('is not an invitation the owner got', () => {
+      expect(userOrganizes(inShared('usera@example.org', false), ['userb@example.org'])).toBe(false);
+    });
   });
 });
 

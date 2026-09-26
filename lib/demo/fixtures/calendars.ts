@@ -181,6 +181,8 @@ export function createDemoCalendarEvents(): CalendarEvent[] {
       id: 'demo-event-5',
       calendarIds: { 'demo-calendar-work': true },
       uid: 'demo-event-5@example.com',
+      // Alice's invitation: the demo user's copy is not the organizer's.
+      isOrigin: false,
       title: 'Quarterly Review',
       description: 'Q4 performance review and planning session',
       created: demoDate(-14),

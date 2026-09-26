@@ -383,7 +383,7 @@ export function buildParticipantMap(
  * `organizerCalendarAddress` or the retired `replyTo`. Null for an event
  * without one.
  */
-function eventOrganizer(event: CalendarEvent): { name: string; email: string } | null {
+export function eventOrganizer(event: CalendarEvent): { name: string; email: string } | null {
   const participant = getParticipantList(event).find((p) => p.isOrganizer && p.email.trim());
   if (participant) return { name: participant.name, email: participant.email.trim() };
   const address = event.organizerCalendarAddress || Object.values(event.replyTo ?? {})[0];
@@ -392,20 +392,29 @@ function eventOrganizer(event: CalendarEvent): { name: string; email: string } |
 }
 
 /**
- * Whether the user, under any of `userEmails`, organizes `event`, or would
- * on saving it with attendees: an event that names no organizer gets the
- * user (participantFieldsToSave). Decides whether a change of when the
- * event happens asks the attendees again, in the editor and elsewhere.
+ * Whether the user writes `event` as its organizer: they organize it under
+ * any of `userEmails`, or would on saving it with attendees (an event that
+ * names no organizer gets the user, participantFieldsToSave), or the event
+ * is its organizer's own copy in someone else's account the user writes to -
+ * a calendar shared with them, a group's. Stalwart schedules a change from
+ * the addresses of the account the event is in, and `isOrigin` is its word
+ * that the event's organizer is one of them (0.16 and 1.0 alike): a
+ * sharee's move of the owner's meeting goes out from the owner. An
+ * invitation in that account is `isOrigin: false` and stays the account's
+ * own answer to make. Decides whether a change of when the event happens
+ * asks the attendees again, and whether it is sent, in the editor and
+ * elsewhere.
  */
 export function userOrganizes(event: CalendarEvent, userEmails: string[]): boolean {
-  return !eventOrganizer(event) || isOrganizer(event, userEmails);
+  return !eventOrganizer(event) || isOrganizer(event, userEmails) || event.isOrigin === true;
 }
 
 /**
  * A move that does not go through the editor - a drag, a resize - saved
  * the way the editor saves one (participantFieldsToSave): when the user
- * organizes the event, its attendees are asked again, and the move goes out
- * to them; anyone else moves their own copy without messages. Stalwart's
+ * organizes the event (userOrganizes: the owner's copy in a calendar shared
+ * with the user counts), its attendees are asked again, and the move goes
+ * out to them; anyone else moves their own copy without messages. Stalwart's
  * update carries each attendee's stored answer, and one occurrence that
  * gets its own override reaches only attendees without an answer: a dragged
  * occurrence reached no attendee who had answered, a dragged event kept

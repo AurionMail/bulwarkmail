@@ -232,6 +232,80 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal answers after a
   });
 });
 
+// userc shares a calendar with the user (read & write) and organizes a
+// meeting in it. Stalwart sends a change to it from userc, the owner of the
+// account (isOrigin: true, live on both versions). The editor treated the
+// user as an attendee there: no participants written, no "Send
+// invitations", the attendees never told of a move.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal on the owner\'s meeting in a shared calendar on Stalwart %s', (version) => {
+  const shared = [{
+    id: 'f:bz', originalId: 'bz', name: 'Team', color: '#3366cc', isShared: true, accountId: 'f',
+    myRights: {
+      mayReadFreeBusy: true, mayReadItems: true, mayWriteAll: true, mayWriteOwn: true,
+      mayUpdatePrivate: true, mayRSVP: true, mayShare: false, mayDelete: false,
+    },
+  }] as unknown as Calendar[];
+  // The user (userb) attends the meeting as well.
+  const inShared = (organizer: string, isOrigin: boolean) => ({
+    ...meeting(organizer, {
+      owner: participant(version, organizer, true, 'accepted'),
+      anna: participant(version, 'usera@example.org', false, 'accepted'),
+      bea: participant(version, 'userb@example.org', false, 'tentative'),
+    }),
+    id: 'f:fj', calendarIds: { 'f:bz': true }, isShared: true, accountId: 'f', isOrigin,
+  }) as CalendarEvent;
+
+  async function saveAs(event: CalendarEvent, edit: (container: HTMLElement) => void = () => {}) {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <EventModal event={event} calendars={shared} onSave={onSave} onClose={vi.fn()} currentUserEmails={['userb@example.org']} />,
+    );
+    fireEvent.click(screen.getByText('events.edit'));
+    edit(container);
+    fireEvent.click(screen.getByText('form.save'));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    return { data: onSave.mock.calls[0][0] as Partial<CalendarEvent>, send: onSave.mock.calls[0][1] };
+  }
+
+  it('writes the owner\'s participants, the user among them, and sends the change', async () => {
+    const { data, send } = await saveAs(inShared('userc@example.org', true));
+
+    const participants = data.participants as Record<string, CalendarParticipant>;
+    expect(participants.owner).toMatchObject({ calendarAddress: 'mailto:userc@example.org', roles: { owner: true } });
+    expect(Object.keys(participants).sort()).toEqual(['anna', 'bea', 'owner']);
+    expect(participants.bea.participationStatus).toBe('tentative');
+    expect(data).not.toHaveProperty('organizerCalendarAddress');
+    expect(send).toBe(true);
+  });
+
+  it('offers invitations and attendee changes', () => {
+    render(<EventModal event={inShared('userc@example.org', true)} calendars={shared} onSave={vi.fn()} onClose={vi.fn()} currentUserEmails={['userb@example.org']} />);
+    fireEvent.click(screen.getByText('events.edit'));
+
+    expect(screen.getByText('participants.send_invitations')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('email_placeholder')).toBeEnabled();
+  });
+
+  it('asks the attendees again when the user moves it', async () => {
+    const { data } = await saveAs(inShared('userc@example.org', true), (container) => {
+      const [startTime] = container.querySelectorAll('input[type="time"]');
+      fireEvent.change(startTime, { target: { value: '11:00' } });
+    });
+
+    const participants = data.participants as Record<string, CalendarParticipant>;
+    expect(participants.owner.participationStatus).toBe('accepted');
+    expect(participants.anna.participationStatus).toBe('needs-action');
+    expect(participants.bea.participationStatus).toBe('needs-action');
+  });
+
+  it('leaves an invitation the owner got alone', async () => {
+    const { data, send } = await saveAs(inShared('boss@example.org', false));
+
+    expect(data).not.toHaveProperty('participants');
+    expect(send).toBe(false);
+  });
+});
+
 // A save for every occurrence of a series applies what the user changed on
 // the occurrence the editor shows (lib/recurrence-scope-edit.ts): the save
 // carries the attendees the editor opened and saved with, and its dates.

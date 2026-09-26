@@ -24,6 +24,8 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 type Version = '0.16' | '1.0';
 const ORGANIZER = 'userc@example.org';
 const ATTENDEE = 'userb@example.org';
+// Someone userc shares the calendar with, read & write; not invited.
+const SHAREE = 'usera@example.org';
 
 // Participants as each version stores them: 0.16.23 drops an attendee's
 // roles, 1.0 keeps them.
@@ -222,13 +224,29 @@ describe.each(occurrences)('changing every occurrence from one of them on Stalwa
   it('moves an attendee\'s own copy of the series and leaves its participants alone', () => {
     const occurrence = make();
     const updates = seriesUpdatesFromOccurrence(
-      occurrence, series(version), editorUpdates(occurrence, { participants: undefined }),
+      occurrence, { ...series(version), isOrigin: false }, editorUpdates(occurrence, { participants: undefined }),
       editorOn(occurrence, { when: { allDay: false, start: addHours(getEventStartDate(occurrence), 1), end: addHours(getEventEndDate(occurrence), 1) } }),
       { userEmail: ATTENDEE, userEmails: [ATTENDEE] },
     );
 
     expect(updates.start).toBe('2026-10-05T11:00:00');
     expect(updates).not.toHaveProperty('participants');
+  });
+
+  // The series in userc's calendar, shared with usera read & write: Stalwart
+  // sends usera's change from userc (isOrigin: true).
+  it('asks again when the user moves the owner\'s series in a calendar shared with them', () => {
+    const occurrence = make();
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, { ...series(version), isOrigin: true, isShared: true, accountId: 'f' }, editorUpdates(occurrence),
+      editorOn(occurrence, { when: { allDay: false, start: addHours(getEventStartDate(occurrence), 1), end: addHours(getEventEndDate(occurrence), 1) } }),
+      { userEmail: SHAREE, userEmails: [SHAREE] },
+    );
+
+    expect(updates.start).toBe('2026-10-05T11:00:00');
+    expect(statusOf(updates.participants, ORGANIZER)).toBe('accepted');
+    expect(statusOf(updates.participants, ATTENDEE)).toBe('needs-action');
+    expect(statusOf(updates.participants, SHAREE)).toBeUndefined();
   });
 });
 
@@ -347,13 +365,32 @@ describe.each(occurrences)('saving this and the following occurrences on Stalwar
 
   it('ends an attendee\'s own copy quietly', async () => {
     const occurrence = make();
-    const deps = actions(series(version));
+    const deps = actions({ ...series(version), isOrigin: false });
 
     await saveOccurrenceEdit('this_and_future', {
       event: occurrence, updates: editorUpdates(occurrence), editor: editorOn(occurrence), sendScheduling: true, userEmails: [ATTENDEE],
     }, deps);
 
     expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', { recurrenceRules: truncated }, undefined);
+  });
+
+  // The series in userc's calendar, shared with usera read & write: the
+  // split ended it without a word, and the rest had no attendees - the
+  // editor wrote none for someone it took for an attendee.
+  it('tells the attendees and asks them to the new series when the user splits the owner\'s series in a shared calendar', async () => {
+    const occurrence = make();
+    const deps = actions({ ...series(version), isOrigin: true, isShared: true, accountId: 'f' });
+
+    await saveOccurrenceEdit('this_and_future', {
+      event: occurrence, updates: editorUpdates(occurrence, { title: 'Planning, room 2' }), editor: editorOn(occurrence),
+      sendScheduling: true, userEmails: [SHAREE],
+    }, deps);
+
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', { recurrenceRules: truncated }, true);
+    const [, created, send] = deps.createEvent.mock.calls[0];
+    expect(send).toBe(true);
+    expect(statusOf(created.participants, ORGANIZER)).toBe('accepted');
+    expect(statusOf(created.participants, ATTENDEE)).toBe('needs-action');
   });
 });
 

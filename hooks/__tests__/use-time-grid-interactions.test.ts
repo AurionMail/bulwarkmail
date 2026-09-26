@@ -80,11 +80,14 @@ describe.each<["0.16" | "1.0"]>([["0.16"], ["1.0"]])("useTimeGridInteractions mo
   const original = useCalendarStore.getState().updateEvent;
   let updateEvent: ReturnType<typeof vi.fn>;
 
-  function meeting(organizer: string): CalendarEvent {
+  // isOrigin as the server says it: whether the organizer is an address of
+  // the account the event is in.
+  function meeting(organizer: string, extra: Partial<CalendarEvent> = {}): CalendarEvent {
     return {
       id: "e1", uid: "u1", title: "Planning", start: "2026-09-03T10:00:00", duration: "PT1H",
       timeZone: "Europe/Berlin", showWithoutTime: false, calendarIds: { cal: true },
-      organizerCalendarAddress: `mailto:${organizer}`,
+      organizerCalendarAddress: `mailto:${organizer}`, isOrigin: organizer === "me@example.com",
+      ...extra,
       participants: {
         org: { "@type": "Participant", calendarAddress: `mailto:${organizer}`, roles: { owner: true }, participationStatus: "accepted" },
         bob: {
@@ -142,6 +145,22 @@ describe.each<["0.16" | "1.0"]>([["0.16"], ["1.0"]])("useTimeGridInteractions mo
     const [, , updates, send] = updateEvent.mock.calls[0];
     expect(updates).not.toHaveProperty("participants");
     expect(send).toBeUndefined();
+  });
+
+  // userc's meeting in userc's calendar, shared with the user read & write:
+  // Stalwart sends the move from userc. It went out to nobody and the
+  // attendees kept the old time (live on 1.0 and 0.16.23).
+  it("asks the attendees again when the user drags the owner's meeting in a shared calendar", async () => {
+    useCalendarStore.setState({ events: [meeting("userc@example.org", { id: "f:e1", isOrigin: true, isShared: true, accountId: "f" })] });
+    const result = interactions();
+
+    await act(() => result.current.handleColumnDrop(drop("f:e1"), new Date(2026, 8, 3)));
+
+    const [, id, updates, send] = updateEvent.mock.calls[0];
+    expect(id).toBe("f:e1");
+    expect(updates.participants.org.participationStatus).toBe("accepted");
+    expect(updates.participants.bob.participationStatus).toBe("needs-action");
+    expect(send).toBe(true);
   });
 
   it("asks the attendees again when the user resizes their meeting", async () => {

@@ -16,6 +16,7 @@ import { createRecurrenceRule, sameRecurrenceRules } from "@/lib/recurrence-rule
 import { ParticipantInput, type ParticipantInputHandle } from "./participant-input";
 import { ParticipantAvailability } from "./participant-availability";
 import {
+  eventOrganizer,
   getUserParticipantId,
   getUserStatus,
   getParticipantList,
@@ -320,7 +321,8 @@ export function EventModal({
 
   // Only the organizer invites: someone else's invitation keeps its
   // attendees as the organizer sent them, and a save of the user's own copy
-  // sends no messages.
+  // sends no messages. The owner's meeting in a calendar shared with the
+  // user is the organizer's copy (userOrganizes).
   const userIsOrganizer = useMemo(() => {
     if (!event?.participants) return true;
     return userOrganizes(event, currentUserEmails);
@@ -504,10 +506,14 @@ export function EventModal({
     if (!event?.participants) return [];
     // Never seed the invite list with the organizer or with a repeated address:
     // handleSave writes the organizer separately, so either would round-trip
-    // into a duplicate entry every time the event is saved (#731).
+    // into a duplicate entry every time the event is saved (#731). The
+    // organizer is the event's own, or the user for an event without one -
+    // not the user as such: a sharee who attends the owner's meeting stays
+    // on its list.
     const excluded = new Set<string>();
-    if (userIsOrganizer && currentUserEmails[0]) {
-      excluded.add(currentUserEmails[0].toLowerCase());
+    const organizerAddress = (event && eventOrganizer(event)?.email) || (userIsOrganizer ? currentUserEmails[0] : '');
+    if (organizerAddress) {
+      excluded.add(organizerAddress.toLowerCase());
     }
     return existingParticipants
       .filter(p => !p.isOrganizer)
