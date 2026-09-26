@@ -7,6 +7,7 @@ import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { UnifiedAccountClient } from '@/lib/unified-mailbox';
 import { jmapError } from '@/lib/jmap/jmap-error';
+import { threadKeyFor } from '@/lib/thread-utils';
 
 // Regression coverage for issue #281: single-email actions performed in the
 // unified inbox must be routed to the *email's own account* client, not the
@@ -689,6 +690,7 @@ describe('lists that mix accounts, without the unified views\' cache and after b
   ];
   const team016 = [
     makeMailbox({ id: 'c:a', originalId: 'a', name: 'Inbox', role: 'inbox', isShared: true, accountId: 'c' }),
+    makeMailbox({ id: 'c:b', originalId: 'b', name: 'Deleted Items', role: 'trash', isShared: true, accountId: 'c' }),
     makeMailbox({ id: 'c:c', originalId: 'c', name: 'Junk Mail', role: 'junk', isShared: true, accountId: 'c' }),
     makeMailbox({ id: 'c:g', originalId: 'g', name: 'Archive', role: 'archive', isShared: true, accountId: 'c' }),
   ];
@@ -725,6 +727,7 @@ describe('lists that mix accounts, without the unified views\' cache and after b
       accountMailboxes: { 'usera@v10': own10 },
       emails: [row('m1', 'usera@v016', 'd'), row('m2', 'usera@v016', 'd')],
       threadEmailsCache: new Map(),
+      expandedThreadIds: new Set(),
       selectedEmail: null,
       selectedEmailIds: new Set(['m1', 'm2']),
       error: null,
@@ -839,13 +842,17 @@ describe('lists that mix accounts, without the unified views\' cache and after b
   // row of the list is selected. Its id also names usera's own first message
   // (`eaaaaab` on both test servers).
   describe('with a selected member of an expanded thread', () => {
+    const member = row('eaaaaab', 'usera@v016', 'c', { threadId: 'tt', mailboxIds: { 'c:a': true } });
+    const teamThread = threadKeyFor(member);
+
     beforeEach(() => {
       useEmailStore.setState({
         isUnifiedView: true,
         unifiedRole: 'inbox',
         selectedMailbox: '__unified_inbox',
         emails: [row('other', 'usera@v016', 'c', { threadId: 'tt', mailboxIds: { 'c:a': true } })],
-        threadEmailsCache: new Map([['tt', [row('eaaaaab', 'usera@v016', 'c', { threadId: 'tt', mailboxIds: { 'c:a': true } })]]]),
+        threadEmailsCache: new Map([[teamThread, [member]]]),
+        expandedThreadIds: new Set([teamThread]),
         selectedEmailIds: new Set(['eaaaaab']),
       });
     });
@@ -871,6 +878,76 @@ describe('lists that mix accounts, without the unified views\' cache and after b
 
       expect(callsOf(client016.markAsSpam)).toEqual([]);
       expect(useEmailStore.getState().selectedEmailIds).toEqual(new Set(['gone']));
+    });
+
+    // The id with no account went to the account the list is reached
+    // through, where it names usera's own message.
+    it('deletes it into the team\'s Deleted Items, not the own account\'s', async () => {
+      await useEmailStore.getState().batchDelete(client016, false);
+
+      expect(callsOf(client016.batchMoveEmails)).toEqual([[['eaaaaab'], 'b', 'c', false]]);
+      expect(useEmailStore.getState().error).toBeNull();
+    });
+
+    it('destroys it in the team account', async () => {
+      await useEmailStore.getState().batchDelete(client016, true);
+
+      expect(callsOf(client016.batchDeleteEmails)).toEqual([[['eaaaaab'], 'c']]);
+    });
+
+    it('marks it read in the team account and shows it read in the thread', async () => {
+      await useEmailStore.getState().batchMarkAsRead(client016, true);
+
+      expect(callsOf(client016.batchMarkAsRead)).toEqual([[['eaaaaab'], true, 'c']]);
+      expect(useEmailStore.getState().threadEmailsCache.get(teamThread)?.[0].keywords.$seen).toBe(true);
+    });
+
+    it('archives it into the team\'s Archive', async () => {
+      await useEmailStore.getState().batchArchive(client016);
+
+      expect(archiveCalls(client016)).toEqual([[['eaaaaab'], 'g', 'c']]);
+    });
+
+    it('moves it out of the team account into the folder "Move to" offers', async () => {
+      await useEmailStore.getState().batchMoveToMailbox(client016, 'f');
+
+      expect(callsOf(client016.batchMoveEmails)).toEqual([]);
+      expect(callsOf(useEmailStore.getState().crossAccountMoveEmails)).toEqual([
+        [new Map([['usera@v016', ['eaaaaab']]]), 'usera@v016', 'f', undefined, 'c'],
+      ]);
+    });
+
+    it('reports an id found neither listed nor in an expanded thread to every batch action, writing nothing', async () => {
+      useEmailStore.setState({ selectedEmailIds: new Set(['gone']) });
+      const error = () => useEmailStore.getState().error;
+
+      await useEmailStore.getState().batchMarkAsRead(client016, true);
+      expect(error()).toBe('Message not found in the list');
+      await useEmailStore.getState().batchDelete(client016, false);
+      expect(error()).toBe('Message not found in the list');
+      await useEmailStore.getState().batchMoveToMailbox(client016, 'f');
+      expect(error()).toBe('Message not found in the list');
+      await expect(useEmailStore.getState().batchArchive(client016)).rejects.toThrow('Message not found in the list');
+
+      for (const write of [client016.batchMarkAsRead, client016.batchMoveEmails, client016.batchDeleteEmails, client016.batchArchiveEmails]) {
+        expect(callsOf(write)).toEqual([]);
+      }
+      expect(callsOf(useEmailStore.getState().crossAccountMoveEmails)).toEqual([]);
+      expect(useEmailStore.getState().selectedEmailIds).toEqual(new Set(['gone']));
+    });
+
+    // Collapsed, the thread is off screen, and its members with it; a
+    // listed row can still share a member's id.
+    it('leaves the members of a thread no longer expanded alone', async () => {
+      const own = row('eaaaaab', 'usera@v016', 'd');
+      useEmailStore.setState({ emails: [own], expandedThreadIds: new Set() });
+
+      await useEmailStore.getState().batchMarkAsSpam(client016, ['eaaaaab']);
+      expect(callsOf(client016.markAsSpam)).toEqual([['eaaaaab', 'd', false]]);
+
+      useEmailStore.setState({ emails: [own], selectedEmailIds: new Set(['eaaaaab']) });
+      await useEmailStore.getState().batchDelete(client016, false);
+      expect(callsOf(client016.batchMoveEmails)).toEqual([[['eaaaaab'], 'b', 'd', false]]);
     });
   });
 });

@@ -1185,6 +1185,14 @@ function batchFailureMessage(failures: BatchFailure[], action: string): string {
   return `Failed to ${action} ${count} emails; first error: ${reason(failures[0].error)}`;
 }
 
+/** Why a selected id that aggregateRowsFor found nowhere was left alone. */
+const NOT_IN_LIST = 'Message not found in the list';
+
+/** The failure for selected ids aggregateRowsFor found nowhere; none without any. */
+function notFoundFailures(ids: string[]): BatchFailure[] {
+  return ids.length > 0 ? [{ ids, error: new Error(NOT_IN_LIST) }] : [];
+}
+
 /**
  * The client for a SourceBatch: the stamped login's, or the caller's for
  * undecorated messages. Undefined when the login is gone - never another
@@ -1380,10 +1388,11 @@ async function moveRowsToMailbox(rows: Email[], destination: MoveDestination, pa
  * every message by its id in that Archive's account, where the ids of the
  * other accounts' messages name unrelated messages - or none. The rows that
  * were archived leave the list and the selection, the others stay and the
- * failure is reported through `error`. Throws when nothing was archived.
+ * failure is reported through `error`, `notFound` ids (aggregateRowsFor)
+ * included. Throws when nothing was archived.
  */
-async function archiveAggregateSelection(passedClient: IJMAPClient, selected: Email[]): Promise<void> {
-  if (selected.length === 0) return;
+async function archiveAggregateSelection(passedClient: IJMAPClient, selected: Email[], notFound: string[] = []): Promise<void> {
+  if (selected.length === 0 && notFound.length === 0) return;
   const mode = useSettingsStore.getState().archiveMode;
   useEmailStore.setState({ isLoading: true, error: null });
 
@@ -1410,6 +1419,7 @@ async function archiveAggregateSelection(passedClient: IJMAPClient, selected: Em
       failures.push({ ids: batch.ids, error });
     }
   }));
+  failures.push(...notFoundFailures(notFound));
 
   const error = failures.length > 0 ? batchFailureMessage(failures, 'archive') : null;
   if (archived.length === 0) {
@@ -1435,10 +1445,12 @@ async function archiveAggregateSelection(passedClient: IJMAPClient, selected: Em
 
 /**
  * The rows selected `ids` name in a list that mixes accounts: listed rows,
- * and members of expanded threads, which carry their thread's login and
- * account. An id alone names a message in every account that has one, so
- * an id found in neither is returned as `unknown` for the caller to report,
- * never written in the account the list happens to be reached through.
+ * and members of the threads expanded on screen, which carry their thread's
+ * login and account. An id alone names a message in every account that has
+ * one, so an id found in neither is returned as `unknown` for the caller to
+ * report, never written in the account the list happens to be reached
+ * through. A thread no longer expanded is not on screen to be selected in,
+ * so its members, still cached, are left out.
  */
 function aggregateRowsFor(ids: string[]): { rows: Email[]; unknown: string[] } {
   const state = useEmailStore.getState();
@@ -1448,8 +1460,8 @@ function aggregateRowsFor(ids: string[]): { rows: Email[]; unknown: string[] } {
     if (wanted.has(email.id) && !rows.has(sourceRowKey(email))) rows.set(sourceRowKey(email), email);
   };
   state.emails.forEach(add);
-  for (const members of state.threadEmailsCache.values()) {
-    for (const member of members) if (member.sourceAccountId) add(member);
+  for (const threadKey of state.expandedThreadIds) {
+    for (const member of state.threadEmailsCache.get(threadKey) ?? []) if (member.sourceAccountId) add(member);
   }
   const found = new Set([...rows.values()].map((email) => email.id));
   return { rows: [...rows.values()], unknown: [...wanted].filter((id) => !found.has(id)) };
@@ -1482,9 +1494,7 @@ async function writeSpamBatches(
 ): Promise<void> {
   const done: Email[] = [];
   const accountOf = new Map<Email, string | undefined>();
-  const failures: BatchFailure[] = unknown.length > 0
-    ? [{ ids: unknown, error: new Error('Message not found in the list') }]
-    : [];
+  const failures: BatchFailure[] = [];
   for (const target of targets) {
     if (!target.client) {
       failures.push({ ids: target.messages.map(e => e.id), error: new Error('Not connected') });
@@ -1516,6 +1526,7 @@ async function writeSpamBatches(
       };
     });
   }
+  failures.push(...notFoundFailures(unknown));
   if (failures.length > 0) throw new Error(batchFailureMessage(failures, action));
 }
 
@@ -3658,10 +3669,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const emailIdsArray = Array.from(selectedEmailIds);
 
       const writes: { ids: string[]; write: () => Promise<void> }[] = [];
+      // The rows the selection names: the listed ones, and in a list that
+      // mixes accounts the members of expanded threads too (aggregateRowsFor).
+      let rows = emails;
       if (isAggregateListView()) {
         // Group by login and owning JMAP account; dispatch through the reaching
-        // login client (groupBySource).
-        for (const batch of groupBySource(emailIdsArray.map(id => emails.find(e => e.id === id) ?? { id }))) {
+        // login client (groupBySource). An id found nowhere is left alone.
+        const resolved = aggregateRowsFor(emailIdsArray);
+        rows = resolved.rows;
+        for (const batch of groupBySource(resolved.rows)) {
           const acctClient = sourceBatchClient(batch, client);
           writes.push({
             ids: batch.ids,
@@ -3669,6 +3685,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
               ? () => acctClient.batchMarkAsRead(batch.ids, read, batch.accountId)
               : () => Promise.reject(new Error('Not connected')),
           });
+        }
+        if (resolved.unknown.length > 0) {
+          writes.push({ ids: resolved.unknown, write: () => Promise.reject(new Error(NOT_IN_LIST)) });
         }
       } else {
         // Non-unified: route to the viewed shared/group account (if any), reached
@@ -3702,7 +3721,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       );
 
       // Update mailbox counters per the email's own account list (#281).
-      const affectedEmails = emails.filter(e => changed.has(e.id));
+      const affectedEmails = rows.filter(e => changed.has(e.id));
       const mailboxPatch = applyBatchMailboxCounterUpdate(get(), affectedEmails, (mailbox, group) => {
         let deltaUnread = 0;
         for (const email of group as Email[]) {
@@ -3736,11 +3755,22 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         }
       }
 
+      // The members of expanded threads show their new state too.
+      const affectedKeys = new Set(affectedEmails.map(sourceRowKey));
+      const threadEmailsCache = new Map(get().threadEmailsCache);
+      for (const [threadKey, members] of threadEmailsCache) {
+        if (!members.some(member => affectedKeys.has(sourceRowKey(member)))) continue;
+        threadEmailsCache.set(threadKey, members.map(member => affectedKeys.has(sourceRowKey(member))
+          ? { ...member, keywords: { ...member.keywords, $seen: read } }
+          : member));
+      }
+
       set({
         emails: updatedEmails,
         ...mailboxPatch,
         tagCounts,
         retainedInViewIds,
+        threadEmailsCache,
         selectedEmailIds: new Set(),
         isLoading: false,
         error: failure ? (failure instanceof Error ? failure.message : "Failed to update emails") : null,
@@ -3775,9 +3805,17 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // search results spanning accounts). Each group resolves the reaching login
       // client via `sourceClientAccountId` and routes JMAP via `sourceAccountId`.
       // Undecorated emails (normal single-mailbox view) form one group for the
-      // active client (groupBySource).
+      // active client (groupBySource). In a list that mixes accounts the
+      // selection names listed rows and members of expanded threads; an id
+      // found in neither is left alone and reported (aggregateRowsFor).
       const accountMailboxes = get().accountMailboxes;
-      const batches = groupBySource(emailIdsArray.map(id => emails.find(e => e.id === id) ?? { id }));
+      const resolved = isAggregateListView() ? aggregateRowsFor(emailIdsArray) : null;
+      const notFound = resolved?.unknown ?? [];
+      if (resolved && resolved.rows.length === 0) {
+        set({ error: NOT_IN_LIST, isLoading: false });
+        return;
+      }
+      const batches = groupBySource(resolved?.rows ?? emailIdsArray.map(id => emails.find(e => e.id === id) ?? { id }));
 
       // Undecorated emails viewed in a shared/group folder directly (non-unified)
       // are reached through the active client but must carry the owner accountId,
@@ -3831,16 +3869,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
         // Only remove successfully moved emails from local state.
         if (movedEmailIds.size < emailIdsArray.length) {
-          const deletedEmails = emails.filter(e => movedEmailIds.has(e.id));
+          const deletedEmails = (resolved?.rows ?? emails).filter(e => movedEmailIds.has(e.id));
           const remainingEmails = emails.filter(e => !movedEmailIds.has(e.id));
           const mailboxPatch = applyBatchMailboxCounterUpdate(get(), deletedEmails, applyDeleteCounters);
           set({
             emails: remainingEmails,
             ...mailboxPatch,
-            selectedEmailIds: new Set(),
+            selectedEmailIds: new Set(notFound),
             selectedEmail: null,
             isLoading: false,
-            error: 'Some emails could not be moved: trash folder missing for one or more accounts',
+            error: movedEmailIds.size + notFound.length < emailIdsArray.length
+              ? 'Some emails could not be moved: trash folder missing for one or more accounts'
+              : NOT_IN_LIST,
           });
           return;
         }
@@ -3850,15 +3890,16 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const remainingEmails = emails.filter(e => !selectedEmailIds.has(e.id));
 
       // Update mailbox counters per the email's own account list (#281).
-      const deletedEmails = emails.filter(e => selectedEmailIds.has(e.id));
+      const deletedEmails = resolved?.rows ?? emails.filter(e => selectedEmailIds.has(e.id));
       const mailboxPatch = applyBatchMailboxCounterUpdate(get(), deletedEmails, applyDeleteCounters);
 
       set({
         emails: remainingEmails,
         ...mailboxPatch,
-        selectedEmailIds: new Set(),
+        selectedEmailIds: new Set(notFound),
         selectedEmail: null,
-        isLoading: false
+        isLoading: false,
+        ...(notFound.length > 0 ? { error: NOT_IN_LIST } : {}),
       });
     } catch (error) {
       set({
@@ -3879,12 +3920,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       if (isAggregateListView()) {
         // Only messages in the folder's own login and account change folders
         // in place; the others are moved across accounts (moveSourceBatches).
-        // What could not be moved stays listed and selected.
-        const failures = await moveRowsToMailbox(
-          emails.filter(e => selectedEmailIds.has(e.id)),
-          resolveMoveDestination(client, toMailboxId),
-          client,
-        );
+        // What could not be moved stays listed and selected, and so does an
+        // id found neither listed nor in an expanded thread (aggregateRowsFor).
+        const { rows, unknown } = aggregateRowsFor(emailIdsArray);
+        const failures = await moveRowsToMailbox(rows, resolveMoveDestination(client, toMailboxId), client);
+        failures.push(...notFoundFailures(unknown));
         set({ isLoading: false, error: failures.length > 0 ? batchFailureMessage(failures, 'move') : null });
       } else {
         // Non-unified: route to the viewed shared/group account (if any), reached
@@ -3923,7 +3963,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     if (selectedEmailIds.size === 0) return;
 
     if (isAggregateListView()) {
-      await archiveAggregateSelection(client, emails.filter(e => selectedEmailIds.has(e.id)));
+      // The listed rows and the members of expanded threads the selection
+      // names; an id found in neither is reported (aggregateRowsFor).
+      const { rows, unknown } = aggregateRowsFor(Array.from(selectedEmailIds));
+      await archiveAggregateSelection(client, rows, unknown);
       return;
     }
 

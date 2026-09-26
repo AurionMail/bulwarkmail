@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FileHit } from '../types';
+import type { FileHit, MailHit } from '../types';
 import type { FileNode } from '@/lib/jmap/types';
 import { appPath } from '@/lib/deep-links';
 
@@ -115,5 +115,31 @@ describe('openHit for Files', () => {
     expect(authState.switchAccount).toHaveBeenCalledWith('login-b');
     expect(deliverDeepLink).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith(appPath('/files?shared=owner1%3An5&preview=Q3%20plan.pdf'));
+  });
+});
+
+// A message of the team account `c`, which Stalwart numbers alike on every
+// install, as it numbers the messages: the id also names other accounts'
+// messages. The Pro email tab reads it through the login it names.
+describe('openHit for mail in the Pro shell', () => {
+  const mailHit = (localAccountId: string): MailHit => ({
+    kind: 'mail', localAccountId, jmapAccountId: 'c', id: 'eaaaaab', accountLabel: 'A', title: 'Hello',
+    subtitle: 'Inbox', date: T, source: 'remote', snippet: null, email: { id: 'eaaaaab' } as MailHit['email'],
+  });
+
+  it('opens a hit of the active login with that login, not through the mail list', async () => {
+    await openHit(mailHit('login-a'), { proShell: true, pane: 'main' });
+    expect(tabState.openEmailTab).toHaveBeenCalledWith(
+      { accountId: 'c', clientAccountId: 'login-a', emailId: 'eaaaaab', mailboxId: null, title: 'Hello' },
+      { pane: 'main', reuseReader: true },
+    );
+  });
+
+  it('opens a hit of another login with that login', async () => {
+    await openHit(mailHit('login-b'), { proShell: true, pane: 'main' });
+    expect(tabState.openEmailTab).toHaveBeenCalledWith(
+      { accountId: 'c', clientAccountId: 'login-b', emailId: 'eaaaaab', mailboxId: null, title: 'Hello' },
+      { pane: 'main', reuseReader: true },
+    );
   });
 });

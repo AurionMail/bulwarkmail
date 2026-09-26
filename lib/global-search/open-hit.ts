@@ -51,7 +51,10 @@ export async function openHit(hit: GlobalSearchHit, options: OpenHitOptions): Pr
       case 'mail':
         tabs.openEmailTab({
           accountId: hit.jmapAccountId,
-          ...(isActiveLogin ? {} : { clientAccountId: hit.localAccountId }),
+          // The active login's hits too: without it the tab reads the id
+          // through the mail list, which may be browsing another login, or
+          // hold another account's message with the same id.
+          clientAccountId: hit.localAccountId,
           emailId: hit.id,
           mailboxId: null,
           title: hit.title,
