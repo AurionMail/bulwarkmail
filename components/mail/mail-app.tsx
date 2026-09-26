@@ -2067,6 +2067,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const undoClient = pending.localAccountId
       ? (useAuthStore.getState().getClientForAccount(pending.localAccountId) ?? client)
       : client;
+    // The login the draft is restored through. The classic shell leaves
+    // `localAccountId` unset, and the user may switch logins before clicking
+    // Undo: without this, the draft's next save would run through the new
+    // active login and remove its old version by id in the wrong account.
+    const undoLogin = pending.localAccountId ?? useAuthStore.getState().activeAccountId ?? undefined;
     const undoDurationMs = Math.max(sendDelaySeconds, 8) * 1000;
 
     toast.success(t('email_viewer.scheduled_send_created'), {
@@ -2117,7 +2122,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               if (restored && !pending.isSmime) {
                 // Back in the Drafts of the account it was sent from, through
                 // the login that sent it.
-                await handleEditDraft(restored, { accountId: pending.submissionAccountId, localAccountId: pending.localAccountId });
+                await handleEditDraft(restored, { accountId: pending.submissionAccountId, localAccountId: undoLogin });
               }
               if (isScheduledView) await fetchScheduledEmails(client);
             } catch (error) {
