@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseISO } from 'date-fns';
-import { expandRecurringEvents } from '../recurrence-expansion';
+import { expandRecurringEvents, occurrencesBefore, seriesOccursAt } from '../recurrence-expansion';
 import { computeFireTime } from '../calendar-alerts';
 import type { CalendarEvent, CalendarRecurrenceRule } from '@/lib/jmap/types';
 
@@ -774,5 +774,44 @@ describe('expandRecurringEvents', () => {
       const result = expand(event, '2025-01-06T00:00:00', '2025-01-08T00:00:00');
       expect(result[0].utcStart).toBeUndefined();
     });
+  });
+});
+
+// What the scope code asks when a series is split or changed: how much of
+// a COUNT the occurrences before a date use up, and whether a series still
+// has an occurrence at a recurrence id.
+describe('occurrencesBefore', () => {
+  it('counts the occurrences before a date, the start included', () => {
+    expect(occurrencesBefore('2026-12-07T10:00:00', rule({ frequency: 'weekly', count: 6 }), '2026-12-21T10:00:00')).toBe(2);
+    expect(occurrencesBefore('2026-12-07T10:00:00', rule({ frequency: 'weekly', count: 6 }), '2026-12-07T10:00:00')).toBe(0);
+  });
+
+  it('stops where the rule ends', () => {
+    expect(occurrencesBefore('2026-12-07T10:00:00', rule({ frequency: 'weekly', count: 2 }), '2027-03-01T10:00:00')).toBe(2);
+    expect(occurrencesBefore('2026-12-07T10:00:00', rule({ frequency: 'daily', until: '2026-12-09T23:59:59' }), '2027-03-01T10:00:00')).toBe(3);
+  });
+
+  it('counts past the cap on occurrences the expansion shows', () => {
+    expect(occurrencesBefore('2026-01-01T08:00:00', rule({ frequency: 'daily', count: 900 }), '2027-12-31T08:00:00')).toBe(729);
+  });
+});
+
+describe('seriesOccursAt', () => {
+  const weekly = [rule({ frequency: 'weekly', count: 5 })];
+
+  it('is true for the start and each occurrence the rule gives', () => {
+    expect(seriesOccursAt('2026-12-09T10:00:00', weekly, '2026-12-09T10:00:00')).toBe(true);
+    expect(seriesOccursAt('2026-12-09T10:00:00', weekly, '2027-01-06T10:00:00')).toBe(true);
+  });
+
+  it('is false for another time, another day, or after the count', () => {
+    expect(seriesOccursAt('2026-12-09T10:00:00', weekly, '2026-12-16T11:00:00')).toBe(false);
+    expect(seriesOccursAt('2026-12-09T10:00:00', weekly, '2026-12-17T10:00:00')).toBe(false);
+    expect(seriesOccursAt('2026-12-09T10:00:00', weekly, '2027-01-13T10:00:00')).toBe(false);
+    expect(seriesOccursAt('2026-12-09T10:00:00', null, '2026-12-16T10:00:00')).toBe(false);
+  });
+
+  it('knows all-day occurrences by their day', () => {
+    expect(seriesOccursAt('2026-12-09T00:00:00', [rule({ frequency: 'weekly' })], '2026-12-23T00:00:00')).toBe(true);
   });
 });

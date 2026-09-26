@@ -276,6 +276,243 @@ describe('changing every occurrence of a series in another time zone', () => {
   });
 });
 
+// Weekly on Wednesdays from 9 December, 10:00 in Berlin, five times; userb
+// accepted. 16 December is excluded, 30 December retitled, and 6 January
+// moved to 14:00 on its own. 1.0 returns the overrides as PatchObjects; 0.16
+// as Bulwark wrote them on the base event: the occurrence's time pinned, its
+// participants copied, and the server's `updated`.
+function seriesWithOverrides(version: Version): CalendarEvent {
+  const participants = { org: participant(version, ORGANIZER, true, 'accepted'), b: participant(version, ATTENDEE, false, 'accepted') };
+  const written = (start: string, extra: Record<string, unknown> = {}) => ({
+    updated: '2026-11-20T09:00:00Z', start, duration: 'PT1H', participants, ...extra,
+  });
+  return {
+    ...series(version),
+    start: '2026-12-09T10:00:00', utcStart: '2026-12-09T09:00:00Z', utcEnd: '2026-12-09T10:00:00Z',
+    recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: 5 }],
+    recurrenceOverrides: version === '1.0'
+      ? {
+        '2026-12-16T10:00:00': { excluded: true },
+        '2026-12-30T10:00:00': { title: 'Planning, special' },
+        '2027-01-06T10:00:00': { start: '2027-01-06T14:00:00' },
+      }
+      : {
+        '2026-12-16T10:00:00': { excluded: true },
+        '2026-12-30T10:00:00': written('2026-12-30T10:00:00', { title: 'Planning, special' }),
+        '2027-01-06T10:00:00': written('2027-01-06T14:00:00'),
+      },
+  } as unknown as CalendarEvent;
+}
+
+/** A Berlin wall clock in winter (UTC+1), `hours` later, as the UTC instant the server reports. */
+const berlinUtc = (wall: string, hours = 0) => `${new Date(Date.parse(`${wall}+01:00`) + hours * 3_600_000).toISOString().slice(0, 19)}Z`;
+
+/** An occurrence of seriesWithOverrides as the server expands it, on its (own) day and time. */
+function overriddenOccurrence(version: Version, recurrenceId: string, start = recurrenceId): CalendarEvent {
+  return {
+    ...seriesWithOverrides(version), id: 'maaaaad', baseEventId: 'b', start, recurrenceId, recurrenceIdTimeZone: 'Europe/Berlin',
+    utcStart: berlinUtc(start), utcEnd: berlinUtc(start, 1),
+  } as CalendarEvent;
+}
+
+const moveBy = (occurrence: CalendarEvent, hours: number) => ({
+  when: { allDay: false, start: addHours(getEventStartDate(occurrence), hours), end: addHours(getEventEndDate(occurrence), hours) },
+});
+
+// A series moved for every occurrence kept its overrides under the old
+// recurrence ids: 16 December came back at 11:00, 30 December showed twice
+// (10:00 "special" and 11:00), in the attendee's copy too (live on 1.0 and
+// 0.16.23). Each override now goes with its occurrence.
+describe.each<[string, Version]>([['1.0', '1.0'], ['0.16', '0.16']])('overrides of a series moved for every occurrence on Stalwart %s', (_label, version) => {
+  const pinned = (start: string, extra: Record<string, unknown> = {}) => ({ start, duration: 'PT1H', ...extra });
+
+  it('moves every override with its occurrence; one moved on its own keeps its time', () => {
+    const occurrence = overriddenOccurrence(version, '2026-12-23T10:00:00');
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, seriesWithOverrides(version), editorUpdates(occurrence), editorOn(occurrence, moveBy(occurrence, 1)), context,
+    );
+
+    expect(updates.start).toBe('2026-12-09T11:00:00');
+    const overrides = updates.recurrenceOverrides as Record<string, Record<string, unknown>>;
+    expect(Object.keys(overrides).sort()).toEqual(['2026-12-16T11:00:00', '2026-12-30T11:00:00', '2027-01-06T11:00:00']);
+    expect(overrides['2026-12-16T11:00:00']).toEqual({ excluded: true });
+    if (version === '1.0') {
+      expect(overrides['2026-12-30T11:00:00']).toEqual({ title: 'Planning, special' });
+      expect(overrides['2027-01-06T11:00:00']).toEqual({ start: '2027-01-06T14:00:00' });
+    } else {
+      // The time the override only held moves; the answers in it are asked
+      // again with the series'. 6 January stays at 14:00 and keeps them.
+      expect(overrides['2026-12-30T11:00:00']).toMatchObject(pinned('2026-12-30T11:00:00', { title: 'Planning, special' }));
+      expect(statusOf(overrides['2026-12-30T11:00:00'].participants as CalendarEvent['participants'], ATTENDEE)).toBe('needs-action');
+      expect(overrides['2027-01-06T11:00:00']).toMatchObject(pinned('2027-01-06T14:00:00'));
+      expect(statusOf(overrides['2027-01-06T11:00:00'].participants as CalendarEvent['participants'], ATTENDEE)).toBe('accepted');
+      expect(overrides['2026-12-30T11:00:00']).not.toHaveProperty('updated');
+    }
+  });
+
+  it('moves the overrides to the day the series moved to', () => {
+    const occurrence = overriddenOccurrence(version, '2026-12-23T10:00:00');
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, seriesWithOverrides(version), editorUpdates(occurrence), editorOn(occurrence, moveBy(occurrence, 24)), context,
+    );
+
+    expect(updates.start).toBe('2026-12-10T10:00:00');
+    expect(Object.keys(updates.recurrenceOverrides!).sort()).toEqual(['2026-12-17T10:00:00', '2026-12-31T10:00:00', '2027-01-07T10:00:00']);
+    expect(updates.recurrenceOverrides!['2027-01-07T10:00:00']).toMatchObject({ start: '2027-01-06T14:00:00' });
+  });
+
+  it('gives the occurrence the editor was opened on the move made there', () => {
+    // 6 January, at 14:00 on its own, moved to 15:00 for every occurrence.
+    const occurrence = overriddenOccurrence(version, '2027-01-06T10:00:00', '2027-01-06T14:00:00');
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, seriesWithOverrides(version), editorUpdates(occurrence), editorOn(occurrence, moveBy(occurrence, 1)), context,
+    );
+
+    expect(updates.start).toBe('2026-12-09T11:00:00');
+    expect(updates.recurrenceOverrides!['2027-01-06T11:00:00']).toMatchObject({ start: '2027-01-06T15:00:00' });
+    expect(updates.recurrenceOverrides!['2026-12-30T11:00:00']).toMatchObject({ title: 'Planning, special' });
+  });
+
+  it('takes every occurrence along when the series turns all-day', () => {
+    const occurrence = overriddenOccurrence(version, '2026-12-23T10:00:00');
+    const day = startOfDay(getEventStartDate(occurrence));
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, seriesWithOverrides(version),
+      editorUpdates(occurrence, { start: '2026-12-23T00:00:00', duration: 'P1D', timeZone: null, showWithoutTime: true }),
+      editorOn(occurrence, { when: { allDay: true, start: day, end: day } }), context,
+    );
+
+    expect(updates).toMatchObject({ start: '2026-12-09T00:00:00', showWithoutTime: true });
+    const overrides = updates.recurrenceOverrides as Record<string, Record<string, unknown>>;
+    expect(overrides['2026-12-16T00:00:00']).toEqual({ excluded: true });
+    expect(overrides['2026-12-30T00:00:00']).toMatchObject({ title: 'Planning, special' });
+    for (const key of ['start', 'duration', 'timeZone']) expect(overrides['2026-12-30T00:00:00']).not.toHaveProperty(key);
+    // 6 January had nothing but its own time (on 1.0): with it gone, so is the override.
+    if (version === '1.0') expect(overrides).not.toHaveProperty('2027-01-06T00:00:00');
+  });
+
+  it('drops the overrides of occurrences a new rule no longer has', () => {
+    const occurrence = overriddenOccurrence(version, '2026-12-23T10:00:00');
+    const everyOtherWeek = [{ '@type': 'RecurrenceRule', frequency: 'weekly', interval: 2, count: 5 }] as never;
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, seriesWithOverrides(version), editorUpdates(occurrence, { recurrenceRules: everyOtherWeek }),
+      editorOn(occurrence, { ruleChanged: true }), context,
+    );
+
+    // 9, 23 December and 6 January stay; 16 and 30 December are gone.
+    expect(updates).not.toHaveProperty('start');
+    expect(Object.keys(updates.recurrenceOverrides!)).toEqual(['2027-01-06T10:00:00']);
+  });
+
+  it('leaves the overrides alone when the series only gets a new title', () => {
+    const occurrence = overriddenOccurrence(version, '2026-12-23T10:00:00');
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, seriesWithOverrides(version), editorUpdates(occurrence, { title: 'Planning, room 2' }), editorOn(occurrence), context,
+    );
+
+    expect(updates).not.toHaveProperty('recurrenceOverrides');
+  });
+});
+
+// "This and the following occurrences" left the overrides after the split in
+// the old series, whose rule no longer reached them: they showed on as
+// occurrences of it, next to the new series. And the new series got the
+// whole COUNT again. Six weekly occurrences from 7 December, 4 January
+// retitled alone, split from 21 December: the old series showed 7 and 14
+// December and 4 January, the new one ran six times to 25 January (live on
+// 1.0 and 0.16.23).
+describe.each<[string, Version]>([['1.0', '1.0'], ['0.16', '0.16']])('overrides of a series split from one occurrence on Stalwart %s', (_label, version) => {
+  function sixWeeks(overrides: CalendarEvent['recurrenceOverrides']): CalendarEvent {
+    return {
+      ...series(version), start: '2026-12-07T10:00:00', utcStart: '2026-12-07T09:00:00Z', utcEnd: '2026-12-07T10:00:00Z',
+      recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: 6 }], recurrenceOverrides: overrides,
+    } as unknown as CalendarEvent;
+  }
+  const special = version === '1.0'
+    ? { title: 'Planning, special' }
+    : {
+      updated: '2026-11-20T09:00:00Z', start: '2027-01-04T10:00:00', duration: 'PT1H', title: 'Planning, special',
+      participants: { org: participant(version, ORGANIZER, true, 'accepted'), b: participant(version, ATTENDEE, false, 'accepted') },
+    };
+  const occurrenceOf = (master: CalendarEvent, recurrenceId: string) => ({
+    ...master, id: 'maaaaae', baseEventId: 'b', start: recurrenceId, recurrenceId, recurrenceIdTimeZone: 'Europe/Berlin',
+    utcStart: berlinUtc(recurrenceId), utcEnd: berlinUtc(recurrenceId, 1),
+  }) as CalendarEvent;
+
+  it('ends the old series with its overrides, and gives the new one those and what is left of the count', async () => {
+    const master = sixWeeks({ '2027-01-04T10:00:00': special } as never);
+    const occurrence = occurrenceOf(master, '2026-12-21T10:00:00');
+    const deps = actions(master);
+
+    await saveOccurrenceEdit('this_and_future', {
+      event: occurrence, updates: editorUpdates(occurrence, { title: 'Planning, room 2' }), editor: editorOn(occurrence),
+      sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', {
+      recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: null, until: '2026-12-21T09:59:59' }],
+      'recurrenceOverrides/2027-01-04T10:00:00': null,
+    }, true);
+    const [, created] = deps.createEvent.mock.calls[0];
+    expect(created.start).toBe('2026-12-21T10:00:00');
+    expect(created.recurrenceRules).toEqual([{ '@type': 'RecurrenceRule', frequency: 'weekly', count: 4 }]);
+    // What the organizer changed goes along, not the answers the old series
+    // had. 0.16 keeps an override as an event of its own: it gets the new
+    // series' participants, asked again, or the occurrence has none.
+    expect(created.recurrenceOverrides).toEqual({
+      '2027-01-04T10:00:00': version === '1.0'
+        ? { title: 'Planning, special' }
+        : { start: '2027-01-04T10:00:00', duration: 'PT1H', title: 'Planning, special', participants: created.participants },
+    });
+    expect(statusOf(created.participants, ATTENDEE)).toBe('needs-action');
+  });
+
+  it('takes an exclusion along, and keeps the overrides before the split', async () => {
+    const master = sixWeeks({ '2026-12-14T10:00:00': special, '2026-12-28T10:00:00': { excluded: true } } as never);
+    const occurrence = occurrenceOf(master, '2026-12-21T10:00:00');
+    const deps = actions(master);
+
+    await saveOccurrenceEdit('this_and_future', {
+      event: occurrence, updates: editorUpdates(occurrence), editor: editorOn(occurrence), sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    const [, , patch] = deps.updateEvent.mock.calls[0];
+    expect(Object.keys(patch).sort()).toEqual(['recurrenceOverrides/2026-12-28T10:00:00', 'recurrenceRules']);
+    expect(deps.createEvent.mock.calls[0][1].recurrenceOverrides).toEqual({ '2026-12-28T10:00:00': { excluded: true } });
+  });
+
+  it('keeps the rule the user gave the new series, count and all', async () => {
+    const master = sixWeeks(null);
+    const occurrence = occurrenceOf(master, '2026-12-21T10:00:00');
+    const deps = actions(master);
+    const daily = [{ '@type': 'RecurrenceRule', frequency: 'daily', count: 10 }] as never;
+
+    await saveOccurrenceEdit('this_and_future', {
+      event: occurrence, updates: editorUpdates(occurrence, { recurrenceRules: daily }), editor: editorOn(occurrence, { ruleChanged: true }),
+      sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    expect(deps.createEvent.mock.calls[0][1].recurrenceRules).toEqual(daily);
+  });
+
+  // 18 December on, of a weekly series on Fridays: the retitled 1 January
+  // stayed as an occurrence of the old series.
+  it('deletes the overrides from the occurrence on with the rest of the series', async () => {
+    const master = {
+      ...sixWeeks({ '2027-01-01T10:00:00': { ...special, ...(version === '1.0' ? {} : { start: '2027-01-01T10:00:00' }) } } as never),
+      start: '2026-12-04T10:00:00',
+    } as CalendarEvent;
+    const deps = { ...actions(master), deleteEvent: vi.fn().mockResolvedValue(undefined) };
+
+    await deleteOccurrence('this_and_future', { event: occurrenceOf(master, '2026-12-18T10:00:00'), sendScheduling: true, userEmails: [ORGANIZER] }, deps);
+
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', {
+      recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: null, until: '2026-12-18T09:59:59' }],
+      'recurrenceOverrides/2027-01-01T10:00:00': null,
+    }, true);
+  });
+});
+
 function actions(master: CalendarEvent | null) {
   return {
     client: {} as IJMAPClient,
@@ -330,6 +567,9 @@ describe('saveOccurrenceEdit for every occurrence', () => {
 // every occurrence of it.
 describe.each(occurrences)('saving this and the following occurrences on Stalwart %s', (_label, version, make) => {
   const truncated = [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: null, until: '2026-10-19T09:59:59' }];
+  // The series ends before 19 October, and userb's answer to 19 October
+  // (an override) goes with it.
+  const truncation = { recurrenceRules: truncated, 'recurrenceOverrides/2026-10-19T10:00:00': null };
 
   it('tells the attendees the series ends there, and asks all of them to the new one', async () => {
     const occurrence = make();
@@ -342,11 +582,17 @@ describe.each(occurrences)('saving this and the following occurrences on Stalwar
 
     expect(saved).toBe(true);
     expect(deps.updateEvent).toHaveBeenCalledTimes(1);
-    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', { recurrenceRules: truncated }, true);
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', truncation, true);
     const [, created, send] = deps.createEvent.mock.calls[0];
     expect(send).toBe(true);
-    expect(created).toMatchObject({ title: 'Planning, room 2', start: '2026-10-19T10:00:00', recurrenceRules: series(version).recurrenceRules });
-    for (const key of ['id', 'uid', 'recurrenceId']) expect(created).not.toHaveProperty(key);
+    // Five occurrences in all, two of them before 19 October.
+    expect(created).toMatchObject({
+      title: 'Planning, room 2', start: '2026-10-19T10:00:00',
+      recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: 3 }],
+    });
+    // The new series asks userb again for every occurrence: the old answer
+    // to 19 October does not come along.
+    for (const key of ['id', 'uid', 'recurrenceId', 'recurrenceOverrides']) expect(created).not.toHaveProperty(key);
     expect(statusOf(created.participants, ORGANIZER)).toBe('accepted');
     expect(statusOf(created.participants, ATTENDEE)).toBe('needs-action');
   });
@@ -360,7 +606,10 @@ describe.each(occurrences)('saving this and the following occurrences on Stalwar
       event: occurrence, updates: editorUpdates(occurrence), editor: editorOn(occurrence), sendScheduling: true, userEmails: [ORGANIZER],
     }, deps)).rejects.toThrow('more than 20');
 
-    expect(deps.updateEvent).toHaveBeenLastCalledWith(deps.client, 'b', { recurrenceRules: series(version).recurrenceRules }, true);
+    expect(deps.updateEvent).toHaveBeenLastCalledWith(deps.client, 'b', {
+      recurrenceRules: series(version).recurrenceRules,
+      'recurrenceOverrides/2026-10-19T10:00:00': series(version).recurrenceOverrides!['2026-10-19T10:00:00'],
+    }, true);
   });
 
   it('ends an attendee\'s own copy quietly', async () => {
@@ -371,7 +620,7 @@ describe.each(occurrences)('saving this and the following occurrences on Stalwar
       event: occurrence, updates: editorUpdates(occurrence), editor: editorOn(occurrence), sendScheduling: true, userEmails: [ATTENDEE],
     }, deps);
 
-    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', { recurrenceRules: truncated }, undefined);
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', truncation, undefined);
   });
 
   // The series in userc's calendar, shared with usera read & write: the
@@ -386,7 +635,7 @@ describe.each(occurrences)('saving this and the following occurrences on Stalwar
       sendScheduling: true, userEmails: [SHAREE],
     }, deps);
 
-    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', { recurrenceRules: truncated }, true);
+    expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', truncation, true);
     const [, created, send] = deps.createEvent.mock.calls[0];
     expect(send).toBe(true);
     expect(statusOf(created.participants, ORGANIZER)).toBe('accepted');
@@ -545,6 +794,7 @@ describe.each(occurrences)('deleting part of a series from one occurrence on Sta
 
     expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', {
       recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly', count: null, until: '2026-10-19T09:59:59' }],
+      'recurrenceOverrides/2026-10-19T10:00:00': null,
     }, true);
     expect(deps.deleteEvent).not.toHaveBeenCalled();
   });

@@ -23,8 +23,11 @@ import {
   isBrowserExpandedOccurrence,
   isServerRecurrenceInstance,
   overrideContextOf,
+  resolveOverrideKey,
   withNewOverrideDetails,
 } from '@/lib/recurrence-instances';
+import { occurrencesBefore, seriesOccursAt } from '@/lib/recurrence-expansion';
+import { sameRecurrenceRules } from '@/lib/recurrence-rule';
 import { getEffectiveTimeZone, moveLocalDateTime } from '@/lib/timezone';
 import { debug } from '@/lib/debug';
 
@@ -76,15 +79,102 @@ function wallClockMinutesMs(date: Date): number {
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes());
 }
 
+/** A LocalDateTime ("YYYY-MM-DDTHH:mm:ss") as its wall clock in milliseconds, read as UTC; null when it does not parse. */
+function wallClockMs(value: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(value);
+  if (!match) return null;
+  const [year, month, day, hour, minute, second] = match.slice(1).map((part) => Number(part ?? 0));
+  const wall = new Date(0);
+  wall.setUTCFullYear(year, month - 1, day);
+  wall.setUTCHours(hour, minute, second, 0);
+  return wall.getTime();
+}
+
 /** A LocalDateTime ("YYYY-MM-DDTHH:mm:ss") moved by `ms` on its own wall clock. */
 function shiftLocalDateTime(value: string, ms: number): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(value);
-  if (!match) return value;
-  const [year, month, day, hour, minute, second] = match.slice(1).map((part) => Number(part ?? 0));
-  const shifted = new Date(0);
-  shifted.setUTCFullYear(year, month - 1, day);
-  shifted.setUTCHours(hour, minute, second, 0);
-  return new Date(shifted.getTime() + ms).toISOString().slice(0, 19);
+  const wall = wallClockMs(value);
+  return wall === null ? value : new Date(wall + ms).toISOString().slice(0, 19);
+}
+
+/** `value` moved on the wall clock by as much as `from` moved to `to`. */
+function movedLike(value: string, from: string, to: string): string {
+  const [before, after] = [wallClockMs(from), wallClockMs(to)];
+  return before === null || after === null ? value : shiftLocalDateTime(value, after - before);
+}
+
+type OverrideMap = NonNullable<CalendarEvent['recurrenceOverrides']>;
+type OverrideEntry = Record<string, unknown>;
+
+/** Where a series' occurrences are: what the keys of its overrides, their recurrence ids, are. */
+interface SeriesFrame {
+  start: string;
+  timeZone?: string | null;
+  showWithoutTime: boolean;
+  recurrenceRules: CalendarEvent['recurrenceRules'];
+}
+
+/**
+ * The key an override of the series `from` keeps in the series `to`, or
+ * null when `to` has no such occurrence any more. It moves with its
+ * occurrence, by as much as `anchor` - the series' start, or where a new
+ * series takes over - moved to `to.start` (to the same day at the new time
+ * when the series turns all-day or timed). A rule that pins the occurrence
+ * where it was - a weekday rule the start moved away from - keeps the key,
+ * and an occurrence the new rule does not give is gone. A date the override
+ * adds to the series, which no rule gives, moves along.
+ */
+function overrideKeyIn(key: string, from: SeriesFrame, to: SeriesFrame, anchor = from.start): string | null {
+  const shifted = movedLike(key, anchor, to.start);
+  const moved = to.showWithoutTime ? `${shifted.slice(0, 10)}T00:00:00` : shifted;
+  if (!seriesOccursAt(from.start, from.recurrenceRules, key)) return moved;
+  if (seriesOccursAt(to.start, to.recurrenceRules, moved)) return moved;
+  if (moved !== key && seriesOccursAt(to.start, to.recurrenceRules, key)) return key;
+  return null;
+}
+
+/**
+ * `entry` with its attendees asked again (participantsAskedAgain): a whole
+ * participants map (0.16) with their answers back at needs-action, a
+ * pointer at one answer (1.0 returns an override as a PatchObject) left out,
+ * so the series' answer - asked again - counts.
+ */
+function withAnswersAskedAgain(entry: OverrideEntry, series: CalendarEvent): OverrideEntry {
+  const organizer = { organizerCalendarAddress: series.organizerCalendarAddress, replyTo: series.replyTo };
+  const result: OverrideEntry = {};
+  for (const [key, value] of Object.entries(entry)) {
+    if (/^participants\/[^/]+\/participationStatus$/.test(key)) continue;
+    const whole = key === 'participants' || /^participants\/[^/]+$/.test(key);
+    if (whole && value && typeof value === 'object') {
+      const participants = key === 'participants'
+        ? value as CalendarEvent['participants']
+        : { p: value } as unknown as CalendarEvent['participants'];
+      const asked = participantsAskedAgain({ ...organizer, participants });
+      result[key] = asked ? (key === 'participants' ? asked : asked.p) : value;
+      continue;
+    }
+    result[key] = value;
+  }
+  return result;
+}
+
+/**
+ * `entry` with the participants of a new series, `participants`: pointers
+ * into the old ones (1.0 returns an override as a PatchObject) dropped, so
+ * the series' count; a whole map (0.16) replaced by the series', or dropped
+ * with them. 0.16 keeps an override as an event of its own - without a map
+ * it has no attendees, and its occurrence goes to nobody (live on 0.16.23).
+ */
+function withParticipantsOf(entry: OverrideEntry, participants: CalendarEvent['participants'] | undefined): OverrideEntry {
+  const result = Object.fromEntries(Object.entries(entry).filter(([key]) => !key.startsWith('participants/')));
+  if (!('participants' in result)) return result;
+  if (participants && Object.keys(participants).length > 0) result.participants = participants;
+  else delete result.participants;
+  return result;
+}
+
+/** An override that changes nothing about an occurrence the series has (a PatchObject without a key). */
+function isEmptyOverride(entry: OverrideEntry): boolean {
+  return Object.keys(entry).length === 0;
 }
 
 /**
@@ -162,6 +252,73 @@ function seriesParticipants(
 }
 
 /**
+ * The series' recurrence overrides once `series` - its change - applies,
+ * or undefined when they stay as they are.
+ *
+ * An override is keyed by its occurrence's recurrence id, where the rule
+ * puts the occurrence. A series that moved kept them under the old ids: an
+ * excluded occurrence came back, a changed one showed twice (as changed at
+ * the old time, and as the series has it), in the attendees' copies too
+ * (live on 1.0 and 0.16.23). Now each override goes with its occurrence
+ * (overrideKeyIn), and an override of an occurrence the series no longer
+ * has is dropped. An occurrence moved on its own keeps its time, as the
+ * user placed it - but the one the editor was opened on takes the move the
+ * user made there - while an override that only holds the time the
+ * occurrence had moves with the series; so does the length. A series
+ * turned all-day or timed takes every occurrence along. When the series'
+ * attendees are asked again, so they are for each occurrence that moves.
+ */
+function seriesOverrides(
+  occurrence: CalendarEvent,
+  master: CalendarEvent,
+  series: Partial<CalendarEvent>,
+  options: { ruleChanged: boolean; askAgain: boolean },
+): OverrideMap | null | undefined {
+  const overrides = master.recurrenceOverrides;
+  if (!overrides || Object.keys(overrides).length === 0) return undefined;
+  const resized = series.duration !== undefined;
+  if (series.start === undefined && series.showWithoutTime === undefined && !resized && !options.ruleChanged) return undefined;
+
+  const from: SeriesFrame = { start: master.start, showWithoutTime: !!master.showWithoutTime, recurrenceRules: master.recurrenceRules };
+  const to: SeriesFrame = {
+    start: series.start ?? master.start,
+    showWithoutTime: series.showWithoutTime ?? !!master.showWithoutTime,
+    recurrenceRules: options.ruleChanged ? series.recurrenceRules ?? null : master.recurrenceRules,
+  };
+  const turned = from.showWithoutTime !== to.showWithoutTime;
+  const opened = resolveOverrideKey({ start: occurrence.start, recurrenceId: occurrence.recurrenceId ?? master.start }, overrides);
+
+  const result: OverrideMap = {};
+  for (const [key, override] of Object.entries(overrides)) {
+    const target = overrideKeyIn(key, from, to);
+    if (!target) continue;
+    const { updated: _updated, ...rest } = override as OverrideEntry;
+    let entry: OverrideEntry = rest;
+    if (!entry.excluded) {
+      let follows = true;
+      if (turned) {
+        for (const timing of WHEN_KEYS) delete entry[timing];
+      } else {
+        if (typeof entry.start === 'string') {
+          const pinned = wallClockMs(entry.start) === wallClockMs(key)
+            && (entry.timeZone === undefined || entry.timeZone === master.timeZone);
+          follows = pinned || key === opened;
+          if (follows) entry.start = movedLike(entry.start, from.start, to.start);
+        }
+        if (resized && typeof entry.duration === 'string'
+          && (key === opened || parseDurationSeconds(entry.duration) === parseDurationSeconds(master.duration))) {
+          entry.duration = series.duration;
+        }
+      }
+      if (options.askAgain && follows) entry = withAnswersAskedAgain(entry, master);
+      if (isEmptyOverride(entry) && seriesOccursAt(to.start, to.recurrenceRules, target)) continue;
+    }
+    result[target] = entry as OverrideMap[string];
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+/**
  * The editor's `updates`, made on `occurrence`, as a change to its whole
  * series `master`.
  *
@@ -174,7 +331,8 @@ function seriesParticipants(
  *   as much from its own start (seriesWhen);
  * - its participants and their answers, with the attendees the user added
  *   or removed; when the series moves, the user as its organizer asks the
- *   attendees again (participantFieldsToSave).
+ *   attendees again (participantFieldsToSave);
+ * - its overrides, each with its occurrence (seriesOverrides).
  */
 export function seriesUpdatesFromOccurrence(
   occurrence: CalendarEvent,
@@ -189,10 +347,14 @@ export function seriesUpdatesFromOccurrence(
   }
   const when = seriesWhen(occurrence, master, updates, editor.when);
   Object.assign(series, when);
-  Object.assign(series, seriesParticipants(master, editor, {
-    ...context,
-    rescheduled: Object.keys(when).length > 0 || !!editor.ruleChanged,
-  }));
+  const rescheduled = Object.keys(when).length > 0 || !!editor.ruleChanged;
+  const participants = seriesParticipants(master, editor, { ...context, rescheduled });
+  Object.assign(series, participants);
+  const overrides = seriesOverrides(occurrence, master, series, {
+    ruleChanged: !!editor.ruleChanged,
+    askAgain: rescheduled && !!participants.participants,
+  });
+  if (overrides !== undefined) series.recurrenceOverrides = overrides;
   return series;
 }
 
@@ -261,24 +423,33 @@ function isFirstOccurrence(event: CalendarEvent, master: CalendarEvent): boolean
   return parseISO(event.recurrenceId).getTime() === parseISO(master.start).getTime();
 }
 
+/** The recurrence id `occurrence` has in `master`, the key of its override there. */
+function splitKeyOf(occurrence: CalendarEvent, master: CalendarEvent): string {
+  return resolveOverrideKey(occurrence, master.recurrenceOverrides) ?? occurrence.recurrenceId ?? occurrence.start;
+}
+
 /**
  * End the series `master` just before `occurrence`. With `sendScheduling`,
  * when the user organizes the series, the attendees are told: Stalwart
  * sends them the shortened series, and their copies end there too (they
- * kept every occurrence before). Resolves to the series' rules as they were
- * and whether the attendees were told, for a rollback.
+ * kept every occurrence before). The overrides from `occurrence` on go as
+ * well: a rule that ends does not end them, and each kept its occurrence -
+ * a changed one showed on in the old series, next to the new one (live on
+ * 1.0 and 0.16.23). Resolves to what puts the series back, for a rollback -
+ * its rules as they were and those overrides - whether the attendees were
+ * told, and the overrides, for the new series.
  */
 async function truncateSeries(
   master: CalendarEvent,
   occurrence: CalendarEvent,
   actions: Pick<OccurrenceEditActions, 'client' | 'updateEvent'>,
   scheduling: { sendScheduling?: boolean; userEmails?: string[] } = {},
-): Promise<{ originalRules: CalendarEvent['recurrenceRules']; announced: true | undefined }> {
+): Promise<{ restore: Partial<CalendarEvent>; announced: true | undefined; removed: OverrideMap }> {
   const originalRules = master.recurrenceRules
     ? JSON.parse(JSON.stringify(master.recurrenceRules))
     : null;
-  const occurrenceDate = occurrence.recurrenceId || occurrence.start;
-  const untilDate = new Date(occurrenceDate);
+  const splitKey = splitKeyOf(occurrence, master);
+  const untilDate = new Date(splitKey);
   untilDate.setSeconds(untilDate.getSeconds() - 1);
   const until = format(untilDate, "yyyy-MM-dd'T'HH:mm:ss");
   const truncatedRules = (master.recurrenceRules || []).map(rule => ({
@@ -286,25 +457,106 @@ async function truncateSeries(
     until,
     count: null,
   }));
+  const patch: Record<string, unknown> = { recurrenceRules: truncatedRules };
+  const restore: Record<string, unknown> = { recurrenceRules: originalRules };
+  const removed: OverrideMap = {};
+  const split = wallClockMs(splitKey);
+  for (const [key, override] of Object.entries(master.recurrenceOverrides ?? {})) {
+    const at = wallClockMs(key);
+    if (at === null || split === null || at < split) continue;
+    removed[key] = override;
+    patch[`recurrenceOverrides/${key}`] = null;
+    restore[`recurrenceOverrides/${key}`] = override;
+  }
   const announced = scheduling.sendScheduling && userOrganizes(master, scheduling.userEmails ?? []) ? true : undefined;
-  await actions.updateEvent(actions.client, master.id, { recurrenceRules: truncatedRules }, announced);
-  return { originalRules, announced };
+  await actions.updateEvent(actions.client, master.id, patch as Partial<CalendarEvent>, announced);
+  return { restore: restore as Partial<CalendarEvent>, announced, removed };
+}
+
+/**
+ * The rules of the series "this and the following occurrences" becomes:
+ * the old ones, each with what is left of its COUNT - the occurrences
+ * before `splitKey` stay with the old series. Copied as they were, the new
+ * series ran the whole count again from the split. An UNTIL stays.
+ */
+function remainingRules(
+  rules: CalendarEvent['recurrenceRules'],
+  seriesStart: string,
+  splitKey: string,
+): CalendarEvent['recurrenceRules'] {
+  if (!rules) return rules;
+  return rules.map((rule) => (rule.count
+    ? { ...rule, count: Math.max(1, rule.count - occurrencesBefore(seriesStart, rule, splitKey)) }
+    : rule));
+}
+
+/**
+ * The overrides of the new series "this and the following occurrences"
+ * becomes: those the old series had after the split (truncateSeries), each
+ * with its occurrence (overrideKeyIn). They keep what the organizer changed
+ * - an exclusion, a title, a time of their own - but take the new series'
+ * participants (withParticipantsOf): it asks every attendee again, for each
+ * occurrence, and an attendee's answer to one occurrence of the old series
+ * (Stalwart keeps it as an override holding that attendee) would leave the
+ * others out of it. The occurrence the editor was opened on starts the new
+ * series, which is what the editor wrote for it: its override stays behind.
+ */
+function followingOverrides(
+  overrides: OverrideMap | undefined,
+  splitKey: string,
+  from: SeriesFrame,
+  to: SeriesFrame & { participants?: CalendarEvent['participants'] },
+): OverrideMap | undefined {
+  if (!overrides || Object.keys(overrides).length === 0) return undefined;
+  const turned = from.showWithoutTime !== to.showWithoutTime;
+  const result: OverrideMap = {};
+  for (const [key, override] of Object.entries(overrides)) {
+    if (key === splitKey) continue;
+    const target = overrideKeyIn(key, from, to, splitKey);
+    if (!target) continue;
+    const { updated: _updated, ...rest } = override as OverrideEntry;
+    const entry = withParticipantsOf(rest, to.participants);
+    if (!entry.excluded) {
+      if (turned) {
+        for (const timing of WHEN_KEYS) delete entry[timing];
+      } else if (typeof entry.start === 'string') {
+        if (wallClockMs(entry.start) === wallClockMs(key)) {
+          entry.start = target;
+        } else if (entry.timeZone === undefined && (from.timeZone ?? null) !== (to.timeZone ?? null)) {
+          // A time of its own, on the old series' clock.
+          entry.timeZone = from.timeZone ?? null;
+        }
+      }
+      if (isEmptyOverride(entry) && seriesOccursAt(to.start, to.recurrenceRules, target)) continue;
+    }
+    result[target] = entry as OverrideMap[string];
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /**
  * The new series "this and the following occurrences" becomes: the old
- * series' details with the editor's changes, from `occurrence` on. It is a
- * new event with a UID of its own, so every attendee is asked
- * (participantsAskedAgain): Stalwart invites to a new event only attendees
- * who have not answered, and with the answers the old series had, those
- * who had answered never got the new one.
+ * series' details with the editor's changes, from `occurrence` on, with
+ * what is left of its COUNT and the overrides it takes over (`overrides`,
+ * from truncateSeries). It is a new event with a UID of its own, so every
+ * attendee is asked (participantsAskedAgain): Stalwart invites to a new
+ * event only attendees who have not answered, and with the answers the old
+ * series had, those who had answered never got the new one.
  */
 export function followingSeriesData(
   occurrence: CalendarEvent,
   master: CalendarEvent,
   updates: Partial<CalendarEvent>,
   originalRules: CalendarEvent['recurrenceRules'],
+  options: { editor?: EventEditorState; overrides?: OverrideMap } = {},
 ): Partial<CalendarEvent> {
+  const splitKey = splitKeyOf(occurrence, master);
+  // A rule the user changed in the editor is the new series' own, its COUNT
+  // included; one the user left alone continues the old series.
+  const ruleChanged = options.editor
+    ? !!options.editor.ruleChanged
+    : updates.recurrenceRules !== undefined && !sameRecurrenceRules(updates.recurrenceRules, originalRules);
+  const { recurrenceRules: editorRules, ...changes } = updates;
   const data: Partial<CalendarEvent> = {
     title: master.title,
     description: master.description,
@@ -315,8 +567,8 @@ export function followingSeriesData(
     freeBusyStatus: master.freeBusyStatus,
     privacy: master.privacy,
     showWithoutTime: master.showWithoutTime,
-    recurrenceRules: originalRules,
-    ...updates,
+    ...changes,
+    recurrenceRules: ruleChanged && editorRules !== undefined ? editorRules : remainingRules(originalRules, master.start, splitKey),
     start: updates.start || occurrence.recurrenceId || occurrence.start,
   };
   delete data.id;
@@ -328,6 +580,15 @@ export function followingSeriesData(
       organizerCalendarAddress: data.organizerCalendarAddress ?? master.organizerCalendarAddress,
     }) ?? data.participants;
   }
+  const overrides = followingOverrides(
+    options.overrides, splitKey,
+    { start: master.start, timeZone: master.timeZone, showWithoutTime: !!master.showWithoutTime, recurrenceRules: originalRules },
+    {
+      start: data.start!, timeZone: data.timeZone, showWithoutTime: !!data.showWithoutTime,
+      recurrenceRules: data.recurrenceRules ?? null, participants: data.participants,
+    },
+  );
+  if (overrides) data.recurrenceOverrides = overrides;
   return data;
 }
 
@@ -377,14 +638,17 @@ export async function saveOccurrenceEdit(
       // From the first occurrence on is the whole series; ended before its
       // first occurrence, the series would be left with none.
       if (isFirstOccurrence(event, master)) return saveOccurrenceEdit('all', edit, actions);
-      const { originalRules, announced } = await truncateSeries(master, event, actions, { sendScheduling, userEmails: edit.userEmails });
-      const newEventData = followingSeriesData(event, master, updates, originalRules);
+      const { restore, announced, removed } = await truncateSeries(master, event, actions, { sendScheduling, userEmails: edit.userEmails });
+      const newEventData = followingSeriesData(event, master, updates, restore.recurrenceRules ?? null, {
+        editor: edit.editor,
+        overrides: removed,
+      });
       try {
         await createEvent(client, newEventData, sendScheduling);
       } catch (createError) {
         debug.error('Failed to create new series, rolling back master truncation:', createError);
         try {
-          await updateEvent(client, master.id, { recurrenceRules: originalRules }, announced);
+          await updateEvent(client, master.id, restore, announced);
         } catch (rollbackError) {
           debug.error('Rollback of master event also failed:', rollbackError);
         }
