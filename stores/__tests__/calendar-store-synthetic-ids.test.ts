@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useCalendarStore, resolveMutationTarget } from '../calendar-store';
+import { setClientLookup } from '../client-registry';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { CalendarEvent } from '@/lib/jmap/types';
 import { jmapError, jmapErrorType, jmapSetError } from '@/lib/jmap/jmap-error';
@@ -213,6 +214,72 @@ describe('updateEvent on an expanded occurrence', () => {
 
     expect(client.updateCalendarEvent).toHaveBeenCalledWith('x', { title: 'Renamed' }, undefined, undefined);
     expect(client.queryAllCalendarEvents).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The raise of a change to every occurrence is built on the series as the
+// server holds it right before the write (fromCurrent, see
+// withRaisedSequences): a copy read earlier may be older. The read goes
+// where the write goes.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('a change built on the series read right before it on Stalwart %s', (version) => {
+  // The series as the server holds it: 0.16 copies the SEQUENCE into an
+  // override, 1.0 leaves it out of the PatchObject while it is the series'.
+  const current = (sequence: number) => ({
+    ...occurrence(), id: 'b', originalId: 'b', recurrenceId: null, recurrenceIdTimeZone: null, sequence,
+    recurrenceOverrides: { '2026-09-09T10:00:00': version === '1.0' ? { title: 'Moved' } : { title: 'Moved', sequence } },
+  }) as CalendarEvent;
+  const raise = (event: CalendarEvent) => ({ title: 'Whole series', sequence: (event.sequence ?? 0) + 1 });
+
+  it('reads the base event in the account the write goes to', async () => {
+    const client = fakeClient({ getCalendarEvent: vi.fn().mockResolvedValue(current(4)) });
+    useCalendarStore.setState({ events: [occurrence({ id: 'acct2:maaaaab', originalId: 'maaaaab', accountId: 'acct2', isShared: true })] });
+    const fromCurrent = vi.fn(raise);
+
+    await useCalendarStore.getState().updateEvent(client, 'acct2:b', { title: 'Whole series', sequence: 3 }, true, { keepSequence: true, fromCurrent });
+
+    expect(client.getCalendarEvent).toHaveBeenCalledWith('b', 'acct2');
+    expect(fromCurrent).toHaveBeenCalledWith(current(4));
+    expect(client.updateCalendarEvent).toHaveBeenCalledWith('b', { title: 'Whole series', sequence: 5 }, true, 'acct2', { keepSequence: true });
+  });
+
+  it('reads it through the login of the account the series is in', async () => {
+    const other = fakeClient({ getCalendarEvent: vi.fn().mockResolvedValue(current(7)) });
+    const active = fakeClient({ getCalendarEvent: vi.fn() });
+    setClientLookup((localAccountId) => (localAccountId === 'B@h' ? other : undefined));
+    useCalendarStore.setState({ events: [occurrence({ id: 'B@h::maaaaab', originalId: 'maaaaab', localAccountId: 'B@h' })] });
+
+    try {
+      await useCalendarStore.getState().updateEvent(active, 'B@h::b', { title: 'Whole series', sequence: 3 }, true, {
+        keepSequence: true, fromCurrent: raise,
+      });
+    } finally {
+      setClientLookup(() => undefined);
+    }
+
+    expect(active.getCalendarEvent).not.toHaveBeenCalled();
+    expect(active.updateCalendarEvent).not.toHaveBeenCalled();
+    expect(other.updateCalendarEvent).toHaveBeenCalledWith('b', { title: 'Whole series', sequence: 8 }, true, undefined, { keepSequence: true });
+  });
+
+  it('sends the change as it was given when there is no base event to read', async () => {
+    const client = fakeClient({ getCalendarEvent: vi.fn().mockResolvedValue(null) });
+    useCalendarStore.setState({ events: [occurrence()] });
+
+    await useCalendarStore.getState().updateEvent(client, 'b', { title: 'Whole series', sequence: 3 }, true, {
+      keepSequence: true, fromCurrent: () => ({ title: 'Not this' }),
+    });
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledWith('b', { title: 'Whole series', sequence: 3 }, true, undefined, { keepSequence: true });
+  });
+
+  it('writes one occurrence without reading the series', async () => {
+    const client = fakeClient({ getCalendarEvent: vi.fn() });
+    useCalendarStore.setState({ events: [occurrence()] });
+
+    await useCalendarStore.getState().updateEvent(client, 'maaaaab', { title: 'Renamed' }, undefined, { fromCurrent: () => ({ title: 'Not this' }) });
+
+    expect(client.getCalendarEvent).not.toHaveBeenCalled();
+    expect(client.updateCalendarEvent.mock.calls[0][1]).toMatchObject({ title: 'Renamed' });
   });
 });
 

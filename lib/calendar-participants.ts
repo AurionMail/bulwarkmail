@@ -266,6 +266,19 @@ export function hasAnsweredAttendees(event: Partial<Pick<CalendarEvent, 'partici
 }
 
 /**
+ * The addresses whose answer stays when the attendees are asked again:
+ * those of the user who makes the change. Someone who attends the owner's
+ * meeting in a calendar shared with them, and moves it there, is not asked
+ * about their own change. Stalwart 0.16 takes the addresses of the user who
+ * writes for the account's own and sends them nothing: reset, their answer
+ * stayed needs-action in the owner's copy, with nothing asking them to
+ * answer again (live on 0.16.23). 1.0 sends them the change either way.
+ */
+function keptAnswersOf(userEmails: string[]): string[] {
+  return userEmails.map((email) => email.trim().toLowerCase()).filter(Boolean);
+}
+
+/**
  * `event`'s participants with every attendee asked to answer again - back
  * at needs-action - and the organizer's entries as they are. What its
  * organizer does when an event moves (RFC 5546), and what a new event made
@@ -274,15 +287,21 @@ export function hasAnsweredAttendees(event: Partial<Pick<CalendarEvent, 'partici
  * NEEDS-ACTION; groupware scheduling, send_invite_messages), and a change
  * to an existing one carries each attendee's stored answer. Null when no
  * attendee has answered.
+ *
+ * `userEmails`, the addresses of the user who makes the change, keep their
+ * answer (see keptAnswersOf).
  */
 export function participantsAskedAgain(
   event: Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress' | 'replyTo'>>,
+  userEmails: string[] = [],
 ): Record<string, CalendarParticipant> | null {
   const organizerEmails = getEventOrganizerEmails(event as CalendarEvent);
+  const own = keptAnswersOf(userEmails);
   let asked = false;
   const participants: Record<string, CalendarParticipant> = {};
   for (const [id, p] of Object.entries(event.participants ?? {})) {
-    if (isOrganizerEntry(p, organizerEmails) || !p.participationStatus || p.participationStatus === 'needs-action') {
+    if (isOrganizerEntry(p, organizerEmails) || !p.participationStatus || p.participationStatus === 'needs-action'
+      || participantMatchesEmail(p, own)) {
       participants[id] = p;
       continue;
     }
@@ -317,16 +336,18 @@ function participantsByAddress(
  * keeps its participant id and its answer, so a save neither resets the
  * attendees' answers - the user's own on an invitation included - nor leaves
  * a recurrence override pointing at a participant id that is gone. With
- * `askAgain` every attendee but the organizer answers anew (needs-action).
+ * `askAgain` every attendee but the organizer answers anew (needs-action),
+ * but at the user's own addresses, `userEmails` (keptAnswersOf).
  */
 export function buildParticipantMap(
   organizer: { name: string; email: string },
   attendees: { name: string; email: string }[],
   existing?: CalendarEvent['participants'] | null,
-  options: { askAgain?: boolean } = {},
+  options: { askAgain?: boolean; userEmails?: string[] } = {},
 ): Record<string, Partial<CalendarParticipant>> {
   const participants: Record<string, Partial<CalendarParticipant>> = {};
   const known = participantsByAddress(existing);
+  const own = new Set(keptAnswersOf(options.userEmails ?? []));
   const idFor = (key: string) => {
     const id = known.get(key)?.id;
     return id && !(id in participants) ? id : generateUUID();
@@ -368,7 +389,7 @@ export function buildParticipantMap(
       email,
       calendarAddress: `mailto:${email}`,
       roles: { attendee: true },
-      participationStatus: (options.askAgain ? undefined : known.get(key)?.status) ?? 'needs-action',
+      participationStatus: (options.askAgain && !own.has(key) ? undefined : known.get(key)?.status) ?? 'needs-action',
       scheduleAgent: 'server',
       expectReply: true,
       kind: 'individual',
@@ -418,7 +439,7 @@ export function userOrganizes(event: CalendarEvent, userEmails: string[]): boole
  * update carries each attendee's stored answer, and one occurrence that
  * gets its own override reaches only attendees without an answer: a dragged
  * occurrence reached no attendee who had answered, a dragged event kept
- * their answers for the new time.
+ * their answers for the new time. The user's own answer stays.
  */
 export function movedEventUpdates<T extends Partial<CalendarEvent>>(
   event: CalendarEvent | undefined,
@@ -428,7 +449,7 @@ export function movedEventUpdates<T extends Partial<CalendarEvent>>(
   if (!event?.participants || Object.keys(event.participants).length === 0 || !userOrganizes(event, userEmails)) {
     return { updates, sendSchedulingMessages: undefined };
   }
-  const participants = participantsAskedAgain(event);
+  const participants = participantsAskedAgain(event, userEmails);
   return { updates: participants ? { ...updates, participants } : updates, sendSchedulingMessages: true };
 }
 
@@ -460,7 +481,7 @@ export interface ParticipantSaveContext {
  * (buildParticipantMap), unless the user as the organizer moves the event
  * or changes its recurrence: then the other attendees are asked again, as
  * RFC 5546 has an organizer do when an event is rescheduled, and the
- * server's update asks them with needs-action.
+ * server's update asks them with needs-action. The user's own answer stays.
  *
  * Without attendees, an event that had participants loses them, its
  * organizer and the retired `replyTo` older releases wrote.
@@ -473,7 +494,8 @@ export function participantFieldsToSave(
   const { userEmail, resolveName } = context;
   if (attendees.length > 0 && userEmail) {
     const organizer = (event ? eventOrganizer(event) : null) ?? { name: '', email: userEmail };
-    const askAgain = !!context.rescheduled && (!event || userOrganizes(event, [userEmail, ...(context.userEmails ?? [])]));
+    const userEmails = [userEmail, ...(context.userEmails ?? [])];
+    const askAgain = !!context.rescheduled && (!event || userOrganizes(event, userEmails));
     const fields: Partial<Pick<CalendarEvent, 'participants' | 'organizerCalendarAddress'>> = {
       participants: buildParticipantMap(
         // A new event has no participants yet, so it would store an empty
@@ -481,7 +503,7 @@ export function participantFieldsToSave(
         { name: organizer.name || resolveName?.(organizer.email) || '', email: organizer.email },
         attendees,
         event?.participants,
-        { askAgain },
+        { askAgain, userEmails },
       ) as Record<string, CalendarParticipant>,
     };
     if (!event?.organizerCalendarAddress) fields.organizerCalendarAddress = `mailto:${organizer.email}`;

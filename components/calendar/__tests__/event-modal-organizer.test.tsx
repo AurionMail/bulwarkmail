@@ -286,7 +286,10 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal on the owner\'s
     expect(screen.getByPlaceholderText('email_placeholder')).toBeEnabled();
   });
 
-  it('asks the attendees again when the user moves it', async () => {
+  // 0.16 sends userb nothing of her own move (her address counts as the
+  // account's own): reset, her answer stayed needs-action in userc's copy
+  // (live on 0.16.23).
+  it('asks the other attendees again when the user moves it, and keeps the user\'s answer', async () => {
     const { data } = await saveAs(inShared('userc@example.org', true), (container) => {
       const [startTime] = container.querySelectorAll('input[type="time"]');
       fireEvent.change(startTime, { target: { value: '11:00' } });
@@ -295,7 +298,7 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('EventModal on the owner\'s
     const participants = data.participants as Record<string, CalendarParticipant>;
     expect(participants.owner.participationStatus).toBe('accepted');
     expect(participants.anna.participationStatus).toBe('needs-action');
-    expect(participants.bea.participationStatus).toBe('needs-action');
+    expect(participants.bea.participationStatus).toBe('tentative');
   });
 
   it('leaves an invitation the owner got alone', async () => {

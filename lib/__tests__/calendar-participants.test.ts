@@ -808,8 +808,11 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('participantFieldsToSave fo
   });
 
   // userc shares a calendar with the user (read & write): userc's meeting in
-  // it is the organizer's copy, and a move there goes out from userc.
-  it('asks again when the user moves the owner\'s meeting in a calendar shared with them', () => {
+  // it is the organizer's copy, and a move there goes out from userc. The
+  // user attends it too, and 0.16 sends the user nothing of their own change
+  // (their address counts as the account's own): reset, their answer stayed
+  // needs-action in userc's copy (live on 0.16.23).
+  it('asks the others again, not the user, when the user moves the owner\'s meeting in a calendar shared with them', () => {
     const shared = makeEvent({
       owner: organizer('userc@example.org'),
       anna: attendee('usera@example.org', 'accepted'),
@@ -820,8 +823,19 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('participantFieldsToSave fo
 
     expect(fields.participants!.owner).toMatchObject({ calendarAddress: 'mailto:userc@example.org', participationStatus: 'accepted' });
     expect(fields.participants!.anna.participationStatus).toBe('needs-action');
-    expect(fields.participants!.mine.participationStatus).toBe('needs-action');
+    expect(fields.participants!.mine.participationStatus).toBe('tentative');
     expect(fields).not.toHaveProperty('organizerCalendarAddress');
+  });
+
+  it('keeps the answer of an address the user attends under, whichever of theirs it is', () => {
+    const shared = makeEvent({
+      owner: organizer('userc@example.org'),
+      mine: attendee('ME-ALIAS@example.com', 'declined'),
+    }, { organizerCalendarAddress: 'mailto:userc@example.org', isOrigin: true, isShared: true, accountId: 'f' });
+
+    const fields = participantFieldsToSave(shared, rows('me-alias@example.com'), { ...me, rescheduled: true });
+
+    expect(fields.participants!.mine.participationStatus).toBe('declined');
   });
 });
 
@@ -905,8 +919,10 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('movedEventUpdates on Stalw
 
   // userc's meeting in userc's calendar, shared with the user read & write:
   // Stalwart sends the move from userc. It went out to nobody, and the
-  // attendees kept the old time (live on 1.0 and 0.16.23).
-  it('asks the attendees again and tells them when the user moves the owner\'s meeting in a shared calendar', () => {
+  // attendees kept the old time (live on 1.0 and 0.16.23). The user, who
+  // attends too, keeps their answer: 0.16 sends them nothing of their own
+  // move, and reset, it stayed needs-action in userc's copy (live on 0.16.23).
+  it('asks the other attendees again and tells them when the user moves the owner\'s meeting in a shared calendar', () => {
     const { updates, sendSchedulingMessages } = movedEventUpdates(
       meeting('userc@example.org', { isOrigin: true, isShared: true, accountId: 'f' }), MOVE, ['me@example.com'],
     );
@@ -914,7 +930,7 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('movedEventUpdates on Stalw
     expect(sendSchedulingMessages).toBe(true);
     expect(updates.participants!.org.participationStatus).toBe('accepted');
     expect(updates.participants!.bob.participationStatus).toBe('needs-action');
-    expect(updates.participants!.me.participationStatus).toBe('needs-action');
+    expect(updates.participants!.me.participationStatus).toBe('tentative');
   });
 
   it('moves the owner\'s copy of someone else\'s meeting in a shared calendar quietly', () => {

@@ -1013,6 +1013,12 @@ export const useCalendarStore = create<CalendarStore>()(
             targetAccountId,
             updateKeys: Object.keys(updates),
           });
+          // A change built on the base event as the server holds it now (a
+          // raise of its SEQUENCE), read where the write goes.
+          if (options?.fromCurrent && !target.isOccurrence && !target.isBrowserOccurrence) {
+            const current = await client.getCalendarEvent(realId, targetAccountId);
+            if (current) updates = options.fromCurrent(current);
+          }
           // Remap namespaced calendarIds back to original IDs
           const cleanUpdates = sanitizeOutgoingCalendarEventData({ ...updates });
           if (cleanUpdates.calendarIds) {

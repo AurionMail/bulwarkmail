@@ -193,11 +193,11 @@ function overrideKeysIn(overrides: OverrideMap, from: SeriesFrame, to: SeriesFra
 
 /**
  * `entry` with its attendees asked again (participantsAskedAgain): a whole
- * participants map (0.16) with their answers back at needs-action, a
- * pointer at one answer (1.0 returns an override as a PatchObject) left out,
- * so the series' answer - asked again - counts.
+ * participants map (0.16) with their answers back at needs-action - but the
+ * user's own, under `userEmails` - a pointer at one answer (1.0 returns an
+ * override as a PatchObject) left out, so the series' answer counts.
  */
-function withAnswersAskedAgain(entry: OverrideEntry, series: CalendarEvent): OverrideEntry {
+function withAnswersAskedAgain(entry: OverrideEntry, series: CalendarEvent, userEmails: string[]): OverrideEntry {
   const organizer = { organizerCalendarAddress: series.organizerCalendarAddress, replyTo: series.replyTo };
   const result: OverrideEntry = {};
   for (const [key, value] of Object.entries(entry)) {
@@ -207,7 +207,7 @@ function withAnswersAskedAgain(entry: OverrideEntry, series: CalendarEvent): Ove
       const participants = key === 'participants'
         ? value as CalendarEvent['participants']
         : { p: value } as unknown as CalendarEvent['participants'];
-      const asked = participantsAskedAgain({ ...organizer, participants });
+      const asked = participantsAskedAgain({ ...organizer, participants }, userEmails);
       result[key] = asked ? (key === 'participants' ? asked : asked.p) : value;
       continue;
     }
@@ -447,7 +447,7 @@ function seriesOverrides(
   occurrence: CalendarEvent,
   master: CalendarEvent,
   series: Partial<CalendarEvent>,
-  options: { ruleChanged: boolean; askAgain: boolean; changes: Partial<CalendarEvent> },
+  options: { ruleChanged: boolean; askAgain: boolean; changes: Partial<CalendarEvent>; userEmails: string[] },
 ): OverrideMap | null | undefined {
   const overrides = master.recurrenceOverrides;
   if (!overrides || Object.keys(overrides).length === 0) return undefined;
@@ -497,7 +497,7 @@ function seriesOverrides(
           entry.duration = series.duration;
         }
       }
-      if (options.askAgain && follows) entry = withAnswersAskedAgain(entry, master);
+      if (options.askAgain && follows) entry = withAnswersAskedAgain(entry, master, options.userEmails);
       if (changes) entry = withSeriesChanges(entry, options.changes, master, key === opened);
       if (seriesOccursAt(to.start, to.recurrenceRules, target) && changesNothing(entry, target, { ...master, ...series })) continue;
     }
@@ -551,6 +551,7 @@ export function seriesUpdatesFromOccurrence(
     ruleChanged: !!editor.ruleChanged,
     askAgain: rescheduled && !!participants.participants,
     changes,
+    userEmails: [context.userEmail ?? '', ...(context.userEmails ?? [])].filter(Boolean),
   });
   if (overrides !== undefined) series.recurrenceOverrides = overrides;
   return series;
@@ -566,6 +567,12 @@ export interface EventUpdateOptions {
   asOrganizer?: boolean;
   /** The update sets `sequence` itself (withRaisedSequences); it is not stripped. */
   keepSequence?: boolean;
+  /**
+   * Builds the update from the base event as the server holds it, read
+   * right before the write through the account the write goes to; it
+   * replaces the update given, which goes out when there is nothing to read.
+   */
+  fromCurrent?: (current: CalendarEvent) => Partial<CalendarEvent>;
 }
 
 /** Changes of a series its attendees see - Stalwart announces them, and 1.0 raises the SEQUENCE for them. */
@@ -590,11 +597,18 @@ const ANNOUNCED_KEYS = [
  * occurrence's SEQUENCE the same way itself for a change it announces, and
  * keeps a number it would have given (live: the same result with and
  * without).
+ *
+ * `master` is the series as the server holds it right before the write
+ * (EventUpdateOptions.fromCurrent): a copy read earlier - a series opened
+ * from a link while another client changed it - gave a lower number than
+ * the attendees had, which 0.16 took and they refused, and a pointer into an
+ * override removed meanwhile failed the whole save. An override `series`
+ * rewrites, built on that copy, goes at least one above the series.
  */
 function withRaisedSequences(series: Partial<CalendarEvent>, master: CalendarEvent): Partial<CalendarEvent> {
   const base = master.sequence ?? 0;
   const raised: Record<string, unknown> = { ...series, sequence: base + 1 };
-  const raise = (entry: OverrideEntry) => (entry.excluded ? entry : { ...entry, sequence: Number(entry.sequence ?? base) + 1 });
+  const raise = (entry: OverrideEntry) => (entry.excluded ? entry : { ...entry, sequence: Math.max(Number(entry.sequence ?? base), base) + 1 });
   if (series.recurrenceOverrides !== undefined) {
     if (series.recurrenceOverrides) {
       raised.recurrenceOverrides = Object.fromEntries(Object.entries(series.recurrenceOverrides)
@@ -843,8 +857,9 @@ const FOLLOWING_SERIES_KEYS = [
  * (`overrides`, from truncateSeries). It is a new event with a UID of its
  * own, so every attendee is asked (participantsAskedAgain): Stalwart invites
  * to a new event only attendees who have not answered, and with the answers
- * the old series had, those who had answered never got the new one.
-
+ * the old series had, those who had answered never got the new one. That
+ * goes for the user too when they attend it: 1.0 invites them like anyone
+ * else.
  *
  * It goes on where the old series would have: from the split occurrence's
  * recurrence id, on the old series' clock and in its zone, moved only as far
@@ -1034,7 +1049,11 @@ export async function saveOccurrenceEdit(
         delete seriesUpdates.recurrenceId;
       }
       if (raisesSequences(seriesUpdates, master, edit)) {
-        await updateEvent(client, master.id, withRaisedSequences(seriesUpdates, master), sendScheduling, { keepSequence: true });
+        const series = seriesUpdates;
+        await updateEvent(client, master.id, withRaisedSequences(series, master), sendScheduling, {
+          keepSequence: true,
+          fromCurrent: (current) => withRaisedSequences(series, current),
+        });
         return true;
       }
       await updateEvent(client, master.id, seriesUpdates, sendScheduling);

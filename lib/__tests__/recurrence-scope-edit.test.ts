@@ -250,6 +250,26 @@ describe.each(occurrences)('changing every occurrence from one of them on Stalwa
     expect(statusOf(updates.participants, SHAREE)).toBeUndefined();
   });
 
+  // userb attends userc's series, and moves it in userc's calendar shared
+  // with her. 0.16 sends her nothing of her own change (her address counts
+  // as the account's own): reset, her answers stayed needs-action in userc's
+  // copy (live on 0.16.23).
+  it('keeps the answers of the user who attends the owner\'s series and moves it there', () => {
+    const occurrence = make();
+    const updates = seriesUpdatesFromOccurrence(
+      occurrence, { ...series(version), isOrigin: true, isShared: true, accountId: 'f' }, editorUpdates(occurrence),
+      editorOn(occurrence, { when: { allDay: false, start: addHours(getEventStartDate(occurrence), 1), end: addHours(getEventEndDate(occurrence), 1) } }),
+      { userEmail: ATTENDEE, userEmails: [ATTENDEE] },
+    );
+
+    expect(updates.start).toBe('2026-10-05T11:00:00');
+    expect(statusOf(updates.participants, ATTENDEE)).toBe('accepted');
+    // 0.16: her answer to 19 October alone, in the override's whole map, stays too.
+    if (version === '0.16') {
+      const overrides = updates.recurrenceOverrides as Record<string, Record<string, unknown>>;
+      expect(statusOf(overrides['2026-10-19T11:00:00'].participants as CalendarEvent['participants'], ATTENDEE)).toBe('declined');
+    }
+  });
 });
 
 describe('changing every occurrence of a series in another time zone', () => {
@@ -925,7 +945,7 @@ describe('saveOccurrenceEdit for every occurrence', () => {
     // up (see below).
     expect(deps.updateEvent).toHaveBeenCalledWith(deps.client, 'b', {
       title: 'Planning, room 2', sequence: 1, 'recurrenceOverrides/2026-10-19T10:00:00/sequence': 1,
-    }, true, { keepSequence: true });
+    }, true, expect.objectContaining({ keepSequence: true }));
   });
 
   it('reports a series it cannot find', async () => {
@@ -969,8 +989,10 @@ describe.each<[string, Version]>([['1.0', '1.0'], ['0.16', '0.16']])('the SEQUEN
   it('raises the series\' and each changed occurrence\'s by one on a new title', async () => {
     const [, id, patch, send, options] = await save(withSequences(), { title: 'Planning, room 2' });
 
-    expect([id, send, options]).toEqual(['b', true, { keepSequence: true }]);
+    expect([id, send, options.keepSequence]).toEqual(['b', true, true]);
     expect(patch).toEqual({ title: 'Planning, room 2', sequence: 3, 'recurrenceOverrides/2026-10-19T10:00:00/sequence': 3 });
+    // The same from the series as the server holds it, when that is the copy.
+    expect(options.fromCurrent(withSequences())).toEqual(patch);
   });
 
   it('raises them inside the overrides when the series moves', async () => {
@@ -980,10 +1002,45 @@ describe.each<[string, Version]>([['1.0', '1.0'], ['0.16', '0.16']])('the SEQUEN
       when: { allDay: false, start: addHours(occurrenceStart, 1), end: addHours(occurrenceStart, 2) },
     });
 
-    expect(options).toEqual({ keepSequence: true });
+    expect(options.keepSequence).toBe(true);
     expect(patch.sequence).toBe(3);
     expect(patch.recurrenceOverrides['2026-10-19T11:00:00'].sequence).toBe(3);
     expect(Object.keys(patch).some((key: string) => key.startsWith('recurrenceOverrides/'))).toBe(false);
+  });
+
+  // A series opened from a link a while ago, changed by another client since:
+  // raised from the copy's number, the change went out lower than what the
+  // attendees had, which 0.16 took and they refused; a pointer into an
+  // override removed meanwhile failed the whole save. The store reads the
+  // series right before the write (fromCurrent).
+  it('raises the numbers the server holds right before the write, not the copy\'s', async () => {
+    const stale = withSequences();
+    const [, , , , options] = await save(stale, { title: 'Planning, room 2' });
+    // Since then: moved twice (SEQUENCE 4), 19 October's override gone, 2
+    // November cancelled and 9 November retitled alone.
+    const current = {
+      ...stale, sequence: 4,
+      recurrenceOverrides: {
+        '2026-11-02T10:00:00': { excluded: true },
+        '2026-11-09T10:00:00': version === '1.0' ? { title: 'Planning, special' } : { title: 'Planning, special', sequence: 4 },
+      },
+    } as unknown as CalendarEvent;
+
+    expect(options.fromCurrent(current)).toEqual({
+      title: 'Planning, room 2', sequence: 5, 'recurrenceOverrides/2026-11-09T10:00:00/sequence': 5,
+    });
+  });
+
+  it('raises an override the change rewrites from the copy at least one above the series the server holds', async () => {
+    const occurrenceStart = getEventStartDate({ ...serverOccurrence(version), start: '2026-10-26T10:00:00', utcStart: '2026-10-26T09:00:00Z' } as CalendarEvent);
+    const retitled = withSequences({ '2026-10-19T10:00:00': { title: 'Planning, special' } } as never);
+    const [, , , , options] = await save(retitled, {}, {}, {
+      when: { allDay: false, start: addHours(occurrenceStart, 1), end: addHours(occurrenceStart, 2) },
+    });
+
+    const raised = options.fromCurrent({ ...retitled, sequence: 6 } as CalendarEvent);
+    expect(raised.sequence).toBe(7);
+    expect(raised.recurrenceOverrides['2026-10-19T11:00:00'].sequence).toBe(7);
   });
 
   it('leaves them alone when nothing goes out, nothing the attendees see changes, or no occurrence has an override', async () => {
