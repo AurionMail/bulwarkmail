@@ -265,6 +265,7 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
           key={selectedEmailId}
           emailId={selectedEmailId}
           client={client}
+          clientAccountId={data.accountId && getClientForAccount(data.accountId) ? data.accountId : undefined}
           accountId={jmapAccountId}
           onClose={handleViewerClose}
           className="min-w-0 flex-1"

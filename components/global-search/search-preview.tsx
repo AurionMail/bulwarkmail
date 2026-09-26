@@ -175,6 +175,7 @@ export function SearchPreview({ hit, onOpen, onClose }: SearchPreviewProps) {
         key={`${hit.localAccountId}-${hit.id}`}
         emailId={hit.id}
         client={clientOverride}
+        clientAccountId={clientOverride ? hit.localAccountId : undefined}
         accountId={hit.jmapAccountId}
         onClose={onClose}
         className="w-full"

@@ -26,8 +26,12 @@ vi.mock('@/components/error', () => ({
 
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@/stores/toast-store', () => ({ toast: { error: () => {}, success: () => {} } }));
-vi.mock('@/hooks/use-pro-multi-account-identities', () => ({
-  useProMultiAccountIdentities: () => ({ enabled: false, groups: [], allIdentities: [] }),
+const multiAccount = vi.hoisted(() => ({
+  value: { enabled: false, groups: [] as unknown[], allIdentities: [] as Array<{ id: string; email: string; name: string }> },
+}));
+vi.mock('@/hooks/use-pro-multi-account-identities', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/hooks/use-pro-multi-account-identities')>(),
+  useProMultiAccountIdentities: () => multiAccount.value,
 }));
 
 const { openComposeTab } = vi.hoisted(() => ({ openComposeTab: vi.fn() }));
@@ -81,15 +85,35 @@ describe('Pro email view - editing a draft', () => {
   beforeEach(() => {
     viewerProps.current = null;
     openComposeTab.mockClear();
+    multiAccount.value = { enabled: false, groups: [], allIdentities: [] };
   });
 
-  async function openAndEdit(accountId?: string) {
-    const client = { getEmail: vi.fn().mockResolvedValue(DRAFT), getUsername: () => 'userb@example.org' };
-    render(<ProEmailView emailId="eaaaaab" client={client as never} accountId={accountId} onClose={vi.fn()} />);
+  async function openAndEdit(accountId?: string, clientAccountId?: string, draft: object = DRAFT) {
+    const client = { getEmail: vi.fn().mockResolvedValue(draft), getUsername: () => 'userb@example.org' };
+    render(<ProEmailView emailId="eaaaaab" client={client as never} clientAccountId={clientAccountId} accountId={accountId} onClose={vi.fn()} />);
     await waitFor(() => expect(viewerProps.current?.email).toBeTruthy());
     (viewerProps.current!.onEditDraft as () => void)();
     return openComposeTab.mock.calls[0][0].initialData as Record<string, unknown>;
   }
+
+  // userb is logged in to the Stalwart 0.16.23 and the 1.0 test server: the
+  // same address, and account `e` on both. The composer removes the old
+  // version through the login the draft was opened from.
+  it('opens a draft of another login with that login and its identity', async () => {
+    multiAccount.value = {
+      enabled: true,
+      groups: [],
+      allIdentities: [
+        { id: 'userb@v016::c', email: 'userb@example.org', name: 'userb' },
+        { id: 'userb@v10::c', email: 'userb@example.org', name: 'userb' },
+      ],
+    };
+    const ownDraft = { ...DRAFT, from: [{ email: 'userb@example.org', name: 'userb' }] };
+
+    const initialData = await openAndEdit('e', 'userb@v10', ownDraft);
+
+    expect(initialData).toMatchObject({ draftId: 'eaaaaab', draftAccountId: 'e', draftLocalAccountId: 'userb@v10', selectedIdentityId: 'userb@v10::c' });
+  });
 
   it('opens a draft of a group folder with the group account', async () => {
     const initialData = await openAndEdit('c');
