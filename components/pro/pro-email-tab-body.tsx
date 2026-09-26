@@ -33,8 +33,10 @@ interface ProEmailViewProps {
    */
   client?: IJMAPClient | null;
   /**
-   * The connected account `client` belongs to; absent, the active one. A
-   * draft reopened from here is saved over and removed through it.
+   * The connected account `client` belongs to. Given, the message is read
+   * through `client` and a draft reopened from here is saved over and removed
+   * through that login. Absent, nothing says which login the message came
+   * through, and the composer goes by the draft's From.
    */
   clientAccountId?: string;
   /**
@@ -85,9 +87,11 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
   const tNotifications = useTranslations('notifications');
 
   const activeClient = useAuthStore((s) => s.client);
-  const activeAccountId = useAuthStore((s) => s.activeAccountId);
   const client = clientOverride ?? activeClient;
-  const localAccountId = (clientOverride ? clientAccountId : undefined) ?? activeAccountId ?? undefined;
+  // Only a login the host names: without one the message is read through
+  // fetchEmailContent, which routes by the main list (the login browsed
+  // there, a row with the same id) - not necessarily the active login.
+  const localAccountId = clientOverride ? clientAccountId : undefined;
   const fetchEmailContent = useEmailStore((s) => s.fetchEmailContent);
   const deleteEmail = useEmailStore((s) => s.deleteEmail);
   const markAsRead = useEmailStore((s) => s.markAsRead);
@@ -113,7 +117,9 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     let cancelled = false;
     if (!client) return;
     setIsLoading(true);
-    (accountId ? client.getEmail(emailId, accountId) : fetchEmailContent(client, emailId))
+    // A named login is read through its own client, so the login a draft
+    // reopened from here is stamped with is the one it was read through.
+    (accountId || localAccountId ? client.getEmail(emailId, accountId) : fetchEmailContent(client, emailId))
       .then((loaded) => {
         if (cancelled) return;
         setEmail(loaded);
@@ -128,7 +134,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     return () => {
       cancelled = true;
     };
-  }, [client, emailId, accountId, fetchEmailContent]);
+  }, [client, emailId, accountId, localAccountId, fetchEmailContent]);
 
   const currentMailboxRole = useMemo(() => {
     if (!email) return undefined;
@@ -367,8 +373,8 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         mode: 'compose',
         draftId: email.id,
         // A draft in a shared or group folder is removed there when the
-        // composer replaces, sends or discards it, through this view's
-        // login (see ComposerDraftData).
+        // composer replaces, sends or discards it, through the login this
+        // view names (see ComposerDraftData).
         draftAccountId: accountId,
         draftLocalAccountId: localAccountId,
         // The draft's already-uploaded parts - the classic path carries them
@@ -435,8 +441,9 @@ export function ProEmailTabBody({ tabId, data }: ProEmailTabBodyProps) {
     return mb?.isShared ? mb.accountId : undefined;
   }, [mailboxes, data.mailboxId]);
 
-  // A hit opened from another login (global search) is fetched through that
-  // login's client, targeting the owner accountId stamped on the hit (#847).
+  // A message opened with its login (a list row, a search hit of another
+  // login) is fetched through that login's client, targeting the owner
+  // accountId it came with (#847).
   const clientOverride = data.clientAccountId ? getClientForAccount(data.clientAccountId) ?? null : null;
 
   return (
@@ -444,7 +451,7 @@ export function ProEmailTabBody({ tabId, data }: ProEmailTabBodyProps) {
       emailId={data.emailId}
       client={clientOverride ?? undefined}
       clientAccountId={clientOverride ? data.clientAccountId : undefined}
-      accountId={clientOverride ? data.accountId : ownerAccountId}
+      accountId={clientOverride ? (data.accountId || undefined) : ownerAccountId}
       onLoaded={handleLoaded}
       onClose={handleClose}
       className="w-full"

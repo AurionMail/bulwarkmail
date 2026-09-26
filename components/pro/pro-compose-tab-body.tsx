@@ -55,7 +55,8 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
   }, [client, refreshScheduledMetadata, isScheduledView, fetchScheduledEmails, closeTab]);
 
   const handleSend = useCallback(async (sendData: Parameters<NonNullable<React.ComponentProps<typeof EmailComposer>['onSend']>>[0]) => {
-    if (!client) return;
+    // Nothing is sent: the composer keeps what only goes once the mail is out.
+    if (!client) return false;
     // The Pro From dropdown lists identities from every connected account, so
     // the chosen identity may belong to a different account than the active
     // one. Submit through that account's own client - the identity id is only

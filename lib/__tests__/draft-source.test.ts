@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findDraftIdentityIdForLogin, resolveDraftSource } from '../draft-source';
+import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource } from '../draft-source';
 import type { Identity } from '../jmap/types';
 
 // userb is account `e` on the Stalwart 0.16.23 and the 1.0 test server alike,
@@ -43,6 +43,60 @@ describe('resolveDraftSource', () => {
       { sourceClientAccountId: 'userb@v016', sourceAccountId: 'e' },
       { source: { accountId: 'c', localAccountId: 'userb@v10' }, aggregate: true, activeAccountId: 'userb@v016' },
     )).toEqual({ localAccountId: 'userb@v10', accountId: 'c' });
+  });
+
+  // Pro shell: the 1.0 login's folder was browsed, then Scheduled opened; it
+  // lists the active 0.16.23 login's mail, and "Cancel and edit" restores the
+  // message through that login's client. The browsed login stays "viewed".
+  it('takes a scheduled send cancelled for editing from the login that restored it, not the one browsed before', () => {
+    expect(resolveDraftSource({}, {
+      source: { accountId: 'e', localAccountId: 'userb@v016' },
+      aggregate: false,
+      viewingAccountId: 'userb@v10',
+      activeAccountId: 'userb@v016',
+    })).toEqual({ localAccountId: 'userb@v016', accountId: 'e' });
+  });
+
+  it('leaves the login of a source that names none unset rather than take the login browsed before', () => {
+    expect(resolveDraftSource({}, {
+      source: { accountId: 'e' },
+      aggregate: false,
+      viewingAccountId: 'userb@v10',
+      activeAccountId: 'userb@v016',
+    })).toEqual({ localAccountId: undefined, accountId: 'e' });
+  });
+
+  it('never takes the folder selected underneath for a send undone from the own account', () => {
+    expect(resolveDraftSource({}, {
+      source: { localAccountId: 'userb@v016' },
+      aggregate: false,
+      mailbox: teamInbox,
+      activeAccountId: 'userb@v016',
+    })).toEqual({ localAccountId: 'userb@v016', accountId: undefined });
+  });
+});
+
+describe('listRowSource', () => {
+  it('takes a row of a list that mixes accounts from its stamps', () => {
+    expect(listRowSource(
+      { sourceClientAccountId: 'userb@v10', sourceAccountId: 'c' },
+      { isScheduledView: false, viewingAccountId: null, activeAccountId: 'userb@v016', accountId: undefined },
+    )).toEqual({ localAccountId: 'userb@v10', accountId: 'c' });
+  });
+
+  it('takes a row of another login\'s folder from the login browsed', () => {
+    expect(listRowSource({}, { isScheduledView: false, viewingAccountId: 'userb@v10', activeAccountId: 'userb@v016' }))
+      .toEqual({ localAccountId: 'userb@v10', accountId: undefined });
+  });
+
+  it('takes a row of the active login\'s group folder from the active login and the group account', () => {
+    expect(listRowSource({}, { isScheduledView: false, viewingAccountId: null, activeAccountId: 'userb@v016', accountId: 'c' }))
+      .toEqual({ localAccountId: 'userb@v016', accountId: 'c' });
+  });
+
+  it('names no login for a row of Scheduled, whatever login was browsed before', () => {
+    expect(listRowSource({}, { isScheduledView: true, viewingAccountId: 'userb@v10', activeAccountId: 'userb@v016' }))
+      .toEqual({});
   });
 });
 

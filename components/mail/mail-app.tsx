@@ -32,7 +32,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { useEmailStore, buildUnifiedAccountClients, ArchiveMailboxNotFoundError, findArchiveMailbox, resolveUnstampedEmailAccountId, isAggregateListView } from "@/stores/email-store";
-import { findDraftIdentityIdForLogin, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
+import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { groupSearchScopeFolders } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
 import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from "@/lib/send-failure-message";
@@ -1713,7 +1713,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     requestDsn?: boolean;
     requireTls?: boolean;
   }) => {
-    if (!client) return;
+    // Nothing is sent: the composer keeps what only goes once the mail is out.
+    if (!client) return false;
 
     // Sending from an identity that belongs to another connected account has
     // to go through that account's own client: the identity id is only valid
@@ -4190,7 +4191,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     setComposerMode('compose');
                     setPendingDraft(null);
                   } else if (restored) {
-                    await handleEditDraft(restored, { accountId: email.scheduledAccountId }).catch(reportDraftOpenFailure);
+                    // Restored through the active login's client, the one
+                    // Scheduled lists - not a login browsed before.
+                    await handleEditDraft(restored, { accountId: email.scheduledAccountId, localAccountId: activeAccountId ?? undefined }).catch(reportDraftOpenFailure);
                     return;
                   }
                   setShowComposer(true);
@@ -4222,8 +4225,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   const targetPane = hasSplit
                     ? (sourcePane === 'main' ? 'split' : 'main')
                     : sourcePane;
+                  // The tab reads the row again through the login and account
+                  // it was listed from, and a draft reopened there is saved
+                  // over and removed through them.
+                  const source = listRowSource(email, {
+                    isScheduledView,
+                    viewingAccountId,
+                    activeAccountId,
+                    accountId: resolveUnstampedEmailAccountId({
+                      mailboxes: viewMailboxes,
+                      selectedMailbox,
+                      searchActive: !!searchQuery || !isFilterEmpty(searchFilters),
+                      searchMailboxId,
+                    }),
+                  });
                   store.openEmailTab({
-                    accountId: email.accountId ?? '',
+                    accountId: source.accountId ?? '',
+                    clientAccountId: source.localAccountId,
                     emailId: email.id,
                     mailboxId: selectedMailbox,
                     title: email.subject?.trim() || t('email_composer.new_message'),
@@ -4393,8 +4411,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     setPendingDraft(data);
                   }}
                   onSend={async (data) => {
-                    await handleEmailSend(data);
+                    const outcome = await handleEmailSend(data);
                     setPendingDraft(null);
+                    return outcome;
                   }}
                   onScheduledSendCreated={async () => {
                     if (client) {
@@ -4541,7 +4560,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                         setShowComposer(true);
                         return;
                       }
-                      if (restored) await handleEditDraft(restored, { accountId: selectedEmail.scheduledAccountId }).catch(reportDraftOpenFailure);
+                      // Restored through the active login's client (see the list's Cancel and edit).
+                      if (restored) await handleEditDraft(restored, { accountId: selectedEmail.scheduledAccountId, localAccountId: activeAccountId ?? undefined }).catch(reportDraftOpenFailure);
                     }}
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {

@@ -36,6 +36,7 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
   const tSidebar = useTranslations('sidebar');
 
   const activeClient = useAuthStore((s) => s.client);
+  const activeAccountId = useAuthStore((s) => s.activeAccountId);
   const getClientForAccount = useAuthStore((s) => s.getClientForAccount);
   const activeMailboxes = useEmailStore((s) => s.mailboxes);
   const accountMailboxes = useEmailStore((s) => s.accountMailboxes);
@@ -49,6 +50,10 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
     () => (data.accountId ? getClientForAccount(data.accountId) ?? activeClient : activeClient),
     [data.accountId, getClientForAccount, activeClient],
   );
+  // The login `client` belongs to. A message of this folder is read again
+  // through it, and a draft reopened from it is saved over and removed
+  // through it: the same ids name other messages on another server.
+  const clientLogin = (data.accountId && getClientForAccount(data.accountId) ? data.accountId : activeAccountId) ?? undefined;
 
   // The folder's metadata, resolved from whichever account's mailbox list it
   // was dragged from. Shared folders are namespaced in the store, so JMAP
@@ -126,14 +131,15 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
   const openAsEmailTab = useCallback((email: Email, reuseReader: boolean) => {
     useProTabStore.getState().openEmailTab(
       {
-        accountId: email.accountId ?? '',
+        accountId: jmapAccountId ?? '',
+        clientAccountId: clientLogin,
         emailId: email.id,
         mailboxId: data.mailboxId,
         title: email.subject?.trim() || t('email_composer.new_message'),
       },
       { pane: paneId ?? 'main', reuseReader },
     );
-  }, [data.mailboxId, paneId, t]);
+  }, [jmapAccountId, clientLogin, data.mailboxId, paneId, t]);
 
   const handleRowClick = useCallback((email: Email) => {
     markRowAsRead(email);
@@ -265,7 +271,7 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
           key={selectedEmailId}
           emailId={selectedEmailId}
           client={client}
-          clientAccountId={data.accountId && getClientForAccount(data.accountId) ? data.accountId : undefined}
+          clientAccountId={clientLogin}
           accountId={jmapAccountId}
           onClose={handleViewerClose}
           className="min-w-0 flex-1"

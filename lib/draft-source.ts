@@ -16,8 +16,11 @@ export interface DraftSource {
 
 /**
  * The DraftSource of `draft`, a message of the list on screen:
- * - `source` when the caller knows it: a send undone or a scheduled send
- *   cancelled for editing is back in the account it was sent from;
+ * - `source` as it is when the caller knows it: a send undone or a scheduled
+ *   send cancelled for editing is back in the account it was sent from, put
+ *   there through the login `source` names (none: the composing one). What is
+ *   on screen says nothing about it: Scheduled lists the active login's mail
+ *   while a login browsed before still counts as viewed;
  * - in a list that mixes accounts (the unified views, a tag view, an "All
  *   folders" search) the login and account the message is stamped with. The
  *   folder still selected underneath a tag view or a search says nothing
@@ -35,17 +38,42 @@ export function resolveDraftSource(
     activeAccountId?: string | null;
   },
 ): DraftSource {
+  if (context.source) {
+    return { localAccountId: context.source.localAccountId, accountId: context.source.accountId };
+  }
   const mailbox = context.aggregate ? undefined : context.mailbox;
   return {
-    localAccountId: context.source?.localAccountId
-      ?? draft.sourceClientAccountId
+    localAccountId: draft.sourceClientAccountId
       ?? context.viewingAccountId
       ?? context.activeAccountId
       ?? undefined,
-    accountId: context.source?.accountId
-      ?? draft.sourceAccountId
+    accountId: draft.sourceAccountId
       ?? (mailbox?.isShared ? mailbox.accountId : undefined),
   };
+}
+
+/**
+ * Where a row of the mail list was listed from, for a view that reads it
+ * again on its own (a Pro email tab): the login and account the row is
+ * stamped with in a list that mixes accounts, else the login browsed - the
+ * active one when no other is - and `list.accountId`, the account the list
+ * shows (a shared or group folder's). Nothing for a row of Scheduled: that
+ * list is the active login's, whatever login was browsed before.
+ */
+export function listRowSource(
+  row: Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'>,
+  list: {
+    isScheduledView: boolean;
+    viewingAccountId?: string | null;
+    activeAccountId?: string | null;
+    accountId?: string;
+  },
+): DraftSource {
+  if (row.sourceClientAccountId && row.sourceAccountId) {
+    return { localAccountId: row.sourceClientAccountId, accountId: row.sourceAccountId };
+  }
+  if (list.isScheduledView) return {};
+  return { localAccountId: list.viewingAccountId ?? list.activeAccountId ?? undefined, accountId: list.accountId };
 }
 
 /**

@@ -162,6 +162,11 @@ export interface ComposerDraftData {
 }
 
 interface EmailComposerProps {
+  /**
+   * Submits the message. Resolves `false` when the host sent nothing (it has
+   * no connection): a draft version that only goes once the message is out
+   * stays then.
+   */
   onSend?: (data: {
     to: string[];
     cc: string[];
@@ -190,7 +195,7 @@ interface EmailComposerProps {
     requestDsn?: boolean;
     /** Refuse delivery over an unencrypted hop (RFC 8689 REQUIRETLS). */
     requireTls?: boolean;
-  }) => void | Promise<void>;
+  }) => void | false | Promise<void | false>;
   onScheduledSendCreated?: () => void | Promise<void>;
   onClose?: () => void;
   /**
@@ -2440,7 +2445,7 @@ export function EmailComposer({
         const draftAccountAtSend = draftAccountIdRef.current;
         const draftElsewhere = !!finalDraftId && !!draftLogin && draftLogin !== loginFor(identityLocalAccountId);
 
-        await onSend?.({
+        const outcome = await onSend?.({
           to: outgoing.to,
           cc: outgoing.cc,
           bcc: outgoing.bcc,
@@ -2462,7 +2467,8 @@ export function EmailComposer({
           requireTls: requireTls || undefined,
           delayedUntil: effectiveDelayedUntil,
         });
-        if (draftElsewhere) await removeDraftVersion(finalDraftId!, draftLogin, draftAccountAtSend);
+        // Not when nothing went: no host, or one that sent nothing.
+        if (draftElsewhere && onSend && outcome !== false) await removeDraftVersion(finalDraftId!, draftLogin, draftAccountAtSend);
 
         if (mode === 'reply' || mode === 'replyAll') {
           for (const recipient of [...outgoing.to, ...outgoing.cc].filter(Boolean)) {

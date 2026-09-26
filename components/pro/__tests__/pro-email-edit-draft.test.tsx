@@ -42,13 +42,21 @@ function selectorStore<T extends object>(state: T) {
   return hook;
 }
 
-vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: selectorStore({ client: null, getClientForAccount: () => undefined }),
+// userb on the 0.16.23 server is the active login.
+const auth = vi.hoisted(() => ({
+  state: { client: null as unknown, activeAccountId: 'userb@v016', getClientForAccount: () => undefined },
 }));
+vi.mock('@/stores/auth-store', () => ({
+  useAuthStore: selectorStore(auth.state),
+}));
+const store = vi.hoisted(() => ({ fetched: null as Record<string, unknown> | null, fetchEmailContent: vi.fn() }));
 vi.mock('@/stores/email-store', () => ({
   useEmailStore: selectorStore({
     // An own-folder message is read through the store, not by account.
-    fetchEmailContent: async (_client: unknown, id: string) => ({ ...DRAFT, id, mailboxIds: { d: true } }),
+    fetchEmailContent: async (client: unknown, id: string) => {
+      store.fetchEmailContent(client, id);
+      return store.fetched ?? ({ ...DRAFT, id, mailboxIds: { d: true } });
+    },
     deleteEmail: async () => {},
     markAsRead: async () => {},
     toggleStar: async () => {},
@@ -86,6 +94,9 @@ describe('Pro email view - editing a draft', () => {
     viewerProps.current = null;
     openComposeTab.mockClear();
     multiAccount.value = { enabled: false, groups: [], allIdentities: [] };
+    auth.state.client = null;
+    store.fetched = null;
+    store.fetchEmailContent.mockClear();
   });
 
   async function openAndEdit(accountId?: string, clientAccountId?: string, draft: object = DRAFT) {
@@ -126,5 +137,43 @@ describe('Pro email view - editing a draft', () => {
 
     expect(initialData.draftId).toBe('eaaaaab');
     expect(initialData.draftAccountId).toBeUndefined();
+  });
+
+  // Pro shell with the 0.16.23 login active and the 1.0 login's Drafts
+  // browsed: the store reads a row of that list through the 1.0 login. A
+  // view that names no login can't tell, so it names none - the active one
+  // made the composer destroy the draft's id in the 0.16.23 account.
+  it('names no login for a draft of a view without a login of its own', async () => {
+    auth.state.client = { getEmail: vi.fn(), getUsername: () => 'userb@example.org' };
+    multiAccount.value = {
+      enabled: true,
+      groups: [],
+      allIdentities: [
+        { id: 'userb@v016::c', email: 'userb@example.org', name: 'userb' },
+        { id: 'userb@v10::d', email: 'me@v10.example.org', name: 'Me' },
+      ],
+    };
+    store.fetched = { ...DRAFT, from: [{ email: 'me@v10.example.org', name: 'Me' }] };
+
+    render(<ProEmailView emailId="eaaaaab" onClose={vi.fn()} />);
+    await waitFor(() => expect(viewerProps.current?.email).toBeTruthy());
+    (viewerProps.current!.onEditDraft as () => void)();
+    const initialData = openComposeTab.mock.calls[0][0].initialData as Record<string, unknown>;
+
+    expect(initialData.draftLocalAccountId).toBeUndefined();
+    // The draft's From decides, as for a draft of unknown origin.
+    expect(initialData.selectedIdentityId).toBe('userb@v10::d');
+  });
+
+  it('reads a message of the login it names through that login\'s client, not through the main list', async () => {
+    const client = { getEmail: vi.fn().mockResolvedValue(DRAFT), getUsername: () => 'userb@example.org' };
+
+    render(<ProEmailView emailId="eaaaaab" client={client as never} clientAccountId="userb@v10" onClose={vi.fn()} />);
+    await waitFor(() => expect(viewerProps.current?.email).toBeTruthy());
+
+    expect(client.getEmail).toHaveBeenCalledWith('eaaaaab', undefined);
+    expect(store.fetchEmailContent).not.toHaveBeenCalled();
+    (viewerProps.current!.onEditDraft as () => void)();
+    expect(openComposeTab.mock.calls[0][0].initialData).toMatchObject({ draftLocalAccountId: 'userb@v10', draftAccountId: undefined });
   });
 });

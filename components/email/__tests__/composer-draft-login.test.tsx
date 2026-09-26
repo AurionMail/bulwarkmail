@@ -316,6 +316,20 @@ describe('a draft and the login it was saved with', () => {
     expect(clientA.deleteEmail).not.toHaveBeenCalled();
   });
 
+  it('keeps a draft saved through another login when the host sent nothing', async () => {
+    // The host has no connection and says so.
+    const onSend = vi.fn().mockResolvedValue(false);
+    const composer = open(DRAFT, { onSend });
+
+    await composer.editSubject('Hello', 'Hello 2');
+    composer.switchFrom('login-b::id-b');
+    await composer.send();
+
+    expect(onSend).toHaveBeenCalled();
+    expect(clientA.deleteEmail).not.toHaveBeenCalled();
+    expect(clientB.deleteEmail).not.toHaveBeenCalled();
+  });
+
   it('removes a draft opened from another login\'s group account through that login', async () => {
     const onDiscardDraft = vi.fn();
     // Opened from login B's unified-view row in the team account `c`; the

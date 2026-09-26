@@ -158,7 +158,6 @@ export interface SearchPreviewProps {
 export function SearchPreview({ hit, onOpen, onClose }: SearchPreviewProps) {
   const t = useTranslations('global_search');
   const getClientForAccount = useAuthStore((s) => s.getClientForAccount);
-  const activeAccountId = useAuthStore((s) => s.activeAccountId);
 
   if (!hit) {
     return (
@@ -169,7 +168,9 @@ export function SearchPreview({ hit, onOpen, onClose }: SearchPreviewProps) {
   }
 
   if (hit.kind === 'mail') {
-    const clientOverride = hit.localAccountId !== activeAccountId ? getClientForAccount(hit.localAccountId) ?? undefined : undefined;
+    // The hit's own login, the active one too: the view names it, so a draft
+    // reopened from here is saved over and removed through it.
+    const clientOverride = getClientForAccount(hit.localAccountId) ?? undefined;
     return (
       <ProEmailView
         key={`${hit.localAccountId}-${hit.id}`}
