@@ -125,6 +125,15 @@ interface SeriesFrame {
 }
 
 /**
+ * Whether `rules` name the days of their occurrences - BYDAY, BYMONTHDAY,
+ * BYYEARDAY; other clients write BYDAY even for a single weekday. A start
+ * moved by days does not take those occurrences along.
+ */
+function namesDays(rules: CalendarEvent['recurrenceRules']): boolean {
+  return (rules ?? []).some((rule) => !!(rule.byDay?.length || rule.byMonthDay?.length || rule.byYearDay?.length));
+}
+
+/**
  * The key an override of the series `from` keeps in the series `to`, or
  * null when `to` has no such occurrence any more. It moves with its
  * occurrence, by as much as `anchor` - the series' start, or where a new
@@ -133,14 +142,53 @@ interface SeriesFrame {
  * where it was - a weekday rule the start moved away from - keeps the key,
  * and an occurrence the new rule does not give is gone. A date the override
  * adds to the series, which no rule gives, moves along.
+ *
+ * A rule that names the days keeps every occurrence but the anchor on its
+ * day, at the series' new time, or has it no more: moved by a day, the
+ * Monday of a series on Mondays and Tuesdays is still that Monday. Moved
+ * along, its override landed on the Tuesday's and took its place: the
+ * cancelled Tuesday came back with the Monday's title, and the Monday lost
+ * its change (live on 1.0 and 0.16.23).
  */
 function overrideKeyIn(key: string, from: SeriesFrame, to: SeriesFrame, anchor = from.start): string | null {
   const shifted = movedLike(key, anchor, to.start);
   const moved = to.showWithoutTime ? `${shifted.slice(0, 10)}T00:00:00` : shifted;
   if (!seriesOccursAt(from.start, from.recurrenceRules, key)) return moved;
+  if (namesDays(to.recurrenceRules) && wallClockMs(key) !== wallClockMs(anchor)) {
+    const onItsDay = `${key.slice(0, 10)}${moved.slice(10)}`;
+    return seriesOccursAt(to.start, to.recurrenceRules, onItsDay) ? onItsDay : null;
+  }
   if (seriesOccursAt(to.start, to.recurrenceRules, moved)) return moved;
   if (moved !== key && seriesOccursAt(to.start, to.recurrenceRules, key)) return key;
   return null;
+}
+
+/**
+ * The key each of `overrides` keeps in the series `to` (overrideKeyIn), by
+ * its key in `from`, never two on one occurrence. Two still meet when the
+ * anchor's override moves onto the day of another - a series of Mondays and
+ * Tuesdays that starts a day later - or when an hourly series turns all-day.
+ * The override that stays where it is, else the one that stays on its day,
+ * else the first keeps the occurrence; the others are left out, and
+ * logged, rather than written over it.
+ */
+function overrideKeysIn(overrides: OverrideMap, from: SeriesFrame, to: SeriesFrame, anchor?: string): Map<string, string> {
+  const claims = new Map<string, string[]>();
+  for (const key of Object.keys(overrides)) {
+    const target = overrideKeyIn(key, from, to, anchor);
+    if (target) claims.set(target, [...(claims.get(target) ?? []), key]);
+  }
+  const keys = new Map<string, string>();
+  for (const [target, claimed] of claims) {
+    const kept = claimed.find((key) => key === target)
+      ?? claimed.find((key) => key.slice(0, 10) === target.slice(0, 10))
+      ?? claimed[0];
+    keys.set(kept, target);
+    if (claimed.length > 1) {
+      debug.warn('calendar', 'Recurrence overrides that meet on one occurrence; keeping one', target, kept, claimed);
+    }
+  }
+  return keys;
 }
 
 /**
@@ -385,15 +433,15 @@ function seriesParticipants(
  * excluded occurrence came back, a changed one showed twice (as changed at
  * the old time, and as the series has it), in the attendees' copies too
  * (live on 1.0 and 0.16.23). Now each override goes with its occurrence
- * (overrideKeyIn), and an override of an occurrence the series no longer
- * has is dropped. An occurrence moved on its own keeps its time, as the
- * user placed it - but the one the editor was opened on takes the move the
- * user made there - while an override that only holds the time the
- * occurrence had moves with the series; so does the length. A series
- * turned all-day or timed takes every occurrence along. When the series'
- * attendees are asked again, so they are for each occurrence that moves.
- * What the user changed in the editor goes into the overrides as well
- * (withSeriesChanges).
+ * (overrideKeysIn), and an override of an occurrence the series no longer
+ * has is dropped - every one when the series no longer repeats. An
+ * occurrence moved on its own keeps its time, as the user placed it - but
+ * the one the editor was opened on takes the move the user made there -
+ * while an override that only holds the time the occurrence had moves with
+ * it; so does the length. A series turned all-day or timed takes every
+ * occurrence along. When the series' attendees are asked again, so they are
+ * for each occurrence that moves. What the user changed in the editor goes
+ * into the overrides as well (withSeriesChanges).
  */
 function seriesOverrides(
   occurrence: CalendarEvent,
@@ -414,12 +462,18 @@ function seriesOverrides(
     showWithoutTime: series.showWithoutTime ?? !!master.showWithoutTime,
     recurrenceRules: options.ruleChanged ? series.recurrenceRules ?? null : master.recurrenceRules,
   };
+  // "Repeat: none": one event is left, with no occurrence to override. The
+  // override of its start stayed: 1.0 applied it to the event - excluded, the
+  // event was gone from every range - and 0.16.23 listed a changed one next
+  // to the event (live).
+  if (options.ruleChanged && !to.recurrenceRules?.length) return null;
   const turned = from.showWithoutTime !== to.showWithoutTime;
   const opened = resolveOverrideKey({ start: occurrence.start, recurrenceId: occurrence.recurrenceId ?? master.start }, overrides);
+  const targets = overrideKeysIn(overrides, from, to);
 
   const result: OverrideMap = {};
   for (const [key, override] of Object.entries(overrides)) {
-    const target = overrideKeyIn(key, from, to);
+    const target = targets.get(key);
     if (!target) continue;
     const { updated: _updated, ...rest } = override as OverrideEntry;
     let entry: OverrideEntry = rest;
@@ -432,7 +486,11 @@ function seriesOverrides(
           const pinned = wallClockMs(entry.start) === wallClockMs(key)
             && (entry.timeZone === undefined || entry.timeZone === master.timeZone);
           follows = pinned || key === opened;
-          if (follows) entry.start = movedLike(entry.start, from.start, to.start);
+          // One that only held its occurrence's time holds the time the
+          // occurrence has now; the opened one, moved on its own, takes the
+          // editor's move.
+          if (pinned) entry.start = movedLike(entry.start, key, target);
+          else if (key === opened) entry.start = movedLike(entry.start, from.start, to.start);
         }
         if (resized && typeof entry.duration === 'string'
           && (key === opened || parseDurationSeconds(entry.duration) === parseDurationSeconds(master.duration))) {
@@ -715,7 +773,7 @@ function remainingRules(
 /**
  * The overrides of the new series "this and the following occurrences"
  * becomes: those the old series had from the split on (truncateSeries),
- * each with its occurrence (overrideKeyIn). They keep what the organizer
+ * each with its occurrence (overrideKeysIn). They keep what the organizer
  * changed - an exclusion, a title, a time of their own - but take the new
  * series' participants (withParticipantsOf): it asks every attendee again,
  * for each occurrence, and an attendee's answer to one occurrence of the old
@@ -738,9 +796,10 @@ function followingOverrides(
   if (!overrides || Object.keys(overrides).length === 0 || !to.recurrenceRules?.length) return undefined;
   const turned = from.showWithoutTime !== to.showWithoutTime;
   const resized = parseDurationSeconds(to.duration) !== parseDurationSeconds(series.duration);
+  const targets = overrideKeysIn(overrides, from, to, splitKey);
   const result: OverrideMap = {};
   for (const [key, override] of Object.entries(overrides)) {
-    const target = overrideKeyIn(key, from, to, splitKey);
+    const target = targets.get(key);
     if (!target) continue;
     const opened = key === splitKey;
     const { updated: _updated, ...rest } = override as OverrideEntry;
@@ -785,6 +844,7 @@ const FOLLOWING_SERIES_KEYS = [
  * own, so every attendee is asked (participantsAskedAgain): Stalwart invites
  * to a new event only attendees who have not answered, and with the answers
  * the old series had, those who had answered never got the new one.
+
  *
  * It goes on where the old series would have: from the split occurrence's
  * recurrence id, on the old series' clock and in its zone, moved only as far
@@ -841,6 +901,7 @@ export function followingSeriesData(
       organizerCalendarAddress: data.organizerCalendarAddress ?? master.organizerCalendarAddress,
     }) ?? data.participants;
   }
+
   const overrides = followingOverrides(
     options.overrides, splitKey,
     { start: master.start, timeZone: master.timeZone, showWithoutTime: !!master.showWithoutTime, recurrenceRules: originalRules },
