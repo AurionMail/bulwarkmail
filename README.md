@@ -144,7 +144,7 @@ The stack: [Next.js 16](https://nextjs.org/) and React 19, TypeScript, [Tailwind
 
 ## License
 
-[GNU AGPL v3](LICENSE). This repository preserves the original MIT attribution for the fork lineage in [NOTICE](NOTICE).
+[GNU AGPL v3 only](LICENSE), with an additional permission to distribute apps built from this code through app stores such as the Apple App Store and Google Play. This repository preserves the original MIT attribution for the fork lineage in [NOTICE](NOTICE).
 
 ## Acknowledgments
 

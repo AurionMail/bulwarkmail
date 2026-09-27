@@ -16,6 +16,8 @@ npm run dev
 
 Before you open a pull request, run `npm run typecheck && npm run lint && npx vitest run`. Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:` and so on).
 
+By contributing, you agree that your contributions are licensed under the terms in [LICENSE](LICENSE): AGPL-3.0-only, with the additional permission for app store distribution.
+
 - Questions: ask on [Discord](https://discord.gg/tYCujymGrT).
 - Documentation fixes: the docs are Markdown files in the [website repository](https://github.com/bulwarkmail/website/tree/main/docs).
 - Security vulnerabilities: report them privately to [dev@bulwarkmail.org](mailto:dev@bulwarkmail.org) or through a [security advisory](https://github.com/bulwarkmail/webmail/security/advisories/new), never in a public issue.
