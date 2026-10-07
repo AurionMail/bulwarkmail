@@ -911,6 +911,11 @@ export async function ensureArchiveMailbox(opts: {
 
   const viewMailbox = opts.mailboxes.find(m => m.id === opts.selectedMailboxId);
   const scopeId = opts.accountId ?? (viewMailbox?.isShared ? viewMailbox.accountId : undefined);
+  const mailCapability = opts.client.getAccountCapability?.('urn:ietf:params:jmap:mail', scopeId) as
+    { mayCreateTopLevelMailbox?: boolean } | undefined;
+  // Only an explicit account-level denial prevents creating the root Archive.
+  // Existing Archives (and their year/month child folders) are unaffected.
+  if (mailCapability?.mayCreateTopLevelMailbox === false) throw new ArchiveMailboxNotFoundError();
   // null: a plugin refused the new folder (and said why).
   if (!(await createMailboxWithHooks(opts.client, 'Archive', undefined, scopeId, { role: 'archive' }))) return null;
 
