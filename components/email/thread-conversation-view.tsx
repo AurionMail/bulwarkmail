@@ -683,10 +683,10 @@ function EmailCard({
                   e.stopPropagation();
                   onReply();
                 }}
-                className="flex-1"
+                className="flex-1 min-w-0 px-2 whitespace-nowrap"
               >
-                <Reply className="w-4 h-4 me-2" />
-                {t("email_viewer.reply")}
+                <Reply className="w-4 h-4 me-1.5 shrink-0" />
+                <span className="truncate">{t("email_viewer.reply")}</span>
               </Button>
             )}
             {onReplyAll && (
@@ -697,10 +697,10 @@ function EmailCard({
                   e.stopPropagation();
                   onReplyAll();
                 }}
-                className="flex-1"
+                className="flex-1 min-w-0 px-2 whitespace-nowrap"
               >
-                <ReplyAll className="w-4 h-4 me-2" />
-                {t("email_viewer.reply_all")}
+                <ReplyAll className="w-4 h-4 me-1.5 shrink-0" />
+                <span className="truncate">{t("email_viewer.reply_all")}</span>
               </Button>
             )}
             {onForward && (
@@ -711,10 +711,10 @@ function EmailCard({
                   e.stopPropagation();
                   onForward();
                 }}
-                className="flex-1"
+                className="flex-1 min-w-0 px-2 whitespace-nowrap"
               >
-                <Forward className="w-4 h-4 me-2" />
-                {t("email_viewer.forward")}
+                <Forward className="w-4 h-4 me-1.5 shrink-0" />
+                <span className="truncate">{t("email_viewer.forward")}</span>
               </Button>
             )}
           </div>
