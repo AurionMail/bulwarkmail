@@ -213,4 +213,9 @@ describe('composer title', () => {
     render(<EmailComposer initialData={{ ...DATA, mode }} mode={mode} />);
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(title);
   });
+
+  it('names the close button for screen readers', () => {
+    render(<EmailComposer initialData={{ ...DATA, mode: 'compose' }} />);
+    expect(screen.getByRole('button', { name: 'close' })).toBeInTheDocument();
+  });
 });

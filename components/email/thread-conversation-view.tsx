@@ -158,6 +158,8 @@ export function ThreadConversationView({
         <button
           onClick={onBack}
           className="p-2 -ms-2 rounded-full hover:bg-muted transition-colors"
+          aria-label={t('email_viewer.back_to_list')}
+          title={t('email_viewer.back_to_list')}
         >
           <ArrowLeft className="w-5 h-5" />
         </button>

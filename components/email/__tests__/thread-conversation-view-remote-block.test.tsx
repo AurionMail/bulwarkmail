@@ -3,7 +3,7 @@
 // http:/https: images - so with remote content blocked (default policy
 // 'ask') srcset, background attributes, posters and <source> still loaded.
 import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 const t = Object.assign((k: string) => k, { raw: (k: string) => k, rich: (k: string) => k });
 vi.mock('next-intl', () => ({
@@ -51,4 +51,24 @@ describe('conversation view honours the remote-content block', () => {
     expect(live).toEqual([]);
     expect(csp).not.toMatch(/img-src[^;]*https?:/);
   }, 30_000);
+});
+
+describe('conversation view header', () => {
+  it('names the back button for screen readers', async () => {
+    const { ThreadConversationView } = await import('@/components/email/thread-conversation-view');
+    const email = {
+      id: 'e2', threadId: 't2', mailboxIds: { a: true }, keywords: { $seen: true },
+      from: [{ name: 'Sender', email: 'sender@t.example' }], to: [{ email: 'me@example.org' }],
+      subject: 's', receivedAt: '2026-09-26T10:00:00Z', size: 1, preview: 'hi', hasAttachment: false,
+      htmlBody: [], textBody: [], attachments: [], bodyValues: {},
+    };
+    render(
+      <ThreadConversationView
+        thread={{ threadId: 't2', emails: [email], latestEmail: email } as never}
+        emails={[email] as never}
+        onBack={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'email_viewer.back_to_list' })).toBeInTheDocument();
+  });
 });
