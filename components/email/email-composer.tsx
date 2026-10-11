@@ -1215,6 +1215,19 @@ export function EmailComposer({
 
   // Track initial values for dirty detection (captured once on first render)
   const initialValuesRef = useRef({ to: toStr, cc: ccStr, bcc: bccStr, subject, body, attachmentCount: attachments.length });
+  // Bumped on every edit and compared with the edit the last successful save
+  // covered. Closing a message autosave already stored asked about "unsaved
+  // changes" that were not there.
+  const changeVersionRef = useRef(0);
+  const savedVersionRef = useRef(0);
+  const firstChangeRunRef = useRef(true);
+  useEffect(() => {
+    if (firstChangeRunRef.current) {
+      firstChangeRunRef.current = false;
+      return;
+    }
+    changeVersionRef.current += 1;
+  }, [toStr, ccStr, bccStr, subject, body, attachments.length]);
   const isDirtyRef = useRef(false);
   isDirtyRef.current = toStr !== initialValuesRef.current.to || ccStr !== initialValuesRef.current.cc ||
     bccStr !== initialValuesRef.current.bcc || subject !== initialValuesRef.current.subject ||
@@ -1981,6 +1994,7 @@ export function EmailComposer({
   // Auto-save draft functionality
   const saveDraftOnce = async (): Promise<string | null> => {
     if (!client || !composerClient) return null;
+    const versionAtStart = changeVersionRef.current;
 
     const toAddresses = expandRecipients(withInput(to, toInput)).map(r => formatRecipient(r.name, r.email));
     const ccAddresses = expandRecipients(withInput(cc, ccInput)).map(r => formatRecipient(r.name, r.email));
@@ -2043,6 +2057,7 @@ export function EmailComposer({
 
     // Only save if data has changed
     if (currentData === lastSavedDataRef.current) {
+      if (draftIdRef.current) savedVersionRef.current = versionAtStart;
       return draftIdRef.current;
     }
 
@@ -2106,6 +2121,7 @@ export function EmailComposer({
       draftIdRef.current = savedDraftId;
       setDraftId(savedDraftId);
       lastSavedDataRef.current = currentData;
+      savedVersionRef.current = versionAtStart;
 
       // Attachments hydrated from a previous draft version reference part
       // blobs that died when that version was destroyed. Re-point them at
@@ -2862,7 +2878,10 @@ export function EmailComposer({
 
   const handleClose = (afterClose?: () => void) => {
     afterCloseRef.current = afterClose ?? null;
-    if (isDirtyRef.current) {
+    const savedAlready = draftIdRef.current !== null
+      && changeVersionRef.current === savedVersionRef.current
+      && !saveFailedRef.current;
+    if (isDirtyRef.current && !savedAlready) {
       setCloseDialogKind('close');
       setShowCloseDialog(true);
     } else {
