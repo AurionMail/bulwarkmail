@@ -234,7 +234,7 @@ export function ToastContainer({ toasts, onClose }: { toasts: Toast[]; onClose: 
 
   return createPortal(
     <div
-      className="fixed bottom-5 right-5 z-[99999] flex flex-col-reverse gap-2.5"
+      className="fixed bottom-5 right-5 z-[99999] flex flex-col-reverse gap-2.5 [html[data-composer-open]_&]:bottom-20"
       role="status"
       aria-live="polite"
       style={{ pointerEvents: "none" }}

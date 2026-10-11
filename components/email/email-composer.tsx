@@ -2351,6 +2351,19 @@ export function EmailComposer({
   // The user confirmed sending without a subject for this message.
   const emptySubjectConfirmedRef = useRef(false);
 
+  // Toasts sit in the bottom corner, right over the composer's Send button.
+  // The attribute lifts them clear while a composer is open (see toast.tsx).
+  useEffect(() => {
+    const root = document.documentElement;
+    const open = Number(root.dataset.composerOpen ?? 0) + 1;
+    root.dataset.composerOpen = String(open);
+    return () => {
+      const left = Number(root.dataset.composerOpen ?? 1) - 1;
+      if (left > 0) root.dataset.composerOpen = String(left);
+      else delete root.dataset.composerOpen;
+    };
+  }, []);
+
   const handleSend = async ({ skipAttachmentCheck = false, skipSubjectCheck = false, delayedUntil }: {
     skipAttachmentCheck?: boolean;
     skipSubjectCheck?: boolean;
@@ -2728,13 +2741,18 @@ export function EmailComposer({
       // server and gone out, with only the answer lost. Saying "send failed"
       // would invite a re-send and a duplicate, so point at Sent instead (#702).
       // The same goes for a send the server answered without confirming it.
-      toast.error(
-        err instanceof RequestTimeoutError || err instanceof SendUnconfirmedError
-          ? t('send_timeout')
-          : err instanceof ScheduleTooLateError
-            ? t('schedule_send_too_late')
-            : err instanceof Error ? err.message : t('send_failed')
-      );
+      if (err instanceof RequestTimeoutError || err instanceof SendUnconfirmedError) {
+        toast.error(t('send_timeout'));
+      } else if (err instanceof ScheduleTooLateError) {
+        toast.error(t('schedule_send_too_late'));
+      } else if (err instanceof TypeError || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+        // fetch() rejects with a TypeError when the network is gone; its
+        // "Failed to fetch" told the user nothing.
+        toast.error(t('send_failed'), { message: t('send_offline') });
+      } else {
+        // The server's own words go under a plain title instead of on their own.
+        toast.error(t('send_failed'), { message: err instanceof Error ? err.message : undefined });
+      }
     } finally {
       isSendingRef.current = false;
       setIsSending(false);

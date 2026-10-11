@@ -710,6 +710,7 @@
     "drop_files": "Drop files to attach",
     "show_less": "Show less",
     "send_failed": "Failed to send email",
+    "send_offline": "You seem to be offline. The message is still here, send it again once you are back online.",
     "send_timeout": "The server stopped responding. Check your Sent folder before sending again — the message may have gone out.",
     "send_recipients_rejected": "Not sent - the server rejected every recipient.",
     "send_plugin_failed": "Not sent - a plugin that handles sending failed or took too long. Check your Sent folder before sending again.",
