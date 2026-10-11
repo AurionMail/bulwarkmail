@@ -1,5 +1,102 @@
 # Changelog
 
+## 1.14.0 (2026-10-11)
+
+1.14.0 adds Mountain View, an optional layout with a top bar and a wide search field, and gives the Files app and the calendar a new layout. Dark mode now recolours messages instead of inverting them, so brand colours stay as sent. Push can be turned on for several accounts at once, and the account list can be backed up encrypted and restored on another device. The composer got a long round of send fixes. With several accounts open, batch actions no longer hit another account's message that happens to share an id with the selected one.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Features
+
+- **UI**: Mountain View is an optional layout, chosen under Settings > Layout > Interface layout. On desktop it has a top bar with a wide search field, an apps grid and the account avatar in place of the left rail, a Compose pill, a docked compose window, an account popover with unread counts per account, and j/k, x and g shortcuts. Calendar, Contacts, Files and Settings use the same top bar. The default layout is unchanged (#1168, thanks @lucamzanon)
+- **Files**: The Files app is laid out like Contacts and Calendar: a sidebar with a New menu, the folder tree, Starred, Recent and Shared with me, a header with breadcrumbs, search, sort and a list/grid switch, a details panel, right-click menus in the sidebar and arrow-key navigation. On touch, a tap opens and a long press selects. Folders in the tree can be renamed and deleted, recent files open in their folder, and the view, sort and hidden-files settings now apply
+- **Files**: Image previews in Files and in attachments zoom with the wheel or a pinch, pan by dragging or with the arrow keys, switch between fit and full size on double-click, and close on a click beside the image
+- **Files**: Uploads show as a toast with their progress and a Cancel button. The large file warning is gone
+- **Calendar**: On wide screens, clicking or dragging over empty time opens a quick editor next to the slot, and clicking an event opens a card with edit, delete and more actions. Busy month cells show "+N more", the agenda lists each day as a row with the date beside its events, and the dates in the week header open that day. Calendar lists in the sidebar fold away and show their options on hover. Phones keep the full editor
+- **Push**: The notification settings list every connected account and turn push on or off for several of them at once, with a single browser permission prompt (#1054, thanks @lucamzanon)
+- **Accounts**: Users with several accounts can save their account list on the webmail server, encrypted in the browser with a password they choose, and restore it on another device. No mailbox passwords are stored. Admins turn it on with "Account List Backup" under Admin > Policy (#1201, thanks @lucamzanon)
+- **Filters**: The folder context menu runs a saved rule on the messages already in that folder (#1166)
+- **Composer**: Schedule send offers tomorrow at 8:00, tomorrow at 13:00 and next Monday at 8:00 as one-click times
+- **Settings**: The language picker has a search field and flags, and every date format and region option shows a live sample
+- **Plugins**: A plugin can run a message-list search with a JMAP Email filter (#1024)
+- **Plugins**: Calendar event actions get the event's uid and attendees, and the form-save hook now fires and can change the meeting link that is saved with the event (#1202, thanks @siennathesane)
+
+### Changes
+
+- **Mail**: Dark mode recolours messages instead of inverting them. Light backgrounds are darkened in their own hue, brand colours and dark fills stay as sent, and text only changes when it lacks contrast. A message's own dark mode styles follow the app theme instead of the system's
+- **Mail**: A folder opened before shows its messages at once and refreshes them in the background. A failed load leaves them on screen (#1195, thanks @lucamzanon)
+- **Composer**: On a phone, the formatting toolbar folds away behind a Formatting button and its buttons are larger. The send options sit together in one menu
+- **Files**: File sizes are rounded the way people read them, like 67 KB or 2.1 MB
+
+### Fixes
+
+- **Mail**: In views that merge several accounts, selecting a message no longer also selects a message with the same id in another account. Batch delete, move, archive, copy, mark read, tag and spam act only on the ticked messages, each through its own account. Before, a permanent delete could remove the other account's message (#1061, thanks @lucamzanon)
+- **Mail**: A message with two spaces in a row in its subject no longer freezes the tab (#1193, thanks @dealerweb)
+- **Mail**: Blocking remote content no longer drops a message's style sheets, so messages keep their layout before images are loaded
+- **Mail**: The list shows no paperclip on a message that only has inline images
+- **Mail**: The "via" badge is hidden when it repeats the sender's name, and a draft shows one Edit button
+- **Send**: Signed and encrypted messages reach Bcc recipients (#1206)
+- **Send**: After a plugin send, such as S/MIME, the composer closes, and a failed plugin send keeps the draft (#1207)
+- **Send**: A failed send removes its unsent copy from Drafts and explains the failure in plain words. A send while offline says so and keeps the message
+- **Send**: Typed addresses are split on commas, and a message with an invalid address is not sent. The address field marks which ones to fix
+- **Send**: Undo send disappears once the delay is over and says so when an undo fails
+- **Send**: Discard deletes the draft, also one reopened from Scheduled, and closing an autosaved draft no longer asks about unsaved changes
+- **Send**: The missing subject warning comes once per message, and the scheduled time shows its date, rounded to the minute
+- **Composer**: Tabbing into a reply or forward keeps the quoted message, and tabbing into a new message starts at the top of the body
+- **Composer**: A reply opens with the caret in the body, and the composer is titled Reply, Reply All or Forward instead of New Message
+- **Composer**: A reopened draft takes its text from the message body only. An attached .csv or .txt no longer turns up as the message text (#1213, thanks @shukiv)
+- **Composer**: A long attachment list scrolls instead of pushing the Send button out of view (#1212, thanks @shukiv)
+- **Composer**: The plain-text part of sent mail marks quotes and list items, and the signature has one separator
+- **Composer**: Enter adds the highlighted suggestion instead of the typed text, and the suggestions close once the address is added and line up with the typed text. On a phone they span the whole row and show the name above the address
+- **Composer**: Body text no longer shows through the pinned formatting toolbar (#1200, thanks @lucamzanon)
+- **Composer**: On a phone, sending a new message returns to the message list, and the Continue draft banner no longer flashes after a send
+- **Composer**: Bitwarden no longer offers logins in the recipient fields, the mail search box or the event participant field
+- **Login**: A remembered sign-in survives a server timeout or an origin switch during restore instead of signing out (#1167)
+- **Login**: Signing out of one account keeps the other accounts, and a reload with only accounts awaiting sign-in shows the login page instead of a connection error (#1201, thanks @lucamzanon)
+- **Login**: A reload without "Remember me" no longer reports an expired session
+- **Unified**: Switching to another account keeps the unified mailbox on (#1144, thanks @lucamzanon)
+- **Push**: Push is renewed for every connected account, not only the active one, so accounts no longer stop notifying after seven days. The all-accounts panel shows each account's real state and why an account failed (#1054, thanks @lucamzanon)
+- **Filters**: Forward is hidden in filter rules when the server allows no redirects (#1208)
+- **Calendar**: Save is blocked while a plugin's form-save hook runs, so a double press no longer creates the event twice (#1202, thanks @siennathesane)
+- **Calendar**: Participant suggestions are no longer cut off by the event form
+- **Files**: Canceling an upload stops the file in flight and says the upload was canceled instead of counting every file as done
+- **Files**: A drag selection keeps its items after letting go, and Files shows a loading state instead of "No files yet" before the first listing
+- **Files**: Read-only documents open in ONLYOFFICE without the -103 warning (#1187)
+- **Contacts**: The contact popover shows the sender's name when the saved contact has none, and Contacts shows placeholders instead of "No contacts yet" while loading
+- **UI**: The close and back buttons in the composer and conversation view have names for screen readers, and the composer toolbar buttons are labelled
+- **UI**: Reply All stays on one line in the conversation view, and the welcome banner gives touch tips on a phone
+- **Translations**: The new composer, send, Files and filter strings are translated
+
 ## 1.13.0 (2026-10-07)
 
 1.13.0 turns the vacation settings into an Out of Office page that can also forward mail, lets filter rules run only for a date range, and copies messages into another connected account. Files from the Files app can be attached in the composer, tags can be set on many messages at once and folders moved in bulk. Messages whose sender can't be verified now carry a warning. It also stops one account's settings and templates from carrying over to the next account signed in on the same browser.
