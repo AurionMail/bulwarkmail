@@ -4,7 +4,7 @@ import React, { useCallback } from "react";
 import { cleanPreview, formatDate, formatDateTime } from "@/lib/utils";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { cn } from "@/lib/utils";
-import { ListAttachmentChips } from "./attachment-chips";
+import { ListAttachmentChips, useListHasAttachment } from "./attachment-chips";
 import { VerificationCodeChip, useListVerificationCode } from "./verification-code-chip";
 import type { Attachment } from "@/lib/jmap/types";
 import type { LoadListAttachments } from "@/lib/list-attachments";
@@ -281,6 +281,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const isPinned = email.keywords?.['$pinned'] === true;
     const isAnswered = email.keywords?.$answered;
     const isForwarded = email.keywords?.$forwarded;
+    const showPaperclip = useListHasAttachment(email, loadAttachments);
     const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore();
     // In Sent/Drafts folders, show recipient instead of sender (which is always
     // "me"). In aggregate role-views the selected mailbox is virtual → fall back
@@ -598,7 +599,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                       <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
                     </>
                   )}
-                  {email.hasAttachment && <StatusIcon icon={Paperclip} label={tStatus('has_attachment')} className="w-3.5 h-3.5 text-muted-foreground" />}
+                  {showPaperclip && <StatusIcon icon={Paperclip} label={tStatus('has_attachment')} className="w-3.5 h-3.5 text-muted-foreground" />}
                   {showSourceFolder && <SourceFolderTag name={email.sourceFolder!} />}
                   {scheduledSendLabel ? (
                     <span
@@ -669,7 +670,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                           <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
                         </>
                       )}
-                      {email.hasAttachment && (
+                      {showPaperclip && (
                         <StatusIcon icon={Paperclip} label={tStatus('has_attachment')} className="w-3.5 h-3.5 text-muted-foreground" />
                       )}
                     </div>
@@ -804,7 +805,10 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     const showAvatarsInJunk = useSettingsStore((state) => state.showAvatarsInJunk);
     const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
     const isMobile = useUIStore((state) => state.isMobile);
-    const { latestEmail, participantNames, hasUnread, hasStarred, hasPinned, hasAttachment, hasAnswered, hasForwarded, emailCount } = thread;
+    const { latestEmail, participantNames, hasUnread, hasStarred, hasPinned, hasAnswered, hasForwarded, emailCount } = thread;
+    // Only the latest email's parts are loaded; an older one with the flag keeps the paperclip.
+    const latestHasAttachment = useListHasAttachment(latestEmail, loadAttachments);
+    const hasAttachment = latestHasAttachment || thread.emails.some((e) => e !== latestEmail && e.hasAttachment);
     // The horizontal one-line "focus" layout doesn't fit on narrow screens; fall back to multi-line on mobile.
     const isFocusedMailLayout = mailLayout === 'focus' && !isMobile;
     // Mountain View leads its rows with a checkbox and a clickable star

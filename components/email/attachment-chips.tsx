@@ -135,6 +135,18 @@ export function useListAttachments(email: Email, load?: LoadListAttachments): At
 }
 
 /**
+ * Whether a list row shows the paperclip. Stalwart sets `hasAttachment` for
+ * inline images too (a logo in a notification mail), which the viewer never
+ * lists, so once the parts are in the flag only counts if one of them is a
+ * real attachment. Until then the server's flag stands.
+ */
+export function useListHasAttachment(email: Email, load?: LoadListAttachments): boolean {
+  const attachments = useListAttachments(email, load);
+  if (!email.hasAttachment) return false;
+  return attachments === undefined || realAttachments(attachments).length > 0;
+}
+
+/**
  * Whether a list row will draw a chip row for this email, counting the room
  * it holds while the parts load. Lets the list estimate a row's height
  * before it has measured it.
