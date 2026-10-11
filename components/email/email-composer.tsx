@@ -2348,6 +2348,8 @@ export function EmailComposer({
   }, [attachments]);
   const [isWaitingForUploads, setIsWaitingForUploads] = useState(false);
   const sendCancelledRef = useRef(false);
+  // The user confirmed sending without a subject for this message.
+  const emptySubjectConfirmedRef = useRef(false);
 
   const handleSend = async ({ skipAttachmentCheck = false, skipSubjectCheck = false, delayedUntil }: {
     skipAttachmentCheck?: boolean;
@@ -2409,8 +2411,9 @@ export function EmailComposer({
       return;
     }
 
-    // Empty subject confirmation (#684)
-    if (!skipSubjectCheck && emptySubjectWarningEnabled && !subject.trim()) {
+    // Empty subject confirmation (#684). Asked once per message: after "Send
+    // anyway" and a trip back to add an attachment, it asked again.
+    if (!skipSubjectCheck && !emptySubjectConfirmedRef.current && emptySubjectWarningEnabled && !subject.trim()) {
       setEmptySubjectDontAskAgain(false);
       setEmptySubjectDelayedUntil(delayedUntil);
       setShowEmptySubjectWarning(true);
@@ -3775,6 +3778,7 @@ export function EmailComposer({
               <Button
                 onClick={() => {
                   if (emptySubjectDontAskAgain) updateSetting('emptySubjectWarningEnabled', false);
+                  emptySubjectConfirmedRef.current = true;
                   setShowEmptySubjectWarning(false);
                   handleSend({ skipSubjectCheck: true, delayedUntil: emptySubjectDelayedUntil });
                   setEmptySubjectDelayedUntil(undefined);
