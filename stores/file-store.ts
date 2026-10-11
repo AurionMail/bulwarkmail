@@ -80,6 +80,8 @@ interface FileState {
    * instead of fetching again, and is current after every change.
    */
   allFolders: FileResource[];
+  /** False until the first listing for the attached account has finished. */
+  hasListed: boolean;
 
   // Actions
   initClient: (client: IJMAPClient, accountId?: string | null) => void;
@@ -296,6 +298,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   lastAction: null,
   sharedRoots: [],
   allFolders: [],
+  hasListed: false,
   favorites: (() => {
     try { return JSON.parse(localStorage.getItem('files-favorites') || '[]'); } catch { return []; }
   })(),
@@ -319,6 +322,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       currentParentId: null,
       resources: [],
       allFolders: [],
+      hasListed: false,
       selectedResources: new Set<string>(),
       error: null,
       isLoading: false,
@@ -579,13 +583,14 @@ export const useFileStore = create<FileState>((set, get) => ({
       const prunedRecent = recentFiles.filter(r => existingIds.has(r.id));
       if (prunedRecent.length !== recentFiles.length) {
         try { localStorage.setItem('files-recent-files', JSON.stringify(prunedRecent)); } catch { /* ignore */ }
-        set({ resources, allFolders, recentFiles: prunedRecent, isLoading: false });
+        set({ resources, allFolders, recentFiles: prunedRecent, isLoading: false, hasListed: true });
       } else {
-        set({ resources, allFolders, isLoading: false });
+        set({ resources, allFolders, isLoading: false, hasListed: true });
       }
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to list directory',
+        hasListed: true,
         isLoading: false,
         resources: [],
       });

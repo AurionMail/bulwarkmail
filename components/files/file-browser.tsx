@@ -187,6 +187,7 @@ export function FileBrowser({
   const sharedRoots = useFileStore((s) => s.sharedRoots);
   const loadSharedRoots = useFileStore((s) => s.loadSharedRoots);
   const allFolders = useFileStore((s) => s.allFolders);
+  const hasListed = useFileStore((s) => s.hasListed);
   const currentParentId = useFileStore((s) => s.currentParentId);
   const pathStack = useFileStore((s) => s.pathStack);
   useEffect(() => {
@@ -873,7 +874,6 @@ export function FileBrowser({
   const showEmpty = !isLoading && !error && displayResources.length === 0 && sharedAtRoot.length === 0;
 
   const listing = (() => {
-    if (isLoading && resources.length === 0) return <ListSkeleton />;
     if (accountPickerMode) {
       return accountFolders && accountFolders.length > 0 && onSelectAccount ? (
         <div className="p-4">
@@ -903,6 +903,8 @@ export function FileBrowser({
         </div>
       );
     }
+    // Until the first listing is in, an empty list means "not loaded yet".
+    if ((isLoading || !hasListed) && resources.length === 0) return <ListSkeleton />;
     if (showEmpty && searchQuery) return <NoSearchResults query={searchQuery} onClear={() => setSearchQuery("")} />;
     if (showEmpty) {
       return (

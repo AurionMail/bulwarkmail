@@ -51,7 +51,7 @@ const SHARED = node('e:f-team', 'Team', null, { isShared: true, accountId: 'e', 
 
 type Overrides = Partial<React.ComponentProps<typeof FileBrowser>>;
 
-function renderBrowser(opts: { resources?: FileResource[]; allFolders?: FileResource[]; props?: Overrides } = {}) {
+function renderBrowser(opts: { resources?: FileResource[]; allFolders?: FileResource[]; props?: Overrides; hasListed?: boolean } = {}) {
   const client = {
     listAllFileNodesAcrossAccounts: vi.fn(async () => [...OWN, SHARED]),
   } as unknown as IJMAPClient;
@@ -62,6 +62,7 @@ function renderBrowser(opts: { resources?: FileResource[]; allFolders?: FileReso
       allFolders: opts.allFolders ?? OWN.filter((n) => n.blobId == null).map(resource),
       currentParentId: null,
       pathStack: [{ id: null, name: '' }],
+      hasListed: opts.hasListed ?? true,
     });
   });
   const handlers = {
@@ -211,6 +212,12 @@ describe('FileBrowser', () => {
     renderBrowser({ resources: files, allFolders: [] });
     const names = within(list()).getAllByRole('row').slice(1).map((r) => r.getAttribute('data-resource'));
     expect(names).toEqual(['c.txt', 'b.txt', 'a.txt']);
+  });
+
+  it('shows the loading skeleton, not the empty state, before the first listing', () => {
+    renderBrowser({ resources: [], allFolders: [], hasListed: false });
+    expect(screen.queryByText('empty_state_title')).toBeNull();
+    expect(screen.queryByText('empty_folder_title')).toBeNull();
   });
 
   it('shows an empty state with upload and new folder in an empty folder', () => {
