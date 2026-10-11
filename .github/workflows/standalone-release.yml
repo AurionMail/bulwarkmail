@@ -1,4 +1,4 @@
-name: Publish Standalone Tarball on Release
+name: "Standalone: Release tarball"
 
 # The tarballs build without a write token. The release job, which runs no
 # checked-out code, publishes each one with a `.sha256` next to it and a
@@ -7,6 +7,7 @@ name: Publish Standalone Tarball on Release
 
 on:
   release:
+    name: Attach to release
     types: [published]
   workflow_dispatch:
 
@@ -15,6 +16,7 @@ permissions:
 
 jobs:
   build:
+    name: Build (${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
@@ -66,6 +68,7 @@ jobs:
           retention-days: 7
 
   release:
+    name: Attach to release
     needs: build
     if: github.event_name == 'release'
     runs-on: ubuntu-latest

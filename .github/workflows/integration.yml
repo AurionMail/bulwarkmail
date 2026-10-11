@@ -1,4 +1,4 @@
-name: Integration tests
+name: "CI: Integration tests"
 
 # Runs the dockerised webmail + Stalwart Playwright suite in integration/
 # (see integration/README.md). It takes several minutes, so unlike the vitest
@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   playwright:
-    name: playwright
+    name: Playwright
     # On pull requests, run only when the "integration" label is on. A labeled
     # event for some other label must not start (or cancel) a run.
     if: >-

@@ -1,12 +1,12 @@
-name: Publish Lite Docker Image
+name: "Lite: Docker image"
 
 # Bulwark Lite as a container (Dockerfile.lite): the static export behind an
 # unprivileged nginx. Every run first builds a demo image and drives it with
-# the Lite smoke suite, so the nginx routing and headers are tested, not only
+# the Lite E2E suite, so the nginx routing and headers are tested, not only
 # the files. Then:
 #   - release:       ghcr.io/<repo>-lite       (semver tags, latest unless prerelease)
 #   - push to main:  ghcr.io/<repo>-lite-beta  (latest + sha)
-#   - pull request:  smoke test only
+#   - pull request:  E2E test only
 # Published images get a signed build provenance attestation, pushed to GHCR
 # next to them: `gh attestation verify oci://<image>:<tag> --owner bulwarkmail`.
 
@@ -36,7 +36,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  smoke:
+  e2e:
+    name: E2E (container)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -54,13 +55,13 @@ jobs:
           context: .
           file: Dockerfile.lite
           load: true
-          tags: bulwark-lite:smoke
+          tags: bulwark-lite:e2e
           build-args: |
             GIT_COMMIT=${{ github.sha }}
             LITE_DEMO_MODE=true
             LITE_LOCALES=en,de
-          cache-from: type=gha,scope=lite-smoke
-          cache-to: type=gha,mode=max,scope=lite-smoke
+          cache-from: type=gha,scope=lite-e2e
+          cache-to: type=gha,mode=max,scope=lite-e2e
 
       # Read-only root, like a hardened Kubernetes pod: nginx only needs /tmp
       # and the directory the entrypoint renders its config into.
@@ -69,7 +70,7 @@ jobs:
           docker run -d --name lite -p 4173:8080 \
             --read-only --tmpfs /tmp --tmpfs /etc/nginx/conf.d:uid=101,gid=101 \
             -e LITE_CSP_CONNECT_SRC=https://mail.example.com \
-            bulwark-lite:smoke
+            bulwark-lite:e2e
           for i in $(seq 1 30); do
             curl -fsS http://localhost:4173/lite-build.json && exit 0
             sleep 1
@@ -82,7 +83,7 @@ jobs:
           echo '{"appName":"Mounted","demoMode":true}' > "$RUNNER_TEMP/config.json"
           docker run -d --name lite-mounted -p 4174:8080 \
             -v "$RUNNER_TEMP/config.json:/usr/share/nginx/html/config.json:ro" \
-            bulwark-lite:smoke
+            bulwark-lite:e2e
           for i in $(seq 1 30); do
             curl -fsS http://localhost:4174/config.json | grep -q '"Mounted"' && break
             [ "$i" = 30 ] && { docker logs lite-mounted; exit 1; }
@@ -102,7 +103,7 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Run smoke test against the container
+      - name: Run E2E test against the container
         env:
           LITE_SMOKE_BASE_URL: http://localhost:4173
           LITE_SMOKE_EXPECT_CONNECT_SRC: https://mail.example.com
@@ -116,12 +117,13 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: lite-container-smoke-report
+          name: lite-container-e2e-report
           path: playwright-report
           retention-days: 7
 
   publish:
-    needs: smoke
+    name: Publish
+    needs: e2e
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30

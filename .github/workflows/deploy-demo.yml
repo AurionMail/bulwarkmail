@@ -1,4 +1,4 @@
-name: Deploy demo
+name: "Deploy: Demo"
 
 # Keeps https://demo.bulwarkmail.org on the published release image. It used to
 # follow ghcr.io/bulwarkmail/webmail:latest through Watchtower; now the deploy
@@ -18,7 +18,7 @@ name: Deploy demo
 
 on:
   workflow_run:
-    workflows: ["Publish Docker Image on Release"]
+    workflows: ["Docker: Release image"]
     types: [completed]
   workflow_dispatch:
     inputs:
