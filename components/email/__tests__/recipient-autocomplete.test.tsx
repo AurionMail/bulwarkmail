@@ -13,6 +13,7 @@ vi.mock('@/components/email/rich-text-editor', () => ({
 }));
 
 vi.mock('@/components/plugins/plugin-slot', () => ({ PluginSlot: () => null }));
+vi.mock('@/components/ui/avatar', () => ({ Avatar: () => null }));
 vi.mock('@/components/identity/sub-address-helper', () => ({ SubAddressHelper: () => null }));
 vi.mock('@/components/templates/template-picker', () => ({ TemplatePicker: () => null }));
 vi.mock('@/components/templates/template-form', () => ({ TemplateForm: () => null }));
@@ -219,4 +220,52 @@ describe('recipient autocomplete', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
+  it('highlights the top suggestion and adds it on Enter instead of the typed text', async () => {
+    render(<EmailComposer initialData={EMPTY_DATA} />);
+    const input = toInput();
+    type(input, 'user');
+    await settle();
+    expect(screen.getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(screen.getByText('User B (userb@example.org)')).toBeInTheDocument();
+    expect(screen.queryByText('user')).not.toBeInTheDocument();
+  });
+
+  it('adds the top suggestion on Tab', async () => {
+    render(<EmailComposer initialData={EMPTY_DATA} />);
+    const input = toInput();
+    type(input, 'userc');
+    await settle();
+
+    fireEvent.keyDown(input, { key: 'Tab' });
+
+    expect(screen.getByText('User C (userc@example.org)')).toBeInTheDocument();
+  });
+
+  it('keeps a complete typed address that no suggestion matches exactly', async () => {
+    render(<EmailComposer initialData={EMPTY_DATA} />);
+    const input = toInput();
+    type(input, 'userb@example.or');
+    await settle();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(screen.getByText('userb@example.or')).toBeInTheDocument();
+    expect(screen.queryByText('User B (userb@example.org)')).not.toBeInTheDocument();
+  });
+
+  it('starts the arrow keys from the highlighted suggestion', async () => {
+    render(<EmailComposer initialData={EMPTY_DATA} />);
+    const input = toInput();
+    type(input, 'user');
+    await settle();
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(screen.getByText('User C (userc@example.org)')).toBeInTheDocument();
+  });
 });

@@ -397,6 +397,24 @@ export function parseRecipient(s: string): Recipient {
   return { email: trimmed };
 }
 
+/**
+ * The autocomplete suggestion Enter or Tab takes when the user has not moved
+ * the highlight with the arrow keys. A complete address the user typed wins:
+ * its own suggestion when one matches (so the display name comes along),
+ * otherwise -1, meaning "add what was typed". Anything else takes the top
+ * suggestion, so "user" + Enter never becomes a recipient called "user".
+ */
+export function defaultSuggestionIndex(input: string, suggestions: Array<{ email: string }>): number {
+  const typed = input.trim();
+  if (!typed || suggestions.length === 0) return -1;
+  const { email } = parseRecipient(typed);
+  if (isValidEmail(email)) {
+    const lower = email.toLowerCase();
+    return suggestions.findIndex((s) => s.email.toLowerCase() === lower);
+  }
+  return 0;
+}
+
 /** Parses a serialized comma-separated recipient string into an array. */
 export function parseRecipientList(value: string): Recipient[] {
   return splitRecipients(value).map(parseRecipient);

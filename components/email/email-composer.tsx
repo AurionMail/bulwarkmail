@@ -61,6 +61,7 @@ import {
   formatRecipientList,
   expandRecipients,
   splitPastedRecipients,
+  defaultSuggestionIndex,
   waitForPendingUploads,
   extractUserAuthoredText,
   type Recipient,
@@ -1266,6 +1267,9 @@ export function EmailComposer({
   // Current trimmed query behind the open dropdown, plus the in-flight flag for
   // the on-demand Sent-folder lookup ("search the server" row).
   const [autoQuery, setAutoQuery] = useState('');
+  // The query the current results were fetched for; they lag the input by the
+  // debounce, so a default pick only happens while the two still match.
+  const [autoResultsQuery, setAutoResultsQuery] = useState('');
   const [isSearchingServer, setIsSearchingServer] = useState(false);
   const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
@@ -1386,6 +1390,7 @@ export function EmailComposer({
       const initial: RecipientSuggestion[] = localResults.map(r => ({ name: r.name, email: r.email, group: r.group }));
       const merged = await contactHooks.onProvideRecipientSuggestions.transform(initial, { query });
       setAutocompleteResults(merged.map(s => ({ name: s.name, email: s.email, group: s.group })));
+      setAutoResultsQuery(query);
       // Keep the dropdown open even without local hits when a server search is
       // available, so the "search the server" row stays reachable (OWA-style).
       setActiveAutoField(merged.length > 0 || canSearchServer ? field : null);
@@ -1467,15 +1472,17 @@ export function EmailComposer({
     }
   }, [activeAutoField]);
 
-  const handleAutoKeyDown = (e: React.KeyboardEvent, field: 'to' | 'cc' | 'bcc') => {
+  // `current` is the row shown highlighted, which before any arrow key is
+  // the default pick (defaultSuggestionIndex) rather than autoSelectedIndex.
+  const handleAutoKeyDown = (e: React.KeyboardEvent, field: 'to' | 'cc' | 'bcc', current = autoSelectedIndex) => {
     if (!activeAutoField || autocompleteResults.length === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setAutoSelectedIndex((prev) => Math.min(prev + 1, autocompleteResults.length - 1));
+      setAutoSelectedIndex(Math.min(current + 1, autocompleteResults.length - 1));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setAutoSelectedIndex((prev) => Math.max(prev - 1, -1));
+      setAutoSelectedIndex(Math.max(current - 1, current < 0 ? -1 : 0));
     } else if (e.key === 'Enter' && autoSelectedIndex >= 0) {
       e.preventDefault();
       insertAutocomplete(autocompleteResults[autoSelectedIndex], field);
@@ -3117,6 +3124,7 @@ export function EmailComposer({
               onServerSearch={handleServerSearch}
               isSearchingServer={isSearchingServer}
               serverSearchQuery={autoQuery}
+              autocompleteResultsQuery={autoResultsQuery}
               validationError={validationErrors.to}
               validationMessage={t('validation.recipient_required')}
               onTab={focusSubject}
@@ -3198,6 +3206,7 @@ export function EmailComposer({
                 onServerSearch={handleServerSearch}
                 isSearchingServer={isSearchingServer}
                 serverSearchQuery={autoQuery}
+                autocompleteResultsQuery={autoResultsQuery}
                 onMoveChip={handleMoveChip}
               />
             </div>
@@ -3227,6 +3236,7 @@ export function EmailComposer({
                 onServerSearch={handleServerSearch}
                 isSearchingServer={isSearchingServer}
                 serverSearchQuery={autoQuery}
+                autocompleteResultsQuery={autoResultsQuery}
                 onMoveChip={handleMoveChip}
               />
             </div>
@@ -3873,6 +3883,7 @@ function RecipientChipInput({
   onServerSearch,
   isSearchingServer,
   serverSearchQuery,
+  autocompleteResultsQuery,
   validationError,
   validationMessage,
   onTab,
@@ -3886,7 +3897,7 @@ function RecipientChipInput({
   placeholder: string;
   field: 'to' | 'cc' | 'bcc';
   onAutocomplete: (inputText: string, field: 'to' | 'cc' | 'bcc') => void;
-  onAutoKeyDown: (e: React.KeyboardEvent, field: 'to' | 'cc' | 'bcc') => void;
+  onAutoKeyDown: (e: React.KeyboardEvent, field: 'to' | 'cc' | 'bcc', current?: number) => void;
   onAutoBlur: (e: React.FocusEvent, field: 'to' | 'cc' | 'bcc') => void;
   activeAutoField: 'to' | 'cc' | 'bcc' | null;
   autocompleteResults: Array<SuggestionItem>;
@@ -3897,6 +3908,7 @@ function RecipientChipInput({
   onServerSearch: () => void;
   isSearchingServer: boolean;
   serverSearchQuery: string;
+  autocompleteResultsQuery: string;
   validationError?: boolean;
   validationMessage?: string;
   onTab?: () => void;
@@ -3993,10 +4005,18 @@ function RecipientChipInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (activeAutoField === field && autocompleteResults.length > 0) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Escape' ||
-          (e.key === 'Enter' && autoSelectedIndex >= 0)) {
-        onAutoKeyDown(e, field);
+    if (dropdownOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Escape') {
+        onAutoKeyDown(e, field, highlightIndex);
+        return;
+      }
+      // Enter and Tab take the highlighted suggestion; only a complete
+      // address with no matching suggestion is added as typed, so "user" +
+      // Enter no longer becomes a recipient called "user".
+      if ((e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) && highlightIndex >= 0) {
+        e.preventDefault();
+        onInsertAutocomplete(autocompleteResults[highlightIndex], field);
+        if (e.key === 'Tab' && onTab) setTimeout(() => onTab(), 0);
         return;
       }
     }
@@ -4036,6 +4056,15 @@ function RecipientChipInput({
       return;
     }
   };
+
+  const dropdownOpen = activeAutoField === field && autocompleteResults.length > 0;
+  const highlightIndex = !dropdownOpen
+    ? -1
+    : autoSelectedIndex >= 0
+      ? autoSelectedIndex
+      : autocompleteResultsQuery === inputText.trim()
+        ? defaultSuggestionIndex(inputText, autocompleteResults)
+        : -1;
 
   const handleChipRemove = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -4304,7 +4333,7 @@ function RecipientChipInput({
             aria-expanded={activeAutoField === field && autocompleteResults.length > 0}
             aria-autocomplete="list"
             aria-controls={activeAutoField === field ? `autocomplete-${field}` : undefined}
-            aria-activedescendant={activeAutoField === field && autoSelectedIndex >= 0 ? `autocomplete-option-${autoSelectedIndex}` : undefined}
+            aria-activedescendant={highlightIndex >= 0 ? `autocomplete-option-${highlightIndex}` : undefined}
             aria-invalid={validationError || undefined}
             data-bwignore="true"
             data-1p-ignore
@@ -4323,7 +4352,7 @@ function RecipientChipInput({
           ref={dropdownRef}
           id={`autocomplete-${field}`}
           results={autocompleteResults}
-          selectedIndex={autoSelectedIndex}
+          selectedIndex={highlightIndex}
           onSelect={(suggestion) => onInsertAutocomplete(suggestion, field)}
           onSearchServer={canSearchServer && serverSearchQuery.length > 0 ? onServerSearch : undefined}
           isSearchingServer={isSearchingServer}
