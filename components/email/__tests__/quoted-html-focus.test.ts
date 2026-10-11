@@ -66,3 +66,54 @@ describe('QuotedHtml focus', () => {
     expect(editor.state.selection.eq(before)).toBe(true);
   });
 });
+
+describe('editor focus from the keyboard', () => {
+  // A new message is built with the signature in it, which leaves the
+  // selection after the signature. Tabbing in from Subject typed there.
+  function mountCompose(): Editor {
+    const e = new Editor({
+      extensions: [Document, Paragraph, Text, QuotedHtml],
+      content: '<p></p><p>-- </p><p>User A</p>',
+    });
+    e.view.dispatch(e.state.tr.setSelection(TextSelection.atEnd(e.state.doc)));
+    return e;
+  }
+
+  it('puts the caret at the start on the first focus', () => {
+    editor = mountCompose();
+
+    editor.view.dom.dispatchEvent(new FocusEvent('focus'));
+
+    expect(editor.state.selection.from).toBe(1);
+  });
+
+  it('keeps the caret where a click put it', () => {
+    editor = mountCompose();
+    const end = editor.state.selection.from;
+
+    // ProseMirror's own click handling asks for the element under the
+    // pointer, which jsdom does not implement.
+    const doc = document as Document & { elementFromPoint: Document['elementFromPoint'] };
+    const original = doc.elementFromPoint;
+    doc.elementFromPoint = () => null;
+    try {
+      editor.view.dom.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      editor.view.dom.dispatchEvent(new FocusEvent('focus'));
+    } finally {
+      doc.elementFromPoint = original;
+    }
+
+    expect(editor.state.selection.from).toBe(end);
+  });
+
+  it('keeps the position when focus comes back later', () => {
+    editor = mountCompose();
+    editor.view.dom.dispatchEvent(new FocusEvent('focus'));
+    editor.view.dispatch(editor.state.tr.setSelection(TextSelection.atEnd(editor.state.doc)));
+    const end = editor.state.selection.from;
+
+    editor.view.dom.dispatchEvent(new FocusEvent('focus'));
+
+    expect(editor.state.selection.from).toBe(end);
+  });
+});

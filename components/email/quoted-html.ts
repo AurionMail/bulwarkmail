@@ -76,27 +76,38 @@ export const QuotedHtml = TiptapNode.create({
   },
 
   addProseMirrorPlugins() {
+    // Set once the user put the caret somewhere (click, tap) or the editor
+    // already had focus, so later focus keeps that position.
+    let placedByUser = false;
+    const markPlaced = () => {
+      placedByUser = true;
+      return false;
+    };
     return [
       new Plugin({
         key: new PluginKey("quotedHtmlFocus"),
         props: {
           handleDOMEvents: {
-            // A reply can open with the quote (or the signature) selected as
-            // a node. Tabbing into the body kept that selection, and the first
-            // key typed replaced the whole block. Focus puts the caret at the
-            // start instead; a click still lands where it was aimed, because
+            mousedown: markPlaced,
+            touchstart: markPlaced,
+            // Where the editor's selection rests before the user touched it
+            // is an accident of how the body was built: on the quote (or
+            // signature) as a node in a reply, where the first key typed
+            // replaced the whole block, or after the signature in a new
+            // message. Focus from the keyboard puts the caret at the start
+            // instead; a click still lands where it was aimed, because
             // ProseMirror handles the click after the focus event.
             focus: (view) => {
               const { selection, doc } = view.state;
-              if (
-                selection instanceof NodeSelection &&
-                ATOM_BLOCKS.has(selection.node.type.name)
-              ) {
+              const onAtom = selection instanceof NodeSelection
+                && ATOM_BLOCKS.has(selection.node.type.name);
+              if (onAtom || !placedByUser) {
                 const start = Selection.atStart(doc);
-                if (start instanceof TextSelection) {
+                if (start instanceof TextSelection && !start.eq(selection)) {
                   view.dispatch(view.state.tr.setSelection(start));
                 }
               }
+              placedByUser = true;
               return false;
             },
           },
