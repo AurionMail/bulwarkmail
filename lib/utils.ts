@@ -297,14 +297,27 @@ export function truncateText(text: string, maxLength: number): string {
   return text.substring(0, maxLength).trim() + "...";
 }
 
+/**
+ * A size people can read at a glance: whole numbers from 10 up ("67 KB"),
+ * one decimal below that ("2.1 MB"), never a trailing ".0".
+ */
 export function formatFileSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '0 Bytes';
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
 
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(k)));
+  let value = bytes / Math.pow(k, i);
+  if (i === 0) return `${Math.round(bytes)} B`;
 
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  let rounded = value < 10 ? Math.round(value * 10) / 10 : Math.round(value);
+  // 1023.6 KB rounds to 1024 KB: show it as 1 MB instead.
+  if (rounded >= k && i < units.length - 1) {
+    i += 1;
+    value /= k;
+    rounded = Math.round(value * 10) / 10;
+  }
+  return `${rounded} ${units[i]}`;
 }
 
 // Types for mailbox tree
