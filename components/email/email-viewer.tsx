@@ -166,6 +166,8 @@ interface EmailViewerProps {
    */
   mvConversation?: Email[];
   onOpenConversationEmail?: (email: Email) => void;
+  /** Mountain View: a reply being written in place, shown under the conversation instead of the reply buttons. */
+  mvInlineComposer?: React.ReactNode;
   onShowShortcuts?: () => void;
   onEditDraft?: () => void;
   onCancelScheduledForEdit?: () => void;
@@ -809,6 +811,7 @@ export function EmailViewer({
   mvFolderName,
   mvConversation,
   onOpenConversationEmail,
+  mvInlineComposer,
   onShowShortcuts,
   onEditDraft,
   onCancelScheduledForEdit,
@@ -5551,8 +5554,15 @@ export function EmailViewer({
             </div>
           )}
 
+          {/* Mountain View: a reply being written in place. */}
+          {mvViewer && mvInlineComposer && (
+            <div className="px-6 lg:ps-[80px] pt-6 pb-6" data-mv-inline-reply="" ref={(el) => el?.scrollIntoView({ block: 'nearest' })}>
+              {mvInlineComposer}
+            </div>
+          )}
+
           {/* Mountain View: Reply / Reply all / Forward as buttons under the message. */}
-          {mvReplyRow && !isDraft && !isScheduled && !isBodyLoading && (effectiveEmailContent.isHtml ? iframeReady : true) && (
+          {mvReplyRow && !(mvViewer && mvInlineComposer) && !isDraft && !isScheduled && !isBodyLoading && (effectiveEmailContent.isHtml ? iframeReady : true) && (
             <div
               className={cn("pb-6 pt-2", isMobile ? "grid grid-cols-3 gap-2 px-4" : "flex flex-wrap items-center gap-3 px-6 lg:ps-[80px] pt-6")}
               data-mv-reply-row=""

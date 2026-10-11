@@ -803,7 +803,8 @@
       "background_color": "Color de fondo",
       "remove_background_color": "Quitar color de fondo"
     },
-    "send_filing_warning": "Enviado - pero la limpieza posterior falló, puede quedar un borrador obsoleto."
+    "send_filing_warning": "Enviado - pero la limpieza posterior falló, puede quedar un borrador obsoleto.",
+    "pop_out": "Abrir la respuesta en una ventana"
   },
   "confirm_dialog": {
     "confirm": "Confirmar",

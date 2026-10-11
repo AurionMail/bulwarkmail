@@ -803,7 +803,8 @@
       "background_color": "背景颜色",
       "remove_background_color": "移除背景颜色"
     },
-    "send_filing_warning": "已发送，但发送后的清理失败，可能会残留旧草稿。"
+    "send_filing_warning": "已发送，但发送后的清理失败，可能会残留旧草稿。",
+    "pop_out": "在单独窗口中打开回复"
   },
   "confirm_dialog": {
     "confirm": "确认",

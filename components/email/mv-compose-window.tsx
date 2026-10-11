@@ -15,7 +15,7 @@ export function MvComposeWindow({ children }: { children: ReactNode }) {
   const [state, setState] = useState<MvComposeWindowState>("normal");
   const minimized = state === "minimized";
   const maximized = state === "maximized";
-  const controls = useMemo(() => ({ state, setState }), [state]);
+  const controls = useMemo(() => ({ variant: "window" as const, state, setState }), [state]);
 
   return (
     <MvComposeWindowContext.Provider value={controls}>
@@ -39,6 +39,30 @@ export function MvComposeWindow({ children }: { children: ReactNode }) {
         )}
       >
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      </div>
+    </MvComposeWindowContext.Provider>
+  );
+}
+
+const NOOP = () => {};
+
+/**
+ * Mountain View's inline reply: the composer as a card under the open
+ * conversation, as Gmail writes replies, with a button that pops it out into
+ * the docked window.
+ */
+export function MvComposeInline({ children, onPopOut }: { children: ReactNode; onPopOut: () => void }) {
+  const controls = useMemo(
+    () => ({ variant: "inline" as const, state: "normal" as const, setState: NOOP, popOut: onPopOut }),
+    [onPopOut],
+  );
+  return (
+    <MvComposeWindowContext.Provider value={controls}>
+      <div
+        data-mv-compose-inline=""
+        className="flex h-[min(480px,70dvh)] flex-col overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_2px_0_rgb(60_64_67/0.3),0_2px_6px_2px_rgb(60_64_67/0.15)]"
+      >
+        {children}
       </div>
     </MvComposeWindowContext.Provider>
   );

@@ -803,7 +803,8 @@
       "background_color": "Bakgrunnsfarge",
       "remove_background_color": "Fjern bakgrunnsfarge"
     },
-    "send_filing_warning": "Meldingen ble sendt, men oppryddingen etterpå mislyktes. Et gammelt utkast kan bli liggende."
+    "send_filing_warning": "Meldingen ble sendt, men oppryddingen etterpå mislyktes. Et gammelt utkast kan bli liggende.",
+    "pop_out": "Åpne svaret i et eget vindu"
   },
   "confirm_dialog": {
     "confirm": "Bekreft",

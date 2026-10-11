@@ -768,7 +768,8 @@
       "background_color": "צבע רקע",
       "remove_background_color": "הסר צבע רקע"
     },
-    "send_filing_warning": "נשלח - אך הניקוי שלאחר השליחה נכשל, ייתכן שתישאר טיוטה ישנה."
+    "send_filing_warning": "נשלח - אך הניקוי שלאחר השליחה נכשל, ייתכן שתישאר טיוטה ישנה.",
+    "pop_out": "פתיחת התשובה בחלון נפרד"
   },
   "confirm_dialog": {
     "confirm": "אשר",

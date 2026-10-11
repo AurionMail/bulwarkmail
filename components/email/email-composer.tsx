@@ -29,6 +29,10 @@ import {
   Maximize2,
   Minimize2,
   Trash2,
+  ExternalLink,
+  ReplyAll,
+  Reply,
+  Forward,
 } from "@/components/icons";
 import { ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
 import { cn, formatFileSize, formatDateTime, generateUUID } from "@/lib/utils";
@@ -3012,7 +3016,39 @@ export function EmailComposer({
       )}
       {/* Header - mobile: clean bar with close/send, desktop: title bar.
           In Mountain View's window it is the window's title bar instead. */}
-      {mvWindow ? (
+      {mvWindow?.variant === "inline" ? (
+        <div className="flex items-center gap-2 h-10 ps-4 pe-1.5 shrink-0 border-b border-border/50" data-mv-compose-inline-bar="">
+          {mode === 'replyAll'
+            ? <ReplyAll className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            : mode === 'forward'
+              ? <Forward className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              : <Reply className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+          <h3 className="flex-1 min-w-0 truncate text-sm" data-testid="composer-save-status" data-status={saveStatus}>
+            {mode === 'reply' ? t('reply') : mode === 'replyAll' ? t('reply_all') : mode === 'forward' ? t('forward') : t('new_message')}
+          </h3>
+          {saveStatus === 'saving' && <Save className="w-3.5 h-3.5 animate-pulse text-muted-foreground flex-shrink-0" aria-label={t('saving')} />}
+          {mvWindow.popOut && (
+            <button
+              type="button"
+              onClick={mvWindow.popOut}
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label={t('pop_out')}
+              title={t('pop_out')}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handleClose()}
+            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label={tCommon('close')}
+            title={tCommon('close')}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : mvWindow ? (
         <div
           className={cn(
             "flex items-center gap-1 h-10 ps-4 pe-1.5 shrink-0 bg-[var(--mv-search-bg)]",

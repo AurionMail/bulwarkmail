@@ -803,7 +803,8 @@
       "background_color": "Fona krāsa",
       "remove_background_color": "Noņemt fona krāsu"
     },
-    "send_filing_warning": "Nosūtīts - bet pēcapstrāde neizdevās, var palikt novecojis melnraksts."
+    "send_filing_warning": "Nosūtīts - bet pēcapstrāde neizdevās, var palikt novecojis melnraksts.",
+    "pop_out": "Atvērt atbildi atsevišķā logā"
   },
   "confirm_dialog": {
     "confirm": "Apstiprināt",

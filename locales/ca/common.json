@@ -803,7 +803,8 @@
       "background_color": "Color de fons",
       "remove_background_color": "Elimina el color de fons"
     },
-    "send_filing_warning": "Enviat, però la neteja posterior a l'enviament ha fallat; és possible que quedi un esborrany obsolet."
+    "send_filing_warning": "Enviat, però la neteja posterior a l'enviament ha fallat; és possible que quedi un esborrany obsolet.",
+    "pop_out": "Obre la resposta en una finestra"
   },
   "confirm_dialog": {
     "confirm": "Confirma",

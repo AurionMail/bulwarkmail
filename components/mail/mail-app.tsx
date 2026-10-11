@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Sidebar } from "@/components/layout/sidebar";
 import { EmailList } from "@/components/email/email-list";
-import { MvComposeWindow } from "@/components/email/mv-compose-window";
+import { MvComposeInline, MvComposeWindow } from "@/components/email/mv-compose-window";
 import { MessageListTabs } from "@/components/email/message-list-tabs";
 import dynamic from "next/dynamic";
 import type { ComposerDraftData } from "@/components/email/email-composer";
@@ -201,6 +201,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const dragStartWidth = useRef(0);
   // Mobile conversation view state
   const [conversationThread, setConversationThread] = useState<ThreadGroup | null>(null);
+  // Mountain View writes replies in place under the conversation until the
+  // user pops one out into the docked window.
+  const [mvReplyPoppedOut, setMvReplyPoppedOut] = useState(false);
+  useEffect(() => {
+    if (!showComposer) setMvReplyPoppedOut(false);
+  }, [showComposer]);
+  const handleMvPopOut = useCallback(() => setMvReplyPoppedOut(true), []);
   // Mountain View: the open message's whole conversation, light properties only.
   const [mvConversation, setMvConversation] = useState<Email[] | null>(null);
   const [conversationEmails, setConversationEmails] = useState<Email[]>([]);
@@ -3618,7 +3625,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const isHorizontalMailLayout = mailLayout === 'horizontal' && !isMobile && !isTablet;
   // Under Mountain View on desktop the composer floats over the list in a
   // docked window instead of taking the reading pane.
-  const floatingComposer = mvShell && showComposer && !isEmbedded;
+  const mvInlineReply = mvShell && showComposer && !isEmbedded && !mvReplyPoppedOut
+    && (pendingDraft?.mode ?? composerMode) !== 'compose' && Boolean(selectedEmail);
+  const floatingComposer = mvShell && showComposer && !isEmbedded && !mvInlineReply;
   const hasViewerContent = (showComposer && !floatingComposer) || Boolean(conversationThread)
     || Boolean(selectedEmail && !(mvShell && cursorOnly));
   const shouldCollapseListPane = (isTablet && !tabletListVisible && !readingPaneEmpty) || (!isMobile && isFocusedMailLayout && hasViewerContent);
@@ -4651,7 +4660,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             {/* Inline Composer - shown in viewer pane.
                 In Pro/embedded mode the composer is hoisted into its own
                 Pro tab (see the effect below), so we never render it inline. */}
-            {(showComposer && !isEmbedded && !floatingComposer) ? composerNode : (
+            {(showComposer && !isEmbedded && !floatingComposer && !mvInlineReply) ? composerNode : (
             <>
             {/* Pending draft banner */}
             {pendingDraft && (
@@ -4753,6 +4762,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     mvFolderName={mvShell && !isScheduledView && !isUnifiedView ? currentMailboxName : undefined}
                     mvConversation={mvShell ? mvConversation ?? undefined : undefined}
                     onOpenConversationEmail={mvShell ? (e) => void handleEmailSelect(e) : undefined}
+                    mvInlineComposer={mvInlineReply ? <MvComposeInline onPopOut={handleMvPopOut}>{composerNode}</MvComposeInline> : undefined}
                     onToggleFullscreen={!isEmbedded && !isMobile ? () => setFullscreenReading((v) => !v) : undefined}
                     isFullscreen={fullscreenReading}
                     onShowShortcuts={() => setShowShortcutsModal(true)}

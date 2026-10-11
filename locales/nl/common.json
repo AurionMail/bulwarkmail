@@ -803,7 +803,8 @@
       "background_color": "Achtergrondkleur",
       "remove_background_color": "Achtergrondkleur verwijderen"
     },
-    "send_filing_warning": "Verzonden - maar het opruimen daarna is mislukt, mogelijk blijft een oud concept staan."
+    "send_filing_warning": "Verzonden - maar het opruimen daarna is mislukt, mogelijk blijft een oud concept staan.",
+    "pop_out": "Antwoord in een apart venster openen"
   },
   "confirm_dialog": {
     "confirm": "Bevestigen",

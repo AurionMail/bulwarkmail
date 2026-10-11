@@ -803,7 +803,8 @@
       "background_color": "Hintergrundfarbe",
       "remove_background_color": "Hintergrundfarbe entfernen"
     },
-    "send_filing_warning": "Gesendet - aber das Aufräumen danach schlug fehl, evtl. bleibt ein alter Entwurf sichtbar."
+    "send_filing_warning": "Gesendet - aber das Aufräumen danach schlug fehl, evtl. bleibt ein alter Entwurf sichtbar.",
+    "pop_out": "Antwort in eigenem Fenster öffnen"
   },
   "confirm_dialog": {
     "confirm": "Bestätigen",

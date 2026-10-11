@@ -803,7 +803,8 @@
       "background_color": "Background color",
       "remove_background_color": "Remove background color"
     },
-    "send_filing_warning": "Sent - but the post-send cleanup failed, a stale draft may remain."
+    "send_filing_warning": "Sent - but the post-send cleanup failed, a stale draft may remain.",
+    "pop_out": "Pop out reply"
   },
   "confirm_dialog": {
     "confirm": "Confirm",

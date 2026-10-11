@@ -803,7 +803,8 @@
       "background_color": "Barva pozadí",
       "remove_background_color": "Odebrat barvu pozadí"
     },
-    "send_filing_warning": "Odesláno - ale následný úklid selhal, může zůstat zastaralý koncept."
+    "send_filing_warning": "Odesláno - ale následný úklid selhal, může zůstat zastaralý koncept.",
+    "pop_out": "Otevřít odpověď v okně"
   },
   "confirm_dialog": {
     "confirm": "Potvrdit",

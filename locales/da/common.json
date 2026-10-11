@@ -803,7 +803,8 @@
       "background_color": "Baggrundsfarve",
       "remove_background_color": "Fjern baggrundsfarve"
     },
-    "send_filing_warning": "Sendt - men oprydningen bagefter mislykkedes, en forældet kladde kan blive stående."
+    "send_filing_warning": "Sendt - men oprydningen bagefter mislykkedes, en forældet kladde kan blive stående.",
+    "pop_out": "Åbn svaret i et vindue"
   },
   "confirm_dialog": {
     "confirm": "Bekræft",

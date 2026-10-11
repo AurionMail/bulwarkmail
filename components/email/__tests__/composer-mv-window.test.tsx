@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
-import { MvComposeWindow } from '../mv-compose-window';
+import { MvComposeInline, MvComposeWindow } from '../mv-compose-window';
 
 // ─── Heavy component mocks (mirrors reply-addressing.test.tsx) ────────────────
 
@@ -225,6 +225,16 @@ describe('composer in the Mountain View compose window', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'formatting' }));
     expect(editor).toHaveAttribute('data-placement', 'bottom');
+  });
+
+  it('writes a reply in place with a bar that pops it out, and no window controls', () => {
+    const onPopOut = vi.fn();
+    render(<MvComposeInline onPopOut={onPopOut}><EmailComposer initialData={{ ...DATA, mode: 'reply' as never }} mode="reply" /></MvComposeInline>);
+    expect(document.querySelector('[data-mv-compose-inline-bar]')).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'minimize' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'pop_out' }));
+    expect(onPopOut).toHaveBeenCalledTimes(1);
   });
 
   it('keeps its own header and a top toolbar outside the window', () => {

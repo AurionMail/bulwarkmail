@@ -803,7 +803,8 @@
       "background_color": "背景顏色",
       "remove_background_color": "移除背景顏色"
     },
-    "send_filing_warning": "郵件已傳送，但寄送後清理失敗，可能仍保留舊草稿。"
+    "send_filing_warning": "郵件已傳送，但寄送後清理失敗，可能仍保留舊草稿。",
+    "pop_out": "在獨立視窗中開啟回覆"
   },
   "confirm_dialog": {
     "confirm": "確認",

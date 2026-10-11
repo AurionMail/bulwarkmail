@@ -803,7 +803,8 @@
       "background_color": "Arka plan rengi",
       "remove_background_color": "Arka plan rengini kaldır"
     },
-    "send_filing_warning": "Gönderildi - ancak sonrasındaki temizleme başarısız oldu, eski bir taslak kalabilir."
+    "send_filing_warning": "Gönderildi - ancak sonrasındaki temizleme başarısız oldu, eski bir taslak kalabilir.",
+    "pop_out": "Yanıtı ayrı pencerede aç"
   },
   "confirm_dialog": {
     "confirm": "Onayla",

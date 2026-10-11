@@ -803,7 +803,8 @@
       "background_color": "Colore di sfondo",
       "remove_background_color": "Rimuovi colore di sfondo"
     },
-    "send_filing_warning": "Inviato - ma la pulizia successiva non è riuscita, potrebbe restare una bozza obsoleta."
+    "send_filing_warning": "Inviato - ma la pulizia successiva non è riuscita, potrebbe restare una bozza obsoleta.",
+    "pop_out": "Apri la risposta in una finestra"
   },
   "confirm_dialog": {
     "confirm": "Conferma",
