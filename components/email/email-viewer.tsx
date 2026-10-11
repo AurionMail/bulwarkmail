@@ -15,7 +15,7 @@ import { buildContactsPath, buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID } from "@/lib/utils";
+import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
 import { emailDisplayDate } from "@/lib/email-date";
@@ -159,6 +159,13 @@ interface EmailViewerProps {
   mvPosition?: { index: number; total: number };
   /** Mountain View: the folder the message is in, shown as a chip by the subject. */
   mvFolderName?: string;
+  /**
+   * Mountain View: every message of the open conversation, oldest first,
+   * including the open one. The others are drawn as collapsed cards around
+   * it, as Gmail does; clicking one opens it.
+   */
+  mvConversation?: Email[];
+  onOpenConversationEmail?: (email: Email) => void;
   onShowShortcuts?: () => void;
   onEditDraft?: () => void;
   onCancelScheduledForEdit?: () => void;
@@ -659,6 +666,72 @@ function mvSenderDate(date: Date | string, timeFormat: '12h' | '24h'): string {
   return ago ? `${when} (${ago})` : when;
 }
 
+/**
+ * One message of a Mountain View conversation, folded to its sender, date and
+ * snippet. Clicking it opens that message.
+ */
+function MvConversationCard({ email, onOpen, timeFormat }: { email: Email; onOpen?: (email: Email) => void; timeFormat: '12h' | '24h' }) {
+  const sender = email.from?.[0];
+  const unread = !email.keywords?.$seen;
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen?.(email)}
+      data-mv-conversation-card=""
+      data-email-id={email.id}
+      className="w-full flex items-start gap-4 px-6 py-3 border-t border-border text-start hover:bg-muted/40 transition-colors"
+    >
+      <Avatar name={sender?.name} email={sender?.email} size="md" className="w-10 h-10 flex-shrink-0" />
+      <span className="flex-1 min-w-0">
+        <span className="flex items-baseline gap-2">
+          <span className={cn("text-sm truncate", unread ? "font-bold" : "font-semibold")}>
+            {sender?.name || sender?.email || ''}
+          </span>
+          <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
+            {mvSenderDate(email.receivedAt, timeFormat)}
+          </span>
+        </span>
+        <span className="block text-sm text-muted-foreground truncate">{cleanPreview(email.preview)}</span>
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The folded messages before or after the open one. A long run before it
+ * shows only its first and last message around a count, as Gmail does, and
+ * the count unfolds the rest.
+ */
+export function MvConversationRun({ emails, onOpen, timeFormat, collapseLongRun }: {
+  emails: Email[];
+  onOpen?: (email: Email) => void;
+  timeFormat: '12h' | '24h';
+  collapseLongRun?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (emails.length === 0) return null;
+  if (!collapseLongRun || expanded || emails.length <= 3) {
+    return <>{emails.map((e) => <MvConversationCard key={e.id} email={e} onOpen={onOpen} timeFormat={timeFormat} />)}</>;
+  }
+  const hidden = emails.length - 2;
+  return (
+    <>
+      <MvConversationCard email={emails[0]} onOpen={onOpen} timeFormat={timeFormat} />
+      <div className="relative border-t border-border h-4">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          data-mv-conversation-more=""
+          className="absolute start-6 top-1/2 -translate-y-1/2 grid place-items-center w-10 h-10 rounded-full border border-border bg-background text-sm text-muted-foreground hover:bg-muted transition-colors"
+        >
+          {hidden}
+        </button>
+      </div>
+      <MvConversationCard email={emails[emails.length - 1]} onOpen={onOpen} timeFormat={timeFormat} />
+    </>
+  );
+}
+
 /** Mountain View's "1 of 23" with newer / older arrows, at the end of the message toolbar. */
 function MvPager({
   position,
@@ -734,6 +807,8 @@ export function EmailViewer({
   onNavigatePrev,
   mvPosition,
   mvFolderName,
+  mvConversation,
+  onOpenConversationEmail,
   onShowShortcuts,
   onEditDraft,
   onCancelScheduledForEdit,
@@ -844,6 +919,10 @@ export function EmailViewer({
   // and has no bar fixed at the bottom; previous / next move to the top bar.
   const mvMobileViewer = interfaceLayout === 'mountain-view' && isMobile;
   const mvReplyRow = mvViewer || mvMobileViewer;
+  // The open conversation around the open message, split at it.
+  const mvOpenIndex = mvViewer && mvConversation && email ? mvConversation.findIndex((e) => e.id === email.id) : -1;
+  const mvBefore = mvOpenIndex > 0 ? mvConversation!.slice(0, mvOpenIndex) : [];
+  const mvAfter = mvOpenIndex >= 0 ? mvConversation!.slice(mvOpenIndex + 1) : [];
   // Mountain View's toolbars are icon-only, on the phone as on the desktop.
   const showToolbarLabels = showToolbarLabelsSetting && interfaceLayout !== 'mountain-view';
   // Inside a Pro pane, `isMobile` above is pane-width based: overlays that
@@ -4072,9 +4151,16 @@ export function EmailViewer({
       <div className={cn("flex-1 overflow-auto overscroll-contain", mvViewer || mvMobileViewer ? "bg-background" : "bg-muted/30", isMobile && !mvMobileViewer && "pb-[calc(3.25rem+env(safe-area-inset-bottom)/2)] sm:pb-0")}>
       <div className="min-h-full flex flex-col">
 
+      {/* Mountain View: the conversation's earlier messages, folded. */}
+      {mvViewer && mvBefore.length > 0 && (
+        <div className="hidden lg:block" data-mv-conversation-before="">
+          <MvConversationRun emails={mvBefore} onOpen={onOpenConversationEmail} timeFormat={timeFormat} collapseLongRun />
+        </div>
+      )}
+
       {/* === SENDER INFO (Desktop) === */}
       <div
-        className={cn("hidden lg:block bg-background px-6", !mvViewer && "border-b border-border")}
+        className={cn("hidden lg:block bg-background px-6", !mvViewer && "border-b border-border", mvViewer && mvBefore.length > 0 && "border-t border-border")}
         style={mvViewer ? { paddingBlock: '0.75rem 0.5rem' } : { paddingBlock: 'var(--density-header-py)' }}
       >
           <div className="flex items-start" style={{ gap: mvViewer ? '16px' : 'var(--density-item-gap)' }}>
@@ -5457,6 +5543,13 @@ export function EmailViewer({
           </div>
 
           <PluginSlot name="email-footer" />
+
+          {/* Mountain View: the conversation's later messages, folded. */}
+          {mvViewer && mvAfter.length > 0 && (
+            <div className="hidden lg:block mt-4 border-b border-border" data-mv-conversation-after="">
+              <MvConversationRun emails={mvAfter} onOpen={onOpenConversationEmail} timeFormat={timeFormat} />
+            </div>
+          )}
 
           {/* Mountain View: Reply / Reply all / Forward as buttons under the message. */}
           {mvReplyRow && !isDraft && !isScheduled && !isBodyLoading && (effectiveEmailContent.isHtml ? iframeReady : true) && (

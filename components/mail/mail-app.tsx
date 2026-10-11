@@ -201,6 +201,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const dragStartWidth = useRef(0);
   // Mobile conversation view state
   const [conversationThread, setConversationThread] = useState<ThreadGroup | null>(null);
+  // Mountain View: the open message's whole conversation, light properties only.
+  const [mvConversation, setMvConversation] = useState<Email[] | null>(null);
   const [conversationEmails, setConversationEmails] = useState<Email[]>([]);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number | null>(null);
@@ -3545,6 +3547,52 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
+  // Mountain View reads a message inside its conversation, as Gmail does: load
+  // the rest of the thread (list properties only) whenever another opens.
+  const mvConversationThreadId = mvShell && !cursorOnly ? (selectedEmail?.threadId ?? null) : null;
+  const mvConversationRef = mvShell && !cursorOnly ? selectedEmail : null;
+  useEffect(() => {
+    if (!mvConversationThreadId || !client || !mvConversationRef) {
+      setMvConversation(null);
+      return;
+    }
+    let cancelled = false;
+    const ref = mvConversationRef;
+    const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
+    const threadClient = route.clientAccountId
+      ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
+      : client;
+    (async () => {
+      try {
+        const thread = await threadClient.getThread(mvConversationThreadId, route.accountId);
+        const ids = thread?.emailIds ?? [];
+        if (ids.length < 2) {
+          if (!cancelled) setMvConversation(null);
+          return;
+        }
+        const emails = await threadClient.getSomeEmails(ids, route.accountId);
+        if (cancelled) return;
+        for (const e of emails) {
+          // Carry the open message's source stamps, so opening one of these
+          // in a merged view reaches the right account.
+          e.accountId = ref.accountId;
+          e.accountLabel = ref.accountLabel;
+          e.sourceClientAccountId = ref.sourceClientAccountId;
+          e.sourceAccountId = ref.sourceAccountId;
+        }
+        setMvConversation(
+          emails
+            .filter((e) => e.id === ref.id || !e.keywords?.$draft)
+            .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt)),
+        );
+      } catch {
+        if (!cancelled) setMvConversation(null);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the open message, not on every list refresh
+  }, [mvConversationThreadId, mvConversationRef?.id, client]);
+
   // Show loading state while checking auth
   if (!initialCheckDone || authLoading || (!isAuthenticated || !client)) {
     return (
@@ -4699,6 +4747,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       total: Math.max(activeEmails.length, mailboxes.find((mb) => mb.id === selectedMailbox)?.totalEmails ?? 0),
                     } : undefined}
                     mvFolderName={mvShell && !isScheduledView && !isUnifiedView ? currentMailboxName : undefined}
+                    mvConversation={mvShell ? mvConversation ?? undefined : undefined}
+                    onOpenConversationEmail={mvShell ? (e) => void handleEmailSelect(e) : undefined}
                     onToggleFullscreen={!isEmbedded && !isMobile ? () => setFullscreenReading((v) => !v) : undefined}
                     isFullscreen={fullscreenReading}
                     onShowShortcuts={() => setShowShortcutsModal(true)}
