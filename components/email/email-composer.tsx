@@ -4416,7 +4416,9 @@ function RecipientChipInput({
               {isEditing ? (
                 <input
                   ref={editInputRef}
-                  type="text"
+                  type="search"
+                  enterKeyHint="done"
+                  autoComplete="off"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   onKeyDown={(e) => {
@@ -4436,7 +4438,7 @@ function RecipientChipInput({
                     }
                     handleSaveEdit(editValue);
                   }}
-                  className="flex-1 min-w-[80px] border-0 outline-none h-5 text-sm bg-transparent text-foreground placeholder:text-muted-foreground"
+                  className="flex-1 min-w-[80px] border-0 outline-none h-5 text-sm bg-transparent text-foreground placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
                   placeholder={editingChip?.editType === 'email' ? t('recipient_email_placeholder') : t('recipient_name_placeholder')}
                   data-bwignore="true"
                 />
@@ -4480,16 +4482,22 @@ function RecipientChipInput({
           />
         )}
         {!editingChip && (
+          // type="search": Bitwarden skips search fields unconditionally, but
+          // honours data-bwignore only when the user opted in, so its inline
+          // menu offered logins for the "E-Mail" placeholder. The other
+          // data-* attributes cover 1Password, LastPass and Dashlane.
           <input
             ref={inputRef}
-            type="text"
+            type="search"
+            enterKeyHint="enter"
+            autoComplete="off"
             placeholder={chips.length === 0 ? placeholder : ''}
             value={inputText}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             onBlur={handleBlur}
-            className="flex-1 min-w-[120px] border-0 outline-none h-7 text-sm bg-transparent text-foreground placeholder:text-muted-foreground"
+            className="flex-1 min-w-[120px] border-0 outline-none h-7 text-sm bg-transparent text-foreground placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
             role="combobox"
             aria-expanded={activeAutoField === field && autocompleteResults.length > 0}
             aria-autocomplete="list"

@@ -208,6 +208,12 @@ const settle = () => act(() => new Promise((r) => setTimeout(r, 300)));
 describe('recipient autocomplete', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
+  it('is a search field, which Bitwarden never offers to fill', () => {
+    // data-bwignore only works when the user opted in to it in Bitwarden.
+    render(<EmailComposer initialData={EMPTY_DATA} />);
+    expect(toInput()).toHaveAttribute('type', 'search');
+  });
+
   it('does not reopen the suggestions after a typed address was committed', async () => {
     render(<EmailComposer initialData={EMPTY_DATA} />);
     const input = toInput();
