@@ -25,6 +25,7 @@ import { DEFAULT_KEYWORD_SCAN_LIMIT } from '../jmap/client';
 import { suggestKeywordColor } from '../keyword-discovery';
 import { MAX_KEYWORD_LENGTH } from '../keyword-nesting';
 import { KEYWORD_PREFIX } from '../thread-utils';
+import { DEFAULT_SEARCH_FILTERS, normalizePluginFilter } from '../jmap/search-utils';
 import { awaitDialog, awaitPrompt, awaitCustomDialog, type PromptField } from './host-dialog';
 import { fileStorage } from '../plugin-storage';
 import { generateUUID } from '../utils';
@@ -159,6 +160,9 @@ const PERM_PER_METHOD: Record<string, Permission | null> = {
   // categorize rewrites message keywords, so it needs the write permission
   // (a tabs-only plugin can still render tabs without it).
   'tabs.categorize': 'email:write',
+  // message-list search: the plugin never sees the results, but it decides
+  // which messages the list shows.
+  'search.run': 'email:read',
   // sieve (delivery-time classification)
   'sieve.isSupported': 'filters:read',
   'sieve.getActiveScript': 'filters:read',
@@ -1340,6 +1344,34 @@ async function doTabsCategorize(emailIds: unknown, tabId: unknown): Promise<bool
   return moved;
 }
 
+// ─── Message-list search ──────────────────────────────────────
+
+const MAX_SEARCH_LABEL_LENGTH = 64;
+
+/**
+ * Run a plugin's JMAP Email filter as the message-list search (#1024). It
+ * replaces the current search like a user's search does, keeps the scope
+ * picked in the search panel, and shows up as a removable chip.
+ */
+async function doSearchRun(plugin: InstalledPlugin, query: unknown, options: unknown): Promise<void> {
+  const filter = normalizePluginFilter('search.run: query', query);
+  if (Object.keys(filter).length === 0) throw new Error('search.run: query must not be empty');
+  const rawLabel = options && typeof options === 'object' ? (options as { label?: unknown }).label : undefined;
+  if (rawLabel !== undefined && typeof rawLabel !== 'string') {
+    throw new Error('search.run: label must be a string');
+  }
+  const label = (rawLabel?.trim() || plugin.name).slice(0, MAX_SEARCH_LABEL_LENGTH);
+
+  const client = requireClient();
+  const store = useEmailStore.getState();
+  store.setSearchQuery('');
+  store.setSearchFilters({
+    ...DEFAULT_SEARCH_FILTERS,
+    pluginFilter: { pluginId: plugin.id, label, filter },
+  });
+  await store.advancedSearch(client);
+}
+
 // ─── Sieve (delivery-time classification) ─────────────────────
 
 async function doSieveGetActiveScript(): Promise<{ id: string; name: string; content: string } | null> {
@@ -1635,6 +1667,8 @@ export async function dispatchApiCall(
     }
     case 'tabs.refreshCounts': return doTabsRefreshCounts();
     case 'tabs.categorize': return doTabsCategorize(args[0], args[1]);
+
+    case 'search.run': return doSearchRun(plugin, args[0], args[1]);
 
     case 'sieve.isSupported': {
       const { client } = useAuthStore.getState();

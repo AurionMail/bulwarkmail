@@ -439,6 +439,15 @@ function buildPluginApi(manifest: PluginManifest) {
       categorize: (emailIds: string[], tabId: string) =>
         callApi('tabs.categorize', [emailIds, tabId]) as Promise<boolean>,
     },
+    // Message-list search (permission: email:read). Runs a JMAP Email
+    // FilterCondition/FilterOperator the way a user's search runs: in the
+    // scope picked in the search panel, shown as a chip, cleared with the
+    // search. Same contract as a tab's `query`. The plugin gets no results
+    // back; the list shows them.
+    search: {
+      run: (query: unknown, options?: { label?: string }) =>
+        callApi('search.run', [query, options]) as Promise<void>,
+    },
     // Sieve integration for delivery-time classification (permissions:
     // filters:read / filters:write). Plugins never write scripts directly -
     // they register an onSieveScriptGenerate transform hook and call

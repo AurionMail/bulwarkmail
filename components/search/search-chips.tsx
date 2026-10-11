@@ -67,6 +67,9 @@ export function SearchChips({
   if (sizeFilterBytes(filters.maxSizeKb) !== null) {
     chips.push({ key: "maxSizeKb", label: t("size_max"), value: `${filters.maxSizeKb} KB` });
   }
+  if (filters.pluginFilter) {
+    chips.push({ key: "pluginFilter", label: filters.pluginFilter.label, value: "" });
+  }
 
   if (chips.length === 0) return null;
 

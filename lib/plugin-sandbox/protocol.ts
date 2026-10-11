@@ -257,6 +257,8 @@ export const API_METHODS = [
   'keywords.list', 'keywords.add', 'keywords.reorder', 'keywords.discover', 'keywords.getCounts', 'keywords.refreshCounts',
   // Message-list category tabs (Gmail-style inbox tabs).
   'tabs.set', 'tabs.clear', 'tabs.getState', 'tabs.categorize', 'tabs.refreshCounts',
+  // Run a JMAP Email filter as the message-list search.
+  'search.run',
   // Sieve integration for delivery-time classification plugins.
   'sieve.isSupported', 'sieve.getActiveScript', 'sieve.validateScript', 'sieve.regenerate',
 ] as const;
