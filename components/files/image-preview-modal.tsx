@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { X, Download, ZoomIn, ZoomOut, RotateCw } from "@/components/icons";
+import { useState, useEffect } from "react";
+import { X, Download } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+import { ZoomableImage } from "@/components/files/zoomable-image";
 
 interface ImagePreviewModalProps {
   name: string;
@@ -17,95 +18,97 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl }: Im
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
     let revoke: string | null = null;
+    let cancelled = false;
     setLoading(true);
     setError(false);
+    setImageUrl(null);
 
     getImageUrl(name)
       .then((url) => {
         revoke = url;
+        if (cancelled) return;
         setImageUrl(url);
         setLoading(false);
       })
       .catch(() => {
+        if (cancelled) return;
         setError(true);
         setLoading(false);
       });
 
     return () => {
-      if (revoke) URL.revokeObjectURL(revoke);
+      cancelled = true;
+      if (revoke?.startsWith("blob:")) URL.revokeObjectURL(revoke);
     };
   }, [name, getImageUrl]);
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") { onClose(); return; }
-    const target = e.target as HTMLElement;
-    const tag = target?.tagName?.toLowerCase();
-    if (tag === "input" || tag === "textarea" || tag === "select") return;
-    if (target?.getAttribute("contenteditable") === "true") return;
-    if (e.key === "+" || e.key === "=") setZoom((z) => Math.min(z + 0.25, 5));
-    if (e.key === "-") setZoom((z) => Math.max(z - 0.25, 0.25));
-    if (e.key === "r") setRotation((r) => r + 90);
-  }, [onClose]);
-
   useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [onClose]);
 
   return (
     <div
       role="dialog"
+      aria-modal="true"
       aria-label={name}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      className="fixed inset-0 z-50 flex flex-col bg-black/90"
       onClick={onClose}
     >
-      {/* Header */}
       {/* Same safe-area handling as FilePreviewModal: full-screen overlay +
           `viewport-fit=cover` puts this bar under the iOS status bar in an
           installed PWA (#936). */}
-      <div className="absolute top-0 left-0 right-0 flex items-center justify-between pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))] pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 bg-gradient-to-b from-black/60 to-transparent z-10">
-        <span className="text-white text-sm font-medium truncate max-w-[50%]">{name}</span>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(z + 0.25, 5)); }}>
-            <ZoomIn className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.max(z - 0.25, 0.25)); }}>
-            <ZoomOut className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); setRotation((r) => r + 90); }}>
-            <RotateCw className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); onDownload(name); }}>
+      <div
+        className="flex items-center justify-between gap-3 pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(0.5rem+env(safe-area-inset-right))] pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 text-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="text-sm font-medium truncate min-w-0">{name}</span>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-white hover:bg-white/15 hover:text-white"
+            onClick={() => void onDownload(name)}
+            aria-label={t("download")}
+            title={t("download")}
+          >
             <Download className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={onClose}>
-            <X className="w-4 h-4" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-white hover:bg-white/15 hover:text-white"
+            onClick={onClose}
+            aria-label={t("close_preview")}
+            title={t("close_preview")}
+          >
+            <X className="w-5 h-5" />
           </Button>
         </div>
       </div>
 
-      {/* Image */}
-      <div className="flex items-center justify-center w-full h-full p-16 pt-[calc(4rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
+      <div className="relative flex-1 min-h-0">
         {loading && (
-          <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          </div>
         )}
         {error && (
-          <p className="text-white/70 text-sm">{t("preview_error")}</p>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="text-white/70 text-sm">{t("preview_error")}</p>
+          </div>
         )}
         {imageUrl && !error && (
-          <img
-            src={imageUrl}
-            alt={name}
-            className="max-w-full max-h-full object-contain transition-transform duration-200"
-            style={{ transform: `scale(${zoom}) rotate(${rotation}deg)` }}
-            onLoad={() => setLoading(false)}
-            draggable={false}
-          />
+          <ZoomableImage src={imageUrl} alt={name} onBackgroundClick={onClose} />
         )}
       </div>
     </div>

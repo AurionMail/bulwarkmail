@@ -3721,7 +3721,12 @@
     "drop_to_upload": "Drop to upload to {folder}",
     "uploading_count": "Uploading {current} of {total}",
     "cancel_upload": "Cancel upload",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "zoom_in": "Zoom in",
+    "zoom_out": "Zoom out",
+    "zoom_reset": "Fit to screen",
+    "rotate": "Rotate",
+    "close_preview": "Close"
   },
   "smime": {
     "your_certificates": "Your Certificates",
