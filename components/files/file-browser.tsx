@@ -85,8 +85,6 @@ interface FileBrowserProps {
   onToggleFavorite: (path: string) => void;
   /** Open a recently used file wherever it now lives. */
   onOpenRecent: (id: string) => void;
-  /** A notice shown above the listing, e.g. the server stability warning. */
-  notice?: React.ReactNode;
   /** Pro shell only: all connected accounts surfaced as top-level folders at the root. */
   accountFolders?: AccountFolderEntry[];
   onSelectAccount?: (accountId: string) => void;
@@ -155,7 +153,6 @@ export function FileBrowser({
   recentFiles,
   onToggleFavorite,
   onOpenRecent,
-  notice,
   accountFolders,
   onSelectAccount,
   accountPickerMode,
@@ -993,8 +990,6 @@ export function FileBrowser({
           toolsHidden={accountPickerMode}
           selection={selectionActions}
         />
-
-        {notice}
 
         {error && (
           <div role="alert" className="mx-4 mt-3 px-3 py-2 rounded-md bg-destructive/10 text-destructive text-sm flex items-center gap-2">

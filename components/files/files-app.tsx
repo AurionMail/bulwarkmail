@@ -26,7 +26,7 @@ import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { WopiEditor } from "@/components/files/wopi-editor";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
-import { AlertTriangle, Loader2, X } from "@/components/icons";
+import { AlertTriangle, Loader2 } from "@/components/icons";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { isImageFile } from "@/components/files/file-icons";
 import { appPath, buildFilesPath, parseFilesPath, type FilesDeepLink } from "@/lib/deep-links";
@@ -115,9 +115,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   const initedAccountRef = useRef<string | null | undefined>(undefined);
   const filesBootstrapRef = useRef(false);
 
-  const [warningDismissed, setWarningDismissed] = useState(() => {
-    try { return localStorage.getItem("files-stability-warning-dismissed") === "1"; } catch { return false; }
-  });
   const { dialogProps: confirmDialogProps, confirm: confirmDialog } = useConfirmDialog();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
@@ -629,23 +626,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   recentFiles={recentFiles}
                   onToggleFavorite={toggleFavorite}
                   onOpenRecent={handleOpenRecent}
-                  notice={!warningDismissed && (
-                    <div className="mx-4 mt-3 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 ps-3 pe-1 py-1.5">
-                      <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
-                      <p className="flex-1 text-xs text-yellow-700 dark:text-yellow-400 py-0.5">{t("stability_warning")}</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setWarningDismissed(true);
-                          try { localStorage.setItem("files-stability-warning-dismissed", "1"); } catch { /* ignore */ }
-                        }}
-                        className="p-1 rounded text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/15"
-                        aria-label={t("dismiss")}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
                   accountFolders={accountFolders}
                   onSelectAccount={handleSelectAccount}
                   accountPickerMode={isAccountPicker}

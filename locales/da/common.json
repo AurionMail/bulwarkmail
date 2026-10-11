@@ -3677,7 +3677,6 @@
     "settings_descending": "Faldende",
     "disabled_title": "Filer-funktionen er deaktiveret af din administrator",
     "disabled_description": "Store filuploads via WebDAV kan forårsage Stalwart/RocksDB-ustabilitet, herunder hukommelsessvigt og uopretteligt diskforbrug. Slettede filer fjernes muligvis ikke straks fra blob-lageret. Denne funktion anbefales ikke til produktionsmiljøer.",
-    "stability_warning": "Store filuploads kan forårsage serverustabilitet. Slettede filer fjernes muligvis ikke straks fra lageret. Brug med forsigtighed.",
     "no_accounts": "Ingen tilknyttede konti.",
     "open_folder_tree": "Åbn mappetræ",
     "migration_title": "Opdaterer dine filer…",

@@ -3635,7 +3635,6 @@
     "settings_descending": "Malejąco",
     "disabled_title": "Funkcja Pliki jest wyłączona przez administratora",
     "disabled_description": "Duże przesyłanie plików przez WebDAV może powodować niestabilność Stalwart/RocksDB, w tym awarie z powodu braku pamięci i nieodwracalne zużycie miejsca na dysku. Usunięte pliki mogą nie zostać natychmiast usunięte z magazynu blob. Ta funkcja nie jest zalecana w środowiskach produkcyjnych.",
-    "stability_warning": "Duże przesyłanie plików może powodować niestabilność serwera. Usunięte pliki mogą nie zostać natychmiast usunięte z magazynu. Używaj ostrożnie.",
     "no_accounts": "Brak połączonych kont.",
     "open_folder_tree": "Otwórz drzewo folderów",
     "migration_title": "Aktualizowanie plików…",

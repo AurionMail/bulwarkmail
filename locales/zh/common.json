@@ -3635,7 +3635,6 @@
     "settings_descending": "降序",
     "disabled_title": "文件功能已被您的管理员禁用",
     "disabled_description": "通过 WebDAV 上传大文件可能导致 Stalwart/RocksDB 不稳定，包括内存溢出、崩溃以及难以回收的磁盘占用。已删除文件也可能不会立即从 blob 存储中清除。不建议在生产环境中启用此功能。",
-    "stability_warning": "大文件上传会导致服务器不稳定。已删除的文件可能不会立即从存储中清除。谨慎使用。",
     "no_accounts": "没有已连接的账户。",
     "open_folder_tree": "打开文件夹树",
     "migration_title": "正在更新您的文件…",

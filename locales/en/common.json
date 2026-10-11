@@ -3679,7 +3679,6 @@
     "settings_descending": "Descending",
     "disabled_title": "Files feature is disabled by your administrator",
     "disabled_description": "Large file uploads via WebDAV can cause Stalwart/RocksDB instability, including out-of-memory crashes and unrecoverable disk usage. Deleted files may not be immediately purged from blob storage. This feature is not recommended for production environments.",
-    "stability_warning": "Large file uploads can cause server instability. Deleted files may not be immediately purged from storage. Use with caution.",
     "migration_title": "Updating your files…",
     "migration_description": "Organising folders and files into their proper structure. This happens only once.",
     "new": "New",

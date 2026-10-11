@@ -3635,7 +3635,6 @@
     "settings_descending": "Sestupně",
     "disabled_title": "Funkce Soubory je zakázána správcem",
     "disabled_description": "Nahrávání velkých souborů přes WebDAV může způsobit nestabilitu Stalwart/RocksDB, včetně pádů z důvodu nedostatku paměti a nevratného zaplnění disku. Odstraněné soubory nemusí být okamžitě odstraněny z úložiště. Tato funkce se nedoporučuje v produkčním prostředí.",
-    "stability_warning": "Nahrávání velkých souborů může způsobit nestabilitu serveru. Odstraněné soubory nemusí být okamžitě odstraněny z úložiště. Používejte s opatrností.",
     "no_accounts": "Žádné připojené účty.",
     "open_folder_tree": "Otevřít strom složek",
     "migration_title": "Aktualizace vašich souborů…",

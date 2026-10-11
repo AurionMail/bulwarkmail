@@ -3635,7 +3635,6 @@
     "settings_descending": "Decrescente",
     "disabled_title": "O recurso de arquivos foi desativado pelo seu administrador",
     "disabled_description": "Uploads de arquivos grandes via WebDAV podem causar instabilidade no Stalwart/RocksDB, incluindo falhas de memória e uso irrecuperável de disco. Arquivos excluídos podem não ser removidos imediatamente do armazenamento. Este recurso não é recomendado para ambientes de produção.",
-    "stability_warning": "Uploads de arquivos grandes podem causar instabilidade no servidor. Arquivos excluídos podem não ser removidos imediatamente do armazenamento. Use com cautela.",
     "no_accounts": "Nenhuma conta conectada.",
     "open_folder_tree": "Abrir árvore de pastas",
     "migration_title": "Atualizando seus arquivos…",

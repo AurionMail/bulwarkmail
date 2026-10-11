@@ -3677,7 +3677,6 @@
     "settings_descending": "Azalan",
     "disabled_title": "Dosyalar özelliği yöneticiniz tarafından devre dışı bırakıldı",
     "disabled_description": "WebDAV üzerinden büyük dosya yüklemeleri Stalwart/RocksDB kararsızlığına yol açabilir; bellek yetersizliği çöküşleri ve kurtarılamaz disk kullanımı dahil. Silinen dosyalar blob depolamadan hemen temizlenmeyebilir. Bu özellik üretim ortamları için önerilmez.",
-    "stability_warning": "Büyük dosya yüklemeleri sunucu kararsızlığına neden olabilir. Silinen dosyalar depolamadan hemen temizlenmeyebilir. Dikkatli kullanın.",
     "no_accounts": "Bağlı hesap yok.",
     "open_folder_tree": "Klasör ağacını aç",
     "migration_title": "Dosyalarınız güncelleniyor…",

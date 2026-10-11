@@ -3635,7 +3635,6 @@
     "settings_descending": "Descendente",
     "disabled_title": "La función de archivos ha sido desactivada por su administrador",
     "disabled_description": "Las cargas de archivos grandes a través de WebDAV pueden causar inestabilidad en Stalwart/RocksDB, incluyendo errores de memoria y uso irrecuperable del disco. Los archivos eliminados pueden no eliminarse inmediatamente del almacenamiento. Esta función no se recomienda para entornos de producción.",
-    "stability_warning": "Las cargas de archivos grandes pueden causar inestabilidad del servidor. Los archivos eliminados pueden no eliminarse inmediatamente del almacenamiento. Usar con precaución.",
     "no_accounts": "No hay cuentas conectadas.",
     "open_folder_tree": "Abrir árbol de carpetas",
     "migration_title": "Actualizando tus archivos…",

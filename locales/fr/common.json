@@ -3635,7 +3635,6 @@
     "settings_descending": "Décroissant",
     "disabled_title": "La fonctionnalité Fichiers a été désactivée par votre administrateur",
     "disabled_description": "Les téléchargements de fichiers volumineux via WebDAV peuvent provoquer une instabilité de Stalwart/RocksDB, y compris des crashs de mémoire et une utilisation irrécupérable du disque. Les fichiers supprimés peuvent ne pas être immédiatement purgés du stockage. Cette fonctionnalité n'est pas recommandée pour les environnements de production.",
-    "stability_warning": "Les téléchargements de fichiers volumineux peuvent provoquer une instabilité du serveur. Les fichiers supprimés peuvent ne pas être immédiatement purgés du stockage. À utiliser avec prudence.",
     "no_accounts": "Aucun compte connecté.",
     "open_folder_tree": "Ouvrir l'arborescence des dossiers",
     "migration_title": "Mise à jour de vos fichiers…",
