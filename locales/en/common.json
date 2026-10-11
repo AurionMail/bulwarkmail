@@ -692,6 +692,7 @@
     "validation": {
       "recipient_required": "Add a recipient to send",
       "body_required": "Write a message or attach a file",
+      "invalid_recipients": "Not sent - check these addresses: {addresses}",
       "attachments_uploading": "Attachments are still uploading — sending as soon as they finish",
       "attachment_upload_failed": "Not sent — an attachment failed to upload. Remove it and try again."
     },
@@ -746,6 +747,7 @@
     "recipient_edit_name": "Edit display name",
     "recipient_email_placeholder": "Email address",
     "recipient_name_placeholder": "Display name",
+    "invalid_recipient": "Not a valid email address",
     "autocomplete_search_server": "Search the server",
     "autocomplete_searching": "Searching...",
     "mention_recipients": "Recipients",

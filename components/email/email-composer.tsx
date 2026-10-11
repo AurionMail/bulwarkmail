@@ -2378,6 +2378,18 @@ export function EmailComposer({
       return;
     }
 
+    // Catch addresses the server would reject before asking it. Its answer
+    // ("No recipients found in email") does not say which one is wrong.
+    const invalidRecipients = [
+      ...withInput(to, toInput),
+      ...withInput(cc, ccInput),
+      ...withInput(bcc, bccInput),
+    ].filter(r => !r.group && !isValidEmail(r.email)).map(r => r.email);
+    if (invalidRecipients.length > 0) {
+      toast.error(t('validation.invalid_recipients', { addresses: invalidRecipients.join(', ') }));
+      return;
+    }
+
     // Empty subject confirmation (#684)
     if (!skipSubjectCheck && emptySubjectWarningEnabled && !subject.trim()) {
       setEmptySubjectDontAskAgain(false);
@@ -3982,7 +3994,13 @@ function RecipientChipInput({
 
   const commitCurrentInput = () => {
     if (inputText.trim()) {
-      onChipsChange([...chips, parseRecipient(inputText)]);
+      // A typed list ("a@x.com, b@y.com") becomes one chip per entry, like a
+      // paste. Entries that are not addresses still become chips so they show
+      // up as invalid instead of vanishing.
+      const { valid, invalid } = /[,;]/.test(inputText)
+        ? splitPastedRecipients(inputText, chips.map(c => c.email))
+        : { valid: [parseRecipient(inputText)], invalid: [] as string[] };
+      onChipsChange([...chips, ...valid, ...invalid.map(parseRecipient)]);
       onInputChange('');
       // Also drops the debounced lookup for the text just committed, which
       // would otherwise reopen the dropdown over the next field.
@@ -4019,6 +4037,15 @@ function RecipientChipInput({
         if (e.key === 'Tab' && onTab) setTimeout(() => onTab(), 0);
         return;
       }
+    }
+
+    // A comma or semicolon after a complete address adds it, as in other mail
+    // clients. Inside a name ("Doe, John" <...>) it is typed normally.
+    if ((e.key === ',' || e.key === ';') && isValidEmail(parseRecipient(inputText.trim()).email)) {
+      e.preventDefault();
+      if (highlightIndex >= 0) onInsertAutocomplete(autocompleteResults[highlightIndex], field);
+      else commitCurrentInput();
+      return;
     }
 
     // Enter / Tab commit whatever is typed. Space only commits when the input
@@ -4202,7 +4229,8 @@ function RecipientChipInput({
           if(chip.extra?.icon){
              IconComponent = ICON_MAP[chip.extra?.icon];
           }
-          const customColor = chip.extra?.color;
+          const isInvalid = !chip.group && !isValidEmail(chip.email);
+          const customColor = isInvalid ? 'destructive' : chip.extra?.color;
 
           return (
             <React.Fragment key={`${chip.email}-${i}`}>
@@ -4238,6 +4266,8 @@ function RecipientChipInput({
                 !isEditing && draggingIndex === i && "opacity-50"
               )}
               onContextMenu={isEditing ? undefined : (e) => handleContextMenu(e, i, chip)}
+              data-invalid={isInvalid || undefined}
+              title={isInvalid ? t('invalid_recipient') : undefined}
             >
               {IconComponent ? (
                                 <IconComponent
