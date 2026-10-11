@@ -229,15 +229,19 @@ const mentionList = () => screen.queryByRole('listbox', { name: 'mention_recipie
 
 describe('composer with the @ recipient list', () => {
   // jsdom has no layout. After an insertion the editor focuses a frame later
-  // and ProseMirror measures a Range to scroll the cursor into view.
+  // and ProseMirror measures a Range to scroll the cursor into view, and a
+  // mousedown in the body asks for the element under the pointer.
   const range = Range.prototype as unknown as Record<string, unknown>;
+  const doc = document as unknown as Record<string, unknown>;
   beforeAll(() => {
     range.getClientRects = () => [];
     range.getBoundingClientRect = () => ({ x: 0, y: 0, width: 0, height: 0, top: 0, right: 0, bottom: 0, left: 0 });
+    doc.elementFromPoint = () => null;
   });
   afterAll(() => {
     delete range.getClientRects;
     delete range.getBoundingClientRect;
+    delete doc.elementFromPoint;
   });
 
   it('lists To recipients only - never Bcc', async () => {
