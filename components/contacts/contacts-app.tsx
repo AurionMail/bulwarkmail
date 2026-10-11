@@ -79,6 +79,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     selectedContactId,
     searchQuery,
     supportsSync,
+    contactsLoaded,
     selectedContactIds,
     setSelectedContact,
     setSearchQuery,
@@ -1054,6 +1055,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onDeleteContact={handleDeleteContact}
                   onAddContactToGroup={handleAddContactToGroup}
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
+                  isLoading={supportsSync && !contactsLoaded}
                 />
               </div>
 

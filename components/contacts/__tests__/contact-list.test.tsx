@@ -68,6 +68,17 @@ describe('ContactList', () => {
     expect(screen.getByText('empty_state_title')).toBeInTheDocument();
   });
 
+  it('shows placeholders instead of the empty state while contacts are loading', () => {
+    render(<ContactList {...defaultProps} contacts={[]} isLoading />);
+    expect(screen.queryByText('empty_state_title')).toBeNull();
+    expect(screen.getByTestId('contact-list-skeleton')).toBeInTheDocument();
+  });
+
+  it('shows the contacts as soon as they are there, even while loading', () => {
+    render(<ContactList {...defaultProps} isLoading />);
+    expect(screen.queryByTestId('contact-list-skeleton')).toBeNull();
+  });
+
   it('shows search empty state when search has no results', () => {
     render(<ContactList {...defaultProps} searchQuery="zzz" />);
     expect(screen.getByText('empty_search')).toBeInTheDocument();
