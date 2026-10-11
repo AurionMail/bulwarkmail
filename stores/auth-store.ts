@@ -2577,6 +2577,9 @@ export const useAuthStore = create<AuthState>()(
           // and sync the passthrough auth context. The context write never
           // throws and doesn't depend on the connect result, so its round trip
           // overlaps the connect instead of running after it.
+          // Accounts signed in without "Remember me": a reload ends them on
+          // purpose, so it is not reported as an expired session.
+          let forgottenAccounts = 0;
           const restoreAccount = async (account: (typeof accounts)[number]) => {
             if (clients.has(account.id)) return; // Already connected
             // Restored from the account list backup: listed until signed in.
@@ -2589,6 +2592,7 @@ export const useAuthStore = create<AuthState>()(
             // way; a missing one surfaces as a 401 from fetchSlotSession below
             // and evicts too.)
             if (account.authMode !== 'oauth' && !account.rememberMe && !IS_LITE) {
+              forgottenAccounts += 1;
               evictAccount(account.id);
               accountStore.removeAccount(account.id);
               return;
@@ -2791,7 +2795,8 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
-          markSessionExpired();
+          if (forgottenAccounts === accounts.length) saveRedirectAfterLogin();
+          else markSessionExpired();
           set({
             isAuthenticated: false,
             isLoading: false,
