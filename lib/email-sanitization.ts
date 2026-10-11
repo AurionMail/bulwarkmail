@@ -807,7 +807,9 @@ export function plainTextToSafeHtml(text: string, linkClass = ''): string {
  * and hides it if it contains no meaningful visible content.
  */
 export function collapseBlockedImageContainers(html: string): string {
-  const doc = parseHtmlSafely(html);
+  // Wrapped in <body> so a leading <style> stays in the body instead of being
+  // hoisted into <head>, where body.innerHTML below would drop it.
+  const doc = parseHtmlSafely(`<body>${html}</body>`);
   const blockedImages = doc.querySelectorAll('img[data-blocked-src]');
 
   blockedImages.forEach((img) => {

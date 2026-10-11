@@ -10,7 +10,7 @@ import { VerificationCodeChip } from "./verification-code-chip";
 import { collectReferencedCids, isEmbeddedInBody } from "@/lib/attachment-visibility";
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
 import { fitEmailBodyWidth } from "@/lib/email-fit-width";
-import { transformInlineStyles, transformColorForDarkMode, transformBgColorForDarkMode } from "@/lib/color-transform";
+import { DARK_PENDING_CLASS, applyEmailDarkMode, emailDarkModeCss } from "@/lib/email-dark-mode";
 import { useThemeStore } from "@/stores/theme-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -247,6 +247,7 @@ function EmailCard({
   const wopiStatus = useWopiStatus(true);
   const hideInlineImageAttachments = useSettingsStore((state) => state.hideInlineImageAttachments);
   const emailAlwaysLightMode = useSettingsStore((state) => state.emailAlwaysLightMode);
+  const isDark = resolvedTheme === 'dark' && !emailAlwaysLightMode;
   const plainTextFont = useSettingsStore((state) => state.plainTextFont);
   const showVerificationCodes = useSettingsStore((state) => state.showVerificationCodes);
   const verificationCode = useMemo(
@@ -363,8 +364,6 @@ function EmailCard({
         const sanitizeConfig = { ...EMAIL_SANITIZE_CONFIG };
 
         DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-          const htmlNode = node as HTMLElement;
-
           // Re-apply the data:-URI allowlist DOMPurify skips on media tags.
           restrictDataUriResourcesOnNode(node);
 
@@ -379,25 +378,6 @@ function EmailCard({
             node.setAttribute('rel', 'noopener noreferrer');
           }
 
-          if (resolvedTheme === 'dark' && !emailAlwaysLightMode) {
-            if (htmlNode.style) {
-              const originalStyles = htmlNode.style.cssText;
-              const transformedStyles = transformInlineStyles(originalStyles, 'dark');
-              if (transformedStyles !== originalStyles) {
-                htmlNode.style.cssText = transformedStyles;
-              }
-            }
-
-            const colorAttr = node.getAttribute('color');
-            if (colorAttr) {
-              node.setAttribute('color', transformColorForDarkMode(colorAttr));
-            }
-
-            const bgcolorAttr = node.getAttribute('bgcolor');
-            if (bgcolorAttr) {
-              node.setAttribute('bgcolor', transformBgColorForDarkMode(bgcolorAttr));
-            }
-          }
         });
 
         const sanitized = DOMPurify.sanitize(htmlContent, sanitizeConfig);
@@ -439,7 +419,7 @@ function EmailCard({
   // `hasBlockedContent` is only read to skip a redundant setState; as a
   // dependency it would re-run the sanitizer once the banner shows.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, allowExternal, resolvedTheme, emailAlwaysLightMode, cidBlobUrls, t]);
+  }, [email, allowExternal, cidBlobUrls, t]);
 
   // Parts the body embeds via cid: stay out of the attachment row while the
   // user hides inline images - the desktop viewer's rule, shared through
@@ -461,7 +441,8 @@ function EmailCard({
     // Strict while external content is blocked: the network-level backstop
     // for whatever the DOM walk above cannot see.
     const csp = emailIframeCsp(!allowExternal);
-    return `<!DOCTYPE html><html><head>
+    // Colours are rewritten after load (applyEmailDarkMode in handleIframeLoad).
+    return `<!DOCTYPE html><html class="${isDark ? DARK_PENDING_CLASS : ''}"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="${csp}">
@@ -491,8 +472,9 @@ function EmailCard({
   table { table-layout: auto; overflow-wrap: break-word; }
   td, th { word-break: break-word; padding: 0.5rem; }
   pre { white-space: pre-wrap; word-wrap: break-word; }
+  ${isDark ? emailDarkModeCss() : ''}
 </style></head><body dir="auto">${emailContent.html}</body></html>`;
-  }, [emailContent.isHtml, emailContent.html, allowExternal]);
+  }, [emailContent.isHtml, emailContent.html, allowExternal, isDark]);
 
   const handleIframeLoad = useCallback(() => {
     const iframe = iframeRef.current;
@@ -506,6 +488,7 @@ function EmailCard({
         show: t('email_viewer.show_quoted_text'),
         hide: t('email_viewer.hide_quoted_text'),
       });
+      if (isDark) applyEmailDarkMode(doc, { remoteContentAllowed: allowExternal });
       const resize = () => {
         // Fit desktop-width mail to the screen before measuring: the transform
         // leaves the layout height untouched, so scale the box by hand.
@@ -523,7 +506,7 @@ function EmailCard({
     } catch {
       // contentDocument may be inaccessible under stricter sandboxes; ignore.
     }
-  }, [t]);
+  }, [t, isDark, allowExternal]);
 
   return (
     <div className={cn(

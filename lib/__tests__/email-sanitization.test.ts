@@ -947,6 +947,18 @@ describe('email-sanitization', () => {
       expect(img.getAttribute('data-blocked-src')).toBe('https://tracker.example/pixel.gif');
     });
 
+    it('keeps a leading <style> block when it blocks an image', () => {
+      // Collapsing the emptied image cell re-parses the HTML; a <style> at the
+      // very start used to land in <head> there and get dropped, so the mail
+      // lost all its CSS until remote content was allowed.
+      const result = sanitizeEmailBodyForIframe(
+        '<style>.card { background: #fff; }</style><table><tr><td><img src="https://cdn.example/a.png"></td></tr></table>',
+        true,
+      );
+      expect(result.blockedExternalContent).toBe(true);
+      expect(result.html).toContain('<style>.card { background: #fff; }</style>');
+    });
+
     it('leaves external images alone when blocking is off', () => {
       const result = sanitizeEmailBodyForIframe('<img src="https://cdn.example/a.png">', false);
       expect(result.blockedExternalContent).toBe(false);
