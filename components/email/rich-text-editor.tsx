@@ -116,7 +116,8 @@ function ToolbarButton({
       disabled={disabled}
       title={title}
       className={cn(
-        "p-1.5 rounded hover:bg-accent transition-colors",
+        // Bigger on a phone, where 28px was hard to hit with a finger.
+        "p-1.5 max-md:p-2 rounded hover:bg-accent transition-colors",
         active && "bg-accent text-accent-foreground",
         disabled && "opacity-40 cursor-not-allowed"
       )}
