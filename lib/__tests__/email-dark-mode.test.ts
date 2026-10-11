@@ -147,6 +147,17 @@ describe('applyEmailDarkMode', () => {
     expect(doc.getElementById('p')!.style.getPropertyPriority('color')).toBe('important');
   });
 
+  it('leaves the dark canvas behind a mail without colours alone', () => {
+    const frame = document.createElement('iframe');
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument!;
+    doc.documentElement.style.backgroundColor = 'rgb(20, 20, 20)';
+    doc.body.style.backgroundColor = 'rgb(20, 20, 20)';
+    doc.body.innerHTML = '<p>Plain text</p>';
+    applyEmailDarkMode(doc);
+    expect(c(doc.defaultView!.getComputedStyle(doc.body).backgroundColor)).toEqual(c('rgb(20, 20, 20)'));
+  });
+
   it('un-hides the body', () => {
     const doc = render('<p>hi</p>');
     expect(doc.documentElement.classList.contains(DARK_PENDING_CLASS)).toBe(false);

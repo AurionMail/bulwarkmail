@@ -149,6 +149,10 @@ export function contrastRatio(x: Rgba, y: Rgba): number {
   return (Math.max(lx, ly) + 0.05) / (Math.min(lx, ly) + 0.05);
 }
 
+function sameColor(x: Rgba, y: Rgba): boolean {
+  return Math.round(x.r) === Math.round(y.r) && Math.round(x.g) === Math.round(y.g) && Math.round(x.b) === Math.round(y.b) && x.a === y.a;
+}
+
 /** Paints a translucent colour over an opaque one. */
 function composite(top: Rgba, under: Rgba): Rgba {
   const a = top.a;
@@ -422,9 +426,13 @@ export function applyEmailDarkMode(doc: Document, options: EmailDarkModeOptions 
         }
         // A translucent box over a picture still shows the picture, so it
         // keeps its colours; an opaque one is a surface of its own.
-        if (snap.bg && snap.bg.a > 0 && !(parent.onImage && snap.bg.a < 0.9)) {
+        if (el === body && snap.bg && sameColor(snap.bg, base)) {
+          // Our own dark canvas (emailDarkModeCss), not a fill the sender
+          // chose: in the light view this is the white page.
+        } else if (snap.bg && snap.bg.a > 0 && !(parent.onImage && snap.bg.a < 0.9)) {
           const original = snap.bg;
-          const next = parent.onImage
+          // The body has no surroundings to stand out from.
+          const next = parent.onImage || el === body
             ? darkenBackground(original)
             : keepSeparation(darkenBackground(original), original, parent);
           surface = {
