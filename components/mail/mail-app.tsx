@@ -1886,8 +1886,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // selection like a delete does.
       if (selectedEmail && (selectedEmail.id === data.draftId || selectedEmail.id === pendingDraft?.draftId)) {
         selectEmail(null);
-        if (isMobile) setActiveView('list');
       }
+      // On a phone the composer takes over the reading pane. With no message
+      // open behind it, that pane is empty and has no way back to the list.
+      if (isMobile && !useEmailStore.getState().selectedEmail) setActiveView('list');
       if (result.filingError) {
         // The mail went out, but a post-send step (filing to Sent /
         // removing the old draft) was rejected - warn instead of staying
@@ -3815,6 +3817,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           }
           setShowComposer(false);
           setPendingDraft(null);
+          if (isMobile && !useEmailStore.getState().selectedEmail) setActiveView('list');
         }}
         onClose={() => {
           setShowComposer(false);
