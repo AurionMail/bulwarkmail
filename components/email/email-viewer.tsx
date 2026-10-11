@@ -408,16 +408,21 @@ export function ContactSidebarPanel({
 
   return (
     <div className="w-[320px] shrink-0 border-s border-border bg-background flex flex-col h-full animate-in slide-in-from-right-5 duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground truncate">{t('contact_sidebar.title')}</h3>
-        <button
-          onClick={onClose}
-          className="p-1 rounded hover:bg-muted transition-colors"
-          aria-label={t('contact_sidebar.close')}
-        >
-          <PanelRightClose className="w-4 h-4 text-muted-foreground" />
-        </button>
+      {/* Header - h-14 with the border on the wrapper so it lines up with
+          the viewer toolbar and the folder sidebar header. */}
+      <div className="border-b border-border shrink-0">
+        <div className="flex items-center justify-between gap-2 h-14 ps-4 pe-2">
+          <h3 className="text-sm font-semibold text-foreground truncate">{t('contact_sidebar.title')}</h3>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="h-9 w-9 shrink-0"
+            aria-label={t('contact_sidebar.close')}
+          >
+            <PanelRightClose className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
@@ -447,34 +452,41 @@ export function ContactSidebarPanel({
           </div>
         </div>
 
-        {/* Quick actions */}
-        <div className="px-4 pb-4 flex items-center justify-center gap-2">
+        {/* Quick actions - styled like the shared Button (default + outline,
+            size sm) since MailtoLink renders an anchor, not a Button. */}
+        <div className="px-4 pb-5 flex flex-col gap-2">
           <MailtoLink
             to={primaryEmail}
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-muted transition-colors border border-border"
+            className="inline-flex items-center justify-center gap-2 h-9 px-3 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             title={t('contact_sidebar.action_email_title')}
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-4 h-4" />
             {t('contact_sidebar.action_email')}
           </MailtoLink>
-          <button
-            onClick={() => handleCopy(primaryEmail)}
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-muted transition-colors border border-border"
-            title={t('contact_sidebar.action_copy_title')}
-          >
-            <Copy className="w-3.5 h-3.5" />
-            {t('contact_sidebar.action_copy')}
-          </button>
-          {contact && onEditContact && (
-            <button
-              onClick={onEditContact}
-              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-muted transition-colors border border-border"
-              title={t('contact_sidebar.action_edit_title')}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleCopy(primaryEmail)}
+              className="flex-1 min-w-0 gap-2"
+              title={t('contact_sidebar.action_copy_title')}
             >
-              <EditIcon className="w-3.5 h-3.5" />
-              {tCommon('edit')}
-            </button>
-          )}
+              <Copy className="w-4 h-4 shrink-0" />
+              <span className="truncate">{t('contact_sidebar.action_copy')}</span>
+            </Button>
+            {contact && onEditContact && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEditContact}
+                className="flex-1 min-w-0 gap-2"
+                title={t('contact_sidebar.action_edit_title')}
+              >
+                <EditIcon className="w-4 h-4 shrink-0" />
+                <span className="truncate">{tCommon('edit')}</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Details sections */}
