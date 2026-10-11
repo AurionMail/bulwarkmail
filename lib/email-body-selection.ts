@@ -33,3 +33,24 @@ export function getRenderableHtmlBody(
 
   return htmlContent;
 }
+
+/**
+ * The plain-text body of a draft being re-opened, taken from the parts the
+ * server lists as the body and from nothing else.
+ *
+ * `bodyValues` is keyed by part id, and `getEmail` asks for
+ * `fetchAllBodyValues`, which per RFC 8621 § 4.1.4 covers every `text/*`
+ * part of the message - attachments included. Joining all of them put the
+ * contents of an attached .csv or .txt into the composer as the message
+ * text: a draft carrying only attachments and no body re-opened showing an
+ * attachment's contents as what you had written, and saving or sending it
+ * then made that the actual message.
+ */
+export function getDraftTextBody(
+  email: Pick<Email, 'textBody' | 'bodyValues'>
+): string {
+  return (email.textBody ?? [])
+    .map(part => (part.partId ? email.bodyValues?.[part.partId]?.value : undefined))
+    .filter((value): value is string => !!value)
+    .join('\n');
+}

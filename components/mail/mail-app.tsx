@@ -85,6 +85,7 @@ import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { MvListToolbar } from "@/components/email/mv-list-toolbar";
 import { SidebarAppsModal } from "@/components/layout/sidebar-apps-modal";
 import { InlineAppView } from "@/components/layout/inline-app-view";
+import { getDraftTextBody } from '@/lib/email-body-selection';
 import { useSidebarApps } from "@/hooks/use-sidebar-apps";
 import { useIdentitySync } from "@/hooks/use-identity-sync";
 import { useIsEmbedded } from "@/hooks/use-is-embedded";
@@ -2087,9 +2088,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     draft = await emailHooks.onBeforeEditDraft.transform(draft);
 
-    const bodyText = draft.bodyValues
-      ? Object.values(draft.bodyValues).map(v => v.value).join('\n')
-      : '';
+    // Only the parts the server lists as the body: bodyValues also carries
+    // every text/* ATTACHMENT, which used to be joined in as the message.
+    const bodyText = getDraftTextBody(draft);
     // A plain-text-only draft lists its text/plain part under htmlBody
     // (RFC 8621 § 4.1.4 fallback) - only treat it as HTML when it really is.
     const draftHtmlPart = draft.htmlBody?.[0];
