@@ -2502,7 +2502,12 @@
       "manage": "管理规则",
       "senders_count": "{count, plural, other {# 个发件人}}",
       "cross_account": "请选择同一账户中的邮件",
-      "opaque_hint": "你的过滤器已被手动编辑。请打开过滤器设置"
+      "opaque_hint": "你的过滤器已被手动编辑。请打开过滤器设置",
+      "loading": "正在加载规则…",
+      "load_failed": "无法加载规则",
+      "none": "暂无规则",
+      "new_mail_only": "仅限新邮件",
+      "running": "正在 {folder} 中运行“{name}”…"
     }
   },
   "mailbox_context_menu": {

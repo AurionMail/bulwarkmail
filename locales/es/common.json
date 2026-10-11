@@ -2502,7 +2502,12 @@
       "manage": "Administrar reglas",
       "senders_count": "{count, plural, one {# remitente} other {# remitentes}}",
       "cross_account": "Selecciona mensajes de una sola cuenta",
-      "opaque_hint": "Tus filtros se editaron a mano. Abre la configuración de filtros"
+      "opaque_hint": "Tus filtros se editaron a mano. Abre la configuración de filtros",
+      "loading": "Cargando reglas…",
+      "load_failed": "No se pudieron cargar las reglas",
+      "none": "Aún no hay reglas",
+      "new_mail_only": "Solo para mensajes nuevos",
+      "running": "Ejecutando «{name}» en {folder}…"
     }
   },
   "mailbox_context_menu": {

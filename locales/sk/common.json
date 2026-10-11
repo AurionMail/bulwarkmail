@@ -2502,7 +2502,12 @@
       "manage": "Spravovať pravidlá",
       "senders_count": "{count, plural, one {# odosielateľa} few {# odosielateľov} many {# odosielateľa} other {# odosielateľov}}",
       "cross_account": "Vyberte správy z jedného účtu",
-      "opaque_hint": "Vaše filtre boli upravené ručne. Otvorte nastavenia filtrov"
+      "opaque_hint": "Vaše filtre boli upravené ručne. Otvorte nastavenia filtrov",
+      "loading": "Načítavajú sa pravidlá…",
+      "load_failed": "Pravidlá sa nepodarilo načítať",
+      "none": "Zatiaľ žiadne pravidlá",
+      "new_mail_only": "Len pre nové správy",
+      "running": "Spúšťa sa „{name}“ v priečinku {folder}…"
     }
   },
   "mailbox_context_menu": {

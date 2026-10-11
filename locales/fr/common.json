@@ -2502,7 +2502,12 @@
       "manage": "Gérer les règles",
       "senders_count": "{count, plural, one {# expéditeur} other {# expéditeurs}}",
       "cross_account": "Sélectionnez des messages d'un seul compte",
-      "opaque_hint": "Vos filtres ont été modifiés à la main. Ouvrez les réglages des filtres"
+      "opaque_hint": "Vos filtres ont été modifiés à la main. Ouvrez les réglages des filtres",
+      "loading": "Chargement des règles…",
+      "load_failed": "Impossible de charger les règles",
+      "none": "Aucune règle pour l'instant",
+      "new_mail_only": "Uniquement pour les nouveaux messages",
+      "running": "Exécution de « {name} » sur {folder}…"
     }
   },
   "mailbox_context_menu": {

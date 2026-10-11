@@ -2502,7 +2502,12 @@
       "manage": "Kuralları yönet",
       "senders_count": "{count, plural, one {# gönderen} other {# gönderen}}",
       "cross_account": "Tek bir hesaptan iletiler seçin",
-      "opaque_hint": "Filtreleriniz elle düzenlenmiş. Filtre ayarlarını açın"
+      "opaque_hint": "Filtreleriniz elle düzenlenmiş. Filtre ayarlarını açın",
+      "loading": "Kurallar yükleniyor…",
+      "load_failed": "Kurallar yüklenemedi",
+      "none": "Henüz kural yok",
+      "new_mail_only": "Yalnızca yeni iletiler için",
+      "running": "\"{name}\" {folder} klasöründe çalıştırılıyor…"
     }
   },
   "mailbox_context_menu": {

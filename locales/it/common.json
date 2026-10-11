@@ -2502,7 +2502,12 @@
       "manage": "Gestisci regole",
       "senders_count": "{count, plural, one {# mittente} other {# mittenti}}",
       "cross_account": "Seleziona messaggi di un solo account",
-      "opaque_hint": "I tuoi filtri sono stati modificati a mano. Apri le impostazioni dei filtri"
+      "opaque_hint": "I tuoi filtri sono stati modificati a mano. Apri le impostazioni dei filtri",
+      "loading": "Caricamento delle regole…",
+      "load_failed": "Impossibile caricare le regole",
+      "none": "Nessuna regola",
+      "new_mail_only": "Solo per i nuovi messaggi",
+      "running": "Esecuzione di «{name}» su {folder}…"
     }
   },
   "mailbox_context_menu": {

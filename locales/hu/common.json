@@ -2502,7 +2502,12 @@
       "manage": "Szabályok kezelése",
       "senders_count": "{count, plural, one {# feladó} other {# feladó}}",
       "cross_account": "Egyetlen fiók üzeneteit válaszd ki",
-      "opaque_hint": "A szűrőidet kézzel szerkesztették. Nyisd meg a szűrőbeállításokat"
+      "opaque_hint": "A szűrőidet kézzel szerkesztették. Nyisd meg a szűrőbeállításokat",
+      "loading": "Szabályok betöltése…",
+      "load_failed": "Nem sikerült betölteni a szabályokat",
+      "none": "Még nincsenek szabályok",
+      "new_mail_only": "Csak új üzenetekre",
+      "running": "„{name}” futtatása itt: {folder}…"
     }
   },
   "mailbox_context_menu": {

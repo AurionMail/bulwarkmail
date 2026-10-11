@@ -2502,7 +2502,12 @@
       "manage": "Gestionați regulile",
       "senders_count": "{count, plural, one {# expeditor} few {# expeditori} other {# de expeditori}}",
       "cross_account": "Selectați mesaje dintr-un singur cont",
-      "opaque_hint": "Filtrele dvs. au fost editate manual. Deschideți setările filtrelor"
+      "opaque_hint": "Filtrele dvs. au fost editate manual. Deschideți setările filtrelor",
+      "loading": "Se încarcă regulile…",
+      "load_failed": "Regulile nu au putut fi încărcate",
+      "none": "Nicio regulă încă",
+      "new_mail_only": "Doar pentru mesajele noi",
+      "running": "Se rulează „{name}” în {folder}…"
     }
   },
   "mailbox_context_menu": {

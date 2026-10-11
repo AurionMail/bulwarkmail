@@ -2502,7 +2502,12 @@
       "manage": "Zarządzaj regułami",
       "senders_count": "{count, plural, one {# nadawcy} few {# nadawców} many {# nadawców} other {# nadawcy}}",
       "cross_account": "Wybierz wiadomości z jednego konta",
-      "opaque_hint": "Twoje filtry zostały edytowane ręcznie. Otwórz ustawienia filtrów"
+      "opaque_hint": "Twoje filtry zostały edytowane ręcznie. Otwórz ustawienia filtrów",
+      "loading": "Wczytywanie reguł…",
+      "load_failed": "Nie udało się wczytać reguł",
+      "none": "Brak reguł",
+      "new_mail_only": "Tylko dla nowych wiadomości",
+      "running": "Uruchamianie „{name}” w folderze {folder}…"
     }
   },
   "mailbox_context_menu": {

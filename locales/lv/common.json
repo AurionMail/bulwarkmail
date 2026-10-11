@@ -2502,7 +2502,12 @@
       "manage": "Pārvaldīt noteikumus",
       "senders_count": "{count, plural, zero {# sūtītājiem} one {# sūtītāja} other {# sūtītājiem}}",
       "cross_account": "Izvēlieties vēstules no viena konta",
-      "opaque_hint": "Jūsu filtri ir rediģēti manuāli. Atveriet filtru iestatījumus"
+      "opaque_hint": "Jūsu filtri ir rediģēti manuāli. Atveriet filtru iestatījumus",
+      "loading": "Ielādē kārtulas…",
+      "load_failed": "Neizdevās ielādēt kārtulas",
+      "none": "Vēl nav kārtulu",
+      "new_mail_only": "Tikai jaunām ziņām",
+      "running": "Izpilda “{name}” mapē {folder}…"
     }
   },
   "mailbox_context_menu": {

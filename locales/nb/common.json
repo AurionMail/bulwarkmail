@@ -2502,7 +2502,12 @@
       "manage": "Administrer regler",
       "senders_count": "{count, plural, one {# avsender} other {# avsendere}}",
       "cross_account": "Velg meldinger fra én konto",
-      "opaque_hint": "Filtrene dine er redigert for hånd. Åpne filterinnstillingene"
+      "opaque_hint": "Filtrene dine er redigert for hånd. Åpne filterinnstillingene",
+      "loading": "Laster inn regler…",
+      "load_failed": "Kunne ikke laste inn reglene",
+      "none": "Ingen regler ennå",
+      "new_mail_only": "Bare for nye meldinger",
+      "running": "Kjører «{name}» på {folder}…"
     }
   },
   "mailbox_context_menu": {

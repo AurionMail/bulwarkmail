@@ -2502,7 +2502,12 @@
       "manage": "ルールを管理",
       "senders_count": "{count, plural, other {送信者 # 人}}",
       "cross_account": "1 つのアカウントのメールを選択してください",
-      "opaque_hint": "フィルターは手動で編集されています。フィルター設定を開いてください"
+      "opaque_hint": "フィルターは手動で編集されています。フィルター設定を開いてください",
+      "loading": "ルールを読み込み中…",
+      "load_failed": "ルールを読み込めませんでした",
+      "none": "ルールはまだありません",
+      "new_mail_only": "新着メッセージのみ",
+      "running": "{folder} で「{name}」を実行中…"
     }
   },
   "mailbox_context_menu": {

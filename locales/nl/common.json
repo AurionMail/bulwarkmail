@@ -2502,7 +2502,12 @@
       "manage": "Regels beheren",
       "senders_count": "{count, plural, one {# afzender} other {# afzenders}}",
       "cross_account": "Selecteer berichten uit één account",
-      "opaque_hint": "Je filters zijn met de hand bewerkt. Open de filterinstellingen"
+      "opaque_hint": "Je filters zijn met de hand bewerkt. Open de filterinstellingen",
+      "loading": "Regels laden…",
+      "load_failed": "De regels konden niet worden geladen",
+      "none": "Nog geen regels",
+      "new_mail_only": "Alleen voor nieuwe berichten",
+      "running": "\"{name}\" wordt uitgevoerd op {folder}…"
     }
   },
   "mailbox_context_menu": {

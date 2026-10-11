@@ -2502,7 +2502,12 @@
       "manage": "管理規則",
       "senders_count": "{count, plural, other {# 位寄件者}}",
       "cross_account": "請選取同一個帳號中的郵件",
-      "opaque_hint": "你的篩選規則曾被手動編輯。請開啟篩選規則設定"
+      "opaque_hint": "你的篩選規則曾被手動編輯。請開啟篩選規則設定",
+      "loading": "正在載入規則…",
+      "load_failed": "無法載入規則",
+      "none": "尚無規則",
+      "new_mail_only": "僅限新郵件",
+      "running": "正在 {folder} 中執行「{name}」…"
     }
   },
   "mailbox_context_menu": {

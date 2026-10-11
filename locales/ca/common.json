@@ -2502,7 +2502,12 @@
       "manage": "Gestiona les regles",
       "senders_count": "{count, plural, one {# remitent} other {# remitents}}",
       "cross_account": "Selecciona missatges d'un sol compte",
-      "opaque_hint": "Els teus filtres s'han editat a mà. Obre la configuració dels filtres"
+      "opaque_hint": "Els teus filtres s'han editat a mà. Obre la configuració dels filtres",
+      "loading": "S'estan carregant les regles…",
+      "load_failed": "No s'han pogut carregar les regles",
+      "none": "Encara no hi ha regles",
+      "new_mail_only": "Només per a missatges nous",
+      "running": "S'està executant «{name}» a {folder}…"
     }
   },
   "mailbox_context_menu": {
