@@ -4769,7 +4769,8 @@ export function EmailViewer({
                 <File className="w-4 h-4" />
                 <span className="text-sm font-medium">{t('draft_banner')}</span>
               </div>
-              {onEditDraft && (
+              {/* The toolbar already has Edit, except for a scheduled message. */}
+              {onEditDraft && isScheduled && (
                 <Button
                   size="sm"
                   variant="outline"
