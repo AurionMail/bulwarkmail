@@ -60,4 +60,28 @@ describe('htmlToPlainText', () => {
     // recognise as the start of a signature.
     expect(htmlToPlainText('<p>Hi</p><p>-- </p><p>User A</p>')).toBe('Hi\n-- \nUser A');
   });
+
+  describe('mailMarkup', () => {
+    // The text part of a reply showed the quoted original as ordinary text,
+    // and list items without their bullets.
+    const mail = { paragraphSpacing: true, mailMarkup: true };
+
+    it('prefixes quoted text with "> "', () => {
+      const html = '<p>Sure.</p><p>On Sun, B wrote:</p><div data-quoted-html=""><p>Hi A,</p><p>can you?</p></div>';
+      expect(htmlToPlainText(html, mail)).toBe('Sure.\n\nOn Sun, B wrote:\n\n> Hi A,\n>\n> can you?');
+    });
+
+    it('nests quotes', () => {
+      expect(htmlToPlainText('<blockquote><p>a</p><blockquote><p>b</p></blockquote></blockquote>', mail)).toBe('> a\n>\n> > b');
+    });
+
+    it('marks list items', () => {
+      expect(htmlToPlainText('<ul><li>Revenue</li><li>Costs</li></ul><ol start="3"><li>x</li><li>y</li></ol>', mail))
+        .toBe('- Revenue\n- Costs\n\n3. x\n4. y');
+    });
+
+    it('leaves the default conversion unchanged', () => {
+      expect(htmlToPlainText('<blockquote>a</blockquote><ul><li>b</li></ul>')).toBe('a\nb');
+    });
+  });
 });

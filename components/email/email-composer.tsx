@@ -84,9 +84,10 @@ import { toUnicodeEmail } from "@/lib/idn";
  * Derives the text/plain alternative from the composer's HTML body, preserving
  * line structure from block elements and <br> tags. Paragraph spacing is on so
  * <p> blocks are separated by a blank line, matching their visual rendering (#421).
+ * Quotes get "> " and list items their markers, like any plain-text mail.
  */
 function htmlToPlainText(html: string): string {
-  return htmlToPlainTextShared(html, { paragraphSpacing: true });
+  return htmlToPlainTextShared(html, { paragraphSpacing: true, mailMarkup: true });
 }
 
 /**
