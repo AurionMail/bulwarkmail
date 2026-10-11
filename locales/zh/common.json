@@ -702,6 +702,7 @@
     "send_failed": "发送邮件失败",
     "send_timeout": "服务器已停止响应。再次发送前请检查“已发送”文件夹——邮件可能已经发出。",
     "send_recipients_rejected": "未发送：服务器拒绝了所有收件人。",
+    "send_plugin_failed": "未发送：负责发送的插件失败或耗时过长。再次发送前，请先检查“已发送”文件夹。",
     "send_some_recipients_rejected": "已发送，但未发送给以下收件人：服务器拒绝了他们。",
     "continue_draft": "继续编辑草稿",
     "close_draft_title": "保存或丢弃草稿？",

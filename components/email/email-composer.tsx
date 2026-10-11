@@ -2524,8 +2524,10 @@ export function EmailComposer({
       // Hand off to a crypto plugin (S/MIME, PGP, …) if one wants to take over
       // the send: it builds raw MIME, signs/encrypts, and submits via
       // api.jmap.sendRaw. A handler returning false means "I sent it" — the
-      // host then skips its own plaintext submission but still cleans up the
-      // draft (and fires the scheduled-send callback for a delayed send).
+      // host then skips its own plaintext submission, cleans up the draft and
+      // closes (through the scheduled-send callback for a delayed send). An
+      // aborted or failed handler sent nothing: keep the message and its
+      // draft, and never fall back to sending it unsigned (#1207).
       const composeSendRequest = {
         to: toAddresses.map(r => formatRecipient(r.name, r.email)),
         cc: ccAddresses.map(r => formatRecipient(r.name, r.email)),
@@ -2546,7 +2548,17 @@ export function EmailComposer({
           ...inlineAttachments.map(a => ({ name: a.name, type: a.type, size: a.size, blobId: a.blobId, cid: a.cid })),
         ],
       };
-      const sendHandledByPlugin = (await emailHooks.onComposeSend.intercept(composeSendRequest)) === false;
+      const pluginOutcome = await emailHooks.onComposeSend.takeOver(composeSendRequest);
+      if (pluginOutcome === 'aborted') {
+        // The plugin shows its own error, or the user cancelled its prompt.
+        debug.log('email', 'Send aborted by an onComposeSend plugin handler');
+        return;
+      }
+      if (pluginOutcome === 'failed') {
+        toast.error(t('send_plugin_failed'));
+        return;
+      }
+      const sendHandledByPlugin = pluginOutcome === 'handled';
       if (sendHandledByPlugin) {
         if (finalDraftId) {
           // The draft was created through the identity's owning account
@@ -2651,6 +2663,9 @@ export function EmailComposer({
       setScheduleError('');
       // Clear ref so unmount effect doesn't re-save
       stateRef.current = { to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false, selectedIdentityId: null, subAddressTag: '', draftId: null, fromOverrideEnabled: false, fromOverrideEmail: '', fromOverrideName: '', attachments: [], plainTextMode };
+      // The host closes the composer from onSend or onScheduledSendCreated;
+      // a send the plugin made itself reaches neither (#1207).
+      if (sendHandledByPlugin && !effectiveDelayedUntil) cleanClose();
     } catch (err) {
       debug.error('Failed to send email:', err);
       if (err instanceof RecipientsRejectedError) {

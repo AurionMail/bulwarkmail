@@ -200,6 +200,56 @@ describe('HookBus', () => {
   });
 });
 
+// #1207: a send-takeover handler that failed or was cancelled let the host
+// delete the draft, and one that threw let the host send the message unsigned.
+describe('onComposeSend takeOver', () => {
+  it('reports a send the plugin made itself', async () => {
+    emailHooks.onComposeSend.register('smime', () => false);
+    expect(await emailHooks.onComposeSend.takeOver({})).toBe('handled');
+  });
+
+  it('reports an abort the plugin asked for', async () => {
+    emailHooks.onComposeSend.register('smime', () => ({ abort: true }));
+    expect(await emailHooks.onComposeSend.takeOver({})).toBe('aborted');
+  });
+
+  it('leaves the send to the host when no plugin takes it', async () => {
+    emailHooks.onComposeSend.register('other', () => undefined);
+    emailHooks.onComposeSend.register('guard', () => true);
+    expect(await emailHooks.onComposeSend.takeOver({})).toBe('default');
+  });
+
+  it('fails closed when a handler throws', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const later = vi.fn(() => false);
+    emailHooks.onComposeSend.register('smime', () => { throw new Error('no key'); }, 10);
+    emailHooks.onComposeSend.register('later', later, 20);
+    expect(await emailHooks.onComposeSend.takeOver({})).toBe('failed');
+    expect(later).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('waits for a slow passphrase prompt and fails closed after the budget', async () => {
+    vi.useFakeTimers();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      emailHooks.onComposeSend.register('smime', () => new Promise(resolve => setTimeout(() => resolve(false), 5 * 60_000)));
+      const slow = emailHooks.onComposeSend.takeOver({});
+      await vi.advanceTimersByTimeAsync(5 * 60_000 + 100);
+      expect(await slow).toBe('handled');
+
+      emailHooks.onComposeSend.clear();
+      emailHooks.onComposeSend.register('stuck', () => new Promise(() => {}));
+      const stuck = emailHooks.onComposeSend.takeOver({});
+      await vi.advanceTimersByTimeAsync(10 * 60_000 + 100);
+      expect(await stuck).toBe('failed');
+    } finally {
+      consoleSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('onBeforeBlobUpload offload budget', () => {
   it('gives the hook room for a real upload, not the 5s default', async () => {
     vi.useFakeTimers();

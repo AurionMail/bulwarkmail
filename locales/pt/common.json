@@ -709,6 +709,7 @@
     "smime_passphrase_placeholder": "Frase secreta S/MIME",
     "send_timeout": "O servidor deixou de responder. Verifique a pasta Enviados antes de enviar novamente — a mensagem pode já ter saído.",
     "send_recipients_rejected": "Não enviado: o servidor rejeitou todos os destinatários.",
+    "send_plugin_failed": "Não enviado: um plugin que trata do envio falhou ou demorou demasiado. Verifique a pasta Enviados antes de enviar novamente.",
     "send_some_recipients_rejected": "Enviado, mas não para estes destinatários, que foram rejeitados pelo servidor.",
     "continue_draft": "Continuar rascunho",
     "close_draft_title": "Salvar ou descartar rascunho?",

@@ -705,6 +705,7 @@
     "send_failed": "E-posta gönderilemedi",
     "send_timeout": "Sunucu yanıt vermeyi bıraktı. Yeniden göndermeden önce Gönderilenler klasörünü kontrol edin — ileti gönderilmiş olabilir.",
     "send_recipients_rejected": "Gönderilmedi - sunucu tüm alıcıları reddetti.",
+    "send_plugin_failed": "Gönderilmedi - gönderimi üstlenen bir eklenti başarısız oldu ya da çok uzun sürdü. Yeniden göndermeden önce Gönderilenler klasörünü kontrol edin.",
     "send_some_recipients_rejected": "Gönderildi, ancak bu alıcılara değil - sunucu onları reddetti.",
     "continue_draft": "Taslağa devam et",
     "close_draft_title": "Taslak kaydedilsin mi yoksa silinsin mi?",

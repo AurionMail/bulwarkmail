@@ -702,6 +702,7 @@
     "send_failed": "Neizdevās nosūtīt vēstuli",
     "send_timeout": "Serveris pārstāja atbildēt. Pirms sūtīt vēlreiz, pārbaudiet mapi Nosūtītie — ziņojums, iespējams, jau ir aizsūtīts.",
     "send_recipients_rejected": "Nav nosūtīts — serveris noraidīja visus adresātus.",
+    "send_plugin_failed": "Nav nosūtīts – spraudnis, kas veic sūtīšanu, kļūdījās vai strādāja pārāk ilgi. Pirms sūtīt vēlreiz, pārbaudiet mapi Nosūtītie.",
     "send_some_recipients_rejected": "Nosūtīts, taču ne šiem adresātiem — serveris tos noraidīja.",
     "continue_draft": "Turpināt melnrakstu",
     "close_draft_title": "Saglabāt vai atmest melnrakstu?",

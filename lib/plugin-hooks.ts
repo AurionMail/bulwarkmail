@@ -82,6 +82,24 @@ function withTimeout<T>(promise: T | Promise<T>, ms: number = DEFAULT_TIMEOUT_MS
 
 // ─── HookBus ─────────────────────────────────────────────────
 
+/**
+ * What a `takeOver` hook decided: `default` lets the host do its own thing,
+ * `handled` means a plugin did it, `aborted` means a plugin stopped it on
+ * purpose (failed, or the user cancelled a prompt), and `failed` means a
+ * handler threw or timed out.
+ */
+export type TakeOverOutcome = 'default' | 'handled' | 'aborted' | 'failed';
+
+/** A handler returns `{ abort: true }` to stop a `takeOver` operation. */
+export function isAbortResult(value: unknown): value is { abort: true } {
+  return typeof value === 'object' && value !== null && (value as { abort?: unknown }).abort === true;
+}
+
+// A plugin that takes the send over may wait on a passphrase prompt first.
+// When this budget runs out the host keeps the draft, but the plugin may
+// still finish the send, so it has to be long enough for a slow user.
+const COMPOSE_SEND_TIMEOUT_MS = 10 * 60_000;
+
 interface HookEntry<T extends (...args: never[]) => unknown> {
   pluginId: string;
   handler: T;
@@ -161,6 +179,28 @@ export class HookBus<T extends (...args: any[]) => any> {
       }
     }
     return true;
+  }
+
+  /**
+   * Fire handlers that may take an operation over (see `onComposeSend`).
+   * Unlike `intercept`, this fails closed: a handler that throws or runs out
+   * of time stops the operation instead of letting the host's default run,
+   * which for a send would put an unsigned message on the wire (#1207).
+   */
+  async takeOver(...args: Parameters<T>): Promise<TakeOverOutcome> {
+    for (const { pluginId, handler } of this.handlers) {
+      if (pluginErrorTracker.isDisabled(pluginId)) continue;
+      let result: unknown;
+      try {
+        result = await withTimeout(handler(...args), Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS));
+      } catch (err) {
+        pluginErrorTracker.record(pluginId, err);
+        return 'failed';
+      }
+      if (result === false) return 'handled';
+      if (isAbortResult(result)) return 'aborted';
+    }
+    return 'default';
   }
 
   /** Fire handlers as transforms - each receives the output of the previous */
@@ -324,11 +364,15 @@ export const emailHooks = {
   // request (draft fields, recipients, identityId, attachments, and the user's
   // sign/encrypt intent) and may TAKE OVER sending entirely: build a raw MIME
   // message, sign/encrypt it, and submit it via `api.jmap.sendRaw`. Returning
-  // false signals "I handled the send" and the host SKIPS its default
-  // submission. Returning anything else (incl. undefined) lets the host send
-  // normally. This is the send-takeover hook used by the S/MIME plugin to
-  // replace the former native sign+encrypt+sendRaw pipeline.
-  onComposeSend: new HookBus(),
+  // false signals "I handled the send": the host SKIPS its default submission,
+  // deletes the draft and closes the composer. Returning { abort: true } means
+  // "nothing was sent" (signing failed, a passphrase prompt was cancelled): the
+  // host keeps the composer and the draft as they are. A handler that throws
+  // or times out counts as an abort, never as permission to send unsigned.
+  // Returning anything else (incl. undefined) lets the host send normally.
+  // This is the send-takeover hook used by the S/MIME plugin to replace the
+  // former native sign+encrypt+sendRaw pipeline. Fired with `takeOver`.
+  onComposeSend: new HookBus(COMPOSE_SEND_TIMEOUT_MS),
   // Transform hook - receive Email[] or ScheduledEmail[] just after there are fetched to 
   // lets plugin edit emails before they are shown in row. Used to populate preview 
   // field for encryption plugins.

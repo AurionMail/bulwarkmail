@@ -702,6 +702,7 @@
     "send_failed": "Odeslání zprávy selhalo",
     "send_timeout": "Server přestal odpovídat. Než odešlete znovu, zkontrolujte složku Odeslané – zpráva už mohla odejít.",
     "send_recipients_rejected": "Neodesláno – server odmítl všechny příjemce.",
+    "send_plugin_failed": "Neodesláno – plugin, který zajišťuje odeslání, selhal nebo trval příliš dlouho. Před opětovným odesláním zkontrolujte složku Odeslané.",
     "send_some_recipients_rejected": "Odesláno, ale ne těmto příjemcům – server je odmítl.",
     "continue_draft": "Pokračovat v úpravě konceptu",
     "close_draft_title": "Uložit nebo zahodit koncept?",

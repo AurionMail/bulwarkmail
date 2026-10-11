@@ -160,7 +160,7 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
     onBeforeEmailSend: { intercept: async () => true },
     onBeforeAttachmentUpload: { intercept: hoisted.beforeAttachmentUpload },
-    onComposeSend: { intercept: async () => true },
+    onComposeSend: { takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
   },
   contactHooks: {

@@ -709,6 +709,7 @@
     "smime_passphrase_placeholder": "S/MIME-Passphrase",
     "send_timeout": "Der Server antwortet nicht mehr. Prüfen Sie den Ordner „Gesendet“, bevor Sie erneut senden – die Nachricht wurde möglicherweise bereits verschickt.",
     "send_recipients_rejected": "Nicht gesendet – der Server hat alle Empfänger abgelehnt.",
+    "send_plugin_failed": "Nicht gesendet – ein Plugin, das den Versand übernimmt, ist fehlgeschlagen oder hat zu lange gebraucht. Prüfen Sie den Ordner „Gesendet“, bevor Sie erneut senden.",
     "send_some_recipients_rejected": "Gesendet, aber nicht an diese Empfänger – der Server hat sie abgelehnt.",
     "continue_draft": "Entwurf fortsetzen",
     "close_draft_title": "Entwurf speichern oder verwerfen?",

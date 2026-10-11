@@ -702,6 +702,7 @@
     "send_failed": "Nie udało się wysłać wiadomości",
     "send_timeout": "Serwer przestał odpowiadać. Przed ponownym wysłaniem sprawdź folder Wysłane — wiadomość mogła już zostać wysłana.",
     "send_recipients_rejected": "Nie wysłano – serwer odrzucił wszystkich odbiorców.",
+    "send_plugin_failed": "Nie wysłano – wtyczka obsługująca wysyłanie zawiodła lub działała zbyt długo. Przed ponownym wysłaniem sprawdź folder Wysłane.",
     "send_some_recipients_rejected": "Wysłano, ale nie do tych odbiorców – serwer ich odrzucił.",
     "continue_draft": "Kontynuuj szkic",
     "close_draft_title": "Zapisać czy odrzucić szkic?",

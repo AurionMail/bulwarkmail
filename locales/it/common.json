@@ -709,6 +709,7 @@
     "smime_passphrase_placeholder": "Passphrase S/MIME",
     "send_timeout": "Il server ha smesso di rispondere. Controlli la cartella Posta inviata prima di inviare di nuovo: il messaggio potrebbe essere già partito.",
     "send_recipients_rejected": "Non inviato: il server ha rifiutato tutti i destinatari.",
+    "send_plugin_failed": "Non inviato: un plugin che gestisce l'invio non è riuscito o ha impiegato troppo tempo. Controlla la cartella Inviati prima di inviare di nuovo.",
     "send_some_recipients_rejected": "Inviato, ma non a questi destinatari: il server li ha rifiutati.",
     "continue_draft": "Continua bozza",
     "close_draft_title": "Salvare o eliminare la bozza?",

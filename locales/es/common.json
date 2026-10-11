@@ -709,6 +709,7 @@
     "smime_passphrase_placeholder": "Contraseña S/MIME",
     "send_timeout": "El servidor dejó de responder. Compruebe la carpeta Enviados antes de volver a enviar: el mensaje puede haber salido.",
     "send_recipients_rejected": "No enviado: el servidor rechazó a todos los destinatarios.",
+    "send_plugin_failed": "No enviado: un complemento que gestiona el envío falló o tardó demasiado. Revisa la carpeta Enviados antes de volver a enviarlo.",
     "send_some_recipients_rejected": "Enviado, pero no a estos destinatarios: el servidor los rechazó.",
     "continue_draft": "Continuar borrador",
     "close_draft_title": "¿Guardar o descartar borrador?",

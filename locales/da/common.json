@@ -704,6 +704,7 @@
     "send_failed": "Kunne ikke sende e-mail",
     "send_timeout": "Serveren holdt op med at svare. Tjek mappen Sendt, før du sender igen — beskeden er måske allerede afsendt.",
     "send_recipients_rejected": "Ikke sendt - serveren afviste alle modtagere.",
+    "send_plugin_failed": "Ikke sendt - et plugin, der står for afsendelsen, fejlede eller tog for lang tid. Tjek mappen Sendt, før du sender igen.",
     "send_some_recipients_rejected": "Sendt, men ikke til disse modtagere - serveren afviste dem.",
     "continue_draft": "Fortsæt kladde",
     "close_draft_title": "Gem eller kassér kladde?",

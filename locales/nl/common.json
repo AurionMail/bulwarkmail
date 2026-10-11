@@ -709,6 +709,7 @@
     "smime_passphrase_placeholder": "S/MIME-wachtwoordzin",
     "send_timeout": "De server reageert niet meer. Controleer de map Verzonden voordat u opnieuw verstuurt — het bericht is mogelijk al verzonden.",
     "send_recipients_rejected": "Niet verzonden - de server heeft alle ontvangers geweigerd.",
+    "send_plugin_failed": "Niet verzonden - een plug-in die het verzenden afhandelt, is mislukt of duurde te lang. Controleer je map Verzonden voordat je opnieuw verzendt.",
     "send_some_recipients_rejected": "Verzonden, maar niet naar deze ontvangers - de server heeft ze geweigerd.",
     "continue_draft": "Concept voortzetten",
     "close_draft_title": "Concept opslaan of verwijderen?",

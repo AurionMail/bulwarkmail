@@ -705,6 +705,7 @@
     "send_failed": "Kunne ikke sende e-post",
     "send_timeout": "Serveren sluttet å svare. Sjekk Sendt-mappen før du sender på nytt – meldingen kan ha blitt sendt.",
     "send_recipients_rejected": "Ikke sendt – serveren avviste alle mottakerne.",
+    "send_plugin_failed": "Ikke sendt - et tillegg som står for sendingen, mislyktes eller brukte for lang tid. Sjekk Sendt-mappen før du sender på nytt.",
     "send_some_recipients_rejected": "Sendt, men ikke til disse mottakerne – serveren avviste dem.",
     "continue_draft": "Fortsett å skrive",
     "close_draft_title": "Lagre eller forkast utkast?",

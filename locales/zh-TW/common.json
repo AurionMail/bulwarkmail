@@ -705,6 +705,7 @@
     "send_failed": "傳送郵件失敗",
     "send_timeout": "伺服器停止回應。再次傳送前，請先檢查「寄件備份」信件匣，因為郵件可能已經寄出。",
     "send_recipients_rejected": "未傳送：伺服器拒絕了所有收件者。",
+    "send_plugin_failed": "未傳送：負責傳送的外掛程式失敗或耗時過久。再次傳送前，請先檢查「寄件備份」資料夾。",
     "send_some_recipients_rejected": "已傳送，但未傳送給以下收件者：伺服器拒絕了他們。",
     "continue_draft": "繼續編輯草稿",
     "close_draft_title": "要儲存還是捨棄草稿？",

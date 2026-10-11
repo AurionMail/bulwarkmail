@@ -705,6 +705,7 @@
     "send_failed": "Odoslanie e-mailu zlyhalo",
     "send_timeout": "Server prestal odpovedať. Pred opätovným odoslaním skontrolujte priečinok Odoslané — správa už mohla odísť.",
     "send_recipients_rejected": "Neodoslané – server odmietol všetkých príjemcov.",
+    "send_plugin_failed": "Neodoslané – doplnok, ktorý zabezpečuje odoslanie, zlyhal alebo trval príliš dlho. Pred opätovným odoslaním skontrolujte priečinok Odoslané.",
     "send_some_recipients_rejected": "Odoslané, ale nie týmto príjemcom – server ich odmietol.",
     "continue_draft": "Pokračovať v koncepte",
     "close_draft_title": "Uložiť alebo zahoditť koncept?",

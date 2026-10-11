@@ -705,6 +705,7 @@
     "send_failed": "Failed to send email",
     "send_timeout": "The server stopped responding. Check your Sent folder before sending again — the message may have gone out.",
     "send_recipients_rejected": "Not sent - the server rejected every recipient.",
+    "send_plugin_failed": "Not sent - a plugin that handles sending failed or took too long. Check your Sent folder before sending again.",
     "send_some_recipients_rejected": "Sent, but not to these recipients - the server rejected them.",
     "continue_draft": "Continue draft",
     "close_draft_title": "Save or discard draft?",

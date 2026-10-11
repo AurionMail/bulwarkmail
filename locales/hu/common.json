@@ -705,6 +705,7 @@
     "send_failed": "Nem sikerült elküldeni az e-mailt",
     "send_timeout": "A kiszolgáló nem válaszol többé. Újraküldés előtt ellenőrizze az Elküldött mappát – az üzenet lehet, hogy már kiment.",
     "send_recipients_rejected": "Nem lett elküldve – a szerver minden címzettet elutasított.",
+    "send_plugin_failed": "Nem lett elküldve – egy küldést végző bővítmény hibát jelzett vagy túl sokáig tartott. Újraküldés előtt nézd meg az Elküldött mappát.",
     "send_some_recipients_rejected": "Elküldve, de ezeknek a címzetteknek nem – a szerver elutasította őket.",
     "continue_draft": "Piszkozat folytatása",
     "close_draft_title": "Piszkozat mentése vagy elvetése?",

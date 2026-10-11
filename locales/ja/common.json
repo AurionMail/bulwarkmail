@@ -709,6 +709,7 @@
     "smime_passphrase_placeholder": "S/MIME パスフレーズ",
     "send_timeout": "サーバーが応答しなくなりました。再送信する前に送信済みフォルダーを確認してください。メッセージはすでに送信されている可能性があります。",
     "send_recipients_rejected": "送信されませんでした。サーバーがすべての宛先を拒否しました。",
+    "send_plugin_failed": "送信されませんでした。送信を処理するプラグインが失敗したか、時間がかかりすぎました。もう一度送信する前に送信済みフォルダーを確認してください。",
     "send_some_recipients_rejected": "送信しましたが、次の宛先には届きません。サーバーが拒否しました。",
     "continue_draft": "下書きを続ける",
     "close_draft_title": "下書きを保存または破棄しますか？",

@@ -709,6 +709,7 @@
     "smime_passphrase_placeholder": "Phrase secrète S/MIME",
     "send_timeout": "Le serveur ne répond plus. Vérifiez le dossier Envoyés avant de renvoyer : le message est peut-être déjà parti.",
     "send_recipients_rejected": "Non envoyé : le serveur a refusé tous les destinataires.",
+    "send_plugin_failed": "Non envoyé : un plugin chargé de l'envoi a échoué ou a pris trop de temps. Vérifiez le dossier Envoyés avant de renvoyer le message.",
     "send_some_recipients_rejected": "Envoyé, mais pas à ces destinataires : le serveur les a refusés.",
     "continue_draft": "Continuer le brouillon",
     "close_draft_title": "Enregistrer ou supprimer le brouillon ?",

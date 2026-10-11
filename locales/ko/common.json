@@ -702,6 +702,7 @@
     "send_failed": "메일 전송에 실패했어요",
     "send_timeout": "서버가 응답을 멈췄습니다. 다시 보내기 전에 보낸 편지함을 확인하세요. 메시지가 이미 발송되었을 수 있습니다.",
     "send_recipients_rejected": "보내지 못했습니다. 서버가 모든 수신자를 거부했습니다.",
+    "send_plugin_failed": "보내지 않았습니다. 전송을 처리하는 플러그인이 실패했거나 너무 오래 걸렸습니다. 다시 보내기 전에 보낸 편지함을 확인하세요.",
     "send_some_recipients_rejected": "보냈지만 다음 수신자에게는 전달되지 않습니다. 서버가 거부했습니다.",
     "continue_draft": "이어서 작성하기",
     "close_draft_title": "임시보관함에 저장할까요?",
