@@ -1043,7 +1043,10 @@ export function FileBrowser({
               menu.openContextMenu(e, { kind: "empty" });
             }}
             onClick={(e) => {
-              if (e.target === e.currentTarget && selectedResources.size > 0 && !marquee) onClearSelection();
+              // With a mouse, pressing on empty space already cleared the
+              // selection, and the click that ends a drag-select lands here
+              // too: clearing again would drop what was just selected.
+              if (touch && e.target === e.currentTarget && selectedResources.size > 0) onClearSelection();
             }}
             onDragEnter={handleContentDragEnter}
             onDragOver={handleContentDragOver}

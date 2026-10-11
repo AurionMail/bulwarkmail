@@ -214,6 +214,21 @@ describe('FileBrowser', () => {
     expect(screen.getAllByRole('button', { name: /upload_files/ }).length).toBeGreaterThan(0);
   });
 
+  it('keeps a drag selection when the mouse is released', () => {
+    const onClearSelection = vi.fn();
+    const { onSetSelection } = renderBrowser({ props: { onClearSelection, selectedResources: new Set(['notes.txt']) } });
+    const area = list().parentElement!;
+    // jsdom lays everything out at 0,0, so a box from -5,-5 to 20,20 covers every row.
+    fireEvent.mouseDown(area, { button: 0, clientX: -5, clientY: -5 });
+    fireEvent.mouseMove(window, { clientX: 20, clientY: 20 });
+    fireEvent.mouseUp(window, { clientX: 20, clientY: 20 });
+    fireEvent.click(area);
+
+    expect(onSetSelection).toHaveBeenLastCalledWith(new Set(['Documents', 'notes.txt']));
+    // Only the press that started the drag cleared the old selection.
+    expect(onClearSelection).toHaveBeenCalledTimes(1);
+  });
+
   it('replaces the toolbar with selection actions when items are selected', () => {
     renderBrowser({ props: { selectedResources: new Set(['notes.txt']) } });
     const bar = screen.getByRole('toolbar', { name: 'selection_actions' });
