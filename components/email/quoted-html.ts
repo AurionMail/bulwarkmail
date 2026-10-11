@@ -2,6 +2,7 @@
 
 import { Node as TiptapNode, mergeAttributes } from "@tiptap/core";
 import { DOMSerializer } from "@tiptap/pm/model";
+import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
 import type { Editor } from "@tiptap/react";
 
 import { buildSignatureBlock } from "@/components/email/signature-block";
@@ -16,6 +17,9 @@ export const QUOTED_HTML_MARKER = "data-quoted-html";
 // remote content (policy "allow", or a trusted sender). Display hint only:
 // serializeEditorContent never emits it.
 const QUOTED_REMOTE_ALLOWED_ATTR = "data-quoted-remote";
+
+// Atom blocks typing must never replace just because they were left selected.
+const ATOM_BLOCKS = new Set(["quotedHtml", "signatureBlock"]);
 
 // Reusable style for the quote bar when quoting email text (like in a reply).
 const QUOTE_BAR_STYLE =
@@ -69,6 +73,36 @@ export const QuotedHtml = TiptapNode.create({
 
   parseHTML() {
     return [{ tag: `div[${QUOTED_HTML_MARKER}]` }];
+  },
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey("quotedHtmlFocus"),
+        props: {
+          handleDOMEvents: {
+            // A reply can open with the quote (or the signature) selected as
+            // a node. Tabbing into the body kept that selection, and the first
+            // key typed replaced the whole block. Focus puts the caret at the
+            // start instead; a click still lands where it was aimed, because
+            // ProseMirror handles the click after the focus event.
+            focus: (view) => {
+              const { selection, doc } = view.state;
+              if (
+                selection instanceof NodeSelection &&
+                ATOM_BLOCKS.has(selection.node.type.name)
+              ) {
+                const start = Selection.atStart(doc);
+                if (start instanceof TextSelection) {
+                  view.dispatch(view.state.tr.setSelection(start));
+                }
+              }
+              return false;
+            },
+          },
+        },
+      }),
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
