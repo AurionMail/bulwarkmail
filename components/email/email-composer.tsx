@@ -1421,6 +1421,8 @@ export function EmailComposer({
   }, [autoQuery, composerClient, isSearchingServer, searchRecipients]);
 
   const insertAutocomplete = (suggestion: SuggestionItem, field: 'to' | 'cc' | 'bcc') => {
+    if (autocompleteTimeoutRef.current) clearTimeout(autocompleteTimeoutRef.current);
+    setAutoQuery('');
     const setter = field === 'to' ? setTo : field === 'cc' ? setCc : setBcc;
     const inputSetter = field === 'to' ? setToInput : field === 'cc' ? setCcInput : setBccInput;
 
@@ -3970,6 +3972,9 @@ function RecipientChipInput({
     if (inputText.trim()) {
       onChipsChange([...chips, parseRecipient(inputText)]);
       onInputChange('');
+      // Also drops the debounced lookup for the text just committed, which
+      // would otherwise reopen the dropdown over the next field.
+      onAutocomplete('', field);
     }
   };
 
