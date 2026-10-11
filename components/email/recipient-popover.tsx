@@ -37,8 +37,13 @@ export function RecipientPopover({ name, email, displayLabel, onViewContact, cla
     );
   });
 
-  const contactName = contact ? getContactDisplayName(contact) : name;
   const emails = contact?.emails ? Object.values(contact.emails) : [];
+  // A contact without a name falls back to its address; prefer the name from
+  // the message header in that case.
+  const contactDisplayName = contact ? getContactDisplayName(contact) : '';
+  const contactHasName = !!contactDisplayName &&
+    !emails.some((e) => e.address.toLowerCase() === contactDisplayName.toLowerCase());
+  const contactName = (contactHasName ? contactDisplayName : name) || contactDisplayName;
   const phones = contact?.phones ? Object.values(contact.phones) : [];
   const orgs = contact?.organizations ? Object.values(contact.organizations) : [];
 
@@ -160,7 +165,7 @@ export function RecipientPopover({ name, email, displayLabel, onViewContact, cla
                 <div className="font-semibold text-sm truncate">
                   {contactName || shownEmail}
                 </div>
-                {contactName && contactName !== email && (
+                {contactName && contactName.toLowerCase() !== email.toLowerCase() && (
                   <div className="text-xs text-muted-foreground truncate">
                     {shownEmail}
                   </div>
