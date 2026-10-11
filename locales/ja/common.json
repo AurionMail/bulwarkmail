@@ -3555,7 +3555,13 @@
     "suggestions_people": "連絡先",
     "suggestions_from": "{address} からのメールを検索",
     "suggestions_to": "{address} 宛のメールを検索",
-    "suggestions_remove_recent": "最近の検索から削除"
+    "suggestions_remove_recent": "最近の検索から削除",
+    "has_words": "含む",
+    "size": "サイズ",
+    "date_within": "日付",
+    "search_in": "検索対象",
+    "has_attachment_check": "添付ファイルあり",
+    "search": "検索"
   },
   "welcome": {
     "title": "メールボックスへようこそ",

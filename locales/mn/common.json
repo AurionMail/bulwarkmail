@@ -3597,7 +3597,13 @@
     "suggestions_people": "Хүмүүс",
     "suggestions_from": "{address}-аас ирсэн захидал хайх",
     "suggestions_to": "{address} руу илгээсэн захидал хайх",
-    "suggestions_remove_recent": "Сүүлийн хайлтуудаас хасах"
+    "suggestions_remove_recent": "Сүүлийн хайлтуудаас хасах",
+    "has_words": "Агуулсан үгс",
+    "size": "Хэмжээ",
+    "date_within": "Огноо",
+    "search_in": "Хайх газар",
+    "has_attachment_check": "Хавсралттай",
+    "search": "Хайх"
   },
   "welcome": {
     "title": "Таны шуудангийн хайрцагт тавтай морил",

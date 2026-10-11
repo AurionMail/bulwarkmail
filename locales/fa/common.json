@@ -3597,7 +3597,13 @@
     "suggestions_people": "افراد",
     "suggestions_from": "جستجوی ایمیل‌های از {address}",
     "suggestions_to": "جستجوی ایمیل‌های به {address}",
-    "suggestions_remove_recent": "حذف از جستجوهای اخیر"
+    "suggestions_remove_recent": "حذف از جستجوهای اخیر",
+    "has_words": "شامل کلمات",
+    "size": "اندازه",
+    "date_within": "تاریخ",
+    "search_in": "جستجو در",
+    "has_attachment_check": "دارای پیوست",
+    "search": "جستجو"
   },
   "welcome": {
     "title": "به صندوق پستی خود خوش آمدید",

@@ -3555,7 +3555,13 @@
     "suggestions_people": "Люди",
     "suggestions_from": "Искать письма от {address}",
     "suggestions_to": "Искать письма для {address}",
-    "suggestions_remove_recent": "Удалить из недавних запросов"
+    "suggestions_remove_recent": "Удалить из недавних запросов",
+    "has_words": "Содержит слова",
+    "size": "Размер",
+    "date_within": "Дата",
+    "search_in": "Искать в",
+    "has_attachment_check": "Есть вложения",
+    "search": "Найти"
   },
   "welcome": {
     "title": "Добро пожаловать в ваш почтовый ящик",

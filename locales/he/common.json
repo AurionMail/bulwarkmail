@@ -3479,7 +3479,13 @@
     "suggestions_people": "אנשים",
     "suggestions_from": "חיפוש הודעות מאת {address}",
     "suggestions_to": "חיפוש הודעות אל {address}",
-    "suggestions_remove_recent": "הסרה מהחיפושים האחרונים"
+    "suggestions_remove_recent": "הסרה מהחיפושים האחרונים",
+    "has_words": "מכיל את המילים",
+    "size": "גודל",
+    "date_within": "תאריך",
+    "search_in": "חיפוש ב",
+    "has_attachment_check": "יש קובץ מצורף",
+    "search": "חיפוש"
   },
   "welcome": {
     "title": "ברוך הבא לתיבת הדואר שלך",

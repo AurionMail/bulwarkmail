@@ -3555,7 +3555,13 @@
     "suggestions_people": "Personnes",
     "suggestions_from": "Rechercher les e-mails de {address}",
     "suggestions_to": "Rechercher les e-mails à {address}",
-    "suggestions_remove_recent": "Retirer des recherches récentes"
+    "suggestions_remove_recent": "Retirer des recherches récentes",
+    "has_words": "Contient les mots",
+    "size": "Taille",
+    "date_within": "Date",
+    "search_in": "Rechercher dans",
+    "has_attachment_check": "Contient une pièce jointe",
+    "search": "Rechercher"
   },
   "welcome": {
     "title": "Bienvenue dans votre boite mail",

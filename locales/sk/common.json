@@ -3597,7 +3597,13 @@
     "suggestions_people": "Ľudia",
     "suggestions_from": "Hľadať e-maily od {address}",
     "suggestions_to": "Hľadať e-maily pre {address}",
-    "suggestions_remove_recent": "Odstrániť z nedávnych vyhľadávaní"
+    "suggestions_remove_recent": "Odstrániť z nedávnych vyhľadávaní",
+    "has_words": "Obsahuje slová",
+    "size": "Veľkosť",
+    "date_within": "Dátum",
+    "search_in": "Hľadať v",
+    "has_attachment_check": "Má prílohu",
+    "search": "Hľadať"
   },
   "welcome": {
     "title": "Vitajte vo svojej poštovej schránke",

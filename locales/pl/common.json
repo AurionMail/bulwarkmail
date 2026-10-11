@@ -3555,7 +3555,13 @@
     "suggestions_people": "Osoby",
     "suggestions_from": "Szukaj wiadomości od {address}",
     "suggestions_to": "Szukaj wiadomości do {address}",
-    "suggestions_remove_recent": "Usuń z ostatnich wyszukiwań"
+    "suggestions_remove_recent": "Usuń z ostatnich wyszukiwań",
+    "has_words": "Zawiera słowa",
+    "size": "Rozmiar",
+    "date_within": "Data",
+    "search_in": "Szukaj w",
+    "has_attachment_check": "Z załącznikiem",
+    "search": "Szukaj"
   },
   "welcome": {
     "title": "Witaj w swojej skrzynce pocztowej",

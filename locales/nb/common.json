@@ -3597,7 +3597,13 @@
     "suggestions_people": "Personer",
     "suggestions_from": "Søk etter e-post fra {address}",
     "suggestions_to": "Søk etter e-post til {address}",
-    "suggestions_remove_recent": "Fjern fra nylige søk"
+    "suggestions_remove_recent": "Fjern fra nylige søk",
+    "has_words": "Inneholder ordene",
+    "size": "Størrelse",
+    "date_within": "Dato",
+    "search_in": "Søk i",
+    "has_attachment_check": "Har vedlegg",
+    "search": "Søk"
   },
   "welcome": {
     "title": "Velkommen til postkassen din",

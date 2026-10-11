@@ -3555,7 +3555,13 @@
     "suggestions_people": "Personen",
     "suggestions_from": "E-mails van {address} zoeken",
     "suggestions_to": "E-mails aan {address} zoeken",
-    "suggestions_remove_recent": "Verwijderen uit recente zoekopdrachten"
+    "suggestions_remove_recent": "Verwijderen uit recente zoekopdrachten",
+    "has_words": "Bevat de woorden",
+    "size": "Grootte",
+    "date_within": "Datum",
+    "search_in": "Zoeken in",
+    "has_attachment_check": "Met bijlage",
+    "search": "Zoeken"
   },
   "welcome": {
     "title": "Welkom bij uw mailbox",

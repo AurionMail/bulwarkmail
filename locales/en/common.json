@@ -3597,7 +3597,13 @@
     "suggestions_people": "People",
     "suggestions_from": "Search mail from {address}",
     "suggestions_to": "Search mail to {address}",
-    "suggestions_remove_recent": "Remove from recent searches"
+    "suggestions_remove_recent": "Remove from recent searches",
+    "has_words": "Has the words",
+    "size": "Size",
+    "date_within": "Date",
+    "search_in": "Search in",
+    "has_attachment_check": "Has attachment",
+    "search": "Search"
   },
   "welcome": {
     "title": "Welcome to your mailbox",

@@ -3555,7 +3555,13 @@
     "suggestions_people": "Lidé",
     "suggestions_from": "Hledat e-maily od {address}",
     "suggestions_to": "Hledat e-maily pro {address}",
-    "suggestions_remove_recent": "Odebrat z nedávných hledání"
+    "suggestions_remove_recent": "Odebrat z nedávných hledání",
+    "has_words": "Obsahuje slova",
+    "size": "Velikost",
+    "date_within": "Datum",
+    "search_in": "Hledat v",
+    "has_attachment_check": "Má přílohu",
+    "search": "Hledat"
   },
   "welcome": {
     "title": "Vítejte ve své poštovní schránce",

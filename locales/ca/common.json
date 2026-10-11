@@ -3597,7 +3597,13 @@
     "suggestions_people": "Persones",
     "suggestions_from": "Cerca correu de {address}",
     "suggestions_to": "Cerca correu per a {address}",
-    "suggestions_remove_recent": "Elimina de les cerques recents"
+    "suggestions_remove_recent": "Elimina de les cerques recents",
+    "has_words": "Conté les paraules",
+    "size": "Mida",
+    "date_within": "Data",
+    "search_in": "Cerca a",
+    "has_attachment_check": "Té fitxers adjunts",
+    "search": "Cerca"
   },
   "welcome": {
     "title": "Us donem la benvinguda a la bústia",

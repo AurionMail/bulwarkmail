@@ -3555,7 +3555,13 @@
     "suggestions_people": "Люди",
     "suggestions_from": "Шукати листи від {address}",
     "suggestions_to": "Шукати листи для {address}",
-    "suggestions_remove_recent": "Видалити з останніх пошуків"
+    "suggestions_remove_recent": "Видалити з останніх пошуків",
+    "has_words": "Містить слова",
+    "size": "Розмір",
+    "date_within": "Дата",
+    "search_in": "Шукати в",
+    "has_attachment_check": "Є вкладення",
+    "search": "Шукати"
   },
   "welcome": {
     "title": "Ласкаво просимо до вашої поштової скриньки",

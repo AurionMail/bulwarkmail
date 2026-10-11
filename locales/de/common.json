@@ -3555,7 +3555,13 @@
     "suggestions_people": "Personen",
     "suggestions_from": "E-Mails von {address} suchen",
     "suggestions_to": "E-Mails an {address} suchen",
-    "suggestions_remove_recent": "Aus den letzten Suchen entfernen"
+    "suggestions_remove_recent": "Aus den letzten Suchen entfernen",
+    "has_words": "Enthält die Wörter",
+    "size": "Größe",
+    "date_within": "Datum",
+    "search_in": "Suchen in",
+    "has_attachment_check": "Mit Anhang",
+    "search": "Suchen"
   },
   "welcome": {
     "title": "Willkommen in Ihrem Postfach",

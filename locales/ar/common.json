@@ -3597,7 +3597,13 @@
     "suggestions_people": "الأشخاص",
     "suggestions_from": "البحث في البريد من {address}",
     "suggestions_to": "البحث في البريد إلى {address}",
-    "suggestions_remove_recent": "إزالة من عمليات البحث الأخيرة"
+    "suggestions_remove_recent": "إزالة من عمليات البحث الأخيرة",
+    "has_words": "يحتوي على الكلمات",
+    "size": "الحجم",
+    "date_within": "التاريخ",
+    "search_in": "البحث في",
+    "has_attachment_check": "يحتوي على مرفق",
+    "search": "بحث"
   },
   "welcome": {
     "title": "مرحبًا بك في صندوق بريدك",

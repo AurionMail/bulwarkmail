@@ -3555,7 +3555,13 @@
     "suggestions_people": "사람",
     "suggestions_from": "{address}에서 온 메일 검색",
     "suggestions_to": "{address}에게 보낸 메일 검색",
-    "suggestions_remove_recent": "최근 검색에서 삭제"
+    "suggestions_remove_recent": "최근 검색에서 삭제",
+    "has_words": "포함하는 단어",
+    "size": "크기",
+    "date_within": "날짜",
+    "search_in": "검색 위치",
+    "has_attachment_check": "첨부파일 있음",
+    "search": "검색"
   },
   "welcome": {
     "title": "웹메일에 오신 것을 환영해요!",

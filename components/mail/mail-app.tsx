@@ -82,6 +82,7 @@ import { useSearchHistoryStore } from "@/stores/search-history-store";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
 import { NavigationRail } from "@/components/layout/navigation-rail";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
+import { MvSearchForm } from "@/components/search/mv-search-form";
 import { MvListToolbar } from "@/components/email/mv-list-toolbar";
 import { SidebarAppsModal } from "@/components/layout/sidebar-apps-modal";
 import { InlineAppView } from "@/components/layout/inline-app-view";
@@ -3831,6 +3832,39 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     </button>
   );
 
+  // The folder the advanced search runs in. Scopes the search only - it does
+  // not navigate the mail list. `rerun` re-queries straight away when a search
+  // is running; Mountain View's form waits for its Search button instead.
+  const renderSearchFolderSelect = (className: string, rerun: boolean) => (
+    <select
+      value={searchMailboxId}
+      onChange={(e) => {
+        setSearchMailboxId(e.target.value);
+        // Only re-query when a search is actually running;
+        // otherwise just remember the scope for the next one.
+        if (rerun && (searchQuery.trim() || !isFilterEmpty(searchFilters))) handleAdvancedSearch();
+      }}
+      className={className}
+    >
+      <option value="">{t("advanced_search.all_folders_except_spam_trash")}</option>
+      <option value={SEARCH_SCOPE_ALL_FOLDERS}>{t("advanced_search.all_folders")}</option>
+      {searchScopeFolders.own.map((mb) => (
+        <option key={mb.id} value={mb.id}>
+          {"\u00A0".repeat(mb.depth * 3)}{mb.name}
+        </option>
+      ))}
+      {searchScopeFolders.shared.map((group) => (
+        <optgroup key={group.ownerId} label={group.label}>
+          {group.mailboxes.map((mb) => (
+            <option key={mb.id} value={mb.id}>
+              {"\u00A0".repeat(mb.depth * 3)}{mb.name}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+
   // The composer, rendered in the reading pane - or, under Mountain View on
   // desktop, in a window docked over the list (see MvComposeWindow).
   const composerNode = (
@@ -4182,7 +4216,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               {mvShell ? (
                 <MvListToolbar
                   loadedCount={activeEmails.length}
-                  totalCount={mailboxes.find((mb) => mb.id === selectedMailbox)?.totalEmails}
+                  // A search's results are not the folder: count what came back.
+                  totalCount={searchQuery || !isFilterEmpty(searchFilters) ? undefined : mailboxes.find((mb) => mb.id === selectedMailbox)?.totalEmails}
                   onRefresh={handleManualRefresh}
                   isRefreshing={isManualRefreshing}
                   onMarkFolderRead={selectedMailbox ? () => handleMarkFolderRead(selectedMailbox) : undefined}
@@ -4284,6 +4319,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   search field there rather than from the list header. */}
               {isAdvancedSearchOpen && (
                 <FilterPanelHost anchor={mvShell ? filterAnchor : null}>
+                  {mvShell ? (
+                    <MvSearchForm
+                      filters={searchFilters}
+                      onChange={setSearchFilters}
+                      onSearch={() => { handleAdvancedSearch(); toggleAdvancedSearch(); }}
+                      onClear={() => { clearSearchFilters(); if (client) advancedSearch(client); }}
+                      folderSelect={!isUnifiedView ? renderSearchFolderSelect(
+                        "w-full h-8 bg-transparent border-0 border-b border-border px-0 text-sm text-foreground focus:outline-none focus:border-b-2 focus:border-primary",
+                        false,
+                      ) : undefined}
+                    />
+                  ) : (<>
                   {/* Quick toggle filters + clear */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -4384,33 +4431,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       {!isUnifiedView && (
                         <div>
                           <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.folder")}</label>
-                          <select
-                            value={searchMailboxId}
-                            onChange={(e) => {
-                              setSearchMailboxId(e.target.value);
-                              // Only re-query when a search is actually running;
-                              // otherwise just remember the scope for the next one.
-                              if (searchQuery.trim() || !isFilterEmpty(searchFilters)) handleAdvancedSearch();
-                            }}
-                            className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-                          >
-                            <option value="">{t("advanced_search.all_folders_except_spam_trash")}</option>
-                            <option value={SEARCH_SCOPE_ALL_FOLDERS}>{t("advanced_search.all_folders")}</option>
-                            {searchScopeFolders.own.map((mb) => (
-                              <option key={mb.id} value={mb.id}>
-                                {"\u00A0".repeat(mb.depth * 3)}{mb.name}
-                              </option>
-                            ))}
-                            {searchScopeFolders.shared.map((group) => (
-                              <optgroup key={group.ownerId} label={group.label}>
-                                {group.mailboxes.map((mb) => (
-                                  <option key={mb.id} value={mb.id}>
-                                    {"\u00A0".repeat(mb.depth * 3)}{mb.name}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
+                          {renderSearchFolderSelect(
+                            "w-full h-8 text-sm rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                            true,
+                          )}
                         </div>
                       )}
 
@@ -4464,6 +4488,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       </div>
                     </div>
                   )}
+                  </>)}
                 </FilterPanelHost>
               )}
             </div>

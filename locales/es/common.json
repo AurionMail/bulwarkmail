@@ -3555,7 +3555,13 @@
     "suggestions_people": "Personas",
     "suggestions_from": "Buscar correos de {address}",
     "suggestions_to": "Buscar correos para {address}",
-    "suggestions_remove_recent": "Quitar de las búsquedas recientes"
+    "suggestions_remove_recent": "Quitar de las búsquedas recientes",
+    "has_words": "Contiene las palabras",
+    "size": "Tamaño",
+    "date_within": "Fecha",
+    "search_in": "Buscar en",
+    "has_attachment_check": "Tiene archivos adjuntos",
+    "search": "Buscar"
   },
   "welcome": {
     "title": "Bienvenido a tu buzón",

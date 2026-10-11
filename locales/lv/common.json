@@ -3555,7 +3555,13 @@
     "suggestions_people": "Personas",
     "suggestions_from": "Meklēt e-pastus no {address}",
     "suggestions_to": "Meklēt e-pastus adresātam {address}",
-    "suggestions_remove_recent": "Noņemt no nesenajiem meklējumiem"
+    "suggestions_remove_recent": "Noņemt no nesenajiem meklējumiem",
+    "has_words": "Satur vārdus",
+    "size": "Izmērs",
+    "date_within": "Datums",
+    "search_in": "Meklēt",
+    "has_attachment_check": "Ar pielikumu",
+    "search": "Meklēt"
   },
   "welcome": {
     "title": "Laipni lūdzam jūsu pastkastē",

@@ -3597,7 +3597,13 @@
     "suggestions_people": "Kişiler",
     "suggestions_from": "{address} adresinden gelen e-postaları ara",
     "suggestions_to": "{address} adresine gönderilen e-postaları ara",
-    "suggestions_remove_recent": "Son aramalardan kaldır"
+    "suggestions_remove_recent": "Son aramalardan kaldır",
+    "has_words": "Şu kelimeleri içeren",
+    "size": "Boyut",
+    "date_within": "Tarih",
+    "search_in": "Şurada ara",
+    "has_attachment_check": "Eki var",
+    "search": "Ara"
   },
   "welcome": {
     "title": "Posta kutunuza hoş geldiniz",

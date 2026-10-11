@@ -3555,7 +3555,13 @@
     "suggestions_people": "联系人",
     "suggestions_from": "搜索来自 {address} 的邮件",
     "suggestions_to": "搜索发给 {address} 的邮件",
-    "suggestions_remove_recent": "从最近搜索中移除"
+    "suggestions_remove_recent": "从最近搜索中移除",
+    "has_words": "包含字词",
+    "size": "大小",
+    "date_within": "日期",
+    "search_in": "搜索范围",
+    "has_attachment_check": "包含附件",
+    "search": "搜索"
   },
   "welcome": {
     "title": "欢迎使用邮箱",

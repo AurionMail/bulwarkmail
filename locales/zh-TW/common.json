@@ -3597,7 +3597,13 @@
     "suggestions_people": "聯絡人",
     "suggestions_from": "搜尋來自 {address} 的郵件",
     "suggestions_to": "搜尋寄給 {address} 的郵件",
-    "suggestions_remove_recent": "從最近搜尋中移除"
+    "suggestions_remove_recent": "從最近搜尋中移除",
+    "has_words": "包含字詞",
+    "size": "大小",
+    "date_within": "日期",
+    "search_in": "搜尋範圍",
+    "has_attachment_check": "包含附件",
+    "search": "搜尋"
   },
   "welcome": {
     "title": "歡迎使用您的信件匣",

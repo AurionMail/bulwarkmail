@@ -3555,7 +3555,13 @@
     "suggestions_people": "Pessoas",
     "suggestions_from": "Pesquisar e-mails de {address}",
     "suggestions_to": "Pesquisar e-mails para {address}",
-    "suggestions_remove_recent": "Remover das pesquisas recentes"
+    "suggestions_remove_recent": "Remover das pesquisas recentes",
+    "has_words": "Contém as palavras",
+    "size": "Tamanho",
+    "date_within": "Data",
+    "search_in": "Pesquisar em",
+    "has_attachment_check": "Com anexo",
+    "search": "Pesquisar"
   },
   "welcome": {
     "title": "Bem-vindo à sua caixa de entrada",

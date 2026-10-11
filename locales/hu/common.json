@@ -3597,7 +3597,13 @@
     "suggestions_people": "Személyek",
     "suggestions_from": "Levelek keresése tőle: {address}",
     "suggestions_to": "Levelek keresése neki: {address}",
-    "suggestions_remove_recent": "Eltávolítás a legutóbbi keresésekből"
+    "suggestions_remove_recent": "Eltávolítás a legutóbbi keresésekből",
+    "has_words": "Tartalmazza a szavakat",
+    "size": "Méret",
+    "date_within": "Dátum",
+    "search_in": "Keresés itt",
+    "has_attachment_check": "Van melléklete",
+    "search": "Keresés"
   },
   "welcome": {
     "title": "Üdvözlünk a postafiókodban",

@@ -3597,7 +3597,13 @@
     "suggestions_people": "Persoane",
     "suggestions_from": "Caută e-mailuri de la {address}",
     "suggestions_to": "Caută e-mailuri către {address}",
-    "suggestions_remove_recent": "Elimină din căutările recente"
+    "suggestions_remove_recent": "Elimină din căutările recente",
+    "has_words": "Conține cuvintele",
+    "size": "Dimensiune",
+    "date_within": "Dată",
+    "search_in": "Caută în",
+    "has_attachment_check": "Are atașament",
+    "search": "Caută"
   },
   "welcome": {
     "title": "Bine ați venit în căsuța dvs. poștală",
