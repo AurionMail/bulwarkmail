@@ -299,3 +299,52 @@ describe('JMAPClient raw sends refused recipients (#1123)', () => {
     expect(submit[2][1].ids).toEqual(['#raw-submit']);
   });
 });
+
+describe('JMAPClient raw sends envelope recipients (#1206)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function rawClient(): JMAPClient {
+    const client = createClient();
+    vi.spyOn(client, 'uploadBlob').mockResolvedValue({ blobId: 'blob-1', size: 10, type: 'message/rfc822' } as never);
+    vi.spyOn(client, 'getIdentities').mockResolvedValue(IDENTITIES as never);
+    return client;
+  }
+
+  function submissionCreate(requests: MethodCall[][]): Record<string, unknown> {
+    const call = requests.flat().find(([name]) => name === 'EmailSubmission/set')!;
+    return Object.values(call[1].create as Record<string, Record<string, unknown>>)[0];
+  }
+
+  it('sendRawEmail hands Bcc recipients to the server in the envelope', async () => {
+    const { requests } = mockServer();
+
+    await rawClient().sendRawEmail(new Blob(['raw']), 'identity-1', 'mb-sent', 'mb-drafts', undefined,
+      ['to@example.net', 'Hidden <bcc@example.net>']);
+
+    expect(submissionCreate(requests).envelope).toEqual({
+      mailFrom: { email: 'user@example.com' },
+      rcptTo: [{ email: 'to@example.net' }, { email: 'bcc@example.net' }],
+    });
+  });
+
+  it('submitRawEmail hands Bcc recipients to the server in the envelope', async () => {
+    const { requests } = mockServer();
+
+    await rawClient().submitRawEmail(new Blob(['raw']), 'identity-1', undefined, ['to@example.net', 'bcc@example.net']);
+
+    expect(submissionCreate(requests).envelope).toEqual({
+      mailFrom: { email: 'user@example.com' },
+      rcptTo: [{ email: 'to@example.net' }, { email: 'bcc@example.net' }],
+    });
+  });
+
+  it('leaves the envelope to the server without recipients or parameters', async () => {
+    const { requests } = mockServer();
+
+    await rawClient().sendRawEmail(new Blob(['raw']), 'identity-1', 'mb-sent', 'mb-drafts');
+
+    expect(submissionCreate(requests)).not.toHaveProperty('envelope');
+  });
+});

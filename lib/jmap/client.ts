@@ -965,8 +965,12 @@ export function submissionEnvelopeParameters(options: SubmissionSendOptions | un
 
 function createDelayedSubmissionEnvelope(fromEmail: string, holdForSeconds?: number, recipients?: Array<string | EmailAddress>, options?: SubmissionSendOptions): Record<string, unknown> | undefined {
   const parameters = submissionEnvelopeParameters(options, holdForSeconds);
-  if (Object.keys(parameters.mailFrom).length === 0 && Object.keys(parameters.rcptTo).length === 0) return undefined;
-  const rcptTo = normalizeEnvelopeRecipients(recipients).map((r) =>
+  // Raw sends (S/MIME) leave Bcc out of the message, so the server cannot
+  // derive those recipients from the headers. Explicit recipients always
+  // need an envelope, even without SMTP parameters (#1206).
+  const recipientList = normalizeEnvelopeRecipients(recipients);
+  if (Object.keys(parameters.mailFrom).length === 0 && Object.keys(parameters.rcptTo).length === 0 && recipientList.length === 0) return undefined;
+  const rcptTo = recipientList.map((r) =>
     Object.keys(parameters.rcptTo).length > 0 ? { ...r, parameters: parameters.rcptTo } : r,
   );
   return {
