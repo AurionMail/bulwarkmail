@@ -272,7 +272,7 @@ export function FilePickerDialog({ client, onClose, onPick }: FilePickerDialogPr
                   trail.length === 0 ? "font-medium text-foreground" : "text-muted-foreground",
                 )}
               >
-                {t("breadcrumb_root")}
+                {t("my_files")}
               </button>
               {trail.map((crumb, i) => (
                 <span key={crumb.id} className="flex items-center gap-1 min-w-0">
