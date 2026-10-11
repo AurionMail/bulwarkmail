@@ -225,6 +225,16 @@ describe('JMAPClient.sendEmail refused recipients (#1123)', () => {
     await expect(send(createClient())).rejects.toThrow('Sending is disabled.');
   });
 
+  it('removes the unsent copy from Drafts when the submission is refused', async () => {
+    // The copy was created in Drafts next to the user's own draft. Left
+    // there, every failed attempt added a duplicate that outlived the send.
+    const { destroyed } = mockServer({ refuseSubmission: true });
+
+    await expect(send(createClient(), { draftId: 'draft-1' })).rejects.toThrow('Sending is disabled.');
+
+    expect(destroyed).toEqual(['email-9']);
+  });
+
   it('treats a server that cannot answer the read-back as a plain success', async () => {
     mockServer({ noSubmissionGet: true });
 
@@ -285,6 +295,14 @@ describe('JMAPClient raw sends refused recipients (#1123)', () => {
 
     await expect(rawClient().sendRawEmail(new Blob(['raw']), 'identity-1', 'mb-sent', 'mb-drafts'))
       .rejects.toBeInstanceOf(RecipientsRejectedError);
+    expect(destroyed).toEqual(['email-9']);
+  });
+
+  it('sendRawEmail removes the imported copy when the submission is refused', async () => {
+    const { destroyed } = mockServer({ refuseSubmission: true });
+
+    await expect(rawClient().sendRawEmail(new Blob(['raw']), 'identity-1', 'mb-sent', 'mb-drafts'))
+      .rejects.toThrow('Sending is disabled.');
     expect(destroyed).toEqual(['email-9']);
   });
 

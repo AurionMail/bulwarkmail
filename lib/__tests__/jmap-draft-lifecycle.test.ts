@@ -208,8 +208,9 @@ describe('draft replace lifecycle (#849)', () => {
       'draft-old-1',
     )).rejects.toThrow();
 
+    // Only the unsent copy may go; the user's draft stays for a retry.
     for (const set of emailSetCalls(captured)) {
-      expect(set.destroy).toBeUndefined();
+      expect(set.destroy ?? []).not.toContain('draft-old-1');
     }
   });
 
@@ -242,7 +243,7 @@ describe('compose failure recovery', () => {
       // Only the missing submission is unconfirmed; a method error is a plain failure.
       options.missingSubmission ? SendUnconfirmedError : Error,
     );
-    expect(emailSetCalls(captured).some(call => call.destroy)).toBe(false);
+    expect(emailSetCalls(captured).some(call => (call.destroy as string[] | undefined)?.includes('old-draft'))).toBe(false);
   });
   it('accepts empty notCreated maps as success', async () => {
     const client = createClient(); mockFlow({ emptyErrors: true });

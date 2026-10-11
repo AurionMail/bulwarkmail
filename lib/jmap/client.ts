@@ -4179,8 +4179,23 @@ export class JMAPClient implements IJMAPClient {
     const statusReadBack = takeDeliveryStatus(response);
     response = statusReadBack.response;
 
+    // The outgoing copy is created in Drafts, next to the user's own draft.
+    // When the submission fails it never moves to Sent, so remove it before
+    // reporting the failure; the user's draft is kept for the retry.
+    const unsentCopyId = response.methodResponses
+      ?.find(([name]) => name === 'Email/set')?.[1]?.created?.[emailId]?.id as string | undefined;
+    const dropUnsentCopy = async () => {
+      if (!unsentCopyId) return;
+      try {
+        await this.request([["Email/set", { accountId: targetAccountId, destroy: [unsentCopyId] }, "0"]]);
+      } catch (err) {
+        console.error('[sendEmail] removing the unsent copy from Drafts failed:', err);
+      }
+    };
+
     const { failure, filing } = sendMethodErrors(response.methodResponses);
     if (failure) {
+      await dropUnsentCopy();
       console.error('[sendEmail] JMAP method error:', failure);
       const propsHint = failure.properties?.length ? ` (properties: ${failure.properties.join(', ')})` : '';
       throw new Error(`${failure.description || `Failed to send email: ${failure.type}`}${propsHint}`);
@@ -4208,6 +4223,7 @@ export class JMAPClient implements IJMAPClient {
             `[sendEmail] ${methodName} notCreated:`,
             JSON.stringify(errors, null, 2),
           );
+          if (methodName === 'EmailSubmission/set') await dropUnsentCopy();
           this.throwIfHoldTooLong(firstError);
           const propsHint = firstError?.properties?.length
             ? ` (properties: ${firstError.properties.join(', ')})`
@@ -9234,14 +9250,29 @@ export class JMAPClient implements IJMAPClient {
     let emailSubmissionId: string | undefined;
     let serverSendAt: string | undefined;
 
+    // A failed submission leaves the imported copy behind; drop it so retries
+    // do not pile up copies next to the draft (see sendEmail).
+    const importedId = (response.methodResponses ?? [])
+      .find(([name]) => name === 'Email/import')?.[1]?.created?.['raw-import']?.id as string | undefined;
+    const dropUnsentCopy = async () => {
+      if (!importedId) return;
+      try {
+        await this.request([['Email/set', { accountId: this.accountId, destroy: [importedId] }, '0']]);
+      } catch (err) {
+        console.error('[sendRawEmail] removing the unsent copy failed:', err);
+      }
+    };
+
     // Check for errors
     const { failure } = sendMethodErrors(response.methodResponses);
     if (failure) {
+      await dropUnsentCopy();
       throw new Error(failure.description || `Failed: ${failure.type}`);
     }
     for (const [methodName, result] of response.methodResponses ?? []) {
       const r = result as { notCreated?: Record<string, { description?: string; type?: string }> };
       if (r.notCreated) {
+        if (methodName === 'EmailSubmission/set') await dropUnsentCopy();
         const firstErr = Object.values(r.notCreated)[0];
         this.throwIfHoldTooLong(firstErr);
         throw new Error(firstErr?.description || firstErr?.type || 'Failed to send raw email');
