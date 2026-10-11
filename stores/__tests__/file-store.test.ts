@@ -504,3 +504,45 @@ describe('file-store folder tree and moves', () => {
     expect(await useFileStore.getState().revealNode('gone')).toBeNull();
   });
 });
+
+describe('file-store upload result', () => {
+  beforeEach(() => {
+    useFileStore.setState({
+      client: null,
+      currentParentId: null,
+      currentPath: '/',
+      pathStack: [{ id: null, name: '' }],
+      resources: [],
+      uploadProgress: null,
+      uploadAbortController: null,
+    });
+  });
+
+  it('reports every file when the upload runs to the end', async () => {
+    const client = makeMockClient();
+    useFileStore.getState().initClient(client);
+    const result = await useFileStore.getState().uploadFiles([
+      new File(['a'], 'a.txt'), new File(['b'], 'b.txt'),
+    ]);
+    expect(result).toEqual({ uploaded: 2, canceled: false });
+  });
+
+  it('reports a cancel and only the files that made it before it', async () => {
+    const client = makeMockClient();
+    const upload = client.uploadBlob.bind(client);
+    let calls = 0;
+    client.uploadBlob = (async (file: File) => {
+      calls++;
+      // Cancel while the second file is on its way up.
+      if (calls === 2) useFileStore.getState().cancelUpload();
+      return upload(file);
+    }) as typeof client.uploadBlob;
+    useFileStore.getState().initClient(client);
+
+    const result = await useFileStore.getState().uploadFiles([
+      new File(['a'], 'a.txt'), new File(['b'], 'b.txt'), new File(['c'], 'c.txt'),
+    ]);
+    expect(result).toEqual({ uploaded: 1, canceled: true });
+    expect(client._nodes().map(n => n.name)).toEqual(['a.txt']);
+  });
+});

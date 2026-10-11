@@ -40,6 +40,12 @@ interface ClipboardState {
   sourcePath: string;
 }
 
+/** How a batch upload ended: files that made it, and whether the user cancelled. */
+export interface UploadResult {
+  uploaded: number;
+  canceled: boolean;
+}
+
 interface UndoAction {
   type: 'rename' | 'move';
   entries: { id: string; from: Partial<Pick<FileNode, 'name' | 'parentId'>>; to: Partial<Pick<FileNode, 'name' | 'parentId'>> }[];
@@ -93,8 +99,8 @@ interface FileState {
   refresh: () => Promise<void>;
   createDirectory: (name: string) => Promise<void>;
   uploadFile: (file: File) => Promise<void>;
-  uploadFiles: (files: File[]) => Promise<void>;
-  uploadFolder: (files: File[]) => Promise<void>;
+  uploadFiles: (files: File[]) => Promise<UploadResult>;
+  uploadFolder: (files: File[]) => Promise<UploadResult>;
   cancelUpload: () => void;
   deleteResource: (name: string) => Promise<void>;
   deleteResources: (names: string[]) => Promise<void>;
@@ -644,7 +650,8 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   uploadFiles: async (files: File[]) => {
     const { client, currentParentId, resources } = get();
-    if (!client) return;
+    if (!client) return { uploaded: 0, canceled: false };
+    let uploaded = 0;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -669,6 +676,7 @@ export const useFileStore = create<FileState>((set, get) => ({
         if (abortController.signal.aborted) break;
         set({ uploadProgress: { name: file.name, loaded: file.size, total: file.size, current: i + 1, totalFiles } });
         await client.createFileNode(uniqueName, blobId, type || file.type || 'application/octet-stream', file.size, currentParentId);
+        uploaded++;
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') break;
         set({ uploadProgress: null, uploadAbortController: null });
@@ -677,6 +685,7 @@ export const useFileStore = create<FileState>((set, get) => ({
     }
     set({ uploadProgress: null, uploadAbortController: null });
     await get().refresh();
+    return { uploaded, canceled: abortController.signal.aborted };
   },
 
   cancelUpload: () => {
@@ -689,7 +698,8 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   uploadFolder: async (files: File[]) => {
     const { client, currentParentId } = get();
-    if (!client || files.length === 0) return;
+    if (!client || files.length === 0) return { uploaded: 0, canceled: false };
+    let uploaded = 0;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -739,10 +749,17 @@ export const useFileStore = create<FileState>((set, get) => ({
       set({ uploadProgress: { name: relativePath, loaded: 0, total: file.size, current: i + 1, totalFiles } });
 
       try {
-        const { blobId, type } = await client.uploadBlob(file);
+        const idx = i;
+        const { blobId, type } = await client.uploadBlob(file, {
+          signal: abortController.signal,
+          onProgress: (loaded, total) => {
+            set({ uploadProgress: { name: relativePath, loaded, total, current: idx + 1, totalFiles } });
+          },
+        });
         if (abortController.signal.aborted) break;
         set({ uploadProgress: { name: relativePath, loaded: file.size, total: file.size, current: i + 1, totalFiles } });
         await client.createFileNode(file.name, blobId, type || file.type || 'application/octet-stream', file.size, parentId);
+        uploaded++;
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') break;
         set({ uploadProgress: null, uploadAbortController: null });
@@ -751,6 +768,7 @@ export const useFileStore = create<FileState>((set, get) => ({
     }
     set({ uploadProgress: null, uploadAbortController: null });
     await get().refresh();
+    return { uploaded, canceled: abortController.signal.aborted };
   },
 
   deleteResource: async (name: string) => {

@@ -7,7 +7,7 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, resourceServerRef } from "@/stores/file-store";
+import { useFileStore, resourceServerRef, type UploadResult } from "@/stores/file-store";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
 import { NavigationRail } from "@/components/layout/navigation-rail";
@@ -301,6 +301,14 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const maxSizeUpload = client?.getMaxSizeUpload() || 0;
 
+  const showUploadResult = useCallback(({ uploaded, canceled }: UploadResult) => {
+    if (canceled) {
+      toast.info(t("upload_canceled"), uploaded > 0 ? t("upload_canceled_partial", { count: uploaded }) : undefined);
+    } else if (uploaded > 0) {
+      toast.success(t("upload_success", { count: uploaded }));
+    }
+  }, [t]);
+
   const handleUploadFiles = useCallback(async (files: File[]) => {
     if (maxSizeUpload > 0) {
       const oversized = files.filter(f => f.size > maxSizeUpload);
@@ -311,13 +319,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
     if (files.length === 0) return;
     try {
-      await uploadFiles(files);
-      toast.success(t("upload_success", { count: files.length }));
+      showUploadResult(await uploadFiles(files));
     } catch (err) {
       console.error("Failed to upload files:", err);
       toast.error(t("upload_error"));
     }
-  }, [uploadFiles, t, maxSizeUpload]);
+  }, [uploadFiles, t, maxSizeUpload, showUploadResult]);
 
   const handleUploadFolder = useCallback(async (files: File[]) => {
     if (maxSizeUpload > 0) {
@@ -329,13 +336,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
     if (files.length === 0) return;
     try {
-      await uploadFolder(files);
-      toast.success(t("upload_success", { count: files.length }));
+      showUploadResult(await uploadFolder(files));
     } catch (err) {
       console.error("Failed to upload folder:", err);
       toast.error(t("upload_error"));
     }
-  }, [uploadFolder, t, maxSizeUpload]);
+  }, [uploadFolder, t, maxSizeUpload, showUploadResult]);
 
   const handleDelete = useCallback(async (name: string) => {
     const confirmed = await confirmDialog({
