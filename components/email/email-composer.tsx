@@ -1,11 +1,35 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, useId } from "react";
+import { useMvComposeWindow } from "@/components/email/mv-compose-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Paperclip, Send, Save, Check, Loader2, AlertCircle, FileText, BookmarkPlus, CalendarClock, ChevronDown, Search, Users, SlidersHorizontal, LayoutTemplate, Upload, FolderOpen, Type } from "@/components/icons";
+import {
+  X,
+  Paperclip,
+  Send,
+  Save,
+  Check,
+  Loader2,
+  AlertCircle,
+  FileText,
+  BookmarkPlus,
+  CalendarClock,
+  ChevronDown,
+  Search,
+  Users,
+  SlidersHorizontal,
+  LayoutTemplate,
+  Upload,
+  FolderOpen,
+  Type,
+  Minus,
+  Maximize2,
+  Minimize2,
+  Trash2,
+} from "@/components/icons";
 import { ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
 import { cn, formatFileSize, formatDateTime, generateUUID } from "@/lib/utils";
 import { schedulePresets } from "@/lib/schedule-presets";
@@ -702,6 +726,11 @@ export function EmailComposer({
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   // The formatting toolbar is folded away on a phone until asked for.
   const [showFormattingOnMobile, setShowFormattingOnMobile] = useState(false);
+  // Inside Mountain View's compose window the composer draws Gmail's chrome:
+  // the window's title bar, and a bottom bar led by Send with the formatting
+  // bar folded away behind "Aa" until asked for.
+  const mvWindow = useMvComposeWindow();
+  const [mvShowFormatting, setMvShowFormatting] = useState(false);
   // "close" (X, Escape): save or discard. "discard" (the Discard button): the
   // user already chose, so only confirm it.
   const [closeDialogKind, setCloseDialogKind] = useState<'close' | 'discard'>('close');
@@ -2981,7 +3010,52 @@ export function EmailComposer({
           </div>
         </div>
       )}
-      {/* Header - mobile: clean bar with close/send, desktop: title bar */}
+      {/* Header - mobile: clean bar with close/send, desktop: title bar.
+          In Mountain View's window it is the window's title bar instead. */}
+      {mvWindow ? (
+        <div
+          className={cn(
+            "flex items-center gap-1 h-10 ps-4 pe-1.5 shrink-0 bg-[var(--mv-search-bg)]",
+            mvWindow.state === "minimized" && "cursor-pointer",
+          )}
+          data-mv-compose-titlebar=""
+          onClick={mvWindow.state === "minimized" ? () => mvWindow.setState("normal") : undefined}
+        >
+          <h3 className="flex-1 min-w-0 truncate text-sm font-medium" data-testid="composer-save-status" data-status={saveStatus}>
+            {mode === 'reply' || mode === 'replyAll' || mode === 'forward'
+              ? (subject || t('new_message'))
+              : t('new_message')}
+          </h3>
+          {saveStatus === 'saving' && <Save className="w-3.5 h-3.5 animate-pulse text-muted-foreground flex-shrink-0" aria-label={t('saving')} />}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); mvWindow.setState(mvWindow.state === "minimized" ? "normal" : "minimized"); }}
+            className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+            aria-label={mvWindow.state === "minimized" ? t("restore") : t("minimize")}
+            title={mvWindow.state === "minimized" ? t("restore") : t("minimize")}
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); mvWindow.setState(mvWindow.state === "maximized" ? "normal" : "maximized"); }}
+            className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+            aria-label={mvWindow.state === "maximized" ? t("restore") : t("maximize")}
+            title={mvWindow.state === "maximized" ? t("restore") : t("maximize")}
+          >
+            {mvWindow.state === "maximized" ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleClose(); }}
+            className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+            aria-label={tCommon('close')}
+            title={tCommon('close')}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => handleClose()} className="h-9 w-9 md:h-8 md:w-8" aria-label={tCommon('close')} title={tCommon('close')}>
@@ -3065,6 +3139,7 @@ export function EmailComposer({
           </Button>
         )}
       </div>
+      )}
 
       {/* Fields + body. While pinFields holds, the fields sit outside the
           body's scroll container so From/To/Cc/Bcc/Subject stay reachable
@@ -3394,6 +3469,7 @@ export function EmailComposer({
               placeholder={t('body_placeholder')}
               hasError={validationErrors.body}
               collapseToolbarOnMobile={!showFormattingOnMobile}
+              toolbarPlacement={mvWindow ? (mvShowFormatting ? 'bottom' : 'hidden') : 'top'}
               onEditorReady={(ed) => {
                 editorRef.current = ed;
                 if (!replyFocusedRef.current && (mode === 'reply' || mode === 'replyAll')) {
@@ -3522,8 +3598,16 @@ export function EmailComposer({
           </div>
         )}
 
-        {/* Bottom toolbar */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-t bg-background shrink-0 pb-[calc(0.625rem+env(safe-area-inset-bottom)/2)]">
+        {/* Bottom toolbar. In Mountain View's window both halves fold into
+            one row (see [data-mv-compose-footer] in globals.css): Send first,
+            the tools after it, and Discard as a bin at the far end. */}
+        <div
+          data-mv-compose-footer={mvWindow ? "" : undefined}
+          className={cn(
+            "flex items-center justify-between px-4 py-2.5 bg-background shrink-0 pb-[calc(0.625rem+env(safe-area-inset-bottom)/2)]",
+            mvWindow ? "gap-1" : "border-t",
+          )}
+        >
           {/* Left side actions */}
           <div className="flex items-center gap-1">
             <input
@@ -3568,11 +3652,16 @@ export function EmailComposer({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowFormattingOnMobile((v) => !v)}
-                className={cn("h-9 w-9 md:hidden", showFormattingOnMobile && "bg-accent text-accent-foreground")}
+                onClick={() => mvWindow ? setMvShowFormatting((v) => !v) : setShowFormattingOnMobile((v) => !v)}
+                className={cn(
+                  "h-9 w-9",
+                  !mvWindow && "md:hidden",
+                  (mvWindow ? mvShowFormatting : showFormattingOnMobile) && "bg-accent text-accent-foreground",
+                )}
+                data-mv-formatting-toggle={mvWindow ? "" : undefined}
                 title={t('formatting')}
                 aria-label={t('formatting')}
-                aria-pressed={showFormattingOnMobile}
+                aria-pressed={mvWindow ? mvShowFormatting : showFormattingOnMobile}
               >
                 <Type className="w-4 h-4" />
               </Button>
@@ -3653,12 +3742,18 @@ export function EmailComposer({
             <button
               type="button"
               onClick={handleDiscardClick}
-              className="text-sm text-muted-foreground hover:text-red-500 transition-colors px-2 py-1"
+              data-mv-discard={mvWindow ? "" : undefined}
+              className={cn(
+                "text-sm text-muted-foreground transition-colors",
+                mvWindow ? "grid h-9 w-9 place-items-center rounded-full hover:bg-muted hover:text-foreground" : "hover:text-red-500 px-2 py-1",
+              )}
+              title={mvWindow ? t('discard') : undefined}
+              aria-label={mvWindow ? t('discard') : undefined}
             >
-              {t('discard')}
+              {mvWindow ? <Trash2 className="w-5 h-5" /> : t('discard')}
             </button>
             {composerClient?.hasDelayedSend() ? (
-              <div ref={sendMenuRef} className="relative hidden md:inline-flex">
+              <div ref={sendMenuRef} data-mv-send={mvWindow ? "" : undefined} className="relative hidden md:inline-flex">
                 <Button
                   onClick={() => handleSend()}
                   disabled={!canSend || isSending}
@@ -3703,6 +3798,7 @@ export function EmailComposer({
                 disabled={!canSend || isSending}
                 title={getSendTooltip()}
                 data-testid="composer-send"
+                data-mv-send={mvWindow ? "" : undefined}
                 className="hidden md:inline-flex"
               >
                 <Send className="w-4 h-4 me-2" />

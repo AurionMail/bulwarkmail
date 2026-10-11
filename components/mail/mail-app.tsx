@@ -4004,6 +4004,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           } : undefined}
           className={cn(
             "flex-shrink-0 h-full z-50",
+            // The z-index is for the phone drawer. On a desktop under Mountain
+            // View it only has to lift the hover peek over the list: at 40 the
+            // compose window, drawn later at the same level, stays on top.
+            mvShell && "lg:z-40",
             !isResizing && "transition-[width] duration-300",
             isEmbedded
               ? (isMobile || isTablet

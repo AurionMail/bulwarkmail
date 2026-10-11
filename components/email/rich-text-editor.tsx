@@ -94,6 +94,12 @@ interface RichTextEditorProps {
    * with the address fields, left little room for the text above the keyboard.
    */
   collapseToolbarOnMobile?: boolean;
+  /**
+   * Where the formatting toolbar sits: above the text (the default), pinned
+   * to the bottom of the editor as Gmail's compose window has it, or folded
+   * away entirely.
+   */
+  toolbarPlacement?: 'top' | 'bottom' | 'hidden';
 }
 
 function ToolbarButton({
@@ -187,6 +193,7 @@ export function RichTextEditor({
   onEditorReady,
   mentionCandidates,
   collapseToolbarOnMobile = false,
+  toolbarPlacement = 'top',
 }: RichTextEditorProps) {
   const rtlEditingSupport = useSettingsStore((st) => st.rtlEditingSupport);
   const tComposer = useTranslations("email_composer");
@@ -441,7 +448,11 @@ export function RichTextEditor({
       <div
         data-testid="rich-text-toolbar"
         className={cn(
-          "sticky top-0 z-20 flex flex-wrap items-center gap-0.5 px-3 py-1.5 border-b border-border/50 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))]",
+          "sticky z-20 flex flex-wrap items-center gap-0.5 px-3 py-1.5 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))]",
+          toolbarPlacement === 'bottom'
+            ? "order-last bottom-0 mx-2 mb-1 rounded-lg border border-border/60 shadow-sm"
+            : "top-0 border-b border-border/50",
+          toolbarPlacement === 'hidden' && "hidden",
           collapseToolbarOnMobile && "max-md:hidden"
         )}
       >

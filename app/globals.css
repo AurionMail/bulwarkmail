@@ -1123,6 +1123,60 @@ optgroup {
   height: 20px;
 }
 
+/* The compose window's bottom bar: its two halves fold into one row, Send
+   leads as a round split button without its icon, the tools follow as bare
+   icons, and the bin for Discard sits at the far end. */
+[data-mv-compose-footer] > * {
+  display: contents;
+}
+[data-mv-compose-footer] > * > * {
+  order: 1;
+}
+[data-mv-compose-footer] [data-mv-send] {
+  order: 0;
+  margin-inline-end: 0.5rem;
+}
+[data-mv-compose-footer] [data-mv-discard] {
+  order: 2;
+  margin-inline-start: auto;
+}
+[data-mv-compose-footer] [data-mv-send] .tabler-icon-send {
+  display: none;
+}
+[data-mv-compose-footer] button[data-mv-send],
+[data-mv-compose-footer] [data-mv-send] > button:first-child {
+  height: 36px;
+  padding-inline: 1.25rem 1rem;
+  border-radius: 18px;
+}
+[data-mv-compose-footer] [data-mv-send] > button:first-child:not(:only-child) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+[data-mv-compose-footer] [data-mv-send] > button:nth-child(2) {
+  height: 36px;
+  border-radius: 0 18px 18px 0;
+}
+[dir="rtl"] [data-mv-compose-footer] [data-mv-send] > button:nth-child(2) {
+  border-radius: 18px 0 0 18px;
+}
+[data-mv-compose-footer] button:not([data-mv-send] *):not([data-mv-send]) > span.text-sm,
+[data-mv-compose-footer] button[data-testid$="-menu"] > .tabler-icon-chevron-down {
+  display: none;
+}
+[data-mv-compose-footer] button[data-testid$="-menu"] {
+  position: relative;
+  width: 36px;
+  padding-inline: 0;
+  justify-content: center;
+  border-radius: 9999px;
+}
+[data-mv-compose-footer] button[data-testid$="-menu"] > span:not(.text-sm) {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+}
+
 /* The account popover: a wide card with a very round corner, rather
    than the narrow menu the rail and the sidebar switchers drop. */
 [data-interface-layout="mountain-view"] [data-mv-account-popover] {
