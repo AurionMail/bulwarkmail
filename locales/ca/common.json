@@ -2258,6 +2258,7 @@
       "forward_placeholder": "correu@exemple.com",
       "forward_keep_copy": "Conserva'n una còpia",
       "forward_limit": "Límit de reenviaments per missatge en aquest servidor: {count}. Els reenviaments addicionals s'ometen.",
+      "forward_unavailable": "Aquest servidor no permet reenviar. Les accions de reenviament de les regles de filtre no tenen cap efecte.",
       "reject_message": "Missatge de rebuig",
       "reject_placeholder": "El vostre correu ha estat rebutjat",
       "label_name": "Nom de l'etiqueta",

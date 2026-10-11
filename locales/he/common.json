@@ -2171,6 +2171,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "שמור עותק",
       "forward_limit": "מגבלת העברות לכל הודעה בשרת זה: {count}. העברות נוספות מדולגות.",
+      "forward_unavailable": "שרת זה אינו מאפשר העברה. פעולות העברה בכללי סינון לא ישפיעו.",
       "reject_message": "הודעת דחייה",
       "reject_placeholder": "האימייל שלך נדחה",
       "label_name": "שם התווית",

@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "保留副本",
       "forward_limit": "此服务器每封邮件的转发上限：{count}。多余的转发将被跳过。",
+      "forward_unavailable": "此服务器不允许转发。过滤规则中的转发操作不会生效。",
       "reject_message": "拒绝留言",
       "reject_placeholder": "您的邮件已被拒绝",
       "label_name": "标签名称",

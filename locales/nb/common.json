@@ -2258,6 +2258,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "Behold en kopi",
       "forward_limit": "Grense for videresendinger per melding på denne serveren: {count}. Flere videresendinger hoppes over.",
+      "forward_unavailable": "Denne serveren tillater ikke videresending. Videresendingshandlinger i filterregler har ingen effekt.",
       "reject_message": "Avvisningsmelding",
       "reject_placeholder": "Meldingen din er avvist",
       "label_name": "Etikettnavn",

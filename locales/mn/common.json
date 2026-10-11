@@ -2258,6 +2258,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "Хуулбар хадгалах",
       "forward_limit": "Энэ сервер дээрх нэг захидлын дамжуулах хязгаар: {count}. Илүү дамжуулалтыг алгасна.",
+      "forward_unavailable": "Энэ сервер дамжуулахыг зөвшөөрдөггүй. Шүүлтүүрийн дүрэм дэх дамжуулах үйлдэл ажиллахгүй.",
       "reject_message": "Татгалзсан мессеж",
       "reject_placeholder": "Таны имэйл татгалзсан байна",
       "label_name": "Тагийн нэр",

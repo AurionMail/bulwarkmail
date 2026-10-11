@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@exemple.com",
       "forward_keep_copy": "Garder une copie",
       "forward_limit": "Limite de transferts par message sur ce serveur : {count}. Les transferts en trop sont ignorés.",
+      "forward_unavailable": "Ce serveur n'autorise pas le transfert. Les actions de transfert des règles de filtrage n'ont aucun effet.",
       "reject_message": "Message de rejet",
       "reject_placeholder": "Votre e-mail a été rejeté",
       "label_name": "Nom de l'étiquette",

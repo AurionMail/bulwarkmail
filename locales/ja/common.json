@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "コピーを残す",
       "forward_limit": "このサーバーでの1通あたりの転送上限: {count}。それを超える転送はスキップされます。",
+      "forward_unavailable": "このサーバーでは転送が許可されていません。フィルタールールの転送アクションは機能しません。",
       "reject_message": "拒否メッセージ",
       "reject_placeholder": "あなたのメールは拒否されました",
       "label_name": "ラベル名",

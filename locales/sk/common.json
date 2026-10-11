@@ -2258,6 +2258,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "Ponechať kópiu",
       "forward_limit": "Limit preposlaní na správu na tomto serveri: {count}. Ďalšie preposlania sa preskočia.",
+      "forward_unavailable": "Tento server nepovoľuje preposielanie. Akcie preposlania v pravidlách filtrov nemajú žiadny účinok.",
       "reject_message": "Správa o odmietnutí",
       "reject_placeholder": "Váš e-mail bol odmietnutý",
       "label_name": "Názov štítku",

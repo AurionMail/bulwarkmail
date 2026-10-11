@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "Zachowaj kopię",
       "forward_limit": "Limit przekazań na wiadomość na tym serwerze: {count}. Dodatkowe przekazania są pomijane.",
+      "forward_unavailable": "Ten serwer nie pozwala na przekazywanie. Akcje przekazania w regułach filtrów nie działają.",
       "reject_message": "Wiadomość odrzucenia",
       "reject_placeholder": "Twoja wiadomość e-mail została odrzucona",
       "label_name": "Nazwa etykiety",

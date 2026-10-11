@@ -2254,6 +2254,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "Másolat megtartása",
       "forward_limit": "Továbbítási korlát üzenetenként ezen a kiszolgálón: {count}. A további továbbítások kimaradnak.",
+      "forward_unavailable": "Ez a kiszolgáló nem engedélyezi a továbbítást. A szűrőszabályok továbbítási műveletei nem lépnek érvénybe.",
       "reject_message": "Elutasító üzenet",
       "reject_placeholder": "Az e-mailed elutasításra került",
       "label_name": "Címke neve",

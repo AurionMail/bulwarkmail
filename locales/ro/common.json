@@ -2258,6 +2258,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "Păstrează o copie",
       "forward_limit": "Limita de redirecționări per mesaj pe acest server: {count}. Redirecționările în plus sunt omise.",
+      "forward_unavailable": "Acest server nu permite redirecționarea. Acțiunile de redirecționare din regulile de filtrare nu au niciun efect.",
       "reject_message": "Mesaj de respingere",
       "reject_placeholder": "E-mailul dvs. a fost respins",
       "label_name": "Numele etichetei",

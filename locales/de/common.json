@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@beispiel.de",
       "forward_keep_copy": "Kopie behalten",
       "forward_limit": "Weiterleitungen pro Nachricht auf diesem Server: höchstens {count}. Weitere werden übersprungen.",
+      "forward_unavailable": "Dieser Server erlaubt keine Weiterleitungen. Weiterleitungsaktionen in Filterregeln haben keine Wirkung.",
       "reject_message": "Ablehnungsnachricht",
       "reject_placeholder": "Ihre E-Mail wurde abgelehnt",
       "label_name": "Label-Name",

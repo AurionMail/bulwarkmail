@@ -2251,6 +2251,7 @@
       "forward_placeholder": "lietotajs@piemers.lv",
       "forward_keep_copy": "Saglabāt kopiju",
       "forward_limit": "Pārsūtīšanas ierobežojums vienai ziņai šajā serverī: {count}. Papildu pārsūtīšanas tiek izlaistas.",
+      "forward_unavailable": "Šis serveris neatļauj pārsūtīšanu. Pārsūtīšanas darbībām filtru kārtulās nav nekādas ietekmes.",
       "reject_message": "Noraidīšanas ziņojums",
       "reject_placeholder": "Jūsu e-pasts tika noraidīts",
       "label_name": "Taga nosaukums",

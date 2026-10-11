@@ -2254,6 +2254,7 @@
       "forward_placeholder": "email@eksempel.dk",
       "forward_keep_copy": "Behold en kopi",
       "forward_limit": "Grænse for videresendelser pr. besked på denne server: {count}. Yderligere videresendelser springes over.",
+      "forward_unavailable": "Denne server tillader ikke videresendelse. Videresendelseshandlinger i filterregler har ingen effekt.",
       "reject_message": "Afvisningsbesked",
       "reject_placeholder": "Din e-mail er blevet afvist",
       "label_name": "Tag-navn",

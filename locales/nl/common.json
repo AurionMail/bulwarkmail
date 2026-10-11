@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@voorbeeld.nl",
       "forward_keep_copy": "Kopie bewaren",
       "forward_limit": "Maximaal aantal doorsturingen per bericht op deze server: {count}. Extra doorsturingen worden overgeslagen.",
+      "forward_unavailable": "Deze server staat doorsturen niet toe. Doorstuuracties in filterregels hebben geen effect.",
       "reject_message": "Afwijzingsbericht",
       "reject_placeholder": "Uw e-mail is afgewezen",
       "label_name": "Labelnaam",

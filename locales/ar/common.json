@@ -2258,6 +2258,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "الاحتفاظ بنسخة",
       "forward_limit": "حد إعادة التوجيه لكل رسالة على هذا الخادم: {count}. يتم تخطي عمليات إعادة التوجيه الإضافية.",
+      "forward_unavailable": "لا يسمح هذا الخادم بإعادة التوجيه. إجراءات إعادة التوجيه في قواعد التصفية ليس لها أي تأثير.",
       "reject_message": "رسالة الرفض",
       "reject_placeholder": "تم رفض رسالتك",
       "label_name": "اسم الوسم",

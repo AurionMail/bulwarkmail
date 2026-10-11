@@ -2258,6 +2258,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "نگه‌داشتن یک نسخه",
       "forward_limit": "سقف بازارسال برای هر پیام در این سرور: {count}. بازارسال‌های اضافه نادیده گرفته می‌شوند.",
+      "forward_unavailable": "این سرور اجازهٔ بازارسال نمی‌دهد. اقدام‌های بازارسال در قانون‌های فیلتر اثری ندارند.",
       "reject_message": "پیام رد",
       "reject_placeholder": "ایمیل شما رد شد",
       "label_name": "نام برچسب",

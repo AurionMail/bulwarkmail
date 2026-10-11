@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "사본 보관",
       "forward_limit": "이 서버의 메시지당 전달 한도: {count}. 초과된 전달은 건너뜁니다.",
+      "forward_unavailable": "이 서버는 전달을 허용하지 않습니다. 필터 규칙의 전달 작업은 적용되지 않습니다.",
       "reject_message": "거부 메시지",
       "reject_placeholder": "메일 수신이 거부되었습니다",
       "label_name": "태그 이름",

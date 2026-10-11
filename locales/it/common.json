@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@esempio.com",
       "forward_keep_copy": "Conserva una copia",
       "forward_limit": "Limite di inoltri per messaggio su questo server: {count}. Gli inoltri in eccesso vengono ignorati.",
+      "forward_unavailable": "Questo server non consente l'inoltro. Le azioni di inoltro nelle regole dei filtri non hanno effetto.",
       "reject_message": "Messaggio di rifiuto",
       "reject_placeholder": "La tua email è stata rifiutata",
       "label_name": "Nome dell'etichetta",

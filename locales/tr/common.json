@@ -2251,6 +2251,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "Bir kopyasını sakla",
       "forward_limit": "Bu sunucuda ileti başına yönlendirme sınırı: {count}. Fazla yönlendirmeler atlanır.",
+      "forward_unavailable": "Bu sunucu yönlendirmeye izin vermiyor. Filtre kurallarındaki yönlendirme eylemlerinin hiçbir etkisi olmaz.",
       "reject_message": "Reddetme iletisi",
       "reject_placeholder": "E-postanız reddedildi",
       "label_name": "Etiket adı",

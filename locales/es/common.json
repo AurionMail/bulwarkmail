@@ -2251,6 +2251,7 @@
       "forward_placeholder": "correo@ejemplo.com",
       "forward_keep_copy": "Conservar una copia",
       "forward_limit": "Límite de reenvíos por mensaje en este servidor: {count}. Los reenvíos adicionales se omiten.",
+      "forward_unavailable": "Este servidor no permite reenviar. Las acciones de reenvío de las reglas de filtro no tienen efecto.",
       "reject_message": "Mensaje de rechazo",
       "reject_placeholder": "Su correo ha sido rechazado",
       "label_name": "Nombre de la etiqueta",
