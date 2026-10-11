@@ -2633,6 +2633,11 @@ export function EmailComposer({
           ? stripCrossAccountIdentityPrefix(rawIdentityId)
           : { localAccountId: null, rawId: undefined };
 
+        // The host closes the composer while onSend is still running. The
+        // unmount auto-save must not hand it this message back as an unsent
+        // draft ("Continue draft" flashed after every send). Reset below if
+        // the send fails and the composer stays open.
+        explicitCloseRef.current = true;
         await onSend?.({
           to: outgoing.to,
           cc: outgoing.cc,
@@ -2689,6 +2694,8 @@ export function EmailComposer({
       // a send the plugin made itself reaches neither (#1207).
       if (sendHandledByPlugin && !effectiveDelayedUntil) cleanClose();
     } catch (err) {
+      // Not sent, so the composer stays open and is an unsent draft again.
+      explicitCloseRef.current = false;
       debug.error('Failed to send email:', err);
       if (err instanceof RecipientsRejectedError) {
         // Nothing went out; the message stays open here so the addresses
