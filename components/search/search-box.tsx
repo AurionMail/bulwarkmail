@@ -118,8 +118,11 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
         className="relative"
       >
         <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* type="search": Bitwarden skips search fields unconditionally (it
+            honours data-bwignore only when the user opted in) and otherwise
+            offered logins here. */}
         <Input
-          type="text"
+          type="search"
           autoFocus={autoFocus}
           placeholder={t("search_placeholder_hint")}
           value={value}
@@ -137,7 +140,7 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
             close();
           }}
           onKeyDown={handleKeyDown}
-          className={cn("ps-9 h-9", value && "pe-8")}
+          className={cn("ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", value && "pe-8")}
           role="combobox"
           aria-expanded={showDropdown}
           aria-controls={listId}
