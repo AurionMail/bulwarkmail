@@ -628,6 +628,7 @@
     "bcc": "BCC",
     "subject": "Subject",
     "body_placeholder": "Write your message...",
+    "formatting": "Formatting",
     "send": "Send",
     "cancel": "Cancel",
     "attach": "Attach",

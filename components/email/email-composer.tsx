@@ -5,7 +5,7 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Paperclip, Send, Save, Check, Loader2, AlertCircle, FileText, BookmarkPlus, CalendarClock, ChevronDown, Search, Users, SlidersHorizontal, LayoutTemplate, Upload, FolderOpen } from "@/components/icons";
+import { X, Paperclip, Send, Save, Check, Loader2, AlertCircle, FileText, BookmarkPlus, CalendarClock, ChevronDown, Search, Users, SlidersHorizontal, LayoutTemplate, Upload, FolderOpen, Type } from "@/components/icons";
 import { ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
 import { cn, formatFileSize, formatDateTime, generateUUID } from "@/lib/utils";
 import { schedulePresets } from "@/lib/schedule-presets";
@@ -700,6 +700,8 @@ export function EmailComposer({
   const [filesPicker, setFilesPicker] = useState<{ client: IJMAPClient; accountId?: string } | null>(null);
   const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  // The formatting toolbar is folded away on a phone until asked for.
+  const [showFormattingOnMobile, setShowFormattingOnMobile] = useState(false);
   // "close" (X, Escape): save or discard. "discard" (the Discard button): the
   // user already chose, so only confirm it.
   const [closeDialogKind, setCloseDialogKind] = useState<'close' | 'discard'>('close');
@@ -3391,6 +3393,7 @@ export function EmailComposer({
               onImageUpload={handleImageUpload}
               placeholder={t('body_placeholder')}
               hasError={validationErrors.body}
+              collapseToolbarOnMobile={!showFormattingOnMobile}
               onEditorReady={(ed) => {
                 editorRef.current = ed;
                 if (!replyFocusedRef.current && (mode === 'reply' || mode === 'replyAll')) {
@@ -3546,6 +3549,19 @@ export function EmailComposer({
               >
                 <Paperclip className="w-4 h-4" />
                 <span className="hidden sm:inline text-sm">{t('attach')}</span>
+              </Button>
+            )}
+            {!plainTextMode && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFormattingOnMobile((v) => !v)}
+                className={cn("h-9 w-9 md:hidden", showFormattingOnMobile && "bg-accent text-accent-foreground")}
+                title={t('formatting')}
+                aria-label={t('formatting')}
+                aria-pressed={showFormattingOnMobile}
+              >
+                <Type className="w-4 h-4" />
               </Button>
             )}
             {templatesEnabled && (
