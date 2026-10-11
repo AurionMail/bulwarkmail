@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   Upload, FolderPlus, Download, Trash2, Pencil, Copy, Clipboard, Scissors, Info,
   FilePlus, CopyPlus, AlertCircle, FolderUp, Share2, SquarePen, Eye, FolderOpen,
-  RefreshCw, Star, StarOff, Plus, X, CheckSquare,
+  RefreshCw, Star, StarOff, Plus, CheckSquare,
 } from "@/components/icons";
 import { useIsDesktop, useIsMobile, useMediaQuery } from "@/hooks/use-media-query";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -27,6 +27,7 @@ import { INTERNAL_DRAG_TYPE, anchorEvent, isInternalDrag, readDraggedNames } fro
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { getDroppedFilesAndFolders } from "@/lib/webdav/drop-utils";
 import { useFileStore, type FileResource } from "@/stores/file-store";
+import { toast } from "@/stores/toast-store";
 import { ShareCollectionDialog } from "@/components/settings/share-collection-dialog";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNodeRights } from "@/lib/jmap/types";
@@ -265,6 +266,36 @@ export function FileBrowser({
     anchorName.current = null;
     if (scrollAreaRef.current) scrollAreaRef.current.scrollTop = 0;
   }, [currentPath]);
+
+  // ---- Upload progress, shown as a toast like every other notice ----------------
+  const uploadToastId = useRef<string | null>(null);
+  const cancelUploadRef = useRef(onCancelUpload);
+  cancelUploadRef.current = onCancelUpload;
+  useEffect(() => {
+    if (!uploadProgress) {
+      if (uploadToastId.current) toast.dismiss(uploadToastId.current);
+      uploadToastId.current = null;
+      return;
+    }
+    const progress = uploadProgress.total > 0 ? uploadProgress.loaded / uploadProgress.total : null;
+    const title = uploadProgress.totalFiles > 1
+      ? t("uploading_count", { current: uploadProgress.current, total: uploadProgress.totalFiles })
+      : t("uploading");
+    const message = progress === null ? uploadProgress.name : `${uploadProgress.name} · ${Math.round(progress * 100)}%`;
+    if (uploadToastId.current) {
+      // Closing the toast only hides it; the upload carries on.
+      toast.update(uploadToastId.current, { title, message, progress });
+    } else {
+      uploadToastId.current = toast.progress(title, {
+        message,
+        progress,
+        action: { label: t("cancel"), onClick: () => cancelUploadRef.current() },
+      });
+    }
+  }, [uploadProgress, t]);
+  useEffect(() => () => {
+    if (uploadToastId.current) toast.dismiss(uploadToastId.current);
+  }, []);
 
   // ---- Sharing ---------------------------------------------------------------
   // A node is shareable when the server supports JMAP Sharing, the viewer owns
@@ -1056,13 +1087,6 @@ export function FileBrowser({
             </Button>
           )}
 
-          {uploadProgress && (
-            <UploadProgressCard
-              progress={uploadProgress}
-              onCancel={onCancelUpload}
-              className={cn("absolute end-4 z-30 w-80 max-w-[calc(100%-2rem)]", isNarrow && canCreate ? "bottom-20" : "bottom-4")}
-            />
-          )}
         </div>
       </div>
 
@@ -1180,35 +1204,6 @@ function SharedWithMe({ folders, onOpen, iconOptions }: {
         ))}
       </div>
     </section>
-  );
-}
-
-function UploadProgressCard({ progress, onCancel, className }: {
-  progress: { name: string; loaded: number; total: number; current: number; totalFiles: number };
-  onCancel: () => void;
-  className?: string;
-}) {
-  const t = useTranslations("files");
-  const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : null;
-  return (
-    <div role="status" className={cn("rounded-lg border border-border bg-background shadow-lg p-3", className)}>
-      <div className="flex items-center gap-2">
-        <Upload className="w-4 h-4 text-primary shrink-0" />
-        <p className="text-sm font-medium flex-1 min-w-0 truncate">
-          {progress.totalFiles > 1
-            ? t("uploading_count", { current: progress.current, total: progress.totalFiles })
-            : t("uploading")}
-        </p>
-        <span className="text-xs text-muted-foreground tabular-nums">{percent === null ? "…" : `${percent}%`}</span>
-        <Button variant="ghost" size="icon" className="h-6 w-6 -me-1" onClick={onCancel} aria-label={t("cancel_upload")} title={t("cancel_upload")}>
-          <X className="w-3.5 h-3.5" />
-        </Button>
-      </div>
-      <p className="text-xs text-muted-foreground truncate mt-0.5 ms-6">{progress.name}</p>
-      <div className="mt-2 h-1.5 bg-primary/15 rounded-full overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent ?? undefined}>
-        <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${percent ?? 0}%` }} />
-      </div>
-    </div>
   );
 }
 

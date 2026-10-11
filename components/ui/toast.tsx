@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "@/components/icons";
+import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -27,6 +27,12 @@ export interface Toast {
    * that has one lays its actions out on a row of their own.
    */
   tertiaryAction?: ToastAction;
+  /**
+   * Work in progress, e.g. an upload: 0..1, or null while the amount is
+   * unknown. The bottom line then shows progress instead of a countdown,
+   * and the toast stays until it is updated or removed.
+   */
+  progress?: number | null;
 }
 
 interface ToastProps {
@@ -64,6 +70,14 @@ export function ToastItem({ toast, onClose }: ToastProps) {
   const remainingRef = useRef(toast.duration ?? 5000);
   const startRef = useRef(Date.now());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isProgress = toast.progress !== undefined;
+
+  // A toast updated in place (a finished upload) starts a fresh countdown.
+  const lastDurationRef = useRef(toast.duration);
+  if (lastDurationRef.current !== toast.duration) {
+    lastDurationRef.current = toast.duration;
+    remainingRef.current = toast.duration ?? 5000;
+  }
 
   const dismiss = useCallback(() => {
     setExiting(true);
@@ -71,7 +85,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
   }, [onClose, toast.id]);
 
   useEffect(() => {
-    if (!toast.duration || toast.duration <= 0) return;
+    if (!toast.duration || toast.duration <= 0 || isProgress) return;
 
     if (paused) {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -84,7 +98,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [toast.duration, paused, dismiss]);
+  }, [toast.duration, paused, dismiss, isProgress]);
 
   const actionButton = (action: ToastAction) => (
     <button
@@ -128,6 +142,8 @@ export function ToastItem({ toast, onClose }: ToastProps) {
       {/* Icon */}
       {toast.icon !== undefined ? (
         toast.icon
+      ) : isProgress ? (
+        <Loader2 className="w-[18px] h-[18px] flex-shrink-0 mt-px text-muted-foreground animate-spin" />
       ) : (
         <Icon className={cn("w-[18px] h-[18px] flex-shrink-0 mt-px", iconStyles[toast.type])} />
       )}
@@ -169,8 +185,24 @@ export function ToastItem({ toast, onClose }: ToastProps) {
         <X className="w-3.5 h-3.5" />
       </button>
 
+      {/* Progress line: the same line as the countdown, filled by the work done */}
+      {isProgress && (
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground/[0.06]"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={toast.progress == null ? undefined : Math.round(toast.progress * 100)}
+        >
+          <div
+            className={cn("h-full opacity-60 transition-[width] duration-300", progressBarStyles[toast.type], toast.progress == null && "w-1/3 animate-pulse")}
+            style={toast.progress == null ? undefined : { width: `${Math.max(0, Math.min(1, toast.progress)) * 100}%` }}
+          />
+        </div>
+      )}
+
       {/* Countdown line */}
-      {toast.duration && toast.duration > 0 && (
+      {!isProgress && !!toast.duration && toast.duration > 0 && (
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground/[0.06]">
           <div
             className={cn("h-full opacity-60", progressBarStyles[toast.type])}

@@ -4,7 +4,9 @@ import { generateUUID } from "@/lib/utils";
 
 interface ToastStore {
   toasts: Toast[];
-  addToast: (toast: Omit<Toast, "id">) => void;
+  addToast: (toast: Omit<Toast, "id">) => string;
+  /** Change a shown toast in place, e.g. to move a progress toast along. */
+  updateToast: (id: string, patch: Partial<Omit<Toast, "id">>) => void;
   removeToast: (id: string) => void;
   clearToasts: () => void;
 }
@@ -26,6 +28,13 @@ export const useToastStore = create<ToastStore>((set) => ({
 
     set((state) => ({
       toasts: [...state.toasts, newToast],
+    }));
+    return id;
+  },
+
+  updateToast: (id, patch) => {
+    set((state) => ({
+      toasts: state.toasts.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     }));
   },
 
@@ -61,7 +70,22 @@ function showToast(type: Toast["type"], title: string, options?: string | ToastO
   });
 }
 
+interface ProgressToastOptions {
+  message?: string;
+  /** 0..1, or null while unknown. */
+  progress: number | null;
+  action?: ToastAction;
+}
+
 export const toast = {
+  /**
+   * A toast for work in progress. It stays until updated or dismissed; move
+   * it along with `toast.update(id, { progress, message })`.
+   */
+  progress: (title: string, options: ProgressToastOptions): string =>
+    useToastStore.getState().addToast({ type: "info", title, duration: 0, ...options }),
+  update: (id: string, patch: Partial<Omit<Toast, "id">>) => useToastStore.getState().updateToast(id, patch),
+  dismiss: (id: string) => useToastStore.getState().removeToast(id),
   success: (title: string, options?: string | ToastOptions) => showToast("success", title, options),
   error: (title: string, options?: string | ToastOptions) => showToast("error", title, options, 10000),
   info: (title: string, options?: string | ToastOptions) => showToast("info", title, options),
