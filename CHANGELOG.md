@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.14.1 (2026-10-11)
+
+1.14.1 fixes plain-text and unstyled messages showing on a gray background in dark mode after the 1.14.0 dark mode rewrite.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Fixes
+
+- **Mail**: In dark mode, plain-text and unstyled messages use the app's background again instead of a gray box
+
 ## 1.14.0 (2026-10-11)
 
 1.14.0 adds Mountain View, an optional layout with a top bar and a wide search field, and gives the Files app and the calendar a new layout. Dark mode now recolours messages instead of inverting them, so brand colours stay as sent. Push can be turned on for several accounts at once, and the account list can be backed up encrypted and restored on another device. The composer got a long round of send fixes. With several accounts open, batch actions no longer hit another account's message that happens to share an id with the selected one.
