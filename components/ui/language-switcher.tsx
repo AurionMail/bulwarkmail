@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useId } from "react";
+import { useTranslations } from 'next-intl';
 import { useLocaleStore } from '@/stores/locale-store';
-import { ChevronDown } from '@/components/icons';
+import { getEffectiveLocale } from '@/i18n/detect-locale';
+import { Check, ChevronDown, Search } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { useMenuNavigation } from '@/hooks/use-menu-navigation';
 import { flagComponents } from './flag-icons';
 
 const languages = [
@@ -38,57 +39,137 @@ const languages = [
   { value: 'zh-TW', label: '繁體中文（台灣）' },
 ];
 
+// Case- and accent-insensitive, so "espanol" finds "Español".
+function fold(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
+function displayNames(locale: string): ((code: string) => string | undefined) {
+  try {
+    const names = new Intl.DisplayNames([locale], { type: 'language' });
+    return (code) => names.of(code);
+  } catch {
+    return () => undefined;
+  }
+}
+
 function FlagIcon({ locale }: { locale: string }) {
   const Flag = flagComponents[locale];
-  if (!Flag) return null;
+  if (!Flag) return <span className="inline-block w-5 shrink-0" aria-hidden="true" />;
   return <Flag />;
 }
 
 export function LanguageSwitcher({ className }: { className?: string }) {
+  const t = useTranslations();
   const setLocale = useLocaleStore((state) => state.setLocale);
   const choice = useLocaleStore((state) => state.locale) || 'auto';
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const close = useCallback(() => setOpen(false), []);
-  const { menuRef: listRef, onKeyDown: onListKeyDown } = useMenuNavigation<HTMLUListElement>({
-    open,
-    onClose: close,
-    triggerRef: buttonRef,
-  });
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const listId = useId();
 
   const current = languages.find((l) => l.value === choice) ?? languages[0];
 
-  // Close on outside click
+  // Each language also gets its name in the UI language (and in English), so
+  // "German" and "Deutsch" both find it and unfamiliar scripts stay readable.
+  const entries = useMemo(() => {
+    void choice;
+    const local = displayNames(getEffectiveLocale());
+    const english = displayNames('en');
+    return languages.map((lang) => {
+      const translated = lang.value === 'auto' ? undefined : local(lang.value);
+      const hint = translated && fold(translated) !== fold(lang.label) ? translated : undefined;
+      const haystack = fold([lang.label, lang.value, translated, lang.value === 'auto' ? undefined : english(lang.value)].filter(Boolean).join(' '));
+      return { ...lang, hint, haystack };
+    });
+  }, [choice]);
+
+  const results = useMemo(() => {
+    const needle = fold(query.trim());
+    return needle ? entries.filter((e) => e.haystack.includes(needle)) : entries;
+  }, [entries, query]);
+
+  const close = (refocus: boolean) => {
+    setOpen(false);
+    if (refocus) buttonRef.current?.focus();
+  };
+
+  const pick = (value: string) => {
+    setLocale(value);
+    close(true);
+  };
+
+  // Start on the current language each time the menu opens.
+  const toggle = () => {
+    if (open) return close(false);
+    setQuery('');
+    setActive(Math.max(0, languages.findIndex((l) => l.value === choice)));
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
+  }, [open, active, results]);
+
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+  const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActive((i) => Math.min(results.length - 1, i + 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActive((i) => Math.max(0, i - 1));
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        setActive((i) => Math.min(results.length - 1, i + 8));
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        setActive((i) => Math.max(0, i - 8));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (results[active]) pick(results[active].value);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        e.stopPropagation();
+        close(true);
+        break;
+      case 'Tab':
+        close(false);
+        break;
     }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [open]);
+  };
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       <button
         type="button"
         ref={buttonRef}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground hover:border-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 cursor-pointer w-full"
-        aria-haspopup="menu"
+        aria-haspopup="listbox"
         aria-expanded={open}
       >
         <FlagIcon locale={current.value} />
@@ -97,36 +178,56 @@ export function LanguageSwitcher({ className }: { className?: string }) {
       </button>
 
       {open && (
-        <ul
-          ref={listRef}
-          role="menu"
-          onKeyDown={onListKeyDown}
-          className="absolute start-0 z-50 mt-1 min-w-full w-max max-w-[min(16rem,80vw)] max-h-60 overflow-auto rounded-md border border-border bg-background shadow-lg py-1"
-        >
-          {languages.map((lang) => (
-            <li key={lang.value} role="none">
-              <button
-                type="button"
-                id={`lang-${lang.value}`}
-                role="menuitemradio"
-                aria-checked={lang.value === choice}
-                onClick={() => {
-                  setLocale(lang.value);
-                  setOpen(false);
-                }}
+        <div className="absolute end-0 z-50 mt-1 w-64 max-w-[80vw] rounded-md border border-border bg-background shadow-lg">
+          <div className="flex items-center gap-2 border-b border-border px-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              type="text"
+              role="combobox"
+              aria-expanded="true"
+              aria-controls={listId}
+              aria-activedescendant={results[active] ? `${listId}-${results[active].value}` : undefined}
+              aria-label={t('common.search')}
+              placeholder={t('common.search')}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setActive(0);
+              }}
+              onKeyDown={onInputKeyDown}
+              className="w-full bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+          <ul ref={listRef} id={listId} role="listbox" className="max-h-72 overflow-auto py-1">
+            {results.map((lang, index) => (
+              <li
+                key={lang.value}
+                id={`${listId}-${lang.value}`}
+                data-index={index}
+                role="option"
+                aria-selected={lang.value === choice}
+                onMouseMove={() => setActive(index)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pick(lang.value)}
                 className={cn(
-                  "w-full flex items-center gap-2 px-3 py-1.5 text-sm text-start cursor-pointer whitespace-nowrap transition-colors duration-100",
-                  lang.value === choice
-                    ? "bg-accent text-accent-foreground font-medium"
-                    : "text-foreground hover:bg-accent/50"
+                  "flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer",
+                  index === active ? "bg-accent text-accent-foreground" : "text-foreground"
                 )}
               >
                 <FlagIcon locale={lang.value} />
-                <span>{lang.label}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+                <span className="truncate" dir="auto">{lang.label}</span>
+                {lang.hint && <span className="truncate text-xs text-muted-foreground">{lang.hint}</span>}
+                {lang.value === choice && <Check className="ms-auto h-4 w-4 shrink-0" />}
+              </li>
+            ))}
+            {results.length === 0 && (
+              <li className="px-3 py-2 text-sm text-muted-foreground">{t('sharing.no_match')}</li>
+            )}
+          </ul>
+        </div>
       )}
     </div>
   );
