@@ -58,7 +58,7 @@ describe('FilePickerDialog', () => {
     fireEvent.click(await screen.findByText('invoice.pdf'));
     fireEvent.click(screen.getByText('Documents'));
     fireEvent.click(await screen.findByText('report.pdf'));
-    fireEvent.click(screen.getByText('breadcrumb_root'));
+    fireEvent.click(screen.getByText('my_files'));
     fireEvent.click(screen.getByText('shared_with_me'));
     fireEvent.click(await screen.findByText('plan.pdf'));
 
