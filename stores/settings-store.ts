@@ -1607,8 +1607,13 @@ function applyAnimations(enabled: boolean) {
   const root = document.documentElement;
   if (enabled) {
     root.style.removeProperty('--transition-duration');
+    delete root.dataset.animations;
   } else {
     root.style.setProperty('--transition-duration', '0s');
+    // The variable alone reached nothing that animates: the panes slide on
+    // Tailwind transitions and the menus on keyframes. globals.css stops
+    // them all under this attribute, as it does for prefers-reduced-motion.
+    root.dataset.animations = 'off';
   }
 }
 
