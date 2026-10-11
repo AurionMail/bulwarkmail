@@ -2258,6 +2258,7 @@
       "forward_placeholder": "email@example.com",
       "forward_keep_copy": "Keep a copy",
       "forward_limit": "Forward limit per message on this server: {count}. Extra forwards are skipped.",
+      "forward_unavailable": "This server does not allow forwarding. Forward actions in filter rules have no effect.",
       "reject_message": "Rejection message",
       "reject_placeholder": "Your email has been rejected",
       "label_name": "Tag name",

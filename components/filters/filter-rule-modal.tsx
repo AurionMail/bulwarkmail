@@ -224,6 +224,9 @@ export function FilterRuleModal({
   const otherForwards = forwardsBefore + (ruleStops({ actions, stopProcessing }) ? 0 : forwardsAfter);
   const forwardLimit = typeof maxRedirects === "number" && maxRedirects > 0 ? maxRedirects : null;
   const forwardOverLimit = forwardLimit !== null && forwardCount + otherForwards > forwardLimit;
+  // A limit of 0: the server runs no redirect at all, as the out of office
+  // card also takes it. A forward the rule already has stays, to be removed.
+  const forwardUnavailable = maxRedirects === 0;
 
   // While editing, condition.value is always the raw string typed into the
   // input (commas not yet split). Convert to array form here on save so a
@@ -615,7 +618,7 @@ export function FilterRuleModal({
                     className={selectClass}
                     aria-label={t("actions")}
                   >
-                    {ALL_ACTION_TYPES.map((a) => (
+                    {ALL_ACTION_TYPES.filter((a) => !(forwardUnavailable && a === "forward" && action.type !== "forward")).map((a) => (
                       <option
                         key={a}
                         value={a}
@@ -712,6 +715,11 @@ export function FilterRuleModal({
                 </div>
               ))}
             </div>
+            {forwardUnavailable && forwardCount > 0 && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                {t("forward_unavailable")}
+              </p>
+            )}
             {forwardOverLimit && (
               <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
                 {t("forward_limit", { count: forwardLimit })}

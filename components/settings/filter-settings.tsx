@@ -301,6 +301,8 @@ export function FilterSettings() {
   const runOrder = inRunOrder(rules, vacationForward);
   const tooManyForwards =
     typeof redirectLimit === "number" && redirectLimit > 0 && worstCaseForwards(runOrder) > redirectLimit;
+  // A limit of 0: the server runs no redirect, so the rules' forwards do nothing.
+  const forwardsIgnored = redirectLimit === 0 && worstCaseForwards(rules) > 0;
   // The edited rule where it is; a new one goes below Bulwark's own rules.
   const editedIndex = editingRule ? rules.findIndex((r) => r.id === editingRule.id) : -1;
   const forwardsOfEdited = forwardsAround(
@@ -581,6 +583,12 @@ export function FilterSettings() {
             <Filter className="w-10 h-10 mb-3 opacity-40" />
             <p className="text-sm">{t("no_rules")}</p>
           </div>
+        )}
+
+        {!isOpaque && forwardsIgnored && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            {t("forward_unavailable")}
+          </p>
         )}
 
         {!isOpaque && tooManyForwards && (
