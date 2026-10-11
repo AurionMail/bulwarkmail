@@ -1319,8 +1319,8 @@
       "date_format": {
         "label": "Format de data",
         "description": "Com es mostren les dates a la llista de correus",
-        "smart": "Intel·ligent (segons l'idioma)",
-        "relative": "Relatiu (fa 1 h, fa 2 d)",
+        "smart": "Intel·ligent",
+        "relative": "Relatiu",
         "full": "Sempre la data completa",
         "preview_today": "Avui:",
         "preview_this_week": "Aquesta setmana:",
@@ -1329,8 +1329,8 @@
       "date_locale": {
         "label": "Regió del format de data",
         "description": "Com s'ordenen les dates numèriques (dia, mes, any)",
-        "auto": "Automàtic ({example})",
-        "iso": "ISO 8601 (AAAA-MM-DD)",
+        "auto": "Automàtic",
+        "iso": "ISO 8601",
         "dmy": "Dia/Mes/Any",
         "mdy": "Mes/Dia/Any"
       },

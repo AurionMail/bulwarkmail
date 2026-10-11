@@ -1316,8 +1316,8 @@
       "date_format": {
         "label": "Format de date",
         "description": "Comment les dates apparaissent dans la liste des e-mails",
-        "smart": "Intelligent (adapté à la région)",
-        "relative": "Relatif (il y a 1 h, il y a 2 j)",
+        "smart": "Intelligent",
+        "relative": "Relatif",
         "full": "Toujours la date complète",
         "preview_today": "Aujourd'hui :",
         "preview_this_week": "Cette semaine :",
@@ -1326,8 +1326,8 @@
       "date_locale": {
         "label": "Date format region",
         "description": "How numeric dates are ordered (day, month, year)",
-        "auto": "Automatic ({example})",
-        "iso": "ISO 8601 (YYYY-MM-DD)",
+        "auto": "Automatic",
+        "iso": "ISO 8601",
         "dmy": "Day/Month/Year",
         "mdy": "Month/Day/Year"
       },

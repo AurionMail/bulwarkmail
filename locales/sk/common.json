@@ -1319,8 +1319,8 @@
       "date_format": {
         "label": "Formát dátumu",
         "description": "Ako sa zobrazujú dátumy v zozname e-mailov",
-        "smart": "Inteligentný (regionálny)",
-        "relative": "Relatívny (pred 1 h, pred 2 d)",
+        "smart": "Inteligentný",
+        "relative": "Relatívny",
         "full": "Vždy úplný dátum",
         "preview_today": "Dnes:",
         "preview_this_week": "Tento týždeň:",
@@ -1329,8 +1329,8 @@
       "date_locale": {
         "label": "Date format region",
         "description": "How numeric dates are ordered (day, month, year)",
-        "auto": "Automatic ({example})",
-        "iso": "ISO 8601 (YYYY-MM-DD)",
+        "auto": "Automatic",
+        "iso": "ISO 8601",
         "dmy": "Day/Month/Year",
         "mdy": "Month/Day/Year"
       },

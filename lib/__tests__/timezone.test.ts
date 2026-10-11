@@ -190,4 +190,17 @@ describe('mail timestamp formatting honours the override', () => {
     expect(formatDate(new Date('nope'))).toBe('');
     expect(formatDate(undefined as unknown as string)).toBe('');
   });
+
+  it('formatDate overrides preview other options without touching the store', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T16:00:00Z'));
+    const older = new Date('2026-05-01T15:31:00Z');
+    useSettingsStore.setState({ dateFormat: 'smart', dateLocale: 'en-US' });
+
+    expect(formatDate(older)).toBe('05/01/2026');
+    expect(formatDate(older, { dateLocale: 'iso' })).toBe('2026-05-01');
+    expect(formatDate(older, { dateLocale: 'en-GB' })).toBe('01/05/2026');
+    expect(formatDate(older, { dateFormat: 'full', dateLocale: 'iso' })).toContain('15:31');
+    expect(useSettingsStore.getState()).toMatchObject({ dateFormat: 'smart', dateLocale: 'en-US' });
+  });
 });

@@ -1316,8 +1316,8 @@
       "date_format": {
         "label": "Formát data",
         "description": "Jak se zobrazují data v seznamu e-mailů",
-        "smart": "Chytrý (regionální)",
-        "relative": "Relativní (před 1 h, před 2 d)",
+        "smart": "Chytrý",
+        "relative": "Relativní",
         "full": "Vždy úplné datum",
         "preview_today": "Dnes:",
         "preview_this_week": "Tento týden:",
@@ -1326,8 +1326,8 @@
       "date_locale": {
         "label": "Region formátu data",
         "description": "Pořadí částí číselného data (den, měsíc, rok)",
-        "auto": "Automaticky ({example})",
-        "iso": "ISO 8601 (RRRR-MM-DD)",
+        "auto": "Automaticky",
+        "iso": "ISO 8601",
         "dmy": "Den/měsíc/rok",
         "mdy": "Měsíc/den/rok"
       },

@@ -1319,8 +1319,8 @@
       "date_format": {
         "label": "Formatul datei",
         "description": "Modul în care sunt afișate datele în lista de e-mailuri",
-        "smart": "Inteligent (adaptat la setările locale)",
-        "relative": "Relativ (acum 1 oră, acum 2 zile)",
+        "smart": "Inteligent",
+        "relative": "Relativ",
         "full": "Întotdeauna data completă",
         "preview_today": "Astăzi:",
         "preview_this_week": "În această săptămână:",
@@ -1329,8 +1329,8 @@
       "date_locale": {
         "label": "Date format region",
         "description": "How numeric dates are ordered (day, month, year)",
-        "auto": "Automatic ({example})",
-        "iso": "ISO 8601 (YYYY-MM-DD)",
+        "auto": "Automatic",
+        "iso": "ISO 8601",
         "dmy": "Day/Month/Year",
         "mdy": "Month/Day/Year"
       },

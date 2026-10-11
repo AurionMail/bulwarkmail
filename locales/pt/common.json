@@ -1316,8 +1316,8 @@
       "date_format": {
         "label": "Formato de Data",
         "description": "Como as datas são mostradas na lista de e-mails",
-        "smart": "Inteligente (regional)",
-        "relative": "Relativo (há 1 h, há 2 d)",
+        "smart": "Inteligente",
+        "relative": "Relativo",
         "full": "Sempre data completa",
         "preview_today": "Hoje:",
         "preview_this_week": "Esta semana:",
@@ -1326,8 +1326,8 @@
       "date_locale": {
         "label": "Formato de data da região",
         "description": "Como as datas numéricas são ordenadas (dia, mês, ano)",
-        "auto": "Automático ({example})",
-        "iso": "ISO 8601 (AAAA-MM-DD)",
+        "auto": "Automático",
+        "iso": "ISO 8601",
         "dmy": "Dia/Mês/Ano",
         "mdy": "Mês/Dia/Ano"
       },

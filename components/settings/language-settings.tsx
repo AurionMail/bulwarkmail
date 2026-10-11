@@ -58,25 +58,27 @@ export function LanguageSettings() {
       today: formatDate(today),
       thisWeek: formatDate(thisWeek),
       older: formatDate(older),
+      // Every dropdown option carries a sample of what it renders, so the
+      // choices read alike instead of mixing names, hints and patterns.
+      dateFormat: {
+        smart: formatDate(thisWeek, { dateFormat: 'smart' }),
+        relative: formatDate(thisWeek, { dateFormat: 'relative' }),
+        full: formatDate(older, { dateFormat: 'full' }),
+      },
+      dateLocale: {
+        auto: formatDate(older, { dateFormat: 'smart', dateLocale: 'auto' }),
+        iso: formatDate(older, { dateFormat: 'smart', dateLocale: 'iso' }),
+        'en-GB': formatDate(older, { dateFormat: 'smart', dateLocale: 'en-GB' }),
+        'en-US': formatDate(older, { dateFormat: 'smart', dateLocale: 'en-US' }),
+      },
     };
   }, [locale, dateFormat, dateLocale, timeFormat, timeZone]);
 
-  // Today's date in the UI language's numeric order, so "Automatic" names
-  // the format it resolves to instead of a vague "match language".
-  const autoDateExample = useMemo(() => {
-    void locale; void timeZone;
-    const uiLocale = getEffectiveLocale();
-    try {
-      return new Date().toLocaleDateString(uiLocale === 'en' ? 'en-US' : uiLocale, {
-        timeZone: getEffectiveTimeZone(),
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
-    } catch {
-      return '';
-    }
-  }, [locale, timeZone]);
+  // CJK labels use full-width parentheses.
+  const withExample = (label: string, example: string) => {
+    if (!example) return label;
+    return /^(zh|ja)/.test(getEffectiveLocale()) ? `${label}（${example}）` : `${label} (${example})`;
+  };
 
   // Current wall-clock in the effective zone so a pick can be sanity-checked.
   const timeZonePreview = useMemo(() => {
@@ -106,9 +108,9 @@ export function LanguageSettings() {
             value={dateFormat}
             onChange={(value) => updateSetting('dateFormat', value as DateFormat)}
             options={[
-              { value: 'smart', label: t('date_format.smart') },
-              { value: 'relative', label: t('date_format.relative') },
-              { value: 'full', label: t('date_format.full') },
+              { value: 'smart', label: withExample(t('date_format.smart'), preview.dateFormat.smart) },
+              { value: 'relative', label: withExample(t('date_format.relative'), preview.dateFormat.relative) },
+              { value: 'full', label: withExample(t('date_format.full'), preview.dateFormat.full) },
             ]}
           />
           <div className="text-xs text-muted-foreground text-end space-y-0.5 font-mono">
@@ -133,10 +135,10 @@ export function LanguageSettings() {
           value={dateLocale}
           onChange={(value) => updateSetting('dateLocale', value as DateLocale)}
           options={[
-            { value: 'auto', label: t('date_locale.auto', { example: autoDateExample }) },
-            { value: 'iso', label: t('date_locale.iso') },
-            { value: 'en-GB', label: t('date_locale.dmy') },
-            { value: 'en-US', label: t('date_locale.mdy') },
+            { value: 'auto', label: withExample(t('date_locale.auto'), preview.dateLocale.auto) },
+            { value: 'iso', label: withExample(t('date_locale.iso'), preview.dateLocale.iso) },
+            { value: 'en-GB', label: withExample(t('date_locale.dmy'), preview.dateLocale['en-GB']) },
+            { value: 'en-US', label: withExample(t('date_locale.mdy'), preview.dateLocale['en-US']) },
           ]}
         />
       </SettingItem>

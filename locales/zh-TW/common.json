@@ -1319,8 +1319,8 @@
       "date_format": {
         "label": "日期格式",
         "description": "電子郵件清單中日期的顯示方式",
-        "smart": "智慧（依地區設定）",
-        "relative": "相對時間（1 小時前、2 天前）",
+        "smart": "智慧",
+        "relative": "相對時間",
         "full": "一律顯示完整日期",
         "preview_today": "今天：",
         "preview_this_week": "本週：",
@@ -1329,8 +1329,8 @@
       "date_locale": {
         "label": "日期格式地區",
         "description": "數字日期的排列順序（日、月、年）",
-        "auto": "自動（{example}）",
-        "iso": "ISO 8601（YYYY-MM-DD）",
+        "auto": "自動",
+        "iso": "ISO 8601",
         "dmy": "日／月／年",
         "mdy": "月／日／年"
       },

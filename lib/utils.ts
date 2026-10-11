@@ -5,7 +5,7 @@ import type { UnifiedMailboxRole } from "./jmap/types";
 import { debug } from "./debug";
 import { getEffectiveLocale } from '@/i18n/detect-locale';
 import { useSettingsStore } from "@/stores/settings-store";
-import type { DateLocale } from "@/stores/settings-store";
+import type { DateFormat, DateLocale } from "@/stores/settings-store";
 import { getEffectiveTimeZone, getWallClock } from "./timezone";
 
 export function cn(...inputs: ClassValue[]) {
@@ -94,7 +94,11 @@ function resolveDateLocale<T extends string | undefined>(
  * bucketing - a browser pinned to UTC for anti-fingerprinting must not
  * roll a 00:30 local mail into "yesterday" (#755).
  */
-export function formatDate(date: Date | string): string {
+export function formatDate(
+  date: Date | string,
+  // Settings preview: render as if these were picked, without saving them.
+  overrides?: { dateFormat?: DateFormat; dateLocale?: DateLocale },
+): string {
   const d = typeof date === "string" ? new Date(date) : date;
   // An unparsable receivedAt (e.g. a 5-digit year) makes Intl throw
   // "RangeError: Invalid time value" and takes the whole list down with it.
@@ -107,7 +111,7 @@ export function formatDate(date: Date | string): string {
   // en-US in Intl; everything else uses the language subtag as-is and lets
   // the runtime pick a sensible default region.
   const uiLocale = locale === "en" ? "en-US" : locale;
-  const { dateFormat, dateLocale, timeFormat } = useSettingsStore.getState();
+  const { dateFormat, dateLocale, timeFormat } = { ...useSettingsStore.getState(), ...overrides };
   // Numeric dates additionally honour the regional `dateLocale` override
   // (defaults to `auto` = the UI language, preserving prior behaviour). (#456)
   const numericLocale = resolveDateLocale(dateLocale, uiLocale);

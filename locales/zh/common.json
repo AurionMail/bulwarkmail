@@ -1316,8 +1316,8 @@
       "date_format": {
         "label": "日期格式",
         "description": "电子邮件列表中日期的显示方式",
-        "smart": "智能（按地区）",
-        "relative": "相对时间（1 小时前、2 天前）",
+        "smart": "智能",
+        "relative": "相对时间",
         "full": "始终完整日期",
         "preview_today": "今天：",
         "preview_this_week": "本周：",
@@ -1326,8 +1326,8 @@
       "date_locale": {
         "label": "Date format region",
         "description": "How numeric dates are ordered (day, month, year)",
-        "auto": "Automatic ({example})",
-        "iso": "ISO 8601 (YYYY-MM-DD)",
+        "auto": "Automatic",
+        "iso": "ISO 8601",
         "dmy": "Day/Month/Year",
         "mdy": "Month/Day/Year"
       },

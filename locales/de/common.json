@@ -1316,8 +1316,8 @@
       "date_format": {
         "label": "Datumsformat",
         "description": "Wie Daten in der E-Mail-Liste angezeigt werden",
-        "smart": "Intelligent (gebietsschemaabhängig)",
-        "relative": "Relativ (vor 1 Std., vor 2 Tagen)",
+        "smart": "Intelligent",
+        "relative": "Relativ",
         "full": "Immer vollständiges Datum",
         "preview_today": "Heute:",
         "preview_this_week": "Diese Woche:",
@@ -1326,8 +1326,8 @@
       "date_locale": {
         "label": "Region für Datumsformat",
         "description": "Legt fest, in welcher Reihenfolge numerische Datumsangaben angezeigt werden (Tag, Monat, Jahr).",
-        "auto": "Automatisch ({example})",
-        "iso": "ISO 8601 (YYYY-MM-DD)",
+        "auto": "Automatisch",
+        "iso": "ISO 8601",
         "dmy": "Tag/Monat/Jahr",
         "mdy": "Monat/Tag/Jahr"
       },
