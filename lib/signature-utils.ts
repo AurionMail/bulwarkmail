@@ -1,5 +1,6 @@
 import { parseHtmlSafely, sanitizeSignatureHtml } from '@/lib/email-sanitization';
 import { htmlToPlainText } from '@/lib/html-to-text';
+import { wantsSignatureSeparator } from '@/lib/signature-delimiter';
 
 type SignatureSource = {
   textSignature?: string;
@@ -10,7 +11,11 @@ function normalizeSignatureLineBreaks(value: string): string {
   return value
     .replace(/\r\n?/g, '\n')
     .replace(/\u00a0/g, ' ')
-    .replace(/[ \t]+\n/g, '\n')
+    // Trims trailing spaces, but keeps the one that makes "-- " the RFC 3676
+    // signature delimiter.
+    .split('\n')
+    .map((line) => (/^--[ \t]*$/.test(line) ? '-- ' : line.replace(/[ \t]+$/, '')))
+    .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
@@ -37,7 +42,7 @@ export function appendPlainTextSignature(
     return body;
   }
 
-  const sep = options.separator === false ? '\n\n' : '\n\n-- \n';
+  const sep = wantsSignatureSeparator(options.separator, signature) ? '\n\n-- \n' : '\n\n';
   return `${body}${sep}${plainTextSignature}`;
 }
 
@@ -95,7 +100,7 @@ export function appendHtmlSignature(
   signature?: SignatureSource | null,
   options: { separator?: boolean } = {},
 ): string {
-  const sep = options.separator === false ? '<br><br>' : '<br><br>-- <br>';
+  const sep = wantsSignatureSeparator(options.separator, signature) ? '<br><br>-- <br>' : '<br><br>';
 
   if (signature?.htmlSignature?.trim()) {
     return `${htmlBody}${sep}${sanitizeSignatureHtml(signature.htmlSignature)}`;

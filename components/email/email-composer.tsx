@@ -47,6 +47,7 @@ import { TemplatePicker } from "@/components/templates/template-picker";
 import { TemplateForm } from "@/components/templates/template-form";
 import type { EmailTemplate } from "@/lib/template-types";
 import { appendPlainTextSignature, getPlainTextSignature, plainTextBodyHasSignature, plainTextBodyWithoutSignature } from "@/lib/signature-utils";
+import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { findComposeIdentityId, findDraftIdentityId, findReplyIdentityId, resolveReplyFrom } from "@/lib/reply-identity";
 import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
 import { computeReplyThreadingHeaders, type ReplyThreadingHeaders } from "@/lib/email-threading";
@@ -438,7 +439,7 @@ export function EmailComposer({
       // editable. Fixes #329 (A,B).
       if (mode === 'compose') {
         if (!shouldEmbedSignatureInNewMail) return prefix;
-        const sep = signatureSeparatorEnabled ? '\n\n-- \n' : '\n\n';
+        const sep = wantsSignatureSeparator(signatureSeparatorEnabled, initialSignatureIdentity) ? '\n\n-- \n' : '\n\n';
         return `${prefix}${sep}${getPlainTextSignature(initialSignatureIdentity)}`;
       }
       if (!replyTo?.body && !replyTo?.htmlBody) return prefix;
@@ -460,7 +461,7 @@ export function EmailComposer({
       // drafting area and the quoted content so it reads naturally as a
       // closing for the reply body. Send-time append is skipped - see
       // shouldEmbedSignatureAboveQuote.
-      const plainSep = signatureSeparatorEnabled ? '\n\n-- \n' : '\n\n';
+      const plainSep = wantsSignatureSeparator(signatureSeparatorEnabled, initialSignatureIdentity) ? '\n\n-- \n' : '\n\n';
       const signatureBlock = shouldEmbedSignatureAboveQuote
         ? `${plainSep}${getPlainTextSignature(initialSignatureIdentity)}`
         : '';
@@ -2481,7 +2482,7 @@ export function EmailComposer({
     // Build HTML signature block (used only in rich text mode)
     const buildSignatureHtml = (): string => {
       if (signatureAlreadyInBody) return '';
-      const sep = signatureSeparatorEnabled ? `<br><br>-- <br>` : `<br><br>`;
+      const sep = wantsSignatureSeparator(signatureSeparatorEnabled, signatureIdentity) ? `<br><br>-- <br>` : `<br><br>`;
       if (signatureIdentity?.htmlSignature) {
         return `${sep}${sanitizeSignatureHtml(signatureIdentity.htmlSignature)}`;
       }
@@ -3342,13 +3343,13 @@ export function EmailComposer({
           : plainTextMode ? (
           getPlainTextSignature(signatureIdentity) ? (
             <div className="px-4 pb-3 text-sm leading-6 text-muted-foreground break-words whitespace-pre-wrap font-mono">
-              {signatureSeparatorEnabled ? '-- \n' : ''}{getPlainTextSignature(signatureIdentity)}
+              {wantsSignatureSeparator(signatureSeparatorEnabled, signatureIdentity) ? '-- \n' : ''}{getPlainTextSignature(signatureIdentity)}
             </div>
           ) : null
         ) : composerSignatureHtml ? (
           <div
             className="px-4 pb-3 text-sm leading-6 text-foreground break-words [&_a]:text-primary [&_a]:underline-offset-2 [&_a:hover]:underline"
-            dangerouslySetInnerHTML={{ __html: `${signatureSeparatorEnabled ? '<div>-- </div>' : ''}${composerSignatureHtml}` }}
+            dangerouslySetInnerHTML={{ __html: `${wantsSignatureSeparator(signatureSeparatorEnabled, signatureIdentity) ? '<div>-- </div>' : ''}${composerSignatureHtml}` }}
           />
         ) : null}
       </div>

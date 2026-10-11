@@ -54,4 +54,10 @@ describe('htmlToPlainText', () => {
   it('handles nested lists as separate lines', () => {
     expect(htmlToPlainText('<ul><li>One</li><li>Two</li></ul>')).toBe('One\nTwo');
   });
+
+  it('keeps the trailing space of a "-- " signature delimiter', () => {
+    // Without it the text part's delimiter was "--", which clients do not
+    // recognise as the start of a signature.
+    expect(htmlToPlainText('<p>Hi</p><p>-- </p><p>User A</p>')).toBe('Hi\n-- \nUser A');
+  });
 });

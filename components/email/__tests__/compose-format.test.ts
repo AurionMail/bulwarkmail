@@ -83,4 +83,10 @@ describe('compose-format (#1022): HTML <-> plain text switch', () => {
     const back = plainComposeBodyToHtml(text, identity, { separator: true });
     expect(back).toBe(start);
   });
+
+  it('adds no separator paragraph in front of a signature that has its own delimiter', () => {
+    const html = buildEmbeddedSignatureHtml({ textSignature: '-- \nUser A' }, { embed: true, separator: true });
+    expect(html).not.toContain(`${SIGNATURE_RANGE_MARKER}="separator"`);
+    expect(count(html, '-- ')).toBe(1);
+  });
 });

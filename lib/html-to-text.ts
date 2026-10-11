@@ -61,7 +61,11 @@ function normalizeLineBreaks(value: string): string {
   return value
     .replace(/\r\n?/g, '\n')
     .replace(new RegExp(String.fromCharCode(160), 'g'), ' ')
-    .replace(/[ \t]+\n/g, '\n')
+    // Trims trailing spaces, but keeps the one that makes "-- " the RFC 3676
+    // signature delimiter, so the text part still marks the signature.
+    .split('\n')
+    .map((line) => (/^--[ \t]*$/.test(line) ? '-- ' : line.replace(/[ \t]+$/, '')))
+    .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
