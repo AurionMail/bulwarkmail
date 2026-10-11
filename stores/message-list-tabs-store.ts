@@ -16,6 +16,7 @@ import type { MessageListTab, MessageListTabsConfig } from '@/lib/plugin-types';
 import { MAX_MESSAGE_LIST_TABS } from '@/lib/plugin-types';
 import { messageListTabHooks } from '@/lib/plugin-hooks';
 import { keywordPointer } from '@/lib/jmap/patch-pointer';
+import { normalizePluginFilter } from '@/lib/jmap/search-utils';
 import { useEmailStore } from './email-store';
 
 // ─── Validation ──────────────────────────────────────────────
@@ -32,26 +33,8 @@ const TAB_ID_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/i;
 // case-insensitively by IMAP servers, so we lowercase on normalization.
 const KEYWORD_RE = /^\$[a-z0-9][a-z0-9_.-]{0,63}$/;
 
-// Upper bound on a serialized tab query — a filter tree bigger than this is
-// either a bug or an abuse vector for the JMAP request budget.
-const MAX_QUERY_JSON_BYTES = 16 * 1024;
-
 function validateTabQuery(tabId: string, query: unknown): Record<string, unknown> {
-  if (typeof query !== 'object' || query === null || Array.isArray(query)) {
-    throw new Error(`tabs.set: tab "${tabId}" query must be a JMAP filter object`);
-  }
-  let json: string;
-  try {
-    json = JSON.stringify(query);
-  } catch {
-    throw new Error(`tabs.set: tab "${tabId}" query is not serializable`);
-  }
-  if (json.length > MAX_QUERY_JSON_BYTES) {
-    throw new Error(`tabs.set: tab "${tabId}" query exceeds ${MAX_QUERY_JSON_BYTES} bytes`);
-  }
-  // Deep-clone via JSON so the stored filter is plain data (no prototypes,
-  // functions or getters can cross into request bodies).
-  return JSON.parse(json) as Record<string, unknown>;
+  return normalizePluginFilter(`tabs.set: tab "${tabId}" query`, query);
 }
 
 /**
