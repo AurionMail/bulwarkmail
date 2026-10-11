@@ -187,6 +187,29 @@ async function applyAndReport(
 }
 
 /**
+ * Run a saved rule over the mail already in a folder, from the folder's
+ * context menu. A progress toast stays up while the server is asked which
+ * messages match and the changes are made.
+ */
+export async function runRuleOnFolder(
+  target: QuickRuleTarget,
+  rule: FilterRule,
+  mailboxId: string,
+  folderName: string,
+  text: QuickRuleText,
+): Promise<void> {
+  const progressId = toast.progress(text.menu('rules.running', { name: rule.name, folder: folderName }), { progress: null });
+  try {
+    const count = await applyRuleToExisting(target, rule, mailboxId);
+    toast.dismiss(progressId);
+    toast.success(text.notifications('rule_applied', { count }), { message: rule.name });
+  } catch (error) {
+    toast.dismiss(progressId);
+    toast.error(text.notifications('rule_apply_failed'), error instanceof Error ? error.message : undefined);
+  }
+}
+
+/**
  * Open the rule editor on `ruleId` as the server has it now (the toast's copy
  * may be stale); `fallback` when it cannot be read.
  */

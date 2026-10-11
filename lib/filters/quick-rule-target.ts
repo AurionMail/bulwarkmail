@@ -73,6 +73,31 @@ export function resolveQuickRuleTarget(email: Email): QuickRuleTarget | null {
 }
 
 /**
+ * The account a folder of the sidebar belongs to, for running rules on it.
+ * Resolved like the other folder actions (the viewed account); null when the
+ * folder is not one of that account's own.
+ */
+export function resolveMailboxRuleTarget(mailbox: Mailbox): QuickRuleTarget | null {
+  const auth = useAuthStore.getState();
+  if (!auth.client) return null;
+  const context = resolveEmailActionContext({}, auth.client);
+  const client = context.client;
+  const accountId = client.getAccountId();
+  const mailboxes = context.mailboxes.filter(m => !m.isShared);
+  if (!mailboxes.some(m => m.id === mailbox.id)) return null;
+  return {
+    client,
+    clientAccountId: useEmailStore.getState().viewingAccountId ?? auth.activeAccountId ?? null,
+    key: `${clientKey(client)}|${accountId}`,
+    accountId,
+    sieveAccountId: client.getSieveAccountId(),
+    shared: false,
+    supportsSieve: typeof client.supportsSieve === 'function' && client.supportsSieve(),
+    mailboxes,
+  };
+}
+
+/**
  * The folder `email` is in, within the target account: the selected folder
  * when the message is in it, else the message's own folder (unified, tag and
  * search views have no real folder selected).
