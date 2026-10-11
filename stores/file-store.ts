@@ -68,6 +68,12 @@ interface FileState {
   lastAction: UndoAction | null;
   /** Top-level FileNodes shared with the user by other principals ("Shared with me"). */
   sharedRoots: FileResource[];
+  /**
+   * Every folder known from the last listing, for the folder tree. Each
+   * listing already fetches the whole drive, so the tree is derived from it
+   * instead of fetching again, and is current after every change.
+   */
+  allFolders: FileResource[];
 
   // Actions
   initClient: (client: IJMAPClient, accountId?: string | null) => void;
@@ -101,6 +107,8 @@ interface FileState {
   duplicateResource: (name: string) => Promise<void>;
   moveToFolder: (names: string[], targetFolder: string) => Promise<void>;
   moveToParent: (names: string[]) => Promise<void>;
+  /** Move listed items into any folder by id (null = the root), e.g. a tree or breadcrumb drop. */
+  moveToFolderId: (names: string[], targetId: string | null) => Promise<void>;
   cutResources: (names: string[]) => void;
   copyResources: (names: string[]) => void;
   pasteResources: () => Promise<void>;
@@ -113,6 +121,8 @@ interface FileState {
   listByParentId: (parentId: string | null) => Promise<FileResource[]>;
   toggleFavorite: (path: string) => void;
   addRecentFile: (name: string, id: string) => void;
+  /** Open the folder holding a node and return the node's name, or null when it is gone. */
+  revealNode: (id: string) => Promise<string | null>;
   undoLastAction: () => Promise<void>;
   /** Add, update (rights), or remove (rights=null) a principal's share on a node. */
   shareResource: (id: string, principalId: string, rights: FileNodeRights | null) => Promise<void>;
@@ -257,6 +267,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   uploadAbortController: null,
   lastAction: null,
   sharedRoots: [],
+  allFolders: [],
   favorites: (() => {
     try { return JSON.parse(localStorage.getItem('files-favorites') || '[]'); } catch { return []; }
   })(),
@@ -279,6 +290,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       currentPath: '/',
       currentParentId: null,
       resources: [],
+      allFolders: [],
       selectedResources: new Set<string>(),
       error: null,
       isLoading: false,
@@ -531,6 +543,7 @@ export const useFileStore = create<FileState>((set, get) => ({
         ? await client.listAllFileNodesAcrossAccounts()
         : await client.listAllFileNodes();
       const resources = sortResources(childrenOf(allNodes, parentId).map(nodeToResource));
+      const allFolders = allNodes.filter(isFolder).map(nodeToResource);
 
       // Prune recent files whose backing node no longer exists on the server
       const { recentFiles } = get();
@@ -538,9 +551,9 @@ export const useFileStore = create<FileState>((set, get) => ({
       const prunedRecent = recentFiles.filter(r => existingIds.has(r.id));
       if (prunedRecent.length !== recentFiles.length) {
         try { localStorage.setItem('files-recent-files', JSON.stringify(prunedRecent)); } catch { /* ignore */ }
-        set({ resources, recentFiles: prunedRecent, isLoading: false });
+        set({ resources, allFolders, recentFiles: prunedRecent, isLoading: false });
       } else {
-        set({ resources, isLoading: false });
+        set({ resources, allFolders, isLoading: false });
       }
     } catch (error) {
       set({
@@ -908,6 +921,34 @@ export const useFileStore = create<FileState>((set, get) => ({
     await refresh();
   },
 
+  moveToFolderId: async (names: string[], targetId: string | null) => {
+    const { client, resources, currentParentId, allFolders, refresh } = get();
+    if (!client || targetId === currentParentId) return;
+
+    // A folder must not move into itself or anything below it.
+    const parentOf = new Map(allFolders.map(f => [f.id, f.parentId ?? null]));
+    const isInside = (folderId: string | null, ancestorId: string) => {
+      for (let id = folderId; id != null; id = parentOf.get(id) ?? null) {
+        if (id === ancestorId) return true;
+      }
+      return false;
+    };
+
+    const entries: UndoAction['entries'] = [];
+    for (const name of names) {
+      const resource = resources.find(r => r.name === name);
+      if (!resource) continue;
+      if (resource.isDirectory && isInside(targetId, resource.id)) continue;
+      await client.updateFileNode(resource.id, { parentId: targetId });
+      entries.push({ id: resource.id, from: { parentId: resource.parentId }, to: { parentId: targetId } });
+    }
+    set({
+      selectedResources: new Set(),
+      lastAction: entries.length > 0 ? { type: 'move', entries, sourceParentId: null } : get().lastAction,
+    });
+    await refresh();
+  },
+
   cutResources: (names: string[]) => {
     const { currentPath, currentParentId, resources } = get();
     const ids = names.map(n => resources.find(r => r.name === n)?.id).filter(Boolean) as string[];
@@ -1018,6 +1059,36 @@ export const useFileStore = create<FileState>((set, get) => ({
     const next = [entry, ...filtered].slice(0, 20);
     set({ recentFiles: next });
     try { localStorage.setItem('files-recent-files', JSON.stringify(next)); } catch { /* ignore */ }
+  },
+
+  revealNode: async (id: string) => {
+    const { client, navigate } = get();
+    if (!client) return null;
+    let nodes: FileNode[];
+    try {
+      nodes = isCrossAccountId(id)
+        ? await client.listAllFileNodesAcrossAccounts()
+        : await client.listAllFileNodes();
+    } catch {
+      return null;
+    }
+    const byId = new Map(nodes.map(n => [n.id, n]));
+    const node = byId.get(id);
+    if (!node) return null;
+
+    // Rebuild the breadcrumb trail so navigate() lands on the right path.
+    const stack: { id: string | null; name: string }[] = [];
+    for (let p = node.parentId ?? null; p != null; p = byId.get(p)?.parentId ?? null) {
+      const parent = byId.get(p);
+      if (!parent) break;
+      stack.unshift({ id: parent.id, name: parent.name });
+    }
+    stack.unshift({ id: null, name: '' });
+    set({ pathStack: stack });
+    const parentEntry = stack[stack.length - 1];
+    await navigate(parentEntry.id, parentEntry.name);
+    set({ selectedResources: new Set([node.name]) });
+    return node.name;
   },
 
   undoLastAction: async () => {

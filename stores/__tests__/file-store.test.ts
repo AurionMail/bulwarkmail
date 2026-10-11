@@ -424,3 +424,83 @@ describe('resourceServerRef (issue #1094)', () => {
     expect(resourceServerRef({ id: 'b' })).toEqual({ accountId: undefined, id: 'b' });
   });
 });
+
+describe('file-store folder tree and moves', () => {
+  beforeEach(() => {
+    useFileStore.setState({
+      client: null,
+      currentParentId: null,
+      currentPath: '/',
+      pathStack: [{ id: null, name: '' }],
+      resources: [],
+      allFolders: [],
+      selectedResources: new Set(),
+      clipboard: null,
+      lastAction: null,
+    });
+  });
+
+  it('keeps every folder from the listing for the tree, at any depth', async () => {
+    const client = makeMockClient([
+      dir('a', 'A', null),
+      dir('b', 'B', 'a'),
+      file('f', 'f.txt', 'b'),
+    ]);
+    useFileStore.getState().initClient(client);
+
+    await useFileStore.getState().navigate(null);
+    expect(useFileStore.getState().allFolders.map(f => f.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('moves items into any folder by id and records the move for undo', async () => {
+    const client = makeMockClient([
+      dir('a', 'A', null),
+      dir('b', 'B', 'a'),
+      file('f', 'f.txt', null),
+    ]);
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    await useFileStore.getState().moveToFolderId(['f.txt'], 'b');
+    expect(client._nodes().find(n => n.id === 'f')!.parentId).toBe('b');
+
+    await useFileStore.getState().undoLastAction();
+    expect(client._nodes().find(n => n.id === 'f')!.parentId).toBeNull();
+  });
+
+  it('refuses to move a folder into itself or a folder below it', async () => {
+    const client = makeMockClient([
+      dir('a', 'A', null),
+      dir('b', 'B', 'a'),
+    ]);
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    await useFileStore.getState().moveToFolderId(['A'], 'b');
+    await useFileStore.getState().moveToFolderId(['A'], 'a');
+    expect(client._nodes().find(n => n.id === 'a')!.parentId).toBeNull();
+  });
+
+  it('reveals a file deep in the tree: opens its folder with the full path and selects it', async () => {
+    const client = makeMockClient([
+      dir('a', 'A', null),
+      dir('b', 'B', 'a'),
+      file('f', 'f.txt', 'b'),
+    ]);
+    useFileStore.getState().initClient(client);
+    await useFileStore.getState().navigate(null);
+
+    expect(await useFileStore.getState().revealNode('f')).toBe('f.txt');
+    const state = useFileStore.getState();
+    expect(state.currentPath).toBe('/A/B');
+    expect(state.currentParentId).toBe('b');
+    expect(state.resources.map(r => r.name)).toEqual(['f.txt']);
+    expect([...state.selectedResources]).toEqual(['f.txt']);
+  });
+
+  it('returns null when the revealed node no longer exists', async () => {
+    const client = makeMockClient([dir('a', 'A', null)]);
+    useFileStore.getState().initClient(client);
+    expect(await useFileStore.getState().revealNode('gone')).toBeNull();
+  });
+});

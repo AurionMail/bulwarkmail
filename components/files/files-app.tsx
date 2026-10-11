@@ -1,10 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { ArrowLeft } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
@@ -28,11 +25,10 @@ import { ImagePreviewModal } from "@/components/files/image-preview-modal";
 import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { WopiEditor } from "@/components/files/wopi-editor";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
-import { loadFilesSettings } from "@/components/files/files-settings-dialog";
-import type { FolderLayout } from "@/components/files/files-settings-dialog";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
-import { AlertTriangle, Loader2 } from "@/components/icons";
+import { AlertTriangle, Loader2, X } from "@/components/icons";
 import { isFilePreviewable } from "@/lib/file-preview";
+import { isImageFile } from "@/components/files/file-icons";
 import { appPath, buildFilesPath, parseFilesPath, type FilesDeepLink } from "@/lib/deep-links";
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
@@ -50,7 +46,6 @@ export interface FilesAppProps {
 export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
   const linkSegments = useLiteLinkSegments('files', routeSegments);
-  const router = useRouter();
   const t = useTranslations("files");
   const tSidebar = useTranslations("sidebar");
   useDocumentTitle(tSidebar("files"));
@@ -92,22 +87,18 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     createTextFile,
     duplicateResource,
     downloadResources,
-    moveToFolder,
-    moveToParent,
+    moveToFolderId,
     cutResources,
     copyResources,
     pasteResources,
-    selectResource,
     toggleSelect,
-    selectAll,
     clearSelection,
     setSelection,
-    listPath,
-    listByParentId,
     favorites,
     recentFiles,
     toggleFavorite,
     addRecentFile,
+    revealNode,
     cancelUpload,
     undoLastAction,
     lastAction,
@@ -118,24 +109,15 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   const isEmbedded = useIsEmbedded();
   // Mountain View's desktop chrome: its top bar in place of the left rail.
   const mvShell = useMountainViewShell(isEmbedded);
-  const [folderLayout, setFolderLayout] = useState<FolderLayout>(() => loadFilesSettings().folderLayout);
   // The account the files client was last initialised for (`undefined` = never).
   // Tracked so a Pro-shell account switch re-initialises instead of showing the
   // previous account's files until a manual Home click.
   const initedAccountRef = useRef<string | null | undefined>(undefined);
   const filesBootstrapRef = useRef(false);
 
-  // Sync folderLayout when settings change
-  useEffect(() => {
-    const reload = () => setFolderLayout(loadFilesSettings().folderLayout);
-    const handleStorage = (e: StorageEvent) => { if (e.key === "files-settings") reload(); };
-    window.addEventListener("storage", handleStorage);
-    window.addEventListener("files-settings-changed", reload);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("files-settings-changed", reload);
-    };
-  }, []);
+  const [warningDismissed, setWarningDismissed] = useState(() => {
+    try { return localStorage.getItem("files-stability-warning-dismissed") === "1"; } catch { return false; }
+  });
   const { dialogProps: confirmDialogProps, confirm: confirmDialog } = useConfirmDialog();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
@@ -143,10 +125,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   const [editFile, setEditFile] = useState<string | null>(null);
   const wopiStatus = useWopiStatus(filesEnabled);
   const isOfficeEditable = useCallback((name: string) => canWopiOpen(wopiStatus, name), [wopiStatus]);
-  const [showDetails, setShowDetails] = useState(false);
-  const [detailName, setDetailName] = useState<string | null>(null);
-
-  const detailResource = detailName ? resources.find(r => r.name === detailName) || null : null;
 
   // Check auth on mount – skip when already authenticated so that navigating
   // between routes doesn't retrigger checkAuth's transient `{ client: null,
@@ -464,9 +442,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [duplicateResource, t]);
 
-  const handleMoveToFolder = useCallback(async (names: string[], targetFolder: string) => {
+  const handleMoveTo = useCallback(async (names: string[], targetId: string | null) => {
     try {
-      await moveToFolder(names, targetFolder);
+      await moveToFolderId(names, targetId);
       toast.success(t("move_success", { count: names.length }), {
         action: { label: t("undo"), onClick: handleUndo },
       });
@@ -474,19 +452,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       console.error("Failed to move:", err);
       toast.error(t("move_error"));
     }
-  }, [moveToFolder, t, handleUndo]);
-
-  const handleMoveToParent = useCallback(async (names: string[]) => {
-    try {
-      await moveToParent(names);
-      toast.success(t("move_success", { count: names.length }), {
-        action: { label: t("undo"), onClick: handleUndo },
-      });
-    } catch (err) {
-      console.error("Failed to move:", err);
-      toast.error(t("move_error"));
-    }
-  }, [moveToParent, t, handleUndo]);
+  }, [moveToFolderId, t, handleUndo]);
 
   const handlePaste = useCallback(async () => {
     try {
@@ -510,10 +476,18 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     addRecentFile(name, findResourceId(name));
   }, [addRecentFile, findResourceId]);
 
-  const handleShowDetails = useCallback((name: string) => {
-    setDetailName(name);
-    setShowDetails(true);
-  }, []);
+  // Recent files can live in any folder: open that folder, then the file.
+  const handleOpenRecent = useCallback(async (id: string) => {
+    const name = await revealNode(id);
+    if (!name) {
+      toast.error(tDeepLink("file_not_found"));
+      return;
+    }
+    addRecentFile(name, id);
+    if (isOfficeEditable(name)) setEditFile(name);
+    else if (isImageFile(name)) setPreviewImage(name);
+    else if (isFilePreviewable(name)) setPreviewFile(name);
+  }, [revealNode, addRecentFile, isOfficeEditable, tDeepLink]);
 
   // The permalink for the folder on screen. In the Pro shell only the focused
   // tab writes the address bar; the standard instance that renders while Pro
@@ -526,10 +500,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       ? (isFocusedProTab ? filesLinkPath : null)
       : proInterfaceActive ? null : filesLinkPath,
   );
-
-  const handleToggleDetails = useCallback(() => {
-    setShowDetails(v => !v);
-  }, []);
 
   const currentFilesAccountId = useFileStore((s) => s.currentAccountId);
 
@@ -608,22 +578,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
         )}
         <div className={cn("flex flex-1 min-h-0", inlineApp && "hidden")}>
           <div className="flex-1 min-w-0 flex flex-col">
-            {folderLayout !== "sidebar" && !isEmbedded && (
-              <div className={cn("p-4 border-b border-border", isMobile && "px-3 py-3")}>
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push("/")}
-                    className="justify-start"
-                  >
-                    <ArrowLeft className="w-4 h-4 me-2" />
-                    {t("title")}
-                  </Button>
-                </div>
-              </div>
-            )}
-
             <div className="flex-1 min-h-0 flex flex-col">
               {!filesEnabled ? (
                 <div className="flex items-center justify-center h-full">
@@ -638,11 +592,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   <p className="text-sm text-muted-foreground">{t("not_available")}</p>
                 </div>
               ) : (
-                <div className="flex flex-col flex-1 min-h-0">
-                  <div className="mx-4 mt-3 mb-1 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-yellow-700 dark:text-yellow-400">{t("stability_warning")}</p>
-                  </div>
                 <FileBrowser
                   currentPath={currentPath}
                   resources={resources}
@@ -662,32 +611,41 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   onDownload={handleDownload}
                   onBatchDownload={handleBatchDownload}
                   onRefresh={refresh}
-                  onSelectResource={selectResource}
                   onToggleSelect={toggleSelect}
-                  onSelectAll={selectAll}
                   onClearSelection={clearSelection}
                   onSetSelection={setSelection}
                   onCut={cutResources}
                   onCopy={copyResources}
                   onPaste={handlePaste}
-                  onMoveToFolder={handleMoveToFolder}
-                  onMoveToParent={handleMoveToParent}
+                  onMoveTo={handleMoveTo}
                   onPreviewImage={handlePreviewImage}
                   onPreviewFile={handlePreviewFile}
                   isOfficeEditable={isOfficeEditable}
                   onEditFile={setEditFile}
-                  onShowDetails={handleShowDetails}
                   onCreateTextFile={handleCreateTextFile}
                   onDuplicate={handleDuplicate}
                   getImageUrl={getImageUrl}
-                  listPath={listPath}
-                  listByParentId={listByParentId}
                   favorites={favorites}
                   recentFiles={recentFiles}
                   onToggleFavorite={toggleFavorite}
-                  showDetails={showDetails}
-                  onToggleDetails={handleToggleDetails}
-                  detailResource={detailResource}
+                  onOpenRecent={handleOpenRecent}
+                  notice={!warningDismissed && (
+                    <div className="mx-4 mt-3 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 ps-3 pe-1 py-1.5">
+                      <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                      <p className="flex-1 text-xs text-yellow-700 dark:text-yellow-400 py-0.5">{t("stability_warning")}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWarningDismissed(true);
+                          try { localStorage.setItem("files-stability-warning-dismissed", "1"); } catch { /* ignore */ }
+                        }}
+                        className="p-1 rounded text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/15"
+                        aria-label={t("dismiss")}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                   accountFolders={accountFolders}
                   onSelectAccount={handleSelectAccount}
                   accountPickerMode={isAccountPicker}
@@ -697,7 +655,6 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   sharingEnabled={sharingEnabled}
                   onShare={handleShare}
                 />
-                </div>
               )}
             </div>
           </div>

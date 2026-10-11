@@ -1,5 +1,5 @@
 import {
-  File, Image as ImageIcon, FileText, FileAudio, FileVideo, FileArchive,
+  File, Folder, Image as ImageIcon, FileText, FileAudio, FileVideo, FileArchive,
   FileSpreadsheet, Presentation, FileCode, Box, PenTool,
   Terminal as TerminalIcon, Database, Type as TypeIcon,
 } from "@/components/icons";
@@ -110,21 +110,39 @@ function isDatabaseFile(name: string): boolean {
   return DATABASE_EXTENSIONS.has(ext);
 }
 
-export function getFileIconByName(name: string, size: "sm" | "lg") {
-  const cls = size === "sm" ? "w-5 h-5" : "w-10 h-10";
-  if (isVectorFile(name)) return <PenTool className={`${cls} text-orange-500`} />;
-  if (is3DFile(name)) return <Box className={`${cls} text-cyan-500`} />;
-  if (isImageFile(name)) return <ImageIcon className={`${cls} text-emerald-500`} />;
-  if (isAudioFile(name)) return <FileAudio className={`${cls} text-purple-500`} />;
-  if (isVideoFile(name)) return <FileVideo className={`${cls} text-pink-500`} />;
-  if (isArchiveFile(name)) return <FileArchive className={`${cls} text-amber-600`} />;
-  if (isExecutableFile(name)) return <TerminalIcon className={`${cls} text-red-500`} />;
-  if (isSpreadsheetFile(name)) return <FileSpreadsheet className={`${cls} text-green-600`} />;
-  if (isPresentationFile(name)) return <Presentation className={`${cls} text-orange-600`} />;
-  if (isWordDocumentFile(name)) return <FileText className={`${cls} text-blue-600`} />;
-  if (isFontFile(name)) return <TypeIcon className={`${cls} text-indigo-500`} />;
-  if (isDatabaseFile(name)) return <Database className={`${cls} text-slate-500`} />;
-  if (isPdfFile(name)) return <FileText className={`${cls} text-red-600`} />;
-  if (isTextFile(name)) return <FileCode className={`${cls} text-yellow-600`} />;
-  return <File className={`${cls} text-muted-foreground`} />;
+export type FileIconSize = "sm" | "md" | "lg" | "xl";
+
+const ICON_SIZE_CLASSES: Record<FileIconSize, string> = {
+  sm: "w-5 h-5",
+  md: "w-6 h-6",
+  lg: "w-10 h-10",
+  xl: "w-14 h-14",
+};
+
+function fileIconFor(name: string): [typeof File, string] {
+  if (isVectorFile(name)) return [PenTool, "text-orange-500"];
+  if (is3DFile(name)) return [Box, "text-cyan-500"];
+  if (isImageFile(name)) return [ImageIcon, "text-emerald-500"];
+  if (isAudioFile(name)) return [FileAudio, "text-purple-500"];
+  if (isVideoFile(name)) return [FileVideo, "text-pink-500"];
+  if (isArchiveFile(name)) return [FileArchive, "text-amber-600"];
+  if (isExecutableFile(name)) return [TerminalIcon, "text-red-500"];
+  if (isSpreadsheetFile(name)) return [FileSpreadsheet, "text-green-600"];
+  if (isPresentationFile(name)) return [Presentation, "text-orange-600"];
+  if (isWordDocumentFile(name)) return [FileText, "text-blue-600"];
+  if (isFontFile(name)) return [TypeIcon, "text-indigo-500"];
+  if (isDatabaseFile(name)) return [Database, "text-slate-500"];
+  if (isPdfFile(name)) return [FileText, "text-red-600"];
+  if (isTextFile(name)) return [FileCode, "text-yellow-600"];
+  return [File, "text-muted-foreground"];
+}
+
+/** The icon for a file name; `colored: false` draws every type in the muted text colour. */
+export function getFileIconByName(name: string, size: FileIconSize, colored = true) {
+  const [Icon, color] = fileIconFor(name);
+  return <Icon className={`${ICON_SIZE_CLASSES[size]} shrink-0 ${colored ? color : "text-muted-foreground"}`} />;
+}
+
+export function getFolderIcon(size: FileIconSize, colored = true) {
+  return <Folder className={`${ICON_SIZE_CLASSES[size]} shrink-0 ${colored ? "text-blue-500" : "text-muted-foreground"}`} />;
 }

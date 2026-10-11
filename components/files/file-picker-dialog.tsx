@@ -9,7 +9,7 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { debug } from "@/lib/debug";
 import { cn, formatFileSize } from "@/lib/utils";
 import { getFileIconByName } from "@/components/files/file-icons";
-import { loadFilesSettings } from "@/components/files/files-settings-dialog";
+import { loadFilesSettings } from "@/components/files/files-settings";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNode } from "@/lib/jmap/types";
 

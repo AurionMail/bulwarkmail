@@ -12,9 +12,6 @@ vi.mock('@/components/settings/share-collection-dialog', () => ({
   ),
 }));
 
-// Shared folders must be reachable, and own folders shareable, in both
-// folder layouts (#1181).
-
 function node(id: string, name: string, parentId: string | null, extra: Partial<FileNode> = {}): FileNode {
   return {
     id,
@@ -35,13 +32,14 @@ function resource(n: FileNode): FileResource {
     name: n.name,
     serverName: n.name,
     isDirectory: n.blobId == null,
-    contentType: '',
+    contentType: n.blobId == null ? '' : n.type,
     contentLength: n.size,
     lastModified: n.modified ?? '',
     blobId: n.blobId,
     parentId: n.parentId,
     shareWith: n.shareWith,
     isShared: n.isShared,
+    ownerName: n.accountName,
   } as FileResource;
 }
 
@@ -51,19 +49,29 @@ const OWN: FileNode[] = [
 ];
 const SHARED = node('e:f-team', 'Team', null, { isShared: true, accountId: 'e', accountName: 'userb@example.org' });
 
-function setLayout(folderLayout: 'inline' | 'sidebar') {
-  localStorage.setItem('files-settings', JSON.stringify({ folderLayout }));
-}
+type Overrides = Partial<React.ComponentProps<typeof FileBrowser>>;
 
-function renderBrowser(opts: { resources?: FileResource[]; listByParentId?: (id: string | null) => Promise<FileResource[]> } = {}) {
+function renderBrowser(opts: { resources?: FileResource[]; allFolders?: FileResource[]; props?: Overrides } = {}) {
   const client = {
     listAllFileNodesAcrossAccounts: vi.fn(async () => [...OWN, SHARED]),
   } as unknown as IJMAPClient;
-  act(() => { useFileStore.setState({ client, sharedRoots: [] }); });
-  const onNavigate = vi.fn();
+  act(() => {
+    useFileStore.setState({
+      client,
+      sharedRoots: [],
+      allFolders: opts.allFolders ?? OWN.filter((n) => n.blobId == null).map(resource),
+      currentParentId: null,
+      pathStack: [{ id: null, name: '' }],
+    });
+  });
+  const handlers = {
+    onNavigate: vi.fn(),
+    onSetSelection: vi.fn(),
+    onToggleSelect: vi.fn(),
+    onPreviewFile: vi.fn(),
+    onDownload: vi.fn(async () => {}),
+  };
   const noop = vi.fn(async () => {});
-  const listByParentId = opts.listByParentId
-    ?? vi.fn(async (parentId: string | null) => OWN.filter(n => n.parentId === parentId).map(resource));
   render(
     <FileBrowser
       currentPath="/"
@@ -73,7 +81,6 @@ function renderBrowser(opts: { resources?: FileResource[]; listByParentId?: (id:
       selectedResources={new Set()}
       uploadProgress={null}
       clipboard={null}
-      onNavigate={onNavigate}
       onCreateFolder={noop}
       onUploadFiles={noop}
       onUploadFolder={noop}
@@ -81,92 +88,136 @@ function renderBrowser(opts: { resources?: FileResource[]; listByParentId?: (id:
       onDelete={noop}
       onBatchDelete={noop}
       onRename={noop}
-      onDownload={noop}
       onBatchDownload={noop}
       onRefresh={noop}
-      onSelectResource={vi.fn()}
-      onToggleSelect={vi.fn()}
-      onSelectAll={vi.fn()}
       onClearSelection={vi.fn()}
-      onSetSelection={vi.fn()}
       onCut={vi.fn()}
       onCopy={vi.fn()}
       onPaste={noop}
-      onMoveToFolder={noop}
-      onMoveToParent={noop}
+      onMoveTo={noop}
       onPreviewImage={vi.fn()}
-      onPreviewFile={vi.fn()}
-      onShowDetails={vi.fn()}
       onCreateTextFile={noop}
       onDuplicate={noop}
       getImageUrl={async () => ''}
-      listPath={async () => []}
-      listByParentId={listByParentId}
       favorites={[]}
       recentFiles={[]}
       onToggleFavorite={vi.fn()}
-      showDetails={false}
-      onToggleDetails={vi.fn()}
-      detailResource={null}
+      onOpenRecent={vi.fn()}
       client={client}
       ownAccountId="a"
       sharingEnabled
       onShare={noop}
+      {...handlers}
+      {...opts.props}
     />,
   );
-  return { onNavigate, listByParentId };
+  return handlers;
 }
 
-describe('FileBrowser shared folders (#1181)', () => {
+// Narrow panes (and jsdom) show the sidebar as a drawer; open it like a user would.
+function tree() {
+  const toggle = screen.queryByRole('button', { name: 'open_folder_tree' });
+  if (toggle && toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
+  return screen.getByRole('navigation', { name: 'folders' });
+}
+
+function list() {
+  return screen.getByRole('grid', { name: 'file_list' });
+}
+
+describe('FileBrowser', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => {
-    act(() => { useFileStore.setState({ client: null, sharedRoots: [] }); });
+    act(() => { useFileStore.setState({ client: null, sharedRoots: [], allFolders: [] }); });
   });
 
-  it('lists folders shared with the user at the root in the inline layout', async () => {
-    setLayout('inline');
+  it('lists folders shared with the user at the root and in the sidebar (#1181)', async () => {
     const { onNavigate } = renderBrowser();
-    const team = await screen.findByText('Team');
-    expect(screen.getAllByText('shared_with_me').length).toBeGreaterThan(0);
-    fireEvent.click(team);
+    await screen.findAllByText('Team');
+    const section = screen.getByRole('region', { name: 'shared_with_me' });
+    fireEvent.click(within(section).getByText('Team'));
     expect(onNavigate).toHaveBeenCalledWith('/Team', 'e:f-team');
+    expect(within(tree()).getByText('Team')).toBeInTheDocument();
   });
 
-  it('shows shared folders instead of the upload area when the own root is empty', async () => {
-    setLayout('inline');
-    renderBrowser({ resources: [] });
-    expect(await screen.findByText('Team')).toBeInTheDocument();
+  it('shows shared folders instead of the empty state when the own root is empty', async () => {
+    renderBrowser({ resources: [], allFolders: [] });
+    expect(await screen.findAllByText('Team')).not.toHaveLength(0);
+    expect(screen.queryByText('empty_state_title')).toBeNull();
   });
 
-  it('does not repeat shared folders in the list in the sidebar layout', async () => {
-    setLayout('sidebar');
+  it('lists folders in the file list as well as the tree', () => {
     renderBrowser();
-    // The tree lists it once; the file list does not.
-    expect(await screen.findAllByText('Team')).toHaveLength(1);
-    expect(screen.queryByRole('table')?.textContent ?? '').not.toContain('Team');
+    expect(within(list()).getByText('Documents')).toBeInTheDocument();
+    expect(within(tree()).getByText('Documents')).toBeInTheDocument();
   });
 
-  it('shares an own folder from the tree in the sidebar layout', async () => {
-    setLayout('sidebar');
-    const shared = { ...OWN[0], shareWith: { p1: { mayRead: true } } } as unknown as FileNode;
-    const listByParentId = vi.fn(async (parentId: string | null) =>
-      parentId === null ? [resource(shared), resource(OWN[1])] : []);
+  it('opens a folder from its name and selects it from the row', () => {
+    const { onNavigate, onSetSelection } = renderBrowser();
+    const row = within(list()).getByText('Documents').closest('[role=row]')!;
+    fireEvent.click(row);
+    expect(onSetSelection).toHaveBeenCalledWith(new Set(['Documents']));
+    expect(onNavigate).not.toHaveBeenCalled();
+
+    fireEvent.click(within(list()).getByText('Documents'));
+    expect(onNavigate).toHaveBeenCalledWith('/Documents', 'f-docs');
+  });
+
+  it('previews a text file when its name is clicked', () => {
+    const { onPreviewFile } = renderBrowser();
+    fireEvent.click(within(list()).getByText('notes.txt'));
+    expect(onPreviewFile).toHaveBeenCalledWith('notes.txt');
+  });
+
+  it('shares an own folder from the tree with its current shares', async () => {
+    const shared = resource({ ...OWN[0], shareWith: { p1: { mayRead: true } } } as unknown as FileNode);
     // Browsing another folder: the tree's folder is not in the listing.
-    renderBrowser({ resources: [resource(OWN[1])], listByParentId });
+    renderBrowser({ resources: [resource(OWN[1])], allFolders: [shared] });
 
-    const folder = await screen.findByText('Documents');
-    fireEvent.contextMenu(folder);
-    fireEvent.click(await screen.findByText('share'));
+    fireEvent.contextMenu(within(tree()).getByText('Documents'));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'share' }));
 
-    // The dialog reads the folder fresh, so it shows the current shares.
     expect(await screen.findByTestId('share-dialog')).toHaveTextContent('Documents:p1');
   });
 
-  it('offers no share menu on folders shared with the user', async () => {
-    setLayout('sidebar');
+  it('offers no share action on folders shared with the user', async () => {
     renderBrowser();
-    const tree = (await screen.findByText('Team')).closest('div')!;
-    fireEvent.contextMenu(within(tree).getByText('Team'));
-    expect(screen.queryByText('share')).toBeNull();
+    await screen.findAllByText('Team');
+    fireEvent.contextMenu(within(tree()).getByText('Team'));
+    expect(screen.queryByRole('menuitem', { name: 'share' })).toBeNull();
+  });
+
+  it('hides dot files unless the setting shows them', () => {
+    const hidden = resource(node('f-env', '.env', null, { blobId: 'b-env', type: 'text/plain', size: 1 }));
+    renderBrowser({ resources: [...OWN.map(resource), hidden] });
+    expect(within(list()).queryByText('.env')).toBeNull();
+  });
+
+  it('shows dot files when the setting is on', () => {
+    localStorage.setItem('files-settings', JSON.stringify({ showHiddenFiles: true }));
+    const hidden = resource(node('f-env', '.env', null, { blobId: 'b-env', type: 'text/plain', size: 1 }));
+    renderBrowser({ resources: [...OWN.map(resource), hidden] });
+    expect(within(list()).getByText('.env')).toBeInTheDocument();
+  });
+
+  it('starts in the default view and sort from the settings', () => {
+    localStorage.setItem('files-settings', JSON.stringify({ defaultSortKey: 'name', defaultSortDir: 'desc' }));
+    const files = ['a.txt', 'c.txt', 'b.txt'].map((n, i) => resource(node(`f${i}`, n, null, { blobId: `b${i}`, type: 'text/plain', size: 1 })));
+    renderBrowser({ resources: files, allFolders: [] });
+    const names = within(list()).getAllByRole('row').slice(1).map((r) => r.getAttribute('data-resource'));
+    expect(names).toEqual(['c.txt', 'b.txt', 'a.txt']);
+  });
+
+  it('shows an empty state with upload and new folder in an empty folder', () => {
+    renderBrowser({ resources: [], allFolders: [], props: { currentPath: '/Documents' } });
+    expect(screen.getByText('empty_folder_title')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /upload_files/ }).length).toBeGreaterThan(0);
+  });
+
+  it('replaces the toolbar with selection actions when items are selected', () => {
+    renderBrowser({ props: { selectedResources: new Set(['notes.txt']) } });
+    const bar = screen.getByRole('toolbar', { name: 'selection_actions' });
+    expect(within(bar).getByRole('button', { name: 'download' })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'delete' })).toBeInTheDocument();
   });
 });

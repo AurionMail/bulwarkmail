@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { Folder, FolderOpen, FileText, FileCode, ImageIcon, FileAudio, File, Home, ChevronRight, ChevronDown } from "@/components/icons";
+import { Folder, FileText, FileCode, ImageIcon, FileAudio, File } from "@/components/icons";
 import { SettingsSection, SettingItem, ToggleSwitch, RadioGroup } from "./settings-section";
-import { loadFilesSettings, saveFilesSettings, type FilesSettings, type FolderLayout } from "@/components/files/files-settings-dialog";
+import { loadFilesSettings, saveFilesSettings, type FilesSettings } from "@/components/files/files-settings";
 import { cn } from "@/lib/utils";
 import { withBasePath } from "@/lib/browser-navigation";
 import { useConfig } from "@/hooks/use-config";
@@ -65,7 +65,6 @@ function FilesSettingsPreview({ settings }: { settings: FilesSettings }) {
   const sortedFiles = useMemo(() => {
     let files = SAMPLE_FILES.map((f) => (f.thumbnailUrl ? { ...f, thumbnailUrl } : f)).filter((f) => {
       if (!settings.showHiddenFiles && f.hidden) return false;
-      if (settings.folderLayout === "sidebar" && f.isFolder) return false;
       return true;
     });
 
@@ -83,7 +82,7 @@ function FilesSettingsPreview({ settings }: { settings: FilesSettings }) {
     });
 
     return files;
-  }, [settings.showHiddenFiles, settings.folderLayout, settings.defaultSortKey, settings.defaultSortDir, thumbnailUrl]);
+  }, [settings.showHiddenFiles, settings.defaultSortKey, settings.defaultSortDir, thumbnailUrl]);
 
   const listView = (
     <div className="flex-1 min-w-0 overflow-hidden">
@@ -146,29 +145,9 @@ function FilesSettingsPreview({ settings }: { settings: FilesSettings }) {
     </div>
   );
 
-  const sidebar = settings.folderLayout === "sidebar" && (
-    <div className="w-24 border-e border-border bg-muted/30 py-1.5 flex-shrink-0">
-      <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-foreground">
-        <Home className="w-3 h-3 flex-shrink-0" />
-        <span className="truncate">Files</span>
-      </div>
-      <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-foreground bg-accent rounded-sm mx-1">
-        <ChevronDown className="w-2.5 h-2.5 flex-shrink-0" />
-        <FolderOpen className="w-3 h-3 flex-shrink-0 text-blue-500" />
-        <span className="truncate">Documents</span>
-      </div>
-      <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-muted-foreground" style={{ paddingLeft: "1.25rem" }}>
-        <ChevronRight className="w-2.5 h-2.5 flex-shrink-0" />
-        <Folder className="w-3 h-3 flex-shrink-0 text-blue-500" />
-        <span className="truncate">Photos</span>
-      </div>
-    </div>
-  );
-
   return (
     <div className="mt-4 rounded-lg border border-border overflow-hidden bg-background text-xs select-none">
       <div className="flex" style={{ minHeight: "10rem" }}>
-        {sidebar}
         {settings.defaultViewMode === "grid" ? gridView : listView}
       </div>
     </div>
@@ -207,16 +186,6 @@ export function FilesSettingsComponent() {
 
       <div className="space-y-8">
         <SettingsSection title={t("display.title")} description={t("display.description")}>
-        <SettingItem label={t("folder_layout.label")} description={t("folder_layout.description")}>
-          <RadioGroup
-            value={settings.folderLayout}
-            onChange={(v) => update({ folderLayout: v as FolderLayout })}
-            options={[
-              { value: "inline", label: t("folder_layout.inline") },
-              { value: "sidebar", label: t("folder_layout.sidebar") },
-            ]}
-          />
-        </SettingItem>
         <SettingItem label={t("default_view.label")} description={t("default_view.description")}>
           <RadioGroup
             value={settings.defaultViewMode}
