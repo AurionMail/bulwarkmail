@@ -17,6 +17,7 @@ import {
   Inbox,
   List,
   MailOpen,
+  Play,
   Plus,
   Send,
   Settings,
@@ -50,11 +51,21 @@ import {
   getOwnAddresses,
   knownListId,
   loadListIds,
+  resolveMailboxRuleTarget,
   resolveQuickRuleTarget,
   sourceMailboxOf,
   type QuickRuleTarget,
 } from "@/lib/filters/quick-rule-target";
-import { ensureFiltersStatus, openFilterSettings, runPresetRule, type QuickRuleText } from "@/lib/filters/quick-rule-flow";
+import {
+  ensureFiltersStatus,
+  openFilterSettings,
+  runPresetRule,
+  runRuleOnFolder,
+  type QuickRuleText,
+} from "@/lib/filters/quick-rule-flow";
+import { readAccountFilters } from "@/lib/filters/account-filters";
+import { retroactiveSupport } from "@/lib/filters/retroactive";
+import type { FilterRule } from "@/lib/jmap/sieve-types";
 
 /** Translators for the rule flows, which outlive the menu that starts them. */
 export function useQuickRuleText(): QuickRuleText {
@@ -703,4 +714,104 @@ export function RulesPanel({
   onDone: () => void;
 }) {
   return <PanelContent key={email.id} email={email} target={target} variant={variant} onDone={onDone} />;
+}
+
+// ── Folder menu ──────────────────────────────────────────────────────────
+
+type FolderRules =
+  | { state: "loading" }
+  | { state: "error" }
+  | { state: "opaque" }
+  | { state: "ready"; rules: FilterRule[] };
+
+function FolderRulesContent({
+  mailbox,
+  target,
+  onDone,
+}: {
+  mailbox: Mailbox;
+  target: QuickRuleTarget;
+  onDone: () => void;
+}) {
+  const t = useTranslations("context_menu");
+  const tFilters = useTranslations("settings.filters");
+  const tSidebar = useTranslations("sidebar");
+  const text = useQuickRuleText();
+  const router = useRouter();
+  const [rules, setRules] = useState<FolderRules>({ state: "loading" });
+
+  // Read from the server: the filter store only holds the rules while
+  // Settings has loaded them, and may hold another account's.
+  useEffect(() => {
+    let cancelled = false;
+    readAccountFilters(target.client, target.sieveAccountId)
+      .then((filters) => {
+        if (cancelled) return;
+        setRules(filters.parsed.isOpaque ? { state: "opaque" } : { state: "ready", rules: filters.parsed.rules });
+      })
+      .catch(() => { if (!cancelled) setRules({ state: "error" }); });
+    return () => { cancelled = true; };
+  }, [target]);
+
+  const folderName = localizeMailboxName(mailbox.role, mailbox.name, (k) => tSidebar(`mailboxes.${k}`));
+  const note = (key: string, testId: string) => (
+    <div className="px-3 py-1.5 text-xs text-muted-foreground" data-testid={testId}>{t(key)}</div>
+  );
+
+  return (
+    <div className="max-w-[22rem]">
+      {rules.state === "loading" && note("rules.loading", "folder-rules:loading")}
+      {rules.state === "error" && note("rules.load_failed", "folder-rules:error")}
+      {rules.state === "opaque" && note("rules.opaque_hint", "rules:opaque-hint")}
+      {rules.state === "ready" && rules.rules.length === 0 && note("rules.none", "folder-rules:empty")}
+      {rules.state === "ready" && rules.rules.map((rule) => {
+        const support = retroactiveSupport(rule);
+        return (
+          <ContextMenuItem
+            key={rule.id}
+            icon={Play}
+            label={rule.name}
+            title={support.ok ? undefined : tFilters(support.reason === "period" ? "apply_existing_period" : "apply_existing_unsupported")}
+            hint={support.ok ? undefined : t("rules.new_mail_only")}
+            disabled={!support.ok}
+            testId={`folder-rules:run:${rule.id}`}
+            onClick={() => {
+              void runRuleOnFolder(target, rule, mailbox.id, folderName, text);
+              onDone();
+            }}
+          />
+        );
+      })}
+      <ContextMenuSeparator />
+      <ContextMenuItem
+        icon={Settings}
+        label={t("rules.manage")}
+        testId="folder-rules:manage"
+        onClick={() => {
+          void openFilterSettings(target, (href) => router.push(href));
+          onDone();
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * The "Rules" entry of a folder's right-click menu: runs one of the account's
+ * saved rules over the mail already in the folder (#1166). Hidden for shared
+ * folders and accounts without Sieve.
+ */
+export function FolderRulesSubMenu({ mailbox, onClose }: { mailbox: Mailbox; onClose: () => void }) {
+  const t = useTranslations("context_menu");
+  const client = useAuthStore((s) => s.client);
+  const target = useMemo(
+    () => (client && !mailbox.isShared ? resolveMailboxRuleTarget(mailbox) : null),
+    [client, mailbox],
+  );
+  if (!target || !target.supportsSieve) return null;
+  return (
+    <ContextMenuSubMenu icon={Filter} label={t("rules.title")} testId="mailbox-rules">
+      <FolderRulesContent mailbox={mailbox} target={target} onDone={onClose} />
+    </ContextMenuSubMenu>
+  );
 }

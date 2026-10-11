@@ -2494,7 +2494,12 @@
       "manage": "Manage rules",
       "senders_count": "{count, plural, one {# sender} other {# senders}}",
       "cross_account": "Select messages from one account",
-      "opaque_hint": "Your filters were edited by hand. Open Filters settings"
+      "opaque_hint": "Your filters were edited by hand. Open Filters settings",
+      "loading": "Loading rules…",
+      "load_failed": "Could not load the rules",
+      "none": "No rules yet",
+      "new_mail_only": "Only for new messages",
+      "running": "Running \"{name}\" on {folder}…"
     }
   },
   "mailbox_context_menu": {

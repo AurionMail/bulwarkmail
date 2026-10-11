@@ -2490,7 +2490,12 @@
       "manage": "Regeln verwalten",
       "senders_count": "{count, plural, one {# Absender} other {# Absendern}}",
       "cross_account": "Nachrichten aus nur einem Konto auswählen",
-      "opaque_hint": "Ihre Filter wurden von Hand bearbeitet. Öffnen Sie die Filter-Einstellungen"
+      "opaque_hint": "Ihre Filter wurden von Hand bearbeitet. Öffnen Sie die Filter-Einstellungen",
+      "loading": "Regeln werden geladen…",
+      "load_failed": "Die Regeln konnten nicht geladen werden",
+      "none": "Noch keine Regeln",
+      "new_mail_only": "Nur für neue Nachrichten",
+      "running": "„{name}“ wird auf {folder} angewendet…"
     }
   },
   "mailbox_context_menu": {
