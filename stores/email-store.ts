@@ -1490,6 +1490,102 @@ function applyBatchMailboxCounterUpdate(
   return { mailboxes, accountMailboxes };
 }
 
+/**
+ * The folder with `role` in one account's mailbox list. `accountId` scopes it
+ * to a shared/group owner; without it, own folders only. Own folders may or
+ * may not carry their account id, so a missing one counts as own.
+ */
+function findRoleMailbox(mailboxes: Mailbox[], role: string, accountId: string | undefined): Mailbox | undefined {
+  return mailboxes.find(m =>
+    m.role === role && (accountId && m.accountId ? m.accountId === accountId : !m.isShared)
+  );
+}
+
+/**
+ * Batch spam / not-spam. Each message is routed like the single-message
+ * action: through its own account's client, to that account's junk or inbox.
+ * The batch used to send everything through the active client to the selected
+ * folder's account, so in unified, tag and search views it either failed for
+ * other accounts or returned early while the caller showed a success toast.
+ *
+ * Throws when any message could not be moved; the ones that were moved still
+ * leave the list.
+ */
+async function runBatchSpamAction(
+  get: StoreGet,
+  set: StoreSet,
+  client: IJMAPClient,
+  emailIds: string[],
+  role: 'junk' | 'inbox',
+  run: (actionClient: IJMAPClient, email: Email, accountId: string | undefined, destination: Mailbox | undefined) => Promise<void>,
+  arrivesUnread: (email: Email) => boolean,
+): Promise<void> {
+  // Act on the selected emails themselves: bare ids collide across accounts,
+  // so looking them up in the list could pick another account's namesake.
+  const wanted = new Set(emailIds);
+  const state = get();
+  const selected = resolveSelectedEmails(state).filter(e => wanted.has(e.id));
+  const targets = selected.length > 0 ? selected : state.emails.filter(e => wanted.has(e.id));
+  if (targets.length === 0) {
+    throw new Error('Emails not found');
+  }
+
+  const destinationByKey = new Map<string, string | undefined>();
+  const failures: unknown[] = [];
+  for (const email of targets) {
+    const { client: actionClient, mailboxes, accountId } = resolveEmailActionContext(email, client);
+    const destination = findRoleMailbox(mailboxes, role, accountId);
+    if (!destination && role === 'inbox') {
+      failures.push(new Error('Inbox not found'));
+      continue;
+    }
+    try {
+      await run(actionClient, email, accountId, destination);
+      destinationByKey.set(emailKeyFor(email), destination?.id);
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+
+  if (destinationByKey.size > 0) {
+    const moved = targets.filter(e => destinationByKey.has(emailKeyFor(e)));
+    set(s => {
+      // Counters change in the email's own account list (#281).
+      const patch = applyBatchMailboxCounterUpdate(s, moved, (mb, group) => {
+        let dTotal = 0;
+        let dUnread = 0;
+        for (const e of group as Email[]) {
+          if (emailInMailbox(e, mb)) {
+            dTotal--;
+            if (!e.keywords?.$seen) dUnread--;
+          }
+          if (destinationByKey.get(emailKeyFor(e)) === mb.id) {
+            dTotal++;
+            if (arrivesUnread(e)) dUnread++;
+          }
+        }
+        return dTotal === 0 && dUnread === 0 ? mb : {
+          ...mb,
+          totalEmails: Math.max(0, mb.totalEmails + dTotal),
+          unreadEmails: Math.max(0, mb.unreadEmails + dUnread),
+        };
+      });
+      const isMoved = (e: Email) => destinationByKey.has(emailKeyFor(e));
+      return {
+        emails: s.emails.filter(e => !isMoved(e)),
+        selectedEmail: s.selectedEmail && isMoved(s.selectedEmail) ? null : s.selectedEmail,
+        selectedEmailKeys: new Set(),
+        ...patch,
+      };
+    });
+  }
+
+  if (failures.length > 0) {
+    console.error(`Batch ${role === 'junk' ? 'mark as spam' : 'not spam'} failed for ${failures.length} of ${targets.length} emails:`, failures);
+    throw failures[0] instanceof Error ? failures[0] : new Error('Batch spam action failed');
+  }
+}
+
 // Sidebar tag badges render from `tagCounts`, which is *fetched from the server*
 // (`fetchTagCounts` -> `getTagCounts`) rather than derived from `state.emails`.
 // So a read/unread mutation has to keep it in step locally, exactly as it does
@@ -4091,14 +4187,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       ? (mailboxes.find(mb => emailInMailbox(email, mb) && mb.role === get().unifiedRole)
           ?? mailboxes.find(mb => emailInMailbox(email, mb)))
       : mailboxes.find(m => m.id === get().selectedMailbox);
-    if (!currentMailbox) return;
 
-    get().spamUndoCache.set(emailId, {
-      emailId,
-      originalMailboxId: currentMailbox.originalId || currentMailbox.id,
-      accountId,
-      sourceClientAccountId: email.sourceClientAccountId,
-    });
+    // Without a known source folder there is nothing for undo to restore to;
+    // still move the message, and undo falls back to the inbox. Returning
+    // here let the caller show a success toast for a message never moved.
+    if (currentMailbox) {
+      get().spamUndoCache.set(emailId, {
+        emailId,
+        originalMailboxId: currentMailbox.originalId || currentMailbox.id,
+        accountId,
+        sourceClientAccountId: email.sourceClientAccountId,
+      });
+    }
 
     try {
       const isUnread = !email.keywords?.$seen;
@@ -4239,136 +4339,21 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   batchMarkAsSpam: async (client, emailIds) => {
-    const { selectedMailbox, emails } = get();
-    const mailboxes = resolveActionMailboxes();
-    const effectiveClient = resolveActionClient(client);
-
-    const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
-    if (!currentMailbox) return;
-
     const alsoMarkRead = useSettingsStore.getState().deleteAction === 'trash-and-read';
-
-    try {
-      for (const emailId of emailIds) {
-        const email = emails.find(e => e.id === emailId);
-        const markRead = alsoMarkRead && !!email && !email.keywords?.$seen;
-        await effectiveClient.markAsSpam(emailId, currentMailbox.accountId, markRead);
-      }
-
-      // Adjust counters and drop the emails from the current view. Junk is
-      // resolved the same way the client did for the move itself.
-      const affected = emails.filter(e => emailIds.includes(e.id));
-      const junkMailbox = mailboxes.find(m =>
-        currentMailbox.accountId
-          ? (m.role === 'junk' && m.accountId === currentMailbox.accountId)
-          : (m.role === 'junk' && !m.isShared)
-      );
-      let junkTotal = 0;
-      let junkUnread = 0;
-      for (const e of affected) {
-        junkTotal += 1;
-        // After marking read in the same request, the email arrives in junk as read.
-        if (!e.keywords?.$seen && !alsoMarkRead) junkUnread += 1;
-      }
-
-      set(state => {
-        // Decrement source folders per the email's own account list (#281).
-        const patch = applyBatchMailboxCounterUpdate(state, affected, (mb, group) => {
-          let dTotal = 0;
-          let dUnread = 0;
-          for (const e of group as Email[]) {
-            if (emailInMailbox(e, mb)) {
-              dTotal--;
-              if (!e.keywords?.$seen) dUnread--;
-            }
-          }
-          return dTotal === 0 && dUnread === 0 ? mb : {
-            ...mb,
-            totalEmails: Math.max(0, mb.totalEmails + dTotal),
-            unreadEmails: Math.max(0, mb.unreadEmails + dUnread),
-          };
-        });
-        // The junk folder (picked from the active/viewing list) gains them.
-        if (junkMailbox) {
-          patch.mailboxes = patch.mailboxes.map(mb => mb.id === junkMailbox.id
-            ? { ...mb, totalEmails: mb.totalEmails + junkTotal, unreadEmails: mb.unreadEmails + junkUnread }
-            : mb);
-        }
-        return {
-          emails: state.emails.filter(e => !emailIds.includes(e.id)),
-          selectedEmail: emailIds.includes(state.selectedEmail?.id || '') ? null : state.selectedEmail,
-          selectedEmailKeys: new Set(),
-          ...patch,
-        };
-      });
-    } catch (error) {
-      console.error('Failed to batch mark as spam:', error);
-      throw error;
-    }
+    await runBatchSpamAction(get, set, client, emailIds, 'junk', (actionClient, email, accountId) =>
+      actionClient.markAsSpam(email.id, accountId, alsoMarkRead && !email.keywords?.$seen),
+      // After marking read in the same request, the email arrives in junk as read.
+      (email) => !email.keywords?.$seen && !alsoMarkRead,
+    );
   },
 
+  // Batch "not spam" goes to the Inbox: unlike the toast undo there is no
+  // record of where each message came from.
   batchUndoSpam: async (client: IJMAPClient, emailIds: string[]) => {
-    const { selectedMailbox } = get();
-    const mailboxes = resolveActionMailboxes();
-    const effectiveClient = resolveActionClient(client);
-
-    // Find inbox (batch operations don't preserve original mailboxes)
-    const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
-    const accountId = currentMailbox?.accountId;
-
-    const inboxMailbox = mailboxes.find(m =>
-      m.role === 'inbox' &&
-      (accountId ? m.accountId === accountId : !m.accountId)
+    await runBatchSpamAction(get, set, client, emailIds, 'inbox', (actionClient, email, accountId, destination) =>
+      actionClient.undoSpam(email.id, destination!.originalId || destination!.id, accountId),
+      (email) => !email.keywords?.$seen,
     );
-
-    if (!inboxMailbox) {
-      throw new Error('Inbox not found');
-    }
-
-    try {
-      for (const emailId of emailIds) {
-        await effectiveClient.undoSpam(emailId, inboxMailbox.originalId || inboxMailbox.id, accountId);
-      }
-
-      // Adjust counters and drop the restored emails from the junk view.
-      const affected = get().emails.filter(e => emailIds.includes(e.id));
-      let unreadDelta = 0;
-      for (const e of affected) {
-        if (!e.keywords?.$seen) unreadDelta += 1;
-      }
-
-      set(state => {
-        // Decrement source folders per the email's own account list (#281).
-        const patch = applyBatchMailboxCounterUpdate(state, affected, (mb, group) => {
-          let dTotal = 0;
-          let dUnread = 0;
-          for (const e of group as Email[]) {
-            if (emailInMailbox(e, mb)) {
-              dTotal--;
-              if (!e.keywords?.$seen) dUnread--;
-            }
-          }
-          return dTotal === 0 && dUnread === 0 ? mb : {
-            ...mb,
-            totalEmails: Math.max(0, mb.totalEmails + dTotal),
-            unreadEmails: Math.max(0, mb.unreadEmails + dUnread),
-          };
-        });
-        // The inbox (picked from the active/viewing list) gains them.
-        patch.mailboxes = patch.mailboxes.map(mb => mb.id === inboxMailbox.id
-          ? { ...mb, totalEmails: mb.totalEmails + affected.length, unreadEmails: mb.unreadEmails + unreadDelta }
-          : mb);
-        return {
-          emails: state.emails.filter(e => !emailIds.includes(e.id)),
-          selectedEmail: emailIds.includes(state.selectedEmail?.id || '') ? null : state.selectedEmail,
-          selectedEmailKeys: new Set(),
-          ...patch,
-        };
-      });
-    } catch (error) {
-      console.error('Failed to batch restore emails:', error);
-      throw error;
-    }
   },
 
   // Push notification handlers
