@@ -3668,6 +3668,8 @@
     "create_file_error": "Failed to create file",
     "favorites": "Starred",
     "recent": "Recent",
+    "show_in_folder": "Show in folder",
+    "remove_from_recent": "Remove from recent",
     "upload_folder": "Upload Folder",
     "file_too_large": "\"{name}\" exceeds the maximum file size ({max})",
     "undo": "Undo",

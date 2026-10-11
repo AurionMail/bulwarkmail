@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Plus, HardDrive, Folder, FolderOpen, ChevronRight, ChevronDown, Star, StarOff,
-  Clock, Share2, Upload, FolderUp, FolderPlus, FilePlus,
+  Clock, Share2, Upload, FolderUp, FolderPlus, FilePlus, Pencil, Trash2, Download, Eye, X, FolderSearch,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
@@ -40,8 +40,13 @@ function rowClass(active: boolean, dropTarget: boolean) {
 }
 
 type MenuTarget =
+  | { kind: "root" }
   | { kind: "folder"; folder: FileResource; path: string }
-  | { kind: "favorite"; path: string };
+  | { kind: "favorite"; path: string }
+  | { kind: "recent"; id: string };
+
+/** What a "new" or "upload" entry in a folder's menu creates there. */
+export type CreateKind = "folder" | "text" | "files" | "dir";
 
 export interface FilesSidebarProps {
   currentParentId: string | null;
@@ -64,6 +69,14 @@ export interface FilesSidebarProps {
   onDropItems: (names: string[], targetId: string | null) => void;
   canShare: (resource: FileResource) => boolean;
   onShare: (resource: FileResource) => void;
+  /** Open a folder, then start creating or uploading there. */
+  onCreateIn: (path: string, id: string | null, kind: CreateKind) => void;
+  onRenameFolder: (folder: FileResource) => void;
+  onDeleteFolder: (folder: FileResource) => void;
+  /** Open the folder holding a recent file, with the file selected. */
+  onRevealRecent: (id: string) => void;
+  onDownloadRecent: (id: string) => void;
+  onRemoveRecent: (id: string) => void;
 }
 
 export function FilesSidebar({
@@ -84,6 +97,12 @@ export function FilesSidebar({
   onDropItems,
   canShare,
   onShare,
+  onCreateIn,
+  onRenameFolder,
+  onDeleteFolder,
+  onRevealRecent,
+  onDownloadRecent,
+  onRemoveRecent,
 }: FilesSidebarProps) {
   const t = useTranslations("files");
   const newMenu = useContextMenu<null>();
@@ -220,8 +239,22 @@ export function FilesSidebar({
   const rootFolders = childrenByParent.get(null) ?? [];
   const sharedFolders = sharedRoots.filter((r) => r.isDirectory);
   const recent = recentFiles.slice(0, RECENT_LIMIT);
-  const menuTarget = itemMenu.contextMenu.data;
-  const menuPath = menuTarget?.path ?? null;
+  const menuTarget = itemMenu.contextMenu.isOpen ? itemMenu.contextMenu.data : null;
+  const run = (action: () => void) => {
+    itemMenu.closeContextMenu();
+    action();
+  };
+  // Folders shared with the user only take new items when the owner allows it.
+  const mayWrite = (folder: FileResource) => !folder.isShared || !!folder.myRights?.mayAddChildren;
+  const createItems = (path: string, id: string | null) => (
+    <>
+      <ContextMenuSeparator />
+      <ContextMenuItem icon={FolderPlus} label={t("new_folder")} onClick={() => run(() => onCreateIn(path, id, "folder"))} />
+      <ContextMenuItem icon={FilePlus} label={t("new_text_file")} onClick={() => run(() => onCreateIn(path, id, "text"))} />
+      <ContextMenuItem icon={Upload} label={t("upload_files")} onClick={() => run(() => onCreateIn(path, id, "files"))} />
+      <ContextMenuItem icon={FolderUp} label={t("upload_folder")} onClick={() => run(() => onCreateIn(path, id, "dir"))} />
+    </>
+  );
 
   return (
     <div className="flex flex-col h-full bg-secondary">
@@ -256,6 +289,7 @@ export function FilesSidebar({
           <div
             className={rowClass(currentPath === "/" && currentParentId === null, dropTarget === "__root__")}
             style={{ ...ROW_STYLE, paddingInlineStart: "12px" }}
+            onContextMenu={(e) => itemMenu.openContextMenu(e, { kind: "root" })}
             {...dropProps("__root__", null)}
           >
             {rootFolders.length > 0 ? (
@@ -310,6 +344,7 @@ export function FilesSidebar({
                 key={entry.id}
                 type="button"
                 onClick={() => onOpenRecent(entry.id)}
+                onContextMenu={(e) => itemMenu.openContextMenu(e, { kind: "recent", id: entry.id })}
                 className={rowClass(false, false)}
                 style={{ ...ROW_STYLE, paddingInlineStart: "26px" }}
                 title={entry.name}
@@ -347,31 +382,58 @@ export function FilesSidebar({
       </ContextMenu>
 
       <ContextMenu ref={itemMenu.menuRef} isOpen={itemMenu.contextMenu.isOpen} position={itemMenu.contextMenu.position} onClose={itemMenu.closeContextMenu}>
-        {menuTarget && menuPath && (
+        {menuTarget?.kind === "root" && (
           <>
-            <ContextMenuItem
-              icon={FolderOpen}
-              label={t("open")}
-              onClick={() => {
-                itemMenu.closeContextMenu();
-                if (menuTarget.kind === "folder") onNavigate(menuPath, menuTarget.folder.id);
-                else onNavigate(menuPath);
-              }}
-            />
-            {!(menuTarget.kind === "folder" && menuTarget.folder.isShared) && (
-              <ContextMenuItem
-                icon={favorites.includes(menuPath) ? StarOff : Star}
-                label={favorites.includes(menuPath) ? t("unstar") : t("star")}
-                onClick={() => { itemMenu.closeContextMenu(); onToggleFavorite(menuPath); }}
-              />
-            )}
-            {menuTarget.kind === "folder" && canShare(menuTarget.folder) && (
-              <ContextMenuItem
-                icon={Share2}
-                label={t("share")}
-                onClick={() => { itemMenu.closeContextMenu(); onShare(menuTarget.folder); }}
-              />
-            )}
+            <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => run(() => onNavigate("/", null))} />
+            {canCreate && createItems("/", null)}
+          </>
+        )}
+        {menuTarget?.kind === "folder" && (() => {
+          const { folder, path } = menuTarget;
+          const starred = favorites.includes(path);
+          const writable = mayWrite(folder);
+          const isSharedRoot = !!folder.isShared && sharedRoots.some((r) => r.id === folder.id);
+          const mayRename = !isSharedRoot && (folder.myRights?.mayRename ?? true);
+          const mayDelete = !isSharedRoot && (folder.myRights?.mayDelete ?? true);
+          return (
+            <>
+              <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => run(() => onNavigate(path, folder.id))} />
+              {writable && createItems(path, folder.id)}
+              {(!folder.isShared || canShare(folder)) && <ContextMenuSeparator />}
+              {!folder.isShared && (
+                <ContextMenuItem
+                  icon={starred ? StarOff : Star}
+                  label={starred ? t("unstar") : t("star")}
+                  onClick={() => run(() => onToggleFavorite(path))}
+                />
+              )}
+              {canShare(folder) && (
+                <ContextMenuItem icon={Share2} label={t("share")} onClick={() => run(() => onShare(folder))} />
+              )}
+              {(mayRename || mayDelete) && <ContextMenuSeparator />}
+              {mayRename && (
+                <ContextMenuItem icon={Pencil} label={t("rename")} onClick={() => run(() => onRenameFolder(folder))} />
+              )}
+              {mayDelete && (
+                <ContextMenuItem icon={Trash2} label={t("delete")} destructive onClick={() => run(() => onDeleteFolder(folder))} />
+              )}
+            </>
+          );
+        })()}
+        {menuTarget?.kind === "favorite" && (
+          <>
+            <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => run(() => onNavigate(menuTarget.path))} />
+            <ContextMenuSeparator />
+            <ContextMenuItem icon={StarOff} label={t("unstar")} onClick={() => run(() => onToggleFavorite(menuTarget.path))} />
+          </>
+        )}
+        {menuTarget?.kind === "recent" && (
+          <>
+            <ContextMenuItem icon={Eye} label={t("open")} onClick={() => run(() => onOpenRecent(menuTarget.id))} />
+            <ContextMenuItem icon={FolderSearch} label={t("show_in_folder")} onClick={() => run(() => onRevealRecent(menuTarget.id))} />
+            <ContextMenuItem icon={Download} label={t("download")} onClick={() => run(() => onDownloadRecent(menuTarget.id))} />
+            <ContextMenuSeparator />
+            <ContextMenuItem icon={X} label={t("remove_from_recent")} onClick={() => run(() => onRemoveRecent(menuTarget.id))} />
           </>
         )}
       </ContextMenu>

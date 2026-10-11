@@ -99,6 +99,10 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     toggleFavorite,
     addRecentFile,
     revealNode,
+    renameNode,
+    deleteNode,
+    downloadNode,
+    removeRecentFile,
     cancelUpload,
     undoLastAction,
     lastAction,
@@ -479,6 +483,48 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     addRecentFile(name, findResourceId(name));
   }, [addRecentFile, findResourceId]);
 
+  const handleRenameNode = useCallback(async (id: string, newName: string) => {
+    try {
+      await renameNode(id, newName);
+      toast.success(t("rename_success"), {
+        action: { label: t("undo"), onClick: handleUndo },
+      });
+    } catch (err) {
+      console.error("Failed to rename:", err);
+      toast.error(t("rename_error"));
+    }
+  }, [renameNode, t, handleUndo]);
+
+  const handleDeleteNode = useCallback(async (id: string, name: string) => {
+    const confirmed = await confirmDialog({
+      title: t("delete_confirm_title"),
+      message: t("delete_confirm_message", { name }),
+      confirmText: t("delete"),
+      variant: "destructive",
+    });
+    if (!confirmed) return;
+    try {
+      await deleteNode(id);
+      toast.success(t("delete_success"));
+    } catch (err) {
+      console.error("Failed to delete:", err);
+      toast.error(t("delete_error"));
+    }
+  }, [deleteNode, confirmDialog, t]);
+
+  const handleDownloadNode = useCallback(async (id: string) => {
+    try {
+      await downloadNode(id);
+    } catch (err) {
+      console.error("Failed to download:", err);
+      toast.error(t("download_error"));
+    }
+  }, [downloadNode, t]);
+
+  const handleRevealNode = useCallback(async (id: string) => {
+    if (!await revealNode(id)) toast.error(tDeepLink("file_not_found"));
+  }, [revealNode, tDeepLink]);
+
   // Recent files can live in any folder: open that folder, then the file.
   const handleOpenRecent = useCallback(async (id: string) => {
     const name = await revealNode(id);
@@ -632,6 +678,11 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
                   recentFiles={recentFiles}
                   onToggleFavorite={toggleFavorite}
                   onOpenRecent={handleOpenRecent}
+                  onRenameNode={handleRenameNode}
+                  onDeleteNode={handleDeleteNode}
+                  onDownloadNode={handleDownloadNode}
+                  onRevealNode={handleRevealNode}
+                  onRemoveRecent={removeRecentFile}
                   accountFolders={accountFolders}
                   onSelectAccount={handleSelectAccount}
                   accountPickerMode={isAccountPicker}

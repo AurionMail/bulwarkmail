@@ -19,7 +19,7 @@ import { fileNameProblem } from "@/lib/file-name-rules";
 import { EmptyFolder, NoSearchResults } from "@/components/files/file-empty-state";
 import { isAudioFile, isImageFile, isPdfFile, isTextFile, isVideoFile } from "@/components/files/file-icons";
 import { loadFilesSettings, saveFilesSettings, type FilesSettings } from "@/components/files/files-settings";
-import { FilesSidebar } from "@/components/files/files-sidebar";
+import { FilesSidebar, type CreateKind } from "@/components/files/files-sidebar";
 import { FilesHeader, type Crumb, type SortDir, type SortKey, type ViewMode } from "@/components/files/files-header";
 import { FileGridView, FileListView, type FileItemHandlers } from "@/components/files/file-views";
 import { FileDetailsPanel } from "@/components/files/file-details-panel";
@@ -86,6 +86,12 @@ interface FileBrowserProps {
   onToggleFavorite: (path: string) => void;
   /** Open a recently used file wherever it now lives. */
   onOpenRecent: (id: string) => void;
+  /** Sidebar actions on items that need not be in the open folder. */
+  onRenameNode: (id: string, newName: string) => Promise<void>;
+  onDeleteNode: (id: string, name: string) => Promise<void>;
+  onDownloadNode: (id: string) => Promise<void>;
+  onRevealNode: (id: string) => Promise<void>;
+  onRemoveRecent: (id: string) => void;
   /** Pro shell only: all connected accounts surfaced as top-level folders at the root. */
   accountFolders?: AccountFolderEntry[];
   onSelectAccount?: (accountId: string) => void;
@@ -154,6 +160,11 @@ export function FileBrowser({
   recentFiles,
   onToggleFavorite,
   onOpenRecent,
+  onRenameNode,
+  onDeleteNode,
+  onDownloadNode,
+  onRevealNode,
+  onRemoveRecent,
   accountFolders,
   onSelectAccount,
   accountPickerMode,
@@ -247,6 +258,7 @@ export function FileBrowser({
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showNewTextFile, setShowNewTextFile] = useState(false);
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [renameFolder, setRenameFolder] = useState<FileResource | null>(null);
   const [shareTargetId, setShareTargetId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [focusedName, setFocusedName] = useState<string | null>(null);
@@ -616,7 +628,7 @@ export function FileBrowser({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
-      if (showNewFolder || showNewTextFile || renameTarget || shareTargetId) return;
+      if (showNewFolder || showNewTextFile || renameTarget || renameFolder || shareTargetId) return;
       // A preview, editor or confirmation is open on top of the list.
       if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
       if (accountPickerMode) return;
@@ -699,7 +711,7 @@ export function FileBrowser({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [
-    showNewFolder, showNewTextFile, renameTarget, shareTargetId, accountPickerMode, selectedList, singleSelected,
+    showNewFolder, showNewTextFile, renameTarget, renameFolder, shareTargetId, accountPickerMode, selectedList, singleSelected,
     selectAllVisible, onCopy, onCut, onPaste, clipboard, searchQuery, onClearSelection, deleteNames, openResource,
     focusedName, onToggleSelect, currentPath, navigateUp, viewMode, gridColumns, moveFocus,
   ]);
@@ -813,6 +825,15 @@ export function FileBrowser({
     }
   }, [sortKey]);
 
+  // A sidebar entry's "New folder" / "Upload" acts on that folder: open it first.
+  const createIn = useCallback((path: string, id: string | null, kind: CreateKind) => {
+    if (id !== currentParentId) onNavigate(path, id);
+    if (kind === "folder") setShowNewFolder(true);
+    else if (kind === "text") setShowNewTextFile(true);
+    else if (kind === "files") fileInputRef.current?.click();
+    else folderInputRef.current?.click();
+  }, [currentParentId, onNavigate]);
+
   // ---- Rendering -------------------------------------------------------------
   const sidebar = !accountPickerMode && (
     <FilesSidebar
@@ -833,6 +854,12 @@ export function FileBrowser({
       onDropItems={moveNames}
       canShare={canShare}
       onShare={(r) => setShareTargetId(r.id)}
+      onCreateIn={createIn}
+      onRenameFolder={setRenameFolder}
+      onDeleteFolder={(folder) => void onDeleteNode(folder.id, folder.name)}
+      onRevealRecent={(id) => void onRevealNode(id)}
+      onDownloadRecent={(id) => void onDownloadNode(id)}
+      onRemoveRecent={onRemoveRecent}
     />
   );
 
@@ -1156,6 +1183,18 @@ export function FileBrowser({
             setRenameTarget(null);
           }}
           onCancel={() => setRenameTarget(null)}
+          validate={validateFileName}
+        />
+      )}
+
+      {renameFolder && (
+        <RenameDialog
+          currentName={renameFolder.name}
+          onConfirm={async (newName: string) => {
+            await onRenameNode(renameFolder.id, newName);
+            setRenameFolder(null);
+          }}
+          onCancel={() => setRenameFolder(null)}
           validate={validateFileName}
         />
       )}

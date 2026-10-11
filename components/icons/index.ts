@@ -100,6 +100,7 @@ export {
   IconFolderDown as FolderInput,
   IconFolderOpen as FolderOpen,
   IconFolderPlus as FolderPlus,
+  IconFolderSearch as FolderSearch,
   IconFolders as FolderSync,
   IconFolderUp as FolderUp,
   IconFolderX as FolderX,

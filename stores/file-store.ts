@@ -129,6 +129,13 @@ interface FileState {
   addRecentFile: (name: string, id: string) => void;
   /** Open the folder holding a node and return the node's name, or null when it is gone. */
   revealNode: (id: string) => Promise<string | null>;
+  /** Rename any node by id, e.g. a folder in the tree that is not listed. */
+  renameNode: (id: string, newName: string) => Promise<void>;
+  /** Delete any node by id; leaves the folder on screen if it was inside it. */
+  deleteNode: (id: string) => Promise<void>;
+  /** Download a file by id, wherever it lives. */
+  downloadNode: (id: string) => Promise<void>;
+  removeRecentFile: (id: string) => void;
   undoLastAction: () => Promise<void>;
   /** Add, update (rights), or remove (rights=null) a principal's share on a node. */
   shareResource: (id: string, principalId: string, rights: FileNodeRights | null) => Promise<void>;
@@ -249,6 +256,21 @@ function getUniqueName(name: string, existingNames: Set<string>): string {
   let counter = 1;
   while (existingNames.has(`${base} (${counter})${ext}`)) counter++;
   return `${base} (${counter})${ext}`;
+}
+
+// Display path of a folder ("/A/B") from the folder list, or null if unknown.
+function folderPath(folders: FileResource[], id: string): string | null {
+  const byId = new Map(folders.map(f => [f.id, f]));
+  const names: string[] = [];
+  for (let cur = byId.get(id); cur; cur = cur.parentId ? byId.get(cur.parentId) : undefined) {
+    names.unshift(cur.name);
+    if (names.length > 256) return null;
+  }
+  return names.length > 0 ? '/' + names.join('/') : null;
+}
+
+function isUnder(path: string, base: string): boolean {
+  return path === base || path.startsWith(base + '/');
 }
 
 function buildPathFromStack(stack: { id: string | null; name: string }[]): string {
@@ -1107,6 +1129,79 @@ export const useFileStore = create<FileState>((set, get) => ({
     await navigate(parentEntry.id, parentEntry.name);
     set({ selectedResources: new Set([node.name]) });
     return node.name;
+  },
+
+  renameNode: async (id: string, newName: string) => {
+    const { client, allFolders, favorites, refresh } = get();
+    if (!client) return;
+    const node = allFolders.find(f => f.id === id);
+    const oldPath = folderPath(allFolders, id);
+    await client.updateFileNode(id, { name: newName });
+    // Starred folders are kept by path: follow the rename.
+    if (oldPath) {
+      const newPath = oldPath.slice(0, oldPath.lastIndexOf('/') + 1) + newName;
+      const next = favorites.map(f => (isUnder(f, oldPath) ? newPath + f.slice(oldPath.length) : f));
+      if (next.some((f, i) => f !== favorites[i])) {
+        set({ favorites: next });
+        try { localStorage.setItem('files-favorites', JSON.stringify(next)); } catch { /* ignore */ }
+      }
+    }
+    set({
+      lastAction: node
+        ? { type: 'rename', entries: [{ id, from: { name: node.name }, to: { name: newName } }], sourceParentId: null }
+        : get().lastAction,
+    });
+    // A renamed ancestor changes the path on screen; rebuild it from the ids.
+    const { pathStack } = get();
+    if (pathStack.some(s => s.id === id)) {
+      set({ pathStack: pathStack.map(s => (s.id === id ? { ...s, name: newName } : s)) });
+      set({ currentPath: buildPathFromStack(get().pathStack) });
+    }
+    await refresh();
+  },
+
+  deleteNode: async (id: string) => {
+    const { client, allFolders, favorites, recentFiles, pathStack, navigate, refresh } = get();
+    if (!client) return;
+    const path = folderPath(allFolders, id);
+    await client.destroyFileNodes([id]);
+
+    const nextFavorites = path ? favorites.filter(f => !isUnder(f, path)) : favorites;
+    // Recent files only know their own id; drop the one deleted, the rest are
+    // pruned by the next listing.
+    const nextRecent = recentFiles.filter(r => r.id !== id);
+    set({ favorites: nextFavorites, recentFiles: nextRecent });
+    try {
+      localStorage.setItem('files-favorites', JSON.stringify(nextFavorites));
+      localStorage.setItem('files-recent-files', JSON.stringify(nextRecent));
+    } catch { /* ignore */ }
+
+    // Standing in the deleted folder or below it: step out to its parent.
+    const idx = pathStack.findIndex(s => s.id === id);
+    if (idx > 0) {
+      const parent = pathStack[idx - 1];
+      set({ pathStack: pathStack.slice(0, idx) });
+      await navigate(parent.id, parent.name);
+      return;
+    }
+    await refresh();
+  },
+
+  downloadNode: async (id: string) => {
+    const { client } = get();
+    if (!client) return;
+    const nodes = isCrossAccountId(id)
+      ? await client.listAllFileNodesAcrossAccounts()
+      : await client.listAllFileNodes();
+    const node = nodes.find(n => n.id === id);
+    if (!node?.blobId) throw new Error('File not found');
+    await client.downloadBlob(node.blobId, node.name, node.type);
+  },
+
+  removeRecentFile: (id: string) => {
+    const next = get().recentFiles.filter(r => r.id !== id);
+    set({ recentFiles: next });
+    try { localStorage.setItem('files-recent-files', JSON.stringify(next)); } catch { /* ignore */ }
   },
 
   undoLastAction: async () => {

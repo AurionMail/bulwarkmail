@@ -70,6 +70,11 @@ function renderBrowser(opts: { resources?: FileResource[]; allFolders?: FileReso
     onToggleSelect: vi.fn(),
     onPreviewFile: vi.fn(),
     onDownload: vi.fn(async () => {}),
+    onRenameNode: vi.fn(async () => {}),
+    onDeleteNode: vi.fn(async () => {}),
+    onDownloadNode: vi.fn(async () => {}),
+    onRevealNode: vi.fn(async () => {}),
+    onRemoveRecent: vi.fn(),
   };
   const noop = vi.fn(async () => {});
   render(
@@ -227,6 +232,53 @@ describe('FileBrowser', () => {
     expect(onSetSelection).toHaveBeenLastCalledWith(new Set(['Documents', 'notes.txt']));
     // Only the press that started the drag cleared the old selection.
     expect(onClearSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers new and upload entries on My files in the sidebar', () => {
+    renderBrowser();
+    fireEvent.contextMenu(within(tree()).getByText('my_files'));
+    for (const name of ['open', 'new_folder', 'new_text_file', 'upload_files', 'upload_folder']) {
+      expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
+    }
+  });
+
+  it('renames and deletes a folder from the tree', async () => {
+    const { onRenameNode, onDeleteNode } = renderBrowser();
+    fireEvent.contextMenu(within(tree()).getByText('Documents'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'rename' }));
+    const input = await screen.findByDisplayValue('Documents');
+    fireEvent.change(input, { target: { value: 'Docs' } });
+    fireEvent.submit(input.closest('form')!);
+    await vi.waitFor(() => expect(onRenameNode).toHaveBeenCalledWith('f-docs', 'Docs'));
+
+    fireEvent.contextMenu(within(tree()).getByText('Documents'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'delete' }));
+    expect(onDeleteNode).toHaveBeenCalledWith('f-docs', 'Documents');
+  });
+
+  it('offers no rename or delete on a folder shared with the user', async () => {
+    renderBrowser();
+    await screen.findAllByText('Team');
+    fireEvent.contextMenu(within(tree()).getByText('Team'));
+    expect(screen.getByRole('menuitem', { name: 'open' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'rename' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'delete' })).toBeNull();
+  });
+
+  it('shows, downloads and forgets a recent file from its menu', () => {
+    const { onRevealNode, onDownloadNode, onRemoveRecent } = renderBrowser({
+      props: { recentFiles: [{ name: 'notes.txt', id: 'f-notes', timestamp: 1 }] },
+    });
+    const open = (name: string) => {
+      fireEvent.contextMenu(within(tree()).getByText('notes.txt'));
+      fireEvent.click(screen.getByRole('menuitem', { name }));
+    };
+    open('show_in_folder');
+    expect(onRevealNode).toHaveBeenCalledWith('f-notes');
+    open('download');
+    expect(onDownloadNode).toHaveBeenCalledWith('f-notes');
+    open('remove_from_recent');
+    expect(onRemoveRecent).toHaveBeenCalledWith('f-notes');
   });
 
   it('replaces the toolbar with selection actions when items are selected', () => {
