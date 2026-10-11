@@ -2517,7 +2517,8 @@
       "none": "Vēl nav kārtulu",
       "new_mail_only": "Tikai jaunām ziņām",
       "running": "Izpilda “{name}” mapē {folder}…"
-    }
+    },
+    "find_emails_from": "Atrast e-pastus no {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Atzīmēt mapi kā lasītu",

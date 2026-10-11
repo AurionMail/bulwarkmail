@@ -2517,7 +2517,8 @@
       "none": "Aún no hay reglas",
       "new_mail_only": "Solo para mensajes nuevos",
       "running": "Ejecutando «{name}» en {folder}…"
-    }
+    },
+    "find_emails_from": "Buscar correos de {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Marcar carpeta como leída",

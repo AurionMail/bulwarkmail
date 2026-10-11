@@ -2517,7 +2517,8 @@
       "none": "Ingen regler ennå",
       "new_mail_only": "Bare for nye meldinger",
       "running": "Kjører «{name}» på {folder}…"
-    }
+    },
+    "find_emails_from": "Finn e-poster fra {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Merk mappen som lest",

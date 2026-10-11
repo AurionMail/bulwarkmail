@@ -2517,7 +2517,8 @@
       "none": "Brak reguł",
       "new_mail_only": "Tylko dla nowych wiadomości",
       "running": "Uruchamianie „{name}” w folderze {folder}…"
-    }
+    },
+    "find_emails_from": "Znajdź e-maile od {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Oznacz folder jako przeczytany",

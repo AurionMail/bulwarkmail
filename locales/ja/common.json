@@ -2517,7 +2517,8 @@
       "none": "ルールはまだありません",
       "new_mail_only": "新着メッセージのみ",
       "running": "{folder} で「{name}」を実行中…"
-    }
+    },
+    "find_emails_from": "{name} からのメールを検索"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "フォルダーを既読にする",

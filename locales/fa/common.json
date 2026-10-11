@@ -2517,7 +2517,8 @@
       "none": "هنوز قانونی وجود ندارد",
       "new_mail_only": "فقط برای پیام‌های جدید",
       "running": "در حال اجرای «{name}» روی {folder}…"
-    }
+    },
+    "find_emails_from": "یافتن ایمیل‌های {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "علامت‌گذاری پوشه خوانده شده",

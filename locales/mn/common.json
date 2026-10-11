@@ -2517,7 +2517,8 @@
       "none": "Одоогоор дүрэм алга",
       "new_mail_only": "Зөвхөн шинэ мессежүүдэд",
       "running": "{folder} дээр \"{name}\"-г ажиллуулж байна…"
-    }
+    },
+    "find_emails_from": "{name}-с ирсэн имэйлүүдийг хайх"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Хавтсыг уншсан гэж тэмдэглэх",

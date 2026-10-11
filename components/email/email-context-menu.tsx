@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { useSettingsStore } from "@/stores/settings-store";
 import { Email, Mailbox } from "@/lib/jmap/types";
 import {
   ContextMenu,
@@ -36,6 +37,7 @@ import {
   Link as LinkIcon,
   MessagesSquare,
   Copy,
+  Search,
 } from "@/components/icons";
 import { buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
@@ -82,6 +84,8 @@ interface EmailContextMenuProps {
   onReplyAll?: () => void;
   onForward?: () => void;
   onForwardAsAttachment?: () => void;
+  /** Mountain View: search for the mail this sender has sent. */
+  onFindFromSender?: () => void;
   onMarkAsRead?: (read: boolean) => void;
   onToggleStar?: () => void;
   onTogglePinned?: () => void;
@@ -148,6 +152,7 @@ export function EmailContextMenu({
   onReplyAll,
   onForward,
   onForwardAsAttachment,
+  onFindFromSender,
   onMarkAsRead,
   onToggleStar,
   onTogglePinned,
@@ -173,6 +178,7 @@ export function EmailContextMenu({
   onCopyToAccount,
 }: EmailContextMenuProps) {
   const t = useTranslations("context_menu");
+  const mountainView = useSettingsStore((state) => state.interfaceLayout === "mountain-view");
   const tSidebar = useTranslations("sidebar");
   const tEmailViewer = useTranslations("email_viewer");
   const tDeepLink = useTranslations("deep_link");
@@ -260,6 +266,238 @@ export function EmailContextMenu({
   // Stable, so the Rules entry does not re-resolve its account every render.
   const ruleSenderEmails = useMemo(() => ruleEmails ?? [email], [ruleEmails, email]);
 
+  // The menu's entries, composed below in the default layout's order or,
+  // under Mountain View, in Gmail's.
+  const replyBlock = (
+    <>
+        {/* Single email actions - Reply, Reply All, Forward */}
+        {!isScheduled && !showBatchActions && (
+          <>
+            <ContextMenuItem
+              icon={Reply}
+              label={t("reply")}
+              onClick={() => handleAction(onReply!)}
+              disabled={!onReply}
+            />
+            <ContextMenuItem
+              icon={ReplyAll}
+              label={t("reply_all")}
+              onClick={() => handleAction(onReplyAll!)}
+              disabled={!onReplyAll}
+            />
+            <ContextMenuItem
+              icon={Forward}
+              label={t("forward")}
+              onClick={() => handleAction(onForward!)}
+              disabled={!onForward}
+            />
+            <ContextMenuItem
+              icon={Paperclip}
+              label={tEmailViewer("forward_as_attachment")}
+              onClick={() => handleAction(onForwardAsAttachment!)}
+              disabled={!onForwardAsAttachment || !email.blobId}
+            />
+            <ContextMenuSeparator />
+          </>
+        )}
+    </>
+  );
+  const permalinkBlock = (
+    <>
+        {/* Permalinks (#733). The conversation entry only appears when the
+            message actually belongs to a thread worth linking to. */}
+        {!showBatchActions && (
+          <>
+            <ContextMenuItem
+              icon={LinkIcon}
+              label={tDeepLink("copy_message")}
+              onClick={() => handleAction(() => {
+                void copyLink(buildMailPath({ mailboxId: null, emailId: email.id, threadId: null }));
+              })}
+            />
+            {email.threadId && (
+              <ContextMenuItem
+                icon={MessagesSquare}
+                label={tDeepLink("copy_conversation")}
+                onClick={() => handleAction(() => {
+                  void copyLink(buildMailPath({ mailboxId: null, emailId: null, threadId: email.threadId! }));
+                })}
+              />
+            )}
+            <ContextMenuSeparator />
+          </>
+        )}
+    </>
+  );
+  const archiveItem = (
+    <>
+        {/* Archive */}
+        <ContextMenuItem
+          icon={Archive}
+          label={t("archive")}
+          onClick={() =>
+            handleAction(showBatchActions ? onBatchArchive! : onArchive!)
+          }
+          disabled={showBatchActions ? !onBatchArchive : !onArchive}
+        />
+    </>
+  );
+  const deleteItem = (
+    <>
+        {/* Delete */}
+        <ContextMenuItem
+          icon={Trash2}
+          label={t("delete")}
+          testId="ctx-delete"
+          onClick={() =>
+            handleAction(showBatchActions ? onBatchDelete! : onDelete!)
+          }
+          disabled={showBatchActions ? !onBatchDelete : !onDelete}
+          destructive={!mountainView}
+        />
+    </>
+  );
+  const readItem = (
+    <>
+        {/* Mark as read/unread */}
+        <ContextMenuItem
+          icon={isUnread ? MailOpen : Mail}
+          label={isUnread ? t("mark_read") : t("mark_unread")}
+          testId={isUnread ? "ctx-mark-read" : "ctx-mark-unread"}
+          onClick={() =>
+            handleAction(() =>
+              showBatchActions
+                ? onBatchMarkAsRead?.(isUnread)
+                : onMarkAsRead?.(isUnread)
+            )
+          }
+        />
+    </>
+  );
+  const moveItem = (
+    <>
+        {/* Move to submenu */}
+        {moveTree.length > 0 && (
+          <ContextMenuSubMenu icon={FolderInput} label={t("move_to")} testId="ctx-move-to">
+            {renderMailboxNodes(moveTree, moveTargetIds, "move-to:", (mailboxId) =>
+              showBatchActions
+                ? onBatchMoveToMailbox?.(mailboxId)
+                : onMoveToMailbox?.(mailboxId)
+            )}
+          </ContextMenuSubMenu>
+        )}
+    </>
+  );
+  const copyItem = (
+    <>
+        {/* Copy to another connected account, keeping the originals */}
+        {onCopyToAccount && copyTrees.length > 0 && (
+          <ContextMenuSubMenu icon={Copy} label={t("copy_to_account")} testId="ctx-copy-to">
+            {copyTrees.map((target) => (
+              <div key={target.accountId}>
+                <ContextMenuHeader>{target.label}</ContextMenuHeader>
+                {renderMailboxNodes(target.tree, target.targetIds, `copy-to:${target.accountId}:`, (mailboxId) =>
+                  onCopyToAccount(target.accountId, mailboxId)
+                )}
+              </div>
+            ))}
+          </ContextMenuSubMenu>
+        )}
+    </>
+  );
+  const rulesItem = (
+    <>
+        {/* Rules: filter rules made from the sender(s), saved as Sieve */}
+        <RulesContextSubMenu anchor={email} senderEmails={ruleSenderEmails} onClose={onClose} />
+    </>
+  );
+  const starItem = (
+    <>
+        {/* Star/Unstar - only for single email */}
+        {!showBatchActions && (
+          <ContextMenuItem
+            icon={Star}
+            label={isStarred ? t("unstar") : t("star")}
+            onClick={() => handleAction(onToggleStar!)}
+            disabled={!onToggleStar}
+            testId={isStarred ? "ctx-unstar" : "ctx-star"}
+          />
+        )}
+    </>
+  );
+  const pinItem = (
+    <>
+        {/* Pin/Unpin - only for single email; pinned mails float to the top of the list */}
+        {!showBatchActions && onTogglePinned && (
+          <ContextMenuItem
+            icon={isPinned ? PinOff : Pin}
+            label={isPinned ? t("unpin") : t("pin")}
+            onClick={() => handleAction(onTogglePinned)}
+          />
+        )}
+    </>
+  );
+  const tagItem = (
+    <>
+        {/* Set tag submenu - the row's own tags, or the whole selection's (#1077) */}
+        {(!showBatchActions || onBatchToggleTag) && (
+          <ContextMenuSubMenu icon={Tag} label={t("tag")} testId="ctx-tag">
+            <div className="w-56 max-w-[18rem]">
+              {showBatchActions ? (
+                <TagPicker
+                  selectedIds={batchTagIds ?? []}
+                  partialIds={batchPartialTagIds}
+                  onToggle={(tagId) => onBatchToggleTag?.(tagId)}
+                />
+              ) : (
+                <TagPicker
+                  selectedIds={currentTagIds}
+                  onToggle={(tagId) => onSetTag?.(tagId)}
+                />
+              )}
+            </div>
+          </ContextMenuSubMenu>
+        )}
+    </>
+  );
+  const spamBlock = (
+    <>
+        {/* Spam - contextual based on folder; pointless on own outgoing mail */}
+        {spamApplicable && (
+          <>
+            <ContextMenuSeparator />
+
+            <ContextMenuItem
+              icon={isInJunkFolder ? ShieldCheck : ShieldAlert}
+              label={isInJunkFolder ? t("not_spam") : t("mark_as_spam")}
+              testId={isInJunkFolder ? "ctx-not-spam" : "ctx-spam"}
+              onClick={() =>
+                handleAction(
+                  showBatchActions
+                    ? (isInJunkFolder ? onBatchUndoSpam! : onBatchMarkAsSpam!)
+                    : (isInJunkFolder ? onUndoSpam! : onMarkAsSpam!)
+                )
+              }
+              disabled={showBatchActions ? (isInJunkFolder ? !onBatchUndoSpam : !onBatchMarkAsSpam) : (isInJunkFolder ? !onUndoSpam : !onMarkAsSpam)}
+              destructive={!isInJunkFolder && !mountainView}
+            />
+          </>
+        )}
+    </>
+  );
+  const sender = email.from?.[0];
+  const findBlock = !showBatchActions && onFindFromSender && sender?.email ? (
+    <>
+      <ContextMenuSeparator />
+      <ContextMenuItem
+        icon={Search}
+        label={t("find_emails_from", { name: sender.name || sender.email })}
+        testId="ctx-find-from"
+        onClick={() => handleAction(onFindFromSender)}
+      />
+    </>
+  ) : null;
+
   return (
     <ContextMenu
       ref={menuRef}
@@ -308,190 +546,43 @@ export function EmailContextMenu({
         </>
       )}
 
-      {/* Single email actions - Reply, Reply All, Forward */}
-      {!isScheduled && !showBatchActions && (
+      {mountainView ? (
         <>
-          <ContextMenuItem
-            icon={Reply}
-            label={t("reply")}
-            onClick={() => handleAction(onReply!)}
-            disabled={!onReply}
-          />
-          <ContextMenuItem
-            icon={ReplyAll}
-            label={t("reply_all")}
-            onClick={() => handleAction(onReplyAll!)}
-            disabled={!onReplyAll}
-          />
-          <ContextMenuItem
-            icon={Forward}
-            label={t("forward")}
-            onClick={() => handleAction(onForward!)}
-            disabled={!onForward}
-          />
-          <ContextMenuItem
-            icon={Paperclip}
-            label={tEmailViewer("forward_as_attachment")}
-            onClick={() => handleAction(onForwardAsAttachment!)}
-            disabled={!onForwardAsAttachment || !email.blobId}
-          />
+          {replyBlock}
+          {archiveItem}
+          {deleteItem}
+          {readItem}
           <ContextMenuSeparator />
+          {moveItem}
+          {tagItem}
+          {rulesItem}
+          {copyItem}
+          <ContextMenuSeparator />
+          {starItem}
+          {pinItem}
+          {spamBlock}
+          {findBlock}
+          <ContextMenuSeparator />
+          {permalinkBlock}
+        </>
+      ) : (
+        <>
+          {replyBlock}
+          {permalinkBlock}
+          {archiveItem}
+          {deleteItem}
+          <ContextMenuSeparator />
+          {moveItem}
+          {copyItem}
+          {rulesItem}
+          {starItem}
+          {pinItem}
+          {tagItem}
+          {spamBlock}
+          <ContextMenuSeparator />
+          {readItem}
         </>
       )}
-
-      {/* Permalinks (#733). The conversation entry only appears when the
-          message actually belongs to a thread worth linking to. */}
-      {!showBatchActions && (
-        <>
-          <ContextMenuItem
-            icon={LinkIcon}
-            label={tDeepLink("copy_message")}
-            onClick={() => handleAction(() => {
-              void copyLink(buildMailPath({ mailboxId: null, emailId: email.id, threadId: null }));
-            })}
-          />
-          {email.threadId && (
-            <ContextMenuItem
-              icon={MessagesSquare}
-              label={tDeepLink("copy_conversation")}
-              onClick={() => handleAction(() => {
-                void copyLink(buildMailPath({ mailboxId: null, emailId: null, threadId: email.threadId! }));
-              })}
-            />
-          )}
-          <ContextMenuSeparator />
-        </>
-      )}
-
-      {/* Archive */}
-      <ContextMenuItem
-        icon={Archive}
-        label={t("archive")}
-        onClick={() =>
-          handleAction(showBatchActions ? onBatchArchive! : onArchive!)
-        }
-        disabled={showBatchActions ? !onBatchArchive : !onArchive}
-      />
-
-      {/* Delete */}
-      <ContextMenuItem
-        icon={Trash2}
-        label={t("delete")}
-        testId="ctx-delete"
-        onClick={() =>
-          handleAction(showBatchActions ? onBatchDelete! : onDelete!)
-        }
-        disabled={showBatchActions ? !onBatchDelete : !onDelete}
-        destructive
-      />
-
-      <ContextMenuSeparator />
-
-      {/* Move to submenu */}
-      {moveTree.length > 0 && (
-        <ContextMenuSubMenu icon={FolderInput} label={t("move_to")} testId="ctx-move-to">
-          {renderMailboxNodes(moveTree, moveTargetIds, "move-to:", (mailboxId) =>
-            showBatchActions
-              ? onBatchMoveToMailbox?.(mailboxId)
-              : onMoveToMailbox?.(mailboxId)
-          )}
-        </ContextMenuSubMenu>
-      )}
-
-      {/* Copy to another connected account, keeping the originals */}
-      {onCopyToAccount && copyTrees.length > 0 && (
-        <ContextMenuSubMenu icon={Copy} label={t("copy_to_account")} testId="ctx-copy-to">
-          {copyTrees.map((target) => (
-            <div key={target.accountId}>
-              <ContextMenuHeader>{target.label}</ContextMenuHeader>
-              {renderMailboxNodes(target.tree, target.targetIds, `copy-to:${target.accountId}:`, (mailboxId) =>
-                onCopyToAccount(target.accountId, mailboxId)
-              )}
-            </div>
-          ))}
-        </ContextMenuSubMenu>
-      )}
-
-      {/* Rules: filter rules made from the sender(s), saved as Sieve */}
-      <RulesContextSubMenu anchor={email} senderEmails={ruleSenderEmails} onClose={onClose} />
-
-      {/* Star/Unstar - only for single email */}
-      {!showBatchActions && (
-        <ContextMenuItem
-          icon={Star}
-          label={isStarred ? t("unstar") : t("star")}
-          onClick={() => handleAction(onToggleStar!)}
-          disabled={!onToggleStar}
-          testId={isStarred ? "ctx-unstar" : "ctx-star"}
-        />
-      )}
-
-      {/* Pin/Unpin - only for single email; pinned mails float to the top of the list */}
-      {!showBatchActions && onTogglePinned && (
-        <ContextMenuItem
-          icon={isPinned ? PinOff : Pin}
-          label={isPinned ? t("unpin") : t("pin")}
-          onClick={() => handleAction(onTogglePinned)}
-        />
-      )}
-
-      {/* Set tag submenu - the row's own tags, or the whole selection's (#1077) */}
-      {(!showBatchActions || onBatchToggleTag) && (
-        <ContextMenuSubMenu icon={Tag} label={t("tag")} testId="ctx-tag">
-          <div className="w-56 max-w-[18rem]">
-            {showBatchActions ? (
-              <TagPicker
-                selectedIds={batchTagIds ?? []}
-                partialIds={batchPartialTagIds}
-                onToggle={(tagId) => onBatchToggleTag?.(tagId)}
-              />
-            ) : (
-              <TagPicker
-                selectedIds={currentTagIds}
-                onToggle={(tagId) => onSetTag?.(tagId)}
-              />
-            )}
-          </div>
-        </ContextMenuSubMenu>
-      )}
-
-      {/* Spam - contextual based on folder; pointless on own outgoing mail */}
-      {spamApplicable && (
-        <>
-          <ContextMenuSeparator />
-
-          <ContextMenuItem
-            icon={isInJunkFolder ? ShieldCheck : ShieldAlert}
-            label={isInJunkFolder ? t("not_spam") : t("mark_as_spam")}
-            testId={isInJunkFolder ? "ctx-not-spam" : "ctx-spam"}
-            onClick={() =>
-              handleAction(
-                showBatchActions
-                  ? (isInJunkFolder ? onBatchUndoSpam! : onBatchMarkAsSpam!)
-                  : (isInJunkFolder ? onUndoSpam! : onMarkAsSpam!)
-              )
-            }
-            disabled={showBatchActions ? (isInJunkFolder ? !onBatchUndoSpam : !onBatchMarkAsSpam) : (isInJunkFolder ? !onUndoSpam : !onMarkAsSpam)}
-            destructive={!isInJunkFolder}
-          />
-        </>
-      )}
-
-      <ContextMenuSeparator />
-
-      {/* Mark as read/unread */}
-      <ContextMenuItem
-        icon={isUnread ? MailOpen : Mail}
-        label={isUnread ? t("mark_read") : t("mark_unread")}
-        testId={isUnread ? "ctx-mark-read" : "ctx-mark-unread"}
-        onClick={() =>
-          handleAction(() =>
-            showBatchActions
-              ? onBatchMarkAsRead?.(isUnread)
-              : onMarkAsRead?.(isUnread)
-          )
-        }
-      />
         </>
       )}
 

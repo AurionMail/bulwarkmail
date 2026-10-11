@@ -2517,7 +2517,8 @@
       "none": "Nog geen regels",
       "new_mail_only": "Alleen voor nieuwe berichten",
       "running": "\"{name}\" wordt uitgevoerd op {folder}…"
-    }
+    },
+    "find_emails_from": "E-mails van {name} zoeken"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Map markeren als gelezen",

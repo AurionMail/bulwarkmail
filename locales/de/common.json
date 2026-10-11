@@ -2517,7 +2517,8 @@
       "none": "Noch keine Regeln",
       "new_mail_only": "Nur für neue Nachrichten",
       "running": "„{name}“ wird auf {folder} angewendet…"
-    }
+    },
+    "find_emails_from": "E-Mails von {name} finden"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Ordner als gelesen markieren",

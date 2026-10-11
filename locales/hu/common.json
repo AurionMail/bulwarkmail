@@ -2517,7 +2517,8 @@
       "none": "Még nincsenek szabályok",
       "new_mail_only": "Csak új üzenetekre",
       "running": "„{name}” futtatása itt: {folder}…"
-    }
+    },
+    "find_emails_from": "{name} e-mailjeinek keresése"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Mappa olvasottnak jelölése",

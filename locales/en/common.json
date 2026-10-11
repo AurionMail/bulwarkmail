@@ -2517,7 +2517,8 @@
       "none": "No rules yet",
       "new_mail_only": "Only for new messages",
       "running": "Running \"{name}\" on {folder}…"
-    }
+    },
+    "find_emails_from": "Find emails from {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Mark folder as read",

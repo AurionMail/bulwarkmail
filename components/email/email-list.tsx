@@ -38,6 +38,8 @@ interface EmailListProps {
   selectedEmailId?: string;
   onEmailSelect?: (email: Email) => void;
   onEmailDoubleClick?: (email: Email) => void;
+  /** Mountain View: search for the mail a sender has sent, from the row menu. */
+  onFindFromSender?: (sender: { name: string; email: string }) => void;
   className?: string;
   isLoading?: boolean;
   hasMore?: boolean;
@@ -75,6 +77,7 @@ export function EmailList({
   selectedEmailId,
   onEmailSelect,
   onEmailDoubleClick,
+  onFindFromSender,
   className,
   isLoading = false,
   hasMore,
@@ -798,6 +801,9 @@ export function EmailList({
           onReplyAll={() => onReplyAll?.(contextMenuEmail!)}
           onForward={() => onForward?.(contextMenuEmail!)}
           onForwardAsAttachment={() => onForwardAsAttachment?.(contextMenuEmail!)}
+          onFindFromSender={onFindFromSender && contextMenuEmail.from?.[0]?.email
+            ? () => onFindFromSender({ name: contextMenuEmail!.from![0].name || '', email: contextMenuEmail!.from![0].email })
+            : undefined}
           onMarkAsRead={(read) => onMarkAsRead?.(contextMenuEmail!, read)}
           onToggleStar={() => onToggleStar?.(contextMenuEmail!)}
           onTogglePinned={onTogglePinned ? () => onTogglePinned(contextMenuEmail!) : undefined}

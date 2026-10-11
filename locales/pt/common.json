@@ -2517,7 +2517,8 @@
       "none": "Ainda não há regras",
       "new_mail_only": "Apenas para mensagens novas",
       "running": "A executar \"{name}\" em {folder}…"
-    }
+    },
+    "find_emails_from": "Encontrar e-mails de {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Marcar pasta como lida",

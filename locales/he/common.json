@@ -2483,7 +2483,8 @@
       "none": "אין עדיין כללים",
       "new_mail_only": "רק להודעות חדשות",
       "running": "מריץ את „{name}“ על {folder}…"
-    }
+    },
+    "find_emails_from": "חיפוש הודעות מ{name}"
   },
   "shortcuts": {
     "title": "קיצורי מקלדת",

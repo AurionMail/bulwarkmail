@@ -2517,7 +2517,8 @@
       "none": "아직 규칙이 없습니다",
       "new_mail_only": "새 메시지에만 적용",
       "running": "{folder}에서 \"{name}\" 실행 중…"
-    }
+    },
+    "find_emails_from": "{name}님이 보낸 이메일 찾기"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "폴더를 읽음으로 표시",

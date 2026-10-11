@@ -2517,7 +2517,8 @@
       "none": "暂无规则",
       "new_mail_only": "仅限新邮件",
       "running": "正在 {folder} 中运行“{name}”…"
-    }
+    },
+    "find_emails_from": "查找来自 {name} 的邮件"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "将文件夹标记为已读",

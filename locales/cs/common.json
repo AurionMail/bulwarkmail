@@ -2517,7 +2517,8 @@
       "none": "Zatím žádná pravidla",
       "new_mail_only": "Pouze pro nové zprávy",
       "running": "Spouštění „{name}“ ve složce {folder}…"
-    }
+    },
+    "find_emails_from": "Najít e-maily od {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Označit složku jako přečtenou",
