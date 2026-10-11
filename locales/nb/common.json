@@ -1329,7 +1329,7 @@
       "date_locale": {
         "label": "Regionalt datoformat",
         "description": "Rekkefølgen i numeriske datoer (dag, måned og år)",
-        "auto": "Automatisk (følger språket)",
+        "auto": "Automatisk ({example})",
         "iso": "ISO 8601 (ÅÅÅÅ-MM-DD)",
         "dmy": "Dag/måned/år",
         "mdy": "Måned/dag/år"

@@ -1329,7 +1329,7 @@
       "date_locale": {
         "label": "日期格式地區",
         "description": "數字日期的排列順序（日、月、年）",
-        "auto": "自動（與語言相符）",
+        "auto": "自動（{example}）",
         "iso": "ISO 8601（YYYY-MM-DD）",
         "dmy": "日／月／年",
         "mdy": "月／日／年"

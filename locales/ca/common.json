@@ -1329,7 +1329,7 @@
       "date_locale": {
         "label": "Regió del format de data",
         "description": "Com s'ordenen les dates numèriques (dia, mes, any)",
-        "auto": "Automàtic (segons l'idioma)",
+        "auto": "Automàtic ({example})",
         "iso": "ISO 8601 (AAAA-MM-DD)",
         "dmy": "Dia/Mes/Any",
         "mdy": "Mes/Dia/Any"

@@ -1326,7 +1326,7 @@
       "date_locale": {
         "label": "Region für Datumsformat",
         "description": "Legt fest, in welcher Reihenfolge numerische Datumsangaben angezeigt werden (Tag, Monat, Jahr).",
-        "auto": "Automatisch (passend zur Sprache)",
+        "auto": "Automatisch ({example})",
         "iso": "ISO 8601 (YYYY-MM-DD)",
         "dmy": "Tag/Monat/Jahr",
         "mdy": "Monat/Tag/Jahr"

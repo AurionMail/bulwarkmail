@@ -7,6 +7,7 @@ import { useLocaleStore } from '@/stores/locale-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import type { DateFormat, DateLocale, TimeFormat, FirstDayOfWeek } from '@/stores/settings-store';
 import { formatDate } from '@/lib/utils';
+import { getEffectiveLocale } from '@/i18n/detect-locale';
 import { AUTO_TIME_ZONE, getBrowserTimeZone, getEffectiveTimeZone, listTimeZones } from '@/lib/timezone';
 import { SettingsSection, SettingItem, Select, RadioGroup } from './settings-section';
 
@@ -59,6 +60,23 @@ export function LanguageSettings() {
       older: formatDate(older),
     };
   }, [locale, dateFormat, dateLocale, timeFormat, timeZone]);
+
+  // Today's date in the UI language's numeric order, so "Automatic" names
+  // the format it resolves to instead of a vague "match language".
+  const autoDateExample = useMemo(() => {
+    void locale; void timeZone;
+    const uiLocale = getEffectiveLocale();
+    try {
+      return new Date().toLocaleDateString(uiLocale === 'en' ? 'en-US' : uiLocale, {
+        timeZone: getEffectiveTimeZone(),
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+    } catch {
+      return '';
+    }
+  }, [locale, timeZone]);
 
   // Current wall-clock in the effective zone so a pick can be sanity-checked.
   const timeZonePreview = useMemo(() => {
@@ -115,7 +133,7 @@ export function LanguageSettings() {
           value={dateLocale}
           onChange={(value) => updateSetting('dateLocale', value as DateLocale)}
           options={[
-            { value: 'auto', label: t('date_locale.auto') },
+            { value: 'auto', label: t('date_locale.auto', { example: autoDateExample }) },
             { value: 'iso', label: t('date_locale.iso') },
             { value: 'en-GB', label: t('date_locale.dmy') },
             { value: 'en-US', label: t('date_locale.mdy') },

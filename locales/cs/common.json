@@ -1326,7 +1326,7 @@
       "date_locale": {
         "label": "Region formátu data",
         "description": "Pořadí částí číselného data (den, měsíc, rok)",
-        "auto": "Automaticky (podle jazyka)",
+        "auto": "Automaticky ({example})",
         "iso": "ISO 8601 (RRRR-MM-DD)",
         "dmy": "Den/měsíc/rok",
         "mdy": "Měsíc/den/rok"
