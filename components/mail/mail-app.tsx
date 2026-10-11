@@ -2165,10 +2165,20 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const undoClient = pending.localAccountId
       ? (useAuthStore.getState().getClientForAccount(pending.localAccountId) ?? client)
       : client;
-    const undoDurationMs = Math.max(sendDelaySeconds, 8) * 1000;
+    // A send-delay window (seconds away) closes the toast a second before the
+    // server releases the message, so Undo is never offered once it is too
+    // late. A message scheduled for later keeps the toast up a short while.
+    const remainingMs = Date.parse(pending.sendAt) - Date.now();
+    const isUndoWindow = Number.isFinite(remainingMs) && remainingMs <= 120_000;
+    const undoDurationMs = isUndoWindow
+      ? Math.max(remainingMs - 1000, 1000)
+      : Math.max(sendDelaySeconds, 8) * 1000;
 
-    toast.success(t('email_viewer.scheduled_send_created'), {
+    toast.success(isUndoWindow
+      ? t('email_viewer.sending_in', { seconds: Math.round(remainingMs / 1000) })
+      : t('email_viewer.scheduled_send_created'), {
       duration: undoDurationMs,
+      pauseOnHover: false,
       secondaryAction: (pending.emailId && pending.identityId)
         ? {
             label: t('email_viewer.send_now'),
@@ -2204,6 +2214,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               if (isScheduledView) await fetchScheduledEmails(client);
             } catch (error) {
               console.error('Failed to undo scheduled send:', error);
+              toast.error(t('email_viewer.undo_send_failed'));
             }
           })();
         },
@@ -2216,6 +2227,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         clearPendingUndoSend();
       }
     }, undoDurationMs);
+    // Once the server has released the message, the Scheduled count in the
+    // sidebar no longer includes it. Not cleared with the effect: clearing the
+    // pending undo above re-runs this effect before the release.
+    if (isUndoWindow) {
+      setTimeout(() => { void refreshScheduledMetadata(client); }, remainingMs + 3000);
+    }
 
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps

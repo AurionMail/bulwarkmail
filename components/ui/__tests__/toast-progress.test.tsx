@@ -43,6 +43,22 @@ describe('progress toasts', () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
+  it('pauses on hover unless told not to', () => {
+    render(<Toasts />);
+    act(() => {
+      toast.info('Readable', { duration: 1000 });
+      toast.info('Deadline', { duration: 1000, pauseOnHover: false });
+    });
+    act(() => {
+      screen.getByText('Readable').closest('.toast-item')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      screen.getByText('Deadline').closest('.toast-item')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    act(() => { vi.advanceTimersByTime(1500); });
+
+    expect(screen.getByText('Readable')).toBeInTheDocument();
+    expect(screen.queryByText('Deadline')).toBeNull();
+  });
+
   it('counts down normally once turned into a regular toast', () => {
     render(<Toasts />);
     let id = '';

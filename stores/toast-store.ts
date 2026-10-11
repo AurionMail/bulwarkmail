@@ -55,6 +55,7 @@ interface ToastOptions {
   secondaryAction?: ToastAction;
   tertiaryAction?: ToastAction;
   duration?: number;
+  pauseOnHover?: boolean;
 }
 
 function showToast(type: Toast["type"], title: string, options?: string | ToastOptions, defaultDuration?: number): void {
@@ -67,6 +68,7 @@ function showToast(type: Toast["type"], title: string, options?: string | ToastO
     secondaryAction: opts?.secondaryAction,
     tertiaryAction: opts?.tertiaryAction,
     duration: opts?.duration ?? defaultDuration,
+    pauseOnHover: opts?.pauseOnHover,
   });
 }
 

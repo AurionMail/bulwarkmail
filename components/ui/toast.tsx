@@ -33,6 +33,12 @@ export interface Toast {
    * and the toast stays until it is updated or removed.
    */
   progress?: number | null;
+  /**
+   * Hovering pauses the countdown so a toast can be read. Off for a toast
+   * whose action stops working at a fixed time, like Undo send: there the
+   * countdown has to match the time that is left.
+   */
+  pauseOnHover?: boolean;
 }
 
 interface ToastProps {
@@ -130,7 +136,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
         exiting ? "toast-exit" : "toast-enter",
         toast.onClick && !toast.action && "cursor-pointer"
       )}
-      onMouseEnter={() => setPaused(true)}
+      onMouseEnter={() => { if (toast.pauseOnHover !== false) setPaused(true); }}
       onMouseLeave={() => setPaused(false)}
       onClick={() => {
         if (toast.onClick && !toast.action) {
