@@ -1258,7 +1258,9 @@ export function Sidebar({
         "relative flex flex-col h-full border-e transition-all duration-300 overflow-hidden",
         "bg-secondary border-border",
         "max-lg:w-full",
-        isCollapsed ? "lg:w-12" : "lg:w-full",
+        // Mountain View's collapsed column is 72px (--mv-rail-w), wide enough
+        // for its round compose button; the default layout's rail is 48px.
+        isCollapsed && !mvShell ? "lg:w-12" : "lg:w-full",
         // Floats out of the rail's own column rather than widening it, so the
         // message list underneath never moves while the pointer passes over.
         // Width comes from --mv-rail-peek-w, keyed on data-mv-rail-peek.
