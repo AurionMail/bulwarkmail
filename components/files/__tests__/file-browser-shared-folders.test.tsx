@@ -281,6 +281,25 @@ describe('FileBrowser', () => {
     expect(onRemoveRecent).toHaveBeenCalledWith('f-notes');
   });
 
+  it('outlines the clicked item while it is selected', () => {
+    renderBrowser({ props: { selectedResources: new Set(['notes.txt']) } });
+    const row = within(list()).getByText('notes.txt').closest('[role=row]')!;
+    fireEvent.click(row);
+    expect(row.className).toContain('ring-ring');
+  });
+
+  it('drops the outline once the clicked item is deselected, but keeps it for the keyboard', () => {
+    // The selection prop stays empty, as after deselecting.
+    renderBrowser();
+    const row = () => within(list()).getByText('notes.txt').closest('[role=row]')!;
+    fireEvent.click(row());
+    expect(row().className).not.toContain('ring-ring');
+
+    fireEvent.keyDown(window, { key: 'ArrowUp' });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    expect(row().className).toContain('ring-ring');
+  });
+
   it('replaces the toolbar with selection actions when items are selected', () => {
     renderBrowser({ props: { selectedResources: new Set(['notes.txt']) } });
     const bar = screen.getByRole('toolbar', { name: 'selection_actions' });

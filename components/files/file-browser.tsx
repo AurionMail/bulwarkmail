@@ -262,6 +262,9 @@ export function FileBrowser({
   const [shareTargetId, setShareTargetId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [focusedName, setFocusedName] = useState<string | null>(null);
+  // The cursor outline follows a click or the arrow keys, but goes away once
+  // the clicked item is deselected; while the keyboard is in use it stays.
+  const [keyboardNav, setKeyboardNav] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const dragDepth = useRef(0);
@@ -434,6 +437,7 @@ export function FileBrowser({
 
   const handleSelectClick = useCallback((resource: FileResource, e: React.MouseEvent) => {
     setFocusedName(resource.name);
+    setKeyboardNav(false);
     if (e.shiftKey && anchorName.current) {
       selectRange(anchorName.current, resource.name, e.ctrlKey || e.metaKey);
       return;
@@ -449,6 +453,7 @@ export function FileBrowser({
   const handleToggleSelect = useCallback((resource: FileResource) => {
     anchorName.current = resource.name;
     setFocusedName(resource.name);
+    setKeyboardNav(false);
     onToggleSelect(resource.name);
   }, [onToggleSelect]);
 
@@ -605,6 +610,7 @@ export function FileBrowser({
     const nextIndex = Math.max(0, Math.min(names.length - 1, base + delta));
     const name = names[nextIndex];
     setFocusedName(name);
+    setKeyboardNav(true);
     if (extend && anchorName.current) {
       selectRange(anchorName.current, name, false);
     } else {
@@ -726,6 +732,7 @@ export function FileBrowser({
       anchorName.current = resource.name;
     }
     setFocusedName(resource.name);
+    setKeyboardNav(false);
     const target = e.currentTarget as HTMLElement | null;
     // The "..." button opens the menu under itself; a right-click at the pointer.
     if (e.type === "click" && target) openMenu(anchorEvent(target, "end"), { kind: "item", resource });
@@ -910,7 +917,7 @@ export function FileBrowser({
     const viewProps = {
       resources: displayResources,
       selected: selectedResources,
-      focusedName,
+      focusedName: focusedName && (keyboardNav || selectedResources.has(focusedName)) ? focusedName : null,
       dropTarget,
       cutNames,
       starredPaths,
