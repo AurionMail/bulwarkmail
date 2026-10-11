@@ -11,6 +11,7 @@ import {
   MailOpen,
   MoreVertical,
   RotateCcw,
+  Search,
   ShieldAlert,
   ShieldCheck,
   Square,
@@ -42,6 +43,8 @@ interface MvListToolbarProps {
   onMarkAllFoldersRead?: () => void;
   /** Only offered where emptying is the usual thing to do: spam and the bin. */
   onEmptyFolder?: () => void;
+  /** Opens the new-folder dialog from the bottom of the Move to menu. */
+  onCreateFolder?: () => void;
   /** Scheduled view: only the per-message scheduling actions make sense. */
   disabled?: boolean;
 }
@@ -94,6 +97,7 @@ export function MvListToolbar({
   onMarkFolderRead,
   onMarkAllFoldersRead,
   onEmptyFolder,
+  onCreateFolder,
   disabled = false,
 }: MvListToolbarProps) {
   const t = useTranslations("email_list");
@@ -136,6 +140,9 @@ export function MvListToolbar({
     triggerRef: menuButtonRef,
   });
   const [moveOpen, setMoveOpen] = useState(false);
+  // Gmail's "Move to" menu opens on a search field that narrows the folders.
+  const [moveQuery, setMoveQuery] = useState("");
+  useEffect(() => { if (!moveOpen) setMoveQuery(""); }, [moveOpen]);
   const moveButtonRef = useRef<HTMLButtonElement>(null);
   const closeMove = useCallback(() => setMoveOpen(false), []);
   const { menuRef: moveRef, onKeyDown: onMoveKeyDown } = useMenuNavigation<HTMLDivElement>({
@@ -286,6 +293,22 @@ export function MvListToolbar({
         </div>
       );
     });
+
+  // While a search narrows the move menu it is a flat list of the matches.
+  const moveMatches = (() => {
+    const q = moveQuery.trim().toLowerCase();
+    if (!q) return null;
+    const out: MailboxNode[] = [];
+    const walk = (nodes: MailboxNode[]) => {
+      for (const node of nodes) {
+        const label = localizeMailboxName(node.role, node.name, (key) => tSidebar(`mailboxes.${key}`));
+        if (moveTargetIds.has(node.id) && label.toLowerCase().includes(q)) out.push({ ...node, children: [] });
+        walk(node.children);
+      }
+    };
+    walk(moveTree);
+    return out;
+  })();
 
   // What the tag picker shows: a tag every selected message carries is
   // checked, one only some of them carry is drawn as partial.
@@ -474,6 +497,20 @@ export function MvListToolbar({
             disabled={isProcessing}
             className="hover:text-red-600 dark:hover:text-red-400"
           />
+          {/* Gmail's order: what to do with it, how it reads, where it goes. */}
+          <div className="w-px h-6 bg-border mx-1 shrink-0" />
+          <ToolbarButton
+            icon={MailOpen}
+            label={tBatch("mark_read")}
+            onClick={() => run(async () => { if (client) await batchMarkAsRead(client, true); })}
+            disabled={isProcessing}
+          />
+          <ToolbarButton
+            icon={Mail}
+            label={tBatch("mark_unread")}
+            onClick={() => run(async () => { if (client) await batchMarkAsRead(client, false); })}
+            disabled={isProcessing}
+          />
           <div className="w-px h-6 bg-border mx-1 shrink-0" />
           {moveTree.length > 0 && (
             <div className="relative shrink-0">
@@ -500,9 +537,37 @@ export function MvListToolbar({
                   onKeyDown={onMoveKeyDown}
                   role="menu"
                   aria-label={tMenu("move_to")}
-                  className="absolute start-0 top-full mt-1 z-50 min-w-64 max-h-80 overflow-y-auto rounded-lg border border-border bg-popover py-1 shadow-xl"
+                  className="absolute start-0 top-full mt-1 z-50 min-w-64 max-h-96 flex flex-col rounded-lg border border-border bg-popover py-1 shadow-xl"
+                  data-mv-move-menu=""
                 >
-                  {renderMoveNodes(moveTree)}
+                  <div className="px-3 pt-1.5 text-sm text-muted-foreground">{tMenu("move_to")}</div>
+                  <label className="mx-3 mb-1 flex items-center gap-2 border-b border-border">
+                    <input
+                      autoFocus
+                      value={moveQuery}
+                      onChange={(e) => setMoveQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key !== "Escape" && e.key !== "ArrowDown" && e.key !== "ArrowUp") e.stopPropagation(); }}
+                      className="h-8 min-w-0 flex-1 bg-transparent text-sm focus:outline-none"
+                      aria-label={tMenu("move_to")}
+                    />
+                    <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </label>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    {moveMatches ? renderMoveNodes(moveMatches) : renderMoveNodes(moveTree)}
+                  </div>
+                  {onCreateFolder && (
+                    <>
+                      <div className="my-1 h-px bg-border" />
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setMoveOpen(false); onCreateFolder(); }}
+                        className="w-full px-3 py-2 text-start text-sm hover:bg-muted"
+                      >
+                        {tSidebar("create_label")}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -537,19 +602,6 @@ export function MvListToolbar({
               </div>
             )}
           </div>
-          <div className="w-px h-6 bg-border mx-1 shrink-0" />
-          <ToolbarButton
-            icon={MailOpen}
-            label={tBatch("mark_read")}
-            onClick={() => run(async () => { if (client) await batchMarkAsRead(client, true); })}
-            disabled={isProcessing}
-          />
-          <ToolbarButton
-            icon={Mail}
-            label={tBatch("mark_unread")}
-            onClick={() => run(async () => { if (client) await batchMarkAsRead(client, false); })}
-            disabled={isProcessing}
-          />
           <span className="ms-2 text-sm text-muted-foreground truncate">
             {tBatch("selected_messages", { count: selectionCount })}
           </span>

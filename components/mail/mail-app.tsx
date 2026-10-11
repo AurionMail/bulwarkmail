@@ -4224,6 +4224,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   onMarkFolderRead={selectedMailbox ? () => handleMarkFolderRead(selectedMailbox) : undefined}
                   onMarkAllFoldersRead={handleMarkAllFoldersRead}
                   onEmptyFolder={selectedMailbox ? () => void handleEmptyFolderFromContextMenu(selectedMailbox) : undefined}
+                  onCreateFolder={() => handleCreateFolderFromContextMenu()}
                   disabled={isScheduledView}
                 />
               ) : (

@@ -98,6 +98,21 @@ describe('MvListToolbar filing actions', () => {
     expect(batchSetTag).toHaveBeenCalledWith({}, 'work', false);
   });
 
+  it('narrows the folders to the ones matching what is typed, and offers to create one', () => {
+    const onCreateFolder = vi.fn();
+    useEmailStore.setState({ mailboxes: [...mailboxes, mailbox('travel', 'Travel')] } as never);
+    render(<MvListToolbar loadedCount={2} onRefresh={() => {}} onCreateFolder={onCreateFolder} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'move_to' }));
+    expect(screen.getByText('Travel')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'move_to' }), { target: { value: 'rec' } });
+    expect(screen.getByText('Receipts')).toBeInTheDocument();
+    expect(screen.queryByText('Travel')).toBeNull();
+
+    fireEvent.click(screen.getByText('create_label'));
+    expect(onCreateFolder).toHaveBeenCalledTimes(1);
+  });
+
   it('shows neither control until something is selected', () => {
     useEmailStore.setState({ selectedEmailKeys: new Set() } as never);
     toolbar();
