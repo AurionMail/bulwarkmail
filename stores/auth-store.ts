@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { JMAPClient, RateLimitError } from '@/lib/jmap/client';
+import { JMAPClient, RateLimitError, RequestTimeoutError } from '@/lib/jmap/client';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { useIdentityStore } from './identity-store';
 import { setClientLookup } from './client-registry';
@@ -207,6 +207,11 @@ function isTransientAuthError(error: unknown): boolean {
   if (error instanceof TransientAuthError) return true;
   // fetch() rejects with TypeError when the network is unreachable.
   if (error instanceof TypeError) return true;
+  // A request that timed out, or a fetch that failed while the no-cors probe
+  // got through (connect() reports that as CORS_ERROR, which is also what a
+  // load balancer switching origins produces), is an outage too. (#1167)
+  if (error instanceof RequestTimeoutError) return true;
+  if (error instanceof Error && error.message === 'CORS_ERROR') return true;
   // JMAPClient.connect()/refreshSession() embed the HTTP status in the
   // message - a 5xx there is the server being down, not an auth failure.
   if (error instanceof Error) {
