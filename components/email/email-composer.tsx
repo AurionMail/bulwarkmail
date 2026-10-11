@@ -3961,14 +3961,18 @@ const AutocompleteDropdown = React.forwardRef<HTMLDivElement, {
           ) : (
             <Avatar name={r.name} email={r.email} size="sm" className="shrink-0 w-6 h-6 text-[10px]" />
           )}
-          <span className="font-medium truncate">{r.name || r.email}</span>
-          {r.group ? (
-            <span className="text-muted-foreground truncate">
-              {tContacts('groups.member_count', { count: r.group.memberCount })}
-            </span>
-          ) : r.name && (
-            <span className="text-muted-foreground truncate">&lt;{r.email}&gt;</span>
-          )}
+          {/* Name above address on a phone: side by side, both were cut to
+              a few letters in the narrow field ("Use… <userb@exa…"). */}
+          <span className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:gap-2">
+            <span className="font-medium truncate">{r.name || r.email}</span>
+            {r.group ? (
+              <span className="text-muted-foreground truncate">
+                {tContacts('groups.member_count', { count: r.group.memberCount })}
+              </span>
+            ) : r.name && (
+              <span className="text-muted-foreground truncate">&lt;{r.email}&gt;</span>
+            )}
+          </span>
         </button>
       ))}
       {onSearchServer && (
