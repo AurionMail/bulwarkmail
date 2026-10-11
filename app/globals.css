@@ -971,6 +971,26 @@ optgroup {
   --mv-search-radius: 8px;
   --mv-popover-w: 352px;
   --mv-popover-radius: 28px;
+  --mv-card-radius: 16px;
+  /* Surfaces, tinted from the theme's primary so any theme keeps the same
+     relationships: a faintly tinted canvas behind the chrome, a plain card
+     for the content, a slightly deeper search field, a selected-row pill and
+     a soft Compose button. */
+  --mv-canvas: color-mix(in oklab, var(--color-primary) 4%, var(--color-background));
+  --mv-search-bg: color-mix(in oklab, var(--color-primary) 9%, var(--color-background));
+  --mv-nav-hover: color-mix(in oklab, var(--color-foreground) 7%, var(--mv-canvas));
+  --mv-nav-selected: color-mix(in oklab, var(--color-primary) 18%, var(--color-background));
+  --mv-compose-bg: color-mix(in oklab, var(--color-primary) 24%, var(--color-background));
+  --mv-compose-fg: color-mix(in oklab, var(--color-primary) 30%, var(--color-foreground));
+  --mv-row-read: color-mix(in oklab, var(--color-primary) 3%, var(--color-background));
+}
+
+/* The content card: everything that is not chrome sits on one rounded sheet
+   inset from the canvas. */
+[data-interface-layout="mountain-view"] [data-mv-card] {
+  border-radius: var(--mv-card-radius);
+  background-color: var(--color-background);
+  overflow: hidden;
 }
 
 /* Search: a filled 48px field that lifts onto a card while focused, rather
@@ -979,14 +999,15 @@ optgroup {
   height: var(--mv-search-h);
   border-radius: var(--mv-search-radius);
   border-color: transparent;
-  background-color: var(--color-muted);
+  background-color: var(--mv-search-bg);
   padding-inline-start: 3rem;
   font-size: 1rem;
 }
 
 [data-interface-layout="mountain-view"] .mv-topbar input[data-search-input]:hover {
   border-color: transparent;
-  background-color: var(--color-accent);
+  background-color: var(--mv-search-bg);
+  box-shadow: 0 1px 1px 0 rgb(0 0 0 / 0.08), 0 1px 3px 1px rgb(0 0 0 / 0.04);
 }
 
 [data-interface-layout="mountain-view"] .mv-topbar input[data-search-input]:focus-visible {

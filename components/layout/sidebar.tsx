@@ -1256,7 +1256,9 @@ export function Sidebar({
       data-mv-rail-peek={hoverExpanded ? "" : undefined}
       className={cn(
         "relative flex flex-col h-full border-e transition-all duration-300 overflow-hidden",
-        "bg-secondary border-border",
+        // Mountain View's navigation sits on the canvas, with no rule between
+        // it and the content card.
+        mvShell ? "bg-[var(--mv-canvas)] border-transparent" : "bg-secondary border-border",
         "max-lg:w-full",
         // Mountain View's collapsed column is 72px (--mv-rail-w), wide enough
         // for its round compose button; the default layout's rail is 48px.

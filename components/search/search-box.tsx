@@ -24,6 +24,8 @@ interface SearchBoxProps {
   title?: string;
   /** Focus on mount — the mobile search panel opens straight to the keyboard. */
   autoFocus?: boolean;
+  /** Overrides the default placeholder, which carries the `/` shortcut hint. */
+  placeholder?: string;
 }
 
 /**
@@ -33,7 +35,7 @@ interface SearchBoxProps {
  * reuses the composer's contact autocomplete lookup so directory principals,
  * address-book contacts and recent recipients all surface here too.
  */
-export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact, disabled = false, title, autoFocus }: SearchBoxProps) {
+export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact, disabled = false, title, autoFocus, placeholder }: SearchBoxProps) {
   const t = useTranslations("sidebar");
   const listId = `search-suggestions-${useId().replace(/:/g, "")}`;
 
@@ -124,7 +126,7 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
         <Input
           type="search"
           autoFocus={autoFocus}
-          placeholder={t("search_placeholder_hint")}
+          placeholder={placeholder ?? t("search_placeholder_hint")}
           value={value}
           onChange={(e) => {
             onChange(e.target.value);

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BookUser,
   Calendar,
-  Filter,
   Grid3x3,
   HardDrive,
   Keyboard,
@@ -12,6 +11,7 @@ import {
   Menu,
   Settings,
   Shield,
+  SlidersHorizontal,
   iconForName,
 } from "@/components/icons";
 import type { AppIcon as AppIconType } from "@/components/icons";
@@ -161,7 +161,7 @@ export function MvTopBar({
 
   return (
     <header
-      className="mv-topbar flex items-center h-16 gap-2 ps-1 pe-4 shrink-0 bg-background"
+      className="mv-topbar flex items-center h-16 gap-2 ps-1 pe-4 shrink-0 bg-[var(--mv-canvas)]"
       data-mv-topbar=""
     >
       {/* Brand block: occupies the sidebar's own column width */}
@@ -192,6 +192,7 @@ export function MvTopBar({
             onClear={search.onClear}
             onSelectContact={search.onSelectContact}
             disabled={search.disabled}
+            placeholder={t("search_placeholder")}
           />
           <button
             type="button"
@@ -208,7 +209,7 @@ export function MvTopBar({
             title={tSearch("toggle_filters")}
             aria-label={tSearch("toggle_filters")}
           >
-            <Filter className="w-5 h-5" />
+            <SlidersHorizontal className="w-5 h-5" />
             {!search.filtersOpen && search.activeFilterCount > 0 && (
               <span className="absolute top-1.5 end-1.5 grid place-items-center w-4 h-4 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
                 {search.activeFilterCount}
