@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback } from "react";
-import { cleanPreview, formatDate, formatDateTime } from "@/lib/utils";
+import { cleanPreview, formatDate } from "@/lib/utils";
+import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { cn } from "@/lib/utils";
 import { ListAttachmentChips, useListHasAttachment } from "./attachment-chips";
@@ -324,7 +325,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const subjectSnippet = email.searchSnippet?.subject ?? null;
     const previewSnippet = showPreview ? (email.searchSnippet?.preview ?? null) : null;
     const scheduledSendLabel = email.isScheduled && email.scheduledSendAt
-      ? formatDateTime(email.scheduledSendAt, timeFormat)
+      ? formatScheduledSendAt(email.scheduledSendAt, timeFormat)
       : null;
 
     const tagIds = sortTagIds(getEmailTagIds(email.keywords));
@@ -825,7 +826,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     const subjectSnippet = threadSnippet?.subject ?? null;
     const previewSnippet = showPreview ? (threadSnippet?.preview ?? null) : null;
     const scheduledSendLabel = latestEmail.isScheduled && latestEmail.scheduledSendAt
-      ? formatDateTime(latestEmail.scheduledSendAt, timeFormat)
+      ? formatScheduledSendAt(latestEmail.scheduledSendAt, timeFormat)
       : null;
 
     const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore();
