@@ -5,7 +5,8 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Paperclip, Send, Save, Check, Loader2, AlertCircle, FileText, BookmarkPlus, CalendarClock, ChevronDown, MailCheck, Search, Users, PackageCheck, LockKeyhole, Type, HardDrive } from "@/components/icons";
+import { X, Paperclip, Send, Save, Check, Loader2, AlertCircle, FileText, BookmarkPlus, CalendarClock, ChevronDown, Search, Users, SlidersHorizontal, LayoutTemplate, Upload, FolderOpen } from "@/components/icons";
+import { ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
 import { cn, formatFileSize, formatDateTime, generateUUID } from "@/lib/utils";
 import { debug } from "@/lib/debug";
 import { toast } from "@/stores/toast-store";
@@ -3413,112 +3414,95 @@ export function EmailComposer({
               className="hidden"
               accept="*/*"
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => fileInputRef.current?.click()}
-              className="h-9 w-9"
-              title={t('attach')}
-            >
-              <Paperclip className="w-4 h-4" />
-            </Button>
-            {filesEnabled && composerClient?.supportsFiles?.() && (
+            {filesEnabled && composerClient?.supportsFiles?.() ? (
+              <ComposerToolbarMenu icon={Paperclip} label={t('attach')} testId="composer-attach-menu">
+                {(close) => <>
+                  <ComposerToolbarMenuItem
+                    icon={Upload}
+                    onSelect={() => { close(); fileInputRef.current?.click(); }}
+                  >
+                    {t('attach_from_device')}
+                  </ComposerToolbarMenuItem>
+                  <ComposerToolbarMenuItem
+                    icon={FolderOpen}
+                    onSelect={() => { close(); setFilesPicker({ client: composerClient, accountId: composerAccountId }); }}
+                    testId="composer-attach-from-files"
+                  >
+                    {t('attach_from_files')}
+                  </ComposerToolbarMenuItem>
+                </>}
+              </ComposerToolbarMenu>
+            ) : (
               <Button
                 variant="ghost"
-                size="icon"
-                onClick={() => setFilesPicker({ client: composerClient, accountId: composerAccountId })}
-                className="h-9 w-9"
-                title={t('attach_from_files')}
-                aria-label={t('attach_from_files')}
-                data-testid="composer-attach-from-files"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-9 gap-1.5 px-2 sm:px-2.5"
+                title={t('attach')}
+                aria-label={t('attach')}
               >
-                <HardDrive className="w-4 h-4" />
+                <Paperclip className="w-4 h-4" />
+                <span className="hidden sm:inline text-sm">{t('attach')}</span>
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={togglePlainTextMode}
-              className={cn(
-                "h-9 w-9",
-                plainTextMode && "bg-muted text-foreground hover:bg-muted"
-              )}
-              title={plainTextMode ? t('format_rich_text') : t('format_plain_text')}
-              aria-label={plainTextMode ? t('format_rich_text') : t('format_plain_text')}
-              aria-pressed={plainTextMode}
-              data-testid="composer-format-toggle"
-            >
-              <Type className="w-4 h-4" />
-            </Button>
-            {templatesEnabled && <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowTemplatePicker(true)}
-                title={t('use_template')}
-                className="h-9 w-9"
-              >
-                <FileText className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSaveAsTemplate(true)}
-                title={t('save_as_template')}
-                className="h-9 w-9"
-              >
-                <BookmarkPlus className="w-4 h-4" />
-              </Button>
-            </>}
+            {templatesEnabled && (
+              <ComposerToolbarMenu icon={LayoutTemplate} label={t('templates_menu')} testId="composer-templates-menu">
+                {(close) => <>
+                  <ComposerToolbarMenuItem icon={FileText} onSelect={() => { close(); setShowTemplatePicker(true); }}>
+                    {t('insert_template')}
+                  </ComposerToolbarMenuItem>
+                  <ComposerToolbarMenuItem icon={BookmarkPlus} onSelect={() => { close(); setShowSaveAsTemplate(true); }}>
+                    {t('save_as_template')}
+                  </ComposerToolbarMenuItem>
+                </>}
+              </ComposerToolbarMenu>
+            )}
             {/* Sign/encrypt controls are contributed by crypto plugins via the
                 composer-toolbar slot (rendered below). */}
-
-            {/* Read-receipt request toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setRequestReadReceipt(v => !v)}
-              className={cn(
-                "h-9 w-9",
-                requestReadReceipt && "bg-green-600 text-white hover:bg-green-600 hover:text-white dark:bg-green-600 dark:hover:bg-green-600"
-              )}
-              title={requestReadReceipt ? t('read_receipt_on') : t('read_receipt_off')}
-              aria-pressed={requestReadReceipt}
+            <ComposerToolbarMenu
+              icon={SlidersHorizontal}
+              label={t('options')}
+              activeCount={[plainTextMode, requestReadReceipt, requestDsn, requireTls].filter(Boolean).length}
+              testId="composer-options-menu"
             >
-              <MailCheck className="w-4 h-4" />
-            </Button>
-            {composerClient?.supportsSubmissionExtension?.('DSN') && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setRequestDsn(v => !v)}
-                className={cn(
-                  "h-9 w-9",
-                  requestDsn && "bg-green-600 text-white hover:bg-green-600 hover:text-white dark:bg-green-600 dark:hover:bg-green-600"
+              {() => <>
+                <ComposerToolbarMenuCheckItem
+                  checked={plainTextMode}
+                  onToggle={togglePlainTextMode}
+                  description={t('option_plain_text_hint')}
+                  testId="composer-format-toggle"
+                >
+                  {t('option_plain_text')}
+                </ComposerToolbarMenuCheckItem>
+                <ComposerToolbarMenuCheckItem
+                  checked={requestReadReceipt}
+                  onToggle={() => setRequestReadReceipt(v => !v)}
+                  description={t('option_read_receipt_hint')}
+                  testId="composer-read-receipt-toggle"
+                >
+                  {t('option_read_receipt')}
+                </ComposerToolbarMenuCheckItem>
+                {composerClient?.supportsSubmissionExtension?.('DSN') && (
+                  <ComposerToolbarMenuCheckItem
+                    checked={requestDsn}
+                    onToggle={() => setRequestDsn(v => !v)}
+                    description={t('option_dsn_hint')}
+                    testId="composer-dsn-toggle"
+                  >
+                    {t('option_dsn')}
+                  </ComposerToolbarMenuCheckItem>
                 )}
-                title={requestDsn ? t('dsn_on') : t('dsn_off')}
-                aria-pressed={requestDsn}
-                data-testid="composer-dsn-toggle"
-              >
-                <PackageCheck className="w-4 h-4" />
-              </Button>
-            )}
-            {composerClient?.supportsSubmissionExtension?.('REQUIRETLS') && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setRequireTls(v => !v)}
-                className={cn(
-                  "h-9 w-9",
-                  requireTls && "bg-green-600 text-white hover:bg-green-600 hover:text-white dark:bg-green-600 dark:hover:bg-green-600"
+                {composerClient?.supportsSubmissionExtension?.('REQUIRETLS') && (
+                  <ComposerToolbarMenuCheckItem
+                    checked={requireTls}
+                    onToggle={() => setRequireTls(v => !v)}
+                    description={t('option_require_tls_hint')}
+                    testId="composer-require-tls-toggle"
+                  >
+                    {t('option_require_tls')}
+                  </ComposerToolbarMenuCheckItem>
                 )}
-                title={requireTls ? t('require_tls_on') : t('require_tls_off')}
-                aria-pressed={requireTls}
-                data-testid="composer-require-tls-toggle"
-              >
-                <LockKeyhole className="w-4 h-4" />
-              </Button>
-            )}
+              </>}
+            </ComposerToolbarMenu>
             <PluginSlot name="composer-toolbar" />
             {/* Lets a plugin offer an alternative attachment source (an
                 external file browser, cloud storage picker, etc). The plugin
