@@ -610,7 +610,8 @@
       "copy": "نسخ الرمز {code}",
       "copied": "تم نسخ الرمز",
       "copy_failed": "تعذّر نسخ الرمز"
-    }
+    },
+    "mv_position": "{index} من {total}"
   },
   "email_composer": {
     "minimize": "تصغير",

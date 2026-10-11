@@ -610,7 +610,8 @@
       "copy": "コード {code} をコピー",
       "copied": "コードをコピーしました",
       "copy_failed": "コードをコピーできませんでした"
-    }
+    },
+    "mv_position": "{index} / {total}"
   },
   "email_composer": {
     "minimize": "最小化",

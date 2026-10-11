@@ -610,7 +610,8 @@
       "copy": "کپی کد {code}",
       "copied": "کد کپی شد",
       "copy_failed": "کپی کد ممکن نشد"
-    }
+    },
+    "mv_position": "{index} از {total}"
   },
   "email_composer": {
     "minimize": "کوچک کردن",

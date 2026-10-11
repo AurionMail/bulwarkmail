@@ -610,7 +610,8 @@
       "copy": "{code} кодыг хуулах",
       "copied": "Код хуулагдлаа",
       "copy_failed": "Кодыг хуулж чадсангүй"
-    }
+    },
+    "mv_position": "{total}-с {index}"
   },
   "email_composer": {
     "minimize": "Багасгах",

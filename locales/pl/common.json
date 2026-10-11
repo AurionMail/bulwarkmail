@@ -610,7 +610,8 @@
       "copy": "Kopiuj kod {code}",
       "copied": "Skopiowano kod",
       "copy_failed": "Nie udało się skopiować kodu"
-    }
+    },
+    "mv_position": "{index} z {total}"
   },
   "email_composer": {
     "minimize": "Minimalizuj",

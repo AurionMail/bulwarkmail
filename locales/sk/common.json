@@ -610,7 +610,8 @@
       "copy": "Kopírovať kód {code}",
       "copied": "Kód skopírovaný",
       "copy_failed": "Kód sa nepodarilo skopírovať"
-    }
+    },
+    "mv_position": "{index} z {total}"
   },
   "email_composer": {
     "minimize": "Minimalizovať",

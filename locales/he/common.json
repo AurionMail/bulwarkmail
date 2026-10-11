@@ -575,7 +575,8 @@
       "copy": "העתקת הקוד {code}",
       "copied": "הקוד הועתק",
       "copy_failed": "לא ניתן להעתיק את הקוד"
-    }
+    },
+    "mv_position": "{index} מתוך {total}"
   },
   "email_composer": {
     "minimize": "מזעור",

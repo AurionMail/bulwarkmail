@@ -610,7 +610,8 @@
       "copy": "{code} kodunu kopyala",
       "copied": "Kod kopyalandı",
       "copy_failed": "Kod kopyalanamadı"
-    }
+    },
+    "mv_position": "{index} / {total}"
   },
   "email_composer": {
     "minimize": "Simge durumuna küçült",

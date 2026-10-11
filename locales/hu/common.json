@@ -610,7 +610,8 @@
       "copy": "{code} kód másolása",
       "copied": "Kód másolva",
       "copy_failed": "Nem sikerült másolni a kódot"
-    }
+    },
+    "mv_position": "{index} / {total}"
   },
   "email_composer": {
     "minimize": "Kis méret",

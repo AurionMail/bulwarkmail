@@ -610,7 +610,8 @@
       "copy": "Copiază codul {code}",
       "copied": "Cod copiat",
       "copy_failed": "Codul nu a putut fi copiat"
-    }
+    },
+    "mv_position": "{index} din {total}"
   },
   "email_composer": {
     "minimize": "Minimizează",

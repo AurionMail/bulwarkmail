@@ -610,7 +610,8 @@
       "copy": "Kopēt kodu {code}",
       "copied": "Kods nokopēts",
       "copy_failed": "Neizdevās nokopēt kodu"
-    }
+    },
+    "mv_position": "{index} no {total}"
   },
   "email_composer": {
     "minimize": "Minimizēt",

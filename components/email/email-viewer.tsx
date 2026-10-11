@@ -15,7 +15,7 @@ import { buildContactsPath, buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, generateUUID } from "@/lib/utils";
+import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID } from "@/lib/utils";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
 import { emailDisplayDate } from "@/lib/email-date";
@@ -155,6 +155,10 @@ interface EmailViewerProps {
   onBack?: () => void;
   onNavigateNext?: () => void;
   onNavigatePrev?: () => void;
+  /** Mountain View: where the open message sits in the list, for the "1 of N" pager. */
+  mvPosition?: { index: number; total: number };
+  /** Mountain View: the folder the message is in, shown as a chip by the subject. */
+  mvFolderName?: string;
   onShowShortcuts?: () => void;
   onEditDraft?: () => void;
   onCancelScheduledForEdit?: () => void;
@@ -641,6 +645,60 @@ function DraggableAttachmentChip({ attachment, client, accountId, enabled, downl
   return <>{children(drag)}</>;
 }
 
+/**
+ * The time on a Mountain View sender line, followed by how long ago it was:
+ * "12:16 (3 minutes ago)" today, "Oct 10, 2026, 20:33 (2 days ago)" before.
+ */
+function mvSenderDate(date: Date | string, timeFormat: '12h' | '24h'): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const today = new Date().toDateString() === d.toDateString();
+  const when = today
+    ? formatDateTime(d, timeFormat)
+    : formatDateTime(d, timeFormat, { year: 'numeric', month: 'short', day: 'numeric' });
+  const ago = formatRelativeAgo(d);
+  return ago ? `${when} (${ago})` : when;
+}
+
+/** Mountain View's "1 of 23" with newer / older arrows, at the end of the message toolbar. */
+function MvPager({
+  position,
+  onPrev,
+  onNext,
+}: {
+  position: { index: number; total: number };
+  onPrev?: () => void;
+  onNext?: () => void;
+}) {
+  const t = useTranslations('email_viewer');
+  return (
+    <div className="ms-auto flex items-center gap-0.5 flex-shrink-0" data-mv-pager="">
+      <span className="text-xs text-muted-foreground tabular-nums me-2 whitespace-nowrap">
+        {t('mv_position', { index: position.index.toLocaleString(), total: position.total.toLocaleString() })}
+      </span>
+      <button
+        type="button"
+        onClick={onPrev}
+        disabled={!onPrev}
+        className="grid place-items-center w-9 h-9 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+        title={t('tooltips.previous')}
+        aria-label={t('tooltips.previous')}
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={!onNext}
+        className="grid place-items-center w-9 h-9 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+        title={t('tooltips.next')}
+        aria-label={t('tooltips.next')}
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
 function SidebarSection({ icon: Icon, title, children }: { icon: React.ComponentType<{ className?: string }>; title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -674,6 +732,8 @@ export function EmailViewer({
   onBack,
   onNavigateNext,
   onNavigatePrev,
+  mvPosition,
+  mvFolderName,
   onShowShortcuts,
   onEditDraft,
   onCancelScheduledForEdit,
@@ -3077,7 +3137,7 @@ export function EmailViewer({
           onClick={onArchive}
           data-overflow-item
           data-overflow-priority="4"
-          className="flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0"
+          className={cn("flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0", mvViewer && "order-1")}
           title={t('tooltips.archive')}
         >
           <Archive className="w-4 h-4" />
@@ -3088,7 +3148,7 @@ export function EmailViewer({
           variant="ghost"
           size="sm"
           onClick={onDelete}
-          className="flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0"
+          className={cn("flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0", mvViewer && "order-3")}
           title={t('tooltips.delete')}
         >
           <Trash2 className="w-4 h-4" />
@@ -3096,7 +3156,7 @@ export function EmailViewer({
         </Button>
         {/* Move to folder */}
         {moveTree.length > 0 && onMoveToMailbox && (
-          <div ref={moveMenuRef} data-overflow-item data-overflow-priority="5" className="relative">
+          <div ref={moveMenuRef} data-overflow-item data-overflow-priority="5" className={cn("relative", mvViewer && "order-6")}>
             <Button
               ref={moveButtonRef}
               variant="ghost"
@@ -3157,8 +3217,8 @@ export function EmailViewer({
           </div>
         )}
         {/* Tag Picker - hidden on mobile, overflows to More menu */}
-        <div data-overflow-item data-overflow-priority="6" className="hidden sm:flex items-center">
-        <div className="w-px h-5 bg-border mx-0.5" />
+        <div data-overflow-item data-overflow-priority="6" className={cn("hidden sm:flex items-center", mvViewer && "order-7")}>
+        {!mvViewer && <div className="w-px h-5 bg-border mx-0.5" />}
         <div ref={tagMenuRef} className="relative">
           <button
             onClick={() => { setTagMenuOpen(!tagMenuOpen); setMoreMenuOpen(false); setMoveMenuOpen(false); }}
@@ -3192,14 +3252,16 @@ export function EmailViewer({
             data-overflow-priority="7"
             className={cn(
               "flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0",
-              isInJunkFolder ? "hover:bg-green-50 dark:hover:bg-green-950/30" : "hover:bg-red-50 dark:hover:bg-red-950/30"
+              mvViewer
+                ? "order-2"
+                : isInJunkFolder ? "hover:bg-green-50 dark:hover:bg-green-950/30" : "hover:bg-red-50 dark:hover:bg-red-950/30"
             )}
             title={isInJunkFolder ? t('spam.not_spam_title') : t('spam.button_title')}
           >
             {isInJunkFolder ? (
-              <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <ShieldCheck className={cn("h-4 w-4", !mvViewer && "text-green-600 dark:text-green-400")} />
             ) : (
-              <ShieldAlert className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <ShieldAlert className={cn("h-4 w-4", !mvViewer && "text-red-600 dark:text-red-400")} />
             )}
             {showToolbarLabels && <span className="text-[10px] leading-tight sm:text-sm">{isInJunkFolder ? t('not_spam_short') : t('spam_short')}</span>}
           </Button>
@@ -3210,13 +3272,15 @@ export function EmailViewer({
             (the inactive one invisible) so the button keeps a fixed width when the
             email is auto-marked as read on open. Otherwise the width change re-runs
             the overflow calculation and the toolbar buttons jump around (#864). */}
+        {/* Mountain View groups the actions as Gmail does, with a rule between groups. */}
+        {mvViewer && <div className="order-4 w-px h-5 bg-border mx-1" aria-hidden />}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onMarkAsRead?.(email.id, isUnread)}
           data-overflow-item
           data-overflow-priority="8"
-          className="flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0"
+          className={cn("flex-col items-center gap-0.5 h-auto py-1.5 px-2 sm:flex-row sm:h-8 sm:gap-1.5 sm:py-0", mvViewer && "order-5")}
           title={isUnread ? t('mark_read') : t('mark_unread')}
         >
           {isUnread ? <MailOpen className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
@@ -3228,7 +3292,9 @@ export function EmailViewer({
           )}
         </Button>
 
-        {/* Print - hidden on mobile, overflows to More menu */}
+        {/* Print - hidden on mobile, overflows to More menu. Mountain View
+            has it on the subject line. */}
+        {!mvViewer && (
         <Button
           variant="ghost"
           size="sm"
@@ -3241,6 +3307,7 @@ export function EmailViewer({
           <Printer className="w-4 h-4" />
           {showToolbarLabels && <span className="hidden sm:inline text-sm">{t('print')}</span>}
         </Button>
+        )}
 
         {/* View source - hidden on mobile, overflows to More menu */}
         <Button
@@ -3249,7 +3316,7 @@ export function EmailViewer({
           onClick={() => setShowSourceModal(true)}
           data-overflow-item
           data-overflow-priority="10"
-          className="hidden sm:inline-flex h-8 gap-1.5"
+          className={cn("hidden sm:inline-flex h-8 gap-1.5", mvViewer && "order-8")}
           title={t('view_source')}
         >
           <Code className="w-4 h-4" />
@@ -3265,7 +3332,7 @@ export function EmailViewer({
           onClick={() => setEmailViewDarkOverride(prev => prev === null ? !(resolvedTheme === 'dark') : !prev)}
           data-overflow-item
           data-overflow-priority="11"
-          className="hidden sm:inline-flex h-8 gap-1.5"
+          className={cn("hidden sm:inline-flex h-8 gap-1.5", mvViewer && "order-8")}
           title={isDark ? t('view_in_light_mode') : t('view_in_dark_mode')}
           disabled={!effectiveEmailContent.isHtml}
           aria-disabled={!effectiveEmailContent.isHtml}
@@ -3276,7 +3343,7 @@ export function EmailViewer({
         {/* Fullscreen toggle - hidden on mobile (already fullscreen there).
             Never overflows into the More menu: in fullscreen this button is
             the way back out, so it must stay visible. */}
-        {onToggleFullscreen && (
+        {onToggleFullscreen && !mvViewer && (
         <Button
           variant="ghost"
           size="sm"
@@ -3290,7 +3357,7 @@ export function EmailViewer({
         )}
 
         {/* More menu - click-based */}
-        <div ref={moreMenuRef} className="relative">
+        <div ref={moreMenuRef} className={cn("relative", mvViewer && "order-9")}>
           <Button
             ref={moreButtonRef}
             variant="ghost"
@@ -3855,12 +3922,20 @@ export function EmailViewer({
       {/* === TOOLBAR (top position) === */}
       {toolbarPosition === 'top' && (
         <div className={cn(
-          "bg-background border-b border-border",
+          "bg-background",
+          !mvViewer && "border-b border-border",
           "max-lg:sticky max-lg:top-0 max-lg:z-10"
         )}>
-          <div className="px-2 sm:px-4 lg:px-6 h-14 flex items-center">
-            <div ref={toolbarRef} className="flex items-center justify-between gap-0.5 sm:gap-2 w-full">
+          <div className={cn("px-2 sm:px-4 lg:px-6 flex items-center", mvViewer ? "h-12 lg:ps-4" : "h-14")}>
+            <div
+              ref={toolbarRef}
+              data-mv-viewer-toolbar={mvViewer ? "" : undefined}
+              className={cn("flex items-center gap-0.5 sm:gap-2 w-full", mvViewer ? "justify-start" : "justify-between")}
+            >
               {renderToolbarItems(true)}
+              {mvViewer && mvPosition && (
+                <MvPager position={mvPosition} onPrev={onNavigatePrev} onNext={onNavigateNext} />
+              )}
             </div>
           </div>
         </div>
@@ -3868,10 +3943,12 @@ export function EmailViewer({
 
       {/* === SUBJECT BLOCK === */}
       <div className={cn(
-        "bg-background border-b border-border",
+        "bg-background",
+        !mvViewer && "border-b border-border",
         toolbarPosition === 'below-subject' && "max-lg:sticky max-lg:top-0 max-lg:z-10"
       )}>
-        <div className="px-4 lg:px-6" style={{ paddingBlock: 'var(--density-header-py)' }}>
+        {/* Mountain View lines the subject up with the sender's name below it. */}
+        <div className={cn("px-4 lg:px-6", mvViewer && "lg:ps-[80px] pt-3 pb-1")} style={mvViewer ? undefined : { paddingBlock: 'var(--density-header-py)' }}>
           <div className="flex items-start justify-between gap-2 lg:gap-4">
             {/* Back button (for below-subject mode on tablet) */}
             {toolbarPosition === 'below-subject' && (isMobile || (isTablet && !tabletListVisible) || (isFocusedMailLayout && !isMobile)) && onBack && (
@@ -3887,11 +3964,21 @@ export function EmailViewer({
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-start gap-2">
-                <h1 className="text-lg lg:text-xl font-bold text-foreground tracking-tight break-words min-w-0">
+                <h1 className={cn(
+                  "text-foreground break-words min-w-0",
+                  mvViewer ? "text-[22px] leading-7 font-normal" : "text-lg lg:text-xl font-bold tracking-tight"
+                )}>
                   {email.subject || t('no_subject')}
                 </h1>
-                {/* Star inline with subject (top toolbar mode) */}
-                {toolbarPosition === 'top' && (
+                {/* Mountain View: the folder the message sits in, as a chip on the subject line. */}
+                {mvViewer && mvFolderName && (
+                  <span className="self-center flex-shrink-0 rounded px-1.5 py-0.5 text-xs bg-muted text-muted-foreground" data-mv-folder-chip="">
+                    {mvFolderName}
+                  </span>
+                )}
+                {/* Star inline with subject (top toolbar mode). Mountain View
+                    has it on the sender's line instead. */}
+                {toolbarPosition === 'top' && !mvViewer && (
                   <button
                     onClick={onToggleStar}
                     className="flex-shrink-0 p-1 rounded hover:bg-muted transition-colors"
@@ -3927,6 +4014,31 @@ export function EmailViewer({
                 </div>
               )}
             </div>
+            {/* Mountain View: print and full screen at the end of the subject line. */}
+            {mvViewer && (
+              <div className="hidden lg:flex items-center flex-shrink-0 -me-2" data-mv-subject-actions="">
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  title={t('print')}
+                  aria-label={t('print')}
+                >
+                  <Printer className="w-5 h-5" />
+                </button>
+                {onToggleFullscreen && (
+                  <button
+                    type="button"
+                    onClick={onToggleFullscreen}
+                    className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    title={isFullscreen ? t('exit_fullscreen') : t('fullscreen')}
+                    aria-label={isFullscreen ? t('exit_fullscreen') : t('fullscreen')}
+                  >
+                    {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                  </button>
+                )}
+              </div>
+            )}
             {/* Date/time on the right of subject row - hidden on mobile, shown next to sender.
                 Mountain View puts it on the sender's row instead, and shows no size. */}
             <div className={cn("hidden flex-shrink-0 text-end", !mvViewer && "sm:block")}>
@@ -3961,8 +4073,11 @@ export function EmailViewer({
       <div className="min-h-full flex flex-col">
 
       {/* === SENDER INFO (Desktop) === */}
-      <div className="hidden lg:block bg-background border-b border-border px-6" style={{ paddingBlock: 'var(--density-header-py)' }}>
-          <div className="flex items-start" style={{ gap: 'var(--density-item-gap)' }}>
+      <div
+        className={cn("hidden lg:block bg-background px-6", !mvViewer && "border-b border-border")}
+        style={mvViewer ? { paddingBlock: '0.75rem 0.5rem' } : { paddingBlock: 'var(--density-header-py)' }}
+      >
+          <div className="flex items-start" style={{ gap: mvViewer ? '16px' : 'var(--density-item-gap)' }}>
             <button
               onClick={() => sender?.email && handleViewContactSidebar(null, sender.email)}
               className="cursor-pointer group flex-shrink-0"
@@ -4010,8 +4125,31 @@ export function EmailViewer({
                       />
                     )}
                     {mvViewer && (
-                      <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap" data-mv-sender-date="">
-                        {formatDateTime(emailDisplayDate(email), timeFormat, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                      <span className="ms-auto ps-2 flex items-center gap-1 -my-2 -me-2" data-mv-sender-actions="">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap me-1" data-mv-sender-date="">
+                          {mvSenderDate(emailDisplayDate(email), timeFormat)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={onToggleStar}
+                          className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                          title={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
+                          aria-label={isStarred ? t('tooltips.unstar') : t('tooltips.star')}
+                          aria-pressed={!!isStarred}
+                        >
+                          <Star className={cn("w-5 h-5", isStarred && "fill-amber-400 text-amber-400")} />
+                        </button>
+                        {!isDraft && !isScheduled && (
+                          <button
+                            type="button"
+                            onClick={() => onReply?.()}
+                            className="grid place-items-center w-10 h-10 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                            title={t('tooltips.reply')}
+                            aria-label={t('tooltips.reply')}
+                          >
+                            <Reply className="w-5 h-5" />
+                          </button>
+                        )}
                       </span>
                     )}
                   </div>
@@ -5275,6 +5413,8 @@ export function EmailViewer({
           {/* Email Body */}
           <div className={cn(
             "email-content-wrapper overflow-x-auto",
+            // Mountain View indents the body under the sender's name, as Gmail does.
+            mvViewer && "lg:ms-[60px]",
             !isDark && resolvedTheme === 'dark' ? "bg-white email-content-light" : "bg-background"
           )}
           style={isDark ? { backgroundColor: '#121212' } : undefined}>
@@ -5321,7 +5461,7 @@ export function EmailViewer({
           {/* Mountain View: Reply / Reply all / Forward as buttons under the message. */}
           {mvReplyRow && !isDraft && !isScheduled && !isBodyLoading && (effectiveEmailContent.isHtml ? iframeReady : true) && (
             <div
-              className={cn("pb-6 pt-2", isMobile ? "grid grid-cols-3 gap-2 px-4" : "flex flex-wrap items-center gap-2 px-6")}
+              className={cn("pb-6 pt-2", isMobile ? "grid grid-cols-3 gap-2 px-4" : "flex flex-wrap items-center gap-3 px-6 lg:ps-[80px] pt-6")}
               data-mv-reply-row=""
             >
               <Button variant="outline" size="sm" className={cn("rounded-full gap-2", isMobile ? "min-w-0 px-2 text-xs" : "px-5")} onClick={() => onReply?.()}>

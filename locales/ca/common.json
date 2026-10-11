@@ -610,7 +610,8 @@
       "copy": "Copia el codi {code}",
       "copied": "Codi copiat",
       "copy_failed": "No s'ha pogut copiar el codi"
-    }
+    },
+    "mv_position": "{index} de {total}"
   },
   "email_composer": {
     "minimize": "Minimitza",

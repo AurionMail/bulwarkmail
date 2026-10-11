@@ -610,7 +610,8 @@
       "copy": "Скопіювати код {code}",
       "copied": "Код скопійовано",
       "copy_failed": "Не вдалося скопіювати код"
-    }
+    },
+    "mv_position": "{index} з {total}"
   },
   "email_composer": {
     "minimize": "Згорнути",

@@ -236,6 +236,27 @@ export function formatDateTime(
   return d.toLocaleString(effectiveLocale, localeOptions);
 }
 
+/**
+ * How long ago `date` was, in words ("3 minutes ago", "2 days ago"), for the
+ * parenthesis Gmail puts after a message's time. Empty once it is a month
+ * old, where the date alone says enough.
+ */
+export function formatRelativeAgo(date: Date | string, now: Date = new Date()): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (!d || Number.isNaN(d.getTime())) return '';
+  const diff = Math.max(0, now.getTime() - d.getTime());
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (days >= 30) return '';
+  const locale = getEffectiveLocale();
+  const rtf = new Intl.RelativeTimeFormat(locale === 'en' ? 'en-US' : locale, { numeric: 'auto' });
+  if (minutes < 1) return rtf.format(0, 'second');
+  if (minutes < 60) return rtf.format(-minutes, 'minute');
+  if (hours < 24) return rtf.format(-hours, 'hour');
+  return rtf.format(-days, 'day');
+}
+
 // Marketing emails pad the preheader with whitespace, format chars (soft
 // hyphens, zero-width chars, BOM, directional marks) and combining marks
 // (e.g. U+034F) to push real content past the preview window. Strip them all.

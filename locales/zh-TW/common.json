@@ -610,7 +610,8 @@
       "copy": "複製驗證碼 {code}",
       "copied": "驗證碼已複製",
       "copy_failed": "無法複製驗證碼"
-    }
+    },
+    "mv_position": "第 {index} 封，共 {total} 封"
   },
   "email_composer": {
     "minimize": "最小化",

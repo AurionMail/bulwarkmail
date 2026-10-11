@@ -1106,6 +1106,23 @@ optgroup {
     0 1px 3px 1px rgb(60 64 67 / 0.15);
 }
 
+/* The open message's toolbar: round 40px icon buttons in the muted colour,
+   20px icons. Menus that drop from it keep their own rows. */
+[data-interface-layout="mountain-view"] [data-mv-viewer-toolbar] button:not([role="menu"] *):not([data-mv-pager] *) {
+  height: 40px;
+  min-width: 40px;
+  padding-inline: 10px;
+  border-radius: 9999px;
+  color: var(--color-muted-foreground);
+}
+[data-interface-layout="mountain-view"] [data-mv-viewer-toolbar] button:not([role="menu"] *):not([data-mv-pager] *):hover {
+  color: var(--color-foreground);
+}
+[data-interface-layout="mountain-view"] [data-mv-viewer-toolbar] button:not([role="menu"] *) > svg {
+  width: 20px;
+  height: 20px;
+}
+
 /* The account popover: a wide card with a very round corner, rather
    than the narrow menu the rail and the sidebar switchers drop. */
 [data-interface-layout="mountain-view"] [data-mv-account-popover] {
