@@ -2927,7 +2927,9 @@ export function EmailComposer({
             <X className="w-5 h-5 md:w-4 md:h-4" />
           </Button>
           <div className="flex items-center gap-2" data-testid="composer-save-status" data-status={saveStatus}>
-            <h3 className="font-semibold text-base">{t('new_message')}</h3>
+            <h3 className="font-semibold text-base">
+              {mode === 'reply' ? t('reply') : mode === 'replyAll' ? t('reply_all') : mode === 'forward' ? t('forward') : t('new_message')}
+            </h3>
             {saveStatus === 'saving' && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Save className="w-3 h-3 animate-pulse" />
