@@ -3937,7 +3937,11 @@ const AutocompleteDropdown = React.forwardRef<HTMLDivElement, {
   const t = useTranslations('email_composer');
   const tContacts = useTranslations('contacts');
   return (
-    <div ref={ref} id={id} role="listbox" className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+    // On a phone the list spans the recipient row (see RecipientChipInput):
+    // 27px in, so with its 1px border, the 12px option padding and the 24px
+    // avatar plus gap each name starts under the typed text (72px into the
+    // row); it ends where the Cc/Bcc buttons end.
+    <div ref={ref} id={id} role="listbox" className="absolute top-full max-md:left-[27px] max-md:right-4 md:left-0 md:right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
       {results.map((r, i) => (
         <button
           key={i}
@@ -4335,7 +4339,9 @@ function RecipientChipInput({
   };
 
   return (
-    <div className="flex-1 relative min-w-0">
+    // Not positioned on a phone, so the suggestion list is placed against the
+    // whole recipient row instead of the narrow input.
+    <div className="flex-1 md:relative min-w-0">
       <div
         className={cn(
           "flex flex-wrap items-center gap-1 min-h-[32px] cursor-text",
