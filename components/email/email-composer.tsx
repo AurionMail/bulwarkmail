@@ -3428,7 +3428,20 @@ export function EmailComposer({
         {/* Attachments */}
         {attachments.length > 0 && (
           <div className="px-4 py-2 border-t shrink-0">
-            <div className="flex flex-wrap gap-2">
+            <div
+              className={cn(
+                "flex flex-wrap gap-2",
+                // Collapsed this is three chips and a counter, so it stays
+                // small. Expanded it is as tall as the attachment count
+                // makes it, and it sits outside the body's scroll container
+                // and cannot shrink - so a few dozen files grew it past the
+                // composer, pushed the send toolbar off the bottom and left
+                // nothing that scrolled: the list was stuck with its last
+                // rows and the Send button both unreachable. Cap the
+                // expanded list and give it a scroller of its own.
+                showAllAttachments && "max-h-[30vh] overflow-y-auto overscroll-contain",
+              )}
+            >
               {(showAllAttachments ? attachments : attachments.slice(0, 3)).map((att, index) => {
                 // Clickable to preview only once it has content (local File or an
                 // uploaded blob) and the type is previewable; never mid-upload.
