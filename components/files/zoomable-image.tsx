@@ -297,7 +297,12 @@ export function ZoomableImage({ src, alt, onBackgroundClick, className, imageCla
 
       <div
         data-viewer-controls
-        className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-full bg-black/70 text-white px-1.5 py-1 shadow-lg backdrop-blur"
+        className={cn(
+          "absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 flex items-center gap-0.5 p-1 rounded-md",
+          // The same card as toasts and menus.
+          "bg-popover text-popover-foreground border border-border",
+          "shadow-[0_6px_16px_rgb(0,0,0,0.1)] dark:shadow-[0_6px_16px_rgb(0,0,0,0.4)]",
+        )}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <ControlButton label={t("zoom_out")} onClick={() => zoomBy(1 / BUTTON_STEP)} disabled={!zoomed}>
@@ -306,7 +311,7 @@ export function ZoomableImage({ src, alt, onBackgroundClick, className, imageCla
         <button
           type="button"
           onClick={resetView}
-          className="min-w-[3.5rem] h-8 px-2 rounded-full text-xs tabular-nums hover:bg-white/15 transition-colors"
+          className="min-w-[3.5rem] h-8 px-2 rounded-md text-xs font-medium tabular-nums text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           title={t("zoom_reset")}
           aria-label={t("zoom_reset")}
         >
@@ -315,7 +320,7 @@ export function ZoomableImage({ src, alt, onBackgroundClick, className, imageCla
         <ControlButton label={t("zoom_in")} onClick={() => zoomBy(BUTTON_STEP)} disabled={view.scale >= MAX_SCALE}>
           <ZoomIn className="w-4 h-4" />
         </ControlButton>
-        <span className="w-px h-5 bg-white/20 mx-1" aria-hidden />
+        <span className="w-px h-5 bg-border mx-1" aria-hidden />
         <ControlButton label={t("zoom_reset")} onClick={resetView} disabled={!zoomed}>
           <Maximize2 className="w-4 h-4" />
         </ControlButton>
@@ -340,7 +345,7 @@ function ControlButton({ label, onClick, disabled, children }: {
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/15 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+      className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors"
     >
       {children}
     </button>
