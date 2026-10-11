@@ -153,7 +153,9 @@
     "unified_all_starred": "Бүх одтой",
     "unified_all_mail": "Бүх шуудан",
     "remove_account": "Бүртгэл устгах",
-    "remove_account_confirm": "Энэ төхөөрөмжөөс {account}-г устгах уу? Та дараа дахин нэмж болно."
+    "remove_account_confirm": "Энэ төхөөрөмжөөс {account}-г устгах уу? Та дараа дахин нэмж болно.",
+    "labels": "Шошго",
+    "create_label": "Шинэ шошго үүсгэх"
   },
   "protocol_handlers": {
     "title": "Өгөгдмөл програмууд",

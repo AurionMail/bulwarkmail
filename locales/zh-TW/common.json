@@ -153,7 +153,9 @@
     "unified_all_starred": "全部已加星號",
     "unified_all_mail": "全部郵件",
     "remove_account": "移除帳號",
-    "remove_account_confirm": "要從這部裝置移除 {account} 嗎？您稍後仍可重新新增。"
+    "remove_account_confirm": "要從這部裝置移除 {account} 嗎？您稍後仍可重新新增。",
+    "labels": "標籤",
+    "create_label": "建立新標籤"
   },
   "protocol_handlers": {
     "title": "預設應用程式",

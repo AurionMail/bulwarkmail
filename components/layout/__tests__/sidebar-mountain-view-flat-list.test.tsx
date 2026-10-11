@@ -2,10 +2,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Mailbox } from '@/lib/jmap/types';
 
-// Under Mountain View the sidebar is one flat list: inbox, sent and drafts,
-// then a single "More" that reveals the folders you made, the shared ones and
-// the labels. Outside Mountain View the "Folders" / "Tags" sections stay as they
-// are, headings and all.
+// Under Mountain View the sidebar is laid out the way Gmail's is: inbox, sent
+// and drafts, a "More" that reveals the other system folders, then a
+// "Labels" list of the folders you made and your tags. Outside Mountain View
+// the "Folders" / "Tags" sections stay as they are, headings and all.
 
 vi.mock('@/components/plugins/plugin-slot', () => ({ PluginSlot: () => null }));
 vi.mock('@/components/tour/tour-provider', () => ({
@@ -47,15 +47,27 @@ describe('Sidebar under Mountain View', () => {
     } as never);
   });
 
-  it('drops the Folders heading and holds the rest behind More', () => {
+  it('drops the Folders heading and holds the system folders behind More', () => {
     render(<Sidebar mailboxes={mailboxes} selectedMailbox="inbox" mvShell />);
 
     expect(screen.queryByText('folders')).toBeNull();
     expect(screen.getByText('show_more')).toBeInTheDocument();
-    expect(folderRow('Receipts')).toBeNull();
     expect(folderRow('Trash')).toBeNull();
-    // The labels heading goes with them: it shows only once expanded.
+  });
+
+  it('lists your folders and tags under Labels, outside More', () => {
+    const onCreateFolder = vi.fn();
+    const { container } = render(
+      <Sidebar mailboxes={mailboxes} selectedMailbox="inbox" mvShell onCreateFolder={onCreateFolder} />,
+    );
+
+    expect(screen.getByText('labels')).toBeInTheDocument();
     expect(screen.queryByText('tags')).toBeNull();
+    expect(container.querySelector('[data-mv-labels] [data-folder-name="Receipts"]')).not.toBeNull();
+    expect(screen.getByText('Work')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('create_label'));
+    expect(onCreateFolder).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the places mail actually goes in view', () => {
@@ -83,16 +95,14 @@ describe('Sidebar under Mountain View', () => {
     expect(container.querySelector('[data-folder-name="mv-starred"]')).toBeNull();
   });
 
-  it('reveals the folders and the labels together, and takes them back', () => {
+  it('reveals the system folders under More, and takes them back', () => {
     render(<Sidebar mailboxes={mailboxes} selectedMailbox="inbox" mvShell />);
 
     fireEvent.click(screen.getByText('show_more'));
-    expect(folderRow('Receipts')).not.toBeNull();
     expect(folderRow('Trash')).not.toBeNull();
-    expect(screen.getByText('tags')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('show_fewer'));
-    expect(folderRow('Receipts')).toBeNull();
+    expect(folderRow('Trash')).toBeNull();
   });
 
   it('leaves the default layout its sections and every folder', () => {

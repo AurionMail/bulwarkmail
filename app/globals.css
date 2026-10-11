@@ -1047,10 +1047,38 @@ optgroup {
   border-end-end-radius: var(--mv-nav-radius);
 }
 
-/* Compose: a 56px pill, which shrinks to a circle with the rail. */
+/* Selected and hovered rows fill the pill; a folder with unread mail reads
+   bold, the way the message rows do. Icons are 20px with an 18px gap. */
+[data-interface-layout="mountain-view"] [data-mv-nav-row] {
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row]:hover {
+  background-color: var(--mv-nav-hover);
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row][data-selected="true"] {
+  background-color: var(--mv-nav-selected);
+  color: var(--color-foreground);
+  font-weight: 700;
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row][data-has-unread] {
+  font-weight: 700;
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row] > button {
+  gap: 18px;
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row] > button > span:first-child,
+[data-interface-layout="mountain-view"] [data-mv-nav-row] > button > span:first-child > svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Compose: a 56px button with a 16px corner, which shrinks to a square with
+   the rail. */
 [data-interface-layout="mountain-view"] [data-mv-compose] {
   height: var(--mv-compose-h);
-  border-radius: var(--mv-nav-radius);
+  border-radius: 16px;
+  font-weight: 500;
 }
 
 /* The account popover: a wide card with a very round corner, rather

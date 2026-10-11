@@ -153,7 +153,9 @@
     "unified_all_starred": "Alle stjernemerkede",
     "unified_all_mail": "All e-post",
     "remove_account": "Fjern konto",
-    "remove_account_confirm": "Vil du fjerne {account} fra denne enheten? Du kan legge den til igjen senere."
+    "remove_account_confirm": "Vil du fjerne {account} fra denne enheten? Du kan legge den til igjen senere.",
+    "labels": "Etiketter",
+    "create_label": "Opprett ny etikett"
   },
   "protocol_handlers": {
     "title": "Standardapper",

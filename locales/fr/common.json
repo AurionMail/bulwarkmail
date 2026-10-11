@@ -153,7 +153,9 @@
     "unified_all_starred": "Tous les favoris",
     "unified_all_mail": "Tout le courrier",
     "remove_account": "Remove account",
-    "remove_account_confirm": "Remove {account} from this device? You can add it back later."
+    "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
+    "labels": "Libellés",
+    "create_label": "Créer un libellé"
   },
   "protocol_handlers": {
     "title": "Applications par défaut",

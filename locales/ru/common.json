@@ -153,7 +153,9 @@
     "unified_all_starred": "Все помеченные",
     "unified_all_mail": "Вся почта",
     "remove_account": "Remove account",
-    "remove_account_confirm": "Remove {account} from this device? You can add it back later."
+    "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
+    "labels": "Ярлыки",
+    "create_label": "Создать ярлык"
   },
   "protocol_handlers": {
     "title": "Приложения по умолчанию",

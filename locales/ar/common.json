@@ -153,7 +153,9 @@
     "unified_all_starred": "كل المميز بنجمة",
     "unified_all_mail": "كل البريد",
     "remove_account": "إزالة الحساب",
-    "remove_account_confirm": "هل تريد إزالة {account} من هذا الجهاز؟ يمكنك إضافته مرة أخرى لاحقًا."
+    "remove_account_confirm": "هل تريد إزالة {account} من هذا الجهاز؟ يمكنك إضافته مرة أخرى لاحقًا.",
+    "labels": "التصنيفات",
+    "create_label": "إنشاء تصنيف جديد"
   },
   "protocol_handlers": {
     "title": "التطبيقات الافتراضية",

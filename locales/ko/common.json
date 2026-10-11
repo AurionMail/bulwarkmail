@@ -153,7 +153,9 @@
     "unified_all_starred": "모든 별표",
     "unified_all_mail": "모든 메일",
     "remove_account": "Remove account",
-    "remove_account_confirm": "Remove {account} from this device? You can add it back later."
+    "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
+    "labels": "라벨",
+    "create_label": "새 라벨 만들기"
   },
   "protocol_handlers": {
     "title": "기본 앱",

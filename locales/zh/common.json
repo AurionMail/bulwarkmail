@@ -153,7 +153,9 @@
     "unified_all_starred": "全部加星标",
     "unified_all_mail": "全部邮件",
     "remove_account": "Remove account",
-    "remove_account_confirm": "Remove {account} from this device? You can add it back later."
+    "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
+    "labels": "标签",
+    "create_label": "新建标签"
   },
   "protocol_handlers": {
     "title": "默认应用",

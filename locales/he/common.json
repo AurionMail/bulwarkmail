@@ -152,7 +152,9 @@
     "unified_all_starred": "הכל מסומנים",
     "unified_all_mail": "הכל דוא״ל",
     "remove_account": "הסרת חשבון",
-    "remove_account_confirm": "להסיר את {account} מהמכשיר הזה? ניתן להוסיף אותו שוב מאוחר יותר."
+    "remove_account_confirm": "להסיר את {account} מהמכשיר הזה? ניתן להוסיף אותו שוב מאוחר יותר.",
+    "labels": "תוויות",
+    "create_label": "יצירת תווית חדשה"
   },
   "sidebar_apps": {
     "modal_title": "אפליקציות בסרגל הצד",

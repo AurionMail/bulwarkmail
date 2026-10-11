@@ -153,7 +153,9 @@
     "unified_all_starred": "Tudo com estrela",
     "unified_all_mail": "Todo o correio",
     "remove_account": "Remover conta",
-    "remove_account_confirm": "Remover {account} desse dispositivo? Você pode adicioná-la de volta depois."
+    "remove_account_confirm": "Remover {account} desse dispositivo? Você pode adicioná-la de volta depois.",
+    "labels": "Etiquetas",
+    "create_label": "Criar etiqueta"
   },
   "protocol_handlers": {
     "title": "Aplicativos padrão",

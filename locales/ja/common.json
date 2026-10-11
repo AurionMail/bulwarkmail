@@ -153,7 +153,9 @@
     "unified_all_starred": "すべてのスター付き",
     "unified_all_mail": "すべてのメール",
     "remove_account": "Remove account",
-    "remove_account_confirm": "Remove {account} from this device? You can add it back later."
+    "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
+    "labels": "ラベル",
+    "create_label": "新しいラベルを作成"
   },
   "protocol_handlers": {
     "title": "既定のアプリ",

@@ -153,7 +153,9 @@
     "unified_all_starred": "Alle markierten",
     "unified_all_mail": "Alle Mails",
     "remove_account": "Konto entfernen",
-    "remove_account_confirm": "{account} von diesem Gerät entfernen? Sie können das Konto später wieder hinzufügen."
+    "remove_account_confirm": "{account} von diesem Gerät entfernen? Sie können das Konto später wieder hinzufügen.",
+    "labels": "Labels",
+    "create_label": "Neues Label erstellen"
   },
   "protocol_handlers": {
     "title": "Standard-Apps",

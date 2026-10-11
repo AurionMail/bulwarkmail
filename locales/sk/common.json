@@ -153,7 +153,9 @@
     "unified_all_starred": "Všetky s hviezdičkou",
     "unified_all_mail": "Všetka pošta",
     "remove_account": "Odstrániť účet",
-    "remove_account_confirm": "Odstrániť {account} z tohto zariadenia? Neskôr ho môžete znova pridať."
+    "remove_account_confirm": "Odstrániť {account} z tohto zariadenia? Neskôr ho môžete znova pridať.",
+    "labels": "Štítky",
+    "create_label": "Vytvoriť nový štítok"
   },
   "protocol_handlers": {
     "title": "Predvolené aplikácie",

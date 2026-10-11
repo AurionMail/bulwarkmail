@@ -153,7 +153,9 @@
     "unified_all_starred": "Visi ar zvaigzni",
     "unified_all_mail": "Visas vēstules",
     "remove_account": "Remove account",
-    "remove_account_confirm": "Remove {account} from this device? You can add it back later."
+    "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
+    "labels": "Etiķetes",
+    "create_label": "Izveidot jaunu etiķeti"
   },
   "protocol_handlers": {
     "title": "Noklusējuma lietotnes",
