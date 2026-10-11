@@ -742,6 +742,11 @@
     },
     "schedule_send": "Schedule send",
     "schedule_send_description": "Choose when the server should release this message.",
+    "schedule_preset": {
+      "tomorrow_morning": "Tomorrow morning",
+      "tomorrow_afternoon": "Tomorrow afternoon",
+      "monday_morning": "Monday morning"
+    },
     "schedule_send_required": "Choose a date and time.",
     "schedule_send_invalid": "Enter a valid date and time.",
     "schedule_send_future": "Choose a future date and time.",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, useId } from "react";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { X, Paperclip, Send, Save, Check, Loader2, AlertCircle, FileText, BookmarkPlus, CalendarClock, ChevronDown, Search, Users, SlidersHorizontal, LayoutTemplate, Upload, FolderOpen } from "@/components/icons";
 import { ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
 import { cn, formatFileSize, formatDateTime, generateUUID } from "@/lib/utils";
+import { schedulePresets } from "@/lib/schedule-presets";
 import { debug } from "@/lib/debug";
 import { toast } from "@/stores/toast-store";
 import { useContextMenu } from "@/hooks/use-context-menu";
@@ -904,6 +905,7 @@ export function EmailComposer({
     return () => document.removeEventListener('mousedown', handleClickOutsideSendMenu);
   }, []);
 
+  const scheduleTitleId = useId();
   const openScheduleDialog = useCallback(() => {
     setScheduleError('');
     setScheduleValue(getDefaultScheduleValue());
@@ -2776,18 +2778,20 @@ export function EmailComposer({
     }
   };
 
-  const handleScheduleSend = () => {
+  const scheduleAt = (value: string) => {
     if (!composerClient?.hasDelayedSend()) {
       setScheduleError(t('schedule_send_unsupported'));
       return;
     }
-    const error = validateScheduleValue(scheduleValue);
+    const error = validateScheduleValue(value);
     if (error) {
       setScheduleError(error);
       return;
     }
-    handleSend({ delayedUntil: new Date(scheduleValue).toISOString() });
+    handleSend({ delayedUntil: new Date(value).toISOString() });
   };
+
+  const handleScheduleSend = () => scheduleAt(scheduleValue);
 
   // A host can hand a follow-up to requestCloseRef - "close this session, then
   // do that". It runs only once the composer really closes, never when the
@@ -3724,9 +3728,31 @@ export function EmailComposer({
 
       {showScheduleDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-          <div className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-semibold text-foreground mb-2">{t('schedule_send')}</h3>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={scheduleTitleId}
+            className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200"
+          >
+            <h3 id={scheduleTitleId} className="text-lg font-semibold text-foreground mb-2">{t('schedule_send')}</h3>
             <p className="text-sm text-muted-foreground mb-4">{t('schedule_send_description')}</p>
+            {/* One click for the usual times; the field below takes any other. */}
+            <div className="mb-4 flex flex-col">
+              {schedulePresets().map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => scheduleAt(formatLocalDateTimeInput(preset.date))}
+                  disabled={!canSend || isSending}
+                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-muted disabled:opacity-50"
+                >
+                  <span>{t(`schedule_preset.${preset.key}`)}</span>
+                  <span className="text-muted-foreground">
+                    {formatDateTime(preset.date, timeFormat, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                </button>
+              ))}
+            </div>
             <Input
               type="datetime-local"
               value={scheduleValue}
