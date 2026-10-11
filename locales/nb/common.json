@@ -160,7 +160,10 @@
     "mv_side_panel": "Sidepanel",
     "mv_open_full": "Åpne i full visning",
     "mv_previous_day": "Forrige dag",
-    "mv_next_day": "Neste dag"
+    "mv_next_day": "Neste dag",
+    "mv_add_another_account": "Legg til en annen konto",
+    "mv_manage_account": "Administrer kontoen",
+    "mv_storage_used": "{percent} % av {total} brukt"
   },
   "protocol_handlers": {
     "title": "Standardapper",

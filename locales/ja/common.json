@@ -160,7 +160,10 @@
     "mv_side_panel": "サイドパネル",
     "mv_open_full": "全画面で開く",
     "mv_previous_day": "前日",
-    "mv_next_day": "翌日"
+    "mv_next_day": "翌日",
+    "mv_add_another_account": "別のアカウントを追加",
+    "mv_manage_account": "アカウントを管理",
+    "mv_storage_used": "{total} のうち {percent}% を使用中"
   },
   "protocol_handlers": {
     "title": "既定のアプリ",

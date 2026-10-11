@@ -160,7 +160,10 @@
     "mv_side_panel": "Боковая панель",
     "mv_open_full": "Открыть полностью",
     "mv_previous_day": "Предыдущий день",
-    "mv_next_day": "Следующий день"
+    "mv_next_day": "Следующий день",
+    "mv_add_another_account": "Добавить другой аккаунт",
+    "mv_manage_account": "Управление аккаунтом",
+    "mv_storage_used": "Использовано {percent}% из {total}"
   },
   "protocol_handlers": {
     "title": "Приложения по умолчанию",

@@ -160,7 +160,10 @@
     "mv_side_panel": "측면 패널",
     "mv_open_full": "전체 보기로 열기",
     "mv_previous_day": "이전 날",
-    "mv_next_day": "다음 날"
+    "mv_next_day": "다음 날",
+    "mv_add_another_account": "다른 계정 추가",
+    "mv_manage_account": "계정 관리",
+    "mv_storage_used": "{total} 중 {percent}% 사용"
   },
   "protocol_handlers": {
     "title": "기본 앱",

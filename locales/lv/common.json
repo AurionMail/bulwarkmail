@@ -160,7 +160,10 @@
     "mv_side_panel": "Sānu panelis",
     "mv_open_full": "Atvērt pilnā skatā",
     "mv_previous_day": "Iepriekšējā diena",
-    "mv_next_day": "Nākamā diena"
+    "mv_next_day": "Nākamā diena",
+    "mv_add_another_account": "Pievienot citu kontu",
+    "mv_manage_account": "Pārvaldīt kontu",
+    "mv_storage_used": "Izmantoti {percent}% no {total}"
   },
   "protocol_handlers": {
     "title": "Noklusējuma lietotnes",

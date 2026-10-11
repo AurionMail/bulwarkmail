@@ -160,7 +160,10 @@
     "mv_side_panel": "Bočný panel",
     "mv_open_full": "Otvoriť v plnom zobrazení",
     "mv_previous_day": "Predchádzajúci deň",
-    "mv_next_day": "Nasledujúci deň"
+    "mv_next_day": "Nasledujúci deň",
+    "mv_add_another_account": "Pridať ďalší účet",
+    "mv_manage_account": "Spravovať účet",
+    "mv_storage_used": "Využité {percent} % z {total}"
   },
   "protocol_handlers": {
     "title": "Predvolené aplikácie",

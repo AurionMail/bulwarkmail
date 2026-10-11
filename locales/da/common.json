@@ -160,7 +160,10 @@
     "mv_side_panel": "Sidepanel",
     "mv_open_full": "Åbn i fuld visning",
     "mv_previous_day": "Forrige dag",
-    "mv_next_day": "Næste dag"
+    "mv_next_day": "Næste dag",
+    "mv_add_another_account": "Tilføj en anden konto",
+    "mv_manage_account": "Administrer din konto",
+    "mv_storage_used": "{percent}% af {total} brugt"
   },
   "protocol_handlers": {
     "title": "Standardapps",

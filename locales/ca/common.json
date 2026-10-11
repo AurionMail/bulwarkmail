@@ -160,7 +160,10 @@
     "mv_side_panel": "Tauler lateral",
     "mv_open_full": "Obre a pantalla completa",
     "mv_previous_day": "Dia anterior",
-    "mv_next_day": "Dia següent"
+    "mv_next_day": "Dia següent",
+    "mv_add_another_account": "Afegeix un altre compte",
+    "mv_manage_account": "Gestiona el teu compte",
+    "mv_storage_used": "{percent}% de {total} utilitzat"
   },
   "protocol_handlers": {
     "title": "Aplicacions predeterminades",

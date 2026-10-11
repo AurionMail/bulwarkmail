@@ -160,7 +160,10 @@
     "mv_side_panel": "Painel lateral",
     "mv_open_full": "Abrir em vista completa",
     "mv_previous_day": "Dia anterior",
-    "mv_next_day": "Dia seguinte"
+    "mv_next_day": "Dia seguinte",
+    "mv_add_another_account": "Adicionar outra conta",
+    "mv_manage_account": "Gerir a sua conta",
+    "mv_storage_used": "{percent}% de {total} utilizado"
   },
   "protocol_handlers": {
     "title": "Aplicativos padrão",

@@ -160,7 +160,10 @@
     "mv_side_panel": "Хажуугийн самбар",
     "mv_open_full": "Бүтэн харагдацаар нээх",
     "mv_previous_day": "Өмнөх өдөр",
-    "mv_next_day": "Дараах өдөр"
+    "mv_next_day": "Дараах өдөр",
+    "mv_add_another_account": "Өөр бүртгэл нэмэх",
+    "mv_manage_account": "Бүртгэлээ удирдах",
+    "mv_storage_used": "{total}-с {percent}% ашигласан"
   },
   "protocol_handlers": {
     "title": "Өгөгдмөл програмууд",

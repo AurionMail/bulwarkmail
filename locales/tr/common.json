@@ -160,7 +160,10 @@
     "mv_side_panel": "Yan panel",
     "mv_open_full": "Tam görünümde aç",
     "mv_previous_day": "Önceki gün",
-    "mv_next_day": "Sonraki gün"
+    "mv_next_day": "Sonraki gün",
+    "mv_add_another_account": "Başka bir hesap ekle",
+    "mv_manage_account": "Hesabınızı yönetin",
+    "mv_storage_used": "{total} alanın %{percent} kadarı kullanıldı"
   },
   "protocol_handlers": {
     "title": "Varsayılan uygulamalar",

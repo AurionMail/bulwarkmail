@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, useId } from "react";
 import { createPortal } from "react-dom";
-import { Check, Plus, LogOut, Mails, Star, ChevronDown, AlertCircle, GripVertical, X } from "@/components/icons";
+import { Check, Plus, LogOut, Mails, Star, ChevronDown, AlertCircle, GripVertical, X, Settings, Cloud } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import type { Mailbox } from "@/lib/jmap/types";
 import { useAccountStore, type AccountEntry } from "@/stores/account-store";
@@ -12,7 +12,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { getMaxAccounts, sortDefaultFirst, reorderNonDefaultIds } from "@/lib/account-utils";
 import { inboxUnread, totalInboxUnread } from "@/lib/account-inbox-unread";
 import { isDocumentRTL } from "@/i18n/direction";
-import { cn } from "@/lib/utils";
+import { cn, formatFileSize } from "@/lib/utils";
 import { useRouter } from "@/i18n/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { useMenuNavigation } from "@/hooks/use-menu-navigation";
@@ -87,6 +87,8 @@ export function AccountSwitcher({
   // default layout is untouched.
   const mvPopover = useSettingsStore((s) => s.interfaceLayout === "mountain-view") && variant === "header";
   const accountMailboxes = useEmailStore((s) => s.accountMailboxes);
+  const quota = useEmailStore((s) => s.quota);
+  const tCommon = useTranslations("common");
   const ownMailboxes = useEmailStore((s) => s.mailboxes);
 
   const accounts = useAccountStore((s) => s.accounts);
@@ -309,10 +311,11 @@ export function AccountSwitcher({
           ref={popoverRef}
           style={popoverStyle}
           className={cn(
-            "border border-border bg-background text-foreground shadow-lg z-50 overflow-hidden",
+            "text-foreground shadow-lg z-50 overflow-hidden",
             // Width and radius come from the layout's own tokens, keyed on the
-            // attribute below; only the elevation differs in markup.
-            mvPopover ? "shadow-xl" : "w-72 rounded-lg"
+            // attribute below. Under Mountain View it is Gmail's tinted card
+            // holding a white one, with a close button in the corner.
+            mvPopover ? "shadow-xl bg-[var(--mv-search-bg)] p-3 max-h-[calc(100dvh-5rem)] overflow-y-auto" : "w-72 rounded-lg border border-border bg-background"
           )}
           data-mv-account-popover={mvPopover ? "" : undefined}
           role="menu"
@@ -320,16 +323,32 @@ export function AccountSwitcher({
           aria-label={t("switch_account")}
           onKeyDown={handleMenuKeyDown}
         >
+          {mvPopover && (
+            <div className="flex justify-end pb-2">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+                aria-label={tCommon("close")}
+                title={tCommon("close")}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+
           {mvPopover && activeAccount && (
-            <div className="flex flex-col items-center gap-1 px-4 pt-6 pb-4 text-center">
+            <div className="flex items-center gap-4 rounded-t-3xl bg-background px-4 pt-4 pb-3" data-mv-account-current="">
               <AccountAvatar account={activeAccount} size="xl" />
-              <p className="mt-2 text-base font-medium truncate max-w-full">{displayName}</p>
-              <p className="text-sm text-muted-foreground truncate max-w-full">{displayEmail}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg leading-6 truncate">{displayName || displayEmail}</p>
+                {displayName && <p className="text-sm text-muted-foreground truncate">{displayEmail}</p>}
+              </div>
             </div>
           )}
 
           {mvPopover && onSelectAllInboxes && (
-            <div className="border-t border-border">
+            <div className="bg-background border-t border-border/60">
               <button
                 type="button"
                 role="menuitem"
@@ -355,7 +374,7 @@ export function AccountSwitcher({
           <div
             className={cn(
               "py-1 max-h-64 overflow-y-auto",
-              mvPopover && "border-t border-border",
+              mvPopover && "bg-background border-t border-border/60 max-h-none",
               mvPopover && listedAccounts.length === 0 && "hidden"
             )}
           >
@@ -452,30 +471,71 @@ export function AccountSwitcher({
             })}
           </div>
 
-          {/* Mountain View: "Add another account" and "Sign out of all accounts" as two
-              pills side by side; with a single login the second is plain "Sign out". */}
+          {/* Mountain View: the account actions as rows closing the white card,
+              then "Manage your account" and the storage in use as pills under it. */}
           {mvPopover && (
-            <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border px-4 py-3" data-mv-account-actions="">
-              {accounts.length < getMaxAccounts() && (
+            <>
+              <div className="rounded-b-3xl bg-background border-t border-border/60 py-1" data-mv-account-actions="">
+                {accounts.length < getMaxAccounts() && (
+                  <button
+                    onClick={handleAddAccount}
+                    data-testid="add-account"
+                    className="w-full flex items-center gap-4 px-5 py-3 text-sm text-start hover:bg-muted transition-colors"
+                    role="menuitem"
+                  >
+                    <Plus className="w-5 h-5 text-muted-foreground" />
+                    {t("mv_add_another_account")}
+                  </button>
+                )}
+                {activeAccount && !activeAccount.isDefault && accounts.length > 1 && (
+                  <button
+                    onClick={() => handleSetDefault(activeAccount.id)}
+                    className="w-full flex items-center gap-4 px-5 py-3 text-sm text-start hover:bg-muted transition-colors"
+                    role="menuitem"
+                  >
+                    <Star className="w-5 h-5 text-muted-foreground" />
+                    {t("set_as_default")}
+                  </button>
+                )}
+                {accounts.length > 1 && (
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-4 px-5 py-3 text-sm text-start hover:bg-muted transition-colors"
+                    role="menuitem"
+                  >
+                    <LogOut className="w-5 h-5 text-muted-foreground" />
+                    <span className="truncate">{t("sign_out_of", { account: displayEmail })}</span>
+                  </button>
+                )}
                 <button
-                  onClick={handleAddAccount}
-                  data-testid="add-account"
-                  className="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-muted transition-colors"
+                  onClick={accounts.length > 1 ? handleLogoutAll : handleLogout}
+                  className="w-full flex items-center gap-4 px-5 py-3 text-sm text-start hover:bg-muted transition-colors"
                   role="menuitem"
                 >
-                  <Plus className="w-4 h-4" />
-                  {t("add_account")}
+                  <LogOut className="w-5 h-5 text-muted-foreground" />
+                  {accounts.length > 1 ? t("sign_out_all") : t("sign_out")}
                 </button>
-              )}
+              </div>
               <button
-                onClick={accounts.length > 1 ? handleLogoutAll : handleLogout}
-                className="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-muted transition-colors"
+                type="button"
+                onClick={() => { setOpen(false); router.push("/settings" as never); }}
+                className="mt-2 w-full flex items-center gap-4 rounded-full bg-background px-5 py-3 text-sm text-start hover:bg-muted transition-colors"
                 role="menuitem"
+                data-mv-manage-account=""
               >
-                <LogOut className="w-4 h-4" />
-                {accounts.length > 1 ? t("sign_out_all") : t("sign_out")}
+                <Settings className="w-5 h-5 text-muted-foreground" />
+                {t("mv_manage_account")}
               </button>
-            </div>
+              {quota && quota.total > 0 && (
+                <div className="mt-2 flex items-center gap-4 rounded-full bg-background px-5 py-3 text-sm" data-mv-storage="">
+                  <Cloud className="w-5 h-5 text-muted-foreground" />
+                  {t("mv_storage_used", {
+                    percent: Math.min(100, Math.round((quota.used / quota.total) * 100)),
+                    total: formatFileSize(quota.total),
+                  })}
+                </div>
+              )}
+            </>
           )}
 
           {/* Separator + Add Account */}
@@ -495,7 +555,7 @@ export function AccountSwitcher({
 
           {/* Separator + Actions. Under Mountain View a single login signs out
               from the pill above, so these rows are only for picking among several. */}
-          <div className={cn("border-t border-border", mvPopover && accounts.length < 2 && "hidden")}>
+          <div className={cn("border-t border-border", mvPopover && "hidden")}>
             {activeAccount && !activeAccount.isDefault && accounts.length > 1 && (
               <button
                 onClick={() => handleSetDefault(activeAccount.id)}

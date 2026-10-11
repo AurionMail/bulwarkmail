@@ -160,7 +160,10 @@
     "mv_side_panel": "پنل کناری",
     "mv_open_full": "باز کردن در نمای کامل",
     "mv_previous_day": "روز قبل",
-    "mv_next_day": "روز بعد"
+    "mv_next_day": "روز بعد",
+    "mv_add_another_account": "افزودن حساب دیگر",
+    "mv_manage_account": "مدیریت حساب",
+    "mv_storage_used": "{percent}٪ از {total} استفاده شده"
   },
   "protocol_handlers": {
     "title": "برنامه‌های پیش‌فرض",

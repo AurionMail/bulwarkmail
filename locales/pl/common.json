@@ -160,7 +160,10 @@
     "mv_side_panel": "Panel boczny",
     "mv_open_full": "Otwórz w pełnym widoku",
     "mv_previous_day": "Poprzedni dzień",
-    "mv_next_day": "Następny dzień"
+    "mv_next_day": "Następny dzień",
+    "mv_add_another_account": "Dodaj kolejne konto",
+    "mv_manage_account": "Zarządzaj kontem",
+    "mv_storage_used": "Wykorzystano {percent}% z {total}"
   },
   "protocol_handlers": {
     "title": "Aplikacje domyślne",

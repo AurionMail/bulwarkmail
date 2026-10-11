@@ -160,7 +160,10 @@
     "mv_side_panel": "側邊面板",
     "mv_open_full": "以完整檢視開啟",
     "mv_previous_day": "前一天",
-    "mv_next_day": "後一天"
+    "mv_next_day": "後一天",
+    "mv_add_another_account": "新增其他帳戶",
+    "mv_manage_account": "管理您的帳戶",
+    "mv_storage_used": "已使用 {total} 中的 {percent}%"
   },
   "protocol_handlers": {
     "title": "預設應用程式",

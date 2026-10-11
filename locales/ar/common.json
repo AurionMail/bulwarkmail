@@ -160,7 +160,10 @@
     "mv_side_panel": "اللوحة الجانبية",
     "mv_open_full": "فتح في عرض كامل",
     "mv_previous_day": "اليوم السابق",
-    "mv_next_day": "اليوم التالي"
+    "mv_next_day": "اليوم التالي",
+    "mv_add_another_account": "إضافة حساب آخر",
+    "mv_manage_account": "إدارة حسابك",
+    "mv_storage_used": "تم استخدام {percent}% من {total}"
   },
   "protocol_handlers": {
     "title": "التطبيقات الافتراضية",

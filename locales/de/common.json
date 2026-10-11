@@ -160,7 +160,10 @@
     "mv_side_panel": "Seitenleiste",
     "mv_open_full": "In voller Ansicht öffnen",
     "mv_previous_day": "Vorheriger Tag",
-    "mv_next_day": "Nächster Tag"
+    "mv_next_day": "Nächster Tag",
+    "mv_add_another_account": "Weiteres Konto hinzufügen",
+    "mv_manage_account": "Konto verwalten",
+    "mv_storage_used": "{percent} % von {total} belegt"
   },
   "protocol_handlers": {
     "title": "Standard-Apps",

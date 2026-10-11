@@ -160,7 +160,10 @@
     "mv_side_panel": "Oldalsó panel",
     "mv_open_full": "Megnyitás teljes nézetben",
     "mv_previous_day": "Előző nap",
-    "mv_next_day": "Következő nap"
+    "mv_next_day": "Következő nap",
+    "mv_add_another_account": "Másik fiók hozzáadása",
+    "mv_manage_account": "Fiók kezelése",
+    "mv_storage_used": "{total} {percent}%-a foglalt"
   },
   "protocol_handlers": {
     "title": "Alapértelmezett alkalmazások",

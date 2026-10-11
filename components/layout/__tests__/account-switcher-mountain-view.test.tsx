@@ -71,14 +71,24 @@ describe('AccountSwitcher under Mountain View', () => {
     expect(within(screen.getByTestId('account-option')).getByText('mail.example.com').closest('.hidden')).toBeNull();
   });
 
-  it('offers add-account and sign-out-of-all as a pair of pills', () => {
+  it("closes the account card with Gmail's rows: add another, sign out of this one, sign out of all", () => {
     render(<AccountSwitcher variant="header" />);
     openPopover();
 
     const actions = document.querySelector('[data-mv-account-actions]');
     expect(actions).not.toBeNull();
-    expect(actions!.querySelectorAll('button')).toHaveLength(2);
+    expect(within(actions as HTMLElement).getByText('mv_add_another_account')).toBeInTheDocument();
+    expect(within(actions as HTMLElement).getByText('sign_out_all')).toBeInTheDocument();
     expect(screen.getAllByTestId('add-account')).toHaveLength(1);
+  });
+
+  it('offers Manage your account and a close button', () => {
+    render(<AccountSwitcher variant="header" />);
+    openPopover();
+
+    expect(document.querySelector('[data-mv-manage-account]')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'close' }));
+    expect(document.querySelector('[data-mv-account-popover]')).toBeNull();
   });
 
   it('puts the unread waiting in the other account next to it', () => {

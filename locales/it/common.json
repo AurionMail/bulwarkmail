@@ -160,7 +160,10 @@
     "mv_side_panel": "Riquadro laterale",
     "mv_open_full": "Apri a schermo intero",
     "mv_previous_day": "Giorno precedente",
-    "mv_next_day": "Giorno successivo"
+    "mv_next_day": "Giorno successivo",
+    "mv_add_another_account": "Aggiungi un altro account",
+    "mv_manage_account": "Gestisci il tuo account",
+    "mv_storage_used": "{percent}% di {total} utilizzato"
   },
   "protocol_handlers": {
     "title": "App predefinite",

@@ -160,7 +160,10 @@
     "mv_side_panel": "侧边栏",
     "mv_open_full": "在完整视图中打开",
     "mv_previous_day": "前一天",
-    "mv_next_day": "后一天"
+    "mv_next_day": "后一天",
+    "mv_add_another_account": "添加其他账户",
+    "mv_manage_account": "管理您的账户",
+    "mv_storage_used": "已使用 {total} 中的 {percent}%"
   },
   "protocol_handlers": {
     "title": "默认应用",

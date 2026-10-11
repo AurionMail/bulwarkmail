@@ -160,7 +160,10 @@
     "mv_side_panel": "Бічна панель",
     "mv_open_full": "Відкрити повністю",
     "mv_previous_day": "Попередній день",
-    "mv_next_day": "Наступний день"
+    "mv_next_day": "Наступний день",
+    "mv_add_another_account": "Додати інший обліковий запис",
+    "mv_manage_account": "Керувати обліковим записом",
+    "mv_storage_used": "Використано {percent}% з {total}"
   },
   "protocol_handlers": {
     "title": "Програми за замовчуванням",

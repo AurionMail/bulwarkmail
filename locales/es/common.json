@@ -160,7 +160,10 @@
     "mv_side_panel": "Panel lateral",
     "mv_open_full": "Abrir en vista completa",
     "mv_previous_day": "Día anterior",
-    "mv_next_day": "Día siguiente"
+    "mv_next_day": "Día siguiente",
+    "mv_add_another_account": "Añadir otra cuenta",
+    "mv_manage_account": "Gestionar tu cuenta",
+    "mv_storage_used": "{percent}% de {total} usado"
   },
   "protocol_handlers": {
     "title": "Aplicaciones predeterminadas",

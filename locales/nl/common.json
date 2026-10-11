@@ -160,7 +160,10 @@
     "mv_side_panel": "Zijpaneel",
     "mv_open_full": "Openen in volledige weergave",
     "mv_previous_day": "Vorige dag",
-    "mv_next_day": "Volgende dag"
+    "mv_next_day": "Volgende dag",
+    "mv_add_another_account": "Nog een account toevoegen",
+    "mv_manage_account": "Account beheren",
+    "mv_storage_used": "{percent}% van {total} gebruikt"
   },
   "protocol_handlers": {
     "title": "Standaardapps",
