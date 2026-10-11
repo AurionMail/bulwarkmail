@@ -6,6 +6,7 @@ import { Mail, Phone, Building, MapPin, StickyNote, Pencil, Trash2, BookUser, Co
 import { Avatar } from "@/components/ui/avatar";
 import { MailtoLink } from "@/components/ui/mailto-link";
 import { Button } from "@/components/ui/button";
+import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import type { ContactCard, AnniversaryDate, PartialDate } from "@/lib/jmap/types";
 import { getContactDisplayName, getContactPrimaryEmail, getContactPhotoUri } from "@/stores/contact-store";
@@ -582,29 +583,23 @@ function MoreActionsMenu({ items, label }: { items: MoreItem[]; label: string })
       {open && (
         <div
           role="menu"
-          className="absolute end-0 top-full mt-1 z-30 min-w-[200px] rounded-md border border-border bg-popover text-popover-foreground shadow-lg py-1 animate-in fade-in-0 zoom-in-95 duration-100"
+          className="absolute end-0 top-full mt-1 z-30 min-w-[200px] bg-background rounded-md shadow-lg border border-border py-1"
         >
           {items.map((item, i) => {
             if (item.separator) {
-              return <div key={i} role="separator" className="my-1 h-px bg-border" />;
+              return <ContextMenuSeparator key={i} />;
             }
             return (
-              <button
+              <ContextMenuItem
                 key={i}
-                type="button"
-                role="menuitem"
+                icon={item.icon}
+                label={item.label}
+                destructive={item.destructive}
                 onClick={() => {
                   item.onClick();
                   setOpen(false);
                 }}
-                className={cn(
-                  "w-full flex items-center gap-2 px-3 py-1.5 text-sm text-start hover:bg-muted focus:bg-muted focus:outline-none transition-colors",
-                  item.destructive && "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 focus:bg-red-50 dark:focus:bg-red-950",
-                )}
-              >
-                <item.icon className={cn("w-4 h-4 flex-shrink-0", item.destructive ? "text-red-600 dark:text-red-400" : "text-muted-foreground")} />
-                <span className="flex-1">{item.label}</span>
-              </button>
+              />
             );
           })}
         </div>
