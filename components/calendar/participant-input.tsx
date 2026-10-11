@@ -115,8 +115,14 @@ export const ParticipantInput = forwardRef<ParticipantInputHandle, ParticipantIn
   return (
     <div className="space-y-2">
       <div className="relative">
+        {/* type="search": Bitwarden skips search fields unconditionally and
+            otherwise offered logins for the e-mail placeholder. */}
         <Input
           ref={inputRef}
+          type="search"
+          autoComplete="off"
+          enterKeyHint="enter"
+          className="[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -136,7 +142,10 @@ export const ParticipantInput = forwardRef<ParticipantInputHandle, ParticipantIn
             ref={listRef}
             id="participant-suggestions"
             role="listbox"
-            className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto"
+            // Shifted left so each name starts under the typed text (13px into
+            // the field; 1px border, 12px padding and the 28px avatar plus gap
+            // into the list), with the avatar to the left of it.
+            className="absolute z-50 -left-9 right-0 mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto"
           >
             {suggestions.map((s, i) => (
               <li
