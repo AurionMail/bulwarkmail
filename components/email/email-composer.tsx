@@ -840,6 +840,9 @@ export function EmailComposer({
   // when the user switches identity in "above quote" mode without rebuilding
   // the whole body (which would lose user edits to the surrounding draft).
   const editorRef = useRef<Editor | null>(null);
+  // Set once a reply's body got its initial focus, so switching formats later
+  // does not move the caret back to the start.
+  const replyFocusedRef = useRef(false);
   const prevSignatureIdentityIdRef = useRef<string | null | undefined>(signatureIdentity?.id);
   const prevSignatureSeparatorRef = useRef<boolean>(signatureSeparatorEnabled);
 
@@ -1264,6 +1267,17 @@ export function EmailComposer({
       }, 100);
       return () => clearTimeout(timer);
     }
+    // A reply has its recipients already: put the caret at the start of the
+    // body, above the quote. Nothing had focus, so typing went nowhere. The
+    // rich text editor focuses itself once it is ready (onEditorReady below).
+    if ((mode === 'reply' || mode === 'replyAll') && plainTextMode) {
+      const timer = setTimeout(() => {
+        bodyRef.current?.focus();
+        bodyRef.current?.setSelectionRange(0, 0);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   const [autocompleteResults, setAutocompleteResults] = useState<Array<SuggestionItem>>([]);
@@ -3332,7 +3346,13 @@ export function EmailComposer({
               onImageUpload={handleImageUpload}
               placeholder={t('body_placeholder')}
               hasError={validationErrors.body}
-              onEditorReady={(ed) => { editorRef.current = ed; }}
+              onEditorReady={(ed) => {
+                editorRef.current = ed;
+                if (!replyFocusedRef.current && (mode === 'reply' || mode === 'replyAll')) {
+                  replyFocusedRef.current = true;
+                  ed.commands.focus('start');
+                }
+              }}
               mentionCandidates={recipientMentionsEnabled ? mentionCandidates : undefined}
             />
           </div>
