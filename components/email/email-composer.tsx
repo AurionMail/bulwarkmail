@@ -697,6 +697,9 @@ export function EmailComposer({
   const [filesPicker, setFilesPicker] = useState<{ client: IJMAPClient; accountId?: string } | null>(null);
   const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  // "close" (X, Escape): save or discard. "discard" (the Discard button): the
+  // user already chose, so only confirm it.
+  const [closeDialogKind, setCloseDialogKind] = useState<'close' | 'discard'>('close');
   const [showAllAttachments, setShowAllAttachments] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<ComposerAttachment | null>(null);
   const [showAttachmentWarning, setShowAttachmentWarning] = useState(false);
@@ -2808,9 +2811,23 @@ export function EmailComposer({
     emitClose();
   };
 
+  // Discard deletes the draft, also one that has no unsaved changes, such as
+  // a scheduled message reopened with "Cancel and edit". It used to share the
+  // X button's path, which closed such a composer and kept the draft.
+  const handleDiscardClick = () => {
+    if (!isDirtyRef.current && !draftIdRef.current) {
+      cleanClose();
+      return;
+    }
+    afterCloseRef.current = null;
+    setCloseDialogKind('discard');
+    setShowCloseDialog(true);
+  };
+
   const handleClose = (afterClose?: () => void) => {
     afterCloseRef.current = afterClose ?? null;
     if (isDirtyRef.current) {
+      setCloseDialogKind('close');
       setShowCloseDialog(true);
     } else {
       cleanClose();
@@ -3538,7 +3555,7 @@ export function EmailComposer({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => handleClose()}
+              onClick={handleDiscardClick}
               className="text-sm text-muted-foreground hover:text-red-500 transition-colors px-2 py-1"
             >
               {t('discard')}
@@ -3760,8 +3777,12 @@ export function EmailComposer({
             className="bg-background border border-border rounded-lg shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200"
           >
             <div className="p-6">
-              <h2 className="text-lg font-semibold text-foreground">{t('close_draft_title')}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{t('close_draft_message')}</p>
+              <h2 className="text-lg font-semibold text-foreground">
+                {closeDialogKind === 'discard' ? t('discard_draft_title') : t('close_draft_title')}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {closeDialogKind === 'discard' ? t('discard_draft_message') : t('close_draft_message')}
+              </p>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 pb-6">
               <Button variant="outline" onClick={() => dismissCloseDialog()}>
@@ -3770,10 +3791,12 @@ export function EmailComposer({
               <Button variant="destructive" onClick={handleDiscardAndClose}>
                 {t('discard')}
               </Button>
-              <Button onClick={handleSaveDraftAndClose}>
-                <Save className="w-4 h-4 me-2" />
-                {tCommon('save')}
-              </Button>
+              {closeDialogKind === 'close' && (
+                <Button onClick={handleSaveDraftAndClose}>
+                  <Save className="w-4 h-4 me-2" />
+                  {tCommon('save')}
+                </Button>
+              )}
             </div>
           </div>
         </div>

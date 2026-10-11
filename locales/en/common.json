@@ -642,6 +642,7 @@
     "discard": "Discard",
     "discard_draft_title": "Discard draft?",
     "discard_draft_confirm": "You have unsaved changes. Do you want to discard this draft?",
+    "discard_draft_message": "The draft will be deleted.",
     "saving": "Saving...",
     "sending": "Sending...",
     "add_link": "Add link",
