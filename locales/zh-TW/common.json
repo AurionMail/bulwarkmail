@@ -155,7 +155,12 @@
     "remove_account": "移除帳號",
     "remove_account_confirm": "要從這部裝置移除 {account} 嗎？您稍後仍可重新新增。",
     "labels": "標籤",
-    "create_label": "建立新標籤"
+    "create_label": "建立新標籤",
+    "mv_tasks": "工作",
+    "mv_side_panel": "側邊面板",
+    "mv_open_full": "以完整檢視開啟",
+    "mv_previous_day": "前一天",
+    "mv_next_day": "後一天"
   },
   "protocol_handlers": {
     "title": "預設應用程式",

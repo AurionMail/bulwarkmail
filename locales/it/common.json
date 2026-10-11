@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etichette",
-    "create_label": "Crea nuova etichetta"
+    "create_label": "Crea nuova etichetta",
+    "mv_tasks": "Attività",
+    "mv_side_panel": "Riquadro laterale",
+    "mv_open_full": "Apri a schermo intero",
+    "mv_previous_day": "Giorno precedente",
+    "mv_next_day": "Giorno successivo"
   },
   "protocol_handlers": {
     "title": "App predefinite",

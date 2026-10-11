@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etiķetes",
-    "create_label": "Izveidot jaunu etiķeti"
+    "create_label": "Izveidot jaunu etiķeti",
+    "mv_tasks": "Uzdevumi",
+    "mv_side_panel": "Sānu panelis",
+    "mv_open_full": "Atvērt pilnā skatā",
+    "mv_previous_day": "Iepriekšējā diena",
+    "mv_next_day": "Nākamā diena"
   },
   "protocol_handlers": {
     "title": "Noklusējuma lietotnes",

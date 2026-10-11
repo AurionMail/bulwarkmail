@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Libellés",
-    "create_label": "Créer un libellé"
+    "create_label": "Créer un libellé",
+    "mv_tasks": "Tâches",
+    "mv_side_panel": "Panneau latéral",
+    "mv_open_full": "Ouvrir en plein écran",
+    "mv_previous_day": "Jour précédent",
+    "mv_next_day": "Jour suivant"
   },
   "protocol_handlers": {
     "title": "Applications par défaut",

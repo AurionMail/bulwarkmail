@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etiquetas",
-    "create_label": "Crear etiqueta"
+    "create_label": "Crear etiqueta",
+    "mv_tasks": "Tareas",
+    "mv_side_panel": "Panel lateral",
+    "mv_open_full": "Abrir en vista completa",
+    "mv_previous_day": "Día anterior",
+    "mv_next_day": "Día siguiente"
   },
   "protocol_handlers": {
     "title": "Aplicaciones predeterminadas",

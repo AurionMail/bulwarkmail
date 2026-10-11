@@ -155,7 +155,12 @@
     "remove_account": "Odstrániť účet",
     "remove_account_confirm": "Odstrániť {account} z tohto zariadenia? Neskôr ho môžete znova pridať.",
     "labels": "Štítky",
-    "create_label": "Vytvoriť nový štítok"
+    "create_label": "Vytvoriť nový štítok",
+    "mv_tasks": "Úlohy",
+    "mv_side_panel": "Bočný panel",
+    "mv_open_full": "Otvoriť v plnom zobrazení",
+    "mv_previous_day": "Predchádzajúci deň",
+    "mv_next_day": "Nasledujúci deň"
   },
   "protocol_handlers": {
     "title": "Predvolené aplikácie",

@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Címkék",
-    "create_label": "Új címke létrehozása"
+    "create_label": "Új címke létrehozása",
+    "mv_tasks": "Feladatok",
+    "mv_side_panel": "Oldalsó panel",
+    "mv_open_full": "Megnyitás teljes nézetben",
+    "mv_previous_day": "Előző nap",
+    "mv_next_day": "Következő nap"
   },
   "protocol_handlers": {
     "title": "Alapértelmezett alkalmazások",

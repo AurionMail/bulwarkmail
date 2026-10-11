@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Ярлыки",
-    "create_label": "Создать ярлык"
+    "create_label": "Создать ярлык",
+    "mv_tasks": "Задачи",
+    "mv_side_panel": "Боковая панель",
+    "mv_open_full": "Открыть полностью",
+    "mv_previous_day": "Предыдущий день",
+    "mv_next_day": "Следующий день"
   },
   "protocol_handlers": {
     "title": "Приложения по умолчанию",

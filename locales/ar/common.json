@@ -155,7 +155,12 @@
     "remove_account": "إزالة الحساب",
     "remove_account_confirm": "هل تريد إزالة {account} من هذا الجهاز؟ يمكنك إضافته مرة أخرى لاحقًا.",
     "labels": "التصنيفات",
-    "create_label": "إنشاء تصنيف جديد"
+    "create_label": "إنشاء تصنيف جديد",
+    "mv_tasks": "المهام",
+    "mv_side_panel": "اللوحة الجانبية",
+    "mv_open_full": "فتح في عرض كامل",
+    "mv_previous_day": "اليوم السابق",
+    "mv_next_day": "اليوم التالي"
   },
   "protocol_handlers": {
     "title": "التطبيقات الافتراضية",

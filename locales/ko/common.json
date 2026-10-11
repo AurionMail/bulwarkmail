@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "라벨",
-    "create_label": "새 라벨 만들기"
+    "create_label": "새 라벨 만들기",
+    "mv_tasks": "할 일",
+    "mv_side_panel": "측면 패널",
+    "mv_open_full": "전체 보기로 열기",
+    "mv_previous_day": "이전 날",
+    "mv_next_day": "다음 날"
   },
   "protocol_handlers": {
     "title": "기본 앱",

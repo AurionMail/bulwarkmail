@@ -83,6 +83,7 @@ import { WelcomeBanner } from "@/components/ui/welcome-banner";
 import { NavigationRail } from "@/components/layout/navigation-rail";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { MvSearchForm } from "@/components/search/mv-search-form";
+import { MvSidePanel } from "@/components/layout/mv-side-panel";
 import { MvListToolbar } from "@/components/email/mv-list-toolbar";
 import { SidebarAppsModal } from "@/components/layout/sidebar-apps-modal";
 import { InlineAppView } from "@/components/layout/inline-app-view";
@@ -4841,6 +4842,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             />
           )}
         </div>
+        {/* Mountain View: Gmail's side panel - calendar, tasks and contacts
+            next to the mail, with their icons down the right edge. */}
+        {mvShell && !inlineApp && !fullscreenReading && <MvSidePanel />}
         </div>
 
         {/* Keyboard Shortcuts Modal */}

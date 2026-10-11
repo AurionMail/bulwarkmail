@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "برچسب‌ها",
-    "create_label": "ایجاد برچسب جدید"
+    "create_label": "ایجاد برچسب جدید",
+    "mv_tasks": "وظایف",
+    "mv_side_panel": "پنل کناری",
+    "mv_open_full": "باز کردن در نمای کامل",
+    "mv_previous_day": "روز قبل",
+    "mv_next_day": "روز بعد"
   },
   "protocol_handlers": {
     "title": "برنامه‌های پیش‌فرض",

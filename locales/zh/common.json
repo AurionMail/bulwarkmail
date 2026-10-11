@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "标签",
-    "create_label": "新建标签"
+    "create_label": "新建标签",
+    "mv_tasks": "任务",
+    "mv_side_panel": "侧边栏",
+    "mv_open_full": "在完整视图中打开",
+    "mv_previous_day": "前一天",
+    "mv_next_day": "后一天"
   },
   "protocol_handlers": {
     "title": "默认应用",

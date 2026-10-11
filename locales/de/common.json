@@ -155,7 +155,12 @@
     "remove_account": "Konto entfernen",
     "remove_account_confirm": "{account} von diesem Gerät entfernen? Sie können das Konto später wieder hinzufügen.",
     "labels": "Labels",
-    "create_label": "Neues Label erstellen"
+    "create_label": "Neues Label erstellen",
+    "mv_tasks": "Aufgaben",
+    "mv_side_panel": "Seitenleiste",
+    "mv_open_full": "In voller Ansicht öffnen",
+    "mv_previous_day": "Vorheriger Tag",
+    "mv_next_day": "Nächster Tag"
   },
   "protocol_handlers": {
     "title": "Standard-Apps",

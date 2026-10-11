@@ -155,7 +155,12 @@
     "remove_account": "Бүртгэл устгах",
     "remove_account_confirm": "Энэ төхөөрөмжөөс {account}-г устгах уу? Та дараа дахин нэмж болно.",
     "labels": "Шошго",
-    "create_label": "Шинэ шошго үүсгэх"
+    "create_label": "Шинэ шошго үүсгэх",
+    "mv_tasks": "Даалгаврууд",
+    "mv_side_panel": "Хажуугийн самбар",
+    "mv_open_full": "Бүтэн харагдацаар нээх",
+    "mv_previous_day": "Өмнөх өдөр",
+    "mv_next_day": "Дараах өдөр"
   },
   "protocol_handlers": {
     "title": "Өгөгдмөл програмууд",

@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Labels",
-    "create_label": "Nieuw label maken"
+    "create_label": "Nieuw label maken",
+    "mv_tasks": "Taken",
+    "mv_side_panel": "Zijpaneel",
+    "mv_open_full": "Openen in volledige weergave",
+    "mv_previous_day": "Vorige dag",
+    "mv_next_day": "Volgende dag"
   },
   "protocol_handlers": {
     "title": "Standaardapps",

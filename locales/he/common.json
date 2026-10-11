@@ -154,7 +154,12 @@
     "remove_account": "הסרת חשבון",
     "remove_account_confirm": "להסיר את {account} מהמכשיר הזה? ניתן להוסיף אותו שוב מאוחר יותר.",
     "labels": "תוויות",
-    "create_label": "יצירת תווית חדשה"
+    "create_label": "יצירת תווית חדשה",
+    "mv_tasks": "משימות",
+    "mv_side_panel": "חלונית צד",
+    "mv_open_full": "פתיחה בתצוגה מלאה",
+    "mv_previous_day": "היום הקודם",
+    "mv_next_day": "היום הבא"
   },
   "sidebar_apps": {
     "modal_title": "אפליקציות בסרגל הצד",

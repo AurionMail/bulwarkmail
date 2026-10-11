@@ -155,7 +155,12 @@
     "remove_account": "Elimina el compte",
     "remove_account_confirm": "Voleu eliminar {account} d'aquest dispositiu? El podreu tornar a afegir més endavant.",
     "labels": "Etiquetes",
-    "create_label": "Crea una etiqueta nova"
+    "create_label": "Crea una etiqueta nova",
+    "mv_tasks": "Tasques",
+    "mv_side_panel": "Tauler lateral",
+    "mv_open_full": "Obre a pantalla completa",
+    "mv_previous_day": "Dia anterior",
+    "mv_next_day": "Dia següent"
   },
   "protocol_handlers": {
     "title": "Aplicacions predeterminades",

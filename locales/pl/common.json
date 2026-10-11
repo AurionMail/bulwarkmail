@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etykiety",
-    "create_label": "Utwórz etykietę"
+    "create_label": "Utwórz etykietę",
+    "mv_tasks": "Zadania",
+    "mv_side_panel": "Panel boczny",
+    "mv_open_full": "Otwórz w pełnym widoku",
+    "mv_previous_day": "Poprzedni dzień",
+    "mv_next_day": "Następny dzień"
   },
   "protocol_handlers": {
     "title": "Aplikacje domyślne",

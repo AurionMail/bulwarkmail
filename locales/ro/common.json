@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etichete",
-    "create_label": "Creează o etichetă nouă"
+    "create_label": "Creează o etichetă nouă",
+    "mv_tasks": "Sarcini",
+    "mv_side_panel": "Panou lateral",
+    "mv_open_full": "Deschide în vizualizare completă",
+    "mv_previous_day": "Ziua anterioară",
+    "mv_next_day": "Ziua următoare"
   },
   "protocol_handlers": {
     "title": "Aplicații implicite",

@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "ラベル",
-    "create_label": "新しいラベルを作成"
+    "create_label": "新しいラベルを作成",
+    "mv_tasks": "タスク",
+    "mv_side_panel": "サイドパネル",
+    "mv_open_full": "全画面で開く",
+    "mv_previous_day": "前日",
+    "mv_next_day": "翌日"
   },
   "protocol_handlers": {
     "title": "既定のアプリ",

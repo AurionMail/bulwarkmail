@@ -155,7 +155,12 @@
     "remove_account": "Odebrat účet",
     "remove_account_confirm": "Odebrat účet {account} z tohoto zařízení? Později ho můžete znovu přidat.",
     "labels": "Štítky",
-    "create_label": "Vytvořit nový štítek"
+    "create_label": "Vytvořit nový štítek",
+    "mv_tasks": "Úkoly",
+    "mv_side_panel": "Boční panel",
+    "mv_open_full": "Otevřít v plném zobrazení",
+    "mv_previous_day": "Předchozí den",
+    "mv_next_day": "Následující den"
   },
   "protocol_handlers": {
     "title": "Výchozí aplikace",

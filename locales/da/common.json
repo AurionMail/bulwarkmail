@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Etiketter",
-    "create_label": "Opret ny etiket"
+    "create_label": "Opret ny etiket",
+    "mv_tasks": "Opgaver",
+    "mv_side_panel": "Sidepanel",
+    "mv_open_full": "Åbn i fuld visning",
+    "mv_previous_day": "Forrige dag",
+    "mv_next_day": "Næste dag"
   },
   "protocol_handlers": {
     "title": "Standardapps",

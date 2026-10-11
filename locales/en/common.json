@@ -155,7 +155,12 @@
     "remove_account": "Remove account",
     "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
     "labels": "Labels",
-    "create_label": "Create new label"
+    "create_label": "Create new label",
+    "mv_tasks": "Tasks",
+    "mv_side_panel": "Side panel",
+    "mv_open_full": "Open in full view",
+    "mv_previous_day": "Previous day",
+    "mv_next_day": "Next day"
   },
   "protocol_handlers": {
     "title": "Default apps",

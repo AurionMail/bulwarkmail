@@ -155,7 +155,12 @@
     "remove_account": "Fjern konto",
     "remove_account_confirm": "Vil du fjerne {account} fra denne enheten? Du kan legge den til igjen senere.",
     "labels": "Etiketter",
-    "create_label": "Opprett ny etikett"
+    "create_label": "Opprett ny etikett",
+    "mv_tasks": "Oppgaver",
+    "mv_side_panel": "Sidepanel",
+    "mv_open_full": "Åpne i full visning",
+    "mv_previous_day": "Forrige dag",
+    "mv_next_day": "Neste dag"
   },
   "protocol_handlers": {
     "title": "Standardapper",
