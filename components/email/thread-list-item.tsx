@@ -69,6 +69,16 @@ function RowChips({ email, loadAttachments, onOpenAttachment }: {
 }
 
 /**
+ * The fill behind Mountain View's hover actions, which has to match the row
+ * they sit on (see the [data-mv-row] rules in globals.css).
+ */
+function mvHoverBackground(checked: boolean, unread: boolean, selected: boolean): string {
+  if (selected) return "bg-accent";
+  if (checked) return "bg-[var(--mv-nav-selected)]";
+  return unread ? "bg-background" : "bg-[var(--mv-row-read)]";
+}
+
+/**
  * Mountain View's leading controls: a checkbox and a star, both always
  * visible and both acting on the row without opening it. They take the slot
  * the default layout gives to the sender avatar.
@@ -444,6 +454,8 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         data-unread={isUnread ? 'true' : 'false'}
         data-starred={email.keywords?.$flagged ? 'true' : 'false'}
         data-mv-mobile-row={mvMobileRow ? "" : undefined}
+        data-mv-row={mvRow && !resolvedRowTint ? "" : undefined}
+        data-checked={isChecked ? "" : undefined}
         aria-current={selected ? 'true' : undefined}
         className={cn(
           "relative group cursor-pointer select-none transition-shadow duration-200 border-b border-border overflow-hidden",
@@ -490,8 +502,8 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
           </div>
         )}
         <div
-          className={cn('px-3', isFocusedMailLayout ? 'flex items-center' : 'flex items-start', swipeEnabled && 'relative z-10 bg-inherit')}
-          style={{ gap: 'var(--density-item-gap)', paddingBlock: 'var(--density-item-py)', transform: swipeEnabled && offsetX ? `translateX(${offsetX}px)` : undefined, transition: swipeEnabled && offsetX === 0 ? 'transform 200ms ease-out' : undefined }}
+          className={cn('px-3', isFocusedMailLayout ? 'flex items-center' : 'flex items-start', mvRow && 'min-h-10', swipeEnabled && 'relative z-10 bg-inherit')}
+          style={{ gap: 'var(--density-item-gap)', paddingBlock: mvRow ? undefined : 'var(--density-item-py)', transform: swipeEnabled && offsetX ? `translateX(${offsetX}px)` : undefined, transition: swipeEnabled && offsetX === 0 ? 'transform 200ms ease-out' : undefined }}
         >
           {/* Checkbox - only for extra-compact density (no avatar) while in selection mode */}
           {!mvRow && density === 'extra-compact' && selectedEmailKeys.size > 0 && (
@@ -564,13 +576,13 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                   )}
                   <span className={cn(
                     'w-32 shrink-0 truncate text-sm lg:w-40',
-                    isUnread ? 'font-semibold text-foreground' : 'font-medium text-foreground/80'
+                    isUnread ? (mvRow ? 'font-bold text-foreground' : 'font-semibold text-foreground') : 'font-medium text-foreground/80'
                   )}>
                     {sender?.name || (sender?.email && formatAddress(sender.email)) || 'Unknown'}
                   </span>
-                  <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                  <div className={cn("flex min-w-0 flex-1 items-center text-sm", mvRow ? "gap-0" : "gap-2")}>
                     {tagIds.length > 0 && (
-                      <span className={TAG_GROUP_CLASS}>
+                      <span className={cn(TAG_GROUP_CLASS, mvRow && "me-2")}>
                         {tagIds.map((id) => (
                           <TagBadge key={id} tagId={id} variant={tagVariant} />
                         ))}
@@ -578,13 +590,15 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                     )}
                     <span className={cn(
                       'min-w-0 truncate',
-                      isUnread ? 'font-semibold text-foreground' : 'text-foreground/90'
+                      isUnread ? (mvRow ? 'font-bold text-foreground' : 'font-semibold text-foreground') : 'text-foreground/90'
                     )}>
                       {subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (email.subject || '(no subject)')}
                     </span>
                     {(previewSnippet || inlinePreview) && (
                       <span className="min-w-0 shrink-[9999] truncate text-muted-foreground">
-                        {previewSnippet ? <> <SearchSnippetText snippet={previewSnippet} /></> : inlinePreview}
+                        {/* Gmail runs the snippet on from the subject after a dash. */}
+                        {mvRow && '\u00a0-\u00a0'}
+                        {previewSnippet ? <> <SearchSnippetText snippet={previewSnippet} /></> : (mvRow ? trimmedPreview : inlinePreview)}
                       </span>
                     )}
                   </div>
@@ -592,9 +606,9 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                 <div className="flex items-center gap-2.5 shrink-0">
                   {isPinned && <StatusIcon icon={Pin} label={tStatus('pinned')} className="w-3.5 h-3.5 text-primary" />}
                   {isStarred && !mvRow && <StatusIcon icon={Star} label={tStatus('starred')} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />}
-                  {isAnswered && !isForwarded && <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />}
-                  {isForwarded && !isAnswered && <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />}
-                  {isAnswered && isForwarded && (
+                  {isAnswered && !isForwarded && !mvRow && <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />}
+                  {isForwarded && !isAnswered && !mvRow && <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />}
+                  {isAnswered && isForwarded && !mvRow && (
                     <>
                       <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />
                       <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
@@ -613,9 +627,9 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                   ) : (
                     <span className={cn(
                       'text-xs tabular-nums',
-                      isUnread ? 'text-foreground font-semibold' : 'text-muted-foreground'
+                      isUnread ? (mvRow ? 'text-foreground font-bold' : 'text-foreground font-semibold') : 'text-muted-foreground'
                     )}>
-                      {formatDate(email.receivedAt)}
+                      {formatDate(email.receivedAt, mvRow ? { listStyle: 'mountain-view' } : undefined)}
                     </span>
                   )}
                 </div>
@@ -754,7 +768,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         {!email.isScheduled && (
           <EmailHoverActions
             email={email}
-            backgroundClassName={resolvedRowTint ? resolvedRowTint : ((selected || isChecked) ? "bg-accent" : "bg-muted")}
+            backgroundClassName={resolvedRowTint ? resolvedRowTint : mvRow ? mvHoverBackground(isChecked, isUnread, selected) : ((selected || isChecked) ? "bg-accent" : "bg-muted")}
             onToggleStar={onToggleStar}
             onMarkAsRead={onMarkAsRead}
             onDelete={onDelete}
@@ -953,6 +967,14 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         return;
       }
 
+      // Mountain View opens the conversation in the reading pane, as Gmail
+      // does, rather than unfolding it inside the list.
+      if (mvRow) {
+        if (selectedEmailKeys.size > 0) clearSelection();
+        onEmailSelect(latestEmail);
+        return;
+      }
+
       const target = e.target as HTMLElement;
       if (target.closest('[data-expand-toggle]')) {
         onToggleExpand();
@@ -982,6 +1004,8 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           aria-current={isSelected ? 'true' : undefined}
           data-unread={hasUnread ? 'true' : 'false'}
           data-mv-mobile-row={mvMobileRow ? "" : undefined}
+          data-mv-row={mvRow && !rowTint ? "" : undefined}
+          data-checked={isChecked ? "" : undefined}
           className={cn(
             "relative group cursor-pointer select-none transition-shadow duration-200 overflow-hidden",
             rowTint ? rowTint : (
@@ -1013,8 +1037,8 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           style={{ minHeight: isFocusedMailLayout ? undefined : 'var(--list-item-height)' }}
         >
           <div
-            className={cn('px-3', isFocusedMailLayout ? 'flex items-center' : 'flex items-start')}
-            style={{ gap: 'var(--density-item-gap)', paddingBlock: 'var(--density-item-py)' }}
+            className={cn('px-3', isFocusedMailLayout ? 'flex items-center' : 'flex items-start', mvRow && 'min-h-10')}
+            style={{ gap: 'var(--density-item-gap)', paddingBlock: mvRow ? undefined : 'var(--density-item-py)' }}
           >
             {/* Checkbox for thread selection - only for extra-compact density (no avatar) while in selection mode */}
             {!mvRow && density === 'extra-compact' && selectedEmailKeys.size > 0 && (
@@ -1112,6 +1136,17 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                         <span className="sr-only">{threadAccountDescription}</span>
                       </span>
                     )}
+                    {mvRow ? (
+                      // Gmail puts the message count after the names, in grey.
+                      <span data-mv-names="" className="flex w-32 shrink-0 items-baseline gap-1 text-sm lg:w-40">
+                        <span className={cn('min-w-0 truncate', hasUnread ? 'font-bold text-foreground' : 'font-medium text-foreground/80')}>
+                          {displayNames.join(', ')}
+                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground" title={t('messages_tooltip', { count: emailCount })}>
+                          {emailCount}
+                        </span>
+                      </span>
+                    ) : (
                     <span className={cn(
                       // Matches SingleEmailItem: the sender column sets where
                       // every row's tags and subject begin, so the two have to
@@ -1121,26 +1156,32 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     )}>
                       {displayNames.join(', ')}
                     </span>
-                    <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                      <span className={TAG_GROUP_CLASS}>
-                        <ThreadCountPill
-                          count={emailCount}
-                          hasUnread={hasUnread}
-                          title={t('messages_tooltip', { count: emailCount })}
-                        />
+                    )}
+                    <div className={cn("flex min-w-0 flex-1 items-center text-sm", mvRow ? "gap-0" : "gap-2")}>
+                      {(!mvRow || tagIds.length > 0) && (
+                      <span className={cn(TAG_GROUP_CLASS, mvRow && "me-2")}>
+                        {!mvRow && (
+                          <ThreadCountPill
+                            count={emailCount}
+                            hasUnread={hasUnread}
+                            title={t('messages_tooltip', { count: emailCount })}
+                          />
+                        )}
                         {tagIds.map((id) => (
                           <TagBadge key={id} tagId={id} variant={tagVariant} />
                         ))}
                       </span>
+                      )}
                       <span className={cn(
                         'min-w-0 truncate',
-                        hasUnread ? 'font-semibold text-foreground' : 'text-foreground/90'
+                        hasUnread ? (mvRow ? 'font-bold text-foreground' : 'font-semibold text-foreground') : 'text-foreground/90'
                       )}>
                         {subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (latestEmail.subject || '(no subject)')}
                       </span>
                       {(previewSnippet || inlinePreview) && (
                         <span className="min-w-0 shrink-[9999] truncate text-muted-foreground">
-                          {previewSnippet ? <> <SearchSnippetText snippet={previewSnippet} /></> : inlinePreview}
+                          {mvRow && '\u00a0-\u00a0'}
+                          {previewSnippet ? <> <SearchSnippetText snippet={previewSnippet} /></> : (mvRow ? trimmedPreview : inlinePreview)}
                         </span>
                       )}
                     </div>
@@ -1148,9 +1189,9 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                   <div className="flex items-center gap-2.5 shrink-0">
                     {hasPinned && <StatusIcon icon={Pin} label={tStatus('pinned')} className="w-3.5 h-3.5 text-primary" />}
                     {hasStarred && !mvRow && <StatusIcon icon={Star} label={tStatus('starred')} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />}
-                    {hasAnswered && !hasForwarded && <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />}
-                    {hasForwarded && !hasAnswered && <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />}
-                    {hasAnswered && hasForwarded && (
+                    {hasAnswered && !hasForwarded && !mvRow && <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />}
+                    {hasForwarded && !hasAnswered && !mvRow && <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />}
+                    {hasAnswered && hasForwarded && !mvRow && (
                       <>
                         <StatusIcon icon={Reply} label={tStatus('replied')} className="w-3.5 h-3.5 text-muted-foreground" />
                         <StatusIcon icon={Forward} label={tStatus('forwarded')} className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1169,9 +1210,9 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     ) : (
                       <span className={cn(
                         'text-xs tabular-nums',
-                        hasUnread ? 'text-foreground font-semibold' : 'text-muted-foreground'
+                        hasUnread ? (mvRow ? 'text-foreground font-bold' : 'text-foreground font-semibold') : 'text-muted-foreground'
                       )}>
-                        {formatDate(latestEmail.receivedAt)}
+                        {formatDate(latestEmail.receivedAt, mvRow ? { listStyle: 'mountain-view' } : undefined)}
                       </span>
                     )}
                   </div>
@@ -1321,7 +1362,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           {!latestEmail.isScheduled && (
             <EmailHoverActions
               email={latestEmail}
-              backgroundClassName={rowTint ? rowTint : ((isSelected || isChecked) ? "bg-accent" : "bg-muted")}
+              backgroundClassName={rowTint ? rowTint : mvRow ? mvHoverBackground(isChecked, hasUnread, isSelected) : ((isSelected || isChecked) ? "bg-accent" : "bg-muted")}
               onToggleStar={onToggleStar ? () => onToggleStar(latestEmail) : undefined}
               onMarkAsRead={onMarkAsRead ? (read) => onMarkAsRead(latestEmail, read) : undefined}
               onDelete={onDelete ? () => onDelete(latestEmail) : undefined}

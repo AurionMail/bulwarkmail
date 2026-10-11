@@ -78,6 +78,8 @@ function resolveDateLocale<T extends string | undefined>(
  *       today        → time only           ("15:31" or "3:31 PM")
  *       last 7 days  → short weekday+time  ("Fr 15:31", "Fri 3:31 PM")
  *       older        → full locale date    ("28.04.2026", "04/28/2026")
+ *       With `listStyle: 'mountain-view'` the buckets are Gmail's instead:
+ *       today → time, this year → "Oct 10", older → "10/10/25".
  *   - `relative` — legacy en-US relative format ("1h ago", "2d ago").
  *   - `full` — always the full locale date+time.
  *
@@ -97,7 +99,7 @@ function resolveDateLocale<T extends string | undefined>(
 export function formatDate(
   date: Date | string,
   // Settings preview: render as if these were picked, without saving them.
-  overrides?: { dateFormat?: DateFormat; dateLocale?: DateLocale },
+  overrides?: { dateFormat?: DateFormat; dateLocale?: DateLocale; listStyle?: 'mountain-view' },
 ): string {
   const d = typeof date === "string" ? new Date(date) : date;
   // An unparsable receivedAt (e.g. a 5-digit year) makes Intl throw
@@ -166,6 +168,13 @@ export function formatDate(
     dWall.month === nowWall.month &&
     dWall.day === nowWall.day;
   if (isSameDay) return timeStr;
+
+  if (overrides?.listStyle === 'mountain-view') {
+    if (dWall.year === nowWall.year) {
+      return d.toLocaleDateString(uiLocale, { timeZone, month: "short", day: "numeric" });
+    }
+    return d.toLocaleDateString(numericLocale, { timeZone, year: "2-digit", month: "numeric", day: "numeric" });
+  }
 
   const daysAgo = Math.floor((now.getTime() - d.getTime()) / 86400000);
   if (daysAgo < 7) {

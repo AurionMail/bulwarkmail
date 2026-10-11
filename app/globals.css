@@ -1081,6 +1081,31 @@ optgroup {
   font-weight: 500;
 }
 
+/* Message rows: read mail sits on a faint tint and unread on the plain card,
+   a ticked row takes the selection colour, and the row under the pointer
+   lifts on a shadow instead of changing colour. */
+[data-interface-layout="mountain-view"] [data-mv-row] {
+  background-color: var(--mv-row-read);
+  box-shadow: none;
+}
+[data-interface-layout="mountain-view"] [data-mv-row][data-unread="true"] {
+  background-color: var(--color-background);
+}
+[data-interface-layout="mountain-view"] [data-mv-row][data-checked] {
+  background-color: var(--mv-nav-selected);
+}
+[data-interface-layout="mountain-view"] [data-mv-row][aria-current="true"] {
+  background-color: var(--color-accent);
+}
+[data-interface-layout="mountain-view"] [data-mv-row]:hover {
+  z-index: 1;
+  box-shadow:
+    inset 1px 0 0 var(--color-border),
+    inset -1px 0 0 var(--color-border),
+    0 1px 2px 0 rgb(60 64 67 / 0.3),
+    0 1px 3px 1px rgb(60 64 67 / 0.15);
+}
+
 /* The account popover: a wide card with a very round corner, rather
    than the narrow menu the rail and the sidebar switchers drop. */
 [data-interface-layout="mountain-view"] [data-mv-account-popover] {

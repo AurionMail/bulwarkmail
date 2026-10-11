@@ -191,6 +191,20 @@ describe('mail timestamp formatting honours the override', () => {
     expect(formatDate(undefined as unknown as string)).toBe('');
   });
 
+  it("formatDate uses Gmail's buckets for Mountain View lists", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T16:00:00Z'));
+    useSettingsStore.setState({ dateLocale: 'en-US', timeFormat: '12h' });
+    const mv = { listStyle: 'mountain-view' } as const;
+
+    expect(formatDate(new Date('2026-07-01T14:05:00Z'), mv)).toBe('02:05 PM');
+    // Two days ago is a date, not a weekday, and this year leaves the year out.
+    expect(formatDate(new Date('2026-06-29T14:05:00Z'), mv)).toBe('Jun 29');
+    expect(formatDate(new Date('2025-10-10T14:05:00Z'), mv)).toBe('10/10/25');
+    // Without it the default buckets stay.
+    expect(formatDate(new Date('2026-06-29T14:05:00Z'))).toBe('Mon 02:05 PM');
+  });
+
   it('formatDate overrides preview other options without touching the store', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-01T16:00:00Z'));

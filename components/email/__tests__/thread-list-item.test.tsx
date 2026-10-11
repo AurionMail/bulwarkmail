@@ -503,3 +503,39 @@ describe('ThreadListItem selection in a merged view', () => {
     expect(useEmailStore.getState().selectedEmailKeys.size).toBe(0);
   });
 });
+
+describe('ThreadListItem Mountain View desktop row', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({
+      emailKeywords: [...DEFAULT_KEYWORDS],
+      showPreview: true,
+      mailLayout: 'focus',
+      interfaceLayout: 'mountain-view',
+    } as never);
+    useEmailStore.setState({ selectedEmailKeys: new Set<string>(), selectedMailbox: 'inbox' });
+  });
+
+  it('runs the snippet on from the subject after a dash', () => {
+    const { container } = renderRow(makeEmail({ preview: 'See you there' }));
+    expect(container.textContent).toContain('Test Subject - See you there');
+  });
+
+  it('counts a thread after the names instead of in a pill, and opens it without unfolding', () => {
+    const onEmailSelect = vi.fn();
+    const onToggleExpand = vi.fn();
+    const emails = [
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T10:00:00Z' }),
+      makeEmail({ id: 'b', receivedAt: '2024-01-15T11:00:00Z', from: [{ name: 'Bob', email: 'bob@example.com' }] }),
+    ];
+    const [thread] = groupEmailsByThread(emails);
+    const { container } = render(
+      <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={onToggleExpand} onEmailSelect={onEmailSelect} />,
+    );
+
+    const names = container.querySelector('[data-mv-names]');
+    expect(names?.textContent).toMatch(/2$/);
+    fireEvent.click(screen.getByText('Test Subject'));
+    expect(onEmailSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'b' }));
+    expect(onToggleExpand).not.toHaveBeenCalled();
+  });
+});
