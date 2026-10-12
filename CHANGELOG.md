@@ -1,5 +1,58 @@
 # Changelog
 
+## 1.14.2 (2026-10-12)
+
+1.14.2 brings Mountain View closer to Gmail: the open message shows the whole conversation, replies are written in place under it, and a side panel holds calendar, tasks and contacts. Tasks can now be moved into calendars shared with you, and the "Date sent" list order works again.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Features
+
+- **UI**: In Mountain View, the open message shows the whole conversation around it, and replies are written in place under the conversation instead of in a separate window
+- **UI**: Mountain View has Gmail's side panel with calendar, tasks and contacts, and its advanced search form
+- **UI**: Mountain View's message menu has Find emails from, and the Move to menu in the bulk actions can be searched
+
+### Changes
+
+- **UI**: Mountain View looks more like Gmail: the content sits on a rounded card over a tinted canvas, the navigation has a Labels section, and the message rows, open message toolbar, compose window, account card, message menu and bulk actions follow Gmail's layout and order. The keyboard shortcuts sit behind a help button in the top bar
+
+### Fixes
+
+- **Mail**: The "Date sent" list order sorts by date sent again instead of falling back to date received (#1219, thanks @Area128)
+- **Mail**: In Mountain View, the dark backdrop behind a message body spans its full width
+- **Tasks**: Tasks in calendars shared with you show up, and tasks can be created in, moved into, edited and deleted in those calendars (#1204, thanks @mmomjian)
+- **UI**: Mountain View's panes no longer slide when animations are turned off (#1215, thanks @mmomjian)
+
 ## 1.14.1 (2026-10-11)
 
 1.14.1 fixes plain-text and unstyled messages showing on a gray background in dark mode after the 1.14.0 dark mode rewrite.
