@@ -10,6 +10,7 @@ import {
   isWebPushEnabled,
   listPushDevices,
   mailAccountsWithoutPush,
+  enableWebPushForAccounts,
   resetWebPushResyncState,
   resyncWebPush,
   revokePushDevice,
@@ -227,7 +228,9 @@ const updateCalls = (client: IJMAPClient) =>
 function installPushBrowser() {
   const browserSub = {
     endpoint: 'https://fcm.example/endpoint',
-    options: { applicationServerKey: new ArrayBuffer(8) },
+    // The key installFetch's relay advertises ('QUJD' = "ABC"), so the
+    // browser subscription belongs to that relay unless a test says otherwise.
+    options: { applicationServerKey: new Uint8Array([65, 66, 67]).buffer as ArrayBuffer | null },
     getKey: () => new Uint8Array([1, 2, 3]).buffer,
     unsubscribe: vi.fn(async () => true),
   };
@@ -397,12 +400,129 @@ describe('enableWebPush', () => {
 
     expect(client.destroyed).not.toContain('push-other');
   });
+
+  it('reuses a browser subscription made with this relay key', async () => {
+    const { browserSub, registration } = installPushBrowser();
+    installFetch({});
+
+    await enableWebPush({ client: makeClient([]), relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(browserSub.unsubscribe).not.toHaveBeenCalled();
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+  });
+
+  it('replaces a browser subscription made with another relay key', async () => {
+    const { browserSub, registration } = installPushBrowser();
+    browserSub.options.applicationServerKey = new Uint8Array([9, 9, 9]).buffer;
+    const calls = installFetch({});
+
+    await enableWebPush({ client: makeClient([]), relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(browserSub.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(registration.pushManager.subscribe).toHaveBeenCalledTimes(1);
+    const [{ applicationServerKey }] = registration.pushManager.subscribe.mock.calls[0] as unknown as [
+      { applicationServerKey: Uint8Array },
+    ];
+    expect(Array.from(applicationServerKey)).toEqual([65, 66, 67]);
+    expect(calls.some((c) => c.url.endsWith('/api/push/register/web'))).toBe(true);
+  });
+
+  it('subscribes anyway when the browser cannot retrieve the existing subscription', async () => {
+    // Firefox rejects the lookup with `AbortError: Error retrieving push
+    // subscription` when its local record is stale; that must not abort enable.
+    const { registration } = installPushBrowser();
+    registration.pushManager.getSubscription.mockRejectedValue(
+      new DOMException('Error retrieving push subscription', 'AbortError'),
+    );
+    installFetch({});
+
+    const result = await enableWebPush({ client: makeClient([]), relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(registration.pushManager.subscribe).toHaveBeenCalledTimes(1);
+    expect(result.subscriptionId).toBe('push-new');
+  });
+
+  it('still subscribes when unsubscribing the mismatched subscription fails', async () => {
+    const { browserSub, registration } = installPushBrowser();
+    browserSub.options.applicationServerKey = new Uint8Array([9, 9, 9]).buffer;
+    browserSub.unsubscribe.mockRejectedValue(new Error('unsubscribe failed'));
+    installFetch({});
+
+    await enableWebPush({ client: makeClient([]), relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(registration.pushManager.subscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces a browser subscription whose key the browser does not expose', async () => {
+    const { browserSub, registration } = installPushBrowser();
+    browserSub.options.applicationServerKey = null;
+    installFetch({});
+
+    await enableWebPush({ client: makeClient([]), relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(browserSub.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(registration.pushManager.subscribe).toHaveBeenCalledTimes(1);
+  });
 });
 
 // Registrations made before the client learned about the delivery filter are
 // repaired in the background on app start - nobody should have to find the
 // settings toggle to stop the spam pushes.
 describe('resyncWebPush', () => {
+  it('repairs a lost browser subscription for an account that previously opted in', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const { registration } = installPushBrowser();
+    registration.pushManager.getSubscription.mockResolvedValue(null as never);
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    const calls = installFetch({});
+
+    expect(await isWebPushEnabled(ACCOUNT_ID)).toBe(false);
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(true);
+    expect(registration.pushManager.subscribe).toHaveBeenCalledTimes(1);
+    expect(calls).toContainEqual({ url: `${RELAY}/api/push/register/web`, method: 'POST' });
+  });
+
+  it.each(['default', 'denied'])('does not resubscribe or prompt with %s permission', async (permission) => {
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const { registration } = installPushBrowser();
+    vi.stubGlobal('Notification', { permission, requestPermission: vi.fn() });
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(false);
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+    expect(Notification.requestPermission).not.toHaveBeenCalled();
+  });
+
+  it('allows retry after a transient relay failure', async () => {
+    localStorage.setItem(SUB_KEY, 'push-old');
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(false);
+    installFetch({});
+    // Not on the very next tab focus...
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(false);
+    // ...but a quarter of an hour later.
+    const later = Date.now() + 16 * 60_000;
+    vi.spyOn(Date, 'now').mockReturnValue(later);
+    try {
+      expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(true);
+    } finally {
+      vi.mocked(Date.now).mockRestore();
+    }
+  });
+
+  it('keeps the opt-in when recreating the subscription fails', async () => {
+    localStorage.setItem(SUB_KEY, 'push-old');
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    // The server lost the old subscription, and creating a new one fails.
+    const client = makeClient([]);
+    vi.mocked(client.createPushSubscription).mockRejectedValue(new Error('server down'));
+    installFetch({});
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(false);
+    expect(localStorage.getItem(SUB_KEY)).toBe('push-old');
+  });
+
   it('re-syncs an enabled registration and installs the missing filter', async () => {
     localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
     localStorage.setItem(SUB_KEY, 'push-old');
@@ -1130,5 +1250,42 @@ describe('revokePushDevice', () => {
 
     expect(client.destroyed).toEqual(['push-mine']);
     expect(localStorage.getItem(SUB_KEY)).toBeNull();
+  });
+});
+
+describe('enableWebPushForAccounts', () => {
+  it('registers every account against the one browser subscription', async () => {
+    const first = makeClient([]);
+    const second = makeClient([]);
+    installFetch({});
+
+    const result = await enableWebPushForAccounts([
+      { accountId: 'a', client: first, accountLabel: 'one' },
+      { accountId: 'b', client: second, accountLabel: 'two' },
+    ], { relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(result.enabled).toEqual(['a', 'b']);
+    expect(result.failed).toEqual([]);
+    expect(first.createPushSubscription).toHaveBeenCalledTimes(1);
+    expect(second.createPushSubscription).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops at a browser-level refusal instead of prompting once per account', async () => {
+    const first = makeClient([]);
+    const second = makeClient([]);
+    installFetch({});
+    // Blocked notifications are a property of the browser, not of an account:
+    // walking on would fail identically for every one of them.
+    (globalThis as unknown as { Notification: unknown }).Notification = { permission: 'denied' };
+    (window as unknown as { Notification: unknown }).Notification = { permission: 'denied' };
+
+    const result = await enableWebPushForAccounts([
+      { accountId: 'a', client: first },
+      { accountId: 'b', client: second },
+    ], { relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(result.enabled).toEqual([]);
+    expect(result.failed.map(f => f.accountId)).toEqual(['a', 'b']);
+    expect(second.createPushSubscription).not.toHaveBeenCalled();
   });
 });

@@ -3,38 +3,34 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import {
-  Folder, File, Upload, FolderPlus, Download, Trash2,
-  Pencil, RefreshCw, Home, ChevronRight, MoreVertical,
-  Search, ArrowUp, ArrowDown, X, LayoutGrid, LayoutList,
-  Copy, Clipboard, Scissors, Info, Image as ImageIcon,
-  FilePlus, CopyPlus, FileText, FileAudio, FileVideo,
-  AlertCircle, Star, Clock, FolderUp,
-  FileArchive, FileSpreadsheet, Presentation, FileCode,
-  Box, PenTool, Terminal as TerminalIcon, Database, Type as TypeIcon,
-  Menu, Users, Share2, SquarePen, Link,
+  Upload, FolderPlus, Download, Trash2, Pencil, Copy, Clipboard, Scissors, Info,
+  FilePlus, CopyPlus, AlertCircle, FolderUp, Share2, SquarePen, Eye, FolderOpen,
+  RefreshCw, Star, StarOff, Plus, CheckSquare, File,
 } from "@/components/icons";
-import { useIsDesktop } from "@/hooks/use-media-query";
+import { useIsDesktop, useIsMobile, useMediaQuery } from "@/hooks/use-media-query";
+import { useContextMenu } from "@/hooks/use-context-menu";
 import { Button } from "@/components/ui/button";
-import { cn, formatFileSize } from "@/lib/utils";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { Avatar } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import { NewFolderDialog } from "@/components/files/new-folder-dialog";
 import { RenameDialog } from "@/components/files/rename-dialog";
 import { fileNameProblem } from "@/lib/file-name-rules";
-import { FileUploadArea } from "@/components/files/file-upload-area";
-import { loadFilesSettings } from "@/components/files/files-settings-dialog";
-import type { FolderLayout } from "@/components/files/files-settings-dialog";
-import { FolderTreeSidebar } from "@/components/files/folder-tree-sidebar";
+import { EmptyFolder, NoSearchResults } from "@/components/files/file-empty-state";
+import { isAudioFile, isImageFile, isPdfFile, isTextFile, isVideoFile } from "@/components/files/file-icons";
+import { loadFilesSettings, saveFilesSettings, type FilesSettings } from "@/components/files/files-settings";
+import { FilesSidebar, type CreateKind } from "@/components/files/files-sidebar";
+import { FilesHeader, type Crumb, type SortDir, type SortKey, type ViewMode } from "@/components/files/files-header";
+import { FileGridView, FileListView, type FileItemHandlers } from "@/components/files/file-views";
+import { FileDetailsPanel } from "@/components/files/file-details-panel";
+import { INTERNAL_DRAG_TYPE, anchorEvent, isInternalDrag, readDraggedNames } from "@/components/files/file-item-parts";
 import { ResizeHandle } from "@/components/layout/resize-handle";
-import { Avatar } from "@/components/ui/avatar";
 import { getDroppedFilesAndFolders } from "@/lib/webdav/drop-utils";
-import type { FileResource } from "@/stores/file-store";
+import { useFileStore, isSharedFilesPage, sharedFilePages, type FileResource } from "@/stores/file-store";
+import { toast } from "@/stores/toast-store";
 import { ShareCollectionDialog } from "@/components/settings/share-collection-dialog";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNodeRights } from "@/lib/jmap/types";
-import { getEffectiveTimeZone } from "@/lib/timezone";
-
-type SortKey = "name" | "size" | "modified";
-type SortDir = "asc" | "desc";
-type ViewMode = "list" | "grid";
 
 interface ClipboardState {
   mode: "cut" | "copy";
@@ -69,39 +65,39 @@ interface FileBrowserProps {
   onDownload: (name: string) => Promise<void>;
   onBatchDownload: (names: string[]) => Promise<void>;
   onRefresh: () => Promise<void>;
-  onSelectResource: (name: string | null) => void;
   onToggleSelect: (name: string) => void;
-  onSelectAll: () => void;
   onClearSelection: () => void;
   onSetSelection: (names: Set<string>) => void;
   onCut: (names: string[]) => void;
   onCopy: (names: string[]) => void;
   onPaste: () => Promise<void>;
-  onMoveToFolder: (names: string[], targetFolder: string) => Promise<void>;
-  onMoveToParent: (names: string[]) => Promise<void>;
+  /** Move listed items into a folder by id (null = the root). */
+  onMoveTo: (names: string[], targetId: string | null) => Promise<void>;
   onPreviewImage: (name: string) => void;
   onPreviewFile: (name: string) => void;
   /** WOPI document editing (#425): whether a file can open in the document editor. */
   isOfficeEditable?: (name: string) => boolean;
   onEditFile?: (name: string) => void;
-  onShowDetails: (name: string) => void;
   onCreateTextFile: (name: string) => Promise<void>;
   onDuplicate: (name: string) => Promise<void>;
   getImageUrl: (name: string) => Promise<string>;
-  listPath: (path: string) => Promise<FileResource[]>;
-  listByParentId: (parentId: string | null) => Promise<FileResource[]>;
   favorites: string[];
   recentFiles: { name: string; id: string; timestamp: number }[];
   onToggleFavorite: (path: string) => void;
-  showDetails: boolean;
-  onToggleDetails: () => void;
-  detailResource: FileResource | null;
+  /** Open a recently used file wherever it now lives. */
+  onOpenRecent: (id: string) => void;
+  /** Sidebar actions on items that need not be in the open folder. */
+  onRenameNode: (id: string, newName: string) => Promise<void>;
+  onDeleteNode: (id: string, name: string) => Promise<void>;
+  onDownloadNode: (id: string) => Promise<void>;
+  onRevealNode: (id: string) => Promise<void>;
+  onRemoveRecent: (id: string) => void;
   /** Pro shell only: all connected accounts surfaced as top-level folders at the root. */
   accountFolders?: AccountFolderEntry[];
   onSelectAccount?: (accountId: string) => void;
-  /** Pro shell only: when true, the root is a pure account picker - hide the file toolbar and don't render a regular listing. */
+  /** Pro shell only: when true, the root is a pure account picker - hide the file tools and don't render a regular listing. */
   accountPickerMode?: boolean;
-  /** Pro shell only: label of the currently-attached account, shown as a breadcrumb segment after Home. */
+  /** Pro shell only: label of the currently-attached account, shown as a breadcrumb segment after the root. */
   accountLabel?: string | null;
   /** JMAP client for the browsing account, used by the share dialog to list principals. */
   client?: IJMAPClient | null;
@@ -113,248 +109,18 @@ interface FileBrowserProps {
   onShare?: (id: string, principalId: string, rights: FileNodeRights | null) => Promise<void>;
 }
 
-const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico", "avif"]);
-
-function isImageFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return IMAGE_EXTENSIONS.has(ext);
-}
-
-const TEXT_EXTENSIONS = new Set([
-  "txt", "md", "markdown", "json", "xml", "html", "htm", "css", "js", "ts",
-  "jsx", "tsx", "py", "rb", "java", "c", "cpp", "h", "hpp", "go", "rs",
-  "sh", "bash", "zsh", "yaml", "yml", "toml", "ini", "cfg", "conf", "env",
-  "log", "csv", "sql", "graphql", "vue", "svelte", "astro", "php", "pl",
-  "swift", "kt", "scala", "r", "lua", "vim",
-]);
-
-function isTextFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  const baseName = name.toLowerCase();
-  return TEXT_EXTENSIONS.has(ext) || ["dockerfile", "makefile", "readme", "license", "changelog"].includes(baseName);
-}
-
-const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "ogg", "flac", "aac", "m4a", "wma", "opus"]);
-function isAudioFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return AUDIO_EXTENSIONS.has(ext);
-}
-
-const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "ogv", "mov", "avi", "mkv", "m4v"]);
-function isVideoFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return VIDEO_EXTENSIONS.has(ext);
-}
-
-const PDF_EXTENSIONS = new Set(["pdf"]);
-function isPdfFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return PDF_EXTENSIONS.has(ext);
-}
-
-const VECTOR_EXTENSIONS = new Set(["svg", "ai", "eps", "ps", "sketch", "fig", "xd", "gvdesign"]);
-function isVectorFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return VECTOR_EXTENSIONS.has(ext);
-}
-
-const THREE_D_EXTENSIONS = new Set([
-  "obj", "fbx", "gltf", "glb", "stl", "3mf", "step", "stp", "iges", "igs",
-  "blend", "3ds", "dae", "usdz", "usd", "usda", "usdc", "ply", "wrl",
-  "c4d", "max", "ma", "mb", "dwg", "dxf",
-]);
-function is3DFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return THREE_D_EXTENSIONS.has(ext);
-}
-
-const EXECUTABLE_EXTENSIONS = new Set([
-  "exe", "msi", "dmg", "app", "appimage", "deb", "rpm", "snap", "flatpak",
-  "bat", "cmd", "com", "scr", "ps1", "apk", "ipa", "jar", "run",
-]);
-function isExecutableFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return EXECUTABLE_EXTENSIONS.has(ext);
-}
-
-const ARCHIVE_EXTENSIONS = new Set([
-  "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst", "lz", "lzma",
-  "tgz", "tbz2", "txz", "cab", "iso", "img",
-]);
-function isArchiveFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return ARCHIVE_EXTENSIONS.has(ext);
-}
-
-const SPREADSHEET_EXTENSIONS = new Set(["xls", "xlsx", "ods", "numbers", "tsv"]);
-function isSpreadsheetFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return SPREADSHEET_EXTENSIONS.has(ext);
-}
-
-const PRESENTATION_EXTENSIONS = new Set(["ppt", "pptx", "odp", "key"]);
-function isPresentationFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return PRESENTATION_EXTENSIONS.has(ext);
-}
-
-const WORD_DOCUMENT_EXTENSIONS = new Set(["doc", "docx", "odt", "rtf"]);
-function isWordDocumentFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return WORD_DOCUMENT_EXTENSIONS.has(ext);
-}
-
-const FONT_EXTENSIONS = new Set(["ttf", "otf", "woff", "woff2", "eot"]);
-function isFontFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return FONT_EXTENSIONS.has(ext);
-}
-
-const DATABASE_EXTENSIONS = new Set(["db", "sqlite", "sqlite3", "mdb", "accdb"]);
-function isDatabaseFile(name: string): boolean {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  return DATABASE_EXTENSIONS.has(ext);
-}
-
 function isPreviewable(name: string): boolean {
   return isImageFile(name) || isTextFile(name) || isPdfFile(name) || isAudioFile(name) || isVideoFile(name);
 }
 
-function getFileIconByName(name: string, size: "sm" | "lg") {
-  const cls = size === "sm" ? "w-5 h-5" : "w-10 h-10";
-  if (isVectorFile(name)) return <PenTool className={`${cls} text-orange-500`} />;
-  if (is3DFile(name)) return <Box className={`${cls} text-cyan-500`} />;
-  if (isImageFile(name)) return <ImageIcon className={`${cls} text-emerald-500`} />;
-  if (isAudioFile(name)) return <FileAudio className={`${cls} text-purple-500`} />;
-  if (isVideoFile(name)) return <FileVideo className={`${cls} text-pink-500`} />;
-  if (isArchiveFile(name)) return <FileArchive className={`${cls} text-amber-600`} />;
-  if (isExecutableFile(name)) return <TerminalIcon className={`${cls} text-red-500`} />;
-  if (isSpreadsheetFile(name)) return <FileSpreadsheet className={`${cls} text-green-600`} />;
-  if (isPresentationFile(name)) return <Presentation className={`${cls} text-orange-600`} />;
-  if (isWordDocumentFile(name)) return <FileText className={`${cls} text-blue-600`} />;
-  if (isFontFile(name)) return <TypeIcon className={`${cls} text-indigo-500`} />;
-  if (isDatabaseFile(name)) return <Database className={`${cls} text-slate-500`} />;
-  if (isPdfFile(name)) return <FileText className={`${cls} text-red-600`} />;
-  if (isTextFile(name)) return <FileCode className={`${cls} text-yellow-600`} />;
-  return <File className={`${cls} text-muted-foreground`} />;
-}
+type MenuData = { kind: "item"; resource: FileResource } | { kind: "empty" } | { kind: "new" };
 
-// A symlink's icon, whatever its name suggests: it has no content to open.
-function SymlinkIcon({ className, label }: { className: string; label: string }) {
-  return (
-    <Link className={`${className} text-muted-foreground`} aria-label={label}>
-      <title>{label}</title>
-    </Link>
-  );
-}
+const SIDEBAR_DEFAULT_WIDTH = 256;
 
-function getFileIcon(resource: FileResource, symlinkLabel: string) {
-  if (resource.isDirectory) {
-    return <Folder className="w-5 h-5 text-blue-500" />;
-  }
-  if (resource.isSymlink) return <SymlinkIcon className="w-5 h-5" label={symlinkLabel} />;
-  return getFileIconByName(resource.name, "sm");
-}
-
-function getGridIcon(resource: FileResource, symlinkLabel: string) {
-  if (resource.isDirectory) {
-    return <Folder className="w-10 h-10 text-blue-500" />;
-  }
-  if (resource.isSymlink) return <SymlinkIcon className="w-10 h-10" label={symlinkLabel} />;
-  return getFileIconByName(resource.name, "lg");
-}
-
-// Small inline indicator: a node shared out by the user (shareWith has entries)
-// or a node shared *with* the user by another principal (isShared).
-function ShareBadge({ resource, t }: { resource: FileResource; t: (key: string) => string }) {
-  const sharedOut = !!resource.shareWith && Object.keys(resource.shareWith).length > 0;
-  if (resource.isShared) {
-    return (
-      <Share2
-        className="w-3.5 h-3.5 text-primary shrink-0"
-        aria-label={t("shared_with_me")}
-      >
-        <title>{t("shared_with_me")}</title>
-      </Share2>
-    );
-  }
-  if (sharedOut) {
-    return (
-      <Users
-        className="w-3.5 h-3.5 text-primary shrink-0"
-        aria-label={t("shared")}
-      >
-        <title>{t("shared")}</title>
-      </Users>
-    );
-  }
-  return null;
-}
-
-function Thumbnail({ name, getImageUrl: fetchUrl, size = "sm" }: {
-  name: string;
-  getImageUrl: (n: string) => Promise<string>;
-  size?: "sm" | "lg";
-}) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchUrl(name).then(url => { if (!cancelled) setSrc(url); }).catch(() => { if (!cancelled) setFailed(true); });
-    return () => { cancelled = true; };
-  }, [name, fetchUrl]);
-
-  if (failed || !src) {
-    return size === "sm"
-      ? <ImageIcon className="w-5 h-5 text-emerald-500" />
-      : <ImageIcon className="w-10 h-10 text-emerald-500" />;
-  }
-
-  const cls = size === "sm"
-    ? "w-5 h-5 rounded object-cover"
-    : "w-10 h-10 rounded object-cover";
-
-  return <img src={src} alt={name} className={cls} loading="lazy" />;
-}
-
-function formatDate(dateString: string): string {
-  if (!dateString) return "";
-  try {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      timeZone: getEffectiveTimeZone(),
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return dateString;
-  }
-}
-
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-border">
-      <td className="px-4 py-2.5">
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 shrink-0" />
-          <div className="w-5 h-5 rounded bg-muted animate-pulse shrink-0" />
-          <div className="h-4 rounded bg-muted animate-pulse w-40" />
-        </div>
-      </td>
-      <td className="px-4 py-2.5 hidden md:table-cell">
-        <div className="h-4 rounded bg-muted animate-pulse w-14" />
-      </td>
-      <td className="px-4 py-2.5 hidden lg:table-cell">
-        <div className="h-4 rounded bg-muted animate-pulse w-32" />
-      </td>
-      <td className="px-2 py-2.5">
-        <div className="h-4 w-4 rounded bg-muted animate-pulse" />
-      </td>
-    </tr>
-  );
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable;
 }
 
 export function FileBrowser({
@@ -364,6 +130,7 @@ export function FileBrowser({
   error,
   selectedResources,
   uploadProgress,
+  clipboard,
   onNavigate,
   onCreateFolder,
   onUploadFiles,
@@ -375,33 +142,29 @@ export function FileBrowser({
   onDownload,
   onBatchDownload,
   onRefresh,
-  onSelectResource,
   onToggleSelect,
-  onSelectAll,
   onClearSelection,
   onSetSelection,
   onCut,
   onCopy,
   onPaste,
-  onMoveToFolder,
-  onMoveToParent,
+  onMoveTo,
   onPreviewImage,
   onPreviewFile,
   isOfficeEditable,
   onEditFile,
-  onShowDetails,
   onCreateTextFile,
   onDuplicate,
   getImageUrl,
-  listPath,
-  listByParentId,
   favorites,
   recentFiles,
   onToggleFavorite,
-  showDetails,
-  onToggleDetails,
-  detailResource,
-  clipboard,
+  onOpenRecent,
+  onRenameNode,
+  onDeleteNode,
+  onDownloadNode,
+  onRevealNode,
+  onRemoveRecent,
   accountFolders,
   onSelectAccount,
   accountPickerMode,
@@ -423,13 +186,139 @@ export function FileBrowser({
       case "reserved": return t("name_reserved");
     }
   }, [fileNameRules, t]);
+
+  // ---- Store-derived state ---------------------------------------------------
+  const storeClient = useFileStore((s) => s.client);
+  const sharedRoots = useFileStore((s) => s.sharedRoots);
+  const loadSharedRoots = useFileStore((s) => s.loadSharedRoots);
+  const allFolders = useFileStore((s) => s.allFolders);
+  const hasListed = useFileStore((s) => s.hasListed);
+  const currentParentId = useFileStore((s) => s.currentParentId);
+  const pathStack = useFileStore((s) => s.pathStack);
+  useEffect(() => {
+    if (storeClient) void loadSharedRoots();
+  }, [storeClient, loadSharedRoots]);
+
+  // ---- Settings --------------------------------------------------------------
+  const [settings, setSettings] = useState<FilesSettings>(loadFilesSettings);
+  const [sortKey, setSortKey] = useState<SortKey>(() => settings.defaultSortKey);
+  const [sortDir, setSortDir] = useState<SortDir>(() => settings.defaultSortDir);
+  useEffect(() => {
+    const reload = () => {
+      const next = loadFilesSettings();
+      setSettings(next);
+      setSortKey(next.defaultSortKey);
+      setSortDir(next.defaultSortDir);
+    };
+    const handleStorage = (e: StorageEvent) => { if (e.key === "files-settings") reload(); };
+    // StorageEvent fires cross-tab, the custom event same-tab
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("files-settings-changed", reload);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("files-settings-changed", reload);
+    };
+  }, []);
+  const viewMode: ViewMode = settings.defaultViewMode;
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    // The toggle and Settings > Files edit the same preference.
+    const next = { ...loadFilesSettings(), defaultViewMode: mode };
+    setSettings(next);
+    saveFilesSettings(next);
+  }, []);
+  const iconOptions = useMemo(() => ({
+    showIcons: settings.showIcons,
+    coloredIcons: settings.coloredIcons,
+    showThumbnails: settings.showThumbnails,
+  }), [settings.showIcons, settings.coloredIcons, settings.showThumbnails]);
+
+  // ---- Layout ----------------------------------------------------------------
+  const isDesktop = useIsDesktop();
+  const isNarrow = !isDesktop;
+  const isMobile = useIsMobile();
+  const touch = useMediaQuery("(pointer: coarse)") && isMobile;
+  const [narrowSidebarOpen, setNarrowSidebarOpen] = useState(false);
+  useEffect(() => { if (!isNarrow) setNarrowSidebarOpen(false); }, [isNarrow]);
+  useEffect(() => { setNarrowSidebarOpen(false); }, [currentPath]);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = Number(localStorage.getItem("files-sidebar-width"));
+      if (saved) return Math.max(180, Math.min(400, saved));
+    }
+    return SIDEBAR_DEFAULT_WIDTH;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const dragStartWidth = useRef(SIDEBAR_DEFAULT_WIDTH);
+  const [showDetails, setShowDetails] = useState(() => {
+    try { return localStorage.getItem("files-show-details") === "1"; } catch { return false; }
+  });
+  const toggleDetails = useCallback((open?: boolean) => {
+    setShowDetails((v) => {
+      const next = open ?? !v;
+      try { localStorage.setItem("files-show-details", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  // ---- Dialogs and transient UI ---------------------------------------------
   const [showNewFolder, setShowNewFolder] = useState(false);
+  const [showNewTextFile, setShowNewTextFile] = useState(false);
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [renameFolder, setRenameFolder] = useState<FileResource | null>(null);
   const [shareTargetId, setShareTargetId] = useState<string | null>(null);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  // The share dialog is bound to a node id (not name) so its shareWith stays
-  // live after a share refresh re-derives the resource list.
-  const shareTarget = shareTargetId ? resources.find(r => r.id === shareTargetId) ?? null : null;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [focusedName, setFocusedName] = useState<string | null>(null);
+  // The cursor outline follows a click or the arrow keys, but goes away once
+  // the clicked item is deselected; while the keyboard is in use it stays.
+  const [keyboardNav, setKeyboardNav] = useState(false);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const dragDepth = useRef(0);
+  const anchorName = useRef<string | null>(null);
+  const menu = useContextMenu<MenuData>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSearchQuery("");
+    setFocusedName(null);
+    anchorName.current = null;
+    if (scrollAreaRef.current) scrollAreaRef.current.scrollTop = 0;
+  }, [currentPath]);
+
+  // ---- Upload progress, shown as a toast like every other notice ----------------
+  const uploadToastId = useRef<string | null>(null);
+  const cancelUploadRef = useRef(onCancelUpload);
+  cancelUploadRef.current = onCancelUpload;
+  useEffect(() => {
+    if (!uploadProgress) {
+      if (uploadToastId.current) toast.dismiss(uploadToastId.current);
+      uploadToastId.current = null;
+      return;
+    }
+    const progress = uploadProgress.total > 0 ? uploadProgress.loaded / uploadProgress.total : null;
+    const title = uploadProgress.totalFiles > 1
+      ? t("uploading_count", { current: uploadProgress.current, total: uploadProgress.totalFiles })
+      : t("uploading");
+    const message = progress === null ? uploadProgress.name : `${uploadProgress.name} · ${Math.round(progress * 100)}%`;
+    if (uploadToastId.current) {
+      // Closing the toast only hides it; the upload carries on.
+      toast.update(uploadToastId.current, { title, message, progress });
+    } else {
+      uploadToastId.current = toast.progress(title, {
+        message,
+        progress,
+        action: { label: t("cancel"), onClick: () => cancelUploadRef.current() },
+      });
+    }
+  }, [uploadProgress, t]);
+  useEffect(() => () => {
+    if (uploadToastId.current) toast.dismiss(uploadToastId.current);
+  }, []);
+
+  // ---- Sharing ---------------------------------------------------------------
   // A node is shareable when the server supports JMAP Sharing, the viewer owns
   // it (not a shared-with-me node), and holds the mayShare right (owned nodes
   // report full rights; treat missing myRights as allowed).
@@ -439,120 +328,36 @@ export function FileBrowser({
   // Files have content to preview, open, download or duplicate. Folders and
   // symlinks don't: a symlink row only supports rename, move and delete.
   const hasContent = useCallback((name: string): boolean => {
-    const r = resources.find(res => res.name === name);
+    const r = resources.find((res) => res.name === name);
     return !!r && !r.isDirectory && !r.isSymlink;
   }, [resources]);
-  const symlinkLabel = t("symlink");
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; name: string } | null>(null);
-  const [emptyContextMenu, setEmptyContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const [showNewTextFile, setShowNewTextFile] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("files-view-mode") as ViewMode) || "list";
-    }
-    return "list";
-  });
-  const [showThumbnails, setShowThumbnails] = useState(() => loadFilesSettings().showThumbnails);
-  const [folderLayout, setFolderLayout] = useState<FolderLayout>(() => loadFilesSettings().folderLayout);
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("files-sidebar-width");
-      if (saved) return Math.max(180, Math.min(400, Number(saved)));
-    }
-    return 256;
-  });
-  const [isResizing, setIsResizing] = useState(false);
-  const dragStartWidth = useRef(256);
-  const [dragTarget, setDragTarget] = useState<string | null>(null);
-  // Pane-aware: in a Pro split pane (or a narrow window) the folder tree
-  // sidebar collapses into a burger-toggled overlay so it doesn't crowd the
-  // file list.
-  const isDesktopPane = useIsDesktop();
-  const isNarrow = !isDesktopPane;
-  const [narrowSidebarOpen, setNarrowSidebarOpen] = useState(false);
-  useEffect(() => { if (!isNarrow) setNarrowSidebarOpen(false); }, [isNarrow]);
+  // Looked up by id so the dialog shows the shares as they change. A folder
+  // shared from the tree is usually not in the listing, so fall back to it.
+  const shareTarget = shareTargetId
+    ? resources.find((r) => r.id === shareTargetId) ?? allFolders.find((r) => r.id === shareTargetId) ?? null
+    : null;
 
-  // Sync showThumbnails and folderLayout when settings change
-  useEffect(() => {
-    const reloadSettings = () => {
-      const s = loadFilesSettings();
-      setShowThumbnails(s.showThumbnails);
-      setFolderLayout(s.folderLayout);
-    };
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "files-settings") reloadSettings();
-    };
-    // StorageEvent fires cross-tab, custom event fires same-tab
-    window.addEventListener("storage", handleStorage);
-    window.addEventListener("files-settings-changed", reloadSettings);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("files-settings-changed", reloadSettings);
-    };
-  }, []);
-  const [breadcrumbDropdown, setBreadcrumbDropdown] = useState<{
-    path: string;
-    folders: FileResource[];
-    x: number;
-    y: number;
-  } | null>(null);
-  const [marquee, setMarquee] = useState<{
-    startX: number;
-    startY: number;
-    currentX: number;
-    currentY: number;
-  } | null>(null);
-  const marqueeRef = useRef<{
-    additive: boolean;
-    initialSelection: Set<string>;
-  } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const folderInputRef = useRef<HTMLInputElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  // Whether the user may add items to the folder on screen. Nothing can be
+  // put on a page listing files shared on their own.
+  const currentFolder = currentParentId ? allFolders.find((f) => f.id === currentParentId) : null;
+  const canCreate = !accountPickerMode && !isSharedFilesPage(currentParentId)
+    && (currentFolder?.myRights?.mayAddChildren ?? true);
 
-  // Reset search when navigating
-  useEffect(() => {
-    setSearchQuery("");
-  }, [currentPath]);
-
-  // Focus search input when shown
-  useEffect(() => {
-    if (showSearch) searchInputRef.current?.focus();
-  }, [showSearch]);
-
-  // Persist view mode
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
-    setViewMode(mode);
-    localStorage.setItem("files-view-mode", mode);
-  }, []);
-
-  // Filter and sort resources
+  // ---- Listing ---------------------------------------------------------------
   const displayResources = useMemo(() => {
-    let filtered = resources;
-    // In sidebar mode, folders are shown in the sidebar tree - hide them from the main list
-    if (folderLayout === "sidebar") {
-      filtered = filtered.filter(r => !r.isDirectory);
-    }
+    let list = resources;
+    if (!settings.showHiddenFiles) list = list.filter((r) => !r.name.startsWith("."));
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(r => r.name.toLowerCase().includes(q));
+      list = list.filter((r) => r.name.toLowerCase().includes(q));
     }
-
-    const sorted = [...filtered].sort((a, b) => {
-      // Directories always first
+    return [...list].sort((a, b) => {
+      // Folders always first
       if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-
       let cmp = 0;
       switch (sortKey) {
         case "name":
-          cmp = a.name.localeCompare(b.name);
+          cmp = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
           break;
         case "size":
           cmp = a.contentLength - b.contentLength;
@@ -561,1480 +366,832 @@ export function FileBrowser({
           cmp = new Date(a.lastModified || 0).getTime() - new Date(b.lastModified || 0).getTime();
           break;
       }
+      if (cmp === 0) cmp = a.name.localeCompare(b.name);
       return sortDir === "asc" ? cmp : -cmp;
     });
-    return sorted;
-  }, [resources, searchQuery, sortKey, sortDir, folderLayout]);
+  }, [resources, settings.showHiddenFiles, searchQuery, sortKey, sortDir]);
 
-  // Build breadcrumb segments. In Pro mode an account is mounted "between"
-  // Home and the account's filesystem - surfaced as a non-clickable label
-  // (clicking the actual account again would be a no-op; Home detaches it).
-  const breadcrumbs: { name: string; path: string; isAccount?: boolean }[] = currentPath === '/'
-    ? [{ name: t("breadcrumb_root"), path: '/' }]
-    : [
-        { name: t("breadcrumb_root"), path: '/' },
-        ...currentPath.split('/').filter(Boolean).map((segment, i, arr) => ({
-          name: segment,
-          path: '/' + arr.slice(0, i + 1).join('/'),
-        })),
-      ];
-  if (accountLabel) {
-    breadcrumbs.splice(1, 0, { name: accountLabel, path: '', isAccount: true });
-  }
+  // Folders other principals shared with the user, listed at the root next to
+  // the user's own (#1181).
+  const sharedAtRoot = useMemo(() => {
+    if (currentPath !== "/" || accountPickerMode) return [];
+    const q = searchQuery.toLowerCase();
+    return sharedRoots.filter((r) => r.isDirectory && (!q || r.name.toLowerCase().includes(q)));
+  }, [currentPath, accountPickerMode, sharedRoots, searchQuery]);
+  // Files shared on their own are listed on one page per owner.
+  const sharedPagesAtRoot = useMemo(() => {
+    if (currentPath !== "/" || accountPickerMode) return [];
+    const q = searchQuery.toLowerCase();
+    return sharedFilePages(sharedRoots)
+      .map((page) => ({ ...page, name: t("shared_files_from", { name: page.ownerName }) }))
+      .filter((page) => !q || page.name.toLowerCase().includes(q));
+  }, [currentPath, accountPickerMode, sharedRoots, searchQuery, t]);
 
-  const handleNavigateUp = useCallback(() => {
-    if (currentPath === '/') return;
-    const segments = currentPath.split('/').filter(Boolean);
-    segments.pop();
-    const parentPath = segments.length === 0 ? '/' : '/' + segments.join('/');
-    // Pro shell: going up to root from a subfolder must land on the
-    // account's filesystem root, not detach back to the account picker.
-    // Home click (breadcrumb) still detaches.
-    if (parentPath === '/' && accountLabel) {
-      onNavigate('/', '__account_root__');
+  const pathOf = useCallback((r: FileResource) => (currentPath === "/" ? `/${r.name}` : `${currentPath}/${r.name}`), [currentPath]);
+  const starredPaths = useMemo(() => new Set(favorites), [favorites]);
+  const cutNames = useMemo(() => new Set(clipboard?.mode === "cut" ? clipboard.names : []), [clipboard]);
+  const selectedList = useMemo(() => displayResources.filter((r) => selectedResources.has(r.name)), [displayResources, selectedResources]);
+  const singleSelected = selectedList.length === 1 ? selectedList[0] : null;
+
+  // ---- Breadcrumbs -----------------------------------------------------------
+  const crumbs: Crumb[] = useMemo(() => {
+    const segments = currentPath.split("/").filter(Boolean);
+    // Inside a folder someone shared with the user, the trail starts there.
+    const insideShared = !!pathStack[1]?.id?.includes(":");
+    const list: Crumb[] = [{ id: null, name: insideShared ? t("shared_with_me") : t("my_files"), path: "/" }];
+    segments.forEach((name, i) => {
+      list.push({ id: pathStack[i + 1]?.id ?? null, name, path: "/" + segments.slice(0, i + 1).join("/") });
+    });
+    return list;
+  }, [currentPath, pathStack, t]);
+  const folderName = crumbs[crumbs.length - 1].name;
+
+  const navigateCrumb = useCallback((crumb: Crumb) => {
+    if (crumb.path === "/") {
+      // Pro shell: the root detaches the account and returns to the picker.
+      onNavigate("/");
       return;
     }
-    onNavigate(parentPath);
-  }, [currentPath, onNavigate, accountLabel]);
+    if (crumb.id) onNavigate(crumb.path, crumb.id);
+    else onNavigate(crumb.path);
+  }, [onNavigate]);
 
-  const handleResourceClick = (resource: FileResource, e: React.MouseEvent) => {
+  const navigateUp = useCallback(() => {
+    if (crumbs.length < 2) return;
+    const parent = crumbs[crumbs.length - 2];
+    // Pro shell: going up from a top folder lands on the account's root, not
+    // back on the account picker.
+    if (parent.path === "/" && accountLabel) onNavigate("/", "__account_root__");
+    else if (parent.path === "/") onNavigate("/", null);
+    else navigateCrumb(parent);
+  }, [crumbs, accountLabel, onNavigate, navigateCrumb]);
+
+  // ---- Opening ---------------------------------------------------------------
+  const openResource = useCallback((resource: FileResource) => {
+    // A symlink has nothing to open (Stalwart 1.0).
+    if (resource.isSymlink) return;
     if (resource.isDirectory) {
-      // Ctrl/Cmd+click on directories also toggles selection
-      if (e.ctrlKey || e.metaKey) {
-        onToggleSelect(resource.name);
-        return;
-      }
-      const newPath = currentPath === '/'
-        ? `/${resource.name}`
-        : `${currentPath}/${resource.name}`;
-      onNavigate(newPath, resource.id);
+      onNavigate(pathOf(resource), resource.id);
+    } else if (isOfficeEditable?.(resource.name) && onEditFile) {
+      onEditFile(resource.name);
+    } else if (isImageFile(resource.name)) {
+      onPreviewImage(resource.name);
+    } else if (isPreviewable(resource.name)) {
+      onPreviewFile(resource.name);
     } else {
-      if (e.ctrlKey || e.metaKey) {
-        onToggleSelect(resource.name);
-      } else if (e.shiftKey && resources.length > 0) {
-        // Shift+click range select
-        handleShiftSelect(resource.name);
-      } else {
-        onSelectResource(resource.name === [...selectedResources][0] && selectedResources.size === 1 ? null : resource.name);
-      }
+      void onDownload(resource.name);
     }
-  };
+  }, [onNavigate, pathOf, isOfficeEditable, onEditFile, onPreviewImage, onPreviewFile, onDownload]);
 
-  const handleShiftSelect = (targetName: string) => {
-    const lastSelected = [...selectedResources].pop();
-    if (!lastSelected) {
-      onToggleSelect(targetName);
+  const previewResource = useCallback((resource: FileResource) => {
+    if (isImageFile(resource.name)) onPreviewImage(resource.name);
+    else onPreviewFile(resource.name);
+  }, [onPreviewImage, onPreviewFile]);
+
+  // ---- Selection -------------------------------------------------------------
+  const selectRange = useCallback((from: string, to: string, additive: boolean) => {
+    const names = displayResources.map((r) => r.name);
+    const a = names.indexOf(from);
+    const b = names.indexOf(to);
+    if (a === -1 || b === -1) return;
+    const next = additive ? new Set(selectedResources) : new Set<string>();
+    for (let i = Math.min(a, b); i <= Math.max(a, b); i++) next.add(names[i]);
+    onSetSelection(next);
+  }, [displayResources, selectedResources, onSetSelection]);
+
+  const handleSelectClick = useCallback((resource: FileResource, e: React.MouseEvent) => {
+    setFocusedName(resource.name);
+    setKeyboardNav(false);
+    if (e.shiftKey && anchorName.current) {
+      selectRange(anchorName.current, resource.name, e.ctrlKey || e.metaKey);
       return;
     }
-    const names = displayResources.map(r => r.name);
-    const startIdx = names.indexOf(lastSelected);
-    const endIdx = names.indexOf(targetName);
-    if (startIdx === -1 || endIdx === -1) return;
-    const from = Math.min(startIdx, endIdx);
-    const to = Math.max(startIdx, endIdx);
-    for (let i = from; i <= to; i++) {
-      if (!selectedResources.has(names[i])) {
-        onToggleSelect(names[i]);
-      }
+    anchorName.current = resource.name;
+    if (e.ctrlKey || e.metaKey) {
+      onToggleSelect(resource.name);
+    } else {
+      onSetSelection(new Set([resource.name]));
     }
+  }, [selectRange, onToggleSelect, onSetSelection]);
+
+  const handleToggleSelect = useCallback((resource: FileResource) => {
+    anchorName.current = resource.name;
+    setFocusedName(resource.name);
+    setKeyboardNav(false);
+    onToggleSelect(resource.name);
+  }, [onToggleSelect]);
+
+  const selectAllVisible = useCallback(() => {
+    onSetSelection(new Set(displayResources.map((r) => r.name)));
+  }, [displayResources, onSetSelection]);
+
+  const allSelected = displayResources.length > 0 && selectedList.length === displayResources.length;
+  const someSelected = selectedList.length > 0;
+
+  // ---- Deleting --------------------------------------------------------------
+  const deleteNames = useCallback((names: string[]) => {
+    if (names.length === 1) void onDelete(names[0]);
+    else if (names.length > 1) void onBatchDelete(names);
+  }, [onDelete, onBatchDelete]);
+
+  const downloadNames = useCallback((names: string[]) => {
+    const files = names.filter(hasContent);
+    if (files.length === 1) void onDownload(files[0]);
+    else if (files.length > 1) void onBatchDownload(files);
+  }, [hasContent, onDownload, onBatchDownload]);
+
+  // ---- Drag and drop ---------------------------------------------------------
+  const moveNames = useCallback((names: string[], targetId: string | null) => {
+    void onMoveTo(names, targetId);
+  }, [onMoveTo]);
+
+  const itemDragProps = useCallback((resource: FileResource) => ({
+    draggable: !touch,
+    onDragStart: (e: React.DragEvent) => {
+      const names = selectedResources.has(resource.name) ? [...selectedResources] : [resource.name];
+      e.dataTransfer.setData(INTERNAL_DRAG_TYPE, JSON.stringify(names));
+      e.dataTransfer.effectAllowed = "move";
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (!resource.isDirectory || !isInternalDrag(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "move";
+      setDropTarget(resource.name);
+    },
+    onDragLeave: () => setDropTarget((cur) => (cur === resource.name ? null : cur)),
+    onDrop: (e: React.DragEvent) => {
+      if (!resource.isDirectory || !isInternalDrag(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setDropTarget(null);
+      const names = readDraggedNames(e).filter((n) => n !== resource.name);
+      if (names.length > 0) moveNames(names, resource.id);
+    },
+  }), [touch, selectedResources, moveNames]);
+
+  const runUpload = useCallback(async (files: File[], asFolder: boolean) => {
+    if (files.length === 0) return;
+    if (asFolder) await onUploadFolder(files);
+    else await onUploadFiles(files);
+  }, [onUploadFiles, onUploadFolder]);
+
+  const handleContentDragEnter = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files") || !canCreate) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setIsDraggingFiles(true);
+  }, [canCreate]);
+  const handleContentDragOver = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files") || !canCreate) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }, [canCreate]);
+  const handleContentDragLeave = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setIsDraggingFiles(false);
+  }, []);
+  const handleContentDrop = useCallback(async (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files") || !canCreate) return;
+    e.preventDefault();
+    dragDepth.current = 0;
+    setIsDraggingFiles(false);
+    const { files, hasDirectories } = await getDroppedFilesAndFolders(e.dataTransfer);
+    await runUpload(files, hasDirectories);
+  }, [canCreate, runUpload]);
+
+  const handleInputChange = (asFolder: boolean) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    await runUpload(files, asFolder);
   };
 
-  // Marquee (rubber-band) selection
+  // ---- Marquee (rubber-band) selection ----------------------------------------
+  const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const marqueeInfo = useRef<{ initialSelection: Set<string> } | null>(null);
+
   const handleMarqueeMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || touch) return;
     const target = e.target as HTMLElement;
-    if (target.closest('[data-resource]') || target.closest('input') || target.closest('button') || target.closest('thead')) return;
-
-    const scrollArea = scrollAreaRef.current;
-    if (!scrollArea) return;
-
-    const rect = scrollArea.getBoundingClientRect();
-    const x = e.clientX - rect.left + scrollArea.scrollLeft;
-    const y = e.clientY - rect.top + scrollArea.scrollTop;
-
+    if (target.closest("[data-resource], button, input, [role=columnheader], a")) return;
+    const area = scrollAreaRef.current;
+    if (!area) return;
+    const rect = area.getBoundingClientRect();
+    const x = e.clientX - rect.left + area.scrollLeft;
+    const y = e.clientY - rect.top + area.scrollTop;
     const additive = e.ctrlKey || e.metaKey;
-    marqueeRef.current = {
-      additive,
-      initialSelection: additive ? new Set(selectedResources) : new Set(),
-    };
-
+    marqueeInfo.current = { initialSelection: additive ? new Set(selectedResources) : new Set() };
     setMarquee({ startX: x, startY: y, currentX: x, currentY: y });
-
-    if (!additive) {
-      onClearSelection();
-    }
-
+    if (!additive) onClearSelection();
     e.preventDefault();
-  }, [selectedResources, onClearSelection]);
+  }, [touch, selectedResources, onClearSelection]);
 
   useEffect(() => {
     if (!marquee) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const scrollArea = scrollAreaRef.current;
-      if (!scrollArea) return;
-
-      const rect = scrollArea.getBoundingClientRect();
-      const x = e.clientX - rect.left + scrollArea.scrollLeft;
-      const y = e.clientY - rect.top + scrollArea.scrollTop;
-
-      setMarquee(prev => prev ? { ...prev, currentX: x, currentY: y } : null);
-
-      // Calculate marquee rect
-      const info = marqueeRef.current;
-      if (!info) return;
-
+    const handleMove = (e: MouseEvent) => {
+      const area = scrollAreaRef.current;
+      const info = marqueeInfo.current;
+      if (!area || !info) return;
+      const rect = area.getBoundingClientRect();
+      const x = e.clientX - rect.left + area.scrollLeft;
+      const y = e.clientY - rect.top + area.scrollTop;
+      setMarquee((prev) => (prev ? { ...prev, currentX: x, currentY: y } : null));
       const mx = Math.min(marquee.startX, x);
       const my = Math.min(marquee.startY, y);
       const mw = Math.abs(x - marquee.startX);
       const mh = Math.abs(y - marquee.startY);
-
-      // Find intersecting items
-      const elements = scrollArea.querySelectorAll('[data-resource]');
-      const containerRect = scrollArea.getBoundingClientRect();
-      const newSelection = new Set(info.initialSelection);
-
-      elements.forEach(el => {
-        const name = el.getAttribute('data-resource');
+      if (mw < 4 && mh < 4) return;
+      const next = new Set(info.initialSelection);
+      area.querySelectorAll("[data-resource]").forEach((el) => {
+        const name = el.getAttribute("data-resource");
         if (!name) return;
-        const elRect = el.getBoundingClientRect();
-        const elX = elRect.left - containerRect.left + scrollArea.scrollLeft;
-        const elY = elRect.top - containerRect.top + scrollArea.scrollTop;
-
-        if (mx < elX + elRect.width && mx + mw > elX && my < elY + elRect.height && my + mh > elY) {
-          newSelection.add(name);
-        }
+        const r = el.getBoundingClientRect();
+        const ex = r.left - rect.left + area.scrollLeft;
+        const ey = r.top - rect.top + area.scrollTop;
+        if (mx < ex + r.width && mx + mw > ex && my < ey + r.height && my + mh > ey) next.add(name);
       });
-
-      onSetSelection(newSelection);
+      onSetSelection(next);
     };
-
-    const handleMouseUp = () => {
+    const handleUp = () => {
       setMarquee(null);
-      marqueeRef.current = null;
+      marqueeInfo.current = null;
     };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
     };
   }, [marquee, onSetSelection]);
 
-  const handleResourceDoubleClick = (resource: FileResource) => {
-    if (resource.isSymlink) return;
-    if (resource.isDirectory) {
-      const newPath = currentPath === '/'
-        ? `/${resource.name}`
-        : `${currentPath}/${resource.name}`;
-      onNavigate(newPath, resource.id);
-    } else if (isOfficeEditable?.(resource.name) && onEditFile) {
-      onEditFile(resource.name);
-    } else if (isPreviewable(resource.name)) {
-      if (isImageFile(resource.name)) {
-        onPreviewImage(resource.name);
-      } else {
-        onPreviewFile(resource.name);
-      }
+  // ---- Keyboard ----------------------------------------------------------------
+  const moveFocus = useCallback((delta: number, extend: boolean) => {
+    const names = displayResources.map((r) => r.name);
+    if (names.length === 0) return;
+    const current = focusedName ? names.indexOf(focusedName) : -1;
+    const base = current === -1 ? (delta > 0 ? -1 : names.length) : current;
+    const nextIndex = Math.max(0, Math.min(names.length - 1, base + delta));
+    const name = names[nextIndex];
+    setFocusedName(name);
+    setKeyboardNav(true);
+    if (extend && anchorName.current) {
+      selectRange(anchorName.current, name, false);
     } else {
-      onDownload(resource.name);
+      anchorName.current = name;
+      onSetSelection(new Set([name]));
     }
-  };
+    scrollAreaRef.current?.querySelector(`[data-resource="${CSS.escape(name)}"]`)?.scrollIntoView?.({ block: "nearest" });
+  }, [displayResources, focusedName, selectRange, onSetSelection]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Only show upload overlay for external file drags, not internal resource drags
-    if (e.dataTransfer.types.includes("Files")) {
-      setIsDraggingOver(true);
-    }
-  }, []);
+  // Columns in the grid's file section, for Up/Down.
+  const gridColumns = useCallback((): number => {
+    const area = scrollAreaRef.current;
+    if (!area || !focusedName) return 1;
+    const el = area.querySelector(`[data-resource="${CSS.escape(focusedName)}"]`);
+    const row = el?.parentElement;
+    if (!row) return 1;
+    const tops = Array.from(row.children).map((c) => (c as HTMLElement).offsetTop);
+    return Math.max(1, tops.filter((top) => top === tops[0]).length);
+  }, [focusedName]);
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-  }, []);
-
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-
-    setIsUploading(true);
-    try {
-      const { files, hasDirectories } = await getDroppedFilesAndFolders(e.dataTransfer);
-      if (files.length > 0) {
-        if (hasDirectories) {
-          await onUploadFolder(files);
-        } else {
-          await onUploadFiles(files);
-        }
-      }
-    } finally {
-      setIsUploading(false);
-    }
-  }, [onUploadFiles, onUploadFolder]);
-
-  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      setIsUploading(true);
-      try {
-        await onUploadFiles(files);
-      } finally {
-        setIsUploading(false);
-      }
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleFolderInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      setIsUploading(true);
-      try {
-        await onUploadFolder(files);
-      } finally {
-        setIsUploading(false);
-      }
-    }
-    if (folderInputRef.current) {
-      folderInputRef.current.value = '';
-    }
-  };
-
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-
-  const handleContextMenu = (e: React.MouseEvent, name: string) => {
-    e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, name });
-  };
-
-  // Adjust context menu position to stay within viewport
-  useEffect(() => {
-    if (contextMenu && contextMenuRef.current) {
-      const menu = contextMenuRef.current;
-      const rect = menu.getBoundingClientRect();
-      let { x, y } = contextMenu;
-      let adjusted = false;
-
-      if (x + rect.width > window.innerWidth) {
-        x = window.innerWidth - rect.width - 8;
-        adjusted = true;
-      }
-      if (y + rect.height > window.innerHeight) {
-        y = window.innerHeight - rect.height - 8;
-        adjusted = true;
-      }
-
-      if (adjusted) {
-        setContextMenu({ ...contextMenu, x, y });
-      }
-    }
-  }, [contextMenu]);
-
-  const handleContainerClick = () => {
-    if (contextMenu) setContextMenu(null);
-    if (emptyContextMenu) setEmptyContextMenu(null);
-    if (breadcrumbDropdown) setBreadcrumbDropdown(null);
-  };
-
-  const handleBreadcrumbRightClick = async (e: React.MouseEvent, crumbPath: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const parentPath = crumbPath === '/' ? '/' : '/' + crumbPath.split('/').filter(Boolean).slice(0, -1).join('/') || '/';
-    try {
-      const items = await listPath(parentPath === '/' ? '/' : parentPath);
-      const folders = items.filter(r => r.isDirectory);
-      setBreadcrumbDropdown({ path: parentPath, folders, x: e.clientX, y: e.clientY });
-    } catch {
-      // ignore
-    }
-  };
-
-  const handleSortClick = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir(d => d === "asc" ? "desc" : "asc");
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-  };
-
-  const SortIndicator = ({ column }: { column: SortKey }) => {
-    if (sortKey !== column) return null;
-    return sortDir === "asc"
-      ? <ArrowUp className="w-3 h-3 inline ms-1" />
-      : <ArrowDown className="w-3 h-3 inline ms-1" />;
-  };
-
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Don't capture when typing in inputs or dialogs
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (showNewFolder || renameTarget) return;
+      if (isTypingTarget(e.target)) return;
+      if (showNewFolder || showNewTextFile || renameTarget || renameFolder || shareTargetId) return;
+      // A preview, editor or confirmation is open on top of the list.
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      if (accountPickerMode) return;
+      const mod = e.ctrlKey || e.metaKey;
+      const selected = selectedList.map((r) => r.name);
 
-      // Ctrl+F / Cmd+F: toggle search
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      if (mod && e.key.toLowerCase() === "f") {
         e.preventDefault();
-        setShowSearch(v => !v);
+        searchInputRef.current?.focus();
         return;
       }
-
-      // Ctrl+A / Cmd+A: select all
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      if (mod && e.key.toLowerCase() === "a") {
         e.preventDefault();
-        onSelectAll();
+        selectAllVisible();
         return;
       }
-
-      // Ctrl+C / Cmd+C: copy selected
-      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-        if (selectedResources.size > 0) {
-          e.preventDefault();
-          onCopy([...selectedResources]);
-        }
+      if (mod && e.key.toLowerCase() === "c" && selected.length > 0) {
+        if (window.getSelection()?.toString()) return;
+        e.preventDefault();
+        onCopy(selected);
         return;
       }
-
-      // Ctrl+X / Cmd+X: cut selected
-      if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
-        if (selectedResources.size > 0) {
-          e.preventDefault();
-          onCut([...selectedResources]);
-        }
+      if (mod && e.key.toLowerCase() === "x" && selected.length > 0) {
+        e.preventDefault();
+        onCut(selected);
         return;
       }
-
-      // Ctrl+V / Cmd+V: paste
-      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-        if (clipboard) {
-          e.preventDefault();
-          onPaste();
-        }
+      if (mod && e.key.toLowerCase() === "v" && clipboard) {
+        e.preventDefault();
+        void onPaste();
         return;
       }
-
-      // Escape: clear selection, close search
-      if (e.key === 'Escape') {
-        if (showSearch) { setShowSearch(false); setSearchQuery(""); }
-        else if (selectedResources.size > 0) onClearSelection();
+      if (e.key === "Escape") {
+        if (searchQuery) setSearchQuery("");
+        else if (selected.length > 0) onClearSelection();
         return;
       }
-
-      // Delete: delete selected
-      if (e.key === 'Delete') {
-        if (selectedResources.size === 1) {
-          onDelete([...selectedResources][0]);
-        } else if (selectedResources.size > 1) {
-          onBatchDelete([...selectedResources]);
-        }
+      if (e.key === "Delete" && selected.length > 0) {
+        e.preventDefault();
+        deleteNames(selected);
         return;
       }
-
-      // F2: rename selected (single)
-      if (e.key === 'F2' && selectedResources.size === 1) {
-        setRenameTarget([...selectedResources][0]);
+      if (e.key === "F2" && singleSelected) {
+        e.preventDefault();
+        setRenameTarget(singleSelected.name);
         return;
       }
-
-      // Enter: open selected directory or download selected file
-      if (e.key === 'Enter' && selectedResources.size === 1) {
-        const name = [...selectedResources][0];
-        const resource = resources.find(r => r.name === name);
-        if (resource?.isDirectory) {
-          const newPath = currentPath === '/'
-            ? `/${resource.name}`
-            : `${currentPath}/${resource.name}`;
-          onNavigate(newPath, resource.id);
-        } else if (resource && !resource.isSymlink) {
-          onDownload(resource.name);
-        }
+      if (e.key === "Enter" && singleSelected) {
+        e.preventDefault();
+        openResource(singleSelected);
         return;
       }
-
-      // Backspace: navigate up
-      if (e.key === 'Backspace' && currentPath !== '/') {
-        handleNavigateUp();
+      if (e.key === " " && focusedName) {
+        e.preventDefault();
+        onToggleSelect(focusedName);
         return;
+      }
+      if ((e.key === "Backspace" || (e.altKey && e.key === "ArrowUp")) && currentPath !== "/") {
+        e.preventDefault();
+        navigateUp();
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const step = viewMode === "grid" ? gridColumns() : 1;
+        moveFocus(e.key === "ArrowDown" ? step : -step, e.shiftKey);
+        return;
+      }
+      if (viewMode === "grid" && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+        e.preventDefault();
+        const rtl = document.dir === "rtl";
+        moveFocus((e.key === "ArrowRight") !== rtl ? 1 : -1, e.shiftKey);
+        return;
+      }
+      if (e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        moveFocus(e.key === "Home" ? -Infinity : Infinity, e.shiftKey);
       }
     };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [
+    showNewFolder, showNewTextFile, renameTarget, renameFolder, shareTargetId, accountPickerMode, selectedList, singleSelected,
+    selectAllVisible, onCopy, onCut, onPaste, clipboard, searchQuery, onClearSelection, deleteNames, openResource,
+    focusedName, onToggleSelect, currentPath, navigateUp, viewMode, gridColumns, moveFocus,
+  ]);
 
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [selectedResources, resources, currentPath, showSearch, showNewFolder, renameTarget, onDelete, onBatchDelete, onSelectAll, onClearSelection, onNavigate, onDownload, onCut, onCopy, onPaste, clipboard, handleNavigateUp]);
+  // ---- Context menu ----------------------------------------------------------
+  const openMenu = menu.openContextMenu;
+  const openItemMenu = useCallback((e: React.MouseEvent, resource: FileResource) => {
+    // Acting on an item outside the selection makes it the selection, like a
+    // desktop file manager.
+    if (!selectedResources.has(resource.name)) {
+      onSetSelection(new Set([resource.name]));
+      anchorName.current = resource.name;
+    }
+    setFocusedName(resource.name);
+    setKeyboardNav(false);
+    const target = e.currentTarget as HTMLElement | null;
+    // The "..." button opens the menu under itself; a right-click at the pointer.
+    if (e.type === "click" && target) openMenu(anchorEvent(target, "end"), { kind: "item", resource });
+    else openMenu(e, { kind: "item", resource });
+  }, [selectedResources, onSetSelection, openMenu]);
 
-  const allSelected = resources.length > 0 && selectedResources.size === resources.length;
-  const someSelected = selectedResources.size > 0 && !allSelected;
+  const closeMenu = menu.closeContextMenu;
+  const menuData = menu.contextMenu.data;
+  const menuSelection = menuData?.kind === "item" && selectedResources.has(menuData.resource.name) && selectedResources.size > 1
+    ? selectedList
+    : menuData?.kind === "item" ? [menuData.resource] : [];
+
+  const renderItemMenu = (resource: FileResource) => {
+    if (menuSelection.length > 1) {
+      const names = menuSelection.map((r) => r.name);
+      const fileCount = menuSelection.filter((r) => !r.isDirectory && !r.isSymlink).length;
+      return (
+        <>
+          {fileCount > 0 && (
+            <ContextMenuItem icon={Download} label={t("download_count", { count: fileCount })} onClick={() => { closeMenu(); downloadNames(names); }} />
+          )}
+          <ContextMenuItem icon={Scissors} label={t("cut")} shortcut="Ctrl+X" onClick={() => { closeMenu(); onCut(names); }} />
+          {menuSelection.some((r) => !r.isSymlink) && (
+            <ContextMenuItem icon={Copy} label={t("copy")} shortcut="Ctrl+C" onClick={() => { closeMenu(); onCopy(names); }} />
+          )}
+          <ContextMenuSeparator />
+          <ContextMenuItem icon={Trash2} label={t("delete_count", { count: names.length })} destructive onClick={() => { closeMenu(); deleteNames(names); }} />
+        </>
+      );
+    }
+    const path = pathOf(resource);
+    const starred = starredPaths.has(path);
+    return (
+      <>
+        {resource.isDirectory ? (
+          <ContextMenuItem icon={FolderOpen} label={t("open")} onClick={() => { closeMenu(); openResource(resource); }} />
+        ) : resource.isSymlink ? null : (
+          <>
+            {isOfficeEditable?.(resource.name) && onEditFile && (
+              <ContextMenuItem icon={SquarePen} label={t("office_edit")} onClick={() => { closeMenu(); onEditFile(resource.name); }} />
+            )}
+            {isPreviewable(resource.name) && (
+              <ContextMenuItem icon={Eye} label={t("preview")} onClick={() => { closeMenu(); previewResource(resource); }} />
+            )}
+            <ContextMenuItem icon={Download} label={t("download")} onClick={() => { closeMenu(); void onDownload(resource.name); }} />
+          </>
+        )}
+        {(canShare(resource) || (resource.isDirectory && !resource.isShared)) && <ContextMenuSeparator />}
+        {canShare(resource) && (
+          <ContextMenuItem icon={Share2} label={t("share")} onClick={() => { closeMenu(); setShareTargetId(resource.id); }} />
+        )}
+        {resource.isDirectory && !resource.isShared && (
+          <ContextMenuItem
+            icon={starred ? StarOff : Star}
+            label={starred ? t("unstar") : t("star")}
+            onClick={() => { closeMenu(); onToggleFavorite(path); }}
+          />
+        )}
+        <ContextMenuSeparator />
+        <ContextMenuItem icon={Pencil} label={t("rename")} shortcut="F2" onClick={() => { closeMenu(); setRenameTarget(resource.name); }} />
+        {!resource.isDirectory && !resource.isSymlink && (
+          <ContextMenuItem icon={CopyPlus} label={t("duplicate")} onClick={() => { closeMenu(); void onDuplicate(resource.name); }} />
+        )}
+        <ContextMenuItem icon={Scissors} label={t("cut")} shortcut="Ctrl+X" onClick={() => { closeMenu(); onCut([resource.name]); }} />
+        {!resource.isSymlink && (
+          <ContextMenuItem icon={Copy} label={t("copy")} shortcut="Ctrl+C" onClick={() => { closeMenu(); onCopy([resource.name]); }} />
+        )}
+        <ContextMenuItem icon={Info} label={t("details")} onClick={() => { closeMenu(); toggleDetails(true); }} />
+        <ContextMenuSeparator />
+        <ContextMenuItem icon={Trash2} label={t("delete")} shortcut="Del" destructive onClick={() => { closeMenu(); deleteNames([resource.name]); }} />
+      </>
+    );
+  };
+
+  const newItems = (
+    <>
+      <ContextMenuItem icon={Upload} label={t("upload_files")} onClick={() => { closeMenu(); fileInputRef.current?.click(); }} />
+      <ContextMenuItem icon={FolderUp} label={t("upload_folder")} onClick={() => { closeMenu(); folderInputRef.current?.click(); }} />
+      <ContextMenuSeparator />
+      <ContextMenuItem icon={FolderPlus} label={t("new_folder")} onClick={() => { closeMenu(); setShowNewFolder(true); }} />
+      <ContextMenuItem icon={FilePlus} label={t("new_text_file")} onClick={() => { closeMenu(); setShowNewTextFile(true); }} />
+    </>
+  );
+
+  const handlers: FileItemHandlers = useMemo(() => ({
+    onSelectClick: handleSelectClick,
+    onToggleSelect: handleToggleSelect,
+    onOpen: openResource,
+    onContextMenu: openItemMenu,
+    onDownload: (r) => void onDownload(r.name),
+    onShare: (r) => setShareTargetId(r.id),
+    canShare,
+    dragProps: itemDragProps,
+  }), [handleSelectClick, handleToggleSelect, openResource, openItemMenu, onDownload, canShare, itemDragProps]);
+
+  const handleSort = useCallback((key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(key);
+      setSortDir(key === "name" ? "asc" : "desc");
+    }
+  }, [sortKey]);
+
+  // A sidebar entry's "New folder" / "Upload" acts on that folder: open it first.
+  const createIn = useCallback((path: string, id: string | null, kind: CreateKind) => {
+    if (id !== currentParentId) onNavigate(path, id);
+    if (kind === "folder") setShowNewFolder(true);
+    else if (kind === "text") setShowNewTextFile(true);
+    else if (kind === "files") fileInputRef.current?.click();
+    else folderInputRef.current?.click();
+  }, [currentParentId, onNavigate]);
+
+  // ---- Rendering -------------------------------------------------------------
+  const sidebar = !accountPickerMode && (
+    <FilesSidebar
+      currentParentId={currentParentId}
+      currentPath={currentPath}
+      allFolders={allFolders}
+      sharedRoots={sharedRoots}
+      favorites={favorites}
+      recentFiles={recentFiles}
+      canCreate={canCreate}
+      onNavigate={onNavigate}
+      onOpenRecent={onOpenRecent}
+      onUploadFiles={() => fileInputRef.current?.click()}
+      onUploadFolder={() => folderInputRef.current?.click()}
+      onNewFolder={() => setShowNewFolder(true)}
+      onNewTextFile={() => setShowNewTextFile(true)}
+      onToggleFavorite={onToggleFavorite}
+      onDropItems={moveNames}
+      canShare={canShare}
+      onShare={(r) => setShareTargetId(r.id)}
+      onCreateIn={createIn}
+      onRenameFolder={setRenameFolder}
+      onDeleteFolder={(folder) => void onDeleteNode(folder.id, folder.name)}
+      onRevealRecent={(id) => void onRevealNode(id)}
+      onDownloadRecent={(id) => void onDownloadNode(id)}
+      onRemoveRecent={onRemoveRecent}
+    />
+  );
+
+  const showEmpty = !isLoading && !error && displayResources.length === 0 && sharedAtRoot.length === 0 && sharedPagesAtRoot.length === 0;
+
+  const listing = (() => {
+    if (accountPickerMode) {
+      return accountFolders && accountFolders.length > 0 && onSelectAccount ? (
+        <div className="p-4">
+          <h3 className="text-xs font-medium text-muted-foreground mb-2 px-0.5">{t("choose_account")}</h3>
+          <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(14rem,1fr))]">
+            {accountFolders.map((acc) => (
+              <button
+                key={`__account__:${acc.accountId}`}
+                onClick={() => onSelectAccount(acc.accountId)}
+                title={acc.email}
+                className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/60 transition-colors text-start min-w-0"
+              >
+                <Avatar name={acc.label} email={acc.email} size="md" fallbackColor={acc.avatarColor} className="shrink-0" />
+                <div className="min-w-0 flex flex-col">
+                  <span className="truncate text-sm font-medium">{acc.label || acc.email}</span>
+                  {acc.label && acc.label !== acc.email && (
+                    <span className="truncate text-xs text-muted-foreground">{acc.email}</span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center h-full">
+          <p className="text-sm text-muted-foreground">{t("no_accounts")}</p>
+        </div>
+      );
+    }
+    // Until the first listing is in, an empty list means "not loaded yet".
+    if ((isLoading || !hasListed) && resources.length === 0) return <ListSkeleton />;
+    if (showEmpty && searchQuery) return <NoSearchResults query={searchQuery} onClear={() => setSearchQuery("")} />;
+    if (showEmpty) {
+      return (
+        <EmptyFolder
+          isRoot={currentPath === "/"}
+          canCreate={canCreate}
+          onUpload={() => fileInputRef.current?.click()}
+          onCreateFolder={() => setShowNewFolder(true)}
+        />
+      );
+    }
+    const viewProps = {
+      resources: displayResources,
+      selected: selectedResources,
+      focusedName: focusedName && (keyboardNav || selectedResources.has(focusedName)) ? focusedName : null,
+      dropTarget,
+      cutNames,
+      starredPaths,
+      pathOf,
+      touch,
+      iconOptions,
+      getImageUrl,
+      handlers,
+    };
+    return (
+      <>
+        {displayResources.length > 0 && (viewMode === "grid" ? (
+          <FileGridView {...viewProps} />
+        ) : (
+          <FileListView
+            {...viewProps}
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onSort={handleSort}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onToggleAll={() => (allSelected ? onClearSelection() : selectAllVisible())}
+          />
+        ))}
+        {(sharedAtRoot.length > 0 || sharedPagesAtRoot.length > 0) && (
+          <SharedWithMe
+            folders={sharedAtRoot}
+            pages={sharedPagesAtRoot}
+            onOpen={(r) => onNavigate(`/${r.name}`, r.id)}
+            iconOptions={iconOptions}
+          />
+        )}
+      </>
+    );
+  })();
+
+  const detailsPanel = showDetails && !accountPickerMode && (
+    <FileDetailsPanel
+      resource={singleSelected}
+      selection={selectedList}
+      folderName={folderName}
+      folderItems={displayResources}
+      path={singleSelected ? pathOf(singleSelected) : currentPath}
+      isStarred={singleSelected ? starredPaths.has(pathOf(singleSelected)) : false}
+      canShare={canShare(singleSelected)}
+      canPreview={!!singleSelected && !singleSelected.isSymlink && isPreviewable(singleSelected.name)}
+      canEdit={!!singleSelected && !singleSelected.isSymlink && !!onEditFile && !!isOfficeEditable?.(singleSelected.name)}
+      iconOptions={iconOptions}
+      getImageUrl={getImageUrl}
+      onClose={() => toggleDetails(false)}
+      onOpen={() => singleSelected && (singleSelected.isDirectory ? openResource(singleSelected) : previewResource(singleSelected))}
+      onEdit={() => singleSelected && onEditFile?.(singleSelected.name)}
+      onDownload={() => singleSelected && void onDownload(singleSelected.name)}
+      onShare={() => singleSelected && setShareTargetId(singleSelected.id)}
+      onToggleStar={() => singleSelected && onToggleFavorite(pathOf(singleSelected))}
+      className={cn(
+        "flex-shrink-0",
+        isNarrow ? "absolute inset-y-0 end-0 z-30 w-80 max-w-[85%] shadow-xl" : "w-72",
+      )}
+    />
+  );
+
+  const selectionActions = selectedList.length > 0 ? {
+    count: selectedList.length,
+    fileCount: selectedList.filter((r) => !r.isDirectory && !r.isSymlink).length,
+    canOpen: !!singleSelected && !singleSelected.isSymlink
+      && (singleSelected.isDirectory || isPreviewable(singleSelected.name) || !!isOfficeEditable?.(singleSelected.name)),
+    canRename: !!singleSelected,
+    canShare: !!singleSelected && canShare(singleSelected),
+    onOpen: () => singleSelected && openResource(singleSelected),
+    onDownload: () => downloadNames(selectedList.map((r) => r.name)),
+    onShare: () => singleSelected && setShareTargetId(singleSelected.id),
+    onRename: () => singleSelected && setRenameTarget(singleSelected.name),
+    onCut: () => onCut(selectedList.map((r) => r.name)),
+    onCopy: () => onCopy(selectedList.map((r) => r.name)),
+    onDelete: () => deleteNames(selectedList.map((r) => r.name)),
+    onClear: onClearSelection,
+  } : null;
 
   return (
-    <div
-      ref={containerRef}
-      className="flex flex-col flex-1 min-h-0"
-      onClick={handleContainerClick}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      tabIndex={-1}
-    >
-      {/* Toolbar */}
-      <div role="toolbar" aria-label={t("toolbar")} className="flex items-center gap-2 px-4 py-2 border-b border-border bg-background">
-        {isNarrow && folderLayout === "sidebar" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 -ms-2"
-            onClick={() => setNarrowSidebarOpen((v) => !v)}
-            aria-label={t("open_folder_tree")}
+    <div className="relative flex flex-1 min-h-0">
+      {/* Folder sidebar: in flow on desktop, a drawer on narrow panes */}
+      {sidebar && isNarrow && narrowSidebarOpen && (
+        <div className="absolute inset-0 bg-black/50 z-40" onClick={() => setNarrowSidebarOpen(false)} />
+      )}
+      {sidebar && (isNarrow ? (
+        <div
+          className={cn(
+            "absolute inset-y-0 start-0 z-50 w-72 border-e border-border",
+            "transform transition-transform duration-300 ease-in-out",
+            !narrowSidebarOpen && "-translate-x-full rtl:translate-x-full",
+          )}
+          aria-hidden={!narrowSidebarOpen}
+        >
+          {sidebar}
+        </div>
+      ) : (
+        <>
+          <div
+            className={cn("border-e border-border flex-shrink-0", !isResizing && "transition-[width] duration-300")}
+            style={{ width: `${sidebarWidth}px` }}
           >
-            <Menu className="w-4 h-4" />
-          </Button>
-        )}
-        {/* Breadcrumbs */}
-        <nav aria-label={t("breadcrumb_root")} className="flex items-center gap-1 text-sm flex-1 min-w-0 overflow-x-auto">
-          {breadcrumbs.map((crumb, i) => (
-            <span key={`${i}:${crumb.path}`} className="flex items-center gap-1 shrink-0">
-              {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
-              <button
-                onClick={() => crumb.isAccount
-                  ? onNavigate('/', '__account_root__')
-                  : onNavigate(crumb.path)}
-                onContextMenu={(e) => crumb.isAccount ? undefined : handleBreadcrumbRightClick(e, crumb.path)}
-                className={cn(
-                  "px-1.5 py-0.5 rounded hover:bg-muted transition-colors",
-                  i === breadcrumbs.length - 1
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {i === 0 ? <Home className="w-4 h-4" /> : crumb.name}
-              </button>
-            </span>
-          ))}
-        </nav>
+            {sidebar}
+          </div>
+          <ResizeHandle
+            onResizeStart={() => { dragStartWidth.current = sidebarWidth; setIsResizing(true); }}
+            onResize={(delta) => setSidebarWidth(Math.max(180, Math.min(400, dragStartWidth.current + delta)))}
+            onResizeEnd={() => {
+              setIsResizing(false);
+              localStorage.setItem("files-sidebar-width", String(sidebarWidth));
+            }}
+            onDoubleClick={() => { setSidebarWidth(SIDEBAR_DEFAULT_WIDTH); localStorage.setItem("files-sidebar-width", String(SIDEBAR_DEFAULT_WIDTH)); }}
+          />
+        </>
+      ))}
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-1 shrink-0">
-          {selectedResources.size > 1 && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8"
-                onClick={() => onBatchDownload([...selectedResources].filter(hasContent))}
-              >
-                <Download className="w-4 h-4 me-1" />
-                {t("download")} ({[...selectedResources].filter(hasContent).length})
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-destructive hover:text-destructive"
-                onClick={() => onBatchDelete([...selectedResources])}
-              >
-                <Trash2 className="w-4 h-4 me-1" />
-                {t("delete")} ({selectedResources.size})
-              </Button>
-            </>
-          )}
-          {clipboard && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8"
-              onClick={onPaste}
-            >
-              <Clipboard className="w-4 h-4 me-1" />
-              {t("paste")} ({clipboard.names.length})
+      <div className="flex flex-col flex-1 min-w-0">
+        <FilesHeader
+          crumbs={crumbs}
+          accountLabel={accountLabel}
+          onNavigateCrumb={navigateCrumb}
+          onNavigateAccountRoot={() => onNavigate("/", "__account_root__")}
+          onDropOnCrumb={moveNames}
+          onMenuClick={isNarrow && sidebar ? () => setNarrowSidebarOpen((v) => !v) : undefined}
+          menuOpen={narrowSidebarOpen}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchInputRef={searchInputRef}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          showDetails={showDetails}
+          onToggleDetails={() => toggleDetails()}
+          clipboardCount={clipboard?.names.length ?? 0}
+          onPaste={() => void onPaste()}
+          onRefresh={() => void onRefresh()}
+          isLoading={isLoading}
+          compact={isMobile}
+          toolsHidden={accountPickerMode}
+          selection={selectionActions}
+        />
+
+        {error && (
+          <div role="alert" className="mx-4 mt-3 px-3 py-2 rounded-md bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span className="flex-1">{error}</span>
+            <Button variant="ghost" size="sm" className="h-7 text-destructive hover:text-destructive shrink-0" onClick={() => void onRefresh()}>
+              <RefreshCw className="w-3.5 h-3.5 me-1" />
+              {t("retry")}
             </Button>
+          </div>
+        )}
+
+        <div className="relative flex flex-1 min-h-0">
+          <div
+            ref={scrollAreaRef}
+            className="relative flex-1 min-w-0 overflow-y-auto"
+            onMouseDown={handleMarqueeMouseDown}
+            onContextMenu={(e) => {
+              if (accountPickerMode || (e.target as HTMLElement).closest("[data-resource]")) return;
+              menu.openContextMenu(e, { kind: "empty" });
+            }}
+            onClick={(e) => {
+              // With a mouse, pressing on empty space already cleared the
+              // selection, and the click that ends a drag-select lands here
+              // too: clearing again would drop what was just selected.
+              if (touch && e.target === e.currentTarget && selectedResources.size > 0) onClearSelection();
+            }}
+            onDragEnter={handleContentDragEnter}
+            onDragOver={handleContentDragOver}
+            onDragLeave={handleContentDragLeave}
+            onDrop={handleContentDrop}
+          >
+            {listing}
+
+            {marquee && (
+              <div
+                className="absolute border border-primary/50 bg-primary/10 pointer-events-none z-20 rounded-sm"
+                style={{
+                  left: Math.min(marquee.startX, marquee.currentX),
+                  top: Math.min(marquee.startY, marquee.currentY),
+                  width: Math.abs(marquee.currentX - marquee.startX),
+                  height: Math.abs(marquee.currentY - marquee.startY),
+                }}
+              />
+            )}
+          </div>
+
+          {isDraggingFiles && (
+            <div className="absolute inset-2 z-30 rounded-xl border-2 border-dashed border-primary bg-primary/5 flex items-center justify-center pointer-events-none">
+              <div className="text-center bg-background/90 rounded-lg px-5 py-4 shadow-sm">
+                <Upload className="w-8 h-8 text-primary mx-auto mb-2" />
+                <p className="text-sm font-medium">{t("drop_to_upload", { folder: folderName })}</p>
+              </div>
+            </div>
           )}
-          {!accountPickerMode && (
+
+          {detailsPanel}
+
+          {isNarrow && canCreate && !selectionActions && (
             <Button
-              variant="ghost"
               size="icon"
-              className="h-8 w-8"
-              onClick={() => setShowSearch(v => !v)}
-              title={t("search_placeholder")}
+              className="absolute bottom-4 end-4 z-20 h-12 w-12 rounded-full shadow-lg"
+              aria-label={t("new")}
+              onClick={(e) => menu.openContextMenu(anchorEvent(e.currentTarget, "end"), { kind: "new" })}
             >
-              <Search className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("h-8 w-8", viewMode === "grid" && "bg-muted")}
-            onClick={() => handleViewModeChange(viewMode === "list" ? "grid" : "list")}
-            title={viewMode === "list" ? t("grid_view") : t("list_view")}
-          >
-            {viewMode === "list" ? <LayoutGrid className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
-          </Button>
-          {!accountPickerMode && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn("h-8 w-8", showDetails && "bg-muted")}
-                onClick={onToggleDetails}
-                title={t("details")}
-              >
-                <Info className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn("h-8 w-8", favorites.includes(currentPath) && "text-yellow-500")}
-                onClick={() => onToggleFavorite(currentPath)}
-                title={t("toggle_favorite")}
-              >
-                <Star className={cn("w-4 h-4", favorites.includes(currentPath) && "fill-current")} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => fileInputRef.current?.click()}
-                title={t("upload")}
-                disabled={isUploading}
-              >
-                <Upload className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => folderInputRef.current?.click()}
-                title={t("upload_folder")}
-                disabled={isUploading}
-              >
-                <FolderUp className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setShowNewFolder(true)}
-                title={t("new_folder")}
-              >
-                <FolderPlus className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setShowNewTextFile(true)}
-                title={t("new_text_file")}
-              >
-                <FilePlus className="w-4 h-4" />
-              </Button>
-            </>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={onRefresh}
-            title={t("refresh")}
-            aria-label={t("refresh")}
-            disabled={isLoading}
-          >
-            <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
-          </Button>
+
         </div>
       </div>
 
-      {/* Search bar */}
-      {showSearch && (
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/30">
-          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
-          <input
-            ref={searchInputRef}
-            type="search"
-            role="searchbox"
-            aria-label={t("search_placeholder")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("search_placeholder")}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setShowSearch(false);
-                setSearchQuery("");
-              }
-            }}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-muted-foreground hover:text-foreground">
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={handleFileInputChange}
-      />
-      {/* Hidden folder input */}
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleInputChange(false)} />
       <input
         ref={folderInputRef}
         type="file"
         className="hidden"
-        onChange={handleFolderInputChange}
-        {...({ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>)}
+        onChange={handleInputChange(true)}
+        {...({ webkitdirectory: "", directory: "" } as React.InputHTMLAttributes<HTMLInputElement>)}
       />
 
-      {/* Error display with retry */}
-      {error && (
-        <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm border-b border-destructive/20 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span className="flex-1">{error}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-destructive hover:text-destructive shrink-0"
-            onClick={onRefresh}
-          >
-            <RefreshCw className="w-3.5 h-3.5 me-1" />
-            {t("retry")}
-          </Button>
-        </div>
-      )}
-
-      {/* Drag overlay */}
-      {isDraggingOver && (
-        <div className="absolute inset-0 z-50 bg-primary/5 border-2 border-dashed border-primary rounded-lg flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <Upload className="w-12 h-12 text-primary mx-auto mb-2" />
-            <p className="text-sm font-medium text-primary">{t("drop_files_here")}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Upload progress */}
-      {uploadProgress && (
-        <div className="px-4 py-2 border-b border-primary/20 bg-primary/5">
-          <div className="flex items-center gap-2 text-sm text-primary mb-1">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            <span className="truncate">
-              {t("uploading")} {uploadProgress.name}
-              {uploadProgress.totalFiles > 1 && (
-                <span className="text-muted-foreground ms-1">
-                  ({uploadProgress.current}/{uploadProgress.totalFiles})
-                </span>
-              )}
-            </span>
-            <span className="ms-auto tabular-nums shrink-0 flex items-center gap-2">
-              {uploadProgress.total > 0
-                ? `${Math.round((uploadProgress.loaded / uploadProgress.total) * 100)}%`
-                : "…"}
-              <button
-                onClick={onCancelUpload}
-                className="text-xs text-destructive hover:text-destructive/80 underline"
-              >
-                {t("cancel")}
-              </button>
-            </span>
-          </div>
-          <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: uploadProgress.total > 0
-                ? `${(uploadProgress.loaded / uploadProgress.total) * 100}%`
-                : '0%' }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* File list */}
-      <div className="flex-1 min-h-0 flex relative">
-        {/* Narrow-pane backdrop for the overlay folder tree */}
-        {folderLayout === "sidebar" && isNarrow && narrowSidebarOpen && (
-          <div
-            className="absolute inset-0 bg-black/50 z-40"
-            onClick={() => setNarrowSidebarOpen(false)}
-          />
-        )}
-        {/* Folder tree sidebar (when layout is sidebar) */}
-        {folderLayout === "sidebar" && (
-          isNarrow ? (
-            <div
-              className={cn(
-                "absolute inset-y-0 left-0 z-50",
-                "transform transition-transform duration-300 ease-in-out",
-                !narrowSidebarOpen && "-translate-x-full"
-              )}
-              onClick={(e) => {
-                // Auto-close when the user taps a folder name. Chevrons stay
-                // open so they can expand/collapse without dismissing.
-                const target = e.target as HTMLElement;
-                const btn = target.closest('button');
-                if (btn && !btn.querySelector('svg.tabler-icon-chevron-right, svg.tabler-icon-chevron-down')) {
-                  setNarrowSidebarOpen(false);
-                }
-              }}
-            >
-              <FolderTreeSidebar
-                currentPath={currentPath}
-                onNavigate={onNavigate}
-                listByParentId={listByParentId}
-                width={288}
-              />
-            </div>
-          ) : (
-            <>
-              <FolderTreeSidebar
-                currentPath={currentPath}
-                onNavigate={onNavigate}
-                listByParentId={listByParentId}
-                width={sidebarWidth}
-                isResizing={isResizing}
-              />
-              <ResizeHandle
-                onResizeStart={() => { dragStartWidth.current = sidebarWidth; setIsResizing(true); }}
-                onResize={(delta) => setSidebarWidth(Math.max(180, Math.min(400, dragStartWidth.current + delta)))}
-                onResizeEnd={() => {
-                  setIsResizing(false);
-                  localStorage.setItem("files-sidebar-width", String(sidebarWidth));
-                }}
-                onDoubleClick={() => { setSidebarWidth(256); localStorage.setItem("files-sidebar-width", "256"); }}
-              />
-            </>
-          )
-        )}
-        {/* Favorites & Recent sidebar (when layout is inline) */}
-        {folderLayout === "inline" && (favorites.length > 0 || recentFiles.length > 0) && (
-          <div className="w-48 border-e border-border bg-background overflow-y-auto shrink-0 hidden lg:block">
-            {favorites.length > 0 && (
-              <div className="p-3">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <Star className="w-3 h-3" />
-                  {t("favorites")}
-                </h4>
-                <div className="space-y-0.5">
-                  {favorites.map((fav) => (
-                    <button
-                      key={fav}
-                      onClick={() => onNavigate(fav)}
-                      className={cn(
-                        "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors text-start",
-                        currentPath === fav && "bg-muted font-medium"
-                      )}
-                    >
-                      <Folder className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                      <span className="truncate">{fav === '/' ? t("breadcrumb_root") : fav.split('/').pop()}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {recentFiles.length > 0 && (
-              <div className="p-3 border-t border-border">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {t("recent")}
-                </h4>
-                <div className="space-y-0.5">
-                  {recentFiles.slice(0, 10).map((recent) => (
-                    <button
-                      key={recent.id}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors text-start"
-                      title={recent.name}
-                    >
-                      <File className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span className="truncate">{recent.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        <div
-          ref={scrollAreaRef}
-          className="flex-1 min-w-0 overflow-y-auto relative"
-          onMouseDown={handleMarqueeMouseDown}
-        >
-        {isLoading && resources.length === 0 ? (
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 sticky top-0 z-10">
-              <tr className="border-b border-border">
-                <th className="text-start px-4 py-2 font-medium text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <div className="w-4 h-4" />
-                    {t("name")}
-                  </div>
-                </th>
-                <th className="text-start px-4 py-2 font-medium text-muted-foreground hidden md:table-cell w-24">{t("size")}</th>
-                <th className="text-start px-4 py-2 font-medium text-muted-foreground hidden lg:table-cell w-44">{t("modified")}</th>
-                <th className="w-10 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-            </tbody>
-          </table>
-        ) : accountPickerMode && accountFolders && accountFolders.length > 0 && onSelectAccount ? (
-          /* ======= ACCOUNT PICKER (Pro mode root) ======= */
-          <div className="p-4">
-            <div
-              className="grid gap-3"
-              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(11rem, 1fr))' }}
-            >
-              {accountFolders.map((acc) => (
-                <button
-                  key={`__account__:${acc.accountId}`}
-                  onClick={() => onSelectAccount(acc.accountId)}
-                  title={acc.email}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-start min-w-0"
-                >
-                  <Avatar
-                    name={acc.label}
-                    email={acc.email}
-                    size="md"
-                    fallbackColor={acc.avatarColor}
-                    className="shrink-0"
-                  />
-                  <div className="min-w-0 flex flex-col">
-                    <span className="truncate text-sm font-medium">{acc.label || acc.email}</span>
-                    {acc.label && acc.label !== acc.email && (
-                      <span className="truncate text-xs text-muted-foreground">{acc.email}</span>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : accountPickerMode ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-muted-foreground">{t("no_accounts")}</p>
-          </div>
-        ) : resources.length === 0 && !searchQuery && currentPath === '/' ? (
-          <FileUploadArea
-            onUpload={async (files: File[]) => {
-              setIsUploading(true);
-              try {
-                await onUploadFiles(files);
-              } finally {
-                setIsUploading(false);
-              }
-            }}
-            onUploadFolder={async (files: File[]) => {
-              setIsUploading(true);
-              try {
-                await onUploadFolder(files);
-              } finally {
-                setIsUploading(false);
-              }
-            }}
-            onCreateFolder={() => setShowNewFolder(true)}
-            onCreateTextFile={() => setShowNewTextFile(true)}
-          />
-        ) : viewMode === "grid" ? (
-          /* ======= GRID VIEW ======= */
-          <div className="p-4" role="grid" aria-label={t("file_list")}>
-            {currentPath !== '/' && !searchQuery && (
-              <div
-                className={cn(
-                  "inline-flex flex-col items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors w-28",
-                  dragTarget === '..' ? "bg-primary/5 ring-1 ring-primary/40" : "hover:bg-muted/50"
-                )}
-                onClick={handleNavigateUp}
-                onDragOver={(e) => {
-                  if (e.dataTransfer.types.includes("application/x-file-names")) {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                    setDragTarget('..');
-                  }
-                }}
-                onDragLeave={() => setDragTarget(null)}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  setDragTarget(null);
-                  const raw = e.dataTransfer.getData("application/x-file-names");
-                  if (!raw) return;
-                  const names: string[] = JSON.parse(raw);
-                  await onMoveToParent(names);
-                }}
-              >
-                <Folder className="w-10 h-10 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground truncate w-full text-center">..</span>
-              </div>
-            )}
-            {displayResources.length === 0 && searchQuery ? (
-              <p className="px-4 py-8 text-center text-muted-foreground text-sm">{t("no_results")}</p>
-            ) : (
-              <div
-                className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-2"
-                onContextMenu={(e) => {
-                  if ((e.target as HTMLElement).closest('[data-resource]')) return;
-                  e.preventDefault();
-                  setEmptyContextMenu({ x: e.clientX, y: e.clientY });
-                }}
-              >
-                {displayResources.map((resource) => (
-                  <div
-                    key={resource.id}
-                    data-resource={resource.name}
-                    draggable
-                    onDragStart={(e) => {
-                      const names = selectedResources.has(resource.name) ? [...selectedResources] : [resource.name];
-                      e.dataTransfer.setData("application/x-file-names", JSON.stringify(names));
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragOver={(e) => {
-                      if (resource.isDirectory) {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                        setDragTarget(resource.name);
-                      }
-                    }}
-                    onDragLeave={() => setDragTarget(null)}
-                    onDrop={async (e) => {
-                      e.preventDefault();
-                      setDragTarget(null);
-                      if (!resource.isDirectory) return;
-                      const raw = e.dataTransfer.getData("application/x-file-names");
-                      if (!raw) return;
-                      const names: string[] = JSON.parse(raw);
-                      if (names.includes(resource.name)) return;
-                      await onMoveToFolder(names, resource.name);
-                    }}
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors relative group",
-                      selectedResources.has(resource.name)
-                        ? "bg-primary/10 ring-1 ring-primary/30"
-                        : dragTarget === resource.name
-                          ? "bg-primary/5 ring-1 ring-primary/40"
-                          : "hover:bg-muted/50",
-                      clipboard?.mode === "cut" && clipboard.names.includes(resource.name) && "opacity-50"
-                    )}
-                    onClick={(e) => handleResourceClick(resource, e)}
-                    onDoubleClick={() => handleResourceDoubleClick(resource)}
-                    onContextMenu={(e) => handleContextMenu(e, resource.name)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedResources.has(resource.name)}
-                      onChange={() => onToggleSelect(resource.name)}
-                      className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer absolute top-2 left-2 opacity-0 group-hover:opacity-100 data-[checked=true]:opacity-100"
-                      data-checked={selectedResources.has(resource.name)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    {showThumbnails && !resource.isSymlink && isImageFile(resource.name)
-                      ? <Thumbnail name={resource.name} getImageUrl={getImageUrl} size="lg" />
-                      : getGridIcon(resource, symlinkLabel)}
-                    <span className="text-xs truncate w-full text-center flex items-center justify-center gap-1" title={resource.name}>
-                      <span className="truncate">{resource.name}</span>
-                      <ShareBadge resource={resource} t={t} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* ======= LIST VIEW ======= */
-          <table
-            aria-label={t("file_list")}
-            className="w-full text-sm"
-            onContextMenu={(e) => {
-              if ((e.target as HTMLElement).closest('tr[data-resource]')) return;
-              e.preventDefault();
-              setEmptyContextMenu({ x: e.clientX, y: e.clientY });
-            }}
-          >
-            <thead className="bg-muted/50 sticky top-0 z-10">
-              <tr className="border-b border-border">
-                <th className="text-start px-4 py-2 font-medium text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      ref={(el) => { if (el) el.indeterminate = someSelected; }}
-                      onChange={() => allSelected ? onClearSelection() : onSelectAll()}
-                      className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <button onClick={() => handleSortClick("name")} className="hover:text-foreground transition-colors">
-                      {t("name")}
-                      <SortIndicator column="name" />
-                    </button>
-                  </div>
-                </th>
-                <th className="text-start px-4 py-2 font-medium text-muted-foreground hidden md:table-cell w-24">
-                  <button onClick={() => handleSortClick("size")} className="hover:text-foreground transition-colors">
-                    {t("size")}
-                    <SortIndicator column="size" />
-                  </button>
-                </th>
-                <th className="text-start px-4 py-2 font-medium text-muted-foreground hidden lg:table-cell w-44">
-                  <button onClick={() => handleSortClick("modified")} className="hover:text-foreground transition-colors">
-                    {t("modified")}
-                    <SortIndicator column="modified" />
-                  </button>
-                </th>
-                <th className="w-10 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {currentPath !== '/' && !searchQuery && (
-                <tr
-                  className={cn(
-                    "border-b border-border cursor-pointer transition-colors",
-                    dragTarget === '..' ? "bg-primary/5 ring-1 ring-primary/40" : "hover:bg-muted/50"
-                  )}
-                  onClick={handleNavigateUp}
-                  onDragOver={(e) => {
-                    if (e.dataTransfer.types.includes("application/x-file-names")) {
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = "move";
-                      setDragTarget('..');
-                    }
-                  }}
-                  onDragLeave={() => setDragTarget(null)}
-                  onDrop={async (e) => {
-                    e.preventDefault();
-                    setDragTarget(null);
-                    const raw = e.dataTransfer.getData("application/x-file-names");
-                    if (!raw) return;
-                    const names: string[] = JSON.parse(raw);
-                    await onMoveToParent(names);
-                  }}
-                >
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4" />
-                      <Folder className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-muted-foreground">..</span>
-                    </div>
-                  </td>
-                  <td className="hidden md:table-cell" />
-                  <td className="hidden lg:table-cell" />
-                  <td />
-                </tr>
-              )}
-              {displayResources.length === 0 && searchQuery ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground text-sm">
-                    {t("no_results")}
-                  </td>
-                </tr>
-              ) : displayResources.map((resource) => (
-                <tr
-                  key={resource.id}
-                  data-resource={resource.name}
-                  aria-selected={selectedResources.has(resource.name)}
-                  draggable
-                  onDragStart={(e) => {
-                    const names = selectedResources.has(resource.name) ? [...selectedResources] : [resource.name];
-                    e.dataTransfer.setData("application/x-file-names", JSON.stringify(names));
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragOver={(e) => {
-                    if (resource.isDirectory) {
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = "move";
-                      setDragTarget(resource.name);
-                    }
-                  }}
-                  onDragLeave={() => setDragTarget(null)}
-                  onDrop={async (e) => {
-                    e.preventDefault();
-                    setDragTarget(null);
-                    if (!resource.isDirectory) return;
-                    const raw = e.dataTransfer.getData("application/x-file-names");
-                    if (!raw) return;
-                    const names: string[] = JSON.parse(raw);
-                    if (names.includes(resource.name)) return;
-                    await onMoveToFolder(names, resource.name);
-                  }}
-                  className={cn(
-                    "border-b border-border cursor-pointer transition-colors",
-                    selectedResources.has(resource.name)
-                      ? "bg-primary/10"
-                      : dragTarget === resource.name
-                        ? "bg-primary/5 ring-1 ring-primary/40"
-                        : "hover:bg-muted/50",
-                    clipboard?.mode === "cut" && clipboard.names.includes(resource.name) && "opacity-50"
-                  )}
-                  onClick={(e) => handleResourceClick(resource, e)}
-                  onDoubleClick={() => handleResourceDoubleClick(resource)}
-                  onContextMenu={(e) => handleContextMenu(e, resource.name)}
-                >
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={selectedResources.has(resource.name)}
-                        onChange={() => onToggleSelect(resource.name)}
-                        className="w-4 h-4 rounded border-border accent-primary cursor-pointer shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      {showThumbnails && !resource.isSymlink && isImageFile(resource.name)
-                        ? <Thumbnail name={resource.name} getImageUrl={getImageUrl} size="sm" />
-                        : getFileIcon(resource, symlinkLabel)}
-                      <span className="truncate">{resource.name}</span>
-                      <ShareBadge resource={resource} t={t} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell tabular-nums">
-                    {resource.isDirectory || resource.isSymlink ? "-" : formatFileSize(resource.contentLength)}
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground hidden lg:table-cell tabular-nums">
-                    {formatDate(resource.lastModified)}
-                  </td>
-                  <td className="px-2 py-2.5">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleContextMenu(e, resource.name);
-                      }}
-                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {/* Context menu */}
-        {contextMenu && (
-          <div
-            ref={contextMenuRef}
-            role="menu"
-            aria-label={t("context_menu")}
-            className="fixed z-50 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {hasContent(contextMenu.name) && isPreviewable(contextMenu.name) && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                onClick={() => {
-                  if (isImageFile(contextMenu.name)) {
-                    onPreviewImage(contextMenu.name);
-                  } else {
-                    onPreviewFile(contextMenu.name);
-                  }
-                  setContextMenu(null);
-                }}
-              >
-                <ImageIcon className="w-4 h-4" />
-                {t("preview")}
-              </button>
-            )}
-            {hasContent(contextMenu.name) && isOfficeEditable?.(contextMenu.name) && onEditFile && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                onClick={() => {
-                  onEditFile(contextMenu.name);
-                  setContextMenu(null);
-                }}
-              >
-                <SquarePen className="w-4 h-4" />
-                {t("office_edit")}
-              </button>
-            )}
-            {hasContent(contextMenu.name) && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                onClick={() => {
-                  onDownload(contextMenu.name);
-                  setContextMenu(null);
-                }}
-              >
-                <Download className="w-4 h-4" />
-                {t("download")}
-              </button>
-            )}
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                onCut([contextMenu.name]);
-                setContextMenu(null);
-              }}
-            >
-              <Scissors className="w-4 h-4" />
-              {t("cut")}
-            </button>
-            {!resources.find(r => r.name === contextMenu.name)?.isSymlink && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                onClick={() => {
-                  onCopy([contextMenu.name]);
-                  setContextMenu(null);
-                }}
-              >
-                <Copy className="w-4 h-4" />
-                {t("copy")}
-              </button>
-            )}
-            {clipboard && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                onClick={() => {
-                  onPaste();
-                  setContextMenu(null);
-                }}
-              >
-                <Clipboard className="w-4 h-4" />
-                {t("paste")}
-              </button>
-            )}
-            {hasContent(contextMenu.name) && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                onClick={() => {
-                  onDuplicate(contextMenu.name);
-                  setContextMenu(null);
-                }}
-              >
-                <CopyPlus className="w-4 h-4" />
-                {t("duplicate")}
-              </button>
-            )}
-            {canShare(resources.find(r => r.name === contextMenu.name)) && (
-              <button
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                onClick={() => {
-                  const r = resources.find(res => res.name === contextMenu.name);
-                  if (r) setShareTargetId(r.id);
-                  setContextMenu(null);
-                }}
-              >
-                <Share2 className="w-4 h-4" />
-                {t("share")}
-              </button>
-            )}
-            <div className="h-px bg-border my-1" />
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                onShowDetails(contextMenu.name);
-                setContextMenu(null);
-              }}
-            >
-              <Info className="w-4 h-4" />
-              {t("details")}
-            </button>
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                setRenameTarget(contextMenu.name);
-                setContextMenu(null);
-              }}
-            >
-              <Pencil className="w-4 h-4" />
-              {t("rename")}
-            </button>
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-destructive transition-colors text-start"
-              onClick={() => {
-                onDelete(contextMenu.name);
-                setContextMenu(null);
-              }}
-            >
-              <Trash2 className="w-4 h-4" />
-              {t("delete")}
-            </button>
-          </div>
-        )}
-
-        {/* Empty-area context menu */}
-        {emptyContextMenu && (
-          <div
-            role="menu"
-            aria-label={t("context_menu")}
-            className="fixed z-50 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
-            style={{ left: emptyContextMenu.x, top: emptyContextMenu.y }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                setShowNewFolder(true);
-                setEmptyContextMenu(null);
-              }}
-            >
-              <FolderPlus className="w-4 h-4" />
-              {t("new_folder")}
-            </button>
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                setShowNewTextFile(true);
-                setEmptyContextMenu(null);
-              }}
-            >
-              <FilePlus className="w-4 h-4" />
-              {t("new_text_file")}
-            </button>
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                fileInputRef.current?.click();
-                setEmptyContextMenu(null);
-              }}
-            >
-              <Upload className="w-4 h-4" />
-              {t("upload")}
-            </button>
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                folderInputRef.current?.click();
-                setEmptyContextMenu(null);
-              }}
-            >
-              <FolderUp className="w-4 h-4" />
-              {t("upload_folder")}
-            </button>
-            {clipboard && (
+      <ContextMenu ref={menu.menuRef} isOpen={menu.contextMenu.isOpen} position={menu.contextMenu.position} onClose={closeMenu}>
+        {menuData?.kind === "item" && renderItemMenu(menuData.resource)}
+        {menuData?.kind === "new" && newItems}
+        {menuData?.kind === "empty" && (
+          <>
+            {canCreate && newItems}
+            {clipboard && canCreate && (
               <>
-                <div className="h-px bg-border my-1" />
-                <button
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                  onClick={() => {
-                    onPaste();
-                    setEmptyContextMenu(null);
-                  }}
-                >
-                  <Clipboard className="w-4 h-4" />
-                  {t("paste")}
-                </button>
+                <ContextMenuSeparator />
+                <ContextMenuItem icon={Clipboard} label={t("paste")} shortcut="Ctrl+V" onClick={() => { closeMenu(); void onPaste(); }} />
               </>
             )}
-            <div className="h-px bg-border my-1" />
-            <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-              onClick={() => {
-                onRefresh();
-                setEmptyContextMenu(null);
-              }}
-            >
-              <RefreshCw className="w-4 h-4" />
-              {t("refresh")}
-            </button>
-          </div>
-        )}
-
-        {/* Breadcrumb dropdown */}
-        {breadcrumbDropdown && (
-          <div
-            role="menu"
-            aria-label={t("breadcrumb_root")}
-            className="fixed z-50 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[180px] max-h-64 overflow-y-auto"
-            style={{ left: breadcrumbDropdown.x, top: breadcrumbDropdown.y }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {breadcrumbDropdown.folders.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted-foreground">{t("no_results")}</p>
-            ) : (
-              breadcrumbDropdown.folders.map((folder) => {
-                const folderPath = breadcrumbDropdown.path === '/'
-                  ? `/${folder.name}`
-                  : `${breadcrumbDropdown.path}/${folder.name}`;
-                return (
-                  <button
-                    key={folder.id}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-start"
-                    onClick={() => {
-                      onNavigate(folderPath, folder.id);
-                      setBreadcrumbDropdown(null);
-                    }}
-                  >
-                    <Folder className="w-4 h-4 text-blue-500 shrink-0" />
-                    <span className="truncate">{folder.name}</span>
-                  </button>
-                );
-              })
+            <ContextMenuSeparator />
+            {displayResources.length > 0 && (
+              <ContextMenuItem icon={CheckSquare} label={t("select_all")} shortcut="Ctrl+A" onClick={() => { closeMenu(); selectAllVisible(); }} />
             )}
-          </div>
+            <ContextMenuItem icon={RefreshCw} label={t("refresh")} onClick={() => { closeMenu(); void onRefresh(); }} />
+          </>
         )}
+      </ContextMenu>
 
-        {/* Marquee selection rectangle */}
-        {marquee && (
-          <div
-            className="absolute border border-primary/50 bg-primary/10 pointer-events-none z-20"
-            style={{
-              left: Math.min(marquee.startX, marquee.currentX),
-              top: Math.min(marquee.startY, marquee.currentY),
-              width: Math.abs(marquee.currentX - marquee.startX),
-              height: Math.abs(marquee.currentY - marquee.startY),
-            }}
-          />
-        )}
-        </div>
-
-        {/* Details sidebar */}
-        {showDetails && detailResource && (
-          <div role="complementary" aria-label={t("details")} className="w-64 border-s border-border bg-background p-4 overflow-y-auto shrink-0 hidden md:block">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium">{t("details")}</h3>
-              <button onClick={onToggleDetails} className="text-muted-foreground hover:text-foreground">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex flex-col items-center gap-3 mb-4">
-              {detailResource.isDirectory
-                ? <Folder className="w-12 h-12 text-blue-500" />
-                : detailResource.isSymlink
-                  ? <SymlinkIcon className="w-12 h-12" label={symlinkLabel} />
-                  : getFileIconByName(detailResource.name, "lg")}
-              <p className="text-sm font-medium text-center break-all">{detailResource.name}</p>
-            </div>
-            <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-muted-foreground text-xs">{t("type")}</dt>
-                <dd>
-                  {detailResource.isDirectory
-                    ? t("folder")
-                    : detailResource.isSymlink ? symlinkLabel : (detailResource.contentType || t("file"))}
-                </dd>
-              </div>
-              {!detailResource.isDirectory && !detailResource.isSymlink && (
-                <div>
-                  <dt className="text-muted-foreground text-xs">{t("size")}</dt>
-                  <dd className="tabular-nums">{formatFileSize(detailResource.contentLength)}</dd>
-                </div>
-              )}
-              {detailResource.lastModified && (
-                <div>
-                  <dt className="text-muted-foreground text-xs">{t("modified")}</dt>
-                  <dd className="tabular-nums">{formatDate(detailResource.lastModified)}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-muted-foreground text-xs">{t("path")}</dt>
-                <dd className="text-xs break-all font-mono">
-                  {currentPath === "/" ? `/${detailResource.name}` : `${currentPath}/${detailResource.name}`}
-                </dd>
-              </div>
-            </dl>
-          </div>
-        )}
-      </div>
-
-      {/* New folder dialog */}
       {showNewFolder && (
         <NewFolderDialog
           onConfirm={async (name: string) => {
@@ -2046,7 +1203,6 @@ export function FileBrowser({
         />
       )}
 
-      {/* New text file dialog */}
       {showNewTextFile && (
         <RenameDialog
           currentName="new-file.txt"
@@ -2061,7 +1217,6 @@ export function FileBrowser({
         />
       )}
 
-      {/* Rename dialog */}
       {renameTarget && (
         <RenameDialog
           currentName={renameTarget}
@@ -2074,7 +1229,18 @@ export function FileBrowser({
         />
       )}
 
-      {/* Share dialog */}
+      {renameFolder && (
+        <RenameDialog
+          currentName={renameFolder.name}
+          onConfirm={async (newName: string) => {
+            await onRenameNode(renameFolder.id, newName);
+            setRenameFolder(null);
+          }}
+          onCancel={() => setRenameFolder(null)}
+          validate={validateFileName}
+        />
+      )}
+
       {shareTarget && client && onShare && (
         <ShareCollectionDialog
           client={client}
@@ -2082,11 +1248,77 @@ export function FileBrowser({
           collectionName={shareTarget.name}
           shareWith={shareTarget.shareWith}
           ownAccountId={ownAccountId || ""}
-          onShare={(principalId, rights) =>
-            onShare(shareTarget.id, principalId, rights as FileNodeRights | null)}
+          onShare={async (principalId, rights) => {
+            await onShare(shareTarget.id, principalId, rights as FileNodeRights | null);
+          }}
           onClose={() => setShareTargetId(null)}
         />
       )}
+    </div>
+  );
+}
+
+function SharedWithMe({ folders, pages, onOpen, iconOptions }: {
+  folders: FileResource[];
+  /** Pages of files shared on their own, one per owner. */
+  pages: { id: string; name: string; ownerName: string }[];
+  onOpen: (r: { id: string; name: string }) => void;
+  iconOptions: { showIcons: boolean; coloredIcons: boolean };
+}) {
+  const t = useTranslations("files");
+  return (
+    <section aria-label={t("shared_with_me")} className="px-4 pt-5 pb-4">
+      <h3 className="text-xs font-medium text-muted-foreground mb-2 px-0.5 flex items-center gap-1.5">
+        <Share2 className="w-3 h-3" />
+        {t("shared_with_me")}
+      </h3>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2">
+        {folders.map((folder) => (
+          <button
+            key={folder.id}
+            type="button"
+            onClick={() => onOpen(folder)}
+            title={folder.ownerName ? t("shared_by", { name: folder.ownerName }) : folder.name}
+            className="flex items-center gap-2.5 h-12 px-3 rounded-lg border border-border hover:bg-muted/60 transition-colors text-start min-w-0"
+          >
+            {iconOptions.showIcons && <FolderOpen className={cn("w-5 h-5 shrink-0", iconOptions.coloredIcons ? "text-primary" : "text-muted-foreground")} />}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{folder.name}</span>
+              {folder.ownerName && <span className="block truncate text-xs text-muted-foreground">{folder.ownerName}</span>}
+            </span>
+          </button>
+        ))}
+        {pages.map((page) => (
+          <button
+            key={page.id}
+            type="button"
+            onClick={() => onOpen(page)}
+            title={t("shared_by", { name: page.ownerName })}
+            className="flex items-center gap-2.5 h-12 px-3 rounded-lg border border-border hover:bg-muted/60 transition-colors text-start min-w-0"
+          >
+            {iconOptions.showIcons && <File className={cn("w-5 h-5 shrink-0", iconOptions.coloredIcons ? "text-primary" : "text-muted-foreground")} />}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">{page.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{page.ownerName}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div className="px-4" aria-hidden>
+      <div className="h-9 border-b border-border" />
+      {Array.from({ length: 7 }, (_, i) => (
+        <div key={i} className="h-10 flex items-center gap-3 border-b border-border/60">
+          <div className="w-4 h-4 rounded bg-muted animate-pulse" />
+          <div className="w-5 h-5 rounded bg-muted animate-pulse" />
+          <div className="h-3.5 rounded bg-muted animate-pulse" style={{ width: `${30 + ((i * 37) % 35)}%` }} />
+        </div>
+      ))}
     </div>
   );
 }

@@ -2,13 +2,24 @@
 
 import { Node as TiptapNode, mergeAttributes } from "@tiptap/core";
 import { DOMSerializer } from "@tiptap/pm/model";
+import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
 import type { Editor } from "@tiptap/react";
 
 import { buildSignatureBlock } from "@/components/email/signature-block";
+import { parkRemoteResources, restoreRemoteResources } from "@/lib/email-sanitization";
+import { useSettingsStore } from "@/stores/settings-store";
 
 // Marker attribute that identifies the quoted-original wrapper in serialized
 // HTML, so parseHTML can recognise it on the way back in.
 export const QUOTED_HTML_MARKER = "data-quoted-html";
+
+// Set on the wrapper the composer builds when the quoted message may load
+// remote content (policy "allow", or a trusted sender). Display hint only:
+// serializeEditorContent never emits it.
+const QUOTED_REMOTE_ALLOWED_ATTR = "data-quoted-remote";
+
+// Atom blocks typing must never replace just because they were left selected.
+const ATOM_BLOCKS = new Set(["quotedHtml", "signatureBlock"]);
 
 // Reusable style for the quote bar when quoting email text (like in a reply).
 const QUOTE_BAR_STYLE =
@@ -52,11 +63,57 @@ export const QuotedHtml = TiptapNode.create({
         // custom serializer. renderHTML below only needs the wrapper.
         renderHTML: () => ({}),
       },
+      remoteAllowed: {
+        default: false,
+        parseHTML: (el) => el.getAttribute(QUOTED_REMOTE_ALLOWED_ATTR) === "allowed",
+        renderHTML: () => ({}),
+      },
     };
   },
 
   parseHTML() {
     return [{ tag: `div[${QUOTED_HTML_MARKER}]` }];
+  },
+
+  addProseMirrorPlugins() {
+    // Set once the user put the caret somewhere (click, tap) or the editor
+    // already had focus, so later focus keeps that position.
+    let placedByUser = false;
+    const markPlaced = () => {
+      placedByUser = true;
+      return false;
+    };
+    return [
+      new Plugin({
+        key: new PluginKey("quotedHtmlFocus"),
+        props: {
+          handleDOMEvents: {
+            mousedown: markPlaced,
+            touchstart: markPlaced,
+            // Where the editor's selection rests before the user touched it
+            // is an accident of how the body was built: on the quote (or
+            // signature) as a node in a reply, where the first key typed
+            // replaced the whole block, or after the signature in a new
+            // message. Focus from the keyboard puts the caret at the start
+            // instead; a click still lands where it was aimed, because
+            // ProseMirror handles the click after the focus event.
+            focus: (view) => {
+              const { selection, doc } = view.state;
+              const onAtom = selection instanceof NodeSelection
+                && ATOM_BLOCKS.has(selection.node.type.name);
+              if (onAtom || !placedByUser) {
+                const start = Selection.atStart(doc);
+                if (start instanceof TextSelection && !start.eq(selection)) {
+                  view.dispatch(view.state.tr.setSelection(start));
+                }
+              }
+              placedByUser = true;
+              return false;
+            },
+          },
+        },
+      }),
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -85,7 +142,21 @@ export const QuotedHtml = TiptapNode.create({
       const inner = document.createElement("div");
       inner.contentEditable = "true";
       inner.style.cssText = "outline:none;";
-      inner.innerHTML = node.attrs.html || "";
+
+      // The quote renders in the app document, where the viewer's iframe
+      // CSP does not reach: unless the quoted message may load remote
+      // content, its images and backgrounds are parked so opening a reply
+      // doesn't fire the trackers the viewer held back. Parking is
+      // display-only - the html attribute (what gets sent) keeps them.
+      const blockRemote =
+        !node.attrs.remoteAllowed && useSettingsStore.getState().externalContentPolicy !== "allow";
+      let renderedHtml = "";
+      const render = (html: string) => {
+        renderedHtml = html;
+        inner.innerHTML = blockRemote ? parkRemoteResources(html).html : html;
+      };
+      const readBack = () => (blockRemote ? restoreRemoteResources(inner.innerHTML) : inner.innerHTML);
+      render(node.attrs.html || "");
       shadow.appendChild(inner);
 
       // Track focus via focusin/focusout: inside a shadow root,
@@ -110,8 +181,9 @@ export const QuotedHtml = TiptapNode.create({
           if (typeof getPos !== "function") return;
           const pos = getPos();
           if (pos == null) return;
-          const current = inner.innerHTML;
+          const current = readBack();
           if (current === node.attrs.html) return;
+          renderedHtml = current;
           editor.view.dispatch(
             editor.view.state.tr
               .setNodeAttribute(pos, "html", current)
@@ -138,8 +210,8 @@ export const QuotedHtml = TiptapNode.create({
         update: (updatedNode) => {
           if (updatedNode.type.name !== "quotedHtml") return false;
           // Don't clobber the caret while the user is redacting inside.
-          if (!focused && inner.innerHTML !== updatedNode.attrs.html) {
-            inner.innerHTML = updatedNode.attrs.html || "";
+          if (!focused && (updatedNode.attrs.html || "") !== renderedHtml) {
+            render(updatedNode.attrs.html || "");
           }
           return true;
         },
@@ -194,6 +266,10 @@ export function serializeEditorContent(editor: Editor): string {
  * The `data-quoted-html` marker is what parseHTML keys on, so this exact form
  * must be what serializeEditorContent emits too (round-trip consistency).
  */
-export function buildQuotedHtmlBlock(sanitizedInnerHtml: string): string {
-  return `<div ${QUOTED_HTML_MARKER} style="${QUOTE_BAR_STYLE}">${sanitizedInnerHtml}</div>`;
+export function buildQuotedHtmlBlock(
+  sanitizedInnerHtml: string,
+  opts: { remoteAllowed?: boolean } = {},
+): string {
+  const remote = opts.remoteAllowed ? ` ${QUOTED_REMOTE_ALLOWED_ATTR}="allowed"` : "";
+  return `<div ${QUOTED_HTML_MARKER}${remote} style="${QUOTE_BAR_STYLE}">${sanitizedInnerHtml}</div>`;
 }

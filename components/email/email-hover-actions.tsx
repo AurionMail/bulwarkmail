@@ -66,6 +66,22 @@ const ACTION_CONFIG: Record<HoverAction, {
   },
 };
 
+/** The quick actions as shipped, before the user reorders them. */
+const DEFAULT_HOVER_ACTIONS: readonly HoverAction[] = ['delete', 'star', 'markRead', 'archive'];
+/** Gmail's row actions, in Gmail's order. */
+const MOUNTAIN_VIEW_HOVER_ACTIONS: readonly HoverAction[] = ['archive', 'delete', 'markRead'];
+
+/**
+ * The actions a Mountain View row shows on hover: Gmail's set while the user
+ * has not chosen their own, and never the star, which the row already leads
+ * with.
+ */
+export function mountainViewHoverActions(configured: readonly HoverAction[]): HoverAction[] {
+  const isDefault = configured.length === DEFAULT_HOVER_ACTIONS.length
+    && configured.every((action, i) => action === DEFAULT_HOVER_ACTIONS[i]);
+  return (isDefault ? MOUNTAIN_VIEW_HOVER_ACTIONS : configured).filter((action) => action !== 'star');
+}
+
 const CORNER_CLASSES = {
   'top-right': 'top-1 right-1',
   'top-left': 'top-1 left-1',
@@ -90,7 +106,9 @@ export function EmailHoverActions({
   onUndoSpam,
   spamApplicable = true,
 }: EmailHoverActionsProps) {
-  const hoverActions = useSettingsStore((state) => state.hoverActions);
+  const configuredHoverActions = useSettingsStore((state) => state.hoverActions);
+  const mountainView = useSettingsStore((state) => state.interfaceLayout === 'mountain-view');
+  const hoverActions = mountainView ? mountainViewHoverActions(configuredHoverActions) : configuredHoverActions;
   const hoverActionsMode = useSettingsStore((state) => state.hoverActionsMode);
   const hoverActionsCorner = useSettingsStore((state) => state.hoverActionsCorner);
   const t = useTranslations("settings.email_behavior.hover_actions");
@@ -219,13 +237,14 @@ export function EmailHoverActions({
         aria-haspopup={actionId === "tag" ? "menu" : undefined}
         aria-expanded={actionId === "tag" ? tagPickerPos !== null : undefined}
         className={cn(
-          "p-1.5 rounded-md transition-colors duration-100 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10",
-          className,
+          "transition-colors duration-100 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10",
+          // Gmail's are round 40px targets that darken rather than change hue.
+          mountainView ? "p-2 rounded-full hover:text-foreground" : cn("p-1.5 rounded-md", className),
         )}
       >
         <DisplayIcon
           className={cn(
-            "w-4 h-4",
+            mountainView ? "w-5 h-5" : "w-4 h-4",
             actionId === "star" && isStarred && "fill-amber-400 text-amber-400",
           )}
         />

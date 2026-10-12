@@ -17,17 +17,24 @@
     "reconnecting": "Forbindelse mistet. Forsøger at genoprette forbindelse…",
     "error": {
       "invalid_credentials": "Ugyldig e-mail eller adgangskode. Kontroller dine oplysninger og prøv igen.",
+      "invalid_token": "Serveren accepterede ikke dette adgangstoken. Kontroller, at det er komplet og ikke er udløbet eller tilbagekaldt.",
       "connection_failed": "Kan ikke nå serveren. Kontrollér din internetforbindelse og prøv igen.",
       "cors_blocked": "Serveren kan nås, men blokerer cross-origin-anmodninger. Kontrollér JMAP-serverens CORS-indstillinger og tillad dette domæne.",
       "server_error": "Serveren er midlertidigt utilgængelig. Prøv igen senere.",
       "generic": "Der opstod en uventet fejl. Kontakt din administrator, hvis problemet fortsætter.",
       "totp_required": "En to-faktor-godkendelseskode er påkrævet. Indtast din kode nedenfor.",
       "totp_invalid": "Ugyldig godkendelseskode. Kontrollér din autentificeringsapp og prøv igen.",
-      "oauth_discovery_failed": "SSO er aktiveret, men identitetsudbyderen kunne ikke nås. Kontrollér din OAuth-konfiguration."
+      "oauth_discovery_failed": "SSO er aktiveret, men identitetsudbyderen kunne ikke nås. Kontrollér din OAuth-konfiguration.",
+      "token_exchange_failed": "Din adgangskode og kode blev accepteret, men mailserveren nægtede at starte en session for denne app. Bed din administrator om at kontrollere OAuth-klientindstillingerne."
     },
     "show_password": "Vis adgangskode",
     "hide_password": "Skjul adgangskode",
     "totp_toggle": "Jeg har en 2FA-kode",
+    "token_toggle": "Log ind med et adgangstoken",
+    "password_toggle": "Log ind med adgangskode",
+    "token_label": "Adgangstoken",
+    "token_placeholder": "Indsæt dit API-token",
+    "token_hint": "Opret et API-token i indstillingerne hos din mailudbyder, og indsæt det her.",
     "remember_me": "Husk mig",
     "config_error": {
       "title": "Konfigurationsfejl",
@@ -114,6 +121,7 @@
     "unified_archive": "Alle arkiver",
     "unified_junk": "Alt spam",
     "all_accounts": "Alle konti",
+    "all_accounts_loading": "Indlæser konti: {loaded} af {total}",
     "unified_mailbox": "Samlet postkasse",
     "expand": "Udvid",
     "collapse": "Skjul",
@@ -134,6 +142,8 @@
     "show_all_tags": "Vis alle ({count})",
     "show_fewer_tags": "Vis færre",
     "folders": "Mapper",
+    "show_more": "Mere",
+    "show_fewer": "Mindre",
     "shared": "Delt",
     "mail": "Mail",
     "nav_label": "Navigation",
@@ -143,7 +153,17 @@
     "unified_all_starred": "Alle med stjerne",
     "unified_all_mail": "Al post",
     "remove_account": "Remove account",
-    "remove_account_confirm": "Remove {account} from this device? You can add it back later."
+    "remove_account_confirm": "Remove {account} from this device? You can add it back later.",
+    "labels": "Etiketter",
+    "create_label": "Opret ny etiket",
+    "mv_tasks": "Opgaver",
+    "mv_side_panel": "Sidepanel",
+    "mv_open_full": "Åbn i fuld visning",
+    "mv_previous_day": "Forrige dag",
+    "mv_next_day": "Næste dag",
+    "mv_add_another_account": "Tilføj en anden konto",
+    "mv_manage_account": "Administrer din konto",
+    "mv_storage_used": "{percent}% af {total} brugt"
   },
   "protocol_handlers": {
     "title": "Standardapps",
@@ -229,6 +249,7 @@
     "replied": "Besvaret",
     "forwarded": "Videresendt",
     "has_attachment": "Har vedhæftning",
+    "conversations_range": "{from}–{to, number} af {total, number}",
     "conversations_count": "{count} af {total} samtaler",
     "conversations_count_plus": "{count}+ samtaler",
     "conversations_count_simple": "{count} samtaler",
@@ -254,6 +275,7 @@
       "button": "Tøm mappe",
       "confirm_title": "Tøm mappe",
       "confirm_message": "Alle e-mails i denne mappe vil blive slettet permanent. Denne handling kan ikke fortrydes.",
+      "confirm_message_trash": "Alle e-mails i denne mappe flyttes til papirkurven.",
       "confirm_button": "Tøm mappe",
       "junk_hint": "Du kan tømme spam-mappen for permanent at fjerne alle beskeder.",
       "trash_hint": "Du kan tømme papirkurven for permanent at fjerne alle beskeder."
@@ -336,6 +358,15 @@
     "external_content_warning": "Billeder og eksternt indhold er blevet blokeret",
     "load_external_content": "Indlæs billeder",
     "trust_sender": "Stol altid på denne afsender",
+    "sender_check": {
+      "unverified_label": "Ubekræftet afsender",
+      "failed_label": "Afsenderkontrol mislykkedes",
+      "unverified": "Denne besked udgiver sig for at være fra {domain}, men intet bekræfter det. Den har ingen gyldig signatur fra {domain} og kom ikke fra en server, som {domain} har godkendt.",
+      "unverified_sent_from": "Denne besked udgiver sig for at være fra {domain}, men den blev sendt fra {host} og har ingen gyldig signatur fra {domain}.",
+      "failed": "Denne besked udgiver sig for at være fra {domain}, men den bestod ikke domænets afsenderkontrol. Den kan være forfalsket.",
+      "failed_sent_from": "Denne besked udgiver sig for at være fra {domain}, men den blev sendt fra {host} og bestod ikke afsenderkontrollen for {domain}. Den kan være forfalsket.",
+      "caution": "Vær forsigtig med links, vedhæftede filer og anmodninger om adgangskoder eller betalingsoplysninger."
+    },
     "back_to_list": "Tilbage til liste",
     "view_contact": "Vis kontakt",
     "message_details": "Beskeddetaljer",
@@ -554,6 +585,8 @@
     "more": "mere",
     "scheduled_banner": "Planlagt til afsendelse {date}",
     "scheduled_send_created": "E-mail planlagt til afsendelse",
+    "sending_in": "Sendes om {seconds} s",
+    "undo_send_failed": "Kunne ikke fortrydes. Beskeden er måske allerede sendt.",
     "cancel_scheduled_send": "Annuller afsendelse",
     "reschedule_send": "Planlæg om",
     "cancel_and_edit": "Annuller og redigér",
@@ -562,7 +595,6 @@
     "scheduled_actions_only": "Planlagt-visningen understøtter kun planlagte handlinger",
     "undo_send_scheduled": "Besked planlagt til afsendelse",
     "undo_send": "Fortryd afsendelse",
-    "undo_send_failed": "Afsendelsen kunne ikke fortrydes",
     "send_cancelled_restore_failed": "Afsendelsen blev annulleret, men beskeden kunne ikke lægges tilbage i Kladder. Den ligger stadig i Sendt.",
     "send_cancelled_remove_failed": "Afsendelsen blev annulleret, men den ikke-sendte besked kunne ikke fjernes fra Sendt.",
     "cancel_scheduled_failed": "Den planlagte afsendelse kunne ikke annulleres",
@@ -589,17 +621,18 @@
       "copied": "Kopieret!",
       "copy_failed": "Kunne ikke kopiere"
     },
-    "send_now": "Send nu"
+    "send_now": "Send nu",
+    "verification_code": {
+      "copy": "Kopiér kode {code}",
+      "copied": "Kode kopieret",
+      "copy_failed": "Koden kunne ikke kopieres"
+    },
+    "mv_position": "{index} af {total}"
   },
   "email_composer": {
-    "read_receipt_on": "Læsekvittering anmodet (klik for at deaktivere)",
-    "read_receipt_off": "Anmod om læsekvittering",
-    "dsn_on": "Leveringsbesked anmodet (klik for at slå fra)",
-    "dsn_off": "Anmod om leveringsbesked",
-    "format_plain_text": "Skift til ren tekst",
-    "format_rich_text": "Skift til formateret tekst (HTML)",
-    "require_tls_on": "Krypteret levering påkrævet (klik for at slå fra)",
-    "require_tls_off": "Kræv krypteret levering (TLS)",
+    "minimize": "Minimer",
+    "maximize": "Fuld skærm",
+    "restore": "Gendan",
     "new_message": "Ny besked",
     "signature_edit_hint": "Dobbeltklik for at redigere signaturen",
     "reply": "Svar",
@@ -619,9 +652,16 @@
     "attach": "Vedhæft",
     "attach_photos": "Fotos & videoer",
     "attach_files": "Filer",
+    "attach_from_files": "Vedhæft fra Filer",
+    "files_picker": {
+      "attach": "{count, plural, =0 {Vedhæft} one {Vedhæft 1 fil} other {Vedhæft # filer}}",
+      "empty_folder": "Denne mappe er tom",
+      "load_failed": "Dine filer kunne ikke indlæses"
+    },
     "discard": "Kassér",
     "discard_draft_title": "Kassér kladde?",
     "discard_draft_confirm": "Du har ugemte ændringer. Vil du kassere denne kladde?",
+    "discard_draft_message": "Kladden bliver slettet.",
     "saving": "Gemmer...",
     "sending": "Sender...",
     "add_link": "Tilføj link",
@@ -660,11 +700,23 @@
       "email_placeholder": "alias@eksempel.dk",
       "envelope_notice": "Hvis din server ikke accepterer denne adresse som konvolutafsender, bruges {identity} i stedet, og modtagerne kan se den i Return-Path-headeren."
     },
-    "use_template": "Skabelon",
     "save_as_template": "Gem som skabelon",
+    "attach_from_device": "Upload fra denne enhed",
+    "templates_menu": "Skabeloner",
+    "insert_template": "Indsæt skabelon",
+    "options": "Indstillinger",
+    "option_plain_text": "Ren tekst",
+    "option_plain_text_hint": "Send uden formatering",
+    "option_read_receipt": "Anmod om læsekvittering",
+    "option_read_receipt_hint": "Bed modtageren bekræfte, at den er åbnet",
+    "option_dsn": "Leveringsbesked",
+    "option_dsn_hint": "Få en rapport, når serveren leverer den",
+    "option_require_tls": "Kræv krypteret levering",
+    "option_require_tls_hint": "Lever kun over TLS, ellers afvis",
     "validation": {
       "recipient_required": "Tilføj en modtager for at sende",
       "body_required": "Skriv en besked eller vedhæft en fil",
+      "invalid_recipients": "Ikke sendt - kontroller disse adresser: {addresses}",
       "attachments_uploading": "Vedhæftninger uploades stadig — sendes, når de er færdige",
       "attachment_upload_failed": "Ikke sendt - en vedhæftet fil kunne ikke uploades. Fjern den, og prøv igen."
     },
@@ -681,6 +733,11 @@
     "submission_limit": "Serveren afviste at sende beskeden, fordi en grænse er nået: {reason}",
     "recipients_refused": "Ikke sendt: serveren afviste {recipients}.",
     "recipients_partly_refused": "Serveren afviste {recipients}. De øvrige modtagere får beskeden.",
+    "send_offline": "Du ser ud til at være offline. Beskeden er her stadig, send den igen, når du er online.",
+    "formatting": "Formatering",
+    "send_recipients_rejected": "Ikke sendt - serveren afviste alle modtagere.",
+    "send_plugin_failed": "Ikke sendt - et plugin, der står for afsendelsen, fejlede eller tog for lang tid. Tjek mappen Sendt, før du sender igen.",
+    "send_some_recipients_rejected": "Sendt, men ikke til disse modtagere - serveren afviste dem.",
     "continue_draft": "Fortsæt kladde",
     "close_draft_title": "Gem eller kassér kladde?",
     "close_draft_message": "Du har ugemte ændringer. Vil du gemme dette som en kladde eller kassere det?",
@@ -709,6 +766,11 @@
     "link_url_prompt": "Indtast URL'en",
     "schedule_send": "Planlæg afsendelse",
     "schedule_send_description": "Vælg hvornår serveren skal frigive denne besked.",
+    "schedule_preset": {
+      "tomorrow_morning": "I morgen formiddag",
+      "tomorrow_afternoon": "I morgen eftermiddag",
+      "monday_morning": "Mandag formiddag"
+    },
     "schedule_send_required": "Vælg en dato og et tidspunkt.",
     "schedule_send_invalid": "Indtast en gyldig dato og tid.",
     "schedule_send_future": "Vælg en fremtidig dato og tid.",
@@ -721,8 +783,10 @@
     "recipient_edit_name": "Rediger visningsnavn",
     "recipient_email_placeholder": "E-mailadresse",
     "recipient_name_placeholder": "Visningsnavn",
+    "invalid_recipient": "Ikke en gyldig e-mailadresse",
     "autocomplete_search_server": "Søg på serveren",
     "autocomplete_searching": "Søger...",
+    "mention_recipients": "Modtagere",
     "toolbar": {
       "bold": "Fed",
       "italic": "Kursiv",
@@ -759,7 +823,8 @@
       "background_color": "Baggrundsfarve",
       "remove_background_color": "Fjern baggrundsfarve"
     },
-    "send_filing_warning": "Sendt - men oprydningen bagefter mislykkedes, en forældet kladde kan blive stående."
+    "send_filing_warning": "Sendt - men oprydningen bagefter mislykkedes, en forældet kladde kan blive stående.",
+    "pop_out": "Åbn svaret i et vindue"
   },
   "confirm_dialog": {
     "confirm": "Bekræft",
@@ -816,6 +881,8 @@
     "emails_moved": "{count} e-mails flyttet",
     "moved_to_mailbox": "Flyttet til {mailbox}",
     "move_failed": "Flytning mislykkedes",
+    "emails_copied": "{count} e-mails kopieret",
+    "copy_failed": "Kopiering mislykkedes",
     "move_error": "Kunne ikke flytte e-mails til den valgte mappe",
     "email_tagged": "E-mail tagget",
     "emails_tagged": "{count} e-mails tagget",
@@ -829,8 +896,8 @@
     "identity_delete_failed": "Kunne ikke slette identitet: {error}",
     "identity_unauthorized": "Du er ikke autoriseret til at sende fra denne e-mailadresse",
     "identity_not_found": "Identitet ikke fundet",
-    "vacation_saved": "Fraværsbesked-indstillinger gemt",
-    "vacation_save_failed": "Kunne ikke gemme fraværsbesked-indstillinger",
+    "vacation_saved": "Fraværsindstillinger gemt",
+    "vacation_save_failed": "Kunne ikke gemme fraværsindstillinger",
     "filters_saved": "Filtre gemt succesfuldt",
     "filters_save_failed": "Kunne ikke gemme filtre",
     "filters_deleted": "Filterregel slettet",
@@ -840,7 +907,20 @@
     "templates_import_empty": "Ingen skabeloner fundet i filen",
     "export_email_error": "Kunne ikke eksportere e-mail",
     "import_email_success": "E-mail importeret succesfuldt",
-    "import_email_error": "Kunne ikke importere e-mail"
+    "import_email_error": "Kunne ikke importere e-mail",
+    "rule_created": "Regel oprettet",
+    "rule_merged": "Føjet til reglen “{name}”",
+    "rule_already_covered": "Er allerede dækket af reglen “{name}”",
+    "rule_apply_existing": "{count, plural, one {Anvend på # eksisterende besked} other {Anvend på # eksisterende beskeder}}",
+    "rule_applied": "{count, plural, =0 {Ingen beskeder skulle ændres} one {Regel anvendt på # besked} other {Regel anvendt på # beskeder}}",
+    "rule_apply_failed": "Reglen kunne ikke anvendes på eksisterende beskeder",
+    "rule_edit": "Rediger regel",
+    "rule_undo": "Fortryd",
+    "rule_undone": "Regelændring fortrudt",
+    "rule_undo_failed": "Regelændringen kunne ikke fortrydes",
+    "rule_undo_conflict": "Dine filtre er ændret siden. Fortryd ændringen i filterindstillingerne.",
+    "rule_folder_failed": "Mappen kunne ikke oprettes",
+    "vacation_filters_save_failed": "Fraværsindstillinger gemt, men videresendelse og svarmodtagere kunne ikke gemmes"
   },
   "date": {
     "today": "I dag",
@@ -928,7 +1008,7 @@
       "privacy": "Privatliv & sikkerhed",
       "account": "Konto",
       "identities": "Identiteter",
-      "vacation": "Fraværsbeskeder",
+      "vacation": "Fravær",
       "advanced": "Avanceret",
       "calendar": "Kalender",
       "filters": "Filtre",
@@ -943,12 +1023,25 @@
       "sidebar_apps": "Sidepanel-apps",
       "notifications": "Notifikationer",
       "layout": "Layout",
+      "themes": "Temaer",
       "reading": "Læsning",
       "composing": "Skrivning",
       "downloads": "Downloads",
       "content_senders": "Indhold & afsendere",
       "about_data": "Om & data",
       "debug": "Debug"
+    },
+    "themes": {
+      "title": "Temaer",
+      "description": "Vælg mellem temaer, som din administrator har udrullet, og indbyggede forudindstillinger.",
+      "locked": "Temavalget er låst af en administrator.",
+      "forced": "Temaet »{name}« er gennemtvunget af administratoren og kan ikke ændres",
+      "admin_theme": "Administratortema",
+      "activated": "Tema aktiveret",
+      "default_restored": "Standardtema gendannet",
+      "default_name": "Standard",
+      "default_badge": "Standard",
+      "admin_enforced": "Gennemtvunget af administrator"
     },
     "tab_groups": {
       "general": "Generelt",
@@ -1040,6 +1133,12 @@
         "regular": "Almindelig",
         "comfortable": "Komfortabel"
       },
+      "interface_layout": {
+        "label": "Grænsefladelayout",
+        "description": "Hvor søgning, navigation og værktøjslinjer er placeret",
+        "default": "Standard",
+        "mountain_view": "Mountain View"
+      },
       "animations": {
         "label": "Aktivér animationer",
         "description": "Vis glatte overgange og effekter"
@@ -1087,6 +1186,10 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
+      },
+      "tint_list_rows_by_account": {
+        "label": "Tint List Rows by Account Color",
+        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Vis samlet antal beskeder",
@@ -1208,6 +1311,18 @@
         "error_forbidden": "Mailserveren tillader ikke baggrundsnotifikationer for denne konto.",
         "error_over_quota": "Denne konto har for mange push-registreringer på mailserveren (grænsen er normalt 15). Tilbagekald enheder, du ikke længere bruger, i notifikationsindstillingerne, og prøv igen."
       },
+      "push_all": {
+          "title": "All accounts",
+          "description": "Turn push on or off for several accounts at once. One browser subscription serves them all.",
+          "select_all": "Select every connected account",
+          "state_on": "notifications on",
+          "state_off": "notifications off",
+          "enable_selected": "Enable for selected",
+          "disable_selected": "Disable for selected",
+          "result_enabled": "Notifications enabled for {count} accounts.",
+          "result_partial": "Enabled for {enabled} accounts; {failed} could not be enabled.",
+          "result_disabled": "Notifications disabled for {count} accounts."
+        },
       "sound_selection": {
         "title": "Notifikationslyd",
         "description": "Vælg hvilken lyd der skal afspilles for notifikationer",
@@ -1247,8 +1362,8 @@
       "date_format": {
         "label": "Datoformat",
         "description": "Sådan vises datoer på e-mail-listen",
-        "smart": "Smart (regionalt)",
-        "relative": "Relativ (for 1 t siden, for 2 d siden)",
+        "smart": "Smart",
+        "relative": "Relativ",
         "full": "Altid fuld dato",
         "preview_today": "I dag:",
         "preview_this_week": "Denne uge:",
@@ -1257,8 +1372,8 @@
       "date_locale": {
         "label": "Date format region",
         "description": "How numeric dates are ordered (day, month, year)",
-        "auto": "Automatic (match language)",
-        "iso": "ISO 8601 (YYYY-MM-DD)",
+        "auto": "Automatic",
+        "iso": "ISO 8601",
         "dmy": "Day/Month/Year",
         "mdy": "Month/Day/Year"
       },
@@ -1356,6 +1471,10 @@
         "label": "Vis forhåndsvisningstekst",
         "description": "Vis e-mail-forhåndsvisning i listen",
         "focus_description": "Vis indlejret forhåndsvisningstekst inde i den fokuserede én-linjers beskedliste"
+      },
+      "show_verification_codes": {
+        "label": "Vis bekræftelseskoder",
+        "description": "Tilbyd koden fra login- og bekræftelsesmails til kopiering med ét klik, i listen i en dag og i beskeden"
       },
       "disable_threading": {
         "label": "Deaktivér samtale-gruppering",
@@ -1485,6 +1604,10 @@
         "label": "Advarsel om tomt emne",
         "description": "Bed om bekræftelse, før en besked uden emne sendes."
       },
+      "recipient_mentions": {
+        "label": "Nævn modtagere med @",
+        "description": "Når du skriver @ i beskeden, foreslås modtagerne, og den valgtes fornavn indsættes. Enter eller Tab vælger det fremhævede navn."
+      },
       "hide_inline_image_attachments": {
         "label": "Skjul indlejrede billeder fra vedhæftninger",
         "description": "Billeder indlejret i beskedteksten vises ikke som separate vedhæftninger"
@@ -1579,6 +1702,7 @@
       "auth_method_label": "Godkendelse",
       "auth_method_oauth": "Single Sign-On (OAuth/OIDC)",
       "auth_method_basic": "Adgangskode",
+      "auth_method_token": "Adgangstoken",
       "demo_account": "Demo-konto",
       "email": {
         "label": "E-mailadresse",
@@ -1608,6 +1732,33 @@
         "move_down": "Flyt ned",
         "drag_handle": "Træk for at omarrangere",
         "add": "Tilføj konto"
+      },
+      "backup": {
+        "title": "Account list backup",
+        "description": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. Mailbox passwords are not saved: you sign in to each restored account yourself.",
+        "status_none": "No list is saved for {account}.",
+        "status_saved": "A list is saved for {account}.",
+        "save": "Save list",
+        "restore": "Restore list",
+        "delete": "Delete saved list",
+        "cancel": "Cancel",
+        "delete_confirm": "Delete the saved account list from the server?",
+        "password": "Backup password",
+        "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
+        "restore_hint": "The password chosen when the list was saved.",
+        "confirm": "Confirm password",
+        "saved": "List saved ({count, plural, one {# account} other {# accounts}}).",
+        "restored": "Accounts added: {added}. Accounts already here and updated: {updated}. Open each new account from the account list to sign in.",
+        "skipped": "{count, plural, one {# account was} other {# accounts were}} not added: the account limit is reached.",
+        "deleted": "Saved list deleted.",
+        "errors": {
+          "mismatch": "The passwords do not match.",
+          "password_length": "Use at least 10 characters.",
+          "unlock_failed": "Wrong password, or the list was saved for another account.",
+          "owner_signin_required": "Sign in to this account again, then retry.",
+          "https_required": "This needs a secure (HTTPS) connection.",
+          "storage_failed": "The server could not read or store the list. Try again later."
+        }
       },
       "shared_accounts": {
         "title": "Delt med mig",
@@ -1723,14 +1874,36 @@
       },
       "link_device": {
         "title": "Tilknyt mobilapp",
-        "description": "Log ind i Bulwark Mail-mobilappen uden at skrive noget. Generér en QR-kode her, og scan den fra appens loginskærm.",
+        "description": "Log ind i Bulwark Mail-appen på din telefon uden at skrive din adgangskode der. Din telefon får sit eget login, så den forbliver logget ind, når du logger ud her.",
         "generate": "Vis QR-kode",
         "regenerate": "Vis en ny kode",
-        "instructions": "Åbn Bulwark Mail-appen, tryk på \"Scan QR-kode\" på loginskærmen, og ret dit kamera herhen.",
+        "instructions": "Åbn Bulwark Mail-appen, og tryk på \"Scan a sign-in code\" på loginskærmen (eller \"Add account\" → \"Scan a sign-in code\", hvis du allerede er logget ind), og ret derefter kameraet herhen.",
         "expires_in": "Denne kode udløber om {seconds} sekunder. Den kan kun bruges én gang.",
         "expired": "Denne kode er udløbet.",
-        "generating": "Genererer…",
-        "error": "Kunne ikke oprette en parringskode. Prøv igen."
+        "error": "Kunne ikke oprette en parringskode. Prøv igen.",
+        "password_prompt": "Indtast din adgangskode for at bekræfte, at det er dig. Din telefon får sit eget login; din adgangskode sendes ikke til telefonen.",
+        "show_password": "Vis adgangskode",
+        "hide_password": "Skjul adgangskode",
+        "continue": "Fortsæt",
+        "error_wrong_password": "Forkert adgangskode. Prøv igen.",
+        "totp_prompt": "Indtast koden fra din godkendelsesapp.",
+        "error_password_or_code": "Adgangskoden eller koden er forkert.",
+        "error_not_signed_in": "Din session er udløbet. Log ind igen for at tilknytte en enhed.",
+        "error_impersonation": "Enheder kan ikke tilknyttes, mens du ser en anden brugers postkasse.",
+        "error_too_many_attempts": "For mange forsøg. Vent et øjeblik, og prøv igen.",
+        "error_session_secret": "Tilknytning af enheder er ikke sat op på denne server (SESSION_SECRET mangler). Kontakt din administrator.",
+        "error_server_unreachable": "Kunne ikke få forbindelse til din mailserver. Prøv igen.",
+        "error_pairing_unavailable": "Din mailserver tillader ikke tilknytning af enheder på denne måde. Kontakt din administrator.",
+        "qr_alt": "QR-kode til login",
+        "link_label": "Loginlink",
+        "copy_link": "Kopiér loginlink",
+        "copied": "Kopieret",
+        "copy_hint": "Intet kamera? Kopiér linket, og indsæt det i appen med \"Paste sign-in link\".",
+        "success_title": "Logget ind på din telefon",
+        "success_body": "Du kan lukke denne side. Vis en ny kode for at tilknytte en anden enhed.",
+        "link_another": "Tilknyt en anden enhed",
+        "use_sso": "Brug single sign-on i stedet",
+        "error_insecure_server": "Mobilappen forbinder kun til mailservere via https, og denne bruger http."
       },
       "public_keys": {
         "name_label": "Navn på offentlig nøgle",
@@ -1758,28 +1931,24 @@
       }
     },
     "vacation": {
-      "title": "Fraværsbeskeder",
-      "description": "Svar automatisk på indkommende e-mails, mens du er væk",
+      "title": "Fravær",
+      "description": "Håndter indkommende e-mails automatisk, mens du er væk",
       "loading": "Indlæser ferieindstillinger...",
       "not_supported": "Din mailserver understøtter ikke fraværsbeskeder.",
       "fetch_error": "Kunne ikke indlæse ferieindstillinger. Prøv igen.",
       "status": {
-        "label": "Fraværsbeskeder",
+        "label": "Svar automatisk",
         "description": "Send et automatisk svar til personer, der skriver til dig",
         "active": "Aktiv",
         "inactive": "Inaktiv"
       },
       "date_range": {
-        "title": "Datoperiode",
-        "description": "Begræns eventuelt auto-svaret til en bestemt periode",
         "start": "Startdato",
         "start_description": "Lad være tom for ingen startbegrænsning",
         "end": "Slutdato",
         "end_description": "Lad være tom for ingen slutbegrænsning"
       },
       "message": {
-        "title": "Auto-svar-besked",
-        "description": "Beskeden der sendes som svar",
         "subject_label": "Emne",
         "subject_description": "Emnelinje for auto-svaret",
         "subject_placeholder": "Fraværende",
@@ -1799,10 +1968,32 @@
       "saving": "Gemmer...",
       "warnings": {
         "end_before_start": "Slutdato skal være efter startdato",
+        "invalid_date": "Angiv en gyldig start- og slutdato med klokkeslæt, eller lad feltet stå tomt",
         "start_in_past": "Startdato er tidligere end i dag",
         "empty_body": "Beskedteksten er tom - modtagere vil modtage et tomt svar",
         "subject_too_long": "Emnet er for langt til serveren (højst {max} byte).",
-        "body_too_long": "Beskeden er for lang til serveren (højst {max} byte inkl. formatering)."
+        "body_too_long": "Beskeden er for lang til serveren (højst {max} byte inkl. formatering).",
+        "forward_address": "Angiv en gyldig adresse at videresende til",
+        "not_running": "Videresendelse eller svarmodtagere er gemt, men er ikke aktive lige nu. Gem for at slå dem til igen."
+      },
+      "forward": {
+        "title": "Videresendelse",
+        "description": "Videresender indgående beskeder til en anden adresse, med eller uden fraværsbesked, i perioden ovenfor (uden slutdato, indtil den slås fra). Spam videresendes ikke.",
+        "enabled_label": "Videresend beskeder",
+        "to_label": "Videresend til",
+        "to_placeholder": "email@eksempel.dk",
+        "keep_label": "Behold i indbakke",
+        "keep_description": "Ellers bliver beskeden kun videresendt: Den bliver ikke i denne postkasse, og ingen filterregel køres på den."
+      },
+      "audience": {
+        "label": "Svar til",
+        "description": "Interne afsendere: {domains}",
+        "all": "Alle afsendere",
+        "internal": "Kun interne afsendere",
+        "external": "Kun eksterne afsendere"
+      },
+      "auto_reply": {
+        "title": "Automatisk svar"
       }
     },
     "folders": {
@@ -1827,6 +2018,15 @@
       "reorder": "Træk for at ændre rækkefølgen",
       "reorder_error": "Kunne ikke ændre rækkefølgen af mapper",
       "move_error": "Kunne ikke flytte mappen",
+      "select_folder": "Vælg {name}",
+      "select_hint": "Vælg. Shift+klik vælger alle mapper op til den sidste, du klikkede på.",
+      "selected_count": "{count, plural, one {# mappe} other {# mapper}} valgt",
+      "move_to": "Flyt til...",
+      "move_to_top_level": "Øverste niveau",
+      "move": "Flyt",
+      "clear_selection": "Ryd markering",
+      "folders_moved": "{count, plural, one {# mappe flyttet} other {# mapper flyttet}}",
+      "move_partial_error": "{count, plural, one {# mappe} other {# mapper}} kunne ikke flyttes",
       "subfolder_of": "Inde i {name}",
       "subfolder_name": "Undermappenavn",
       "new_folder_name": "Mappenavn",
@@ -1913,7 +2113,34 @@
         "button": "Importér"
       },
       "about": {
-        "title": "Bulwark Webmail"
+        "title": "Bulwark Webmail",
+        "source_code": "Kildekode"
+      },
+      "spam_siege": {
+        "title": "Spam Siege",
+        "intro": "Klik på spam og phishing, før de når din indbakke. Lad ægte mails komme igennem. Mister du alle tre skjolde, falder indbakken.",
+        "kinds": {
+          "spam": "Spam",
+          "phishing": "Phishing",
+          "legit": "Ægte mail"
+        },
+        "click_to_block": "Klik for at blokere",
+        "let_through": "Lad den komme igennem",
+        "start": "Start",
+        "play_again": "Spil igen",
+        "score": "Point",
+        "combo": "Stribebonus",
+        "shields_left": "{count} af {total} skjolde tilbage",
+        "seconds": "{seconds} s",
+        "best": "Rekord: {score}",
+        "new_best": "Ny rekord",
+        "held": "Indbakken holdt",
+        "overrun": "Indbakken blev overrendt",
+        "stats": {
+          "caught": "Blokeret",
+          "delivered": "Leveret",
+          "mistakes": "Fejl"
+        }
       }
     },
     "sidebar_apps": {
@@ -2034,7 +2261,8 @@
         "subject": "Emne",
         "header": "Brugerdefineret header",
         "size": "Størrelse",
-        "body": "Brødtekst"
+        "body": "Brødtekst",
+        "all": "Alle beskeder"
       },
       "comparators": {
         "has_any": "er til stede",
@@ -2047,7 +2275,9 @@
         "ends_with": "slutter med",
         "matches": "matcher mønster",
         "greater_than": "er større end",
-        "less_than": "er mindre end"
+        "less_than": "er mindre end",
+        "address_is": "er adressen",
+        "domain_is": "har domænet"
       },
       "action_types": {
         "move": "Flyt til mappe",
@@ -2067,6 +2297,7 @@
       "forward_placeholder": "email@eksempel.dk",
       "forward_keep_copy": "Behold en kopi",
       "forward_limit": "Grænse for videresendelser pr. besked på denne server: {count}. Yderligere videresendelser springes over.",
+      "forward_unavailable": "Denne server tillader ikke videresendelse. Videresendelseshandlinger i filterregler har ingen effekt.",
       "reject_message": "Afvisningsbesked",
       "reject_placeholder": "Din e-mail er blevet afvist",
       "label_name": "Tag-navn",
@@ -2123,7 +2354,38 @@
         "actions_count": "{count, plural, one {# handling} other {# handlinger}}"
       },
       "origin_external": "Ekstern",
-      "managed_by_tooltip": "Administreres af {source}. Redigér det i den pågældende app, eller brug raw Sieve-editoren."
+      "managed_by_tooltip": "Administreres af {source}. Redigér det i den pågældende app, eller brug raw Sieve-editoren.",
+      "quick_rule_names": {
+        "move_sender": "Flyt fra {sender} til {folder}",
+        "move_domain": "Flyt fra @{domain} til {folder}",
+        "move_list": "Flyt listen {list} til {folder}",
+        "mark_read": "Markér fra {sender} som læst",
+        "tag": "Tag fra {sender} som {tag}",
+        "block": "Bloker {sender}",
+        "custom": "Beskeder fra {sender}",
+        "custom_plain": "Ny regel",
+        "senders": "{count, plural, one {# afsender} other {# afsendere}}"
+      },
+      "suggestions": "Forslag",
+      "suggest_subject": "Emne “{subject}”",
+      "suggest_to": "Til {address}",
+      "suggest_cc": "Cc {address}",
+      "suggest_list": "List-Id",
+      "suggest_domain": "@{domain}",
+      "apply_existing": "Anvend også på beskeder, der allerede ligger i denne mappe",
+      "apply_existing_unsupported": "Kun regler, der tjekker afsender, modtagere, emne eller headere, og som flytter, kopierer, markerer som læst, stjernemarkerer eller tagger, kan anvendes på eksisterende beskeder.",
+      "period_title": "Datoperiode",
+      "period_start": "Startdato",
+      "period_end": "Slutdato",
+      "validation_period_order": "Slutdato skal være efter startdato",
+      "period_toggle": "Kun aktiv i en periode",
+      "period_hint": "Gælder for beskeder, der ankommer i denne periode. Lad et felt stå tomt for at holde den ende åben.",
+      "validation_period_empty": "Angiv en start- eller slutdato for perioden",
+      "validation_period_invalid": "Angiv en gyldig dato med klokkeslæt for perioden, eller lad feltet stå tomt",
+      "apply_existing_period": "En regel med en periode virker kun på beskeder, der ankommer i perioden, og kan derfor ikke køres på eksisterende beskeder.",
+      "period_status_scheduled": "planlagt",
+      "period_status_active": "aktiv",
+      "period_status_expired": "udløbet"
     },
     "templates": {
       "title": "E-mail-skabeloner",
@@ -2162,12 +2424,6 @@
       "display": {
         "title": "Visning",
         "description": "Konfigurér hvordan filer og mapper vises"
-      },
-      "folder_layout": {
-        "label": "Mappenavigation",
-        "description": "Vælg hvordan mapper vises: integreret med filer eller i et sidepanel-træ",
-        "inline": "Integreret",
-        "sidebar": "Sidepanel"
       },
       "default_view": {
         "label": "Standardvisning",
@@ -2249,6 +2505,7 @@
     "pin": "Fastgør",
     "unpin": "Frigør",
     "move_to": "Flyt til...",
+    "copy_to_account": "Kopiér til konto...",
     "archive": "Arkivér",
     "delete": "Slet",
     "mark_as_spam": "Rapportér spam",
@@ -2259,7 +2516,28 @@
     "cancel_scheduled_send": "Annuller afsendelse",
     "reschedule_send": "Planlæg om",
     "cancel_and_edit": "Annuller og redigér",
-    "cancel_and_compose_again": "Annuller og skriv igen"
+    "cancel_and_compose_again": "Annuller og skriv igen",
+    "rules": {
+      "title": "Regler",
+      "move_from": "Flyt altid beskeder fra {sender}",
+      "move_from_domain": "Flyt altid beskeder fra @{domain}",
+      "move_from_list": "Flyt altid beskeder fra denne liste",
+      "mark_read_from": "Markér altid beskeder fra {sender} som læst",
+      "tag_with": "Tilføj altid tagget",
+      "block": "{count, plural, one {Bloker afsender} other {Bloker # afsendere}}",
+      "no_junk": "Denne konto har ingen mappe til uønsket mail",
+      "create": "Opret regel…",
+      "manage": "Administrer regler",
+      "senders_count": "{count, plural, one {# afsender} other {# afsendere}}",
+      "cross_account": "Vælg beskeder fra én konto",
+      "opaque_hint": "Dine filtre er redigeret manuelt. Åbn filterindstillingerne",
+      "loading": "Indlæser regler…",
+      "load_failed": "Reglerne kunne ikke indlæses",
+      "none": "Ingen regler endnu",
+      "new_mail_only": "Kun for nye beskeder",
+      "running": "Kører „{name}“ på {folder}…"
+    },
+    "find_emails_from": "Find e-mails fra {name}"
   },
   "mailbox_context_menu": {
     "mark_folder_read": "Markér mappe som læst",
@@ -2317,7 +2595,8 @@
       "next_email": "Næste e-mail",
       "previous_email": "Forrige e-mail",
       "open_email": "Åbn e-mail",
-      "close_email": "Luk / Fravaælg"
+      "close_email": "Luk / Fravaælg",
+      "go_to_folder": "Gå til mappe"
     },
     "actions": {
       "reply": "Svar",
@@ -2339,7 +2618,8 @@
       "global_search": "Søg i alt"
     },
     "threads": {
-      "expand_collapse": "Udvid/skjul tråd"
+      "expand_collapse": "Udvid/skjul tråd",
+      "select_mountain_view": "Vælg samtalen"
     },
     "composer": {
       "send": "Send e-mail",
@@ -2816,6 +3096,10 @@
       "tasks_hint": "Opgaver (k)"
     },
     "events": {
+      "hidden_before": "{count, plural, one {# tidligere begivenhed} other {# tidligere begivenheder}}",
+      "hidden_after": "{count, plural, one {# senere begivenhed} other {# senere begivenheder}}",
+      "show_all_hours": "Vis alle timer",
+      "show_display_hours": "Vis kun {start} – {end}",
       "create": "Opret begivenhed",
       "edit": "Redigér begivenhed",
       "delete": "Slet begivenhed",
@@ -2823,6 +3107,8 @@
       "no_events": "Ingen begivenheder",
       "all_day": "Hele dagen",
       "more": "+{count} mere",
+      "show_more": "Vis mere",
+      "show_less": "Vis mindre",
       "no_title": "(Ingen titel)",
       "resize": "Tilpas størrelse på begivenhed",
       "duplicate": "Duplikér",
@@ -2845,6 +3131,7 @@
       "save_note": "Gem",
       "note_saved": "Note tilføjet",
       "open_link": "Åbn link",
+      "copy_location": "Kopiér sted",
       "meeting_link": "Mødelink",
       "tentative": "Foreløbig",
       "cancelled": "Aflyst",
@@ -2976,6 +3263,14 @@
       "unit": "Påmindelsesenhed"
     },
     "settings": {
+      "limit_hours": "Begræns synlige timer",
+      "limit_hours_desc": "Vis kun disse timer i dags- og ugevisningen. Begivenheder uden for dem kan stadig nås via pilene øverst og nederst på hver dag.",
+      "visible_hours": "Synlige timer",
+      "visible_hours_start": "Start på synlige timer",
+      "visible_hours_end": "Slut på synlige timer",
+      "hide_non_working_days": "Skjul fridage",
+      "hide_non_working_days_desc": "Udelad de dage, du ikke arbejder, fra ugevisningen. Deres begivenheder vises stadig i måneds-, dags- og agendavisningen.",
+      "working_days": "Arbejdsdage",
       "title": "Kalenderindstillinger",
       "default_view": "Standardvisning",
       "week_starts_on": "Ugen starter på",
@@ -2999,7 +3294,7 @@
       "enable_tasks": "Aktivér opgaver",
       "enable_tasks_desc": "Vis en opgavevisning i kalenderen til styring af gøremål",
       "show_tasks_on_calendar": "Vis opgaver på kalender",
-      "show_tasks_on_calendar_desc": "Vis opgave-chips i dags- og ugekalendervisningerne",
+      "show_tasks_on_calendar_desc": "Vis opgaver i måneds-, uge- og dagsvisningen",
       "hover_preview": "Hover-forhåndsvisning",
       "hover_preview_desc": "Vis en detalje-popover når du holder musen over kalenderbegivenheder",
       "hover_preview_instant": "Øjeblikkeligt",
@@ -3089,7 +3384,9 @@
     },
     "quick_create": {
       "placeholder": "Ny begivenhedstitel",
-      "aria_label": "Hurtig oprettelse af begivenhed"
+      "aria_label": "Hurtig oprettelse af begivenhed",
+      "add_title": "Tilføj titel",
+      "more_options": "Flere indstillinger"
     },
     "nav_prev": "Forrige",
     "nav_next": "Næste",
@@ -3248,7 +3545,13 @@
       "due_tomorrow": "I morgen",
       "overdue": "Forfalden"
     },
-    "nav_open_menu": "Åbn menu"
+    "nav_open_menu": "Åbn menu",
+    "toolbar": {
+      "more": "Flere handlinger",
+      "select_view": "Skift visning, aktuelt {view}"
+    },
+    "other_calendars": "Andre kalendere",
+    "calendar_options": "Indstillinger for {name}"
   },
   "calendar_event_notifications": {
     "someone": "Nogen",
@@ -3308,6 +3611,7 @@
     "body_placeholder": "Brødtekst indeholder...",
     "folder": "Mappe",
     "all_folders": "Alle mapper",
+    "all_folders_except_spam_trash": "Alle mapper undtagen spam og papirkurv",
     "has_attachment": "Vedhæftninger",
     "date_after": "Efter",
     "date_before": "Før",
@@ -3331,7 +3635,13 @@
     "suggestions_people": "Personer",
     "suggestions_from": "Søg efter mails fra {address}",
     "suggestions_to": "Søg efter mails til {address}",
-    "suggestions_remove_recent": "Fjern fra seneste søgninger"
+    "suggestions_remove_recent": "Fjern fra seneste søgninger",
+    "has_words": "Indeholder ordene",
+    "size": "Størrelse",
+    "date_within": "Dato",
+    "search_in": "Søg i",
+    "has_attachment_check": "Har vedhæftet fil",
+    "search": "Søg"
   },
   "welcome": {
     "title": "Velkommen til din postkasse",
@@ -3339,6 +3649,8 @@
     "tip_shortcuts": "Tryk ? for at se alle tastaturgenveje",
     "tip_sidebar": "Find Kalender, Kontakter og Indstillinger i sidepanelets menu",
     "tip_settings": "Tilpas din oplevelse i Indstillinger",
+    "tip_compose_touch": "Tryk på blyantknappen for at skrive en ny e-mail",
+    "tip_sidebar_touch": "Kalender, Kontakter og Indstillinger finder du i bjælken nederst",
     "got_it": "Forstået",
     "settings": "Indstillinger",
     "dismiss": "Afvis",
@@ -3362,8 +3674,6 @@
     "title": "Filer",
     "search_placeholder": "Søg efter filer...",
     "empty_state_title": "Ingen filer endnu",
-    "empty_state_description": "Upload filer eller opret mapper for at komme i gang",
-    "upload": "Upload",
     "upload_files": "Upload filer",
     "new_folder": "Ny mappe",
     "new_folder_name": "Mappenavn",
@@ -3387,9 +3697,10 @@
     "symlink": "Symbolsk link",
     "parent_directory": "Overordnet mappe",
     "breadcrumb_root": "Hjem",
-    "drop_files_here": "Træk filer eller mapper hertil for at uploade",
     "uploading": "Uploader...",
     "upload_success": "{count, plural, one {1 fil uploadet} other {# filer uploadet}}",
+    "upload_canceled": "Upload annulleret",
+    "upload_canceled_partial": "{count, plural, one {1 fil blev} other {# filer blev}} uploadet, før du annullerede",
     "upload_error": "Kunne ikke uploade fil",
     "upload_failed": "{count, plural, one {1 fil kunne ikke uploades} other {# filer kunne ikke uploades}}",
     "error_over_quota": "Du har nået grænsen for filer eller mapper. Slet nogle, og prøv igen.",
@@ -3429,7 +3740,6 @@
     "file_name": "Filnavn",
     "retry": "Prøv igen",
     "refresh": "Opdatér",
-    "toggle_favorite": "Slå favorit til/fra",
     "duplicate": "Duplikér",
     "duplicate_success": "Duplikeret",
     "duplicate_error": "Kunne ikke duplikere",
@@ -3442,8 +3752,8 @@
     "create_file_error": "Kunne ikke oprette fil",
     "favorites": "Favoritter",
     "recent": "Seneste",
-    "properties": "Egenskaber",
-    "open_folder": "Åbn mappe",
+    "show_in_folder": "Vis i mappe",
+    "remove_from_recent": "Fjern fra seneste",
     "upload_folder": "Upload mappe",
     "file_too_large": "\"{name}\" overstiger den maksimale filstørrelse ({max})",
     "undo": "Fortryd",
@@ -3452,38 +3762,59 @@
     "toolbar": "Filhandlinger",
     "file_list": "Filer og mapper",
     "context_menu": "Handlinger",
-    "settings_title": "Filindstillinger",
-    "settings_display": "Visning",
-    "settings_default_view": "Standardvisning",
-    "settings_default_view_desc": "Vælg mellem gitter- og listelayout",
-    "settings_default_sort": "Standardsortering",
-    "settings_default_sort_desc": "Vælg standardsortering for filer",
-    "settings_sort_direction": "Sorteringsretning",
-    "settings_sort_direction_desc": "Vælg stigende eller faldende rækkefølge",
     "settings_ascending": "Stigende",
     "settings_descending": "Faldende",
-    "settings_icons": "Ikoner",
-    "settings_show_icons": "Vis filikoner",
-    "settings_show_icons_desc": "Vis ikoner ved siden af filer og mapper",
-    "settings_colored_icons": "Farvede ikoner",
-    "settings_colored_icons_desc": "Brug farverige ikoner i stedet for monokrome",
-    "settings_show_thumbnails": "Vis miniaturer",
-    "settings_show_thumbnails_desc": "Vis billedforhåndsvisninger i stedet for ikoner for billedfiler",
-    "settings_behavior": "Adfærd",
-    "settings_show_hidden": "Vis skjulte filer",
-    "settings_show_hidden_desc": "Vis filer og mapper der begynder med et punktum",
-    "settings_folder_layout": "Mappenavigation",
-    "settings_folder_layout_desc": "Vælg hvordan mapper vises: integreret med filer eller i et sidepanel-træ",
-    "settings_folder_layout_inline": "Integreret",
-    "settings_folder_layout_sidebar": "Sidepanel",
     "disabled_title": "Filer-funktionen er deaktiveret af din administrator",
     "disabled_description": "Store filuploads via WebDAV kan forårsage Stalwart/RocksDB-ustabilitet, herunder hukommelsessvigt og uopretteligt diskforbrug. Slettede filer fjernes muligvis ikke straks fra blob-lageret. Denne funktion anbefales ikke til produktionsmiljøer.",
-    "stability_warning": "Store filuploads kan forårsage serverustabilitet. Slettede filer fjernes muligvis ikke straks fra lageret. Brug med forsigtighed.",
     "no_accounts": "Ingen tilknyttede konti.",
     "open_folder_tree": "Åbn mappetræ",
-    "other_accounts": "Andre konti",
     "migration_title": "Opdaterer dine filer…",
-    "migration_description": "Organiserer mapper og filer i deres rette struktur. Dette sker kun én gang."
+    "migration_description": "Organiserer mapper og filer i deres rette struktur. Dette sker kun én gang.",
+    "new": "Ny",
+    "my_files": "Mine filer",
+    "folders": "Mapper",
+    "files_heading": "Filer",
+    "open": "Åbn",
+    "star": "Tilføj til favoritter",
+    "unstar": "Fjern fra favoritter",
+    "expand_folder": "Udvid {name}",
+    "collapse_folder": "Skjul {name}",
+    "sidebar_hint": "Favoritmapper og åbnede filer vises her.",
+    "breadcrumbs": "Mappesti",
+    "show_path": "Vis skjulte mapper i stien",
+    "selection_actions": "Handlinger for valgte elementer",
+    "selected_count": "{count, plural, one {1 valgt} other {# valgt}}",
+    "clear_selection": "Ryd markering",
+    "select_all": "Vælg alle",
+    "select_item": "Vælg {name}",
+    "more_actions": "Flere handlinger for {name}",
+    "paste_here": "Sæt ind i denne mappe",
+    "paste_count": "{count, plural, one {Sæt 1 element ind} other {Sæt # elementer ind}}",
+    "sort_by": "Sortér efter",
+    "view_mode": "Visning",
+    "clear_search": "Ryd søgning",
+    "no_results_for": "Intet i denne mappe matcher \"{query}\"",
+    "download_count": "{count, plural, one {Download 1 fil} other {Download # filer}}",
+    "delete_count": "{count, plural, one {Slet 1 element} other {Slet # elementer}}",
+    "close_details": "Luk detaljer",
+    "file_kind": "{ext}-fil",
+    "folder_summary": "{folders, plural, =0 {Ingen mapper} one {1 mappe} other {# mapper}}, {files, plural, =0 {ingen filer} one {1 fil} other {# filer}}",
+    "details_hint": "Vælg en fil eller mappe for at se detaljer.",
+    "sharing": "Deling",
+    "shared_with_count": "{count, plural, one {Delt med 1 person} other {Delt med # personer}}",
+    "only_you": "Kun dig",
+    "empty_folder_title": "Denne mappe er tom",
+    "empty_folder_description": "Slip filer her, eller upload dem fra din enhed.",
+    "empty_folder_read_only": "Du kan ikke tilføje filer til denne mappe.",
+    "choose_account": "Vælg en konto",
+    "drop_to_upload": "Slip for at uploade til {folder}",
+    "uploading_count": "Uploader {current} af {total}",
+    "dismiss": "Afvis",
+    "zoom_in": "Zoom ind",
+    "zoom_out": "Zoom ud",
+    "zoom_reset": "Tilpas til skærm",
+    "rotate": "Rotér",
+    "close_preview": "Luk"
   },
   "smime": {
     "your_certificates": "Dine certifikater",

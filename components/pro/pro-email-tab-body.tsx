@@ -19,6 +19,7 @@ import { getQuoteBodies } from "@/lib/email-composer-utils";
 import { buildForwardAsAttachmentPayload } from "@/lib/forward-as-attachment";
 import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
 import { cn } from "@/lib/utils";
+import { getDraftTextBody } from '@/lib/email-body-selection';
 
 interface ProEmailTabBodyProps {
   tabId: string;
@@ -335,9 +336,9 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
   const handleEditDraft = useCallback(() => {
     if (!email) return;
 
-    const bodyText = email.bodyValues
-      ? Object.values(email.bodyValues).map((v) => v.value).join('\n')
-      : '';
+    // Only the parts the server lists as the body: bodyValues also carries
+    // every text/* ATTACHMENT, which used to be joined in as the message.
+    const bodyText = getDraftTextBody(email);
     // A plain-text-only draft lists its text/plain part under htmlBody
     // (RFC 8621 § 4.1.4 fallback) - only treat it as HTML when it really is.
     const draftHtmlPart = email.htmlBody?.[0];
@@ -364,7 +365,9 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         to: email.to?.map((a) => a.email).filter(Boolean).join(', ') || '',
         cc: email.cc?.map((a) => a.email).filter(Boolean).join(', ') || '',
         bcc: email.bcc?.map((a) => a.email).filter(Boolean).join(', ') || '',
-        subject: email.subject || '',
+        // Drafts saved before #1189 stored an empty subject as the composer's
+        // "(No Subject)" placeholder; reopen those with an empty field.
+        subject: email.subject && email.subject !== t('email_composer.no_subject') ? email.subject : '',
         body: htmlBody || bodyText,
         showCc: (email.cc?.length || 0) > 0,
         showBcc: (email.bcc?.length || 0) > 0,

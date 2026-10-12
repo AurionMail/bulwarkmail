@@ -6,6 +6,7 @@ import {
   plainTextBodyHasSignature,
   plainTextBodyWithoutSignature,
 } from "@/lib/signature-utils";
+import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { buildSignatureBlock, SIGNATURE_RANGE_MARKER } from "@/components/email/signature-block";
 
 /**
@@ -36,7 +37,7 @@ export function buildEmbeddedSignatureHtml(
   options: { embed: boolean; separator: boolean }
 ): string {
   if (!options.embed) return '';
-  const startMarker = options.separator
+  const startMarker = wantsSignatureSeparator(options.separator, identity)
     ? `<p ${SIGNATURE_RANGE_MARKER}="separator">-- </p>`
     : `<p ${SIGNATURE_RANGE_MARKER}="start"></p>`;
   const endMarker = `<p ${SIGNATURE_RANGE_MARKER}="end"></p>`;

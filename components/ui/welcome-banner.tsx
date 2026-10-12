@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
 import { useTour } from "@/components/tour/tour-provider";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useDeviceDetection } from "@/hooks/use-media-query";
 
 const ONBOARDING_KEY = "onboarding_completed";
 
@@ -19,6 +20,8 @@ export function WelcomeBanner() {
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  // A phone has no keyboard shortcuts and keeps the apps in the bottom bar.
+  const { isMobile } = useDeviceDetection();
 
   useEffect(() => {
     // One-time migration: if the legacy per-device flag is set but the synced
@@ -89,9 +92,9 @@ export function WelcomeBanner() {
                 {t("title")}
               </h3>
               <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>{t("tip_compose")}</li>
-                <li>{t("tip_shortcuts")}</li>
-                <li>{t("tip_sidebar")}</li>
+                <li>{isMobile ? t("tip_compose_touch") : t("tip_compose")}</li>
+                {!isMobile && <li>{t("tip_shortcuts")}</li>}
+                <li>{isMobile ? t("tip_sidebar_touch") : t("tip_sidebar")}</li>
                 <li>{t("tip_settings")}</li>
               </ul>
             </div>

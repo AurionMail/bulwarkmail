@@ -14,6 +14,7 @@ import { Loader2, RefreshCw, Volume2, XCircle } from '@/components/icons';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { MultiAccountPushSettings } from './multi-account-push';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import {
   WebPushUnsupportedError,
@@ -84,16 +85,37 @@ export function NotificationSettings() {
   const activeRelayLabel =
     relayOptions.find((option) => option.url === activeRelayUrl)?.label ?? activeRelayUrl;
 
+  const busy = pushStatus.kind === 'busy';
+
   useEffect(() => {
     if (!supported) return;
     if (!client) return;
     const accountId = client.getAccountId();
     if (!accountId) return;
-    void (async () => {
-      const enabled = await isWebPushEnabled(accountId);
-      setPushStatus(enabled ? { kind: 'enabled' } : { kind: 'idle' });
-    })();
-  }, [supported, client]);
+    let cancelled = false;
+    const refreshStatus = async () => {
+      try {
+        const enabled = await isWebPushEnabled(accountId);
+        if (!cancelled) {
+          setPushStatus(enabled ? { kind: 'enabled' } : { kind: 'idle' });
+        }
+      } catch {
+        if (!cancelled) setPushStatus({ kind: 'idle' });
+      }
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshStatus();
+    };
+    if (pushStatus.kind === 'busy' || pushStatus.kind === 'error') return;
+    void refreshStatus();
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [supported, client, pushStatus.kind]);
 
   // The device list is worth loading even when push is off on this browser -
   // revoking a stale registration left on another device is exactly what you
@@ -112,7 +134,6 @@ export function NotificationSettings() {
     void refreshDevices();
   }, [refreshDevices]);
 
-  const busy = pushStatus.kind === 'busy';
   const pushEnabled = pushStatus.kind === 'enabled';
   // In the static Lite build push is off by design (no service worker, see
   // components/service-worker-registration.tsx), not a browser limitation.
@@ -327,6 +348,8 @@ export function NotificationSettings() {
           </p>
         )}
       </SettingsSection>
+
+      <MultiAccountPushSettings relayBaseUrl={activeRelayUrl} />
 
       {client && (
         <SettingsSection title={t('push.devices_title')} description={t('push.devices_desc')}>

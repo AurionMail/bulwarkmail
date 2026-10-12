@@ -5,9 +5,12 @@ import { configManager } from '@/lib/admin/config-manager';
 import { isPublicHttpUrl } from '@/lib/security/url-guard';
 import { parseJmapServers, resolveTrustedJmapUrl } from '@/lib/admin/jmap-servers';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
+import { getClientIP } from '@/lib/admin/session';
+import { reserveVerifyProbe } from '@/lib/auth/verify-budget';
 
 /**
- * Server-side Basic-auth pre-check for the login form (#969).
+ * Server-side credential pre-check for the login form (#969): a password
+ * (Basic auth), or the access token of a token login (Bearer auth).
  *
  * When the browser itself probes the JMAP session URL with wrong credentials,
  * the server answers 401 + `WWW-Authenticate: Basic`, and on a same-origin
@@ -40,8 +43,10 @@ export async function POST(request: NextRequest) {
     const serverUrl = body?.serverUrl;
     const username = body?.username;
     const password = body?.password;
-    if (typeof serverUrl !== 'string' || typeof username !== 'string' || typeof password !== 'string'
-      || !serverUrl || !username || !password) {
+    const token = body?.token;
+    const hasPassword = typeof username === 'string' && typeof password === 'string' && !!username && !!password;
+    const hasToken = typeof token === 'string' && !!token;
+    if (typeof serverUrl !== 'string' || !serverUrl || hasPassword === hasToken) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -75,14 +80,23 @@ export async function POST(request: NextRequest) {
       return respond('inconclusive');
     }
 
-    const authHeader = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
+    // Wrong passwords tried from here count against this server's address
+    // upstream; over budget the browser probes the JMAP server itself.
+    const refund = reserveVerifyProbe(getClientIP(request));
+    if (!refund) return respond('inconclusive');
+
+    const authHeader = hasToken
+      ? `Bearer ${token}`
+      : 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
     try {
       await verifyJmapAuth(upstreamUrl, authHeader, { trusted: upstreamTrusted });
+      refund();
       return respond('ok');
     } catch (error) {
       if (error instanceof JmapAuthVerificationError && error.upstreamStatus === 401) {
         return respond('unauthorized');
       }
+      refund();
       logger.debug('Login pre-check inconclusive', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });

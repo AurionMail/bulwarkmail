@@ -137,6 +137,15 @@ export function getUserStatus(
   return null;
 }
 
+/**
+ * True when the user declined this event. An occurrence carries its override's
+ * participants, so one declined instance of an accepted series counts (#1110).
+ */
+export function isDeclinedByUser(event: CalendarEvent, userEmails: string[] | undefined): boolean {
+  if (!userEmails || userEmails.length === 0) return false;
+  return getUserStatus(event, userEmails) === 'declined';
+}
+
 /** When the same address appears in two participant entries, a real RSVP on
  *  either one beats a missing/"needs-action" one — the duplicate is always the
  *  entry that never replied (the needs-action side). Between two real replies
@@ -353,6 +362,11 @@ export function buildParticipantMap(
     return id && !(id in participants) ? id : generateUUID();
   };
 
+  // An empty name is not a name: sent as "", it reaches the iCalendar stream as a
+  // bare `CN=`, and recipients see a dangling "- Organizer" or a guest listed with
+  // nothing before their address. Omitted, clients fall back to the address.
+  const named = (name: string) => (name.trim() ? { name: name.trim() } : {});
+
   // calendarAddress is the scheduling address in draft-ietf-calext-jscalendarbis
   // (implemented by Stalwart); the RFC 8984 sendTo property is retired there and
   // stored as an inert JSPROP, so it is intentionally not sent.
@@ -360,7 +374,7 @@ export function buildParticipantMap(
   const organizerStatus = known.get(organizerKey)?.status;
   participants[idFor(organizerKey)] = {
     '@type': 'Participant',
-    name: organizer.name,
+    ...named(organizer.name),
     email: organizer.email,
     calendarAddress: `mailto:${organizer.email}`,
     // owner only, NOT attendee: with roles.attendee set, Stalwart's server-side
@@ -385,7 +399,7 @@ export function buildParticipantMap(
 
     participants[idFor(key)] = {
       '@type': 'Participant',
-      name: a.name,
+      ...named(a.name),
       email,
       calendarAddress: `mailto:${email}`,
       roles: { attendee: true },

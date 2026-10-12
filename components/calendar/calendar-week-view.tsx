@@ -4,26 +4,34 @@ import { useMemo, useEffect, useLayoutEffect, useRef, useState, useCallback } fr
 import { useTranslations } from "next-intl";
 import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
 import {
-  startOfWeek, format, isSameDay, parseISO, eachDayOfInterval, differenceInCalendarDays,
+  startOfWeek, format, isSameDay, eachDayOfInterval,
 } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Check } from "@/components/icons";
 import { EventCard } from "./event-card";
 import { QuickEventInput } from "./quick-event-input";
+import { CalendarTaskChip } from "./task-chip";
+import { AllHoursToggle, HiddenEventsIndicator } from "./display-hours-controls";
+import { groupTasksByDueDay } from "@/lib/calendar-tasks";
 import { buildTimedFullDayWeekSegments, buildWeekSegmentsRaw, formatSnapTime, getEventDayBounds, getPrimaryCalendarId, isTimedEventFullDayOnDate, layoutOverlappingEvents, packWeekSegments } from "@/lib/calendar-utils";
+import { clipToDisplayHours, indexOfDayOnOrAfter, partitionByDisplayHours, remapSegmentsToShownDays, resolveWorkingDays } from "@/lib/calendar-display-range";
 import { displayNow, isDisplayToday } from "@/lib/timezone";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
+import { useSettingsStore } from "@/stores/settings-store";
+import { useDisplayHours } from "@/hooks/use-display-hours";
 import { useTimeGridInteractions } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
+import { readableTextOn } from "@/lib/color-transform";
 
 interface CalendarWeekViewProps extends ScrollWindowViewProps {
   selectedDate: Date;
   events: CalendarEvent[];
   calendars: Calendar[];
   onSelectDate: (date: Date) => void;
+  /** Open a day in the day view (clicking its date in the header). */
+  onOpenDay?: (date: Date) => void;
   onSelectEvent: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onHoverEvent?: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onHoverLeave?: () => void;
@@ -34,10 +42,14 @@ interface CalendarWeekViewProps extends ScrollWindowViewProps {
   timeFormat?: "12h" | "24h";
   isMobile?: boolean;
   pendingPreview?: PendingEventPreview | null;
-  /** The user's calendar addresses: moving an event they organize asks its attendees again. */
-  currentUserEmails?: string[];
   tasks?: CalendarTask[];
   onToggleTaskComplete?: (task: CalendarTask) => void;
+  onSelectTask?: (task: CalendarTask) => void;
+  /**
+   * The user's calendar addresses, to mark events they declined (#1110).
+   * Moving an event they organize also asks its attendees again.
+   */
+  currentUserEmails?: string[];
 }
 
 const HOUR_HEIGHT = 60;
@@ -58,6 +70,7 @@ export function CalendarWeekView({
   isLoading = false,
   onVisibleDateChange,
   onSelectDate,
+  onOpenDay,
   onSelectEvent,
   onHoverEvent,
   onHoverLeave,
@@ -68,9 +81,10 @@ export function CalendarWeekView({
   timeFormat = "24h",
   isMobile,
   pendingPreview,
-  currentUserEmails,
   tasks,
   onToggleTaskComplete,
+  onSelectTask,
+  currentUserEmails,
 }: CalendarWeekViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -86,28 +100,53 @@ export function CalendarWeekView({
   const weekStart = (firstDayOfWeek === 0 ? 0 : firstDayOfWeek === 6 ? 6 : 1) as 0 | 1 | 6;
   const gutterWidth = isMobile ? 40 : 56;
 
-  // One column per loaded day (#759). Seven columns fill the viewport on
-  // desktop; the strip scrolls sideways and widens at either end.
-  const days = useMemo(
+  // One column per loaded day (#759). A week's columns fill the viewport on
+  // desktop; the strip scrolls sideways and widens at either end. Days the
+  // user does not work on can be left out (#1164).
+  const allDays = useMemo(
     () => eachDayOfInterval({ start: rangeStart, end: rangeEnd }),
     [rangeStart, rangeEnd],
   );
+  const hideNonWorkingDays = useSettingsStore((s) => s.calendarHideNonWorkingDays);
+  const workingDaysSetting = useSettingsStore((s) => s.calendarWorkingDays);
+  const workingDays = useMemo(
+    () => resolveWorkingDays(hideNonWorkingDays, workingDaysSetting),
+    [hideNonWorkingDays, workingDaysSetting],
+  );
+  const { days, shownIndexByDay } = useMemo(() => {
+    if (!workingDays) return { days: allDays, shownIndexByDay: null };
+    const shown: Date[] = [];
+    const indices = allDays.map((day) => {
+      if (!workingDays.has(day.getDay())) return -1;
+      shown.push(day);
+      return shown.length - 1;
+    });
+    return shown.length > 0 ? { days: shown, shownIndexByDay: indices } : { days: allDays, shownIndexByDay: null };
+  }, [allDays, workingDays]);
   const colCount = days.length;
+  const columnsPerWeek = shownIndexByDay && workingDays ? workingDays.size : 7;
 
   const measureColWidth = useCallback((root: HTMLElement | null) => {
     if (isMobile || !root) return MOBILE_COL_WIDTH;
-    return Math.max(MIN_COL_WIDTH, Math.floor((root.clientWidth - gutterWidth) / 7));
-  }, [isMobile, gutterWidth]);
+    return Math.max(MIN_COL_WIDTH, Math.floor((root.clientWidth - gutterWidth) / columnsPerWeek));
+  }, [isMobile, gutterWidth, columnsPerWeek]);
   const [colWidth, setColWidth] = useState(MOBILE_COL_WIDTH);
+  const [viewportWidth, setViewportWidth] = useState(0);
+  // First day in view, reported by the scroll handler below (#1293)
+  const [visibleDayKey, setVisibleDayKey] = useState<string | null>(null);
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    setColWidth(measureColWidth(root));
+    const measure = () => {
+      setColWidth(measureColWidth(root));
+      setViewportWidth(Math.max(0, root.clientWidth - gutterWidth));
+    };
+    measure();
     if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => setColWidth(measureColWidth(root)));
+    const observer = new ResizeObserver(measure);
     observer.observe(root);
     return () => observer.disconnect();
-  }, [measureColWidth]);
+  }, [measureColWidth, gutterWidth]);
 
   // Every scroll offset is computed with the column width that is rendered.
   // When that width changes (first measurement, resize) keep the same day at
@@ -152,71 +191,90 @@ export function CalendarWeekView({
     return timed;
   }, [events]);
 
+  const {
+    hours, canToggle: canToggleHours, configured: configuredHours, showAllHours, toggleAllHours, revealMinutes,
+  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT });
+  const firstHour = hours.startMinutes / 60;
+  const visibleHours = HOURS.slice(firstHour, hours.endMinutes / 60);
+  const gridHeight = visibleHours.length * HOUR_HEIGHT;
+
   // Column layouts are the costly part of a render; with months of columns
   // they must not be redone on every scroll-driven re-render.
   const layoutByDay = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof layoutOverlappingEvents>>();
+    const map = new Map<string, ReturnType<typeof partitionByDisplayHours> & { layouts: ReturnType<typeof layoutOverlappingEvents> }>();
     for (const day of days) {
       const key = format(day, "yyyy-MM-dd");
-      map.set(key, layoutOverlappingEvents(timedEvents.get(key) || [], day));
+      const partition = partitionByDisplayHours(timedEvents.get(key) || [], day, hours);
+      map.set(key, { ...partition, layouts: layoutOverlappingEvents(partition.visible, day) });
     }
     return map;
-  }, [days, timedEvents]);
+  }, [days, timedEvents, hours]);
 
+  // Built over the consecutive days and then moved onto the drawn columns,
+  // so an event across a hidden weekend still spans Friday to Monday.
   const allDaySegments = useMemo(() => {
     const explicitAllDay = buildWeekSegmentsRaw(
       events.filter((event) => event.showWithoutTime),
-      days,
+      allDays,
     );
     const timedFullDay = buildTimedFullDayWeekSegments(
       events.filter((event) => !event.showWithoutTime),
-      days,
+      allDays,
     );
+    const segments = [...explicitAllDay, ...timedFullDay];
 
-    return packWeekSegments([...explicitAllDay, ...timedFullDay]);
-  }, [events, days]);
+    return packWeekSegments(shownIndexByDay ? remapSegmentsToShownDays(segments, shownIndexByDay) : segments);
+  }, [events, allDays, shownIndexByDay]);
 
-  const allDayRowCount = useMemo(() => {
-    return allDaySegments.reduce((maxRows, segment) => Math.max(maxRows, segment.row + 1), 0);
-  }, [allDaySegments]);
+  const tasksByDay = useMemo(() => groupTasksByDueDay(tasks), [tasks]);
 
-  // Tasks grouped by day
-  const tasksByDay = useMemo(() => {
-    if (!tasks?.length) return new Map<string, CalendarTask[]>();
-    const map = new Map<string, CalendarTask[]>();
-    for (const task of tasks) {
-      if (!task.due) continue;
-      try {
-        const key = format(parseISO(task.due), "yyyy-MM-dd");
-        const existing = map.get(key) || [];
-        existing.push(task);
-        map.set(key, existing);
-      } catch { /* skip */ }
-    }
-    return map;
-  }, [tasks]);
+  // Tasks stack under the events of their own day rather than globally (#1107, #1270)
+  const dayEventRows = useMemo(() => {
+    return days.map((_, dayIndex) =>
+      allDaySegments.reduce(
+        (rows, segment) =>
+          dayIndex >= segment.startIndex && dayIndex < segment.startIndex + segment.span
+            ? Math.max(rows, segment.row + 1)
+            : rows,
+        0,
+      )
+    );
+  }, [days, allDaySegments]);
 
-  // Max tasks on any single loaded day
-  const taskRowCount = useMemo(() => {
+  // The strip holds weeks to months of days (#759), but the all-day area is
+  // sized from the columns in view: a crowded day in another week must not
+  // add empty rows or an expand toggle here (#1293). The first visible day is
+  // tracked by date, so columns prepended while loading do not shift it.
+  const visibleStartIndex = useMemo(() => {
+    const tracked = visibleDayKey ? days.findIndex((d) => dayKey(d) === visibleDayKey) : -1;
+    if (tracked >= 0) return tracked;
+    const target = isMobile ? focus.date : startOfWeek(focus.date, { weekStartsOn: weekStart });
+    return indexOfDayOnOrAfter(days, target);
+  }, [visibleDayKey, days, isMobile, focus.date, weekStart]);
+  const visibleColumns = isMobile ? Math.max(1, Math.ceil(viewportWidth / colWidth)) : columnsPerWeek;
+
+  // Max combined rows (events + tasks) across the visible days
+  const maxContentRows = useMemo(() => {
     let max = 0;
-    for (const day of days) {
-      const key = format(day, "yyyy-MM-dd");
-      const count = tasksByDay.get(key)?.length ?? 0;
-      if (count > max) max = count;
+    const end = Math.min(days.length, visibleStartIndex + visibleColumns);
+    for (let i = visibleStartIndex; i < end; i++) {
+      const key = format(days[i], "yyyy-MM-dd");
+      const taskCount = tasksByDay.get(key)?.length ?? 0;
+      const total = dayEventRows[i] + taskCount;
+      if (total > max) max = total;
     }
     return max;
-  }, [tasksByDay, days]);
+  }, [days, dayEventRows, tasksByDay, visibleStartIndex, visibleColumns]);
 
   const hasAllDay = useMemo(() => {
-    return allDaySegments.length > 0 || taskRowCount > 0;
-  }, [allDaySegments, taskRowCount]);
+    return maxContentRows > 0;
+  }, [maxContentRows]);
 
-  useEffect(() => {
-    if (rootRef.current) {
-      const now = displayNow();
-      rootRef.current.scrollTop = Math.max(0, (now.getHours() - 1) * HOUR_HEIGHT);
-    }
-  }, []);
+  const DEFAULT_ALL_DAY_MAX_ROWS = 3;
+  const [isAllDayExpanded, setIsAllDayExpanded] = useState(false);
+  const isExpandable = maxContentRows > DEFAULT_ALL_DAY_MAX_ROWS;
+  const visibleRows = isAllDayExpanded ? maxContentRows : Math.min(DEFAULT_ALL_DAY_MAX_ROWS, maxContentRows);
+  const allDayHeight = Math.max(28, visibleRows * 24 + 4);
 
   // Navigation aligns the focused week (the focused day itself on mobile,
   // where fewer columns fit) with the start of the viewport.
@@ -224,9 +282,8 @@ export function CalendarWeekView({
     const root = rootRef.current;
     if (!root) return;
     const target = isMobile ? focus.date : startOfWeek(focus.date, { weekStartsOn: weekStart });
-    const index = Math.max(0, Math.min(colCount - 1, differenceInCalendarDays(target, rangeStart)));
-    setScrollStart(root, "horizontal", index * colWidth);
-  }, [focus.date, isMobile, weekStart, colCount, rangeStart, colWidth]);
+    setScrollStart(root, "horizontal", indexOfDayOnOrAfter(days, target) * colWidth);
+  }, [focus.date, isMobile, weekStart, days, colWidth]);
 
   useScrollWindow({
     scrollRef: rootRef,
@@ -271,6 +328,7 @@ export function CalendarWeekView({
       const key = dayKey(day);
       if (key === visibleKeyRef.current) return;
       visibleKeyRef.current = key;
+      setVisibleDayKey(key);
       onVisibleDateChange?.(day);
     });
   }, [colWidth, colCount, days, onVisibleDateChange]);
@@ -298,6 +356,8 @@ export function CalendarWeekView({
     dropTarget, handleColumnDragOver, handleColumnDragLeave, handleColumnDrop,
   } = useTimeGridInteractions({
     hourHeight: HOUR_HEIGHT,
+    gridStartMinutes: hours.startMinutes,
+    gridEndMinutes: hours.endMinutes,
     calendars,
     onCreateRange: onCreateAtTime,
     errorMessages: {
@@ -335,17 +395,90 @@ export function CalendarWeekView({
       <div ref={startSentinelRef} data-testid="week-start-sentinel" className="absolute inset-y-0 start-0 w-px pointer-events-none" />
       <div ref={endSentinelRef} data-testid="week-end-sentinel" className="absolute inset-y-0 end-0 w-px pointer-events-none" />
       <div className="sticky top-0 z-50 bg-background">
+      <div className="flex border-b border-border" role="row">
+        <div className={cn(gutterClass, "flex items-end justify-center pb-1")}>
+          {canToggleHours && (
+            <AllHoursToggle
+              showAllHours={showAllHours}
+              configured={configuredHours}
+              timeFormat={timeFormat}
+              onToggle={toggleAllHours}
+            />
+          )}
+        </div>
+        <div className="border-s border-border grid" style={columnsStyle}>
+          {days.map((day) => {
+            const todayCol = isDisplayToday(day);
+            const selected = isSameDay(day, selectedDate);
+            const fullLabel = intlFormatter.dateTime(day, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+            return (
+              <div
+                key={day.toISOString()}
+                role="columnheader"
+                aria-label={fullLabel}
+                data-day={dayKey(day)}
+                className="flex flex-col items-center gap-0.5 pt-2 pb-1.5 border-e border-border last:border-e-0"
+              >
+                <div className={cn(
+                  "text-[11px] font-medium uppercase tracking-wide",
+                  todayCol ? "text-primary" : "text-muted-foreground",
+                )}>
+                  {intlFormatter.dateTime(day, { weekday: "short" })}
+                </div>
+                {/* The date opens that day in the day view. */}
+                <button
+                  type="button"
+                  onClick={() => (onOpenDay ?? onSelectDate)(day)}
+                  aria-label={fullLabel}
+                  aria-current={todayCol ? "date" : undefined}
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-full transition-colors touch-manipulation",
+                    isMobile ? "w-8 h-8 text-base" : "w-10 h-10 text-xl",
+                    todayCol
+                      ? "bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
+                      : selected
+                        ? "bg-accent text-accent-foreground font-medium"
+                        : "text-foreground hover:bg-muted",
+                  )}
+                >
+                  {format(day, "d")}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
       {hasAllDay && (
         <div className="flex border-b border-border">
           <div
-            className={cn(gutterClass, "text-[10px] text-muted-foreground p-1 text-end")}
-            style={{ minHeight: Math.max(28, (allDayRowCount + taskRowCount) * 24 + 4) }}
+            className={cn(gutterClass, "text-[10px] text-muted-foreground p-1 text-end flex flex-col justify-between")}
+            style={{ height: allDayHeight }}
           >
-            {t("events.all_day")}
+            <span>{t("events.all_day")}</span>
+            {isExpandable && (
+              <button
+                type="button"
+                aria-label="all-day-expand"
+                aria-expanded={isAllDayExpanded}
+                onClick={() => setIsAllDayExpanded((prev) => !prev)}
+                className="self-end mt-auto text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 rounded px-1 py-0.5 hover:bg-muted transition-colors cursor-pointer"
+                title={isAllDayExpanded ? t("events.show_less") : t("events.show_more")}
+              >
+                {isAllDayExpanded ? (
+                  <span>▲</span>
+                ) : (
+                  <>
+                    <span>+{maxContentRows - DEFAULT_ALL_DAY_MAX_ROWS}</span>
+                    <span>▼</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
           <div
-            className="relative grid border-s border-border"
-            style={{ ...columnsStyle, minHeight: Math.max(28, (allDayRowCount + taskRowCount) * 24 + 4) }}
+            data-testid="all-day-grid"
+            className="relative grid border-s border-border overflow-hidden"
+            style={{ ...columnsStyle, height: allDayHeight }}
           >
             {days.map((day) => (
               <div
@@ -379,107 +512,64 @@ export function CalendarWeekView({
                       onMouseEnter={(rect) => onHoverEvent?.(segment.event, rect)}
                       onMouseLeave={onHoverLeave}
                       onContextMenu={onContextMenuEvent}
+                      currentUserEmails={currentUserEmails}
                     />
                   </div>
                 );
               })}
             </div>
 
-            {/* Task chips in all-day area */}
-            {taskRowCount > 0 && (
-              <div className="absolute inset-x-0 pointer-events-none" style={{ top: allDayRowCount * 24 + 2 }}>
-                {days.map((day, dayIndex) => {
-                  const key = format(day, "yyyy-MM-dd");
-                  const dayTasks = tasksByDay.get(key) || [];
-                  return dayTasks.map((task, taskIndex) => {
-                    const isCompleted = task.progress === "completed";
-                    const cal = calendars.find(c => task.calendarIds[c.id]);
-                    const color = cal?.color || "#3b82f6";
-                    return (
-                      <div
-                        key={`task-${task.id}`}
-                        className="absolute px-0.5 pointer-events-auto"
-                        style={{
-                          left: `calc(${(dayIndex / colCount) * 100}% + 1px)`,
-                          width: `calc(${(1 / colCount) * 100}% - 2px)`,
-                          top: taskIndex * 24,
-                          height: 20,
-                        }}
-                      >
-                        <div
-                          className="h-full rounded text-[10px] leading-[20px] font-medium px-1.5 truncate flex items-center gap-1 cursor-pointer hover:opacity-80"
-                          style={{ backgroundColor: `${color}20`, borderLeft: `3px solid ${color}` }}
-                          onClick={() => onToggleTaskComplete?.(task)}
-                        >
-                          <span className={cn(
-                            "w-2.5 h-2.5 rounded-full border flex-shrink-0 flex items-center justify-center",
-                            isCompleted ? "bg-success border-success" : "border-current"
-                          )}>
-                            {isCompleted && <Check className="h-2 w-2 text-white" />}
-                          </span>
-                          <span className={cn("truncate", isCompleted && "line-through text-muted-foreground")}>
-                            {task.title}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  });
-                })}
-              </div>
-            )}
+            {/* Task chips in all-day area, stacked under events of their day (#1107, #1270) */}
+            <div className="absolute inset-0 pointer-events-none">
+              {days.map((day, dayIndex) => {
+                const key = format(day, "yyyy-MM-dd");
+                const dayTasks = tasksByDay.get(key) || [];
+                const baseRow = dayEventRows[dayIndex];
+                return dayTasks.map((task, taskIndex) => (
+                  <div
+                    key={`task-${task.id}`}
+                    className="absolute px-0.5 pointer-events-auto"
+                    style={{
+                      left: `calc(${(dayIndex / colCount) * 100}% + 1px)`,
+                      width: `calc(${(1 / colCount) * 100}% - 2px)`,
+                      top: (baseRow + taskIndex) * 24 + 2,
+                      height: 20,
+                    }}
+                  >
+                    <CalendarTaskChip
+                      task={task}
+                      calendar={calendars.find(c => task.calendarIds[c.id])}
+                      onToggleComplete={onToggleTaskComplete}
+                      onSelect={onSelectTask}
+                    />
+                  </div>
+                ));
+              })}
+            </div>
           </div>
         </div>
       )}
 
-      <div className="flex border-b border-border" role="row">
-        <div className={gutterClass} />
-        <div className="border-s border-border grid" style={columnsStyle}>
-          {days.map((day) => {
-            const todayCol = isDisplayToday(day);
-            const selected = isSameDay(day, selectedDate);
-            const fullLabel = intlFormatter.dateTime(day, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-            return (
-              <button
-                key={day.toISOString()}
-                onClick={() => onSelectDate(day)}
-                role="columnheader"
-                aria-label={fullLabel}
-                data-day={dayKey(day)}
-                className={cn(
-                  "text-center py-2 text-sm border-e border-border last:border-e-0 transition-colors touch-manipulation",
-                  "hover:bg-muted/50",
-                  todayCol && "font-bold",
-                )}
-              >
-                <div className="text-[10px] text-muted-foreground uppercase">
-                  {intlFormatter.dateTime(day, { weekday: "short" })}
-                </div>
-                <div className={cn(
-                  "inline-flex items-center justify-center w-7 h-7 rounded-full text-sm",
-                  todayCol && "bg-primary text-primary-foreground",
-                  selected && !todayCol && "bg-accent text-accent-foreground"
-                )}>
-                  {format(day, "d")}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       </div>
 
       <div>
-        <div className="flex relative" style={{ height: 24 * HOUR_HEIGHT }}>
+        <div className="flex relative" style={{ height: gridHeight }}>
           <div className={gutterClass}>
-            {HOURS.map((h) => (
+            {visibleHours.map((h) => (
               <div
                 key={h}
                 className="relative text-muted-foreground text-end pe-2"
                 style={{ height: HOUR_HEIGHT }}
               >
-                {h > 0 && (
-                  <span className={cn("absolute top-0 right-2 -translate-y-1/2 leading-none", isMobile ? "text-[9px]" : "text-[10px]")}>
+                {/* Midnight goes unlabelled; a later first hour is labelled
+                    inside its row, where the header cannot cover it. */}
+                {(h > firstHour || firstHour > 0) && (
+                  <span className={cn(
+                    "absolute right-2 leading-none",
+                    h > firstHour ? "top-0 -translate-y-1/2" : "top-1",
+                    isMobile ? "text-[9px]" : "text-[10px]",
+                  )}>
                     {formatHour(h)}
                   </span>
                 )}
@@ -491,7 +581,8 @@ export function CalendarWeekView({
             {days.map((day) => {
               const key = format(day, "yyyy-MM-dd");
               const todayCol = isDisplayToday(day);
-              const layouted = layoutByDay.get(key) ?? [];
+              const dayLayout = layoutByDay.get(key);
+              const layouted = dayLayout?.layouts ?? [];
 
               return (
                 <div
@@ -506,7 +597,7 @@ export function CalendarWeekView({
                   onDragLeave={handleColumnDragLeave}
                   onDrop={(e) => handleColumnDrop(e, day)}
                 >
-                  {HOURS.map((h) => (
+                  {visibleHours.map((h) => (
                     <div
                       key={h}
                       role="gridcell"
@@ -519,10 +610,30 @@ export function CalendarWeekView({
                     />
                   ))}
 
+                  {dayLayout && dayLayout.before > 0 && (
+                    <HiddenEventsIndicator
+                      count={dayLayout.before}
+                      direction="before"
+                      onReveal={() => revealMinutes(dayLayout.firstBeforeMinutes ?? 0)}
+                    />
+                  )}
+                  {dayLayout && dayLayout.after > 0 && (
+                    <HiddenEventsIndicator
+                      count={dayLayout.after}
+                      direction="after"
+                      onReveal={() => revealMinutes(dayLayout.firstAfterMinutes ?? hours.endMinutes)}
+                    />
+                  )}
+
                   {layouted.map(({ event: ev, column, totalColumns, startMinutes, endMinutes }) => {
                     const durMin = Math.max(15, endMinutes - startMinutes);
-                    const baseTop = (startMinutes / 60) * HOUR_HEIGHT;
-                    const baseHeight = Math.max(20, (durMin / 60) * HOUR_HEIGHT);
+                    const clip = clipToDisplayHours(startMinutes, endMinutes, hours);
+                    const baseHeight = Math.max(20, (Math.max(15, clip.endMinutes - clip.startMinutes) / 60) * HOUR_HEIGHT);
+                    // Short events at the bottom edge stay inside the grid.
+                    const baseTop = Math.max(0, Math.min(
+                      ((clip.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
+                      gridHeight - baseHeight,
+                    ));
                     const isResizing = resizeVisual?.eventId === ev.id;
                     const top = isResizing ? resizeVisual!.topPx : baseTop;
                     const height = isResizing ? resizeVisual!.heightPx : baseHeight;
@@ -545,8 +656,11 @@ export function CalendarWeekView({
                           onMouseEnter={(rect) => onHoverEvent?.(ev, rect)}
                           onMouseLeave={onHoverLeave}
                           onContextMenu={onContextMenuEvent}
+                          currentUserEmails={currentUserEmails}
                           draggable
                         />
+                        {/* An edge beyond the visible hours has nothing to grab. */}
+                        {!clip.clippedStart && (
                         <div
                           data-resize-handle
                           className="absolute top-0 left-1 right-1 h-3 cursor-n-resize z-20 flex items-start justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
@@ -557,6 +671,8 @@ export function CalendarWeekView({
                         >
                           <div className="w-8 h-1 rounded-full bg-foreground/30 mt-0.5" />
                         </div>
+                        )}
+                        {!clip.clippedEnd && (
                         <div
                           data-resize-handle
                           className="absolute bottom-0 left-1 right-1 h-3 cursor-s-resize z-20 flex items-end justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
@@ -567,18 +683,19 @@ export function CalendarWeekView({
                         >
                           <div className="w-8 h-1 rounded-full bg-foreground/30 mb-0.5" />
                         </div>
+                        )}
                       </div>
                     );
                   })}
 
-                  {todayCol && (
+                  {todayCol && nowMinutes >= hours.startMinutes && nowMinutes <= hours.endMinutes && (
                     <div
                       className="absolute left-0 right-0 z-20 pointer-events-none"
-                      style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }}
+                      style={{ top: ((nowMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT }}
                     >
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-destructive -ms-1" />
-                        <div className="flex-1 h-px bg-destructive" />
+                      <div className="flex items-center -translate-y-1/2">
+                        <div className="w-3 h-3 rounded-full bg-destructive -ms-1.5 flex-shrink-0" />
+                        <div className="flex-1 h-0.5 bg-destructive" />
                       </div>
                     </div>
                   )}
@@ -595,7 +712,7 @@ export function CalendarWeekView({
                     <div
                       className="absolute left-1 right-1 z-30 rounded-md pointer-events-none bg-primary/15 border-2 border-primary/30 border-dashed"
                       style={{
-                        top: (dragCreate.startMinutes / 60) * HOUR_HEIGHT,
+                        top: ((dragCreate.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
                         height: ((dragCreate.endMinutes - dragCreate.startMinutes) / 60) * HOUR_HEIGHT,
                       }}
                     >
@@ -608,7 +725,7 @@ export function CalendarWeekView({
                   {dropTarget?.dayKey === key && (
                     <div
                       className="absolute left-0 right-0 z-30 pointer-events-none"
-                      style={{ top: (dropTarget.minutes / 60) * HOUR_HEIGHT }}
+                      style={{ top: ((dropTarget.minutes - hours.startMinutes) / 60) * HOUR_HEIGHT }}
                     >
                       <div className="flex items-center">
                         <div className="w-2 h-2 rounded-full bg-primary -ms-1" />
@@ -626,22 +743,27 @@ export function CalendarWeekView({
                       let endMin = pendingPreview.end.getHours() * 60 + pendingPreview.end.getMinutes();
                       if (endMin <= startMin) endMin = 1440;
                       const durationMin = Math.max(15, endMin - startMin);
+                      if (startMin + durationMin <= hours.startMinutes || startMin >= hours.endMinutes) return null;
+                      const clip = clipToDisplayHours(startMin, startMin + durationMin, hours);
                       const cal = calendars.find(c => c.id === pendingPreview.calendarId);
-                      const color = cal?.color || "hsl(var(--primary))";
+                      const color = cal?.color || "#3b82f6";
+                      // Drawn like a saved event, so the new event shows where
+                      // it will land while it is being created.
                       return (
                         <div
-                          className="absolute left-1 right-1 z-10 rounded-md pointer-events-none border-2 border-dashed overflow-hidden"
+                          data-pending-preview
+                          className="absolute left-0.5 right-0.5 z-30 rounded-xs pointer-events-none overflow-hidden px-1.5 py-0.5 text-xs shadow-md"
                           style={{
-                            top: (startMin / 60) * HOUR_HEIGHT,
-                            height: Math.max(20, (durationMin / 60) * HOUR_HEIGHT),
-                            borderColor: color,
-                            backgroundColor: `${color}10`,
+                            top: ((clip.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
+                            height: Math.max(20, ((clip.endMinutes - clip.startMinutes) / 60) * HOUR_HEIGHT),
+                            backgroundColor: color,
+                            color: readableTextOn(color),
                           }}
                         >
-                          <div className="text-[10px] font-medium px-1.5 py-0.5 truncate" style={{ color }}>
+                          <div className="font-medium truncate">
                             {pendingPreview.title}
                           </div>
-                          <div className="text-[9px] px-1.5 opacity-70" style={{ color }}>
+                          <div className="text-[10.5px] opacity-85 truncate">
                             {formatSnapTime(startMin, timeFormat)} – {formatSnapTime(startMin + durationMin, timeFormat)}
                           </div>
                         </div>

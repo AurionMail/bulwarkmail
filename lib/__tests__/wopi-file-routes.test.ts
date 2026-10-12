@@ -1,4 +1,7 @@
 // @vitest-environment node
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 // WOPI for Files nodes (#425): PutFile stamps `modified` through the server,
@@ -12,6 +15,9 @@ vi.mock('@/lib/logger', () => ({
   logger: { warn: () => {}, error: () => {}, info: () => {}, debug: () => {} },
 }));
 vi.mock('@/lib/stalwart/credentials', () => ({ getStalwartCredentials: vi.fn() }));
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ get: () => undefined, set: () => {}, delete: () => {} }),
+}));
 vi.mock('@/lib/admin/config-manager', () => ({
   configManager: { get: (_key: string, fallback: unknown) => fallback, ensureLoaded: async () => {} },
 }));
@@ -38,6 +44,8 @@ import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { fetchJmapSession, postJmap } from '@/lib/stalwart/jmap-api';
 import { shareeSavesNeedRename, updateFileNodeBlob } from '@/lib/wopi/files';
 import { mintWopiToken, wopiDocumentId } from '@/lib/wopi/token';
+
+process.env.ADMIN_STATE_DIR = mkdtempSync(path.join(tmpdir(), 'bw-wopi-files-'));
 
 const ORIGIN = 'https://webmail.example.com';
 const SERVER = 'https://mail.example.com';

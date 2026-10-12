@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, Check, AlertCircle, Info, AlertTriangle } from "@/components/icons";
+import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -22,6 +22,23 @@ export interface Toast {
   icon?: React.ReactNode;
   action?: ToastAction;
   secondaryAction?: ToastAction;
+  /**
+   * A third action. Three buttons do not fit beside the text, so a toast
+   * that has one lays its actions out on a row of their own.
+   */
+  tertiaryAction?: ToastAction;
+  /**
+   * Work in progress, e.g. an upload: 0..1, or null while the amount is
+   * unknown. The bottom line then shows progress instead of a countdown,
+   * and the toast stays until it is updated or removed.
+   */
+  progress?: number | null;
+  /**
+   * Hovering pauses the countdown so a toast can be read. Off for a toast
+   * whose action stops working at a fixed time, like Undo send: there the
+   * countdown has to match the time that is left.
+   */
+  pauseOnHover?: boolean;
 }
 
 interface ToastProps {
@@ -30,23 +47,25 @@ interface ToastProps {
 }
 
 const icons = {
-  success: Check,
+  success: CheckCircle,
   error: AlertCircle,
   info: Info,
   warning: AlertTriangle,
 };
 
-const iconContainerStyles = {
-  success: "bg-success text-success-foreground",
-  error: "bg-destructive text-destructive-foreground",
-  info: "bg-info text-info-foreground",
-  warning: "bg-warning text-warning-foreground",
+// Only errors and warnings carry colour; success and info stay neutral
+// (repos/branding/APP.md).
+const iconStyles = {
+  success: "text-muted-foreground",
+  error: "text-red-600 dark:text-red-400",
+  info: "text-muted-foreground",
+  warning: "text-amber-600 dark:text-amber-400",
 };
 
 const progressBarStyles = {
-  success: "bg-success",
+  success: "bg-muted-foreground",
   error: "bg-destructive",
-  info: "bg-info",
+  info: "bg-muted-foreground",
   warning: "bg-warning",
 };
 
@@ -57,6 +76,14 @@ export function ToastItem({ toast, onClose }: ToastProps) {
   const remainingRef = useRef(toast.duration ?? 5000);
   const startRef = useRef(Date.now());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isProgress = toast.progress !== undefined;
+
+  // A toast updated in place (a finished upload) starts a fresh countdown.
+  const lastDurationRef = useRef(toast.duration);
+  if (lastDurationRef.current !== toast.duration) {
+    lastDurationRef.current = toast.duration;
+    remainingRef.current = toast.duration ?? 5000;
+  }
 
   const dismiss = useCallback(() => {
     setExiting(true);
@@ -64,7 +91,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
   }, [onClose, toast.id]);
 
   useEffect(() => {
-    if (!toast.duration || toast.duration <= 0) return;
+    if (!toast.duration || toast.duration <= 0 || isProgress) return;
 
     if (paused) {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -77,20 +104,39 @@ export function ToastItem({ toast, onClose }: ToastProps) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [toast.duration, paused, dismiss]);
+  }, [toast.duration, paused, dismiss, isProgress]);
+
+  const actionButton = (action: ToastAction) => (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        try {
+          action.onClick();
+          dismiss();
+        } catch {
+          // Don't close toast on error so user can retry
+        }
+      }}
+      className={cn(
+        "text-[13px] font-semibold text-foreground px-1.5 py-0.5 rounded-md transition-colors",
+        "underline underline-offset-[3px] hover:bg-foreground/5"
+      )}
+    >
+      {action.label}
+    </button>
+  );
 
   return (
     <div
       className={cn(
-        "toast-item group relative flex items-start gap-3 w-[380px] rounded-r-lg",
-        "bg-background/95 dark:bg-neutral-900/95 backdrop-blur-sm",
-        "border border-border/60 dark:border-neutral-700/60",
-        "shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]",
-        "overflow-hidden",
+        "toast-item group relative flex items-start gap-2.5 w-[360px] max-w-[calc(100vw-2.5rem)] rounded-md",
+        "bg-popover text-popover-foreground border border-border",
+        "shadow-[0_6px_16px_rgb(0,0,0,0.1)] dark:shadow-[0_6px_16px_rgb(0,0,0,0.4)]",
+        "overflow-hidden pt-3 pe-2.5 pb-3.5 ps-3.5",
         exiting ? "toast-exit" : "toast-enter",
         toast.onClick && !toast.action && "cursor-pointer"
       )}
-      onMouseEnter={() => setPaused(true)}
+      onMouseEnter={() => { if (toast.pauseOnHover !== false) setPaused(true); }}
       onMouseLeave={() => setPaused(false)}
       onClick={() => {
         if (toast.onClick && !toast.action) {
@@ -99,91 +145,73 @@ export function ToastItem({ toast, onClose }: ToastProps) {
         }
       }}
     >
-      {/* Left accent bar */}
-      <div className={cn("absolute left-0 top-0 bottom-0 w-1", progressBarStyles[toast.type])} />
+      {/* Icon */}
+      {toast.icon !== undefined ? (
+        toast.icon
+      ) : isProgress ? (
+        <Loader2 className="w-[18px] h-[18px] flex-shrink-0 mt-px text-muted-foreground animate-spin" />
+      ) : (
+        <Icon className={cn("w-[18px] h-[18px] flex-shrink-0 mt-px", iconStyles[toast.type])} />
+      )}
 
-      <div className="flex items-start gap-3 p-3.5 ps-4.5 flex-1 min-w-0">
-        {/* Icon */}
-        {toast.icon !== undefined ? (
-          toast.icon
-        ) : (
-          <div className={cn("flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0", iconContainerStyles[toast.type])}>
-            <Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
+      {/* Content */}
+      <div className="flex-1 min-w-0 pt-px">
+        <p className="text-[13.5px] font-medium text-foreground leading-snug">{toast.title}</p>
+        {toast.message && (
+          <p className="text-[12.5px] mt-0.5 text-muted-foreground leading-snug">{toast.message}</p>
+        )}
+        {toast.tertiaryAction && (
+          <div className="flex flex-wrap items-center gap-1 mt-1.5 -ms-1.5">
+            {actionButton(toast.tertiaryAction)}
+            {toast.secondaryAction && actionButton(toast.secondaryAction)}
+            {toast.action && actionButton(toast.action)}
           </div>
         )}
-
-        {/* Content */}
-        <div className="flex-1 min-w-0 pt-0.5">
-          <p className="text-[13px] font-semibold text-foreground leading-tight">{toast.title}</p>
-          {toast.message && (
-            <p className="text-[12px] mt-1 text-muted-foreground leading-snug">{toast.message}</p>
-          )}
-          {(toast.action || toast.secondaryAction) && (
-            <div className="mt-2 flex items-center gap-2">
-              {toast.secondaryAction && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    try {
-                      toast.secondaryAction!.onClick();
-                      dismiss();
-                    } catch {
-                      // Don't close toast on error so user can retry
-                    }
-                  }}
-                  className={cn(
-                    "text-[12px] font-semibold px-2.5 py-1 rounded-md transition-colors",
-                    "bg-primary text-primary-foreground hover:bg-primary/90"
-                  )}
-                >
-                  {toast.secondaryAction.label}
-                </button>
-              )}
-              {toast.action && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    try {
-                      toast.action!.onClick();
-                      dismiss();
-                    } catch {
-                      // Don't close toast on error so user can retry
-                    }
-                  }}
-                  className={cn(
-                    "text-[12px] font-semibold px-2.5 py-1 rounded-md transition-colors",
-                    "bg-foreground/5 hover:bg-foreground/10 dark:bg-white/10 dark:hover:bg-white/15",
-                    "text-foreground"
-                  )}
-                >
-                  {toast.action.label}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Close button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            dismiss();
-          }}
-          className={cn(
-            "flex-shrink-0 p-1 rounded-md transition-all",
-            "text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5",
-            "opacity-0 group-hover:opacity-100"
-          )}
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
       </div>
 
-      {/* Progress bar */}
-      {toast.duration && toast.duration > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground/5">
+      {!toast.tertiaryAction && (toast.action || toast.secondaryAction) && (
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {toast.secondaryAction && actionButton(toast.secondaryAction)}
+          {toast.action && actionButton(toast.action)}
+        </div>
+      )}
+
+      {/* Close button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          dismiss();
+        }}
+        className={cn(
+          "flex-shrink-0 p-1 rounded-md transition-all",
+          "text-muted-foreground hover:text-foreground hover:bg-foreground/5",
+          "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+        )}
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+
+      {/* Progress line: the same line as the countdown, filled by the work done */}
+      {isProgress && (
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground/[0.06]"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={toast.progress == null ? undefined : Math.round(toast.progress * 100)}
+        >
           <div
-            className={cn("h-full rounded-full opacity-60", progressBarStyles[toast.type])}
+            className={cn("h-full opacity-60 transition-[width] duration-300", progressBarStyles[toast.type], toast.progress == null && "w-1/3 animate-pulse")}
+            style={toast.progress == null ? undefined : { width: `${Math.max(0, Math.min(1, toast.progress)) * 100}%` }}
+          />
+        </div>
+      )}
+
+      {/* Countdown line */}
+      {!isProgress && !!toast.duration && toast.duration > 0 && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground/[0.06]">
+          <div
+            className={cn("h-full opacity-60", progressBarStyles[toast.type])}
             style={{
               animation: `toast-progress ${toast.duration}ms linear forwards`,
               animationPlayState: paused ? "paused" : "running",
@@ -206,7 +234,7 @@ export function ToastContainer({ toasts, onClose }: { toasts: Toast[]; onClose: 
 
   return createPortal(
     <div
-      className="fixed bottom-5 right-5 z-[99999] flex flex-col-reverse gap-2.5"
+      className="fixed bottom-5 right-5 z-[99999] flex flex-col-reverse gap-2.5 [html[data-composer-open]_&]:bottom-20"
       role="status"
       aria-live="polite"
       style={{ pointerEvents: "none" }}

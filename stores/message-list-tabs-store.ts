@@ -17,6 +17,7 @@ import { messageListTabHooks } from '@/lib/plugin-hooks';
 import { keywordPointer } from '@/lib/jmap/patch-pointer';
 import { jmapErrorFailedIds } from '@/lib/jmap/jmap-error';
 import { SERVER_SET_KEYWORDS } from '@/lib/jmap/server-keywords';
+import { normalizePluginFilter } from '@/lib/jmap/search-utils';
 import { resolveKeywordActionContext, useEmailStore } from './email-store';
 
 // ─── Validation ──────────────────────────────────────────────
@@ -36,53 +37,8 @@ const TAB_ID_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/i;
 // case-insensitively by IMAP servers, so we lowercase on normalization.
 const KEYWORD_RE = /^\$[a-z0-9][a-z0-9_.-]{0,63}$/;
 
-// Upper bound on a serialized tab query — a filter tree bigger than this is
-// either a bug or an abuse vector for the JMAP request budget.
-const MAX_QUERY_JSON_BYTES = 16 * 1024;
-
-// JMAP Metadata filter conditions (metadataExists, privateMetadataTextContains,
-// ...). Stalwart 1.0 parses them but its Email/query handler is still
-// `todo!()` for them, so one such condition panics the request on the server.
-const METADATA_FILTER_KEY_RE = /^(private)?[Mm]etadata/;
-
-/** The first Metadata filter key anywhere in the tree (operators nest conditions). */
-function findMetadataFilterKey(filter: unknown): string | null {
-  const stack: unknown[] = [filter];
-  while (stack.length > 0) {
-    const node = stack.pop();
-    if (Array.isArray(node)) {
-      stack.push(...node);
-    } else if (typeof node === 'object' && node !== null) {
-      for (const [key, value] of Object.entries(node)) {
-        if (METADATA_FILTER_KEY_RE.test(key)) return key;
-        stack.push(value);
-      }
-    }
-  }
-  return null;
-}
-
 function validateTabQuery(tabId: string, query: unknown): Record<string, unknown> {
-  if (typeof query !== 'object' || query === null || Array.isArray(query)) {
-    throw new Error(`tabs.set: tab "${tabId}" query must be a JMAP filter object`);
-  }
-  let json: string;
-  try {
-    json = JSON.stringify(query);
-  } catch {
-    throw new Error(`tabs.set: tab "${tabId}" query is not serializable`);
-  }
-  if (json.length > MAX_QUERY_JSON_BYTES) {
-    throw new Error(`tabs.set: tab "${tabId}" query exceeds ${MAX_QUERY_JSON_BYTES} bytes`);
-  }
-  // Deep-clone via JSON so the stored filter is plain data (no prototypes,
-  // functions or getters can cross into request bodies).
-  const filter = JSON.parse(json) as Record<string, unknown>;
-  const metadataKey = findMetadataFilterKey(filter);
-  if (metadataKey) {
-    throw new Error(`tabs.set: tab "${tabId}" query may not filter on JMAP Metadata ("${metadataKey}")`);
-  }
-  return filter;
+  return normalizePluginFilter(`tabs.set: tab "${tabId}" query`, query);
 }
 
 /**

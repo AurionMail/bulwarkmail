@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
-import { RecipientsRefusedError, SubmissionQuotaError } from '@/lib/jmap/client';
+import { RecipientsRejectedError, SubmissionQuotaError } from '@/lib/jmap/client';
 
 // ─── Heavy component mocks (mirrors composer-reopened-draft-signature.test.tsx) ─
 
@@ -146,7 +146,7 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onDraftChange: { emit: () => {} },
     onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
     onBeforeEmailSend: { intercept: async () => true },
-    onComposeSend: { intercept: async () => true },
+    onComposeSend: { intercept: async () => true, takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
   },
   contactHooks: {
@@ -200,7 +200,8 @@ async function sendAndFail(error: unknown) {
   render(<EmailComposer initialData={DRAFT} onSend={onSend} />);
   fireEvent.click(screen.getAllByTestId('composer-send')[0]);
   await waitFor(() => expect(toastError).toHaveBeenCalledTimes(1));
-  return toastError.mock.calls[0][0] as string;
+  const [title, options] = toastError.mock.calls[0] as [string, { message?: string } | undefined];
+  return { title, message: options?.message };
 }
 
 describe('composer send failures', () => {
@@ -209,30 +210,32 @@ describe('composer send failures', () => {
   });
 
   it('explains a full submission quota on Stalwart 1.0', async () => {
-    const message = await sendAndFail(new SubmissionQuotaError('There are too many email submissions, please delete some before adding a new one.', true));
+    const { title } = await sendAndFail(new SubmissionQuotaError('There are too many email submissions, please delete some before adding a new one.', true));
 
-    expect(message).toBe('submission_quota');
+    expect(title).toBe('submission_quota');
   });
 
   it("shows another server's own reason for its overQuota, not Stalwart's explanation", async () => {
-    const message = await sendAndFail(new SubmissionQuotaError('Daily sending limit exceeded', false));
+    const { title } = await sendAndFail(new SubmissionQuotaError('Daily sending limit exceeded', false));
 
     // The i18n test mock renders the key; the reason goes in as a value.
-    expect(message).toBe('submission_limit');
+    expect(title).toBe('submission_limit');
   });
 
   it("shows the server's reason for other failures", async () => {
-    const message = await sendAndFail(new Error('Envelope mailFrom does not match identity email address. [forbiddenFrom]'));
+    const { title, message } = await sendAndFail(new Error('Envelope mailFrom does not match identity email address. [forbiddenFrom]'));
 
+    expect(title).toBe('send_failed');
     expect(message).toBe('Envelope mailFrom does not match identity email address. [forbiddenFrom]');
   });
 
   // Stalwart 0.16 and 1.0 take the submission but refuse the recipient at
   // RCPT; the send fails and the composer keeps the message.
   it('says the message was not sent when the server refused every recipient', async () => {
-    const message = await sendAndFail(new RecipientsRefusedError([{ email: 'nobody@example.net', smtpReply: '550 5.1.2 Relay not allowed.' }]));
+    const { title, message } = await sendAndFail(new RecipientsRejectedError([{ email: 'nobody@example.net', smtpReply: '550 5.1.2 Relay not allowed.' }]));
 
-    expect(message).toBe('recipients_refused');
+    expect(title).toBe('send_recipients_rejected');
+    expect(message).toBe('nobody@example.net (550 5.1.2 Relay not allowed.)');
     expect(screen.getByDisplayValue('Hello')).toBeInTheDocument();
   });
 });

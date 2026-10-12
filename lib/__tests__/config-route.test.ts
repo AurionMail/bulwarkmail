@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { isConfigData } from '@/lib/config-validation';
 
 // The route consults admin-dashboard overrides (ADMIN_CONFIG_DIR, default
 // data/admin) before env vars. Point it at an empty temp dir so local admin
@@ -13,7 +14,10 @@ process.env.ADMIN_CONFIG_DIR = mkdtempSync(path.join(tmpdir(), 'bw-config-route-
 // Mock NextResponse before importing the route
 vi.mock('next/server', () => ({
   NextResponse: {
-    json: (data: unknown) => ({ json: async () => data }),
+    json: (data: unknown, init?: { headers?: HeadersInit }) => ({
+      json: async () => data,
+      headers: new Headers(init?.headers),
+    }),
   },
 }));
 
@@ -30,6 +34,7 @@ const MANAGED_ENV = [
   'SESSION_SECRET_FILE', 'SETTINGS_SYNC_ENABLED', 'STALWART_FEATURES', 'DEV_MOCK_JMAP',
   'FAVICON_URL', 'APP_LOGO_LIGHT_URL', 'APP_LOGO_DARK_URL', 'LOGIN_COMPANY_NAME',
   'LOGIN_IMPRINT_URL', 'LOGIN_PRIVACY_POLICY_URL', 'LOGIN_WEBSITE_URL', 'DOMAIN_BRANDING',
+  'JMAP_SERVERS', 'JMAP_SERVER_AUTO_PICK_BY_DOMAIN', 'SOURCE_CODE_URL',
 ] as const;
 
 describe('config API route', () => {
@@ -70,8 +75,18 @@ describe('config API route', () => {
     // Re-import to pick up env changes
     const { GET } = await import('@/app/api/config/route');
     const response = await GET(mockRequest(headers) as Parameters<typeof GET>[0]);
-    return response.json();
+    const config = await response.json();
+    expect(isConfigData(config)).toBe(true);
+    return config;
   }
+
+  it('prevents caching host-specific runtime configuration', async () => {
+    const { GET } = await import('@/app/api/config/route');
+    const response = await GET(mockRequest() as Parameters<typeof GET>[0]);
+    expect(response.headers.get('Cache-Control')).toContain('no-store');
+    expect(response.headers.get('CDN-Cache-Control')).toBe('no-store');
+    expect(response.headers.get('Vary')).toBe('Host, X-Forwarded-Host');
+  });
 
   it('should return defaults when no env vars are set', async () => {
     const config = await getConfig();
@@ -92,6 +107,16 @@ describe('config API route', () => {
     expect(config.faviconUrl).toBe('/branding/Bulwark_Favicon.svg');
     expect(config.appLogoLightUrl).toBe('');
     expect(config.appLogoDarkUrl).toBe('');
+    expect(config.sourceCodeUrl).toBe('');
+  });
+
+  // The domain lists name every organisation served by this instance.
+  it('lists the domains of each server only when the login page picks servers by domain', async () => {
+    vi.stubEnv('JMAP_SERVERS', JSON.stringify([{ id: 'a', label: 'A', url: 'https://a.example', domains: ['acme.example'] }]));
+    expect((await getConfig()).jmapServers[0].domains).toEqual([]);
+
+    vi.stubEnv('JMAP_SERVER_AUTO_PICK_BY_DOMAIN', 'true');
+    expect((await getConfig()).jmapServers[0].domains).toEqual(['acme.example']);
   });
 
   it('should use runtime env vars over defaults', async () => {
@@ -136,6 +161,21 @@ describe('config API route', () => {
     expect(config.loginPrivacyPolicyUrl).toBe('https://acme.com/privacy');
     expect(config.loginWebsiteUrl).toBe('https://acme.com');
   });
+
+  it('publishes the source code URL for the About card (#1161)', async () => {
+    vi.stubEnv('SOURCE_CODE_URL', 'https://git.example.com/acme/webmail/tree/v1.2.3');
+
+    expect((await getConfig()).sourceCodeUrl).toBe('https://git.example.com/acme/webmail/tree/v1.2.3');
+  });
+
+  it.each(['javascript:alert(1)', 'data:text/html,x', '/relative/path', 'not a url'])(
+    'drops a source code URL that is not absolute http(s): %s',
+    async (value) => {
+      vi.stubEnv('SOURCE_CODE_URL', value);
+
+      expect((await getConfig()).sourceCodeUrl).toBe('');
+    },
+  );
 
   it('should handle partial login customization', async () => {
     vi.stubEnv('LOGIN_COMPANY_NAME', 'Partial Corp');

@@ -7,7 +7,7 @@ import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { UnifiedAccountClient } from '@/lib/unified-mailbox';
 import { jmapError } from '@/lib/jmap/jmap-error';
-import { threadKeyFor } from '@/lib/thread-utils';
+import { emailKeyFor, threadKeyFor } from '@/lib/thread-utils';
 
 // Regression coverage for issue #281: single-email actions performed in the
 // unified inbox must be routed to the *email's own account* client, not the
@@ -51,6 +51,11 @@ function makeEmail(overrides: Partial<Email> = {}): Email {
     mailboxIds: {},
     ...overrides,
   } as Email;
+}
+
+/** The selection key of a row stamped with `login` and `account` (emailKeyFor). */
+function keyOf(login: string, account: string, id: string): string {
+  return emailKeyFor({ id, sourceClientAccountId: login, sourceAccountId: account });
 }
 
 function makeClient() {
@@ -111,7 +116,7 @@ describe('unified-view single-email action routing (#281)', () => {
       },
       processingReadStatus: new Set(),
       selectedEmail: null,
-      selectedEmailIds: new Set(),
+      selectedEmailKeys: new Set(),
       unifiedScope: [],
       unifiedCounts: [],
       crossUnreadCount: 0,
@@ -177,7 +182,10 @@ describe('unified-view single-email action routing (#281)', () => {
         makeEmail({ id: 'a1', sourceClientAccountId: 'account-a', sourceAccountId: 'account-a', keywords: {}, mailboxIds: { inbox: true } }),
         makeEmail({ id: 'b1', sourceClientAccountId: 'account-b', sourceAccountId: 'account-b', keywords: {}, mailboxIds: { inbox: true } }),
       ],
-      selectedEmailIds: new Set(['a1', 'b1']),
+      selectedEmailKeys: new Set([
+        emailKeyFor({ id: 'a1', sourceClientAccountId: 'account-a', sourceAccountId: 'account-a' }),
+        emailKeyFor({ id: 'b1', sourceClientAccountId: 'account-b', sourceAccountId: 'account-b' }),
+      ]),
     });
 
     await useEmailStore.getState().batchMarkAsRead(activeClient, true);
@@ -196,6 +204,8 @@ describe('unified-view single-email action routing (#281)', () => {
       return error;
     };
 
+    const selection = [keyOf('account-a', 'account-a', 'a1'), keyOf('account-a', 'owner-x', 'x1'), keyOf('account-a', 'owner-x', 'x2')];
+
     beforeEach(() => {
       useEmailStore.setState({
         emails: [
@@ -203,7 +213,7 @@ describe('unified-view single-email action routing (#281)', () => {
           makeEmail({ id: 'x1', sourceClientAccountId: 'account-a', sourceAccountId: 'owner-x', keywords: {}, mailboxIds: { 'x-inbox': true } }),
           makeEmail({ id: 'x2', sourceClientAccountId: 'account-a', sourceAccountId: 'owner-x', keywords: {}, mailboxIds: { 'x-inbox': true } }),
         ],
-        selectedEmailIds: new Set(['a1', 'x1', 'x2']),
+        selectedEmailKeys: new Set(selection),
       });
     });
 
@@ -221,7 +231,7 @@ describe('unified-view single-email action routing (#281)', () => {
       expect([seen('a1'), seen('x1'), seen('x2')]).toEqual([true, true, undefined]);
       const s = useEmailStore.getState();
       expect(s.error).toBe('Failed to mark as read: forbidden');
-      expect(s.selectedEmailIds.size).toBe(0);
+      expect(s.selectedEmailKeys.size).toBe(0);
     });
 
     it('changes nothing and keeps the selection when every message is refused', async () => {
@@ -232,7 +242,7 @@ describe('unified-view single-email action routing (#281)', () => {
       expect([seen('a1'), seen('x1'), seen('x2')]).toEqual([undefined, undefined, undefined]);
       const s = useEmailStore.getState();
       expect(s.error).toBe('Failed to fetch');
-      expect(s.selectedEmailIds).toEqual(new Set(['a1', 'x1', 'x2']));
+      expect(s.selectedEmailKeys).toEqual(new Set(selection));
     });
   });
 
@@ -271,7 +281,9 @@ describe('unified-view single-email action routing (#281)', () => {
           mailboxIds: { 'x-inbox': true }, // BARE owner id (not namespaced)
         }),
       ],
-      selectedEmailIds: new Set(['email-shared']),
+      selectedEmailKeys: new Set([
+        emailKeyFor({ id: 'email-shared', sourceClientAccountId: 'account-a', sourceAccountId: 'owner-x' }),
+      ]),
     });
 
     await useEmailStore.getState().batchDelete(activeClient, true);
@@ -317,7 +329,9 @@ describe('unified-view single-email action routing (#281)', () => {
           mailboxIds: { 'x-inbox': true }, // BARE owner id (not namespaced)
         }),
       ],
-      selectedEmailIds: new Set(['email-shared']),
+      selectedEmailKeys: new Set([
+        emailKeyFor({ id: 'email-shared', sourceClientAccountId: 'account-a', sourceAccountId: 'owner-x' }),
+      ]),
     });
 
     // Seed the badges from the scope (also stores unifiedScope).
@@ -424,7 +438,10 @@ describe('unified-view batch actions with two logins that share account ids', ()
         makeEmail({ id: 't10', sourceClientAccountId: 'userb@v10', sourceAccountId: 'c', mailboxIds: { a: true } }),
       ],
       selectedEmail: null,
-      selectedEmailIds: new Set(['m016', 'm10', 't016', 't10']),
+      selectedEmailKeys: new Set([
+        keyOf('userb@v016', 'e', 'm016'), keyOf('userb@v10', 'e', 'm10'),
+        keyOf('userb@v016', 'c', 't016'), keyOf('userb@v10', 'c', 't10'),
+      ]),
       processingReadStatus: new Set(),
       unifiedScope: [],
       unifiedCounts: [],
@@ -506,10 +523,13 @@ describe('unified-view batch actions with two logins that share account ids', ()
       crossAccountMoveEmails: vi.fn(async (bySource: Map<string, string[]>) => {
         const [[login, ids]] = [...bySource];
         if (login === 'userb@v10' && ids.includes('m10')) throw new Error('Failed to move email: Failed to import email');
-        useEmailStore.setState((s) => ({
-          emails: s.emails.filter((e) => !ids.includes(e.id)),
-          selectedEmailIds: new Set([...s.selectedEmailIds].filter((id) => !ids.includes(id))),
-        }));
+        useEmailStore.setState((s) => {
+          const gone = new Set(s.emails.filter((e) => e.sourceClientAccountId === login && ids.includes(e.id)).map(emailKeyFor));
+          return {
+            emails: s.emails.filter((e) => !gone.has(emailKeyFor(e))),
+            selectedEmailKeys: new Set([...s.selectedEmailKeys].filter((key) => !gone.has(key))),
+          };
+        });
       }) as never,
     });
 
@@ -517,7 +537,7 @@ describe('unified-view batch actions with two logins that share account ids', ()
 
     const s = useEmailStore.getState();
     expect(listed()).toEqual(['userb@v016/e/m016', 'userb@v10/e/m10']);
-    expect(s.selectedEmailIds).toEqual(new Set(['m016', 'm10']));
+    expect(s.selectedEmailKeys).toEqual(new Set([keyOf('userb@v016', 'e', 'm016'), keyOf('userb@v10', 'e', 'm10')]));
     expect(s.error).toBe('Failed to move 2 emails; first error: Failed to move emails: forbidden');
   });
 
@@ -570,7 +590,7 @@ describe('unified-view batch actions with two logins that share account ids', ()
     expect(archiveCalls(client016)).toEqual([[['m016'], 'f', 'single', 'e'], [['t016'], 'g', 'single', 'c']]);
     expect(archiveCalls(client10)).toEqual([[['m10'], 'h', 'single', 'e'], [['t10'], 'i', 'single', 'c']]);
     expect(listed()).toEqual([]);
-    expect(useEmailStore.getState().selectedEmailIds.size).toBe(0);
+    expect(useEmailStore.getState().selectedEmailKeys.size).toBe(0);
   });
 
   it('archives in a tag view by each message\'s account, not by the group folder still selected underneath', async () => {
@@ -593,20 +613,20 @@ describe('unified-view batch actions with two logins that share account ids', ()
 
     const s = useEmailStore.getState();
     expect(listed()).toEqual(['userb@v10/c/t10']);
-    expect(s.selectedEmailIds).toEqual(new Set(['t10']));
+    expect(s.selectedEmailKeys).toEqual(new Set([keyOf('userb@v10', 'c', 't10')]));
     expect(s.error).toMatch(/archive mailbox not found/i);
   });
 
   it('rejects with ArchiveMailboxNotFoundError when no message could be archived', async () => {
     useEmailStore.setState({
       accountMailboxes: {},
-      selectedEmailIds: new Set(['m10']),
+      selectedEmailKeys: new Set([keyOf('userb@v10', 'e', 'm10')]),
     });
 
     await expect(useEmailStore.getState().batchArchive(client016)).rejects.toBeInstanceOf(ArchiveMailboxNotFoundError);
     expect(callsOf(client10.batchArchiveEmails)).toEqual([]);
     expect(listed()).toContain('userb@v10/e/m10');
-    expect(useEmailStore.getState().selectedEmailIds).toEqual(new Set(['m10']));
+    expect(useEmailStore.getState().selectedEmailKeys).toEqual(new Set([keyOf('userb@v10', 'e', 'm10')]));
   });
 
   it('marks each message as spam in its own login and account', async () => {
@@ -729,7 +749,7 @@ describe('lists that mix accounts, without the unified views\' cache and after b
       threadEmailsCache: new Map(),
       expandedThreadIds: new Set(),
       selectedEmail: null,
-      selectedEmailIds: new Set(['m1', 'm2']),
+      selectedEmailKeys: new Set([keyOf('usera@v016', 'd', 'm1'), keyOf('usera@v016', 'd', 'm2')]),
       error: null,
       isLoading: false,
       crossAccountMoveEmails: vi.fn().mockResolvedValue(undefined) as never,
@@ -781,7 +801,7 @@ describe('lists that mix accounts, without the unified views\' cache and after b
         selectedKeyword: 'work',
         accountMailboxes: { 'usera@v10': own10, 'usera@v016|d': own016, d: own016 },
         emails: [row('m10', 'usera@v10', 'd')],
-        selectedEmailIds: new Set(['m10']),
+        selectedEmailKeys: new Set([keyOf('usera@v10', 'd', 'm10')]),
       });
     });
 
@@ -809,7 +829,7 @@ describe('lists that mix accounts, without the unified views\' cache and after b
       selectedMailbox: '__unified_inbox',
       viewingAccountId: 'usera@v10',
       emails: [row('m016', 'usera@v016', 'd'), row('m10', 'usera@v10', 'd')],
-      selectedEmailIds: new Set(['m016', 'm10']),
+      selectedEmailKeys: new Set([keyOf('usera@v016', 'd', 'm016'), keyOf('usera@v10', 'd', 'm10')]),
     });
 
     await useEmailStore.getState().batchMoveToMailbox(client016, 'f');
@@ -828,7 +848,7 @@ describe('lists that mix accounts, without the unified views\' cache and after b
       unifiedRole: 'inbox',
       selectedMailbox: '__unified_inbox',
       emails: [own, row('x', 'usera@v016', 'c', { mailboxIds: { 'c:a': true } })],
-      selectedEmailIds: new Set(),
+      selectedEmailKeys: new Set(),
     });
 
     await useEmailStore.getState().moveEmailsToMailbox(client016, ['x'], 'f', 'usera@v016', [own]);
@@ -853,7 +873,7 @@ describe('lists that mix accounts, without the unified views\' cache and after b
         emails: [row('other', 'usera@v016', 'c', { threadId: 'tt', mailboxIds: { 'c:a': true } })],
         threadEmailsCache: new Map([[teamThread, [member]]]),
         expandedThreadIds: new Set([teamThread]),
-        selectedEmailIds: new Set(['eaaaaab']),
+        selectedEmailKeys: new Set([emailKeyFor(member)]),
       });
     });
 
@@ -872,12 +892,12 @@ describe('lists that mix accounts, without the unified views\' cache and after b
     });
 
     it('reports a selected id found neither listed nor in a thread, and writes nothing for it', async () => {
-      useEmailStore.setState({ selectedEmailIds: new Set(['gone']) });
+      useEmailStore.setState({ selectedEmailKeys: new Set([keyOf('usera@v016', 'c', 'gone')]) });
 
       await expect(useEmailStore.getState().batchMarkAsSpam(client016, ['gone'])).rejects.toThrow(/not found/);
 
       expect(callsOf(client016.markAsSpam)).toEqual([]);
-      expect(useEmailStore.getState().selectedEmailIds).toEqual(new Set(['gone']));
+      expect(useEmailStore.getState().selectedEmailKeys).toEqual(new Set([keyOf('usera@v016', 'c', 'gone')]));
     });
 
     // The id with no account went to the account the list is reached
@@ -918,7 +938,7 @@ describe('lists that mix accounts, without the unified views\' cache and after b
     });
 
     it('reports an id found neither listed nor in an expanded thread to every batch action, writing nothing', async () => {
-      useEmailStore.setState({ selectedEmailIds: new Set(['gone']) });
+      useEmailStore.setState({ selectedEmailKeys: new Set([keyOf('usera@v016', 'c', 'gone')]) });
       const error = () => useEmailStore.getState().error;
 
       await useEmailStore.getState().batchMarkAsRead(client016, true);
@@ -933,19 +953,19 @@ describe('lists that mix accounts, without the unified views\' cache and after b
         expect(callsOf(write)).toEqual([]);
       }
       expect(callsOf(useEmailStore.getState().crossAccountMoveEmails)).toEqual([]);
-      expect(useEmailStore.getState().selectedEmailIds).toEqual(new Set(['gone']));
+      expect(useEmailStore.getState().selectedEmailKeys).toEqual(new Set([keyOf('usera@v016', 'c', 'gone')]));
     });
 
-    // Collapsed, the thread is off screen, and its members with it; a
-    // listed row can still share a member's id.
-    it('leaves the members of a thread no longer expanded alone', async () => {
+    // A listed row can share a thread member's id; the selection is keyed by
+    // account, so ticking the row leaves the member alone.
+    it('acts on a ticked row, not on a thread member with the same id', async () => {
       const own = row('eaaaaab', 'usera@v016', 'd');
-      useEmailStore.setState({ emails: [own], expandedThreadIds: new Set() });
+      useEmailStore.setState({ emails: [own], selectedEmailKeys: new Set([emailKeyFor(own)]) });
 
       await useEmailStore.getState().batchMarkAsSpam(client016, ['eaaaaab']);
       expect(callsOf(client016.markAsSpam)).toEqual([['eaaaaab', 'd', false]]);
 
-      useEmailStore.setState({ emails: [own], selectedEmailIds: new Set(['eaaaaab']) });
+      useEmailStore.setState({ emails: [own], selectedEmailKeys: new Set([emailKeyFor(own)]) });
       await useEmailStore.getState().batchDelete(client016, false);
       expect(callsOf(client016.batchMoveEmails)).toEqual([[['eaaaaab'], 'b', 'd', false]]);
     });

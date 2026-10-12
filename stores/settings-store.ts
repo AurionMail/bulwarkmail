@@ -30,6 +30,41 @@ let syncServerUrl: string | null = null;
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 let pendingSync: SettingsSyncJob | null = null;
 let isLoadingFromServer = false;
+// Set by loadFromServer when this browser holds templates (or deletions) the
+// server blob lacks; enableSync then pushes once instead of waiting for the
+// next unrelated settings change.
+let pushTemplatesAfterLoad = false;
+// Wired up in the window-only init block below; null during SSR.
+let requestSync: (() => void) | null = null;
+// Account whose settings could not be loaded while this browser still held
+// another account's. enableSync leaves sync off for it, or the next change
+// would push the other account's settings under its name (#1185).
+let blockedSyncAccountId: string | null = null;
+
+// settings-storage is one store for the whole browser. This key names the
+// account whose server copy it currently mirrors, so a different account
+// signing in can tell the local settings are not its own (#1185). Unset in
+// browsers that never synced, where the local settings are the user's own
+// device settings and the first sign-in adopts them.
+const SETTINGS_OWNER_KEY = 'settings-sync-owner';
+
+function readSettingsOwner(): string | null {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage.getItem(SETTINGS_OWNER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeSettingsOwner(accountId: string | null): void {
+  try {
+    if (typeof window === 'undefined') return;
+    if (accountId) window.localStorage.setItem(SETTINGS_OWNER_KEY, accountId);
+    else window.localStorage.removeItem(SETTINGS_OWNER_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 const SYNC_DEBOUNCE_MS = 2000;
 
@@ -69,6 +104,32 @@ export function registerTemplateSyncBridge(
   subscribe(() => onTemplateStoreChange?.());
 }
 
+/** Order-independent fingerprint of a template list plus its tombstones. */
+function templateStateKey(templates: unknown, deletedTemplateIds: unknown): string {
+  const list = Array.isArray(templates)
+    ? templates
+        .filter((t): t is { id: string; updatedAt?: unknown } =>
+          typeof t === 'object' && t !== null && typeof (t as { id?: unknown }).id === 'string')
+        .map((t) => `${t.id}@${String(t.updatedAt)}`)
+        .sort()
+    : [];
+  const tombstones = isPlainRecord(deletedTemplateIds) ? Object.keys(deletedTemplateIds).sort() : [];
+  return JSON.stringify([list, tombstones]);
+}
+
+/**
+ * Whether the local template state differs from what a server blob carries,
+ * so the blob needs a push. False when there is nothing local to push.
+ */
+function localTemplatesAhead(serverSettings: Record<string, unknown> | null): boolean {
+  const local = templateSyncBridge?.getSyncedState();
+  if (!local) return false;
+  if (local.templates.length === 0 && Object.keys(local.deletedTemplateIds).length === 0) return false;
+  if (!serverSettings) return true;
+  return templateStateKey(local.templates, local.deletedTemplateIds) !==
+    templateStateKey(serverSettings.templates, serverSettings.deletedTemplateIds);
+}
+
 async function syncSettingsJob(job: SettingsSyncJob, retries = 1): Promise<void> {
   syncLog('Syncing settings to server for', job.username);
   const res = await apiFetch('/api/settings', {
@@ -97,6 +158,13 @@ async function syncSettingsJob(job: SettingsSyncJob, retries = 1): Promise<void>
 
 export type FontSize = 'small' | 'medium' | 'large';
 export type Density = 'extra-compact' | 'compact' | 'regular' | 'comfortable';
+/**
+ * Which interface layout drives the shell's geometry. `default` is the app's
+ * own layout; `mountain-view` is an optional alternative arrangement of the
+ * chrome (search-first top bar, flat 256px navigation rail, pill Compose,
+ * docked compose window) that keeps the theme's icons, type and palette.
+ */
+export type InterfaceLayout = 'default' | 'mountain-view';
 /** @deprecated Use Density instead */
 export type ListDensity = Density;
 export type DeleteAction = 'trash' | 'trash-and-read' | 'permanent';
@@ -126,6 +194,23 @@ export type ArchiveMode = 'single' | 'year' | 'month';
 export type MailLayout = 'split' | 'focus' | 'horizontal';
 
 /**
+ * The mail layout the mail view actually uses.
+ *
+ * Mountain View shows the list at full width and opens a conversation in its
+ * place, which is the `focus` layout. Rather than writing `focus` into the
+ * user's saved `mailLayout`, the layout in force is derived: `focus` under
+ * Mountain View, the saved value otherwise. Switching back to the default
+ * layout therefore restores whatever the user had chosen.
+ *
+ * Read the layout through this (or `useEffectiveMailLayout`) wherever it
+ * decides what is drawn; read `mailLayout` itself only where the saved
+ * preference is being shown or edited.
+ */
+export function effectiveMailLayout(mailLayout: MailLayout, interfaceLayout: InterfaceLayout): MailLayout {
+  return interfaceLayout === 'mountain-view' ? 'focus' : mailLayout;
+}
+
+/**
  * Spacing around a message body in the reader.
  * - 'auto'  : add a gutter unless the email paints its own full-bleed background
  * - 'always': always add the gutter
@@ -146,6 +231,23 @@ export type ProtocolOpenMode = 'active-session' | 'new-tab';
  * import.
  */
 const DEVICE_LOCAL_SETTING_KEYS = new Set<string>(['proInterface']);
+
+/**
+ * Settings that shape views spanning every logged-in account. They are synced
+ * with the active account's settings like everything else, but once a device
+ * holds several logins they are that device's choice: switching to another
+ * account must not turn the merged mailbox off just because that account's
+ * stored settings predate it. A first login on a device still takes them from
+ * the server.
+ */
+const CROSS_ACCOUNT_VIEW_KEYS = new Set<string>([
+  'enableUnifiedMailbox',
+  'includeGroupInUnified',
+  'unifiedCrossAccount',
+  'enableCrossUnreadView',
+  'enableCrossStarredView',
+  'enableCrossAllView',
+]);
 
 export type HoverAction = 'delete' | 'star' | 'markRead' | 'archive' | 'tag' | 'spam';
 /** Action fired by a mobile list-row swipe. 'none' disables that direction. */
@@ -304,6 +406,7 @@ interface SettingsState {
   // Appearance
   fontSize: FontSize;
   density: Density;
+  interfaceLayout: InterfaceLayout;
   animationsEnabled: boolean;
   // Message-list ordering (#718): prioritised sort levels mapped onto the JMAP
   // Email/query sort; empty = chronological. Scope: Inbox only or every folder.
@@ -324,6 +427,7 @@ interface SettingsState {
   returnToListAfterAction: boolean; // After delete / mark-unread in an open message, return to the list instead of opening the next message
   clearSearchOnFolderChange: boolean; // Reset the search query + advanced filters when switching folders, instead of re-running the search in the newly selected folder (#553 keeps it applied when this is off)
   showPreview: boolean;
+  showVerificationCodes: boolean; // Offer the one-time code of a sign-in mail as a copy chip in the list and the reader
   mailLayout: MailLayout;
   emailsPerPage: number;
   externalContentPolicy: ExternalContentPolicy;
@@ -372,6 +476,14 @@ interface SettingsState {
   /** Scroll continuously through months/weeks/days (#759) instead of one period at a time. */
   calendarFreeScroll: boolean;
   calendarHoverPreview: CalendarHoverPreview;
+  /** Draw only calendarDayStartHour..calendarDayEndHour in the day and week views (#1164). */
+  calendarLimitHours: boolean;
+  calendarDayStartHour: number;
+  calendarDayEndHour: number;
+  /** Leave the days missing from calendarWorkingDays out of the week view (#1164). */
+  calendarHideNonWorkingDays: boolean;
+  /** Weekdays as `Date.getDay` numbers (0 = Sunday). */
+  calendarWorkingDays: number[];
 
   // Calendar Tasks
   enableCalendarTasks: boolean;
@@ -456,6 +568,7 @@ interface SettingsState {
   // Sidebar
   colorfulSidebarIcons: boolean; // Tint folder icons by role (inbox blue, junk red, etc.)
   tintListRowsByTag: boolean; // Tint mail-list rows by the first tag color
+  tintListRowsByAccount: boolean; // In the unified view, tint rows by account colour instead of showing the account dot
   showFolderTotalCount: boolean; // Show total message count next to folders/tags (alongside unread)
 
   // Folders
@@ -471,6 +584,9 @@ interface SettingsState {
 
   // Ask for confirmation when sending a message with an empty subject
   emptySubjectWarningEnabled: boolean;
+
+  // "@" in the message body offers the recipients and inserts a first name
+  recipientMentionsEnabled: boolean;
 
   // Hide inline images (images referenced by cid in the HTML body) from the
   // attachment list shown above the message body.
@@ -511,7 +627,7 @@ interface SettingsState {
   ) => void;
   resetToDefaults: () => void;
   exportSettings: () => string;
-  importSettings: (json: string, opts?: { serverAccountId?: string }) => boolean;
+  importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean }) => boolean;
 
   // Folder icons
   setFolderIcon: (mailboxId: string, icon: string) => void;
@@ -545,12 +661,19 @@ interface SettingsState {
   flushSync: () => Promise<void>;
   disableSync: () => void;
   loadFromServer: (username: string, serverUrl: string) => Promise<boolean>;
+  /**
+   * Called on a full sign-out: drops the settings and templates this browser
+   * mirrored from an account's server copy, so the next person to sign in
+   * does not start from them (#1185). Device-only settings are kept.
+   */
+  forgetSyncedSettings: () => void;
 }
 
 const DEFAULT_SETTINGS = {
   // Appearance
   fontSize: 'medium' as FontSize,
   density: 'regular' as Density,
+  interfaceLayout: 'default' as InterfaceLayout,
   animationsEnabled: true,
   messageListOrder: [] as SortLevel[],
   messageListOrderScope: 'inbox' as MessageListOrderScope,
@@ -569,6 +692,7 @@ const DEFAULT_SETTINGS = {
   returnToListAfterAction: true,
   clearSearchOnFolderChange: false,
   showPreview: true,
+  showVerificationCodes: true,
   mailLayout: 'split' as MailLayout,
   emailsPerPage: 50,
   externalContentPolicy: 'ask' as ExternalContentPolicy,
@@ -612,6 +736,11 @@ const DEFAULT_SETTINGS = {
   showWeekNumbers: false,
   calendarFreeScroll: true,
   calendarHoverPreview: 'delay-500ms' as CalendarHoverPreview,
+  calendarLimitHours: true,
+  calendarDayStartHour: 8,
+  calendarDayEndHour: 20,
+  calendarHideNonWorkingDays: false,
+  calendarWorkingDays: [1, 2, 3, 4, 5] as number[],
 
   // Calendar Tasks
   enableCalendarTasks: false,
@@ -671,6 +800,7 @@ const DEFAULT_SETTINGS = {
   // Sidebar
   colorfulSidebarIcons: true,
   tintListRowsByTag: true,
+  tintListRowsByAccount: false,
   showFolderTotalCount: true,
 
   // Folders
@@ -712,6 +842,7 @@ const DEFAULT_SETTINGS = {
   ] as string[],
 
   emptySubjectWarningEnabled: true,
+  recipientMentionsEnabled: true,
 
   hideInlineImageAttachments: true,
   attachmentImagePreviewsEnabled: true,
@@ -751,7 +882,31 @@ const DEFAULT_SETTINGS = {
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      /**
+       * Back to defaults for everything an account's server copy holds:
+       * settings (device-only ones kept) and templates. Never pushed, since
+       * sync may still point at the account the state came from.
+       */
+      const resetSyncedState = (opts?: { keepCrossAccountViews?: boolean }) => {
+        const defaults: Record<string, unknown> = { ...DEFAULT_SETTINGS };
+        for (const key of DEVICE_LOCAL_SETTING_KEYS) delete defaults[key];
+        if (opts?.keepCrossAccountViews) for (const key of CROSS_ACCOUNT_VIEW_KEYS) delete defaults[key];
+        const wasLoading = isLoadingFromServer;
+        isLoadingFromServer = true;
+        try {
+          set(defaults as Partial<SettingsState>);
+          templateSyncBridge?.applySyncedState([], {}, { merge: false });
+        } finally {
+          isLoadingFromServer = wasLoading;
+        }
+        applyFontSize(DEFAULT_SETTINGS.fontSize);
+        applyDensity(DEFAULT_SETTINGS.density, DEFAULT_SETTINGS.interfaceLayout);
+        applyInterfaceLayout(DEFAULT_SETTINGS.interfaceLayout, DEFAULT_SETTINGS.density);
+        applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
+      };
+
+      return {
       ...DEFAULT_SETTINGS,
 
       updateSetting: (key, value) => {
@@ -764,7 +919,13 @@ export const useSettingsStore = create<SettingsState>()(
 
         // Apply density to document root
         if (key === 'density') {
-          applyDensity(value as Density);
+          applyDensity(value as Density, get().interfaceLayout);
+        }
+
+        // Swap the shell geometry. Mountain View's list-then-conversation
+        // layout is not written into `mailLayout`: see effectiveMailLayout().
+        if (key === 'interfaceLayout') {
+          applyInterfaceLayout(value as InterfaceLayout, get().density);
         }
 
         // Apply animations to document root
@@ -776,7 +937,8 @@ export const useSettingsStore = create<SettingsState>()(
       resetToDefaults: () => {
         set(DEFAULT_SETTINGS);
         applyFontSize(DEFAULT_SETTINGS.fontSize);
-        applyDensity(DEFAULT_SETTINGS.density);
+        applyDensity(DEFAULT_SETTINGS.density, DEFAULT_SETTINGS.interfaceLayout);
+        applyInterfaceLayout(DEFAULT_SETTINGS.interfaceLayout, DEFAULT_SETTINGS.density);
         applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
       },
 
@@ -786,6 +948,7 @@ export const useSettingsStore = create<SettingsState>()(
         const settings = {
           fontSize: state.fontSize,
           density: state.density,
+          interfaceLayout: state.interfaceLayout,
           animationsEnabled: state.animationsEnabled,
           messageListOrder: state.messageListOrder,
           messageListOrderScope: state.messageListOrderScope,
@@ -799,6 +962,7 @@ export const useSettingsStore = create<SettingsState>()(
           returnToListAfterAction: state.returnToListAfterAction,
           clearSearchOnFolderChange: state.clearSearchOnFolderChange,
           showPreview: state.showPreview,
+          showVerificationCodes: state.showVerificationCodes,
           mailLayout: state.mailLayout,
           emailsPerPage: state.emailsPerPage,
           externalContentPolicy: state.externalContentPolicy,
@@ -849,6 +1013,11 @@ export const useSettingsStore = create<SettingsState>()(
           showWeekNumbers: state.showWeekNumbers,
           calendarFreeScroll: state.calendarFreeScroll,
           calendarHoverPreview: state.calendarHoverPreview,
+          calendarLimitHours: state.calendarLimitHours,
+          calendarDayStartHour: state.calendarDayStartHour,
+          calendarDayEndHour: state.calendarDayEndHour,
+          calendarHideNonWorkingDays: state.calendarHideNonWorkingDays,
+          calendarWorkingDays: state.calendarWorkingDays,
           toolbarPosition: state.toolbarPosition,
           hideAccountSwitcher: state.hideAccountSwitcher,
           showRailAccountList: state.showRailAccountList,
@@ -867,6 +1036,7 @@ export const useSettingsStore = create<SettingsState>()(
           faviconUnreadBadge: state.faviconUnreadBadge,
           colorfulSidebarIcons: state.colorfulSidebarIcons,
           tintListRowsByTag: state.tintListRowsByTag,
+          tintListRowsByAccount: state.tintListRowsByAccount,
           showFolderTotalCount: state.showFolderTotalCount,
           folderIcons: state.folderIcons,
           emailKeywords: state.emailKeywords,
@@ -874,6 +1044,7 @@ export const useSettingsStore = create<SettingsState>()(
           attachmentReminderEnabled: state.attachmentReminderEnabled,
           attachmentReminderKeywords: state.attachmentReminderKeywords,
           emptySubjectWarningEnabled: state.emptySubjectWarningEnabled,
+          recipientMentionsEnabled: state.recipientMentionsEnabled,
           hideInlineImageAttachments: state.hideInlineImageAttachments,
           attachmentImagePreviewsEnabled: state.attachmentImagePreviewsEnabled,
           sidebarApps: state.sidebarApps,
@@ -899,7 +1070,7 @@ export const useSettingsStore = create<SettingsState>()(
         return JSON.stringify(settings, null, 2);
       },
 
-      importSettings: (json: string, opts?: { serverAccountId?: string }) => {
+      importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean }) => {
         try {
           const settings = JSON.parse(json);
 
@@ -951,6 +1122,9 @@ export const useSettingsStore = create<SettingsState>()(
               if (DEVICE_LOCAL_SETTING_KEYS.has(key)) {
                 return;
               }
+              if (opts?.keepCrossAccountViews && CROSS_ACCOUNT_VIEW_KEYS.has(key)) {
+                return;
+              }
               // Per-account maps (accountId -> value) live in every account's
               // synced settings blob, so a per-account server load must NOT
               // replace the whole map - each account's server is authoritative
@@ -975,7 +1149,8 @@ export const useSettingsStore = create<SettingsState>()(
 
           // Apply visual settings
           applyFontSize(get().fontSize);
-          applyDensity(get().density);
+          applyDensity(get().density, get().interfaceLayout);
+          applyInterfaceLayout(get().interfaceLayout, get().density);
           applyAnimations(get().animationsEnabled);
 
           // Apply cross-store settings
@@ -1114,10 +1289,20 @@ export const useSettingsStore = create<SettingsState>()(
 
       // Settings sync methods
       enableSync: (username: string, serverUrl: string) => {
+        const accountId = generateAccountId(username, serverUrl);
+        if (blockedSyncAccountId === accountId) {
+          syncWarn('Settings sync stays off for', username, '- its settings could not be loaded');
+          return;
+        }
+        writeSettingsOwner(accountId);
         syncUsername = username;
         syncServerUrl = serverUrl;
         syncEnabled = true;
         syncLog('Settings sync enabled for', username);
+        if (pushTemplatesAfterLoad) {
+          pushTemplatesAfterLoad = false;
+          if (!get().settingsSyncDisabled) requestSync?.();
+        }
       },
 
       flushSync: async () => {
@@ -1143,8 +1328,24 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       loadFromServer: async (username: string, serverUrl: string) => {
+        const accountId = generateAccountId(username, serverUrl);
+        const owner = readSettingsOwner();
+        const heldByOther = owner !== null && owner !== accountId;
+        // The local settings belong to another account and this one's could
+        // not be read: show defaults and keep sync off, rather than showing
+        // the other account's settings or pushing them under this name.
+        const failWithoutForeignState = () => {
+          if (heldByOther) {
+            resetSyncedState();
+            writeSettingsOwner(null);
+            blockedSyncAccountId = accountId;
+          }
+          return false;
+        };
+        blockedSyncAccountId = null;
         try {
           syncLog('Loading settings from server for', username);
+          pushTemplatesAfterLoad = false;
           const res = await apiFetch('/api/settings', {
             headers: {
               'x-settings-username': username,
@@ -1154,21 +1355,37 @@ export const useSettingsStore = create<SettingsState>()(
           if (!res.ok) {
             const body = await res.json().catch(() => ({}));
             syncLog('Settings fetch failed:', body.error || `status ${res.status}`);
-            return false;
+            return failWithoutForeignState();
           }
           const { settings } = await res.json();
+          // With several logins on this device, the views spanning them stay
+          // as the device has them (see CROSS_ACCOUNT_VIEW_KEYS).
+          const { useAccountStore } = await import('./account-store');
+          const keepCrossAccountViews = useAccountStore.getState().accounts.length > 1;
           if (!settings) {
             syncLog('No server settings found yet');
+            // A new account starts from defaults, not from whatever the
+            // previous account left in this browser (#1185).
+            if (heldByOther) resetSyncedState({ keepCrossAccountViews });
+            writeSettingsOwner(accountId);
+            pushTemplatesAfterLoad = localTemplatesAhead(null);
             return false;
           }
           if (settings && typeof settings === 'object') {
+            // Importing merges templates and leaves keys the blob lacks as
+            // they are, so another account's state would carry over into
+            // this one and be pushed back to its server copy.
+            if (heldByOther) resetSyncedState({ keepCrossAccountViews });
             isLoadingFromServer = true;
             // Merge (not replace) per-account maps for the account being loaded,
             // so multi-account logins don't clobber each other by login order.
             get().importSettings(JSON.stringify(settings), {
-              serverAccountId: generateAccountId(username, serverUrl),
+              serverAccountId: accountId,
+              keepCrossAccountViews,
             });
             isLoadingFromServer = false;
+            writeSettingsOwner(accountId);
+            pushTemplatesAfterLoad = localTemplatesAhead(settings);
             syncLog('Settings loaded from server successfully');
             // The per-account preferred sender identity (#507) is re-applied by
             // applyPreferredIdentity() in auth-store, invoked from the
@@ -1180,10 +1397,19 @@ export const useSettingsStore = create<SettingsState>()(
         } catch (error) {
           syncError('Failed to load settings from server:', error);
           isLoadingFromServer = false;
-          return false;
+          return failWithoutForeignState();
         }
       },
-    }),
+
+      forgetSyncedSettings: () => {
+        // Never synced: the local settings are this device's own and exist
+        // nowhere else. Synced but opted out: they were never uploaded either.
+        if (readSettingsOwner() === null || get().settingsSyncDisabled) return;
+        resetSyncedState();
+        writeSettingsOwner(null);
+      },
+      };
+    },
     {
       name: 'settings-storage',
       version: 7,
@@ -1205,7 +1431,8 @@ export const useSettingsStore = create<SettingsState>()(
               state.messageListOrderScope = 'inbox';
             }
             applyFontSize(state.fontSize);
-            applyDensity(state.density);
+            applyDensity(state.density, state.interfaceLayout);
+            applyInterfaceLayout(state.interfaceLayout, state.density);
             applyAnimations(state.animationsEnabled);
           }
         };
@@ -1293,50 +1520,85 @@ function applyFontSize(size: FontSize) {
   root.style.setProperty('--font-size-base', sizeMap[size]);
 }
 
-function applyDensity(density: Density) {
+type DensityVars = Record<string, string>;
+
+const DEFAULT_DENSITY: Record<Density, DensityVars> = {
+  'extra-compact': {
+    '--list-item-height': 'auto',
+    '--density-item-py': '2px',
+    '--density-item-gap': '6px',
+    '--density-header-py': '4px',
+    '--density-card-p': '8px',
+    '--density-sidebar-py': '0px',
+  },
+  compact: {
+    '--list-item-height': 'auto',
+    '--density-item-py': '4px',
+    '--density-item-gap': '8px',
+    '--density-header-py': '6px',
+    '--density-card-p': '10px',
+    '--density-sidebar-py': '1px',
+  },
+  regular: {
+    '--list-item-height': '48px',
+    '--density-item-py': '12px',
+    '--density-item-gap': '12px',
+    '--density-header-py': '12px',
+    '--density-card-p': '16px',
+    '--density-sidebar-py': '4px',
+  },
+  comfortable: {
+    '--list-item-height': '64px',
+    '--density-item-py': '16px',
+    '--density-item-gap': '16px',
+    '--density-header-py': '16px',
+    '--density-card-p': '20px',
+    '--density-sidebar-py': '6px',
+  },
+};
+
+/**
+ * Mountain View's rows come in three rhythms - 32, 40 and 48 pixels - and the
+ * app offers four densities. The four are laid over that scale: `compact`,
+ * `regular` and `comfortable` land on the three exactly, and `extra-compact`
+ * continues the series a step below, so every density still does something.
+ *
+ * Only the vertical rhythm is restated. Everything else a density touches -
+ * gaps, card padding, the sidebar's own row padding - keeps its default value;
+ * a navigation row is already pinned to 32px by the layout's own token.
+ */
+const MOUNTAIN_VIEW_DENSITY: Record<Density, DensityVars> = {
+  'extra-compact': { ...DEFAULT_DENSITY['extra-compact'], '--list-item-height': '28px', '--density-item-py': '4px' },
+  compact: { ...DEFAULT_DENSITY.compact, '--list-item-height': '32px', '--density-item-py': '6px' },
+  regular: { ...DEFAULT_DENSITY.regular, '--list-item-height': '40px', '--density-item-py': '10px' },
+  comfortable: { ...DEFAULT_DENSITY.comfortable, '--list-item-height': '48px', '--density-item-py': '14px' },
+};
+
+export function densityVarsFor(density: Density, layout: InterfaceLayout): DensityVars {
+  return (layout === 'mountain-view' ? MOUNTAIN_VIEW_DENSITY : DEFAULT_DENSITY)[density];
+}
+
+function applyDensity(density: Density, layout: InterfaceLayout) {
   if (typeof document === 'undefined') return;
 
   const root = document.documentElement;
-
-  const densityValues = {
-    'extra-compact': {
-      '--list-item-height': 'auto',
-      '--density-item-py': '2px',
-      '--density-item-gap': '6px',
-      '--density-header-py': '4px',
-      '--density-card-p': '8px',
-      '--density-sidebar-py': '0px',
-    },
-    compact: {
-      '--list-item-height': 'auto',
-      '--density-item-py': '4px',
-      '--density-item-gap': '8px',
-      '--density-header-py': '6px',
-      '--density-card-p': '10px',
-      '--density-sidebar-py': '1px',
-    },
-    regular: {
-      '--list-item-height': '48px',
-      '--density-item-py': '12px',
-      '--density-item-gap': '12px',
-      '--density-header-py': '12px',
-      '--density-card-p': '16px',
-      '--density-sidebar-py': '4px',
-    },
-    comfortable: {
-      '--list-item-height': '64px',
-      '--density-item-py': '16px',
-      '--density-item-gap': '16px',
-      '--density-header-py': '16px',
-      '--density-card-p': '20px',
-      '--density-sidebar-py': '6px',
-    },
-  };
-
-  const values = densityValues[density];
-  for (const [prop, val] of Object.entries(values)) {
+  for (const [prop, val] of Object.entries(densityVarsFor(density, layout))) {
     root.style.setProperty(prop, val);
   }
+}
+
+/**
+ * The interface layout is a single attribute on <html>; every geometry
+ * override lives in the `[data-interface-layout="mountain-view"]` block in
+ * globals.css, so nothing has to re-render for the shell to change shape.
+ */
+function applyInterfaceLayout(layout: InterfaceLayout, density: Density) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset.interfaceLayout = layout;
+  // The row rhythm depends on the layout as much as on the density, and it is
+  // written as an inline custom property, which no stylesheet rule could
+  // override. Re-applying it here is what keeps the two in step.
+  applyDensity(density, layout);
 }
 
 function applyAnimations(enabled: boolean) {
@@ -1345,8 +1607,13 @@ function applyAnimations(enabled: boolean) {
   const root = document.documentElement;
   if (enabled) {
     root.style.removeProperty('--transition-duration');
+    delete root.dataset.animations;
   } else {
     root.style.setProperty('--transition-duration', '0s');
+    // The variable alone reached nothing that animates: the panes slide on
+    // Tailwind transitions and the menus on keyframes. globals.css stops
+    // them all under this attribute, as it does for prefers-reduced-motion.
+    root.dataset.animations = 'off';
   }
 }
 
@@ -1354,7 +1621,8 @@ function applyAnimations(enabled: boolean) {
 if (typeof window !== 'undefined') {
   const store = useSettingsStore.getState();
   applyFontSize(store.fontSize);
-  applyDensity(store.density);
+  applyDensity(store.density, store.interfaceLayout);
+  applyInterfaceLayout(store.interfaceLayout, store.density);
   applyAnimations(store.animationsEnabled);
 
   const triggerSync = () => {
@@ -1377,6 +1645,8 @@ if (typeof window !== 'undefined') {
       }
     }, SYNC_DEBOUNCE_MS);
   };
+
+  requestSync = triggerSync;
 
   // Auto-sync settings to server on any state change
   let prevSyncDisabled = useSettingsStore.getState().settingsSyncDisabled;

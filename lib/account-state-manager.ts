@@ -13,6 +13,8 @@ import { useIdentityStore } from '@/stores/identity-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { useFileStore } from '@/stores/file-store';
 import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
+import { bumpStoreEpoch } from '@/lib/store-epoch';
+import { useAccountSecurityStore } from '@/stores/account-security-store';
 
 // Minimal snapshot shapes - we only capture what we need
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,6 +108,9 @@ export function restoreAccount(accountId: string): boolean {
 
 /** Clear all stores (used before restoring a different account) */
 export function clearAllStores(): void {
+  // In-flight fetches of the outgoing account must not land in the stores
+  // the next account is about to fill.
+  bumpStoreEpoch();
   useEmailStore.setState({
     emails: [],
     mailboxes: [],
@@ -118,7 +123,7 @@ export function clearAllStores(): void {
     isPushConnected: false,
     lastPushUpdate: null,
     newEmailNotification: null,
-    selectedEmailIds: new Set<string>(),
+    selectedEmailKeys: new Set<string>(),
     hasMoreEmails: false,
     totalEmails: 0,
     expandedThreadIds: new Set<string>(),
@@ -137,6 +142,10 @@ export function clearAllStores(): void {
   useVacationStore.getState().clearState();
   useCalendarStore.getState().clearState();
   useFilterStore.getState().clearState();
+  // 2FA state, app passwords and API keys are the account's own: left in
+  // place, the page shows them for the next account and "Remove" sends
+  // their ids there.
+  useAccountSecurityStore.getState().clearState();
   // The Files drive is account-scoped like every store above, but unlike them
   // it lives in a global store that outlives the FilesApp component. If we
   // don't reset it here, the previous account's client + resources linger in

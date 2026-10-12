@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useEffectiveMailLayout } from '@/hooks/use-effective-mail-layout';
 import type { ArchiveMode, HoverAction } from '@/stores/settings-store';
 import { ALL_HOVER_ACTIONS } from '@/stores/settings-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -27,7 +28,7 @@ export function ReadingSettings() {
     swipeLeftAction,
     clearSearchOnFolderChange,
     showPreview,
-    mailLayout,
+    showVerificationCodes,
     disableThreading,
     emailsPerPage,
     mailAttachmentAction,
@@ -43,7 +44,7 @@ export function ReadingSettings() {
     updateSetting,
   } = useSettingsStore();
 
-  const isFocusedLayout = mailLayout === 'focus';
+  const isFocusedLayout = useEffectiveMailLayout() === 'focus';
 
   const handleReorganizeArchive = async () => {
     const { client } = useAuthStore.getState();
@@ -262,6 +263,13 @@ export function ReadingSettings() {
         <ToggleSwitch checked={showPreview} onChange={(checked) => updateSetting('showPreview', checked)} />
       </SettingItem>
       )}
+
+      <SettingItem label={t('show_verification_codes.label')} description={t('show_verification_codes.description')}>
+        <ToggleSwitch
+          checked={showVerificationCodes}
+          onChange={(checked) => updateSetting('showVerificationCodes', checked)}
+        />
+      </SettingItem>
 
       <SettingItem label={t('disable_threading.label')} description={t('disable_threading.description')}>
         <ToggleSwitch

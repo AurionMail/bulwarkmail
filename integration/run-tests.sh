@@ -23,6 +23,7 @@
 #                 branch. Switching releases needs fresh volumes: run
 #                 `docker compose down -v` in integration/ first (1.0 cannot
 #                 open a 0.16 data directory).
+#   CI            passed through, so a CI run gets the config's one retry.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -46,5 +47,6 @@ docker run --rm --network host \
   -e IT_NO_DOCKER=1 \
   -e HOME=/tmp \
   -e IT_VIDEO="${IT_VIDEO:-}" \
+  -e CI="${CI:-}" \
   "${PW_IMAGE}" \
   npx playwright test -c playwright.integration.config.ts ${FILTER:+"$FILTER"}

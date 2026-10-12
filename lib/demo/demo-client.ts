@@ -5,6 +5,7 @@ import { getDemoData, type DemoData } from './demo-data';
 import { generateDemoId } from './demo-utils';
 import { compareEmails, type SortLevel } from '@/lib/message-list-order';
 import { withBasePath } from '@/lib/browser-navigation';
+import { toInertBlob } from '@/lib/file-preview';
 
 // Fixture blobs with real bytes behind them, served from public/demo/. The
 // photos are CC0 / public domain from Wikimedia Commons: "Wedding couple
@@ -151,10 +152,11 @@ export class DemoJMAPClient implements IJMAPClient {
   async getMailboxes(_accountId?: string): Promise<Mailbox[]> { return [...this.data.mailboxes]; }
   async getAllMailboxes(): Promise<Mailbox[]> { return [...this.data.mailboxes]; }
 
-  async createMailbox(name: string, parentId?: string, _accountId?: string): Promise<Mailbox> {
+  async createMailbox(name: string, parentId?: string, _accountId?: string, options?: { role?: string }): Promise<Mailbox> {
     const mb: Mailbox = {
       id: generateDemoId('mailbox'),
       name,
+      role: options?.role,
       sortOrder: 100,
       totalEmails: 0,
       unreadEmails: 0,
@@ -173,6 +175,16 @@ export class DemoJMAPClient implements IJMAPClient {
     if (mb) Object.assign(mb, changes);
   }
 
+  async updateMailboxes(updates: Record<string, { name?: string; parentId?: string | null; role?: string | null; sortOrder?: number }>, _accountId?: string): Promise<Record<string, string>> {
+    const failed: Record<string, string> = {};
+    for (const [id, changes] of Object.entries(updates)) {
+      const mb = this.data.mailboxes.find(m => m.id === id);
+      if (mb) Object.assign(mb, changes);
+      else failed[id] = 'notFound';
+    }
+    return failed;
+  }
+
   async deleteMailbox(mailboxId: string, _accountId?: string): Promise<void> {
     this.data.mailboxes = this.data.mailboxes.filter(m => m.id !== mailboxId);
     // Also remove emails in this mailbox
@@ -183,8 +195,9 @@ export class DemoJMAPClient implements IJMAPClient {
 
   /**
    * Minimal JMAP filter evaluator for demo mode: supports the conditions the
-   * message-list category tabs use (hasKeyword / notKeyword / from and
-   * AND / OR / NOT operators). Unknown conditions match nothing.
+   * message-list category tabs and the folder-less search scopes use
+   * (hasKeyword / notKeyword / from / text / inMailbox / inMailboxOtherThan
+   * and AND / OR / NOT operators). Unknown conditions are ignored.
    */
   private matchesFilter(e: Email, filter: Record<string, unknown>): boolean {
     if (typeof filter.operator === 'string') {
@@ -203,6 +216,16 @@ export class DemoJMAPClient implements IJMAPClient {
       const match = (e.from || []).some(f =>
         (f.email || '').toLowerCase().includes(q) || (f.name || '').toLowerCase().includes(q));
       if (!match) return false;
+    }
+    if (typeof filter.text === 'string') {
+      const q = filter.text.toLowerCase();
+      const text = [e.subject, e.preview, e.from?.[0]?.name, e.from?.[0]?.email].filter(Boolean).join(' ').toLowerCase();
+      if (!text.includes(q)) return false;
+    }
+    if (typeof filter.inMailbox === 'string' && !e.mailboxIds[filter.inMailbox]) return false;
+    if (Array.isArray(filter.inMailboxOtherThan)) {
+      const excluded = new Set(filter.inMailboxOtherThan as string[]);
+      if (!Object.keys(e.mailboxIds).some(id => e.mailboxIds[id] && !excluded.has(id))) return false;
     }
     return true;
   }
@@ -252,10 +275,11 @@ export class DemoJMAPClient implements IJMAPClient {
     return this.data.emails.find(e => e.id === emailId) ?? null;
   }
 
-  async getTagCounts(tagIds: string[]): Promise<Record<string, { total: number; unread: number }>> {
+  async getTagCounts(tagIds: string[], _accountId?: string, excludeMailboxIds?: string[]): Promise<Record<string, { total: number; unread: number }>> {
     const result: Record<string, { total: number; unread: number }> = {};
+    const exclusion = excludeMailboxIds?.length ? { inMailboxOtherThan: excludeMailboxIds } : null;
     for (const tagId of tagIds) {
-      const tagged = this.data.emails.filter(e => e.keywords[tagId]);
+      const tagged = this.data.emails.filter(e => e.keywords[tagId] && (!exclusion || this.matchesFilter(e, exclusion)));
       result[tagId] = {
         total: tagged.length,
         unread: tagged.filter(e => !e.keywords.$seen).length,
@@ -326,17 +350,39 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async advancedSearchEmails(filter: Record<string, unknown>, _accountId?: string, limit: number = 50, position: number = 0): Promise<{ emails: Email[]; hasMore: boolean; total: number }> {
-    // Simplified: just return all emails for any advanced filter
-    let filtered = [...this.data.emails];
-    if (filter.inMailbox) filtered = filtered.filter(e => e.mailboxIds[filter.inMailbox as string]);
-    if (filter.text) {
-      const q = (filter.text as string).toLowerCase();
-      filtered = filtered.filter(e => [e.subject, e.preview].filter(Boolean).join(' ').toLowerCase().includes(q));
-    }
+    const filtered = this.data.emails.filter(e => this.matchesFilter(e, filter));
     filtered.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
     const total = filtered.length;
     const emails = filtered.slice(position, position + limit);
     return { emails, hasMore: position + limit < total, total };
+  }
+
+  private pickEmailFields(email: Email, properties: string[]): Record<string, unknown> {
+    const record: Record<string, unknown> = { id: email.id };
+    for (const property of properties) {
+      const header = /^header:([^:]+)(?::asText)?(:all)?$/.exec(property);
+      if (header) {
+        const wanted = header[1].toLowerCase();
+        const values = Object.entries(email.headers ?? {})
+          .filter(([name]) => name.toLowerCase() === wanted)
+          .flatMap(([, value]) => (Array.isArray(value) ? value : [value]));
+        record[property] = header[2] ? values : (values[0] ?? null);
+      } else {
+        record[property] = (email as unknown as Record<string, unknown>)[property];
+      }
+    }
+    return record;
+  }
+
+  async getEmailFields(emailIds: string[], properties: string[]): Promise<Array<Record<string, unknown>>> {
+    const wanted = new Set(emailIds);
+    return this.data.emails.filter(e => wanted.has(e.id)).map(e => this.pickEmailFields(e, properties));
+  }
+
+  async queryEmailFields(filter: Record<string, unknown>, properties: string[], _accountId?: string, limit: number = 10000): Promise<Array<Record<string, unknown>>> {
+    const filtered = this.data.emails.filter(e => this.matchesFilter(e, filter));
+    filtered.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
+    return filtered.slice(0, limit).map(e => this.pickEmailFields(e, properties));
   }
 
   async searchSentRecipients(query: string, _sentMailboxId: string, _accountId?: string, _limit: number = 60): Promise<Array<{ name: string; email: string }>> {
@@ -499,6 +545,18 @@ export class DemoJMAPClient implements IJMAPClient {
     const removed = before - this.data.emails.length;
     this.recalcMailboxCounts();
     return removed;
+  }
+
+  async moveMailboxContents(fromMailboxId: string, toMailboxId: string, _accountId?: string, markAsRead?: boolean): Promise<number> {
+    let moved = 0;
+    for (const email of this.data.emails) {
+      if (!email.mailboxIds[fromMailboxId]) continue;
+      email.mailboxIds = { [toMailboxId]: true };
+      if (markAsRead) email.keywords.$seen = true;
+      moved++;
+    }
+    this.recalcMailboxCounts();
+    return moved;
   }
 
   async markMailboxAsRead(mailboxId: string): Promise<number> {
@@ -743,7 +801,7 @@ export class DemoJMAPClient implements IJMAPClient {
 
   async fetchBlobAsObjectUrl(blobId: string): Promise<string> {
     const blob = await this.fetchBlob(blobId);
-    return URL.createObjectURL(blob);
+    return URL.createObjectURL(toInertBlob(blob));
   }
 
   async fetchBlobArrayBuffer(blobId: string): Promise<ArrayBuffer> {
@@ -878,6 +936,9 @@ export class DemoJMAPClient implements IJMAPClient {
 
   async getCalendars(): Promise<Calendar[]> { return [...this.data.calendars]; }
   async getAllCalendars(): Promise<Calendar[]> { return [...this.data.calendars]; }
+  async getAllCalendarsWithFailures(): Promise<{ calendars: Calendar[]; failedAccountIds: string[] }> {
+    return { calendars: [...this.data.calendars], failedAccountIds: [] };
+  }
 
   async createCalendar(calendar: Partial<Calendar>): Promise<Calendar> {
     const full: Calendar = {
@@ -1056,9 +1117,10 @@ export class DemoJMAPClient implements IJMAPClient {
     return full;
   }
 
-  async updateCalendarTask(taskId: string, updates: Partial<CalendarTask>): Promise<void> {
+  async updateCalendarTask(taskId: string, updates: Partial<CalendarTask>): Promise<string> {
     const task = this.data.calendarTasks.find(t => t.id === taskId);
     if (task) Object.assign(task, updates, { updated: new Date().toISOString() });
+    return taskId;
   }
 
   async deleteCalendarTask(taskId: string): Promise<void> {
@@ -1125,6 +1187,14 @@ export class DemoJMAPClient implements IJMAPClient {
 
   async deleteSieveScript(scriptId: string, _accountId?: string): Promise<void> {
     this.data.sieveScripts = this.data.sieveScripts.filter(s => s.id !== scriptId);
+  }
+
+  async activateSieveScript(scriptId: string, _accountId?: string): Promise<void> {
+    for (const s of this.data.sieveScripts) s.isActive = s.id === scriptId;
+  }
+
+  async deactivateSieveScript(_accountId?: string): Promise<void> {
+    for (const s of this.data.sieveScripts) s.isActive = false;
   }
 
   async validateSieveScript(_content?: string, _accountId?: string): Promise<{ isValid: boolean; errors?: string[] }> {

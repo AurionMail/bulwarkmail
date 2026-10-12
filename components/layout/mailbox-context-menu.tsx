@@ -23,6 +23,7 @@ import {
   Upload,
   Users,
 } from "@/components/icons";
+import { FolderRulesSubMenu } from "@/components/email/rules-menu";
 
 interface Position {
   x: number;
@@ -214,6 +215,7 @@ export function MailboxContextMenu({
           testId="mailbox-share"
         />
       )}
+      <FolderRulesSubMenu mailbox={mailbox} onClose={onClose} />
 
       <ContextMenuSeparator />
 

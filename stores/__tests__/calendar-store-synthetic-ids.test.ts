@@ -102,8 +102,9 @@ describe('updateEvent on an expanded occurrence', () => {
 
     expect(client.updateCalendarEvent).toHaveBeenCalledTimes(1);
     // The occurrence has no override yet: its details (here the participants) go along.
+    // The start was read in the occurrence's zone, so that zone goes along too.
     expect(client.updateCalendarEvent).toHaveBeenCalledWith(
-      'maaaaab', { title: 'Renamed', start: '2026-09-08T11:00:00', participants: occurrence().participants },
+      'maaaaab', { title: 'Renamed', start: '2026-09-08T11:00:00', timeZone: 'Europe/Berlin', participants: occurrence().participants },
       undefined, undefined, undefined,
     );
     const stored = useCalendarStore.getState().events[0];
@@ -280,6 +281,61 @@ describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('a change built on the seri
 
     expect(client.getCalendarEvent).not.toHaveBeenCalled();
     expect(client.updateCalendarEvent.mock.calls[0][1]).toMatchObject({ title: 'Renamed' });
+  });
+});
+
+describe('a new start for an expanded instance (#1119)', () => {
+  // Stalwart expands an event whose own start is UTC (every one-off event
+  // in a Google Calendar export) in the request's zone, so the instance
+  // reads 17:30 Europe/Berlin while the base event is 15:30 Etc/UTC.
+  const imported = (overrides: Partial<CalendarEvent> = {}) => occurrence({
+    id: 'eaaaaad', originalId: 'eaaaaad', baseEventId: 'd', recurrenceId: null, recurrenceIdTimeZone: null,
+    recurrenceRules: null, recurrenceOverrides: null, participants: undefined,
+    start: '2026-10-02T17:30:00', timeZone: 'Europe/Berlin', utcStart: '2026-10-02T15:30:00Z', utcEnd: '2026-10-02T16:30:00Z',
+    ...overrides,
+  });
+
+  it('writes it to the base event with the zone it was read in', async () => {
+    const client = fakeClient();
+    useCalendarStore.setState({ events: [imported()] });
+
+    await useCalendarStore.getState().updateEvent(client, 'eaaaaad', { start: '2026-10-01T17:30:00' });
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledWith(
+      'd', { start: '2026-10-01T17:30:00', timeZone: 'Europe/Berlin' }, undefined, undefined,
+    );
+    expect(useCalendarStore.getState().events[0].utcStart).toBe('2026-10-01T15:30:00.000Z');
+  });
+
+  it('keeps a zone the caller chose', async () => {
+    const client = fakeClient();
+    useCalendarStore.setState({ events: [imported()] });
+
+    await useCalendarStore.getState().updateEvent(client, 'eaaaaad', { start: '2026-10-01T15:30:00', timeZone: 'Etc/UTC' });
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledWith(
+      'd', { start: '2026-10-01T15:30:00', timeZone: 'Etc/UTC' }, undefined, undefined,
+    );
+  });
+
+  it('leaves an all-day start floating and changes without a start alone', async () => {
+    const client = fakeClient();
+    useCalendarStore.setState({ events: [imported({ start: '2026-10-02T00:00:00', duration: 'P1D', showWithoutTime: true })] });
+
+    await useCalendarStore.getState().updateEvent(client, 'eaaaaad', { start: '2026-10-01T00:00:00' });
+    await useCalendarStore.getState().updateEvent(client, 'eaaaaad', { title: 'Renamed' });
+
+    expect(client.updateCalendarEvent).toHaveBeenNthCalledWith(1, 'd', { start: '2026-10-01T00:00:00' }, undefined, undefined);
+    expect(client.updateCalendarEvent).toHaveBeenNthCalledWith(2, 'd', { title: 'Renamed' }, undefined, undefined);
+  });
+
+  it('leaves events without synthetic ids alone', async () => {
+    const client = fakeClient();
+    useCalendarStore.setState({ events: [imported({ id: 'd', originalId: 'd', baseEventId: undefined, timeZone: 'Etc/UTC' })] });
+
+    await useCalendarStore.getState().updateEvent(client, 'd', { start: '2026-10-01T15:30:00' });
+
+    expect(client.updateCalendarEvent).toHaveBeenCalledWith('d', { start: '2026-10-01T15:30:00' }, undefined, undefined);
   });
 });
 
@@ -481,7 +537,7 @@ describe('a range that fails to load', () => {
   });
 
   it('keeps reporting the failure through other actions and reloads the range asked for on Stalwart 1.0', async () => {
-    const client = fakeClient({ getAllCalendars: vi.fn().mockResolvedValue([]) });
+    const client = fakeClient({ getAllCalendarsWithFailures: vi.fn().mockResolvedValue({ calendars: [], failedAccountIds: [] }) });
     client.queryAllCalendarEvents.mockResolvedValueOnce([occurrence()]);
     await useCalendarStore.getState().fetchEvents(client, RANGE[0], RANGE[1]);
     // From here on every range load fails.

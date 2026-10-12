@@ -379,6 +379,10 @@ export interface CalendarEventFormView {
   location: string;
   virtualLocation: string;
   calendarId: string;
+  /** JMAP uid of the event being edited; undefined while composing a new one. */
+  uid?: string;
+  /** Attendee email addresses currently on the form. */
+  attendees: string[];
 }
 
 export interface KeyboardShortcut {
@@ -1103,8 +1107,12 @@ export const ALLOWED_PLUGIN_FILES = new Set([
 
 export const DISALLOWED_CSS_PATTERNS = [
   /@import\b/i,
-  /url\s*\(\s*['"]?https?:/i,
-  /url\s*\(\s*['"]?data:/i,
+  // Every url() except a same-document fragment loads something: a remote
+  // host (also written protocol-relative, `url(//host)`), a data: document,
+  // a same-origin path. Themes ship no assets, so none is needed.
+  /url\s*\(\s*(?!['"]?\s*#)/i,
+  // Takes plain strings, so it loads remote images without any url().
+  /image-set\s*\(/i,
   /expression\s*\(/i,
   /javascript\s*:/i,
   /-moz-binding/i,

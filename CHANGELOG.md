@@ -1,5 +1,476 @@
 # Changelog
 
+## 1.14.1 (2026-10-11)
+
+1.14.1 fixes plain-text and unstyled messages showing on a gray background in dark mode after the 1.14.0 dark mode rewrite.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Fixes
+
+- **Mail**: In dark mode, plain-text and unstyled messages use the app's background again instead of a gray box
+
+## 1.14.0 (2026-10-11)
+
+1.14.0 adds Mountain View, an optional layout with a top bar and a wide search field, and gives the Files app and the calendar a new layout. Dark mode now recolours messages instead of inverting them, so brand colours stay as sent. Push can be turned on for several accounts at once, and the account list can be backed up encrypted and restored on another device. The composer got a long round of send fixes. With several accounts open, batch actions no longer hit another account's message that happens to share an id with the selected one.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Features
+
+- **UI**: Mountain View is an optional layout, chosen under Settings > Layout > Interface layout. On desktop it has a top bar with a wide search field, an apps grid and the account avatar in place of the left rail, a Compose pill, a docked compose window, an account popover with unread counts per account, and j/k, x and g shortcuts. Calendar, Contacts, Files and Settings use the same top bar. The default layout is unchanged (#1168, thanks @lucamzanon)
+- **Files**: The Files app is laid out like Contacts and Calendar: a sidebar with a New menu, the folder tree, Starred, Recent and Shared with me, a header with breadcrumbs, search, sort and a list/grid switch, a details panel, right-click menus in the sidebar and arrow-key navigation. On touch, a tap opens and a long press selects. Folders in the tree can be renamed and deleted, recent files open in their folder, and the view, sort and hidden-files settings now apply
+- **Files**: Image previews in Files and in attachments zoom with the wheel or a pinch, pan by dragging or with the arrow keys, switch between fit and full size on double-click, and close on a click beside the image
+- **Files**: Uploads show as a toast with their progress and a Cancel button. The large file warning is gone
+- **Calendar**: On wide screens, clicking or dragging over empty time opens a quick editor next to the slot, and clicking an event opens a card with edit, delete and more actions. Busy month cells show "+N more", the agenda lists each day as a row with the date beside its events, and the dates in the week header open that day. Calendar lists in the sidebar fold away and show their options on hover. Phones keep the full editor
+- **Push**: The notification settings list every connected account and turn push on or off for several of them at once, with a single browser permission prompt (#1054, thanks @lucamzanon)
+- **Accounts**: Users with several accounts can save their account list on the webmail server, encrypted in the browser with a password they choose, and restore it on another device. No mailbox passwords are stored. Admins turn it on with "Account List Backup" under Admin > Policy (#1201, thanks @lucamzanon)
+- **Filters**: The folder context menu runs a saved rule on the messages already in that folder (#1166)
+- **Composer**: Schedule send offers tomorrow at 8:00, tomorrow at 13:00 and next Monday at 8:00 as one-click times
+- **Settings**: The language picker has a search field and flags, and every date format and region option shows a live sample
+- **Plugins**: A plugin can run a message-list search with a JMAP Email filter (#1024)
+- **Plugins**: Calendar event actions get the event's uid and attendees, and the form-save hook now fires and can change the meeting link that is saved with the event (#1202, thanks @siennathesane)
+
+### Changes
+
+- **Mail**: Dark mode recolours messages instead of inverting them. Light backgrounds are darkened in their own hue, brand colours and dark fills stay as sent, and text only changes when it lacks contrast. A message's own dark mode styles follow the app theme instead of the system's
+- **Mail**: A folder opened before shows its messages at once and refreshes them in the background. A failed load leaves them on screen (#1195, thanks @lucamzanon)
+- **Composer**: On a phone, the formatting toolbar folds away behind a Formatting button and its buttons are larger. The send options sit together in one menu
+- **Files**: File sizes are rounded the way people read them, like 67 KB or 2.1 MB
+
+### Fixes
+
+- **Mail**: In views that merge several accounts, selecting a message no longer also selects a message with the same id in another account. Batch delete, move, archive, copy, mark read, tag and spam act only on the ticked messages, each through its own account. Before, a permanent delete could remove the other account's message (#1061, thanks @lucamzanon)
+- **Mail**: A message with two spaces in a row in its subject no longer freezes the tab (#1193, thanks @dealerweb)
+- **Mail**: Blocking remote content no longer drops a message's style sheets, so messages keep their layout before images are loaded
+- **Mail**: The list shows no paperclip on a message that only has inline images
+- **Mail**: The "via" badge is hidden when it repeats the sender's name, and a draft shows one Edit button
+- **Send**: Signed and encrypted messages reach Bcc recipients (#1206)
+- **Send**: After a plugin send, such as S/MIME, the composer closes, and a failed plugin send keeps the draft (#1207)
+- **Send**: A failed send removes its unsent copy from Drafts and explains the failure in plain words. A send while offline says so and keeps the message
+- **Send**: Typed addresses are split on commas, and a message with an invalid address is not sent. The address field marks which ones to fix
+- **Send**: Undo send disappears once the delay is over and says so when an undo fails
+- **Send**: Discard deletes the draft, also one reopened from Scheduled, and closing an autosaved draft no longer asks about unsaved changes
+- **Send**: The missing subject warning comes once per message, and the scheduled time shows its date, rounded to the minute
+- **Composer**: Tabbing into a reply or forward keeps the quoted message, and tabbing into a new message starts at the top of the body
+- **Composer**: A reply opens with the caret in the body, and the composer is titled Reply, Reply All or Forward instead of New Message
+- **Composer**: A reopened draft takes its text from the message body only. An attached .csv or .txt no longer turns up as the message text (#1213, thanks @shukiv)
+- **Composer**: A long attachment list scrolls instead of pushing the Send button out of view (#1212, thanks @shukiv)
+- **Composer**: The plain-text part of sent mail marks quotes and list items, and the signature has one separator
+- **Composer**: Enter adds the highlighted suggestion instead of the typed text, and the suggestions close once the address is added and line up with the typed text. On a phone they span the whole row and show the name above the address
+- **Composer**: Body text no longer shows through the pinned formatting toolbar (#1200, thanks @lucamzanon)
+- **Composer**: On a phone, sending a new message returns to the message list, and the Continue draft banner no longer flashes after a send
+- **Composer**: Bitwarden no longer offers logins in the recipient fields, the mail search box or the event participant field
+- **Login**: A remembered sign-in survives a server timeout or an origin switch during restore instead of signing out (#1167)
+- **Login**: Signing out of one account keeps the other accounts, and a reload with only accounts awaiting sign-in shows the login page instead of a connection error (#1201, thanks @lucamzanon)
+- **Login**: A reload without "Remember me" no longer reports an expired session
+- **Unified**: Switching to another account keeps the unified mailbox on (#1144, thanks @lucamzanon)
+- **Push**: Push is renewed for every connected account, not only the active one, so accounts no longer stop notifying after seven days. The all-accounts panel shows each account's real state and why an account failed (#1054, thanks @lucamzanon)
+- **Filters**: Forward is hidden in filter rules when the server allows no redirects (#1208)
+- **Calendar**: Save is blocked while a plugin's form-save hook runs, so a double press no longer creates the event twice (#1202, thanks @siennathesane)
+- **Calendar**: Participant suggestions are no longer cut off by the event form
+- **Files**: Canceling an upload stops the file in flight and says the upload was canceled instead of counting every file as done
+- **Files**: A drag selection keeps its items after letting go, and Files shows a loading state instead of "No files yet" before the first listing
+- **Files**: Read-only documents open in ONLYOFFICE without the -103 warning (#1187)
+- **Contacts**: The contact popover shows the sender's name when the saved contact has none, and Contacts shows placeholders instead of "No contacts yet" while loading
+- **UI**: The close and back buttons in the composer and conversation view have names for screen readers, and the composer toolbar buttons are labelled
+- **UI**: Reply All stays on one line in the conversation view, and the welcome banner gives touch tips on a phone
+- **Translations**: The new composer, send, Files and filter strings are translated
+
+## 1.13.0 (2026-10-07)
+
+1.13.0 turns the vacation settings into an Out of Office page that can also forward mail, lets filter rules run only for a date range, and copies messages into another connected account. Files from the Files app can be attached in the composer, tags can be set on many messages at once and folders moved in bulk. Messages whose sender can't be verified now carry a warning. It also stops one account's settings and templates from carrying over to the next account signed in on the same browser.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Security
+
+- **Settings**: Signing out and then signing in with another account in the same browser no longer shows the previous account's settings, tags and templates, and no longer saves them to the new account's synced settings (#1185)
+
+### Features
+
+- **Mail**: A message whose sender fails the From domain's checks, or that passes neither SPF nor DKIM, shows a warning above the message and a badge next to the sender. "Always trust this sender" is not offered for it
+- **Mail**: "Copy to account..." in the message menu files a copy in a folder of another connected account and leaves the original where it is. Copies keep their original date (#1150, thanks @lucamzanon)
+- **Mail**: The selection toolbar and the right-click menu put a tag on, or take it off, every selected message at once (#1077)
+- **Out of office**: The vacation settings are now an Out of Office page: the period on top, then the automatic reply and forwarding, each with its own switch. Forwarding works with or without the reply, never forwards spam and can keep a copy in the inbox. The reply can go to all senders, internal senders only or external senders only (#1152, thanks @dealerweb)
+- **Filters**: A rule can be limited to a period, and the rule list shows whether it is scheduled, active or expired (#1152, thanks @dealerweb)
+- **Filters**: The new "All messages" condition matches every message (#1154, thanks @dealerweb)
+- **Composer**: "Attach from Files" attaches files from the Files app, including files shared with you, without downloading and uploading them again (#1179)
+- **Composer**: Typing @ in the message body offers the To and Cc recipients and inserts the chosen one's first name. Bcc recipients are never offered. "Mention recipients with @" in the composer settings turns it off (#1134, thanks @dealerweb)
+- **Folders**: The folder settings can select several folders, with Shift+click for a range, and move them together under another folder or to the top level (#1173)
+- **Calendar**: The day and week views can be limited to working hours, and the week view can leave out non-working days. Events outside the visible hours are counted at the top and bottom of each day and open from there, and a button in the view shows all hours (#1164)
+- **Login**: `LOGIN_SHOW_TOKEN_LOGIN=true` offers "Sign in with an access token", for JMAP servers that take API tokens instead of passwords, such as Fastmail
+- **Login**: A server in `JMAP_SERVERS` whose `oauth` block has both a `clientId` and a `buttonLabel` gets its own sign-in button on the login page, even while OAuth is off globally. This allows a "Sign in with Google" button for a Gmail bridge next to servers that use passwords (#1135, thanks @lucamzanon)
+- **UI**: The browser tab title names the active account, as in "Inbox - alice@example.com - Webmail", and Settings, Calendar, Contacts and Files set their own title. Turning off "Subject in Tab Title" under Admin > Policy keeps message subjects out of the title, and with it out of the browser history (#1186, thanks @oguzyilmaznet)
+- **Unified**: While logins reconnect after a page load, the "All accounts" header shows how many are already counted, such as "4/10" (#1140, thanks @lucamzanon)
+- **Push**: A message that reaches several of your accounts rings once. For 30 seconds after an alert, notifications from your other accounts arrive silently (#1141, thanks @lucamzanon)
+- **Server**: `SOURCE_CODE_URL` points the source code link in Settings > About at the code of a modified build, as AGPL section 13 asks of anyone running one (#1161)
+
+### Changes
+
+- **Calendar**: The day and week views show 08:00 to 20:00 by default. "Limit visible hours" in the calendar settings changes the range or turns it off (#1164)
+- **Tags**: Tag views and their counts leave out messages in Trash and Spam (#1156)
+- **Mail**: In a shared mailbox, the Move menus list that mailbox's folders first and your own folders after them, under your account name (#1149)
+- **Dependencies**: sharp 0.35.5 and source-map-js 1.2.2 (npm audit)
+- **Docs**: CONTRIBUTING.md explains what belongs in core and what in a plugin, and which changes need an agreed issue before a pull request
+
+### Fixes
+
+- **Mail**: Attachments, inline images and .eml downloads of messages in shared folders are fetched from the account that owns them. On Cyrus they failed with "failed to find blob by id" (#1188, thanks @VasilisNtovolos)
+- **Mail**: Archive creates an Archive folder when the account has none, instead of only reporting that it is missing (#1176, thanks @cybersmurf)
+- **Mail**: Opening the webmail starts in the inbox instead of a folder from an earlier visit, such as Trash
+- **Mail**: Opening another folder, tag, account or search starts the message list at the top instead of where the last one was scrolled to (#1138, thanks @dealerweb)
+- **Mail**: Previews no longer start with a style sheet ("@media screen and ...") in the message list and in push notifications (#1136, thanks @lucamzanon)
+- **Search**: Searching from the unified All mail view finds sent mail too
+- **Send**: A draft saved without a subject reopens with an empty subject, so Send warns about it again instead of sending "(No Subject)" (#1189)
+- **Send**: When the server does not confirm that a message was sent, the draft is kept and the composer asks you to check Sent before sending again (#1019, thanks @lucamzanon)
+- **Send**: A message the server refuses shows the server's reason instead of "Invalid reference to non-existing object"
+- **Send**: A forward sent from another account's address no longer fails with `blobNotFound`. Its attachments and inline images are copied to the sending account first (#1142, thanks @lucamzanon)
+- **Push**: Push turns itself back on when the browser lost its subscription, retrying at most every 15 minutes (#1147, thanks @lucamzanon)
+- **Push**: The notification settings check push again when you come back to the tab, so push turned off in the browser or another tab no longer shows as on (#1148, thanks @lucamzanon)
+- **Push**: When the new message cannot be read, the notification no longer announces another unread message from the Inbox in its place, and a failed lookup shows a generic notification instead of none (#1041, thanks @lucamzanon)
+- **Filters**: "Stop processing further rules" also stops after "Delete silently" and "Reject", so later rules no longer file the message. Rules whose name contains double spaces, a tab or a trailing space no longer gain a copy on every save, and the copies earlier saves left are removed (#1153, thanks @dealerweb)
+- **Filters**: The forwarding limit counts the forwards one message can collect, instead of adding up every enabled rule, and warns when the rule order lets one message go over it (#1155, thanks @dealerweb)
+- **Filters**: A condition with several values wraps inside its card in the expanded rule view (#1139, thanks @dealerweb)
+- **Filters**: An open rule dialog or Sieve editor, and what was typed in it, survives a filter change from another tab or device (#1162, thanks @dealerweb)
+- **Templates**: A tab or device that had not reloaded no longer deletes templates created elsewhere when it saves its settings
+- **Calendar**: Duplicating an event keeps its meeting link (#1170)
+- **Calendar**: The Calendar Agenda plugin shows events from shared and group calendars (#1175, thanks @cybersmurf)
+- **Files**: Folders shared with you can be opened, and your own folders shared, in both folder layouts (#1181)
+- **Files**: Office editing works behind a reverse proxy where the editor and the browser reach the webmail at different addresses. The WOPI client URL may be an internal address (#1130)
+- **Login**: When Stalwart accepts a password and TOTP code but refuses to issue tokens, the login page points at the OAuth client settings instead of opening the browser's own sign-in dialog and reporting a wrong code
+- **Branding**: With `APP_NAME` set, the authenticator app entry for two-factor sign-in, the About card and the Files preview use the configured name and logo (#1177, thanks @cybersmurf)
+- **UI**: Text fields in dialogs keep the focus when the page behind updates, which happened every 30 seconds and on new mail (#1162, thanks @dealerweb)
+- **UI**: Buttons, menu items, tabs and other controls show the pointer cursor again (#1184, thanks @gwku)
+- **UI**: The account group labels in the From dropdown are readable in dark themes (#1157, thanks @dealerweb)
+- **Translations**: Czech is fully translated (#1174, thanks @cybersmurf), and missing placeholders are restored in Persian, Hebrew, Hungarian, Mongolian and Slovak (#1165, thanks @owgreen-dev)
+
+## 1.12.0 (2026-09-30)
+
+1.12.0 lets you create filter rules straight from a message, offers the code from sign-in mail for one-click copying, and gives a phone linked with "Link Mobile App" a sign-in of its own, for every kind of account. Search now leaves Spam and Trash out by default, and emptying an ordinary folder moves its mail to the Trash. Browsers with many logins start up much faster. It also contains three security fixes, so please update.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+
+**Monthly**
+
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Security
+
+- **Auth**: The password+TOTP login no longer sends the webmail's OAuth client secret to a mail server the user chose when custom JMAP endpoints are allowed. Only admin-configured servers get it
+- **Auth**: The identity provider round trip for "Link Mobile App" can no longer sign the browser in as whichever account answered it, and a re-authentication the provider answered from an existing session instead of a fresh login is refused
+- **Mail**: Opening a previewed SVG attachment in a new tab no longer runs the sender's script in the webmail origin
+
+### Features
+
+- **Mail**: A "Rules" entry in the message right-click menu creates filter rules from the message: always move mail from its sender, domain or mailing list, mark it read, tag it, or block the sender. A new rule can also run on the messages already in the folder, and it can be undone from the toast
+- **Filters**: The rule editor suggests conditions from the message it was opened from (subject, recipients, List-Id, sender domain), and the new "is the address" and "has the domain" conditions match an address exactly
+- **Mail**: Codes from sign-in and confirmation mail show as a copy chip in the message, and in the list for a day. "Show Verification Codes" in settings turns it off
+- **Mail**: In the unified view, rows can be tinted with their account's color instead of showing the account dot, and tags this browser has no definition for, such as ones set by a server-side filter, get a color of their own instead of grey (#1052, thanks @lucamzanon)
+- **Search**: The folder dropdown shows subfolders indented under their parents
+- **Composer**: Pasted plain-text lines that start with "- ", "* ", "• ", "1. " or "1) " become real lists
+- **Calendar**: The event popover finds the join link of Teams, Zoom, Meet, Webex, Jitsi, Whereby and GoTo meetings in the location or description, and the location opens in maps, with a copy button next to it (#1095, thanks @lucletoffe)
+- **Server**: `LIBRETRANSLATE_API_KEY_FILE`, `BULWARK_JWT_AUTH_SECRET_FILE`, `BULWARK_STALWART_MASTER_USER_FILE` and `BULWARK_STALWART_MASTER_PASSWORD_FILE` read these secrets from files, and the admin config accepts `oauthClientSecretFile` and `sessionSecretFile` (#897, thanks @Cameo007)
+- **Plugins**: `PLUGIN_SIGNING_KEY_FILE` points at an existing Ed25519 key for signing managed plugin bundles, for read-only secret mounts (#996, thanks @mulatta)
+- **Releases**: Container images and release files come with a signed build provenance attestation, and the standalone tarballs get a `.sha256`. The README explains how to check them with `gh attestation verify`
+
+### Changes
+
+- **Search**: Search leaves out Spam and Trash unless "All folders" is picked in the folder dropdown. A search started in Spam or Trash searches that folder
+- **Mail**: Emptying a folder other than Trash or Junk moves its mail to the Trash, unless deleted mail is set to be removed permanently
+- **Mobile app**: "Link Mobile App" is offered for every account. Password and password+TOTP accounts confirm their password (and code) in the dialog. The phone gets a sign-in of its own, so signing out in the browser no longer signs it out, and a sign-in link to copy sits next to the QR code. Failed password attempts are limited per account
+- **Calendar**: Events are drawn as solid blocks of their calendar's color; declined and cancelled events are outlined
+- **UI**: Success and info toasts are plain cards; only errors and warnings are colored
+- **Performance**: With many logins, the browser restores them four at a time and no longer reloads every login's folders, identities and push connections each time one of them connects (#1132, thanks @lucamzanon)
+- **License**: An additional permission under section 7 of the AGPL allows distributing apps built from this code through app stores. It is provisional until every earlier contributor has agreed ([consent request](https://github.com/orgs/bulwarkmail/discussions/1113)) and applies in full to contributions made since 30 September 2026
+- **Docs**: Guidelines for AI-assisted contributions in the README and CONTRIBUTING.md
+
+### Fixes
+
+- **Mail**: Clicking a folder's unread count lists only that folder's unread mail, not unread mail from every folder of every account
+- **Mail**: In "unread first" lists, a message you open stays in place until you open another
+- **Mail**: The message list no longer flashes a reload right after the page opens
+- **Mail**: On tablets, the message list comes back when the reading pane empties, for example after the open message is deleted or moved
+- **Mail**: Dividers between rows no longer disappear at 125% or 150% display scaling
+- **Mail**: The unread dot is centred on the sender avatar
+- **Mail**: Attachments declared with a type the browser cannot show, such as `application/x-as400attachment` from IBM i systems, `application/x-pdf` or a catch-all type, preview according to their file name (#1127, thanks @dealerweb)
+- **Send**: Recipients the server refuses at send are reported. When it refuses all of them, the message stays open as not sent; otherwise a warning names the refused ones (#1123)
+- **Composer**: The message body stays reachable in short reading panes, such as the bottom reading pane on a laptop (#1114)
+- **Composer**: Pasted plain text keeps its blank lines
+- **Push**: A notification link waits for a login that is still reconnecting instead of reporting the account as signed out, opens the folder of the right account, and no longer pulls you away from something you opened in the meantime (#1131, thanks @lucamzanon)
+- **Push**: A browser subscribed with another VAPID key resubscribes on its own, and Firefox can turn push on again when it cannot read its old subscription (#1121, thanks @shukiv)
+- **Calendar**: Dragged events no longer disappear: all-day events moved in the month view keep their start, and occurrences of recurring events with a UTC start, as in Google Calendar exports, no longer shift by the time-zone offset (#1119)
+- **Calendar**: A failed calendar fetch no longer hides every calendar or leaves only the birthday calendar selected
+- **Calendar**: The all-day area of the week view is sized from the visible week, stacks each day's tasks under its all-day events, and collapses to three rows with a toggle (#1122, thanks @sanitz)
+- **Calendar**: The Save button shows while an event is saving, and a save refused for its length says so (#921, thanks @texchi2)
+- **Calendar**: Invitations no longer carry blank participant names or an empty description (#748, thanks @lucletoffe)
+- **Files**: Files shared with you open and save in the office editor (#1094)
+- **Files**: Office editing works behind a reverse proxy at a sub-path (`NEXT_PUBLIC_BASE_PATH`) (#1101, thanks @dealerweb)
+- **Accounts**: Adding a sixth account through server-side SSO no longer overwrites the first account's sign-in
+- **Mobile app**: The app's "Sign in via webmail" keeps working past the first token expiry when the webmail uses a confidential OAuth client or an identity provider on another host
+- **Admin**: Admin sign-in works over plain HTTP. The admin cookie's Secure flag follows the request, or `COOKIE_SECURE` when it is set (#1063, thanks @lucamzanon)
+- **Admin**: The OAuth scope fields show the actual default scopes, which do not include `offline_access` (#1126)
+- **Lite**: SSO sessions survive a page reload with identity providers such as Rauthy that refuse an early token refresh (#552)
+- **UI**: The app retries loading its configuration after a timeout or a failed request instead of staying broken (#1112, thanks @theLucius7)
+- **Docker**: The image builds from a remote Git context (#1118)
+
+## 1.11.2 (2026-09-26)
+
+1.11.2 fixes the Docker image and the standalone tarballs of 1.11.1, which did not start. It contains all the security fixes from 1.11.1, so please update.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- [@windsource](https://github.com/windsource)
+
+**Monthly**
+
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@zeddD1abl0](https://github.com/zeddD1abl0)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Fixes
+
+- **Docker**: The server starts again. 1.11.1 excluded `data/` from the standalone build with a pattern that also dropped Next.js's own metadata modules, so the Docker image and the `bulwark-standalone-*` tarballs failed on startup. `npm start` and Bulwark Lite were not affected
+
+## 1.11.1 (2026-09-26)
+
+1.11.1 is a security and bug-fix release. It fixes four reported vulnerabilities, two of them critical, and the findings of a security audit. Please update.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- [@windsource](https://github.com/windsource)
+
+**Monthly**
+
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@zeddD1abl0](https://github.com/zeddD1abl0)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Security
+
+- **Admin**: Only a Stalwart superuser gets into the admin dashboard. The admin probe accepted Stalwart's default tenant-admin role, so the administrator of a single tenant was signed into a dashboard that configures the whole instance (GHSA-v6hr-cmxm-pv73, thanks @douwezijlstra-frl)
+- **Admin**: Admin status is only taken from an admin-configured server. A context cookie minted while custom JMAP endpoints were allowed let a user-chosen server keep answering the admin probe after the switch was turned off (GHSA-j867-89p4-v8hm, thanks @Vip3r-MC)
+- **API**: Cross-origin writes are refused on the JMAP passthrough and every other cookie-authenticated `/api/` route, not only `/api/auth/*`. A page on a same-site sibling origin could run arbitrary JMAP as the signed-in user. The gate also decides on the decoded path, so `/api/%61uth/...` no longer skips it (GHSA-9mvj-98f5-9q6g, thanks @kah-ja)
+- **Admin**: Admin sign-in attempts are also capped at 50 per 15 minutes across all clients, because a forged `X-Forwarded-For` got a fresh per-IP budget when no reverse proxy is in front (GHSA-7pj2-232x-6698, thanks @richardweinberger)
+- **Admin**: Impersonation no longer puts the Stalwart master password into the session cookie. The webmail creates an app password on the target mailbox that expires after 8 hours and is revoked on sign-out, and a used impersonation link is refused after a restart or on another replica
+- **Mail**: A sender can no longer fake a DMARC or DKIM pass in the security badges, with a crafted envelope address or an `Authentication-Results` header of their own
+- **Mail**: Opening an SVG attachment's thumbnail on its own no longer runs the sender's script in the webmail origin
+- **Mail**: Remote content stays blocked in the mobile conversation view, the `.eml` attachment preview, the quoted original of a reply or forward, the print view, and for URL spellings the filter missed (backslashes, CSS escapes, `image-set()`)
+- **Mail**: Links in image maps (`<area>`) no longer keep `window.opener`
+- **Mail**: A `mailto:` unsubscribe goes to the single address in the link, and the confirmation shows recipient, subject and body before sending
+- **Mail**: A crafted `winmail.dat` no longer freezes the tab
+- **Composer**: A sender name containing a quote can no longer add a recipient to a draft
+- **Filters**: Rule names, header names and sizes are escaped, so rules from plugins or imported filter sets cannot add commands such as `redirect` to the Sieve script
+- **Plugins**: Hooks and slots need a declared permission, like the host API does. `http.post` can no longer reach the JMAP passthrough, `/api/admin/*`, `/api/settings` or other credentialed routes, and plugin storage is kept per account and deleted on sign-out
+- **Themes**: The theme CSS sanitizer no longer lets remote resources through (`url(//host)`, CSS escapes, `image-set()`, `@font-face` sources), and theme CSS can only target `:root` and `.dark`, also when a plugin transforms it
+- **Files**: WOPI file downloads are always served as inert attachments, so a blob typed `text/html` cannot run script in the webmail origin
+- **Server**: The SSRF guard also blocks loopback beyond `127.0.0.1`, CGNAT, benchmark, multicast and reserved ranges, and NAT64, 6to4 and Teredo addresses that wrap an internal IPv4 address. Telemetry targets are checked at connect time, and OAuth token and revocation requests never follow redirects
+- **Auth**: Synced settings are keyed on the account a bearer token belongs to, so on a multi-domain server `john@b.example` can no longer read the settings of `john@a.example`
+- **Auth**: Wrong passwords tried through the login pre-check are limited, so the route can no longer be used as a password oracle or trip Stalwart's ban against the webmail itself
+- **Auth**: Signing out ends office editor sessions opened in that browser, and a full sign-out clears search history, open tabs, Files recents, staged plugin uploads and the other accounts' leftovers, also in other open tabs
+- **Auth**: Signing out when another account's restore had failed no longer leaves that account resumable
+- **Auth**: The failed TOTP login no longer passes on a user-chosen server's error body
+- **Server**: Visitors who are not signed in no longer get detailed health data, the pending advisory text, the plugin list, the full admin policy or every server's domain list
+- **Server**: The setup token is passed in the URL fragment, so it stays out of access logs, referers and history
+- **Server**: Not-found pages outside the app tree cannot be framed, `ALLOWED_FRAME_ANCESTORS` never applies to the admin dashboard or setup, and sibling subdomains can no longer widen the sidebar-app `frame-src`
+- **Server**: Favicons are only served as raster images
+- **Docker**: Runtime state and secrets (`data/`, `local-data/`, `.env`) stay out of the standalone build and the image, and the mock JMAP server can no longer be switched on in a release build
+- **Lite**: Sign-out revokes the refresh token, and a failed token login no longer keeps the password in `sessionStorage`
+- **Lite**: Every static page gets a CSP that allows only its own inline scripts, the Stalwart bundle refuses to run inside a foreign frame, and the Stalwart install instructions use a tagged release with a published `.sha256` instead of `releases/latest`
+
+### Features
+
+- **Calendar**: Tasks with a due date show in the month view (#1107)
+
+### Changes
+
+- **Plugins**: Hooks that change outgoing mail need `email:send`, and display takeovers need `email:render-takeover`. Plugins that don't declare them lose those hooks
+- **Themes**: Theme CSS keeps only `:root` and `.dark` rules plus `@font-face`, `@keyframes`, `@media` and `@supports`. Every `url()` except a `#fragment` is removed
+- **Admin**: Impersonated sessions end after 8 hours, and sessions minted by earlier versions are signed out
+- **Server**: `/api/health?detailed=true` needs a session
+
+### Fixes
+
+- **Mail**: The inbox keeps rendering when a message has an unparsable date (#1099)
+- **Mail**: A folder no longer switches back to the unified inbox while it loads (#1102, thanks @guisea)
+- **Mail**: Replies in the unified inbox come from the identity of the account that received the mail (#1104)
+- **Mail**: Mail deleted during a list refresh no longer reappears (#966)
+- **Mail**: The message list no longer jumps while attachment chips load
+- **Mail**: Scrolling the unified inbox, cross-account views, tag views and "All folders" search no longer skips messages
+- **Mail**: A failed message-list read keeps the list on screen instead of showing an empty folder
+- **Mail**: Marking read, starring, tagging, emptying a folder and cancelling a scheduled send report it when the server refuses them
+- **Mail**: Tagging and pinning write only the keywords that change, so they no longer mark mail unread that was read on another device
+- **Mail**: New mail and folder changes keep arriving for users with seven or more shared accounts
+- **Send**: A dropped connection can no longer send a message twice
+- **Send**: Undo and edit of a message sent from a group identity act in the group's own account
+- **Composer**: A reply draft stays in its thread when it is re-opened or undone
+- **Composer**: An open draft stays on its own account across an account switch
+- **Accounts**: Quick account switches no longer mix up identities, so replies go out with the right From address
+- **Accounts**: Folders, filters and the account security page no longer show the previous account's data after a switch
+- **Accounts**: Settings sync turns back on after signing out of one of several accounts
+- **Push**: A notification opens its message in the account it came from
+- **Calendar**: Events you declined show struck through (#1110)
+- **Calendar**: Daily recurring events keep going past a DST gap
+- **Calendar**: iCal subscriptions stay with the login that created them, so refreshing or removing one no longer touches a calendar of another login
+- **Auth**: SSO sign-in behind nginx no longer fails with a 502 when the cookies would overflow its header buffer (#1096)
+- **Auth**: Sign-in and addresses work on internationalized domains (#1100)
+- **Lite**: A rate-limited token endpoint no longer signs you out
+- **i18n**: The dark/light mode titles and the "Themes" settings tab are translated in every language (#1105, #1106, thanks @dulinux), and so is the themes settings panel
+- **i18n**: Updated Portuguese (Brazil) translation (#1106, thanks @dulinux)
+
 ## 1.11.0 (2026-09-23)
 
 1.11.0 introduces **Bulwark Lite**, a static build of the webmail that runs without a Node server, and fixes many places where Bulwark and Stalwart disagreed about mail, filters, calendars, contacts and files. It contains everything from the three 1.11.0 betas. The `latest` Docker tag moves to this release.

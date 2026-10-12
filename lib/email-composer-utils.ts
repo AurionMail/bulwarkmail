@@ -254,7 +254,8 @@ function angleRunCloses(value: string, from: number): boolean {
   let inQuotes = false;
   for (let i = from + 1; i < value.length; i++) {
     const ch = value[i];
-    if (ch === '"') inQuotes = !inQuotes;
+    if (inQuotes && ch === '\\') i++;
+    else if (ch === '"') inQuotes = !inQuotes;
     else if (inQuotes) continue;
     else if (ch === '>') return true;
     else if (ch === '<') return false;
@@ -280,7 +281,13 @@ export function splitRecipients(value: string, separators = ','): string[] {
   let inGroup = false;
   for (let i = 0; i < value.length; i++) {
     const ch = value[i];
-    if (ch === '"') {
+    if (inQuotes && ch === '\\' && i + 1 < value.length) {
+      // A quoted-pair: formatRecipient writes a `"` in a display name as
+      // `\"`. Taking it as the closing quote let a sender's name like
+      // `Support", ceo@corp.example, "x` split into an extra recipient.
+      current += ch + value[i + 1];
+      i++;
+    } else if (ch === '"') {
       inQuotes = !inQuotes;
       current += ch;
     } else if (ch === '<' && !inQuotes) {
@@ -353,7 +360,8 @@ function findTopLevelColon(value: string): number {
   let inAngle = false;
   for (let i = 0; i < value.length; i++) {
     const ch = value[i];
-    if (ch === '"') inQuotes = !inQuotes;
+    if (inQuotes && ch === '\\') i++;
+    else if (ch === '"') inQuotes = !inQuotes;
     else if (ch === '<' && !inQuotes) inAngle = true;
     else if (ch === '>' && !inQuotes) inAngle = false;
     else if (ch === ':' && !inQuotes && !inAngle) return i;
@@ -387,6 +395,24 @@ export function parseRecipient(s: string): Recipient {
     return { name: unquoteName(angleMatch[1]), email: angleMatch[2].trim() };
   }
   return { email: trimmed };
+}
+
+/**
+ * The autocomplete suggestion Enter or Tab takes when the user has not moved
+ * the highlight with the arrow keys. A complete address the user typed wins:
+ * its own suggestion when one matches (so the display name comes along),
+ * otherwise -1, meaning "add what was typed". Anything else takes the top
+ * suggestion, so "user" + Enter never becomes a recipient called "user".
+ */
+export function defaultSuggestionIndex(input: string, suggestions: Array<{ email: string }>): number {
+  const typed = input.trim();
+  if (!typed || suggestions.length === 0) return -1;
+  const { email } = parseRecipient(typed);
+  if (isValidEmail(email)) {
+    const lower = email.toLowerCase();
+    return suggestions.findIndex((s) => s.email.toLowerCase() === lower);
+  }
+  return 0;
 }
 
 /** Parses a serialized comma-separated recipient string into an array. */

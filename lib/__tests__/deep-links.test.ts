@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   buildFolderRef,
   resolveFolderRef,
+  isFolderLinkOpen,
+  pathNamesMailFolder,
   buildMailPath,
   parseMailPath,
   buildCalendarPath,
@@ -122,6 +124,51 @@ describe('mail folder references', () => {
   });
 });
 
+describe('isFolderLinkOpen', () => {
+  const plainInbox = {
+    selectedMailbox: 'a',
+    isUnifiedView: false,
+    isScheduledView: false,
+    selectedKeyword: null,
+    hasSearch: false,
+  };
+
+  it('treats the folder the list already shows as open (page reload)', () => {
+    expect(isFolderLinkOpen(resolveFolderRef('inbox', MAILBOXES)!, plainInbox)).toBe(true);
+  });
+
+  it('does not treat another folder as open', () => {
+    expect(isFolderLinkOpen('b', plainInbox)).toBe(false);
+  });
+
+  it('does not treat the folder as open while a tag, search or special view covers it', () => {
+    expect(isFolderLinkOpen('a', { ...plainInbox, selectedKeyword: 'work' })).toBe(false);
+    expect(isFolderLinkOpen('a', { ...plainInbox, hasSearch: true })).toBe(false);
+    expect(isFolderLinkOpen('a', { ...plainInbox, isUnifiedView: true })).toBe(false);
+    expect(isFolderLinkOpen('a', { ...plainInbox, isScheduledView: true })).toBe(false);
+  });
+
+  it('never treats a virtual view as open - the boot fetch does not load them', () => {
+    for (const id of [UNIFIED_MAILBOX_IDS.inbox, CROSS_VIEW_IDS.unread, SCHEDULED_MAILBOX_ID]) {
+      expect(isFolderLinkOpen(id, { ...plainInbox, selectedMailbox: id })).toBe(false);
+    }
+  });
+});
+
+describe('pathNamesMailFolder', () => {
+  it('spots a folder link behind any mount and locale prefix', () => {
+    expect(pathNamesMailFolder('/mail/folder/trash')).toBe(true);
+    expect(pathNamesMailFolder('/en/mail/folder/inbox')).toBe(true);
+    expect(pathNamesMailFolder('/webmail/de/mail/folder/Mxyz/')).toBe(true);
+  });
+
+  it('is false for the bare app, other mail links and other surfaces', () => {
+    for (const path of ['/', '/en', '/en/mail', '/mail/folder/', '/en/mail/message/m1', '/en/calendar', '/email/folder/x']) {
+      expect(pathNamesMailFolder(path), path).toBe(false);
+    }
+  });
+});
+
 describe('mail paths', () => {
   it('round-trips folder, message and thread links', () => {
     const folder = buildMailPath({ mailboxId: 'c', emailId: null, threadId: null }, MAILBOXES);
@@ -149,6 +196,20 @@ describe('mail paths', () => {
       id: 'm1',
       accountId: undefined,
     });
+  });
+
+  it('reads the login slot a push notification names', () => {
+    expect(parseMailPath(['message', 'm1'], new URLSearchParams('slot=2'))).toEqual({
+      kind: 'message', id: 'm1', accountId: undefined, slot: 2,
+    });
+    expect(parseMailPath(['folder', 'inbox'], new URLSearchParams('slot=0'))).toEqual({
+      kind: 'folder', ref: 'inbox', accountId: undefined, slot: 0,
+    });
+    for (const bad of ['slot=', 'slot=-1', 'slot=1.5', 'slot=x']) {
+      expect(parseMailPath(['message', 'm1'], new URLSearchParams(bad))).toEqual({
+        kind: 'message', id: 'm1', accountId: undefined,
+      });
+    }
   });
 
   it('falls back to the bare mail path with nothing selected', () => {

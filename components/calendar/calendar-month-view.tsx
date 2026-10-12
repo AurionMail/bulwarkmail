@@ -5,8 +5,11 @@ import { useTranslations } from "next-intl";
 import { format, parseISO, eachDayOfInterval, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { EventCard } from "./event-card";
+import { CalendarTaskChip } from "./task-chip";
 import { buildWeekSegments, getEventDayBounds, getPrimaryCalendarId } from "@/lib/calendar-utils";
-import type { CalendarEvent, Calendar } from "@/lib/jmap/types";
+import { groupTasksByDueDay } from "@/lib/calendar-tasks";
+import { isDeclinedByUser } from "@/lib/calendar-participants";
+import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { movedEventUpdates } from "@/lib/calendar-participants";
@@ -29,10 +32,18 @@ interface CalendarMonthViewProps extends ScrollWindowViewProps {
   onContextMenuEvent?: (e: React.MouseEvent, event: CalendarEvent) => void;
   onContextMenuEmpty?: (e: React.MouseEvent, date: Date, hour?: number, allDayArea?: boolean) => void;
   onCreateAtTime?: (date: Date) => void;
+  /** Open a day in the day view (its date number, or its "N more" link). */
+  onOpenDay?: (date: Date) => void;
   firstDayOfWeek?: number;
   isMobile?: boolean;
   pendingPreview?: PendingEventPreview | null;
-  /** The user's calendar addresses: moving an event they organize asks its attendees again. */
+  tasks?: CalendarTask[];
+  onToggleTaskComplete?: (task: CalendarTask) => void;
+  onSelectTask?: (task: CalendarTask) => void;
+  /**
+   * The user's calendar addresses, to mark events they declined (#1110).
+   * Moving an event they organize also asks its attendees again.
+   */
   currentUserEmails?: string[];
 }
 
@@ -58,8 +69,12 @@ export function CalendarMonthView({
   onContextMenuEvent,
   onContextMenuEmpty,
   onCreateAtTime,
+  onOpenDay,
   isMobile,
   pendingPreview,
+  tasks,
+  onToggleTaskComplete,
+  onSelectTask,
   currentUserEmails,
 }: CalendarMonthViewProps) {
   const t = useTranslations("calendar");
@@ -121,13 +136,28 @@ export function CalendarMonthView({
     return map;
   }, [events]);
 
+  const tasksByDate = useMemo(() => groupTasksByDueDay(tasks), [tasks]);
+
   const weekSegments = useMemo(() => {
     return weeks.map((week) => {
       const segments = buildWeekSegments(events, week);
       const rowCount = segments.reduce((maxRows, segment) => Math.max(maxRows, segment.row + 1), 0);
-      return { week, segments, rowCount };
+      // Tasks stack under the lowest event of their own day rather than of
+      // the whole week, so a busy Monday does not push Friday's tasks down.
+      const dayEventRows = week.map((_, dayIndex) => segments.reduce(
+        (rows, segment) => dayIndex >= segment.startIndex && dayIndex < segment.startIndex + segment.span
+          ? Math.max(rows, segment.row + 1)
+          : rows,
+        0,
+      ));
+      const dayTasks = week.map((day) => tasksByDate.get(format(day, "yyyy-MM-dd")) ?? []);
+      const contentRows = dayTasks.reduce(
+        (rows, dayTaskList, dayIndex) => Math.max(rows, dayEventRows[dayIndex] + dayTaskList.length),
+        rowCount,
+      );
+      return { week, segments, rowCount, dayEventRows, dayTasks, contentRows };
     });
-  }, [events, weeks]);
+  }, [events, weeks, tasksByDate]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -145,6 +175,11 @@ export function CalendarMonthView({
     return () => observer.disconnect();
   }, []);
   const rowMinHeight = Math.max(baseRowMinHeight, Math.floor(viewportHeight / 6));
+  // On wide screens a week keeps its height: a day with more entries than
+  // fit shows the first ones and a "N more" link (as in Google Calendar).
+  // Phones keep growing the row to fit.
+  const rowCapacity = Math.max(1, Math.floor((rowMinHeight - overlayTop - 4 - 8) / rowHeight));
+  const capRows = showChips && !isMobile;
 
   // The month the user is looking at: sampled a little above the middle of
   // the viewport. It dims the other months' days and drives the title.
@@ -234,7 +269,9 @@ export function CalendarMonthView({
       const isAllDay = event?.showWithoutTime;
       const newStart = new Date(day);
       newStart.setHours(originalStart.getHours(), originalStart.getMinutes(), originalStart.getSeconds(), 0);
-      const newStartISO = isAllDay ? format(newStart, "yyyy-MM-dd") : format(newStart, "yyyy-MM-dd'T'HH:mm:ss");
+      // `start` is a LocalDateTime for all-day events too: Stalwart drops a
+      // date-only value and the event is left without a start (#1119).
+      const newStartISO = format(newStart, isAllDay ? "yyyy-MM-dd'T'00:00:00" : "yyyy-MM-dd'T'HH:mm:ss");
       if (newStartISO === data.originalStart) return;
       const client = useAuthStore.getState().client;
       if (!client) return;
@@ -264,10 +301,25 @@ export function CalendarMonthView({
         onScroll={handleScroll}
       >
         <div ref={topSentinelRef} data-testid="month-top-sentinel" className="h-px flex-shrink-0" />
-        {weekSegments.map(({ week, segments, rowCount }) => (
+        {weekSegments.map(({ week, segments, rowCount, dayEventRows, dayTasks, contentRows }) => {
+          const overflowing = capRows && contentRows > rowCapacity;
+          // Rows drawn per day; the last one is taken by the "N more" link.
+          const rowLimit = overflowing ? rowCapacity - 1 : Infinity;
+          const hiddenPerDay = overflowing
+            ? week.map((_, dayIndex) => {
+              const hiddenEvents = segments.filter((segment) =>
+                segment.row >= rowLimit
+                && dayIndex >= segment.startIndex
+                && dayIndex < segment.startIndex + segment.span,
+              ).length;
+              const hiddenTasks = dayTasks[dayIndex].filter((_, taskIndex) => dayEventRows[dayIndex] + taskIndex >= rowLimit).length;
+              return hiddenEvents + hiddenTasks;
+            })
+            : null;
+          return (
           <div key={dayKey(week[0])} data-week={dayKey(week[0])} className="relative flex-shrink-0 border-b border-border" role="row" style={{
-            minHeight: showChips
-              ? Math.max(rowMinHeight, overlayTop + 4 + rowCount * rowHeight + 8)
+            minHeight: showChips && !overflowing
+              ? Math.max(rowMinHeight, overlayTop + 4 + contentRows * rowHeight + 8)
               : rowMinHeight,
           }}>
             <div className="grid grid-cols-7 h-full">
@@ -277,6 +329,7 @@ export function CalendarMonthView({
               const today = checkIsToday(day);
               const key = format(day, "yyyy-MM-dd");
               const dayEvents = eventsByDate.get(key) || [];
+              const dayTaskList = dayTasks[dayIndex];
               const fullDateLabel = formatFullDate(day);
               const previous = dayIndex > 0 ? week[dayIndex - 1] : addDays(day, -1);
               const firstOfMonth = !checkIsSameMonth(day, previous);
@@ -307,18 +360,31 @@ export function CalendarMonthView({
                         {t(`months.${monthLabelKeys[getMonth(day)]}`)}
                       </span>
                     )}
-                    <span
+                    {/* The date opens that day in the day view; on phones the
+                        whole cell already does. */}
+                    <button
+                      type="button"
+                      tabIndex={isMobile ? -1 : undefined}
+                      onClick={(e) => {
+                        if (isMobile || !onOpenDay) return;
+                        e.stopPropagation();
+                        onOpenDay(day);
+                      }}
+                      onDoubleClick={(e) => e.stopPropagation()}
+                      aria-label={fullDateLabel}
+                      aria-current={today ? "date" : undefined}
                       className={cn(
-                        "inline-flex items-center justify-center rounded-full",
+                        "inline-flex items-center justify-center rounded-full transition-colors",
                         isMobile ? "w-7 h-7 text-xs" : "w-6 h-6 text-xs",
-                        today && !selected && "bg-primary text-primary-foreground font-bold",
-                        selected && "bg-primary text-primary-foreground font-bold",
+                        today && "bg-primary text-primary-foreground font-bold",
+                        selected && !today && "bg-primary/15 text-primary font-bold",
                         !inMonth && !selected && !today && "text-muted-foreground/50",
-                        inMonth && !selected && !today && "font-medium"
+                        inMonth && !selected && !today && "font-medium",
+                        !today && !isMobile && "hover:bg-muted"
                       )}
                     >
                       {formatDayNumber(day)}
-                    </span>
+                    </button>
                   </div>
                   {isMobile && !showChips ? (
                     <div className="flex items-center justify-center gap-0.5 flex-wrap">
@@ -326,15 +392,28 @@ export function CalendarMonthView({
                         const calId = getPrimaryCalendarId(ev);
                         const cal = calId ? calendarMap.get(calId) : undefined;
                         const evColor = ev.color || cal?.color || "#3b82f6";
+                        const inactive = ev.status === "cancelled" || isDeclinedByUser(ev, currentUserEmails);
                         return (
                           <span
                             key={ev.id}
-                            className="w-1.5 h-1.5 rounded-full"
+                            className={cn("w-1.5 h-1.5 rounded-full", inactive && "opacity-40")}
                             style={{ backgroundColor: evColor }}
                           />
                         );
                       })}
-                      {dayEvents.length > 3 && (
+                      {/* Tasks are rings where events are filled dots. */}
+                      {dayTaskList.slice(0, Math.max(0, 3 - dayEvents.length)).map((task) => {
+                        const calId = Object.keys(task.calendarIds).find((id) => calendarMap.has(id));
+                        return (
+                          <span
+                            key={`task-${task.id}`}
+                            data-calendar-task={task.id}
+                            className={cn("w-1.5 h-1.5 rounded-full border", task.progress === "completed" && "opacity-40")}
+                            style={{ borderColor: (calId && calendarMap.get(calId)?.color) || "#3b82f6" }}
+                          />
+                        );
+                      })}
+                      {dayEvents.length + dayTaskList.length > 3 && (
                         <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
                       )}
                       {pendingPreview && checkIsSameDay(pendingPreview.start, day) && (
@@ -353,7 +432,7 @@ export function CalendarMonthView({
             {showChips && pendingPreview && (() => {
               const previewDayIdx = week.findIndex(d => checkIsSameDay(d, pendingPreview.start));
               if (previewDayIdx === -1) return null;
-              const previewRow = rowCount;
+              const previewRow = Math.max(rowCount, dayEventRows[previewDayIdx] + dayTasks[previewDayIdx].length);
               const cal = calendarMap.get(pendingPreview.calendarId);
               const color = cal?.color || "#3b82f6";
               return (
@@ -383,7 +462,7 @@ export function CalendarMonthView({
 
             {showChips && segments.length > 0 && (
               <div className="absolute inset-x-0 pointer-events-none" style={{ top: overlayTop }}>
-                {segments.map((segment) => {
+                {segments.filter((segment) => segment.row < rowLimit).map((segment) => {
                   const calId = getPrimaryCalendarId(segment.event);
                   return (
                     <div
@@ -406,6 +485,7 @@ export function CalendarMonthView({
                         onMouseEnter={(rect) => onHoverEvent?.(segment.event, rect)}
                         onMouseLeave={onHoverLeave}
                         onContextMenu={onContextMenuEvent}
+                        currentUserEmails={currentUserEmails}
                         draggable
                         className={isMobile ? "text-[10px] px-1" : undefined}
                       />
@@ -414,8 +494,62 @@ export function CalendarMonthView({
                 })}
               </div>
             )}
+
+            {showChips && dayTasks.some((dayTaskList) => dayTaskList.length > 0) && (
+              <div className="absolute inset-x-0 pointer-events-none" style={{ top: overlayTop }}>
+                {dayTasks.map((dayTaskList, dayIndex) => dayTaskList.map((task, taskIndex) => {
+                  if (dayEventRows[dayIndex] + taskIndex >= rowLimit) return null;
+                  const calId = Object.keys(task.calendarIds).find((id) => calendarMap.has(id));
+                  return (
+                    <div
+                      key={`task-${task.id}`}
+                      className="absolute px-0.5 pointer-events-auto"
+                      style={{
+                        left: `calc(${(dayIndex / 7) * 100}% + 1px)`,
+                        width: `calc(${(1 / 7) * 100}% - 2px)`,
+                        top: (dayEventRows[dayIndex] + taskIndex) * rowHeight,
+                        height: chipHeight,
+                      }}
+                    >
+                      <CalendarTaskChip
+                        task={task}
+                        calendar={calId ? calendarMap.get(calId) : undefined}
+                        onToggleComplete={onToggleTaskComplete}
+                        onSelect={onSelectTask}
+                      />
+                    </div>
+                  );
+                }))}
+              </div>
+            )}
+
+            {hiddenPerDay && (
+              <div className="absolute inset-x-0 pointer-events-none" style={{ top: overlayTop }}>
+                {hiddenPerDay.map((hidden, dayIndex) => hidden > 0 && (
+                  <div
+                    key={`more-${dayIndex}`}
+                    className="absolute px-0.5 pointer-events-auto"
+                    style={{
+                      left: `calc(${(dayIndex / 7) * 100}% + 1px)`,
+                      width: `calc(${(1 / 7) * 100}% - 2px)`,
+                      top: rowLimit * rowHeight,
+                      height: chipHeight,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); (onOpenDay ?? onSelectDate)(week[dayIndex]); }}
+                      className="w-full h-full text-start px-1.5 rounded-xs text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors truncate"
+                    >
+                      {t("events.more", { count: hidden })}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
         <div ref={bottomSentinelRef} data-testid="month-bottom-sentinel" className="h-px flex-shrink-0" />
       </div>
     </div>

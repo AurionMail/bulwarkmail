@@ -121,10 +121,19 @@ export function getRequiredConfig(serverId?: string | null, options?: ClientConf
   return { clientId, serverUrl, discoveryUrl, serverId: entry?.id };
 }
 
-function getClientSecret(serverId?: string | null): string {
+export function getClientSecret(serverId?: string | null): string {
   const entry = getServerEntry(serverId);
   if (entry?.oauth?.clientSecret) return entry.oauth.clientSecret;
   return getGlobalClientSecret();
+}
+
+/**
+ * Whether the server's client is confidential. Tokens minted for it can only
+ * be refreshed with the secret, which never leaves this server - so a paired
+ * phone renews them through the webmail (see lib/auth/pair-bundle.ts).
+ */
+export function hasClientSecret(serverId?: string | null): boolean {
+  return getClientSecret(serverId) !== '';
 }
 
 export async function getTokenEndpoint(serverId?: string | null, options?: ClientConfigOptions): Promise<string> {
@@ -174,10 +183,14 @@ export async function exchangeCodeForTokens(
     code_verifier: codeVerifier,
   }, serverId);
 
+  // The body carries the code, the PKCE verifier and the client secret. The
+  // endpoint was validated; a redirect would re-send all of it to a host
+  // that was not, so none is followed.
   const tokenResponse = await fetch(tokenEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
+    redirect: 'error',
   });
 
   if (!tokenResponse.ok) {

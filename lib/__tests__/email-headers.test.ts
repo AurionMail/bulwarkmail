@@ -8,6 +8,7 @@ import {
   parseSpamLLM,
   extractListHeaders,
   isAuthenticationSpoofed,
+  getSenderVerification,
 } from '../email-headers';
 
 describe('parseAuthenticationResults', () => {
@@ -331,5 +332,123 @@ describe('extractListHeaders', () => {
     });
     expect(result.listHelp).toBe('<mailto:help@example.com>');
     expect(result.listPost).toBe('<mailto:post@example.com>');
+  });
+});
+
+describe('parseAuthenticationResults - sender-controlled text', () => {
+  // Stalwart writes dkim (when signed), spf helo, spf mailfrom with the MAIL
+  // FROM address echoed in a comment and in smtp.mailfrom, iprev, then dmarc.
+  const stalwart = (mailFrom: string, dmarc: string) =>
+    `mx.victim.example;\r\n\tspf=pass (mx.victim.example: domain of ${mailFrom} designates 203.0.113.9 as permitted sender) smtp.mailfrom=${mailFrom};\r\n\tiprev=pass policy.iprev=203.0.113.9;\r\n\tdmarc=${dmarc} header.from=corp.example policy.dmarc=none`;
+
+  it('reads the honest header', () => {
+    const result = parseAuthenticationResults([stalwart('bounce@evil.example', 'fail')]);
+    expect(result.dmarc?.result).toBe('fail');
+    expect(result.spf?.domain).toBe('bounce@evil.example');
+    expect(result.iprev).toEqual({ result: 'pass', ip: '203.0.113.9' });
+    expect(isAuthenticationSpoofed(result)).toBe(true);
+  });
+
+  it('ignores a method=result token inside the envelope local part', () => {
+    const result = parseAuthenticationResults([stalwart('dmarc=pass@evil.example', 'fail')]);
+    expect(result.dmarc?.result).toBe('fail');
+    expect(result.spf?.domain).toBe('dmarc=pass@evil.example');
+    expect(isAuthenticationSpoofed(result)).toBe(true);
+  });
+
+  it('does not split on a ; inside a quoted local part or a comment', () => {
+    const header =
+      'mx.victim.example; spf=fail (domain of "x; dkim=pass"@evil.example; dmarc=pass) smtp.mailfrom="x; dmarc=pass header.from=corp.example"@evil.example; dmarc=fail header.from=corp.example';
+    const result = parseAuthenticationResults(header);
+    expect(result.dkim).toBeUndefined();
+    expect(result.dmarc?.result).toBe('fail');
+    expect(result.spf?.result).toBe('fail');
+  });
+
+  it('takes DKIM and DMARC only from the topmost (receiving server) header', () => {
+    const result = parseAuthenticationResults([
+      stalwart('bounce@evil.example', 'none'),
+      'forged.example; dkim=pass header.d=corp.example header.s=s1; dmarc=pass header.from=corp.example',
+    ]);
+    expect(result.dkim).toBeUndefined();
+    expect(result.dmarc?.result).toBe('none');
+  });
+
+  it('lets a lower header escalate SPF to a failure but never to a pass', () => {
+    const escalated = parseAuthenticationResults([
+      'mx.victim.example; spf=pass smtp.mailfrom=corp.example',
+      'relay.example; spf=fail smtp.mailfrom=corp.example',
+    ]);
+    expect(escalated.spf?.result).toBe('fail');
+
+    const notUpgraded = parseAuthenticationResults([
+      'mx.victim.example; spf=softfail smtp.mailfrom=corp.example',
+      'forged.example; spf=pass smtp.mailfrom=corp.example',
+    ]);
+    expect(notUpgraded.spf?.result).toBe('softfail');
+    expect(notUpgraded.spf?.all).toBeUndefined();
+  });
+
+  it('keeps the most severe DMARC verdict within one header', () => {
+    const result = parseAuthenticationResults('mx.example; dmarc=pass header.from=a.example; dmarc=fail header.from=a.example');
+    expect(result.dmarc?.result).toBe('fail');
+  });
+});
+
+describe('getSenderVerification', () => {
+  // Shape of a real phish: forged bank From, sent by a web host's PHP
+  // mailer, no signature. mail-auth reports dmarc=none because neither SPF
+  // nor DKIM passed, although the From domain publishes a DMARC record.
+  const phish = parseAuthenticationResults(
+    'mx.example.org;\r\n\tspf=none (mx.example.org: no SPF records found for www-data@web1.hoster.example) smtp.mailfrom=www-data@web1.hoster.example;\r\n\tiprev=permerror policy.iprev=203.0.113.7;\r\n\tdmarc=none header.from=bank.example policy.dmarc=none',
+  );
+
+  it('flags a message that passes neither SPF nor DKIM', () => {
+    expect(isAuthenticationSpoofed(phish)).toBe(false);
+    expect(getSenderVerification(phish, 'support@bank.example')).toEqual({
+      status: 'unverified',
+      domain: 'bank.example',
+      sentFrom: 'web1.hoster.example',
+    });
+  });
+
+  it('leaves out the envelope host when it is the From domain', () => {
+    const auth = parseAuthenticationResults('mx; spf=softfail smtp.mailfrom=billing@Bank.Example; dmarc=none header.from=bank.example');
+    expect(getSenderVerification(auth, 'billing@bank.example')).toEqual({ status: 'unverified', domain: 'bank.example' });
+  });
+
+  it('reports a DMARC fail as failed', () => {
+    const auth = parseAuthenticationResults('mx; spf=pass smtp.mailfrom=bounce@evil.example; dmarc=fail header.from=bank.example');
+    expect(getSenderVerification(auth, 'support@bank.example')).toEqual({
+      status: 'failed',
+      domain: 'bank.example',
+      sentFrom: 'evil.example',
+    });
+  });
+
+  it('accepts any passing SPF, DKIM or DMARC result', () => {
+    const from = 'news@shop.example';
+    expect(getSenderVerification(parseAuthenticationResults('mx; spf=pass smtp.mailfrom=bounces.esp.example'), from)).toBeNull();
+    expect(getSenderVerification(parseAuthenticationResults('mx; spf=none smtp.mailfrom=x.example; dkim=pass header.d=esp.example'), from)).toBeNull();
+    expect(getSenderVerification(parseAuthenticationResults('mx; dmarc=pass header.from=shop.example'), from)).toBeNull();
+  });
+
+  it('counts a passing signature that is not the first one', () => {
+    const auth = parseAuthenticationResults('mx; dkim=fail header.d=shop.example; dkim=pass header.d=esp.example; spf=none smtp.mailfrom=x.example');
+    expect(auth.dkim?.result).toBe('fail');
+    expect(auth.dkim?.all).toHaveLength(2);
+    expect(getSenderVerification(auth, 'news@shop.example')).toBeNull();
+  });
+
+  it('does not take a HELO pass for a MAIL FROM pass', () => {
+    const auth = parseAuthenticationResults('mx; spf=pass smtp.helo=web1.hoster.example; spf=none smtp.mailfrom=www-data@web1.hoster.example');
+    expect(getSenderVerification(auth, 'support@bank.example')?.status).toBe('unverified');
+  });
+
+  it('says nothing without results or a From address', () => {
+    expect(getSenderVerification(undefined, 'a@b.example')).toBeNull();
+    expect(getSenderVerification({}, 'a@b.example')).toBeNull();
+    expect(getSenderVerification({ iprev: { result: 'fail' } }, 'a@b.example')).toBeNull();
+    expect(getSenderVerification(phish, undefined)).toBeNull();
   });
 });

@@ -44,7 +44,8 @@ vi.mock('@/stores/auth-store', () => ({ useAuthStore: storeHook(authState) }));
 vi.mock('@/stores/account-store', () => ({ useAccountStore: storeHook({ accounts: [] }) }));
 vi.mock('@/stores/settings-store', () => ({ useSettingsStore: storeHook({ includeGroupInUnified: true }) }));
 
-const { mailProvider, andFilters, emailMatchesFilters, mailFilterFor } = await import('../providers/mail');
+const { mailProvider, emailMatchesFilters, mailFilterFor } = await import('../providers/mail');
+const { andFilters } = await import('@/lib/jmap/search-utils');
 const { contactsProvider } = await import('../providers/contacts');
 const { calendarProvider, calendarFilterFor } = await import('../providers/calendar');
 const { filesProvider, invalidateFileSearchCache, pathOfNode, rawFileNodeId } = await import('../providers/files');

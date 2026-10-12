@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Folder, Loader2, Paperclip, RefreshCw, Star } from "@/components/icons";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, cleanPreview, formatDate } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
 import { EmailViewer } from "@/components/email/email-viewer";
 import { ProEmailView } from "@/components/pro/pro-email-tab-body";
@@ -90,17 +90,24 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
     if (!client) return;
     const seq = ++fetchSeqRef.current;
     if (position === 0) setIsLoading(true); else setIsLoadingMore(true);
-    // getEmails never throws - it reports failures as an empty page.
-    const result = await client.getEmails(jmapMailboxId, jmapAccountId, emailsPerPage, position, undefined, true, undefined, getMessageListOrderFor(mailboxRole));
-    if (seq !== fetchSeqRef.current) return;
-    setEmails((prev) => {
-      if (position === 0) return result.emails;
-      const known = new Set(prev.map((e) => e.id));
-      return [...prev, ...result.emails.filter((e) => !known.has(e.id))];
-    });
-    setTotal(result.total);
-    setHasMore(result.hasMore);
-    if (position === 0) setIsLoading(false); else setIsLoadingMore(false);
+    try {
+      const result = await client.getEmails(jmapMailboxId, jmapAccountId, emailsPerPage, position, undefined, true, undefined, getMessageListOrderFor(mailboxRole));
+      if (seq !== fetchSeqRef.current) return;
+      setEmails((prev) => {
+        if (position === 0) return result.emails;
+        const known = new Set(prev.map((e) => e.id));
+        return [...prev, ...result.emails.filter((e) => !known.has(e.id))];
+      });
+      setTotal(result.total);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      // Keep what is on screen: a failed page is not an empty folder.
+      console.error('Failed to load folder tab:', error);
+    } finally {
+      if (seq === fetchSeqRef.current) {
+        if (position === 0) setIsLoading(false); else setIsLoadingMore(false);
+      }
+    }
   }, [client, jmapMailboxId, jmapAccountId, emailsPerPage, mailboxRole]);
 
   useEffect(() => {
@@ -239,9 +246,9 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
                       <Star className="h-3.5 w-3.5 flex-shrink-0 fill-yellow-400 text-yellow-400" aria-hidden="true" />
                     )}
                   </div>
-                  {email.preview && (
+                  {cleanPreview(email.preview) && (
                     <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {email.preview}
+                      {cleanPreview(email.preview)}
                     </div>
                   )}
                 </div>

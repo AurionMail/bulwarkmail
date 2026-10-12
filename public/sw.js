@@ -155,6 +155,9 @@ async function handlePush(event) {
   const unreadTotal = preview && typeof preview.unreadTotal === "number"
     ? preview.unreadTotal
     : 0;
+  // The login (cookie slot) that owns this account, so the click opens the
+  // message there and not in whichever account happens to be active.
+  const slot = preview && Number.isInteger(preview.slot) ? preview.slot : undefined;
 
   // Push subscription is scoped to EmailDelivery, but stragglers from the
   // older broader-types subscription, marking-as-read races and verification
@@ -182,7 +185,7 @@ async function handlePush(event) {
   const groupTag = "bulwark-mail:" + (accountId || "default");
   let title;
   let body;
-  let data = { kind: "mail-list", accountId };
+  let data = { kind: "mail-list", accountId, slot };
 
   if (email) {
     const sender = email.from && email.from[0];
@@ -196,13 +199,14 @@ async function handlePush(event) {
       body += "\n" + (more === 1 ? "+1 more message" : `+${more} more messages`);
     } else {
       // Exactly one unread: deep-link straight to that message on click.
-      data = { kind: "email", emailId: email.id, threadId: email.threadId };
+      data = { kind: "email", emailId: email.id, threadId: email.threadId, slot };
     }
   } else {
     title = accountLabel ? `New mail (${accountLabel})` : "New mail";
     body = unreadTotal > 1 ? `${unreadTotal} unread messages` : "You have new mail";
   }
 
+  const quiet = await withinQuietWindow(accountId);
   await self.registration.showNotification(title, {
     body,
     // Shared per-account tag: each new push replaces the account's single
@@ -213,13 +217,51 @@ async function handlePush(event) {
     icon: `${BASE_PATH}/api/pwa-icon/192`,
     badge: `${BASE_PATH}/api/pwa-icon/192`,
     data,
-    renotify: true,
+    // Inside the quiet window the notification still appears or updates,
+    // without a sound.
+    renotify: !quiet,
+    silent: quiet,
   });
 
   const announced = freshIds.length > 0 ? freshIds : (email ? [email.id] : []);
   if (announced.length > 0) {
     await writeNotifiedIds(accountId, notified.concat(announced));
   }
+}
+
+// One message often lands in several of the user's accounts at once - a list,
+// a forward, the same newsletter on two logins - and each account has its own
+// notification. Only the first alert of a burst makes a sound; other accounts'
+// alerts within the window show up silently. A second alert for the same
+// account still rings, as before. The window runs from the last audible alert
+// and is not extended by the silent ones, so a steady trickle still rings
+// every so often.
+const QUIET_WINDOW_MS = 30_000;
+
+function lastAlertKey() {
+  return `${self.location.origin}${BASE_PATH}/__push-state/last-alert`;
+}
+
+/** True when another account alerted audibly less than QUIET_WINDOW_MS ago; otherwise records this one. */
+async function withinQuietWindow(accountId) {
+  const now = Date.now();
+  const account = accountId || "default";
+  try {
+    const cache = await caches.open(PUSH_STATE_CACHE);
+    const res = await cache.match(lastAlertKey());
+    const lastAlert = res ? await res.json() : null;
+    const last = lastAlert ? Number(lastAlert.at) : 0;
+    if (last && lastAlert.accountId !== account && now - last >= 0 && now - last < QUIET_WINDOW_MS) return true;
+    await cache.put(
+      lastAlertKey(),
+      new Response(JSON.stringify({ at: now, accountId: account }), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  } catch (_) {
+    // Without the store every notification alerts, as before.
+  }
+  return false;
 }
 
 // Per-account list of message ids we have already shown a notification for.
@@ -458,10 +500,16 @@ function getReusableClientScore(state) {
 
 function buildClickUrl(data) {
   if (!data) return `${BASE_PATH}/`;
+  // `?slot=` names the login the message belongs to (see the preview API).
+  const slotQuery = Number.isInteger(data.slot) ? `?slot=${data.slot}` : "";
   if (data.kind === "email" && data.emailId) {
     // Permalink (#733). Under NEXT_PUBLIC_LOCALE_PREFIX=always the proxy
     // redirects this to the localised path; the worker has no locale to add.
-    return `${BASE_PATH}/mail/message/${encodeURIComponent(data.emailId)}`;
+    return `${BASE_PATH}/mail/message/${encodeURIComponent(data.emailId)}${slotQuery}`;
+  }
+  // A group of new mail in a known login: that login's Inbox.
+  if (data.kind === "mail-list" && slotQuery) {
+    return `${BASE_PATH}/mail/folder/inbox${slotQuery}`;
   }
   // Generic "New mail" toast (preview API failed or returned no email): land
   // the user on the latest unread message in their Inbox rather than just the

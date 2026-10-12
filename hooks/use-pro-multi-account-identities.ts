@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccountStore } from "@/stores/account-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useIdentityStore } from "@/stores/identity-store";
-import { useSettingsStore } from "@/stores/settings-store";
-import { useIsEmbedded } from "@/hooks/use-is-embedded";
 import type { Identity } from "@/lib/jmap/types";
 
 interface AccountIdentityGroup {
@@ -15,6 +13,18 @@ interface AccountIdentityGroup {
 }
 
 const CROSS_ACCOUNT_IDENTITY_DELIMITER = '::';
+
+// Identities last fetched per non-active account, shared by every mounted
+// instance. mail-app keeps one mounted, so a composer opened later starts with
+// the other accounts' identities instead of a round-trip behind: reply-all
+// leaves our own addresses out based on its first render (#1104). Each mount
+// still refetches.
+const remoteIdentityCache = new Map<string, Identity[]>();
+
+/** Every non-active account's identities fetched so far (raw ids). */
+export function cachedRemoteIdentities(): Identity[] {
+  return [...remoteIdentityCache.values()].flat();
+}
 
 /** Cross-account identity IDs are namespaced to avoid collisions between JMAP
  * servers that happen to issue the same opaque ID. EVERY aggregated account is
@@ -37,12 +47,17 @@ export function stripCrossAccountIdentityPrefix(id: string): { localAccountId: s
 }
 
 /**
- * Pro shell only: load identities from every connected account and group
- * them by local account so the composer's From dropdown can render an
- * <optgroup> per account - mirrors [[useProMultiAccountCalendars]] and
+ * Load identities from every connected account and group them by local
+ * account so the composer's From dropdown can render an <optgroup> per
+ * account - mirrors [[useProMultiAccountCalendars]] and
  * [[useProMultiAccountContacts]].
  *
- * Outside Pro / embedded mode the hook returns `enabled: false` and the
+ * Not limited to the Pro shell: the standard shell opens other accounts'
+ * messages too (Unified Inbox, a non-active account's folders), and a reply
+ * can only default to the receiving account's identity if that identity is in
+ * the list (#1104).
+ *
+ * With a single connected account the hook returns `enabled: false` and the
  * caller falls back to the active account's identities from
  * [[useIdentityStore]].
  */
@@ -52,47 +67,79 @@ export function useProMultiAccountIdentities(): {
   /** Flat list across all accounts, useful for lookup-by-id. */
   allIdentities: Identity[];
 } {
-  const isEmbedded = useIsEmbedded();
-  const proInterface = useSettingsStore((s) => s.proInterface);
   const accounts = useAccountStore((s) => s.accounts);
   const activeAccountId = useAuthStore((s) => s.activeAccountId);
   const activeIdentities = useIdentityStore((s) => s.identities);
 
-  const enabled = (proInterface || isEmbedded) && accounts.filter(a => a.isConnected).length > 1;
+  const enabled = accounts.filter(a => a.isConnected).length > 1;
 
-  const [remoteIdentities, setRemoteIdentities] = useState<Record<string, Identity[]>>({});
+  const [remoteIdentities, setRemoteIdentities] = useState<Record<string, Identity[]>>(
+    () => Object.fromEntries(remoteIdentityCache),
+  );
 
   // Cache identities fetched per non-active account. Active account's
   // identities come live from useIdentityStore so signature/alias edits
   // there are reflected immediately without an extra round-trip.
+  //
+  // Each mount fetches each account once. Keyed on the set of connected
+  // logins, not on `accounts`: while a browser restores its logins they
+  // connect one after another, and refetching every account on each
+  // connection cost 1 + 2 + … + N identity reads - 45 with ten logins.
+  const connectedSignature = useAccountStore((s) =>
+    s.accounts.filter((a) => a.isConnected).map((a) => a.id).sort().join("\n"),
+  );
+  const fetchedThisMount = useRef(new Map<string, unknown>());
+  // Read at run time: the effect is keyed on the connected set, not on every
+  // rewrite of `accounts`.
+  const accountsRef = useRef(accounts);
+  accountsRef.current = accounts;
+  // A read outlives the run that started it - the effect re-runs on every
+  // connection - so its result is dropped only once the hook is gone.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   useEffect(() => {
     if (!enabled) {
       setRemoteIdentities({});
       return;
     }
-    let cancelled = false;
+    const current = accountsRef.current;
+    for (const id of remoteIdentityCache.keys()) {
+      if (!current.some((a) => a.id === id)) remoteIdentityCache.delete(id);
+    }
+    const wanted = current.filter((a) => a.isConnected && a.id !== activeAccountId);
+    const wantedIds = new Set(wanted.map((a) => a.id));
+    const keepWanted = (record: Record<string, Identity[]>) =>
+      Object.fromEntries(Object.entries(record).filter(([id]) => wantedIds.has(id)));
+    // What is already known shows at once; only the logins not yet read by
+    // this mount - or whose client was replaced - are fetched.
+    setRemoteIdentities((prev) => ({
+      ...keepWanted(prev),
+      ...Object.fromEntries(wanted.flatMap((a) => {
+        const cached = remoteIdentityCache.get(a.id);
+        return cached ? [[a.id, cached]] : [];
+      })),
+    }));
     const getClientForAccount = useAuthStore.getState().getClientForAccount;
-    (async () => {
-      const next: Record<string, Identity[]> = {};
-      await Promise.all(
-        accounts
-          .filter((a) => a.isConnected && a.id !== activeAccountId)
-          .map(async (account) => {
-            const client = getClientForAccount(account.id);
-            if (!client) return;
-            try {
-              const list = await client.getIdentities();
-              if (!cancelled) next[account.id] = list;
-            } catch {
-              // Skip accounts that fail to load identities - one bad
-              // account shouldn't blank the whole dropdown.
-            }
-          }),
-      );
-      if (!cancelled) setRemoteIdentities(next);
-    })();
-    return () => { cancelled = true; };
-  }, [enabled, accounts, activeAccountId]);
+    for (const account of wanted) {
+      const client = getClientForAccount(account.id);
+      if (!client || fetchedThisMount.current.get(account.id) === client) continue;
+      fetchedThisMount.current.set(account.id, client);
+      client.getIdentities()
+        .then((list) => {
+          remoteIdentityCache.set(account.id, list);
+          if (mounted.current) setRemoteIdentities((prev) => ({ ...prev, [account.id]: list }));
+        })
+        .catch(() => {
+          // Skip accounts that fail to load identities - one bad account
+          // shouldn't blank the whole dropdown. Try again on the next run.
+          remoteIdentityCache.delete(account.id);
+          fetchedThisMount.current.delete(account.id);
+        });
+    }
+  }, [enabled, connectedSignature, activeAccountId]);
 
   const groups = useMemo<AccountIdentityGroup[]>(() => {
     if (!enabled) return [];

@@ -1,5 +1,5 @@
 import type { Email, ThreadGroup } from "./jmap/types";
-import { compareEmails, hasTextLevels, type SortLevel } from "./message-list-order";
+import { compareEmails, hasTextLevels, type HeldKeywords, type SortLevel } from "./message-list-order";
 
 /**
  * Client-side identity of a thread.
@@ -17,6 +17,23 @@ export function threadKeyFor(
 ): string {
   const scope = [email.sourceClientAccountId, email.sourceAccountId].filter(Boolean).join("/");
   return scope ? `${scope}:${email.threadId}` : email.threadId;
+}
+
+/**
+ * Client-side identity of a single message.
+ *
+ * Email ids are per-account too, so in a merged view two unrelated messages can
+ * share an `id` - `eiaaaabc` exists in every account that got that far. Batch
+ * selection is what makes that dangerous: keyed by the bare id, ticking one row
+ * also ticks its namesake in another account, and delete, move or archive then
+ * act on both. Same scoping as `threadKeyFor`; unstamped emails keep the bare
+ * id, so single-account views are untouched.
+ */
+export function emailKeyFor(
+  email: Pick<Email, "id" | "sourceClientAccountId" | "sourceAccountId">,
+): string {
+  const scope = [email.sourceClientAccountId, email.sourceAccountId].filter(Boolean).join("/");
+  return scope ? `${scope}:${email.id}` : email.id;
 }
 
 /**
@@ -108,23 +125,28 @@ export function groupEmailsByThread(
  * the server-side pinned-first sort of the email list. Below that, each thread
  * takes the position of whichever of its emails sorts first under `order`
  * (RFC 8621 §4.4.3 thread collapsing semantics) - with the default order that
- * is the latest email's receivedAt date, newest first.
+ * is the latest email's receivedAt date, newest first. `held` emails sort by
+ * the keywords they had when their conversation was opened.
  *
  * A sender or subject order the list keeps as the server collated it
  * (`keepServerTextOrder`, Stalwart 1.0; see `hasTextLevels`) is not re-sorted.
  * The groups arrive in fetched order - groupEmailsByThread keeps the order in
  * which each thread first appears - so each thread already sits where its
  * first-ranked email does, and only pinned threads move.
+ *
+ * The third argument is either the held keywords or an options object
+ * carrying them together with `keepServerTextOrder`.
  */
 export function sortThreadGroups(
   groups: ThreadGroup[],
   order: SortLevel[] = [],
-  opts: { keepServerTextOrder?: boolean } = {},
+  heldOrOpts?: HeldKeywords | { keepServerTextOrder?: boolean; held?: HeldKeywords },
 ): ThreadGroup[] {
+  const opts = heldOrOpts instanceof Map ? { held: heldOrOpts as HeldKeywords } : (heldOrOpts as { keepServerTextOrder?: boolean; held?: HeldKeywords } | undefined) ?? {};
   if (opts.keepServerTextOrder && hasTextLevels(order)) {
     return [...groups].sort((a, b) => (b.hasPinned ? 1 : 0) - (a.hasPinned ? 1 : 0));
   }
-  const compare = compareEmails(order);
+  const compare = compareEmails(order, { held: opts.held });
   const representative = new Map<ThreadGroup, Email>();
   for (const group of groups) {
     representative.set(

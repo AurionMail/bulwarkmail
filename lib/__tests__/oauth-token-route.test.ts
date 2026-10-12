@@ -145,6 +145,28 @@ describe('oauth token route - access token cache (#552)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('never follows a redirect with the refresh token in the body', async () => {
+    cookieStore.set('jmap_rt', 'refresh-token');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ access_token: 'fresh-token', expires_in: 1800 }),
+    });
+
+    await callPut();
+
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST', redirect: 'error' });
+  });
+
+  it('keeps the refresh token when the token endpoint redirects', async () => {
+    cookieStore.set('jmap_rt', 'refresh-token');
+    fetchMock.mockRejectedValue(new TypeError('fetch failed: unexpected redirect'));
+
+    const { status } = await callPut();
+
+    expect(status).toBe(500);
+    expect(cookieStore.get('jmap_rt')).toBeTruthy();
+  });
+
   it('ignores an expired cached token', async () => {
     cookieStore.set('jmap_rt', 'refresh-token');
     seedCachedToken('long-gone', -600);

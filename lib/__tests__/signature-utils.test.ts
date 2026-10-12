@@ -116,4 +116,23 @@ describe('signature-utils', () => {
       expect(hasMeaningfulHtmlBody('<div>Hello world</div>')).toBe(false);
     });
   });
+
+  describe('signature delimiter', () => {
+    // Identities often carry their own "-- " line; the composer's separator on
+    // top of it showed two delimiter lines.
+    const own = { textSignature: '-- \nUser A\nstw-test' };
+
+    it('keeps the space of the "-- " delimiter', () => {
+      expect(getPlainTextSignature(own)).toBe('-- \nUser A\nstw-test');
+    });
+
+    it('adds no second delimiter when the signature has its own', () => {
+      expect(appendPlainTextSignature('Hello', own, { separator: true })).toBe('Hello\n\n-- \nUser A\nstw-test');
+      expect(appendHtmlSignature('<p>Hello</p>', own, { separator: true })).toBe('<p>Hello</p><br><br>-- <br>User A<br>stw-test');
+    });
+
+    it('still adds the delimiter for a signature without one', () => {
+      expect(appendPlainTextSignature('Hello', { textSignature: 'User A' }, { separator: true })).toBe('Hello\n\n-- \nUser A');
+    });
+  });
 });

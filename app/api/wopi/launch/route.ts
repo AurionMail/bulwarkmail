@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { logger } from '@/lib/logger';
 import { configManager } from '@/lib/admin/config-manager';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
@@ -6,11 +8,14 @@ import { fetchJmapSession, type JmapSessionDocument } from '@/lib/stalwart/jmap-
 import { getWopiActions, buildWopiActionUrl } from '@/lib/wopi/discovery';
 import { getWopiFileNode, probeBlob, shareeSavesNeedRename } from '@/lib/wopi/files';
 import { mintWopiToken, wopiDocumentId, type WopiTokenPayload } from '@/lib/wopi/token';
+import { wopiBrowserBinding } from '@/lib/wopi/revocation';
+import { wopiBrowserOrigin, wopiHostBase } from '@/lib/wopi/origin';
 
 /**
  * POST /api/wopi/launch
  *   { fileId: string, accountId?: string }                          - a Files node
  *   { blobId: string, name: string, type?: string, accountId?: string } - a mail attachment
+ * plus an optional `lang`, the webmail's locale, for the editor's own UI.
  *
  * Mints a WOPI access token scoped to one document and returns the editor
  * URL to POST it to (#425). Attachments always open read-only (#1047). A
@@ -20,6 +25,10 @@ import { mintWopiToken, wopiDocumentId, type WopiTokenPayload } from '@/lib/wopi
  * with the token minted here.
  */
 export async function POST(request: NextRequest) {
+  // CSRF gate (GHSA-9mvj-98f5-9q6g): this handler acts with the caller's
+  // session cookie, which SameSite=Lax still sends from a same-site page.
+  const crossOrigin = rejectCrossOriginRequest(request);
+  if (crossOrigin) return crossOrigin;
   try {
     const creds = await getStalwartCredentials(request);
     if (!creds) {
@@ -57,6 +66,9 @@ export async function POST(request: NextRequest) {
     let accountId = str('accountId');
     let ownAccountId = '';
     let session: JmapSessionDocument | null = null;
+    // Files need the session even with an explicit account: PutFile uploads
+    // into the login's own account, which is not the one holding a node
+    // shared with the user (#1094).
     if (!accountId || !blobId) {
       session = await fetchJmapSession(serverUrl, creds.authHeader, { trusted });
       const capability = blobId ? 'urn:ietf:params:jmap:mail' : 'urn:ietf:params:jmap:filenode';
@@ -70,7 +82,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: blobId ? 'No mail account' : 'No files account' }, { status: 404 });
     }
 
-    let document: Pick<WopiTokenPayload, 'kind' | 'fileId' | 'name' | 'type' | 'size'>;
+    let document: Pick<WopiTokenPayload, 'kind' | 'fileId' | 'name' | 'type' | 'size' | 'uploadAccountId'>;
     let name: string;
     let canWrite: boolean;
     if (blobId) {
@@ -96,7 +108,7 @@ export async function POST(request: NextRequest) {
       const rights = node.myRights;
       const needsRename = accountId !== ownAccountId && shareeSavesNeedRename(session, accountId, ownAccountId);
       canWrite = !rights || (!!rights.mayModifyContent && (!needsRename || !!rights.mayRename));
-      document = { kind: 'file', fileId };
+      document = { kind: 'file', fileId, uploadAccountId: ownAccountId || accountId };
     }
 
     const ext = name.split('.').pop()?.toLowerCase() || '';
@@ -109,24 +121,25 @@ export async function POST(request: NextRequest) {
     // Where the editor reaches this webmail. Deployments where the editor
     // sees a different host than the browser (docker networks, split DNS)
     // override it via wopiHostUrl.
-    const hostBase =
-      configManager.get<string>('wopiHostUrl', '').trim().replace(/\/+$/, '') ||
-      request.nextUrl.origin;
+    const hostBase = wopiHostBase(request, configManager.get<string>('wopiHostUrl', ''));
     const tokenPayload = {
       serverUrl,
       authHeader: creds.authHeader,
       username: creds.username,
       accountId,
-      ...(blobId ? {} : { uploadAccountId: ownAccountId || accountId }),
       ...document,
       canWrite: editable,
       origin: request.nextUrl.origin,
+      postMessageOrigin: wopiBrowserOrigin(request),
+      // Signing out of this slot in this browser revokes the token.
+      bid: wopiBrowserBinding(await cookies()),
+      slot: creds.slot,
     };
     const wopiSrc = `${hostBase}/api/wopi/files/${wopiDocumentId(tokenPayload)}`;
     const { token, expiresAt } = mintWopiToken(tokenPayload);
 
     return NextResponse.json({
-      url: buildWopiActionUrl(urlsrc, wopiSrc),
+      url: buildWopiActionUrl(urlsrc, wopiSrc, str('lang')),
       accessToken: token,
       accessTokenTtl: expiresAt,
       readOnly: !editable,

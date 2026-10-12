@@ -9,6 +9,8 @@ import { advancedSearchAcrossAccounts, searchAcrossAccounts, type UnifiedAccount
 
 const mb = (id: string, name: string, originalId?: string): Mailbox =>
   ({ id, name, role: 'inbox', unreadEmails: 0, totalEmails: 0, originalId } as unknown as Mailbox);
+const roleMb = (id: string, role: string, originalId?: string): Mailbox =>
+  ({ id, name: role, role, unreadEmails: 0, totalEmails: 0, originalId } as unknown as Mailbox);
 
 function email(id: string, receivedAt: string, mailbox: string): Email {
   return {
@@ -86,6 +88,33 @@ describe('searchAcrossAccounts', () => {
     expect(result.emails.map((e) => e.id)).toEqual(['grp-1']);
     expect(result.errors.get('login')).toBe('boom');
   });
+
+  it('leaves each account\'s Trash and Junk out when asked, by the owner\'s raw ids', async () => {
+    const ownAdvanced = vi.fn(async () => page([]));
+    const groupAdvanced = vi.fn(async () => page([]));
+    const plainSearch = vi.fn(async () => page([]));
+    const own = makeAccount(
+      { accountId: 'login', jmapAccountId: 'me', mailboxes: [...ownMailboxes, roleMb('trash', 'trash'), roleMb('junk', 'junk')] },
+      { advancedSearchEmails: ownAdvanced, searchEmails: plainSearch },
+    );
+    const group = makeAccount(
+      { accountId: 'group', isShared: true, mailboxes: [...groupMailboxes, roleMb('group:g-trash', 'trash', 'g-trash')] },
+      { advancedSearchEmails: groupAdvanced, searchEmails: plainSearch },
+    );
+    // No Trash or Junk to leave out: the plain text search.
+    const bare = makeAccount({ accountId: 'bare', isShared: true, mailboxes: [] }, { searchEmails: plainSearch });
+
+    await searchAcrossAccounts([own, group, bare], ' acesso ', 50, 0, { excludeTrashAndJunk: true });
+
+    expect(ownAdvanced).toHaveBeenCalledWith(
+      { operator: 'AND', conditions: [{ text: 'acesso' }, { inMailboxOtherThan: ['trash', 'junk'] }] }, undefined, 50, 0,
+    );
+    expect(groupAdvanced).toHaveBeenCalledWith(
+      { operator: 'AND', conditions: [{ text: 'acesso' }, { inMailboxOtherThan: ['g-trash'] }] }, 'group', 50, 0,
+    );
+    expect(plainSearch).toHaveBeenCalledTimes(1);
+    expect(plainSearch).toHaveBeenCalledWith(' acesso ', undefined, 'bare', 50, 0);
+  });
 });
 
 describe('advancedSearchAcrossAccounts', () => {
@@ -102,5 +131,23 @@ describe('advancedSearchAcrossAccounts', () => {
     expect(groupSearch).toHaveBeenCalledWith(filter, 'group', 25, 50);
     expect(result.emails.map((e) => e.id)).toEqual(['grp-1', 'own-1']);
     expect(result.emails[0]).toMatchObject({ sourceAccountId: 'group', sourceFolder: 'Abrir Chamados' });
+  });
+
+  it('adds the Trash/Junk exclusion to the filter when asked', async () => {
+    const filter = { operator: 'AND', conditions: [{ text: 'acesso' }, { from: 'bob@example.com' }] };
+    const search = vi.fn(async () => page([]));
+    const own = makeAccount(
+      { accountId: 'login', jmapAccountId: 'me', mailboxes: [...ownMailboxes, roleMb('junk', 'junk')] },
+      { advancedSearchEmails: search },
+    );
+
+    await advancedSearchAcrossAccounts([own], filter, 25, 0, { excludeTrashAndJunk: true });
+    await advancedSearchAcrossAccounts([own], filter, 25, 0);
+
+    expect(search).toHaveBeenNthCalledWith(1, {
+      operator: 'AND',
+      conditions: [{ text: 'acesso' }, { from: 'bob@example.com' }, { inMailboxOtherThan: ['junk'] }],
+    }, undefined, 25, 0);
+    expect(search).toHaveBeenNthCalledWith(2, filter, undefined, 25, 0);
   });
 });

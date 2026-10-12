@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useCallback, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import type { SuggestionProps } from "@tiptap/suggestion";
 import StarterKit from "@tiptap/starter-kit";
 import Paragraph from "@tiptap/extension-paragraph";
 import Heading from "@tiptap/extension-heading";
@@ -9,6 +11,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextDirection } from "@/components/email/text-direction";
+import { PlainTextPaste } from "@/components/email/plain-text-paste";
 import { TextStyle, BackgroundColor } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import { FontSize, FONT_SIZES } from "@/components/email/font-size";
@@ -21,6 +24,8 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { QuotedHtml, serializeEditorContent } from "@/components/email/quoted-html";
 import { SignatureBlock } from "@/components/email/signature-block";
 import { styledBlockAttributes } from "@/components/email/styled-block-attributes";
+import { RecipientMention, RecipientMentionList, type RecipientMentionListHandle } from "@/components/email/recipient-mention";
+import type { MentionCandidate } from "@/lib/recipient-mentions";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useTranslations } from "next-intl";
@@ -82,6 +87,19 @@ interface RichTextEditorProps {
   className?: string;
   hasError?: boolean;
   onEditorReady?: (editor: Editor) => void;
+  /** Recipients an "@" in the text offers to mention; none turns it off. */
+  mentionCandidates?: MentionCandidate[];
+  /**
+   * Hide the formatting toolbar on a phone. It wraps onto two rows there and,
+   * with the address fields, left little room for the text above the keyboard.
+   */
+  collapseToolbarOnMobile?: boolean;
+  /**
+   * Where the formatting toolbar sits: above the text (the default), pinned
+   * to the bottom of the editor as Gmail's compose window has it, or folded
+   * away entirely.
+   */
+  toolbarPlacement?: 'top' | 'bottom' | 'hidden';
 }
 
 function ToolbarButton({
@@ -104,7 +122,8 @@ function ToolbarButton({
       disabled={disabled}
       title={title}
       className={cn(
-        "p-1.5 rounded hover:bg-accent transition-colors",
+        // Bigger on a phone, where 28px was hard to hit with a finger.
+        "p-1.5 max-md:p-2 rounded hover:bg-accent transition-colors",
         active && "bg-accent text-accent-foreground",
         disabled && "opacity-40 cursor-not-allowed"
       )}
@@ -172,6 +191,9 @@ export function RichTextEditor({
   className,
   hasError,
   onEditorReady,
+  mentionCandidates,
+  collapseToolbarOnMobile = false,
+  toolbarPlacement = 'top',
 }: RichTextEditorProps) {
   const rtlEditingSupport = useSettingsStore((st) => st.rtlEditingSupport);
   const tComposer = useTranslations("email_composer");
@@ -179,6 +201,10 @@ export function RichTextEditor({
   onImageUploadRef.current = onImageUpload;
   const onEditorReadyRef = React.useRef(onEditorReady);
   onEditorReadyRef.current = onEditorReady;
+  const mentionCandidatesRef = React.useRef<MentionCandidate[]>([]);
+  mentionCandidatesRef.current = mentionCandidates ?? [];
+  const [mention, setMention] = useState<SuggestionProps<MentionCandidate, MentionCandidate> | null>(null);
+  const mentionListRef = useRef<RecipientMentionListHandle>(null);
 
   const editor = useEditor({
     extensions: [
@@ -236,7 +262,30 @@ export function RichTextEditor({
       // into editable content (#822).
       SignatureBlock.configure({ editHint: tComposer('signature_edit_hint') }),
       TextDirection,
+      PlainTextPaste,
+      // "@" offers the recipients and inserts a first name (see
+      // recipient-mention.tsx). The editor is built once, so the candidates
+      // and the list are reached through refs and a stable state setter.
+      RecipientMention.configure({
+        getCandidates: () => mentionCandidatesRef.current,
+        render: () => ({
+          onStart: (props) => setMention(props),
+          // Every keystroke first reports a pending lookup with no items;
+          // keeping the last list until the new one is in avoids a flicker.
+          onUpdate: (props) => {
+            if (!props.loading) setMention(props);
+          },
+          onKeyDown: ({ event }) => mentionListRef.current?.onKeyDown(event) ?? false,
+          onExit: () => setMention(null),
+        }),
+      }),
     ],
+    // One newline per paragraph when copying out as plain text, the inverse
+    // of PlainTextPaste: a blank line is an empty paragraph, so the default
+    // "\n\n" separator doubled every line break.
+    coreExtensionOptions: {
+      clipboardTextSerializer: { blockSeparator: "\n" },
+    },
     content,
     editorProps: {
       attributes: {
@@ -391,13 +440,22 @@ export function RichTextEditor({
   return (
     <div className={cn("flex flex-col", hasError && "ring-2 ring-red-500 dark:ring-red-400 rounded", className)}>
       {/* Toolbar - sticky within the composer's scroll container so it stays
-          visible while editing long bodies. The background stays at main's
-          bg-muted/30 in every state - backdrop-blur has no visual effect while
-          the toolbar rests on the solid page background, and blurs body text
-          sliding underneath only once pinned, so pinned legibility needs no
-          extra opaque overlay (an always-on stronger overlay would read darker
-          than main even at rest). */}
-      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 px-3 py-1.5 border-b border-border/50 bg-muted/30 backdrop-blur-sm">
+          visible while editing long bodies. Its background is the colour
+          bg-muted/30 gives over the page, made opaque: the same at rest, and
+          body text scrolling underneath stays hidden instead of showing
+          through, which a backdrop blur alone did not guarantee (browsers
+          that skip backdrop-filter drew the text sharp under the buttons). */}
+      <div
+        data-testid="rich-text-toolbar"
+        className={cn(
+          "sticky z-20 flex flex-wrap items-center gap-0.5 px-3 py-1.5 bg-[color-mix(in_oklab,var(--color-muted)_30%,var(--color-background))]",
+          toolbarPlacement === 'bottom'
+            ? "order-last bottom-0 mx-2 mb-1 rounded-lg border border-border/60 shadow-sm"
+            : "top-0 border-b border-border/50",
+          toolbarPlacement === 'hidden' && "hidden",
+          collapseToolbarOnMobile && "max-md:hidden"
+        )}
+      >
         {/* Font size - two baseline-aligned A's read as "size" at a glance;
             once a size is chosen the button shows that number instead. */}
         <div ref={fontSizeWrapperRef} className="relative">
@@ -789,6 +847,17 @@ export function RichTextEditor({
 
       {/* Editor */}
       <EditorContent editor={editor} />
+
+      {mention && mention.items.length > 0 && createPortal(
+        <RecipientMentionList
+          ref={mentionListRef}
+          editor={mention.editor}
+          items={mention.items}
+          command={mention.command}
+          mount={mention.mount}
+        />,
+        document.body
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import {
   AUTO_TIME_ZONE,
   displayNow,
   fromDisplayDate,
+  fromWallClock,
   fromZonedDisplayDate,
   getBrowserTimeZone,
   getTimeZoneOffsetMs,
@@ -136,6 +137,15 @@ describe('wall-clock helpers', () => {
     expect(isNaN(toZonedDisplayDate(bad, 'Europe/Berlin').getTime())).toBe(true);
     expect(isNaN(fromZonedDisplayDate(bad, 'Europe/Berlin').getTime())).toBe(true);
   });
+
+  it('reads a wall-clock in a zone straight from its fields', () => {
+    const at = (year: number, month: number, day: number, hour: number, minute: number, zone: string) =>
+      fromWallClock({ year, month, day, hour, minute, second: 0 }, zone).toISOString();
+    expect(at(2026, 10, 5, 8, 0, 'Europe/Berlin')).toBe('2026-10-05T06:00:00.000Z');
+    expect(at(2026, 10, 26, 18, 0, 'Europe/Berlin')).toBe('2026-10-26T17:00:00.000Z');
+    // 02:30 on 29 March is skipped in Berlin, but exists in New York.
+    expect(at(2026, 3, 29, 2, 30, 'America/New_York')).toBe('2026-03-29T06:30:00.000Z');
+  });
 });
 
 describe('store-aware display dates', () => {
@@ -201,5 +211,32 @@ describe('mail timestamp formatting honours the override', () => {
     expect(formatDate('10000-01-01T00:00:00Z')).toBe('');
     expect(formatDate(new Date('nope'))).toBe('');
     expect(formatDate(undefined as unknown as string)).toBe('');
+  });
+
+  it("formatDate uses Gmail's buckets for Mountain View lists", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T16:00:00Z'));
+    useSettingsStore.setState({ dateLocale: 'en-US', timeFormat: '12h' });
+    const mv = { listStyle: 'mountain-view' } as const;
+
+    expect(formatDate(new Date('2026-07-01T14:05:00Z'), mv)).toBe('02:05 PM');
+    // Two days ago is a date, not a weekday, and this year leaves the year out.
+    expect(formatDate(new Date('2026-06-29T14:05:00Z'), mv)).toBe('Jun 29');
+    expect(formatDate(new Date('2025-10-10T14:05:00Z'), mv)).toBe('10/10/25');
+    // Without it the default buckets stay.
+    expect(formatDate(new Date('2026-06-29T14:05:00Z'))).toBe('Mon 02:05 PM');
+  });
+
+  it('formatDate overrides preview other options without touching the store', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-01T16:00:00Z'));
+    const older = new Date('2026-05-01T15:31:00Z');
+    useSettingsStore.setState({ dateFormat: 'smart', dateLocale: 'en-US' });
+
+    expect(formatDate(older)).toBe('05/01/2026');
+    expect(formatDate(older, { dateLocale: 'iso' })).toBe('2026-05-01');
+    expect(formatDate(older, { dateLocale: 'en-GB' })).toBe('01/05/2026');
+    expect(formatDate(older, { dateFormat: 'full', dateLocale: 'iso' })).toContain('15:31');
+    expect(useSettingsStore.getState()).toMatchObject({ dateFormat: 'smart', dateLocale: 'en-US' });
   });
 });

@@ -1,7 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
+import { useAuthStore } from '@/stores/auth-store';
+import { useSettingsStore } from '@/stores/settings-store';
 
 // ─── Heavy component mocks (mirrors reply-addressing.test.tsx) ────────────────
 
@@ -146,8 +148,9 @@ vi.mock('@/lib/plugin-hooks', () => ({
     getRecipientSuggestions: { call: async () => [] },
     onRecipientChipsChange: { transform: async (chips: unknown) => chips },
     onDraftChange: { emit: () => {} },
+    onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
     onBeforeEmailSend: { intercept: async () => true },
-    onComposeSend: { intercept: async () => true },
+    onComposeSend: { takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
   },
   contactHooks: {
@@ -252,6 +255,27 @@ describe('composer empty subject warning', () => {
     );
   });
 
+  it('does not ask again after Send anyway and a trip back to add an attachment', async () => {
+    useSettingsStore.setState({ attachmentReminderEnabled: true, attachmentReminderKeywords: ['hello'] } as never);
+    try {
+      const onSend = vi.fn();
+      render(<EmailComposer initialData={DRAFT_WITHOUT_SUBJECT} onSend={onSend} />);
+
+      fireEvent.click(sendButton());
+      fireEvent.click(await screen.findByText('empty_subject.send_anyway'));
+      // The body says "Hello", so the attachment reminder stops the send.
+      fireEvent.click(await screen.findByText('forgot_attachment.back'));
+      await waitFor(() => expect(screen.queryByText('forgot_attachment.title')).not.toBeInTheDocument());
+
+      fireEvent.click(sendButton());
+
+      expect(await screen.findByText('forgot_attachment.title')).toBeInTheDocument();
+      expect(screen.queryByText('empty_subject.title')).not.toBeInTheDocument();
+    } finally {
+      useSettingsStore.setState({ attachmentReminderEnabled: false, attachmentReminderKeywords: [] } as never);
+    }
+  });
+
   it('goes back to editing without sending', async () => {
     const onSend = vi.fn();
     render(<EmailComposer initialData={DRAFT_WITHOUT_SUBJECT} onSend={onSend} />);
@@ -271,5 +295,38 @@ describe('composer empty subject warning', () => {
 
     await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
     expect(screen.queryByText('empty_subject.title')).not.toBeInTheDocument();
+  });
+
+  // A draft saved with a "(No Subject)" placeholder came back with that as
+  // its subject, so sending the resumed draft skipped the warning (#1189).
+  it('saves a draft without a subject as an empty subject', async () => {
+    const createDraft = vi.fn().mockResolvedValue('draft-8');
+    useAuthStore.setState({
+      client: {
+        createDraft,
+        getEmail: vi.fn().mockResolvedValue({ id: 'draft-8', attachments: [] }),
+        hasDelayedSend: () => false,
+        getMaxDelayedSend: () => 0,
+      } as never,
+      activeAccountId: 'acct-A' as never,
+    });
+
+    const requestCloseRef = { current: null } as React.MutableRefObject<((afterClose?: () => void) => void) | null>;
+    render(
+      <EmailComposer
+        initialData={{ ...DRAFT_WITHOUT_SUBJECT, subject: 'Lunch' }}
+        requestCloseRef={requestCloseRef}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.change(screen.getByDisplayValue('Lunch'), { target: { value: '' } });
+
+    act(() => requestCloseRef.current!(vi.fn()));
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByText('save'));
+
+    await waitFor(() => expect(createDraft).toHaveBeenCalled());
+    expect(createDraft.mock.calls[0][1]).toBe('');
+    useAuthStore.setState({ client: null, activeAccountId: null });
   });
 });

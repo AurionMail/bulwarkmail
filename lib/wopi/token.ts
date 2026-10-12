@@ -22,13 +22,6 @@ export interface WopiTokenPayload {
   username: string;
   /** Account holding the document: the owner's, for a node in a shared drive. */
   accountId: string;
-  /**
-   * The user's own account, which PutFile uploads new content into. An
-   * uploaded blob is reserved to its account and only that account's members
-   * may use it, so a sharee's save into the owner's drive would be refused.
-   * Absent on older tokens, which upload into `accountId`.
-   */
-  uploadAccountId?: string;
   /** FileNode id for 'file', blobId for 'attachment'. */
   fileId: string;
   /** Absent on tokens minted before attachments existed - those are files. */
@@ -40,9 +33,31 @@ export interface WopiTokenPayload {
   name?: string;
   type?: string;
   size?: number;
+  /**
+   * Account PutFile uploads new content into: the login's own. For a node
+   * shared with the user, `accountId` is the owner's, and Stalwart doesn't
+   * let the user reference a blob they uploaded there (#1094). Absent on
+   * older tokens - those upload into `accountId`.
+   */
+  uploadAccountId?: string;
   canWrite: boolean;
-  /** Browser origin that embeds the editor iframe (WOPI PostMessageOrigin). */
+  /**
+   * The origin this server sees itself on. It decides whether `serverUrl` is
+   * this process (see lib/wopi/request.ts), so it never comes from a header.
+   */
   origin: string;
+  /**
+   * Browser origin that embeds the editor iframe (WOPI PostMessageOrigin).
+   * Behind a reverse proxy it differs from `origin` (#1130). Absent on older
+   * tokens - those fall back to `origin`.
+   */
+  postMessageOrigin?: string;
+  /**
+   * The browser and account slot that minted the token, so signing out
+   * there revokes it (see lib/wopi/revocation.ts). Absent on older tokens.
+   */
+  bid?: string;
+  slot?: number;
   /** Expiry, ms since epoch. */
   exp: number;
 }
@@ -104,6 +119,9 @@ export function verifyWopiToken(token: string | null, documentId: string): WopiT
     typeof p.exp !== 'number'
   ) return null;
   if (p.kind !== undefined && p.kind !== 'file' && p.kind !== 'attachment') return null;
+  if (p.bid !== undefined && typeof p.bid !== 'string') return null;
+  if (p.slot !== undefined && typeof p.slot !== 'number') return null;
+  if (p.postMessageOrigin !== undefined && typeof p.postMessageOrigin !== 'string') return null;
   if (p.uploadAccountId !== undefined && (typeof p.uploadAccountId !== 'string' || !p.uploadAccountId)) return null;
   if (wopiDocumentId(p) !== documentId) return null;
   if (Date.now() > p.exp) return null;

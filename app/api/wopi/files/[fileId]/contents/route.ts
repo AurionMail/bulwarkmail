@@ -6,15 +6,38 @@ import { wopiContext } from '@/lib/wopi/request';
 /**
  * WOPI GetFile / PutFile (#425). Content flows purely over JMAP: GetFile
  * streams the node's blob (or, for a mail attachment, the attachment blob
- * itself - #1047), PutFile uploads the editor's bytes as a new blob and
- * points the FileNode at it via `FileNode/set { blobId, modified: null }`.
+ * itself - #1047), PutFile uploads the editor's bytes as a new blob into the
+ * user's own account and points the FileNode at it via
+ * `FileNode/set { blobId, modified: null }`.
  */
+
+/**
+ * GetFile answers on the webmail origin, and the type of the bytes comes
+ * from the launch request or a user-settable FileNode property. Served
+ * inline as `text/html` or `image/svg+xml` it would run script as the
+ * webmail, so the response is always an inert download whatever the
+ * source claims to be.
+ */
+const GET_FILE_HEADERS: Record<string, string> = {
+  'Content-Type': 'application/octet-stream',
+  'Content-Disposition': 'attachment',
+  'X-Content-Type-Options': 'nosniff',
+  'Content-Security-Policy': "default-src 'none'; sandbox",
+  'Cache-Control': 'no-store',
+};
 
 /** GET = GetFile */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ fileId: string }> },
 ) {
+  // The editor fetches this server-to-server and sends no Sec-Fetch headers.
+  // A browser navigating to it, or loading it as a script or style, is not
+  // the editor.
+  const dest = request.headers.get('sec-fetch-dest');
+  if (dest !== null && dest !== 'empty') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const { fileId: documentId } = await params;
     const auth = await wopiContext(request, documentId);
@@ -41,8 +64,7 @@ export async function GET(
       return NextResponse.json({ error: 'Blob download failed' }, { status: 502 });
     }
 
-    const headers = new Headers();
-    headers.set('Content-Type', source.type || 'application/octet-stream');
+    const headers = new Headers(GET_FILE_HEADERS);
     const contentLength = upstream.headers.get('Content-Length');
     if (contentLength) headers.set('Content-Length', contentLength);
     return new NextResponse(upstream.body, { status: 200, headers });

@@ -439,6 +439,15 @@ function urlBase64ToUint8Array(base64Url: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+// A browser that doesn't expose the key it subscribed with counts as a
+// mismatch: we can't prove the subscription belongs to this relay.
+function sameKey(existing: ArrayBuffer | null | undefined, expected: Uint8Array): boolean {
+  if (!existing) return false;
+  const bytes = new Uint8Array(existing);
+  if (bytes.length !== expected.length) return false;
+  return bytes.every((byte, i) => byte === expected[i]);
+}
+
 function readPushKey(
   sub: PushSubscription,
   name: 'p256dh' | 'auth',
@@ -651,18 +660,32 @@ export async function enableWebPush(
   // Reuse an existing browser PushSubscription when possible - resubscribing
   // with the same VAPID key produces the same endpoint, but the call still
   // costs a network round-trip the user can feel.
-  let pushSubscription = await registration.pushManager.getSubscription();
-  if (pushSubscription) {
-    const keyMatches = pushSubscription.options?.applicationServerKey;
-    if (!keyMatches) {
-      await pushSubscription.unsubscribe();
-      pushSubscription = null;
-    }
+  //
+  // Only reuse it if it was made with THIS relay's key. A subscription is
+  // bound to the VAPID key it was created with, so one left over from another
+  // relay (or from before this relay rotated its keys) is rejected by the push
+  // service on every send - Mozilla answers 401 "VAPID public key mismatch" -
+  // while isWebPushEnabled keeps reporting push as on.
+  const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+  // A stale or broken local record makes Firefox reject the lookup itself with
+  // `AbortError: Error retrieving push subscription`, which would abort the
+  // whole enable. There is nothing to reuse in that case, so carry on to
+  // subscribe() and let its own error surface if the push service is really
+  // unreachable.
+  let pushSubscription = await registration.pushManager.getSubscription().catch(() => null);
+  if (
+    pushSubscription
+    && !sameKey(pushSubscription.options?.applicationServerKey, applicationServerKey)
+  ) {
+    // An unsubscribe that fails leaves the old record in place; subscribing
+    // with the right key is what matters, so don't abort the enable for it.
+    await pushSubscription.unsubscribe().catch(() => undefined);
+    pushSubscription = null;
   }
   if (!pushSubscription) {
     pushSubscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      applicationServerKey,
     });
   }
 
@@ -722,10 +745,11 @@ export async function enableWebPush(
       // record: create a replacement below and destroy this one once the
       // replacement is verified.
       replacedServerId = storedServerId;
-    } else {
-      // The server no longer has it (expired, or revoked elsewhere).
-      localStorage.removeItem(subIdKey);
     }
+    // When the server no longer has it (expired, or revoked elsewhere), the
+    // stored id stays until the replacement is verified below: it is
+    // what tells resyncWebPush this account opted in, so dropping it here
+    // would end recovery for good after one interrupted attempt.
   }
 
   // Reap leftover subscriptions that would otherwise starve the new one's
@@ -943,6 +967,8 @@ export async function isWebPushEnabled(accountId: string): Promise<boolean> {
 // clamps `expires` to 7 days, so a tab or installed app left open for a
 // week would otherwise let the subscription lapse and push stop silently.
 const RESYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// After a failed attempt: soon again, but not on every return to the tab.
+const RESYNC_RETRY_MS = 15 * 60 * 1000;
 const lastResyncAt = new Map<string, number>();
 
 export interface ResyncWebPushParams {
@@ -956,7 +982,7 @@ export interface ResyncWebPushParams {
 /**
  * Bring an already-enabled push registration up to date without any user
  * action: refresh its expiry and install/repair the delivery filter. Nothing
- * here can prompt - it only runs when push is already on for the account -
+ * here can prompt - it requires a saved opt-in and granted permission -
  * and every failure is swallowed because the app must not care whether the
  * background touch-up worked. A failed re-sync leaves the registration and
  * its key as they were. Returns true when a re-sync actually ran.
@@ -972,7 +998,12 @@ export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolea
   const last = lastResyncAt.get(accountId);
   if (last !== undefined && Date.now() - last < RESYNC_INTERVAL_MS) return false;
   try {
-    if (!(await isWebPushEnabled(accountId))) return false;
+    // The browser may have lost its endpoint while our saved opt-in and
+    // server registration survived. Recreate it through the normal enable
+    // flow instead of skipping the account in that state, which is what
+    // isWebPushEnabled (it requires a live browser subscription) would do.
+    if (!isWebPushSupported() || Notification.permission !== 'granted'
+      || !localStorage.getItem(subscriptionIdKey(accountId))) return false;
     lastResyncAt.set(accountId, Date.now());
     await enableWebPush({
       client: params.client,
@@ -982,6 +1013,9 @@ export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolea
     });
     return true;
   } catch {
+    // A failed attempt must not wait a day for the next one, nor rerun the
+    // whole enable on every tab focus.
+    lastResyncAt.set(accountId, Date.now() - RESYNC_INTERVAL_MS + RESYNC_RETRY_MS);
     return false;
   }
 }
@@ -989,4 +1023,57 @@ export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolea
 // Test hook: forget which accounts were re-synced during this page load.
 export function resetWebPushResyncState(): void {
   lastResyncAt.clear();
+}
+
+export interface BulkWebPushTarget {
+  accountId: string;
+  client: IJMAPClient;
+  accountLabel?: string;
+}
+
+export interface BulkWebPushResult {
+  enabled: string[];
+  /** Accounts left untouched, with the reason the first failure gave. */
+  failed: Array<{ accountId: string; error: unknown }>;
+}
+
+/**
+ * Enable push for several accounts against one browser subscription.
+ *
+ * The browser only ever holds a single PushSubscription: `enableWebPush` reuses
+ * it and registers one server-side subscription per account, which is why every
+ * account has to be walked separately. Sequential on purpose - the first call
+ * is the one that may prompt for permission, and parallel prompts race.
+ *
+ * A browser-level refusal (unsupported, permission denied or dismissed) applies
+ * to every account, so it stops the walk instead of failing them one by one.
+ */
+export async function enableWebPushForAccounts(
+  targets: BulkWebPushTarget[],
+  // inboxOnly mirrors settings-store's pushNotifyInboxOnly, as for a single account.
+  options: { relayBaseUrl?: string; forceRecreate?: boolean; inboxOnly: boolean },
+): Promise<BulkWebPushResult> {
+  const result: BulkWebPushResult = { enabled: [], failed: [] };
+  let browserRefusal: unknown;
+  for (const target of targets) {
+    if (browserRefusal !== undefined) {
+      result.failed.push({ accountId: target.accountId, error: browserRefusal });
+      continue;
+    }
+    try {
+      await enableWebPush({
+        client: target.client,
+        relayBaseUrl: options.relayBaseUrl,
+        accountLabel: target.accountLabel,
+        forceRecreate: options.forceRecreate,
+        inboxOnly: options.inboxOnly,
+      });
+      result.enabled.push(target.accountId);
+    } catch (error) {
+      if (error instanceof WebPushUnsupportedError || !isWebPushSupported()
+        || Notification.permission !== 'granted') browserRefusal = error;
+      result.failed.push({ accountId: target.accountId, error });
+    }
+  }
+  return result;
 }

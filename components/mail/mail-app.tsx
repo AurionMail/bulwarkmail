@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Sidebar } from "@/components/layout/sidebar";
 import { EmailList } from "@/components/email/email-list";
+import { MvComposeInline, MvComposeWindow } from "@/components/email/mv-compose-window";
 import { MessageListTabs } from "@/components/email/message-list-tabs";
 import dynamic from "next/dynamic";
 import type { ComposerDraftData } from "@/components/email/email-composer";
@@ -25,30 +26,33 @@ const EmailComposer = dynamic(
 import { ProtocolAccountPicker } from "@/components/protocol/protocol-account-picker";
 import { ThreadConversationView } from "@/components/email/thread-conversation-view";
 import { MobileHeader } from "@/components/layout/mobile-header";
-import { ThreadGroup, Email, Mailbox, isUnifiedMailboxId, UNIFIED_ROLE_BY_ID, CROSS_VIEW_BY_ID, isCrossViewId } from "@/lib/jmap/types";
-import { useAccountStore } from "@/stores/account-store";
+import { ThreadGroup, Email, Mailbox, type StateChange, isUnifiedMailboxId, UNIFIED_MAILBOX_IDS, UNIFIED_ROLE_BY_ID, CROSS_VIEW_BY_ID, CROSS_VIEW_IDS, isCrossViewId } from "@/lib/jmap/types";
+import { useAccountStore, waitForConnectedAccount } from "@/stores/account-store";
 import { usePolicyStore } from "@/stores/policy-store";
 import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, buildUnifiedAccountClients, ArchiveMailboxNotFoundError, findArchiveMailbox, resolveUnstampedEmailAccountId, isAggregateListView } from "@/stores/email-store";
+import { useEmailStore, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, isAggregateListView } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
-import { groupSearchScopeFolders } from "@/lib/search-scope-folders";
+import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
 import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from "@/lib/send-failure-message";
+import { formatRejectedRecipients, type JMAPClient } from "@/lib/jmap/client";
+import { reconcilePushBindings, releasePushBindings, type PushBinding } from "@/lib/push-bindings";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
 import { CalendarEventNotificationToaster } from "@/components/layout/calendar-event-notification-toaster";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useSettingsStore } from "@/stores/settings-store";
+import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { useContactStore } from "@/stores/contact-store";
 import { useIdentityStore } from "@/stores/identity-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePaneSize } from "@/hooks/use-pane-size";
 import { usePaneId } from "@/hooks/use-pane-context";
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useKeyboardShortcuts, type GoToMailboxTarget } from "@/hooks/use-keyboard-shortcuts";
 import { useRefreshGesture } from "@/hooks/use-refresh-gesture";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { usePromptDialog } from "@/hooks/use-prompt-dialog";
@@ -57,7 +61,7 @@ import { debug } from "@/lib/debug";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { cn, formatDateTime, getMailboxPath } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
-import { groupEmailsByThread, threadKeyFor, toggleTagKeywords } from "@/lib/thread-utils";
+import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, groupEmailsByThread, threadKeyFor } from "@/lib/thread-utils";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import {
   ErrorBoundary,
@@ -70,17 +74,23 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
-import { isFilterEmpty, activeFilterCount } from "@/lib/jmap/search-utils";
 import { jmapErrorType } from "@/lib/jmap/jmap-error";
+import { isFilterEmpty, activeFilterCount, DEFAULT_SEARCH_FILTERS } from "@/lib/jmap/search-utils";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
+import { FilterPanelHost } from "@/components/search/filter-panel-host";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
 import type { Attachment } from "@/lib/jmap/types";
-import { requestListAttachments, type ListAttachmentSource, type LoadListAttachments } from "@/lib/list-attachments";
+import { peekListAttachments, requestListAttachments, type ListAttachmentSource, type LoadListAttachments } from "@/lib/list-attachments";
 import { useSearchHistoryStore } from "@/stores/search-history-store";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
 import { NavigationRail } from "@/components/layout/navigation-rail";
+import { MvTopBar } from "@/components/layout/mv-top-bar";
+import { MvSearchForm } from "@/components/search/mv-search-form";
+import { MvSidePanel } from "@/components/layout/mv-side-panel";
+import { MvListToolbar } from "@/components/email/mv-list-toolbar";
 import { SidebarAppsModal } from "@/components/layout/sidebar-apps-modal";
 import { InlineAppView } from "@/components/layout/inline-app-view";
+import { getDraftTextBody } from '@/lib/email-body-selection';
 import { useSidebarApps } from "@/hooks/use-sidebar-apps";
 import { useIdentitySync } from "@/hooks/use-identity-sync";
 import { useIsEmbedded } from "@/hooks/use-is-embedded";
@@ -100,7 +110,8 @@ import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-iden
 import { Filter, ChevronDown, X, Paperclip, Star, Mail, MailOpen, RotateCcw, PenSquare, PenLine, CheckSquare, Square, AlertTriangle, ArrowLeft } from "@/components/icons";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { Button } from "@/components/ui/button";
-import { useConfig } from "@/hooks/use-config";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { mailTitleContext } from "@/lib/tab-title";
 import { usePluginStore } from "@/stores/plugin-store";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { useThemeStore } from "@/stores/theme-store";
@@ -118,6 +129,7 @@ import {
   parseScheduledMailboxId,
   appPath,
   buildMailPath,
+  isFolderLinkOpen,
   parseMailPath,
   resolveFolderRef,
   type MailDeepLink,
@@ -135,6 +147,30 @@ export interface MailAppProps {
   linkSegments?: string[];
 }
 
+
+/**
+ * The folder list once it has been reloaded after an account switch. Until
+ * then the store holds the previous mailbox's folders, or none, and resolving
+ * a folder link against them reports a folder that is merely not loaded yet
+ * as gone - or, worse, finds the previous mailbox's folder of that name.
+ */
+function freshMailboxes(previous: Mailbox[], timeoutMs = 10_000): Promise<Mailbox[]> {
+  const ready = (mailboxes: Mailbox[]) => mailboxes !== previous && mailboxes.length > 0;
+  const now = useEmailStore.getState().mailboxes;
+  if (ready(now)) return Promise.resolve(now);
+  return new Promise((resolve) => {
+    const finish = (mailboxes: Mailbox[]) => {
+      clearTimeout(timer);
+      unsubscribe();
+      resolve(mailboxes);
+    };
+    const timer = setTimeout(() => finish(useEmailStore.getState().mailboxes), timeoutMs);
+    const unsubscribe = useEmailStore.subscribe((state) => {
+      if (ready(state.mailboxes)) finish(state.mailboxes);
+    });
+  });
+}
+
 export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
   const linkSegments = useLiteLinkSegments('mail', routeSegments);
@@ -143,8 +179,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const tQuote = useTranslations('quote_header');
   const tComposer = useTranslations('email_composer');
   const tViewer = useTranslations('email_viewer');
-  const { appName } = useConfig();
-  const mailLayout = useSettingsStore((state) => state.mailLayout);
+  const mailLayout = useEffectiveMailLayout();
+  const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
   // Phones present search full-screen from the header field rather than
   // giving it a permanent second bar under the header.
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -172,10 +208,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const dragStartWidth = useRef(0);
   // Mobile conversation view state
   const [conversationThread, setConversationThread] = useState<ThreadGroup | null>(null);
+  // Mountain View writes replies in place under the conversation until the
+  // user pops one out into the docked window.
+  const [mvReplyPoppedOut, setMvReplyPoppedOut] = useState(false);
+  useEffect(() => {
+    if (!showComposer) setMvReplyPoppedOut(false);
+  }, [showComposer]);
+  const handleMvPopOut = useCallback(() => setMvReplyPoppedOut(true), []);
+  // Mountain View: the open message's whole conversation, light properties only.
+  const [mvConversation, setMvConversation] = useState<Email[] | null>(null);
   const [conversationEmails, setConversationEmails] = useState<Email[]>([]);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number | null>(null);
-  const [previewAttachment, setPreviewAttachment] = useState<{ blobId: string; name: string; type?: string; accountId?: string; clientAccountId?: string } | null>(null);
+  const [previewAttachment, setPreviewAttachment] = useState<{ blobId: string; name: string; type?: string; accountId?: string; client: NonNullable<typeof client> } | null>(null);
   // Office attachments open read-only in the configured WOPI editor (#1047).
   const [officeAttachment, setOfficeAttachment] = useState<{ blobId: string; name: string; type?: string; size?: number; accountId: string; slot: number | null } | null>(null);
   const wopiStatus = useWopiStatus(true);
@@ -327,6 +372,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Mobile/tablet responsive hooks
   const { isMobile, isTablet } = useDeviceDetection();
   const isEmbedded = useIsEmbedded();
+  /**
+   * Mountain View's list cursor. `j` / `k` there move a highlight without
+   * opening the conversation, marking it read or changing the URL - only
+   * Enter / `o` / a click do that. The app otherwise treats "selected" and
+   * "open" as the same thing, so Mountain View keeps the selection (every
+   * action already targets it) and records that it is only a cursor.
+   */
+  const [cursorOnly, setCursorOnly] = useState(false);
+  // Desktop lifts search into a global header. Mobile keeps its native
+  // one-pane flow, with Mountain View's own app chrome.
+  const mvShell = interfaceLayout === 'mountain-view' && !isMobile && !isTablet && !isEmbedded;
+  const mvMobile = interfaceLayout === 'mountain-view' && isMobile && !isEmbedded;
   // Pane hosting (Pro shell). When this app renders inside a Pro pane, the
   // pane publishes its width and id; `isMobile` above is then pane-based,
   // and layout that would use viewport-fixed positioning must scope itself
@@ -351,7 +408,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     newEmailNotification,
     selectEmail,
     selectMailbox,
-    selectedEmailIds,
+    selectedEmailKeys,
     selectAllEmails,
     clearSelection,
     toggleEmailSelection,
@@ -362,7 +419,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     deleteEmail,
     markAsRead,
     toggleStar,
-    setEmailKeywords,
+    patchEmailKeywords,
     moveToMailbox,
     moveToMailboxCrossAware,
     moveThreadToMailbox,
@@ -382,6 +439,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     isAdvancedSearchOpen,
     setSearchFilters,
     setSearchMailboxId,
+    scopeSearchToOpenFolder,
     clearSearchFilters,
     toggleAdvancedSearch,
     advancedSearch,
@@ -508,6 +566,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     unifiedCrossAccount &&
     unifiedCrossAccountGate &&
     accounts.filter((a) => a.isConnected).length > 1;
+
+  // Mountain View's account popover offers the merged inbox above the addresses it
+  // merges. Offering it when it cannot be built would give a row that selects
+  // an empty list, so it appears on exactly the terms the sidebar's own
+  // unified section does.
+  const allInboxesReachable = enableUnifiedMailbox && crossAccountActive;
+  const allInboxesSelected = selectedMailbox === UNIFIED_MAILBOX_IDS.inbox;
+
+  // The node the Mountain View top bar renders under its search field; the filter
+  // panel is portalled into it so it hangs off the control that opens it.
+  const [filterAnchor, setFilterAnchor] = useState<HTMLDivElement | null>(null);
 
   // Builds the populated UnifiedAccountClient[] used by the unified-view
   // effects and one-shot actions in this page. Reads the settings at call time
@@ -664,7 +733,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   useBrowserNavigation({
     mailboxId: selectedMailbox,
-    emailId: selectedEmail?.id ?? null,
+    emailId: mvShell && cursorOnly ? null : (selectedEmail?.id ?? null),
     threadId: conversationThread?.threadId ?? null,
     composerOpen: showComposer,
     sidebarOpen,
@@ -687,7 +756,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const currentIndex = selectedEmail ? activeEmails.findIndex(e => e.id === selectedEmail.id) : -1;
       const nextIndex = currentIndex < activeEmails.length - 1 ? currentIndex + 1 : currentIndex;
       if (nextIndex >= 0 && nextIndex < activeEmails.length) {
-        handleEmailSelect(activeEmails[nextIndex]);
+        void handleEmailSelect(activeEmails[nextIndex]);
+        if (mvShell) setCursorOnly(true);
       }
     },
     onPreviousEmail: () => {
@@ -695,13 +765,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const currentIndex = selectedEmail ? activeEmails.findIndex(e => e.id === selectedEmail.id) : activeEmails.length;
       const prevIndex = currentIndex > 0 ? currentIndex - 1 : 0;
       if (prevIndex >= 0 && prevIndex < activeEmails.length) {
-        handleEmailSelect(activeEmails[prevIndex]);
+        void handleEmailSelect(activeEmails[prevIndex]);
+        if (mvShell) setCursorOnly(true);
       }
     },
     onOpenEmail: () => {
-      // Email is already opened when selected
+      // Outside Mountain View the email is already open by virtue of being
+      // selected; under it this is the step that promotes cursor to open.
+      setCursorOnly(false);
     },
     onCloseEmail: () => {
+      setCursorOnly(false);
       selectEmail(null);
       if (isMobile) {
         setActiveView("list");
@@ -728,8 +802,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     onArchive: async () => {
       if (isScheduledView) return;
-      if (selectedEmailIds.size > 0 && client) {
-        const count = selectedEmailIds.size;
+      if (selectedEmailKeys.size > 0 && client) {
+        const count = selectedEmailKeys.size;
         await runBatchEmailAction(() => batchArchive(client), {
           success: t('notifications.emails_archived', { count }),
           error: t('notifications.error_archiving'),
@@ -743,7 +817,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     onDelete: async () => {
       if (isScheduledView) return;
-      if (selectedEmailIds.size > 0 && client) {
+      if (selectedEmailKeys.size > 0 && client) {
         const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
         const isInTrash = currentMailbox?.role === 'trash';
         const isInJunk = currentMailbox?.role === 'junk';
@@ -754,15 +828,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             ? t('email_list.permanent_delete_confirm_title')
             : t('email_list.batch_actions.delete_confirm_title'),
           message: permanent
-            ? t('email_list.permanent_delete_confirm_batch_message', { count: selectedEmailIds.size })
-            : t('email_list.batch_actions.delete_confirm_message', { count: selectedEmailIds.size }),
+            ? t('email_list.permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })
+            : t('email_list.batch_actions.delete_confirm_message', { count: selectedEmailKeys.size }),
           confirmText: permanent
             ? t('email_list.permanent_delete')
             : t('email_list.batch_actions.delete'),
           variant: "destructive",
         });
         if (!confirmed) return;
-        const count = selectedEmailIds.size;
+        const count = selectedEmailKeys.size;
         await runBatchEmailAction(() => batchDelete(client, permanent), {
           success: t('notifications.emails_deleted', { count }),
           error: t('notifications.error_deleting'),
@@ -774,7 +848,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onMarkAsUnread: async () => {
       if (isScheduledView) return;
       if (!client) return;
-      if (selectedEmailIds.size > 0) {
+      if (selectedEmailKeys.size > 0) {
         await runBatchEmailAction(() => batchMarkAsRead(client, false), { error: t('notifications.error_updating') });
       } else if (selectedEmail) {
         await markAsRead(client, selectedEmail.id, false).catch(toastUpdateFailure);
@@ -783,7 +857,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onMarkAsRead: async () => {
       if (isScheduledView) return;
       if (!client) return;
-      if (selectedEmailIds.size > 0) {
+      if (selectedEmailKeys.size > 0) {
         await runBatchEmailAction(() => batchMarkAsRead(client, true), { error: t('notifications.error_updating') });
       } else if (selectedEmail) {
         await markAsRead(client, selectedEmail.id, true).catch(toastUpdateFailure);
@@ -800,8 +874,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // is a no-op there too.
       if (['sent', 'drafts', 'scheduled'].includes(currentRole || '')) return;
       const isInJunk = currentRole === 'junk';
-      if (selectedEmailIds.size > 0 && client) {
-        const ids = Array.from(selectedEmailIds);
+      if (selectedEmailKeys.size > 0 && client) {
+        // The spam actions take bare ids of the viewed account: resolve the
+        // selection keys through the loaded rows and thread members.
+        const ids = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
         try {
           if (isInJunk) {
             await batchUndoSpam(client, ids);
@@ -855,6 +931,38 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onDeselectAll: () => {
       clearSelection();
     },
+    // `x` under Mountain View: put the focused conversation in or out of the
+    // selection. Only reachable there, where `x` is handed over from thread
+    // expansion.
+    onToggleSelection: () => {
+      if (isScheduledView || !selectedEmail) return;
+      toggleEmailSelection(selectedEmail);
+    },
+    // Mountain View's `g` sequences. `g s` goes to the "All starred" view when
+    // the user has one - a list you arrive at and leave, like the other `g`
+    // destinations. Without it there is no starred destination here, and the
+    // fallback is the advanced-search star toggle: it shows the same messages,
+    // but as a search you then have to clear. All mail uses the folder the
+    // account nominated in Layout settings, falling back to its Archive.
+    onGoToMailbox: (target: GoToMailboxTarget) => {
+      if (isScheduledView && target !== 'inbox') return;
+      if (target === 'starred') {
+        goToStarred();
+        return;
+      }
+      const roleFor = { inbox: 'inbox', sent: 'sent', drafts: 'drafts' } as const;
+      if (target === 'all') {
+        const configured = viewingAccountId
+          ? useSettingsStore.getState().allMailFolderIds[viewingAccountId]
+          : undefined;
+        const allMailId = (typeof configured === 'string' ? configured : undefined)
+          ?? mailboxes.find((mb) => mb.role === 'archive')?.id;
+        if (allMailId) void handleMailboxSelect(allMailId);
+        return;
+      }
+      const mailbox = mailboxes.find((mb) => mb.role === roleFor[target]);
+      if (mailbox) void handleMailboxSelect(mailbox.id);
+    },
     // `x` in the help modal: expand/collapse the selected email's thread. Same
     // steps as EmailList.handleToggleThreadExpansion - expanding pulls the
     // thread's messages and marks them read, collapsing only toggles. (#683)
@@ -872,14 +980,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailIds, mailboxes, isScheduledView, isUnifiedView, unifiedRole]);
+  }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailKeys, mailboxes, isScheduledView, mvShell, showCrossStarred, isUnifiedView, unifiedRole]);
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts({
     enabled: isAuthenticated && !showComposer,
     emails: activeEmails,
     selectedEmailId: selectedEmail?.id,
-    selectionCount: selectedEmailIds.size,
+    selectionCount: selectedEmailKeys.size,
+    mountainViewKeys: mvShell,
     handlers: keyboardHandlers,
   });
 
@@ -930,37 +1039,36 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     return () => clearTimeout(timer);
   }, [clearPendingUndoSend, pendingUndoSend]);
 
-  // Update page title based on context
-  useEffect(() => {
-    let title = appName;
+  // Page title: "<context> - <account> - <app>" (see useDocumentTitle)
+  // The subject is kept out until the policy has loaded: a gate that keeps
+  // subjects out of browser history must not let one through while unknown.
+  const subjectInTabTitle = usePolicyStore((s) => s.loaded && s.isFeatureEnabled('tabTitleSubjectEnabled'));
+  const titleContext = useMemo(() => {
+    // Composing email
+    const composer = showComposer
+      ? {
+          compose: t('email_composer.new_message'),
+          reply: t('email_composer.reply'),
+          replyAll: t('email_composer.reply_all'),
+          forward: t('email_composer.forward'),
+        }[composerMode] || t('email_composer.new_message')
+      : null;
 
-    if (showComposer) {
-      // Composing email
-      const modeText = {
-        compose: t('email_composer.new_message'),
-        reply: t('email_composer.reply'),
-        replyAll: t('email_composer.reply_all'),
-        forward: t('email_composer.forward'),
-      }[composerMode] || t('email_composer.new_message');
-      title = `${modeText} - ${appName}`;
-    } else if (selectedEmail) {
-      // Reading email
-      const subject = selectedEmail.subject || t('email_viewer.no_subject');
-      title = `${subject} - ${appName}`;
-    } else if (selectedMailbox && mailboxes.length > 0) {
-      // Mailbox view
-      const mailbox = mailboxes.find(mb => mb.id === selectedMailbox);
-      if (mailbox) {
-        const mailboxName = localizeMailboxName(mailbox.role, mailbox.name, (k) => t(`sidebar.mailboxes.${k}`));
-        const unreadCount = mailbox.unreadEmails || 0;
-        title = unreadCount > 0
-          ? `${mailboxName} (${unreadCount}) - ${appName}`
-          : `${mailboxName} - ${appName}`;
-      }
+    // Reading email
+    const subject = selectedEmail ? selectedEmail.subject || t('email_viewer.no_subject') : null;
+
+    // Mailbox view
+    let mailboxLine: string | null = null;
+    const mailbox = selectedMailbox ? mailboxes.find(mb => mb.id === selectedMailbox) : undefined;
+    if (mailbox) {
+      const mailboxName = localizeMailboxName(mailbox.role, mailbox.name, (k) => t(`sidebar.mailboxes.${k}`));
+      const unreadCount = mailbox.unreadEmails || 0;
+      mailboxLine = unreadCount > 0 ? `${mailboxName} (${unreadCount})` : mailboxName;
     }
 
-    document.title = title;
-  }, [showComposer, composerMode, selectedEmail, selectedMailbox, mailboxes, t, appName]);
+    return mailTitleContext({ composer, subject, mailbox: mailboxLine }, { showSubject: subjectInTabTitle });
+  }, [showComposer, composerMode, selectedEmail, selectedMailbox, mailboxes, t, subjectInTabTitle]);
+  useDocumentTitle(titleContext);
 
   // When this page is rendered inside the Pro shell as the Mail tab body,
   // we hoist every "show composer" intent into its own Pro tab and reset
@@ -985,6 +1093,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       subject: selectedEmail.subject,
       ...getQuoteBodies(selectedEmail),
       receivedAt: selectedEmail.receivedAt,
+      // The login that holds the message, so the reply defaults to that
+      // account's identity (#1104). Same resolution as the invitation banner.
+      accountId: selectedEmail.sourceClientAccountId ?? viewingAccountId ?? undefined,
       attachments: selectedEmail.attachments,
       messageId: selectedEmail.messageId,
       inReplyTo: selectedEmail.inReplyTo,
@@ -1267,59 +1378,73 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     return () => clearTimeout(id);
   }, []);
 
-  // Push notifications: set up once per CONNECTED client and tear down when the
-  // clients go away (logout or account switch). Kept separate from the fetch
-  // effect above so it still runs when data was prefetched at login time.
+  // Push notifications: one binding per CONNECTED client, kept for as long as
+  // that client is connected.
   //
   // We bind every connected login, not just the active one: background accounts
-  // must drive the unified-section counters too. The active client keeps the
+  // must drive the unified-section counters too. The active client gets the
   // full handler (current list / scheduled / calendar / filters); background
-  // logins only re-project the unified counts by rebuilding the unified scope
-  // (which refreshes every account's cached mailbox list), since their changes
-  // never touch the active `mailboxes`. (#281 background push)
+  // logins only re-project the unified counts. (#281 background push)
+  //
+  // The bindings are reconciled, not rebuilt. This effect re-runs each time a
+  // login connects - once per account while a browser with many of them
+  // restores - and tearing every binding down to set them all up again made
+  // each run close and reopen the live streams and re-prime every slow poll:
+  // with ten logins, 21 stream openings and ~180 state-poll methods in the
+  // first seconds, quadratic in the number of accounts. Now a run binds only
+  // the clients that are new, unbinds only the ones that are gone, and on an
+  // account switch re-binds just the two whose role changed.
+  const pushBindingsRef = useRef(new Map<JMAPClient, PushBinding>());
+  // Handlers are read at event time, so a binding never holds a stale closure
+  // and never has to be re-created because a callback changed identity.
+  const pushHandlersRef = useRef({ handleStateChange, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts });
+  pushHandlersRef.current = { handleStateChange, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts };
+
   useEffect(() => {
-    if (!isAuthenticated || !client) return;
-
-    const clients = useAuthStore.getState().getAllConnectedClients();
-    const cleanups: Array<() => void> = [];
-
-    // Active login first: the client caps live SSE streams per tab (#702) and
-    // hands out slots in setup order, so the account the user is looking at
-    // must claim one before the background logins do.
-    const ordered = [...clients.entries()].sort(([a], [b]) =>
-      (a === activeAccountId ? 0 : 1) - (b === activeAccountId ? 0 : 1),
-    );
-
-    for (const [accId, c] of ordered) {
-      try {
-        if (accId === activeAccountId) {
-          c.onStateChange((change) => handleStateChange(change, c));
-        } else {
-          c.onStateChange(() => {
-            buildPopulatedUnifiedAccounts()
-              .then((built) => {
-                refreshCrossCounts(built);
-                refreshUnifiedCounts(built);
-              })
-              .catch(() => { /* per-account fetch failures surface elsewhere */ });
+    const bindings = pushBindingsRef.current;
+    if (!isAuthenticated || !client) {
+      releasePushBindings(bindings);
+      return;
+    }
+    reconcilePushBindings({
+      bindings,
+      clients: useAuthStore.getState().getAllConnectedClients(),
+      activeAccountId,
+      listen: (c, role) => {
+        // A login that reports a change has a folder list worth fetching again;
+        // the others keep theirs, which is what spares the unified scope a full
+        // round of Mailbox/get on every push.
+        if (role === 'active') {
+          c.onStateChange((change: StateChange) => {
+            invalidateUnifiedMailboxes(c);
+            pushHandlersRef.current.handleStateChange(change, c);
           });
+          return;
         }
-        c.setupPushNotifications();
-        cleanups.push(() => c.closePushNotifications());
-      } catch (error) {
-        debug.log('push', '[Push] Failed to setup push notifications for account:', accId, error);
-      }
-    }
-
-    if (cleanups.length > 0) {
+        c.onStateChange(() => {
+          invalidateUnifiedMailboxes(c);
+          const h = pushHandlersRef.current;
+          h.buildPopulatedUnifiedAccounts()
+            .then((built) => {
+              h.refreshCrossCounts(built);
+              h.refreshUnifiedCounts(built);
+            })
+            .catch(() => { /* per-account fetch failures surface elsewhere */ });
+        });
+      },
+      onError: (accId, error) => debug.log('push', '[Push] Failed to setup push notifications for account:', accId, error),
+    });
+    if (bindings.size > 0) {
       setPushConnected(true);
-      debug.log('push', `[Push] Push notifications enabled for ${cleanups.length} account(s)`);
+      debug.log('push', `[Push] Push notifications enabled for ${bindings.size} account(s)`);
     }
+  }, [isAuthenticated, client, activeAccountId, connectedAccountsSignature, connectedAccountsRevision, setPushConnected]);
 
-    return () => {
-      cleanups.forEach((fn) => fn());
-    };
-  }, [isAuthenticated, client, activeAccountId, connectedAccountsSignature, connectedAccountsRevision, handleStateChange, setPushConnected, buildPopulatedUnifiedAccounts, refreshCrossCounts, refreshUnifiedCounts]);
+  // Unbind everything when the mail app goes away.
+  useEffect(() => {
+    const bindings = pushBindingsRef.current;
+    return () => releasePushBindings(bindings);
+  }, []);
 
   // Keep unified mailbox counts in sync when the feature is enabled and more
   // than one account is connected. Runs whenever the set of connected accounts
@@ -1358,12 +1483,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // replace the user's results with the folder contents.
     if (state.searchQuery || !isFilterEmpty(state.searchFilters)) return;
 
+    const isSameView = captureViewToken();
     void buildPopulatedUnifiedAccounts()
-      .then((populated) => (
-        unifiedRole
+      .then((populated) => {
+        // The user left the view while the accounts loaded (#1102).
+        if (!isSameView()) return;
+        return unifiedRole
           ? fetchUnifiedEmailsAction(populated, unifiedRole)
-          : fetchCrossViewAction(populated, crossView!)
-      ))
+          : fetchCrossViewAction(populated, crossView!);
+      })
       .catch(() => { /* per-account failures surface through unifiedErrors */ });
   }, [connectedAccountsSignature, isAuthenticated, client, buildPopulatedUnifiedAccounts, fetchUnifiedEmailsAction, fetchCrossViewAction]);
 
@@ -1372,28 +1500,65 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // session and the mailbox list are up. Runs at most once per mount: after
   // this, the URL is an output of the view (see buildMailUrl), not an input.
   const deepLinkHandledRef = useRef(false);
-  const applyMailDeepLink = async (link: MailDeepLink) => {
+  const mailAppMountedRef = useRef(false);
+  useEffect(() => { mailAppMountedRef.current = true; return () => { mailAppMountedRef.current = false; }; }, []);
+  const applyMailDeepLink = async (link: MailDeepLink, opts?: { onLoad?: boolean }) => {
+    // The folder list before an account switch, if one happened: until the
+    // new mailbox's folders arrive the store still holds these (or nothing).
+    let switchedFrom: Mailbox[] | null = null;
     // A permalink can name the account it belongs to. Ids are only meaningful
     // within their account, so switch first - but only to a login that is
-    // actually connected; we can't authenticate on someone's behalf.
-    if (link.accountId && link.accountId !== useAuthStore.getState().activeAccountId) {
-      const target = useAccountStore.getState().accounts.find(
-        (a) => a.id === link.accountId && a.isConnected,
-      );
-      if (!target) {
+    // actually connected; we can't authenticate on someone's behalf. A push
+    // notification names the login by its cookie slot.
+    const linkAccountId = link.accountId ?? (link.slot !== undefined
+      ? useAccountStore.getState().accounts.find((a) => a.cookieSlot === link.slot)?.id ?? `slot:${link.slot}`
+      : undefined);
+    const switchesAccount = !!linkAccountId && linkAccountId !== useAuthStore.getState().activeAccountId;
+    if (switchesAccount) {
+      const startedOn = useAuthStore.getState().activeAccountId;
+      const startedIn = useEmailStore.getState().selectedMailbox;
+      const startedWith = useEmailStore.getState().selectedEmail?.id ?? null;
+      // The login may still be reconnecting - a tapped notification reopens
+      // the app and the logins come back one at a time - so wait for it
+      // rather than calling a late mailbox unavailable.
+      if (!(await waitForConnectedAccount(linkAccountId))) {
         toast.error(t('deep_link.account_unavailable'));
         return;
       }
-      await switchAccount(link.accountId);
+      // The user moved on while the login reconnected: don't pull them away.
+      if (!mailAppMountedRef.current
+        || useAuthStore.getState().activeAccountId !== startedOn
+        || useEmailStore.getState().selectedMailbox !== startedIn
+        || (useEmailStore.getState().selectedEmail?.id ?? null) !== startedWith) return;
+      switchedFrom = useEmailStore.getState().mailboxes;
+      await switchAccount(linkAccountId);
+      // Overtaken or failed: the folders on screen are not the link's account's.
+      if (useAuthStore.getState().activeAccountId !== linkAccountId) return;
     }
 
     const activeClient = useAuthStore.getState().client;
     if (!activeClient) return;
 
     if (link.kind === 'folder') {
-      const mailboxId = resolveFolderRef(link.ref, useEmailStore.getState().mailboxes);
+      const mailboxes = switchedFrom
+        ? await freshMailboxes(switchedFrom)
+        : useEmailStore.getState().mailboxes;
+      const state = useEmailStore.getState();
+      const mailboxId = resolveFolderRef(link.ref, mailboxes);
       if (!mailboxId) {
         toast.error(t('deep_link.folder_not_found'));
+        return;
+      }
+      // Reloading the page lands here with the folder the boot fetch has just
+      // loaded; selecting it again re-fetched it under the loading overlay,
+      // so the list flashed right after it appeared.
+      if (opts?.onLoad && !switchesAccount && isFolderLinkOpen(mailboxId, {
+        selectedMailbox: state.selectedMailbox,
+        isUnifiedView: state.isUnifiedView,
+        isScheduledView: state.isScheduledView,
+        selectedKeyword: state.selectedKeyword,
+        hasSearch: !!state.searchQuery || !isFilterEmpty(state.searchFilters),
+      })) {
         return;
       }
       await handleMailboxSelect(mailboxId);
@@ -1553,7 +1718,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     deepLinkHandledRef.current = true;
 
     if (link) {
-      void applyMailDeepLinkRef.current(link);
+      void applyMailDeepLinkRef.current(link, { onLoad: true });
       return;
     }
 
@@ -1571,17 +1736,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // Skip when handleEmailSelect already started a fetch (it sets isLoadingEmail before
     // calling selectEmail on the stub), to avoid a duplicate request.
     if (!selectedEmail.bodyValues && !isLoadingEmail) {
-      const perAccountClient = isUnifiedView && selectedEmail.sourceClientAccountId
-        ? useAuthStore.getState().getClientForAccount(selectedEmail.sourceClientAccountId)
-        : undefined;
-      const fetchClient = perAccountClient ?? client;
       setLoadingEmail(true);
-      fetchEmailContent(fetchClient, selectedEmail.id).finally(() => {
+      fetchEmailContent(client, selectedEmail.id).finally(() => {
         setLoadingEmail(false);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEmail?.id]);
+  }, [selectedEmail?.id, selectedEmail?.sourceClientAccountId, selectedEmail?.sourceAccountId]);
+
+  // Opening a message hides the list on tablet, but plenty of paths clear the
+  // reading pane without going through a "back" handler (delete/move/archive,
+  // a failed fetch, history restore, sending the open draft). Bring the list
+  // back once there is nothing left to read, so tablet never ends up on an
+  // empty reading pane with only the bottom bar.
+  const readingPaneEmpty = !showComposer && !conversationThread && !selectedEmail && !isLoadingEmail;
+  useEffect(() => {
+    if (readingPaneEmpty && !tabletListVisible) setTabletListVisible(true);
+  }, [readingPaneEmpty, tabletListVisible, setTabletListVisible]);
 
   // Handle mark-as-read with delay based on settings
   useEffect(() => {
@@ -1594,6 +1765,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     // Only set timeout if there's a selected email, it's unread, and we have a client
     if (!selectedEmail || !client || selectedEmail.keywords?.$seen || isScheduledView) {
+      return;
+    }
+
+    // A Mountain View cursor is not a read receipt: the mail is only marked once it is
+    // actually opened.
+    if (mvShell && cursorOnly) {
       return;
     }
 
@@ -1633,7 +1810,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEmail?.id, isScheduledView]);
+  }, [selectedEmail?.id, isScheduledView, mvShell, cursorOnly]);
 
   // Handle new email notifications - play sound
   useEffect(() => {
@@ -1702,7 +1879,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     fromName?: string;
     identityId?: string;
     /** Local account owning the selected identity, when it came from the
-     *  cross-account From dropdown (Pro / embedded multi-account). */
+     *  cross-account From dropdown (more than one connected account). */
     localAccountId?: string;
     envelopeMailFrom?: string;
     attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>;
@@ -1745,8 +1922,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // selection like a delete does.
       if (selectedEmail && (selectedEmail.id === data.draftId || selectedEmail.id === pendingDraft?.draftId)) {
         selectEmail(null);
-        if (isMobile) setActiveView('list');
       }
+      // On a phone the composer takes over the reading pane. With no message
+      // open behind it, that pane is empty and has no way back to the list.
+      if (isMobile && !useEmailStore.getState().selectedEmail) setActiveView('list');
       if (result.filingError) {
         // The mail went out, but a post-send step (filing to Sent /
         // removing the old draft) was rejected - warn instead of staying
@@ -1754,10 +1933,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         // and re-sent (#592).
         toast.warning(t('email_composer.send_filing_warning'));
       }
-      // The server refused some recipients outright; nothing else, not even
-      // a bounce, would tell the user they never get the message.
-      const refused = partlyRefusedWarning(result, tComposer);
-      if (refused) toast.warning(refused);
+      if (result.rejectedRecipients?.length) {
+        // The server refused some recipients while accepting the rest; no
+        // bounce will follow for these, so this is the only notice (#1123).
+        toast.warning(t('email_composer.send_some_recipients_rejected'), {
+          message: formatRejectedRecipients(result.rejectedRecipients),
+          duration: 15000,
+        });
+      }
       // Mark the original email with $answered or $forwarded keyword. Route the
       // write to the email's own account so the flag lands on shared/group-mailbox
       // messages instead of being dropped against the reaching account. (#281)
@@ -1779,9 +1962,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         return;
       }
 
-      // Delayed sends get the undo toast instead; a filing error or refused
-      // recipients already warned.
-      if (!result.filingError && !result.refusedRecipients?.length) toast.success(t('notifications.email_sent'));
+      // Delayed sends get the undo toast instead; a filing error or a refused
+      // recipient already warned.
+      if (!result.filingError && !result.rejectedRecipients?.length) toast.success(t('notifications.email_sent'));
 
       // Refresh the current mailbox to update the UI
       if (!isScheduledView) {
@@ -1963,9 +2146,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     draft = await emailHooks.onBeforeEditDraft.transform(draft);
 
-    const bodyText = draft.bodyValues
-      ? Object.values(draft.bodyValues).map(v => v.value).join('\n')
-      : '';
+    // Only the parts the server lists as the body: bodyValues also carries
+    // every text/* ATTACHMENT, which used to be joined in as the message.
+    const bodyText = getDraftTextBody(draft);
     // A plain-text-only draft lists its text/plain part under htmlBody
     // (RFC 8621 § 4.1.4 fallback) - only treat it as HTML when it really is.
     const draftHtmlPart = draft.htmlBody?.[0];
@@ -1992,7 +2175,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       to: draft.to?.map(a => a.email).filter(Boolean).join(', ') || '',
       cc: draft.cc?.map(a => a.email).filter(Boolean).join(', ') || '',
       bcc: draft.bcc?.map(a => a.email).filter(Boolean).join(', ') || '',
-      subject: draft.subject || '',
+      // Drafts saved before #1189 stored an empty subject as the composer's
+      // "(No Subject)" placeholder; reopen those with an empty field.
+      subject: draft.subject && draft.subject !== t('email_composer.no_subject') ? draft.subject : '',
       body: htmlBody || bodyText,
       // Re-open in the format the draft was written in: a text-only draft
       // used to land raw in the rich-text editor (newlines collapsed) and an
@@ -2007,6 +2192,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       draftId: draft.id,
       draftAccountId: accountId,
       draftLocalAccountId: localAccountId,
+      // A reply draft re-opens in compose mode; its threading headers must
+      // come along or the reply leaves its thread.
+      inReplyTo: draft.inReplyTo ?? undefined,
+      references: draft.references ?? undefined,
       // Existing server-side attachments must ride along, or the composer
       // starts empty and the next save/send silently rebuilds the draft
       // without them (#849).
@@ -2072,10 +2261,20 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // Undo: without this, the draft's next save would run through the new
     // active login and remove its old version by id in the wrong account.
     const undoLogin = pending.localAccountId ?? useAuthStore.getState().activeAccountId ?? undefined;
-    const undoDurationMs = Math.max(sendDelaySeconds, 8) * 1000;
+    // A send-delay window (seconds away) closes the toast a second before the
+    // server releases the message, so Undo is never offered once it is too
+    // late. A message scheduled for later keeps the toast up a short while.
+    const remainingMs = Date.parse(pending.sendAt) - Date.now();
+    const isUndoWindow = Number.isFinite(remainingMs) && remainingMs <= 120_000;
+    const undoDurationMs = isUndoWindow
+      ? Math.max(remainingMs - 1000, 1000)
+      : Math.max(sendDelaySeconds, 8) * 1000;
 
-    toast.success(t('email_viewer.scheduled_send_created'), {
+    toast.success(isUndoWindow
+      ? t('email_viewer.sending_in', { seconds: Math.round(remainingMs / 1000) })
+      : t('email_viewer.scheduled_send_created'), {
       duration: undoDurationMs,
+      pauseOnHover: false,
       secondaryAction: (pending.emailId && pending.identityId)
         ? {
             label: t('email_viewer.send_now'),
@@ -2139,6 +2338,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         clearPendingUndoSend();
       }
     }, undoDurationMs);
+    // Once the server has released the message, the Scheduled count in the
+    // sidebar no longer includes it. Not cleared with the effect: clearing the
+    // pending undo above re-runs this effect before the release.
+    if (isUndoWindow) {
+      setTimeout(() => { void refreshScheduledMetadata(client); }, remainingMs + 3000);
+    }
 
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2359,17 +2564,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     const currentMailboxes = readMailboxes();
 
-    // Scope like batchArchive: the owning account in unified view, otherwise
-    // the selected shared folder's owner, otherwise the user's own archive. (#889)
-    const archiveMailbox = findArchiveMailbox(currentMailboxes, selectedMailbox, archiveAccountId);
-    if (!archiveMailbox) {
-      toast.error(t('email_viewer.archive_mailbox_not_found'));
-      return;
-    }
-
     const { archiveMode } = useSettingsStore.getState();
 
     try {
+      // Scope like batchArchive: the owning account in unified view, otherwise
+      // the selected shared folder's owner, otherwise the user's own archive
+      // (#889); created on first use when the account has none (#578).
+      const archiveMailbox = await ensureArchiveMailbox({
+        client: archiveClient,
+        mailboxes: currentMailboxes,
+        selectedMailboxId: selectedMailbox,
+        accountId: archiveAccountId,
+        refresh: async () => {
+          await refreshMailboxes();
+          return readMailboxes();
+        },
+      });
+
       if (archiveMode === 'single') {
         await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id);
       } else {
@@ -2411,6 +2622,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       void refreshMailboxes();
     } catch (error) {
       console.error("Failed to archive email:", error);
+      if (error instanceof ArchiveMailboxNotFoundError) {
+        toast.error(t('email_viewer.archive_mailbox_not_found'));
+        return;
+      }
       toast.error(t('notifications.error_archiving'), error instanceof Error ? error.message : undefined);
     }
   };
@@ -2493,14 +2708,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     try {
       const email = emails.find(e => e.id === emailToPin.id) ?? emailToPin;
       const isPinned = email.keywords?.['$pinned'] === true;
-      // JMAP keywords are a set of present keys - drop the key to unpin
-      // rather than writing a false value.
-      const keywords = { ...email.keywords };
-      if (isPinned) {
-        delete keywords['$pinned'];
-      } else {
-        keywords['$pinned'] = true;
-      }
 
       // Same routing as tags: the write goes to the email's own account, and
       // the local patch flips the icon immediately. Then refetch the first page
@@ -2508,7 +2715,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // refetch where that sort does not apply (unified views) or where it
       // would replace a tag-filtered list (refreshCurrentMailbox fetches by
       // folder only). (#281)
-      await setEmailKeywords(client, email.id, keywords);
+      // Only $pinned changes; the row's other keywords may be stale.
+      await patchEmailKeywords(client, email.id, { $pinned: !isPinned });
       if (!isUnifiedView && !useEmailStore.getState().selectedKeyword) {
         void refreshCurrentMailbox(client);
       }
@@ -2525,9 +2733,32 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const email = emails.find(e => e.id === emailId);
       if (!email) return;
 
-      // The whole keyword map is written, so it may only hold keywords that
-      // are set: a removed tag is left out rather than sent as false.
-      const keywords = toggleTagKeywords(email.keywords, tagId);
+      // Only the tag keywords change: writing the whole set from this row
+      // would undo keywords another client set since ($seen, $answered).
+      const keywords = email.keywords ?? {};
+      const changes: Record<string, boolean> = {};
+
+      if (tagId === null) {
+        // Remove all tag keywords
+        Object.keys(keywords).forEach(key => {
+          if (keywords[key] && (key.startsWith(KEYWORD_PREFIX) || key.startsWith(KEYWORD_PREFIX_LEGACY))) {
+            changes[key] = false;
+          }
+        });
+      } else {
+        // Both prefixes name the same tag when read, so taking one off has to
+        // clear whichever spellings are actually set.
+        const activeKeys = [KEYWORD_PREFIX + tagId, KEYWORD_PREFIX_LEGACY + tagId]
+          .filter(key => keywords[key]);
+        if (activeKeys.length > 0) {
+          activeKeys.forEach(key => {
+            changes[key] = false;
+          });
+        } else {
+          // Add the tag without disturbing others
+          changes[KEYWORD_PREFIX + tagId] = true;
+        }
+      }
 
       // Routes the write to the email's own account, then patches the email in
       // place so the list keeps its scroll/pagination state instead of being
@@ -2535,7 +2766,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // call site covered only the unified view, so a tag set on a directly
       // selected shared folder was written to the reaching account and silently
       // dropped by the server. (#281)
-      await setEmailKeywords(client, emailId, keywords);
+      await patchEmailKeywords(client, emailId, changes);
 
       // Refresh tag counts
       fetchTagCounts(client);
@@ -2641,7 +2872,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         setTabletListVisible(true);
       }
 
+      const isSameView = captureViewToken();
       const populated = await buildPopulatedUnifiedAccounts();
+      // Another folder was picked while the accounts loaded; entering this
+      // view now would put it over that folder (#1102).
+      if (!isSameView()) return;
       const searchCleared = clearSearchIfFolderChangeResets();
       // Keep an active search across the switch and re-run it in this view
       // (mirrors normal mailboxes), preserving advanced filters; otherwise browse.
@@ -2675,7 +2910,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         setTabletListVisible(true);
       }
 
+      const isSameView = captureViewToken();
       const populated = await buildPopulatedUnifiedAccounts();
+      if (!isSameView()) return;
       const searchCleared = clearSearchIfFolderChangeResets();
       // Keep an active search across the switch and re-run it in this view
       // (mirrors normal mailboxes), preserving advanced filters; otherwise browse.
@@ -2750,10 +2987,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   };
 
   const handleUnreadFilterClick = async (mailboxId: string) => {
-    const isTogglingOff = selectedMailbox === mailboxId && searchFilters.isUnread === true;
+    const isTogglingOff = selectedMailbox === mailboxId && !selectedKeyword && searchFilters.isUnread === true;
 
-    // Select the mailbox if not already selected
-    if (selectedMailbox !== mailboxId) {
+    // Open the mailbox unless it is already the one listed. A tag view keeps
+    // selectedMailbox, so it counts as another view.
+    if (selectedMailbox !== mailboxId || selectedKeyword) {
+      if (isUnifiedView) exitUnifiedView();
+      setScheduledView(false);
       selectMailbox(mailboxId);
       selectEmail(null);
     }
@@ -2776,8 +3016,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         await fetchEmails(client, mailboxId);
       }
     } else {
-      // Enable unread filter
+      // Enable unread filter, in this folder only
       clearSearchFilters();
+      scopeSearchToOpenFolder();
       setSearchFilters({ isUnread: true });
       if (client) {
         await advancedSearch(client);
@@ -2870,7 +3111,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     const confirmed = await confirmDialog({
       title: tCtxMenu('email_list.empty_folder.confirm_title'),
-      message: tCtxMenu('email_list.empty_folder.confirm_message'),
+      message: emptyFolderMovesToTrash(mailbox)
+        ? tCtxMenu('email_list.empty_folder.confirm_message_trash')
+        : tCtxMenu('email_list.empty_folder.confirm_message'),
       confirmText: tCtxMenu('email_list.empty_folder.confirm_button'),
       variant: "destructive",
     });
@@ -3075,7 +3318,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // In unified view the active "mailbox" is a virtual role or cross view, so
     // refresh via the unified fan-out instead of fetchEmails.
     if (isUnifiedView) {
+      const isSameView = captureViewToken();
       const populated = await buildPopulatedUnifiedAccounts();
+      if (!isSameView()) return;
       const role = useEmailStore.getState().unifiedRole;
       const cross = useEmailStore.getState().crossView;
       if (role) {
@@ -3088,6 +3333,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (selectedMailbox) {
       await fetchEmails(client, selectedMailbox);
     }
+  };
+
+  // Starred for Mountain View: the "All starred" view when the user has one, otherwise
+  // the advanced-search star toggle, which shows the same messages as a
+  // search. Used by `g s` and by Mountain View's Starred row.
+  const goToStarred = () => {
+    if (showCrossStarred) {
+      void handleMailboxSelect(CROSS_VIEW_IDS.starred);
+      return;
+    }
+    setSearchFilters({ ...DEFAULT_SEARCH_FILTERS, isStarred: true });
+    void handleAdvancedSearch();
   };
 
   const handleAdvancedSearch = async () => {
@@ -3113,20 +3370,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     };
   }, []);
 
-  // Blobs are scoped per JMAP account. In the unified/All-Mail view the open
-  // message may belong to another login (route to its client) or to a delegated
-  // shared account (same client, but the owner's accountId in the download URL).
-  // Resolve both from the email's source so attachments on cross-account
-  // messages can be viewed/downloaded instead of 404ing against the active
-  // account.
+  // Resolve from the originating message, including direct shared folders.
   const resolveBlobSource = useCallback((email: typeof selectedEmail) => {
-    const clientAccountId = isUnifiedView ? email?.sourceClientAccountId : undefined;
-    const blobClient = clientAccountId
-      ? (useAuthStore.getState().getClientForAccount(clientAccountId) ?? client)
-      : client;
-    const accountId = isUnifiedView ? email?.sourceAccountId : undefined;
+    const { client: blobClient, accountId, clientAccountId } = resolveEmailBlobContext(email, client);
     return { blobClient, accountId, clientAccountId };
-  }, [isUnifiedView, client]);
+  }, [client]);
 
   // Opens an attachment the built-in preview cannot render but the office
   // editor can (docx, odt, xlsx, ...). The launch route runs server-side with
@@ -3157,7 +3405,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     try {
       const { mailAttachmentAction } = useSettingsStore.getState();
       if (mailAttachmentAction === 'preview' && isFilePreviewable(name, attachment.type)) {
-        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, clientAccountId });
+        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, client: blobClient });
         return;
       }
       if (mailAttachmentAction === 'preview' && openOfficeAttachment(
@@ -3196,10 +3444,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     };
   }, [client, viewingAccountId, viewMailboxes, selectedMailbox, searchQuery, searchFilters, searchMailboxId]);
 
-  const loadListAttachments = useCallback<LoadListAttachments>((email, onLoad) => {
-    const target = listRowSourceRef.current(email);
-    if (!target) return () => {};
-    return requestListAttachments(target.source, target.accountId, email.id, onLoad);
+  const loadListAttachments = useMemo<LoadListAttachments>(() => {
+    const load: LoadListAttachments = (email, onLoad) => {
+      const target = listRowSourceRef.current(email);
+      if (!target) return () => {};
+      return requestListAttachments(target.source, target.accountId, email.id, onLoad);
+    };
+    load.peek = (email) => {
+      const target = listRowSourceRef.current(email);
+      return target ? peekListAttachments(target.source, target.accountId, email.id) : undefined;
+    };
+    return load;
   }, []);
 
   const handleDownloadAttachment = async (blobId: string, name: string, type?: string, forceDownload?: boolean) => {
@@ -3210,7 +3465,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const { mailAttachmentAction } = useSettingsStore.getState();
 
       if (!forceDownload && mailAttachmentAction === 'preview' && isFilePreviewable(name, type)) {
-        setPreviewAttachment({ blobId, name, type, accountId, clientAccountId });
+        setPreviewAttachment({ blobId, name, type, accountId, client: blobClient });
         return;
       }
       if (!forceDownload && mailAttachmentAction === 'preview' && openOfficeAttachment(
@@ -3223,20 +3478,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
-  const previewBlobClient = useCallback(() => {
-    const id = previewAttachment?.clientAccountId;
-    return id ? (useAuthStore.getState().getClientForAccount(id) ?? client) : client;
-  }, [previewAttachment, client]);
-
   const handlePreviewAttachmentDownload = useCallback(async () => {
-    const c = previewBlobClient();
+    const c = previewAttachment?.client;
     if (!c || !previewAttachment) return;
 
     await c.downloadBlob(previewAttachment.blobId, previewAttachment.name, previewAttachment.type, previewAttachment.accountId);
-  }, [previewBlobClient, previewAttachment]);
+  }, [previewAttachment]);
 
   const getPreviewAttachmentContent = useCallback(async () => {
-    const c = previewBlobClient();
+    const c = previewAttachment?.client;
     if (!c || !previewAttachment) {
       throw new Error('No attachment selected');
     }
@@ -3247,7 +3497,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       blob,
       contentType: previewAttachment.type || blob.type || 'application/octet-stream',
     };
-  }, [previewBlobClient, previewAttachment]);
+  }, [previewAttachment]);
 
   const handleQuickReply = async (body: string) => {
     if (!client || !selectedEmail) return;
@@ -3418,6 +3668,52 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
+  // Mountain View reads a message inside its conversation, as Gmail does: load
+  // the rest of the thread (list properties only) whenever another opens.
+  const mvConversationThreadId = mvShell && !cursorOnly ? (selectedEmail?.threadId ?? null) : null;
+  const mvConversationRef = mvShell && !cursorOnly ? selectedEmail : null;
+  useEffect(() => {
+    if (!mvConversationThreadId || !client || !mvConversationRef) {
+      setMvConversation(null);
+      return;
+    }
+    let cancelled = false;
+    const ref = mvConversationRef;
+    const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
+    const threadClient = route.clientAccountId
+      ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
+      : client;
+    (async () => {
+      try {
+        const thread = await threadClient.getThread(mvConversationThreadId, route.accountId);
+        const ids = thread?.emailIds ?? [];
+        if (ids.length < 2) {
+          if (!cancelled) setMvConversation(null);
+          return;
+        }
+        const emails = await threadClient.getSomeEmails(ids, route.accountId);
+        if (cancelled) return;
+        for (const e of emails) {
+          // Carry the open message's source stamps, so opening one of these
+          // in a merged view reaches the right account.
+          e.accountId = ref.accountId;
+          e.accountLabel = ref.accountLabel;
+          e.sourceClientAccountId = ref.sourceClientAccountId;
+          e.sourceAccountId = ref.sourceAccountId;
+        }
+        setMvConversation(
+          emails
+            .filter((e) => e.id === ref.id || !e.keywords?.$draft)
+            .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt)),
+        );
+      } catch {
+        if (!cancelled) setMvConversation(null);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the open message, not on every list refresh
+  }, [mvConversationThreadId, mvConversationRef?.id, client]);
+
   // Show loading state while checking auth
   if (!initialCheckDone || authLoading || (!isAuthenticated || !client)) {
     return (
@@ -3441,8 +3737,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       })();
   const isFocusedMailLayout = mailLayout === 'focus';
   const isHorizontalMailLayout = mailLayout === 'horizontal' && !isMobile && !isTablet;
-  const hasViewerContent = showComposer || Boolean(conversationThread) || Boolean(selectedEmail);
-  const shouldCollapseListPane = (isTablet && !tabletListVisible) || (!isMobile && isFocusedMailLayout && hasViewerContent);
+  // Under Mountain View on desktop the composer floats over the list in a
+  // docked window instead of taking the reading pane.
+  const mvInlineReply = mvShell && showComposer && !isEmbedded && !mvReplyPoppedOut
+    && (pendingDraft?.mode ?? composerMode) !== 'compose' && Boolean(selectedEmail);
+  const floatingComposer = mvShell && showComposer && !isEmbedded && !mvInlineReply;
+  const hasViewerContent = (showComposer && !floatingComposer) || Boolean(conversationThread)
+    || Boolean(selectedEmail && !(mvShell && cursorOnly));
+  const shouldCollapseListPane = (isTablet && !tabletListVisible && !readingPaneEmpty) || (!isMobile && isFocusedMailLayout && hasViewerContent);
   const shouldHideViewerPane = !isMobile && !hasViewerContent && isFocusedMailLayout;
   const shouldHideHorizontalViewerPane = isHorizontalMailLayout && !hasViewerContent;
 
@@ -3451,6 +3753,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     email: { id: string } & Partial<Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'>>,
   ) => {
     if (!client || !email) return;
+    setCursorOnly(false);
 
     // If composing, suspend the composer (unmount will trigger onSaveState)
     if (showComposer) {
@@ -3488,40 +3791,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     // Fetch the full content
     try {
-      // Emails fetched through an aggregate view carry their source reference:
-      // the login they are reachable through (`sourceClientAccountId`) and their
-      // owning JMAP account (`sourceAccountId`). Honor the stamps whenever they
-      // are present — not only while `isUnifiedView` is set, since a stamped list
-      // can outlive that flag — so the fetch goes to the server that actually owns
-      // the mail. Works uniformly for personal and shared/group sources: for
-      // personal the owning account equals the client's primary (no-op). (#281)
-      //
-      // Unstamped emails belong to the account being browsed: the per-account
-      // sidebar's `viewingAccountId` when set, otherwise the active login. A
-      // shared folder on that client still needs its owner accountId. (#847)
-      const sourceClientId = listEmail?.sourceClientAccountId;
-      const sourceClient = sourceClientId
-        ? useAuthStore.getState().getClientForAccount(sourceClientId)
-        : undefined;
-      if (sourceClientId && !sourceClient) {
-        // No silent fallback to the active client: with colliding ids that would
-        // render another account's mail under this row.
-        console.warn('[mail-app] No connected client for source account', sourceClientId);
+      const { client: fetchClient, accountId } = resolveEmailBlobContext(listEmail ?? null, client);
+      if (!fetchClient) {
+        console.warn('[mail-app] No connected client for email source');
         return;
       }
-      const fetchClient = sourceClient
-        ?? (viewingAccountId ? useAuthStore.getState().getClientForAccount(viewingAccountId) : undefined)
-        ?? client;
-
-      // During an unscoped search the hit is the primary account's, not the
-      // selected shared folder's owner - see resolveUnstampedEmailAccountId. (#923)
-      const accountId = listEmail?.sourceAccountId
-        ?? resolveUnstampedEmailAccountId({
-            mailboxes: viewMailboxes,
-            selectedMailbox,
-            searchActive: !!searchQuery || !isFilterEmpty(searchFilters),
-            searchMailboxId,
-          });
 
       const fullEmail = await fetchClient.getEmail(email.id, accountId);
       if (fullEmail) {
@@ -3538,9 +3812,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         if (listEmail?.sourceClientAccountId) {
           fullEmail.accountId = listEmail.accountId;
           fullEmail.accountLabel = listEmail.accountLabel;
-          fullEmail.sourceClientAccountId = listEmail.sourceClientAccountId;
-          fullEmail.sourceAccountId = listEmail.sourceAccountId;
+          fullEmail.sourceFolder = listEmail.sourceFolder;
         }
+        // Only stamped rows are re-stamped. A direct-folder row stays
+        // unstamped, since threadKeyFor scopes keys by these stamps.
+        fullEmail.sourceAccountId = listEmail?.sourceAccountId;
+        fullEmail.sourceClientAccountId = listEmail?.sourceClientAccountId;
         selectEmail(fullEmail);
         // Mark-as-read logic is now handled by useEffect
       }
@@ -3583,6 +3860,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const handleOpenConversation = async (thread: ThreadGroup) => {
     if (!client) return;
 
+    // The view marks the thread read; keep its row where it was tapped.
+    useEmailStore.getState().holdListRow(thread.threadKey);
     setConversationThread(thread);
     setIsLoadingConversation(true);
     setActiveView("viewer");
@@ -3666,13 +3945,129 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     </button>
   );
 
+  // The folder the advanced search runs in. Scopes the search only - it does
+  // not navigate the mail list. `rerun` re-queries straight away when a search
+  // is running; Mountain View's form waits for its Search button instead.
+  const renderSearchFolderSelect = (className: string, rerun: boolean) => (
+    <select
+      value={searchMailboxId}
+      onChange={(e) => {
+        setSearchMailboxId(e.target.value);
+        // Only re-query when a search is actually running;
+        // otherwise just remember the scope for the next one.
+        if (rerun && (searchQuery.trim() || !isFilterEmpty(searchFilters))) handleAdvancedSearch();
+      }}
+      className={className}
+    >
+      <option value="">{t("advanced_search.all_folders_except_spam_trash")}</option>
+      <option value={SEARCH_SCOPE_ALL_FOLDERS}>{t("advanced_search.all_folders")}</option>
+      {searchScopeFolders.own.map((mb) => (
+        <option key={mb.id} value={mb.id}>
+          {"\u00A0".repeat(mb.depth * 3)}{mb.name}
+        </option>
+      ))}
+      {searchScopeFolders.shared.map((group) => (
+        <optgroup key={group.ownerId} label={group.label}>
+          {group.mailboxes.map((mb) => (
+            <option key={mb.id} value={mb.id}>
+              {"\u00A0".repeat(mb.depth * 3)}{mb.name}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+
+  // The composer, rendered in the reading pane - or, under Mountain View on
+  // desktop, in a window docked over the list (see MvComposeWindow).
+  const composerNode = (
+    <ErrorBoundary
+      fallback={ComposerErrorFallback}
+      onReset={() => {
+        setShowComposer(false);
+        setComposerMode('compose');
+        setComposerQuoteHeader(null);
+      }}
+    >
+      <EmailComposer
+        key={composerSessionId}
+        mode={pendingDraft?.mode ?? composerMode}
+        composeFromAccountEmail={resolveComposeAccountEmail(
+          mailboxes,
+          selectedMailbox,
+          useAccountStore
+            .getState()
+            .getAccountById(viewingAccountId ?? activeAccountId ?? '')?.email,
+        )}
+        replyTo={pendingDraft !== null ? pendingDraft.replyTo : (selectedEmail ? {
+          from: selectedEmail.from,
+          replyToAddresses: selectedEmail.replyTo,
+          to: selectedEmail.to,
+          cc: selectedEmail.cc,
+          bcc: selectedEmail.bcc,
+          subject: selectedEmail.subject,
+          ...getQuoteBodies(selectedEmail),
+          receivedAt: selectedEmail.receivedAt,
+          // The login that holds the message, so the reply
+          // defaults to that account's identity (#1104).
+          accountId: selectedEmail.sourceClientAccountId ?? viewingAccountId ?? undefined,
+          attachments: selectedEmail.attachments,
+          messageId: selectedEmail.messageId,
+          inReplyTo: selectedEmail.inReplyTo,
+          references: selectedEmail.references,
+          quoteHeaderHtml: composerQuoteHeader?.html,
+          quoteHeaderText: composerQuoteHeader?.text,
+          quoteWrapInBlockquote: composerQuoteHeader?.wrapInBlockquote,
+        } : undefined)}
+        initialDraftText={composerDraftText}
+        initialData={pendingDraft}
+        onSaveState={(data) => {
+          if (suppressComposerStateSaveSessionRef.current === composerSessionId) {
+            suppressComposerStateSaveSessionRef.current = null;
+            return;
+          }
+          setPendingDraft(data);
+        }}
+        onSend={async (data) => {
+          const outcome = await handleEmailSend(data);
+          setPendingDraft(null);
+          return outcome;
+        }}
+        onScheduledSendCreated={async () => {
+          if (client) {
+            await refreshScheduledMetadata(client);
+            if (isScheduledView) await fetchScheduledEmails(client);
+          }
+          setShowComposer(false);
+          setPendingDraft(null);
+          if (isMobile && !useEmailStore.getState().selectedEmail) setActiveView('list');
+        }}
+        onClose={() => {
+          setShowComposer(false);
+          setComposerMode('compose');
+          setComposerDraftText("");
+          setPendingDraft(null);
+          setComposerQuoteHeader(null);
+          if (isMobile) {
+            setActiveView('list');
+          }
+        }}
+        requestCloseRef={composerRequestCloseRef}
+        onDiscardDraft={(draftId, draft) => {
+          handleDiscardDraft(draftId, draft);
+          setPendingDraft(null);
+        }}
+      />
+    </ErrorBoundary>
+  );
+
   if (!isAuthenticated) {
     return null;
   }
 
   return (
     <DragDropProvider>
-      <div ref={appRootRef} className={cn("flex flex-col bg-background overflow-hidden pt-[env(safe-area-inset-top)]", isEmbedded ? "h-full" : "h-dvh")}>
+      <div ref={appRootRef} className={cn("flex flex-col overflow-hidden pt-[env(safe-area-inset-top)]", mvShell ? "bg-[var(--mv-canvas)]" : "bg-background", isEmbedded ? "h-full" : "h-dvh")}>
         <AppTopBannerSlot />
         {refreshIndicator}
         {isRateLimited && rateLimitSecondsLeft !== null && (
@@ -3688,9 +4083,35 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             <span>{tCommon('reconnecting')}</span>
           </div>
         )}
+        {mvShell && !fullscreenReading && (
+          <MvTopBar
+            search={{
+              query: searchQuery,
+              onQueryChange: setSearchQuery,
+              onSubmit: handleSearch,
+              onClear: handleClearSearch,
+              onSelectContact: handleSelectContactSuggestion,
+              onToggleFilters: toggleAdvancedSearch,
+              filtersOpen: isAdvancedSearchOpen,
+              activeFilterCount: activeFilterCount(searchFilters),
+              disabled: isScheduledView,
+              onFilterAnchorChange: setFilterAnchor,
+            }}
+            onShowShortcuts={() => setShowShortcutsModal(true)}
+            onManageApps={handleManageApps}
+            onInlineApp={handleInlineApp}
+            onCloseInlineApp={closeInlineApp}
+            activeAppId={inlineApp?.id ?? null}
+            onSelectAllInboxes={
+              allInboxesReachable ? () => handleMailboxSelect(UNIFIED_MAILBOX_IDS.inbox) : undefined
+            }
+            allInboxesSelected={allInboxesSelected}
+          />
+        )}
         <div className="flex flex-1 overflow-hidden">
-        {/* Desktop Navigation Rail (hidden when embedded inside Pro shell) */}
-        {!isMobile && !isTablet && !isEmbedded && (
+        {/* Desktop Navigation Rail (hidden when embedded inside Pro shell, and
+            under Mountain View, whose header carries the app grid instead) */}
+        {!isMobile && !isTablet && !isEmbedded && !mvShell && (
           <div className="w-14 bg-secondary flex flex-col flex-shrink-0" style={{ borderRight: '1px solid rgba(128, 128, 128, 0.3)' }}>
             <NavigationRail
               collapsed
@@ -3740,6 +4161,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           } : undefined}
           className={cn(
             "flex-shrink-0 h-full z-50",
+            // The z-index is for the phone drawer. On a desktop under Mountain
+            // View it only has to lift the hover peek over the list: at 40 the
+            // compose window, drawn later at the same level, stays on top.
+            mvShell && "lg:z-40",
             !isResizing && "transition-[width] duration-300",
             isEmbedded
               ? (isMobile || isTablet
@@ -3764,7 +4189,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             inlineApp && "hidden",
             fullscreenReading && "hidden"
           )}
-          style={!isMobile && !isTablet ? { width: sidebarCollapsed ? 48 : sidebarWidth } : undefined}
+          style={!isMobile && !isTablet ? { width: sidebarCollapsed ? (mvShell ? 72 : 48) : sidebarWidth } : undefined}
         >
           <ErrorBoundary fallback={SidebarErrorFallback}>
             <Sidebar
@@ -3778,6 +4203,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               crossAccountActive={crossAccountActive}
               showCrossUnread={showCrossUnread}
               showCrossStarred={showCrossStarred}
+              onOpenStarred={mvShell ? goToStarred : undefined}
               showCrossAll={showCrossAll}
               crossUnreadCount={crossUnreadCount}
               onMailboxSelect={handleMailboxSelect}
@@ -3804,6 +4230,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 }
               }}
               onSidebarClose={() => setSidebarOpen(false)}
+              mvShell={mvShell}
               multiAccountMode={isEmbedded}
               accountMailboxes={accountMailboxes}
               viewingAccountId={viewingAccountId}
@@ -3812,8 +4239,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           </ErrorBoundary>
         </div>
 
-        {/* Sidebar resize handle (desktop only, hidden when collapsed) */}
-        {!isMobile && !isTablet && !sidebarCollapsed && !inlineApp && !fullscreenReading && (
+        {/* Sidebar resize handle (desktop only, hidden when collapsed, and
+            absent under Mountain View, whose navigation has a fixed width) */}
+        {!isMobile && !isTablet && !sidebarCollapsed && !inlineApp && !fullscreenReading && !mvShell && (
           <ResizeHandle
             onResizeStart={() => { dragStartWidth.current = sidebarWidth; setIsResizing(true); }}
             onResize={(delta) => setSidebarWidth(dragStartWidth.current + delta)}
@@ -3822,8 +4250,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           />
         )}
 
-        {/* Main Content Area */}
-        <div className={cn("flex flex-col flex-1 min-w-0 h-full", inlineApp && "hidden")}>
+        {/* Main Content Area. Under Mountain View it is the rounded card
+            inset from the canvas. */}
+        <div
+          data-mv-card={mvShell ? "" : undefined}
+          className={cn("flex flex-col flex-1 min-w-0", mvShell ? "mb-4 me-4" : "h-full", inlineApp && "hidden")}
+        >
           <div className={cn("relative flex flex-1 min-h-0", isHorizontalMailLayout && "md:flex-col")}>
           {/* Email List - full width on mobile, fixed width/height on tablet/desktop */}
           <div
@@ -3865,6 +4297,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               searchPlaceholder={searchQuery || t('sidebar.search_placeholder_hint')}
               searchActive={!!searchQuery}
               onClearSearch={handleClearSearch}
+              onSelectAllInboxes={
+                allInboxesReachable ? () => handleMailboxSelect(UNIFIED_MAILBOX_IDS.inbox) : undefined
+              }
+              allInboxesSelected={allInboxesSelected}
             />
 
             {/* Search Bar + Inline Advanced Filters. On phones this is not a
@@ -3891,36 +4327,52 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   <span className="font-medium truncate">{t('sidebar.search_placeholder_hint')}</span>
                 </div>
               )}
+              {mvShell ? (
+                <MvListToolbar
+                  loadedCount={activeEmails.length}
+                  // A search's results are not the folder: count what came back.
+                  totalCount={searchQuery || !isFilterEmpty(searchFilters) ? undefined : mailboxes.find((mb) => mb.id === selectedMailbox)?.totalEmails}
+                  onRefresh={handleManualRefresh}
+                  isRefreshing={isManualRefreshing}
+                  onMarkFolderRead={selectedMailbox ? () => handleMarkFolderRead(selectedMailbox) : undefined}
+                  onMarkAllFoldersRead={handleMarkAllFoldersRead}
+                  onEmptyFolder={selectedMailbox ? () => void handleEmptyFolderFromContextMenu(selectedMailbox) : undefined}
+                  onCreateFolder={() => handleCreateFolderFromContextMenu()}
+                  disabled={isScheduledView}
+                />
+              ) : (
               <div className="px-3 h-14 flex items-center">
                 <div className="flex items-center gap-1.5 w-full">
                   {/* Select / Select All toggle */}
                   <button
                     type="button"
                     onClick={() => {
-                      if (selectedEmailIds.size > 0) {
-                        if (selectedEmailIds.size === activeEmails.length) {
+                      if (selectedEmailKeys.size > 0) {
+                        if (selectedEmailKeys.size === activeEmails.length) {
                           clearSelection();
                         } else {
                           selectAllEmails();
                         }
                       } else if (activeEmails.length > 0) {
-                        const currentId = selectedEmail?.id;
-                        const target = currentId && activeEmails.some((e) => e.id === currentId)
-                          ? currentId
-                          : activeEmails[0].id;
+                        // The open message when it is in this list, else the
+                        // first row - as an email, so the selection is keyed by
+                        // its owning account and not by a colliding id.
+                        const target = (selectedEmail && activeEmails.some((e) => e.id === selectedEmail.id)
+                          ? activeEmails.find((e) => e.id === selectedEmail.id)
+                          : activeEmails[0])!;
                         toggleEmailSelection(target);
                       }
                     }}
                     disabled={isScheduledView}
                     className={cn(
                       "flex-shrink-0 p-2 rounded-md transition-colors",
-                      selectedEmailIds.size > 0
+                      selectedEmailKeys.size > 0
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     )}
-                    title={isScheduledView ? t('email_viewer.scheduled_actions_only') : selectedEmailIds.size > 0 ? (selectedEmailIds.size === activeEmails.length ? t('email_list.batch_actions.clear_selection') : t('email_list.batch_actions.select_all')) : t('email_list.batch_actions.select')}
+                    title={isScheduledView ? t('email_viewer.scheduled_actions_only') : selectedEmailKeys.size > 0 ? (selectedEmailKeys.size === activeEmails.length ? t('email_list.batch_actions.clear_selection') : t('email_list.batch_actions.select_all')) : t('email_list.batch_actions.select')}
                   >
-                    {selectedEmailIds.size > 0 ? (
+                    {selectedEmailKeys.size > 0 ? (
                       <CheckSquare className="w-4 h-4" />
                     ) : (
                       <Square className="w-4 h-4" />
@@ -3975,10 +4427,25 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   </button>
                 </div>
               </div>
+              )}
 
-              {/* Filter Area */}
+              {/* Filter Area. Under Mountain View the button that opens this
+                  lives in the global top bar, so the panel drops from the
+                  search field there rather than from the list header. */}
               {isAdvancedSearchOpen && (
-                <div className="px-3 pb-3 space-y-2.5 animate-in slide-in-from-top-1 fade-in duration-150">
+                <FilterPanelHost anchor={mvShell ? filterAnchor : null}>
+                  {mvShell ? (
+                    <MvSearchForm
+                      filters={searchFilters}
+                      onChange={setSearchFilters}
+                      onSearch={() => { handleAdvancedSearch(); toggleAdvancedSearch(); }}
+                      onClear={() => { clearSearchFilters(); if (client) advancedSearch(client); }}
+                      folderSelect={!isUnifiedView ? renderSearchFolderSelect(
+                        "w-full h-8 bg-transparent border-0 border-b border-border px-0 text-sm text-foreground focus:outline-none focus:border-b-2 focus:border-primary",
+                        false,
+                      ) : undefined}
+                    />
+                  ) : (<>
                   {/* Quick toggle filters + clear */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -4064,42 +4531,25 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       </div>
 
                       {/* Folder selector. Scopes the search only - it does not
-                          navigate the mail list, so it defaults to "All folders"
-                          regardless of which folder is open and keeps whatever
-                          the user picked. "All folders" spans the own AND the
-                          group/shared accounts' folders (#1082); the shared
-                          ones are listed under their owner. The unified views
-                          already search across every account's folders, so it
-                          is hidden there. */}
+                          navigate the mail list. It defaults to "All folders
+                          except Spam and Trash", or to Spam/Trash itself while
+                          that folder is open (defaultSearchScopeFor), and keeps
+                          whatever the user picked. Both folder-less scopes span
+                          the own AND the group/shared accounts' folders (#1082);
+                          "All folders" also searches Trash and Junk. The shared
+                          folders are listed under their owner, and subfolders
+                          are indented under their parent as in the sidebar
+                          (a native select has no tree, so the indent is
+                          non-breaking spaces, as in the filter rule modal).
+                          The unified views already search across every
+                          account's folders, so it is hidden there. */}
                       {!isUnifiedView && (
                         <div>
                           <label className="text-xs text-muted-foreground mb-1 block">{t("advanced_search.folder")}</label>
-                          <select
-                            value={searchMailboxId}
-                            onChange={(e) => {
-                              setSearchMailboxId(e.target.value);
-                              // Only re-query when a search is actually running;
-                              // otherwise just remember the scope for the next one.
-                              if (searchQuery.trim() || !isFilterEmpty(searchFilters)) handleAdvancedSearch();
-                            }}
-                            className="w-full h-8 text-sm rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-                          >
-                            <option value="">{t("advanced_search.all_folders")}</option>
-                            {searchScopeFolders.own.map((mb) => (
-                              <option key={mb.id} value={mb.id}>
-                                {mb.name}
-                              </option>
-                            ))}
-                            {searchScopeFolders.shared.map((group) => (
-                              <optgroup key={group.ownerId} label={group.label}>
-                                {group.mailboxes.map((mb) => (
-                                  <option key={mb.id} value={mb.id}>
-                                    {mb.name}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
+                          {renderSearchFolderSelect(
+                            "w-full h-8 text-sm rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                            true,
+                          )}
                         </div>
                       )}
 
@@ -4153,7 +4603,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       </div>
                     </div>
                   )}
-                </div>
+                  </>)}
+                </FilterPanelHost>
               )}
             </div>
             )}
@@ -4180,6 +4631,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
             <ErrorBoundary fallback={EmailListErrorFallback}>
               <EmailList
+                onFindFromSender={mvShell ? (sender) => void handleSelectContactSuggestion(sender, 'from') : undefined}
+                hideBatchToolbar={mvShell}
                 emails={activeEmails}
                 selectedEmailId={selectedEmail?.id}
                 isLoading={activeIsLoading}
@@ -4309,8 +4762,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             </ErrorBoundary>
             </div>
 
-            {/* Floating Compose Button */}
-            <Button
+            {/* Floating Compose Button - on desktop Mountain View puts Compose
+                at the top of the navigation rail instead. */}
+            {!mvShell && <Button
               onClick={() => {
                 startFreshComposerSession();
                 setComposerMode('compose');
@@ -4318,15 +4772,20 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 if (isMobile) setActiveView('viewer');
               }}
               className={cn(
-                "absolute z-40 rounded-full shadow-lg",
-                isMobile ? "bottom-4 end-4 h-14 w-14" : "bottom-4 end-4 h-12 w-12"
+                "absolute z-40 shadow-lg",
+                mvMobile
+                  ? "bottom-4 end-4 h-14 gap-3 rounded-2xl px-5"
+                  : isMobile
+                    ? "bottom-4 end-4 h-14 w-14 rounded-full"
+                    : "bottom-4 end-4 h-12 w-12 rounded-full"
               )}
               aria-label={t('sidebar.compose')}
               title={t('sidebar.compose_hint')}
               data-tour="compose-button"
             >
               <PenSquare className={isMobile ? "h-6 w-6" : "h-5 w-5"} />
-            </Button>
+              {mvMobile && <span className="text-sm font-medium">{t('sidebar.compose')}</span>}
+            </Button>}
           </div>
 
           {/* Email list resize handle (desktop only) */}
@@ -4370,82 +4829,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             {/* Inline Composer - shown in viewer pane.
                 In Pro/embedded mode the composer is hoisted into its own
                 Pro tab (see the effect below), so we never render it inline. */}
-            {(showComposer && !isEmbedded) ? (
-              <ErrorBoundary
-                fallback={ComposerErrorFallback}
-                onReset={() => {
-                  setShowComposer(false);
-                  setComposerMode('compose');
-                  setComposerQuoteHeader(null);
-                }}
-              >
-                <EmailComposer
-                  key={composerSessionId}
-                  mode={pendingDraft?.mode ?? composerMode}
-                  composeFromAccountEmail={resolveComposeAccountEmail(
-                    mailboxes,
-                    selectedMailbox,
-                    useAccountStore
-                      .getState()
-                      .getAccountById(viewingAccountId ?? activeAccountId ?? '')?.email,
-                  )}
-                  replyTo={pendingDraft !== null ? pendingDraft.replyTo : (selectedEmail ? {
-                    from: selectedEmail.from,
-                    replyToAddresses: selectedEmail.replyTo,
-                    to: selectedEmail.to,
-                    cc: selectedEmail.cc,
-                    bcc: selectedEmail.bcc,
-                    subject: selectedEmail.subject,
-                    ...getQuoteBodies(selectedEmail),
-                    receivedAt: selectedEmail.receivedAt,
-                    attachments: selectedEmail.attachments,
-                    messageId: selectedEmail.messageId,
-                    inReplyTo: selectedEmail.inReplyTo,
-                    references: selectedEmail.references,
-                    quoteHeaderHtml: composerQuoteHeader?.html,
-                    quoteHeaderText: composerQuoteHeader?.text,
-                    quoteWrapInBlockquote: composerQuoteHeader?.wrapInBlockquote,
-                  } : undefined)}
-                  initialDraftText={composerDraftText}
-                  initialData={pendingDraft}
-                  onSaveState={(data) => {
-                    if (suppressComposerStateSaveSessionRef.current === composerSessionId) {
-                      suppressComposerStateSaveSessionRef.current = null;
-                      return;
-                    }
-                    setPendingDraft(data);
-                  }}
-                  onSend={async (data) => {
-                    const outcome = await handleEmailSend(data);
-                    setPendingDraft(null);
-                    return outcome;
-                  }}
-                  onScheduledSendCreated={async () => {
-                    if (client) {
-                      await refreshScheduledMetadata(client);
-                      if (isScheduledView) await fetchScheduledEmails(client);
-                    }
-                    setShowComposer(false);
-                    setPendingDraft(null);
-                  }}
-                  onClose={() => {
-                    setShowComposer(false);
-                    setComposerMode('compose');
-                    setComposerDraftText("");
-                    setPendingDraft(null);
-                    setComposerQuoteHeader(null);
-                    if (isMobile) {
-                      setActiveView('list');
-                    }
-                  }}
-                  requestCloseRef={composerRequestCloseRef}
-                  onDiscardDraft={(draftId, draft) => {
-                    handleDiscardDraft(draftId, draft);
-                    setPendingDraft(null);
-                  }}
-                />
-              </ErrorBoundary>
-            ) : (
+            {(showComposer && !isEmbedded && !floatingComposer && !mvInlineReply) ? composerNode : (
             <>
             {/* Pending draft banner */}
             {pendingDraft && (
@@ -4506,6 +4890,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 <ErrorBoundary fallback={EmailViewerErrorFallback}>
                   <EmailViewer
                     email={selectedEmail}
+                    blobSource={resolveEmailBlobContext(selectedEmail, client)}
                     isLoading={isLoadingEmail}
                     onReply={handleReply}
                     onReplyAll={handleReplyAll}
@@ -4551,6 +4936,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onBack={handleMobileBack}
                     onNavigateNext={handleNavigateNext}
                     onNavigatePrev={handleNavigatePrev}
+                    mvPosition={mvShell && selectedEmailIndex >= 0 ? {
+                      index: selectedEmailIndex + 1,
+                      total: Math.max(activeEmails.length, mailboxes.find((mb) => mb.id === selectedMailbox)?.totalEmails ?? 0),
+                    } : undefined}
+                    mvFolderName={mvShell && !isScheduledView && !isUnifiedView ? currentMailboxName : undefined}
+                    mvConversation={mvShell ? mvConversation ?? undefined : undefined}
+                    onOpenConversationEmail={mvShell ? (e) => void handleEmailSelect(e) : undefined}
+                    mvInlineComposer={mvInlineReply ? <MvComposeInline onPopOut={handleMvPopOut}>{composerNode}</MvComposeInline> : undefined}
                     onToggleFullscreen={!isEmbedded && !isMobile ? () => setFullscreenReading((v) => !v) : undefined}
                     isFullscreen={fullscreenReading}
                     onShowShortcuts={() => setShowShortcutsModal(true)}
@@ -4609,6 +5002,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             />
           )}
         </div>
+        {/* Mountain View: Gmail's side panel - calendar, tasks and contacts
+            next to the mail, with their icons down the right edge. */}
+        {mvShell && !inlineApp && !fullscreenReading && <MvSidePanel />}
         </div>
 
         {/* Keyboard Shortcuts Modal */}
@@ -4662,6 +5058,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         <ShareNotificationToaster client={client} />
         <CalendarEventNotificationToaster client={client} />
         <TotpReauthDialog />
+        {floatingComposer && <MvComposeWindow>{composerNode}</MvComposeWindow>}
       </div>
     </DragDropProvider>
   );

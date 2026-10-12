@@ -55,10 +55,11 @@ function fakeServer(rows: Email[]) {
   return { client, setSeen };
 }
 
-/** The mail at the top of the list as the user sees it. */
+/** The first unread mail in the list as the user sees it. */
 function topMail(): Email {
-  const { emails, listOrder } = useEmailStore.getState();
-  return [...emails].sort(compareEmails(listOrder))[0];
+  const { emails, listOrder, listHold } = useEmailStore.getState();
+  const shown = [...emails].sort(compareEmails(listOrder, { held: listHold?.keywords }));
+  return shown.find(e => !e.keywords.$seen) ?? shown[0];
 }
 
 async function readTopMail(client: IJMAPClient): Promise<Email> {
@@ -96,13 +97,13 @@ describe('keyword-ordered folder list refill (#718)', () => {
     for (let i = 0; i < 5; i++) opened.push((await readTopMail(client)).id);
 
     expect(opened).toEqual(['u1', 'u2', 'u3', 'u4', 'u5']);
-    // All read now: the head of the server order is newest first, plus the
-    // open mail, which sorts further down.
-    expect(ids()).toEqual(['u1', 'r1', 'u2', 'u5']);
+    // All read now: the head of the server order is newest first, below the
+    // open mail, which stays where it was clicked.
+    expect(ids()).toEqual(['u5', 'u1', 'r1', 'u2']);
     expect(useEmailStore.getState().retainedInViewIds).toEqual(new Set(['u5']));
   });
 
-  it('keeps the open mail listed after it moved past the loaded rows, and drops it once another is opened', async () => {
+  it('keeps the open mail where it was clicked, and drops it once another is opened', async () => {
     const { client } = fakeServer([
       mail('r1', 22, true), mail('r2', 21, true),
       mail('u1', 20, false), mail('u2', 18, false), mail('u3', 17, false), mail('u4', 15, false),
@@ -110,10 +111,47 @@ describe('keyword-ordered folder list refill (#718)', () => {
     await useEmailStore.getState().fetchEmails(client);
 
     await readTopMail(client);
-    expect(ids()).toEqual(['u2', 'u3', 'u4', 'u1']);
+    expect(ids()).toEqual(['u1', 'u2', 'u3', 'u4']);
 
     await readTopMail(client);
-    expect(ids()).toEqual(['u3', 'u4', 'r1', 'u2']);
+    expect(ids()).toEqual(['u2', 'u3', 'u4', 'r1']);
+  });
+
+  it('keeps the read mail in place after it is closed, until another is opened', async () => {
+    const { client } = fakeServer([
+      mail('u1', 20, false), mail('u2', 18, false), mail('u3', 17, false), mail('u4', 15, false), mail('r1', 22, true),
+    ]);
+    await useEmailStore.getState().fetchEmails(client);
+    await readTopMail(client);
+    useEmailStore.getState().selectEmail(null);
+
+    await useEmailStore.getState().refreshCurrentMailbox(client);
+    expect(ids()).toEqual(['u1', 'u2', 'u3', 'u4']);
+
+    useEmailStore.getState().selectEmail(useEmailStore.getState().emails.find(e => e.id === 'u3')!);
+    await useEmailStore.getState().refreshCurrentMailbox(client);
+    expect(ids()).toEqual(['u2', 'u3', 'u4']);
+  });
+
+  it('holds a thread when it is expanded, before it is marked read', async () => {
+    const { client } = fakeServer([mail('u1', 20, false), mail('u2', 18, false), mail('u3', 17, false), mail('u4', 15, false)]);
+    await useEmailStore.getState().fetchEmails(client);
+
+    useEmailStore.getState().toggleThreadExpansion('t-u1');
+
+    expect(useEmailStore.getState().listHold?.keywords).toEqual(new Map([['u1', {}]]));
+  });
+
+  it('forgets the held mail when the folder is loaded again', async () => {
+    const { client } = fakeServer([mail('u1', 20, false), mail('u2', 18, false), mail('u3', 17, false), mail('u4', 15, false)]);
+    await useEmailStore.getState().fetchEmails(client);
+    await readTopMail(client);
+    expect(useEmailStore.getState().listHold?.rowKey).toBe('t-u1');
+
+    await useEmailStore.getState().fetchEmails(client);
+
+    expect(useEmailStore.getState().listHold).toBeNull();
+    expect(ids()).toEqual(['u2', 'u3', 'u4']);
   });
 
   it('does not skip a mail when loading more after the open mail moved', async () => {
@@ -123,13 +161,13 @@ describe('keyword-ordered folder list refill (#718)', () => {
     ]);
     await useEmailStore.getState().fetchEmails(client);
     await readTopMail(client);
-    expect(ids()).toEqual(['u2', 'u3', 'u4', 'u1']);
+    expect(ids()).toEqual(['u1', 'u2', 'u3', 'u4']);
 
     await useEmailStore.getState().loadMoreEmails(client);
 
     // Server order is now u2 u3 u4 u5 u1 r1 r2: the page starts at u5.
     expect(client.getEmails.mock.lastCall?.[3]).toBe(3);
-    expect(ids()).toEqual(['u2', 'u3', 'u4', 'u1', 'u5', 'r1']);
+    expect(ids()).toEqual(['u1', 'u2', 'u3', 'u4', 'u5', 'r1']);
     // u1 came back in order with that page.
     expect(useEmailStore.getState().retainedInViewIds.size).toBe(0);
   });

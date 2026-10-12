@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,36 +17,65 @@ import type {
 } from "@/lib/jmap/sieve-types";
 import type { Mailbox } from "@/lib/jmap/types";
 import { isValidSieveHeaderName } from "@/lib/sieve/generator";
-import { buildMailboxTree, flattenMailboxTree, type MailboxNode, generateUUID } from "@/lib/utils";
+import { buildMailboxTree, flattenMailboxTree, type MailboxNode, generateUUID, cn } from "@/lib/utils";
+import type { RuleSuggestion } from "@/lib/filters/quick-rules";
+import { retroactiveSupport } from "@/lib/filters/retroactive";
+import { ruleForwards, ruleStops } from "@/lib/filters/forward-limit";
+import { hasPeriod, isPeriodBoundary } from "@/lib/sieve/period";
+import { fromWallClock, getEffectiveTimeZone, getWallClock } from "@/lib/timezone";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
 
 interface FilterRuleModalProps {
   rule?: FilterRule;
+  /**
+   * Values a new rule starts from ("Create rule…" on a message). Unlike
+   * `rule`, saving creates a rule rather than editing one.
+   */
+  initialRule?: FilterRule;
+  /** Conditions offered as one-click chips above the conditions. */
+  suggestions?: RuleSuggestion[];
+  /** Offer "Also apply to existing messages in this folder". */
+  offerApplyToExisting?: boolean;
   mailboxes: Mailbox[];
   /** Server cap on redirects per message (Sieve `maxNumberRedirects`). */
   maxRedirects?: number | null;
-  /** Forward actions in the other enabled rules, which share that cap. */
-  otherForwards?: number;
-  onSave: (rule: FilterRule) => void;
+  /**
+   * Forwards a message can have collected when it reaches this rule, and
+   * the most it can still collect below it when the rule does not stop
+   * (see forwardsAround in lib/filters/forward-limit.ts).
+   */
+  forwardsBefore?: number;
+  forwardsAfter?: number;
+  /** The server can confine a rule to a period (Sieve "date" and "relational"). */
+  periodsSupported?: boolean;
+  onSave: (rule: FilterRule, options?: { applyToExisting: boolean }) => void;
   onClose: () => void;
 }
 
 const ALL_FIELDS: FilterConditionField[] = [
-  "from", "to", "cc", "subject", "header", "size", "body", "attachment",
+  "from", "to", "cc", "subject", "header", "size", "body", "attachment", "all",
 ];
 
 const TEXT_COMPARATORS: FilterComparator[] = [
   "contains", "not_contains", "is", "not_is", "starts_with", "ends_with", "matches",
 ];
 
+// Address headers can also be compared on the parsed address.
+const ADDRESS_COMPARATORS: FilterComparator[] = [...TEXT_COMPARATORS, "address_is", "domain_is"];
+
 const SIZE_COMPARATORS: FilterComparator[] = ["greater_than", "less_than"];
 
 const ATTACHMENT_COMPARATORS: FilterComparator[] = ["has_any", "has_type"];
 
+// "All messages" has nothing to choose: its one comparator is not shown.
+const ALL_MESSAGES_COMPARATORS: FilterComparator[] = ["any"];
+
 function comparatorsFor(field: FilterConditionField): FilterComparator[] {
   if (field === "size") return SIZE_COMPARATORS;
   if (field === "attachment") return ATTACHMENT_COMPARATORS;
+  if (field === "all") return ALL_MESSAGES_COMPARATORS;
+  if (field === "from" || field === "to" || field === "cc") return ADDRESS_COMPARATORS;
   return TEXT_COMPARATORS;
 }
 
@@ -82,15 +111,56 @@ function isConditionValueEmpty(v: string | string[]): boolean {
   return !v.trim();
 }
 
+// Conditions that test without a value: "has an attachment" and "all messages".
+function takesNoValue(c: Pick<FilterCondition, "field" | "comparator">): boolean {
+  return c.field === "all" || (c.field === "attachment" && c.comparator === "has_any");
+}
+
 function makeEmptyAction(): FilterAction {
   return { type: "move", value: "" };
 }
 
+// A period boundary as the "yyyy-mm-ddThh:mm" a datetime-local input shows,
+// read on the clock of the user's time zone - the one dates are shown in.
+function toPeriodInput(boundary: string | undefined): string {
+  if (!isPeriodBoundary(boundary)) return "";
+  const w = getWallClock(new Date(boundary), getEffectiveTimeZone());
+  const pad = (n: number, len = 2) => String(n).padStart(len, "0");
+  return `${pad(w.year, 4)}-${pad(w.month)}-${pad(w.day)}T${pad(w.hour)}:${pad(w.minute)}`;
+}
+
+// The latest moment the period fields offer: a later year has no room in
+// the four digits a stored boundary has.
+const PERIOD_INPUT_MAX = "9999-12-31T23:59";
+
+// The input's wall-clock time in the user's time zone, as the UTC moment the
+// rule stores: undefined for an empty field, null for one that holds no
+// usable moment (a five-digit year). A boundary left as the dialog showed it
+// is kept exactly: the input shows whole minutes, so reading it back would
+// drop a saved second, or pick the other one of the two moments in the hour
+// a DST switch repeats.
+function fromPeriodInput(value: string, saved: string | undefined): string | null | undefined {
+  if (!value) return undefined;
+  if (saved !== undefined && value === toPeriodInput(saved)) return saved;
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
+  if (!m) return null;
+  const [year, month, day, hour, minute, second] = m.slice(1).map((part) => Number(part ?? 0));
+  const moment = fromWallClock({ year, month, day, hour, minute, second }, getEffectiveTimeZone());
+  if (Number.isNaN(moment.getTime())) return null;
+  const boundary = moment.toISOString();
+  return isPeriodBoundary(boundary) ? boundary : null;
+}
+
 export function FilterRuleModal({
   rule,
+  initialRule,
+  suggestions = [],
+  offerApplyToExisting = false,
   mailboxes,
   maxRedirects,
-  otherForwards = 0,
+  forwardsBefore = 0,
+  forwardsAfter = 0,
+  periodsSupported = false,
   onSave,
   onClose,
 }: FilterRuleModalProps) {
@@ -99,16 +169,25 @@ export function FilterRuleModal({
   const emailKeywords = useSettingsStore((state) => state.emailKeywords);
   const { tagName } = useKeywordFormat();
 
-  const [name, setName] = useState(rule?.name || "");
-  const [matchType, setMatchType] = useState<"all" | "any">(rule?.matchType || "all");
+  const start = rule ?? initialRule;
+  const [name, setName] = useState(start?.name || "");
+  const [matchType, setMatchType] = useState<"all" | "any">(start?.matchType || "all");
   const [conditions, setConditions] = useState<FilterCondition[]>(
-    rule?.conditions.length ? [...rule.conditions] : [makeEmptyCondition()]
+    start?.conditions.length ? [...start.conditions] : [makeEmptyCondition()]
   );
   const [actions, setActions] = useState<FilterAction[]>(
-    rule?.actions.length ? [...rule.actions] : [makeEmptyAction()]
+    start?.actions.length ? [...start.actions] : [makeEmptyAction()]
   );
-  const [stopProcessing, setStopProcessing] = useState(rule?.stopProcessing ?? false);
-  const [includeSpam, setIncludeSpam] = useState(rule?.includeSpam ?? false);
+  const [stopProcessing, setStopProcessing] = useState(start?.stopProcessing ?? false);
+  const [includeSpam, setIncludeSpam] = useState(start?.includeSpam ?? false);
+  const [usedSuggestions, setUsedSuggestions] = useState<ReadonlySet<string>>(new Set());
+  const [applyToExisting, setApplyToExisting] = useState(false);
+  const hadPeriod = !!start && hasPeriod(start);
+  const [periodOn, setPeriodOn] = useState(hadPeriod);
+  const [periodStart, setPeriodStart] = useState(toPeriodInput(start?.activeFrom));
+  const [periodEnd, setPeriodEnd] = useState(toPeriodInput(start?.activeUntil));
+  const periodStartRef = useRef<HTMLInputElement>(null);
+  const periodEndRef = useRef<HTMLInputElement>(null);
 
   const modalRef = useFocusTrap({ isActive: true, onEscape: onClose });
 
@@ -139,9 +218,58 @@ export function FilterRuleModal({
     return "";
   }, [mailboxPathMap]);
 
-  const forwardCount = actions.filter((a) => a.type === "forward").length;
+  // What counts is the most forwards one message can collect: those of the
+  // rules above that let it go on, this rule's, and those below unless this
+  // rule stops.
+  const forwardCount = ruleForwards({ actions });
+  const otherForwards = forwardsBefore + (ruleStops({ actions, stopProcessing }) ? 0 : forwardsAfter);
   const forwardLimit = typeof maxRedirects === "number" && maxRedirects > 0 ? maxRedirects : null;
   const forwardOverLimit = forwardLimit !== null && forwardCount + otherForwards > forwardLimit;
+  // A limit of 0: the server runs no redirect at all, as the out of office
+  // card also takes it. A forward the rule already has stays, to be removed.
+  const forwardUnavailable = maxRedirects === 0;
+
+  // While editing, condition.value is always the raw string typed into the
+  // input (commas not yet split). Convert to array form here on save so a
+  // user typing "a, b, c" actually persists as ["a","b","c"]. This is the
+  // moment we know editing is finished - splitting earlier would eat any
+  // comma the user just typed mid-edit.
+  const validConditions = useMemo(() => conditions
+    .filter((c) => {
+      if (takesNoValue(c)) return true;
+      return !isConditionValueEmpty(c.value);
+    })
+    .map((c) => {
+      if (takesNoValue(c)) return c;
+      if (c.field === "size") return c; // numeric, single-value only
+      if (typeof c.value !== "string") return c; // already structured
+      const parsed = inputStringToValue(c.value);
+      return { ...c, value: parsed };
+    })
+    .map((c) => (c.field === "header" ? { ...c, headerName: (c.headerName ?? "").trim() } : c)), [conditions]);
+
+  const validActions = useMemo(() => actions
+    .map((a) => {
+      if (!ACTIONS_WITH_MAILBOX.has(a.type)) return a;
+      // Store the folder id next to the path and refresh the path from it,
+      // so a renamed folder keeps receiving the rule's mail.
+      const mailboxId = mailboxIdFor(a);
+      const path = mailboxId ? mailboxPathMap.get(mailboxId) : undefined;
+      return mailboxId ? { ...a, mailboxId, value: path ?? a.value } : a;
+    })
+    .filter((a) => !ACTIONS_WITH_VALUE.has(a.type) || a.value?.trim()), [actions, mailboxIdFor, mailboxPathMap]);
+
+  // Old mail can only be sorted by what the client can check the way Sieve
+  // does. Until an action is complete (a Move still without its folder), only
+  // the conditions decide.
+  const canApplyToExisting = useMemo(() => {
+    if (!offerApplyToExisting) return false;
+    // A rule with a period acts on mail as it arrives within it, which says
+    // nothing about the mail already there.
+    if (periodOn) return false;
+    const checkActions: FilterAction[] = validActions.length > 0 ? validActions : [{ type: "mark_read" }];
+    return retroactiveSupport({ conditions: validConditions, actions: checkActions }).ok;
+  }, [offerApplyToExisting, validConditions, validActions, periodOn]);
 
   const handleSave = useCallback(() => {
     const trimmedName = name.trim();
@@ -150,24 +278,6 @@ export function FilterRuleModal({
       return;
     }
 
-    // While editing, condition.value is always the raw string typed into the
-    // input (commas not yet split). Convert to array form here on save so a
-    // user typing "a, b, c" actually persists as ["a","b","c"]. This is the
-    // moment we know editing is finished - splitting earlier would eat any
-    // comma the user just typed mid-edit.
-    const validConditions = conditions
-      .filter((c) => {
-        if (c.field === "attachment" && c.comparator === "has_any") return true;
-        return !isConditionValueEmpty(c.value);
-      })
-      .map((c) => {
-        if (c.field === "attachment" && c.comparator === "has_any") return c;
-        if (c.field === "size") return c; // numeric, single-value only
-        if (typeof c.value !== "string") return c; // already structured
-        const parsed = inputStringToValue(c.value);
-        return { ...c, value: parsed };
-      })
-      .map((c) => (c.field === "header" ? { ...c, headerName: (c.headerName ?? "").trim() } : c));
     if (validConditions.length === 0) {
       toast.error(t("validation_empty_conditions"));
       return;
@@ -179,32 +289,58 @@ export function FilterRuleModal({
       return;
     }
 
-    const validActions = actions
-      .map((a) => {
-        if (!ACTIONS_WITH_MAILBOX.has(a.type)) return a;
-        // Store the folder id next to the path and refresh the path from it,
-        // so a renamed folder keeps receiving the rule's mail.
-        const mailboxId = mailboxIdFor(a);
-        const path = mailboxId ? mailboxPathMap.get(mailboxId) : undefined;
-        return mailboxId ? { ...a, mailboxId, value: path ?? a.value } : a;
-      })
-      .filter((a) => !ACTIONS_WITH_VALUE.has(a.type) || a.value?.trim());
     if (validActions.length === 0) {
       toast.error(t("validation_empty_actions"));
       return;
     }
 
+    const activeFrom = periodOn ? fromPeriodInput(periodStart, start?.activeFrom) : undefined;
+    const activeUntil = periodOn ? fromPeriodInput(periodEnd, start?.activeUntil) : undefined;
+    // A field the browser holds half filled in (a date without its time)
+    // reads as empty, and must not pass for an open end of the period.
+    const halfFilled = !!periodStartRef.current?.validity.badInput || !!periodEndRef.current?.validity.badInput;
+    if (activeFrom === null || activeUntil === null || (periodOn && halfFilled)) {
+      toast.error(t("validation_period_invalid"));
+      return;
+    }
+    if (periodOn && !activeFrom && !activeUntil) {
+      toast.error(t("validation_period_empty"));
+      return;
+    }
+    if (activeFrom && activeUntil && Date.parse(activeUntil) <= Date.parse(activeFrom)) {
+      toast.error(t("validation_period_order"));
+      return;
+    }
+
     onSave({
-      id: rule?.id || generateUUID(),
+      id: start?.id || generateUUID(),
       name: trimmedName,
-      enabled: rule?.enabled ?? true,
+      enabled: start?.enabled ?? true,
       matchType,
       conditions: validConditions,
       actions: validActions,
       stopProcessing,
-      ...(includeSpam && validActions.some((a) => ACTIONS_WITH_MAILBOX.has(a.type)) ? { includeSpam: true } : {}),
+      // Each optional field this dialog controls is set, to undefined when it
+      // is off: the settings page merges the result into the stored rule, and
+      // a field left out would keep its old value there.
+      includeSpam: includeSpam && validActions.some((a) => ACTIONS_WITH_MAILBOX.has(a.type)) ? true : undefined,
+      activeFrom,
+      activeUntil,
+    }, { applyToExisting: applyToExisting && canApplyToExisting });
+  }, [name, matchType, validConditions, validActions, stopProcessing, includeSpam, periodOn, periodStart, periodEnd, start, onSave, t, applyToExisting, canApplyToExisting]);
+
+  const visibleSuggestions = suggestions.filter((s) => !usedSuggestions.has(s.id));
+
+  const applySuggestion = (suggestion: RuleSuggestion) => {
+    setConditions((prev) => {
+      // The blank row a rule starts with makes way for the suggestion.
+      const kept = prev.filter((c) => !(c.field !== "attachment" && c.field !== "all" && isConditionValueEmpty(c.value)));
+      const replaceAt = suggestion.replaces ? kept.findIndex(suggestion.replaces) : -1;
+      if (replaceAt === -1) return [...kept, suggestion.condition];
+      return kept.map((c, i) => (i === replaceAt ? suggestion.condition : c));
     });
-  }, [name, matchType, conditions, actions, stopProcessing, includeSpam, rule, onSave, t, mailboxIdFor, mailboxPathMap]);
+    setUsedSuggestions((prev) => new Set(prev).add(suggestion.id));
+  };
 
   const updateCondition = (index: number, updates: Partial<FilterCondition>) => {
     setConditions((prev) =>
@@ -223,9 +359,9 @@ export function FilterRuleModal({
         if (updates.field && updates.field !== "header") {
           delete updated.headerName;
         }
-        // has_any takes no value; clear it so we don't leak old text into
-        // the generated Sieve.
-        if (updated.field === "attachment" && updated.comparator === "has_any") {
+        // has_any and "all messages" take no value; clear it so we don't
+        // leak old text into the generated Sieve.
+        if (takesNoValue(updated)) {
           updated.value = "";
         }
         // Size is numeric, single value only - collapse any list to scalar.
@@ -345,6 +481,21 @@ export function FilterRuleModal({
             <label className="text-sm font-medium mb-2 block text-foreground">
               {t("conditions")}
             </label>
+            {visibleSuggestions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2" role="group" aria-label={t("suggestions")}>
+                {visibleSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.id}
+                    type="button"
+                    onClick={() => applySuggestion(suggestion)}
+                    className="inline-flex items-center gap-1 max-w-full px-2 py-1 text-xs rounded-full border border-border bg-muted hover:bg-accent text-foreground transition-colors duration-150"
+                  >
+                    <Plus className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{suggestion.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="space-y-2">
               {conditions.map((condition, index) => (
                 <div key={index} className="flex items-center gap-2 flex-wrap">
@@ -374,24 +525,27 @@ export function FilterRuleModal({
                     />
                   )}
 
-                  <select
-                    value={condition.comparator}
-                    onChange={(e) =>
-                      updateCondition(index, { comparator: e.target.value as FilterComparator })
-                    }
-                    className={selectClass}
-                    aria-label={t("comparators.contains")}
-                  >
-                    {comparatorsFor(condition.field).map((c) => (
-                      <option key={c} value={c}>
-                        {t(`comparators.${c}`)}
-                      </option>
-                    ))}
-                  </select>
+                  {condition.field !== "all" && (
+                    <select
+                      value={condition.comparator}
+                      onChange={(e) =>
+                        updateCondition(index, { comparator: e.target.value as FilterComparator })
+                      }
+                      className={selectClass}
+                      aria-label={t("comparators.contains")}
+                    >
+                      {comparatorsFor(condition.field).map((c) => (
+                        <option key={c} value={c}>
+                          {t(`comparators.${c}`)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
 
-                  {/* has_any takes no value; render a stub so the row layout
-                      stays consistent but no input is editable. */}
-                  {condition.field === "attachment" && condition.comparator === "has_any" ? (
+                  {/* has_any and "all messages" take no value; render a stub
+                      so the row layout stays consistent but no input is
+                      editable. */}
+                  {takesNoValue(condition) ? (
                     <div className="flex-1 min-w-[120px]" />
                   ) : (
                     <Input
@@ -472,7 +626,7 @@ export function FilterRuleModal({
                     className={selectClass}
                     aria-label={t("actions")}
                   >
-                    {ALL_ACTION_TYPES.map((a) => (
+                    {ALL_ACTION_TYPES.filter((a) => !(forwardUnavailable && a === "forward" && action.type !== "forward")).map((a) => (
                       <option
                         key={a}
                         value={a}
@@ -522,7 +676,7 @@ export function FilterRuleModal({
                         type="email"
                         className="flex-1 min-w-[180px]"
                       />
-                      <label className="flex items-center gap-1.5 text-sm text-foreground">
+                      <label className="flex items-center gap-1.5 text-sm text-foreground cursor-pointer">
                         <input
                           type="checkbox"
                           checked={!!action.keepCopy}
@@ -569,6 +723,11 @@ export function FilterRuleModal({
                 </div>
               ))}
             </div>
+            {forwardUnavailable && forwardCount > 0 && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                {t("forward_unavailable")}
+              </p>
+            )}
             {forwardOverLimit && (
               <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
                 {t("forward_limit", { count: forwardLimit })}
@@ -609,6 +768,81 @@ export function FilterRuleModal({
               <label htmlFor="includeSpam" className="text-sm text-foreground">
                 {t("include_spam")}
               </label>
+            </div>
+          )}
+
+          {/* Offered where the server supports it; a rule that already has a
+              period always shows it, so it can be removed. */}
+          {(periodsSupported || hadPeriod) && (
+            <div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="limitToPeriod"
+                  checked={periodOn}
+                  onChange={(e) => setPeriodOn(e.target.checked)}
+                  className="rounded border-input"
+                />
+                <label htmlFor="limitToPeriod" className="text-sm text-foreground">
+                  {t("period_toggle")}
+                </label>
+              </div>
+              {periodOn && (
+                <div className="mt-2 ms-6 space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {t("period_start")}
+                      <input
+                        ref={periodStartRef}
+                        type="datetime-local"
+                        max={PERIOD_INPUT_MAX}
+                        value={periodStart}
+                        onChange={(e) => setPeriodStart(e.target.value)}
+                        className="px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground"
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {t("period_end")}
+                      <input
+                        ref={periodEndRef}
+                        type="datetime-local"
+                        max={PERIOD_INPUT_MAX}
+                        value={periodEnd}
+                        onChange={(e) => setPeriodEnd(e.target.value)}
+                        className="px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors duration-150 hover:border-muted-foreground"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t("period_hint")}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {offerApplyToExisting && (
+            <div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="applyToExisting"
+                  checked={applyToExisting && canApplyToExisting}
+                  disabled={!canApplyToExisting}
+                  onChange={(e) => setApplyToExisting(e.target.checked)}
+                  className="rounded border-input disabled:opacity-50"
+                  aria-describedby={canApplyToExisting ? undefined : "applyToExistingHint"}
+                />
+                <label
+                  htmlFor="applyToExisting"
+                  className={cn("text-sm", canApplyToExisting ? "text-foreground" : "text-muted-foreground")}
+                >
+                  {t("apply_existing")}
+                </label>
+              </div>
+              {!canApplyToExisting && (
+                <p id="applyToExistingHint" className="mt-1 ms-6 text-xs text-muted-foreground">
+                  {periodOn ? t("apply_existing_period") : t("apply_existing_unsupported")}
+                </p>
+              )}
             </div>
           )}
         </div>

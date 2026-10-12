@@ -220,6 +220,8 @@ export interface LiteOAuthFlow {
   redirectUri: string;
   /** "Remember me" was ticked: keep the refresh token across browser restarts. */
   persistent: boolean;
+  /** Where sign-out revokes the refresh token, when discovery named it. */
+  revocationEndpoint?: string;
 }
 
 export function saveLiteOAuthFlow(flow: LiteOAuthFlow): void {
@@ -236,7 +238,15 @@ export function readLiteOAuthFlow(): LiteOAuthFlow | null {
     const flow = raw ? (JSON.parse(raw) as Partial<LiteOAuthFlow>) : null;
     if (!flow || typeof flow.tokenEndpoint !== 'string' || typeof flow.clientId !== 'string' || typeof flow.redirectUri !== 'string') return null;
     if (!flow.tokenEndpoint || !flow.clientId || !flow.redirectUri) return null;
-    return { tokenEndpoint: flow.tokenEndpoint, clientId: flow.clientId, redirectUri: flow.redirectUri, persistent: flow.persistent === true };
+    return {
+      tokenEndpoint: flow.tokenEndpoint,
+      clientId: flow.clientId,
+      redirectUri: flow.redirectUri,
+      persistent: flow.persistent === true,
+      ...(typeof flow.revocationEndpoint === 'string' && flow.revocationEndpoint
+        ? { revocationEndpoint: flow.revocationEndpoint }
+        : {}),
+    };
   } catch {
     return null;
   }

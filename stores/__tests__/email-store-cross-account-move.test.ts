@@ -129,7 +129,7 @@ describe('email-store crossAccountMoveEmails between two servers', () => {
 
     await useEmailStore.getState().crossAccountMoveEmails(new Map([['login-A', ['e1']]]), 'login-B', 'inbox-B');
 
-    expect(dest.importRawEmail).toHaveBeenCalledWith(blob, { 'inbox-B': true }, keywords, undefined);
+    expect(dest.importRawEmail).toHaveBeenCalledWith(blob, { 'inbox-B': true }, keywords, undefined, undefined);
     expect(source.deleteEmail).toHaveBeenCalledWith('e1', undefined);
   });
 });

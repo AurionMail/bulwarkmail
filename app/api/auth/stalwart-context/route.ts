@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { JmapAuthVerificationError, verifyJmapIdentity } from '@/lib/auth/verify-jmap-auth';
+import { JmapAuthVerificationError, resolveJmapIdentity } from '@/lib/auth/verify-jmap-auth';
 import { setStalwartAuthContext } from '@/lib/stalwart/auth-context';
 import { configManager } from '@/lib/admin/config-manager';
 import { isPublicHttpUrl } from '@/lib/security/url-guard';
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     // any user's synced settings. Admin-configured servers are `trusted`,
     // which only relaxes the public-address requirement (they may live on a
     // private network) - never the credential check.
-    const normalizedServerUrl = await verifyJmapIdentity(upstreamUrl, authHeader, username, {
+    const { serverUrl: normalizedServerUrl, accountName } = await resolveJmapIdentity(upstreamUrl, authHeader, username, {
       trusted: upstreamTrusted,
     });
 
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       serverUrl: normalizedServerUrl,
       username,
       authHeader,
+      ...(accountName !== username ? { accountName } : {}),
     });
 
     void recordLogin(username, normalizedServerUrl);

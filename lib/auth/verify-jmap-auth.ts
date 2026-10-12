@@ -220,6 +220,29 @@ export async function verifyJmapIdentity(
   claimedUsername: string,
   options: VerifyJmapAuthOptions = {},
 ): Promise<string> {
+  return (await resolveJmapIdentity(serverUrl, authHeader, claimedUsername, options)).serverUrl;
+}
+
+export interface ResolvedJmapIdentity {
+  /** Normalized server URL. */
+  serverUrl: string;
+  /**
+   * The account the credential belongs to. Equal to the claim, except for a
+   * Bearer credential claimed with a bare local part: that claim names no
+   * domain, so two users (`john@a.example`, `john@b.example`) would share it,
+   * and the server's canonical `Session.username` is used instead. Anything
+   * keyed per user (synced settings) must key on this, not on the claim.
+   */
+  accountName: string;
+}
+
+/** {@link verifyJmapIdentity}, also returning the account name to key per-user data on. */
+export async function resolveJmapIdentity(
+  serverUrl: string,
+  authHeader: string,
+  claimedUsername: string,
+  options: VerifyJmapAuthOptions = {},
+): Promise<ResolvedJmapIdentity> {
   if (!claimedUsername) {
     throw new JmapAuthVerificationError('Missing username', 400);
   }
@@ -231,16 +254,19 @@ export async function verifyJmapIdentity(
 
   const { serverUrl: normalizedServerUrl, session } = await fetchVerifiedSession(serverUrl, authHeader, options);
   if (isBasic) {
-    return normalizedServerUrl;
+    // The server just accepted exactly this user:password, and a bare name
+    // resolves to one account on it.
+    return { serverUrl: normalizedServerUrl, accountName: claimedUsername };
   }
 
   if (usernameMatchesSession(claimedUsername, session.username)) {
-    return normalizedServerUrl;
+    const bareClaim = !claimedUsername.includes('@') && session.username!.includes('@');
+    return { serverUrl: normalizedServerUrl, accountName: bareClaim ? session.username! : claimedUsername };
   }
 
   const identityEmails = await fetchIdentityEmails(normalizedServerUrl, authHeader, session, options);
   if (identityEmails.some((email) => usernamesEqual(email, claimedUsername))) {
-    return normalizedServerUrl;
+    return { serverUrl: normalizedServerUrl, accountName: claimedUsername };
   }
 
   throw new JmapAuthVerificationError('Username does not match credentials', 403);

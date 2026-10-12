@@ -1,397 +1,157 @@
 import { type SVGProps, type ReactElement } from "react";
 
+// Flag artwork from Twemoji (https://github.com/jdecked/twemoji),
+// (c) Twitter, Inc and other contributors, CC-BY 4.0.
+// https://creativecommons.org/licenses/by/4.0/
+// The Catalan flag is not in Twemoji and is drawn here in the same style.
+
 type FlagProps = SVGProps<SVGSVGElement>;
 
-const flagClass = "inline-block rounded-[2px] shrink-0";
-const W = 20;
-const H = 15;
+const flagClass = "inline-block shrink-0";
 
-/** Great Britain – Union Jack (simplified) */
-export function FlagGB(props: FlagProps) {
+// Twemoji flags fill y 5..31 of a 36x36 box; crop to the flag itself.
+function Flag({ children, ...props }: FlagProps) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30" width={W} height={H} className={flagClass} {...props}>
-      <rect width="60" height="30" fill="#012169" />
-      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
-      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" strokeWidth="2" />
-      <path d="M30,0 V30 M0,15 H60" stroke="#fff" strokeWidth="10" />
-      <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" strokeWidth="6" />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 5 36 26" width={20} height={14} className={flagClass} aria-hidden="true" {...props}>
+      {children}
     </svg>
   );
 }
 
-/** France – Blue, White, Red vertical */
-export function FlagFR(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width={W} height={H} className={flagClass} {...props}>
-      <rect width="1" height="2" fill="#002395" />
-      <rect x="1" width="1" height="2" fill="#fff" />
-      <rect x="2" width="1" height="2" fill="#ED2939" />
-    </svg>
-  );
+function FlagAE(props: FlagProps) {
+  return <Flag {...props}><path fill="#068241" d="M32 5H9v9h27V9c0-2.209-1.791-4-4-4z" /><path fill="#EEE" d="M9 14h27v8H9z" /><path fill="#141414" d="M9 31h23c2.209 0 4-1.791 4-4v-5H9v9z" /><path fill="#EC2028" d="M4 5C1.791 5 0 6.791 0 9v18c0 2.209 1.791 4 4 4h5V5H4z" /></Flag>;
 }
 
-/** Japan – White with red circle */
-export function FlagJP(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width={W} height={H} className={flagClass} {...props}>
-      <rect width="3" height="2" fill="#fff" />
-      <circle cx="1.5" cy="1" r="0.6" fill="#BC002D" />
-    </svg>
-  );
+function FlagCAT(props: FlagProps) {
+  return <Flag {...props}><path fill="#FCDD09" d="M32 5H4C1.791 5 0 6.791 0 9v18c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4V9c0-2.209-1.791-4-4-4z" /><path fill="#DA121A" d="M0 7.889h36v2.889H0z" /><path fill="#DA121A" d="M0 13.667h36v2.889H0z" /><path fill="#DA121A" d="M0 19.444h36v2.889H0z" /><path fill="#DA121A" d="M0 25.222h36v2.889H0z" /></Flag>;
 }
 
-/** South Korea – Simplified */
-export function FlagKR(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width={W} height={H} className={flagClass} {...props}>
-      <rect width="3" height="2" fill="#fff" />
-      <path d="M1.5 0.5 a0.45 0.45 0 1 1 0 0.9 a0.45 0.45 0 1 0 0 -0.9" fill="#CD2E3A" />
-      <path d="M1.5 1.5 a0.45 0.45 0 1 1 0 -0.9 a0.45 0.45 0 1 0 0 0.9" fill="#0047A0" />
-      <circle cx="1.5" cy="0.8" r="0.225" fill="#0047A0" />
-      <circle cx="1.5" cy="1.2" r="0.225" fill="#CD2E3A" />
-      <g stroke="#000" strokeWidth="0.06" strokeLinecap="round">
-        <line x1="0.42" y1="0.35" x2="0.78" y2="0.35" />
-        <line x1="0.42" y1="0.46" x2="0.78" y2="0.46" />
-        <line x1="0.42" y1="0.57" x2="0.78" y2="0.57" />
-        <line x1="2.22" y1="0.35" x2="2.58" y2="0.35" />
-        <line x1="2.22" y1="0.57" x2="2.58" y2="0.57" />
-        <line x1="0.42" y1="1.43" x2="0.78" y2="1.43" />
-        <line x1="0.42" y1="1.65" x2="0.78" y2="1.65" />
-        <line x1="2.22" y1="1.43" x2="2.58" y2="1.43" />
-        <line x1="2.22" y1="1.54" x2="2.58" y2="1.54" />
-        <line x1="2.22" y1="1.65" x2="2.58" y2="1.65" />
-      </g>
-    </svg>
-  );
+function FlagCZ(props: FlagProps) {
+  return <Flag {...props}><path fill="#D7141A" d="M1.383 29.973C2.084 30.628 2.998 31 4 31h28c2.209 0 4-1.791 4-4.5V18H17.5L1.383 29.973z" /><path fill="#EEE" d="M32 5H4c-1.016 0-1.94.382-2.646 1.006L17.5 18H36V9c0-2.209-1.791-4-4-4z" /><path fill="#11457E" d="M1.383 29.973L17.5 18 1.354 6.006C.525 6.739 0 7.807 0 9v17.5c0 1.48.537 2.683 1.383 3.473z" /></Flag>;
 }
 
-/** Spain – Red, Yellow, Red horizontal */
-export function FlagES(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width={W} height={H} className={flagClass} {...props}>
-      <rect width="3" height="0.5" fill="#AA151B" />
-      <rect y="0.5" width="3" height="1" fill="#F1BF00" />
-      <rect y="1.5" width="3" height="0.5" fill="#AA151B" />
-    </svg>
-  );
+function FlagSK(props: FlagProps) {
+  return <Flag {...props}><path fill="#EE2024" d="M36 27v-4H0v4c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4z" /><path fill="#EEE" d="M36 23H0V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v14z" /><path fill="#0A4EA2" d="M0 13h36v10H0z" /><path fill="#FFF" d="M11.837 25.09c-1.129-.646-3.638-2.278-4.555-4.488-.925-2.227-.719-5.423-.481-9.124l.06-.936h11.963l.061.936c.238 3.7.444 6.895-.481 9.123-.918 2.211-3.426 3.844-4.556 4.489l-1.004.572-1.007-.572z" /><path fill="#EE2024" d="M17.886 11.542H7.798c-.238 3.707-.422 6.68.407 8.676 1.021 2.46 4.516 4.22 4.631 4.276v.006l.005-.003.005.003v-.006c.115-.057 3.61-1.816 4.632-4.276.83-1.996.647-4.97.408-8.676z" /><path fill="#FFF" d="M15.865 16.109s-1.401.133-2.632.165c-.009-.269-.014-.506-.014-.681 0-.188.007-.394.017-.605.973.06 1.645.246 1.645.246.247 0 .447-.2.447-.447v-.606c0-.247-.2-.447-.447-.447 0 0-.739.126-1.568.179.071-.782.156-1.435.156-1.435 0-.247-.2-.447-.447-.447h-.605c-.247 0-.447.2-.447.447 0 0 .092.666.17 1.443-.852-.047-1.583-.187-1.583-.187-.247 0-.447.2-.447.447v.606c0 .247.2.447.447.447 0 0 .639-.206 1.67-.255.014.23.024.453.024.646 0 .161-.006.388-.016.649-1.242-.033-2.693-.164-2.693-.164-.247 0-.447.2-.447.447v.606c0 .247.2.447.447.447 0 0 1.319-.108 2.635-.128-.083 1.531-.207 3.322-.207 3.322 0 .247.2.447.447.447h.605c.247 0 .447-.2.447-.447 0 0-.111-1.773-.185-3.317 1.272.03 2.581.123 2.581.123.247 0 .447-.2.447-.447v-.606c0-.247-.2-.448-.447-.448z" /><path fill="#0A4EA2" d="M17.079 20.965c-.508-1.086-1.905-1.393-2.568-.066-.438-1.594-1.681-1.594-1.681-1.594s-1.244 0-1.681 1.594c-.658-1.316-2.04-1.024-2.558.041 1.314 2.074 4.143 3.504 4.247 3.555v.005l.005-.003.005.003v-.006c.103-.051 2.91-1.469 4.231-3.529z" /></Flag>;
 }
 
-/** Catalonia – Senyera: four red horizontal bars on a yellow field */
-export function FlagCAT(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27 18" width={W} height={H} className={flagClass} {...props}>
-      <rect width="27" height="18" fill="#FCDD09" />
-      <rect y="2" width="27" height="2" fill="#DA121A" />
-      <rect y="6" width="27" height="2" fill="#DA121A" />
-      <rect y="10" width="27" height="2" fill="#DA121A" />
-      <rect y="14" width="27" height="2" fill="#DA121A" />
-    </svg>
-  );
+function FlagDK(props: FlagProps) {
+  return <Flag {...props}><path fill="#C60C30" d="M32 5H15v11h21V9c0-2.209-1.791-4-4-4zM15 31h17c2.209 0 4-1.791 4-4.5V20H15v11zM0 20v6.5C0 29.209 1.791 31 4 31h7V20H0zM11 5H4C1.791 5 0 6.791 0 9v7h11V5z" /><path fill="#EEE" d="M15 5h-4v11H0v4h11v11h4V20h21v-4H15z" /></Flag>;
 }
 
-/** Italy – Green, White, Red vertical */
-export function FlagIT(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width={W} height={H} className={flagClass} {...props}>
-      <rect width="1" height="2" fill="#009246" />
-      <rect x="1" width="1" height="2" fill="#fff" />
-      <rect x="2" width="1" height="2" fill="#CE2B37" />
-    </svg>
-  );
+function FlagDE(props: FlagProps) {
+  return <Flag {...props}><path fill="#FFCD05" d="M0 27c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4v-4H0v4z" /><path fill="#ED1F24" d="M0 14h36v9H0z" /><path fill="#141414" d="M32 5H4C1.791 5 0 6.791 0 9v5h36V9c0-2.209-1.791-4-4-4z" /></Flag>;
 }
 
-/** Germany – Black, Red, Gold horizontal */
-export function FlagDE(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 3" width={W} height={H} className={flagClass} {...props}>
-      <rect width="5" height="1" fill="#000" />
-      <rect y="1" width="5" height="1" fill="#DD0000" />
-      <rect y="2" width="5" height="1" fill="#FFCC00" />
-    </svg>
-  );
+function FlagGB(props: FlagProps) {
+  return <Flag {...props}><path fill="#00247D" d="M0 9.059V13h5.628zM4.664 31H13v-5.837zM23 25.164V31h8.335zM0 23v3.941L5.63 23zM31.337 5H23v5.837zM36 26.942V23h-5.631zM36 13V9.059L30.371 13zM13 5H4.664L13 10.837z" /><path fill="#CF1B2B" d="M25.14 23l9.712 6.801c.471-.479.808-1.082.99-1.749L28.627 23H25.14zM13 23h-2.141l-9.711 6.8c.521.53 1.189.909 1.938 1.085L13 23.943V23zm10-10h2.141l9.711-6.8c-.521-.53-1.188-.909-1.937-1.085L23 12.057V13zm-12.141 0L1.148 6.2C.677 6.68.34 7.282.157 7.949L7.372 13h3.487z" /><path fill="#EEE" d="M36 21H21v10h2v-5.836L31.335 31H32c1.117 0 2.126-.461 2.852-1.199L25.14 23h3.487l7.215 5.052c.093-.337.158-.686.158-1.052v-.058L30.369 23H36v-2zM0 21v2h5.63L0 26.941V27c0 1.091.439 2.078 1.148 2.8l9.711-6.8H13v.943l-9.914 6.941c.294.07.598.116.914.116h.664L13 25.163V31h2V21H0zM36 9c0-1.091-.439-2.078-1.148-2.8L25.141 13H23v-.943l9.915-6.942C32.62 5.046 32.316 5 32 5h-.663L23 10.837V5h-2v10h15v-2h-5.629L36 9.059V9zM13 5v5.837L4.664 5H4c-1.118 0-2.126.461-2.852 1.2l9.711 6.8H7.372L.157 7.949C.065 8.286 0 8.634 0 9v.059L5.628 13H0v2h15V5h-2z" /><path fill="#CF1B2B" d="M21 15V5h-6v10H0v6h15v10h6V21h15v-6z" /></Flag>;
 }
 
-/** Hungary – Red, White, Green horizontal */
-export function FlagHU(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 3" width={W} height={H} className={flagClass} {...props}>
-      <rect width="6" height="1" fill="#CD2A3E" />
-      <rect y="1" width="6" height="1" fill="#fff" />
-      <rect y="2" width="6" height="1" fill="#436F4D" />
-    </svg>
-  );
+function FlagIR(props: FlagProps) {
+  return <Flag {...props}><path fill="#DA0001" d="M0 27c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4v-4H0v4z" /><path fill="#EEE" d="M0 13h36v10H0z" /><path fill="#239F40" d="M36 13V9c0-2.209-1.791-4-4-4H4C1.791 5 0 6.791 0 9v4h36z" /><path fill="#E96667" d="M0 23h36v1H0z" /><g fill="#BE1931"><path d="M19.465 14.969c.957.49 3.038 2.953.798 5.731 1.391-.308 3.162-4.408-.798-5.731zm-2.937 0c-3.959 1.323-2.189 5.423-.798 5.731-2.24-2.778-.159-5.241.798-5.731zm1.453-.143c.04.197 1.101.436.974-.573-.168.408-.654.396-.968.207-.432.241-.835.182-.988-.227-.148.754.587.975.982.593z" /><path d="M20.538 17.904c-.015-1.248-.677-2.352-1.329-2.799.43.527 1.752 3.436-.785 5.351l.047-5.097-.475-.418-.475.398.08 5.146-.018-.015c-2.563-1.914-1.233-4.837-.802-5.365-.652.447-1.315 1.551-1.329 2.799-.013 1.071.477 2.243 1.834 3.205-.558.149-1.162.208-1.678.201.464.253 1.34.192 2.007.131l.001.068.398.437.4-.455v-.052c.672.062 1.567.129 2.039-.128-.532.008-1.159-.053-1.732-.213 1.344-.961 1.83-2.127 1.817-3.194z" /></g><path fill="#7BC58C" d="M0 12h36v1H0z" /></Flag>;
 }
 
-/** Latvia – Maroon, White, Maroon horizontal */
-export function FlagLV(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10" width={W} height={H} className={flagClass} {...props}>
-      <rect width="20" height="4" fill="#9E3039" />
-      <rect y="4" width="20" height="2" fill="#fff" />
-      <rect y="6" width="20" height="4" fill="#9E3039" />
-    </svg>
-  );
+function FlagES(props: FlagProps) {
+  return <Flag {...props}><path fill="#C60A1D" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v18z" /><path fill="#FFC400" d="M0 12h36v12H0z" /><path fill="#EA596E" d="M9 17v3c0 1.657 1.343 3 3 3s3-1.343 3-3v-3H9z" /><path fill="#F4A2B2" d="M12 16h3v3h-3z" /><path fill="#DD2E44" d="M9 16h3v3H9z" /><ellipse fill="#EA596E" cx="12" cy="14.5" rx="3" ry="1.5" /><ellipse fill="#FFAC33" cx="12" cy="13.75" rx="3" ry=".75" /><path fill="#99AAB5" d="M7 16h1v7H7zm9 0h1v7h-1z" /><path fill="#66757F" d="M6 22h3v1H6zm9 0h3v1h-3zm-8-7h1v1H7zm9 0h1v1h-1z" /></Flag>;
 }
 
-/** Netherlands – Red, White, Blue horizontal */
-export function FlagNL(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 6" width={W} height={H} className={flagClass} {...props}>
-      <rect width="9" height="2" fill="#AE1C28" />
-      <rect y="2" width="9" height="2" fill="#fff" />
-      <rect y="4" width="9" height="2" fill="#21468B" />
-    </svg>
-  );
+function FlagFR(props: FlagProps) {
+  return <Flag {...props}><path fill="#ED2939" d="M36 27c0 2.209-1.791 4-4 4h-8V5h8c2.209 0 4 1.791 4 4v18z" /><path fill="#002495" d="M4 5C1.791 5 0 6.791 0 9v18c0 2.209 1.791 4 4 4h8V5H4z" /><path fill="#EEE" d="M12 5h12v26H12z" /></Flag>;
 }
 
-/** Poland – White, Red horizontal */
-export function FlagPL(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 5" width={W} height={H} className={flagClass} {...props}>
-      <rect width="8" height="2.5" fill="#fff" />
-      <rect y="2.5" width="8" height="2.5" fill="#DC143C" />
-    </svg>
-  );
+function FlagIL(props: FlagProps) {
+  return <Flag {...props}><path fill="#EDECEC" d="M20.666 19l-.467.809h.934zM18 21.618l.467-.809h-.934z" /><path fill="#EEE" d="M0 25h36V11H0v14zM.294 7.5h35.413C35.113 6.035 33.678 5 32 5H4C2.322 5 .887 6.035.294 7.5z" /><path fill="#EDECEC" d="M21.133 16.191h-.934l.467.809zm-5.332 0h-.934l.467.809zm3.243 3.618L20.089 18l-1.045-1.809h-2.088L15.911 18l1.045 1.809zM15.334 19l-.467.809h.934zM18 14.382l-.467.809h.934z" /><path fill="#0038B8" d="M.294 7.5C.106 7.964 0 8.469 0 9v2h36V9c0-.531-.106-1.036-.294-1.5H.294z" /><path fill="#EEE" d="M.294 28.5h35.413C35.113 29.965 33.678 31 32 31H4C2.322 31 .887 29.965.294 28.5z" /><path fill="#0038B8" d="M.294 28.5C.106 28.036 0 27.531 0 27v-2h36v2c0 .531-.106 1.036-.294 1.5H.294zm16.084-7.691L18 23.618l1.622-2.809h3.243L21.244 18l1.622-2.809h-3.243L18 12.382l-1.622 2.809h-3.243L14.756 18l-1.622 2.809h3.244zm1.622.809l-.467-.809h.934l-.467.809zm3.133-5.427l-.467.809-.467-.808h.934zM20.666 19l.467.808h-.934l.467-.808zM18 14.382l.467.809h-.934l.467-.809zm-1.044 1.809h2.089L20.089 18l-1.044 1.809h-2.089L15.911 18l1.045-1.809zm-1.155 0l-.467.809-.467-.808h.934zM15.334 19l.467.808h-.934l.467-.808z" /></Flag>;
 }
 
-/** Brazil – Green, yellow diamond (simplified) */
-export function FlagBR(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 14" width={W} height={H} className={flagClass} {...props}>
-      <rect width="20" height="14" fill="#009B3A" />
-      <polygon points="10,1.5 18.5,7 10,12.5 1.5,7" fill="#FEDF00" />
-      <circle cx="10" cy="7" r="3" fill="#002776" />
-    </svg>
-  );
+function FlagIT(props: FlagProps) {
+  return <Flag {...props}><path fill="#CE2B37" d="M36 27c0 2.209-1.791 4-4 4h-8V5h8c2.209 0 4 1.791 4 4v18z" /><path fill="#009246" d="M4 5C1.791 5 0 6.791 0 9v18c0 2.209 1.791 4 4 4h8V5H4z" /><path fill="#EEE" d="M12 5h12v26H12z" /></Flag>;
 }
 
-/** Russia – White, Blue, Red horizontal */
-export function FlagRU(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 6" width={W} height={H} className={flagClass} {...props}>
-      <rect width="9" height="2" fill="#fff" />
-      <rect y="2" width="9" height="2" fill="#0039A6" />
-      <rect y="4" width="9" height="2" fill="#D52B1E" />
-    </svg>
-  );
+function FlagHU(props: FlagProps) {
+  return <Flag {...props}><path fill="#EEE" d="M0 14h36v8H0z" /><path fill="#CD2A3E" d="M32 5H4C1.791 5 0 6.791 0 9v5h36V9c0-2.209-1.791-4-4-4z" /><path fill="#436F4D" d="M4 31h28c2.209 0 4-1.791 4-4v-5H0v5c0 2.209 1.791 4 4 4z" /></Flag>;
 }
 
-/** Turkey - Red with white crescent and star */
-export function FlagTR(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width={W} height={H} className={flagClass} {...props}>
-      <rect width="30" height="20" fill="#E30A17" />
-      <circle cx="10" cy="10" r="6" fill="#fff" />
-      <circle cx="11.5" cy="10" r="5" fill="#E30A17" />
-      <polygon points="19.5,7.8 19.994,9.32 21.592,9.32 20.299,10.26 20.793,11.78 19.5,10.84 18.207,11.78 18.701,10.26 17.408,9.32 19.006,9.32" fill="#fff" />
-    </svg>
-  );
+function FlagLV(props: FlagProps) {
+  return <Flag {...props}><path fill="#9E3039" d="M32 5H4C1.791 5 0 6.791 0 9v6h36V9c0-2.209-1.791-4-4-4zm0 26H4c-2.209 0-4-1.791-4-4v-6h36v6c0 2.209-1.791 4-4 4z" /><path fill="#EEE" d="M0 15h36v6H0z" /></Flag>;
 }
 
-/** Ukraine – Blue, Yellow horizontal */
-export function FlagUA(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width={W} height={H} className={flagClass} {...props}>
-      <rect width="3" height="1" fill="#005BBB" />
-      <rect y="1" width="3" height="1" fill="#FFD500" />
-    </svg>
-  );
+function FlagNL(props: FlagProps) {
+  return <Flag {...props}><path fill="#EEE" d="M0 14h36v8H0z" /><path fill="#AE1F28" d="M32 5H4C1.791 5 0 6.791 0 9v5h36V9c0-2.209-1.791-4-4-4z" /><path fill="#20478B" d="M4 31h28c2.209 0 4-1.791 4-4v-5H0v5c0 2.209 1.791 4 4 4z" /></Flag>;
 }
 
-/** China – Red with yellow stars (simplified) */
-export function FlagCN(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width={W} height={H} className={flagClass} {...props}>
-      <rect width="30" height="20" fill="#DE2910" />
-      <g fill="#FFDE00">
-        <polygon points="5,2 6,5 3.2,3.2 6.8,3.2 4,5" />
-        <polygon points="10,1 10.6,2.7 9,1.8 11,1.8 9.4,2.7" />
-        <polygon points="12,3 12.6,4.7 11,3.8 13,3.8 11.4,4.7" />
-        <polygon points="12,6 12.6,7.7 11,6.8 13,6.8 11.4,7.7" />
-        <polygon points="10,8 10.6,9.7 9,8.8 11,8.8 9.4,9.7" />
-      </g>
-    </svg>
-  );
+function FlagNO(props: FlagProps) {
+  return <Flag {...props}><path fill="#EF2B2D" d="M10 5H4C1.791 5 0 6.791 0 9v6h10V5zm22 0H16v10h20V9c0-2.209-1.791-4-4-4zM10 31H4c-2.209 0-4-1.791-4-4v-6h10v10zm22 0H16V21h20v6c0 2.209-1.791 4-4 4z" /><path fill="#002868" d="M14.5 5h-2.944l-.025 11.5H0v3h11.525L11.5 31h3V19.5H36v-3H14.5z" /><path fill="#EEE" d="M14.5 31H16V21h20v-1.5H14.5zM16 5h-1.5v11.5H36V15H16zm-4.5 0H10v10H0v1.5h11.5zM0 19.5V21h10v10h1.5V19.5z" /></Flag>;
 }
 
-/** Taiwan – Red field with blue canton and twelve-ray white sun */
-export function FlagTW(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 32" width={W} height={H} className={flagClass} {...props}>
-      <rect width="48" height="32" fill="#FE0000" />
-      <rect width="24" height="16" fill="#000095" />
-      <polygon
-        points="12.000,1.600 12.932,4.523 15.200,2.457 14.546,5.454 17.543,4.800 15.477,7.068 18.400,8.000 15.477,8.932 17.543,11.200 14.546,10.546 15.200,13.543 12.932,11.477 12.000,14.400 11.068,11.477 8.800,13.543 9.454,10.546 6.457,11.200 8.523,8.932 5.600,8.000 8.523,7.068 6.457,4.800 9.454,5.454 8.800,2.457 11.068,4.523"
-        fill="#fff"
-      />
-      <circle cx="12" cy="8" r="3.2" fill="#000095" />
-      <circle cx="12" cy="8" r="2.45" fill="#fff" />
-    </svg>
-  );
+function FlagPL(props: FlagProps) {
+  return <Flag {...props}><path fill="#EEE" d="M32 5H4C1.791 5 0 6.791 0 9v9h36V9c0-2.209-1.791-4-4-4z" /><path fill="#DC143C" d="M0 27c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4v-9H0v9z" /></Flag>;
 }
 
-/** Czech Republic - White and red horizontal bands with a blue triangle */
-export function FlagCS(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width={W} height={H} className={flagClass} {...props}>
-      <rect width="3" height="2" fill="#fff" />
-      <rect y="1" width="3" height="1" fill="#D7141A" />
-      <polygon points="0,0 1.5,1 0,2" fill="#11457E" />
-    </svg>
-  );
+function FlagBR(props: FlagProps) {
+  return <Flag {...props}><path fill="#009B3A" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v18z" /><path fill="#FEDF01" d="M32.728 18L18 29.124 3.272 18 18 6.875z" /><circle fill="#002776" cx="17.976" cy="17.924" r="6.458" /><path fill="#CBE9D4" d="M12.277 14.887c-.332.621-.558 1.303-.672 2.023 3.995-.29 9.417 1.891 11.744 4.595.402-.604.7-1.28.883-2.004-2.872-2.808-7.917-4.63-11.955-4.614z" /><path fill="#88C9F9" d="M12 18.233h1v1h-1zm1 2h1v1h-1z" /><path fill="#55ACEE" d="M15 18.233h1v1h-1zm2 1h1v1h-1zm4 2h1v1h-1zm-3 1h1v1h-1zm3-6h1v1h-1z" /><path fill="#3B88C3" d="M19 20.233h1v1h-1z" /></Flag>;
 }
 
-/** Denmark – Red with a white Nordic cross */
-export function FlagDK(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 28" width={W} height={H} className={flagClass} {...props}>
-      <path fill="#C8102E" d="M0,0H37V28H0Z" />
-      <path stroke="#fff" strokeWidth="4" d="M0,14h37M14,0v28" />
-    </svg>
-  );
+function FlagRO(props: FlagProps) {
+  return <Flag {...props}><path fill="#002B7F" d="M4 5C1.791 5 0 6.791 0 9v18c0 2.209 1.791 4 4 4h8V5H4z" /><path fill="#FCD116" d="M12 5h12v26H12z" /><path fill="#CE1126" d="M32 5h-8v26h8c2.209 0 4-1.791 4-4V9c0-2.209-1.791-4-4-4z" /></Flag>;
 }
 
-/** Norway – Red with a blue Nordic cross outlined in white */
-export function FlagNO(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 16" width={W} height={H} className={flagClass} {...props}>
-      <rect width="22" height="16" fill="#BA0C2F" />
-      <path d="M0 8h22M8 0v16" stroke="#fff" strokeWidth="4" />
-      <path d="M0 8h22M8 0v16" stroke="#00205B" strokeWidth="2" />
-    </svg>
-  );
+function FlagTR(props: FlagProps) {
+  return <Flag {...props}><path fill="#E30917" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v18z" /><path fill="#EEE" d="M16 24c-3.314 0-6-2.685-6-6 0-3.314 2.686-6 6-6 1.31 0 2.52.425 3.507 1.138-1.348-1.524-3.312-2.491-5.507-2.491-4.061 0-7.353 3.292-7.353 7.353 0 4.062 3.292 7.354 7.353 7.354 2.195 0 4.16-.967 5.507-2.492C18.521 23.575 17.312 24 16 24zm3.913-5.77l2.44.562.22 2.493 1.288-2.146 2.44.561-1.644-1.888 1.287-2.147-2.303.98-1.644-1.889.22 2.494z" /></Flag>;
 }
 
-/** Romania – Vertical blue, yellow, red tricolour */
-export function FlagRO(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width={W} height={H} className={flagClass} {...props}>
-      <rect width="1" height="2" fill="#002B7F" />
-      <rect x="1" width="1" height="2" fill="#FCD116" />
-      <rect x="2" width="1" height="2" fill="#CE1126" />
-    </svg>
-  );
+function FlagRU(props: FlagProps) {
+  return <Flag {...props}><path fill="#CE2028" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4v-4h36v4z" /><path fill="#22408C" d="M0 13h36v10H0z" /><path fill="#EEE" d="M32 5H4C1.791 5 0 6.791 0 9v4h36V9c0-2.209-1.791-4-4-4z" /></Flag>;
 }
 
-/** Iran – Green, White, Red horizontal with emblem (simplified) */
-export function FlagIR(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3" width={W} height={H} className={flagClass} {...props}>
-      <rect width="4" height="1" fill="#239F40" />
-      <rect y="1" width="4" height="1" fill="#fff" />
-      <rect y="2" width="4" height="1" fill="#DA0000" />
-      <circle cx="2" cy="1.5" r="0.3" fill="#DA0000" />
-    </svg>
-  );
+function FlagUA(props: FlagProps) {
+  return <Flag {...props}><path fill="#005BBB" d="M32 5H4C1.791 5 0 6.791 0 9v9h36V9c0-2.209-1.791-4-4-4z" /><path fill="#FFD500" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4v-9h36v9z" /></Flag>;
 }
 
-/** Israel – white field, two blue stripes, Star of David */
-export function FlagIL(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 160" width={W} height={H} className={flagClass} {...props}>
-      <rect width="220" height="160" fill="#fff" />
-      <rect width="220" height="20" y="25" fill="#0038b8" />
-      <rect width="220" height="20" y="115" fill="#0038b8" />
-      <g fill="none" stroke="#0038b8" strokeWidth="5.5">
-        <path d="M110 58 L91 91 L129 91 Z" />
-        <path d="M110 102 L91 69 L129 69 Z" />
-      </g>
-    </svg>
-  );
+function FlagKR(props: FlagProps) {
+  return <Flag {...props}><path fill="#EEE" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v18z" /><path fill="#C60C30" d="M21.441 13.085c-2.714-1.9-6.455-1.24-8.356 1.474-.95 1.356-.621 3.227.737 4.179 1.357.949 3.228.618 4.178-.738s2.822-1.687 4.178-.736c1.358.95 1.688 2.821.737 4.178 1.901-2.714 1.241-6.455-1.474-8.357z" /><path fill="#003478" d="M22.178 17.264c-1.356-.951-3.228-.62-4.178.736s-2.821 1.687-4.178.737c-1.358-.951-1.687-2.822-.737-4.179-1.901 2.716-1.241 6.456 1.473 8.356 2.715 1.901 6.455 1.242 8.356-1.474.951-1.355.621-3.226-.736-4.176z" /><path d="M24.334 25.572l1.928-2.298.766.643-1.928 2.298zm2.57-3.063l1.928-2.297.766.643-1.928 2.297zm-1.038 4.351l1.928-2.297.766.643-1.928 2.297zm2.572-3.066l1.93-2.297.766.644-1.93 2.296zm-1.041 4.352l1.93-2.297.765.643-1.929 2.297zm2.571-3.065l1.927-2.3.767.643-1.927 2.3zm.004-14.162l.766-.643 1.93 2.299-.767.643zM27.4 7.853l.766-.643 1.928 2.299-.767.642zm-1.533 1.288l.766-.643 4.5 5.362-.766.643zm-1.532 1.284l.767-.643 1.927 2.298-.766.642zm2.57 3.065l.766-.643 1.93 2.297-.765.643zM6.4 20.854l.766-.643 4.499 5.363-.767.643zM4.87 22.14l.765-.642 1.929 2.298-.767.643zm2.567 3.066l.766-.643 1.93 2.297-.766.643zm-4.101-1.781l.766-.643 4.5 5.362-.767.643zm-.001-10.852l4.498-5.362.767.642-4.5 5.363zm1.532 1.287l4.5-5.363.766.643-4.5 5.362zM6.4 15.145l4.5-5.363.766.643-4.5 5.363z" fill="#292F33" /></Flag>;
 }
 
-const skShield =
-  "m269.993 459.98-3.906-1.867c-25.267-12.173-56.294-30.4-81.294-58.133" +
-  "-25-27.733-43.8-65.307-43.8-114.24 0-93.6 4.52-136.68 4.52-136.68" +
-  "l.84-8.067h247.28l.84 8.067s4.534 43.093 4.534 136.68" +
-  "c0 48.933-18.8 86.507-43.814 114.24-25 27.733-56.026 45.96-81.293 58.133Z";
-const skCross =
-  "M280.56 261.28c13.36.22 39.45.74 62.67-7.03 0 0-.61 8.31-.61 17.99" +
-  " 0 9.67.61 17.98.61 17.98-21.3-7.12-47.61-7.27-62.67-7.08v51.54h-21.12" +
-  "v-51.54c-15.07-.2-41.37-.04-62.68 7.08 0 0 .62-8.3.62-17.98s-.62-17.99" +
-  "-.62-17.99c23.23 7.77 49.31 7.25 62.68 7.03v-32.37c-12.19-.1-29.74.48" +
-  "-49.6 7.12 0 0 .62-8.3.62-17.98s-.62-17.98-.62-17.98c19.83 6.62 37.36" +
-  " 7.22 49.54 7.11-.62-20.5-6.6-46.33-6.6-46.33s12.3.96 17.22.96c4.92 0" +
-  " 17.21-.96 17.21-.96s-5.97 25.83-6.6 46.33c12.18.1 29.72-.49 49.55-7.11" +
-  " 0 0-.62 8.3-.62 17.98 0 9.67.62 17.98.62 17.98-19.86-6.64-37.42-7.22-49.6-7.12v32.37";
-/** United Arab Emirates – Red hoist stripe, green/white/black horizontal bands */
-export function FlagAE(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3" width={W} height={H} className={flagClass} {...props}>
-      <rect width="4" height="3" fill="#fff" />
-      <rect x="1" width="3" height="1" fill="#00732F" />
-      <rect x="1" y="2" width="3" height="1" fill="#000" />
-      <rect width="1" height="3" fill="#FF0000" />
-    </svg>
-  );
+function FlagJP(props: FlagProps) {
+  return <Flag {...props}><path fill="#EEE" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v18z" /><circle fill="#ED1B2F" cx="18" cy="18" r="7" /></Flag>;
 }
 
-const skHills =
-  "M270 329.1c-24.87 0-38.19 34.46-38.19 34.46s-7.4-16.34-27.68-16.34" +
-  "c-13.73 0-23.82 12.2-30.25 23.5 24.97 39.7 64.8 64.2 96.11 79.28" +
-  " 31.32-15.07 71.16-39.58 96.13-79.28-6.43-11.3-16.52-23.5-30.25-23.5" +
-  "a30.52 30.52 0 0 0-27.69 16.34s-13.32-34.46-38.19-34.46Z";
-
-/** Mongolia – Red, Blue, Red vertical tricolor with Soyombo */
-export function FlagMN(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width={W} height={H} className={flagClass} {...props}>
-      <path fill="#c4272f" d="M0 0h225v600H0Z" />
-      <path fill="#015197" d="M225 0h450v600H225Z" />
-      <path fill="#c4272f" d="M675 0h225v600H675Z" />
-      <g fill="#f9cf02" transform="translate(74 78)">
-        <circle cx="38" cy="34" r="18" />
-        <path d="M22 68h32v108H22ZM16 194h44v16H16ZM20 226h36v116H20ZM16 358h44v16H16Z" />
-        <path d="M24 390h28l-14 42ZM70 76h18v280H70Z" />
-        <path d="M104 128h64v18h-64ZM104 232h64v18h-64Z" />
-        <path d="M136 152c-22 0-40 18-40 40s18 40 40 40 40-18 40-40-18-40-40-40Zm0 18c12 0 22 10 22 22s-10 22-22 22-22-10-22-22 10-22 22-22Z" />
-      </g>
-    </svg>
-  );
+function FlagMN(props: FlagProps) {
+  return <Flag {...props}><path fill="#C4272F" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v18z" /><path fill="#005197" d="M12 5h12v26H12z" /><g fill="#F9CF01"><path d="M1.286 16.429h1.571V29H1.286zm2.395 2.357H8.32v.786H3.681zm5.462-2.357h1.571V29H9.143zm-5.462 9.427H8.32v.786H3.681zm.087-9.427h4.464L6 17.989zm-.087 11.198h4.638L6 29.249zm3.89-15.913c0 .869-.704 1.571-1.571 1.571s-1.571-.703-1.571-1.571c0-.869.704-1.571 1.571-1.571s1.571.703 1.571 1.571zm-.785-2.946c0 .759-.352.982-.786.982s-.786-.223-.786-.982C5.214 8.008 5.754 7 6 7s.786 1.008.786 1.768z" /><path d="M6 14.404c-1.303 0-2.438-.593-3.084-1.477.271 1.462 1.546 2.567 3.084 2.567s2.813-1.105 3.084-2.566c-.646.883-1.781 1.476-3.084 1.476zm2.569 8.31c0-1.095-.687-2.022-1.649-2.39.299.257.58.447.58 1.062 0 .973-.578 1.496-1.5 1.496v.009c-.642.024-1.158.547-1.158 1.193 0 .645.516 1.167 1.158 1.191v.008c.01 0 .018-.003.028-.003.005 0 .009.003.014.003.015 0 .027-.008.042-.008 1.379-.045 2.485-1.169 2.485-2.561zm-2.94 1.37c0-.229.183-.413.413-.413.229 0 .413.184.413.413 0 .228-.183.414-.413.414-.23 0-.413-.186-.413-.414z" /><path d="M6 20.152v-.006l-.021.002-.01-.002c-.011 0-.02.006-.031.006-1.389.034-2.507 1.162-2.507 2.562 0 1.096.687 2.023 1.649 2.391-.299-.257-.557-.448-.557-.999 0-.98.524-1.522 1.43-1.522l.002-.018c.005 0 .009.003.014.003.668 0 1.211-.546 1.211-1.212 0-.659-.527-1.188-1.18-1.205zm-.031 1.62c-.231 0-.417-.188-.417-.417 0-.229.185-.419.417-.419s.417.189.417.419c-.001.229-.186.417-.417.417z" /></g></Flag>;
 }
 
-/** Slovakia – White, Blue, Red horizontal with coat of arms */
-export function FlagSK(props: FlagProps) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width={W} height={H} className={flagClass} {...props}>
-      <path fill="#fff" d="M0 200h900V0H0Z" />
-      <path fill="#254aa5" d="M0 400h900V200H0Z" />
-      <path fill="#ed1c24" d="M0 600h900V400H0Z" />
-      <path fill="#fff" d={skShield} />
-      <path fill="#ed1c24" d="M270 450c-49.38-23.76-120-70.94-120-164.25S154.46 150 154.46 150h231.07S390 192.44 390 285.75 319.37 426.24 270 450" />
-      <path fill="#fff" d={skCross} />
-      <path fill="#254aa5" d={skHills} />
-    </svg>
-  );
+function FlagCN(props: FlagProps) {
+  return <Flag {...props}><path fill="#DE2910" d="M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v18z" /><path fill="#FFDE02" d="M11.136 8.977l.736.356.589-.566-.111.81.72.386-.804.144-.144.804-.386-.72-.81.111.566-.589zm4.665 2.941l-.356.735.566.59-.809-.112-.386.721-.144-.805-.805-.144.721-.386-.112-.809.59.566zm-.957 3.779l.268.772.817.017-.651.493.237.783-.671-.467-.671.467.236-.783-.651-.493.817-.017zm-3.708 3.28l.736.356.589-.566-.111.81.72.386-.804.144-.144.804-.386-.72-.81.111.566-.589zM7 10.951l.929 2.671 2.826.058-2.253 1.708.819 2.706L7 16.479l-2.321 1.615.819-2.706-2.253-1.708 2.826-.058z" /></Flag>;
 }
 
-/** Map locale codes to flag components */
+function FlagTW(props: FlagProps) {
+  return <Flag {...props}><path fill="#FE0000" d="M32 5H17v13H0v9c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4V9c0-2.209-1.791-4-4-4z" /><path fill="#000095" d="M17 5H4C1.791 5 0 6.791 0 9v9h17V5zm-6.063 4.61l2.035-.548-1.491 1.487c-.121-.348-.307-.665-.544-.939zm.251 1.89c0 1.346-1.091 2.438-2.438 2.438S6.312 12.846 6.312 11.5 7.404 9.062 8.75 9.062s2.438 1.092 2.438 2.438zm0-4.222l-.548 2.035c-.273-.237-.591-.423-.939-.544l1.487-1.491zM8.75 6.625l.542 2.034c-.175-.033-.357-.052-.542-.052s-.367.019-.542.052l.542-2.034zm-.951 2.144c-.348.121-.665.307-.939.544l-.548-2.035 1.487 1.491zm-1.236.841c-.237.273-.423.591-.544.939L4.528 9.062l2.035.548zm-.654 1.348c-.034.176-.052.357-.052.542 0 .185.018.367.052.542L3.875 11.5l2.034-.542zm.11 1.492c.121.348.308.666.544.939l-2.035.548 1.491-1.487zm.293 3.272l.548-2.035c.273.236.591.423.939.544l-1.487 1.491zm2.438.653l-.542-2.034c.176.034.357.052.542.052s.367-.018.542-.052l-.542 2.034zm.951-2.144c.348-.121.666-.308.939-.544l.548 2.035-1.487-1.491zm1.236-.841c.237-.273.423-.591.544-.939l1.491 1.487-2.035-.548zm.654-1.348c.034-.176.052-.357.052-.542 0-.185-.018-.367-.052-.542l2.034.542-2.034.542z" /><path fill="#FFF" d="M9.292 8.659L8.75 6.625l-.542 2.034c.175-.033.357-.052.542-.052s.367.019.542.052zM5.857 11.5c0-.185.018-.367.052-.542l-2.034.542 2.034.542c-.033-.175-.052-.357-.052-.542zm2.351 2.841l.542 2.034.542-2.034c-.176.034-.357.052-.542.052s-.367-.019-.542-.052zm3.435-2.841c0 .185-.018.367-.052.542l2.034-.542-2.034-.542c.033.175.052.357.052.542zm-.455-4.222L9.701 8.769c.348.122.666.308.939.544l.548-2.035zm-.251 6.112l2.035.548-1.491-1.487c-.121.348-.307.665-.544.939zm-4.625 2.332l1.487-1.491c-.348-.121-.666-.308-.939-.544l-.548 2.035zm.251-6.112l-2.035-.548 1.491 1.487c.121-.348.307-.665.544-.939zm3.138 4.621l1.487 1.491-.548-2.035c-.274.237-.591.423-.939.544zM6.019 12.45l-1.491 1.487 2.035-.548c-.237-.273-.423-.59-.544-.939zm1.78-3.681L6.312 7.278l.548 2.035c.274-.237.591-.423.939-.544zm5.173.293l-2.035.548c.237.273.423.591.544.939l1.491-1.487z" /><circle fill="#FFF" cx="8.75" cy="11.5" r="2.438" /></Flag>;
+}
+
 export const flagComponents: Record<string, (props: FlagProps) => ReactElement> = {
+  ar: FlagAE,
   ca: FlagCAT,
-  cs: FlagCS,
+  cs: FlagCZ,
   sk: FlagSK,
   da: FlagDK,
   de: FlagDE,
   en: FlagGB,
+  fa: FlagIR,
   es: FlagES,
   fr: FlagFR,
-  hu: FlagHU,
+  he: FlagIL,
   it: FlagIT,
-  ja: FlagJP,
-  ko: FlagKR,
+  hu: FlagHU,
   lv: FlagLV,
-  mn: FlagMN,
-  nb: FlagNO,
   nl: FlagNL,
+  nb: FlagNO,
   pl: FlagPL,
   pt: FlagBR,
   ro: FlagRO,
-  ru: FlagRU,
   tr: FlagTR,
+  ru: FlagRU,
   uk: FlagUA,
+  ko: FlagKR,
+  ja: FlagJP,
+  mn: FlagMN,
   zh: FlagCN,
   'zh-TW': FlagTW,
-  fa: FlagIR,
-  he: FlagIL,
-  ar: FlagAE,
 };

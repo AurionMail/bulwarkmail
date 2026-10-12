@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JMAPClient, NoLongerScheduledError, RecipientsRefusedError, RequestTimeoutError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
+import { JMAPClient, NoLongerScheduledError, RecipientsRejectedError, RequestTimeoutError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
 import { jmapErrorType } from '../jmap/jmap-error';
 
 /**
@@ -1084,8 +1084,8 @@ describe('recipients the server refuses', () => {
 
     const error = await sendTo(createClient(), ['nobody@example.net'], { draftId: 'draft-old-1' }).catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(RecipientsRefusedError);
-    expect((error as RecipientsRefusedError).recipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
+    expect(error).toBeInstanceOf(RecipientsRejectedError);
+    expect((error as RecipientsRejectedError).recipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
     // The copy filed in Sent is gone, the user's draft is not ...
     expect(server.emails.size).toBe(0);
     const destroyedEmails = server.calls('Email/set').flatMap((args) => (args.destroy as string[] | undefined) ?? []);
@@ -1100,7 +1100,7 @@ describe('recipients the server refuses', () => {
     const error = await sendTo(createClient(), ['nobody@example.net'], { delayedUntil: new Date(Date.now() + 10_000).toISOString() })
       .catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(RecipientsRefusedError);
+    expect(error).toBeInstanceOf(RecipientsRejectedError);
     expect(server.emails.size).toBe(0);
     expect(server.submissions.size).toBe(0);
   });
@@ -1110,7 +1110,7 @@ describe('recipients the server refuses', () => {
 
     const error = await sendTo(createClient(), ['bob@example.org']).catch((e: unknown) => e);
 
-    expect((error as RecipientsRefusedError).recipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
+    expect((error as RecipientsRejectedError).recipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
   });
 
   it.each(['1.0', '0.16.12'] as const)('names the refused recipients and sends to the others on Stalwart %s', async (version) => {
@@ -1118,7 +1118,7 @@ describe('recipients the server refuses', () => {
 
     const result = await sendTo(createClient(), ['bob@example.org', 'nobody@example.net'], { draftId: 'draft-old-1' });
 
-    expect(result.refusedRecipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
+    expect(result.rejectedRecipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
     expect(result.filingError).toBeUndefined();
     // Sent as usual: the draft goes, the message stays in Sent.
     expect(server.calls('Email/set').flatMap((args) => (args.destroy as string[] | undefined) ?? [])).toEqual(['draft-old-1']);
@@ -1131,7 +1131,7 @@ describe('recipients the server refuses', () => {
     const result = await sendTo(createClient(), ['bob@example.org', 'nobody@example.net']);
 
     expect(server.requests[2].map(([name]) => name)).toEqual(['Email/set', 'EmailSubmission/set', 'EmailSubmission/get']);
-    expect(server.requests[2][2][1]).toEqual({ accountId: 'account-1', ids: ['#1'], properties: ['id', 'deliveryStatus'] });
+    expect(server.requests[2][2][1]).toEqual({ accountId: 'account-1', ids: ['#1'], properties: ['deliveryStatus'] });
     expect(server.requests.at(-1)).toEqual([['EmailSubmission/set', { accountId: 'account-1', destroy: [result.emailSubmissionId] }, '0']]);
   });
 
@@ -1145,7 +1145,7 @@ describe('recipients the server refuses', () => {
     const result = await sendTo(createClient(), ['nobody@example.net']);
 
     expect(result.emailSubmissionId).toBeDefined();
-    expect(result.refusedRecipients).toBeUndefined();
+    expect(result.rejectedRecipients).toBeUndefined();
     // The get's own failure is neither a failed send nor a filing problem.
     expect(result.filingError).toBeUndefined();
   });
@@ -1169,7 +1169,7 @@ describe('recipients the server refuses', () => {
       .rescheduleEmailSubmission('original', 'email-x', 'identity-1', new Date(Date.now() + 1000).toISOString(), 'account-1')
       .catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(RecipientsRefusedError);
+    expect(error).toBeInstanceOf(RecipientsRejectedError);
     // Still goes at its old time; the dead replacement record is gone.
     expect(original.canceled).toBe(false);
     expect(server.calls('EmailSubmission/set').filter((args) => args.update)).toEqual([]);
@@ -1198,8 +1198,8 @@ describe('recipients the server refuses', () => {
 
       const error = await sendNow().catch((e: unknown) => e);
 
-      expect(error).toBeInstanceOf(RecipientsRefusedError);
-      expect((error as RecipientsRefusedError).recipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
+      expect(error).toBeInstanceOf(RecipientsRejectedError);
+      expect((error as RecipientsRejectedError).recipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
       // Bob still gets it at the old time, and alice only once: the
       // replacement she was taken for is cancelled, not just its record.
       expect(original.canceled).toBe(false);
@@ -1216,7 +1216,7 @@ describe('recipients the server refuses', () => {
         envelope: { mailFrom: { email: 'user@example.com' }, rcptTo: [{ email: 'alice@example.org' }, { email: 'bob@example.org' }] },
       });
 
-      await expect(sendNow()).rejects.toBeInstanceOf(RecipientsRefusedError);
+      await expect(sendNow()).rejects.toBeInstanceOf(RecipientsRejectedError);
       expect(original.canceled).toBe(false);
     });
 
@@ -1226,7 +1226,7 @@ describe('recipients the server refuses', () => {
 
       const result = await sendNow();
 
-      expect(result.refusedRecipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
+      expect(result.rejectedRecipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
       expect(original.canceled).toBe(true);
       expect([...server.submissions.keys()]).toEqual([result.emailSubmissionId]);
     });
@@ -1242,7 +1242,7 @@ describe('recipients the server refuses', () => {
 
       const result = await sendNow();
 
-      expect(result.refusedRecipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
+      expect(result.rejectedRecipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
       expect(original.canceled).toBe(true);
     });
 
@@ -1266,7 +1266,7 @@ describe('recipients the server refuses', () => {
 
       // Going ahead would cancel the original as well and reach nobody: it
       // still goes at its old time to both.
-      expect(error).toBeInstanceOf(RecipientsRefusedError);
+      expect(error).toBeInstanceOf(RecipientsRejectedError);
       expect(original.canceled).toBe(false);
       expect([...server.submissions.values()].filter((s) => s.id !== 'original').map((s) => s.canceled)).toEqual([true]);
     });

@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { toast } from "@/stores/toast-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, Plus, AlertTriangle } from "@/components/icons";
-import { format, parseISO, addHours, addDays, isSameDay } from "date-fns";
+import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
 import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from "./recurrence-editor";
 import { parseDuration, getEventColor } from "./event-card";
@@ -30,10 +31,15 @@ import { changesWhen, type EditorAttendee, type EventEditorState } from "@/lib/r
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { useSettingsStore } from "@/stores/settings-store";
 import { generateUUID } from "@/lib/utils";
+import { buildDuplicateEventData } from "@/lib/calendar-duplicate";
 import { useFormatEventDate } from "@/hooks/use-format-event-date";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
-import { calendarHooks } from "@/lib/plugin-hooks";
+import {
+  calendarFormHooks,
+  calendarHooks,
+  type CalendarEventFormSavePatch,
+} from "@/lib/plugin-hooks";
 import type { ConflictWarning } from "@/lib/plugin-types";
 
 export interface PendingEventPreview {
@@ -50,6 +56,10 @@ interface EventModalProps {
   defaultDate?: Date;
   defaultEndDate?: Date;
   defaultAllDay?: boolean;
+  /** Open an existing event straight in the form instead of its summary. */
+  startInEditMode?: boolean;
+  /** Title to start a new event with (from the quick editor's "More options"). */
+  defaultTitle?: string;
   defaultCalendarId?: string;
   /**
    * `editor` is what the editor had besides `data`, for a save that covers
@@ -291,6 +301,8 @@ export function EventModal({
   defaultDate,
   defaultEndDate,
   defaultAllDay,
+  defaultTitle,
+  startInEditMode,
   defaultCalendarId,
   onSave,
   onDelete,
@@ -317,7 +329,7 @@ export function EventModal({
     : "fixed inset-0 z-50 flex flex-col bg-background";
   const isEdit = !!event;
   const formatEventDate = useFormatEventDate();
-  const [mode, setMode] = useState<"view" | "edit">(isEdit ? "view" : "edit");
+  const [mode, setMode] = useState<"view" | "edit">(isEdit && !startInEditMode ? "view" : "edit");
 
   // Only the organizer invites: someone else's invitation keeps its
   // attendees as the organizer sent them, and a save of the user's own copy
@@ -402,7 +414,7 @@ export function EventModal({
     return addHours(getInitialStart(), 1);
   };
 
-  const [title, setTitle] = useState(event?.title || "");
+  const [title, setTitle] = useState(event?.title || defaultTitle || "");
   const [description, setDescription] = useState(event?.description || "");
   const [location, setLocation] = useState(
     event?.locations ? Object.values(event.locations)[0]?.name || "" : ""
@@ -499,6 +511,8 @@ export function EventModal({
   }, []);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // Set synchronously, so a second save in the same tick is refused too.
+  const savingRef = useRef(false);
 
   // The attendees the editor opened with: a save for every occurrence of a
   // series applies only those the user added or removed.
@@ -560,12 +574,14 @@ export function EventModal({
           location,
           virtualLocation,
           calendarId,
+          uid: event?.uid,
+          attendees: attendees.map((a) => a.email),
         },
       });
       if (!cancelled) setPluginConflictWarnings(warnings);
     }, 250);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [title, description, startDate, startTime, endDate, endTime, allDay, location, virtualLocation, calendarId]);
+  }, [title, description, startDate, startTime, endDate, endTime, allDay, location, virtualLocation, calendarId, event?.uid, attendees]);
 
   // Report live preview to parent for grid outline
   useEffect(() => {
@@ -594,8 +610,14 @@ export function EventModal({
 
   const handleSave = useCallback(async () => {
     const trimmedTitle = title.trim();
-    if (!trimmedTitle || isSaving) return;
-    if (trimmedTitle.length > 500 || description.trim().length > 10000 || location.trim().length > 500) return;
+    if (!trimmedTitle || isSaving || savingRef.current) return;
+    if (trimmedTitle.length > 500 || description.trim().length > 10000 || location.trim().length > 500) {
+      // This guard returned silently, so a rejected save was indistinguishable from a dead
+      // button. The fields also enforce their limits via maxLength, so this is a backstop —
+      // but if it ever fires, say so.
+      toast.error(t("notifications.event_error"));
+      return;
+    }
 
     const pendingAttendee = participantInputRef.current?.flush() ?? null;
     const effectiveAttendees = pendingAttendee ? [...attendees, pendingAttendee] : attendees;
@@ -633,9 +655,10 @@ export function EventModal({
     // grid and prefill are display dates), so label them with that zone.
     const timeZone = getEffectiveTimeZone();
 
+    const trimmedDescription = description.trim();
+
     const data: Partial<CalendarEvent> = {
       title: trimmedTitle,
-      description: description.trim(),
       start: startStr,
       duration,
       timeZone: allDay ? null : timeZone,
@@ -643,6 +666,13 @@ export function EventModal({
       calendarIds: { [calendarId]: true },
       ...savedStatusFields(event),
     };
+
+    // On an existing event the empty string is how a description gets cleared, but
+    // sending it on creation writes a `DESCRIPTION:` with nothing after it — which
+    // invitation e-mails then render as a "Description" heading over blank space.
+    if (trimmedDescription || event) {
+      data.description = trimmedDescription;
+    }
 
     if (!event) {
       data.uid = generateUUID();
@@ -717,9 +747,53 @@ export function EventModal({
       }));
     }
 
-    const shouldSendScheduling = userIsOrganizer && effectiveAttendees.length > 0 && sendInvitations;
+    // Plugin form-save hook: a handler may refresh form-derived values
+    // (currently the virtual-location link) in the same save that sends
+    // scheduling messages, so invites carry what plugins set here rather
+    // than a stale value from before the save.
+    // The handlers can take seconds (a plugin minting a meeting room), so the
+    // save counts as in flight from here: a second click or Ctrl+Enter must
+    // not start another save, which for a new event would create a second
+    // copy (fresh uid) and send its invitations twice.
+    savingRef.current = true;
     setIsSaving(true);
     try {
+      const pluginPatch = await calendarFormHooks.onCalendarEventFormSave.transform<
+        CalendarEventFormSavePatch
+      >(
+        {},
+        {
+          title: trimmedTitle,
+          description: trimmedDescription,
+          start: startStr,
+          end: allDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`,
+          isAllDay: allDay,
+          location,
+          virtualLocation,
+          calendarId,
+          uid: data.uid ?? event?.uid,
+          attendees: effectiveAttendees.map((a) => a.email),
+        },
+      );
+      if (pluginPatch && typeof pluginPatch.virtualLocation === "string") {
+        if (pluginPatch.virtualLocation.trim()) {
+          data.virtualLocations = {
+            vl1: {
+              "@type": "VirtualLocation",
+              name: null,
+              description: null,
+              uri: pluginPatch.virtualLocation.trim(),
+              features: null,
+            },
+          };
+        } else if (event) {
+          data.virtualLocations = null;
+        } else {
+          delete data.virtualLocations;
+        }
+      }
+
+      const shouldSendScheduling = userIsOrganizer && effectiveAttendees.length > 0 && sendInvitations;
       await onSave(data, shouldSendScheduling, {
         initialAttendees,
         attendees: effectiveAttendees,
@@ -727,9 +801,10 @@ export function EventModal({
         ruleChanged,
       });
     } finally {
+      savingRef.current = false;
       setIsSaving(false);
     }
-  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, initialAttendees, sendInvitations, currentUserEmails, userIsOrganizer, resolveContactName, event, onSave, isSaving]);
+  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, alertRows, attendees, initialAttendees, sendInvitations, currentUserEmails, userIsOrganizer, resolveContactName, event, onSave, isSaving, t]);
 
   const handleRsvp = useCallback((status: CalendarParticipant['participationStatus']) => {
     if (!event || !userParticipantId || !onRsvp) return;
@@ -739,28 +814,7 @@ export function EventModal({
 
   const handleDuplicate = useCallback(() => {
     if (!event || !onDuplicate) return;
-    const start = getEventStartDate(event);
-    const newStart = addDays(start, 1);
-    const newUid = generateUUID();
-    const data: Partial<CalendarEvent> = {
-      uid: newUid,
-      title: event.title,
-      description: event.description,
-      start: event.showWithoutTime ? format(newStart, "yyyy-MM-dd") : format(newStart, "yyyy-MM-dd'T'HH:mm:ss"),
-      duration: event.duration,
-      timeZone: event.timeZone,
-      showWithoutTime: event.showWithoutTime,
-      calendarIds: { ...event.calendarIds },
-      status: "confirmed",
-      freeBusyStatus: event.freeBusyStatus,
-      privacy: event.privacy,
-    };
-    if (event.locations) data.locations = structuredClone(event.locations);
-    if (event.virtualLocations) data.virtualLocations = structuredClone(event.virtualLocations);
-    if (event.recurrenceRules) data.recurrenceRules = structuredClone(event.recurrenceRules);
-    if (event.alerts) data.alerts = structuredClone(event.alerts);
-    if (event.participants) data.participants = structuredClone(event.participants);
-    onDuplicate(data);
+    onDuplicate(buildDuplicateEventData(event));
   }, [event, onDuplicate]);
 
   const modalRef = useRef<HTMLDivElement>(null);
@@ -1208,6 +1262,8 @@ export function EventModal({
                   location,
                   virtualLocation,
                   calendarId,
+                  uid: event?.uid,
+                  attendees: attendees.map((a) => a.email),
                 },
                 setVirtualLocation,
               }}
@@ -1547,7 +1603,9 @@ export function EventModal({
             disabled={!title.trim() || isSaving}
             className="w-full"
           >
-            {t("form.save")}
+            {/* While a save is in flight the button was disabled with no visible change, so a
+                slow request (mobile, VPN) looked like a dead button for the whole timeout. */}
+            {isSaving ? t("subscription.saving") : t("form.save")}
           </Button>
         </div>
         )}

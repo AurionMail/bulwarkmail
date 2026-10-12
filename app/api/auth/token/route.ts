@@ -52,11 +52,14 @@ async function revokeRefreshToken(token: string, serverId: string | null, metada
   }, serverId, { fallbackClientId: DEFAULT_CLIENT_ID });
 
   try {
+    // Never follow a redirect with the refresh token and client secret in
+    // the body: the endpoint was validated, its redirect target was not.
     const revocationResponse = await fetch(metadata.revocation_endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
       signal: AbortSignal.timeout(REVOCATION_TIMEOUT_MS),
+      redirect: 'error',
     });
     if (!revocationResponse.ok) {
       logger.warn('Token revocation returned error', { status: revocationResponse.status });
@@ -205,6 +208,8 @@ export async function PUT(request: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
+      // See revokeRefreshToken: the body holds the refresh token.
+      redirect: 'error',
     });
 
     if (!tokenResponse.ok) {

@@ -173,8 +173,11 @@ export interface IJMAPClient {
   getMailboxChanges?(sinceState: string, accountId?: string, maxChanges?: number): Promise<CollectionChanges | null>;
   /** Email/changes since `sinceState`; null when the server cannot compute the delta. */
   getEmailChanges?(sinceState: string, accountId?: string, maxChanges?: number): Promise<CollectionChanges | null>;
-  createMailbox(name: string, parentId?: string, accountId?: string): Promise<Mailbox>;
+  createMailbox(name: string, parentId?: string, accountId?: string, options?: { role?: string }): Promise<Mailbox>;
   updateMailbox(mailboxId: string, changes: { name?: string; parentId?: string | null; role?: string | null; sortOrder?: number }, accountId?: string): Promise<void>;
+  // Many folder updates in as few Mailbox/set calls as the server allows.
+  // Refused folders don't stop the rest: returns their ids with the SetError type.
+  updateMailboxes(updates: Record<string, { name?: string; parentId?: string | null; role?: string | null; sortOrder?: number }>, accountId?: string): Promise<Record<string, string>>;
   // `removeEmails` destroys the folder's messages too (onDestroyRemoveEmails,
   // RFC 8621 §2.5) instead of failing with mailboxHasEmail.
   deleteMailbox(mailboxId: string, accountId?: string, options?: { removeEmails?: boolean }): Promise<void>;
@@ -232,9 +235,10 @@ export interface IJMAPClient {
    * Total / unread message counts per tag id. `accountId` scopes the count to
    * a group/shared account reached through this client (defaults to the
    * client's own account); the store sums it over every account a tag view
-   * spans (#1038).
+   * spans (#1038). A message filed only in `excludeMailboxIds` (the account's
+   * Trash and Junk, which the tag view leaves out, #1156) is not counted.
    */
-  getTagCounts(tagIds: string[], accountId?: string): Promise<Record<string, { total: number; unread: number }>>;
+  getTagCounts(tagIds: string[], accountId?: string, excludeMailboxIds?: string[]): Promise<Record<string, { total: number; unread: number }>>;
   /**
    * Enumerate account keywords for extensions. Servers supporting Keyword/get
    * can return exact counts and provider-label metadata; other servers use the
@@ -272,6 +276,23 @@ export interface IJMAPClient {
    * bodies or attachments), deduped.
    */
   searchSentRecipients(query: string, sentMailboxId: string, accountId?: string, limit?: number): Promise<Array<{ name: string; email: string }>>;
+  /**
+   * Only the named properties (e.g. `header:List-Id:asText`) of the given
+   * messages, plus their `id`. Nothing is namespaced: ids stay as the server
+   * has them.
+   */
+  getEmailFields(emailIds: string[], properties: string[], accountId?: string): Promise<Array<Record<string, unknown>>>;
+  /**
+   * Every message matching `filter`, newest first, with only the named
+   * properties plus `id`. Pages through the whole result up to `limit`
+   * (default 10000).
+   */
+  queryEmailFields(
+    filter: Record<string, unknown>,
+    properties: string[],
+    accountId?: string,
+    limit?: number,
+  ): Promise<Array<Record<string, unknown>>>;
 
   // ── Email mutations ───────────────────────────────────────────
   markAsRead(emailId: string, read?: boolean, accountId?: string): Promise<void>;
@@ -302,6 +323,7 @@ export interface IJMAPClient {
   ): Promise<void>;
   moveEmail(emailId: string, toMailboxId: string, accountId?: string): Promise<void>;
   emptyMailbox(mailboxId: string, accountId?: string): Promise<number>;
+  moveMailboxContents(fromMailboxId: string, toMailboxId: string, accountId?: string, markAsRead?: boolean): Promise<number>;
   markMailboxAsRead(mailboxId: string, accountId?: string): Promise<number>;
   markAllAsRead(excludeMailboxIds?: string[], accountId?: string): Promise<number>;
   markAsSpam(emailId: string, accountId?: string, markAsRead?: boolean): Promise<void>;
@@ -328,6 +350,8 @@ export interface IJMAPClient {
     // The account the previous version (`draftId`) lives in, when it is not
     // the client's own; the new version is always saved in the own account.
     draftAccountId?: string,
+    inReplyTo?: string[],
+    references?: string[],
   ): Promise<string>;
 
   sendEmail(
@@ -496,6 +520,7 @@ export interface IJMAPClient {
   getCalendarsAccountId(): string;
   getCalendars(): Promise<Calendar[]>;
   getAllCalendars(): Promise<Calendar[]>;
+  getAllCalendarsWithFailures(): Promise<{ calendars: Calendar[]; failedAccountIds: string[] }>;
   createCalendar(calendar: Partial<Calendar>, targetAccountId?: string, options?: CreateCalendarOptions): Promise<Calendar>;
   updateCalendar(calendarId: string, updates: Partial<Calendar>, targetAccountId?: string): Promise<void>;
   setDefaultCalendar(calendarId: string, targetAccountId?: string): Promise<void>;
@@ -520,7 +545,8 @@ export interface IJMAPClient {
   // ── Calendar Tasks ────────────────────────────────────────────
   getCalendarTasks(calendarIds?: string[], targetAccountId?: string): Promise<CalendarTask[]>;
   createCalendarTask(task: Partial<CalendarTask>, targetAccountId?: string): Promise<CalendarTask>;
-  updateCalendarTask(taskId: string, updates: Partial<CalendarTask>, targetAccountId?: string): Promise<void>;
+  /** Resolves to the task's id afterwards; it changes when the task moves to another account. */
+  updateCalendarTask(taskId: string, updates: Partial<CalendarTask>, targetAccountId?: string): Promise<string>;
   deleteCalendarTask(taskId: string, targetAccountId?: string): Promise<void>;
 
   // ── Sharing (RFC 9670 Principals) ─────────────────────────────
@@ -544,6 +570,9 @@ export interface IJMAPClient {
   createSieveScript(name: string, content: string, activate?: boolean, accountId?: string): Promise<SieveScript>;
   updateSieveScript(scriptId: string, content: string, activate?: boolean, accountId?: string): Promise<void>;
   deleteSieveScript(scriptId: string, accountId?: string): Promise<void>;
+  activateSieveScript(scriptId: string, accountId?: string): Promise<void>;
+  /** Leave the account with no active script. */
+  deactivateSieveScript(accountId?: string): Promise<void>;
   validateSieveScript(content: string, accountId?: string): Promise<{ isValid: boolean; errors?: string[] }>;
 
   // ── Files (WebDAV / FileNode) ─────────────────────────────────
@@ -561,14 +590,20 @@ export interface IJMAPClient {
   copyFileNode(id: string, newName: string, parentId: string | null, listings?: FileNodeListings): Promise<FileNode>;
 
   // ── S/MIME raw-email helpers ──────────────────────────────────
-  importRawEmail(blob: Blob, mailboxIds: Record<string, boolean>, keywords?: Record<string, boolean>, accountId?: string): Promise<string>;
+  /**
+   * Upload a raw message and import it (Email/import). `receivedAt` keeps the
+   * original date when a message is carried over from another account;
+   * without it the server stamps the import time.
+   */
+  importRawEmail(blob: Blob, mailboxIds: Record<string, boolean>, keywords?: Record<string, boolean>, accountId?: string, receivedAt?: string): Promise<string>;
   submitEmail(emailId: string, identityId: string): Promise<void>;
   /**
    * Server-side move of one email across accounts reachable through THIS client
    * (JMAP `Email/copy` + destroy-original). Used for delegated/shared folders,
    * where the two accounts share a client but a client can't stage a blob in a
    * delegated account (so the blob copy+import path doesn't work). Returns the
-   * new email id in the destination account.
+   * new email id in the destination account. `keepOriginal` makes it a plain
+   * copy: the source message is left where it is.
    */
-  copyEmailAcrossAccounts(emailId: string, fromAccountId: string, toAccountId: string, destMailboxId: string): Promise<string>;
+  copyEmailAcrossAccounts(emailId: string, fromAccountId: string, toAccountId: string, destMailboxId: string, options?: { keepOriginal?: boolean }): Promise<string>;
 }

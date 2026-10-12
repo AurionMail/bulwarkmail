@@ -373,6 +373,8 @@ interface ContactStore {
   isLoading: boolean;
   error: string | null;
   supportsSync: boolean;
+  /** False until the first fetch from the server has finished (runtime only). */
+  contactsLoaded: boolean;
 
   // Trusted senders address book cache (runtime only, not persisted)
   trustedSenderEmails: string[];
@@ -499,6 +501,7 @@ export const useContactStore = create<ContactStore>()(
       isLoading: false,
       error: null,
       supportsSync: false,
+      contactsLoaded: false,
       trustedSenderEmails: [],
       trustedSendersBookId: null,
       trustedSendersLoaded: false,
@@ -517,10 +520,10 @@ export const useContactStore = create<ContactStore>()(
         set({ isLoading: true, error: null });
         try {
           const contacts = await client.getAllContacts();
-          set({ contacts, isLoading: false });
+          set({ contacts, isLoading: false, contactsLoaded: true });
         } catch (error) {
           console.error('Failed to fetch contacts:', error);
-          set({ error: 'Failed to fetch contacts', isLoading: false });
+          set({ error: 'Failed to fetch contacts', isLoading: false, contactsLoaded: true });
         }
       },
 
@@ -571,10 +574,10 @@ export const useContactStore = create<ContactStore>()(
               }
             }),
           );
-          set({ contacts: results.flat(), isLoading: false });
+          set({ contacts: results.flat(), isLoading: false, contactsLoaded: true });
         } catch (error) {
           console.error('Failed to fetch all-account contacts:', error);
-          set({ error: 'Failed to fetch contacts', isLoading: false });
+          set({ error: 'Failed to fetch contacts', isLoading: false, contactsLoaded: true });
         }
       },
 
@@ -735,6 +738,7 @@ export const useContactStore = create<ContactStore>()(
 
       clearContacts: () => set({
         contacts: [],
+        contactsLoaded: false,
         addressBooks: [],
         selectedContactId: null,
         searchQuery: '',

@@ -58,6 +58,7 @@ export interface FeatureGates {
   debugModeEnabled: boolean;
   folderIconsEnabled: boolean;
   hoverActionsConfigEnabled: boolean;
+  tabTitleSubjectEnabled: boolean;
   filesEnabled: boolean;
   contactsEnabled: boolean;
   /** @deprecated Folded into `crossAllViewEnabled`; normalized forward on policy load. */
@@ -66,6 +67,8 @@ export interface FeatureGates {
   crossStarredViewEnabled: boolean;
   crossAllViewEnabled: boolean;
   unifiedCrossAccountEnabled: boolean;
+  /** Encrypted account list kept on the server, restorable on another device. */
+  accountArchiveEnabled: boolean;
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
@@ -85,6 +88,7 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   debugModeEnabled: true,
   folderIconsEnabled: true,
   hoverActionsConfigEnabled: true,
+  tabTitleSubjectEnabled: true,
   filesEnabled: true,
   contactsEnabled: true,
   allMailViewEnabled: false,
@@ -92,6 +96,7 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   crossStarredViewEnabled: false,
   crossAllViewEnabled: false,
   unifiedCrossAccountEnabled: false,
+  accountArchiveEnabled: false,
 };
 
 export interface ThemePolicy {
@@ -163,6 +168,9 @@ export interface SettingsPolicy {
   defaultSidebarApps?: AdminSidebarApp[];
 }
 
+/** Set to `public` on a policy answered with the pre-login subset. */
+export const POLICY_SCOPE_HEADER = 'X-Bulwark-Policy-Scope';
+
 export const DEFAULT_POLICY: SettingsPolicy = {
   restrictions: {},
   features: { ...DEFAULT_FEATURE_GATES },
@@ -185,7 +193,7 @@ export interface AuditEntry {
 }
 
 /** Config keys that map to environment variables */
-export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: string; type: 'string' | 'boolean' | 'url' | 'enum' | 'json'; defaultValue: unknown; enumValues?: string[] }> = {
+export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: string; fileKey?: string; type: 'string' | 'boolean' | 'url' | 'enum' | 'json'; defaultValue: unknown; enumValues?: string[] }> = {
   appName: { envVar: 'APP_NAME', type: 'string', defaultValue: 'Webmail' },
   appShortName: { envVar: 'APP_SHORT_NAME', type: 'string', defaultValue: '' },
   appDescription: { envVar: 'APP_DESCRIPTION', type: 'string', defaultValue: '' },
@@ -212,6 +220,10 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   loginImprintUrl: { envVar: 'LOGIN_IMPRINT_URL', type: 'url', defaultValue: '' },
   loginPrivacyPolicyUrl: { envVar: 'LOGIN_PRIVACY_POLICY_URL', type: 'url', defaultValue: '' },
   loginWebsiteUrl: { envVar: 'LOGIN_WEBSITE_URL', type: 'url', defaultValue: '' },
+  // Where users get the source of the build they are running (AGPL-3.0 §13).
+  // Operators of a modified build point it at their fork; the About card then
+  // links there instead of the upstream repository (#1161). Empty = upstream.
+  sourceCodeUrl: { envVar: 'SOURCE_CODE_URL', type: 'url', defaultValue: '' },
   // Login header customization. The logo box is otherwise a fixed 64×64
   // (w-16/h-16), which fits a wide wordmark to ~13px tall; set a max height
   // and/or width (any CSS length, e.g. "230px" or "3rem") to size it. The
@@ -226,13 +238,17 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   // the IdP have no server-side TOTP, so the toggle only leads to a failed
   // login. Server-required TOTP (totp_required) still shows regardless.
   loginShowTotp: { envVar: 'LOGIN_SHOW_TOTP', type: 'boolean', defaultValue: true },
+  // Offer signing in with an access token (Bearer auth) instead of a
+  // password. For JMAP servers that hand out API tokens, such as Fastmail,
+  // whose API accepts no passwords at all.
+  loginShowTokenLogin: { envVar: 'LOGIN_SHOW_TOKEN_LOGIN', type: 'boolean', defaultValue: false },
   // Show the build version in the login footer. Off keeps the exact version
   // from being disclosed to unauthenticated visitors.
   loginShowVersion: { envVar: 'LOGIN_SHOW_VERSION', type: 'boolean', defaultValue: true },
   oauthEnabled: { envVar: 'OAUTH_ENABLED', type: 'boolean', defaultValue: false },
   oauthOnly: { envVar: 'OAUTH_ONLY', type: 'boolean', defaultValue: false },
   oauthClientId: { envVar: 'OAUTH_CLIENT_ID', type: 'string', defaultValue: '' },
-  oauthClientSecret: { envVar: 'OAUTH_CLIENT_SECRET', fileEnvVar: 'OAUTH_CLIENT_SECRET_FILE', type: 'string', defaultValue: '' },
+  oauthClientSecret: { envVar: 'OAUTH_CLIENT_SECRET', fileEnvVar: 'OAUTH_CLIENT_SECRET_FILE', fileKey: "oauthClientSecretFile", type: 'string', defaultValue: '' },
   oauthIssuerUrl: { envVar: 'OAUTH_ISSUER_URL', type: 'url', defaultValue: '' },
   // Overrides only the user-facing authorize endpoint. Discovery, token exchange
   // and refresh continue to use the canonical OAUTH_ISSUER_URL. Lets a per-brand
@@ -271,7 +287,7 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   settingsSyncEnabled: { envVar: 'SETTINGS_SYNC_ENABLED', type: 'boolean', defaultValue: false },
   logFormat: { envVar: 'LOG_FORMAT', type: 'enum', defaultValue: 'text', enumValues: ['text', 'json'] },
   logLevel: { envVar: 'LOG_LEVEL', type: 'enum', defaultValue: 'info', enumValues: ['error', 'warn', 'info', 'debug'] },
-  sessionSecret: { envVar: 'SESSION_SECRET', fileEnvVar: 'SESSION_SECRET_FILE', type: 'string', defaultValue: '' },
+  sessionSecret: { envVar: 'SESSION_SECRET', fileEnvVar: 'SESSION_SECRET_FILE', fileKey: "sessionSecretFile", type: 'string', defaultValue: '' },
   extensionDirectoryUrl: { envVar: 'EXTENSION_DIRECTORY_URL', type: 'url', defaultValue: 'https://extensions.bulwarkmail.org' },
   // Connector links (connector.bulwarkmail.org): docs and the extension
   // directory link to a destination, and the reader's own browser resolves it
@@ -287,9 +303,10 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   // from `<url>/hosting/discovery` unless the URL already carries a path.
   // Empty = feature off.
   wopiClientUrl: { envVar: 'WOPI_CLIENT_URL', type: 'url', defaultValue: '' },
-  // How the WOPI editor reaches this webmail (WOPISrc base). Empty = derive
-  // from the request origin; set it when the editor sees a different host
-  // than the browser (docker networks, split DNS).
+  // How the WOPI editor reaches this webmail (WOPISrc base). Empty = the
+  // origin the browser uses; set it when the editor sees a different host
+  // than the browser (docker networks, split DNS). The base path of a
+  // sub-path install is added to a bare origin (#1130).
   wopiHostUrl: { envVar: 'WOPI_HOST_URL', type: 'url', defaultValue: '' },
 };
 

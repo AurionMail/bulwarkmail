@@ -132,18 +132,20 @@ export interface SendEmailResult {
    */
   filingError?: string;
   /**
-   * Recipients the server refused while it took the submission; the others
-   * get the message. When it refused every one, the send throws
-   * RecipientsRefusedError instead.
+   * Recipients the server refused while accepting the submission (its
+   * deliveryStatus says delivered "no"). The message went out to the others
+   * only - callers should name these instead of reporting a plain success.
+   * When it refused every one, the send throws RecipientsRejectedError
+   * instead.
    */
-  refusedRecipients?: RefusedRecipient[];
+  rejectedRecipients?: RejectedRecipient[];
 }
 
-/** A recipient the server refused to take a message for (EmailSubmission deliveryStatus `delivered: "no"`). */
-export interface RefusedRecipient {
+/** A recipient refused at submission, with the SMTP reply the server gave. */
+export interface RejectedRecipient {
   email: string;
-  /** The server's SMTP reply, e.g. "550 5.1.2 Relay not allowed." */
-  smtpReply?: string;
+  /** The server's SMTP reply, e.g. "550 5.1.2 Relay not allowed."; empty when it gave none. */
+  smtpReply: string;
 }
 
 export interface ScheduledEmail extends Email {
@@ -177,6 +179,15 @@ export interface AuthenticationResults {
     result: 'pass' | 'fail' | 'policy' | 'neutral' | 'temperror' | 'permerror';
     domain?: string;
     selector?: string;
+    /**
+     * Every DKIM result when the message carried more than one signature;
+     * `result` above is the first.
+     */
+    all?: Array<{
+      result: 'pass' | 'fail' | 'policy' | 'neutral' | 'temperror' | 'permerror';
+      domain?: string;
+      selector?: string;
+    }>;
   };
   dmarc?: {
     result: 'pass' | 'fail' | 'none';
@@ -873,6 +884,11 @@ export interface CalendarTask {
   useDefaultAlerts?: boolean;
   alerts: Record<string, CalendarEventAlert> | null;
   relatedTo: Record<string, CalendarRelation> | null;
+  // Client-only, set on tasks from a shared calendar account. Their `id` and
+  // `calendarIds` are namespaced `accountId:id` like shared events.
+  originalId?: string;
+  accountId?: string;
+  isShared?: boolean;
 }
 
 /**

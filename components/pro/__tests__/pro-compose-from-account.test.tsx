@@ -186,7 +186,7 @@ describe('Pro compose tab - recipients the server refused', () => {
   it('says which recipients never get the message', async () => {
     emailState.sendEmail = vi.fn().mockResolvedValue({
       scheduled: false,
-      refusedRecipients: [{ email: 'nobody@example.net', smtpReply: '550 5.1.2 Relay not allowed.' }],
+      rejectedRecipients: [{ email: 'nobody@example.net', smtpReply: '550 5.1.2 Relay not allowed.' }],
     });
     render(<ProComposeTabBody tabId="tab-1" data={TAB_DATA} />);
     const onSend = composerProps.current?.onSend as (data: Record<string, unknown>) => Promise<void>;

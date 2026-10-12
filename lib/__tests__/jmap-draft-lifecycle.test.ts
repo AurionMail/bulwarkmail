@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { JMAPClient } from '../jmap/client';
+import { JMAPClient, SendUnconfirmedError } from '../jmap/client';
 
 /**
  * #849: replacing a draft (autosave, send) used to bundle the destroy of the
@@ -29,7 +29,7 @@ interface CapturedRequest { methodCalls: JMAPMethodCall[] }
  * Email/set create come back as notCreated; `failSubmission` does the same
  * for EmailSubmission/set.
  */
-function mockFlow({ failCreate = false, failSubmission = false } = {}) {
+function mockFlow({ failCreate = false, failSubmission = false, methodError = false, missingSubmission = false, emptyErrors = false } = {}) {
   const captured: CapturedRequest[] = [];
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
     const body = JSON.parse((init as { body: string }).body) as CapturedRequest;
@@ -56,11 +56,14 @@ function mockFlow({ failCreate = false, failSubmission = false } = {}) {
             result.created = { [key]: { id: 'email-new-1' } };
           }
         }
+        if (emptyErrors) result.notCreated = {};
         if (args.destroy) {
           result.destroyed = args.destroy;
         }
         methodResponses.push(['Email/set', result, callId]);
       } else if (method === 'EmailSubmission/set') {
+        if (missingSubmission) continue;
+        if (methodError) { methodResponses.push(['error', { type: 'serverFail', description: 'Google unavailable; draft retained' }, callId]); continue; }
         methodResponses.push(['EmailSubmission/set',
           failSubmission
             ? { notCreated: { '1': { type: 'forbiddenFrom', description: 'not allowed' } } }
@@ -101,6 +104,23 @@ describe('draft replace lifecycle (#849)', () => {
     const sets = emailSetCalls(captured);
     expect(sets).toHaveLength(1);
     expect(sets[0].destroy).toBeUndefined();
+  });
+
+  it('createDraft keeps a reply draft in its thread', async () => {
+    // A reply draft re-opened (or restored by Undo) has nothing else to
+    // rebuild In-Reply-To / References from, so the draft must carry them.
+    const client = createClient();
+    const captured = mockFlow();
+
+    await client.createDraft(
+      ['bob@example.com'], 'Re: Subject', 'body',
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      ['<parent@example.com>'], ['root@example.com', 'parent@example.com'],
+    );
+
+    const created = Object.values(emailSetCalls(captured)[0].create as Record<string, Record<string, unknown>>)[0];
+    expect(created.inReplyTo).toEqual(['parent@example.com']);
+    expect(created.references).toEqual(['root@example.com', 'parent@example.com']);
   });
 
   it('createDraft destroys the previous version only after the create succeeded', async () => {
@@ -354,5 +374,21 @@ describe('a draft that lives in a group account', () => {
     );
 
     expect(emailSetCalls(captured)[1]).toEqual({ accountId: 'account-1', destroy: ['draft-old-1'] });
+  });
+});
+
+describe('compose failure recovery', () => {
+  beforeEach(() => { vi.restoreAllMocks(); vi.spyOn(console, 'error').mockImplementation(() => {}); });
+  it.each([{ methodError: true }, { missingSubmission: true }])('does not claim success or delete the old draft without confirmation: %j', async options => {
+    const client = createClient(); const captured = mockFlow(options);
+    await expect(client.sendEmail(['bob@example.com'], 'Subject', 'body', undefined, undefined, 'identity-1', 'user@example.com', 'old-draft')).rejects.toThrow(
+      // Only the missing submission is unconfirmed; a method error is a plain failure.
+      options.missingSubmission ? SendUnconfirmedError : Error,
+    );
+    expect(emailSetCalls(captured).some(call => (call.destroy as string[] | undefined)?.includes('old-draft'))).toBe(false);
+  });
+  it('accepts empty notCreated maps as success', async () => {
+    const client = createClient(); mockFlow({ emptyErrors: true });
+    expect(await client.createDraft(['bob@example.com'], 'Subject', 'body')).toBe('email-new-1');
   });
 });

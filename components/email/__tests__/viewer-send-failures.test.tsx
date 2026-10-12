@@ -12,6 +12,11 @@ import { useSettingsStore } from '@/stores/settings-store';
 // them fails, so each has to say so; the automatic read receipt must not
 // retry on every refresh either.
 
+// The rules menu resolves the account and Sieve support from the client, which this test stubs only for sending.
+vi.mock('@/components/email/rules-menu', () => ({
+  RulesPanel: () => null,
+  useRulesAvailability: () => ({ availability: 'hidden', target: null }),
+}));
 vi.mock('@/hooks/use-media-query', () => ({
   useDeviceDetection: () => ({ isMobile: false, isTablet: false, isDesktop: true }),
   useMediaQuery: () => false,

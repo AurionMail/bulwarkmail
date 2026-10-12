@@ -1,12 +1,7 @@
-import { NoLongerScheduledError, RecipientsRefusedError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError } from '@/lib/jmap/client';
-import type { RefusedRecipient } from '@/lib/jmap/types';
+import { NoLongerScheduledError, RecipientsRejectedError, RequestTimeoutError, ScheduleTooLateError, SubmissionQuotaError, formatRejectedRecipients } from '@/lib/jmap/client';
+import type { RejectedRecipient } from '@/lib/jmap/types';
 
 type Translate = (key: string, values?: Record<string, string>) => string;
-
-/** "nobody@example.net (550 5.1.2 Relay not allowed.)", one per refused recipient. */
-export function formatRefusedRecipients(recipients: RefusedRecipient[]): string {
-  return recipients.map((r) => (r.smtpReply ? `${r.email} (${r.smtpReply})` : r.email)).join(', ');
-}
 
 /**
  * Thrown by "Undo send" and "Cancel and edit" when the cancel went through
@@ -48,8 +43,8 @@ export function sendFailureMessage(error: unknown, t: Translate): string {
   }
   if (error instanceof RequestTimeoutError) return t('send_timeout');
   if (error instanceof ScheduleTooLateError) return t('schedule_send_too_late');
-  if (error instanceof RecipientsRefusedError) {
-    return t('recipients_refused', { recipients: formatRefusedRecipients(error.recipients) });
+  if (error instanceof RecipientsRejectedError) {
+    return t('recipients_refused', { recipients: formatRejectedRecipients(error.recipients) });
   }
   return error instanceof Error && error.message ? error.message : t('send_failed');
 }
@@ -77,10 +72,10 @@ export function rescheduleFailureToast(
   if (error instanceof SubmissionQuotaError) {
     return { title: stillScheduled, message: sendFailureMessage(error, tComposer) };
   }
-  if (error instanceof RecipientsRefusedError) {
+  if (error instanceof RecipientsRejectedError) {
     return {
       title: stillScheduled,
-      message: tViewer('reschedule_recipients_refused', { recipients: formatRefusedRecipients(error.recipients) }),
+      message: tViewer('reschedule_recipients_refused', { recipients: formatRejectedRecipients(error.recipients) }),
     };
   }
   return { title: sendFailureMessage(error, tComposer) };
@@ -88,13 +83,13 @@ export function rescheduleFailureToast(
 
 /**
  * The warning after a send, "Send now" or reschedule that the server took for
- * some recipients only (`refusedRecipients`), from the `email_composer`
+ * some recipients only (`rejectedRecipients`), from the `email_composer`
  * messages; null when it took them all. Nothing else, not even a bounce,
  * tells the user who never gets the message.
  */
-export function partlyRefusedWarning(result: { refusedRecipients?: RefusedRecipient[] }, tComposer: Translate): string | null {
-  return result.refusedRecipients?.length
-    ? tComposer('recipients_partly_refused', { recipients: formatRefusedRecipients(result.refusedRecipients) })
+export function partlyRefusedWarning(result: { rejectedRecipients?: RejectedRecipient[] }, tComposer: Translate): string | null {
+  return result.rejectedRecipients?.length
+    ? tComposer('recipients_partly_refused', { recipients: formatRejectedRecipients(result.rejectedRecipients) })
     : null;
 }
 

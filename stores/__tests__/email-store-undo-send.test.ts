@@ -113,7 +113,7 @@ describe('cancelling a send and restoring the draft', () => {
   it('restores mail sent from the own identity in the own Drafts, as before', async () => {
     const restored = await useEmailStore.getState().cancelUndoSend(client, { ...pending, submissionAccountId: 'account-1' });
 
-    expect(client.restoreEmailToDraft).toHaveBeenCalledWith('sent-1', 'mb-drafts', 'mb-sent');
+    expect(client.restoreEmailToDraft).toHaveBeenCalledWith('sent-1', 'mb-drafts', 'mb-sent', 'account-1');
     expect(client.getMailboxes).not.toHaveBeenCalled();
     expect(client.getEmail).toHaveBeenCalledWith('sent-1', 'account-1');
     expect(restored).toEqual({ id: 'sent-1' });

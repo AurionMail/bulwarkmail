@@ -148,7 +148,7 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onDraftChange: { emit: () => {} },
     onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
     onBeforeEmailSend: { intercept: async () => true },
-    onComposeSend: { intercept: async () => true },
+    onComposeSend: { intercept: async () => true, takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
   },
   contactHooks: {
@@ -238,7 +238,8 @@ describe('a draft and the login it was saved with', () => {
       },
       switchFrom: (identityId: string) => fireEvent.change(screen.getByTestId('composer-from'), { target: { value: identityId } }),
       discard: () => {
-        act(() => requestCloseRef.current!());
+        // The Discard button asks even when the draft is saved.
+        fireEvent.click(screen.getByText('discard'));
         fireEvent.click(within(screen.getByRole('alertdialog')).getByText('discard'));
       },
       send: async () => {

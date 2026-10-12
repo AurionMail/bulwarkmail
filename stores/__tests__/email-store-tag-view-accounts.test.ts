@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEmailStore } from '../email-store';
+import { emailKeyFor } from '@/lib/thread-utils';
 import { useSettingsStore } from '../settings-store';
 import { useAuthStore } from '../auth-store';
 import { useMessageListTabsStore } from '../message-list-tabs-store';
@@ -137,7 +138,10 @@ describe('tag view across the own and group accounts (#1038)', () => {
     useEmailStore.setState({ selectedMailbox: groupInbox.id });
     useEmailStore.getState().selectKeyword(label);
     await useEmailStore.getState().fetchEmails(client);
-    useEmailStore.setState({ selectedEmailIds: new Set(['own-1', 'grp-1']) });
+    // Keyed by owning account: in this very view 'own-1' and 'grp-1' could be
+    // the same bare id in two accounts.
+    const picked = useEmailStore.getState().emails.filter(e => ['own-1', 'grp-1'].includes(e.id));
+    useEmailStore.setState({ selectedEmailKeys: new Set(picked.map(emailKeyFor)) });
 
     await useEmailStore.getState().batchMarkAsRead(client, true);
 
@@ -155,8 +159,9 @@ describe('tag view across the own and group accounts (#1038)', () => {
 
     await useEmailStore.getState().loadMoreEmails(client);
 
-    expect(client.getEmails).toHaveBeenCalledWith(undefined, undefined, 2, 3, keyword, true, undefined, []);
-    expect(client.getEmails).toHaveBeenCalledWith(undefined, 'group', 2, 3, keyword, true, undefined, []);
+    // Each account continues after its own rows, not at the merged length.
+    expect(client.getEmails).toHaveBeenCalledWith(undefined, undefined, 2, 2, keyword, true, undefined, []);
+    expect(client.getEmails).toHaveBeenCalledWith(undefined, 'group', 2, 1, keyword, true, undefined, []);
     expect(useEmailStore.getState().hasMoreEmails).toBe(false);
   });
 
@@ -178,9 +183,24 @@ describe('tag view across the own and group accounts (#1038)', () => {
   it('sums the sidebar tag badge over every account', async () => {
     await useEmailStore.getState().fetchTagCounts(client);
 
-    expect(client.getTagCounts).toHaveBeenCalledWith([label], undefined);
-    expect(client.getTagCounts).toHaveBeenCalledWith([label], 'group');
+    expect(client.getTagCounts).toHaveBeenCalledWith([label], undefined, []);
+    expect(client.getTagCounts).toHaveBeenCalledWith([label], 'group', []);
     expect(useEmailStore.getState().tagCounts[label]).toEqual({ total: 4, unread: 1 });
+  });
+
+  it("leaves every account's Trash and Junk out of the badge, as the tag view does (#1156)", async () => {
+    const ownTrash = { id: 'trash', name: 'Trash', role: 'trash', isShared: false } as Mailbox;
+    const ownJunk = { id: 'junk', name: 'Junk', role: 'junk', isShared: false } as Mailbox;
+    const groupTrash = {
+      id: 'group:trash', originalId: 'trash', name: 'Trash', role: 'trash',
+      isShared: true, accountId: 'group', accountName: 'group@server.tld',
+    } as Mailbox;
+    useEmailStore.setState({ mailboxes: [ownInbox, ownTrash, ownJunk, groupInbox, groupTrash] });
+
+    await useEmailStore.getState().fetchTagCounts(client);
+
+    expect(client.getTagCounts).toHaveBeenCalledWith([label], undefined, ['trash', 'junk']);
+    expect(client.getTagCounts).toHaveBeenCalledWith([label], 'group', ['trash']);
   });
 
   it('still lists only the selected folder when no tag is selected', async () => {

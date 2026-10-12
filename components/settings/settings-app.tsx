@@ -102,6 +102,9 @@ import {
   tabSearchPaths,
 } from '@/lib/settings-search';
 import { useLiteLinkSegments } from '@/hooks/use-lite-link-segments';
+import { useDocumentTitle } from '@/hooks/use-document-title';
+import { MvTopBar } from "@/components/layout/mv-top-bar";
+import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
 
 type Tab = SettingsSearchTab;
 
@@ -217,9 +220,12 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const router = useRouter();
   const t = useTranslations('settings');
   const tSidebar = useTranslations('sidebar');
+  useDocumentTitle(tSidebar('settings'));
   const { client, isAuthenticated, logout, checkAuth, isLoading: authLoading } = useAuthStore();
   const { showAppsModal, inlineApp, loadedApps, handleManageApps, handleInlineApp, closeInlineApp, closeAppsModal } = useSidebarApps();
   const isEmbedded = useIsEmbedded();
+  // Mountain View's desktop chrome: its top bar in place of the left rail.
+  const mvShell = useMountainViewShell(isEmbedded);
   const [initialCheckDone, setInitialCheckDone] = useState(() => useAuthStore.getState().isAuthenticated && !!useAuthStore.getState().client);
   const { quota, isPushConnected } = useEmailStore();
   const { stalwartFeaturesEnabled } = useConfig();
@@ -542,7 +548,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     // Appearance
     { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'appearance' },
     { id: 'layout', label: t('tabs.layout'), icon: tabIcons.layout, group: 'appearance' },
-    ...(isFeatureEnabled('themesEnabled') ? [{ id: 'themes' as Tab, label: 'Themes', icon: tabIcons.themes, group: 'appearance' as TabGroup }] : []),
+    ...(isFeatureEnabled('themesEnabled') ? [{ id: 'themes' as Tab, label: t('tabs.themes'), icon: tabIcons.themes, group: 'appearance' as TabGroup }] : []),
 
     // Mail
     { id: 'reading', label: t('tabs.reading'), icon: tabIcons.reading, group: 'mail' },
@@ -863,10 +869,19 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
   // Desktop layout
   return (
-    <div className={cn("flex flex-col bg-background pt-[env(safe-area-inset-top)]", isEmbedded ? "h-full" : "h-dvh")}>
+    <div className={cn("flex flex-col pt-[env(safe-area-inset-top)]", mvShell ? "bg-[var(--mv-canvas)]" : "bg-background", isEmbedded ? "h-full" : "h-dvh")}>
       <AppTopBannerSlot />
-      <div className="flex flex-1 min-h-0">
-      {!isEmbedded && (
+      {mvShell && (
+        <MvTopBar
+          showMenuButton={false}
+          onManageApps={handleManageApps}
+          onInlineApp={handleInlineApp}
+          onCloseInlineApp={closeInlineApp}
+          activeAppId={inlineApp?.id ?? null}
+        />
+      )}
+      <div data-mv-card={mvShell ? "" : undefined} className={cn("flex flex-1 min-h-0", mvShell && "mb-4 mx-4")}>
+      {!isEmbedded && !mvShell && (
         <div className="w-14 bg-secondary flex flex-col flex-shrink-0" style={{ borderRight: '1px solid rgba(128, 128, 128, 0.3)' }}>
           <NavigationRail
             collapsed

@@ -131,6 +131,7 @@ export function SettingsTab() {
       <SettingsSection title="Login Page">
         <ToggleSetting label="Show Version" description="Show the webmail version in the login page footer. Turn off to keep the exact version hidden from visitors who are not signed in." configKey="loginShowVersion" value={currentValue('loginShowVersion') as boolean} source={config.loginShowVersion?.source} onChange={handleChange} onRevert={handleRevert} />
         <ToggleSetting label="Show 2FA Code Option" description="Show the &quot;I have a 2FA code&quot; toggle on the login form. Turn off when two-factor authentication is handled by an external identity provider. Accounts that require a code still get the field." configKey="loginShowTotp" value={currentValue('loginShowTotp') as boolean} source={config.loginShowTotp?.source} onChange={handleChange} onRevert={handleRevert} />
+        <ToggleSetting label="Show Access Token Sign-In" description="Offer signing in with an access token instead of a password. For JMAP servers that authenticate API tokens as Bearer tokens, such as Fastmail, which accepts no passwords over JMAP." configKey="loginShowTokenLogin" value={currentValue('loginShowTokenLogin') as boolean} source={config.loginShowTokenLogin?.source} onChange={handleChange} onRevert={handleRevert} />
         <ToggleSetting label="Show Heading" description="Show the application name below the login logo" configKey="loginShowHeading" value={currentValue('loginShowHeading') as boolean} source={config.loginShowHeading?.source} onChange={handleChange} onRevert={handleRevert} />
         <ToggleSetting label="Show Subtitle" description="Show the subtitle below the login heading" configKey="loginShowSubtitle" value={currentValue('loginShowSubtitle') as boolean} source={config.loginShowSubtitle?.source} onChange={handleChange} onRevert={handleRevert} />
       </SettingsSection>
@@ -162,10 +163,10 @@ export function SettingsTab() {
 
       <SettingsSection title="Document Editing (WOPI)">
         <TextSetting label="WOPI Client URL" configKey="wopiClientUrl" value={currentValue('wopiClientUrl') as string} source={config.wopiClientUrl?.source} onChange={handleChange} onRevert={handleRevert} placeholder="https://office.example.com" />
-        <TextSetting label="WOPI Host URL Override" configKey="wopiHostUrl" value={currentValue('wopiHostUrl') as string} source={config.wopiHostUrl?.source} onChange={handleChange} onRevert={handleRevert} placeholder="https://mail.example.com" />
+        <TextSetting label="WOPI Host URL Override" configKey="wopiHostUrl" value={currentValue('wopiHostUrl') as string} source={config.wopiHostUrl?.source} onChange={handleChange} onRevert={handleRevert} placeholder="http://webmail:3000" />
         <div className="px-4 py-2.5">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Point the client URL at a WOPI-compatible office suite (Collabora Online, OnlyOffice, EuroOffice, …) to let users edit documents in Files. The host override is only needed when the editor reaches this webmail under a different address than the browser does (e.g. Docker networks). The editor must also allow this webmail as a WOPI host.
+            Point the client URL at a WOPI-compatible office suite (Collabora Online, OnlyOffice, EuroOffice, …) to let users edit documents in Files. The client URL may be an internal address: the browser loads the editor from the address its discovery advertises. The host override is only needed when the editor reaches this webmail under a different address than the browser does (e.g. Docker networks); give the address alone, the webmail&apos;s base path is added to it. The editor must also allow this webmail as a WOPI host.
           </p>
         </div>
       </SettingsSection>

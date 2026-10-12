@@ -3,19 +3,24 @@
 import { useMemo, useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useDisplayDateFormatter } from "@/hooks/use-display-date-formatter";
-import { format, isSameDay, parseISO, eachDayOfInterval, differenceInCalendarDays } from "date-fns";
+import { format, isSameDay, eachDayOfInterval, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Check } from "@/components/icons";
 import { EventCard } from "./event-card";
 import { QuickEventInput } from "./quick-event-input";
+import { AllHoursToggle, HiddenEventsIndicator } from "./display-hours-controls";
 import { formatSnapTime, getEventDayBounds, getPrimaryCalendarId, isTimedEventFullDayOnDate, layoutOverlappingEvents } from "@/lib/calendar-utils";
+import { clipToDisplayHours, partitionByDisplayHours } from "@/lib/calendar-display-range";
 import { displayNow, isDisplayToday } from "@/lib/timezone";
+import { groupTasksByDueDay } from "@/lib/calendar-tasks";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
+import { useDisplayHours } from "@/hooks/use-display-hours";
 import { useTimeGridInteractions } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
+import { readableTextOn } from "@/lib/color-transform";
 
 interface CalendarDayViewProps extends ScrollWindowViewProps {
   selectedDate: Date;
@@ -30,10 +35,14 @@ interface CalendarDayViewProps extends ScrollWindowViewProps {
   timeFormat?: "12h" | "24h";
   isMobile?: boolean;
   pendingPreview?: PendingEventPreview | null;
-  /** The user's calendar addresses: moving an event they organize asks its attendees again. */
-  currentUserEmails?: string[];
   tasks?: CalendarTask[];
   onToggleTaskComplete?: (task: CalendarTask) => void;
+  onSelectTask?: (task: CalendarTask) => void;
+  /**
+   * The user's calendar addresses, to mark events they declined (#1110).
+   * Moving an event they organize also asks its attendees again.
+   */
+  currentUserEmails?: string[];
 }
 
 const HOUR_HEIGHT = 64;
@@ -61,9 +70,10 @@ export function CalendarDayView({
   timeFormat = "24h",
   isMobile,
   pendingPreview,
-  currentUserEmails,
   tasks,
   onToggleTaskComplete,
+  onSelectTask,
+  currentUserEmails,
 }: CalendarDayViewProps) {
   const t = useTranslations("calendar");
   const describeError = useCalendarErrorMessage();
@@ -147,31 +157,26 @@ export function CalendarDayView({
     return map;
   }, [events]);
 
-  const tasksByDay = useMemo(() => {
-    const map = new Map<string, CalendarTask[]>();
-    if (!tasks?.length) return map;
-    for (const task of tasks) {
-      if (!task.due) continue;
-      try {
-        const key = format(parseISO(task.due), "yyyy-MM-dd");
-        const existing = map.get(key) || [];
-        existing.push(task);
-        map.set(key, existing);
-      } catch { /* skip */ }
-    }
-    return map;
-  }, [tasks]);
+  const tasksByDay = useMemo(() => groupTasksByDueDay(tasks), [tasks]);
+
+  const {
+    hours, canToggle: canToggleHours, configured: configuredHours, showAllHours, toggleAllHours, revealMinutes,
+  } = useDisplayHours({ scrollRef: rootRef, hourHeight: HOUR_HEIGHT });
+  const firstHour = hours.startMinutes / 60;
+  const visibleHours = HOURS.slice(firstHour, hours.endMinutes / 60);
+  const gridHeight = visibleHours.length * HOUR_HEIGHT;
 
   // Column layouts are the costly part of a render; with months of columns
   // they must not be redone on every scroll-driven re-render.
   const layoutByDay = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof layoutOverlappingEvents>>();
+    const map = new Map<string, ReturnType<typeof partitionByDisplayHours> & { layouts: ReturnType<typeof layoutOverlappingEvents> }>();
     for (const day of days) {
       const key = format(day, "yyyy-MM-dd");
-      map.set(key, layoutOverlappingEvents(eventsByDay.get(key)?.timed ?? [], day));
+      const partition = partitionByDisplayHours(eventsByDay.get(key)?.timed ?? [], day, hours);
+      map.set(key, { ...partition, layouts: layoutOverlappingEvents(partition.visible, day) });
     }
     return map;
-  }, [days, eventsByDay]);
+  }, [days, eventsByDay, hours]);
 
   const hasAllDayArea = useMemo(
     () => days.some((day) => {
@@ -180,13 +185,6 @@ export function CalendarDayView({
     }),
     [days, eventsByDay, tasksByDay],
   );
-
-  useEffect(() => {
-    if (rootRef.current) {
-      const now = displayNow();
-      rootRef.current.scrollTop = Math.max(0, (now.getHours() - 1) * HOUR_HEIGHT);
-    }
-  }, []);
 
   const scrollToFocus = useCallback(() => {
     const root = rootRef.current;
@@ -265,6 +263,8 @@ export function CalendarDayView({
     dropTarget, handleColumnDragOver, handleColumnDragLeave, handleColumnDrop,
   } = useTimeGridInteractions({
     hourHeight: HOUR_HEIGHT,
+    gridStartMinutes: hours.startMinutes,
+    gridEndMinutes: hours.endMinutes,
     calendars,
     onCreateRange: onCreateAtTime,
     errorMessages: {
@@ -303,7 +303,16 @@ export function CalendarDayView({
         <div ref={endSentinelRef} data-testid="day-end-sentinel" className="absolute inset-y-0 end-0 w-px pointer-events-none" />
 
         <div className="sticky top-0 z-50 flex border-b border-border bg-background">
-          <div className={gutterClass} />
+          <div className={cn(gutterClass, "flex items-end justify-center pb-1")}>
+            {canToggleHours && (
+              <AllHoursToggle
+                showAllHours={showAllHours}
+                configured={configuredHours}
+                timeFormat={timeFormat}
+                onToggle={toggleAllHours}
+              />
+            )}
+          </div>
           <div className="grid" style={columnsStyle}>
             {days.map((day) => {
               const key = format(day, "yyyy-MM-dd");
@@ -312,13 +321,26 @@ export function CalendarDayView({
               const dayTasks = tasksByDay.get(key) ?? [];
               return (
                 <div key={key} data-day={key} className="min-w-0 border-e border-border last:border-e-0">
-                  <div className={cn("px-4 py-3", isMobile && "px-3 py-2")}>
-                    <h3 className={cn("font-semibold truncate", isMobile ? "text-base" : "text-lg", today && "text-primary")}>
-                      {isMobile
-                        ? intlFormatter.dateTime(day, { weekday: "short", month: "short", day: "numeric" })
-                        : intlFormatter.dateTime(day, { weekday: "long", month: "long", day: "numeric", year: "numeric" })
-                      }
-                    </h3>
+                  <div
+                    className={cn("flex flex-col items-start gap-0.5 px-3 pt-2 pb-1.5", isMobile && "px-2")}
+                    role="columnheader"
+                    aria-label={intlFormatter.dateTime(day, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                  >
+                    <div className={cn(
+                      "w-10 text-center text-[11px] font-medium uppercase tracking-wide",
+                      today ? "text-primary" : "text-muted-foreground",
+                    )}>
+                      {intlFormatter.dateTime(day, { weekday: "short" })}
+                    </div>
+                    <div
+                      aria-current={today ? "date" : undefined}
+                      className={cn(
+                        "inline-flex items-center justify-center w-10 h-10 rounded-full text-xl",
+                        today ? "bg-primary text-primary-foreground font-semibold" : "text-foreground",
+                      )}
+                    >
+                      {format(day, "d")}
+                    </div>
                   </div>
 
                   {hasAllDayArea && (
@@ -345,6 +367,7 @@ export function CalendarDayView({
                                   onMouseEnter={(rect) => onHoverEvent?.(ev, rect)}
                                   onMouseLeave={onHoverLeave}
                                   onContextMenu={onContextMenuEvent}
+                                  currentUserEmails={currentUserEmails}
                                 />
                               );
                             })}
@@ -362,10 +385,13 @@ export function CalendarDayView({
                               return (
                                 <div
                                   key={task.id}
+                                  data-calendar-task={task.id}
+                                  onClick={() => onSelectTask?.(task)}
                                   className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs cursor-pointer hover:bg-muted/50 transition-colors"
-                                  style={{ borderLeft: `3px solid ${color}` }}
+                                  style={{ borderInlineStart: `3px solid ${color}` }}
                                 >
                                   <button
+                                    type="button"
                                     onClick={(e) => { e.stopPropagation(); onToggleTaskComplete?.(task); }}
                                     className={cn(
                                       "flex-shrink-0 w-3.5 h-3.5 rounded-full border flex items-center justify-center",
@@ -373,6 +399,7 @@ export function CalendarDayView({
                                         ? "bg-success border-success text-success-foreground"
                                         : "border-muted-foreground/40 hover:border-primary"
                                     )}
+                                    aria-label={isCompleted ? t("tasks.mark_incomplete") : t("tasks.mark_complete")}
                                   >
                                     {isCompleted && <Check className="h-2.5 w-2.5" />}
                                   </button>
@@ -394,16 +421,22 @@ export function CalendarDayView({
         </div>
 
         <div>
-          <div className="flex relative" style={{ height: 24 * HOUR_HEIGHT }}>
+          <div className="flex relative" style={{ height: gridHeight }}>
             <div className={gutterClass}>
-              {HOURS.map((h) => (
+              {visibleHours.map((h) => (
                 <div
                   key={h}
                   className="relative text-muted-foreground text-end pe-2"
                   style={{ height: HOUR_HEIGHT }}
                 >
-                  {h > 0 && (
-                    <span className={cn("absolute top-0 right-2 -translate-y-1/2 leading-none", isMobile ? "text-[10px]" : "text-xs")}>
+                  {/* Midnight goes unlabelled; a later first hour is labelled
+                      inside its row, where the header cannot cover it. */}
+                  {(h > firstHour || firstHour > 0) && (
+                    <span className={cn(
+                      "absolute right-2 leading-none",
+                      h > firstHour ? "top-0 -translate-y-1/2" : "top-1",
+                      isMobile ? "text-[10px]" : "text-xs",
+                    )}>
                       {formatHour(h)}
                     </span>
                   )}
@@ -415,7 +448,8 @@ export function CalendarDayView({
               {days.map((day) => {
                 const key = format(day, "yyyy-MM-dd");
                 const today = isDisplayToday(day);
-                const layouted = layoutByDay.get(key) ?? [];
+                const dayLayout = layoutByDay.get(key);
+                const layouted = dayLayout?.layouts ?? [];
 
                 return (
                   <div
@@ -430,7 +464,7 @@ export function CalendarDayView({
                     onDragLeave={handleColumnDragLeave}
                     onDrop={(e) => handleColumnDrop(e, day)}
                   >
-                    {HOURS.map((h) => (
+                    {visibleHours.map((h) => (
                       <div
                         key={h}
                         role="gridcell"
@@ -443,10 +477,30 @@ export function CalendarDayView({
                       />
                     ))}
 
+                    {dayLayout && dayLayout.before > 0 && (
+                      <HiddenEventsIndicator
+                        count={dayLayout.before}
+                        direction="before"
+                        onReveal={() => revealMinutes(dayLayout.firstBeforeMinutes ?? 0)}
+                      />
+                    )}
+                    {dayLayout && dayLayout.after > 0 && (
+                      <HiddenEventsIndicator
+                        count={dayLayout.after}
+                        direction="after"
+                        onReveal={() => revealMinutes(dayLayout.firstAfterMinutes ?? hours.endMinutes)}
+                      />
+                    )}
+
                     {layouted.map(({ event: ev, column, totalColumns, startMinutes, endMinutes }) => {
                       const durMin = Math.max(15, endMinutes - startMinutes);
-                      const baseTop = (startMinutes / 60) * HOUR_HEIGHT;
-                      const baseHeight = Math.max(24, (durMin / 60) * HOUR_HEIGHT);
+                      const clip = clipToDisplayHours(startMinutes, endMinutes, hours);
+                      const baseHeight = Math.max(24, (Math.max(15, clip.endMinutes - clip.startMinutes) / 60) * HOUR_HEIGHT);
+                      // Short events at the bottom edge stay inside the grid.
+                      const baseTop = Math.max(0, Math.min(
+                        ((clip.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
+                        gridHeight - baseHeight,
+                      ));
                       const isResizing = resizeVisual?.eventId === ev.id;
                       const top = isResizing ? resizeVisual!.topPx : baseTop;
                       const height = isResizing ? resizeVisual!.heightPx : baseHeight;
@@ -469,8 +523,11 @@ export function CalendarDayView({
                             onMouseEnter={(rect) => onHoverEvent?.(ev, rect)}
                             onMouseLeave={onHoverLeave}
                             onContextMenu={onContextMenuEvent}
+                            currentUserEmails={currentUserEmails}
                             draggable
                           />
+                          {/* An edge beyond the visible hours has nothing to grab. */}
+                          {!clip.clippedStart && (
                           <div
                             data-resize-handle
                             className="absolute top-0 left-1 right-1 h-3 cursor-n-resize z-20 flex items-start justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
@@ -481,6 +538,8 @@ export function CalendarDayView({
                           >
                             <div className="w-8 h-1 rounded-full bg-foreground/30 mt-0.5" />
                           </div>
+                          )}
+                          {!clip.clippedEnd && (
                           <div
                             data-resize-handle
                             className="absolute bottom-0 left-1 right-1 h-3 cursor-s-resize z-20 flex items-end justify-center opacity-0 group-hover/event:opacity-100 transition-opacity"
@@ -491,18 +550,19 @@ export function CalendarDayView({
                           >
                             <div className="w-8 h-1 rounded-full bg-foreground/30 mb-0.5" />
                           </div>
+                          )}
                         </div>
                       );
                     })}
 
-                    {today && (
+                    {today && nowMinutes >= hours.startMinutes && nowMinutes <= hours.endMinutes && (
                       <div
                         className="absolute left-0 right-0 z-20 pointer-events-none"
-                        style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }}
+                        style={{ top: ((nowMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT }}
                       >
-                        <div className="flex items-center">
-                          <div className="w-2.5 h-2.5 rounded-full bg-destructive -ms-1" />
-                          <div className="flex-1 h-px bg-destructive" />
+                        <div className="flex items-center -translate-y-1/2">
+                          <div className="w-3 h-3 rounded-full bg-destructive -ms-1.5 flex-shrink-0" />
+                          <div className="flex-1 h-0.5 bg-destructive" />
                         </div>
                       </div>
                     )}
@@ -519,7 +579,7 @@ export function CalendarDayView({
                       <div
                         className="absolute left-1 right-1 z-30 rounded-md pointer-events-none bg-primary/15 border-2 border-primary/30 border-dashed"
                         style={{
-                          top: (dragCreate.startMinutes / 60) * HOUR_HEIGHT,
+                          top: ((dragCreate.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
                           height: ((dragCreate.endMinutes - dragCreate.startMinutes) / 60) * HOUR_HEIGHT,
                         }}
                       >
@@ -532,7 +592,7 @@ export function CalendarDayView({
                     {dropTarget?.dayKey === key && (
                       <div
                         className="absolute left-0 right-0 z-30 pointer-events-none"
-                        style={{ top: (dropTarget.minutes / 60) * HOUR_HEIGHT }}
+                        style={{ top: ((dropTarget.minutes - hours.startMinutes) / 60) * HOUR_HEIGHT }}
                       >
                         <div className="flex items-center">
                           <div className="w-2.5 h-2.5 rounded-full bg-primary -ms-1" />
@@ -549,22 +609,27 @@ export function CalendarDayView({
                         const startMin = pendingPreview.start.getHours() * 60 + pendingPreview.start.getMinutes();
                         const endMin = pendingPreview.end.getHours() * 60 + pendingPreview.end.getMinutes();
                         const durationMin = Math.max(15, endMin - startMin);
+                        if (startMin + durationMin <= hours.startMinutes || startMin >= hours.endMinutes) return null;
+                        const clip = clipToDisplayHours(startMin, startMin + durationMin, hours);
                         const cal = calendars.find(c => c.id === pendingPreview.calendarId);
-                        const color = cal?.color || "hsl(var(--primary))";
+                        const color = cal?.color || "#3b82f6";
+                        // Drawn like a saved event, so the new event shows where
+                        // it will land while it is being created.
                         return (
                           <div
-                            className="absolute left-2 right-2 z-10 rounded-md pointer-events-none border-2 border-dashed overflow-hidden"
+                            data-pending-preview
+                            className="absolute left-0.5 right-0.5 z-30 rounded-xs pointer-events-none overflow-hidden px-1.5 py-0.5 text-xs shadow-md"
                             style={{
-                              top: (startMin / 60) * HOUR_HEIGHT,
-                              height: Math.max(24, (durationMin / 60) * HOUR_HEIGHT),
-                              borderColor: color,
-                              backgroundColor: `${color}10`,
+                              top: ((clip.startMinutes - hours.startMinutes) / 60) * HOUR_HEIGHT,
+                              height: Math.max(24, ((clip.endMinutes - clip.startMinutes) / 60) * HOUR_HEIGHT),
+                              backgroundColor: color,
+                              color: readableTextOn(color),
                             }}
                           >
-                            <div className="text-[10px] font-medium px-1.5 py-0.5 truncate" style={{ color }}>
+                            <div className="font-medium truncate">
                               {pendingPreview.title}
                             </div>
-                            <div className="text-[9px] px-1.5 opacity-70" style={{ color }}>
+                            <div className="text-[10.5px] opacity-85 truncate">
                               {formatSnapTime(startMin, timeFormat)} – {formatSnapTime(startMin + durationMin, timeFormat)}
                             </div>
                           </div>

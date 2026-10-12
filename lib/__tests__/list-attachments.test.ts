@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
-import { requestListAttachments, type ListAttachmentSource } from '../list-attachments';
+import { peekListAttachments, requestListAttachments, type ListAttachmentSource } from '../list-attachments';
 import type { Attachment } from '../jmap/types';
 
 type Call = [string, Record<string, unknown>, string];
@@ -141,6 +141,16 @@ describe('requestListAttachments', () => {
     requestListAttachments(source, undefined, 'a', onLoad);
     await vi.runAllTimersAsync();
     expect(source.getEmailAttachments).toHaveBeenCalledTimes(2);
+  });
+
+  it('lets a remounting row peek at the cache without asking', async () => {
+    const source = fakeSource();
+    expect(peekListAttachments(source, undefined, 'a')).toBeUndefined();
+    requestListAttachments(source, undefined, 'a', vi.fn());
+    await vi.runAllTimersAsync();
+    expect(peekListAttachments(source, undefined, 'a')).toEqual([pdf('a')]);
+    expect(peekListAttachments(source, 'owner', 'a')).toBeUndefined();
+    expect(source.getEmailAttachments).toHaveBeenCalledTimes(1);
   });
 
   it('does nothing for a client without lazy attachments', () => {

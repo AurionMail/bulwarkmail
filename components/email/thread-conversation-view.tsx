@@ -3,16 +3,18 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import DOMPurify from "dompurify";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
-import { EMAIL_SANITIZE_CONFIG, collapseBlockedImageContainers, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
+import { EMAIL_SANITIZE_CONFIG, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
+import { findVerificationCode, verificationCodeBodyText } from "@/lib/verification-code";
+import { VerificationCodeChip } from "./verification-code-chip";
 import { collectReferencedCids, isEmbeddedInBody } from "@/lib/attachment-visibility";
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
 import { fitEmailBodyWidth } from "@/lib/email-fit-width";
-import { transformInlineStyles, transformColorForDarkMode, transformBgColorForDarkMode } from "@/lib/color-transform";
+import { DARK_PENDING_CLASS, applyEmailDarkMode, emailDarkModeCss } from "@/lib/email-dark-mode";
 import { useThemeStore } from "@/stores/theme-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { formatDate, formatFileSize, cn } from "@/lib/utils";
+import { formatDate, formatFileSize, cn, cleanPreview } from "@/lib/utils";
 import {
   ArrowLeft,
   ChevronDown,
@@ -156,6 +158,8 @@ export function ThreadConversationView({
         <button
           onClick={onBack}
           className="p-2 -ms-2 rounded-full hover:bg-muted transition-colors"
+          aria-label={t('email_viewer.back_to_list')}
+          title={t('email_viewer.back_to_list')}
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -245,7 +249,15 @@ function EmailCard({
   const wopiStatus = useWopiStatus(true);
   const hideInlineImageAttachments = useSettingsStore((state) => state.hideInlineImageAttachments);
   const emailAlwaysLightMode = useSettingsStore((state) => state.emailAlwaysLightMode);
+  const isDark = resolvedTheme === 'dark' && !emailAlwaysLightMode;
   const plainTextFont = useSettingsStore((state) => state.plainTextFont);
+  const showVerificationCodes = useSettingsStore((state) => state.showVerificationCodes);
+  const verificationCode = useMemo(
+    () => (showVerificationCodes && isExpanded ? findVerificationCode(email.subject, verificationCodeBodyText(email)) : null),
+    // A keyword change replaces the email object; only another body needs another look.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showVerificationCodes, isExpanded, email.id, email.subject, email.bodyValues],
+  );
   const sender = email.from?.[0];
   const formatAddress = useOwnDomainAddress();
   const isUnread = !email.keywords?.$seen;
@@ -354,55 +366,20 @@ function EmailCard({
         const sanitizeConfig = { ...EMAIL_SANITIZE_CONFIG };
 
         DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-          const htmlNode = node as HTMLElement;
-
           // Re-apply the data:-URI allowlist DOMPurify skips on media tags.
           restrictDataUriResourcesOnNode(node);
 
-          if (!allowExternal) {
-            if (node.tagName === 'IMG') {
-              const src = node.getAttribute('src');
-              if (src && (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//'))) {
-                node.setAttribute('data-blocked-src', src);
-                node.removeAttribute('src');
-                node.setAttribute('alt', '[Image blocked]');
-                blockedExternalContent = true;
-              }
-            }
-            if (node.hasAttribute('style')) {
-              const style = node.getAttribute('style');
-              if (style && /url\s*\(/i.test(style)) {
-                const cleanStyle = style.replace(/url\s*\([^)]*\)/gi, 'none');
-                node.setAttribute('style', cleanStyle);
-                blockedExternalContent = true;
-              }
-            }
+          // The desktop viewer's blocker: srcset, <source>, poster,
+          // background attributes and escaped url()s as well as img src.
+          if (!allowExternal && blockExternalResourcesOnNode(node)) {
+            blockedExternalContent = true;
           }
 
-          if (node.tagName === 'A') {
+          if (node.tagName === 'A' || node.tagName === 'AREA') {
             node.setAttribute('target', '_blank');
             node.setAttribute('rel', 'noopener noreferrer');
           }
 
-          if (resolvedTheme === 'dark' && !emailAlwaysLightMode) {
-            if (htmlNode.style) {
-              const originalStyles = htmlNode.style.cssText;
-              const transformedStyles = transformInlineStyles(originalStyles, 'dark');
-              if (transformedStyles !== originalStyles) {
-                htmlNode.style.cssText = transformedStyles;
-              }
-            }
-
-            const colorAttr = node.getAttribute('color');
-            if (colorAttr) {
-              node.setAttribute('color', transformColorForDarkMode(colorAttr));
-            }
-
-            const bgcolorAttr = node.getAttribute('bgcolor');
-            if (bgcolorAttr) {
-              node.setAttribute('bgcolor', transformBgColorForDarkMode(bgcolorAttr));
-            }
-          }
         });
 
         const sanitized = DOMPurify.sanitize(htmlContent, sanitizeConfig);
@@ -410,7 +387,7 @@ function EmailCard({
 
         let finalHtml = sanitized;
         if (blockedExternalContent) {
-          setHasBlockedContent(true);
+          if (!hasBlockedContent) setHasBlockedContent(true);
           finalHtml = collapseBlockedImageContainers(sanitized);
         }
 
@@ -441,7 +418,10 @@ function EmailCard({
     }
 
     return { html: "", isHtml: false };
-  }, [email, allowExternal, resolvedTheme, emailAlwaysLightMode, cidBlobUrls, t]);
+  // `hasBlockedContent` is only read to skip a redundant setState; as a
+  // dependency it would re-run the sanitizer once the banner shows.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, allowExternal, cidBlobUrls, t]);
 
   // Parts the body embeds via cid: stay out of the attachment row while the
   // user hides inline images - the desktop viewer's rule, shared through
@@ -460,11 +440,15 @@ function EmailCard({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const emailIframeSrcDoc = useMemo(() => {
     if (!emailContent.isHtml || !emailContent.html) return '';
-    const csp = "default-src 'none'; img-src data: blob: http: https:; style-src 'unsafe-inline'; font-src data: http: https:; media-src data: blob: http: https:; base-uri 'none'; form-action 'none'; frame-src 'none'";
-    return `<!DOCTYPE html><html><head>
+    // Strict while external content is blocked: the network-level backstop
+    // for whatever the DOM walk above cannot see.
+    const csp = emailIframeCsp(!allowExternal);
+    // Colours are rewritten after load (applyEmailDarkMode in handleIframeLoad).
+    return `<!DOCTYPE html><html class="${isDark ? DARK_PENDING_CLASS : ''}"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="${csp}">
+<meta name="referrer" content="no-referrer">
 <style>
   /* overflow-y hidden keeps the scrollHeight measurement below honest. overflow-x
      is auto so intrinsically wide content can pan instead of being clipped outright;
@@ -490,8 +474,9 @@ function EmailCard({
   table { table-layout: auto; overflow-wrap: break-word; }
   td, th { word-break: break-word; padding: 0.5rem; }
   pre { white-space: pre-wrap; word-wrap: break-word; }
+  ${isDark ? emailDarkModeCss() : ''}
 </style></head><body dir="auto">${emailContent.html}</body></html>`;
-  }, [emailContent.isHtml, emailContent.html]);
+  }, [emailContent.isHtml, emailContent.html, allowExternal, isDark]);
 
   const handleIframeLoad = useCallback(() => {
     const iframe = iframeRef.current;
@@ -505,6 +490,7 @@ function EmailCard({
         show: t('email_viewer.show_quoted_text'),
         hide: t('email_viewer.hide_quoted_text'),
       });
+      if (isDark) applyEmailDarkMode(doc, { remoteContentAllowed: allowExternal });
       const resize = () => {
         // Fit desktop-width mail to the screen before measuring: the transform
         // leaves the layout height untouched, so scale the box by hand.
@@ -515,14 +501,14 @@ function EmailCard({
       resize();
       const ro = new ResizeObserver(resize);
       ro.observe(doc.body);
-      doc.querySelectorAll('a').forEach((a) => {
+      doc.querySelectorAll('a, area').forEach((a) => {
         a.setAttribute('target', '_blank');
         a.setAttribute('rel', 'noopener noreferrer');
       });
     } catch {
       // contentDocument may be inaccessible under stricter sandboxes; ignore.
     }
-  }, [t]);
+  }, [t, isDark, allowExternal]);
 
   return (
     <div className={cn(
@@ -567,7 +553,7 @@ function EmailCard({
           </div>
           {!isExpanded && density !== 'extra-compact' && (
             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-              {email.preview || t('email_viewer.no_preview_available')}
+              {cleanPreview(email.preview) || t('email_viewer.no_preview_available')}
             </p>
           )}
         </div>
@@ -613,6 +599,12 @@ function EmailCard({
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+
+          {verificationCode && (
+            <div className="flex" style={{ paddingInline: 'var(--density-card-p)', paddingTop: 'var(--density-card-p)' }}>
+              <VerificationCodeChip code={verificationCode} className="py-1 text-sm" />
             </div>
           )}
 
@@ -691,10 +683,10 @@ function EmailCard({
                   e.stopPropagation();
                   onReply();
                 }}
-                className="flex-1"
+                className="flex-1 min-w-0 px-2 whitespace-nowrap"
               >
-                <Reply className="w-4 h-4 me-2" />
-                {t("email_viewer.reply")}
+                <Reply className="w-4 h-4 me-1.5 shrink-0" />
+                <span className="truncate">{t("email_viewer.reply")}</span>
               </Button>
             )}
             {onReplyAll && (
@@ -705,10 +697,10 @@ function EmailCard({
                   e.stopPropagation();
                   onReplyAll();
                 }}
-                className="flex-1"
+                className="flex-1 min-w-0 px-2 whitespace-nowrap"
               >
-                <ReplyAll className="w-4 h-4 me-2" />
-                {t("email_viewer.reply_all")}
+                <ReplyAll className="w-4 h-4 me-1.5 shrink-0" />
+                <span className="truncate">{t("email_viewer.reply_all")}</span>
               </Button>
             )}
             {onForward && (
@@ -719,10 +711,10 @@ function EmailCard({
                   e.stopPropagation();
                   onForward();
                 }}
-                className="flex-1"
+                className="flex-1 min-w-0 px-2 whitespace-nowrap"
               >
-                <Forward className="w-4 h-4 me-2" />
-                {t("email_viewer.forward")}
+                <Forward className="w-4 h-4 me-1.5 shrink-0" />
+                <span className="truncate">{t("email_viewer.forward")}</span>
               </Button>
             )}
           </div>

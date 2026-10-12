@@ -133,6 +133,24 @@ export function resolveMutationTarget(
   return { realId: id, isOccurrence: false };
 }
 
+/**
+ * A server-expanded instance reports `start` in the zone it was expanded in -
+ * the request's zone whenever the event's own start is UTC or floating, as in
+ * a Google Calendar export - not in its base event's zone. Stalwart reads a
+ * written `start` in the base event's zone, so a start worked out from the
+ * instance has to carry the instance's zone along, or the event shifts by the
+ * offset between the two (#1119). All-day starts stay floating.
+ */
+function withInstanceTimeZone(
+  storeEvent: CalendarEvent | undefined,
+  updates: Partial<CalendarEvent>,
+): Partial<CalendarEvent> {
+  if (!storeEvent || !isServerRecurrenceInstance(storeEvent)) return updates;
+  if (updates.start === undefined || updates.timeZone !== undefined) return updates;
+  if (storeEvent.showWithoutTime || updates.showWithoutTime || !storeEvent.timeZone) return updates;
+  return { ...updates, timeZone: storeEvent.timeZone };
+}
+
 /** True when the store shows server-expanded occurrences of base event `baseId` on the given account. */
 function hasExpandedOccurrencesOf(events: CalendarEvent[], baseId: string, target: MutationTarget): boolean {
   return events.some(e =>
@@ -442,10 +460,15 @@ async function refetchAfterOccurrenceMutation(): Promise<void> {
  * namespaced transition (aggregation switched on, an account switch, or a
  * just-created calendar added with its raw id) changes the id string while the
  * calendar is the same. Remap by raw identity so the selection survives instead
- * of silently resetting to "all". Keeps BIRTHDAY_CALENDAR_ID; drops ids that
- * resolve to no calendar.
+ * of silently resetting to "all". Keeps BIRTHDAY_CALENDAR_ID and ids starting
+ * with one of `unloadedPrefixes` (calendars of an account that failed to load
+ * are unknown, not deleted); drops ids that resolve to no calendar.
  */
-export function reconcileSelectedIds(selectedCalendarIds: string[], calendars: Calendar[]): string[] {
+export function reconcileSelectedIds(
+  selectedCalendarIds: string[],
+  calendars: Calendar[],
+  unloadedPrefixes: string[] = [],
+): string[] {
   const byStoreId = new Set(calendars.map((c) => c.id));
   const rawToStoreId = new Map<string, string>();
   for (const c of calendars) {
@@ -457,6 +480,8 @@ export function reconcileSelectedIds(selectedCalendarIds: string[], calendars: C
   for (const id of selectedCalendarIds) {
     let mapped: string | undefined;
     if (id === BIRTHDAY_CALENDAR_ID || byStoreId.has(id)) mapped = id;
+    // Before the raw remap: another account may hold the same raw id.
+    else if (unloadedPrefixes.some((prefix) => id.startsWith(prefix))) mapped = id;
     else mapped = rawToStoreId.get(rawIdentityOf(id));
     if (mapped && !seen.has(mapped)) {
       out.push(mapped);
@@ -464,6 +489,23 @@ export function reconcileSelectedIds(selectedCalendarIds: string[], calendars: C
     }
   }
   return out;
+}
+
+/**
+ * The selection to keep after a calendars fetch: the reconciled one, or the
+ * default when no real calendar is left in it. The virtual birthday calendar
+ * always survives reconciliation, so it must not count - counting it pinned
+ * the selection to "birthdays only" once the real calendars had dropped out.
+ */
+function selectionAfterFetch(
+  selectedCalendarIds: string[],
+  calendars: Calendar[],
+  defaultSelected: string[],
+  unloadedPrefixes?: string[],
+): string[] {
+  const reconciled = reconcileSelectedIds(selectedCalendarIds, calendars, unloadedPrefixes);
+  if (reconciled.some((id) => id !== BIRTHDAY_CALENDAR_ID)) return reconciled;
+  return reconciled.includes(BIRTHDAY_CALENDAR_ID) ? [...defaultSelected, BIRTHDAY_CALENDAR_ID] : defaultSelected;
 }
 
 // In-flight refresh dedup. Concurrent callers (auto-interval +
@@ -615,6 +657,39 @@ function getStoreEventDebugSnapshot(event: Partial<CalendarEvent> | null | undef
   };
 }
 
+/** Identifies the login a subscription belongs to: server plus login name. */
+export function subscriptionOwner(client: Pick<IJMAPClient, 'getServerUrl' | 'getUsername'>): string {
+  return `${client.getServerUrl().replace(/\/+$/, '').toLowerCase()}|${client.getUsername().toLowerCase()}`;
+}
+
+type CalendarStoreSet = (partial: Partial<CalendarStore> | ((state: CalendarStore) => Partial<CalendarStore>)) => void;
+
+/**
+ * Whether `client` may act on `sub`: refresh it (a destructive diff of the
+ * calendar's events), rename or delete its calendar. A subscription owned
+ * by this login may. One with another owner may not. One without an owner
+ * (created before owners were recorded) is adopted only when its calendar
+ * id and name both exist in this account - a bare id match would name an
+ * unrelated calendar in another account or on another server.
+ */
+async function claimSubscription(client: IJMAPClient, sub: ICalSubscription, set: CalendarStoreSet): Promise<boolean> {
+  const owner = subscriptionOwner(client);
+  if (sub.owner) return sub.owner === owner;
+  if (sub.accountId && sub.accountId !== client.getAccountId()) return false;
+  let calendars: Calendar[];
+  try {
+    calendars = await client.getCalendars();
+  } catch {
+    return false;
+  }
+  const found = calendars.some((c) => (c.originalId ?? c.id) === sub.calendarId && c.name === sub.name);
+  if (!found) return false;
+  set((state) => ({
+    icalSubscriptions: state.icalSubscriptions.map((s) => (s.id === sub.id ? { ...s, owner } : s)),
+  }));
+  return true;
+}
+
 export interface ICalSubscription {
   id: string;
   url: string;
@@ -624,6 +699,14 @@ export interface ICalSubscription {
   // legacy entries with no accountId are shown only in whichever account
   // the user has active (treated as floating). New subs always set it.
   accountId?: string;
+  /**
+   * The login that owns the subscription (subscriptionOwner()). A JMAP
+   * account id alone is not unique - two servers hand out the same small
+   * ids - so a subscription is only refreshed or removed through the login
+   * it was created with. Missing on subscriptions created before this was
+   * recorded; those are adopted once their calendar is found in the account.
+   */
+  owner?: string;
   name: string;
   color: string;
   refreshInterval: number; // minutes
@@ -716,6 +799,10 @@ interface CalendarStore {
   updateICalSubscription: (client: IJMAPClient, subscriptionId: string, updates: { url?: string; name?: string; color?: string; refreshInterval?: number }) => Promise<void>;
   removeICalSubscription: (client: IJMAPClient, subscriptionId: string) => Promise<void>;
   refreshICalSubscription: (client: IJMAPClient, subscriptionId: string) => Promise<void>;
+  /** Drop every subscription of a signed-out login (its feed URLs are secrets). */
+  forgetICalSubscriptions: (owner: string) => void;
+  /** Drop all subscriptions, e.g. once nobody is signed in any more. */
+  clearICalSubscriptions: () => void;
   refreshAllSubscriptions: (client: IJMAPClient) => Promise<void>;
   isSubscriptionCalendar: (calendarId: string) => boolean;
 }
@@ -773,16 +860,22 @@ export const useCalendarStore = create<CalendarStore>()(
         // alongside without blocking the grid.
         void get().fetchParticipantIdentities(client);
         try {
-          const calendars = await client.getAllCalendars();
-          const { selectedCalendarIds } = get();
-          const stillValid = reconcileSelectedIds(selectedCalendarIds, calendars);
+          // Throws when the primary account fails, so a failed fetch leaves the
+          // list and the selection as they were.
+          const { calendars, failedAccountIds } = await client.getAllCalendarsWithFailures();
           // Default the visible selection to event calendars only - tasks-only
           // calendars stay out of the event grid.
           const defaultSelected = calendars.filter(c => !c.isTasksOnly).map(c => c.id);
           set({
             calendars,
             isLoading: false,
-            selectedCalendarIds: stillValid.length > 0 ? stillValid : defaultSelected,
+            selectedCalendarIds: selectionAfterFetch(
+              get().selectedCalendarIds,
+              calendars,
+              defaultSelected,
+              // Shared calendars' ids are `<accountId>:<id>` (getAllCalendars).
+              failedAccountIds.map((accountId) => `${accountId}:`),
+            ),
           });
         } catch (error) {
           debug.error('Failed to fetch calendars:', error);
@@ -837,24 +930,32 @@ export const useCalendarStore = create<CalendarStore>()(
       fetchAllAccountsCalendars: async (accounts) => {
         set({ isLoading: true, error: null });
         try {
+          // Id prefixes of the calendars that could not be loaded this time.
+          const unloadedPrefixes: string[] = [];
           const results = await Promise.all(
             accounts.map(async ({ client, localAccountId }) => {
+              const prefix = buildCrossAccountIdPrefix(localAccountId);
               try {
-                const list = await client.getAllCalendars();
+                const { calendars: list, failedAccountIds } = await client.getAllCalendarsWithFailures();
+                unloadedPrefixes.push(...failedAccountIds.map((accountId) => `${prefix}${accountId}:`));
                 return prefixCalendarsWithLocalAccount(list, localAccountId);
               } catch (error) {
                 debug.error(`Failed to fetch calendars for account ${localAccountId}:`, error);
+                unloadedPrefixes.push(prefix);
                 return [] as Calendar[];
               }
             }),
           );
           const calendars = results.flat();
-          const { selectedCalendarIds } = get();
-          const stillValid = reconcileSelectedIds(selectedCalendarIds, calendars);
           set({
             calendars,
             isLoading: false,
-            selectedCalendarIds: stillValid.length > 0 ? stillValid : calendars.map(c => c.id),
+            selectedCalendarIds: selectionAfterFetch(
+              get().selectedCalendarIds,
+              calendars,
+              calendars.map(c => c.id),
+              unloadedPrefixes,
+            ),
           });
         } catch (error) {
           debug.error('Failed to fetch all-account calendars:', error);
@@ -1020,7 +1121,7 @@ export const useCalendarStore = create<CalendarStore>()(
             if (current) updates = options.fromCurrent(current);
           }
           // Remap namespaced calendarIds back to original IDs
-          const cleanUpdates = sanitizeOutgoingCalendarEventData({ ...updates });
+          const cleanUpdates = sanitizeOutgoingCalendarEventData(withInstanceTimeZone(storeEvent, { ...updates }));
           if (cleanUpdates.calendarIds) {
             const remapped: Record<string, boolean> = {};
             for (const [calId, v] of Object.entries(cleanUpdates.calendarIds)) {
@@ -1651,6 +1752,7 @@ export const useCalendarStore = create<CalendarStore>()(
             url: normalizedUrl,
             calendarId: calendar.id,
             accountId: client.getAccountId(),
+            owner: subscriptionOwner(client),
             name,
             color,
             refreshInterval,
@@ -1693,6 +1795,10 @@ export const useCalendarStore = create<CalendarStore>()(
       updateICalSubscription: async (client, subscriptionId, updates) => {
         const sub = get().icalSubscriptions.find(s => s.id === subscriptionId);
         if (!sub) return;
+        if (!(await claimSubscription(client, sub, set))) {
+          debug.warn('calendar', 'Not updating a subscription of another account', { sub: sub.name });
+          return;
+        }
 
         // Normalize webcal(s):// in the new URL so refreshes don't break.
         const normalizedUpdates: typeof updates = updates.url
@@ -1731,11 +1837,15 @@ export const useCalendarStore = create<CalendarStore>()(
         const sub = get().icalSubscriptions.find(s => s.id === subscriptionId);
         if (!sub) return;
 
-        try {
-          await client.deleteCalendar(sub.calendarId);
-        } catch (error) {
-          debug.error('Failed to delete subscription calendar:', error);
-          // Continue removing subscription record even if calendar delete fails
+        // Only destroy the calendar in the account the subscription belongs
+        // to: through another login its id names an unrelated calendar.
+        if (await claimSubscription(client, sub, set)) {
+          try {
+            await client.deleteCalendar(sub.calendarId);
+          } catch (error) {
+            debug.error('Failed to delete subscription calendar:', error);
+            // Continue removing subscription record even if calendar delete fails
+          }
         }
 
         set((state) => ({
@@ -1753,10 +1863,10 @@ export const useCalendarStore = create<CalendarStore>()(
         const sub = get().icalSubscriptions.find(s => s.id === subscriptionId);
         if (!sub) return;
 
-        // Skip if the subscription is scoped to a different JMAP account
-        // than the one this client is talking to - otherwise we'd create
-        // events in the wrong account / against a missing calendar.
-        if (sub.accountId && sub.accountId !== client.getAccountId()) {
+        // Skip unless the subscription belongs to this login - otherwise the
+        // diff below would delete the events of whatever calendar in this
+        // account happens to have the same id.
+        if (!(await claimSubscription(client, sub, set))) {
           debug.warn('calendar', 'Skipping subscription refresh: account mismatch', { sub: sub.name });
           return;
         }
@@ -1862,13 +1972,13 @@ export const useCalendarStore = create<CalendarStore>()(
       refreshAllSubscriptions: async (client) => {
         const { icalSubscriptions } = get();
         const currentAccountId = client.getAccountId();
+        const owner = subscriptionOwner(client);
         const now = Date.now();
 
         for (const sub of icalSubscriptions) {
-          // Only refresh subs for the current account (or legacy untagged
-          // subs, which are treated as belonging to whichever account the
-          // user has active).
-          if (sub.accountId && sub.accountId !== currentAccountId) continue;
+          // Only refresh subs of this login. Older ones without an owner
+          // are checked (and adopted) by refreshICalSubscription.
+          if (sub.owner ? sub.owner !== owner : (sub.accountId && sub.accountId !== currentAccountId)) continue;
 
           const lastRefreshed = sub.lastRefreshed ? new Date(sub.lastRefreshed).getTime() : 0;
           const intervalMs = sub.refreshInterval * 60 * 1000;
@@ -1881,6 +1991,14 @@ export const useCalendarStore = create<CalendarStore>()(
             }
           }
         }
+      },
+
+      forgetICalSubscriptions: (owner) => {
+        set((state) => ({ icalSubscriptions: state.icalSubscriptions.filter(s => s.owner !== owner) }));
+      },
+
+      clearICalSubscriptions: () => {
+        set({ icalSubscriptions: [] });
       },
 
       clearState: () => {

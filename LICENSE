@@ -3,7 +3,8 @@ Copyright (C) 2025-2026 Bulwark Project Authors
 
 This project is licensed under the GNU Affero General Public License,
 version 3 only, with the additional permission for app store
-distribution below.
+distribution below. That permission is provisional; see the
+reservation at its end.
 
 This repository includes material derived from earlier MIT-licensed work.
 The original attribution notice preserved for the fork lineage is available
@@ -40,6 +41,26 @@ This permission covers only the parts of a covered work that its copyright
 holders license under this License; it does not extend to parts licensed
 under other terms. As section 7 of this License allows, you may remove this
 permission from copies you convey and from your modified versions.
+
+Reservation
+
+This additional permission has not been finalized. The contributors of
+earlier parts of this Program have been asked whether they agree to it:
+https://github.com/orgs/bulwarkmail/discussions/1113
+
+Until that request is settled, the permission is granted subject to this
+reservation:
+
+  - It applies to all contributions made on or after 30 September 2026.
+    These contributions are accepted under this License together with
+    this permission.
+
+  - It applies to parts of this Program written before that date only
+    where their copyright holders have agreed to it. Parts whose
+    copyright holders do not agree will be rewritten or removed.
+
+This reservation will be removed once every earlier contributor has
+agreed or their parts have been replaced.
 
     									GNU AFFERO GENERAL PUBLIC LICENSE
     										 Version 3, 19 November 2007

@@ -199,8 +199,55 @@ option {
   color: var(--color-popover-foreground);
 }
 
+/* The group labels (the From dropdown's accounts) are painted the same way.
+   Without colours of their own they kept the control's text colour on the
+   popup's base, which a transparent control leaves light: in dark themes,
+   light text on a white bar. */
+optgroup {
+  background-color: var(--color-popover);
+  color: var(--color-popover-foreground);
+}
+
 .dark select {
   color-scheme: dark;
+}
+
+/* Tailwind v4's preflight no longer gives buttons a pointer cursor, so most
+   controls showed the arrow. Give everything clickable the pointer again, and
+   disabled controls not-allowed, as the components that style it themselves
+   already do. This sits in the base layer so a cursor utility on a component
+   (cursor-grab, cursor-text, disabled:cursor-default) still wins. */
+@layer base {
+  button:not(:disabled),
+  select:not(:disabled),
+  input:is([type="checkbox"], [type="radio"], [type="color"]):not(:disabled),
+  summary,
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="menuitemcheckbox"]:not([aria-disabled="true"]),
+  [role="menuitemradio"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  input:is([type="checkbox"], [type="radio"], [type="color"]):disabled,
+  [role="button"][aria-disabled="true"],
+  [role="tab"][aria-disabled="true"],
+  [role="switch"][aria-disabled="true"],
+  [role="checkbox"][aria-disabled="true"],
+  [role="radio"][aria-disabled="true"],
+  [role="option"][aria-disabled="true"],
+  [role="menuitem"][aria-disabled="true"],
+  [role="menuitemcheckbox"][aria-disabled="true"],
+  [role="menuitemradio"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }
 
 /* Minimalist scrollbar */
@@ -705,6 +752,16 @@ option {
   }
 }
 
+/* The same when the user turns animations off in the settings (#1215). */
+[data-animations="off"] *,
+[data-animations="off"] *::before,
+[data-animations="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* Disable backdrop-filter on mobile for performance */
 @media (max-width: 767px) {
   .mobile-backdrop {
@@ -900,4 +957,256 @@ option {
 [dir="rtl"] .tabler-icon-layout-sidebar-left,
 [dir="rtl"] .tabler-icon-layout-sidebar-right {
   transform: scaleX(-1);
+}
+
+/* ==========================================================================
+   Interface layouts
+   --------------------------------------------------------------------------
+   `data-interface-layout` is set on <html> by the settings store
+   (`applyInterfaceLayout`). The default layout declares no overrides, so
+   everything below is additive and switched off by a single attribute.
+   Mountain View sets its own geometry - bar heights, rail widths, pill shapes,
+   row rhythm - while colour, iconography and type keep coming from the active
+   theme.
+   ========================================================================== */
+
+[data-interface-layout="mountain-view"] {
+  --mv-topbar-h: 64px;
+  --mv-rail-w: 72px;
+  --mv-rail-peek-w: 256px;
+  --mv-nav-row-h: 32px;
+  --mv-nav-radius: 9999px;
+  --mv-compose-h: 56px;
+  --mv-search-h: 48px;
+  --mv-search-radius: 8px;
+  --mv-popover-w: 352px;
+  --mv-popover-radius: 28px;
+  --mv-card-radius: 16px;
+  /* Surfaces, tinted from the theme's primary so any theme keeps the same
+     relationships: a faintly tinted canvas behind the chrome, a plain card
+     for the content, a slightly deeper search field, a selected-row pill and
+     a soft Compose button. */
+  --mv-canvas: color-mix(in oklab, var(--color-primary) 4%, var(--color-background));
+  --mv-search-bg: color-mix(in oklab, var(--color-primary) 9%, var(--color-background));
+  --mv-nav-hover: color-mix(in oklab, var(--color-foreground) 7%, var(--mv-canvas));
+  --mv-nav-selected: color-mix(in oklab, var(--color-primary) 18%, var(--color-background));
+  --mv-compose-bg: color-mix(in oklab, var(--color-primary) 24%, var(--color-background));
+  --mv-compose-fg: color-mix(in oklab, var(--color-primary) 30%, var(--color-foreground));
+  --mv-row-read: color-mix(in oklab, var(--color-primary) 3%, var(--color-background));
+}
+
+/* The content card: everything that is not chrome sits on one rounded sheet
+   inset from the canvas. */
+[data-interface-layout="mountain-view"] [data-mv-card] {
+  border-radius: var(--mv-card-radius);
+  background-color: var(--color-background);
+  overflow: hidden;
+}
+
+/* Search: a filled 48px field that lifts onto a card while focused, rather
+   than the outlined input the default layout uses. */
+[data-interface-layout="mountain-view"] .mv-topbar input[data-search-input] {
+  height: var(--mv-search-h);
+  border-radius: var(--mv-search-radius);
+  border-color: transparent;
+  background-color: var(--mv-search-bg);
+  padding-inline-start: 3rem;
+  font-size: 1rem;
+}
+
+[data-interface-layout="mountain-view"] .mv-topbar input[data-search-input]:hover {
+  border-color: transparent;
+  background-color: var(--mv-search-bg);
+  box-shadow: 0 1px 1px 0 rgb(0 0 0 / 0.08), 0 1px 3px 1px rgb(0 0 0 / 0.04);
+}
+
+[data-interface-layout="mountain-view"] .mv-topbar input[data-search-input]:focus-visible {
+  background-color: var(--color-background);
+  border-color: transparent;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.16), 0 4px 8px 3px rgb(0 0 0 / 0.08);
+}
+
+/* The filter button sits inside the field's trailing end: keep typed text and
+   the clear button clear of it. */
+[data-interface-layout="mountain-view"] .mv-topbar input[data-search-input] {
+  padding-inline-end: 5.5rem;
+}
+
+[data-interface-layout="mountain-view"] .mv-topbar-search > div > form > button {
+  inset-inline-end: 3.25rem;
+}
+
+/* The magnifier sits on the field's baseline grid, one 48px hit area in. */
+[data-interface-layout="mountain-view"] .mv-topbar-search > div > form > svg {
+  inset-inline-start: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Folder rows: 32px pills flush with the rail's leading edge and rounded only
+   on the trailing side, so the selected label reads as one continuous shape
+   with the rail. The default layout's leading accent stripe goes away with it. */
+[data-interface-layout="mountain-view"] [data-mv-nav-row] {
+  min-height: var(--mv-nav-row-h);
+  margin-inline-end: 12px;
+  padding-inline-end: 16px;
+  border-inline-start-width: 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-start-end-radius: var(--mv-nav-radius);
+  border-end-end-radius: var(--mv-nav-radius);
+}
+
+/* Selected and hovered rows fill the pill; a folder with unread mail reads
+   bold, the way the message rows do. Icons are 20px with an 18px gap. */
+[data-interface-layout="mountain-view"] [data-mv-nav-row] {
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row]:hover {
+  background-color: var(--mv-nav-hover);
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row][data-selected="true"] {
+  background-color: var(--mv-nav-selected);
+  color: var(--color-foreground);
+  font-weight: 700;
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row][data-has-unread] {
+  font-weight: 700;
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row] > button {
+  gap: 18px;
+}
+[data-interface-layout="mountain-view"] [data-mv-nav-row] > button > span:first-child,
+[data-interface-layout="mountain-view"] [data-mv-nav-row] > button > span:first-child > svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Compose: a 56px button with a 16px corner, which shrinks to a square with
+   the rail. */
+[data-interface-layout="mountain-view"] [data-mv-compose] {
+  height: var(--mv-compose-h);
+  border-radius: 16px;
+  font-weight: 500;
+}
+
+/* Message rows: read mail sits on a faint tint and unread on the plain card,
+   a ticked row takes the selection colour, and the row under the pointer
+   lifts on a shadow instead of changing colour. */
+[data-interface-layout="mountain-view"] [data-mv-row] {
+  background-color: var(--mv-row-read);
+  box-shadow: none;
+}
+[data-interface-layout="mountain-view"] [data-mv-row][data-unread="true"] {
+  background-color: var(--color-background);
+}
+[data-interface-layout="mountain-view"] [data-mv-row][data-checked] {
+  background-color: var(--mv-nav-selected);
+}
+[data-interface-layout="mountain-view"] [data-mv-row][aria-current="true"] {
+  background-color: var(--color-accent);
+}
+[data-interface-layout="mountain-view"] [data-mv-row]:hover {
+  z-index: 1;
+  box-shadow:
+    inset 1px 0 0 var(--color-border),
+    inset -1px 0 0 var(--color-border),
+    0 1px 2px 0 rgb(60 64 67 / 0.3),
+    0 1px 3px 1px rgb(60 64 67 / 0.15);
+}
+
+/* The open message's toolbar: round 40px icon buttons in the muted colour,
+   20px icons. Menus that drop from it keep their own rows. */
+[data-interface-layout="mountain-view"] [data-mv-viewer-toolbar] button:not([role="menu"] *):not([data-mv-pager] *) {
+  height: 40px;
+  min-width: 40px;
+  padding-inline: 10px;
+  border-radius: 9999px;
+  color: var(--color-muted-foreground);
+}
+[data-interface-layout="mountain-view"] [data-mv-viewer-toolbar] button:not([role="menu"] *):not([data-mv-pager] *):hover {
+  color: var(--color-foreground);
+}
+[data-interface-layout="mountain-view"] [data-mv-viewer-toolbar] button:not([role="menu"] *) > svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The compose window's bottom bar: its two halves fold into one row, Send
+   leads as a round split button without its icon, the tools follow as bare
+   icons, and the bin for Discard sits at the far end. */
+[data-mv-compose-footer] > * {
+  display: contents;
+}
+[data-mv-compose-footer] > * > * {
+  order: 1;
+}
+[data-mv-compose-footer] [data-mv-send] {
+  order: 0;
+  margin-inline-end: 0.5rem;
+}
+[data-mv-compose-footer] [data-mv-discard] {
+  order: 2;
+  margin-inline-start: auto;
+}
+[data-mv-compose-footer] [data-mv-send] .tabler-icon-send {
+  display: none;
+}
+[data-mv-compose-footer] button[data-mv-send],
+[data-mv-compose-footer] [data-mv-send] > button:first-child {
+  height: 36px;
+  padding-inline: 1.25rem 1rem;
+  border-radius: 18px;
+}
+[data-mv-compose-footer] [data-mv-send] > button:first-child:not(:only-child) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+[data-mv-compose-footer] [data-mv-send] > button:nth-child(2) {
+  height: 36px;
+  border-radius: 0 18px 18px 0;
+}
+[dir="rtl"] [data-mv-compose-footer] [data-mv-send] > button:nth-child(2) {
+  border-radius: 18px 0 0 18px;
+}
+[data-mv-compose-footer] button:not([data-mv-send] *):not([data-mv-send]) > span.text-sm,
+[data-mv-compose-footer] button[data-testid$="-menu"] > .tabler-icon-chevron-down {
+  display: none;
+}
+[data-mv-compose-footer] button[data-testid$="-menu"] {
+  position: relative;
+  width: 36px;
+  padding-inline: 0;
+  justify-content: center;
+  border-radius: 9999px;
+}
+[data-mv-compose-footer] button[data-testid$="-menu"] > span:not(.text-sm) {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+}
+
+/* The account popover: a wide card with a very round corner, rather
+   than the narrow menu the rail and the sidebar switchers drop. */
+[data-interface-layout="mountain-view"] [data-mv-account-popover] {
+  width: var(--mv-popover-w);
+  border-radius: var(--mv-popover-radius);
+}
+
+/* The advanced filters drop from the search field with a small gap and take
+   its corner, so the two read as one control. Position and width come from
+   the field's own box, measured by FilterPanelHost. */
+[data-interface-layout="mountain-view"] [data-mv-filter-panel] {
+  border-radius: var(--mv-search-radius);
+}
+
+/* The collapsed rail's hover peek. Only on desktop: below that breakpoint the
+   sidebar is already a drawer, opened by a tap rather than by a pointer that
+   does not exist. The width beats Tailwind's own `lg:w-full` on specificity,
+   which is what keeps the floating panel from filling the 72px column. */
+@media (min-width: 1024px) {
+  [data-interface-layout="mountain-view"] [data-mv-rail-peek] {
+    width: var(--mv-rail-peek-w);
+  }
 }

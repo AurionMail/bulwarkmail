@@ -142,7 +142,7 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onDraftChange: { emit: () => {} },
     onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
     onBeforeEmailSend: { intercept: async () => true },
-    onComposeSend: { intercept: async () => true },
+    onComposeSend: { takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
   },
   contactHooks: {
@@ -254,6 +254,43 @@ describe('composer close guard with a follow-up', () => {
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(afterClose).not.toHaveBeenCalled();
+  });
+
+  it('closes without asking once autosave has stored every change', async () => {
+    const createDraft = vi.fn().mockResolvedValue('draft-9');
+    useAuthStore.setState({
+      client: { createDraft, getEmail: vi.fn(), hasDelayedSend: () => false, getMaxDelayedSend: () => 0 } as never,
+    });
+    try {
+      const { requestCloseRef, afterClose } = renderWithCloseRef();
+      await waitFor(() => expect(createDraft).toHaveBeenCalledTimes(1), { timeout: 4000 });
+      await act(async () => {});
+
+      act(() => requestCloseRef.current!(afterClose));
+
+      await waitFor(() => expect(afterClose).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('close_draft_title')).not.toBeInTheDocument();
+    } finally {
+      useAuthStore.setState({ client: null });
+    }
+  });
+
+  it('still asks when there are edits since the last autosave', async () => {
+    const createDraft = vi.fn().mockResolvedValue('draft-9');
+    useAuthStore.setState({
+      client: { createDraft, getEmail: vi.fn(), hasDelayedSend: () => false, getMaxDelayedSend: () => 0 } as never,
+    });
+    try {
+      const { requestCloseRef, afterClose } = renderWithCloseRef();
+      await waitFor(() => expect(createDraft).toHaveBeenCalledTimes(1), { timeout: 4000 });
+      fireEvent.change(screen.getByDisplayValue('Half-written more'), { target: { value: 'Half-written more and more' } });
+
+      act(() => requestCloseRef.current!(afterClose));
+
+      expect(await screen.findByText('close_draft_title')).toBeInTheDocument();
+    } finally {
+      useAuthStore.setState({ client: null });
+    }
   });
 
   it('closes straight through when there is nothing to lose', async () => {

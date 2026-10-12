@@ -6,11 +6,24 @@ import {
   splitSearchText,
   textConditions,
   textFilter,
+  normalizePluginFilter,
   DEFAULT_SEARCH_FILTERS,
 } from '../jmap/search-utils';
 import type { SearchFilters } from '../jmap/search-utils';
 
 type Filter = Record<string, unknown>;
+
+describe('normalizePluginFilter', () => {
+  // Plugin search.run and tab queries share this check: Stalwart 1.0 panics
+  // on JMAP Metadata filter conditions.
+  it('rejects JMAP Metadata conditions in a plugin search', () => {
+    expect(() => normalizePluginFilter('search.run: query', {
+      operator: 'AND',
+      conditions: [{ from: 'a@example.com' }, { privateMetadataTextContains: 'x' }],
+    })).toThrow('search.run: query may not filter on JMAP Metadata ("privateMetadataTextContains")');
+    expect(normalizePluginFilter('search.run: query', { from: 'a@example.com' })).toEqual({ from: 'a@example.com' });
+  });
+});
 
 /** Stalwart rejects a filter object with both `operator` and property keys. */
 function expectNoMixedKeys(filter: Filter): void {

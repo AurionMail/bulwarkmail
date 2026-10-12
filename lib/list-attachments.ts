@@ -19,8 +19,15 @@ export interface ListAttachmentSource {
 
 type Listener = (attachments: Attachment[]) => void;
 
-/** Loader handed to list rows: starts a lazy fetch, returns its cancel. */
-export type LoadListAttachments = (email: Email, onLoad: Listener) => () => void;
+/**
+ * Loader handed to list rows: starts a lazy fetch, returns its cancel.
+ * `peek` answers from the cache without fetching, so a row the list mounts
+ * again can draw its chips in its first render.
+ */
+export interface LoadListAttachments {
+  (email: Email, onLoad: Listener): () => void;
+  peek?: (email: Email) => Attachment[] | undefined;
+}
 
 interface Queue {
   /** Waiting for the next flush, by email id. */
@@ -102,6 +109,15 @@ function flush(source: ListAttachmentSource, accountId: string | undefined, queu
     .finally(() => {
       for (const id of batch.keys()) queue.inFlight.delete(id);
     });
+}
+
+/** The cached parts of one email, without asking the server for them. */
+export function peekListAttachments(
+  source: ListAttachmentSource,
+  accountId: string | undefined,
+  emailId: string,
+): Attachment[] | undefined {
+  return caches.get(source)?.get(cacheKey(accountId, emailId));
 }
 
 /**

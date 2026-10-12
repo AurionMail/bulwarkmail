@@ -65,7 +65,7 @@ describe('useMailboxDrop', () => {
       viewingAccountId: null,
       selectedMailbox: 'a',
       mailboxes: [mailbox({ id: 'a', name: 'Inbox', role: 'inbox' }), mailbox({})],
-      selectedEmailIds: new Set(),
+      selectedEmailKeys: new Set(),
       moveEmailsToMailbox: moveEmailsToMailbox as never,
       crossAccountMoveEmails: crossAccountMoveEmails as never,
       refreshCurrentMailbox: vi.fn().mockResolvedValue(undefined) as never,

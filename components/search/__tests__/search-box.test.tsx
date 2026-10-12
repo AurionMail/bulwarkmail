@@ -194,3 +194,11 @@ describe('SearchBox suggestions (#845)', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 });
+
+describe('SearchBox and password managers', () => {
+  it('is a search field, which Bitwarden never offers to fill', () => {
+    // data-bwignore only works when the user opted in to it in Bitwarden.
+    render(<Harness />);
+    expect(input()).toHaveAttribute('type', 'search');
+  });
+});

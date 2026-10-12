@@ -1,6 +1,7 @@
 // Shared, side-effect-free helpers for the Lite build scripts. Kept separate
 // so lib/__tests__/lite-scripts.test.ts can exercise them without touching
 // the filesystem or spawning `next build`.
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -93,6 +94,7 @@ export const LITE_API_STRING_ALLOWLIST = [
   "/api/auth/sso/complete",
   "/api/auth/reauth/sso/complete",
   "/api/auth/pair/create",
+  "/api/auth/pair/status",
   "/api/auth/totp-token-exchange",
   "/api/auth/session",
   "/api/auth/verify",
@@ -103,6 +105,8 @@ export const LITE_API_STRING_ALLOWLIST = [
   // Settings/policy - replaced by config.json / policy.json.
   "/api/config",
   "/api/admin/policy",
+  // lib/account-archive-client.ts - the feature is pinned off in Lite.
+  "/api/account-archive",
   // WOPI (#425) - use-wopi-status returns disabled in Lite.
   "/api/wopi/status",
   "/api/wopi/launch",
@@ -356,7 +360,11 @@ export function buildRedirects({ basePath = "", locales, surfaces = LITE_SURFACE
 export function buildCsp({ connectSrc = "*" } = {}) {
   return [
     "default-src 'self'",
-    // The static export ships inline hydration scripts, so no nonce is possible.
+    // The static export ships inline hydration scripts, so no nonce is possible
+    // and one header cannot list every page's hashes. Each page of the static
+    // target carries its own <meta> policy that allows exactly its inline
+    // scripts (withScriptHashCsp); both policies apply, so this only matters
+    // where that meta is missing.
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
@@ -369,6 +377,59 @@ export function buildCsp({ connectSrc = "*" } = {}) {
     "frame-ancestors 'none'",
     "media-src 'self' blob:",
   ].join("; ");
+}
+
+/** The `'sha256-...'` source for every inline script in an HTML document. */
+export function inlineScriptHashes(html) {
+  const hashes = new Set();
+  for (const [, attrs, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)) {
+    if (/\bsrc\s*=/i.test(attrs)) continue;
+    // Data blocks (JSON, templates) never execute.
+    const type = /\btype\s*=\s*["']?([^"'\s>]+)/i.exec(attrs)?.[1]?.toLowerCase();
+    if (type && type !== "module" && !/^(text|application)\/(x-)?(java|ecma)script$/.test(type)) continue;
+    // Browsers normalise newlines before the script text is hashed.
+    const text = body.replace(/\r\n?/g, "\n");
+    hashes.add(`'sha256-${createHash("sha256").update(text, "utf8").digest("base64")}'`);
+  }
+  return [...hashes];
+}
+
+/**
+ * The page-level policy of a static-target HTML file: its own inline scripts
+ * and scripts from this origin, nothing else. Enforced together with the
+ * host's header policy, it takes away the header's 'unsafe-inline'.
+ */
+export function buildScriptHashCsp(hashes) {
+  return [`script-src 'self'${hashes.map((h) => ` ${h}`).join("")}`, "object-src 'none'", "base-uri 'self'"].join("; ");
+}
+
+/**
+ * `html` with a <meta> CSP naming its inline script hashes, ahead of every
+ * script: right after <meta charset> (which has to stay within the first
+ * 1024 bytes), else as early in the document as possible.
+ */
+export function withScriptHashCsp(html) {
+  const meta = `<meta http-equiv="Content-Security-Policy" content="${buildScriptHashCsp(inlineScriptHashes(html))}"/>`;
+  // Without a <head> the parser still places a leading <meta> in the implied one.
+  const anchor = /<meta\s+charset\s*=[^>]*>/i.exec(html) ?? /<head\b[^>]*>/i.exec(html)
+    ?? /<html\b[^>]*>/i.exec(html) ?? /<!doctype[^>]*>/i.exec(html);
+  const at = anchor ? anchor.index + anchor[0].length : 0;
+  return html.slice(0, at) + meta + html.slice(at);
+}
+
+/**
+ * The policy of the Stalwart target's entry document. Stalwart sends no
+ * security headers for an Application, so this <meta> is all there is. The
+ * shells it writes in are rewritten for the mount at runtime, which rules
+ * out build-time hashes; it still forbids plugins, eval, foreign scripts and
+ * a moved <base>. frame-ancestors cannot be set from a <meta>: the entry
+ * refuses to run in a frame of another origin instead.
+ */
+export function buildStalwartEntryCsp() {
+  return buildCsp({ connectSrc: "*" })
+    .split("; ")
+    .filter((directive) => !directive.startsWith("frame-ancestors"))
+    .join("; ");
 }
 
 /** Security headers for hosts that read a `_headers` file. */
@@ -398,8 +459,9 @@ export function exampleDocRoot(basePath = "") {
   return { root: "/var/www/bulwark-lite", files: `/var/www/bulwark-lite${basePath}` };
 }
 
-export function buildNginxExample({ basePath = "", surfaces = LITE_SURFACES }) {
+export function buildNginxExample({ basePath = "", surfaces = LITE_SURFACES, connectSrc = "*" }) {
   const location = basePath ? `${basePath}/` : "/";
+  const csp = buildCsp({ connectSrc });
   const { root, files } = exampleDocRoot(basePath);
   const surfaceAlternation = surfaces.join("|");
   return `# Bulwark Lite - nginx example. Unzip the archive into ${files}
@@ -413,7 +475,9 @@ server {
     add_header X-Content-Type-Options nosniff always;
     add_header X-Frame-Options DENY always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
-    # See _headers for a Content-Security-Policy that matches your JMAP server.
+    # connect-src names the JMAP server this bundle was built for. Every page
+    # also carries a <meta> policy that allows only its own inline scripts.
+    add_header Content-Security-Policy "${csp}" always;
 
     # Hashed assets never change. (add_header inside a location replaces the
     # inherited set, so the security headers are repeated here.)
@@ -422,6 +486,7 @@ server {
         add_header X-Content-Type-Options nosniff always;
         add_header X-Frame-Options DENY always;
         add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header Content-Security-Policy "${csp}" always;
     }
 
     # Older mime.types files do not know the PWA manifest extension.
@@ -525,8 +590,9 @@ ${securityHeaders("        ")}
 `;
 }
 
-export function buildCaddyExample({ basePath = "", surfaces = LITE_SURFACES }) {
+export function buildCaddyExample({ basePath = "", surfaces = LITE_SURFACES, connectSrc = "*" }) {
   const { root, files } = exampleDocRoot(basePath);
+  const csp = buildCsp({ connectSrc });
   const surfaceAlternation = surfaces.join("|");
   return `# Bulwark Lite - Caddy example. Unzip the archive into ${files}
 # so that ${basePath}/index.html is served at ${basePath || ""}/.
@@ -538,6 +604,8 @@ webmail.example.com {
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
         Referrer-Policy strict-origin-when-cross-origin
+        # connect-src names the JMAP server this bundle was built for.
+        Content-Security-Policy "${csp}"
     }
 
     @manifest path ${basePath}/manifest.webmanifest
@@ -722,7 +790,10 @@ export function parseLiteTarget(argv = [], env = {}) {
   return target;
 }
 
-/** Release asset name; `releases/latest/download/<this>` is the stable resourceUrl. */
+/**
+ * Release asset name. It carries no version, so `releases/latest/download/<this>`
+ * exists too, but the README points `resourceUrl` at a tagged release.
+ */
 export const STALWART_ZIP_NAME = "bulwark-lite-stalwart.zip";
 
 /** The mount prefix the docs and the one-line install use. */
@@ -1016,6 +1087,12 @@ export function buildStalwartEntry({ locales, shells, defaultLocale = "en", buil
     if (chosen === "dark" || chosen === "light") document.documentElement.className = chosen;
   } catch (e) {}
 
+  // Stalwart sends no X-Frame-Options or frame-ancestors for an Application:
+  // inside another origin's frame the app would be open to clickjacking.
+  var foreignFrame = false;
+  try { foreignFrame = window.top !== window.self && window.top.location.origin !== location.origin; } catch (e) { foreignFrame = true; }
+  if (foreignFrame) return fail("Bulwark Webmail cannot be shown inside another site's page. Open it directly.");
+
   function fail(message) {
     function show() {
       var box = document.getElementById("bulwark-lite-boot");
@@ -1099,6 +1176,7 @@ export function buildStalwartEntry({ locales, shells, defaultLocale = "en", buil
 <html lang="en" ${STALWART_ENTRY_MARKER}="">
 <head>
 <meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="${buildStalwartEntryCsp()}" />
 ${STALWART_BASE_HREF_LITERAL} />
 ${STALWART_OAUTH_META_LITERAL} />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -1298,7 +1376,8 @@ export function collectZipEntries(dir) {
 
 /** LITE-README.md for the Stalwart bundle. */
 export function buildStalwartReadme({ version, commit, locales, buildId, demoMode = false }) {
-  const url = `https://github.com/bulwarkmail/webmail/releases/latest/download/${STALWART_ZIP_NAME}`;
+  const url = `https://github.com/bulwarkmail/webmail/releases/download/v${version}/${STALWART_ZIP_NAME}`;
+  const latestUrl = `https://github.com/bulwarkmail/webmail/releases/latest/download/${STALWART_ZIP_NAME}`;
   return `# Bulwark Lite ${version} (${commit}) for Stalwart
 
 Bulwark Webmail as a Stalwart \`Application\`: Stalwart downloads this zip,
@@ -1365,30 +1444,27 @@ admin's own \`admin\` and \`account\`.
 
 ## Updates
 
-Stalwart keeps the downloaded zip for \`autoUpdateFrequency\` (default 90
-days) and downloads \`resourceUrl\` again at the first restart or
-\`UpdateApps\` after that, so the \`latest/download\` URL above follows new
-releases on that schedule. \`UpdateApps\` always downloads again: run it to
-update right away.
+The resource URL above names one release, so what Stalwart serves only
+changes when you change it: to update, point \`resourceUrl\` at the new
+release's tag and run \`UpdateApps\`, which always downloads again. Check
+that the new URL downloads first: a failed download keeps the previous
+bundle online only on 0.16.23 and later, while older 0.16 releases and the
+1.0 pre-releases unmount the Application until a download works. Every
+release also carries
+\`${STALWART_ZIP_NAME}.sha256\`; check a download with
+\`sha256sum -c ${STALWART_ZIP_NAME}.sha256\` before you switch.
 
-What a failed download does depends on the Stalwart version. On 0.16.23 the
-running bundle stays online. Older 0.16 releases and the 1.0 pre-releases
-unmount the Application and drop the cached copy. The next restart,
-\`UpdateApps\` or reload of the Applications (the other nodes of a cluster
-reload them after \`UpdateApps\`) downloads \`resourceUrl\` again and mounts the
-bundle once that works. On every version, a restart after the cached copy
-has expired, with \`resourceUrl\` unreachable, leaves the Application
-unmounted. So check that \`resourceUrl\` downloads before running
-\`UpdateApps\` or restarting.
+The bundle runs as script on your Stalwart origin, next to the web admin.
+Stalwart checks no hash or signature when it downloads, so a floating URL
+such as \`${latestUrl}\` would run whatever the newest release holds, at the
+next restart or \`UpdateApps\` after \`autoUpdateFrequency\` (default 90
+days). Use it only if you accept that in exchange for automatic updates.
 
 Open tabs move to the new build on their next navigation (one full page
 load); a freshly opened tab gets it immediately. Nothing stays stuck on old
 files although Stalwart sends a year-long cache header for every file but
 index.html: every file the app fetches without a content hash carries the
 build id.
-
-To pin a version, point \`resourceUrl\` at a tagged release instead:
-\`https://github.com/bulwarkmail/webmail/releases/download/${version}/${STALWART_ZIP_NAME}\`.
 
 ## Sign-in
 

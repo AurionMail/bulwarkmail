@@ -86,7 +86,7 @@ describe('email-store tag counts stay in step with read state', () => {
       accountMailboxes: {},
       emails: [],
       selectedEmail: null,
-      selectedEmailIds: new Set(),
+      selectedEmailKeys: new Set(),
       processingReadStatus: new Set(),
       threadEmailsCache: new Map(),
       tagCounts: {
@@ -187,7 +187,7 @@ describe('email-store tag counts stay in step with read state', () => {
           // Untagged: must not contribute a delta.
           makeEmail({ id: 'e4', keywords: {} }),
         ],
-        selectedEmailIds: new Set(['e1', 'e2', 'e3', 'e4']),
+        selectedEmailKeys: new Set(['e1', 'e2', 'e3', 'e4']),
       } as never);
 
       await useEmailStore.getState().batchMarkAsRead(client, true);
@@ -215,7 +215,7 @@ describe('email-store tag counts stay in step with read state', () => {
 
       // The server bulk-marks emails that are not in `state.emails`, so a local
       // delta would under-count: it has to refetch.
-      expect(client.getTagCounts).toHaveBeenCalledWith(['ingsel', 'work'], undefined);
+      expect(client.getTagCounts).toHaveBeenCalledWith(['ingsel', 'work'], undefined, []);
 
       await vi.waitFor(() => {
         expect(useEmailStore.getState().tagCounts).toEqual({

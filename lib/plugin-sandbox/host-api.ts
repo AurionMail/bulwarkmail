@@ -3,10 +3,11 @@
 // structured-cloneable data back to the iframe.
 
 import type { InstalledPlugin, Permission } from '../plugin-types';
-import { IMPLICIT_PERMISSIONS } from '../plugin-types';
+import { pluginHasPermission } from './permissions';
 import { toast as appToast } from '@/stores/toast-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
+import { claimLegacyPluginStorage, pluginStoragePrefix } from './storage-scope';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useEmailStore } from '@/stores/email-store';
 import { useFilterStore } from '@/stores/filter-store';
@@ -25,6 +26,7 @@ import { isServerSetKeyword } from '../jmap/server-keywords';
 import { suggestKeywordColor } from '../keyword-discovery';
 import { MAX_KEYWORD_LENGTH } from '../keyword-nesting';
 import { KEYWORD_PREFIX } from '../thread-utils';
+import { DEFAULT_SEARCH_FILTERS, normalizePluginFilter } from '../jmap/search-utils';
 import { awaitDialog, awaitPrompt, awaitCustomDialog, type PromptField } from './host-dialog';
 import { fileStorage } from '../plugin-storage';
 import { generateUUID } from '../utils';
@@ -159,22 +161,15 @@ const PERM_PER_METHOD: Record<string, Permission | null> = {
   // categorize rewrites message keywords, so it needs the write permission
   // (a tabs-only plugin can still render tabs without it).
   'tabs.categorize': 'email:write',
+  // message-list search: the plugin never sees the results, but it decides
+  // which messages the list shows.
+  'search.run': 'email:read',
   // sieve (delivery-time classification)
   'sieve.isSupported': 'filters:read',
   'sieve.getActiveScript': 'filters:read',
   'sieve.validateScript': 'filters:write',
   'sieve.regenerate': 'filters:write',
 };
-
-function hasPermission(plugin: InstalledPlugin, perm: Permission): boolean {
-  if ((IMPLICIT_PERMISSIONS as readonly string[]).includes(perm)) return true;
-  if (!plugin.permissions.includes(perm)) return false;
-  // Defense-in-depth: even if the manifest declares a permission, the host
-  // refuses the API call unless an admin has marked the plugin as managed,
-  // or the user has explicitly granted it via the consent dialog.
-  if (plugin.managed) return true;
-  return (plugin.grantedPermissions ?? []).includes(perm);
-}
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
 
@@ -203,25 +198,31 @@ function originMatchesAllowlist(url: URL, allowlist: string[]): boolean {
 
 // ─── Per-plugin storage namespace ─────────────────────────────
 
-const STORAGE_PREFIX = (pluginId: string) => `plugin:${pluginId}:`;
+/** The signed-in account's namespace; see storage-scope.ts. */
+function storagePrefix(pluginId: string): string {
+  const accountId = useAccountStore.getState().activeAccountId;
+  if (!accountId) return pluginStoragePrefix(pluginId, 'signed-out');
+  claimLegacyPluginStorage(pluginId, accountId);
+  return pluginStoragePrefix(pluginId, accountId);
+}
 
 function storageGet(pluginId: string, key: string): unknown {
   if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(STORAGE_PREFIX(pluginId) + key);
+  const raw = window.localStorage.getItem(storagePrefix(pluginId) + key);
   if (raw === null) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
 function storageSet(pluginId: string, key: string, value: unknown): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_PREFIX(pluginId) + key, JSON.stringify(value));
+  window.localStorage.setItem(storagePrefix(pluginId) + key, JSON.stringify(value));
 }
 function storageRemove(pluginId: string, key: string): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(STORAGE_PREFIX(pluginId) + key);
+  window.localStorage.removeItem(storagePrefix(pluginId) + key);
 }
 function storageKeys(pluginId: string): string[] {
   if (typeof window === 'undefined') return [];
-  const prefix = STORAGE_PREFIX(pluginId);
+  const prefix = storagePrefix(pluginId);
   const out: string[] = [];
   for (let i = 0; i < window.localStorage.length; i++) {
     const k = window.localStorage.key(i);
@@ -292,6 +293,48 @@ function isApiPostPathAllowed(path: string, allowlist: readonly string[]): boole
   return false;
 }
 
+/**
+ * Same-origin routes no plugin may POST to, whatever its `apiPostPaths`
+ * lists: they act with the user's full credentials (the JMAP passthrough,
+ * WebDAV, CalDAV), change sign-in, admin or plugin state, or belong to the
+ * setup wizard. A plugin talks to its own sidecar routes instead.
+ *
+ * Listed by their segment under `/api/`, not as `/api/...` strings: the Lite
+ * build reads every such string in a client chunk as an endpoint the browser
+ * calls and refuses the ones it has no stand-in for (scripts/lite/verify.mjs).
+ */
+const PLUGIN_POST_DENIED_ROUTES = new Set([
+  'account',
+  'admin',
+  'auth',
+  'caldav',
+  'dev-jmap',
+  'plugin-approval-status',
+  'plugins',
+  'push',
+  'settings',
+  'setup',
+  'system',
+  'webdav',
+  'wopi',
+]);
+
+/**
+ * Checked on the path the router will see: decoded once and with repeated
+ * slashes collapsed, so `/api/%61dmin/...` cannot pass for something else.
+ */
+function isPluginPostDenied(pathname: string): boolean {
+  let routePath: string;
+  try {
+    routePath = decodeURIComponent(pathname);
+  } catch {
+    return true;
+  }
+  routePath = routePath.replace(/\/{2,}/g, '/');
+  if (!routePath.startsWith('/api/')) return false;
+  return PLUGIN_POST_DENIED_ROUTES.has(routePath.slice('/api/'.length).split('/')[0]);
+}
+
 interface PluginHttpPostOptions {
   headers?: Record<string, string>;
   /**
@@ -348,6 +391,9 @@ async function doHttpPost(
   }
   if (!isApiPostPathAllowed(url.pathname, allow)) {
     throw new Error(`Path ${url.pathname} not in plugin apiPostPaths allowlist`);
+  }
+  if (isPluginPostDenied(url.pathname)) {
+    throw new Error(`Path ${url.pathname} is not available to plugins`);
   }
   const { client } = useAuthStore.getState();
   const headers: Record<string, string> = {};
@@ -1317,6 +1363,34 @@ async function doTabsCategorize(emailIds: unknown, tabId: unknown): Promise<bool
   return moved;
 }
 
+// ─── Message-list search ──────────────────────────────────────
+
+const MAX_SEARCH_LABEL_LENGTH = 64;
+
+/**
+ * Run a plugin's JMAP Email filter as the message-list search (#1024). It
+ * replaces the current search like a user's search does, keeps the scope
+ * picked in the search panel, and shows up as a removable chip.
+ */
+async function doSearchRun(plugin: InstalledPlugin, query: unknown, options: unknown): Promise<void> {
+  const filter = normalizePluginFilter('search.run: query', query);
+  if (Object.keys(filter).length === 0) throw new Error('search.run: query must not be empty');
+  const rawLabel = options && typeof options === 'object' ? (options as { label?: unknown }).label : undefined;
+  if (rawLabel !== undefined && typeof rawLabel !== 'string') {
+    throw new Error('search.run: label must be a string');
+  }
+  const label = (rawLabel?.trim() || plugin.name).slice(0, MAX_SEARCH_LABEL_LENGTH);
+
+  const client = requireClient();
+  const store = useEmailStore.getState();
+  store.setSearchQuery('');
+  store.setSearchFilters({
+    ...DEFAULT_SEARCH_FILTERS,
+    pluginFilter: { pluginId: plugin.id, label, filter },
+  });
+  await store.advancedSearch(client);
+}
+
 // ─── Sieve (delivery-time classification) ─────────────────────
 
 async function doSieveGetActiveScript(): Promise<{ id: string; name: string; content: string } | null> {
@@ -1390,7 +1464,7 @@ export async function dispatchApiCall(
   // Permission gate
   const requiredPerm = PERM_PER_METHOD[method];
   if (requiredPerm !== undefined && requiredPerm !== null) {
-    if (!hasPermission(plugin, requiredPerm)) {
+    if (!pluginHasPermission(plugin, requiredPerm)) {
       throw new Error(`Plugin "${plugin.id}" lacks permission "${requiredPerm}"`);
     }
   } else if (!(method in PERM_PER_METHOD)) {
@@ -1612,6 +1686,8 @@ export async function dispatchApiCall(
     }
     case 'tabs.refreshCounts': return doTabsRefreshCounts();
     case 'tabs.categorize': return doTabsCategorize(args[0], args[1]);
+
+    case 'search.run': return doSearchRun(plugin, args[0], args[1]);
 
     case 'sieve.isSupported': {
       const { client } = useAuthStore.getState();
