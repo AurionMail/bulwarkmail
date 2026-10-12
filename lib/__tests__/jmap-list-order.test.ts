@@ -161,6 +161,33 @@ describe('JMAPClient list ordering', () => {
     ]]);
   });
 
+  it('keeps the server order when sorting by date sent (#1219)', async () => {
+    const client = await connectedClient();
+    // Sent first, delivered last: received order and sent order disagree.
+    const delayed = { id: 'delayed', keywords: {}, sentAt: '2026-01-01T00:00:00Z', receivedAt: '2026-01-05T00:00:00Z', mailboxIds: {}, threadId: 't1', size: 1, hasAttachment: false };
+    const prompt = { id: 'prompt', keywords: {}, sentAt: '2026-01-03T00:00:00Z', receivedAt: '2026-01-03T00:00:00Z', mailboxIds: {}, threadId: 't2', size: 1, hasAttachment: false };
+    const sent = recordRequests((methodCalls) => {
+      // Like a real server, answer only the properties the client asked for.
+      const properties = methodCalls[1][1].properties as string[];
+      const pick = (email: Record<string, unknown>) =>
+        Object.fromEntries(Object.entries(email).filter(([key]) => properties.includes(key)));
+      return {
+        methodResponses: [
+          ['Email/query', { ids: [prompt.id, delayed.id], total: 2 }, '0'],
+          ['Email/get', { list: [pick(prompt), pick(delayed)] }, '1'],
+        ],
+      };
+    });
+
+    const { emails } = await client.getEmails('inbox', undefined, 50, 0, undefined, false, undefined, [{ criterion: 'sentAt', direction: 'desc' }]);
+
+    expect(folderQueries(sent)).toEqual([[
+      { property: 'sentAt', isAscending: false },
+      { property: 'receivedAt', isAscending: false },
+    ]]);
+    expect(emails.map(e => e.id)).toEqual(['prompt', 'delayed']);
+  });
+
   it('omits keyword comparators when the server advertises sort options without hasKeyword', async () => {
     const client = await connectedClient({ emailQuerySortOptions: ['receivedAt', 'size'] });
     const sent = recordRequests(replyFor('rfc'));

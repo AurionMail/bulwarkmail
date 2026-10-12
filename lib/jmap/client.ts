@@ -341,6 +341,9 @@ const EMAIL_LIST_PROPERTIES = [
   "keywords",
   "size",
   "receivedAt",
+  // The "Date sent" list order sorts each page on it client-side too; without
+  // it every row fell back to receivedAt and undid the server order (#1219).
+  "sentAt",
   "from",
   "to",
   "cc",
