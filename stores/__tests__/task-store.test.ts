@@ -121,6 +121,17 @@ describe('task-store', () => {
       expect(updated?.progress).toBe('needs-action');
     });
 
+    it('reloads the list when a move to a shared calendar gives the task a new id (#1204)', async () => {
+      useTaskStore.setState({ tasks: [makeTask({ id: 't5' })], selectedTaskId: 't5' });
+      (mockClient.updateCalendarTask as ReturnType<typeof vi.fn>).mockResolvedValue('acct-2:new');
+      (mockClient.getCalendarTasks as ReturnType<typeof vi.fn>).mockResolvedValue([makeTask({ id: 'acct-2:new' })]);
+
+      await useTaskStore.getState().updateTask(mockClient as IJMAPClient, 't5', { calendarIds: { 'acct-2:cal-s': true } });
+
+      expect(useTaskStore.getState().tasks.map((t) => t.id)).toEqual(['acct-2:new']);
+      expect(useTaskStore.getState().selectedTaskId).toBe('acct-2:new');
+    });
+
     it('deletes a task and resets selectedTaskId if selected', async () => {
       const task = makeTask({ id: 't4' });
       useTaskStore.setState({ tasks: [task], selectedTaskId: 't4' });

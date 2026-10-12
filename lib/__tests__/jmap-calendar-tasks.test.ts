@@ -122,3 +122,94 @@ describe('JMAPClient task operations (#958)', () => {
     expect(createPayload).not.toHaveProperty('progressUpdated');
   });
 });
+
+describe('JMAPClient tasks in shared calendars (#1204)', () => {
+  let client: JMAPClient;
+  let sentCalls: Call[];
+
+  // Tasks per account as the server stores them (bare ids).
+  const serverTasks: Record<string, Record<string, unknown>[]> = {
+    'acct-1': [{ id: 'own-1', '@type': 'Task', uid: 'uid-own', title: 'Mine', progress: 'needs-action', calendarIds: { 'cal-1': true }, created: '2026-10-01T00:00:00Z', isDraft: false, isOrigin: true, locations: { l1: { '@type': 'Location', name: 'Desk' } } }],
+    'acct-2': [{ id: 'shared-1', '@type': 'Task', uid: 'uid-shared', title: 'Theirs', progress: 'needs-action', calendarIds: { 'cal-s': true } }],
+  };
+
+  beforeEach(() => {
+    sentCalls = [];
+    const session = makeSession();
+    session.accounts = {
+      ...session.accounts,
+      'acct-2': { name: 'owner', isPersonal: false, accountCapabilities: { 'urn:ietf:params:jmap:calendars': {} } },
+    } as typeof session.accounts;
+    client = new JMAPClient('https://mail.example.com', 'test', 'pass');
+    (client as unknown as { session: unknown }).session = session;
+    (client as unknown as { accountId: string }).accountId = 'acct-1';
+    (client as unknown as { apiUrl: string }).apiUrl = session.apiUrl;
+    (client as unknown as { accounts: Record<string, unknown> }).accounts = session.accounts;
+
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse((init?.body as string) || '{}');
+      const calls = (body.methodCalls || []) as [string, Record<string, unknown>, string][];
+      const methodResponses: [string, Record<string, unknown>, string][] = [];
+      for (const [method, args, tag] of calls) {
+        sentCalls.push({ method, args });
+        const list = serverTasks[args.accountId as string] ?? [];
+        if (method === 'CalendarEvent/query') {
+          methodResponses.push([method, { ids: list.map((t) => t.id) }, tag]);
+        } else if (method === 'CalendarEvent/get') {
+          const ids = args.ids as string[];
+          const found = list.filter((t) => ids.includes(t.id as string));
+          // A freshly created task is fetched back by its new id.
+          const fresh = ids.includes('new-id') ? [{ id: 'new-id', '@type': 'Task', uid: 'uid-own', title: 'Mine', progress: 'needs-action', calendarIds: { 'cal-s': true } }] : [];
+          methodResponses.push([method, { list: [...found, ...fresh], notFound: [] }, tag]);
+        } else if (method === 'CalendarEvent/set') {
+          const created = args.create ? { 'new-task': { id: 'new-id' } } : {};
+          const updated = Object.fromEntries(Object.keys((args.update as object) ?? {}).map((id) => [id, null]));
+          methodResponses.push([method, { created, updated, destroyed: args.destroy ?? [] }, tag]);
+        }
+      }
+      return jsonResponse({ methodResponses });
+    }));
+  });
+
+  it('lists tasks from shared accounts with namespaced ids and calendarIds', async () => {
+    const tasks = await client.getCalendarTasks();
+    const shared = tasks.find((t) => t.title === 'Theirs');
+    expect(shared?.id).toBe('acct-2:shared-1');
+    expect(shared?.calendarIds).toEqual({ 'acct-2:cal-s': true });
+    expect(tasks.find((t) => t.title === 'Mine')?.id).toBe('own-1');
+  });
+
+  it('moves a task into a shared calendar by creating it there and destroying the original', async () => {
+    const newId = await client.updateCalendarTask('own-1', { title: 'Mine', calendarIds: { 'acct-2:cal-s': true } });
+
+    const sets = sentCalls.filter((c) => c.method === 'CalendarEvent/set');
+    expect(sets).toHaveLength(2);
+    const [create, destroy] = sets;
+    expect(create.args.accountId).toBe('acct-2');
+    const payload = (create.args.create as Record<string, Record<string, unknown>>)['new-task'];
+    expect(payload.calendarIds).toEqual({ 'cal-s': true });
+    expect(payload.uid).toBe('uid-own');
+    expect(payload.locations).toEqual({ l1: { '@type': 'Location', name: 'Desk' } });
+    for (const key of ['id', 'created', 'isDraft', 'isOrigin']) expect(payload).not.toHaveProperty(key);
+    expect(destroy.args).toMatchObject({ accountId: 'acct-1', destroy: ['own-1'] });
+    expect(newId).toBe('acct-2:new-id');
+  });
+
+  it('updates a shared task in place in its own account with real ids', async () => {
+    const id = await client.updateCalendarTask('acct-2:shared-1', { progress: 'completed', calendarIds: { 'acct-2:cal-s': true } });
+
+    const sets = sentCalls.filter((c) => c.method === 'CalendarEvent/set');
+    expect(sets).toHaveLength(1);
+    expect(sets[0].args.accountId).toBe('acct-2');
+    expect(sets[0].args.update).toEqual({ 'shared-1': { progress: 'completed', calendarIds: { 'cal-s': true } } });
+    expect(id).toBe('acct-2:shared-1');
+  });
+
+  it('creates a task in a shared calendar in the owning account', async () => {
+    const created = await client.createCalendarTask({ title: 'New', calendarIds: { 'acct-2:cal-s': true } });
+    const set = sentCalls.find((c) => c.method === 'CalendarEvent/set');
+    expect(set?.args.accountId).toBe('acct-2');
+    expect((set?.args.create as Record<string, Record<string, unknown>>)['new-task'].calendarIds).toEqual({ 'cal-s': true });
+    expect(created.id).toBe('acct-2:new-id');
+  });
+});

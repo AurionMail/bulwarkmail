@@ -1093,9 +1093,10 @@ export class DemoJMAPClient implements IJMAPClient {
     return full;
   }
 
-  async updateCalendarTask(taskId: string, updates: Partial<CalendarTask>): Promise<void> {
+  async updateCalendarTask(taskId: string, updates: Partial<CalendarTask>): Promise<string> {
     const task = this.data.calendarTasks.find(t => t.id === taskId);
     if (task) Object.assign(task, updates, { updated: new Date().toISOString() });
+    return taskId;
   }
 
   async deleteCalendarTask(taskId: string): Promise<void> {

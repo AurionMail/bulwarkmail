@@ -65,7 +65,14 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   updateTask: async (client, id, updates) => {
-    await client.updateCalendarTask(id, updates);
+    const newId = await client.updateCalendarTask(id, updates);
+    if (newId && newId !== id) {
+      // Moved into a calendar of another account: the server recreated it
+      // under a new id, so reload rather than patch the old entry. (#1204)
+      set({ selectedTaskId: get().selectedTaskId === id ? newId : get().selectedTaskId });
+      await get().fetchTasks(client);
+      return;
+    }
     set({
       tasks: get().tasks.map(t => t.id === id ? { ...t, ...updates, updated: new Date().toISOString() } : t),
     });

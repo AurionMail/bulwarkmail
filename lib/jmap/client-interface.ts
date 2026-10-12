@@ -476,7 +476,8 @@ export interface IJMAPClient {
   // ── Calendar Tasks ────────────────────────────────────────────
   getCalendarTasks(calendarIds?: string[], targetAccountId?: string): Promise<CalendarTask[]>;
   createCalendarTask(task: Partial<CalendarTask>, targetAccountId?: string): Promise<CalendarTask>;
-  updateCalendarTask(taskId: string, updates: Partial<CalendarTask>, targetAccountId?: string): Promise<void>;
+  /** Resolves to the task's id afterwards; it changes when the task moves to another account. */
+  updateCalendarTask(taskId: string, updates: Partial<CalendarTask>, targetAccountId?: string): Promise<string>;
   deleteCalendarTask(taskId: string, targetAccountId?: string): Promise<void>;
 
   // ── Sharing (RFC 9670 Principals) ─────────────────────────────
