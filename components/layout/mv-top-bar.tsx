@@ -6,7 +6,7 @@ import {
   Calendar,
   Grid3x3,
   HardDrive,
-  Keyboard,
+  HelpCircle,
   Mail,
   Menu,
   Settings,
@@ -241,7 +241,8 @@ export function MvTopBar({
             title={t("keyboard_shortcuts")}
             aria-label={t("keyboard_shortcuts")}
           >
-            <Keyboard className="w-5 h-5" />
+            {/* Gmail's help button, which is where it keeps the shortcuts too. */}
+            <HelpCircle className="w-5 h-5" />
           </button>
         )}
         {/* Admin (Stalwart admins), as in the navigation rail this bar replaces.

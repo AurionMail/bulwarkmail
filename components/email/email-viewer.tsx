@@ -5503,7 +5503,7 @@ export function EmailViewer({
           <div className={cn(
             "email-content-wrapper overflow-x-auto",
             // Mountain View indents the body under the sender's name, as Gmail does.
-            mvViewer && "lg:ms-[60px]",
+            mvViewer && "lg:ps-[60px]",
             !isDark && resolvedTheme === 'dark' ? "bg-white email-content-light" : "bg-background"
           )}
           style={isDark ? { backgroundColor: '#121212' } : undefined}>
