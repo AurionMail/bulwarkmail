@@ -1,6 +1,6 @@
 {
   "name": "bulwark-webmail",
-  "version": "1.14.1",
+  "version": "1.14.2",
   "description": "Bulwark Webmail - a modern webmail client built for Stalwart Mail Server",
   "author": "Bulwark Mail <dev@bulwarkmail.org>",
   "license": "AGPL-3.0-only",
