@@ -182,6 +182,9 @@ function scoreCandidate(text: string, raw: string, start: number, keywords: Span
     if (/[€$£]\s?$/.test(before) || /^\s?(?:[€$£%]|eur\b|usd\b|chf\b)/i.test(after)) return null;
   } else if (NUMBER_WITH_UNIT.test(raw) || PROMO_CODE.test(raw)) {
     return null;
+  } else if (/^\d{4}-\d\d-\d\dT\d/i.test(raw)) {
+    // An ISO timestamp cut at its first colon: 2026-10-13T15:37:13
+    return null;
   }
   if (LABELLED_AS_OTHER.test(before)) return null;
   if (PROMO_WORDS.test(contextWindow(text, start - 60, end + 40))) return null;
