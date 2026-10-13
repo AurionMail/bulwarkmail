@@ -288,6 +288,54 @@ const SLOT_PERMISSIONS: Record<SlotName, readonly Permission[]> = {
   'plugin-dialog': ['ui:observe'],
 };
 
+/**
+ * The props each slot may hand its plugin, and the permission each needs
+ * (null: none beyond the slot's own). A ui:* permission only lets a plugin
+ * draw somewhere; the message, event, contact or account the slot sits on is
+ * data, and stays behind the matching read permission. Props not listed here
+ * are dropped, so a new prop at a call site is withheld until it is added.
+ */
+const SLOT_PROPS: Record<SlotName, Record<string, Permission | null> | '*'> = {
+  'toolbar-actions': {},
+  'app-top-banner': { username: 'account:read', serverUrl: 'account:read' },
+  'email-banner': { email: 'email:read' },
+  'email-footer': {},
+  'composer-toolbar': {},
+  'composer-sidebar': {},
+  'composer-sidebar-right': {},
+  'composer-attachment-source': { onAttach: null },
+  'sidebar-widget': {},
+  'email-detail-sidebar': { email: 'email:read' },
+  'email-details-section': { email: 'email:read', category: null },
+  'settings-section': {},
+  'context-menu-email': {},
+  'navigation-rail-bottom': {},
+  'calendar-event-actions': { eventData: 'calendar:read', setVirtualLocation: null },
+  'admin-plugin-page': {},
+  'contact-cryptokeys': { cryptoKeys: 'contacts:read' },
+  'attachment-actions': { attachment: null },
+  // The plugin chose these props itself when it opened the dialog.
+  'plugin-dialog': '*',
+};
+
+export function slotPropsFor(
+  plugin: InstalledPlugin,
+  slot: SlotName,
+  props: Record<string, unknown>,
+): Record<string, unknown> {
+  const allowed = SLOT_PROPS[slot];
+  if (allowed === '*') return props;
+  if (!allowed) return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(props)) {
+    if (!Object.prototype.hasOwnProperty.call(allowed, key)) continue;
+    const perm = allowed[key];
+    if (perm && !pluginHasPermission(plugin, perm)) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 export function mayOfferSlot(plugin: InstalledPlugin, slot: string): boolean {
   const perms = Object.prototype.hasOwnProperty.call(SLOT_PERMISSIONS, slot)
     ? SLOT_PERMISSIONS[slot as SlotName]

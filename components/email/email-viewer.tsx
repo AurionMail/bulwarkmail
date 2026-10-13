@@ -6103,7 +6103,7 @@ export function EmailViewer({
                 </Button>
               </div>
               <div className="flex-1 overflow-y-auto">
-                <PluginSlot name="email-detail-sidebar" extraProps={{ email }} />
+                <PluginSlot name="email-detail-sidebar" extraProps={{ email: emailToReadView(email) }} />
               </div>
             </div>
           </>

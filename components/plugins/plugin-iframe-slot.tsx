@@ -6,10 +6,11 @@
 // null-origin context; its height is pushed back via postMessage and applied
 // to a wrapper <div>.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { SlotName } from '@/lib/plugin-types';
 import { get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
 import { createSlotInstance, type SandboxInstance } from '@/lib/plugin-sandbox/host-bridge';
+import { slotPropsFor } from '@/lib/plugin-sandbox/permissions';
 import { snapshotHostTheme } from '@/lib/plugin-sandbox/host-theme';
 import { useThemeStore } from '@/stores/theme-store';
 
@@ -26,6 +27,14 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
   // null = pending, true/false = decided
   const [show, setShow] = useState<boolean | null>(null);
 
+  // What the plugin may see of the surface the slot sits on. Everything the
+  // plugin receives (shouldShow context, mount props, updates) goes through
+  // this, so a ui:* permission never hands over mail, events or contacts.
+  const props = useMemo(() => {
+    const active = getActivePlugin(pluginId);
+    return active ? slotPropsFor(active.plugin, slot, extraProps ?? {}) : {};
+  }, [pluginId, slot, extraProps]);
+
   // Decide whether to mount based on the plugin's shouldShow (background-side).
   useEffect(() => {
     const active = getActivePlugin(pluginId);
@@ -35,11 +44,11 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
     if (!offer.hasShouldShow) { setShow(true); return; }
     let cancelled = false;
     active.background
-      .evaluateShouldShow(slot, extraProps ?? {})
+      .evaluateShouldShow(slot, props)
       .then((s) => { if (!cancelled) setShow(s); })
       .catch(() => { if (!cancelled) setShow(false); });
     return () => { cancelled = true; };
-  }, [pluginId, slot, extraProps]);
+  }, [pluginId, slot, props]);
 
   // Spawn / tear down the slot iframe.
   useEffect(() => {
@@ -53,7 +62,7 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
       code: active.code,
       locale,
       tier: active.tier,
-      extraProps: extraProps ?? {},
+      extraProps: props,
       hostContainer: wrapperRef.current,
       onResize: (h) => setHeight(h),
     });
@@ -62,15 +71,15 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
       try { inst.destroy(); } catch { /* ignore */ }
       instanceRef.current = null;
     };
-    // We intentionally don't depend on extraProps here - propagating prop
+    // We intentionally don't depend on props here - propagating prop
     // changes happens via postMessage below to avoid iframe churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, pluginId, slot]);
 
   // Push prop updates without remount.
   useEffect(() => {
-    instanceRef.current?.updateProps(extraProps ?? {});
-  }, [extraProps]);
+    instanceRef.current?.updateProps(props);
+  }, [props]);
 
   // Re-theme the live slot iframe when the host theme changes (dark/light
   // toggle or custom theme switch), without tearing down the iframe. Reacting
