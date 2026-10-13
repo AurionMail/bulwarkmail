@@ -324,12 +324,17 @@ export function EventModal({
   const [preservedAlerts, setPreservedAlerts] = useState<Record<string, CalendarEventAlert>>(initialAlerts.preserved);
   const [alertRows, setAlertRows] = useState<AlertRow[]>(initialAlerts.rows);
 
+  // Set once "Use calendar defaults" is clicked: from then on the event takes
+  // the calendar's current defaults, not the copy it stored.
+  const [refreshDefaults, setRefreshDefaults] = useState(false);
+
   // What defaults mode stands for. Stalwart copies the calendar's defaults
   // into an event only when it is created, so an existing event that stays
   // in its calendar and keeps its all-day state shows the copy it stored;
   // otherwise the selected calendar's current defaults apply.
   const defaultAlerts = useMemo(() => {
     if (
+      !refreshDefaults &&
       event?.useDefaultAlerts &&
       event.alerts && Object.keys(event.alerts).length > 0 &&
       getPrimaryCalendarId(event) === calendarId &&
@@ -338,7 +343,7 @@ export function EventModal({
       return event.alerts;
     }
     return getCalendarDefaultAlerts(calendars.find((c) => c.id === calendarId), allDay);
-  }, [event, calendars, calendarId, allDay]);
+  }, [refreshDefaults, event, calendars, calendarId, allDay]);
 
   const customizeAlerts = useCallback(() => {
     const { rows, preserved } = alertsToRows(defaultAlerts);
@@ -1290,7 +1295,7 @@ export function EventModal({
                 extraAction={
                   <button
                     type="button"
-                    onClick={() => setUseDefaultAlerts(true)}
+                    onClick={() => { setUseDefaultAlerts(true); setRefreshDefaults(true); }}
                     className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                   >
                     {t("alerts.use_defaults")}

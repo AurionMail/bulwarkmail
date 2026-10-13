@@ -215,6 +215,18 @@ describe('EventModal calendar default alerts', () => {
     expect(data.alerts).toEqual({ w1: offset('-PT15M') });
   });
 
+  it('takes the current calendar defaults after Customize and Use calendar defaults', async () => {
+    const onSave = renderExisting(makeEvent({ useDefaultAlerts: true, alerts: { k1: offset('-PT30M') } }));
+
+    fireEvent.click(screen.getByText('alerts.customize'));
+    fireEvent.click(screen.getByText('alerts.use_defaults'));
+    expect(screen.getByText('alerts.minutes_before(15)')).toBeTruthy();
+
+    const data = await savedData(onSave);
+    expect(data.useDefaultAlerts).toBe(true);
+    expect(data.alerts).toEqual({ w1: offset('-PT15M') });
+  });
+
   it('sends the new calendar defaults when a defaults event moves to another calendar', async () => {
     const onSave = renderExisting(makeEvent({ useDefaultAlerts: true, alerts: { k1: offset('-PT15M') } }));
 
