@@ -191,6 +191,14 @@ export class SandboxInstance {
     // are null-origin (event.origin === "null") in prod and can't be pinned
     // this way, so the contentWindow check above is the sole gate for them.
     if (this.privileged && ev.origin !== window.location.origin) return;
+    // Untrusted iframes are opaque-origin, so their messages say "null". A
+    // sandboxed frame can still navigate itself; the page it lands on runs
+    // outside the sandbox CSP and must not inherit the RPC channel. Dev mode
+    // adds allow-same-origin (see the sandbox flags), so it posts as us.
+    if (!this.privileged) {
+      const expected = process.env.NODE_ENV === 'development' ? window.location.origin : 'null';
+      if (ev.origin !== expected) return;
+    }
     const msg = ev.data as SandboxToHost;
     if (!msg || typeof (msg as { type?: unknown }).type !== 'string') return;
 

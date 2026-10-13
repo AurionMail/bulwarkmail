@@ -92,6 +92,37 @@ describe('plugin sandbox routes (GHSA-96cx-gx36-3g79)', () => {
     expect((await load(path)).status).toBe(403);
   });
 
+  // H-03: a plugin's network access must go through api.http.fetch, which
+  // checks the manifest's httpOrigins. If the iframe itself may reach any
+  // https origin, a plugin with only email:read can post every message it
+  // sees to its own server with fetch(), an <img>, a CSS url() or a font.
+  it.each(SANDBOX_ROUTES)('gives %s no direct network access beyond its own origin', async (path) => {
+    const response = await load(path, IFRAME_LOAD);
+    const directives: Record<string, string[]> = Object.fromEntries(
+      (response.headers.get('content-security-policy') ?? '')
+        .split(';')
+        .map((d) => d.trim().split(/\s+/))
+        .map(([name, ...sources]) => [name, sources]),
+    );
+
+    for (const name of ['connect-src', 'img-src', 'font-src', 'media-src', 'default-src']) {
+      const sources = directives[name] ?? [];
+      for (const wide of ['https:', 'http:', 'ws:', 'wss:', '*']) {
+        expect(sources, `${name} allows ${wide}`).not.toContain(wide);
+      }
+    }
+    // The router refetches the sandbox page itself, so its own origin stays.
+    expect(directives['connect-src']).toEqual(["'self'"]);
+  });
+
+  it('keeps https images and connections for the mail UI itself', async () => {
+    const response = await load('/en/mail', { 'sec-fetch-dest': 'document' });
+    const csp = response.headers.get('content-security-policy') ?? '';
+
+    expect(csp).toMatch(/img-src [^;]*https:/);
+    expect(csp).toMatch(/connect-src [^;]*https:/);
+  });
+
   it('leaves ordinary pages alone and never hands them the eval CSP', async () => {
     const response = await load('/en/calendar', { 'sec-fetch-dest': 'document', 'sec-fetch-site': 'none' });
 

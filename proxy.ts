@@ -261,7 +261,16 @@ export async function proxy(request: NextRequest) {
     ? `'self' 'nonce-${nonce}' 'unsafe-eval'`
     : `'self' 'nonce-${nonce}'`;
 
-  const connectSrc = isDev ? `'self' http: https: ws: wss:` : `'self' https:`;
+  // A plugin reaches the network only through api.http.fetch, which the host
+  // checks against the manifest's httpOrigins (H-03). The sandbox document
+  // itself gets its own origin and nothing else, so fetch(), images, fonts
+  // and CSS url() can't carry data to a host the manifest didn't name. Its
+  // own origin stays because the router refetches the page as RSC.
+  const connectSrc = isSandboxPath
+    ? `'self'`
+    : isDev ? `'self' http: https: ws: wss:` : `'self' https:`;
+  const imgSrc = isSandboxPath ? `'self' data: blob:` : `'self' data: blob: https:`;
+  const fontSrc = isSandboxPath ? `'self' data:` : `'self' https: data:`;
 
   // The admin dashboard and the setup wizard are never framed. The embedding
   // allowance is for the mail UI a portal wraps; a framed admin page is a
@@ -321,8 +330,8 @@ export async function proxy(request: NextRequest) {
     `default-src 'self'`,
     `script-src ${scriptSrc}`,
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' data: blob: https:`,
-    `font-src 'self' https: data:`,
+    `img-src ${imgSrc}`,
+    `font-src ${fontSrc}`,
     `connect-src ${connectSrc}`,
     frameSrc,
     `object-src 'self' blob:`,

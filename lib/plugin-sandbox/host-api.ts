@@ -481,6 +481,42 @@ interface PluginFetchInit {
   body?: string | ArrayBuffer | ArrayBufferView | null;
 }
 
+/**
+ * Largest response body http.fetch hands to a plugin. The body is copied
+ * across postMessage twice (text and bytes), so an unbounded one could take
+ * the tab down. Bigger transfers go through the server proxy.
+ */
+export const MAX_PLUGIN_FETCH_BYTES = 25 * 1024 * 1024;
+
+async function readCapped(res: Response, limit: number): Promise<ArrayBuffer> {
+  const declared = Number(res.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > limit) {
+    void res.body?.cancel().catch(() => {});
+    throw new Error(`Response is larger than ${limit} bytes`);
+  }
+  if (!res.body) return res.arrayBuffer();
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      void reader.cancel().catch(() => {});
+      throw new Error(`Response is larger than ${limit} bytes`);
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out.buffer;
+}
+
 async function doHttpFetch(plugin: InstalledPlugin, rawUrl: string, init?: PluginFetchInit) {
   if (typeof rawUrl !== 'string') throw new Error('url must be a string');
   let url: URL;
@@ -508,11 +544,23 @@ async function doHttpFetch(plugin: InstalledPlugin, rawUrl: string, init?: Plugi
     mode: 'cors',
     redirect: 'follow',
   });
+  // fetch() can't stop at a cross-origin redirect and still tell us where it
+  // was going, so it follows, and the plugin only gets the answer if the
+  // last hop is still allowlisted. The request carries the webmail origin,
+  // so a host that trusts that origin in CORS would otherwise answer it.
+  if (res.url) {
+    let finalUrl: URL | null = null;
+    try { finalUrl = new URL(res.url); } catch { /* opaque */ }
+    if (!finalUrl || !originMatchesAllowlist(finalUrl, allowlist)) {
+      void res.body?.cancel().catch(() => {});
+      throw new Error(`Request was redirected to ${finalUrl?.origin ?? 'an unknown origin'}, which is not in plugin httpOrigins allowlist`);
+    }
+  }
   // Sandboxed plugin can't hold a Response object across the boundary, so
   // we read the body once and return it as text + arrayBuffer (base64).
   const headers: Record<string, string> = {};
   res.headers.forEach((val, key) => { headers[key.toLowerCase()] = val; });
-  const buf = await res.arrayBuffer();
+  const buf = await readCapped(res, MAX_PLUGIN_FETCH_BYTES);
   let text: string | null = null;
   try { text = new TextDecoder('utf-8', { fatal: false }).decode(buf); } catch { text = null; }
   return {
