@@ -569,6 +569,13 @@ interface SettingsState {
   tintListRowsByTag: boolean; // Tint mail-list rows by the first tag color
   tintListRowsByAccount: boolean; // In the unified view, tint rows by account colour instead of showing the account dot
   showFolderTotalCount: boolean; // Show total message count next to folders/tags (alongside unread)
+  // Mail folders of shared (group/delegated) JMAP accounts in the sidebar.
+  // Turning it off hides every shared account's folders; their calendars,
+  // contacts and files stay. (#1228)
+  showSharedMailAccounts: boolean;
+  // Shared accounts whose mail folders are hidden one by one, keyed by
+  // AccountEntry.id -> JMAP accountIds, since those ids are per server.
+  hiddenSharedMailAccounts: Record<string, string[]>;
 
   // Folders
   folderIcons: Record<string, string>; // mailboxId -> icon name
@@ -802,6 +809,8 @@ const DEFAULT_SETTINGS = {
   tintListRowsByTag: true,
   tintListRowsByAccount: false,
   showFolderTotalCount: true,
+  showSharedMailAccounts: true,
+  hiddenSharedMailAccounts: {} as Record<string, string[]>,
 
   // Folders
   folderIcons: {} as Record<string, string>,
@@ -1039,6 +1048,8 @@ export const useSettingsStore = create<SettingsState>()(
           tintListRowsByTag: state.tintListRowsByTag,
           tintListRowsByAccount: state.tintListRowsByAccount,
           showFolderTotalCount: state.showFolderTotalCount,
+          showSharedMailAccounts: state.showSharedMailAccounts,
+          hiddenSharedMailAccounts: state.hiddenSharedMailAccounts,
           folderIcons: state.folderIcons,
           emailKeywords: state.emailKeywords,
           nestedTags: state.nestedTags,
@@ -1110,6 +1121,9 @@ export const useSettingsStore = create<SettingsState>()(
               if (key === 'preferredIdentityIds' && !isPlainRecord(settings[key])) {
                 return;
               }
+              if (key === 'hiddenSharedMailAccounts' && !isPlainRecord(settings[key])) {
+                return;
+              }
               // The list order is sent to the server as a sort array, so an
               // unknown criterion from a newer/older client must never get
               // through (an unsupportedSort refusal empties the folder).
@@ -1134,7 +1148,7 @@ export const useSettingsStore = create<SettingsState>()(
               // the map and the composer picks another account's default sender
               // (login-order dependent). File imports (no serverAccountId)
               // still replace wholesale.
-              if (opts?.serverAccountId && (key === 'preferredIdentityIds' || key === 'allMailFolderIds')) {
+              if (opts?.serverAccountId && (key === 'preferredIdentityIds' || key === 'allMailFolderIds' || key === 'hiddenSharedMailAccounts')) {
                 const existing = (get() as unknown as Record<string, unknown>)[key];
                 const merged: Record<string, unknown> = isPlainRecord(existing) ? { ...existing } : {};
                 const incoming = settings[key] as Record<string, unknown>;
@@ -1426,6 +1440,9 @@ export const useSettingsStore = create<SettingsState>()(
             }
             if (!isPlainRecord(state.preferredIdentityIds)) {
               state.preferredIdentityIds = {};
+            }
+            if (!isPlainRecord(state.hiddenSharedMailAccounts)) {
+              state.hiddenSharedMailAccounts = {};
             }
             state.messageListOrder = sanitizeSortLevels(state.messageListOrder);
             if (state.messageListOrderScope !== 'inbox' && state.messageListOrderScope !== 'all') {

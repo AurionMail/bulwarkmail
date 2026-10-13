@@ -148,6 +148,7 @@
     "nav_label": "Navigation",
     "add_app": "Apps",
     "shared": "Geteilt",
+    "shared_account_hidden": "In der Seitenleiste ausgeblendet. Unter Einstellungen › Layout wieder einblenden.",
     "scheduled": "Geplant",
     "unified_all_unread": "Alle ungelesenen",
     "unified_all_starred": "Alle markierten",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Anzahl ungelesener Nachrichten am Tab-Symbol",
         "description": "Die Anzahl ungelesener Nachrichten im Posteingang als Abzeichen am Browser-Tab-Symbol anzeigen, damit neue E-Mails auch bei nicht fokussiertem Tab sichtbar sind. Deaktivieren Sie diese Option, um das Symbol ohne Abzeichen anzuzeigen."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Geteilte E-Mail-Konten anzeigen",
+        "description": "Die Ordner von Postfächern, die mit Ihnen geteilt wurden, in der Seitenleiste unter „Geteilt“ anzeigen. Ausschalten, um alle auszublenden, oder einzelne Konten unten ausblenden. Kalender und Kontakte bleiben sichtbar."
       },
       "pro_interface": {
         "label": "Pro-Oberfläche (experimentell)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Ordner leeren",
     "delete_folder": "Ordner löschen",
     "refresh": "Aktualisieren",
+    "hide_shared_account": "In Seitenleiste ausblenden",
     "mark_all_confirm_title": "Alle Ordner als gelesen markieren",
     "mark_all_confirm_message": "Jede ungelesene Nachricht in deinem persönlichen Konto als gelesen markieren?",
     "delete_confirm_title": "Ordner löschen",

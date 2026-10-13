@@ -148,6 +148,7 @@
     "nav_label": "Навігація",
     "add_app": "програми",
     "shared": "Спільні",
+    "shared_account_hidden": "Приховано з бічної панелі. Повернути можна в Налаштування › Макет.",
     "scheduled": "Заплановано",
     "unified_all_unread": "Усі непрочитані",
     "unified_all_starred": "Усі позначені",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Показувати спільні поштові акаунти",
+        "description": "Показувати папки скриньок, до яких вам надано доступ, у розділі «Спільні» на бічній панелі. Вимкніть, щоб приховати всі, або приховайте окремі акаунти нижче. Їхні календарі та контакти залишаться."
       },
       "pro_interface": {
         "label": "Pro-інтерфейс (експериментальний)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Очистити папку",
     "delete_folder": "Видалити папку",
     "refresh": "Оновити",
+    "hide_shared_account": "Приховати з бічної панелі",
     "mark_all_confirm_title": "Позначити всі папки як прочитані",
     "mark_all_confirm_message": "Позначити всі непрочитані повідомлення у вашому особистому акаунті як прочитані?",
     "delete_confirm_title": "Видалити папку",

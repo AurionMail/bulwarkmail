@@ -145,6 +145,7 @@
     "show_more": "Més",
     "show_fewer": "Menys",
     "shared": "Compartit",
+    "shared_account_hidden": "Amagat de la barra lateral. Torna'l a mostrar a Configuració › Disposició.",
     "mail": "Correu",
     "nav_label": "Navegació",
     "add_app": "Aplicacions",
@@ -1186,6 +1187,10 @@
       "favicon_unread_badge": {
         "label": "Nombre de no llegits a la icona de la pestanya",
         "description": "Mostra el nombre de no llegits de la safata d'entrada com a distintiu a la icona de la pestanya del navegador, perquè el correu nou sigui visible encara que la pestanya no tingui el focus. Desactiveu-ho per mantenir la icona sense distintiu."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Mostra els comptes de correu compartits",
+        "description": "Mostra les carpetes de les bústies compartides amb tu a Compartit, a la barra lateral. Desactiva-ho per amagar-les totes, o amaga comptes concrets a sota. Els calendaris i contactes es mantenen."
       },
       "pro_interface": {
         "label": "Interfície Pro (experimental)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Buida la carpeta",
     "delete_folder": "Suprimeix la carpeta",
     "refresh": "Actualitza",
+    "hide_shared_account": "Amaga de la barra lateral",
     "mark_all_confirm_title": "Marca totes les carpetes com a llegides",
     "mark_all_confirm_message": "Voleu marcar tots els missatges no llegits del vostre compte personal com a llegits?",
     "delete_confirm_title": "Suprimeix la carpeta",

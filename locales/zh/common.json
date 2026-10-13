@@ -148,6 +148,7 @@
     "nav_label": "导航",
     "add_app": "应用",
     "shared": "共享",
+    "shared_account_hidden": "已从侧边栏隐藏。可在 设置 › 布局 中重新显示。",
     "scheduled": "已计划",
     "unified_all_unread": "全部未读",
     "unified_all_starred": "全部加星标",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "显示共享邮件账户",
+        "description": "在侧边栏的“共享”下显示与你共享的邮箱的文件夹。关闭可全部隐藏，也可以在下方逐个隐藏账户。它们的日历和联系人仍会显示。"
       },
       "pro_interface": {
         "label": "Pro 界面（实验性）",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "清空文件夹",
     "delete_folder": "删除文件夹",
     "refresh": "刷新",
+    "hide_shared_account": "从侧边栏隐藏",
     "mark_all_confirm_title": "将所有文件夹标记为已读",
     "mark_all_confirm_message": "将您个人账户中的所有未读邮件标记为已读？",
     "delete_confirm_title": "删除文件夹",

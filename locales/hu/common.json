@@ -145,6 +145,7 @@
     "show_more": "Több",
     "show_fewer": "Kevesebb",
     "shared": "Megosztott",
+    "shared_account_hidden": "Elrejtve az oldalsávról. A Beállítások › Elrendezés alatt jelenítheted meg újra.",
     "mail": "Levelek",
     "nav_label": "Navigáció",
     "add_app": "Alkalmazások",
@@ -1186,6 +1187,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Megosztott levelezőfiókok megjelenítése",
+        "description": "A veled megosztott postafiókok mappáinak megjelenítése az oldalsávon, a Megosztott alatt. Kapcsold ki az összes elrejtéséhez, vagy rejts el egyes fiókokat lent. A naptárak és névjegyek megmaradnak."
       },
       "pro_interface": {
         "label": "Pro felület (Kísérleti)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Mappa ürítése",
     "delete_folder": "Mappa törlése",
     "refresh": "Frissítés",
+    "hide_shared_account": "Elrejtés az oldalsávról",
     "mark_all_confirm_title": "Összes mappa olvasottnak jelölése",
     "mark_all_confirm_message": "Minden olvasatlan üzenetet olvasottnak jelölsz a személyes fiókodban?",
     "delete_confirm_title": "Mappa törlése",

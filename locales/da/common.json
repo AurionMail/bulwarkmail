@@ -145,6 +145,7 @@
     "show_more": "Mere",
     "show_fewer": "Mindre",
     "shared": "Delt",
+    "shared_account_hidden": "Skjult i sidepanelet. Vis den igen under Indstillinger › Layout.",
     "mail": "Mail",
     "nav_label": "Navigation",
     "add_app": "Apps",
@@ -1186,6 +1187,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Vis delte mailkonti",
+        "description": "Vis mapperne fra postkasser, der er delt med dig, under Delt i sidepanelet. Slå fra for at skjule dem alle, eller skjul enkelte konti nedenfor. Deres kalendere og kontakter bliver."
       },
       "pro_interface": {
         "label": "Pro-grænseflade (eksperimentel)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Tøm mappe",
     "delete_folder": "Slet mappe",
     "refresh": "Opdatér",
+    "hide_shared_account": "Skjul i sidepanelet",
     "mark_all_confirm_title": "Markér alle mapper som læst",
     "mark_all_confirm_message": "Markér alle ulæste beskeder på din personlige konto som læst?",
     "delete_confirm_title": "Slet mappe",

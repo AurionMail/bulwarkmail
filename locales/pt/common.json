@@ -148,6 +148,7 @@
     "nav_label": "Navegação",
     "add_app": "Apps",
     "shared": "Compartilhado",
+    "shared_account_hidden": "Oculto da barra lateral. Mostre de novo em Configurações › Layout.",
     "scheduled": "Agendados",
     "unified_all_unread": "Tudo não lido",
     "unified_all_starred": "Tudo com estrela",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Contagem de não lidos no Ícone da Aba",
         "description": "Mostra a contagem de e-mails não lidos na aba do navegador, para que novos e-mails sejam visíveis mesmo quando a aba não estiver em foco. Desative para manter o ícone sem marca."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Mostrar contas de e-mail compartilhadas",
+        "description": "Mostra as pastas das caixas compartilhadas com você em Compartilhado, na barra lateral. Desative para ocultar todas, ou oculte contas individuais abaixo. Os calendários e contatos continuam visíveis."
       },
       "pro_interface": {
         "label": "Interface Pro (experimental)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Esvaziar pasta",
     "delete_folder": "Excluir pasta",
     "refresh": "Atualizar",
+    "hide_shared_account": "Ocultar da barra lateral",
     "mark_all_confirm_title": "Marcar todas as pastas como lidas",
     "mark_all_confirm_message": "Marcar todas as mensagens não lidas da sua conta pessoal como lidas?",
     "delete_confirm_title": "Excluir pasta",

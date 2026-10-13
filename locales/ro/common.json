@@ -145,6 +145,7 @@
     "show_more": "Mai multe",
     "show_fewer": "Mai puține",
     "shared": "Partajat",
+    "shared_account_hidden": "Ascuns din bara laterală. Îl poți afișa din nou în Setări › Aspect.",
     "mail": "E-mail",
     "nav_label": "Navigare",
     "add_app": "Aplicații",
@@ -1186,6 +1187,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Afișează conturile de e-mail partajate",
+        "description": "Afișează folderele cutiilor poștale partajate cu tine la Partajat, în bara laterală. Dezactivează pentru a le ascunde pe toate sau ascunde conturi individuale mai jos. Calendarele și contactele lor rămân."
       },
       "pro_interface": {
         "label": "Interfață Pro (experimentală)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Folder gol",
     "delete_folder": "Șterge dosarul",
     "refresh": "Reîmprospătează",
+    "hide_shared_account": "Ascunde din bara laterală",
     "mark_all_confirm_title": "Marcați toate folderele ca citite",
     "mark_all_confirm_message": "Doriți să marcați toate mesajele necitite din contul dvs. personal ca fiind citite?",
     "delete_confirm_title": "Șterge dosarul",

@@ -148,6 +148,7 @@
     "nav_label": "Navigācija",
     "add_app": "Lietotnes",
     "shared": "Koplietots",
+    "shared_account_hidden": "Paslēpts no sānjoslas. Atkal parādiet sadaļā Iestatījumi › Izkārtojums.",
     "scheduled": "Ieplānots",
     "unified_all_unread": "Visi nelasītie",
     "unified_all_starred": "Visi ar zvaigzni",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Rādīt koplietotos pasta kontus",
+        "description": "Rādīt ar jums koplietoto pastkastīšu mapes sānjoslā sadaļā Koplietots. Izslēdziet, lai paslēptu visas, vai paslēpiet atsevišķus kontus zemāk. To kalendāri un kontakti paliek redzami."
       },
       "pro_interface": {
         "label": "Pro saskarne (eksperimentāla)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Iztukšot mapi",
     "delete_folder": "Dzēst mapi",
     "refresh": "Atjaunināt",
+    "hide_shared_account": "Paslēpt no sānjoslas",
     "mark_all_confirm_title": "Atzīmēt visas mapes kā lasītas",
     "mark_all_confirm_message": "Atzīmēt visas nelasītās ziņas jūsu personīgajā kontā kā lasītas?",
     "delete_confirm_title": "Dzēst mapi",

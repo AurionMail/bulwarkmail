@@ -71,6 +71,7 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.appearance.tint_list_rows',
     'settings.appearance.show_folder_total_count',
     'settings.appearance.favicon_unread_badge',
+    'settings.appearance.show_shared_mail_accounts',
     'settings.appearance.pro_interface',
     'settings.email_behavior.mail_layout',
   ],

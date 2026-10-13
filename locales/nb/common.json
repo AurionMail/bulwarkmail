@@ -145,6 +145,7 @@
     "show_more": "Mer",
     "show_fewer": "Mindre",
     "shared": "Delt",
+    "shared_account_hidden": "Skjult fra sidepanelet. Vis den igjen under Innstillinger › Oppsett.",
     "mail": "E-post",
     "nav_label": "Navigasjon",
     "add_app": "Apper",
@@ -1186,6 +1187,10 @@
       "favicon_unread_badge": {
         "label": "Antall uleste på faneikonet",
         "description": "Vis antall uleste meldinger i innboksen som et merke på nettleserfaneikonet, slik at ny e-post er synlig når fanen ikke er fokusert. Deaktiver for å beholde ikonet uten merke."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Vis delte e-postkontoer",
+        "description": "Vis mappene fra postbokser som er delt med deg under Delt i sidepanelet. Slå av for å skjule alle, eller skjul enkeltkontoer nedenfor. Kalendere og kontakter blir værende."
       },
       "pro_interface": {
         "label": "Pro-grensesnitt (eksperimentelt)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Tøm mappe",
     "delete_folder": "Slett mappe",
     "refresh": "Oppdater",
+    "hide_shared_account": "Skjul fra sidepanelet",
     "mark_all_confirm_title": "Merk alle mapper som lest",
     "mark_all_confirm_message": "Vil du merke alle uleste meldinger på den personlige kontoen din som lest?",
     "delete_confirm_title": "Slett mappe",

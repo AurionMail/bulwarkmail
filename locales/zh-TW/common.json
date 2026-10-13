@@ -145,6 +145,7 @@
     "show_more": "更多",
     "show_fewer": "收合",
     "shared": "共用",
+    "shared_account_hidden": "已從側邊欄隱藏。可在 設定 › 版面配置 中重新顯示。",
     "mail": "郵件",
     "nav_label": "導覽",
     "add_app": "應用程式",
@@ -1186,6 +1187,10 @@
       "favicon_unread_badge": {
         "label": "在分頁圖示顯示未讀數量",
         "description": "在瀏覽器分頁圖示顯示收件匣未讀數量徽章，即使分頁不在前景也能看到新郵件。停用後不顯示徽章。"
+      },
+      "show_shared_mail_accounts": {
+        "label": "顯示共用郵件帳號",
+        "description": "在側邊欄的「共用」下顯示與你共用的信箱資料夾。關閉可全部隱藏，也可以在下方逐一隱藏帳號。它們的行事曆和聯絡人仍會顯示。"
       },
       "pro_interface": {
         "label": "Pro 介面（實驗性）",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "清空信件匣",
     "delete_folder": "刪除信件匣",
     "refresh": "重新整理",
+    "hide_shared_account": "從側邊欄隱藏",
     "mark_all_confirm_title": "將所有信件匣標示為已讀",
     "mark_all_confirm_message": "要將您個人帳號中的所有未讀郵件標示為已讀嗎？",
     "delete_confirm_title": "刪除信件匣",

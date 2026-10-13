@@ -145,6 +145,7 @@
     "show_more": "بیشتر",
     "show_fewer": "کمتر",
     "shared": "اشتراکی",
+    "shared_account_hidden": "از نوار کناری پنهان شد. از تنظیمات › چیدمان دوباره نمایش دهید.",
     "mail": "ایمیل",
     "nav_label": "ناوبری",
     "add_app": "برنامه‌ها",
@@ -1186,6 +1187,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "نمایش حساب‌های ایمیل اشتراکی",
+        "description": "پوشه‌های صندوق‌هایی که با شما به اشتراک گذاشته شده‌اند در نوار کناری زیر «اشتراکی» نمایش داده شوند. برای پنهان کردن همه خاموش کنید، یا حساب‌های جداگانه را در پایین پنهان کنید. تقویم‌ها و مخاطبان آن‌ها باقی می‌مانند."
       },
       "pro_interface": {
         "label": "رابط حرفه‌ای (آزمایشی)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "خالی کردن پوشه",
     "delete_folder": "حذف پوشه",
     "refresh": "بازنشانی",
+    "hide_shared_account": "پنهان کردن از نوار کناری",
     "mark_all_confirm_title": "علامت‌گذاری همه",
     "mark_all_confirm_message": "همه پیام‌های خوانده نشده علامت‌گذاری شوند؟",
     "delete_confirm_title": "حذف پوشه",

@@ -148,6 +148,7 @@
     "nav_label": "Navigation",
     "add_app": "Apps",
     "shared": "Partagé",
+    "shared_account_hidden": "Masqué de la barre latérale. Réaffichez-le dans Paramètres › Mise en page.",
     "scheduled": "Planifiés",
     "unified_all_unread": "Tous les non lus",
     "unified_all_starred": "Tous les favoris",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Afficher les comptes de messagerie partagés",
+        "description": "Afficher les dossiers des boîtes partagées avec vous sous Partagé dans la barre latérale. Désactivez pour les masquer tous, ou masquez des comptes un par un ci-dessous. Leurs agendas et contacts restent visibles."
       },
       "pro_interface": {
         "label": "Interface Pro (expérimental)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Vider le dossier",
     "delete_folder": "Supprimer le dossier",
     "refresh": "Actualiser",
+    "hide_shared_account": "Masquer de la barre latérale",
     "mark_all_confirm_title": "Marquer tous les dossiers comme lus",
     "mark_all_confirm_message": "Marquer tous les messages non lus de votre compte personnel comme lus ?",
     "delete_confirm_title": "Supprimer le dossier",

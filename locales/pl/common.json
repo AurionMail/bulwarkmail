@@ -148,6 +148,7 @@
     "nav_label": "Nawigacja",
     "add_app": "Aplikacje",
     "shared": "Udostępnione",
+    "shared_account_hidden": "Ukryto na pasku bocznym. Przywrócisz je w Ustawienia › Układ.",
     "scheduled": "Zaplanowane",
     "unified_all_unread": "Wszystkie nieprzeczytane",
     "unified_all_starred": "Wszystkie oznaczone gwiazdką",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Pokaż udostępnione konta pocztowe",
+        "description": "Pokazuj foldery skrzynek udostępnionych Ci w sekcji Udostępnione na pasku bocznym. Wyłącz, aby ukryć wszystkie, lub ukryj poszczególne konta poniżej. Ich kalendarze i kontakty pozostaną."
       },
       "pro_interface": {
         "label": "Interfejs Pro (eksperymentalny)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Opróżnij folder",
     "delete_folder": "Usuń folder",
     "refresh": "Odśwież",
+    "hide_shared_account": "Ukryj na pasku bocznym",
     "mark_all_confirm_title": "Oznacz wszystkie foldery jako przeczytane",
     "mark_all_confirm_message": "Oznaczyć wszystkie nieprzeczytane wiadomości na koncie osobistym jako przeczytane?",
     "delete_confirm_title": "Usuń folder",

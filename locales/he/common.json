@@ -147,6 +147,7 @@
     "all_accounts": "כל החשבונות",
     "all_accounts_loading": "טוען חשבונות: {loaded} מתוך {total}",
     "shared": "משותף",
+    "shared_account_hidden": "הוסתר מסרגל הצד. אפשר להציג שוב בהגדרות › פריסה.",
     "scheduled": "מתוכננים",
     "unified_all_unread": "הכל שלא נקראו",
     "unified_all_starred": "הכל מסומנים",
@@ -1148,6 +1149,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "הצגת חשבונות דואר משותפים",
+        "description": "הצגת התיקיות של תיבות דואר ששותפו איתך תחת \"משותף\" בסרגל הצד. כבה כדי להסתיר את כולן, או הסתר חשבונות בודדים למטה. לוחות השנה ואנשי הקשר שלהם נשארים."
       },
       "pro_interface": {
         "label": "ממשק Pro (ניסיוני)",
@@ -3837,6 +3842,7 @@
     "empty_folder_generic": "תיקייה ריקה",
     "delete_folder": "מחק תיקייה",
     "refresh": "רענן",
+    "hide_shared_account": "הסתרה מסרגל הצד",
     "mark_all_confirm_title": "סמן את כל התיקיות כקרויות",
     "mark_all_confirm_message": "סמן כל הודעה שלא קרויה בחשבון האישי שלך כקרויה?",
     "delete_confirm_title": "מחק תיקייה",

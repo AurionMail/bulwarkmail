@@ -148,6 +148,7 @@
     "nav_label": "내비게이션",
     "add_app": "앱",
     "shared": "공유됨",
+    "shared_account_hidden": "사이드바에서 숨겼습니다. 설정 › 레이아웃에서 다시 표시할 수 있습니다.",
     "scheduled": "예약됨",
     "unified_all_unread": "모든 읽지 않음",
     "unified_all_starred": "모든 별표",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "공유 메일 계정 표시",
+        "description": "나와 공유된 메일함의 폴더를 사이드바의 '공유됨' 아래에 표시합니다. 끄면 모두 숨겨지며, 아래에서 계정별로 숨길 수도 있습니다. 캘린더와 연락처는 그대로 유지됩니다."
       },
       "pro_interface": {
         "label": "Pro 인터페이스 (실험적)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "폴더 비우기",
     "delete_folder": "폴더 삭제",
     "refresh": "새로 고침",
+    "hide_shared_account": "사이드바에서 숨기기",
     "mark_all_confirm_title": "모든 폴더를 읽음으로 표시",
     "mark_all_confirm_message": "개인 계정의 모든 읽지 않은 메시지를 읽음으로 표시하시겠습니까?",
     "delete_confirm_title": "폴더 삭제",

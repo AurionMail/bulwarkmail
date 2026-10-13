@@ -148,6 +148,7 @@
     "nav_label": "Navigazione",
     "add_app": "App",
     "shared": "Condiviso",
+    "shared_account_hidden": "Nascosto dalla barra laterale. Puoi mostrarlo di nuovo in Impostazioni › Layout.",
     "scheduled": "Programmate",
     "unified_all_unread": "Tutti i non letti",
     "unified_all_starred": "Tutti gli speciali",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Mostra account di posta condivisi",
+        "description": "Mostra le cartelle delle caselle condivise con te sotto Condiviso nella barra laterale. Disattiva per nasconderle tutte, oppure nascondi singoli account qui sotto. Calendari e contatti restano visibili."
       },
       "pro_interface": {
         "label": "Interfaccia Pro (sperimentale)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Svuota cartella",
     "delete_folder": "Elimina cartella",
     "refresh": "Aggiorna",
+    "hide_shared_account": "Nascondi dalla barra laterale",
     "mark_all_confirm_title": "Segna tutte le cartelle come lette",
     "mark_all_confirm_message": "Segnare tutti i messaggi non letti del tuo account personale come letti?",
     "delete_confirm_title": "Elimina cartella",

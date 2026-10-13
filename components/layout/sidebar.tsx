@@ -75,6 +75,7 @@ import { useIsEmbedded } from "@/hooks/use-is-embedded";
 import { buildSettingsPath, SCHEDULED_MAILBOX_ID, scopedScheduledMailboxId } from "@/lib/deep-links";
 import { useTour } from "@/components/tour/tour-provider";
 import { toUnicodeEmail } from "@/lib/idn";
+import { hiddenSharedMailIds, isSharedMailAccountVisible, setSharedMailAccountHidden } from "@/lib/shared-mail-visibility";
 
 interface SidebarProps {
   mailboxes: Mailbox[];
@@ -944,6 +945,8 @@ export function Sidebar({
   const hideAccountSwitcher = useSettingsStore(s => s.hideAccountSwitcher) || isEmbedded;
   const enableUnifiedMailbox = useSettingsStore(s => s.enableUnifiedMailbox);
   const includeGroupInUnified = useSettingsStore(s => s.includeGroupInUnified);
+  const showSharedMailAccounts = useSettingsStore(s => s.showSharedMailAccounts);
+  const hiddenSharedMailAccounts = useSettingsStore(s => s.hiddenSharedMailAccounts);
   // Mountain View draws its navigation icons in the text colour.
   const colorfulSidebarIcons = useSettingsStore(s => s.colorfulSidebarIcons) && !mvShell;
   const tagCounts = useEmailStore(s => s.tagCounts);
@@ -1054,7 +1057,10 @@ export function Sidebar({
 
   const mailboxTree = buildMailboxTree(mailboxes);
   const ownTree = mailboxTree.filter(n => !n.id.startsWith('shared-account-') && !isServerScheduledNode(n));
-  const sharedAccounts = mailboxTree.filter(n => n.id.startsWith('shared-account-'));
+  const hiddenSharedIds = hiddenSharedMailIds(hiddenSharedMailAccounts, activeAccountId);
+  const sharedAccounts = mailboxTree.filter(n =>
+    n.id.startsWith('shared-account-')
+    && isSharedMailAccountVisible(n.accountId, showSharedMailAccounts, hiddenSharedIds));
 
   // Mountain View's navigation is one flat list of the few places mail
   // actually goes, with everything else - the folders you made, the shared
@@ -1276,6 +1282,14 @@ export function Sidebar({
   const handleSharedAccountContextMenu = (e: React.MouseEvent, accountId: string) => {
     openMailboxContextMenu(e, { kind: "folders-section", accountId });
   };
+
+  const hideSharedAccount = activeAccountId
+    ? (accountId: string) => {
+        const { hiddenSharedMailAccounts: hidden, updateSetting } = useSettingsStore.getState();
+        updateSetting('hiddenSharedMailAccounts', setSharedMailAccountHidden(hidden, activeAccountId, accountId, true));
+        toast.info(t("shared_account_hidden"));
+      }
+    : undefined;
 
   return (
     <div
@@ -1716,6 +1730,7 @@ export function Sidebar({
         onShareFolder={onShareFolder}
         onImportEmail={onImportEmail}
         onRefresh={onRefreshMailboxes}
+        onHideSharedAccount={hideSharedAccount}
       />
     </div>
   );

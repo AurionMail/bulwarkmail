@@ -148,6 +148,7 @@
     "nav_label": "Navigatie",
     "add_app": "Apps",
     "shared": "Gedeeld",
+    "shared_account_hidden": "Verborgen in de zijbalk. Zet het weer aan via Instellingen › Indeling.",
     "scheduled": "Gepland",
     "unified_all_unread": "Alle ongelezen",
     "unified_all_starred": "Alle met ster",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Gedeelde mailaccounts tonen",
+        "description": "Toon de mappen van postvakken die met je zijn gedeeld onder Gedeeld in de zijbalk. Zet uit om ze allemaal te verbergen, of verberg hieronder losse accounts. Hun agenda's en contacten blijven zichtbaar."
       },
       "pro_interface": {
         "label": "Pro-interface (experimenteel)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Map leegmaken",
     "delete_folder": "Map verwijderen",
     "refresh": "Vernieuwen",
+    "hide_shared_account": "Verbergen in zijbalk",
     "mark_all_confirm_title": "Alle mappen markeren als gelezen",
     "mark_all_confirm_message": "Alle ongelezen berichten in uw persoonlijke account als gelezen markeren?",
     "delete_confirm_title": "Map verwijderen",

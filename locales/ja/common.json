@@ -148,6 +148,7 @@
     "nav_label": "ナビゲーション",
     "add_app": "アプリ",
     "shared": "共有",
+    "shared_account_hidden": "サイドバーから非表示にしました。設定 › レイアウトで再表示できます。",
     "scheduled": "予約済み",
     "unified_all_unread": "すべての未読",
     "unified_all_starred": "すべてのスター付き",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "共有メールアカウントを表示",
+        "description": "共有されたメールボックスのフォルダーをサイドバーの「共有」に表示します。オフにするとすべて非表示になります。下で個別のアカウントだけを非表示にすることもできます。カレンダーと連絡先は表示されたままです。"
       },
       "pro_interface": {
         "label": "Pro インターフェイス（実験的）",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "フォルダーを空にする",
     "delete_folder": "フォルダーを削除",
     "refresh": "更新",
+    "hide_shared_account": "サイドバーから非表示",
     "mark_all_confirm_title": "すべてのフォルダーを既読にする",
     "mark_all_confirm_message": "個人アカウントのすべての未読メッセージを既読にしますか？",
     "delete_confirm_title": "フォルダーを削除",

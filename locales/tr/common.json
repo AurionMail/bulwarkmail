@@ -145,6 +145,7 @@
     "show_more": "Diğer",
     "show_fewer": "Daha az",
     "shared": "Paylaşılan",
+    "shared_account_hidden": "Kenar çubuğundan gizlendi. Ayarlar › Düzen bölümünden yeniden gösterebilirsiniz.",
     "mail": "Posta",
     "nav_label": "Gezinme",
     "add_app": "Uygulamalar",
@@ -1183,6 +1184,10 @@
       "favicon_unread_badge": {
         "label": "Unread Count on Tab Icon",
         "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+      },
+      "show_shared_mail_accounts": {
+        "label": "Paylaşılan posta hesaplarını göster",
+        "description": "Sizinle paylaşılan posta kutularının klasörlerini kenar çubuğunda Paylaşılan altında göster. Hepsini gizlemek için kapatın veya aşağıdan tek tek hesapları gizleyin. Takvimleri ve kişileri görünür kalır."
       },
       "pro_interface": {
         "label": "Pro Arayüz (Deneysel)",
@@ -2540,6 +2545,7 @@
     "empty_folder_generic": "Klasörü boşalt",
     "delete_folder": "Klasörü sil",
     "refresh": "Yenile",
+    "hide_shared_account": "Kenar çubuğundan gizle",
     "mark_all_confirm_title": "Tüm klasörleri okundu olarak işaretle",
     "mark_all_confirm_message": "Kişisel hesabınızdaki tüm okunmamış iletiler okundu olarak işaretlensin mi?",
     "delete_confirm_title": "Klasörü sil",
