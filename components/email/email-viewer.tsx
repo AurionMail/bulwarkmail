@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId } from "react";
+import { Fragment, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId } from "react";
 import { Email, ContactCard, Mailbox } from "@/lib/jmap/types";
 import { emailExportFilename, attachmentDownloadFilename, attachmentsBundleFilename, DEFAULT_EMAIL_TEMPLATE, DEFAULT_ATTACHMENT_TEMPLATE } from "@/lib/download-filename";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
@@ -117,6 +117,7 @@ import { parseTnef, isTnefAttachment } from "@/lib/tnef";
 import { debug } from "@/lib/debug";
 import { findVerificationCode, verificationCodeBodyText } from "@/lib/verification-code";
 import { VerificationCodeChip } from "./verification-code-chip";
+import { ConversationEmailBody, useConversationExternalContent, useMarkReadWhenShown } from "./thread-conversation-view";
 import type { TnefAttachment } from "@/lib/tnef";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { RulesPanel, useRulesAvailability } from "./rules-menu";
@@ -161,11 +162,16 @@ interface EmailViewerProps {
   mvFolderName?: string;
   /**
    * Mountain View: every message of the open conversation, oldest first,
-   * including the open one. The others are drawn as collapsed cards around
-   * it, as Gmail does; clicking one opens it.
+   * including the open one. The others are drawn around it as cards that
+   * fold and unfold in place, as Gmail does; unread ones start unfolded.
    */
   mvConversation?: Email[];
-  onOpenConversationEmail?: (email: Email) => void;
+  /** Mountain View: fetch the full message for a conversation card that was unfolded. */
+  onLoadConversationEmail?: (email: Email) => void;
+  /** Mountain View: an unfolded conversation message was read. */
+  onMarkConversationEmailRead?: (email: Email) => void;
+  /** Mountain View: reply to one message of the conversation. */
+  onReplyConversationEmail?: (email: Email) => void;
   /** Mountain View: a reply being written in place, shown under the conversation instead of the reply buttons. */
   mvInlineComposer?: React.ReactNode;
   onShowShortcuts?: () => void;
@@ -670,7 +676,7 @@ function mvSenderDate(date: Date | string, timeFormat: '12h' | '24h'): string {
 
 /**
  * One message of a Mountain View conversation, folded to its sender, date and
- * snippet. Clicking it opens that message.
+ * snippet. Clicking it unfolds the message in place.
  */
 function MvConversationCard({ email, onOpen, timeFormat }: { email: Email; onOpen?: (email: Email) => void; timeFormat: '12h' | '24h' }) {
   const sender = email.from?.[0];
@@ -699,37 +705,156 @@ function MvConversationCard({ email, onOpen, timeFormat }: { email: Email; onOpe
   );
 }
 
+/** True when a click landed on something inside `container` that acts on its own (a button, a link, a field). */
+function isInteractiveClick(target: EventTarget | null, container: HTMLElement): boolean {
+  const el = target instanceof Element ? target.closest('button, a, input, textarea, select, [role="button"], [role="menuitem"]') : null;
+  return !!el && el !== container && container.contains(el);
+}
+
 /**
- * The folded messages before or after the open one. A long run before it
- * shows only its first and last message around a count, as Gmail does, and
- * the count unfolds the rest.
+ * A message of a Mountain View conversation unfolded in place: its sender line,
+ * which folds it again when clicked, and its body. The list fetch carries no
+ * body, so the first unfold asks for the full message.
  */
-export function MvConversationRun({ emails, onOpen, timeFormat, collapseLongRun }: {
+export function MvExpandedConversationCard({
+  email,
+  timeFormat,
+  onCollapse,
+  onLoadBody,
+  onMarkRead,
+  onReply,
+  onDownloadAttachment,
+}: {
+  email: Email;
+  timeFormat: '12h' | '24h';
+  onCollapse: (email: Email) => void;
+  onLoadBody?: (email: Email) => void;
+  onMarkRead?: (email: Email) => void;
+  onReply?: (email: Email) => void;
+  onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
+}) {
+  const t = useTranslations('email_viewer');
+  const externalContent = useConversationExternalContent();
+  const sender = email.from?.[0];
+  const hasBody = !!email.bodyValues;
+  const loadRequested = useRef(false);
+  useEffect(() => {
+    if (hasBody || loadRequested.current || !onLoadBody) return;
+    loadRequested.current = true;
+    onLoadBody(email);
+  }, [hasBody, email, onLoadBody]);
+  // Unfolding an unread message reads it, as opening it does.
+  useMarkReadWhenShown(email, true, onMarkRead ? () => onMarkRead(email) : undefined);
+
+  return (
+    <div className="border-t border-border" data-mv-conversation-expanded="" data-email-id={email.id}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded
+        onClick={(e) => {
+          if (isInteractiveClick(e.target, e.currentTarget)) return;
+          if (window.getSelection()?.toString()) return;
+          onCollapse(email);
+        }}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onCollapse(email);
+          }
+        }}
+        data-mv-conversation-header=""
+        className="flex items-start gap-4 px-6 pt-3 pb-2 cursor-pointer"
+      >
+        <Avatar name={sender?.name} email={sender?.email} size="md" className="w-10 h-10 flex-shrink-0" />
+        <span className="flex-1 min-w-0">
+          <span className="flex items-baseline gap-2">
+            <span className="text-sm font-semibold truncate">{sender?.name || sender?.email || ''}</span>
+            {sender?.name && sender.email && (
+              <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
+            )}
+            <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
+              {mvSenderDate(email.receivedAt, timeFormat)}
+            </span>
+          </span>
+          {email.to && email.to.length > 0 && (
+            <span className="block text-xs text-muted-foreground truncate">
+              {t('to')} {email.to.map((a) => a.name || a.email).join(', ')}
+            </span>
+          )}
+        </span>
+        {onReply && (
+          <button
+            type="button"
+            onClick={() => onReply(email)}
+            className="grid place-items-center w-10 h-10 -my-2 -me-2 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors flex-shrink-0"
+            title={t('tooltips.reply')}
+            aria-label={t('tooltips.reply')}
+          >
+            <Reply className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+      {hasBody ? (
+        <ConversationEmailBody
+          email={email}
+          allowExternal={externalContent.isAllowed(email)}
+          onAllowExternal={() => externalContent.allow(email.id)}
+          onTrustSender={externalContent.trustSender(email)}
+          onDownloadAttachment={onDownloadAttachment}
+          className="ps-[80px] pe-6 pb-4"
+          bodyStyle={{ paddingBlock: '0.25rem 0.5rem' }}
+        />
+      ) : (
+        <div className="ps-[80px] pe-6 pb-4 pt-1 space-y-2 animate-pulse" data-mv-conversation-loading="">
+          <div className="h-2 bg-muted rounded w-full" />
+          <div className="h-2 bg-muted rounded w-5/6" />
+          <div className="h-2 bg-muted rounded w-4/6" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The messages before or after the open one, each folded or unfolded. A long
+ * run of folded messages before it shows only its first and last message
+ * around a count, as Gmail does, and the count unfolds the rest.
+ */
+export function MvConversationRun({ emails, onOpen, timeFormat, collapseLongRun, expandedIds, renderExpanded }: {
   emails: Email[];
+  /** A folded message was clicked. */
   onOpen?: (email: Email) => void;
   timeFormat: '12h' | '24h';
   collapseLongRun?: boolean;
+  expandedIds?: ReadonlySet<string>;
+  renderExpanded?: (email: Email) => React.ReactNode;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   if (emails.length === 0) return null;
-  if (!collapseLongRun || expanded || emails.length <= 3) {
-    return <>{emails.map((e) => <MvConversationCard key={e.id} email={e} onOpen={onOpen} timeFormat={timeFormat} />)}</>;
+  const isExpanded = (e: Email) => !!renderExpanded && !!expandedIds?.has(e.id);
+  const renderOne = (e: Email) => isExpanded(e)
+    ? <Fragment key={e.id}>{renderExpanded!(e)}</Fragment>
+    : <MvConversationCard key={e.id} email={e} onOpen={onOpen} timeFormat={timeFormat} />;
+  const middle = emails.slice(1, -1);
+  if (!collapseLongRun || showAll || emails.length <= 3 || middle.some(isExpanded)) {
+    return <>{emails.map(renderOne)}</>;
   }
-  const hidden = emails.length - 2;
   return (
     <>
-      <MvConversationCard email={emails[0]} onOpen={onOpen} timeFormat={timeFormat} />
+      {renderOne(emails[0])}
       <div className="relative border-t border-border h-4">
         <button
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={() => setShowAll(true)}
           data-mv-conversation-more=""
           className="absolute start-6 top-1/2 -translate-y-1/2 grid place-items-center w-10 h-10 rounded-full border border-border bg-background text-sm text-muted-foreground hover:bg-muted transition-colors"
         >
-          {hidden}
+          {middle.length}
         </button>
       </div>
-      <MvConversationCard email={emails[emails.length - 1]} onOpen={onOpen} timeFormat={timeFormat} />
+      {renderOne(emails[emails.length - 1])}
     </>
   );
 }
@@ -810,7 +935,9 @@ export function EmailViewer({
   mvPosition,
   mvFolderName,
   mvConversation,
-  onOpenConversationEmail,
+  onLoadConversationEmail,
+  onMarkConversationEmailRead,
+  onReplyConversationEmail,
   mvInlineComposer,
   onShowShortcuts,
   onEditDraft,
@@ -926,6 +1053,44 @@ export function EmailViewer({
   const mvOpenIndex = mvViewer && mvConversation && email ? mvConversation.findIndex((e) => e.id === email.id) : -1;
   const mvBefore = mvOpenIndex > 0 ? mvConversation!.slice(0, mvOpenIndex) : [];
   const mvAfter = mvOpenIndex >= 0 ? mvConversation!.slice(mvOpenIndex + 1) : [];
+  // Mountain View: which other messages of the conversation are unfolded. A
+  // conversation opens with its unread messages unfolded, as Gmail does, so
+  // reading the thread reads all of them.
+  const [mvExpandedIds, setMvExpandedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const mvExpandedThreadRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!mvConversation || mvConversation.length === 0 || !email) {
+      mvExpandedThreadRef.current = null;
+      return;
+    }
+    const key = mvConversation[0].threadId;
+    if (mvExpandedThreadRef.current === key) return;
+    mvExpandedThreadRef.current = key;
+    setMvExpandedIds(new Set(mvConversation.filter((e) => e.id !== email.id && !e.keywords?.$seen).map((e) => e.id)));
+  }, [mvConversation, email]);
+  const toggleMvExpanded = useCallback((target: Email) => {
+    setMvExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(target.id)) next.delete(target.id);
+      else next.add(target.id);
+      return next;
+    });
+  }, []);
+  // The open message folds too, but only inside a conversation.
+  const [mvOpenCollapsed, setMvOpenCollapsed] = useState(false);
+  useEffect(() => setMvOpenCollapsed(false), [email?.id]);
+  const mvOpenFolded = mvOpenIndex >= 0 && mvOpenCollapsed;
+  const renderMvExpanded = (target: Email) => (
+    <MvExpandedConversationCard
+      email={target}
+      timeFormat={timeFormat}
+      onCollapse={toggleMvExpanded}
+      onLoadBody={onLoadConversationEmail}
+      onMarkRead={onMarkConversationEmailRead}
+      onReply={onReplyConversationEmail}
+      onDownloadAttachment={onDownloadAttachment}
+    />
+  );
   // Mountain View's toolbars are icon-only, on the phone as on the desktop.
   const showToolbarLabels = showToolbarLabelsSetting && interfaceLayout !== 'mountain-view';
   // Inside a Pro pane, `isMobile` above is pane-width based: overlays that
@@ -4157,14 +4322,28 @@ export function EmailViewer({
       {/* Mountain View: the conversation's earlier messages, folded. */}
       {mvViewer && mvBefore.length > 0 && (
         <div className="hidden lg:block" data-mv-conversation-before="">
-          <MvConversationRun emails={mvBefore} onOpen={onOpenConversationEmail} timeFormat={timeFormat} collapseLongRun />
+          <MvConversationRun emails={mvBefore} onOpen={toggleMvExpanded} expandedIds={mvExpandedIds} renderExpanded={renderMvExpanded} timeFormat={timeFormat} collapseLongRun />
         </div>
       )}
 
+      {/* Mountain View: the open message folded like the rest of the conversation. */}
+      {mvOpenFolded && email ? (
+        <div className="hidden lg:block" data-mv-open-folded="">
+          <MvConversationCard email={email} onOpen={() => setMvOpenCollapsed(false)} timeFormat={timeFormat} />
+        </div>
+      ) : (<>
       {/* === SENDER INFO (Desktop) === */}
       <div
-        className={cn("hidden lg:block bg-background px-6", !mvViewer && "border-b border-border", mvViewer && mvBefore.length > 0 && "border-t border-border")}
+        className={cn("hidden lg:block bg-background px-6", !mvViewer && "border-b border-border", mvViewer && mvBefore.length > 0 && "border-t border-border", mvOpenIndex >= 0 && "cursor-pointer")}
         style={mvViewer ? { paddingBlock: '0.75rem 0.5rem' } : { paddingBlock: 'var(--density-header-py)' }}
+        data-mv-open-header={mvOpenIndex >= 0 ? "" : undefined}
+        onClick={mvOpenIndex >= 0 ? (e) => {
+          // In a conversation, a click on the sender line folds the open
+          // message, as Gmail does; its buttons and links keep their own job.
+          if (isInteractiveClick(e.target, e.currentTarget)) return;
+          if (window.getSelection()?.toString()) return;
+          setMvOpenCollapsed(true);
+        } : undefined}
       >
           <div className="flex items-start" style={{ gap: mvViewer ? '16px' : 'var(--density-item-gap)' }}>
             <button
@@ -5497,11 +5676,15 @@ export function EmailViewer({
           </div>
         )}
 
+      </>)}
+
         <div className="grow shrink-0 flex flex-col">
 
           {/* Email Body */}
           <div className={cn(
             "email-content-wrapper overflow-x-auto",
+            // Folded, the body stays mounted so unfolding does not reload it.
+            mvOpenFolded && "hidden",
             // Mountain View indents the body under the sender's name, as Gmail does.
             mvViewer && "lg:ps-[60px]",
             !isDark && resolvedTheme === 'dark' ? "bg-white email-content-light" : "bg-background"
@@ -5550,7 +5733,7 @@ export function EmailViewer({
           {/* Mountain View: the conversation's later messages, folded. */}
           {mvViewer && mvAfter.length > 0 && (
             <div className="hidden lg:block mt-4 border-b border-border" data-mv-conversation-after="">
-              <MvConversationRun emails={mvAfter} onOpen={onOpenConversationEmail} timeFormat={timeFormat} />
+              <MvConversationRun emails={mvAfter} onOpen={toggleMvExpanded} expandedIds={mvExpandedIds} renderExpanded={renderMvExpanded} timeFormat={timeFormat} />
             </div>
           )}
 

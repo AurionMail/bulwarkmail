@@ -3560,6 +3560,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // the rest of the thread (list properties only) whenever another opens.
   const mvConversationThreadId = mvShell && !cursorOnly ? (selectedEmail?.threadId ?? null) : null;
   const mvConversationRef = mvShell && !cursorOnly ? selectedEmail : null;
+  const mvConversationRoute = (ref: Email, fallback: NonNullable<typeof client>) => {
+    const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
+    const threadClient = route.clientAccountId
+      ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? fallback)
+      : fallback;
+    return { threadClient, accountId: route.accountId };
+  };
   useEffect(() => {
     if (!mvConversationThreadId || !client || !mvConversationRef) {
       setMvConversation(null);
@@ -3567,10 +3574,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
     let cancelled = false;
     const ref = mvConversationRef;
-    const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
-    const threadClient = route.clientAccountId
-      ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
-      : client;
+    const route = mvConversationRoute(ref, client);
+    const threadClient = route.threadClient;
     (async () => {
       try {
         const thread = await threadClient.getThread(mvConversationThreadId, route.accountId);
@@ -3601,6 +3606,46 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the open message, not on every list refresh
   }, [mvConversationThreadId, mvConversationRef?.id, client]);
+
+  const patchMvConversation = (id: string, patch: (e: Email) => Email) =>
+    setMvConversation((prev) => prev?.map((e) => (e.id === id ? patch(e) : e)) ?? prev);
+
+  // An unfolded conversation message needs its body: the thread fetch above
+  // only carries list properties.
+  const handleLoadConversationEmail = async (target: Email): Promise<Email | null> => {
+    if (!client) return null;
+    const { threadClient, accountId } = mvConversationRoute(target, client);
+    const fetched = await threadClient.getEmail(target.id, accountId);
+    if (!fetched) return null;
+    const full: Email = {
+      ...fetched,
+      accountId: target.accountId,
+      accountLabel: target.accountLabel,
+      sourceClientAccountId: target.sourceClientAccountId,
+      sourceAccountId: target.sourceAccountId,
+    };
+    patchMvConversation(target.id, (e) => ({ ...full, keywords: e.keywords }));
+    return full;
+  };
+
+  // Reading an unfolded message marks it read. Older messages of the thread
+  // are often not in the loaded list (another folder, an older page), where
+  // the store's markAsRead has nothing to update, so those go to the server
+  // directly. (#1222)
+  const handleMarkConversationEmailRead = async (target: Email) => {
+    if (!client || target.keywords?.$seen) return;
+    try {
+      if (useEmailStore.getState().emails.some((e) => e.id === target.id)) {
+        await markAsRead(client, target.id, true);
+      } else {
+        const { threadClient, accountId } = mvConversationRoute(target, client);
+        await threadClient.markAsRead(target.id, true, accountId);
+      }
+      patchMvConversation(target.id, (e) => ({ ...e, keywords: { ...e.keywords, $seen: true } }));
+    } catch (error) {
+      console.error('Failed to mark conversation message read:', error);
+    }
+  };
 
   // Show loading state while checking auth
   if (!initialCheckDone || authLoading || (!isAuthenticated || !client)) {
@@ -4789,7 +4834,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     } : undefined}
                     mvFolderName={mvShell && !isScheduledView && !isUnifiedView ? currentMailboxName : undefined}
                     mvConversation={mvShell ? mvConversation ?? undefined : undefined}
-                    onOpenConversationEmail={mvShell ? (e) => void handleEmailSelect(e) : undefined}
+                    onLoadConversationEmail={mvShell ? (e) => void handleLoadConversationEmail(e) : undefined}
+                    onMarkConversationEmailRead={mvShell ? (e) => void handleMarkConversationEmailRead(e) : undefined}
+                    onReplyConversationEmail={mvShell ? async (e) => {
+                      // The reply quotes the message, so it needs the body.
+                      const full = e.bodyValues ? e : await handleLoadConversationEmail(e);
+                      await handleConversationReply(full ?? e);
+                    } : undefined}
                     mvInlineComposer={mvInlineReply ? <MvComposeInline onPopOut={handleMvPopOut}>{composerNode}</MvComposeInline> : undefined}
                     onToggleFullscreen={!isEmbedded && !isMobile ? () => setFullscreenReading((v) => !v) : undefined}
                     isFullscreen={fullscreenReading}
