@@ -187,8 +187,8 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
   return (
     <div className={cn("flex flex-col h-full overflow-y-auto", className)}>
       <div className={cn("border-b border-border", isMobile ? "px-4 py-4" : "px-6 py-6")}>
-        <div className={cn("flex gap-4", isMobile ? "flex-col" : "items-start justify-between")}>
-          <div className="flex items-center gap-4 min-w-0 flex-1">
+        <div className={cn("flex gap-4", isMobile ? "flex-col" : "flex-wrap items-start justify-between")}>
+          <div className="flex items-center gap-4 min-w-0 flex-1 basis-60">
             <Avatar name={name} email={email} contactPhotoUri={photoUri} size={isMobile ? "md" : "lg"} />
             <div className="min-w-0 flex-1">
               <h2 className={cn("font-semibold truncate", isMobile ? "text-lg" : "text-xl")}>{name || "-"}</h2>
