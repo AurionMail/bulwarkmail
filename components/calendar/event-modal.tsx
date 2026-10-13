@@ -9,8 +9,15 @@ import { LinkifiedText } from "@/components/ui/linkified-text";
 import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft } from "@/components/icons";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
-import { AlertListEditor, formatAlertRowLabel } from "./alert-list-editor";
-import { alertsToRows, describeAlert, rowsToAlerts, type AlertRow } from "@/lib/calendar-alerts";
+import { AlertListEditor, AlertSummary, formatAlertRowLabel } from "./alert-list-editor";
+import {
+  alertsToRows,
+  describeAlert,
+  getCalendarDefaultAlerts,
+  getEffectiveAlerts,
+  rowsToAlerts,
+  type AlertRow,
+} from "@/lib/calendar-alerts";
 import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from "./recurrence-editor";
 import { parseDuration, getEventColor } from "./event-card";
 import { buildAllDayDuration, getEventDisplayEndDate, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
@@ -119,10 +126,11 @@ function formatDurationDisplay(minutes: number): string {
   return `${h}h${m}min`;
 }
 
-function getAlertLabel(event: CalendarEvent, t: ReturnType<typeof useTranslations>): string | null {
-  if (!event.alerts) return null;
+function getAlertLabel(event: CalendarEvent, calendars: Calendar[], t: ReturnType<typeof useTranslations>): string | null {
+  const alerts = getEffectiveAlerts(event, calendars);
+  if (!alerts) return null;
   const labels: string[] = [];
-  for (const alert of Object.values(event.alerts)) {
+  for (const alert of Object.values(alerts)) {
     const row = describeAlert(alert);
     if (!row) continue;
     labels.push(formatAlertRowLabel(row, t));
@@ -326,11 +334,38 @@ export function EventModal({
     () => (customRule ? buildRecurrenceSummary(customRule, t, locale) : null),
     [customRule, t, locale]
   );
+  // A new event starts on the calendar's default alerts.
+  const [useDefaultAlerts, setUseDefaultAlerts] = useState(() => (event ? event.useDefaultAlerts === true : true));
   // Alerts the rows can't represent (absolute triggers, offsets after the
   // start or relative to the end) are kept here so they survive a save.
-  const [initialAlerts] = useState(() => alertsToRows(event?.alerts));
-  const preservedAlertsRef = useRef<Record<string, CalendarEventAlert>>(initialAlerts.preserved);
+  const [initialAlerts] = useState(() =>
+    event && !event.useDefaultAlerts ? alertsToRows(event.alerts) : { rows: [], preserved: {} }
+  );
+  const [preservedAlerts, setPreservedAlerts] = useState<Record<string, CalendarEventAlert>>(initialAlerts.preserved);
   const [alertRows, setAlertRows] = useState<AlertRow[]>(initialAlerts.rows);
+
+  // What defaults mode stands for. Stalwart copies the calendar's defaults
+  // into an event only when it is created, so an existing event that stays
+  // in its calendar and keeps its all-day state shows the copy it stored;
+  // otherwise the selected calendar's current defaults apply.
+  const defaultAlerts = useMemo(() => {
+    if (
+      event?.useDefaultAlerts &&
+      event.alerts && Object.keys(event.alerts).length > 0 &&
+      getPrimaryCalendarId(event) === calendarId &&
+      !!event.showWithoutTime === allDay
+    ) {
+      return event.alerts;
+    }
+    return getCalendarDefaultAlerts(calendars.find((c) => c.id === calendarId), allDay);
+  }, [event, calendars, calendarId, allDay]);
+
+  const customizeAlerts = useCallback(() => {
+    const { rows, preserved } = alertsToRows(defaultAlerts);
+    setAlertRows(rows);
+    setPreservedAlerts(preserved);
+    setUseDefaultAlerts(false);
+  }, [defaultAlerts]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   // Set synchronously, so a second save in the same tick is refused too.
@@ -529,11 +564,20 @@ export function EventModal({
       if (event.excludedRecurrenceRules) data.excludedRecurrenceRules = null;
     }
 
-    const builtAlerts = rowsToAlerts(alertRows, preservedAlertsRef.current);
-    if (Object.keys(builtAlerts).length > 0) {
-      data.alerts = builtAlerts;
-    } else if (event && event.alerts && Object.keys(event.alerts).length > 0) {
-      data.alerts = null;
+    if (useDefaultAlerts) {
+      data.useDefaultAlerts = true;
+      // Stalwart copies the calendar's defaults into a new event itself
+      // (sending alerts too would double them), but setting the flag on an
+      // update keeps whatever alerts the event had, so updates carry them.
+      if (event) data.alerts = defaultAlerts ? structuredClone(defaultAlerts) : null;
+    } else {
+      data.useDefaultAlerts = false;
+      const builtAlerts = rowsToAlerts(alertRows, preservedAlerts);
+      if (Object.keys(builtAlerts).length > 0) {
+        data.alerts = builtAlerts;
+      } else if (event && event.alerts && Object.keys(event.alerts).length > 0) {
+        data.alerts = null;
+      }
     }
 
     if (effectiveAttendees.length > 0 && currentUserEmails.length > 0) {
@@ -610,7 +654,7 @@ export function EventModal({
       savingRef.current = false;
       setIsSaving(false);
     }
-  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, recurrence, customRule, alertRows, attendees, sendInvitations, currentUserEmails, existingParticipants, resolveContactName, event, onSave, isSaving, t]);
+  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, recurrence, customRule, useDefaultAlerts, defaultAlerts, alertRows, preservedAlerts, attendees, sendInvitations, currentUserEmails, existingParticipants, resolveContactName, event, onSave, isSaving, t]);
 
   const handleRsvp = useCallback((status: CalendarParticipant['participationStatus']) => {
     if (!event || !userParticipantId || !onRsvp) return;
@@ -785,7 +829,7 @@ export function EventModal({
     const virtualLoc = event.virtualLocations ? Object.values(event.virtualLocations)[0]?.uri || null : null;
     const viewParticipants = getParticipantList(event, { resolveName: resolveContactName });
     const recurrenceLabel = getRecurrenceLabel(event, t, locale);
-    const alertLabel = getAlertLabel(event, t);
+    const alertLabel = getAlertLabel(event, calendars, t);
     const eventCalendar = calendars.find(c => event.calendarIds[c.id]);
     const color = getEventColor(event, eventCalendar);
 
@@ -1246,11 +1290,34 @@ export function EventModal({
 
           <div>
             <label className="text-sm font-medium mb-1 block">{t("alerts.title")}</label>
-            <AlertListEditor
-              rows={alertRows}
-              onChange={setAlertRows}
-              keptCount={Object.keys(preservedAlertsRef.current).length}
-            />
+            {useDefaultAlerts ? (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">{t("alerts.calendar_defaults")}</p>
+                <AlertSummary alerts={defaultAlerts} />
+                <button
+                  type="button"
+                  onClick={customizeAlerts}
+                  className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  {t("alerts.customize")}
+                </button>
+              </div>
+            ) : (
+              <AlertListEditor
+                rows={alertRows}
+                onChange={setAlertRows}
+                keptCount={Object.keys(preservedAlerts).length}
+                extraAction={
+                  <button
+                    type="button"
+                    onClick={() => setUseDefaultAlerts(true)}
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    {t("alerts.use_defaults")}
+                  </button>
+                }
+              />
+            )}
           </div>
 
           {attendees.length > 0 && (

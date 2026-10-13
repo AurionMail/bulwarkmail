@@ -230,6 +230,13 @@ describe('getEffectiveAlerts', () => {
     expect(getEffectiveAlerts(event, calendars)).toBe(defaultAlerts);
   });
 
+  it('prefers the alerts the server copied into a defaults event over the current calendar defaults', () => {
+    const copied = { k1: makeAlert({ action: 'email' }) };
+    const event = makeEvent({ useDefaultAlerts: true, alerts: copied });
+    const calendars = [makeCalendar({ defaultAlertsWithTime: { d1: makeAlert() } })];
+    expect(getEffectiveAlerts(event, calendars)).toBe(copied);
+  });
+
   it('returns null when calendar not found', () => {
     const event = makeEvent({ useDefaultAlerts: true, calendarIds: { 'missing': true } });
     const calendars = [makeCalendar()];

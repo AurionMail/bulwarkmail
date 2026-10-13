@@ -76,6 +76,12 @@ export function getEffectiveAlerts(
   if (!event.useDefaultAlerts) {
     return event.alerts;
   }
+  // Stalwart copies the calendar's defaults into the event when it is
+  // created and later default changes don't reach it. Its copy is what the
+  // server (email alerts) and other clients fire, so follow it when present.
+  if (event.alerts && Object.keys(event.alerts).length > 0) {
+    return event.alerts;
+  }
 
   if (!event.calendarIds) return null;
   const calendarId = Object.keys(event.calendarIds)[0];

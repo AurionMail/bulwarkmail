@@ -3248,7 +3248,11 @@
       "action_display": "Notification",
       "action_email": "Email",
       "by_email": "{label} by email",
-      "kept": "{count, plural, one {# more reminder that can't be edited here is kept} other {# more reminders that can't be edited here are kept}}"
+      "kept": "{count, plural, one {# more reminder that can't be edited here is kept} other {# more reminders that can't be edited here are kept}}",
+      "other": "{count, plural, one {# other reminder} other {# other reminders}}",
+      "calendar_defaults": "Calendar defaults",
+      "customize": "Customize",
+      "use_defaults": "Use calendar defaults"
     },
     "settings": {
       "limit_hours": "Limit visible hours",

@@ -1,9 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus } from "@/components/icons";
+import type { CalendarEventAlert } from "@/lib/jmap/types";
 import {
+  describeAlert,
   newAlertRow,
   type AlertAction,
   type AlertRow,
@@ -28,12 +31,35 @@ export function formatAlertRowLabel(row: Omit<AlertRow, "id">, t: CalendarT): st
   return row.action === "email" ? t("alerts.by_email", { label }) : label;
 }
 
+/** Read-only list of an alert map, for alerts that come from calendar defaults. */
+export function AlertSummary({ alerts }: { alerts: Record<string, CalendarEventAlert> | null }) {
+  const t = useTranslations("calendar");
+  const labels: string[] = [];
+  let other = 0;
+  for (const alert of Object.values(alerts ?? {})) {
+    const row = describeAlert(alert);
+    if (row) labels.push(formatAlertRowLabel(row, t));
+    else other += 1;
+  }
+  if (labels.length === 0 && other === 0) {
+    return <p className="text-sm text-muted-foreground">{t("alerts.none")}</p>;
+  }
+  return (
+    <ul className="text-sm space-y-0.5">
+      {labels.map((label, i) => <li key={i}>{label}</li>)}
+      {other > 0 && <li className="text-muted-foreground">{t("alerts.other", { count: other })}</li>}
+    </ul>
+  );
+}
+
 interface AlertListEditorProps {
   rows: AlertRow[];
   onChange: (rows: AlertRow[]) => void;
   /** Alerts the rows can't show (absolute, after the start); saved unchanged. */
   keptCount?: number;
   disabled?: boolean;
+  /** Shown next to "Add reminder". */
+  extraAction?: ReactNode;
 }
 
 /**
@@ -41,7 +67,7 @@ interface AlertListEditorProps {
  * Each row is an offset before the start; alerts that don't fit stay with the
  * caller and are only counted here.
  */
-export function AlertListEditor({ rows, onChange, keptCount = 0, disabled = false }: AlertListEditorProps) {
+export function AlertListEditor({ rows, onChange, keptCount = 0, disabled = false, extraAction }: AlertListEditorProps) {
   const t = useTranslations("calendar");
 
   const update = (id: string, patch: Partial<Omit<AlertRow, "id">>) => {
@@ -113,15 +139,18 @@ export function AlertListEditor({ rows, onChange, keptCount = 0, disabled = fals
           )}
         </div>
       )}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onChange([...rows, newAlertRow(10, "minutes")])}
-        className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline disabled:opacity-50"
-      >
-        <Plus className="w-4 h-4" />
-        {t("alerts.add")}
-      </button>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange([...rows, newAlertRow(10, "minutes")])}
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline disabled:opacity-50"
+        >
+          <Plus className="w-4 h-4" />
+          {t("alerts.add")}
+        </button>
+        {extraAction}
+      </div>
     </div>
   );
 }
