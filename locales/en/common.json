@@ -3243,7 +3243,12 @@
       "add": "Add reminder",
       "remove": "Remove reminder",
       "amount": "Reminder amount",
-      "unit": "Reminder unit"
+      "unit": "Reminder unit",
+      "action": "Reminder type",
+      "action_display": "Notification",
+      "action_email": "Email",
+      "by_email": "{label} by email",
+      "kept": "{count, plural, one {# more reminder that can't be edited here is kept} other {# more reminders that can't be edited here are kept}}"
     },
     "settings": {
       "limit_hours": "Limit visible hours",

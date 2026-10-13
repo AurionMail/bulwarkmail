@@ -6,9 +6,11 @@ import { toast } from "@/stores/toast-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LinkifiedText } from "@/components/ui/linkified-text";
-import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, Plus } from "@/components/icons";
+import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft } from "@/components/icons";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
+import { AlertListEditor, formatAlertRowLabel } from "./alert-list-editor";
+import { alertsToRows, describeAlert, rowsToAlerts, type AlertRow } from "@/lib/calendar-alerts";
 import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from "./recurrence-editor";
 import { parseDuration, getEventColor } from "./event-card";
 import { buildAllDayDuration, getEventDisplayEndDate, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
@@ -109,65 +111,6 @@ function buildDuration(startDate: Date, endDate: Date): string {
 
 type RecurrenceOption = "none" | "daily" | "weekly" | "monthly" | "yearly" | "custom";
 
-type AlertUnit = "at_time" | "minutes" | "hours" | "days" | "weeks";
-
-interface AlertRow {
-  id: string;
-  value: number;
-  unit: AlertUnit;
-}
-
-let alertRowSeq = 0;
-function newAlertRow(value: number, unit: AlertUnit): AlertRow {
-  alertRowSeq += 1;
-  return { id: `r${alertRowSeq}`, value, unit };
-}
-
-function alertRowToOffset(row: AlertRow): string | null {
-  if (row.unit === "at_time") return "PT0S";
-  const v = Math.max(0, Math.floor(row.value));
-  if (!Number.isFinite(v) || v <= 0) return null;
-  switch (row.unit) {
-    case "minutes": return `-PT${v}M`;
-    case "hours": return `-PT${v}H`;
-    case "days": return `-P${v}D`;
-    case "weeks": return `-P${v}W`;
-  }
-}
-
-function offsetToAlertRow(offset: string): AlertRow | null {
-  if (offset === "PT0S" || offset === "P0D" || offset === "PT0M") {
-    return newAlertRow(0, "at_time");
-  }
-  let m = offset.match(/^-?P(\d+)W$/);
-  if (m) return newAlertRow(parseInt(m[1], 10), "weeks");
-  m = offset.match(/^-?P(\d+)D$/);
-  if (m) return newAlertRow(parseInt(m[1], 10), "days");
-  m = offset.match(/^-?PT(\d+)H$/);
-  if (m) return newAlertRow(parseInt(m[1], 10), "hours");
-  m = offset.match(/^-?PT(\d+)M$/);
-  if (m) {
-    const mins = parseInt(m[1], 10);
-    if (mins > 0 && mins % 1440 === 0) return newAlertRow(mins / 1440, "days");
-    if (mins > 0 && mins % 60 === 0) return newAlertRow(mins / 60, "hours");
-    return newAlertRow(mins, "minutes");
-  }
-  return null;
-}
-
-function formatAlertRowLabel(
-  row: { value: number; unit: AlertUnit },
-  t: ReturnType<typeof useTranslations>
-): string {
-  if (row.unit === "at_time") return t("alerts.at_time");
-  switch (row.unit) {
-    case "minutes": return t("alerts.minutes_before", { count: row.value });
-    case "hours": return t("alerts.hours_before", { count: row.value });
-    case "days": return t("alerts.days_before", { count: row.value });
-    case "weeks": return t("alerts.weeks_before", { count: row.value });
-  }
-}
-
 function formatDurationDisplay(minutes: number): string {
   if (minutes < 60) return `${minutes}min`;
   const h = Math.floor(minutes / 60);
@@ -180,8 +123,7 @@ function getAlertLabel(event: CalendarEvent, t: ReturnType<typeof useTranslation
   if (!event.alerts) return null;
   const labels: string[] = [];
   for (const alert of Object.values(event.alerts)) {
-    if (alert.trigger["@type"] !== "OffsetTrigger") continue;
-    const row = offsetToAlertRow(alert.trigger.offset);
+    const row = describeAlert(alert);
     if (!row) continue;
     labels.push(formatAlertRowLabel(row, t));
   }
@@ -384,36 +326,11 @@ export function EventModal({
     () => (customRule ? buildRecurrenceSummary(customRule, t, locale) : null),
     [customRule, t, locale]
   );
-  const preservedAlertsRef = useRef<Record<string, CalendarEventAlert>>({});
-  const [alertRows, setAlertRows] = useState<AlertRow[]>(() => {
-    if (!event?.alerts) return [];
-    const rows: AlertRow[] = [];
-    for (const [id, alert] of Object.entries(event.alerts)) {
-      // Preserve alerts we can't represent in this UI (absolute triggers,
-      // email actions, offsets with non-canonical shapes) so they survive a save.
-      if (alert.trigger["@type"] !== "OffsetTrigger" || alert.action !== "display") {
-        preservedAlertsRef.current[id] = alert;
-        continue;
-      }
-      const row = offsetToAlertRow(alert.trigger.offset);
-      if (!row) {
-        preservedAlertsRef.current[id] = alert;
-        continue;
-      }
-      rows.push(row);
-    }
-    return rows;
-  });
-
-  const addAlertRow = useCallback(() => {
-    setAlertRows((prev) => [...prev, newAlertRow(10, "minutes")]);
-  }, []);
-  const updateAlertRow = useCallback((id: string, patch: Partial<Omit<AlertRow, "id">>) => {
-    setAlertRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-  }, []);
-  const removeAlertRow = useCallback((id: string) => {
-    setAlertRows((prev) => prev.filter((r) => r.id !== id));
-  }, []);
+  // Alerts the rows can't represent (absolute triggers, offsets after the
+  // start or relative to the end) are kept here so they survive a save.
+  const [initialAlerts] = useState(() => alertsToRows(event?.alerts));
+  const preservedAlertsRef = useRef<Record<string, CalendarEventAlert>>(initialAlerts.preserved);
+  const [alertRows, setAlertRows] = useState<AlertRow[]>(initialAlerts.rows);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   // Set synchronously, so a second save in the same tick is refused too.
@@ -612,21 +529,7 @@ export function EventModal({
       if (event.excludedRecurrenceRules) data.excludedRecurrenceRules = null;
     }
 
-    const builtAlerts: Record<string, CalendarEventAlert> = { ...preservedAlertsRef.current };
-    let alertIdx = 0;
-    for (const row of alertRows) {
-      const offset = alertRowToOffset(row);
-      if (offset === null) continue;
-      let key = `alert${++alertIdx}`;
-      while (key in builtAlerts) key = `alert${++alertIdx}`;
-      builtAlerts[key] = {
-        "@type": "Alert",
-        trigger: { "@type": "OffsetTrigger", offset, relativeTo: "start" },
-        action: "display",
-        acknowledged: null,
-        relatedTo: null,
-      };
-    }
+    const builtAlerts = rowsToAlerts(alertRows, preservedAlertsRef.current);
     if (Object.keys(builtAlerts).length > 0) {
       data.alerts = builtAlerts;
     } else if (event && event.alerts && Object.keys(event.alerts).length > 0) {
@@ -1343,64 +1246,11 @@ export function EventModal({
 
           <div>
             <label className="text-sm font-medium mb-1 block">{t("alerts.title")}</label>
-            {alertRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("alerts.none")}</p>
-            ) : (
-              <div className="space-y-2">
-                {alertRows.map((row) => (
-                  <div key={row.id} className="flex items-center gap-2">
-                    {row.unit !== "at_time" && (
-                      <Input
-                        type="number"
-                        min={1}
-                        max={999}
-                        value={row.value}
-                        onChange={(e) => {
-                          const n = parseInt(e.target.value, 10);
-                          updateAlertRow(row.id, { value: Number.isFinite(n) ? Math.max(1, n) : 1 });
-                        }}
-                        className="w-20"
-                        aria-label={t("alerts.amount")}
-                      />
-                    )}
-                    <select
-                      value={row.unit}
-                      onChange={(e) => {
-                        const unit = e.target.value as AlertUnit;
-                        updateAlertRow(row.id, {
-                          unit,
-                          value: unit === "at_time" ? 0 : (row.value || 1),
-                        });
-                      }}
-                      className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      aria-label={t("alerts.unit")}
-                    >
-                      <option value="at_time">{t("alerts.at_time")}</option>
-                      <option value="minutes">{t("alerts.unit_minutes_before")}</option>
-                      <option value="hours">{t("alerts.unit_hours_before")}</option>
-                      <option value="days">{t("alerts.unit_days_before")}</option>
-                      <option value="weeks">{t("alerts.unit_weeks_before")}</option>
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => removeAlertRow(row.id)}
-                      className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                      aria-label={t("alerts.remove")}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={addAlertRow}
-              className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              <Plus className="w-4 h-4" />
-              {t("alerts.add")}
-            </button>
+            <AlertListEditor
+              rows={alertRows}
+              onChange={setAlertRows}
+              keptCount={Object.keys(preservedAlertsRef.current).length}
+            />
           </div>
 
           {attendees.length > 0 && (
