@@ -6,6 +6,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { FaviconBadge } from "@/components/favicon-badge";
 import { ThemeColorSync } from "@/components/theme-color-sync";
+import { IosViewportHeal } from "@/components/ios-viewport-heal";
 import { configManager } from "@/lib/admin/config-manager";
 import {
   matchDomainBranding,
@@ -321,6 +322,7 @@ export default async function RootLayout({
         <ServiceWorkerRegistration />
         {!themeColorConfigured && <ThemeColorSync />}
         <FaviconBadge />
+        <IosViewportHeal />
         {children}
       </body>
     </html>
