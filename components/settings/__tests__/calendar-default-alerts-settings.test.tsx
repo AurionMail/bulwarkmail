@@ -78,7 +78,7 @@ describe('Calendar default reminders settings', () => {
     );
   });
 
-  it('clears a list by sending null once its last reminder is removed', async () => {
+  it('clears a list by sending an empty map, which Stalwart accepts where it refuses null', async () => {
     useCalendarStore.setState({
       calendars: [makeCalendar({
         defaultAlertsWithTime: {
@@ -93,6 +93,6 @@ describe('Calendar default reminders settings', () => {
     fireEvent.click(screen.getByText('save'));
 
     await waitFor(() => expect(updateCalendar).toHaveBeenCalledTimes(1));
-    expect(updateCalendar.mock.calls[0][2]).toEqual({ defaultAlertsWithTime: null, defaultAlertsWithoutTime: null });
+    expect(updateCalendar.mock.calls[0][2]).toEqual({ defaultAlertsWithTime: {}, defaultAlertsWithoutTime: {} });
   });
 });

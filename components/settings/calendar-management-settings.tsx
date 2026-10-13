@@ -172,13 +172,10 @@ export function CalendarDefaultAlertsForm({
   const [timedRows, setTimedRows] = useState<AlertRow[]>(timed.rows);
   const [allDayRows, setAllDayRows] = useState<AlertRow[]>(allDay.rows);
 
-  const toMap = (rows: AlertRow[], preserved: typeof timed.preserved) => {
-    const map = rowsToAlerts(rows, preserved);
-    return Object.keys(map).length > 0 ? map : null;
-  };
+  // An emptied list is sent as {}: Stalwart refuses null for these maps.
   const submit = () => onSave({
-    defaultAlertsWithTime: toMap(timedRows, timed.preserved),
-    defaultAlertsWithoutTime: toMap(allDayRows, allDay.preserved),
+    defaultAlertsWithTime: rowsToAlerts(timedRows, timed.preserved),
+    defaultAlertsWithoutTime: rowsToAlerts(allDayRows, allDay.preserved),
   });
 
   return (
