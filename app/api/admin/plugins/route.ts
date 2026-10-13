@@ -9,25 +9,9 @@ import {
   type ServerPlugin,
 } from '@/lib/admin/plugin-registry';
 import { listDevPlugins } from '@/lib/admin/plugin-dev';
-import {
-  sanitizeFrameOrigins,
-  sanitizeHttpOrigins,
-  sanitizeApiPostPaths,
-  invalidateFrameOriginsCache,
-} from '@/lib/admin/csp-frame-origins';
-
-// Server-side extraction using the same validation logic
-// ZIP parsing needs to happen on the server for admin-uploaded plugins
-import JSZip from 'jszip';
-import { MAX_PLUGIN_SIZE, ALL_PERMISSIONS, ALLOWED_PLUGIN_FILES } from '@/lib/plugin-types';
-
-const SUSPICIOUS_JS_PATTERNS = [
-  { pattern: /\beval\s*\(/g, label: 'eval()' },
-  { pattern: /\bnew\s+Function\s*\(/g, label: 'new Function()' },
-  { pattern: /document\.cookie/g, label: 'document.cookie' },
-  { pattern: /document\.write/g, label: 'document.write' },
-  { pattern: /innerHTML\s*=/g, label: 'innerHTML assignment' },
-];
+import { invalidateFrameOriginsCache } from '@/lib/admin/csp-frame-origins';
+import { ExtensionPackageError, readPluginPackage, suspiciousCode } from '@/lib/extension-package';
+import { MAX_PLUGIN_SIZE } from '@/lib/plugin-types';
 
 /**
  * GET /api/admin/plugins - List all admin-managed plugins
@@ -79,141 +63,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Plugin ZIP exceeds 5 MB size limit' }, { status: 400 });
     }
 
-    // Extract and validate ZIP
-    let zip: JSZip;
+    let pkg;
     try {
-      const buffer = await file.arrayBuffer();
-      zip = await JSZip.loadAsync(buffer);
-    } catch {
-      return NextResponse.json({ error: 'Invalid ZIP file' }, { status: 400 });
-    }
-
-    // Find root
-    const entries = Object.keys(zip.files);
-    const topDirs = new Set(entries.map(e => e.split('/')[0]));
-    let root = '';
-    if (topDirs.size === 1) {
-      const dir = [...topDirs][0];
-      if (zip.files[dir + '/'] || entries.some(e => e.startsWith(dir + '/'))) {
-        root = dir + '/';
+      pkg = await readPluginPackage(await file.arrayBuffer(), {
+        appVersion: process.env.NEXT_PUBLIC_APP_VERSION,
+      });
+    } catch (err) {
+      if (err instanceof ExtensionPackageError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
       }
+      throw err;
     }
+    const { manifest, code } = pkg;
 
-    // Read manifest
-    const manifestFile = zip.file(root + 'manifest.json');
-    if (!manifestFile) {
-      return NextResponse.json({ error: 'Missing manifest.json' }, { status: 400 });
-    }
-
-    let manifest: Record<string, unknown>;
-    try {
-      manifest = JSON.parse(await manifestFile.async('string'));
-    } catch {
-      return NextResponse.json({ error: 'Invalid manifest.json' }, { status: 400 });
-    }
-
-    // Validate manifest
-    const errors: string[] = [];
-    if (!manifest.id || typeof manifest.id !== 'string') errors.push('Missing or invalid "id"');
-    if (!manifest.name || typeof manifest.name !== 'string') errors.push('Missing or invalid "name"');
-    if (!manifest.version || typeof manifest.version !== 'string') errors.push('Missing or invalid "version"');
-    if (!manifest.author || typeof manifest.author !== 'string') errors.push('Missing or invalid "author"');
-    if (!manifest.entrypoint || typeof manifest.entrypoint !== 'string') errors.push('Missing or invalid "entrypoint"');
-
-    const validTypes = ['ui-extension', 'sidebar-app', 'hook'];
-    if (!validTypes.includes(manifest.type as string)) {
-      errors.push(`Invalid type. Must be one of: ${validTypes.join(', ')}`);
-    }
-
-    if (manifest.id && typeof manifest.id === 'string' && !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(manifest.id)) {
-      errors.push('ID must be lowercase alphanumeric with hyphens, min 2 chars');
-    }
-
-    if (manifest.permissions && Array.isArray(manifest.permissions)) {
-      const validPerms = new Set(ALL_PERMISSIONS as readonly string[]);
-      const unknown = (manifest.permissions as string[]).filter(p => !validPerms.has(p));
-      if (unknown.length > 0) errors.push(`Unknown permissions: ${unknown.join(', ')}`);
-    }
-
-    if (errors.length > 0) {
-      return NextResponse.json({ error: errors.join('; ') }, { status: 400 });
-    }
-
-    // Check file extensions
-    for (const [filePath, entry] of Object.entries(zip.files)) {
-      if (entry.dir) continue;
-      const ext = filePath.lastIndexOf('.') >= 0 ? filePath.slice(filePath.lastIndexOf('.')).toLowerCase() : '';
-      if (ext && !ALLOWED_PLUGIN_FILES.has(ext)) {
-        errors.push(`Disallowed file type: ${filePath}`);
-      }
-    }
-    if (errors.length > 0) {
-      return NextResponse.json({ error: errors.join('; ') }, { status: 400 });
-    }
-
-    // Read entrypoint code
-    const entryFile = zip.file(root + (manifest.entrypoint as string));
-    if (!entryFile) {
-      return NextResponse.json({ error: `Missing entrypoint: ${manifest.entrypoint}` }, { status: 400 });
-    }
-    const code = await entryFile.async('string');
-
-    // Security: block plugins containing dangerous JS patterns
-    const warnings: string[] = [];
-    for (const { pattern, label } of SUSPICIOUS_JS_PATTERNS) {
-      if (pattern.test(code)) warnings.push(`Contains ${label}`);
-      pattern.lastIndex = 0;
-    }
-    if (warnings.length > 0) {
+    // Admin uploads reach every user, so the patterns a user upload only
+    // warns about are refused here.
+    const suspicious = suspiciousCode(code);
+    if (suspicious.length > 0) {
       return NextResponse.json(
-        { error: `Plugin rejected: ${warnings.join(', ')}. These patterns are not allowed for security reasons.` },
+        { error: `Plugin rejected: contains ${suspicious.join(', ')}. These patterns are not allowed for security reasons.` },
         { status: 400 },
       );
     }
 
-    const declaredFrameOrigins = sanitizeFrameOrigins(manifest.frameOrigins);
-    const declaredHttpOrigins = sanitizeHttpOrigins(manifest.httpOrigins);
-    const declaredApiPostPaths = sanitizeApiPostPaths(manifest.apiPostPaths);
-
     const now = new Date().toISOString();
     const plugin: ServerPlugin = {
-      id: manifest.id as string,
-      name: manifest.name as string,
-      version: manifest.version as string,
-      author: manifest.author as string,
-      description: (manifest.description as string) || '',
-      type: manifest.type as string,
+      id: manifest.id,
+      name: manifest.name,
+      version: manifest.version,
+      author: manifest.author,
+      description: manifest.description,
+      type: manifest.type,
       ...(manifest.tier === 'privileged' ? { tier: 'privileged' } : {}),
-      permissions: (manifest.permissions as string[]) || [],
-      entrypoint: manifest.entrypoint as string,
+      permissions: manifest.permissions,
+      entrypoint: manifest.entrypoint,
       enabled: true,
-      ...(manifest.configSchema && typeof manifest.configSchema === 'object'
-        ? { configSchema: manifest.configSchema as ServerPlugin['configSchema'] }
-        : {}),
-      ...(manifest.settingsSchema && typeof manifest.settingsSchema === 'object'
-        ? { settingsSchema: manifest.settingsSchema as ServerPlugin['settingsSchema'] }
-        : {}),
-      ...(manifest.locales && typeof manifest.locales === 'object'
-        ? { locales: manifest.locales as ServerPlugin['locales'] }
-        : {}),
-      ...(declaredFrameOrigins.length > 0
-        ? { frameOrigins: declaredFrameOrigins }
-        : {}),
-      ...(declaredHttpOrigins.length > 0
-        ? { httpOrigins: declaredHttpOrigins }
-        : {}),
-      ...(declaredApiPostPaths.length > 0
-        ? { apiPostPaths: declaredApiPostPaths }
-        : {}),
+      ...(manifest.configSchema ? { configSchema: manifest.configSchema } : {}),
+      ...(manifest.settingsSchema ? { settingsSchema: manifest.settingsSchema } : {}),
+      ...(manifest.locales ? { locales: manifest.locales } : {}),
+      ...(manifest.frameOrigins ? { frameOrigins: manifest.frameOrigins } : {}),
+      ...(manifest.httpOrigins ? { httpOrigins: manifest.httpOrigins } : {}),
+      ...(manifest.apiPostPaths ? { apiPostPaths: manifest.apiPostPaths } : {}),
       installedAt: now,
       updatedAt: now,
     };
+    const declaredFrameOrigins = plugin.frameOrigins ?? [];
+    const declaredHttpOrigins = plugin.httpOrigins ?? [];
+    const declaredApiPostPaths = plugin.apiPostPaths ?? [];
 
     await savePlugin(plugin, code);
     invalidateFrameOriginsCache();
     await auditLog('plugin.install', { id: plugin.id, name: plugin.name, version: plugin.version, frameOrigins: declaredFrameOrigins, httpOrigins: declaredHttpOrigins, apiPostPaths: declaredApiPostPaths }, ip);
 
-    return NextResponse.json({ plugin });
+    return NextResponse.json({ plugin, warnings: pkg.warnings });
   } catch (error) {
     logger.error('Plugin install error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

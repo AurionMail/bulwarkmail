@@ -10,8 +10,7 @@ import {
 } from '@/lib/admin/plugin-registry';
 import { forgetExtensionInPolicy } from '@/lib/admin/extension-cleanup';
 
-import JSZip from 'jszip';
-import { MAX_THEME_SIZE } from '@/lib/plugin-types';
+import { ExtensionPackageError, openPackage, readManifest, readText, type OpenedPackage } from '@/lib/extension-package';
 import { sanitizeThemeCSS } from '@/lib/theme-loader';
 
 /**
@@ -48,41 +47,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file' }, { status: 400 });
     }
 
-    if (file.size > MAX_THEME_SIZE) {
-      return NextResponse.json({ error: 'Theme ZIP exceeds 1 MB size limit' }, { status: 400 });
-    }
-
-    // Extract and validate ZIP
-    let zip: JSZip;
-    try {
-      const buffer = await file.arrayBuffer();
-      zip = await JSZip.loadAsync(buffer);
-    } catch {
-      return NextResponse.json({ error: 'Invalid ZIP file' }, { status: 400 });
-    }
-
-    // Find root
-    const entries = Object.keys(zip.files);
-    const topDirs = new Set(entries.map(e => e.split('/')[0]));
-    let root = '';
-    if (topDirs.size === 1) {
-      const dir = [...topDirs][0];
-      if (zip.files[dir + '/'] || entries.some(e => e.startsWith(dir + '/'))) {
-        root = dir + '/';
-      }
-    }
-
-    // Read manifest
-    const manifestFile = zip.file(root + 'manifest.json');
-    if (!manifestFile) {
-      return NextResponse.json({ error: 'Missing manifest.json' }, { status: 400 });
-    }
-
+    let pkg: OpenedPackage;
     let manifest: Record<string, unknown>;
     try {
-      manifest = JSON.parse(await manifestFile.async('string'));
-    } catch {
-      return NextResponse.json({ error: 'Invalid manifest.json' }, { status: 400 });
+      pkg = await openPackage(await file.arrayBuffer(), 'theme');
+      manifest = await readManifest(pkg);
+    } catch (err) {
+      if (err instanceof ExtensionPackageError) return NextResponse.json({ error: err.message }, { status: 400 });
+      throw err;
     }
 
     // Validate manifest
@@ -112,12 +84,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Read theme.css
-    const cssFile = zip.file(root + 'theme.css');
-    if (!cssFile) {
+    let css: string | null;
+    try {
+      css = await readText(pkg, 'theme.css');
+    } catch (err) {
+      if (err instanceof ExtensionPackageError) return NextResponse.json({ error: err.message }, { status: 400 });
+      throw err;
+    }
+    if (css === null) {
       return NextResponse.json({ error: 'Missing theme.css' }, { status: 400 });
     }
-
-    let css = await cssFile.async('string');
 
     // Sanitize unconditionally: the safety check is advisory, and the
     // sanitizer is also what drops rules outside :root and .dark.

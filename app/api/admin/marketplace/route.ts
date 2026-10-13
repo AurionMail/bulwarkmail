@@ -12,14 +12,16 @@ import {
   type ServerPlugin,
   type ServerTheme,
 } from '@/lib/admin/plugin-registry';
+import { invalidateFrameOriginsCache } from '@/lib/admin/csp-frame-origins';
 import {
-  sanitizeFrameOrigins,
-  sanitizeHttpOrigins,
-  sanitizeApiPostPaths,
-  invalidateFrameOriginsCache,
-} from '@/lib/admin/csp-frame-origins';
-import JSZip from 'jszip';
-import { MAX_PLUGIN_SIZE, MAX_THEME_SIZE, ALL_PERMISSIONS } from '@/lib/plugin-types';
+  EXTENSION_ID_RE,
+  ExtensionPackageError,
+  openPackage,
+  readManifest,
+  readPluginPackage,
+  readText,
+  suspiciousCode,
+} from '@/lib/extension-package';
 import { sanitizeThemeCSS } from '@/lib/theme-loader';
 import { configManager } from '@/lib/admin/config-manager';
 
@@ -123,6 +125,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
     }
 
+    // The slug becomes a file name and the registry key; it must be a plain id.
+    if (typeof slug !== 'string' || !EXTENSION_ID_RE.test(slug)) {
+      return NextResponse.json(
+        { error: 'Invalid id: must be lowercase alphanumeric with hyphens, min 2 chars' },
+        { status: 400 },
+      );
+    }
+
     // Download the bundle from the directory
     const directoryUrl = await getDirectoryUrl();
     const bundleUrl = new URL(`/api/v1/bundle/${encodeURIComponent(slug)}/${encodeURIComponent(version)}`, directoryUrl);
@@ -138,78 +148,39 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = await bundleRes.arrayBuffer();
-    const maxSize = type === 'theme' ? MAX_THEME_SIZE : MAX_PLUGIN_SIZE;
-
-    if (buffer.byteLength > maxSize) {
-      return NextResponse.json(
-        { error: `Bundle exceeds ${type === 'theme' ? '1 MB' : '5 MB'} size limit` },
-        { status: 400 }
-      );
-    }
-
-    // Parse the ZIP
-    let zip: JSZip;
-    try {
-      zip = await JSZip.loadAsync(buffer);
-    } catch {
-      return NextResponse.json({ error: 'Invalid ZIP file from directory' }, { status: 400 });
-    }
-
-    // Find root directory
-    const entries = Object.keys(zip.files);
-    const topDirs = new Set(entries.map(e => e.split('/')[0]));
-    let root = '';
-    if (topDirs.size === 1) {
-      const dir = [...topDirs][0];
-      if (zip.files[dir + '/'] || entries.some(e => e.startsWith(dir + '/'))) {
-        root = dir + '/';
-      }
-    }
-
-    // Read manifest
-    const manifestFile = zip.file(root + 'manifest.json');
-    if (!manifestFile) {
-      return NextResponse.json({ error: 'Bundle missing manifest.json' }, { status: 400 });
-    }
-
-    let manifest: Record<string, unknown>;
-    try {
-      manifest = JSON.parse(await manifestFile.async('string'));
-    } catch {
-      return NextResponse.json({ error: 'Invalid manifest.json in bundle' }, { status: 400 });
-    }
-
     const now = new Date().toISOString();
 
-    // Resolve and strictly validate the id used as a filename. Marketplace
-    // bundles are authored by a third-party publisher; without this an id
-    // like "../../foo" causes savePlugin/saveTheme to write outside the
-    // plugins/themes dir via path.join.
-    // The slug is what the admin picked and what install status is keyed
-    // on. A bundle that names another id would install over whatever
-    // already uses that id, keeping its enabled and force-enabled state.
-    if (manifest.id !== undefined && manifest.id !== slug) {
-      return NextResponse.json(
-        { error: `Bundle id "${String(manifest.id)}" does not match the directory entry "${slug}"` },
-        { status: 400 },
-      );
-    }
-    const resolvedId = slug;
-    if (typeof resolvedId !== 'string' || !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(resolvedId)) {
-      return NextResponse.json(
-        { error: 'Invalid id: must be lowercase alphanumeric with hyphens, min 2 chars' },
-        { status: 400 },
-      );
-    }
-
     if (type === 'theme') {
-      // Read theme.css
-      const cssFile = zip.file(root + 'theme.css');
-      if (!cssFile) {
+      let pkg;
+      let manifest: Record<string, unknown>;
+      try {
+        pkg = await openPackage(buffer, 'theme');
+        manifest = await readManifest(pkg);
+      } catch (err) {
+        if (err instanceof ExtensionPackageError) return NextResponse.json({ error: err.message }, { status: 400 });
+        throw err;
+      }
+      // The slug is what the admin picked and what install status is keyed
+      // on. A bundle that names another id would install over whatever
+      // already uses that id, keeping its enabled and force-enabled state.
+      if (manifest.id !== undefined && manifest.id !== slug) {
+        return NextResponse.json(
+          { error: `Bundle id "${String(manifest.id)}" does not match the directory entry "${slug}"` },
+          { status: 400 },
+        );
+      }
+      const resolvedId = slug;
+
+      let css: string | null;
+      try {
+        css = await readText(pkg, 'theme.css');
+      } catch (err) {
+        if (err instanceof ExtensionPackageError) return NextResponse.json({ error: err.message }, { status: 400 });
+        throw err;
+      }
+      if (css === null) {
         return NextResponse.json({ error: 'Theme bundle missing theme.css' }, { status: 400 });
       }
-
-      let css = await cssFile.async('string');
 
       // Sanitize unconditionally: the safety check is advisory, and the
       // sanitizer is also what drops rules outside :root and .dark.
@@ -255,148 +226,81 @@ export async function POST(request: NextRequest) {
       );
 
       return NextResponse.json({ success: true, theme, warnings, updated: isUpdate });
-    } else {
-      // Plugin installation
-      // Read entrypoint JS
-      const entrypoint = (manifest.entrypoint as string) || 'index.js';
-      const jsFile = zip.file(root + entrypoint);
-      if (!jsFile) {
-        return NextResponse.json({ error: `Bundle missing entrypoint: ${entrypoint}` }, { status: 400 });
-      }
-
-      const code = await jsFile.async('string');
-
-      // Block plugins with dangerous JS patterns
-      const DANGEROUS_JS_PATTERNS = [
-        { pattern: /\beval\s*\(/g, label: 'eval()' },
-        { pattern: /\bnew\s+Function\s*\(/g, label: 'new Function()' },
-        { pattern: /document\.cookie/g, label: 'document.cookie' },
-        { pattern: /document\.write/g, label: 'document.write' },
-        { pattern: /innerHTML\s*=/g, label: 'innerHTML assignment' },
-      ];
-      const dangerousFindings: string[] = [];
-      for (const { pattern, label } of DANGEROUS_JS_PATTERNS) {
-        if (pattern.test(code)) dangerousFindings.push(label);
-        pattern.lastIndex = 0;
-      }
-      if (dangerousFindings.length > 0) {
-        return NextResponse.json(
-          { error: `Plugin rejected: contains ${dangerousFindings.join(', ')}. These patterns are not allowed for security reasons.` },
-          { status: 400 },
-        );
-      }
-
-      // Validate permissions
-      const permissions = Array.isArray(manifest.permissions) ? manifest.permissions as string[] : [];
-      const validPerms = new Set(ALL_PERMISSIONS as readonly string[]);
-      const unknownPerms = permissions.filter(p => !validPerms.has(p));
-
-      const warnings: string[] = [];
-      if (unknownPerms.length > 0) {
-        warnings.push(`Unknown permissions: ${unknownPerms.join(', ')}`);
-      }
-
-      // Plugins may declare iframe origins they need for embedded content.
-      // Anything that doesn't pass strict origin validation is silently
-      // dropped - the plugin still installs, but those origins are not
-      // added to the host CSP.
-      const declaredFrameOrigins = sanitizeFrameOrigins(manifest.frameOrigins);
-      const droppedFrameOrigins = Array.isArray(manifest.frameOrigins)
-        ? (manifest.frameOrigins as unknown[]).filter(
-            (v) => typeof v !== 'string' || !declaredFrameOrigins.includes(v),
-          )
-        : [];
-      if (droppedFrameOrigins.length > 0) {
-        warnings.push(
-          `Ignored invalid frameOrigins: ${droppedFrameOrigins.join(', ')}`,
-        );
-      }
-
-      const declaredHttpOrigins = sanitizeHttpOrigins(manifest.httpOrigins);
-      const droppedHttpOrigins = Array.isArray(manifest.httpOrigins)
-        ? (manifest.httpOrigins as unknown[]).filter(
-            (v) => typeof v !== 'string' || !declaredHttpOrigins.includes(v),
-          )
-        : [];
-      if (droppedHttpOrigins.length > 0) {
-        warnings.push(
-          `Ignored invalid httpOrigins: ${droppedHttpOrigins.join(', ')}`,
-        );
-      }
-
-      const declaredApiPostPaths = sanitizeApiPostPaths(manifest.apiPostPaths);
-      const droppedApiPostPaths = Array.isArray(manifest.apiPostPaths)
-        ? (manifest.apiPostPaths as unknown[]).filter(
-            (v) => typeof v !== 'string' || !declaredApiPostPaths.includes(v),
-          )
-        : [];
-      if (droppedApiPostPaths.length > 0) {
-        warnings.push(
-          `Ignored invalid apiPostPaths: ${droppedApiPostPaths.join(', ')}`,
-        );
-      }
-
-      const existingPlugin = await getPlugin(resolvedId);
-      const isUpdate = existingPlugin !== null;
-
-      const plugin: ServerPlugin = {
-        id: resolvedId,
-        name: (manifest.name as string) || slug,
-        // See theme branch: trust the directory-published version, not
-        // manifest.version, so updates actually stick in the registry.
-        version: version || (manifest.version as string),
-        author: (manifest.author as string) || 'Unknown',
-        description: (manifest.description as string) || '',
-        type: (manifest.type as string) || 'hook',
-        ...(manifest.tier === 'privileged' ? { tier: 'privileged' } : {}),
-        permissions,
-        entrypoint,
-        enabled: existingPlugin?.enabled ?? true,
-        ...(existingPlugin?.forceEnabled !== undefined
-          ? { forceEnabled: existingPlugin.forceEnabled }
-          : {}),
-        installedAt: existingPlugin?.installedAt ?? now,
-        updatedAt: now,
-        ...(manifest.configSchema && typeof manifest.configSchema === 'object'
-          ? { configSchema: manifest.configSchema as ServerPlugin['configSchema'] }
-          : {}),
-        ...(manifest.settingsSchema && typeof manifest.settingsSchema === 'object'
-          ? { settingsSchema: manifest.settingsSchema as ServerPlugin['settingsSchema'] }
-          : {}),
-        ...(declaredFrameOrigins.length > 0
-          ? { frameOrigins: declaredFrameOrigins }
-          : {}),
-        ...(declaredHttpOrigins.length > 0
-          ? { httpOrigins: declaredHttpOrigins }
-          : {}),
-        ...(declaredApiPostPaths.length > 0
-          ? { apiPostPaths: declaredApiPostPaths }
-          : {}),
-        ...(manifest.locales && typeof manifest.locales === 'object'
-          ? { locales: manifest.locales as ServerPlugin['locales'] }
-          : {}),
-
-      };
-
-      await savePlugin(plugin, code);
-      invalidateFrameOriginsCache();
-      await auditLog(
-        isUpdate ? 'marketplace.update_plugin' : 'marketplace.install_plugin',
-        {
-          id: plugin.id,
-          name: plugin.name,
-          version: plugin.version,
-          slug,
-          frameOrigins: declaredFrameOrigins,
-          httpOrigins: declaredHttpOrigins,
-          apiPostPaths: declaredApiPostPaths,
-          ...(isUpdate ? { previousVersion: existingPlugin.version } : {}),
-        },
-        ip,
-      );
-
-      return NextResponse.json({ success: true, plugin, warnings, updated: isUpdate });
     }
+
+    // Plugin installation
+    let pkg;
+    try {
+      pkg = await readPluginPackage(buffer, {
+        appVersion: process.env.NEXT_PUBLIC_APP_VERSION,
+        expectedId: slug,
+      });
+    } catch (err) {
+      if (err instanceof ExtensionPackageError) {
+        // Same wording the admin UI already shows for an id mismatch.
+        const message = err.message.replace(/Package id "([^"]*)" does not match "([^"]*)"/, 'Bundle id "$1" does not match the directory entry "$2"');
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+      throw err;
+    }
+    const { manifest, code } = pkg;
+
+    // Block plugins with dangerous JS patterns
+    const suspicious = suspiciousCode(code);
+    if (suspicious.length > 0) {
+      return NextResponse.json(
+        { error: `Plugin rejected: contains ${suspicious.join(', ')}. These patterns are not allowed for security reasons.` },
+        { status: 400 },
+      );
+    }
+
+    const existingPlugin = await getPlugin(slug);
+    const isUpdate = existingPlugin !== null;
+
+    const plugin: ServerPlugin = {
+      id: slug,
+      name: manifest.name,
+      // See theme branch: trust the directory-published version, not
+      // manifest.version, so updates actually stick in the registry.
+      version: version || manifest.version,
+      author: manifest.author,
+      description: manifest.description,
+      type: manifest.type,
+      ...(manifest.tier === 'privileged' ? { tier: 'privileged' } : {}),
+      permissions: manifest.permissions,
+      entrypoint: manifest.entrypoint,
+      enabled: existingPlugin?.enabled ?? true,
+      ...(existingPlugin?.forceEnabled !== undefined
+        ? { forceEnabled: existingPlugin.forceEnabled }
+        : {}),
+      installedAt: existingPlugin?.installedAt ?? now,
+      updatedAt: now,
+      ...(manifest.configSchema ? { configSchema: manifest.configSchema } : {}),
+      ...(manifest.settingsSchema ? { settingsSchema: manifest.settingsSchema } : {}),
+      ...(manifest.frameOrigins ? { frameOrigins: manifest.frameOrigins } : {}),
+      ...(manifest.httpOrigins ? { httpOrigins: manifest.httpOrigins } : {}),
+      ...(manifest.apiPostPaths ? { apiPostPaths: manifest.apiPostPaths } : {}),
+      ...(manifest.locales ? { locales: manifest.locales } : {}),
+    };
+
+    await savePlugin(plugin, code);
+    invalidateFrameOriginsCache();
+    await auditLog(
+      isUpdate ? 'marketplace.update_plugin' : 'marketplace.install_plugin',
+      {
+        id: plugin.id,
+        name: plugin.name,
+        version: plugin.version,
+        slug,
+        frameOrigins: plugin.frameOrigins ?? [],
+        httpOrigins: plugin.httpOrigins ?? [],
+        apiPostPaths: plugin.apiPostPaths ?? [],
+        ...(isUpdate ? { previousVersion: existingPlugin.version } : {}),
+      },
+      ip,
+    );
+
+    return NextResponse.json({ success: true, plugin, warnings: pkg.warnings, updated: isUpdate });
   } catch (error) {
     logger.error('Marketplace install error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Installation failed' }, { status: 500 });

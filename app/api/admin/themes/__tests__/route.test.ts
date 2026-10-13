@@ -26,7 +26,8 @@ vi.mock('@/lib/admin/plugin-registry', () => ({
   getThemeRegistry: vi.fn(async () => ({ themes: [] })),
 }));
 
-import { DELETE } from '../route';
+import JSZip from 'jszip';
+import { DELETE, POST } from '../route';
 
 function del(id: string) {
   return DELETE(new NextRequest('http://localhost/api/admin/themes', {
@@ -46,5 +47,21 @@ describe('DELETE /api/admin/themes', () => {
 
     expect(res.status).toBe(200);
     expect(policy.forceEnabledThemes).toEqual(['other']);
+  });
+});
+
+describe('POST /api/admin/themes', () => {
+  it('refuses a theme.css that unpacks past the limit', async () => {
+    const zip = new JSZip();
+    zip.file('manifest.json', JSON.stringify({ id: 'big', name: 'Big', version: '1.0.0', author: 'a', type: 'theme', variants: ['light'] }));
+    zip.file('theme.css', new Uint8Array(30 * 1024 * 1024));
+    const bytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+    const form = new FormData();
+    form.append('file', new File([bytes as BlobPart], 't.zip'));
+
+    const res = await POST(new NextRequest('http://localhost/api/admin/themes', { method: 'POST', body: form }));
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/once unpacked/);
   });
 });

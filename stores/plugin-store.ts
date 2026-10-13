@@ -88,6 +88,7 @@ export const usePluginStore = create<PluginStoreState>()(
           adminApproved: false, // Requires admin approval before it can be enabled
           settings: existing?.settings ?? {},
           settingsSchema: manifest.settingsSchema,
+          ...(manifest.locales ? { locales: manifest.locales } : {}),
           ...(bundleHash ? { bundleHash } : {}),
           ...(manifest.httpOrigins && manifest.httpOrigins.length > 0
             ? { httpOrigins: manifest.httpOrigins }

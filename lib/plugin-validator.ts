@@ -1,18 +1,21 @@
 // Plugin/Theme ZIP upload validation, extraction, and manifest parsing
 
-import JSZip from 'jszip';
 import {
   type ThemeManifest,
   type PluginManifest,
-  type PluginType,
-  ALL_PERMISSIONS,
-  MAX_PLUGIN_SIZE,
-  MAX_THEME_SIZE,
   MAX_THEME_SKIN_BYTES,
-  ALLOWED_PLUGIN_FILES,
 } from './plugin-types';
 import { sanitizeThemeCSS, sanitizeSkinCSS } from './theme-loader';
 import { compileAdvancedTheme, isAdvancedManifest } from './theme-compiler';
+import {
+  ExtensionPackageError,
+  openPackage,
+  readEntry,
+  readManifest,
+  readPluginPackage,
+  readText,
+  type OpenedPackage,
+} from './extension-package';
 
 export interface ValidationResult {
   valid: boolean;
@@ -101,82 +104,7 @@ function validateThemeManifest(manifest: Record<string, unknown>): { result: The
   };
 }
 
-function validatePluginManifest(manifest: Record<string, unknown>): { result: PluginManifest | null; errors: string[] } {
-  const errors = validateBaseManifest(manifest);
-
-  const validTypes: PluginType[] = ['ui-extension', 'sidebar-app', 'hook'];
-  if (!validTypes.includes(manifest.type as PluginType)) {
-    errors.push(`Invalid type "${manifest.type}". Must be one of: ${validTypes.join(', ')}`);
-  }
-
-  if (!manifest.entrypoint || typeof manifest.entrypoint !== 'string') {
-    errors.push('Missing or invalid "entrypoint"');
-  }
-
-  if (manifest.permissions && Array.isArray(manifest.permissions)) {
-    const validPerms = new Set(ALL_PERMISSIONS as readonly string[]);
-    const unknown = (manifest.permissions as string[]).filter(p => !validPerms.has(p));
-    if (unknown.length > 0) {
-      errors.push(`Unknown permissions: ${unknown.join(', ')}`);
-    }
-  }
-
-  if (errors.length > 0) return { result: null, errors };
-
-  return {
-    result: {
-      ...(manifest as unknown as PluginManifest),
-      permissions: (manifest.permissions as string[]) || [],
-    },
-    errors: [],
-  };
-}
-
-// ─── JS Security Checks ─────────────────────────────────────
-
-const SUSPICIOUS_JS_PATTERNS = [
-  { pattern: /\beval\s*\(/g, label: 'eval()' },
-  { pattern: /\bnew\s+Function\s*\(/g, label: 'new Function()' },
-  { pattern: /document\.cookie/g, label: 'document.cookie' },
-  { pattern: /document\.write/g, label: 'document.write' },
-  { pattern: /innerHTML\s*=/g, label: 'innerHTML assignment' },
-];
-
-function checkJSSecurity(code: string): string[] {
-  const warnings: string[] = [];
-  for (const { pattern, label } of SUSPICIOUS_JS_PATTERNS) {
-    if (pattern.test(code)) {
-      warnings.push(`Contains ${label} - review for security`);
-    }
-    pattern.lastIndex = 0; // reset regex
-  }
-  return warnings;
-}
-
 // ─── ZIP Extraction ──────────────────────────────────────────
-
-function getExtension(filename: string): string {
-  const dot = filename.lastIndexOf('.');
-  return dot >= 0 ? filename.slice(dot).toLowerCase() : '';
-}
-
-/**
- * Find the root of the ZIP contents.
- * Some ZIPs have all files inside a single top-level folder.
- */
-function findZipRoot(zip: JSZip): string {
-  const entries = Object.keys(zip.files);
-  // Check if all entries share a common top-level directory
-  const topDirs = new Set(entries.map(e => e.split('/')[0]));
-  if (topDirs.size === 1) {
-    const dir = [...topDirs][0];
-    // Verify it's actually a directory (has entries inside it)
-    if (zip.files[dir + '/'] || entries.some(e => e.startsWith(dir + '/'))) {
-      return dir + '/';
-    }
-  }
-  return '';
-}
 
 /**
  * Extract and validate a theme ZIP file.
@@ -185,38 +113,14 @@ export async function extractTheme(file: File): Promise<ThemeExtractionResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Size check
-  if (file.size > MAX_THEME_SIZE) {
-    return {
-      valid: false,
-      errors: [`Theme ZIP exceeds ${Math.round(MAX_THEME_SIZE / (1024 * 1024))} MB size limit`],
-      warnings: [],
-      manifest: null, css: '', skin: null, preview: null,
-    };
-  }
-
-  let zip: JSZip;
-  try {
-    const buffer = await file.arrayBuffer();
-    zip = await JSZip.loadAsync(buffer);
-  } catch {
-    return { valid: false, errors: ['Invalid ZIP file'], warnings: [], manifest: null, css: '', skin: null, preview: null };
-  }
-
-  const root = findZipRoot(zip);
-
-  // Read manifest
-  const manifestFile = zip.file(root + 'manifest.json');
-  if (!manifestFile) {
-    return { valid: false, errors: ['Missing manifest.json'], warnings: [], manifest: null, css: '', skin: null, preview: null };
-  }
-
+  let pkg: OpenedPackage;
   let manifestData: Record<string, unknown>;
   try {
-    const raw = await manifestFile.async('string');
-    manifestData = JSON.parse(raw);
-  } catch {
-    return { valid: false, errors: ['Invalid manifest.json (not valid JSON)'], warnings: [], manifest: null, css: '', skin: null, preview: null };
+    pkg = await openPackage(await file.arrayBuffer(), 'theme');
+    manifestData = await readManifest(pkg);
+  } catch (err) {
+    const message = err instanceof ExtensionPackageError ? err.message : 'Invalid ZIP file';
+    return { valid: false, errors: [message], warnings: [], manifest: null, css: '', skin: null, preview: null };
   }
 
   const { result: manifest, errors: manifestErrors } = validateThemeManifest(manifestData);
@@ -228,12 +132,20 @@ export async function extractTheme(file: File): Promise<ThemeExtractionResult> {
   // Read theme.css - required for v1 themes, optional when the manifest
   // declares Theme API v2 fields (tokens/extends/derive/density/radii/typography),
   // since the compiler can produce CSS purely from the manifest.
-  const cssFile = zip.file(root + 'theme.css');
   const isAdvanced = isAdvancedManifest(manifest);
+  let cssText: string | null;
+  let skinText: string | null;
+  try {
+    cssText = await readText(pkg, 'theme.css');
+    skinText = await readText(pkg, 'skin.css', MAX_THEME_SKIN_BYTES * 4);
+  } catch (err) {
+    const message = err instanceof ExtensionPackageError ? err.message : 'Could not read theme files';
+    return { valid: false, errors: [message], warnings, manifest, css: '', skin: null, preview: null };
+  }
 
   let userCSS = '';
-  if (cssFile) {
-    userCSS = await cssFile.async('string');
+  if (cssText !== null) {
+    userCSS = cssText;
     // Sanitize instead of rejecting, and always: the sanitizer is also what
     // drops rules outside :root and .dark.
     const sanitized = sanitizeThemeCSS(userCSS);
@@ -265,14 +177,11 @@ export async function extractTheme(file: File): Promise<ThemeExtractionResult> {
   // Read preview image if present
   let preview: string | null = null;
   if (manifest.preview) {
-    const previewFile = zip.file(root + manifest.preview);
-    if (previewFile) {
-      try {
-        const blob = await previewFile.async('blob');
-        preview = await blobToDataUri(blob);
-      } catch {
-        warnings.push('Could not read preview image');
-      }
+    try {
+      const bytes = await readEntry(pkg, manifest.preview, 512 * 1024);
+      if (bytes) preview = await blobToDataUri(new Blob([bytes as BlobPart], { type: previewType(manifest.preview) }));
+    } catch {
+      warnings.push('Could not read preview image');
     }
   }
 
@@ -280,12 +189,11 @@ export async function extractTheme(file: File): Promise<ThemeExtractionResult> {
   // component selectors and bypass the strict :root/.dark selector check -
   // they still go through the dangerous-pattern sanitizer.
   let skin: string | null = null;
-  const skinFile = zip.file(root + 'skin.css');
-  if (skinFile) {
+  if (skinText !== null) {
     if (!isAdvanced) {
       warnings.push('skin.css ignored - only Theme API v2 manifests can ship a skin');
     } else {
-      const rawSkin = await skinFile.async('string');
+      const rawSkin = skinText;
       if (rawSkin.length > MAX_THEME_SKIN_BYTES) {
         warnings.push(`skin.css exceeds ${Math.round(MAX_THEME_SKIN_BYTES / 1024)} KB and was dropped`);
       } else {
@@ -308,87 +216,45 @@ export async function extractTheme(file: File): Promise<ThemeExtractionResult> {
 }
 
 /**
- * Extract and validate a plugin ZIP file.
+ * Extract and validate a plugin ZIP file. The checks are the ones every
+ * server install path runs too (see extension-package.ts).
  */
 export async function extractPlugin(file: File): Promise<PluginExtractionResult> {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  if (file.size > MAX_PLUGIN_SIZE) {
-    return { valid: false, errors: ['Plugin ZIP exceeds 5 MB size limit'], warnings: [], manifest: null, code: '', preview: null };
-  }
-
-  let zip: JSZip;
+  let result: Awaited<ReturnType<typeof readPluginPackage>>;
   try {
-    const buffer = await file.arrayBuffer();
-    zip = await JSZip.loadAsync(buffer);
-  } catch {
-    return { valid: false, errors: ['Invalid ZIP file'], warnings: [], manifest: null, code: '', preview: null };
+    result = await readPluginPackage(await file.arrayBuffer(), {
+      appVersion: process.env.NEXT_PUBLIC_APP_VERSION,
+    });
+  } catch (err) {
+    const message = err instanceof ExtensionPackageError ? err.message : 'Invalid ZIP file';
+    return { valid: false, errors: message.split('; '), warnings: [], manifest: null, code: '', preview: null };
   }
+  const warnings = [...result.warnings];
 
-  const root = findZipRoot(zip);
-
-  // Check for disallowed file extensions
-  for (const [path, entry] of Object.entries(zip.files)) {
-    if (entry.dir) continue;
-    const ext = getExtension(path);
-    if (ext && !ALLOWED_PLUGIN_FILES.has(ext)) {
-      errors.push(`Disallowed file type: ${path} (${ext})`);
-    }
-  }
-
-  // Read manifest
-  const manifestFile = zip.file(root + 'manifest.json');
-  if (!manifestFile) {
-    return { valid: false, errors: ['Missing manifest.json', ...errors], warnings, manifest: null, code: '', preview: null };
-  }
-
-  let manifestData: Record<string, unknown>;
-  try {
-    const raw = await manifestFile.async('string');
-    manifestData = JSON.parse(raw);
-  } catch {
-    return { valid: false, errors: ['Invalid manifest.json (not valid JSON)', ...errors], warnings, manifest: null, code: '', preview: null };
-  }
-
-  const { result: manifest, errors: manifestErrors } = validatePluginManifest(manifestData);
-  errors.push(...manifestErrors);
-  if (!manifest) {
-    return { valid: false, errors, warnings, manifest: null, code: '', preview: null };
-  }
-
-  // Read entrypoint
-  const entryFile = zip.file(root + manifest.entrypoint);
-  if (!entryFile) {
-    errors.push(`Missing entrypoint file: ${manifest.entrypoint}`);
-    return { valid: false, errors, warnings, manifest, code: '', preview: null };
-  }
-
-  const code = await entryFile.async('string');
-
-  // JS security checks
-  warnings.push(...checkJSSecurity(code));
-
-  // Read preview if present
   let preview: string | null = null;
-  const previewFile = zip.file(root + 'preview.png') || zip.file(root + 'preview.svg');
-  if (previewFile) {
+  const previewName = result.pkg.zip.file(result.pkg.root + 'preview.png') ? 'preview.png'
+    : result.pkg.zip.file(result.pkg.root + 'preview.svg') ? 'preview.svg' : null;
+  if (previewName) {
     try {
-      const blob = await previewFile.async('blob');
-      preview = await blobToDataUri(blob);
+      const bytes = await readEntry(result.pkg, previewName, 512 * 1024);
+      if (bytes) {
+        const type = previewName.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+        preview = await blobToDataUri(new Blob([bytes as BlobPart], { type }));
+      }
     } catch {
       warnings.push('Could not read preview image');
     }
   }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-    manifest,
-    code,
-    preview,
-  };
+  return { valid: true, errors: [], warnings, manifest: result.manifest, code: result.code, preview };
+}
+
+function previewType(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  return 'image/png';
 }
 
 function blobToDataUri(blob: Blob): Promise<string> {

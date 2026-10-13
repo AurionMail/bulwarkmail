@@ -221,3 +221,25 @@ describe('usePluginStore', () => {
     });
   });
 });
+
+describe('installPlugin', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  it('keeps the translations a plugin ships', async () => {
+    const { extractPlugin } = await import('@/lib/plugin-validator');
+    vi.mocked(extractPlugin).mockResolvedValueOnce({
+      valid: true, errors: [], warnings: [], preview: null, code: 'module.exports = {}',
+      manifest: {
+        id: 'translated', name: 'T', version: '1.0.0', author: 'a', description: '', type: 'hook',
+        permissions: [], entrypoint: 'index.js', locales: { de: { hello: 'Hallo' } },
+      },
+    });
+
+    const result = await usePluginStore.getState().installPlugin(new File(['x'], 'p.zip'));
+
+    expect(result.success).toBe(true);
+    expect(usePluginStore.getState().plugins[0].locales).toEqual({ de: { hello: 'Hallo' } });
+  });
+});

@@ -71,6 +71,19 @@ describe('POST /api/admin/marketplace', () => {
     expect(registry.has('pretty-dates')).toBe(true);
   });
 
+  it('refuses a ZIP bomb from the directory', async () => {
+    const zip = new JSZip();
+    zip.file('manifest.json', JSON.stringify({ ...MANIFEST, id: 'pretty-dates' }));
+    zip.file('index.js', new Uint8Array(30 * 1024 * 1024));
+    const bytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(bytes as BodyInit)));
+
+    const res = await install({ slug: 'pretty-dates', version: '1.0.0', type: 'plugin' });
+
+    expect(res.status).toBe(400);
+    expect(registry.size).toBe(0);
+  });
+
   it('refuses a bundle whose manifest id differs from the slug', async () => {
     // Otherwise a directory entry can overwrite another installed plugin,
     // inheriting its enabled and force-enabled state, while the admin UI
