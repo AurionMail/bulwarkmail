@@ -160,6 +160,47 @@ describe('Mountain View conversation folding (#1222)', () => {
     expect(container.querySelector('.email-content-wrapper')).not.toHaveClass('hidden');
   });
 
+  // #1223: the message used to show alone, then jump down under the earlier
+  // messages once the conversation arrived.
+  it('holds the message back while its conversation is on its way', () => {
+    const open = withBody(mail(3), 'Open body');
+    const otherThread = [mail(1, { id: 'x1', threadId: 't0' } as Partial<Email>), mail(2, { id: 'x2', threadId: 't0' } as Partial<Email>)];
+    const { container, rerender } = renderViewer(otherThread, open, { mvConversationPending: true });
+
+    expect(container.querySelector('[data-mv-conversation-pending]')).not.toBeNull();
+    expect(container.querySelector('[data-mv-open-header]')).toBeNull();
+    expect(container.querySelector('.email-content-wrapper')).toHaveClass('hidden');
+    expect(container.querySelector('[data-mv-reply-row]')).toBeNull();
+
+    rerender(
+      <EmailViewer
+        email={open}
+        mailboxes={mailboxes}
+        selectedMailbox="inbox"
+        currentMailboxRole="inbox"
+        mvConversation={[mail(1), mail(2), open]}
+        mvConversationPending={false}
+      />,
+    );
+    expect(container.querySelector('[data-mv-conversation-pending]')).toBeNull();
+    expect(container.querySelector('[data-mv-open-header]')).not.toBeNull();
+    expect(foldedIds(container)).toEqual(['m1', 'm2']);
+  });
+
+  it('does not wait when the open message is already in the conversation', () => {
+    const open = withBody(mail(2), 'Open body');
+    const { container } = renderViewer([mail(1), open], open, { mvConversationPending: true });
+    expect(container.querySelector('[data-mv-conversation-pending]')).toBeNull();
+    expect(container.querySelector('[data-mv-open-header]')).not.toBeNull();
+  });
+
+  it('shows a single message once its thread turns out to have no other messages', () => {
+    const open = withBody(mail(1), 'Only body');
+    const { container } = renderViewer(undefined as unknown as Email[], open, { mvConversationPending: false });
+    expect(container.querySelector('[data-mv-conversation-pending]')).toBeNull();
+    expect(container.querySelector('.email-content-wrapper')).not.toHaveClass('hidden');
+  });
+
   it('does not fold a message that has no conversation around it', () => {
     const open = withBody(mail(1), 'Only body');
     const { container } = render(

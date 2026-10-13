@@ -166,6 +166,11 @@ interface EmailViewerProps {
    * fold and unfold in place, as Gmail does; unread ones start unfolded.
    */
   mvConversation?: Email[];
+  /**
+   * Mountain View: the open message's conversation is still on its way. The
+   * viewer waits for it rather than showing the message alone first. (#1223)
+   */
+  mvConversationPending?: boolean;
   /** Mountain View: fetch the full message for a conversation card that was unfolded. */
   onLoadConversationEmail?: (email: Email) => void;
   /** Mountain View: an unfolded conversation message was read. */
@@ -982,6 +987,7 @@ export function EmailViewer({
   mvPosition,
   mvFolderName,
   mvConversation,
+  mvConversationPending,
   onLoadConversationEmail,
   onMarkConversationEmailRead,
   onReplyConversationEmail,
@@ -1127,6 +1133,10 @@ export function EmailViewer({
   const [mvOpenCollapsed, setMvOpenCollapsed] = useState(false);
   useEffect(() => setMvOpenCollapsed(false), [email?.id]);
   const mvOpenFolded = mvOpenIndex >= 0 && mvOpenCollapsed;
+  // The conversation is not here yet (the one on hand is another thread's, or
+  // none). Hold the message back instead of drawing it alone and then pushing
+  // it down under the earlier messages.
+  const mvAwaitingConversation = !!mvConversationPending && (mvViewer || mvMobileViewer) && mvOpenIndex < 0;
   const renderMvExpanded = (target: Email) => (
     <MvExpandedConversationCard
       email={target}
@@ -4379,6 +4389,15 @@ export function EmailViewer({
         <div data-mv-open-folded="">
           <MvConversationCard email={email} onOpen={() => setMvOpenCollapsed(false)} timeFormat={timeFormat} compact={mvMobileViewer} />
         </div>
+      ) : mvAwaitingConversation ? (
+        <div className={cn("flex items-start py-3 animate-pulse", mvMobileViewer ? "gap-3 px-4" : "gap-4 px-6")} data-mv-conversation-pending="">
+          <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
+          <div className="flex-1 space-y-2 pt-1">
+            <div className="h-2.5 bg-muted rounded w-1/3" />
+            <div className="h-2 bg-muted rounded w-2/3" />
+            <div className="h-2 bg-muted rounded w-1/2" />
+          </div>
+        </div>
       ) : (<>
       {/* === SENDER INFO (Desktop) === */}
       <div
@@ -5741,7 +5760,7 @@ export function EmailViewer({
           <div className={cn(
             "email-content-wrapper overflow-x-auto",
             // Folded, the body stays mounted so unfolding does not reload it.
-            mvOpenFolded && "hidden",
+            (mvOpenFolded || mvAwaitingConversation) && "hidden",
             // Mountain View indents the body under the sender's name, as Gmail does.
             mvViewer && "lg:ps-[60px]",
             !isDark && resolvedTheme === 'dark' ? "bg-white email-content-light" : "bg-background"
@@ -5802,7 +5821,7 @@ export function EmailViewer({
           )}
 
           {/* Mountain View: Reply / Reply all / Forward as buttons under the message. */}
-          {mvReplyRow && !(mvViewer && mvInlineComposer) && !isDraft && !isScheduled && !isBodyLoading && (effectiveEmailContent.isHtml ? iframeReady : true) && (
+          {mvReplyRow && !mvAwaitingConversation && !(mvViewer && mvInlineComposer) && !isDraft && !isScheduled && !isBodyLoading && (effectiveEmailContent.isHtml ? iframeReady : true) && (
             <div
               className={cn("pb-6 pt-2", isMobile ? "grid grid-cols-3 gap-2 px-4" : "flex flex-wrap items-center gap-3 px-6 lg:ps-[80px] pt-6")}
               data-mv-reply-row=""

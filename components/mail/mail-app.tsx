@@ -168,6 +168,12 @@ function freshMailboxes(previous: Mailbox[], timeoutMs = 10_000): Promise<Mailbo
   });
 }
 
+/**
+ * How long opening a Mountain View message waits for its conversation once the
+ * message itself has loaded, before showing it with a placeholder. (#1223)
+ */
+const MV_CONVERSATION_WAIT_MS = 800;
+
 export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
   const linkSegments = useLiteLinkSegments('mail', routeSegments);
@@ -212,6 +218,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const handleMvPopOut = useCallback(() => setMvReplyPoppedOut(true), []);
   // Mountain View: the open message's whole conversation, light properties only.
   const [mvConversation, setMvConversation] = useState<Email[] | null>(null);
+  // The thread whose conversation is being fetched, so the viewer waits for it
+  // instead of showing the message alone first. (#1223)
+  const [mvConversationLoading, setMvConversationLoading] = useState<string | null>(null);
+  const mvConversationLoadRef = useRef<{ key: string; startedAt: number; promise: Promise<Email[] | null> } | null>(null);
   const [conversationEmails, setConversationEmails] = useState<Email[]>([]);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number | null>(null);
@@ -3570,42 +3580,49 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       : fallback;
     return { threadClient, accountId: route.accountId };
   };
+  // Fetches the conversation around `ref`, oldest first. Opening a message
+  // starts this next to the message fetch, and the effect below picks up that
+  // same request rather than sending a second one.
+  const loadMvConversation = (ref: Email, fallback: NonNullable<typeof client>): Promise<Email[] | null> => {
+    const key = `${ref.sourceClientAccountId ?? ''}:${ref.sourceAccountId ?? ''}:${ref.threadId}:${ref.id}`;
+    const pending = mvConversationLoadRef.current;
+    if (pending?.key === key && Date.now() - pending.startedAt < 10_000) return pending.promise;
+    const route = mvConversationRoute(ref, fallback);
+    const threadClient = route.threadClient;
+    const promise = (async () => {
+      const thread = await threadClient.getThread(ref.threadId, route.accountId);
+      const ids = thread?.emailIds ?? [];
+      if (ids.length < 2) return null;
+      const emails = await threadClient.getSomeEmails(ids, route.accountId);
+      for (const e of emails) {
+        // Carry the open message's source stamps, so opening one of these
+        // in a merged view reaches the right account.
+        e.accountId = ref.accountId;
+        e.accountLabel = ref.accountLabel;
+        e.sourceClientAccountId = ref.sourceClientAccountId;
+        e.sourceAccountId = ref.sourceAccountId;
+      }
+      return emails
+        .filter((e) => e.id === ref.id || !e.keywords?.$draft)
+        .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
+    })().catch(() => null);
+    mvConversationLoadRef.current = { key, startedAt: Date.now(), promise };
+    return promise;
+  };
+
   useEffect(() => {
     if (!mvConversationThreadId || !client || !mvConversationRef) {
       setMvConversation(null);
+      setMvConversationLoading(null);
       return;
     }
     let cancelled = false;
-    const ref = mvConversationRef;
-    const route = mvConversationRoute(ref, client);
-    const threadClient = route.threadClient;
-    (async () => {
-      try {
-        const thread = await threadClient.getThread(mvConversationThreadId, route.accountId);
-        const ids = thread?.emailIds ?? [];
-        if (ids.length < 2) {
-          if (!cancelled) setMvConversation(null);
-          return;
-        }
-        const emails = await threadClient.getSomeEmails(ids, route.accountId);
-        if (cancelled) return;
-        for (const e of emails) {
-          // Carry the open message's source stamps, so opening one of these
-          // in a merged view reaches the right account.
-          e.accountId = ref.accountId;
-          e.accountLabel = ref.accountLabel;
-          e.sourceClientAccountId = ref.sourceClientAccountId;
-          e.sourceAccountId = ref.sourceAccountId;
-        }
-        setMvConversation(
-          emails
-            .filter((e) => e.id === ref.id || !e.keywords?.$draft)
-            .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt)),
-        );
-      } catch {
-        if (!cancelled) setMvConversation(null);
-      }
-    })();
+    setMvConversationLoading(mvConversationThreadId);
+    void loadMvConversation(mvConversationRef, client).then((conversation) => {
+      if (cancelled) return;
+      setMvConversation(conversation);
+      setMvConversationLoading(null);
+    });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the open message, not on every list refresh
   }, [mvConversationThreadId, mvConversationRef?.id, client]);
@@ -3733,6 +3750,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         return;
       }
 
+      // Mountain View shows the message inside its conversation: fetch that
+      // alongside the message, so the two appear together. (#1223)
+      const conversationPrefetch = mvConversationView && listEmail?.id && listEmail.threadId
+        ? loadMvConversation(listEmail as Email, client)
+        : null;
       const fullEmail = await fetchClient.getEmail(email.id, accountId);
       if (fullEmail) {
         if (listEmail?.isScheduled) {
@@ -3754,6 +3776,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         // unstamped, since threadKeyFor scopes keys by these stamps.
         fullEmail.sourceAccountId = listEmail?.sourceAccountId;
         fullEmail.sourceClientAccountId = listEmail?.sourceClientAccountId;
+        if (conversationPrefetch) {
+          // Wait a little for the conversation, never long: past that the
+          // viewer shows a placeholder until it arrives.
+          const conversation = await Promise.race([
+            conversationPrefetch,
+            new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), MV_CONVERSATION_WAIT_MS)),
+          ]);
+          if (conversation !== undefined) setMvConversation(conversation);
+        }
         selectEmail(fullEmail);
         // Mark-as-read logic is now handled by useEffect
       }
@@ -4837,6 +4868,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     } : undefined}
                     mvFolderName={mvShell && !isScheduledView && !isUnifiedView ? currentMailboxName : undefined}
                     mvConversation={mvConversationView ? mvConversation ?? undefined : undefined}
+                    mvConversationPending={mvConversationView && !!selectedEmail && mvConversationLoading === selectedEmail.threadId}
                     onLoadConversationEmail={mvConversationView ? (e) => void handleLoadConversationEmail(e) : undefined}
                     onMarkConversationEmailRead={mvConversationView ? (e) => void handleMarkConversationEmailRead(e) : undefined}
                     onReplyConversationEmail={mvConversationView ? async (e) => {
