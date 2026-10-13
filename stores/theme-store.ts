@@ -418,6 +418,29 @@ export const useThemeStore = create<ThemeState>()(
               }
             }
 
+            // A managed theme the server no longer lists was deleted or
+            // disabled by the admin. Without this it stayed installed, and
+            // its local forceEnabled flag kept forcing it on forever.
+            const serverIds = new Set(serverThemes.map(t => t.id));
+            const stale = get().installedThemes.filter(t => t.managed && !t.builtIn && !serverIds.has(t.id));
+            if (stale.length > 0) {
+              const staleIds = new Set(stale.map(t => t.id));
+              const activeId = get().activeThemeId;
+              if (activeId && staleIds.has(activeId)) {
+                removeThemeCSS();
+                removeThemeSkinCSS();
+                set({ activeThemeId: null });
+              }
+              for (const id of staleIds) {
+                void pluginStorage.deleteThemeCSS(id);
+                void pluginStorage.deleteThemeSkin(id);
+                void pluginStorage.deletePreview(id);
+              }
+              set(state => ({
+                installedThemes: state.installedThemes.filter(t => !staleIds.has(t.id)),
+              }));
+            }
+
             set(state => ({
               installedThemes: dedupeInstalledThemes(state.installedThemes),
             }));

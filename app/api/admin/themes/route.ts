@@ -8,6 +8,7 @@ import {
   deleteTheme as removeTheme,
   type ServerTheme,
 } from '@/lib/admin/plugin-registry';
+import { forgetExtensionInPolicy } from '@/lib/admin/extension-cleanup';
 
 import JSZip from 'jszip';
 import { MAX_THEME_SIZE } from '@/lib/plugin-types';
@@ -205,6 +206,7 @@ export async function DELETE(request: NextRequest) {
     if (!removed) {
       return NextResponse.json({ error: 'Theme not found' }, { status: 404 });
     }
+    await forgetExtensionInPolicy('theme', id);
 
     await auditLog('theme.delete', { id }, ip);
     return NextResponse.json({ success: true });
