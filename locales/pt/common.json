@@ -1439,6 +1439,10 @@
         "label": "Excluir spam permanentemente",
         "description": "Excluir permanentemente e-mails da pasta Spam em vez de movê-los para a Lixeira"
       },
+      "confirm_bulk_delete": {
+        "label": "Confirmar antes de eliminar várias mensagens",
+        "description": "Perguntar antes de mover várias mensagens selecionadas para o lixo. A eliminação permanente pergunta sempre."
+      },
       "mail_layout": {
         "label": "Layout do e-mail",
         "description": "Escolha entre o painel de leitura dividido clássico e um fluxo de leitura focado estilo Gmail.",

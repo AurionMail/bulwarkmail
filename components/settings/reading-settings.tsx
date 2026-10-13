@@ -23,6 +23,7 @@ export function ReadingSettings() {
     markAsReadDelay,
     deleteAction,
     permanentlyDeleteJunk,
+    confirmBulkDelete,
     returnToListAfterAction,
     swipeRightAction,
     swipeLeftAction,
@@ -207,6 +208,13 @@ export function ReadingSettings() {
         <ToggleSwitch
           checked={permanentlyDeleteJunk}
           onChange={(checked) => updateSetting('permanentlyDeleteJunk', checked)}
+        />
+      </SettingItem>
+
+      <SettingItem label={t('confirm_bulk_delete.label')} description={t('confirm_bulk_delete.description')}>
+        <ToggleSwitch
+          checked={confirmBulkDelete}
+          onChange={(checked) => updateSetting('confirmBulkDelete', checked)}
         />
       </SettingItem>
 

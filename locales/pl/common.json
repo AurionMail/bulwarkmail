@@ -1439,6 +1439,10 @@
         "label": "Trwale usuwaj spam",
         "description": "Trwale usuwaj wiadomości z folderu Spam/Niechciane zamiast przenosić je do Kosza"
       },
+      "confirm_bulk_delete": {
+        "label": "Potwierdzaj przed usunięciem wielu wiadomości",
+        "description": "Pytaj przed przeniesieniem wielu zaznaczonych wiadomości do kosza. Trwałe usunięcie zawsze pyta."
+      },
       "mail_layout": {
         "label": "Układ poczty",
         "description": "Wybierz między klasycznym podzielonym panelem czytania a stylem czytania skupionym jak w Gmailu.",

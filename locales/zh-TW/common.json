@@ -1442,6 +1442,10 @@
         "label": "永久刪除垃圾郵件",
         "description": "直接永久刪除垃圾郵件信件匣中的郵件，而不移至垃圾桶"
       },
+      "confirm_bulk_delete": {
+        "label": "刪除多封郵件前確認",
+        "description": "將多封選取的郵件移至垃圾桶前詢問。永久刪除一律會詢問。"
+      },
       "mail_layout": {
         "label": "郵件版面配置",
         "description": "選擇經典分割閱讀窗格、Gmail 風格的專注閱讀流程，或 Zimbra 風格的底部閱讀窗格。",

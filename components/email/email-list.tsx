@@ -13,7 +13,7 @@ import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, Calenda
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, type ListRow } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, type ListRow } from "@/stores/email-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -435,21 +435,23 @@ export function EmailList({
     if (!client || isProcessing) return;
 
     const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
-    const isInTrash = currentMailbox?.role === 'trash';
+    const isInTrash = bulkDeleteIsPermanent(currentMailbox);
 
-    const confirmed = await confirmDialog({
-      title: isInTrash
-        ? t('permanent_delete_confirm_title')
-        : t('batch_actions.delete_confirm_title'),
-      message: isInTrash
-        ? t('permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })
-        : t('batch_actions.delete_confirm_message', { count: selectedEmailKeys.size }),
-      confirmText: isInTrash
-        ? t('permanent_delete')
-        : t('batch_actions.delete'),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
+    if (shouldConfirmBulkDelete(currentMailbox)) {
+      const confirmed = await confirmDialog({
+        title: isInTrash
+          ? t('permanent_delete_confirm_title')
+          : t('batch_actions.delete_confirm_title'),
+        message: isInTrash
+          ? t('permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })
+          : t('batch_actions.delete_confirm_message', { count: selectedEmailKeys.size }),
+        confirmText: isInTrash
+          ? t('permanent_delete')
+          : t('batch_actions.delete'),
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+    }
 
     setIsProcessing(true);
     const count = selectedEmailKeys.size;

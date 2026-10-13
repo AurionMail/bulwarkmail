@@ -1439,6 +1439,10 @@
         "label": "Elimina spam definitivamente",
         "description": "Elimina definitivamente i messaggi dalla cartella Spam invece di spostarli nel cestino"
       },
+      "confirm_bulk_delete": {
+        "label": "Conferma prima di eliminare più messaggi",
+        "description": "Chiedi prima di spostare più messaggi selezionati nel cestino. L'eliminazione definitiva chiede sempre."
+      },
       "mail_layout": {
         "label": "Layout della posta",
         "description": "Scegli tra il classico pannello di lettura diviso e un flusso di lettura focalizzato in stile Gmail.",

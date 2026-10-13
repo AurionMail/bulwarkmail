@@ -1439,6 +1439,10 @@
         "label": "Supprimer définitivement les indésirables",
         "description": "Supprimer définitivement les e-mails du dossier Indésirables au lieu de les déplacer vers la corbeille"
       },
+      "confirm_bulk_delete": {
+        "label": "Confirmer avant de supprimer plusieurs messages",
+        "description": "Demander avant de déplacer plusieurs messages sélectionnés vers la corbeille. La suppression définitive demande toujours."
+      },
       "mail_layout": {
         "label": "Disposition du courrier",
         "description": "Choisissez entre le volet de lecture divisé classique et un flux de lecture focalisé style Gmail.",

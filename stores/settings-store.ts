@@ -422,6 +422,7 @@ interface SettingsState {
   markAsReadDelay: number; // milliseconds (0 = instant, -1 = never)
   deleteAction: DeleteAction;
   permanentlyDeleteJunk: boolean; // Permanently delete emails from junk/spam instead of moving to trash
+  confirmBulkDelete: boolean; // Ask before moving several selected emails to Trash (permanent deletes always ask)
   returnToListAfterAction: boolean; // After delete / mark-unread in an open message, return to the list instead of opening the next message
   clearSearchOnFolderChange: boolean; // Reset the search query + advanced filters when switching folders, instead of re-running the search in the newly selected folder (#553 keeps it applied when this is off)
   showPreview: boolean;
@@ -687,6 +688,7 @@ const DEFAULT_SETTINGS = {
   markAsReadDelay: 0, // Instant
   deleteAction: 'trash' as DeleteAction,
   permanentlyDeleteJunk: false,
+  confirmBulkDelete: true,
   returnToListAfterAction: true,
   clearSearchOnFolderChange: false,
   showPreview: true,
@@ -958,6 +960,7 @@ export const useSettingsStore = create<SettingsState>()(
           markAsReadDelay: state.markAsReadDelay,
           deleteAction: state.deleteAction,
           returnToListAfterAction: state.returnToListAfterAction,
+          confirmBulkDelete: state.confirmBulkDelete,
           clearSearchOnFolderChange: state.clearSearchOnFolderChange,
           showPreview: state.showPreview,
           showVerificationCodes: state.showVerificationCodes,

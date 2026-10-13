@@ -1442,6 +1442,10 @@
         "label": "Slett søppelpost permanent",
         "description": "Slett e-poster permanent fra søppelpostmappen i stedet for å flytte dem til papirkurven"
       },
+      "confirm_bulk_delete": {
+        "label": "Bekreft før sletting av flere meldinger",
+        "description": "Spør før flere valgte meldinger flyttes til papirkurven. Permanent sletting spør alltid."
+      },
       "mail_layout": {
         "label": "E-postoppsett",
         "description": "Velg mellom den klassiske delte leseruten, en fokusert leseflyt i Gmail-stil eller en bunnleserute i Zimbra-stil.",

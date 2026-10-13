@@ -1439,6 +1439,10 @@
         "label": "İstem Dışı Postayı Kalıcı Sil",
         "description": "İstem Dışı/Spam klasöründeki e-postaları Çöp Kutusu'na taşımak yerine kalıcı olarak sil"
       },
+      "confirm_bulk_delete": {
+        "label": "Birden fazla iletiyi silmeden önce onayla",
+        "description": "Seçili birden fazla iletiyi Çöp Kutusu'na taşımadan önce sor. Kalıcı silme her zaman sorar."
+      },
       "mail_layout": {
         "label": "Posta Düzeni",
         "description": "Klasik bölünmüş okuma bölmesi ile Gmail tarzı odaklı okuma akışı arasında seçin.",

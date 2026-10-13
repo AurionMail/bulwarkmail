@@ -87,6 +87,7 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.email_behavior.hide_inline_image_attachments',
     'settings.email_behavior.hover_actions',
     'settings.email_behavior.permanently_delete_junk',
+    'settings.email_behavior.confirm_bulk_delete',
     'settings.email_behavior.plain_text_font',
     'settings.email_behavior.show_preview',
     'settings.email_behavior.return_to_list_after_action',

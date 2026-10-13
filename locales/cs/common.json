@@ -1439,6 +1439,10 @@
         "label": "Trvale odstraňovat spam",
         "description": "Trvale odstraňovat zprávy ze složky Spam/Nevyžádaná pošta místo přesunutí do Koše"
       },
+      "confirm_bulk_delete": {
+        "label": "Potvrdit před smazáním více zpráv",
+        "description": "Zeptat se před přesunem více vybraných zpráv do koše. Trvalé smazání se ptá vždy."
+      },
       "mail_layout": {
         "label": "Rozložení pošty",
         "description": "Vyberte si mezi klasickým rozděleným zobrazením a soustředěným seznamem podobným Gmailu.",

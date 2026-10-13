@@ -1442,6 +1442,10 @@
         "label": "Spam végleges törlése",
         "description": "E-mailek végleges törlése a Spam mappából ahelyett, hogy a Kukába kerülnének"
       },
+      "confirm_bulk_delete": {
+        "label": "Megerősítés több üzenet törlése előtt",
+        "description": "Kérdezzen, mielőtt több kijelölt üzenetet a Kukába helyez. A végleges törlés mindig kérdez."
+      },
       "mail_layout": {
         "label": "Levelezés elrendezés",
         "description": "Válassz a klasszikus osztott olvasóablak, a Gmail-stílusú fókuszált olvasás vagy a Zimbra-stílusú alsó olvasóablak között.",

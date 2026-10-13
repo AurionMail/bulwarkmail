@@ -1442,6 +1442,10 @@
         "label": "Permanently Delete Junk",
         "description": "Permanently delete emails from the Junk/Spam folder instead of moving them to Trash"
       },
+      "confirm_bulk_delete": {
+        "label": "Confirm before deleting several messages",
+        "description": "Ask before moving several selected messages to Trash. Permanent deletion always asks."
+      },
       "mail_layout": {
         "label": "Mail Layout",
         "description": "Choose between the classic split reading pane, a Gmail-style focused reading flow, or a Zimbra-style bottom reading pane.",

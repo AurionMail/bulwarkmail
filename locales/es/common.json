@@ -1439,6 +1439,10 @@
         "label": "Eliminar spam permanentemente",
         "description": "Eliminar permanentemente los correos de la carpeta Spam en lugar de moverlos a la Papelera"
       },
+      "confirm_bulk_delete": {
+        "label": "Confirmar antes de eliminar varios mensajes",
+        "description": "Preguntar antes de mover varios mensajes seleccionados a la papelera. La eliminación definitiva siempre pregunta."
+      },
       "mail_layout": {
         "label": "Diseño del correo",
         "description": "Elija entre el panel de lectura dividido clásico y un flujo de lectura enfocado estilo Gmail.",

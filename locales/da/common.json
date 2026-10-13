@@ -1442,6 +1442,10 @@
         "label": "Slet spam permanent",
         "description": "Slet e-mails fra spam-mappen permanent i stedet for at flytte dem til papirkurven"
       },
+      "confirm_bulk_delete": {
+        "label": "Bekræft før sletning af flere beskeder",
+        "description": "Spørg før flere valgte beskeder flyttes til papirkurven. Permanent sletning spørger altid."
+      },
       "mail_layout": {
         "label": "Mail-layout",
         "description": "Vælg mellem den klassiske opdelte læserude, en Gmail-lignende fokuseret læsestrøm eller en Zimbra-lignende læserude i bunden.",

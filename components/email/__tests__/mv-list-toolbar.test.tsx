@@ -219,3 +219,61 @@ describe('MvListToolbar failure feedback', () => {
     await waitFor(() => expect(error).toHaveBeenCalledWith('error_updating'));
   });
 });
+
+// #1225: deleting a selection asked every time. The prompt before moving it to
+// the trash can now be turned off; a permanent delete still asks.
+describe('MvListToolbar delete prompt', () => {
+  const batchDelete = vi.fn().mockResolvedValue(undefined);
+
+  const select = (folder: Mailbox) => {
+    useEmailStore.setState({
+      emails: [message('a'), message('b')],
+      mailboxes: [folder],
+      selectedMailbox: folder.id,
+      selectedEmailKeys: new Set(['a', 'b']),
+      isUnifiedView: false,
+      unifiedRole: null,
+      batchDelete,
+    } as never);
+  };
+
+  beforeEach(() => {
+    batchDelete.mockClear();
+    useAuthStore.setState({ client: {} as never } as never);
+  });
+
+  const deleteSelection = () => {
+    render(<MvListToolbar loadedCount={2} onRefresh={() => {}} />);
+    fireEvent.click(screen.getByLabelText('delete'));
+  };
+
+  it('moves the selection to the trash straight away with the prompt off', async () => {
+    useSettingsStore.setState({ confirmBulkDelete: false, permanentlyDeleteJunk: false } as never);
+    select(mailbox('inbox', 'Inbox', 'inbox'));
+    deleteSelection();
+
+    await waitFor(() => expect(batchDelete).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('delete_confirm_title')).toBeNull();
+  });
+
+  it('asks first with the prompt on', async () => {
+    useSettingsStore.setState({ confirmBulkDelete: true, permanentlyDeleteJunk: false } as never);
+    select(mailbox('inbox', 'Inbox', 'inbox'));
+    deleteSelection();
+
+    expect(await screen.findByText('delete_confirm_title')).toBeInTheDocument();
+    expect(batchDelete).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['in the bin', mailbox('trash', 'Trash', 'trash'), false],
+    ['in spam when spam is deleted for good', mailbox('junk', 'Junk', 'junk'), true],
+  ])('still asks before deleting for good %s', async (_where, folder, permanentlyDeleteJunk) => {
+    useSettingsStore.setState({ confirmBulkDelete: false, permanentlyDeleteJunk } as never);
+    select(folder);
+    deleteSelection();
+
+    expect(await screen.findByText('permanent_delete_confirm_title')).toBeInTheDocument();
+    expect(batchDelete).not.toHaveBeenCalled();
+  });
+});

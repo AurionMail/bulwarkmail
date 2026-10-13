@@ -1442,6 +1442,10 @@
         "label": "Suprimeix definitivament la brossa",
         "description": "Suprimeix definitivament els correus de la carpeta de brossa en lloc de moure'ls a la paperera"
       },
+      "confirm_bulk_delete": {
+        "label": "Confirma abans d'eliminar diversos missatges",
+        "description": "Pregunta abans de moure diversos missatges seleccionats a la paperera. L'eliminació definitiva sempre demana confirmació."
+      },
       "mail_layout": {
         "label": "Disposició del correu",
         "description": "Trieu entre la vista dividida clàssica, un flux de lectura centrat a l'estil Gmail, o una subfinestra de lectura inferior a l'estil Zimbra.",

@@ -1439,6 +1439,10 @@
         "label": "永久删除垃圾邮件",
         "description": "从\"垃圾邮件\"文件夹中永久删除邮件，而不是将其移至\"已删除\""
       },
+      "confirm_bulk_delete": {
+        "label": "删除多封邮件前确认",
+        "description": "将多封选中的邮件移到废纸篓前询问。永久删除始终会询问。"
+      },
       "mail_layout": {
         "label": "邮件布局",
         "description": "在经典分栏阅读和 Gmail 风格的沉浸阅读之间选择",

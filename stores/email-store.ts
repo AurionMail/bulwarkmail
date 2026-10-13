@@ -1739,6 +1739,21 @@ function findTrashMailbox(
   });
 }
 
+// Deleting a selection in this folder destroys it rather than moving it to
+// the trash: in Trash, and in Junk when the user chose that. batchDelete
+// decides the same way.
+export function bulkDeleteIsPermanent(mailbox: { role?: string | null } | undefined): boolean {
+  if (mailbox?.role === 'trash') return true;
+  return mailbox?.role === 'junk' && useSettingsStore.getState().permanentlyDeleteJunk;
+}
+
+// Whether deleting several selected emails asks first. A permanent delete
+// always does; moving them to the trash only while the user keeps the
+// prompt on. (#1225)
+export function shouldConfirmBulkDelete(mailbox: { role?: string | null } | undefined): boolean {
+  return bulkDeleteIsPermanent(mailbox) || useSettingsStore.getState().confirmBulkDelete;
+}
+
 // Emptying Trash or Junk destroys their mail, as does every delete for users
 // who chose permanent deletion; any other folder is emptied into the trash.
 export function emptyFolderMovesToTrash(mailbox: Pick<Mailbox, 'role'>): boolean {

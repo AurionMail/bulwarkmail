@@ -1442,6 +1442,10 @@
         "label": "Trvalo odstraňovať spam",
         "description": "Trvalo odstraňovať správy zo priečinka Spam namiesto presunutia do Koša"
       },
+      "confirm_bulk_delete": {
+        "label": "Potvrdiť pred odstránením viacerých správ",
+        "description": "Opýtať sa pred presunutím viacerých vybraných správ do koša. Trvalé odstránenie sa pýta vždy."
+      },
       "mail_layout": {
         "label": "Rozloženie pošty",
         "description": "Vyberte si medzi klasickým rozdeleným zobrazením a sústredením zoznamom.",

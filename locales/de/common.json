@@ -1439,6 +1439,10 @@
         "label": "Spam dauerhaft löschen",
         "description": "E-Mails aus dem Spam-Ordner dauerhaft löschen, anstatt sie in den Papierkorb zu verschieben"
       },
+      "confirm_bulk_delete": {
+        "label": "Vor dem Löschen mehrerer Nachrichten nachfragen",
+        "description": "Nachfragen, bevor mehrere ausgewählte Nachrichten in den Papierkorb verschoben werden. Endgültiges Löschen fragt immer nach."
+      },
       "mail_layout": {
         "label": "Mail-Layout",
         "description": "Wählen Sie zwischen dem klassischen geteilten Lesebereich und einem fokussierten Lesefluss im Gmail-Stil.",

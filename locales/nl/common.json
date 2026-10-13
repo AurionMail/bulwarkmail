@@ -1439,6 +1439,10 @@
         "label": "Spam permanent verwijderen",
         "description": "E-mails uit de map Spam permanent verwijderen in plaats van naar de prullenbak te verplaatsen"
       },
+      "confirm_bulk_delete": {
+        "label": "Bevestigen voor het verwijderen van meerdere berichten",
+        "description": "Vragen voordat meerdere geselecteerde berichten naar de prullenbak gaan. Definitief verwijderen vraagt altijd."
+      },
       "mail_layout": {
         "label": "E-mailindeling",
         "description": "Kies tussen het klassieke gesplitste leesvenster en een gefocuste leesstroom in Gmail-stijl.",

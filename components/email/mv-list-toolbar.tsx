@@ -20,7 +20,7 @@ import {
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { toast } from "@/stores/toast-store";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -239,15 +239,19 @@ export function MvListToolbar({
   const handleDelete = () =>
     run(async () => {
       if (!client) return;
-      const confirmed = await confirmDialog({
-        title: isInTrash ? t("permanent_delete_confirm_title") : tBatch("delete_confirm_title"),
-        message: isInTrash
-          ? t("permanent_delete_confirm_batch_message", { count: selectionCount })
-          : tBatch("delete_confirm_message", { count: selectionCount }),
-        confirmText: isInTrash ? t("permanent_delete") : tBatch("delete"),
-        variant: "destructive",
-      });
-      if (!confirmed) return;
+      const target = { role: currentRole };
+      const permanent = bulkDeleteIsPermanent(target);
+      if (shouldConfirmBulkDelete(target)) {
+        const confirmed = await confirmDialog({
+          title: permanent ? t("permanent_delete_confirm_title") : tBatch("delete_confirm_title"),
+          message: permanent
+            ? t("permanent_delete_confirm_batch_message", { count: selectionCount })
+            : tBatch("delete_confirm_message", { count: selectionCount }),
+          confirmText: permanent ? t("permanent_delete") : tBatch("delete"),
+          variant: "destructive",
+        });
+        if (!confirmed) return;
+      }
       await runBatchEmailAction(() => batchDelete(client, isInTrash), {
         success: tNotifications("emails_deleted", { count: selectionCount }),
         error: tNotifications("error_deleting"),

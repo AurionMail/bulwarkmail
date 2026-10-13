@@ -32,7 +32,7 @@ import { usePolicyStore } from "@/stores/policy-store";
 import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash } from "@/stores/email-store";
+import { useEmailStore, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
 import { formatRejectedRecipients, type JMAPClient } from "@/lib/jmap/client";
@@ -820,23 +820,22 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (isScheduledView) return;
       if (selectedEmailKeys.size > 0 && client) {
         const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
-        const isInTrash = currentMailbox?.role === 'trash';
-        const isInJunk = currentMailbox?.role === 'junk';
-        const permanentlyDeleteJunk = useSettingsStore.getState().permanentlyDeleteJunk;
-        const permanent = isInTrash || (isInJunk && permanentlyDeleteJunk);
-        const confirmed = await confirmDialog({
-          title: permanent
-            ? t('email_list.permanent_delete_confirm_title')
-            : t('email_list.batch_actions.delete_confirm_title'),
-          message: permanent
-            ? t('email_list.permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })
-            : t('email_list.batch_actions.delete_confirm_message', { count: selectedEmailKeys.size }),
-          confirmText: permanent
-            ? t('email_list.permanent_delete')
-            : t('email_list.batch_actions.delete'),
-          variant: "destructive",
-        });
-        if (!confirmed) return;
+        const permanent = bulkDeleteIsPermanent(currentMailbox);
+        if (shouldConfirmBulkDelete(currentMailbox)) {
+          const confirmed = await confirmDialog({
+            title: permanent
+              ? t('email_list.permanent_delete_confirm_title')
+              : t('email_list.batch_actions.delete_confirm_title'),
+            message: permanent
+              ? t('email_list.permanent_delete_confirm_batch_message', { count: selectedEmailKeys.size })
+              : t('email_list.batch_actions.delete_confirm_message', { count: selectedEmailKeys.size }),
+            confirmText: permanent
+              ? t('email_list.permanent_delete')
+              : t('email_list.batch_actions.delete'),
+            variant: "destructive",
+          });
+          if (!confirmed) return;
+        }
         const count = selectedEmailKeys.size;
         await runBatchEmailAction(() => batchDelete(client, permanent), {
           success: t('notifications.emails_deleted', { count }),

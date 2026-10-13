@@ -1442,6 +1442,10 @@
         "label": "Șterge definitiv mesajele nedorite",
         "description": "Ștergeți definitiv e-mailurile din folderul „Junk/Spam” în loc să le mutați în „Coșul de gunoi”"
       },
+      "confirm_bulk_delete": {
+        "label": "Confirmă înainte de a șterge mai multe mesaje",
+        "description": "Întreabă înainte de a muta mai multe mesaje selectate în coșul de gunoi. Ștergerea definitivă întreabă întotdeauna."
+      },
       "mail_layout": {
         "label": "Structura e-mailului",
         "description": "Alegeți între panoul de citire clasic divizat, un flux de citire concentrat în stilul Gmail sau un panou de citire în partea de jos, în stilul Zimbra.",

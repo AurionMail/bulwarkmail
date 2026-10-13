@@ -1439,6 +1439,10 @@
         "label": "Mēstules dzēst neatgriezeniski",
         "description": "Dzēst vēstules no mapes \"Mēstules\" neatgriezeniski, nepārvietojot uz atkritni"
       },
+      "confirm_bulk_delete": {
+        "label": "Apstiprināt pirms vairāku ziņojumu dzēšanas",
+        "description": "Jautāt pirms vairāku atlasītu ziņojumu pārvietošanas uz miskasti. Neatgriezeniska dzēšana vienmēr jautā."
+      },
       "mail_layout": {
         "label": "Pasta izkārtojums",
         "description": "Izvēlieties starp klasisko dalīto skatu vai fokusa sarakstu.",
