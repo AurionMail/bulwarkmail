@@ -267,6 +267,14 @@ interface EmailStore {
   toggleEmailSelection: (email: SelectableEmail) => void;
   selectRangeEmails: (target: SelectableEmail) => void;
   lastSelectedEmailKey: string | null;
+  /**
+   * The message list's rows in screen order, each with the keys a click on it
+   * selects. Shift-click ranges walk these, so a thread is in a range only
+   * when its row is, not whenever one of its messages falls between the two
+   * ends by date. (#1230)
+   */
+  listRows: ListRow[] | null;
+  setListRows: (rows: ListRow[] | null) => void;
   selectAllEmails: () => void;
   clearSelection: () => void;
 
@@ -838,6 +846,18 @@ function resolveActionMailboxes(): Mailbox[] {
 }
 
 /** Resolve blobs from the message's source, or the folder being browsed. */
+/** One row of the message list: its own key and the keys selecting it selects. */
+export interface ListRow {
+  key: string;
+  members: string[];
+}
+
+/** The row a key belongs to: the row it names, else the first row holding it. */
+function findListRow(rows: ListRow[], key: string): number {
+  const own = rows.findIndex((row) => row.key === key);
+  return own !== -1 ? own : rows.findIndex((row) => row.members.includes(key));
+}
+
 export function resolveEmailBlobContext(
   email: Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'> | null,
   passedClient: IJMAPClient | null,
@@ -1821,6 +1841,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   selectedEmailKeys: new Set(),
   retainedInViewIds: new Set(),
   lastSelectedEmailKey: null,
+  listRows: null,
   hasMoreEmails: false,
   totalEmails: 0,
   listOrder: [],
@@ -2044,10 +2065,25 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     set({ selectedEmailKeys: newSelection, lastSelectedEmailKey: key });
   },
 
+  setListRows: (rows) => set({ listRows: rows }),
+
   selectRangeEmails: (target) => {
-    const { emails, lastSelectedEmailKey, selectedEmailKeys } = get();
+    const { emails, lastSelectedEmailKey, selectedEmailKeys, listRows } = get();
     const anchorKey = lastSelectedEmailKey || (emails[0] && emailKeyFor(emails[0]));
     if (!anchorKey) return;
+    const targetKeyForRows = emailKeyFor(target);
+    if (listRows && listRows.length > 0) {
+      const anchorRow = findListRow(listRows, anchorKey);
+      const targetRow = findListRow(listRows, targetKeyForRows);
+      if (anchorRow !== -1 && targetRow !== -1) {
+        const newSelection = new Set(selectedEmailKeys);
+        for (let i = Math.min(anchorRow, targetRow); i <= Math.max(anchorRow, targetRow); i++) {
+          for (const key of listRows[i].members) newSelection.add(key);
+        }
+        set({ selectedEmailKeys: newSelection });
+        return;
+      }
+    }
     const anchorIndex = emails.findIndex(e => emailKeyFor(e) === anchorKey);
     const targetKey = emailKeyFor(target);
     const targetIndex = emails.findIndex(e => emailKeyFor(e) === targetKey);

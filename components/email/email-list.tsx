@@ -13,7 +13,7 @@ import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, Calenda
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, type ListRow } from "@/stores/email-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -273,6 +273,24 @@ export function EmailList({
   const footerHasMore = hasMore ?? hasMoreEmails;
   const footerIsLoadingMore = isLoadingMoreItems ?? isLoadingMore;
   const isMobile = useUIStore((state) => state.isMobile);
+  // Hand the rows, in screen order, to the store for shift-click ranges: a
+  // thread row selects all its messages, and an expanded thread's messages
+  // are rows of their own under it. (#1230)
+  const setListRows = useEmailStore((state) => state.setListRows);
+  useEffect(() => {
+    const rows: ListRow[] = [];
+    for (const thread of threadGroups) {
+      rows.push({ key: emailKeyFor(thread.latestEmail), members: thread.emails.map(emailKeyFor) });
+      if (thread.emails.length > 1 && expandedThreadIds.has(thread.threadKey) && !isMobile) {
+        for (const email of threadEmailsCache.get(thread.threadKey) ?? thread.emails) {
+          rows.push({ key: emailKeyFor(email), members: [emailKeyFor(email)] });
+        }
+      }
+    }
+    setListRows(rows);
+  }, [threadGroups, expandedThreadIds, threadEmailsCache, isMobile, setListRows]);
+  useEffect(() => () => setListRows(null), [setListRows]);
+
   // Match the list items: focus layout collapses to multi-line on mobile, so virtualizer estimates must match.
   const isFocusedMailLayout = mailLayout === 'focus' && !isMobile;
 

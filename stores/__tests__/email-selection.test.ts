@@ -27,6 +27,7 @@ describe('email-store selection', () => {
       selectedEmailKeys: new Set(),
       lastSelectedEmailKey: null,
       selectedEmail: null,
+      listRows: null,
     });
   });
 
@@ -102,6 +103,46 @@ describe('email-store selection', () => {
       const ids = useEmailStore.getState().selectedEmailKeys;
       expect(ids.has('c')).toBe(true);
       expect(ids.size).toBe(1);
+    });
+  });
+
+  // #1230: the list shows a thread once, at its newest message. A range used
+  // to walk the flat date order, so a thread whose older message fell between
+  // the two ends got pulled in although its row was outside the range.
+  describe('selectRangeEmails over list rows', () => {
+    // Flat date order: t3 17:00, A 16:45, B 16:00, C 15:15, t2 15:00, D 14:30, t1 13:00.
+    const flat = ['t3', 'A', 'B', 'C', 't2', 'D', 't1'];
+    const rows = [
+      { key: 't3', members: ['t3', 't2', 't1'] },
+      { key: 'A', members: ['A'] },
+      { key: 'B', members: ['B'] },
+      { key: 'C', members: ['C'] },
+      { key: 'D', members: ['D'] },
+    ];
+
+    beforeEach(() => {
+      useEmailStore.setState({
+        emails: flat.map((id) => makeEmail(id, id.startsWith('t') ? 'thread-t' : `thread-${id}`)),
+        listRows: rows,
+      });
+    });
+
+    it('selects the rows between the two ends, not a thread dated between them', () => {
+      useEmailStore.getState().toggleEmailSelection({ id: 'D' });
+      useEmailStore.getState().selectRangeEmails({ id: 'B' });
+      expect([...useEmailStore.getState().selectedEmailKeys].sort()).toEqual(['B', 'C', 'D']);
+    });
+
+    it('selects every message of a thread whose row is in the range', () => {
+      useEmailStore.getState().toggleEmailSelection({ id: 'B' });
+      useEmailStore.getState().selectRangeEmails({ id: 't3' });
+      expect([...useEmailStore.getState().selectedEmailKeys].sort()).toEqual(['A', 'B', 't1', 't2', 't3']);
+    });
+
+    it('finds a thread row from an older message of that thread', () => {
+      useEmailStore.setState({ lastSelectedEmailKey: 't1' });
+      useEmailStore.getState().selectRangeEmails({ id: 'A' });
+      expect([...useEmailStore.getState().selectedEmailKeys].sort()).toEqual(['A', 't1', 't2', 't3']);
     });
   });
 
