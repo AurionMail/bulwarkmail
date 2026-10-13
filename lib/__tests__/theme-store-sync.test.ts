@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const serverThemes: { themes: unknown[] } = { themes: [] };
+const assets: Record<string, string> = {};
 vi.mock('@/lib/browser-navigation', async (orig) => ({
   ...(await orig<typeof import('@/lib/browser-navigation')>()),
-  apiFetch: vi.fn(async () => new Response(JSON.stringify({ plugins: [], ...serverThemes }))),
+  apiFetch: vi.fn(async (url: string) => {
+    const path = url.split('?')[0];
+    if (path === '/api/plugins') return new Response(JSON.stringify({ plugins: [], ...serverThemes }));
+    return path in assets ? new Response(assets[path]) : new Response('missing', { status: 404 });
+  }),
 }));
 vi.mock('@/lib/plugin-storage', () => ({
   pluginStorage: {
@@ -13,6 +18,7 @@ vi.mock('@/lib/plugin-storage', () => ({
     deleteThemeSkin: vi.fn(async () => {}),
     deletePreview: vi.fn(async () => {}),
     getThemeSkin: vi.fn(async () => null),
+    saveThemeSkin: vi.fn(async () => {}),
   },
 }));
 
@@ -58,5 +64,33 @@ describe('server theme sync', () => {
     await useThemeStore.getState().syncServerThemes();
 
     expect(useThemeStore.getState().installedThemes.some((t) => t.id === 'corp')).toBe(true);
+  });
+});
+
+describe('server theme sync with skins', () => {
+  it('downloads the skin of a v2 theme', async () => {
+    useThemeStore.setState((s) => ({ installedThemes: s.installedThemes.filter((t) => t.builtIn), activeThemeId: null }));
+    serverThemes.themes = [{ id: 'ocean', name: 'Ocean', version: '1.0.0', author: 'a', description: '', variants: ['light'], forceEnabled: false, hasSkin: true, contentHash: 'h1' }];
+    assets['/api/admin/themes/ocean/css'] = ':root{--color-primary:#0066cc}';
+    assets['/api/admin/themes/ocean/skin'] = '.message-list{border-radius:8px}';
+
+    await useThemeStore.getState().syncServerThemes();
+
+    const ocean = useThemeStore.getState().installedThemes.find((t) => t.id === 'ocean');
+    expect(ocean?.skin).toContain('border-radius');
+    expect(pluginStorage.saveThemeSkin).toHaveBeenCalledWith('ocean', expect.stringContaining('border-radius'));
+  });
+
+  it('re-downloads a re-upload of the same version', async () => {
+    useThemeStore.setState((s) => ({
+      installedThemes: [...s.installedThemes.filter((t) => t.builtIn), { ...CORP, id: 'ocean', forceEnabled: false, version: '1.0.0', contentHash: 'h1', css: ':root{--color-primary:red}' }],
+      activeThemeId: null,
+    }));
+    serverThemes.themes = [{ id: 'ocean', name: 'Ocean', version: '1.0.0', author: 'a', description: '', variants: ['light'], forceEnabled: false, hasSkin: false, contentHash: 'h2' }];
+    assets['/api/admin/themes/ocean/css'] = ':root{--color-primary:blue}';
+
+    await useThemeStore.getState().syncServerThemes();
+
+    expect(useThemeStore.getState().installedThemes.find((t) => t.id === 'ocean')?.css).toContain('blue');
   });
 });

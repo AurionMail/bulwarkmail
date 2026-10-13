@@ -82,6 +82,8 @@ export async function GET(request: NextRequest) {
         description: t.description,
         variants: t.variants,
         forceEnabled: t.forceEnabled || false,
+        hasSkin: t.hasSkin || false,
+        contentHash: t.contentHash,
       }));
 
     return NextResponse.json(

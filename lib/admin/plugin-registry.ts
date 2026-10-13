@@ -102,6 +102,13 @@ export interface ServerTheme {
   forceEnabled?: boolean;
   installedAt: string;
   updatedAt: string;
+  /** True when a Theme API v2 skin.css is stored next to the CSS. */
+  hasSkin?: boolean;
+  /**
+   * SHA-256 of the CSS and skin. Clients use it to notice a re-upload of
+   * the same version and as a cache key on the CSS and skin URLs.
+   */
+  contentHash?: string;
 }
 
 interface PluginRegistry {
@@ -274,6 +281,7 @@ export async function getTheme(id: string): Promise<ServerTheme | null> {
 export async function saveTheme(
   theme: ServerTheme,
   css: string,
+  skin: string | null = null,
 ): Promise<void> {
   assertWritable('install theme');
   if (!SAFE_ID_RE.test(theme.id)) {
@@ -285,6 +293,17 @@ export async function saveTheme(
   // Save CSS file
   const cssPath = path.join(dir, `${theme.id}.css`);
   await writeFile(cssPath, css, 'utf-8');
+  const skinPath = path.join(dir, `${theme.id}.skin.css`);
+  if (skin) {
+    await writeFile(skinPath, skin, 'utf-8');
+  } else {
+    try { await unlink(skinPath); } catch { /* none stored */ }
+  }
+  theme = {
+    ...theme,
+    hasSkin: !!skin,
+    contentHash: createHash('sha256').update(css).update('\0').update(skin ?? '').digest('hex'),
+  };
 
   // Update registry
   const registry = await getThemeRegistry();
@@ -317,11 +336,36 @@ export async function deleteTheme(id: string): Promise<boolean> {
   registry.themes.splice(idx, 1);
   await writeJsonFile(themeRegistryPath(), registry);
 
-  // Remove CSS file
-  const cssPath = path.join(getThemesDir(), `${id}.css`);
-  try { await unlink(cssPath); } catch { /* ok if missing */ }
+  // Remove CSS and skin files
+  for (const file of [`${id}.css`, `${id}.skin.css`]) {
+    try { await unlink(path.join(getThemesDir(), file)); } catch { /* ok if missing */ }
+  }
 
   return true;
+}
+
+export async function getThemeSkin(id: string): Promise<string | null> {
+  if (!SAFE_ID_RE.test(id)) return null;
+  try {
+    return await readFile(path.join(getThemesDir(), `${id}.skin.css`), 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * CSS of every installed theme and every built-in theme, keyed by id, for
+ * resolving a new theme's `extends`.
+ */
+export async function themeCSSResolver(): Promise<(id: string) => string | null> {
+  const { BUILTIN_THEMES } = await import('@/lib/builtin-themes');
+  const map = new Map<string, string>();
+  for (const t of BUILTIN_THEMES) if (t.css) map.set(t.id, t.css);
+  for (const t of (await getThemeRegistry()).themes) {
+    const css = await getThemeCSS(t.id);
+    if (css) map.set(t.id, css);
+  }
+  return (id) => map.get(id) ?? null;
 }
 
 export async function getThemeCSS(id: string): Promise<string | null> {

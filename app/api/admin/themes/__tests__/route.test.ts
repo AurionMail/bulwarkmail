@@ -19,9 +19,11 @@ vi.mock('@/lib/admin/config-manager', () => ({
     setPolicy: vi.fn(async (p: Record<string, unknown>) => { policy = p; }),
   },
 }));
+const saved: Array<{ theme: Record<string, unknown>; css: string; skin: string | null }> = [];
 vi.mock('@/lib/admin/plugin-registry', () => ({
   deleteTheme: vi.fn(async () => true),
-  saveTheme: vi.fn(),
+  themeCSSResolver: vi.fn(async () => () => null),
+  saveTheme: vi.fn(async (theme: Record<string, unknown>, css: string, skin: string | null) => { saved.push({ theme, css, skin }); }),
   getTheme: vi.fn(async () => null),
   getThemeRegistry: vi.fn(async () => ({ themes: [] })),
 }));
@@ -38,6 +40,7 @@ function del(id: string) {
 }
 
 beforeEach(() => {
+  saved.length = 0;
   policy = { forceEnabledThemes: ['corp', 'other'], forceEnabledPlugins: [] };
 });
 
@@ -63,5 +66,25 @@ describe('POST /api/admin/themes', () => {
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/once unpacked/);
+  });
+});
+
+describe('POST /api/admin/themes with Theme API v2', () => {
+  it('installs a tokens-only theme with a skin', async () => {
+    const zip = new JSZip();
+    zip.file('manifest.json', JSON.stringify({
+      id: 'ocean', name: 'Ocean', version: '1.0.0', author: 'a', type: 'theme', variants: ['light', 'dark'],
+      apiVersion: 2, tokens: { light: { '--color-primary': '#0066cc' }, dark: { '--color-primary': '#66aaff' } },
+    }));
+    zip.file('skin.css', '.message-list { border-radius: 8px; }');
+    const bytes = await zip.generateAsync({ type: 'uint8array' });
+    const form = new FormData();
+    form.append('file', new File([bytes as BlobPart], 'ocean.zip'));
+
+    const res = await POST(new NextRequest('http://localhost/api/admin/themes', { method: 'POST', body: form }));
+
+    expect(res.status).toBe(200);
+    expect(saved[0].css).toContain('#0066cc');
+    expect(saved[0].skin).toContain('border-radius');
   });
 });

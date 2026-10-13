@@ -209,6 +209,8 @@ export interface InstalledTheme {
   builtIn: boolean;
   managed?: boolean;
   forceEnabled?: boolean;
+  /** Server content hash of a managed theme's CSS + skin; see ServerTheme. */
+  contentHash?: string;
 
   // ─── Advanced (Theme API v2) ─ carried over from the manifest ─
   apiVersion?: 1 | 2;

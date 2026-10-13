@@ -16,7 +16,11 @@ import {
   type PluginTier,
   type PluginType,
   type SettingFieldSchema,
+  type ThemeManifest,
+  MAX_THEME_SKIN_BYTES,
 } from './plugin-types';
+import { sanitizeSkinCSS, sanitizeThemeCSS } from './theme-loader';
+import { compileAdvancedTheme, isAdvancedManifest } from './theme-compiler';
 import { sanitizeApiPostPaths, sanitizeFrameOrigins, sanitizeHttpOrigins } from './extension-origins';
 
 export const EXTENSION_ID_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
@@ -505,4 +509,158 @@ export async function readPluginPackage(
   if (code === null) throw new ExtensionPackageError(`Missing entrypoint file: ${check.manifest.entrypoint}`);
   const warnings = [...check.warnings, ...suspiciousCode(code).map((l) => `Contains ${l} - review for security`)];
   return { manifest: check.manifest, code, warnings, pkg };
+}
+
+// ─── Themes ──────────────────────────────────────────────────
+
+function validateBaseManifest(manifest: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+
+  if (!manifest.id || typeof manifest.id !== 'string') errors.push('Missing or invalid "id"');
+  if (!manifest.name || typeof manifest.name !== 'string') errors.push('Missing or invalid "name"');
+  if (!manifest.version || typeof manifest.version !== 'string') errors.push('Missing or invalid "version"');
+  if (!manifest.author || typeof manifest.author !== 'string') errors.push('Missing or invalid "author"');
+  if (!manifest.type || typeof manifest.type !== 'string') errors.push('Missing or invalid "type"');
+
+  // Validate ID format (alphanumeric + hyphens)
+  if (manifest.id && typeof manifest.id === 'string' && !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(manifest.id)) {
+    errors.push('ID must be lowercase alphanumeric with hyphens, min 2 chars');
+  }
+
+  return errors;
+}
+
+export function checkThemeManifest(manifest: Record<string, unknown>): { result: ThemeManifest | null; errors: string[] } {
+  const errors = validateBaseManifest(manifest);
+
+  if (manifest.type !== 'theme') {
+    errors.push(`Expected type "theme", got "${manifest.type}"`);
+  }
+
+  if (!manifest.variants || !Array.isArray(manifest.variants) || manifest.variants.length === 0) {
+    errors.push('Missing or empty "variants" array (must be ["light"], ["dark"], or ["light","dark"])');
+  } else {
+    const valid = manifest.variants.every((v: unknown) => v === 'light' || v === 'dark');
+    if (!valid) errors.push('Variants must be "light" or "dark"');
+  }
+
+  // ── Theme API v2 fields (all optional) ──
+  if (manifest.apiVersion !== undefined && manifest.apiVersion !== 1 && manifest.apiVersion !== 2) {
+    errors.push('"apiVersion" must be 1 or 2 if present');
+  }
+  if (manifest.extends !== undefined && typeof manifest.extends !== 'string') {
+    errors.push('"extends" must be a string (the parent theme id)');
+  }
+  if (manifest.tokens !== undefined && (typeof manifest.tokens !== 'object' || manifest.tokens === null)) {
+    errors.push('"tokens" must be an object with optional "common"/"light"/"dark" maps');
+  }
+  if (manifest.density !== undefined && !['compact', 'normal', 'touch'].includes(manifest.density as string)) {
+    errors.push('"density" must be "compact", "normal", or "touch"');
+  }
+  if (manifest.derive !== undefined && typeof manifest.derive !== 'boolean') {
+    errors.push('"derive" must be a boolean');
+  }
+  if (manifest.radii !== undefined && (typeof manifest.radii !== 'object' || manifest.radii === null)) {
+    errors.push('"radii" must be an object');
+  }
+  if (manifest.typography !== undefined && (typeof manifest.typography !== 'object' || manifest.typography === null)) {
+    errors.push('"typography" must be an object');
+  }
+
+  if (errors.length > 0) return { result: null, errors };
+
+  return {
+    result: manifest as unknown as ThemeManifest,
+    errors: [],
+  };
+}
+
+export interface ThemePackageResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  manifest: ThemeManifest | null;
+  /** Compiled (Theme API v2) and sanitized CSS. */
+  css: string;
+  /** Sanitized skin.css for v2 themes, else null. */
+  skin: string | null;
+  pkg: OpenedPackage | null;
+}
+
+/**
+ * Open, validate and compile a theme package. v1 themes need theme.css; v2
+ * themes may be tokens only and may ship a skin.css. `resolveExtends` returns
+ * the CSS of an installed theme for `extends`.
+ */
+export async function readThemePackage(
+  data: ArrayBuffer | Uint8Array,
+  opts: { resolveExtends?: (id: string) => string | null } = {},
+): Promise<ThemePackageResult> {
+  const fail = (errors: string[], warnings: string[] = [], manifest: ThemeManifest | null = null, pkg: OpenedPackage | null = null): ThemePackageResult =>
+    ({ valid: false, errors, warnings, manifest, css: '', skin: null, pkg });
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  let pkg: OpenedPackage;
+  let manifestData: Record<string, unknown>;
+  try {
+    pkg = await openPackage(data, 'theme');
+    manifestData = await readManifest(pkg);
+  } catch (err) {
+    return fail([err instanceof ExtensionPackageError ? err.message : 'Invalid ZIP file']);
+  }
+
+  const { result: manifest, errors: manifestErrors } = checkThemeManifest(manifestData);
+  if (!manifest) return fail(manifestErrors, warnings, null, pkg);
+
+  // theme.css is required for v1 themes, optional for v2 ones, whose CSS the
+  // compiler can produce from the manifest alone.
+  const isAdvanced = isAdvancedManifest(manifest);
+  let cssText: string | null;
+  let skinText: string | null;
+  try {
+    cssText = await readText(pkg, 'theme.css');
+    skinText = await readText(pkg, 'skin.css', MAX_THEME_SKIN_BYTES * 4);
+  } catch (err) {
+    return fail([err instanceof ExtensionPackageError ? err.message : 'Could not read theme files'], warnings, manifest, pkg);
+  }
+
+  let userCSS = '';
+  if (cssText !== null) {
+    // Sanitize instead of rejecting, and always: the sanitizer is also what
+    // drops rules outside :root and .dark.
+    const sanitized = sanitizeThemeCSS(cssText);
+    userCSS = sanitized.css;
+    warnings.push(...sanitized.warnings);
+  } else if (!isAdvanced) {
+    return fail(['Missing theme.css'], warnings, manifest, pkg);
+  }
+
+  let css = userCSS;
+  if (isAdvanced) {
+    const compiled = compileAdvancedTheme(manifest, { userCSS, resolveExtends: opts.resolveExtends });
+    if (compiled.errors.length > 0) return fail([...errors, ...compiled.errors], warnings, manifest, pkg);
+    warnings.push(...compiled.warnings);
+    // Defence in depth: sanitize the compiled output too.
+    const sanitized = sanitizeThemeCSS(compiled.css);
+    css = sanitized.css;
+    warnings.push(...sanitized.warnings);
+  }
+
+  // Skins target real component selectors and skip the :root/.dark selector
+  // check; they still go through the dangerous-pattern sanitizer.
+  let skin: string | null = null;
+  if (skinText !== null) {
+    if (!isAdvanced) {
+      warnings.push('skin.css ignored - only Theme API v2 manifests can ship a skin');
+    } else if (skinText.length > MAX_THEME_SKIN_BYTES) {
+      warnings.push(`skin.css exceeds ${Math.round(MAX_THEME_SKIN_BYTES / 1024)} KB and was dropped`);
+    } else {
+      const sanitized = sanitizeSkinCSS(skinText);
+      skin = sanitized.css;
+      warnings.push(...sanitized.warnings);
+    }
+  }
+
+  return { valid: true, errors: [], warnings, manifest, css, skin, pkg };
 }

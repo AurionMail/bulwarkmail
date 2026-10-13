@@ -9,6 +9,7 @@ import {
   getTheme,
   getPluginRegistry,
   getThemeRegistry,
+  themeCSSResolver,
   type ServerPlugin,
   type ServerTheme,
 } from '@/lib/admin/plugin-registry';
@@ -16,13 +17,10 @@ import { invalidateFrameOriginsCache } from '@/lib/admin/csp-frame-origins';
 import {
   EXTENSION_ID_RE,
   ExtensionPackageError,
-  openPackage,
-  readManifest,
   readPluginPackage,
-  readText,
+  readThemePackage,
   suspiciousCode,
 } from '@/lib/extension-package';
-import { sanitizeThemeCSS } from '@/lib/theme-loader';
 import { configManager } from '@/lib/admin/config-manager';
 
 async function getDirectoryUrl(): Promise<string> {
@@ -151,59 +149,38 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
 
     if (type === 'theme') {
-      let pkg;
-      let manifest: Record<string, unknown>;
-      try {
-        pkg = await openPackage(buffer, 'theme');
-        manifest = await readManifest(pkg);
-      } catch (err) {
-        if (err instanceof ExtensionPackageError) return NextResponse.json({ error: err.message }, { status: 400 });
-        throw err;
+      const read = await readThemePackage(buffer, { resolveExtends: await themeCSSResolver() });
+      if (!read.valid || !read.manifest) {
+        return NextResponse.json({ error: read.errors.join('; ') }, { status: 400 });
       }
+      const manifest = read.manifest;
       // The slug is what the admin picked and what install status is keyed
       // on. A bundle that names another id would install over whatever
       // already uses that id, keeping its enabled and force-enabled state.
-      if (manifest.id !== undefined && manifest.id !== slug) {
+      if (manifest.id !== slug) {
         return NextResponse.json(
           { error: `Bundle id "${String(manifest.id)}" does not match the directory entry "${slug}"` },
           { status: 400 },
         );
       }
       const resolvedId = slug;
-
-      let css: string | null;
-      try {
-        css = await readText(pkg, 'theme.css');
-      } catch (err) {
-        if (err instanceof ExtensionPackageError) return NextResponse.json({ error: err.message }, { status: 400 });
-        throw err;
-      }
-      if (css === null) {
-        return NextResponse.json({ error: 'Theme bundle missing theme.css' }, { status: 400 });
-      }
-
-      // Sanitize unconditionally: the safety check is advisory, and the
-      // sanitizer is also what drops rules outside :root and .dark.
-      const warnings: string[] = [];
-      const sanitized = sanitizeThemeCSS(css);
-      css = sanitized.css;
-      warnings.push(...sanitized.warnings);
+      const { css, skin, warnings } = read;
 
       const existingTheme = await getTheme(resolvedId);
       const isUpdate = existingTheme !== null;
 
       const theme: ServerTheme = {
         id: resolvedId,
-        name: (manifest.name as string) || slug,
+        name: manifest.name || slug,
         // Prefer the directory-published version (what we requested) over
         // manifest.version. Publishers sometimes forget to bump the version
         // inside the bundle's manifest.json; trusting it would make the
         // update never appear to "stick" — the registry would keep showing
         // the older version even after a successful update.
-        version: version || (manifest.version as string),
-        author: (manifest.author as string) || 'Unknown',
-        description: (manifest.description as string) || '',
-        variants: (manifest.variants as string[]) || ['light', 'dark'],
+        version: version || manifest.version,
+        author: manifest.author || 'Unknown',
+        description: manifest.description || '',
+        variants: manifest.variants,
         enabled: existingTheme?.enabled ?? true,
         ...(existingTheme?.forceEnabled !== undefined
           ? { forceEnabled: existingTheme.forceEnabled }
@@ -212,7 +189,7 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
       };
 
-      await saveTheme(theme, css);
+      await saveTheme(theme, css, skin);
       await auditLog(
         isUpdate ? 'marketplace.update_theme' : 'marketplace.install_theme',
         {

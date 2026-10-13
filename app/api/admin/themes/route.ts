@@ -6,12 +6,12 @@ import {
   getThemeRegistry,
   saveTheme,
   deleteTheme as removeTheme,
+  themeCSSResolver,
   type ServerTheme,
 } from '@/lib/admin/plugin-registry';
 import { forgetExtensionInPolicy } from '@/lib/admin/extension-cleanup';
 
-import { ExtensionPackageError, openPackage, readManifest, readText, type OpenedPackage } from '@/lib/extension-package';
-import { sanitizeThemeCSS } from '@/lib/theme-loader';
+import { readThemePackage } from '@/lib/extension-package';
 
 /**
  * GET /api/admin/themes - List all admin-managed themes
@@ -47,75 +47,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file' }, { status: 400 });
     }
 
-    let pkg: OpenedPackage;
-    let manifest: Record<string, unknown>;
-    try {
-      pkg = await openPackage(await file.arrayBuffer(), 'theme');
-      manifest = await readManifest(pkg);
-    } catch (err) {
-      if (err instanceof ExtensionPackageError) return NextResponse.json({ error: err.message }, { status: 400 });
-      throw err;
+    const read = await readThemePackage(await file.arrayBuffer(), {
+      resolveExtends: await themeCSSResolver(),
+    });
+    if (!read.valid || !read.manifest) {
+      return NextResponse.json({ error: read.errors.join('; ') }, { status: 400 });
     }
-
-    // Validate manifest
-    const errors: string[] = [];
-    if (!manifest.id || typeof manifest.id !== 'string') errors.push('Missing or invalid "id"');
-    if (!manifest.name || typeof manifest.name !== 'string') errors.push('Missing or invalid "name"');
-    if (!manifest.version || typeof manifest.version !== 'string') errors.push('Missing or invalid "version"');
-    if (!manifest.author || typeof manifest.author !== 'string') errors.push('Missing or invalid "author"');
-
-    if (manifest.type !== 'theme') {
-      errors.push(`Expected type "theme", got "${manifest.type}"`);
-    }
-
-    if (manifest.id && typeof manifest.id === 'string' && !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(manifest.id)) {
-      errors.push('ID must be lowercase alphanumeric with hyphens, min 2 chars');
-    }
-
-    if (!manifest.variants || !Array.isArray(manifest.variants) || manifest.variants.length === 0) {
-      errors.push('Missing or empty "variants" array');
-    } else {
-      const valid = manifest.variants.every((v: unknown) => v === 'light' || v === 'dark');
-      if (!valid) errors.push('Variants must be "light" or "dark"');
-    }
-
-    if (errors.length > 0) {
-      return NextResponse.json({ error: errors.join('; ') }, { status: 400 });
-    }
-
-    // Read theme.css
-    let css: string | null;
-    try {
-      css = await readText(pkg, 'theme.css');
-    } catch (err) {
-      if (err instanceof ExtensionPackageError) return NextResponse.json({ error: err.message }, { status: 400 });
-      throw err;
-    }
-    if (css === null) {
-      return NextResponse.json({ error: 'Missing theme.css' }, { status: 400 });
-    }
-
-    // Sanitize unconditionally: the safety check is advisory, and the
-    // sanitizer is also what drops rules outside :root and .dark.
-    const warnings: string[] = [];
-    const sanitized = sanitizeThemeCSS(css);
-    css = sanitized.css;
-    warnings.push(...sanitized.warnings);
+    const { manifest, css, skin, warnings } = read;
 
     const now = new Date().toISOString();
     const theme: ServerTheme = {
-      id: manifest.id as string,
-      name: manifest.name as string,
-      version: manifest.version as string,
-      author: manifest.author as string,
-      description: (manifest.description as string) || '',
-      variants: manifest.variants as string[],
+      id: manifest.id,
+      name: manifest.name,
+      version: manifest.version,
+      author: manifest.author,
+      description: manifest.description || '',
+      variants: manifest.variants,
       enabled: true,
       installedAt: now,
       updatedAt: now,
     };
 
-    await saveTheme(theme, css);
+    await saveTheme(theme, css, skin);
     await auditLog('theme.install', { id: theme.id, name: theme.name, version: theme.version, warnings }, ip);
 
     return NextResponse.json({ theme, warnings });
