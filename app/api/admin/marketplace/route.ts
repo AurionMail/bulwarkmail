@@ -185,7 +185,16 @@ export async function POST(request: NextRequest) {
     // bundles are authored by a third-party publisher; without this an id
     // like "../../foo" causes savePlugin/saveTheme to write outside the
     // plugins/themes dir via path.join.
-    const resolvedId = typeof manifest.id === 'string' && manifest.id ? manifest.id : slug;
+    // The slug is what the admin picked and what install status is keyed
+    // on. A bundle that names another id would install over whatever
+    // already uses that id, keeping its enabled and force-enabled state.
+    if (manifest.id !== undefined && manifest.id !== slug) {
+      return NextResponse.json(
+        { error: `Bundle id "${String(manifest.id)}" does not match the directory entry "${slug}"` },
+        { status: 400 },
+      );
+    }
+    const resolvedId = slug;
     if (typeof resolvedId !== 'string' || !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(resolvedId)) {
       return NextResponse.json(
         { error: 'Invalid id: must be lowercase alphanumeric with hyphens, min 2 chars' },
