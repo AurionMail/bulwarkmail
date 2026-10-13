@@ -12,6 +12,7 @@ import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextDirection } from "@/components/email/text-direction";
 import { PlainTextPaste } from "@/components/email/plain-text-paste";
+import { pastedImageFiles } from "@/components/email/paste-images";
 import { TextStyle, BackgroundColor } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import { FontSize, FONT_SIZES } from "@/components/email/font-size";
@@ -315,10 +316,8 @@ export function RichTextEditor({
       },
       handlePaste: (view, event) => {
         const upload = onImageUploadRef.current;
-        if (!upload || !event.clipboardData?.files?.length) return false;
-        const imageFiles = Array.from(event.clipboardData.files).filter(f =>
-          f.type.startsWith("image/")
-        );
+        if (!upload) return false;
+        const imageFiles = pastedImageFiles(event.clipboardData);
         if (imageFiles.length === 0) return false;
         event.preventDefault();
         for (const file of imageFiles) {
