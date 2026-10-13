@@ -110,11 +110,6 @@ async function isOwnEndpoint(endpoint: string, serverUrl: string): Promise<boole
 const DISCOVERY_CACHE_MAX = 32;
 const discoveryCache = new Map<string, LiteOAuthDiscovery>();
 
-/** Test hook. */
-export function resetLiteOAuthDiscoveryCache(): void {
-  discoveryCache.clear();
-}
-
 /**
  * Asks Stalwart which provider signs `username` in. `null` when the server
  * has no such endpoint (not Stalwart, or older than 0.16), the answer is

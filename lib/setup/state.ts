@@ -1,6 +1,5 @@
-import { existsSync } from 'node:fs';
 import { configManager } from '@/lib/admin/config-manager';
-import { getConfigPath, isConfigReadOnly } from '@/lib/admin/paths';
+import { isConfigReadOnly } from '@/lib/admin/paths';
 
 /**
  * The three lifecycle states for the running container.
@@ -32,22 +31,4 @@ export function detectSetupState(): SetupState {
   // rather than silently 404'ing /setup.
   if (isConfigReadOnly()) return 'bootstrap';
   return 'bootstrap';
-}
-
-/**
- * Whether the wizard's UI and APIs should be reachable.
- */
-export function isSetupActive(): boolean {
-  return detectSetupState() === 'bootstrap';
-}
-
-/**
- * The persisted `.config-locked` marker the wizard drops when the operator
- * checks "lock configuration after setup" on the review screen. Purely
- * advisory - the actual locking is the operator's `:ro` mount or the
- * ADMIN_CONFIG_READONLY env var. This file is what the admin UI uses to
- * remind the operator that they intended to lock.
- */
-export function lockMarkerExists(): boolean {
-  return existsSync(getConfigPath('.config-locked'));
 }

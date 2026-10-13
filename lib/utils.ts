@@ -1,7 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Mailbox, UNIFIED_MAILBOX_IDS } from "./jmap/types";
-import type { UnifiedMailboxRole } from "./jmap/types";
+import { Mailbox } from "./jmap/types";
 import { debug } from "./debug";
 import { getEffectiveLocale } from '@/i18n/detect-locale';
 import { useSettingsStore } from "@/stores/settings-store";
@@ -326,11 +325,6 @@ export function cleanPreview(text: string | null | undefined): string {
   return stripInvisibleLeading(stripLeadingCss(stripInvisibleLeading(text ?? '')));
 }
 
-export function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength).trim() + "...";
-}
-
 /**
  * A size people can read at a glance: whole numbers from 10 up ("67 KB"),
  * one decimal below that ("2.1 MB"), never a trailing ".0".
@@ -643,39 +637,6 @@ export function buildMailboxTree(mailboxes: Mailbox[]): MailboxNode[] {
   sortNodes(rootMailboxes);
 
   return rootMailboxes;
-}
-
-/**
- * Builds virtual MailboxNode entries for unified mailbox roles with aggregated counts.
- */
-export function buildUnifiedMailboxNodes(
-  counts: Array<{ role: UnifiedMailboxRole; unreadEmails: number; totalEmails: number }>,
-): MailboxNode[] {
-  return counts.map((count) => ({
-    id: UNIFIED_MAILBOX_IDS[count.role],
-    name: count.role, // Display name is handled by i18n in the component
-    role: count.role,
-    parentId: undefined,
-    sortOrder: 0,
-    totalEmails: count.totalEmails,
-    unreadEmails: count.unreadEmails,
-    totalThreads: 0,
-    unreadThreads: 0,
-    myRights: {
-      mayReadItems: true,
-      mayAddItems: false,
-      mayRemoveItems: false,
-      maySetSeen: true,
-      maySetKeywords: true,
-      mayCreateChild: false,
-      mayRename: false,
-      mayDelete: false,
-      maySubmit: false,
-    },
-    isSubscribed: true,
-    children: [],
-    depth: 0,
-  }));
 }
 
 // Flatten a mailbox tree for rendering with proper depth info

@@ -1,7 +1,6 @@
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile, unlink } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { logger } from '@/lib/logger';
 
 /**
  * Admin data directories.
@@ -89,26 +88,6 @@ export function isConfigReadOnly(): boolean {
   const v = (process.env.ADMIN_CONFIG_READONLY || '').toLowerCase();
   cachedReadOnly = v === 'true' || v === '1' || v === 'yes';
   return cachedReadOnly;
-}
-
-/**
- * Probe the config dir by writing a temp file. Used to auto-detect RO mounts
- * when ADMIN_CONFIG_READONLY is not set explicitly. Run once at startup;
- * cheap on local FS, can be slow on networked FS, hence opt-in.
- */
-export async function probeConfigReadOnly(): Promise<boolean> {
-  if (process.env.ADMIN_CONFIG_READONLY) return isConfigReadOnly();
-  try {
-    const probe = path.join(getConfigDir(), '.rw-probe');
-    await writeFile(probe, '');
-    await unlink(probe);
-    cachedReadOnly = false;
-    return false;
-  } catch {
-    cachedReadOnly = true;
-    logger.info('Config dir is read-only (auto-detected)');
-    return true;
-  }
 }
 
 export class ConfigReadOnlyError extends Error {

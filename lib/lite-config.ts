@@ -4,48 +4,6 @@ import { DEFAULT_POLICY } from '@/lib/admin/types';
 import { httpUrlOrEmpty } from '@/lib/config-validation';
 
 /**
- * Runtime configuration for the static Lite build.
- *
- * `/api/config` used to merge env vars, the admin dashboard and per-host
- * branding on the server. Lite reads `config.json` instead: a deployer edits a
- * handful of keys (server URL, app name, logos) and everything else falls
- * back to the same defaults `useConfig` already assumes. Whatever the file
- * says, the flags that only work with a Next.js server behind them are forced
- * off so no surface ever calls an endpoint that does not exist.
- */
-
-/** Keys a deployer may set in config.json. Everything else is ignored. */
-export const LITE_CONFIG_KEYS = [
-  'appName',
-  'jmapServerUrl',
-  'allowCustomJmapEndpoint',
-  'jmapServers',
-  'jmapServerAutoPickByDomain',
-  'demoMode',
-  'rememberMeEnabled',
-  'faviconUrl',
-  'appLogoLightUrl',
-  'appLogoDarkUrl',
-  'loginLogoLightUrl',
-  'loginLogoDarkUrl',
-  'loginCompanyName',
-  'loginImprintUrl',
-  'loginPrivacyPolicyUrl',
-  'loginWebsiteUrl',
-  'loginLogoMaxHeight',
-  'loginLogoMaxWidth',
-  'loginShowHeading',
-  'loginShowSubtitle',
-  'loginShowTotp',
-  'loginShowTokenLogin',
-  'loginShowRememberMe',
-  'loginShowVersion',
-  'embeddedMode',
-  'parentOrigin',
-  'sourceCodeUrl',
-] as const;
-
-/**
  * Flags that need the Next.js server (cookies, filesystem, OAuth relay). They
  * are pinned regardless of what config.json contains. `oauthEnabled` is the
  * server-relayed flow; Lite on Stalwart signs in through an OpenID provider

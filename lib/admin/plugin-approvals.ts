@@ -167,9 +167,3 @@ export async function revokeApproval(pluginId: string, bundleHash: string): Prom
   file.entries.splice(idx, 1);
   await flushToDisk();
 }
-
-/** Force a re-read on next access. Used in tests / after a manual file edit. */
-export function invalidateApprovalsCache(): void {
-  cached = null;
-  loadPromise = null;
-}

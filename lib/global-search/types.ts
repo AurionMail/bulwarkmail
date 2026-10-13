@@ -15,10 +15,6 @@ export type SearchKind = 'mail' | 'contacts' | 'calendar' | 'files';
 
 export const SEARCH_KINDS: readonly SearchKind[] = ['mail', 'contacts', 'calendar', 'files'];
 
-export function isSearchKind(value: unknown): value is SearchKind {
-  return typeof value === 'string' && (SEARCH_KINDS as readonly string[]).includes(value);
-}
-
 /** Where a hit came from. Remote hits win over local ones when both exist (they carry snippets). */
 export type HitSource = 'local' | 'remote';
 

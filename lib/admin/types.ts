@@ -20,12 +20,6 @@ export interface AdminStateData {
   passwordChangedAt: string;
 }
 
-/**
- * Combined view used by getAdminMeta() and tests. Constructed by merging
- * admin.json + admin-state.json at read time.
- */
-export interface AdminData extends AdminConfigData, AdminStateData {}
-
 export interface AdminSessionPayload {
   role: 'admin';
   iat: number;

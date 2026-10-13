@@ -108,12 +108,6 @@ async function fetchServerConfig(): Promise<ConfigData> {
   throw lastError;
 }
 
-/** Test hook: forget the cached config so the next fetch hits the network again. */
-export function resetConfigCache(): void {
-  configCache = null;
-  configPromise = null;
-}
-
 export async function fetchConfig(): Promise<ConfigData> {
   // Return cached config if available
   if (configCache) {

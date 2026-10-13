@@ -1,7 +1,4 @@
-export interface EmailHeader {
-  name: string;
-  value: string;
-}
+
 
 /**
  * A session-visible account (the user's own primary account plus any

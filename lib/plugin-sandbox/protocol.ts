@@ -11,10 +11,6 @@
 import type { SlotName, PluginTier } from '../plugin-types';
 import type { ThemeSnapshot } from './host-theme';
 
-// ─── Sandbox mode ────────────────────────────────────────────
-
-export type SandboxMode = 'background' | 'slot';
-
 /** Initialisation payload for a background-instance iframe (one per plugin). */
 export interface BackgroundInit {
   mode: 'background';
@@ -200,29 +196,6 @@ export type HostToSandbox =
   | PropsUpdateMsg
   | SlotShouldShowMsg;
 
-/** Marker used in extraProps for function values that the host owns. */
-export interface PluginCallbackMarker {
-  __pluginCallback: string;
-}
-
-export function isCallbackMarker(value: unknown): value is PluginCallbackMarker {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { __pluginCallback?: unknown }).__pluginCallback === 'string'
-  );
-}
-
-// ─── Type guards ─────────────────────────────────────────────
-
-export function isSandboxMessage(value: unknown): value is SandboxToHost {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { type?: unknown }).type === 'string'
-  );
-}
-
 // ─── Constants ───────────────────────────────────────────────
 
 /** Path used for the untrusted (null-origin) sandbox iframe `src`. Matched in
@@ -236,31 +209,3 @@ export const SANDBOX_PATH = '/plugin-sandbox';
  * `proxy.ts`. Renders the identical `SandboxRuntime`.
  */
 export const SANDBOX_PRIVILEGED_PATH = '/plugin-sandbox-privileged';
-
-/** Methods callable by a plugin via api-request. Host enforces permissions. */
-export const API_METHODS = [
-  'storage.get', 'storage.set', 'storage.remove', 'storage.keys',
-  'http.post', 'http.fetch',
-  'crypto.createWebAuthn', 'crypto.getWebAuthn', 'crypto.getPublicKeys', 'crypto.createPublicKey', 'crypto.removePublicKey', 'crypto.getEncryptionAtRest', 'crypto.setEncryptionAtRest', 'crypto.getPublicKeyFromWKD',
-  'jmap.fetchBlob', 'jmap.uploadBlob', 'jmap.sendRaw',
-  // Narrow keyword helpers. Unlike the raw-blob methods, these are available
-  // to untrusted plugins with email:read/email:write as appropriate.
-  'jmap.getKeywords', 'jmap.setKeywords', 'jmap.setKeyword', 'jmap.removeKeyword',
-  'upfiles.get', 'upfiles.save',
-  'contact.get', 'contact.update', 'contact.create', 'contact.search',
-  'admin.getConfig', 'admin.getAllConfig', 'admin.setConfig', 'admin.deleteConfig',
-  'toast.success', 'toast.error', 'toast.info', 'toast.warning',
-  'ui.confirm', 'ui.alert', 'ui.prompt', 'ui.rerenderEmail', 'ui.rerenderFetchedEmails', 'ui.openExternalUrl', 'ui.downloadFile',
-  // Email keyword mutations (JMAP Email/set keyword patches).
-  'email.setKeyword', 'email.removeKeyword',
-  // Native tag definitions, discovery, and sidebar counts.
-  'keywords.list', 'keywords.add', 'keywords.reorder', 'keywords.discover', 'keywords.getCounts', 'keywords.refreshCounts',
-  // Message-list category tabs (Gmail-style inbox tabs).
-  'tabs.set', 'tabs.clear', 'tabs.getState', 'tabs.categorize', 'tabs.refreshCounts',
-  // Run a JMAP Email filter as the message-list search.
-  'search.run',
-  // Sieve integration for delivery-time classification plugins.
-  'sieve.isSupported', 'sieve.getActiveScript', 'sieve.validateScript', 'sieve.regenerate',
-] as const;
-
-export type ApiMethod = (typeof API_METHODS)[number];

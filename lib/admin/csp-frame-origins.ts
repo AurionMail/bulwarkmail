@@ -58,7 +58,6 @@ export function sanitizeFrameOrigins(input: unknown): string[] {
  * intent is explicit at every call site (frame embedding vs. HTTP fetch).
  */
 export const sanitizeHttpOrigins = sanitizeFrameOrigins;
-export const isValidHttpOrigin = isValidFrameOrigin;
 
 // ─── apiPostPaths (manifest field) ────────────────────────────
 

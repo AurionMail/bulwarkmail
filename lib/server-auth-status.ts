@@ -15,10 +15,6 @@ export function setServerAuthIssue(reason: string | null): void {
   issue = reason;
 }
 
-export function getServerAuthIssue(): string | null {
-  return issue;
-}
-
 /**
  * Error text for a failed response from a cookie-gated route: the recorded
  * reason when the route answered 401, otherwise the route's own message.

@@ -112,14 +112,3 @@ export function registerShortcuts(
     for (const k of keys) bindings.delete(k);
   };
 }
-
-/** Snapshot of currently active shortcuts. Used by the help modal. */
-export function listShortcuts(): Array<{ pluginId: string; id: string; keys: string; label: string; category?: string }> {
-  return [...bindings.values()].map(b => ({
-    pluginId: b.pluginId,
-    id: b.shortcutId,
-    keys: b.keys,
-    label: b.label,
-    category: b.category,
-  }));
-}

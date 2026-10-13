@@ -16,11 +16,6 @@ export interface EmailTemplate {
   updatedAt: string;
 }
 
-export interface PlaceholderVariable {
-  name: string;
-  value: string;
-}
-
 export const BUILT_IN_PLACEHOLDERS = [
   'recipient_name',
   'company',
@@ -28,5 +23,3 @@ export const BUILT_IN_PLACEHOLDERS = [
   'day_of_week',
   'sender_name',
 ] as const;
-
-export type BuiltInPlaceholder = (typeof BUILT_IN_PLACEHOLDERS)[number];

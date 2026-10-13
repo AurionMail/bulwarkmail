@@ -63,11 +63,6 @@ export function readStalwartAuthContextFromStore(
   return accountName ? { serverUrl, username, authHeader, accountName } : { serverUrl, username, authHeader };
 }
 
-export async function readStalwartAuthContext(slot: number): Promise<StalwartAuthContext | null> {
-  const cookieStore = await cookies();
-  return readStalwartAuthContextFromStore(cookieStore, slot);
-}
-
 export function setStalwartAuthContextInStore(
   cookieStore: CookieStore,
   slot: number,
@@ -87,9 +82,4 @@ export async function setStalwartAuthContext(slot: number, context: StalwartAuth
 
 export function clearStalwartAuthContextInStore(cookieStore: CookieStore, slot: number): void {
   cookieStore.delete(stalwartAuthContextCookieName(slot));
-}
-
-export async function clearStalwartAuthContext(slot: number): Promise<void> {
-  const cookieStore = await cookies();
-  clearStalwartAuthContextInStore(cookieStore, slot);
 }

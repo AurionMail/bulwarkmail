@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { readFile, writeFile, unlink, stat } from 'node:fs/promises';
+import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { logger } from '@/lib/logger';
 import { ensureStateDir, getStatePath } from '@/lib/admin/paths';
@@ -90,22 +90,5 @@ export async function clearSetupToken(): Promise<void> {
     logger.warn('Failed to clear setup token', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
-  }
-}
-
-/**
- * For diagnostics / startup logging.
- */
-export async function getTokenInfo(): Promise<{ exists: boolean; expiresInSeconds: number | null }> {
-  const path = getStatePath(TOKEN_FILE);
-  if (!existsSync(path)) return { exists: false, expiresInSeconds: null };
-  try {
-    await stat(path);
-    const payload = await readToken();
-    if (!payload) return { exists: false, expiresInSeconds: null };
-    const elapsed = Date.now() / 1000 - payload.issuedAt;
-    return { exists: true, expiresInSeconds: Math.max(0, Math.floor(payload.ttlSeconds - elapsed)) };
-  } catch {
-    return { exists: false, expiresInSeconds: null };
   }
 }

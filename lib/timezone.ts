@@ -79,11 +79,6 @@ export function getEffectiveTimeZone(): string {
   return resolveTimeZone(useSettingsStore.getState().timeZone);
 }
 
-/** True when the user's override is active and differs from the browser zone. */
-export function isTimeZoneOverridden(): boolean {
-  return getEffectiveTimeZone() !== getBrowserTimeZone();
-}
-
 export interface WallClock {
   year: number;
   /** 1-12 */

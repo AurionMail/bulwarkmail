@@ -71,11 +71,3 @@ export async function deletePluginConfigKey(pluginId: string, key: string): Prom
   await writeFile(tmpPath, JSON.stringify(config, null, 2), 'utf-8');
   await rename(tmpPath, filePath);
 }
-
-/**
- * Delete all config for a plugin (used when uninstalling).
- */
-export async function deleteAllPluginConfig(pluginId: string): Promise<void> {
-  assertWritable('delete plugin config');
-  try { await unlink(configPath(pluginId)); } catch { /* ok if missing */ }
-}

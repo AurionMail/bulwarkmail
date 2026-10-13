@@ -26,17 +26,6 @@ export function cachedRemoteIdentities(): Identity[] {
   return [...remoteIdentityCache.values()].flat();
 }
 
-/** Cross-account identity IDs are namespaced to avoid collisions between JMAP
- * servers that happen to issue the same opaque ID. EVERY aggregated account is
- * namespaced (including the active one) so an id doesn't change form when the
- * active account changes; consumers resolve the raw id via
- * stripCrossAccountIdentityPrefix. Single-account mode (hook disabled) uses the
- * identity store's raw ids directly.
- */
-export function isCrossAccountIdentityId(id: string): boolean {
-  return id.includes(CROSS_ACCOUNT_IDENTITY_DELIMITER);
-}
-
 export function stripCrossAccountIdentityPrefix(id: string): { localAccountId: string | null; rawId: string } {
   const idx = id.indexOf(CROSS_ACCOUNT_IDENTITY_DELIMITER);
   if (idx < 0) return { localAccountId: null, rawId: id };
