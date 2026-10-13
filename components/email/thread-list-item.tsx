@@ -438,7 +438,9 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         e.preventDefault();
         selectRangeEmails(email);
       } else {
-        if (selectedEmailKeys.size > 0) clearSelection();
+        // Mountain View keeps the ticked rows while a message is read, as
+        // Gmail does, so selecting can carry on afterwards. (#1231)
+        if (selectedEmailKeys.size > 0 && !mvRow) clearSelection();
         onClick();
       }
     };
@@ -971,7 +973,8 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       }
 
       if (mvRow || mvMobileRow) {
-        if (selectedEmailKeys.size > 0) clearSelection();
+        // Desktop keeps the ticked rows while the conversation is read (#1231).
+        if (selectedEmailKeys.size > 0 && !mvRow) clearSelection();
         onEmailSelect(latestEmail);
         return;
       }

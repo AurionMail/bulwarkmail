@@ -804,7 +804,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     onArchive: async () => {
       if (isScheduledView) return;
-      if (selectedEmailKeys.size > 0 && client) {
+      if (shortcutsTargetSelection && client) {
         const count = selectedEmailKeys.size;
         await runBatchEmailAction(() => batchArchive(client), {
           success: t('notifications.emails_archived', { count }),
@@ -819,7 +819,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     onDelete: async () => {
       if (isScheduledView) return;
-      if (selectedEmailKeys.size > 0 && client) {
+      if (shortcutsTargetSelection && client) {
         const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
         const permanent = bulkDeleteIsPermanent(currentMailbox);
         if (shouldConfirmBulkDelete(currentMailbox)) {
@@ -849,7 +849,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onMarkAsUnread: async () => {
       if (isScheduledView) return;
       if (!client) return;
-      if (selectedEmailKeys.size > 0) {
+      if (shortcutsTargetSelection) {
         await batchMarkAsRead(client, false);
       } else if (selectedEmail) {
         await markAsRead(client, selectedEmail.id, false);
@@ -858,7 +858,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onMarkAsRead: async () => {
       if (isScheduledView) return;
       if (!client) return;
-      if (selectedEmailKeys.size > 0) {
+      if (shortcutsTargetSelection) {
         await batchMarkAsRead(client, true);
       } else if (selectedEmail) {
         await markAsRead(client, selectedEmail.id, true);
@@ -872,7 +872,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // is a no-op there too.
       if (['sent', 'drafts', 'scheduled'].includes(currentMailbox?.role || '')) return;
       const isInJunk = currentMailbox?.role === 'junk';
-      if (selectedEmailKeys.size > 0 && client) {
+      if (shortcutsTargetSelection && client) {
         // The spam actions take bare ids of the viewed account: resolve the
         // selection keys through the loaded rows and thread members.
         const ids = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
@@ -981,6 +981,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailKeys, mailboxes, isScheduledView, mvShell, showCrossStarred]);
 
   // Initialize keyboard shortcuts
+  // Mountain View keeps the ticked rows while a message is read (#1231). The
+  // shortcuts then act on the message on screen, as its toolbar does, and
+  // reach the selection again back in the list.
+  const shortcutsTargetSelection = selectedEmailKeys.size > 0 && !(mvShell && !cursorOnly && selectedEmail);
   useKeyboardShortcuts({
     enabled: isAuthenticated && !showComposer,
     emails: activeEmails,

@@ -296,6 +296,44 @@ describe('ThreadListItem opening a thread on the phone', () => {
   });
 });
 
+// #1231: opening a message threw away the ticked rows. Mountain View on the
+// desktop keeps them, as Gmail does, so selecting can carry on after reading.
+describe('ThreadListItem keeping the selection when a message opens', () => {
+  function open(interfaceLayout: 'mountain-view' | 'default', emails: Email[]) {
+    useSettingsStore.setState({ interfaceLayout, mailLayout: 'split' });
+    useUIStore.setState({ isMobile: false, isTablet: false, isDesktop: true });
+    useEmailStore.setState({ selectedEmailKeys: new Set(['other']), selectedMailbox: 'inbox' });
+    const onEmailSelect = vi.fn();
+    const [thread] = groupEmailsByThread(emails);
+    render(
+      <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={onEmailSelect} />,
+    );
+    fireEvent.click(screen.getByText('Test Subject'));
+    return onEmailSelect;
+  }
+  const conversation = () => [
+    makeEmail({ id: 'older', receivedAt: '2024-01-14T10:00:00Z' }),
+    makeEmail({ id: 'newer', receivedAt: '2024-01-15T10:00:00Z' }),
+  ];
+
+  it('keeps the ticked rows when a Mountain View message opens', () => {
+    const onEmailSelect = open('mountain-view', [makeEmail()]);
+    expect(onEmailSelect).toHaveBeenCalledTimes(1);
+    expect([...useEmailStore.getState().selectedEmailKeys]).toEqual(['other']);
+  });
+
+  it('keeps them when a Mountain View conversation opens', () => {
+    const onEmailSelect = open('mountain-view', conversation());
+    expect(onEmailSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'newer' }));
+    expect([...useEmailStore.getState().selectedEmailKeys]).toEqual(['other']);
+  });
+
+  it('still clears them in the default layout', () => {
+    open('default', [makeEmail()]);
+    expect(useEmailStore.getState().selectedEmailKeys.size).toBe(0);
+  });
+});
+
 describe('ThreadListItem Mountain View phone row layout', () => {
   it('sets the star at the end of the preview line, not under the time', () => {
     useSettingsStore.setState({ interfaceLayout: 'mountain-view', mailLayout: 'split', showPreview: true, density: 'regular' } as never);
