@@ -7,6 +7,7 @@ import { parseJmapServers } from '@/lib/admin/jmap-servers';
 import { parseDomainBranding } from '@/lib/admin/domain-branding';
 import { initAdminPassword, isAdminEnabled } from '@/lib/admin/password';
 import { logger } from '@/lib/logger';
+import { hasSessionSecret } from '@/lib/auth/session-secret';
 
 // Strings that count as "no real secret configured" - used so the dashboard
 // can warn about a placeholder session secret without us ever returning the
@@ -35,7 +36,9 @@ export async function GET(request: NextRequest) {
       if (SENSITIVE_CONFIG_KEYS.has(key)) {
         const v = entry.value;
         const hasValue =
-          typeof v === 'string' && v.length > 0 && !SENSITIVE_PLACEHOLDERS.has(v);
+          (typeof v === 'string' && v.length > 0 && !SENSITIVE_PLACEHOLDERS.has(v)) ||
+          // Nothing configured, but the secret generated on first start is there.
+          (key === 'sessionSecret' && entry.source === 'default' && hasSessionSecret());
         safe[key] = { source: entry.source, hasValue };
       } else {
         safe[key] = entry;
