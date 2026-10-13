@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus } from "@/components/icons";
-import type { CalendarEventAlert } from "@/lib/jmap/types";
+import type { Calendar, CalendarEvent, CalendarEventAlert } from "@/lib/jmap/types";
 import {
   describeAlert,
+  getEffectiveAlerts,
   newAlertRow,
   type AlertAction,
   type AlertRow,
@@ -29,6 +30,18 @@ export function formatAlertRowLabel(row: Omit<AlertRow, "id">, t: CalendarT): st
     case "weeks": label = t("alerts.weeks_before", { count: row.value }); break;
   }
   return row.action === "email" ? t("alerts.by_email", { label }) : label;
+}
+
+/** One line for an event's effective alerts, calendar defaults included. */
+export function formatEventAlertsLabel(event: CalendarEvent, calendars: Calendar[], t: CalendarT): string | null {
+  const alerts = getEffectiveAlerts(event, calendars);
+  if (!alerts) return null;
+  const labels: string[] = [];
+  for (const alert of Object.values(alerts)) {
+    const row = describeAlert(alert);
+    if (row) labels.push(formatAlertRowLabel(row, t));
+  }
+  return labels.length > 0 ? labels.join(", ") : null;
 }
 
 /** Read-only list of an alert map, for alerts that come from calendar defaults. */

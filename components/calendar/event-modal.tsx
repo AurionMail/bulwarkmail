@@ -9,15 +9,8 @@ import { LinkifiedText } from "@/components/ui/linkified-text";
 import { X, Trash2, Check, Users, CalendarDays, Copy, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft } from "@/components/icons";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
-import { AlertListEditor, AlertSummary, formatAlertRowLabel } from "./alert-list-editor";
-import {
-  alertsToRows,
-  describeAlert,
-  getCalendarDefaultAlerts,
-  getEffectiveAlerts,
-  rowsToAlerts,
-  type AlertRow,
-} from "@/lib/calendar-alerts";
+import { AlertListEditor, AlertSummary, formatEventAlertsLabel } from "./alert-list-editor";
+import { alertsToRows, getCalendarDefaultAlerts, rowsToAlerts, type AlertRow } from "@/lib/calendar-alerts";
 import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from "./recurrence-editor";
 import { parseDuration, getEventColor } from "./event-card";
 import { buildAllDayDuration, getEventDisplayEndDate, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
@@ -124,19 +117,6 @@ function formatDurationDisplay(minutes: number): string {
   const m = minutes % 60;
   if (m === 0) return `${h}h`;
   return `${h}h${m}min`;
-}
-
-function getAlertLabel(event: CalendarEvent, calendars: Calendar[], t: ReturnType<typeof useTranslations>): string | null {
-  const alerts = getEffectiveAlerts(event, calendars);
-  if (!alerts) return null;
-  const labels: string[] = [];
-  for (const alert of Object.values(alerts)) {
-    const row = describeAlert(alert);
-    if (!row) continue;
-    labels.push(formatAlertRowLabel(row, t));
-  }
-  if (labels.length === 0) return null;
-  return labels.join(", ");
 }
 
 function getRecurrenceLabel(event: CalendarEvent, t: ReturnType<typeof useTranslations>, locale: string): string | null {
@@ -829,7 +809,7 @@ export function EventModal({
     const virtualLoc = event.virtualLocations ? Object.values(event.virtualLocations)[0]?.uri || null : null;
     const viewParticipants = getParticipantList(event, { resolveName: resolveContactName });
     const recurrenceLabel = getRecurrenceLabel(event, t, locale);
-    const alertLabel = getAlertLabel(event, calendars, t);
+    const alertLabel = formatEventAlertsLabel(event, calendars, t);
     const eventCalendar = calendars.find(c => event.calendarIds[c.id]);
     const color = getEventColor(event, eventCalendar);
 
