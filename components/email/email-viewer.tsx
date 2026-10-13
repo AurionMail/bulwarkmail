@@ -678,7 +678,7 @@ function mvSenderDate(date: Date | string, timeFormat: '12h' | '24h'): string {
  * One message of a Mountain View conversation, folded to its sender, date and
  * snippet. Clicking it unfolds the message in place.
  */
-function MvConversationCard({ email, onOpen, timeFormat }: { email: Email; onOpen?: (email: Email) => void; timeFormat: '12h' | '24h' }) {
+function MvConversationCard({ email, onOpen, timeFormat, compact }: { email: Email; onOpen?: (email: Email) => void; timeFormat: '12h' | '24h'; compact?: boolean }) {
   const sender = email.from?.[0];
   const unread = !email.keywords?.$seen;
   return (
@@ -687,7 +687,7 @@ function MvConversationCard({ email, onOpen, timeFormat }: { email: Email; onOpe
       onClick={() => onOpen?.(email)}
       data-mv-conversation-card=""
       data-email-id={email.id}
-      className="w-full flex items-start gap-4 px-6 py-3 border-t border-border text-start hover:bg-muted/40 transition-colors"
+      className={cn("w-full flex items-start py-3 border-t border-border text-start hover:bg-muted/40 transition-colors", compact ? "gap-3 px-4" : "gap-4 px-6")}
     >
       <Avatar name={sender?.name} email={sender?.email} size="md" className="w-10 h-10 flex-shrink-0" />
       <span className="flex-1 min-w-0">
@@ -696,7 +696,7 @@ function MvConversationCard({ email, onOpen, timeFormat }: { email: Email; onOpe
             {sender?.name || sender?.email || ''}
           </span>
           <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
-            {mvSenderDate(email.receivedAt, timeFormat)}
+            {compact ? formatDate(email.receivedAt) : mvSenderDate(email.receivedAt, timeFormat)}
           </span>
         </span>
         <span className="block text-sm text-muted-foreground truncate">{cleanPreview(email.preview)}</span>
@@ -712,6 +712,39 @@ function isInteractiveClick(target: EventTarget | null, container: HTMLElement):
 }
 
 /**
+ * The sender, recipients, dates and ids of an unfolded conversation message,
+ * as the open message's details panel lists them.
+ */
+function MvConversationDetails({ email, timeFormat, className }: { email: Email; timeFormat: '12h' | '24h'; className?: string }) {
+  const t = useTranslations('email_viewer');
+  const addresses = (list?: { name?: string | null; email?: string | null }[]) =>
+    (list ?? []).map((a) => (a.name && a.email ? `${a.name} <${a.email}>` : a.email || a.name || '')).join(', ');
+  const fullDate = (iso: string) =>
+    formatDateTime(iso, timeFormat, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const rows: [string, string | undefined][] = [
+    [t('from'), addresses(email.from)],
+    [t('reply_to_label').replace(':', ''), addresses(email.replyTo)],
+    [t('to'), addresses(email.to)],
+    [t('cc'), addresses(email.cc)],
+    [t('bcc'), addresses(email.bcc)],
+    [t('details.sent'), email.sentAt ? fullDate(email.sentAt) : undefined],
+    [t('details.received'), fullDate(email.receivedAt)],
+    [t('subject'), email.subject],
+    [t('headers.message_id'), email.messageId],
+  ];
+  return (
+    <dl className={cn("grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 pb-3 text-xs", className)} data-mv-conversation-details="">
+      {rows.filter(([, value]) => value).map(([label, value]) => (
+        <Fragment key={label}>
+          <dt className="text-muted-foreground">{label}</dt>
+          <dd className="text-foreground min-w-0 break-words">{value}</dd>
+        </Fragment>
+      ))}
+    </dl>
+  );
+}
+
+/**
  * A message of a Mountain View conversation unfolded in place: its sender line,
  * which folds it again when clicked, and its body. The list fetch carries no
  * body, so the first unfold asks for the full message.
@@ -724,9 +757,11 @@ export function MvExpandedConversationCard({
   onMarkRead,
   onReply,
   onDownloadAttachment,
+  compact,
 }: {
   email: Email;
   timeFormat: '12h' | '24h';
+  compact?: boolean;
   onCollapse: (email: Email) => void;
   onLoadBody?: (email: Email) => void;
   onMarkRead?: (email: Email) => void;
@@ -737,6 +772,7 @@ export function MvExpandedConversationCard({
   const externalContent = useConversationExternalContent();
   const sender = email.from?.[0];
   const hasBody = !!email.bodyValues;
+  const [showDetails, setShowDetails] = useState(false);
   const loadRequested = useRef(false);
   useEffect(() => {
     if (hasBody || loadRequested.current || !onLoadBody) return;
@@ -765,24 +801,33 @@ export function MvExpandedConversationCard({
           }
         }}
         data-mv-conversation-header=""
-        className="flex items-start gap-4 px-6 pt-3 pb-2 cursor-pointer"
+        className={cn("flex items-start pt-3 pb-2 cursor-pointer", compact ? "gap-3 px-4" : "gap-4 px-6")}
       >
         <Avatar name={sender?.name} email={sender?.email} size="md" className="w-10 h-10 flex-shrink-0" />
         <span className="flex-1 min-w-0">
           <span className="flex items-baseline gap-2">
             <span className="text-sm font-semibold truncate">{sender?.name || sender?.email || ''}</span>
-            {sender?.name && sender.email && (
+            {!compact && sender?.name && sender.email && (
               <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
             )}
             <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
-              {mvSenderDate(email.receivedAt, timeFormat)}
+              {compact ? formatDate(email.receivedAt) : mvSenderDate(email.receivedAt, timeFormat)}
             </span>
           </span>
-          {email.to && email.to.length > 0 && (
-            <span className="block text-xs text-muted-foreground truncate">
-              {t('to')} {email.to.map((a) => a.name || a.email).join(', ')}
+          <button
+            type="button"
+            onClick={() => setShowDetails((v) => !v)}
+            aria-expanded={showDetails}
+            data-mv-conversation-details-toggle=""
+            className="flex items-center gap-0.5 max-w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span className="truncate">
+              {email.to && email.to.length > 0
+                ? `${t('to')} ${email.to.map((a) => a.name || a.email).join(', ')}`
+                : t(showDetails ? 'hide_details' : 'show_details')}
             </span>
-          )}
+            {showDetails ? <ChevronUp className="w-3 h-3 flex-shrink-0" /> : <ChevronDown className="w-3 h-3 flex-shrink-0" />}
+          </button>
         </span>
         {onReply && (
           <button
@@ -796,6 +841,7 @@ export function MvExpandedConversationCard({
           </button>
         )}
       </div>
+      {showDetails && <MvConversationDetails email={email} timeFormat={timeFormat} className={compact ? "px-4" : "ps-[80px] pe-6"} />}
       {hasBody ? (
         <ConversationEmailBody
           email={email}
@@ -803,11 +849,11 @@ export function MvExpandedConversationCard({
           onAllowExternal={() => externalContent.allow(email.id)}
           onTrustSender={externalContent.trustSender(email)}
           onDownloadAttachment={onDownloadAttachment}
-          className="ps-[80px] pe-6 pb-4"
+          className={cn("pb-4", compact ? "px-4" : "ps-[80px] pe-6")}
           bodyStyle={{ paddingBlock: '0.25rem 0.5rem' }}
         />
       ) : (
-        <div className="ps-[80px] pe-6 pb-4 pt-1 space-y-2 animate-pulse" data-mv-conversation-loading="">
+        <div className={cn("pb-4 pt-1 space-y-2 animate-pulse", compact ? "px-4" : "ps-[80px] pe-6")} data-mv-conversation-loading="">
           <div className="h-2 bg-muted rounded w-full" />
           <div className="h-2 bg-muted rounded w-5/6" />
           <div className="h-2 bg-muted rounded w-4/6" />
@@ -822,8 +868,9 @@ export function MvExpandedConversationCard({
  * run of folded messages before it shows only its first and last message
  * around a count, as Gmail does, and the count unfolds the rest.
  */
-export function MvConversationRun({ emails, onOpen, timeFormat, collapseLongRun, expandedIds, renderExpanded }: {
+export function MvConversationRun({ emails, onOpen, timeFormat, collapseLongRun, expandedIds, renderExpanded, compact }: {
   emails: Email[];
+  compact?: boolean;
   /** A folded message was clicked. */
   onOpen?: (email: Email) => void;
   timeFormat: '12h' | '24h';
@@ -836,7 +883,7 @@ export function MvConversationRun({ emails, onOpen, timeFormat, collapseLongRun,
   const isExpanded = (e: Email) => !!renderExpanded && !!expandedIds?.has(e.id);
   const renderOne = (e: Email) => isExpanded(e)
     ? <Fragment key={e.id}>{renderExpanded!(e)}</Fragment>
-    : <MvConversationCard key={e.id} email={e} onOpen={onOpen} timeFormat={timeFormat} />;
+    : <MvConversationCard key={e.id} email={e} onOpen={onOpen} timeFormat={timeFormat} compact={compact} />;
   const middle = emails.slice(1, -1);
   if (!collapseLongRun || showAll || emails.length <= 3 || middle.some(isExpanded)) {
     return <>{emails.map(renderOne)}</>;
@@ -1050,7 +1097,7 @@ export function EmailViewer({
   const mvMobileViewer = interfaceLayout === 'mountain-view' && isMobile;
   const mvReplyRow = mvViewer || mvMobileViewer;
   // The open conversation around the open message, split at it.
-  const mvOpenIndex = mvViewer && mvConversation && email ? mvConversation.findIndex((e) => e.id === email.id) : -1;
+  const mvOpenIndex = (mvViewer || mvMobileViewer) && mvConversation && email ? mvConversation.findIndex((e) => e.id === email.id) : -1;
   const mvBefore = mvOpenIndex > 0 ? mvConversation!.slice(0, mvOpenIndex) : [];
   const mvAfter = mvOpenIndex >= 0 ? mvConversation!.slice(mvOpenIndex + 1) : [];
   // Mountain View: which other messages of the conversation are unfolded. A
@@ -1089,6 +1136,7 @@ export function EmailViewer({
       onMarkRead={onMarkConversationEmailRead}
       onReply={onReplyConversationEmail}
       onDownloadAttachment={onDownloadAttachment}
+      compact={mvMobileViewer}
     />
   );
   // Mountain View's toolbars are icon-only, on the phone as on the desktop.
@@ -4320,16 +4368,16 @@ export function EmailViewer({
       <div className="min-h-full flex flex-col">
 
       {/* Mountain View: the conversation's earlier messages, folded. */}
-      {mvViewer && mvBefore.length > 0 && (
-        <div className="hidden lg:block" data-mv-conversation-before="">
-          <MvConversationRun emails={mvBefore} onOpen={toggleMvExpanded} expandedIds={mvExpandedIds} renderExpanded={renderMvExpanded} timeFormat={timeFormat} collapseLongRun />
+      {mvBefore.length > 0 && (
+        <div data-mv-conversation-before="">
+          <MvConversationRun emails={mvBefore} onOpen={toggleMvExpanded} expandedIds={mvExpandedIds} renderExpanded={renderMvExpanded} timeFormat={timeFormat} compact={mvMobileViewer} collapseLongRun />
         </div>
       )}
 
       {/* Mountain View: the open message folded like the rest of the conversation. */}
       {mvOpenFolded && email ? (
-        <div className="hidden lg:block" data-mv-open-folded="">
-          <MvConversationCard email={email} onOpen={() => setMvOpenCollapsed(false)} timeFormat={timeFormat} />
+        <div data-mv-open-folded="">
+          <MvConversationCard email={email} onOpen={() => setMvOpenCollapsed(false)} timeFormat={timeFormat} compact={mvMobileViewer} />
         </div>
       ) : (<>
       {/* === SENDER INFO (Desktop) === */}
@@ -4653,7 +4701,16 @@ export function EmailViewer({
       </div>
 
         {/* Mobile/Tablet Sender Info - scrolls with content */}
-        <div className="lg:hidden bg-background border-b border-border px-4" style={{ paddingBlock: 'var(--density-header-py)' }}>
+        <div
+          className={cn("lg:hidden bg-background border-b border-border px-4", mvOpenIndex >= 0 && "cursor-pointer", mvOpenIndex >= 0 && mvBefore.length > 0 && "border-t")}
+          style={{ paddingBlock: 'var(--density-header-py)' }}
+          data-mv-open-header-mobile={mvOpenIndex >= 0 ? "" : undefined}
+          onClick={mvOpenIndex >= 0 ? (e) => {
+            if (isInteractiveClick(e.target, e.currentTarget)) return;
+            if (window.getSelection()?.toString()) return;
+            setMvOpenCollapsed(true);
+          } : undefined}
+        >
           <div className="flex items-start" style={{ gap: 'var(--density-item-gap)' }}>
             <button
               onClick={() => sender?.email && handleViewContactSidebar(null, sender.email)}
@@ -5731,9 +5788,9 @@ export function EmailViewer({
           <PluginSlot name="email-footer" />
 
           {/* Mountain View: the conversation's later messages, folded. */}
-          {mvViewer && mvAfter.length > 0 && (
-            <div className="hidden lg:block mt-4 border-b border-border" data-mv-conversation-after="">
-              <MvConversationRun emails={mvAfter} onOpen={toggleMvExpanded} expandedIds={mvExpandedIds} renderExpanded={renderMvExpanded} timeFormat={timeFormat} />
+          {mvAfter.length > 0 && (
+            <div className="mt-4 border-b border-border" data-mv-conversation-after="">
+              <MvConversationRun emails={mvAfter} onOpen={toggleMvExpanded} expandedIds={mvExpandedIds} renderExpanded={renderMvExpanded} timeFormat={timeFormat} compact={mvMobileViewer} />
             </div>
           )}
 

@@ -962,14 +962,15 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         return;
       }
 
-      if (isMobile && onOpenConversation) {
+      // Mountain View opens the conversation in the reading pane, as Gmail
+      // does, rather than unfolding it inside the list. On the phone too: the
+      // separate phone thread view would list it newest first. (#1224)
+      if (isMobile && onOpenConversation && !mvMobileRow) {
         onOpenConversation(thread);
         return;
       }
 
-      // Mountain View opens the conversation in the reading pane, as Gmail
-      // does, rather than unfolding it inside the list.
-      if (mvRow) {
+      if (mvRow || mvMobileRow) {
         if (selectedEmailKeys.size > 0) clearSelection();
         onEmailSelect(latestEmail);
         return;

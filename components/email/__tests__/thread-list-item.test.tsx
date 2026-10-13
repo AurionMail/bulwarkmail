@@ -256,6 +256,46 @@ describe('ThreadListItem row content', () => {
   });
 });
 
+describe('ThreadListItem opening a thread on the phone', () => {
+  const twoMessageThread = () => groupEmailsByThread([
+    makeEmail({ id: 'older', receivedAt: '2024-01-14T10:00:00Z' }),
+    makeEmail({ id: 'newer', receivedAt: '2024-01-15T10:00:00Z' }),
+  ])[0];
+
+  function tap(interfaceLayout: 'mountain-view' | 'default') {
+    useSettingsStore.setState({ interfaceLayout, mailLayout: 'split' });
+    useUIStore.setState({ isMobile: true, isTablet: false, isDesktop: false });
+    useEmailStore.setState({ selectedEmailKeys: new Set<string>(), selectedMailbox: 'inbox' });
+    const onEmailSelect = vi.fn();
+    const onOpenConversation = vi.fn();
+    render(
+      <ThreadListItem
+        thread={twoMessageThread()}
+        isExpanded={false}
+        onToggleExpand={() => {}}
+        onEmailSelect={onEmailSelect}
+        onOpenConversation={onOpenConversation}
+      />,
+    );
+    fireEvent.click(screen.getByText('Test Subject'));
+    return { onEmailSelect, onOpenConversation };
+  }
+
+  // #1224: the phone thread view lists newest first and has no details, so
+  // Mountain View opens the thread in the viewer, as on the desktop.
+  it('opens the latest message in the viewer in Mountain View', () => {
+    const { onEmailSelect, onOpenConversation } = tap('mountain-view');
+    expect(onOpenConversation).not.toHaveBeenCalled();
+    expect(onEmailSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'newer' }));
+  });
+
+  it('keeps the phone thread view in the default layout', () => {
+    const { onEmailSelect, onOpenConversation } = tap('default');
+    expect(onOpenConversation).toHaveBeenCalledTimes(1);
+    expect(onEmailSelect).not.toHaveBeenCalled();
+  });
+});
+
 describe('ThreadListItem Mountain View phone row layout', () => {
   it('sets the star at the end of the preview line, not under the time', () => {
     useSettingsStore.setState({ interfaceLayout: 'mountain-view', mailLayout: 'split', showPreview: true, density: 'regular' } as never);

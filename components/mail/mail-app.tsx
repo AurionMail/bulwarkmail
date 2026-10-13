@@ -379,6 +379,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // one-pane flow, with Mountain View's own app chrome.
   const mvShell = interfaceLayout === 'mountain-view' && !isMobile && !isTablet && !isEmbedded;
   const mvMobile = interfaceLayout === 'mountain-view' && isMobile && !isEmbedded;
+  // Mountain View reads a thread as one conversation in the viewer, on the
+  // phone as on the desktop, so both show the same order and details. (#1224)
+  const mvConversationView = mvShell || mvMobile;
   // Pane hosting (Pro shell). When this app renders inside a Pro pane, the
   // pane publishes its width and id; `isMobile` above is then pane-based,
   // and layout that would use viewport-fixed positioning must scope itself
@@ -3558,8 +3561,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   // Mountain View reads a message inside its conversation, as Gmail does: load
   // the rest of the thread (list properties only) whenever another opens.
-  const mvConversationThreadId = mvShell && !cursorOnly ? (selectedEmail?.threadId ?? null) : null;
-  const mvConversationRef = mvShell && !cursorOnly ? selectedEmail : null;
+  const mvConversationThreadId = mvConversationView && !cursorOnly ? (selectedEmail?.threadId ?? null) : null;
+  const mvConversationRef = mvConversationView && !cursorOnly ? selectedEmail : null;
   const mvConversationRoute = (ref: Email, fallback: NonNullable<typeof client>) => {
     const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
     const threadClient = route.clientAccountId
@@ -4833,10 +4836,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       total: Math.max(activeEmails.length, mailboxes.find((mb) => mb.id === selectedMailbox)?.totalEmails ?? 0),
                     } : undefined}
                     mvFolderName={mvShell && !isScheduledView && !isUnifiedView ? currentMailboxName : undefined}
-                    mvConversation={mvShell ? mvConversation ?? undefined : undefined}
-                    onLoadConversationEmail={mvShell ? (e) => void handleLoadConversationEmail(e) : undefined}
-                    onMarkConversationEmailRead={mvShell ? (e) => void handleMarkConversationEmailRead(e) : undefined}
-                    onReplyConversationEmail={mvShell ? async (e) => {
+                    mvConversation={mvConversationView ? mvConversation ?? undefined : undefined}
+                    onLoadConversationEmail={mvConversationView ? (e) => void handleLoadConversationEmail(e) : undefined}
+                    onMarkConversationEmailRead={mvConversationView ? (e) => void handleMarkConversationEmailRead(e) : undefined}
+                    onReplyConversationEmail={mvConversationView ? async (e) => {
                       // The reply quotes the message, so it needs the body.
                       const full = e.bodyValues ? e : await handleLoadConversationEmail(e);
                       await handleConversationReply(full ?? e);

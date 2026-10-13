@@ -131,7 +131,7 @@ describe('Mountain View conversation folding (#1222)', () => {
       />,
     );
     const header = container.querySelector('[data-mv-conversation-expanded][data-email-id="m1"] [data-mv-conversation-header]')!;
-    fireEvent.click(header.querySelector('button')!);
+    fireEvent.click(header.querySelector('button[aria-label]')!);
     expect(onReply).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }));
     expect(expandedIds(container)).toEqual(['m1', 'm2']);
 
