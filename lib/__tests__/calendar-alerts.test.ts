@@ -5,6 +5,12 @@ import {
   getEffectiveAlerts,
   buildAlertKey,
   getPendingAlerts,
+  getCalendarDefaultAlerts,
+  offsetToAlertUnit,
+  describeAlert,
+  alertsToRows,
+  rowsToAlerts,
+  newAlertRow,
 } from '../calendar-alerts';
 import type {
   CalendarEvent,
@@ -224,6 +230,13 @@ describe('getEffectiveAlerts', () => {
     expect(getEffectiveAlerts(event, calendars)).toBe(defaultAlerts);
   });
 
+  it('prefers the alerts the server copied into a defaults event over the current calendar defaults', () => {
+    const copied = { k1: makeAlert({ action: 'email' }) };
+    const event = makeEvent({ useDefaultAlerts: true, alerts: copied });
+    const calendars = [makeCalendar({ defaultAlertsWithTime: { d1: makeAlert() } })];
+    expect(getEffectiveAlerts(event, calendars)).toBe(copied);
+  });
+
   it('returns null when calendar not found', () => {
     const event = makeEvent({ useDefaultAlerts: true, calendarIds: { 'missing': true } });
     const calendars = [makeCalendar()];
@@ -234,6 +247,93 @@ describe('getEffectiveAlerts', () => {
     const event = makeEvent({ useDefaultAlerts: true, calendarIds: {} });
     const calendars = [makeCalendar()];
     expect(getEffectiveAlerts(event, calendars)).toBeNull();
+  });
+});
+
+describe('getCalendarDefaultAlerts', () => {
+  const withTime = { d1: makeAlert() };
+  const withoutTime = { d2: makeAlert({ action: 'email' }) };
+  const calendar = makeCalendar({ defaultAlertsWithTime: withTime, defaultAlertsWithoutTime: withoutTime });
+
+  it('picks the timed map for timed events and the all-day map for all-day events', () => {
+    expect(getCalendarDefaultAlerts(calendar, false)).toBe(withTime);
+    expect(getCalendarDefaultAlerts(calendar, true)).toBe(withoutTime);
+  });
+
+  it('returns null for a missing calendar or an empty map', () => {
+    expect(getCalendarDefaultAlerts(undefined, false)).toBeNull();
+    expect(getCalendarDefaultAlerts(makeCalendar({ defaultAlertsWithTime: {} }), false)).toBeNull();
+  });
+});
+
+describe('offsetToAlertUnit', () => {
+  it('reads offsets before the start', () => {
+    expect(offsetToAlertUnit('-PT15M')).toEqual({ value: 15, unit: 'minutes' });
+    expect(offsetToAlertUnit('-PT120M')).toEqual({ value: 2, unit: 'hours' });
+    expect(offsetToAlertUnit('-PT9H')).toEqual({ value: 9, unit: 'hours' });
+    expect(offsetToAlertUnit('-P2D')).toEqual({ value: 2, unit: 'days' });
+    expect(offsetToAlertUnit('-P1W')).toEqual({ value: 1, unit: 'weeks' });
+    expect(offsetToAlertUnit('PT0S')).toEqual({ value: 0, unit: 'at_time' });
+  });
+
+  it('refuses offsets after the start and compound offsets', () => {
+    expect(offsetToAlertUnit('PT15M')).toBeNull();
+    expect(offsetToAlertUnit('PT9H')).toBeNull();
+    expect(offsetToAlertUnit('-P1DT2H')).toBeNull();
+  });
+});
+
+describe('describeAlert', () => {
+  it('keeps the action of display and email alerts', () => {
+    expect(describeAlert(makeAlert())).toEqual({ value: 5, unit: 'minutes', action: 'display' });
+    expect(describeAlert(makeAlert({ action: 'email' }))).toEqual({ value: 5, unit: 'minutes', action: 'email' });
+  });
+
+  it('accepts a trigger without relativeTo, as Stalwart returns it', () => {
+    const alert = makeAlert({ trigger: { '@type': 'OffsetTrigger', offset: '-PT1H' } as CalendarEventAlert['trigger'] });
+    expect(describeAlert(alert)).toEqual({ value: 1, unit: 'hours', action: 'display' });
+  });
+
+  it('returns null for alerts the rows cannot show', () => {
+    expect(describeAlert(makeAlert({ trigger: { '@type': 'AbsoluteTrigger', when: '2026-03-01T08:00:00Z' } }))).toBeNull();
+    expect(describeAlert(makeAlert({ trigger: { '@type': 'OffsetTrigger', offset: '-PT5M', relativeTo: 'end' } }))).toBeNull();
+    expect(describeAlert(makeAlert({ trigger: { '@type': 'OffsetTrigger', offset: 'PT5M', relativeTo: 'start' } }))).toBeNull();
+  });
+});
+
+describe('alertsToRows / rowsToAlerts', () => {
+  it('round-trips rows and keeps the alerts it cannot show unchanged', () => {
+    const absolute = makeAlert({ trigger: { '@type': 'AbsoluteTrigger', when: '2026-03-01T08:00:00Z' }, action: 'email' });
+    const afterEnd = makeAlert({ trigger: { '@type': 'OffsetTrigger', offset: 'PT10M', relativeTo: 'end' } });
+    const { rows, preserved } = alertsToRows({
+      a: makeAlert({ action: 'email', trigger: { '@type': 'OffsetTrigger', offset: '-P1D', relativeTo: 'start' } }),
+      abs: absolute,
+      end: afterEnd,
+    });
+    expect(rows.map(({ value, unit, action }) => ({ value, unit, action }))).toEqual([{ value: 1, unit: 'days', action: 'email' }]);
+    expect(preserved).toEqual({ abs: absolute, end: afterEnd });
+
+    const saved = rowsToAlerts(rows, preserved);
+    expect(saved.abs).toBe(absolute);
+    expect(saved.end).toBe(afterEnd);
+    const built = Object.entries(saved).filter(([k]) => k !== 'abs' && k !== 'end');
+    expect(built).toHaveLength(1);
+    expect(built[0][1]).toMatchObject({ action: 'email', trigger: { '@type': 'OffsetTrigger', offset: '-P1D', relativeTo: 'start' } });
+  });
+
+  it('writes each row with its own action and skips rows without an amount', () => {
+    const saved = rowsToAlerts([newAlertRow(10, 'minutes'), newAlertRow(2, 'hours', 'email'), newAlertRow(0, 'minutes')]);
+    expect(Object.values(saved).map((a) => [a.action, (a.trigger as { offset: string }).offset])).toEqual([
+      ['display', '-PT10M'],
+      ['email', '-PT2H'],
+    ]);
+  });
+
+  it('does not overwrite a preserved alert that already uses a generated key', () => {
+    const kept = makeAlert({ trigger: { '@type': 'AbsoluteTrigger', when: '2026-03-01T08:00:00Z' } });
+    const saved = rowsToAlerts([newAlertRow(5, 'minutes')], { alert1: kept });
+    expect(saved.alert1).toBe(kept);
+    expect(saved.alert2).toMatchObject({ trigger: { offset: '-PT5M' } });
   });
 });
 

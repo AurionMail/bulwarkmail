@@ -76,6 +76,12 @@ export function getEffectiveAlerts(
   if (!event.useDefaultAlerts) {
     return event.alerts;
   }
+  // Stalwart copies the calendar's defaults into the event when it is
+  // created and later default changes don't reach it. Its copy is what the
+  // server (email alerts) and other clients fire, so follow it when present.
+  if (event.alerts && Object.keys(event.alerts).length > 0) {
+    return event.alerts;
+  }
 
   if (!event.calendarIds) return null;
   const calendarId = Object.keys(event.calendarIds)[0];
@@ -88,6 +94,120 @@ export function getEffectiveAlerts(
     return calendar.defaultAlertsWithoutTime;
   }
   return calendar.defaultAlertsWithTime;
+}
+
+/** The calendar's default alerts for a timed or an all-day event. */
+export function getCalendarDefaultAlerts(
+  calendar: Calendar | null | undefined,
+  allDay: boolean
+): Record<string, CalendarEventAlert> | null {
+  if (!calendar) return null;
+  const alerts = allDay ? calendar.defaultAlertsWithoutTime : calendar.defaultAlertsWithTime;
+  return alerts && Object.keys(alerts).length > 0 ? alerts : null;
+}
+
+export type AlertUnit = 'at_time' | 'minutes' | 'hours' | 'days' | 'weeks';
+export type AlertAction = CalendarEventAlert['action'];
+
+/** One editable reminder: an amount and unit before the start, and how it fires. */
+export interface AlertRow {
+  id: string;
+  value: number;
+  unit: AlertUnit;
+  action: AlertAction;
+}
+
+let alertRowSeq = 0;
+export function newAlertRow(value: number, unit: AlertUnit, action: AlertAction = 'display'): AlertRow {
+  alertRowSeq += 1;
+  return { id: `r${alertRowSeq}`, value, unit, action };
+}
+
+export function alertRowToOffset(row: Pick<AlertRow, 'value' | 'unit'>): string | null {
+  if (row.unit === 'at_time') return 'PT0S';
+  const v = Math.max(0, Math.floor(row.value));
+  if (!Number.isFinite(v) || v <= 0) return null;
+  switch (row.unit) {
+    case 'minutes': return `-PT${v}M`;
+    case 'hours': return `-PT${v}H`;
+    case 'days': return `-P${v}D`;
+    case 'weeks': return `-P${v}W`;
+  }
+}
+
+/**
+ * Reads an offset at or before the start as an amount and unit. Offsets after
+ * the start and compound ones (-P1DT2H) return null: the rows can't show them.
+ */
+export function offsetToAlertUnit(offset: string): { value: number; unit: AlertUnit } | null {
+  if (/^-?PT?0[SMHDW]$/.test(offset)) return { value: 0, unit: 'at_time' };
+  if (!offset.startsWith('-')) return null;
+  let m = offset.match(/^-P(\d+)W$/);
+  if (m) return { value: parseInt(m[1], 10), unit: 'weeks' };
+  m = offset.match(/^-P(\d+)D$/);
+  if (m) return { value: parseInt(m[1], 10), unit: 'days' };
+  m = offset.match(/^-PT(\d+)H$/);
+  if (m) return { value: parseInt(m[1], 10), unit: 'hours' };
+  m = offset.match(/^-PT(\d+)M$/);
+  if (m) {
+    const mins = parseInt(m[1], 10);
+    if (mins > 0 && mins % 1440 === 0) return { value: mins / 1440, unit: 'days' };
+    if (mins > 0 && mins % 60 === 0) return { value: mins / 60, unit: 'hours' };
+    return { value: mins, unit: 'minutes' };
+  }
+  return null;
+}
+
+/**
+ * Describes an alert as a row, or null when the row editor can't represent it
+ * (absolute triggers, offsets relative to the end or after the start).
+ */
+export function describeAlert(alert: CalendarEventAlert): Omit<AlertRow, 'id'> | null {
+  if (alert.trigger['@type'] !== 'OffsetTrigger') return null;
+  // Stalwart leaves relativeTo out when it is the default, `start`.
+  if (alert.trigger.relativeTo === 'end') return null;
+  if (alert.action !== 'display' && alert.action !== 'email') return null;
+  const unit = offsetToAlertUnit(alert.trigger.offset);
+  if (!unit) return null;
+  return { ...unit, action: alert.action };
+}
+
+/** Splits an alert map into editable rows and the alerts to keep as they are. */
+export function alertsToRows(alerts: Record<string, CalendarEventAlert> | null | undefined): {
+  rows: AlertRow[];
+  preserved: Record<string, CalendarEventAlert>;
+} {
+  const rows: AlertRow[] = [];
+  const preserved: Record<string, CalendarEventAlert> = {};
+  for (const [id, alert] of Object.entries(alerts ?? {})) {
+    const row = describeAlert(alert);
+    if (row) rows.push(newAlertRow(row.value, row.unit, row.action));
+    else preserved[id] = alert;
+  }
+  return { rows, preserved };
+}
+
+/** Builds the alert map to save from the rows plus the preserved alerts. */
+export function rowsToAlerts(
+  rows: AlertRow[],
+  preserved: Record<string, CalendarEventAlert> = {}
+): Record<string, CalendarEventAlert> {
+  const built: Record<string, CalendarEventAlert> = { ...preserved };
+  let idx = 0;
+  for (const row of rows) {
+    const offset = alertRowToOffset(row);
+    if (offset === null) continue;
+    let key = `alert${++idx}`;
+    while (key in built) key = `alert${++idx}`;
+    built[key] = {
+      '@type': 'Alert',
+      trigger: { '@type': 'OffsetTrigger', offset, relativeTo: 'start' },
+      action: row.action,
+      acknowledged: null,
+      relatedTo: null,
+    };
+  }
+  return built;
 }
 
 export function buildAlertKey(eventId: string, alertId: string, fireTimeMs: number): string {

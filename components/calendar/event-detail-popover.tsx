@@ -15,6 +15,7 @@ import type { CalendarEvent, Calendar, CalendarParticipant } from "@/lib/jmap/ty
 import { parseDuration, getEventColor } from "./event-card";
 import { getEventDisplayEndDate, getEventEndDate, getEventStartDate } from "@/lib/calendar-utils";
 import { buildRecurrenceSummary } from "./recurrence-editor";
+import { formatEventAlertsLabel } from "./alert-list-editor";
 import {
   getUserParticipantId,
   getUserStatus,
@@ -92,21 +93,6 @@ function formatDurationDisplay(minutes: number): string {
   const m = minutes % 60;
   if (m === 0) return `${h}h`;
   return `${h}h${m}min`;
-}
-
-function getAlertLabel(event: CalendarEvent, t: ReturnType<typeof useTranslations>): string | null {
-  if (!event.alerts) return null;
-  const first = Object.values(event.alerts)[0];
-  if (!first || !first.trigger || first.trigger["@type"] !== "OffsetTrigger") return null;
-  const offset = first.trigger.offset;
-  if (offset === "PT0S") return t("alerts.at_time");
-  const minMatch = offset.match(/-?PT?(\d+)M$/);
-  if (minMatch) return t("alerts.minutes_before", { count: parseInt(minMatch[1]) });
-  const hourMatch = offset.match(/-?PT?(\d+)H$/);
-  if (hourMatch) return t("alerts.hours_before", { count: parseInt(hourMatch[1]) });
-  const dayMatch = offset.match(/-?P(\d+)D/);
-  if (dayMatch) return t("alerts.days_before", { count: parseInt(dayMatch[1]) });
-  return null;
 }
 
 function getRecurrenceLabel(event: CalendarEvent, t: ReturnType<typeof useTranslations>, locale: string): string | null {
@@ -190,7 +176,7 @@ export function EventDetailPopover({
     [event, resolveContactName]
   );
   const recurrenceLabel = useMemo(() => getRecurrenceLabel(event, t, locale), [event, t, locale]);
-  const alertLabel = useMemo(() => getAlertLabel(event, t), [event, t]);
+  const alertLabel = useMemo(() => formatEventAlertsLabel(event, calendar ? [calendar] : [], t), [event, calendar, t]);
 
   // Gate affordances on calendar rights, not identity (see calendar-editability).
   const editabilityCtx = useMemo<EditabilityContext>(() => {
