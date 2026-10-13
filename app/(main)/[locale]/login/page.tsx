@@ -157,7 +157,7 @@ function LoginPageContent() {
   const isMobileHandoff = Boolean(mobileRedirectUri);
   const { login, loginWithToken, loginDemo, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const { theme, setTheme, initializeTheme } = useThemeStore(useShallow((s) => ({ theme: s.theme, setTheme: s.setTheme, initializeTheme: s.initializeTheme })));
-  const { appName, jmapServerUrl: configuredServerUrl, oauthEnabled, oauthOnly, oauthClientId: globalOauthClientId, oauthIssuerUrl: globalOauthIssuerUrl, oauthScopes, rememberMeEnabled, devMode, demoMode, loginLogoLightUrl, loginLogoDarkUrl, loginCompanyName, loginImprintUrl, loginPrivacyPolicyUrl, loginWebsiteUrl, loginLogoMaxHeight, loginLogoMaxWidth, loginShowHeading, loginShowSubtitle, loginShowTotp, loginShowTokenLogin, loginShowVersion, isLoading: configLoading, error: configError, autoSsoEnabled, embeddedMode: _embeddedMode, allowCustomJmapEndpoint, jmapServers, jmapServerAutoPickByDomain } = useConfig();
+  const { appName, jmapServerUrl: configuredServerUrl, oauthEnabled, oauthOnly, oauthClientId: globalOauthClientId, oauthIssuerUrl: globalOauthIssuerUrl, oauthScopes, rememberMeEnabled, devMode, demoMode, loginLogoLightUrl, loginLogoDarkUrl, loginCompanyName, loginImprintUrl, loginPrivacyPolicyUrl, loginWebsiteUrl, loginLogoMaxHeight, loginLogoMaxWidth, loginShowHeading, loginShowSubtitle, loginShowTotp, loginShowTokenLogin, loginShowRememberMe, loginShowVersion, isLoading: configLoading, error: configError, autoSsoEnabled, embeddedMode: _embeddedMode, allowCustomJmapEndpoint, jmapServers, jmapServerAutoPickByDomain } = useConfig();
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
 
   // Login logo sizing: when a max height/width is configured, drop the fixed
@@ -258,7 +258,11 @@ function LoginPageContent() {
       clearTimeout(timer);
     };
   }, [probeTarget]);
-  const showRememberMe = rememberMeEnabled && (!IS_LITE || liteTokenLoginSupported !== false);
+  const canRememberSession = rememberMeEnabled && (!IS_LITE || liteTokenLoginSupported !== false);
+  // Sign-ins are remembered without asking unless the admin offers the box
+  // (LOGIN_SHOW_REMEMBER_ME).
+  const showRememberMe = canRememberSession && loginShowRememberMe;
+  const persistSession = canRememberSession && (!loginShowRememberMe || rememberMe);
 
   // Lite on Stalwart: which provider signs the typed account in
   // (lib/auth/lite-oauth.ts). A domain Stalwart delegates to an external
@@ -696,7 +700,7 @@ function LoginPageContent() {
       tokenEndpoint: discovery.metadata.token_endpoint,
       clientId,
       redirectUri,
-      persistent: rememberMeEnabled && rememberMe,
+      persistent: persistSession,
       revocationEndpoint: discovery.metadata.revocation_endpoint,
     });
 
@@ -813,7 +817,7 @@ function LoginPageContent() {
     const effectiveServerUrl = selectedServer?.url
       || (allowCustomJmapEndpoint ? jmapEndpoint : serverUrl);
     if (signInWithToken) {
-      if (await loginWithToken(effectiveServerUrl, accessToken, rememberMeEnabled && rememberMe)) {
+      if (await loginWithToken(effectiveServerUrl, accessToken, persistSession)) {
         router.push('/');
       }
       return;
@@ -847,13 +851,13 @@ function LoginPageContent() {
       // Only persist credentials when the server actually supports it
       // (a SESSION_SECRET is configured). Prevents a broken cookie write
       // when the remember-me feature is disabled server-side.
-      rememberMeEnabled && rememberMe
+      persistSession
     );
 
     if (success) {
       // Suggested again on this browser only when the user did not decline
       // being remembered: on a shared computer the next person sees the list.
-      if (!rememberMeEnabled || rememberMe) saveUsername(formData.username);
+      if (!rememberMeEnabled || persistSession) saveUsername(formData.username);
       if (isMobileHandoff) {
         // The isAuthenticated effect handles the redirect; nothing else to
         // do here. Don't push to / - that would race the deep link.

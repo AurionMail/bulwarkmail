@@ -38,6 +38,7 @@ export const LITE_CONFIG_KEYS = [
   'loginShowSubtitle',
   'loginShowTotp',
   'loginShowTokenLogin',
+  'loginShowRememberMe',
   'loginShowVersion',
   'embeddedMode',
   'parentOrigin',
@@ -79,8 +80,9 @@ function trimUrl(value: string): string {
  * - `jmapServerUrl` is trimmed of trailing slashes.
  * - `allowCustomJmapEndpoint` defaults to *on* when no server is configured,
  *   so an unedited download still lets people type their server.
- * - `rememberMeEnabled` defaults to on; the login page still hides the box for
- *   servers without Stalwart's token login (see lib/auth/lite-tokens.ts).
+ * - `rememberMeEnabled` defaults to on, and sign-ins are remembered without
+ *   asking unless `loginShowRememberMe` shows the box. Servers without
+ *   Stalwart's token login are never remembered (see lib/auth/lite-tokens.ts).
  * - `defaults.jmapServerUrl` (the Stalwart build passes the page origin) fills
  *   an empty server URL, and the server field then stays hidden unless
  *   config.json explicitly allows it.
@@ -124,6 +126,7 @@ export function applyLiteConfig(raw: unknown, defaults?: { jmapServerUrl?: strin
     loginShowSubtitle: bool(input.loginShowSubtitle, true),
     loginShowTotp: bool(input.loginShowTotp, true),
     loginShowTokenLogin: bool(input.loginShowTokenLogin, false),
+    loginShowRememberMe: bool(input.loginShowRememberMe, false),
     loginShowVersion: bool(input.loginShowVersion, true),
     demoMode: bool(input.demoMode, false),
     allowCustomJmapEndpoint: bool(input.allowCustomJmapEndpoint, jmapServerUrl === '' && jmapServers.length === 0),

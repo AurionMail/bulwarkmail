@@ -34,7 +34,7 @@ const MANAGED_ENV = [
   'SESSION_SECRET_FILE', 'SETTINGS_SYNC_ENABLED', 'STALWART_FEATURES', 'DEV_MOCK_JMAP',
   'FAVICON_URL', 'APP_LOGO_LIGHT_URL', 'APP_LOGO_DARK_URL', 'LOGIN_COMPANY_NAME',
   'LOGIN_IMPRINT_URL', 'LOGIN_PRIVACY_POLICY_URL', 'LOGIN_WEBSITE_URL', 'DOMAIN_BRANDING',
-  'JMAP_SERVERS', 'JMAP_SERVER_AUTO_PICK_BY_DOMAIN', 'SOURCE_CODE_URL',
+  'JMAP_SERVERS', 'JMAP_SERVER_AUTO_PICK_BY_DOMAIN', 'SOURCE_CODE_URL', 'LOGIN_SHOW_REMEMBER_ME',
 ] as const;
 
 describe('config API route', () => {
@@ -203,6 +203,14 @@ describe('config API route', () => {
     const config = await getConfig();
 
     expect(config.rememberMeEnabled).toBe(true);
+  });
+
+  it('hides the remember-me box unless LOGIN_SHOW_REMEMBER_ME turns it on', async () => {
+    vi.stubEnv('SESSION_SECRET', 'test-secret');
+    expect((await getConfig()).loginShowRememberMe).toBe(false);
+
+    vi.stubEnv('LOGIN_SHOW_REMEMBER_ME', 'true');
+    expect((await getConfig()).loginShowRememberMe).toBe(true);
   });
 
   it('should enable settingsSync only when both SESSION_SECRET and SETTINGS_SYNC_ENABLED are set', async () => {

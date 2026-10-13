@@ -653,7 +653,8 @@ ${demoMode ? "Demo mode is ON: the login page offers a built-in demo account and
    - \`allowCustomJmapEndpoint\` (optional): \`true\` always shows a server field
      on the login page, \`false\` never does. Left out, the field shows only
      while \`jmapServerUrl\` is empty.
-   - \`rememberMeEnabled\`: \`false\` hides "remember me" (sessions then end with the tab).
+   - \`rememberMeEnabled\`: \`false\` never remembers a sign-in (sessions then end with the tab).
+     Sign-ins are otherwise remembered; \`loginShowRememberMe: true\` lets people choose.
    Optional keys: \`demoMode\`, \`jmapServers\`, \`jmapServerAutoPickByDomain\`, the login logo/company/link keys and \`loginShow*\` toggles (same names as the Docker env vars, camelCased).
 3. Allow the browser to talk to the mail server (CORS). In Stalwart:
 
