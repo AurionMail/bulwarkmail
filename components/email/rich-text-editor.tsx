@@ -293,12 +293,15 @@ export function RichTextEditor({
         class: "tiptap min-h-[100px] px-4 py-3 text-sm text-foreground",
       },
       handleDrop: (view, event) => {
+        if (!event.dataTransfer?.files?.length) return false;
         const upload = onImageUploadRef.current;
-        if (!upload || !event.dataTransfer?.files?.length) return false;
-        const imageFiles = Array.from(event.dataTransfer.files).filter(f =>
-          f.type.startsWith("image/")
-        );
-        if (imageFiles.length === 0) return false;
+        const imageFiles = upload
+          ? Array.from(event.dataTransfer.files).filter(f => f.type.startsWith("image/"))
+          : [];
+        // A file dragged from the desktop also carries its path as text
+        // (file:///...), which ProseMirror would insert. Claim the drop but
+        // let it bubble so the composer attaches the file.
+        if (!upload || imageFiles.length === 0) return true;
         event.preventDefault();
         event.stopPropagation();
         for (const file of imageFiles) {
