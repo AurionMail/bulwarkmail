@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Sidebar } from "@/components/layout/sidebar";
 import { EmailList } from "@/components/email/email-list";
 import { MvComposeInline, MvComposeWindow } from "@/components/email/mv-compose-window";
+import { usePinnedPerSession } from "@/hooks/use-pinned-per-session";
 import { MessageListTabs } from "@/components/email/message-list-tabs";
 import dynamic from "next/dynamic";
 import type { ComposerDraftData } from "@/components/email/email-composer";
@@ -1856,6 +1857,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     appRootRef.current?.querySelector<HTMLElement>('[data-sidebar-toggle]')?.focus();
   }, [isMobile, isTablet, sidebarOpen]);
 
+  // The message a composer session answers, pinned when the session starts.
+  // Mountain View keeps its compose window open while other mail is read
+  // (#1229), so the open message is no longer the one being replied to.
+  const composerSourceEmail = usePinnedPerSession(composerSessionId, selectedEmail);
+
   const handleEmailSend = async (data: {
     to: string[];
     cc: string[];
@@ -1898,7 +1904,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     try {
       const effectiveMode = pendingDraft?.mode ?? composerMode;
-      const originalEmailId = selectedEmail?.id;
+      const originalEmailId = composerSourceEmail?.id;
 
       const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, localAccountId: data.localAccountId });
       submitted = true;
@@ -3707,8 +3713,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || !email) return;
     setCursorOnly(false);
 
-    // If composing, suspend the composer (unmount will trigger onSaveState)
-    if (showComposer) {
+    // If composing, suspend the composer (unmount will trigger onSaveState).
+    // Mountain View's compose window stays open while other mail is read,
+    // as Gmail's does. (#1229)
+    if (showComposer && !floatingComposer) {
       setShowComposer(false);
     }
 
@@ -3965,22 +3973,22 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             .getState()
             .getAccountById(viewingAccountId ?? activeAccountId ?? '')?.email,
         )}
-        replyTo={pendingDraft !== null ? pendingDraft.replyTo : (selectedEmail ? {
-          from: selectedEmail.from,
-          replyToAddresses: selectedEmail.replyTo,
-          to: selectedEmail.to,
-          cc: selectedEmail.cc,
-          bcc: selectedEmail.bcc,
-          subject: selectedEmail.subject,
-          ...getQuoteBodies(selectedEmail),
-          receivedAt: selectedEmail.receivedAt,
+        replyTo={pendingDraft !== null ? pendingDraft.replyTo : (composerSourceEmail ? {
+          from: composerSourceEmail.from,
+          replyToAddresses: composerSourceEmail.replyTo,
+          to: composerSourceEmail.to,
+          cc: composerSourceEmail.cc,
+          bcc: composerSourceEmail.bcc,
+          subject: composerSourceEmail.subject,
+          ...getQuoteBodies(composerSourceEmail),
+          receivedAt: composerSourceEmail.receivedAt,
           // The login that holds the message, so the reply
           // defaults to that account's identity (#1104).
-          accountId: selectedEmail.sourceClientAccountId ?? viewingAccountId ?? undefined,
-          attachments: selectedEmail.attachments,
-          messageId: selectedEmail.messageId,
-          inReplyTo: selectedEmail.inReplyTo,
-          references: selectedEmail.references,
+          accountId: composerSourceEmail.sourceClientAccountId ?? viewingAccountId ?? undefined,
+          attachments: composerSourceEmail.attachments,
+          messageId: composerSourceEmail.messageId,
+          inReplyTo: composerSourceEmail.inReplyTo,
+          references: composerSourceEmail.references,
           quoteHeaderHtml: composerQuoteHeader?.html,
           quoteHeaderText: composerQuoteHeader?.text,
           quoteWrapInBlockquote: composerQuoteHeader?.wrapInBlockquote,
