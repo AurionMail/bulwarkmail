@@ -4,12 +4,14 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCalendarStore } from '@/stores/calendar-store';
 import { CALENDAR_KIND_COMPONENTS, CalendarKindPicker, type CalendarKind } from '@/components/calendar/calendar-kind-picker';
-import type { CalendarComponentType } from '@/lib/jmap/types';
+import type { Calendar, CalendarComponentType } from '@/lib/jmap/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { getActiveAccountSlotHeaders } from '@/lib/auth/active-account-slot';
 import { toast } from '@/stores/toast-store';
 import { SettingsSection } from './settings-section';
-import { Plus, Pencil, Trash2, Calendar as CalendarIcon, Copy, Link, Upload, Globe, RefreshCw, Eraser, Users } from '@/components/icons';
+import { Plus, Pencil, Trash2, Calendar as CalendarIcon, Copy, Link, Upload, Globe, RefreshCw, Eraser, Users, Bell } from '@/components/icons';
+import { AlertListEditor } from '@/components/calendar/alert-list-editor';
+import { alertsToRows, rowsToAlerts, type AlertRow } from '@/lib/calendar-alerts';
 import { ShareCollectionDialog } from './share-collection-dialog';
 import type { CalendarRights } from '@/lib/jmap/types';
 import { cn, formatDateTime, redactUrlCredentials } from '@/lib/utils';
@@ -150,6 +152,86 @@ export function CalendarEditForm({
 
 export { CalendarColorPicker, CALENDAR_COLORS };
 
+type DefaultAlertsUpdate = Pick<Calendar, 'defaultAlertsWithTime' | 'defaultAlertsWithoutTime'>;
+
+export function CalendarDefaultAlertsForm({
+  calendar,
+  onSave,
+  onCancel,
+  isLoading,
+}: {
+  calendar: Calendar;
+  onSave: (updates: DefaultAlertsUpdate) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  const t = useTranslations('calendar.management');
+  // Alerts the rows can't show are written back unchanged.
+  const [timed] = useState(() => alertsToRows(calendar.defaultAlertsWithTime));
+  const [allDay] = useState(() => alertsToRows(calendar.defaultAlertsWithoutTime));
+  const [timedRows, setTimedRows] = useState<AlertRow[]>(timed.rows);
+  const [allDayRows, setAllDayRows] = useState<AlertRow[]>(allDay.rows);
+
+  const toMap = (rows: AlertRow[], preserved: typeof timed.preserved) => {
+    const map = rowsToAlerts(rows, preserved);
+    return Object.keys(map).length > 0 ? map : null;
+  };
+  const submit = () => onSave({
+    defaultAlertsWithTime: toMap(timedRows, timed.preserved),
+    defaultAlertsWithoutTime: toMap(allDayRows, allDay.preserved),
+  });
+
+  return (
+    <div className="space-y-3 p-3 rounded-md border border-primary/30 bg-accent/30">
+      <div>
+        <h4 className="text-sm font-medium">{t('default_alerts_title', { name: calendar.name })}</h4>
+        <p className="text-xs text-muted-foreground mt-0.5">{t('default_alerts_hint')}</p>
+      </div>
+
+      <div>
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+          {t('default_alerts_timed')}
+        </label>
+        <AlertListEditor
+          rows={timedRows}
+          onChange={setTimedRows}
+          keptCount={Object.keys(timed.preserved).length}
+          disabled={isLoading}
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+          {t('default_alerts_all_day')}
+        </label>
+        <AlertListEditor
+          rows={allDayRows}
+          onChange={setAllDayRows}
+          keptCount={Object.keys(allDay.preserved).length}
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={submit}
+          disabled={isLoading}
+          className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+        >
+          {t('save')}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={isLoading}
+          className="px-3 py-1.5 text-xs bg-muted text-foreground rounded-md hover:bg-accent"
+        >
+          {t('cancel')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function CalendarManagementSettings() {
   const t = useTranslations('calendar.management');
   const { client, serverUrl, username } = useAuthStore();
@@ -168,6 +250,7 @@ export function CalendarManagementSettings() {
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [alertsEditingId, setAlertsEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [clearingId, setClearingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -329,6 +412,20 @@ export function CalendarManagementSettings() {
     }
   };
 
+  const handleDefaultAlertsSave = async (calendarId: string, updates: DefaultAlertsUpdate) => {
+    if (!client) return;
+    setIsLoading(true);
+    try {
+      await updateCalendar(client, calendarId, updates);
+      setAlertsEditingId(null);
+      toast.success(t('default_alerts_updated'));
+    } catch {
+      toast.error(t('error_update'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleColorChange = async (calendarId: string, color: string) => {
     if (!client) return;
     // Shared calendars: recolor locally only - the viewer usually can't write
@@ -419,6 +516,18 @@ export function CalendarManagementSettings() {
                 initial={{ name: cal.name, color }}
                 onSave={(data) => handleUpdate(cal.id, data)}
                 onCancel={() => setEditingId(null)}
+                isLoading={isLoading}
+              />
+            );
+          }
+
+          if (alertsEditingId === cal.id) {
+            return (
+              <CalendarDefaultAlertsForm
+                key={cal.id}
+                calendar={cal}
+                onSave={(updates) => handleDefaultAlertsSave(cal.id, updates)}
+                onCancel={() => setAlertsEditingId(null)}
                 isLoading={isLoading}
               />
             );
@@ -560,6 +669,18 @@ export function CalendarManagementSettings() {
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
+                {/* The owner's defaults; a sharee can't write the calendar. */}
+                {!cal.isShared && (
+                  <button
+                    type="button"
+                    onClick={() => setAlertsEditingId(cal.id)}
+                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title={t('default_alerts')}
+                    aria-label={t('default_alerts')}
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 {cal.myRights?.mayShare && !cal.isShared && !isSubscriptionCalendar(cal.id) && (
                   <button
                     type="button"

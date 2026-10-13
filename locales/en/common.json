@@ -3453,7 +3453,13 @@
       "kind_events": "Events",
       "kind_tasks": "Tasks",
       "kind_both": "Events and tasks",
-      "kind_hint": "Decides which apps see this calendar when it is synced over CalDAV. It cannot be changed later."
+      "kind_hint": "Decides which apps see this calendar when it is synced over CalDAV. It cannot be changed later.",
+      "default_alerts": "Default reminders",
+      "default_alerts_title": "Default reminders for \"{name}\"",
+      "default_alerts_hint": "New events in this calendar get these reminders unless you change them in the event. Changing them here doesn't change existing events. Email reminders are sent by the mail server.",
+      "default_alerts_timed": "Events with a time",
+      "default_alerts_all_day": "All-day events",
+      "default_alerts_updated": "Default reminders updated"
     },
     "subscription": {
       "title": "iCal Subscription",
