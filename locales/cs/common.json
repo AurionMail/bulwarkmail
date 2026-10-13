@@ -3249,7 +3249,16 @@
       "add": "Přidat připomenutí",
       "remove": "Odebrat připomenutí",
       "amount": "Množství připomenutí",
-      "unit": "Jednotka připomenutí"
+      "unit": "Jednotka připomenutí",
+      "action": "Typ připomenutí",
+      "action_display": "Oznámení",
+      "action_email": "E-mail",
+      "by_email": "{label} e-mailem",
+      "kept": "{count, plural, one {Zachová se # další připomenutí, které zde nelze upravit} few {Zachovají se # další připomenutí, která zde nelze upravit} other {Zachová se # dalších připomenutí, která zde nelze upravit}}",
+      "other": "{count, plural, one {# další připomenutí} few {# další připomenutí} other {# dalších připomenutí}}",
+      "calendar_defaults": "Výchozí připomenutí kalendáře",
+      "customize": "Přizpůsobit",
+      "use_defaults": "Použít výchozí připomenutí kalendáře"
     },
     "settings": {
       "limit_hours": "Omezit zobrazené hodiny",
@@ -3423,7 +3432,13 @@
       "kind_events": "Události",
       "kind_tasks": "Úkoly",
       "kind_both": "Události a úkoly",
-      "kind_hint": "Určuje, které aplikace tento kalendář uvidí při synchronizaci přes CalDAV. Později to nelze změnit."
+      "kind_hint": "Určuje, které aplikace tento kalendář uvidí při synchronizaci přes CalDAV. Později to nelze změnit.",
+      "default_alerts": "Výchozí připomenutí",
+      "default_alerts_title": "Výchozí připomenutí pro \"{name}\"",
+      "default_alerts_hint": "Nové události v tomto kalendáři dostanou tato připomenutí, pokud je v události nezměníte. Změna zde neovlivní existující události. E-mailová připomenutí odesílá poštovní server.",
+      "default_alerts_timed": "Události s časem",
+      "default_alerts_all_day": "Celodenní události",
+      "default_alerts_updated": "Výchozí připomenutí aktualizována"
     },
     "subscription": {
       "title": "Odběr iCal",

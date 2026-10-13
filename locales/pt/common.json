@@ -3249,7 +3249,16 @@
       "add": "Adicionar lembrete",
       "remove": "Remover lembrete",
       "amount": "Quantidade do lembrete",
-      "unit": "Unidade do lembrete"
+      "unit": "Unidade do lembrete",
+      "action": "Tipo de lembrete",
+      "action_display": "Notificação",
+      "action_email": "E-mail",
+      "by_email": "{label} por e-mail",
+      "kept": "{count, plural, one {# outro lembrete que não pode ser editado aqui é mantido} other {# outros lembretes que não podem ser editados aqui são mantidos}}",
+      "other": "{count, plural, one {# outro lembrete} other {# outros lembretes}}",
+      "calendar_defaults": "Lembretes padrão do calendário",
+      "customize": "Personalizar",
+      "use_defaults": "Usar os lembretes padrão do calendário"
     },
     "settings": {
       "limit_hours": "Limitar as horas visíveis",
@@ -3449,7 +3458,13 @@
       "kind_events": "Eventos",
       "kind_tasks": "Tarefas",
       "kind_both": "Eventos e tarefas",
-      "kind_hint": "Define quais aplicativos veem este calendário quando ele é sincronizado via CalDAV. Não pode ser alterado depois."
+      "kind_hint": "Define quais aplicativos veem este calendário quando ele é sincronizado via CalDAV. Não pode ser alterado depois.",
+      "default_alerts": "Lembretes padrão",
+      "default_alerts_title": "Lembretes padrão de \"{name}\"",
+      "default_alerts_hint": "Novos eventos neste calendário recebem esses lembretes, a menos que sejam alterados no evento. Alterá-los aqui não muda os eventos existentes. Os lembretes por e-mail são enviados pelo servidor de e-mail.",
+      "default_alerts_timed": "Eventos com horário",
+      "default_alerts_all_day": "Eventos de dia inteiro",
+      "default_alerts_updated": "Lembretes padrão atualizados"
     },
     "subscription": {
       "title": "Assinatura iCal",

@@ -3249,7 +3249,16 @@
       "add": "新增提醒",
       "remove": "移除提醒",
       "amount": "提醒數量",
-      "unit": "提醒單位"
+      "unit": "提醒單位",
+      "action": "提醒類型",
+      "action_display": "通知",
+      "action_email": "電子郵件",
+      "by_email": "{label}（電子郵件）",
+      "kept": "另有 {count} 個無法在此編輯的提醒將會保留",
+      "other": "另有 {count} 個提醒",
+      "calendar_defaults": "行事曆預設值",
+      "customize": "自訂",
+      "use_defaults": "使用行事曆預設值"
     },
     "settings": {
       "limit_hours": "限制顯示時段",
@@ -3450,7 +3459,13 @@
       "kind_events": "活動",
       "kind_tasks": "任務",
       "kind_both": "活動與任務",
-      "kind_hint": "決定透過 CalDAV 同步時，哪些應用程式可看到此行事曆。此設定之後無法變更。"
+      "kind_hint": "決定透過 CalDAV 同步時，哪些應用程式可看到此行事曆。此設定之後無法變更。",
+      "default_alerts": "預設提醒",
+      "default_alerts_title": "「{name}」的預設提醒",
+      "default_alerts_hint": "此行事曆中的新活動會套用這些提醒，除非在活動中變更。在此變更不會影響現有活動。電子郵件提醒由郵件伺服器寄送。",
+      "default_alerts_timed": "有指定時間的活動",
+      "default_alerts_all_day": "全天活動",
+      "default_alerts_updated": "預設提醒已更新"
     },
     "subscription": {
       "title": "iCal 訂閱",

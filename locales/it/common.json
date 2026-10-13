@@ -3249,7 +3249,16 @@
       "add": "Aggiungi promemoria",
       "remove": "Rimuovi promemoria",
       "amount": "Quantità promemoria",
-      "unit": "Unità promemoria"
+      "unit": "Unità promemoria",
+      "action": "Tipo di promemoria",
+      "action_display": "Notifica",
+      "action_email": "Email",
+      "by_email": "{label} via email",
+      "kept": "{count, plural, one {# altro promemoria non modificabile qui viene mantenuto} other {Altri # promemoria non modificabili qui vengono mantenuti}}",
+      "other": "{count, plural, one {# altro promemoria} other {Altri # promemoria}}",
+      "calendar_defaults": "Promemoria predefiniti del calendario",
+      "customize": "Personalizza",
+      "use_defaults": "Usa i promemoria predefiniti del calendario"
     },
     "settings": {
       "limit_hours": "Limita le ore visibili",
@@ -3423,7 +3432,13 @@
       "kind_events": "Eventi",
       "kind_tasks": "Attività",
       "kind_both": "Eventi e attività",
-      "kind_hint": "Determina quali app vedono questo calendario quando viene sincronizzato tramite CalDAV. Non può essere modificato in seguito."
+      "kind_hint": "Determina quali app vedono questo calendario quando viene sincronizzato tramite CalDAV. Non può essere modificato in seguito.",
+      "default_alerts": "Promemoria predefiniti",
+      "default_alerts_title": "Promemoria predefiniti per \"{name}\"",
+      "default_alerts_hint": "I nuovi eventi di questo calendario ricevono questi promemoria, a meno che non vengano modificati nell'evento. Modificarli qui non cambia gli eventi esistenti. I promemoria via email vengono inviati dal server di posta.",
+      "default_alerts_timed": "Eventi con orario",
+      "default_alerts_all_day": "Eventi di tutto il giorno",
+      "default_alerts_updated": "Promemoria predefiniti aggiornati"
     },
     "subscription": {
       "title": "Abbonamento iCal",

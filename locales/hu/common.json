@@ -3249,7 +3249,16 @@
       "add": "Emlékeztető hozzáadása",
       "remove": "Emlékeztető eltávolítása",
       "amount": "Emlékeztető mennyisége",
-      "unit": "Emlékeztető egysége"
+      "unit": "Emlékeztető egysége",
+      "action": "Emlékeztető típusa",
+      "action_display": "Értesítés",
+      "action_email": "E-mail",
+      "by_email": "{label} e-mailben",
+      "kept": "{count, plural, one {További # itt nem szerkeszthető emlékeztető megmarad} other {További # itt nem szerkeszthető emlékeztető megmarad}}",
+      "other": "{count, plural, one {További # emlékeztető} other {További # emlékeztető}}",
+      "calendar_defaults": "A naptár alapértelmezett emlékeztetői",
+      "customize": "Testreszabás",
+      "use_defaults": "A naptár alapértelmezett emlékeztetőinek használata"
     },
     "settings": {
       "limit_hours": "Látható órák korlátozása",
@@ -3450,7 +3459,13 @@
       "kind_events": "Események",
       "kind_tasks": "Feladatok",
       "kind_both": "Események és feladatok",
-      "kind_hint": "Meghatározza, hogy mely alkalmazások látják ezt a naptárat CalDAV-szinkronizáláskor. Később nem módosítható."
+      "kind_hint": "Meghatározza, hogy mely alkalmazások látják ezt a naptárat CalDAV-szinkronizáláskor. Később nem módosítható.",
+      "default_alerts": "Alapértelmezett emlékeztetők",
+      "default_alerts_title": "Alapértelmezett emlékeztetők: \"{name}\"",
+      "default_alerts_hint": "A naptár új eseményei ezeket az emlékeztetőket kapják, hacsak nem módosítják őket az eseményben. Az itteni módosítás nem érinti a meglévő eseményeket. Az e-mailes emlékeztetőket a levelezőszerver küldi.",
+      "default_alerts_timed": "Időponttal rendelkező események",
+      "default_alerts_all_day": "Egész napos események",
+      "default_alerts_updated": "Alapértelmezett emlékeztetők frissítve"
     },
     "subscription": {
       "title": "iCal feliratkozás",

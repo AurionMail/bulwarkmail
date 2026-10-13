@@ -3249,7 +3249,16 @@
       "add": "Herinnering toevoegen",
       "remove": "Herinnering verwijderen",
       "amount": "Herinneringshoeveelheid",
-      "unit": "Herinneringseenheid"
+      "unit": "Herinneringseenheid",
+      "action": "Soort herinnering",
+      "action_display": "Melding",
+      "action_email": "E-mail",
+      "by_email": "{label} per e-mail",
+      "kept": "{count, plural, one {# andere herinnering die hier niet kan worden bewerkt, blijft behouden} other {# andere herinneringen die hier niet kunnen worden bewerkt, blijven behouden}}",
+      "other": "{count, plural, one {# andere herinnering} other {# andere herinneringen}}",
+      "calendar_defaults": "Standaardherinneringen van de agenda",
+      "customize": "Aanpassen",
+      "use_defaults": "Standaardherinneringen van de agenda gebruiken"
     },
     "settings": {
       "limit_hours": "Zichtbare uren beperken",
@@ -3423,7 +3432,13 @@
       "kind_events": "Afspraken",
       "kind_tasks": "Taken",
       "kind_both": "Afspraken en taken",
-      "kind_hint": "Bepaalt welke apps deze agenda zien wanneer die via CalDAV wordt gesynchroniseerd. Dit kan later niet meer worden gewijzigd."
+      "kind_hint": "Bepaalt welke apps deze agenda zien wanneer die via CalDAV wordt gesynchroniseerd. Dit kan later niet meer worden gewijzigd.",
+      "default_alerts": "Standaardherinneringen",
+      "default_alerts_title": "Standaardherinneringen voor \"{name}\"",
+      "default_alerts_hint": "Nieuwe afspraken in deze agenda krijgen deze herinneringen, tenzij ze in de afspraak worden gewijzigd. Wijzigingen hier hebben geen invloed op bestaande afspraken. E-mailherinneringen worden door de mailserver verstuurd.",
+      "default_alerts_timed": "Afspraken met een tijd",
+      "default_alerts_all_day": "Afspraken voor de hele dag",
+      "default_alerts_updated": "Standaardherinneringen bijgewerkt"
     },
     "subscription": {
       "title": "iCal-abonnement",

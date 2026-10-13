@@ -3249,7 +3249,16 @@
       "add": "Ajouter un rappel",
       "remove": "Supprimer le rappel",
       "amount": "Quantité de rappel",
-      "unit": "Unité de rappel"
+      "unit": "Unité de rappel",
+      "action": "Type de rappel",
+      "action_display": "Notification",
+      "action_email": "E-mail",
+      "by_email": "{label} par e-mail",
+      "kept": "{count, plural, one {# autre rappel non modifiable ici est conservé} other {# autres rappels non modifiables ici sont conservés}}",
+      "other": "{count, plural, one {# autre rappel} other {# autres rappels}}",
+      "calendar_defaults": "Rappels par défaut du calendrier",
+      "customize": "Personnaliser",
+      "use_defaults": "Utiliser les rappels par défaut du calendrier"
     },
     "settings": {
       "limit_hours": "Limiter les heures affichées",
@@ -3449,7 +3458,13 @@
       "kind_events": "Événements",
       "kind_tasks": "Tâches",
       "kind_both": "Événements et tâches",
-      "kind_hint": "Détermine quelles applications voient ce calendrier lorsqu'il est synchronisé via CalDAV. Ne peut pas être modifié par la suite."
+      "kind_hint": "Détermine quelles applications voient ce calendrier lorsqu'il est synchronisé via CalDAV. Ne peut pas être modifié par la suite.",
+      "default_alerts": "Rappels par défaut",
+      "default_alerts_title": "Rappels par défaut pour « {name} »",
+      "default_alerts_hint": "Les nouveaux événements de ce calendrier reçoivent ces rappels, sauf s'ils sont modifiés dans l'événement. Les modifier ici ne change pas les événements existants. Les rappels par e-mail sont envoyés par le serveur de messagerie.",
+      "default_alerts_timed": "Événements avec une heure",
+      "default_alerts_all_day": "Événements sur toute la journée",
+      "default_alerts_updated": "Rappels par défaut mis à jour"
     },
     "subscription": {
       "title": "Abonnement iCal",

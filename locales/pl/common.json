@@ -3249,7 +3249,16 @@
       "add": "Dodaj przypomnienie",
       "remove": "Usuń przypomnienie",
       "amount": "Wartość przypomnienia",
-      "unit": "Jednostka przypomnienia"
+      "unit": "Jednostka przypomnienia",
+      "action": "Typ przypomnienia",
+      "action_display": "Powiadomienie",
+      "action_email": "E-mail",
+      "by_email": "{label} e-mailem",
+      "kept": "{count, plural, one {Zachowano # dodatkowe przypomnienie, którego nie można tu edytować} few {Zachowano # dodatkowe przypomnienia, których nie można tu edytować} many {Zachowano # dodatkowych przypomnień, których nie można tu edytować} other {Zachowano # dodatkowego przypomnienia, których nie można tu edytować}}",
+      "other": "{count, plural, one {# inne przypomnienie} few {# inne przypomnienia} many {# innych przypomnień} other {# innego przypomnienia}}",
+      "calendar_defaults": "Domyślne przypomnienia kalendarza",
+      "customize": "Dostosuj",
+      "use_defaults": "Użyj domyślnych przypomnień kalendarza"
     },
     "settings": {
       "limit_hours": "Ogranicz widoczne godziny",
@@ -3423,7 +3432,13 @@
       "kind_events": "Wydarzenia",
       "kind_tasks": "Zadania",
       "kind_both": "Wydarzenia i zadania",
-      "kind_hint": "Określa, które aplikacje widzą ten kalendarz podczas synchronizacji przez CalDAV. Nie można tego później zmienić."
+      "kind_hint": "Określa, które aplikacje widzą ten kalendarz podczas synchronizacji przez CalDAV. Nie można tego później zmienić.",
+      "default_alerts": "Domyślne przypomnienia",
+      "default_alerts_title": "Domyślne przypomnienia dla \"{name}\"",
+      "default_alerts_hint": "Nowe wydarzenia w tym kalendarzu otrzymują te przypomnienia, chyba że zostaną zmienione w wydarzeniu. Zmiana tutaj nie wpływa na istniejące wydarzenia. Przypomnienia e-mail wysyła serwer poczty.",
+      "default_alerts_timed": "Wydarzenia z godziną",
+      "default_alerts_all_day": "Wydarzenia całodniowe",
+      "default_alerts_updated": "Zaktualizowano domyślne przypomnienia"
     },
     "subscription": {
       "title": "Subskrypcja iCal",

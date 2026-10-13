@@ -3249,7 +3249,16 @@
       "add": "Adăugați o notificare",
       "remove": "Eliminare memento",
       "amount": "Suma de reamintire",
-      "unit": "Unitatea de reamintire"
+      "unit": "Unitatea de reamintire",
+      "action": "Tip de memento",
+      "action_display": "Notificare",
+      "action_email": "E-mail",
+      "by_email": "{label} prin e-mail",
+      "kept": "{count, plural, one {Se păstrează încă # memento care nu poate fi editat aici} few {Se păstrează încă # mementouri care nu pot fi editate aici} other {Se păstrează încă # de mementouri care nu pot fi editate aici}}",
+      "other": "{count, plural, one {Încă # memento} few {Încă # mementouri} other {Încă # de mementouri}}",
+      "calendar_defaults": "Mementourile implicite ale calendarului",
+      "customize": "Personalizează",
+      "use_defaults": "Folosește mementourile implicite ale calendarului"
     },
     "settings": {
       "limit_hours": "Limitează orele vizibile",
@@ -3450,7 +3459,13 @@
       "kind_events": "Evenimente",
       "kind_tasks": "Sarcini",
       "kind_both": "Evenimente și sarcini",
-      "kind_hint": "Stabilește ce aplicații văd acest calendar când este sincronizat prin CalDAV. Nu poate fi schimbat ulterior."
+      "kind_hint": "Stabilește ce aplicații văd acest calendar când este sincronizat prin CalDAV. Nu poate fi schimbat ulterior.",
+      "default_alerts": "Mementouri implicite",
+      "default_alerts_title": "Mementouri implicite pentru „{name}”",
+      "default_alerts_hint": "Evenimentele noi din acest calendar primesc aceste mementouri, dacă nu sunt modificate în eveniment. Modificările de aici nu schimbă evenimentele existente. Mementourile prin e-mail sunt trimise de serverul de e-mail.",
+      "default_alerts_timed": "Evenimente cu oră",
+      "default_alerts_all_day": "Evenimente de o zi întreagă",
+      "default_alerts_updated": "Mementourile implicite au fost actualizate"
     },
     "subscription": {
       "title": "iCal Abonament",

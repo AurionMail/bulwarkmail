@@ -3249,7 +3249,16 @@
       "add": "リマインダーを追加",
       "remove": "リマインダーを削除",
       "amount": "リマインダー値",
-      "unit": "リマインダー単位"
+      "unit": "リマインダー単位",
+      "action": "リマインダーの種類",
+      "action_display": "通知",
+      "action_email": "メール",
+      "by_email": "{label}（メール）",
+      "kept": "ここでは編集できないリマインダーがあと {count} 件保持されます",
+      "other": "他 {count} 件のリマインダー",
+      "calendar_defaults": "カレンダーのデフォルト",
+      "customize": "カスタマイズ",
+      "use_defaults": "カレンダーのデフォルトを使用"
     },
     "settings": {
       "limit_hours": "表示する時間帯を制限",
@@ -3423,7 +3432,13 @@
       "kind_events": "イベント",
       "kind_tasks": "タスク",
       "kind_both": "イベントとタスク",
-      "kind_hint": "CalDAV で同期したときにこのカレンダーを表示できるアプリを決定します。後から変更することはできません。"
+      "kind_hint": "CalDAV で同期したときにこのカレンダーを表示できるアプリを決定します。後から変更することはできません。",
+      "default_alerts": "デフォルトのリマインダー",
+      "default_alerts_title": "「{name}」のデフォルトのリマインダー",
+      "default_alerts_hint": "このカレンダーの新しい予定には、予定内で変更しない限りこれらのリマインダーが設定されます。ここで変更しても既存の予定は変わりません。メールのリマインダーはメールサーバーから送信されます。",
+      "default_alerts_timed": "時刻のある予定",
+      "default_alerts_all_day": "終日の予定",
+      "default_alerts_updated": "デフォルトのリマインダーを更新しました"
     },
     "subscription": {
       "title": "iCal購読",

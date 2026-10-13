@@ -3249,7 +3249,16 @@
       "add": "添加提醒",
       "remove": "移除提醒",
       "amount": "提醒数量",
-      "unit": "提醒单位"
+      "unit": "提醒单位",
+      "action": "提醒类型",
+      "action_display": "通知",
+      "action_email": "电子邮件",
+      "by_email": "{label}（电子邮件）",
+      "kept": "另有 {count} 个无法在此编辑的提醒将被保留",
+      "other": "另有 {count} 个提醒",
+      "calendar_defaults": "日历默认设置",
+      "customize": "自定义",
+      "use_defaults": "使用日历默认设置"
     },
     "settings": {
       "limit_hours": "限制显示时段",
@@ -3423,7 +3432,13 @@
       "kind_events": "日程",
       "kind_tasks": "任务",
       "kind_both": "日程和任务",
-      "kind_hint": "决定通过 CalDAV 同步时哪些应用可以看到此日历。之后无法更改。"
+      "kind_hint": "决定通过 CalDAV 同步时哪些应用可以看到此日历。之后无法更改。",
+      "default_alerts": "默认提醒",
+      "default_alerts_title": "“{name}”的默认提醒",
+      "default_alerts_hint": "此日历中的新活动将使用这些提醒，除非在活动中进行更改。在此处更改不会影响现有活动。电子邮件提醒由邮件服务器发送。",
+      "default_alerts_timed": "有具体时间的活动",
+      "default_alerts_all_day": "全天活动",
+      "default_alerts_updated": "默认提醒已更新"
     },
     "subscription": {
       "title": "iCal 订阅",

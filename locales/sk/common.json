@@ -3249,7 +3249,16 @@
       "add": "Pridať pripomenutie",
       "remove": "Odstrániť pripomenutie",
       "amount": "Množstvo pripomenutia",
-      "unit": "Jednotka pripomenutia"
+      "unit": "Jednotka pripomenutia",
+      "action": "Typ pripomenutia",
+      "action_display": "Upozornenie",
+      "action_email": "E-mail",
+      "by_email": "{label} e-mailom",
+      "kept": "{count, plural, one {Zachová sa # ďalšie pripomenutie, ktoré tu nemožno upraviť} few {Zachovajú sa # ďalšie pripomenutia, ktoré tu nemožno upraviť} other {Zachová sa # ďalších pripomenutí, ktoré tu nemožno upraviť}}",
+      "other": "{count, plural, one {# ďalšie pripomenutie} few {# ďalšie pripomenutia} other {# ďalších pripomenutí}}",
+      "calendar_defaults": "Predvolené pripomenutia kalendára",
+      "customize": "Prispôsobiť",
+      "use_defaults": "Použiť predvolené pripomenutia kalendára"
     },
     "settings": {
       "limit_hours": "Obmedziť zobrazené hodiny",
@@ -3450,7 +3459,13 @@
       "kind_events": "Udalosti",
       "kind_tasks": "Úlohy",
       "kind_both": "Udalosti a úlohy",
-      "kind_hint": "Určuje, ktoré aplikácie tento kalendár uvidia pri synchronizácii cez CalDAV. Neskôr to nemožno zmeniť."
+      "kind_hint": "Určuje, ktoré aplikácie tento kalendár uvidia pri synchronizácii cez CalDAV. Neskôr to nemožno zmeniť.",
+      "default_alerts": "Predvolené pripomenutia",
+      "default_alerts_title": "Predvolené pripomenutia pre \"{name}\"",
+      "default_alerts_hint": "Nové udalosti v tomto kalendári dostanú tieto pripomenutia, ak ich v udalosti nezmeníte. Zmena tu neovplyvní existujúce udalosti. E-mailové pripomenutia odosiela poštový server.",
+      "default_alerts_timed": "Udalosti s časom",
+      "default_alerts_all_day": "Celodenné udalosti",
+      "default_alerts_updated": "Predvolené pripomenutia boli aktualizované"
     },
     "subscription": {
       "title": "Odber iCal",

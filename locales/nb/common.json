@@ -3249,7 +3249,16 @@
       "add": "Legg til påminnelse",
       "remove": "Fjern påminnelsen",
       "amount": "Antall",
-      "unit": "Tidsenhet"
+      "unit": "Tidsenhet",
+      "action": "Påminnelsestype",
+      "action_display": "Varsel",
+      "action_email": "E-post",
+      "by_email": "{label} via e-post",
+      "kept": "{count, plural, one {# påminnelse til som ikke kan redigeres her, beholdes} other {# påminnelser til som ikke kan redigeres her, beholdes}}",
+      "other": "{count, plural, one {# annen påminnelse} other {# andre påminnelser}}",
+      "calendar_defaults": "Kalenderens standardpåminnelser",
+      "customize": "Tilpass",
+      "use_defaults": "Bruk kalenderens standardpåminnelser"
     },
     "settings": {
       "limit_hours": "Begrens synlige timer",
@@ -3450,7 +3459,13 @@
       "kind_events": "Hendelser",
       "kind_tasks": "Oppgaver",
       "kind_both": "Hendelser og oppgaver",
-      "kind_hint": "Bestemmer hvilke apper som ser denne kalenderen når den synkroniseres via CalDAV. Dette kan ikke endres senere."
+      "kind_hint": "Bestemmer hvilke apper som ser denne kalenderen når den synkroniseres via CalDAV. Dette kan ikke endres senere.",
+      "default_alerts": "Standardpåminnelser",
+      "default_alerts_title": "Standardpåminnelser for «{name}»",
+      "default_alerts_hint": "Nye hendelser i denne kalenderen får disse påminnelsene, med mindre de endres i hendelsen. Endringer her påvirker ikke eksisterende hendelser. Påminnelser på e-post sendes av e-postserveren.",
+      "default_alerts_timed": "Hendelser med klokkeslett",
+      "default_alerts_all_day": "Heldagshendelser",
+      "default_alerts_updated": "Standardpåminnelser oppdatert"
     },
     "subscription": {
       "title": "iCal-abonnement",

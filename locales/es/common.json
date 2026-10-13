@@ -3249,7 +3249,16 @@
       "add": "Añadir recordatorio",
       "remove": "Eliminar recordatorio",
       "amount": "Cantidad del recordatorio",
-      "unit": "Unidad del recordatorio"
+      "unit": "Unidad del recordatorio",
+      "action": "Tipo de recordatorio",
+      "action_display": "Notificación",
+      "action_email": "Correo electrónico",
+      "by_email": "{label} por correo electrónico",
+      "kept": "{count, plural, one {Se conserva # recordatorio más que no se puede editar aquí} other {Se conservan # recordatorios más que no se pueden editar aquí}}",
+      "other": "{count, plural, one {# recordatorio más} other {# recordatorios más}}",
+      "calendar_defaults": "Recordatorios predeterminados del calendario",
+      "customize": "Personalizar",
+      "use_defaults": "Usar los recordatorios predeterminados del calendario"
     },
     "settings": {
       "limit_hours": "Limitar las horas visibles",
@@ -3423,7 +3432,13 @@
       "kind_events": "Eventos",
       "kind_tasks": "Tareas",
       "kind_both": "Eventos y tareas",
-      "kind_hint": "Determina qué aplicaciones ven este calendario cuando se sincroniza por CalDAV. No se puede cambiar después."
+      "kind_hint": "Determina qué aplicaciones ven este calendario cuando se sincroniza por CalDAV. No se puede cambiar después.",
+      "default_alerts": "Recordatorios predeterminados",
+      "default_alerts_title": "Recordatorios predeterminados de \"{name}\"",
+      "default_alerts_hint": "Los eventos nuevos de este calendario reciben estos recordatorios, salvo que se cambien en el evento. Cambiarlos aquí no modifica los eventos existentes. Los recordatorios por correo los envía el servidor de correo.",
+      "default_alerts_timed": "Eventos con hora",
+      "default_alerts_all_day": "Eventos de todo el día",
+      "default_alerts_updated": "Recordatorios predeterminados actualizados"
     },
     "subscription": {
       "title": "Suscripción iCal",

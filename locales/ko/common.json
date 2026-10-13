@@ -3249,7 +3249,16 @@
       "add": "알림 추가",
       "remove": "알림 제거",
       "amount": "알림 값",
-      "unit": "알림 단위"
+      "unit": "알림 단위",
+      "action": "알림 유형",
+      "action_display": "알림",
+      "action_email": "이메일",
+      "by_email": "{label} (이메일)",
+      "kept": "여기서 편집할 수 없는 알림 {count}개가 유지돼요",
+      "other": "그 외 알림 {count}개",
+      "calendar_defaults": "캘린더 기본값",
+      "customize": "사용자 지정",
+      "use_defaults": "캘린더 기본값 사용"
     },
     "settings": {
       "limit_hours": "표시 시간 제한",
@@ -3423,7 +3432,13 @@
       "kind_events": "일정",
       "kind_tasks": "할 일",
       "kind_both": "일정 및 할 일",
-      "kind_hint": "CalDAV로 동기화할 때 이 캘린더를 볼 수 있는 앱을 결정합니다. 나중에 변경할 수 없습니다."
+      "kind_hint": "CalDAV로 동기화할 때 이 캘린더를 볼 수 있는 앱을 결정합니다. 나중에 변경할 수 없습니다.",
+      "default_alerts": "기본 알림",
+      "default_alerts_title": "\"{name}\" 기본 알림",
+      "default_alerts_hint": "이 캘린더의 새 일정에는 일정에서 변경하지 않는 한 이 알림이 적용돼요. 여기서 변경해도 기존 일정은 바뀌지 않아요. 이메일 알림은 메일 서버가 보내요.",
+      "default_alerts_timed": "시간이 있는 일정",
+      "default_alerts_all_day": "종일 일정",
+      "default_alerts_updated": "기본 알림이 업데이트되었어요"
     },
     "subscription": {
       "title": "iCal 구독",

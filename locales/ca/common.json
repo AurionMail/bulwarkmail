@@ -3249,7 +3249,16 @@
       "add": "Afegeix un recordatori",
       "remove": "Elimina el recordatori",
       "amount": "Quantitat del recordatori",
-      "unit": "Unitat del recordatori"
+      "unit": "Unitat del recordatori",
+      "action": "Tipus de recordatori",
+      "action_display": "Notificació",
+      "action_email": "Correu electrònic",
+      "by_email": "{label} per correu electrònic",
+      "kept": "{count, plural, one {Es conserva # recordatori més que no es pot editar aquí} other {Es conserven # recordatoris més que no es poden editar aquí}}",
+      "other": "{count, plural, one {# recordatori més} other {# recordatoris més}}",
+      "calendar_defaults": "Recordatoris predeterminats del calendari",
+      "customize": "Personalitza",
+      "use_defaults": "Utilitza els recordatoris predeterminats del calendari"
     },
     "settings": {
       "limit_hours": "Limita les hores visibles",
@@ -3450,7 +3459,13 @@
       "kind_events": "Esdeveniments",
       "kind_tasks": "Tasques",
       "kind_both": "Esdeveniments i tasques",
-      "kind_hint": "Determina quines aplicacions veuen aquest calendari quan se sincronitza per CalDAV. No es pot canviar més endavant."
+      "kind_hint": "Determina quines aplicacions veuen aquest calendari quan se sincronitza per CalDAV. No es pot canviar més endavant.",
+      "default_alerts": "Recordatoris predeterminats",
+      "default_alerts_title": "Recordatoris predeterminats de «{name}»",
+      "default_alerts_hint": "Els esdeveniments nous d'aquest calendari reben aquests recordatoris, tret que es canviïn a l'esdeveniment. Canviar-los aquí no modifica els esdeveniments existents. Els recordatoris per correu els envia el servidor de correu.",
+      "default_alerts_timed": "Esdeveniments amb hora",
+      "default_alerts_all_day": "Esdeveniments de tot el dia",
+      "default_alerts_updated": "Recordatoris predeterminats actualitzats"
     },
     "subscription": {
       "title": "Subscripció iCal",

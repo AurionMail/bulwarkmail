@@ -3249,7 +3249,16 @@
       "add": "Hatırlatıcı ekle",
       "remove": "Hatırlatıcıyı kaldır",
       "amount": "Hatırlatıcı miktarı",
-      "unit": "Hatırlatıcı birimi"
+      "unit": "Hatırlatıcı birimi",
+      "action": "Hatırlatıcı türü",
+      "action_display": "Bildirim",
+      "action_email": "E-posta",
+      "by_email": "E-postayla {label}",
+      "kept": "{count, plural, one {Burada düzenlenemeyen # hatırlatıcı daha korunuyor} other {Burada düzenlenemeyen # hatırlatıcı daha korunuyor}}",
+      "other": "{count, plural, one {# hatırlatıcı daha} other {# hatırlatıcı daha}}",
+      "calendar_defaults": "Takvim varsayılanları",
+      "customize": "Özelleştir",
+      "use_defaults": "Takvim varsayılanlarını kullan"
     },
     "settings": {
       "limit_hours": "Görünür saatleri sınırla",
@@ -3449,7 +3458,13 @@
       "kind_events": "Etkinlikler",
       "kind_tasks": "Görevler",
       "kind_both": "Etkinlikler ve görevler",
-      "kind_hint": "Bu takvimin CalDAV üzerinden eşitlendiğinde hangi uygulamalar tarafından görüleceğini belirler. Daha sonra değiştirilemez."
+      "kind_hint": "Bu takvimin CalDAV üzerinden eşitlendiğinde hangi uygulamalar tarafından görüleceğini belirler. Daha sonra değiştirilemez.",
+      "default_alerts": "Varsayılan hatırlatıcılar",
+      "default_alerts_title": "\"{name}\" için varsayılan hatırlatıcılar",
+      "default_alerts_hint": "Bu takvimdeki yeni etkinlikler, etkinlikte değiştirilmedikçe bu hatırlatıcıları alır. Buradaki değişiklikler mevcut etkinlikleri etkilemez. E-posta hatırlatıcıları posta sunucusu tarafından gönderilir.",
+      "default_alerts_timed": "Saatli etkinlikler",
+      "default_alerts_all_day": "Tüm gün süren etkinlikler",
+      "default_alerts_updated": "Varsayılan hatırlatıcılar güncellendi"
     },
     "subscription": {
       "title": "iCal Aboneliği",

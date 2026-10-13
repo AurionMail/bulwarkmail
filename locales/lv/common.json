@@ -3248,7 +3248,16 @@
       "add": "Pievienot atgādinājumu",
       "remove": "Noņemt atgādinājumu",
       "amount": "Atgādinājuma daudzums",
-      "unit": "Atgādinājuma vienība"
+      "unit": "Atgādinājuma vienība",
+      "action": "Atgādinājuma veids",
+      "action_display": "Paziņojums",
+      "action_email": "E-pasts",
+      "by_email": "{label} pa e-pastu",
+      "kept": "{count, plural, zero {Tiek saglabāti vēl # atgādinājumi, kurus šeit nevar rediģēt} one {Tiek saglabāts vēl # atgādinājums, kuru šeit nevar rediģēt} other {Tiek saglabāti vēl # atgādinājumi, kurus šeit nevar rediģēt}}",
+      "other": "{count, plural, zero {Vēl # atgādinājumi} one {Vēl # atgādinājums} other {Vēl # atgādinājumi}}",
+      "calendar_defaults": "Kalendāra noklusējuma atgādinājumi",
+      "customize": "Pielāgot",
+      "use_defaults": "Izmantot kalendāra noklusējuma atgādinājumus"
     },
     "settings": {
       "limit_hours": "Ierobežot redzamās stundas",
@@ -3422,7 +3431,13 @@
       "kind_events": "Notikumi",
       "kind_tasks": "Uzdevumi",
       "kind_both": "Notikumi un uzdevumi",
-      "kind_hint": "Nosaka, kuras lietotnes redz šo kalendāru, kad tas tiek sinhronizēts caur CalDAV. Vēlāk to nevar mainīt."
+      "kind_hint": "Nosaka, kuras lietotnes redz šo kalendāru, kad tas tiek sinhronizēts caur CalDAV. Vēlāk to nevar mainīt.",
+      "default_alerts": "Noklusējuma atgādinājumi",
+      "default_alerts_title": "Noklusējuma atgādinājumi kalendāram «{name}»",
+      "default_alerts_hint": "Jauni pasākumi šajā kalendārā saņem šos atgādinājumus, ja vien tie netiek mainīti pasākumā. Izmaiņas šeit neietekmē esošos pasākumus. E-pasta atgādinājumus sūta pasta serveris.",
+      "default_alerts_timed": "Pasākumi ar laiku",
+      "default_alerts_all_day": "Visas dienas pasākumi",
+      "default_alerts_updated": "Noklusējuma atgādinājumi atjaunināti"
     },
     "subscription": {
       "title": "iCal abonements",

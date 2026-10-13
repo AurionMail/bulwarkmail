@@ -3249,7 +3249,16 @@
       "add": "Erinnerung hinzufügen",
       "remove": "Erinnerung entfernen",
       "amount": "Erinnerungsmenge",
-      "unit": "Erinnerungseinheit"
+      "unit": "Erinnerungseinheit",
+      "action": "Erinnerungsart",
+      "action_display": "Benachrichtigung",
+      "action_email": "E-Mail",
+      "by_email": "{label} per E-Mail",
+      "kept": "{count, plural, one {# weitere Erinnerung, die hier nicht bearbeitet werden kann, bleibt erhalten} other {# weitere Erinnerungen, die hier nicht bearbeitet werden können, bleiben erhalten}}",
+      "other": "{count, plural, one {# weitere Erinnerung} other {# weitere Erinnerungen}}",
+      "calendar_defaults": "Standarderinnerungen des Kalenders",
+      "customize": "Anpassen",
+      "use_defaults": "Standarderinnerungen des Kalenders verwenden"
     },
     "settings": {
       "limit_hours": "Sichtbare Stunden begrenzen",
@@ -3423,7 +3432,13 @@
       "kind_events": "Termine",
       "kind_tasks": "Aufgaben",
       "kind_both": "Termine und Aufgaben",
-      "kind_hint": "Legt fest, welche Apps diesen Kalender sehen, wenn er über CalDAV synchronisiert wird. Kann später nicht mehr geändert werden."
+      "kind_hint": "Legt fest, welche Apps diesen Kalender sehen, wenn er über CalDAV synchronisiert wird. Kann später nicht mehr geändert werden.",
+      "default_alerts": "Standarderinnerungen",
+      "default_alerts_title": "Standarderinnerungen für „{name}“",
+      "default_alerts_hint": "Neue Termine in diesem Kalender erhalten diese Erinnerungen, sofern sie im Termin nicht geändert werden. Änderungen hier wirken sich nicht auf bestehende Termine aus. E-Mail-Erinnerungen werden vom Mailserver verschickt.",
+      "default_alerts_timed": "Termine mit Uhrzeit",
+      "default_alerts_all_day": "Ganztägige Termine",
+      "default_alerts_updated": "Standarderinnerungen aktualisiert"
     },
     "subscription": {
       "title": "iCal-Abonnement",
