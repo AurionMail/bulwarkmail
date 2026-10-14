@@ -56,6 +56,47 @@ describe('calendar-event-detail', () => {
     expect(framePropsOf(frame).event).toMatchObject({ id: 'e1', uid: 'uid-1', title: 'Planning', calendarId: 'cal-1' });
   });
 
+  it('moves the popover up when the plugin section makes it taller, so it stays in the window', () => {
+    let resize: (() => void) | null = null;
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(cb: () => void) { resize = cb; }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
+    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: 1280, configurable: true });
+    let height = 200;
+    const spy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute('role') === 'dialog' ? height : 0;
+    });
+    try {
+      offerSlots('p1', ['calendar-event-detail']);
+      // An event at 14:00 in the week view of a 1280x800 window.
+      render(
+        <EventDetailPopover
+          event={existing}
+          calendar={calendars[0]}
+          anchorRect={new DOMRect(600, 520, 120, 60)}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onDuplicate={vi.fn()}
+          onClose={vi.fn()}
+          onSaveNote={vi.fn()}
+        />,
+      );
+      const popover = screen.getByRole('dialog');
+      expect(popover.style.top).toBe('520px');
+
+      height = 420;
+      act(() => resize?.());
+      expect(popover.style.top).toBe(`${800 - 420 - 12}px`);
+    } finally {
+      spy.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('shows the event in the modal view, and not in the form', () => {
     offerSlots('p1', ['calendar-event-detail']);
     render(<EventModal event={existing} calendars={calendars} onSave={vi.fn()} onClose={vi.fn()} />);
