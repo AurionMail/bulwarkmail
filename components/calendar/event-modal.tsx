@@ -40,6 +40,7 @@ import {
   type CalendarEventFormSavePatch,
 } from "@/lib/plugin-hooks";
 import type { ConflictWarning } from "@/lib/plugin-types";
+import { eventToView } from "@/lib/plugin-projection";
 
 export interface PendingEventPreview {
   start: Date;
@@ -417,6 +418,33 @@ export function EventModal({
     }, 250);
     return () => { cancelled = true; clearTimeout(t); };
   }, [title, description, startDate, startTime, endDate, endTime, allDay, location, virtualLocation, calendarId, event?.uid, attendees]);
+
+  // Plugins hear about an existing event opened for reading once per event,
+  // and about the form each time it opens (new event, or view -> edit).
+  const reportedOpenRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!event || mode !== "view" || reportedOpenRef.current === event.id) return;
+    reportedOpenRef.current = event.id;
+    void calendarHooks.onCalendarEventOpen.emit(eventToView(event));
+  }, [event, mode]);
+
+  useEffect(() => {
+    if (mode !== "edit" || calendarFormHooks.onCalendarEventFormOpen.size === 0) return;
+    void calendarFormHooks.onCalendarEventFormOpen.emit({
+      title,
+      description,
+      start: allDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`,
+      end: allDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`,
+      isAllDay: allDay,
+      location,
+      virtualLocation,
+      calendarId,
+      uid: event?.uid,
+      attendees: attendees.map((a) => a.email),
+    });
+    // Only the opening counts; the fields are read as they are at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   // Report live preview to parent for grid outline
   useEffect(() => {

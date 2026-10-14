@@ -97,6 +97,8 @@ import { findMeetingLink } from "@/lib/event-links";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
+import { calendarHooks } from "@/lib/plugin-hooks";
+import { eventToView } from "@/lib/plugin-projection";
 
 type PendingScopeAction =
   | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; sendScheduling?: boolean }
@@ -707,6 +709,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     setDetailPinned(true);
     setDetailEvent(event);
     setDetailAnchorRect(anchorRect);
+    // A click opens the event's card; the hover preview does not count as
+    // opening it. The editor reports its own opens (event-modal).
+    void calendarHooks.onCalendarEventOpen.emit(eventToView(event));
   }, [isMobile, closeDetail, openEditModal]);
 
   const {
@@ -1206,7 +1211,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             delete (newEventData as Record<string, unknown>).uid;
             delete (newEventData as Record<string, unknown>).recurrenceId;
             try {
-              await createEvent(client, newEventData, sendScheduling);
+              // null when the save failed or a plugin stopped it: either way
+              // the truncated master has to be restored.
+              const created = await createEvent(client, newEventData, sendScheduling);
+              if (!created) throw new Error("The new series was not created");
             } catch (createError) {
               debug.error("Failed to create new series, rolling back master truncation:", createError);
               try {

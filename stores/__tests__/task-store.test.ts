@@ -105,7 +105,7 @@ describe('task-store', () => {
       const created = await useTaskStore.getState().createTask(mockClient as IJMAPClient, { title: 'New Task' });
 
       expect(mockClient.createCalendarTask).toHaveBeenCalledWith({ title: 'New Task' });
-      expect(created.id).toBe('task-created');
+      expect(created?.id).toBe('task-created');
       expect(useTaskStore.getState().tasks).toContainEqual(created);
     });
 
