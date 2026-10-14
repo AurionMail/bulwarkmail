@@ -178,7 +178,9 @@ export function ComposerPluginToolbarButtons({ surface, context }: { surface: "c
             onClick={() => { void runAction(action, surface, context()); }}
           >
             <Icon className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm">{action.label}</span>
+            {/* The label only when the bar has room for it next to the app's own
+                buttons; otherwise the icon, with the label as tooltip. */}
+            <span className="hidden @[44rem]/composer-bar:inline text-sm">{action.label}</span>
           </Button>
         );
       })}

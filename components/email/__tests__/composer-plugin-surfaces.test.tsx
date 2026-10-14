@@ -366,6 +366,11 @@ describe('composer-options-menu and composer-toolbar-actions', () => {
     const button = screen.getByRole('button', { name: 'Assistant' });
     expect(button).toHaveAttribute('title', 'Assistant (Alt+A)');
     expect(button.className).toContain('h-9');
+    // Icon only unless the bar is wide enough for the label next to the app's buttons.
+    expect(button.querySelector('span')!.className).toContain('@[44rem]/composer-bar:inline');
+    let bar: HTMLElement | null = button;
+    while (bar && !bar.classList.contains('@container/composer-bar')) bar = bar.parentElement;
+    expect(bar).not.toBeNull();
     // Not in the plugin frame row above the bar.
     expect(button.closest('[data-composer-plugin-row]')).toBeNull();
     await act(async () => { fireEvent.click(button); });

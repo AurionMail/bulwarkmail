@@ -3995,7 +3995,7 @@ export function EmailComposer({
         <div
           data-mv-compose-footer={mvWindow ? "" : undefined}
           className={cn(
-            "flex items-center justify-between px-4 py-2.5 bg-background shrink-0 pb-[calc(0.625rem+env(safe-area-inset-bottom)/2)]",
+            "@container/composer-bar flex items-center justify-between px-4 py-2.5 bg-background shrink-0 pb-[calc(0.625rem+env(safe-area-inset-bottom)/2)]",
             mvWindow ? "gap-1" : "border-t",
           )}
         >
