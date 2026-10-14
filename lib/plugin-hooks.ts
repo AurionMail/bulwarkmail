@@ -63,11 +63,12 @@ const DEFAULT_TIMEOUT_MS = 5000;
 // reply-all, mailto, attachment upload), so they need a much longer budget
 // than observer / transform hooks.
 const INTERCEPT_TIMEOUT_MS = 60_000;
-// onBeforeBlobUpload handlers may push the attachment to an external store
-// before handing back a link (see ExternalAttachmentResult), which is a real
-// upload over the wire - 5s would kill every offload of a file worth
-// offloading, and three of those in a minute would auto-disable the plugin.
-const BLOB_UPLOAD_TIMEOUT_MS = 120_000;
+// onBeforeBlobUpload handlers may ask the user and then push the attachment
+// to an external store before handing back a link (see
+// ExternalAttachmentResult): a real upload of a file too big to mail, which
+// takes minutes on a slow line. Two minutes cut off large offloads and
+// counted them toward auto-disable.
+const BLOB_UPLOAD_TIMEOUT_MS = 15 * 60_000;
 
 class HookTimeoutError extends Error {}
 

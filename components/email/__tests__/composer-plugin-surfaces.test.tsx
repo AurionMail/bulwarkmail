@@ -271,6 +271,15 @@ describe('composer-above-body and composer-below-body', () => {
     }
   });
 
+  it('let a cloud picker put share links into the text', () => {
+    offerSlots('p1', ['composer-attachment-source']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const props = lastSlotProps('composer-attachment-source');
+    expect(typeof props.onAttach).toBe('function');
+    expect(typeof props.insertText).toBe('function');
+  });
+
   it('draw nothing without a plugin', () => {
     const { container } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
     expect(container.querySelector('[data-plugin-slot="composer-above-body"]')).toBeNull();

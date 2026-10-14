@@ -81,7 +81,7 @@ export const SLOT_CATALOG = {
   'composer-below-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send', insertText: 'compose:open', getSelectedText: 'email:send' }, 'below the message text, above the attachments'),
   'composer-sidebar': S('composer', 'frame', ['ui:composer-sidebar'], {}, 'a panel left of the composer'),
   'composer-sidebar-right': S('composer', 'frame', ['ui:composer-sidebar'], {}, 'a panel right of the composer'),
-  'composer-attachment-source': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { onAttach: null }, 'the composer\'s attach menu, as a source of files', true),
+  'composer-attachment-source': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { onAttach: null, insertText: 'compose:open' }, 'the composer\'s attach menu, as a source of files', true),
   'composer-send-menu': S('composer', 'action', ['ui:composer-toolbar'], { draft: 'email:send' }, 'entries in the menu next to Send'),
   'composer-attach-menu': S('composer', 'action', ['ui:composer-toolbar'], {}, 'entries in the attach menu (for example "From Nextcloud")'),
 

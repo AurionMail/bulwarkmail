@@ -2070,7 +2070,6 @@ export function EmailComposer({
   }, [composerClient, t]);
   // Stable props, so a re-render of the composer doesn't post them to the
   // plugin's iframe again.
-  const pluginAttachmentSourceProps = useMemo(() => ({ onAttach: handlePluginAttachmentAdd }), [handlePluginAttachmentAdd]);
   const pluginToolbarOffers = usePluginSlotOffers('composer-toolbar');
   const pluginAttachmentSourceOffers = usePluginSlotOffers('composer-attachment-source');
   const hasAboveBodyOffers = usePluginSlotOffers('composer-above-body').length > 0;
@@ -2468,6 +2467,11 @@ export function EmailComposer({
   const pluginToolbarProps = useMemo(
     () => ({ insertText: pluginInsertText, getSelectedText: pluginSelectedText }),
     [pluginInsertText, pluginSelectedText],
+  );
+  // A cloud picker attaches files, or puts share links in the text.
+  const pluginAttachmentSourceProps = useMemo(
+    () => ({ onAttach: handlePluginAttachmentAdd, insertText: pluginInsertText }),
+    [handlePluginAttachmentAdd, pluginInsertText],
   );
   const sendMenuContext = useCallback(() => ({ draft: draftSnapshotRef.current() }), []);
 
