@@ -99,7 +99,10 @@ import {
   type Recipient,
   enrichChipsWithColorsAndIcons,
   ICON_MAP,
+  plainTextToComposerBody,
 } from "@/lib/email-composer-utils";
+import type { ComposePrefill } from "@/lib/plugin-compose-gate";
+import { composerContextMode, composerMounted, composerUnmounted, draftSaved } from "@/lib/plugin-composer-hooks";
 import { isValidEmail } from "@/lib/validation";
 import { buildMentionCandidates } from "@/lib/recipient-mentions";
 import { RichTextEditor } from "@/components/email/rich-text-editor";
@@ -236,6 +239,20 @@ interface EmailComposerProps {
   className?: string;
   initialDraftText?: string;
   initialData?: ComposerDraftData | null;
+  /**
+   * Fields a plugin filled in through onBeforeCompose, over what the composer
+   * would start with. The host passes it for the first mount of a session
+   * only: a remount restores the user's own text from `initialData`.
+   */
+  prefill?: ComposePrefill | null;
+  /**
+   * Identifies the compose session across remounts (a pop-out, a layout
+   * switch), so plugins hear onComposerOpen / onComposerClose once per
+   * message rather than once per mount.
+   */
+  sessionKey?: string;
+  /** Id of the message being replied to or forwarded, for onComposerOpen. */
+  sourceEmailId?: string;
   mode?: 'compose' | 'reply' | 'replyAll' | 'forward';
   /**
    * Email of the mailbox/account the user is viewing when they start a new
@@ -348,8 +365,11 @@ export function EmailComposer({
   onDiscardDraft,
   onSaveState,
   className,
-  initialDraftText,
-  initialData,
+  initialDraftText: initialDraftTextProp,
+  initialData: initialDataProp,
+  prefill,
+  sessionKey,
+  sourceEmailId,
   mode = 'compose',
   composeFromAccountEmail,
   replyTo
@@ -363,8 +383,27 @@ export function EmailComposer({
   // or the format a re-opened / stashed draft was written in - and switchable
   // from the toolbar for just this message.
   const [plainTextMode, setPlainTextMode] = useState<boolean>(
-    () => initialData?.plainTextMode ?? plainTextModeDefault
+    () => initialDataProp?.plainTextMode ?? plainTextModeDefault
   );
+  // A plugin's onBeforeCompose prefill (plain text body) folded into what the
+  // composer starts from: over `initialData` when the host hands one in (a
+  // mailto:, a re-opened draft), otherwise over the fields built below.
+  const [initialPlainTextMode] = useState(plainTextMode);
+  const initialData = useMemo<ComposerDraftData | null | undefined>(() => {
+    if (!initialDataProp || !prefill) return initialDataProp;
+    const next = { ...initialDataProp };
+    if (prefill.to) next.to = prefill.to.join(', ');
+    if (prefill.cc) {
+      next.cc = prefill.cc.join(', ');
+      if (prefill.cc.length > 0) next.showCc = true;
+    }
+    if (prefill.subject !== undefined) next.subject = prefill.subject;
+    if (prefill.body !== undefined) {
+      next.body = initialPlainTextMode ? prefill.body : plainTextToComposerBody(prefill.body);
+    }
+    return next;
+  }, [initialDataProp, prefill, initialPlainTextMode]);
+  const initialDraftText = !initialDataProp && prefill?.body !== undefined ? prefill.body : initialDraftTextProp;
   const subAddressDelimiter = useSettingsStore((state) => state.subAddressDelimiter);
   const autoSelectReplyIdentity = useSettingsStore((state) => state.autoSelectReplyIdentity);
   const replyIdentityMatch = useSettingsStore((state) => state.replyIdentityMatch);
@@ -643,17 +682,22 @@ export function EmailComposer({
   // is typing lives in a separate `*Input` string per field. This keeps a
   // display name containing a comma (e.g. "Doo, John") intact instead of
   // tearing it apart on a delimiter.
-  const [to, setTo] = useState<Recipient[]>(initialData ? parseRecipientList(initialData.to) : getInitialTo());
-  const [cc, setCc] = useState<Recipient[]>(initialData ? parseRecipientList(initialData.cc) : getInitialCc());
+  const [to, setTo] = useState<Recipient[]>(() => initialData
+    ? parseRecipientList(initialData.to)
+    : prefill?.to ? parseRecipientList(prefill.to.join(', ')) : getInitialTo());
+  const [cc, setCc] = useState<Recipient[]>(() => initialData
+    ? parseRecipientList(initialData.cc)
+    : prefill?.cc ? parseRecipientList(prefill.cc.join(', ')) : getInitialCc());
   const [bcc, setBcc] = useState<Recipient[]>(initialData ? parseRecipientList(initialData.bcc) : []);
   const [toInput, setToInput] = useState('');
   const [ccInput, setCcInput] = useState('');
   const [bccInput, setBccInput] = useState('');
-  const [subject, setSubject] = useState(initialData?.subject ?? getInitialSubject());
+  const [subject, setSubject] = useState(() => initialData?.subject ?? prefill?.subject ?? getInitialSubject());
   const [body, setBody] = useState(() =>
     initialData?.body != null ? withSignatureEmbedded(initialData.body) : getInitialBody()
   );
-  const [showCc, setShowCc] = useState(initialData?.showCc ?? getInitialCc().length > 0);
+  const [showCc, setShowCc] = useState(() => initialData?.showCc
+    ?? (prefill?.cc ? prefill.cc.length > 0 : getInitialCc().length > 0));
   const [showBcc, setShowBcc] = useState(initialData?.showBcc ?? false);
   // Committed recipients plus any not-yet-committed text the user has typed.
   // Send/validation/draft paths treat a typed-but-uncommitted address as a
@@ -1298,6 +1342,31 @@ export function EmailComposer({
   // on the parent (#329 D). Without this, "Reply → Discard → New mail" would
   // open the next composer with the discarded reply's mode/replyTo.
   const explicitCloseRef = useRef(false);
+
+  // onComposerOpen / onComposerClose, once per session (see
+  // lib/plugin-composer-hooks.ts). Without a key from the host every mount is
+  // its own session.
+  const fallbackSessionKeyRef = useRef<string | null>(null);
+  if (!sessionKey && fallbackSessionKeyRef.current === null) {
+    fallbackSessionKeyRef.current = `composer-${Math.random().toString(36).slice(2)}`;
+  }
+  const effectiveSessionKey = sessionKey ?? fallbackSessionKeyRef.current ?? 'composer';
+  // Whether this session ended in a send, and the draft it ended with.
+  const sentRef = useRef(false);
+  const lastDraftIdRef = useRef<string | null>(initialData?.draftId ?? null);
+  useEffect(() => {
+    composerMounted(effectiveSessionKey, {
+      mode: composerContextMode(mode),
+      ...(sourceEmailId && mode !== 'compose' ? { inReplyToId: sourceEmailId } : {}),
+      ...(replyTo?.subject && mode !== 'compose' ? { originalSubject: replyTo.subject } : {}),
+    });
+    return () => composerUnmounted(effectiveSessionKey, () => ({
+      draftId: draftIdRef.current ?? lastDraftIdRef.current,
+      sent: sentRef.current,
+    }));
+  // The session is fixed for the life of this mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveSessionKey]);
 
   // Auto-save state on unmount (when user navigates away without explicitly closing)
   useEffect(() => {
@@ -2228,6 +2297,8 @@ export function EmailComposer({
 
       setSaveStatus('saved');
       saveFailedRef.current = false;
+      lastDraftIdRef.current = savedDraftId;
+      draftSaved(savedDraftId, savedDraft.subject);
 
       // Reset status after 2 seconds
       setTimeout(() => setSaveStatus('idle'), 2000);
@@ -2705,6 +2776,7 @@ export function EmailComposer({
       }
       const sendHandledByPlugin = pluginOutcome === 'handled';
       if (sendHandledByPlugin) {
+        sentRef.current = true;
         if (finalDraftId) {
           // The draft was created through the identity's owning account
           // (see saveDraft), so clean it up there too - not on the active
@@ -2761,6 +2833,9 @@ export function EmailComposer({
         // draft ("Continue draft" flashed after every send). Reset below if
         // the send fails and the composer stays open.
         explicitCloseRef.current = true;
+        // Read when the close is reported: the host tears the composer down
+        // while onSend is still running. Reset below if the send fails.
+        sentRef.current = true;
         await onSend?.({
           to: outgoing.to,
           cc: outgoing.cc,
@@ -2819,6 +2894,7 @@ export function EmailComposer({
     } catch (err) {
       // Not sent, so the composer stays open and is an unsent draft again.
       explicitCloseRef.current = false;
+      sentRef.current = false;
       debug.error('Failed to send email:', err);
       if (err instanceof RecipientsRejectedError) {
         // Nothing went out; the message stays open here so the addresses

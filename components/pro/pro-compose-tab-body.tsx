@@ -217,6 +217,9 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
           replyTo={data.replyTo}
           initialDraftText={data.initialDraftText}
           initialData={data.initialData}
+          prefill={data.prefill}
+          sessionKey={`pro-${tabId}-${data.sessionId}`}
+          sourceEmailId={data.sourceEmailId ?? undefined}
           composeFromAccountEmail={composeFromAccountEmail}
           onSend={handleSend}
           onScheduledSendCreated={handleScheduledSendCreated}

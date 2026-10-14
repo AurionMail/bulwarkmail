@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ComposerDraftData } from '@/components/email/email-composer';
+import type { ComposePrefill } from '@/lib/plugin-compose-gate';
 import type { SearchScope } from '@/lib/global-search/query-parser';
 
 export type ProTabKind =
@@ -56,6 +57,8 @@ export interface ProComposeTabData {
   replyTo?: ProReplyContext;
   initialDraftText?: string;
   initialData?: ComposerDraftData | null;
+  /** Fields a plugin filled in through onBeforeCompose; dropped on the first state save. */
+  prefill?: ComposePrefill | null;
   sourceEmailId?: string | null;
   title: string;
 }
@@ -664,7 +667,9 @@ export const useProTabStore = create<ProTabState>()(
           set({
             tabs: get().tabs.map((tab) => {
               if (tab.id !== id || tab.kind !== 'compose' || !tab.composeData) return tab;
-              return { ...tab, composeData: { ...tab.composeData, initialData: draft } };
+              // The draft now carries the user's own text: a remount must not
+              // apply the plugin's prefill over it again.
+              return { ...tab, composeData: { ...tab.composeData, initialData: draft, prefill: null } };
             }),
           });
         },

@@ -112,6 +112,7 @@ import { useMenuNavigation } from "@/hooks/use-menu-navigation";
 import { findCalendarAttachment, isCalendarMimeType } from "@/lib/calendar-invitation";
 import { RecipientPopover } from "./recipient-popover";
 import { MailtoLink } from "@/components/ui/mailto-link";
+import { requestInternalMailto } from "@/lib/protocol-handlers/mailto";
 import { imageBlobUrl, inertBlobType, isFilePreviewable, isMimeTypeSafeForInlinePreview, toInertBlob } from "@/lib/file-preview";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { parseTnef, isTnefAttachment } from "@/lib/tnef";
@@ -2949,7 +2950,17 @@ export function EmailViewer({
           const targetEl = (ev.target as Element | null)?.closest?.('a[href], area[href]') as HTMLAnchorElement | HTMLAreaElement | null;
           if (!targetEl) return;
           const href = targetEl.getAttribute('href') || '';
-          if (!href || href.startsWith('#') || href.startsWith('mailto:')) return;
+          if (!href || href.startsWith('#')) return;
+          if (/^mailto:/i.test(href)) {
+            // Write it here, like any other address in the app; the mail page
+            // asks onMailtoIntercept first. Not taken (no recipient, nobody
+            // listening): the browser's own handling stays.
+            if (requestInternalMailto(href)) {
+              ev.preventDefault();
+              ev.stopPropagation();
+            }
+            return;
+          }
           ev.preventDefault();
           ev.stopPropagation();
           // A link at a cid: part now carries the blob: URL we minted for it.
