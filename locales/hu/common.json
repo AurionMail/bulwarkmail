@@ -4042,8 +4042,8 @@
         "body": "Látja a fiókod bármely üzenetének feladóját, címzettjeit, tárgyát és teljes szövegét, valamint a mappáidat."
       },
       "email_write": {
-        "title": "Címkék és jelölők módosítása a leveleiden",
-        "body": "Címkéket, jelölőket és más kulcsszavakat ad hozzá az üzeneteidhez, vagy eltávolítja őket, és piszkozatokat ment."
+        "title": "Leveleid módosítása és rendezése",
+        "body": "Címkéket, jelölőket és más kulcsszavakat ad hozzá az üzeneteidhez, vagy eltávolítja őket, áthelyezi az üzeneteket a mappáid között és az archívumba, és piszkozatokat ment."
       },
       "email_send": {
         "title": "Levelek módosítása küldés előtt",

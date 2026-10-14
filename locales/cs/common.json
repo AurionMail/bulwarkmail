@@ -4042,8 +4042,8 @@
         "body": "Vidí odesílatele, příjemce, předměty a celý text kterékoli zprávy ve vašem účtu i vaše složky."
       },
       "email_write": {
-        "title": "Měnit štítky a příznaky pošty",
-        "body": "Přidává nebo odebírá štítky, příznaky a další klíčová slova u vašich zpráv a ukládá koncepty."
+        "title": "Měnit a třídit vaši poštu",
+        "body": "Přidává nebo odebírá štítky, příznaky a další klíčová slova u vašich zpráv, přesouvá je mezi vašimi složkami a do archivu a ukládá koncepty."
       },
       "email_send": {
         "title": "Měnit poštu před odesláním",

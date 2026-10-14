@@ -4042,8 +4042,8 @@
         "body": "Vedere mittenti, destinatari, oggetti e il testo completo di qualsiasi messaggio del tuo account, e le tue cartelle."
       },
       "email_write": {
-        "title": "Modificare etichette e contrassegni della tua posta",
-        "body": "Aggiungere o rimuovere etichette, contrassegni e altre parole chiave dai tuoi messaggi, e salvare bozze."
+        "title": "Modificare e organizzare la tua posta",
+        "body": "Aggiungere o rimuovere etichette, contrassegni e altre parole chiave dai tuoi messaggi, spostarli tra le tue cartelle e nell'archivio, e salvare bozze."
       },
       "email_send": {
         "title": "Modificare la posta prima dell'invio",

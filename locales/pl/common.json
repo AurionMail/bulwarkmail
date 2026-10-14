@@ -4042,8 +4042,8 @@
         "body": "Widzi nadawców, odbiorców, tematy i pełną treść każdej wiadomości na Twoim koncie oraz Twoje foldery."
       },
       "email_write": {
-        "title": "Zmiana etykiet i flag w poczcie",
-        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach oraz zapisuje szkice."
+        "title": "Zmiana i porządkowanie poczty",
+        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach, przenosi je między Twoimi folderami i do archiwum oraz zapisuje szkice."
       },
       "email_send": {
         "title": "Zmiana poczty przed wysłaniem",

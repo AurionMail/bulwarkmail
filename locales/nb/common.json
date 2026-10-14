@@ -4042,8 +4042,8 @@
         "body": "Se avsendere, mottakere, emner og hele teksten i alle meldinger på kontoen din, og mappene dine."
       },
       "email_write": {
-        "title": "Endre etiketter og flagg på e-posten din",
-        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine, og lagre utkast."
+        "title": "Endre og organisere e-posten din",
+        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine, flytte dem mellom mappene dine og til arkivet, og lagre utkast."
       },
       "email_send": {
         "title": "Endre e-post før den sendes",

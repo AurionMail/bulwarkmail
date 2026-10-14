@@ -4042,8 +4042,8 @@
         "body": "Vede expeditorii, destinatarii, subiectele și textul complet al oricărui mesaj din contul dvs., precum și dosarele dvs."
       },
       "email_write": {
-        "title": "Modificarea etichetelor și marcajelor e-mailurilor",
-        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs. și salvează ciorne."
+        "title": "Modificarea și organizarea e-mailurilor",
+        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs., le mută între dosarele dvs. și în arhivă și salvează ciorne."
       },
       "email_send": {
         "title": "Modificarea e-mailurilor înainte de trimitere",

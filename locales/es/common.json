@@ -4042,8 +4042,8 @@
         "body": "Ver remitentes, destinatarios, asuntos y el texto completo de cualquier mensaje de tu cuenta, y tus carpetas."
       },
       "email_write": {
-        "title": "Cambiar etiquetas y marcas de tu correo",
-        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes, y guardar borradores."
+        "title": "Cambiar y organizar tu correo",
+        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes, moverlos entre tus carpetas y al archivo, y guardar borradores."
       },
       "email_send": {
         "title": "Cambiar el correo antes de enviarlo",

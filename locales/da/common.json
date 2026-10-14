@@ -4042,8 +4042,8 @@
         "body": "Se afsendere, modtagere, emner og den fulde tekst i alle beskeder på din konto samt dine mapper."
       },
       "email_write": {
-        "title": "Ændre tags og markeringer på dine e-mails",
-        "body": "Tilføje eller fjerne tags, markeringer og andre nøgleord på dine beskeder og gemme kladder."
+        "title": "Ændre og organisere dine e-mails",
+        "body": "Tilføje eller fjerne tags, markeringer og andre nøgleord på dine beskeder, flytte dem mellem dine mapper og til arkivet og gemme kladder."
       },
       "email_send": {
         "title": "Ændre e-mails, før de sendes",

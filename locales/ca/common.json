@@ -4042,8 +4042,8 @@
         "body": "Veure remitents, destinataris, assumptes i el text complet de qualsevol missatge del vostre compte, i les vostres carpetes."
       },
       "email_write": {
-        "title": "Canviar les etiquetes i marques del correu",
-        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges, i desar esborranys."
+        "title": "Canviar i organitzar el vostre correu",
+        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges, moure'ls entre les vostres carpetes i a l'arxiu, i desar esborranys."
       },
       "email_send": {
         "title": "Canviar el correu abans d'enviar-lo",

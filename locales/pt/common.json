@@ -4042,8 +4042,8 @@
         "body": "Ver remetentes, destinatários, assuntos e o texto completo de qualquer mensagem da sua conta, e suas pastas."
       },
       "email_write": {
-        "title": "Alterar etiquetas e marcações dos seus e-mails",
-        "body": "Adicionar ou remover etiquetas, marcações e outras palavras-chave nas suas mensagens, e salvar rascunhos."
+        "title": "Alterar e organizar seus e-mails",
+        "body": "Adicionar ou remover etiquetas, marcações e outras palavras-chave nas suas mensagens, movê-las entre suas pastas e para o arquivo, e salvar rascunhos."
       },
       "email_send": {
         "title": "Alterar e-mails antes do envio",

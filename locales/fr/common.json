@@ -4042,8 +4042,8 @@
         "body": "Voir les expéditeurs, les destinataires, les objets et le texte complet de n'importe quel message de votre compte, ainsi que vos dossiers."
       },
       "email_write": {
-        "title": "Modifier les étiquettes et indicateurs de vos e-mails",
-        "body": "Ajouter ou retirer des étiquettes, des indicateurs et d'autres mots-clés sur vos messages, et enregistrer des brouillons."
+        "title": "Modifier et organiser vos e-mails",
+        "body": "Ajouter ou retirer des étiquettes, des indicateurs et d'autres mots-clés sur vos messages, les déplacer entre vos dossiers et vers les archives, et enregistrer des brouillons."
       },
       "email_send": {
         "title": "Modifier les e-mails avant leur envoi",

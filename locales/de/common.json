@@ -4042,8 +4042,8 @@
         "body": "Absender, Empfänger, Betreff und den vollständigen Text jeder Nachricht in Ihrem Konto sowie Ihre Ordner sehen."
       },
       "email_write": {
-        "title": "Labels und Markierungen Ihrer E-Mails ändern",
-        "body": "Labels, Markierungen und andere Schlüsselwörter an Ihren Nachrichten hinzufügen oder entfernen und Entwürfe speichern."
+        "title": "Ihre E-Mails ändern und ordnen",
+        "body": "Labels, Markierungen und andere Schlüsselwörter an Ihren Nachrichten hinzufügen oder entfernen, Nachrichten zwischen Ihren Ordnern und ins Archiv verschieben und Entwürfe speichern."
       },
       "email_send": {
         "title": "E-Mails vor dem Senden ändern",

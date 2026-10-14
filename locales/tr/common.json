@@ -4042,8 +4042,8 @@
         "body": "Hesabınızdaki herhangi bir iletinin gönderenlerini, alıcılarını, konusunu ve tam metnini, ayrıca klasörlerinizi görme."
       },
       "email_write": {
-        "title": "E-postalarınızdaki etiketleri ve bayrakları değiştirme",
-        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma ve taslak kaydetme."
+        "title": "E-postalarınızı değiştirme ve düzenleme",
+        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma, iletileri klasörleriniz arasında ve arşive taşıma ve taslak kaydetme."
       },
       "email_send": {
         "title": "Gönderilmeden önce iletileri değiştirme",
