@@ -6,6 +6,13 @@ import { generateUUID } from '@/lib/utils';
 import { debug } from '@/lib/debug';
 import { getClientByLocalAccountId } from './client-registry';
 import { sanitizeDisplayName, splitMailbox } from '@/lib/rfc5322-mailbox';
+import { contactHooks } from '@/lib/plugin-hooks';
+import { contactToView } from '@/lib/plugin-projection';
+
+/** A contact that is about to be created, projected for plugins (no id yet). */
+function draftContactView(contact: Partial<ContactCard>) {
+  return contactToView({ addressBookIds: {}, ...contact, id: contact.id ?? '' } as ContactCard);
+}
 
 /** One compose-autocomplete suggestion: a person, or a contact group. */
 type RecipientSuggestion = { name: string; email: string; group?: { id: string; memberCount: number } };
@@ -343,13 +350,15 @@ interface ContactStore {
   fetchAddressBooks: (client: IJMAPClient) => Promise<void>;
   fetchAllAccountsContacts: (accounts: ContactAccountClient[]) => Promise<void>;
   fetchAllAccountsAddressBooks: (accounts: ContactAccountClient[]) => Promise<void>;
-  createContact: (client: IJMAPClient, contact: Partial<ContactCard>) => Promise<void>;
-  updateContact: (client: IJMAPClient, id: string, updates: Partial<ContactCard>) => Promise<void>;
-  deleteContact: (client: IJMAPClient, id: string) => Promise<void>;
+  // The contact actions resolve to false when a plugin stopped them
+  // (onBeforeContactCreate / Update / Delete); nothing changed then.
+  createContact: (client: IJMAPClient, contact: Partial<ContactCard>) => Promise<boolean>;
+  updateContact: (client: IJMAPClient, id: string, updates: Partial<ContactCard>) => Promise<boolean>;
+  deleteContact: (client: IJMAPClient, id: string) => Promise<boolean>;
 
-  addLocalContact: (contact: ContactCard) => void;
-  updateLocalContact: (id: string, updates: Partial<ContactCard>) => void;
-  deleteLocalContact: (id: string) => void;
+  addLocalContact: (contact: ContactCard) => Promise<boolean>;
+  updateLocalContact: (id: string, updates: Partial<ContactCard>) => Promise<boolean>;
+  deleteLocalContact: (id: string) => Promise<boolean>;
 
   setSelectedContact: (id: string | null) => void;
   setSearchQuery: (query: string) => void;
@@ -537,6 +546,7 @@ export const useContactStore = create<ContactStore>()(
       },
 
       createContact: async (client, contact) => {
+        if (!(await contactHooks.onBeforeContactCreate.intercept(draftContactView(contact)))) return false;
         set({ isLoading: true, error: null });
         try {
           // Determine target account from the selected address book. Also
@@ -572,6 +582,8 @@ export const useContactStore = create<ContactStore>()(
             contacts: [...state.contacts, created],
             isLoading: false,
           }));
+          void contactHooks.onAfterContactCreate.emit(contactToView(created));
+          return true;
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Failed to create contact';
           set({ error: msg, isLoading: false });
@@ -580,6 +592,7 @@ export const useContactStore = create<ContactStore>()(
       },
 
       updateContact: async (client, id, updates) => {
+        if (!(await contactHooks.onBeforeContactUpdate.intercept({ contactId: id, patch: updates }))) return false;
         set({ error: null });
         try {
           const contact = get().contacts.find(c => c.id === id);
@@ -602,6 +615,9 @@ export const useContactStore = create<ContactStore>()(
               c.id === id ? { ...c, ...updates } : c
             ),
           }));
+          const updated = get().contacts.find(c => c.id === id);
+          if (updated) void contactHooks.onAfterContactUpdate.emit(contactToView(updated));
+          return true;
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Failed to update contact';
           set({ error: msg });
@@ -610,6 +626,7 @@ export const useContactStore = create<ContactStore>()(
       },
 
       deleteContact: async (client, id) => {
+        if (!(await contactHooks.onBeforeContactDelete.intercept({ contactIds: [id] }))) return false;
         set({ error: null });
         try {
           const contact = get().contacts.find(c => c.id === id);
@@ -625,6 +642,8 @@ export const useContactStore = create<ContactStore>()(
               selectedContactId: state.selectedContactId === id ? null : state.selectedContactId,
             };
           });
+          void contactHooks.onAfterContactDelete.emit({ contactIds: [id] });
+          return true;
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Failed to delete contact';
           set({ error: msg });
@@ -632,24 +651,38 @@ export const useContactStore = create<ContactStore>()(
         }
       },
 
-      addLocalContact: (contact) => set((state) => ({
-        contacts: [...state.contacts, contact],
-      })),
+      addLocalContact: async (contact) => {
+        if (!(await contactHooks.onBeforeContactCreate.intercept(draftContactView(contact)))) return false;
+        set((state) => ({ contacts: [...state.contacts, contact] }));
+        void contactHooks.onAfterContactCreate.emit(contactToView(contact));
+        return true;
+      },
 
-      updateLocalContact: (id, updates) => set((state) => ({
-        contacts: state.contacts.map(c =>
-          c.id === id ? { ...c, ...updates } : c
-        ),
-      })),
+      updateLocalContact: async (id, updates) => {
+        if (!(await contactHooks.onBeforeContactUpdate.intercept({ contactId: id, patch: updates }))) return false;
+        set((state) => ({
+          contacts: state.contacts.map(c =>
+            c.id === id ? { ...c, ...updates } : c
+          ),
+        }));
+        const updated = get().contacts.find(c => c.id === id);
+        if (updated) void contactHooks.onAfterContactUpdate.emit(contactToView(updated));
+        return true;
+      },
 
-      deleteLocalContact: (id) => set((state) => {
-        const removedIds = new Set([id]);
-        const cleaned = cleanGroupMembers(state.contacts, removedIds);
-        return {
-          contacts: cleaned.filter(c => c.id !== id),
-          selectedContactId: state.selectedContactId === id ? null : state.selectedContactId,
-        };
-      }),
+      deleteLocalContact: async (id) => {
+        if (!(await contactHooks.onBeforeContactDelete.intercept({ contactIds: [id] }))) return false;
+        set((state) => {
+          const removedIds = new Set([id]);
+          const cleaned = cleanGroupMembers(state.contacts, removedIds);
+          return {
+            contacts: cleaned.filter(c => c.id !== id),
+            selectedContactId: state.selectedContactId === id ? null : state.selectedContactId,
+          };
+        });
+        void contactHooks.onAfterContactDelete.emit({ contactIds: [id] });
+        return true;
+      },
 
       setSelectedContact: (id) => set({ selectedContactId: id }),
       setSearchQuery: (query) => set({ searchQuery: query }),
@@ -939,6 +972,8 @@ export const useContactStore = create<ContactStore>()(
       clearSelection: () => set({ selectedContactIds: new Set<string>(), lastSelectedContactId: null }),
 
       bulkDeleteContacts: async (client, ids) => {
+        if (ids.length === 0) return;
+        if (!(await contactHooks.onBeforeContactDelete.intercept({ contactIds: [...ids] }))) return;
         set({ error: null });
         const { supportsSync, contacts } = get();
         const deletedIds = new Set(ids);
@@ -968,6 +1003,9 @@ export const useContactStore = create<ContactStore>()(
             selectedContactIds: new Set<string>(),
           };
         });
+        if (deletedIds.size > 0) {
+          void contactHooks.onAfterContactDelete.emit({ contactIds: ids.filter(id => deletedIds.has(id)) });
+        }
       },
 
       bulkAddToGroup: async (client, groupId, contactIds) => {
