@@ -305,3 +305,25 @@ describe('native keyword extension API', () => {
     }
   });
 });
+
+describe('privileged-only methods', () => {
+  it('refuses jmap.uploadBlob to an untrusted plugin even with email:blob-write', async () => {
+    const p = plugin({ permissions: ['email:blob-write'], grantedPermissions: ['email:blob-write'] });
+    expect(await gateError(p, 'jmap.uploadBlob', [new Uint8Array(1), 'a.bin', 'application/octet-stream']))
+      .toMatch(/requires the privileged plugin tier/);
+  });
+});
+
+describe('WebAuthn PRF salt', () => {
+  it("uses the calling plugin's id, not the one in the arguments", async () => {
+    const get = vi.fn(async () => { throw new Error('stop'); });
+    Object.defineProperty(navigator, 'credentials', { value: { get }, configurable: true });
+    const p = plugin({ id: 'mine', permissions: ['crypto:full'], managed: true, tier: 'privileged' });
+
+    await dispatchApiCall(p, 'crypto.getWebAuthn', [[1, 2, 3], 'someone-else'], { privileged: true }).catch(() => {});
+
+    const salt = (get.mock.calls[0] as unknown as [{ publicKey: { extensions: { prf: { eval: { first: Uint8Array } } } } }])[0]
+      .publicKey.extensions.prf.eval.first;
+    expect(new TextDecoder().decode(salt)).toBe('bulwark-plugins-v1mine');
+  });
+});

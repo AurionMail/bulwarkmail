@@ -41,6 +41,8 @@ import { createHash } from 'crypto';
  */
 const PRIVILEGED_ONLY_METHODS = new Set<string>([
   'jmap.fetchBlob',
+  // Puts arbitrary bytes on the mail server. Untrusted plugins attach files
+  // through the composer and draft APIs instead, which bound and label them.
   'jmap.uploadBlob',
   'jmap.sendRaw',
   'jmap.submitRaw',
@@ -1556,8 +1558,10 @@ export async function dispatchApiCall(
     case 'upfiles.get' : return getFile(args[0] as string);
     case 'upfiles.save' : return saveFile(args[0] as string, args[1] as File);
 
-    case 'crypto.createWebAuthn': return doCreatePRF(args[0] as string, args[1] as string, args[2] as string);
-    case 'crypto.getWebAuthn': return doGetPRF(args[0] as number[], args[1] as string);
+    // The PRF salt is derived from the calling plugin's id, never from an
+    // argument: otherwise one plugin could ask for another plugin's secret.
+    case 'crypto.createWebAuthn': return doCreatePRF(plugin.id, args[1] as string, args[2] as string);
+    case 'crypto.getWebAuthn': return doGetPRF(args[0] as number[], plugin.id);
     case 'crypto.getPublicKeys': return getPublicKeys();
     case 'crypto.createPublicKey': return doCreatePublicKey(args[0] as PublicKeyInput);
     case 'crypto.removePublicKey': return doRemovePublicKey(args[0] as string);
