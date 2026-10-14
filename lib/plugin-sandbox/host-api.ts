@@ -31,7 +31,6 @@ import { fileStorage } from '../plugin-storage';
 import { generateUUID } from '../utils';
 import { AddressBook, ContactCard, Identity } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInfo, PublicKeyInput, useAccountSecurityStore } from '@/stores/account-security-store';
-import { createHash } from 'crypto';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -976,15 +975,16 @@ function zBase32Encode(buffer: Uint8Array): string {
  * Generates the WKD hash (SHA-1 in z-base-32) from the local-part.
  * RFC 9292: Lowercase in UTF-8 before hashing.
  */
-function getWkdHash(localPart: string): string {
+export async function getWkdHash(localPart: string): Promise<string> {
   // NFC normalization + lowercasing
   const normalizedLocal = localPart.normalize('NFC').toLowerCase();
-  
-  // Explicit TextEncoder usage to guarantee UTF-8 bytes
+
+  // Explicit TextEncoder usage to guarantee UTF-8 bytes. WebCrypto, not
+  // Node's crypto: importing that pulled a ~330 KB polyfill into the client.
   const utf8Bytes = new TextEncoder().encode(normalizedLocal);
-  const sha1Buffer = createHash('sha1').update(utf8Bytes).digest();
-  
-  return zBase32Encode(sha1Buffer);
+  const sha1 = await crypto.subtle.digest('SHA-1', utf8Bytes);
+
+  return zBase32Encode(new Uint8Array(sha1));
 }
 
 /**
@@ -1031,7 +1031,7 @@ export async function doGetPublicKeyFromWKD(email: string): Promise<WkdResult> {
   if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain)) {
     return { status: 'ERROR', error: 'Invalid email address' };
   }
-  const hash = getWkdHash(localPart);
+  const hash = await getWkdHash(localPart);
 
   const urls = [
     `https://openpgpkey.${domain}/.well-known/openpgpkey/hu/${hash}?l=${encodeURIComponent(localPart)}`,

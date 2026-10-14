@@ -9,7 +9,7 @@ vi.mock('@/lib/browser-navigation', async (orig) => ({
   apiFetch: (...args: unknown[]) => fetchMock(...args),
 }));
 
-import { dispatchApiCall, PLUGIN_STORAGE_QUOTA_BYTES, safeDownloadName, doGetPublicKeyFromWKD } from '../plugin-sandbox/host-api';
+import { dispatchApiCall, PLUGIN_STORAGE_QUOTA_BYTES, safeDownloadName, doGetPublicKeyFromWKD, getWkdHash } from '../plugin-sandbox/host-api';
 
 function plugin(overrides: Partial<InstalledPlugin> = {}): InstalledPlugin {
   return {
@@ -90,5 +90,12 @@ describe('WKD lookup', () => {
     expect(await doGetPublicKeyFromWKD('a@evil.example/x?')).toMatchObject({ status: 'ERROR' });
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+});
+
+describe('WKD hash', () => {
+  it('matches the RFC example (Joe.Doe)', async () => {
+    // draft-koch-openpgp-webkey-service: "Joe.Doe" → iy9q119eutrkn8s1mk4r39qejnbu3n5q
+    expect(await getWkdHash('Joe.Doe')).toBe('iy9q119eutrkn8s1mk4r39qejnbu3n5q');
   });
 });
