@@ -165,8 +165,7 @@ export function Avatar({ name, email, contactPhotoUri, size = "md", className, d
     setPluginAvatarFailed(false);
     if (!email || avatarHooks.onAvatarResolve.size === 0) return;
     let cancelled = false;
-    avatarHooks.onAvatarResolve
-      .transform(null as string | null, { email, name })
+    avatarHooks.onAvatarResolve.transform(null as string | null, { email, name })
       .then((url) => { if (!cancelled) setPluginAvatarUrl(url); })
       .catch(() => { if (!cancelled) setPluginAvatarFailed(true); });
     return () => { cancelled = true; };

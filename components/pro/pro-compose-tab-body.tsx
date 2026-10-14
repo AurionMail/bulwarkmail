@@ -12,6 +12,7 @@ import { toast } from "@/stores/toast-store";
 import { useProTabStore, registerProTabCloseInterceptor, type ProComposeTabData } from "@/stores/pro-tab-store";
 import { debug } from "@/lib/debug";
 import { threadKeyFor } from "@/lib/thread-utils";
+import { announceSent } from "@/lib/plugin-after-send";
 
 interface ProComposeTabBodyProps {
   tabId: string;
@@ -89,6 +90,7 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
         { localAccountId: sendData.localAccountId },
       );
       submitted = true;
+      announceSent(result, sendData);
 
       if (result.scheduled) {
         await handleScheduledSendCreated();
@@ -217,6 +219,9 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
           replyTo={data.replyTo}
           initialDraftText={data.initialDraftText}
           initialData={data.initialData}
+          prefill={data.prefill}
+          sessionKey={`pro-${tabId}-${data.sessionId}`}
+          sourceEmailId={data.sourceEmailId ?? undefined}
           composeFromAccountEmail={composeFromAccountEmail}
           onSend={handleSend}
           onScheduledSendCreated={handleScheduledSendCreated}

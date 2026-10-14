@@ -4,7 +4,7 @@ import { Fragment, useState, useEffect, useLayoutEffect, useMemo, useRef, useCal
 import { Email, ContactCard, Mailbox } from "@/lib/jmap/types";
 import { emailExportFilename, attachmentDownloadFilename, attachmentsBundleFilename, DEFAULT_EMAIL_TEMPLATE, DEFAULT_ATTACHMENT_TEMPLATE } from "@/lib/download-filename";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
-import { applyNewTabToAnchor, emailIframeCsp, escapeHtml, isOpenableLinkHref, plainTextToSafeHtml, sanitizeEmailBodyForIframe, sanitizeEmailHtml, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
+import { applyNewTabToAnchor, emailIframeCsp, escapeHtml, isExternalResourceUrl, isOpenableLinkHref, plainTextToSafeHtml, sanitizeEmailBodyForIframe, sanitizeEmailHtml, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
 import { collectReferencedCids, isEmbeddedInBody } from "@/lib/attachment-visibility";
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
@@ -26,7 +26,7 @@ import { useKeywordFormat } from "@/hooks/use-keyword-format";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { getSecurityStatus, extractListHeaders, getSenderVerification } from "@/lib/email-headers";
 import { emailToReadView } from "@/lib/plugin-projection";
-import type { EmailReadView } from "@/lib/plugin-types";
+import type { EmailReadView, ExternalLinkContext } from "@/lib/plugin-types";
 import { generateEmailSource } from "@/lib/email-source";
 import {
   Reply,
@@ -112,6 +112,7 @@ import { useMenuNavigation } from "@/hooks/use-menu-navigation";
 import { findCalendarAttachment, isCalendarMimeType } from "@/lib/calendar-invitation";
 import { RecipientPopover } from "./recipient-popover";
 import { MailtoLink } from "@/components/ui/mailto-link";
+import { requestInternalMailto } from "@/lib/protocol-handlers/mailto";
 import { imageBlobUrl, inertBlobType, isFilePreviewable, isMimeTypeSafeForInlinePreview, toInertBlob } from "@/lib/file-preview";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { parseTnef, isTnefAttachment } from "@/lib/tnef";
@@ -124,7 +125,9 @@ import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { RulesPanel, useRulesAvailability } from "./rules-menu";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { ResizeHandle } from "@/components/layout/resize-handle";
-import { emailHooks, uiHooks, renderHooks } from "@/lib/plugin-hooks";
+import { emailHooks, renderHooks } from "@/lib/plugin-hooks";
+import { emitThreadExpand } from "@/lib/plugin-thread-expand";
+import { resolveExternalLink } from "@/lib/plugin-hook-result";
 import type { AttachmentInfo, AttachmentPreview } from "@/lib/plugin-types";
 import { useAttachmentDrag, isDragOutSupported, type AttachmentDragSource } from "@/hooks/use-attachment-drag";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
@@ -1123,6 +1126,8 @@ export function EmailViewer({
   // conversation opens with its unread messages unfolded, as Gmail does, so
   // reading the thread reads all of them.
   const [mvExpandedIds, setMvExpandedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const mvExpandedIdsRef = useRef(mvExpandedIds);
+  mvExpandedIdsRef.current = mvExpandedIds;
   const mvExpandedThreadRef = useRef<string | null>(null);
   useEffect(() => {
     if (!mvConversation || mvConversation.length === 0 || !email) {
@@ -1135,6 +1140,7 @@ export function EmailViewer({
     setMvExpandedIds(new Set(mvConversation.filter((e) => e.id !== email.id && !e.keywords?.$seen).map((e) => e.id)));
   }, [mvConversation, email]);
   const toggleMvExpanded = useCallback((target: Email) => {
+    emitThreadExpand(target.threadId, [target], !mvExpandedIdsRef.current.has(target.id));
     setMvExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(target.id)) next.delete(target.id);
@@ -1146,6 +1152,12 @@ export function EmailViewer({
   const [mvOpenCollapsed, setMvOpenCollapsed] = useState(false);
   useEffect(() => setMvOpenCollapsed(false), [email?.id]);
   const mvOpenFolded = mvOpenIndex >= 0 && mvOpenCollapsed;
+  // Folding or unfolding the open message of a conversation, told to plugins
+  // like any other conversation message (onThreadExpand).
+  const setMvOpenFolded = (folded: boolean) => {
+    if (email) emitThreadExpand(email.threadId, [email], !folded);
+    setMvOpenCollapsed(folded);
+  };
   // The conversation is not here yet (the one on hand is another thread's, or
   // none). Hold the message back instead of drawing it alone and then pushing
   // it down under the earlier messages.
@@ -2789,6 +2801,30 @@ export function EmailViewer({
     staleDocRef.current = iframeRef.current?.contentDocument ?? null;
   }, [emailIframeSrcDoc]);
 
+  // onEmailContentRender: once per opened message, after its body is on
+  // screen (the iframe has loaded an HTML body; a text body renders at once).
+  const contentRenderedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!email || isBodyLoading) return;
+    if (effectiveEmailContent.isHtml && !iframeReady) return;
+    if (contentRenderedForRef.current === email.id) return;
+    contentRenderedForRef.current = email.id;
+    if (emailHooks.onEmailContentRender.size === 0) return;
+    let hasExternalContent = hasBlockedContent;
+    if (!hasExternalContent && effectiveEmailContent.isHtml) {
+      // Loaded rather than blocked (allowed by the user or the policy): look
+      // at what the rendered body actually references.
+      const doc = iframeRef.current?.contentDocument;
+      hasExternalContent = !!doc && Array.from(doc.querySelectorAll('[src], [srcset], [background], [poster]')).some((el) =>
+        ['src', 'srcset', 'background', 'poster'].some((attr) => isExternalResourceUrl(el.getAttribute(attr))));
+    }
+    void emailHooks.onEmailContentRender.emit({
+      emailId: email.id,
+      hasHtml: effectiveEmailContent.isHtml,
+      hasExternalContent,
+    });
+  }, [email, isBodyLoading, effectiveEmailContent.isHtml, iframeReady, hasBlockedContent]);
+
   // Open a blob: link the rendered body points at a cid: part. Mirrors the
   // attachment-chip gate: inert previewable types open in a tab, everything
   // else (and any blob: URL we did not mint) is downloaded under its part name.
@@ -2914,7 +2950,17 @@ export function EmailViewer({
           const targetEl = (ev.target as Element | null)?.closest?.('a[href], area[href]') as HTMLAnchorElement | HTMLAreaElement | null;
           if (!targetEl) return;
           const href = targetEl.getAttribute('href') || '';
-          if (!href || href.startsWith('#') || href.startsWith('mailto:')) return;
+          if (!href || href.startsWith('#')) return;
+          if (/^mailto:/i.test(href)) {
+            // Write it here, like any other address in the app; the mail page
+            // asks onMailtoIntercept first. Not taken (no recipient, nobody
+            // listening): the browser's own handling stays.
+            if (requestInternalMailto(href)) {
+              ev.preventDefault();
+              ev.stopPropagation();
+            }
+            return;
+          }
           ev.preventDefault();
           ev.stopPropagation();
           // A link at a cid: part now carries the blob: URL we minted for it.
@@ -2929,14 +2975,16 @@ export function EmailViewer({
           // data:, unresolved cid: and relative paths would land inside our
           // own origin.
           if (!isOpenableLinkHref(href)) return;
-          const ctx = {
+          const ctx: ExternalLinkContext = {
             href,
             target: targetEl.getAttribute('target') ?? undefined,
             emailId: email?.id,
           };
-          const ok = await uiHooks.onBeforeExternalLink.intercept(ctx);
-          if (!ok || !isOpenableLinkHref(ctx.href)) return;
-          window.open(ctx.href, '_blank', 'noopener,noreferrer');
+          // A plugin returns false to stop the link or { href } to send it
+          // somewhere else (a web address only).
+          const target = await resolveExternalLink(ctx);
+          if (!target) return;
+          window.open(target, '_blank', 'noopener,noreferrer');
         };
         doc.addEventListener('click', onLinkClick, true);
 
@@ -4430,7 +4478,7 @@ export function EmailViewer({
       {/* Mountain View: the open message folded like the rest of the conversation. */}
       {mvOpenFolded && email ? (
         <div data-mv-open-folded="">
-          <MvConversationCard email={email} onOpen={() => setMvOpenCollapsed(false)} timeFormat={timeFormat} compact={mvMobileViewer} />
+          <MvConversationCard email={email} onOpen={() => setMvOpenFolded(false)} timeFormat={timeFormat} compact={mvMobileViewer} />
         </div>
       ) : mvAwaitingConversation ? (
         <div className={cn("flex items-start py-3 animate-pulse", mvMobileViewer ? "gap-3 px-4" : "gap-4 px-6")} data-mv-conversation-pending="">
@@ -4452,7 +4500,7 @@ export function EmailViewer({
           // message, as Gmail does; its buttons and links keep their own job.
           if (isInteractiveClick(e.target, e.currentTarget)) return;
           if (window.getSelection()?.toString()) return;
-          setMvOpenCollapsed(true);
+          setMvOpenFolded(true);
         } : undefined}
       >
           <div className="flex items-start" style={{ gap: mvViewer ? '16px' : 'var(--density-item-gap)' }}>
@@ -4770,7 +4818,7 @@ export function EmailViewer({
           onClick={mvOpenIndex >= 0 ? (e) => {
             if (isInteractiveClick(e.target, e.currentTarget)) return;
             if (window.getSelection()?.toString()) return;
-            setMvOpenCollapsed(true);
+            setMvOpenFolded(true);
           } : undefined}
         >
           <div className="flex items-start" style={{ gap: 'var(--density-item-gap)' }}>

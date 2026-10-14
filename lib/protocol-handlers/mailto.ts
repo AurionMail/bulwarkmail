@@ -117,6 +117,23 @@ export function parseMailto(raw: string): ParsedMailto | null {
   };
 }
 
+/**
+ * A mailto: URL for parsed fields, for hooks that report the link when the
+ * original URL is gone (a request that came through the OS handler).
+ */
+export function formatMailto(fields: Pick<ParsedMailto, "to"> & Partial<Omit<ParsedMailto, "to">>): string {
+  const params: string[] = [];
+  const add = (key: string, value: string | undefined) => {
+    if (value) params.push(`${key}=${encodeURIComponent(value)}`);
+  };
+  add("cc", fields.cc?.join(","));
+  add("bcc", fields.bcc?.join(","));
+  add("subject", fields.subject);
+  add("body", fields.body);
+  const to = fields.to.map(encodeURIComponent).join(",");
+  return `mailto:${to}${params.length ? `?${params.join("&")}` : ""}`;
+}
+
 /** Window event carrying a parsed in-app mailto request to the mail page. */
 export const INTERNAL_MAILTO_EVENT = "bulwark:mailto";
 
@@ -137,7 +154,7 @@ export function requestInternalMailto(raw: string): boolean {
   // The listener signals "handled" by cancelling the event, which makes
   // dispatchEvent report false - so an uncancelled dispatch means nobody took it.
   const uncancelled = window.dispatchEvent(
-    new CustomEvent<ParsedMailto>(INTERNAL_MAILTO_EVENT, { detail: parsed, cancelable: true }),
+    new CustomEvent<ParsedMailto & { href: string }>(INTERNAL_MAILTO_EVENT, { detail: { ...parsed, href: raw }, cancelable: true }),
   );
   return !uncancelled;
 }

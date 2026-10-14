@@ -31,6 +31,7 @@ import { TagDisplayContext, useMeasuredTagDisplay } from "@/hooks/use-tag-displa
 import { SearchChips } from "@/components/search/search-chips";
 import { isFilterEmpty, DEFAULT_SEARCH_FILTERS } from "@/lib/jmap/search-utils";
 import { getOwnAddresses } from "@/lib/filters/quick-rule-target";
+import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { normalizeAddress } from "@/lib/filters/quick-rules";
 
 interface EmailListProps {
@@ -497,18 +498,34 @@ export function EmailList({
     }
   }, [client, hasMoreEmails, isLoadingMore, isLoading, isScheduledView, loadMoreEmails, onLoadMoreScheduled]);
 
+  // The messages of a thread as the list knows them, for onThreadExpand.
+  const threadMembers = useCallback((threadKey: string): Email[] => (
+    useEmailStore.getState().threadEmailsCache.get(threadKey)
+      ?? threadGroups.find((g) => g.threadKey === threadKey)?.emails
+      ?? []
+  ), [threadGroups]);
+
   const handleToggleThreadExpansion = useCallback(async (threadKey: string) => {
     const isExpanded = expandedThreadIds.has(threadKey);
 
     if (!isExpanded && client) {
       toggleThreadExpansion(threadKey);
       await fetchThreadEmails(client, threadKey);
+      emitThreadExpand(threadKey, threadMembers(threadKey), true);
       // Mark all unread emails in this thread as read
       void markThreadAsRead(client, threadKey);
     } else {
       toggleThreadExpansion(threadKey);
+      emitThreadExpand(threadKey, threadMembers(threadKey), !isExpanded);
     }
-  }, [client, expandedThreadIds, toggleThreadExpansion, fetchThreadEmails, markThreadAsRead]);
+  }, [client, expandedThreadIds, toggleThreadExpansion, fetchThreadEmails, markThreadAsRead, threadMembers]);
+
+  const collapseAllThreadsAndNotify = useCallback(() => {
+    const wereExpanded = [...useEmailStore.getState().expandedThreadIds];
+    const members = wereExpanded.map((key) => [key, threadMembers(key)] as const);
+    collapseAllThreads();
+    for (const [key, emails] of members) emitThreadExpand(key, emails, false);
+  }, [collapseAllThreads, threadMembers]);
 
   // Range-based load more: trigger when last visible item is near the end.
   // Debounce to prevent rapid cascade when thread grouping reduces item
@@ -756,14 +773,14 @@ export function EmailList({
                       isLoading={isLoadingThread === thread.threadKey}
                       expandedEmails={threadEmailsCache.get(thread.threadKey)}
                       onToggleExpand={() => handleToggleThreadExpansion(thread.threadKey)}
-                      onCollapseAllThreads={collapseAllThreads}
+                      onCollapseAllThreads={collapseAllThreadsAndNotify}
                       onEmailSelect={(email) => {
                         // Collapse expanded threads when selecting an email outside the expanded thread
                         const currentExpanded = useEmailStore.getState().expandedThreadIds;
                         if (currentExpanded.size > 0) {
                           // Check if the selected email belongs to any expanded thread via its threadId
                           if (!email.threadId || !currentExpanded.has(threadKeyFor(email))) {
-                            collapseAllThreads();
+                            collapseAllThreadsAndNotify();
                           }
                         }
                         onEmailSelect?.(email);
