@@ -40,9 +40,9 @@ import { EncryptionAtRestConfig, PublicKeyInfo, PublicKeyInput, useAccountSecuri
  */
 const PRIVILEGED_ONLY_METHODS = new Set<string>([
   'jmap.fetchBlob',
-  // Puts arbitrary bytes on the mail server. Untrusted plugins attach files
-  // through the composer and draft APIs instead, which bound and label them.
-  'jmap.uploadBlob',
+  // NOTE: jmap.uploadBlob is deliberately NOT here. The composer's
+  // `composer-attachment-source` slot is built for untrusted plugins that
+  // upload a file (from cloud storage, say) and hand the blob id to onAttach.
   'jmap.sendRaw',
   'jmap.submitRaw',
   'jmap.importRaw',

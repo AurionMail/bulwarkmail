@@ -306,11 +306,16 @@ describe('native keyword extension API', () => {
   });
 });
 
-describe('privileged-only methods', () => {
-  it('refuses jmap.uploadBlob to an untrusted plugin even with email:blob-write', async () => {
+describe('jmap.uploadBlob', () => {
+  it('is open to an untrusted plugin with email:blob-write, for composer attachment sources', async () => {
     const p = plugin({ permissions: ['email:blob-write'], grantedPermissions: ['email:blob-write'] });
     expect(await gateError(p, 'jmap.uploadBlob', [new Uint8Array(1), 'a.bin', 'application/octet-stream']))
-      .toMatch(/requires the privileged plugin tier/);
+      .not.toMatch(GATE_FAILURE);
+  });
+
+  it('still needs email:blob-write', async () => {
+    expect(await gateError(plugin(), 'jmap.uploadBlob', [new Uint8Array(1), 'a.bin', 'x/y']))
+      .toMatch(/lacks permission "email:blob-write"/);
   });
 });
 

@@ -328,6 +328,7 @@ function buildPluginApi(manifest: PluginManifest) {
       /** Fetch a blob's raw bytes by id. Resolves to a Uint8Array. */
       fetchBlob: (blobId: string, opts?: { name?: string; type?: string, rangeHeader?: number }) =>
         callApi('jmap.fetchBlob', [blobId, opts]) as Promise<Uint8Array>,
+      /** Upload bytes to the mail server (email:blob-write); pass the blob id to a composer's onAttach. */
       uploadBlob: (content: Uint8Array, name: string, type: string) =>
         callApi('jmap.uploadBlob', [content, name, type]) as Promise<{ blobId: string; size: number; type: string; }>,
       /** Submit a fully-formed raw RFC822 message (already signed/encrypted). */
