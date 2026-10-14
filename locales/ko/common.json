@@ -4294,6 +4294,7 @@
       "cancel": "취소",
       "close": "닫기",
       "turn_off": "{name} 끄기",
+      "plugin_menu": "{name} 옵션",
       "password_note": "이 양식은 웹메일이 아니라 플러그인 {name}에서 표시한 것입니다. 이 플러그인을 신뢰할 때만 비밀번호를 입력하세요.",
       "toast_auto_disabled": "{name}이(가) 계속 실패해서 꺼졌습니다."
     },

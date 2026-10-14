@@ -5,14 +5,22 @@
 // a time. Closing the modal advances the queue. Prompts collect one or more
 // (optionally masked) fields so plugins never fall back to `window.prompt`,
 // which the sandbox blocks.
+//
+// They look like the app's own dialogs: a custom dialog (api.ui.openDialog)
+// is the filter editor's layout, with the plugin's buttons (kit
+// DialogButtons) drawn by the host in its footer; confirm, alert and prompt
+// are the app's ConfirmDialog and PromptDialog.
 
-import React, { useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslations } from 'next-intl';
 import { cancelForPlugin, head, overlay, resolveDialog, subscribe, type DialogRequest } from '@/lib/plugin-sandbox/host-dialog';
+import type { DialogButtonSpec } from '@/lib/plugin-sandbox/ui-kit/dialog-buttons';
 import { usePluginStore } from '@/stores/plugin-store';
 import { toast } from '@/stores/toast-store';
 import { Button } from '@/components/ui/button';
-import { Puzzle, X } from '@/components/icons';
+import { Input } from '@/components/ui/input';
+import { Loader2, MoreHorizontal, Power, Puzzle, X } from '@/components/icons';
+import { cn } from '@/lib/utils';
 import { PluginIframeSlot } from './plugin-iframe-slot';
 import type { SlotName } from '@/lib/plugin-types';
 
@@ -54,6 +62,28 @@ export function PluginDialogHost(): React.JSX.Element | null {
   );
 }
 
+const DIALOG_BUTTON_VARIANT = { primary: 'default', secondary: 'outline', ghost: 'ghost', destructive: 'destructive' } as const;
+const DIALOG_BUTTON_ID_RE = /^[A-Za-z0-9._-]{1,40}$/;
+export const MAX_DIALOG_BUTTONS = 4;
+
+/** The buttons a plugin dialog asked for (kit DialogButtons), checked. */
+export function readDialogButtons(value: unknown): DialogButtonSpec[] {
+  if (!Array.isArray(value)) return [];
+  const out: DialogButtonSpec[] = [];
+  for (const raw of value.slice(0, MAX_DIALOG_BUTTONS)) {
+    if (!raw || typeof raw !== 'object') continue;
+    const b = raw as Record<string, unknown>;
+    if (typeof b.id !== 'string' || !DIALOG_BUTTON_ID_RE.test(b.id)) continue;
+    if (typeof b.label !== 'string') continue;
+    // eslint-disable-next-line no-control-regex -- one line of text
+    const label = b.label.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 40);
+    if (!label) continue;
+    const variant = b.variant === 'secondary' || b.variant === 'ghost' || b.variant === 'destructive' ? b.variant : 'primary';
+    out.push({ id: b.id, label, variant, ...(b.disabled === true ? { disabled: true } : {}), ...(b.busy === true ? { busy: true } : {}) });
+  }
+  return out;
+}
+
 /**
  * One plugin dialog. `below`: a custom dialog with a confirm or prompt of
  * the same plugin open on top of it; it stays mounted but takes no keys.
@@ -78,13 +108,25 @@ function PluginDialogView({ current, layer }: { current: DialogRequest; layer: '
     setValues(init);
   }, [current]);
 
+  // Footer buttons of a custom dialog: the plugin declares them, the host
+  // draws them and passes each click back as `dialogButtonClick` ({ id, n }).
+  const [buttons, setButtons] = useState<DialogButtonSpec[]>([]);
+  const [buttonClick, setButtonClick] = useState<{ id: string; n: number }>({ id: '', n: 0 });
+  const setDialogButtons = useCallback((value: unknown) => { setButtons(readDialogButtons(value)); }, []);
+  const pressButton = (id: string) => setButtonClick((c) => ({ id, n: c.n + 1 }));
+
   // The custom slot's onResult answers its own dialog only; a stray second
   // call after it closed must not resolve the next one in the queue.
   const customProps = useMemo(() => {
     if (current?.kind !== 'custom') return undefined;
     const id = current.id;
-    return { ...(current.extraProps ?? {}), onResult: (value: unknown) => resolveDialog(id, value) };
-  }, [current]);
+    return {
+      ...(current.extraProps ?? {}),
+      onResult: (value: unknown) => resolveDialog(id, value),
+      setDialogButtons,
+      dialogButtonClick: buttonClick,
+    };
+  }, [current, setDialogButtons, buttonClick]);
 
   const canSubmit = fields.every((f) => !f.required || (values[f.name] ?? '').length > 0);
 
@@ -122,6 +164,21 @@ function PluginDialogView({ current, layer }: { current: DialogRequest; layer: '
   const name = pluginName ?? current.pluginId;
   const confirmLabel = current.confirmLabel ?? (current.kind === 'alert' ? t('ok') : current.kind === 'prompt' ? t('submit') : t('confirm'));
   const cancelLabel = current.cancelLabel ?? t('cancel');
+  const custom = current.kind === 'custom';
+
+  // Who is asking, under the title: plugins choose the title and message, so
+  // the host names the plugin in a place the plugin can't change.
+  const attribution = (
+    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground" data-plugin-dialog-source="">
+      <Puzzle className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+      <span className="min-w-0 truncate">{t('from_plugin', { name })}</span>
+    </p>
+  );
+  const message = current.message ? (
+    <p className="mb-4 whitespace-pre-wrap text-sm text-muted-foreground [overflow-wrap:anywhere]">
+      {renderMessage(current.message)}
+    </p>
+  ) : null;
 
   return (
     <div
@@ -131,92 +188,160 @@ function PluginDialogView({ current, layer }: { current: DialogRequest; layer: '
       aria-hidden={layer === 'below' ? true : undefined}
       className={layer === 'above'
         ? 'fixed inset-0 z-[100001] flex items-center justify-center bg-black/30 p-4'
-        : 'fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 p-4'}
+        : 'fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 backdrop-blur-[1px] p-4 animate-in fade-in duration-150'}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) cancel();
       }}
     >
       <div
-        className="flex w-full flex-col rounded-lg border border-border bg-popover text-popover-foreground shadow-xl"
-        style={{
-          maxWidth: current.kind === 'custom' ? (current.width ?? 560) : 480,
-          maxHeight: '90vh',
-        }}
+        className="flex w-full flex-col overflow-hidden rounded-lg border border-border bg-background text-foreground shadow-xl animate-in zoom-in-95 duration-200"
+        style={{ maxWidth: custom ? (current.width ?? 560) : 448, maxHeight: '90vh' }}
+        data-plugin-dialog={current.pluginId}
       >
-        {/* Who is asking. Plugins choose the title and message, so the host
-            names the plugin itself, in a place the plugin can't change. */}
-        <div className="flex items-center gap-2 border-b border-border px-5 py-2 text-xs text-muted-foreground">
-          <Puzzle className="h-3.5 w-3.5 flex-shrink-0" />
-          <span className="min-w-0 flex-1 truncate">{t('from_plugin', { name })}</span>
-          {current.kind === 'custom' && (
-            <button type="button" onClick={cancel} aria-label={t('close')} className="rounded p-1 hover:bg-accent">
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        <div className={current.kind === 'custom' ? 'min-h-0 flex-1 overflow-y-auto p-5' : 'p-5'}>
-          <h2 id={titleId} className="mb-2.5 text-base font-semibold">{current.title}</h2>
-          {current.message && (
-            <p className="mb-4 whitespace-pre-wrap text-sm text-muted-foreground [overflow-wrap:anywhere]">
-              {renderMessage(current.message)}
-            </p>
-          )}
-          {current.kind === 'custom' ? (
-            <PluginIframeSlot
-              pluginId={current.pluginId}
-              slot={(current.slot ?? 'plugin-dialog') as SlotName}
-              extraProps={customProps}
-            />
-          ) : isPrompt ? (
-            <form onSubmit={(e) => { e.preventDefault(); submitPrompt(); }}>
-              <div className="mb-4 flex flex-col gap-3">
-                {fields.map((f, i) => (
-                  <label key={f.name} className="flex flex-col gap-1">
-                    <span className="text-xs font-medium">{f.label}{f.required ? ' *' : ''}</span>
-                    <input
-                      type={f.type === 'password' ? 'password' : 'text'}
-                      value={values[f.name] ?? ''}
-                      placeholder={f.placeholder}
-                      autoFocus={i === 0}
-                      autoComplete={f.type === 'password' ? 'off' : undefined}
-                      onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                      className="w-full rounded-md border border-input bg-background px-2.5 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </label>
-                ))}
-                {hasPassword && (
-                  <p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-foreground">{t('password_note', { name })}</p>
-                )}
+        {custom ? (
+          <>
+            <div className="flex items-start gap-1 px-6 py-4 border-b border-border">
+              <div className="min-w-0 flex-1 pe-2">
+                <h2 id={titleId} className="text-lg font-semibold text-foreground [overflow-wrap:anywhere]">{current.title}</h2>
+                {attribution}
               </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={cancel}>{cancelLabel}</Button>
-                <Button type="submit" disabled={!canSubmit}>{confirmLabel}</Button>
-              </div>
-            </form>
-          ) : (
-            <div className="flex justify-end gap-2">
-              {current.kind === 'confirm' && (
-                <Button type="button" variant="outline" autoFocus={!!current.danger} onClick={cancel}>{cancelLabel}</Button>
-              )}
-              <Button
+              <PluginDialogMenu name={name} onTurnOff={turnOff} />
+              <button
                 type="button"
-                variant={current.danger ? 'destructive' : 'default'}
-                autoFocus={current.kind === 'alert' || !current.danger}
-                onClick={() => resolveThis(true)}
+                onClick={cancel}
+                aria-label={t('close')}
+                className="p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground"
               >
-                {confirmLabel}
-              </Button>
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          )}
-        </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              {message}
+              <PluginIframeSlot
+                pluginId={current.pluginId}
+                slot={(current.slot ?? 'plugin-dialog') as SlotName}
+                extraProps={customProps}
+              />
+            </div>
+            {buttons.length > 0 && (
+              <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4 border-t border-border" data-plugin-dialog-buttons="">
+                {buttons.map((b) => (
+                  <Button
+                    key={b.id}
+                    type="button"
+                    variant={DIALOG_BUTTON_VARIANT[b.variant ?? 'primary']}
+                    disabled={b.disabled || b.busy}
+                    aria-busy={b.busy || undefined}
+                    className="gap-1.5"
+                    onClick={() => pressButton(b.id)}
+                  >
+                    {b.busy && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+                    {b.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-start gap-1 px-6 pt-6">
+              <div className="min-w-0 flex-1 pe-2">
+                <h2 id={titleId} className="text-lg font-semibold text-foreground [overflow-wrap:anywhere]">{current.title}</h2>
+                {attribution}
+              </div>
+              <PluginDialogMenu name={name} onTurnOff={turnOff} />
+            </div>
+            <div className="px-6 pt-3 pb-6">
+              {message}
+              {isPrompt ? (
+                <form onSubmit={(e) => { e.preventDefault(); submitPrompt(); }}>
+                  <div className="mb-6 flex flex-col gap-4">
+                    {fields.map((f, i) => (
+                      <label key={f.name} className="block">
+                        <span className="text-sm font-medium mb-1 block text-foreground">
+                          {f.label}{f.required && <span className="text-destructive"> *</span>}
+                        </span>
+                        <Input
+                          type={f.type === 'password' ? 'password' : 'text'}
+                          value={values[f.name] ?? ''}
+                          placeholder={f.placeholder}
+                          autoFocus={i === 0}
+                          autoComplete={f.type === 'password' ? 'off' : undefined}
+                          onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
+                        />
+                      </label>
+                    ))}
+                    {hasPassword && (
+                      <p className="rounded-md bg-warning/10 px-3 py-2 text-xs text-foreground">{t('password_note', { name })}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={cancel}>{cancelLabel}</Button>
+                    <Button type="submit" disabled={!canSubmit}>{confirmLabel}</Button>
+                  </div>
+                </form>
+              ) : (
+                <div className={cn('flex items-center justify-end gap-3', !current.message && 'mt-3')}>
+                  {current.kind === 'confirm' && (
+                    <Button type="button" variant="outline" autoFocus={!!current.danger} onClick={cancel}>{cancelLabel}</Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant={current.danger ? 'destructive' : 'default'}
+                    autoFocus={current.kind === 'alert' || !current.danger}
+                    onClick={() => resolveThis(true)}
+                  >
+                    {confirmLabel}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
-        <div className="border-t border-border px-5 py-2 text-right">
-          <button type="button" onClick={turnOff} className="text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline">
-            {t('turn_off', { name })}
+/** The "⋯" menu in a plugin dialog's header: the way out of a plugin that keeps asking. */
+function PluginDialogMenu({ name, onTurnOff }: { name: string; onTurnOff: () => void }) {
+  const t = useTranslations('plugins.dialog');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown, true);
+    return () => document.removeEventListener('mousedown', onDown, true);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t('plugin_menu', { name })}
+        title={t('plugin_menu', { name })}
+        className={cn('p-1.5 rounded-md hover:bg-muted transition-colors duration-150 text-muted-foreground hover:text-foreground', open && 'bg-muted text-foreground')}
+      >
+        <MoreHorizontal className="w-5 h-5" />
+      </button>
+      {open && (
+        <div role="menu" className="absolute end-0 top-full z-10 mt-1 min-w-[200px] rounded-md border border-border bg-background py-1 shadow-lg">
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => { setOpen(false); onTurnOff(); }}
+            className="w-full px-3 py-1.5 text-sm text-start flex items-center gap-2 transition-colors duration-150 text-destructive hover:bg-destructive/10 focus:outline-none focus:bg-destructive/10"
+          >
+            <Power className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1">{t('turn_off', { name })}</span>
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

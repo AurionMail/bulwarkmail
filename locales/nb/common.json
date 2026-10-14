@@ -4294,6 +4294,7 @@
       "cancel": "Avbryt",
       "close": "Lukk",
       "turn_off": "Slå av {name}",
+      "plugin_menu": "Alternativer for {name}",
       "password_note": "Dette skjemaet kommer fra tillegget {name}, ikke fra webmailen. Skriv bare inn et passord hvis du stoler på dette tillegget.",
       "toast_auto_disabled": "{name} ble slått av fordi det feilet gjentatte ganger."
     },

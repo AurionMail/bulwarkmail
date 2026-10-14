@@ -4294,6 +4294,7 @@
       "cancel": "İptal",
       "close": "Kapat",
       "turn_off": "{name} eklentisini kapat",
+      "plugin_menu": "{name} seçenekleri",
       "password_note": "Bu form web postasından değil, {name} eklentisinden geliyor. Yalnızca bu eklentiye güveniyorsanız parola girin.",
       "toast_auto_disabled": "{name} sürekli hata verdiği için kapatıldı."
     },

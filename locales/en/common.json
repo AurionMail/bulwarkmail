@@ -4294,6 +4294,7 @@
       "cancel": "Cancel",
       "close": "Close",
       "turn_off": "Turn off {name}",
+      "plugin_menu": "Options for {name}",
       "password_note": "This form comes from the plugin {name}, not from the webmail. Only enter a password if you trust this plugin.",
       "toast_auto_disabled": "{name} was turned off because it kept failing."
     },

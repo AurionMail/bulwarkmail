@@ -4294,6 +4294,7 @@
       "cancel": "取消",
       "close": "关闭",
       "turn_off": "关闭 {name}",
+      "plugin_menu": "{name} 选项",
       "password_note": "此表单来自插件 {name}，而不是网页邮箱。只有在您信任此插件时才输入密码。",
       "toast_auto_disabled": "{name} 因反复出错已被关闭。"
     },

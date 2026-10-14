@@ -4294,6 +4294,7 @@
       "cancel": "Annuller",
       "close": "Luk",
       "turn_off": "Slå {name} fra",
+      "plugin_menu": "Indstillinger for {name}",
       "password_note": "Denne formular kommer fra pluginet {name}, ikke fra webmailen. Indtast kun en adgangskode, hvis du stoler på dette plugin.",
       "toast_auto_disabled": "{name} blev slået fra, fordi det blev ved med at fejle."
     },

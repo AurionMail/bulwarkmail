@@ -4294,6 +4294,7 @@
       "cancel": "Zrušit",
       "close": "Zavřít",
       "turn_off": "Vypnout {name}",
+      "plugin_menu": "Možnosti pro {name}",
       "password_note": "Tento formulář pochází z pluginu {name}, ne z webmailu. Heslo zadejte jen tehdy, když tomuto pluginu důvěřujete.",
       "toast_auto_disabled": "{name} byl vypnut, protože opakovaně selhával."
     },

@@ -4294,6 +4294,7 @@
       "cancel": "Cancelar",
       "close": "Cerrar",
       "turn_off": "Desactivar {name}",
+      "plugin_menu": "Opciones de {name}",
       "password_note": "Este formulario viene del complemento {name}, no del correo web. Introduce una contraseña solo si confías en este complemento.",
       "toast_auto_disabled": "{name} se desactivó porque fallaba una y otra vez."
     },

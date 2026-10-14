@@ -4294,6 +4294,7 @@
       "cancel": "Annuleren",
       "close": "Sluiten",
       "turn_off": "{name} uitzetten",
+      "plugin_menu": "Opties voor {name}",
       "password_note": "Dit formulier komt van de plug-in {name}, niet van de webmail. Vul alleen een wachtwoord in als je deze plug-in vertrouwt.",
       "toast_auto_disabled": "{name} is uitgezet omdat het steeds misging."
     },

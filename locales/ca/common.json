@@ -4294,6 +4294,7 @@
       "cancel": "Cancel·la",
       "close": "Tanca",
       "turn_off": "Desactiva {name}",
+      "plugin_menu": "Opcions de {name}",
       "password_note": "Aquest formulari ve del connector {name}, no del correu web. Introduïu una contrasenya només si confieu en aquest connector.",
       "toast_auto_disabled": "{name} s'ha desactivat perquè fallava repetidament."
     },

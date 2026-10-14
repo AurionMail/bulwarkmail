@@ -4294,6 +4294,7 @@
       "cancel": "Atcelt",
       "close": "Aizvērt",
       "turn_off": "Izslēgt {name}",
+      "plugin_menu": "{name} opcijas",
       "password_note": "Šī veidlapa nāk no spraudņa {name}, nevis no tīmekļa pasta. Ievadiet paroli tikai tad, ja uzticaties šim spraudnim.",
       "toast_auto_disabled": "{name} tika izslēgts, jo atkārtoti neizdevās."
     },

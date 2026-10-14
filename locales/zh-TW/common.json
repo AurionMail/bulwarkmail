@@ -4294,6 +4294,7 @@
       "cancel": "取消",
       "close": "關閉",
       "turn_off": "關閉 {name}",
+      "plugin_menu": "{name} 選項",
       "password_note": "此表單來自外掛程式 {name}，而不是網頁郵件。只有在您信任此外掛程式時才輸入密碼。",
       "toast_auto_disabled": "{name} 因反覆出錯已被關閉。"
     },

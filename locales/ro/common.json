@@ -4294,6 +4294,7 @@
       "cancel": "Anulează",
       "close": "Închide",
       "turn_off": "Dezactivează {name}",
+      "plugin_menu": "Opțiuni pentru {name}",
       "password_note": "Acest formular vine de la pluginul {name}, nu de la webmail. Introduceți o parolă doar dacă aveți încredere în acest plugin.",
       "toast_auto_disabled": "{name} a fost dezactivat pentru că a eșuat în mod repetat."
     },

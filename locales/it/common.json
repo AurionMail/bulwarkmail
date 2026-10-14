@@ -4294,6 +4294,7 @@
       "cancel": "Annulla",
       "close": "Chiudi",
       "turn_off": "Disattiva {name}",
+      "plugin_menu": "Opzioni di {name}",
       "password_note": "Questo modulo proviene dal plugin {name}, non dalla webmail. Inserisci una password solo se ti fidi di questo plugin.",
       "toast_auto_disabled": "{name} è stato disattivato perché continuava a non funzionare."
     },

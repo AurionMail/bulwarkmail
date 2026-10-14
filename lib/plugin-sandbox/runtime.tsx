@@ -28,6 +28,7 @@ import type {
   SlotInit,
 } from './protocol';
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
+import { pluginUiKit, SlotPropsContext } from './ui-kit';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
@@ -803,7 +804,7 @@ function buildPluginApi(manifest: PluginManifest) {
  * The host injects the per-plugin API as `@plugin-host`, so plugin code can
  * `const api = require('@plugin-host')` in both background and slot modes.
  */
-function makePluginRequire(api: ReturnType<typeof buildPluginApi> | null): (name: string) => unknown {
+export function makePluginRequire(api: ReturnType<typeof buildPluginApi> | null): (name: string) => unknown {
   const known: Record<string, unknown> = {
     'react': React,
     'react-dom': ReactDOM,
@@ -812,6 +813,9 @@ function makePluginRequire(api: ReturnType<typeof buildPluginApi> | null): (name
     'react/jsx-dev-runtime': ReactJSXRuntime,
   };
   if (api) known['@plugin-host'] = api;
+  // The app's controls (lib/plugin-sandbox/ui-kit), so plugins draw the same
+  // buttons, fields and lists as the app without bundling their own.
+  known['@plugin-host/ui'] = pluginUiKit;
   return (name: string) => {
     if (Object.prototype.hasOwnProperty.call(known, name)) return known[name];
     throw new Error(`Plugin sandbox: module "${name}" is not available. Externalise it in your bundler or ship it bundled.`);
@@ -971,7 +975,8 @@ function bootSlot(payload: SlotInit): void {
     const style = inline
       ? { display: 'inline-block', width: 'max-content', maxWidth: MAX_INLINE_SLOT_WIDTH }
       : undefined;
-    return React.createElement('div', { ref: wrapRef, style }, React.createElement(Component, props));
+    return React.createElement('div', { ref: wrapRef, style },
+      React.createElement(SlotPropsContext.Provider, { value: props }, React.createElement(Component, props)));
   };
 
   const reactRoot = ReactDOM.createRoot(rootEl);

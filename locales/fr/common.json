@@ -4294,6 +4294,7 @@
       "cancel": "Annuler",
       "close": "Fermer",
       "turn_off": "Désactiver {name}",
+      "plugin_menu": "Options de {name}",
       "password_note": "Ce formulaire provient du plugin {name}, pas du webmail. Ne saisissez un mot de passe que si vous faites confiance à ce plugin.",
       "toast_auto_disabled": "{name} a été désactivé parce qu'il échouait sans cesse."
     },

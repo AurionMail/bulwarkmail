@@ -4294,6 +4294,7 @@
       "cancel": "Mégse",
       "close": "Bezárás",
       "turn_off": "{name} kikapcsolása",
+      "plugin_menu": "{name} beállításai",
       "password_note": "Ez az űrlap a(z) {name} bővítménytől származik, nem a webmailtől. Csak akkor adjon meg jelszót, ha megbízik ebben a bővítményben.",
       "toast_auto_disabled": "{name} ki lett kapcsolva, mert többször is hibát okozott."
     },

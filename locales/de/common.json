@@ -4294,6 +4294,7 @@
       "cancel": "Abbrechen",
       "close": "Schließen",
       "turn_off": "{name} ausschalten",
+      "plugin_menu": "Optionen für {name}",
       "password_note": "Dieses Formular stammt vom Plugin {name}, nicht vom Webmail. Geben Sie ein Passwort nur ein, wenn Sie diesem Plugin vertrauen.",
       "toast_auto_disabled": "{name} wurde ausgeschaltet, weil es wiederholt fehlgeschlagen ist."
     },
