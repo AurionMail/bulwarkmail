@@ -122,6 +122,8 @@ import { VerificationCodeChip } from "./verification-code-chip";
 import { ConversationEmailBody, useConversationExternalContent, useMarkReadWhenShown } from "./thread-conversation-view";
 import type { TnefAttachment } from "@/lib/tnef";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { PluginActions } from "@/components/plugins/plugin-actions";
+import { AttachmentPluginMenu, PluginPanelEntries, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 import { RulesPanel, useRulesAvailability } from "./rules-menu";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { ResizeHandle } from "@/components/layout/resize-handle";
@@ -1122,6 +1124,11 @@ export function EmailViewer({
   const mvOpenIndex = (mvViewer || mvMobileViewer) && mvConversation && email ? mvConversation.findIndex((e) => e.id === email.id) : -1;
   const mvBefore = mvOpenIndex > 0 ? mvConversation!.slice(0, mvOpenIndex) : [];
   const mvAfter = mvOpenIndex >= 0 ? mvConversation!.slice(mvOpenIndex + 1) : [];
+  const mvConversationIds = mvOpenIndex >= 0 ? mvConversation!.map((e) => e.id).join(',') : '';
+  const threadSummaryProps = useMemo(
+    () => ({ threadId: email?.threadId ?? null, emailIds: mvConversationIds ? mvConversationIds.split(',') : [] }),
+    [email?.threadId, mvConversationIds],
+  );
   // Mountain View: which other messages of the conversation are unfolded. A
   // conversation opens with its unread messages unfolded, as Gmail does, so
   // reading the thread reads all of them.
@@ -1416,15 +1423,20 @@ export function EmailViewer({
   // bottom plugin category wrapper when something will fill it.
   const hasDetailsSlotOffers = usePluginSlotOffers('email-details-section').length > 0;
   const hasBannerOffers = usePluginSlotOffers('email-banner').length > 0;
+  const hasHeaderOffers = usePluginSlotOffers('reader-header').length > 0;
+  const hasBelowSubjectOffers = usePluginSlotOffers('reader-below-subject').length > 0;
+  const hasAboveQuoteOffers = usePluginSlotOffers('reader-above-quote').length > 0;
   // One projected view per message for all plugin slots on it, built only
   // when a plugin is there to see it. A fresh object on every render made
   // each slot post its props to the plugin again and re-run shouldShow.
-  const wantsPluginEmailView = hasDetailSidebar || hasDetailsSlotOffers || hasBannerOffers;
+  const wantsPluginEmailView = hasDetailSidebar || hasDetailsSlotOffers || hasBannerOffers
+    || hasHeaderOffers || hasBelowSubjectOffers || hasAboveQuoteOffers;
   const pluginEmailView = useMemo(
     () => (email && wantsPluginEmailView ? emailToReadView(email) : null),
     [email, wantsPluginEmailView],
   );
   const pluginEmailProps = useMemo(() => ({ email: pluginEmailView }), [pluginEmailView]);
+  const readerActionContext = useMemo(() => ({ emailId: email?.id }), [email?.id]);
   const [detailSidebarCollapsed, setDetailSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try { return localStorage.getItem('emailDetailSidebarCollapsed') === '1'; } catch { return false; }
@@ -2779,6 +2791,15 @@ export function EmailViewer({
   // Gates the quick reply on the iframe having loaded the current srcDoc, so
   // it doesn't flash in below a still-resizing iframe.
   const [iframeReady, setIframeReady] = useState(false);
+  // The plain-text body, where reader-above-quote mounts between text and quote.
+  const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);
+  // One object per body: React writes innerHTML again whenever this object
+  // changes, which would drop what was mounted in the body and fold the quote
+  // back up on every render.
+  const plainBodyHtml = useMemo(
+    () => ({ __html: sanitizePlainTextRenderedHtml(effectiveEmailContent.html) }),
+    [effectiveEmailContent.html],
+  );
   // Tracks which parsed document we've already wired up, so setup runs exactly
   // once per srcDoc even though both the readiness poll below and the iframe
   // 'load' event can trigger it.
@@ -3520,6 +3541,15 @@ export function EmailViewer({
         </Button>
         </>)}
         <PluginSlot name="toolbar-actions" />
+        {/* Phones get these in the More panel. */}
+        {!isMobile && email && (
+          <PluginActions
+            surface="reader-actions"
+            context={readerActionContext}
+            mailboxRole={currentMailboxRole ?? null}
+            compact={!showToolbarLabels}
+          />
+        )}
       </div>
 
       {/* Right: Organize actions - order: archive, delete, move, tag, spam, read state, print, view source */}
@@ -4265,6 +4295,14 @@ export function EmailViewer({
                   {t('keyboard_shortcuts')}
                 </button>
               )}
+              {email && (
+                <PluginPanelEntries
+                  surface="reader-actions"
+                  context={readerActionContext}
+                  mailboxRole={currentMailboxRole ?? null}
+                  onRan={() => setMoreMenuOpen(false)}
+                />
+              )}
             </>
           )}
           {moreMenuSub === 'move' && moveTree.length > 0 && onMoveToMailbox && (() => {
@@ -4336,6 +4374,8 @@ export function EmailViewer({
           </div>
         </div>
       )}
+
+      <PluginSlot name="reader-header" className="w-full bg-background" extraProps={pluginEmailProps} />
 
       {/* === SUBJECT BLOCK === */}
       <div className={cn(
@@ -4467,6 +4507,11 @@ export function EmailViewer({
           rather than on a tinted strip. */}
       <div className={cn("flex-1 overflow-auto overscroll-contain", mvViewer || mvMobileViewer ? "bg-background" : "bg-muted/30", isMobile && !mvMobileViewer && "pb-[calc(3.25rem+env(safe-area-inset-bottom)/2)] sm:pb-0")}>
       <div className="min-h-full flex flex-col">
+
+      {/* Above the messages of the open conversation. */}
+      {mvOpenIndex >= 0 && (
+        <PluginSlot name="thread-summary" className="w-full" extraProps={threadSummaryProps} />
+      )}
 
       {/* Mountain View: the conversation's earlier messages, folded. */}
       {mvBefore.length > 0 && (
@@ -4722,6 +4767,7 @@ export function EmailViewer({
                               } satisfies AttachmentInfo,
                             }}
                           />
+                          <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
                         </div>
                       </div>
                         )}
@@ -4795,6 +4841,7 @@ export function EmailViewer({
                                     } satisfies AttachmentInfo,
                                   }}
                                 />
+                                <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
                               </div>
                             </div>
                               )}
@@ -4917,6 +4964,8 @@ export function EmailViewer({
             </div>
           </div>
         </div>
+
+        <PluginSlot name="reader-below-subject" className="w-full bg-background" extraProps={pluginEmailProps} />
 
         {/* Expandable Details (shared across mobile/tablet/desktop) */}
         {showFullHeaders && (() => {
@@ -5581,6 +5630,7 @@ export function EmailViewer({
                         } satisfies AttachmentInfo,
                       }}
                     />
+                    <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                   </div>
                 </div>
                   )}
@@ -5654,6 +5704,7 @@ export function EmailViewer({
                               } satisfies AttachmentInfo,
                             }}
                           />
+                          <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                         </div>
                       </div>
                         )}
@@ -5714,6 +5765,8 @@ export function EmailViewer({
                       <span className="text-xs text-muted-foreground flex-shrink-0">
                         {formatFileSize(attachment.size)}
                       </span>
+                      {/* Phones have no hover: the plugin menu stays visible. */}
+                      <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="-me-1 flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                     </div>
                     <div className={cn(
                       "absolute bg-background/95 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1.5 rounded-md",
@@ -5790,6 +5843,7 @@ export function EmailViewer({
                           <span className="text-[10px] text-muted-foreground ms-auto flex-shrink-0">
                             {formatFileSize(attachment.size)}
                           </span>
+                          <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                           <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1.5">
                             <button
                               className="p-1 hover:bg-accent rounded transition-colors"
@@ -5839,7 +5893,7 @@ export function EmailViewer({
 
           {/* Email Body */}
           <div className={cn(
-            "email-content-wrapper overflow-x-auto",
+            "email-content-wrapper overflow-x-auto relative",
             // Folded, the body stays mounted so unfolding does not reload it.
             (mvOpenFolded || mvAwaitingConversation) && "hidden",
             // Mountain View indents the body under the sender's name, as Gmail does.
@@ -5871,9 +5925,10 @@ export function EmailViewer({
               />
             ) : (
               <div
+                ref={setPlainBodyEl}
                 className="email-content-text text-foreground"
                 dir="auto"
-                dangerouslySetInnerHTML={{ __html: sanitizePlainTextRenderedHtml(effectiveEmailContent.html) }}
+                dangerouslySetInnerHTML={plainBodyHtml}
                 style={{
                   ...(plainTextFont === 'mono' && { fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace' }),
                   fontSize: '14px',
@@ -5881,6 +5936,14 @@ export function EmailViewer({
                   wordBreak: 'break-word',
                   whiteSpace: 'pre-wrap',
                 }}
+              />
+            )}
+            {!isBodyLoading && (
+              <ReaderAboveQuoteSlot
+                root={effectiveEmailContent.isHtml ? (iframeReady ? iframeRef.current?.contentDocument?.body ?? null : null) : plainBodyEl}
+                frame={effectiveEmailContent.isHtml ? iframeRef.current : null}
+                extraProps={pluginEmailProps}
+                version={effectiveEmailContent.html}
               />
             )}
           </div>
