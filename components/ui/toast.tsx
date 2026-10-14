@@ -19,6 +19,11 @@ export interface Toast {
   message?: string;
   duration?: number;
   onClick?: () => void;
+  /**
+   * Called when the user closes the toast: the close button, a click on the
+   * toast or on one of its actions. Not called when it times out.
+   */
+  onDismiss?: () => void;
   icon?: React.ReactNode;
   action?: ToastAction;
   secondaryAction?: ToastAction;
@@ -90,6 +95,15 @@ export function ToastItem({ toast, onClose }: ToastProps) {
     setTimeout(() => onClose(toast.id), 280);
   }, [onClose, toast.id]);
 
+  const dismissByUser = useCallback(() => {
+    try {
+      toast.onDismiss?.();
+    } catch {
+      // A failing listener must not keep the toast on screen.
+    }
+    dismiss();
+  }, [toast, dismiss]);
+
   useEffect(() => {
     if (!toast.duration || toast.duration <= 0 || isProgress) return;
 
@@ -112,7 +126,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
         e.stopPropagation();
         try {
           action.onClick();
-          dismiss();
+          dismissByUser();
         } catch {
           // Don't close toast on error so user can retry
         }
@@ -141,7 +155,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
       onClick={() => {
         if (toast.onClick && !toast.action) {
           toast.onClick();
-          dismiss();
+          dismissByUser();
         }
       }}
     >
@@ -180,7 +194,7 @@ export function ToastItem({ toast, onClose }: ToastProps) {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          dismiss();
+          dismissByUser();
         }}
         className={cn(
           "flex-shrink-0 p-1 rounded-md transition-all",
