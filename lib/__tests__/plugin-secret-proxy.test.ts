@@ -46,6 +46,10 @@ beforeAll(async () => {
         res.writeHead(302, { location: 'https://elsewhere.example/steal' });
         return res.end();
       }
+      if (req.url === '/.well-known/caldav') {
+        res.writeHead(307, { location: '/remote.php/dav/' });
+        return res.end();
+      }
       if (req.url === '/login/poll') {
         res.writeHead(200, { 'content-type': 'application/json' });
         return res.end(JSON.stringify({ server: origin, loginName: 'alice', appPassword: 'app-pw-123' }));
@@ -181,6 +185,19 @@ describe('proxy', () => {
 
     await expect(call({ method: 'GET', url: `${origin}/redirect-away` })).rejects.toMatchObject({ code: 'redirect_off_origin' });
     expect(seen).toHaveLength(1);
+  });
+
+  it('follows a redirect on the same server with the body and says where it ended up', async () => {
+    await connect('app-pw');
+
+    const res = await call({ url: `${origin}/.well-known/caldav`, body: new Blob(['<propfind/>']).stream() });
+    await res.text();
+
+    expect(seen.map((r) => [r.method, r.url, r.body])).toEqual([
+      ['PROPFIND', '/.well-known/caldav', '<propfind/>'],
+      ['PROPFIND', '/remote.php/dav/', '<propfind/>'],
+    ]);
+    expect(res.headers.get('x-bulwark-url')).toBe(`${origin}/remote.php/dav/`);
   });
 
   it('refuses a WebDAV move to another server', async () => {

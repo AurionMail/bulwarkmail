@@ -317,6 +317,8 @@ export async function proxyRequest(input: ProxyInput): Promise<Response> {
 
     const status = upstream.status;
     const outHeaders = responseHeaders(upstream);
+    // Where a redirect on the same server ended up (CalDAV discovery needs it).
+    if (currentUrl !== target.toString()) outHeaders.set('x-bulwark-url', currentUrl);
     if (!upstream.body) {
       audit(status, 0);
       release();
