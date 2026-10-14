@@ -44,9 +44,7 @@ function isFired(hookName: string, groupName: string): boolean {
 // Groups whose call sites are still being wired in this branch. Each
 // commit that wires a group removes it here, and the test then insists every
 // hook in it has a call site.
-const NOT_YET_WIRED = new Set<HookGroup>([ 'settings', 'identities',
-  'filters', 'vacation', 'templates', 'security'
-]);
+const NOT_YET_WIRED = new Set<HookGroup>([]);
 
 describe('hook catalogue', () => {
   const buses = allBuses();
