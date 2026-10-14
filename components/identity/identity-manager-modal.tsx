@@ -7,7 +7,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { IdentityForm } from './identity-form';
-import { useIdentityStore } from '@/stores/identity-store';
+import {
+  useIdentityStore, createIdentityWithHooks, updateIdentityWithHooks, deleteIdentityWithHooks,
+} from '@/stores/identity-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -137,14 +139,7 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
     if (!client) return;
 
     try {
-      await client.createIdentity(
-        data.name,
-        data.email,
-        data.replyTo,
-        data.bcc,
-        data.textSignature,
-        data.htmlSignature
-      );
+      if (!(await createIdentityWithHooks(client, data))) return;
 
       await refreshIdentities();
       setIsCreating(false);
@@ -160,13 +155,14 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
     if (!client) return;
 
     try {
-      await client.updateIdentity(identity.id, {
+      const saved = await updateIdentityWithHooks(client, identity, {
         name: data.name,
         replyTo: data.replyTo,
         bcc: data.bcc,
         textSignature: data.textSignature,
         htmlSignature: data.htmlSignature,
       });
+      if (!saved) return;
 
       await refreshIdentities();
       setEditingId(null);
@@ -196,7 +192,7 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
     setDeletingId(identity.id);
 
     try {
-      await client.deleteIdentity(identity.id);
+      if (!(await deleteIdentityWithHooks(client, identity))) return;
       await refreshIdentities();
       toast.success(tNotif('identity_deleted'));
     } catch (error) {

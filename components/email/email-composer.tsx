@@ -70,6 +70,8 @@ import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNode } from "@/lib/jmap/types";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { useTemplateStore } from "@/stores/template-store";
+import { notifyIdentitySelected } from "@/stores/identity-store";
+import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { SubAddressHelper } from "@/components/identity/sub-address-helper";
 import { generateSubAddress } from "@/lib/sub-addressing";
 import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent } from "@/lib/template-utils";
@@ -886,9 +888,11 @@ export function EmailComposer({
   // Alias identities often lack a configured signature - fall back to the primary
   // identity's signature so replies (which auto-select a matching alias) still
   // populate the user's signature.
-  const signatureIdentity = (currentIdentity?.htmlSignature || currentIdentity?.textSignature)
+  const ownSignatureIdentity = (currentIdentity?.htmlSignature || currentIdentity?.textSignature)
     ? currentIdentity
     : primaryIdentity;
+  // Plugins may rewrite the signature (onSignatureRender).
+  const { identity: signatureIdentity, revision: pluginSignatureRevision } = usePluginSignature(ownSignatureIdentity);
 
   // Hold the TipTap editor instance so we can swap the embedded signature
   // when the user switches identity in "above quote" mode without rebuilding
@@ -899,15 +903,18 @@ export function EmailComposer({
   const replyFocusedRef = useRef(false);
   const prevSignatureIdentityIdRef = useRef<string | null | undefined>(signatureIdentity?.id);
   const prevSignatureSeparatorRef = useRef<boolean>(signatureSeparatorEnabled);
+  const prevPluginSignatureRevisionRef = useRef(pluginSignatureRevision);
 
   useEffect(() => {
     const editor = editorRef.current;
     const identityChanged = prevSignatureIdentityIdRef.current !== signatureIdentity?.id;
     const separatorChanged = prevSignatureSeparatorRef.current !== signatureSeparatorEnabled;
+    const pluginSignatureChanged = prevPluginSignatureRevisionRef.current !== pluginSignatureRevision;
     prevSignatureIdentityIdRef.current = signatureIdentity?.id;
     prevSignatureSeparatorRef.current = signatureSeparatorEnabled;
+    prevPluginSignatureRevisionRef.current = pluginSignatureRevision;
     if (!editor) return;
-    if (!identityChanged && !separatorChanged) return;
+    if (!identityChanged && !separatorChanged && !pluginSignatureChanged) return;
     if (plainTextMode) return;
     // Replies/forwards only embed when configured for "above quote". Compose
     // always embeds (see getInitialBody), so swap on identity change there too.
@@ -945,7 +952,7 @@ export function EmailComposer({
     // would re-run on unrelated identity-field changes and re-splice the
     // signature into the live editor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signatureIdentity?.id, signatureIdentity?.htmlSignature, signatureIdentity?.textSignature, signatureSeparatorEnabled, signaturePosition, mode, plainTextMode]);
+  }, [signatureIdentity?.id, signatureIdentity?.htmlSignature, signatureIdentity?.textSignature, signatureSeparatorEnabled, signaturePosition, mode, plainTextMode, pluginSignatureRevision]);
 
   useEffect(() => {
     const handleClickOutsideSendMenu = (event: MouseEvent) => {
@@ -3248,7 +3255,10 @@ export function EmailComposer({
                 <select
                   data-testid="composer-from"
                   value={selectedIdentityId || primaryIdentity?.id || ''}
-                  onChange={(e) => setSelectedIdentityId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedIdentityId(e.target.value);
+                    notifyIdentitySelected(identities, e.target.value);
+                  }}
                   className="flex-1 bg-transparent text-sm text-foreground outline-none cursor-pointer hover:text-muted-foreground transition-colors min-w-0 truncate"
                 >
                   {identityGroups.length > 0
