@@ -3,6 +3,7 @@ import { Email, Mailbox, StateChange, ScheduledEmail, SendEmailResult, isUnified
 import type { UnifiedMailboxRole, CrossView } from "@/lib/jmap/types";
 import type { IJMAPClient, SearchEmailsResult } from "@/lib/jmap/client-interface";
 import { withSearchSnippets, type DeferredSnippetBatch } from "@/lib/search-snippet";
+import { afterRequestDispatch } from "@/lib/after-request-dispatch";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
@@ -3647,15 +3648,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
 
     const controller = new AbortController();
-    set({
-      isLoading: true,
-      error: null,
-      searchQuery: typedQuery,
-      emails: [],
-      hasMoreEmails: false,
-      totalEmails: 0,
-      searchAbortController: controller,
-    }); // Clear emails for loading state
+    // The rows on screen stay, dimmed, until the results land, as on a folder
+    // switch, instead of being torn down for a skeleton and rebuilt a round
+    // trip later. What the mail view renders from is written only once the
+    // request is on its way (see afterRequestDispatch); the controller is
+    // recorded at once so a superseding search can still cancel this one.
+    set({ searchAbortController: controller });
+    afterRequestDispatch(() => {
+      if (get().searchAbortController === controller) set({ isLoading: true, error: null, searchQuery: typedQuery });
+    });
     try {
       // The store keeps what the user typed; plugins' changes apply to this run.
       // Without listeners the request goes out in this same tick, as before.
@@ -3746,6 +3747,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         externalSearchResults: externals,
         hasMoreEmails: result.hasMore,
         totalEmails: result.total,
+        // Also here: a fast answer can land before the deferred loading write.
+        searchQuery: typedQuery,
         isLoading: false,
         searchAbortController: null,
         ...(unifiedErrors ? { unifiedErrors } : {})
@@ -3755,6 +3758,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       if (controller.signal.aborted) return;
       set({
         error: error instanceof Error ? error.message : "Failed to search emails",
+        searchQuery: typedQuery,
         isLoading: false,
         emails: [],
         externalSearchResults: [],
@@ -3774,13 +3778,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
 
     const controller = new AbortController();
-    set({
-      isLoading: true,
-      error: null,
-      emails: [],
-      hasMoreEmails: false,
-      totalEmails: 0,
-      searchAbortController: controller,
+    // See searchEmails: the rows stay, the loading state follows the request.
+    set({ searchAbortController: controller });
+    afterRequestDispatch(() => {
+      if (get().searchAbortController === controller) set({ isLoading: true, error: null });
     });
 
     try {

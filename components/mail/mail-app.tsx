@@ -121,6 +121,7 @@ import { PLUGIN_REPLY_EVENT, type PluginReplyRequest } from "@/lib/plugin-sandbo
 import { mailtoComposerDraft } from "./mailto-draft";
 import { getQuoteBodies } from "@/lib/email-composer-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
+import { afterRequestDispatch } from "@/lib/after-request-dispatch";
 import { createMailboxWithHooks } from "@/lib/plugin-mail-hooks";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
@@ -3354,9 +3355,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   const handleSearch = async (query: string) => {
     if (!client) return;
-    setSearchQuery(query);
-    useSearchHistoryStore.getState().addRecentSearch(query);
+    // Nothing the mail view renders from is written before the request has
+    // left (see afterRequestDispatch): searchEmails records the query itself,
+    // and the history entry only feeds the suggestion dropdown.
+    afterRequestDispatch(() => useSearchHistoryStore.getState().addRecentSearch(query));
     if (!isFilterEmpty(searchFilters)) {
+      // advancedSearch reads the query from the store.
+      setSearchQuery(query);
       await advancedSearch(client);
     } else {
       await searchEmails(client, query);

@@ -42,6 +42,18 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  // The text being typed belongs to the box until it is submitted, cleared or
+  // the box loses focus. `value` is the search in force; handing it every
+  // keystroke re-rendered the whole mail view per character typed.
+  const [draft, setDraft] = useState(value);
+  const [adopted, setAdopted] = useState(value);
+  if (value !== adopted) {
+    setAdopted(value);
+    setDraft(value);
+  }
+  const commitDraft = () => {
+    if (draft !== value) onChange(draft);
+  };
 
   const getAutocomplete = useContactStore((s) => s.getAutocomplete);
   // Subscribed only so the memo below recomputes as the lookup's inputs load.
@@ -52,13 +64,13 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
   const removeRecentSearch = useSearchHistoryStore((s) => s.removeRecentSearch);
 
   const suggestions = useMemo<SearchSuggestion[]>(() => {
-    const query = value.trim();
+    const query = draft.trim();
     const matches = query ? getAutocomplete(query).filter((r) => !r.group && r.email) : [];
-    return buildSearchSuggestions(value, recentSearches, matches);
+    return buildSearchSuggestions(draft, recentSearches, matches);
     // The three store slices are inputs of getAutocomplete (read via get()),
     // not of this closure — list them so the memo recomputes when they load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, recentSearches, getAutocomplete, contacts, recentRecipients, directoryPrincipals]);
+  }, [draft, recentSearches, getAutocomplete, contacts, recentRecipients, directoryPrincipals]);
 
   const showDropdown = open && !disabled && suggestions.length > 0;
   const activeIndex = showDropdown && selectedIndex < suggestions.length ? selectedIndex : -1;
@@ -72,6 +84,7 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
     (suggestion: SearchSuggestion) => {
       close();
       if (suggestion.kind === "recent") {
+        setDraft(suggestion.query);
         onChange(suggestion.query);
         onSubmit(suggestion.query);
       } else {
@@ -112,9 +125,13 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (value.trim()) {
+          if (draft.trim()) {
             close();
-            onSubmit(value);
+            onSubmit(draft);
+          } else if (value) {
+            // Enter on an emptied box leaves the search, as the clear button does.
+            close();
+            onClear();
           }
         }}
         className="relative"
@@ -127,9 +144,9 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
           type="search"
           autoFocus={autoFocus}
           placeholder={placeholder ?? t("search_placeholder_hint")}
-          value={value}
+          value={draft}
           onChange={(e) => {
-            onChange(e.target.value);
+            setDraft(e.target.value);
             setOpen(true);
             setSelectedIndex(-1);
           }}
@@ -139,10 +156,13 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
             // Focus moving into the dropdown (e.g. its action buttons) keeps it open.
             const next = e.relatedTarget as Node | null;
             if (next && containerRef.current?.contains(next)) return;
+            // Anything that reads the query from outside (the filter panel's
+            // search) sees what was typed once focus moves to it.
+            commitDraft();
             close();
           }}
           onKeyDown={handleKeyDown}
-          className={cn("ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", value && "pe-8")}
+          className={cn("ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", draft && "pe-8")}
           role="combobox"
           aria-expanded={showDropdown}
           aria-controls={listId}
@@ -154,10 +174,11 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
           disabled={disabled}
           title={title}
         />
-        {value && (
+        {draft && (
           <button
             type="button"
             onClick={() => {
+              setDraft("");
               close();
               onClear();
             }}
@@ -171,7 +192,7 @@ export function SearchBox({ value, onChange, onSubmit, onClear, onSelectContact,
       {showDropdown && (
         <SearchSuggestions
           id={listId}
-          query={value}
+          query={draft}
           suggestions={suggestions}
           selectedIndex={activeIndex}
           onSelect={select}
