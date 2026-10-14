@@ -7,6 +7,7 @@ import { useEmailStore } from '@/stores/email-store';
 import { useUIStore } from '@/stores/ui-store';
 import { groupEmailsByThread } from '@/lib/thread-utils';
 import { renderHooks, clearAllHooks } from '@/lib/plugin-hooks';
+import { refreshRowBadges, resetRowBadgeRefresh } from '@/lib/plugin-sandbox/row-badges';
 import type { Email } from '@/lib/jmap/types';
 
 // onEmailListItemRender: plugins add small badges next to a row's subject.
@@ -56,6 +57,7 @@ function row(emails: Email[]) {
 beforeEach(() => {
   clearAllHooks();
   clearRowBadgeCache();
+  resetRowBadgeRefresh();
   useUIStore.setState({ isMobile: false, isTablet: false, isDesktop: true });
   useSettingsStore.setState({
     emailKeywords: [...DEFAULT_KEYWORDS],
@@ -85,6 +87,20 @@ describe('plugin badges in message-list rows', () => {
     expect(ctx.email).toMatchObject({ id: 'email-1', subject: 'Test Subject', keywords: ['$seen'] });
     // A projection, not the store object.
     expect(ctx.email).not.toHaveProperty('mailboxIds.inbox');
+  });
+
+  it('asks the plugin again when it requests a refresh, at most once a second', async () => {
+    let label = 'Open';
+    const handler = vi.fn(async () => [{ key: 'task', label }]);
+    renderHooks.onEmailListItemRender.register('test', handler);
+    render(row([makeEmail()]));
+    await screen.findByText('Open');
+
+    label = 'Done';
+    act(() => { expect(refreshRowBadges(10_000)).toBe(true); });
+    await screen.findByText('Done');
+    expect(refreshRowBadges(10_500)).toBe(false);
+    expect(handler).toHaveBeenCalledTimes(2);
   });
 
   it('shows badges on a conversation row and on the phone layout', async () => {

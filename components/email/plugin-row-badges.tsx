@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Email } from "@/lib/jmap/types";
 import type { EmailListBadge } from "@/lib/plugin-types";
 import { renderHooks } from "@/lib/plugin-hooks";
 import { emailSummary } from "@/lib/plugin-projection";
+import { rowBadgeGeneration, subscribeRowBadges } from "@/lib/plugin-sandbox/row-badges";
 import { cn } from "@/lib/utils";
 import { TAG_GROUP_CLASS, TAG_LOZENGE_CLASS } from "./tag-badge";
 
@@ -24,14 +25,15 @@ const CACHE_LIMIT = 2000;
 const cache = new Map<string, EmailListBadge[]>();
 const inflight = new Map<string, Promise<EmailListBadge[]>>();
 
-function cacheKey(email: Email, listeners: number): string {
+function cacheKey(email: Email, listeners: number, generation: number): string {
   const keywords = Object.keys(email.keywords ?? {})
     .filter((k) => email.keywords?.[k])
     .sort()
     .join(",");
   // The listener count is part of the key so a plugin being switched on or
   // off doesn't leave the old answer behind.
-  return `${listeners}|${email.id}|${keywords}`;
+  // The generation moves on when a plugin asks for a refresh.
+  return `${generation}|${listeners}|${email.id}|${keywords}`;
 }
 
 // A colour the badge may use: hex, rgb()/hsl() with plain numbers, a CSS
@@ -104,7 +106,8 @@ export function clearRowBadgeCache(): void {
  */
 export function usePluginRowBadges(email: Email): EmailListBadge[] {
   const listeners = renderHooks.onEmailListItemRender.size;
-  const key = listeners > 0 ? cacheKey(email, listeners) : null;
+  const generation = useSyncExternalStore(subscribeRowBadges, rowBadgeGeneration, rowBadgeGeneration);
+  const key = listeners > 0 ? cacheKey(email, listeners, generation) : null;
   const [state, setState] = useState<{ key: string | null; badges: EmailListBadge[] }>(() => ({
     key,
     badges: key ? cache.get(key) ?? [] : [],

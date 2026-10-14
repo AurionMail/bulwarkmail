@@ -44,7 +44,7 @@ const H = (group: HookGroup, kind: HookKind, permission: Permission, payload: st
 export const HOOK_CATALOG = {
   // ─── Mail: message list ────────────────────────────────────
   onEmailsFetched: H('mail-list', 'transform', 'email:render-takeover', 'Email[] (list rows), { mailboxId }', 'after a page of the message list is loaded, before it is shown'),
-  onEmailListItemRender: H('mail-list', 'transform', 'email:render-takeover', 'EmailListBadge[], { email: EmailSummary }', 'for each visible row; returned badges are shown next to the subject'),
+  onEmailListItemRender: H('mail-list', 'transform', 'email:read', 'EmailListBadge[], { email: EmailSummary }', 'for each visible row; returned badges are shown next to the subject'),
   onEmailSelectionChange: H('mail-list', 'observer', 'email:read', '{ emailIds: string[] }', 'when the set of selected messages changes'),
   onMailboxChange: H('mail-list', 'observer', 'email:read', '{ mailboxId, role, previousMailboxId }', 'when the user opens another folder'),
 

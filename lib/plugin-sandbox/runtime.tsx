@@ -500,6 +500,11 @@ function buildPluginApi(manifest: PluginManifest) {
        */
       setActions: (surface: string, actions: Array<{ id: string; label: string; icon?: string; order?: number; mailboxRoles?: string[]; mimeTypes?: string[]; danger?: boolean }>) =>
         callApi('ui.setActions', [surface, actions]) as Promise<void>,
+      /**
+       * Ask every visible message row for its onEmailListItemRender badges
+       * again, e.g. after a task was created elsewhere. At most once a second.
+       */
+      refreshRowBadges: () => callApi('ui.refreshRowBadges', []) as Promise<void>,
       /** Short labels and dots on calendar days. Replaces this plugin's earlier labels. */
       setDayLabels: (labels: Array<{ date: string; text?: string; title?: string; dot?: boolean }>) =>
         callApi('ui.setDayLabels', [labels]) as Promise<void>,

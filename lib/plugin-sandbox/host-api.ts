@@ -7,6 +7,7 @@ import { mayOfferSlot, pluginHasPermission } from './permissions';
 import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, type StreamSink } from './proxy-client';
 import { checkActions, isActionSurface, setPluginActions } from './actions';
 import { checkDayLabels, setDayLabels } from './day-labels';
+import { refreshRowBadges } from './row-badges';
 import { checkPages, setPluginPages } from './pages';
 import { toast as appToast } from '@/stores/toast-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -200,6 +201,8 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // Buttons and menu entries drawn by the host; the surface's own
   // permission is checked per call (see the slot catalogue).
   'ui.setActions': null,
+  // Ask the rows again for onEmailListItemRender badges (rate limited).
+  'ui.refreshRowBadges': null,
   'ui.setDayLabels': 'ui:calendar-action',
   'ui.setPages': 'ui:app-page',
   // sieve (delivery-time classification)
@@ -1687,6 +1690,7 @@ export async function dispatchApiCall(
       setPluginActions(plugin.id, plugin.name, surface, checkActions(args[1]));
       return undefined;
     }
+    case 'ui.refreshRowBadges': refreshRowBadges(); return undefined;
     case 'ui.setDayLabels': setDayLabels(plugin.id, plugin.name, checkDayLabels(args[0])); return undefined;
     case 'ui.setPages': setPluginPages(plugin.id, plugin.name, checkPages(args[0])); return undefined;
 
