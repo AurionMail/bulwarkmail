@@ -4042,8 +4042,8 @@
         "body": "See senders, recipients, subjects and the full text of any message in your account, and your folders."
       },
       "email_write": {
-        "title": "Change tags and flags on your email",
-        "body": "Add or remove tags, flags and other keywords on your messages, and save drafts."
+        "title": "Change and organise your email",
+        "body": "Add or remove tags, flags and other keywords on your messages, move them between your folders and to the archive, and save drafts."
       },
       "email_send": {
         "title": "Change mail before it is sent",

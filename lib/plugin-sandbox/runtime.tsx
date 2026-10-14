@@ -534,6 +534,13 @@ function buildPluginApi(manifest: PluginManifest) {
        */
       get: (emailId: string) => callApi('email.get', [emailId]) as Promise<EmailReadView | null>,
       /**
+       * Move messages (at most 100) into a folder of the account, like the
+       * user would; the move hooks run. 20 moves a minute. Needs email:write.
+       */
+      move: (emailIds: string[], mailboxId: string) => callApi('email.move', [emailIds, mailboxId]) as Promise<void>,
+      /** Move messages into the account's Archive folder. Needs email:write. */
+      archive: (emailIds: string[]) => callApi('email.archive', [emailIds]) as Promise<void>,
+      /**
        * A page of a folder (or of all mail without mailboxId), in the user's
        * list order: summaries without the body. limit 1-100 (default 50).
        */

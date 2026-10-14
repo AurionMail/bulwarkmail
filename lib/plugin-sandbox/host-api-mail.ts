@@ -12,7 +12,7 @@ import type { IJMAPClient } from '../jmap/client-interface';
 import { useEmailStore } from '@/stores/email-store';
 import { emailSummary, emailToReadView } from '../plugin-projection';
 import {
-  MAX_PLUGIN_FETCH_BYTES, readId, readInteger, readObject, sessionClient,
+  MAX_PLUGIN_FETCH_BYTES, readId, readInteger, readObject, sessionClient, withinRate,
 } from './host-api-input';
 
 /** Most messages one api.email.list call returns. */
@@ -133,4 +133,44 @@ export async function doEmailGetRaw(emailIdArg: unknown): Promise<ArrayBuffer> {
   const data = await client.fetchBlobArrayBuffer(email.blobId, 'message.eml', 'message/rfc822');
   if (data.byteLength > MAX_PLUGIN_FETCH_BYTES) throw tooBig(method);
   return data;
+}
+
+// ─── Moving ───────────────────────────────────────────────────
+
+/** Most messages one api.email.move / archive call moves. */
+export const MAX_PLUGIN_MOVE = 100;
+/** Moves a plugin may make per minute. */
+export const MAX_PLUGIN_MOVES_PER_MINUTE = 20;
+
+function readIdList(value: unknown, method: string): string[] {
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`${method}: emailIds must be a non-empty array`);
+  if (value.length > MAX_PLUGIN_MOVE) throw new Error(`${method}: at most ${MAX_PLUGIN_MOVE} messages at once`);
+  return [...new Set(value.map((id, i) => readId(id, method, `emailIds[${i}]`)))];
+}
+
+/**
+ * Move messages of the signed-in account into one of its folders, through
+ * the store, so the list updates and onBeforeEmailMove / onEmailMove (and the
+ * archive hooks for the archive folder) run like for a move the user made.
+ */
+export async function doEmailMove(pluginId: string, emailIdsArg: unknown, mailboxIdArg: unknown): Promise<void> {
+  const method = 'email.move';
+  const emailIds = readIdList(emailIdsArg, method);
+  const mailboxId = readId(mailboxIdArg, method, 'mailboxId');
+  const store = useEmailStore.getState();
+  if (!store.mailboxes.some((m) => m.id === mailboxId && !m.isShared)) {
+    throw new Error(`${method}: no folder with id "${mailboxId}" in this account`);
+  }
+  if (!withinRate('email.move', pluginId, MAX_PLUGIN_MOVES_PER_MINUTE)) throw new Error(`${method}: too many moves, try again in a minute`);
+  await store.moveEmailsToMailbox(sessionClient(method), emailIds, mailboxId);
+}
+
+/** Move messages into the account's Archive folder. */
+export async function doEmailArchive(pluginId: string, emailIdsArg: unknown): Promise<void> {
+  const method = 'email.archive';
+  const emailIds = readIdList(emailIdsArg, method);
+  const archive = useEmailStore.getState().mailboxes.find((m) => m.role === 'archive' && !m.isShared);
+  if (!archive) throw new Error(`${method}: this account has no Archive folder`);
+  if (!withinRate('email.move', pluginId, MAX_PLUGIN_MOVES_PER_MINUTE)) throw new Error(`${method}: too many moves, try again in a minute`);
+  await useEmailStore.getState().moveEmailsToMailbox(sessionClient(method), emailIds, archive.id);
 }

@@ -47,7 +47,7 @@ import {
   doTemplatesUpdate, doVacationGet, doVacationSet,
 } from './host-api-settings';
 import {
-  doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doMailboxesList,
+  doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doMailboxesList,
 } from './host-api-mail';
 import { MAX_PLUGIN_FETCH_BYTES } from './host-api-input';
 import { doComposeOpen, doDraftsCreate } from './host-api-compose';
@@ -245,6 +245,9 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // plugin names, so the untrusted tier may call them.
   'email.getAttachment': 'email:blob-read',
   'email.getRaw': 'email:blob-read',
+  // Moving messages between the account's folders, archive included.
+  'email.move': 'email:write',
+  'email.archive': 'email:write',
   // Open the composer filled in; the user still decides whether to send.
   'compose.open': 'compose:open',
   // Save a draft without opening the composer. Nothing is sent.
@@ -1964,6 +1967,8 @@ export async function dispatchApiCall(
     case 'mailboxes.list': return doMailboxesList();
     case 'email.getAttachment': return doEmailGetAttachment(args[0], args[1]);
     case 'email.getRaw': return doEmailGetRaw(args[0]);
+    case 'email.move': return doEmailMove(plugin.id, args[0], args[1]);
+    case 'email.archive': return doEmailArchive(plugin.id, args[0]);
 
     case 'compose.open': return doComposeOpen(plugin, args[0]);
     case 'drafts.create': return doDraftsCreate(plugin, args[0]);
