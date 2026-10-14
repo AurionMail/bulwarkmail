@@ -47,7 +47,7 @@ function isFired(hookName: string, groupName: string): boolean {
 const NOT_YET_WIRED = new Set<HookGroup>([
   'mail-list', 'mail-read', 'mail-compose', 'mail-send', 'mail-organize', 'mail-mailboxes', 'mail-search',
   'mail-sync', 'calendar', 'tasks', 'settings', 'identities',
-  'filters', 'vacation', 'templates', 'security', 'keyboard',
+  'filters', 'vacation', 'templates', 'security'
 ]);
 
 describe('hook catalogue', () => {
