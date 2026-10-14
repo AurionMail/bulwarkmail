@@ -1,7 +1,14 @@
 // Translation lookup for plugin strings (api.i18n.t). Pure, so the runtime
 // inside the sandbox and the tests share it.
 
+import { getLocaleDirection } from '@/i18n/direction';
+
 export type LocaleTables = Record<string, Record<string, string>>;
+
+/** Text direction for a locale tag, `ar-EG` included. */
+export function textDirection(locale: string): 'ltr' | 'rtl' {
+  return getLocaleDirection((locale || 'en').split('-')[0].toLowerCase());
+}
 
 /**
  * Locales to try for `locale`, most specific first: `de-CH` → `de-CH`, `de`,

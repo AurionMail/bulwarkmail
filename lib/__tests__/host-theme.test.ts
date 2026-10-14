@@ -19,6 +19,11 @@ describe('host-theme', () => {
       expect(css).toContain('background: transparent;');
     });
 
+    it("applies the user's font size so rem units in a slot match the app", () => {
+      const css = themeSnapshotToCSS({ dark: false, fontFamily: 'x', vars: { '--font-size-base': '17px' } });
+      expect(css).toMatch(/:root \{[^}]*font-size: var\(--font-size-base\);/);
+    });
+
     it('reports a dark color-scheme when dark', () => {
       const css = themeSnapshotToCSS({ dark: true, fontFamily: 'sans-serif', vars: {} });
       expect(css).toContain('color-scheme: dark;');

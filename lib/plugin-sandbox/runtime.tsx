@@ -28,7 +28,7 @@ import type {
   SlotInit,
 } from './protocol';
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
-import { interpolate, lookup, type LocaleTables } from './plugin-i18n';
+import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import type { SlotName } from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
@@ -76,6 +76,9 @@ function currentLocale(): string {
 function applyLocale(locale: string): void {
   (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ = locale;
   document.documentElement.lang = locale;
+  // Slots sit inside an RTL page in Arabic, Hebrew and Persian; their own
+  // document has to flip too.
+  document.documentElement.dir = textDirection(locale);
   for (const listener of localeListeners) {
     try { listener(locale); } catch (err) { console.error('[plugin] locale listener failed', err); }
   }

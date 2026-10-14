@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lookup, interpolate, localeChain } from '../plugin-sandbox/plugin-i18n';
+import { lookup, interpolate, localeChain, textDirection } from '../plugin-sandbox/plugin-i18n';
 
 const tables = {
   en: { hello: 'Hello {name}', only_en: 'English only' },
@@ -28,5 +28,14 @@ describe('plugin translations', () => {
 
   it('fills placeholders', () => {
     expect(interpolate('Hallo {name}', { name: 'Ana' })).toBe('Hallo Ana');
+  });
+});
+
+describe('textDirection', () => {
+  it('is right-to-left for Arabic, Hebrew and Persian, with or without a region', () => {
+    expect(textDirection('ar')).toBe('rtl');
+    expect(textDirection('he-IL')).toBe('rtl');
+    expect(textDirection('fa')).toBe('rtl');
+    expect(textDirection('de-CH')).toBe('ltr');
   });
 });
