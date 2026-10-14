@@ -44,6 +44,16 @@ import { useTranslations } from "next-intl";
  * anchor it on their single line instead (top padding + half a line).
  */
 /**
+ * A mouse press on the row itself, i.e. one about to become a click that opens
+ * it: a touch may be a scroll starting, and a press on a control inside the
+ * row (checkbox, hover action, link) does something else.
+ */
+function isMousePressOnRow(e: React.PointerEvent): boolean {
+  if (e.pointerType !== 'mouse' || e.button !== 0) return false;
+  return !(e.target as Element).closest('button, input, a');
+}
+
+/**
  * Whether a row has been pointed at yet. The hover actions stay display:none
  * until the pointer is over the row, so mounting them for every row up front
  * only added a handful of icon buttons per row to every list render. They
@@ -254,6 +264,8 @@ interface ThreadListItemProps {
   onCollapseAllThreads?: () => void;
   onEmailSelect: (email: Email) => void;
   onEmailDoubleClick?: (email: Email) => void;
+  /** A mouse was pressed on the row: the click that follows will open it. */
+  onPrefetch?: (email: Email) => void;
   onContextMenu?: (e: React.MouseEvent, email: Email) => void;
   onOpenConversation?: (thread: ThreadGroup) => void;
   onToggleStar?: (email: Email) => void;
@@ -272,6 +284,7 @@ interface SingleEmailItemProps {
   selected: boolean;
   onClick: () => void;
   onDoubleClick?: () => void;
+  onPrefetch?: () => void;
   onContextMenu?: (e: React.MouseEvent, email: Email) => void;
   showPreview: boolean;
   rowTint: string | null;
@@ -297,7 +310,7 @@ const SWIPE_ACTION_META: Record<Exclude<SwipeAction, 'none'>, { icon: AppIcon; b
 };
 
 const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
-  function SingleEmailItem({ email, selected, onClick, onDoubleClick, onContextMenu, showPreview, rowTint, onToggleStar, onMarkAsRead, onDelete, onArchive, onSetTag, onMarkAsSpam, onUndoSpam, onOpenAttachment, loadAttachments }, ref) {
+  function SingleEmailItem({ email, selected, onClick, onDoubleClick, onPrefetch, onContextMenu, showPreview, rowTint, onToggleStar, onMarkAsRead, onDelete, onArchive, onSetTag, onMarkAsSpam, onUndoSpam, onOpenAttachment, loadAttachments }, ref) {
     const t = useTranslations('email_viewer');
     const tBatch = useTranslations('email_list.batch_actions');
     const tHover = useTranslations('settings.email_behavior.hover_actions');
@@ -477,6 +490,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         {...touchHandlers}
         data-testid="email-list-item"
         onPointerEnter={armHoverActions}
+        onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(); }}
         data-email-id={email.id}
         data-subject={email.subject || ''}
         data-unread={isUnread ? 'true' : 'false'}
@@ -829,6 +843,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     onCollapseAllThreads,
     onEmailSelect,
     onEmailDoubleClick,
+    onPrefetch,
     onContextMenu,
     onOpenConversation,
     onToggleStar,
@@ -949,6 +964,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           selected={selectedEmailId === latestEmail.id}
           onClick={() => onEmailSelect(latestEmail)}
           onDoubleClick={onEmailDoubleClick ? () => onEmailDoubleClick(latestEmail) : undefined}
+          onPrefetch={onPrefetch ? () => onPrefetch(latestEmail) : undefined}
           onContextMenu={onContextMenu}
           showPreview={showPreview}
           rowTint={rowTint}
@@ -1045,6 +1061,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           {...dragHandlers}
           {...threadLongPressHandlers}
           onPointerEnter={armHoverActions}
+          onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(latestEmail); }}
           aria-current={isSelected ? 'true' : undefined}
           data-unread={hasUnread ? 'true' : 'false'}
           data-mv-mobile-row={mvMobileRow ? "" : undefined}

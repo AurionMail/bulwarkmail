@@ -42,6 +42,8 @@ interface EmailListProps {
   emails: Email[];
   selectedEmailId?: string;
   onEmailSelect?: (email: Email) => void;
+  /** A mouse was pressed on a row: the click that follows will open it. */
+  onEmailPrefetch?: (email: Email) => void;
   onEmailDoubleClick?: (email: Email) => void;
   /** Mountain View: search for the mail a sender has sent, from the row menu. */
   onFindFromSender?: (sender: { name: string; email: string }) => void;
@@ -84,6 +86,7 @@ export function EmailList({
   emails,
   selectedEmailId,
   onEmailSelect,
+  onEmailPrefetch,
   onEmailDoubleClick,
   onFindFromSender,
   className,
@@ -609,6 +612,7 @@ export function EmailList({
       onEmailSelect?.(email);
     },
     onEmailDoubleClick,
+    onPrefetch: onEmailPrefetch,
     onContextMenu: openContextMenu,
     onOpenConversation,
     onToggleStar,
@@ -900,6 +904,7 @@ export function EmailList({
                       onCollapseAllThreads={rowHandlers.onCollapseAllThreads}
                       onEmailSelect={rowHandlers.onEmailSelect}
                       onEmailDoubleClick={rowHandlers.onEmailDoubleClick}
+                      onPrefetch={rowHandlers.onPrefetch}
                       onContextMenu={rowHandlers.onContextMenu}
                       onOpenConversation={rowHandlers.onOpenConversation}
                       onToggleStar={rowHandlers.onToggleStar}

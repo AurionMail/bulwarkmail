@@ -122,6 +122,7 @@ import { mailtoComposerDraft } from "./mailto-draft";
 import { getQuoteBodies } from "@/lib/email-composer-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
 import { afterRequestDispatch } from "@/lib/after-request-dispatch";
+import { prefetchEmailContent, requestEmailContent } from "@/lib/email-prefetch";
 import { createMailboxWithHooks } from "@/lib/plugin-mail-hooks";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
@@ -3873,6 +3874,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const shouldHideHorizontalViewerPane = isHorizontalMailLayout && !hasViewerContent;
 
   // Handle email selection with mobile view switching
+  // A mouse pressed on a row: the click that follows opens the message, so
+  // its content is requested now (see lib/email-prefetch). Resolved the way
+  // handleEmailSelect resolves it, so the open finds this very request.
+  const handleEmailPrefetch = (email: Email) => {
+    if (!client) return;
+    const { client: fetchClient, accountId } = resolveEmailBlobContext(email, client);
+    if (fetchClient) prefetchEmailContent(fetchClient, email.id, accountId);
+  };
+
   const handleEmailSelect = async (
     email: { id: string } & Partial<Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'>>,
   ) => {
@@ -3941,7 +3951,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const conversationPrefetch = mvConversationView && listEmail?.id && listEmail.threadId
         ? loadMvConversation(listEmail as Email, client)
         : null;
-      const fullEmail = await fetchClient.getEmail(email.id, accountId);
+      // The request a mouse press on the row already started, if any.
+      const fullEmail = await requestEmailContent(fetchClient, email.id, accountId);
       if (openSeq !== emailOpenSeqRef.current) return;
       if (fullEmail) {
         if (listEmail?.isScheduled) {
@@ -4835,6 +4846,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   }
                 }}
                 onEmailSelect={handleEmailSelect}
+                onEmailPrefetch={handleEmailPrefetch}
                 onEmailDoubleClick={isEmbedded ? ((email) => {
                   const store = useProTabStore.getState();
                   const hasSplit = store.tabs.some((tab) => tab.paneId === 'split');

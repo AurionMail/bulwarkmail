@@ -617,3 +617,32 @@ describe('ThreadListItem Mountain View desktop row', () => {
     expect(onToggleExpand).not.toHaveBeenCalled();
   });
 });
+
+describe('ThreadListItem prefetch on mouse press', () => {
+  const renderWithPrefetch = (onPrefetch: (email: Email) => void) => {
+    const [thread] = groupEmailsByThread([makeEmail()]);
+    return render(
+      <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} onPrefetch={onPrefetch} />,
+    );
+  };
+
+  it('asks for the message when a mouse is pressed on the row', () => {
+    const onPrefetch = vi.fn();
+    renderWithPrefetch(onPrefetch);
+    fireEvent.pointerDown(screen.getByTestId('email-list-item'), { pointerType: 'mouse', button: 0 });
+    expect(onPrefetch).toHaveBeenCalledWith(expect.objectContaining({ id: 'email-1' }));
+  });
+
+  it('leaves touches, other buttons and presses on controls in the row alone', () => {
+    const onPrefetch = vi.fn();
+    renderWithPrefetch(onPrefetch);
+    const row = screen.getByTestId('email-list-item');
+    fireEvent.pointerDown(row, { pointerType: 'touch', button: 0 });
+    fireEvent.pointerDown(row, { pointerType: 'mouse', button: 2 });
+    fireEvent.pointerEnter(row);
+    const control = row.querySelector('button');
+    expect(control).not.toBeNull();
+    fireEvent.pointerDown(control!, { pointerType: 'mouse', button: 0 });
+    expect(onPrefetch).not.toHaveBeenCalled();
+  });
+});
