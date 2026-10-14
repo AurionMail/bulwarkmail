@@ -4,7 +4,8 @@ import React from 'react';
 import { EmailComposer } from '../email-composer';
 import { useAuthStore } from '@/stores/auth-store';
 import { resetActions, setActionDispatcher, setPluginActions } from '@/lib/plugin-sandbox/actions';
-import { clearOffers, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
+import { clearOffers, lastSlotProps, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
+import { useSettingsStore } from '@/stores/settings-store';
 
 // Plugin surfaces of the composer: frames above and below the message text
 // (fed the draft, at most every 2 seconds), and entries in the Send and
@@ -249,6 +250,25 @@ describe('composer-above-body and composer-below-body', () => {
 
     act(() => { vi.advanceTimersByTime(200); });
     expect(draftOf(screen.getByTestId('slot-composer-above-body')).subject).toBe('Lunch at 12?');
+  });
+
+  it('let a plugin read the selection and write over it', () => {
+    useSettingsStore.setState({ plainTextMode: true });
+    try {
+      offerSlots('p1', ['composer-above-body']);
+      const { container } = render(<EmailComposer initialData={{ ...DRAFT, body: 'Hello there' }} onClose={vi.fn()} />);
+      const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+      const props = lastSlotProps('composer-above-body') as { insertText: (t: string) => boolean; getSelectedText: () => string };
+
+      textarea.setSelectionRange(0, 5);
+      expect(props.getSelectedText()).toBe('Hello');
+      act(() => { expect(props.insertText('Hi')).toBe(true); });
+
+      expect(textarea.value).toBe('Hi there');
+      expect(props.insertText('x'.repeat(100_001))).toBe(false);
+    } finally {
+      useSettingsStore.setState({ plainTextMode: false });
+    }
   });
 
   it('draw nothing without a plugin', () => {

@@ -363,6 +363,9 @@ export function normalizePluginAttachment(raw: unknown): { name: string; type: s
 /** How long a plugin may take over onBeforeDraftAutoSave before the save goes on without it. */
 const DRAFT_HOOK_TIMEOUT_MS = 5000;
 
+/** Longest text a plugin may insert into the message at once. */
+const MAX_PLUGIN_INSERT_LENGTH = 100_000;
+
 export function EmailComposer({
   onSend,
   onScheduledSendCreated,
@@ -2421,7 +2424,51 @@ export function EmailComposer({
     const timer = setTimeout(() => setPluginDraft(draftSnapshotRef.current()), 2000);
     return () => clearTimeout(timer);
   }, [wantsPluginDraft, toStr, ccStr, bccStr, subject, body, plainTextMode, selectedIdentityId, attachments]);
-  const pluginDraftProps = useMemo(() => ({ draft: pluginDraft }), [pluginDraft]);
+  // Plugins write into the message through these (slot props, gated by the
+  // catalogue): plain text at the caret, replacing the selection, so a
+  // rewrite of a selected paragraph is one call and Ctrl+Z takes it back in
+  // the rich editor. Stable, so the slot iframes don't get new props.
+  const plainTextModeRef = useRef(plainTextMode);
+  plainTextModeRef.current = plainTextMode;
+  const pluginInsertText = useCallback((value: unknown) => {
+    if (typeof value !== 'string' || value.length === 0 || value.length > MAX_PLUGIN_INSERT_LENGTH) return false;
+    if (plainTextModeRef.current) {
+      const textarea = bodyRef.current;
+      if (!textarea) return false;
+      const start = textarea.selectionStart ?? textarea.value.length;
+      const end = textarea.selectionEnd ?? start;
+      setBody((prev) => prev.slice(0, start) + value + prev.slice(end));
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + value.length, start + value.length);
+      });
+      return true;
+    }
+    const editor = editorRef.current;
+    if (!editor) return false;
+    const html = value.split(/\r?\n\r?\n/).map((para) => `<p>${escapeHtml(para).replace(/\r?\n/g, '<br>')}</p>`).join('');
+    editor.chain().focus().insertContent(html).run();
+    return true;
+  }, []);
+  const pluginSelectedText = useCallback(() => {
+    if (plainTextModeRef.current) {
+      const textarea = bodyRef.current;
+      if (!textarea) return '';
+      return textarea.value.slice(textarea.selectionStart ?? 0, textarea.selectionEnd ?? 0);
+    }
+    const editor = editorRef.current;
+    if (!editor) return '';
+    const { from, to } = editor.state.selection;
+    return editor.state.doc.textBetween(from, to, '\n\n');
+  }, []);
+  const pluginDraftProps = useMemo(
+    () => ({ draft: pluginDraft, insertText: pluginInsertText, getSelectedText: pluginSelectedText }),
+    [pluginDraft, pluginInsertText, pluginSelectedText],
+  );
+  const pluginToolbarProps = useMemo(
+    () => ({ insertText: pluginInsertText, getSelectedText: pluginSelectedText }),
+    [pluginInsertText, pluginSelectedText],
+  );
   const sendMenuContext = useCallback(() => ({ draft: draftSnapshotRef.current() }), []);
 
   // Trigger auto-save when content changes (only if user modified something)
@@ -3840,7 +3887,7 @@ export function EmailComposer({
             squeezing them in pushed Send out of the window. */}
         {(pluginToolbarOffers.length > 0 || pluginAttachmentSourceOffers.length > 0) && (
           <div className="flex flex-wrap items-center gap-1 border-t border-border px-4 py-1.5 bg-background shrink-0" data-composer-plugin-row="">
-            <PluginSlot name="composer-toolbar" />
+            <PluginSlot name="composer-toolbar" extraProps={pluginToolbarProps} />
             {/* Lets a plugin offer an alternative attachment source (an
                 external file browser, cloud storage picker, etc). The plugin
                 calls `onAttach` once it has uploaded the chosen file to JMAP

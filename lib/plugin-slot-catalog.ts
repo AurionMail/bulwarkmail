@@ -76,9 +76,9 @@ export const SLOT_CATALOG = {
   'attachment-menu': S('reader', 'action', ['email:read'], { emailId: 'email:read', blobId: 'email:read', name: 'email:read', type: 'email:read', size: 'email:read' }, 'entries in each attachment\'s menu (for example "Save to Nextcloud")'),
 
   // ─── Composer ──────────────────────────────────────────────
-  'composer-toolbar': S('composer', 'frame', ['ui:composer-toolbar'], {}, 'the composer\'s plugin button row', true),
-  'composer-above-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send' }, 'between the subject and the message text'),
-  'composer-below-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send' }, 'below the message text, above the attachments'),
+  'composer-toolbar': S('composer', 'frame', ['ui:composer-toolbar'], { insertText: 'compose:open', getSelectedText: 'email:send' }, 'the composer\'s plugin button row', true),
+  'composer-above-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send', insertText: 'compose:open', getSelectedText: 'email:send' }, 'between the subject and the message text'),
+  'composer-below-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send', insertText: 'compose:open', getSelectedText: 'email:send' }, 'below the message text, above the attachments'),
   'composer-sidebar': S('composer', 'frame', ['ui:composer-sidebar'], {}, 'a panel left of the composer'),
   'composer-sidebar-right': S('composer', 'frame', ['ui:composer-sidebar'], {}, 'a panel right of the composer'),
   'composer-attachment-source': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { onAttach: null }, 'the composer\'s attach menu, as a source of files', true),
