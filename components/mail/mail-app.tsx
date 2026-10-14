@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback, useId } from "react";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Sidebar } from "@/components/layout/sidebar";
 import { EmailList } from "@/components/email/email-list";
@@ -116,7 +115,7 @@ import { useThemeStore } from "@/stores/theme-store";
 import { consumePendingMailto, subscribeToPendingMailto } from "@/lib/protocol-handlers/session";
 import { INTERNAL_MAILTO_EVENT, type ParsedMailto } from "@/lib/protocol-handlers/mailto";
 import { plainTextToComposerBody, getQuoteBodies } from "@/lib/email-composer-utils";
-import { appLifecycleHooks, uiHooks, routerHooks, toastHooks, emailHooks } from "@/lib/plugin-hooks";
+import { emailHooks } from "@/lib/plugin-hooks";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { buildQuoteHeader } from "@/lib/quote-header";
 import { buildComposeTabTitle, buildReplySubject } from "@/lib/subject-prefix";
@@ -293,87 +292,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     return () => clearInterval(timer);
   }, [isRateLimited, rateLimitUntil]);
 
-  // Plugin hooks: window-level lifecycle + selection + service-worker messages.
-  // One effect because the listeners share a registration / cleanup window.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onFocus = () => { appLifecycleHooks.onWindowFocus.emit(); };
-    const onBlur = () => { appLifecycleHooks.onWindowBlur.emit(); };
-    const onOnline = () => { appLifecycleHooks.onOnline.emit(); };
-    const onOffline = () => { appLifecycleHooks.onOffline.emit(); };
-
-    let selectionTimer: ReturnType<typeof setTimeout> | null = null;
-    const onSelectionChange = () => {
-      if (selectionTimer) clearTimeout(selectionTimer);
-      selectionTimer = setTimeout(() => {
-        const sel = document.getSelection();
-        const text = sel?.toString() ?? '';
-        if (!text) return;
-        const anchorNode = sel?.anchorNode as Node | null;
-        const anchorEl = (anchorNode?.nodeType === Node.ELEMENT_NODE
-          ? anchorNode as Element
-          : anchorNode?.parentElement) ?? null;
-        let source: 'email-body' | 'composer' | 'task-detail' | 'event-detail' | 'other' = 'other';
-        let emailId: string | undefined;
-        if (anchorEl) {
-          if (anchorEl.closest('[data-plugin-source="email-body"], iframe.email-body, .email-viewer-body')) {
-            source = 'email-body';
-            const idEl = anchorEl.closest('[data-email-id]') as HTMLElement | null;
-            emailId = idEl?.dataset.emailId;
-          } else if (anchorEl.closest('[data-plugin-source="composer"], .email-composer')) {
-            source = 'composer';
-          } else if (anchorEl.closest('[data-plugin-source="task-detail"]')) {
-            source = 'task-detail';
-          } else if (anchorEl.closest('[data-plugin-source="event-detail"]')) {
-            source = 'event-detail';
-          }
-        }
-        uiHooks.onTextSelectionChange.emit({ text, source, emailId });
-      }, 150);
-    };
-
-    const onSwMessage = (e: MessageEvent) => {
-      const msg = e.data as { kind?: string; tag?: string; data?: unknown } | null;
-      if (msg && msg.kind === 'notificationclick' && typeof msg.tag === 'string') {
-        toastHooks.onNotificationClick.emit({ tag: msg.tag, data: msg.data });
-      }
-    };
-
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('blur', onBlur);
-    window.addEventListener('online', onOnline);
-    window.addEventListener('offline', onOffline);
-    document.addEventListener('selectionchange', onSelectionChange);
-    if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
-      navigator.serviceWorker.addEventListener('message', onSwMessage);
-    }
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('blur', onBlur);
-      window.removeEventListener('online', onOnline);
-      window.removeEventListener('offline', onOffline);
-      document.removeEventListener('selectionchange', onSelectionChange);
-      if (selectionTimer) clearTimeout(selectionTimer);
-      if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
-        navigator.serviceWorker.removeEventListener('message', onSwMessage);
-      }
-    };
-  }, []);
-
-  // Plugin hooks: route navigation. Tracks Next.js pathname transitions.
-  const pathname = usePathname();
-  const prevPathnameRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!pathname) return;
-    const from = prevPathnameRef.current;
-    if (from === pathname) return;
-    if (from !== null) {
-      routerHooks.onRouteLeave.emit({ path: from });
-      routerHooks.onNavigate.emit({ path: pathname, from });
-    }
-    routerHooks.onRouteEnter.emit({ path: pathname });
-    prevPathnameRef.current = pathname;
-  }, [pathname]);
+  // Window, selection and navigation events for plugins are fired app-wide
+  // by components/providers/plugin-app-events.tsx.
 
   // Mobile/tablet responsive hooks
   const { isMobile, isTablet } = useDeviceDetection();

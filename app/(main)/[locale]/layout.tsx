@@ -11,6 +11,7 @@ import { ImpersonationReconciler } from "@/components/impersonation/impersonatio
 import { PluginDialogHost } from "@/components/plugins/plugin-dialog-host";
 import { QuickRuleHost } from "@/components/filters/quick-rule-host";
 import { PluginConsentDialog } from "@/components/plugins/plugin-consent-dialog";
+import { PluginAppEvents } from "@/components/providers/plugin-app-events";
 import { PluginOAuthCallbackListener } from "@/components/providers/plugin-oauth-callback-listener";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationPrompt } from "@/components/push-notification-prompt";
@@ -59,6 +60,7 @@ export default async function LocaleLayout({
                   <QuickRuleHost />
                   <PluginConsentDialog />
                   <PluginOAuthCallbackListener />
+                  <PluginAppEvents />
                   <PWAInstallPrompt />
                   <PushNotificationPrompt />
                 </ProtocolLaunchHandlerProvider>
