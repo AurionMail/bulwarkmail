@@ -31,7 +31,7 @@ function sourceFiles(dir: string): string[] {
   return out;
 }
 
-const sources = ['app', 'components', 'hooks', 'lib', 'stores'].flatMap((d) => sourceFiles(path.join(root, d)))
+const sources = ['app', 'components', 'contexts', 'hooks', 'lib', 'stores'].flatMap((d) => sourceFiles(path.join(root, d)))
   .map((f) => fs.readFileSync(f, 'utf8'))
   .join('\n');
 
@@ -47,7 +47,7 @@ function isFired(hookName: string, groupName: string): boolean {
 const NOT_YET_WIRED = new Set<HookGroup>([
   'mail-list', 'mail-read', 'mail-compose', 'mail-send', 'mail-organize', 'mail-mailboxes', 'mail-search',
   'mail-sync', 'calendar', 'contacts', 'tasks', 'files', 'settings', 'identities',
-  'filters', 'vacation', 'templates', 'security', 'ui', 'keyboard',
+  'filters', 'vacation', 'templates', 'security', 'keyboard',
 ]);
 
 describe('hook catalogue', () => {

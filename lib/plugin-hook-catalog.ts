@@ -284,14 +284,14 @@ export const HOOK_CATALOG = {
   onInterval: H('app', 'observer', 'app:lifecycle', '{ now }', 'once a minute while the app is open'),
 
   // ─── Layout ────────────────────────────────────────────────
-  onViewChange: H('ui', 'observer', 'ui:observe', '{ view }', 'when the main view changes (list, message, composer)'),
+  onViewChange: H('ui', 'observer', 'ui:observe', '{ view: "sidebar" | "list" | "viewer" }', 'when the phone layout switches between folders, message list and message'),
   onSidebarToggle: H('ui', 'observer', 'ui:observe', '{ open }', 'when the sidebar is opened or closed'),
   onSidebarCollapse: H('ui', 'observer', 'ui:observe', '{ collapsed }', 'when the sidebar is collapsed or expanded'),
   onDeviceTypeChange: H('ui', 'observer', 'ui:observe', '{ deviceType: "mobile" | "tablet" | "desktop" }', 'when the layout switches between phone, tablet and desktop'),
-  onColumnResize: H('ui', 'observer', 'ui:observe', '{ column, width }', 'after a column was resized'),
+  onColumnResize: H('ui', 'observer', 'ui:observe', '{ column: "sidebar" | "email-list" | "email-list-height", width }', 'after a column was resized or reset'),
   onMobileBack: H('ui', 'observer', 'ui:observe', '{}', 'when Back is used on the phone layout'),
   onTextSelectionChange: H('ui', 'observer', 'email:read', 'SelectionContext', 'when the user selects text (debounced)'),
-  onDragStart: H('ui', 'observer', 'email:read', '{ kind, ids }', 'when messages or tags start being dragged'),
+  onDragStart: H('ui', 'observer', 'email:read', '{ kind: "email", ids }', 'when messages start being dragged'),
   onDragEnd: H('ui', 'observer', 'email:read', '{ kind, ids, dropped }', 'when a drag ends'),
   onEmailDrop: H('ui', 'observer', 'email:read', '{ emailIds, targetMailboxId }', 'after messages were dropped on a folder'),
   onTagDrop: H('ui', 'observer', 'email:read', '{ emailIds, keyword }', 'after a tag was dropped on messages'),

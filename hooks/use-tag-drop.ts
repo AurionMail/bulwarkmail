@@ -4,6 +4,7 @@ import { useCallback, useState, DragEvent } from "react";
 import { useEmailStore } from "@/stores/email-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDragDropContext } from "@/contexts/drag-drop-context";
+import { dragDropHooks } from "@/lib/plugin-hooks";
 
 
 interface UseTagDropOptions {
@@ -27,7 +28,7 @@ export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): Us
   const [isOver, setIsOver] = useState(false);
   const { client } = useAuthStore();
   const { fetchEmails, fetchTagCounts, selectedMailbox } = useEmailStore();
-  const { isDragging, endDrag } = useDragDropContext();
+  const { isDragging, endDrag, markDropped } = useDragDropContext();
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -71,6 +72,7 @@ export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): Us
       }
 
       const emailIds: string[] = JSON.parse(emailIdsJson);
+      markDropped();
 
       for (const emailId of emailIds) {
         // Read fresh state to avoid stale closures
@@ -87,6 +89,8 @@ export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): Us
         await emailState.setEmailKeywords(client, emailId, keywords);
       }
 
+      void dragDropHooks.onTagDrop.emit({ emailIds, keyword: `$label:${tagId}` });
+
       // Refresh the email list
       await fetchEmails(client, selectedMailbox);
 
@@ -100,7 +104,7 @@ export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): Us
     } finally {
       endDrag();
     }
-  }, [client, isDragging, tagId, fetchEmails, fetchTagCounts, selectedMailbox, endDrag, onSuccess, onError]);
+  }, [client, isDragging, tagId, fetchEmails, fetchTagCounts, selectedMailbox, endDrag, markDropped, onSuccess, onError]);
 
   return {
     dropHandlers: {
