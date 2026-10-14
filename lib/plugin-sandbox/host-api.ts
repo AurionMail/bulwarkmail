@@ -49,7 +49,7 @@ import {
 import {
   doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doMailboxesList,
 } from './host-api-mail';
-import { MAX_PLUGIN_FETCH_BYTES } from './host-api-input';
+import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } from './host-api-input';
 import { doComposeOpen, doDraftsCreate } from './host-api-compose';
 import { doNotificationsShow } from './host-api-notify';
 
@@ -699,10 +699,30 @@ async function doJmapFetchBlob(blobId: string, opts?: { name?: string; type?: st
   return new Uint8Array(buf);
 }
 
-async function doJmapUploadBlob(content: Uint8Array, name: string, type: string): Promise<{ blobId: string; size: number; type: string; }> {
-  const { client } = useAuthStore.getState();
-  if (!client) throw new Error('jmap.uploadBlob: no active session');
-  const file = new File([content as BlobPart], name, { type });
+/** Largest blob a plugin may upload when the server names no limit of its own. */
+export const MAX_PLUGIN_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+/**
+ * jmap.uploadBlob: bytes from the plugin, checked like the attachment refs a
+ * plugin hands the composer (readBlobRefs): a real file name, a media type,
+ * and no more than the server accepts (its maxSizeUpload, or 50 MB when it
+ * names none).
+ */
+async function doJmapUploadBlob(content: unknown, name: unknown, type: unknown): Promise<{ blobId: string; size: number; type: string; }> {
+  const method = 'jmap.uploadBlob';
+  const bytes = content instanceof Uint8Array ? content
+    : content instanceof ArrayBuffer ? new Uint8Array(content)
+    : null;
+  if (!bytes) throw new Error(`${method}: content must be a Uint8Array or ArrayBuffer`);
+  const fileName = readFileName(name, method, 'name');
+  const mediaType = readMediaType(type, method, 'type');
+  const client = sessionClient(method);
+  const serverLimit = client.getMaxSizeUpload();
+  const limit = serverLimit > 0 ? serverLimit : MAX_PLUGIN_UPLOAD_BYTES;
+  if (bytes.byteLength > limit) {
+    throw new Error(`${method}: content is ${bytes.byteLength} bytes, more than the ${limit} bytes allowed`);
+  }
+  const file = new File([bytes as BlobPart], fileName, { type: mediaType });
   return await client.uploadBlob(file);
 }
 
@@ -1720,7 +1740,7 @@ export async function dispatchApiCall(
     case 'http.fetch': return doHttpFetch(plugin, args[0] as string, args[1] as PluginFetchInit | undefined);
 
     case 'jmap.fetchBlob': return doJmapFetchBlob(args[0] as string, args[1] as { name?: string; type?: string, rangeHeader?: number } | undefined);
-    case 'jmap.uploadBlob': return doJmapUploadBlob(args[0] as Uint8Array, args[1] as string, args[2] as string);
+    case 'jmap.uploadBlob': return doJmapUploadBlob(args[0], args[1], args[2]);
     case 'jmap.sendRaw':   return doJmapSendRaw(
       args[0] as ArrayBuffer | ArrayBufferView,
       args[1] as string,
@@ -1891,13 +1911,17 @@ export async function dispatchApiCall(
     }
 
     case 'email.setKeyword': {
+      const emailId = assertEmailId(args[0], 'email.setKeyword');
       const keyword = assertPluginKeyword(args[1]);
-      await requireClient().setKeyword(String(args[0]), keyword, args[2] as string | undefined);
+      const accountId = assertOptionalAccountId(args[2], 'email.setKeyword');
+      await requireClient().setKeyword(emailId, keyword, accountId);
       return undefined;
     }
     case 'email.removeKeyword': {
+      const emailId = assertEmailId(args[0], 'email.removeKeyword');
       const keyword = assertPluginKeyword(args[1]);
-      await requireClient().removeKeyword(String(args[0]), keyword, args[2] as string | undefined);
+      const accountId = assertOptionalAccountId(args[2], 'email.removeKeyword');
+      await requireClient().removeKeyword(emailId, keyword, accountId);
       return undefined;
     }
 

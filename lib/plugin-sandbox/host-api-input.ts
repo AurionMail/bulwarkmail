@@ -127,6 +127,21 @@ export function nameOf(entry: string): string {
 
 const MIME_TYPE_RE = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/i;
 
+/** A media type such as `application/pdf`, without parameters. */
+export function readMediaType(value: unknown, method: string, field: string): string {
+  const type = readString(value, method, field, 255);
+  if (!MIME_TYPE_RE.test(type)) throw new Error(`${method}: ${field} is not a media type`);
+  return type;
+}
+
+/** A file name of 1-255 characters, control characters removed. */
+export function readFileName(value: unknown, method: string, field: string): string {
+  // eslint-disable-next-line no-control-regex -- control characters in a file name are refused
+  const name = readString(value, method, field, 255, { min: 1 }).replace(/[\u0000-\u001f\u007f]/g, '');
+  if (!name.trim()) throw new Error(`${method}: ${field} must be 1-255 characters`);
+  return name;
+}
+
 export interface PluginBlobRef {
   blobId: string;
   name: string;
@@ -150,12 +165,10 @@ export function readBlobRefs(
   return value.map((entry, index) => {
     const field = `attachments[${index}]`;
     const ref = readObject(entry, method, field, ['blobId', 'name', 'type', 'size']);
-    const type = readString(ref.type, method, `${field}.type`, 255);
-    if (!MIME_TYPE_RE.test(type)) throw new Error(`${method}: ${field}.type is not a media type`);
+    const type = readMediaType(ref.type, method, `${field}.type`);
     return {
       blobId: readId(ref.blobId, method, `${field}.blobId`),
-      // eslint-disable-next-line no-control-regex -- control characters in a file name are refused
-      name: readString(ref.name, method, `${field}.name`, 255, { min: 1 }).replace(/[\u0000-\u001f\u007f]/g, ''),
+      name: readFileName(ref.name, method, `${field}.name`),
       type,
       size: readInteger(ref.size, method, `${field}.size`, 0, maxSize),
     };
