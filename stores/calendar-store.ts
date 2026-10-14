@@ -20,7 +20,7 @@ import {
   isServerRecurrenceInstance,
   isSyntheticIdMutationUnsupported,
 } from '@/lib/recurrence-instances';
-import { parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { generateUUID } from '@/lib/utils';
 import { apiFetch } from '@/lib/browser-navigation';
 import { explainServerAuthError } from '@/lib/server-auth-status';
@@ -347,6 +347,8 @@ function selectionAfterFetch(
 // manual refresh, two account-switch reloads, etc.) share the same
 // promise instead of double-fetching and racing the diff/import phase.
 const refreshInFlight = new Map<string, Promise<void>>();
+// Subscriptions whose first fetch is running inside addICalSubscription.
+const subscriptionsBeingAdded = new Set<string>();
 
 export type CalendarViewMode = 'month' | 'week' | 'day' | 'agenda' | 'tasks';
 
@@ -1091,8 +1093,22 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
 
-      setSelectedDate: (date) => set({ selectedDate: date }),
-      setViewMode: (mode) => set({ viewMode: getSafeCalendarViewMode(mode) }),
+      setSelectedDate: (date) => {
+        // Plugins get the shown day; a new time on the same day is no change.
+        const previous = get().selectedDate;
+        set({ selectedDate: date });
+        if (Number.isNaN(date.getTime())) return;
+        const day = format(date, 'yyyy-MM-dd');
+        if (Number.isNaN(previous.getTime()) || format(previous, 'yyyy-MM-dd') !== day) {
+          void calendarHooks.onCalendarDateChange.emit({ date: day });
+        }
+      },
+      setViewMode: (mode) => {
+        const view = getSafeCalendarViewMode(mode);
+        const previous = get().viewMode;
+        set({ viewMode: view });
+        if (previous !== view) void calendarHooks.onCalendarViewChange.emit({ view });
+      },
 
       updateCalendar: async (client, calendarId, updates) => {
         set({ error: null });
@@ -1107,6 +1123,7 @@ export const useCalendarStore = create<CalendarStore>()(
               c.id === calendarId ? { ...c, ...updates } : c
             ),
           }));
+          void calendarHooks.onCalendarChange.emit({ calendarId, change: 'updated' });
         } catch (error) {
           debug.error('Failed to update calendar:', error);
           set({ error: 'Failed to update calendar' });
@@ -1137,6 +1154,7 @@ export const useCalendarStore = create<CalendarStore>()(
               return c;
             }),
           }));
+          void calendarHooks.onCalendarChange.emit({ calendarId, change: 'updated' });
         } catch (error) {
           debug.error('Failed to set default calendar:', error);
           set({ error: 'Failed to set default calendar' });
@@ -1161,6 +1179,7 @@ export const useCalendarStore = create<CalendarStore>()(
               return { ...c, shareWith: next };
             }),
           }));
+          void calendarHooks.onCalendarChange.emit({ calendarId, change: 'updated' });
         } catch (error) {
           debug.error('Failed to share calendar:', error);
           set({ error: 'Failed to share calendar' });
@@ -1178,6 +1197,7 @@ export const useCalendarStore = create<CalendarStore>()(
             calendars: [...state.calendars, created],
             selectedCalendarIds: [...state.selectedCalendarIds, created.id],
           }));
+          void calendarHooks.onCalendarChange.emit({ calendarId: created.id, change: 'created' });
           return created;
         } catch (error) {
           debug.error('Failed to create calendar:', error);
@@ -1199,6 +1219,7 @@ export const useCalendarStore = create<CalendarStore>()(
             selectedCalendarIds: state.selectedCalendarIds.filter(id => id !== calendarId),
             events: state.events.filter(e => !e.calendarIds?.[calendarId]),
           }));
+          void calendarHooks.onCalendarChange.emit({ calendarId, change: 'removed' });
         } catch (error) {
           debug.error('Failed to delete calendar:', error);
           set({ error: 'Failed to delete calendar' });
@@ -1286,14 +1307,15 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
 
-      toggleCalendarVisibility: (calendarId) => set((state) => {
-        const ids = state.selectedCalendarIds;
-        return {
-          selectedCalendarIds: ids.includes(calendarId)
-            ? ids.filter(id => id !== calendarId)
-            : [...ids, calendarId],
-        };
-      }),
+      toggleCalendarVisibility: (calendarId) => {
+        const visible = !get().selectedCalendarIds.includes(calendarId);
+        set((state) => ({
+          selectedCalendarIds: visible
+            ? [...state.selectedCalendarIds, calendarId]
+            : state.selectedCalendarIds.filter(id => id !== calendarId),
+        }));
+        void calendarHooks.onCalendarVisibilityToggle.emit({ calendarId, visible });
+      },
 
       setSelectedEventId: (id) => set({ selectedEventId: id }),
 
@@ -1350,8 +1372,15 @@ export const useCalendarStore = create<CalendarStore>()(
 
           // Initial fetch - roll back the calendar create if it fails so we
           // don't leave a phantom calendar around after a bad URL / 404 / etc.
-          await get().refreshICalSubscription(client, subscription.id);
+          // Plugins hear "added" for it, not also "refreshed".
+          subscriptionsBeingAdded.add(subscription.id);
+          try {
+            await get().refreshICalSubscription(client, subscription.id);
+          } finally {
+            subscriptionsBeingAdded.delete(subscription.id);
+          }
 
+          void calendarHooks.onICalSubscriptionChange.emit({ subscriptionId: subscription.id, change: 'added' });
           return subscription;
         } catch (error) {
           debug.error('Failed to add iCal subscription:', error);
@@ -1409,6 +1438,7 @@ export const useCalendarStore = create<CalendarStore>()(
             };
           }),
         }));
+        void calendarHooks.onICalSubscriptionChange.emit({ subscriptionId, change: 'updated' });
 
         // If URL changed, refresh to fetch events from new source
         if (normalizedUpdates.url && normalizedUpdates.url !== sub.url) {
@@ -1437,6 +1467,7 @@ export const useCalendarStore = create<CalendarStore>()(
           selectedCalendarIds: state.selectedCalendarIds.filter(id => id !== sub.calendarId),
           events: state.events.filter(e => !e.calendarIds?.[sub.calendarId]),
         }));
+        void calendarHooks.onICalSubscriptionChange.emit({ subscriptionId, change: 'removed' });
       },
 
       refreshICalSubscription: async (client, subscriptionId) => {
@@ -1544,6 +1575,9 @@ export const useCalendarStore = create<CalendarStore>()(
         refreshInFlight.set(subscriptionId, work);
         try {
           await work;
+          if (!subscriptionsBeingAdded.has(subscriptionId)) {
+            void calendarHooks.onICalSubscriptionChange.emit({ subscriptionId, change: 'refreshed' });
+          }
         } catch (error) {
           debug.error('Failed to refresh iCal subscription:', sub.name, error);
           throw error;
