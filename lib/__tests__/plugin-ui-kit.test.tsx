@@ -125,6 +125,15 @@ describe('plugin UI kit components', () => {
     expect(container.querySelector('dd')).toHaveTextContent('2 MB');
   });
 
+  it('makes sidebar rows as tall as folder rows on touch screens', () => {
+    // The page sets --touch-row-min-h to 44px below lg, where folder rows
+    // are max-lg:min-h-[44px]; the frame can't see the page's width itself.
+    expect(source('components/layout/sidebar.tsx')).toContain('max-lg:min-h-[44px]');
+    expect(source('app/globals.css')).toMatch(/@media \(width < 64rem\) \{\s*:root \{\s*--touch-row-min-h: 44px;/);
+    render(<kit.SidebarRow label="Anna" onClick={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Anna' }).style.minHeight).toBe('var(--touch-row-min-h, 0px)');
+  });
+
   it('draws a checkbox the user can toggle by its label', () => {
     const onChange = vi.fn();
     render(<kit.Checkbox checked={false} onChange={onChange} label="Send as link" hint="For files over 10 MB" />);

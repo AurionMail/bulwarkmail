@@ -68,6 +68,17 @@
   --density-header-py: 12px;
   --density-card-p: 16px;
   --density-sidebar-py: 4px;
+
+  /* Minimum height of a tappable list row below the lg breakpoint, where
+   * folder rows use max-lg:min-h-[44px]. Plugin frames get it as a variable
+   * because their own viewport is the frame, not the page. */
+  --touch-row-min-h: 0px;
+}
+
+@media (width < 64rem) {
+  :root {
+    --touch-row-min-h: 44px;
+  }
 }
 
 .dark {

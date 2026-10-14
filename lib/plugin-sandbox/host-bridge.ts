@@ -129,6 +129,13 @@ function ensureThemeWatcher(): void {
   });
   themeWatcher.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
   themeWatcher.observe(document.head, { childList: true, subtree: true, characterData: true });
+  // Breakpoint-dependent tokens (the touch row height) change with the
+  // page width, which no mutation reports.
+  window.addEventListener('resize', () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => { scheduled = false; pushThemeToFrames(); });
+  });
 }
 
 // ─── Sandbox instance ────────────────────────────────────────

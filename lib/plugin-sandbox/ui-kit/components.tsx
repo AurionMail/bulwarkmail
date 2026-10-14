@@ -787,7 +787,9 @@ export function SidebarRow({ icon, label, detail, onClick, title, ariaLabel }: {
       title={title}
       aria-label={ariaLabel}
       className={cn('bk w-full flex items-center gap-2 ps-[28px] pe-3 text-sm text-foreground text-start border-s-2 border-transparent transition-colors duration-150', onClick && 'hover:bg-muted/50 focus-visible:outline-none focus-visible:bg-muted/50')}
-      style={{ paddingBlock: 'var(--density-sidebar-py)' }}
+      // Folder rows are 44px tall on phones (max-lg); the frame's own
+      // viewport can't tell, so the page passes the height in.
+      style={{ paddingBlock: 'var(--density-sidebar-py)', minHeight: 'var(--touch-row-min-h, 0px)' }}
     >
       {icon && <span className="flex items-center justify-center flex-shrink-0 w-4 h-4 text-muted-foreground"><Icon name={icon} /></span>}
       <span className="flex-1 min-w-0 truncate">{label}</span>
