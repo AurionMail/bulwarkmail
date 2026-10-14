@@ -90,6 +90,41 @@ describe('plugin UI kit components', () => {
     expect(container.textContent).toBe('Hi BobRobert');
   });
 
+  it('takes only #rgb and #rrggbb colours for a colour dot', () => {
+    const { container } = render(<>
+      <kit.ColorDot color="#3b82f6" label="Work" />
+      <kit.ColorDot color="red; background-image: url(https://evil.example/x)" />
+      <kit.ColorDot color="url(https://evil.example/x)" />
+    </>);
+    const dots = container.querySelectorAll('span');
+    expect((dots[0] as HTMLElement).style.backgroundColor).toBe('rgb(59, 130, 246)');
+    expect(dots[0]).toHaveAttribute('aria-label', 'Work');
+    expect((dots[1] as HTMLElement).getAttribute('style')).toBeNull();
+    expect(dots[1].className).toContain('bg-muted-foreground');
+    expect((dots[2] as HTMLElement).getAttribute('style')).toBeNull();
+  });
+
+  it('names the select box of a list row and a checkbox without a visible label', () => {
+    render(<>
+      <kit.ListRow title="report.pdf" checked={false} onCheck={() => {}} />
+      <kit.ListRow title="x" checkLabel="Select invoice" checked onCheck={() => {}} />
+      <kit.Checkbox checked={false} ariaLabel="Use for all" />
+    </>);
+    expect(screen.getByRole('checkbox', { name: 'report.pdf' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Select invoice' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Use for all' })).toBeTruthy();
+  });
+
+  it('lets fields share a row and shows details as label and value', () => {
+    const { container } = render(<>
+      <kit.Row fill><kit.Field label="Due"><kit.Input /></kit.Field><kit.Field label="Priority"><kit.Input /></kit.Field></kit.Row>
+      <kit.DetailList><kit.DetailRow label="Size">2 MB</kit.DetailRow></kit.DetailList>
+    </>);
+    expect(container.firstElementChild!.className).toContain('[&>*]:flex-1');
+    expect(container.querySelector('dt')).toHaveTextContent('Size');
+    expect(container.querySelector('dd')).toHaveTextContent('2 MB');
+  });
+
   it('draws a checkbox the user can toggle by its label', () => {
     const onChange = vi.fn();
     render(<kit.Checkbox checked={false} onChange={onChange} label="Send as link" hint="For files over 10 MB" />);

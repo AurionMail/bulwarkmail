@@ -164,13 +164,15 @@ export interface KitCheckboxProps {
   checked: boolean;
   onChange?: (checked: boolean) => void;
   label?: React.ReactNode;
+  /** Name for screen readers when there is no visible label. */
+  ariaLabel?: string;
   hint?: React.ReactNode;
   disabled?: boolean;
   id?: string;
 }
 
 /** The composer's check items and the Files app's select box: a drawn box, not the browser's. */
-export function Checkbox({ checked, onChange, label, hint, disabled = false, id }: KitCheckboxProps) {
+export function Checkbox({ checked, onChange, label, hint, disabled = false, id, ariaLabel }: KitCheckboxProps) {
   const autoId = React.useId();
   const boxId = id ?? autoId;
   const box = (
@@ -179,6 +181,7 @@ export function Checkbox({ checked, onChange, label, hint, disabled = false, id 
       type="button"
       role="checkbox"
       aria-checked={checked}
+      aria-label={label ? undefined : ariaLabel}
       disabled={disabled}
       onClick={() => onChange?.(!checked)}
       className={cn(
@@ -305,12 +308,14 @@ export function Stack({ gap = 3, children, className }: { gap?: Gap; className?:
 }
 
 /** Children side by side. */
-export function Row({ gap = 2, wrap = true, justify = 'start', align = 'center', grow = false, children, className }: {
-  gap?: Gap; wrap?: boolean; justify?: 'start' | 'end' | 'between'; align?: 'start' | 'center' | 'baseline'; grow?: boolean; className?: string;
+export function Row({ gap = 2, wrap = true, justify = 'start', align = 'center', grow = false, fill = false, children, className }: {
+  gap?: Gap; wrap?: boolean; justify?: 'start' | 'end' | 'between'; align?: 'start' | 'center' | 'baseline'; grow?: boolean;
+  /** Children share the width equally, e.g. two Fields side by side; they wrap below 12rem each. */
+  fill?: boolean; className?: string;
 } & Children) {
   return (
     <div className={cn(
-      'bk flex min-w-0', GAP[gap], wrap && 'flex-wrap', grow && 'flex-1',
+      'bk flex min-w-0', GAP[gap], wrap && 'flex-wrap', grow && 'flex-1', fill && '[&>*]:flex-1 [&>*]:min-w-[12rem]',
       { start: 'justify-start', end: 'justify-end', between: 'justify-between' }[justify],
       { start: 'items-start', center: 'items-center', baseline: 'items-baseline' }[align],
       className,
@@ -547,6 +552,8 @@ export interface KitListRowProps {
   /** Shows a select box in front. */
   checked?: boolean;
   onCheck?: (checked: boolean) => void;
+  /** Name of the select box for screen readers, e.g. "Select report.pdf". */
+  checkLabel?: string;
   onClick?: () => void;
   onDoubleClick?: () => void;
   /** Buttons at the end of the row. */
@@ -555,7 +562,7 @@ export interface KitListRowProps {
 }
 
 /** A Files app row: 40 px, icon, name, muted meta columns, hover and selected states. */
-export function ListRow({ title, subtitle, meta, icon, folder = false, selected = false, checked, onCheck, onClick, onDoubleClick, actions, disabled = false }: KitListRowProps) {
+export function ListRow({ title, subtitle, meta, icon, folder = false, selected = false, checked, onCheck, checkLabel, onClick, onDoubleClick, actions, disabled = false }: KitListRowProps) {
   const clickable = !!onClick && !disabled;
   return (
     <div
@@ -576,7 +583,7 @@ export function ListRow({ title, subtitle, meta, icon, folder = false, selected 
     >
       {checked !== undefined && (
         <span onClick={(e) => e.stopPropagation()} className="flex">
-          <Checkbox checked={checked} onChange={onCheck} disabled={disabled} />
+          <Checkbox checked={checked} onChange={onCheck} disabled={disabled} ariaLabel={checkLabel ?? (typeof title === 'string' ? title : undefined)} />
         </span>
       )}
       <span className="flex items-center gap-3 min-w-0 flex-1">
@@ -817,5 +824,49 @@ export function DiffView({ parts, streaming = false, label }: { parts: DiffPart[
       ))}
       {streaming && <span className="ms-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-primary/60" aria-hidden="true" />}
     </div>
+  );
+}
+
+// ─── Panels and details ────────────────────────────────────────
+
+/** The padding of a side panel or detail section (message details, composer side panels). */
+export function Panel({ children }: Children) {
+  return <div className="bk p-4 space-y-3 text-sm text-foreground">{children}</div>;
+}
+
+/** The small caps heading of the message details' sections. */
+export function DetailHeading({ children }: Children) {
+  return <div className="bk text-[10px] font-semibold tracking-wider text-muted-foreground uppercase mb-1.5">{children}</div>;
+}
+
+/** Label and value rows like the message details (From, Date, Size...). Children are DetailRows. */
+export function DetailList({ children }: Children) {
+  return <dl className="bk grid grid-cols-[7rem_1fr] gap-x-4 gap-y-1.5">{children}</dl>;
+}
+
+export function DetailRow({ label, children, mono = false }: { label: React.ReactNode; mono?: boolean } & Children) {
+  return (
+    <>
+      <dt className="text-muted-foreground text-xs pt-1">{label}</dt>
+      <dd className={cn('text-sm text-foreground min-w-0 break-words', mono && 'font-mono text-xs')}>{children}</dd>
+    </>
+  );
+}
+
+/**
+ * A small round dot in a colour the data carries, like a calendar's or a
+ * tag's colour. Only #rgb/#rrggbb values are used; anything else shows the
+ * muted colour.
+ */
+export function ColorDot({ color, label }: { color?: string; label?: string }) {
+  const safe = typeof color === 'string' && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) ? color : undefined;
+  return (
+    <span
+      className={cn('bk inline-block h-2.5 w-2.5 shrink-0 rounded-full', !safe && 'bg-muted-foreground')}
+      style={safe ? { backgroundColor: safe } : undefined}
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    />
   );
 }
