@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   downloadManagedBundle: vi.fn(),
   createBackgroundInstance: vi.fn(),
   registerShortcuts: vi.fn((..._args: unknown[]) => () => {}),
+  setLocale: vi.fn(),
 }));
 
 vi.mock('../plugin-storage', () => ({
@@ -22,6 +23,7 @@ vi.mock('../plugin-sandbox/bundle-fetch', () => ({
 }));
 vi.mock('../plugin-sandbox/host-bridge', () => ({
   createBackgroundInstance: (...args: unknown[]) => mocks.createBackgroundInstance(...args),
+  forEachInstance: (_id: string | null, fn: (i: { setLocale: (l: string) => void }) => void) => fn({ setLocale: mocks.setLocale }),
   SandboxInstance: class {},
 }));
 vi.mock('../plugin-sandbox/host-api', () => ({
@@ -31,7 +33,7 @@ vi.mock('../plugin-sandbox/shortcuts', () => ({
   registerShortcuts: (...args: unknown[]) => mocks.registerShortcuts(...args),
 }));
 
-import { loadSandboxedPlugin, unloadSandboxedPlugin, setSandboxStoreAccessor } from '../plugin-sandbox/loader';
+import { loadSandboxedPlugin, unloadSandboxedPlugin, setSandboxStoreAccessor, setSandboxLocale } from '../plugin-sandbox/loader';
 import { get as getActive } from '../plugin-sandbox/registry';
 
 const CODE = 'export default { activate() {} }';
@@ -203,5 +205,17 @@ describe('plugin shortcuts', () => {
     await loadSandboxedPlugin(plugin({ permissions: ['ui:keyboard'] }));
 
     expect(mocks.registerShortcuts).toHaveBeenCalledWith(expect.anything(), SHORTCUT);
+  });
+});
+
+describe('setSandboxLocale', () => {
+  it('switches running plugins to the new language', () => {
+    // Running plugins used to keep the old language until a reload.
+    setSandboxLocale('en');
+    mocks.setLocale.mockClear();
+
+    setSandboxLocale('de');
+
+    expect(mocks.setLocale).toHaveBeenCalledWith('de');
   });
 });

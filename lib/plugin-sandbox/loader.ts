@@ -16,7 +16,7 @@ import {
 import { useMessageListTabsStore } from '@/stores/message-list-tabs-store';
 import { verifyBundle } from './bundle-integrity';
 import { downloadManagedBundle } from './bundle-fetch';
-import { createBackgroundInstance } from './host-bridge';
+import { createBackgroundInstance, forEachInstance } from './host-bridge';
 import { resolvePluginTier } from './tier';
 import { register as registerActive, deregister as deregisterActive, all as allActiveEntries } from './registry';
 import { cancelPluginDialogs } from './host-api';
@@ -51,12 +51,17 @@ export function setSandboxLocale(locale: string): void {
   // good locale back to '' - the initial 'en' default stands until the real
   // locale arrives via the store subscription.
   if (!locale) return;
+  const changed = locale !== currentLocale;
   currentLocale = locale;
   // Background instances read `currentLocale` at load time; the slot-iframe
   // component reads this global at spawn time (plugin-iframe-slot.tsx). Keep
-  // both in step from one place. Already-running instances are not re-pushed,
-  // so a locale switch only affects plugins/slots loaded afterwards.
+  // both in step from one place.
   (globalThis as unknown as { __APP_LOCALE__?: string }).__APP_LOCALE__ = locale;
+  if (!changed) return;
+  // Running plugins switch too: their slots re-render in the new language
+  // and their onLocaleChange handlers run.
+  forEachInstance(null, (instance) => instance.setLocale(locale));
+  void themeHooks.onLocaleChange.emit({ locale });
 }
 
 // ─── Bundle fetch ─────────────────────────────────────────────

@@ -28,6 +28,7 @@ import type {
   SlotInit,
 } from './protocol';
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
+import { interpolate, lookup, type LocaleTables } from './plugin-i18n';
 import type { SlotName } from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
@@ -66,6 +67,19 @@ const pendingApi = new Map<string, { resolve: (v: unknown) => void; reject: (err
 // The plugin's settings. One object for the iframe's lifetime, updated in
 // place on 'settings-change', so code that kept a reference sees new values.
 const settingsState: Record<string, unknown> = {};
+
+// The app language, pushed by the host on init and on every change.
+const localeListeners = new Set<(locale: string) => void>();
+function currentLocale(): string {
+  return (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ || 'en';
+}
+function applyLocale(locale: string): void {
+  (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ = locale;
+  document.documentElement.lang = locale;
+  for (const listener of localeListeners) {
+    try { listener(locale); } catch (err) { console.error('[plugin] locale listener failed', err); }
+  }
+}
 const settingsListeners = new Set<(settings: Record<string, unknown>) => void>();
 
 function applySettings(next: Record<string, unknown>): void {
@@ -229,6 +243,7 @@ interface PluginKeywordCounts {
 
 function buildPluginApi(manifest: PluginManifest) {
   applySettings({ ...manifest.settings });
+  const localeTables: LocaleTables = JSON.parse(JSON.stringify(manifest.locales ?? {}));
   return {
     plugin: {
       id: manifest.id,
@@ -495,22 +510,27 @@ function buildPluginApi(manifest: PluginManifest) {
     },
     // Localization for plugins. The host pushes the active locale (init +
     // 'locale-change'); `t` resolves a key against the plugin's declared
-    // `locales` map (manifest.locales), falling back to English then the key
-    // itself, with optional {placeholder} interpolation.
+    // `locales` map (manifest.locales) plus anything added at runtime,
+    // trying `de-CH`, then `de`, then English, then the key itself, with
+    // optional {placeholder} interpolation.
     i18n: {
       get locale(): string {
-        return (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ || 'en';
+        return currentLocale();
       },
+      getLocale: () => currentLocale(),
       t(key: string, vars?: Record<string, string | number>): string {
-        const loc = (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ || 'en';
-        const tables = manifest.locales || {};
-        let out = tables[loc]?.[key] ?? tables['en']?.[key] ?? key;
-        if (vars) {
-          for (const [k, v] of Object.entries(vars)) {
-            out = out.split('{' + k + '}').join(String(v));
-          }
-        }
-        return out;
+        return interpolate(lookup(localeTables, currentLocale(), key) ?? key, vars);
+      },
+      /** Whether any table has `key`, for `has(k) ? t(k) : fallback`. */
+      has: (key: string) => lookup(localeTables, currentLocale(), key) !== undefined,
+      /** Add or override strings for one locale. */
+      addTranslations(locale: string, strings: Record<string, string>): void {
+        localeTables[locale] = { ...(localeTables[locale] ?? {}), ...strings };
+      },
+      /** Called with the new locale when the user switches language. Returns an unsubscribe function. */
+      onLocaleChange: (listener: (locale: string) => void) => {
+        localeListeners.add(listener);
+        return () => { localeListeners.delete(listener); };
       },
     },
   };
@@ -664,7 +684,11 @@ function bootSlot(payload: SlotInit): void {
     React.useEffect(() => {
       const bump = () => setSettingsVersion((v) => v + 1);
       settingsListeners.add(bump);
-      return () => { settingsListeners.delete(bump); };
+      localeListeners.add(bump);
+      return () => {
+        settingsListeners.delete(bump);
+        localeListeners.delete(bump);
+      };
     }, []);
     React.useEffect(() => {
       if (!wrapRef.current) return;
@@ -698,7 +722,7 @@ async function handleInit(payload: InitPayload): Promise<void> {
   mode = payload.mode;
   // Make the active locale available to plugin code (api.i18n) right away -
   // not only after the first 'locale-change' push.
-  (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ = payload.locale;
+  applyLocale(payload.locale);
   try {
     if (payload.mode === 'background') {
       await bootBackground(payload);
@@ -780,7 +804,7 @@ function handleHostMessage(ev: MessageEvent): void {
     }
 
     case 'locale-change':
-      (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ = msg.locale;
+      applyLocale(msg.locale);
       break;
 
     case 'theme-change':
