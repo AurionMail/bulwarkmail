@@ -11,6 +11,8 @@ import {
 } from '@/lib/template-utils';
 import { generateUUID } from '@/lib/utils';
 import { registerTemplateSyncBridge } from './settings-store';
+import { templateHooks } from '@/lib/plugin-hooks';
+import { templateToView } from '@/lib/plugin-projection';
 
 const MAX_RECENT = 5;
 
@@ -71,6 +73,7 @@ export const useTemplateStore = create<TemplateStore>()(
         set((state) => ({
           templates: [...state.templates, template],
         }));
+        void templateHooks.onTemplateCreate.emit(templateToView(template));
         return template;
       },
 
@@ -82,9 +85,11 @@ export const useTemplateStore = create<TemplateStore>()(
               : t
           ),
         }));
+        emitTemplateUpdate(id);
       },
 
       deleteTemplate: (id) => {
+        if (!get().templates.some((t) => t.id === id)) return;
         set((state) => ({
           templates: state.templates.filter((t) => t.id !== id),
           recentTemplateIds: state.recentTemplateIds.filter((rid) => rid !== id),
@@ -93,6 +98,7 @@ export const useTemplateStore = create<TemplateStore>()(
             [id]: new Date().toISOString(),
           },
         }));
+        void templateHooks.onTemplateDelete.emit({ templateId: id });
       },
 
       duplicateTemplate: (id, nameSuffix) => {
@@ -113,6 +119,7 @@ export const useTemplateStore = create<TemplateStore>()(
         set((state) => ({
           templates: [...state.templates, duplicate],
         }));
+        void templateHooks.onTemplateCreate.emit(templateToView(duplicate));
         return duplicate;
       },
 
@@ -122,6 +129,7 @@ export const useTemplateStore = create<TemplateStore>()(
             t.id === id ? { ...t, isFavorite: !t.isFavorite, updatedAt: new Date().toISOString() } : t
           ),
         }));
+        emitTemplateUpdate(id);
       },
 
       recordUsage: (id) => {
@@ -169,6 +177,7 @@ export const useTemplateStore = create<TemplateStore>()(
           set((state) => ({
             templates: [...state.templates, ...result.templates],
           }));
+          void templateHooks.onTemplatesImport.emit({ count: result.templates.length });
         }
         return { count: result.templates.length, errors: result.errors };
       },
@@ -199,6 +208,41 @@ export const useTemplateStore = create<TemplateStore>()(
     }
   )
 );
+
+function emitTemplateUpdate(id: string): void {
+  const template = useTemplateStore.getState().templates.find((t) => t.id === id);
+  if (template) void templateHooks.onTemplateUpdate.emit(templateToView(template));
+}
+
+export interface RenderedTemplate {
+  subject: string;
+  html: string;
+  text: string;
+}
+
+/**
+ * Hands a template about to be inserted into the composer to the
+ * onTemplateRender plugins. Returns null when no plugin listens, so the
+ * composer keeps its own rendering; otherwise the plugins' version, with any
+ * field a plugin returned as a non-string kept from the input.
+ */
+export async function renderTemplateWithPlugins(
+  templateId: string,
+  rendered: RenderedTemplate,
+): Promise<RenderedTemplate | null> {
+  if (templateHooks.onTemplateRender.size === 0) return null;
+  const result = await templateHooks.onTemplateRender.transform(rendered, { templateId }) as Partial<RenderedTemplate> | null;
+  return {
+    subject: typeof result?.subject === 'string' ? result.subject : rendered.subject,
+    html: typeof result?.html === 'string' ? result.html : rendered.html,
+    text: typeof result?.text === 'string' ? result.text : rendered.text,
+  };
+}
+
+/** Tells plugins a template was inserted into the composer. */
+export function notifyTemplateApplied(template: EmailTemplate): void {
+  void templateHooks.onTemplateApply.emit(templateToView(template));
+}
 
 // Every tab keeps its own in-memory copy and writes the whole list back to
 // localStorage on any change, so a second tab that never saw a template

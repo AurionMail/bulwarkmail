@@ -69,7 +69,7 @@ import { FilePickerDialog } from "@/components/files/file-picker-dialog";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNode } from "@/lib/jmap/types";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
-import { useTemplateStore } from "@/stores/template-store";
+import { useTemplateStore, renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { SubAddressHelper } from "@/components/identity/sub-address-helper";
@@ -1587,8 +1587,8 @@ export function EmailComposer({
     }
   };
 
-  const handleTemplateSelect = useCallback((template: EmailTemplate, filledValues: Record<string, string>) => {
-    const filledSubject = Object.keys(filledValues).length > 0
+  const handleTemplateSelect = useCallback(async (template: EmailTemplate, filledValues: Record<string, string>) => {
+    let filledSubject = Object.keys(filledValues).length > 0
       ? substitutePlaceholders(template.subject, filledValues)
       : template.subject;
     const filledBody = Object.keys(filledValues).length > 0
@@ -1596,9 +1596,19 @@ export function EmailComposer({
       : template.body;
 
     // In plain text mode, use template body as-is; otherwise convert to HTML
-    const bodyContent = plainTextMode || template.isHTML
+    let bodyContent = plainTextMode || template.isHTML
       ? filledBody
       : `<p>${filledBody.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`;
+    // Plugins may rewrite the template before it goes in (onTemplateRender).
+    const rendered = await renderTemplateWithPlugins(template.id, {
+      subject: filledSubject,
+      html: plainTextMode && !template.isHTML ? `<p>${escapeHtml(filledBody).replace(/\n/g, '<br>')}</p>` : bodyContent,
+      text: template.isHTML ? htmlToPlainText(filledBody) : filledBody,
+    });
+    if (rendered) {
+      filledSubject = rendered.subject;
+      bodyContent = plainTextMode ? rendered.text : sanitizePluginBodyHtml(rendered.html);
+    }
 
     if (mode === 'compose') {
       // An empty template subject must not wipe one the user typed (#540).
@@ -1683,6 +1693,7 @@ export function EmailComposer({
     }
 
     setShowTemplatePicker(false);
+    notifyTemplateApplied(template);
   }, [mode, plainTextMode, signatureIdentity, signatureSeparatorEnabled]);
 
   useEffect(() => {
