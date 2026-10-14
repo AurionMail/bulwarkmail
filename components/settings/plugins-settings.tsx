@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PluginPermissionList } from '@/components/plugins/plugin-permission-list';
 import type { InstalledPlugin, PluginStatus, SettingFieldSchema } from '@/lib/plugin-types';
+import { effectiveSettings } from '@/lib/plugin-settings';
 
 const STATUS_COLORS: Record<PluginStatus, string> = {
   installed: 'bg-muted text-muted-foreground',
@@ -306,7 +307,7 @@ function PluginCard({ plugin, isExpanded, isForceEnabled, controlsDisabled, onTo
                   key={key}
                   fieldKey={key}
                   schema={schema}
-                  value={plugin.settings[key] ?? schema.default}
+                  value={effectiveSettings(plugin)[key]}
                   onChange={(value) => onUpdateSettings({ [key]: value })}
                 />
               ))}

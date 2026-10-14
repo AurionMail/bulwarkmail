@@ -12,6 +12,7 @@ import { dispatchApiCall } from './host-api';
 import { SANDBOX_PATH, SANDBOX_PRIVILEGED_PATH } from './protocol';
 import { withBasePath } from '../browser-navigation';
 import { snapshotHostTheme, type ThemeSnapshot } from './host-theme';
+import { effectiveSettings } from '../plugin-settings';
 import type {
   SandboxToHost, HostToSandbox, InitMsg, InitPayload,
 } from './protocol';
@@ -79,6 +80,21 @@ export interface InitDoneInfo {
   hooks: string[];
   slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number }>;
   shortcuts: Array<{ id: string; keys: string; label: string; category?: string }>;
+}
+
+// ─── Live instances ──────────────────────────────────────────
+
+/**
+ * Every iframe currently running, background and slot alike, so a change
+ * that concerns a plugin (its settings, the app locale) reaches all of them.
+ */
+const liveInstances = new Set<SandboxInstance>();
+
+export function forEachInstance(pluginId: string | null, fn: (instance: SandboxInstance) => void): void {
+  for (const instance of liveInstances) {
+    if (pluginId !== null && instance.pluginId !== pluginId) continue;
+    try { fn(instance); } catch { /* one broken iframe must not stop the rest */ }
+  }
 }
 
 // ─── Sandbox instance ────────────────────────────────────────
@@ -165,6 +181,7 @@ export class SandboxInstance {
     this.listener = (ev) => this.onMessage(ev);
     window.addEventListener('message', this.listener);
     hostContainer.appendChild(this.iframe);
+    liveInstances.add(this);
 
     // Send init after the iframe runtime signals it's ready.
     this.readyPromise.then(() => {
@@ -310,6 +327,12 @@ export class SandboxInstance {
     this.send({ type: 'theme-change', theme });
   }
 
+  /** Push the plugin's current settings (see effectiveSettings). */
+  setSettings(settings: Record<string, unknown>): void {
+    if (this.destroyed) return;
+    this.send({ type: 'settings-change', settings });
+  }
+
   updateProps(props: Record<string, unknown>): void {
     if (this.destroyed) return;
     // Stale references would leak if we kept growing the table without
@@ -322,6 +345,7 @@ export class SandboxInstance {
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    liveInstances.delete(this);
     window.removeEventListener('message', this.listener);
     this.iframe.remove();
     for (const { reject } of this.pendingHookInvokes.values()) {
@@ -348,7 +372,7 @@ export function createBackgroundInstance(opts: BackgroundOptions): SandboxInstan
       id: opts.plugin.id,
       version: opts.plugin.version,
       permissions: opts.plugin.permissions,
-      settings: { ...opts.plugin.settings },
+      settings: effectiveSettings(opts.plugin),
       locales: opts.plugin.locales,
       httpOrigins: opts.plugin.httpOrigins,
     },
@@ -374,7 +398,7 @@ export function createSlotInstance(opts: SlotOptions): SandboxInstance {
       id: opts.plugin.id,
       version: opts.plugin.version,
       permissions: opts.plugin.permissions,
-      settings: { ...opts.plugin.settings },
+      settings: effectiveSettings(opts.plugin),
       locales: opts.plugin.locales,
       httpOrigins: opts.plugin.httpOrigins,
     },

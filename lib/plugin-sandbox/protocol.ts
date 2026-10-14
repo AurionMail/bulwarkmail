@@ -177,6 +177,9 @@ export interface LocaleChangeMsg { type: 'locale-change'; locale: string; }
 /** Host → sandbox: the resolved theme changed; re-inject the slot's theme CSS. */
 export interface ThemeChangeMsg { type: 'theme-change'; theme: ThemeSnapshot; }
 
+/** Host → sandbox: the user changed this plugin's settings. */
+export interface SettingsChangeMsg { type: 'settings-change'; settings: Record<string, unknown>; }
+
 export interface PropsUpdateMsg { type: 'props-update'; props: Record<string, unknown>; }
 
 export interface SlotShouldShowMsg {
@@ -193,6 +196,7 @@ export type HostToSandbox =
   | HookInvokeMsg
   | LocaleChangeMsg
   | ThemeChangeMsg
+  | SettingsChangeMsg
   | PropsUpdateMsg
   | SlotShouldShowMsg;
 

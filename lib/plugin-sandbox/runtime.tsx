@@ -62,6 +62,19 @@ let bootDone = false;
 let readyPosted = false;
 
 const pendingApi = new Map<string, { resolve: (v: unknown) => void; reject: (err: Error) => void }>();
+
+// The plugin's settings. One object for the iframe's lifetime, updated in
+// place on 'settings-change', so code that kept a reference sees new values.
+const settingsState: Record<string, unknown> = {};
+const settingsListeners = new Set<(settings: Record<string, unknown>) => void>();
+
+function applySettings(next: Record<string, unknown>): void {
+  for (const key of Object.keys(settingsState)) delete settingsState[key];
+  Object.assign(settingsState, next);
+  for (const listener of settingsListeners) {
+    try { listener(settingsState); } catch (err) { console.error('[plugin] settings listener failed', err); }
+  }
+}
 const pendingCallbacks = new Map<string, { resolve: (v: unknown) => void; reject: (err: Error) => void }>();
 const hookHandlers: Record<string, (...args: unknown[]) => unknown> = {};
 
@@ -215,11 +228,18 @@ interface PluginKeywordCounts {
 }
 
 function buildPluginApi(manifest: PluginManifest) {
+  applySettings({ ...manifest.settings });
   return {
     plugin: {
       id: manifest.id,
       version: manifest.version,
-      settings: { ...manifest.settings },
+      /** Current settings, defaults filled in. Updated in place when the user changes them. */
+      settings: settingsState,
+      /** Called with the new settings whenever the user changes them. Returns an unsubscribe function. */
+      onSettingsChange: (listener: (settings: Record<string, unknown>) => void) => {
+        settingsListeners.add(listener);
+        return () => { settingsListeners.delete(listener); };
+      },
     },
     crypto: {
       getPublicKeys: () => callApi('crypto.getPublicKeys', []),
@@ -634,9 +654,17 @@ function bootSlot(payload: SlotInit): void {
   const SlotShell = () => {
     const wrapRef = React.useRef<HTMLDivElement>(null);
     const [props, setProps] = React.useState(currentProps);
+    const [, setSettingsVersion] = React.useState(0);
     React.useEffect(() => {
       propsListeners.add(setProps);
       return () => { propsListeners.delete(setProps); };
+    }, []);
+    // Re-render the slot when its settings change, so a component that reads
+    // api.plugin.settings while rendering shows the new values.
+    React.useEffect(() => {
+      const bump = () => setSettingsVersion((v) => v + 1);
+      settingsListeners.add(bump);
+      return () => { settingsListeners.delete(bump); };
     }, []);
     React.useEffect(() => {
       if (!wrapRef.current) return;
@@ -757,6 +785,10 @@ function handleHostMessage(ev: MessageEvent): void {
 
     case 'theme-change':
       applyHostTheme(msg.theme);
+      break;
+
+    case 'settings-change':
+      applySettings(msg.settings ?? {});
       break;
 
     case 'props-update':

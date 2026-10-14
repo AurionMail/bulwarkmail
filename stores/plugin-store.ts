@@ -15,6 +15,8 @@ import { packageHash, type ValidatedPluginManifest } from '@/lib/extension-packa
 import JSZip from 'jszip';
 import { sha256Hex } from '@/lib/plugin-sandbox/bundle-integrity';
 import { downloadManagedBundle } from '@/lib/plugin-sandbox/bundle-fetch';
+import { forEachInstance } from '@/lib/plugin-sandbox/host-bridge';
+import { coerceSetting, effectiveSettings } from '@/lib/plugin-settings';
 import { usePolicyStore } from '@/stores/policy-store';
 import { apiFetch } from '@/lib/browser-navigation';
 import { IMPLICIT_PERMISSIONS } from '@/lib/plugin-types';
@@ -238,11 +240,20 @@ export const usePluginStore = create<PluginStoreState>()(
 
       updatePluginSettings: (id: string, settings: Record<string, unknown>) => {
         const { plugins } = get();
-        set({
-          plugins: plugins.map(p =>
-            p.id === id ? { ...p, settings: { ...p.settings, ...settings } } : p
-          ),
-        });
+        const plugin = plugins.find(p => p.id === id);
+        if (!plugin) return;
+        // Keep only values the schema accepts (numbers within min/max, an
+        // existing select option), so what is stored is what the plugin gets.
+        const schema = plugin.settingsSchema ?? {};
+        const accepted: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(settings)) {
+          accepted[key] = schema[key] ? coerceSetting(schema[key], value) : value;
+        }
+        const updated = { ...plugin, settings: { ...plugin.settings, ...accepted } };
+        set({ plugins: plugins.map(p => (p.id === id ? updated : p)) });
+        // Running iframes get the change right away; no reload needed.
+        const next = effectiveSettings(updated);
+        forEachInstance(id, (instance) => instance.setSettings(next));
       },
 
       setPluginStatus: (id: string, status: PluginStatus, error?: string) => {

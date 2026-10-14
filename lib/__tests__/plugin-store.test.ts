@@ -40,6 +40,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/browser-navigation', () => ({
   apiFetch: (...args: unknown[]) => mocks.apiFetch(...args),
 }));
+const bridge = vi.hoisted(() => ({ setSettings: vi.fn() }));
+vi.mock('@/lib/plugin-sandbox/host-bridge', () => ({
+  forEachInstance: (_id: string, fn: (i: { setSettings: typeof bridge.setSettings }) => void) => fn({ setSettings: bridge.setSettings }),
+}));
 vi.mock('@/lib/plugin-sandbox/bundle-fetch', () => ({
   downloadManagedBundle: (...args: unknown[]) => mocks.downloadManagedBundle(...args),
 }));
@@ -332,5 +336,22 @@ describe('plugins the user installs', () => {
 
     expect(loadPlugin).not.toHaveBeenCalled();
     expect(usePluginStore.getState().plugins[0].error).toBe('approval-denied');
+  });
+});
+
+describe('updatePluginSettings', () => {
+  it('sends the new settings to the running plugin right away', () => {
+    // Settings used to reach a plugin only after a reload.
+    resetStore();
+    bridge.setSettings.mockClear();
+    usePluginStore.setState({ plugins: [mockPlugin({
+      id: 'p', settings: {},
+      settingsSchema: { size: { type: 'number', label: 'Size', default: 160, min: 16, max: 512 } },
+    })] });
+
+    usePluginStore.getState().updatePluginSettings('p', { size: 9000 });
+
+    expect(usePluginStore.getState().plugins[0].settings.size).toBe(512);
+    expect(bridge.setSettings).toHaveBeenCalledWith({ size: 512 });
   });
 });
