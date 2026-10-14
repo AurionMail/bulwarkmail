@@ -82,6 +82,60 @@ afterEach(() => {
   setActionDispatcher(null);
 });
 
+describe('email-detail-sidebar', () => {
+  // Reports a fixed width for whatever it observes, like a 584 px reading pane
+  // (three panes on a laptop).
+  function stubWidth(width: number) {
+    class FixedWidthObserver {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe(el: Element) {
+        this.cb([{ target: el, contentRect: { width } } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver);
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', FixedWidthObserver);
+  }
+
+  afterEach(() => {
+    vi.stubGlobal('ResizeObserver', NoopResizeObserver);
+    try { localStorage.removeItem('emailDetailSidebarCollapsed'); } catch { /* ignore */ }
+  });
+
+  it('starts collapsed when the message opens into a pane too narrow for it', () => {
+    stubWidth(584);
+    offerSlots('p1', ['email-detail-sidebar']);
+    // The reader mounts empty first, then a message opens.
+    const { rerender } = render(
+      <EmailViewer email={null} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" />,
+    );
+    rerender(<EmailViewer email={textMail('Hi')} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" />);
+
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+    expect(screen.getByRole('button', { name: 'plugin_panel_show' })).toBeInTheDocument();
+  });
+
+  it('lays the panel over the message when opened anyway, instead of squeezing it', () => {
+    stubWidth(584);
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_show' }));
+    const panel = screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!;
+    expect(panel.getAttribute('data-plugin-detail-panel')).toBe('overlay');
+    expect(panel.className).toContain('absolute');
+  });
+
+  it('docks next to the message when there is room', () => {
+    stubWidth(1000);
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi'));
+
+    const panel = screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!;
+    expect(panel.getAttribute('data-plugin-detail-panel')).toBe('docked');
+  });
+});
+
 describe('reader-header and reader-below-subject', () => {
   it('put the frames above the subject and under the sender, with the message', () => {
     offerSlots('p1', ['reader-header', 'reader-below-subject']);

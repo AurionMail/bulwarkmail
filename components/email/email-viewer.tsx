@@ -1452,22 +1452,26 @@ export function EmailViewer({
   // The panel takes its width from the message. When that would leave the
   // message too narrow to read (three panes on a laptop), the panel starts
   // collapsed; opening it anyway is still the user's call.
-  const viewerRootRef = useRef<HTMLDivElement>(null);
+  // A callback ref: the root only exists once a message is open (the empty
+  // and loading states render other markup), so the observer has to attach
+  // when the element appears, not when the plugin offer does.
+  const [viewerRootEl, setViewerRootEl] = useState<HTMLDivElement | null>(null);
   const [viewerWidth, setViewerWidth] = useState(0);
   const [detailSidebarForcedOpen, setDetailSidebarForcedOpen] = useState(false);
   useEffect(() => {
-    if (!hasDetailSidebar || typeof ResizeObserver === 'undefined') return;
-    const el = viewerRootRef.current;
-    if (!el) return;
+    if (!hasDetailSidebar || !viewerRootEl || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver((entries) => {
       const width = Math.round(entries[0]?.contentRect.width ?? 0);
       setViewerWidth(width);
     });
-    ro.observe(el);
+    ro.observe(viewerRootEl);
     return () => ro.disconnect();
-  }, [hasDetailSidebar]);
+  }, [hasDetailSidebar, viewerRootEl]);
   const readerTooNarrow = viewerWidth > 0 && viewerWidth - detailSidebarWidth < MIN_READER_WIDTH;
   const sidebarCollapsed = detailSidebarCollapsed || (readerTooNarrow && !detailSidebarForcedOpen);
+  // Opened by hand while the message is too narrow for it: the panel lies over
+  // the message instead of squeezing it.
+  const sidebarOverlay = !sidebarCollapsed && readerTooNarrow;
 
   useEffect(() => {
     try { localStorage.setItem('emailDetailSidebarCollapsed', detailSidebarCollapsed ? '1' : '0'); } catch { /* ignore */ }
@@ -4093,7 +4097,7 @@ export function EmailViewer({
 
   return (
     <div
-      ref={viewerRootRef}
+      ref={setViewerRootEl}
       data-tour="email-viewer"
       className={cn("flex-1 flex flex-row h-full bg-background overflow-hidden relative", className)}
     >
@@ -6225,18 +6229,26 @@ export function EmailViewer({
         )}
         {!sidebarCollapsed && (
           <>
-            <ResizeHandle
-              onResizeStart={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
-              onResize={(delta) => {
-                const newWidth = Math.max(200, Math.min(500, detailSidebarWidthRef.current - delta));
-                setDetailSidebarWidth(newWidth);
-              }}
-              onResizeEnd={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
-              onDoubleClick={() => setDetailSidebarWidth(280)}
-            />
+            {!sidebarOverlay && (
+              <ResizeHandle
+                onResizeStart={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
+                onResize={(delta) => {
+                  const newWidth = Math.max(200, Math.min(500, detailSidebarWidthRef.current - delta));
+                  setDetailSidebarWidth(newWidth);
+                }}
+                onResizeEnd={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
+                onDoubleClick={() => setDetailSidebarWidth(280)}
+              />
+            )}
             <div
-              className="flex flex-col h-full border-s border-border bg-background overflow-hidden"
-              style={{ width: detailSidebarWidth, minWidth: detailSidebarWidth }}
+              data-plugin-detail-panel={sidebarOverlay ? 'overlay' : 'docked'}
+              className={cn(
+                "flex flex-col h-full border-s border-border bg-background overflow-hidden",
+                sidebarOverlay && "absolute inset-y-0 end-0 z-30 shadow-xl",
+              )}
+              style={sidebarOverlay
+                ? { width: Math.min(detailSidebarWidth, Math.max(200, viewerWidth - 48)) }
+                : { width: detailSidebarWidth, minWidth: detailSidebarWidth }}
             >
               <div className="flex items-center justify-end px-1 py-1 border-b border-border shrink-0">
                 <Button
