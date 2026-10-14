@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { contactToView, emailSummary, eventToView, taskToView } from '../plugin-projection';
+import { contactToView, emailSummary, emailToReadView, eventToView, taskToView } from '../plugin-projection';
 import type { CalendarEvent, CalendarTask, ContactCard, Email } from '../jmap/types';
 
 describe('plugin projections', () => {
@@ -34,5 +34,23 @@ describe('plugin projections', () => {
   it('marks recurring events and completed tasks', () => {
     expect(eventToView({ id: 'e', uid: 'u', calendarIds: { c: true }, recurrenceRules: [{ frequency: 'yearly' }] } as unknown as CalendarEvent).isRecurring).toBe(true);
     expect(taskToView({ id: 't', uid: 'u', calendarIds: {}, progress: 'completed' } as unknown as CalendarTask).isComplete).toBe(true);
+  });
+});
+
+describe('emailToReadView attachments', () => {
+  it('lists attachments with the blob id email.getAttachment takes, and marks inline images', () => {
+    const view = emailToReadView({
+      id: 'e1', threadId: 't1', mailboxIds: {}, keywords: {}, receivedAt: '2026-10-14T00:00:00Z', hasAttachment: true,
+      attachments: [
+        { partId: '2', blobId: 'b-pdf', name: 'invoice.pdf', type: 'application/pdf', size: 1234, disposition: 'attachment' },
+        { partId: '3', blobId: 'b-img', name: 'logo.png', type: 'image/png', size: 99, cid: 'logo@x' },
+        { partId: '4', name: 'broken' },
+      ],
+    } as never);
+
+    expect(view.attachments).toEqual([
+      { blobId: 'b-pdf', name: 'invoice.pdf', type: 'application/pdf', size: 1234, inline: false },
+      { blobId: 'b-img', name: 'logo.png', type: 'image/png', size: 99, inline: true },
+    ]);
   });
 });

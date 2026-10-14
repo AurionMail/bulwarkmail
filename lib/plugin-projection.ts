@@ -59,6 +59,15 @@ export function emailToReadView(email: Email): EmailReadView {
     isRead: !!email.keywords?.['$seen'],
     isFlagged: !!email.keywords?.['$flagged'],
     hasAttachment: email.hasAttachment,
+    attachments: (email.attachments || [])
+      .filter((part) => !!part.blobId)
+      .map((part) => ({
+        blobId: part.blobId as string,
+        name: part.name || '',
+        type: part.type || 'application/octet-stream',
+        size: part.size || 0,
+        inline: part.disposition === 'inline' || !!part.cid,
+      })),
     preview: email.preview || '',
     text: plainTextFromEmail(email),
     headers: email.headers,

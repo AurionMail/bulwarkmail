@@ -407,6 +407,12 @@ export interface EmailReadView {
   isRead: boolean;
   isFlagged: boolean;
   hasAttachment: boolean;
+  /**
+   * The message's attachments. `blobId` is what `email.getAttachment`
+   * takes. Inline images are included and marked. Empty until the host has
+   * loaded the message's body structure.
+   */
+  attachments: { blobId: string; name: string; type: string; size: number; inline: boolean }[];
   preview: string;
   keywords: string[];
   /** Full plain-text body of the message (HTML-only bodies are stripped to
