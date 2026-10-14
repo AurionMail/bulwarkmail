@@ -128,6 +128,20 @@ describe('proxy.fetch', () => {
     expect(res).toMatchObject({ status: 429, ok: false, proxyError: 'rate_limited', body: 'Too many requests' });
   });
 
+  it('streams the answer to a request with a body (an AI reply), through fetch', async () => {
+    apiFetch.mockResolvedValue(new Response(new ReadableStream({
+      start(c) { c.enqueue(new TextEncoder().encode('data: hi')); c.close(); },
+    }), { status: 200 }));
+    const sent: Parameters<StreamSink['sendStream']>[0][] = [];
+    const sink: StreamSink = { sendStream: (m) => { sent.push(m); } };
+
+    await dispatchApiCall(proxied, 'proxy.fetch', ['cloud', 'https://cloud.example.org/x', { method: 'POST', body: '{"stream":true}', responseType: 'stream', streamId: 'abc124' }], { sink });
+    await vi.waitFor(() => expect(sent.at(-1)?.type).toBe('stream-end'));
+
+    expect(apiFetch).toHaveBeenCalled();
+    expect(sent.some((m) => m.type === 'stream-chunk')).toBe(true);
+  });
+
   it('streams a large answer to the iframe in chunks', async () => {
     const encoder = new TextEncoder();
     apiFetch.mockResolvedValue(new Response(new ReadableStream({

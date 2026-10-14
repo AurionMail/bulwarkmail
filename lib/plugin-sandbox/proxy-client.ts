@@ -189,7 +189,9 @@ export async function proxyFetch(plugin: InstalledPlugin, args: unknown[], sink:
   let streaming = false;
   try {
     let res: Response;
-    if (init.body && sink && typeof XMLHttpRequest !== 'undefined') {
+    // XHR reports upload progress but can't stream the answer, so a request
+    // that wants a streamed answer (an AI reply) goes through fetch.
+    if (init.body && sink && responseType !== 'stream' && typeof XMLHttpRequest !== 'undefined') {
       res = await sendWithProgress(url, method, headers, init.body as XMLHttpRequestBodyInit, controller.signal,
         (loaded, total) => sink.sendStream({ type: 'stream-progress', streamId, loaded, total }));
     } else {

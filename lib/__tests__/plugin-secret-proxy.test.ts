@@ -244,6 +244,19 @@ describe('proxy', () => {
     expect(JSON.stringify(auditLines)).not.toMatch(/remote\.php|app-pw|alice@/);
   });
 
+  it('uses an admin credential without a secret for a keyless service', async () => {
+    vi.mocked(getPlugin).mockResolvedValueOnce({
+      id: 'ai', enabled: true,
+      credentials: { local: { label: 'Ollama', scope: 'admin', inject: { type: 'none' }, secretKey: 'key', originKey: 'url' } },
+    } as never);
+    vi.mocked(getPluginConfig).mockResolvedValueOnce({ url: `${origin}/v1` });
+
+    const res = await call({ pluginId: 'ai', credentialId: 'local', method: 'POST', url: `${origin}/v1/chat` });
+    await res.text();
+
+    expect(seen[0].headers.authorization).toBeUndefined();
+  });
+
   it('uses an admin credential for an installed plugin', async () => {
     vi.mocked(getPlugin).mockResolvedValueOnce({
       id: 'ai', enabled: true,

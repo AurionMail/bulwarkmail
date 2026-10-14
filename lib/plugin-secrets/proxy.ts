@@ -80,10 +80,13 @@ export async function resolveCredential(user: VaultUser, pluginId: string, crede
   const config = await getPluginConfig(pluginId);
   const secret = config[spec.secretKey];
   const origin = spec.origin ?? credentialOrigin(spec.originKey ? config[spec.originKey] : undefined);
-  if (typeof secret !== 'string' || !secret || !origin) return null;
+  // A credential that adds nothing (a keyless service such as a local Ollama)
+  // needs only its server.
+  const needsSecret = spec.inject.type !== 'none';
+  if (!origin || (needsSecret && (typeof secret !== 'string' || !secret))) return null;
   const username = spec.usernameKey ? config[spec.usernameKey] : undefined;
   return {
-    origin, inject: spec.inject, secret,
+    origin, inject: spec.inject, secret: typeof secret === 'string' && secret ? secret : undefined,
     username: typeof username === 'string' ? username : undefined,
     trusted: true, scope: 'admin',
   };
