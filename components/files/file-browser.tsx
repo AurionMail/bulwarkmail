@@ -26,11 +26,13 @@ import { FileDetailsPanel } from "@/components/files/file-details-panel";
 import { INTERNAL_DRAG_TYPE, anchorEvent, isInternalDrag, readDraggedNames } from "@/components/files/file-item-parts";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { getDroppedFilesAndFolders } from "@/lib/webdav/drop-utils";
-import { useFileStore, type FileResource } from "@/stores/file-store";
+import { resourceToView, useFileStore, type FileResource } from "@/stores/file-store";
+import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
 import { toast } from "@/stores/toast-store";
 import { ShareCollectionDialog } from "@/components/settings/share-collection-dialog";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNodeRights } from "@/lib/jmap/types";
+import type { FileResourceView } from "@/lib/plugin-types";
 
 interface ClipboardState {
   mode: "cut" | "copy";
@@ -371,6 +373,8 @@ export function FileBrowser({
   const cutNames = useMemo(() => new Set(clipboard?.mode === "cut" ? clipboard.names : []), [clipboard]);
   const selectedList = useMemo(() => displayResources.filter((r) => selectedResources.has(r.name)), [displayResources, selectedResources]);
   const singleSelected = selectedList.length === 1 ? selectedList[0] : null;
+  // What plugins see of the selection (file-actions, file-preview-section).
+  const selectedViews = useMemo(() => selectedList.map((r) => resourceToView(r, currentPath)), [selectedList, currentPath]);
 
   // ---- Breadcrumbs -----------------------------------------------------------
   const crumbs: Crumb[] = useMemo(() => {
@@ -759,6 +763,7 @@ export function FileBrowser({
           <ContextMenuItem icon={Copy} label={t("copy")} shortcut="Ctrl+C" onClick={() => { closeMenu(); onCopy(names); }} />
           <ContextMenuSeparator />
           <ContextMenuItem icon={Trash2} label={t("delete_count", { count: names.length })} destructive onClick={() => { closeMenu(); deleteNames(names); }} />
+          <FilePluginMenuEntries files={menuSelection.map((r) => resourceToView(r, currentPath))} onRan={closeMenu} />
         </>
       );
     }
@@ -800,6 +805,11 @@ export function FileBrowser({
         <ContextMenuItem icon={Info} label={t("details")} onClick={() => { closeMenu(); toggleDetails(true); }} />
         <ContextMenuSeparator />
         <ContextMenuItem icon={Trash2} label={t("delete")} shortcut="Del" destructive onClick={() => { closeMenu(); deleteNames([resource.name]); }} />
+        <FilePluginMenuEntries
+          files={[resourceToView(resource, currentPath)]}
+          mimeType={resource.isDirectory ? "" : resource.contentType}
+          onRan={closeMenu}
+        />
       </>
     );
   };
@@ -962,6 +972,7 @@ export function FileBrowser({
       canShare={canShare(singleSelected)}
       canPreview={!!singleSelected && isPreviewable(singleSelected.name)}
       canEdit={!!singleSelected && !!onEditFile && !!isOfficeEditable?.(singleSelected.name)}
+      pluginFile={singleSelected ? selectedViews[0] : null}
       iconOptions={iconOptions}
       getImageUrl={getImageUrl}
       onClose={() => toggleDetails(false)}
@@ -991,6 +1002,8 @@ export function FileBrowser({
     onCopy: () => onCopy(selectedList.map((r) => r.name)),
     onDelete: () => deleteNames(selectedList.map((r) => r.name)),
     onClear: onClearSelection,
+    pluginFiles: selectedViews,
+    pluginMimeType: singleSelected ? (singleSelected.isDirectory ? "" : singleSelected.contentType) : undefined,
   } : null;
 
   return (
@@ -1270,5 +1283,17 @@ function ListSkeleton() {
         </div>
       ))}
     </div>
+  );
+}
+
+/** Plugin entries at the end of a file's menu, after a separator when there are any. */
+function FilePluginMenuEntries({ files, mimeType, onRan }: { files: FileResourceView[]; mimeType?: string; onRan: () => void }) {
+  const hasActions = usePluginActions("file-actions", { mimeType }).length > 0;
+  if (!hasActions) return null;
+  return (
+    <>
+      <ContextMenuSeparator />
+      <PluginActions surface="file-actions" variant="menu" context={{ files }} mimeType={mimeType} onRan={onRan} />
+    </>
   );
 }

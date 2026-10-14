@@ -8,6 +8,8 @@ import { ZoomableImage } from "@/components/files/zoomable-image";
 import { getFilePreviewKind, imageBlobUrl, isMimeTypeSafeForInlinePreview, previewBlobType } from "@/lib/file-preview";
 import dynamic from "next/dynamic";
 import { EmlPreview, type ParsedEml } from "@/components/files/eml-preview";
+import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
+import type { FileResourceView } from "@/lib/plugin-types";
 
 // pdf.js-based inline viewer for mobile (no native inline PDF viewer). Loaded
 // only on the mobile PDF path so pdfjs-dist + its worker never reach the
@@ -22,6 +24,8 @@ interface FilePreviewModalProps {
   onClose: () => void;
   onDownload: () => Promise<void> | void;
   getFileContent: () => Promise<{ blob: Blob; contentType: string }>;
+  /** The previewed file as plugins see it (file-preview-section). */
+  file?: FileResourceView | null;
 }
 
 function SimpleMarkdown({ content }: { content: string }) {
@@ -115,7 +119,7 @@ function processInline(text: string): React.ReactNode {
   return parts.length === 1 ? parts[0] : <>{parts}</>;
 }
 
-export function FilePreviewModal({ name, onClose, onDownload, getFileContent }: FilePreviewModalProps) {
+export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file }: FilePreviewModalProps) {
   const t = useTranslations("files");
   const [content, setContent] = useState<string | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
@@ -381,6 +385,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent }: 
           />
         )}
       </div>
+      <FilePreviewPluginSection file={file} />
     </div>
   );
 }

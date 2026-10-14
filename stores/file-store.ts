@@ -293,7 +293,7 @@ function joinPath(base: string, name: string): string {
 }
 
 /** A listed item as plugins see it; `path` is the folder that holds it. */
-function resourceToView(r: FileResource, path: string): FileResourceView {
+export function resourceToView(r: FileResource, path: string): FileResourceView {
   return fileToView({
     id: r.id,
     parentId: r.parentId,

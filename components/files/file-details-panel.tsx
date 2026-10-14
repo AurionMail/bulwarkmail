@@ -1,10 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { X, Download, Share2, Star, StarOff, FolderOpen, Eye, SquarePen, Files } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn, formatFileSize } from "@/lib/utils";
 import type { FileResource } from "@/stores/file-store";
+import type { FileResourceView } from "@/lib/plugin-types";
+import { PluginSlot } from "@/components/plugins/plugin-slot";
 import {
   ResourceIcon, Thumbnail, canShowThumbnail, formatFullDate, type IconOptions,
 } from "@/components/files/file-item-parts";
@@ -31,6 +34,8 @@ interface FileDetailsPanelProps {
   onShare: () => void;
   onToggleStar: () => void;
   className?: string;
+  /** The one selected item as plugins see it (file-preview-section). */
+  pluginFile?: FileResourceView | null;
 }
 
 function kindOf(resource: FileResource, t: (key: string, values?: Record<string, string>) => string): string {
@@ -46,9 +51,10 @@ function totalSize(items: FileResource[]): number {
 
 export function FileDetailsPanel({
   resource, selection, folderName, folderItems, path, isStarred, canShare, canPreview, canEdit,
-  iconOptions, getImageUrl, onClose, onOpen, onEdit, onDownload, onShare, onToggleStar, className,
+  iconOptions, getImageUrl, onClose, onOpen, onEdit, onDownload, onShare, onToggleStar, className, pluginFile,
 }: FileDetailsPanelProps) {
   const t = useTranslations("files");
+  const pluginProps = useMemo(() => (pluginFile ? { file: pluginFile } : null), [pluginFile]);
 
   const header = (
     <div className="flex items-center justify-between px-4 h-11 border-b border-border flex-shrink-0">
@@ -155,6 +161,7 @@ export function FileDetailsPanel({
         <Row label={t("sharing")} value={sharing} />
         <Row label={t("path")} value={path} mono />
       </dl>
+      {pluginProps && <PluginSlot name="file-preview-section" className="w-full" extraProps={pluginProps} />}
     </div>,
   );
 }
