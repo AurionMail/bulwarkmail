@@ -355,3 +355,20 @@ describe('updatePluginSettings', () => {
     expect(bridge.setSettings).toHaveBeenCalledWith({ size: 512 });
   });
 });
+
+describe('plugins the admin removed', () => {
+  it('lose what they stored, like an uninstalled plugin', async () => {
+    // Their data used to survive and come back when the admin re-added them.
+    resetStore();
+    localStorage.setItem('server-managed-plugin-ids', JSON.stringify(['gone']));
+    localStorage.setItem('plugin:gone:@acct:notes', '"secret"');
+    usePluginStore.setState({ plugins: [mockPlugin({ id: 'gone', managed: true })] });
+    mocks.apiFetch.mockImplementation(async () => new Response(JSON.stringify({ plugins: [], themes: [] })));
+
+    await usePluginStore.getState().initializePlugins();
+
+    expect(usePluginStore.getState().plugins.some((p) => p.id === 'gone')).toBe(false);
+    expect(localStorage.getItem('plugin:gone:@acct:notes')).toBeNull();
+    expect(pluginStorage.deletePreview).toHaveBeenCalledWith('gone');
+  });
+});

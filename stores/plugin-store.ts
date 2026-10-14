@@ -150,25 +150,7 @@ export const usePluginStore = create<PluginStoreState>()(
         const forceEnabledByPolicy = usePolicyStore.getState().isPluginForceEnabled(id);
         if (plugin.forceEnabled || forceEnabledByPolicy) return;
 
-        // Deactivate if running
-        deactivatePlugin(id);
-        removeAllPluginHooks(id);
-
-        // Clean up storage
-        pluginStorage.deleteCode(id);
-        pluginStorage.deletePreview(id);
-
-        // Remove plugin-scoped localStorage entries
-        if (typeof window !== 'undefined') {
-          const prefix = `plugin:${id}:`;
-          const keysToRemove: string[] = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key?.startsWith(prefix)) keysToRemove.push(key);
-          }
-          keysToRemove.forEach(k => localStorage.removeItem(k));
-        }
-
+        removePluginData(id);
         set({ plugins: plugins.filter(p => p.id !== id) });
       },
 
@@ -352,6 +334,27 @@ export const usePluginStore = create<PluginStoreState>()(
     }
   )
 );
+
+/**
+ * Everything a plugin left in this browser: its running iframes and hooks,
+ * its code and preview, and what it stored for any account. Used when the
+ * user removes a plugin and when the admin does.
+ */
+function removePluginData(id: string): void {
+  deactivatePlugin(id);
+  removeAllPluginHooks(id);
+  void pluginStorage.deleteCode(id).catch(() => {});
+  void pluginStorage.deletePreview(id).catch(() => {});
+  if (typeof window !== 'undefined') {
+    const prefix = `plugin:${id}:`;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(prefix)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  }
+}
 
 /** Give the loader its way back into the store. */
 function wireLoader(
@@ -573,11 +576,9 @@ async function syncServerPlugins(
     // Remove plugins that were previously server-managed but no longer on the server
     const staleIds = [...prevServerIds].filter(id => !serverPluginIds.has(id));
     if (staleIds.length > 0) {
-      for (const id of staleIds) {
-        deactivatePlugin(id);
-        removeAllPluginHooks(id);
-        pluginStorage.deleteCode(id);
-      }
+      // The admin removed them: same cleanup as an uninstall, so their data
+      // doesn't come back if the admin installs the plugin again.
+      for (const id of staleIds) removePluginData(id);
       const staleSet = new Set(staleIds);
       set(state => ({
         plugins: state.plugins.filter(p => !staleSet.has(p.id)),
