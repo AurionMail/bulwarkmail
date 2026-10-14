@@ -4034,7 +4034,7 @@
       "high_risk": "Kræver omtanke",
       "email_read": {
         "title": "Læse dine e-mails",
-        "body": "Se afsendere, modtagere, emner og den fulde tekst i de beskeder, du åbner, og i beskedlisten."
+        "body": "Se afsendere, modtagere, emner og den fulde tekst i alle beskeder på din konto samt dine mapper."
       },
       "email_write": {
         "title": "Ændre tags og markeringer på dine e-mails",

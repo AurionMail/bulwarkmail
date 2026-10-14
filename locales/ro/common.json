@@ -4034,7 +4034,7 @@
       "high_risk": "Necesită atenție",
       "email_read": {
         "title": "Citirea e-mailurilor",
-        "body": "Vede expeditorii, destinatarii, subiectele și textul complet al mesajelor pe care le deschideți și al listei de mesaje."
+        "body": "Vede expeditorii, destinatarii, subiectele și textul complet al oricărui mesaj din contul dvs., precum și dosarele dvs."
       },
       "email_write": {
         "title": "Modificarea etichetelor și marcajelor e-mailurilor",

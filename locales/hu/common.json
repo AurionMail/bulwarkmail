@@ -4034,7 +4034,7 @@
       "high_risk": "Óvatosan",
       "email_read": {
         "title": "Leveleid olvasása",
-        "body": "Látja a megnyitott üzenetek és az üzenetlista feladóit, címzettjeit, tárgyát és teljes szövegét."
+        "body": "Látja a fiókod bármely üzenetének feladóját, címzettjeit, tárgyát és teljes szövegét, valamint a mappáidat."
       },
       "email_write": {
         "title": "Címkék és jelölők módosítása a leveleiden",

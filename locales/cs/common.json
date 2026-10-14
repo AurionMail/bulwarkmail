@@ -4034,7 +4034,7 @@
       "high_risk": "Vyžaduje opatrnost",
       "email_read": {
         "title": "Číst vaši poštu",
-        "body": "Vidí odesílatele, příjemce, předměty a celý text zpráv, které otevřete, i seznamu zpráv."
+        "body": "Vidí odesílatele, příjemce, předměty a celý text kterékoli zprávy ve vašem účtu i vaše složky."
       },
       "email_write": {
         "title": "Měnit štítky a příznaky pošty",

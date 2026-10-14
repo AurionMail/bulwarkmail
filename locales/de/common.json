@@ -4034,7 +4034,7 @@
       "high_risk": "Mit Vorsicht",
       "email_read": {
         "title": "Ihre E-Mails lesen",
-        "body": "Absender, Empfänger, Betreff und den vollständigen Text der Nachrichten sehen, die Sie öffnen, sowie der Nachrichtenliste."
+        "body": "Absender, Empfänger, Betreff und den vollständigen Text jeder Nachricht in Ihrem Konto sowie Ihre Ordner sehen."
       },
       "email_write": {
         "title": "Labels und Markierungen Ihrer E-Mails ändern",

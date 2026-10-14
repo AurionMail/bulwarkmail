@@ -4034,7 +4034,7 @@
       "high_risk": "Con cuidado",
       "email_read": {
         "title": "Leer tu correo",
-        "body": "Ver remitentes, destinatarios, asuntos y el texto completo de los mensajes que abres y de la lista de mensajes."
+        "body": "Ver remitentes, destinatarios, asuntos y el texto completo de cualquier mensaje de tu cuenta, y tus carpetas."
       },
       "email_write": {
         "title": "Cambiar etiquetas y marcas de tu correo",

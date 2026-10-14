@@ -4034,7 +4034,7 @@
       "high_risk": "Dikkat gerektirir",
       "email_read": {
         "title": "E-postalarınızı okuma",
-        "body": "Açtığınız iletilerin ve ileti listesindekilerin gönderenlerini, alıcılarını, konularını ve tam metnini görme."
+        "body": "Hesabınızdaki herhangi bir iletinin gönderenlerini, alıcılarını, konusunu ve tam metnini, ayrıca klasörlerinizi görme."
       },
       "email_write": {
         "title": "E-postalarınızdaki etiketleri ve bayrakları değiştirme",

@@ -4034,7 +4034,7 @@
       "high_risk": "Needs care",
       "email_read": {
         "title": "Read your email",
-        "body": "See senders, recipients, subjects and the full text of messages you open and of the message list."
+        "body": "See senders, recipients, subjects and the full text of any message in your account, and your folders."
       },
       "email_write": {
         "title": "Change tags and flags on your email",

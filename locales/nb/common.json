@@ -4034,7 +4034,7 @@
       "high_risk": "Krever varsomhet",
       "email_read": {
         "title": "Lese e-posten din",
-        "body": "Se avsendere, mottakere, emner og hele teksten i meldingene du åpner og i meldingslisten."
+        "body": "Se avsendere, mottakere, emner og hele teksten i alle meldinger på kontoen din, og mappene dine."
       },
       "email_write": {
         "title": "Endre etiketter og flagg på e-posten din",

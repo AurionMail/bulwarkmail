@@ -4034,7 +4034,7 @@
       "high_risk": "Wymaga ostrożności",
       "email_read": {
         "title": "Czytanie poczty",
-        "body": "Widzi nadawców, odbiorców, tematy i pełną treść otwieranych wiadomości oraz listy wiadomości."
+        "body": "Widzi nadawców, odbiorców, tematy i pełną treść każdej wiadomości na Twoim koncie oraz Twoje foldery."
       },
       "email_write": {
         "title": "Zmiana etykiet i flag w poczcie",

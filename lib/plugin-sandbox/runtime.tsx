@@ -31,8 +31,9 @@ import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  CalendarEventInput, CalendarEventView, CalendarView, IdentityPatch, IdentityView, SlotName,
-  TaskInput, TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
+  CalendarEventInput, CalendarEventView, CalendarView, EmailReadView, EmailSummary, IdentityPatch,
+  IdentityView, MailboxView, SlotName, TaskInput, TaskView, TemplateInput, TemplateView, VacationInput,
+  VacationView,
 } from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
@@ -425,13 +426,31 @@ function buildPluginApi(manifest: PluginManifest) {
       downloadFile: (opts: { content: string; filename: string; contentType?: string }) =>
         callApi('ui.downloadFile', [opts]) as Promise<void>,
     },
-    // Email keyword mutations (permission: email:write). Keywords follow JMAP
-    // syntax, e.g. '$category-promotions' or '$label:<tagId>'.
+    // Reading mail (permission: email:read) and keyword mutations
+    // (permission: email:write). Keywords follow JMAP syntax, e.g.
+    // '$category-promotions' or '$label:<tagId>'.
     email: {
+      /**
+       * One message with its plain text, headers and source, or null when
+       * there is none with that id. Any message of the account, not only the
+       * open one.
+       */
+      get: (emailId: string) => callApi('email.get', [emailId]) as Promise<EmailReadView | null>,
+      /**
+       * A page of a folder (or of all mail without mailboxId), in the user's
+       * list order: summaries without the body. limit 1-100 (default 50).
+       */
+      list: (options?: { mailboxId?: string; limit?: number; position?: number }) =>
+        callApi('email.list', [options]) as Promise<EmailSummary[]>,
       setKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.setKeyword', [emailId, keyword, accountId]) as Promise<void>,
       removeKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.removeKeyword', [emailId, keyword, accountId]) as Promise<void>,
+    },
+    // Folders (permission: email:read).
+    mailboxes: {
+      /** Every folder with its role, parent and message counts. */
+      list: () => callApi('mailboxes.list', []) as Promise<MailboxView[]>,
     },
     // Native sidebar tag definitions. Definition reads/writes use the existing
     // settings permissions; server discovery and message counts use email:read.

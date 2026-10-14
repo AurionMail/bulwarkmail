@@ -4034,7 +4034,7 @@
       "high_risk": "Prudence",
       "email_read": {
         "title": "Lire vos e-mails",
-        "body": "Voir les expéditeurs, les destinataires, les objets et le texte complet des messages que vous ouvrez et de la liste des messages."
+        "body": "Voir les expéditeurs, les destinataires, les objets et le texte complet de n'importe quel message de votre compte, ainsi que vos dossiers."
       },
       "email_write": {
         "title": "Modifier les étiquettes et indicateurs de vos e-mails",

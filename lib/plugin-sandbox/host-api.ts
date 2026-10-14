@@ -41,6 +41,7 @@ import {
   doIdentitiesUpdate, doTemplatesCreate, doTemplatesDelete, doTemplatesGet, doTemplatesList,
   doTemplatesUpdate, doVacationGet, doVacationSet,
 } from './host-api-settings';
+import { doEmailGet, doEmailList, doMailboxesList } from './host-api-mail';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -209,6 +210,10 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // out-of-office reply
   'vacation.get': 'vacation:read',
   'vacation.set': 'vacation:write',
+  // reading mail: one message with its text, a page of a folder, the folders
+  'email.get': 'email:read',
+  'email.list': 'email:read',
+  'mailboxes.list': 'email:read',
 };
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
@@ -1894,6 +1899,10 @@ export async function dispatchApiCall(
 
     case 'vacation.get': return doVacationGet();
     case 'vacation.set': return doVacationSet(args[0]);
+
+    case 'email.get': return doEmailGet(args[0]);
+    case 'email.list': return doEmailList(args[0]);
+    case 'mailboxes.list': return doMailboxesList();
 
     default:
       throw new Error(`Unhandled method "${method}"`);

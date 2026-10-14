@@ -4034,7 +4034,7 @@
       "high_risk": "Nepieciešama piesardzība",
       "email_read": {
         "title": "Lasīt jūsu pastu",
-        "body": "Redzēt sūtītājus, adresātus, tēmas un visu tekstu vēstulēm, ko atverat, un vēstulēm sarakstā."
+        "body": "Redzēt sūtītājus, adresātus, tēmas un visu tekstu jebkurai vēstulei jūsu kontā, kā arī jūsu mapes."
       },
       "email_write": {
         "title": "Mainīt vēstuļu tagus un karodziņus",

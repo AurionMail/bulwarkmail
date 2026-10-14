@@ -4034,7 +4034,7 @@
       "high_risk": "Con cautela",
       "email_read": {
         "title": "Leggere la tua posta",
-        "body": "Vedere mittenti, destinatari, oggetti e il testo completo dei messaggi che apri e dell'elenco dei messaggi."
+        "body": "Vedere mittenti, destinatari, oggetti e il testo completo di qualsiasi messaggio del tuo account, e le tue cartelle."
       },
       "email_write": {
         "title": "Modificare etichette e contrassegni della tua posta",
