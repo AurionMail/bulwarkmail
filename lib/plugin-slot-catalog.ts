@@ -52,7 +52,7 @@ export const SLOT_CATALOG = {
   'sidebar-widget': S('navigation', 'frame', ['ui:sidebar-widget'], {}, 'a widget at the bottom of the mail sidebar'),
   'sidebar-section': S('navigation', 'frame', ['ui:sidebar-widget'], { mailboxId: null }, 'a collapsible section in the mail sidebar, below the folders'),
   'top-bar-actions': S('navigation', 'action', ['ui:toolbar'], {}, 'buttons in the top bar, next to search', true),
-  'app-page': S('navigation', 'frame', ['ui:app-page'], { path: null }, 'a full page of its own, with an entry in the navigation rail (api.ui.registerPage)'),
+  'app-page': S('navigation', 'frame', ['ui:app-page'], { pageId: null, path: null }, 'a full page of its own, with an entry in the navigation rail (api.ui.setPages)'),
 
   // ─── Message list ──────────────────────────────────────────
   'message-list-header': S('mail-list', 'frame', ['ui:message-list'], { mailboxId: null, mailboxRole: null }, 'above the message list'),

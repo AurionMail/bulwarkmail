@@ -66,7 +66,7 @@ describe('plugin pages', () => {
     const opts = createSlotInstance.mock.calls[0][0] as { slot: string; extraProps: Record<string, unknown>; plugin: { id: string } };
     expect(opts.slot).toBe('app-page');
     expect(opts.plugin.id).toBe('kanban');
-    expect(opts.extraProps).toEqual({ path: 'cards/42' });
+    expect(opts.extraProps).toEqual({ pageId: 'board', path: 'cards/42' });
   });
 
   it('passes an empty path for the page itself', async () => {
@@ -75,7 +75,7 @@ describe('plugin pages', () => {
     render(<PluginPageApp linkSegments={['kanban', 'board']} />);
 
     await waitFor(() => expect(createSlotInstance).toHaveBeenCalled());
-    expect((createSlotInstance.mock.calls[0][0] as { extraProps: unknown }).extraProps).toEqual({ path: '' });
+    expect((createSlotInstance.mock.calls[0][0] as { extraProps: unknown }).extraProps).toEqual({ pageId: 'board', path: '' });
   });
 
   it('says the page is not available, with a way back to Mail, once the plugin is gone', () => {

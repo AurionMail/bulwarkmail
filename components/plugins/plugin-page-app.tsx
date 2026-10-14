@@ -83,7 +83,7 @@ export function PluginPageApp({ linkSegments = [] }: PluginPageAppProps) {
     if (isAuthenticated) void usePluginStore.getState().initializePlugins();
   }, [isAuthenticated]);
 
-  const extraProps = useMemo(() => ({ path: subPath }), [subPath]);
+  const extraProps = useMemo(() => ({ pageId, path: subPath }), [pageId, subPath]);
 
   if (!isAuthenticated) return null;
 
