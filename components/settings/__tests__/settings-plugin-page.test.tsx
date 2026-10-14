@@ -94,6 +94,29 @@ describe('Settings plugin pages', () => {
     expect(opts.plugin.id).toBe('kanban');
   });
 
+  it('gives a plugin with both a page and a section one entry, with the section on its page', async () => {
+    activate('showcase', 'Showcase', ['settings-section', 'settings-page']);
+    const { container } = render(<SettingsApp linkSegments={[]} />);
+
+    const entries = screen.getAllByRole('button', { name: /Showcase/ });
+    expect(entries).toHaveLength(1);
+
+    act(() => { fireEvent.click(entries[0]); });
+    await waitFor(() => expect(createSlotInstance).toHaveBeenCalledTimes(2));
+    const slots = createSlotInstance.mock.calls.map((call) => (call[0] as { slot: string }).slot);
+    expect(slots.sort()).toEqual(['settings-page', 'settings-section']);
+    const section = container.querySelector('[data-plugin-slot="settings-section"]')!;
+    const page = container.querySelector('[data-plugin-slot="settings-page"]')!;
+    expect(section.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('opens the page of such a plugin from an old link to its section', async () => {
+    activate('showcase', 'Showcase', ['settings-section', 'settings-page']);
+    const { container } = render(<SettingsApp linkSegments={['plugin:showcase']} />);
+
+    await waitFor(() => expect(container.querySelector('[data-plugin-slot="settings-page"]')).not.toBeNull());
+  });
+
   it('opens the page from a /settings/plugin-page:<id> link', async () => {
     activate('kanban', 'Kanban', ['settings-page']);
     render(<SettingsApp linkSegments={['plugin-page:kanban']} />);

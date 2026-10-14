@@ -138,8 +138,10 @@ export function FilesHeader({
           <ToolButton icon={Scissors} label={t("cut")} onClick={selection.onCut} compact />
           <ToolButton icon={Copy} label={t("copy")} onClick={selection.onCopy} compact />
           <ToolButton icon={Trash2} label={t("delete")} onClick={selection.onDelete} compact destructive />
-          <SelectionPluginActions files={selection.pluginFiles} mimeType={selection.pluginMimeType} />
+          {!compact && <SelectionPluginActions files={selection.pluginFiles} mimeType={selection.pluginMimeType} />}
         </div>
+        {/* Outside the scrolling row, so the "more" button never scrolls out of sight. */}
+        {compact && <SelectionPluginActions files={selection.pluginFiles} mimeType={selection.pluginMimeType} overflow />}
         <div className="flex-1" />
         <DetailsToggle showDetails={showDetails} onToggle={onToggleDetails} label={t("details")} />
       </div>
@@ -434,8 +436,11 @@ function SortItem({ label, checked, onClick, icon: Icon }: {
   );
 }
 
-/** Plugin buttons in the selection toolbar, icon-only like the app's own. */
-function SelectionPluginActions({ files, mimeType }: { files: FileResourceView[]; mimeType?: string }) {
+/**
+ * Plugin buttons in the selection toolbar, icon-only like the app's own. On
+ * phones the toolbar has no room for them: they go behind one "more" button.
+ */
+function SelectionPluginActions({ files, mimeType, overflow }: { files: FileResourceView[]; mimeType?: string; overflow?: boolean }) {
   const context = useMemo(() => ({ files }), [files]);
-  return <PluginActions surface="file-actions" context={context} mimeType={mimeType} compact className="flex-nowrap gap-0.5" />;
+  return <PluginActions surface="file-actions" context={context} mimeType={mimeType} compact overflow={overflow} className="flex-nowrap gap-0.5 flex-shrink-0" />;
 }

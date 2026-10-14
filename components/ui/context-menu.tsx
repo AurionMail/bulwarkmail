@@ -35,6 +35,9 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
     // `mounted` must be a dependency: on the very first open the menu isn't
     // in the DOM yet (mounted is still false), so this effect has to re-run
     // after the mount flip or the menu stays visibility:hidden.
+    //
+    // The menu can grow after it opened (a plugin frame in it reports its
+    // height later), so it is clamped again whenever its size changes.
     useLayoutEffect(() => {
       if (!isOpen) {
         setAdjustedPosition(null);
@@ -43,23 +46,30 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
       const node = localRef.current;
       if (!node) return;
 
-      const rect = node.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      const clamp = () => {
+        const rect = node.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
 
-      let x = position.x;
-      let y = position.y;
+        let x = position.x;
+        let y = position.y;
 
-      if (x + rect.width > vw - VIEWPORT_MARGIN) {
-        x = vw - rect.width - VIEWPORT_MARGIN;
-      }
-      if (y + rect.height > vh - VIEWPORT_MARGIN) {
-        y = vh - rect.height - VIEWPORT_MARGIN;
-      }
-      x = Math.max(VIEWPORT_MARGIN, x);
-      y = Math.max(VIEWPORT_MARGIN, y);
+        if (x + rect.width > vw - VIEWPORT_MARGIN) {
+          x = vw - rect.width - VIEWPORT_MARGIN;
+        }
+        if (y + rect.height > vh - VIEWPORT_MARGIN) {
+          y = vh - rect.height - VIEWPORT_MARGIN;
+        }
+        x = Math.max(VIEWPORT_MARGIN, x);
+        y = Math.max(VIEWPORT_MARGIN, y);
 
-      setAdjustedPosition({ x, y });
+        setAdjustedPosition((prev) => (prev && prev.x === x && prev.y === y ? prev : { x, y }));
+      };
+      clamp();
+      if (typeof ResizeObserver === "undefined") return;
+      const observer = new ResizeObserver(clamp);
+      observer.observe(node);
+      return () => observer.disconnect();
     }, [isOpen, mounted, position.x, position.y]);
 
     const setRefs = (node: HTMLDivElement | null) => {
@@ -90,7 +100,8 @@ export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(
         role="menu"
         aria-orientation="vertical"
       >
-        <div className="py-1">
+        {/* Taller than the window: scroll inside the menu. */}
+        <div className="py-1 overflow-y-auto" style={{ maxHeight: `calc(100vh - ${2 * VIEWPORT_MARGIN + 2}px)` }}>
           {children}
         </div>
       </div>,

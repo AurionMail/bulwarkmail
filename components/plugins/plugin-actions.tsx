@@ -1,8 +1,10 @@
 'use client';
 
 import { useSyncExternalStore, useState } from 'react';
-import { iconForName, Puzzle } from '@/components/icons';
-import { ContextMenuItem } from '@/components/ui/context-menu';
+import { useTranslations } from 'next-intl';
+import { iconForName, MoreHorizontal, Puzzle } from '@/components/icons';
+import { ContextMenu, ContextMenuItem } from '@/components/ui/context-menu';
+import { useContextMenu } from '@/hooks/use-context-menu';
 import { cn } from '@/lib/utils';
 import {
   actionApplies,
@@ -32,6 +34,8 @@ interface PluginActionsProps {
   className?: string;
   /** Icon-only buttons with the label as tooltip (narrow toolbars). */
   compact?: boolean;
+  /** No room for buttons: one "more" button that opens the actions as a menu. */
+  overflow?: boolean;
   /** Called after a click, e.g. to close the menu the entry sits in. */
   onRan?: () => void;
 }
@@ -40,10 +44,13 @@ interface PluginActionsProps {
  * Buttons or menu entries plugins declared with api.ui.setActions. The host
  * draws them so they match the app; the plugin gets the click.
  */
-export function PluginActions({ surface, context, variant = 'buttons', mailboxRole, mimeType, className, compact, onRan }: PluginActionsProps) {
+export function PluginActions({ surface, context, variant = 'buttons', mailboxRole, mimeType, className, compact, overflow, onRan }: PluginActionsProps) {
   const actions = usePluginActions(surface, { mailboxRole, mimeType });
   const [busy, setBusy] = useState<string | null>(null);
   if (actions.length === 0) return null;
+  if (overflow && variant === 'buttons') {
+    return <PluginActionsOverflow surface={surface} context={context} mailboxRole={mailboxRole} mimeType={mimeType} className={className} />;
+  }
 
   const run = async (action: RegisteredAction) => {
     const key = `${action.pluginId}:${action.id}`;
@@ -98,6 +105,40 @@ export function PluginActions({ surface, context, variant = 'buttons', mailboxRo
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/** The actions of a surface behind one "more" button, for toolbars without room for them. */
+function PluginActionsOverflow({ surface, context, mailboxRole, mimeType, className }: Pick<PluginActionsProps, 'surface' | 'context' | 'mailboxRole' | 'mimeType' | 'className'>) {
+  const t = useTranslations('email_viewer');
+  const { contextMenu, openContextMenu, closeContextMenu, menuRef } = useContextMenu<true>();
+  return (
+    <div className={cn('inline-flex items-center', className)} data-plugin-actions={surface} data-plugin-actions-overflow="">
+      <button
+        type="button"
+        title={t('more_actions')}
+        aria-label={t('more_actions')}
+        aria-haspopup="menu"
+        aria-expanded={contextMenu.isOpen}
+        onClick={(e) => { e.stopPropagation(); openContextMenu(e, true); }}
+        className={cn(
+          'inline-flex h-8 items-center rounded-md px-2 text-muted-foreground transition-colors',
+          'hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        )}
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </button>
+      <ContextMenu ref={menuRef} isOpen={contextMenu.isOpen} position={contextMenu.position} onClose={closeContextMenu}>
+        <PluginActions
+          surface={surface}
+          variant="menu"
+          context={context}
+          mailboxRole={mailboxRole}
+          mimeType={mimeType}
+          onRan={closeContextMenu}
+        />
+      </ContextMenu>
     </div>
   );
 }

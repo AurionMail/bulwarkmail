@@ -68,7 +68,7 @@ export const SLOT_CATALOG = {
   'email-banner': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'a banner above the message body'),
   'reader-above-quote': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'between the new text of a message and the quoted text below it'),
   'email-footer': S('reader', 'frame', ['ui:email-footer'], { emailId: 'email:read' }, 'below the message body'),
-  'thread-summary': S('reader', 'frame', ['ui:email-banner'], { threadId: 'email:read', emailIds: 'email:read' }, 'above the messages of an open conversation'),
+  'thread-summary': S('reader', 'frame', ['ui:email-banner'], { threadId: 'email:read', emailIds: 'email:read' }, 'above the messages of an open conversation (the phone conversation view and Mountain View; the default desktop layout opens one message at a time and has no conversation view)'),
   'reader-actions': S('reader', 'action', ['ui:toolbar'], { emailId: 'email:read' }, 'buttons in the open message\'s toolbar', true),
   'email-detail-sidebar': S('reader', 'frame', ['ui:email-details'], { email: 'email:read' }, 'a side panel next to the open message'),
   'email-details-section': S('reader', 'frame', ['ui:email-details'], { email: 'email:read', category: null }, 'a section in the message details'),
@@ -81,7 +81,7 @@ export const SLOT_CATALOG = {
   'composer-below-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send', insertText: 'compose:open', getSelectedText: 'email:send' }, 'below the message text, above the attachments'),
   'composer-sidebar': S('composer', 'frame', ['ui:composer-sidebar'], {}, 'a panel left of the composer'),
   'composer-sidebar-right': S('composer', 'frame', ['ui:composer-sidebar'], {}, 'a panel right of the composer'),
-  'composer-attachment-source': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { onAttach: null, insertText: 'compose:open' }, 'the composer\'s attach menu, as a source of files', true),
+  'composer-attachment-source': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { onAttach: null, insertText: 'compose:open' }, 'the composer\'s plugin button row, next to composer-toolbar, as a source of files (for an entry in the Attach menu itself, use composer-attach-menu)', true),
   'composer-send-menu': S('composer', 'action', ['ui:composer-toolbar'], { draft: 'email:send' }, 'entries in the menu next to Send'),
   'composer-attach-menu': S('composer', 'action', ['ui:composer-toolbar'], {}, 'entries in the attach menu (for example "From Nextcloud")'),
 
@@ -89,7 +89,7 @@ export const SLOT_CATALOG = {
   'calendar-event-actions': S('calendar', 'frame', ['ui:calendar-action'], { eventData: 'calendar:read', setVirtualLocation: null }, 'buttons in the event form', true),
   'calendar-event-detail': S('calendar', 'frame', ['ui:calendar-action'], { event: 'calendar:read' }, 'a section in an event\'s details'),
   'calendar-event-form': S('calendar', 'frame', ['ui:calendar-action'], { event: 'calendar:read' }, 'a section in the form for a new or edited event'),
-  'calendar-day-header': S('calendar', 'data', ['ui:calendar-action'], { date: null }, 'a short label under a day\'s name in the day and week views (api.ui.setDayLabels)'),
+  'calendar-day-header': S('calendar', 'data', ['ui:calendar-action'], { date: null }, 'a short label under a day\'s name in the day, week and month views; a dot in the phone month view (api.ui.setDayLabels)'),
   'mini-calendar-marks': S('calendar', 'data', ['ui:calendar-action'], { date: null }, 'dots on days in the small month calendar (api.ui.setDayLabels)'),
 
   // ─── Contacts ──────────────────────────────────────────────
@@ -106,7 +106,7 @@ export const SLOT_CATALOG = {
   'file-preview-section': S('files', 'frame', ['ui:files'], { file: 'files:read' }, 'a section in the file preview'),
 
   // ─── Settings and admin ────────────────────────────────────
-  'settings-section': S('settings', 'frame', ['ui:settings-section'], {}, 'a section on the plugin\'s own page in Settings'),
+  'settings-section': S('settings', 'frame', ['ui:settings-section'], {}, 'a section on the plugin\'s own page in Settings (above its settings-page, when it has one: one entry per plugin)'),
   'settings-page': S('settings', 'frame', ['ui:settings-section'], {}, 'a page of its own in Settings, listed under the plugin\'s name'),
   'admin-plugin-page': S('admin', 'frame', ['ui:admin-page', 'admin:config'], {}, 'the plugin\'s page in the admin dashboard'),
 } as const satisfies Record<string, SlotSpec>;

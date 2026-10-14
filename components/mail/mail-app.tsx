@@ -4857,6 +4857,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     await markAsRead(client, emailId, read);
                   }
                 }}
+                mailboxRole={mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined)}
               />
             ) : (
               <>

@@ -16,6 +16,7 @@ import { useContextMenu } from "@/hooks/use-context-menu";
 import { runAction } from "@/lib/plugin-sandbox/actions";
 import { QUOTE_TOGGLE_ATTR } from "@/lib/quote-collapse";
 import { cn } from "@/lib/utils";
+import type { AttachmentInfo } from "@/lib/plugin-types";
 
 // ─── attachment-menu ─────────────────────────────────────────
 
@@ -82,6 +83,41 @@ export function AttachmentPluginMenu({
   );
 }
 
+// ─── attachment-actions ──────────────────────────────────────
+
+/**
+ * The `attachment-actions` frames of one attachment, drawn next to its chip.
+ * They used to sit in the chip's hover overlay, where a wide frame was cut
+ * off and covered the name, and on phones (no hover) lay invisible over the
+ * chip and swallowed taps meant for its menu button.
+ */
+export function AttachmentPluginFrames({
+  emailId,
+  attachment,
+  className,
+}: {
+  emailId: string | undefined;
+  attachment: AttachmentMenuTarget;
+  className?: string;
+}) {
+  const extraProps = useMemo(() => ({
+    attachment: {
+      name: attachment.name || "",
+      type: attachment.type,
+      size: attachment.size,
+      blobId: attachment.blobId,
+      emailId,
+    } satisfies AttachmentInfo,
+  }), [emailId, attachment.name, attachment.type, attachment.size, attachment.blobId]);
+  return (
+    <PluginSlot
+      name="attachment-actions"
+      className={cn("max-w-full flex-shrink-0", className)}
+      extraProps={extraProps}
+    />
+  );
+}
+
 // ─── Entries in a phone slide-in panel ───────────────────────
 
 /**
@@ -145,7 +181,10 @@ export function insertQuoteAnchor(root: HTMLElement): HTMLElement | null {
   if (!toggle?.parentNode) return null;
   const anchor = root.ownerDocument.createElement("div");
   anchor.setAttribute(QUOTE_ANCHOR_ATTR, "");
-  anchor.style.cssText = "display:block;margin:0;padding:0;border:0;height:0;white-space:normal;";
+  // No fixed height: in a plain-text body the frame renders inside the anchor
+  // and must push the quote toggle down, not lie over it. QuoteOverlay sets
+  // the height itself for an HTML body.
+  anchor.style.cssText = "display:block;margin:0;padding:0;border:0;white-space:normal;";
   toggle.parentNode.insertBefore(anchor, toggle);
   return anchor;
 }

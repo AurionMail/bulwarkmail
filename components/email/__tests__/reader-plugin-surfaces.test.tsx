@@ -82,6 +82,60 @@ afterEach(() => {
   setActionDispatcher(null);
 });
 
+describe('email-detail-sidebar', () => {
+  // Reports a fixed width for whatever it observes, like a 584 px reading pane
+  // (three panes on a laptop).
+  function stubWidth(width: number) {
+    class FixedWidthObserver {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe(el: Element) {
+        this.cb([{ target: el, contentRect: { width } } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver);
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', FixedWidthObserver);
+  }
+
+  afterEach(() => {
+    vi.stubGlobal('ResizeObserver', NoopResizeObserver);
+    try { localStorage.removeItem('emailDetailSidebarCollapsed'); } catch { /* ignore */ }
+  });
+
+  it('starts collapsed when the message opens into a pane too narrow for it', () => {
+    stubWidth(584);
+    offerSlots('p1', ['email-detail-sidebar']);
+    // The reader mounts empty first, then a message opens.
+    const { rerender } = render(
+      <EmailViewer email={null} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" />,
+    );
+    rerender(<EmailViewer email={textMail('Hi')} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" />);
+
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+    expect(screen.getByRole('button', { name: 'plugin_panel_show' })).toBeInTheDocument();
+  });
+
+  it('lays the panel over the message when opened anyway, instead of squeezing it', () => {
+    stubWidth(584);
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_show' }));
+    const panel = screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!;
+    expect(panel.getAttribute('data-plugin-detail-panel')).toBe('overlay');
+    expect(panel.className).toContain('absolute');
+  });
+
+  it('docks next to the message when there is room', () => {
+    stubWidth(1000);
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi'));
+
+    const panel = screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!;
+    expect(panel.getAttribute('data-plugin-detail-panel')).toBe('docked');
+  });
+});
+
 describe('reader-header and reader-below-subject', () => {
   it('put the frames above the subject and under the sender, with the message', () => {
     offerSlots('p1', ['reader-header', 'reader-below-subject']);
@@ -105,6 +159,14 @@ describe('reader-header and reader-below-subject', () => {
   });
 });
 
+describe('email-footer', () => {
+  it('hands the frame the id of the open message', () => {
+    offerSlots('p1', ['email-footer']);
+    viewer(textMail('Hi'));
+    expect(slotProps(screen.getByTestId('slot-email-footer'))).toEqual({ emailId: 'e1' });
+  });
+});
+
 describe('reader-above-quote', () => {
   it('sits between the new text of a plain-text reply and its folded quote', () => {
     offerSlots('p1', ['reader-above-quote']);
@@ -116,6 +178,11 @@ describe('reader-above-quote', () => {
     expect(follows(frame, quote)).toBe(true);
     expect(follows(screen.getByText(/Sounds good/), frame)).toBe(true);
     expect((slotProps(frame).email as { id: string }).id).toBe('e1');
+    // The frame renders inside the anchor, so the anchor must grow with it
+    // instead of letting the frame spill over the quote toggle and the footer.
+    const anchor = container.querySelector<HTMLElement>(`[${QUOTE_ANCHOR_ATTR}]`)!;
+    expect(anchor.contains(frame)).toBe(true);
+    expect(anchor.style.height).toBe('');
   });
 
   it('is not mounted for a message without a quote, or without a plugin', () => {
@@ -196,6 +263,48 @@ describe('thread-summary', () => {
   });
 });
 
+describe('reader surfaces in the phone conversation view', () => {
+  const conversation = [
+    textMail('Second', { id: 'm2', subject: 'Re: Plan', receivedAt: '2026-01-02T00:00:00Z' } as Partial<Email>),
+    textMail('First', { id: 'm1', subject: 'Plan', receivedAt: '2026-01-01T00:00:00Z' } as Partial<Email>),
+  ];
+  const thread = { threadKey: 't1', latestEmail: conversation[0], emails: conversation, emailCount: 2 } as unknown as ThreadGroup;
+
+  it('mounts the single reader\'s frames on the unfolded message only', () => {
+    offerSlots('p1', ['reader-header', 'reader-below-subject', 'email-banner', 'email-footer']);
+    render(<ThreadConversationView thread={thread} emails={conversation} onBack={() => {}} />);
+
+    // The latest message is unfolded, the older one (read) is folded.
+    for (const slot of ['reader-header', 'reader-below-subject', 'email-banner'] as const) {
+      const frames = screen.getAllByTestId(`slot-${slot}`);
+      expect(frames).toHaveLength(1);
+      expect((slotProps(frames[0]).email as { id: string }).id).toBe('m2');
+    }
+    const footer = screen.getAllByTestId('slot-email-footer');
+    expect(footer).toHaveLength(1);
+    expect(slotProps(footer[0])).toEqual({ emailId: 'm2' });
+    // Header on top, the body between banner and footer.
+    expect(follows(screen.getByTestId('slot-reader-header'), screen.getByTestId('slot-reader-below-subject'))).toBe(true);
+    expect(follows(screen.getByTestId('slot-email-banner'), screen.getByText('Second'))).toBe(true);
+    expect(follows(screen.getByText('Second'), footer[0])).toBe(true);
+  });
+
+  it('puts plugin reader actions behind a more button on the unfolded message', async () => {
+    act(() => setPluginActions('p', 'Translator', 'reader-actions', [{ id: 'translate', label: 'Translate', mailboxRoles: ['inbox'] }]));
+    const { unmount } = render(<ThreadConversationView thread={thread} emails={conversation} onBack={() => {}} mailboxRole="inbox" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'more_actions' }));
+    const item = await screen.findByRole('menuitem', { name: 'Translate' });
+    await act(async () => { fireEvent.click(item); });
+    expect(dispatch).toHaveBeenCalledWith('p', 'reader-actions', 'translate', { emailId: 'm2' });
+    unmount();
+
+    // Kept to the folder roles the plugin asked for.
+    render(<ThreadConversationView thread={thread} emails={conversation} onBack={() => {}} mailboxRole="junk" />);
+    expect(screen.queryByRole('button', { name: 'more_actions' })).toBeNull();
+  });
+});
+
 describe('reader-actions', () => {
   it('adds the plugin buttons to the reader toolbar', async () => {
     act(() => setPluginActions('p', 'Translator', 'reader-actions', [{ id: 'translate', label: 'Translate' }]));
@@ -227,6 +336,40 @@ describe('reader-actions', () => {
   it('draws nothing without a plugin', () => {
     const { container } = viewer(textMail('Hola'));
     expect(container.querySelector('[data-plugin-actions="reader-actions"]')).toBeNull();
+  });
+});
+
+describe('attachment-actions', () => {
+  const withAttachment = () => textMail('See attached', {
+    hasAttachment: true,
+    attachments: [{ partId: '2', blobId: 'blob-pdf', name: 'invoice.pdf', type: 'application/pdf', size: 1234, disposition: 'attachment' }],
+  } as Partial<Email>);
+
+  it('puts the frames next to the chip, not in its hover overlay', () => {
+    offerSlots('p1', ['attachment-actions']);
+    viewer(withAttachment());
+
+    // Desktop chip and phone chip are both in the DOM.
+    const frames = screen.getAllByTestId('slot-attachment-actions');
+    expect(frames.length).toBeGreaterThan(0);
+    for (const frame of frames) {
+      // Nothing between the frame and the page may hide it until hover.
+      for (let el: HTMLElement | null = frame; el; el = el.parentElement) {
+        expect(el.className).not.toMatch(/\bopacity-0\b/);
+      }
+      expect(frame.closest('[data-attachment-name]')).toBeNull();
+      expect(slotProps(frame)).toEqual({
+        attachment: { name: 'invoice.pdf', type: 'application/pdf', size: 1234, blobId: 'blob-pdf', emailId: 'e1' },
+      });
+    }
+  });
+
+  it('keeps the invisible hover overlay from taking taps', () => {
+    viewer(withAttachment());
+    const overlays = [...document.querySelectorAll<HTMLElement>('[data-attachment-name="invoice.pdf"] div')]
+      .filter((d) => /\bopacity-0\b/.test(d.className));
+    expect(overlays.length).toBeGreaterThan(0);
+    for (const overlay of overlays) expect(overlay.className).toMatch(/\bpointer-events-none\b/);
   });
 });
 

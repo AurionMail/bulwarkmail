@@ -155,6 +155,41 @@ describe('message-bulk-actions', () => {
     expect(screen.queryByRole('button', { name: 'Make tasks' })).toBeNull();
   });
 
+  it('puts them behind one "more" button when the list is narrow', async () => {
+    // The list next to an open folder sidebar, or on a phone.
+    class NarrowObserver {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe(el: Element) {
+        this.cb([{ target: el, contentRect: { width: 384, height: 48 } } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver);
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', NarrowObserver);
+    try {
+      const emails = [mail('a'), mail('b')];
+      useEmailStore.setState({ emails, selectedEmailKeys: new Set(['a', 'b']) });
+      act(() => setPluginActions('tasks', 'Tasks', 'message-bulk-actions', [
+        { id: 'make', label: 'Make tasks' },
+        { id: 'more', label: 'Remind me' },
+      ]));
+      render(<EmailList emails={emails} />);
+
+      expect(screen.queryByRole('button', { name: 'Make tasks' })).toBeNull();
+      // "Clear selection" keeps its name for screen readers but drops the text.
+      const clear = screen.getByRole('button', { name: 'batch_actions.clear_selection' });
+      expect(clear).not.toHaveTextContent('batch_actions.clear_selection');
+
+      fireEvent.click(screen.getByRole('button', { name: 'more_actions' }));
+      const item = await screen.findByRole('menuitem', { name: 'Make tasks' });
+      expect(screen.getByRole('menuitem', { name: 'Remind me' })).toBeInTheDocument();
+      await act(async () => { fireEvent.click(item); });
+      expect(dispatch).toHaveBeenCalledWith('tasks', 'message-bulk-actions', 'make', { emailIds: ['a', 'b'] });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('adds them to the Mountain View toolbar too', async () => {
     const emails = [mail('a'), mail('b')];
     useEmailStore.setState({ emails, selectedEmailKeys: new Set(['b']) });

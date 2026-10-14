@@ -254,6 +254,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     () => pluginOffersForSlot('settings-page'),
   );
   const tPluginPages = useTranslations('plugin_pages');
+  const pluginPageIds = useMemo(() => new Set(pluginPageOffers.map((offer) => offer.pluginId)), [pluginPageOffers]);
+  const pluginSectionIds = useMemo(() => new Set(pluginSettingsOffers.map((offer) => offer.pluginId)), [pluginSettingsOffers]);
   // Consume the one-shot deep-link key so a section gear only steers this one
   // open, never the persisted default for future Settings-button clicks.
   useEffect(() => {
@@ -584,7 +586,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     ...(isFeatureEnabled('sidebarAppsEnabled') ? [{ id: 'sidebar_apps' as Tab, label: t('tabs.sidebar_apps'), icon: tabIcons.sidebar_apps, group: 'apps' as TabGroup }] : []),
     // Plugin-contributed settings pages: one entry per active plugin that
     // offers a `settings-section` slot (e.g. S/MIME key & certificate manager).
-    ...pluginSettingsOffers.map((offer): TabDef => ({
+    // A plugin that also has a page of its own gets that entry only, with the
+    // section on its page, instead of two entries with the same name.
+    ...pluginSettingsOffers.filter((offer) => !pluginPageIds.has(offer.pluginId)).map((offer): TabDef => ({
       id: `plugin:${offer.pluginId}` as PluginTabId,
       label: getActivePlugin(offer.pluginId)?.plugin.name ?? offer.pluginId,
       icon: Puzzle,
@@ -657,9 +661,15 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   // If active tab is not in the visible list (e.g., feature disabled, or scoped
   // mode hides it), fall back. In scoped mode fall back to the first scoped tab;
   // otherwise the usual 'appearance' default.
-  const isActiveVisible = visibleTabs.some((tab) => tab.id === activeTab);
+  // An old link or remembered tab to the section of a plugin that now has a
+  // page of its own opens that page, where the section is.
+  const sectionPluginId = activeTab.startsWith('plugin:') ? activeTab.slice('plugin:'.length) : null;
+  const requestedTab: SettingsTabId = sectionPluginId && pluginPageIds.has(sectionPluginId)
+    ? (`${PLUGIN_PAGE_PREFIX}${sectionPluginId}` as PluginPageTabId)
+    : activeTab;
+  const isActiveVisible = visibleTabs.some((tab) => tab.id === requestedTab);
   const effectiveActiveTab: SettingsTabId = isActiveVisible
-    ? activeTab
+    ? requestedTab
     : (managedAccountId ? (visibleTabs[0]?.id ?? 'appearance') : 'appearance');
 
   const handleTabSelect = (tabId: SettingsTabId) => {
@@ -736,13 +746,26 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         />
       )}
       {effectiveActiveTab.startsWith(PLUGIN_PAGE_PREFIX) && (
-        <div className="w-full" data-plugin-slot="settings-page">
-          <PluginIframeSlot
-            key={effectiveActiveTab}
-            pluginId={effectiveActiveTab.slice(PLUGIN_PAGE_PREFIX.length)}
-            slot="settings-page"
-          />
-        </div>
+        <>
+          {/* The plugin's settings-section, on its page rather than as a
+              second entry with the same name. */}
+          {pluginSectionIds.has(effectiveActiveTab.slice(PLUGIN_PAGE_PREFIX.length)) && (
+            <div className="max-w-3xl mb-6" data-plugin-slot="settings-section">
+              <PluginIframeSlot
+                key={`${effectiveActiveTab}:section`}
+                pluginId={effectiveActiveTab.slice(PLUGIN_PAGE_PREFIX.length)}
+                slot="settings-section"
+              />
+            </div>
+          )}
+          <div className="w-full" data-plugin-slot="settings-page">
+            <PluginIframeSlot
+              key={effectiveActiveTab}
+              pluginId={effectiveActiveTab.slice(PLUGIN_PAGE_PREFIX.length)}
+              slot="settings-page"
+            />
+          </div>
+        </>
       )}
     </>
   );

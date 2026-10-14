@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { resetActions, setActionDispatcher, setPluginActions } from '@/lib/plugin-sandbox/actions';
 import { clearOffers, lastSlotProps, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
 import { useSettingsStore } from '@/stores/settings-store';
+import { SLOT_CATALOG } from '@/lib/plugin-slot-catalog';
 
 // Plugin surfaces of the composer: frames above and below the message text
 // (fed the draft, at most every 2 seconds), and entries in the Send and
@@ -280,6 +281,15 @@ describe('composer-above-body and composer-below-body', () => {
     expect(typeof props.insertText).toBe('function');
   });
 
+  it('put the attachment source in the plugin button row, where the catalogue says it is', () => {
+    offerSlots('p1', ['composer-attachment-source']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const frame = screen.getByTestId('slot-composer-attachment-source');
+    expect(frame.closest('[data-composer-plugin-row]')).not.toBeNull();
+    expect(SLOT_CATALOG['composer-attachment-source'].where).toMatch(/plugin button row/);
+  });
+
   it('draw nothing without a plugin', () => {
     const { container } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
     expect(container.querySelector('[data-plugin-slot="composer-above-body"]')).toBeNull();
@@ -342,5 +352,72 @@ describe('composer-attach-menu', () => {
     render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
     expect(screen.queryByTestId('composer-attach-menu')).toBeNull();
     expect(screen.getByRole('button', { name: 'attach' })).toBeInTheDocument();
+  });
+});
+
+describe('composer-sidebar and composer-sidebar-right', () => {
+  function stubWidth(width: number) {
+    class FixedWidthObserver {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe(el: Element) {
+        if ((el as HTMLElement).dataset.testid !== 'email-composer') return;
+        this.cb([{ target: el, contentRect: { width, height: 700 } } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver);
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', FixedWidthObserver);
+  }
+  const panel = (side: 'left' | 'right') => document.querySelector<HTMLElement>(`[data-composer-sidebar="${side}"]`)!;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    try {
+      localStorage.removeItem('composerPluginSidebarCollapsed:left');
+      localStorage.removeItem('composerPluginSidebarCollapsed:right');
+    } catch { /* ignore */ }
+  });
+
+  it('give both panels a fixed width beside a wide composer', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar', 'composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    for (const side of ['left', 'right'] as const) {
+      expect(panel(side).dataset.composerSidebarMode).toBe('docked');
+      expect(panel(side).style.width).toBe('260px');
+    }
+    expect(panel('left')).toContainElement(screen.getByTestId('slot-composer-sidebar'));
+    expect(panel('right')).toContainElement(screen.getByTestId('slot-composer-sidebar-right'));
+  });
+
+  it('fold the right panel, then both, when the composer would get too narrow', () => {
+    stubWidth(900);
+    offerSlots('p1', ['composer-sidebar', 'composer-sidebar-right']);
+    const { unmount } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('left').dataset.composerSidebarMode).toBe('docked');
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+    expect(screen.queryByTestId('slot-composer-sidebar-right')).toBeNull();
+    unmount();
+
+    // The reading pane of a 1280 px window: an open panel would leave the
+    // composer too narrow for its bottom bar.
+    stubWidth(792);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('left').dataset.composerSidebarMode).toBe('folded');
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+  });
+
+  it('open a folded panel over the composer when there is no room beside it', () => {
+    stubWidth(600);
+    offerSlots('p1', ['composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_show' }));
+    expect(panel('right').dataset.composerSidebarMode).toBe('overlay');
+    expect(panel('right').className).toContain('absolute');
+
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_hide' }));
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
   });
 });

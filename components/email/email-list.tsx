@@ -9,7 +9,7 @@ import { listVerificationCode } from "@/lib/verification-code";
 import { EmailContextMenu, type CopyTargetAccount } from "./email-context-menu";
 import { BatchTagButton } from "./batch-tag-button";
 import { cn, cleanPreview } from "@/lib/utils";
-import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck } from "@/components/icons";
+import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, X } from "@/components/icons";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -74,6 +74,9 @@ interface EmailListProps {
    */
   hideBatchToolbar?: boolean;
 }
+
+/** Below this width the batch toolbar drops its labels (see batchNarrow). */
+const BATCH_TOOLBAR_WIDE = 480;
 
 export function EmailList({
   emails,
@@ -263,6 +266,20 @@ export function EmailList({
       if (!list || delta === 0) return;
       if (delta > 0 && list.scrollTop <= 0) return;
       list.scrollTop = Math.max(0, list.scrollTop + delta);
+    });
+    observer.observe(toolbar);
+    return () => observer.disconnect();
+  }, []);
+  // A narrow list (folder sidebar open, phones) has no room for the batch
+  // toolbar's labels: plugin buttons go behind one "more" button and "Clear
+  // selection" becomes an icon, instead of wrapping into each other.
+  const [batchNarrow, setBatchNarrow] = useState(false);
+  useEffect(() => {
+    const toolbar = batchToolbarRef.current;
+    if (!toolbar || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? toolbar.getBoundingClientRect().width;
+      if (width > 0) setBatchNarrow(width < BATCH_TOOLBAR_WIDE);
     });
     observer.observe(toolbar);
     return () => observer.disconnect();
@@ -594,13 +611,13 @@ export function EmailList({
           hasSelection && !isScheduledView && !hideBatchToolbar ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <div className="px-4 py-2 border-b bg-accent/30 border-border flex items-center justify-between">
-          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-3 duration-300">
-            <span className="text-sm font-medium text-foreground">
+        <div className={cn("py-2 border-b bg-accent/30 border-border flex items-center justify-between gap-2", batchNarrow ? "px-2" : "px-4")} data-batch-narrow={batchNarrow ? "" : undefined}>
+          <div className="flex items-center gap-2 min-w-0 animate-in fade-in slide-in-from-left-3 duration-300">
+            <span className="text-sm font-medium text-foreground whitespace-nowrap truncate">
               {t('batch_actions.selected_messages', { count: selectedEmailKeys.size })}
             </span>
           </div>
-          <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-3 duration-300">
+          <div className={cn("flex items-center flex-shrink-0 animate-in fade-in slide-in-from-right-3 duration-300", batchNarrow ? "gap-0.5 [&_button]:px-2" : "gap-1")}>
             <Button
               variant="ghost"
               size="sm"
@@ -674,18 +691,21 @@ export function EmailList({
                 context={bulkActionContext}
                 mailboxRole={effectiveMailboxRole ?? null}
                 compact
+                overflow={batchNarrow}
+                className="flex-nowrap"
               />
             )}
-            <div className="w-px h-6 bg-border mx-1" />
+            <div className={cn("w-px h-6 bg-border", batchNarrow ? "mx-0.5" : "mx-1")} />
             <Button
               variant="ghost"
               size="sm"
               onClick={clearSelection}
               title={t('batch_actions.clear_selection')}
+              aria-label={t('batch_actions.clear_selection')}
               disabled={isProcessing}
-              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 whitespace-nowrap"
             >
-              {t('batch_actions.clear_selection')}
+              {batchNarrow ? <X className="w-4 h-4" /> : t('batch_actions.clear_selection')}
             </Button>
           </div>
         </div>

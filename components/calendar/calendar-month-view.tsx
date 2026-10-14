@@ -380,7 +380,8 @@ export function CalendarMonthView({
                     >
                       {formatDayNumber(day)}
                     </button>
-                    {!isMobile && <PluginDayLabel surface="calendar-day-header" date={key} className="min-w-0 flex-1" />}
+                    {/* Phones have no room for the text: a dot stands in for it. */}
+                    <PluginDayLabel surface="calendar-day-header" date={key} compact={isMobile} className={isMobile ? undefined : "min-w-0 flex-1"} />
                   </div>
                   {isMobile && !showChips ? (
                     <div className="flex items-center justify-center gap-0.5 flex-wrap">
