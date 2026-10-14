@@ -61,6 +61,7 @@ import { useIdentityStore } from "@/stores/identity-store";
 import { useProMultiAccountIdentities, stripCrossAccountIdentityPrefix } from "@/hooks/use-pro-multi-account-identities";
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import { ComposerPluginSidebar, useComposerSidebars } from "./composer-plugin-sidebars";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { usePluginActions } from "@/components/plugins/plugin-actions";
@@ -2071,6 +2072,9 @@ export function EmailComposer({
   // Stable props, so a re-render of the composer doesn't post them to the
   // plugin's iframe again.
   const pluginToolbarOffers = usePluginSlotOffers('composer-toolbar');
+  // The plugin side panels fold when the composer gets too narrow for them.
+  const [composerRootEl, setComposerRootEl] = useState<HTMLDivElement | null>(null);
+  const pluginSidebars = useComposerSidebars(composerRootEl);
   const pluginAttachmentSourceOffers = usePluginSlotOffers('composer-attachment-source');
   const hasAboveBodyOffers = usePluginSlotOffers('composer-above-body').length > 0;
   const hasBelowBodyOffers = usePluginSlotOffers('composer-below-body').length > 0;
@@ -3222,14 +3226,12 @@ export function EmailComposer({
 
   return (
     <div
+      ref={setComposerRootEl}
       data-testid="email-composer"
-      className={cn("flex h-full bg-background", className)}
+      className={cn("flex h-full bg-background relative", className)}
       onKeyDownCapture={handleComposerKeyDown}
     >
-      <PluginSlot
-        name="composer-sidebar"
-        className="hidden md:flex shrink-0 h-full overflow-hidden border-e border-border"
-      />
+      <ComposerPluginSidebar side="left" mode={pluginSidebars.modes.left} onOpen={() => pluginSidebars.open('left')} onClose={() => pluginSidebars.close('left')} />
       {/* Right-side composer sidebar slot is rendered after the main content div below. */}
     <div
       className="flex flex-col h-full bg-background relative flex-1 min-w-0"
@@ -4335,10 +4337,7 @@ export function EmailComposer({
         />
       )}
     </div>
-      <PluginSlot
-        name="composer-sidebar-right"
-        className="hidden md:flex shrink-0 h-full overflow-hidden border-s border-border"
-      />
+      <ComposerPluginSidebar side="right" mode={pluginSidebars.modes.right} onOpen={() => pluginSidebars.open('right')} onClose={() => pluginSidebars.close('right')} />
     </div>
   );
 }

@@ -344,3 +344,68 @@ describe('composer-attach-menu', () => {
     expect(screen.getByRole('button', { name: 'attach' })).toBeInTheDocument();
   });
 });
+
+describe('composer-sidebar and composer-sidebar-right', () => {
+  function stubWidth(width: number) {
+    class FixedWidthObserver {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe(el: Element) {
+        if ((el as HTMLElement).dataset.testid !== 'email-composer') return;
+        this.cb([{ target: el, contentRect: { width, height: 700 } } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver);
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', FixedWidthObserver);
+  }
+  const panel = (side: 'left' | 'right') => document.querySelector<HTMLElement>(`[data-composer-sidebar="${side}"]`)!;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    try {
+      localStorage.removeItem('composerPluginSidebarCollapsed:left');
+      localStorage.removeItem('composerPluginSidebarCollapsed:right');
+    } catch { /* ignore */ }
+  });
+
+  it('give both panels a fixed width beside a wide composer', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar', 'composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    for (const side of ['left', 'right'] as const) {
+      expect(panel(side).dataset.composerSidebarMode).toBe('docked');
+      expect(panel(side).style.width).toBe('260px');
+    }
+    expect(panel('left')).toContainElement(screen.getByTestId('slot-composer-sidebar'));
+    expect(panel('right')).toContainElement(screen.getByTestId('slot-composer-sidebar-right'));
+  });
+
+  it('fold the right panel, then both, when the composer would get too narrow', () => {
+    stubWidth(900);
+    offerSlots('p1', ['composer-sidebar', 'composer-sidebar-right']);
+    const { unmount } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('left').dataset.composerSidebarMode).toBe('docked');
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+    expect(screen.queryByTestId('slot-composer-sidebar-right')).toBeNull();
+    unmount();
+
+    stubWidth(600);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('left').dataset.composerSidebarMode).toBe('folded');
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+  });
+
+  it('open a folded panel over the composer when there is no room beside it', () => {
+    stubWidth(600);
+    offerSlots('p1', ['composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_show' }));
+    expect(panel('right').dataset.composerSidebarMode).toBe('overlay');
+    expect(panel('right').className).toContain('absolute');
+
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_hide' }));
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+  });
+});
