@@ -24,7 +24,7 @@ const STATUS_COLORS: Record<PluginStatus, string> = {
 };
 
 /** Errors the store records as codes, so they can be shown translated. */
-const ERROR_CODES = new Set(['user-plugins-off', 'approval-unavailable', 'approval-denied', 'approval-pending']);
+const ERROR_CODES = new Set(['user-plugins-off', 'approval-unavailable', 'approval-denied', 'approval-pending', 'auto-disabled']);
 
 export function PluginsSettings() {
   const t = useTranslations('plugins.settings');

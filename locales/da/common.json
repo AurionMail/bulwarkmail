@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Din administrator har slået plugins installeret af brugere fra, så dette plugin kører ikke.",
       "error_approval_unavailable": "Dette plugin blev installeret, før godkendelse var påkrævet. Fjern det, og installer det igen for at sende det til godkendelse.",
       "error_approval_denied": "Din administrator har ikke godkendt dette plugin.",
-      "error_approval_pending": "Venter på, at din administrator godkender dette plugin."
+      "error_approval_pending": "Venter på, at din administrator godkender dette plugin.",
+      "error_auto_disabled": "Slået fra, fordi det blev ved med at fejle. Slå det til igen for at prøve igen."
     },
     "consent": {
       "title": "Vil du tillade {name} at gøre dette?",
@@ -4250,7 +4251,8 @@
       "cancel": "Annuller",
       "close": "Luk",
       "turn_off": "Slå {name} fra",
-      "password_note": "Denne formular kommer fra pluginet {name}, ikke fra webmailen. Indtast kun en adgangskode, hvis du stoler på dette plugin."
+      "password_note": "Denne formular kommer fra pluginet {name}, ikke fra webmailen. Indtast kun en adgangskode, hvis du stoler på dette plugin.",
+      "toast_auto_disabled": "{name} blev slået fra, fordi det blev ved med at fejle."
     }
   },
   "global_search": {

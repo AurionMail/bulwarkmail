@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Administrator wyłączył wtyczki instalowane przez użytkowników, więc ta wtyczka nie działa.",
       "error_approval_unavailable": "Ta wtyczka została zainstalowana, zanim wprowadzono zatwierdzanie. Usuń ją i zainstaluj ponownie, aby wysłać ją do zatwierdzenia.",
       "error_approval_denied": "Administrator nie zatwierdził tej wtyczki.",
-      "error_approval_pending": "Czeka na zatwierdzenie przez administratora."
+      "error_approval_pending": "Czeka na zatwierdzenie przez administratora.",
+      "error_auto_disabled": "Wyłączono, bo wielokrotnie zawodziło. Włącz ponownie, aby spróbować jeszcze raz."
     },
     "consent": {
       "title": "Zezwolić wtyczce {name} na te działania?",
@@ -4250,7 +4251,8 @@
       "cancel": "Anuluj",
       "close": "Zamknij",
       "turn_off": "Wyłącz {name}",
-      "password_note": "Ten formularz pochodzi z wtyczki {name}, a nie z poczty. Wpisz hasło tylko wtedy, gdy ufasz tej wtyczce."
+      "password_note": "Ten formularz pochodzi z wtyczki {name}, a nie z poczty. Wpisz hasło tylko wtedy, gdy ufasz tej wtyczce.",
+      "toast_auto_disabled": "{name} wyłączono, bo wielokrotnie zawodziło."
     }
   },
   "global_search": {

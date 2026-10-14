@@ -219,3 +219,27 @@ describe('setSandboxLocale', () => {
     expect(mocks.setLocale).toHaveBeenCalledWith('de');
   });
 });
+
+describe('failing hooks', () => {
+  it('turns a plugin off on its third failure, not its second', async () => {
+    const { emailHooks, pluginErrorTracker } = await import('../plugin-hooks');
+    const { setupSandboxAutoDisable } = await import('../plugin-sandbox/loader');
+    const markAutoDisabled = vi.fn();
+    setSandboxStoreAccessor({ setPluginStatus: () => {}, markAutoDisabled });
+    setupSandboxAutoDisable();
+    pluginErrorTracker.reset('managed-plugin');
+    mocks.getCode.mockResolvedValue(CODE);
+    mocks.createBackgroundInstance.mockImplementation(() => ({
+      ...fakeBackground(),
+      initPromise: Promise.resolve({ hooks: ['onEmailOpen'], slots: [], shortcuts: [] }),
+      invokeHook: vi.fn(() => Promise.reject(new Error('boom'))),
+    }));
+    await loadSandboxedPlugin(plugin({ permissions: ['email:read'] }));
+
+    await emailHooks.onEmailOpen.emit({});
+    await emailHooks.onEmailOpen.emit({});
+    expect(markAutoDisabled).not.toHaveBeenCalled();
+    await emailHooks.onEmailOpen.emit({});
+    expect(markAutoDisabled).toHaveBeenCalledWith('managed-plugin');
+  });
+});

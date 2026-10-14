@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Váš správca vypol doplnky inštalované používateľmi, preto tento doplnok nebeží.",
       "error_approval_unavailable": "Tento doplnok bol nainštalovaný skôr, než sa vyžadovalo schválenie. Odstráňte ho a nainštalujte znova, aby sa odoslal na schválenie.",
       "error_approval_denied": "Váš správca tento doplnok neschválil.",
-      "error_approval_pending": "Čaká sa, kým správca tento doplnok schváli."
+      "error_approval_pending": "Čaká sa, kým správca tento doplnok schváli.",
+      "error_auto_disabled": "Vypnuté, pretože opakovane zlyhávalo. Zapnite ho znova a skúste to znova."
     },
     "consent": {
       "title": "Povoliť doplnku {name} tieto akcie?",
@@ -4250,7 +4251,8 @@
       "cancel": "Zrušiť",
       "close": "Zavrieť",
       "turn_off": "Vypnúť {name}",
-      "password_note": "Tento formulár pochádza z doplnku {name}, nie z webmailu. Heslo zadajte, len ak tomuto doplnku dôverujete."
+      "password_note": "Tento formulár pochádza z doplnku {name}, nie z webmailu. Heslo zadajte, len ak tomuto doplnku dôverujete.",
+      "toast_auto_disabled": "{name} bol vypnutý, pretože opakovane zlyhával."
     }
   },
   "global_search": {

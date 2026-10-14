@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Jūsu administrators ir izslēdzis lietotāju instalētos spraudņus, tāpēc šis spraudnis nedarbojas.",
       "error_approval_unavailable": "Šis spraudnis tika instalēts, pirms bija vajadzīgs apstiprinājums. Noņemiet to un instalējiet vēlreiz, lai nosūtītu apstiprināšanai.",
       "error_approval_denied": "Jūsu administrators neapstiprināja šo spraudni.",
-      "error_approval_pending": "Gaida, kad jūsu administrators apstiprinās šo spraudni."
+      "error_approval_pending": "Gaida, kad jūsu administrators apstiprinās šo spraudni.",
+      "error_auto_disabled": "Izslēgts, jo atkārtoti neizdevās. Ieslēdziet to vēlreiz, lai mēģinātu vēlreiz."
     },
     "consent": {
       "title": "Atļaut spraudnim {name} to darīt?",
@@ -4250,7 +4251,8 @@
       "cancel": "Atcelt",
       "close": "Aizvērt",
       "turn_off": "Izslēgt {name}",
-      "password_note": "Šī veidlapa nāk no spraudņa {name}, nevis no tīmekļa pasta. Ievadiet paroli tikai tad, ja uzticaties šim spraudnim."
+      "password_note": "Šī veidlapa nāk no spraudņa {name}, nevis no tīmekļa pasta. Ievadiet paroli tikai tad, ja uzticaties šim spraudnim.",
+      "toast_auto_disabled": "{name} tika izslēgts, jo atkārtoti neizdevās."
     }
   },
   "global_search": {

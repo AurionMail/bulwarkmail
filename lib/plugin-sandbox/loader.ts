@@ -39,7 +39,11 @@ const HOOK_BUSES: Record<string, AnyBus> = Object.assign({},
 
 // ─── Store accessor (status updates flow through the existing store) ──
 
-type StoreAccessor = { setPluginStatus: (id: string, status: InstalledPlugin['status'], error?: string) => void };
+type StoreAccessor = {
+  setPluginStatus: (id: string, status: InstalledPlugin['status'], error?: string) => void;
+  /** Turn a failing plugin off for good (until the user turns it on again). */
+  markAutoDisabled?: (id: string) => void;
+};
 let storeAccessor: StoreAccessor | null = null;
 export function setSandboxStoreAccessor(a: StoreAccessor): void { storeAccessor = a; }
 
@@ -187,14 +191,9 @@ export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void
         console.warn(`[plugin-sandbox] Plugin "${plugin.id}" lacks the permission for hook "${hookName}"; not registered`);
         continue;
       }
-      const proxy = async (...args: unknown[]) => {
-        try {
-          return await bg.invokeHook(hookName, args);
-        } catch (err) {
-          pluginErrorTracker.record(plugin.id, err);
-          throw err;
-        }
-      };
+      // The bus records a failure once; recording it here too made the
+      // three-strikes breaker trip on the second error.
+      const proxy = (...args: unknown[]) => bg.invokeHook(hookName, args);
       hookDisposables.push(bus.register(plugin.id, proxy as (...a: unknown[]) => unknown));
     }
 
@@ -277,7 +276,12 @@ export function setupSandboxAutoDisable(): void {
   setHookTimeoutListener((pluginId) => cancelPluginDialogs(pluginId));
   pluginErrorTracker.setAutoDisableCallback((pluginId) => {
     unloadSandboxedPlugin(pluginId);
-    storeAccessor?.setPluginStatus(pluginId, 'error', 'Auto-disabled due to repeated errors');
+    if (storeAccessor?.markAutoDisabled) storeAccessor.markAutoDisabled(pluginId);
+    else storeAccessor?.setPluginStatus(pluginId, 'error', 'auto-disabled');
+    // PluginDialogHost turns this into a toast in the user's language.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('plugin:auto-disabled', { detail: { pluginId } }));
+    }
   });
 }
 

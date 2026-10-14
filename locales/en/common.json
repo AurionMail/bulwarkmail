@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Your administrator turned off plugins installed by users, so this plugin does not run.",
       "error_approval_unavailable": "This plugin was installed before approvals were required. Remove it and install it again to send it for approval.",
       "error_approval_denied": "Your administrator did not approve this plugin.",
-      "error_approval_pending": "Waiting for your administrator to approve this plugin."
+      "error_approval_pending": "Waiting for your administrator to approve this plugin.",
+      "error_auto_disabled": "Turned off because it kept failing. Turn it on again to retry."
     },
     "consent": {
       "title": "Allow {name} to do this?",
@@ -4250,7 +4251,8 @@
       "cancel": "Cancel",
       "close": "Close",
       "turn_off": "Turn off {name}",
-      "password_note": "This form comes from the plugin {name}, not from the webmail. Only enter a password if you trust this plugin."
+      "password_note": "This form comes from the plugin {name}, not from the webmail. Only enter a password if you trust this plugin.",
+      "toast_auto_disabled": "{name} was turned off because it kept failing."
     }
   },
   "global_search": {

@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "관리자가 사용자가 설치한 플러그인을 꺼 두어서 이 플러그인은 실행되지 않아요.",
       "error_approval_unavailable": "이 플러그인은 승인이 필요해지기 전에 설치되었어요. 승인을 요청하려면 삭제한 뒤 다시 설치하세요.",
       "error_approval_denied": "관리자가 이 플러그인을 승인하지 않았어요.",
-      "error_approval_pending": "관리자가 이 플러그인을 승인하기를 기다리고 있어요."
+      "error_approval_pending": "관리자가 이 플러그인을 승인하기를 기다리고 있어요.",
+      "error_auto_disabled": "계속 실패해서 꺼졌습니다. 다시 시도하려면 다시 켜세요."
     },
     "consent": {
       "title": "{name}에 이 권한을 허용할까요?",
@@ -4250,7 +4251,8 @@
       "cancel": "취소",
       "close": "닫기",
       "turn_off": "{name} 끄기",
-      "password_note": "이 양식은 웹메일이 아니라 플러그인 {name}에서 표시한 것입니다. 이 플러그인을 신뢰할 때만 비밀번호를 입력하세요."
+      "password_note": "이 양식은 웹메일이 아니라 플러그인 {name}에서 표시한 것입니다. 이 플러그인을 신뢰할 때만 비밀번호를 입력하세요.",
+      "toast_auto_disabled": "{name}이(가) 계속 실패해서 꺼졌습니다."
     }
   },
   "global_search": {

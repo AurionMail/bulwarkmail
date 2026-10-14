@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Yöneticiniz kullanıcıların yüklediği eklentileri kapattı, bu yüzden bu eklenti çalışmıyor.",
       "error_approval_unavailable": "Bu eklenti, onay zorunlu olmadan önce yüklendi. Onaya göndermek için kaldırıp yeniden yükleyin.",
       "error_approval_denied": "Yöneticiniz bu eklentiyi onaylamadı.",
-      "error_approval_pending": "Bu eklentinin yöneticiniz tarafından onaylanması bekleniyor."
+      "error_approval_pending": "Bu eklentinin yöneticiniz tarafından onaylanması bekleniyor.",
+      "error_auto_disabled": "Sürekli hata verdiği için kapatıldı. Yeniden denemek için tekrar açın."
     },
     "consent": {
       "title": "{name} eklentisine bu izin verilsin mi?",
@@ -4250,7 +4251,8 @@
       "cancel": "İptal",
       "close": "Kapat",
       "turn_off": "{name} eklentisini kapat",
-      "password_note": "Bu form web postasından değil, {name} eklentisinden geliyor. Yalnızca bu eklentiye güveniyorsanız parola girin."
+      "password_note": "Bu form web postasından değil, {name} eklentisinden geliyor. Yalnızca bu eklentiye güveniyorsanız parola girin.",
+      "toast_auto_disabled": "{name} sürekli hata verdiği için kapatıldı."
     }
   },
   "global_search": {

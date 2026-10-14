@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Je beheerder heeft plug-ins die door gebruikers zijn geïnstalleerd uitgezet, dus deze plug-in draait niet.",
       "error_approval_unavailable": "Deze plug-in is geïnstalleerd voordat goedkeuring verplicht was. Verwijder hem en installeer hem opnieuw om hem ter goedkeuring te sturen.",
       "error_approval_denied": "Je beheerder heeft deze plug-in niet goedgekeurd.",
-      "error_approval_pending": "Wacht tot je beheerder deze plug-in goedkeurt."
+      "error_approval_pending": "Wacht tot je beheerder deze plug-in goedkeurt.",
+      "error_auto_disabled": "Uitgezet omdat het steeds misging. Zet het weer aan om het opnieuw te proberen."
     },
     "consent": {
       "title": "{name} dit toestaan?",
@@ -4250,7 +4251,8 @@
       "cancel": "Annuleren",
       "close": "Sluiten",
       "turn_off": "{name} uitzetten",
-      "password_note": "Dit formulier komt van de plug-in {name}, niet van de webmail. Vul alleen een wachtwoord in als je deze plug-in vertrouwt."
+      "password_note": "Dit formulier komt van de plug-in {name}, niet van de webmail. Vul alleen een wachtwoord in als je deze plug-in vertrouwt.",
+      "toast_auto_disabled": "{name} is uitgezet omdat het steeds misging."
     }
   },
   "global_search": {

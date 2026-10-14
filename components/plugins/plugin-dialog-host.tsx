@@ -10,6 +10,7 @@ import React, { useEffect, useId, useMemo, useState, useSyncExternalStore } from
 import { useTranslations } from 'next-intl';
 import { cancelForPlugin, head, resolveDialog, resolveHead, subscribe } from '@/lib/plugin-sandbox/host-dialog';
 import { usePluginStore } from '@/stores/plugin-store';
+import { toast } from '@/stores/toast-store';
 import { Button } from '@/components/ui/button';
 import { Puzzle, X } from '@/components/icons';
 import { PluginIframeSlot } from './plugin-iframe-slot';
@@ -34,6 +35,18 @@ export function PluginDialogHost(): React.JSX.Element | null {
   const titleId = useId();
   const pluginName = usePluginStore((s) => s.plugins.find((p) => p.id === current?.pluginId)?.name);
   const disablePlugin = usePluginStore((s) => s.disablePlugin);
+
+  // Say so when a plugin was turned off for failing; otherwise it just
+  // stops working with no hint why.
+  useEffect(() => {
+    const onDisabled = (e: Event) => {
+      const id = (e as CustomEvent<{ pluginId: string }>).detail?.pluginId;
+      const name = usePluginStore.getState().plugins.find((p) => p.id === id)?.name ?? id;
+      if (id) toast.warning(t('toast_auto_disabled', { name }));
+    };
+    window.addEventListener('plugin:auto-disabled', onDisabled);
+    return () => window.removeEventListener('plugin:auto-disabled', onDisabled);
+  }, [t]);
 
   const isPrompt = current?.kind === 'prompt';
   const fields = useMemo(() => (isPrompt ? current?.fields ?? [] : []), [isPrompt, current]);

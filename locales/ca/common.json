@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "L'administrador ha desactivat els connectors instal·lats pels usuaris, així que aquest connector no s'executa.",
       "error_approval_unavailable": "Aquest connector es va instal·lar abans que calgués l'aprovació. Elimineu-lo i torneu-lo a instal·lar per enviar-lo a aprovar.",
       "error_approval_denied": "L'administrador no ha aprovat aquest connector.",
-      "error_approval_pending": "S'espera que l'administrador aprovi aquest connector."
+      "error_approval_pending": "S'espera que l'administrador aprovi aquest connector.",
+      "error_auto_disabled": "S'ha desactivat perquè fallava repetidament. Torneu-lo a activar per tornar-ho a provar."
     },
     "consent": {
       "title": "Voleu permetre que {name} faci això?",
@@ -4250,7 +4251,8 @@
       "cancel": "Cancel·la",
       "close": "Tanca",
       "turn_off": "Desactiva {name}",
-      "password_note": "Aquest formulari ve del connector {name}, no del correu web. Introduïu una contrasenya només si confieu en aquest connector."
+      "password_note": "Aquest formulari ve del connector {name}, no del correu web. Introduïu una contrasenya només si confieu en aquest connector.",
+      "toast_auto_disabled": "{name} s'ha desactivat perquè fallava repetidament."
     }
   },
   "global_search": {

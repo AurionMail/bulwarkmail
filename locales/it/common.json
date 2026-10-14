@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Il tuo amministratore ha disattivato i plugin installati dagli utenti, quindi questo plugin non viene eseguito.",
       "error_approval_unavailable": "Questo plugin è stato installato prima che fosse richiesta l'approvazione. Rimuovilo e installalo di nuovo per inviarlo in approvazione.",
       "error_approval_denied": "Il tuo amministratore non ha approvato questo plugin.",
-      "error_approval_pending": "In attesa che il tuo amministratore approvi questo plugin."
+      "error_approval_pending": "In attesa che il tuo amministratore approvi questo plugin.",
+      "error_auto_disabled": "Disattivato perché continuava a non funzionare. Riattivalo per riprovare."
     },
     "consent": {
       "title": "Consentire a {name} di fare questo?",
@@ -4250,7 +4251,8 @@
       "cancel": "Annulla",
       "close": "Chiudi",
       "turn_off": "Disattiva {name}",
-      "password_note": "Questo modulo proviene dal plugin {name}, non dalla webmail. Inserisci una password solo se ti fidi di questo plugin."
+      "password_note": "Questo modulo proviene dal plugin {name}, non dalla webmail. Inserisci una password solo se ti fidi di questo plugin.",
+      "toast_auto_disabled": "{name} è stato disattivato perché continuava a non funzionare."
     }
   },
   "global_search": {

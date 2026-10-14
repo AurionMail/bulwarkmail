@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "A rendszergazda kikapcsolta a felhasználók által telepített bővítményeket, ezért ez a bővítmény nem fut.",
       "error_approval_unavailable": "Ezt a bővítményt még azelőtt telepítetted, hogy jóváhagyás kellett volna. Távolítsd el, majd telepítsd újra, hogy jóváhagyásra kerüljön.",
       "error_approval_denied": "A rendszergazda nem hagyta jóvá ezt a bővítményt.",
-      "error_approval_pending": "Várakozás arra, hogy a rendszergazda jóváhagyja ezt a bővítményt."
+      "error_approval_pending": "Várakozás arra, hogy a rendszergazda jóváhagyja ezt a bővítményt.",
+      "error_auto_disabled": "Kikapcsolva, mert többször is hibát okozott. Kapcsolja be újra, ha ismét meg szeretné próbálni."
     },
     "consent": {
       "title": "{name}: engedélyezed ezeket a műveleteket?",
@@ -4250,7 +4251,8 @@
       "cancel": "Mégse",
       "close": "Bezárás",
       "turn_off": "{name} kikapcsolása",
-      "password_note": "Ez az űrlap a(z) {name} bővítménytől származik, nem a webmailtől. Csak akkor adjon meg jelszót, ha megbízik ebben a bővítményben."
+      "password_note": "Ez az űrlap a(z) {name} bővítménytől származik, nem a webmailtől. Csak akkor adjon meg jelszót, ha megbízik ebben a bővítményben.",
+      "toast_auto_disabled": "{name} ki lett kapcsolva, mert többször is hibát okozott."
     }
   },
   "global_search": {

@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Administratorul dvs. a dezactivat pluginurile instalate de utilizatori, așa că acest plugin nu rulează.",
       "error_approval_unavailable": "Acest plugin a fost instalat înainte ca aprobările să fie obligatorii. Eliminați-l și instalați-l din nou pentru a-l trimite spre aprobare.",
       "error_approval_denied": "Administratorul dvs. nu a aprobat acest plugin.",
-      "error_approval_pending": "Se așteaptă ca administratorul să aprobe acest plugin."
+      "error_approval_pending": "Se așteaptă ca administratorul să aprobe acest plugin.",
+      "error_auto_disabled": "Dezactivat pentru că a eșuat în mod repetat. Activați-l din nou pentru a reîncerca."
     },
     "consent": {
       "title": "Permiteți ca {name} să facă acest lucru?",
@@ -4250,7 +4251,8 @@
       "cancel": "Anulează",
       "close": "Închide",
       "turn_off": "Dezactivează {name}",
-      "password_note": "Acest formular vine de la pluginul {name}, nu de la webmail. Introduceți o parolă doar dacă aveți încredere în acest plugin."
+      "password_note": "Acest formular vine de la pluginul {name}, nu de la webmail. Introduceți o parolă doar dacă aveți încredere în acest plugin.",
+      "toast_auto_disabled": "{name} a fost dezactivat pentru că a eșuat în mod repetat."
     }
   },
   "global_search": {

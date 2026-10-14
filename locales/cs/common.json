@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Váš správce vypnul pluginy instalované uživateli, proto tento plugin neběží.",
       "error_approval_unavailable": "Tento plugin byl nainstalován dříve, než bylo vyžadováno schválení. Odstraňte ho a nainstalujte znovu, aby se odeslal ke schválení.",
       "error_approval_denied": "Váš správce tento plugin neschválil.",
-      "error_approval_pending": "Čeká se, až správce tento plugin schválí."
+      "error_approval_pending": "Čeká se, až správce tento plugin schválí.",
+      "error_auto_disabled": "Vypnuto, protože opakovaně selhávalo. Zapněte ho znovu a zkuste to znovu."
     },
     "consent": {
       "title": "Povolit pluginu {name} tyto akce?",
@@ -4250,7 +4251,8 @@
       "cancel": "Zrušit",
       "close": "Zavřít",
       "turn_off": "Vypnout {name}",
-      "password_note": "Tento formulář pochází z pluginu {name}, ne z webmailu. Heslo zadejte jen tehdy, když tomuto pluginu důvěřujete."
+      "password_note": "Tento formulář pochází z pluginu {name}, ne z webmailu. Heslo zadejte jen tehdy, když tomuto pluginu důvěřujete.",
+      "toast_auto_disabled": "{name} byl vypnut, protože opakovaně selhával."
     }
   },
   "global_search": {

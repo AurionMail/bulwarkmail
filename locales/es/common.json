@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Tu administrador desactivó los complementos instalados por usuarios, así que este complemento no se ejecuta.",
       "error_approval_unavailable": "Este complemento se instaló antes de que se exigiera aprobación. Elimínalo e instálalo de nuevo para enviarlo a aprobación.",
       "error_approval_denied": "Tu administrador no aprobó este complemento.",
-      "error_approval_pending": "Esperando a que tu administrador apruebe este complemento."
+      "error_approval_pending": "Esperando a que tu administrador apruebe este complemento.",
+      "error_auto_disabled": "Desactivado porque fallaba una y otra vez. Actívalo de nuevo para volver a intentarlo."
     },
     "consent": {
       "title": "¿Permitir que {name} haga esto?",
@@ -4250,7 +4251,8 @@
       "cancel": "Cancelar",
       "close": "Cerrar",
       "turn_off": "Desactivar {name}",
-      "password_note": "Este formulario viene del complemento {name}, no del correo web. Introduce una contraseña solo si confías en este complemento."
+      "password_note": "Este formulario viene del complemento {name}, no del correo web. Introduce una contraseña solo si confías en este complemento.",
+      "toast_auto_disabled": "{name} se desactivó porque fallaba una y otra vez."
     }
   },
   "global_search": {

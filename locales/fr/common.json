@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Votre administrateur a désactivé les plugins installés par les utilisateurs, ce plugin ne s'exécute donc pas.",
       "error_approval_unavailable": "Ce plugin a été installé avant que l'approbation soit requise. Supprimez-le et réinstallez-le pour l'envoyer en approbation.",
       "error_approval_denied": "Votre administrateur n'a pas approuvé ce plugin.",
-      "error_approval_pending": "En attente de l'approbation de ce plugin par votre administrateur."
+      "error_approval_pending": "En attente de l'approbation de ce plugin par votre administrateur.",
+      "error_auto_disabled": "Désactivé parce qu'il échouait sans cesse. Réactivez-le pour réessayer."
     },
     "consent": {
       "title": "Autoriser {name} à faire ceci ?",
@@ -4250,7 +4251,8 @@
       "cancel": "Annuler",
       "close": "Fermer",
       "turn_off": "Désactiver {name}",
-      "password_note": "Ce formulaire provient du plugin {name}, pas du webmail. Ne saisissez un mot de passe que si vous faites confiance à ce plugin."
+      "password_note": "Ce formulaire provient du plugin {name}, pas du webmail. Ne saisissez un mot de passe que si vous faites confiance à ce plugin.",
+      "toast_auto_disabled": "{name} a été désactivé parce qu'il échouait sans cesse."
     }
   },
   "global_search": {

@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "管理员已关闭用户安装的插件，因此此插件不会运行。",
       "error_approval_unavailable": "此插件是在需要审批之前安装的。请移除后重新安装，以提交审批。",
       "error_approval_denied": "管理员未批准此插件。",
-      "error_approval_pending": "正在等待管理员批准此插件。"
+      "error_approval_pending": "正在等待管理员批准此插件。",
+      "error_auto_disabled": "由于反复出错已关闭。重新开启即可再试一次。"
     },
     "consent": {
       "title": "允许 {name} 执行这些操作？",
@@ -4250,7 +4251,8 @@
       "cancel": "取消",
       "close": "关闭",
       "turn_off": "关闭 {name}",
-      "password_note": "此表单来自插件 {name}，而不是网页邮箱。只有在您信任此插件时才输入密码。"
+      "password_note": "此表单来自插件 {name}，而不是网页邮箱。只有在您信任此插件时才输入密码。",
+      "toast_auto_disabled": "{name} 因反复出错已被关闭。"
     }
   },
   "global_search": {

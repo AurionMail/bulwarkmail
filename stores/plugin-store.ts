@@ -207,7 +207,7 @@ export const usePluginStore = create<PluginStoreState>()(
         }
 
         // Ensure bridge is wired before loading (may not have run initializePlugins yet)
-        setPluginStoreAccessor({ setPluginStatus: get().setPluginStatus });
+        wireLoader(get, set);
 
         set(state => ({
           plugins: state.plugins.map(p =>
@@ -283,9 +283,7 @@ export const usePluginStore = create<PluginStoreState>()(
           }
 
           // Wire up bridges
-          setPluginStoreAccessor({
-            setPluginStatus: get().setPluginStatus,
-          });
+          wireLoader(get, set);
           setupAutoDisable();
           // Keep the sandbox locale in step with the app locale. Set it
           // synchronously *before* activation so background instances get the
@@ -354,6 +352,23 @@ export const usePluginStore = create<PluginStoreState>()(
     }
   )
 );
+
+/** Give the loader its way back into the store. */
+function wireLoader(
+  get: () => PluginStoreState,
+  set: (partial: Partial<PluginStoreState> | ((state: PluginStoreState) => Partial<PluginStoreState>)) => void,
+): void {
+  setPluginStoreAccessor({
+    setPluginStatus: get().setPluginStatus,
+    markAutoDisabled: (id) => set(state => ({
+      plugins: state.plugins.map(p => (p.id === id
+        // enabled: false is persisted, so a reload doesn't start the
+        // failing plugin again behind the user's back.
+        ? { ...p, enabled: false, status: 'error' as PluginStatus, error: 'auto-disabled' }
+        : p)),
+    })),
+  });
+}
 
 // ─── Server Plugin Sync ──────────────────────────────────────
 

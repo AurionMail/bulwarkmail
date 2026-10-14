@@ -4016,7 +4016,8 @@
       "error_user_plugins_off": "Administratoren din har slått av tillegg som brukere har installert, så dette tillegget kjører ikke.",
       "error_approval_unavailable": "Dette tillegget ble installert før godkjenning ble påkrevd. Fjern det og installer det på nytt for å sende det til godkjenning.",
       "error_approval_denied": "Administratoren din godkjente ikke dette tillegget.",
-      "error_approval_pending": "Venter på at administratoren din skal godkjenne dette tillegget."
+      "error_approval_pending": "Venter på at administratoren din skal godkjenne dette tillegget.",
+      "error_auto_disabled": "Slått av fordi det feilet gjentatte ganger. Slå det på igjen for å prøve på nytt."
     },
     "consent": {
       "title": "Vil du la {name} gjøre dette?",
@@ -4250,7 +4251,8 @@
       "cancel": "Avbryt",
       "close": "Lukk",
       "turn_off": "Slå av {name}",
-      "password_note": "Dette skjemaet kommer fra tillegget {name}, ikke fra webmailen. Skriv bare inn et passord hvis du stoler på dette tillegget."
+      "password_note": "Dette skjemaet kommer fra tillegget {name}, ikke fra webmailen. Skriv bare inn et passord hvis du stoler på dette tillegget.",
+      "toast_auto_disabled": "{name} ble slått av fordi det feilet gjentatte ganger."
     }
   },
   "global_search": {
