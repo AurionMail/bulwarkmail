@@ -98,7 +98,7 @@ describe('create, update and delete', () => {
     const after = vi.fn();
     taskHooks.onTaskUpdate.register('t', after);
 
-    await useTaskStore.getState().updateTask(client, 't1', { title: 'Renamed' });
+    expect(await useTaskStore.getState().updateTask(client, 't1', { title: 'Renamed' })).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ taskId: 't1', patch: { title: 'Renamed' } });
     expect(after).toHaveBeenCalledTimes(1);
@@ -111,7 +111,7 @@ describe('create, update and delete', () => {
     const after = vi.fn();
     taskHooks.onTaskUpdate.register('t', after);
 
-    await useTaskStore.getState().updateTask(client, 't1', { title: 'Renamed' });
+    expect(await useTaskStore.getState().updateTask(client, 't1', { title: 'Renamed' })).toBe(false);
 
     expect(client.updateCalendarTask).not.toHaveBeenCalled();
     expect(useTaskStore.getState().tasks[0].title).toBe('Write report');
@@ -137,7 +137,7 @@ describe('create, update and delete', () => {
     const after = vi.fn();
     taskHooks.onTaskDelete.register('t', after);
 
-    await useTaskStore.getState().deleteTask(client, 't1');
+    expect(await useTaskStore.getState().deleteTask(client, 't1')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ taskId: 't1', title: 'Write report' });
     expect(after).toHaveBeenCalledWith({ taskId: 't1', title: 'Write report' });
@@ -149,7 +149,7 @@ describe('create, update and delete', () => {
     const after = vi.fn();
     taskHooks.onTaskDelete.register('t', after);
 
-    await useTaskStore.getState().deleteTask(client, 't1');
+    expect(await useTaskStore.getState().deleteTask(client, 't1')).toBe(false);
     expect(client.deleteCalendarTask).not.toHaveBeenCalled();
     expect(useTaskStore.getState().tasks).toHaveLength(1);
 

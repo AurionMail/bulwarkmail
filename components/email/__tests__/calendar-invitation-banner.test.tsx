@@ -522,7 +522,7 @@ describe('CalendarInvitationBanner', () => {
         },
       },
     });
-    mocks.calendarState.rsvpEvent.mockResolvedValue(undefined);
+    mocks.calendarState.rsvpEvent.mockResolvedValue(true);
 
     render(<CalendarInvitationBanner email={makeEmail({ id: 'email-6' })} />);
 
@@ -543,6 +543,73 @@ describe('CalendarInvitationBanner', () => {
       'accepted',
       null,
     );
+    expect(await screen.findByText('Response sent')).toBeInTheDocument();
+  });
+
+  it('says nothing was sent when a plugin stops the answer', async () => {
+    mocks.calendarState.events = [
+      {
+        id: 'event-6',
+        uid: 'uid-6',
+        start: '2026-03-28T09:00:00Z',
+      },
+    ];
+
+    mocks.clientMock.parseCalendarEvents.mockResolvedValue([
+      {
+        uid: 'uid-6',
+        title: 'Sparse Event',
+        start: '2026-03-28T09:00:00Z',
+        participants: {
+          parsedAttendee: {
+            '@type': 'Participant',
+            email: 'user@example.com',
+            name: 'User',
+            roles: { required: true },
+            participationStatus: 'needs-action',
+          },
+        },
+      },
+    ]);
+
+    mocks.clientMock.getCalendarEvent.mockResolvedValue({
+      id: 'event-6',
+      uid: 'uid-6',
+      start: '2026-03-28T09:00:00Z',
+      participants: {
+        canonicalAttendee: {
+          '@type': 'Participant',
+          email: 'user@example.com',
+          name: 'User',
+          roles: { attendee: true },
+          participationStatus: 'needs-action',
+        },
+      },
+    });
+    mocks.calendarState.rsvpEvent.mockResolvedValue(false);
+
+    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-6' })} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Accept')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Accept'));
+
+    await waitFor(() => {
+      expect(mocks.clientMock.getCalendarEvent).toHaveBeenCalledWith('event-6');
+    });
+
+    expect(mocks.calendarState.rsvpEvent).toHaveBeenCalledWith(
+      mocks.clientMock,
+      'event-6',
+      'canonicalAttendee',
+      'accepted',
+      null,
+    );
+    // The plugin that stopped it says why; the banner must not claim it went.
+    await waitFor(() => expect(mocks.calendarState.rsvpEvent).toHaveBeenCalled());
+    expect(screen.queryByText('Response sent')).not.toBeInTheDocument();
   });
 
   it('falls back to organizerCalendarAddress when replyTo is missing', async () => {
@@ -580,7 +647,7 @@ describe('CalendarInvitationBanner', () => {
         },
       },
     ]);
-    mocks.calendarState.rsvpEvent.mockResolvedValue(undefined);
+    mocks.calendarState.rsvpEvent.mockResolvedValue(true);
 
     render(<CalendarInvitationBanner email={makeEmail({ id: 'email-7' })} />);
 
@@ -639,7 +706,7 @@ describe('CalendarInvitationBanner', () => {
         },
       },
     ]);
-    mocks.calendarState.updateEvent.mockResolvedValue(undefined);
+    mocks.calendarState.updateEvent.mockResolvedValue(true);
 
     render(<CalendarInvitationBanner email={makeEmail({ id: 'email-8' })} />);
 
@@ -671,7 +738,7 @@ describe('CalendarInvitationBanner', () => {
   });
 
   it('shows counter changes and lets organizers apply the proposal', async () => {
-    mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(undefined);
+    mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(true);
     mocks.calendarState.events = [
       {
         id: 'event-5',

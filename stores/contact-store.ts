@@ -388,7 +388,8 @@ interface ContactStore {
   selectRangeContacts: (targetId: string, sortedIds: string[]) => void;
   selectAllContacts: (ids: string[]) => void;
   clearSelection: () => void;
-  bulkDeleteContacts: (client: IJMAPClient | null, ids: string[]) => Promise<void>;
+  /** false when a plugin stopped it (the plugin tells the user why). */
+  bulkDeleteContacts: (client: IJMAPClient | null, ids: string[]) => Promise<boolean>;
   bulkAddToGroup: (client: IJMAPClient | null, groupId: string, contactIds: string[]) => Promise<void>;
   moveContactToAddressBook: (client: IJMAPClient, contactIds: string[], addressBook: AddressBook) => Promise<void>;
   createAddressBook: (client: IJMAPClient, name: string) => Promise<AddressBook>;
@@ -997,8 +998,8 @@ export const useContactStore = create<ContactStore>()(
       clearSelection: () => set({ selectedContactIds: new Set<string>(), lastSelectedContactId: null }),
 
       bulkDeleteContacts: async (client, ids) => {
-        if (ids.length === 0) return;
-        if (!(await contactHooks.onBeforeContactDelete.intercept({ contactIds: [...ids] }))) return;
+        if (ids.length === 0) return true;
+        if (!(await contactHooks.onBeforeContactDelete.intercept({ contactIds: [...ids] }))) return false;
         set({ error: null });
         const { supportsSync, contacts } = get();
         const deletedIds = new Set(ids);
@@ -1031,6 +1032,7 @@ export const useContactStore = create<ContactStore>()(
         if (deletedIds.size > 0) {
           void contactHooks.onAfterContactDelete.emit({ contactIds: ids.filter(id => deletedIds.has(id)) });
         }
+        return true;
       },
 
       bulkAddToGroup: async (client, groupId, contactIds) => {

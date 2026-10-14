@@ -590,10 +590,10 @@ interface CalendarStore {
   fetchAllAccountsCalendars: (accounts: CalendarAccountClient[]) => Promise<void>;
   fetchAllAccountsEvents: (accounts: CalendarAccountClient[], start: string, end: string, options?: FetchEventsOptions) => Promise<void>;
   createEvent: (client: IJMAPClient, event: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => Promise<CalendarEvent | null>;
-  updateEvent: (client: IJMAPClient, id: string, updates: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => Promise<void>;
-  deleteEvent: (client: IJMAPClient, id: string, sendSchedulingMessages?: boolean) => Promise<void>;
-  rsvpEvent: (client: IJMAPClient, eventId: string, participantId: string, status: string, replyTo?: Record<string, string> | null, scope?: 'occurrence' | 'series') => Promise<void>;
-  importEvents: (client: IJMAPClient, events: Partial<CalendarEvent>[], calendarId: string) => Promise<number>;
+  updateEvent: (client: IJMAPClient, id: string, updates: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => Promise<boolean>;
+  deleteEvent: (client: IJMAPClient, id: string, sendSchedulingMessages?: boolean) => Promise<boolean>;
+  rsvpEvent: (client: IJMAPClient, eventId: string, participantId: string, status: string, replyTo?: Record<string, string> | null, scope?: 'occurrence' | 'series') => Promise<boolean>;
+  importEvents: (client: IJMAPClient, events: Partial<CalendarEvent>[], calendarId: string) => Promise<number | null>;
   updateCalendar: (client: IJMAPClient, calendarId: string, updates: Partial<Calendar>) => Promise<void>;
   setDefaultCalendar: (client: IJMAPClient, calendarId: string) => Promise<void>;
   shareCalendar: (client: IJMAPClient, calendarId: string, principalId: string, rights: CalendarRights | null) => Promise<void>;
@@ -890,8 +890,8 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
 
-      updateEvent: async (client, id, updates, sendSchedulingMessages) => {
-        if (!(await calendarHooks.onBeforeEventUpdate.intercept({ eventId: id, patch: updates }))) return;
+      updateEvent: async (client, id, updates, sendSchedulingMessages): Promise<boolean> => {
+        if (!(await calendarHooks.onBeforeEventUpdate.intercept({ eventId: id, patch: updates }))) return false;
         set({ error: null });
         try {
           // Resolve shared event IDs and client-side expanded occurrence IDs
@@ -971,9 +971,10 @@ export const useCalendarStore = create<CalendarStore>()(
           set({ error: 'Failed to update event' });
           throw error;
         }
+        return true;
       },
 
-      rsvpEvent: async (client, eventId, participantId, status, replyTo, scope = 'series') => {
+      rsvpEvent: async (client, eventId, participantId, status, replyTo, scope = 'series'): Promise<boolean> => {
         set({ error: null });
         // JMAP participant IDs are opaque strings - they can contain @, ., :,
         // / etc. The id is RFC 6901-escaped below before being embedded in the
@@ -982,7 +983,7 @@ export const useCalendarStore = create<CalendarStore>()(
           set({ error: 'Invalid participant ID' });
           throw new Error('Invalid participant ID');
         }
-        if (!(await calendarHooks.onBeforeEventRsvp.intercept({ eventId, status }))) return;
+        if (!(await calendarHooks.onBeforeEventRsvp.intercept({ eventId, status }))) return false;
         try {
           // Resolve shared event IDs and client-side expanded occurrence IDs.
           // Scope 'series' answers for the whole series, so an expanded
@@ -1041,18 +1042,19 @@ export const useCalendarStore = create<CalendarStore>()(
           set({ error: 'Failed to update RSVP' });
           throw error;
         }
+        return true;
       },
 
       importEvents: async (client, events, calendarId) => {
-        if (!(await calendarHooks.onBeforeEventsImport.intercept({ calendarId, count: events.length }))) return 0;
+        if (!(await calendarHooks.onBeforeEventsImport.intercept({ calendarId, count: events.length }))) return null;
         const imported = await importEventsUnhooked(client, events, calendarId);
         void calendarHooks.onEventsImport.emit({ calendarId, imported, skipped: Math.max(0, events.length - imported) });
         return imported;
       },
 
-      deleteEvent: async (client, id, sendSchedulingMessages) => {
+      deleteEvent: async (client, id, sendSchedulingMessages): Promise<boolean> => {
         const title = get().events.find((e) => e.id === id)?.title || '';
-        if (!(await calendarHooks.onBeforeEventDelete.intercept({ eventId: id, title }))) return;
+        if (!(await calendarHooks.onBeforeEventDelete.intercept({ eventId: id, title }))) return false;
         set({ error: null });
         try {
           // Resolve shared event IDs and client-side expanded occurrence IDs
@@ -1091,6 +1093,7 @@ export const useCalendarStore = create<CalendarStore>()(
           set({ error: 'Failed to delete event' });
           throw error;
         }
+        return true;
       },
 
       setSelectedDate: (date) => {

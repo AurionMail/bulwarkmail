@@ -101,7 +101,7 @@ describe('updateEvent hooks', () => {
     const after = vi.fn();
     calendarHooks.onAfterEventUpdate.register('t', after);
 
-    await useCalendarStore.getState().updateEvent(client, 'e1', { title: 'Renamed' });
+    expect(await useCalendarStore.getState().updateEvent(client, 'e1', { title: 'Renamed' })).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ eventId: 'e1', patch: { title: 'Renamed' } });
     expect(after).toHaveBeenCalledTimes(1);
@@ -115,7 +115,7 @@ describe('updateEvent hooks', () => {
     const after = vi.fn();
     calendarHooks.onAfterEventUpdate.register('t', after);
 
-    await useCalendarStore.getState().updateEvent(client, 'e1', { title: 'Renamed' });
+    expect(await useCalendarStore.getState().updateEvent(client, 'e1', { title: 'Renamed' })).toBe(false);
 
     expect(client.updateCalendarEvent).not.toHaveBeenCalled();
     expect(useCalendarStore.getState().events[0].title).toBe('Planning');
@@ -161,7 +161,7 @@ describe('deleteEvent hooks', () => {
     const after = vi.fn();
     calendarHooks.onAfterEventDelete.register('t', after);
 
-    await useCalendarStore.getState().deleteEvent(client, 'e1');
+    expect(await useCalendarStore.getState().deleteEvent(client, 'e1')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ eventId: 'e1', title: 'Planning' });
     expect(after).toHaveBeenCalledTimes(1);
@@ -175,7 +175,7 @@ describe('deleteEvent hooks', () => {
     const after = vi.fn();
     calendarHooks.onAfterEventDelete.register('t', after);
 
-    await useCalendarStore.getState().deleteEvent(client, 'e1');
+    expect(await useCalendarStore.getState().deleteEvent(client, 'e1')).toBe(false);
 
     expect(client.deleteCalendarEvent).not.toHaveBeenCalled();
     expect(useCalendarStore.getState().events).toHaveLength(1);
@@ -204,7 +204,7 @@ describe('rsvpEvent hooks', () => {
     const after = vi.fn();
     calendarHooks.onEventRsvp.register('t', after);
 
-    await useCalendarStore.getState().rsvpEvent(client, 'e1', 'p1', 'accepted');
+    expect(await useCalendarStore.getState().rsvpEvent(client, 'e1', 'p1', 'accepted')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ eventId: 'e1', status: 'accepted' });
     expect(after).toHaveBeenCalledTimes(1);
@@ -218,7 +218,7 @@ describe('rsvpEvent hooks', () => {
     const after = vi.fn();
     calendarHooks.onEventRsvp.register('t', after);
 
-    await useCalendarStore.getState().rsvpEvent(client, 'e1', 'p1', 'accepted');
+    expect(await useCalendarStore.getState().rsvpEvent(client, 'e1', 'p1', 'accepted')).toBe(false);
 
     expect(client.updateCalendarEvent).not.toHaveBeenCalled();
     expect(useCalendarStore.getState().events[0].participants?.p1.participationStatus).toBe('needs-action');
@@ -268,7 +268,8 @@ describe('importEvents hooks', () => {
 
     const count = await useCalendarStore.getState().importEvents(client, file, 'c1');
 
-    expect(count).toBe(0);
+    // null, not 0: "0 events imported" would be a success message.
+    expect(count).toBeNull();
     expect(client.getCalendarEvents).not.toHaveBeenCalled();
     expect(client.batchCreateCalendarEvents).not.toHaveBeenCalled();
     expect(after).not.toHaveBeenCalled();

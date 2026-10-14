@@ -599,7 +599,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
         && (!eventForRsvp?.participants || Object.keys(eventForRsvp.participants).length === 0)
       );
       if (eventForRsvp && existingEventParticipant) {
-        await rsvpEvent(client, eventForRsvp.id, existingEventParticipant.id, status, replyToForRsvp);
+        // false: a plugin stopped it and said why; keep the old answer.
+        if (!(await rsvpEvent(client, eventForRsvp.id, existingEventParticipant.id, status, replyToForRsvp))) return;
         setRsvpStatus(status);
         setActionNotice(t('rsvp_sent'));
         setState('parsed');
@@ -609,7 +610,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
         if (!repairedParticipants) {
           setActionError(t('action_failed'));
         } else {
-          await updateEvent(client, eventForRsvp.id, {
+          const updated = await updateEvent(client, eventForRsvp.id, {
             participants: repairedParticipants,
             // Stalwart routes the iTIP REPLY via the stored ORGANIZER
             // (organizerCalendarAddress; the RFC 8984 replyTo is retired).
@@ -618,6 +619,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
               ? { organizerCalendarAddress: replyToForRsvp.imip }
               : {}),
           }, true);
+          if (!updated) return;
           setRsvpStatus(status);
           setActionNotice(t('rsvp_sent'));
           setState('parsed');
@@ -626,6 +628,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
         setActionError(t('action_failed'));
       } else if (calId) {
         const imported = await importEvents(client, [parsedEvent], calId);
+        if (imported === null) return;
         if (imported > 0) {
           const newEvent = useCalendarStore.getState().events.find(
             (e) => e.uid === parsedEvent.uid
@@ -633,7 +636,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
           const participant = myParticipant
             || (newEvent && currentUserEmail ? findParticipantByEmail(newEvent, currentUserEmail) : null);
           if (newEvent && participant) {
-            await rsvpEvent(client, newEvent.id, participant.id, status, replyToForRsvp);
+            if (!(await rsvpEvent(client, newEvent.id, participant.id, status, replyToForRsvp))) return;
             setRsvpStatus(status);
             setActionNotice(t('rsvp_sent'));
           } else {
@@ -682,6 +685,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     setIsProcessing(true);
     try {
       const count = await importEvents(client, [parsedEvent], calId);
+      if (count === null) return;
       if (count > 0) {
         setActionNotice(t('added'));
         setState('parsed');
@@ -740,7 +744,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     setIsProcessing(true);
 
     try {
-      await updateEvent(client, existingEvent.id, proposalPatch, true);
+      if (!(await updateEvent(client, existingEvent.id, proposalPatch, true))) return;
       setActionNotice(t('proposal_applied'));
       setState('parsed');
       setRsvpStatus(null);

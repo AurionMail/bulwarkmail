@@ -21,8 +21,9 @@ interface TaskStore {
   fetchTasks: (client: IJMAPClient, calendarIds?: string[]) => Promise<void>;
   /** Resolves to null when a plugin stopped the create. */
   createTask: (client: IJMAPClient, task: Partial<CalendarTask>) => Promise<CalendarTask | null>;
-  updateTask: (client: IJMAPClient, id: string, updates: Partial<CalendarTask>) => Promise<void>;
-  deleteTask: (client: IJMAPClient, id: string) => Promise<void>;
+  /** false when a plugin stopped it (the plugin tells the user why). */
+  updateTask: (client: IJMAPClient, id: string, updates: Partial<CalendarTask>) => Promise<boolean>;
+  deleteTask: (client: IJMAPClient, id: string) => Promise<boolean>;
   toggleTaskComplete: (client: IJMAPClient, task: CalendarTask) => Promise<void>;
   clearTasks: () => void;
 }
@@ -79,7 +80,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   updateTask: async (client, id, updates) => {
-    if (!(await taskHooks.onBeforeTaskUpdate.intercept({ taskId: id, patch: updates }))) return;
+    if (!(await taskHooks.onBeforeTaskUpdate.intercept({ taskId: id, patch: updates }))) return false;
     const before = get().tasks.find(t => t.id === id);
     const newId = await client.updateCalendarTask(id, updates);
     if (newId && newId !== id) {
@@ -90,24 +91,26 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const moved = get().tasks.find(t => t.id === newId)
         ?? ({ ...before, ...updates, id: newId } as CalendarTask);
       void taskHooks.onTaskUpdate.emit(taskToView(moved));
-      return;
+      return true;
     }
     const updated = { ...(before ?? { id }), ...updates, updated: new Date().toISOString() } as CalendarTask;
     set({
       tasks: get().tasks.map(t => t.id === id ? updated : t),
     });
     void taskHooks.onTaskUpdate.emit(taskToView(updated));
+    return true;
   },
 
   deleteTask: async (client, id) => {
     const title = get().tasks.find(t => t.id === id)?.title || '';
-    if (!(await taskHooks.onBeforeTaskDelete.intercept({ taskId: id, title }))) return;
+    if (!(await taskHooks.onBeforeTaskDelete.intercept({ taskId: id, title }))) return false;
     await client.deleteCalendarTask(id);
     set({
       tasks: get().tasks.filter(t => t.id !== id),
       selectedTaskId: get().selectedTaskId === id ? null : get().selectedTaskId,
     });
     void taskHooks.onTaskDelete.emit({ taskId: id, title });
+    return true;
   },
 
   toggleTaskComplete: async (client, task) => {

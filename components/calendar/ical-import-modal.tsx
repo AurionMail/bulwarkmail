@@ -189,6 +189,11 @@ export function ICalImportModal({ calendars, client, onClose, initialUrl }: ICal
     setStep("importing");
     try {
       const count = await importEvents(client, eventsToImport, calendarId);
+      if (count === null) {
+        // A plugin stopped the import and said why.
+        setStep("preview");
+        return;
+      }
       toast.success(t("success", { count }));
       onClose();
     } catch {

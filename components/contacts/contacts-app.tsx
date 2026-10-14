@@ -338,21 +338,23 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const handleDropContactsToCategory = useCallback(async (contactIds: string[], keyword: string) => {
     if (!client && supportsSync) return;
     try {
+      // Contacts in the category afterwards; a plugin may stop some updates.
+      let added = 0;
       for (const contactId of contactIds) {
         const contact = contacts.find(c => c.id === contactId);
         if (!contact) continue;
         const existingKeywords = contact.keywords || {};
-        if (existingKeywords[keyword]) continue; // already has this keyword
+        if (existingKeywords[keyword]) { added++; continue; } // already has this keyword
         const updatedKeywords = { ...existingKeywords, [keyword]: true };
-        if (supportsSync && client) {
-          await updateContact(client, contactId, { keywords: updatedKeywords });
-        } else {
-          await updateLocalContact(contactId, { keywords: updatedKeywords });
-        }
+        const updated = supportsSync && client
+          ? await updateContact(client, contactId, { keywords: updatedKeywords })
+          : await updateLocalContact(contactId, { keywords: updatedKeywords });
+        if (updated !== false) added++;
       }
-      const msg = contactIds.length === 1
+      if (added === 0) return;
+      const msg = added === 1
         ? t("category_added", { name: keyword })
-        : t("category_added_plural", { count: contactIds.length, name: keyword });
+        : t("category_added_plural", { count: added, name: keyword });
       toast.success(msg);
     } catch (error) {
       console.error('Failed to add contacts to category:', error);
@@ -694,10 +696,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     if (!confirmed) return;
 
     try {
-      await bulkDeleteContacts(
+      if (!(await bulkDeleteContacts(
         supportsSync && client ? client : null,
         Array.from(selectedContactIds)
-      );
+      ))) return;
       toast.success(t("bulk.deleted", { count: selectedContactIds.size }));
       setView("list");
     } catch (error) {

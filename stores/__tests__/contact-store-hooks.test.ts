@@ -224,7 +224,7 @@ describe('contact-store plugin hooks: contact CRUD', () => {
       contactHooks.onBeforeContactDelete.register('test', before);
       contactHooks.onAfterContactDelete.register('test', after);
 
-      await useContactStore.getState().bulkDeleteContacts(client, ['a', 'b', 'c']);
+      expect(await useContactStore.getState().bulkDeleteContacts(client, ['a', 'b', 'c'])).toBe(true);
       await flush();
 
       expect(before).toHaveBeenCalledOnce();
@@ -241,7 +241,7 @@ describe('contact-store plugin hooks: contact CRUD', () => {
       const client = makeClient();
       contactHooks.onBeforeContactDelete.register('test', () => false);
 
-      await useContactStore.getState().bulkDeleteContacts(client, ['a', 'b']);
+      expect(await useContactStore.getState().bulkDeleteContacts(client, ['a', 'b'])).toBe(false);
 
       expect(client.deleteContact).not.toHaveBeenCalled();
       expect(useContactStore.getState().contacts).toHaveLength(2);

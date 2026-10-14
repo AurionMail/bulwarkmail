@@ -14,7 +14,8 @@ import { taskToView } from "@/lib/plugin-projection";
 interface TaskModalProps {
   task?: CalendarTask | null;
   calendars: Calendar[];
-  onSave: (data: Partial<CalendarTask>) => void | Promise<void>;
+  /** Resolving false keeps the form open (a plugin stopped the save). */
+  onSave: (data: Partial<CalendarTask>) => void | boolean | Promise<void | boolean>;
   onDelete?: (id: string) => void;
   onClose: () => void;
   isMobile?: boolean;
@@ -145,7 +146,7 @@ export function TaskModal({
         data.id = task.id;
       }
 
-      await onSave(data);
+      if ((await onSave(data)) === false) return;
       onClose();
     } finally {
       setSaving(false);
