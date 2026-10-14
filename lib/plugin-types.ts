@@ -550,6 +550,18 @@ export interface CalendarEventInput {
    * them.
    */
   participants?: { email: string; name?: string }[];
+  /**
+   * Repeat the event. `until` is a date (YYYY-MM-DD); give `count` or
+   * `until`, not both. null removes the repetition (updates).
+   */
+  repeat?: { frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'; interval?: number; count?: number; until?: string } | null;
+  /**
+   * createEvent only: your own stable id for the event, 1-128 of
+   * `A-Z a-z 0-9 . _ : -`. It is stored as `<uid>@<pluginId>.plugin.bulwark`,
+   * which is what CalendarEventView.uid then shows, so you can find the
+   * event again without remembering its id.
+   */
+  uid?: string;
 }
 
 /** What a plugin passes to `api.tasks.create` (and, every field optional, to `update`). */

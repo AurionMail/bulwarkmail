@@ -1937,7 +1937,7 @@ export async function dispatchApiCall(
     case 'calendar.listCalendars': return doCalendarListCalendars();
     case 'calendar.getEvents': return doCalendarGetEvents(args[0]);
     case 'calendar.getEvent': return doCalendarGetEvent(args[0]);
-    case 'calendar.createEvent': return doCalendarCreateEvent(args[0]);
+    case 'calendar.createEvent': return doCalendarCreateEvent(args[0], plugin.id);
     case 'calendar.updateEvent': return doCalendarUpdateEvent(args[0], args[1]);
     case 'calendar.deleteEvent': return doCalendarDeleteEvent(args[0]);
 

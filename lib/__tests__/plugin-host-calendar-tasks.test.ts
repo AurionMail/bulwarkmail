@@ -149,6 +149,24 @@ describe('api.calendar', () => {
     }));
   });
 
+  it('creates a yearly event under a uid in the plugin namespace', async () => {
+    await call(WRITE, 'calendar.createEvent', {
+      title: 'Birthday of Ada', start: '2026-12-10', uid: 'contact-42', repeat: { frequency: 'yearly' },
+    });
+
+    const sent = client.createCalendarEvent.mock.calls[0][0];
+    expect(sent.uid).toMatch(/^contact-42@.+\.plugin\.bulwark$/);
+    expect(sent.recurrenceRules).toEqual([expect.objectContaining({ '@type': 'RecurrenceRule', frequency: 'yearly', interval: 1, count: null, until: null })]);
+  });
+
+  it('checks repeat and uid', async () => {
+    await expect(call(WRITE, 'calendar.createEvent', { title: 'x', start: '2026-05-01', repeat: { frequency: 'hourly' } })).rejects.toThrow(/repeat.frequency/);
+    await expect(call(WRITE, 'calendar.createEvent', { title: 'x', start: '2026-05-01', repeat: { frequency: 'daily', count: 3, until: '2026-06-01' } })).rejects.toThrow(/not both/);
+    await expect(call(WRITE, 'calendar.createEvent', { title: 'x', start: '2026-05-01', uid: 'a b' })).rejects.toThrow(/uid must be/);
+    await expect(call(WRITE, 'calendar.updateEvent', 'e1', { uid: 'other' })).rejects.toThrow(/unknown property "uid"/);
+    expect(client.createCalendarEvent).not.toHaveBeenCalled();
+  });
+
   it('refuses arbitrary JSCalendar fields and bad input', async () => {
     await expect(call(WRITE, 'calendar.createEvent', { title: 'x', start: '2026-05-01', recurrenceRules: [] }))
       .rejects.toThrow(/unknown property "recurrenceRules"/);

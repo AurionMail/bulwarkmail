@@ -6,10 +6,11 @@
 // Plugins describe events in a small shape of their own (CalendarEventInput
 // in plugin-types.ts); arbitrary JSCalendar objects are not accepted.
 
+import { createRecurrenceRule } from '@/lib/recurrence-rule';
 import type {
   CalendarEventInput, CalendarEventView, CalendarView, TaskInput, TaskView,
 } from '../plugin-types';
-import type { Calendar, CalendarEvent, CalendarParticipant, CalendarTask } from '../jmap/types';
+import type { Calendar, CalendarEvent, CalendarParticipant, CalendarRecurrenceRule, CalendarTask } from '../jmap/types';
 import type { IJMAPClient } from '../jmap/client-interface';
 import { useCalendarStore } from '@/stores/calendar-store';
 import { useTaskStore } from '@/stores/task-store';
@@ -311,8 +312,44 @@ async function eventForMutation(client: IJMAPClient, method: string, id: string)
 // ─── Writing events ───────────────────────────────────────────
 
 const EVENT_FIELDS = [
-  'title', 'description', 'start', 'end', 'duration', 'timeZone', 'isAllDay', 'location', 'calendarId', 'participants',
+  'title', 'description', 'start', 'end', 'duration', 'timeZone', 'isAllDay', 'location', 'calendarId', 'participants', 'repeat',
 ] as const;
+const CREATE_FIELDS = [...EVENT_FIELDS, 'uid'] as const;
+
+const UID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly'] as const;
+
+/**
+ * The uid an event a plugin created is stored under: the plugin's own uid in
+ * its own namespace, so it can't collide with events from other apps and the
+ * plugin finds its events again by uid (CalendarEventView.uid).
+ */
+export function pluginEventUid(pluginId: string, uid: string): string {
+  return `${uid}@${pluginId}.plugin.bulwark`;
+}
+
+/** `repeat: { frequency, interval?, count?, until? }` → JSCalendar rules; null removes them. */
+function recurrenceOf(value: unknown, method: string): CalendarEvent['recurrenceRules'] {
+  if (value === null) return null;
+  const r = readObject(value, method, 'repeat', ['frequency', 'interval', 'count', 'until']);
+  if (!FREQUENCIES.includes(r.frequency as never)) throw new Error(`${method}: repeat.frequency must be one of ${FREQUENCIES.join(', ')}`);
+  const overrides: Partial<CalendarRecurrenceRule> = {};
+  if (r.interval !== undefined) {
+    if (!Number.isInteger(r.interval) || (r.interval as number) < 1 || (r.interval as number) > 99) throw new Error(`${method}: repeat.interval must be 1-99`);
+    overrides.interval = r.interval as number;
+  }
+  if (r.count !== undefined && r.until !== undefined) throw new Error(`${method}: give repeat.count or repeat.until, not both`);
+  if (r.count !== undefined) {
+    if (!Number.isInteger(r.count) || (r.count as number) < 1 || (r.count as number) > 1000) throw new Error(`${method}: repeat.count must be 1-1000`);
+    overrides.count = r.count as number;
+  }
+  if (r.until !== undefined) {
+    if (typeof r.until !== 'string' || !DATE_RE.test(r.until)) throw new Error(`${method}: repeat.until must be YYYY-MM-DD`);
+    overrides.until = `${r.until}T23:59:59`;
+  }
+  return [createRecurrenceRule(r.frequency as CalendarRecurrenceRule['frequency'], overrides)];
+}
 
 function locationsOf(location: string): CalendarEvent['locations'] {
   if (!location) return null;
@@ -353,16 +390,21 @@ function participantsOf(value: unknown, method: string): Pick<CalendarEvent, 'pa
  * created (another plugin's onBeforeEventCreate stopped it, or the server
  * refused it). Never sends invitations.
  */
-export async function doCalendarCreateEvent(input: unknown): Promise<CalendarEventView | null> {
+export async function doCalendarCreateEvent(input: unknown, pluginId = 'unknown'): Promise<CalendarEventView | null> {
   const method = 'calendar.createEvent';
-  const data = readObject(input, method, 'event', EVENT_FIELDS) as CalendarEventInput & Record<string, unknown>;
+  const data = readObject(input, method, 'event', CREATE_FIELDS) as CalendarEventInput & Record<string, unknown>;
   const title = readString(data.title, method, 'title', MAX_TITLE, { min: 1, trim: true });
   const timing = buildTiming(method, data);
   const client = sessionClient(method);
   const calendarId = await pickCalendar(client, method, data.calendarId, false);
 
+  let uid = generateUUID();
+  if (data.uid !== undefined) {
+    if (typeof data.uid !== 'string' || !UID_RE.test(data.uid)) throw new Error(`${method}: uid must be 1-128 letters, digits or . _ : -`);
+    uid = pluginEventUid(pluginId, data.uid);
+  }
   const event: Partial<CalendarEvent> = {
-    uid: generateUUID(),
+    uid,
     title,
     ...timing,
     calendarIds: { [calendarId]: true },
@@ -382,6 +424,7 @@ export async function doCalendarCreateEvent(input: unknown): Promise<CalendarEve
     const p = participantsOf(data.participants, method);
     if (p.participants) Object.assign(event, p);
   }
+  if (data.repeat !== undefined) event.recurrenceRules = recurrenceOf(data.repeat, method);
 
   const created = await useCalendarStore.getState().createEvent(client, event, false);
   return created ? eventToView(created) : null;
@@ -407,6 +450,7 @@ export async function doCalendarUpdateEvent(id: unknown, patch: unknown): Promis
     updates.locations = locationsOf(readString(data.location, method, 'location', MAX_LOCATION, { trim: true }));
   }
   if (data.participants !== undefined) Object.assign(updates, participantsOf(data.participants, method));
+  if (data.repeat !== undefined) updates.recurrenceRules = recurrenceOf(data.repeat, method);
 
   const client = sessionClient(method);
   if (data.calendarId !== undefined) {
