@@ -135,6 +135,8 @@ export interface HookResultMsg {
 export interface SlotResizeMsg {
   type: 'slot-resize';
   height: number;
+  /** Natural content width, sent by inline slots (see slot-layout.ts). */
+  width?: number;
 }
 
 export interface SlotShouldShowResultMsg {

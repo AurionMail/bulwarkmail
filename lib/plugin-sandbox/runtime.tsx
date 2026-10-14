@@ -29,6 +29,7 @@ import type {
 } from './protocol';
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
+import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type { SlotName } from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
@@ -664,6 +665,7 @@ function bootSlot(payload: SlotInit): void {
 
   let currentProps = decodeCallbacks(payload.extraProps) as Record<string, unknown>;
   const Component = slotDef.component;
+  const inline = isInlineSlot(payload.slot);
 
   // A trivial pub/sub so host-pushed `props-update` messages re-render the
   // slot tree without tearing down the iframe.
@@ -696,20 +698,29 @@ function bootSlot(payload: SlotInit): void {
     }, []);
     React.useEffect(() => {
       if (!wrapRef.current) return;
+      const el = wrapRef.current;
       let lastHeight = -1;
-      const ro = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const h = Math.ceil(entry.contentRect.height);
-          if (h !== lastHeight) {
-            lastHeight = h;
-            sendToHost({ type: 'slot-resize', height: h });
-          }
+      let lastWidth = -1;
+      const ro = new ResizeObserver(() => {
+        const rect = el.getBoundingClientRect();
+        const h = Math.ceil(rect.height);
+        const w = inline ? Math.ceil(rect.width) : undefined;
+        if (h !== lastHeight || (w !== undefined && w !== lastWidth)) {
+          lastHeight = h;
+          if (w !== undefined) lastWidth = w;
+          sendToHost({ type: 'slot-resize', height: h, ...(w !== undefined ? { width: w } : {}) });
         }
       });
-      ro.observe(wrapRef.current);
+      ro.observe(el);
       return () => ro.disconnect();
     }, []);
-    return React.createElement('div', { ref: wrapRef }, React.createElement(Component, props));
+    // An inline slot is measured at its natural width (max-content), not the
+    // iframe's: in a toolbar row the iframe starts out narrow, and content
+    // that wraps to fit it reports a narrow width back, so it never grew.
+    const style = inline
+      ? { display: 'inline-block', width: 'max-content', maxWidth: MAX_INLINE_SLOT_WIDTH }
+      : undefined;
+    return React.createElement('div', { ref: wrapRef, style }, React.createElement(Component, props));
   };
 
   const reactRoot = ReactDOM.createRoot(rootEl);

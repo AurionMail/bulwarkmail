@@ -5,7 +5,7 @@ vi.mock('../plugin-sandbox/host-api', () => ({
   dispatchApiCall: vi.fn(async () => 'ok'),
 }));
 
-import { createBackgroundInstance } from '../plugin-sandbox/host-bridge';
+import { createBackgroundInstance, createSlotInstance } from '../plugin-sandbox/host-bridge';
 import { dispatchApiCall } from '../plugin-sandbox/host-api';
 
 function plugin(): InstalledPlugin {
@@ -68,5 +68,46 @@ describe('init payload settings', () => {
 
     const init = sent.mock.calls.map(([msg]) => msg as { type: string; payload?: { manifest: { settings: unknown } } }).find((m) => m.type === 'init');
     expect(init?.payload?.manifest.settings).toEqual({ size: 64, mode: 'auto' });
+  });
+});
+
+describe('slot sizing', () => {
+  function slot(name: 'email-banner' | 'composer-toolbar') {
+    const onResize = vi.fn();
+    const inst = createSlotInstance({
+      plugin: plugin(), slot: name, code: '', locale: 'en', tier: 'untrusted', extraProps: {},
+      hostContainer: document.body, onResize,
+    });
+    instances.push(inst);
+    return { inst, onResize };
+  }
+
+  it('ignores a height that is not a number and caps a huge one', async () => {
+    const { inst, onResize } = slot('email-banner');
+    post(inst.iframe.contentWindow, 'null', { type: 'slot-resize', height: Number.NaN });
+    post(inst.iframe.contentWindow, 'null', { type: 'slot-resize', height: 1e9 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(onResize).toHaveBeenCalledTimes(1);
+    expect(inst.iframe.style.height).toBe('2000px');
+  });
+
+  it('sizes a toolbar slot to the width of its content', async () => {
+    // A toolbar slot's iframe used to get no width in the composer's
+    // button row and squeezed its content to one letter per line.
+    const { inst, onResize } = slot('composer-toolbar');
+    post(inst.iframe.contentWindow, 'null', { type: 'slot-resize', height: 32, width: 120 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(inst.iframe.style.width).toBe('120px');
+    expect(onResize).toHaveBeenCalledWith(32, 120);
+  });
+
+  it('keeps a block slot at full width whatever it reports', async () => {
+    const { inst } = slot('email-banner');
+    post(inst.iframe.contentWindow, 'null', { type: 'slot-resize', height: 40, width: 120 });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(inst.iframe.style.width).toBe('100%');
   });
 });

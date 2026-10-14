@@ -13,6 +13,7 @@ import { SANDBOX_PATH, SANDBOX_PRIVILEGED_PATH } from './protocol';
 import { withBasePath } from '../browser-navigation';
 import { snapshotHostTheme, type ThemeSnapshot } from './host-theme';
 import { effectiveSettings } from '../plugin-settings';
+import { clampSlotHeight, clampSlotWidth, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
   SandboxToHost, HostToSandbox, InitMsg, InitPayload,
 } from './protocol';
@@ -72,8 +73,8 @@ export interface SlotOptions {
   extraProps: Record<string, unknown>;
   /** Container element the visible slot iframe is mounted into. */
   hostContainer: HTMLElement;
-  /** Called whenever the sandbox reports a new content height. */
-  onResize: (height: number) => void;
+  /** Called whenever the sandbox reports a new content size (width only for inline slots). */
+  onResize: (height: number, width?: number) => void;
 }
 
 export interface InitDoneInfo {
@@ -105,6 +106,8 @@ export class SandboxInstance {
   readonly mode: 'background' | 'slot';
   /** True for the same-origin privileged tier; gates the origin assertion. */
   readonly privileged: boolean;
+  /** An inline slot (toolbar row) sized to its content's width. */
+  readonly inline: boolean;
 
   readyPromise: Promise<void>;
   initPromise: Promise<InitDoneInfo>;
@@ -124,11 +127,12 @@ export class SandboxInstance {
     private plugin: InstalledPlugin,
     initPayload: InitPayload,
     hostContainer: HTMLElement,
-    private slotResizeCb: ((height: number) => void) | null,
+    private slotResizeCb: ((height: number, width?: number) => void) | null,
   ) {
     this.pluginId = plugin.id;
     this.mode = initPayload.mode;
     this.privileged = initPayload.tier === 'privileged';
+    this.inline = initPayload.mode === 'slot' && isInlineSlot(initPayload.slot);
 
     // Slot iframes get `extraProps`; encode any function values now so the
     // structured-clone send doesn't drop them.
@@ -167,6 +171,10 @@ export class SandboxInstance {
       this.iframe.style.pointerEvents = 'none';
       this.iframe.style.left = '-9999px';
       this.iframe.setAttribute('aria-hidden', 'true');
+    } else if (this.inline) {
+      // Starts at the widest it may get; the first resize shrinks it.
+      this.iframe.style.width = `${MAX_INLINE_SLOT_WIDTH}px`;
+      this.iframe.style.height = '0px';
     } else {
       this.iframe.style.width = '100%';
       this.iframe.style.height = '0px';
@@ -282,13 +290,20 @@ export class SandboxInstance {
         return;
       }
 
-      case 'slot-resize':
+      case 'slot-resize': {
         // The iframe has no intrinsic height - sync it to the content height
         // the sandbox reported, otherwise the wrapper reserves space but the
-        // iframe stays at 0px and the slot appears blank.
-        this.iframe.style.height = `${msg.height}px`;
-        this.slotResizeCb?.(msg.height);
+        // iframe stays at 0px and the slot appears blank. The plugin reports
+        // the numbers, so they are clamped: a slot whose content is 100vh
+        // tall would otherwise grow with every resize.
+        const height = clampSlotHeight(msg.height);
+        if (height === null) return;
+        const width = this.inline ? clampSlotWidth(msg.width) : null;
+        this.iframe.style.height = `${height}px`;
+        if (width !== null) this.iframe.style.width = `${width}px`;
+        this.slotResizeCb?.(height, width ?? undefined);
         return;
+      }
     }
   }
 

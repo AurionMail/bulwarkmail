@@ -15,6 +15,10 @@ vi.mock('@/components/email/rich-text-editor', () => ({
 // callback the host passed through extraProps - exactly what a real plugin
 // does after it has uploaded a picked file to JMAP itself (api.jmap.uploadBlob).
 // Every other slot renders nothing, matching the rest of the test suite.
+// The composer only renders its plugin row when a plugin offers a slot.
+vi.mock('@/hooks/use-plugin-slot-offers', () => ({
+  usePluginSlotOffers: (slot: string) => (slot === 'composer-attachment-source' ? [{ pluginId: 'p', order: 100 }] : []),
+}));
 vi.mock('@/components/plugins/plugin-slot', () => ({
   PluginSlot: ({ name, extraProps }: { name: string; extraProps?: Record<string, unknown> }) => {
     if (name !== 'composer-attachment-source') return null;

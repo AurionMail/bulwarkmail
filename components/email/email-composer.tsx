@@ -62,6 +62,7 @@ import { useProMultiAccountIdentities, stripCrossAccountIdentityPrefix } from "@
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { Avatar } from "@/components/ui/avatar";
 import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { FilePickerDialog } from "@/components/files/file-picker-dialog";
@@ -1946,6 +1947,11 @@ export function EmailComposer({
       },
     ]);
   }, []);
+  // Stable props, so a re-render of the composer doesn't post them to the
+  // plugin's iframe again.
+  const pluginAttachmentSourceProps = useMemo(() => ({ onAttach: handlePluginAttachmentAdd }), [handlePluginAttachmentAdd]);
+  const pluginToolbarOffers = usePluginSlotOffers('composer-toolbar');
+  const pluginAttachmentSourceOffers = usePluginSlotOffers('composer-attachment-source');
 
   // Files from the Files app are already blobs on the server, so they are
   // attached by blobId with no download or upload (#1179). Stalwart resolves a
@@ -3637,6 +3643,24 @@ export function EmailComposer({
           </div>
         )}
 
+        {/* Plugin buttons get their own row: the composer is often too narrow
+            for them next to Attach, Templates, Options, Discard and Send, and
+            squeezing them in pushed Send out of the window. */}
+        {(pluginToolbarOffers.length > 0 || pluginAttachmentSourceOffers.length > 0) && (
+          <div className="flex flex-wrap items-center gap-1 border-t border-border px-4 py-1.5 bg-background shrink-0" data-composer-plugin-row="">
+            <PluginSlot name="composer-toolbar" />
+            {/* Lets a plugin offer an alternative attachment source (an
+                external file browser, cloud storage picker, etc). The plugin
+                calls `onAttach` once it has uploaded the chosen file to JMAP
+                itself (api.jmap.uploadBlob) and just wants it added to this
+                draft. */}
+            <PluginSlot
+              name="composer-attachment-source"
+              extraProps={pluginAttachmentSourceProps}
+            />
+          </div>
+        )}
+
         {/* Bottom toolbar. In Mountain View's window both halves fold into
             one row (see [data-mv-compose-footer] in globals.css): Send first,
             the tools after it, and Discard as a bin at the far end. */}
@@ -3648,7 +3672,7 @@ export function EmailComposer({
           )}
         >
           {/* Left side actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1">
             <input
               ref={fileInputRef}
               type="file"
@@ -3764,20 +3788,10 @@ export function EmailComposer({
                 )}
               </>}
             </ComposerToolbarMenu>
-            <PluginSlot name="composer-toolbar" />
-            {/* Lets a plugin offer an alternative attachment source (an
-                external file browser, cloud storage picker, etc). The plugin
-                calls `onAttach` once it has uploaded the chosen file to JMAP
-                itself (api.jmap.uploadBlob) and just wants it added to this
-                draft. */}
-            <PluginSlot
-              name="composer-attachment-source"
-              extraProps={{ onAttach: handlePluginAttachmentAdd }}
-            />
           </div>
 
           {/* Right side - Discard + Send (desktop) */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={handleDiscardClick}

@@ -11,6 +11,7 @@ import type { SlotName } from '@/lib/plugin-types';
 import { get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
 import { createSlotInstance, type SandboxInstance } from '@/lib/plugin-sandbox/host-bridge';
 import { slotPropsFor } from '@/lib/plugin-sandbox/permissions';
+import { isInlineSlot } from '@/lib/plugin-sandbox/slot-layout';
 import { snapshotHostTheme } from '@/lib/plugin-sandbox/host-theme';
 import { useThemeStore } from '@/stores/theme-store';
 
@@ -24,6 +25,8 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<SandboxInstance | null>(null);
   const [height, setHeight] = useState<number>(0);
+  const [width, setWidth] = useState<number | undefined>(undefined);
+  const inline = isInlineSlot(slot);
   // null = pending, true/false = decided
   const [show, setShow] = useState<boolean | null>(null);
 
@@ -64,7 +67,10 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
       tier: active.tier,
       extraProps: props,
       hostContainer: wrapperRef.current,
-      onResize: (h) => setHeight(h),
+      onResize: (h, w) => {
+        setHeight(h);
+        if (w !== undefined) setWidth(w);
+      },
     });
     instanceRef.current = inst;
     return () => {
@@ -92,5 +98,13 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
   }, [resolvedTheme, activeThemeId]);
 
   if (show !== true) return null;
-  return <div ref={wrapperRef} style={{ height, minHeight: height }} data-plugin-iframe-slot={`${pluginId}:${slot}`} />;
+  return (
+    <div
+      ref={wrapperRef}
+      style={inline
+        ? { display: 'inline-block', verticalAlign: 'middle', height, width: width ?? 0, maxWidth: '100%', overflow: 'hidden' }
+        : { height, minHeight: height }}
+      data-plugin-iframe-slot={`${pluginId}:${slot}`}
+    />
+  );
 }
