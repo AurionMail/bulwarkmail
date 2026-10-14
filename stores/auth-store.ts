@@ -1243,6 +1243,20 @@ function performFullLogout(set: (state: Partial<AuthState>) => void): void {
   broadcastSignOut();
 }
 
+/**
+ * How long sign-out waits for plugins to tidy up. Plugins observe sign-out;
+ * they cannot stop it or hold it up, or a plugin could keep the user signed
+ * in on a shared computer.
+ */
+export const LOGOUT_HOOK_BUDGET_MS = 2000;
+
+function beforeLogoutHooks(accountId: string): Promise<void> {
+  return Promise.race([
+    authHooks.onBeforeLogout.emit({ accountId }),
+    new Promise<void>((resolve) => setTimeout(resolve, LOGOUT_HOOK_BUDGET_MS)),
+  ]);
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -2080,13 +2094,7 @@ export const useAuthStore = create<AuthState>()(
         const userInitiated = options?.endProviderSession !== false;
         const endProviderSession = userInitiated && !wasDemoMode && shouldEndProviderSession(account);
 
-        const ok = await authHooks.onBeforeLogout.intercept({
-          accountId: accountId ?? 'all',
-        });
-
-        if(!ok){
-          return;
-        }
+        await beforeLogoutHooks(accountId ?? 'all');
 
         // From here on nothing may renew this slot's session; the cleanup
         // below reopens it once the credentials are gone.
@@ -2111,7 +2119,7 @@ export const useAuthStore = create<AuthState>()(
         await useSettingsStore.getState().flushSync();
         useSettingsStore.getState().disableSync();
 
-        await authHooks.onAfterLogout.emit({
+        void authHooks.onAfterLogout.emit({
           accountId: accountId ?? 'all',
         });
 
@@ -2234,13 +2242,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logoutAll: async () => {
-        const ok = await authHooks.onBeforeLogout.intercept({
-          accountId: 'all'
-        });
-
-        if(!ok){
-          return;
-        }
+        await beforeLogoutHooks('all');
 
         const accountStore = useAccountStore.getState();
         const allAccounts = [...accountStore.accounts];
@@ -2272,7 +2274,7 @@ export const useAuthStore = create<AuthState>()(
           accountStore.removeAccount(account.id);
         }
 
-        await authHooks.onAfterLogout.emit({
+        void authHooks.onAfterLogout.emit({
           accountId: 'all'
         });
 
