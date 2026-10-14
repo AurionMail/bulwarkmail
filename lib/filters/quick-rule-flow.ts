@@ -14,6 +14,7 @@ import {
   readAccountFilters,
   restoreAccountFilters,
   updateAccountFilters,
+  FiltersSaveVetoedError,
   type FiltersChange,
 } from './account-filters';
 import {
@@ -87,6 +88,8 @@ function refreshFilterStore(target: QuickRuleTarget): void {
 }
 
 function reportWriteError(error: unknown, target: QuickRuleTarget, text: QuickRuleText): void {
+  // The plugin that stopped the save is expected to have told the user.
+  if (error instanceof FiltersSaveVetoedError) return;
   if (error instanceof OpaqueFiltersError) {
     useQuickRuleStore.getState().setStatus(target.key, 'opaque');
     toast.error(text.menu('rules.opaque_hint'));

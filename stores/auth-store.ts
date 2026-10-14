@@ -809,7 +809,7 @@ export function applyPreferredIdentity(accountId?: string | null): void {
     if (legacy) {
       preferred = legacy;
       const current = useSettingsStore.getState().preferredIdentityIds;
-      useSettingsStore.getState().updateSetting('preferredIdentityIds', { ...current, [targetId]: legacy });
+      useSettingsStore.getState().updateSetting('preferredIdentityIds', { ...current, [targetId]: legacy }, { internal: true });
     }
   }
   if (!preferred) return;
@@ -931,7 +931,7 @@ function initializeFeatureStores(client: IJMAPClient): void {
     // user has already made an explicit choice (`null` = not yet decided).
     const settings = useSettingsStore.getState();
     if (settings.trustedSendersAddressBook === null) {
-      settings.updateSetting('trustedSendersAddressBook', true);
+      settings.updateSetting('trustedSendersAddressBook', true, { internal: true });
     }
   } else {
     useContactStore.getState().setSupportsSync(false);

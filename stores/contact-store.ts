@@ -4,6 +4,7 @@ import type { ContactCard, AddressBook, AddressBookRights, ContactName } from '@
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { generateUUID } from '@/lib/utils';
 import { debug } from '@/lib/debug';
+import { settingsHooks } from '@/lib/plugin-hooks';
 import { getClientByLocalAccountId } from './client-registry';
 import { sanitizeDisplayName, splitMailbox } from '@/lib/rfc5322-mailbox';
 import { contactHooks } from '@/lib/plugin-hooks';
@@ -1340,6 +1341,7 @@ export const useContactStore = create<ContactStore>()(
         });
         set((state) => ({ trustedSenderEmails: [...state.trustedSenderEmails, emailAddress] }));
         debug.log('contacts', 'Trusted sender added successfully');
+        void settingsHooks.onTrustedSenderChange.emit({ email: emailAddress, trusted: true });
       },
 
       removeFromTrustedSendersBook: async (client, email) => {
@@ -1359,7 +1361,9 @@ export const useContactStore = create<ContactStore>()(
           await client.deleteContact(match.id);
           debug.log('contacts', 'Trusted sender removed');
         }
+        const wasTrusted = get().trustedSenderEmails.includes(normalizedEmail);
         set((state) => ({ trustedSenderEmails: state.trustedSenderEmails.filter(e => e !== normalizedEmail) }));
+        if (wasTrusted) void settingsHooks.onTrustedSenderChange.emit({ email: normalizedEmail, trusted: false });
       },
 
       isTrustedAddressBookSender: (email) => {

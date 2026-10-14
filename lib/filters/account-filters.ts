@@ -3,6 +3,7 @@ import type { FilterRule, SieveCapabilities, SieveScript } from '@/lib/jmap/siev
 import { parseScript, type ParseResult } from '@/lib/sieve/parser';
 import { generateScript, VACATION_SCRIPT_NAME } from '@/lib/sieve/generator';
 import { filterHooks } from '@/lib/plugin-hooks';
+import type { FilterRuleView } from '@/lib/plugin-types';
 
 /**
  * One account's filters script, read and written against an explicit
@@ -41,6 +42,47 @@ export class FiltersChangedError extends Error {
   constructor() {
     super('The filters script changed since');
     this.name = 'FiltersChangedError';
+  }
+}
+
+/** A plugin stopped the save through onBeforeFiltersSave; nothing was written. */
+export class FiltersSaveVetoedError extends Error {
+  constructor() {
+    super('A plugin stopped saving the filters');
+    this.name = 'FiltersSaveVetoedError';
+  }
+}
+
+/**
+ * A filter rule as plugins see it. Only what the rule matches and does: the
+ * raw Sieve block of a rule written elsewhere is left out, since it can hold
+ * anything a hand-edited script holds.
+ */
+export function filterRuleToView(rule: FilterRule): FilterRuleView {
+  return {
+    id: rule.id,
+    name: rule.name,
+    isActive: rule.enabled,
+    conditions: rule.conditions.map((c) => ({
+      field: c.field,
+      comparator: c.comparator,
+      value: Array.isArray(c.value) ? [...c.value] : c.value,
+      ...(c.headerName ? { headerName: c.headerName } : {}),
+    })),
+    actions: rule.actions.map((a) => ({
+      type: a.type,
+      ...(a.value !== undefined ? { value: a.value } : {}),
+      ...(a.mailboxId ? { mailboxId: a.mailboxId } : {}),
+      ...(a.keepCopy !== undefined ? { keepCopy: a.keepCopy } : {}),
+    })),
+  };
+}
+
+/** Asks onBeforeFiltersSave; throws FiltersSaveVetoedError when a plugin says no. */
+export async function assertFiltersSaveAllowed(rules: FilterRule[]): Promise<void> {
+  if (filterHooks.onBeforeFiltersSave.size === 0) return;
+  if (!(await filterHooks.onBeforeFiltersSave.intercept({ rules: rules.map(filterRuleToView) }))) {
+    throw new FiltersSaveVetoedError();
   }
 }
 
@@ -162,6 +204,7 @@ export async function updateAccountFilters(
   if (filters.parsed.isOpaque) throw new OpaqueFiltersError();
   const rules = modify(filters.parsed.rules, filters);
   if (!rules) return null;
+  await assertFiltersSaveAllowed(rules);
   const written = await writeFiltersScript(
     client, accountId, renderFiltersScript(rules, filters), filters.script?.id ?? null,
   );

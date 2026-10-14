@@ -5,6 +5,7 @@ import { useLocaleStore } from './locale-store';
 import type { EmailTemplate } from '@/lib/template-types';
 import type { NotificationSoundChoice } from '@/lib/notification-sound';
 import { apiFetch } from '@/lib/browser-navigation';
+import { settingsHooks } from '@/lib/plugin-hooks';
 import { generateAccountId } from '@/lib/account-utils';
 import { orderForMailbox, sanitizeSortLevels, type MessageListOrderScope, type SortLevel } from '@/lib/message-list-order';
 import {
@@ -153,7 +154,48 @@ async function syncSettingsJob(job: SettingsSyncJob, retries = 1): Promise<void>
     syncError('Settings sync failed:', body.error || `status ${res.status}`);
   } else {
     syncLog('Settings synced to server successfully');
+    void settingsHooks.onSettingsSync.emit({ direction: 'pushed' });
   }
+}
+
+/**
+ * Keys the app writes for its own bookkeeping rather than because the user
+ * changed a preference. Plugins are neither asked nor told about these: a
+ * plugin vetoing "the welcome banner was dismissed" would leave the banner
+ * stuck, and reporting it as a preference change is noise.
+ *
+ * How the line is drawn: a key belongs here when only the app writes it (a
+ * dismissed banner, a finished tour) and Settings shows no control for it.
+ * Everything else set through updateSetting is a user preference. When the
+ * app itself writes a user-facing key (a one-time migration, a default
+ * resolved on first connect), the caller passes `{ internal: true }`.
+ * Imports, resets and server loads have their own hooks (onSettingsImport,
+ * onSettingsReset, onSettingsSync) and do not fire per-key ones.
+ */
+const BOOKKEEPING_SETTING_KEYS = new Set<string>(['onboardingCompleted', 'tourCompleted']);
+
+/**
+ * Runs a user's change to one preference through the plugin hooks: asks
+ * onBeforeSettingChange first (false keeps the old value), applies it, then
+ * tells onSettingChange. With no interceptor registered the change applies
+ * synchronously, so inputs bound to the store keep behaving as before.
+ */
+function changePreference(key: string, value: unknown, previous: unknown, apply: () => void): void {
+  const commit = () => {
+    apply();
+    void settingsHooks.onSettingChange.emit({ key, value, previous });
+  };
+  if (settingsHooks.onBeforeSettingChange.size === 0) {
+    commit();
+    return;
+  }
+  void settingsHooks.onBeforeSettingChange.intercept({ key, value, previous }).then((allowed) => {
+    if (allowed) commit();
+  });
+}
+
+function toKeywordViews(keywords: KeywordDefinition[]): { id: string; name: string; color: string }[] {
+  return keywords.map((k) => ({ id: k.id, name: k.label, color: k.color }));
 }
 
 export type FontSize = 'small' | 'medium' | 'large';
@@ -627,12 +669,19 @@ interface SettingsState {
   settingsSyncDisabled: boolean;
 
   // Actions
+  /**
+   * Changes one preference. Plugins may stop the change (onBeforeSettingChange)
+   * and are told about it afterwards (onSettingChange). Pass `internal: true`
+   * for writes the app makes on its own; those skip the plugin hooks.
+   */
   updateSetting: <K extends keyof SettingsState>(
     key: K,
-    value: SettingsState[K]
+    value: SettingsState[K],
+    opts?: { internal?: boolean }
   ) => void;
   resetToDefaults: () => void;
-  exportSettings: () => string;
+  /** `forSync` builds the snapshot pushed to the server; it is not a user export. */
+  exportSettings: (opts?: { forSync?: boolean }) => string;
   importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean }) => boolean;
 
   // Folder icons
@@ -915,11 +964,8 @@ export const useSettingsStore = create<SettingsState>()(
         applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
       };
 
-      return {
-      ...DEFAULT_SETTINGS,
-
-      updateSetting: (key, value) => {
-        set({ [key]: value });
+      const applySetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
+        set({ [key]: value } as Partial<SettingsState>);
 
         // Apply font size to document root
         if (key === 'fontSize') {
@@ -941,17 +987,9 @@ export const useSettingsStore = create<SettingsState>()(
         if (key === 'animationsEnabled') {
           applyAnimations(value as boolean);
         }
-      },
+      };
 
-      resetToDefaults: () => {
-        set(DEFAULT_SETTINGS);
-        applyFontSize(DEFAULT_SETTINGS.fontSize);
-        applyDensity(DEFAULT_SETTINGS.density, DEFAULT_SETTINGS.interfaceLayout);
-        applyInterfaceLayout(DEFAULT_SETTINGS.interfaceLayout, DEFAULT_SETTINGS.density);
-        applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
-      },
-
-      exportSettings: () => {
+      const buildExport = (): string => {
         const state = get();
         const templateSync = templateSyncBridge?.getSyncedState();
         const settings = {
@@ -1080,6 +1118,34 @@ export const useSettingsStore = create<SettingsState>()(
             : {}),
         };
         return JSON.stringify(settings, null, 2);
+      };
+
+      return {
+      ...DEFAULT_SETTINGS,
+
+      updateSetting: (key, value, opts) => {
+        if (opts?.internal || BOOKKEEPING_SETTING_KEYS.has(key)) {
+          applySetting(key, value);
+          return;
+        }
+        changePreference(key, value, get()[key], () => applySetting(key, value));
+      },
+
+      resetToDefaults: () => {
+        set(DEFAULT_SETTINGS);
+        applyFontSize(DEFAULT_SETTINGS.fontSize);
+        applyDensity(DEFAULT_SETTINGS.density, DEFAULT_SETTINGS.interfaceLayout);
+        applyInterfaceLayout(DEFAULT_SETTINGS.interfaceLayout, DEFAULT_SETTINGS.density);
+        applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
+        void settingsHooks.onSettingsReset.emit({});
+      },
+
+      exportSettings: (opts) => {
+        const json = buildExport();
+        if (!opts?.forSync) {
+          void settingsHooks.onSettingsExport.emit({ keys: Object.keys(JSON.parse(json)) });
+        }
+        return json;
       },
 
       importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean }) => {
@@ -1095,14 +1161,20 @@ export const useSettingsStore = create<SettingsState>()(
             settings.protocolOpenMode = settings.protocolMailtoOpenMode;
           }
 
-          // Apply settings
+          // Apply settings, noting which keys were taken over for the
+          // onSettingsImport hook.
+          const imported: string[] = [];
+          const put = (key: string, patch: Record<string, unknown>) => {
+            set(patch as Partial<SettingsState>);
+            imported.push(key);
+          };
           Object.keys(settings).forEach((key) => {
             if (key in DEFAULT_SETTINGS) {
               if (key === 'subAddressDelimiter' && !isValidSubAddressDelimiter(settings[key])) {
                 return;
               }
               if (key === 'sendDelaySeconds' && ![0, 10, 30, 60].includes(settings[key])) {
-                set({ sendDelaySeconds: 0 });
+                put(key, { sendDelaySeconds: 0 });
                 return;
               }
               // Validity of the zone id itself is checked at use time
@@ -1128,7 +1200,7 @@ export const useSettingsStore = create<SettingsState>()(
               // unknown criterion from a newer/older client must never get
               // through (an unsupportedSort refusal empties the folder).
               if (key === 'messageListOrder') {
-                set({ messageListOrder: sanitizeSortLevels(settings[key]) });
+                put(key, { messageListOrder: sanitizeSortLevels(settings[key]) });
                 return;
               }
               if (key === 'messageListOrderScope' && settings[key] !== 'inbox' && settings[key] !== 'all') {
@@ -1155,10 +1227,10 @@ export const useSettingsStore = create<SettingsState>()(
                 if (Object.prototype.hasOwnProperty.call(incoming, opts.serverAccountId)) {
                   merged[opts.serverAccountId] = incoming[opts.serverAccountId];
                 }
-                set({ [key]: merged });
+                put(key, { [key]: merged });
                 return;
               }
-              set({ [key]: settings[key] });
+              put(key, { [key]: settings[key] });
             }
           });
 
@@ -1187,6 +1259,15 @@ export const useSettingsStore = create<SettingsState>()(
             { merge: Boolean(opts?.serverAccountId) }
           );
 
+          // A load from the server reports itself as a sync (loadFromServer);
+          // only a file import the user picked is an import.
+          if (!opts?.serverAccountId) {
+            if (settings.theme) imported.push('theme');
+            if (settings.locale) imported.push('locale');
+            if (settings.templates !== undefined) imported.push('templates');
+            void settingsHooks.onSettingsImport.emit({ keys: imported });
+          }
+
           return true;
         } catch (error) {
           console.error('Failed to import settings:', error);
@@ -1195,23 +1276,25 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       // Folder icon methods
+      // These map-valued preferences go through updateSetting so plugins see
+      // them like any other preference change.
       setFolderIcon: (mailboxId: string, icon: string) => {
-        set({ folderIcons: { ...get().folderIcons, [mailboxId]: icon } });
+        get().updateSetting('folderIcons', { ...get().folderIcons, [mailboxId]: icon });
       },
 
       removeFolderIcon: (mailboxId: string) => {
         const { [mailboxId]: _, ...rest } = get().folderIcons;
-        set({ folderIcons: rest });
+        get().updateSetting('folderIcons', rest);
       },
 
       // Shared-calendar color override methods
       setSharedCalendarColor: (key: string, color: string) => {
-        set({ sharedCalendarColors: { ...get().sharedCalendarColors, [key]: color } });
+        get().updateSetting('sharedCalendarColors', { ...get().sharedCalendarColors, [key]: color });
       },
 
       removeSharedCalendarColor: (key: string) => {
         const { [key]: _, ...rest } = get().sharedCalendarColors;
-        set({ sharedCalendarColors: rest });
+        get().updateSetting('sharedCalendarColors', rest);
       },
 
       // Trusted senders methods
@@ -1223,6 +1306,7 @@ export const useSettingsStore = create<SettingsState>()(
         const current = get().trustedSenders;
         if (!current.includes(emailAddress)) {
           set({ trustedSenders: [...current, emailAddress] });
+          void settingsHooks.onTrustedSenderChange.emit({ email: emailAddress, trusted: true });
         }
       },
 
@@ -1231,9 +1315,10 @@ export const useSettingsStore = create<SettingsState>()(
         const trimmed = email.trim();
         const angleMatch = trimmed.match(/^(.+?)\s*<([^>]+)>$/);
         const emailAddress = (angleMatch ? angleMatch[2] : trimmed).toLowerCase().trim();
-        set({
-          trustedSenders: get().trustedSenders.filter(e => e !== emailAddress)
-        });
+        const current = get().trustedSenders;
+        if (!current.includes(emailAddress)) return;
+        set({ trustedSenders: current.filter(e => e !== emailAddress) });
+        void settingsHooks.onTrustedSenderChange.emit({ email: emailAddress, trusted: false });
       },
 
       isSenderTrusted: (email: string) => {
@@ -1283,23 +1368,21 @@ export const useSettingsStore = create<SettingsState>()(
       addSidebarApp: (app: SidebarApp) => {
         const current = get().sidebarApps;
         if (current.some(a => a.id === app.id)) return;
-        set({ sidebarApps: [...current, app] });
+        get().updateSetting('sidebarApps', [...current, app]);
       },
 
       updateSidebarApp: (id: string, updates: Partial<Omit<SidebarApp, 'id'>>) => {
-        set({
-          sidebarApps: get().sidebarApps.map(a =>
-            a.id === id ? { ...a, ...updates } : a
-          ),
-        });
+        get().updateSetting('sidebarApps', get().sidebarApps.map(a =>
+          a.id === id ? { ...a, ...updates } : a
+        ));
       },
 
       removeSidebarApp: (id: string) => {
-        set({ sidebarApps: get().sidebarApps.filter(a => a.id !== id) });
+        get().updateSetting('sidebarApps', get().sidebarApps.filter(a => a.id !== id));
       },
 
       reorderSidebarApps: (apps: SidebarApp[]) => {
-        set({ sidebarApps: apps });
+        get().updateSetting('sidebarApps', apps);
       },
 
       // Settings sync methods
@@ -1402,6 +1485,7 @@ export const useSettingsStore = create<SettingsState>()(
             writeSettingsOwner(accountId);
             pushTemplatesAfterLoad = localTemplatesAhead(settings);
             syncLog('Settings loaded from server successfully');
+            void settingsHooks.onSettingsSync.emit({ direction: 'pulled' });
             // The per-account preferred sender identity (#507) is re-applied by
             // applyPreferredIdentity() in auth-store, invoked from the
             // loadFromServer().finally() of every login / switch / restore path,
@@ -1635,6 +1719,15 @@ function applyAnimations(enabled: boolean) {
   }
 }
 
+// Tag definitions change from the settings editor, from plugins (host-api
+// writes the store directly) and from imports and server loads. Watching the
+// list catches every path once instead of hooking each writer.
+useSettingsStore.subscribe((state, prev) => {
+  if (state.emailKeywords === prev.emailKeywords) return;
+  if (JSON.stringify(state.emailKeywords) === JSON.stringify(prev.emailKeywords)) return;
+  void settingsHooks.onKeywordChange.emit({ keywords: toKeywordViews(state.emailKeywords) });
+});
+
 // Initialize settings on load
 if (typeof window !== 'undefined') {
   const store = useSettingsStore.getState();
@@ -1648,7 +1741,7 @@ if (typeof window !== 'undefined') {
     pendingSync = {
       username: syncUsername,
       serverUrl: syncServerUrl,
-      settings: JSON.parse(useSettingsStore.getState().exportSettings()),
+      settings: JSON.parse(useSettingsStore.getState().exportSettings({ forSync: true })),
     };
     if (syncTimeout) clearTimeout(syncTimeout);
     syncTimeout = setTimeout(async () => {
