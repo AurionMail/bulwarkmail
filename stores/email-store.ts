@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { Email, Mailbox, StateChange, ScheduledEmail, SendEmailResult, isUnifiedMailboxId, isCrossViewId } from "@/lib/jmap/types";
 import type { UnifiedMailboxRole, CrossView } from "@/lib/jmap/types";
-import type { IJMAPClient } from "@/lib/jmap/client-interface";
+import type { IJMAPClient, SearchEmailsResult } from "@/lib/jmap/client-interface";
+import { withSearchSnippets, type DeferredSnippetBatch } from "@/lib/search-snippet";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
@@ -1469,6 +1470,34 @@ function isUnscopedSearchActive(
  * The fan-out options of a folder-less search scope: only "All folders"
  * searches Trash and Junk, the default scope ("") leaves them out.
  */
+/** A single-account search result with its deferred snippets in fan-out shape. */
+function withSnippetBatches(
+  result: SearchEmailsResult,
+): Omit<SearchEmailsResult, 'snippets'> & { snippets?: Promise<DeferredSnippetBatch[]> } {
+  const { snippets, ...rest } = result;
+  return snippets ? { ...rest, snippets: snippets.then((list) => (list ? [{ list }] : [])) } : rest;
+}
+
+/**
+ * Highlights the results of an interactive search once its deferred
+ * SearchSnippet/get lands (see SearchRequestOptions.deferSnippets). The list
+ * is on screen by then, so this applies only while that same search still is:
+ * matching ids would not do, since a folder opened in the meantime can hold
+ * the same messages and must not show search excerpts.
+ */
+function highlightWhenSnippetsArrive(snippets: Promise<DeferredSnippetBatch[]> | undefined): void {
+  if (!snippets) return;
+  const { searchQuery, searchFilters, searchMailboxId } = useEmailStore.getState();
+  const isSameView = captureEmailListView();
+  void snippets.then((batches) => {
+    const state = useEmailStore.getState();
+    if (!isSameView() || state.isLoading) return;
+    if (state.searchQuery !== searchQuery || state.searchFilters !== searchFilters || state.searchMailboxId !== searchMailboxId) return;
+    const emails = withSearchSnippets(state.emails, batches);
+    if (emails !== state.emails) useEmailStore.setState({ emails });
+  });
+}
+
 function acrossAccountsSearchOptions(searchMailboxId: string): AcrossAccountsSearchOptions {
   return { excludeTrashAndJunk: searchMailboxId !== SEARCH_SCOPE_ALL_FOLDERS };
 }
@@ -3679,7 +3708,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // shared accounts' mail (#1082). The default scope leaves every
         // account's Trash and Junk out; "All folders" searches them too.
         const built = buildTagViewAccountClients(client);
-        result = await searchAcrossAccounts(built, query, emailsPerPage, 0, acrossAccountsSearchOptions(searchMailboxId));
+        result = await searchAcrossAccounts(built, query, emailsPerPage, 0, { ...acrossAccountsSearchOptions(searchMailboxId), deferSnippets: true });
         unifiedErrors = result.errors;
 
       } else {
@@ -3691,7 +3720,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // Only pass accountId for shared mailboxes, not for primary account
         accountId = mailbox?.isShared ? mailbox.accountId : undefined;
 
-        result = await resolveActionClient(client).searchEmails(query, jmapMailboxId, accountId, emailsPerPage, 0);
+        result = withSnippetBatches(await resolveActionClient(client).searchEmails(query, jmapMailboxId, accountId, emailsPerPage, 0, { deferSnippets: true }));
       }
 
       // Plugins may add messages to the results by id; the messages are
@@ -3721,6 +3750,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         searchAbortController: null,
         ...(unifiedErrors ? { unifiedErrors } : {})
       });
+      highlightWhenSnippetsArrive('snippets' in result ? result.snippets : undefined);
     } catch (error) {
       if (controller.signal.aborted) return;
       set({
@@ -3799,7 +3829,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         const built = buildTagViewAccountClients(client);
         result = await advancedSearchAcrossAccounts(
           built, buildJMAPFilter(searchQuery, searchFilters, undefined), emailsPerPage, 0,
-          acrossAccountsSearchOptions(searchMailboxId),
+          { ...acrossAccountsSearchOptions(searchMailboxId), deferSnippets: true },
         );
         unifiedErrors = result.errors;
 
@@ -3809,7 +3839,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         accountId = mailbox?.isShared ? mailbox.accountId : undefined;
 
         const filter = buildJMAPFilter(searchQuery, searchFilters, jmapMailboxId);
-        result = await resolveActionClient(client).advancedSearchEmails(filter, accountId, emailsPerPage, 0);
+        result = withSnippetBatches(await resolveActionClient(client).advancedSearchEmails(filter, accountId, emailsPerPage, 0, { deferSnippets: true }));
       }
 
       if (controller.signal.aborted) return;
@@ -3841,6 +3871,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         searchAbortController: null,
         ...(unifiedErrors ? { unifiedErrors } : {})
       });
+      highlightWhenSnippetsArrive('snippets' in result ? result.snippets : undefined);
     } catch (error) {
       if (controller.signal.aborted) return;
       set({

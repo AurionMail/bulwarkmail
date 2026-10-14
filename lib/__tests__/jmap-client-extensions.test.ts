@@ -200,6 +200,57 @@ describe('JMAP client extensions', () => {
       expect(result.emails).toHaveLength(1);
       expect(result.emails[0].searchSnippet).toBeUndefined();
     });
+
+    describe('deferred', () => {
+      const hits = [
+        { id: 'e1', threadId: 't1', receivedAt: '2026-08-29T00:00:00Z', subject: 'Invoice', mailboxIds: {}, keywords: {} },
+        { id: 'e2', threadId: 't2', receivedAt: '2026-08-28T00:00:00Z', subject: 'Other', mailboxIds: {}, keywords: {} },
+      ];
+      const searchOrSnippets = (snippets: unknown) => (body: RequestBody) => body.methodCalls[0][0] === 'SearchSnippet/get'
+        ? { methodResponses: [snippets] }
+        : { methodResponses: [['Email/query', { ids: ['e1', 'e2'], total: 2 }, '0'], ['Email/get', { list: hits.map((hit) => ({ ...hit })) }, '1']] };
+
+      it('lists the results without waiting for the snippets', async () => {
+        await setup();
+        answer(searchOrSnippets(['SearchSnippet/get', { list: [{ emailId: 'e1', subject: '<mark>Invoice</mark>', preview: null }] }, 'snippets']));
+
+        const result = await client.searchEmails('invoice', 'inbox', undefined, 50, 0, { deferSnippets: true });
+
+        // The search itself no longer carries the snippet call ...
+        expect(requests[0].methodCalls.map((call) => call[0])).toEqual(['Email/query', 'Email/get']);
+        expect(result.emails.map((email) => email.id)).toEqual(['e1', 'e2']);
+        expect(result.emails[0].searchSnippet).toBeUndefined();
+        // ... it follows on its own, for exactly the listed messages.
+        expect(await result.snippets).toEqual([{ emailId: 'e1', subject: '<mark>Invoice</mark>', preview: null }]);
+        expect(requests[1].methodCalls).toEqual([['SearchSnippet/get', {
+          accountId: 'acct-1',
+          filter: { operator: 'AND', conditions: [{ inMailbox: 'inbox' }, { text: 'invoice' }] },
+          emailIds: ['e1', 'e2'],
+        }, 'snippets']]);
+      });
+
+      it('asks for no snippets when nothing could be highlighted', async () => {
+        await setup();
+        answer(searchOrSnippets(['SearchSnippet/get', { list: [] }, 'snippets']));
+
+        const structural = await client.advancedSearchEmails({ hasKeyword: '$flagged' }, undefined, 50, 0, { deferSnippets: true });
+        expect(structural.snippets).toBeUndefined();
+
+        answer(() => ({ methodResponses: [['Email/query', { ids: [], total: 0 }, '0'], ['Email/get', { list: [] }, '1']] }));
+        const empty = await client.searchEmails('nothing', undefined, undefined, 50, 0, { deferSnippets: true });
+        expect(empty.snippets).toBeUndefined();
+        expect(requests.every((body) => body.methodCalls[0][0] !== 'SearchSnippet/get')).toBe(true);
+      });
+
+      it('resolves to nothing instead of rejecting when the snippet request fails', async () => {
+        await setup();
+        answer(searchOrSnippets(['error', { type: 'requestTooLarge' }, 'snippets']));
+
+        const result = await client.searchEmails('invoice', undefined, undefined, 50, 0, { deferSnippets: true });
+        expect(result.emails).toHaveLength(2);
+        await expect(result.snippets).resolves.toBeUndefined();
+      });
+    });
   });
 
   describe('deleteMailbox', () => {

@@ -1,7 +1,7 @@
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PushSubscription, EmailPushConfig, DeliveryStatus, EmailSubmission, RejectedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
-import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
+import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration, SearchEmailsResult, SearchRequestOptions } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { batched, itemsPerRequest } from "./request-limits";
 import { keywordPointer } from "./patch-pointer";
@@ -3290,7 +3290,7 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
-  async searchEmails(query: string, mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0): Promise<{ emails: Email[], hasMore: boolean, total: number }> {
+  async searchEmails(query: string, mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, options: SearchRequestOptions = {}): Promise<SearchEmailsResult> {
     try {
       const targetAccountId = accountId || this.accountId;
 
@@ -3326,7 +3326,7 @@ export class JMAPClient implements IJMAPClient {
           "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
           properties: [...EMAIL_LIST_PROPERTIES],
         }, "1"],
-        this.searchSnippetCall(targetAccountId, filter),
+        ...(options.deferSnippets ? [] : [this.searchSnippetCall(targetAccountId, filter)]),
       ]);
       assertQuerySucceeded(response, 'Search');
 
@@ -3346,7 +3346,7 @@ export class JMAPClient implements IJMAPClient {
         namespaceMailboxIds(emails, accountId);
       }
 
-      return { emails, hasMore, total };
+      return { emails, hasMore, total, ...this.deferredSnippets(options, targetAccountId, filter, emails) };
     } catch (error) {
       // Rethrow: an empty result would read as "No results found".
       console.error('Search failed:', error);
@@ -3372,6 +3372,35 @@ export class JMAPClient implements IJMAPClient {
     }, "snippets"];
   }
 
+  /**
+   * With `deferSnippets`, the snippets of a result page as a request of their
+   * own, already in flight. Chained onto the search they cost no round trip
+   * but hold the whole response back while the server excerpts every hit,
+   * several times longer than the query itself, so an interactive search
+   * lists its results first and highlights them when this resolves. Never
+   * rejects: a failure leaves the results without snippets, as it does when
+   * chained.
+   */
+  private deferredSnippets(
+    options: SearchRequestOptions,
+    accountId: string,
+    filter: Record<string, unknown> | undefined,
+    emails: Email[],
+  ): Pick<SearchEmailsResult, 'snippets'> {
+    if (!options.deferSnippets || emails.length === 0 || !filter || !filterHasSnippetTerms(filter)) return {};
+    const snippets = this.request([
+      ["SearchSnippet/get", {
+        accountId,
+        filter: snippetFilterFor(filter),
+        emailIds: emails.map((email) => email.id),
+      }, "snippets"],
+    ]).then((response) => this.searchSnippetsFrom(response)).catch((error) => {
+      debug.warn("jmap", "SearchSnippet/get failed:", error);
+      return undefined;
+    });
+    return { snippets };
+  }
+
   /** The SearchSnippet list of a search response, if the call succeeded. */
   private searchSnippetsFrom(response: JMAPResponse): SearchSnippetResult[] | undefined {
     for (const [method, result, callId] of response.methodResponses ?? []) {
@@ -3386,8 +3415,9 @@ export class JMAPClient implements IJMAPClient {
     filter: Record<string, unknown>,
     accountId?: string,
     limit: number = 50,
-    position: number = 0
-  ): Promise<{ emails: Email[], hasMore: boolean, total: number }> {
+    position: number = 0,
+    options: SearchRequestOptions = {},
+  ): Promise<SearchEmailsResult> {
     try {
       const targetAccountId = accountId || this.accountId;
 
@@ -3409,7 +3439,7 @@ export class JMAPClient implements IJMAPClient {
           "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
           properties: [...EMAIL_LIST_PROPERTIES],
         }, "1"],
-        this.searchSnippetCall(targetAccountId, hasFilter ? filter : undefined),
+        ...(options.deferSnippets ? [] : [this.searchSnippetCall(targetAccountId, hasFilter ? filter : undefined)]),
       ]);
       assertQuerySucceeded(response, 'Search');
 
@@ -3429,7 +3459,7 @@ export class JMAPClient implements IJMAPClient {
         namespaceMailboxIds(emails, accountId);
       }
 
-      return { emails, hasMore, total };
+      return { emails, hasMore, total, ...this.deferredSnippets(options, targetAccountId, hasFilter ? filter : undefined, emails) };
     } catch (error) {
       console.error('Advanced search failed:', error);
       throw error;

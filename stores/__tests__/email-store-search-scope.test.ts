@@ -80,8 +80,8 @@ describe('search folder scope (#788)', () => {
     // No mailbox id -> the JMAP client omits the inMailbox constraint; the
     // shared folder's owner is asked as well (#1082).
     expect(client.searchEmails).toHaveBeenCalledTimes(2);
-    expect(client.searchEmails).toHaveBeenCalledWith('invoice', undefined, undefined, 50, 0);
-    expect(client.searchEmails).toHaveBeenCalledWith('invoice', undefined, 'owner-x', 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('invoice', undefined, undefined, 50, 0, { deferSnippets: true });
+    expect(client.searchEmails).toHaveBeenCalledWith('invoice', undefined, 'owner-x', 50, 0, { deferSnippets: true });
   });
 
   it('advanced search from within a folder does not add an inMailbox condition', async () => {
