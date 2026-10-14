@@ -451,6 +451,25 @@ export interface EmailReadView {
   };
 }
 
+/**
+ * The light view of a message used by list-level hooks (new mail, selection,
+ * moves): headers and flags, no body or source. Same email:read sensitivity
+ * as EmailReadView.
+ */
+export interface EmailSummary {
+  id: string;
+  threadId: string;
+  mailboxIds: string[];
+  from: { name: string; email: string }[];
+  to: { name: string; email: string }[];
+  subject: string;
+  receivedAt: string;
+  preview: string;
+  keywords: string[];
+  hasAttachment: boolean;
+  size: number;
+}
+
 export interface DraftView {
   to: string[];
   cc: string[];
@@ -474,15 +493,26 @@ export interface MailboxView {
 
 export interface CalendarEventView {
   id: string;
+  /** JSCalendar uid, stable across edits and the same for every occurrence. */
+  uid: string;
   calendarId: string;
   title: string;
   description: string;
+  /** Local start, as stored (ISO 8601 without zone, see `timeZone`). */
   start: string;
-  end: string;
+  /** ISO 8601 duration, e.g. PT1H. */
+  duration: string;
+  timeZone: string | null;
+  /** UTC start and end when the server computed them. */
+  utcStart: string | null;
+  utcEnd: string | null;
   isAllDay: boolean;
   location: string;
   status: string;
-  recurrenceRule?: string;
+  /** Attendee addresses, organizer included. */
+  participants: { name: string; email: string; role: string; status: string }[];
+  isRecurring: boolean;
+  keywords: string[];
 }
 
 export interface CalendarView {
@@ -495,13 +525,21 @@ export interface CalendarView {
 
 export interface ContactView {
   id: string;
+  uid: string;
   addressBookId: string;
+  kind: string;
+  fullName: string;
   firstName: string;
   lastName: string;
   emails: string[];
   phones: string[];
   company: string;
   notes: string;
+  /**
+   * Birthdays, anniversaries and other dates, as `--MM-DD` when the year is
+   * unknown or `YYYY-MM-DD` when it is known.
+   */
+  anniversaries: { kind: string; date: string }[];
 }
 
 export interface AddressBookView {
@@ -538,20 +576,25 @@ export interface IdentityView {
 
 export interface TaskView {
   id: string;
+  uid: string;
   title: string;
   description: string;
   isComplete: boolean;
+  progress: string;
   dueDate: string | null;
-  priority: string;
+  /** 0 (none) or 1 (highest) to 9 (lowest), as in JSCalendar. */
+  priority: number;
   calendarId: string;
+  keywords: string[];
 }
 
 export interface TemplateView {
   id: string;
   name: string;
+  category: string;
   subject: string;
-  htmlBody: string;
-  textBody: string;
+  body: string;
+  isHTML: boolean;
 }
 
 export interface FilterRuleView {

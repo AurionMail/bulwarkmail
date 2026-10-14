@@ -1,0 +1,38 @@
+import { describe, it, expect } from 'vitest';
+import { contactToView, emailSummary, eventToView, taskToView } from '../plugin-projection';
+import type { CalendarEvent, CalendarTask, ContactCard, Email } from '../jmap/types';
+
+describe('plugin projections', () => {
+  it('writes contact dates without a year as --MM-DD', () => {
+    const view = contactToView({
+      id: 'c1', addressBookIds: { ab: true },
+      name: { components: [{ kind: 'given', value: 'Ana' }, { kind: 'surname', value: 'Silva' }] },
+      anniversaries: {
+        a: { kind: 'birth', date: { '@type': 'PartialDate', month: 2, day: 29 } as never },
+        b: { kind: 'wedding', date: { '@type': 'PartialDate', year: 2010, month: 6, day: 5 } as never },
+      },
+    } as unknown as ContactCard);
+
+    expect(view.fullName).toBe('Ana Silva');
+    expect(view.anniversaries).toEqual([
+      { kind: 'birth', date: '--02-29' },
+      { kind: 'wedding', date: '2010-06-05' },
+    ]);
+  });
+
+  it('leaves the body out of an email summary', () => {
+    const summary = emailSummary({
+      id: 'm1', threadId: 't', mailboxIds: { inbox: true, old: false }, keywords: { $seen: true },
+      from: [{ email: 'a@x' }], to: [], subject: 'S', receivedAt: 'r', preview: 'p', hasAttachment: false, size: 9,
+      bodyValues: { 1: { value: 'secret body' } },
+    } as unknown as Email);
+
+    expect(summary.mailboxIds).toEqual(['inbox']);
+    expect(JSON.stringify(summary)).not.toContain('secret body');
+  });
+
+  it('marks recurring events and completed tasks', () => {
+    expect(eventToView({ id: 'e', uid: 'u', calendarIds: { c: true }, recurrenceRules: [{ frequency: 'yearly' }] } as unknown as CalendarEvent).isRecurring).toBe(true);
+    expect(taskToView({ id: 't', uid: 'u', calendarIds: {}, progress: 'completed' } as unknown as CalendarTask).isComplete).toBe(true);
+  });
+});
