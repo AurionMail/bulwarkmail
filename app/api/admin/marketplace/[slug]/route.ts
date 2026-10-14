@@ -7,6 +7,7 @@ import {
 } from '@/lib/admin/plugin-registry';
 import { openPackage, readManifest, readText } from '@/lib/extension-package';
 import { configManager } from '@/lib/admin/config-manager';
+import { checkBundleSignature, type SignatureCheck } from '@/lib/admin/directory-keys';
 
 async function getDirectoryUrl(): Promise<string> {
   await configManager.ensureLoaded();
@@ -34,6 +35,7 @@ export async function GET(
 
     // 1. Extension metadata + screenshots + theme previews from the directory
     const detailUrl = new URL(`/api/v1/extension/${encodeURIComponent(slug)}`, directoryUrl);
+    if (process.env.NEXT_PUBLIC_APP_VERSION) detailUrl.searchParams.set('appVersion', process.env.NEXT_PUBLIC_APP_VERSION);
     const detailRes = await fetch(detailUrl.toString(), {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(10000),
@@ -62,6 +64,7 @@ export async function GET(
     let sourcePreview: { name: string; content: string; truncated: boolean } | null = null;
     let bundleError: string | null = null;
     let bundleSize = 0;
+    let signature: SignatureCheck | null = null;
 
     if (latestVersion) {
       try {
@@ -78,6 +81,15 @@ export async function GET(
         } else {
           const buffer = await bundleRes.arrayBuffer();
           bundleSize = buffer.byteLength;
+          signature = await checkBundleSignature({
+            directoryUrl,
+            configuredRootKeys: configManager.get<string>('extensionDirectoryRootKeys'),
+            slug,
+            version: latestVersion,
+            kind: type === 'theme' ? 'theme' : 'plugin',
+            bytes: buffer,
+            headers: bundleRes.headers,
+          });
           // Opening the preview must not inflate an arbitrary bundle in
           // full: every read goes through the capped package reader.
           const pkg = await openPackage(buffer, type === 'theme' ? 'theme' : 'plugin');
@@ -177,6 +189,7 @@ export async function GET(
           source: sourcePreview,
           size: bundleSize,
           error: bundleError,
+          signature,
         },
         installed,
         installedVersion,

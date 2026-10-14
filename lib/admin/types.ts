@@ -290,6 +290,13 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   logLevel: { envVar: 'LOG_LEVEL', type: 'enum', defaultValue: 'info', enumValues: ['error', 'warn', 'info', 'debug'] },
   sessionSecret: { envVar: 'SESSION_SECRET', fileEnvVar: 'SESSION_SECRET_FILE', fileKey: "sessionSecretFile", type: 'string', defaultValue: '' },
   extensionDirectoryUrl: { envVar: 'EXTENSION_DIRECTORY_URL', type: 'url', defaultValue: 'https://extensions.bulwarkmail.org' },
+  // Root keys (base64 raw Ed25519, comma-separated) a self-hosted extension
+  // directory signs its keyring with. The official directory's are built in
+  // (lib/admin/directory-keys.ts); with none known, marketplace bundles are
+  // installed without a signature check.
+  extensionDirectoryRootKeys: { envVar: 'EXTENSION_DIRECTORY_ROOT_KEYS', type: 'string', defaultValue: '' },
+  // 'beta' also offers pre-release versions from the marketplace.
+  extensionDirectoryChannel: { envVar: 'EXTENSION_DIRECTORY_CHANNEL', type: 'enum', defaultValue: 'stable', enumValues: ['stable', 'beta'] },
   // Connector links (connector.bulwarkmail.org): docs and the extension
   // directory link to a destination, and the reader's own browser resolves it
   // to their instance. `connectorEnabled` covers both halves - the

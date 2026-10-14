@@ -22,6 +22,7 @@ import {
   suspiciousCode,
 } from '@/lib/extension-package';
 import { configManager } from '@/lib/admin/config-manager';
+import { checkBundleSignature } from '@/lib/admin/directory-keys';
 
 async function getDirectoryUrl(): Promise<string> {
   await configManager.ensureLoaded();
@@ -45,6 +46,10 @@ export async function GET(request: NextRequest) {
     for (const [key, value] of searchParams.entries()) {
       url.searchParams.set(key, value);
     }
+    // The directory then offers the newest version this install can run
+    // (and pre-releases only when the admin opted into the beta channel).
+    if (process.env.NEXT_PUBLIC_APP_VERSION) url.searchParams.set('appVersion', process.env.NEXT_PUBLIC_APP_VERSION);
+    url.searchParams.set('channel', configManager.get<string>('extensionDirectoryChannel') === 'beta' ? 'beta' : 'stable');
 
     const res = await fetch(url.toString(), {
       headers: { 'Accept': 'application/json' },
@@ -148,6 +153,22 @@ export async function POST(request: NextRequest) {
     const buffer = await bundleRes.arrayBuffer();
     const now = new Date().toISOString();
 
+    // The directory signs every bundle it approves; refuse one whose
+    // signature is missing or wrong before looking inside it.
+    const signature = await checkBundleSignature({
+      directoryUrl,
+      configuredRootKeys: configManager.get<string>('extensionDirectoryRootKeys'),
+      slug,
+      version,
+      kind: type,
+      bytes: buffer,
+      headers: bundleRes.headers,
+    });
+    if (signature.status === 'invalid') {
+      logger.warn('Marketplace bundle refused: signature check failed', { slug, version, reason: signature.reason });
+      return NextResponse.json({ error: `Refused: ${signature.reason}` }, { status: 400 });
+    }
+
     if (type === 'theme') {
       const read = await readThemePackage(buffer, { resolveExtends: await themeCSSResolver() });
       if (!read.valid || !read.manifest) {
@@ -197,12 +218,13 @@ export async function POST(request: NextRequest) {
           name: theme.name,
           version: theme.version,
           slug,
+          signature: signature.status,
           ...(isUpdate ? { previousVersion: existingTheme.version } : {}),
         },
         ip,
       );
 
-      return NextResponse.json({ success: true, theme, warnings, updated: isUpdate });
+      return NextResponse.json({ success: true, theme, warnings, updated: isUpdate, signature: signature.status });
     }
 
     // Plugin installation
@@ -273,12 +295,13 @@ export async function POST(request: NextRequest) {
         frameOrigins: plugin.frameOrigins ?? [],
         httpOrigins: plugin.httpOrigins ?? [],
         apiPostPaths: plugin.apiPostPaths ?? [],
+        signature: signature.status,
         ...(isUpdate ? { previousVersion: existingPlugin.version } : {}),
       },
       ip,
     );
 
-    return NextResponse.json({ success: true, plugin, warnings: pkg.warnings, updated: isUpdate });
+    return NextResponse.json({ success: true, plugin, warnings: pkg.warnings, updated: isUpdate, signature: signature.status });
   } catch (error) {
     logger.error('Marketplace install error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Installation failed' }, { status: 500 });

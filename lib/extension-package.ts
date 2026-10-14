@@ -489,7 +489,7 @@ export function suspiciousCode(code: string): string[] {
   return SUSPICIOUS_JS_PATTERNS.filter(({ pattern }) => pattern.test(code)).map(({ label }) => label);
 }
 
-function canonicalJson(value: unknown): string {
+export function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (value && typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>)
