@@ -41,7 +41,7 @@ export function mayRegisterHook(plugin: InstalledPlugin, hookName: string): bool
  * components receive the data of the surface they sit on (the open message,
  * the draft), so they are gated like hooks.
  */
-const SLOT_PERMISSIONS: Record<SlotName, readonly Permission[]> = {
+export const SLOT_PERMISSIONS: Readonly<Record<SlotName, readonly Permission[]>> = {
   'toolbar-actions': ['ui:toolbar'],
   'app-top-banner': ['ui:app-top-banner'],
   'email-banner': ['ui:email-banner'],
@@ -71,7 +71,7 @@ const SLOT_PERMISSIONS: Record<SlotName, readonly Permission[]> = {
  * data, and stays behind the matching read permission. Props not listed here
  * are dropped, so a new prop at a call site is withheld until it is added.
  */
-const SLOT_PROPS: Record<SlotName, Record<string, Permission | null> | '*'> = {
+export const SLOT_PROPS: Readonly<Record<SlotName, Record<string, Permission | null> | '*'>> = {
   'toolbar-actions': {},
   'app-top-banner': { username: 'account:read', serverUrl: 'account:read' },
   'email-banner': { email: 'email:read' },
