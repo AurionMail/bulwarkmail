@@ -4350,5 +4350,20 @@
     "not_available_description": "Плагін, який її додав, вимкнено або більше не встановлено.",
     "back_to_mail": "Повернутися до пошти",
     "settings_group": "Плагіни"
+  },
+  "command_palette": {
+    "title": "Палітра команд",
+    "open": "Відкрити палітру команд",
+    "placeholder": "Введіть команду",
+    "no_results": "Немає відповідних команд",
+    "go_to": "Перейти: {name}",
+    "compose": "Новий лист",
+    "search": "Шукати в пошті",
+    "theme_dark": "Увімкнути темну тему",
+    "theme_light": "Увімкнути світлу тему",
+    "shortcuts": "Показати комбінації клавіш",
+    "group_navigation": "Перейти",
+    "group_actions": "Дії",
+    "group_plugins": "Плагіни"
   }
 }

@@ -4350,5 +4350,20 @@
     "not_available_description": "Doplnok, ktorý ju pridal, je vypnutý alebo už nie je nainštalovaný.",
     "back_to_mail": "Späť na poštu",
     "settings_group": "Doplnky"
+  },
+  "command_palette": {
+    "title": "Paleta príkazov",
+    "open": "Otvoriť paletu príkazov",
+    "placeholder": "Zadajte príkaz",
+    "no_results": "Žiadne zodpovedajúce príkazy",
+    "go_to": "Prejsť na {name}",
+    "compose": "Nová správa",
+    "search": "Hľadať v pošte",
+    "theme_dark": "Prepnúť na tmavý motív",
+    "theme_light": "Prepnúť na svetlý motív",
+    "shortcuts": "Zobraziť klávesové skratky",
+    "group_navigation": "Prejsť na",
+    "group_actions": "Akcie",
+    "group_plugins": "Doplnky"
   }
 }

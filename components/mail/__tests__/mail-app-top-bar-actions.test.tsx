@@ -103,3 +103,20 @@ describe('top-bar-actions in the standard layout', () => {
     expect(container.querySelector('[data-plugin-actions="top-bar-actions"]')).toBeNull();
   });
 });
+
+describe('command palette commands on the mail page', () => {
+  it('takes compose from the palette and opens the composer', async () => {
+    const { requestAppCommand } = await import('@/lib/app-commands');
+    render(<MailApp />);
+    let taken = false;
+    act(() => { taken = requestAppCommand('compose'); });
+    expect(taken).toBe(true);
+  });
+
+  it('runs a search parked before the page was ready', async () => {
+    const { parkAppCommand, peekParkedAppCommand } = await import('@/lib/app-commands');
+    parkAppCommand('search');
+    render(<MailApp />);
+    expect(peekParkedAppCommand()).toBeNull();
+  });
+});

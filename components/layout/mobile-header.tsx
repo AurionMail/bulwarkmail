@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Menu, ArrowLeft, Plus, Search, X, MoreVertical } from "@/components/icons";
+import { Menu, ArrowLeft, Plus, Search, X, MoreVertical, Terminal } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/stores/ui-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -9,20 +9,22 @@ import { useIsDesktop } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { AccountSwitcher } from "@/components/layout/account-switcher";
-import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 import { useMenuNavigation } from "@/hooks/use-menu-navigation";
+import { ContextMenuItem } from "@/components/ui/context-menu";
+import { openCommandPalette } from "@/lib/app-commands";
 
 /** Plugin buttons in the top bar are not about any one item. */
 const TOP_BAR_CONTEXT: Record<string, unknown> = {};
 
 /**
- * The phone header's overflow menu: what the desktop top bar shows as
- * buttons (plugin top-bar-actions) and has no room for here. Renders nothing
- * while it would be empty, so the header keeps its layout without plugins.
+ * The phone header's overflow menu: the command palette (no Ctrl+K on a
+ * phone) and what the desktop top bar shows as buttons (plugin
+ * top-bar-actions) and has no room for here.
  */
 function MobileHeaderMenu() {
   const t = useTranslations('top_bar');
-  const pluginActions = usePluginActions('top-bar-actions');
+  const tPalette = useTranslations('command_palette');
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -37,8 +39,6 @@ function MobileHeaderMenu() {
     document.addEventListener('mousedown', onPointerDown);
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [open, menuRef]);
-
-  if (pluginActions.length === 0) return null;
 
   return (
     <div className="relative">
@@ -62,6 +62,11 @@ function MobileHeaderMenu() {
           aria-label={t('more')}
           className="absolute end-0 top-full mt-1 z-50 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-md border border-border bg-background py-1 shadow-lg"
         >
+          <ContextMenuItem
+            icon={Terminal}
+            label={tPalette('title')}
+            onClick={() => { close(); openCommandPalette(); }}
+          />
           <PluginActions surface="top-bar-actions" context={TOP_BAR_CONTEXT} variant="menu" onRan={close} />
         </div>
       )}

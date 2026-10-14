@@ -4350,5 +4350,20 @@
     "not_available_description": "The plugin that added it is turned off or no longer installed.",
     "back_to_mail": "Back to Mail",
     "settings_group": "Plugins"
+  },
+  "command_palette": {
+    "title": "Command palette",
+    "open": "Open the command palette",
+    "placeholder": "Type a command",
+    "no_results": "No matching commands",
+    "go_to": "Go to {name}",
+    "compose": "New message",
+    "search": "Search mail",
+    "theme_dark": "Switch to dark theme",
+    "theme_light": "Switch to light theme",
+    "shortcuts": "Show keyboard shortcuts",
+    "group_navigation": "Go to",
+    "group_actions": "Actions",
+    "group_plugins": "Plugins"
   }
 }

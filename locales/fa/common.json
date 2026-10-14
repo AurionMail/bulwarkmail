@@ -4350,5 +4350,20 @@
     "not_available_description": "افزونه‌ای که آن را اضافه کرده خاموش است یا دیگر نصب نیست.",
     "back_to_mail": "بازگشت به ایمیل",
     "settings_group": "افزونه‌ها"
+  },
+  "command_palette": {
+    "title": "پالت فرمان",
+    "open": "باز کردن پالت فرمان",
+    "placeholder": "یک فرمان بنویسید",
+    "no_results": "فرمان منطبقی پیدا نشد",
+    "go_to": "رفتن به {name}",
+    "compose": "پیام جدید",
+    "search": "جستجو در ایمیل",
+    "theme_dark": "رفتن به پوسته تیره",
+    "theme_light": "رفتن به پوسته روشن",
+    "shortcuts": "نمایش میانبرهای صفحه کلید",
+    "group_navigation": "رفتن به",
+    "group_actions": "کارها",
+    "group_plugins": "افزونه‌ها"
   }
 }

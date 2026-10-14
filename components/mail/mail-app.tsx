@@ -83,6 +83,7 @@ import { WelcomeBanner } from "@/components/ui/welcome-banner";
 import { NavigationRail } from "@/components/layout/navigation-rail";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { PluginActions } from "@/components/plugins/plugin-actions";
+import { useAppCommands } from "@/lib/app-commands";
 import { MvSearchForm } from "@/components/search/mv-search-form";
 import { MvSidePanel } from "@/components/layout/mv-side-panel";
 import { MvListToolbar } from "@/components/email/mv-list-toolbar";
@@ -933,6 +934,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     mountainViewKeys: mvShell,
     handlers: keyboardHandlers,
   });
+
+  // Compose and search from the command palette (components/command-palette).
+  useAppCommands({
+    compose: keyboardHandlers.onCompose,
+    search: () => {
+      if (isMobile) setMobileSearchOpen(true);
+      else keyboardHandlers.onFocusSearch?.();
+    },
+  }, isAuthenticated && !!client);
 
   // Shared mail refresh: re-fetch mailboxes (unread counts) + the active list
   // via JMAP. Used by both the browser refresh gestures and the toolbar button.

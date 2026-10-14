@@ -4350,5 +4350,20 @@
     "not_available_description": "El complemento que la añadió está desactivado o ya no está instalado.",
     "back_to_mail": "Volver al correo",
     "settings_group": "Complementos"
+  },
+  "command_palette": {
+    "title": "Paleta de comandos",
+    "open": "Abrir la paleta de comandos",
+    "placeholder": "Escribe un comando",
+    "no_results": "No hay comandos que coincidan",
+    "go_to": "Ir a {name}",
+    "compose": "Mensaje nuevo",
+    "search": "Buscar en el correo",
+    "theme_dark": "Cambiar al tema oscuro",
+    "theme_light": "Cambiar al tema claro",
+    "shortcuts": "Mostrar atajos de teclado",
+    "group_navigation": "Ir a",
+    "group_actions": "Acciones",
+    "group_plugins": "Complementos"
   }
 }

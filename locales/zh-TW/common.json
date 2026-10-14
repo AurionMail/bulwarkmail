@@ -4350,5 +4350,20 @@
     "not_available_description": "新增此頁面的外掛程式已關閉或已不再安裝。",
     "back_to_mail": "返回郵件",
     "settings_group": "外掛程式"
+  },
+  "command_palette": {
+    "title": "命令面板",
+    "open": "開啟命令面板",
+    "placeholder": "輸入命令",
+    "no_results": "沒有相符的命令",
+    "go_to": "前往{name}",
+    "compose": "新郵件",
+    "search": "搜尋郵件",
+    "theme_dark": "切換為深色主題",
+    "theme_light": "切換為淺色主題",
+    "shortcuts": "顯示鍵盤快速鍵",
+    "group_navigation": "前往",
+    "group_actions": "動作",
+    "group_plugins": "外掛程式"
   }
 }

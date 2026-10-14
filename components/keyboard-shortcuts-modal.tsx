@@ -7,6 +7,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTour } from "@/components/tour/tour-provider";
+import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
@@ -17,9 +18,10 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
   const t = useTranslations();
   const { startTour } = useTour();
   const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
-  // Rows that belong to one interface layout are listed only under it.
+  const shell = useProInterfaceActive() ? "pro" : "standard";
+  // Rows that belong to one interface layout (or one shell) are listed only under it.
   const shown = (entries: readonly ShortcutEntry[]) =>
-    entries.filter((entry) => !entry.layout || entry.layout === interfaceLayout);
+    entries.filter((entry) => (!entry.layout || entry.layout === interfaceLayout) && (!entry.shell || entry.shell === shell));
 
   const modalRef = useFocusTrap({
     isActive: isOpen,

@@ -4350,5 +4350,20 @@
     "not_available_description": "De plug-in die hem heeft toegevoegd, staat uit of is niet meer geïnstalleerd.",
     "back_to_mail": "Terug naar e-mail",
     "settings_group": "Plug-ins"
+  },
+  "command_palette": {
+    "title": "Opdrachtenpalet",
+    "open": "Opdrachtenpalet openen",
+    "placeholder": "Typ een opdracht",
+    "no_results": "Geen overeenkomende opdrachten",
+    "go_to": "Naar {name}",
+    "compose": "Nieuw bericht",
+    "search": "E-mail doorzoeken",
+    "theme_dark": "Donker thema gebruiken",
+    "theme_light": "Licht thema gebruiken",
+    "shortcuts": "Sneltoetsen tonen",
+    "group_navigation": "Naar",
+    "group_actions": "Acties",
+    "group_plugins": "Plug-ins"
   }
 }

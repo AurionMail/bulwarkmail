@@ -4350,5 +4350,20 @@
     "not_available_description": "Plugin, který ji přidal, je vypnutý nebo už není nainstalovaný.",
     "back_to_mail": "Zpět na poštu",
     "settings_group": "Pluginy"
+  },
+  "command_palette": {
+    "title": "Paleta příkazů",
+    "open": "Otevřít paletu příkazů",
+    "placeholder": "Zadejte příkaz",
+    "no_results": "Žádné odpovídající příkazy",
+    "go_to": "Přejít na {name}",
+    "compose": "Nová zpráva",
+    "search": "Hledat v poště",
+    "theme_dark": "Přepnout na tmavý motiv",
+    "theme_light": "Přepnout na světlý motiv",
+    "shortcuts": "Zobrazit klávesové zkratky",
+    "group_navigation": "Přejít na",
+    "group_actions": "Akce",
+    "group_plugins": "Pluginy"
   }
 }

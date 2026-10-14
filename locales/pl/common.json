@@ -4350,5 +4350,20 @@
     "not_available_description": "Wtyczka, która ją dodała, jest wyłączona lub nie jest już zainstalowana.",
     "back_to_mail": "Wróć do poczty",
     "settings_group": "Wtyczki"
+  },
+  "command_palette": {
+    "title": "Paleta poleceń",
+    "open": "Otwórz paletę poleceń",
+    "placeholder": "Wpisz polecenie",
+    "no_results": "Brak pasujących poleceń",
+    "go_to": "Przejdź do: {name}",
+    "compose": "Nowa wiadomość",
+    "search": "Szukaj w poczcie",
+    "theme_dark": "Przełącz na ciemny motyw",
+    "theme_light": "Przełącz na jasny motyw",
+    "shortcuts": "Pokaż skróty klawiszowe",
+    "group_navigation": "Przejdź do",
+    "group_actions": "Działania",
+    "group_plugins": "Wtyczki"
   }
 }

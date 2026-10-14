@@ -4350,5 +4350,20 @@
     "not_available_description": "Spraudnis, kas to pievienoja, ir izslēgts vai vairs nav instalēts.",
     "back_to_mail": "Atpakaļ uz pastu",
     "settings_group": "Spraudņi"
+  },
+  "command_palette": {
+    "title": "Komandu palete",
+    "open": "Atvērt komandu paleti",
+    "placeholder": "Ierakstiet komandu",
+    "no_results": "Nav atbilstošu komandu",
+    "go_to": "Pāriet uz: {name}",
+    "compose": "Jauna vēstule",
+    "search": "Meklēt pastā",
+    "theme_dark": "Pārslēgt uz tumšo motīvu",
+    "theme_light": "Pārslēgt uz gaišo motīvu",
+    "shortcuts": "Rādīt tastatūras īsinājumtaustiņus",
+    "group_navigation": "Pāriet uz",
+    "group_actions": "Darbības",
+    "group_plugins": "Spraudņi"
   }
 }

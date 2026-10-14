@@ -50,9 +50,16 @@ describe('Mountain View top bar', () => {
 });
 
 describe('phone header', () => {
-  it('has no overflow menu when no plugin declared buttons', () => {
+  it('offers only the command palette in its menu when no plugin declared buttons', () => {
+    const opened = vi.fn();
+    window.addEventListener('bulwark:command-palette', opened);
     render(<MobileHeader title="Inbox" />);
-    expect(screen.queryByRole('button', { name: 'more' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'more' }));
+
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['title']);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'title' }));
+    expect(opened).toHaveBeenCalled();
+    window.removeEventListener('bulwark:command-palette', opened);
   });
 
   it('lists plugin buttons in its overflow menu', async () => {

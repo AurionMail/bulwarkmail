@@ -4350,5 +4350,20 @@
     "not_available_description": "Bu sayfayı ekleyen eklenti kapalı veya artık yüklü değil.",
     "back_to_mail": "Postaya dön",
     "settings_group": "Eklentiler"
+  },
+  "command_palette": {
+    "title": "Komut paleti",
+    "open": "Komut paletini aç",
+    "placeholder": "Bir komut yazın",
+    "no_results": "Eşleşen komut yok",
+    "go_to": "{name} bölümüne git",
+    "compose": "Yeni ileti",
+    "search": "Postada ara",
+    "theme_dark": "Koyu temaya geç",
+    "theme_light": "Açık temaya geç",
+    "shortcuts": "Klavye kısayollarını göster",
+    "group_navigation": "Git",
+    "group_actions": "Eylemler",
+    "group_plugins": "Eklentiler"
   }
 }

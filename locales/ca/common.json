@@ -4350,5 +4350,20 @@
     "not_available_description": "El connector que l'ha afegida està desactivat o ja no està instal·lat.",
     "back_to_mail": "Torna al correu",
     "settings_group": "Connectors"
+  },
+  "command_palette": {
+    "title": "Paleta d'ordres",
+    "open": "Obre la paleta d'ordres",
+    "placeholder": "Escriviu una ordre",
+    "no_results": "Cap ordre coincident",
+    "go_to": "Ves a {name}",
+    "compose": "Missatge nou",
+    "search": "Cerca al correu",
+    "theme_dark": "Canvia al tema fosc",
+    "theme_light": "Canvia al tema clar",
+    "shortcuts": "Mostra les dreceres de teclat",
+    "group_navigation": "Ves a",
+    "group_actions": "Accions",
+    "group_plugins": "Connectors"
   }
 }

@@ -4351,5 +4351,20 @@
     "not_available_description": "התוסף שהוסיף אותו כבוי או שאינו מותקן עוד.",
     "back_to_mail": "חזרה לדואר",
     "settings_group": "תוספים"
+  },
+  "command_palette": {
+    "title": "לוח פקודות",
+    "open": "פתיחת לוח הפקודות",
+    "placeholder": "הקלידו פקודה",
+    "no_results": "אין פקודות תואמות",
+    "go_to": "מעבר אל {name}",
+    "compose": "הודעה חדשה",
+    "search": "חיפוש בדואר",
+    "theme_dark": "מעבר לערכת נושא כהה",
+    "theme_light": "מעבר לערכת נושא בהירה",
+    "shortcuts": "הצגת קיצורי מקשים",
+    "group_navigation": "מעבר אל",
+    "group_actions": "פעולות",
+    "group_plugins": "תוספים"
   }
 }

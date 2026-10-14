@@ -4350,5 +4350,20 @@
     "not_available_description": "Det plugin, der tilføjede den, er slået fra eller ikke længere installeret.",
     "back_to_mail": "Tilbage til mail",
     "settings_group": "Plugins"
+  },
+  "command_palette": {
+    "title": "Kommandopalet",
+    "open": "Åbn kommandopaletten",
+    "placeholder": "Skriv en kommando",
+    "no_results": "Ingen matchende kommandoer",
+    "go_to": "Gå til {name}",
+    "compose": "Ny besked",
+    "search": "Søg i mail",
+    "theme_dark": "Skift til mørkt tema",
+    "theme_light": "Skift til lyst tema",
+    "shortcuts": "Vis tastaturgenveje",
+    "group_navigation": "Gå til",
+    "group_actions": "Handlinger",
+    "group_plugins": "Plugins"
   }
 }

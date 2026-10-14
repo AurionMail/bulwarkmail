@@ -4350,5 +4350,20 @@
     "not_available_description": "الإضافة التي أضافتها متوقفة أو لم تعد مثبتة.",
     "back_to_mail": "العودة إلى البريد",
     "settings_group": "الإضافات"
+  },
+  "command_palette": {
+    "title": "لوحة الأوامر",
+    "open": "فتح لوحة الأوامر",
+    "placeholder": "اكتب أمرًا",
+    "no_results": "لا توجد أوامر مطابقة",
+    "go_to": "الانتقال إلى {name}",
+    "compose": "رسالة جديدة",
+    "search": "البحث في البريد",
+    "theme_dark": "التبديل إلى المظهر الداكن",
+    "theme_light": "التبديل إلى المظهر الفاتح",
+    "shortcuts": "عرض اختصارات لوحة المفاتيح",
+    "group_navigation": "الانتقال إلى",
+    "group_actions": "إجراءات",
+    "group_plugins": "الإضافات"
   }
 }

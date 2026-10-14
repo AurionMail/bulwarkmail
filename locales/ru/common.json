@@ -4350,5 +4350,20 @@
     "not_available_description": "Плагин, который её добавил, выключен или больше не установлен.",
     "back_to_mail": "Вернуться к почте",
     "settings_group": "Плагины"
+  },
+  "command_palette": {
+    "title": "Палитра команд",
+    "open": "Открыть палитру команд",
+    "placeholder": "Введите команду",
+    "no_results": "Нет подходящих команд",
+    "go_to": "Перейти: {name}",
+    "compose": "Новое письмо",
+    "search": "Искать в почте",
+    "theme_dark": "Включить тёмную тему",
+    "theme_light": "Включить светлую тему",
+    "shortcuts": "Показать сочетания клавиш",
+    "group_navigation": "Перейти",
+    "group_actions": "Действия",
+    "group_plugins": "Плагины"
   }
 }

@@ -4350,5 +4350,20 @@
     "not_available_description": "이 페이지를 추가한 플러그인이 꺼져 있거나 더 이상 설치되어 있지 않습니다.",
     "back_to_mail": "메일로 돌아가기",
     "settings_group": "플러그인"
+  },
+  "command_palette": {
+    "title": "명령 팔레트",
+    "open": "명령 팔레트 열기",
+    "placeholder": "명령을 입력하세요",
+    "no_results": "일치하는 명령이 없습니다",
+    "go_to": "{name}(으)로 이동",
+    "compose": "새 메일",
+    "search": "메일 검색",
+    "theme_dark": "어두운 테마로 전환",
+    "theme_light": "밝은 테마로 전환",
+    "shortcuts": "단축키 보기",
+    "group_navigation": "이동",
+    "group_actions": "작업",
+    "group_plugins": "플러그인"
   }
 }
