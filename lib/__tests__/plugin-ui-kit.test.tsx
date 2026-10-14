@@ -77,8 +77,17 @@ describe('plugin UI kit components', () => {
       <kit.EmptyState icon="cloud" title="Nothing yet" />
       <kit.ListRow title="report.pdf" icon="report.pdf" meta={['1 MB']} />
       <kit.Badge tone="success">Sent</kit.Badge>
+      <kit.DiffView parts={[{ type: 'same', text: 'Hi' }]} />
     </>);
     for (const child of Array.from(container.children)) expect(child.classList.contains('bk'), child.outerHTML.slice(0, 60)).toBe(true);
+  });
+
+  it('marks removed and added words in a change preview', () => {
+    const { container } = render(<kit.DiffView parts={[{ type: 'same', text: 'Hi ' }, { type: 'del', text: 'Bob' }, { type: 'add', text: 'Robert' }]} />);
+    expect(container.querySelector('del')).toHaveTextContent('Bob');
+    expect(container.querySelector('del')!.className).toContain('line-through');
+    expect(container.querySelector('ins')).toHaveTextContent('Robert');
+    expect(container.textContent).toBe('Hi BobRobert');
   });
 
   it('draws a checkbox the user can toggle by its label', () => {

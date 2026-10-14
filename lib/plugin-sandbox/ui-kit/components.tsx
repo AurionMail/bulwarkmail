@@ -792,3 +792,30 @@ export function SidebarRow({ icon, label, detail, onClick, title }: { icon?: str
 export function SidebarEmpty({ children }: Children) {
   return <p className="bk px-4 py-2 text-sm text-muted-foreground">{children}</p>;
 }
+
+// ─── Changes ───────────────────────────────────────────────────
+
+export interface DiffPart {
+  type: 'same' | 'add' | 'del';
+  text: string;
+}
+
+/**
+ * A text with its changes marked: removed words struck through in red,
+ * added ones highlighted. For previews of a rewrite before it is applied.
+ * `streaming` shows a caret at the end while the text is still coming in.
+ */
+export function DiffView({ parts, streaming = false, label }: { parts: DiffPart[]; streaming?: boolean; label?: string }) {
+  return (
+    <div className="bk rounded-md border border-border bg-muted/30 p-3 text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words" aria-label={label} aria-busy={streaming || undefined}>
+      {parts.map((p, i) => (
+        p.type === 'del'
+          ? <del key={i} className="rounded-sm bg-destructive/10 text-destructive line-through decoration-destructive/60">{p.text}</del>
+          : p.type === 'add'
+            ? <ins key={i} className="rounded-sm bg-success/15 text-foreground no-underline">{p.text}</ins>
+            : <span key={i}>{p.text}</span>
+      ))}
+      {streaming && <span className="ms-0.5 inline-block h-4 w-1.5 translate-y-0.5 animate-pulse rounded-sm bg-primary/60" aria-hidden="true" />}
+    </div>
+  );
+}
