@@ -1,6 +1,7 @@
 // Plugin store - manages installed plugins and lifecycle. Slot registrations
 // are owned by `lib/plugin-sandbox/registry` (per-iframe), not by the store.
 
+import { cancelConnectFor, forgetCredentials } from '@/lib/plugin-sandbox/connect-dialog';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { InstalledPlugin, PluginStatus, PluginTier } from '@/lib/plugin-types';
@@ -346,6 +347,9 @@ function removePluginData(id: string): void {
   removeAllPluginHooks(id);
   void pluginStorage.deleteCode(id).catch(() => {});
   void pluginStorage.deletePreview(id).catch(() => {});
+  // Accounts the user connected for it live on the server (this mail account's).
+  cancelConnectFor(id);
+  void forgetCredentials(id);
   if (typeof window !== 'undefined') {
     const prefix = `plugin:${id}:`;
     const keysToRemove: string[] = [];

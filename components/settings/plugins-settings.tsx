@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PluginPermissionList } from '@/components/plugins/plugin-permission-list';
 import type { InstalledPlugin, PluginStatus, SettingFieldSchema } from '@/lib/plugin-types';
 import { effectiveSettings } from '@/lib/plugin-settings';
+import { forgetCredentials, listConnectedAccounts, type ConnectedAccount } from '@/lib/plugin-sandbox/connect-dialog';
 
 const STATUS_COLORS: Record<PluginStatus, string> = {
   installed: 'bg-muted text-muted-foreground',
@@ -314,6 +315,10 @@ function PluginCard({ plugin, isExpanded, isForceEnabled, controlsDisabled, onTo
             </div>
           )}
 
+          {plugin.credentials && Object.values(plugin.credentials).some((c) => c.scope === 'user') && (
+            <ConnectedAccounts pluginId={plugin.id} />
+          )}
+
           {!isManaged && (
             <div className="flex justify-end">
               <Button variant="ghost" size="sm" onClick={onRemove} className="text-destructive hover:text-destructive">
@@ -324,6 +329,49 @@ function PluginCard({ plugin, isExpanded, isForceEnabled, controlsDisabled, onTo
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Connected accounts ──────────────────────────────────────
+
+/** Accounts the user connected for this plugin through the secret proxy. */
+function ConnectedAccounts({ pluginId }: { pluginId: string }) {
+  const t = useTranslations('plugins.settings');
+  const [accounts, setAccounts] = useState<ConnectedAccount[] | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void listConnectedAccounts(pluginId).then((list) => { if (live) setAccounts(list); });
+    return () => { live = false; };
+  }, [pluginId]);
+
+  if (!accounts || accounts.length === 0) return null;
+
+  const disconnect = async (account: ConnectedAccount) => {
+    if (await forgetCredentials(pluginId, account.credentialId)) {
+      setAccounts((list) => (list ?? []).filter((a) => a.credentialId !== account.credentialId));
+    } else {
+      toast.error(t('disconnect_failed', { label: account.label }));
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <span className="text-xs font-medium text-foreground">{t('accounts_heading')}</span>
+      {accounts.map((account) => {
+        const host = new URL(account.origin).host;
+        return (
+          <div key={account.credentialId} className="flex items-center justify-between gap-2 text-xs">
+            <span className="min-w-0 truncate text-muted-foreground">
+              {account.connected
+                ? t('account_on', { label: account.username ? `${account.label} (${account.username})` : account.label, host })
+                : t('account_waiting', { label: account.label, host })}
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => void disconnect(account)}>{t('disconnect')}</Button>
+          </div>
+        );
+      })}
     </div>
   );
 }

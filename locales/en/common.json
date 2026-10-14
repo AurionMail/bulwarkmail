@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "This plugin was installed before approvals were required. Remove it and install it again to send it for approval.",
       "error_approval_denied": "Your administrator did not approve this plugin.",
       "error_approval_pending": "Waiting for your administrator to approve this plugin.",
-      "error_auto_disabled": "Turned off because it kept failing. Turn it on again to retry."
+      "error_auto_disabled": "Turned off because it kept failing. Turn it on again to retry.",
+      "accounts_heading": "Connected accounts",
+      "account_on": "{label} on {host}",
+      "account_waiting": "{label} on {host} (sign-in not finished)",
+      "disconnect": "Disconnect",
+      "disconnect_failed": "Could not disconnect {label}"
     },
     "consent": {
       "title": "Allow {name} to do this?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Turn off {name}",
       "password_note": "This form comes from the plugin {name}, not from the webmail. Only enter a password if you trust this plugin.",
       "toast_auto_disabled": "{name} was turned off because it kept failing."
+    },
+    "connect": {
+      "title": "Connect {label}",
+      "intro_password": "{name} wants to use your {label} account. Bulwark keeps the password on its server and only sends it to {host}. The plugin never sees it.",
+      "intro_password_any": "{name} wants to use your {label} account. Bulwark keeps the password on its server and only sends it to the server you enter here. The plugin never sees it.",
+      "intro_signin": "{name} wants to sign in to your {label} account. Enter the server here, then sign in on its own page. Bulwark keeps the access it gets on its server; the plugin never sees it.",
+      "server": "Server address",
+      "server_hint": "cloud.example.com",
+      "username": "User name",
+      "secret": "Password or key",
+      "connect": "Connect",
+      "continue": "Continue",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "error_server": "Enter the server's address, for example https://cloud.example.com",
+      "error_save": "Could not save: {error}"
     }
   },
   "global_search": {
