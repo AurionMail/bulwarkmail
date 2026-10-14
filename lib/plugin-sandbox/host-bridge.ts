@@ -161,7 +161,9 @@ export class SandboxInstance {
     // `sandbox-ready` would never post).
     const sandboxFlags = this.privileged || process.env.NODE_ENV === 'development'
       ? 'allow-scripts allow-same-origin'
-      : 'allow-scripts';
+      // allow-forms: plugin UIs can use <form> and get its submit event. The
+      // sandbox CSP sets form-action 'none', so a form can't post anywhere.
+      : 'allow-scripts allow-forms';
     if (!this.privileged && process.env.NODE_ENV === 'development') warnDevSandboxOnce();
     this.iframe.setAttribute('sandbox', sandboxFlags);
     this.iframe.setAttribute('referrerpolicy', 'no-referrer');

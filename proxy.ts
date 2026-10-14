@@ -336,7 +336,9 @@ export async function proxy(request: NextRequest) {
     frameSrc,
     `object-src 'self' blob:`,
     `base-uri 'self'`,
-    `form-action ${["'self'", ...wopiOrigins].join(" ")}`,
+    // Plugin frames may use <form> for its submit event (allow-forms), but a
+    // form must not post anywhere: that would be a way out past connect-src.
+    isSandboxPath ? `form-action 'none'` : `form-action ${["'self'", ...wopiOrigins].join(" ")}`,
     `frame-ancestors ${frameAncestors}`,
     `media-src 'self' blob:`,
   ].join("; ");

@@ -113,6 +113,8 @@ describe('plugin sandbox routes (GHSA-96cx-gx36-3g79)', () => {
     }
     // The router refetches the sandbox page itself, so its own origin stays.
     expect(directives['connect-src']).toEqual(["'self'"]);
+    // Plugin frames may use forms (allow-forms) but not post them anywhere.
+    expect(directives['form-action']).toEqual(["'none'"]);
   });
 
   it('keeps https images and connections for the mail UI itself', async () => {
