@@ -100,7 +100,9 @@ async function getBundleCode(plugin: InstalledPlugin): Promise<string> {
     throw new Error(`No bundle in storage for plugin "${plugin.id}". Reinstall to populate.`);
   }
 
-  const code = await downloadManagedBundle(plugin.id, plugin.bundleHash);
+  const code = await downloadManagedBundle(plugin.id, plugin.bundleHash, {
+    requireSignature: plugin.tier === 'privileged',
+  });
   await verifyBundle(code, plugin.bundleHash);
   try {
     await pluginStorage.saveCode(plugin.id, code);

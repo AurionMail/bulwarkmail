@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPluginBundle, getPlugin } from '@/lib/admin/plugin-registry';
+import { getPluginBundle, getPlugin, getPluginSignature } from '@/lib/admin/plugin-registry';
 import { getDevPlugin, readDevBundle } from '@/lib/admin/plugin-dev';
 import { signBytes } from '@/lib/admin/plugin-signing';
 
@@ -65,7 +65,7 @@ export async function GET(
     };
     if (etag) headers['ETag'] = etag;
 
-    const signature = await safeSign(code);
+    const signature = await getPluginSignature(id, code);
     if (signature) headers['X-Bundle-Signature'] = signature;
 
     if (etag && request.headers.get('if-none-match') === etag) {

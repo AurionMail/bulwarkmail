@@ -171,7 +171,7 @@ describe('usePluginStore', () => {
     it('installs a new server plugin and caches its bundle', async () => {
       await usePluginStore.getState().initializePlugins();
 
-      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1', { requireSignature: false });
       expect(pluginStorage.saveCode).toHaveBeenCalledWith('managed-plugin', 'bundle-code');
       const p = usePluginStore.getState().plugins.find(x => x.id === 'managed-plugin');
       expect(p).toMatchObject({ managed: true, enabled: true, bundleHash: 'hash-v1' });
@@ -183,7 +183,7 @@ describe('usePluginStore', () => {
 
       await usePluginStore.getState().initializePlugins();
 
-      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1', { requireSignature: false });
       expect(pluginStorage.saveCode).toHaveBeenCalledWith('managed-plugin', 'bundle-code');
       expect(usePluginStore.getState().plugins).toHaveLength(1);
     });
@@ -204,7 +204,7 @@ describe('usePluginStore', () => {
 
       await usePluginStore.getState().initializePlugins();
 
-      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1', { requireSignature: false });
       expect(usePluginStore.getState().plugins[0].bundleHash).toBe('hash-v1');
     });
 

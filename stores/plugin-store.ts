@@ -476,7 +476,7 @@ async function syncServerPlugins(
 
       if (!local) {
         // New server plugin - download bundle and install.
-        const code = await downloadPluginBundle(sp.id, sp.bundleHash);
+        const code = await downloadPluginBundle(sp.id, sp.bundleHash, sp.tier);
         if (!code) continue;
         await pluginStorage.saveCode(sp.id, code);
 
@@ -521,7 +521,7 @@ async function syncServerPlugins(
         (!!sp.bundleHash && local.bundleHash !== sp.bundleHash);
 
       if (needsBundle) {
-        const code = await downloadPluginBundle(sp.id, sp.bundleHash);
+        const code = await downloadPluginBundle(sp.id, sp.bundleHash, sp.tier);
         if (!code) continue;
         await pluginStorage.saveCode(sp.id, code);
       }
@@ -572,9 +572,9 @@ async function syncServerPlugins(
  * The sandbox loader shares the same download path
  * (`lib/plugin-sandbox/bundle-fetch`) to refill a missing bundle at load time.
  */
-async function downloadPluginBundle(pluginId: string, bundleHash?: string): Promise<string | null> {
+async function downloadPluginBundle(pluginId: string, bundleHash?: string, tier?: PluginTier): Promise<string | null> {
   try {
-    return await downloadManagedBundle(pluginId, bundleHash);
+    return await downloadManagedBundle(pluginId, bundleHash, { requireSignature: tier === 'privileged' });
   } catch (err) {
     console.error(`[plugin-store] ${err instanceof Error ? err.message : String(err)}`);
     return null;

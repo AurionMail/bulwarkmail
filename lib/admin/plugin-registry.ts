@@ -205,6 +205,10 @@ export async function savePlugin(
   // Save code bundle
   const bundlePath = path.join(dir, `${plugin.id}.js`);
   await writeFile(bundlePath, code, 'utf-8');
+  // Sign now and keep the signature with the bundle. Signing at serve time
+  // would sign whatever is on disk, so a bundle file swapped after install
+  // would still verify.
+  await storePluginSignature(plugin.id, code);
 
   // Stamp content hash + updatedAt so clients can detect re-uploads even
   // when the manifest version hasn't changed. Preserve the original
@@ -249,11 +253,41 @@ export async function deletePlugin(id: string): Promise<boolean> {
   registry.plugins.splice(idx, 1);
   await writeJsonFile(pluginRegistryPath(), registry);
 
-  // Remove bundle file
-  const bundlePath = path.join(getPluginsDir(), `${id}.js`);
-  try { await unlink(bundlePath); } catch { /* ok if missing */ }
+  // Remove bundle and signature files
+  for (const file of [`${id}.js`, `${id}.sig`]) {
+    try { await unlink(path.join(getPluginsDir(), file)); } catch { /* ok if missing */ }
+  }
 
   return true;
+}
+
+async function storePluginSignature(id: string, code: string): Promise<string | null> {
+  const sigPath = path.join(getPluginsDir(), `${id}.sig`);
+  try {
+    const { signBytes } = await import('./plugin-signing');
+    const signature = await signBytes(code);
+    await writeFile(sigPath, signature, 'utf-8');
+    return signature;
+  } catch (err) {
+    // Without a key the bundle still installs; it just can't run privileged.
+    try { await unlink(sigPath); } catch { /* none */ }
+    logger.warn('[plugin-registry] could not sign plugin bundle', { id, error: err instanceof Error ? err.message : String(err) });
+    return null;
+  }
+}
+
+/**
+ * The signature made when the bundle was installed. Bundles installed before
+ * signatures were stored get one on first request (trust on first use), so
+ * a later change to the file on disk stops verifying from then on.
+ */
+export async function getPluginSignature(id: string, code: string): Promise<string | null> {
+  if (!SAFE_ID_RE.test(id)) return null;
+  try {
+    return (await readFile(path.join(getPluginsDir(), `${id}.sig`), 'utf-8')).trim() || null;
+  } catch {
+    return storePluginSignature(id, code);
+  }
 }
 
 export async function getPluginBundle(id: string): Promise<string | null> {

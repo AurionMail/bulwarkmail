@@ -104,7 +104,7 @@ describe('loadSandboxedPlugin bundle sourcing', () => {
     mocks.getCode.mockResolvedValue(null);
     mocks.downloadManagedBundle.mockResolvedValue(CODE);
     await loadSandboxedPlugin(plugin());
-    expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', HASH);
+    expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', HASH, { requireSignature: false });
     expect(mocks.saveCode).toHaveBeenCalledWith('managed-plugin', CODE);
     expect(lastStatus()).toMatchObject({ status: 'running' });
     expect(getActive('managed-plugin')?.code).toBe(CODE);
@@ -141,7 +141,7 @@ describe('loadSandboxedPlugin bundle sourcing', () => {
   it('accepts a managed bundle without a recorded hash (older records)', async () => {
     mocks.downloadManagedBundle.mockResolvedValue(CODE);
     await loadSandboxedPlugin(plugin({ bundleHash: undefined }));
-    expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', undefined);
+    expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', undefined, { requireSignature: false });
     expect(lastStatus()).toMatchObject({ status: 'running' });
   });
 
