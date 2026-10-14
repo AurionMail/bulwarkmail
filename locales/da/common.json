@@ -4365,5 +4365,16 @@
     "group_navigation": "Gå til",
     "group_actions": "Handlinger",
     "group_plugins": "Plugins"
+  },
+  "notification_center": {
+    "title": "Notifikationer",
+    "mark_all_read": "Markér alle som læst",
+    "clear": "Ryd",
+    "empty": "Ingen notifikationer",
+    "close": "Luk",
+    "unread": "Ulæst",
+    "unread_count": "{count} ulæste",
+    "level_error": "Fejl",
+    "level_warning": "Advarsel"
   }
 }

@@ -34,6 +34,7 @@ import { AccountSwitcher } from "@/components/layout/account-switcher";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { usePluginPages, pluginPageHref, isPluginPageActive } from "@/hooks/use-plugin-pages";
+import { NotificationBell } from "@/components/notifications/notification-center";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
 
 /** The top bar is not about any one item: plugin clicks carry no context. */
@@ -243,6 +244,7 @@ export function MvTopBar({
       <div className="flex-1 min-w-0" />
 
       <div className="flex items-center gap-1 shrink-0">
+        <NotificationBell placement="below" className="w-12 h-12 rounded-full" />
         {onShowShortcuts && (
           <button
             type="button"

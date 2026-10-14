@@ -4365,5 +4365,16 @@
     "group_navigation": "Przejdź do",
     "group_actions": "Działania",
     "group_plugins": "Wtyczki"
+  },
+  "notification_center": {
+    "title": "Powiadomienia",
+    "mark_all_read": "Oznacz wszystkie jako przeczytane",
+    "clear": "Wyczyść",
+    "empty": "Brak powiadomień",
+    "close": "Zamknij",
+    "unread": "Nieprzeczytane",
+    "unread_count": "Nieprzeczytane: {count}",
+    "level_error": "Błąd",
+    "level_warning": "Ostrzeżenie"
   }
 }

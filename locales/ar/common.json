@@ -4365,5 +4365,16 @@
     "group_navigation": "الانتقال إلى",
     "group_actions": "إجراءات",
     "group_plugins": "الإضافات"
+  },
+  "notification_center": {
+    "title": "الإشعارات",
+    "mark_all_read": "تعليم الكل كمقروء",
+    "clear": "مسح",
+    "empty": "لا توجد إشعارات",
+    "close": "إغلاق",
+    "unread": "غير مقروء",
+    "unread_count": "غير المقروءة: {count}",
+    "level_error": "خطأ",
+    "level_warning": "تحذير"
   }
 }

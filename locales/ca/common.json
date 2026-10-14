@@ -4365,5 +4365,16 @@
     "group_navigation": "Ves a",
     "group_actions": "Accions",
     "group_plugins": "Connectors"
+  },
+  "notification_center": {
+    "title": "Notificacions",
+    "mark_all_read": "Marca-ho tot com a llegit",
+    "clear": "Esborra",
+    "empty": "No hi ha notificacions",
+    "close": "Tanca",
+    "unread": "No llegida",
+    "unread_count": "{count} sense llegir",
+    "level_error": "Error",
+    "level_warning": "Avís"
   }
 }

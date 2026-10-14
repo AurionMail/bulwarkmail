@@ -4365,5 +4365,16 @@
     "group_navigation": "Git",
     "group_actions": "Eylemler",
     "group_plugins": "Eklentiler"
+  },
+  "notification_center": {
+    "title": "Bildirimler",
+    "mark_all_read": "Tümünü okundu işaretle",
+    "clear": "Temizle",
+    "empty": "Bildirim yok",
+    "close": "Kapat",
+    "unread": "Okunmamış",
+    "unread_count": "{count} okunmamış",
+    "level_error": "Hata",
+    "level_warning": "Uyarı"
   }
 }

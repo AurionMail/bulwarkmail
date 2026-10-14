@@ -4365,5 +4365,16 @@
     "group_navigation": "Wechseln zu",
     "group_actions": "Aktionen",
     "group_plugins": "Plugins"
+  },
+  "notification_center": {
+    "title": "Benachrichtigungen",
+    "mark_all_read": "Alle als gelesen markieren",
+    "clear": "Leeren",
+    "empty": "Keine Benachrichtigungen",
+    "close": "Schließen",
+    "unread": "Ungelesen",
+    "unread_count": "{count} ungelesen",
+    "level_error": "Fehler",
+    "level_warning": "Warnung"
   }
 }

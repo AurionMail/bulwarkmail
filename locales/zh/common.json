@@ -4365,5 +4365,16 @@
     "group_navigation": "前往",
     "group_actions": "操作",
     "group_plugins": "插件"
+  },
+  "notification_center": {
+    "title": "通知",
+    "mark_all_read": "全部标为已读",
+    "clear": "清除",
+    "empty": "没有通知",
+    "close": "关闭",
+    "unread": "未读",
+    "unread_count": "{count} 条未读",
+    "level_error": "错误",
+    "level_warning": "警告"
   }
 }

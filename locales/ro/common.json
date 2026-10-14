@@ -4365,5 +4365,16 @@
     "group_navigation": "Mergi la",
     "group_actions": "Acțiuni",
     "group_plugins": "Pluginuri"
+  },
+  "notification_center": {
+    "title": "Notificări",
+    "mark_all_read": "Marchează toate ca citite",
+    "clear": "Golește",
+    "empty": "Nicio notificare",
+    "close": "Închide",
+    "unread": "Necitită",
+    "unread_count": "Necitite: {count}",
+    "level_error": "Eroare",
+    "level_warning": "Avertisment"
   }
 }

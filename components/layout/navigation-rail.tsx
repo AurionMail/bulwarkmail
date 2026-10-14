@@ -28,6 +28,7 @@ import { getPathPrefix, withBasePath } from "@/lib/browser-navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { toUnicodeEmail } from "@/lib/idn";
 import { usePluginPages, pluginPageHref, isPluginPageActive } from "@/hooks/use-plugin-pages";
+import { NotificationBell } from "@/components/notifications/notification-center";
 
 interface NavItem {
   id: string;
@@ -709,6 +710,8 @@ export function NavigationRail({
             )}
           </a>
         )}
+
+        <NotificationBell placement="side" className="w-10 h-10 rounded-md" />
 
         <Link
           href="/settings"

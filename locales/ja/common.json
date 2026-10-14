@@ -4365,5 +4365,16 @@
     "group_navigation": "移動",
     "group_actions": "操作",
     "group_plugins": "プラグイン"
+  },
+  "notification_center": {
+    "title": "通知",
+    "mark_all_read": "すべて既読にする",
+    "clear": "クリア",
+    "empty": "通知はありません",
+    "close": "閉じる",
+    "unread": "未読",
+    "unread_count": "未読 {count} 件",
+    "level_error": "エラー",
+    "level_warning": "警告"
   }
 }

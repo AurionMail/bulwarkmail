@@ -4365,5 +4365,16 @@
     "group_navigation": "Перейти",
     "group_actions": "Действия",
     "group_plugins": "Плагины"
+  },
+  "notification_center": {
+    "title": "Уведомления",
+    "mark_all_read": "Отметить все как прочитанные",
+    "clear": "Очистить",
+    "empty": "Нет уведомлений",
+    "close": "Закрыть",
+    "unread": "Непрочитанное",
+    "unread_count": "Непрочитанных: {count}",
+    "level_error": "Ошибка",
+    "level_warning": "Предупреждение"
   }
 }

@@ -4365,5 +4365,16 @@
     "group_navigation": "Gå til",
     "group_actions": "Handlinger",
     "group_plugins": "Tillegg"
+  },
+  "notification_center": {
+    "title": "Varsler",
+    "mark_all_read": "Merk alle som lest",
+    "clear": "Tøm",
+    "empty": "Ingen varsler",
+    "close": "Lukk",
+    "unread": "Ulest",
+    "unread_count": "{count} uleste",
+    "level_error": "Feil",
+    "level_warning": "Advarsel"
   }
 }

@@ -4365,5 +4365,16 @@
     "group_navigation": "Pāriet uz",
     "group_actions": "Darbības",
     "group_plugins": "Spraudņi"
+  },
+  "notification_center": {
+    "title": "Paziņojumi",
+    "mark_all_read": "Atzīmēt visus kā lasītus",
+    "clear": "Notīrīt",
+    "empty": "Nav paziņojumu",
+    "close": "Aizvērt",
+    "unread": "Nelasīts",
+    "unread_count": "Nelasīti: {count}",
+    "level_error": "Kļūda",
+    "level_warning": "Brīdinājums"
   }
 }

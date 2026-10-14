@@ -4365,5 +4365,16 @@
     "group_navigation": "Очих",
     "group_actions": "Үйлдлүүд",
     "group_plugins": "Залгаасууд"
+  },
+  "notification_center": {
+    "title": "Мэдэгдэл",
+    "mark_all_read": "Бүгдийг уншсан болгох",
+    "clear": "Цэвэрлэх",
+    "empty": "Мэдэгдэл алга",
+    "close": "Хаах",
+    "unread": "Уншаагүй",
+    "unread_count": "Уншаагүй: {count}",
+    "level_error": "Алдаа",
+    "level_warning": "Анхааруулга"
   }
 }

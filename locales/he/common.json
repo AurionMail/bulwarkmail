@@ -4366,5 +4366,16 @@
     "group_navigation": "מעבר אל",
     "group_actions": "פעולות",
     "group_plugins": "תוספים"
+  },
+  "notification_center": {
+    "title": "התראות",
+    "mark_all_read": "סימון הכול כנקרא",
+    "clear": "ניקוי",
+    "empty": "אין התראות",
+    "close": "סגירה",
+    "unread": "לא נקרא",
+    "unread_count": "לא נקראו: {count}",
+    "level_error": "שגיאה",
+    "level_warning": "אזהרה"
   }
 }

@@ -6,6 +6,7 @@ import type { InstalledPlugin, NotificationInput } from '../plugin-types';
 import { toast as appToast } from '@/stores/toast-store';
 import { toastHooks } from '../plugin-hooks';
 import { readObject, readString, withinRate } from './host-api-input';
+import { recordNotification } from '@/stores/notification-center-store';
 
 export const MAX_NOTIFICATION_TITLE = 120;
 export const MAX_NOTIFICATION_BODY = 300;
@@ -39,6 +40,9 @@ export function doNotificationsShow(plugin: InstalledPlugin, input: unknown): 's
   }
 
   const source = plugin.name || plugin.id;
+  // Also listed in the app's notification panel (the bell), where a click
+  // reaches the plugin the same way as a click on the system notification.
+  recordNotification({ level: 'info', title, body, pluginId: plugin.id, pluginName: source, ...(tag ? { tag } : {}) });
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     try {
       const notification = new Notification(title, {

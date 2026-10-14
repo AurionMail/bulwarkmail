@@ -4365,5 +4365,16 @@
     "group_navigation": "前往",
     "group_actions": "動作",
     "group_plugins": "外掛程式"
+  },
+  "notification_center": {
+    "title": "通知",
+    "mark_all_read": "全部標示為已讀",
+    "clear": "清除",
+    "empty": "沒有通知",
+    "close": "關閉",
+    "unread": "未讀",
+    "unread_count": "{count} 則未讀",
+    "level_error": "錯誤",
+    "level_warning": "警告"
   }
 }

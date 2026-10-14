@@ -4365,5 +4365,16 @@
     "group_navigation": "رفتن به",
     "group_actions": "کارها",
     "group_plugins": "افزونه‌ها"
+  },
+  "notification_center": {
+    "title": "اعلان‌ها",
+    "mark_all_read": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
+    "clear": "پاک کردن",
+    "empty": "اعلانی نیست",
+    "close": "بستن",
+    "unread": "خوانده‌نشده",
+    "unread_count": "{count} خوانده‌نشده",
+    "level_error": "خطا",
+    "level_warning": "هشدار"
   }
 }

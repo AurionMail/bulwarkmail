@@ -56,8 +56,11 @@ describe('phone header', () => {
     render(<MobileHeader title="Inbox" />);
     fireEvent.click(screen.getByRole('button', { name: 'more' }));
 
-    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['title']);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'title' }));
+    // Notifications and the command palette (both labelled "title" here, as
+    // the translations are keys in tests); no plugin entries.
+    const items = screen.getAllByRole('menuitem');
+    expect(items.map((m) => m.textContent)).toEqual(['title', 'title']);
+    fireEvent.click(items[1]);
     expect(opened).toHaveBeenCalled();
     window.removeEventListener('bulwark:command-palette', opened);
   });

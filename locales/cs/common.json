@@ -4365,5 +4365,16 @@
     "group_navigation": "Přejít na",
     "group_actions": "Akce",
     "group_plugins": "Pluginy"
+  },
+  "notification_center": {
+    "title": "Oznámení",
+    "mark_all_read": "Označit vše jako přečtené",
+    "clear": "Vymazat",
+    "empty": "Žádná oznámení",
+    "close": "Zavřít",
+    "unread": "Nepřečtené",
+    "unread_count": "Nepřečtené: {count}",
+    "level_error": "Chyba",
+    "level_warning": "Upozornění"
   }
 }

@@ -4365,5 +4365,16 @@
     "group_navigation": "이동",
     "group_actions": "작업",
     "group_plugins": "플러그인"
+  },
+  "notification_center": {
+    "title": "알림",
+    "mark_all_read": "모두 읽음으로 표시",
+    "clear": "지우기",
+    "empty": "알림이 없습니다",
+    "close": "닫기",
+    "unread": "읽지 않음",
+    "unread_count": "읽지 않음 {count}개",
+    "level_error": "오류",
+    "level_warning": "경고"
   }
 }

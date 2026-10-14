@@ -4365,5 +4365,16 @@
     "group_navigation": "Ugrás ide",
     "group_actions": "Műveletek",
     "group_plugins": "Bővítmények"
+  },
+  "notification_center": {
+    "title": "Értesítések",
+    "mark_all_read": "Összes megjelölése olvasottként",
+    "clear": "Törlés",
+    "empty": "Nincsenek értesítések",
+    "close": "Bezárás",
+    "unread": "Olvasatlan",
+    "unread_count": "{count} olvasatlan",
+    "level_error": "Hiba",
+    "level_warning": "Figyelmeztetés"
   }
 }
