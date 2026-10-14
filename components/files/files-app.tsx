@@ -357,7 +357,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     if (!confirmed) return;
 
     try {
-      await deleteResource(name);
+      if (!await deleteResource(name)) return;
       toast.success(t("delete_success"));
     } catch (err) {
       console.error("Failed to delete:", err);
@@ -375,7 +375,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     if (!confirmed) return;
 
     try {
-      await deleteResources(names);
+      if (!await deleteResources(names)) return;
       toast.success(t("batch_delete_success", { count: names.length }));
     } catch (err) {
       console.error("Failed to batch delete:", err);
@@ -395,7 +395,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const handleRename = useCallback(async (oldName: string, newName: string) => {
     try {
-      await renameResource(oldName, newName);
+      if (!await renameResource(oldName, newName)) return;
       toast.success(t("rename_success"), {
         action: { label: t("undo"), onClick: handleUndo },
       });
@@ -451,7 +451,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const handleMoveTo = useCallback(async (names: string[], targetId: string | null) => {
     try {
-      await moveToFolderId(names, targetId);
+      if (!await moveToFolderId(names, targetId)) return;
       toast.success(t("move_success", { count: names.length }), {
         action: { label: t("undo"), onClick: handleUndo },
       });
@@ -463,7 +463,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const handlePaste = useCallback(async () => {
     try {
-      await pasteResources();
+      if (!await pasteResources()) return;
       toast.success(t("paste_success"), {
         action: lastAction ? { label: t("undo"), onClick: handleUndo } : undefined,
       });
@@ -485,7 +485,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const handleRenameNode = useCallback(async (id: string, newName: string) => {
     try {
-      await renameNode(id, newName);
+      if (!await renameNode(id, newName)) return;
       toast.success(t("rename_success"), {
         action: { label: t("undo"), onClick: handleUndo },
       });
@@ -504,7 +504,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     });
     if (!confirmed) return;
     try {
-      await deleteNode(id);
+      if (!await deleteNode(id)) return;
       toast.success(t("delete_success"));
     } catch (err) {
       console.error("Failed to delete:", err);
