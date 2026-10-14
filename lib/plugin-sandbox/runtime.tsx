@@ -538,6 +538,12 @@ function buildPluginApi(manifest: PluginManifest) {
       /** Full pages with a button in the navigation bar; the `app-page` slot renders them. */
       setPages: (pages: Array<{ id: string; title: string; icon?: string }>) =>
         callApi('ui.setPages', [pages]) as Promise<void>,
+      /**
+       * The header of this plugin's sidebar section (the host draws it like
+       * Folders and Tags), e.g. a translated "Upcoming birthdays". null goes
+       * back to the plugin's name. At most 40 characters.
+       */
+      setSectionTitle: (title: string | null) => callApi('ui.setSectionTitle', [title]) as Promise<void>,
     },
     // Requests with an account or key the manifest declares under
     // `credentials`; the server adds the secret (permission http:proxy).

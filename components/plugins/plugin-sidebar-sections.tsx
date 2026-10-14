@@ -3,6 +3,7 @@
 import { useId, useMemo, useState, useSyncExternalStore } from 'react';
 import { ChevronDown, ChevronRight } from '@/components/icons';
 import { get as getActivePlugin, offersForSlot, subscribe } from '@/lib/plugin-sandbox/registry';
+import { sectionTitle, subscribeSectionTitles } from '@/lib/plugin-sandbox/section-titles';
 import { PluginIframeSlot } from './plugin-iframe-slot';
 
 const STORAGE_PREFIX = 'plugin-sidebar-section-collapsed:';
@@ -27,7 +28,8 @@ function writeCollapsed(pluginId: string, collapsed: boolean): void {
 function PluginSidebarSection({ pluginId, extraProps }: { pluginId: string; extraProps: Record<string, unknown> }) {
   const [collapsed, setCollapsed] = useState(() => readCollapsed(pluginId));
   const bodyId = useId();
-  const name = getActivePlugin(pluginId)?.plugin.name || pluginId;
+  const title = useSyncExternalStore(subscribeSectionTitles, () => sectionTitle(pluginId), () => undefined);
+  const name = title || getActivePlugin(pluginId)?.plugin.name || pluginId;
 
   const toggle = () => {
     setCollapsed((prev) => {
@@ -63,7 +65,8 @@ function PluginSidebarSection({ pluginId, extraProps }: { pluginId: string; extr
 
 /**
  * The `sidebar-section` slot: one collapsible section per plugin in the mail
- * sidebar, below the folders and tags. The header carries the plugin's name;
+ * sidebar, below the folders and tags. The header carries the title the plugin
+ * set (api.ui.setSectionTitle), or its name;
  * whether it is folded is remembered per plugin in this browser.
  */
 export function PluginSidebarSections({ mailboxId }: { mailboxId: string | null }) {

@@ -52,6 +52,7 @@ import {
 import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } from './host-api-input';
 import { doComposeOpen, doComposeReply, doDraftsCreate } from './host-api-compose';
 import { doNotificationsShow } from './host-api-notify';
+import { setSectionTitle } from './section-titles';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
 
 /**
@@ -208,6 +209,7 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'ui.refreshRowBadges': null,
   'ui.setDayLabels': 'ui:calendar-action',
   'ui.setPages': 'ui:app-page',
+  'ui.setSectionTitle': 'ui:sidebar-widget',
   // sieve (delivery-time classification)
   'sieve.isSupported': 'filters:read',
   'sieve.getActiveScript': 'filters:read',
@@ -1735,6 +1737,7 @@ export async function dispatchApiCall(
     case 'ui.refreshRowBadges': refreshRowBadges(); return undefined;
     case 'ui.setDayLabels': setDayLabels(plugin.id, plugin.name, checkDayLabels(args[0])); return undefined;
     case 'ui.setPages': setPluginPages(plugin.id, plugin.name, checkPages(args[0])); return undefined;
+    case 'ui.setSectionTitle': setSectionTitle(plugin.id, args[0]); return undefined;
 
     case 'storage.get': return storageGet(plugin.id, args[0] as string);
     case 'storage.set': storageSet(plugin.id, args[0] as string, args[1]); return undefined;

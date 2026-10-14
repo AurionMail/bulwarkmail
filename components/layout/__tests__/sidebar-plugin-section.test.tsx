@@ -24,6 +24,8 @@ vi.mock('../account-switcher', () => ({ AccountSwitcher: () => null }));
 
 const { Sidebar } = await import('../sidebar');
 const registry = await import('@/lib/plugin-sandbox/registry');
+const { dispatchApiCall } = await import('@/lib/plugin-sandbox/host-api');
+const { clearSectionTitle } = await import('@/lib/plugin-sandbox/section-titles');
 
 const mailboxes: Mailbox[] = [
   { id: 'inbox', name: 'Inbox', role: 'inbox', parentId: null, totalEmails: 0, unreadEmails: 0, myRights: { mayAddItems: true } },
@@ -52,6 +54,7 @@ beforeEach(() => {
 
 afterEach(() => {
   for (const p of registry.all()) registry.deregister(p.plugin.id);
+  clearSectionTitle('cal');
 });
 
 describe('Sidebar plugin sections', () => {
@@ -95,5 +98,22 @@ describe('Sidebar plugin sections', () => {
     expect(screen.getByRole('button', { name: 'Agenda' })).toHaveAttribute('aria-expanded', 'false');
     await new Promise((r) => setTimeout(r, 20));
     expect(createSlotInstance).not.toHaveBeenCalled();
+  });
+
+  it('heads a section with the title the plugin set, and with its name again after null', async () => {
+    offer('cal', 'Agenda', 'sidebar-section');
+    render(<Sidebar mailboxes={mailboxes} selectedMailbox="inbox" />);
+    const plugin = registry.get('cal')!.plugin;
+
+    await act(async () => { await dispatchApiCall(plugin, 'ui.setSectionTitle', ['Upcoming birthdays']); });
+    expect(screen.getByRole('button', { name: 'Upcoming birthdays' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Agenda' })).toBeNull();
+
+    await expect(dispatchApiCall(plugin, 'ui.setSectionTitle', ['x'.repeat(41)])).rejects.toThrow(/at most 40/);
+    await act(async () => { await dispatchApiCall(plugin, 'ui.setSectionTitle', [null]); });
+    expect(screen.getByRole('button', { name: 'Agenda' })).toBeInTheDocument();
+
+    const noPerm = { ...plugin, id: 'other', permissions: [], grantedPermissions: [] };
+    await expect(dispatchApiCall(noPerm, 'ui.setSectionTitle', ['Mine'])).rejects.toThrow(/lacks permission "ui:sidebar-widget"/);
   });
 });

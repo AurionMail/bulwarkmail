@@ -25,6 +25,7 @@ import { mayOfferSlot, mayRegisterHook, pluginHasPermission, slotPropsFor } from
 import { clearPluginActions, setActionDispatcher } from './actions';
 import { clearDayLabels } from './day-labels';
 import { clearPluginPages } from './pages';
+import { clearSectionTitle } from './section-titles';
 import { cancelPluginProxyRequests } from './proxy-client';
 import { cancelConnectFor } from './connect-dialog';
 import type { SlotName } from '../plugin-types';
@@ -295,6 +296,7 @@ export function unloadSandboxedPlugin(pluginId: string): void {
   clearPluginActions(pluginId);
   clearDayLabels(pluginId);
   clearPluginPages(pluginId);
+  clearSectionTitle(pluginId);
   cancelPluginProxyRequests(pluginId);
   cancelConnectFor(pluginId);
   try { entry.background.destroy(); } catch { /* ignore */ }
