@@ -324,6 +324,22 @@ function getDefaultScheduleValue(): string {
 // the body instead (#1114).
 const PINNED_FIELDS_MIN_BODY_HEIGHT = 200;
 
+/**
+ * An attachment a plugin uploaded itself, as the composer stores it, or null
+ * when the plugin sent something that isn't one.
+ */
+export function normalizePluginAttachment(raw: unknown): { name: string; type: string; size: number; blobId: string } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.blobId !== 'string' || !/^[A-Za-z0-9_-]{1,255}$/.test(r.blobId)) return null;
+  if (typeof r.size !== 'number' || !Number.isFinite(r.size) || r.size < 0) return null;
+  // eslint-disable-next-line no-control-regex -- removing control characters is the point
+  const name = typeof r.name === 'string' ? r.name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 255) : '';
+  if (!name) return null;
+  const type = typeof r.type === 'string' && /^[\w.+-]+\/[\w.+-]+$/.test(r.type) ? r.type : 'application/octet-stream';
+  return { name, type, size: Math.floor(r.size), blobId: r.blobId };
+}
+
 export function EmailComposer({
   onSend,
   onScheduledSendCreated,
@@ -1936,17 +1952,27 @@ export function EmailComposer({
   // offers "attach from there". No `file` is set, matching the existing
   // draft-part hydration path above (a blobId-only attachment is already a
   // supported shape, just never previously reachable from a plugin).
-  const handlePluginAttachmentAdd = useCallback((upload: PluginAttachmentUpload) => {
-    setAttachments(prev => [
-      ...prev,
-      {
-        name: upload.name,
-        type: upload.type,
-        size: upload.size,
-        blobId: upload.blobId,
-      },
-    ]);
-  }, []);
+  const handlePluginAttachmentAdd = useCallback(async (raw: PluginAttachmentUpload): Promise<boolean> => {
+    // The values come from a plugin: check them, and run the same intercept
+    // and size limit every other way of attaching a file goes through.
+    const upload = normalizePluginAttachment(raw);
+    if (!upload) {
+      debug.warn('email', 'Refused a malformed attachment from a plugin', raw);
+      return false;
+    }
+    const ok = await emailHooks.onBeforeAttachmentUpload.intercept({
+      name: upload.name, type: upload.type, size: upload.size,
+    });
+    if (!ok) return false;
+    const maxTotal = composerClient?.getMaxSizeAttachmentsPerEmail?.() ?? 0;
+    const total = attachmentsRef.current.reduce((sum, att) => sum + (att.size || 0), 0);
+    if (maxTotal > 0 && total + upload.size > maxTotal) {
+      toast.error(t('attachments_total_too_large', { max: formatFileSize(maxTotal) }));
+      return false;
+    }
+    setAttachments(prev => [...prev, upload]);
+    return true;
+  }, [composerClient, t]);
   // Stable props, so a re-render of the composer doesn't post them to the
   // plugin's iframe again.
   const pluginAttachmentSourceProps = useMemo(() => ({ onAttach: handlePluginAttachmentAdd }), [handlePluginAttachmentAdd]);

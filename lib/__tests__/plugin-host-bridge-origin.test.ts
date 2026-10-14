@@ -111,3 +111,16 @@ describe('slot sizing', () => {
     expect(inst.iframe.style.width).toBe('100%');
   });
 });
+
+describe('shouldShow context', () => {
+  it('leaves host callbacks out instead of failing to post them', async () => {
+    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    instances.push(inst);
+    const sent = vi.spyOn(inst.iframe.contentWindow!, 'postMessage');
+
+    void inst.evaluateShouldShow('composer-attachment-source', { onAttach: () => {}, nested: { cb: () => {}, n: 1 } });
+
+    const msg = sent.mock.calls.map(([m]) => m as { type: string; context?: unknown }).find((m) => m.type === 'slot-should-show');
+    expect(msg?.context).toEqual({ nested: { n: 1 } });
+  });
+});

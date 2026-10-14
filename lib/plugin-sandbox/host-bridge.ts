@@ -327,7 +327,10 @@ export class SandboxInstance {
     const p = new Promise<boolean>((resolve) => {
       this.pendingShouldShow.set(id, resolve);
     });
-    this.send({ type: 'slot-should-show', id, slot, context });
+    // shouldShow only decides; it gets the data, not the host callbacks.
+    // Functions can't be posted at all - sending them threw and took the
+    // composer or event form down with it.
+    this.send({ type: 'slot-should-show', id, slot, context: withoutFunctions(context) });
     return p;
   }
 
@@ -370,6 +373,19 @@ export class SandboxInstance {
     this.pendingShouldShow.clear();
     this.callbackTable.clear();
   }
+}
+
+/** Copy of a props object with every function left out. */
+export function withoutFunctions(value: unknown, depth = 0): unknown {
+  if (depth > 6 || typeof value === 'function') return undefined;
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((v) => withoutFunctions(v, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof v === 'function') continue;
+    out[k] = withoutFunctions(v, depth + 1);
+  }
+  return out;
 }
 
 function uid(): string {

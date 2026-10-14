@@ -19,6 +19,10 @@ vi.mock('@/components/email/rich-text-editor', () => ({
 vi.mock('@/hooks/use-plugin-slot-offers', () => ({
   usePluginSlotOffers: (slot: string) => (slot === 'composer-attachment-source' ? [{ pluginId: 'p', order: 100 }] : []),
 }));
+const attachState = vi.hoisted(() => ({
+  next: { blobId: 'cloud-blob-1', name: 'vacation.jpg', type: 'image/jpeg', size: 42_000 } as Record<string, unknown>,
+  allow: true,
+}));
 vi.mock('@/components/plugins/plugin-slot', () => ({
   PluginSlot: ({ name, extraProps }: { name: string; extraProps?: Record<string, unknown> }) => {
     if (name !== 'composer-attachment-source') return null;
@@ -30,8 +34,7 @@ vi.mock('@/components/plugins/plugin-slot', () => ({
       {
         type: 'button',
         'data-testid': 'fake-cloud-storage-plugin',
-        onClick: () =>
-          onAttach?.({ blobId: 'cloud-blob-1', name: 'vacation.jpg', type: 'image/jpeg', size: 42_000 }),
+        onClick: () => onAttach?.(attachState.next as never),
       },
       'Attach from cloud storage',
     );
@@ -169,6 +172,7 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onBeforeEmailSend: { intercept: async () => true, interceptOutcome: async () => 'allowed' },
     onComposeSend: { takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
+    onBeforeAttachmentUpload: { intercept: async () => attachState.allow },
   },
   contactHooks: {
     search: { call: async () => [] },
@@ -212,6 +216,29 @@ describe('composer-attachment-source plugin slot', () => {
   afterEach(() => {
     useAuthStore.setState({ client: null });
     vi.clearAllMocks();
+    attachState.next = { blobId: 'cloud-blob-1', name: 'vacation.jpg', type: 'image/jpeg', size: 42_000 };
+    attachState.allow = true;
+  });
+
+  it('ignores something from a plugin that is not an attachment', async () => {
+    attachState.next = { blobId: 'not a blob id', name: 'evil.jpg', type: 'image/jpeg', size: 1 };
+    render(<EmailComposer onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('fake-cloud-storage-plugin'));
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText('evil.jpg')).not.toBeInTheDocument();
+  });
+
+  it('applies the same attachment checks as a local file', async () => {
+    // A plugin's onBeforeAttachmentUpload guard used to be skipped here.
+    attachState.allow = false;
+    render(<EmailComposer onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('fake-cloud-storage-plugin'));
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText('vacation.jpg')).not.toBeInTheDocument();
   });
 
   it('adds a plugin-supplied blob as an attachment chip when onAttach is called', async () => {
@@ -235,7 +262,7 @@ describe('composer-attachment-source plugin slot', () => {
 
     render(<EmailComposer onClose={vi.fn()} />);
     fireEvent.click(screen.getByTestId('fake-cloud-storage-plugin'));
-    expect(screen.getByText('vacation.jpg')).toBeInTheDocument();
+    expect(await screen.findByText('vacation.jpg')).toBeInTheDocument();
 
     // Fake timers only from here on - the autosave debounce below needs
     // vi.advanceTimersByTimeAsync, but findBy*'s own internal polling (not
