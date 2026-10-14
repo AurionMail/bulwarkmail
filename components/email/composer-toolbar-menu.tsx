@@ -2,7 +2,9 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronDown, type AppIcon } from "@/components/icons";
+import { Check, ChevronDown, iconForName, Puzzle, type AppIcon } from "@/components/icons";
+import { usePluginActions } from "@/components/plugins/plugin-actions";
+import { runAction } from "@/lib/plugin-sandbox/actions";
 import { cn } from "@/lib/utils";
 
 interface ComposerToolbarMenuProps {
@@ -136,5 +138,49 @@ export function ComposerToolbarMenuCheckItem({ checked, onToggle, description, t
         {description && <span className="block text-xs text-muted-foreground">{description}</span>}
       </span>
     </button>
+  );
+}
+
+interface PluginItemsProps {
+  /** A surface of kind 'action' in lib/plugin-slot-catalog.ts. */
+  surface: string;
+  /** What the click is about; a function is read at click time. */
+  context: Record<string, unknown> | (() => Record<string, unknown>);
+  /** Called before the plugin gets the click, e.g. to close the menu. */
+  onSelect?: () => void;
+  /** Draw a separator before the entries (when the menu has its own above). */
+  separator?: boolean;
+}
+
+/** Entries plugins declared for a composer menu, drawn like the menu's own. */
+export function ComposerPluginMenuItems({ surface, context, onSelect, separator }: PluginItemsProps) {
+  const actions = usePluginActions(surface);
+  if (actions.length === 0) return null;
+  return (
+    <>
+      {separator && <div role="separator" className="my-1 h-px bg-border" />}
+      {actions.map((action) => {
+        const Icon = iconForName(action.icon) ?? Puzzle;
+        return (
+          <button
+            key={`${action.pluginId}:${action.id}`}
+            type="button"
+            role="menuitem"
+            title={action.pluginName}
+            onClick={() => {
+              onSelect?.();
+              void runAction(action, surface, typeof context === "function" ? context() : context);
+            }}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground",
+              action.danger && "text-destructive",
+            )}
+          >
+            <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1">{action.label}</span>
+          </button>
+        );
+      })}
+    </>
   );
 }
