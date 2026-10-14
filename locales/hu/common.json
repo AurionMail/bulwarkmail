@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Címkék és jelölők módosítása a leveleiden",
-        "body": "Címkéket, jelölőket és más kulcsszavakat ad hozzá az üzeneteidhez, vagy eltávolítja őket."
+        "body": "Címkéket, jelölőket és más kulcsszavakat ad hozzá az üzeneteidhez, vagy eltávolítja őket, és piszkozatokat ment."
       },
       "email_send": {
         "title": "Levelek módosítása küldés előtt",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Tudomást szerez az alkalmazás indulásáról és leállásáról",
         "body": "Értesül, amikor az alkalmazás elindul, offline módba vált, vagy kijelentkezel."
+      },
+      "compose_open": {
+        "title": "A szerkesztő megnyitása",
+        "body": "Új üzenetet nyit meg kitöltött címzettekkel, szöveggel vagy mellékletekkel. Az elküldésről továbbra is te döntesz."
       }
     },
     "dialog": {

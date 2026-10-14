@@ -31,7 +31,7 @@ import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  CalendarEventInput, CalendarEventView, CalendarView, EmailReadView, EmailSummary, IdentityPatch,
+  CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView, EmailSummary, IdentityPatch,
   IdentityView, MailboxView, SlotName, TaskInput, TaskView, TemplateInput, TemplateView, VacationInput,
   VacationView,
 } from '../plugin-types';
@@ -458,6 +458,27 @@ function buildPluginApi(manifest: PluginManifest) {
         callApi('email.setKeyword', [emailId, keyword, accountId]) as Promise<void>,
       removeKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.removeKeyword', [emailId, keyword, accountId]) as Promise<void>,
+    },
+    // The composer (permission: compose:open). Opens it filled in; the user
+    // reviews the message and decides whether to send it.
+    compose: {
+      /**
+       * Open the composer with these fields. On the mail page it opens in
+       * place; anywhere else the app first goes to the mail page (the
+       * plugin is reloaded with it). Resolves to 'opened' or 'navigating'.
+       * At most 5 times a minute.
+       */
+      open: (message: ComposeInput) => callApi('compose.open', [message]) as Promise<'opened' | 'navigating'>,
+    },
+    // Drafts (permission: email:write).
+    drafts: {
+      /**
+       * Save a draft in the Drafts folder, from the user's default sender
+       * address, without opening the composer. Attachments are blobs the
+       * plugin uploaded with api.jmap.uploadBlob. Resolves to the draft's
+       * email id. At most 10 a minute.
+       */
+      create: (draft: DraftInput) => callApi('drafts.create', [draft]) as Promise<string>,
     },
     // Folders (permission: email:read).
     mailboxes: {

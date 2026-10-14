@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Endre etiketter og flagg på e-posten din",
-        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine."
+        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine, og lagre utkast."
       },
       "email_send": {
         "title": "Endre e-post før den sendes",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Vite når appen starter og stopper",
         "body": "Få beskjed når appen starter, går frakoblet eller du logger ut."
+      },
+      "compose_open": {
+        "title": "Åpne meldingsvinduet for deg",
+        "body": "Åpne en ny melding med mottakere, tekst eller vedlegg fylt ut. Du bestemmer fortsatt om den skal sendes."
       }
     },
     "dialog": {

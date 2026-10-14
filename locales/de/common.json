@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Labels und Markierungen Ihrer E-Mails ändern",
-        "body": "Labels, Markierungen und andere Schlüsselwörter an Ihren Nachrichten hinzufügen oder entfernen."
+        "body": "Labels, Markierungen und andere Schlüsselwörter an Ihren Nachrichten hinzufügen oder entfernen und Entwürfe speichern."
       },
       "email_send": {
         "title": "E-Mails vor dem Senden ändern",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Erfahren, wann die App startet und beendet wird",
         "body": "Benachrichtigt werden, wenn die App startet, offline geht oder Sie sich abmelden."
+      },
+      "compose_open": {
+        "title": "Den Editor für Sie öffnen",
+        "body": "Eine neue Nachricht mit bereits ausgefüllten Empfängern, Text oder Anhängen öffnen. Ob sie gesendet wird, entscheiden weiterhin Sie."
       }
     },
     "dialog": {

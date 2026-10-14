@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "E-postalarınızdaki etiketleri ve bayrakları değiştirme",
-        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma."
+        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma ve taslak kaydetme."
       },
       "email_send": {
         "title": "Gönderilmeden önce iletileri değiştirme",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Uygulamanın başladığını ve durduğunu bilme",
         "body": "Uygulama başladığında, çevrimdışı olduğunda veya çıkış yaptığınızda haber alma."
+      },
+      "compose_open": {
+        "title": "İleti düzenleyiciyi açma",
+        "body": "Alıcıları, metni veya ekleri doldurulmuş yeni bir ileti açma. Gönderip göndermemeye yine siz karar verirsiniz."
       }
     },
     "dialog": {

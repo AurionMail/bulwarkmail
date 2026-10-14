@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Canviar les etiquetes i marques del correu",
-        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges."
+        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges, i desar esborranys."
       },
       "email_send": {
         "title": "Canviar el correu abans d'enviar-lo",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Saber quan l'aplicació s'inicia i s'atura",
         "body": "Rebre un avís quan l'aplicació s'inicia, es queda sense connexió o tanqueu la sessió."
+      },
+      "compose_open": {
+        "title": "Obrir el redactor per a vós",
+        "body": "Obrir un missatge nou amb els destinataris, el text o els adjunts ja emplenats. Sou vós qui decidiu si s'envia."
       }
     },
     "dialog": {

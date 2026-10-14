@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Zmiana etykiet i flag w poczcie",
-        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach."
+        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach oraz zapisuje szkice."
       },
       "email_send": {
         "title": "Zmiana poczty przed wysłaniem",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Informacja o uruchomieniu i zamknięciu aplikacji",
         "body": "Otrzymuje informację, gdy aplikacja się uruchamia, przechodzi w tryb offline lub gdy się wylogowujesz."
+      },
+      "compose_open": {
+        "title": "Otwieranie edytora wiadomości",
+        "body": "Otwiera nową wiadomość z wypełnionymi odbiorcami, treścią lub załącznikami. O wysłaniu nadal decydujesz Ty."
       }
     },
     "dialog": {

@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Mainīt vēstuļu tagus un karodziņus",
-        "body": "Pievienot vai noņemt tagus, karodziņus un citus atslēgvārdus jūsu vēstulēm."
+        "body": "Pievienot vai noņemt tagus, karodziņus un citus atslēgvārdus jūsu vēstulēm un saglabāt melnrakstus."
       },
       "email_send": {
         "title": "Mainīt vēstules pirms nosūtīšanas",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Zināt, kad lietotne startē un apstājas",
         "body": "Saņemt ziņu, kad lietotne startē, pāriet bezsaistē vai jūs izrakstāties."
+      },
+      "compose_open": {
+        "title": "Atvērt redaktoru jūsu vietā",
+        "body": "Atvērt jaunu vēstuli ar jau aizpildītiem adresātiem, tekstu vai pielikumiem. Vai to nosūtīt, joprojām izlemjat jūs."
       }
     },
     "dialog": {

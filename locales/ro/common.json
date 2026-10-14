@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Modificarea etichetelor și marcajelor e-mailurilor",
-        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs."
+        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs. și salvează ciorne."
       },
       "email_send": {
         "title": "Modificarea e-mailurilor înainte de trimitere",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Aflarea momentului pornirii și opririi aplicației",
         "body": "Este anunțat când aplicația pornește, trece offline sau vă deconectați."
+      },
+      "compose_open": {
+        "title": "Deschiderea ferestrei de redactare",
+        "body": "Deschide un mesaj nou cu destinatarii, textul sau atașamentele deja completate. Dvs. decideți în continuare dacă îl trimiteți."
       }
     },
     "dialog": {

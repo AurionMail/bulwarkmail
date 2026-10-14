@@ -686,6 +686,40 @@ export interface VacationInput {
   toDate?: string | null;
 }
 
+/**
+ * A file the plugin uploaded with `api.jmap.uploadBlob`, to attach to a
+ * message it opens or saves.
+ */
+export interface BlobAttachmentRef {
+  blobId: string;
+  /** 1-255 characters. */
+  name: string;
+  /** A media type such as application/pdf. */
+  type: string;
+  /** Bytes. */
+  size: number;
+}
+
+/**
+ * What a plugin passes to `api.compose.open`. Addresses are
+ * `a@example.com` or `Name <a@example.com>`; at most 100 recipients and 20
+ * attachments.
+ */
+export interface ComposeInput {
+  to?: string[];
+  cc?: string[];
+  bcc?: string[];
+  /** One line, up to 998 characters. */
+  subject?: string;
+  /** Up to 512 KB. Plain text unless isHtml; HTML is sanitised. */
+  body?: string;
+  isHtml?: boolean;
+  attachments?: BlobAttachmentRef[];
+}
+
+/** What a plugin passes to `api.drafts.create`: the same fields as ComposeInput. */
+export type DraftInput = ComposeInput;
+
 export interface FilterRuleView {
   id: string;
   name: string;
@@ -1199,6 +1233,9 @@ export const ALL_PERMISSIONS = [
   'email:blob-write',
   // Replace the rendered body of an opened email (render-takeover).
   'email:render-takeover',
+  // Open the composer filled in (api.compose.open). Low risk: the user still
+  // has to press Send.
+  'compose:open',
   'calendar:read', 'calendar:write',
   'contacts:read', 'contacts:write',
   'files:read', 'files:write',

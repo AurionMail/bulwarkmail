@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Ændre tags og markeringer på dine e-mails",
-        "body": "Tilføje eller fjerne tags, markeringer og andre nøgleord på dine beskeder."
+        "body": "Tilføje eller fjerne tags, markeringer og andre nøgleord på dine beskeder og gemme kladder."
       },
       "email_send": {
         "title": "Ændre e-mails, før de sendes",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Vide, når appen starter og stopper",
         "body": "Få besked, når appen starter, går offline, eller du logger ud."
+      },
+      "compose_open": {
+        "title": "Åbne komponisten for dig",
+        "body": "Åbne en ny besked med modtagere, tekst eller vedhæftninger udfyldt. Du bestemmer stadig, om den sendes."
       }
     },
     "dialog": {

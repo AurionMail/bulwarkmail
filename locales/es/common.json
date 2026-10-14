@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Cambiar etiquetas y marcas de tu correo",
-        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes."
+        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes, y guardar borradores."
       },
       "email_send": {
         "title": "Cambiar el correo antes de enviarlo",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Saber cuándo se inicia y se cierra la aplicación",
         "body": "Recibir un aviso cuando la aplicación se inicia, se queda sin conexión o cierras sesión."
+      },
+      "compose_open": {
+        "title": "Abrir el editor por ti",
+        "body": "Abrir un mensaje nuevo con los destinatarios, el texto o los adjuntos ya rellenados. Tú sigues decidiendo si se envía."
       }
     },
     "dialog": {

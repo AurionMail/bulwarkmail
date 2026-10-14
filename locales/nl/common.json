@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Labels en markeringen van je e-mail wijzigen",
-        "body": "Labels, markeringen en andere trefwoorden aan je berichten toevoegen of ervan verwijderen."
+        "body": "Labels, markeringen en andere trefwoorden aan je berichten toevoegen of ervan verwijderen, en concepten opslaan."
       },
       "email_send": {
         "title": "E-mail wijzigen voordat die wordt verzonden",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Weten wanneer de app start en stopt",
         "body": "Een melding krijgen wanneer de app start, offline gaat of je je afmeldt."
+      },
+      "compose_open": {
+        "title": "De opsteller voor je openen",
+        "body": "Een nieuw bericht openen met ontvangers, tekst of bijlagen al ingevuld. Jij beslist nog steeds of het wordt verzonden."
       }
     },
     "dialog": {

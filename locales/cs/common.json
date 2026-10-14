@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Měnit štítky a příznaky pošty",
-        "body": "Přidává nebo odebírá štítky, příznaky a další klíčová slova u vašich zpráv."
+        "body": "Přidává nebo odebírá štítky, příznaky a další klíčová slova u vašich zpráv a ukládá koncepty."
       },
       "email_send": {
         "title": "Měnit poštu před odesláním",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Vědět, kdy se aplikace spouští a ukončuje",
         "body": "Dostává zprávu, když se aplikace spustí, přejde do režimu offline nebo když se odhlásíte."
+      },
+      "compose_open": {
+        "title": "Otevírat editor zprávy",
+        "body": "Otevře novou zprávu s vyplněnými příjemci, textem nebo přílohami. O odeslání stále rozhodujete vy."
       }
     },
     "dialog": {

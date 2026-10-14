@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Change tags and flags on your email",
-        "body": "Add or remove tags, flags and other keywords on your messages."
+        "body": "Add or remove tags, flags and other keywords on your messages, and save drafts."
       },
       "email_send": {
         "title": "Change mail before it is sent",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Know when the app starts and stops",
         "body": "Be told when the app starts, goes offline or you sign out."
+      },
+      "compose_open": {
+        "title": "Open the composer for you",
+        "body": "Open a new message with recipients, text or attachments filled in. You still decide whether to send it."
       }
     },
     "dialog": {

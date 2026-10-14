@@ -4038,7 +4038,7 @@
       },
       "email_write": {
         "title": "Modifier les étiquettes et indicateurs de vos e-mails",
-        "body": "Ajouter ou retirer des étiquettes, des indicateurs et d'autres mots-clés sur vos messages."
+        "body": "Ajouter ou retirer des étiquettes, des indicateurs et d'autres mots-clés sur vos messages, et enregistrer des brouillons."
       },
       "email_send": {
         "title": "Modifier les e-mails avant leur envoi",
@@ -4243,6 +4243,10 @@
       "app_lifecycle": {
         "title": "Savoir quand l'application démarre et s'arrête",
         "body": "Être averti lorsque l'application démarre, passe hors ligne ou que vous vous déconnectez."
+      },
+      "compose_open": {
+        "title": "Ouvrir l'éditeur pour vous",
+        "body": "Ouvrir un nouveau message avec les destinataires, le texte ou les pièces jointes déjà remplis. C'est toujours vous qui décidez de l'envoyer."
       }
     },
     "dialog": {

@@ -45,6 +45,7 @@ import {
   doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doMailboxesList,
 } from './host-api-mail';
 import { MAX_PLUGIN_FETCH_BYTES } from './host-api-input';
+import { doComposeOpen, doDraftsCreate } from './host-api-compose';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -222,6 +223,10 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // plugin names, so the untrusted tier may call them.
   'email.getAttachment': 'email:blob-read',
   'email.getRaw': 'email:blob-read',
+  // Open the composer filled in; the user still decides whether to send.
+  'compose.open': 'compose:open',
+  // Save a draft without opening the composer. Nothing is sent.
+  'drafts.create': 'email:write',
 };
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
@@ -1911,6 +1916,9 @@ export async function dispatchApiCall(
     case 'mailboxes.list': return doMailboxesList();
     case 'email.getAttachment': return doEmailGetAttachment(args[0], args[1]);
     case 'email.getRaw': return doEmailGetRaw(args[0]);
+
+    case 'compose.open': return doComposeOpen(plugin, args[0]);
+    case 'drafts.create': return doDraftsCreate(plugin, args[0]);
 
     default:
       throw new Error(`Unhandled method "${method}"`);
