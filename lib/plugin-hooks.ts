@@ -685,7 +685,6 @@ export const themeHooks = {
 export const toastHooks = {
   onToastShow: new HookBus(),
   onToastDismiss: new HookBus(),
-  onBrowserNotification: new HookBus(),
   // Observer fired when the user clicks an OS-level browser notification
   // dispatched by the host. Handler receives { tag: string, data?: unknown }
   // matching the original notification options.

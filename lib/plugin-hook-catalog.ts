@@ -268,9 +268,8 @@ export const HOOK_CATALOG = {
   onLocaleChange: H('theme', 'observer', 'ui:observe', '{ locale }', 'after the app language changed'),
 
   // ─── Notifications ─────────────────────────────────────────
-  onToastShow: H('notifications', 'observer', 'ui:observe', '{ type, message }', 'when the app shows a toast'),
+  onToastShow: H('notifications', 'observer', 'ui:observe', '{ id, type, title, message }', 'when the app shows a toast'),
   onToastDismiss: H('notifications', 'observer', 'ui:observe', '{ id }', 'when a toast is dismissed'),
-  onBrowserNotification: H('notifications', 'transform', 'email:read', '{ title, body, tag } | false, { kind: "mail" | "calendar" | "plugin" }', 'before a system notification is shown; return false to suppress it'),
   onNotificationClick: H('notifications', 'observer', 'email:read', '{ tag, data }', 'when a system notification is clicked'),
 
   // ─── App lifecycle ─────────────────────────────────────────
