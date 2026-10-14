@@ -182,14 +182,14 @@ function countingStream(limit: number, onDone: (bytes: number, overLimit: boolea
 
 async function send(
   url: string,
-  init: { method: string; headers: Record<string, string>; body?: ReadableStream<Uint8Array> | null; signal: AbortSignal },
+  init: { method: string; headers: Record<string, string>; body?: Uint8Array | null; signal: AbortSignal },
   trusted: boolean,
 ): Promise<Response> {
   const request = {
     method: init.method,
     headers: init.headers,
     signal: init.signal,
-    ...(init.body ? { body: init.body, duplex: 'half' as const } : {}),
+    ...(init.body ? { body: init.body } : {}),
   };
   if (trusted) return fetch(url, { ...request, redirect: 'manual' } as RequestInit);
   return (await fetchPublicUrl(url, request as never)) as unknown as Response;
@@ -260,9 +260,14 @@ export async function proxyRequest(input: ProxyInput): Promise<Response> {
 
   try {
     const headers = forwardHeaders(input.headers, credential);
+    // Read the whole body first and send it with a Content-Length. Streamed
+    // (chunked) uploads reach some servers empty: Paperless (Django) answers
+    // "No file was submitted". Next has buffered the body for proxy.ts
+    // already, up to the same limit (see proxyClientMaxBodySize).
     let body = input.body && method !== 'GET' && method !== 'HEAD'
-      ? input.body.pipeThrough(countingStream(MAX_PROXY_REQUEST_BYTES, (n) => { sent = n; }))
+      ? await readBody(input.body, MAX_PROXY_REQUEST_BYTES)
       : null;
+    sent = body?.byteLength ?? 0;
     let currentUrl = target.toString();
     let currentMethod = method;
     let upstream: Response | null = null;
@@ -282,9 +287,6 @@ export async function proxyRequest(input: ProxyInput): Promise<Response> {
         currentMethod = 'GET';
         body = null;
         delete headers['content-type'];
-      } else if (body) {
-        // A streamed body can't be sent twice.
-        throw new ProxyError('The server redirected an upload', 502, 'redirect_with_body');
       }
       currentUrl = next.toString();
       upstream = null;
@@ -346,6 +348,23 @@ export async function proxyRequest(input: ProxyInput): Promise<Response> {
   } finally {
     if (input.capture) release();
   }
+}
+
+async function readBody(stream: ReadableStream<Uint8Array>, limit: number): Promise<Uint8Array> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel().catch(() => {});
+      throw new ProxyError('Body too large', 413, 'too_large');
+    }
+    chunks.push(value);
+  }
+  return new Uint8Array(Buffer.concat(chunks));
 }
 
 async function readCapped(response: Response, limit: number): Promise<string> {

@@ -156,7 +156,7 @@ describe('proxy', () => {
     expect(res.headers.get('dav')).toBe('1, 3');
   });
 
-  it('streams a request body through', async () => {
+  it('sends a request body with its length, not chunked', async () => {
     await connect('app-pw');
     const body = new Blob(['file contents']).stream();
 
@@ -164,6 +164,9 @@ describe('proxy', () => {
     await res.text();
 
     expect(seen[0].body).toBe('file contents');
+    // Django-based servers read a chunked multipart body as empty.
+    expect(seen[0].headers['content-length']).toBe('13');
+    expect(seen[0].headers['transfer-encoding']).toBeUndefined();
   });
 
   it('only sends a credential to its own server', async () => {
