@@ -7,7 +7,7 @@ import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
 import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty } from "@/lib/jmap/search-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
-import { allowEmailMove, emitEmailMove, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
+import { allowEmailMove, emitEmailMove, idsFromSelectionKeys, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
 import { emailSummary } from "@/lib/plugin-projection";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import { emailKeyFor, threadKeyFor, threadIdFromKey, KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
@@ -6385,6 +6385,19 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 // every path that changes it (clicks, keyboard, a batch action clearing the
 // selection, an account switch) fires them once.
 useEmailStore.subscribe((state, prev) => {
+  if (state.selectedEmailKeys !== prev.selectedEmailKeys && emailHooks.onEmailSelectionChange.size > 0) {
+    const changed = state.selectedEmailKeys.size !== prev.selectedEmailKeys.size
+      || [...state.selectedEmailKeys].some(key => !prev.selectedEmailKeys.has(key));
+    if (changed) void emailHooks.onEmailSelectionChange.emit({ emailIds: idsFromSelectionKeys(state.selectedEmailKeys) });
+  }
+  if (state.selectedMailbox !== prev.selectedMailbox && state.selectedMailbox && emailHooks.onMailboxChange.size > 0) {
+    const mailbox = mailboxesInView(state).find(mb => mb.id === state.selectedMailbox);
+    void emailHooks.onMailboxChange.emit({
+      mailboxId: state.selectedMailbox,
+      role: mailbox?.role ?? (state.isUnifiedView ? state.unifiedRole : null) ?? null,
+      previousMailboxId: prev.selectedMailbox || null,
+    });
+  }
   if (state.quota && state.quota !== prev.quota
     && (state.quota.used !== prev.quota?.used || state.quota.total !== prev.quota?.total)) {
     void emailHooks.onQuotaChange.emit(quotaToView(state.quota));
