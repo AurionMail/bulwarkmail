@@ -4348,6 +4348,7 @@
     "loading": "Laster inn siden",
     "not_available_title": "Denne siden er ikke tilgjengelig",
     "not_available_description": "Tillegget som la den til, er slått av eller ikke lenger installert.",
-    "back_to_mail": "Tilbake til e-post"
+    "back_to_mail": "Tilbake til e-post",
+    "settings_group": "Tillegg"
   }
 }

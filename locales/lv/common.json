@@ -4348,6 +4348,7 @@
     "loading": "Ielādē lapu",
     "not_available_title": "Šī lapa nav pieejama",
     "not_available_description": "Spraudnis, kas to pievienoja, ir izslēgts vai vairs nav instalēts.",
-    "back_to_mail": "Atpakaļ uz pastu"
+    "back_to_mail": "Atpakaļ uz pastu",
+    "settings_group": "Spraudņi"
   }
 }

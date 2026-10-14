@@ -4348,6 +4348,7 @@
     "loading": "Carregando a página",
     "not_available_title": "Esta página não está disponível",
     "not_available_description": "O plugin que a adicionou está desativado ou não está mais instalado.",
-    "back_to_mail": "Voltar ao e-mail"
+    "back_to_mail": "Voltar ao e-mail",
+    "settings_group": "Plugins"
   }
 }

@@ -4348,6 +4348,7 @@
     "loading": "جارٍ تحميل الصفحة",
     "not_available_title": "هذه الصفحة غير متاحة",
     "not_available_description": "الإضافة التي أضافتها متوقفة أو لم تعد مثبتة.",
-    "back_to_mail": "العودة إلى البريد"
+    "back_to_mail": "العودة إلى البريد",
+    "settings_group": "الإضافات"
   }
 }

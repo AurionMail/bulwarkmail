@@ -4348,6 +4348,7 @@
     "loading": "Načítava sa stránka",
     "not_available_title": "Táto stránka nie je k dispozícii",
     "not_available_description": "Doplnok, ktorý ju pridal, je vypnutý alebo už nie je nainštalovaný.",
-    "back_to_mail": "Späť na poštu"
+    "back_to_mail": "Späť na poštu",
+    "settings_group": "Doplnky"
   }
 }

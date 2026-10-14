@@ -4348,6 +4348,7 @@
     "loading": "در حال بارگذاری صفحه",
     "not_available_title": "این صفحه در دسترس نیست",
     "not_available_description": "افزونه‌ای که آن را اضافه کرده خاموش است یا دیگر نصب نیست.",
-    "back_to_mail": "بازگشت به ایمیل"
+    "back_to_mail": "بازگشت به ایمیل",
+    "settings_group": "افزونه‌ها"
   }
 }

@@ -4349,6 +4349,7 @@
     "loading": "טוען את הדף",
     "not_available_title": "הדף הזה אינו זמין",
     "not_available_description": "התוסף שהוסיף אותו כבוי או שאינו מותקן עוד.",
-    "back_to_mail": "חזרה לדואר"
+    "back_to_mail": "חזרה לדואר",
+    "settings_group": "תוספים"
   }
 }

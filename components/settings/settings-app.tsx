@@ -108,13 +108,17 @@ import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
 
 type Tab = SettingsSearchTab;
 
-type TabGroup = 'general' | 'appearance' | 'mail' | 'privacy' | 'apps' | 'advanced';
+type TabGroup = 'general' | 'appearance' | 'mail' | 'privacy' | 'apps' | 'plugins' | 'advanced';
 
 // A plugin that exposes a `settings-section` slot gets its own first-class
 // Settings entry, keyed `plugin:<id>`, so its UI (e.g. S/MIME key import) is
 // discoverable as a menu point rather than buried inside another panel.
 type PluginTabId = `plugin:${string}`;
-type SettingsTabId = Tab | PluginTabId;
+// A plugin that offers a `settings-page` slot gets a page of its own under the
+// "Plugins" group, keyed `plugin-page:<id>`, drawn at the full content width.
+type PluginPageTabId = `plugin-page:${string}`;
+type SettingsTabId = Tab | PluginTabId | PluginPageTabId;
+const PLUGIN_PAGE_PREFIX = 'plugin-page:';
 
 interface TabDef {
   id: SettingsTabId;
@@ -151,7 +155,7 @@ const tabIcons: Record<Tab, AppIcon> = {
   debug: Bug,
 };
 
-const tabGroupOrder: TabGroup[] = ['general', 'appearance', 'mail', 'privacy', 'apps', 'advanced'];
+const tabGroupOrder: TabGroup[] = ['general', 'appearance', 'mail', 'privacy', 'apps', 'plugins', 'advanced'];
 
 // Map legacy tab IDs to current ones; runs once on read of localStorage.
 const LEGACY_TAB_MAP: Record<string, Tab> = {
@@ -194,6 +198,7 @@ function tabFromDeepLink(segments: string[] | null | undefined): SettingsTabId |
   const migrated = raw in LEGACY_TAB_MAP ? LEGACY_TAB_MAP[raw] : raw;
   if (migrated in tabIcons) return migrated as SettingsTabId;
   if (migrated.startsWith('plugin:')) return migrated as SettingsTabId;
+  if (migrated.startsWith(PLUGIN_PAGE_PREFIX)) return migrated as SettingsTabId;
   return null;
 }
 
@@ -242,6 +247,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     () => pluginOffersForSlot('settings-section'),
     () => pluginOffersForSlot('settings-section'),
   );
+  // Active plugins that offer a `settings-page` slot: one page each.
+  const pluginPageOffers = useSyncExternalStore(
+    pluginRegistrySubscribe,
+    () => pluginOffersForSlot('settings-page'),
+    () => pluginOffersForSlot('settings-page'),
+  );
+  const tPluginPages = useTranslations('plugin_pages');
   // Consume the one-shot deep-link key so a section gear only steers this one
   // open, never the persisted default for future Settings-button clicks.
   useEffect(() => {
@@ -579,6 +591,14 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       group: 'apps',
     })),
 
+    // Plugins: a page of its own for each plugin that offers one.
+    ...pluginPageOffers.map((offer): TabDef => ({
+      id: `${PLUGIN_PAGE_PREFIX}${offer.pluginId}` as PluginPageTabId,
+      label: getActivePlugin(offer.pluginId)?.plugin.name || offer.pluginId,
+      icon: Puzzle,
+      group: 'plugins',
+    })),
+
     // Advanced
     { id: 'about_data', label: t('tabs.about_data'), icon: tabIcons.about_data, group: 'advanced' },
     ...(isFeatureEnabled('pluginsEnabled') ? [{ id: 'plugins' as Tab, label: 'Plugins', icon: tabIcons.plugins, group: 'advanced' as TabGroup }] : []),
@@ -605,7 +625,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const groupedTabs = tabGroupOrder
     .map((group) => ({
       group,
-      label: t(`tab_groups.${group}`),
+      label: group === 'plugins' ? tPluginPages('settings_group') : t(`tab_groups.${group}`),
       items: visibleTabs.filter((tab) => tab.group === group),
     }))
     .filter((g) => g.items.length > 0);
@@ -714,6 +734,15 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           pluginId={effectiveActiveTab.slice('plugin:'.length)}
           slot="settings-section"
         />
+      )}
+      {effectiveActiveTab.startsWith(PLUGIN_PAGE_PREFIX) && (
+        <div className="w-full" data-plugin-slot="settings-page">
+          <PluginIframeSlot
+            key={effectiveActiveTab}
+            pluginId={effectiveActiveTab.slice(PLUGIN_PAGE_PREFIX.length)}
+            slot="settings-page"
+          />
+        </div>
       )}
     </>
   );
@@ -1010,7 +1039,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       />
 
       <div ref={attachContentScroll} className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-6 py-6">
+        <div className={effectiveActiveTab.startsWith(PLUGIN_PAGE_PREFIX) ? "px-6 py-6" : "max-w-3xl mx-auto px-6 py-6"}>
           {renderTabContent()}
         </div>
       </div>

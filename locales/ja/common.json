@@ -4348,6 +4348,7 @@
     "loading": "ページを読み込んでいます",
     "not_available_title": "このページは利用できません",
     "not_available_description": "このページを追加したプラグインがオフになっているか、インストールされていません。",
-    "back_to_mail": "メールに戻る"
+    "back_to_mail": "メールに戻る",
+    "settings_group": "プラグイン"
   }
 }

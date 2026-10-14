@@ -4348,6 +4348,7 @@
     "loading": "Wczytywanie strony",
     "not_available_title": "Ta strona jest niedostępna",
     "not_available_description": "Wtyczka, która ją dodała, jest wyłączona lub nie jest już zainstalowana.",
-    "back_to_mail": "Wróć do poczty"
+    "back_to_mail": "Wróć do poczty",
+    "settings_group": "Wtyczki"
   }
 }

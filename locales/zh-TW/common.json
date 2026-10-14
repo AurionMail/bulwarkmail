@@ -4348,6 +4348,7 @@
     "loading": "正在載入頁面",
     "not_available_title": "此頁面無法使用",
     "not_available_description": "新增此頁面的外掛程式已關閉或已不再安裝。",
-    "back_to_mail": "返回郵件"
+    "back_to_mail": "返回郵件",
+    "settings_group": "外掛程式"
   }
 }

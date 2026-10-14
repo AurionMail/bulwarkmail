@@ -4348,6 +4348,7 @@
     "loading": "Načítání stránky",
     "not_available_title": "Tato stránka není k dispozici",
     "not_available_description": "Plugin, který ji přidal, je vypnutý nebo už není nainstalovaný.",
-    "back_to_mail": "Zpět na poštu"
+    "back_to_mail": "Zpět na poštu",
+    "settings_group": "Pluginy"
   }
 }
