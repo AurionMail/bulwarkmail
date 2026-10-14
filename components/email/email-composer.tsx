@@ -2086,6 +2086,8 @@ export function EmailComposer({
   // itself has nothing else to put there.
   const hasSendMenuActions = usePluginActions('composer-send-menu').length > 0;
   const hasAttachMenuActions = usePluginActions('composer-attach-menu').length > 0;
+  // Ticked plugin options count in the Options button's badge like the app's own.
+  const pluginOptionsOn = usePluginActions('composer-options-menu').filter((a) => a.checked).length;
 
   // Files from the Files app are already blobs on the server, so they are
   // attached by blobId with no download or upload (#1179). Stalwart resolves a
@@ -4075,7 +4077,7 @@ export function EmailComposer({
             <ComposerToolbarMenu
               icon={SlidersHorizontal}
               label={t('options')}
-              activeCount={[plainTextMode, requestReadReceipt, requestDsn, requireTls].filter(Boolean).length}
+              activeCount={[plainTextMode, requestReadReceipt, requestDsn, requireTls].filter(Boolean).length + pluginOptionsOn}
               testId="composer-options-menu"
             >
               {(close) => <>

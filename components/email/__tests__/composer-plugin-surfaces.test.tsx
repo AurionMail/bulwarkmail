@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
 import { useAuthStore } from '@/stores/auth-store';
-import { resetActions, setActionDispatcher, setPluginActions } from '@/lib/plugin-sandbox/actions';
+import { checkActions, resetActions, setActionDispatcher, setPluginActions } from '@/lib/plugin-sandbox/actions';
 import { clearOffers, lastSlotProps, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
 import { useSettingsStore } from '@/stores/settings-store';
 import { SLOT_CATALOG } from '@/lib/plugin-slot-catalog';
@@ -331,6 +331,50 @@ describe('composer-send-menu', () => {
     render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'more_actions' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'schedule_send' })).toBeNull();
+  });
+});
+
+describe('composer-options-menu and composer-toolbar-actions', () => {
+  it('lists plugin options in Options, ticked ones as check items counted in the badge', async () => {
+    act(() => setPluginActions('smime', 'S/MIME', 'composer-options-menu', [
+      { id: 'sign', label: 'Sign', checked: true, description: 'With your certificate' },
+      { id: 'encrypt', label: 'Encrypt', checked: false },
+      { id: 'zones', label: 'Insert time in other zones' },
+    ]));
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const options = screen.getByTestId('composer-options-menu');
+    expect(options).toHaveTextContent('1');
+    fireEvent.click(options);
+    const sign = screen.getByRole('menuitemcheckbox', { name: /Sign/ });
+    expect(sign).toHaveAttribute('aria-checked', 'true');
+    expect(sign).toHaveTextContent('With your certificate');
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Encrypt' })).toHaveAttribute('aria-checked', 'false');
+
+    await act(async () => { fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Encrypt' })); });
+    expect(dispatch).toHaveBeenCalledWith('smime', 'composer-options-menu', 'encrypt', { composerId: expect.any(String) });
+    // A check item leaves the menu open, so several options can be set.
+    expect(screen.getByRole('menuitemcheckbox', { name: /Sign/ })).toBeInTheDocument();
+
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Insert time in other zones' })); });
+    expect(dispatch).toHaveBeenCalledWith('smime', 'composer-options-menu', 'zones', { composerId: expect.any(String) });
+  });
+
+  it('draws plugin buttons in the bottom bar like Attach, with the shortcut in the tooltip', async () => {
+    act(() => setPluginActions('ai', 'Assistant', 'composer-toolbar-actions', [{ id: 'ask', label: 'Assistant', icon: 'sparkles', shortcut: 'Alt+A' }]));
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    const button = screen.getByRole('button', { name: 'Assistant' });
+    expect(button).toHaveAttribute('title', 'Assistant (Alt+A)');
+    expect(button.className).toContain('h-9');
+    // Not in the plugin frame row above the bar.
+    expect(button.closest('[data-composer-plugin-row]')).toBeNull();
+    await act(async () => { fireEvent.click(button); });
+    expect(dispatch).toHaveBeenCalledWith('ai', 'composer-toolbar-actions', 'ask', { composerId: expect.any(String) });
+  });
+
+  it('refuses odd values for checked and description', () => {
+    expect(() => setPluginActions('p', 'P', 'composer-options-menu', checkActions([{ id: 'a', label: 'A', checked: 'yes' }]))).toThrow(/checked must be true or false/);
+    expect(() => checkActions([{ id: 'a', label: 'A', description: 'x'.repeat(121) }])).toThrow(/description/);
   });
 });
 

@@ -25,6 +25,13 @@ export interface PluginAction {
    * Ctrl/Cmd+Shift or Ctrl/Cmd+Alt, like plugin shortcuts.
    */
   shortcut?: string;
+  /**
+   * On menu surfaces (the composer's Options and Send menus): draw the entry
+   * as a check item, ticked or not. The plugin updates it with setActions.
+   */
+  checked?: boolean;
+  /** A second line under the label, on menu surfaces. Up to 120 characters. */
+  description?: string;
 }
 
 export interface RegisteredAction extends PluginAction {
@@ -77,6 +84,14 @@ export function checkActions(value: unknown): PluginAction[] {
       out.mimeTypes = (a.mimeTypes as string[]).map((m) => m.toLowerCase());
     }
     if (a.danger !== undefined) out.danger = a.danger === true;
+    if (a.checked !== undefined) {
+      if (typeof a.checked !== 'boolean') throw new Error(`actions[${i}].checked must be true or false`);
+      out.checked = a.checked;
+    }
+    if (a.description !== undefined) {
+      if (typeof a.description !== 'string' || a.description.length > 120) throw new Error(`actions[${i}].description must be a string of up to 120 characters`);
+      if (a.description.trim()) out.description = a.description.trim();
+    }
     if (a.shortcut !== undefined) {
       if (typeof a.shortcut !== 'string' || a.shortcut.length > 30 || !isAllowedPluginCombo(a.shortcut)) {
         throw new Error(`actions[${i}].shortcut must use Alt, Ctrl+Shift or Ctrl+Alt`);

@@ -195,6 +195,20 @@ export function ComposerPluginMenuItems({ surface, context, onSelect, separator 
       {separator && <div role="separator" className="my-1 h-px bg-border" />}
       {actions.map((action) => {
         const Icon = iconForName(action.icon) ?? Puzzle;
+        if (action.checked !== undefined) {
+          // An option like the menu's own (plain text, read receipt): stays
+          // open, so several can be set in one go.
+          return (
+            <ComposerToolbarMenuCheckItem
+              key={`${action.pluginId}:${action.id}`}
+              checked={action.checked}
+              description={action.description}
+              onToggle={() => { void runAction(action, surface, typeof context === "function" ? context() : context); }}
+            >
+              {action.label}
+            </ComposerToolbarMenuCheckItem>
+          );
+        }
         return (
           <button
             key={`${action.pluginId}:${action.id}`}
@@ -211,7 +225,10 @@ export function ComposerPluginMenuItems({ surface, context, onSelect, separator 
             )}
           >
             <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-            <span className="flex-1">{action.label}</span>
+            <span className="flex-1">
+              <span className="block">{action.label}</span>
+              {action.description && <span className="block text-xs text-muted-foreground">{action.description}</span>}
+            </span>
           </button>
         );
       })}
