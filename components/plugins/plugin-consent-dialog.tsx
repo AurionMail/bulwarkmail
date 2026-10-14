@@ -4,109 +4,61 @@
 // the plugin's manifest declares. Accepting persists the grant on the
 // plugin record so future enables skip the prompt.
 
-import React, { useEffect, useSyncExternalStore } from 'react';
-import { head, resolveHead, subscribe, describePermission } from '@/lib/plugin-sandbox/consent';
+import React, { useId, useSyncExternalStore } from 'react';
+import { useTranslations } from 'next-intl';
+import { head, resolveHead, subscribe } from '@/lib/plugin-sandbox/consent';
+import { HIGH_RISK_PERMISSIONS } from '@/lib/plugin-sandbox/permission-text';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { Button } from '@/components/ui/button';
+import { PluginPermissionList } from './plugin-permission-list';
 
 export function PluginConsentDialog(): React.JSX.Element | null {
   const current = useSyncExternalStore(subscribe, head, () => null);
-
-  useEffect(() => {
-    if (!current) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        resolveHead(false);
-      }
-    }
-    document.addEventListener('keydown', onKey, true);
-    return () => document.removeEventListener('keydown', onKey, true);
-  }, [current]);
+  const t = useTranslations('plugins.consent');
+  const id = useId();
+  const dialogRef = useFocusTrap({
+    isActive: !!current,
+    onEscape: () => resolveHead(false),
+    restoreFocus: true,
+  });
 
   if (!current) return null;
+  const risky = current.permissions.some((p) => HIGH_RISK_PERMISSIONS.has(p));
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="plugin-consent-title"
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 100001,
-      }}
+      className="fixed inset-0 z-[100001] flex items-center justify-center bg-black/50 p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget) resolveHead(false); }}
     >
-      <div style={{
-        background: 'var(--background, #fff)',
-        color: 'var(--foreground, #0f172a)',
-        border: '1px solid var(--border, #e2e8f0)',
-        borderRadius: 12,
-        padding: 20,
-        maxWidth: 560,
-        width: '92%',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.35)',
-      }}>
-        <h2 id="plugin-consent-title" style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px 0' }}>
-          Allow “{current.pluginName}” to access your data?
-        </h2>
-        <p style={{ fontSize: 12, color: 'var(--muted-foreground, #64748b)', margin: '0 0 14px 0' }}>
-          This plugin is requesting the permissions below. You can revoke them by uninstalling the plugin.
-        </p>
-
-        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px 0', maxHeight: 320, overflowY: 'auto' }}>
-          {current.permissions.map((perm) => {
-            const desc = describePermission(perm);
-            return (
-              <li
-                key={perm}
-                style={{
-                  padding: '10px 12px',
-                  marginBottom: 6,
-                  borderRadius: 8,
-                  background: 'var(--accent, #f1f5f9)',
-                  border: '1px solid var(--border, #e2e8f0)',
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{desc.title}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted-foreground, #64748b)' }}>{desc.body}</div>
-                <code style={{ fontSize: 10, color: 'var(--muted-foreground, #94a3b8)', display: 'block', marginTop: 4 }}>{perm}</code>
-              </li>
-            );
-          })}
-        </ul>
-
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={() => resolveHead(false)}
-            style={{
-              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-              cursor: 'pointer',
-              border: '1px solid var(--border, #e2e8f0)',
-              background: 'transparent',
-              color: 'inherit',
-            }}
-          >
-            Deny
-          </button>
-          <button
-            type="button"
-            autoFocus
-            onClick={() => resolveHead(true)}
-            style={{
-              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-              cursor: 'pointer',
-              border: '1px solid transparent',
-              background: '#3b82f6',
-              color: '#fff',
-            }}
-          >
-            Allow
-          </button>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${id}-title`}
+        className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-lg border border-border bg-background shadow-xl"
+      >
+        <div className="p-5 pb-3">
+          <h2 id={`${id}-title`} className="text-base font-semibold text-foreground">
+            {t('title', { name: current.pluginName })}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('intro')}</p>
+          {risky && (
+            <p className="mt-2 rounded-md bg-warning/10 px-3 py-2 text-xs text-foreground">{t('high_risk_note')}</p>
+          )}
         </div>
-        <div style={{ marginTop: 12, fontSize: 11, color: 'var(--muted-foreground, #94a3b8)', textAlign: 'right' }}>
-          Plugin: {current.pluginId}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5">
+          <PluginPermissionList
+            permissions={current.permissions}
+            httpOrigins={current.httpOrigins}
+            apiPostPaths={current.apiPostPaths}
+          />
+        </div>
+        <div className="flex flex-col gap-3 p-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs text-muted-foreground">{t('revoke_hint')}</span>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" className="whitespace-nowrap" onClick={() => resolveHead(false)}>{t('deny')}</Button>
+            <Button autoFocus className="whitespace-nowrap" onClick={() => resolveHead(true)}>{t('allow')}</Button>
+          </div>
         </div>
       </div>
     </div>

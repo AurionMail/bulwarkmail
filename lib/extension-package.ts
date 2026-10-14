@@ -479,6 +479,29 @@ export function suspiciousCode(code: string): string[] {
   return SUSPICIOUS_JS_PATTERNS.filter(({ pattern }) => pattern.test(code)).map(({ label }) => label);
 }
 
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
+ * SHA-256 over the validated manifest and the code. An admin approval is
+ * pinned to this, so re-zipping the same code with more permissions or
+ * other origins needs a new approval. Same result in the browser and on
+ * the server.
+ */
+export async function packageHash(manifest: ValidatedPluginManifest, code: string): Promise<string> {
+  const data = new TextEncoder().encode(`${canonicalJson(manifest)}\n${code}`);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export interface PluginPackage {
   manifest: ValidatedPluginManifest;
   code: string;

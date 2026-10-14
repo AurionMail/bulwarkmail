@@ -3970,6 +3970,276 @@
       "failed_detail": "Yetkilendirme başarısız oldu: {error}",
       "missing_params": "Yetkilendirme kodu veya durum eksik.",
       "delivery_failed": "Yetkilendirme sonucu uygulama sekmesine iletilemedi. Lütfen bu pencereyi kapatıp tekrar deneyin."
+    },
+    "settings": {
+      "title": "Eklentiler",
+      "description": "Yöneticinizin eklediği eklentiler. Hesabınız için açıp kapatabilirsiniz.",
+      "description_uploads": "Eklentiler webmail'e yeni özellikler katar. Hesabınız için açıp kapatabilir veya kendi eklentilerinizi yükleyebilirsiniz.",
+      "description_demo": "Eklentiler demoda kullanılamaz.",
+      "install_button": "Eklenti yükle",
+      "install_hint": "Bir eklenti ZIP dosyası seçin.",
+      "install_hint_approval": "Bir eklenti ZIP dosyası seçin. Açabilmeniz için önce bir yöneticinin onaylaması gerekir.",
+      "install_uploads_off": "Yöneticiniz eklenti yüklemeye izin vermiyor.",
+      "install_managed_id": "Yöneticiniz bu adda bir eklentiyi zaten sağlıyor, bu yüzden değiştirilemez.",
+      "install_invalid": "Bu dosya yüklenebilir bir eklenti değil: {details}",
+      "toast_installed": "Eklenti yüklendi. Aşağıdan açabilirsiniz.",
+      "toast_installed_pending": "Eklenti yüklendi ve onay için yöneticinize gönderildi.",
+      "toast_enabled": "{name} eklentisi açıldı",
+      "toast_disabled": "{name} eklentisi kapatıldı",
+      "toast_removed": "{name} eklentisi kaldırıldı",
+      "toast_forced": "Yöneticiniz {name} eklentisini açık tutuyor",
+      "toast_approval_requested": "{name} eklentisi yöneticinizin onayını bekliyor",
+      "empty_title": "Henüz eklenti yok",
+      "empty_admin": "Yöneticiniz henüz eklenti eklemedi.",
+      "empty_uploads": "Başlamak için bir ZIP dosyasından eklenti yükleyin.",
+      "empty_demo": "Eklentiler gerçek bir hesap gerektirir, bu yüzden demoda eklenti yok.",
+      "syncing": "Eklentiler sunucuyla denetleniyor…",
+      "status_installed": "Kapalı",
+      "status_enabled": "Başlatılıyor",
+      "status_running": "Açık",
+      "status_disabled": "Kapalı",
+      "status_error": "Sorun var",
+      "badge_forced": "Zorunlu",
+      "badge_managed": "Yöneticinizden",
+      "badge_yours": "Sizin yüklediğiniz",
+      "badge_awaiting": "Onay bekliyor",
+      "toggle_label": "{name} eklentisini aç veya kapat",
+      "forced_note": "Yöneticiniz bu eklentiyi zorunlu tuttuğu için kapatılamaz.",
+      "permissions": "Neler yapabilir",
+      "permissions_managed": "Neler yapabilir (yöneticiniz onayladı)",
+      "settings": "Ayarlar",
+      "remove": "Kaldır",
+      "remove_title": "{name} eklentisi kaldırılsın mı?",
+      "remove_message": "Eklenti ve bu tarayıcıda kaydettiği her şey silinir. Daha sonra yeniden yükleyebilirsiniz.",
+      "remove_confirm": "Kaldır",
+      "error_user_plugins_off": "Yöneticiniz kullanıcıların yüklediği eklentileri kapattı, bu yüzden bu eklenti çalışmıyor.",
+      "error_approval_unavailable": "Bu eklenti, onay zorunlu olmadan önce yüklendi. Onaya göndermek için kaldırıp yeniden yükleyin.",
+      "error_approval_denied": "Yöneticiniz bu eklentiyi onaylamadı.",
+      "error_approval_pending": "Bu eklentinin yöneticiniz tarafından onaylanması bekleniyor."
+    },
+    "consent": {
+      "title": "{name} eklentisine bu izin verilsin mi?",
+      "intro": "Eklenti aşağıdaki izinleri istiyor. Bu izinleri yalnızca siz izin verirseniz alır.",
+      "high_risk_note": "İşaretli öğeler eklentiye e-postalarınızın içeriğine erişim verir veya verileri başka yerlere göndermesine izin verir. Bunlara yalnızca güvendiğiniz eklentiler için izin verin.",
+      "revoke_hint": "Eklentiyi istediğiniz zaman Ayarlar'dan kapatabilir veya kaldırabilirsiniz.",
+      "deny": "İzin verme",
+      "allow": "İzin ver"
+    },
+    "permissions": {
+      "none": "Özel bir izne ihtiyacı yok.",
+      "high_risk": "Dikkat gerektirir",
+      "email_read": {
+        "title": "E-postalarınızı okuma",
+        "body": "Açtığınız iletilerin ve ileti listesindekilerin gönderenlerini, alıcılarını, konularını ve tam metnini görme."
+      },
+      "email_write": {
+        "title": "E-postalarınızdaki etiketleri ve bayrakları değiştirme",
+        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma."
+      },
+      "email_send": {
+        "title": "Gönderilmeden önce iletileri değiştirme",
+        "body": "Yazdığınız iletilerin alıcılarını, konusunu, metnini ve eklerini okuma ve değiştirme, bir iletinin gönderilmesini durdurma."
+      },
+      "crypto_full": {
+        "title": "Bu uygulamaya tam erişim",
+        "body": "Webmail'in kendisiyle aynı haklarla çalışır. Tüm e-postalarınızı ve kayıtlı anahtarlarınızı okuyabilir, sizin adınıza işlem yapabilir. Buna yalnızca tamamen güvendiğiniz eklentiler için izin verin."
+      },
+      "email_raw_send": {
+        "title": "Kendi oluşturduğu iletileri gönderme",
+        "body": "Hesabınızdan imzalı veya şifreli iletiler gibi eksiksiz iletiler gönderme."
+      },
+      "email_blob_read": {
+        "title": "İletilerin ham içeriğini okuma",
+        "body": "İletilerinizin ve eklerinizin özgün verilerini ve eklediğiniz her dosyayı gönderilmeden önce okuma."
+      },
+      "email_blob_write": {
+        "title": "Göndermeden önce ekleri değiştirme",
+        "body": "Posta sunucunuza dosya yükleme ve ileti gönderilmeden önce eklediğiniz bir dosyayı başkasıyla değiştirme."
+      },
+      "email_render_takeover": {
+        "title": "İletilerin gösterilme biçimini değiştirme",
+        "body": "Açtığınız iletilerin ve ileti listesindekilerin metnini değiştirme, örneğin şifresi çözülmüş içeriği göstermek için."
+      },
+      "calendar_read": {
+        "title": "Takviminizi okuma",
+        "body": "Takvimlerinizi ve etkinliklerini görme."
+      },
+      "calendar_write": {
+        "title": "Takviminizi değiştirme",
+        "body": "Etkinlik oluşturma, değiştirme ve silme."
+      },
+      "contacts_read": {
+        "title": "Kişilerinizi okuma",
+        "body": "Adres defterlerinizde arama yapma ve onları okuma."
+      },
+      "contacts_write": {
+        "title": "Kişilerinizi değiştirme",
+        "body": "Kişi ve adres defteri oluşturma, değiştirme ve silme."
+      },
+      "files_read": {
+        "title": "Dosyalarınızı okuma",
+        "body": "Hesabınızda saklanan dosyalara göz atma ve onları açma."
+      },
+      "files_write": {
+        "title": "Dosyalarınızı değiştirme",
+        "body": "Hesabınızdaki dosyaları yükleme, yeniden adlandırma, taşıma ve silme."
+      },
+      "identity_read": {
+        "title": "Gönderen adreslerinizi görme",
+        "body": "Gönderim yaptığınız adresleri ve imzalarını görme."
+      },
+      "identity_write": {
+        "title": "Gönderen adreslerinizi değiştirme",
+        "body": "Gönderen adresi ve imza oluşturma, değiştirme ve silme."
+      },
+      "filters_read": {
+        "title": "Posta filtrelerinizi okuma",
+        "body": "Gelen postalarınızı sıralayan kuralları görme."
+      },
+      "filters_write": {
+        "title": "Posta filtrelerinizi değiştirme",
+        "body": "Sunucudaki filtrelerinize kural ekleme. Bu kurallar gelen postaları taşıyabilir, iletebilir veya silebilir."
+      },
+      "tasks_read": {
+        "title": "Görevlerinizi okuma",
+        "body": "Görev listelerinizi ve görevlerinizi görme."
+      },
+      "tasks_write": {
+        "title": "Görevlerinizi değiştirme",
+        "body": "Görev oluşturma, değiştirme, tamamlama ve silme."
+      },
+      "templates_read": {
+        "title": "Şablonlarınızı okuma",
+        "body": "Kayıtlı ileti şablonlarınızı görme."
+      },
+      "templates_write": {
+        "title": "Şablonlarınızı değiştirme",
+        "body": "İleti şablonu oluşturma, değiştirme ve silme."
+      },
+      "smime_read": {
+        "title": "S/MIME durumunuzu görme",
+        "body": "Anahtarlara erişmeden S/MIME anahtarlarınızın ve sertifikalarınızın olup olmadığını görme."
+      },
+      "vacation_read": {
+        "title": "Ofis dışı yanıtınızı görme",
+        "body": "Otomatik yanıtınızın açık olup olmadığını ve ne yazdığını görme."
+      },
+      "vacation_write": {
+        "title": "Ofis dışı yanıtınızı değiştirme",
+        "body": "Otomatik yanıtınızı açıp kapatma, metnini ve tarihlerini değiştirme."
+      },
+      "settings_read": {
+        "title": "Ayarlarınızı okuma",
+        "body": "Tercihlerinizi ve etiket tanımlarınızı görme."
+      },
+      "settings_write": {
+        "title": "Ayarlarınızı değiştirme",
+        "body": "Etiket ekleme, sıralarını değiştirme ve tercihlerinizi değiştirme."
+      },
+      "security_read": {
+        "title": "Hesap güvenliğinizi görme",
+        "body": "Gizli bilgilere erişmeden iki faktörlü kimlik doğrulamanın ve şifrelemenin açık olup olmadığını görme."
+      },
+      "auth_observe": {
+        "title": "Giriş yaptığınızı bilme",
+        "body": "Giriş yaptığınızda, hesap değiştirdiğinizde veya oturumunuz yenilendiğinde haber alma."
+      },
+      "auth_emit": {
+        "title": "Oturumunuzu kapatma",
+        "body": "Webmail'den çıkış yapmanızı sağlama."
+      },
+      "account_read": {
+        "title": "Hesaplarınızı görme",
+        "body": "Eklediğiniz hesapları adresleri ve sunucularıyla birlikte görme."
+      },
+      "http_post": {
+        "title": "Sizin adınıza webmail sunucusunu kullanma",
+        "body": "Şu sunucu uç noktalarını oturum bilgilerinizle çağırma:"
+      },
+      "http_fetch": {
+        "title": "Başka web sitelerine bağlanma",
+        "body": "Şu sitelere istek gönderme. Eklentinin okuyabildiği her şey oraya gönderilebilir:"
+      },
+      "admin_config": {
+        "title": "Yöneticinizin ayarlarını okuma",
+        "body": "Yöneticinizin bu eklenti için kaydettiği ayarları okuma."
+      },
+      "ui_observe": {
+        "title": "Uygulamada nerede olduğunuzu izleme",
+        "body": "Hangi sayfanın açık olduğunu bilme ve tıkladığınız bağlantılara tepki verme."
+      },
+      "ui_toolbar": {
+        "title": "İleti araç çubuğuna düğme ekleme",
+        "body": "Açık bir iletinin üstünde kendi düğmelerini gösterme."
+      },
+      "ui_app_top_banner": {
+        "title": "Üstte bir başlık bandı gösterme",
+        "body": "Uygulamanın üst kısmında bir bildirim gösterme."
+      },
+      "ui_email_banner": {
+        "title": "İletilerde bildirim gösterme",
+        "body": "Açık bir iletinin metninin üstünde bildirim gösterme."
+      },
+      "ui_email_footer": {
+        "title": "İletilerin altına içerik ekleme",
+        "body": "Açık bir iletinin altında kendi içeriğini gösterme."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Kişilerin şifreleme anahtarlarını gösterme",
+        "body": "Bir kişinin şifreleme anahtarlarını gösterme ve yönetme."
+      },
+      "ui_email_details": {
+        "title": "İleti ayrıntılarına panel ekleme",
+        "body": "Açık bir iletinin yanında veya altında kendi panelini gösterme."
+      },
+      "ui_download_file": {
+        "title": "Dosyaları cihazınıza kaydetme",
+        "body": "Oluşturduğu dosyaları indirmeniz için sunma."
+      },
+      "ui_message_list_tabs": {
+        "title": "Gelen Kutusu'na sekme ekleme",
+        "body": "Gelen kutunuzu Güncellemeler veya Promosyonlar gibi sekmelere ayırma."
+      },
+      "ui_composer_toolbar": {
+        "title": "İleti düzenleyiciye düğme ekleme",
+        "body": "Siz ileti yazarken kendi düğmelerini gösterme."
+      },
+      "ui_composer_sidebar": {
+        "title": "İleti düzenleyiciye panel ekleme",
+        "body": "Yazdığınız iletinin yanında kendi panelini gösterme."
+      },
+      "ui_sidebar_widget": {
+        "title": "Kenar çubuğuna kutu ekleme",
+        "body": "Posta kenar çubuğunda kendi içeriğini gösterme."
+      },
+      "ui_settings_section": {
+        "title": "Ayarlar sayfası ekleme",
+        "body": "Ayarlar'da kendi sayfasını gösterme."
+      },
+      "ui_context_menu": {
+        "title": "İleti menüsüne öğe ekleme",
+        "body": "Bir iletiye sağ tıkladığınızda açılan menüye öğe ekleme."
+      },
+      "ui_navigation_rail": {
+        "title": "Gezinme çubuğuna öğe ekleme",
+        "body": "Gezinme çubuğunda kendi düğmesini gösterme."
+      },
+      "ui_keyboard": {
+        "title": "Klavye kısayolları ekleme",
+        "body": "Tanımladığı klavye kısayollarına tepki verme."
+      },
+      "ui_calendar_action": {
+        "title": "Etkinliklere düğme ekleme",
+        "body": "Bir etkinlik oluştururken veya düzenlerken kendi düğmelerini gösterme."
+      },
+      "ui_admin_page": {
+        "title": "Yönetim sayfası ekleme",
+        "body": "Yönetim ayarlarında kendi sayfasını gösterme."
+      },
+      "app_lifecycle": {
+        "title": "Uygulamanın başladığını ve durduğunu bilme",
+        "body": "Uygulama başladığında, çevrimdışı olduğunda veya çıkış yaptığınızda haber alma."
+      }
     }
   },
   "global_search": {

@@ -3970,6 +3970,276 @@
       "failed_detail": "Autorisatie mislukt: {error}",
       "missing_params": "Autorisatiecode of status ontbreekt.",
       "delivery_failed": "Het autorisatieresultaat kon niet worden afgeleverd bij het app-tabblad. Sluit dit venster en probeer het opnieuw."
+    },
+    "settings": {
+      "title": "Plug-ins",
+      "description": "Plug-ins die je beheerder heeft toegevoegd. Zet ze aan of uit voor je account.",
+      "description_uploads": "Plug-ins voegen functies toe aan de webmail. Zet ze aan of uit voor je account, of installeer je eigen plug-ins.",
+      "description_demo": "Plug-ins zijn niet beschikbaar in de demo.",
+      "install_button": "Plug-in installeren",
+      "install_hint": "Kies een ZIP-bestand met een plug-in.",
+      "install_hint_approval": "Kies een ZIP-bestand met een plug-in. Een beheerder moet de plug-in goedkeuren voordat je hem kunt aanzetten.",
+      "install_uploads_off": "Je beheerder staat het installeren van plug-ins niet toe.",
+      "install_managed_id": "Je beheerder biedt al een plug-in met deze naam aan, dus die kan niet worden vervangen.",
+      "install_invalid": "Dit bestand is geen plug-in die kan worden geïnstalleerd: {details}",
+      "toast_installed": "Plug-in geïnstalleerd. Zet hem hieronder aan.",
+      "toast_installed_pending": "Plug-in geïnstalleerd en ter goedkeuring naar je beheerder gestuurd.",
+      "toast_enabled": "{name} staat aan",
+      "toast_disabled": "{name} staat uit",
+      "toast_removed": "{name} is verwijderd",
+      "toast_forced": "Je beheerder houdt {name} aan",
+      "toast_approval_requested": "{name} wacht op goedkeuring door je beheerder",
+      "empty_title": "Nog geen plug-ins",
+      "empty_admin": "Je beheerder heeft geen plug-ins toegevoegd.",
+      "empty_uploads": "Installeer een plug-in vanuit een ZIP-bestand om te beginnen.",
+      "empty_demo": "Plug-ins hebben een echt account nodig, dus de demo heeft er geen.",
+      "syncing": "Plug-ins controleren bij de server…",
+      "status_installed": "Uit",
+      "status_enabled": "Wordt gestart",
+      "status_running": "Aan",
+      "status_disabled": "Uit",
+      "status_error": "Probleem",
+      "badge_forced": "Verplicht",
+      "badge_managed": "Van je beheerder",
+      "badge_yours": "Door jou geïnstalleerd",
+      "badge_awaiting": "Wacht op goedkeuring",
+      "toggle_label": "{name} aan- of uitzetten",
+      "forced_note": "Je beheerder vereist deze plug-in, dus hij kan niet worden uitgezet.",
+      "permissions": "Wat hij kan doen",
+      "permissions_managed": "Wat hij kan doen (goedgekeurd door je beheerder)",
+      "settings": "Instellingen",
+      "remove": "Verwijderen",
+      "remove_title": "{name} verwijderen?",
+      "remove_message": "De plug-in en alles wat hij in deze browser heeft opgeslagen, worden verwijderd. Je kunt hem later opnieuw installeren.",
+      "remove_confirm": "Verwijderen",
+      "error_user_plugins_off": "Je beheerder heeft plug-ins die door gebruikers zijn geïnstalleerd uitgezet, dus deze plug-in draait niet.",
+      "error_approval_unavailable": "Deze plug-in is geïnstalleerd voordat goedkeuring verplicht was. Verwijder hem en installeer hem opnieuw om hem ter goedkeuring te sturen.",
+      "error_approval_denied": "Je beheerder heeft deze plug-in niet goedgekeurd.",
+      "error_approval_pending": "Wacht tot je beheerder deze plug-in goedkeurt."
+    },
+    "consent": {
+      "title": "{name} dit toestaan?",
+      "intro": "De plug-in vraagt de onderstaande rechten. Hij krijgt ze alleen als je ze toestaat.",
+      "high_risk_note": "Gemarkeerde items geven de plug-in toegang tot de inhoud van je e-mail of laten hem gegevens elders naartoe sturen. Sta ze alleen toe voor plug-ins die je vertrouwt.",
+      "revoke_hint": "Je kunt de plug-in op elk moment uitzetten of verwijderen in Instellingen.",
+      "deny": "Niet toestaan",
+      "allow": "Toestaan"
+    },
+    "permissions": {
+      "none": "Hij heeft geen speciale rechten nodig.",
+      "high_risk": "Let op",
+      "email_read": {
+        "title": "Je e-mail lezen",
+        "body": "Afzenders, ontvangers, onderwerpen en de volledige tekst zien van berichten die je opent en van de berichtenlijst."
+      },
+      "email_write": {
+        "title": "Labels en markeringen van je e-mail wijzigen",
+        "body": "Labels, markeringen en andere trefwoorden aan je berichten toevoegen of ervan verwijderen."
+      },
+      "email_send": {
+        "title": "E-mail wijzigen voordat die wordt verzonden",
+        "body": "De ontvangers, het onderwerp, de tekst en de bijlagen lezen en wijzigen van berichten die je schrijft, en het verzenden van een bericht tegenhouden."
+      },
+      "crypto_full": {
+        "title": "Volledige toegang tot deze app",
+        "body": "Draait met dezelfde rechten als de webmail zelf. Hij kan al je e-mail en opgeslagen sleutels lezen en namens jou handelen. Sta dit alleen toe voor plug-ins die je volledig vertrouwt."
+      },
+      "email_raw_send": {
+        "title": "Zelf samengestelde berichten verzenden",
+        "body": "Volledige berichten, bijvoorbeeld ondertekende of versleutelde, vanaf je account verzenden."
+      },
+      "email_blob_read": {
+        "title": "De ruwe inhoud van berichten lezen",
+        "body": "De oorspronkelijke gegevens van je berichten en bijlagen lezen, en van elk bestand dat je bijvoegt voordat het wordt verzonden."
+      },
+      "email_blob_write": {
+        "title": "Bijlagen vervangen vóór het verzenden",
+        "body": "Bestanden naar je mailserver uploaden en een bijgevoegd bestand door een ander vervangen voordat het bericht wordt verzonden."
+      },
+      "email_render_takeover": {
+        "title": "Wijzigen hoe berichten worden weergegeven",
+        "body": "De tekst vervangen van berichten die je opent en van de berichtenlijst, bijvoorbeeld om ontsleutelde inhoud te tonen."
+      },
+      "calendar_read": {
+        "title": "Je agenda lezen",
+        "body": "Je agenda's en hun afspraken zien."
+      },
+      "calendar_write": {
+        "title": "Je agenda wijzigen",
+        "body": "Afspraken aanmaken, wijzigen en verwijderen."
+      },
+      "contacts_read": {
+        "title": "Je contacten lezen",
+        "body": "Je adresboeken doorzoeken en lezen."
+      },
+      "contacts_write": {
+        "title": "Je contacten wijzigen",
+        "body": "Contacten en adresboeken aanmaken, wijzigen en verwijderen."
+      },
+      "files_read": {
+        "title": "Je bestanden lezen",
+        "body": "De bestanden in je account bekijken en openen."
+      },
+      "files_write": {
+        "title": "Je bestanden wijzigen",
+        "body": "Bestanden in je account uploaden, hernoemen, verplaatsen en verwijderen."
+      },
+      "identity_read": {
+        "title": "Je afzenderadressen zien",
+        "body": "De adressen waarvandaan je verzendt en hun handtekeningen zien."
+      },
+      "identity_write": {
+        "title": "Je afzenderadressen wijzigen",
+        "body": "Afzenderadressen en handtekeningen aanmaken, wijzigen en verwijderen."
+      },
+      "filters_read": {
+        "title": "Je mailfilters lezen",
+        "body": "De regels zien die je binnenkomende e-mail sorteren."
+      },
+      "filters_write": {
+        "title": "Je mailfilters wijzigen",
+        "body": "Regels toevoegen aan je filters op de server. Zulke regels kunnen binnenkomende e-mail verplaatsen, doorsturen of verwijderen."
+      },
+      "tasks_read": {
+        "title": "Je taken lezen",
+        "body": "Je takenlijsten en taken zien."
+      },
+      "tasks_write": {
+        "title": "Je taken wijzigen",
+        "body": "Taken aanmaken, wijzigen, afronden en verwijderen."
+      },
+      "templates_read": {
+        "title": "Je sjablonen lezen",
+        "body": "Je opgeslagen berichtsjablonen zien."
+      },
+      "templates_write": {
+        "title": "Je sjablonen wijzigen",
+        "body": "Berichtsjablonen aanmaken, wijzigen en verwijderen."
+      },
+      "smime_read": {
+        "title": "Je S/MIME-status zien",
+        "body": "Zien of je S/MIME-sleutels en -certificaten hebt, zonder toegang tot de sleutels."
+      },
+      "vacation_read": {
+        "title": "Je afwezigheidsmelding zien",
+        "body": "Zien of je automatisch antwoord aanstaat en wat erin staat."
+      },
+      "vacation_write": {
+        "title": "Je afwezigheidsmelding wijzigen",
+        "body": "Je automatisch antwoord aan- of uitzetten en de tekst en datums ervan wijzigen."
+      },
+      "settings_read": {
+        "title": "Je instellingen lezen",
+        "body": "Je voorkeuren en labeldefinities zien."
+      },
+      "settings_write": {
+        "title": "Je instellingen wijzigen",
+        "body": "Labels toevoegen en herschikken en je voorkeuren wijzigen."
+      },
+      "security_read": {
+        "title": "De beveiliging van je account zien",
+        "body": "Zien of tweefactoraanmelding en versleuteling aanstaan, zonder toegang tot geheimen."
+      },
+      "auth_observe": {
+        "title": "Weten wanneer je je aanmeldt",
+        "body": "Een melding krijgen wanneer je je aanmeldt, van account wisselt of je sessie wordt vernieuwd."
+      },
+      "auth_emit": {
+        "title": "Je afmelden",
+        "body": "Je afmelden bij de webmail."
+      },
+      "account_read": {
+        "title": "Je accounts zien",
+        "body": "De accounts zien die je hebt toegevoegd, met hun adressen en servers."
+      },
+      "http_post": {
+        "title": "De webmailserver voor je gebruiken",
+        "body": "Deze servereindpunten aanroepen met je aanmelding:"
+      },
+      "http_fetch": {
+        "title": "Verbinding maken met andere websites",
+        "body": "Verzoeken naar deze sites sturen. Alles wat de plug-in kan lezen, kan daarheen worden gestuurd:"
+      },
+      "admin_config": {
+        "title": "Zijn instellingen van je beheerder lezen",
+        "body": "De instellingen lezen die je beheerder voor deze plug-in heeft opgeslagen."
+      },
+      "ui_observe": {
+        "title": "Volgen waar je bent in de app",
+        "body": "Weten welke pagina open is en reageren op links waarop je klikt."
+      },
+      "ui_toolbar": {
+        "title": "Knoppen toevoegen aan de berichtwerkbalk",
+        "body": "Eigen knoppen tonen boven een geopend bericht."
+      },
+      "ui_app_top_banner": {
+        "title": "Een banner bovenaan tonen",
+        "body": "Een melding tonen over de hele bovenkant van de app."
+      },
+      "ui_email_banner": {
+        "title": "Meldingen bij berichten tonen",
+        "body": "Een melding tonen boven de tekst van een geopend bericht."
+      },
+      "ui_email_footer": {
+        "title": "Inhoud onder berichten toevoegen",
+        "body": "Eigen inhoud tonen onder een geopend bericht."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Versleutelingssleutels van contacten tonen",
+        "body": "De versleutelingssleutels van een contact tonen en beheren."
+      },
+      "ui_email_details": {
+        "title": "Panelen toevoegen aan berichtdetails",
+        "body": "Een eigen paneel tonen naast of onder een geopend bericht."
+      },
+      "ui_download_file": {
+        "title": "Bestanden op je apparaat opslaan",
+        "body": "Bestanden die hij heeft gemaakt aanbieden om te downloaden."
+      },
+      "ui_message_list_tabs": {
+        "title": "Tabbladen toevoegen aan je Postvak IN",
+        "body": "Je Postvak IN in tabbladen indelen, zoals Updates of Promoties."
+      },
+      "ui_composer_toolbar": {
+        "title": "Knoppen toevoegen aan de opsteller",
+        "body": "Eigen knoppen tonen terwijl je een bericht schrijft."
+      },
+      "ui_composer_sidebar": {
+        "title": "Een paneel toevoegen aan de opsteller",
+        "body": "Een eigen paneel tonen naast het bericht dat je schrijft."
+      },
+      "ui_sidebar_widget": {
+        "title": "Een vak toevoegen aan de zijbalk",
+        "body": "Eigen inhoud tonen in de zijbalk van de mail."
+      },
+      "ui_settings_section": {
+        "title": "Een instellingenpagina toevoegen",
+        "body": "Een eigen pagina tonen in Instellingen."
+      },
+      "ui_context_menu": {
+        "title": "Toevoegen aan het berichtmenu",
+        "body": "Items toevoegen aan het menu dat opent als je met de rechtermuisknop op een bericht klikt."
+      },
+      "ui_navigation_rail": {
+        "title": "Toevoegen aan de navigatiebalk",
+        "body": "Een eigen knop tonen in de navigatiebalk."
+      },
+      "ui_keyboard": {
+        "title": "Sneltoetsen toevoegen",
+        "body": "Reageren op sneltoetsen die hij zelf vastlegt."
+      },
+      "ui_calendar_action": {
+        "title": "Knoppen toevoegen aan afspraken",
+        "body": "Eigen knoppen tonen wanneer je een afspraak aanmaakt of bewerkt."
+      },
+      "ui_admin_page": {
+        "title": "Een beheerpagina toevoegen",
+        "body": "Een eigen pagina tonen in de beheerinstellingen."
+      },
+      "app_lifecycle": {
+        "title": "Weten wanneer de app start en stopt",
+        "body": "Een melding krijgen wanneer de app start, offline gaat of je je afmeldt."
+      }
     }
   },
   "global_search": {

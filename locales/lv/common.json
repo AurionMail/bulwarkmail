@@ -3970,6 +3970,276 @@
       "failed_detail": "Autorizācija neizdevās: {error}",
       "missing_params": "Trūkst autorizācijas kods vai stāvoklis.",
       "delivery_failed": "Autorizācijas rezultātu neizdevās nodot lietotnes cilnei. Aizveriet šo logu un mēģiniet vēlreiz."
+    },
+    "settings": {
+      "title": "Spraudņi",
+      "description": "Spraudņi, ko pievienojis jūsu administrators. Ieslēdziet vai izslēdziet tos savam kontam.",
+      "description_uploads": "Spraudņi papildina webmail ar jaunām funkcijām. Ieslēdziet vai izslēdziet tos savam kontam vai instalējiet savus.",
+      "description_demo": "Demo režīmā spraudņi nav pieejami.",
+      "install_button": "Instalēt spraudni",
+      "install_hint": "Izvēlieties spraudņa ZIP failu.",
+      "install_hint_approval": "Izvēlieties spraudņa ZIP failu. Pirms varat to ieslēgt, tas jāapstiprina administratoram.",
+      "install_uploads_off": "Jūsu administrators neļauj instalēt spraudņus.",
+      "install_managed_id": "Jūsu administrators jau nodrošina spraudni ar šādu nosaukumu, tāpēc to nevar aizstāt.",
+      "install_invalid": "Šis fails nav instalējams spraudnis: {details}",
+      "toast_installed": "Spraudnis instalēts. Ieslēdziet to zemāk.",
+      "toast_installed_pending": "Spraudnis instalēts un nosūtīts jūsu administratoram apstiprināšanai.",
+      "toast_enabled": "Spraudnis {name} ir ieslēgts",
+      "toast_disabled": "Spraudnis {name} ir izslēgts",
+      "toast_removed": "Spraudnis {name} ir noņemts",
+      "toast_forced": "Jūsu administrators patur spraudni {name} ieslēgtu",
+      "toast_approval_requested": "Spraudnis {name} gaida jūsu administratora apstiprinājumu",
+      "empty_title": "Vēl nav spraudņu",
+      "empty_admin": "Jūsu administrators nav pievienojis nevienu spraudni.",
+      "empty_uploads": "Lai sāktu, instalējiet spraudni no ZIP faila.",
+      "empty_demo": "Spraudņiem vajadzīgs īsts konts, tāpēc demo režīmā to nav.",
+      "syncing": "Pārbauda spraudņus serverī…",
+      "status_installed": "Izslēgts",
+      "status_enabled": "Tiek palaists",
+      "status_running": "Ieslēgts",
+      "status_disabled": "Izslēgts",
+      "status_error": "Problēma",
+      "badge_forced": "Obligāts",
+      "badge_managed": "No jūsu administratora",
+      "badge_yours": "Instalējāt jūs",
+      "badge_awaiting": "Gaida apstiprinājumu",
+      "toggle_label": "Ieslēgt vai izslēgt spraudni {name}",
+      "forced_note": "Jūsu administrators pieprasa šo spraudni, tāpēc to nevar izslēgt.",
+      "permissions": "Ko tas var darīt",
+      "permissions_managed": "Ko tas var darīt (apstiprinājis jūsu administrators)",
+      "settings": "Iestatījumi",
+      "remove": "Noņemt",
+      "remove_title": "Noņemt spraudni {name}?",
+      "remove_message": "Spraudnis un viss, ko tas saglabājis šajā pārlūkā, tiks dzēsts. Vēlāk to var instalēt atkal.",
+      "remove_confirm": "Noņemt",
+      "error_user_plugins_off": "Jūsu administrators ir izslēdzis lietotāju instalētos spraudņus, tāpēc šis spraudnis nedarbojas.",
+      "error_approval_unavailable": "Šis spraudnis tika instalēts, pirms bija vajadzīgs apstiprinājums. Noņemiet to un instalējiet vēlreiz, lai nosūtītu apstiprināšanai.",
+      "error_approval_denied": "Jūsu administrators neapstiprināja šo spraudni.",
+      "error_approval_pending": "Gaida, kad jūsu administrators apstiprinās šo spraudni."
+    },
+    "consent": {
+      "title": "Atļaut spraudnim {name} to darīt?",
+      "intro": "Spraudnis pieprasa tālāk norādītās atļaujas. Tas tās saņems tikai tad, ja jūs atļausiet.",
+      "high_risk_note": "Atzīmētie punkti dod spraudnim piekļuvi jūsu pasta saturam vai ļauj tam sūtīt datus citur. Atļaujiet tos tikai spraudņiem, kuriem uzticaties.",
+      "revoke_hint": "Spraudni jebkurā laikā varat izslēgt vai noņemt iestatījumos.",
+      "deny": "Neatļaut",
+      "allow": "Atļaut"
+    },
+    "permissions": {
+      "none": "Tam nav vajadzīgas īpašas atļaujas.",
+      "high_risk": "Nepieciešama piesardzība",
+      "email_read": {
+        "title": "Lasīt jūsu pastu",
+        "body": "Redzēt sūtītājus, adresātus, tēmas un visu tekstu vēstulēm, ko atverat, un vēstulēm sarakstā."
+      },
+      "email_write": {
+        "title": "Mainīt vēstuļu tagus un karodziņus",
+        "body": "Pievienot vai noņemt tagus, karodziņus un citus atslēgvārdus jūsu vēstulēm."
+      },
+      "email_send": {
+        "title": "Mainīt vēstules pirms nosūtīšanas",
+        "body": "Lasīt un mainīt adresātus, tēmu, tekstu un pielikumus vēstulēm, ko rakstāt, un apturēt vēstules nosūtīšanu."
+      },
+      "crypto_full": {
+        "title": "Pilna piekļuve lietotnei",
+        "body": "Darbojas ar tādām pašām tiesībām kā pats webmail. Var lasīt visu jūsu pastu un saglabātās atslēgas un rīkoties jūsu vārdā. Atļaujiet to tikai spraudņiem, kuriem pilnībā uzticaties."
+      },
+      "email_raw_send": {
+        "title": "Sūtīt paša izveidotas vēstules",
+        "body": "Sūtīt no jūsu konta pilnīgas vēstules, piemēram, parakstītas vai šifrētas."
+      },
+      "email_blob_read": {
+        "title": "Lasīt vēstuļu neapstrādātos datus",
+        "body": "Lasīt jūsu vēstuļu un pielikumu sākotnējos datus, kā arī katru failu, ko pievienojat, pirms tas tiek nosūtīts."
+      },
+      "email_blob_write": {
+        "title": "Aizstāt pielikumus pirms nosūtīšanas",
+        "body": "Augšupielādēt failus jūsu pasta serverī un aizstāt pievienoto failu ar citu, pirms vēstule tiek nosūtīta."
+      },
+      "email_render_takeover": {
+        "title": "Mainīt vēstuļu attēlojumu",
+        "body": "Aizstāt tekstu vēstulēm, ko atverat, un vēstulēm sarakstā, piemēram, lai parādītu atšifrētu saturu."
+      },
+      "calendar_read": {
+        "title": "Lasīt jūsu kalendāru",
+        "body": "Redzēt jūsu kalendārus un to notikumus."
+      },
+      "calendar_write": {
+        "title": "Mainīt jūsu kalendāru",
+        "body": "Izveidot, mainīt un dzēst notikumus."
+      },
+      "contacts_read": {
+        "title": "Lasīt jūsu kontaktus",
+        "body": "Meklēt un lasīt jūsu adrešu grāmatās."
+      },
+      "contacts_write": {
+        "title": "Mainīt jūsu kontaktus",
+        "body": "Izveidot, mainīt un dzēst kontaktus un adrešu grāmatas."
+      },
+      "files_read": {
+        "title": "Lasīt jūsu failus",
+        "body": "Pārlūkot un atvērt jūsu kontā glabātos failus."
+      },
+      "files_write": {
+        "title": "Mainīt jūsu failus",
+        "body": "Augšupielādēt, pārdēvēt, pārvietot un dzēst failus jūsu kontā."
+      },
+      "identity_read": {
+        "title": "Redzēt jūsu sūtītāja adreses",
+        "body": "Redzēt adreses, no kurām sūtāt, un to parakstus."
+      },
+      "identity_write": {
+        "title": "Mainīt jūsu sūtītāja adreses",
+        "body": "Izveidot, mainīt un dzēst sūtītāja adreses un parakstus."
+      },
+      "filters_read": {
+        "title": "Lasīt jūsu pasta filtrus",
+        "body": "Redzēt noteikumus, kas šķiro jūsu ienākošo pastu."
+      },
+      "filters_write": {
+        "title": "Mainīt jūsu pasta filtrus",
+        "body": "Pievienot noteikumus jūsu servera filtriem. Šādi noteikumi var pārvietot, pārsūtīt vai dzēst ienākošo pastu."
+      },
+      "tasks_read": {
+        "title": "Lasīt jūsu uzdevumus",
+        "body": "Redzēt jūsu uzdevumu sarakstus un uzdevumus."
+      },
+      "tasks_write": {
+        "title": "Mainīt jūsu uzdevumus",
+        "body": "Izveidot, mainīt, pabeigt un dzēst uzdevumus."
+      },
+      "templates_read": {
+        "title": "Lasīt jūsu veidnes",
+        "body": "Redzēt jūsu saglabātās vēstuļu veidnes."
+      },
+      "templates_write": {
+        "title": "Mainīt jūsu veidnes",
+        "body": "Izveidot, mainīt un dzēst vēstuļu veidnes."
+      },
+      "smime_read": {
+        "title": "Redzēt jūsu S/MIME statusu",
+        "body": "Redzēt, vai jums ir S/MIME atslēgas un sertifikāti, bez piekļuves atslēgām."
+      },
+      "vacation_read": {
+        "title": "Redzēt jūsu prombūtnes atbildi",
+        "body": "Redzēt, vai automātiskā atbilde ir ieslēgta un kas tajā rakstīts."
+      },
+      "vacation_write": {
+        "title": "Mainīt jūsu prombūtnes atbildi",
+        "body": "Ieslēgt vai izslēgt automātisko atbildi un mainīt tās tekstu un datumus."
+      },
+      "settings_read": {
+        "title": "Lasīt jūsu iestatījumus",
+        "body": "Redzēt jūsu preferences un tagu definīcijas."
+      },
+      "settings_write": {
+        "title": "Mainīt jūsu iestatījumus",
+        "body": "Pievienot tagus, mainīt to secību un mainīt jūsu preferences."
+      },
+      "security_read": {
+        "title": "Redzēt jūsu konta drošību",
+        "body": "Redzēt, vai divfaktoru autentifikācija un šifrēšana ir ieslēgtas, bez piekļuves noslēpumiem."
+      },
+      "auth_observe": {
+        "title": "Zināt, kad pierakstāties",
+        "body": "Saņemt ziņu, kad pierakstāties, pārslēdzat kontu vai jūsu sesija tiek atjaunota."
+      },
+      "auth_emit": {
+        "title": "Izrakstīt jūs",
+        "body": "Izrakstīt jūs no webmail."
+      },
+      "account_read": {
+        "title": "Redzēt jūsu kontus",
+        "body": "Redzēt jūsu pievienotos kontus ar to adresēm un serveriem."
+      },
+      "http_post": {
+        "title": "Izmantot webmail serveri jūsu vārdā",
+        "body": "Izsaukt šos servera galapunktus ar jūsu pieteikšanās datiem:"
+      },
+      "http_fetch": {
+        "title": "Savienoties ar citām vietnēm",
+        "body": "Sūtīt pieprasījumus uz šīm vietnēm. Uz turieni var nosūtīt visu, ko spraudnis var nolasīt:"
+      },
+      "admin_config": {
+        "title": "Lasīt savus iestatījumus no administratora",
+        "body": "Lasīt iestatījumus, ko jūsu administrators saglabājis šim spraudnim."
+      },
+      "ui_observe": {
+        "title": "Sekot, kur atrodaties lietotnē",
+        "body": "Zināt, kura lapa ir atvērta, un reaģēt uz saitēm, uz kurām noklikšķināt."
+      },
+      "ui_toolbar": {
+        "title": "Pievienot pogas vēstules rīkjoslai",
+        "body": "Rādīt savas pogas virs atvērtas vēstules."
+      },
+      "ui_app_top_banner": {
+        "title": "Rādīt reklāmkarogu augšā",
+        "body": "Rādīt paziņojumu pāri lietotnes augšdaļai."
+      },
+      "ui_email_banner": {
+        "title": "Rādīt paziņojumus vēstulēs",
+        "body": "Rādīt paziņojumu virs atvērtas vēstules teksta."
+      },
+      "ui_email_footer": {
+        "title": "Pievienot saturu zem vēstulēm",
+        "body": "Rādīt savu saturu zem atvērtas vēstules."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Rādīt kontaktu šifrēšanas atslēgas",
+        "body": "Rādīt un pārvaldīt kontakta šifrēšanas atslēgas."
+      },
+      "ui_email_details": {
+        "title": "Pievienot paneļus vēstules informācijai",
+        "body": "Rādīt savu paneli blakus atvērtai vēstulei vai zem tās."
+      },
+      "ui_download_file": {
+        "title": "Saglabāt failus jūsu ierīcē",
+        "body": "Piedāvāt lejupielādei paša izveidotus failus."
+      },
+      "ui_message_list_tabs": {
+        "title": "Pievienot cilnes iesūtnei",
+        "body": "Sadalīt jūsu iesūtni cilnēs, piemēram, Jaunumi vai Akcijas."
+      },
+      "ui_composer_toolbar": {
+        "title": "Pievienot pogas redaktoram",
+        "body": "Rādīt savas pogas, kamēr rakstāt vēstuli."
+      },
+      "ui_composer_sidebar": {
+        "title": "Pievienot paneli redaktoram",
+        "body": "Rādīt savu paneli blakus vēstulei, ko rakstāt."
+      },
+      "ui_sidebar_widget": {
+        "title": "Pievienot bloku sānjoslai",
+        "body": "Rādīt savu saturu pasta sānjoslā."
+      },
+      "ui_settings_section": {
+        "title": "Pievienot iestatījumu lapu",
+        "body": "Rādīt savu lapu iestatījumos."
+      },
+      "ui_context_menu": {
+        "title": "Papildināt vēstules izvēlni",
+        "body": "Pievienot ierakstus izvēlnei, kas atveras, ar peles labo pogu noklikšķinot uz vēstules."
+      },
+      "ui_navigation_rail": {
+        "title": "Papildināt navigācijas joslu",
+        "body": "Rādīt savu pogu navigācijas joslā."
+      },
+      "ui_keyboard": {
+        "title": "Pievienot īsinājumtaustiņus",
+        "body": "Reaģēt uz paša definētiem īsinājumtaustiņiem."
+      },
+      "ui_calendar_action": {
+        "title": "Pievienot pogas notikumiem",
+        "body": "Rādīt savas pogas, kad izveidojat vai rediģējat notikumu."
+      },
+      "ui_admin_page": {
+        "title": "Pievienot administrēšanas lapu",
+        "body": "Rādīt savu lapu administratora iestatījumos."
+      },
+      "app_lifecycle": {
+        "title": "Zināt, kad lietotne startē un apstājas",
+        "body": "Saņemt ziņu, kad lietotne startē, pāriet bezsaistē vai jūs izrakstāties."
+      }
     }
   },
   "global_search": {

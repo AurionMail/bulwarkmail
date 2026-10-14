@@ -3970,6 +3970,276 @@
       "failed_detail": "Godkendelse mislykkedes: {error}",
       "missing_params": "Autorisationskode eller tilstand mangler.",
       "delivery_failed": "Resultatet af godkendelsen kunne ikke leveres til app-fanen. Luk dette vindue og prøv igen."
+    },
+    "settings": {
+      "title": "Plugins",
+      "description": "Plugins, som din administrator har tilføjet. Slå dem til eller fra for din konto.",
+      "description_uploads": "Plugins tilføjer funktioner til webmailen. Slå dem til eller fra for din konto, eller installer dine egne.",
+      "description_demo": "Plugins er ikke tilgængelige i demoen.",
+      "install_button": "Installer plugin",
+      "install_hint": "Vælg en ZIP-fil med et plugin.",
+      "install_hint_approval": "Vælg en ZIP-fil med et plugin. En administrator skal godkende det, før du kan slå det til.",
+      "install_uploads_off": "Din administrator tillader ikke, at du installerer plugins.",
+      "install_managed_id": "Din administrator leverer allerede et plugin med dette navn, så det kan ikke erstattes.",
+      "install_invalid": "Filen er ikke et plugin, der kan installeres: {details}",
+      "toast_installed": "Plugin installeret. Slå det til herunder.",
+      "toast_installed_pending": "Plugin installeret og sendt til din administrator til godkendelse.",
+      "toast_enabled": "{name} er slået til",
+      "toast_disabled": "{name} er slået fra",
+      "toast_removed": "{name} er fjernet",
+      "toast_forced": "Din administrator holder {name} slået til",
+      "toast_approval_requested": "{name} venter på godkendelse fra din administrator",
+      "empty_title": "Ingen plugins endnu",
+      "empty_admin": "Din administrator har ikke tilføjet nogen plugins.",
+      "empty_uploads": "Installer et plugin fra en ZIP-fil for at komme i gang.",
+      "empty_demo": "Plugins kræver en rigtig konto, så demoen har ingen.",
+      "syncing": "Tjekker plugins med serveren…",
+      "status_installed": "Fra",
+      "status_enabled": "Starter",
+      "status_running": "Til",
+      "status_disabled": "Fra",
+      "status_error": "Problem",
+      "badge_forced": "Påkrævet",
+      "badge_managed": "Fra din administrator",
+      "badge_yours": "Installeret af dig",
+      "badge_awaiting": "Venter på godkendelse",
+      "toggle_label": "Slå {name} til eller fra",
+      "forced_note": "Din administrator kræver dette plugin, så det kan ikke slås fra.",
+      "permissions": "Hvad det kan",
+      "permissions_managed": "Hvad det kan (godkendt af din administrator)",
+      "settings": "Indstillinger",
+      "remove": "Fjern",
+      "remove_title": "Fjern {name}?",
+      "remove_message": "Pluginnet og alt, hvad det har gemt i denne browser, slettes. Du kan installere det igen senere.",
+      "remove_confirm": "Fjern",
+      "error_user_plugins_off": "Din administrator har slået plugins installeret af brugere fra, så dette plugin kører ikke.",
+      "error_approval_unavailable": "Dette plugin blev installeret, før godkendelse var påkrævet. Fjern det, og installer det igen for at sende det til godkendelse.",
+      "error_approval_denied": "Din administrator har ikke godkendt dette plugin.",
+      "error_approval_pending": "Venter på, at din administrator godkender dette plugin."
+    },
+    "consent": {
+      "title": "Vil du tillade {name} at gøre dette?",
+      "intro": "Pluginnet beder om tilladelserne herunder. Det får dem kun, hvis du tillader det.",
+      "high_risk_note": "Markerede punkter giver pluginnet adgang til indholdet af dine e-mails eller lader det sende data andre steder hen. Tillad dem kun for plugins, du stoler på.",
+      "revoke_hint": "Du kan altid slå pluginnet fra eller fjerne det under Indstillinger.",
+      "deny": "Tillad ikke",
+      "allow": "Tillad"
+    },
+    "permissions": {
+      "none": "Det kræver ingen særlige tilladelser.",
+      "high_risk": "Kræver omtanke",
+      "email_read": {
+        "title": "Læse dine e-mails",
+        "body": "Se afsendere, modtagere, emner og den fulde tekst i de beskeder, du åbner, og i beskedlisten."
+      },
+      "email_write": {
+        "title": "Ændre tags og markeringer på dine e-mails",
+        "body": "Tilføje eller fjerne tags, markeringer og andre nøgleord på dine beskeder."
+      },
+      "email_send": {
+        "title": "Ændre e-mails, før de sendes",
+        "body": "Læse og ændre modtagere, emne, tekst og vedhæftninger i de beskeder, du skriver, og forhindre, at en besked bliver sendt."
+      },
+      "crypto_full": {
+        "title": "Fuld adgang til denne app",
+        "body": "Kører med de samme rettigheder som selve webmailen. Det kan læse alle dine e-mails og gemte nøgler og handle på dine vegne. Tillad det kun for plugins, du stoler fuldt ud på."
+      },
+      "email_raw_send": {
+        "title": "Sende beskeder, det selv har lavet",
+        "body": "Sende færdige beskeder, f.eks. signerede eller krypterede, fra din konto."
+      },
+      "email_blob_read": {
+        "title": "Læse beskeders rå indhold",
+        "body": "Læse de originale data i dine beskeder og vedhæftninger og i alle filer, du vedhæfter, før de sendes."
+      },
+      "email_blob_write": {
+        "title": "Erstatte vedhæftninger før afsendelse",
+        "body": "Uploade filer til din mailserver og erstatte en vedhæftet fil med en anden, før beskeden sendes."
+      },
+      "email_render_takeover": {
+        "title": "Ændre, hvordan beskeder vises",
+        "body": "Erstatte teksten i de beskeder, du åbner, og i beskedlisten, f.eks. for at vise dekrypteret indhold."
+      },
+      "calendar_read": {
+        "title": "Læse din kalender",
+        "body": "Se dine kalendere og deres begivenheder."
+      },
+      "calendar_write": {
+        "title": "Ændre din kalender",
+        "body": "Oprette, ændre og slette begivenheder."
+      },
+      "contacts_read": {
+        "title": "Læse dine kontakter",
+        "body": "Søge i og læse dine adressebøger."
+      },
+      "contacts_write": {
+        "title": "Ændre dine kontakter",
+        "body": "Oprette, ændre og slette kontakter og adressebøger."
+      },
+      "files_read": {
+        "title": "Læse dine filer",
+        "body": "Gennemse og åbne de filer, der er gemt på din konto."
+      },
+      "files_write": {
+        "title": "Ændre dine filer",
+        "body": "Uploade, omdøbe, flytte og slette filer på din konto."
+      },
+      "identity_read": {
+        "title": "Se dine afsenderidentiteter",
+        "body": "Se de adresser, du sender fra, og deres signaturer."
+      },
+      "identity_write": {
+        "title": "Ændre dine afsenderidentiteter",
+        "body": "Oprette, ændre og slette afsenderidentiteter og signaturer."
+      },
+      "filters_read": {
+        "title": "Læse dine mailfiltre",
+        "body": "Se de regler, der sorterer din indgående mail."
+      },
+      "filters_write": {
+        "title": "Ændre dine mailfiltre",
+        "body": "Tilføje regler til dine filtre på serveren. Sådanne regler kan flytte, videresende eller slette indgående mail."
+      },
+      "tasks_read": {
+        "title": "Læse dine opgaver",
+        "body": "Se dine opgavelister og opgaver."
+      },
+      "tasks_write": {
+        "title": "Ændre dine opgaver",
+        "body": "Oprette, ændre, fuldføre og slette opgaver."
+      },
+      "templates_read": {
+        "title": "Læse dine skabeloner",
+        "body": "Se dine gemte beskedskabeloner."
+      },
+      "templates_write": {
+        "title": "Ændre dine skabeloner",
+        "body": "Oprette, ændre og slette beskedskabeloner."
+      },
+      "smime_read": {
+        "title": "Se din S/MIME-status",
+        "body": "Se, om du har S/MIME-nøgler og -certifikater, uden adgang til nøglerne."
+      },
+      "vacation_read": {
+        "title": "Se dit fraværssvar",
+        "body": "Se, om dit automatiske svar er slået til, og hvad der står i det."
+      },
+      "vacation_write": {
+        "title": "Ændre dit fraværssvar",
+        "body": "Slå dit automatiske svar til eller fra og ændre teksten og datoerne."
+      },
+      "settings_read": {
+        "title": "Læse dine indstillinger",
+        "body": "Se dine præferencer og tagdefinitioner."
+      },
+      "settings_write": {
+        "title": "Ændre dine indstillinger",
+        "body": "Tilføje og omarrangere tags og ændre dine præferencer."
+      },
+      "security_read": {
+        "title": "Se din kontos sikkerhed",
+        "body": "Se, om to-faktor-godkendelse og kryptering er slået til, uden adgang til hemmeligheder."
+      },
+      "auth_observe": {
+        "title": "Vide, når du logger ind",
+        "body": "Få besked, når du logger ind, skifter konto, eller din session fornyes."
+      },
+      "auth_emit": {
+        "title": "Logge dig ud",
+        "body": "Logge dig ud af webmailen."
+      },
+      "account_read": {
+        "title": "Se dine konti",
+        "body": "Se de konti, du har tilføjet, med deres adresser og servere."
+      },
+      "http_post": {
+        "title": "Bruge webmail-serveren for dig",
+        "body": "Kalde disse server-endpoints med dit login:"
+      },
+      "http_fetch": {
+        "title": "Forbinde til andre websteder",
+        "body": "Sende forespørgsler til disse websteder. Alt, hvad pluginnet kan læse, kan blive sendt dertil:"
+      },
+      "admin_config": {
+        "title": "Læse sine indstillinger fra din administrator",
+        "body": "Læse de indstillinger, din administrator har gemt for dette plugin."
+      },
+      "ui_observe": {
+        "title": "Følge med i, hvor du er i appen",
+        "body": "Vide, hvilken side der er åben, og reagere på links, du klikker på."
+      },
+      "ui_toolbar": {
+        "title": "Tilføje knapper til beskedens værktøjslinje",
+        "body": "Vise sine egne knapper over en åben besked."
+      },
+      "ui_app_top_banner": {
+        "title": "Vise et banner øverst",
+        "body": "Vise en meddelelse hen over toppen af appen."
+      },
+      "ui_email_banner": {
+        "title": "Vise meddelelser på beskeder",
+        "body": "Vise en meddelelse over teksten i en åben besked."
+      },
+      "ui_email_footer": {
+        "title": "Tilføje indhold under beskeder",
+        "body": "Vise sit eget indhold under en åben besked."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Vise kontakters krypteringsnøgler",
+        "body": "Vise og administrere krypteringsnøglerne på en kontakt."
+      },
+      "ui_email_details": {
+        "title": "Tilføje paneler til beskeddetaljer",
+        "body": "Vise sit eget panel ved siden af eller under en åben besked."
+      },
+      "ui_download_file": {
+        "title": "Gemme filer på din enhed",
+        "body": "Tilbyde filer, det har lavet, til download."
+      },
+      "ui_message_list_tabs": {
+        "title": "Tilføje faner til din indbakke",
+        "body": "Sortere din indbakke i faner som Opdateringer eller Kampagner."
+      },
+      "ui_composer_toolbar": {
+        "title": "Tilføje knapper til komponisten",
+        "body": "Vise sine egne knapper, mens du skriver en besked."
+      },
+      "ui_composer_sidebar": {
+        "title": "Tilføje et panel til komponisten",
+        "body": "Vise sit eget panel ved siden af den besked, du skriver."
+      },
+      "ui_sidebar_widget": {
+        "title": "Tilføje en boks til sidepanelet",
+        "body": "Vise sit eget indhold i mailens sidepanel."
+      },
+      "ui_settings_section": {
+        "title": "Tilføje en indstillingsside",
+        "body": "Vise sin egen side under Indstillinger."
+      },
+      "ui_context_menu": {
+        "title": "Tilføje til beskedmenuen",
+        "body": "Tilføje punkter til den menu, der åbner, når du højreklikker på en besked."
+      },
+      "ui_navigation_rail": {
+        "title": "Tilføje til navigationslinjen",
+        "body": "Vise sin egen knap på navigationslinjen."
+      },
+      "ui_keyboard": {
+        "title": "Tilføje tastaturgenveje",
+        "body": "Reagere på tastaturgenveje, som det selv definerer."
+      },
+      "ui_calendar_action": {
+        "title": "Tilføje knapper til begivenheder",
+        "body": "Vise sine egne knapper, når du opretter eller redigerer en begivenhed."
+      },
+      "ui_admin_page": {
+        "title": "Tilføje en administratorside",
+        "body": "Vise sin egen side i administratorindstillingerne."
+      },
+      "app_lifecycle": {
+        "title": "Vide, når appen starter og stopper",
+        "body": "Få besked, når appen starter, går offline, eller du logger ud."
+      }
     }
   },
   "global_search": {

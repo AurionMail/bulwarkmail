@@ -270,6 +270,15 @@ export interface InstalledPlugin {
    * skip the consent prompt (admin pre-approval).
    */
   grantedPermissions?: string[];
+  /**
+   * For plugins the user installed: the validated manifest, kept so the
+   * package can be rebuilt for an approval request, and the hash an admin
+   * approval is pinned to (see packageHash in lib/extension-package.ts).
+   */
+  packageManifest?: Record<string, unknown>;
+  approvalHash?: string;
+  /** Last answer from the server about this package's approval. */
+  approvalStatus?: 'pending' | 'approved' | 'denied' | 'not-requested';
 }
 
 // ─── UI Slots ────────────────────────────────────────────────

@@ -3970,6 +3970,276 @@
       "failed_detail": "Autorizácia zlyhala: {error}",
       "missing_params": "Chýba autorizačný kód alebo stav.",
       "delivery_failed": "Výsledok autorizácie sa nepodarilo odovzdať karte aplikácie. Zavrite toto okno a skúste to znova."
+    },
+    "settings": {
+      "title": "Doplnky",
+      "description": "Doplnky pridané vaším správcom. Pre svoj účet ich môžete zapnúť alebo vypnúť.",
+      "description_uploads": "Doplnky pridávajú do webmailu ďalšie funkcie. Pre svoj účet ich môžete zapnúť alebo vypnúť, prípadne nainštalovať vlastné.",
+      "description_demo": "Doplnky nie sú v ukážkovej verzii k dispozícii.",
+      "install_button": "Nainštalovať doplnok",
+      "install_hint": "Vyberte súbor ZIP s doplnkom.",
+      "install_hint_approval": "Vyberte súbor ZIP s doplnkom. Skôr než ho budete môcť zapnúť, musí ho schváliť správca.",
+      "install_uploads_off": "Váš správca nepovoľuje inštaláciu doplnkov.",
+      "install_managed_id": "Váš správca už poskytuje doplnok s týmto názvom, preto ho nemožno nahradiť.",
+      "install_invalid": "Tento súbor nie je doplnok, ktorý možno nainštalovať: {details}",
+      "toast_installed": "Doplnok je nainštalovaný. Zapnite ho nižšie.",
+      "toast_installed_pending": "Doplnok je nainštalovaný a odoslaný správcovi na schválenie.",
+      "toast_enabled": "Doplnok {name} je zapnutý",
+      "toast_disabled": "Doplnok {name} je vypnutý",
+      "toast_removed": "Doplnok {name} bol odstránený",
+      "toast_forced": "Váš správca ponecháva doplnok {name} zapnutý",
+      "toast_approval_requested": "Doplnok {name} čaká na schválenie správcom",
+      "empty_title": "Zatiaľ žiadne doplnky",
+      "empty_admin": "Váš správca zatiaľ nepridal žiadne doplnky.",
+      "empty_uploads": "Začnite inštaláciou doplnku zo súboru ZIP.",
+      "empty_demo": "Doplnky vyžadujú skutočný účet, preto ich ukážková verzia nemá.",
+      "syncing": "Kontrola doplnkov na serveri…",
+      "status_installed": "Vypnuté",
+      "status_enabled": "Spúšťa sa",
+      "status_running": "Zapnuté",
+      "status_disabled": "Vypnuté",
+      "status_error": "Problém",
+      "badge_forced": "Povinný",
+      "badge_managed": "Od správcu",
+      "badge_yours": "Nainštalované vami",
+      "badge_awaiting": "Čaká na schválenie",
+      "toggle_label": "Zapnúť alebo vypnúť doplnok {name}",
+      "forced_note": "Váš správca tento doplnok vyžaduje, preto ho nemožno vypnúť.",
+      "permissions": "Čo môže robiť",
+      "permissions_managed": "Čo môže robiť (schválené správcom)",
+      "settings": "Nastavenia",
+      "remove": "Odstrániť",
+      "remove_title": "Odstrániť doplnok {name}?",
+      "remove_message": "Doplnok aj všetko, čo uložil v tomto prehliadači, sa vymaže. Neskôr ho môžete nainštalovať znova.",
+      "remove_confirm": "Odstrániť",
+      "error_user_plugins_off": "Váš správca vypol doplnky inštalované používateľmi, preto tento doplnok nebeží.",
+      "error_approval_unavailable": "Tento doplnok bol nainštalovaný skôr, než sa vyžadovalo schválenie. Odstráňte ho a nainštalujte znova, aby sa odoslal na schválenie.",
+      "error_approval_denied": "Váš správca tento doplnok neschválil.",
+      "error_approval_pending": "Čaká sa, kým správca tento doplnok schváli."
+    },
+    "consent": {
+      "title": "Povoliť doplnku {name} tieto akcie?",
+      "intro": "Doplnok žiada o nižšie uvedené oprávnenia. Dostane ich, len ak ich povolíte.",
+      "high_risk_note": "Označené položky dávajú doplnku prístup k obsahu vašej pošty alebo mu umožňujú posielať údaje inam. Povoľte ich len doplnkom, ktorým dôverujete.",
+      "revoke_hint": "Doplnok môžete kedykoľvek vypnúť alebo odstrániť v Nastaveniach.",
+      "deny": "Nepovoliť",
+      "allow": "Povoliť"
+    },
+    "permissions": {
+      "none": "Nepotrebuje žiadne zvláštne oprávnenia.",
+      "high_risk": "Vyžaduje opatrnosť",
+      "email_read": {
+        "title": "Čítať vašu poštu",
+        "body": "Vidí odosielateľov, príjemcov, predmety a celý text správ, ktoré otvoríte, aj zoznamu správ."
+      },
+      "email_write": {
+        "title": "Meniť štítky a príznaky pošty",
+        "body": "Pridáva alebo odstraňuje štítky, príznaky a ďalšie kľúčové slová pri vašich správach."
+      },
+      "email_send": {
+        "title": "Meniť poštu pred odoslaním",
+        "body": "Číta a mení príjemcov, predmet, text a prílohy správ, ktoré píšete, a môže zastaviť odoslanie správy."
+      },
+      "crypto_full": {
+        "title": "Úplný prístup k tejto aplikácii",
+        "body": "Beží s rovnakými právami ako samotný webmail. Môže čítať všetku vašu poštu a uložené kľúče a konať vo vašom mene. Povoľte to len doplnkom, ktorým úplne dôverujete."
+      },
+      "email_raw_send": {
+        "title": "Odosielať správy, ktoré sám vytvoril",
+        "body": "Odosiela z vášho účtu kompletné správy, napríklad podpísané alebo šifrované."
+      },
+      "email_blob_read": {
+        "title": "Čítať nespracovaný obsah správ",
+        "body": "Číta pôvodné údaje vašich správ a príloh aj každého súboru, ktorý priložíte pred odoslaním."
+      },
+      "email_blob_write": {
+        "title": "Nahrádzať prílohy pred odoslaním",
+        "body": "Nahráva súbory na váš poštový server a pred odoslaním správy nahradí priložený súbor iným."
+      },
+      "email_render_takeover": {
+        "title": "Meniť zobrazenie správ",
+        "body": "Nahrádza text správ, ktoré otvoríte, aj zoznamu správ, napríklad aby zobrazil dešifrovaný obsah."
+      },
+      "calendar_read": {
+        "title": "Čítať váš kalendár",
+        "body": "Vidí vaše kalendáre a ich udalosti."
+      },
+      "calendar_write": {
+        "title": "Meniť váš kalendár",
+        "body": "Vytvára, mení a odstraňuje udalosti."
+      },
+      "contacts_read": {
+        "title": "Čítať vaše kontakty",
+        "body": "Prehľadáva a číta vaše adresáre."
+      },
+      "contacts_write": {
+        "title": "Meniť vaše kontakty",
+        "body": "Vytvára, mení a odstraňuje kontakty a adresáre."
+      },
+      "files_read": {
+        "title": "Čítať vaše súbory",
+        "body": "Prechádza a otvára súbory uložené vo vašom účte."
+      },
+      "files_write": {
+        "title": "Meniť vaše súbory",
+        "body": "Nahráva, premenúva, presúva a odstraňuje súbory vo vašom účte."
+      },
+      "identity_read": {
+        "title": "Vidieť vaše identity odosielateľa",
+        "body": "Vidí adresy, z ktorých odosielate, a ich podpisy."
+      },
+      "identity_write": {
+        "title": "Meniť vaše identity odosielateľa",
+        "body": "Vytvára, mení a odstraňuje identity odosielateľa a podpisy."
+      },
+      "filters_read": {
+        "title": "Čítať vaše filtre pošty",
+        "body": "Vidí pravidlá, ktoré triedia vašu prichádzajúcu poštu."
+      },
+      "filters_write": {
+        "title": "Meniť vaše filtre pošty",
+        "body": "Pridáva pravidlá do filtrov na serveri. Takéto pravidlá môžu prichádzajúcu poštu presúvať, preposielať alebo odstraňovať."
+      },
+      "tasks_read": {
+        "title": "Čítať vaše úlohy",
+        "body": "Vidí vaše zoznamy úloh a úlohy."
+      },
+      "tasks_write": {
+        "title": "Meniť vaše úlohy",
+        "body": "Vytvára, mení, dokončuje a odstraňuje úlohy."
+      },
+      "templates_read": {
+        "title": "Čítať vaše šablóny",
+        "body": "Vidí vaše uložené šablóny správ."
+      },
+      "templates_write": {
+        "title": "Meniť vaše šablóny",
+        "body": "Vytvára, mení a odstraňuje šablóny správ."
+      },
+      "smime_read": {
+        "title": "Vidieť stav S/MIME",
+        "body": "Vidí, či máte kľúče a certifikáty S/MIME, bez prístupu ku kľúčom."
+      },
+      "vacation_read": {
+        "title": "Vidieť automatickú odpoveď v neprítomnosti",
+        "body": "Vidí, či je automatická odpoveď zapnutá a čo obsahuje."
+      },
+      "vacation_write": {
+        "title": "Meniť automatickú odpoveď v neprítomnosti",
+        "body": "Zapína a vypína automatickú odpoveď a mení jej text a dátumy."
+      },
+      "settings_read": {
+        "title": "Čítať vaše nastavenia",
+        "body": "Vidí vaše predvoľby a definície štítkov."
+      },
+      "settings_write": {
+        "title": "Meniť vaše nastavenia",
+        "body": "Pridáva štítky, mení ich poradie a mení vaše predvoľby."
+      },
+      "security_read": {
+        "title": "Vidieť zabezpečenie účtu",
+        "body": "Vidí, či je zapnuté dvojfaktorové overenie a šifrovanie, bez prístupu k tajným údajom."
+      },
+      "auth_observe": {
+        "title": "Vedieť, kedy sa prihlásite",
+        "body": "Dostáva správu, keď sa prihlásite, prepnete účet alebo sa obnoví vaša relácia."
+      },
+      "auth_emit": {
+        "title": "Odhlásiť vás",
+        "body": "Môže vás odhlásiť z webmailu."
+      },
+      "account_read": {
+        "title": "Vidieť vaše účty",
+        "body": "Vidí účty, ktoré ste pridali, vrátane ich adries a serverov."
+      },
+      "http_post": {
+        "title": "Používať server webmailu vo vašom mene",
+        "body": "Volá tieto koncové body servera s vaším prihlásením:"
+      },
+      "http_fetch": {
+        "title": "Pripájať sa k iným webom",
+        "body": "Odosiela požiadavky na tieto weby. Čokoľvek, čo doplnok môže čítať, tam môže byť odoslané:"
+      },
+      "admin_config": {
+        "title": "Čítať nastavenia od správcu",
+        "body": "Číta nastavenia, ktoré pre tento doplnok uložil váš správca."
+      },
+      "ui_observe": {
+        "title": "Sledovať, kde sa v aplikácii nachádzate",
+        "body": "Vie, ktorá stránka je otvorená, a reaguje na odkazy, na ktoré kliknete."
+      },
+      "ui_toolbar": {
+        "title": "Pridávať tlačidlá na panel nástrojov správy",
+        "body": "Zobrazuje vlastné tlačidlá nad otvorenou správou."
+      },
+      "ui_app_top_banner": {
+        "title": "Zobrazovať banner hore",
+        "body": "Zobrazuje oznámenie cez hornú časť aplikácie."
+      },
+      "ui_email_banner": {
+        "title": "Zobrazovať oznámenia pri správach",
+        "body": "Zobrazuje oznámenie nad textom otvorenej správy."
+      },
+      "ui_email_footer": {
+        "title": "Pridávať obsah pod správy",
+        "body": "Zobrazuje vlastný obsah pod otvorenou správou."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Zobrazovať šifrovacie kľúče kontaktov",
+        "body": "Zobrazuje a spravuje šifrovacie kľúče pri kontakte."
+      },
+      "ui_email_details": {
+        "title": "Pridávať panely do podrobností správy",
+        "body": "Zobrazuje vlastný panel vedľa otvorenej správy alebo pod ňou."
+      },
+      "ui_download_file": {
+        "title": "Ukladať súbory do zariadenia",
+        "body": "Ponúka na stiahnutie súbory, ktoré vytvoril."
+      },
+      "ui_message_list_tabs": {
+        "title": "Pridávať karty do Doručených",
+        "body": "Rozdeľuje Doručené do kariet, napríklad Aktualizácie alebo Akcie."
+      },
+      "ui_composer_toolbar": {
+        "title": "Pridávať tlačidlá do editora správy",
+        "body": "Zobrazuje vlastné tlačidlá, keď píšete správu."
+      },
+      "ui_composer_sidebar": {
+        "title": "Pridávať panel do editora správy",
+        "body": "Zobrazuje vlastný panel vedľa správy, ktorú píšete."
+      },
+      "ui_sidebar_widget": {
+        "title": "Pridávať pole do postranného panela",
+        "body": "Zobrazuje vlastný obsah v postrannom paneli pošty."
+      },
+      "ui_settings_section": {
+        "title": "Pridávať stránku nastavení",
+        "body": "Zobrazuje vlastnú stránku v Nastaveniach."
+      },
+      "ui_context_menu": {
+        "title": "Pridávať položky do ponuky správy",
+        "body": "Pridáva položky do ponuky, ktorá sa otvorí po kliknutí pravým tlačidlom na správu."
+      },
+      "ui_navigation_rail": {
+        "title": "Pridávať tlačidlo na navigačnú lištu",
+        "body": "Zobrazuje vlastné tlačidlo na navigačnej lište."
+      },
+      "ui_keyboard": {
+        "title": "Pridávať klávesové skratky",
+        "body": "Reaguje na klávesové skratky, ktoré sám definuje."
+      },
+      "ui_calendar_action": {
+        "title": "Pridávať tlačidlá k udalostiam",
+        "body": "Zobrazuje vlastné tlačidlá, keď vytvárate alebo upravujete udalosť."
+      },
+      "ui_admin_page": {
+        "title": "Pridávať stránku administrácie",
+        "body": "Zobrazuje vlastnú stránku v nastaveniach administrácie."
+      },
+      "app_lifecycle": {
+        "title": "Vedieť, kedy sa aplikácia spúšťa a ukončuje",
+        "body": "Dostáva správu, keď sa aplikácia spustí, prejde do režimu offline alebo keď sa odhlásite."
+      }
     }
   },
   "global_search": {

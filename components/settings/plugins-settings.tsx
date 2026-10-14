@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { usePluginStore } from '@/stores/plugin-store';
 import { usePolicyStore } from '@/stores/policy-store';
+import { useConfig } from '@/hooks/use-config';
 import { SettingsSection, ToggleSwitch } from './settings-section';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Puzzle, Lock, Server } from '@/components/icons';
+import { AlertTriangle, Puzzle, Lock, Server, Upload, Trash2, Loader2 } from '@/components/icons';
 import { toast } from '@/stores/toast-store';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PluginPermissionList } from '@/components/plugins/plugin-permission-list';
 import type { InstalledPlugin, PluginStatus, SettingFieldSchema } from '@/lib/plugin-types';
 
 const STATUS_COLORS: Record<PluginStatus, string> = {
@@ -17,10 +22,19 @@ const STATUS_COLORS: Record<PluginStatus, string> = {
   error: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
+/** Errors the store records as codes, so they can be shown translated. */
+const ERROR_CODES = new Set(['user-plugins-off', 'approval-unavailable', 'approval-denied', 'approval-pending']);
+
 export function PluginsSettings() {
-  const { plugins, enablePlugin, disablePlugin, updatePluginSettings, initializePlugins, initialized } = usePluginStore();
-  const { isFeatureEnabled, isPluginForceEnabled, isPluginApproved, fetchPolicy, loaded } = usePolicyStore();
+  const t = useTranslations('plugins.settings');
+  const { plugins, installPlugin, uninstallPlugin, enablePlugin, disablePlugin, updatePluginSettings, initializePlugins, initialized } = usePluginStore();
+  const { isFeatureEnabled, isPluginForceEnabled, fetchPolicy, loaded } = usePolicyStore();
+  const { demoMode } = useConfig();
   const [expandedPlugin, setExpandedPlugin] = useState<string | null>(null);
+  const [installing, setInstalling] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<InstalledPlugin | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!loaded) {
@@ -45,67 +59,137 @@ export function PluginsSettings() {
     return null;
   }
 
+  const uploadsAllowed = isFeatureEnabled('pluginsUploadEnabled') && !demoMode;
+  const requireApproval = isFeatureEnabled('requirePluginApproval');
+
   const handleToggle = async (plugin: InstalledPlugin) => {
     if (!initialized) return;
 
-    const isForceEnabled = plugin.forceEnabled || isPluginForceEnabled(plugin.id);
-    if (isForceEnabled) {
-      toast.info(`Plugin "${plugin.name}" is forced by admin and cannot be disabled`);
-      return;
-    }
-
-    const requireApproval = isFeatureEnabled('requirePluginApproval');
-    const isApproved = plugin.adminApproved || plugin.managed || isPluginApproved(plugin.id);
-    if (!plugin.enabled && requireApproval && !isApproved) {
-      toast.info(`Plugin "${plugin.name}" requires admin approval before it can be enabled`);
+    if (plugin.forceEnabled || isPluginForceEnabled(plugin.id)) {
+      toast.info(t('toast_forced', { name: plugin.name }));
       return;
     }
 
     if (plugin.enabled) {
       disablePlugin(plugin.id);
-      toast.info(`Plugin "${plugin.name}" disabled`);
-    } else {
-      await enablePlugin(plugin.id);
-      toast.success(`Plugin "${plugin.name}" enabled`);
+      toast.info(t('toast_disabled', { name: plugin.name }));
+      return;
+    }
+    await enablePlugin(plugin.id);
+    const after = usePluginStore.getState().plugins.find((p) => p.id === plugin.id);
+    if (after?.enabled) {
+      toast.success(t('toast_enabled', { name: plugin.name }));
+    } else if (after?.error === 'approval-pending') {
+      toast.info(t('toast_approval_requested', { name: plugin.name }));
+    }
+  };
+
+  const handleInstall = async (file: File | undefined) => {
+    if (!file) return;
+    setInstalling(true);
+    setInstallError(null);
+    try {
+      const result = await installPlugin(file);
+      if (!result.success) {
+        setInstallError(
+          result.reason === 'uploads-disabled' ? t('install_uploads_off')
+            : result.reason === 'managed-id' ? t('install_managed_id')
+            : t('install_invalid', { details: result.error ?? '' }),
+        );
+        return;
+      }
+      toast.success(result.approvalStatus === 'pending'
+        ? t('toast_installed_pending')
+        : t('toast_installed'));
+    } finally {
+      setInstalling(false);
+      if (fileInput.current) fileInput.current.value = '';
     }
   };
 
   return (
-    <SettingsSection title="Plugins" description="Plugins deployed by your administrator. Toggle to enable or disable for your account.">
-      {/* Plugin List */}
+    <SettingsSection
+      title={t('title')}
+      description={demoMode ? t('description_demo') : uploadsAllowed ? t('description_uploads') : t('description')}
+    >
+      {uploadsAllowed && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInput.current?.click()}
+              disabled={installing}
+            >
+              {installing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {t('install_button')}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {requireApproval ? t('install_hint_approval') : t('install_hint')}
+            </span>
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".zip,application/zip"
+              className="sr-only"
+              aria-label={t('install_button')}
+              onChange={(e) => handleInstall(e.target.files?.[0])}
+            />
+          </div>
+          {installError && (
+            <div role="alert" className="flex items-start gap-2 rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="break-words">{installError}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {plugins.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Puzzle className="w-12 h-12 text-muted-foreground/30 mb-3" />
-          <p className="text-sm text-muted-foreground mb-1">No plugins available</p>
-          <p className="text-xs text-muted-foreground/70">Your administrator has not deployed any plugins</p>
+          <Puzzle className="mb-3 h-12 w-12 text-muted-foreground/30" />
+          <p className="mb-1 text-sm text-muted-foreground">{t('empty_title')}</p>
+          <p className="text-xs text-muted-foreground/70">
+            {demoMode ? t('empty_demo') : uploadsAllowed ? t('empty_uploads') : t('empty_admin')}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {plugins.map(plugin => {
-            const requireApproval = isFeatureEnabled('requirePluginApproval');
-            const isApproved = plugin.adminApproved || plugin.managed || isPluginApproved(plugin.id);
-            const needsApproval = requireApproval && !isApproved;
-            return (
+          {plugins.map(plugin => (
             <PluginCard
               key={plugin.id}
               plugin={plugin}
               isExpanded={expandedPlugin === plugin.id}
               isForceEnabled={plugin.forceEnabled || isPluginForceEnabled(plugin.id)}
-              isManaged={Boolean(plugin.managed)}
-              needsApproval={needsApproval}
               controlsDisabled={!initialized}
               onToggleExpand={() => setExpandedPlugin(expandedPlugin === plugin.id ? null : plugin.id)}
               onToggle={() => handleToggle(plugin)}
+              onRemove={() => setRemoving(plugin)}
               onUpdateSettings={(settings) => updatePluginSettings(plugin.id, settings)}
             />
-            );
-          })}
+          ))}
         </div>
       )}
 
       {!initialized && plugins.length > 0 && (
-        <p className="text-xs text-muted-foreground">Syncing plugin policy and managed state...</p>
+        <p className="text-xs text-muted-foreground">{t('syncing')}</p>
       )}
+
+      <ConfirmDialog
+        isOpen={removing !== null}
+        onClose={() => setRemoving(null)}
+        onConfirm={() => {
+          if (removing) {
+            uninstallPlugin(removing.id);
+            toast.info(t('toast_removed', { name: removing.name }));
+          }
+          setRemoving(null);
+        }}
+        title={t('remove_title', { name: removing?.name ?? '' })}
+        message={t('remove_message')}
+        confirmText={t('remove_confirm')}
+        variant="destructive"
+      />
     </SettingsSection>
   );
 }
@@ -116,15 +200,22 @@ interface PluginCardProps {
   plugin: InstalledPlugin;
   isExpanded: boolean;
   isForceEnabled: boolean;
-  isManaged: boolean;
-  needsApproval: boolean;
   controlsDisabled: boolean;
   onToggleExpand: () => void;
   onToggle: () => void;
+  onRemove: () => void;
   onUpdateSettings: (settings: Record<string, unknown>) => void;
 }
 
-function PluginCard({ plugin, isExpanded, isForceEnabled, isManaged, needsApproval, controlsDisabled, onToggleExpand, onToggle, onUpdateSettings }: PluginCardProps) {
+function PluginCard({ plugin, isExpanded, isForceEnabled, controlsDisabled, onToggleExpand, onToggle, onRemove, onUpdateSettings }: PluginCardProps) {
+  const t = useTranslations('plugins.settings');
+  const isManaged = Boolean(plugin.managed);
+  const awaiting = !isManaged && plugin.approvalStatus === 'pending';
+  const denied = !isManaged && plugin.approvalStatus === 'denied';
+  const errorText = plugin.error
+    ? ERROR_CODES.has(plugin.error) ? t(`error_${plugin.error.replace(/-/g, '_')}`) : plugin.error
+    : null;
+
   return (
     <div
       data-search-label={plugin.name}
@@ -133,84 +224,83 @@ function PluginCard({ plugin, isExpanded, isForceEnabled, isManaged, needsApprov
         plugin.status === 'error' ? 'border-destructive/40' : 'border-border',
       )}
     >
-      {/* Header */}
       <div className="flex items-center gap-3 p-3">
-        <div className="flex-1 min-w-0 cursor-pointer" onClick={onToggleExpand}>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground truncate">{plugin.name}</span>
-            <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', STATUS_COLORS[plugin.status])}>
-              {plugin.status}
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left"
+          onClick={onToggleExpand}
+          aria-expanded={isExpanded}
+        >
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="truncate text-sm font-medium text-foreground">{plugin.name}</span>
+            <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', STATUS_COLORS[plugin.status])}>
+              {t(`status_${plugin.status}`)}
             </span>
             {isForceEnabled && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 flex items-center gap-0.5">
-                <Lock className="w-2.5 h-2.5" /> Forced
+              <span className="flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                <Lock className="h-2.5 w-2.5" /> {t('badge_forced')}
               </span>
             )}
-            {isManaged && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 flex items-center gap-0.5">
-                <Server className="w-2.5 h-2.5" /> Managed
-              </span>
-            )}
-            {needsApproval && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                Awaiting approval
+            <span className={cn(
+              'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+              isManaged
+                ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400'
+                : 'bg-muted text-muted-foreground',
+            )}>
+              {isManaged && <Server className="h-2.5 w-2.5" />} {isManaged ? t('badge_managed') : t('badge_yours')}
+            </span>
+            {awaiting && (
+              <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                {t('badge_awaiting')}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-muted-foreground">{plugin.author}</span>
-            <span className="text-xs text-muted-foreground/50">v{plugin.version}</span>
-            <span className="text-xs text-muted-foreground/50">{plugin.type}</span>
+          <div className="mt-0.5 flex items-center gap-2">
+            <span className="truncate text-xs text-muted-foreground">{plugin.author}</span>
+            <span className="text-xs text-muted-foreground/70">v{plugin.version}</span>
           </div>
-        </div>
+        </button>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <ToggleSwitch checked={plugin.enabled} onChange={onToggle} disabled={controlsDisabled || isForceEnabled || needsApproval} />
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <ToggleSwitch
+            checked={plugin.enabled}
+            onChange={onToggle}
+            disabled={controlsDisabled || isForceEnabled || denied}
+            ariaLabel={t('toggle_label', { name: plugin.name })}
+          />
         </div>
       </div>
 
-      {/* Expanded Details */}
       {isExpanded && (
-        <div className="border-t border-border p-3 space-y-3">
-          {isForceEnabled && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">This plugin is forced by an administrator and cannot be disabled.</p>
-          )}
+        <div className="space-y-3 border-t border-border p-3">
+          {isForceEnabled && <p className="text-xs text-amber-600 dark:text-amber-400">{t('forced_note')}</p>}
 
-          {needsApproval && (
-            <p className="text-xs text-orange-600 dark:text-orange-400">This plugin is awaiting admin approval and cannot be enabled until an administrator approves it.</p>
-          )}
+          {plugin.description && <p className="text-xs text-muted-foreground">{plugin.description}</p>}
 
-          {/* Description */}
-          {plugin.description && (
-            <p className="text-xs text-muted-foreground">{plugin.description}</p>
-          )}
-
-          {/* Error */}
-          {plugin.error && (
-            <div className="flex items-start gap-2 p-2 rounded bg-destructive/10 text-destructive text-xs">
-              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-              <span>{plugin.error}</span>
+          {errorText && (
+            <div className="flex items-start gap-2 rounded bg-destructive/10 p-2 text-xs text-destructive">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="break-words">{errorText}</span>
             </div>
           )}
 
-          {/* Permissions */}
-          {plugin.permissions.length > 0 && (
-            <div>
-              <span className="text-xs font-medium text-foreground">Permissions:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {plugin.permissions.map(perm => (
-                  <span key={perm} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                    {perm}
-                  </span>
-                ))}
-              </div>
+          <div>
+            <span className="text-xs font-medium text-foreground">
+              {isManaged ? t('permissions_managed') : t('permissions')}
+            </span>
+            <div className="mt-1.5">
+              <PluginPermissionList
+                permissions={plugin.permissions}
+                httpOrigins={plugin.httpOrigins}
+                apiPostPaths={plugin.apiPostPaths}
+                compact
+              />
             </div>
-          )}
+          </div>
 
-          {/* Settings (auto-generated from schema) */}
           {plugin.settingsSchema && Object.keys(plugin.settingsSchema).length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs font-medium text-foreground">Settings:</span>
+              <span className="text-xs font-medium text-foreground">{t('settings')}</span>
               {Object.entries(plugin.settingsSchema).map(([key, schema]) => (
                 <PluginSettingField
                   key={key}
@@ -220,6 +310,15 @@ function PluginCard({ plugin, isExpanded, isForceEnabled, isManaged, needsApprov
                   onChange={(value) => onUpdateSettings({ [key]: value })}
                 />
               ))}
+            </div>
+          )}
+
+          {!isManaged && (
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={onRemove} className="text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4" />
+                {t('remove')}
+              </Button>
             </div>
           )}
         </div>
@@ -237,32 +336,34 @@ interface PluginSettingFieldProps {
   onChange: (value: unknown) => void;
 }
 
-function PluginSettingField({ schema, value, onChange }: PluginSettingFieldProps) {
+function PluginSettingField({ fieldKey, schema, value, onChange }: PluginSettingFieldProps) {
+  const inputId = `plugin-setting-${fieldKey}`;
   switch (schema.type) {
     case 'boolean':
       return (
-        <div data-search-label={schema.label} className="flex items-center justify-between">
+        <div data-search-label={schema.label} className="flex items-center justify-between gap-3">
           <div>
             <span className="text-xs text-foreground">{schema.label}</span>
             {schema.description && <p className="text-[10px] text-muted-foreground">{schema.description}</p>}
           </div>
-          <ToggleSwitch checked={value as boolean} onChange={(v) => onChange(v)} />
+          <ToggleSwitch checked={value as boolean} onChange={(v) => onChange(v)} ariaLabel={schema.label} />
         </div>
       );
 
     case 'select':
       return (
-        <div data-search-label={schema.label} className="flex items-center justify-between">
+        <div data-search-label={schema.label} className="flex items-center justify-between gap-3">
           <div>
-            <span className="text-xs text-foreground">{schema.label}</span>
+            <label htmlFor={inputId} className="text-xs text-foreground">{schema.label}</label>
             {schema.description && <p className="text-[10px] text-muted-foreground">{schema.description}</p>}
           </div>
           <select
+            id={inputId}
             value={String(value)}
             onChange={(e) => onChange(e.target.value)}
-            className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
+            className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
           >
-            {schema.options?.map(opt => (
+            {(Array.isArray(schema.options) ? schema.options : []).map(opt => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
@@ -272,31 +373,33 @@ function PluginSettingField({ schema, value, onChange }: PluginSettingFieldProps
     case 'string':
       return (
         <div data-search-label={schema.label}>
-          <span className="text-xs text-foreground">{schema.label}</span>
+          <label htmlFor={inputId} className="text-xs text-foreground">{schema.label}</label>
           {schema.description && <p className="text-[10px] text-muted-foreground">{schema.description}</p>}
           <input
+            id={inputId}
             type="text"
             value={String(value ?? '')}
             onChange={(e) => onChange(e.target.value)}
-            className="mt-1 w-full text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
+            className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
           />
         </div>
       );
 
     case 'number':
       return (
-        <div data-search-label={schema.label} className="flex items-center justify-between">
+        <div data-search-label={schema.label} className="flex items-center justify-between gap-3">
           <div>
-            <span className="text-xs text-foreground">{schema.label}</span>
+            <label htmlFor={inputId} className="text-xs text-foreground">{schema.label}</label>
             {schema.description && <p className="text-[10px] text-muted-foreground">{schema.description}</p>}
           </div>
           <input
+            id={inputId}
             type="number"
             value={Number(value ?? schema.default ?? 0)}
             min={schema.min}
             max={schema.max}
             onChange={(e) => onChange(Number(e.target.value))}
-            className="w-20 text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
+            className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
           />
         </div>
       );

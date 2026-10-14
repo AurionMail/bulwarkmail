@@ -3970,6 +3970,276 @@
       "failed_detail": "인증 실패: {error}",
       "missing_params": "인증 코드 또는 상태가 누락되었습니다.",
       "delivery_failed": "인증 결과를 앱 탭에 전달하지 못했습니다. 이 창을 닫고 다시 시도해 주세요."
+    },
+    "settings": {
+      "title": "플러그인",
+      "description": "관리자가 추가한 플러그인이에요. 내 계정에서 켜거나 끌 수 있어요.",
+      "description_uploads": "플러그인으로 웹메일에 기능을 더할 수 있어요. 내 계정에서 켜거나 끄고, 직접 설치할 수도 있어요.",
+      "description_demo": "데모에서는 플러그인을 사용할 수 없어요.",
+      "install_button": "플러그인 설치",
+      "install_hint": "플러그인 ZIP 파일을 선택하세요.",
+      "install_hint_approval": "플러그인 ZIP 파일을 선택하세요. 켜기 전에 관리자의 승인이 필요해요.",
+      "install_uploads_off": "관리자가 플러그인 설치를 허용하지 않아요.",
+      "install_managed_id": "관리자가 같은 이름의 플러그인을 이미 제공하고 있어 바꿀 수 없어요.",
+      "install_invalid": "이 파일은 설치할 수 있는 플러그인이 아니에요: {details}",
+      "toast_installed": "플러그인을 설치했어요. 아래에서 켜세요.",
+      "toast_installed_pending": "플러그인을 설치하고 관리자에게 승인을 요청했어요.",
+      "toast_enabled": "{name} 켜짐",
+      "toast_disabled": "{name} 꺼짐",
+      "toast_removed": "{name}을(를) 삭제했어요",
+      "toast_forced": "관리자가 {name}을(를) 항상 켜 두도록 설정했어요",
+      "toast_approval_requested": "{name}이(가) 관리자의 승인을 기다리고 있어요",
+      "empty_title": "아직 플러그인이 없어요",
+      "empty_admin": "관리자가 추가한 플러그인이 없어요.",
+      "empty_uploads": "ZIP 파일에서 플러그인을 설치해 시작해 보세요.",
+      "empty_demo": "플러그인은 실제 계정이 필요해서 데모에는 없어요.",
+      "syncing": "서버에서 플러그인을 확인하는 중…",
+      "status_installed": "꺼짐",
+      "status_enabled": "시작 중",
+      "status_running": "켜짐",
+      "status_disabled": "꺼짐",
+      "status_error": "문제 있음",
+      "badge_forced": "필수",
+      "badge_managed": "관리자 제공",
+      "badge_yours": "내가 설치함",
+      "badge_awaiting": "승인 대기 중",
+      "toggle_label": "{name} 켜기 또는 끄기",
+      "forced_note": "관리자가 이 플러그인을 필수로 지정해서 끌 수 없어요.",
+      "permissions": "할 수 있는 작업",
+      "permissions_managed": "할 수 있는 작업 (관리자가 승인함)",
+      "settings": "설정",
+      "remove": "삭제",
+      "remove_title": "{name}을(를) 삭제할까요?",
+      "remove_message": "플러그인과 플러그인이 이 브라우저에 저장한 모든 데이터가 삭제돼요. 나중에 다시 설치할 수 있어요.",
+      "remove_confirm": "삭제",
+      "error_user_plugins_off": "관리자가 사용자가 설치한 플러그인을 꺼 두어서 이 플러그인은 실행되지 않아요.",
+      "error_approval_unavailable": "이 플러그인은 승인이 필요해지기 전에 설치되었어요. 승인을 요청하려면 삭제한 뒤 다시 설치하세요.",
+      "error_approval_denied": "관리자가 이 플러그인을 승인하지 않았어요.",
+      "error_approval_pending": "관리자가 이 플러그인을 승인하기를 기다리고 있어요."
+    },
+    "consent": {
+      "title": "{name}에 이 권한을 허용할까요?",
+      "intro": "플러그인이 아래 권한을 요청해요. 허용한 경우에만 권한이 주어져요.",
+      "high_risk_note": "표시된 항목은 플러그인이 메일 내용에 접근하거나 데이터를 외부로 보낼 수 있게 해요. 신뢰하는 플러그인에만 허용하세요.",
+      "revoke_hint": "언제든지 설정에서 플러그인을 끄거나 삭제할 수 있어요.",
+      "deny": "허용 안 함",
+      "allow": "허용"
+    },
+    "permissions": {
+      "none": "특별한 권한이 필요하지 않아요.",
+      "high_risk": "주의 필요",
+      "email_read": {
+        "title": "메일 읽기",
+        "body": "열어 본 메시지와 메시지 목록의 보낸 사람, 받는 사람, 제목, 전체 본문을 볼 수 있어요."
+      },
+      "email_write": {
+        "title": "메일의 태그와 플래그 변경",
+        "body": "메시지에 태그, 플래그 및 기타 키워드를 추가하거나 제거할 수 있어요."
+      },
+      "email_send": {
+        "title": "보내기 전에 메일 변경",
+        "body": "작성 중인 메시지의 받는 사람, 제목, 본문, 첨부 파일을 읽고 바꾸거나, 메시지가 전송되지 않게 막을 수 있어요."
+      },
+      "crypto_full": {
+        "title": "이 앱에 대한 전체 접근 권한",
+        "body": "웹메일과 같은 권한으로 실행돼요. 모든 메일과 저장된 키를 읽고 사용자를 대신해 작업할 수 있어요. 완전히 신뢰하는 플러그인에만 허용하세요."
+      },
+      "email_raw_send": {
+        "title": "직접 만든 메시지 보내기",
+        "body": "서명되거나 암호화된 메시지 같은 완성된 메시지를 내 계정에서 보낼 수 있어요."
+      },
+      "email_blob_read": {
+        "title": "메시지 원본 읽기",
+        "body": "메시지와 첨부 파일의 원본 데이터, 그리고 보내기 전에 첨부하는 모든 파일을 읽을 수 있어요."
+      },
+      "email_blob_write": {
+        "title": "보내기 전에 첨부 파일 바꾸기",
+        "body": "메일 서버에 파일을 업로드하고, 메시지를 보내기 전에 첨부한 파일을 다른 파일로 바꿀 수 있어요."
+      },
+      "email_render_takeover": {
+        "title": "메시지 표시 방식 변경",
+        "body": "열어 본 메시지와 메시지 목록의 본문을 바꿀 수 있어요. 예를 들어 복호화된 내용을 보여 줄 때 사용해요."
+      },
+      "calendar_read": {
+        "title": "캘린더 읽기",
+        "body": "캘린더와 일정을 볼 수 있어요."
+      },
+      "calendar_write": {
+        "title": "캘린더 변경",
+        "body": "일정을 만들고, 바꾸고, 삭제할 수 있어요."
+      },
+      "contacts_read": {
+        "title": "연락처 읽기",
+        "body": "주소록을 검색하고 읽을 수 있어요."
+      },
+      "contacts_write": {
+        "title": "연락처 변경",
+        "body": "연락처와 주소록을 만들고, 바꾸고, 삭제할 수 있어요."
+      },
+      "files_read": {
+        "title": "파일 읽기",
+        "body": "계정에 저장된 파일을 둘러보고 열 수 있어요."
+      },
+      "files_write": {
+        "title": "파일 변경",
+        "body": "계정의 파일을 업로드하고, 이름을 바꾸고, 이동하고, 삭제할 수 있어요."
+      },
+      "identity_read": {
+        "title": "보내는 사람 주소 보기",
+        "body": "메일을 보낼 때 쓰는 주소와 서명을 볼 수 있어요."
+      },
+      "identity_write": {
+        "title": "보내는 사람 주소 변경",
+        "body": "보내는 사람 주소와 서명을 만들고, 바꾸고, 삭제할 수 있어요."
+      },
+      "filters_read": {
+        "title": "메일 필터 읽기",
+        "body": "받은 메일을 분류하는 규칙을 볼 수 있어요."
+      },
+      "filters_write": {
+        "title": "메일 필터 변경",
+        "body": "서버 측 필터에 규칙을 추가할 수 있어요. 이런 규칙은 받은 메일을 이동, 전달하거나 삭제할 수 있어요."
+      },
+      "tasks_read": {
+        "title": "할 일 읽기",
+        "body": "할 일 목록과 할 일을 볼 수 있어요."
+      },
+      "tasks_write": {
+        "title": "할 일 변경",
+        "body": "할 일을 만들고, 바꾸고, 완료하고, 삭제할 수 있어요."
+      },
+      "templates_read": {
+        "title": "템플릿 읽기",
+        "body": "저장된 메시지 템플릿을 볼 수 있어요."
+      },
+      "templates_write": {
+        "title": "템플릿 변경",
+        "body": "메시지 템플릿을 만들고, 바꾸고, 삭제할 수 있어요."
+      },
+      "smime_read": {
+        "title": "S/MIME 상태 보기",
+        "body": "S/MIME 키와 인증서가 있는지 볼 수 있어요. 키에는 접근할 수 없어요."
+      },
+      "vacation_read": {
+        "title": "부재중 자동 응답 보기",
+        "body": "자동 응답이 켜져 있는지와 그 내용을 볼 수 있어요."
+      },
+      "vacation_write": {
+        "title": "부재중 자동 응답 변경",
+        "body": "자동 응답을 켜거나 끄고, 내용과 날짜를 바꿀 수 있어요."
+      },
+      "settings_read": {
+        "title": "설정 읽기",
+        "body": "환경설정과 태그 정의를 볼 수 있어요."
+      },
+      "settings_write": {
+        "title": "설정 변경",
+        "body": "태그를 추가하고 순서를 바꾸며, 환경설정을 변경할 수 있어요."
+      },
+      "security_read": {
+        "title": "계정 보안 보기",
+        "body": "2단계 인증과 암호화가 켜져 있는지 볼 수 있어요. 비밀 정보에는 접근할 수 없어요."
+      },
+      "auth_observe": {
+        "title": "로그인 알림 받기",
+        "body": "로그인하거나, 계정을 전환하거나, 세션이 갱신될 때 알림을 받아요."
+      },
+      "auth_emit": {
+        "title": "로그아웃시키기",
+        "body": "웹메일에서 로그아웃시킬 수 있어요."
+      },
+      "account_read": {
+        "title": "계정 보기",
+        "body": "추가한 계정과 그 주소 및 서버를 볼 수 있어요."
+      },
+      "http_post": {
+        "title": "나 대신 웹메일 서버 사용",
+        "body": "내 로그인 정보로 다음 서버 엔드포인트를 호출할 수 있어요:"
+      },
+      "http_fetch": {
+        "title": "다른 웹사이트에 연결",
+        "body": "다음 사이트에 요청을 보낼 수 있어요. 플러그인이 읽을 수 있는 모든 내용이 그곳으로 전송될 수 있어요:"
+      },
+      "admin_config": {
+        "title": "관리자가 저장한 설정 읽기",
+        "body": "관리자가 이 플러그인용으로 저장한 설정을 읽을 수 있어요."
+      },
+      "ui_observe": {
+        "title": "앱에서 현재 위치 파악",
+        "body": "어떤 페이지가 열려 있는지 알고, 클릭한 링크에 반응할 수 있어요."
+      },
+      "ui_toolbar": {
+        "title": "메시지 도구 모음에 버튼 추가",
+        "body": "열어 본 메시지 위에 자체 버튼을 표시해요."
+      },
+      "ui_app_top_banner": {
+        "title": "상단에 배너 표시",
+        "body": "앱 상단에 안내를 표시해요."
+      },
+      "ui_email_banner": {
+        "title": "메시지에 안내 표시",
+        "body": "열어 본 메시지 본문 위에 안내를 표시해요."
+      },
+      "ui_email_footer": {
+        "title": "메시지 아래에 내용 추가",
+        "body": "열어 본 메시지 아래에 자체 내용을 표시해요."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "연락처의 암호화 키 표시",
+        "body": "연락처의 암호화 키를 표시하고 관리해요."
+      },
+      "ui_email_details": {
+        "title": "메시지 세부 정보에 패널 추가",
+        "body": "열어 본 메시지 옆이나 아래에 자체 패널을 표시해요."
+      },
+      "ui_download_file": {
+        "title": "기기에 파일 저장",
+        "body": "직접 만든 파일을 다운로드할 수 있게 제공해요."
+      },
+      "ui_message_list_tabs": {
+        "title": "받은편지함에 탭 추가",
+        "body": "받은편지함을 업데이트나 프로모션 같은 탭으로 나눠요."
+      },
+      "ui_composer_toolbar": {
+        "title": "작성 창에 버튼 추가",
+        "body": "메시지를 작성하는 동안 자체 버튼을 표시해요."
+      },
+      "ui_composer_sidebar": {
+        "title": "작성 창에 패널 추가",
+        "body": "작성 중인 메시지 옆에 자체 패널을 표시해요."
+      },
+      "ui_sidebar_widget": {
+        "title": "사이드바에 상자 추가",
+        "body": "메일 사이드바에 자체 내용을 표시해요."
+      },
+      "ui_settings_section": {
+        "title": "설정 페이지 추가",
+        "body": "설정에 자체 페이지를 표시해요."
+      },
+      "ui_context_menu": {
+        "title": "메시지 메뉴에 추가",
+        "body": "메시지를 마우스 오른쪽 버튼으로 클릭하면 열리는 메뉴에 항목을 추가해요."
+      },
+      "ui_navigation_rail": {
+        "title": "내비게이션 바에 추가",
+        "body": "내비게이션 바에 자체 버튼을 표시해요."
+      },
+      "ui_keyboard": {
+        "title": "단축키 추가",
+        "body": "직접 정의한 단축키에 반응해요."
+      },
+      "ui_calendar_action": {
+        "title": "일정에 버튼 추가",
+        "body": "일정을 만들거나 편집할 때 자체 버튼을 표시해요."
+      },
+      "ui_admin_page": {
+        "title": "관리자 페이지 추가",
+        "body": "관리자 설정에 자체 페이지를 표시해요."
+      },
+      "app_lifecycle": {
+        "title": "앱 시작과 종료 알림 받기",
+        "body": "앱이 시작되거나, 오프라인이 되거나, 로그아웃할 때 알림을 받아요."
+      }
     }
   },
   "global_search": {

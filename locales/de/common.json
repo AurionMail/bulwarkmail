@@ -3970,6 +3970,276 @@
       "failed_detail": "Autorisierung fehlgeschlagen: {error}",
       "missing_params": "Autorisierungscode oder State fehlt.",
       "delivery_failed": "Das Autorisierungsergebnis konnte nicht an den App-Tab übermittelt werden. Bitte schließen Sie dieses Fenster und versuchen Sie es erneut."
+    },
+    "settings": {
+      "title": "Plugins",
+      "description": "Plugins, die Ihr Administrator hinzugefügt hat. Schalten Sie sie für Ihr Konto ein oder aus.",
+      "description_uploads": "Plugins erweitern das Webmail um Funktionen. Schalten Sie sie für Ihr Konto ein oder aus, oder installieren Sie eigene.",
+      "description_demo": "In der Demo sind keine Plugins verfügbar.",
+      "install_button": "Plugin installieren",
+      "install_hint": "Wählen Sie eine Plugin-ZIP-Datei.",
+      "install_hint_approval": "Wählen Sie eine Plugin-ZIP-Datei. Ein Administrator muss das Plugin freigeben, bevor Sie es einschalten können.",
+      "install_uploads_off": "Ihr Administrator erlaubt keine Installation von Plugins.",
+      "install_managed_id": "Ihr Administrator stellt bereits ein Plugin mit diesem Namen bereit. Es kann daher nicht ersetzt werden.",
+      "install_invalid": "Diese Datei ist kein installierbares Plugin: {details}",
+      "toast_installed": "Plugin installiert. Schalten Sie es unten ein.",
+      "toast_installed_pending": "Plugin installiert und Ihrem Administrator zur Freigabe vorgelegt.",
+      "toast_enabled": "{name} ist eingeschaltet",
+      "toast_disabled": "{name} ist ausgeschaltet",
+      "toast_removed": "{name} wurde entfernt",
+      "toast_forced": "Ihr Administrator lässt {name} eingeschaltet",
+      "toast_approval_requested": "{name} wartet auf die Freigabe durch Ihren Administrator",
+      "empty_title": "Noch keine Plugins",
+      "empty_admin": "Ihr Administrator hat keine Plugins hinzugefügt.",
+      "empty_uploads": "Installieren Sie zum Start ein Plugin aus einer ZIP-Datei.",
+      "empty_demo": "Plugins brauchen ein echtes Konto, daher gibt es in der Demo keine.",
+      "syncing": "Plugins werden mit dem Server abgeglichen…",
+      "status_installed": "Aus",
+      "status_enabled": "Wird gestartet",
+      "status_running": "An",
+      "status_disabled": "Aus",
+      "status_error": "Problem",
+      "badge_forced": "Erforderlich",
+      "badge_managed": "Von Ihrem Administrator",
+      "badge_yours": "Von Ihnen installiert",
+      "badge_awaiting": "Wartet auf Freigabe",
+      "toggle_label": "{name} ein- oder ausschalten",
+      "forced_note": "Ihr Administrator schreibt dieses Plugin vor. Es kann daher nicht ausgeschaltet werden.",
+      "permissions": "Was es darf",
+      "permissions_managed": "Was es darf (von Ihrem Administrator freigegeben)",
+      "settings": "Einstellungen",
+      "remove": "Entfernen",
+      "remove_title": "{name} entfernen?",
+      "remove_message": "Das Plugin und alles, was es in diesem Browser gespeichert hat, wird gelöscht. Sie können es später erneut installieren.",
+      "remove_confirm": "Entfernen",
+      "error_user_plugins_off": "Ihr Administrator hat von Benutzern installierte Plugins ausgeschaltet. Dieses Plugin läuft daher nicht.",
+      "error_approval_unavailable": "Dieses Plugin wurde installiert, bevor eine Freigabe nötig war. Entfernen Sie es und installieren Sie es erneut, um es zur Freigabe vorzulegen.",
+      "error_approval_denied": "Ihr Administrator hat dieses Plugin nicht freigegeben.",
+      "error_approval_pending": "Wartet darauf, dass Ihr Administrator dieses Plugin freigibt."
+    },
+    "consent": {
+      "title": "{name} Folgendes erlauben?",
+      "intro": "Das Plugin bittet um die folgenden Berechtigungen. Es erhält sie nur, wenn Sie zustimmen.",
+      "high_risk_note": "Markierte Punkte geben dem Plugin Zugriff auf den Inhalt Ihrer E-Mails oder erlauben ihm, Daten anderswohin zu senden. Erlauben Sie sie nur Plugins, denen Sie vertrauen.",
+      "revoke_hint": "Sie können das Plugin jederzeit in den Einstellungen ausschalten oder entfernen.",
+      "deny": "Nicht erlauben",
+      "allow": "Erlauben"
+    },
+    "permissions": {
+      "none": "Es braucht keine besonderen Berechtigungen.",
+      "high_risk": "Mit Vorsicht",
+      "email_read": {
+        "title": "Ihre E-Mails lesen",
+        "body": "Absender, Empfänger, Betreff und den vollständigen Text der Nachrichten sehen, die Sie öffnen, sowie der Nachrichtenliste."
+      },
+      "email_write": {
+        "title": "Labels und Markierungen Ihrer E-Mails ändern",
+        "body": "Labels, Markierungen und andere Schlüsselwörter an Ihren Nachrichten hinzufügen oder entfernen."
+      },
+      "email_send": {
+        "title": "E-Mails vor dem Senden ändern",
+        "body": "Empfänger, Betreff, Text und Anhänge der Nachrichten lesen und ändern, die Sie schreiben, und das Senden einer Nachricht verhindern."
+      },
+      "crypto_full": {
+        "title": "Vollzugriff auf diese App",
+        "body": "Läuft mit denselben Rechten wie das Webmail selbst. Es kann alle Ihre E-Mails und gespeicherten Schlüssel lesen und in Ihrem Namen handeln. Erlauben Sie das nur Plugins, denen Sie voll vertrauen."
+      },
+      "email_raw_send": {
+        "title": "Selbst erstellte Nachrichten senden",
+        "body": "Vollständige Nachrichten, zum Beispiel signierte oder verschlüsselte, von Ihrem Konto senden."
+      },
+      "email_blob_read": {
+        "title": "Rohinhalt von Nachrichten lesen",
+        "body": "Die Originaldaten Ihrer Nachrichten und Anhänge lesen, auch jeder Datei, die Sie vor dem Senden anhängen."
+      },
+      "email_blob_write": {
+        "title": "Anhänge vor dem Senden ersetzen",
+        "body": "Dateien auf Ihren Mailserver hochladen und eine angehängte Datei vor dem Senden durch eine andere ersetzen."
+      },
+      "email_render_takeover": {
+        "title": "Darstellung von Nachrichten ändern",
+        "body": "Den Text geöffneter Nachrichten und der Nachrichtenliste ersetzen, zum Beispiel um entschlüsselte Inhalte anzuzeigen."
+      },
+      "calendar_read": {
+        "title": "Ihren Kalender lesen",
+        "body": "Ihre Kalender und deren Termine sehen."
+      },
+      "calendar_write": {
+        "title": "Ihren Kalender ändern",
+        "body": "Termine erstellen, ändern und löschen."
+      },
+      "contacts_read": {
+        "title": "Ihre Kontakte lesen",
+        "body": "Ihre Adressbücher durchsuchen und lesen."
+      },
+      "contacts_write": {
+        "title": "Ihre Kontakte ändern",
+        "body": "Kontakte und Adressbücher erstellen, ändern und löschen."
+      },
+      "files_read": {
+        "title": "Ihre Dateien lesen",
+        "body": "Die in Ihrem Konto gespeicherten Dateien durchsuchen und öffnen."
+      },
+      "files_write": {
+        "title": "Ihre Dateien ändern",
+        "body": "Dateien in Ihrem Konto hochladen, umbenennen, verschieben und löschen."
+      },
+      "identity_read": {
+        "title": "Ihre Absenderadressen sehen",
+        "body": "Die Adressen, von denen Sie senden, und deren Signaturen sehen."
+      },
+      "identity_write": {
+        "title": "Ihre Absenderadressen ändern",
+        "body": "Absenderadressen und Signaturen erstellen, ändern und löschen."
+      },
+      "filters_read": {
+        "title": "Ihre E-Mail-Filter lesen",
+        "body": "Die Regeln sehen, die Ihre eingehenden E-Mails sortieren."
+      },
+      "filters_write": {
+        "title": "Ihre E-Mail-Filter ändern",
+        "body": "Regeln zu Ihren serverseitigen Filtern hinzufügen. Solche Regeln können eingehende E-Mails verschieben, weiterleiten oder löschen."
+      },
+      "tasks_read": {
+        "title": "Ihre Aufgaben lesen",
+        "body": "Ihre Aufgabenlisten und Aufgaben sehen."
+      },
+      "tasks_write": {
+        "title": "Ihre Aufgaben ändern",
+        "body": "Aufgaben erstellen, ändern, erledigen und löschen."
+      },
+      "templates_read": {
+        "title": "Ihre Vorlagen lesen",
+        "body": "Ihre gespeicherten Nachrichtenvorlagen sehen."
+      },
+      "templates_write": {
+        "title": "Ihre Vorlagen ändern",
+        "body": "Nachrichtenvorlagen erstellen, ändern und löschen."
+      },
+      "smime_read": {
+        "title": "Ihren S/MIME-Status sehen",
+        "body": "Sehen, ob Sie S/MIME-Schlüssel und -Zertifikate haben, ohne Zugriff auf die Schlüssel."
+      },
+      "vacation_read": {
+        "title": "Ihre Abwesenheitsnotiz sehen",
+        "body": "Sehen, ob Ihre automatische Antwort eingeschaltet ist und was sie enthält."
+      },
+      "vacation_write": {
+        "title": "Ihre Abwesenheitsnotiz ändern",
+        "body": "Ihre automatische Antwort ein- oder ausschalten und ihren Text und Zeitraum ändern."
+      },
+      "settings_read": {
+        "title": "Ihre Einstellungen lesen",
+        "body": "Ihre Einstellungen und Label-Definitionen sehen."
+      },
+      "settings_write": {
+        "title": "Ihre Einstellungen ändern",
+        "body": "Labels hinzufügen und neu anordnen und Ihre Einstellungen ändern."
+      },
+      "security_read": {
+        "title": "Ihre Kontosicherheit sehen",
+        "body": "Sehen, ob Zwei-Faktor-Anmeldung und Verschlüsselung eingeschaltet sind, ohne Zugriff auf Geheimnisse."
+      },
+      "auth_observe": {
+        "title": "Erfahren, wann Sie sich anmelden",
+        "body": "Benachrichtigt werden, wenn Sie sich anmelden, das Konto wechseln oder Ihre Sitzung erneuert wird."
+      },
+      "auth_emit": {
+        "title": "Sie abmelden",
+        "body": "Sie vom Webmail abmelden."
+      },
+      "account_read": {
+        "title": "Ihre Konten sehen",
+        "body": "Die von Ihnen hinzugefügten Konten mit ihren Adressen und Servern sehen."
+      },
+      "http_post": {
+        "title": "Den Webmail-Server für Sie nutzen",
+        "body": "Diese Server-Endpunkte mit Ihrer Anmeldung aufrufen:"
+      },
+      "http_fetch": {
+        "title": "Mit anderen Websites verbinden",
+        "body": "Anfragen an diese Websites senden. Alles, was das Plugin lesen kann, kann dorthin gesendet werden:"
+      },
+      "admin_config": {
+        "title": "Seine Einstellungen von Ihrem Administrator lesen",
+        "body": "Die Einstellungen lesen, die Ihr Administrator für dieses Plugin gespeichert hat."
+      },
+      "ui_observe": {
+        "title": "Verfolgen, wo Sie sich in der App befinden",
+        "body": "Wissen, welche Seite geöffnet ist, und auf angeklickte Links reagieren."
+      },
+      "ui_toolbar": {
+        "title": "Schaltflächen zur Nachrichten-Symbolleiste hinzufügen",
+        "body": "Eigene Schaltflächen über einer geöffneten Nachricht anzeigen."
+      },
+      "ui_app_top_banner": {
+        "title": "Oben ein Banner anzeigen",
+        "body": "Einen Hinweis über die gesamte Breite oben in der App anzeigen."
+      },
+      "ui_email_banner": {
+        "title": "Hinweise bei Nachrichten anzeigen",
+        "body": "Einen Hinweis über dem Text einer geöffneten Nachricht anzeigen."
+      },
+      "ui_email_footer": {
+        "title": "Inhalte unter Nachrichten hinzufügen",
+        "body": "Eigene Inhalte unter einer geöffneten Nachricht anzeigen."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Verschlüsselungsschlüssel von Kontakten anzeigen",
+        "body": "Die Verschlüsselungsschlüssel eines Kontakts anzeigen und verwalten."
+      },
+      "ui_email_details": {
+        "title": "Bereiche zu Nachrichtendetails hinzufügen",
+        "body": "Einen eigenen Bereich neben oder unter einer geöffneten Nachricht anzeigen."
+      },
+      "ui_download_file": {
+        "title": "Dateien auf Ihrem Gerät speichern",
+        "body": "Selbst erstellte Dateien zum Herunterladen anbieten."
+      },
+      "ui_message_list_tabs": {
+        "title": "Tabs zu Ihrem Posteingang hinzufügen",
+        "body": "Ihren Posteingang in Tabs wie Updates oder Werbung aufteilen."
+      },
+      "ui_composer_toolbar": {
+        "title": "Schaltflächen zum Editor hinzufügen",
+        "body": "Eigene Schaltflächen anzeigen, während Sie eine Nachricht schreiben."
+      },
+      "ui_composer_sidebar": {
+        "title": "Einen Bereich zum Editor hinzufügen",
+        "body": "Einen eigenen Bereich neben der Nachricht anzeigen, die Sie schreiben."
+      },
+      "ui_sidebar_widget": {
+        "title": "Ein Feld zur Seitenleiste hinzufügen",
+        "body": "Eigene Inhalte in der E-Mail-Seitenleiste anzeigen."
+      },
+      "ui_settings_section": {
+        "title": "Eine Einstellungsseite hinzufügen",
+        "body": "Eine eigene Seite in den Einstellungen anzeigen."
+      },
+      "ui_context_menu": {
+        "title": "Zum Nachrichtenmenü hinzufügen",
+        "body": "Einträge zu dem Menü hinzufügen, das sich per Rechtsklick auf eine Nachricht öffnet."
+      },
+      "ui_navigation_rail": {
+        "title": "Zur Navigationsleiste hinzufügen",
+        "body": "Eine eigene Schaltfläche in der Navigationsleiste anzeigen."
+      },
+      "ui_keyboard": {
+        "title": "Tastaturkürzel hinzufügen",
+        "body": "Auf selbst festgelegte Tastaturkürzel reagieren."
+      },
+      "ui_calendar_action": {
+        "title": "Schaltflächen zu Terminen hinzufügen",
+        "body": "Eigene Schaltflächen anzeigen, wenn Sie einen Termin erstellen oder bearbeiten."
+      },
+      "ui_admin_page": {
+        "title": "Eine Admin-Seite hinzufügen",
+        "body": "Eine eigene Seite in den Admin-Einstellungen anzeigen."
+      },
+      "app_lifecycle": {
+        "title": "Erfahren, wann die App startet und beendet wird",
+        "body": "Benachrichtigt werden, wenn die App startet, offline geht oder Sie sich abmelden."
+      }
     }
   },
   "global_search": {

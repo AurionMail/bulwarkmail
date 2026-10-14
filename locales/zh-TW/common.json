@@ -3970,6 +3970,276 @@
       "failed_detail": "授權失敗：{error}",
       "missing_params": "缺少授權碼或狀態。",
       "delivery_failed": "無法將授權結果傳遞至應用程式分頁。請關閉此視窗並再試一次。"
+    },
+    "settings": {
+      "title": "外掛程式",
+      "description": "由管理員新增的外掛程式。您可以為自己的帳號開啟或關閉。",
+      "description_uploads": "外掛程式可為網頁郵件新增功能。您可以為自己的帳號開啟或關閉，也可以自行安裝。",
+      "description_demo": "示範模式無法使用外掛程式。",
+      "install_button": "安裝外掛程式",
+      "install_hint": "請選擇外掛程式 ZIP 檔案。",
+      "install_hint_approval": "請選擇外掛程式 ZIP 檔案。需經管理員核准後才能開啟。",
+      "install_uploads_off": "管理員不允許安裝外掛程式。",
+      "install_managed_id": "管理員已提供同名的外掛程式，因此無法取代。",
+      "install_invalid": "此檔案不是可安裝的外掛程式：{details}",
+      "toast_installed": "外掛程式已安裝。請在下方開啟。",
+      "toast_installed_pending": "外掛程式已安裝，並已送交管理員核准。",
+      "toast_enabled": "{name} 已開啟",
+      "toast_disabled": "{name} 已關閉",
+      "toast_removed": "{name} 已移除",
+      "toast_forced": "管理員要求 {name} 保持開啟",
+      "toast_approval_requested": "{name} 正在等待管理員核准",
+      "empty_title": "尚無外掛程式",
+      "empty_admin": "管理員尚未新增任何外掛程式。",
+      "empty_uploads": "從 ZIP 檔案安裝外掛程式即可開始使用。",
+      "empty_demo": "外掛程式需要真實帳號，因此示範模式中沒有外掛程式。",
+      "syncing": "正在與伺服器核對外掛程式…",
+      "status_installed": "已關閉",
+      "status_enabled": "啟動中",
+      "status_running": "已開啟",
+      "status_disabled": "已關閉",
+      "status_error": "發生問題",
+      "badge_forced": "必要",
+      "badge_managed": "由管理員提供",
+      "badge_yours": "由您安裝",
+      "badge_awaiting": "等待核准",
+      "toggle_label": "開啟或關閉 {name}",
+      "forced_note": "管理員要求使用此外掛程式，因此無法關閉。",
+      "permissions": "可執行的動作",
+      "permissions_managed": "可執行的動作（已由管理員核准）",
+      "settings": "設定",
+      "remove": "移除",
+      "remove_title": "要移除 {name} 嗎？",
+      "remove_message": "外掛程式及其儲存在此瀏覽器中的所有內容都會被刪除。您之後可以再次安裝。",
+      "remove_confirm": "移除",
+      "error_user_plugins_off": "管理員已關閉使用者安裝的外掛程式，因此此外掛程式不會執行。",
+      "error_approval_unavailable": "此外掛程式是在需要核准之前安裝的。請移除後重新安裝，以送交核准。",
+      "error_approval_denied": "管理員未核准此外掛程式。",
+      "error_approval_pending": "正在等待管理員核准此外掛程式。"
+    },
+    "consent": {
+      "title": "要允許 {name} 執行這些動作嗎？",
+      "intro": "此外掛程式要求下列權限。只有在您允許後才會取得。",
+      "high_risk_note": "標示的項目會讓外掛程式存取您的郵件內容，或將資料傳送到其他地方。請只對您信任的外掛程式允許。",
+      "revoke_hint": "您隨時可以在設定中關閉或移除此外掛程式。",
+      "deny": "不允許",
+      "allow": "允許"
+    },
+    "permissions": {
+      "none": "不需要特殊權限。",
+      "high_risk": "需留意",
+      "email_read": {
+        "title": "讀取您的郵件",
+        "body": "查看您開啟的郵件和郵件清單中的寄件者、收件者、主旨和完整內文。"
+      },
+      "email_write": {
+        "title": "變更郵件的標籤和旗標",
+        "body": "為您的郵件新增或移除標籤、旗標和其他關鍵字。"
+      },
+      "email_send": {
+        "title": "在傳送前變更郵件",
+        "body": "讀取並變更您撰寫的郵件的收件者、主旨、內文和附件，並可阻止郵件傳送。"
+      },
+      "crypto_full": {
+        "title": "完整存取此應用程式",
+        "body": "以與網頁郵件本身相同的權限執行。它可以讀取您所有的郵件和已儲存的金鑰，並代表您執行動作。請只對您完全信任的外掛程式允許。"
+      },
+      "email_raw_send": {
+        "title": "傳送它自行建立的郵件",
+        "body": "從您的帳號傳送完整的郵件，例如已簽署或已加密的郵件。"
+      },
+      "email_blob_read": {
+        "title": "讀取郵件的原始內容",
+        "body": "讀取您的郵件和附件的原始資料，以及傳送前您附加的每個檔案。"
+      },
+      "email_blob_write": {
+        "title": "在傳送前取代附件",
+        "body": "將檔案上傳到您的郵件伺服器，並在郵件傳送前以另一個檔案取代您附加的檔案。"
+      },
+      "email_render_takeover": {
+        "title": "變更郵件的顯示方式",
+        "body": "取代您開啟的郵件和郵件清單中的內文，例如用來顯示解密後的內容。"
+      },
+      "calendar_read": {
+        "title": "讀取您的行事曆",
+        "body": "查看您的行事曆及其中的活動。"
+      },
+      "calendar_write": {
+        "title": "變更您的行事曆",
+        "body": "建立、變更和刪除活動。"
+      },
+      "contacts_read": {
+        "title": "讀取您的聯絡人",
+        "body": "搜尋和讀取您的通訊錄。"
+      },
+      "contacts_write": {
+        "title": "變更您的聯絡人",
+        "body": "建立、變更和刪除聯絡人及通訊錄。"
+      },
+      "files_read": {
+        "title": "讀取您的檔案",
+        "body": "瀏覽和開啟您帳號中儲存的檔案。"
+      },
+      "files_write": {
+        "title": "變更您的檔案",
+        "body": "上傳、重新命名、移動和刪除您帳號中的檔案。"
+      },
+      "identity_read": {
+        "title": "查看您的寄件身分",
+        "body": "查看您用來傳送郵件的地址及其簽名檔。"
+      },
+      "identity_write": {
+        "title": "變更您的寄件身分",
+        "body": "建立、變更和刪除寄件身分及簽名檔。"
+      },
+      "filters_read": {
+        "title": "讀取您的郵件篩選規則",
+        "body": "查看用來整理收到郵件的規則。"
+      },
+      "filters_write": {
+        "title": "變更您的郵件篩選規則",
+        "body": "在伺服器端篩選規則中新增規則。這些規則可以移動、轉寄或刪除收到的郵件。"
+      },
+      "tasks_read": {
+        "title": "讀取您的任務",
+        "body": "查看您的任務清單和任務。"
+      },
+      "tasks_write": {
+        "title": "變更您的任務",
+        "body": "建立、變更、完成和刪除任務。"
+      },
+      "templates_read": {
+        "title": "讀取您的範本",
+        "body": "查看您儲存的郵件範本。"
+      },
+      "templates_write": {
+        "title": "變更您的範本",
+        "body": "建立、變更和刪除郵件範本。"
+      },
+      "smime_read": {
+        "title": "查看您的 S/MIME 狀態",
+        "body": "查看您是否有 S/MIME 金鑰和憑證，但無法存取金鑰。"
+      },
+      "vacation_read": {
+        "title": "查看您的外出自動回覆",
+        "body": "查看自動回覆是否已開啟及其內容。"
+      },
+      "vacation_write": {
+        "title": "變更您的外出自動回覆",
+        "body": "開啟或關閉自動回覆，並變更其內容和日期。"
+      },
+      "settings_read": {
+        "title": "讀取您的設定",
+        "body": "查看您的偏好設定和標籤定義。"
+      },
+      "settings_write": {
+        "title": "變更您的設定",
+        "body": "新增標籤、調整標籤順序，並變更您的偏好設定。"
+      },
+      "security_read": {
+        "title": "查看您的帳號安全性",
+        "body": "查看雙因素驗證和加密是否已開啟，但無法存取機密資訊。"
+      },
+      "auth_observe": {
+        "title": "得知您何時登入",
+        "body": "在您登入、切換帳號或工作階段更新時收到通知。"
+      },
+      "auth_emit": {
+        "title": "將您登出",
+        "body": "將您從網頁郵件登出。"
+      },
+      "account_read": {
+        "title": "查看您的帳號",
+        "body": "查看您新增的帳號及其地址和伺服器。"
+      },
+      "http_post": {
+        "title": "代表您使用網頁郵件伺服器",
+        "body": "使用您的登入資訊呼叫下列伺服器端點："
+      },
+      "http_fetch": {
+        "title": "連線到其他網站",
+        "body": "向下列網站傳送要求。外掛程式能讀取的任何內容都可能被傳送到這些網站："
+      },
+      "admin_config": {
+        "title": "讀取管理員為其儲存的設定",
+        "body": "讀取管理員為此外掛程式儲存的設定。"
+      },
+      "ui_observe": {
+        "title": "追蹤您在應用程式中的位置",
+        "body": "得知目前開啟的頁面，並對您點選的連結做出回應。"
+      },
+      "ui_toolbar": {
+        "title": "在郵件工具列新增按鈕",
+        "body": "在開啟的郵件上方顯示它自己的按鈕。"
+      },
+      "ui_app_top_banner": {
+        "title": "在頂端顯示橫幅",
+        "body": "在應用程式頂端顯示一則通知。"
+      },
+      "ui_email_banner": {
+        "title": "在郵件上顯示通知",
+        "body": "在開啟的郵件內文上方顯示一則通知。"
+      },
+      "ui_email_footer": {
+        "title": "在郵件下方新增內容",
+        "body": "在開啟的郵件下方顯示它自己的內容。"
+      },
+      "ui_contact_cryptokeys": {
+        "title": "顯示聯絡人的加密金鑰",
+        "body": "顯示並管理聯絡人的加密金鑰。"
+      },
+      "ui_email_details": {
+        "title": "在郵件詳細資料新增面板",
+        "body": "在開啟的郵件旁邊或下方顯示它自己的面板。"
+      },
+      "ui_download_file": {
+        "title": "將檔案儲存到您的裝置",
+        "body": "提供它建立的檔案供下載。"
+      },
+      "ui_message_list_tabs": {
+        "title": "為收件匣新增分頁",
+        "body": "將收件匣分成「最新快訊」或「促銷內容」等分頁。"
+      },
+      "ui_composer_toolbar": {
+        "title": "在撰寫視窗新增按鈕",
+        "body": "在您撰寫郵件時顯示它自己的按鈕。"
+      },
+      "ui_composer_sidebar": {
+        "title": "在撰寫視窗新增面板",
+        "body": "在您撰寫的郵件旁邊顯示它自己的面板。"
+      },
+      "ui_sidebar_widget": {
+        "title": "在側邊欄新增方塊",
+        "body": "在郵件側邊欄顯示它自己的內容。"
+      },
+      "ui_settings_section": {
+        "title": "新增設定頁面",
+        "body": "在設定中顯示它自己的頁面。"
+      },
+      "ui_context_menu": {
+        "title": "新增到郵件選單",
+        "body": "在您按右鍵點選郵件時開啟的選單中新增項目。"
+      },
+      "ui_navigation_rail": {
+        "title": "新增到導覽列",
+        "body": "在導覽列顯示它自己的按鈕。"
+      },
+      "ui_keyboard": {
+        "title": "新增鍵盤快速鍵",
+        "body": "回應它定義的鍵盤快速鍵。"
+      },
+      "ui_calendar_action": {
+        "title": "為活動新增按鈕",
+        "body": "在您建立或編輯活動時顯示它自己的按鈕。"
+      },
+      "ui_admin_page": {
+        "title": "新增管理頁面",
+        "body": "在管理設定中顯示它自己的頁面。"
+      },
+      "app_lifecycle": {
+        "title": "得知應用程式何時啟動和停止",
+        "body": "在應用程式啟動、離線或您登出時收到通知。"
+      }
     }
   },
   "global_search": {

@@ -141,6 +141,10 @@ export interface SettingsPolicy {
   /** Plugin IDs that are force-enabled (users cannot disable) */
   forceEnabledPlugins: string[];
   /** Plugin IDs that have been approved by admin (users can enable) */
+  /**
+   * @deprecated Never had a writer, and approving an id approved any code
+   * under it. Approvals are per package now (lib/admin/plugin-approvals.ts).
+   */
   approvedPlugins: string[];
   /** Theme IDs that are force-enabled (users cannot deactivate) */
   forceEnabledThemes: string[];

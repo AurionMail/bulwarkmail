@@ -3970,6 +3970,276 @@
       "failed_detail": "Autorizzazione non riuscita: {error}",
       "missing_params": "Codice di autorizzazione o stato mancante.",
       "delivery_failed": "Impossibile consegnare il risultato dellautorizzazione alla scheda dellapp. Chiudi questa finestra e riprova."
+    },
+    "settings": {
+      "title": "Plugin",
+      "description": "Plugin aggiunti dal tuo amministratore. Attivali o disattivali per il tuo account.",
+      "description_uploads": "I plugin aggiungono funzioni alla webmail. Attivali o disattivali per il tuo account, oppure installa i tuoi.",
+      "description_demo": "I plugin non sono disponibili nella demo.",
+      "install_button": "Installa plugin",
+      "install_hint": "Scegli il file ZIP di un plugin.",
+      "install_hint_approval": "Scegli il file ZIP di un plugin. Un amministratore deve approvarlo prima che tu possa attivarlo.",
+      "install_uploads_off": "Il tuo amministratore non consente di installare plugin.",
+      "install_managed_id": "Il tuo amministratore fornisce già un plugin con questo nome, quindi non può essere sostituito.",
+      "install_invalid": "Questo file non è un plugin installabile: {details}",
+      "toast_installed": "Plugin installato. Attivalo qui sotto.",
+      "toast_installed_pending": "Plugin installato e inviato al tuo amministratore per l'approvazione.",
+      "toast_enabled": "{name} è attivo",
+      "toast_disabled": "{name} è disattivato",
+      "toast_removed": "{name} è stato rimosso",
+      "toast_forced": "Il tuo amministratore mantiene attivo {name}",
+      "toast_approval_requested": "{name} è in attesa dell'approvazione del tuo amministratore",
+      "empty_title": "Ancora nessun plugin",
+      "empty_admin": "Il tuo amministratore non ha aggiunto alcun plugin.",
+      "empty_uploads": "Installa un plugin da un file ZIP per iniziare.",
+      "empty_demo": "I plugin richiedono un account reale, quindi la demo non ne ha.",
+      "syncing": "Verifica dei plugin con il server…",
+      "status_installed": "Disattivato",
+      "status_enabled": "Avvio in corso",
+      "status_running": "Attivo",
+      "status_disabled": "Disattivato",
+      "status_error": "Problema",
+      "badge_forced": "Obbligatorio",
+      "badge_managed": "Dal tuo amministratore",
+      "badge_yours": "Installato da te",
+      "badge_awaiting": "In attesa di approvazione",
+      "toggle_label": "Attiva o disattiva {name}",
+      "forced_note": "Il tuo amministratore richiede questo plugin, quindi non può essere disattivato.",
+      "permissions": "Cosa può fare",
+      "permissions_managed": "Cosa può fare (approvato dal tuo amministratore)",
+      "settings": "Impostazioni",
+      "remove": "Rimuovi",
+      "remove_title": "Rimuovere {name}?",
+      "remove_message": "Il plugin e tutto ciò che ha salvato in questo browser verranno eliminati. Potrai installarlo di nuovo in seguito.",
+      "remove_confirm": "Rimuovi",
+      "error_user_plugins_off": "Il tuo amministratore ha disattivato i plugin installati dagli utenti, quindi questo plugin non viene eseguito.",
+      "error_approval_unavailable": "Questo plugin è stato installato prima che fosse richiesta l'approvazione. Rimuovilo e installalo di nuovo per inviarlo in approvazione.",
+      "error_approval_denied": "Il tuo amministratore non ha approvato questo plugin.",
+      "error_approval_pending": "In attesa che il tuo amministratore approvi questo plugin."
+    },
+    "consent": {
+      "title": "Consentire a {name} di fare questo?",
+      "intro": "Il plugin chiede le autorizzazioni qui sotto. Le ottiene solo se le concedi.",
+      "high_risk_note": "Le voci contrassegnate danno al plugin accesso al contenuto della tua posta o gli permettono di inviare dati altrove. Consentile solo ai plugin di cui ti fidi.",
+      "revoke_hint": "Puoi disattivare o rimuovere il plugin in Impostazioni in qualsiasi momento.",
+      "deny": "Non consentire",
+      "allow": "Consenti"
+    },
+    "permissions": {
+      "none": "Non richiede autorizzazioni particolari.",
+      "high_risk": "Con cautela",
+      "email_read": {
+        "title": "Leggere la tua posta",
+        "body": "Vedere mittenti, destinatari, oggetti e il testo completo dei messaggi che apri e dell'elenco dei messaggi."
+      },
+      "email_write": {
+        "title": "Modificare etichette e contrassegni della tua posta",
+        "body": "Aggiungere o rimuovere etichette, contrassegni e altre parole chiave dai tuoi messaggi."
+      },
+      "email_send": {
+        "title": "Modificare la posta prima dell'invio",
+        "body": "Leggere e modificare destinatari, oggetto, testo e allegati dei messaggi che scrivi, e impedire l'invio di un messaggio."
+      },
+      "crypto_full": {
+        "title": "Accesso completo a questa app",
+        "body": "Funziona con gli stessi diritti della webmail stessa. Può leggere tutta la tua posta e le chiavi salvate e agire per conto tuo. Consentilo solo ai plugin di cui ti fidi completamente."
+      },
+      "email_raw_send": {
+        "title": "Inviare messaggi creati da sé",
+        "body": "Inviare messaggi completi, ad esempio firmati o cifrati, dal tuo account."
+      },
+      "email_blob_read": {
+        "title": "Leggere il contenuto grezzo dei messaggi",
+        "body": "Leggere i dati originali dei tuoi messaggi e allegati, e di ogni file che alleghi prima dell'invio."
+      },
+      "email_blob_write": {
+        "title": "Sostituire gli allegati prima dell'invio",
+        "body": "Caricare file sul tuo server di posta e sostituire un file allegato con un altro prima che il messaggio venga inviato."
+      },
+      "email_render_takeover": {
+        "title": "Modificare come vengono mostrati i messaggi",
+        "body": "Sostituire il testo dei messaggi che apri e dell'elenco dei messaggi, ad esempio per mostrare contenuti decifrati."
+      },
+      "calendar_read": {
+        "title": "Leggere il tuo calendario",
+        "body": "Vedere i tuoi calendari e i relativi eventi."
+      },
+      "calendar_write": {
+        "title": "Modificare il tuo calendario",
+        "body": "Creare, modificare ed eliminare eventi."
+      },
+      "contacts_read": {
+        "title": "Leggere i tuoi contatti",
+        "body": "Cercare e leggere nelle tue rubriche."
+      },
+      "contacts_write": {
+        "title": "Modificare i tuoi contatti",
+        "body": "Creare, modificare ed eliminare contatti e rubriche."
+      },
+      "files_read": {
+        "title": "Leggere i tuoi file",
+        "body": "Sfogliare e aprire i file salvati nel tuo account."
+      },
+      "files_write": {
+        "title": "Modificare i tuoi file",
+        "body": "Caricare, rinominare, spostare ed eliminare file nel tuo account."
+      },
+      "identity_read": {
+        "title": "Vedere i tuoi indirizzi mittente",
+        "body": "Vedere gli indirizzi da cui invii e le relative firme."
+      },
+      "identity_write": {
+        "title": "Modificare i tuoi indirizzi mittente",
+        "body": "Creare, modificare ed eliminare indirizzi mittente e firme."
+      },
+      "filters_read": {
+        "title": "Leggere i tuoi filtri di posta",
+        "body": "Vedere le regole che ordinano la posta in arrivo."
+      },
+      "filters_write": {
+        "title": "Modificare i tuoi filtri di posta",
+        "body": "Aggiungere regole ai tuoi filtri sul server. Queste regole possono spostare, inoltrare o eliminare la posta in arrivo."
+      },
+      "tasks_read": {
+        "title": "Leggere le tue attività",
+        "body": "Vedere i tuoi elenchi di attività e le attività."
+      },
+      "tasks_write": {
+        "title": "Modificare le tue attività",
+        "body": "Creare, modificare, completare ed eliminare attività."
+      },
+      "templates_read": {
+        "title": "Leggere i tuoi modelli",
+        "body": "Vedere i tuoi modelli di messaggio salvati."
+      },
+      "templates_write": {
+        "title": "Modificare i tuoi modelli",
+        "body": "Creare, modificare ed eliminare modelli di messaggio."
+      },
+      "smime_read": {
+        "title": "Vedere il tuo stato S/MIME",
+        "body": "Vedere se hai chiavi e certificati S/MIME, senza accesso alle chiavi."
+      },
+      "vacation_read": {
+        "title": "Vedere la tua risposta automatica",
+        "body": "Vedere se la risposta automatica è attiva e cosa dice."
+      },
+      "vacation_write": {
+        "title": "Modificare la tua risposta automatica",
+        "body": "Attivare o disattivare la risposta automatica e modificarne testo e date."
+      },
+      "settings_read": {
+        "title": "Leggere le tue impostazioni",
+        "body": "Vedere le tue preferenze e le definizioni delle etichette."
+      },
+      "settings_write": {
+        "title": "Modificare le tue impostazioni",
+        "body": "Aggiungere e riordinare etichette e modificare le tue preferenze."
+      },
+      "security_read": {
+        "title": "Vedere la sicurezza del tuo account",
+        "body": "Vedere se l'accesso a due fattori e la cifratura sono attivi, senza accesso ai segreti."
+      },
+      "auth_observe": {
+        "title": "Sapere quando accedi",
+        "body": "Ricevere un avviso quando accedi, cambi account o la tua sessione viene rinnovata."
+      },
+      "auth_emit": {
+        "title": "Disconnetterti",
+        "body": "Disconnetterti dalla webmail."
+      },
+      "account_read": {
+        "title": "Vedere i tuoi account",
+        "body": "Vedere gli account che hai aggiunto, con i relativi indirizzi e server."
+      },
+      "http_post": {
+        "title": "Usare il server della webmail per te",
+        "body": "Chiamare questi endpoint del server con il tuo accesso:"
+      },
+      "http_fetch": {
+        "title": "Connettersi ad altri siti web",
+        "body": "Inviare richieste a questi siti. Tutto ciò che il plugin può leggere può essere inviato lì:"
+      },
+      "admin_config": {
+        "title": "Leggere le sue impostazioni dal tuo amministratore",
+        "body": "Leggere le impostazioni che il tuo amministratore ha salvato per questo plugin."
+      },
+      "ui_observe": {
+        "title": "Seguire dove ti trovi nell'app",
+        "body": "Sapere quale pagina è aperta e reagire ai link su cui fai clic."
+      },
+      "ui_toolbar": {
+        "title": "Aggiungere pulsanti alla barra degli strumenti del messaggio",
+        "body": "Mostrare i propri pulsanti sopra un messaggio aperto."
+      },
+      "ui_app_top_banner": {
+        "title": "Mostrare un banner in alto",
+        "body": "Mostrare un avviso lungo tutta la parte superiore dell'app."
+      },
+      "ui_email_banner": {
+        "title": "Mostrare avvisi sui messaggi",
+        "body": "Mostrare un avviso sopra il testo di un messaggio aperto."
+      },
+      "ui_email_footer": {
+        "title": "Aggiungere contenuti sotto i messaggi",
+        "body": "Mostrare i propri contenuti sotto un messaggio aperto."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Mostrare le chiavi di cifratura dei contatti",
+        "body": "Mostrare e gestire le chiavi di cifratura di un contatto."
+      },
+      "ui_email_details": {
+        "title": "Aggiungere pannelli ai dettagli del messaggio",
+        "body": "Mostrare un proprio pannello accanto o sotto un messaggio aperto."
+      },
+      "ui_download_file": {
+        "title": "Salvare file sul tuo dispositivo",
+        "body": "Offrire in download i file che ha creato."
+      },
+      "ui_message_list_tabs": {
+        "title": "Aggiungere schede alla tua posta in arrivo",
+        "body": "Suddividere la posta in arrivo in schede come Aggiornamenti o Promozioni."
+      },
+      "ui_composer_toolbar": {
+        "title": "Aggiungere pulsanti all'editor",
+        "body": "Mostrare i propri pulsanti mentre scrivi un messaggio."
+      },
+      "ui_composer_sidebar": {
+        "title": "Aggiungere un pannello all'editor",
+        "body": "Mostrare un proprio pannello accanto al messaggio che scrivi."
+      },
+      "ui_sidebar_widget": {
+        "title": "Aggiungere un riquadro alla barra laterale",
+        "body": "Mostrare i propri contenuti nella barra laterale della posta."
+      },
+      "ui_settings_section": {
+        "title": "Aggiungere una pagina di impostazioni",
+        "body": "Mostrare una propria pagina in Impostazioni."
+      },
+      "ui_context_menu": {
+        "title": "Aggiungere voci al menu del messaggio",
+        "body": "Aggiungere voci al menu che si apre quando fai clic destro su un messaggio."
+      },
+      "ui_navigation_rail": {
+        "title": "Aggiungere alla barra di navigazione",
+        "body": "Mostrare un proprio pulsante nella barra di navigazione."
+      },
+      "ui_keyboard": {
+        "title": "Aggiungere scorciatoie da tastiera",
+        "body": "Reagire alle scorciatoie da tastiera che definisce."
+      },
+      "ui_calendar_action": {
+        "title": "Aggiungere pulsanti agli eventi",
+        "body": "Mostrare i propri pulsanti quando crei o modifichi un evento."
+      },
+      "ui_admin_page": {
+        "title": "Aggiungere una pagina di amministrazione",
+        "body": "Mostrare una propria pagina nelle impostazioni di amministrazione."
+      },
+      "app_lifecycle": {
+        "title": "Sapere quando l'app si avvia e si chiude",
+        "body": "Ricevere un avviso quando l'app si avvia, va offline o ti disconnetti."
+      }
     }
   },
   "global_search": {
