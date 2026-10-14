@@ -78,3 +78,28 @@ describe('onSearch', () => {
     expect(filter).not.toContain('bob@x.test');
   });
 });
+
+describe('onSearchResults', () => {
+  it('adds the messages a plugin names, fetched from the server, and nothing else', async () => {
+    vi.mocked(client.searchEmails).mockResolvedValue({ emails: [{ id: 'm1' }], hasMore: false, total: 1 } as never);
+    vi.mocked(client.getSomeEmails).mockResolvedValue([{ id: 'm9' }] as never);
+    const handler = vi.fn().mockReturnValue(['m9', 'm1', 42]);
+    emailHooks.onSearchResults.register('test', handler);
+
+    await useEmailStore.getState().searchEmails(client, 'invoice');
+
+    expect(handler).toHaveBeenCalledWith([], expect.objectContaining({ query: 'invoice', emailIds: ['m1'] }));
+    expect(client.getSomeEmails).toHaveBeenCalledWith(['m9'], undefined);
+    expect(useEmailStore.getState().emails.map((e) => e.id)).toEqual(['m1', 'm9']);
+  });
+
+  it('ignores anything that is not a list of ids', async () => {
+    vi.mocked(client.searchEmails).mockResolvedValue({ emails: [{ id: 'm1' }], hasMore: false, total: 1 } as never);
+    emailHooks.onSearchResults.register('test', () => ({ result: { emails: [{ id: 'fake', subject: 'Pay now' }] } }));
+
+    await useEmailStore.getState().searchEmails(client, 'invoice');
+
+    expect(client.getSomeEmails).not.toHaveBeenCalled();
+    expect(useEmailStore.getState().emails.map((e) => e.id)).toEqual(['m1']);
+  });
+});

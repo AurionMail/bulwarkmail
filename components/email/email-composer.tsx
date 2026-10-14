@@ -357,6 +357,9 @@ export function normalizePluginAttachment(raw: unknown): { name: string; type: s
   return { name, type, size: Math.floor(r.size), blobId: r.blobId };
 }
 
+/** How long a plugin may take over onBeforeDraftAutoSave before the save goes on without it. */
+const DRAFT_HOOK_TIMEOUT_MS = 5000;
+
 export function EmailComposer({
   onSend,
   onScheduledSendCreated,
@@ -2131,7 +2134,10 @@ export function EmailComposer({
   }, [previewAttachment, composerClient]);
 
   // Auto-save draft functionality
-  const saveDraftOnce = async (): Promise<string | null> => {
+  // `auto`: the debounced save while typing. Only that one may be skipped
+  // by a plugin; saves on close and before send always run, or the text
+  // would be lost.
+  const saveDraftOnce = async (auto = false): Promise<string | null> => {
     if (!client || !composerClient) return null;
     const versionAtStart = changeVersionRef.current;
 
@@ -2234,7 +2240,19 @@ export function EmailComposer({
         fromName,
         htmlBody: draftHtmlBody
       }
-      savedDraft = await emailHooks.onBeforeDraftAutoSave.transform(savedDraft);
+      if (emailHooks.onBeforeDraftAutoSave.size > 0) {
+        const outcome = await emailHooks.onBeforeDraftAutoSave.interceptWithValue(
+          savedDraft,
+          (result) => (result && typeof result === 'object' ? result as typeof savedDraft : undefined),
+          { timeoutMs: DRAFT_HOOK_TIMEOUT_MS },
+        );
+        if (!outcome.allowed && auto) {
+          // Skipped: leave lastSavedDataRef alone so the next save retries.
+          setSaveStatus('idle');
+          return draftIdRef.current;
+        }
+        if (outcome.allowed) savedDraft = outcome.value;
+      }
 
       // Use the JMAP client and raw identity id for the *owning* account
       // - falls back to active client for single-account / same-account
@@ -2321,13 +2339,13 @@ export function EmailComposer({
   // racing two `Email/set { destroy, create }` requests against the same
   // draftId, which left orphan drafts and (when EmailSubmission failed)
   // looked like "send didn't happen" (#303).
-  const saveDraft = (): Promise<string | null> => {
+  const saveDraft = (opts: { auto?: boolean } = {}): Promise<string | null> => {
     const previous = inflightSaveRef.current;
     const promise = (async (): Promise<string | null> => {
       if (previous) {
         try { await previous; } catch { /* prior failure already reported */ }
       }
-      return saveDraftOnce();
+      return saveDraftOnce(!!opts.auto);
     })();
     inflightSaveRef.current = promise;
     promise.finally(() => {
@@ -2372,7 +2390,7 @@ export function EmailComposer({
           .filter(a => a.blobId && !a.uploading && !a.error)
           .map(a => ({ name: a.name, type: a.type || 'application/octet-stream', size: a.size })),
       });
-      saveDraft();
+      saveDraft({ auto: true });
     }, 2000);
 
     // Cleanup on unmount

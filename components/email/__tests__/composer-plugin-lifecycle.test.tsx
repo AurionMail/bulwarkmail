@@ -312,3 +312,43 @@ describe('onBeforeCompose prefill', () => {
     expect(screen.getByText('bob@example.com')).toBeInTheDocument();
   });
 });
+
+describe('onBeforeDraftAutoSave', () => {
+  function withClient(createDraft: ReturnType<typeof vi.fn>) {
+    useAuthStore.setState({
+      client: { createDraft, getEmail: vi.fn(), hasDelayedSend: () => false, getMaxDelayedSend: () => 0 } as never,
+    });
+  }
+
+  it('lets a plugin skip a save while typing', async () => {
+    const before = vi.fn().mockReturnValue(false);
+    emailHooks.onBeforeDraftAutoSave.register('test', before);
+    const createDraft = vi.fn().mockResolvedValue('draft-1');
+    withClient(createDraft);
+    try {
+      render(<EmailComposer initialData={DRAFT} />);
+      fireEvent.change(screen.getByTestId('composer-subject'), { target: { value: 'Lunch?' } });
+      await waitFor(() => expect(before).toHaveBeenCalled(), { timeout: 4000 });
+      await act(async () => {});
+
+      expect(createDraft).not.toHaveBeenCalled();
+    } finally {
+      useAuthStore.setState({ client: null });
+    }
+  }, 15_000);
+
+  it('saves the draft a plugin returns', async () => {
+    emailHooks.onBeforeDraftAutoSave.register('test', (draft: { subject: string }) => ({ ...draft, subject: `[x] ${draft.subject}` }));
+    const createDraft = vi.fn().mockResolvedValue('draft-1');
+    withClient(createDraft);
+    try {
+      render(<EmailComposer initialData={DRAFT} />);
+      fireEvent.change(screen.getByTestId('composer-subject'), { target: { value: 'Lunch?' } });
+      await waitFor(() => expect(createDraft).toHaveBeenCalledTimes(1), { timeout: 4000 });
+
+      expect(createDraft.mock.calls[0][1]).toBe('[x] Lunch?');
+    } finally {
+      useAuthStore.setState({ client: null });
+    }
+  }, 15_000);
+});

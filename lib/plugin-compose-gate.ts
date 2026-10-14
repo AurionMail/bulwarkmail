@@ -6,7 +6,6 @@
 
 import type { ComposeOptions } from './plugin-types';
 import { emailHooks } from './plugin-hooks';
-import { interceptWithResult } from './plugin-hook-result';
 import { buildReplyRecipients, type ReplySource } from './reply-recipients';
 import { buildForwardSubject, buildReplySubject } from './subject-prefix';
 import { formatRecipient } from './email-composer-utils';
@@ -62,7 +61,9 @@ const sameList = (a: string[], b: string[]) => a.length === b.length && a.every(
  * otherwise to the fields it changed (empty when none).
  */
 export async function runBeforeCompose(options: ComposeOptions): Promise<ComposePrefill | null> {
-  const outcome = await interceptWithResult(emailHooks.onBeforeCompose, options, acceptComposeOptions, (o) => emailHooks.onBeforeCompose.intercept(o));
+  const outcome = emailHooks.onBeforeCompose.size > 0
+    ? await emailHooks.onBeforeCompose.interceptWithValue(options, acceptComposeOptions)
+    : { allowed: true as const, value: options };
   if (!outcome.allowed) return null;
   const changed = outcome.value;
   const prefill: ComposePrefill = {};

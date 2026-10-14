@@ -251,6 +251,38 @@ export class HookBus<T extends (...args: any[]) => any> {
     return 'default';
   }
 
+  /**
+   * For "before" hooks whose handlers may stop an action (return `false`) or
+   * change what it does (return a value). Handlers run once each, in order,
+   * with the intercept budget; `accept` turns a return value into the next
+   * value, or returns undefined to ignore it. A handler that throws or runs
+   * out of time is skipped (fail open), and counts as a failure like any
+   * other hook error.
+   */
+  async interceptWithValue<V>(
+    initial: V,
+    accept: (result: unknown, current: V) => V | undefined,
+    opts: { timeoutMs?: number } = {},
+  ): Promise<{ allowed: false } | { allowed: true; value: V }> {
+    const budget = opts.timeoutMs ?? Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS);
+    let value = initial;
+    for (const { pluginId, handler } of this.handlers) {
+      if (pluginErrorTracker.isDisabled(pluginId)) continue;
+      let result: unknown;
+      try {
+        result = await withTimeout((handler as (v: V) => unknown)(value), budget);
+      } catch (err) {
+        this.recordFailure(pluginId, err);
+        continue;
+      }
+      if (result === false) return { allowed: false };
+      if (result === undefined || result === null || result === true) continue;
+      const next = accept(result, value);
+      if (next !== undefined) value = next;
+    }
+    return { allowed: true, value };
+  }
+
   /** Fire handlers as transforms - each receives the output of the previous */
   async transform<V>(initial: V, ...rest: unknown[]): Promise<V> {
     let value = initial;

@@ -8,7 +8,7 @@ import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from 
 import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty } from "@/lib/jmap/search-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
 import { allowEmailMove, emitEmailMove, idsFromSelectionKeys, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
-import { emailSummary } from "@/lib/plugin-projection";
+import { emailSummary, emailToReadView } from "@/lib/plugin-projection";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import { emailKeyFor, threadKeyFor, threadIdFromKey, KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
 import type { ExternalSearchResult } from "@/lib/plugin-types";
@@ -1944,6 +1944,18 @@ function mergeRetainedRows(previous: Email[], merged: Email[], retainedIds: Set<
   return out;
 }
 
+/** Most message ids a plugin may add to one search through onSearchResults. */
+const MAX_PLUGIN_SEARCH_IDS = 100;
+
+async function pluginSearchResultIds(query: string, filters: unknown, emails: Email[]): Promise<string[]> {
+  if (emailHooks.onSearchResults.size === 0) return [];
+  const shown = new Set(emails.map((e) => e.id));
+  const ids = await emailHooks.onSearchResults.transform([] as string[], { query, filters, emailIds: [...shown] });
+  if (!Array.isArray(ids)) return [];
+  return [...new Set(ids.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length < 256 && !shown.has(id)))]
+    .slice(0, MAX_PLUGIN_SEARCH_IDS);
+}
+
 export const useEmailStore = create<EmailStore>((set, get) => ({
   emails: [],
   mailboxes: [],
@@ -2083,11 +2095,13 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   selectEmail: (email) => {
     const prev = get().selectedEmail;
     set({ selectedEmail: email, lastSelectedEmailKey: email ? emailKeyFor(email) : get().lastSelectedEmailKey });
-    if (prev && (!email || email.id !== prev.id)) {
-      emailHooks.onEmailClose.emitSync(prev);
+    // Plain data only: handlers in a sandbox get a copy, and the raw store
+    // object carries fields no plugin permission covers.
+    if (prev && (!email || email.id !== prev.id) && emailHooks.onEmailClose.size > 0) {
+      emailHooks.onEmailClose.emitSync({ emailId: prev.id });
     }
-    if (email && (!prev || email.id !== prev.id)) {
-      emailHooks.onEmailOpen.emitSync(email);
+    if (email && (!prev || email.id !== prev.id) && emailHooks.onEmailOpen.size > 0) {
+      emailHooks.onEmailOpen.emitSync(emailToReadView(email));
     }
   },
   holdListRow: (rowKey) => {
@@ -3650,17 +3664,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         result = await resolveActionClient(client).searchEmails(query, jmapMailboxId, accountId, emailsPerPage, 0);
       }
 
-      const hookEdit = await emailHooks.onSearchResults.transform({
-        newEmailIds: [] as string[],
-        result: result,
-        query: query,
-        filters: searchFilters
-      });
-
-      result = hookEdit.result;
-      if (hookEdit.newEmailIds.length > 0) {
-        // in unified, accountId will be undefined and we will use the default.
-        const newEmails = await resolveActionClient(client).getSomeEmails(hookEdit.newEmailIds, accountId);
+      // Plugins may add messages to the results by id; the messages are
+      // fetched from the server, so a plugin can't put made-up rows in the list.
+      const extraIds = await pluginSearchResultIds(query, searchFilters, result.emails);
+      if (extraIds.length > 0) {
+        const newEmails = await resolveActionClient(client).getSomeEmails(extraIds, accountId);
         result.emails.push(...newEmails);
         result.total += newEmails.length;
       }
@@ -3776,17 +3784,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
       if (controller.signal.aborted) return;
 
-      const hookEdit = await emailHooks.onSearchResults.transform({ 
-        newEmailIds: [] as string[], 
-        result: result, 
-        query: searchQuery, 
-        filters: searchFilters 
-      });
-
-      result = hookEdit.result;
-
-      if (hookEdit.newEmailIds.length > 0) {
-        const newEmails = await resolveActionClient(client).getSomeEmails(hookEdit.newEmailIds, accountId);
+      // Plugins may add messages to the results by id; the messages are
+      // fetched from the server, so a plugin can't put made-up rows in the list.
+      const extraIds = await pluginSearchResultIds(searchQuery, searchFilters, result.emails);
+      if (extraIds.length > 0) {
+        const newEmails = await resolveActionClient(client).getSomeEmails(extraIds, accountId);
         result.emails.push(...newEmails);
         result.total += newEmails.length;
       }

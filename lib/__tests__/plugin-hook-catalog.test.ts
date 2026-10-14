@@ -37,16 +37,14 @@ const sources = ['app', 'components', 'contexts', 'hooks', 'lib', 'stores'].flat
 
 /** A call site that fires the hook: `xHooks.onFoo.emit(` and friends. */
 function isFired(hookName: string, groupName: string): boolean {
-  const re = new RegExp(`\\b${groupName}\\.${hookName}\\s*\\.(emit|emitSync|emitTo|intercept|interceptOutcome|transform|takeOver)\\b`);
+  const re = new RegExp(`\\b${groupName}\\.${hookName}\\s*\\.(emit|emitSync|emitTo|intercept|interceptOutcome|interceptWithValue|transform|takeOver)\\b`);
   return re.test(sources);
 }
 
 // Groups whose call sites are still being wired in this branch. Each
 // commit that wires a group removes it here, and the test then insists every
 // hook in it has a call site.
-const NOT_YET_WIRED = new Set<HookGroup>([
-  'mail-list', 'mail-read', 'mail-compose', 'mail-send', 'mail-organize', 'mail-mailboxes', 'mail-search',
-  'mail-sync', 'settings', 'identities',
+const NOT_YET_WIRED = new Set<HookGroup>([ 'settings', 'identities',
   'filters', 'vacation', 'templates', 'security'
 ]);
 

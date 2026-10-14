@@ -65,7 +65,7 @@ export const HOOK_CATALOG = {
   onComposerOpen: H('mail-compose', 'observer', 'email:read', 'ComposerContext', 'after the composer opened'),
   onComposerClose: H('mail-compose', 'observer', 'email:read', '{ draftId, sent: boolean }', 'after the composer closed'),
   onDraftChange: H('mail-compose', 'observer', 'email:read', 'DraftView', 'while the user writes (debounced)'),
-  onBeforeDraftAutoSave: H('mail-compose', 'transform', 'email:send', 'AlmostSavedDraft', 'before a draft is saved; return false to skip this save'),
+  onBeforeDraftAutoSave: H('mail-compose', 'transform', 'email:send', 'AlmostSavedDraft', 'before a draft is saved; return a changed draft, or false to skip a save while typing (saves on close and before send always run)'),
   onDraftAutoSave: H('mail-compose', 'observer', 'email:read', '{ draftId, subject }', 'after a draft was saved'),
   onBeforeEditDraft: H('mail-compose', 'transform', 'email:send', 'Email', 'before a saved draft is opened in the composer'),
   onBuildQuoteHeader: H('mail-compose', 'transform', 'email:send', 'QuoteHeader, QuoteHeaderContext', 'when a reply or forward is set up'),
@@ -115,7 +115,7 @@ export const HOOK_CATALOG = {
 
   // ─── Mail: search ──────────────────────────────────────────
   onSearch: H('mail-search', 'transform', 'email:read', '{ query, filters: SearchFilters }', 'before a search runs; may change the query and filters'),
-  onSearchResults: H('mail-search', 'observer', 'email:read', '{ query, count }', 'after search results arrived'),
+  onSearchResults: H('mail-search', 'transform', 'email:read', 'string[], { query, filters, emailIds }', 'after search results arrived; return ids of further messages to add to them (at most 100)'),
   onProvideSearchResults: H('mail-search', 'transform', 'email:read', 'ExternalSearchResult[], { query, filters }', 'to add results from elsewhere to a search'),
 
   // ─── Mail: attachments ─────────────────────────────────────

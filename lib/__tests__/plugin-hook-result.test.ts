@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { clearAllHooks, uiHooks, pluginErrorTracker } from '../plugin-hooks';
 import { interceptWithResult, acceptLinkRewrite, resolveExternalLink } from '../plugin-hook-result';
 
-const plainIntercept = (v: unknown) => uiHooks.onBeforeExternalLink.intercept(v);
 
 beforeEach(() => {
   clearAllHooks();
@@ -13,7 +12,7 @@ beforeEach(() => {
 describe('interceptWithResult', () => {
   it('lets the action through unchanged without handlers', async () => {
     const ctx = { href: 'https://a.example/' };
-    expect(await interceptWithResult(uiHooks.onBeforeExternalLink, ctx, acceptLinkRewrite, plainIntercept))
+    expect(await interceptWithResult(uiHooks.onBeforeExternalLink, ctx, acceptLinkRewrite))
       .toEqual({ allowed: true, value: ctx });
   });
 
@@ -21,7 +20,7 @@ describe('interceptWithResult', () => {
     const later = vi.fn();
     uiHooks.onBeforeExternalLink.register('a', () => false);
     uiHooks.onBeforeExternalLink.register('b', later);
-    const out = await interceptWithResult(uiHooks.onBeforeExternalLink, { href: 'https://a.example/' }, acceptLinkRewrite, plainIntercept);
+    const out = await interceptWithResult(uiHooks.onBeforeExternalLink, { href: 'https://a.example/' }, acceptLinkRewrite);
     expect(out).toEqual({ allowed: false });
     expect(later).not.toHaveBeenCalled();
   });
@@ -30,7 +29,7 @@ describe('interceptWithResult', () => {
     const second = vi.fn(() => undefined);
     uiHooks.onBeforeExternalLink.register('a', () => ({ href: 'https://proxy.example/?u=1' }));
     uiHooks.onBeforeExternalLink.register('b', second);
-    const out = await interceptWithResult(uiHooks.onBeforeExternalLink, { href: 'https://a.example/', emailId: 'e1' }, acceptLinkRewrite, plainIntercept);
+    const out = await interceptWithResult(uiHooks.onBeforeExternalLink, { href: 'https://a.example/', emailId: 'e1' }, acceptLinkRewrite);
     expect(out).toEqual({ allowed: true, value: { href: 'https://proxy.example/?u=1', emailId: 'e1' } });
     expect(second).toHaveBeenCalledWith({ href: 'https://proxy.example/?u=1', emailId: 'e1' });
   });
@@ -38,13 +37,13 @@ describe('interceptWithResult', () => {
   it('calls every handler once', async () => {
     const handler = vi.fn(() => ({ href: 'https://b.example/' }));
     uiHooks.onBeforeExternalLink.register('a', handler);
-    await interceptWithResult(uiHooks.onBeforeExternalLink, { href: 'https://a.example/' }, acceptLinkRewrite, plainIntercept);
+    await interceptWithResult(uiHooks.onBeforeExternalLink, { href: 'https://a.example/' }, acceptLinkRewrite);
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
   it('skips a handler that throws (fails open)', async () => {
     uiHooks.onBeforeExternalLink.register('a', () => { throw new Error('boom'); });
-    const out = await interceptWithResult(uiHooks.onBeforeExternalLink, { href: 'https://a.example/' }, acceptLinkRewrite, plainIntercept);
+    const out = await interceptWithResult(uiHooks.onBeforeExternalLink, { href: 'https://a.example/' }, acceptLinkRewrite);
     expect(out).toEqual({ allowed: true, value: { href: 'https://a.example/' } });
   });
 });
