@@ -121,14 +121,22 @@ export interface ConnectedAccount {
 }
 
 export async function listConnectedAccounts(pluginId?: string): Promise<ConnectedAccount[]> {
+  return (await credentialOverview(pluginId)).credentials;
+}
+
+/** The user's connected accounts, and (for one plugin) which admin credentials are set up. */
+export async function credentialOverview(pluginId?: string): Promise<{ credentials: ConnectedAccount[]; admin: { credentialId: string; configured: boolean }[] }> {
   const query = pluginId ? `?plugin=${encodeURIComponent(pluginId)}` : '';
   try {
     const res = await apiFetch(`/api/plugin-secrets${query}`);
-    if (!res.ok) return [];
-    const body = await res.json() as { credentials?: ConnectedAccount[] };
-    return Array.isArray(body.credentials) ? body.credentials : [];
+    if (!res.ok) return { credentials: [], admin: [] };
+    const body = await res.json() as { credentials?: ConnectedAccount[]; admin?: { credentialId: string; configured: boolean }[] };
+    return {
+      credentials: Array.isArray(body.credentials) ? body.credentials : [],
+      admin: Array.isArray(body.admin) ? body.admin : [],
+    };
   } catch {
-    return [];
+    return { credentials: [], admin: [] };
   }
 }
 

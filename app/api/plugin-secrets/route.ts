@@ -3,6 +3,7 @@ import { configManager } from '@/lib/admin/config-manager';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { CREDENTIAL_ID_RE, checkInject, credentialOrigin } from '@/lib/plugin-secrets/credentials';
+import { adminCredentialStatus } from '@/lib/plugin-secrets/proxy';
 import {
   VaultFullError,
   deleteUserCredentials,
@@ -33,7 +34,10 @@ export async function GET(request: NextRequest) {
   if (pluginId !== undefined && !PLUGIN_ID_RE.test(pluginId)) {
     return NextResponse.json({ error: 'Invalid plugin id' }, { status: 400 });
   }
-  return NextResponse.json({ credentials: await listUserCredentials(user, pluginId) }, { headers: NO_STORE });
+  const credentials = await listUserCredentials(user, pluginId);
+  // For one plugin, also say which of its admin credentials are set up.
+  const admin = pluginId ? await adminCredentialStatus(pluginId) : [];
+  return NextResponse.json({ credentials, admin }, { headers: NO_STORE });
 }
 
 /**

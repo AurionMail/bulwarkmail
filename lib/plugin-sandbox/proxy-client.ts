@@ -5,7 +5,7 @@
 
 import type { InstalledPlugin } from '../plugin-types';
 import { apiFetch, withBasePath } from '../browser-navigation';
-import { requestConnect, forgetCredentials, listConnectedAccounts } from './connect-dialog';
+import { requestConnect, forgetCredentials, credentialOverview } from './connect-dialog';
 
 /** Where streamed chunks and upload progress go: the iframe that asked. */
 export interface StreamSink {
@@ -281,10 +281,17 @@ export async function proxyConnect(plugin: InstalledPlugin, args: unknown[]): Pr
   });
 }
 
-/** `api.proxy.accounts()`: which of its credentials are connected, without secrets. */
-export async function proxyAccounts(plugin: InstalledPlugin): Promise<{ credentialId: string; origin: string; username?: string; connected: boolean }[]> {
-  const list = await listConnectedAccounts(plugin.id);
-  return list.map(({ credentialId, origin, username, connected }) => ({ credentialId, origin, ...(username ? { username } : {}), connected }));
+/**
+ * `api.proxy.accounts()`: the user's connected accounts (with server and
+ * user name) and, with `scope: 'admin'`, whether each admin credential is
+ * set up. No secrets, and no server address for admin credentials.
+ */
+export async function proxyAccounts(plugin: InstalledPlugin): Promise<{ credentialId: string; scope: 'user' | 'admin'; origin?: string; username?: string; connected: boolean }[]> {
+  const { credentials, admin } = await credentialOverview(plugin.id);
+  return [
+    ...credentials.map(({ credentialId, origin, username, connected }) => ({ credentialId, scope: 'user' as const, origin, ...(username ? { username } : {}), connected })),
+    ...admin.map(({ credentialId, configured }) => ({ credentialId, scope: 'admin' as const, connected: configured })),
+  ];
 }
 
 /** `api.proxy.disconnect(credentialId)`. */

@@ -520,8 +520,12 @@ function buildPluginApi(manifest: PluginManifest) {
       /** Show the host's dialog to connect a user credential. */
       connect: (credentialId: string, opts?: { mode?: 'password' | 'signin'; server?: string; username?: string }) =>
         callApi('proxy.connect', [credentialId, opts ?? {}], 0) as Promise<{ connected: boolean; origin?: string }>,
-      /** Which credentials are connected (no secrets). */
-      accounts: () => callApi('proxy.accounts', []) as Promise<Array<{ credentialId: string; origin: string; username?: string; connected: boolean }>>,
+      /**
+       * Which credentials are ready: accounts the user connected (scope
+       * 'user', with server and user name) and the admin's (scope 'admin',
+       * connected = set up). No secrets.
+       */
+      accounts: () => callApi('proxy.accounts', []) as Promise<Array<{ credentialId: string; scope: 'user' | 'admin'; origin?: string; username?: string; connected: boolean }>>,
       disconnect: (credentialId: string) => callApi('proxy.disconnect', [credentialId]) as Promise<boolean>,
     },
     // Reading mail (permission: email:read) and keyword mutations

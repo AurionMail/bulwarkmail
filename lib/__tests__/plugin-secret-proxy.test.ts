@@ -22,7 +22,7 @@ import { checkCredentials, authHeaderFor } from '../plugin-secrets/credentials';
 import {
   deleteUserCredentials, getUserCredential, listUserCredentials, putUserCredential,
 } from '../plugin-secrets/vault';
-import { proxyRequest, ProxyError, PROXY_RATE_LIMIT, resetProxyLimits } from '../plugin-secrets/proxy';
+import { adminCredentialStatus, proxyRequest, ProxyError, PROXY_RATE_LIMIT, resetProxyLimits } from '../plugin-secrets/proxy';
 
 const USER = { username: 'alice@example.org', serverUrl: 'https://mail.example.org' };
 const OTHER = { username: 'bob@example.org', serverUrl: 'https://mail.example.org' };
@@ -255,6 +255,28 @@ describe('proxy', () => {
     await res.text();
 
     expect(seen[0].headers.authorization).toBeUndefined();
+  });
+
+  it('says which admin credentials are set up, without their secrets', async () => {
+    const plugin = {
+      id: 'ai', enabled: true,
+      credentials: {
+        llm: { label: 'LLM', scope: 'admin', inject: { type: 'bearer' }, secretKey: 'key', originKey: 'url' },
+        other: { label: 'Other', scope: 'admin', inject: { type: 'bearer' }, secretKey: 'otherKey', origin: 'https://o.example' },
+        own: { label: 'Own', scope: 'user', inject: { type: 'bearer' } },
+      },
+    };
+    vi.mocked(getPlugin).mockResolvedValue(plugin as never);
+    vi.mocked(getPluginConfig).mockResolvedValue({ key: 'sk-admin', url: `${origin}/v1` });
+    try {
+      const status = await adminCredentialStatus('ai');
+
+      expect(status).toEqual([{ credentialId: 'llm', configured: true }, { credentialId: 'other', configured: false }]);
+      expect(JSON.stringify(status)).not.toContain('sk-admin');
+    } finally {
+      vi.mocked(getPlugin).mockResolvedValue(null);
+      vi.mocked(getPluginConfig).mockResolvedValue({});
+    }
   });
 
   it('uses an admin credential for an installed plugin', async () => {

@@ -92,6 +92,28 @@ export async function resolveCredential(user: VaultUser, pluginId: string, crede
   };
 }
 
+/**
+ * Which of a plugin's admin credentials are ready to use (secret and server
+ * set). No secret or address leaves the server; plugins learn only yes/no.
+ */
+export async function adminCredentialStatus(pluginId: string): Promise<{ credentialId: string; configured: boolean }[]> {
+  const plugin = await getPlugin(pluginId);
+  const specs = (plugin as { credentials?: Record<string, CredentialSpec> } | null)?.credentials;
+  if (!plugin || !plugin.enabled || !specs) return [];
+  const adminIds = Object.entries(specs).filter(([, spec]) => spec.scope === 'admin').map(([id]) => id);
+  if (adminIds.length === 0) return [];
+  const user = { username: '', serverUrl: '' };
+  return Promise.all(adminIds.map(async (credentialId) => ({
+    credentialId,
+    configured: !!(await resolveAdminOnly(user, pluginId, credentialId)),
+  })));
+}
+
+async function resolveAdminOnly(user: VaultUser, pluginId: string, credentialId: string): Promise<ResolvedCredential | null> {
+  const resolved = await resolveCredential(user, pluginId, credentialId);
+  return resolved?.scope === 'admin' ? resolved : null;
+}
+
 // ─── Rate limiting ────────────────────────────────────────────
 
 const windows = new Map<string, number[]>();

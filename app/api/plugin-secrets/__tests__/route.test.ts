@@ -29,7 +29,11 @@ vi.mock('@/lib/plugin-secrets/vault', () => ({
 const proxied: unknown[] = [];
 vi.mock('@/lib/plugin-secrets/proxy', async (orig) => {
   const real = await orig<typeof import('@/lib/plugin-secrets/proxy')>();
-  return { ...real, proxyRequest: vi.fn(async (input: unknown) => { proxied.push(input); return new Response('ok'); }) };
+  return {
+    ...real,
+    proxyRequest: vi.fn(async (input: unknown) => { proxied.push(input); return new Response('ok'); }),
+    adminCredentialStatus: vi.fn(async () => [{ credentialId: 'shared', configured: true }]),
+  };
 });
 
 import { POST as saveCredential } from '../route';
