@@ -1,0 +1,317 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import React from 'react';
+import { EmailComposer } from '../email-composer';
+import { useAuthStore } from '@/stores/auth-store';
+import { resetActions, setActionDispatcher, setPluginActions } from '@/lib/plugin-sandbox/actions';
+import { clearOffers, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
+
+// Plugin surfaces of the composer: frames above and below the message text
+// (fed the draft, at most every 2 seconds), and entries in the Send and
+// Attach menus.
+
+vi.mock('@/components/email/rich-text-editor', () => ({
+  RichTextEditor: () => React.createElement('div', { 'data-testid': 'rich-text-editor' }),
+}));
+vi.mock('@/components/plugins/plugin-iframe-slot', async () => ({
+  PluginIframeSlot: (await import('@/components/plugins/__tests__/fake-plugin-offer')).FakeIframeSlot,
+}));
+
+vi.mock('@/components/identity/sub-address-helper', () => ({ SubAddressHelper: () => null }));
+vi.mock('@/components/templates/template-picker', () => ({ TemplatePicker: () => null }));
+vi.mock('@/components/templates/template-form', () => ({ TemplateForm: () => null }));
+vi.mock('@/components/files/file-preview-modal', () => ({ FilePreviewModal: () => null }));
+vi.mock('@/hooks/use-focus-trap', () => ({
+  useFocusTrap: () => ({ current: null }),
+}));
+vi.mock('@/hooks/use-pro-multi-account-identities', () => ({
+  useProMultiAccountIdentities: () => ({ enabled: false, groups: [], allIdentities: [] }),
+  stripCrossAccountIdentityPrefix: (id: string) => ({ localAccountId: null, rawId: id }),
+}));
+
+// ─── Store mocks ──────────────────────────────────────────────────────────────
+
+vi.mock('@/stores/auth-store', () => {
+  const state = {
+    client: null,
+    identities: [],
+    primaryIdentity: null,
+    isAuthenticated: false,
+    isDemoMode: false,
+    activeAccountId: null,
+    connectionLost: false,
+    getClientForAccount: () => undefined,
+    getAllConnectedClients: () => new Map(),
+    syncIdentities: () => {},
+    refreshIdentities: async () => {},
+  };
+  const hook = (sel?: (s: typeof state) => unknown) =>
+    typeof sel === 'function' ? sel(state) : state;
+  hook.getState = () => state;
+  hook.setState = (p: Partial<typeof state>) => Object.assign(state, p);
+  return { useAuthStore: hook };
+});
+
+vi.mock('@/stores/identity-store', () => {
+  const state = {
+    identities: [{ id: 'id-me', email: 'me@example.com', name: 'Me' }],
+    defaultIdentityId: 'id-me',
+  };
+  const hook = (sel?: (s: typeof state) => unknown) =>
+    typeof sel === 'function' ? sel(state) : state;
+  hook.getState = () => state;
+  hook.setState = (p: Partial<typeof state>) => Object.assign(state, p);
+  return { useIdentityStore: hook };
+});
+
+vi.mock('@/stores/account-store', () => {
+  const state = { accounts: [], getAccountById: () => undefined };
+  const hook = (sel?: (s: typeof state) => unknown) =>
+    typeof sel === 'function' ? sel(state) : state;
+  hook.getState = () => state;
+  hook.setState = (p: Partial<typeof state>) => Object.assign(state, p);
+  return { useAccountStore: hook };
+});
+
+vi.mock('@/stores/email-store', () => {
+  const state = {
+    draftSaveEnabled: false,
+    sendRawEmail: async () => ({ sent: true }),
+  };
+  const hook = (sel?: (s: typeof state) => unknown) =>
+    typeof sel === 'function' ? sel(state) : state;
+  hook.getState = () => state;
+  hook.setState = (p: Partial<typeof state>) => Object.assign(state, p);
+  return { useEmailStore: hook };
+});
+
+vi.mock('@/stores/settings-store', () => {
+  const state = {
+    timeFormat: '24h',
+    plainTextMode: false,
+    subAddressDelimiter: '+',
+    autoSelectReplyIdentity: true,
+    attachmentReminderEnabled: false,
+    attachmentReminderKeywords: [],
+    emptySubjectWarningEnabled: true,
+    sendDelaySeconds: 0,
+    signaturePosition: 'above_quote',
+    signatureSeparatorEnabled: false,
+    requestReadReceiptDefault: false,
+    addTrustedSender: () => {},
+    trustedSendersAddressBook: null,
+    updateSetting: () => {},
+  };
+  const hook = (sel?: (s: typeof state) => unknown) =>
+    typeof sel === 'function' ? sel(state) : state;
+  hook.getState = () => state;
+  hook.setState = (p: Partial<typeof state>) => Object.assign(state, p);
+  return { useSettingsStore: hook };
+});
+
+vi.mock('@/stores/contact-store', () => {
+  const state = {
+    contacts: [],
+    getAutocomplete: async () => [],
+    addToTrustedSendersBook: async () => {},
+  };
+  const hook = (sel?: (s: typeof state) => unknown) =>
+    typeof sel === 'function' ? sel(state) : state;
+  hook.getState = () => state;
+  hook.setState = (p: Partial<typeof state>) => Object.assign(state, p);
+  return { useContactStore: hook };
+});
+
+vi.mock('@/stores/template-store', () => {
+  const state = { templates: [], addTemplate: async () => {} };
+  const hook = (sel?: (s: typeof state) => unknown) =>
+    typeof sel === 'function' ? sel(state) : state;
+  hook.getState = () => state;
+  hook.setState = (p: Partial<typeof state>) => Object.assign(state, p);
+  return { useTemplateStore: hook };
+});
+
+// ─── Misc dependency mocks ────────────────────────────────────────────────────
+
+vi.mock('@/stores/toast-store', () => ({
+  toast: { info: () => {}, error: () => {}, success: () => {} },
+}));
+
+vi.mock('@/lib/plugin-hooks', () => ({
+  identityHooks: {
+    onSignatureRender: { size: 0, transform: async (value: unknown) => value },
+    onIdentitySelect: { size: 0, emit: async () => {} },
+  },
+  templateHooks: {
+    onTemplateRender: { size: 0, transform: async (value: unknown) => value },
+    onTemplateApply: { size: 0, emit: async () => {} },
+  },
+  emailHooks: {
+    onComposerOpen: { call: async () => [] },
+    onRecipientChange: { call: async () => [] },
+    getRecipientSuggestions: { call: async () => [] },
+    onRecipientChipsChange: { transform: async (chips: unknown) => chips },
+    onDraftChange: { emit: () => {} },
+    onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
+    onBeforeEmailSend: { intercept: async () => true, interceptOutcome: async () => 'allowed' },
+    onComposeSend: { takeOver: async () => 'default' },
+    onTransformOutgoingEmail: { transform: async (email: unknown) => email },
+    onBeforeAttachmentUpload: { intercept: async () => true },
+  },
+  contactHooks: {
+    search: { call: async () => [] },
+    onProvideRecipientSuggestions: { transform: async (initial: unknown) => initial },
+  },
+}));
+
+vi.mock('@/lib/email-sanitization', () => ({
+  sanitizeSignatureHtml: (v: string) => v,
+  sanitizeEmailHtml: (v: string) => v,
+  parseHtmlSafely: (html: string) => new DOMParser().parseFromString(html, 'text/html'),
+}));
+
+vi.mock('@/lib/email-threading', () => ({
+  computeReplyThreadingHeaders: () => ({ inReplyTo: [], references: [] }),
+}));
+vi.mock('@/lib/signature-utils', () => ({
+  appendPlainTextSignature: (body: string) => body,
+  getPlainTextSignature: () => '',
+  plainTextBodyHasSignature: () => false,
+  plainTextBodyWithoutSignature: (body: string) => body,
+}));
+vi.mock('@/lib/sub-addressing', () => ({ generateSubAddress: () => '' }));
+vi.mock('@/lib/debug', () => ({ debug: { log: () => {}, warn: () => {}, error: () => {} } }));
+vi.mock('@/components/email/quoted-html', () => ({
+  buildQuotedHtmlBlock: () => '',
+  serializeEditorContent: () => '',
+}));
+vi.mock('@/lib/template-utils', () => ({ substitutePlaceholders: (s: string) => s }));
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+const DRAFT = {
+  to: 'bob@example.com',
+  cc: '',
+  bcc: '',
+  subject: 'Lunch',
+  body: '<p>Hello there</p>',
+  showCc: false,
+  showBcc: false,
+  selectedIdentityId: 'id-me',
+  subAddressTag: '',
+  mode: 'compose' as const,
+  draftId: null,
+};
+
+const follows = (a: Node, b: Node) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+const draftOf = (el: HTMLElement) => slotProps(el).draft as { subject: string; to: string[]; htmlBody: string; identityId: string };
+
+const dispatch = vi.fn().mockResolvedValue(undefined);
+
+beforeEach(() => {
+  resetActions();
+  dispatch.mockClear();
+  setActionDispatcher(dispatch);
+  useAuthStore.setState({ client: null });
+});
+
+afterEach(() => {
+  clearOffers();
+  setActionDispatcher(null);
+  vi.useRealTimers();
+});
+
+describe('composer-above-body and composer-below-body', () => {
+  it('put the frames around the message text with the draft', () => {
+    offerSlots('p1', ['composer-above-body', 'composer-below-body']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const above = screen.getByTestId('slot-composer-above-body');
+    const below = screen.getByTestId('slot-composer-below-body');
+    const editor = screen.getByTestId('rich-text-editor');
+    expect(follows(screen.getByTestId('composer-subject'), above)).toBe(true);
+    expect(follows(above, editor)).toBe(true);
+    expect(follows(editor, below)).toBe(true);
+    expect(draftOf(above)).toMatchObject({ subject: 'Lunch', to: ['bob@example.com'], htmlBody: '<p>Hello there</p>', identityId: 'id-me' });
+    expect(draftOf(below).subject).toBe('Lunch');
+  });
+
+  it('send a changed draft only after 2 seconds without changes', () => {
+    offerSlots('p1', ['composer-above-body']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    vi.useFakeTimers();
+
+    fireEvent.change(screen.getByTestId('composer-subject'), { target: { value: 'Lunch?' } });
+    act(() => { vi.advanceTimersByTime(1000); });
+    fireEvent.change(screen.getByTestId('composer-subject'), { target: { value: 'Lunch at 12?' } });
+    act(() => { vi.advanceTimersByTime(1900); });
+    expect(draftOf(screen.getByTestId('slot-composer-above-body')).subject).toBe('Lunch');
+
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(draftOf(screen.getByTestId('slot-composer-above-body')).subject).toBe('Lunch at 12?');
+  });
+
+  it('draw nothing without a plugin', () => {
+    const { container } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(container.querySelector('[data-plugin-slot="composer-above-body"]')).toBeNull();
+    expect(container.querySelector('[data-plugin-slot="composer-below-body"]')).toBeNull();
+  });
+});
+
+describe('composer-send-menu', () => {
+  it('turns Send into a split button for plugin entries and sends the draft on click', async () => {
+    act(() => setPluginActions('p', 'Later', 'composer-send-menu', [{ id: 'later', label: 'Send with Later' }]));
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    // The phone and the desktop Send button are both in the DOM.
+    fireEvent.click(screen.getAllByRole('button', { name: 'more_actions' })[0]);
+    expect(screen.queryByRole('menuitem', { name: /schedule_send/ })).toBeNull();
+    await act(async () => { fireEvent.click(screen.getAllByRole('menuitem', { name: 'Send with Later' })[0]); });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const [pluginId, surface, actionId, context] = dispatch.mock.calls[0];
+    expect([pluginId, surface, actionId]).toEqual(['p', 'composer-send-menu', 'later']);
+    expect((context as { draft: { subject: string } }).draft).toMatchObject({ subject: 'Lunch', to: ['bob@example.com'] });
+    expect(screen.queryByRole('menuitem', { name: 'Send with Later' })).toBeNull();
+  });
+
+  it('lists the entries under Schedule send when the account has it', () => {
+    useAuthStore.setState({
+      client: { hasDelayedSend: () => true, getMaxDelayedSend: () => 30 * 86400, createDraft: vi.fn() } as never,
+    });
+    act(() => setPluginActions('p', 'Later', 'composer-send-menu', [{ id: 'later', label: 'Send with Later' }]));
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'schedule_send' })[0]);
+    const schedule = screen.getAllByRole('menuitem', { name: /schedule_send/ })[0];
+    const plugin = screen.getAllByRole('menuitem', { name: 'Send with Later' })[0];
+    expect(follows(schedule, plugin)).toBe(true);
+  });
+
+  it('keeps a plain Send button without plugin entries or scheduled send', () => {
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'more_actions' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'schedule_send' })).toBeNull();
+  });
+});
+
+describe('composer-attach-menu', () => {
+  it('turns Attach into a menu for plugin entries', async () => {
+    act(() => setPluginActions('p', 'Cloud', 'composer-attach-menu', [{ id: 'cloud', label: 'From the cloud' }]));
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByTestId('composer-attach-menu'));
+    expect(screen.getByRole('menuitem', { name: 'attach_from_device' })).toBeInTheDocument();
+    expect(screen.queryByTestId('composer-attach-from-files')).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'From the cloud' })); });
+
+    expect(dispatch).toHaveBeenCalledWith('p', 'composer-attach-menu', 'cloud', {});
+    expect(screen.queryByRole('menuitem', { name: 'From the cloud' })).toBeNull();
+  });
+
+  it('keeps the plain Attach button without plugin entries', () => {
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(screen.queryByTestId('composer-attach-menu')).toBeNull();
+    expect(screen.getByRole('button', { name: 'attach' })).toBeInTheDocument();
+  });
+});

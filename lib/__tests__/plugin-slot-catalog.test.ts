@@ -34,7 +34,7 @@ function isMounted(name: string): boolean {
 // that finishes an area removes it here; the test then insists every
 // surface in it has a mount site.
 const NOT_YET_MOUNTED = new Set<SlotArea>([
-  'app', 'navigation', 'mail-list', 'reader', 'composer', 'settings',
+  'app', 'navigation', 'settings',
 ]);
 
 describe('slot catalogue', () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Email } from "@/lib/jmap/types";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -11,6 +11,7 @@ import { useTranslations } from "next-intl";
 import { useIsMobile } from "@/hooks/use-media-query";
 import { TagPicker } from "@/components/email/tag-picker";
 import { getEmailTagIds } from "@/lib/thread-utils";
+import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
 
 interface EmailHoverActionsProps {
   email: Email;
@@ -27,6 +28,8 @@ interface EmailHoverActionsProps {
   onUndoSpam?: () => void;
   // Hidden where marking spam is meaningless for self-authored mail (Drafts, Sent).
   spamApplicable?: boolean;
+  /** Role of the folder the row is listed in; plugin buttons can be limited to some. */
+  mailboxRole?: string | null;
 }
 
 const ACTION_CONFIG: Record<HoverAction, {
@@ -105,6 +108,7 @@ export function EmailHoverActions({
   isInJunk = false,
   onUndoSpam,
   spamApplicable = true,
+  mailboxRole = null,
 }: EmailHoverActionsProps) {
   const configuredHoverActions = useSettingsStore((state) => state.hoverActions);
   const mountainView = useSettingsStore((state) => state.interfaceLayout === 'mountain-view');
@@ -113,6 +117,9 @@ export function EmailHoverActions({
   const hoverActionsCorner = useSettingsStore((state) => state.hoverActionsCorner);
   const t = useTranslations("settings.email_behavior.hover_actions");
   const isMobile = useIsMobile();
+  // Buttons plugins add to the row (message-row-actions), after the app's own.
+  const pluginActionCount = usePluginActions("message-row-actions", { mailboxRole }).length;
+  const pluginContext = useMemo(() => ({ emailId: email.id }), [email.id]);
 
   // The tag quick-action opens the same picker the context menu and the reading
   // pane use. It is portalled to the body because every row sits inside a
@@ -159,7 +166,7 @@ export function EmailHoverActions({
   const hoverBackgroundClassName = backgroundClassName;
 
   if (isMobile) return null;
-  if (hoverActions.length === 0) return null;
+  if (hoverActions.length === 0 && pluginActionCount === 0) return null;
 
   const handleAction = (e: React.MouseEvent, action: HoverAction) => {
     e.stopPropagation();
@@ -251,6 +258,18 @@ export function EmailHoverActions({
       </button>
     );
   });
+  if (pluginActionCount > 0) {
+    actionButtons.push(
+      <PluginActions
+        key="plugin-actions"
+        surface="message-row-actions"
+        context={pluginContext}
+        mailboxRole={mailboxRole}
+        compact
+        className="flex-nowrap gap-0.5"
+      />,
+    );
+  }
 
   const tagPicker =
     tagPickerPos && onSetTag

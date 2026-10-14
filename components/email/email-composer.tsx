@@ -34,7 +34,7 @@ import {
   Reply,
   Forward,
 } from "@/components/icons";
-import { ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
+import { ComposerPluginMenuItems, ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
 import { cn, formatFileSize, formatDateTime, generateUUID } from "@/lib/utils";
 import { schedulePresets } from "@/lib/schedule-presets";
 import { debug } from "@/lib/debug";
@@ -63,6 +63,7 @@ import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
+import { usePluginActions } from "@/components/plugins/plugin-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { FilePickerDialog } from "@/components/files/file-picker-dialog";
@@ -382,6 +383,7 @@ export function EmailComposer({
   const t = useTranslations('email_composer');
   const tCommon = useTranslations('common');
   const tQuote = useTranslations('quote_header');
+  const tViewer = useTranslations('email_viewer');
   const timeFormat = useSettingsStore((state) => state.timeFormat);
   const plainTextModeDefault = useSettingsStore((state) => state.plainTextMode);
   // Per-message format (#1022). Seeded from the "plain text only" setting -
@@ -2068,6 +2070,12 @@ export function EmailComposer({
   const pluginAttachmentSourceProps = useMemo(() => ({ onAttach: handlePluginAttachmentAdd }), [handlePluginAttachmentAdd]);
   const pluginToolbarOffers = usePluginSlotOffers('composer-toolbar');
   const pluginAttachmentSourceOffers = usePluginSlotOffers('composer-attachment-source');
+  const hasAboveBodyOffers = usePluginSlotOffers('composer-above-body').length > 0;
+  const hasBelowBodyOffers = usePluginSlotOffers('composer-below-body').length > 0;
+  // Plugin entries make the Send and Attach buttons menus even where the app
+  // itself has nothing else to put there.
+  const hasSendMenuActions = usePluginActions('composer-send-menu').length > 0;
+  const hasAttachMenuActions = usePluginActions('composer-attach-menu').length > 0;
 
   // Files from the Files app are already blobs on the server, so they are
   // attached by blobId with no download or upload (#1179). Stalwart resolves a
@@ -2377,6 +2385,45 @@ export function EmailComposer({
   // Keep saveDraftRef pointing to latest saveDraft
   saveDraftRef.current = saveDraft;
 
+  // The draft as plugins see it: onDraftChange, the frames above and below
+  // the body, and clicks on plugin entries in the Send menu.
+  const draftSnapshot = () => ({
+    to: withInput(to, toInput).map(r => formatRecipient(r.name, r.email)),
+    cc: withInput(cc, ccInput).map(r => formatRecipient(r.name, r.email)),
+    bcc: withInput(bcc, bccInput).map(r => formatRecipient(r.name, r.email)),
+    subject,
+    htmlBody: plainTextMode ? '' : body,
+    textBody: plainTextMode ? body : htmlToPlainText(body),
+    identityId: selectedIdentityId || '',
+    attachments: attachments
+      .filter(a => a.blobId && !a.uploading && !a.error)
+      .map(a => ({ name: a.name, type: a.type || 'application/octet-stream', size: a.size })),
+  });
+  const draftSnapshotRef = useRef(draftSnapshot);
+  draftSnapshotRef.current = draftSnapshot;
+
+  // composer-above-body / composer-below-body get the draft when they appear
+  // and then 2 seconds after the last change, like onDraftChange: a new prop
+  // object on every keystroke would post the whole body into their iframes.
+  const wantsPluginDraft = hasAboveBodyOffers || hasBelowBodyOffers;
+  const [pluginDraft, setPluginDraft] = useState<ReturnType<typeof draftSnapshot> | null>(null);
+  const pluginDraftShownRef = useRef(false);
+  useEffect(() => {
+    if (!wantsPluginDraft) {
+      pluginDraftShownRef.current = false;
+      return;
+    }
+    if (!pluginDraftShownRef.current) {
+      pluginDraftShownRef.current = true;
+      setPluginDraft(draftSnapshotRef.current());
+      return;
+    }
+    const timer = setTimeout(() => setPluginDraft(draftSnapshotRef.current()), 2000);
+    return () => clearTimeout(timer);
+  }, [wantsPluginDraft, toStr, ccStr, bccStr, subject, body, plainTextMode, selectedIdentityId, attachments]);
+  const pluginDraftProps = useMemo(() => ({ draft: pluginDraft }), [pluginDraft]);
+  const sendMenuContext = useCallback(() => ({ draft: draftSnapshotRef.current() }), []);
+
   // Trigger auto-save when content changes (only if user modified something)
   useEffect(() => {
     // Clear existing timeout
@@ -2396,18 +2443,7 @@ export function EmailComposer({
       // tracked via inflightSaveRef.
       saveTimeoutRef.current = null;
       // Plugin observers (AI assist, grammar, …) get a debounced snapshot here.
-      emailHooks.onDraftChange.emit({
-        to: withInput(to, toInput).map(r => formatRecipient(r.name, r.email)),
-        cc: withInput(cc, ccInput).map(r => formatRecipient(r.name, r.email)),
-        bcc: withInput(bcc, bccInput).map(r => formatRecipient(r.name, r.email)),
-        subject,
-        htmlBody: plainTextMode ? '' : body,
-        textBody: plainTextMode ? body : htmlToPlainText(body),
-        identityId: selectedIdentityId || '',
-        attachments: attachments
-          .filter(a => a.blobId && !a.uploading && !a.error)
-          .map(a => ({ name: a.name, type: a.type || 'application/octet-stream', size: a.size })),
-      });
+      emailHooks.onDraftChange.emit(draftSnapshot());
       saveDraft({ auto: true });
     }, 2000);
 
@@ -3269,7 +3305,7 @@ export function EmailComposer({
           </div>
         </div>
         {/* Mobile: keep scheduled send reachable without consuming footer space. */}
-        {composerClient?.hasDelayedSend() ? (
+        {composerClient?.hasDelayedSend() || hasSendMenuActions ? (
           <div ref={mobileSendMenuRef} className="relative inline-flex md:hidden">
             <Button
               onClick={() => handleSend()}
@@ -3286,7 +3322,8 @@ export function EmailComposer({
               type="button"
               onClick={() => setShowSendMenu((open) => !open)}
               disabled={!canSend || isSending}
-              title={t('schedule_send')}
+              title={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
+              aria-label={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
               size="sm"
               className="h-9 rounded-s-none px-2"
               aria-haspopup="menu"
@@ -3296,15 +3333,23 @@ export function EmailComposer({
             </Button>
             {showSendMenu && (
               <div role="menu" className="absolute end-0 top-full z-50 mt-2 min-w-44 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg">
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={openScheduleDialog}
-                  className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
-                >
-                  <CalendarClock className="w-4 h-4" />
-                  {t('schedule_send')}
-                </button>
+                {composerClient?.hasDelayedSend() && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={openScheduleDialog}
+                    className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <CalendarClock className="w-4 h-4" />
+                    {t('schedule_send')}
+                  </button>
+                )}
+                <ComposerPluginMenuItems
+                  surface="composer-send-menu"
+                  context={sendMenuContext}
+                  onSelect={() => setShowSendMenu(false)}
+                  separator={!!composerClient?.hasDelayedSend()}
+                />
               </div>
             )}
           </div>
@@ -3626,6 +3671,9 @@ export function EmailComposer({
       </div>
 
       <div className={cn("flex-1", pinFields && "min-h-0 overflow-auto")}>
+        {wantsPluginDraft && (
+          <PluginSlot name="composer-above-body" className="w-full" extraProps={pluginDraftProps} />
+        )}
         {/* Body */}
         {plainTextMode ? (
           <textarea
@@ -3684,6 +3732,9 @@ export function EmailComposer({
             dangerouslySetInnerHTML={{ __html: `${wantsSignatureSeparator(signatureSeparatorEnabled, signatureIdentity) ? '<div>-- </div>' : ''}${composerSignatureHtml}` }}
           />
         ) : null}
+        {wantsPluginDraft && (
+          <PluginSlot name="composer-below-body" className="w-full" extraProps={pluginDraftProps} />
+        )}
       </div>
       </div>
 
@@ -3822,7 +3873,7 @@ export function EmailComposer({
               className="hidden"
               accept="*/*"
             />
-            {filesEnabled && composerClient?.supportsFiles?.() ? (
+            {(filesEnabled && composerClient?.supportsFiles?.()) || hasAttachMenuActions ? (
               <ComposerToolbarMenu icon={Paperclip} label={t('attach')} testId="composer-attach-menu">
                 {(close) => <>
                   <ComposerToolbarMenuItem
@@ -3831,13 +3882,16 @@ export function EmailComposer({
                   >
                     {t('attach_from_device')}
                   </ComposerToolbarMenuItem>
-                  <ComposerToolbarMenuItem
-                    icon={FolderOpen}
-                    onSelect={() => { close(); setFilesPicker({ client: composerClient, accountId: composerAccountId }); }}
-                    testId="composer-attach-from-files"
-                  >
-                    {t('attach_from_files')}
-                  </ComposerToolbarMenuItem>
+                  {filesEnabled && composerClient?.supportsFiles?.() && (
+                    <ComposerToolbarMenuItem
+                      icon={FolderOpen}
+                      onSelect={() => { close(); setFilesPicker({ client: composerClient, accountId: composerAccountId }); }}
+                      testId="composer-attach-from-files"
+                    >
+                      {t('attach_from_files')}
+                    </ComposerToolbarMenuItem>
+                  )}
+                  <ComposerPluginMenuItems surface="composer-attach-menu" context={{}} onSelect={close} separator />
                 </>}
               </ComposerToolbarMenu>
             ) : (
@@ -3946,7 +4000,7 @@ export function EmailComposer({
             >
               {mvWindow ? <Trash2 className="w-5 h-5" /> : t('discard')}
             </button>
-            {composerClient?.hasDelayedSend() ? (
+            {composerClient?.hasDelayedSend() || hasSendMenuActions ? (
               <div ref={sendMenuRef} data-mv-send={mvWindow ? "" : undefined} className="relative hidden md:inline-flex">
                 <Button
                   onClick={() => handleSend()}
@@ -3962,7 +4016,8 @@ export function EmailComposer({
                   type="button"
                   onClick={() => setShowSendMenu((open) => !open)}
                   disabled={!canSend || isSending}
-                  title={t('schedule_send')}
+                  title={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
+                  aria-label={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
                   className="rounded-s-none px-2"
                   aria-haspopup="menu"
                   aria-expanded={showSendMenu}
@@ -3974,15 +4029,23 @@ export function EmailComposer({
                     role="menu"
                     className="absolute end-0 bottom-full z-50 mb-2 min-w-44 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg"
                   >
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={openScheduleDialog}
-                      className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <CalendarClock className="w-4 h-4" />
-                      {t('schedule_send')}
-                    </button>
+                    {composerClient?.hasDelayedSend() && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={openScheduleDialog}
+                        className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <CalendarClock className="w-4 h-4" />
+                        {t('schedule_send')}
+                      </button>
+                    )}
+                    <ComposerPluginMenuItems
+                      surface="composer-send-menu"
+                      context={sendMenuContext}
+                      onSelect={() => setShowSendMenu(false)}
+                      separator={!!composerClient?.hasDelayedSend()}
+                    />
                   </div>
                 )}
               </div>

@@ -31,6 +31,7 @@ import { localizeMailboxName } from "@/lib/mailbox-label";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { cn, type MailboxNode } from "@/lib/utils";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 
 interface MvListToolbarProps {
   /** Loaded conversation count, for the right-hand range readout. */
@@ -606,6 +607,13 @@ export function MvListToolbar({
               </div>
             )}
           </div>
+          <PluginActions
+            surface="message-bulk-actions"
+            context={{ emailIds: selectedEmails.map((email) => email.id) }}
+            mailboxRole={currentRole ?? null}
+            compact
+            className="shrink-0"
+          />
           <span className="ms-2 text-sm text-muted-foreground truncate">
             {tBatch("selected_messages", { count: selectionCount })}
           </span>
