@@ -620,7 +620,9 @@
       "copied": "Código copiado",
       "copy_failed": "No se pudo copiar el código"
     },
-    "mv_position": "{index} de {total}"
+    "mv_position": "{index} de {total}",
+    "plugin_panel_show": "Mostrar el panel del complemento",
+    "plugin_panel_hide": "Ocultar el panel del complemento"
   },
   "email_composer": {
     "minimize": "Minimizar",

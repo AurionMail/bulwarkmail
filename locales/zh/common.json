@@ -620,7 +620,9 @@
       "copied": "验证码已复制",
       "copy_failed": "无法复制验证码"
     },
-    "mv_position": "第 {index} 封，共 {total} 封"
+    "mv_position": "第 {index} 封，共 {total} 封",
+    "plugin_panel_show": "显示插件面板",
+    "plugin_panel_hide": "隐藏插件面板"
   },
   "email_composer": {
     "minimize": "最小化",

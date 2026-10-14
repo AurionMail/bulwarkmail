@@ -620,7 +620,9 @@
       "copied": "Codi copiat",
       "copy_failed": "No s'ha pogut copiar el codi"
     },
-    "mv_position": "{index} de {total}"
+    "mv_position": "{index} de {total}",
+    "plugin_panel_show": "Mostra el tauler del connector",
+    "plugin_panel_hide": "Amaga el tauler del connector"
   },
   "email_composer": {
     "minimize": "Minimitza",

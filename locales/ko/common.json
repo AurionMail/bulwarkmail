@@ -620,7 +620,9 @@
       "copied": "코드를 복사했습니다",
       "copy_failed": "코드를 복사할 수 없습니다"
     },
-    "mv_position": "{index} / {total}"
+    "mv_position": "{index} / {total}",
+    "plugin_panel_show": "플러그인 패널 표시",
+    "plugin_panel_hide": "플러그인 패널 숨기기"
   },
   "email_composer": {
     "minimize": "최소화",

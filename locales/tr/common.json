@@ -620,7 +620,9 @@
       "copied": "Kod kopyalandı",
       "copy_failed": "Kod kopyalanamadı"
     },
-    "mv_position": "{index} / {total}"
+    "mv_position": "{index} / {total}",
+    "plugin_panel_show": "Eklenti panelini göster",
+    "plugin_panel_hide": "Eklenti panelini gizle"
   },
   "email_composer": {
     "minimize": "Simge durumuna küçült",

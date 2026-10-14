@@ -620,7 +620,9 @@
       "copied": "تم نسخ الرمز",
       "copy_failed": "تعذّر نسخ الرمز"
     },
-    "mv_position": "{index} من {total}"
+    "mv_position": "{index} من {total}",
+    "plugin_panel_show": "إظهار لوحة الإضافة",
+    "plugin_panel_hide": "إخفاء لوحة الإضافة"
   },
   "email_composer": {
     "minimize": "تصغير",

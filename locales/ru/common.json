@@ -620,7 +620,9 @@
       "copied": "Код скопирован",
       "copy_failed": "Не удалось скопировать код"
     },
-    "mv_position": "{index} из {total}"
+    "mv_position": "{index} из {total}",
+    "plugin_panel_show": "Показать панель плагина",
+    "plugin_panel_hide": "Скрыть панель плагина"
   },
   "email_composer": {
     "minimize": "Свернуть",

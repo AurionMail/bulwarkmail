@@ -961,6 +961,9 @@ function DetailsCategorySlot({ email, category }: { email: EmailReadView | null;
   return <PluginSlot name="email-details-section" className="mt-2 empty:mt-0" extraProps={props} />;
 }
 
+/** Narrowest the message may get next to a plugin panel before the panel collapses. */
+const MIN_READER_WIDTH = 480;
+
 function SidebarSection({ icon: Icon, title, children }: { icon: React.ComponentType<{ className?: string }>; title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -1422,6 +1425,25 @@ export function EmailViewer({
     } catch { return 280; }
   });
   const detailSidebarWidthRef = useRef(detailSidebarWidth);
+  // The panel takes its width from the message. When that would leave the
+  // message too narrow to read (three panes on a laptop), the panel starts
+  // collapsed; opening it anyway is still the user's call.
+  const viewerRootRef = useRef<HTMLDivElement>(null);
+  const [viewerWidth, setViewerWidth] = useState(0);
+  const [detailSidebarForcedOpen, setDetailSidebarForcedOpen] = useState(false);
+  useEffect(() => {
+    if (!hasDetailSidebar || typeof ResizeObserver === 'undefined') return;
+    const el = viewerRootRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const width = Math.round(entries[0]?.contentRect.width ?? 0);
+      setViewerWidth(width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hasDetailSidebar]);
+  const readerTooNarrow = viewerWidth > 0 && viewerWidth - detailSidebarWidth < MIN_READER_WIDTH;
+  const sidebarCollapsed = detailSidebarCollapsed || (readerTooNarrow && !detailSidebarForcedOpen);
 
   useEffect(() => {
     try { localStorage.setItem('emailDetailSidebarCollapsed', detailSidebarCollapsed ? '1' : '0'); } catch { /* ignore */ }
@@ -3993,6 +4015,7 @@ export function EmailViewer({
 
   return (
     <div
+      ref={viewerRootRef}
       data-tour="email-viewer"
       className={cn("flex-1 flex flex-row h-full bg-background overflow-hidden relative", className)}
     >
@@ -6073,20 +6096,23 @@ export function EmailViewer({
     {hasDetailSidebar && !isMobile && (
       <>
         {/* Collapse toggle when sidebar is collapsed */}
-        {detailSidebarCollapsed && (
+        {sidebarCollapsed && (
           <div className="flex flex-col items-center border-s border-border bg-background">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setDetailSidebarCollapsed(false)}
+              onClick={() => {
+                setDetailSidebarCollapsed(false);
+                if (readerTooNarrow) setDetailSidebarForcedOpen(true);
+              }}
               className="h-8 w-8 m-1"
-              aria-label="Expand panel"
+              aria-label={t('plugin_panel_show')}
             >
               <PanelRightOpen className="w-4 h-4" />
             </Button>
           </div>
         )}
-        {!detailSidebarCollapsed && (
+        {!sidebarCollapsed && (
           <>
             <ResizeHandle
               onResizeStart={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
@@ -6105,9 +6131,12 @@ export function EmailViewer({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setDetailSidebarCollapsed(true)}
+                  onClick={() => {
+                    setDetailSidebarCollapsed(true);
+                    setDetailSidebarForcedOpen(false);
+                  }}
                   className="h-7 w-7"
-                  aria-label="Collapse panel"
+                  aria-label={t('plugin_panel_hide')}
                 >
                   <PanelRightClose className="w-4 h-4" />
                 </Button>

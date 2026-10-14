@@ -620,7 +620,9 @@
       "copied": "Code copied",
       "copy_failed": "Could not copy the code"
     },
-    "mv_position": "{index} of {total}"
+    "mv_position": "{index} of {total}",
+    "plugin_panel_show": "Show plugin panel",
+    "plugin_panel_hide": "Hide plugin panel"
   },
   "email_composer": {
     "minimize": "Minimize",

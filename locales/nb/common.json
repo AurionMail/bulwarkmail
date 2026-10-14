@@ -620,7 +620,9 @@
       "copied": "Kode kopiert",
       "copy_failed": "Kunne ikke kopiere koden"
     },
-    "mv_position": "{index} av {total}"
+    "mv_position": "{index} av {total}",
+    "plugin_panel_show": "Vis tilleggspanel",
+    "plugin_panel_hide": "Skjul tilleggspanel"
   },
   "email_composer": {
     "minimize": "Minimer",

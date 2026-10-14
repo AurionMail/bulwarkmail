@@ -620,7 +620,9 @@
       "copied": "کد کپی شد",
       "copy_failed": "کپی کد ممکن نشد"
     },
-    "mv_position": "{index} از {total}"
+    "mv_position": "{index} از {total}",
+    "plugin_panel_show": "نمایش پنل افزونه",
+    "plugin_panel_hide": "پنهان کردن پنل افزونه"
   },
   "email_composer": {
     "minimize": "کوچک کردن",

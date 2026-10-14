@@ -620,7 +620,9 @@
       "copied": "Kods nokopēts",
       "copy_failed": "Neizdevās nokopēt kodu"
     },
-    "mv_position": "{index} no {total}"
+    "mv_position": "{index} no {total}",
+    "plugin_panel_show": "Rādīt spraudņa paneli",
+    "plugin_panel_hide": "Slēpt spraudņa paneli"
   },
   "email_composer": {
     "minimize": "Minimizēt",

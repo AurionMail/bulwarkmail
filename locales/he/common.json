@@ -585,7 +585,9 @@
       "copied": "הקוד הועתק",
       "copy_failed": "לא ניתן להעתיק את הקוד"
     },
-    "mv_position": "{index} מתוך {total}"
+    "mv_position": "{index} מתוך {total}",
+    "plugin_panel_show": "הצגת חלונית התוסף",
+    "plugin_panel_hide": "הסתרת חלונית התוסף"
   },
   "email_composer": {
     "minimize": "מזעור",

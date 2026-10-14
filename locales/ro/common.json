@@ -620,7 +620,9 @@
       "copied": "Cod copiat",
       "copy_failed": "Codul nu a putut fi copiat"
     },
-    "mv_position": "{index} din {total}"
+    "mv_position": "{index} din {total}",
+    "plugin_panel_show": "Afișează panoul pluginului",
+    "plugin_panel_hide": "Ascunde panoul pluginului"
   },
   "email_composer": {
     "minimize": "Minimizează",
