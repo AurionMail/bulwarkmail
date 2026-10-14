@@ -18,7 +18,7 @@ import { verifyBundle } from './bundle-integrity';
 import { downloadManagedBundle } from './bundle-fetch';
 import { createBackgroundInstance, forEachInstance } from './host-bridge';
 import { resolvePluginTier } from './tier';
-import { register as registerActive, deregister as deregisterActive, all as allActiveEntries } from './registry';
+import { register as registerActive, deregister as deregisterActive, all as allActiveEntries, get as getActive } from './registry';
 import { cancelPluginDialogs } from './host-api';
 import { registerShortcuts } from './shortcuts';
 import { mayOfferSlot, mayRegisterHook, pluginHasPermission, slotPropsFor } from './permissions';
@@ -148,8 +148,24 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
-  if (typeof window === 'undefined') return;
+const loading = new Map<string, Promise<void>>();
+
+/**
+ * Start a plugin. Calling it again for a plugin that is running or still
+ * starting does nothing: start-up and a force-enable sync used to both load
+ * a plugin, leaving two background iframes whose hooks all fired twice.
+ */
+export function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (getActive(plugin.id)) return Promise.resolve();
+  const pending = loading.get(plugin.id);
+  if (pending) return pending;
+  const run = startSandboxedPlugin(plugin).finally(() => loading.delete(plugin.id));
+  loading.set(plugin.id, run);
+  return run;
+}
+
+async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
 
   let background: ReturnType<typeof createBackgroundInstance> | null = null;
   try {

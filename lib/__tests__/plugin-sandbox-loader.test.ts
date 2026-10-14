@@ -243,3 +243,13 @@ describe('failing hooks', () => {
     expect(markAutoDisabled).toHaveBeenCalledWith('managed-plugin');
   });
 });
+
+describe('loading the same plugin twice', () => {
+  it('starts one background instance, also when the loads overlap', async () => {
+    mocks.getCode.mockResolvedValue(CODE);
+    await Promise.all([loadSandboxedPlugin(plugin()), loadSandboxedPlugin(plugin())]);
+    await loadSandboxedPlugin(plugin());
+
+    expect(mocks.createBackgroundInstance).toHaveBeenCalledTimes(1);
+  });
+});
