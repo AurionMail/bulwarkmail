@@ -7,7 +7,7 @@ import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
 import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty } from "@/lib/jmap/search-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
-import { allowEmailMove, emitEmailMove, keywordChangeLists } from "@/lib/plugin-mail-hooks";
+import { allowEmailMove, emitEmailMove, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import { emailKeyFor, threadKeyFor, threadIdFromKey, KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
 import type { ExternalSearchResult } from "@/lib/plugin-types";
@@ -2179,7 +2179,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // Publish the existing mailbox-refresh extension hook after a successful
       // fetch. This is also emitted for Mailbox-only state changes (for example
       // an empty provider label), where no Email fetch follows.
-      await emailHooks.onMailboxesRefresh.emit(mailboxes);
+      if (emailHooks.onMailboxesRefresh.size > 0) await emailHooks.onMailboxesRefresh.emit(mailboxes.map(mailboxToView));
       if (stale()) return;
 
       // Auto-select inbox if no mailbox is selected or the current selection
@@ -4626,7 +4626,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     if (patched) {
       // Same extension hook a full refresh publishes, so plugins that mirror
       // folder counters see delta updates too.
-      await emailHooks.onMailboxesRefresh.emit(mailboxes);
+      if (emailHooks.onMailboxesRefresh.size > 0) await emailHooks.onMailboxesRefresh.emit(mailboxes.map(mailboxToView));
     }
     return true;
   },
@@ -5322,7 +5322,12 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const target = parentId
         ? resolveMailboxMutationContext(client, parentId)
         : { ...resolveMailboxAccountTarget(client, accountId), mailboxId: undefined };
-      await target.client.createMailbox(name, target.mailboxId, target.accountId);
+      if (emailHooks.onBeforeMailboxCreate.size > 0
+        && !(await emailHooks.onBeforeMailboxCreate.intercept({ name, parentId: parentId ?? null }))) {
+        return;
+      }
+      const created = await target.client.createMailbox(name, target.mailboxId, target.accountId);
+      void emailHooks.onMailboxCreate.emit({ mailboxId: created?.id ?? null, name, parentId: parentId ?? null });
       if (get().viewingAccountId) {
         await refreshMailboxesForViewingAccount(client);
       } else {
@@ -5337,7 +5342,13 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   renameMailbox: async (client, mailboxId, name) => {
     try {
       const target = resolveMailboxMutationContext(client, mailboxId);
+      if (emailHooks.onBeforeMailboxRename.size > 0
+        && !(await emailHooks.onBeforeMailboxRename.intercept({ mailboxId, name }))) {
+        return;
+      }
+      const previousName = resolveActionMailboxes().find(mb => mb.id === mailboxId)?.name ?? null;
       await target.client.updateMailbox(target.mailboxId, { name }, target.accountId);
+      void emailHooks.onMailboxRename.emit({ mailboxId, name, previousName });
       const viewingId = get().viewingAccountId;
       if (viewingId) {
         set((state) => ({
@@ -5364,6 +5375,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   deleteMailbox: async (client, mailboxId, options) => {
     try {
       const target = resolveMailboxMutationContext(client, mailboxId);
+      const deletedName = resolveActionMailboxes().find(mb => mb.id === mailboxId)?.name ?? null;
+      if (emailHooks.onBeforeMailboxDelete.size > 0
+        && !(await emailHooks.onBeforeMailboxDelete.intercept({ mailboxId, name: deletedName }))) {
+        return;
+      }
       // Only pass the options when set: the plain call keeps the two-argument
       // shape other client implementations (demo, plugins) expect.
       if (options?.removeEmails) {
@@ -5371,6 +5387,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       } else {
         await target.client.deleteMailbox(target.mailboxId, target.accountId);
       }
+      void emailHooks.onMailboxDelete.emit({ mailboxId, name: deletedName });
       const { selectedMailbox, viewingAccountId: viewingId } = get();
       if (viewingId) {
         const updatedList = (get().accountMailboxes[viewingId] ?? []).filter(mb => mb.id !== mailboxId);
@@ -5585,6 +5602,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   emptyMailbox: async (client, mailboxId) => {
+    const emptied = resolveActionMailboxes().find(mb => mb.id === mailboxId);
+    if (emailHooks.onBeforeMailboxEmpty.size > 0
+      && !(await emailHooks.onBeforeMailboxEmpty.intercept({ mailboxId, role: emptied?.role ?? null }))) {
+      return;
+    }
     try {
       set({ isLoading: true, error: null });
       const mailboxes = resolveActionMailboxes();
@@ -5643,6 +5665,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         set({ mailboxes: get().mailboxes.map(updateCounters) });
       }
       set({ isLoading: false });
+      void emailHooks.onMailboxEmpty.emit({ mailboxId, role: mailbox?.role ?? null, count: mailbox?.totalEmails ?? 0 });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to empty folder',
@@ -6242,6 +6265,16 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     });
   },
 }));
+
+// Plugin hooks that follow a piece of store state rather than one action, so
+// every path that changes it (clicks, keyboard, a batch action clearing the
+// selection, an account switch) fires them once.
+useEmailStore.subscribe((state, prev) => {
+  if (state.quota && state.quota !== prev.quota
+    && (state.quota.used !== prev.quota?.used || state.quota.total !== prev.quota?.total)) {
+    void emailHooks.onQuotaChange.emit(quotaToView(state.quota));
+  }
+});
 
 // Keep the unified-section badges in lockstep with the live per-account mailbox
 // lists. Whenever `mailboxes`, `accountMailboxes`, or the unified scope change -
