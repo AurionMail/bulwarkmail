@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { usePluginStore } from '@/stores/plugin-store';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useConfig } from '@/hooks/use-config';
@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PluginPermissionList } from '@/components/plugins/plugin-permission-list';
 import type { InstalledPlugin, PluginStatus, SettingFieldSchema } from '@/lib/plugin-types';
 import { effectiveSettings } from '@/lib/plugin-settings';
+import { lookup } from '@/lib/plugin-sandbox/plugin-i18n';
 import { forgetCredentials, listConnectedAccounts, type ConnectedAccount } from '@/lib/plugin-sandbox/connect-dialog';
 
 const STATUS_COLORS: Record<PluginStatus, string> = {
@@ -211,6 +212,7 @@ interface PluginCardProps {
 
 function PluginCard({ plugin, isExpanded, isForceEnabled, controlsDisabled, onToggleExpand, onToggle, onRemove, onUpdateSettings }: PluginCardProps) {
   const t = useTranslations('plugins.settings');
+  const locale = useLocale();
   const isManaged = Boolean(plugin.managed);
   const awaiting = !isManaged && plugin.approvalStatus === 'pending';
   const denied = !isManaged && plugin.approvalStatus === 'denied';
@@ -308,6 +310,7 @@ function PluginCard({ plugin, isExpanded, isForceEnabled, controlsDisabled, onTo
                   key={key}
                   fieldKey={key}
                   schema={schema}
+                  translate={(text) => (plugin.locales ? lookup(plugin.locales, locale, text) ?? text : text)}
                   value={effectiveSettings(plugin)[key]}
                   onChange={(value) => onUpdateSettings({ [key]: value })}
                 />
@@ -381,12 +384,18 @@ function ConnectedAccounts({ pluginId }: { pluginId: string }) {
 interface PluginSettingFieldProps {
   fieldKey: string;
   schema: SettingFieldSchema;
+  /**
+   * A label, description or option that names a key in the plugin's own
+   * translations (manifest `locales`) is shown translated; other text as is.
+   */
+  translate?: (text: string) => string;
   value: unknown;
   onChange: (value: unknown) => void;
 }
 
-function PluginSettingField({ fieldKey, schema, value, onChange }: PluginSettingFieldProps) {
+function PluginSettingField({ fieldKey, schema: raw, value, onChange, translate = (text) => text }: PluginSettingFieldProps) {
   const inputId = `plugin-setting-${fieldKey}`;
+  const schema = { ...raw, label: translate(raw.label), ...(raw.description ? { description: translate(raw.description) } : {}) };
   switch (schema.type) {
     case 'boolean':
       return (
@@ -413,7 +422,7 @@ function PluginSettingField({ fieldKey, schema, value, onChange }: PluginSetting
             className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
           >
             {(Array.isArray(schema.options) ? schema.options : []).map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={opt} value={opt}>{translate(opt)}</option>
             ))}
           </select>
         </div>
