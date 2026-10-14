@@ -16,6 +16,7 @@ import { useCopyLink } from "@/hooks/use-copy-link";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
+import { itemsToHide } from "@/lib/toolbar-overflow";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
 import { emailDisplayDate } from "@/lib/email-date";
@@ -1382,6 +1383,11 @@ export function EmailViewer({
     return () => cancelAnimationFrame(frame);
   }, [moreMenuSub, moreMenuOpen, isMobile]);
   const [hiddenPriorities, setHiddenPriorities] = useState<Set<number>>(new Set());
+  // What the overflow measurement last applied. It mostly runs from observer
+  // and animation-frame callbacks, where even an updater that returns the
+  // previous state makes React call this component once more before bailing
+  // out; comparing here means an unchanged result schedules nothing at all.
+  const appliedHiddenPrioritiesRef = useRef<Set<number>>(hiddenPriorities);
   const currentTagIds = getEmailTagIds(email?.keywords);
   const sortedTagIds = sortTagIds(currentTagIds);
   // The header spans the reading pane, so it measures its own width rather than
@@ -1541,11 +1547,18 @@ export function EmailViewer({
 
     let rafId: number | null = null;
 
+    const applyHidden = (hidden: Set<number>) => {
+      const applied = appliedHiddenPrioritiesRef.current;
+      if (applied.size === hidden.size && [...hidden].every(p => applied.has(p))) return;
+      appliedHiddenPrioritiesRef.current = hidden;
+      setHiddenPriorities(hidden);
+    };
+
     const calculate = () => {
       rafId = null;
       const items = Array.from(el.querySelectorAll<HTMLElement>('[data-overflow-item]'));
       if (items.length === 0) {
-        setHiddenPriorities(prev => prev.size === 0 ? prev : new Set());
+        applyHidden(new Set());
         return;
       }
       // Sort descending by priority so highest number (least important) is hidden first
@@ -1562,25 +1575,31 @@ export function EmailViewer({
       leftGroup.style.flexShrink = '0';
       rightGroup.style.flexShrink = '0';
       el.style.overflow = 'hidden';
-      // Iteratively hide items until content fits
+      // Measure every width in one pass and decide from the numbers (see
+      // itemsToHide) rather than hiding items one by one and re-reading.
+      const groupIds = new Map<Element, string>([[leftGroup, 'left'], [rightGroup, 'right']]);
+      const groupOf = (item: HTMLElement) => {
+        const parent = item.parentElement;
+        if (!parent) return '';
+        if (!groupIds.has(parent)) groupIds.set(parent, String(groupIds.size));
+        return groupIds.get(parent)!;
+      };
+      const measured = items.map((item) => ({ width: item.offsetWidth, group: groupOf(item) }));
+      const overflow = leftGroup.scrollWidth + rightGroup.scrollWidth + mainGap - (containerWidth + 1);
+      const gapOf = {
+        left: parseFloat(getComputedStyle(leftGroup).gap) || 0,
+        right: parseFloat(getComputedStyle(rightGroup).gap) || 0,
+      };
       const hidden = new Set<number>();
-      const isOverflowing = () =>
-        leftGroup.scrollWidth + rightGroup.scrollWidth + mainGap > containerWidth + 1;
-      for (const item of items) {
-        if (!isOverflowing()) break;
-        // Skip items already hidden by CSS (e.g., on mobile)
-        if (item.offsetWidth === 0) continue;
-        item.style.display = 'none';
-        hidden.add(Number(item.dataset.overflowPriority));
+      for (const i of itemsToHide(measured, overflow, gapOf)) {
+        items[i].style.display = 'none';
+        hidden.add(Number(items[i].dataset.overflowPriority));
       }
       // Restore layout
       leftGroup.style.flexShrink = '';
       rightGroup.style.flexShrink = '';
       el.style.overflow = '';
-      setHiddenPriorities(prev => {
-        if (prev.size === hidden.size && [...hidden].every(p => prev.has(p))) return prev;
-        return hidden;
-      });
+      applyHidden(hidden);
     };
 
     const scheduleCalculate = () => {
@@ -1588,8 +1607,17 @@ export function EmailViewer({
       rafId = requestAnimationFrame(calculate);
     };
 
-    // Recalculate on container resize
-    const resizeObserver = new ResizeObserver(scheduleCalculate);
+    // Recalculate on container resize. An observer reports once as soon as it
+    // starts observing; that first report is the size the synchronous
+    // calculation below has just measured, so it is not worth a second pass.
+    let sawInitialReport = false;
+    const resizeObserver = new ResizeObserver(() => {
+      if (!sawInitialReport) {
+        sawInitialReport = true;
+        return;
+      }
+      scheduleCalculate();
+    });
     resizeObserver.observe(el);
 
     // Recalculate when children change (conditional items, label visibility)
@@ -2903,8 +2931,21 @@ export function EmailViewer({
         // Auto-resize iframe to fit content
         // Measure max(documentElement, body): a height:100% wrapper can leave
         // documentElement.scrollHeight short while the real content lives in body.
-        const applyHeight = () => {
+        // The document as last measured. Re-measuring is not free: the fit
+        // first clears its own transform and width, which dirties the layout,
+        // so the read after it lays the whole mail out again. Reading the
+        // scroll sizes of an untouched document costs nothing, so the poll and
+        // the observers only pay for the full pass when something changed.
+        const sizes = () => ({
+          width: Math.max(doc.body.scrollWidth, doc.documentElement.scrollWidth),
+          height: Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight),
+          viewport: doc.documentElement.clientWidth,
+        });
+        let measured = { width: -1, height: -1, viewport: -1 };
+        const applyHeight = (force = false) => {
           if (iframe.contentDocument !== doc) return; // navigated away; stale
+          const now = sizes();
+          if (!force && now.width === measured.width && now.height === measured.height && now.viewport === measured.viewport) return;
           // Shrink desktop-width mail to fit a phone screen first: it changes
           // the layout height, and the transform doesn't shrink the measured
           // (layout) height, so the iframe box has to be scaled by hand.
@@ -2914,8 +2955,9 @@ export function EmailViewer({
           );
           iframe.style.height = height + 'px';
           lastBodyHeightRef.current = height;
+          measured = sizes();
         };
-        const resizeObserver = new ResizeObserver(applyHeight);
+        const resizeObserver = new ResizeObserver(() => applyHeight());
         resizeObserver.observe(doc.body);
         // Re-fit when the iframe itself changes width. Height-only changes are
         // our own applyHeight writing back, so they're ignored - re-entering on
@@ -2926,11 +2968,11 @@ export function EmailViewer({
           if (iframe.contentDocument !== doc) return;
           if (iframe.clientWidth === lastFrameWidth) return;
           lastFrameWidth = iframe.clientWidth;
-          applyHeight();
+          applyHeight(true);
         });
         frameObserver.observe(iframe);
         frameSizeObserverRef.current = frameObserver;
-        applyHeight();
+        applyHeight(true);
         // The ResizeObserver only fires on body's border box; a content overflow
         // that grows scrollHeight without resizing that box (e.g. a height:100%
         // wrapper, or images that reflow the layout after onload) is otherwise
