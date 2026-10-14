@@ -17,6 +17,11 @@ import type { FileResourceView } from '@/lib/plugin-types';
 vi.mock('@/lib/debug', () => ({ debug: { log: () => {}, warn: () => {}, error: () => {} } }));
 vi.mock('@/components/settings/share-collection-dialog', () => ({ ShareCollectionDialog: () => null }));
 vi.mock('@/components/plugins/plugin-iframe-slot', () => import('@/components/plugins/__tests__/fake-slot-offer'));
+const device = vi.hoisted(() => ({ isMobile: false }));
+vi.mock('@/hooks/use-media-query', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/use-media-query')>()),
+  useIsMobile: () => device.isMobile,
+}));
 
 const folder = {
   id: 'f-docs', name: 'Documents', serverName: 'Documents', isDirectory: true, contentType: '', contentLength: 0,
@@ -97,6 +102,7 @@ function rowOf(name: string): HTMLElement {
 const dispatch = vi.fn().mockResolvedValue(undefined);
 
 beforeEach(() => {
+  device.isMobile = false;
   localStorage.clear();
   dispatch.mockClear();
   setActionDispatcher(dispatch);
@@ -157,6 +163,26 @@ describe('file-actions', () => {
     await act(async () => { fireEvent.click(button); });
     const context = dispatch.mock.calls[0][3] as { files: FileResourceView[] };
     expect(context.files.map((f) => f.id)).toEqual(['f-notes', 'f-photo']);
+  });
+
+  it('puts them behind one more button in the phone selection toolbar', async () => {
+    device.isMobile = true;
+    act(() => setPluginActions('ocr', 'OCR', 'file-actions', [
+      { id: 'archive', label: 'Archive' },
+      { id: 'read-text', label: 'Read text', mimeTypes: ['text/'] },
+    ]));
+    renderBrowser(['notes.txt']);
+
+    const toolbar = screen.getByRole('toolbar', { name: 'selection_actions' });
+    expect(within(toolbar).queryByRole('button', { name: 'Archive' })).toBeNull();
+    const more = within(toolbar).getByRole('button', { name: 'more_actions' });
+    // Not in the row that scrolls sideways, where it could end up out of sight.
+    expect(more.closest('.overflow-x-auto')).toBeNull();
+    fireEvent.click(more);
+    expect(await screen.findByRole('menuitem', { name: 'Read text' })).toBeInTheDocument();
+    await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'Archive' })); });
+    const context = dispatch.mock.calls[0][3] as { files: FileResourceView[] };
+    expect(context.files.map((f) => f.id)).toEqual(['f-notes']);
   });
 
   it('filters the toolbar by the type of a single selected file', () => {
