@@ -41,6 +41,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { isFilePreviewable, toInertBlob } from "@/lib/file-preview";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { useOwnDomainAddress } from "@/hooks/use-own-domain-address";
+import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 
 interface ThreadConversationViewProps {
   thread: ThreadGroup;
@@ -193,6 +194,8 @@ export function ThreadConversationView({
   }, [emails]);
 
   const toggleExpanded = (emailId: string) => {
+    const target = emails.find((e) => e.id === emailId);
+    if (target) emitThreadExpand(target.threadId, [target], !expandedIds.has(emailId));
     setExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(emailId)) {

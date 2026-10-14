@@ -118,6 +118,7 @@ import { INTERNAL_MAILTO_EVENT, type ParsedMailto } from "@/lib/protocol-handler
 import { plainTextToComposerBody, getQuoteBodies } from "@/lib/email-composer-utils";
 import { appLifecycleHooks, uiHooks, routerHooks, toastHooks, emailHooks } from "@/lib/plugin-hooks";
 import { emailToReadView } from "@/lib/plugin-projection";
+import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { buildQuoteHeader } from "@/lib/quote-header";
 import { buildComposeTabTitle, buildReplySubject } from "@/lib/subject-prefix";
 import { buildForwardAsAttachmentPayload } from "@/lib/forward-as-attachment";
@@ -971,10 +972,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const store = useEmailStore.getState();
       const wasExpanded = store.expandedThreadIds.has(threadKey);
       store.toggleThreadExpansion(threadKey);
+      const members = () => useEmailStore.getState().threadEmailsCache.get(threadKey)
+        ?? activeEmails.filter((e) => e.threadId && threadKeyFor(e) === threadKey);
       if (!wasExpanded) {
         void store.fetchThreadEmails(client, threadKey).then(() => {
+          emitThreadExpand(threadKey, members(), true);
           void useEmailStore.getState().markThreadAsRead(client, threadKey);
         });
+      } else {
+        emitThreadExpand(threadKey, members(), false);
       }
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
