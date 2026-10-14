@@ -7,7 +7,7 @@ import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
 import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty } from "@/lib/jmap/search-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
-import { allowEmailMove, emitEmailMove, idsFromSelectionKeys, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
+import { allowEmailMove, createMailboxWithHooks, emitEmailMove, idsFromSelectionKeys, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
 import { emailSummary, emailToReadView } from "@/lib/plugin-projection";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import { emailKeyFor, threadKeyFor, threadIdFromKey, KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
@@ -429,7 +429,10 @@ interface EmailStore {
   /** Reparents several folders at once; resolves with the ids the server refused. */
   moveMailboxes: (client: IJMAPClient, mailboxIds: string[], newParentId: string | null) => Promise<string[]>;
   emptyMailbox: (client: IJMAPClient, mailboxId: string) => Promise<boolean>;
-  markMailboxAsRead: (client: IJMAPClient, mailboxId: string) => Promise<number>;
+  /** How many messages were marked read; null when a plugin stopped it. */
+  markMailboxAsRead: (client: IJMAPClient, mailboxId: string) => Promise<number | null>;
+  /** Every unread message in the account; null when a plugin stopped it. */
+  markAllMailboxesAsRead: (client: IJMAPClient) => Promise<number | null>;
 
   // Unified mailbox operations
   fetchUnifiedEmails: (accounts: UnifiedAccountClient[], role: UnifiedMailboxRole) => Promise<void>;
@@ -878,13 +881,14 @@ export async function ensureArchiveMailbox(opts: {
   selectedMailboxId: string | null | undefined;
   accountId?: string;
   refresh: () => Promise<Mailbox[]>;
-}): Promise<Mailbox> {
+}): Promise<Mailbox | null> {
   const existing = findArchiveMailbox(opts.mailboxes, opts.selectedMailboxId, opts.accountId);
   if (existing) return existing;
 
   const viewMailbox = opts.mailboxes.find(m => m.id === opts.selectedMailboxId);
   const scopeId = opts.accountId ?? (viewMailbox?.isShared ? viewMailbox.accountId : undefined);
-  await opts.client.createMailbox('Archive', undefined, scopeId, { role: 'archive' });
+  // null: a plugin refused the new folder (and said why).
+  if (!(await createMailboxWithHooks(opts.client, 'Archive', undefined, scopeId, { role: 'archive' }))) return null;
 
   const created = findArchiveMailbox(await opts.refresh(), opts.selectedMailboxId, opts.accountId);
   if (!created) throw new ArchiveMailboxNotFoundError();
@@ -1630,6 +1634,30 @@ function findRoleMailbox(mailboxes: Mailbox[], role: string, accountId: string |
  * Throws when any message could not be moved; the ones that were moved still
  * leave the list.
  */
+/**
+ * Mark every unread message matching `filter` read. The server-side bulk
+ * call doesn't say which messages it touched, so when a plugin listens the
+ * ids are listed first, plugins are asked once, and told afterwards.
+ * Resolves null when a plugin said no.
+ */
+async function markReadAskingPlugins(
+  client: IJMAPClient,
+  filter: Record<string, unknown>,
+  accountId: string | undefined,
+  bulk: (client: IJMAPClient) => Promise<number>,
+): Promise<number | null> {
+  const asks = emailHooks.onBeforeEmailReadStateChange.size > 0;
+  const tells = emailHooks.onEmailReadStateChange.size > 0;
+  if (!asks && !tells) return bulk(client);
+  const unread = await client.queryEmailFields({ ...filter, notKeyword: '$seen' }, [], accountId, Number.MAX_SAFE_INTEGER);
+  const emailIds = unread.map(e => String(e.id));
+  if (emailIds.length === 0) return 0;
+  if (asks && !(await emailHooks.onBeforeEmailReadStateChange.intercept({ emailIds, read: true }))) return null;
+  await client.batchMarkAsRead(emailIds, true, accountId);
+  void emailHooks.onEmailReadStateChange.emit({ emailIds, read: true });
+  return emailIds.length;
+}
+
 async function runBatchSpamAction(
   get: StoreGet,
   set: StoreSet,
@@ -4416,7 +4444,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // Scope the archive folder to the viewed shared/group account (if any) so the
     // move lands on the owner account, not the user's own archive (which appears
     // first in the merged list); see resolveViewAccountId. Own view is unchanged.
-    let archiveMailbox: Mailbox;
+    let archiveMailbox: Mailbox | null;
     try {
       archiveMailbox = await ensureArchiveMailbox({
         client: resolveActionClient(client),
@@ -4431,6 +4459,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       set({ error: error instanceof Error ? error.message : 'Failed to archive emails' });
       throw error;
     }
+    if (!archiveMailbox) return false;
 
     const mode = useSettingsStore.getState().archiveMode;
     const archiveId = archiveMailbox.originalId || archiveMailbox.id;
@@ -5810,13 +5839,21 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
+  markAllMailboxesAsRead: async (client) => {
+    return markReadAskingPlugins(client, {}, undefined, (actionClient) => actionClient.markAllAsRead());
+  },
+
   markMailboxAsRead: async (client, mailboxId) => {
     try {
       const mailbox = resolveActionMailboxes().find(mb => mb.id === mailboxId);
       const accountId = mailbox?.isShared ? mailbox.accountId : undefined;
       const jmapMailboxId = mailbox?.originalId || mailboxId;
 
-      const count = await resolveActionClient(client).markMailboxAsRead(jmapMailboxId, accountId);
+      const count = await markReadAskingPlugins(
+        resolveActionClient(client), { inMailbox: jmapMailboxId }, accountId,
+        (actionClient) => actionClient.markMailboxAsRead(jmapMailboxId, accountId),
+      );
+      if (count === null) return null;
 
       // Update local state: mark all emails currently visible in this mailbox as read,
       // and zero-out the mailbox unread counter.

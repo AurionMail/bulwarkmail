@@ -4,6 +4,7 @@
 
 import { emailHooks } from './plugin-hooks';
 import type { Mailbox } from './jmap/types';
+import type { IJMAPClient } from './jmap/client-interface';
 import type { MailboxView, QuotaView } from './plugin-types';
 
 export function mailboxToView(mailbox: Mailbox): MailboxView {
@@ -97,4 +98,26 @@ export function emitEmailMove(move: EmailMove, mailboxes: Mailbox[]): void {
   } else if (fromArchive && !toArchive) {
     void emailHooks.onEmailUnarchive.emit({ emailIds: [...move.emailIds], toMailboxId: move.toMailboxId });
   }
+}
+
+/**
+ * Create a folder straight through a client (the Archive folder and its
+ * year/month folders, a quick rule's new folder), asking and telling plugins
+ * like the store's createMailbox does. Resolves null when a plugin said no.
+ * `parentId` is the server's id of the parent, as the client takes it.
+ */
+export async function createMailboxWithHooks(
+  client: IJMAPClient,
+  name: string,
+  parentId?: string,
+  accountId?: string,
+  options?: { role?: string },
+): Promise<Mailbox | null> {
+  if (emailHooks.onBeforeMailboxCreate.size > 0
+    && !(await emailHooks.onBeforeMailboxCreate.intercept({ name, parentId: parentId ?? null }))) {
+    return null;
+  }
+  const created = await client.createMailbox(name, parentId, accountId, options);
+  void emailHooks.onMailboxCreate.emit({ mailboxId: created?.id ?? null, name, parentId: parentId ?? null });
+  return created;
 }

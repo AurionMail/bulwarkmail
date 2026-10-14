@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils';
 import { SettingsSection, SettingItem, Select, ToggleSwitch } from './settings-section';
 import { AlertTriangle, FolderSync, Loader2 } from '@/components/icons';
 import { usePolicyStore } from '@/stores/policy-store';
+import { allowEmailMove, createMailboxWithHooks, emitEmailMove } from '@/lib/plugin-mail-hooks';
+import type { Mailbox } from '@/lib/jmap/types';
 
 export function ReadingSettings() {
   const t = useTranslations('settings.email_behavior');
@@ -61,39 +63,45 @@ export function ReadingSettings() {
     try {
       const archiveId = archiveMailbox.originalId || archiveMailbox.id;
       const emails = await client.getEmailsInMailbox(archiveId);
-      let movedCount = 0;
 
+      // One group per destination ("2024" or "2024/03"): plugins are asked
+      // once per folder and move, and can refuse either; the groups they
+      // refuse stay where they are.
+      const groups = new Map<string, { year: string; month: string; ids: string[] }>();
       for (const email of emails) {
         const emailDate = new Date(email.receivedAt);
         const year = emailDate.getFullYear().toString();
         const month = (emailDate.getMonth() + 1).toString().padStart(2, '0');
+        const key = archiveMode === 'year' ? year : `${year}/${month}`;
+        const group = groups.get(key) ?? { year, month, ids: [] };
+        group.ids.push(email.id);
+        groups.set(key, group);
+      }
 
-        let currentMailboxes = useEmailStore.getState().mailboxes;
+      // An existing folder, or a new one; null when a plugin refused it.
+      const folder = async (name: string, parentId: string): Promise<Mailbox | null> => {
+        const existing = useEmailStore.getState().mailboxes.find(m => m.name === name && m.parentId === parentId);
+        if (existing) return existing;
+        const created = await createMailboxWithHooks(client, name, parentId);
+        if (created) await fetchMailboxes(client);
+        return useEmailStore.getState().mailboxes.find(m => m.name === name && m.parentId === parentId) ?? created;
+      };
 
-        let yearMailbox = currentMailboxes.find(
-          m => m.name === year && m.parentId === archiveId
-        );
-        if (!yearMailbox) {
-          yearMailbox = await client.createMailbox(year, archiveId);
-          await fetchMailboxes(client);
-          currentMailboxes = useEmailStore.getState().mailboxes;
-        }
+      let movedCount = 0;
+      for (const { year, month, ids } of groups.values()) {
+        const yearMailbox = await folder(year, archiveId);
+        if (!yearMailbox) continue;
+        const destination = archiveMode === 'year'
+          ? yearMailbox
+          : await folder(month, yearMailbox.originalId || yearMailbox.id);
+        if (!destination) continue;
 
-        if (archiveMode === 'year') {
-          await client.moveEmail(email.id, yearMailbox.id);
-          movedCount++;
-        } else {
-          const yearId = yearMailbox.originalId || yearMailbox.id;
-          let monthMailbox = currentMailboxes.find(
-            m => m.name === month && m.parentId === yearId
-          );
-          if (!monthMailbox) {
-            monthMailbox = await client.createMailbox(month, yearId);
-            await fetchMailboxes(client);
-          }
-          await client.moveEmail(email.id, monthMailbox.id);
-          movedCount++;
-        }
+        const known = useEmailStore.getState().mailboxes;
+        const move = { emailIds: ids, fromMailboxId: archiveMailbox.id, toMailboxId: destination.id };
+        if (!(await allowEmailMove(move, known))) continue;
+        await client.batchMoveEmails(ids, destination.originalId || destination.id);
+        emitEmailMove(move, known);
+        movedCount += ids.length;
       }
 
       setReorganizeResult(t('archive_mode.reorganize_success', { count: movedCount }));

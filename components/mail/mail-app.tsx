@@ -120,6 +120,7 @@ import { PLUGIN_REPLY_EVENT, type PluginReplyRequest } from "@/lib/plugin-sandbo
 import { mailtoComposerDraft } from "./mailto-draft";
 import { getQuoteBodies } from "@/lib/email-composer-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
+import { createMailboxWithHooks } from "@/lib/plugin-mail-hooks";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { announceSent, cancelAnnouncedSend, releaseAnnouncedSend } from "@/lib/plugin-after-send";
@@ -2519,6 +2520,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           return readMailboxes();
         },
       });
+      if (!archiveMailbox) return; // a plugin refused the Archive folder
 
       let archived: boolean;
       if (archiveMode === 'single') {
@@ -2531,9 +2533,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
         let yearMailbox = currentMailboxes.find(
           m => m.name === year && m.parentId === archiveId
-        );
+        ) ?? null;
         if (!yearMailbox) {
-          yearMailbox = await archiveClient.createMailbox(year, archiveId, archiveAccountId);
+          yearMailbox = await createMailboxWithHooks(archiveClient, year, archiveId, archiveAccountId);
+          if (!yearMailbox) return; // a plugin refused the folder
           await refreshMailboxes();
         }
 
@@ -2544,9 +2547,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           const afterYear = readMailboxes();
           let monthMailbox = afterYear.find(
             m => m.name === month && m.parentId === yearId
-          );
+          ) ?? null;
           if (!monthMailbox) {
-            monthMailbox = await archiveClient.createMailbox(month, yearId, archiveAccountId);
+            monthMailbox = await createMailboxWithHooks(archiveClient, month, yearId, archiveAccountId);
+            if (!monthMailbox) return; // a plugin refused the folder
             await refreshMailboxes();
           }
           archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id);
@@ -2970,6 +2974,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client) return;
     try {
       const count = await markMailboxAsRead(client, mailboxId);
+      if (count === null) return; // a plugin stopped it and said why
       await fetchMailboxes(client);
       if (selectedMailbox === mailboxId) await fetchEmails(client, mailboxId);
       if (count > 0) {
@@ -3002,9 +3007,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     try {
       const ids = collectIds(mailboxId);
       let total = 0;
+      let stopped = false;
       for (const id of ids) {
-        total += await markMailboxAsRead(client, id);
+        const count = await markMailboxAsRead(client, id);
+        if (count === null) stopped = true;
+        else total += count;
       }
+      // Every folder a plugin stopped: it said why, nothing to report.
+      if (stopped && total === 0) return;
       await fetchMailboxes(client);
       if (selectedMailbox && ids.includes(selectedMailbox)) await fetchEmails(client, selectedMailbox);
       if (total > 0) {
@@ -3029,7 +3039,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!confirmed) return;
 
     try {
-      const total = await client.markAllAsRead();
+      const total = await useEmailStore.getState().markAllMailboxesAsRead(client);
+      if (total === null) return; // a plugin stopped it and said why
       await fetchMailboxes(client);
       if (selectedMailbox) await fetchEmails(client, selectedMailbox);
       if (total > 0) {

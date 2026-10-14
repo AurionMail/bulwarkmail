@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useEmailStore, type BatchActionTarget } from '@/stores/email-store';
 import { useFilterStore } from '@/stores/filter-store';
 import { emailHooks } from '@/lib/plugin-hooks';
+import { createMailboxWithHooks } from '@/lib/plugin-mail-hooks';
 import { useQuickRuleStore, type NewFolderRequest, type QuickRuleEditor } from '@/stores/quick-rule-store';
 import {
   FiltersChangedError,
@@ -394,11 +395,12 @@ export async function createFolderAndRunPreset(
   const { target } = request;
   let created;
   try {
-    created = await target.client.createMailbox(name.trim());
+    created = await createMailboxWithHooks(target.client, name.trim());
   } catch (error) {
     toast.error(text.notifications('rule_folder_failed'), error instanceof Error ? error.message : undefined);
     return;
   }
+  if (!created) return; // a plugin refused the folder and said why
   // The sidebar of the account on screen; other accounts follow their push.
   const email = useEmailStore.getState();
   if (useAuthStore.getState().client === target.client && !email.viewingAccountId) {

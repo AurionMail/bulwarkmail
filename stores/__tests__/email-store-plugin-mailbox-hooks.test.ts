@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useEmailStore } from '../email-store';
+import { ensureArchiveMailbox, useEmailStore } from '../email-store';
 import { useAuthStore } from '../auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { clearAllHooks, emailHooks } from '@/lib/plugin-hooks';
@@ -46,6 +46,12 @@ beforeEach(() => {
     getAllMailboxes: vi.fn().mockResolvedValue(mailboxes),
     // A fresh object per read, as from the server.
     getQuota: vi.fn().mockImplementation(async () => ({ used: 50, total: 200 })),
+    markMailboxAsRead: vi.fn().mockResolvedValue(2),
+    markAllAsRead: vi.fn().mockResolvedValue(5),
+    queryEmailFields: vi.fn().mockResolvedValue([{ id: 'u1' }, { id: 'u2' }]),
+    batchMarkAsRead: vi.fn().mockResolvedValue(undefined),
+    getMailboxes: vi.fn().mockResolvedValue(mailboxes),
+    fetchTagCounts: vi.fn(),
   } as unknown as IJMAPClient;
   useAuthStore.setState({ activeAccountId: 'acct', getClientForAccount: () => client as never } as never);
   useSettingsStore.setState({ deleteAction: 'trash' } as never);
@@ -188,5 +194,70 @@ describe('quota hook', () => {
       [{ used: 50, total: 200, percentUsed: 25 }],
       [{ used: 60, total: 200, percentUsed: 30 }],
     ]);
+  });
+});
+
+// Marking a whole folder read is one server call that doesn't say which
+// messages it touched, so plugins listening get the ids listed first.
+describe('marking a folder read', () => {
+  it('uses the one bulk call when no plugin listens', async () => {
+    expect(await useEmailStore.getState().markMailboxAsRead(client, 'inbox')).toBe(2);
+    expect(client.markMailboxAsRead).toHaveBeenCalled();
+    expect(client.queryEmailFields).not.toHaveBeenCalled();
+  });
+
+  it('asks plugins with the unread ids and tells them afterwards', async () => {
+    const before = vi.fn(() => true);
+    const after = vi.fn();
+    emailHooks.onBeforeEmailReadStateChange.register('t', before);
+    emailHooks.onEmailReadStateChange.register('t', after);
+
+    expect(await useEmailStore.getState().markMailboxAsRead(client, 'inbox')).toBe(2);
+
+    expect(client.queryEmailFields).toHaveBeenCalledWith({ inMailbox: 'inbox', notKeyword: '$seen' }, [], undefined, expect.any(Number));
+    expect(before).toHaveBeenCalledWith({ emailIds: ['u1', 'u2'], read: true });
+    expect(client.batchMarkAsRead).toHaveBeenCalledWith(['u1', 'u2'], true, undefined);
+    expect(after).toHaveBeenCalledWith({ emailIds: ['u1', 'u2'], read: true });
+    expect(client.markMailboxAsRead).not.toHaveBeenCalled();
+  });
+
+  it('leaves the folder unread when a plugin says no', async () => {
+    emailHooks.onBeforeEmailReadStateChange.register('t', () => false);
+
+    expect(await useEmailStore.getState().markMailboxAsRead(client, 'inbox')).toBeNull();
+    expect(client.batchMarkAsRead).not.toHaveBeenCalled();
+    expect(client.markMailboxAsRead).not.toHaveBeenCalled();
+    expect(useEmailStore.getState().mailboxes.find(m => m.id === 'inbox')?.unreadEmails).toBe(1);
+  });
+
+  it('asks the same way for every folder at once', async () => {
+    emailHooks.onBeforeEmailReadStateChange.register('t', () => false);
+
+    expect(await useEmailStore.getState().markAllMailboxesAsRead(client)).toBeNull();
+    expect(client.queryEmailFields).toHaveBeenCalledWith({ notKeyword: '$seen' }, [], undefined, expect.any(Number));
+    expect(client.markAllAsRead).not.toHaveBeenCalled();
+  });
+});
+
+describe('folders created outside the store', () => {
+  it('asks before creating the Archive folder, and archives nothing when refused', async () => {
+    emailHooks.onBeforeMailboxCreate.register('t', () => false);
+    const refresh = vi.fn(async () => mailboxes);
+
+    const archive = await ensureArchiveMailbox({ client, mailboxes, selectedMailboxId: 'inbox', refresh });
+
+    expect(archive).toBeNull();
+    expect(client.createMailbox).not.toHaveBeenCalled();
+  });
+
+  it('reports the Archive folder it created', async () => {
+    const created = vi.fn();
+    emailHooks.onMailboxCreate.register('t', created);
+    const archive = makeMailbox({ id: 'archive', name: 'Archive', role: 'archive' });
+    const refresh = vi.fn(async () => [...mailboxes, archive]);
+
+    expect(await ensureArchiveMailbox({ client, mailboxes, selectedMailboxId: 'inbox', refresh })).toBe(archive);
+    expect(client.createMailbox).toHaveBeenCalledWith('Archive', undefined, undefined, { role: 'archive' });
+    expect(created).toHaveBeenCalledWith(expect.objectContaining({ name: 'Archive', parentId: null }));
   });
 });
