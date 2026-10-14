@@ -82,6 +82,10 @@ export const LITE_API_STRING_ALLOWLIST = [
   "/api/plugin-signing-pubkey",
   "/api/admin/plugins",
   "/api/admin/themes",
+  // lib/plugin-sandbox/proxy-client.ts + connect-dialog.ts - only called by
+  // loaded plugins and the plugins settings tab; pluginsEnabled is pinned off.
+  "/api/plugin-proxy",
+  "/api/plugin-secrets",
   // stores/settings-store.ts - settingsSyncEnabled is pinned off.
   "/api/settings",
   // Stalwart's own account discovery (lib/auth/lite-oauth.ts), not a route of this app.
