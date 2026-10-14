@@ -89,7 +89,7 @@ export const SLOT_CATALOG = {
   'calendar-event-actions': S('calendar', 'frame', ['ui:calendar-action'], { eventData: 'calendar:read', setVirtualLocation: null }, 'buttons in the event form', true),
   'calendar-event-detail': S('calendar', 'frame', ['ui:calendar-action'], { event: 'calendar:read' }, 'a section in an event\'s details'),
   'calendar-event-form': S('calendar', 'frame', ['ui:calendar-action'], { event: 'calendar:read' }, 'a section in the form for a new or edited event'),
-  'calendar-day-header': S('calendar', 'data', ['ui:calendar-action'], { date: null }, 'a short label under a day\'s name in the day and week views (api.ui.setDayLabels)'),
+  'calendar-day-header': S('calendar', 'data', ['ui:calendar-action'], { date: null }, 'a short label under a day\'s name in the day, week and month views; a dot in the phone month view (api.ui.setDayLabels)'),
   'mini-calendar-marks': S('calendar', 'data', ['ui:calendar-action'], { date: null }, 'dots on days in the small month calendar (api.ui.setDayLabels)'),
 
   // ─── Contacts ──────────────────────────────────────────────

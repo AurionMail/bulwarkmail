@@ -194,18 +194,27 @@ describe('calendar-day-header and mini-calendar-marks', () => {
     expect(headerOf('2026-09-09').querySelector('[data-plugin-surface="calendar-day-header"]')).toHaveTextContent('Feast day');
   });
 
-  it('shows the label in the month cell header on desktop only', () => {
-    act(() => setDayLabels('hol', 'Holidays', [{ date: '2026-09-09', text: 'Feast day' }]));
+  it('shows the label in the month cell header, as a dot on phones', () => {
+    act(() => setDayLabels('hol', 'Holidays', [
+      { date: '2026-09-09', text: 'Feast day' },
+      { date: '2026-09-10', dot: true, title: 'Dot only' },
+    ]));
     const month = { ...week, windowKey: 'month:2026-09-09', rangeStart: new Date(2026, 7, 31), rangeEnd: new Date(2026, 9, 4) };
     const { unmount } = render(<CalendarMonthView {...month} />);
 
     const labels = document.querySelectorAll('[data-plugin-surface="calendar-day-header"]');
     expect(labels).toHaveLength(1);
+    expect(labels[0]).toHaveTextContent('Feast day');
     expect(labels[0].closest('[role="gridcell"]')?.getAttribute('aria-label')).toMatch(/9/);
     unmount();
 
     render(<CalendarMonthView {...month} isMobile />);
-    expect(document.querySelector('[data-plugin-surface="calendar-day-header"]')).toBeNull();
+    const dots = [...document.querySelectorAll<HTMLElement>('[data-plugin-surface="calendar-day-header"]')];
+    expect(dots).toHaveLength(2);
+    for (const dot of dots) expect(dot).toHaveAttribute('data-compact');
+    expect(dots[0].closest('[role="gridcell"]')?.getAttribute('aria-label')).toMatch(/9/);
+    expect(dots[0].title).toBe('Feast day (Holidays)');
+    expect(dots[1].title).toBe('Dot only (Holidays)');
   });
 
   it('marks days with a dot in the small month calendar', () => {
@@ -223,5 +232,23 @@ describe('calendar-day-header and mini-calendar-marks', () => {
     expect(dots).toHaveLength(1);
     expect(dots[0].closest('button')).toHaveTextContent('9');
     expect(dots[0].closest('button')).toHaveTextContent('A feast');
+  });
+
+  it('keeps the dot visible on today, whose filled circle has white text', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 9, 12));
+    try {
+      act(() => setDayLabels('hol', 'Holidays', [{ date: '2026-09-09', dot: true, title: 'A feast' }]));
+      render(
+        <MiniCalendar selectedDate={new Date(2026, 8, 1)} displayMonth={new Date(2026, 8, 1)} onSelectDate={vi.fn()} onChangeMonth={vi.fn()} />,
+      );
+      const dot = document.querySelector<HTMLElement>('[data-plugin-surface="mini-calendar-marks"]')!;
+      expect(dot.closest('button')).toHaveAttribute('aria-current', 'date');
+      // Its own colour, not the button's text colour, which is white on today.
+      expect(dot.className).not.toMatch(/bg-current/);
+      expect(dot.className).toMatch(/ring-background/);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

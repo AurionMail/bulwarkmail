@@ -27,10 +27,16 @@ interface PluginDayLabelProps {
   /** YYYY-MM-DD */
   date: string;
   className?: string;
+  /**
+   * calendar-day-header only: no room for text (the phone month view), so a
+   * dot stands for the day's labels; their text is its tooltip and is read
+   * out by screen readers.
+   */
+  compact?: boolean;
 }
 
 /** What plugins put on a calendar day. Renders nothing without labels. */
-export function PluginDayLabel({ surface, date, className }: PluginDayLabelProps) {
+export function PluginDayLabel({ surface, date, className, compact }: PluginDayLabelProps) {
   const labels = useDayLabels(date);
 
   if (surface === "mini-calendar-marks") {
@@ -42,10 +48,26 @@ export function PluginDayLabel({ surface, date, className }: PluginDayLabelProps
           aria-hidden="true"
           data-plugin-surface="mini-calendar-marks"
           title={tooltip(marks)}
-          className={cn("pointer-events-none absolute top-0.5 end-0.5 h-1 w-1 rounded-full bg-current opacity-70", className)}
+          className={cn("pointer-events-none absolute top-0 end-0 h-1.5 w-1.5 rounded-full bg-muted-foreground ring-1 ring-background", className)}
         />
         <span className="sr-only">{marks.map((l) => l.title ?? l.text ?? l.pluginName).join(", ")}</span>
       </>
+    );
+  }
+
+  if (compact) {
+    const shown = labels.filter((l) => l.text || l.dot);
+    if (shown.length === 0) return null;
+    return (
+      <span
+        data-plugin-surface="calendar-day-header"
+        data-compact=""
+        title={tooltip(shown)}
+        className={cn("inline-flex flex-shrink-0", className)}
+      >
+        <span aria-hidden="true" className="block h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+        <span className="sr-only">{shown.map((l) => l.text ?? l.title ?? l.pluginName).join(", ")}</span>
+      </span>
     );
   }
 
