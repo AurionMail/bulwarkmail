@@ -144,9 +144,21 @@ async function readJsonFile<T>(filePath: string, fallback: T): Promise<T> {
 async function writeJsonFile(filePath: string, data: unknown): Promise<void> {
   const dir = path.dirname(filePath);
   await ensureDir(dir);
-  const tmpPath = filePath + '.tmp';
+  // A temp name per write: two writers sharing one ".tmp" overwrote each
+  // other's file and the second rename failed (a 500 on concurrent installs).
+  const tmpPath = `${filePath}.${process.pid}.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}.tmp`;
   await writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
   await rename(tmpPath, filePath);
+}
+
+// Changes to one registry file run one after another, so two admin actions
+// at once can't read the same old list and drop each other's change.
+const registryQueues = new Map<string, Promise<unknown>>();
+function withRegistryLock<T>(name: 'plugins' | 'themes', task: () => Promise<T>): Promise<T> {
+  const run = (registryQueues.get(name) ?? Promise.resolve()).then(task, task);
+  const tail = run.catch(() => {});
+  registryQueues.set(name, tail);
+  return run;
 }
 
 // ─── Plugin Operations ───────────────────────────────────────
@@ -194,7 +206,11 @@ export async function getPlugin(id: string): Promise<ServerPlugin | null> {
 
 const SAFE_ID_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
 
-export async function savePlugin(
+export function savePlugin(plugin: ServerPlugin, code: string): Promise<void> {
+  return withRegistryLock('plugins', () => savePluginNow(plugin, code));
+}
+
+async function savePluginNow(
   plugin: ServerPlugin,
   code: string,
 ): Promise<void> {
@@ -236,7 +252,11 @@ export async function savePlugin(
   await writeJsonFile(pluginRegistryPath(), registry);
 }
 
-export async function updatePluginMeta(id: string, updates: Partial<Pick<ServerPlugin, 'enabled' | 'forceEnabled'>>): Promise<ServerPlugin | null> {
+export function updatePluginMeta(id: string, updates: Partial<Pick<ServerPlugin, 'enabled' | 'forceEnabled'>>): Promise<ServerPlugin | null> {
+  return withRegistryLock('plugins', () => updatePluginMetaNow(id, updates));
+}
+
+async function updatePluginMetaNow(id: string, updates: Partial<Pick<ServerPlugin, 'enabled' | 'forceEnabled'>>): Promise<ServerPlugin | null> {
   assertWritable('update plugin metadata');
   const registry = await getPluginRegistry();
   const idx = registry.plugins.findIndex(p => p.id === id);
@@ -247,7 +267,11 @@ export async function updatePluginMeta(id: string, updates: Partial<Pick<ServerP
   return registry.plugins[idx];
 }
 
-export async function deletePlugin(id: string): Promise<boolean> {
+export function deletePlugin(id: string): Promise<boolean> {
+  return withRegistryLock('plugins', () => deletePluginNow(id));
+}
+
+async function deletePluginNow(id: string): Promise<boolean> {
   assertWritable('delete plugin');
   const registry = await getPluginRegistry();
   const idx = registry.plugins.findIndex(p => p.id === id);
@@ -315,7 +339,11 @@ export async function getTheme(id: string): Promise<ServerTheme | null> {
   return registry.themes.find(t => t.id === id) || null;
 }
 
-export async function saveTheme(
+export function saveTheme(theme: ServerTheme, css: string, skin: string | null = null): Promise<void> {
+  return withRegistryLock('themes', () => saveThemeNow(theme, css, skin));
+}
+
+async function saveThemeNow(
   theme: ServerTheme,
   css: string,
   skin: string | null = null,
@@ -353,7 +381,11 @@ export async function saveTheme(
   await writeJsonFile(themeRegistryPath(), registry);
 }
 
-export async function updateThemeMeta(id: string, updates: Partial<Pick<ServerTheme, 'enabled' | 'forceEnabled'>>): Promise<ServerTheme | null> {
+export function updateThemeMeta(id: string, updates: Partial<Pick<ServerTheme, 'enabled' | 'forceEnabled'>>): Promise<ServerTheme | null> {
+  return withRegistryLock('themes', () => updateThemeMetaNow(id, updates));
+}
+
+async function updateThemeMetaNow(id: string, updates: Partial<Pick<ServerTheme, 'enabled' | 'forceEnabled'>>): Promise<ServerTheme | null> {
   assertWritable('update theme metadata');
   const registry = await getThemeRegistry();
   const idx = registry.themes.findIndex(t => t.id === id);
@@ -364,7 +396,11 @@ export async function updateThemeMeta(id: string, updates: Partial<Pick<ServerTh
   return registry.themes[idx];
 }
 
-export async function deleteTheme(id: string): Promise<boolean> {
+export function deleteTheme(id: string): Promise<boolean> {
+  return withRegistryLock('themes', () => deleteThemeNow(id));
+}
+
+async function deleteThemeNow(id: string): Promise<boolean> {
   assertWritable('delete theme');
   const registry = await getThemeRegistry();
   const idx = registry.themes.findIndex(t => t.id === id);

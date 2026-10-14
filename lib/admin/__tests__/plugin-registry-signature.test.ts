@@ -52,3 +52,21 @@ describe('plugin bundle signatures', () => {
     expect(await verifies(swapped, signature!)).toBe(false);
   });
 });
+
+describe('registry writes at the same time', () => {
+  it('keeps every plugin when several are installed and switched at once', async () => {
+    // Concurrent installs shared one .tmp file and read the same old list:
+    // some answered 500, others were silently dropped from the registry.
+    const registry = await import('../plugin-registry');
+    const ids = Array.from({ length: 8 }, (_, i) => `concurrent-${i}`);
+
+    await Promise.all(ids.flatMap((id) => [
+      registry.savePlugin({ ...PLUGIN, id }, `module.exports = { id: "${id}" }`),
+      registry.updatePluginMeta(id, { forceEnabled: true }),
+    ]));
+
+    const saved = (await registry.getPluginRegistry()).plugins;
+    expect(saved.map((p) => p.id).sort()).toEqual([...ids].sort());
+    expect(saved.every((p) => p.forceEnabled === true)).toBe(true);
+  });
+});
