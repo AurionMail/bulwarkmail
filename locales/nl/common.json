@@ -4253,6 +4253,14 @@
         "title": "De opsteller voor je openen",
         "body": "Een nieuw bericht openen met ontvangers, tekst of bijlagen al ingevuld. Jij beslist nog steeds of het wordt verzonden."
       },
+      "compose_read": {
+        "title": "Het bericht lezen dat je schrijft",
+        "body": "De tekst van een bericht lezen terwijl je het schrijft, als je de plug-in in de editor gebruikt. Niet de handtekening of het geciteerde bericht."
+      },
+      "compose_write": {
+        "title": "Het bericht wijzigen dat je schrijft",
+        "body": "Tekst in een bericht vervangen of toevoegen terwijl je het schrijft, als je de plug-in in de editor gebruikt. Je kunt elke wijziging ongedaan maken en je beslist nog steeds zelf of je het verstuurt."
+      },
       "ui_notifications": {
         "title": "Meldingen tonen",
         "body": "Meldingen op je apparaat tonen, of in de app als je ze niet hebt toegestaan. Elke melding noemt de naam van de plug-in."

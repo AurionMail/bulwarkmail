@@ -85,7 +85,18 @@ function eventMatches(ev: KeyboardEvent, combo: NormalisedCombo): boolean {
   if (combo.shift !== ev.shiftKey) return false;
   if (combo.alt !== ev.altKey) return false;
   if (!combo.ctrl && combo.meta !== ev.metaKey) return false;
-  return ev.key.toLowerCase() === combo.key;
+  if (ev.key.toLowerCase() === combo.key) return true;
+  // With Alt held, macOS types another character (Alt+A is "å"): match the
+  // physical key for letters and digits.
+  if (/^[a-z]$/.test(combo.key)) return ev.code === `Key${combo.key.toUpperCase()}`;
+  if (/^[0-9]$/.test(combo.key)) return ev.code === `Digit${combo.key}`;
+  return false;
+}
+
+/** Whether a key event is the combo ("Ctrl+Shift+A"); Ctrl and Cmd count the same. */
+export function matchesCombo(keys: string, ev: Pick<KeyboardEvent, 'key' | 'code' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'>): boolean {
+  const combo = normaliseCombo(keys);
+  return !!combo && eventMatches(ev as KeyboardEvent, combo);
 }
 
 function onKeyDown(ev: KeyboardEvent): void {

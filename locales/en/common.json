@@ -4281,6 +4281,14 @@
         "title": "Open the composer for you",
         "body": "Open a new message with recipients, text or attachments filled in. You still decide whether to send it."
       },
+      "compose_read": {
+        "title": "Read the message you are writing",
+        "body": "Read the text of a message while you write it, when you use the plugin in the composer. Not the signature or the quoted message."
+      },
+      "compose_write": {
+        "title": "Change the message you are writing",
+        "body": "Replace or add text in a message while you write it, when you use the plugin in the composer. You can undo each change, and you still decide whether to send."
+      },
       "ui_notifications": {
         "title": "Show notifications",
         "body": "Show notifications on your device, or in the app if you haven't allowed them. Each one names the plugin."

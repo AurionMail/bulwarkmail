@@ -1265,6 +1265,11 @@ export const ALL_PERMISSIONS = [
   // Open the composer filled in (api.compose.open). Low risk: the user still
   // has to press Send.
   'compose:open',
+  // Read the message being written (api.composer.getBody/getSelection), in
+  // a composer that handed the plugin its id.
+  'compose:read',
+  // Change the message being written (api.composer.replaceSelection/replaceBody).
+  'compose:write',
   'calendar:read', 'calendar:write',
   'contacts:read', 'contacts:write',
   'files:read', 'files:write',

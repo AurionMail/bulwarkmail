@@ -450,6 +450,29 @@ function buildPluginApi(manifest: PluginManifest) {
       show: (notification: NotificationInput) =>
         callApi('notifications.show', [notification]) as Promise<'system' | 'toast'>,
     },
+    // The message being written. `composerId` comes from the composer: the
+    // context of a click on a composer action, or a composer slot's props.
+    composer: {
+      /** The user's own text (no signature, no quote) as { html, text }. Needs compose:read. */
+      getBody: (composerId: string) =>
+        callApi('composer.getBody', [composerId]) as Promise<{ html: string; text: string }>,
+      /** The selection as { html, text, empty }. Needs compose:read. */
+      getSelection: (composerId: string) =>
+        callApi('composer.getSelection', [composerId]) as Promise<{ html: string; text: string; empty: boolean }>,
+      /**
+       * Replace the selection, or insert at the caret when nothing is
+       * selected; `{ below: true }` adds after the selection instead. One
+       * Ctrl+Z undoes it. Needs compose:write.
+       */
+      replaceSelection: (composerId: string, content: { text: string } | { html: string }, options?: { below?: boolean }) =>
+        callApi('composer.replaceSelection', [composerId, content, options]) as Promise<boolean>,
+      /** Replace the user's own text; the signature and the quote stay. Needs compose:write. */
+      replaceBody: (composerId: string, content: { text: string } | { html: string }) =>
+        callApi('composer.replaceBody', [composerId, content]) as Promise<boolean>,
+      /** Attach a blob from jmap.uploadBlob. Needs email:blob-write. */
+      attach: (composerId: string, file: { blobId: string; name: string; type?: string; size: number }) =>
+        callApi('composer.attach', [composerId, file]) as Promise<boolean>,
+    },
     toast: {
       success: (m: string) => { void callApi('toast.success', [m]); },
       error: (m: string) => { void callApi('toast.error', [m]); },

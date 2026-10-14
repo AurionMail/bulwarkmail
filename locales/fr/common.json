@@ -4253,6 +4253,14 @@
         "title": "Ouvrir l'éditeur pour vous",
         "body": "Ouvrir un nouveau message avec les destinataires, le texte ou les pièces jointes déjà remplis. C'est toujours vous qui décidez de l'envoyer."
       },
+      "compose_read": {
+        "title": "Lire le message que vous écrivez",
+        "body": "Lire le texte d'un message pendant que vous l'écrivez, quand vous utilisez le plugin dans l'éditeur. Ni la signature ni le message cité."
+      },
+      "compose_write": {
+        "title": "Modifier le message que vous écrivez",
+        "body": "Remplacer ou ajouter du texte dans un message pendant que vous l'écrivez, quand vous utilisez le plugin dans l'éditeur. Chaque modification peut être annulée, et c'est toujours vous qui décidez de l'envoyer."
+      },
       "ui_notifications": {
         "title": "Afficher des notifications",
         "body": "Afficher des notifications sur votre appareil, ou dans l'application si vous ne les avez pas autorisées. Chacune indique le nom du plugin."

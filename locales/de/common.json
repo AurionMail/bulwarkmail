@@ -4253,6 +4253,14 @@
         "title": "Den Editor für Sie öffnen",
         "body": "Eine neue Nachricht mit bereits ausgefüllten Empfängern, Text oder Anhängen öffnen. Ob sie gesendet wird, entscheiden weiterhin Sie."
       },
+      "compose_read": {
+        "title": "Die Nachricht lesen, die Sie schreiben",
+        "body": "Den Text einer Nachricht lesen, während Sie sie schreiben, wenn Sie das Plugin im Editor benutzen. Nicht die Signatur und nicht die zitierte Nachricht."
+      },
+      "compose_write": {
+        "title": "Die Nachricht ändern, die Sie schreiben",
+        "body": "Text in einer Nachricht ersetzen oder ergänzen, während Sie sie schreiben, wenn Sie das Plugin im Editor benutzen. Jede Änderung lässt sich rückgängig machen, und Sie entscheiden weiterhin, ob Sie senden."
+      },
       "ui_notifications": {
         "title": "Benachrichtigungen anzeigen",
         "body": "Benachrichtigungen auf Ihrem Gerät anzeigen oder in der App, wenn Sie sie nicht erlaubt haben. Jede nennt den Namen des Plugins."

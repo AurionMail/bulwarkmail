@@ -4253,6 +4253,14 @@
         "title": "Otwieranie edytora wiadomości",
         "body": "Otwiera nową wiadomość z wypełnionymi odbiorcami, treścią lub załącznikami. O wysłaniu nadal decydujesz Ty."
       },
+      "compose_read": {
+        "title": "Czytanie pisanej wiadomości",
+        "body": "Czytanie tekstu wiadomości podczas pisania, gdy używasz wtyczki w edytorze. Bez podpisu i cytowanej wiadomości."
+      },
+      "compose_write": {
+        "title": "Zmiana pisanej wiadomości",
+        "body": "Zastępowanie lub dodawanie tekstu w wiadomości podczas pisania, gdy używasz wtyczki w edytorze. Każdą zmianę możesz cofnąć, a o wysłaniu nadal decydujesz Ty."
+      },
       "ui_notifications": {
         "title": "Wyświetlanie powiadomień",
         "body": "Wyświetla powiadomienia na urządzeniu lub w aplikacji, jeśli ich nie zezwolono. Każde podaje nazwę wtyczki."

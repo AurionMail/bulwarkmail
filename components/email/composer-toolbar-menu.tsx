@@ -152,6 +152,40 @@ interface PluginItemsProps {
   separator?: boolean;
 }
 
+/**
+ * Buttons plugins declared for the composer's bottom bar
+ * (composer-toolbar-actions), drawn like Attach and Templates. An action's
+ * shortcut is shown in its tooltip; the composer binds it.
+ */
+export function ComposerPluginToolbarButtons({ surface, context }: { surface: "composer-toolbar-actions"; context: () => Record<string, unknown> }) {
+  const actions = usePluginActions(surface);
+  if (actions.length === 0) return null;
+  return (
+    <>
+      {actions.map((action) => {
+        const Icon = iconForName(action.icon) ?? Puzzle;
+        const tip = action.shortcut ? `${action.label} (${action.shortcut})` : action.label;
+        return (
+          <Button
+            key={`${action.pluginId}:${action.id}`}
+            type="button"
+            variant="ghost"
+            className={cn("h-9 gap-1.5 px-2 sm:px-2.5", action.danger && "text-destructive")}
+            title={tip}
+            aria-label={action.label}
+            aria-keyshortcuts={action.shortcut}
+            data-plugin-action={`${action.pluginId}:${action.id}`}
+            onClick={() => { void runAction(action, surface, context()); }}
+          >
+            <Icon className="w-4 h-4" />
+            <span className="hidden sm:inline text-sm">{action.label}</span>
+          </Button>
+        );
+      })}
+    </>
+  );
+}
+
 /** Entries plugins declared for a composer menu, drawn like the menu's own. */
 export function ComposerPluginMenuItems({ surface, context, onSelect, separator }: PluginItemsProps) {
   const actions = usePluginActions(surface);

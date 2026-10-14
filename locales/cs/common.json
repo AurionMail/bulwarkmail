@@ -4253,6 +4253,14 @@
         "title": "Otevírat editor zprávy",
         "body": "Otevře novou zprávu s vyplněnými příjemci, textem nebo přílohami. O odeslání stále rozhodujete vy."
       },
+      "compose_read": {
+        "title": "Číst zprávu, kterou píšete",
+        "body": "Číst text zprávy během psaní, když plugin použijete v editoru. Ne podpis ani citovanou zprávu."
+      },
+      "compose_write": {
+        "title": "Měnit zprávu, kterou píšete",
+        "body": "Nahrazovat nebo přidávat text ve zprávě během psaní, když plugin použijete v editoru. Každou změnu můžete vrátit a o odeslání stále rozhodujete vy."
+      },
       "ui_notifications": {
         "title": "Zobrazovat oznámení",
         "body": "Zobrazuje oznámení ve vašem zařízení, nebo v aplikaci, pokud jste je nepovolili. Každé uvádí název pluginu."

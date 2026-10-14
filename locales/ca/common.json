@@ -4253,6 +4253,14 @@
         "title": "Obrir el redactor per a vós",
         "body": "Obrir un missatge nou amb els destinataris, el text o els adjunts ja emplenats. Sou vós qui decidiu si s'envia."
       },
+      "compose_read": {
+        "title": "Llegir el missatge que escriviu",
+        "body": "Llegir el text d'un missatge mentre l'escriviu, quan feu servir el connector a l'editor. No la signatura ni el missatge citat."
+      },
+      "compose_write": {
+        "title": "Canviar el missatge que escriviu",
+        "body": "Substituir o afegir text en un missatge mentre l'escriviu, quan feu servir el connector a l'editor. Podeu desfer cada canvi i continueu decidint si l'envieu."
+      },
       "ui_notifications": {
         "title": "Mostrar notificacions",
         "body": "Mostrar notificacions al dispositiu, o dins l'aplicació si no les heu permeses. Cadascuna indica el nom del connector."

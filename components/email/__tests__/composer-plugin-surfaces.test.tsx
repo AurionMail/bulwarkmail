@@ -287,7 +287,7 @@ describe('composer-above-body and composer-below-body', () => {
 
     const frame = screen.getByTestId('slot-composer-attachment-source');
     expect(frame.closest('[data-composer-plugin-row]')).not.toBeNull();
-    expect(SLOT_CATALOG['composer-attachment-source'].where).toMatch(/plugin button row/);
+    expect(SLOT_CATALOG['composer-attachment-source'].where).toMatch(/plugin row/);
   });
 
   it('draw nothing without a plugin', () => {
@@ -344,7 +344,7 @@ describe('composer-attach-menu', () => {
     expect(screen.queryByTestId('composer-attach-from-files')).toBeNull();
     await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: 'From the cloud' })); });
 
-    expect(dispatch).toHaveBeenCalledWith('p', 'composer-attach-menu', 'cloud', {});
+    expect(dispatch).toHaveBeenCalledWith('p', 'composer-attach-menu', 'cloud', { composerId: expect.any(String) });
     expect(screen.queryByRole('menuitem', { name: 'From the cloud' })).toBeNull();
   });
 

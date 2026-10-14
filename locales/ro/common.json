@@ -4253,6 +4253,14 @@
         "title": "Deschiderea ferestrei de redactare",
         "body": "Deschide un mesaj nou cu destinatarii, textul sau atașamentele deja completate. Dvs. decideți în continuare dacă îl trimiteți."
       },
+      "compose_read": {
+        "title": "Citirea mesajului pe care îl scrieți",
+        "body": "Citirea textului unui mesaj în timp ce îl scrieți, când folosiți pluginul în editor. Nu și semnătura sau mesajul citat."
+      },
+      "compose_write": {
+        "title": "Modificarea mesajului pe care îl scrieți",
+        "body": "Înlocuirea sau adăugarea de text într-un mesaj în timp ce îl scrieți, când folosiți pluginul în editor. Puteți anula fiecare modificare și decideți în continuare dacă îl trimiteți."
+      },
       "ui_notifications": {
         "title": "Afișarea notificărilor",
         "body": "Afișează notificări pe dispozitiv sau în aplicație, dacă nu le-ați permis. Fiecare indică numele pluginului."

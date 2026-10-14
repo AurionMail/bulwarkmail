@@ -4253,6 +4253,14 @@
         "title": "İleti düzenleyiciyi açma",
         "body": "Alıcıları, metni veya ekleri doldurulmuş yeni bir ileti açma. Gönderip göndermemeye yine siz karar verirsiniz."
       },
+      "compose_read": {
+        "title": "Yazdığınız iletiyi okuma",
+        "body": "Eklentiyi düzenleyicide kullandığınızda, yazarken iletinin metnini okur. İmzayı ve alıntılanan iletiyi okumaz."
+      },
+      "compose_write": {
+        "title": "Yazdığınız iletiyi değiştirme",
+        "body": "Eklentiyi düzenleyicide kullandığınızda, yazarken iletide metni değiştirir veya ekler. Her değişikliği geri alabilirsiniz ve göndermeye yine siz karar verirsiniz."
+      },
       "ui_notifications": {
         "title": "Bildirim gösterme",
         "body": "Cihazınızda bildirim gösterme ya da bildirimlere izin vermediyseniz uygulama içinde gösterme. Her bildirimde eklentinin adı yer alır."

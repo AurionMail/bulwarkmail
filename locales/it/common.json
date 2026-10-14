@@ -4253,6 +4253,14 @@
         "title": "Aprire l'editor per te",
         "body": "Aprire un nuovo messaggio con destinatari, testo o allegati già compilati. Sei sempre tu a decidere se inviarlo."
       },
+      "compose_read": {
+        "title": "Leggere il messaggio che stai scrivendo",
+        "body": "Leggere il testo di un messaggio mentre lo scrivi, quando usi il plugin nell'editor. Non la firma né il messaggio citato."
+      },
+      "compose_write": {
+        "title": "Modificare il messaggio che stai scrivendo",
+        "body": "Sostituire o aggiungere testo in un messaggio mentre lo scrivi, quando usi il plugin nell'editor. Puoi annullare ogni modifica e decidi sempre tu se inviarlo."
+      },
       "ui_notifications": {
         "title": "Mostrare notifiche",
         "body": "Mostrare notifiche sul tuo dispositivo, o nell'app se non le hai consentite. Ognuna indica il nome del plugin."

@@ -4253,6 +4253,14 @@
         "title": "Otvárať editor správy",
         "body": "Otvorí novú správu s vyplnenými príjemcami, textom alebo prílohami. O odoslaní stále rozhodujete vy."
       },
+      "compose_read": {
+        "title": "Čítať správu, ktorú píšete",
+        "body": "Čítať text správy počas písania, keď doplnok použijete v editore. Nie podpis ani citovanú správu."
+      },
+      "compose_write": {
+        "title": "Meniť správu, ktorú píšete",
+        "body": "Nahrádzať alebo pridávať text v správe počas písania, keď doplnok použijete v editore. Každú zmenu môžete vrátiť a o odoslaní stále rozhodujete vy."
+      },
       "ui_notifications": {
         "title": "Zobrazovať upozornenia",
         "body": "Zobrazuje upozornenia vo vašom zariadení alebo v aplikácii, ak ste ich nepovolili. Každé uvádza názov doplnku."

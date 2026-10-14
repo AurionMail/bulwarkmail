@@ -76,14 +76,16 @@ export const SLOT_CATALOG = {
   'attachment-menu': S('reader', 'action', ['email:read'], { emailId: 'email:read', blobId: 'email:read', name: 'email:read', type: 'email:read', size: 'email:read' }, 'entries in each attachment\'s menu (for example "Save to Nextcloud")'),
 
   // ─── Composer ──────────────────────────────────────────────
-  'composer-toolbar': S('composer', 'frame', ['ui:composer-toolbar'], { insertText: 'compose:open', getSelectedText: 'email:send' }, 'the composer\'s plugin button row', true),
-  'composer-above-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send', insertText: 'compose:open', getSelectedText: 'email:send' }, 'between the subject and the message text'),
-  'composer-below-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send', insertText: 'compose:open', getSelectedText: 'email:send' }, 'below the message text, above the attachments'),
+  'composer-toolbar': S('composer', 'frame', ['ui:composer-toolbar'], { insertText: 'compose:open', getSelectedText: 'email:send', composerId: null }, 'the composer\'s plugin row above its bottom bar, for controls that need their own UI (a button belongs in composer-toolbar-actions)', true),
+  'composer-above-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send', insertText: 'compose:open', getSelectedText: 'email:send', composerId: null }, 'between the subject and the message text'),
+  'composer-below-body': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { draft: 'email:send', insertText: 'compose:open', getSelectedText: 'email:send', composerId: null }, 'below the message text, above the attachments'),
   'composer-sidebar': S('composer', 'frame', ['ui:composer-sidebar'], {}, 'a panel left of the composer'),
   'composer-sidebar-right': S('composer', 'frame', ['ui:composer-sidebar'], {}, 'a panel right of the composer'),
-  'composer-attachment-source': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { onAttach: null, insertText: 'compose:open' }, 'the composer\'s plugin button row, next to composer-toolbar, as a source of files (for an entry in the Attach menu itself, use composer-attach-menu)', true),
-  'composer-send-menu': S('composer', 'action', ['ui:composer-toolbar'], { draft: 'email:send' }, 'entries in the menu next to Send'),
-  'composer-attach-menu': S('composer', 'action', ['ui:composer-toolbar'], {}, 'entries in the attach menu (for example "From Nextcloud")'),
+  'composer-attachment-source': S('composer', 'frame', ['ui:composer-toolbar', 'ui:composer-sidebar'], { onAttach: null, insertText: 'compose:open', composerId: null }, 'the composer\'s plugin row, next to composer-toolbar, as a source of files (older plugins; an entry in the Attach menu, composer-attach-menu, with api.composer.attach looks like the app\'s own)', true),
+  'composer-send-menu': S('composer', 'action', ['ui:composer-toolbar'], { draft: 'email:send', composerId: null }, 'entries in the menu next to Send'),
+  'composer-attach-menu': S('composer', 'action', ['ui:composer-toolbar'], { composerId: null }, 'entries in the Attach menu (for example "From Nextcloud"); the click\'s composerId lets api.composer.attach add files'),
+  'composer-options-menu': S('composer', 'action', ['ui:composer-toolbar'], { composerId: null }, 'entries in the composer\'s Options menu'),
+  'composer-toolbar-actions': S('composer', 'action', ['ui:composer-toolbar'], { composerId: null }, 'buttons in the composer\'s bottom bar, after Attach, Templates and Options; an action\'s shortcut works while the composer has focus', true),
 
   // ─── Calendar ──────────────────────────────────────────────
   'calendar-event-actions': S('calendar', 'frame', ['ui:calendar-action'], { eventData: 'calendar:read', setVirtualLocation: null }, 'buttons in the event form', true),

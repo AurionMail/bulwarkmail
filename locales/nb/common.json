@@ -4253,6 +4253,14 @@
         "title": "Åpne meldingsvinduet for deg",
         "body": "Åpne en ny melding med mottakere, tekst eller vedlegg fylt ut. Du bestemmer fortsatt om den skal sendes."
       },
+      "compose_read": {
+        "title": "Lese meldingen du skriver",
+        "body": "Lese teksten i en melding mens du skriver den, når du bruker tillegget i redigeringsvinduet. Ikke signaturen eller den siterte meldingen."
+      },
+      "compose_write": {
+        "title": "Endre meldingen du skriver",
+        "body": "Erstatte eller legge til tekst i en melding mens du skriver den, når du bruker tillegget i redigeringsvinduet. Du kan angre hver endring, og du bestemmer fortsatt om den skal sendes."
+      },
       "ui_notifications": {
         "title": "Vise varsler",
         "body": "Vise varsler på enheten din, eller i appen hvis du ikke har tillatt dem. Hvert varsel viser navnet på tillegget."

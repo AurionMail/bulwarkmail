@@ -4,6 +4,7 @@
 // surface's context, filtered by the plugin's permissions.
 
 import { slotSpec } from '../plugin-slot-catalog';
+import { isAllowedPluginCombo } from './shortcuts';
 
 export interface PluginAction {
   id: string;
@@ -18,6 +19,12 @@ export interface PluginAction {
   mimeTypes?: string[];
   /** A danger action is drawn in red. */
   danger?: boolean;
+  /**
+   * A key combination for the action ("Ctrl+Shift+A"), on surfaces that bind
+   * one (composer-toolbar-actions: while the composer has focus). Needs Alt,
+   * Ctrl/Cmd+Shift or Ctrl/Cmd+Alt, like plugin shortcuts.
+   */
+  shortcut?: string;
 }
 
 export interface RegisteredAction extends PluginAction {
@@ -70,6 +77,12 @@ export function checkActions(value: unknown): PluginAction[] {
       out.mimeTypes = (a.mimeTypes as string[]).map((m) => m.toLowerCase());
     }
     if (a.danger !== undefined) out.danger = a.danger === true;
+    if (a.shortcut !== undefined) {
+      if (typeof a.shortcut !== 'string' || a.shortcut.length > 30 || !isAllowedPluginCombo(a.shortcut)) {
+        throw new Error(`actions[${i}].shortcut must use Alt, Ctrl+Shift or Ctrl+Alt`);
+      }
+      out.shortcut = a.shortcut;
+    }
     return out;
   });
 }

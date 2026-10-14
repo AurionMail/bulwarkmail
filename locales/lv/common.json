@@ -4253,6 +4253,14 @@
         "title": "Atvērt redaktoru jūsu vietā",
         "body": "Atvērt jaunu vēstuli ar jau aizpildītiem adresātiem, tekstu vai pielikumiem. Vai to nosūtīt, joprojām izlemjat jūs."
       },
+      "compose_read": {
+        "title": "Lasīt ziņojumu, ko rakstāt",
+        "body": "Lasīt ziņojuma tekstu rakstīšanas laikā, kad izmantojat spraudni redaktorā. Ne parakstu, ne citēto ziņojumu."
+      },
+      "compose_write": {
+        "title": "Mainīt ziņojumu, ko rakstāt",
+        "body": "Aizstāt vai pievienot tekstu ziņojumā rakstīšanas laikā, kad izmantojat spraudni redaktorā. Katru izmaiņu var atsaukt, un jūs joprojām izlemjat, vai sūtīt."
+      },
       "ui_notifications": {
         "title": "Rādīt paziņojumus",
         "body": "Rādīt paziņojumus jūsu ierīcē vai lietotnē, ja neesat tos atļāvis. Katrā ir spraudņa nosaukums."

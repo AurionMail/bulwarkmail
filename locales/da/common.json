@@ -4253,6 +4253,14 @@
         "title": "Åbne komponisten for dig",
         "body": "Åbne en ny besked med modtagere, tekst eller vedhæftninger udfyldt. Du bestemmer stadig, om den sendes."
       },
+      "compose_read": {
+        "title": "Læse den besked, du skriver",
+        "body": "Læse teksten i en besked, mens du skriver den, når du bruger pluginet i editoren. Ikke signaturen eller den citerede besked."
+      },
+      "compose_write": {
+        "title": "Ændre den besked, du skriver",
+        "body": "Erstatte eller tilføje tekst i en besked, mens du skriver den, når du bruger pluginet i editoren. Du kan fortryde hver ændring, og du bestemmer stadig, om den sendes."
+      },
       "ui_notifications": {
         "title": "Vise notifikationer",
         "body": "Vise notifikationer på din enhed eller i appen, hvis du ikke har tilladt dem. Hver af dem nævner pluginets navn."

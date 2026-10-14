@@ -1,0 +1,165 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { InstalledPlugin } from '../plugin-types';
+import { HIGH_RISK_PERMISSIONS } from '../plugin-sandbox/permission-text';
+import { registerComposer, resetComposers, type ComposerHandle } from '../plugin-sandbox/composer-registry';
+import { plainOwnRange, replaceTextareaRange } from '../plugin-sandbox/composer-edit';
+import { resetPluginRateLimits } from '../plugin-sandbox/host-api-input';
+
+vi.mock('@/stores/toast-store', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+
+const { dispatchApiCall } = await import('../plugin-sandbox/host-api');
+
+// api.composer on the host: which permission each call needs, what it
+// accepts, and that a plugin reaches only a composer whose id it was given.
+
+function plugin(perms: string[]): InstalledPlugin {
+  return {
+    id: 'assistant', name: 'Assistant', version: '1.0.0', author: 'test', description: '',
+    type: 'hook', permissions: perms, grantedPermissions: perms, entrypoint: 'index.js',
+    enabled: true, status: 'running', settings: {},
+  };
+}
+
+function fakeHandle(): ComposerHandle & { calls: unknown[][] } {
+  const calls: unknown[][] = [];
+  return {
+    calls,
+    readBody: () => ({ html: '<p>Hello</p>', text: 'Hello' }),
+    readSelection: () => ({ html: '', text: '', empty: true }),
+    replaceBody: (...a) => { calls.push(['replaceBody', ...a]); return true; },
+    replaceSelection: (...a) => { calls.push(['replaceSelection', ...a]); return true; },
+    attach: async (...a) => { calls.push(['attach', ...a]); return true; },
+  };
+}
+
+const READ = plugin(['compose:read']);
+const WRITE = plugin(['compose:write']);
+const call = (p: InstalledPlugin, method: string, ...args: unknown[]) => dispatchApiCall(p, method, args);
+
+beforeEach(() => resetPluginRateLimits());
+afterEach(() => resetComposers());
+
+describe('api.composer', () => {
+  it('reads the open message with compose:read only', async () => {
+    const { id } = registerComposer(fakeHandle());
+    expect(await call(READ, 'composer.getBody', id)).toEqual({ html: '<p>Hello</p>', text: 'Hello' });
+    await expect(call(WRITE, 'composer.getBody', id)).rejects.toThrow(/lacks permission "compose:read"/);
+  });
+
+  it('changes it with compose:write only', async () => {
+    const handle = fakeHandle();
+    const { id } = registerComposer(handle);
+    await expect(call(READ, 'composer.replaceBody', id, { text: 'x' })).rejects.toThrow(/lacks permission "compose:write"/);
+    await expect(call(READ, 'composer.replaceSelection', id, { text: 'x' })).rejects.toThrow(/lacks permission "compose:write"/);
+    expect(handle.calls).toEqual([]);
+    expect(await call(WRITE, 'composer.replaceSelection', id, { text: 'Dear Bob,\nthanks' }, { below: true })).toBe(true);
+    expect(handle.calls[0]).toEqual(['replaceSelection', '<p>Dear Bob,</p><p>thanks</p>', 'Dear Bob,\nthanks', { below: true }]);
+  });
+
+  it('turns plain text into escaped paragraphs and runs HTML through the sanitiser', async () => {
+    const handle = fakeHandle();
+    const { id } = registerComposer(handle);
+    await call(WRITE, 'composer.replaceBody', id, { text: '<b>not bold</b>' });
+    await call(WRITE, 'composer.replaceBody', id, { html: '<p onclick="x()">Hi<script>alert(1)</script></p>' });
+    expect(handle.calls[0][1]).toBe('<p>&lt;b&gt;not bold&lt;/b&gt;</p>');
+    expect(handle.calls[1][1]).not.toMatch(/onclick|script/);
+    expect(handle.calls[1][1]).toContain('Hi');
+  });
+
+  it('reaches only a composer that is open, by the id it handed out', async () => {
+    const { unregister } = registerComposer(fakeHandle());
+    await expect(call(READ, 'composer.getBody', 'guess')).rejects.toThrow(/not open any more/);
+    await expect(call(READ, 'composer.getBody')).rejects.toThrow(/composerId must be a string/);
+    const second = registerComposer(fakeHandle());
+    second.unregister();
+    await expect(call(READ, 'composer.getBody', second.id)).rejects.toThrow(/not open any more/);
+    unregister();
+  });
+
+  it('refuses content that is neither or both of text and html, and odd options', async () => {
+    const { id } = registerComposer(fakeHandle());
+    await expect(call(WRITE, 'composer.replaceBody', id, {})).rejects.toThrow(/either text or html/);
+    await expect(call(WRITE, 'composer.replaceBody', id, { text: 'a', html: '<p>a</p>' })).rejects.toThrow(/either text or html/);
+    await expect(call(WRITE, 'composer.replaceBody', id, { markdown: '*a*' })).rejects.toThrow(/unknown property "markdown"/);
+    await expect(call(WRITE, 'composer.replaceSelection', id, { text: 'a' }, { at: 'end' })).rejects.toThrow(/unknown property "at"/);
+    await expect(call(WRITE, 'composer.replaceBody', id, { text: 'x'.repeat(512 * 1024 + 1) })).rejects.toThrow(/at most/);
+  });
+
+  it('attaches an uploaded blob with email:blob-write, checking the fields', async () => {
+    const handle = fakeHandle();
+    const { id } = registerComposer(handle);
+    const attacher = plugin(['email:blob-write']);
+    await expect(call(WRITE, 'composer.attach', id, { blobId: 'B1', name: 'a.pdf', size: 1 })).rejects.toThrow(/lacks permission "email:blob-write"/);
+    expect(await call(attacher, 'composer.attach', id, { blobId: 'B1', name: 'a.pdf', size: 10 })).toBe(true);
+    expect(handle.calls[0]).toEqual(['attach', { blobId: 'B1', name: 'a.pdf', type: 'application/octet-stream', size: 10 }]);
+    await expect(call(attacher, 'composer.attach', id, { blobId: 'B1', name: 'a.pdf', size: -1 })).rejects.toThrow(/whole number/);
+    await expect(call(attacher, 'composer.attach', id, { blobId: 'B1', name: '', size: 1 })).rejects.toThrow(/name/);
+  });
+
+  it('allows 60 edits a minute', async () => {
+    const { id } = registerComposer(fakeHandle());
+    for (let i = 0; i < 60; i++) await call(WRITE, 'composer.replaceBody', id, { text: `${i}` });
+    await expect(call(WRITE, 'composer.replaceBody', id, { text: 'one more' })).rejects.toThrow(/at most 60 edits a minute/);
+  });
+
+  it('counts reading the draft as ordinary, not high-risk; the plugin still needs a composer id', () => {
+    expect(HIGH_RISK_PERMISSIONS.has('compose:read')).toBe(false);
+    expect(HIGH_RISK_PERMISSIONS.has('compose:write')).toBe(false);
+  });
+});
+
+describe('plain-text composer', () => {
+  it('finds the own text above the signature separator, the quote header and the quote', () => {
+    const body = 'Hi Bob,\nsure.\n\n-- \nAlice\n\nOn Monday, Bob wrote:\n> Can you?';
+    const { from, to } = plainOwnRange(body, { replyLike: true });
+    expect(body.slice(from, to)).toBe('Hi Bob,\nsure.');
+    const reply = 'Thanks!\n\nOn Monday, Bob wrote:\n> Can you?';
+    expect(reply.slice(0, plainOwnRange(reply, { replyLike: true }).to)).toBe('Thanks!');
+    const sig = 'Hello\n\nAlice Example\nACME';
+    expect(sig.slice(0, plainOwnRange(sig, { signature: 'Alice Example\nACME' }).to)).toBe('Hello');
+    const fwd = 'FYI\n\n---------- Forwarded message ----------\nFrom: Bob';
+    expect(fwd.slice(0, plainOwnRange(fwd, { forwardedSeparator: '---------- Forwarded message ----------' }).to)).toBe('FYI');
+  });
+
+  it('edits the textarea through the browser\'s editing command, so its undo keeps working', () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = 'Hello Bob,\n\n-- \nAlice';
+    document.body.appendChild(textarea);
+    const exec = vi.fn((_cmd: string, _ui: boolean, text: string) => {
+      textarea.setRangeText(text, textarea.selectionStart, textarea.selectionEnd, 'end');
+      return true;
+    });
+    const doc = document as unknown as { execCommand: unknown };
+    const original = doc.execCommand;
+    doc.execCommand = exec;
+    const input = vi.fn();
+    textarea.addEventListener('input', input);
+    try {
+      replaceTextareaRange(textarea, 0, 10, 'Hi Bob,');
+      expect(exec).toHaveBeenCalledWith('insertText', false, 'Hi Bob,');
+      expect(textarea.value).toBe('Hi Bob,\n\n-- \nAlice');
+    } finally {
+      doc.execCommand = original;
+      textarea.remove();
+    }
+  });
+
+  it('falls back to setRangeText and an input event where the command is missing', () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = 'Hello';
+    document.body.appendChild(textarea);
+    const input = vi.fn();
+    textarea.addEventListener('input', input);
+    const doc = document as unknown as { execCommand: unknown };
+    const original = doc.execCommand;
+    doc.execCommand = () => false;
+    try {
+      replaceTextareaRange(textarea, 0, 5, 'Hi');
+      expect(textarea.value).toBe('Hi');
+      expect(input).toHaveBeenCalledTimes(1);
+    } finally {
+      doc.execCommand = original;
+      textarea.remove();
+    }
+  });
+});

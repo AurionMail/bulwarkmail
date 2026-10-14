@@ -4253,6 +4253,14 @@
         "title": "Abrir el editor por ti",
         "body": "Abrir un mensaje nuevo con los destinatarios, el texto o los adjuntos ya rellenados. Tú sigues decidiendo si se envía."
       },
+      "compose_read": {
+        "title": "Leer el mensaje que escribes",
+        "body": "Leer el texto de un mensaje mientras lo escribes, cuando usas el complemento en el editor. No la firma ni el mensaje citado."
+      },
+      "compose_write": {
+        "title": "Cambiar el mensaje que escribes",
+        "body": "Sustituir o añadir texto en un mensaje mientras lo escribes, cuando usas el complemento en el editor. Puedes deshacer cada cambio y sigues decidiendo si lo envías."
+      },
       "ui_notifications": {
         "title": "Mostrar notificaciones",
         "body": "Mostrar notificaciones en tu dispositivo, o dentro de la aplicación si no las has permitido. Cada una indica el nombre del complemento."

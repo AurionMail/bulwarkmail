@@ -52,6 +52,7 @@ import {
 import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } from './host-api-input';
 import { doComposeOpen, doDraftsCreate } from './host-api-compose';
 import { doNotificationsShow } from './host-api-notify';
+import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -256,6 +257,13 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'drafts.create': 'email:write',
   // A system notification (or a toast), naming the plugin, 5 a minute.
   'notifications.show': 'ui:notifications',
+  // The message being written, in a composer that handed the plugin its id.
+  'composer.getBody': 'compose:read',
+  'composer.getSelection': 'compose:read',
+  'composer.replaceSelection': 'compose:write',
+  'composer.replaceBody': 'compose:write',
+  // Attach a file the plugin uploaded (jmap.uploadBlob).
+  'composer.attach': 'email:blob-write',
 };
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
@@ -2008,6 +2016,12 @@ export async function dispatchApiCall(
     case 'drafts.create': return doDraftsCreate(plugin, args[0]);
 
     case 'notifications.show': return doNotificationsShow(plugin, args[0]);
+
+    case 'composer.getBody': return doComposerGetBody(plugin, args[0]);
+    case 'composer.getSelection': return doComposerGetSelection(plugin, args[0]);
+    case 'composer.replaceSelection': return doComposerReplaceSelection(plugin, args[0], args[1], args[2]);
+    case 'composer.replaceBody': return doComposerReplaceBody(plugin, args[0], args[1]);
+    case 'composer.attach': return doComposerAttach(plugin, args[0], args[1]);
 
     default:
       throw new Error(`Unhandled method "${method}"`);

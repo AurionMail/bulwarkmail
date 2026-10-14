@@ -34,7 +34,11 @@ import {
   Reply,
   Forward,
 } from "@/components/icons";
-import { ComposerPluginMenuItems, ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
+import { ComposerPluginMenuItems, ComposerPluginToolbarButtons, ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
+import { registerComposer } from "@/lib/plugin-sandbox/composer-registry";
+import { plainOwnRange, readOwnContent, readSelection as readEditorSelection, replaceOwnContent, replaceSelection as replaceEditorSelection, replaceTextareaRange, textToEditorHtml, type OwnTextOptions } from "@/lib/plugin-sandbox/composer-edit";
+import { actionsFor, runAction } from "@/lib/plugin-sandbox/actions";
+import { matchesCombo } from "@/lib/plugin-sandbox/shortcuts";
 import { cn, formatFileSize, formatDateTime, generateUUID } from "@/lib/utils";
 import { schedulePresets } from "@/lib/schedule-presets";
 import { debug } from "@/lib/debug";
@@ -2464,20 +2468,88 @@ export function EmailComposer({
     const { from, to } = editor.state.selection;
     return editor.state.doc.textBetween(from, to, '\n\n');
   }, []);
+  // Plugins read and change this message through api.composer, with the id
+  // this composer hands out in its action clicks and slot props (see
+  // composer-registry.ts). The rich editor is changed only through its own
+  // transactions, so one Ctrl+Z takes an edit back; the user's own text ends
+  // at the signature and the quote (composer-edit.ts).
+  const pluginEditOptsRef = useRef<OwnTextOptions & { signature: string }>({ signature: '' });
+  pluginEditOptsRef.current = {
+    replyLike: mode === 'reply' || mode === 'replyAll' || mode === 'forward',
+    forwardedSeparator: tQuote('forwarded_separator'),
+    signature: getPlainTextSignature(signatureIdentity),
+  };
+  const pluginAttachRef = useRef(handlePluginAttachmentAdd);
+  pluginAttachRef.current = handlePluginAttachmentAdd;
+  const [pluginComposerId, setPluginComposerId] = useState<string | null>(null);
+  useEffect(() => {
+    const plainRange = (value: string) => plainOwnRange(value, pluginEditOptsRef.current);
+    const { id, unregister } = registerComposer({
+      readBody: () => {
+        if (plainTextModeRef.current) {
+          const value = bodyRef.current?.value ?? '';
+          const { from, to } = plainRange(value);
+          const text = value.slice(from, to);
+          return { text, html: textToEditorHtml(text) };
+        }
+        const editor = editorRef.current;
+        return editor ? readOwnContent(editor, pluginEditOptsRef.current) : { html: '', text: '' };
+      },
+      readSelection: () => {
+        if (plainTextModeRef.current) {
+          const textarea = bodyRef.current;
+          const text = textarea ? textarea.value.slice(textarea.selectionStart ?? 0, textarea.selectionEnd ?? 0) : '';
+          return { text, html: textToEditorHtml(text), empty: text.length === 0 };
+        }
+        const editor = editorRef.current;
+        return editor ? readEditorSelection(editor) : { html: '', text: '', empty: true };
+      },
+      replaceBody: (html, text) => {
+        if (plainTextModeRef.current) {
+          const textarea = bodyRef.current;
+          if (!textarea) return false;
+          const { from, to } = plainRange(textarea.value);
+          return replaceTextareaRange(textarea, from, to, text);
+        }
+        const editor = editorRef.current;
+        return !!editor && replaceOwnContent(editor, html, pluginEditOptsRef.current);
+      },
+      replaceSelection: (html, text, { below }) => {
+        if (plainTextModeRef.current) {
+          const textarea = bodyRef.current;
+          if (!textarea) return false;
+          const start = textarea.selectionStart ?? textarea.value.length;
+          const end = textarea.selectionEnd ?? start;
+          return below
+            ? replaceTextareaRange(textarea, end, end, `\n\n${text}`)
+            : replaceTextareaRange(textarea, start, end, text);
+        }
+        const editor = editorRef.current;
+        return !!editor && replaceEditorSelection(editor, html, { below });
+      },
+      attach: (file) => pluginAttachRef.current(file as PluginAttachmentUpload),
+    });
+    setPluginComposerId(id);
+    return unregister;
+  }, []);
+
   const pluginDraftProps = useMemo(
-    () => ({ draft: pluginDraft, insertText: pluginInsertText, getSelectedText: pluginSelectedText }),
-    [pluginDraft, pluginInsertText, pluginSelectedText],
+    () => ({ draft: pluginDraft, insertText: pluginInsertText, getSelectedText: pluginSelectedText, composerId: pluginComposerId }),
+    [pluginDraft, pluginInsertText, pluginSelectedText, pluginComposerId],
   );
   const pluginToolbarProps = useMemo(
-    () => ({ insertText: pluginInsertText, getSelectedText: pluginSelectedText }),
-    [pluginInsertText, pluginSelectedText],
+    () => ({ insertText: pluginInsertText, getSelectedText: pluginSelectedText, composerId: pluginComposerId }),
+    [pluginInsertText, pluginSelectedText, pluginComposerId],
   );
   // A cloud picker attaches files, or puts share links in the text.
   const pluginAttachmentSourceProps = useMemo(
-    () => ({ onAttach: handlePluginAttachmentAdd, insertText: pluginInsertText }),
-    [handlePluginAttachmentAdd, pluginInsertText],
+    () => ({ onAttach: handlePluginAttachmentAdd, insertText: pluginInsertText, composerId: pluginComposerId }),
+    [handlePluginAttachmentAdd, pluginInsertText, pluginComposerId],
   );
-  const sendMenuContext = useCallback(() => ({ draft: draftSnapshotRef.current() }), []);
+  const pluginComposerIdRef = useRef(pluginComposerId);
+  pluginComposerIdRef.current = pluginComposerId;
+  const sendMenuContext = useCallback(() => ({ draft: draftSnapshotRef.current(), composerId: pluginComposerIdRef.current }), []);
+  const composerActionContext = useCallback(() => ({ composerId: pluginComposerIdRef.current }), []);
 
   // Trigger auto-save when content changes (only if user modified something)
   useEffect(() => {
@@ -3185,7 +3257,16 @@ export function EmailComposer({
     const hasPrimaryModifier = e.ctrlKey || e.metaKey;
     const isSendShortcut = e.key === 'Enter' && hasPrimaryModifier && !e.altKey && !e.shiftKey;
     const isScheduleShortcut = e.key === 'Enter' && hasPrimaryModifier && !e.altKey && e.shiftKey;
-    if (!isPlainEscape && !isSendShortcut && !isScheduleShortcut) return;
+    if (!isPlainEscape && !isSendShortcut && !isScheduleShortcut) {
+      // A plugin's composer button with a shortcut (composer-toolbar-actions)
+      // works while the composer has focus, also while typing.
+      if (!e.altKey && !hasPrimaryModifier) return;
+      const action = actionsFor('composer-toolbar-actions').find((a) => a.shortcut && matchesCombo(a.shortcut, e.nativeEvent));
+      if (!action) return;
+      e.preventDefault();
+      void runAction(action, 'composer-toolbar-actions', composerActionContext());
+      return;
+    }
 
     if (
       showTemplatePicker ||
@@ -3944,7 +4025,7 @@ export function EmailComposer({
                       {t('attach_from_files')}
                     </ComposerToolbarMenuItem>
                   )}
-                  <ComposerPluginMenuItems surface="composer-attach-menu" context={{}} onSelect={close} separator />
+                  <ComposerPluginMenuItems surface="composer-attach-menu" context={composerActionContext} onSelect={close} separator />
                 </>}
               </ComposerToolbarMenu>
             ) : (
@@ -3997,7 +4078,7 @@ export function EmailComposer({
               activeCount={[plainTextMode, requestReadReceipt, requestDsn, requireTls].filter(Boolean).length}
               testId="composer-options-menu"
             >
-              {() => <>
+              {(close) => <>
                 <ComposerToolbarMenuCheckItem
                   checked={plainTextMode}
                   onToggle={togglePlainTextMode}
@@ -4034,8 +4115,10 @@ export function EmailComposer({
                     {t('option_require_tls')}
                   </ComposerToolbarMenuCheckItem>
                 )}
+                <ComposerPluginMenuItems surface="composer-options-menu" context={composerActionContext} onSelect={close} separator />
               </>}
             </ComposerToolbarMenu>
+            <ComposerPluginToolbarButtons surface="composer-toolbar-actions" context={composerActionContext} />
           </div>
 
           {/* Right side - Discard + Send (desktop) */}
