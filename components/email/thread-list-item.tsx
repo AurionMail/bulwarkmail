@@ -43,6 +43,19 @@ import { useTranslations } from "next-intl";
  * it once the row grows a chip line. Extra-compact rows have no avatar and
  * anchor it on their single line instead (top padding + half a line).
  */
+/**
+ * Whether a row has been pointed at yet. The hover actions stay display:none
+ * until the pointer is over the row, so mounting them for every row up front
+ * only added a handful of icon buttons per row to every list render. They
+ * mount on the first pointer-enter and stay from then on, so the hover
+ * behaviour itself is unchanged.
+ */
+function useArmOnPointerEnter(): [boolean, () => void] {
+  const [armed, setArmed] = React.useState(false);
+  const arm = React.useCallback(() => setArmed(true), []);
+  return [armed, arm];
+}
+
 function UnreadDot({ besideAvatar }: { besideAvatar: boolean }) {
   const t = useTranslations('email_viewer');
   return (
@@ -372,6 +385,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
       sourceMailboxId: selectedMailbox,
     });
 
+    const [hoverActionsArmed, armHoverActions] = useArmOnPointerEnter();
     const { onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, isPressed } = useLongPress(
       useCallback((pos) => {
         onContextMenu?.(
@@ -462,6 +476,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         {...dragHandlers}
         {...touchHandlers}
         data-testid="email-list-item"
+        onPointerEnter={armHoverActions}
         data-email-id={email.id}
         data-subject={email.subject || ''}
         data-unread={isUnread ? 'true' : 'false'}
@@ -780,7 +795,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         </div>
 
         {/* Hover Quick Actions */}
-        {!email.isScheduled && (
+        {hoverActionsArmed && !email.isScheduled && (
           <EmailHoverActions
             email={email}
             backgroundClassName={resolvedRowTint ? resolvedRowTint : mvRow ? mvHoverBackground(isChecked, isUnread, selected) : ((selected || isChecked) ? "bg-accent" : "bg-muted")}
@@ -894,6 +909,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       threadEmails: thread.emails,
     });
 
+    const [hoverActionsArmed, armHoverActions] = useArmOnPointerEnter();
     const { onTouchStart: threadOnTouchStart, onTouchEnd: threadOnTouchEnd, onTouchMove: threadOnTouchMove, onTouchCancel: threadOnTouchCancel, isPressed: isThreadPressed } = useLongPress(
       useCallback((pos) => {
         onContextMenu?.(
@@ -1028,6 +1044,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         <div
           {...dragHandlers}
           {...threadLongPressHandlers}
+          onPointerEnter={armHoverActions}
           aria-current={isSelected ? 'true' : undefined}
           data-unread={hasUnread ? 'true' : 'false'}
           data-mv-mobile-row={mvMobileRow ? "" : undefined}
@@ -1388,7 +1405,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           </div>
 
           {/* Hover Quick Actions for thread header */}
-          {!latestEmail.isScheduled && (
+          {hoverActionsArmed && !latestEmail.isScheduled && (
             <EmailHoverActions
               email={latestEmail}
               backgroundClassName={rowTint ? rowTint : mvRow ? mvHoverBackground(isChecked, hasUnread, isSelected) : ((isSelected || isChecked) ? "bg-accent" : "bg-muted")}
@@ -1432,3 +1449,60 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     );
   }
 );
+
+ThreadListItem.displayName = "ThreadListItem";
+
+/**
+ * Whether two groupings describe the same thread row. The grouping is rebuilt
+ * whenever the list or the thread counts change, which hands every row a new
+ * `thread` object even when its messages are the very same objects.
+ */
+function isSameThread(a: ThreadGroup, b: ThreadGroup): boolean {
+  if (a === b) return true;
+  return a.threadKey === b.threadKey
+    && a.threadId === b.threadId
+    && a.emailCount === b.emailCount
+    && a.latestEmail === b.latestEmail
+    && a.hasUnread === b.hasUnread
+    && a.hasStarred === b.hasStarred
+    && a.hasPinned === b.hasPinned
+    && a.hasAttachment === b.hasAttachment
+    && a.hasAnswered === b.hasAnswered
+    && a.hasForwarded === b.hasForwarded
+    && a.emails.length === b.emails.length
+    && a.emails.every((email, i) => email === b.emails[i])
+    && a.participantNames.length === b.participantNames.length
+    && a.participantNames.every((name, i) => name === b.participantNames[i]);
+}
+
+/** The open message, if this row draws it; otherwise none of the row's business. */
+function openMessageWithin(props: ThreadListItemProps): string | undefined {
+  const id = props.selectedEmailId;
+  if (!id) return undefined;
+  const drawn = props.thread.emails.some((email) => email.id === id)
+    || (props.expandedEmails?.some((email) => email.id === id) ?? false);
+  return drawn ? id : undefined;
+}
+
+/** Props equality for MemoizedThreadListItem. */
+export function areThreadRowPropsEqual(prev: ThreadListItemProps, next: ThreadListItemProps): boolean {
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]) as Set<keyof ThreadListItemProps>;
+  for (const key of keys) {
+    if (key === 'thread') {
+      if (!isSameThread(prev.thread, next.thread)) return false;
+    } else if (key === 'selectedEmailId') {
+      if (openMessageWithin(prev) !== openMessageWithin(next)) return false;
+    } else if (!Object.is(prev[key], next[key])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * ThreadListItem for the message list. Opening a message, switching folder or
+ * a late thread count re-rendered every row on screen; this one re-renders
+ * only when something it draws has changed. Handlers are compared by
+ * identity, so the list passes stable ones (see useStableHandlers).
+ */
+export const MemoizedThreadListItem = React.memo(ThreadListItem, areThreadRowPropsEqual);

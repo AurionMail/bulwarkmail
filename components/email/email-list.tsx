@@ -1,7 +1,8 @@
 "use client";
 
 import { Email, ThreadGroup } from "@/lib/jmap/types";
-import { ThreadListItem } from "./thread-list-item";
+import { MemoizedThreadListItem } from "./thread-list-item";
+import { useStableHandlers } from "@/hooks/use-stable-handlers";
 import type { Attachment } from "@/lib/jmap/types";
 import type { LoadListAttachments } from "@/lib/list-attachments";
 import { listRowShowsChips } from "./attachment-chips";
@@ -591,6 +592,45 @@ export function EmailList({
     for (const [key, emails] of members) emitThreadExpand(key, emails, false);
   }, [collapseAllThreads, threadMembers]);
 
+  // Rows are memoised (MemoizedThreadListItem), which only pays off if what
+  // they are handed keeps its identity from one render to the next.
+  const rowHandlers = useStableHandlers({
+    onToggleExpandKey: handleToggleThreadExpansion,
+    onCollapseAllThreads: collapseAllThreadsAndNotify,
+    onEmailSelect: (email: Email) => {
+      // Collapse expanded threads when selecting an email outside the expanded thread
+      const currentExpanded = useEmailStore.getState().expandedThreadIds;
+      if (currentExpanded.size > 0) {
+        // Check if the selected email belongs to any expanded thread via its threadId
+        if (!email.threadId || !currentExpanded.has(threadKeyFor(email))) {
+          collapseAllThreadsAndNotify();
+        }
+      }
+      onEmailSelect?.(email);
+    },
+    onEmailDoubleClick,
+    onContextMenu: openContextMenu,
+    onOpenConversation,
+    onToggleStar,
+    onMarkAsRead,
+    onDelete,
+    onArchive,
+    onSetTag,
+    onMarkAsSpam,
+    onUndoSpam,
+    onOpenAttachment,
+  });
+  // One expand toggle per thread, kept for as long as the list lives.
+  const toggleExpandByThread = useRef(new Map<string, () => void>());
+  const toggleExpandFor = (threadKey: string) => {
+    let toggle = toggleExpandByThread.current.get(threadKey);
+    if (!toggle) {
+      toggle = () => rowHandlers.onToggleExpandKey(threadKey);
+      toggleExpandByThread.current.set(threadKey, toggle);
+    }
+    return toggle;
+  };
+
   // Range-based load more: trigger when last visible item is near the end.
   // Debounce to prevent rapid cascade when thread grouping reduces item
   // count below the viewport size (e.g. 2400 emails → fewer thread groups).
@@ -620,9 +660,15 @@ export function EmailList({
       thread.latestEmail.id === selectedEmailId ||
       thread.emails.some(e => e.id === selectedEmailId)
     );
-    if (index >= 0) {
-      virtualizer.scrollToIndex(index, { align: 'auto' });
-    }
+    if (index < 0) return;
+    // A row clicked in the list is already on screen; scrollToIndex would
+    // still measure and schedule a scroll. Judge from the virtualizer's own
+    // numbers, which cost no layout read.
+    const item = virtualizer.measurementsCache[index];
+    const top = virtualizer.scrollOffset;
+    const height = virtualizer.scrollRect?.height;
+    if (item && top !== null && height !== undefined && item.start >= top && item.end <= top + height) return;
+    virtualizer.scrollToIndex(index, { align: 'auto' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEmailId]);
 
@@ -844,36 +890,26 @@ export function EmailList({
                       width: '100%',
                     }}
                   >
-                    <ThreadListItem
+                    <MemoizedThreadListItem
                       thread={thread}
                       isExpanded={expandedThreadIds.has(thread.threadKey)}
                       selectedEmailId={selectedEmailId}
                       isLoading={isLoadingThread === thread.threadKey}
                       expandedEmails={threadEmailsCache.get(thread.threadKey)}
-                      onToggleExpand={() => handleToggleThreadExpansion(thread.threadKey)}
-                      onCollapseAllThreads={collapseAllThreadsAndNotify}
-                      onEmailSelect={(email) => {
-                        // Collapse expanded threads when selecting an email outside the expanded thread
-                        const currentExpanded = useEmailStore.getState().expandedThreadIds;
-                        if (currentExpanded.size > 0) {
-                          // Check if the selected email belongs to any expanded thread via its threadId
-                          if (!email.threadId || !currentExpanded.has(threadKeyFor(email))) {
-                            collapseAllThreadsAndNotify();
-                          }
-                        }
-                        onEmailSelect?.(email);
-                      }}
-                      onEmailDoubleClick={onEmailDoubleClick ? (email) => onEmailDoubleClick(email) : undefined}
-                      onContextMenu={openContextMenu}
-                      onOpenConversation={onOpenConversation}
-                      onToggleStar={onToggleStar ? (email) => onToggleStar(email) : undefined}
-                      onMarkAsRead={onMarkAsRead ? (email, read) => onMarkAsRead(email, read) : undefined}
-                      onDelete={onDelete ? (email) => onDelete(email) : undefined}
-                      onArchive={onArchive ? (email) => onArchive(email) : undefined}
-                      onSetTag={onSetTag}
-                      onMarkAsSpam={onMarkAsSpam ? (email) => onMarkAsSpam(email) : undefined}
-                      onUndoSpam={onUndoSpam ? (email) => onUndoSpam(email) : undefined}
-                      onOpenAttachment={onOpenAttachment}
+                      onToggleExpand={toggleExpandFor(thread.threadKey)}
+                      onCollapseAllThreads={rowHandlers.onCollapseAllThreads}
+                      onEmailSelect={rowHandlers.onEmailSelect}
+                      onEmailDoubleClick={rowHandlers.onEmailDoubleClick}
+                      onContextMenu={rowHandlers.onContextMenu}
+                      onOpenConversation={rowHandlers.onOpenConversation}
+                      onToggleStar={rowHandlers.onToggleStar}
+                      onMarkAsRead={rowHandlers.onMarkAsRead}
+                      onDelete={rowHandlers.onDelete}
+                      onArchive={rowHandlers.onArchive}
+                      onSetTag={rowHandlers.onSetTag}
+                      onMarkAsSpam={rowHandlers.onMarkAsSpam}
+                      onUndoSpam={rowHandlers.onUndoSpam}
+                      onOpenAttachment={rowHandlers.onOpenAttachment}
                       loadAttachments={loadAttachments}
                     />
                   </div>
