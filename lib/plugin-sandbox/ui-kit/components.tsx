@@ -779,12 +779,13 @@ export function EmptyState({ icon, title, description, actions, compact = false 
 // ─── Sidebar sections ──────────────────────────────────────────
 
 /** A row in a sidebar section, like a folder row. */
-export function SidebarRow({ icon, label, detail, onClick, title }: { icon?: string; label: React.ReactNode; detail?: React.ReactNode; onClick?: () => void; title?: string }) {
+export function SidebarRow({ icon, label, detail, onClick, title, ariaLabel }: { icon?: string; label: React.ReactNode; detail?: React.ReactNode; onClick?: () => void; title?: string; /** What a click does, for screen readers. */ ariaLabel?: string }) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
       {...(onClick ? { type: 'button' as const, onClick } : {})}
       title={title}
+      aria-label={ariaLabel}
       className={cn('bk w-full flex items-center gap-2 ps-[28px] pe-3 text-sm text-foreground text-start border-s-2 border-transparent transition-colors duration-150', onClick && 'hover:bg-muted/50 focus-visible:outline-none focus-visible:bg-muted/50')}
       style={{ paddingBlock: 'var(--density-sidebar-py)' }}
     >

@@ -228,5 +228,10 @@ describe('plugin-kit.css', () => {
     // Only the kit's sources are scanned: an app-only class stays out.
     expect(out).not.toContain('.email-content-wrapper');
     expect(out.length).toBeLessThan(80_000);
+    // Kit components whose root is the button itself (SidebarRow, RowAction)
+    // get the reset too, not only buttons inside a kit element.
+    const reset = out.split('}').find((rule) => /font:\s*inherit/.test(rule)) ?? '';
+    expect(reset).toMatch(/button\.bk/);
+    expect(reset).toMatch(/\.bk button/);
   }, 60_000);
 });

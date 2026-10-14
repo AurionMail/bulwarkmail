@@ -27,7 +27,7 @@
     padding: 0;
     border: 0 solid var(--color-border);
   }
-  :where(.bk button, .bk input, .bk select, .bk textarea) {
+  :where(button.bk, input.bk, select.bk, textarea.bk, .bk button, .bk input, .bk select, .bk textarea) {
     font: inherit;
     font-feature-settings: inherit;
     letter-spacing: inherit;
@@ -36,17 +36,17 @@
     border-radius: 0;
     opacity: 1;
   }
-  :where(.bk button, .bk select, .bk [role="button"], .bk [role="tab"], .bk [role="switch"], .bk [role="checkbox"], .bk [role="option"]):not(:disabled, [aria-disabled="true"]) {
+  :where(button.bk, select.bk, [role="button"].bk, [role="switch"].bk, [role="checkbox"].bk, .bk button, .bk select, .bk [role="button"], .bk [role="tab"], .bk [role="switch"], .bk [role="checkbox"], .bk [role="option"]):not(:disabled, [aria-disabled="true"]) {
     cursor: pointer;
   }
-  :where(.bk button:disabled, .bk select:disabled, .bk [aria-disabled="true"]) {
+  :where(button.bk:disabled, select.bk:disabled, .bk[aria-disabled="true"], .bk button:disabled, .bk select:disabled, .bk [aria-disabled="true"]) {
     cursor: not-allowed;
   }
   :where(.bk h1, .bk h2, .bk h3, .bk h4) {
     font-size: inherit;
     font-weight: inherit;
   }
-  :where(.bk a) {
+  :where(a.bk, .bk a) {
     color: inherit;
     text-decoration: inherit;
   }
