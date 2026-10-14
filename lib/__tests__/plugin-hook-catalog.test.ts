@@ -46,7 +46,7 @@ function isFired(hookName: string, groupName: string): boolean {
 // hook in it has a call site.
 const NOT_YET_WIRED = new Set<HookGroup>([
   'mail-list', 'mail-read', 'mail-compose', 'mail-send', 'mail-organize', 'mail-mailboxes', 'mail-search',
-  'mail-sync', 'calendar', 'tasks', 'settings', 'identities',
+  'mail-sync', 'settings', 'identities',
   'filters', 'vacation', 'templates', 'security'
 ]);
 
