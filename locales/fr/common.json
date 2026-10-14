@@ -4039,11 +4039,11 @@
       "high_risk": "Prudence",
       "email_read": {
         "title": "Lire vos e-mails",
-        "body": "Voir les expéditeurs, les destinataires, les objets et le texte complet des messages que vous ouvrez et de la liste des messages."
+        "body": "Voir les expéditeurs, les destinataires, les objets et le texte complet de n'importe quel message de votre compte, ainsi que vos dossiers."
       },
       "email_write": {
         "title": "Modifier les étiquettes et indicateurs de vos e-mails",
-        "body": "Ajouter ou retirer des étiquettes, des indicateurs et d'autres mots-clés sur vos messages."
+        "body": "Ajouter ou retirer des étiquettes, des indicateurs et d'autres mots-clés sur vos messages, et enregistrer des brouillons."
       },
       "email_send": {
         "title": "Modifier les e-mails avant leur envoi",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Savoir quand l'application démarre et s'arrête",
         "body": "Être averti lorsque l'application démarre, passe hors ligne ou que vous vous déconnectez."
+      },
+      "compose_open": {
+        "title": "Ouvrir l'éditeur pour vous",
+        "body": "Ouvrir un nouveau message avec les destinataires, le texte ou les pièces jointes déjà remplis. C'est toujours vous qui décidez de l'envoyer."
+      },
+      "ui_notifications": {
+        "title": "Afficher des notifications",
+        "body": "Afficher des notifications sur votre appareil, ou dans l'application si vous ne les avez pas autorisées. Chacune indique le nom du plugin."
       }
     },
     "dialog": {

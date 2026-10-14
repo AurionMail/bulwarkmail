@@ -4039,11 +4039,11 @@
       "high_risk": "Cal anar amb compte",
       "email_read": {
         "title": "Llegir el vostre correu",
-        "body": "Veure remitents, destinataris, assumptes i el text complet dels missatges que obriu i de la llista de missatges."
+        "body": "Veure remitents, destinataris, assumptes i el text complet de qualsevol missatge del vostre compte, i les vostres carpetes."
       },
       "email_write": {
         "title": "Canviar les etiquetes i marques del correu",
-        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges."
+        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges, i desar esborranys."
       },
       "email_send": {
         "title": "Canviar el correu abans d'enviar-lo",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Saber quan l'aplicació s'inicia i s'atura",
         "body": "Rebre un avís quan l'aplicació s'inicia, es queda sense connexió o tanqueu la sessió."
+      },
+      "compose_open": {
+        "title": "Obrir el redactor per a vós",
+        "body": "Obrir un missatge nou amb els destinataris, el text o els adjunts ja emplenats. Sou vós qui decidiu si s'envia."
+      },
+      "ui_notifications": {
+        "title": "Mostrar notificacions",
+        "body": "Mostrar notificacions al dispositiu, o dins l'aplicació si no les heu permeses. Cadascuna indica el nom del connector."
       }
     },
     "dialog": {

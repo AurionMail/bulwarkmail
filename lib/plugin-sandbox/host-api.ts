@@ -36,6 +36,21 @@ import { fileStorage } from '../plugin-storage';
 import { generateUUID } from '../utils';
 import { AddressBook, ContactCard, Identity } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInfo, PublicKeyInput, useAccountSecurityStore } from '@/stores/account-security-store';
+import {
+  doCalendarCreateEvent, doCalendarDeleteEvent, doCalendarGetEvent, doCalendarGetEvents,
+  doCalendarListCalendars, doCalendarUpdateEvent, doTasksCreate, doTasksDelete, doTasksGet,
+  doTasksList, doTasksSetComplete, doTasksUpdate,
+} from './host-api-calendar';
+import {
+  doIdentitiesUpdate, doTemplatesCreate, doTemplatesDelete, doTemplatesGet, doTemplatesList,
+  doTemplatesUpdate, doVacationGet, doVacationSet,
+} from './host-api-settings';
+import {
+  doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doMailboxesList,
+} from './host-api-mail';
+import { MAX_PLUGIN_FETCH_BYTES } from './host-api-input';
+import { doComposeOpen, doDraftsCreate } from './host-api-compose';
+import { doNotificationsShow } from './host-api-notify';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -73,7 +88,7 @@ const PRIVILEGED_ONLY_METHODS = new Set<string>([
   'upfiles.save',
 ]);
 
-const PERM_PER_METHOD: Record<string, Permission | null> = {
+export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // storage is unscoped by the manifest - implicit.
   'storage.get': null,
   'storage.set': null,
@@ -189,6 +204,47 @@ const PERM_PER_METHOD: Record<string, Permission | null> = {
   'sieve.getActiveScript': 'filters:read',
   'sieve.validateScript': 'filters:write',
   'sieve.regenerate': 'filters:write',
+  // calendar events. Reads go to the server; writes go through the calendar
+  // store so its plugin hooks run. None of them sends invitations.
+  'calendar.listCalendars': 'calendar:read',
+  'calendar.getEvents': 'calendar:read',
+  'calendar.getEvent': 'calendar:read',
+  'calendar.createEvent': 'calendar:write',
+  'calendar.updateEvent': 'calendar:write',
+  'calendar.deleteEvent': 'calendar:write',
+  // tasks
+  'tasks.list': 'tasks:read',
+  'tasks.get': 'tasks:read',
+  'tasks.create': 'tasks:write',
+  'tasks.update': 'tasks:write',
+  'tasks.setComplete': 'tasks:write',
+  'tasks.delete': 'tasks:write',
+  // message templates
+  'templates.list': 'templates:read',
+  'templates.get': 'templates:read',
+  'templates.create': 'templates:write',
+  'templates.update': 'templates:write',
+  'templates.delete': 'templates:write',
+  // sender identities: name, reply-to and signatures, never the address
+  'identities.update': 'identity:write',
+  // out-of-office reply
+  'vacation.get': 'vacation:read',
+  'vacation.set': 'vacation:write',
+  // reading mail: one message with its text, a page of a folder, the folders
+  'email.get': 'email:read',
+  'email.list': 'email:read',
+  'mailboxes.list': 'email:read',
+  // The bytes of one attachment of a given message, or of the message
+  // itself. Unlike jmap.fetchBlob these only reach blobs of a message the
+  // plugin names, so the untrusted tier may call them.
+  'email.getAttachment': 'email:blob-read',
+  'email.getRaw': 'email:blob-read',
+  // Open the composer filled in; the user still decides whether to send.
+  'compose.open': 'compose:open',
+  // Save a draft without opening the composer. Nothing is sent.
+  'drafts.create': 'email:write',
+  // A system notification (or a toast), naming the plugin, 5 a minute.
+  'notifications.show': 'ui:notifications',
 };
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
@@ -525,12 +581,10 @@ interface PluginFetchInit {
   body?: string | ArrayBuffer | ArrayBufferView | null;
 }
 
-/**
- * Largest response body http.fetch hands to a plugin. The body is copied
- * across postMessage twice (text and bytes), so an unbounded one could take
- * the tab down. Bigger transfers go through the server proxy.
- */
-export const MAX_PLUGIN_FETCH_BYTES = 25 * 1024 * 1024;
+// The http.fetch body is copied across postMessage twice (text and bytes);
+// MAX_PLUGIN_FETCH_BYTES (host-api-input.ts) caps it like every other body
+// the host hands a plugin.
+export { MAX_PLUGIN_FETCH_BYTES };
 
 async function readCapped(res: Response, limit: number): Promise<ArrayBuffer> {
   const declared = Number(res.headers.get('content-length'));
@@ -1865,6 +1919,42 @@ export async function dispatchApiCall(
       await doSieveRegenerate();
       return undefined;
     }
+
+    case 'calendar.listCalendars': return doCalendarListCalendars();
+    case 'calendar.getEvents': return doCalendarGetEvents(args[0]);
+    case 'calendar.getEvent': return doCalendarGetEvent(args[0]);
+    case 'calendar.createEvent': return doCalendarCreateEvent(args[0]);
+    case 'calendar.updateEvent': return doCalendarUpdateEvent(args[0], args[1]);
+    case 'calendar.deleteEvent': return doCalendarDeleteEvent(args[0]);
+
+    case 'tasks.list': return doTasksList(args[0]);
+    case 'tasks.get': return doTasksGet(args[0]);
+    case 'tasks.create': return doTasksCreate(args[0]);
+    case 'tasks.update': return doTasksUpdate(args[0], args[1]);
+    case 'tasks.setComplete': return doTasksSetComplete(args[0], args[1]);
+    case 'tasks.delete': return doTasksDelete(args[0]);
+
+    case 'templates.list': return doTemplatesList();
+    case 'templates.get': return doTemplatesGet(args[0]);
+    case 'templates.create': return doTemplatesCreate(args[0]);
+    case 'templates.update': return doTemplatesUpdate(args[0], args[1]);
+    case 'templates.delete': doTemplatesDelete(args[0]); return undefined;
+
+    case 'identities.update': return doIdentitiesUpdate(args[0], args[1]);
+
+    case 'vacation.get': return doVacationGet();
+    case 'vacation.set': return doVacationSet(args[0]);
+
+    case 'email.get': return doEmailGet(args[0]);
+    case 'email.list': return doEmailList(args[0]);
+    case 'mailboxes.list': return doMailboxesList();
+    case 'email.getAttachment': return doEmailGetAttachment(args[0], args[1]);
+    case 'email.getRaw': return doEmailGetRaw(args[0]);
+
+    case 'compose.open': return doComposeOpen(plugin, args[0]);
+    case 'drafts.create': return doDraftsCreate(plugin, args[0]);
+
+    case 'notifications.show': return doNotificationsShow(plugin, args[0]);
 
     default:
       throw new Error(`Unhandled method "${method}"`);

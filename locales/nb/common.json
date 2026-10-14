@@ -4039,11 +4039,11 @@
       "high_risk": "Krever varsomhet",
       "email_read": {
         "title": "Lese e-posten din",
-        "body": "Se avsendere, mottakere, emner og hele teksten i meldingene du åpner og i meldingslisten."
+        "body": "Se avsendere, mottakere, emner og hele teksten i alle meldinger på kontoen din, og mappene dine."
       },
       "email_write": {
         "title": "Endre etiketter og flagg på e-posten din",
-        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine."
+        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine, og lagre utkast."
       },
       "email_send": {
         "title": "Endre e-post før den sendes",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Vite når appen starter og stopper",
         "body": "Få beskjed når appen starter, går frakoblet eller du logger ut."
+      },
+      "compose_open": {
+        "title": "Åpne meldingsvinduet for deg",
+        "body": "Åpne en ny melding med mottakere, tekst eller vedlegg fylt ut. Du bestemmer fortsatt om den skal sendes."
+      },
+      "ui_notifications": {
+        "title": "Vise varsler",
+        "body": "Vise varsler på enheten din, eller i appen hvis du ikke har tillatt dem. Hvert varsel viser navnet på tillegget."
       }
     },
     "dialog": {

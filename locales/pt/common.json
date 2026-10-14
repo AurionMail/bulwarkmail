@@ -4039,11 +4039,11 @@
       "high_risk": "Requer atenção",
       "email_read": {
         "title": "Ler seus e-mails",
-        "body": "Ver remetentes, destinatários, assuntos e o texto completo das mensagens que você abre e da lista de mensagens."
+        "body": "Ver remetentes, destinatários, assuntos e o texto completo de qualquer mensagem da sua conta, e suas pastas."
       },
       "email_write": {
         "title": "Alterar etiquetas e marcações dos seus e-mails",
-        "body": "Adicionar ou remover etiquetas, marcações e outras palavras-chave nas suas mensagens."
+        "body": "Adicionar ou remover etiquetas, marcações e outras palavras-chave nas suas mensagens, e salvar rascunhos."
       },
       "email_send": {
         "title": "Alterar e-mails antes do envio",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Saber quando o aplicativo inicia e para",
         "body": "Ser avisado quando o aplicativo inicia, fica offline ou você sai."
+      },
+      "compose_open": {
+        "title": "Abrir o editor para você",
+        "body": "Abrir uma nova mensagem com destinatários, texto ou anexos já preenchidos. Você continua decidindo se ela é enviada."
+      },
+      "ui_notifications": {
+        "title": "Mostrar notificações",
+        "body": "Mostrar notificações no seu dispositivo, ou dentro do aplicativo se você não as permitiu. Cada uma indica o nome do plugin."
       }
     },
     "dialog": {

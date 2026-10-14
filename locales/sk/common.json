@@ -4039,11 +4039,11 @@
       "high_risk": "Vyžaduje opatrnosť",
       "email_read": {
         "title": "Čítať vašu poštu",
-        "body": "Vidí odosielateľov, príjemcov, predmety a celý text správ, ktoré otvoríte, aj zoznamu správ."
+        "body": "Vidí odosielateľov, príjemcov, predmety a celý text ktorejkoľvek správy vo vašom účte aj vaše priečinky."
       },
       "email_write": {
         "title": "Meniť štítky a príznaky pošty",
-        "body": "Pridáva alebo odstraňuje štítky, príznaky a ďalšie kľúčové slová pri vašich správach."
+        "body": "Pridáva alebo odstraňuje štítky, príznaky a ďalšie kľúčové slová pri vašich správach a ukladá koncepty."
       },
       "email_send": {
         "title": "Meniť poštu pred odoslaním",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Vedieť, kedy sa aplikácia spúšťa a ukončuje",
         "body": "Dostáva správu, keď sa aplikácia spustí, prejde do režimu offline alebo keď sa odhlásite."
+      },
+      "compose_open": {
+        "title": "Otvárať editor správy",
+        "body": "Otvorí novú správu s vyplnenými príjemcami, textom alebo prílohami. O odoslaní stále rozhodujete vy."
+      },
+      "ui_notifications": {
+        "title": "Zobrazovať upozornenia",
+        "body": "Zobrazuje upozornenia vo vašom zariadení alebo v aplikácii, ak ste ich nepovolili. Každé uvádza názov doplnku."
       }
     },
     "dialog": {

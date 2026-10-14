@@ -4039,11 +4039,11 @@
       "high_risk": "Con cuidado",
       "email_read": {
         "title": "Leer tu correo",
-        "body": "Ver remitentes, destinatarios, asuntos y el texto completo de los mensajes que abres y de la lista de mensajes."
+        "body": "Ver remitentes, destinatarios, asuntos y el texto completo de cualquier mensaje de tu cuenta, y tus carpetas."
       },
       "email_write": {
         "title": "Cambiar etiquetas y marcas de tu correo",
-        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes."
+        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes, y guardar borradores."
       },
       "email_send": {
         "title": "Cambiar el correo antes de enviarlo",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Saber cuándo se inicia y se cierra la aplicación",
         "body": "Recibir un aviso cuando la aplicación se inicia, se queda sin conexión o cierras sesión."
+      },
+      "compose_open": {
+        "title": "Abrir el editor por ti",
+        "body": "Abrir un mensaje nuevo con los destinatarios, el texto o los adjuntos ya rellenados. Tú sigues decidiendo si se envía."
+      },
+      "ui_notifications": {
+        "title": "Mostrar notificaciones",
+        "body": "Mostrar notificaciones en tu dispositivo, o dentro de la aplicación si no las has permitido. Cada una indica el nombre del complemento."
       }
     },
     "dialog": {

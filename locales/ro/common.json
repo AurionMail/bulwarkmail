@@ -4039,11 +4039,11 @@
       "high_risk": "Necesită atenție",
       "email_read": {
         "title": "Citirea e-mailurilor",
-        "body": "Vede expeditorii, destinatarii, subiectele și textul complet al mesajelor pe care le deschideți și al listei de mesaje."
+        "body": "Vede expeditorii, destinatarii, subiectele și textul complet al oricărui mesaj din contul dvs., precum și dosarele dvs."
       },
       "email_write": {
         "title": "Modificarea etichetelor și marcajelor e-mailurilor",
-        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs."
+        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs. și salvează ciorne."
       },
       "email_send": {
         "title": "Modificarea e-mailurilor înainte de trimitere",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Aflarea momentului pornirii și opririi aplicației",
         "body": "Este anunțat când aplicația pornește, trece offline sau vă deconectați."
+      },
+      "compose_open": {
+        "title": "Deschiderea ferestrei de redactare",
+        "body": "Deschide un mesaj nou cu destinatarii, textul sau atașamentele deja completate. Dvs. decideți în continuare dacă îl trimiteți."
+      },
+      "ui_notifications": {
+        "title": "Afișarea notificărilor",
+        "body": "Afișează notificări pe dispozitiv sau în aplicație, dacă nu le-ați permis. Fiecare indică numele pluginului."
       }
     },
     "dialog": {

@@ -6,6 +6,14 @@ export interface ParsedMailto {
   bcc: string[];
   subject: string;
   body: string;
+  /**
+   * Only from a plugin's api.compose.open, never from a mailto: URL: an HTML
+   * body (sanitised by the host) the composer opens in HTML mode instead of
+   * `body`.
+   */
+  htmlBody?: string;
+  /** Only from api.compose.open: files the plugin uploaded, attached as they are. */
+  attachments?: Array<{ blobId: string; name: string; type: string; size: number }>;
 }
 
 const MAX_RECIPIENTS = 200;
@@ -151,10 +159,22 @@ export function requestInternalMailto(raw: string): boolean {
   if (typeof window === "undefined") return false;
   const parsed = parseMailto(raw);
   if (!parsed || parsed.to.length === 0) return false;
+  return requestInternalCompose(parsed, raw);
+}
+
+/**
+ * Ask the mail page to open its composer with this draft, the way an in-app
+ * mailto: click does. Returns false when no mail page is mounted to take it.
+ */
+export function requestInternalCompose(draft: ParsedMailto, href?: string): boolean {
+  if (typeof window === "undefined") return false;
   // The listener signals "handled" by cancelling the event, which makes
   // dispatchEvent report false - so an uncancelled dispatch means nobody took it.
   const uncancelled = window.dispatchEvent(
-    new CustomEvent<ParsedMailto & { href: string }>(INTERNAL_MAILTO_EVENT, { detail: { ...parsed, href: raw }, cancelable: true }),
+    new CustomEvent<ParsedMailto & { href: string }>(INTERNAL_MAILTO_EVENT, {
+      detail: { ...draft, href: href ?? formatMailto(draft) },
+      cancelable: true,
+    }),
   );
   return !uncancelled;
 }

@@ -4039,11 +4039,11 @@
       "high_risk": "Needs care",
       "email_read": {
         "title": "Read your email",
-        "body": "See senders, recipients, subjects and the full text of messages you open and of the message list."
+        "body": "See senders, recipients, subjects and the full text of any message in your account, and your folders."
       },
       "email_write": {
         "title": "Change tags and flags on your email",
-        "body": "Add or remove tags, flags and other keywords on your messages."
+        "body": "Add or remove tags, flags and other keywords on your messages, and save drafts."
       },
       "email_send": {
         "title": "Change mail before it is sent",
@@ -4059,7 +4059,7 @@
       },
       "email_blob_read": {
         "title": "Read the raw content of messages",
-        "body": "Read the original data of your messages and attachments, and of every file you attach before it is sent."
+        "body": "Read attachments and the full source of messages you act on, and every file you attach before it is sent."
       },
       "email_blob_write": {
         "title": "Replace attachments before sending",
@@ -4276,6 +4276,14 @@
       "http_proxy": {
         "title": "Use accounts you connect",
         "body": "Send requests through Bulwark's server with an account or key that you or your administrator set up. The plugin never sees the password, but it can do anything that account can do on its own server."
+      },
+      "compose_open": {
+        "title": "Open the composer for you",
+        "body": "Open a new message with recipients, text or attachments filled in. You still decide whether to send it."
+      },
+      "ui_notifications": {
+        "title": "Show notifications",
+        "body": "Show notifications on your device, or in the app if you haven't allowed them. Each one names the plugin."
       }
     },
     "dialog": {

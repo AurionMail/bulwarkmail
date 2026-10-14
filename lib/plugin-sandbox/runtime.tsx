@@ -30,7 +30,11 @@ import type {
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
-import type { SlotName } from '../plugin-types';
+import type {
+  CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
+  EmailSummary, IdentityPatch, IdentityView, MailboxView, NotificationInput, SlotName, TaskInput,
+  TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
+} from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
 
@@ -431,6 +435,18 @@ function buildPluginApi(manifest: PluginManifest) {
       get: (fileId:string) =>
         callApi('upfiles.get', [fileId]) as Promise<File>,
     },
+    // Notifications (permission: ui:notifications).
+    notifications: {
+      /**
+       * A system notification when the user allowed them for the webmail,
+       * otherwise a toast; either way it names this plugin. At most 5 a
+       * minute. Clicking a system notification brings the webmail to the
+       * front and fires this plugin's onNotificationClick hook with the tag.
+       * Resolves to 'system' or 'toast'.
+       */
+      show: (notification: NotificationInput) =>
+        callApi('notifications.show', [notification]) as Promise<'system' | 'toast'>,
+    },
     toast: {
       success: (m: string) => { void callApi('toast.success', [m]); },
       error: (m: string) => { void callApi('toast.error', [m]); },
@@ -502,13 +518,64 @@ function buildPluginApi(manifest: PluginManifest) {
       accounts: () => callApi('proxy.accounts', []) as Promise<Array<{ credentialId: string; origin: string; username?: string; connected: boolean }>>,
       disconnect: (credentialId: string) => callApi('proxy.disconnect', [credentialId]) as Promise<boolean>,
     },
-    // Email keyword mutations (permission: email:write). Keywords follow JMAP
-    // syntax, e.g. '$category-promotions' or '$label:<tagId>'.
+    // Reading mail (permission: email:read) and keyword mutations
+    // (permission: email:write). Keywords follow JMAP syntax, e.g.
+    // '$category-promotions' or '$label:<tagId>'.
     email: {
+      /**
+       * One message with its plain text, headers and source, or null when
+       * there is none with that id. Any message of the account, not only the
+       * open one.
+       */
+      get: (emailId: string) => callApi('email.get', [emailId]) as Promise<EmailReadView | null>,
+      /**
+       * A page of a folder (or of all mail without mailboxId), in the user's
+       * list order: summaries without the body. limit 1-100 (default 50).
+       */
+      list: (options?: { mailboxId?: string; limit?: number; position?: number }) =>
+        callApi('email.list', [options]) as Promise<EmailSummary[]>,
+      /**
+       * The bytes of one attachment of a message (email:blob-read, at most
+       * 25 MB). `blobId` must be one of that message's attachments, e.g.
+       * from an `attachment-actions` slot or onAttachmentDownload.
+       */
+      getAttachment: (emailId: string, blobId: string) =>
+        callApi('email.getAttachment', [emailId, blobId], NETWORK_API_TIMEOUT_MS) as Promise<{
+          name: string; type: string; size: number; data: ArrayBuffer;
+        }>,
+      /** The full RFC 5322 source of a message, to save as .eml (email:blob-read, at most 25 MB). */
+      getRaw: (emailId: string) =>
+        callApi('email.getRaw', [emailId], NETWORK_API_TIMEOUT_MS) as Promise<ArrayBuffer>,
       setKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.setKeyword', [emailId, keyword, accountId]) as Promise<void>,
       removeKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.removeKeyword', [emailId, keyword, accountId]) as Promise<void>,
+    },
+    // The composer (permission: compose:open). Opens it filled in; the user
+    // reviews the message and decides whether to send it.
+    compose: {
+      /**
+       * Open the composer with these fields. On the mail page it opens in
+       * place; anywhere else the app first goes to the mail page (the
+       * plugin is reloaded with it). Resolves to 'opened' or 'navigating'.
+       * At most 5 times a minute.
+       */
+      open: (message: ComposeInput) => callApi('compose.open', [message]) as Promise<'opened' | 'navigating'>,
+    },
+    // Drafts (permission: email:write).
+    drafts: {
+      /**
+       * Save a draft in the Drafts folder, from the user's default sender
+       * address, without opening the composer. Attachments are blobs the
+       * plugin uploaded with api.jmap.uploadBlob. Resolves to the draft's
+       * email id. At most 10 a minute.
+       */
+      create: (draft: DraftInput) => callApi('drafts.create', [draft]) as Promise<string>,
+    },
+    // Folders (permission: email:read).
+    mailboxes: {
+      /** Every folder with its role, parent and message counts. */
+      list: () => callApi('mailboxes.list', []) as Promise<MailboxView[]>,
     },
     // Native sidebar tag definitions. Definition reads/writes use the existing
     // settings permissions; server discovery and message counts use email:read.
@@ -567,6 +634,75 @@ function buildPluginApi(manifest: PluginManifest) {
     search: {
       run: (query: unknown, options?: { label?: string }) =>
         callApi('search.run', [query, options]) as Promise<void>,
+    },
+    // Calendar events (permissions: calendar:read / calendar:write). Writes
+    // go through the calendar the way the user's own edits do, so other
+    // plugins' hooks run and may stop them. Nothing here sends invitations,
+    // updates or cancellations to participants.
+    calendar: {
+      /** The user's calendars. */
+      listCalendars: () => callApi('calendar.listCalendars', []) as Promise<CalendarView[]>,
+      /**
+       * Events from `from` to `to` (at most 366 days; `2026-05-01`,
+       * `2026-05-01T09:00` or `...Z`), recurring events expanded into their
+       * occurrences, earliest first, at most 1000.
+       */
+      getEvents: (range: { from: string; to: string; calendarIds?: string[] }) =>
+        callApi('calendar.getEvents', [range]) as Promise<CalendarEventView[]>,
+      /** One event, or null when there is none with that id. */
+      getEvent: (id: string) => callApi('calendar.getEvent', [id]) as Promise<CalendarEventView | null>,
+      /** Resolves to the new event, or null when it was not created (a plugin stopped it or the server refused). */
+      createEvent: (event: CalendarEventInput) =>
+        callApi('calendar.createEvent', [event]) as Promise<CalendarEventView | null>,
+      /** Change the given fields; times are worked out against the event's current ones. */
+      updateEvent: (id: string, patch: Partial<CalendarEventInput>) =>
+        callApi('calendar.updateEvent', [id, patch]) as Promise<void>,
+      /** Delete an event, or one occurrence when given an occurrence's id. */
+      deleteEvent: (id: string) => callApi('calendar.deleteEvent', [id]) as Promise<void>,
+    },
+    // Tasks (permissions: tasks:read / tasks:write), through the task list
+    // the way the user's own edits go.
+    tasks: {
+      /** Open tasks, or every task with includeCompleted. At most 1000. */
+      list: (options?: { includeCompleted?: boolean }) => callApi('tasks.list', [options]) as Promise<TaskView[]>,
+      /** One task, or null. */
+      get: (id: string) => callApi('tasks.get', [id]) as Promise<TaskView | null>,
+      /** Resolves to the new task, or null when another plugin stopped it. */
+      create: (task: TaskInput) => callApi('tasks.create', [task]) as Promise<TaskView | null>,
+      /** Change the given fields. */
+      update: (id: string, patch: Partial<TaskInput>) => callApi('tasks.update', [id, patch]) as Promise<void>,
+      /** Mark a task done or not done. */
+      setComplete: (id: string, complete: boolean) => callApi('tasks.setComplete', [id, complete]) as Promise<void>,
+      delete: (id: string) => callApi('tasks.delete', [id]) as Promise<void>,
+    },
+    // Message templates (permissions: templates:read / templates:write).
+    // They live with the user's settings and sync across devices.
+    templates: {
+      list: () => callApi('templates.list', []) as Promise<TemplateView[]>,
+      /** One template, or null. */
+      get: (id: string) => callApi('templates.get', [id]) as Promise<TemplateView | null>,
+      /** At most 500 templates in all. An HTML body is sanitised. */
+      create: (template: TemplateInput) => callApi('templates.create', [template]) as Promise<TemplateView>,
+      update: (id: string, patch: Partial<TemplateInput>) =>
+        callApi('templates.update', [id, patch]) as Promise<TemplateView>,
+      delete: (id: string) => callApi('templates.delete', [id]) as Promise<void>,
+    },
+    // Sender identities. Read them with api.user.getIdentities()
+    // (identity:read); change one with identity:write.
+    identities: {
+      /**
+       * Change the name, reply-to addresses or signatures of one identity.
+       * The address can't be changed. An HTML signature is sanitised like
+       * one typed into Settings. Resolves to the identity as changed.
+       */
+      update: (id: string, patch: IdentityPatch) =>
+        callApi('identities.update', [id, patch]) as Promise<IdentityView>,
+    },
+    // Out-of-office reply (permissions: vacation:read / vacation:write).
+    vacation: {
+      get: () => callApi('vacation.get', []) as Promise<VacationView>,
+      /** Resolves to the reply as saved, or null when another plugin stopped the change. */
+      set: (vacation: VacationInput) => callApi('vacation.set', [vacation]) as Promise<VacationView | null>,
     },
     // OAuth with a third party (permission: http:fetch). Put createState()'s
     // value in the authorize URL; the code comes back through the

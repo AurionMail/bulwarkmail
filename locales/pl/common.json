@@ -4039,11 +4039,11 @@
       "high_risk": "Wymaga ostrożności",
       "email_read": {
         "title": "Czytanie poczty",
-        "body": "Widzi nadawców, odbiorców, tematy i pełną treść otwieranych wiadomości oraz listy wiadomości."
+        "body": "Widzi nadawców, odbiorców, tematy i pełną treść każdej wiadomości na Twoim koncie oraz Twoje foldery."
       },
       "email_write": {
         "title": "Zmiana etykiet i flag w poczcie",
-        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach."
+        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach oraz zapisuje szkice."
       },
       "email_send": {
         "title": "Zmiana poczty przed wysłaniem",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Informacja o uruchomieniu i zamknięciu aplikacji",
         "body": "Otrzymuje informację, gdy aplikacja się uruchamia, przechodzi w tryb offline lub gdy się wylogowujesz."
+      },
+      "compose_open": {
+        "title": "Otwieranie edytora wiadomości",
+        "body": "Otwiera nową wiadomość z wypełnionymi odbiorcami, treścią lub załącznikami. O wysłaniu nadal decydujesz Ty."
+      },
+      "ui_notifications": {
+        "title": "Wyświetlanie powiadomień",
+        "body": "Wyświetla powiadomienia na urządzeniu lub w aplikacji, jeśli ich nie zezwolono. Każde podaje nazwę wtyczki."
       }
     },
     "dialog": {

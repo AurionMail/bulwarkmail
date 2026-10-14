@@ -4039,11 +4039,11 @@
       "high_risk": "Con cautela",
       "email_read": {
         "title": "Leggere la tua posta",
-        "body": "Vedere mittenti, destinatari, oggetti e il testo completo dei messaggi che apri e dell'elenco dei messaggi."
+        "body": "Vedere mittenti, destinatari, oggetti e il testo completo di qualsiasi messaggio del tuo account, e le tue cartelle."
       },
       "email_write": {
         "title": "Modificare etichette e contrassegni della tua posta",
-        "body": "Aggiungere o rimuovere etichette, contrassegni e altre parole chiave dai tuoi messaggi."
+        "body": "Aggiungere o rimuovere etichette, contrassegni e altre parole chiave dai tuoi messaggi, e salvare bozze."
       },
       "email_send": {
         "title": "Modificare la posta prima dell'invio",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Sapere quando l'app si avvia e si chiude",
         "body": "Ricevere un avviso quando l'app si avvia, va offline o ti disconnetti."
+      },
+      "compose_open": {
+        "title": "Aprire l'editor per te",
+        "body": "Aprire un nuovo messaggio con destinatari, testo o allegati già compilati. Sei sempre tu a decidere se inviarlo."
+      },
+      "ui_notifications": {
+        "title": "Mostrare notifiche",
+        "body": "Mostrare notifiche sul tuo dispositivo, o nell'app se non le hai consentite. Ognuna indica il nome del plugin."
       }
     },
     "dialog": {

@@ -509,6 +509,55 @@ export interface CalendarView {
   color: string;
   isVisible: boolean;
   isDefault: boolean;
+  /** Holds tasks only; events can't be put in it. */
+  isTasksOnly: boolean;
+}
+
+/**
+ * What a plugin passes to `api.calendar.createEvent` (and, every field
+ * optional, to `updateEvent`). Times are written one of three ways:
+ * `2026-05-01` (a day), `2026-05-01T09:30` (a wall-clock time in `timeZone`)
+ * or `2026-05-01T07:30:00Z` (UTC). Give `end` or `duration`, not both; with
+ * neither an event lasts one hour, or one day when it is all-day.
+ */
+export interface CalendarEventInput {
+  /** 1-500 characters. */
+  title: string;
+  /** Up to 10,000 characters of plain text. */
+  description?: string;
+  start: string;
+  /** Exclusive: an all-day event on May 1 ends on `2026-05-02`. */
+  end?: string;
+  /** ISO 8601 duration such as `PT1H30M`, or whole days (`P2D`) when all-day. */
+  duration?: string;
+  /** IANA zone of a wall-clock `start`. Defaults to the user's zone. */
+  timeZone?: string;
+  /** Defaults to true when `start` is a date without a time. */
+  isAllDay?: boolean;
+  /** Up to 500 characters. */
+  location?: string;
+  /** From `api.calendar.listCalendars()`. Defaults to the default calendar. */
+  calendarId?: string;
+  /**
+   * Attendees, at most 50, stored with the user as organizer. No invitation
+   * is sent; the user can send them from the event. An empty array removes
+   * them.
+   */
+  participants?: { email: string; name?: string }[];
+}
+
+/** What a plugin passes to `api.tasks.create` (and, every field optional, to `update`). */
+export interface TaskInput {
+  /** 1-500 characters. */
+  title: string;
+  /** Up to 10,000 characters of plain text. */
+  description?: string;
+  /** `2026-05-01` or `2026-05-01T17:00` (wall clock). null removes it on update. */
+  due?: string | null;
+  /** 0 (none), 1 (highest) to 9 (lowest). */
+  priority?: number;
+  /** Defaults to the tasks calendar, else the default calendar. */
+  calendarId?: string;
 }
 
 export interface ContactView {
@@ -583,6 +632,96 @@ export interface TemplateView {
   subject: string;
   body: string;
   isHTML: boolean;
+}
+
+/** What a plugin passes to `api.templates.create` (and, every field optional, to `update`). */
+export interface TemplateInput {
+  /** 1-200 characters. */
+  name: string;
+  /** Up to 998 characters. */
+  subject?: string;
+  /** Up to 100,000 characters. When isHTML, sanitised like any HTML a plugin hands the host. */
+  body?: string;
+  isHTML?: boolean;
+  /** Up to 100 characters; '' for none. */
+  category?: string;
+}
+
+/** What a plugin may change on a sender identity with `api.identities.update`. The address can't be changed. */
+export interface IdentityPatch {
+  /** Up to 256 characters. */
+  name?: string;
+  /** At most 10 addresses (`a@example.com` or `Name <a@example.com>`); null or [] removes them. */
+  replyTo?: string[] | null;
+  /** Up to 20,000 characters; null or '' removes it. */
+  textSignature?: string | null;
+  /** Up to 100,000 characters, sanitised like a signature typed into Settings; null or '' removes it. */
+  htmlSignature?: string | null;
+}
+
+/** What a plugin passes to `api.vacation.set`. Fields left out keep their value. */
+export interface VacationInput {
+  isEnabled: boolean;
+  /** Up to 500 characters. */
+  subject?: string;
+  /** Up to 64,000 characters. Derived from htmlBody when that is given and this is not. */
+  textBody?: string;
+  /** Up to 64,000 characters, sanitised like the HTML typed into Settings; null removes it. */
+  htmlBody?: string | null;
+  /** When the reply starts, with a zone (`2026-05-01T00:00:00Z`), or null for now. */
+  fromDate?: string | null;
+  /** When it ends, or null for open-ended. */
+  toDate?: string | null;
+}
+
+/**
+ * A file the plugin uploaded with `api.jmap.uploadBlob`, to attach to a
+ * message it opens or saves.
+ */
+export interface BlobAttachmentRef {
+  blobId: string;
+  /** 1-255 characters. */
+  name: string;
+  /** A media type such as application/pdf. */
+  type: string;
+  /** Bytes. */
+  size: number;
+}
+
+/**
+ * What a plugin passes to `api.compose.open`. Addresses are
+ * `a@example.com` or `Name <a@example.com>`; at most 100 recipients and 20
+ * attachments.
+ */
+export interface ComposeInput {
+  to?: string[];
+  cc?: string[];
+  bcc?: string[];
+  /** One line, up to 998 characters. */
+  subject?: string;
+  /** Up to 512 KB. Plain text unless isHtml; HTML is sanitised. */
+  body?: string;
+  isHtml?: boolean;
+  attachments?: BlobAttachmentRef[];
+}
+
+/** What a plugin passes to `api.drafts.create`: the same fields as ComposeInput. */
+export type DraftInput = ComposeInput;
+
+/**
+ * What a plugin passes to `api.notifications.show`. The plugin's name is
+ * added to what the user sees, so they know who sent it.
+ */
+export interface NotificationInput {
+  /** 1-120 characters, one line. */
+  title: string;
+  /** Up to 300 characters, one line. */
+  body?: string;
+  /**
+   * 1-64 letters, digits or `. _ : -`. A new notification with the same tag
+   * replaces the old one, and onNotificationClick hands the tag back.
+   */
+  tag?: string;
 }
 
 export interface FilterRuleView {
@@ -1090,12 +1229,17 @@ export const ALL_PERMISSIONS = [
   // Submit a fully-formed raw RFC822 message via JMAP (used after a plugin
   // signs/encrypts an outgoing message itself).
   'email:raw-send',
-  // Fetch a message blob's raw bytes by blobId (for decrypt/verify).
+  // Read the bytes of a message's attachments and its full source
+  // (email.getAttachment / email.getRaw), and of files the user attaches.
+  // Arbitrary blob ids (jmap.fetchBlob) stay privileged-tier only.
   'email:blob-read',
   // Upload a file to server (for encrypt).
   'email:blob-write',
   // Replace the rendered body of an opened email (render-takeover).
   'email:render-takeover',
+  // Open the composer filled in (api.compose.open). Low risk: the user still
+  // has to press Send.
+  'compose:open',
   'calendar:read', 'calendar:write',
   'contacts:read', 'contacts:write',
   'files:read', 'files:write',
@@ -1113,6 +1257,9 @@ export const ALL_PERMISSIONS = [
   'ui:observe', 'ui:toolbar', 'ui:app-top-banner', 'ui:email-banner', 'ui:email-footer', 'ui:contact-cryptokeys',
   'ui:email-details',
   'ui:download-file',
+  // Show a system notification, or a toast when the user hasn't allowed them
+  // (api.notifications.show).
+  'ui:notifications',
   // Register native message-list category tabs (Gmail-style inbox tabs).
   'ui:message-list-tabs',
   'ui:composer-toolbar', 'ui:composer-sidebar',

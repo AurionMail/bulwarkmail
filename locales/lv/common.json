@@ -4039,11 +4039,11 @@
       "high_risk": "Nepieciešama piesardzība",
       "email_read": {
         "title": "Lasīt jūsu pastu",
-        "body": "Redzēt sūtītājus, adresātus, tēmas un visu tekstu vēstulēm, ko atverat, un vēstulēm sarakstā."
+        "body": "Redzēt sūtītājus, adresātus, tēmas un visu tekstu jebkurai vēstulei jūsu kontā, kā arī jūsu mapes."
       },
       "email_write": {
         "title": "Mainīt vēstuļu tagus un karodziņus",
-        "body": "Pievienot vai noņemt tagus, karodziņus un citus atslēgvārdus jūsu vēstulēm."
+        "body": "Pievienot vai noņemt tagus, karodziņus un citus atslēgvārdus jūsu vēstulēm un saglabāt melnrakstus."
       },
       "email_send": {
         "title": "Mainīt vēstules pirms nosūtīšanas",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Zināt, kad lietotne startē un apstājas",
         "body": "Saņemt ziņu, kad lietotne startē, pāriet bezsaistē vai jūs izrakstāties."
+      },
+      "compose_open": {
+        "title": "Atvērt redaktoru jūsu vietā",
+        "body": "Atvērt jaunu vēstuli ar jau aizpildītiem adresātiem, tekstu vai pielikumiem. Vai to nosūtīt, joprojām izlemjat jūs."
+      },
+      "ui_notifications": {
+        "title": "Rādīt paziņojumus",
+        "body": "Rādīt paziņojumus jūsu ierīcē vai lietotnē, ja neesat tos atļāvis. Katrā ir spraudņa nosaukums."
       }
     },
     "dialog": {

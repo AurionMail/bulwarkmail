@@ -4039,11 +4039,11 @@
       "high_risk": "Dikkat gerektirir",
       "email_read": {
         "title": "E-postalarınızı okuma",
-        "body": "Açtığınız iletilerin ve ileti listesindekilerin gönderenlerini, alıcılarını, konularını ve tam metnini görme."
+        "body": "Hesabınızdaki herhangi bir iletinin gönderenlerini, alıcılarını, konusunu ve tam metnini, ayrıca klasörlerinizi görme."
       },
       "email_write": {
         "title": "E-postalarınızdaki etiketleri ve bayrakları değiştirme",
-        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma."
+        "body": "İletilerinize etiket, bayrak ve diğer anahtar sözcükleri ekleme veya kaldırma ve taslak kaydetme."
       },
       "email_send": {
         "title": "Gönderilmeden önce iletileri değiştirme",
@@ -4248,6 +4248,14 @@
       "app_lifecycle": {
         "title": "Uygulamanın başladığını ve durduğunu bilme",
         "body": "Uygulama başladığında, çevrimdışı olduğunda veya çıkış yaptığınızda haber alma."
+      },
+      "compose_open": {
+        "title": "İleti düzenleyiciyi açma",
+        "body": "Alıcıları, metni veya ekleri doldurulmuş yeni bir ileti açma. Gönderip göndermemeye yine siz karar verirsiniz."
+      },
+      "ui_notifications": {
+        "title": "Bildirim gösterme",
+        "body": "Cihazınızda bildirim gösterme ya da bildirimlere izin vermediyseniz uygulama içinde gösterme. Her bildirimde eklentinin adı yer alır."
       }
     },
     "dialog": {
