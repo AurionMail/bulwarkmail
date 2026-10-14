@@ -8,6 +8,7 @@ import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from 
 import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty } from "@/lib/jmap/search-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
 import { allowEmailMove, emitEmailMove, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
+import { emailSummary } from "@/lib/plugin-projection";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import { emailKeyFor, threadKeyFor, threadIdFromKey, KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
 import type { ExternalSearchResult } from "@/lib/plugin-types";
@@ -739,6 +740,68 @@ async function applyEmailDeltaNow(client: IJMAPClient, newState: string, get: St
   });
   return true;
 }
+
+// ─── New mail for plugins (onNewEmailReceived) ───────────────────────────────
+//
+// A message is new mail when Email/changes reports it as created and it sits
+// in the Inbox. A move into the Inbox (undo spam, a drag, unarchive) keeps
+// its id and shows up as updated, and the initial load is the baseline, so
+// neither is reported. The check runs on its own baseline, independent of
+// whichever folder or view is open.
+
+/** Email state per JMAP account up to which new mail was reported. */
+const newMailBaselines = new Map<string, string>();
+/** Recently reported ids, so an overlapping delta never reports one twice. */
+const reportedNewMail: string[] = [];
+let newMailQueue: Promise<void> = Promise.resolve();
+const NEW_MAIL_MAX_PAGES = 5;
+
+function reportNewInboxMail(client: IJMAPClient, accountId: string, pushedState: string, seedState: string | undefined, get: StoreGet): Promise<void> {
+  const run = async () => {
+    const since = newMailBaselines.get(accountId) ?? seedState;
+    // Nobody listens: keep the baseline current so a plugin that starts
+    // listening later is not handed old mail.
+    if (emailHooks.onNewEmailReceived.size === 0 || !client.getEmailChanges || !since) {
+      newMailBaselines.set(accountId, pushedState);
+      return;
+    }
+    if (since === pushedState) return;
+    const created: string[] = [];
+    let state = since;
+    for (let page = 0; page < NEW_MAIL_MAX_PAGES; page++) {
+      const delta = await client.getEmailChanges(state, undefined, EMAIL_DELTA_MAX_CHANGES);
+      if (!delta) {
+        // The baseline is too old for the server; start over from here.
+        newMailBaselines.set(accountId, pushedState);
+        return;
+      }
+      created.push(...delta.created);
+      state = delta.newState;
+      if (!delta.hasMoreChanges) break;
+    }
+    newMailBaselines.set(accountId, state);
+    const fresh = created.filter(id => !reportedNewMail.includes(id));
+    if (fresh.length === 0) return;
+    const inbox = get().mailboxes.find(mb => mb.role === 'inbox' && !mb.isShared);
+    if (!inbox) return;
+    const inboxIds = [inbox.id, inbox.originalId].filter((id): id is string => !!id);
+    const emails = await client.getSomeEmails(fresh);
+    for (const email of emails) {
+      if (email.keywords?.$draft || !inboxIds.some(id => email.mailboxIds?.[id])) continue;
+      reportedNewMail.push(email.id);
+      if (reportedNewMail.length > 500) reportedNewMail.shift();
+      void emailHooks.onNewEmailReceived.emit(emailSummary(email));
+    }
+  };
+  const next = newMailQueue.then(run, run).catch((error) => {
+    console.error('Failed to check for new mail:', error);
+  });
+  newMailQueue = next;
+  return next;
+}
+
+/** Overlapping state-change runs share one syncing/idle cycle (onSyncStateChange). */
+let syncRuns = 0;
 
 function resolveActionClient(passedClient: IJMAPClient): IJMAPClient {
   const viewingId = useEmailStore.getState().viewingAccountId;
@@ -4632,12 +4695,27 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   handleStateChange: async (change, client) => {
+    syncRuns += 1;
+    if (syncRuns === 1) void emailHooks.onSyncStateChange.emit({ state: 'syncing' });
+    let syncError: string | null = null;
     try {
       // Update last push update timestamp
       set({ lastPushUpdate: Date.now() });
 
       // Get the current account ID from the client (assuming primary account)
       const accountId = client.getAccountId();
+
+      // New mail for plugins. Read the list's baseline before the delta
+      // below moves it past the new messages.
+      const pushedEmailState = change.changed[accountId]?.Email;
+      if (pushedEmailState) {
+        const listSync = get().emailListSync;
+        void reportNewInboxMail(
+          client, accountId, pushedEmailState,
+          listSync?.accountId === accountId ? listSync.state : undefined,
+          get,
+        );
+      }
 
       // Changes may arrive for the client's primary account OR a delegated
       // shared/group owner it has access to. Active-account *view* concerns
@@ -4735,9 +4813,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to handle state change:', error);
-      set({
-        error: error instanceof Error ? error.message : "Failed to handle push notification"
-      });
+      syncError = error instanceof Error ? error.message : "Failed to handle push notification";
+      set({ error: syncError });
+    } finally {
+      syncRuns -= 1;
+      if (syncError !== null) {
+        void emailHooks.onSyncStateChange.emit({ state: 'error', error: syncError });
+      } else if (syncRuns === 0) {
+        void emailHooks.onSyncStateChange.emit({ state: 'idle' });
+      }
     }
   },
 
@@ -6273,6 +6357,9 @@ useEmailStore.subscribe((state, prev) => {
   if (state.quota && state.quota !== prev.quota
     && (state.quota.used !== prev.quota?.used || state.quota.total !== prev.quota?.total)) {
     void emailHooks.onQuotaChange.emit(quotaToView(state.quota));
+  }
+  if (state.isPushConnected !== prev.isPushConnected) {
+    void emailHooks.onPushConnectionChange.emit({ connected: state.isPushConnected });
   }
 });
 

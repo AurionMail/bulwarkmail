@@ -1406,6 +1406,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const bindings = pushBindingsRef.current;
     if (!isAuthenticated || !client) {
       releasePushBindings(bindings);
+      setPushConnected(false);
       return;
     }
     reconcilePushBindings({
@@ -1439,6 +1440,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (bindings.size > 0) {
       setPushConnected(true);
       debug.log('push', `[Push] Push notifications enabled for ${bindings.size} account(s)`);
+    } else {
+      setPushConnected(false);
     }
   }, [isAuthenticated, client, activeAccountId, connectedAccountsSignature, connectedAccountsRevision, setPushConnected]);
 
