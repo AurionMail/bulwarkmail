@@ -14,6 +14,8 @@ import {
   removeAllPluginHooks, pluginErrorTracker, setHookTimeoutListener,
 } from '../plugin-hooks';
 import { useMessageListTabsStore } from '@/stores/message-list-tabs-store';
+import { useEmailStore } from '@/stores/email-store';
+import { emailToReadView } from '../plugin-projection';
 import { verifyBundle } from './bundle-integrity';
 import { downloadManagedBundle } from './bundle-fetch';
 import { createBackgroundInstance, forEachInstance } from './host-bridge';
@@ -203,6 +205,7 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
     // A hook hands the plugin data or a say in what the host sends, so it
     // needs the same manifest permission as the matching API call.
     const hookDisposables: Disposable[] = [];
+    let openHandler: ((...args: unknown[]) => unknown) | null = null;
     for (const hookName of info.hooks) {
       if (hookName.startsWith('shortcut:')) continue;
       // Not a bus: the host calls it directly for clicks on this plugin's own
@@ -221,6 +224,7 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
       // three-strikes breaker trip on the second error.
       const proxy = (...args: unknown[]) => bg.invokeHook(hookName, args);
       hookDisposables.push(bus.register(plugin.id, proxy as (...a: unknown[]) => unknown));
+      if (hookName === 'onEmailOpen') openHandler = proxy;
     }
 
     // Install plugin-declared keyboard shortcuts. A shortcut sees every
@@ -250,6 +254,14 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
     });
 
     storeAccessor?.setPluginStatus(plugin.id, 'running');
+
+    // onEmailOpen fires when a message is selected. A plugin that starts
+    // while one is already open (page load on a message URL, a plugin turned
+    // on later) would otherwise not see it until the next one.
+    const openEmail = openHandler ? useEmailStore.getState().selectedEmail : null;
+    if (openHandler && openEmail) {
+      Promise.resolve(openHandler(emailToReadView(openEmail))).catch((err) => pluginErrorTracker.record(plugin.id, err));
+    }
     console.info(`[plugin-sandbox] "${plugin.id}" activated (hooks=${info.hooks.length}, slots=${info.slots.length})`);
   } catch (err) {
     const msg = (err as Error).message ?? String(err);
