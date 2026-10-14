@@ -4178,8 +4178,8 @@
         "body": "Hangi sayfanın açık olduğunu bilme ve tıkladığınız bağlantılara tepki verme."
       },
       "ui_toolbar": {
-        "title": "İleti araç çubuğuna düğme ekleme",
-        "body": "Açık bir iletinin üstünde kendi düğmelerini gösterme."
+        "title": "Araç çubuklarına düğme ekleme",
+        "body": "İleti araç çubuğunda, açık bir iletide ve üst çubukta kendi düğmelerini gösterme."
       },
       "ui_app_top_banner": {
         "title": "Üstte bir başlık bandı gösterme",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "İletilerde bildirim gösterme",
-        "body": "Açık bir iletinin metninin üstünde bildirim gösterme."
+        "body": "Açık bir iletinin veya konuşmanın bölümlerinin üstünde, içinde ve arasında kendi bildirimlerini ve özetlerini gösterme."
       },
       "ui_email_footer": {
         "title": "İletilerin altına içerik ekleme",
@@ -4210,16 +4210,16 @@
         "body": "Gelen kutunuzu Güncellemeler veya Promosyonlar gibi sekmelere ayırma."
       },
       "ui_composer_toolbar": {
-        "title": "İleti düzenleyiciye düğme ekleme",
-        "body": "Siz ileti yazarken kendi düğmelerini gösterme."
+        "title": "İleti düzenleyiciye öğe ekleme",
+        "body": "Siz ileti yazarken kendi düğmelerini, menü öğelerini ve bölümlerini gösterme."
       },
       "ui_composer_sidebar": {
         "title": "İleti düzenleyiciye panel ekleme",
         "body": "Yazdığınız iletinin yanında kendi panelini gösterme."
       },
       "ui_sidebar_widget": {
-        "title": "Kenar çubuğuna kutu ekleme",
-        "body": "Posta kenar çubuğunda kendi içeriğini gösterme."
+        "title": "Kenar çubuğuna öğe ekleme",
+        "body": "Posta kenar çubuğunda kendi kutularını ve bölümlerini gösterme."
       },
       "ui_settings_section": {
         "title": "Ayarlar sayfası ekleme",
@@ -4238,8 +4238,8 @@
         "body": "Tanımladığı klavye kısayollarına tepki verme."
       },
       "ui_calendar_action": {
-        "title": "Etkinliklere düğme ekleme",
-        "body": "Bir etkinlik oluştururken veya düzenlerken kendi düğmelerini gösterme."
+        "title": "Takvim görünümüne öğe ekleme",
+        "body": "Etkinliklerde kendi düğmelerini ve bölümlerini, takvim günlerinde kısa etiketler ve noktalar gösterme."
       },
       "ui_admin_page": {
         "title": "Yönetim sayfası ekleme",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Bildirim gösterme",
         "body": "Cihazınızda bildirim gösterme ya da bildirimlere izin vermediyseniz uygulama içinde gösterme. Her bildirimde eklentinin adı yer alır."
+      },
+      "ui_message_list": {
+        "title": "İleti listesine öğe ekleme",
+        "body": "İleti listesinin üstünde kendi içeriğini, iletilerde ve seçili iletilerin araç çubuğunda düğmeler gösterme."
+      },
+      "ui_contacts": {
+        "title": "Kişiler görünümüne öğe ekleme",
+        "body": "Bir kişinin ayrıntılarında kendi bölümlerini, kişi listesinde düğmeler gösterme."
+      },
+      "ui_tasks": {
+        "title": "Görevler görünümüne öğe ekleme",
+        "body": "Bir görevin ayrıntılarında kendi bölümlerini, görev listesinde düğmeler gösterme."
+      },
+      "ui_files": {
+        "title": "Dosyalar görünümüne öğe ekleme",
+        "body": "Dosya önizlemesinde kendi bölümlerini, bir dosyanın menüsünde öğeler gösterme."
+      },
+      "ui_commands": {
+        "title": "Komut ekleme",
+        "body": "Komut paletine (Ctrl+K) kendi öğelerini ekleme."
+      },
+      "ui_app_page": {
+        "title": "Sayfa ekleme",
+        "body": "Uygulamaya kendi sayfalarını ekleme, her biri için gezinme çubuğunda bir düğmeyle."
+      },
+      "http_proxy": {
+        "title": "Bağladığınız hesapları kullanma",
+        "body": "Sizin veya yöneticinizin ayarladığı bir hesap ya da anahtarla Bulwark sunucusu üzerinden istek gönderme. Eklenti parolayı hiçbir zaman görmez, ancak o hesabın kendi sunucusunda yapabildiği her şeyi yapabilir."
       }
     },
     "dialog": {

@@ -4178,8 +4178,8 @@
         "body": "Saber qual página está aberta e reagir aos links em que você clica."
       },
       "ui_toolbar": {
-        "title": "Adicionar botões à barra de ferramentas da mensagem",
-        "body": "Mostrar os próprios botões acima de uma mensagem aberta."
+        "title": "Adicionar botões às barras de ferramentas",
+        "body": "Mostrar os próprios botões na barra de ferramentas das mensagens, em uma mensagem aberta e na barra superior."
       },
       "ui_app_top_banner": {
         "title": "Mostrar um banner no topo",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Mostrar avisos nas mensagens",
-        "body": "Mostrar um aviso acima do texto de uma mensagem aberta."
+        "body": "Mostrar os próprios avisos e resumos acima, dentro e entre as partes de uma mensagem ou conversa aberta."
       },
       "ui_email_footer": {
         "title": "Adicionar conteúdo abaixo das mensagens",
@@ -4210,16 +4210,16 @@
         "body": "Organizar sua caixa de entrada em abas como Atualizações ou Promoções."
       },
       "ui_composer_toolbar": {
-        "title": "Adicionar botões ao editor",
-        "body": "Mostrar os próprios botões enquanto você escreve uma mensagem."
+        "title": "Adicionar ao editor",
+        "body": "Mostrar os próprios botões, itens de menu e seções enquanto você escreve uma mensagem."
       },
       "ui_composer_sidebar": {
         "title": "Adicionar um painel ao editor",
         "body": "Mostrar o próprio painel ao lado da mensagem que você escreve."
       },
       "ui_sidebar_widget": {
-        "title": "Adicionar uma caixa à barra lateral",
-        "body": "Mostrar o próprio conteúdo na barra lateral do e-mail."
+        "title": "Adicionar à barra lateral",
+        "body": "Mostrar as próprias caixas e seções na barra lateral do e-mail."
       },
       "ui_settings_section": {
         "title": "Adicionar uma página de configurações",
@@ -4238,8 +4238,8 @@
         "body": "Reagir aos atalhos de teclado que ele define."
       },
       "ui_calendar_action": {
-        "title": "Adicionar botões aos eventos",
-        "body": "Mostrar os próprios botões quando você cria ou edita um evento."
+        "title": "Adicionar à visualização do calendário",
+        "body": "Mostrar os próprios botões e seções nos eventos, e rótulos curtos e pontos nos dias do calendário."
       },
       "ui_admin_page": {
         "title": "Adicionar uma página de administração",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Mostrar notificações",
         "body": "Mostrar notificações no seu dispositivo, ou dentro do aplicativo se você não as permitiu. Cada uma indica o nome do plugin."
+      },
+      "ui_message_list": {
+        "title": "Adicionar à lista de mensagens",
+        "body": "Mostrar o próprio conteúdo acima da lista de mensagens, e botões nas mensagens e na barra das mensagens selecionadas."
+      },
+      "ui_contacts": {
+        "title": "Adicionar à visualização de contatos",
+        "body": "Mostrar as próprias seções nos detalhes de um contato e botões na lista de contatos."
+      },
+      "ui_tasks": {
+        "title": "Adicionar à visualização de tarefas",
+        "body": "Mostrar as próprias seções nos detalhes de uma tarefa e botões na lista de tarefas."
+      },
+      "ui_files": {
+        "title": "Adicionar à visualização de arquivos",
+        "body": "Mostrar as próprias seções na pré-visualização de arquivos e itens no menu de um arquivo."
+      },
+      "ui_commands": {
+        "title": "Adicionar comandos",
+        "body": "Adicionar os próprios itens à paleta de comandos (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Adicionar páginas",
+        "body": "Adicionar as próprias páginas ao aplicativo, cada uma com um botão na barra de navegação."
+      },
+      "http_proxy": {
+        "title": "Usar contas que você conecta",
+        "body": "Enviar solicitações pelo servidor do Bulwark com uma conta ou chave configurada por você ou pelo seu administrador. O plugin nunca vê a senha, mas pode fazer tudo o que essa conta pode fazer no próprio servidor."
       }
     },
     "dialog": {

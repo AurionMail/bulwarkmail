@@ -4178,8 +4178,8 @@
         "body": "Weten welke pagina open is en reageren op links waarop je klikt."
       },
       "ui_toolbar": {
-        "title": "Knoppen toevoegen aan de berichtwerkbalk",
-        "body": "Eigen knoppen tonen boven een geopend bericht."
+        "title": "Knoppen toevoegen aan werkbalken",
+        "body": "Eigen knoppen tonen in de berichtwerkbalk, bij een geopend bericht en in de bovenbalk."
       },
       "ui_app_top_banner": {
         "title": "Een banner bovenaan tonen",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Meldingen bij berichten tonen",
-        "body": "Een melding tonen boven de tekst van een geopend bericht."
+        "body": "Eigen meldingen en samenvattingen tonen boven, in en tussen de delen van een geopend bericht of gesprek."
       },
       "ui_email_footer": {
         "title": "Inhoud onder berichten toevoegen",
@@ -4210,16 +4210,16 @@
         "body": "Je Postvak IN in tabbladen indelen, zoals Updates of Promoties."
       },
       "ui_composer_toolbar": {
-        "title": "Knoppen toevoegen aan de opsteller",
-        "body": "Eigen knoppen tonen terwijl je een bericht schrijft."
+        "title": "Toevoegen aan de opsteller",
+        "body": "Eigen knoppen, menu-items en secties tonen terwijl je een bericht schrijft."
       },
       "ui_composer_sidebar": {
         "title": "Een paneel toevoegen aan de opsteller",
         "body": "Een eigen paneel tonen naast het bericht dat je schrijft."
       },
       "ui_sidebar_widget": {
-        "title": "Een vak toevoegen aan de zijbalk",
-        "body": "Eigen inhoud tonen in de zijbalk van de mail."
+        "title": "Toevoegen aan de zijbalk",
+        "body": "Eigen vakken en secties tonen in de zijbalk van de mail."
       },
       "ui_settings_section": {
         "title": "Een instellingenpagina toevoegen",
@@ -4238,8 +4238,8 @@
         "body": "Reageren op sneltoetsen die hij zelf vastlegt."
       },
       "ui_calendar_action": {
-        "title": "Knoppen toevoegen aan afspraken",
-        "body": "Eigen knoppen tonen wanneer je een afspraak aanmaakt of bewerkt."
+        "title": "Toevoegen aan de agendaweergave",
+        "body": "Eigen knoppen en secties tonen bij afspraken, en korte labels en stippen bij dagen in de agenda."
       },
       "ui_admin_page": {
         "title": "Een beheerpagina toevoegen",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Meldingen tonen",
         "body": "Meldingen op je apparaat tonen, of in de app als je ze niet hebt toegestaan. Elke melding noemt de naam van de plug-in."
+      },
+      "ui_message_list": {
+        "title": "Toevoegen aan de berichtenlijst",
+        "body": "Eigen inhoud tonen boven de berichtenlijst, en knoppen bij berichten en in de werkbalk voor geselecteerde berichten."
+      },
+      "ui_contacts": {
+        "title": "Toevoegen aan de contactenweergave",
+        "body": "Eigen secties tonen in de details van een contact en knoppen in de contactenlijst."
+      },
+      "ui_tasks": {
+        "title": "Toevoegen aan de takenweergave",
+        "body": "Eigen secties tonen in de details van een taak en knoppen in de takenlijst."
+      },
+      "ui_files": {
+        "title": "Toevoegen aan de bestandenweergave",
+        "body": "Eigen secties tonen in het bestandsvoorbeeld en items in het menu van een bestand."
+      },
+      "ui_commands": {
+        "title": "Opdrachten toevoegen",
+        "body": "Eigen items toevoegen aan het opdrachtenpalet (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Pagina's toevoegen",
+        "body": "Eigen pagina's toevoegen aan de app, elk met een knop in de navigatiebalk."
+      },
+      "http_proxy": {
+        "title": "Accounts gebruiken die je koppelt",
+        "body": "Verzoeken via de server van Bulwark sturen met een account of sleutel die jij of je beheerder heeft ingesteld. De plug-in ziet het wachtwoord nooit, maar kan alles doen wat dat account op zijn eigen server mag."
       }
     },
     "dialog": {

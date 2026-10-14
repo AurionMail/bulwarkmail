@@ -4178,8 +4178,8 @@
         "body": "Savoir quelle page est ouverte et réagir aux liens sur lesquels vous cliquez."
       },
       "ui_toolbar": {
-        "title": "Ajouter des boutons à la barre d'outils des messages",
-        "body": "Afficher ses propres boutons au-dessus d'un message ouvert."
+        "title": "Ajouter des boutons aux barres d'outils",
+        "body": "Afficher ses propres boutons dans la barre d'outils des messages, sur un message ouvert et dans la barre supérieure."
       },
       "ui_app_top_banner": {
         "title": "Afficher une bannière en haut",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Afficher des avis sur les messages",
-        "body": "Afficher un avis au-dessus du texte d'un message ouvert."
+        "body": "Afficher ses propres avis et résumés au-dessus, à l'intérieur et entre les parties d'un message ou d'une conversation ouverts."
       },
       "ui_email_footer": {
         "title": "Ajouter du contenu sous les messages",
@@ -4210,16 +4210,16 @@
         "body": "Répartir votre boîte de réception en onglets comme Mises à jour ou Promotions."
       },
       "ui_composer_toolbar": {
-        "title": "Ajouter des boutons à l'éditeur",
-        "body": "Afficher ses propres boutons pendant que vous rédigez un message."
+        "title": "Ajouter à l'éditeur",
+        "body": "Afficher ses propres boutons, entrées de menu et sections pendant que vous rédigez un message."
       },
       "ui_composer_sidebar": {
         "title": "Ajouter un panneau à l'éditeur",
         "body": "Afficher son propre panneau à côté du message que vous rédigez."
       },
       "ui_sidebar_widget": {
-        "title": "Ajouter un encadré à la barre latérale",
-        "body": "Afficher son propre contenu dans la barre latérale de la messagerie."
+        "title": "Ajouter à la barre latérale",
+        "body": "Afficher ses propres encadrés et sections dans la barre latérale de la messagerie."
       },
       "ui_settings_section": {
         "title": "Ajouter une page de paramètres",
@@ -4238,8 +4238,8 @@
         "body": "Réagir aux raccourcis clavier qu'il définit."
       },
       "ui_calendar_action": {
-        "title": "Ajouter des boutons aux événements",
-        "body": "Afficher ses propres boutons lorsque vous créez ou modifiez un événement."
+        "title": "Ajouter à l'affichage du calendrier",
+        "body": "Afficher ses propres boutons et sections sur les événements, ainsi que de courtes étiquettes et des points sur les jours du calendrier."
       },
       "ui_admin_page": {
         "title": "Ajouter une page d'administration",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Afficher des notifications",
         "body": "Afficher des notifications sur votre appareil, ou dans l'application si vous ne les avez pas autorisées. Chacune indique le nom du plugin."
+      },
+      "ui_message_list": {
+        "title": "Ajouter à la liste des messages",
+        "body": "Afficher son propre contenu au-dessus de la liste des messages, ainsi que des boutons sur les messages et dans la barre des messages sélectionnés."
+      },
+      "ui_contacts": {
+        "title": "Ajouter à l'affichage des contacts",
+        "body": "Afficher ses propres sections dans les détails d'un contact et des boutons dans la liste des contacts."
+      },
+      "ui_tasks": {
+        "title": "Ajouter à l'affichage des tâches",
+        "body": "Afficher ses propres sections dans les détails d'une tâche et des boutons dans la liste des tâches."
+      },
+      "ui_files": {
+        "title": "Ajouter à l'affichage des fichiers",
+        "body": "Afficher ses propres sections dans l'aperçu des fichiers et des entrées dans le menu d'un fichier."
+      },
+      "ui_commands": {
+        "title": "Ajouter des commandes",
+        "body": "Ajouter ses propres entrées à la palette de commandes (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Ajouter des pages",
+        "body": "Ajouter ses propres pages à l'application, chacune avec un bouton dans la barre de navigation."
+      },
+      "http_proxy": {
+        "title": "Utiliser les comptes que vous connectez",
+        "body": "Envoyer des requêtes via le serveur de Bulwark avec un compte ou une clé configurés par vous ou votre administrateur. Le plugin ne voit jamais le mot de passe, mais il peut faire tout ce que ce compte peut faire sur son propre serveur."
       }
     },
     "dialog": {

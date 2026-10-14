@@ -4178,8 +4178,8 @@
         "body": "Vite hvilken side som er åpen, og reagere på lenker du klikker på."
       },
       "ui_toolbar": {
-        "title": "Legge til knapper i meldingsverktøylinjen",
-        "body": "Vise egne knapper over en åpen melding."
+        "title": "Legge til knapper i verktøylinjer",
+        "body": "Vise egne knapper i meldingsverktøylinjen, på en åpen melding og i topplinjen."
       },
       "ui_app_top_banner": {
         "title": "Vise et banner øverst",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Vise varsler på meldinger",
-        "body": "Vise et varsel over teksten i en åpen melding."
+        "body": "Vise egne varsler og sammendrag over, i og mellom delene av en åpen melding eller samtale."
       },
       "ui_email_footer": {
         "title": "Legge til innhold under meldinger",
@@ -4210,16 +4210,16 @@
         "body": "Sortere innboksen din i faner som Oppdateringer eller Kampanjer."
       },
       "ui_composer_toolbar": {
-        "title": "Legge til knapper i meldingsvinduet",
-        "body": "Vise egne knapper mens du skriver en melding."
+        "title": "Legge til i meldingsvinduet",
+        "body": "Vise egne knapper, menyvalg og seksjoner mens du skriver en melding."
       },
       "ui_composer_sidebar": {
         "title": "Legge til et panel i meldingsvinduet",
         "body": "Vise et eget panel ved siden av meldingen du skriver."
       },
       "ui_sidebar_widget": {
-        "title": "Legge til en boks i sidefeltet",
-        "body": "Vise eget innhold i sidefeltet for e-post."
+        "title": "Legge til i sidefeltet",
+        "body": "Vise egne bokser og seksjoner i sidefeltet for e-post."
       },
       "ui_settings_section": {
         "title": "Legge til en innstillingsside",
@@ -4238,8 +4238,8 @@
         "body": "Reagere på tastatursnarveier det definerer selv."
       },
       "ui_calendar_action": {
-        "title": "Legge til knapper på hendelser",
-        "body": "Vise egne knapper når du oppretter eller redigerer en hendelse."
+        "title": "Legge til i kalendervisningen",
+        "body": "Vise egne knapper og seksjoner på hendelser, og korte etiketter og prikker på kalenderdager."
       },
       "ui_admin_page": {
         "title": "Legge til en administrasjonsside",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Vise varsler",
         "body": "Vise varsler på enheten din, eller i appen hvis du ikke har tillatt dem. Hvert varsel viser navnet på tillegget."
+      },
+      "ui_message_list": {
+        "title": "Legge til i meldingslisten",
+        "body": "Vise eget innhold over meldingslisten, og knapper på meldinger og i verktøylinjen for valgte meldinger."
+      },
+      "ui_contacts": {
+        "title": "Legge til i kontaktvisningen",
+        "body": "Vise egne seksjoner i detaljene for en kontakt og knapper i kontaktlisten."
+      },
+      "ui_tasks": {
+        "title": "Legge til i oppgavevisningen",
+        "body": "Vise egne seksjoner i detaljene for en oppgave og knapper i oppgavelisten."
+      },
+      "ui_files": {
+        "title": "Legge til i filvisningen",
+        "body": "Vise egne seksjoner i forhåndsvisningen av filer og valg i menyen for en fil."
+      },
+      "ui_commands": {
+        "title": "Legge til kommandoer",
+        "body": "Legge til egne valg i kommandopaletten (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Legge til sider",
+        "body": "Legge til egne sider i appen, hver med en knapp i navigasjonsfeltet."
+      },
+      "http_proxy": {
+        "title": "Bruke kontoer du kobler til",
+        "body": "Sende forespørsler via Bulwarks server med en konto eller nøkkel som du eller administratoren din har satt opp. Tillegget ser aldri passordet, men det kan gjøre alt den kontoen kan gjøre på sin egen server."
       }
     },
     "dialog": {

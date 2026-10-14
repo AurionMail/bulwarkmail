@@ -4178,8 +4178,8 @@
         "body": "Vide, hvilken side der er åben, og reagere på links, du klikker på."
       },
       "ui_toolbar": {
-        "title": "Tilføje knapper til beskedens værktøjslinje",
-        "body": "Vise sine egne knapper over en åben besked."
+        "title": "Tilføje knapper til værktøjslinjer",
+        "body": "Vise sine egne knapper på beskedernes værktøjslinje, på en åben besked og på den øverste bjælke."
       },
       "ui_app_top_banner": {
         "title": "Vise et banner øverst",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Vise meddelelser på beskeder",
-        "body": "Vise en meddelelse over teksten i en åben besked."
+        "body": "Vise sine egne meddelelser og resuméer over, i og mellem delene af en åben besked eller samtale."
       },
       "ui_email_footer": {
         "title": "Tilføje indhold under beskeder",
@@ -4210,16 +4210,16 @@
         "body": "Sortere din indbakke i faner som Opdateringer eller Kampagner."
       },
       "ui_composer_toolbar": {
-        "title": "Tilføje knapper til komponisten",
-        "body": "Vise sine egne knapper, mens du skriver en besked."
+        "title": "Tilføje til komponisten",
+        "body": "Vise sine egne knapper, menupunkter og sektioner, mens du skriver en besked."
       },
       "ui_composer_sidebar": {
         "title": "Tilføje et panel til komponisten",
         "body": "Vise sit eget panel ved siden af den besked, du skriver."
       },
       "ui_sidebar_widget": {
-        "title": "Tilføje en boks til sidepanelet",
-        "body": "Vise sit eget indhold i mailens sidepanel."
+        "title": "Tilføje til sidepanelet",
+        "body": "Vise sine egne bokse og sektioner i mailens sidepanel."
       },
       "ui_settings_section": {
         "title": "Tilføje en indstillingsside",
@@ -4238,8 +4238,8 @@
         "body": "Reagere på tastaturgenveje, som det selv definerer."
       },
       "ui_calendar_action": {
-        "title": "Tilføje knapper til begivenheder",
-        "body": "Vise sine egne knapper, når du opretter eller redigerer en begivenhed."
+        "title": "Tilføje til kalendervisningen",
+        "body": "Vise sine egne knapper og sektioner på begivenheder og korte etiketter og prikker på kalenderdage."
       },
       "ui_admin_page": {
         "title": "Tilføje en administratorside",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Vise notifikationer",
         "body": "Vise notifikationer på din enhed eller i appen, hvis du ikke har tilladt dem. Hver af dem nævner pluginets navn."
+      },
+      "ui_message_list": {
+        "title": "Tilføje til beskedlisten",
+        "body": "Vise sit eget indhold over beskedlisten og knapper på beskeder og på værktøjslinjen for valgte beskeder."
+      },
+      "ui_contacts": {
+        "title": "Tilføje til kontaktvisningen",
+        "body": "Vise sine egne sektioner i en kontakts detaljer og knapper i kontaktlisten."
+      },
+      "ui_tasks": {
+        "title": "Tilføje til opgavevisningen",
+        "body": "Vise sine egne sektioner i en opgaves detaljer og knapper i opgavelisten."
+      },
+      "ui_files": {
+        "title": "Tilføje til filvisningen",
+        "body": "Vise sine egne sektioner i forhåndsvisningen af filer og punkter i en fils menu."
+      },
+      "ui_commands": {
+        "title": "Tilføje kommandoer",
+        "body": "Tilføje sine egne punkter til kommandopaletten (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Tilføje sider",
+        "body": "Tilføje sine egne sider til appen, hver med en knap på navigationslinjen."
+      },
+      "http_proxy": {
+        "title": "Bruge konti, du forbinder",
+        "body": "Sende forespørgsler via Bulwarks server med en konto eller nøgle, som du eller din administrator har sat op. Pluginnet ser aldrig adgangskoden, men det kan gøre alt, hvad kontoen kan gøre på sin egen server."
       }
     },
     "dialog": {

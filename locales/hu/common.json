@@ -4178,8 +4178,8 @@
         "body": "Tudja, melyik oldal van megnyitva, és reagál a hivatkozásokra, amelyekre kattintasz."
       },
       "ui_toolbar": {
-        "title": "Gombok az üzenet eszköztárán",
-        "body": "Saját gombokat jelenít meg egy megnyitott üzenet felett."
+        "title": "Gombok az eszköztárakon",
+        "body": "Saját gombokat jelenít meg az üzenetek eszköztárán, egy megnyitott üzeneten és a felső sávban."
       },
       "ui_app_top_banner": {
         "title": "Szalag megjelenítése felül",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Értesítések az üzeneteken",
-        "body": "Értesítést jelenít meg egy megnyitott üzenet szövege felett."
+        "body": "Saját értesítéseket és összefoglalókat jelenít meg egy megnyitott üzenet vagy beszélgetés részei felett, azokon belül és között."
       },
       "ui_email_footer": {
         "title": "Tartalom az üzenetek alatt",
@@ -4210,16 +4210,16 @@
         "body": "Lapokra bontja a Beérkező leveleket, például Frissítések vagy Promóciók."
       },
       "ui_composer_toolbar": {
-        "title": "Gombok a szerkesztőben",
-        "body": "Saját gombokat jelenít meg, miközben üzenetet írsz."
+        "title": "Tartalom a szerkesztőben",
+        "body": "Saját gombokat, menüpontokat és szakaszokat jelenít meg, miközben üzenetet írsz."
       },
       "ui_composer_sidebar": {
         "title": "Panel a szerkesztőben",
         "body": "Saját panelt jelenít meg az általad írt üzenet mellett."
       },
       "ui_sidebar_widget": {
-        "title": "Doboz az oldalsávon",
-        "body": "Saját tartalmat jelenít meg a levelezés oldalsávján."
+        "title": "Tartalom az oldalsávon",
+        "body": "Saját dobozokat és szakaszokat jelenít meg a levelezés oldalsávján."
       },
       "ui_settings_section": {
         "title": "Beállítási oldal hozzáadása",
@@ -4238,8 +4238,8 @@
         "body": "Reagál az általa meghatározott billentyűparancsokra."
       },
       "ui_calendar_action": {
-        "title": "Gombok az eseményeknél",
-        "body": "Saját gombokat jelenít meg, amikor eseményt hozol létre vagy szerkesztesz."
+        "title": "Tartalom a naptárnézetben",
+        "body": "Saját gombokat és szakaszokat jelenít meg az eseményeken, valamint rövid címkéket és pontokat a naptár napjain."
       },
       "ui_admin_page": {
         "title": "Adminisztrációs oldal hozzáadása",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Értesítések megjelenítése",
         "body": "Értesítéseket jelenít meg az eszközödön, vagy az alkalmazásban, ha nem engedélyezted őket. Mindegyiken szerepel a bővítmény neve."
+      },
+      "ui_message_list": {
+        "title": "Tartalom az üzenetlistában",
+        "body": "Saját tartalmat jelenít meg az üzenetlista felett, valamint gombokat az üzeneteken és a kijelölt üzenetek eszköztárán."
+      },
+      "ui_contacts": {
+        "title": "Tartalom a névjegyek nézetében",
+        "body": "Saját szakaszokat jelenít meg egy névjegy részleteiben és gombokat a névjegylistában."
+      },
+      "ui_tasks": {
+        "title": "Tartalom a feladatok nézetében",
+        "body": "Saját szakaszokat jelenít meg egy feladat részleteiben és gombokat a feladatlistában."
+      },
+      "ui_files": {
+        "title": "Tartalom a fájlok nézetében",
+        "body": "Saját szakaszokat jelenít meg a fájlelőnézetben és menüpontokat egy fájl menüjében."
+      },
+      "ui_commands": {
+        "title": "Saját parancsok",
+        "body": "Saját elemeket ad a parancspalettához (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Saját oldalak",
+        "body": "Saját oldalakat ad az alkalmazáshoz, mindegyiket egy gombbal a navigációs sávon."
+      },
+      "http_proxy": {
+        "title": "Az általad csatlakoztatott fiókok használata",
+        "body": "Kéréseket küld a Bulwark szerverén keresztül egy olyan fiókkal vagy kulccsal, amelyet te vagy a rendszergazdád állított be. A bővítmény soha nem látja a jelszót, de bármit megtehet, amit az a fiók a saját szerverén megtehet."
       }
     },
     "dialog": {

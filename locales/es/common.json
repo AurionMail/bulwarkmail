@@ -4178,8 +4178,8 @@
         "body": "Saber qué página está abierta y reaccionar a los enlaces en los que haces clic."
       },
       "ui_toolbar": {
-        "title": "Añadir botones a la barra de herramientas del mensaje",
-        "body": "Mostrar sus propios botones encima de un mensaje abierto."
+        "title": "Añadir botones a las barras de herramientas",
+        "body": "Mostrar sus propios botones en la barra de herramientas de mensajes, en un mensaje abierto y en la barra superior."
       },
       "ui_app_top_banner": {
         "title": "Mostrar un banner arriba",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Mostrar avisos en los mensajes",
-        "body": "Mostrar un aviso encima del texto de un mensaje abierto."
+        "body": "Mostrar sus propios avisos y resúmenes encima, dentro y entre las partes de un mensaje o una conversación abiertos."
       },
       "ui_email_footer": {
         "title": "Añadir contenido debajo de los mensajes",
@@ -4210,16 +4210,16 @@
         "body": "Ordenar tu bandeja de entrada en pestañas como Novedades o Promociones."
       },
       "ui_composer_toolbar": {
-        "title": "Añadir botones al editor",
-        "body": "Mostrar sus propios botones mientras escribes un mensaje."
+        "title": "Añadir al editor",
+        "body": "Mostrar sus propios botones, entradas de menú y secciones mientras escribes un mensaje."
       },
       "ui_composer_sidebar": {
         "title": "Añadir un panel al editor",
         "body": "Mostrar su propio panel junto al mensaje que escribes."
       },
       "ui_sidebar_widget": {
-        "title": "Añadir un recuadro a la barra lateral",
-        "body": "Mostrar su propio contenido en la barra lateral del correo."
+        "title": "Añadir a la barra lateral",
+        "body": "Mostrar sus propios recuadros y secciones en la barra lateral del correo."
       },
       "ui_settings_section": {
         "title": "Añadir una página de configuración",
@@ -4238,8 +4238,8 @@
         "body": "Reaccionar a los atajos de teclado que define."
       },
       "ui_calendar_action": {
-        "title": "Añadir botones a los eventos",
-        "body": "Mostrar sus propios botones cuando creas o editas un evento."
+        "title": "Añadir a la vista de calendario",
+        "body": "Mostrar sus propios botones y secciones en los eventos, y etiquetas cortas y puntos en los días del calendario."
       },
       "ui_admin_page": {
         "title": "Añadir una página de administración",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Mostrar notificaciones",
         "body": "Mostrar notificaciones en tu dispositivo, o dentro de la aplicación si no las has permitido. Cada una indica el nombre del complemento."
+      },
+      "ui_message_list": {
+        "title": "Añadir a la lista de mensajes",
+        "body": "Mostrar su propio contenido encima de la lista de mensajes, y botones en los mensajes y en la barra de los mensajes seleccionados."
+      },
+      "ui_contacts": {
+        "title": "Añadir a la vista de contactos",
+        "body": "Mostrar sus propias secciones en los detalles de un contacto y botones en la lista de contactos."
+      },
+      "ui_tasks": {
+        "title": "Añadir a la vista de tareas",
+        "body": "Mostrar sus propias secciones en los detalles de una tarea y botones en la lista de tareas."
+      },
+      "ui_files": {
+        "title": "Añadir a la vista de archivos",
+        "body": "Mostrar sus propias secciones en la vista previa de archivos y entradas en el menú de un archivo."
+      },
+      "ui_commands": {
+        "title": "Añadir comandos",
+        "body": "Añadir sus propias entradas a la paleta de comandos (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Añadir páginas",
+        "body": "Añadir sus propias páginas a la aplicación, cada una con un botón en la barra de navegación."
+      },
+      "http_proxy": {
+        "title": "Usar las cuentas que conectes",
+        "body": "Enviar solicitudes a través del servidor de Bulwark con una cuenta o clave configurada por ti o por tu administrador. El complemento nunca ve la contraseña, pero puede hacer todo lo que esa cuenta puede hacer en su propio servidor."
       }
     },
     "dialog": {

@@ -4178,8 +4178,8 @@
         "body": "Zināt, kura lapa ir atvērta, un reaģēt uz saitēm, uz kurām noklikšķināt."
       },
       "ui_toolbar": {
-        "title": "Pievienot pogas vēstules rīkjoslai",
-        "body": "Rādīt savas pogas virs atvērtas vēstules."
+        "title": "Pievienot pogas rīkjoslām",
+        "body": "Rādīt savas pogas vēstuļu rīkjoslā, atvērtā vēstulē un augšējā joslā."
       },
       "ui_app_top_banner": {
         "title": "Rādīt reklāmkarogu augšā",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Rādīt paziņojumus vēstulēs",
-        "body": "Rādīt paziņojumu virs atvērtas vēstules teksta."
+        "body": "Rādīt savus paziņojumus un kopsavilkumus virs atvērtas vēstules vai sarunas daļām, to iekšpusē un starp tām."
       },
       "ui_email_footer": {
         "title": "Pievienot saturu zem vēstulēm",
@@ -4210,16 +4210,16 @@
         "body": "Sadalīt jūsu iesūtni cilnēs, piemēram, Jaunumi vai Akcijas."
       },
       "ui_composer_toolbar": {
-        "title": "Pievienot pogas redaktoram",
-        "body": "Rādīt savas pogas, kamēr rakstāt vēstuli."
+        "title": "Papildināt redaktoru",
+        "body": "Rādīt savas pogas, izvēlnes ierakstus un sadaļas, kamēr rakstāt vēstuli."
       },
       "ui_composer_sidebar": {
         "title": "Pievienot paneli redaktoram",
         "body": "Rādīt savu paneli blakus vēstulei, ko rakstāt."
       },
       "ui_sidebar_widget": {
-        "title": "Pievienot bloku sānjoslai",
-        "body": "Rādīt savu saturu pasta sānjoslā."
+        "title": "Papildināt sānjoslu",
+        "body": "Rādīt savus blokus un sadaļas pasta sānjoslā."
       },
       "ui_settings_section": {
         "title": "Pievienot iestatījumu lapu",
@@ -4238,8 +4238,8 @@
         "body": "Reaģēt uz paša definētiem īsinājumtaustiņiem."
       },
       "ui_calendar_action": {
-        "title": "Pievienot pogas notikumiem",
-        "body": "Rādīt savas pogas, kad izveidojat vai rediģējat notikumu."
+        "title": "Papildināt kalendāra skatu",
+        "body": "Rādīt savas pogas un sadaļas pie notikumiem un īsas birkas un punktus kalendāra dienās."
       },
       "ui_admin_page": {
         "title": "Pievienot administrēšanas lapu",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Rādīt paziņojumus",
         "body": "Rādīt paziņojumus jūsu ierīcē vai lietotnē, ja neesat tos atļāvis. Katrā ir spraudņa nosaukums."
+      },
+      "ui_message_list": {
+        "title": "Papildināt vēstuļu sarakstu",
+        "body": "Rādīt savu saturu virs vēstuļu saraksta un pogas pie vēstulēm un atlasīto vēstuļu rīkjoslā."
+      },
+      "ui_contacts": {
+        "title": "Papildināt kontaktu skatu",
+        "body": "Rādīt savas sadaļas kontakta informācijā un pogas kontaktu sarakstā."
+      },
+      "ui_tasks": {
+        "title": "Papildināt uzdevumu skatu",
+        "body": "Rādīt savas sadaļas uzdevuma informācijā un pogas uzdevumu sarakstā."
+      },
+      "ui_files": {
+        "title": "Papildināt failu skatu",
+        "body": "Rādīt savas sadaļas failu priekšskatījumā un ierakstus faila izvēlnē."
+      },
+      "ui_commands": {
+        "title": "Pievienot komandas",
+        "body": "Pievienot savus ierakstus komandu paletei (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Pievienot lapas",
+        "body": "Pievienot lietotnei savas lapas, katru ar pogu navigācijas joslā."
+      },
+      "http_proxy": {
+        "title": "Izmantot jūsu savienotos kontus",
+        "body": "Sūtīt pieprasījumus caur Bulwark serveri ar kontu vai atslēgu, ko iestatījāt jūs vai jūsu administrators. Spraudnis nekad neredz paroli, taču tas var darīt visu, ko šis konts var darīt savā serverī."
       }
     },
     "dialog": {

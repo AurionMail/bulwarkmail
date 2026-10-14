@@ -4178,8 +4178,8 @@
         "body": "Știe ce pagină este deschisă și reacționează la linkurile pe care faceți clic."
       },
       "ui_toolbar": {
-        "title": "Adăugarea de butoane în bara de instrumente a mesajului",
-        "body": "Afișează butoane proprii deasupra unui mesaj deschis."
+        "title": "Adăugarea de butoane în barele de instrumente",
+        "body": "Afișează butoane proprii în bara de instrumente a mesajelor, pe un mesaj deschis și în bara de sus."
       },
       "ui_app_top_banner": {
         "title": "Afișarea unui banner în partea de sus",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Afișarea de notificări pe mesaje",
-        "body": "Afișează o notificare deasupra textului unui mesaj deschis."
+        "body": "Afișează notificări și rezumate proprii deasupra, în interiorul și între părțile unui mesaj sau ale unei conversații deschise."
       },
       "ui_email_footer": {
         "title": "Adăugarea de conținut sub mesaje",
@@ -4210,16 +4210,16 @@
         "body": "Sortează mesajele primite în file precum Actualizări sau Promoții."
       },
       "ui_composer_toolbar": {
-        "title": "Adăugarea de butoane în fereastra de redactare",
-        "body": "Afișează butoane proprii în timp ce scrieți un mesaj."
+        "title": "Adăugarea în fereastra de redactare",
+        "body": "Afișează butoane, opțiuni de meniu și secțiuni proprii în timp ce scrieți un mesaj."
       },
       "ui_composer_sidebar": {
         "title": "Adăugarea unui panou în fereastra de redactare",
         "body": "Afișează un panou propriu lângă mesajul pe care îl scrieți."
       },
       "ui_sidebar_widget": {
-        "title": "Adăugarea unei casete în bara laterală",
-        "body": "Afișează conținut propriu în bara laterală a e-mailului."
+        "title": "Adăugarea în bara laterală",
+        "body": "Afișează casete și secțiuni proprii în bara laterală a e-mailului."
       },
       "ui_settings_section": {
         "title": "Adăugarea unei pagini de setări",
@@ -4238,8 +4238,8 @@
         "body": "Reacționează la comenzile rapide de la tastatură pe care le definește."
       },
       "ui_calendar_action": {
-        "title": "Adăugarea de butoane la evenimente",
-        "body": "Afișează butoane proprii când creați sau editați un eveniment."
+        "title": "Adăugarea în vizualizarea calendarului",
+        "body": "Afișează butoane și secțiuni proprii la evenimente, precum și etichete scurte și puncte la zilele din calendar."
       },
       "ui_admin_page": {
         "title": "Adăugarea unei pagini de administrare",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Afișarea notificărilor",
         "body": "Afișează notificări pe dispozitiv sau în aplicație, dacă nu le-ați permis. Fiecare indică numele pluginului."
+      },
+      "ui_message_list": {
+        "title": "Adăugarea în lista de mesaje",
+        "body": "Afișează conținut propriu deasupra listei de mesaje, precum și butoane pe mesaje și în bara mesajelor selectate."
+      },
+      "ui_contacts": {
+        "title": "Adăugarea în vizualizarea contactelor",
+        "body": "Afișează secțiuni proprii în detaliile unui contact și butoane în lista de contacte."
+      },
+      "ui_tasks": {
+        "title": "Adăugarea în vizualizarea sarcinilor",
+        "body": "Afișează secțiuni proprii în detaliile unei sarcini și butoane în lista de sarcini."
+      },
+      "ui_files": {
+        "title": "Adăugarea în vizualizarea fișierelor",
+        "body": "Afișează secțiuni proprii în previzualizarea fișierelor și opțiuni în meniul unui fișier."
+      },
+      "ui_commands": {
+        "title": "Adăugarea de comenzi",
+        "body": "Adaugă opțiuni proprii în paleta de comenzi (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Adăugarea de pagini",
+        "body": "Adaugă pagini proprii în aplicație, fiecare cu un buton în bara de navigare."
+      },
+      "http_proxy": {
+        "title": "Folosirea conturilor pe care le conectați",
+        "body": "Trimite cereri prin serverul Bulwark cu un cont sau o cheie configurate de dvs. sau de administratorul dvs. Pluginul nu vede niciodată parola, dar poate face tot ce poate face acel cont pe serverul său."
       }
     },
     "dialog": {

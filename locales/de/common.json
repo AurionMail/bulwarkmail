@@ -4178,8 +4178,8 @@
         "body": "Wissen, welche Seite geöffnet ist, und auf angeklickte Links reagieren."
       },
       "ui_toolbar": {
-        "title": "Schaltflächen zur Nachrichten-Symbolleiste hinzufügen",
-        "body": "Eigene Schaltflächen über einer geöffneten Nachricht anzeigen."
+        "title": "Schaltflächen zu Symbolleisten hinzufügen",
+        "body": "Eigene Schaltflächen in der Nachrichten-Symbolleiste, bei einer geöffneten Nachricht und in der oberen Leiste anzeigen."
       },
       "ui_app_top_banner": {
         "title": "Oben ein Banner anzeigen",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Hinweise bei Nachrichten anzeigen",
-        "body": "Einen Hinweis über dem Text einer geöffneten Nachricht anzeigen."
+        "body": "Eigene Hinweise und Zusammenfassungen über, in und zwischen den Teilen einer geöffneten Nachricht oder Unterhaltung anzeigen."
       },
       "ui_email_footer": {
         "title": "Inhalte unter Nachrichten hinzufügen",
@@ -4210,16 +4210,16 @@
         "body": "Ihren Posteingang in Tabs wie Updates oder Werbung aufteilen."
       },
       "ui_composer_toolbar": {
-        "title": "Schaltflächen zum Editor hinzufügen",
-        "body": "Eigene Schaltflächen anzeigen, während Sie eine Nachricht schreiben."
+        "title": "Zum Editor hinzufügen",
+        "body": "Eigene Schaltflächen, Menüeinträge und Abschnitte anzeigen, während Sie eine Nachricht schreiben."
       },
       "ui_composer_sidebar": {
         "title": "Einen Bereich zum Editor hinzufügen",
         "body": "Einen eigenen Bereich neben der Nachricht anzeigen, die Sie schreiben."
       },
       "ui_sidebar_widget": {
-        "title": "Ein Feld zur Seitenleiste hinzufügen",
-        "body": "Eigene Inhalte in der E-Mail-Seitenleiste anzeigen."
+        "title": "Zur Seitenleiste hinzufügen",
+        "body": "Eigene Felder und Abschnitte in der E-Mail-Seitenleiste anzeigen."
       },
       "ui_settings_section": {
         "title": "Eine Einstellungsseite hinzufügen",
@@ -4238,8 +4238,8 @@
         "body": "Auf selbst festgelegte Tastaturkürzel reagieren."
       },
       "ui_calendar_action": {
-        "title": "Schaltflächen zu Terminen hinzufügen",
-        "body": "Eigene Schaltflächen anzeigen, wenn Sie einen Termin erstellen oder bearbeiten."
+        "title": "Kalenderansicht erweitern",
+        "body": "Eigene Schaltflächen und Abschnitte bei Terminen sowie kurze Beschriftungen und Punkte an Kalendertagen anzeigen."
       },
       "ui_admin_page": {
         "title": "Eine Admin-Seite hinzufügen",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Benachrichtigungen anzeigen",
         "body": "Benachrichtigungen auf Ihrem Gerät anzeigen oder in der App, wenn Sie sie nicht erlaubt haben. Jede nennt den Namen des Plugins."
+      },
+      "ui_message_list": {
+        "title": "Zur Nachrichtenliste hinzufügen",
+        "body": "Eigene Inhalte über der Nachrichtenliste sowie Schaltflächen bei Nachrichten und in der Leiste für ausgewählte Nachrichten anzeigen."
+      },
+      "ui_contacts": {
+        "title": "Kontaktansicht erweitern",
+        "body": "Eigene Abschnitte in den Details eines Kontakts und Schaltflächen in der Kontaktliste anzeigen."
+      },
+      "ui_tasks": {
+        "title": "Aufgabenansicht erweitern",
+        "body": "Eigene Abschnitte in den Details einer Aufgabe und Schaltflächen in der Aufgabenliste anzeigen."
+      },
+      "ui_files": {
+        "title": "Dateiansicht erweitern",
+        "body": "Eigene Abschnitte in der Dateivorschau und Einträge im Menü einer Datei anzeigen."
+      },
+      "ui_commands": {
+        "title": "Befehle hinzufügen",
+        "body": "Eigene Einträge zur Befehlspalette (Ctrl+K) hinzufügen."
+      },
+      "ui_app_page": {
+        "title": "Seiten hinzufügen",
+        "body": "Eigene Seiten zur App hinzufügen, jede mit einer Schaltfläche in der Navigationsleiste."
+      },
+      "http_proxy": {
+        "title": "Von Ihnen verbundene Konten nutzen",
+        "body": "Anfragen über den Server von Bulwark senden, mit einem Konto oder Schlüssel, das Sie oder Ihr Administrator eingerichtet haben. Das Plugin sieht das Passwort nie, kann auf dem zugehörigen Server aber alles tun, was dieses Konto darf."
       }
     },
     "dialog": {

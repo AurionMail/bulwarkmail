@@ -4178,8 +4178,8 @@
         "body": "Saber quina pàgina està oberta i reaccionar als enllaços en què feu clic."
       },
       "ui_toolbar": {
-        "title": "Afegir botons a la barra d'eines del missatge",
-        "body": "Mostrar botons propis a sobre d'un missatge obert."
+        "title": "Afegir botons a les barres d'eines",
+        "body": "Mostrar botons propis a la barra d'eines dels missatges, en un missatge obert i a la barra superior."
       },
       "ui_app_top_banner": {
         "title": "Mostrar un bàner a dalt",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Mostrar avisos als missatges",
-        "body": "Mostrar un avís a sobre del text d'un missatge obert."
+        "body": "Mostrar avisos i resums propis a sobre, dins i entre les parts d'un missatge o una conversa oberts."
       },
       "ui_email_footer": {
         "title": "Afegir contingut sota els missatges",
@@ -4210,16 +4210,16 @@
         "body": "Classificar la safata d'entrada en pestanyes com ara Actualitzacions o Promocions."
       },
       "ui_composer_toolbar": {
-        "title": "Afegir botons al redactor",
-        "body": "Mostrar botons propis mentre escriviu un missatge."
+        "title": "Afegir elements al redactor",
+        "body": "Mostrar botons, elements de menú i seccions propis mentre escriviu un missatge."
       },
       "ui_composer_sidebar": {
         "title": "Afegir un panell al redactor",
         "body": "Mostrar un panell propi al costat del missatge que escriviu."
       },
       "ui_sidebar_widget": {
-        "title": "Afegir un quadre a la barra lateral",
-        "body": "Mostrar contingut propi a la barra lateral del correu."
+        "title": "Afegir elements a la barra lateral",
+        "body": "Mostrar quadres i seccions propis a la barra lateral del correu."
       },
       "ui_settings_section": {
         "title": "Afegir una pàgina de configuració",
@@ -4238,8 +4238,8 @@
         "body": "Reaccionar a les dreceres de teclat que defineix."
       },
       "ui_calendar_action": {
-        "title": "Afegir botons als esdeveniments",
-        "body": "Mostrar botons propis quan creeu o editeu un esdeveniment."
+        "title": "Afegir elements a la vista del calendari",
+        "body": "Mostrar botons i seccions propis als esdeveniments, i etiquetes curtes i punts als dies del calendari."
       },
       "ui_admin_page": {
         "title": "Afegir una pàgina d'administració",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Mostrar notificacions",
         "body": "Mostrar notificacions al dispositiu, o dins l'aplicació si no les heu permeses. Cadascuna indica el nom del connector."
+      },
+      "ui_message_list": {
+        "title": "Afegir elements a la llista de missatges",
+        "body": "Mostrar contingut propi a sobre de la llista de missatges, i botons als missatges i a la barra dels missatges seleccionats."
+      },
+      "ui_contacts": {
+        "title": "Afegir elements a la vista de contactes",
+        "body": "Mostrar seccions pròpies als detalls d'un contacte i botons a la llista de contactes."
+      },
+      "ui_tasks": {
+        "title": "Afegir elements a la vista de tasques",
+        "body": "Mostrar seccions pròpies als detalls d'una tasca i botons a la llista de tasques."
+      },
+      "ui_files": {
+        "title": "Afegir elements a la vista de fitxers",
+        "body": "Mostrar seccions pròpies a la previsualització de fitxers i entrades al menú d'un fitxer."
+      },
+      "ui_commands": {
+        "title": "Afegir ordres",
+        "body": "Afegir entrades pròpies a la paleta d'ordres (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Afegir pàgines",
+        "body": "Afegir pàgines pròpies a l'aplicació, cadascuna amb un botó a la barra de navegació."
+      },
+      "http_proxy": {
+        "title": "Fer servir els comptes que connecteu",
+        "body": "Enviar peticions a través del servidor de Bulwark amb un compte o una clau que heu configurat vós o el vostre administrador. El connector no veu mai la contrasenya, però pot fer tot el que aquest compte pot fer al seu propi servidor."
       }
     },
     "dialog": {

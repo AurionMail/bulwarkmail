@@ -4178,8 +4178,8 @@
         "body": "Sapere quale pagina è aperta e reagire ai link su cui fai clic."
       },
       "ui_toolbar": {
-        "title": "Aggiungere pulsanti alla barra degli strumenti del messaggio",
-        "body": "Mostrare i propri pulsanti sopra un messaggio aperto."
+        "title": "Aggiungere pulsanti alle barre degli strumenti",
+        "body": "Mostrare i propri pulsanti nella barra degli strumenti dei messaggi, su un messaggio aperto e nella barra superiore."
       },
       "ui_app_top_banner": {
         "title": "Mostrare un banner in alto",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Mostrare avvisi sui messaggi",
-        "body": "Mostrare un avviso sopra il testo di un messaggio aperto."
+        "body": "Mostrare i propri avvisi e riepiloghi sopra, dentro e tra le parti di un messaggio o di una conversazione aperti."
       },
       "ui_email_footer": {
         "title": "Aggiungere contenuti sotto i messaggi",
@@ -4210,16 +4210,16 @@
         "body": "Suddividere la posta in arrivo in schede come Aggiornamenti o Promozioni."
       },
       "ui_composer_toolbar": {
-        "title": "Aggiungere pulsanti all'editor",
-        "body": "Mostrare i propri pulsanti mentre scrivi un messaggio."
+        "title": "Aggiungere elementi all'editor",
+        "body": "Mostrare i propri pulsanti, voci di menu e sezioni mentre scrivi un messaggio."
       },
       "ui_composer_sidebar": {
         "title": "Aggiungere un pannello all'editor",
         "body": "Mostrare un proprio pannello accanto al messaggio che scrivi."
       },
       "ui_sidebar_widget": {
-        "title": "Aggiungere un riquadro alla barra laterale",
-        "body": "Mostrare i propri contenuti nella barra laterale della posta."
+        "title": "Aggiungere elementi alla barra laterale",
+        "body": "Mostrare i propri riquadri e sezioni nella barra laterale della posta."
       },
       "ui_settings_section": {
         "title": "Aggiungere una pagina di impostazioni",
@@ -4238,8 +4238,8 @@
         "body": "Reagire alle scorciatoie da tastiera che definisce."
       },
       "ui_calendar_action": {
-        "title": "Aggiungere pulsanti agli eventi",
-        "body": "Mostrare i propri pulsanti quando crei o modifichi un evento."
+        "title": "Aggiungere elementi alla vista calendario",
+        "body": "Mostrare i propri pulsanti e sezioni sugli eventi, e brevi etichette e puntini sui giorni del calendario."
       },
       "ui_admin_page": {
         "title": "Aggiungere una pagina di amministrazione",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Mostrare notifiche",
         "body": "Mostrare notifiche sul tuo dispositivo, o nell'app se non le hai consentite. Ognuna indica il nome del plugin."
+      },
+      "ui_message_list": {
+        "title": "Aggiungere elementi all'elenco dei messaggi",
+        "body": "Mostrare i propri contenuti sopra l'elenco dei messaggi, e pulsanti sui messaggi e nella barra dei messaggi selezionati."
+      },
+      "ui_contacts": {
+        "title": "Aggiungere elementi alla vista contatti",
+        "body": "Mostrare le proprie sezioni nei dettagli di un contatto e pulsanti nell'elenco dei contatti."
+      },
+      "ui_tasks": {
+        "title": "Aggiungere elementi alla vista attività",
+        "body": "Mostrare le proprie sezioni nei dettagli di un'attività e pulsanti nell'elenco delle attività."
+      },
+      "ui_files": {
+        "title": "Aggiungere elementi alla vista file",
+        "body": "Mostrare le proprie sezioni nell'anteprima dei file e voci nel menu di un file."
+      },
+      "ui_commands": {
+        "title": "Aggiungere comandi",
+        "body": "Aggiungere le proprie voci alla palette dei comandi (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Aggiungere pagine",
+        "body": "Aggiungere le proprie pagine all'app, ognuna con un pulsante nella barra di navigazione."
+      },
+      "http_proxy": {
+        "title": "Usare gli account che colleghi",
+        "body": "Inviare richieste tramite il server di Bulwark con un account o una chiave configurati da te o dal tuo amministratore. Il plugin non vede mai la password, ma può fare tutto ciò che quell'account può fare sul proprio server."
       }
     },
     "dialog": {

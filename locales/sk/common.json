@@ -4178,8 +4178,8 @@
         "body": "Vie, ktorá stránka je otvorená, a reaguje na odkazy, na ktoré kliknete."
       },
       "ui_toolbar": {
-        "title": "Pridávať tlačidlá na panel nástrojov správy",
-        "body": "Zobrazuje vlastné tlačidlá nad otvorenou správou."
+        "title": "Pridávať tlačidlá na panely nástrojov",
+        "body": "Zobrazuje vlastné tlačidlá na paneli nástrojov správ, pri otvorenej správe a v hornej lište."
       },
       "ui_app_top_banner": {
         "title": "Zobrazovať banner hore",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Zobrazovať oznámenia pri správach",
-        "body": "Zobrazuje oznámenie nad textom otvorenej správy."
+        "body": "Zobrazuje vlastné oznámenia a zhrnutia nad časťami otvorenej správy alebo konverzácie, v nich a medzi nimi."
       },
       "ui_email_footer": {
         "title": "Pridávať obsah pod správy",
@@ -4210,16 +4210,16 @@
         "body": "Rozdeľuje Doručené do kariet, napríklad Aktualizácie alebo Akcie."
       },
       "ui_composer_toolbar": {
-        "title": "Pridávať tlačidlá do editora správy",
-        "body": "Zobrazuje vlastné tlačidlá, keď píšete správu."
+        "title": "Pridávať obsah do editora správy",
+        "body": "Zobrazuje vlastné tlačidlá, položky ponuky a sekcie, keď píšete správu."
       },
       "ui_composer_sidebar": {
         "title": "Pridávať panel do editora správy",
         "body": "Zobrazuje vlastný panel vedľa správy, ktorú píšete."
       },
       "ui_sidebar_widget": {
-        "title": "Pridávať pole do postranného panela",
-        "body": "Zobrazuje vlastný obsah v postrannom paneli pošty."
+        "title": "Pridávať obsah do postranného panela",
+        "body": "Zobrazuje vlastné polia a sekcie v postrannom paneli pošty."
       },
       "ui_settings_section": {
         "title": "Pridávať stránku nastavení",
@@ -4238,8 +4238,8 @@
         "body": "Reaguje na klávesové skratky, ktoré sám definuje."
       },
       "ui_calendar_action": {
-        "title": "Pridávať tlačidlá k udalostiam",
-        "body": "Zobrazuje vlastné tlačidlá, keď vytvárate alebo upravujete udalosť."
+        "title": "Pridávať obsah do sekcie Kalendár",
+        "body": "Zobrazuje vlastné tlačidlá a sekcie pri udalostiach a krátke štítky a bodky pri dňoch v kalendári."
       },
       "ui_admin_page": {
         "title": "Pridávať stránku administrácie",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Zobrazovať upozornenia",
         "body": "Zobrazuje upozornenia vo vašom zariadení alebo v aplikácii, ak ste ich nepovolili. Každé uvádza názov doplnku."
+      },
+      "ui_message_list": {
+        "title": "Pridávať obsah do zoznamu správ",
+        "body": "Zobrazuje vlastný obsah nad zoznamom správ a tlačidlá pri správach a na paneli nástrojov pre vybrané správy."
+      },
+      "ui_contacts": {
+        "title": "Pridávať obsah do sekcie Kontakty",
+        "body": "Zobrazuje vlastné sekcie v podrobnostiach kontaktu a tlačidlá v zozname kontaktov."
+      },
+      "ui_tasks": {
+        "title": "Pridávať obsah do sekcie Úlohy",
+        "body": "Zobrazuje vlastné sekcie v podrobnostiach úlohy a tlačidlá v zozname úloh."
+      },
+      "ui_files": {
+        "title": "Pridávať obsah do sekcie Súbory",
+        "body": "Zobrazuje vlastné sekcie v náhľade súboru a položky v ponuke súboru."
+      },
+      "ui_commands": {
+        "title": "Pridávať príkazy",
+        "body": "Pridáva vlastné položky do palety príkazov (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Pridávať stránky",
+        "body": "Pridáva do aplikácie vlastné stránky, každú s tlačidlom na navigačnej lište."
+      },
+      "http_proxy": {
+        "title": "Používať účty, ktoré pripojíte",
+        "body": "Odosiela požiadavky cez server Bulwarku pomocou účtu alebo kľúča, ktorý ste nastavili vy alebo váš správca. Doplnok nikdy nevidí heslo, ale môže na príslušnom serveri robiť čokoľvek, čo môže tento účet."
       }
     },
     "dialog": {

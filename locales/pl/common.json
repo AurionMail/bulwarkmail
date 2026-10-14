@@ -4178,8 +4178,8 @@
         "body": "Wie, która strona jest otwarta, i reaguje na klikane linki."
       },
       "ui_toolbar": {
-        "title": "Przyciski na pasku narzędzi wiadomości",
-        "body": "Pokazuje własne przyciski nad otwartą wiadomością."
+        "title": "Przyciski na paskach narzędzi",
+        "body": "Pokazuje własne przyciski na pasku narzędzi wiadomości, przy otwartej wiadomości i na górnym pasku."
       },
       "ui_app_top_banner": {
         "title": "Baner u góry",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Komunikaty przy wiadomościach",
-        "body": "Pokazuje komunikat nad treścią otwartej wiadomości."
+        "body": "Pokazuje własne komunikaty i podsumowania nad częściami otwartej wiadomości lub konwersacji, w nich i między nimi."
       },
       "ui_email_footer": {
         "title": "Treść pod wiadomościami",
@@ -4210,16 +4210,16 @@
         "body": "Dzieli Odebrane na karty, takie jak Aktualizacje czy Oferty."
       },
       "ui_composer_toolbar": {
-        "title": "Przyciski w edytorze wiadomości",
-        "body": "Pokazuje własne przyciski podczas pisania wiadomości."
+        "title": "Elementy w edytorze wiadomości",
+        "body": "Pokazuje własne przyciski, pozycje menu i sekcje podczas pisania wiadomości."
       },
       "ui_composer_sidebar": {
         "title": "Panel w edytorze wiadomości",
         "body": "Pokazuje własny panel obok pisanej wiadomości."
       },
       "ui_sidebar_widget": {
-        "title": "Pole na pasku bocznym",
-        "body": "Pokazuje własną treść na pasku bocznym poczty."
+        "title": "Elementy na pasku bocznym",
+        "body": "Pokazuje własne pola i sekcje na pasku bocznym poczty."
       },
       "ui_settings_section": {
         "title": "Strona ustawień",
@@ -4238,8 +4238,8 @@
         "body": "Reaguje na zdefiniowane przez siebie skróty klawiszowe."
       },
       "ui_calendar_action": {
-        "title": "Przyciski przy wydarzeniach",
-        "body": "Pokazuje własne przyciski podczas tworzenia lub edytowania wydarzenia."
+        "title": "Elementy w widoku kalendarza",
+        "body": "Pokazuje własne przyciski i sekcje przy wydarzeniach oraz krótkie etykiety i kropki przy dniach w kalendarzu."
       },
       "ui_admin_page": {
         "title": "Strona administracyjna",
@@ -4256,6 +4256,34 @@
       "ui_notifications": {
         "title": "Wyświetlanie powiadomień",
         "body": "Wyświetla powiadomienia na urządzeniu lub w aplikacji, jeśli ich nie zezwolono. Każde podaje nazwę wtyczki."
+      },
+      "ui_message_list": {
+        "title": "Elementy na liście wiadomości",
+        "body": "Pokazuje własną treść nad listą wiadomości oraz przyciski przy wiadomościach i na pasku narzędzi zaznaczonych wiadomości."
+      },
+      "ui_contacts": {
+        "title": "Elementy w widoku kontaktów",
+        "body": "Pokazuje własne sekcje w szczegółach kontaktu i przyciski na liście kontaktów."
+      },
+      "ui_tasks": {
+        "title": "Elementy w widoku zadań",
+        "body": "Pokazuje własne sekcje w szczegółach zadania i przyciski na liście zadań."
+      },
+      "ui_files": {
+        "title": "Elementy w widoku plików",
+        "body": "Pokazuje własne sekcje w podglądzie pliku i pozycje w menu pliku."
+      },
+      "ui_commands": {
+        "title": "Własne polecenia",
+        "body": "Dodaje własne pozycje do palety poleceń (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Własne strony",
+        "body": "Dodaje do aplikacji własne strony, każdą z przyciskiem na pasku nawigacyjnym."
+      },
+      "http_proxy": {
+        "title": "Korzystanie z połączonych przez Ciebie kont",
+        "body": "Wysyła żądania przez serwer Bulwark z użyciem konta lub klucza skonfigurowanego przez Ciebie lub Twojego administratora. Wtyczka nigdy nie widzi hasła, ale może zrobić na tym serwerze wszystko, co może to konto."
       }
     },
     "dialog": {
