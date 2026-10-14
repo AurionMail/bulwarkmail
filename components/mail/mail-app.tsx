@@ -3667,8 +3667,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (useEmailStore.getState().emails.some((e) => e.id === target.id)) {
         await markAsRead(client, target.id, true);
       } else {
+        // Not in the store's list, so the store action can't ask plugins.
+        if (emailHooks.onBeforeEmailReadStateChange.size > 0
+          && !(await emailHooks.onBeforeEmailReadStateChange.intercept({ emailIds: [target.id], read: true }))) {
+          return;
+        }
         const { threadClient, accountId } = mvConversationRoute(target, client);
         await threadClient.markAsRead(target.id, true, accountId);
+        void emailHooks.onEmailReadStateChange.emit({ emailIds: [target.id], read: true });
       }
       patchMvConversation(target.id, (e) => ({ ...e, keywords: { ...e.keywords, $seen: true } }));
     } catch (error) {

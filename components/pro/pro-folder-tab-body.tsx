@@ -14,6 +14,7 @@ import { useProTabStore, type ProFolderTabData } from "@/stores/pro-tab-store";
 import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePaneId } from "@/hooks/use-pane-context";
 import type { Email, Mailbox } from "@/lib/jmap/types";
+import { emailHooks } from "@/lib/plugin-hooks";
 
 interface ProFolderTabBodyProps {
   tabId: string;
@@ -118,16 +119,24 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
     }
   }, [hasMore, isLoadingMore, isLoading, loadPage, emails.length]);
 
-  const markRowAsRead = useCallback((email: Email) => {
+  const markRowAsRead = useCallback(async (email: Email) => {
     if (!client || email.keywords?.$seen) return;
+    // Straight to the client: the store's markAsRead only serves emails in
+    // its own (global) list, which this tab's rows are not part of. So the
+    // plugin hooks the store action fires are fired here.
+    if (emailHooks.onBeforeEmailReadStateChange.size > 0
+      && !(await emailHooks.onBeforeEmailReadStateChange.intercept({ emailIds: [email.id], read: true }))) {
+      return;
+    }
     setEmails((prev) => prev.map((e) => e.id === email.id
       ? { ...e, keywords: { ...e.keywords, $seen: true } }
       : e));
-    // Straight to the client: the store's markAsRead only serves emails in
-    // its own (global) list, which this tab's rows are not part of.
-    void client.markAsRead(email.id, true, jmapAccountId).catch((err) => {
+    try {
+      await client.markAsRead(email.id, true, jmapAccountId);
+      void emailHooks.onEmailReadStateChange.emit({ emailIds: [email.id], read: true });
+    } catch (err) {
       console.error('Mark as read failed:', err);
-    });
+    }
   }, [client, jmapAccountId]);
 
   const openAsEmailTab = useCallback((email: Email, reuseReader: boolean) => {
@@ -143,7 +152,7 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
   }, [data.mailboxId, paneId, t]);
 
   const handleRowClick = useCallback((email: Email) => {
-    markRowAsRead(email);
+    void markRowAsRead(email);
     if (isMobile) {
       // No room for a reading pane - promote to a dedicated email tab.
       openAsEmailTab(email, true);
