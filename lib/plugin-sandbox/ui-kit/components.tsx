@@ -681,7 +681,7 @@ export function InfoBar({ tone = 'neutral', icon, eyebrow, title, children, comp
       <div className="bk flex flex-wrap items-center gap-x-3 gap-y-1.5 px-6 py-1.5 border-b border-border bg-muted/30 text-sm">
         {icon && <span className={cn('w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0', INFO_TONE[tone])}><Icon name={icon} size="sm" /></span>}
         {eyebrow && <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{eyebrow}</span>}
-        {title && <span className="min-w-0 text-foreground break-words">{title}</span>}
+        {title && <span className="min-w-0 flex-1 text-foreground break-words">{title}</span>}
         {children}
       </div>
     );
