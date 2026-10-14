@@ -26,6 +26,8 @@ import { apiFetch } from '@/lib/browser-navigation';
 import { explainServerAuthError } from '@/lib/server-auth-status';
 import { BIRTHDAY_CALENDAR_ID } from '@/lib/birthday-calendar';
 import { getClientByLocalAccountId } from './client-registry';
+import { calendarHooks } from '@/lib/plugin-hooks';
+import { eventToView } from '@/lib/plugin-projection';
 
 /**
  * When the Pro shell aggregates calendars/events from every connected
@@ -792,6 +794,9 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       createEvent: async (client, event, sendSchedulingMessages) => {
+        if (!(await calendarHooks.onBeforeEventCreate.intercept(eventToView({ id: '', ...event } as CalendarEvent)))) {
+          return null;
+        }
         set({ error: null });
         try {
           // Resolve shared calendar context from calendarIds. Also pin the
@@ -869,6 +874,7 @@ export const useCalendarStore = create<CalendarStore>()(
           }
 
           set((state) => ({ events: [...state.events, mappedCreated] }));
+          void calendarHooks.onAfterEventCreate.emit(eventToView(mappedCreated));
           // Invitation emails are sent by the server: `sendSchedulingMessages`
           // on CalendarEvent/set makes Stalwart queue the iTIP REQUEST itself.
           // Sending a client-side iMIP copy here produced duplicate emails.
@@ -883,6 +889,7 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       updateEvent: async (client, id, updates, sendSchedulingMessages) => {
+        if (!(await calendarHooks.onBeforeEventUpdate.intercept({ eventId: id, patch: updates }))) return;
         set({ error: null });
         try {
           // Resolve shared event IDs and client-side expanded occurrence IDs
@@ -915,6 +922,9 @@ export const useCalendarStore = create<CalendarStore>()(
           } else {
             await client.updateCalendarEvent(realId, cleanUpdates, sendSchedulingMessages, targetAccountId);
           }
+          // The event as it is after the change, before a refetch reshuffles
+          // occurrence ids: for a single-occurrence edit this is that occurrence.
+          let updatedEvent: CalendarEvent | undefined;
           set((state) => ({
             events: state.events.map(e => {
               if (e.id !== id) return e;
@@ -940,9 +950,14 @@ export const useCalendarStore = create<CalendarStore>()(
                   new Date(merged.utcStart).getTime() + durationMinutes * 60000,
                 ).toISOString();
               }
+              updatedEvent = merged;
               return merged;
             }),
           }));
+          if (calendarHooks.onAfterEventUpdate.size > 0) {
+            const after = updatedEvent ?? ({ ...(storeEvent ?? {}), ...updates, id } as CalendarEvent);
+            void calendarHooks.onAfterEventUpdate.emit(eventToView(after));
+          }
           if (target.isOccurrence || target.isBrowserOccurrence || hasExpandedOccurrencesOf(get().events, realId, target)) {
             await refetchAfterOccurrenceMutation();
           }
@@ -965,6 +980,7 @@ export const useCalendarStore = create<CalendarStore>()(
           set({ error: 'Invalid participant ID' });
           throw new Error('Invalid participant ID');
         }
+        if (!(await calendarHooks.onBeforeEventRsvp.intercept({ eventId, status }))) return;
         try {
           // Resolve shared event IDs and client-side expanded occurrence IDs.
           // Scope 'series' answers for the whole series, so an expanded
@@ -1011,6 +1027,7 @@ export const useCalendarStore = create<CalendarStore>()(
               };
             }),
           }));
+          void calendarHooks.onEventRsvp.emit({ eventId, status });
           // Only the answered event was updated above: after a series answer
           // the other occurrences in view still show the old status, after an
           // occurrence answer the synthetic ids / overrides are stale.
@@ -1025,194 +1042,15 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       importEvents: async (client, events, calendarId) => {
-        // Resolve shared calendar IDs
-        const cal = get().calendars.find(c => c.id === calendarId);
-        const realCalendarId = cal?.originalId || stripLocalAccountPrefix(calendarId, cal?.localAccountId);
-        const targetAccountId = cal?.accountId;
-        client = resolveAccountClient(client, cal?.localAccountId);
-
-        // Drop within-file UID duplicates first (first occurrence wins).
-        // CalendarEvent/parse already merges master + RECURRENCE-ID overrides
-        // into one object, so anything still sharing a UID here is a corrupt
-        // feed - creating both either fails ("UID already exists") or stores
-        // two events under one UID, depending on the Stalwart version.
-        const seenUids = new Set<string>();
-        let eventsToProcess = events.filter((e) => {
-          if (!e.uid) return true;
-          if (seenUids.has(e.uid)) return false;
-          seenUids.add(e.uid);
-          return true;
-        });
-
-        // Deduplicate UIDs: Stalwart enforces UID uniqueness across all calendars.
-        // - Events already in the target calendar → skip (true duplicates)
-        // - Events in other calendars → link to target calendar via calendarIds update
-        // - New events → create as normal
-        let linked = 0;
-        try {
-          const allServerEvents = await client.getCalendarEvents(undefined, targetAccountId);
-          const uidToEvent = new Map<string, { id: string; calendarIds: Record<string, boolean> }>();
-          for (const e of allServerEvents) {
-            if (e.uid) {
-              uidToEvent.set(e.uid, {
-                id: (e as CalendarEvent).originalId || e.id,
-                calendarIds: (e as CalendarEvent).originalCalendarIds || e.calendarIds || {},
-              });
-            }
-          }
-
-          const newEvents: Partial<CalendarEvent>[] = [];
-          const eventsToLink: { eventId: string; calendarIds: Record<string, boolean> }[] = [];
-
-          for (const e of eventsToProcess) {
-            if (!e.uid || !uidToEvent.has(e.uid)) {
-              // UID doesn't exist on server - create it
-              newEvents.push(e);
-            } else {
-              const existing = uidToEvent.get(e.uid)!;
-              if (existing.calendarIds[realCalendarId]) {
-                // Already in target calendar - skip
-                continue;
-              }
-              // Exists in another calendar - link to target calendar
-              eventsToLink.push({
-                eventId: existing.id,
-                calendarIds: { ...existing.calendarIds, [realCalendarId]: true },
-              });
-            }
-          }
-
-          // Batch-link existing events to the target calendar
-          for (const { eventId, calendarIds } of eventsToLink) {
-            try {
-              await client.updateCalendarEvent(eventId, { calendarIds } as Partial<CalendarEvent>, undefined, targetAccountId);
-              linked++;
-            } catch (err) {
-              debug.warn('calendar', `Import: failed to link event ${eventId} to target calendar:`, err);
-            }
-          }
-
-          if (linked > 0) {
-            debug.log('calendar', `Import: linked ${linked} existing events to target calendar`);
-          }
-          const skipped = eventsToProcess.length - newEvents.length - eventsToLink.length;
-          if (skipped > 0) {
-            debug.log('calendar', `Import: skipped ${skipped} events already in target calendar`);
-          }
-          eventsToProcess = newEvents;
-        } catch (error) {
-          debug.warn('calendar', 'Could not fetch existing events for deduplication, proceeding without:', error);
-        }
-
-        // Prepare all events for batch creation
-        const prepared: Partial<CalendarEvent>[] = [];
-        for (const event of eventsToProcess) {
-          const src = sanitizeOutgoingCalendarEventData(event as Partial<CalendarEvent>);
-          let cleanParticipants: Record<string, CalendarParticipant> | null = null;
-          if (src.participants) {
-            cleanParticipants = {};
-            for (const [key, p] of Object.entries(src.participants)) {
-              const participant: Record<string, unknown> = {
-                '@type': 'Participant',
-                name: p.name,
-                email: p.email,
-                // calendarAddress carries the scheduling address in jscalendarbis
-                // (Stalwart); sendTo is retired there, so it only serves as a
-                // fallback source for events parsed from legacy RFC 8984 data.
-                calendarAddress: p.calendarAddress || p.sendTo?.imip,
-                description: p.description,
-                kind: p.kind,
-                roles: p.roles,
-                participationStatus: p.participationStatus,
-                participationComment: p.participationComment,
-                expectReply: p.expectReply,
-                scheduleAgent: p.scheduleAgent,
-                scheduleForceSend: p.scheduleForceSend,
-                scheduleId: p.scheduleId,
-                delegatedTo: p.delegatedTo,
-                delegatedFrom: p.delegatedFrom,
-                memberOf: p.memberOf,
-                locationId: p.locationId,
-                language: p.language,
-                links: p.links,
-              };
-              Object.keys(participant).forEach(k => {
-                if (participant[k] === undefined || participant[k] === null) delete participant[k];
-              });
-              cleanParticipants[key] = participant as unknown as CalendarParticipant;
-            }
-          }
-
-          const data: Partial<CalendarEvent> = {
-            calendarIds: { [realCalendarId]: true },
-            uid: src.uid,
-            title: src.title,
-            description: src.description,
-            descriptionContentType: src.descriptionContentType,
-            start: src.start,
-            duration: src.showWithoutTime ? normalizeAllDayDuration(src.duration) : src.duration,
-            timeZone: src.showWithoutTime ? null : src.timeZone,
-            showWithoutTime: src.showWithoutTime,
-            status: src.status,
-            freeBusyStatus: src.freeBusyStatus,
-            privacy: src.privacy,
-            color: src.color,
-            keywords: src.keywords,
-            categories: src.categories,
-            locale: src.locale,
-            // Stalwart derives the iCalendar ORGANIZER solely from
-            // organizerCalendarAddress (replyTo is retired in jscalendarbis);
-            // dropping it here would strip the ORGANIZER from imported invites
-            // and break RSVP replies afterwards.
-            organizerCalendarAddress: src.organizerCalendarAddress || src.replyTo?.imip,
-            locations: src.locations,
-            virtualLocations: src.virtualLocations,
-            links: src.links,
-            recurrenceRules: src.recurrenceRules,
-            recurrenceOverrides: src.recurrenceOverrides,
-            excludedRecurrenceRules: src.excludedRecurrenceRules,
-            alerts: src.alerts,
-            participants: cleanParticipants,
-          };
-          Object.keys(data).forEach(k => {
-            const v = (data as Record<string, unknown>)[k];
-            if (v === undefined || v === null) delete (data as Record<string, unknown>)[k];
-          });
-          prepared.push(data);
-        }
-
-        if (prepared.length === 0) return linked;
-
-        // Batch create in chunks of 50 to avoid oversized requests
-        const BATCH_SIZE = 50;
-        let imported = 0;
-        for (let i = 0; i < prepared.length; i += BATCH_SIZE) {
-          const batch = prepared.slice(i, i + BATCH_SIZE);
-          try {
-            const { created, failed, notCreated } = await client.batchCreateCalendarEvents(batch, targetAccountId);
-            imported += created.length;
-            if (failed.length > 0) {
-              const first = Object.values(notCreated)[0];
-              const reason = first?.description || first?.type || 'unknown error';
-              debug.warn('calendar', `Import batch ${i / BATCH_SIZE + 1}: ${failed.length} events failed (${reason})`);
-              set({ error: `${failed.length} event(s) could not be imported: ${reason}` });
-            }
-          } catch (error) {
-            debug.error(`Import batch ${i / BATCH_SIZE + 1} failed:`, error);
-          }
-        }
-
-        // Re-fetch all events properly so the store state is consistent
-        // (with recurrence expansion, multi-account mapping, etc.)
-        const { dateRange } = get();
-        if (dateRange) {
-          await get().fetchEvents(client, dateRange.start, dateRange.end);
-        }
-
-        return imported + linked;
+        if (!(await calendarHooks.onBeforeEventsImport.intercept({ calendarId, count: events.length }))) return 0;
+        const imported = await importEventsUnhooked(client, events, calendarId);
+        void calendarHooks.onEventsImport.emit({ calendarId, imported, skipped: Math.max(0, events.length - imported) });
+        return imported;
       },
 
       deleteEvent: async (client, id, sendSchedulingMessages) => {
+        const title = get().events.find((e) => e.id === id)?.title || '';
+        if (!(await calendarHooks.onBeforeEventDelete.intercept({ eventId: id, title }))) return;
         set({ error: null });
         try {
           // Resolve shared event IDs and client-side expanded occurrence IDs
@@ -1242,6 +1080,7 @@ export const useCalendarStore = create<CalendarStore>()(
             events: state.events.filter(e => e.id !== id),
             selectedEventId: state.selectedEventId === id ? null : state.selectedEventId,
           }));
+          void calendarHooks.onAfterEventDelete.emit({ eventId: id, title });
           if (target.isOccurrence || target.isBrowserOccurrence || hadOccurrences) {
             await refetchAfterOccurrenceMutation();
           }
@@ -1684,7 +1523,7 @@ export const useCalendarStore = create<CalendarStore>()(
 
           // Import new events (importEvents will re-fetch all events at the end)
           if (eventsToImport.length > 0) {
-            await get().importEvents(client, eventsToImport, sub.calendarId);
+            await importEventsUnhooked(client, eventsToImport, sub.calendarId);
           } else {
             // No new events to import, but stale ones may have been deleted
             // Re-fetch to reflect deletions
@@ -1783,3 +1622,202 @@ export const useCalendarStore = create<CalendarStore>()(
     }
   )
 );
+
+/**
+ * Imports events into a calendar without the plugin import hooks. The
+ * store's importEvents wraps it with them; a subscription refresh calls it
+ * directly, since syncing a feed is not the user importing a file.
+ */
+async function importEventsUnhooked(
+  client: IJMAPClient,
+  events: Partial<CalendarEvent>[],
+  calendarId: string,
+): Promise<number> {
+  const get = useCalendarStore.getState;
+  const set = useCalendarStore.setState;
+  // Resolve shared calendar IDs
+  const cal = get().calendars.find(c => c.id === calendarId);
+  const realCalendarId = cal?.originalId || stripLocalAccountPrefix(calendarId, cal?.localAccountId);
+  const targetAccountId = cal?.accountId;
+  client = resolveAccountClient(client, cal?.localAccountId);
+
+  // Drop within-file UID duplicates first (first occurrence wins).
+  // CalendarEvent/parse already merges master + RECURRENCE-ID overrides
+  // into one object, so anything still sharing a UID here is a corrupt
+  // feed - creating both either fails ("UID already exists") or stores
+  // two events under one UID, depending on the Stalwart version.
+  const seenUids = new Set<string>();
+  let eventsToProcess = events.filter((e) => {
+    if (!e.uid) return true;
+    if (seenUids.has(e.uid)) return false;
+    seenUids.add(e.uid);
+    return true;
+  });
+
+  // Deduplicate UIDs: Stalwart enforces UID uniqueness across all calendars.
+  // - Events already in the target calendar → skip (true duplicates)
+  // - Events in other calendars → link to target calendar via calendarIds update
+  // - New events → create as normal
+  let linked = 0;
+  try {
+    const allServerEvents = await client.getCalendarEvents(undefined, targetAccountId);
+    const uidToEvent = new Map<string, { id: string; calendarIds: Record<string, boolean> }>();
+    for (const e of allServerEvents) {
+      if (e.uid) {
+        uidToEvent.set(e.uid, {
+          id: (e as CalendarEvent).originalId || e.id,
+          calendarIds: (e as CalendarEvent).originalCalendarIds || e.calendarIds || {},
+        });
+      }
+    }
+
+    const newEvents: Partial<CalendarEvent>[] = [];
+    const eventsToLink: { eventId: string; calendarIds: Record<string, boolean> }[] = [];
+
+    for (const e of eventsToProcess) {
+      if (!e.uid || !uidToEvent.has(e.uid)) {
+        // UID doesn't exist on server - create it
+        newEvents.push(e);
+      } else {
+        const existing = uidToEvent.get(e.uid)!;
+        if (existing.calendarIds[realCalendarId]) {
+          // Already in target calendar - skip
+          continue;
+        }
+        // Exists in another calendar - link to target calendar
+        eventsToLink.push({
+          eventId: existing.id,
+          calendarIds: { ...existing.calendarIds, [realCalendarId]: true },
+        });
+      }
+    }
+
+    // Batch-link existing events to the target calendar
+    for (const { eventId, calendarIds } of eventsToLink) {
+      try {
+        await client.updateCalendarEvent(eventId, { calendarIds } as Partial<CalendarEvent>, undefined, targetAccountId);
+        linked++;
+      } catch (err) {
+        debug.warn('calendar', `Import: failed to link event ${eventId} to target calendar:`, err);
+      }
+    }
+
+    if (linked > 0) {
+      debug.log('calendar', `Import: linked ${linked} existing events to target calendar`);
+    }
+    const skipped = eventsToProcess.length - newEvents.length - eventsToLink.length;
+    if (skipped > 0) {
+      debug.log('calendar', `Import: skipped ${skipped} events already in target calendar`);
+    }
+    eventsToProcess = newEvents;
+  } catch (error) {
+    debug.warn('calendar', 'Could not fetch existing events for deduplication, proceeding without:', error);
+  }
+
+  // Prepare all events for batch creation
+  const prepared: Partial<CalendarEvent>[] = [];
+  for (const event of eventsToProcess) {
+    const src = sanitizeOutgoingCalendarEventData(event as Partial<CalendarEvent>);
+    let cleanParticipants: Record<string, CalendarParticipant> | null = null;
+    if (src.participants) {
+      cleanParticipants = {};
+      for (const [key, p] of Object.entries(src.participants)) {
+        const participant: Record<string, unknown> = {
+          '@type': 'Participant',
+          name: p.name,
+          email: p.email,
+          // calendarAddress carries the scheduling address in jscalendarbis
+          // (Stalwart); sendTo is retired there, so it only serves as a
+          // fallback source for events parsed from legacy RFC 8984 data.
+          calendarAddress: p.calendarAddress || p.sendTo?.imip,
+          description: p.description,
+          kind: p.kind,
+          roles: p.roles,
+          participationStatus: p.participationStatus,
+          participationComment: p.participationComment,
+          expectReply: p.expectReply,
+          scheduleAgent: p.scheduleAgent,
+          scheduleForceSend: p.scheduleForceSend,
+          scheduleId: p.scheduleId,
+          delegatedTo: p.delegatedTo,
+          delegatedFrom: p.delegatedFrom,
+          memberOf: p.memberOf,
+          locationId: p.locationId,
+          language: p.language,
+          links: p.links,
+        };
+        Object.keys(participant).forEach(k => {
+          if (participant[k] === undefined || participant[k] === null) delete participant[k];
+        });
+        cleanParticipants[key] = participant as unknown as CalendarParticipant;
+      }
+    }
+
+    const data: Partial<CalendarEvent> = {
+      calendarIds: { [realCalendarId]: true },
+      uid: src.uid,
+      title: src.title,
+      description: src.description,
+      descriptionContentType: src.descriptionContentType,
+      start: src.start,
+      duration: src.showWithoutTime ? normalizeAllDayDuration(src.duration) : src.duration,
+      timeZone: src.showWithoutTime ? null : src.timeZone,
+      showWithoutTime: src.showWithoutTime,
+      status: src.status,
+      freeBusyStatus: src.freeBusyStatus,
+      privacy: src.privacy,
+      color: src.color,
+      keywords: src.keywords,
+      categories: src.categories,
+      locale: src.locale,
+      // Stalwart derives the iCalendar ORGANIZER solely from
+      // organizerCalendarAddress (replyTo is retired in jscalendarbis);
+      // dropping it here would strip the ORGANIZER from imported invites
+      // and break RSVP replies afterwards.
+      organizerCalendarAddress: src.organizerCalendarAddress || src.replyTo?.imip,
+      locations: src.locations,
+      virtualLocations: src.virtualLocations,
+      links: src.links,
+      recurrenceRules: src.recurrenceRules,
+      recurrenceOverrides: src.recurrenceOverrides,
+      excludedRecurrenceRules: src.excludedRecurrenceRules,
+      alerts: src.alerts,
+      participants: cleanParticipants,
+    };
+    Object.keys(data).forEach(k => {
+      const v = (data as Record<string, unknown>)[k];
+      if (v === undefined || v === null) delete (data as Record<string, unknown>)[k];
+    });
+    prepared.push(data);
+  }
+
+  if (prepared.length === 0) return linked;
+
+  // Batch create in chunks of 50 to avoid oversized requests
+  const BATCH_SIZE = 50;
+  let imported = 0;
+  for (let i = 0; i < prepared.length; i += BATCH_SIZE) {
+    const batch = prepared.slice(i, i + BATCH_SIZE);
+    try {
+      const { created, failed, notCreated } = await client.batchCreateCalendarEvents(batch, targetAccountId);
+      imported += created.length;
+      if (failed.length > 0) {
+        const first = Object.values(notCreated)[0];
+        const reason = first?.description || first?.type || 'unknown error';
+        debug.warn('calendar', `Import batch ${i / BATCH_SIZE + 1}: ${failed.length} events failed (${reason})`);
+        set({ error: `${failed.length} event(s) could not be imported: ${reason}` });
+      }
+    } catch (error) {
+      debug.error(`Import batch ${i / BATCH_SIZE + 1} failed:`, error);
+    }
+  }
+
+  // Re-fetch all events properly so the store state is consistent
+  // (with recurrence expansion, multi-account mapping, etc.)
+  const { dateRange } = get();
+  if (dateRange) {
+    await get().fetchEvents(client, dateRange.start, dateRange.end);
+  }
+
+  return imported + linked;
+}
