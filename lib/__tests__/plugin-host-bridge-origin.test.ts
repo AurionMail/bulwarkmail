@@ -162,3 +162,25 @@ describe('plugin frame permissions', () => {
     }
   });
 });
+
+describe('plugin frame color scheme', () => {
+  // A frame whose document says dark while the iframe element says light gets
+  // an opaque white canvas from the browser: dark text tokens on white.
+  it('gives the iframe element the color-scheme the frame declares, at start and on a theme change', () => {
+    document.documentElement.classList.add('dark');
+    try {
+      const inst = createSlotInstance({
+        plugin: plugin(), slot: 'plugin-dialog', code: '', locale: 'en', tier: 'untrusted', extraProps: {},
+        hostContainer: document.body, onResize: () => {},
+      });
+      instances.push(inst);
+      expect(inst.iframe.style.colorScheme).toBe('dark');
+      inst.setTheme({ dark: false, fontFamily: 'sans-serif', vars: {} });
+      expect(inst.iframe.style.colorScheme).toBe('light');
+      inst.setTheme({ dark: true, fontFamily: 'sans-serif', vars: {} });
+      expect(inst.iframe.style.colorScheme).toBe('dark');
+    } finally {
+      document.documentElement.classList.remove('dark');
+    }
+  });
+});

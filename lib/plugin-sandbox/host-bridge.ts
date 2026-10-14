@@ -172,6 +172,11 @@ export class SandboxInstance {
     this.iframe.setAttribute('allow', 'clipboard-write');
     this.iframe.title = `plugin-${plugin.id}-${initPayload.mode}`;
     this.iframe.style.border = 'none';
+    // The frame's document declares the theme's color-scheme (themeSnapshotToCSS).
+    // When the iframe element's own color-scheme differs, the browser paints
+    // an opaque canvas behind the frame (white in a dark theme), so the two
+    // are always set together.
+    if (initPayload.mode === 'slot') this.iframe.style.colorScheme = initPayload.theme.dark ? 'dark' : 'light';
     this.iframe.style.display = 'block';
     if (initPayload.mode === 'background') {
       this.iframe.style.position = 'absolute';
@@ -377,6 +382,7 @@ export class SandboxInstance {
   /** Push a new resolved theme so the slot iframe re-injects its theme CSS. */
   setTheme(theme: ThemeSnapshot): void {
     if (this.destroyed) return;
+    this.iframe.style.colorScheme = theme.dark ? 'dark' : 'light';
     this.send({ type: 'theme-change', theme });
   }
 

@@ -95,6 +95,10 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   useEffect(() => {
     instanceRef.current?.setTheme(snapshotHostTheme());
+    // The store may apply the new theme to the page after this render: read
+    // it again a frame later, so the frame never keeps the old values.
+    const frame = requestAnimationFrame(() => instanceRef.current?.setTheme(snapshotHostTheme()));
+    return () => cancelAnimationFrame(frame);
   }, [resolvedTheme, activeThemeId]);
 
   if (show !== true) return null;
