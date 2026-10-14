@@ -18,6 +18,7 @@ import { toast } from "@/stores/toast-store";
 import { useCalendarLocale } from "@/hooks/use-calendar-locale";
 import { useScrollWindow } from "@/hooks/use-scroll-window";
 import { dayKey, parseDayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
+import { PluginDayLabel } from "./plugin-day-label";
 
 interface CalendarMonthViewProps extends ScrollWindowViewProps {
   selectedDate: Date;
@@ -379,6 +380,7 @@ export function CalendarMonthView({
                     >
                       {formatDayNumber(day)}
                     </button>
+                    {!isMobile && <PluginDayLabel surface="calendar-day-header" date={key} className="min-w-0 flex-1" />}
                   </div>
                   {isMobile && !showChips ? (
                     <div className="flex items-center justify-center gap-0.5 flex-wrap">

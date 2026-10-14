@@ -20,6 +20,7 @@ import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
 import { readableTextOn } from "@/lib/color-transform";
+import { PluginDayLabel } from "./plugin-day-label";
 
 interface CalendarDayViewProps extends ScrollWindowViewProps {
   selectedDate: Date;
@@ -334,6 +335,7 @@ export function CalendarDayView({
                     >
                       {format(day, "d")}
                     </div>
+                    <PluginDayLabel surface="calendar-day-header" date={key} className="w-full" />
                   </div>
 
                   {hasAllDayArea && (
