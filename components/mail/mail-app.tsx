@@ -119,6 +119,7 @@ import { plainTextToComposerBody, getQuoteBodies } from "@/lib/email-composer-ut
 import { appLifecycleHooks, uiHooks, routerHooks, toastHooks, emailHooks } from "@/lib/plugin-hooks";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
+import { announceSent, cancelAnnouncedSend, releaseAnnouncedSend } from "@/lib/plugin-after-send";
 import { composeOptionsFor, runBeforeCompose, type ComposePrefill, type ComposerOpenMode } from "@/lib/plugin-compose-gate";
 import { formatMailto } from "@/lib/protocol-handlers/mailto";
 import { buildQuoteHeader } from "@/lib/quote-header";
@@ -1971,6 +1972,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
       const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, localAccountId: data.localAccountId });
       submitted = true;
+      announceSent(result, data);
       setShowComposer(false);
       // Sending an edited draft destroys it server-side - and every autosave
       // before that already replaced it under a fresh id (createDraft is a
@@ -2297,6 +2299,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     pending.submissionAccountId,
                   );
                   clearPendingUndoSend();
+                  releaseAnnouncedSend(pending.submissionId);
                   if (isScheduledView) await fetchScheduledEmails(client);
                 } catch (error) {
                   console.error('Failed to send now:', error);
@@ -2311,6 +2314,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           void (async () => {
             try {
               const restored = await cancelUndoSend(undoClient, pending);
+              // Never left the server: plugins don't hear about it.
+              cancelAnnouncedSend(pending.submissionId);
               if (restored && !pending.isSmime) {
                 await handleEditDraft(restored);
               }
