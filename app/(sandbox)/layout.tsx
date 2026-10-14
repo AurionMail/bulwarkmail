@@ -19,6 +19,11 @@ export default function PluginSandboxLayout({ children }: { children: ReactNode 
   return (
     <html lang="en">
       <body style={{ margin: 0, padding: 0, background: 'transparent' }}>
+        {/* next dev puts its indicator into every document, so each plugin
+            slot showed its own badge. Plugins have no use for it. */}
+        {process.env.NODE_ENV === 'development' && (
+          <style>{'nextjs-portal{display:none!important}'}</style>
+        )}
         {children}
       </body>
     </html>

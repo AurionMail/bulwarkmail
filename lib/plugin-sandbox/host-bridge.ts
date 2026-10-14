@@ -158,6 +158,7 @@ export class SandboxInstance {
     const sandboxFlags = this.privileged || process.env.NODE_ENV === 'development'
       ? 'allow-scripts allow-same-origin'
       : 'allow-scripts';
+    if (!this.privileged && process.env.NODE_ENV === 'development') warnDevSandboxOnce();
     this.iframe.setAttribute('sandbox', sandboxFlags);
     this.iframe.setAttribute('referrerpolicy', 'no-referrer');
     this.iframe.title = `plugin-${plugin.id}-${initPayload.mode}`;
@@ -386,6 +387,14 @@ export function withoutFunctions(value: unknown, depth = 0): unknown {
     out[k] = withoutFunctions(v, depth + 1);
   }
   return out;
+}
+
+let devSandboxWarned = false;
+function warnDevSandboxOnce(): void {
+  if (devSandboxWarned) return;
+  devSandboxWarned = true;
+  console.warn('[plugin-sandbox] next dev runs untrusted plugins same-origin (Next needs it for HMR). '
+    + 'They can reach the whole app here; test isolation against a production build.');
 }
 
 function uid(): string {
