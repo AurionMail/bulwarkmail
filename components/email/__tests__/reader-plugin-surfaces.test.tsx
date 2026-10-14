@@ -263,6 +263,48 @@ describe('thread-summary', () => {
   });
 });
 
+describe('reader surfaces in the phone conversation view', () => {
+  const conversation = [
+    textMail('Second', { id: 'm2', subject: 'Re: Plan', receivedAt: '2026-01-02T00:00:00Z' } as Partial<Email>),
+    textMail('First', { id: 'm1', subject: 'Plan', receivedAt: '2026-01-01T00:00:00Z' } as Partial<Email>),
+  ];
+  const thread = { threadKey: 't1', latestEmail: conversation[0], emails: conversation, emailCount: 2 } as unknown as ThreadGroup;
+
+  it('mounts the single reader\'s frames on the unfolded message only', () => {
+    offerSlots('p1', ['reader-header', 'reader-below-subject', 'email-banner', 'email-footer']);
+    render(<ThreadConversationView thread={thread} emails={conversation} onBack={() => {}} />);
+
+    // The latest message is unfolded, the older one (read) is folded.
+    for (const slot of ['reader-header', 'reader-below-subject', 'email-banner'] as const) {
+      const frames = screen.getAllByTestId(`slot-${slot}`);
+      expect(frames).toHaveLength(1);
+      expect((slotProps(frames[0]).email as { id: string }).id).toBe('m2');
+    }
+    const footer = screen.getAllByTestId('slot-email-footer');
+    expect(footer).toHaveLength(1);
+    expect(slotProps(footer[0])).toEqual({ emailId: 'm2' });
+    // Header on top, the body between banner and footer.
+    expect(follows(screen.getByTestId('slot-reader-header'), screen.getByTestId('slot-reader-below-subject'))).toBe(true);
+    expect(follows(screen.getByTestId('slot-email-banner'), screen.getByText('Second'))).toBe(true);
+    expect(follows(screen.getByText('Second'), footer[0])).toBe(true);
+  });
+
+  it('puts plugin reader actions behind a more button on the unfolded message', async () => {
+    act(() => setPluginActions('p', 'Translator', 'reader-actions', [{ id: 'translate', label: 'Translate', mailboxRoles: ['inbox'] }]));
+    const { unmount } = render(<ThreadConversationView thread={thread} emails={conversation} onBack={() => {}} mailboxRole="inbox" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'more_actions' }));
+    const item = await screen.findByRole('menuitem', { name: 'Translate' });
+    await act(async () => { fireEvent.click(item); });
+    expect(dispatch).toHaveBeenCalledWith('p', 'reader-actions', 'translate', { emailId: 'm2' });
+    unmount();
+
+    // Kept to the folder roles the plugin asked for.
+    render(<ThreadConversationView thread={thread} emails={conversation} onBack={() => {}} mailboxRole="junk" />);
+    expect(screen.queryByRole('button', { name: 'more_actions' })).toBeNull();
+  });
+});
+
 describe('reader-actions', () => {
   it('adds the plugin buttons to the reader toolbar', async () => {
     act(() => setPluginActions('p', 'Translator', 'reader-actions', [{ id: 'translate', label: 'Translate' }]));

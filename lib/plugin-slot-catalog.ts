@@ -68,7 +68,7 @@ export const SLOT_CATALOG = {
   'email-banner': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'a banner above the message body'),
   'reader-above-quote': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'between the new text of a message and the quoted text below it'),
   'email-footer': S('reader', 'frame', ['ui:email-footer'], { emailId: 'email:read' }, 'below the message body'),
-  'thread-summary': S('reader', 'frame', ['ui:email-banner'], { threadId: 'email:read', emailIds: 'email:read' }, 'above the messages of an open conversation'),
+  'thread-summary': S('reader', 'frame', ['ui:email-banner'], { threadId: 'email:read', emailIds: 'email:read' }, 'above the messages of an open conversation (the phone conversation view and Mountain View; the default desktop layout opens one message at a time and has no conversation view)'),
   'reader-actions': S('reader', 'action', ['ui:toolbar'], { emailId: 'email:read' }, 'buttons in the open message\'s toolbar', true),
   'email-detail-sidebar': S('reader', 'frame', ['ui:email-details'], { email: 'email:read' }, 'a side panel next to the open message'),
   'email-details-section': S('reader', 'frame', ['ui:email-details'], { email: 'email:read', category: null }, 'a section in the message details'),

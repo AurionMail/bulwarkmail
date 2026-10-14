@@ -43,6 +43,7 @@ import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { useOwnDomainAddress } from "@/hooks/use-own-domain-address";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
@@ -57,6 +58,8 @@ interface ThreadConversationViewProps {
   onForward?: (email: Email) => void;
   onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
+  /** Role of the folder the conversation was opened from, for plugin actions limited to some folders. */
+  mailboxRole?: string | null;
 }
 
 // Helper function to get file icon based on mime type or extension
@@ -171,6 +174,7 @@ export function ThreadConversationView({
   onForward,
   onDownloadAttachment,
   onMarkAsRead,
+  mailboxRole,
 }: ThreadConversationViewProps) {
   const t = useTranslations();
   const externalContent = useConversationExternalContent();
@@ -268,6 +272,7 @@ export function ThreadConversationView({
               onForward={onForward ? () => onForward(email) : undefined}
               onDownloadAttachment={onDownloadAttachment}
               onMarkAsRead={onMarkAsRead}
+              mailboxRole={mailboxRole}
             />
           ))}
         </div>
@@ -290,6 +295,24 @@ interface EmailCardProps {
   onForward?: () => void;
   onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
+  mailboxRole?: string | null;
+}
+
+/**
+ * The single reader's plugin surfaces for one message of the phone
+ * conversation, mounted only while the message is unfolded: reader-header
+ * on top, reader-below-subject and email-banner under the sender,
+ * email-footer under the body. The props are the same as in the single
+ * reader and stay stable across re-renders.
+ */
+function useConversationPluginProps(email: Email) {
+  const headerOffers = usePluginSlotOffers('reader-header').length;
+  const belowSubjectOffers = usePluginSlotOffers('reader-below-subject').length;
+  const bannerOffers = usePluginSlotOffers('email-banner').length;
+  const wantsView = headerOffers + belowSubjectOffers + bannerOffers > 0;
+  const emailProps = useMemo(() => ({ email: wantsView ? emailToReadView(email) : null }), [email, wantsView]);
+  const idProps = useMemo(() => ({ emailId: email.id }), [email.id]);
+  return { emailProps, idProps };
 }
 
 function EmailCard({
@@ -305,9 +328,11 @@ function EmailCard({
   onForward,
   onDownloadAttachment,
   onMarkAsRead,
+  mailboxRole,
 }: EmailCardProps) {
   const t = useTranslations();
   const density = useSettingsStore((state) => state.density);
+  const plugin = useConversationPluginProps(email);
   const sender = email.from?.[0];
   const formatAddress = useOwnDomainAddress();
   const isUnread = !email.keywords?.$seen;
@@ -322,6 +347,7 @@ function EmailCard({
       isExpanded ? "bg-background shadow-sm" : "bg-muted/30",
       isUnread && !isExpanded && "border-s-2 border-l-primary"
     )}>
+      {isExpanded && <PluginSlot name="reader-header" className="w-full" extraProps={plugin.emailProps} />}
       {/* Card Header - Always visible */}
       <button
         onClick={onToggleExpanded}
@@ -375,6 +401,8 @@ function EmailCard({
       {/* Expanded Content */}
       {isExpanded && (
         <div className="border-t border-border animate-in slide-in-from-top-2 duration-200">
+          <PluginSlot name="reader-below-subject" className="w-full" extraProps={plugin.emailProps} />
+          <PluginSlot name="email-banner" className="w-full" extraProps={plugin.emailProps} />
           <ConversationEmailBody
             email={email}
             allowExternal={allowExternal}
@@ -382,8 +410,10 @@ function EmailCard({
             onTrustSender={onTrustSender}
             onDownloadAttachment={onDownloadAttachment}
           />
+          <PluginSlot name="email-footer" className="w-full" extraProps={plugin.idProps} />
 
-          {/* Action Buttons */}
+          {/* Action Buttons; plugin reader actions behind a "more" button, as
+              in the single reader's More panel on phones. */}
           <div className="px-4 pb-4 flex gap-2">
             {onReply && (
               <Button
@@ -427,6 +457,13 @@ function EmailCard({
                 <span className="truncate">{t("email_viewer.forward")}</span>
               </Button>
             )}
+            <PluginActions
+              surface="reader-actions"
+              context={plugin.idProps}
+              mailboxRole={mailboxRole ?? null}
+              overflow
+              className="flex-shrink-0 rounded-md border border-border"
+            />
           </div>
         </div>
       )}
