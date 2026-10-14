@@ -977,6 +977,27 @@ export function resolveEmailBlobContext(
  */
 let shownFolderList: { key: string; mailboxId: string; pageSize: number } | null = null;
 
+/**
+ * The per-thread message counts to store once a page arrived: the counts that
+ * page brought along (Thread/get chained onto its query) under the keys the
+ * list groups threads by, merged over `current`. Empty when it brought none,
+ * so the caller knows to ask for them separately.
+ */
+function threadCountsPatch(
+  emails: Email[],
+  counts: Record<string, number> | undefined,
+  current: Map<string, number>,
+): { threadEmailCounts: Map<string, number> } | Record<string, never> {
+  if (!counts) return {};
+  const merged = new Map(current);
+  for (const email of emails) {
+    if (!email.threadId) continue;
+    const count = counts[email.threadId];
+    if (count !== undefined) merged.set(threadKeyFor(email), count);
+  }
+  return { threadEmailCounts: merged };
+}
+
 function captureEmailListView(): () => boolean {
   const view = useEmailStore.getState();
   const activeAccountId = useAuthStore.getState().activeAccountId;
@@ -2580,6 +2601,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
               mailboxId: targetMailboxId,
             }
           : null;
+      const threadCounts = threadCountsPatch(enrichedEmails, result.threadCounts, get().threadEmailCounts);
       set({
         emails: annotateScheduledEmails(enrichedEmails, get().scheduledSubmissionByEmailId),
         hasMoreEmails: result.hasMore,
@@ -2590,12 +2612,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         threadEmailsCache: new Map(),
         expandedThreadIds: new Set(),
         isLoadingThread: null,
+        ...threadCounts,
         isLoading: false
       });
       shownFolderList = { key: listKey, mailboxId: targetMailboxId, pageSize: emailsPerPage };
       rememberFolderList(listKey, get(), emailsPerPage);
-      // Fetch full thread counts in the background (non-blocking)
-      void get().fetchThreadEmailCounts(client);
+      // Only a server that did not answer the chained Thread/get needs a
+      // request of its own for the conversation sizes.
+      if (!('threadEmailCounts' in threadCounts)) void get().fetchThreadEmailCounts(client);
     } catch (error) {
       if (!isCurrentView()) return;
       console.error('Failed to fetch emails:', error);
@@ -2819,14 +2843,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
       const enrichedNewEmails = await emailHooks.onEmailsFetched.transform(newEmails);
       if (!isCurrentView()) return;
+      const threadCounts = threadCountsPatch(
+        enrichedNewEmails, 'threadCounts' in result ? result.threadCounts : undefined, get().threadEmailCounts,
+      );
       set({
         emails: [...currentEmails, ...enrichedNewEmails],
         hasMoreEmails: result.hasMore,
         totalEmails: result.total,
+        ...threadCounts,
         isLoadingMore: false
       });
-      // Fetch full thread counts for newly loaded threads in the background
-      if (enrichedNewEmails.length > 0) {
+      // Thread counts for the new rows, unless the page brought them along.
+      if (enrichedNewEmails.length > 0 && !('threadEmailCounts' in threadCounts)) {
         void get().fetchThreadEmailCounts(client);
       }
     } catch (error) {

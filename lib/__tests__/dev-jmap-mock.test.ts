@@ -90,6 +90,28 @@ describe('dev-jmap mock server', () => {
     });
   });
 
+  describe('POST /api - back-references', () => {
+    it('resolves a wildcard path across a list (RFC 8620 §3.7)', async () => {
+      const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+        body: JSON.stringify({
+          methodCalls: [
+            ['Email/query', { accountId: 'dev-account-001', filter: { inMailbox: 'mb-inbox' }, limit: 3 }, '0'],
+            ['Email/get', { accountId: 'dev-account-001', '#ids': { resultOf: '0', name: 'Email/query', path: '/ids' }, properties: ['threadId'] }, '1'],
+            ['Thread/get', { accountId: 'dev-account-001', '#ids': { resultOf: '1', name: 'Email/get', path: '/list/*/threadId' } }, '2'],
+          ],
+        }),
+      });
+      const res = await POST(req, { params: Promise.resolve({ path: ['api'] }) });
+      const data = await res.json();
+      const threadIds = data.methodResponses[1][1].list.map((e: { threadId: string }) => e.threadId);
+      expect(threadIds.length).toBeGreaterThan(0);
+      expect(data.methodResponses[2][0]).toBe('Thread/get');
+      expect(data.methodResponses[2][1].list.map((t: { id: string }) => t.id).sort()).toEqual([...new Set<string>(threadIds)].sort());
+    });
+  });
+
   describe('POST /api - Email/query', () => {
     it('should filter by mailbox', async () => {
       const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {

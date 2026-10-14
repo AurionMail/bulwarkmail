@@ -2481,6 +2481,24 @@ const METHOD_HANDLERS: Record<string, MethodHandler> = {
 // Resolve back-references between method calls
 // ---------------------------------------------------------------------------
 
+/** A JSON pointer with "*" wildcard steps, as JMAP result references use. */
+function resolvePointer(value: unknown, path: string): unknown {
+  const steps = path.replace(/^\//, '').split('/').filter((step) => step.length > 0);
+  let current: unknown[] = [value];
+  for (const step of steps) {
+    const next: unknown[] = [];
+    for (const item of current) {
+      if (step === '*') {
+        if (Array.isArray(item)) next.push(...item);
+      } else if (item && typeof item === 'object') {
+        next.push((item as Record<string, unknown>)[step]);
+      }
+    }
+    current = next;
+  }
+  return steps.includes('*') ? current : current[0];
+}
+
 function resolveBackReferences(
   methodCalls: Array<[string, MethodArgs, string]>,
   responses: MethodResult[],
@@ -2489,15 +2507,17 @@ function resolveBackReferences(
     const [method, args, callId] = call;
     const resolved = { ...args };
 
-    // Handle #ids back-reference (used by Email/get after Email/query)
-    if (resolved['#ids']) {
-      const ref = resolved['#ids'] as { resultOf: string; name: string; path: string };
+    // Every "#name" argument is a back-reference (RFC 8620 §3.7): the value at
+    // `path` in an earlier response replaces it under the plain name, where a
+    // "*" step collects across an array (e.g. /list/*/threadId).
+    for (const key of Object.keys(resolved)) {
+      if (!key.startsWith('#')) continue;
+      const ref = resolved[key] as { resultOf: string; name: string; path: string };
       const refResponse = responses.find((r) => r[2] === ref.resultOf && r[0] === ref.name);
       if (refResponse) {
-        const path = ref.path.replace(/^\//, '');
-        resolved.ids = refResponse[1][path] as string[];
+        resolved[key.slice(1)] = resolvePointer(refResponse[1], ref.path);
       }
-      delete resolved['#ids'];
+      delete resolved[key];
     }
 
     return [method, resolved, callId] as [string, MethodArgs, string];

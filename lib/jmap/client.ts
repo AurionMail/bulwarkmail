@@ -674,6 +674,20 @@ const FILE_NODE_QUERY_PAGE = 5000;
 /** Safety bound on how many FileNode ids one listing pages through. */
 const FILE_NODE_MAX_IDS = 200_000;
 
+/**
+ * Message counts per thread id from the Thread/get chained onto a list
+ * request; undefined when the server did not answer it (one that cannot
+ * resolve a wildcard back-reference fails just that call).
+ */
+function threadCountsFrom(methodResponse: unknown): Record<string, number> | undefined {
+  if (!Array.isArray(methodResponse) || methodResponse[0] !== "Thread/get") return undefined;
+  const list = (methodResponse[1] as { list?: Thread[] } | undefined)?.list;
+  if (!Array.isArray(list)) return undefined;
+  const counts: Record<string, number> = {};
+  for (const thread of list) counts[thread.id] = thread.emailIds?.length ?? 0;
+  return counts;
+}
+
 function computeHasMore(position: number, emailCount: number, total: number, limit: number): boolean {
   if (total > 0) return (position + emailCount) < total;
   return emailCount === limit;
@@ -1991,7 +2005,7 @@ export class JMAPClient implements IJMAPClient {
   // Throws when the page cannot be read. Answering with an empty page made a
   // failed refresh empty the list, and callers could not tell it from an
   // empty folder.
-  async getEmails(mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order: SortLevel[] = []): Promise<{ emails: Email[], hasMore: boolean, total: number, state?: string }> {
+  async getEmails(mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order: SortLevel[] = []): Promise<{ emails: Email[], hasMore: boolean, total: number, state?: string, threadCounts?: Record<string, number> }> {
     const targetAccountId = accountId || this.accountId;
     const simple: { inMailbox?: string; hasKeyword?: string } = {};
     if (mailboxId) {
@@ -2030,6 +2044,13 @@ export class JMAPClient implements IJMAPClient {
         "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
         properties: [...EMAIL_LIST_PROPERTIES],
       }, "1"],
+      // The page's conversation sizes, off the thread ids the Email/get
+      // returns (RFC 8620 §3.7 wildcard path): no second round trip, and the
+      // list paints with its counts instead of re-rendering for them.
+      ["Thread/get", {
+        accountId: targetAccountId,
+        "#ids": { resultOf: "1", name: "Email/get", path: "/list/*/threadId" },
+      }, "2"],
     ]);
 
     let response = await query(built.sort);
@@ -2064,7 +2085,7 @@ export class JMAPClient implements IJMAPClient {
       // The Email collection state this page was read at; the store keeps
       // it so a later push can be applied with Email/changes.
       const state = typeof getResponse.state === 'string' ? getResponse.state : undefined;
-      return { emails, hasMore, total, state };
+      return { emails, hasMore, total, state, threadCounts: threadCountsFrom(response.methodResponses?.[2]) };
     }
 
     throw new Error(methodErrorMessage(response, 'Failed to get emails'));

@@ -195,7 +195,11 @@ export interface IJMAPClient {
   // server-side after pinned-first; see lib/message-list-order.ts.
   // `state` is the Email collection state the page was read at (RFC 8620
   // §5.1), when the client reports it; the store uses it for Email/changes.
-  getEmails(mailboxId?: string, accountId?: string, limit?: number, position?: number, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order?: SortLevel[]): Promise<{ emails: Email[]; hasMore: boolean; total: number; state?: string }>;
+  /**
+   * A page of a view. `threadCounts` (message count per thread id) comes with
+   * the page when the server answers the Thread/get chained onto it.
+   */
+  getEmails(mailboxId?: string, accountId?: string, limit?: number, position?: number, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order?: SortLevel[]): Promise<{ emails: Email[]; hasMore: boolean; total: number; state?: string; threadCounts?: Record<string, number> }>;
   /**
    * Sort properties the account's server advertises for Email/query
    * (`emailQuerySortOptions` in the mail capability, RFC 8621 §1.3), or null
