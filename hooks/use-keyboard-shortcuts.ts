@@ -364,6 +364,8 @@ export interface ShortcutEntry {
   readonly key: string;
   readonly description: string;
   readonly layout?: InterfaceLayout;
+  /** Listed only in the Pro shell, or only outside it. */
+  readonly shell?: "pro" | "standard";
 }
 
 // Shortcut definitions for the help modal
@@ -389,7 +391,8 @@ export const KEYBOARD_SHORTCUTS = {
   global: [
     { key: "c", description: "shortcuts.global.compose" },
     { key: "/", description: "shortcuts.global.search" },
-    { key: "Ctrl/⌘ + K", description: "shortcuts.global.global_search" },
+    { key: "Ctrl/⌘ + K", description: "shortcuts.global.global_search", shell: "pro" },
+    { key: "Ctrl/⌘ + K", description: "command_palette.open", shell: "standard" },
     { key: "?", description: "shortcuts.global.help" },
     { key: "Shift + G", description: "shortcuts.global.refresh" },
     { key: "Ctrl + A", description: "shortcuts.global.select_all" },

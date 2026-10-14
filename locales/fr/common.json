@@ -4340,5 +4340,41 @@
     "preview_empty": "Sélectionnez un résultat pour l'aperçu",
     "open_full": "Ouvrir",
     "view_label": "Affichage"
+  },
+  "top_bar": {
+    "more": "Plus d'options"
+  },
+  "plugin_pages": {
+    "loading": "Chargement de la page",
+    "not_available_title": "Cette page n'est pas disponible",
+    "not_available_description": "Le plugin qui l'a ajoutée est désactivé ou n'est plus installé.",
+    "back_to_mail": "Retour à la messagerie",
+    "settings_group": "Plugins"
+  },
+  "command_palette": {
+    "title": "Palette de commandes",
+    "open": "Ouvrir la palette de commandes",
+    "placeholder": "Tapez une commande",
+    "no_results": "Aucune commande correspondante",
+    "go_to": "Aller à {name}",
+    "compose": "Nouveau message",
+    "search": "Rechercher dans la messagerie",
+    "theme_dark": "Passer au thème sombre",
+    "theme_light": "Passer au thème clair",
+    "shortcuts": "Afficher les raccourcis clavier",
+    "group_navigation": "Aller à",
+    "group_actions": "Actions",
+    "group_plugins": "Plugins"
+  },
+  "notification_center": {
+    "title": "Notifications",
+    "mark_all_read": "Tout marquer comme lu",
+    "clear": "Effacer",
+    "empty": "Aucune notification",
+    "close": "Fermer",
+    "unread": "Non lu",
+    "unread_count": "Non lues : {count}",
+    "level_error": "Erreur",
+    "level_warning": "Avertissement"
   }
 }

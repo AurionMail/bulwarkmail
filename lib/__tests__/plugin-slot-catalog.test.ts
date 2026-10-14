@@ -33,9 +33,7 @@ function isMounted(name: string): boolean {
 // Areas whose surfaces are still being mounted on this branch. Each commit
 // that finishes an area removes it here; the test then insists every
 // surface in it has a mount site.
-const NOT_YET_MOUNTED = new Set<SlotArea>([
-  'app', 'navigation', 'settings',
-]);
+const NOT_YET_MOUNTED = new Set<SlotArea>([]);
 
 describe('slot catalogue', () => {
   it('gates every surface behind permissions the host knows', () => {

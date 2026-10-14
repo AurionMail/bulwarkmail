@@ -82,6 +82,8 @@ import { useSearchHistoryStore } from "@/stores/search-history-store";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
 import { NavigationRail } from "@/components/layout/navigation-rail";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
+import { PluginActions } from "@/components/plugins/plugin-actions";
+import { useAppCommands } from "@/lib/app-commands";
 import { MvSearchForm } from "@/components/search/mv-search-form";
 import { MvSidePanel } from "@/components/layout/mv-side-panel";
 import { MvListToolbar } from "@/components/email/mv-list-toolbar";
@@ -178,6 +180,9 @@ function freshMailboxes(previous: Mailbox[], timeoutMs = 10_000): Promise<Mailbo
  * message itself has loaded, before showing it with a placeholder. (#1223)
  */
 const MV_CONVERSATION_WAIT_MS = 800;
+
+/** Plugin buttons in the top bar are not about any one item. */
+const TOP_BAR_CONTEXT: Record<string, unknown> = {};
 
 export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Static Lite build: the route params are empty, read the link from the URL.
@@ -929,6 +934,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     mountainViewKeys: mvShell,
     handlers: keyboardHandlers,
   });
+
+  // Compose and search from the command palette (components/command-palette).
+  useAppCommands({
+    compose: keyboardHandlers.onCompose,
+    search: () => {
+      if (isMobile) setMobileSearchOpen(true);
+      else keyboardHandlers.onFocusSearch?.();
+    },
+  }, isAuthenticated && !!client);
 
   // Shared mail refresh: re-fetch mailboxes (unread counts) + the active list
   // via JMAP. Used by both the browser refresh gestures and the toolbar button.
@@ -4409,6 +4423,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   >
                     <RotateCcw className={cn("w-4 h-4", isManualRefreshing && "animate-spin")} />
                   </button>
+                  {/* Plugin buttons (top-bar-actions). On phones they sit in
+                      the header's overflow menu instead (MobileHeader). */}
+                  {!isMobile && (
+                    <PluginActions surface="top-bar-actions" context={TOP_BAR_CONTEXT} compact className="flex-shrink-0 flex-nowrap" />
+                  )}
                 </div>
               </div>
               )}

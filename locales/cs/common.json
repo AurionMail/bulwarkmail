@@ -4340,5 +4340,41 @@
     "preview_empty": "Vyberte výsledek pro náhled",
     "open_full": "Otevřít",
     "view_label": "Zobrazení"
+  },
+  "top_bar": {
+    "more": "Další možnosti"
+  },
+  "plugin_pages": {
+    "loading": "Načítání stránky",
+    "not_available_title": "Tato stránka není k dispozici",
+    "not_available_description": "Plugin, který ji přidal, je vypnutý nebo už není nainstalovaný.",
+    "back_to_mail": "Zpět na poštu",
+    "settings_group": "Pluginy"
+  },
+  "command_palette": {
+    "title": "Paleta příkazů",
+    "open": "Otevřít paletu příkazů",
+    "placeholder": "Zadejte příkaz",
+    "no_results": "Žádné odpovídající příkazy",
+    "go_to": "Přejít na {name}",
+    "compose": "Nová zpráva",
+    "search": "Hledat v poště",
+    "theme_dark": "Přepnout na tmavý motiv",
+    "theme_light": "Přepnout na světlý motiv",
+    "shortcuts": "Zobrazit klávesové zkratky",
+    "group_navigation": "Přejít na",
+    "group_actions": "Akce",
+    "group_plugins": "Pluginy"
+  },
+  "notification_center": {
+    "title": "Oznámení",
+    "mark_all_read": "Označit vše jako přečtené",
+    "clear": "Vymazat",
+    "empty": "Žádná oznámení",
+    "close": "Zavřít",
+    "unread": "Nepřečtené",
+    "unread_count": "Nepřečtené: {count}",
+    "level_error": "Chyba",
+    "level_warning": "Upozornění"
   }
 }

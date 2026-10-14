@@ -4340,5 +4340,41 @@
     "preview_empty": "اختر نتيجة لمعاينتها",
     "open_full": "فتح",
     "view_label": "العرض"
+  },
+  "top_bar": {
+    "more": "خيارات أخرى"
+  },
+  "plugin_pages": {
+    "loading": "جارٍ تحميل الصفحة",
+    "not_available_title": "هذه الصفحة غير متاحة",
+    "not_available_description": "الإضافة التي أضافتها متوقفة أو لم تعد مثبتة.",
+    "back_to_mail": "العودة إلى البريد",
+    "settings_group": "الإضافات"
+  },
+  "command_palette": {
+    "title": "لوحة الأوامر",
+    "open": "فتح لوحة الأوامر",
+    "placeholder": "اكتب أمرًا",
+    "no_results": "لا توجد أوامر مطابقة",
+    "go_to": "الانتقال إلى {name}",
+    "compose": "رسالة جديدة",
+    "search": "البحث في البريد",
+    "theme_dark": "التبديل إلى المظهر الداكن",
+    "theme_light": "التبديل إلى المظهر الفاتح",
+    "shortcuts": "عرض اختصارات لوحة المفاتيح",
+    "group_navigation": "الانتقال إلى",
+    "group_actions": "إجراءات",
+    "group_plugins": "الإضافات"
+  },
+  "notification_center": {
+    "title": "الإشعارات",
+    "mark_all_read": "تعليم الكل كمقروء",
+    "clear": "مسح",
+    "empty": "لا توجد إشعارات",
+    "close": "إغلاق",
+    "unread": "غير مقروء",
+    "unread_count": "غير المقروءة: {count}",
+    "level_error": "خطأ",
+    "level_warning": "تحذير"
   }
 }

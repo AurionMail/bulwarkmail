@@ -4340,5 +4340,41 @@
     "preview_empty": "Vælg et resultat for at se det",
     "open_full": "Åbn",
     "view_label": "Visning"
+  },
+  "top_bar": {
+    "more": "Flere muligheder"
+  },
+  "plugin_pages": {
+    "loading": "Indlæser side",
+    "not_available_title": "Denne side er ikke tilgængelig",
+    "not_available_description": "Det plugin, der tilføjede den, er slået fra eller ikke længere installeret.",
+    "back_to_mail": "Tilbage til mail",
+    "settings_group": "Plugins"
+  },
+  "command_palette": {
+    "title": "Kommandopalet",
+    "open": "Åbn kommandopaletten",
+    "placeholder": "Skriv en kommando",
+    "no_results": "Ingen matchende kommandoer",
+    "go_to": "Gå til {name}",
+    "compose": "Ny besked",
+    "search": "Søg i mail",
+    "theme_dark": "Skift til mørkt tema",
+    "theme_light": "Skift til lyst tema",
+    "shortcuts": "Vis tastaturgenveje",
+    "group_navigation": "Gå til",
+    "group_actions": "Handlinger",
+    "group_plugins": "Plugins"
+  },
+  "notification_center": {
+    "title": "Notifikationer",
+    "mark_all_read": "Markér alle som læst",
+    "clear": "Ryd",
+    "empty": "Ingen notifikationer",
+    "close": "Luk",
+    "unread": "Ulæst",
+    "unread_count": "{count} ulæste",
+    "level_error": "Fejl",
+    "level_warning": "Advarsel"
   }
 }

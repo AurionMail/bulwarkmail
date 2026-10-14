@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, ArrowLeft, Plus, Search, X } from "@/components/icons";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Menu, ArrowLeft, Plus, Search, X, MoreVertical, Terminal, Bell } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/stores/ui-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -8,6 +9,84 @@ import { useIsDesktop } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { AccountSwitcher } from "@/components/layout/account-switcher";
+import { PluginActions } from "@/components/plugins/plugin-actions";
+import { useMenuNavigation } from "@/hooks/use-menu-navigation";
+import { ContextMenuItem } from "@/components/ui/context-menu";
+import { openCommandPalette } from "@/lib/app-commands";
+import { NotificationSheet, formatBadgeCount, useUnreadNotificationCount } from "@/components/notifications/notification-center";
+
+/** Plugin buttons in the top bar are not about any one item. */
+const TOP_BAR_CONTEXT: Record<string, unknown> = {};
+
+/**
+ * The phone header's overflow menu: the notifications (the desktop bell), the
+ * command palette (no Ctrl+K on a phone) and what the desktop top bar shows
+ * as buttons (plugin top-bar-actions) and has no room for here.
+ */
+function MobileHeaderMenu() {
+  const t = useTranslations('top_bar');
+  const tPalette = useTranslations('command_palette');
+  const tNotifications = useTranslations('notification_center');
+  const unread = useUnreadNotificationCount();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  const { menuRef, onKeyDown } = useMenuNavigation<HTMLDivElement>({ open, onClose: close, triggerRef });
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (triggerRef.current?.contains(e.target as Node) || menuRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open, menuRef]);
+
+  return (
+    <div className="relative">
+      <Button
+        ref={triggerRef}
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpen((v) => !v)}
+        className={cn("relative h-11 w-11", open && "bg-accent")}
+        aria-label={unread > 0 ? `${t('more')} (${tNotifications('unread_count', { count: unread })})` : t('more')}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <MoreVertical className="h-5 w-5" />
+        {unread > 0 && (
+          <span className="absolute top-2 end-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-background" aria-hidden="true" />
+        )}
+      </Button>
+      {open && (
+        <div
+          ref={menuRef}
+          onKeyDown={onKeyDown}
+          role="menu"
+          aria-label={t('more')}
+          className="absolute end-0 top-full mt-1 z-50 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-md border border-border bg-background py-1 shadow-lg"
+        >
+          <ContextMenuItem
+            icon={Bell}
+            label={tNotifications('title')}
+            shortcut={unread > 0 ? formatBadgeCount(unread) : undefined}
+            onClick={() => { close(); setShowNotifications(true); }}
+          />
+          <ContextMenuItem
+            icon={Terminal}
+            label={tPalette('title')}
+            onClick={() => { close(); openCommandPalette(); }}
+          />
+          <PluginActions surface="top-bar-actions" context={TOP_BAR_CONTEXT} variant="menu" onRan={close} />
+        </div>
+      )}
+      {showNotifications && <NotificationSheet onClose={() => setShowNotifications(false)} />}
+    </div>
+  );
+}
 
 interface MobileHeaderProps {
   title: string;
@@ -165,6 +244,8 @@ export function MobileHeader({
             <Plus className="h-5 w-5" />
           </Button>
         )}
+
+        <MobileHeaderMenu />
 
         {/* Which account you are reading is otherwise only visible after
             opening the drawer. Last in this group so it sits on the far

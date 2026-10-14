@@ -4340,5 +4340,41 @@
     "preview_empty": "プレビューする結果を選択してください",
     "open_full": "開く",
     "view_label": "表示"
+  },
+  "top_bar": {
+    "more": "その他のオプション"
+  },
+  "plugin_pages": {
+    "loading": "ページを読み込んでいます",
+    "not_available_title": "このページは利用できません",
+    "not_available_description": "このページを追加したプラグインがオフになっているか、インストールされていません。",
+    "back_to_mail": "メールに戻る",
+    "settings_group": "プラグイン"
+  },
+  "command_palette": {
+    "title": "コマンドパレット",
+    "open": "コマンドパレットを開く",
+    "placeholder": "コマンドを入力",
+    "no_results": "一致するコマンドはありません",
+    "go_to": "{name}に移動",
+    "compose": "新規メッセージ",
+    "search": "メールを検索",
+    "theme_dark": "ダークテーマに切り替え",
+    "theme_light": "ライトテーマに切り替え",
+    "shortcuts": "キーボードショートカットを表示",
+    "group_navigation": "移動",
+    "group_actions": "操作",
+    "group_plugins": "プラグイン"
+  },
+  "notification_center": {
+    "title": "通知",
+    "mark_all_read": "すべて既読にする",
+    "clear": "クリア",
+    "empty": "通知はありません",
+    "close": "閉じる",
+    "unread": "未読",
+    "unread_count": "未読 {count} 件",
+    "level_error": "エラー",
+    "level_warning": "警告"
   }
 }

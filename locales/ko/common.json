@@ -4340,5 +4340,41 @@
     "preview_empty": "미리 볼 결과를 선택하세요",
     "open_full": "열기",
     "view_label": "보기"
+  },
+  "top_bar": {
+    "more": "추가 옵션"
+  },
+  "plugin_pages": {
+    "loading": "페이지를 불러오는 중",
+    "not_available_title": "이 페이지를 사용할 수 없습니다",
+    "not_available_description": "이 페이지를 추가한 플러그인이 꺼져 있거나 더 이상 설치되어 있지 않습니다.",
+    "back_to_mail": "메일로 돌아가기",
+    "settings_group": "플러그인"
+  },
+  "command_palette": {
+    "title": "명령 팔레트",
+    "open": "명령 팔레트 열기",
+    "placeholder": "명령을 입력하세요",
+    "no_results": "일치하는 명령이 없습니다",
+    "go_to": "{name}(으)로 이동",
+    "compose": "새 메일",
+    "search": "메일 검색",
+    "theme_dark": "어두운 테마로 전환",
+    "theme_light": "밝은 테마로 전환",
+    "shortcuts": "단축키 보기",
+    "group_navigation": "이동",
+    "group_actions": "작업",
+    "group_plugins": "플러그인"
+  },
+  "notification_center": {
+    "title": "알림",
+    "mark_all_read": "모두 읽음으로 표시",
+    "clear": "지우기",
+    "empty": "알림이 없습니다",
+    "close": "닫기",
+    "unread": "읽지 않음",
+    "unread_count": "읽지 않음 {count}개",
+    "level_error": "오류",
+    "level_warning": "경고"
   }
 }

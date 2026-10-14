@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { Toast, ToastAction } from "@/components/ui/toast";
 import { generateUUID } from "@/lib/utils";
 import { toastHooks } from "@/lib/plugin-hooks";
+import { recordNotification } from "@/stores/notification-center-store";
 
 interface ToastStore {
   toasts: Toast[];
@@ -33,6 +34,10 @@ export const useToastStore = create<ToastStore>((set, get) => ({
     void toastHooks.onToastShow.emit({
       id, type: toast.type, title: toast.title, message: toast.message ?? "",
     });
+    // Errors and warnings stay in the bell's list after the toast is gone.
+    if (toast.type === "error" || toast.type === "warning") {
+      recordNotification({ level: toast.type, title: toast.title, body: toast.message ?? "" });
+    }
     return id;
   },
 

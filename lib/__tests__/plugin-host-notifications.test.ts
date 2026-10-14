@@ -113,3 +113,30 @@ describe('api.notifications.show', () => {
     expect(FakeNotification.shown[0].options.body).toBe('a b\nRSS Reader');
   });
 });
+
+describe('api.notifications.show in the notification panel', () => {
+  beforeEach(async () => {
+    const { useNotificationCenterStore } = await import('@/stores/notification-center-store');
+    useNotificationCenterStore.getState().clear();
+  });
+  const entries = async () => (await import('@/stores/notification-center-store')).useNotificationCenterStore.getState().entries;
+
+  it('lists each one with the plugin and its tag, shown as system notification or toast', async () => {
+    await call(RSS, { title: '3 new posts', body: 'From Hacker News', tag: 'feed:hn' });
+    FakeNotification.permission = 'default';
+    await call(RSS, { title: 'Synced' });
+
+    expect((await entries()).map((e) => [e.title, e.body, e.pluginId, e.pluginName, e.tag])).toEqual([
+      ['Synced', '', 'rss', 'RSS Reader', undefined],
+      ['3 new posts', 'From Hacker News', 'rss', 'RSS Reader', 'feed:hn'],
+    ]);
+  });
+
+  it('lists nothing the plugin was refused', async () => {
+    await expect(call(RSS, { title: 'ok', tag: 'has space' })).rejects.toThrow();
+    for (let i = 0; i < 5; i++) await call(RSS, { title: `n${i}` });
+    await expect(call(RSS, { title: 'too many' })).rejects.toThrow();
+    expect((await entries()).map((e) => e.title)).not.toContain('too many');
+    expect(await entries()).toHaveLength(5);
+  });
+});

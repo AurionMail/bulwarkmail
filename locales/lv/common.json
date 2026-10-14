@@ -4340,5 +4340,41 @@
     "preview_empty": "Izvēlieties rezultātu, lai to priekšskatītu",
     "open_full": "Atvērt",
     "view_label": "Skats"
+  },
+  "top_bar": {
+    "more": "Citas iespējas"
+  },
+  "plugin_pages": {
+    "loading": "Ielādē lapu",
+    "not_available_title": "Šī lapa nav pieejama",
+    "not_available_description": "Spraudnis, kas to pievienoja, ir izslēgts vai vairs nav instalēts.",
+    "back_to_mail": "Atpakaļ uz pastu",
+    "settings_group": "Spraudņi"
+  },
+  "command_palette": {
+    "title": "Komandu palete",
+    "open": "Atvērt komandu paleti",
+    "placeholder": "Ierakstiet komandu",
+    "no_results": "Nav atbilstošu komandu",
+    "go_to": "Pāriet uz: {name}",
+    "compose": "Jauna vēstule",
+    "search": "Meklēt pastā",
+    "theme_dark": "Pārslēgt uz tumšo motīvu",
+    "theme_light": "Pārslēgt uz gaišo motīvu",
+    "shortcuts": "Rādīt tastatūras īsinājumtaustiņus",
+    "group_navigation": "Pāriet uz",
+    "group_actions": "Darbības",
+    "group_plugins": "Spraudņi"
+  },
+  "notification_center": {
+    "title": "Paziņojumi",
+    "mark_all_read": "Atzīmēt visus kā lasītus",
+    "clear": "Notīrīt",
+    "empty": "Nav paziņojumu",
+    "close": "Aizvērt",
+    "unread": "Nelasīts",
+    "unread_count": "Nelasīti: {count}",
+    "level_error": "Kļūda",
+    "level_warning": "Brīdinājums"
   }
 }

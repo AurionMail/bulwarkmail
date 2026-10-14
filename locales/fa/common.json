@@ -4340,5 +4340,41 @@
     "preview_empty": "برای پیش‌نمایش یک نتیجه انتخاب کنید",
     "open_full": "باز کردن",
     "view_label": "نما"
+  },
+  "top_bar": {
+    "more": "گزینه‌های بیشتر"
+  },
+  "plugin_pages": {
+    "loading": "در حال بارگذاری صفحه",
+    "not_available_title": "این صفحه در دسترس نیست",
+    "not_available_description": "افزونه‌ای که آن را اضافه کرده خاموش است یا دیگر نصب نیست.",
+    "back_to_mail": "بازگشت به ایمیل",
+    "settings_group": "افزونه‌ها"
+  },
+  "command_palette": {
+    "title": "پالت فرمان",
+    "open": "باز کردن پالت فرمان",
+    "placeholder": "یک فرمان بنویسید",
+    "no_results": "فرمان منطبقی پیدا نشد",
+    "go_to": "رفتن به {name}",
+    "compose": "پیام جدید",
+    "search": "جستجو در ایمیل",
+    "theme_dark": "رفتن به پوسته تیره",
+    "theme_light": "رفتن به پوسته روشن",
+    "shortcuts": "نمایش میانبرهای صفحه کلید",
+    "group_navigation": "رفتن به",
+    "group_actions": "کارها",
+    "group_plugins": "افزونه‌ها"
+  },
+  "notification_center": {
+    "title": "اعلان‌ها",
+    "mark_all_read": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
+    "clear": "پاک کردن",
+    "empty": "اعلانی نیست",
+    "close": "بستن",
+    "unread": "خوانده‌نشده",
+    "unread_count": "{count} خوانده‌نشده",
+    "level_error": "خطا",
+    "level_warning": "هشدار"
   }
 }

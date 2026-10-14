@@ -4340,5 +4340,41 @@
     "preview_empty": "Velg et resultat for å forhåndsvise det",
     "open_full": "Åpne",
     "view_label": "Visning"
+  },
+  "top_bar": {
+    "more": "Flere alternativer"
+  },
+  "plugin_pages": {
+    "loading": "Laster inn siden",
+    "not_available_title": "Denne siden er ikke tilgjengelig",
+    "not_available_description": "Tillegget som la den til, er slått av eller ikke lenger installert.",
+    "back_to_mail": "Tilbake til e-post",
+    "settings_group": "Tillegg"
+  },
+  "command_palette": {
+    "title": "Kommandopalett",
+    "open": "Åpne kommandopaletten",
+    "placeholder": "Skriv en kommando",
+    "no_results": "Ingen samsvarende kommandoer",
+    "go_to": "Gå til {name}",
+    "compose": "Ny melding",
+    "search": "Søk i e-post",
+    "theme_dark": "Bytt til mørkt tema",
+    "theme_light": "Bytt til lyst tema",
+    "shortcuts": "Vis tastatursnarveier",
+    "group_navigation": "Gå til",
+    "group_actions": "Handlinger",
+    "group_plugins": "Tillegg"
+  },
+  "notification_center": {
+    "title": "Varsler",
+    "mark_all_read": "Merk alle som lest",
+    "clear": "Tøm",
+    "empty": "Ingen varsler",
+    "close": "Lukk",
+    "unread": "Ulest",
+    "unread_count": "{count} uleste",
+    "level_error": "Feil",
+    "level_warning": "Advarsel"
   }
 }

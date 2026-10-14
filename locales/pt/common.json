@@ -4340,5 +4340,41 @@
     "preview_empty": "Selecione um resultado para pré-visualizar",
     "open_full": "Abrir",
     "view_label": "Vista"
+  },
+  "top_bar": {
+    "more": "Mais opções"
+  },
+  "plugin_pages": {
+    "loading": "Carregando a página",
+    "not_available_title": "Esta página não está disponível",
+    "not_available_description": "O plugin que a adicionou está desativado ou não está mais instalado.",
+    "back_to_mail": "Voltar ao e-mail",
+    "settings_group": "Plugins"
+  },
+  "command_palette": {
+    "title": "Paleta de comandos",
+    "open": "Abrir a paleta de comandos",
+    "placeholder": "Digite um comando",
+    "no_results": "Nenhum comando correspondente",
+    "go_to": "Ir para {name}",
+    "compose": "Nova mensagem",
+    "search": "Pesquisar no e-mail",
+    "theme_dark": "Mudar para o tema escuro",
+    "theme_light": "Mudar para o tema claro",
+    "shortcuts": "Mostrar atalhos de teclado",
+    "group_navigation": "Ir para",
+    "group_actions": "Ações",
+    "group_plugins": "Plugins"
+  },
+  "notification_center": {
+    "title": "Notificações",
+    "mark_all_read": "Marcar todas como lidas",
+    "clear": "Limpar",
+    "empty": "Nenhuma notificação",
+    "close": "Fechar",
+    "unread": "Não lida",
+    "unread_count": "{count} não lidas",
+    "level_error": "Erro",
+    "level_warning": "Aviso"
   }
 }

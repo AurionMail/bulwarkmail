@@ -4340,5 +4340,41 @@
     "preview_empty": "Select a result to preview it",
     "open_full": "Open",
     "view_label": "View"
+  },
+  "top_bar": {
+    "more": "More options"
+  },
+  "plugin_pages": {
+    "loading": "Loading page",
+    "not_available_title": "This page is not available",
+    "not_available_description": "The plugin that added it is turned off or no longer installed.",
+    "back_to_mail": "Back to Mail",
+    "settings_group": "Plugins"
+  },
+  "command_palette": {
+    "title": "Command palette",
+    "open": "Open the command palette",
+    "placeholder": "Type a command",
+    "no_results": "No matching commands",
+    "go_to": "Go to {name}",
+    "compose": "New message",
+    "search": "Search mail",
+    "theme_dark": "Switch to dark theme",
+    "theme_light": "Switch to light theme",
+    "shortcuts": "Show keyboard shortcuts",
+    "group_navigation": "Go to",
+    "group_actions": "Actions",
+    "group_plugins": "Plugins"
+  },
+  "notification_center": {
+    "title": "Notifications",
+    "mark_all_read": "Mark all read",
+    "clear": "Clear",
+    "empty": "No notifications",
+    "close": "Close",
+    "unread": "Unread",
+    "unread_count": "{count} unread",
+    "level_error": "Error",
+    "level_warning": "Warning"
   }
 }

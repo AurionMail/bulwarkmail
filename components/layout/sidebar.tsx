@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, Fragment, ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { PluginSidebarSections } from "@/components/plugins/plugin-sidebar-sections";
 import { Button } from "@/components/ui/button";
 import {
   Inbox,
@@ -1709,6 +1710,7 @@ export function Sidebar({
           </div>
         )}
 
+        {!isCollapsed && <PluginSidebarSections mailboxId={selectedKeyword ? null : selectedMailbox || null} />}
         {!isCollapsed && <PluginSlot name="sidebar-widget" className="border-t border-border" />}
       </div>
 

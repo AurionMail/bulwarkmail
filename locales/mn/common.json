@@ -4340,5 +4340,41 @@
     "preview_empty": "Урьдчилан харах үр дүнгээ сонгоно уу",
     "open_full": "Нээх",
     "view_label": "Харагдац"
+  },
+  "top_bar": {
+    "more": "Бусад сонголт"
+  },
+  "plugin_pages": {
+    "loading": "Хуудсыг ачаалж байна",
+    "not_available_title": "Энэ хуудас боломжгүй байна",
+    "not_available_description": "Үүнийг нэмсэн залгаас унтарсан эсвэл суулгаагүй болсон байна.",
+    "back_to_mail": "Мэйл рүү буцах",
+    "settings_group": "Залгаасууд"
+  },
+  "command_palette": {
+    "title": "Командын самбар",
+    "open": "Командын самбарыг нээх",
+    "placeholder": "Команд бичнэ үү",
+    "no_results": "Тохирох команд алга",
+    "go_to": "{name} руу очих",
+    "compose": "Шинэ захидал",
+    "search": "Мэйлээс хайх",
+    "theme_dark": "Бараан загвар руу шилжих",
+    "theme_light": "Цайвар загвар руу шилжих",
+    "shortcuts": "Гарын товчлолыг харуулах",
+    "group_navigation": "Очих",
+    "group_actions": "Үйлдлүүд",
+    "group_plugins": "Залгаасууд"
+  },
+  "notification_center": {
+    "title": "Мэдэгдэл",
+    "mark_all_read": "Бүгдийг уншсан болгох",
+    "clear": "Цэвэрлэх",
+    "empty": "Мэдэгдэл алга",
+    "close": "Хаах",
+    "unread": "Уншаагүй",
+    "unread_count": "Уншаагүй: {count}",
+    "level_error": "Алдаа",
+    "level_warning": "Анхааруулга"
   }
 }

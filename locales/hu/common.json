@@ -4340,5 +4340,41 @@
     "preview_empty": "Válasszon egy találatot az előnézethez",
     "open_full": "Megnyitás",
     "view_label": "Nézet"
+  },
+  "top_bar": {
+    "more": "További lehetőségek"
+  },
+  "plugin_pages": {
+    "loading": "Oldal betöltése",
+    "not_available_title": "Ez az oldal nem érhető el",
+    "not_available_description": "A bővítmény, amely hozzáadta, ki van kapcsolva, vagy már nincs telepítve.",
+    "back_to_mail": "Vissza a levelekhez",
+    "settings_group": "Bővítmények"
+  },
+  "command_palette": {
+    "title": "Parancspaletta",
+    "open": "Parancspaletta megnyitása",
+    "placeholder": "Írjon be egy parancsot",
+    "no_results": "Nincs egyező parancs",
+    "go_to": "Ugrás ide: {name}",
+    "compose": "Új levél",
+    "search": "Keresés a levelekben",
+    "theme_dark": "Váltás sötét témára",
+    "theme_light": "Váltás világos témára",
+    "shortcuts": "Billentyűparancsok megjelenítése",
+    "group_navigation": "Ugrás ide",
+    "group_actions": "Műveletek",
+    "group_plugins": "Bővítmények"
+  },
+  "notification_center": {
+    "title": "Értesítések",
+    "mark_all_read": "Összes megjelölése olvasottként",
+    "clear": "Törlés",
+    "empty": "Nincsenek értesítések",
+    "close": "Bezárás",
+    "unread": "Olvasatlan",
+    "unread_count": "{count} olvasatlan",
+    "level_error": "Hiba",
+    "level_warning": "Figyelmeztetés"
   }
 }

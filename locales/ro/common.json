@@ -4340,5 +4340,41 @@
     "preview_empty": "Selectează un rezultat pentru previzualizare",
     "open_full": "Deschide",
     "view_label": "Vizualizare"
+  },
+  "top_bar": {
+    "more": "Mai multe opțiuni"
+  },
+  "plugin_pages": {
+    "loading": "Se încarcă pagina",
+    "not_available_title": "Această pagină nu este disponibilă",
+    "not_available_description": "Pluginul care a adăugat-o este dezactivat sau nu mai este instalat.",
+    "back_to_mail": "Înapoi la e-mail",
+    "settings_group": "Pluginuri"
+  },
+  "command_palette": {
+    "title": "Paleta de comenzi",
+    "open": "Deschide paleta de comenzi",
+    "placeholder": "Tastați o comandă",
+    "no_results": "Nicio comandă potrivită",
+    "go_to": "Mergi la {name}",
+    "compose": "Mesaj nou",
+    "search": "Caută în e-mail",
+    "theme_dark": "Comută la tema întunecată",
+    "theme_light": "Comută la tema luminoasă",
+    "shortcuts": "Afișează comenzile rapide de la tastatură",
+    "group_navigation": "Mergi la",
+    "group_actions": "Acțiuni",
+    "group_plugins": "Pluginuri"
+  },
+  "notification_center": {
+    "title": "Notificări",
+    "mark_all_read": "Marchează toate ca citite",
+    "clear": "Golește",
+    "empty": "Nicio notificare",
+    "close": "Închide",
+    "unread": "Necitită",
+    "unread_count": "Necitite: {count}",
+    "level_error": "Eroare",
+    "level_warning": "Avertisment"
   }
 }

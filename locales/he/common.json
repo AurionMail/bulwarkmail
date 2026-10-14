@@ -4341,5 +4341,41 @@
     "preview_empty": "בחרו תוצאה לתצוגה מקדימה",
     "open_full": "פתיחה",
     "view_label": "תצוגה"
+  },
+  "top_bar": {
+    "more": "אפשרויות נוספות"
+  },
+  "plugin_pages": {
+    "loading": "טוען את הדף",
+    "not_available_title": "הדף הזה אינו זמין",
+    "not_available_description": "התוסף שהוסיף אותו כבוי או שאינו מותקן עוד.",
+    "back_to_mail": "חזרה לדואר",
+    "settings_group": "תוספים"
+  },
+  "command_palette": {
+    "title": "לוח פקודות",
+    "open": "פתיחת לוח הפקודות",
+    "placeholder": "הקלידו פקודה",
+    "no_results": "אין פקודות תואמות",
+    "go_to": "מעבר אל {name}",
+    "compose": "הודעה חדשה",
+    "search": "חיפוש בדואר",
+    "theme_dark": "מעבר לערכת נושא כהה",
+    "theme_light": "מעבר לערכת נושא בהירה",
+    "shortcuts": "הצגת קיצורי מקשים",
+    "group_navigation": "מעבר אל",
+    "group_actions": "פעולות",
+    "group_plugins": "תוספים"
+  },
+  "notification_center": {
+    "title": "התראות",
+    "mark_all_read": "סימון הכול כנקרא",
+    "clear": "ניקוי",
+    "empty": "אין התראות",
+    "close": "סגירה",
+    "unread": "לא נקרא",
+    "unread_count": "לא נקראו: {count}",
+    "level_error": "שגיאה",
+    "level_warning": "אזהרה"
   }
 }
