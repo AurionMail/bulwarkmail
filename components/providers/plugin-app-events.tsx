@@ -122,6 +122,14 @@ export function PluginAppEvents() {
   // plugins have been started, so every plugin enabled at start hears it.
   const pluginsReady = usePluginStore((s) => s.initialized);
   const signedIn = useAuthStore((s) => s.isAuthenticated);
+
+  // Start the plugins on whichever page the user lands on. They used to start
+  // only from the mail view, so a plugin's sidebar entry, page or reminders
+  // were missing on Calendar, Contacts, Files or Settings opened directly.
+  useEffect(() => {
+    if (signedIn) void usePluginStore.getState().initializePlugins();
+  }, [signedIn]);
+
   const readyFired = useRef(false);
   useEffect(() => {
     if (readyFired.current || !pluginsReady || !signedIn) return;

@@ -18,7 +18,7 @@ function listen<T extends { register: (id: string, fn: (...a: unknown[]) => unkn
 beforeEach(() => {
   clearAllHooks();
   pathname = '/';
-  usePluginStore.setState({ initialized: false });
+  usePluginStore.setState({ initialized: false, initializePlugins: vi.fn().mockResolvedValue(undefined) });
   useAuthStore.setState({ isAuthenticated: false });
 });
 afterEach(() => {
@@ -72,6 +72,15 @@ describe('app events for plugins', () => {
     act(() => { usePluginStore.setState({ initialized: true }); });
 
     expect(ready).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the plugins once the user is signed in, on any page', () => {
+    render(<PluginAppEvents />);
+    expect(usePluginStore.getState().initializePlugins).not.toHaveBeenCalled();
+
+    act(() => { useAuthStore.setState({ isAuthenticated: true }); });
+
+    expect(usePluginStore.getState().initializePlugins).toHaveBeenCalledTimes(1);
   });
 
   it('reports navigation between pages', () => {
