@@ -66,6 +66,16 @@ describe('api.composer', () => {
     expect(handle.calls[1][1]).toContain('Hi');
   });
 
+  it('keeps lists, quotes and headings a plugin sends as HTML', async () => {
+    const handle = fakeHandle();
+    const { id } = registerComposer(handle);
+    await call(WRITE, 'composer.replaceSelection', id, { html: '<h3>Files</h3><ul><li><a href="https://cloud.example.org/s/1">a.pdf</a></li></ul><blockquote>q</blockquote>' });
+    const html = handle.calls[0][1] as string;
+    expect(html).toContain('<ul><li><a href="https://cloud.example.org/s/1">a.pdf</a></li></ul>');
+    expect(html).toContain('<h3>Files</h3>');
+    expect(html).toContain('<blockquote>q</blockquote>');
+  });
+
   it('reaches only a composer that is open, by the id it handed out', async () => {
     const { unregister } = registerComposer(fakeHandle());
     await expect(call(READ, 'composer.getBody', 'guess')).rejects.toThrow(/not open any more/);

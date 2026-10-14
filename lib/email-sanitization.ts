@@ -252,11 +252,24 @@ export function sanitizeSignatureHtmlForDisplay(html: string): string {
  *
  * An untrusted plugin runs in a null-origin iframe, but whatever it returns
  * here lands in the host document and in the message the user then sends, so
- * it gets the same allowlist as a user-authored signature: formatting, links,
+ * it gets the allowlist of a user-authored signature: formatting, links,
  * images and tables, no script, no event handlers, no external URI schemes.
+ * Plus the structure the composer itself can write (lists, quotes, headings,
+ * code), so a plugin's list of links or rewritten paragraph keeps its shape.
  */
+const PLUGIN_BODY_SANITIZE_CONFIG = {
+  ...SIGNATURE_SANITIZE_CONFIG,
+  ALLOWED_TAGS: [...SIGNATURE_SANITIZE_CONFIG.ALLOWED_TAGS, 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'pre', 'code', 's', 'hr'],
+};
+
 export function sanitizePluginBodyHtml(html: string): string {
-  return sanitizeSignatureHtml(html);
+  if (!html?.trim()) return '';
+  DOMPurify.addHook('afterSanitizeAttributes', restrictSignatureImages);
+  try {
+    return DOMPurify.sanitize(html, PLUGIN_BODY_SANITIZE_CONFIG);
+  } finally {
+    DOMPurify.removeAllHooks();
+  }
 }
 
 /**
