@@ -21,7 +21,7 @@ import { resolvePluginTier } from './tier';
 import { register as registerActive, deregister as deregisterActive, all as allActiveEntries } from './registry';
 import { cancelPluginDialogs } from './host-api';
 import { registerShortcuts } from './shortcuts';
-import { mayOfferSlot, mayRegisterHook } from './permissions';
+import { mayOfferSlot, mayRegisterHook, pluginHasPermission } from './permissions';
 
 // ─── Hook-bus lookup (one flat map for name → bus) ────────────
 
@@ -193,9 +193,16 @@ export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void
       hookDisposables.push(bus.register(plugin.id, proxy as (...a: unknown[]) => unknown));
     }
 
-    // Install plugin-declared keyboard shortcuts.
-    const shortcutDispose = registerShortcuts(bg, info.shortcuts ?? []);
-    hookDisposables.push({ dispose: shortcutDispose });
+    // Install plugin-declared keyboard shortcuts. A shortcut sees every
+    // key press outside text fields, so it needs ui:keyboard like the hooks.
+    if ((info.shortcuts ?? []).length > 0) {
+      if (pluginHasPermission(plugin, 'ui:keyboard')) {
+        const shortcutDispose = registerShortcuts(bg, info.shortcuts ?? []);
+        hookDisposables.push({ dispose: shortcutDispose });
+      } else {
+        console.warn(`[plugin-sandbox] Plugin "${plugin.id}" declares shortcuts without the ui:keyboard permission; not registered`);
+      }
+    }
 
     const slotOffers = info.slots.filter((offer) => {
       if (mayOfferSlot(plugin, offer.name)) return true;

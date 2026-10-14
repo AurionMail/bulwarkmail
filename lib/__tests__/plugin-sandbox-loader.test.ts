@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   saveCode: vi.fn(),
   downloadManagedBundle: vi.fn(),
   createBackgroundInstance: vi.fn(),
+  registerShortcuts: vi.fn((..._args: unknown[]) => () => {}),
 }));
 
 vi.mock('../plugin-storage', () => ({
@@ -27,7 +28,7 @@ vi.mock('../plugin-sandbox/host-api', () => ({
   cancelPluginDialogs: vi.fn(),
 }));
 vi.mock('../plugin-sandbox/shortcuts', () => ({
-  registerShortcuts: () => () => {},
+  registerShortcuts: (...args: unknown[]) => mocks.registerShortcuts(...args),
 }));
 
 import { loadSandboxedPlugin, unloadSandboxedPlugin, setSandboxStoreAccessor } from '../plugin-sandbox/loader';
@@ -175,5 +176,32 @@ describe('loadSandboxedPlugin bundle sourcing', () => {
     await loadSandboxedPlugin(plugin({ id: 'user-plugin', managed: false }));
     expect(mocks.downloadManagedBundle).not.toHaveBeenCalled();
     expect(lastStatus()).toMatchObject({ status: 'error', error: expect.stringMatching(/integrity mismatch/) });
+  });
+});
+
+describe('plugin shortcuts', () => {
+  const SHORTCUT = [{ id: 'new', keys: 'Alt+N', label: 'New' }];
+  function withShortcuts() {
+    return { ...fakeBackground(), initPromise: Promise.resolve({ hooks: [], slots: [], shortcuts: SHORTCUT }) };
+  }
+
+  it('does not install shortcuts for a plugin without ui:keyboard', async () => {
+    mocks.getCode.mockResolvedValue(CODE);
+    mocks.createBackgroundInstance.mockImplementation(withShortcuts);
+    mocks.registerShortcuts.mockClear();
+
+    await loadSandboxedPlugin(plugin());
+
+    expect(mocks.registerShortcuts).not.toHaveBeenCalled();
+  });
+
+  it('installs them with ui:keyboard', async () => {
+    mocks.getCode.mockResolvedValue(CODE);
+    mocks.createBackgroundInstance.mockImplementation(withShortcuts);
+    mocks.registerShortcuts.mockClear();
+
+    await loadSandboxedPlugin(plugin({ permissions: ['ui:keyboard'] }));
+
+    expect(mocks.registerShortcuts).toHaveBeenCalledWith(expect.anything(), SHORTCUT);
   });
 });
