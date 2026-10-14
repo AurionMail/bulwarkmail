@@ -385,3 +385,99 @@ describe('file-store plugin hooks: changing files', () => {
     });
   });
 });
+
+describe('file-store plugin hooks: navigation, selection, favourites, undo', () => {
+  beforeEach(() => clearAllHooks());
+
+  it('reports each newly opened folder, but not a refresh', async () => {
+    const navigated = vi.fn();
+    fileHooks.onFileNavigate.register('test', navigated);
+
+    await openDocs();
+    await useFileStore.getState().refresh();
+    await useFileStore.getState().navigate('target', 'Target');
+    await useFileStore.getState().navigateUp();
+    await useFileStore.getState().navigateByPath('/');
+    await flush();
+
+    expect(navigated.mock.calls.map(c => c[0])).toEqual([
+      { path: '/Docs' },
+      { path: '/Docs/Target' },
+      { path: '/Docs' },
+      { path: '/' },
+    ]);
+  });
+
+  it('does not report a folder that failed to load', async () => {
+    const client = await openDocs();
+    client.listAllFileNodes.mockRejectedValueOnce(new Error('offline'));
+    const navigated = vi.fn();
+    fileHooks.onFileNavigate.register('test', navigated);
+
+    await useFileStore.getState().navigate('target', 'Target');
+    await flush();
+    expect(navigated).not.toHaveBeenCalled();
+  });
+
+  it('reports selection changes with the selected files, and only real ones', async () => {
+    await openDocs();
+    const selection = vi.fn();
+    fileHooks.onFileSelectionChange.register('test', selection);
+    const store = useFileStore.getState();
+
+    store.selectResource('a.txt');
+    store.selectResource('a.txt'); // same: no change
+    store.toggleSelect('b.txt');
+    store.setSelection(new Set(['a.txt', 'b.txt'])); // same: no change
+    store.clearSelection();
+    store.selectAll();
+    await flush();
+
+    const calls = selection.mock.calls.map(c => c[0].files.map((f: { id: string }) => f.id).sort());
+    expect(calls).toEqual([['a'], ['a', 'b'], [], ['a', 'b', 'target']]);
+    expect(selection.mock.calls[0][0].files[0]).toMatchObject({ name: 'a.txt', path: '/Docs' });
+  });
+
+  it('reports starring and unstarring a folder', async () => {
+    await openDocs();
+    const toggled = vi.fn();
+    fileHooks.onFileFavoriteToggle.register('test', toggled);
+    useFileStore.setState({ favorites: [] });
+
+    useFileStore.getState().toggleFavorite('/Docs/Target');
+    useFileStore.getState().toggleFavorite('/Docs/Target');
+    await flush();
+
+    expect(toggled.mock.calls.map(c => c[0])).toEqual([
+      { file: expect.objectContaining({ id: 'target', name: 'Target', type: 'directory', path: '/Docs' }), favorite: true },
+      { file: expect.objectContaining({ id: 'target' }), favorite: false },
+    ]);
+  });
+
+  it('reports an undone rename', async () => {
+    await openDocs();
+    const undone = vi.fn();
+    fileHooks.onFileUndo.register('test', undone);
+
+    await useFileStore.getState().renameResource('a.txt', 'c.txt');
+    await useFileStore.getState().undoLastAction();
+    await flush();
+
+    expect(undone).toHaveBeenCalledOnce();
+    expect(undone).toHaveBeenCalledWith({
+      action: { type: 'rename', entries: [{ id: 'a', from: { name: 'a.txt' }, to: { name: 'c.txt' } }] },
+    });
+  });
+
+  it('does not report an undo the server refused', async () => {
+    const client = await openDocs();
+    await useFileStore.getState().renameResource('a.txt', 'c.txt');
+    client.updateFileNode.mockRejectedValueOnce(new Error('nope'));
+    const undone = vi.fn();
+    fileHooks.onFileUndo.register('test', undone);
+
+    await expect(useFileStore.getState().undoLastAction()).rejects.toThrow();
+    await flush();
+    expect(undone).not.toHaveBeenCalled();
+  });
+});

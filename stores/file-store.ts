@@ -319,6 +319,21 @@ function destroyedViews(views: FileResourceView[], result: { destroyed?: string[
   return views.filter(v => gone.has(v.id));
 }
 
+/** A starred folder as plugins see it; favourites are kept by path. */
+function favoriteFolderView(folders: FileResource[], path: string): FileResourceView {
+  const slash = path.lastIndexOf('/');
+  const parent = slash > 0 ? path.slice(0, slash) : '/';
+  const folder = folders.find(f => folderPath(folders, f.id) === path);
+  if (folder) return resourceToView(folder, parent);
+  return { id: '', name: path.slice(slash + 1), type: 'directory', size: 0, mimeType: '', path: parent, modified: '' };
+}
+
+function sameNameSet(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const n of a) if (!b.has(n)) return false;
+  return true;
+}
+
 /** A node that is not in any listing; plugins get at least its id. */
 function unknownNodeView(id: string): FileResourceView {
   return { id, name: '', type: 'file', size: 0, mimeType: '', path: '', modified: '' };
@@ -607,8 +622,10 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   navigate: async (parentId: string | null, name?: string) => {
-    const { client, pathStack } = get();
+    const { client, pathStack, currentParentId: previousParentId, hasListed } = get();
     if (!client) return;
+    // A refresh lists the same folder again; plugins only hear about a new one.
+    const opensFolder = !hasListed || parentId !== previousParentId;
 
     set({ isLoading: true, error: null, currentParentId: parentId, selectedResources: new Set() });
 
@@ -654,6 +671,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       } else {
         set({ resources, allFolders, isLoading: false, hasListed: true });
       }
+      if (opensFolder) void fileHooks.onFileNavigate.emit({ path: newPath });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to list directory',
@@ -1246,12 +1264,14 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   toggleFavorite: (path: string) => {
-    const { favorites } = get();
-    const next = favorites.includes(path)
-      ? favorites.filter(f => f !== path)
-      : [...favorites, path];
+    const { favorites, allFolders } = get();
+    const favorite = !favorites.includes(path);
+    const next = favorite ? [...favorites, path] : favorites.filter(f => f !== path);
     set({ favorites: next });
     try { localStorage.setItem('files-favorites', JSON.stringify(next)); } catch { /* ignore */ }
+    if (fileHooks.onFileFavoriteToggle.size > 0) {
+      void fileHooks.onFileFavoriteToggle.emit({ file: favoriteFolderView(allFolders, path), favorite });
+    }
   },
 
   addRecentFile: (name: string, id: string) => {
@@ -1387,6 +1407,12 @@ export const useFileStore = create<FileState>((set, get) => ({
       await client.updateFileNode(entry.id, entry.from);
     }
     set({ lastAction: null });
+    void fileHooks.onFileUndo.emit({
+      action: {
+        type: lastAction.type,
+        entries: lastAction.entries.map(e => ({ id: e.id, from: { ...e.from }, to: { ...e.to } })),
+      },
+    });
     await refresh();
   },
 
@@ -1424,3 +1450,15 @@ export const useFileStore = create<FileState>((set, get) => ({
     }
   },
 }));
+
+// Tell plugins when the selected files change, whichever action changed it
+// (click, toggle, select all, clear, navigating away, after a delete or move).
+// Selecting the same files again is not a change.
+useFileStore.subscribe((state, prev) => {
+  if (state.selectedResources === prev.selectedResources) return;
+  if (fileHooks.onFileSelectionChange.size === 0) return;
+  const next = state.selectedResources ?? new Set<string>();
+  if (sameNameSet(next, prev.selectedResources ?? new Set<string>())) return;
+  const files = state.resources.filter(r => next.has(r.name)).map(r => resourceToView(r, state.currentPath));
+  void fileHooks.onFileSelectionChange.emit({ files });
+});
