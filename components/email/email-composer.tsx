@@ -3419,9 +3419,9 @@ export function EmailComposer({
           </button>
         </div>
       ) : (
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
+      <div className="flex items-center justify-between px-4 py-2 md:py-3 border-b bg-background">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => handleClose()} className="h-9 w-9 md:h-8 md:w-8" aria-label={tCommon('close')} title={tCommon('close')}>
+          <Button variant="ghost" size="icon" onClick={() => handleClose()} className="h-11 w-11 -ms-2 md:ms-0 md:h-8 md:w-8" aria-label={tCommon('close')} title={tCommon('close')}>
             <X className="w-5 h-5 md:w-4 md:h-4" />
           </Button>
           <div className="flex items-center gap-2" data-testid="composer-save-status" data-status={saveStatus}>
@@ -3457,7 +3457,7 @@ export function EmailComposer({
               title={getSendTooltip()}
               size="sm"
               data-testid="composer-send"
-              className="h-9 rounded-e-none border-e border-primary-foreground/20 px-3"
+              className="h-11 rounded-e-none border-e border-primary-foreground/20 px-3"
             >
               <Send className="w-4 h-4 me-1.5" />
               {t('send')}
@@ -3469,7 +3469,7 @@ export function EmailComposer({
               title={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
               aria-label={composerClient?.hasDelayedSend() ? t('schedule_send') : tViewer('more_actions')}
               size="sm"
-              className="h-9 rounded-s-none px-2"
+              className="h-11 min-w-11 rounded-s-none px-2"
               aria-haspopup="menu"
               aria-expanded={showSendMenu}
             >
@@ -3504,7 +3504,7 @@ export function EmailComposer({
             title={getSendTooltip()}
             size="sm"
             data-testid="composer-send"
-            className="md:hidden h-9 px-4"
+            className="md:hidden h-11 px-4"
           >
             <Send className="w-4 h-4 me-1.5" />
             {t('send')}
@@ -4004,7 +4004,7 @@ export function EmailComposer({
         <div
           data-mv-compose-footer={mvWindow ? "" : undefined}
           className={cn(
-            "@container/composer-bar flex items-center justify-between px-4 py-2.5 bg-background shrink-0 pb-[calc(0.625rem+env(safe-area-inset-bottom)/2)]",
+            "@container/composer-bar flex items-center justify-between px-4 py-2.5 max-md:py-1.5 bg-background shrink-0 pb-[calc(0.625rem+env(safe-area-inset-bottom)/2)]",
             mvWindow ? "gap-1" : "border-t",
           )}
         >
@@ -4043,7 +4043,7 @@ export function EmailComposer({
               <Button
                 variant="ghost"
                 onClick={() => fileInputRef.current?.click()}
-                className="h-9 gap-1.5 px-2 sm:px-2.5"
+                className="h-9 max-md:h-11 max-md:min-w-11 justify-center gap-1.5 px-2 sm:px-2.5"
                 title={t('attach')}
                 aria-label={t('attach')}
               >
@@ -4057,7 +4057,7 @@ export function EmailComposer({
                 size="icon"
                 onClick={() => mvWindow ? setMvShowFormatting((v) => !v) : setShowFormattingOnMobile((v) => !v)}
                 className={cn(
-                  "h-9 w-9",
+                  "h-9 w-9 max-md:h-11 max-md:w-11",
                   !mvWindow && "md:hidden",
                   (mvWindow ? mvShowFormatting : showFormattingOnMobile) && "bg-accent text-accent-foreground",
                 )}
@@ -4141,7 +4141,7 @@ export function EmailComposer({
               data-mv-discard={mvWindow ? "" : undefined}
               className={cn(
                 "text-sm text-muted-foreground transition-colors",
-                mvWindow ? "grid h-9 w-9 place-items-center rounded-full hover:bg-muted hover:text-foreground" : "hover:text-red-500 px-2 py-1",
+                mvWindow ? "grid h-9 w-9 place-items-center rounded-full hover:bg-muted hover:text-foreground" : "hover:text-red-500 px-2 py-1 max-md:min-h-11 max-md:px-3",
               )}
               title={mvWindow ? t('discard') : undefined}
               aria-label={mvWindow ? t('discard') : undefined}

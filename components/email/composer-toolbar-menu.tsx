@@ -52,7 +52,8 @@ export function ComposerToolbarMenu({ icon: Icon, label, activeCount = 0, testId
         type="button"
         variant="ghost"
         onClick={() => setOpen((v) => !v)}
-        className={cn("h-9 gap-1.5 px-2 sm:px-2.5", open && "bg-muted")}
+        // 44px on a phone, where 36px was hard to hit with a finger.
+        className={cn("h-9 max-md:h-11 max-md:min-w-11 justify-center gap-1.5 px-2 sm:px-2.5", open && "bg-muted")}
         title={label}
         aria-label={label}
         aria-haspopup="menu"
