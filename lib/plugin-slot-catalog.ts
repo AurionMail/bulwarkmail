@@ -106,7 +106,7 @@ export const SLOT_CATALOG = {
   'file-preview-section': S('files', 'frame', ['ui:files'], { file: 'files:read' }, 'a section in the file preview'),
 
   // ─── Settings and admin ────────────────────────────────────
-  'settings-section': S('settings', 'frame', ['ui:settings-section'], {}, 'a section on the plugin\'s own page in Settings'),
+  'settings-section': S('settings', 'frame', ['ui:settings-section'], {}, 'a section on the plugin\'s own page in Settings (above its settings-page, when it has one: one entry per plugin)'),
   'settings-page': S('settings', 'frame', ['ui:settings-section'], {}, 'a page of its own in Settings, listed under the plugin\'s name'),
   'admin-plugin-page': S('admin', 'frame', ['ui:admin-page', 'admin:config'], {}, 'the plugin\'s page in the admin dashboard'),
 } as const satisfies Record<string, SlotSpec>;
