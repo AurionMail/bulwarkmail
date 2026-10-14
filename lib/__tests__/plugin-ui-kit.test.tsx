@@ -191,7 +191,7 @@ describe('plugin dialog footer', () => {
 
     act(() => (slotProps.setDialogButtons as (b: unknown) => void)([
       { id: 'cancel', label: 'Cancel', variant: 'secondary' },
-      { id: 'send', label: 'Send', disabled: true },
+      { id: 'send', label: 'Send', disabled: true, icon: 'send' },
       { id: 'bad id!', label: 'Dropped' },
       { id: 'x', label: '' },
     ]));
@@ -200,6 +200,8 @@ describe('plugin dialog footer', () => {
     expect(buttons.map((b) => b.textContent)).toEqual(['Cancel', 'Send']);
     expect(buttons[0].className).toContain('border-input');
     expect(buttons[1]).toBeDisabled();
+    expect(buttons[1].querySelector('svg')).not.toBeNull();
+    expect(buttons[0].querySelector('svg')).toBeNull();
 
     fireEvent.click(buttons[0]);
     expect(slotProps.dialogButtonClick).toEqual({ id: 'cancel', n: 1 });

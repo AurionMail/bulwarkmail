@@ -366,14 +366,23 @@ describe('composer-options-menu and composer-toolbar-actions', () => {
     const button = screen.getByRole('button', { name: 'Assistant' });
     expect(button).toHaveAttribute('title', 'Assistant (Alt+A)');
     expect(button.className).toContain('h-9');
-    // Icon only unless the bar is wide enough for the label next to the app's buttons.
-    expect(button.querySelector('span')!.className).toContain('@[44rem]/composer-bar:inline');
+    // In the bar only when it is wide enough next to the app's own buttons...
+    expect(button.className).toMatch(/(^|\s)hidden(\s|$)/);
+    expect(button.className).toContain('@[44rem]/composer-bar:inline-flex');
     let bar: HTMLElement | null = button;
     while (bar && !bar.classList.contains('@container/composer-bar')) bar = bar.parentElement;
     expect(bar).not.toBeNull();
     // Not in the plugin frame row above the bar.
     expect(button.closest('[data-composer-plugin-row]')).toBeNull();
     await act(async () => { fireEvent.click(button); });
+    expect(dispatch).toHaveBeenCalledWith('ai', 'composer-toolbar-actions', 'ask', { composerId: expect.any(String) });
+
+    // ...and otherwise in the Options menu, which is shown only while narrow.
+    dispatch.mockClear();
+    fireEvent.click(screen.getByTestId('composer-options-menu'));
+    const entry = screen.getByRole('menuitem', { name: 'Assistant' });
+    expect(entry.closest('[data-narrow-only]')!.className).toContain('@[44rem]/composer-bar:hidden');
+    await act(async () => { fireEvent.click(entry); });
     expect(dispatch).toHaveBeenCalledWith('ai', 'composer-toolbar-actions', 'ask', { composerId: expect.any(String) });
   });
 

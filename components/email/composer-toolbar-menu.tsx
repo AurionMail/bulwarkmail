@@ -150,12 +150,19 @@ interface PluginItemsProps {
   onSelect?: () => void;
   /** Draw a separator before the entries (when the menu has its own above). */
   separator?: boolean;
+  /** Only while the composer bar is narrower than 44rem (see ComposerPluginToolbarButtons). */
+  onlyWhenNarrow?: boolean;
 }
 
 /**
  * Buttons plugins declared for the composer's bottom bar
  * (composer-toolbar-actions), drawn like Attach and Templates. An action's
  * shortcut is shown in its tooltip; the composer binds it.
+ *
+ * The bar is a container (`@container/composer-bar`). Below 44rem there is
+ * no room next to the app's own buttons, Discard and Send, so the buttons
+ * are hidden and the same actions are listed in the Options menu instead
+ * (ComposerPluginMenuItems with `onlyWhenNarrow`).
  */
 export function ComposerPluginToolbarButtons({ surface, context }: { surface: "composer-toolbar-actions"; context: () => Record<string, unknown> }) {
   const actions = usePluginActions(surface);
@@ -170,7 +177,7 @@ export function ComposerPluginToolbarButtons({ surface, context }: { surface: "c
             key={`${action.pluginId}:${action.id}`}
             type="button"
             variant="ghost"
-            className={cn("h-9 gap-1.5 px-2 sm:px-2.5", action.danger && "text-destructive")}
+            className={cn("hidden @[44rem]/composer-bar:inline-flex h-9 gap-1.5 px-2 sm:px-2.5", action.danger && "text-destructive")}
             title={tip}
             aria-label={action.label}
             aria-keyshortcuts={action.shortcut}
@@ -178,9 +185,7 @@ export function ComposerPluginToolbarButtons({ surface, context }: { surface: "c
             onClick={() => { void runAction(action, surface, context()); }}
           >
             <Icon className="w-4 h-4" />
-            {/* The label only when the bar has room for it next to the app's own
-                buttons; otherwise the icon, with the label as tooltip. */}
-            <span className="hidden @[44rem]/composer-bar:inline text-sm">{action.label}</span>
+            <span className="text-sm">{action.label}</span>
           </Button>
         );
       })}
@@ -188,12 +193,18 @@ export function ComposerPluginToolbarButtons({ surface, context }: { surface: "c
   );
 }
 
+/** Shows its children only while the composer bar is narrower than 44rem. */
+function NarrowOnly({ active, children }: { active: boolean; children: React.ReactNode }) {
+  if (!active) return <>{children}</>;
+  return <div className="@[44rem]/composer-bar:hidden" data-narrow-only="">{children}</div>;
+}
+
 /** Entries plugins declared for a composer menu, drawn like the menu's own. */
-export function ComposerPluginMenuItems({ surface, context, onSelect, separator }: PluginItemsProps) {
+export function ComposerPluginMenuItems({ surface, context, onSelect, separator, onlyWhenNarrow }: PluginItemsProps) {
   const actions = usePluginActions(surface);
   if (actions.length === 0) return null;
   return (
-    <>
+    <NarrowOnly active={!!onlyWhenNarrow}>
       {separator && <div role="separator" className="my-1 h-px bg-border" />}
       {actions.map((action) => {
         const Icon = iconForName(action.icon) ?? Puzzle;
@@ -234,6 +245,6 @@ export function ComposerPluginMenuItems({ surface, context, onSelect, separator 
           </button>
         );
       })}
-    </>
+    </NarrowOnly>
   );
 }

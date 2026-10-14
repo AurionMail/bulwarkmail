@@ -4118,6 +4118,7 @@ export function EmailComposer({
                   </ComposerToolbarMenuCheckItem>
                 )}
                 <ComposerPluginMenuItems surface="composer-options-menu" context={composerActionContext} onSelect={close} separator />
+                <ComposerPluginMenuItems surface="composer-toolbar-actions" context={composerActionContext} onSelect={close} separator onlyWhenNarrow />
               </>}
             </ComposerToolbarMenu>
             <ComposerPluginToolbarButtons surface="composer-toolbar-actions" context={composerActionContext} />

@@ -19,7 +19,7 @@ import { usePluginStore } from '@/stores/plugin-store';
 import { toast } from '@/stores/toast-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, MoreHorizontal, Power, Puzzle, X } from '@/components/icons';
+import { iconForName, Loader2, MoreHorizontal, Power, Puzzle, X } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { PluginIframeSlot } from './plugin-iframe-slot';
 import type { SlotName } from '@/lib/plugin-types';
@@ -79,7 +79,13 @@ export function readDialogButtons(value: unknown): DialogButtonSpec[] {
     const label = b.label.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 40);
     if (!label) continue;
     const variant = b.variant === 'secondary' || b.variant === 'ghost' || b.variant === 'destructive' ? b.variant : 'primary';
-    out.push({ id: b.id, label, variant, ...(b.disabled === true ? { disabled: true } : {}), ...(b.busy === true ? { busy: true } : {}) });
+    const icon = typeof b.icon === 'string' && /^[A-Za-z0-9:-]{1,48}$/.test(b.icon) ? b.icon : undefined;
+    out.push({
+      id: b.id, label, variant,
+      ...(b.disabled === true ? { disabled: true } : {}),
+      ...(b.busy === true ? { busy: true } : {}),
+      ...(icon ? { icon } : {}),
+    });
   }
   return out;
 }
@@ -235,7 +241,7 @@ function PluginDialogView({ current, layer }: { current: DialogRequest; layer: '
                     className="gap-1.5"
                     onClick={() => pressButton(b.id)}
                   >
-                    {b.busy && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+                    {b.busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <FooterIcon name={b.icon} />}
                     {b.label}
                   </Button>
                 ))}
@@ -301,6 +307,12 @@ function PluginDialogView({ current, layer }: { current: DialogRequest; layer: '
       </div>
     </div>
   );
+}
+
+/** A footer button's icon by name; unknown names show none. */
+function FooterIcon({ name }: { name?: string }) {
+  const Glyph = name ? iconForName(name) : null;
+  return Glyph ? <Glyph className="w-4 h-4" aria-hidden="true" /> : null;
 }
 
 /** The "⋯" menu in a plugin dialog's header: the way out of a plugin that keeps asking. */
