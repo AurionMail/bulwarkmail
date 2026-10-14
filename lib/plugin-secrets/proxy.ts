@@ -12,8 +12,8 @@ import { DisallowedUrlError, fetchPublicUrl } from '@/lib/security/url-guard';
 import { authHeaderFor, credentialOrigin, privateProxyOrigins, type CredentialInject, type CredentialSpec } from './credentials';
 import { getUserCredential, setUserCredentialSecret, userKey, type VaultUser } from './vault';
 
-/** Largest request body the proxy forwards (one upload chunk). */
-export const MAX_PROXY_REQUEST_BYTES = 512 * 1024 * 1024;
+/** Largest request body the proxy forwards (one upload chunk); see proxyClientMaxBodySize in next.config.ts. */
+export const MAX_PROXY_REQUEST_BYTES = 100 * 1024 * 1024;
 /** Largest response body it passes back (a download). */
 export const MAX_PROXY_RESPONSE_BYTES = 2 * 1024 * 1024 * 1024;
 /** Largest response it reads to capture a secret from. */
