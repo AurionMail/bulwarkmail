@@ -55,7 +55,8 @@ import {
   buildEmbeddedSignatureHtml,
   htmlComposeBodyToPlainText,
   plainComposeBodyToHtml,
-  removeSignatureRange,
+  replaceEmbeddedSignature,
+  replacePlainTextSignature,
 } from "@/components/email/compose-format";
 import { emailHooks, contactHooks, isExternalAttachmentResult } from "@/lib/plugin-hooks";
 import { onUploadProgress } from "@/lib/upload-progress";
@@ -794,6 +795,9 @@ export function EmailComposer({
   const [validationErrors, setValidationErrors] = useState<{ to?: boolean; body?: boolean }>({});
   const [shakeField, setShakeField] = useState<string | null>(null);
   const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(initialData?.selectedIdentityId ?? null);
+  // Set once the user picks From by hand. Their pick then brings its own
+  // signature, also when it has none (see ownSignatureIdentity).
+  const [identityPickedByUser, setIdentityPickedByUser] = useState(false);
   const [subAddressTag, setSubAddressTag] = useState<string>(initialData?.subAddressTag ?? '');
   const [fromOverrideEnabled, setFromOverrideEnabled] = useState<boolean>(initialData?.fromOverrideEnabled ?? false);
   const [fromOverrideEmail, setFromOverrideEmail] = useState<string>(initialData?.fromOverrideEmail ?? '');
@@ -944,8 +948,10 @@ export function EmailComposer({
     : null;
   // Alias identities often lack a configured signature - fall back to the primary
   // identity's signature so replies (which auto-select a matching alias) still
-  // populate the user's signature.
-  const ownSignatureIdentity = (currentIdentity?.htmlSignature || currentIdentity?.textSignature)
+  // populate the user's signature. An identity the user picked by hand keeps
+  // its own, also an empty one: switching to a team address without a
+  // signature sent the team mail with the personal signature.
+  const ownSignatureIdentity = identityPickedByUser || currentIdentity?.htmlSignature || currentIdentity?.textSignature
     ? currentIdentity
     : primaryIdentity;
   // Plugins may rewrite the signature (onSignatureRender).
@@ -961,46 +967,48 @@ export function EmailComposer({
   const prevSignatureIdentityIdRef = useRef<string | null | undefined>(signatureIdentity?.id);
   const prevSignatureSeparatorRef = useRef<boolean>(signatureSeparatorEnabled);
   const prevPluginSignatureRevisionRef = useRef(pluginSignatureRevision);
+  const prevSignatureIdentityRef = useRef(signatureIdentity);
 
   useEffect(() => {
     const editor = editorRef.current;
     const identityChanged = prevSignatureIdentityIdRef.current !== signatureIdentity?.id;
     const separatorChanged = prevSignatureSeparatorRef.current !== signatureSeparatorEnabled;
     const pluginSignatureChanged = prevPluginSignatureRevisionRef.current !== pluginSignatureRevision;
+    const previousIdentity = prevSignatureIdentityRef.current;
     prevSignatureIdentityIdRef.current = signatureIdentity?.id;
     prevSignatureSeparatorRef.current = signatureSeparatorEnabled;
     prevPluginSignatureRevisionRef.current = pluginSignatureRevision;
-    if (!editor) return;
+    prevSignatureIdentityRef.current = signatureIdentity;
     if (!identityChanged && !separatorChanged && !pluginSignatureChanged) return;
-    if (plainTextMode) return;
     // Replies/forwards only embed when configured for "above quote". Compose
     // always embeds (see getInitialBody), so swap on identity change there too.
     const isReplyLike = mode === 'reply' || mode === 'replyAll' || mode === 'forward';
     if (!isReplyLike && mode !== 'compose') return;
     if (isReplyLike && signaturePosition !== 'above_quote') return;
 
+    if (plainTextMode) {
+      // A new plain-text message carries the signature at the end of the
+      // body; in a reply the quote follows it.
+      if (!identityChanged || mode !== 'compose') return;
+      setBody((prev) => replacePlainTextSignature(prev, previousIdentity, signatureIdentity, {
+        separator: signatureSeparatorEnabled,
+      }));
+      return;
+    }
+    if (!editor) return;
+
     // serializeEditorContent (not getHTML) so a QuotedHtml island's verbatim
     // body isn't lost during the signature splice + setContent round-trip.
+    // The old range is replaced in place (bounded so it never eats into the
+    // quoted body - see removeSignatureRange), or removed when the new
+    // identity has no signature.
     const currentHtml = serializeEditorContent(editor);
-    const doc = new DOMParser().parseFromString(currentHtml, 'text/html');
-    const newSignature = buildEmbeddedSignatureHtml(signatureIdentity, {
+    // Only a new identity brings a signature back into a body without one.
+    if (!identityChanged && !containsEmbeddedSignature(currentHtml)) return;
+    const nextHtml = replaceEmbeddedSignature(currentHtml, buildEmbeddedSignatureHtml(signatureIdentity, {
       embed: true,
       separator: signatureSeparatorEnabled,
-    });
-    if (!newSignature) return;
-
-    // Remove the existing signature range (bounded so it never eats into the
-    // quoted body - see removeSignatureRange) and splice the new one in at the
-    // same position, without re-serializing/parsing twice.
-    const removed = removeSignatureRange(doc);
-    if (!removed) return;
-    const replacementHost = doc.createElement('div');
-    replacementHost.innerHTML = newSignature;
-    Array.from(replacementHost.childNodes).forEach((node) =>
-      removed.parent.insertBefore(node, removed.insertBefore)
-    );
-
-    const nextHtml = doc.body.innerHTML;
+    }));
     if (nextHtml !== currentHtml) {
       editor.commands.setContent(nextHtml, { emitUpdate: true });
     }
@@ -3543,6 +3551,7 @@ export function EmailComposer({
                   value={selectedIdentityId || primaryIdentity?.id || ''}
                   onChange={(e) => {
                     setSelectedIdentityId(e.target.value);
+                    setIdentityPickedByUser(true);
                     notifyIdentitySelected(identities, e.target.value);
                   }}
                   className="flex-1 bg-transparent text-sm text-foreground outline-none cursor-pointer hover:text-muted-foreground transition-colors min-w-0 truncate"

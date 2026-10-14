@@ -3,6 +3,8 @@ import {
   buildEmbeddedSignatureHtml,
   htmlComposeBodyToPlainText,
   plainComposeBodyToHtml,
+  replaceEmbeddedSignature,
+  replacePlainTextSignature,
   stripEmbeddedSignature,
 } from '../compose-format';
 import { SIGNATURE_BLOCK_MARKER, SIGNATURE_RANGE_MARKER, containsEmbeddedSignature } from '../signature-block';
@@ -88,5 +90,54 @@ describe('compose-format (#1022): HTML <-> plain text switch', () => {
     const html = buildEmbeddedSignatureHtml({ textSignature: '-- \nUser A' }, { embed: true, separator: true });
     expect(html).not.toContain(`${SIGNATURE_RANGE_MARKER}="separator"`);
     expect(count(html, '-- ')).toBe(1);
+  });
+});
+
+describe('switching identity swaps the signature', () => {
+  const other = { htmlSignature: '<i>Team</i>', textSignature: 'Team' };
+  const none = { htmlSignature: '', textSignature: '' };
+  const embed = (sig: typeof identity) => buildEmbeddedSignatureHtml(sig, { embed: true, separator: true });
+  // The DOM writes valueless attributes as =""; compare in its spelling.
+  const dom = (html: string) => new DOMParser().parseFromString(html, 'text/html').body.innerHTML;
+
+  describe('replaceEmbeddedSignature', () => {
+    it('puts the new signature where the old one was', () => {
+      const html = `<p>Hi</p>${embed(identity)}<blockquote>original</blockquote>`;
+      expect(replaceEmbeddedSignature(html, embed(other)))
+        .toBe(dom(`<p>Hi</p>${embed(other)}<blockquote>original</blockquote>`));
+    });
+
+    it('removes the signature for an identity without one', () => {
+      const html = `<p>Hi</p>${embed(identity)}<blockquote>original</blockquote>`;
+      expect(replaceEmbeddedSignature(html, embed(none))).toBe('<p>Hi</p><blockquote>original</blockquote>');
+    });
+
+    it('adds a signature above the quote when the body had none', () => {
+      expect(replaceEmbeddedSignature('<p>Hi</p><blockquote>original</blockquote>', embed(other)))
+        .toBe(dom(`<p>Hi</p>${embed(other)}<blockquote>original</blockquote>`));
+    });
+
+    it('adds a signature at the end when there is no quote', () => {
+      expect(replaceEmbeddedSignature('<p>Hi</p>', embed(other))).toBe(dom(`<p>Hi</p>${embed(other)}`));
+    });
+  });
+
+  describe('replacePlainTextSignature', () => {
+    const signed = 'Hi\n\n-- \nAlice\nAcme';
+
+    it('swaps a trailing signature', () => {
+      expect(replacePlainTextSignature(signed, identity, other, { separator: true })).toBe('Hi\n\n-- \nTeam');
+    });
+
+    it('removes it for an identity without one and adds it back', () => {
+      const bare = replacePlainTextSignature(signed, identity, none, { separator: true });
+      expect(bare).toBe('Hi');
+      expect(replacePlainTextSignature(bare, none, identity, { separator: true })).toBe(signed);
+    });
+
+    it('leaves a body alone whose signature the user edited', () => {
+      const edited = 'Hi\n\n-- \nAlice (edited)';
+      expect(replacePlainTextSignature(edited, identity, other, { separator: true })).toBe(edited);
+    });
   });
 });

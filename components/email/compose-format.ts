@@ -108,6 +108,47 @@ export function stripEmbeddedSignature(html: string): { html: string; hadSignatu
 }
 
 /**
+ * The HTML body with its embedded signature swapped for `signatureHtml` (from
+ * buildEmbeddedSignatureHtml; empty for an identity without a signature).
+ * The new signature goes where the old one was. A body without one - the
+ * previous identity had none - gets it before the quote, or at the end when
+ * there is no quote, which is where getInitialBody would have put it.
+ */
+export function replaceEmbeddedSignature(html: string, signatureHtml: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  let removed = removeSignatureRange(doc);
+  if (!removed) {
+    if (!signatureHtml) return html;
+    const quote = Array.from(doc.body.childNodes).find(isQuoteBoundary) ?? null;
+    removed = { parent: doc.body, insertBefore: quote };
+  }
+  const host = doc.createElement('div');
+  host.innerHTML = signatureHtml;
+  Array.from(host.childNodes).forEach((node) =>
+    removed.parent.insertBefore(node, removed.insertBefore)
+  );
+  return doc.body.innerHTML;
+}
+
+/**
+ * The plain-text body with the previous identity's trailing signature swapped
+ * for the next one's. A body that doesn't end with the previous signature was
+ * edited there (or never had one) and is only given the new signature when
+ * the previous identity had none.
+ */
+export function replacePlainTextSignature(
+  body: string,
+  previous: SignatureIdentityLike,
+  next: SignatureIdentityLike,
+  options: { separator: boolean },
+): string {
+  const hadSignature = plainTextBodyHasSignature(body, previous);
+  if (!hadSignature && (previous?.htmlSignature || previous?.textSignature)) return body;
+  const bare = hadSignature ? plainTextBodyWithoutSignature(body, previous) : body;
+  return appendPlainTextSignature(bare, next, options);
+}
+
+/**
  * Convert the rich-text editor's body to a plain-text body. Formatting is
  * dropped (that is the point of plain text); an embedded signature comes back
  * as the identity's plain-text signature so the body still "carries" it.
