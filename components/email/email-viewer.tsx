@@ -123,7 +123,7 @@ import { ConversationEmailBody, useConversationExternalContent, useMarkReadWhenS
 import type { TnefAttachment } from "@/lib/tnef";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { PluginActions } from "@/components/plugins/plugin-actions";
-import { AttachmentPluginMenu, PluginPanelEntries, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
+import { AttachmentPluginFrames, AttachmentPluginMenu, PluginPanelEntries, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 import { RulesPanel, useRulesAvailability } from "./rules-menu";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { ResizeHandle } from "@/components/layout/resize-handle";
@@ -4702,7 +4702,7 @@ export function EmailViewer({
                     const thumbUrl = imageThumbUrls[attachment.id];
                     return (
                       <DraggableAttachmentChip key={attachment.id} attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
-                        {(dragProps) => (
+                        {(dragProps) => (<>
                       <div
                         className={cn(
                           "bg-muted/60 hover:bg-muted rounded-md border border-border/50 group relative cursor-pointer overflow-hidden",
@@ -4740,7 +4740,7 @@ export function EmailViewer({
                           </span>
                         </div>
                         <div className={cn(
-                          "absolute bg-background/95 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1.5 rounded-md",
+                          "absolute bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5 rounded-md",
                           thumbUrl ? "top-1 end-1" : "inset-y-0 end-0 rounded-s-none rounded-e-md",
                         )}>
                           <button
@@ -4759,23 +4759,11 @@ export function EmailViewer({
                               <Eye className="w-3.5 h-3.5 text-foreground" />
                             </button>
                           )}
-                          <PluginSlot
-                            name="attachment-actions"
-                            className="contents"
-                            extraProps={{
-                              attachment: {
-                                name: attachment.name || '',
-                                type: attachment.type,
-                                size: attachment.size,
-                                blobId: attachment.blobId,
-                                emailId: email?.id,
-                              } satisfies AttachmentInfo,
-                            }}
-                          />
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
                         </div>
                       </div>
-                        )}
+                        <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
+                        </>)}
                       </DraggableAttachmentChip>
                     );
                   })}
@@ -4799,7 +4787,7 @@ export function EmailViewer({
                           const opensPreview = isPreviewable && mailAttachmentAction === 'preview';
                           return (
                             <DraggableAttachmentChip key={attachment.id} attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
-                              {(dragProps) => (
+                              {(dragProps) => (<>
                             <div
                               className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-muted/60 group relative cursor-pointer w-full"
                               title={`${opensPreview ? tFiles('preview') : t('download')} ${getAttachmentDisplayName(attachment.name, attachment.type)}`}
@@ -4816,7 +4804,7 @@ export function EmailViewer({
                               <span className="text-[10px] text-muted-foreground ms-auto flex-shrink-0">
                                 {formatFileSize(attachment.size)}
                               </span>
-                              <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1.5">
+                              <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
                                 <button
                                   className="p-1 hover:bg-accent rounded transition-colors"
                                   title={t('download')}
@@ -4833,23 +4821,11 @@ export function EmailViewer({
                                     <Eye className="w-3.5 h-3.5 text-foreground" />
                                   </button>
                                 )}
-                                <PluginSlot
-                                  name="attachment-actions"
-                                  className="contents"
-                                  extraProps={{
-                                    attachment: {
-                                      name: attachment.name || '',
-                                      type: attachment.type,
-                                      size: attachment.size,
-                                      blobId: attachment.blobId,
-                                      emailId: email?.id,
-                                    } satisfies AttachmentInfo,
-                                  }}
-                                />
                                 <AttachmentPluginMenu emailId={email?.id} attachment={attachment} iconClassName="w-3.5 h-3.5" />
                               </div>
                             </div>
-                              )}
+                              <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
+                              </>)}
                             </DraggableAttachmentChip>
                           );
                         })}
@@ -5560,7 +5536,7 @@ export function EmailViewer({
               const thumbUrl = imageThumbUrls[attachment.id];
               return (
                 <DraggableAttachmentChip key={attachment.id} attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
-                  {(dragProps) => (
+                  {(dragProps) => (<>
                 <div
                   className={cn(
                     "bg-muted/60 hover:bg-muted rounded-md border border-border/50 group relative cursor-pointer flex-shrink-0 overflow-hidden",
@@ -5603,7 +5579,7 @@ export function EmailViewer({
                     </span>
                   </div>
                   <div className={cn(
-                    "absolute rounded-md bg-background/95 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1.5",
+                    "absolute rounded-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5",
                     thumbUrl ? "top-1 end-1" : "inset-y-0 end-0 rounded-e-md rounded-s-none",
                   )}>
                     <button
@@ -5622,23 +5598,11 @@ export function EmailViewer({
                         <Eye className="w-4 h-4 text-foreground" />
                       </button>
                     )}
-                    <PluginSlot
-                      name="attachment-actions"
-                      className="contents"
-                      extraProps={{
-                        attachment: {
-                          name: attachment.name || '',
-                          type: attachment.type,
-                          size: attachment.size,
-                          blobId: attachment.blobId,
-                          emailId: email?.id,
-                        } satisfies AttachmentInfo,
-                      }}
-                    />
                     <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                   </div>
                 </div>
-                  )}
+                  <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
+                  </>)}
                 </DraggableAttachmentChip>
               );
             })}
@@ -5662,7 +5626,7 @@ export function EmailViewer({
                     const opensPreview = isPreviewable && mailAttachmentAction === 'preview';
                     return (
                       <DraggableAttachmentChip key={attachment.id} attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
-                        {(dragProps) => (
+                        {(dragProps) => (<>
                       <div
                         className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-muted/60 group relative cursor-pointer w-full"
                         title={`${opensPreview ? tFiles('preview') : t('download')} ${getAttachmentDisplayName(attachment.name, attachment.type)}`}
@@ -5679,7 +5643,7 @@ export function EmailViewer({
                         <span className="text-xs text-muted-foreground ms-auto flex-shrink-0">
                           {formatFileSize(attachment.size)}
                         </span>
-                        <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1.5">
+                        <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
                           <button
                             className="p-1 hover:bg-accent rounded transition-colors"
                             title={t('download')}
@@ -5696,23 +5660,11 @@ export function EmailViewer({
                               <Eye className="w-4 h-4 text-foreground" />
                             </button>
                           )}
-                          <PluginSlot
-                            name="attachment-actions"
-                            className="contents"
-                            extraProps={{
-                              attachment: {
-                                name: attachment.name || '',
-                                type: attachment.type,
-                                size: attachment.size,
-                                blobId: attachment.blobId,
-                                emailId: email?.id,
-                              } satisfies AttachmentInfo,
-                            }}
-                          />
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} />
                         </div>
                       </div>
-                        )}
+                        <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
+                        </>)}
                       </DraggableAttachmentChip>
                     );
                   })}
@@ -5734,7 +5686,7 @@ export function EmailViewer({
                 const thumbUrl = imageThumbUrls[attachment.id];
                 return (
                   <DraggableAttachmentChip key={attachment.id} attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
-                    {(dragProps) => (
+                    {(dragProps) => (<>
                   <div
                     className={cn(
                       "bg-muted/60 hover:bg-muted rounded-md border border-border/50 group relative cursor-pointer overflow-hidden",
@@ -5774,7 +5726,7 @@ export function EmailViewer({
                       <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="-me-1 flex-shrink-0" iconClassName="w-3.5 h-3.5" />
                     </div>
                     <div className={cn(
-                      "absolute bg-background/95 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1.5 rounded-md",
+                      "absolute bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5 rounded-md",
                       thumbUrl ? "top-1 end-1" : "inset-y-0 end-0 rounded-s-none rounded-e-md",
                     )}>
                       <button
@@ -5793,22 +5745,10 @@ export function EmailViewer({
                           <Eye className="w-4 h-4 text-foreground" />
                         </button>
                       )}
-                      <PluginSlot
-                        name="attachment-actions"
-                        className="contents"
-                        extraProps={{
-                          attachment: {
-                            name: attachment.name || '',
-                            type: attachment.type,
-                            size: attachment.size,
-                            blobId: attachment.blobId,
-                            emailId: email?.id,
-                          } satisfies AttachmentInfo,
-                        }}
-                      />
                     </div>
                   </div>
-                    )}
+                    <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
+                    </>)}
                   </DraggableAttachmentChip>
                 );
               })}
@@ -5831,7 +5771,7 @@ export function EmailViewer({
                       const opensPreview = isPreviewable && mailAttachmentAction === 'preview';
                       return (
                         <DraggableAttachmentChip key={attachment.id} attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
-                          {(dragProps) => (
+                          {(dragProps) => (<>
                         <div
                           className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-muted/60 group relative cursor-pointer w-full"
                           title={`${opensPreview ? tFiles('preview') : t('download')} ${getAttachmentDisplayName(attachment.name, attachment.type)}`}
@@ -5849,7 +5789,7 @@ export function EmailViewer({
                             {formatFileSize(attachment.size)}
                           </span>
                           <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="flex-shrink-0" iconClassName="w-3.5 h-3.5" />
-                          <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 px-1.5">
+                          <div className="absolute inset-y-0 end-0 rounded-e-md bg-background/95 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-1 px-1.5">
                             <button
                               className="p-1 hover:bg-accent rounded transition-colors"
                               title={t('download')}
@@ -5866,22 +5806,10 @@ export function EmailViewer({
                                 <Eye className="w-3.5 h-3.5 text-foreground" />
                               </button>
                             )}
-                            <PluginSlot
-                              name="attachment-actions"
-                              className="contents"
-                              extraProps={{
-                                attachment: {
-                                  name: attachment.name || '',
-                                  type: attachment.type,
-                                  size: attachment.size,
-                                  blobId: attachment.blobId,
-                                  emailId: email?.id,
-                                } satisfies AttachmentInfo,
-                              }}
-                            />
                           </div>
                         </div>
-                          )}
+                          <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
+                          </>)}
                         </DraggableAttachmentChip>
                       );
                     })}

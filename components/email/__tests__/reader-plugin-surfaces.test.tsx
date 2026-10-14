@@ -297,6 +297,40 @@ describe('reader-actions', () => {
   });
 });
 
+describe('attachment-actions', () => {
+  const withAttachment = () => textMail('See attached', {
+    hasAttachment: true,
+    attachments: [{ partId: '2', blobId: 'blob-pdf', name: 'invoice.pdf', type: 'application/pdf', size: 1234, disposition: 'attachment' }],
+  } as Partial<Email>);
+
+  it('puts the frames next to the chip, not in its hover overlay', () => {
+    offerSlots('p1', ['attachment-actions']);
+    viewer(withAttachment());
+
+    // Desktop chip and phone chip are both in the DOM.
+    const frames = screen.getAllByTestId('slot-attachment-actions');
+    expect(frames.length).toBeGreaterThan(0);
+    for (const frame of frames) {
+      // Nothing between the frame and the page may hide it until hover.
+      for (let el: HTMLElement | null = frame; el; el = el.parentElement) {
+        expect(el.className).not.toMatch(/\bopacity-0\b/);
+      }
+      expect(frame.closest('[data-attachment-name]')).toBeNull();
+      expect(slotProps(frame)).toEqual({
+        attachment: { name: 'invoice.pdf', type: 'application/pdf', size: 1234, blobId: 'blob-pdf', emailId: 'e1' },
+      });
+    }
+  });
+
+  it('keeps the invisible hover overlay from taking taps', () => {
+    viewer(withAttachment());
+    const overlays = [...document.querySelectorAll<HTMLElement>('[data-attachment-name="invoice.pdf"] div')]
+      .filter((d) => /\bopacity-0\b/.test(d.className));
+    expect(overlays.length).toBeGreaterThan(0);
+    for (const overlay of overlays) expect(overlay.className).toMatch(/\bpointer-events-none\b/);
+  });
+});
+
 describe('attachment-menu', () => {
   const withAttachments = () => textMail('See attached', {
     hasAttachment: true,

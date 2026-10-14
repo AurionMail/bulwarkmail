@@ -16,6 +16,7 @@ import { useContextMenu } from "@/hooks/use-context-menu";
 import { runAction } from "@/lib/plugin-sandbox/actions";
 import { QUOTE_TOGGLE_ATTR } from "@/lib/quote-collapse";
 import { cn } from "@/lib/utils";
+import type { AttachmentInfo } from "@/lib/plugin-types";
 
 // ─── attachment-menu ─────────────────────────────────────────
 
@@ -79,6 +80,41 @@ export function AttachmentPluginMenu({
         />
       </ContextMenu>
     </>
+  );
+}
+
+// ─── attachment-actions ──────────────────────────────────────
+
+/**
+ * The `attachment-actions` frames of one attachment, drawn next to its chip.
+ * They used to sit in the chip's hover overlay, where a wide frame was cut
+ * off and covered the name, and on phones (no hover) lay invisible over the
+ * chip and swallowed taps meant for its menu button.
+ */
+export function AttachmentPluginFrames({
+  emailId,
+  attachment,
+  className,
+}: {
+  emailId: string | undefined;
+  attachment: AttachmentMenuTarget;
+  className?: string;
+}) {
+  const extraProps = useMemo(() => ({
+    attachment: {
+      name: attachment.name || "",
+      type: attachment.type,
+      size: attachment.size,
+      blobId: attachment.blobId,
+      emailId,
+    } satisfies AttachmentInfo,
+  }), [emailId, attachment.name, attachment.type, attachment.size, attachment.blobId]);
+  return (
+    <PluginSlot
+      name="attachment-actions"
+      className={cn("max-w-full flex-shrink-0", className)}
+      extraProps={extraProps}
+    />
   );
 }
 
