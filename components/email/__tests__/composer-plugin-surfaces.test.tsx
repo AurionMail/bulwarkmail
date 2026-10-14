@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { resetActions, setActionDispatcher, setPluginActions } from '@/lib/plugin-sandbox/actions';
 import { clearOffers, lastSlotProps, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
 import { useSettingsStore } from '@/stores/settings-store';
+import { SLOT_CATALOG } from '@/lib/plugin-slot-catalog';
 
 // Plugin surfaces of the composer: frames above and below the message text
 // (fed the draft, at most every 2 seconds), and entries in the Send and
@@ -278,6 +279,15 @@ describe('composer-above-body and composer-below-body', () => {
     const props = lastSlotProps('composer-attachment-source');
     expect(typeof props.onAttach).toBe('function');
     expect(typeof props.insertText).toBe('function');
+  });
+
+  it('put the attachment source in the plugin button row, where the catalogue says it is', () => {
+    offerSlots('p1', ['composer-attachment-source']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const frame = screen.getByTestId('slot-composer-attachment-source');
+    expect(frame.closest('[data-composer-plugin-row]')).not.toBeNull();
+    expect(SLOT_CATALOG['composer-attachment-source'].where).toMatch(/plugin button row/);
   });
 
   it('draw nothing without a plugin', () => {
