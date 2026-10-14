@@ -371,6 +371,17 @@ describe('attachment-actions', () => {
     expect(overlays.length).toBeGreaterThan(0);
     for (const overlay of overlays) expect(overlay.className).toMatch(/\bpointer-events-none\b/);
   });
+
+  it("shows the overlay's buttons to keyboard users who tab into them, not only on hover", () => {
+    viewer(withAttachment());
+    const overlays = [...document.querySelectorAll<HTMLElement>('[data-attachment-name="invoice.pdf"] div')]
+      .filter((d) => /\bopacity-0\b/.test(d.className));
+    expect(overlays.length).toBeGreaterThan(0);
+    for (const overlay of overlays) {
+      expect(overlay.className).toMatch(/\bgroup-focus-within:opacity-100\b/);
+      expect(overlay.className).toMatch(/\bgroup-focus-within:pointer-events-auto\b/);
+    }
+  });
 });
 
 describe('attachment-menu', () => {
