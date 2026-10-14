@@ -8,7 +8,7 @@
 
 import React, { useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import { useTranslations } from 'next-intl';
-import { cancelForPlugin, head, resolveDialog, resolveHead, subscribe } from '@/lib/plugin-sandbox/host-dialog';
+import { cancelForPlugin, head, overlay, resolveDialog, subscribe, type DialogRequest } from '@/lib/plugin-sandbox/host-dialog';
 import { usePluginStore } from '@/stores/plugin-store';
 import { toast } from '@/stores/toast-store';
 import { Button } from '@/components/ui/button';
@@ -30,11 +30,9 @@ function renderMessage(message?: string): React.ReactNode {
 }
 
 export function PluginDialogHost(): React.JSX.Element | null {
-  const current = useSyncExternalStore(subscribe, head, () => null);
+  const base = useSyncExternalStore(subscribe, head, () => null);
+  const top = useSyncExternalStore(subscribe, overlay, () => null);
   const t = useTranslations('plugins.dialog');
-  const titleId = useId();
-  const pluginName = usePluginStore((s) => s.plugins.find((p) => p.id === current?.pluginId)?.name);
-  const disablePlugin = usePluginStore((s) => s.disablePlugin);
 
   // Say so when a plugin was turned off for failing; otherwise it just
   // stops working with no hint why.
@@ -47,6 +45,25 @@ export function PluginDialogHost(): React.JSX.Element | null {
     window.addEventListener('plugin:auto-disabled', onDisabled);
     return () => window.removeEventListener('plugin:auto-disabled', onDisabled);
   }, [t]);
+
+  return (
+    <>
+      {base && <PluginDialogView key={base.id} current={base} layer={top ? 'below' : 'only'} />}
+      {top && <PluginDialogView key={top.id} current={top} layer="above" />}
+    </>
+  );
+}
+
+/**
+ * One plugin dialog. `below`: a custom dialog with a confirm or prompt of
+ * the same plugin open on top of it; it stays mounted but takes no keys.
+ */
+function PluginDialogView({ current, layer }: { current: DialogRequest; layer: 'only' | 'below' | 'above' }): React.JSX.Element | null {
+  const t = useTranslations('plugins.dialog');
+  const titleId = useId();
+  const pluginName = usePluginStore((s) => s.plugins.find((p) => p.id === current?.pluginId)?.name);
+  const disablePlugin = usePluginStore((s) => s.disablePlugin);
+  const resolveThis = (result: unknown) => resolveDialog(current.id, result);
 
   const isPrompt = current?.kind === 'prompt';
   const fields = useMemo(() => (isPrompt ? current?.fields ?? [] : []), [isPrompt, current]);
@@ -71,8 +88,8 @@ export function PluginDialogHost(): React.JSX.Element | null {
 
   const canSubmit = fields.every((f) => !f.required || (values[f.name] ?? '').length > 0);
 
-  const cancel = () => resolveHead(current?.kind === 'prompt' || current?.kind === 'custom' ? null : false);
-  const submitPrompt = () => { if (canSubmit) resolveHead(values); };
+  const cancel = () => resolveThis(current?.kind === 'prompt' || current?.kind === 'custom' ? null : false);
+  const submitPrompt = () => { if (canSubmit) resolveThis(values); };
   const turnOff = () => {
     if (!current) return;
     const id = current.pluginId;
@@ -81,7 +98,7 @@ export function PluginDialogHost(): React.JSX.Element | null {
   };
 
   useEffect(() => {
-    if (!current) return;
+    if (!current || layer === 'below') return;
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -92,7 +109,7 @@ export function PluginDialogHost(): React.JSX.Element | null {
         // Custom dialogs resolve only via their own onResult callback or the
         // host's X/Escape - an Enter press has no defined meaning for them.
         e.preventDefault();
-        resolveHead(true);
+        resolveThis(true);
       }
     }
     document.addEventListener('keydown', onKey, true);
@@ -111,7 +128,10 @@ export function PluginDialogHost(): React.JSX.Element | null {
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 p-4"
+      aria-hidden={layer === 'below' ? true : undefined}
+      className={layer === 'above'
+        ? 'fixed inset-0 z-[100001] flex items-center justify-center bg-black/30 p-4'
+        : 'fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 p-4'}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) cancel();
       }}
@@ -183,7 +203,7 @@ export function PluginDialogHost(): React.JSX.Element | null {
                 type="button"
                 variant={current.danger ? 'destructive' : 'default'}
                 autoFocus={current.kind === 'alert' || !current.danger}
-                onClick={() => resolveHead(true)}
+                onClick={() => resolveThis(true)}
               >
                 {confirmLabel}
               </Button>

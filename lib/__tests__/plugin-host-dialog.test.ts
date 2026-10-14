@@ -4,6 +4,7 @@ import {
   awaitCustomDialog,
   cancelForPlugin,
   head,
+  overlay,
   resolveDialog,
   resolveHead,
   resetDialogLimits,
@@ -20,6 +21,23 @@ beforeEach(() => {
 });
 
 describe('plugin dialog queue', () => {
+  it('lets a plugin ask one question on top of its own large dialog', async () => {
+    const custom = awaitCustomDialog({ pluginId: 'ai', title: 'Assistant', message: '', slot: 'plugin-dialog' });
+    const question = confirm('ai');
+    await expect(confirm('ai')).rejects.toThrow(/already has a dialog open/);
+
+    const top = overlay();
+    expect(top?.kind).toBe('confirm');
+    resolveDialog(top!.id, true);
+
+    expect(await question).toBe(true);
+    // The large dialog is still open underneath.
+    expect(head()?.kind).toBe('custom');
+    expect(overlay()).toBeNull();
+    resolveHead(null);
+    expect(await custom).toBeNull();
+  });
+
   it('lets a plugin have one dialog open at a time', async () => {
     // A plugin opening dialogs in a loop used to cover the whole app; the
     // user could not reach Settings to turn it off.

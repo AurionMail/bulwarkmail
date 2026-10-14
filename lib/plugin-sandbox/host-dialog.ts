@@ -79,7 +79,11 @@ export class DialogLimitError extends Error {}
  * covers the whole app and the user can't reach Settings to turn it off.
  */
 export function enqueueDialog(req: Omit<DialogRequest, 'id'>): { id: string } {
-  if (queue.some((d) => d.pluginId === req.pluginId)) {
+  // One dialog per plugin, except that a plugin's own large dialog (custom)
+  // may ask one confirm/alert/prompt on top of itself ("Discard changes?").
+  const open = queue.filter((d) => d.pluginId === req.pluginId);
+  const overCustom = open.length === 1 && open[0].kind === 'custom' && req.kind !== 'custom';
+  if (open.length > 0 && !overCustom) {
     throw new DialogLimitError('This plugin already has a dialog open');
   }
   const now = Date.now();
@@ -97,6 +101,17 @@ export function enqueueDialog(req: Omit<DialogRequest, 'id'>): { id: string } {
 
 export function head(): DialogRequest | null {
   return queue[0] ?? null;
+}
+
+/**
+ * A confirm/alert/prompt a plugin opened on top of its own custom dialog,
+ * when that custom dialog is the one showing. Drawn above it; the custom
+ * dialog stays open (and its iframe keeps its state) underneath.
+ */
+export function overlay(): DialogRequest | null {
+  const base = queue[0];
+  if (!base || base.kind !== 'custom') return null;
+  return queue.find((d, i) => i > 0 && d.pluginId === base.pluginId && d.kind !== 'custom') ?? null;
 }
 
 export function resolveHead(result: unknown): void {
