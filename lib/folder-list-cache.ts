@@ -14,6 +14,14 @@ export interface FolderList {
   emails: Email[];
   totalEmails: number;
   hasMoreEmails: boolean;
+  /**
+   * The Email state the rows were current at, for a plain folder list. A
+   * revisit then asks the server only what changed since (Email/changes)
+   * instead of re-reading the page, and keeps its rows when nothing did.
+   */
+  sync?: { state: string; accountId: string; mailboxId: string } | null;
+  /** Conversation sizes of the rows, which a folder switch clears. */
+  threadEmailCounts?: Map<string, number>;
 }
 
 /** Folders remembered per tab; the oldest visited is dropped first. */
@@ -55,6 +63,8 @@ export function rememberFolderList(key: string, list: FolderList, pageSize: numb
     emails: list.emails.slice(0, pageSize),
     totalEmails: list.totalEmails,
     hasMoreEmails: list.hasMoreEmails || list.emails.length > pageSize,
+    sync: list.sync ?? null,
+    threadEmailCounts: list.threadEmailCounts,
   });
   while (lists.size > MAX_FOLDERS) {
     const oldest = lists.keys().next().value;

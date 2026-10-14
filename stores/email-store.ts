@@ -19,7 +19,7 @@ import { defaultSearchScopeFor, isAllFoldersSearchScope, SEARCH_SCOPE_ALL_FOLDER
 import { useAuthStore } from "@/stores/auth-store";
 import { pathNamesMailFolder } from "@/lib/deep-links";
 import { currentStoreEpoch } from "@/lib/store-epoch";
-import { folderListKey, forgetFolderLists, rememberFolderList, rememberedFolderList } from "@/lib/folder-list-cache";
+import { folderListKey, forgetFolderLists, rememberFolderList, rememberedFolderList, type FolderList } from "@/lib/folder-list-cache";
 import { keywordPointer } from "@/lib/jmap/patch-pointer";
 import { useAccountStore } from "@/stores/account-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
@@ -664,7 +664,7 @@ function refillAfterKeywordChange(get: StoreGet, client: IJMAPClient, changed: I
   void s.refreshCurrentMailbox(client);
 }
 
-async function applyEmailDeltaNow(client: IJMAPClient, newState: string, get: StoreGet, set: StoreSet): Promise<boolean> {
+async function applyEmailDeltaNow(client: IJMAPClient, newState: string | null, get: StoreGet, set: StoreSet): Promise<boolean> {
   const s = get();
   const sync = s.emailListSync;
   if (!sync) return false;
@@ -688,8 +688,9 @@ async function applyEmailDeltaNow(client: IJMAPClient, newState: string, get: St
   const effectiveClient = resolveActionClient(client);
   if (!effectiveClient.getEmailChanges) return false;
   // The push carries the state we already hold (our own Email/set raised it,
-  // or a duplicate notification): nothing to do, and no request either.
-  if (sync.state === newState) return true;
+  // or a duplicate notification): nothing to do, and no request either. A
+  // null newState (a folder repainted from memory) only the server can judge.
+  if (newState !== null && sync.state === newState) return true;
 
   const accountArg = mailbox?.isShared ? mailbox.accountId : undefined;
   const delta = await effectiveClient.getEmailChanges(sync.state, accountArg, EMAIL_DELTA_MAX_CHANGES);
@@ -735,6 +736,15 @@ async function applyEmailDeltaNow(client: IJMAPClient, newState: string, get: St
   const replacementById = new Map(
     annotateScheduledEmails(replacements, get().scheduledSubmissionByEmailId).map((e) => [e.id, e]),
   );
+
+  // Nothing on the page changed: advance the baseline and leave the list be,
+  // rather than hand it a new array that renders the same rows again.
+  if (removed.size === 0 && replacementById.size === 0) {
+    set((state) => ({
+      emailListSync: state.emailListSync?.mailboxId === sync.mailboxId ? { ...sync, state: delta.newState } : state.emailListSync,
+    }));
+    return true;
+  }
 
   // Re-read the list: the requests above may have overlapped a user action.
   const current = get().emails;
@@ -987,6 +997,17 @@ export function resolveEmailBlobContext(
  * list - a search, a tag, a unified view, or a folder still loading.
  */
 let shownFolderList: { key: string; mailboxId: string; pageSize: number } | null = null;
+
+/** What a folder's list is remembered as (see lib/folder-list-cache). */
+function folderListState(s: EmailStore): FolderList {
+  return {
+    emails: s.emails,
+    totalEmails: s.totalEmails,
+    hasMoreEmails: s.hasMoreEmails,
+    sync: s.emailListSync,
+    threadEmailCounts: s.threadEmailCounts,
+  };
+}
 
 /** The list row beginOpenEmail put in the viewer, until its message arrives. */
 let openingRow: Email | null = null;
@@ -2610,8 +2631,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           hasMoreEmails: remembered.hasMoreEmails,
           totalEmails: remembered.totalEmails,
           listOrder: order,
-          // The remembered page has no state a push delta could start from.
-          emailListSync: null,
+          // The state the page was current at, if it was a plain folder list:
+          // a push delta, and the catch-up below, start from it.
+          emailListSync: remembered.sync?.mailboxId === targetMailboxId ? remembered.sync : null,
+          threadEmailCounts: remembered.threadEmailCounts ?? new Map(),
           threadEmailsCache: new Map(),
           expandedThreadIds: new Set(),
           isLoadingThread: null,
@@ -2621,6 +2644,19 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // Until this folder's rows are on screen, edits to the list belong to
       // whatever was showing before and must not be remembered under this key.
       shownFolderList = remembered ? { key: listKey, mailboxId: targetMailboxId, pageSize: emailsPerPage } : null;
+
+      // A remembered page with a baseline only needs what changed since
+      // (Email/changes): usually nothing, and then the rows stay as they are
+      // instead of being re-read and rendered again. Anything the delta
+      // cannot settle falls through to the full page below.
+      if (remembered && get().emailListSync && !categoryFilter) {
+        const upToDate = await applyEmailDeltaNow(client, null, get, set);
+        if (!isCurrentView()) return;
+        if (upToDate) {
+          rememberFolderList(listKey, folderListState(get()), emailsPerPage);
+          return;
+        }
+      }
 
       const result = await effectiveClient.getEmails(
         jmapMailboxId,
@@ -2660,7 +2696,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         isLoading: false
       });
       shownFolderList = { key: listKey, mailboxId: targetMailboxId, pageSize: emailsPerPage };
-      rememberFolderList(listKey, get(), emailsPerPage);
+      rememberFolderList(listKey, folderListState(get()), emailsPerPage);
       // Only a server that did not answer the chained Thread/get needs a
       // request of its own for the conversation sizes.
       if (!('threadEmailCounts' in threadCounts)) void get().fetchThreadEmailCounts(client);
@@ -6626,7 +6662,7 @@ useEmailStore.subscribe((state, prev) => {
     shownFolderList = null;
     return;
   }
-  rememberFolderList(shownFolderList.key, state, shownFolderList.pageSize);
+  rememberFolderList(shownFolderList.key, folderListState(state), shownFolderList.pageSize);
 });
 
 // ---------------------------------------------------------------------------
