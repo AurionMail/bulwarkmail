@@ -184,3 +184,26 @@ describe('plugin frame color scheme', () => {
     }
   });
 });
+
+describe('plugin frames follow the page theme', () => {
+  // The theme can change without the theme store: settings synced from the
+  // server after load, a custom theme's stylesheet. Frames must follow what
+  // the page shows, or a dark page gets light frames.
+  it('pushes the new theme to open frames when the page root turns dark', async () => {
+    const inst = createSlotInstance({
+      plugin: plugin(), slot: 'plugin-dialog', code: '', locale: 'en', tier: 'untrusted', extraProps: {},
+      hostContainer: document.body, onResize: () => {},
+    });
+    instances.push(inst);
+    expect(inst.iframe.style.colorScheme).toBe('light');
+    document.documentElement.classList.add('dark');
+    try {
+      await new Promise((r) => setTimeout(r, 50));
+      expect(inst.iframe.style.colorScheme).toBe('dark');
+    } finally {
+      document.documentElement.classList.remove('dark');
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(inst.iframe.style.colorScheme).toBe('light');
+  });
+});

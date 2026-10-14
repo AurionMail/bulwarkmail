@@ -98,6 +98,39 @@ export function forEachInstance(pluginId: string | null, fn: (instance: SandboxI
   }
 }
 
+// ─── Theme watcher ───────────────────────────────────────────
+
+// Plugin frames follow the theme the page actually shows, whichever code
+// path changed it: the theme store, settings synced from the server after
+// load, a custom theme's injected stylesheet. Watching the page itself
+// (the root's class and style, the stylesheets in <head>) catches all of
+// them; changes are batched to one update per frame.
+let themeWatcher: MutationObserver | null = null;
+let lastThemeKey = '';
+
+function pushThemeToFrames(): void {
+  const theme = snapshotHostTheme();
+  const key = JSON.stringify(theme);
+  if (key === lastThemeKey) return;
+  lastThemeKey = key;
+  for (const instance of liveInstances) {
+    if (instance.mode !== 'slot') continue;
+    try { instance.setTheme(theme); } catch { /* one broken iframe must not stop the rest */ }
+  }
+}
+
+function ensureThemeWatcher(): void {
+  if (themeWatcher || typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
+  let scheduled = false;
+  themeWatcher = new MutationObserver(() => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => { scheduled = false; pushThemeToFrames(); });
+  });
+  themeWatcher.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
+  themeWatcher.observe(document.head, { childList: true, subtree: true, characterData: true });
+}
+
 // ─── Sandbox instance ────────────────────────────────────────
 
 export class SandboxInstance {
@@ -205,6 +238,7 @@ export class SandboxInstance {
     window.addEventListener('message', this.listener);
     hostContainer.appendChild(this.iframe);
     liveInstances.add(this);
+    if (this.mode === 'slot') ensureThemeWatcher();
 
     // Send init after the iframe runtime signals it's ready.
     this.readyPromise.then(() => {
