@@ -69,7 +69,7 @@ describe('folder hooks', () => {
     emailHooks.onBeforeMailboxCreate.register('t', before);
     emailHooks.onMailboxCreate.register('t', after);
 
-    await useEmailStore.getState().createMailbox(client, 'Receipts', 'inbox');
+    expect(await useEmailStore.getState().createMailbox(client, 'Receipts', 'inbox')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ name: 'Receipts', parentId: 'inbox' });
     expect(after).toHaveBeenCalledWith({ mailboxId: 'new-1', name: 'Receipts', parentId: 'inbox' });
@@ -80,7 +80,7 @@ describe('folder hooks', () => {
     emailHooks.onBeforeMailboxCreate.register('t', () => false);
     emailHooks.onMailboxCreate.register('t', after);
 
-    await useEmailStore.getState().createMailbox(client, 'Receipts');
+    expect(await useEmailStore.getState().createMailbox(client, 'Receipts')).toBe(false);
 
     expect(client.createMailbox).not.toHaveBeenCalled();
     expect(after).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe('folder hooks', () => {
     emailHooks.onBeforeMailboxRename.register('t', before);
     emailHooks.onMailboxRename.register('t', after);
 
-    await useEmailStore.getState().renameMailbox(client, 'projects', 'Work');
+    expect(await useEmailStore.getState().renameMailbox(client, 'projects', 'Work')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ mailboxId: 'projects', name: 'Work' });
     expect(after).toHaveBeenCalledWith({ mailboxId: 'projects', name: 'Work', previousName: 'Projects' });
@@ -110,7 +110,7 @@ describe('folder hooks', () => {
   it('keeps the name when a plugin refuses a rename', async () => {
     emailHooks.onBeforeMailboxRename.register('t', () => false);
 
-    await useEmailStore.getState().renameMailbox(client, 'projects', 'Work');
+    expect(await useEmailStore.getState().renameMailbox(client, 'projects', 'Work')).toBe(false);
 
     expect(client.updateMailbox).not.toHaveBeenCalled();
     expect(useEmailStore.getState().mailboxes.find(m => m.id === 'projects')?.name).toBe('Projects');
@@ -122,7 +122,7 @@ describe('folder hooks', () => {
     emailHooks.onBeforeMailboxDelete.register('t', before);
     emailHooks.onMailboxDelete.register('t', after);
 
-    await useEmailStore.getState().deleteMailbox(client, 'projects');
+    expect(await useEmailStore.getState().deleteMailbox(client, 'projects')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ mailboxId: 'projects', name: 'Projects' });
     expect(after).toHaveBeenCalledWith({ mailboxId: 'projects', name: 'Projects' });
@@ -131,7 +131,7 @@ describe('folder hooks', () => {
   it('keeps a folder a plugin refuses to delete', async () => {
     emailHooks.onBeforeMailboxDelete.register('t', () => false);
 
-    await useEmailStore.getState().deleteMailbox(client, 'projects');
+    expect(await useEmailStore.getState().deleteMailbox(client, 'projects')).toBe(false);
 
     expect(client.deleteMailbox).not.toHaveBeenCalled();
     expect(useEmailStore.getState().mailboxes.some(m => m.id === 'projects')).toBe(true);
@@ -143,7 +143,7 @@ describe('folder hooks', () => {
     emailHooks.onBeforeMailboxEmpty.register('t', before);
     emailHooks.onMailboxEmpty.register('t', after);
 
-    await useEmailStore.getState().emptyMailbox(client, 'junk');
+    expect(await useEmailStore.getState().emptyMailbox(client, 'junk')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ mailboxId: 'junk', role: 'junk' });
     expect(after).toHaveBeenCalledWith({ mailboxId: 'junk', role: 'junk', count: 7 });
@@ -154,7 +154,7 @@ describe('folder hooks', () => {
     emailHooks.onBeforeMailboxEmpty.register('t', () => false);
     emailHooks.onMailboxEmpty.register('t', after);
 
-    await useEmailStore.getState().emptyMailbox(client, 'junk');
+    expect(await useEmailStore.getState().emptyMailbox(client, 'junk')).toBe(false);
 
     expect(client.emptyMailbox).not.toHaveBeenCalled();
     expect(useEmailStore.getState().mailboxes.find(m => m.id === 'junk')?.totalEmails).toBe(7);

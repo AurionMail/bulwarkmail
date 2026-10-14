@@ -455,8 +455,7 @@ export function EmailList({
     setIsProcessing(true);
     try {
       const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
-      await batchUndoSpam(client, emailIds);
-      toast.success(tSpam('toast_not_spam_batch', { count: emailIds.length }));
+      if (await batchUndoSpam(client, emailIds)) toast.success(tSpam('toast_not_spam_batch', { count: emailIds.length }));
     } catch {
       toast.error(tSpam('error_not_spam'));
     } finally {
@@ -947,8 +946,7 @@ export function EmailList({
             if (client) {
               const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
               try {
-                await batchMarkAsSpam(client, emailIds);
-                toast.success(
+                if (await batchMarkAsSpam(client, emailIds)) toast.success(
                   tSpam('toast_batch', { count: emailIds.length })
                 );
               } catch {
@@ -960,8 +958,7 @@ export function EmailList({
             if (client) {
               const emailIds = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
               try {
-                await batchUndoSpam(client, emailIds);
-                toast.success(
+                if (await batchUndoSpam(client, emailIds)) toast.success(
                   tSpam('toast_not_spam_batch', { count: emailIds.length })
                 );
               } catch {

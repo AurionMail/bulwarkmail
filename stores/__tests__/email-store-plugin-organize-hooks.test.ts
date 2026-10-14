@@ -113,7 +113,7 @@ describe('delete hooks', () => {
     emailHooks.onBeforeEmailDelete.register('t', before);
     emailHooks.onAfterEmailDelete.register('t', after);
 
-    await useEmailStore.getState().deleteEmail(client, 'e1');
+    expect(await useEmailStore.getState().deleteEmail(client, 'e1')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ emailIds: ['e1'], permanent: false });
     expect(order).toEqual(['before', 'server']);
@@ -126,7 +126,7 @@ describe('delete hooks', () => {
     const after = vi.fn();
     emailHooks.onAfterEmailDelete.register('t', after);
 
-    await useEmailStore.getState().deleteEmail(client, 'e1', true);
+    expect(await useEmailStore.getState().deleteEmail(client, 'e1', true)).toBe(true);
 
     expect(client.deleteEmail).toHaveBeenCalled();
     expect(after).toHaveBeenCalledWith({ emailIds: ['e1'], permanent: true });
@@ -138,7 +138,7 @@ describe('delete hooks', () => {
     emailHooks.onBeforeEmailDelete.register('t', () => false);
     emailHooks.onAfterEmailDelete.register('t', after);
 
-    await useEmailStore.getState().deleteEmail(client, 'e1');
+    expect(await useEmailStore.getState().deleteEmail(client, 'e1')).toBe(false);
 
     expect(client.moveToTrash).not.toHaveBeenCalled();
     expect(useEmailStore.getState().emails.map(e => e.id)).toEqual(['e1']);
@@ -182,7 +182,7 @@ describe('move and archive hooks', () => {
     emailHooks.onAfterEmailMove.register('t', after);
     emailHooks.onEmailArchive.register('t', archived);
 
-    await useEmailStore.getState().moveToMailbox(client, 'e1', 'custom');
+    expect(await useEmailStore.getState().moveToMailbox(client, 'e1', 'custom')).toBe(true);
 
     const payload = { emailIds: ['e1'], fromMailboxId: 'inbox', toMailboxId: 'custom' };
     expect(before).toHaveBeenCalledWith(payload);
@@ -197,7 +197,7 @@ describe('move and archive hooks', () => {
     emailHooks.onBeforeEmailMove.register('t', () => false);
     emailHooks.onAfterEmailMove.register('t', after);
 
-    await useEmailStore.getState().moveToMailbox(client, 'e1', 'custom');
+    expect(await useEmailStore.getState().moveToMailbox(client, 'e1', 'custom')).toBe(false);
 
     expect(client.moveEmail).not.toHaveBeenCalled();
     expect(useEmailStore.getState().emails).toHaveLength(1);
@@ -219,7 +219,7 @@ describe('move and archive hooks', () => {
     openFolder('inbox', [makeEmail('e1')]);
     emailHooks.onBeforeEmailArchive.register('t', () => false);
 
-    await useEmailStore.getState().moveToMailbox(client, 'e1', 'archive');
+    expect(await useEmailStore.getState().moveToMailbox(client, 'e1', 'archive')).toBe(false);
 
     expect(client.moveEmail).not.toHaveBeenCalled();
   });
@@ -247,7 +247,7 @@ describe('move and archive hooks', () => {
     emailHooks.onBeforeEmailArchive.register('t', before);
     emailHooks.onEmailArchive.register('t', archived);
 
-    await useEmailStore.getState().batchArchive(client);
+    expect(await useEmailStore.getState().batchArchive(client)).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ emailIds: ['a', 'b'] });
     expect(archived).toHaveBeenCalledTimes(1);
@@ -262,7 +262,7 @@ describe('move and archive hooks', () => {
     const after = vi.fn();
     emailHooks.onAfterEmailMove.register('t', after);
 
-    await useEmailStore.getState().batchMoveToMailbox(client, 'custom');
+    expect(await useEmailStore.getState().batchMoveToMailbox(client, 'custom')).toBe(false);
 
     expect(after).not.toHaveBeenCalled();
   });
@@ -276,7 +276,7 @@ describe('spam hooks', () => {
     emailHooks.onBeforeEmailSpamToggle.register('t', before);
     emailHooks.onEmailSpamToggle.register('t', after);
 
-    await useEmailStore.getState().markAsSpam(client, 'e1');
+    expect(await useEmailStore.getState().markAsSpam(client, 'e1')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ emailIds: ['e1'], spam: true });
     expect(after).toHaveBeenCalledWith({ emailIds: ['e1'], spam: true });
@@ -286,7 +286,7 @@ describe('spam hooks', () => {
     openFolder('inbox', [makeEmail('e1')]);
     emailHooks.onBeforeEmailSpamToggle.register('t', () => false);
 
-    await useEmailStore.getState().markAsSpam(client, 'e1');
+    expect(await useEmailStore.getState().markAsSpam(client, 'e1')).toBe(false);
 
     expect(client.markAsSpam).not.toHaveBeenCalled();
     expect(useEmailStore.getState().emails).toHaveLength(1);
@@ -299,7 +299,7 @@ describe('spam hooks', () => {
     const after = vi.fn();
     emailHooks.onEmailSpamToggle.register('t', after);
 
-    await useEmailStore.getState().batchUndoSpam(client, ['a', 'b']);
+    expect(await useEmailStore.getState().batchUndoSpam(client, ['a', 'b'])).toBe(true);
 
     expect(after).toHaveBeenCalledWith({ emailIds: ['a', 'b'], spam: false });
   });
@@ -313,7 +313,7 @@ describe('read, star and keyword hooks', () => {
     emailHooks.onBeforeEmailReadStateChange.register('t', before);
     emailHooks.onEmailReadStateChange.register('t', after);
 
-    await useEmailStore.getState().markAsRead(client, 'e1', true);
+    expect(await useEmailStore.getState().markAsRead(client, 'e1', true)).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ emailIds: ['e1'], read: true });
     expect(after).toHaveBeenCalledWith({ emailIds: ['e1'], read: true });
@@ -323,7 +323,7 @@ describe('read, star and keyword hooks', () => {
     openFolder('inbox', [makeEmail('e1', { keywords: {} })]);
     emailHooks.onBeforeEmailReadStateChange.register('t', () => false);
 
-    await useEmailStore.getState().markAsRead(client, 'e1', true);
+    expect(await useEmailStore.getState().markAsRead(client, 'e1', true)).toBe(false);
 
     expect(client.markAsRead).not.toHaveBeenCalled();
     expect(useEmailStore.getState().emails[0].keywords.$seen).toBeUndefined();
@@ -350,7 +350,7 @@ describe('read, star and keyword hooks', () => {
     emailHooks.onBeforeEmailStarToggle.register('t', before);
     emailHooks.onEmailStarToggle.register('t', after);
 
-    await useEmailStore.getState().toggleStar(client, 'e1');
+    expect(await useEmailStore.getState().toggleStar(client, 'e1')).toBe(true);
 
     expect(before).toHaveBeenCalledWith({ emailIds: ['e1'], starred: true });
     expect(after).toHaveBeenCalledWith({ emailIds: ['e1'], starred: true });
@@ -360,7 +360,7 @@ describe('read, star and keyword hooks', () => {
     openFolder('inbox', [makeEmail('e1')]);
     emailHooks.onBeforeEmailStarToggle.register('t', () => false);
 
-    await useEmailStore.getState().toggleStar(client, 'e1');
+    expect(await useEmailStore.getState().toggleStar(client, 'e1')).toBe(false);
 
     expect(client.toggleStar).not.toHaveBeenCalled();
   });
@@ -372,7 +372,7 @@ describe('read, star and keyword hooks', () => {
     emailHooks.onBeforeEmailKeywordChange.register('t', before);
     emailHooks.onEmailKeywordChange.register('t', after);
 
-    await useEmailStore.getState().setEmailKeywords(client, 'e1', { $seen: true, '$label:new': true });
+    expect(await useEmailStore.getState().setEmailKeywords(client, 'e1', { $seen: true, '$label:new': true })).toBe(true);
 
     const payload = { emailIds: ['e1'], added: ['$label:new'], removed: ['$label:old'] };
     expect(before).toHaveBeenCalledWith(payload);
@@ -386,7 +386,7 @@ describe('read, star and keyword hooks', () => {
     emailHooks.onBeforeEmailKeywordChange.register('t', () => false);
     emailHooks.onEmailKeywordChange.register('t', after);
 
-    await useEmailStore.getState().patchEmailKeywords(client, 'e1', { '$label:x': true });
+    expect(await useEmailStore.getState().patchEmailKeywords(client, 'e1', { '$label:x': true })).toBe(false);
 
     expect(client.batchUpdateKeywords).not.toHaveBeenCalled();
     expect(after).not.toHaveBeenCalled();

@@ -236,8 +236,8 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
   const handleDelete = useCallback(async () => {
     if (!client || !email) return;
     try {
-      await deleteEmail(client, email.id);
-      onClose();
+      // false: not deleted (a plugin stopped it), so the tab stays open.
+      if (await deleteEmail(client, email.id)) onClose();
     } catch (err) {
       console.error('Delete failed:', err);
       toast.error(tNotifications('error_deleting'));
@@ -249,7 +249,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
     const archiveMb = mailboxes.find((m) => m.role === 'archive');
     if (!archiveMb) return;
     try {
-      await moveToMailbox(client, email.id, archiveMb.id);
+      if (!(await moveToMailbox(client, email.id, archiveMb.id))) return;
       toast.success(tNotifications('email_archived'));
       onClose();
     } catch (err) {
@@ -260,7 +260,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
   const handleToggleStar = useCallback(async () => {
     if (!client || !email) return;
     try {
-      await toggleStar(client, email.id);
+      if (!(await toggleStar(client, email.id))) return;
       // Reflect locally - the viewer re-reads from email-store's selectedEmail
       // shape only for the mail tab; here we update our local copy too.
       setEmail((prev) => prev ? {
@@ -278,7 +278,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
   const handleMarkAsRead = useCallback(async (emailIdToMark: string, read: boolean) => {
     if (!client) return;
     try {
-      await markAsRead(client, emailIdToMark, read);
+      if (!(await markAsRead(client, emailIdToMark, read))) return;
       setEmail((prev) => prev && prev.id === emailIdToMark ? {
         ...prev,
         keywords: { ...prev.keywords, $seen: read },
@@ -317,8 +317,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
   const handleMoveToMailbox = useCallback(async (mailboxId: string) => {
     if (!client || !email) return;
     try {
-      await moveToMailbox(client, email.id, mailboxId);
-      onClose();
+      if (await moveToMailbox(client, email.id, mailboxId)) onClose();
     } catch (err) {
       console.error('Move failed:', err);
     }

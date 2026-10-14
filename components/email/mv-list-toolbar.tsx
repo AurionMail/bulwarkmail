@@ -351,11 +351,9 @@ export function MvListToolbar({
       const ids = resolveSelectedEmails(useEmailStore.getState()).map((email) => email.id);
       try {
         if (isInJunk) {
-          await batchUndoSpam(client, ids);
-          toast.success(tSpam("toast_not_spam_batch", { count: ids.length }));
+          if (await batchUndoSpam(client, ids)) toast.success(tSpam("toast_not_spam_batch", { count: ids.length }));
         } else {
-          await batchMarkAsSpam(client, ids);
-          toast.success(tSpam("toast_batch", { count: ids.length }));
+          if (await batchMarkAsSpam(client, ids)) toast.success(tSpam("toast_batch", { count: ids.length }));
         }
       } catch {
         toast.error(isInJunk ? tSpam("error_not_spam") : tSpam("error"));

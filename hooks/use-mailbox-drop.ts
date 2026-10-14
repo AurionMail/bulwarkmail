@@ -167,6 +167,7 @@ export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: 
         sourceAccountIds.some((src) => src !== destAccountId);
       const isCrossAccount = isJmapCrossAccount || isLocalCrossAccount;
 
+      let moved: boolean;
       if (isCrossAccount) {
         if (!destAccountId) {
           throw new Error('Could not resolve destination account');
@@ -180,10 +181,16 @@ export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: 
         // through the viewing user's client, but the email/blob live in the
         // owner's JMAP account, so the copy/delete must target it.
         const sourceJmapOverride = sourceMb?.isShared ? sourceMb.accountId : undefined;
-        await crossAccountMoveEmails(bySource, destAccountId, jmapDestId, destJmapOverride, sourceJmapOverride);
+        moved = await crossAccountMoveEmails(bySource, destAccountId, jmapDestId, destJmapOverride, sourceJmapOverride);
       } else {
         // Single-account or same-account-shared move: bulk JMAP request.
-        await moveEmailsToMailbox(client, emailIds, mailbox.id);
+        moved = await moveEmailsToMailbox(client, emailIds, mailbox.id);
+      }
+      // Nothing moved: a plugin stopped it (and said why), so no drop
+      // event and no "moved" message.
+      if (!moved) {
+        onDropComplete?.();
+        return;
       }
       void dragDropHooks.onEmailDrop.emit({ emailIds, targetMailboxId: mailbox.id });
 

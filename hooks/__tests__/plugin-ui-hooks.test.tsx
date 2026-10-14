@@ -78,9 +78,9 @@ describe('drag and drop hooks', () => {
     useAuthStore.setState({ client: {} as never });
     useEmailStore.setState({
       emails: [EMAIL], mailboxes: [], selectedEmailKeys: new Set(),
-      moveEmailsToMailbox: vi.fn().mockResolvedValue(undefined),
+      moveEmailsToMailbox: vi.fn().mockResolvedValue(true),
       refreshCurrentMailbox: vi.fn().mockResolvedValue(undefined),
-      setEmailKeywords: vi.fn().mockResolvedValue(undefined),
+      setEmailKeywords: vi.fn().mockResolvedValue(true),
       fetchEmails: vi.fn().mockResolvedValue(undefined),
       fetchTagCounts: vi.fn(),
       clearSelection: vi.fn(),
@@ -105,6 +105,23 @@ describe('drag and drop hooks', () => {
     expect(ended.mock.calls).toEqual([[{ kind: 'email', ids: ['m1'], dropped: true }]]);
   });
 
+  it('says nothing moved when a plugin stops the move', async () => {
+    useEmailStore.setState({ moveEmailsToMailbox: vi.fn().mockResolvedValue(false) } as never);
+    const dropped = listen(dragDropHooks.onEmailDrop);
+    const onSuccess = vi.fn();
+    const target = { id: 'archive', myRights: { mayAddItems: true } } as unknown as Mailbox;
+    const { result } = renderHook(
+      () => ({ ctx: useDragDropContext(), drop: useMailboxDrop({ mailbox: target, onSuccess }) }),
+      { wrapper },
+    );
+
+    act(() => { result.current.ctx.startDrag([EMAIL], 'inbox'); });
+    await act(async () => { await result.current.drop.dropHandlers.onDrop(dropEvent(['m1'])); });
+
+    expect(dropped).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
   it('reports a drag that ended without a drop', () => {
     const ended = listen(dragDropHooks.onDragEnd);
     const { result } = renderHook(() => useDragDropContext(), { wrapper });
@@ -127,6 +144,22 @@ describe('drag and drop hooks', () => {
     await act(async () => { await result.current.drop.dropHandlers.onDrop(dropEvent(['m1'])); });
 
     expect(tagged).toHaveBeenCalledWith({ emailIds: ['m1'], keyword: '$label:work' });
+  });
+
+  it('says nothing was tagged when a plugin stops it', async () => {
+    useEmailStore.setState({ setEmailKeywords: vi.fn().mockResolvedValue(false) } as never);
+    const tagged = listen(dragDropHooks.onTagDrop);
+    const onSuccess = vi.fn();
+    const { result } = renderHook(
+      () => ({ ctx: useDragDropContext(), drop: useTagDrop({ tagId: 'work', onSuccess }) }),
+      { wrapper },
+    );
+
+    act(() => { result.current.ctx.startDrag([EMAIL], 'inbox'); });
+    await act(async () => { await result.current.drop.dropHandlers.onDrop(dropEvent(['m1'])); });
+
+    expect(tagged).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 });
 

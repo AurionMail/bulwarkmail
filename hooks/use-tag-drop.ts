@@ -74,22 +74,29 @@ export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): Us
       const emailIds: string[] = JSON.parse(emailIdsJson);
       markDropped();
 
+      // Emails that carry the tag afterwards; a plugin may stop some or all.
+      const tagged: string[] = [];
       for (const emailId of emailIds) {
         // Read fresh state to avoid stale closures
         const emailState = useEmailStore.getState();
         const email = emailState.emails.find(em => em.id === emailId);
         const keywords = { ...(email?.keywords || {}) };
 
+        if (keywords[`$label:${tagId}`]) {
+          tagged.push(emailId);
+          continue;
+        }
         // Add the tag without removing existing ones
         keywords[`$label:${tagId}`] = true;
 
         // Routes the write to the email's own account - the email's source in an
         // aggregate view, the selected folder's owner when a shared folder is
         // open directly. (#281)
-        await emailState.setEmailKeywords(client, emailId, keywords);
+        if (await emailState.setEmailKeywords(client, emailId, keywords)) tagged.push(emailId);
       }
+      if (tagged.length === 0) return;
 
-      void dragDropHooks.onTagDrop.emit({ emailIds, keyword: `$label:${tagId}` });
+      void dragDropHooks.onTagDrop.emit({ emailIds: tagged, keyword: `$label:${tagId}` });
 
       // Refresh the email list
       await fetchEmails(client, selectedMailbox);
@@ -97,7 +104,7 @@ export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): Us
       // Refresh tag counts
       fetchTagCounts(client);
 
-      onSuccess?.(emailIds.length, tagId);
+      onSuccess?.(tagged.length, tagId);
     } catch (error) {
       console.error("Failed to tag emails:", error);
       onError?.(error instanceof Error ? error.message : "Unknown error");

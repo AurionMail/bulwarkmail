@@ -813,11 +813,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         const ids = resolveSelectedEmails(useEmailStore.getState()).map(e => e.id);
         try {
           if (isInJunk) {
-            await batchUndoSpam(client, ids);
-            toast.success(t('email_viewer.spam.toast_not_spam_batch', { count: ids.length }));
+            if (await batchUndoSpam(client, ids)) toast.success(t('email_viewer.spam.toast_not_spam_batch', { count: ids.length }));
           } else {
-            await batchMarkAsSpam(client, ids);
-            toast.success(t('email_viewer.spam.toast_batch', { count: ids.length }));
+            if (await batchMarkAsSpam(client, ids)) toast.success(t('email_viewer.spam.toast_batch', { count: ids.length }));
           }
         } catch (error) {
           console.error("Failed to batch toggle spam:", error);
@@ -2443,8 +2441,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (!confirmed) return;
 
       try {
-        await deleteEmail(client, emailToDelete.id, true);
-        toast.success(t('notifications.email_deleted'));
+        // false: a plugin stopped it and said why, so no "deleted" here.
+        if (await deleteEmail(client, emailToDelete.id, true)) toast.success(t('notifications.email_deleted'));
       } catch (error) {
         console.error("Failed to permanently delete email:", error);
         toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
@@ -2466,8 +2464,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         });
       if (trashMailbox) {
         try {
-          await moveToMailbox(client, emailToDelete.id, trashMailbox.id);
-          toast.success(t('notifications.email_deleted'));
+          if (await moveToMailbox(client, emailToDelete.id, trashMailbox.id)) toast.success(t('notifications.email_deleted'));
         } catch (error) {
           console.error("Failed to move email to trash:", error);
           toast.error(error instanceof Error ? error.message : 'Failed to move email to trash');
@@ -2523,8 +2520,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         },
       });
 
+      let archived: boolean;
       if (archiveMode === 'single') {
-        await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id);
+        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id);
       } else {
         const emailDate = new Date(emailToArchive.receivedAt);
         const year = emailDate.getFullYear().toString();
@@ -2540,7 +2538,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         }
 
         if (archiveMode === 'year') {
-          await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id);
+          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id);
         } else {
           const yearId = yearMailbox.originalId || yearMailbox.id;
           const afterYear = readMailboxes();
@@ -2551,9 +2549,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             monthMailbox = await archiveClient.createMailbox(month, yearId, archiveAccountId);
             await refreshMailboxes();
           }
-          await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id);
+          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id);
         }
       }
+      if (!archived) return;
 
       if (conversationThread && conversationThread.threadKey === threadKeyFor(emailToArchive)) {
         setConversationThread(null);
@@ -2578,7 +2577,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       .find(list => list.some(m => m.id === mailboxId));
     const destination = destinationList?.find(m => m.id === mailboxId);
     try {
-      await moveToMailboxCrossAware(client, emailId, mailboxId);
+      if (!(await moveToMailboxCrossAware(client, emailId, mailboxId))) return;
       toast.success(
         t('notifications.email_moved'),
         destination && destinationList
@@ -2608,15 +2607,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const emailId = emailToMark.id;
 
     try {
-      await markAsSpam(client, emailId);
+      if (!(await markAsSpam(client, emailId))) return;
 
       toast.success(t('email_viewer.spam.toast_success'), {
         action: {
           label: t('email_viewer.spam.toast_undo'),
           onClick: async () => {
             try {
-              await undoSpam(client, emailId);
-              toast.success(t('notifications.email_moved'));
+              if (await undoSpam(client, emailId)) toast.success(t('notifications.email_moved'));
             } catch (_error) {
               console.error("Failed to undo spam:", _error);
               toast.error(t('email_viewer.spam.error'));
@@ -2635,7 +2633,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || !emailToRestore) return;
 
     try {
-      await undoSpam(client, emailToRestore.id);
+      if (!(await undoSpam(client, emailToRestore.id))) return;
 
       toast.success(t('email_viewer.spam.toast_not_spam_success'));
     } catch (_error) {
@@ -3060,8 +3058,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!confirmed) return;
 
     try {
-      await emptyMailbox(client, mailboxId);
-      toast.success(tCtxMenu('mailbox_context_menu.toast_emptied'));
+      if (await emptyMailbox(client, mailboxId)) toast.success(tCtxMenu('mailbox_context_menu.toast_emptied'));
     } catch {
       toast.error(tCtxMenu('mailbox_context_menu.toast_error_empty'));
     }
@@ -3077,8 +3074,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     });
     if (!name) return;
     try {
-      await createMailbox(client, name, parentId);
-      toast.success(tCtxMenu('mailbox_context_menu.toast_folder_created'));
+      if (await createMailbox(client, name, parentId)) toast.success(tCtxMenu('mailbox_context_menu.toast_folder_created'));
     } catch {
       toast.error(tCtxMenu('mailbox_context_menu.toast_error_create'));
     }
@@ -3094,8 +3090,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     });
     if (!name) return;
     try {
-      await createMailbox(client, name, undefined, accountId);
-      toast.success(tCtxMenu('mailbox_context_menu.toast_folder_created'));
+      if (await createMailbox(client, name, undefined, accountId)) toast.success(tCtxMenu('mailbox_context_menu.toast_folder_created'));
     } catch {
       toast.error(tCtxMenu('mailbox_context_menu.toast_error_create'));
     }
@@ -3114,8 +3109,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     });
     if (!name || name === mailbox.name) return;
     try {
-      await renameMailbox(client, mailboxId, name);
-      toast.success(tCtxMenu('mailbox_context_menu.toast_folder_renamed'));
+      if (await renameMailbox(client, mailboxId, name)) toast.success(tCtxMenu('mailbox_context_menu.toast_folder_renamed'));
     } catch {
       toast.error(tCtxMenu('mailbox_context_menu.toast_error_rename'));
     }
@@ -3145,8 +3139,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!confirmed) return;
 
     try {
-      await deleteMailbox(client, mailboxId);
-      toast.success(tCtxMenu('mailbox_context_menu.toast_folder_deleted'));
+      if (await deleteMailbox(client, mailboxId)) toast.success(tCtxMenu('mailbox_context_menu.toast_folder_deleted'));
     } catch (err: unknown) {
       const jmapType = (err as Error & { jmapType?: string })?.jmapType;
       if (jmapType === 'mailboxHasChild') {
@@ -3163,8 +3156,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         });
         if (!withContents) return;
         try {
-          await deleteMailbox(client, mailboxId, { removeEmails: true });
-          toast.success(tCtxMenu('mailbox_context_menu.toast_folder_deleted'));
+          if (await deleteMailbox(client, mailboxId, { removeEmails: true })) toast.success(tCtxMenu('mailbox_context_menu.toast_folder_deleted'));
         } catch {
           toast.error(tCtxMenu('mailbox_context_menu.toast_error_delete'));
         }
@@ -3685,6 +3677,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     try {
       if (useEmailStore.getState().emails.some((e) => e.id === target.id)) {
         await markAsRead(client, target.id, true);
+        // Still unread: a plugin stopped it, so the copy here stays unread too.
+        if (!useEmailStore.getState().emails.find((e) => e.id === target.id)?.keywords?.$seen) return;
       } else {
         // Not in the store's list, so the store action can't ask plugins.
         if (emailHooks.onBeforeEmailReadStateChange.size > 0
@@ -4907,6 +4901,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onMarkAsRead={async (emailId, read) => {
                       if (client) {
                         await markAsRead(client, emailId, read);
+                        const nowRead = !!useEmailStore.getState().emails.find((e) => e.id === emailId)?.keywords?.$seen;
+                        if (nowRead !== read) return; // a plugin stopped it
                         // Marking the open message unread returns to the list
                         // (Gmail-style, gated on returnToListAfterAction). Staying
                         // in the reading pane would just re-mark it read on view.

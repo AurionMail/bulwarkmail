@@ -7,6 +7,7 @@ import type { ToastAction } from '@/components/ui/toast';
 import { useAuthStore } from '@/stores/auth-store';
 import { useEmailStore, type BatchActionTarget } from '@/stores/email-store';
 import { useFilterStore } from '@/stores/filter-store';
+import { emailHooks } from '@/lib/plugin-hooks';
 import { useQuickRuleStore, type NewFolderRequest, type QuickRuleEditor } from '@/stores/quick-rule-store';
 import {
   FiltersChangedError,
@@ -127,7 +128,11 @@ async function planSafely(target: QuickRuleTarget, rule: FilterRule, sourceMailb
  * counters update as they do for a manual move. Keyword and copy steps have
  * no batch action; they go to the server directly and patch loaded rows.
  */
-export async function executePlan(target: QuickRuleTarget, plan: RetroPlan): Promise<void> {
+/**
+ * Carry out the plan's steps in order. Returns false when a plugin stopped a
+ * step (it tells the user why); the steps after it don't run.
+ */
+export async function executePlan(target: QuickRuleTarget, plan: RetroPlan): Promise<boolean> {
   const store = () => useEmailStore.getState();
   const viewClient = useAuthStore.getState().client ?? target.client;
   const batch = (ids: string[]): BatchActionTarget => ({ emailIds: ids, client: target.client, accountId: target.accountId });
@@ -139,16 +144,27 @@ export async function executePlan(target: QuickRuleTarget, plan: RetroPlan): Pro
   for (const step of plan.steps) {
     switch (step.kind) {
       case 'mark_read':
-        await store().batchMarkAsRead(viewClient, true, batch(step.ids));
+        if (!(await store().batchMarkAsRead(viewClient, true, batch(step.ids)))) {
+          check();
+          return false;
+        }
         check();
         break;
       case 'keyword': {
+        // A direct server write, so it asks plugins itself like the store's
+        // keyword actions do.
+        const change = { emailIds: step.ids, added: [step.keyword], removed: [] };
+        if (emailHooks.onBeforeEmailKeywordChange.size > 0
+          && !(await emailHooks.onBeforeEmailKeywordChange.intercept(change))) {
+          return false;
+        }
         await target.client.batchUpdateKeywords(step.ids, { [keywordPointer(step.keyword)]: true }, target.accountId);
         const listed = new Map(store().emails.map(e => [e.id, e]));
         for (const id of step.ids) {
           const email = listed.get(id);
           if (email) store().setEmailKeywordsLocal(id, { ...email.keywords, [step.keyword]: true });
         }
+        void emailHooks.onEmailKeywordChange.emit(change);
         break;
       }
       case 'copy':
@@ -157,21 +173,28 @@ export async function executePlan(target: QuickRuleTarget, plan: RetroPlan): Pro
         );
         break;
       case 'move':
-        await store().batchMoveToMailbox(viewClient, step.mailboxId, batch(step.ids));
+        if (!(await store().batchMoveToMailbox(viewClient, step.mailboxId, batch(step.ids)))) {
+          check();
+          return false;
+        }
         check();
         break;
     }
   }
+  return true;
 }
 
-/** Run `rule` over the mail already in the folder; returns how many messages changed. */
+/**
+ * Run `rule` over the mail already in the folder; returns how many messages
+ * changed, or null when a plugin stopped it.
+ */
 export async function applyRuleToExisting(
   target: QuickRuleTarget,
   rule: FilterRule,
   sourceMailboxId: string | null,
-): Promise<number> {
+): Promise<number | null> {
   const plan = await planOnServer(target, rule, sourceMailboxId);
-  await executePlan(target, plan);
+  if (!(await executePlan(target, plan))) return null;
   return plan.ids.length;
 }
 
@@ -183,7 +206,7 @@ async function applyAndReport(
 ): Promise<void> {
   try {
     const count = await applyRuleToExisting(target, rule, sourceMailboxId);
-    toast.success(text.notifications('rule_applied', { count }));
+    if (count !== null) toast.success(text.notifications('rule_applied', { count }));
   } catch (error) {
     toast.error(text.notifications('rule_apply_failed'), error instanceof Error ? error.message : undefined);
   }
@@ -205,7 +228,7 @@ export async function runRuleOnFolder(
   try {
     const count = await applyRuleToExisting(target, rule, mailboxId);
     toast.dismiss(progressId);
-    toast.success(text.notifications('rule_applied', { count }), { message: rule.name });
+    if (count !== null) toast.success(text.notifications('rule_applied', { count }), { message: rule.name });
   } catch (error) {
     toast.dismiss(progressId);
     toast.error(text.notifications('rule_apply_failed'), error instanceof Error ? error.message : undefined);
