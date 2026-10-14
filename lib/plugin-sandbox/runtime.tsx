@@ -725,6 +725,14 @@ function buildPluginApi(manifest: PluginManifest) {
       /** Rebuild + re-upload the active script, running onSieveScriptGenerate. */
       regenerate: () => callApi('sieve.regenerate', []) as Promise<void>,
     },
+    /**
+     * The admin's settings for this plugin (configSchema) that aren't secrets,
+     * e.g. a server address. No permission needed; `type: "secret"` fields
+     * are never included. Use credentials for secrets.
+     */
+    config: {
+      get: () => callApi('plugin.getConfig', []) as Promise<Record<string, unknown>>,
+    },
     admin: {
       getConfig: (key: string) => callApi('admin.getConfig', [key]),
       getAllConfig: () => callApi('admin.getAllConfig', []),

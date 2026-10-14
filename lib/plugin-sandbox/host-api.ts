@@ -150,6 +150,9 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'admin.getAllConfig': 'admin:config',
   'admin.setConfig': 'admin:config',
   'admin.deleteConfig': 'admin:config',
+  // The admin's non-secret settings for the calling plugin (a server
+  // address, a switch). Secrets stay on the server.
+  'plugin.getConfig': null,
   // ui - any plugin can ask the host to render a modal or open a URL.
   'ui.confirm': null,
   'ui.alert': null,
@@ -1585,6 +1588,12 @@ async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
   if (!res.ok) return {};
   return res.json();
 }
+/** The admin's settings for this plugin that aren't secrets (any user may read them). */
+async function publicConfig(pluginId: string): Promise<Record<string, unknown>> {
+  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config?public=1`);
+  if (!res.ok) return {};
+  return res.json();
+}
 async function adminGet(pluginId: string, key: string): Promise<unknown> {
   const all = await adminGetAll(pluginId);
   return all[key] ?? null;
@@ -1764,6 +1773,7 @@ export async function dispatchApiCall(
 
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);
     case 'admin.getAllConfig': return adminGetAll(plugin.id);
+    case 'plugin.getConfig':   return publicConfig(plugin.id);
     case 'admin.setConfig':    await adminSet(plugin.id, args[0] as string, args[1]); return undefined;
     case 'admin.deleteConfig': await adminDelete(plugin.id, args[0] as string); return undefined;
 
