@@ -3,7 +3,11 @@
 // structured-cloneable data back to the iframe.
 
 import type { InstalledPlugin, Permission } from '../plugin-types';
-import { pluginHasPermission } from './permissions';
+import { mayOfferSlot, pluginHasPermission } from './permissions';
+import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, type StreamSink } from './proxy-client';
+import { checkActions, isActionSurface, setPluginActions } from './actions';
+import { checkDayLabels, setDayLabels } from './day-labels';
+import { checkPages, setPluginPages } from './pages';
 import { toast as appToast } from '@/stores/toast-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
@@ -169,6 +173,17 @@ const PERM_PER_METHOD: Record<string, Permission | null> = {
   // redirect URI the provider sends the user back to.
   'oauth.createState': 'http:fetch',
   'oauth.getRedirectUri': 'http:fetch',
+  // Requests with a credential, through the server (lib/plugin-secrets).
+  'proxy.fetch': 'http:proxy',
+  'proxy.cancel': 'http:proxy',
+  'proxy.connect': 'http:proxy',
+  'proxy.accounts': 'http:proxy',
+  'proxy.disconnect': 'http:proxy',
+  // Buttons and menu entries drawn by the host; the surface's own
+  // permission is checked per call (see the slot catalogue).
+  'ui.setActions': null,
+  'ui.setDayLabels': 'ui:calendar-action',
+  'ui.setPages': 'ui:app-page',
   // sieve (delivery-time classification)
   'sieve.isSupported': 'filters:read',
   'sieve.getActiveScript': 'filters:read',
@@ -1576,7 +1591,7 @@ export async function dispatchApiCall(
   plugin: InstalledPlugin,
   method: string,
   args: unknown[],
-  opts?: { privileged?: boolean },
+  opts?: { privileged?: boolean; sink?: StreamSink },
 ): Promise<unknown> {
   // Tier gate: privileged-only methods are refused for untrusted (null-origin)
   // instances even if the permission is somehow present. Defence-in-depth on
@@ -1596,6 +1611,22 @@ export async function dispatchApiCall(
   }
 
   switch (method) {
+    case 'proxy.fetch': return proxyFetch(plugin, args, opts?.sink ?? null);
+    case 'proxy.cancel': proxyCancel(plugin, args[0]); return undefined;
+    case 'proxy.connect': return proxyConnect(plugin, args);
+    case 'proxy.accounts': return proxyAccounts(plugin);
+    case 'proxy.disconnect': return proxyDisconnect(plugin, args);
+
+    case 'ui.setActions': {
+      const surface = args[0];
+      if (typeof surface !== 'string' || !isActionSurface(surface)) throw new Error(`"${String(surface)}" is not a surface that takes actions`);
+      if (!mayOfferSlot(plugin, surface)) throw new Error(`Plugin "${plugin.id}" may not add actions to "${surface}"`);
+      setPluginActions(plugin.id, plugin.name, surface, checkActions(args[1]));
+      return undefined;
+    }
+    case 'ui.setDayLabels': setDayLabels(plugin.id, plugin.name, checkDayLabels(args[0])); return undefined;
+    case 'ui.setPages': setPluginPages(plugin.id, plugin.name, checkPages(args[0])); return undefined;
+
     case 'storage.get': return storageGet(plugin.id, args[0] as string);
     case 'storage.set': storageSet(plugin.id, args[0] as string, args[1]); return undefined;
     case 'storage.remove': storageRemove(plugin.id, args[0] as string); return undefined;

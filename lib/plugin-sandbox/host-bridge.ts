@@ -15,7 +15,7 @@ import { snapshotHostTheme, type ThemeSnapshot } from './host-theme';
 import { effectiveSettings } from '../plugin-settings';
 import { clampSlotHeight, clampSlotWidth, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  SandboxToHost, HostToSandbox, InitMsg, InitPayload,
+  SandboxToHost, HostToSandbox, InitMsg, InitPayload, StreamChunkMsg, StreamEndMsg, StreamProgressMsg,
 } from './protocol';
 
 // ─── Callback marshalling ────────────────────────────────────
@@ -249,7 +249,7 @@ export class SandboxInstance {
         const { id, method, args } = msg;
         void (async () => {
           try {
-            const result = await dispatchApiCall(this.plugin, method, args ?? [], { privileged: this.privileged });
+            const result = await dispatchApiCall(this.plugin, method, args ?? [], { privileged: this.privileged, sink: this });
             this.send({ type: 'api-response', id, ok: true, result });
           } catch (err) {
             this.send({ type: 'api-response', id, ok: false, error: (err as Error).message ?? String(err) });
@@ -351,6 +351,17 @@ export class SandboxInstance {
     // composer or event form down with it.
     this.send({ type: 'slot-should-show', id, slot, context: withoutFunctions(context) });
     return p;
+  }
+
+  /** Streamed proxy responses and upload progress (see proxy-client.ts). */
+  sendStream(msg: StreamChunkMsg | StreamEndMsg | StreamProgressMsg): void {
+    if (this.destroyed) return;
+    if (msg.type === 'stream-chunk') {
+      // Hand the buffer over instead of copying it.
+      this.iframe.contentWindow?.postMessage(msg, '*', [msg.chunk]);
+      return;
+    }
+    this.send(msg);
   }
 
   setLocale(locale: string): void {

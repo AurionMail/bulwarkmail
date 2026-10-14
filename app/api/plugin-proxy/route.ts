@@ -71,7 +71,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof ProxyError) {
-      const headers: Record<string, string> = { 'cache-control': 'no-store' };
+      // Marks the proxy's own refusals, so the plugin can tell them from the
+      // upstream server's errors.
+      const headers: Record<string, string> = { 'cache-control': 'no-store', 'x-bulwark-proxy-error': error.code };
       const retryAfter = (error as ProxyError & { retryAfter?: number }).retryAfter;
       if (retryAfter) headers['retry-after'] = String(retryAfter);
       return NextResponse.json({ error: error.message, code: error.code }, { status: error.status, headers });

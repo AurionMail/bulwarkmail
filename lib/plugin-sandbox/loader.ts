@@ -21,7 +21,13 @@ import { resolvePluginTier } from './tier';
 import { register as registerActive, deregister as deregisterActive, all as allActiveEntries } from './registry';
 import { cancelPluginDialogs } from './host-api';
 import { registerShortcuts } from './shortcuts';
-import { mayOfferSlot, mayRegisterHook, pluginHasPermission } from './permissions';
+import { mayOfferSlot, mayRegisterHook, pluginHasPermission, slotPropsFor } from './permissions';
+import { clearPluginActions, setActionDispatcher } from './actions';
+import { clearDayLabels } from './day-labels';
+import { clearPluginPages } from './pages';
+import { cancelPluginProxyRequests } from './proxy-client';
+import { cancelConnectFor } from './connect-dialog';
+import type { SlotName } from '../plugin-types';
 
 // ─── Hook-bus lookup (one flat map for name → bus) ────────────
 
@@ -182,6 +188,9 @@ export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void
     const hookDisposables: Disposable[] = [];
     for (const hookName of info.hooks) {
       if (hookName.startsWith('shortcut:')) continue;
+      // Not a bus: the host calls it directly for clicks on this plugin's own
+      // actions (see setActionDispatcher below).
+      if (hookName === 'onAction') continue;
       const bus = HOOK_BUSES[hookName];
       if (!bus) {
         console.warn(`[plugin-sandbox] Plugin "${plugin.id}" registered unknown hook "${hookName}"`);
@@ -237,6 +246,22 @@ export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void
   }
 }
 
+// ─── Action clicks ────────────────────────────────────────────
+
+// A click on a button a plugin declared (api.ui.setActions) goes to that
+// plugin's background instance as its `onAction` hook, with the surface's
+// context cut down to what the plugin may see.
+setActionDispatcher(async (pluginId, surface, actionId, context) => {
+  const entry = allActiveEntries().find((e) => e.plugin.id === pluginId);
+  if (!entry) return;
+  const visible = slotPropsFor(entry.plugin, surface as SlotName, context);
+  try {
+    await entry.background.invokeHook('onAction', [{ surface, actionId, context: visible }]);
+  } catch (err) {
+    pluginErrorTracker.record(pluginId, err);
+  }
+});
+
 // ─── Unload ───────────────────────────────────────────────────
 
 export function unloadSandboxedPlugin(pluginId: string): void {
@@ -249,6 +274,13 @@ export function unloadSandboxedPlugin(pluginId: string): void {
   // Drop any message-list category tabs the plugin registered so the strip
   // disappears (and the inbox unfilters) the moment the plugin is disabled.
   try { useMessageListTabsStore.getState().clearTabs(pluginId); } catch { /* ignore */ }
+  // Same for the buttons, day labels and pages it declared, and anything
+  // still running through the proxy for it.
+  clearPluginActions(pluginId);
+  clearDayLabels(pluginId);
+  clearPluginPages(pluginId);
+  cancelPluginProxyRequests(pluginId);
+  cancelConnectFor(pluginId);
   try { entry.background.destroy(); } catch { /* ignore */ }
   cancelPluginDialogs(pluginId);
   pluginErrorTracker.reset(pluginId);
