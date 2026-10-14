@@ -12,6 +12,7 @@ import {
   ContextMenuHeader,
 } from "@/components/ui/context-menu";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
 import {
   Reply,
   ReplyAll,
@@ -265,6 +266,23 @@ export function EmailContextMenu({
 
   // Stable, so the Rules entry does not re-resolve its account every render.
   const ruleSenderEmails = useMemo(() => ruleEmails ?? [email], [ruleEmails, email]);
+
+  // The row's plugin buttons (message-row-actions). On phones the long press
+  // opens this menu, so it is where those buttons live there.
+  const hasRowPluginActions = usePluginActions("message-row-actions", { mailboxRole: currentMailboxRole ?? null }).length > 0;
+  const rowPluginContext = useMemo(() => ({ emailId: email.id }), [email.id]);
+  const rowPluginBlock = !showBatchActions && hasRowPluginActions ? (
+    <>
+      <ContextMenuSeparator />
+      <PluginActions
+        surface="message-row-actions"
+        variant="menu"
+        context={rowPluginContext}
+        mailboxRole={currentMailboxRole ?? null}
+        onRan={onClose}
+      />
+    </>
+  ) : null;
 
   // The menu's entries, composed below in the default layout's order or,
   // under Mountain View, in Gmail's.
@@ -564,6 +582,7 @@ export function EmailContextMenu({
           {findBlock}
           <ContextMenuSeparator />
           {permalinkBlock}
+          {rowPluginBlock}
         </>
       ) : (
         <>
@@ -581,6 +600,7 @@ export function EmailContextMenu({
           {spamBlock}
           <ContextMenuSeparator />
           {readItem}
+          {rowPluginBlock}
         </>
       )}
         </>

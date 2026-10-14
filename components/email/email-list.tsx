@@ -33,6 +33,8 @@ import { isFilterEmpty, DEFAULT_SEARCH_FILTERS } from "@/lib/jmap/search-utils";
 import { getOwnAddresses } from "@/lib/filters/quick-rule-target";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { normalizeAddress } from "@/lib/filters/quick-rules";
+import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 
 interface EmailListProps {
   emails: Email[];
@@ -381,6 +383,19 @@ export function EmailList({
   );
 
   const hasSelection = selectedEmailKeys.size > 0;
+  // What plugin buttons in the selection toolbar act on: the JMAP ids of the
+  // selected messages, thread members included.
+  const selectedEmailIds = useMemo(
+    () => resolveSelectedEmails({ emails, threadEmailsCache, selectedEmailKeys }).map((email) => email.id),
+    [emails, threadEmailsCache, selectedEmailKeys],
+  );
+  const bulkActionContext = useMemo(() => ({ emailIds: selectedEmailIds }), [selectedEmailIds]);
+  const listSlotProps = useMemo(
+    () => ({ mailboxId: selectedMailbox || null, mailboxRole: effectiveMailboxRole ?? null }),
+    [selectedMailbox, effectiveMailboxRole],
+  );
+  const isSearching = !!searchQuery || !isFilterEmpty(searchFilters);
+  const emptySlotProps = useMemo(() => ({ ...listSlotProps, searching: isSearching }), [listSlotProps, isSearching]);
 
   const handleBatchMarkAsRead = async (read: boolean) => {
     if (!client || isProcessing) return;
@@ -653,6 +668,14 @@ export function EmailList({
                 <Trash2 className="w-4 h-4" />
               )}
             </Button>
+            {hasSelection && (
+              <PluginActions
+                surface="message-bulk-actions"
+                context={bulkActionContext}
+                mailboxRole={effectiveMailboxRole ?? null}
+                compact
+              />
+            )}
             <div className="w-px h-6 bg-border mx-1" />
             <Button
               variant="ghost"
@@ -708,6 +731,8 @@ export function EmailList({
         </div>
       )}
 
+      <PluginSlot name="message-list-header" className="w-full" extraProps={listSlotProps} />
+
       {/* Email List */}
       <div ref={parentRef} className="flex-1 overflow-y-auto bg-background relative" data-tour="email-list">
         {/* Loading overlay */}
@@ -739,6 +764,7 @@ export function EmailList({
             <p className="text-sm mt-1 text-muted-foreground">
               {isScheduledView ? t('no_scheduled_emails_description') : searchQuery || !isFilterEmpty(searchFilters) ? t('no_search_results_description') : t('no_emails_description')}
             </p>
+            <PluginSlot name="message-list-empty" className="mt-4 w-full max-w-md px-4" extraProps={emptySlotProps} />
           </div>
         ) : (
           <>
