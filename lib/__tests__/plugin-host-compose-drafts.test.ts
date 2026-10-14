@@ -4,6 +4,7 @@ import type { IJMAPClient } from '../jmap/client-interface';
 import { useAuthStore } from '@/stores/auth-store';
 import { useIdentityStore } from '@/stores/identity-store';
 import { INTERNAL_MAILTO_EVENT, type ParsedMailto } from '../protocol-handlers/mailto';
+import { PLUGIN_REPLY_EVENT, type PluginReplyRequest } from '../plugin-sandbox/host-api-compose';
 import { consumePendingMailto } from '../protocol-handlers/session';
 import { resetPluginRateLimits } from '../plugin-sandbox/host-api-input';
 import { HIGH_RISK_PERMISSIONS } from '../plugin-sandbox/permission-text';
@@ -93,6 +94,39 @@ describe('api.compose.open', () => {
     expect(taken).toEqual([]);
     expect(ALL_PERMISSIONS).toContain('compose:open');
     expect(HIGH_RISK_PERMISSIONS.has('compose:open')).toBe(false);
+  });
+});
+
+describe('api.compose.reply', () => {
+  // The mail page, with message E1 open in the reader.
+  let taken: PluginReplyRequest[];
+  const mailPage = (event: Event) => {
+    const req = (event as CustomEvent<PluginReplyRequest>).detail;
+    if (req.emailId !== 'E1') return;
+    event.preventDefault();
+    taken.push(req);
+  };
+  beforeEach(() => {
+    taken = [];
+    resetPluginRateLimits();
+    window.addEventListener(PLUGIN_REPLY_EVENT, mailPage);
+  });
+  afterEach(() => window.removeEventListener(PLUGIN_REPLY_EVENT, mailPage));
+
+  it('asks the mail page to reply to the open message with the text', async () => {
+    expect(await call(COMPOSER, 'compose.reply', 'E1', { text: 'Thursday works for me.' })).toBe(true);
+    expect(await call(COMPOSER, 'compose.reply', 'E1', { text: 'Fine by all of us.', all: true })).toBe(true);
+    expect(taken).toEqual([
+      { emailId: 'E1', text: 'Thursday works for me.', all: false },
+      { emailId: 'E1', text: 'Fine by all of us.', all: true },
+    ]);
+  });
+
+  it('refuses a message that is not open, and needs compose:open', async () => {
+    await expect(call(COMPOSER, 'compose.reply', 'E2', { text: 'x' })).rejects.toThrow(/not open in the reader/);
+    await expect(call(DRAFTER, 'compose.reply', 'E1', { text: 'x' })).rejects.toThrow(/lacks permission "compose:open"/);
+    await expect(call(COMPOSER, 'compose.reply', 'E1', { text: 'x', to: ['eve@example.com'] })).rejects.toThrow(/unknown property "to"/);
+    expect(taken).toEqual([]);
   });
 });
 

@@ -13,7 +13,7 @@ import { useIdentityStore } from '@/stores/identity-store';
 import { sanitizePluginBodyHtml } from '../email-sanitization';
 import { htmlToPlainText } from '../html-to-text';
 import {
-  readAddressList, readBlobRefs, readBoolean, readObject, readString, sessionClient, withinRate,
+  readAddressList, readBlobRefs, readBoolean, readId, readObject, readString, sessionClient, withinRate,
   type PluginBlobRef,
 } from './host-api-input';
 
@@ -98,6 +98,40 @@ export function doComposeOpen(plugin: InstalledPlugin, input: unknown): 'opened'
   notifyPendingMailto();
   window.location.assign(mailPageHref());
   return 'navigating';
+}
+
+// ─── compose.reply ────────────────────────────────────────────
+
+/** Asks the mail page to reply to the open message (components/mail/mail-app.tsx). */
+export const PLUGIN_REPLY_EVENT = 'bulwark:plugin-reply';
+
+export interface PluginReplyRequest {
+  emailId: string;
+  text: string;
+  all: boolean;
+}
+
+/**
+ * Reply (or reply to all) to the message open in the reader, with `text` as
+ * the start of the reply, the way the reader's own quick reply does. Only
+ * the open message: a plugin can't start replies to mail the user isn't
+ * looking at. Resolves to true when the composer opened.
+ */
+export function doComposeReply(plugin: InstalledPlugin, emailId: unknown, input: unknown): boolean {
+  const method = 'compose.reply';
+  const id = readId(emailId, method, 'emailId');
+  const data = readObject(input, method, 'reply', ['text', 'all'], true);
+  const text = data.text === undefined ? '' : readString(data.text, method, 'text', MAX_BODY);
+  const all = data.all === undefined ? false : readBoolean(data.all, method, 'all');
+  if (!withinRate('compose', plugin.id, COMPOSE_PER_MINUTE)) {
+    throw new Error(`${method}: at most ${COMPOSE_PER_MINUTE} times a minute`);
+  }
+  const uncancelled = window.dispatchEvent(new CustomEvent<PluginReplyRequest>(PLUGIN_REPLY_EVENT, {
+    detail: { emailId: id, text, all },
+    cancelable: true,
+  }));
+  if (uncancelled) throw new Error(`${method}: the message is not open in the reader`);
+  return true;
 }
 
 // ─── drafts.create ────────────────────────────────────────────

@@ -50,7 +50,7 @@ import {
   doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doMailboxesList,
 } from './host-api-mail';
 import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } from './host-api-input';
-import { doComposeOpen, doDraftsCreate } from './host-api-compose';
+import { doComposeOpen, doComposeReply, doDraftsCreate } from './host-api-compose';
 import { doNotificationsShow } from './host-api-notify';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
 
@@ -253,6 +253,8 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'email.archive': 'email:write',
   // Open the composer filled in; the user still decides whether to send.
   'compose.open': 'compose:open',
+  // Reply to the message open in the reader, with text to start from.
+  'compose.reply': 'compose:open',
   // Save a draft without opening the composer. Nothing is sent.
   'drafts.create': 'email:write',
   // A system notification (or a toast), naming the plugin, 5 a minute.
@@ -2013,6 +2015,7 @@ export async function dispatchApiCall(
     case 'email.archive': return doEmailArchive(plugin.id, args[0]);
 
     case 'compose.open': return doComposeOpen(plugin, args[0]);
+    case 'compose.reply': return doComposeReply(plugin, args[0], args[1]);
     case 'drafts.create': return doDraftsCreate(plugin, args[0]);
 
     case 'notifications.show': return doNotificationsShow(plugin, args[0]);

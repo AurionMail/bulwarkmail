@@ -604,6 +604,13 @@ function buildPluginApi(manifest: PluginManifest) {
        * At most 5 times a minute.
        */
       open: (message: ComposeInput) => callApi('compose.open', [message]) as Promise<'opened' | 'navigating'>,
+      /**
+       * Reply to the message open in the reader (`all` for reply to all),
+       * starting the reply with `text`. Only the open message; resolves to
+       * true when the composer opened. Shares compose.open's 5 a minute.
+       */
+      reply: (emailId: string, reply?: { text?: string; all?: boolean }) =>
+        callApi('compose.reply', [emailId, reply]) as Promise<boolean>,
     },
     // Drafts (permission: email:write).
     drafts: {

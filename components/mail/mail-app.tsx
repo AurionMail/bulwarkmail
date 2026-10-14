@@ -116,6 +116,7 @@ import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { useThemeStore } from "@/stores/theme-store";
 import { consumePendingMailto, subscribeToPendingMailto } from "@/lib/protocol-handlers/session";
 import { INTERNAL_MAILTO_EVENT, type ParsedMailto } from "@/lib/protocol-handlers/mailto";
+import { PLUGIN_REPLY_EVENT, type PluginReplyRequest } from "@/lib/plugin-sandbox/host-api-compose";
 import { mailtoComposerDraft } from "./mailto-draft";
 import { getQuoteBodies } from "@/lib/email-composer-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
@@ -2268,7 +2269,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cancelUndoSend, clearPendingUndoSend, client, fetchScheduledEmails, isScheduledView, pendingUndoSend?.submissionId, sendDelaySeconds, t]);
 
-  const handleReplyAll = async () => {
+  const handleReplyAll = async (draftText?: string) => {
     if (selectedEmail) {
       const formerSelected = { ...selectedEmail };
       const enrichedEmail = await emailHooks.onBeforeComposeOpenToReplyAll.transform(selectedEmail);
@@ -2286,13 +2287,30 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     } else {
       setComposerQuoteHeader(null);
     }
-    await withComposeGate('replyAll', { source: selectedEmail }, () => {
+    const text = typeof draftText === 'string' ? draftText : '';
+    await withComposeGate('replyAll', { source: selectedEmail, ...(text ? { body: text } : {}) }, () => {
       startFreshComposerSession();
+      setComposerDraftText(text);
       setComposerMode('replyAll');
       setShowComposer(true);
       if (isMobile) setActiveView('viewer');
     });
   };
+
+  // A plugin's "reply with this" (api.compose.reply), for the open message only.
+  const pluginReplyRef = useRef({ handleReply, handleReplyAll, openId: selectedEmail?.id ?? null });
+  pluginReplyRef.current = { handleReply, handleReplyAll, openId: selectedEmail?.id ?? null };
+  useEffect(() => {
+    const onPluginReply = (event: Event) => {
+      const req = (event as CustomEvent<PluginReplyRequest>).detail;
+      const { openId, handleReply: reply, handleReplyAll: replyAll } = pluginReplyRef.current;
+      if (!req || !openId || req.emailId !== openId) return;
+      event.preventDefault();
+      void (req.all ? replyAll(req.text) : reply(req.text));
+    };
+    window.addEventListener(PLUGIN_REPLY_EVENT, onPluginReply);
+    return () => window.removeEventListener(PLUGIN_REPLY_EVENT, onPluginReply);
+  }, []);
 
   const handleForward = async () => {
     if (selectedEmail) {
