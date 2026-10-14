@@ -30,7 +30,9 @@ import type {
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
-import type { SlotName } from '../plugin-types';
+import type {
+  CalendarEventInput, CalendarEventView, CalendarView, SlotName, TaskInput, TaskView,
+} from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
 
@@ -487,6 +489,46 @@ function buildPluginApi(manifest: PluginManifest) {
     search: {
       run: (query: unknown, options?: { label?: string }) =>
         callApi('search.run', [query, options]) as Promise<void>,
+    },
+    // Calendar events (permissions: calendar:read / calendar:write). Writes
+    // go through the calendar the way the user's own edits do, so other
+    // plugins' hooks run and may stop them. Nothing here sends invitations,
+    // updates or cancellations to participants.
+    calendar: {
+      /** The user's calendars. */
+      listCalendars: () => callApi('calendar.listCalendars', []) as Promise<CalendarView[]>,
+      /**
+       * Events from `from` to `to` (at most 366 days; `2026-05-01`,
+       * `2026-05-01T09:00` or `...Z`), recurring events expanded into their
+       * occurrences, earliest first, at most 1000.
+       */
+      getEvents: (range: { from: string; to: string; calendarIds?: string[] }) =>
+        callApi('calendar.getEvents', [range]) as Promise<CalendarEventView[]>,
+      /** One event, or null when there is none with that id. */
+      getEvent: (id: string) => callApi('calendar.getEvent', [id]) as Promise<CalendarEventView | null>,
+      /** Resolves to the new event, or null when it was not created (a plugin stopped it or the server refused). */
+      createEvent: (event: CalendarEventInput) =>
+        callApi('calendar.createEvent', [event]) as Promise<CalendarEventView | null>,
+      /** Change the given fields; times are worked out against the event's current ones. */
+      updateEvent: (id: string, patch: Partial<CalendarEventInput>) =>
+        callApi('calendar.updateEvent', [id, patch]) as Promise<void>,
+      /** Delete an event, or one occurrence when given an occurrence's id. */
+      deleteEvent: (id: string) => callApi('calendar.deleteEvent', [id]) as Promise<void>,
+    },
+    // Tasks (permissions: tasks:read / tasks:write), through the task list
+    // the way the user's own edits go.
+    tasks: {
+      /** Open tasks, or every task with includeCompleted. At most 1000. */
+      list: (options?: { includeCompleted?: boolean }) => callApi('tasks.list', [options]) as Promise<TaskView[]>,
+      /** One task, or null. */
+      get: (id: string) => callApi('tasks.get', [id]) as Promise<TaskView | null>,
+      /** Resolves to the new task, or null when another plugin stopped it. */
+      create: (task: TaskInput) => callApi('tasks.create', [task]) as Promise<TaskView | null>,
+      /** Change the given fields. */
+      update: (id: string, patch: Partial<TaskInput>) => callApi('tasks.update', [id, patch]) as Promise<void>,
+      /** Mark a task done or not done. */
+      setComplete: (id: string, complete: boolean) => callApi('tasks.setComplete', [id, complete]) as Promise<void>,
+      delete: (id: string) => callApi('tasks.delete', [id]) as Promise<void>,
     },
     // OAuth with a third party (permission: http:fetch). Put createState()'s
     // value in the authorize URL; the code comes back through the

@@ -521,6 +521,55 @@ export interface CalendarView {
   color: string;
   isVisible: boolean;
   isDefault: boolean;
+  /** Holds tasks only; events can't be put in it. */
+  isTasksOnly: boolean;
+}
+
+/**
+ * What a plugin passes to `api.calendar.createEvent` (and, every field
+ * optional, to `updateEvent`). Times are written one of three ways:
+ * `2026-05-01` (a day), `2026-05-01T09:30` (a wall-clock time in `timeZone`)
+ * or `2026-05-01T07:30:00Z` (UTC). Give `end` or `duration`, not both; with
+ * neither an event lasts one hour, or one day when it is all-day.
+ */
+export interface CalendarEventInput {
+  /** 1-500 characters. */
+  title: string;
+  /** Up to 10,000 characters of plain text. */
+  description?: string;
+  start: string;
+  /** Exclusive: an all-day event on May 1 ends on `2026-05-02`. */
+  end?: string;
+  /** ISO 8601 duration such as `PT1H30M`, or whole days (`P2D`) when all-day. */
+  duration?: string;
+  /** IANA zone of a wall-clock `start`. Defaults to the user's zone. */
+  timeZone?: string;
+  /** Defaults to true when `start` is a date without a time. */
+  isAllDay?: boolean;
+  /** Up to 500 characters. */
+  location?: string;
+  /** From `api.calendar.listCalendars()`. Defaults to the default calendar. */
+  calendarId?: string;
+  /**
+   * Attendees, at most 50, stored with the user as organizer. No invitation
+   * is sent; the user can send them from the event. An empty array removes
+   * them.
+   */
+  participants?: { email: string; name?: string }[];
+}
+
+/** What a plugin passes to `api.tasks.create` (and, every field optional, to `update`). */
+export interface TaskInput {
+  /** 1-500 characters. */
+  title: string;
+  /** Up to 10,000 characters of plain text. */
+  description?: string;
+  /** `2026-05-01` or `2026-05-01T17:00` (wall clock). null removes it on update. */
+  due?: string | null;
+  /** 0 (none), 1 (highest) to 9 (lowest). */
+  priority?: number;
+  /** Defaults to the tasks calendar, else the default calendar. */
+  calendarId?: string;
 }
 
 export interface ContactView {

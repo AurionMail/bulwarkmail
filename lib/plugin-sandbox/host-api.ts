@@ -32,6 +32,11 @@ import { fileStorage } from '../plugin-storage';
 import { generateUUID } from '../utils';
 import { AddressBook, ContactCard, Identity } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInfo, PublicKeyInput, useAccountSecurityStore } from '@/stores/account-security-store';
+import {
+  doCalendarCreateEvent, doCalendarDeleteEvent, doCalendarGetEvent, doCalendarGetEvents,
+  doCalendarListCalendars, doCalendarUpdateEvent, doTasksCreate, doTasksDelete, doTasksGet,
+  doTasksList, doTasksSetComplete, doTasksUpdate,
+} from './host-api-calendar';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -69,7 +74,7 @@ const PRIVILEGED_ONLY_METHODS = new Set<string>([
   'upfiles.save',
 ]);
 
-const PERM_PER_METHOD: Record<string, Permission | null> = {
+export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // storage is unscoped by the manifest - implicit.
   'storage.get': null,
   'storage.set': null,
@@ -174,6 +179,21 @@ const PERM_PER_METHOD: Record<string, Permission | null> = {
   'sieve.getActiveScript': 'filters:read',
   'sieve.validateScript': 'filters:write',
   'sieve.regenerate': 'filters:write',
+  // calendar events. Reads go to the server; writes go through the calendar
+  // store so its plugin hooks run. None of them sends invitations.
+  'calendar.listCalendars': 'calendar:read',
+  'calendar.getEvents': 'calendar:read',
+  'calendar.getEvent': 'calendar:read',
+  'calendar.createEvent': 'calendar:write',
+  'calendar.updateEvent': 'calendar:write',
+  'calendar.deleteEvent': 'calendar:write',
+  // tasks
+  'tasks.list': 'tasks:read',
+  'tasks.get': 'tasks:read',
+  'tasks.create': 'tasks:write',
+  'tasks.update': 'tasks:write',
+  'tasks.setComplete': 'tasks:write',
+  'tasks.delete': 'tasks:write',
 };
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
@@ -1834,6 +1854,20 @@ export async function dispatchApiCall(
       await doSieveRegenerate();
       return undefined;
     }
+
+    case 'calendar.listCalendars': return doCalendarListCalendars();
+    case 'calendar.getEvents': return doCalendarGetEvents(args[0]);
+    case 'calendar.getEvent': return doCalendarGetEvent(args[0]);
+    case 'calendar.createEvent': return doCalendarCreateEvent(args[0]);
+    case 'calendar.updateEvent': return doCalendarUpdateEvent(args[0], args[1]);
+    case 'calendar.deleteEvent': return doCalendarDeleteEvent(args[0]);
+
+    case 'tasks.list': return doTasksList(args[0]);
+    case 'tasks.get': return doTasksGet(args[0]);
+    case 'tasks.create': return doTasksCreate(args[0]);
+    case 'tasks.update': return doTasksUpdate(args[0], args[1]);
+    case 'tasks.setComplete': return doTasksSetComplete(args[0], args[1]);
+    case 'tasks.delete': return doTasksDelete(args[0]);
 
     default:
       throw new Error(`Unhandled method "${method}"`);
