@@ -144,25 +144,26 @@ const ROW_PX_BASE = 8;
 const CHEVRON_SLOT = 20;
 const INDENT_STEP = 12;
 
-const getIconForMailbox = (role?: string, name?: string, hasChildren?: boolean, isExpanded?: boolean, _isShared?: boolean, id?: string) => {
-  const lowerName = name?.toLowerCase() || "";
-
+// Icons and colours follow the JMAP role only.
+const getIconForMailbox = (role?: string, hasChildren?: boolean, isExpanded?: boolean, id?: string) => {
   if (id?.startsWith('shared-account-')) {
     return User;
   }
 
-  if (role === "inbox" || lowerName.includes("inbox")) return Inbox;
-  if (role === "sent" || lowerName.includes("sent")) return Send;
-  if (role === "drafts" || lowerName.includes("draft")) return File;
-  if (role === "trash" || lowerName.includes("trash") || lowerName.includes("deleted")) return Trash2;
-  if (role === "junk" || role === "spam" || lowerName.includes("junk") || lowerName.includes("spam")) return Ban;
-  if (role === "archive" || lowerName.includes("archive")) return Archive;
-  if (role === "shared" || lowerName.includes("shared")) return Users;
-  if (role === "important" || lowerName.includes("important")) return AlertTriangle;
-  if (role === "memos" || lowerName.includes("memo")) return NotebookPen;
-  if (role === "scheduled" || lowerName.includes("scheduled")) return CalendarClock;
-  if (role === "snoozed" || lowerName.includes("snoozed")) return BellOff;
-  if (lowerName.includes("star") || lowerName.includes("flag")) return Star;
+  switch (role) {
+    case "inbox": return Inbox;
+    case "sent": return Send;
+    case "drafts": return File;
+    case "trash": return Trash2;
+    case "junk": return Ban;
+    case "archive": return Archive;
+    case "shared": return Users;
+    case "important": return AlertTriangle;
+    case "memos": return NotebookPen;
+    case "scheduled": return CalendarClock;
+    case "snoozed": return BellOff;
+    case "flagged": return Star;
+  }
 
   if (hasChildren) {
     return isExpanded ? FolderOpen : Folder;
@@ -184,22 +185,6 @@ const ROLE_ICON_COLOR: Record<string, string> = {
   scheduled: "text-sky-600/80 dark:text-sky-400/80",
   snoozed: "text-slate-500/80 dark:text-slate-400/80",
 };
-
-function resolveRoleKey(role?: string, name?: string): string | undefined {
-  const lowerName = name?.toLowerCase() || "";
-  if (role === "inbox" || lowerName.includes("inbox")) return "inbox";
-  if (role === "sent" || lowerName.includes("sent")) return "sent";
-  if (role === "drafts" || lowerName.includes("draft")) return "drafts";
-  if (role === "trash" || lowerName.includes("trash") || lowerName.includes("deleted")) return "trash";
-  if (role === "junk" || role === "spam" || lowerName.includes("junk") || lowerName.includes("spam")) return "junk";
-  if (role === "archive" || lowerName.includes("archive")) return "archive";
-  if (role === "shared" || lowerName.includes("shared")) return "shared";
-  if (role === "important" || lowerName.includes("important")) return "important";
-  if (role === "memos" || lowerName.includes("memo")) return "memos";
-  if (role === "scheduled" || lowerName.includes("scheduled")) return "scheduled";
-  if (role === "snoozed" || lowerName.includes("snoozed")) return "snoozed";
-  return undefined;
-}
 
 function getIconClass(isSelected: boolean, isVirtual: boolean, colorful: boolean, roleKey?: string) {
   const base = "w-4 h-4 flex-shrink-0 transition-colors";
@@ -546,10 +531,9 @@ function MailboxTreeItem({
   const tSidebar = useTranslations('sidebar');
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedFolders.has(node.id);
-  const Icon = getIconForMailbox(node.role, node.name, hasChildren, isExpanded, node.isShared, node.id);
+  const Icon = getIconForMailbox(node.role, hasChildren, isExpanded, node.id);
   const isVirtualNode = node.id.startsWith('shared-');
   const isSelected = selectedMailbox === node.id;
-  const roleKey = resolveRoleKey(node.role, node.name);
   const label = localizeMailboxName(node.role, node.name, (k) => tSidebar(`mailboxes.${k}`));
 
   const isEmbedded = useIsEmbedded();
@@ -594,7 +578,7 @@ function MailboxTreeItem({
   return (
     <>
       <SidebarRow
-        icon={<Icon className={getIconClass(isSelected, isVirtualNode, colorful, roleKey)} />}
+        icon={<Icon className={getIconClass(isSelected, isVirtualNode, colorful, node.role)} />}
         label={label}
         testRole={node.role}
         testName={node.name}
