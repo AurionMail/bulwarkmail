@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "De opsteller voor je openen",
         "body": "Een nieuw bericht openen met ontvangers, tekst of bijlagen al ingevuld. Jij beslist nog steeds of het wordt verzonden."
+      },
+      "ui_notifications": {
+        "title": "Meldingen tonen",
+        "body": "Meldingen op je apparaat tonen, of in de app als je ze niet hebt toegestaan. Elke melding noemt de naam van de plug-in."
       }
     },
     "dialog": {

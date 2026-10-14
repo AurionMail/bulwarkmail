@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Otwieranie edytora wiadomości",
         "body": "Otwiera nową wiadomość z wypełnionymi odbiorcami, treścią lub załącznikami. O wysłaniu nadal decydujesz Ty."
+      },
+      "ui_notifications": {
+        "title": "Wyświetlanie powiadomień",
+        "body": "Wyświetla powiadomienia na urządzeniu lub w aplikacji, jeśli ich nie zezwolono. Każde podaje nazwę wtyczki."
       }
     },
     "dialog": {

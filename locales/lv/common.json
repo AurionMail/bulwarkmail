@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Atvērt redaktoru jūsu vietā",
         "body": "Atvērt jaunu vēstuli ar jau aizpildītiem adresātiem, tekstu vai pielikumiem. Vai to nosūtīt, joprojām izlemjat jūs."
+      },
+      "ui_notifications": {
+        "title": "Rādīt paziņojumus",
+        "body": "Rādīt paziņojumus jūsu ierīcē vai lietotnē, ja neesat tos atļāvis. Katrā ir spraudņa nosaukums."
       }
     },
     "dialog": {

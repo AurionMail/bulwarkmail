@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Åpne meldingsvinduet for deg",
         "body": "Åpne en ny melding med mottakere, tekst eller vedlegg fylt ut. Du bestemmer fortsatt om den skal sendes."
+      },
+      "ui_notifications": {
+        "title": "Vise varsler",
+        "body": "Vise varsler på enheten din, eller i appen hvis du ikke har tillatt dem. Hvert varsel viser navnet på tillegget."
       }
     },
     "dialog": {

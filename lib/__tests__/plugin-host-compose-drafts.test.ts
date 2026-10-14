@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useIdentityStore } from '@/stores/identity-store';
 import { INTERNAL_MAILTO_EVENT, type ParsedMailto } from '../protocol-handlers/mailto';
 import { consumePendingMailto } from '../protocol-handlers/session';
-import { resetPluginRateLimits } from '../plugin-sandbox/host-api-compose';
+import { resetPluginRateLimits } from '../plugin-sandbox/host-api-input';
 import { HIGH_RISK_PERMISSIONS } from '../plugin-sandbox/permission-text';
 import { ALL_PERMISSIONS } from '../plugin-types';
 

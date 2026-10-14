@@ -46,6 +46,7 @@ import {
 } from './host-api-mail';
 import { MAX_PLUGIN_FETCH_BYTES } from './host-api-input';
 import { doComposeOpen, doDraftsCreate } from './host-api-compose';
+import { doNotificationsShow } from './host-api-notify';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -227,6 +228,8 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'compose.open': 'compose:open',
   // Save a draft without opening the composer. Nothing is sent.
   'drafts.create': 'email:write',
+  // A system notification (or a toast), naming the plugin, 5 a minute.
+  'notifications.show': 'ui:notifications',
 };
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
@@ -1919,6 +1922,8 @@ export async function dispatchApiCall(
 
     case 'compose.open': return doComposeOpen(plugin, args[0]);
     case 'drafts.create': return doDraftsCreate(plugin, args[0]);
+
+    case 'notifications.show': return doNotificationsShow(plugin, args[0]);
 
     default:
       throw new Error(`Unhandled method "${method}"`);

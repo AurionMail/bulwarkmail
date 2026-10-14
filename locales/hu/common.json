@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "A szerkesztő megnyitása",
         "body": "Új üzenetet nyit meg kitöltött címzettekkel, szöveggel vagy mellékletekkel. Az elküldésről továbbra is te döntesz."
+      },
+      "ui_notifications": {
+        "title": "Értesítések megjelenítése",
+        "body": "Értesítéseket jelenít meg az eszközödön, vagy az alkalmazásban, ha nem engedélyezted őket. Mindegyiken szerepel a bővítmény neve."
       }
     },
     "dialog": {

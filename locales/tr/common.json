@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "İleti düzenleyiciyi açma",
         "body": "Alıcıları, metni veya ekleri doldurulmuş yeni bir ileti açma. Gönderip göndermemeye yine siz karar verirsiniz."
+      },
+      "ui_notifications": {
+        "title": "Bildirim gösterme",
+        "body": "Cihazınızda bildirim gösterme ya da bildirimlere izin vermediyseniz uygulama içinde gösterme. Her bildirimde eklentinin adı yer alır."
       }
     },
     "dialog": {

@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Den Editor für Sie öffnen",
         "body": "Eine neue Nachricht mit bereits ausgefüllten Empfängern, Text oder Anhängen öffnen. Ob sie gesendet wird, entscheiden weiterhin Sie."
+      },
+      "ui_notifications": {
+        "title": "Benachrichtigungen anzeigen",
+        "body": "Benachrichtigungen auf Ihrem Gerät anzeigen oder in der App, wenn Sie sie nicht erlaubt haben. Jede nennt den Namen des Plugins."
       }
     },
     "dialog": {

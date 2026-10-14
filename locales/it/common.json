@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Aprire l'editor per te",
         "body": "Aprire un nuovo messaggio con destinatari, testo o allegati già compilati. Sei sempre tu a decidere se inviarlo."
+      },
+      "ui_notifications": {
+        "title": "Mostrare notifiche",
+        "body": "Mostrare notifiche sul tuo dispositivo, o nell'app se non le hai consentite. Ognuna indica il nome del plugin."
       }
     },
     "dialog": {

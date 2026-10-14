@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Abrir el editor por ti",
         "body": "Abrir un mensaje nuevo con los destinatarios, el texto o los adjuntos ya rellenados. Tú sigues decidiendo si se envía."
+      },
+      "ui_notifications": {
+        "title": "Mostrar notificaciones",
+        "body": "Mostrar notificaciones en tu dispositivo, o dentro de la aplicación si no las has permitido. Cada una indica el nombre del complemento."
       }
     },
     "dialog": {

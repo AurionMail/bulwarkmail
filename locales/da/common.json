@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Åbne komponisten for dig",
         "body": "Åbne en ny besked med modtagere, tekst eller vedhæftninger udfyldt. Du bestemmer stadig, om den sendes."
+      },
+      "ui_notifications": {
+        "title": "Vise notifikationer",
+        "body": "Vise notifikationer på din enhed eller i appen, hvis du ikke har tilladt dem. Hver af dem nævner pluginets navn."
       }
     },
     "dialog": {

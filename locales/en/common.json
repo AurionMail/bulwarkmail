@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Open the composer for you",
         "body": "Open a new message with recipients, text or attachments filled in. You still decide whether to send it."
+      },
+      "ui_notifications": {
+        "title": "Show notifications",
+        "body": "Show notifications on your device, or in the app if you haven't allowed them. Each one names the plugin."
       }
     },
     "dialog": {

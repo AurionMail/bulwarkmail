@@ -720,6 +720,22 @@ export interface ComposeInput {
 /** What a plugin passes to `api.drafts.create`: the same fields as ComposeInput. */
 export type DraftInput = ComposeInput;
 
+/**
+ * What a plugin passes to `api.notifications.show`. The plugin's name is
+ * added to what the user sees, so they know who sent it.
+ */
+export interface NotificationInput {
+  /** 1-120 characters, one line. */
+  title: string;
+  /** Up to 300 characters, one line. */
+  body?: string;
+  /**
+   * 1-64 letters, digits or `. _ : -`. A new notification with the same tag
+   * replaces the old one, and onNotificationClick hands the tag back.
+   */
+  tag?: string;
+}
+
 export interface FilterRuleView {
   id: string;
   name: string;
@@ -1253,6 +1269,9 @@ export const ALL_PERMISSIONS = [
   'ui:observe', 'ui:toolbar', 'ui:app-top-banner', 'ui:email-banner', 'ui:email-footer', 'ui:contact-cryptokeys',
   'ui:email-details',
   'ui:download-file',
+  // Show a system notification, or a toast when the user hasn't allowed them
+  // (api.notifications.show).
+  'ui:notifications',
   // Register native message-list category tabs (Gmail-style inbox tabs).
   'ui:message-list-tabs',
   'ui:composer-toolbar', 'ui:composer-sidebar',

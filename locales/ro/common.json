@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Deschiderea ferestrei de redactare",
         "body": "Deschide un mesaj nou cu destinatarii, textul sau atașamentele deja completate. Dvs. decideți în continuare dacă îl trimiteți."
+      },
+      "ui_notifications": {
+        "title": "Afișarea notificărilor",
+        "body": "Afișează notificări pe dispozitiv sau în aplicație, dacă nu le-ați permis. Fiecare indică numele pluginului."
       }
     },
     "dialog": {

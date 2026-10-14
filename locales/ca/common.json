@@ -4247,6 +4247,10 @@
       "compose_open": {
         "title": "Obrir el redactor per a vós",
         "body": "Obrir un missatge nou amb els destinataris, el text o els adjunts ja emplenats. Sou vós qui decidiu si s'envia."
+      },
+      "ui_notifications": {
+        "title": "Mostrar notificacions",
+        "body": "Mostrar notificacions al dispositiu, o dins l'aplicació si no les heu permeses. Cadascuna indica el nom del connector."
       }
     },
     "dialog": {

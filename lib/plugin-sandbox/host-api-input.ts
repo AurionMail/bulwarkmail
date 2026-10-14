@@ -161,3 +161,26 @@ export function readBlobRefs(
     };
   });
 }
+
+// ─── Rate limits ──────────────────────────────────────────────
+
+const recentCalls = new Map<string, number[]>();
+
+/** True when `pluginId` made fewer than `max` `kind` calls in the last minute; records this one. */
+export function withinRate(kind: string, pluginId: string, max: number, windowMs = 60_000): boolean {
+  const key = `${kind}\u0000${pluginId}`;
+  const now = Date.now();
+  const recent = (recentCalls.get(key) ?? []).filter((t) => now - t < windowMs);
+  if (recent.length >= max) {
+    recentCalls.set(key, recent);
+    return false;
+  }
+  recent.push(now);
+  recentCalls.set(key, recent);
+  return true;
+}
+
+/** Forget the rate-limit history (tests). */
+export function resetPluginRateLimits(): void {
+  recentCalls.clear();
+}

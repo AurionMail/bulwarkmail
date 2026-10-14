@@ -31,9 +31,9 @@ import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView, EmailSummary, IdentityPatch,
-  IdentityView, MailboxView, SlotName, TaskInput, TaskView, TemplateInput, TemplateView, VacationInput,
-  VacationView,
+  CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
+  EmailSummary, IdentityPatch, IdentityView, MailboxView, NotificationInput, SlotName, TaskInput,
+  TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
 } from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
@@ -379,6 +379,18 @@ function buildPluginApi(manifest: PluginManifest) {
         callApi('upfiles.save', [formerFileId, file]) as Promise<string>,
       get: (fileId:string) =>
         callApi('upfiles.get', [fileId]) as Promise<File>,
+    },
+    // Notifications (permission: ui:notifications).
+    notifications: {
+      /**
+       * A system notification when the user allowed them for the webmail,
+       * otherwise a toast; either way it names this plugin. At most 5 a
+       * minute. Clicking a system notification brings the webmail to the
+       * front and fires this plugin's onNotificationClick hook with the tag.
+       * Resolves to 'system' or 'toast'.
+       */
+      show: (notification: NotificationInput) =>
+        callApi('notifications.show', [notification]) as Promise<'system' | 'toast'>,
     },
     toast: {
       success: (m: string) => { void callApi('toast.success', [m]); },
