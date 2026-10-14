@@ -376,6 +376,37 @@ describe('oauth token route - sign-in keeps the id token (#905)', () => {
     expect(cookieStore.get('jmap_rt')?.value).toBe('r'.repeat(650));
     expect(cookieStore.get('jmap_at')?.value).toMatch(/^\d+\.a+$/);
   });
+
+  it('leaves the access-token cache out when it would outgrow a proxy header buffer (#1237)', async () => {
+    // Keycloak access token with groups and roles, plus the user's address in
+    // several claims: the refresh and access-token cookies alone overflowed
+    // nginx's 4 KB buffer and the sign-in failed with 502.
+    exchangeCodeForTokens.mockResolvedValue({
+      access_token: 'a'.repeat(2600), expires_in: 300, refresh_token: 'r'.repeat(900), id_token: 'i'.repeat(1300),
+    });
+    cookieStore.set('jmap_at', `${Math.floor(Date.now() / 1000) + 300}.stale`);
+
+    const { status, body } = await callRoute('POST', {}, { code: 'c', code_verifier: 'v', redirect_uri: 'https://mail.example.com/en/auth/callback' });
+
+    expect(status).toBe(200);
+    expect(body.access_token).toBe('a'.repeat(2600));
+    expect(cookieStore.get('jmap_rt')?.value).toBe('r'.repeat(900));
+    expect(cookieStore.get('jmap_at')).toBeUndefined();
+    // Without the cache there is room for the id token again.
+    expect(cookieStore.get('jmap_idt')?.value).toBe('i'.repeat(1300));
+  });
+
+  it('sends no deletions for cookies a fresh sign-in never had', async () => {
+    // Each deletion is a Set-Cookie header of its own, eating into the same
+    // header buffer.
+    exchangeCodeForTokens.mockResolvedValue({
+      access_token: 'a'.repeat(2600), expires_in: 300, refresh_token: 'r'.repeat(900), id_token: 'i'.repeat(1300),
+    });
+
+    await callRoute('POST', {}, { code: 'c', code_verifier: 'v', redirect_uri: 'https://mail.example.com/en/auth/callback' });
+
+    expect(cookieStore.deleted).toEqual([]);
+  });
 });
 
 describe('oauth token route - refresh keeps the id token current (#905)', () => {
@@ -417,6 +448,21 @@ describe('oauth token route - refresh keeps the id token current (#905)', () => 
     expect(status).toBe(200);
     expect(cookieStore.get('jmap_idt')).toBeUndefined();
     expect(cookieStore.get('jmap_rt')?.value).toBe('r'.repeat(650));
+  });
+
+  it('leaves the access-token cache out when a rotated refresh token leaves no room for it (#1237)', async () => {
+    cookieStore.set('jmap_rt', 'rt');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ access_token: 'a'.repeat(2600), expires_in: 300, refresh_token: 'r'.repeat(900) }),
+    });
+
+    const { status, body } = await callPut({ force: 'true' });
+
+    expect(status).toBe(200);
+    expect(body.access_token).toBe('a'.repeat(2600));
+    expect(cookieStore.get('jmap_rt')?.value).toBe('r'.repeat(900));
+    expect(cookieStore.get('jmap_at')).toBeUndefined();
   });
 
   it('does not start keeping an id token for a password sign-in', async () => {

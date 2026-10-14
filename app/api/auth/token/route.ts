@@ -18,6 +18,7 @@ import {
 } from '@/lib/oauth/token-exchange';
 import type { OAuthMetadata } from '@/lib/oauth/discovery';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
+import { fitsSetCookieBudget } from '@/lib/oauth/set-cookie-budget';
 import {
   buildEndSessionUrl,
   clearIdToken,
@@ -92,7 +93,9 @@ type CookieStore = Awaited<ReturnType<typeof cookies>>;
  * Cache the access token for the slot so a page reload can resume with it.
  *
  * Scoped to the token's own lifetime - once it expires the cookie is worthless
- * and should not linger. A token too large to store is simply not cached.
+ * and should not linger. A token too large to store, or one that would push
+ * the response past a proxy's header buffer beside `otherCookieValues`, is
+ * simply not cached: a reload then refreshes instead (#1237).
  * Returns the cookie value written, or null.
  */
 function cacheAccessToken(
@@ -100,12 +103,13 @@ function cacheAccessToken(
   slot: number,
   accessToken: string,
   expiresIn: number,
+  otherCookieValues: ReadonlyArray<string | null | undefined>,
 ): string | null {
   const name = accessTokenCookieName(slot);
   const value = encodeCachedAccessToken(accessToken, expiresIn);
-  if (!value) {
-    // Oversized token: drop any stale entry rather than leaving a mismatch.
-    cookieStore.delete(name);
+  if (!value || !fitsSetCookieBudget([...otherCookieValues, value])) {
+    // Drop any stale entry rather than leaving a mismatch.
+    if (cookieStore.get(name)) cookieStore.delete(name);
     return null;
   }
   cookieStore.set(name, value, { ...getCookieOptions(), maxAge: expiresIn });
@@ -139,7 +143,7 @@ export async function POST(request: NextRequest) {
       const cookieName = refreshTokenCookieName(slot);
       cookieStore.set(cookieName, tokens.refresh_token, getCookieOptions());
     }
-    const cachedAccessToken = cacheAccessToken(cookieStore, slot, tokens.access_token, tokens.expires_in || 3600);
+    const cachedAccessToken = cacheAccessToken(cookieStore, slot, tokens.access_token, tokens.expires_in || 3600, [tokens.refresh_token, serverId]);
     storeIdToken(cookieStore, slot, tokens.id_token, request.nextUrl.basePath, [tokens.refresh_token, cachedAccessToken, serverId]);
     // Persist which server entry minted this refresh token so the PUT/DELETE
     // handlers can route the refresh/revocation calls to the right token
@@ -147,7 +151,7 @@ export async function POST(request: NextRequest) {
     const serverCookieName = refreshTokenServerCookieName(slot);
     if (serverId) {
       cookieStore.set(serverCookieName, serverId, getCookieOptions());
-    } else {
+    } else if (cookieStore.get(serverCookieName)) {
       cookieStore.delete(serverCookieName);
     }
 
@@ -241,7 +245,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const expiresIn = tokens.expires_in || 3600;
-    const cachedAccessToken = cacheAccessToken(cookieStore, slot, tokens.access_token, expiresIn);
+    const cachedAccessToken = cacheAccessToken(cookieStore, slot, tokens.access_token, expiresIn, [tokens.refresh_token]);
     // Providers may reissue the id token on refresh. Only a slot signed in
     // through the provider keeps one; a password login's slot gains none here.
     if (typeof tokens.id_token === 'string' && cookieStore.get(idTokenCookieName(slot))) {
