@@ -33,7 +33,10 @@ export function exposePluginExternals(): void {
 
 // ─── Store accessor (status updates) ──────────────────────────
 
-type StoreAccessor = { setPluginStatus: (id: string, status: InstalledPlugin['status'], error?: string) => void };
+type StoreAccessor = {
+  setPluginStatus: (id: string, status: InstalledPlugin['status'], error?: string) => void;
+  markAutoDisabled?: (id: string) => void;
+};
 
 export function setPluginStoreAccessor(accessor: StoreAccessor): void {
   setSandboxStoreAccessor(accessor);

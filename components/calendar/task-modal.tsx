@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { X, Trash2, CalendarDays, Bell, Flag } from "@/components/icons";
 import { format, parseISO } from "date-fns";
 
 import type { CalendarTask, Calendar, CalendarEventAlert } from "@/lib/jmap/types";
+import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { taskToView } from "@/lib/plugin-projection";
 
 interface TaskModalProps {
   task?: CalendarTask | null;
@@ -48,6 +50,8 @@ export function TaskModal({
   const t = useTranslations("calendar");
   const isEdit = !!task;
   const titleRef = useRef<HTMLInputElement>(null);
+  // task-detail-section: the saved task, for an existing task only.
+  const pluginTaskProps = useMemo(() => (task ? { task: taskToView(task) } : null), [task]);
 
   const writableCalendars = calendars.filter(c => !c.isShared || c.myRights?.mayWriteAll || c.myRights?.mayWriteOwn);
   const defaultCalendarId = writableCalendars[0]?.id ?? calendars[0]?.id ?? "";
@@ -302,6 +306,8 @@ export function TaskModal({
             <option value="1440">{t("tasks.alert_1day")}</option>
           </select>
         </div>
+
+        {pluginTaskProps && <PluginSlot name="task-detail-section" className="w-full" extraProps={pluginTaskProps} />}
       </div>
 
       {/* Footer */}

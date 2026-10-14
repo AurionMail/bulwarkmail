@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { uiHooks } from "@/lib/plugin-hooks";
 
 export type ActiveView = "sidebar" | "list" | "viewer";
 
@@ -97,6 +98,7 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   resetSidebarWidth: () => {
     set({ sidebarWidth: SIDEBAR_DEFAULT });
+    reportColumnWidths(get());
     const { emailListWidth, emailListHeight } = get();
     try {
       localStorage.setItem("column-widths", JSON.stringify({ sidebarWidth: SIDEBAR_DEFAULT, emailListWidth, emailListHeight }));
@@ -105,6 +107,7 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   resetEmailListWidth: () => {
     set({ emailListWidth: EMAIL_LIST_DEFAULT });
+    reportColumnWidths(get());
     const { sidebarWidth, emailListHeight } = get();
     try {
       localStorage.setItem("column-widths", JSON.stringify({ sidebarWidth, emailListWidth: EMAIL_LIST_DEFAULT, emailListHeight }));
@@ -113,6 +116,7 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   resetEmailListHeight: () => {
     set({ emailListHeight: EMAIL_LIST_HEIGHT_DEFAULT });
+    reportColumnWidths(get());
     const { sidebarWidth, emailListWidth } = get();
     try {
       localStorage.setItem("column-widths", JSON.stringify({ sidebarWidth, emailListWidth, emailListHeight: EMAIL_LIST_HEIGHT_DEFAULT }));
@@ -121,6 +125,7 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   persistColumnWidths: () => {
     const { sidebarWidth, emailListWidth, emailListHeight } = get();
+    reportColumnWidths({ sidebarWidth, emailListWidth, emailListHeight });
     try {
       localStorage.setItem("column-widths", JSON.stringify({ sidebarWidth, emailListWidth, emailListHeight }));
     } catch { /* localStorage may be unavailable */ }
@@ -147,6 +152,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   goBack: () => {
     const { activeView, isMobile } = get();
     if (!isMobile) return;
+    void uiHooks.onMobileBack.emit({});
 
     if (activeView === "viewer") {
       set({ activeView: "list" });
@@ -155,3 +161,41 @@ export const useUIStore = create<UIState>((set, get) => ({
     }
   },
 }));
+
+type ColumnWidths = Pick<UIState, "sidebarWidth" | "emailListWidth" | "emailListHeight">;
+
+const COLUMN_NAMES: Record<keyof ColumnWidths, string> = {
+  sidebarWidth: "sidebar",
+  emailListWidth: "email-list",
+  emailListHeight: "email-list-height",
+};
+
+let reportedWidths: ColumnWidths | null = null;
+
+// Called when a resize ends (widths are saved then), not on every pixel of
+// the drag. Reports only the columns that changed since the last report.
+function reportColumnWidths(widths: ColumnWidths): void {
+  const before = reportedWidths;
+  reportedWidths = { sidebarWidth: widths.sidebarWidth, emailListWidth: widths.emailListWidth, emailListHeight: widths.emailListHeight };
+  if (!before) return;
+  for (const key of Object.keys(COLUMN_NAMES) as (keyof ColumnWidths)[]) {
+    if (widths[key] !== before[key]) {
+      void uiHooks.onColumnResize.emit({ column: COLUMN_NAMES[key], width: widths[key] });
+    }
+  }
+}
+
+function deviceType(s: Pick<UIState, "isMobile" | "isTablet">): "mobile" | "tablet" | "desktop" {
+  return s.isMobile ? "mobile" : s.isTablet ? "tablet" : "desktop";
+}
+
+// Plugins hear about layout changes, whichever control or effect made them.
+useUIStore.subscribe((state, prev) => {
+  if (!reportedWidths) {
+    reportedWidths = { sidebarWidth: prev.sidebarWidth, emailListWidth: prev.emailListWidth, emailListHeight: prev.emailListHeight };
+  }
+  if (state.activeView !== prev.activeView) void uiHooks.onViewChange.emit({ view: state.activeView });
+  if (state.sidebarOpen !== prev.sidebarOpen) void uiHooks.onSidebarToggle.emit({ open: state.sidebarOpen });
+  if (state.sidebarCollapsed !== prev.sidebarCollapsed) void uiHooks.onSidebarCollapse.emit({ collapsed: state.sidebarCollapsed });
+  if (deviceType(state) !== deviceType(prev)) void uiHooks.onDeviceTypeChange.emit({ deviceType: deviceType(state) });
+});

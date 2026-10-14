@@ -620,7 +620,9 @@
       "copied": "Codi copiat",
       "copy_failed": "No s'ha pogut copiar el codi"
     },
-    "mv_position": "{index} de {total}"
+    "mv_position": "{index} de {total}",
+    "plugin_panel_show": "Mostra el tauler del connector",
+    "plugin_panel_hide": "Amaga el tauler del connector"
   },
   "email_composer": {
     "minimize": "Minimitza",
@@ -813,7 +815,8 @@
       "remove_background_color": "Elimina el color de fons"
     },
     "send_filing_warning": "Enviat, però la neteja posterior a l'enviament ha fallat; és possible que quedi un esborrany obsolet.",
-    "pop_out": "Obre la resposta en una finestra"
+    "pop_out": "Obre la resposta en una finestra",
+    "send_guard_failed": "No s'ha enviat: un connector que revisa els missatges abans d'enviar-los ha fallat o no ha respost."
   },
   "confirm_dialog": {
     "confirm": "Confirma",
@@ -3970,6 +3973,354 @@
       "failed_detail": "Ha fallat lautorització: {error}",
       "missing_params": "Falta el codi dautorització o lestat.",
       "delivery_failed": "No sha pogut lliurar el resultat de lautorització a la pestanya de laplicació. Tanqueu aquesta finestra i torneu-ho a provar."
+    },
+    "settings": {
+      "title": "Connectors",
+      "description": "Connectors que ha afegit l'administrador. Activeu-los o desactiveu-los per al vostre compte.",
+      "description_uploads": "Els connectors afegeixen funcions al webmail. Activeu-los o desactiveu-los per al vostre compte, o instal·leu-ne de propis.",
+      "description_demo": "Els connectors no estan disponibles a la demo.",
+      "install_button": "Instal·la un connector",
+      "install_hint": "Trieu un fitxer ZIP de connector.",
+      "install_hint_approval": "Trieu un fitxer ZIP de connector. Un administrador l'ha d'aprovar abans que el pugueu activar.",
+      "install_uploads_off": "L'administrador no permet instal·lar connectors.",
+      "install_managed_id": "L'administrador ja proporciona un connector amb aquest nom, així que no es pot substituir.",
+      "install_invalid": "Aquest fitxer no és un connector que es pugui instal·lar: {details}",
+      "toast_installed": "S'ha instal·lat el connector. Activeu-lo a continuació.",
+      "toast_installed_pending": "S'ha instal·lat el connector i s'ha enviat a l'administrador perquè l'aprovi.",
+      "toast_enabled": "{name} està activat",
+      "toast_disabled": "{name} està desactivat",
+      "toast_removed": "S'ha eliminat {name}",
+      "toast_forced": "L'administrador manté {name} activat",
+      "toast_approval_requested": "{name} està pendent de l'aprovació de l'administrador",
+      "empty_title": "Encara no hi ha connectors",
+      "empty_admin": "L'administrador no ha afegit cap connector.",
+      "empty_uploads": "Per començar, instal·leu un connector des d'un fitxer ZIP.",
+      "empty_demo": "Els connectors necessiten un compte real, així que la demo no en té cap.",
+      "syncing": "S'estan comprovant els connectors amb el servidor…",
+      "status_installed": "Desactivat",
+      "status_enabled": "S'està iniciant",
+      "status_running": "Activat",
+      "status_disabled": "Desactivat",
+      "status_error": "Problema",
+      "badge_forced": "Obligatori",
+      "badge_managed": "De l'administrador",
+      "badge_yours": "Instal·lat per vós",
+      "badge_awaiting": "Pendent d'aprovació",
+      "toggle_label": "Activa o desactiva {name}",
+      "forced_note": "L'administrador requereix aquest connector, així que no es pot desactivar.",
+      "permissions": "Què pot fer",
+      "permissions_managed": "Què pot fer (aprovat per l'administrador)",
+      "settings": "Configuració",
+      "remove": "Elimina",
+      "remove_title": "Voleu eliminar {name}?",
+      "remove_message": "S'eliminaran el connector i tot el que ha desat en aquest navegador. El podeu tornar a instal·lar més endavant.",
+      "remove_confirm": "Elimina",
+      "error_user_plugins_off": "L'administrador ha desactivat els connectors instal·lats pels usuaris, així que aquest connector no s'executa.",
+      "error_approval_unavailable": "Aquest connector es va instal·lar abans que calgués l'aprovació. Elimineu-lo i torneu-lo a instal·lar per enviar-lo a aprovar.",
+      "error_approval_denied": "L'administrador no ha aprovat aquest connector.",
+      "error_approval_pending": "S'espera que l'administrador aprovi aquest connector.",
+      "error_auto_disabled": "S'ha desactivat perquè fallava repetidament. Torneu-lo a activar per tornar-ho a provar.",
+      "accounts_heading": "Comptes connectats",
+      "account_on": "{label} a {host}",
+      "account_waiting": "{label} a {host} (inici de sessió sense acabar)",
+      "disconnect": "Desconnecta",
+      "disconnect_failed": "No s'ha pogut desconnectar {label}"
+    },
+    "consent": {
+      "title": "Voleu permetre que {name} faci això?",
+      "intro": "El connector demana els permisos següents. Només els obté si ho permeteu.",
+      "high_risk_note": "Els elements marcats donen al connector accés al contingut del vostre correu o li permeten enviar dades a altres llocs. Permeteu-los només als connectors de confiança.",
+      "revoke_hint": "Podeu desactivar o eliminar el connector a Configuració en qualsevol moment.",
+      "deny": "No ho permetis",
+      "allow": "Permet"
+    },
+    "permissions": {
+      "none": "No necessita cap permís especial.",
+      "high_risk": "Cal anar amb compte",
+      "email_read": {
+        "title": "Llegir el vostre correu",
+        "body": "Veure remitents, destinataris, assumptes i el text complet de qualsevol missatge del vostre compte, i les vostres carpetes."
+      },
+      "email_write": {
+        "title": "Canviar i organitzar el vostre correu",
+        "body": "Afegir o treure etiquetes, marques i altres paraules clau dels vostres missatges, moure'ls entre les vostres carpetes i a l'arxiu, i desar esborranys."
+      },
+      "email_send": {
+        "title": "Canviar el correu abans d'enviar-lo",
+        "body": "Llegir i canviar els destinataris, l'assumpte, el text i els adjunts dels missatges que escriviu, i impedir que s'enviï un missatge."
+      },
+      "crypto_full": {
+        "title": "Accés complet a aquesta aplicació",
+        "body": "S'executa amb els mateixos drets que el mateix webmail. Pot llegir tot el vostre correu i les claus desades i actuar en nom vostre. Permeteu-ho només als connectors en què confieu plenament."
+      },
+      "email_raw_send": {
+        "title": "Enviar missatges que ha creat ell mateix",
+        "body": "Enviar missatges complets, per exemple signats o xifrats, des del vostre compte."
+      },
+      "email_blob_read": {
+        "title": "Llegir el contingut original dels missatges",
+        "body": "Llegir les dades originals dels vostres missatges i adjunts, i de cada fitxer que adjunteu abans d'enviar-lo."
+      },
+      "email_blob_write": {
+        "title": "Substituir adjunts abans d'enviar",
+        "body": "Pujar fitxers al vostre servidor de correu i substituir un fitxer adjunt per un altre abans que s'enviï el missatge."
+      },
+      "email_render_takeover": {
+        "title": "Canviar com es mostren els missatges",
+        "body": "Substituir el text dels missatges que obriu i de la llista de missatges, per exemple per mostrar contingut desxifrat."
+      },
+      "calendar_read": {
+        "title": "Llegir el vostre calendari",
+        "body": "Veure els vostres calendaris i els seus esdeveniments."
+      },
+      "calendar_write": {
+        "title": "Canviar el vostre calendari",
+        "body": "Crear, canviar i suprimir esdeveniments."
+      },
+      "contacts_read": {
+        "title": "Llegir els vostres contactes",
+        "body": "Cercar i llegir les vostres llibretes d'adreces."
+      },
+      "contacts_write": {
+        "title": "Canviar els vostres contactes",
+        "body": "Crear, canviar i suprimir contactes i llibretes d'adreces."
+      },
+      "files_read": {
+        "title": "Llegir els vostres fitxers",
+        "body": "Navegar pels fitxers desats al vostre compte i obrir-los."
+      },
+      "files_write": {
+        "title": "Canviar els vostres fitxers",
+        "body": "Pujar, canviar el nom, moure i suprimir fitxers del vostre compte."
+      },
+      "identity_read": {
+        "title": "Veure les vostres identitats d'enviament",
+        "body": "Veure les adreces des de les quals envieu i les seves signatures."
+      },
+      "identity_write": {
+        "title": "Canviar les vostres identitats d'enviament",
+        "body": "Crear, canviar i suprimir identitats d'enviament i signatures."
+      },
+      "filters_read": {
+        "title": "Llegir els vostres filtres de correu",
+        "body": "Veure les regles que classifiquen el correu entrant."
+      },
+      "filters_write": {
+        "title": "Canviar els vostres filtres de correu",
+        "body": "Afegir regles als filtres del servidor. Aquestes regles poden moure, reenviar o suprimir el correu entrant."
+      },
+      "tasks_read": {
+        "title": "Llegir les vostres tasques",
+        "body": "Veure les vostres llistes de tasques i les tasques."
+      },
+      "tasks_write": {
+        "title": "Canviar les vostres tasques",
+        "body": "Crear, canviar, completar i suprimir tasques."
+      },
+      "templates_read": {
+        "title": "Llegir les vostres plantilles",
+        "body": "Veure les plantilles de missatge desades."
+      },
+      "templates_write": {
+        "title": "Canviar les vostres plantilles",
+        "body": "Crear, canviar i suprimir plantilles de missatge."
+      },
+      "smime_read": {
+        "title": "Veure l'estat de S/MIME",
+        "body": "Veure si teniu claus i certificats S/MIME, sense accés a les claus."
+      },
+      "vacation_read": {
+        "title": "Veure la resposta automàtica",
+        "body": "Veure si la resposta automàtica està activada i què diu."
+      },
+      "vacation_write": {
+        "title": "Canviar la resposta automàtica",
+        "body": "Activar o desactivar la resposta automàtica i canviar-ne el text i les dates."
+      },
+      "settings_read": {
+        "title": "Llegir la vostra configuració",
+        "body": "Veure les vostres preferències i les definicions d'etiquetes."
+      },
+      "settings_write": {
+        "title": "Canviar la vostra configuració",
+        "body": "Afegir i reordenar etiquetes i canviar les vostres preferències."
+      },
+      "security_read": {
+        "title": "Veure la seguretat del compte",
+        "body": "Veure si l'autenticació de dos factors i el xifratge estan activats, sense accés als secrets."
+      },
+      "auth_observe": {
+        "title": "Saber quan inicieu la sessió",
+        "body": "Rebre un avís quan inicieu la sessió, canvieu de compte o es renova la sessió."
+      },
+      "auth_emit": {
+        "title": "Tancar la vostra sessió",
+        "body": "Tancar la vostra sessió al webmail."
+      },
+      "account_read": {
+        "title": "Veure els vostres comptes",
+        "body": "Veure els comptes que heu afegit, amb les seves adreces i servidors."
+      },
+      "http_post": {
+        "title": "Fer servir el servidor del webmail en nom vostre",
+        "body": "Cridar aquests punts d'accés del servidor amb el vostre inici de sessió:"
+      },
+      "http_fetch": {
+        "title": "Connectar-se a altres llocs web",
+        "body": "Enviar peticions a aquests llocs. Qualsevol cosa que el connector pugui llegir s'hi pot enviar:"
+      },
+      "admin_config": {
+        "title": "Llegir la configuració que li ha posat l'administrador",
+        "body": "Llegir la configuració que l'administrador ha desat per a aquest connector."
+      },
+      "ui_observe": {
+        "title": "Seguir on sou dins l'aplicació",
+        "body": "Saber quina pàgina està oberta i reaccionar als enllaços en què feu clic."
+      },
+      "ui_toolbar": {
+        "title": "Afegir botons a les barres d'eines",
+        "body": "Mostrar botons propis a la barra d'eines dels missatges, en un missatge obert i a la barra superior."
+      },
+      "ui_app_top_banner": {
+        "title": "Mostrar un bàner a dalt",
+        "body": "Mostrar un avís a la part superior de l'aplicació."
+      },
+      "ui_email_banner": {
+        "title": "Mostrar avisos als missatges",
+        "body": "Mostrar avisos i resums propis a sobre, dins i entre les parts d'un missatge o una conversa oberts."
+      },
+      "ui_email_footer": {
+        "title": "Afegir contingut sota els missatges",
+        "body": "Mostrar contingut propi a sota d'un missatge obert."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Mostrar les claus de xifratge dels contactes",
+        "body": "Mostrar i gestionar les claus de xifratge d'un contacte."
+      },
+      "ui_email_details": {
+        "title": "Afegir panells als detalls del missatge",
+        "body": "Mostrar un panell propi al costat o a sota d'un missatge obert."
+      },
+      "ui_download_file": {
+        "title": "Desar fitxers al dispositiu",
+        "body": "Oferir per baixar fitxers que ha creat."
+      },
+      "ui_message_list_tabs": {
+        "title": "Afegir pestanyes a la safata d'entrada",
+        "body": "Classificar la safata d'entrada en pestanyes com ara Actualitzacions o Promocions."
+      },
+      "ui_composer_toolbar": {
+        "title": "Afegir elements al redactor",
+        "body": "Mostrar botons, elements de menú i seccions propis mentre escriviu un missatge."
+      },
+      "ui_composer_sidebar": {
+        "title": "Afegir un panell al redactor",
+        "body": "Mostrar un panell propi al costat del missatge que escriviu."
+      },
+      "ui_sidebar_widget": {
+        "title": "Afegir elements a la barra lateral",
+        "body": "Mostrar quadres i seccions propis a la barra lateral del correu."
+      },
+      "ui_settings_section": {
+        "title": "Afegir una pàgina de configuració",
+        "body": "Mostrar una pàgina pròpia a Configuració."
+      },
+      "ui_context_menu": {
+        "title": "Afegir elements al menú del missatge",
+        "body": "Afegir elements al menú que s'obre quan feu clic amb el botó dret en un missatge."
+      },
+      "ui_navigation_rail": {
+        "title": "Afegir elements a la barra de navegació",
+        "body": "Mostrar un botó propi a la barra de navegació."
+      },
+      "ui_keyboard": {
+        "title": "Afegir dreceres de teclat",
+        "body": "Reaccionar a les dreceres de teclat que defineix."
+      },
+      "ui_calendar_action": {
+        "title": "Afegir elements a la vista del calendari",
+        "body": "Mostrar botons i seccions propis als esdeveniments, i etiquetes curtes i punts als dies del calendari."
+      },
+      "ui_admin_page": {
+        "title": "Afegir una pàgina d'administració",
+        "body": "Mostrar una pàgina pròpia a la configuració d'administració."
+      },
+      "app_lifecycle": {
+        "title": "Saber quan l'aplicació s'inicia i s'atura",
+        "body": "Rebre un avís quan l'aplicació s'inicia, es queda sense connexió o tanqueu la sessió."
+      },
+      "compose_open": {
+        "title": "Obrir el redactor per a vós",
+        "body": "Obrir un missatge nou amb els destinataris, el text o els adjunts ja emplenats. Sou vós qui decidiu si s'envia."
+      },
+      "compose_read": {
+        "title": "Llegir el missatge que escriviu",
+        "body": "Llegir el text d'un missatge mentre l'escriviu, quan feu servir el connector a l'editor. No la signatura ni el missatge citat."
+      },
+      "compose_write": {
+        "title": "Canviar el missatge que escriviu",
+        "body": "Substituir o afegir text en un missatge mentre l'escriviu, quan feu servir el connector a l'editor. Podeu desfer cada canvi i continueu decidint si l'envieu."
+      },
+      "ui_notifications": {
+        "title": "Mostrar notificacions",
+        "body": "Mostrar notificacions al dispositiu, o dins l'aplicació si no les heu permeses. Cadascuna indica el nom del connector."
+      },
+      "ui_message_list": {
+        "title": "Afegir elements a la llista de missatges",
+        "body": "Mostrar contingut propi a sobre de la llista de missatges, i botons als missatges i a la barra dels missatges seleccionats."
+      },
+      "ui_contacts": {
+        "title": "Afegir elements a la vista de contactes",
+        "body": "Mostrar seccions pròpies als detalls d'un contacte i botons a la llista de contactes."
+      },
+      "ui_tasks": {
+        "title": "Afegir elements a la vista de tasques",
+        "body": "Mostrar seccions pròpies als detalls d'una tasca i botons a la llista de tasques."
+      },
+      "ui_files": {
+        "title": "Afegir elements a la vista de fitxers",
+        "body": "Mostrar seccions pròpies a la previsualització de fitxers i entrades al menú d'un fitxer."
+      },
+      "ui_commands": {
+        "title": "Afegir ordres",
+        "body": "Afegir entrades pròpies a la paleta d'ordres (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Afegir pàgines",
+        "body": "Afegir pàgines pròpies a l'aplicació, cadascuna amb un botó a la barra de navegació."
+      },
+      "http_proxy": {
+        "title": "Fer servir els comptes que connecteu",
+        "body": "Enviar peticions a través del servidor de Bulwark amb un compte o una clau que heu configurat vós o el vostre administrador. El connector no veu mai la contrasenya, però pot fer tot el que aquest compte pot fer al seu propi servidor."
+      }
+    },
+    "dialog": {
+      "from_plugin": "Del connector {name}",
+      "ok": "D'acord",
+      "submit": "Envia",
+      "confirm": "Confirma",
+      "cancel": "Cancel·la",
+      "close": "Tanca",
+      "turn_off": "Desactiva {name}",
+      "plugin_menu": "Opcions de {name}",
+      "password_note": "Aquest formulari ve del connector {name}, no del correu web. Introduïu una contrasenya només si confieu en aquest connector.",
+      "toast_auto_disabled": "{name} s'ha desactivat perquè fallava repetidament."
+    },
+    "connect": {
+      "title": "Connecta {label}",
+      "intro_password": "{name} vol utilitzar el vostre compte de {label}. Bulwark desa la contrasenya al seu servidor i només l'envia a {host}. El connector no la veu mai.",
+      "intro_password_any": "{name} vol utilitzar el vostre compte de {label}. Bulwark desa la contrasenya al seu servidor i només l'envia al servidor que introduïu aquí. El connector no la veu mai.",
+      "intro_signin": "{name} vol iniciar la sessió al vostre compte de {label}. Introduïu aquí el servidor i després inicieu la sessió a la seva pròpia pàgina. Bulwark desa al seu servidor l'accés que obté; el connector no el veu mai.",
+      "server": "Adreça del servidor",
+      "server_hint": "cloud.example.com",
+      "username": "Nom d'usuari",
+      "secret": "Contrasenya o clau",
+      "connect": "Connecta",
+      "continue": "Continua",
+      "cancel": "Cancel·la",
+      "saving": "S'està desant…",
+      "error_server": "Introduïu l'adreça del servidor, per exemple https://cloud.example.com",
+      "error_save": "No s'ha pogut desar: {error}"
     }
   },
   "global_search": {
@@ -3998,5 +4349,41 @@
     "preview_empty": "Seleccioneu un resultat per previsualitzar-lo",
     "open_full": "Obre",
     "view_label": "Vista"
+  },
+  "top_bar": {
+    "more": "Més opcions"
+  },
+  "plugin_pages": {
+    "loading": "S'està carregant la pàgina",
+    "not_available_title": "Aquesta pàgina no està disponible",
+    "not_available_description": "El connector que l'ha afegida està desactivat o ja no està instal·lat.",
+    "back_to_mail": "Torna al correu",
+    "settings_group": "Connectors"
+  },
+  "command_palette": {
+    "title": "Paleta d'ordres",
+    "open": "Obre la paleta d'ordres",
+    "placeholder": "Escriviu una ordre",
+    "no_results": "Cap ordre coincident",
+    "go_to": "Ves a {name}",
+    "compose": "Missatge nou",
+    "search": "Cerca al correu",
+    "theme_dark": "Canvia al tema fosc",
+    "theme_light": "Canvia al tema clar",
+    "shortcuts": "Mostra les dreceres de teclat",
+    "group_navigation": "Ves a",
+    "group_actions": "Accions",
+    "group_plugins": "Connectors"
+  },
+  "notification_center": {
+    "title": "Notificacions",
+    "mark_all_read": "Marca-ho tot com a llegit",
+    "clear": "Esborra",
+    "empty": "No hi ha notificacions",
+    "close": "Tanca",
+    "unread": "No llegida",
+    "unread_count": "{count} sense llegir",
+    "level_error": "Error",
+    "level_warning": "Avís"
   }
 }

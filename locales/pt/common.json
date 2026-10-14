@@ -620,7 +620,9 @@
       "copied": "Código copiado",
       "copy_failed": "Não foi possível copiar o código"
     },
-    "mv_position": "{index} de {total}"
+    "mv_position": "{index} de {total}",
+    "plugin_panel_show": "Mostrar o painel do plugin",
+    "plugin_panel_hide": "Ocultar o painel do plugin"
   },
   "email_composer": {
     "minimize": "Minimizar",
@@ -813,7 +815,8 @@
       "remove_background_color": "Remover cor de fundo"
     },
     "send_filing_warning": "Enviado - mas a limpeza posterior falhou, um rascunho antigo pode permanecer.",
-    "pop_out": "Abrir a resposta numa janela"
+    "pop_out": "Abrir a resposta numa janela",
+    "send_guard_failed": "Não enviado - um plugin que verifica as mensagens antes do envio falhou ou não respondeu."
   },
   "confirm_dialog": {
     "confirm": "Confirmar",
@@ -3970,6 +3973,354 @@
       "failed_detail": "Falha na autorização: {error}",
       "missing_params": "Falta o código de autorização ou o estado.",
       "delivery_failed": "Não foi possível entregar o resultado da autorização ao separador da aplicação. Feche esta janela e tente novamente."
+    },
+    "settings": {
+      "title": "Plugins",
+      "description": "Plugins adicionados pelo seu administrador. Ative ou desative-os na sua conta.",
+      "description_uploads": "Os plugins adicionam funções ao webmail. Ative ou desative-os na sua conta, ou instale os seus próprios.",
+      "description_demo": "Os plugins não estão disponíveis na demo.",
+      "install_button": "Instalar plugin",
+      "install_hint": "Escolha um arquivo ZIP de plugin.",
+      "install_hint_approval": "Escolha um arquivo ZIP de plugin. Um administrador precisa aprová-lo antes que você possa ativá-lo.",
+      "install_uploads_off": "Seu administrador não permite instalar plugins.",
+      "install_managed_id": "Seu administrador já fornece um plugin com este nome, por isso ele não pode ser substituído.",
+      "install_invalid": "Este arquivo não é um plugin que possa ser instalado: {details}",
+      "toast_installed": "Plugin instalado. Ative-o abaixo.",
+      "toast_installed_pending": "Plugin instalado e enviado ao seu administrador para aprovação.",
+      "toast_enabled": "{name} está ativado",
+      "toast_disabled": "{name} está desativado",
+      "toast_removed": "{name} foi removido",
+      "toast_forced": "Seu administrador mantém {name} ativado",
+      "toast_approval_requested": "{name} está aguardando a aprovação do seu administrador",
+      "empty_title": "Nenhum plugin ainda",
+      "empty_admin": "Seu administrador não adicionou nenhum plugin.",
+      "empty_uploads": "Instale um plugin a partir de um arquivo ZIP para começar.",
+      "empty_demo": "Os plugins precisam de uma conta real, por isso a demo não tem nenhum.",
+      "syncing": "Verificando plugins com o servidor…",
+      "status_installed": "Desativado",
+      "status_enabled": "Iniciando",
+      "status_running": "Ativado",
+      "status_disabled": "Desativado",
+      "status_error": "Problema",
+      "badge_forced": "Obrigatório",
+      "badge_managed": "Do seu administrador",
+      "badge_yours": "Instalado por você",
+      "badge_awaiting": "Aguardando aprovação",
+      "toggle_label": "Ativar ou desativar {name}",
+      "forced_note": "Seu administrador exige este plugin, por isso ele não pode ser desativado.",
+      "permissions": "O que ele pode fazer",
+      "permissions_managed": "O que ele pode fazer (aprovado pelo seu administrador)",
+      "settings": "Configurações",
+      "remove": "Remover",
+      "remove_title": "Remover {name}?",
+      "remove_message": "O plugin e tudo o que ele armazenou neste navegador serão excluídos. Você pode instalá-lo novamente depois.",
+      "remove_confirm": "Remover",
+      "error_user_plugins_off": "Seu administrador desativou os plugins instalados por usuários, por isso este plugin não é executado.",
+      "error_approval_unavailable": "Este plugin foi instalado antes de as aprovações serem exigidas. Remova-o e instale-o novamente para enviá-lo para aprovação.",
+      "error_approval_denied": "Seu administrador não aprovou este plugin.",
+      "error_approval_pending": "Aguardando o seu administrador aprovar este plugin.",
+      "error_auto_disabled": "Desativado porque falhava repetidamente. Ative-o de novo para tentar outra vez.",
+      "accounts_heading": "Contas conectadas",
+      "account_on": "{label} em {host}",
+      "account_waiting": "{label} em {host} (login não concluído)",
+      "disconnect": "Desconectar",
+      "disconnect_failed": "Não foi possível desconectar {label}"
+    },
+    "consent": {
+      "title": "Permitir que {name} faça isto?",
+      "intro": "O plugin pede as permissões abaixo. Ele só as recebe se você permitir.",
+      "high_risk_note": "Os itens marcados dão ao plugin acesso ao conteúdo dos seus e-mails ou permitem que ele envie dados para outro lugar. Só os permita para plugins em que você confia.",
+      "revoke_hint": "Você pode desativar ou remover o plugin em Configurações a qualquer momento.",
+      "deny": "Não permitir",
+      "allow": "Permitir"
+    },
+    "permissions": {
+      "none": "Não precisa de permissões especiais.",
+      "high_risk": "Requer atenção",
+      "email_read": {
+        "title": "Ler seus e-mails",
+        "body": "Ver remetentes, destinatários, assuntos e o texto completo de qualquer mensagem da sua conta, e suas pastas."
+      },
+      "email_write": {
+        "title": "Alterar e organizar seus e-mails",
+        "body": "Adicionar ou remover etiquetas, marcações e outras palavras-chave nas suas mensagens, movê-las entre suas pastas e para o arquivo, e salvar rascunhos."
+      },
+      "email_send": {
+        "title": "Alterar e-mails antes do envio",
+        "body": "Ler e alterar os destinatários, o assunto, o texto e os anexos das mensagens que você escreve, e impedir o envio de uma mensagem."
+      },
+      "crypto_full": {
+        "title": "Acesso total a este aplicativo",
+        "body": "É executado com os mesmos direitos do próprio webmail. Pode ler todos os seus e-mails e chaves armazenadas e agir em seu nome. Só permita isto para plugins em que você confia totalmente."
+      },
+      "email_raw_send": {
+        "title": "Enviar mensagens criadas por ele mesmo",
+        "body": "Enviar mensagens completas, por exemplo assinadas ou criptografadas, a partir da sua conta."
+      },
+      "email_blob_read": {
+        "title": "Ler o conteúdo bruto das mensagens",
+        "body": "Ler os dados originais das suas mensagens e anexos, e de cada arquivo que você anexa antes do envio."
+      },
+      "email_blob_write": {
+        "title": "Substituir anexos antes do envio",
+        "body": "Enviar arquivos para o seu servidor de e-mail e substituir um arquivo anexado por outro antes de a mensagem ser enviada."
+      },
+      "email_render_takeover": {
+        "title": "Alterar como as mensagens são exibidas",
+        "body": "Substituir o texto das mensagens que você abre e da lista de mensagens, por exemplo para mostrar conteúdo descriptografado."
+      },
+      "calendar_read": {
+        "title": "Ler seu calendário",
+        "body": "Ver seus calendários e os eventos deles."
+      },
+      "calendar_write": {
+        "title": "Alterar seu calendário",
+        "body": "Criar, alterar e excluir eventos."
+      },
+      "contacts_read": {
+        "title": "Ler seus contatos",
+        "body": "Pesquisar e ler seus catálogos de endereços."
+      },
+      "contacts_write": {
+        "title": "Alterar seus contatos",
+        "body": "Criar, alterar e excluir contatos e catálogos de endereços."
+      },
+      "files_read": {
+        "title": "Ler seus arquivos",
+        "body": "Navegar e abrir os arquivos armazenados na sua conta."
+      },
+      "files_write": {
+        "title": "Alterar seus arquivos",
+        "body": "Enviar, renomear, mover e excluir arquivos na sua conta."
+      },
+      "identity_read": {
+        "title": "Ver suas identidades de envio",
+        "body": "Ver os endereços dos quais você envia e as assinaturas deles."
+      },
+      "identity_write": {
+        "title": "Alterar suas identidades de envio",
+        "body": "Criar, alterar e excluir identidades de envio e assinaturas."
+      },
+      "filters_read": {
+        "title": "Ler seus filtros de e-mail",
+        "body": "Ver as regras que organizam seus e-mails recebidos."
+      },
+      "filters_write": {
+        "title": "Alterar seus filtros de e-mail",
+        "body": "Adicionar regras aos filtros do servidor. Essas regras podem mover, encaminhar ou excluir e-mails recebidos."
+      },
+      "tasks_read": {
+        "title": "Ler suas tarefas",
+        "body": "Ver suas listas de tarefas e tarefas."
+      },
+      "tasks_write": {
+        "title": "Alterar suas tarefas",
+        "body": "Criar, alterar, concluir e excluir tarefas."
+      },
+      "templates_read": {
+        "title": "Ler seus modelos",
+        "body": "Ver seus modelos de mensagem salvos."
+      },
+      "templates_write": {
+        "title": "Alterar seus modelos",
+        "body": "Criar, alterar e excluir modelos de mensagem."
+      },
+      "smime_read": {
+        "title": "Ver seu status S/MIME",
+        "body": "Ver se você tem chaves e certificados S/MIME, sem acesso às chaves."
+      },
+      "vacation_read": {
+        "title": "Ver sua resposta automática",
+        "body": "Ver se sua resposta automática está ativada e o que ela diz."
+      },
+      "vacation_write": {
+        "title": "Alterar sua resposta automática",
+        "body": "Ativar ou desativar sua resposta automática e alterar o texto e as datas."
+      },
+      "settings_read": {
+        "title": "Ler suas configurações",
+        "body": "Ver suas preferências e definições de etiquetas."
+      },
+      "settings_write": {
+        "title": "Alterar suas configurações",
+        "body": "Adicionar e reordenar etiquetas e alterar suas preferências."
+      },
+      "security_read": {
+        "title": "Ver a segurança da sua conta",
+        "body": "Ver se a autenticação de dois fatores e a criptografia estão ativadas, sem acesso a segredos."
+      },
+      "auth_observe": {
+        "title": "Saber quando você entra",
+        "body": "Ser avisado quando você entra, troca de conta ou sua sessão é renovada."
+      },
+      "auth_emit": {
+        "title": "Encerrar sua sessão",
+        "body": "Encerrar sua sessão no webmail."
+      },
+      "account_read": {
+        "title": "Ver suas contas",
+        "body": "Ver as contas que você adicionou, com os endereços e servidores delas."
+      },
+      "http_post": {
+        "title": "Usar o servidor do webmail por você",
+        "body": "Chamar estes endpoints do servidor com o seu login:"
+      },
+      "http_fetch": {
+        "title": "Conectar-se a outros sites",
+        "body": "Enviar solicitações a estes sites. Tudo o que o plugin pode ler pode ser enviado para lá:"
+      },
+      "admin_config": {
+        "title": "Ler as configurações do seu administrador",
+        "body": "Ler as configurações que seu administrador salvou para este plugin."
+      },
+      "ui_observe": {
+        "title": "Acompanhar onde você está no aplicativo",
+        "body": "Saber qual página está aberta e reagir aos links em que você clica."
+      },
+      "ui_toolbar": {
+        "title": "Adicionar botões às barras de ferramentas",
+        "body": "Mostrar os próprios botões na barra de ferramentas das mensagens, em uma mensagem aberta e na barra superior."
+      },
+      "ui_app_top_banner": {
+        "title": "Mostrar um banner no topo",
+        "body": "Mostrar um aviso no topo do aplicativo."
+      },
+      "ui_email_banner": {
+        "title": "Mostrar avisos nas mensagens",
+        "body": "Mostrar os próprios avisos e resumos acima, dentro e entre as partes de uma mensagem ou conversa aberta."
+      },
+      "ui_email_footer": {
+        "title": "Adicionar conteúdo abaixo das mensagens",
+        "body": "Mostrar o próprio conteúdo abaixo de uma mensagem aberta."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Mostrar chaves de criptografia dos contatos",
+        "body": "Mostrar e gerenciar as chaves de criptografia de um contato."
+      },
+      "ui_email_details": {
+        "title": "Adicionar painéis aos detalhes da mensagem",
+        "body": "Mostrar o próprio painel ao lado ou abaixo de uma mensagem aberta."
+      },
+      "ui_download_file": {
+        "title": "Salvar arquivos no seu dispositivo",
+        "body": "Oferecer para download arquivos que ele criou."
+      },
+      "ui_message_list_tabs": {
+        "title": "Adicionar abas à sua caixa de entrada",
+        "body": "Organizar sua caixa de entrada em abas como Atualizações ou Promoções."
+      },
+      "ui_composer_toolbar": {
+        "title": "Adicionar ao editor",
+        "body": "Mostrar os próprios botões, itens de menu e seções enquanto você escreve uma mensagem."
+      },
+      "ui_composer_sidebar": {
+        "title": "Adicionar um painel ao editor",
+        "body": "Mostrar o próprio painel ao lado da mensagem que você escreve."
+      },
+      "ui_sidebar_widget": {
+        "title": "Adicionar à barra lateral",
+        "body": "Mostrar as próprias caixas e seções na barra lateral do e-mail."
+      },
+      "ui_settings_section": {
+        "title": "Adicionar uma página de configurações",
+        "body": "Mostrar a própria página em Configurações."
+      },
+      "ui_context_menu": {
+        "title": "Adicionar itens ao menu da mensagem",
+        "body": "Adicionar itens ao menu que abre quando você clica com o botão direito em uma mensagem."
+      },
+      "ui_navigation_rail": {
+        "title": "Adicionar à barra de navegação",
+        "body": "Mostrar o próprio botão na barra de navegação."
+      },
+      "ui_keyboard": {
+        "title": "Adicionar atalhos de teclado",
+        "body": "Reagir aos atalhos de teclado que ele define."
+      },
+      "ui_calendar_action": {
+        "title": "Adicionar à visualização do calendário",
+        "body": "Mostrar os próprios botões e seções nos eventos, e rótulos curtos e pontos nos dias do calendário."
+      },
+      "ui_admin_page": {
+        "title": "Adicionar uma página de administração",
+        "body": "Mostrar a própria página nas configurações de administração."
+      },
+      "app_lifecycle": {
+        "title": "Saber quando o aplicativo inicia e para",
+        "body": "Ser avisado quando o aplicativo inicia, fica offline ou você sai."
+      },
+      "compose_open": {
+        "title": "Abrir o editor para você",
+        "body": "Abrir uma nova mensagem com destinatários, texto ou anexos já preenchidos. Você continua decidindo se ela é enviada."
+      },
+      "compose_read": {
+        "title": "Ler a mensagem que você está escrevendo",
+        "body": "Ler o texto de uma mensagem enquanto você a escreve, quando usa o plugin no editor. Não a assinatura nem a mensagem citada."
+      },
+      "compose_write": {
+        "title": "Alterar a mensagem que você está escrevendo",
+        "body": "Substituir ou adicionar texto em uma mensagem enquanto você a escreve, quando usa o plugin no editor. Você pode desfazer cada alteração e continua decidindo se envia."
+      },
+      "ui_notifications": {
+        "title": "Mostrar notificações",
+        "body": "Mostrar notificações no seu dispositivo, ou dentro do aplicativo se você não as permitiu. Cada uma indica o nome do plugin."
+      },
+      "ui_message_list": {
+        "title": "Adicionar à lista de mensagens",
+        "body": "Mostrar o próprio conteúdo acima da lista de mensagens, e botões nas mensagens e na barra das mensagens selecionadas."
+      },
+      "ui_contacts": {
+        "title": "Adicionar à visualização de contatos",
+        "body": "Mostrar as próprias seções nos detalhes de um contato e botões na lista de contatos."
+      },
+      "ui_tasks": {
+        "title": "Adicionar à visualização de tarefas",
+        "body": "Mostrar as próprias seções nos detalhes de uma tarefa e botões na lista de tarefas."
+      },
+      "ui_files": {
+        "title": "Adicionar à visualização de arquivos",
+        "body": "Mostrar as próprias seções na pré-visualização de arquivos e itens no menu de um arquivo."
+      },
+      "ui_commands": {
+        "title": "Adicionar comandos",
+        "body": "Adicionar os próprios itens à paleta de comandos (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Adicionar páginas",
+        "body": "Adicionar as próprias páginas ao aplicativo, cada uma com um botão na barra de navegação."
+      },
+      "http_proxy": {
+        "title": "Usar contas que você conecta",
+        "body": "Enviar solicitações pelo servidor do Bulwark com uma conta ou chave configurada por você ou pelo seu administrador. O plugin nunca vê a senha, mas pode fazer tudo o que essa conta pode fazer no próprio servidor."
+      }
+    },
+    "dialog": {
+      "from_plugin": "Do plugin {name}",
+      "ok": "OK",
+      "submit": "Enviar",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "close": "Fechar",
+      "turn_off": "Desativar {name}",
+      "plugin_menu": "Opções de {name}",
+      "password_note": "Este formulário vem do plugin {name}, não do webmail. Só introduza uma palavra-passe se confiar neste plugin.",
+      "toast_auto_disabled": "{name} foi desativado porque falhava repetidamente."
+    },
+    "connect": {
+      "title": "Conectar {label}",
+      "intro_password": "{name} quer usar sua conta {label}. O Bulwark guarda a senha no servidor dele e só a envia para {host}. O plugin nunca a vê.",
+      "intro_password_any": "{name} quer usar sua conta {label}. O Bulwark guarda a senha no servidor dele e só a envia para o servidor que você informar aqui. O plugin nunca a vê.",
+      "intro_signin": "{name} quer entrar na sua conta {label}. Informe o servidor aqui e depois entre na página dele. O Bulwark guarda no servidor dele o acesso que recebe; o plugin nunca o vê.",
+      "server": "Endereço do servidor",
+      "server_hint": "cloud.example.com",
+      "username": "Nome de usuário",
+      "secret": "Senha ou chave",
+      "connect": "Conectar",
+      "continue": "Continuar",
+      "cancel": "Cancelar",
+      "saving": "Salvando…",
+      "error_server": "Informe o endereço do servidor, por exemplo https://cloud.example.com",
+      "error_save": "Não foi possível salvar: {error}"
     }
   },
   "global_search": {
@@ -3998,5 +4349,41 @@
     "preview_empty": "Selecione um resultado para pré-visualizar",
     "open_full": "Abrir",
     "view_label": "Vista"
+  },
+  "top_bar": {
+    "more": "Mais opções"
+  },
+  "plugin_pages": {
+    "loading": "Carregando a página",
+    "not_available_title": "Esta página não está disponível",
+    "not_available_description": "O plugin que a adicionou está desativado ou não está mais instalado.",
+    "back_to_mail": "Voltar ao e-mail",
+    "settings_group": "Plugins"
+  },
+  "command_palette": {
+    "title": "Paleta de comandos",
+    "open": "Abrir a paleta de comandos",
+    "placeholder": "Digite um comando",
+    "no_results": "Nenhum comando correspondente",
+    "go_to": "Ir para {name}",
+    "compose": "Nova mensagem",
+    "search": "Pesquisar no e-mail",
+    "theme_dark": "Mudar para o tema escuro",
+    "theme_light": "Mudar para o tema claro",
+    "shortcuts": "Mostrar atalhos de teclado",
+    "group_navigation": "Ir para",
+    "group_actions": "Ações",
+    "group_plugins": "Plugins"
+  },
+  "notification_center": {
+    "title": "Notificações",
+    "mark_all_read": "Marcar todas como lidas",
+    "clear": "Limpar",
+    "empty": "Nenhuma notificação",
+    "close": "Fechar",
+    "unread": "Não lida",
+    "unread_count": "{count} não lidas",
+    "level_error": "Erro",
+    "level_warning": "Aviso"
   }
 }

@@ -39,7 +39,8 @@ import {
   calendarHooks,
   type CalendarEventFormSavePatch,
 } from "@/lib/plugin-hooks";
-import type { ConflictWarning } from "@/lib/plugin-types";
+import type { CalendarEventView, ConflictWarning } from "@/lib/plugin-types";
+import { eventToView } from "@/lib/plugin-projection";
 
 export interface PendingEventPreview {
   start: Date;
@@ -418,6 +419,82 @@ export function EventModal({
     return () => { cancelled = true; clearTimeout(t); };
   }, [title, description, startDate, startTime, endDate, endTime, allDay, location, virtualLocation, calendarId, event?.uid, attendees]);
 
+  // Plugins hear about an existing event opened for reading once per event,
+  // and about the form each time it opens (new event, or view -> edit).
+  const reportedOpenRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!event || mode !== "view" || reportedOpenRef.current === event.id) return;
+    reportedOpenRef.current = event.id;
+    void calendarHooks.onCalendarEventOpen.emit(eventToView(event));
+  }, [event, mode]);
+
+  useEffect(() => {
+    if (mode !== "edit" || calendarFormHooks.onCalendarEventFormOpen.size === 0) return;
+    void calendarFormHooks.onCalendarEventFormOpen.emit({
+      title,
+      description,
+      start: allDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`,
+      end: allDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`,
+      isAllDay: allDay,
+      location,
+      virtualLocation,
+      calendarId,
+      uid: event?.uid,
+      attendees: attendees.map((a) => a.email),
+    });
+    // Only the opening counts; the fields are read as they are at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // calendar-event-detail: the event as plugins see it, in the read views.
+  const eventDetailProps = useMemo(() => (event ? { event: eventToView(event) } : null), [event]);
+
+  // calendar-event-form: the form's current state in the same shape. Typing
+  // would hand the plugin iframe new props on every key, so the view settles
+  // for half a second first.
+  const formEventView = useMemo<CalendarEventView>(() => {
+    const startStr = allDay ? `${startDate}T00:00:00` : `${startDate}T${startTime || "00:00"}:00`;
+    const start = new Date(startStr);
+    let duration = event?.duration ?? "PT1H";
+    if (!isNaN(start.getTime())) {
+      if (allDay) {
+        const inclusiveEnd = new Date(`${endDate}T00:00:00`);
+        if (!isNaN(inclusiveEnd.getTime())) duration = buildAllDayDuration(start, inclusiveEnd < start ? start : inclusiveEnd);
+      } else {
+        const end = new Date(`${endDate}T${endTime || "00:00"}:00`);
+        if (!isNaN(end.getTime())) duration = buildDuration(start, end);
+      }
+    }
+    const base = event ? eventToView(event) : null;
+    return {
+      id: event?.id ?? "",
+      uid: event?.uid ?? "",
+      calendarId,
+      title,
+      description,
+      start: startStr,
+      duration,
+      timeZone: getEffectiveTimeZone(),
+      utcStart: null,
+      utcEnd: null,
+      isAllDay: allDay,
+      location,
+      status: base?.status ?? "confirmed",
+      participants: attendees.map((a) => {
+        const known = base?.participants.find((p) => p.email.toLowerCase() === a.email.toLowerCase());
+        return known ?? { name: a.name, email: a.email, role: "attendee", status: "needs-action" };
+      }),
+      isRecurring: recurrence !== "none",
+      keywords: base?.keywords ?? [],
+    };
+  }, [event, calendarId, title, description, startDate, startTime, endDate, endTime, allDay, location, attendees, recurrence]);
+  const [settledFormEvent, setSettledFormEvent] = useState(formEventView);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettledFormEvent(formEventView), 500);
+    return () => clearTimeout(timer);
+  }, [formEventView]);
+  const eventFormProps = useMemo(() => ({ event: settledFormEvent }), [settledFormEvent]);
+
   // Report live preview to parent for grid outline
   useEffect(() => {
     if (!onPreviewChange || isEdit) return;
@@ -795,6 +872,8 @@ export function EventModal({
                 </div>
               </div>
             )}
+
+            {eventDetailProps && <PluginSlot name="calendar-event-detail" className="w-full" extraProps={eventDetailProps} />}
           </div>
         </div>
 
@@ -972,6 +1051,8 @@ export function EventModal({
                 </p>
               </div>
             )}
+
+            {eventDetailProps && <PluginSlot name="calendar-event-detail" className="w-full" extraProps={eventDetailProps} />}
           </div>
         </div>
 
@@ -1319,6 +1400,8 @@ export function EventModal({
               </label>
             </div>
           )}
+
+          <PluginSlot name="calendar-event-form" className="w-full" extraProps={eventFormProps} />
         </div>
       </div>
 

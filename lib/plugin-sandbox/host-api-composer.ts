@@ -1,0 +1,87 @@
+// Host side of api.composer: read and change the message being written, and
+// attach files to it. The composer id comes from the composer itself (an
+// action's click context or a composer slot's props; see
+// composer-registry.ts).
+//
+//   composer.getBody(id)                        compose:read
+//   composer.getSelection(id)                   compose:read
+//   composer.replaceSelection(id, content, opts) compose:write
+//   composer.replaceBody(id, content)           compose:write
+//   composer.attach(id, file)                   email:blob-write
+//
+// `content` is { text } or { html }. HTML goes through the same sanitiser as
+// compose.open bodies. Edits are single editor transactions (one Ctrl+Z) and
+// leave the signature, the quote and inline images in place.
+
+import type { InstalledPlugin } from '../plugin-types';
+import { sanitizePluginBodyHtml } from '../email-sanitization';
+import { htmlToPlainText } from '../html-to-text';
+import { composerHandle, type ComposerHandle } from './composer-registry';
+import { textToEditorHtml } from './composer-edit';
+import { readBoolean, readId, readObject, readString, withinRate } from './host-api-input';
+
+const MAX_CONTENT = 512 * 1024;
+const EDITS_PER_MINUTE = 60;
+
+function handleFor(method: string, id: unknown): ComposerHandle {
+  const handle = composerHandle(readId(id, method, 'composerId'));
+  if (!handle) throw new Error(`${method}: that composer is not open any more`);
+  return handle;
+}
+
+function readContent(method: string, value: unknown): { html: string; text: string } {
+  const data = readObject(value, method, 'content', ['text', 'html']);
+  if ((data.text === undefined) === (data.html === undefined)) throw new Error(`${method}: content needs either text or html`);
+  if (data.html !== undefined) {
+    const html = sanitizePluginBodyHtml(readString(data.html, method, 'content.html', MAX_CONTENT));
+    return { html, text: htmlToPlainText(html) };
+  }
+  const text = readString(data.text, method, 'content.text', MAX_CONTENT);
+  return { html: textToEditorHtml(text), text };
+}
+
+function rateLimited(method: string, plugin: InstalledPlugin): void {
+  if (!withinRate('composer-edit', plugin.id, EDITS_PER_MINUTE)) {
+    throw new Error(`${method}: at most ${EDITS_PER_MINUTE} edits a minute`);
+  }
+}
+
+export function doComposerGetBody(_plugin: InstalledPlugin, id: unknown): { html: string; text: string } {
+  return handleFor('composer.getBody', id).readBody();
+}
+
+export function doComposerGetSelection(_plugin: InstalledPlugin, id: unknown): { html: string; text: string; empty: boolean } {
+  return handleFor('composer.getSelection', id).readSelection();
+}
+
+export function doComposerReplaceSelection(plugin: InstalledPlugin, id: unknown, content: unknown, opts: unknown): boolean {
+  const method = 'composer.replaceSelection';
+  const handle = handleFor(method, id);
+  const { html, text } = readContent(method, content);
+  const o = readObject(opts, method, 'options', ['below'], true);
+  const below = o.below === undefined ? false : readBoolean(o.below, method, 'options.below');
+  rateLimited(method, plugin);
+  return handle.replaceSelection(html, text, { below });
+}
+
+export function doComposerReplaceBody(plugin: InstalledPlugin, id: unknown, content: unknown): boolean {
+  const method = 'composer.replaceBody';
+  const handle = handleFor(method, id);
+  const { html, text } = readContent(method, content);
+  rateLimited(method, plugin);
+  return handle.replaceBody(html, text);
+}
+
+export async function doComposerAttach(plugin: InstalledPlugin, id: unknown, file: unknown): Promise<boolean> {
+  const method = 'composer.attach';
+  const handle = handleFor(method, id);
+  const data = readObject(file, method, 'file', ['blobId', 'name', 'type', 'size']);
+  const blobId = readId(data.blobId, method, 'file.blobId');
+  const name = readString(data.name, method, 'file.name', 255, { min: 1 });
+  const type = data.type === undefined ? 'application/octet-stream' : readString(data.type, method, 'file.type', 255, { min: 1 });
+  if (typeof data.size !== 'number' || !Number.isSafeInteger(data.size) || data.size < 0) {
+    throw new Error(`${method}: file.size must be a whole number of bytes`);
+  }
+  rateLimited(method, plugin);
+  return handle.attach({ blobId, name, type, size: data.size });
+}

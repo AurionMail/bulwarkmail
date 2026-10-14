@@ -28,7 +28,11 @@ export function bundleUrl(pluginId: string, bundleHash?: string | null): string 
  * load-time error shows up on the plugin card instead of the plugin silently
  * vanishing from the list.
  */
-export async function downloadManagedBundle(pluginId: string, bundleHash?: string | null): Promise<string> {
+export async function downloadManagedBundle(
+  pluginId: string,
+  bundleHash?: string | null,
+  opts: { requireSignature?: boolean } = {},
+): Promise<string> {
   let res: Response;
   try {
     res = await apiFetch(bundleUrl(pluginId, bundleHash));
@@ -55,6 +59,10 @@ export async function downloadManagedBundle(pluginId: string, bundleHash?: strin
     if (!ok) {
       throw new Error(`Refusing the bundle for plugin "${pluginId}": signature verification failed`);
     }
+  } else if (opts.requireSignature) {
+    // A privileged plugin runs with full access to the app; it only loads
+    // with a signature made when the admin installed it.
+    throw new Error(`Refusing the bundle for plugin "${pluginId}": it is not signed`);
   } else {
     console.warn(`[plugin-bundle] Bundle for "${pluginId}" has no Ed25519 signature; loading without it`);
   }

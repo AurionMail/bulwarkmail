@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@import "./theme-inline.css";
 
 :root {
   font-size: var(--font-size-base);
@@ -123,46 +123,6 @@
   --color-chart-5: #a78bfa;
 }
 
-@theme inline {
-  --color-border: var(--color-border);
-  --color-input: var(--color-input);
-  --color-ring: var(--color-ring);
-  --color-background: var(--color-background);
-  --color-foreground: var(--color-foreground);
-  --color-primary: var(--color-primary);
-  --color-primary-foreground: var(--color-primary-foreground);
-  --color-secondary: var(--color-secondary);
-  --color-secondary-foreground: var(--color-secondary-foreground);
-  --color-muted: var(--color-muted);
-  --color-muted-foreground: var(--color-muted-foreground);
-  --color-accent: var(--color-accent);
-  --color-accent-foreground: var(--color-accent-foreground);
-  --color-destructive: var(--color-destructive);
-  --color-destructive-foreground: var(--color-destructive-foreground);
-  --color-popover: var(--color-popover);
-  --color-popover-foreground: var(--color-popover-foreground);
-  --color-sidebar: var(--color-sidebar);
-  --color-sidebar-foreground: var(--color-sidebar-foreground);
-  --color-sidebar-border: var(--color-sidebar-border);
-  --color-sidebar-accent: var(--color-sidebar-accent);
-  --color-sidebar-accent-foreground: var(--color-sidebar-accent-foreground);
-  --color-card: var(--color-card);
-  --color-card-foreground: var(--color-card-foreground);
-  --color-success: var(--color-success);
-  --color-success-foreground: var(--color-success-foreground);
-  --color-warning: var(--color-warning);
-  --color-warning-foreground: var(--color-warning-foreground);
-  --color-info: var(--color-info);
-  --color-info-foreground: var(--color-info-foreground);
-  --color-selection: var(--color-selection);
-  --color-selection-foreground: var(--color-selection-foreground);
-  --color-unread: var(--color-unread);
-  --color-chart-1: var(--color-chart-1);
-  --color-chart-2: var(--color-chart-2);
-  --color-chart-3: var(--color-chart-3);
-  --color-chart-4: var(--color-chart-4);
-  --color-chart-5: var(--color-chart-5);
-}
 
 * {
   border-color: var(--color-border);

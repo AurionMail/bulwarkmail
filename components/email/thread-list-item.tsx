@@ -29,6 +29,7 @@ import type { SwipeAction } from "@/stores/settings-store";
 import { ThreadEmailItem } from "./thread-email-item";
 import { EmailHoverActions } from "./email-hover-actions";
 import { SearchSnippetText } from "./search-snippet-text";
+import { PluginRowBadges } from "./plugin-row-badges";
 import { useOwnDomainAddress } from "@/hooks/use-own-domain-address";
 import { useTranslations } from "next-intl";
 
@@ -596,6 +597,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                     )}>
                       {subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (email.subject || '(no subject)')}
                     </span>
+                    <PluginRowBadges email={email} className={mvRow ? "ms-2" : undefined} />
                     {(previewSnippet || inlinePreview) && (
                       <span className="min-w-0 shrink-[9999] truncate text-muted-foreground">
                         {/* Gmail runs the snippet on from the subject after a dash. */}
@@ -738,6 +740,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                   )}>
                     {subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (email.subject || "(no subject)")}
                   </span>
+                  <PluginRowBadges email={email} />
                 </div>
 
                 {showPreview && density !== 'extra-compact' && density !== 'compact' && (
@@ -780,6 +783,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
             onUndoSpam={onUndoSpam}
             isInJunk={currentMailboxRole === 'junk'}
             spamApplicable={!['sent', 'drafts', 'scheduled'].includes(currentMailboxRole || '')}
+            mailboxRole={currentMailboxRole ?? null}
           />
         )}
       </div>
@@ -1182,6 +1186,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                       )}>
                         {subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (latestEmail.subject || '(no subject)')}
                       </span>
+                      <PluginRowBadges email={latestEmail} className={mvRow ? "ms-2" : undefined} />
                       {(previewSnippet || inlinePreview) && (
                         <span className="min-w-0 shrink-[9999] truncate text-muted-foreground">
                           {mvRow && '\u00a0-\u00a0'}
@@ -1330,6 +1335,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     )}>
                       {subjectSnippet ? <SearchSnippetText snippet={subjectSnippet} /> : (latestEmail.subject || "(no subject)")}
                     </span>
+                    <PluginRowBadges email={latestEmail} />
                   </div>
 
                   {showPreview && density !== 'extra-compact' && density !== 'compact' && (
@@ -1376,6 +1382,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
               onUndoSpam={onUndoSpam ? () => onUndoSpam(latestEmail) : undefined}
               isInJunk={currentMailboxRole === 'junk'}
               spamApplicable={!['sent', 'drafts', 'scheduled'].includes(currentMailboxRole || '')}
+              mailboxRole={currentMailboxRole ?? null}
             />
           )}
         </div>

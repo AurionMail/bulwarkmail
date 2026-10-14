@@ -6,6 +6,7 @@ import { useEmailStore } from "@/stores/email-store";
 import { emailKeyFor } from "@/lib/thread-utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDragDropContext } from "@/contexts/drag-drop-context";
+import { dragDropHooks } from "@/lib/plugin-hooks";
 import { toast } from "@/stores/toast-store";
 import { getMailboxPath } from "@/lib/utils";
 
@@ -67,7 +68,7 @@ export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: 
   const [isOver, setIsOver] = useState(false);
   const { client } = useAuthStore();
   const { moveEmailsToMailbox, crossAccountMoveEmails, selectedEmailKeys, clearSelection, refreshCurrentMailbox, mailboxes } = useEmailStore();
-  const { isDragging, sourceMailboxId, draggedEmails, endDrag } = useDragDropContext();
+  const { isDragging, sourceMailboxId, draggedEmails, endDrag, markDropped } = useDragDropContext();
 
   // Determine if this is a valid drop target
   const isValidTarget = useCallback(() => {
@@ -129,6 +130,7 @@ export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: 
       }
 
       const emailIds: string[] = JSON.parse(emailIdsJson);
+      markDropped();
 
       // Group dragged emails by source account. In single-account flows this
       // collapses to one bucket; in unified view or the Pro multi-account
@@ -183,6 +185,7 @@ export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: 
         // Single-account or same-account-shared move: bulk JMAP request.
         await moveEmailsToMailbox(client, emailIds, mailbox.id);
       }
+      void dragDropHooks.onEmailDrop.emit({ emailIds, targetMailboxId: mailbox.id });
 
       // Clear selection if any selected emails were moved. The selection is
       // keyed by owning account, so compare the dragged emails, not their ids.
@@ -224,7 +227,7 @@ export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: 
     } finally {
       endDrag();
     }
-  }, [client, mailbox, mailboxes, isValidTarget, moveEmailsToMailbox, crossAccountMoveEmails, draggedEmails, sourceMailboxId, selectedEmailKeys, clearSelection, refreshCurrentMailbox, endDrag, onDropComplete, onSuccess, onError]);
+  }, [client, mailbox, mailboxes, isValidTarget, moveEmailsToMailbox, crossAccountMoveEmails, draggedEmails, sourceMailboxId, selectedEmailKeys, clearSelection, refreshCurrentMailbox, endDrag, markDropped, onDropComplete, onSuccess, onError]);
 
   const valid = isValidTarget();
 

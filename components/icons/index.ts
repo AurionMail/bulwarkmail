@@ -164,6 +164,7 @@ export {
   IconBeach as Palmtree,
   IconBeach as PalmtreeIcon,
   IconLayoutSidebarLeftCollapse as PanelLeftClose,
+  IconLayoutSidebarLeftExpand as PanelLeftOpen,
   IconLayoutSidebarRight as PanelRight,
   IconLayoutSidebarRightCollapse as PanelRightClose,
   IconLayoutSidebarRightExpand as PanelRightOpen,

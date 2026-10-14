@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
 import DOMPurify from "dompurify";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { EMAIL_SANITIZE_CONFIG, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
@@ -41,6 +41,12 @@ import { useAuthStore } from "@/stores/auth-store";
 import { isFilePreviewable, toInertBlob } from "@/lib/file-preview";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { useOwnDomainAddress } from "@/hooks/use-own-domain-address";
+import { emitThreadExpand } from "@/lib/plugin-thread-expand";
+import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { PluginActions } from "@/components/plugins/plugin-actions";
+import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
+import { emailToReadView } from "@/lib/plugin-projection";
+import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 
 interface ThreadConversationViewProps {
   thread: ThreadGroup;
@@ -52,6 +58,8 @@ interface ThreadConversationViewProps {
   onForward?: (email: Email) => void;
   onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
+  /** Role of the folder the conversation was opened from, for plugin actions limited to some folders. */
+  mailboxRole?: string | null;
 }
 
 // Helper function to get file icon based on mime type or extension
@@ -166,9 +174,15 @@ export function ThreadConversationView({
   onForward,
   onDownloadAttachment,
   onMarkAsRead,
+  mailboxRole,
 }: ThreadConversationViewProps) {
   const t = useTranslations();
   const externalContent = useConversationExternalContent();
+  const emailIdList = emails.map((email) => email.id).join(',');
+  const threadSummaryProps = useMemo(
+    () => ({ threadId: thread.latestEmail.threadId ?? null, emailIds: emailIdList ? emailIdList.split(',') : [] }),
+    [thread.latestEmail.threadId, emailIdList],
+  );
 
   // Track which emails are expanded (most recent by default)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -193,6 +207,8 @@ export function ThreadConversationView({
   }, [emails]);
 
   const toggleExpanded = (emailId: string) => {
+    const target = emails.find((e) => e.id === emailId);
+    if (target) emitThreadExpand(target.threadId, [target], !expandedIds.has(emailId));
     setExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(emailId)) {
@@ -239,6 +255,7 @@ export function ThreadConversationView({
 
       {/* Email Cards */}
       <div className="flex-1 overflow-y-auto">
+        <PluginSlot name="thread-summary" className="w-full" extraProps={threadSummaryProps} />
         <div className="space-y-3" style={{ padding: 'var(--density-card-p)' }}>
           {emails.map((email, index) => (
             <EmailCard
@@ -255,6 +272,7 @@ export function ThreadConversationView({
               onForward={onForward ? () => onForward(email) : undefined}
               onDownloadAttachment={onDownloadAttachment}
               onMarkAsRead={onMarkAsRead}
+              mailboxRole={mailboxRole}
             />
           ))}
         </div>
@@ -277,6 +295,24 @@ interface EmailCardProps {
   onForward?: () => void;
   onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
+  mailboxRole?: string | null;
+}
+
+/**
+ * The single reader's plugin surfaces for one message of the phone
+ * conversation, mounted only while the message is unfolded: reader-header
+ * on top, reader-below-subject and email-banner under the sender,
+ * email-footer under the body. The props are the same as in the single
+ * reader and stay stable across re-renders.
+ */
+function useConversationPluginProps(email: Email) {
+  const headerOffers = usePluginSlotOffers('reader-header').length;
+  const belowSubjectOffers = usePluginSlotOffers('reader-below-subject').length;
+  const bannerOffers = usePluginSlotOffers('email-banner').length;
+  const wantsView = headerOffers + belowSubjectOffers + bannerOffers > 0;
+  const emailProps = useMemo(() => ({ email: wantsView ? emailToReadView(email) : null }), [email, wantsView]);
+  const idProps = useMemo(() => ({ emailId: email.id }), [email.id]);
+  return { emailProps, idProps };
 }
 
 function EmailCard({
@@ -292,9 +328,11 @@ function EmailCard({
   onForward,
   onDownloadAttachment,
   onMarkAsRead,
+  mailboxRole,
 }: EmailCardProps) {
   const t = useTranslations();
   const density = useSettingsStore((state) => state.density);
+  const plugin = useConversationPluginProps(email);
   const sender = email.from?.[0];
   const formatAddress = useOwnDomainAddress();
   const isUnread = !email.keywords?.$seen;
@@ -309,6 +347,7 @@ function EmailCard({
       isExpanded ? "bg-background shadow-sm" : "bg-muted/30",
       isUnread && !isExpanded && "border-s-2 border-l-primary"
     )}>
+      {isExpanded && <PluginSlot name="reader-header" className="w-full" extraProps={plugin.emailProps} />}
       {/* Card Header - Always visible */}
       <button
         onClick={onToggleExpanded}
@@ -362,6 +401,8 @@ function EmailCard({
       {/* Expanded Content */}
       {isExpanded && (
         <div className="border-t border-border animate-in slide-in-from-top-2 duration-200">
+          <PluginSlot name="reader-below-subject" className="w-full" extraProps={plugin.emailProps} />
+          <PluginSlot name="email-banner" className="w-full" extraProps={plugin.emailProps} />
           <ConversationEmailBody
             email={email}
             allowExternal={allowExternal}
@@ -369,8 +410,10 @@ function EmailCard({
             onTrustSender={onTrustSender}
             onDownloadAttachment={onDownloadAttachment}
           />
+          <PluginSlot name="email-footer" className="w-full" extraProps={plugin.idProps} />
 
-          {/* Action Buttons */}
+          {/* Action Buttons; plugin reader actions behind a "more" button, as
+              in the single reader's More panel on phones. */}
           <div className="px-4 pb-4 flex gap-2">
             {onReply && (
               <Button
@@ -414,6 +457,13 @@ function EmailCard({
                 <span className="truncate">{t("email_viewer.forward")}</span>
               </Button>
             )}
+            <PluginActions
+              surface="reader-actions"
+              context={plugin.idProps}
+              mailboxRole={mailboxRole ?? null}
+              overflow
+              className="flex-shrink-0 rounded-md border border-border"
+            />
           </div>
         </div>
       )}
@@ -464,6 +514,14 @@ export function ConversationEmailBody({
   const [hasBlockedContent, setHasBlockedContent] = useState(false);
   const [cidBlobUrls, setCidBlobUrls] = useState<Record<string, string>>({});
   const { client } = useAuthStore();
+  // reader-above-quote: the body the quote was collapsed in, once it is on screen.
+  const [htmlBodyEl, setHtmlBodyEl] = useState<HTMLElement | null>(null);
+  const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);
+  const wantsQuoteSlot = usePluginSlotOffers('reader-above-quote').length > 0;
+  const quoteSlotProps = useMemo(
+    () => ({ email: wantsQuoteSlot ? emailToReadView(email) : null }),
+    [email, wantsQuoteSlot],
+  );
 
   // Fetch inline CID images with authentication to prevent browser auth dialogs
   useEffect(() => {
@@ -648,6 +706,13 @@ export function ConversationEmailBody({
   ${isDark ? emailDarkModeCss() : ''}
 </style></head><body dir="auto">${emailContent.html}</body></html>`;
   }, [emailContent.isHtml, emailContent.html, allowExternal, isDark]);
+  useLayoutEffect(() => { setHtmlBodyEl(null); }, [emailIframeSrcDoc]);
+  // One object per body: React writes innerHTML again whenever this object
+  // changes, dropping whatever was mounted in the body.
+  const plainBodyHtml = useMemo(
+    () => ({ __html: sanitizePlainTextRenderedHtml(emailContent.html) }),
+    [emailContent.html],
+  );
 
   const handleIframeLoad = useCallback(() => {
     const iframe = iframeRef.current;
@@ -676,6 +741,7 @@ export function ConversationEmailBody({
         a.setAttribute('target', '_blank');
         a.setAttribute('rel', 'noopener noreferrer');
       });
+      setHtmlBodyEl(doc.body);
     } catch {
       // contentDocument may be inaccessible under stricter sandboxes; ignore.
     }
@@ -723,7 +789,7 @@ export function ConversationEmailBody({
       )}
 
       {/* Email Body */}
-      <div style={bodyStyle ?? { padding: 'var(--density-card-p)' }}>
+      <div className="relative" style={bodyStyle ?? { padding: 'var(--density-card-p)' }}>
         {emailContent.isHtml ? (
           <iframe
             ref={iframeRef}
@@ -737,6 +803,7 @@ export function ConversationEmailBody({
           />
         ) : (
           <div
+            ref={setPlainBodyEl}
             className={cn(
               "prose prose-sm max-w-none",
               !emailAlwaysLightMode && "dark:prose-invert",
@@ -746,9 +813,15 @@ export function ConversationEmailBody({
               "[&_img]:max-w-full [&_img]:h-auto"
             )}
             style={{ whiteSpace: 'pre-wrap', ...(plainTextFont === 'mono' && { fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace' }), fontSize: '13px' }}
-            dangerouslySetInnerHTML={{ __html: sanitizePlainTextRenderedHtml(emailContent.html) }}
+            dangerouslySetInnerHTML={plainBodyHtml}
           />
         )}
+        <ReaderAboveQuoteSlot
+          root={emailContent.isHtml ? htmlBodyEl : plainBodyEl}
+          frame={emailContent.isHtml ? iframeRef.current : null}
+          extraProps={quoteSlotProps}
+          version={emailContent.html}
+        />
       </div>
 
       {/* Attachments */}
@@ -761,8 +834,8 @@ export function ConversationEmailBody({
                 || (!!attachment.blobId && canWopiOpen(wopiStatus, attachment.name));
               const opensPreview = isPreviewable && mailAttachmentAction === 'preview';
               return (
+                <React.Fragment key={idx}>
                 <button
-                  key={idx}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDownloadAttachment?.(attachment.blobId, attachment.name || 'attachment', attachment.type);
@@ -781,6 +854,8 @@ export function ConversationEmailBody({
                     <Download className="w-4 h-4 text-muted-foreground" />
                   )}
                 </button>
+                <AttachmentPluginMenu emailId={email.id} attachment={attachment} className="-ms-1.5 self-center p-2 rounded-lg" />
+                </React.Fragment>
               );
             })}
           </div>

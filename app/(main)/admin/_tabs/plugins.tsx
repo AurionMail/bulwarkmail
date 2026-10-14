@@ -6,6 +6,7 @@ import type { SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
 import { PluginConfigPanel } from './plugin-config-panel';
+import { PluginApprovalsPanel } from './plugin-approvals-panel';
 
 interface PluginEntry {
   id: string;
@@ -373,6 +374,8 @@ export function PluginsTab() {
           )}
         </div>
       </div>
+
+      {pluginsUploadEnabled && <PluginApprovalsPanel />}
 
       <div className="border border-border rounded-lg">
         <div className="px-4 py-3 border-b border-border bg-muted/30">

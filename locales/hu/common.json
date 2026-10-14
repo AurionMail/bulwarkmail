@@ -620,7 +620,9 @@
       "copied": "Kód másolva",
       "copy_failed": "Nem sikerült másolni a kódot"
     },
-    "mv_position": "{index} / {total}"
+    "mv_position": "{index} / {total}",
+    "plugin_panel_show": "Bővítménypanel megjelenítése",
+    "plugin_panel_hide": "Bővítménypanel elrejtése"
   },
   "email_composer": {
     "minimize": "Kis méret",
@@ -813,7 +815,8 @@
       "remove_background_color": "Háttérszín eltávolítása"
     },
     "send_filing_warning": "Elküldve - de az utólagos rendrakás nem sikerült, egy elavult piszkozat megmaradhat.",
-    "pop_out": "Válasz megnyitása külön ablakban"
+    "pop_out": "Válasz megnyitása külön ablakban",
+    "send_guard_failed": "Nem lett elküldve - egy bővítmény, amely küldés előtt ellenőrzi az üzeneteket, hibát jelzett vagy nem válaszolt."
   },
   "confirm_dialog": {
     "confirm": "Megerősítés",
@@ -3970,6 +3973,354 @@
       "failed_detail": "A hitelesítés sikertelen: {error}",
       "missing_params": "Hiányzik a hitelesítési kód vagy az állapot.",
       "delivery_failed": "A hitelesítés eredményét nem sikerült átadni az alkalmazás lapjának. Zárja be ezt az ablakot, és próbálja újra."
+    },
+    "settings": {
+      "title": "Bővítmények",
+      "description": "A rendszergazda által hozzáadott bővítmények. A fiókodhoz be- vagy kikapcsolhatod őket.",
+      "description_uploads": "A bővítmények új funkciókat adnak a webmailhez. A fiókodhoz be- vagy kikapcsolhatod őket, vagy telepíthetsz sajátot.",
+      "description_demo": "A bővítmények nem érhetők el a demóban.",
+      "install_button": "Bővítmény telepítése",
+      "install_hint": "Válassz egy bővítményt tartalmazó ZIP-fájlt.",
+      "install_hint_approval": "Válassz egy bővítményt tartalmazó ZIP-fájlt. Bekapcsolás előtt a rendszergazdának jóvá kell hagynia.",
+      "install_uploads_off": "A rendszergazda nem engedélyezi bővítmények telepítését.",
+      "install_managed_id": "A rendszergazda már biztosít egy ilyen nevű bővítményt, ezért nem cserélhető le.",
+      "install_invalid": "Ez a fájl nem telepíthető bővítmény: {details}",
+      "toast_installed": "Bővítmény telepítve. Lent kapcsolhatod be.",
+      "toast_installed_pending": "Bővítmény telepítve, és jóváhagyásra elküldve a rendszergazdának.",
+      "toast_enabled": "Bővítmény bekapcsolva: {name}",
+      "toast_disabled": "Bővítmény kikapcsolva: {name}",
+      "toast_removed": "Bővítmény eltávolítva: {name}",
+      "toast_forced": "A rendszergazda bekapcsolva tartja ezt a bővítményt: {name}",
+      "toast_approval_requested": "Rendszergazdai jóváhagyásra vár: {name}",
+      "empty_title": "Még nincsenek bővítmények",
+      "empty_admin": "A rendszergazda még nem adott hozzá bővítményt.",
+      "empty_uploads": "Kezdésként telepíts egy bővítményt ZIP-fájlból.",
+      "empty_demo": "A bővítményekhez valódi fiók kell, ezért a demóban nincsenek.",
+      "syncing": "Bővítmények ellenőrzése a szerveren…",
+      "status_installed": "Ki",
+      "status_enabled": "Indítás",
+      "status_running": "Be",
+      "status_disabled": "Ki",
+      "status_error": "Hiba",
+      "badge_forced": "Kötelező",
+      "badge_managed": "A rendszergazdától",
+      "badge_yours": "Saját telepítés",
+      "badge_awaiting": "Jóváhagyásra vár",
+      "toggle_label": "Bővítmény be- vagy kikapcsolása: {name}",
+      "forced_note": "A rendszergazda előírja ezt a bővítményt, ezért nem kapcsolható ki.",
+      "permissions": "Mire képes",
+      "permissions_managed": "Mire képes (a rendszergazda jóváhagyta)",
+      "settings": "Beállítások",
+      "remove": "Eltávolítás",
+      "remove_title": "{name} eltávolítása?",
+      "remove_message": "A bővítmény és minden, amit ebben a böngészőben tárolt, törlődik. Később újra telepítheted.",
+      "remove_confirm": "Eltávolítás",
+      "error_user_plugins_off": "A rendszergazda kikapcsolta a felhasználók által telepített bővítményeket, ezért ez a bővítmény nem fut.",
+      "error_approval_unavailable": "Ezt a bővítményt még azelőtt telepítetted, hogy jóváhagyás kellett volna. Távolítsd el, majd telepítsd újra, hogy jóváhagyásra kerüljön.",
+      "error_approval_denied": "A rendszergazda nem hagyta jóvá ezt a bővítményt.",
+      "error_approval_pending": "Várakozás arra, hogy a rendszergazda jóváhagyja ezt a bővítményt.",
+      "error_auto_disabled": "Kikapcsolva, mert többször is hibát okozott. Kapcsolja be újra, ha ismét meg szeretné próbálni.",
+      "accounts_heading": "Csatlakoztatott fiókok",
+      "account_on": "{label} – {host}",
+      "account_waiting": "{label} – {host} (a bejelentkezés nincs befejezve)",
+      "disconnect": "Leválasztás",
+      "disconnect_failed": "Nem sikerült leválasztani: {label}"
+    },
+    "consent": {
+      "title": "{name}: engedélyezed ezeket a műveleteket?",
+      "intro": "A bővítmény az alábbi engedélyeket kéri. Csak akkor kapja meg őket, ha engedélyezed.",
+      "high_risk_note": "A megjelölt elemek hozzáférést adnak a bővítménynek a leveleid tartalmához, vagy lehetővé teszik, hogy adatokat küldjön máshová. Csak megbízható bővítményeknek engedélyezd őket.",
+      "revoke_hint": "A bővítményt bármikor kikapcsolhatod vagy eltávolíthatod a Beállításokban.",
+      "deny": "Nem engedélyezem",
+      "allow": "Engedélyezés"
+    },
+    "permissions": {
+      "none": "Nincs szüksége különleges engedélyre.",
+      "high_risk": "Óvatosan",
+      "email_read": {
+        "title": "Leveleid olvasása",
+        "body": "Látja a fiókod bármely üzenetének feladóját, címzettjeit, tárgyát és teljes szövegét, valamint a mappáidat."
+      },
+      "email_write": {
+        "title": "Leveleid módosítása és rendezése",
+        "body": "Címkéket, jelölőket és más kulcsszavakat ad hozzá az üzeneteidhez, vagy eltávolítja őket, áthelyezi az üzeneteket a mappáid között és az archívumba, és piszkozatokat ment."
+      },
+      "email_send": {
+        "title": "Levelek módosítása küldés előtt",
+        "body": "Olvassa és módosítja az általad írt üzenetek címzettjeit, tárgyát, szövegét és mellékleteit, és megakadályozhatja egy üzenet elküldését."
+      },
+      "crypto_full": {
+        "title": "Teljes hozzáférés az alkalmazáshoz",
+        "body": "Ugyanazokkal a jogokkal fut, mint maga a webmail. Olvashatja az összes leveledet és tárolt kulcsodat, és a nevedben járhat el. Csak olyan bővítménynek engedélyezd, amelyben teljesen megbízol."
+      },
+      "email_raw_send": {
+        "title": "Saját maga által összeállított üzenetek küldése",
+        "body": "Teljes üzeneteket küld a fiókodból, például aláírt vagy titkosított üzeneteket."
+      },
+      "email_blob_read": {
+        "title": "Üzenetek nyers tartalmának olvasása",
+        "body": "Olvassa az üzeneteid és mellékleteid eredeti adatait, valamint minden fájlét, amelyet küldés előtt csatolsz."
+      },
+      "email_blob_write": {
+        "title": "Mellékletek cseréje küldés előtt",
+        "body": "Fájlokat tölt fel a levelezőszerveredre, és az üzenet elküldése előtt egy csatolt fájlt másikra cserél."
+      },
+      "email_render_takeover": {
+        "title": "Üzenetek megjelenítésének módosítása",
+        "body": "Lecseréli a megnyitott üzenetek és az üzenetlista szövegét, például a visszafejtett tartalom megjelenítéséhez."
+      },
+      "calendar_read": {
+        "title": "Naptárad olvasása",
+        "body": "Látja a naptáraidat és azok eseményeit."
+      },
+      "calendar_write": {
+        "title": "Naptárad módosítása",
+        "body": "Eseményeket hoz létre, módosít és töröl."
+      },
+      "contacts_read": {
+        "title": "Névjegyeid olvasása",
+        "body": "Keres a címjegyzékeidben, és olvassa őket."
+      },
+      "contacts_write": {
+        "title": "Névjegyeid módosítása",
+        "body": "Névjegyeket és címjegyzékeket hoz létre, módosít és töröl."
+      },
+      "files_read": {
+        "title": "Fájljaid olvasása",
+        "body": "Böngészi és megnyitja a fiókodban tárolt fájlokat."
+      },
+      "files_write": {
+        "title": "Fájljaid módosítása",
+        "body": "Fájlokat tölt fel, nevez át, helyez át és töröl a fiókodban."
+      },
+      "identity_read": {
+        "title": "Küldő azonosságaid megtekintése",
+        "body": "Látja a címeket, amelyekről küldesz, és azok aláírásait."
+      },
+      "identity_write": {
+        "title": "Küldő azonosságaid módosítása",
+        "body": "Küldő azonosságokat és aláírásokat hoz létre, módosít és töröl."
+      },
+      "filters_read": {
+        "title": "Levélszűrőid olvasása",
+        "body": "Látja a szabályokat, amelyek a beérkező leveleidet rendezik."
+      },
+      "filters_write": {
+        "title": "Levélszűrőid módosítása",
+        "body": "Szabályokat ad a szerveroldali szűrőidhez. Az ilyen szabályok áthelyezhetik, továbbíthatják vagy törölhetik a beérkező leveleket."
+      },
+      "tasks_read": {
+        "title": "Feladataid olvasása",
+        "body": "Látja a feladatlistáidat és a feladataidat."
+      },
+      "tasks_write": {
+        "title": "Feladataid módosítása",
+        "body": "Feladatokat hoz létre, módosít, teljesít és töröl."
+      },
+      "templates_read": {
+        "title": "Sablonjaid olvasása",
+        "body": "Látja a mentett üzenetsablonjaidat."
+      },
+      "templates_write": {
+        "title": "Sablonjaid módosítása",
+        "body": "Üzenetsablonokat hoz létre, módosít és töröl."
+      },
+      "smime_read": {
+        "title": "S/MIME állapotod megtekintése",
+        "body": "Látja, hogy vannak-e S/MIME kulcsaid és tanúsítványaid, a kulcsokhoz való hozzáférés nélkül."
+      },
+      "vacation_read": {
+        "title": "Távolléti válaszod megtekintése",
+        "body": "Látja, hogy be van-e kapcsolva az automatikus válaszod, és mi a szövege."
+      },
+      "vacation_write": {
+        "title": "Távolléti válaszod módosítása",
+        "body": "Be- és kikapcsolja az automatikus válaszodat, és módosítja a szövegét és dátumait."
+      },
+      "settings_read": {
+        "title": "Beállításaid olvasása",
+        "body": "Látja a beállításaidat és a címkék meghatározásait."
+      },
+      "settings_write": {
+        "title": "Beállításaid módosítása",
+        "body": "Címkéket ad hozzá, átrendezi őket, és módosítja a beállításaidat."
+      },
+      "security_read": {
+        "title": "Fiókod biztonságának megtekintése",
+        "body": "Látja, hogy be van-e kapcsolva a kétfaktoros hitelesítés és a titkosítás, a titkos adatokhoz való hozzáférés nélkül."
+      },
+      "auth_observe": {
+        "title": "Tudomást szerez a bejelentkezésedről",
+        "body": "Értesül, amikor bejelentkezel, fiókot váltasz, vagy megújul a munkameneted."
+      },
+      "auth_emit": {
+        "title": "Kijelentkeztetés",
+        "body": "Kijelentkeztethet a webmailből."
+      },
+      "account_read": {
+        "title": "Fiókjaid megtekintése",
+        "body": "Látja a hozzáadott fiókjaidat a címükkel és szerverükkel együtt."
+      },
+      "http_post": {
+        "title": "A webmail szerverének használata a nevedben",
+        "body": "Meghívja ezeket a szervervégpontokat a bejelentkezéseddel:"
+      },
+      "http_fetch": {
+        "title": "Kapcsolódás más webhelyekhez",
+        "body": "Kéréseket küld ezekre a webhelyekre. Bármi, amit a bővítmény olvashat, ide is eljuthat:"
+      },
+      "admin_config": {
+        "title": "A rendszergazdától kapott beállítások olvasása",
+        "body": "Olvassa a beállításokat, amelyeket a rendszergazda mentett ehhez a bővítményhez."
+      },
+      "ui_observe": {
+        "title": "Követi, hol jársz az alkalmazásban",
+        "body": "Tudja, melyik oldal van megnyitva, és reagál a hivatkozásokra, amelyekre kattintasz."
+      },
+      "ui_toolbar": {
+        "title": "Gombok az eszköztárakon",
+        "body": "Saját gombokat jelenít meg az üzenetek eszköztárán, egy megnyitott üzeneten és a felső sávban."
+      },
+      "ui_app_top_banner": {
+        "title": "Szalag megjelenítése felül",
+        "body": "Értesítést jelenít meg az alkalmazás tetején."
+      },
+      "ui_email_banner": {
+        "title": "Értesítések az üzeneteken",
+        "body": "Saját értesítéseket és összefoglalókat jelenít meg egy megnyitott üzenet vagy beszélgetés részei felett, azokon belül és között."
+      },
+      "ui_email_footer": {
+        "title": "Tartalom az üzenetek alatt",
+        "body": "Saját tartalmat jelenít meg egy megnyitott üzenet alatt."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Névjegyek titkosítási kulcsainak megjelenítése",
+        "body": "Megjeleníti és kezeli egy névjegy titkosítási kulcsait."
+      },
+      "ui_email_details": {
+        "title": "Panelek az üzenet részleteiben",
+        "body": "Saját panelt jelenít meg egy megnyitott üzenet mellett vagy alatt."
+      },
+      "ui_download_file": {
+        "title": "Fájlok mentése az eszközödre",
+        "body": "Letöltésre kínálja az általa létrehozott fájlokat."
+      },
+      "ui_message_list_tabs": {
+        "title": "Lapok a Beérkező levelekben",
+        "body": "Lapokra bontja a Beérkező leveleket, például Frissítések vagy Promóciók."
+      },
+      "ui_composer_toolbar": {
+        "title": "Tartalom a szerkesztőben",
+        "body": "Saját gombokat, menüpontokat és szakaszokat jelenít meg, miközben üzenetet írsz."
+      },
+      "ui_composer_sidebar": {
+        "title": "Panel a szerkesztőben",
+        "body": "Saját panelt jelenít meg az általad írt üzenet mellett."
+      },
+      "ui_sidebar_widget": {
+        "title": "Tartalom az oldalsávon",
+        "body": "Saját dobozokat és szakaszokat jelenít meg a levelezés oldalsávján."
+      },
+      "ui_settings_section": {
+        "title": "Beállítási oldal hozzáadása",
+        "body": "Saját oldalt jelenít meg a Beállításokban."
+      },
+      "ui_context_menu": {
+        "title": "Elemek az üzenet menüjében",
+        "body": "Elemeket ad ahhoz a menühöz, amely egy üzenetre jobb gombbal kattintva nyílik meg."
+      },
+      "ui_navigation_rail": {
+        "title": "Gomb a navigációs sávon",
+        "body": "Saját gombot jelenít meg a navigációs sávon."
+      },
+      "ui_keyboard": {
+        "title": "Billentyűparancsok hozzáadása",
+        "body": "Reagál az általa meghatározott billentyűparancsokra."
+      },
+      "ui_calendar_action": {
+        "title": "Tartalom a naptárnézetben",
+        "body": "Saját gombokat és szakaszokat jelenít meg az eseményeken, valamint rövid címkéket és pontokat a naptár napjain."
+      },
+      "ui_admin_page": {
+        "title": "Adminisztrációs oldal hozzáadása",
+        "body": "Saját oldalt jelenít meg az adminisztrációs beállításokban."
+      },
+      "app_lifecycle": {
+        "title": "Tudomást szerez az alkalmazás indulásáról és leállásáról",
+        "body": "Értesül, amikor az alkalmazás elindul, offline módba vált, vagy kijelentkezel."
+      },
+      "compose_open": {
+        "title": "A szerkesztő megnyitása",
+        "body": "Új üzenetet nyit meg kitöltött címzettekkel, szöveggel vagy mellékletekkel. Az elküldésről továbbra is te döntesz."
+      },
+      "compose_read": {
+        "title": "Az éppen írt üzeneted olvasása",
+        "body": "Az üzenet szövegének olvasása írás közben, amikor a bővítményt a szerkesztőben használod. Az aláírást és az idézett üzenetet nem."
+      },
+      "compose_write": {
+        "title": "Az éppen írt üzeneted módosítása",
+        "body": "Szöveg cseréje vagy hozzáadása az üzenetben írás közben, amikor a bővítményt a szerkesztőben használod. Minden módosítás visszavonható, és továbbra is te döntöd el, elküldöd-e."
+      },
+      "ui_notifications": {
+        "title": "Értesítések megjelenítése",
+        "body": "Értesítéseket jelenít meg az eszközödön, vagy az alkalmazásban, ha nem engedélyezted őket. Mindegyiken szerepel a bővítmény neve."
+      },
+      "ui_message_list": {
+        "title": "Tartalom az üzenetlistában",
+        "body": "Saját tartalmat jelenít meg az üzenetlista felett, valamint gombokat az üzeneteken és a kijelölt üzenetek eszköztárán."
+      },
+      "ui_contacts": {
+        "title": "Tartalom a névjegyek nézetében",
+        "body": "Saját szakaszokat jelenít meg egy névjegy részleteiben és gombokat a névjegylistában."
+      },
+      "ui_tasks": {
+        "title": "Tartalom a feladatok nézetében",
+        "body": "Saját szakaszokat jelenít meg egy feladat részleteiben és gombokat a feladatlistában."
+      },
+      "ui_files": {
+        "title": "Tartalom a fájlok nézetében",
+        "body": "Saját szakaszokat jelenít meg a fájlelőnézetben és menüpontokat egy fájl menüjében."
+      },
+      "ui_commands": {
+        "title": "Saját parancsok",
+        "body": "Saját elemeket ad a parancspalettához (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Saját oldalak",
+        "body": "Saját oldalakat ad az alkalmazáshoz, mindegyiket egy gombbal a navigációs sávon."
+      },
+      "http_proxy": {
+        "title": "Az általad csatlakoztatott fiókok használata",
+        "body": "Kéréseket küld a Bulwark szerverén keresztül egy olyan fiókkal vagy kulccsal, amelyet te vagy a rendszergazdád állított be. A bővítmény soha nem látja a jelszót, de bármit megtehet, amit az a fiók a saját szerverén megtehet."
+      }
+    },
+    "dialog": {
+      "from_plugin": "A(z) {name} bővítménytől",
+      "ok": "OK",
+      "submit": "Küldés",
+      "confirm": "Megerősítés",
+      "cancel": "Mégse",
+      "close": "Bezárás",
+      "turn_off": "{name} kikapcsolása",
+      "plugin_menu": "{name} beállításai",
+      "password_note": "Ez az űrlap a(z) {name} bővítménytől származik, nem a webmailtől. Csak akkor adjon meg jelszót, ha megbízik ebben a bővítményben.",
+      "toast_auto_disabled": "{name} ki lett kapcsolva, mert többször is hibát okozott."
+    },
+    "connect": {
+      "title": "{label} csatlakoztatása",
+      "intro_password": "A(z) {name} bővítmény használni szeretné a(z) {label} fiókodat. A Bulwark a saját szerverén tárolja a jelszót, és csak ide küldi el: {host}. A bővítmény soha nem látja.",
+      "intro_password_any": "A(z) {name} bővítmény használni szeretné a(z) {label} fiókodat. A Bulwark a saját szerverén tárolja a jelszót, és csak az itt megadott szervernek küldi el. A bővítmény soha nem látja.",
+      "intro_signin": "A(z) {name} bővítmény be szeretne jelentkezni a(z) {label} fiókodba. Add meg itt a szervert, majd jelentkezz be a szerver saját oldalán. A Bulwark a saját szerverén tárolja a kapott hozzáférést; a bővítmény soha nem látja.",
+      "server": "Szervercím",
+      "server_hint": "cloud.example.com",
+      "username": "Felhasználónév",
+      "secret": "Jelszó vagy kulcs",
+      "connect": "Csatlakoztatás",
+      "continue": "Tovább",
+      "cancel": "Mégse",
+      "saving": "Mentés…",
+      "error_server": "Add meg a szerver címét, például https://cloud.example.com",
+      "error_save": "Nem sikerült menteni: {error}"
     }
   },
   "global_search": {
@@ -3998,5 +4349,41 @@
     "preview_empty": "Válasszon egy találatot az előnézethez",
     "open_full": "Megnyitás",
     "view_label": "Nézet"
+  },
+  "top_bar": {
+    "more": "További lehetőségek"
+  },
+  "plugin_pages": {
+    "loading": "Oldal betöltése",
+    "not_available_title": "Ez az oldal nem érhető el",
+    "not_available_description": "A bővítmény, amely hozzáadta, ki van kapcsolva, vagy már nincs telepítve.",
+    "back_to_mail": "Vissza a levelekhez",
+    "settings_group": "Bővítmények"
+  },
+  "command_palette": {
+    "title": "Parancspaletta",
+    "open": "Parancspaletta megnyitása",
+    "placeholder": "Írjon be egy parancsot",
+    "no_results": "Nincs egyező parancs",
+    "go_to": "Ugrás ide: {name}",
+    "compose": "Új levél",
+    "search": "Keresés a levelekben",
+    "theme_dark": "Váltás sötét témára",
+    "theme_light": "Váltás világos témára",
+    "shortcuts": "Billentyűparancsok megjelenítése",
+    "group_navigation": "Ugrás ide",
+    "group_actions": "Műveletek",
+    "group_plugins": "Bővítmények"
+  },
+  "notification_center": {
+    "title": "Értesítések",
+    "mark_all_read": "Összes megjelölése olvasottként",
+    "clear": "Törlés",
+    "empty": "Nincsenek értesítések",
+    "close": "Bezárás",
+    "unread": "Olvasatlan",
+    "unread_count": "{count} olvasatlan",
+    "level_error": "Hiba",
+    "level_warning": "Figyelmeztetés"
   }
 }

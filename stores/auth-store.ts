@@ -809,7 +809,7 @@ export function applyPreferredIdentity(accountId?: string | null): void {
     if (legacy) {
       preferred = legacy;
       const current = useSettingsStore.getState().preferredIdentityIds;
-      useSettingsStore.getState().updateSetting('preferredIdentityIds', { ...current, [targetId]: legacy });
+      useSettingsStore.getState().updateSetting('preferredIdentityIds', { ...current, [targetId]: legacy }, { internal: true });
     }
   }
   if (!preferred) return;
@@ -931,7 +931,7 @@ function initializeFeatureStores(client: IJMAPClient): void {
     // user has already made an explicit choice (`null` = not yet decided).
     const settings = useSettingsStore.getState();
     if (settings.trustedSendersAddressBook === null) {
-      settings.updateSetting('trustedSendersAddressBook', true);
+      settings.updateSetting('trustedSendersAddressBook', true, { internal: true });
     }
   } else {
     useContactStore.getState().setSupportsSync(false);
@@ -1243,6 +1243,25 @@ function performFullLogout(set: (state: Partial<AuthState>) => void): void {
   broadcastSignOut();
 }
 
+/**
+ * How long sign-out waits for plugins to tidy up. Plugins observe sign-out;
+ * they cannot stop it or hold it up, or a plugin could keep the user signed
+ * in on a shared computer.
+ */
+export const LOGOUT_HOOK_BUDGET_MS = 2000;
+
+function notifySignedIn(state: { activeAccountId: string | null; username: string | null }): void {
+  if (!state.activeAccountId) return;
+  void authHooks.onLogin.emit({ accountId: state.activeAccountId, username: state.username ?? '' });
+}
+
+function beforeLogoutHooks(accountId: string): Promise<void> {
+  return Promise.race([
+    authHooks.onBeforeLogout.emit({ accountId }),
+    new Promise<void>((resolve) => setTimeout(resolve, LOGOUT_HOOK_BUDGET_MS)),
+  ]);
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -1494,6 +1513,7 @@ export const useAuthStore = create<AuthState>()(
             });
           }).catch(() => {});
 
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('Login error:', error);
@@ -1608,6 +1628,7 @@ export const useAuthStore = create<AuthState>()(
           }).catch(() => {});
 
           resumeSettingsSync({ id: accountId, username, serverUrl });
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('Token login error:', error);
@@ -1673,6 +1694,7 @@ export const useAuthStore = create<AuthState>()(
             activeAccountId: demoAccountId,
             isDemoMode: true,
           });
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('Demo login error:', error);
@@ -1816,6 +1838,7 @@ export const useAuthStore = create<AuthState>()(
             sessionStorage.removeItem('oauth_cookie_slot');
           }
 
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('OAuth login error:', error);
@@ -1953,6 +1976,7 @@ export const useAuthStore = create<AuthState>()(
             });
           }).catch(() => {});
 
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('Server SSO login error:', error);
@@ -2047,6 +2071,7 @@ export const useAuthStore = create<AuthState>()(
 
             resetRefreshBackoff(accountId ?? undefined);
             scheduleRefresh(expires_in, get().refreshAccessToken, accountId ?? undefined);
+            if (accountId) void authHooks.onTokenRefresh.emit({ accountId });
             return access_token;
           } catch (error) {
             // Network failure (offline, Wi-Fi switch, server unreachable) -
@@ -2080,13 +2105,7 @@ export const useAuthStore = create<AuthState>()(
         const userInitiated = options?.endProviderSession !== false;
         const endProviderSession = userInitiated && !wasDemoMode && shouldEndProviderSession(account);
 
-        const ok = await authHooks.onBeforeLogout.intercept({
-          accountId: accountId ?? 'all',
-        });
-
-        if(!ok){
-          return;
-        }
+        await beforeLogoutHooks(accountId ?? 'all');
 
         // From here on nothing may renew this slot's session; the cleanup
         // below reopens it once the credentials are gone.
@@ -2111,7 +2130,7 @@ export const useAuthStore = create<AuthState>()(
         await useSettingsStore.getState().flushSync();
         useSettingsStore.getState().disableSync();
 
-        await authHooks.onAfterLogout.emit({
+        void authHooks.onAfterLogout.emit({
           accountId: accountId ?? 'all',
         });
 
@@ -2234,13 +2253,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logoutAll: async () => {
-        const ok = await authHooks.onBeforeLogout.intercept({
-          accountId: 'all'
-        });
-
-        if(!ok){
-          return;
-        }
+        await beforeLogoutHooks('all');
 
         const accountStore = useAccountStore.getState();
         const allAccounts = [...accountStore.accounts];
@@ -2272,7 +2285,7 @@ export const useAuthStore = create<AuthState>()(
           accountStore.removeAccount(account.id);
         }
 
-        await authHooks.onAfterLogout.emit({
+        void authHooks.onAfterLogout.emit({
           accountId: 'all'
         });
 
@@ -3057,3 +3070,14 @@ if (typeof window !== 'undefined') {
     if (useAuthStore.getState().isAuthenticated) navigateToLogin();
   });
 }
+
+// Plugins hear when a session becomes usable (after start-up or a sign-in)
+// and when another account becomes active, whichever path got there.
+useAuthStore.subscribe((state, prev) => {
+  const ready = state.isAuthenticated && !!state.client && !!state.activeAccountId;
+  const wasReady = prev.isAuthenticated && !!prev.client && !!prev.activeAccountId;
+  if (ready && !wasReady) void authHooks.onAuthReady.emit({ accountId: state.activeAccountId });
+  if (state.activeAccountId && prev.activeAccountId && state.activeAccountId !== prev.activeAccountId) {
+    void authHooks.onAccountSwitch.emit({ accountId: state.activeAccountId, previousAccountId: prev.activeAccountId });
+  }
+});

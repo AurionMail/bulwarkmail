@@ -620,7 +620,9 @@
       "copied": "Skopiowano kod",
       "copy_failed": "Nie udało się skopiować kodu"
     },
-    "mv_position": "{index} z {total}"
+    "mv_position": "{index} z {total}",
+    "plugin_panel_show": "Pokaż panel wtyczki",
+    "plugin_panel_hide": "Ukryj panel wtyczki"
   },
   "email_composer": {
     "minimize": "Minimalizuj",
@@ -813,7 +815,8 @@
       "remove_background_color": "Usuń kolor tła"
     },
     "send_filing_warning": "Wysłano - ale późniejsze porządkowanie nie powiodło się, może pozostać nieaktualna wersja robocza.",
-    "pop_out": "Otwórz odpowiedź w oknie"
+    "pop_out": "Otwórz odpowiedź w oknie",
+    "send_guard_failed": "Nie wysłano - wtyczka sprawdzająca wiadomości przed wysłaniem zawiodła lub nie odpowiedziała."
   },
   "confirm_dialog": {
     "confirm": "Potwierdź",
@@ -3970,6 +3973,354 @@
       "failed_detail": "Autoryzacja nie powiodła się: {error}",
       "missing_params": "Brak kodu autoryzacji lub stanu.",
       "delivery_failed": "Nie udało się przekazać wyniku autoryzacji do karty aplikacji. Zamknij to okno i spróbuj ponownie."
+    },
+    "settings": {
+      "title": "Wtyczki",
+      "description": "Wtyczki dodane przez administratora. Włączaj je i wyłączaj dla swojego konta.",
+      "description_uploads": "Wtyczki dodają funkcje do webmaila. Włączaj je i wyłączaj dla swojego konta albo instaluj własne.",
+      "description_demo": "Wtyczki nie są dostępne w wersji demo.",
+      "install_button": "Zainstaluj wtyczkę",
+      "install_hint": "Wybierz plik ZIP z wtyczką.",
+      "install_hint_approval": "Wybierz plik ZIP z wtyczką. Zanim będzie można ją włączyć, administrator musi ją zatwierdzić.",
+      "install_uploads_off": "Administrator nie pozwala na instalowanie wtyczek.",
+      "install_managed_id": "Administrator udostępnia już wtyczkę o tej nazwie, więc nie można jej zastąpić.",
+      "install_invalid": "Tego pliku nie można zainstalować jako wtyczki: {details}",
+      "toast_installed": "Wtyczka zainstalowana. Włącz ją poniżej.",
+      "toast_installed_pending": "Wtyczka zainstalowana i wysłana do zatwierdzenia przez administratora.",
+      "toast_enabled": "Wtyczka {name} jest włączona",
+      "toast_disabled": "Wtyczka {name} jest wyłączona",
+      "toast_removed": "Usunięto wtyczkę {name}",
+      "toast_forced": "Administrator utrzymuje wtyczkę {name} włączoną",
+      "toast_approval_requested": "Wtyczka {name} czeka na zatwierdzenie przez administratora",
+      "empty_title": "Brak wtyczek",
+      "empty_admin": "Administrator nie dodał jeszcze żadnych wtyczek.",
+      "empty_uploads": "Na początek zainstaluj wtyczkę z pliku ZIP.",
+      "empty_demo": "Wtyczki wymagają prawdziwego konta, więc w wersji demo ich nie ma.",
+      "syncing": "Sprawdzanie wtyczek na serwerze…",
+      "status_installed": "Wyłączona",
+      "status_enabled": "Uruchamianie",
+      "status_running": "Włączona",
+      "status_disabled": "Wyłączona",
+      "status_error": "Problem",
+      "badge_forced": "Wymagana",
+      "badge_managed": "Od administratora",
+      "badge_yours": "Zainstalowana przez Ciebie",
+      "badge_awaiting": "Czeka na zatwierdzenie",
+      "toggle_label": "Włącz lub wyłącz wtyczkę {name}",
+      "forced_note": "Administrator wymaga tej wtyczki, więc nie można jej wyłączyć.",
+      "permissions": "Co może robić",
+      "permissions_managed": "Co może robić (zatwierdzone przez administratora)",
+      "settings": "Ustawienia",
+      "remove": "Usuń",
+      "remove_title": "Usunąć wtyczkę {name}?",
+      "remove_message": "Wtyczka i wszystko, co zapisała w tej przeglądarce, zostaną usunięte. Możesz ją później zainstalować ponownie.",
+      "remove_confirm": "Usuń",
+      "error_user_plugins_off": "Administrator wyłączył wtyczki instalowane przez użytkowników, więc ta wtyczka nie działa.",
+      "error_approval_unavailable": "Ta wtyczka została zainstalowana, zanim wprowadzono zatwierdzanie. Usuń ją i zainstaluj ponownie, aby wysłać ją do zatwierdzenia.",
+      "error_approval_denied": "Administrator nie zatwierdził tej wtyczki.",
+      "error_approval_pending": "Czeka na zatwierdzenie przez administratora.",
+      "error_auto_disabled": "Wyłączono, bo wielokrotnie zawodziło. Włącz ponownie, aby spróbować jeszcze raz.",
+      "accounts_heading": "Połączone konta",
+      "account_on": "{label} na {host}",
+      "account_waiting": "{label} na {host} (logowanie niedokończone)",
+      "disconnect": "Rozłącz",
+      "disconnect_failed": "Nie udało się rozłączyć {label}"
+    },
+    "consent": {
+      "title": "Zezwolić wtyczce {name} na te działania?",
+      "intro": "Wtyczka prosi o poniższe uprawnienia. Otrzyma je tylko wtedy, gdy na to zezwolisz.",
+      "high_risk_note": "Oznaczone pozycje dają wtyczce dostęp do treści Twojej poczty lub pozwalają jej wysyłać dane gdzie indziej. Zezwalaj na nie tylko zaufanym wtyczkom.",
+      "revoke_hint": "W każdej chwili możesz wyłączyć lub usunąć wtyczkę w Ustawieniach.",
+      "deny": "Nie zezwalaj",
+      "allow": "Zezwól"
+    },
+    "permissions": {
+      "none": "Nie potrzebuje specjalnych uprawnień.",
+      "high_risk": "Wymaga ostrożności",
+      "email_read": {
+        "title": "Czytanie poczty",
+        "body": "Widzi nadawców, odbiorców, tematy i pełną treść każdej wiadomości na Twoim koncie oraz Twoje foldery."
+      },
+      "email_write": {
+        "title": "Zmiana i porządkowanie poczty",
+        "body": "Dodaje i usuwa etykiety, flagi i inne słowa kluczowe w Twoich wiadomościach, przenosi je między Twoimi folderami i do archiwum oraz zapisuje szkice."
+      },
+      "email_send": {
+        "title": "Zmiana poczty przed wysłaniem",
+        "body": "Odczytuje i zmienia odbiorców, temat, treść i załączniki pisanych wiadomości oraz może wstrzymać wysłanie wiadomości."
+      },
+      "crypto_full": {
+        "title": "Pełny dostęp do aplikacji",
+        "body": "Działa z tymi samymi uprawnieniami co sam webmail. Może czytać całą Twoją pocztę i zapisane klucze oraz działać w Twoim imieniu. Zezwalaj na to tylko wtyczkom, którym w pełni ufasz."
+      },
+      "email_raw_send": {
+        "title": "Wysyłanie wiadomości utworzonych przez wtyczkę",
+        "body": "Wysyła z Twojego konta kompletne wiadomości, na przykład podpisane lub zaszyfrowane."
+      },
+      "email_blob_read": {
+        "title": "Odczyt surowej treści wiadomości",
+        "body": "Odczytuje oryginalne dane Twoich wiadomości i załączników oraz każdego pliku, który załączysz przed wysłaniem."
+      },
+      "email_blob_write": {
+        "title": "Zastępowanie załączników przed wysłaniem",
+        "body": "Przesyła pliki na Twój serwer poczty i zastępuje załączony plik innym, zanim wiadomość zostanie wysłana."
+      },
+      "email_render_takeover": {
+        "title": "Zmiana sposobu wyświetlania wiadomości",
+        "body": "Zastępuje treść otwieranych wiadomości i listy wiadomości, na przykład aby pokazać odszyfrowaną zawartość."
+      },
+      "calendar_read": {
+        "title": "Odczyt kalendarza",
+        "body": "Widzi Twoje kalendarze i ich wydarzenia."
+      },
+      "calendar_write": {
+        "title": "Zmiana kalendarza",
+        "body": "Tworzy, zmienia i usuwa wydarzenia."
+      },
+      "contacts_read": {
+        "title": "Odczyt kontaktów",
+        "body": "Przeszukuje i odczytuje Twoje książki adresowe."
+      },
+      "contacts_write": {
+        "title": "Zmiana kontaktów",
+        "body": "Tworzy, zmienia i usuwa kontakty i książki adresowe."
+      },
+      "files_read": {
+        "title": "Odczyt plików",
+        "body": "Przegląda i otwiera pliki zapisane na Twoim koncie."
+      },
+      "files_write": {
+        "title": "Zmiana plików",
+        "body": "Przesyła, zmienia nazwy, przenosi i usuwa pliki na Twoim koncie."
+      },
+      "identity_read": {
+        "title": "Podgląd tożsamości nadawcy",
+        "body": "Widzi adresy, z których wysyłasz wiadomości, i ich podpisy."
+      },
+      "identity_write": {
+        "title": "Zmiana tożsamości nadawcy",
+        "body": "Tworzy, zmienia i usuwa tożsamości nadawcy i podpisy."
+      },
+      "filters_read": {
+        "title": "Odczyt filtrów poczty",
+        "body": "Widzi reguły, które sortują Twoją przychodzącą pocztę."
+      },
+      "filters_write": {
+        "title": "Zmiana filtrów poczty",
+        "body": "Dodaje reguły do filtrów na serwerze. Takie reguły mogą przenosić, przekazywać dalej lub usuwać przychodzącą pocztę."
+      },
+      "tasks_read": {
+        "title": "Odczyt zadań",
+        "body": "Widzi Twoje listy zadań i zadania."
+      },
+      "tasks_write": {
+        "title": "Zmiana zadań",
+        "body": "Tworzy, zmienia, kończy i usuwa zadania."
+      },
+      "templates_read": {
+        "title": "Odczyt szablonów",
+        "body": "Widzi Twoje zapisane szablony wiadomości."
+      },
+      "templates_write": {
+        "title": "Zmiana szablonów",
+        "body": "Tworzy, zmienia i usuwa szablony wiadomości."
+      },
+      "smime_read": {
+        "title": "Podgląd stanu S/MIME",
+        "body": "Widzi, czy masz klucze i certyfikaty S/MIME, bez dostępu do kluczy."
+      },
+      "vacation_read": {
+        "title": "Podgląd odpowiedzi o nieobecności",
+        "body": "Widzi, czy automatyczna odpowiedź jest włączona i jaka jest jej treść."
+      },
+      "vacation_write": {
+        "title": "Zmiana odpowiedzi o nieobecności",
+        "body": "Włącza i wyłącza automatyczną odpowiedź oraz zmienia jej treść i daty."
+      },
+      "settings_read": {
+        "title": "Odczyt ustawień",
+        "body": "Widzi Twoje preferencje i definicje etykiet."
+      },
+      "settings_write": {
+        "title": "Zmiana ustawień",
+        "body": "Dodaje etykiety, zmienia ich kolejność i zmienia Twoje preferencje."
+      },
+      "security_read": {
+        "title": "Podgląd zabezpieczeń konta",
+        "body": "Widzi, czy uwierzytelnianie dwuskładnikowe i szyfrowanie są włączone, bez dostępu do sekretów."
+      },
+      "auth_observe": {
+        "title": "Informacja o logowaniu",
+        "body": "Otrzymuje informację, gdy się logujesz, przełączasz konta lub Twoja sesja zostaje odnowiona."
+      },
+      "auth_emit": {
+        "title": "Wylogowywanie",
+        "body": "Może wylogować Cię z webmaila."
+      },
+      "account_read": {
+        "title": "Podgląd kont",
+        "body": "Widzi dodane przez Ciebie konta wraz z ich adresami i serwerami."
+      },
+      "http_post": {
+        "title": "Korzystanie z serwera webmaila w Twoim imieniu",
+        "body": "Wywołuje te punkty końcowe serwera z Twoimi danymi logowania:"
+      },
+      "http_fetch": {
+        "title": "Łączenie z innymi witrynami",
+        "body": "Wysyła żądania do tych witryn. Wszystko, co wtyczka może odczytać, może tam zostać wysłane:"
+      },
+      "admin_config": {
+        "title": "Odczyt ustawień od administratora",
+        "body": "Odczytuje ustawienia, które administrator zapisał dla tej wtyczki."
+      },
+      "ui_observe": {
+        "title": "Śledzenie, gdzie jesteś w aplikacji",
+        "body": "Wie, która strona jest otwarta, i reaguje na klikane linki."
+      },
+      "ui_toolbar": {
+        "title": "Przyciski na paskach narzędzi",
+        "body": "Pokazuje własne przyciski na pasku narzędzi wiadomości, przy otwartej wiadomości i na górnym pasku."
+      },
+      "ui_app_top_banner": {
+        "title": "Baner u góry",
+        "body": "Pokazuje komunikat na górze aplikacji."
+      },
+      "ui_email_banner": {
+        "title": "Komunikaty przy wiadomościach",
+        "body": "Pokazuje własne komunikaty i podsumowania nad częściami otwartej wiadomości lub konwersacji, w nich i między nimi."
+      },
+      "ui_email_footer": {
+        "title": "Treść pod wiadomościami",
+        "body": "Pokazuje własną treść pod otwartą wiadomością."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Klucze szyfrowania kontaktów",
+        "body": "Pokazuje klucze szyfrowania kontaktu i pozwala nimi zarządzać."
+      },
+      "ui_email_details": {
+        "title": "Panele w szczegółach wiadomości",
+        "body": "Pokazuje własny panel obok lub pod otwartą wiadomością."
+      },
+      "ui_download_file": {
+        "title": "Zapisywanie plików na urządzeniu",
+        "body": "Udostępnia do pobrania utworzone przez siebie pliki."
+      },
+      "ui_message_list_tabs": {
+        "title": "Karty w Odebranych",
+        "body": "Dzieli Odebrane na karty, takie jak Aktualizacje czy Oferty."
+      },
+      "ui_composer_toolbar": {
+        "title": "Elementy w edytorze wiadomości",
+        "body": "Pokazuje własne przyciski, pozycje menu i sekcje podczas pisania wiadomości."
+      },
+      "ui_composer_sidebar": {
+        "title": "Panel w edytorze wiadomości",
+        "body": "Pokazuje własny panel obok pisanej wiadomości."
+      },
+      "ui_sidebar_widget": {
+        "title": "Elementy na pasku bocznym",
+        "body": "Pokazuje własne pola i sekcje na pasku bocznym poczty."
+      },
+      "ui_settings_section": {
+        "title": "Strona ustawień",
+        "body": "Pokazuje własną stronę w Ustawieniach."
+      },
+      "ui_context_menu": {
+        "title": "Pozycje w menu wiadomości",
+        "body": "Dodaje pozycje do menu otwieranego kliknięciem wiadomości prawym przyciskiem myszy."
+      },
+      "ui_navigation_rail": {
+        "title": "Przycisk na pasku nawigacyjnym",
+        "body": "Pokazuje własny przycisk na pasku nawigacyjnym."
+      },
+      "ui_keyboard": {
+        "title": "Skróty klawiszowe",
+        "body": "Reaguje na zdefiniowane przez siebie skróty klawiszowe."
+      },
+      "ui_calendar_action": {
+        "title": "Elementy w widoku kalendarza",
+        "body": "Pokazuje własne przyciski i sekcje przy wydarzeniach oraz krótkie etykiety i kropki przy dniach w kalendarzu."
+      },
+      "ui_admin_page": {
+        "title": "Strona administracyjna",
+        "body": "Pokazuje własną stronę w ustawieniach administracyjnych."
+      },
+      "app_lifecycle": {
+        "title": "Informacja o uruchomieniu i zamknięciu aplikacji",
+        "body": "Otrzymuje informację, gdy aplikacja się uruchamia, przechodzi w tryb offline lub gdy się wylogowujesz."
+      },
+      "compose_open": {
+        "title": "Otwieranie edytora wiadomości",
+        "body": "Otwiera nową wiadomość z wypełnionymi odbiorcami, treścią lub załącznikami. O wysłaniu nadal decydujesz Ty."
+      },
+      "compose_read": {
+        "title": "Czytanie pisanej wiadomości",
+        "body": "Czytanie tekstu wiadomości podczas pisania, gdy używasz wtyczki w edytorze. Bez podpisu i cytowanej wiadomości."
+      },
+      "compose_write": {
+        "title": "Zmiana pisanej wiadomości",
+        "body": "Zastępowanie lub dodawanie tekstu w wiadomości podczas pisania, gdy używasz wtyczki w edytorze. Każdą zmianę możesz cofnąć, a o wysłaniu nadal decydujesz Ty."
+      },
+      "ui_notifications": {
+        "title": "Wyświetlanie powiadomień",
+        "body": "Wyświetla powiadomienia na urządzeniu lub w aplikacji, jeśli ich nie zezwolono. Każde podaje nazwę wtyczki."
+      },
+      "ui_message_list": {
+        "title": "Elementy na liście wiadomości",
+        "body": "Pokazuje własną treść nad listą wiadomości oraz przyciski przy wiadomościach i na pasku narzędzi zaznaczonych wiadomości."
+      },
+      "ui_contacts": {
+        "title": "Elementy w widoku kontaktów",
+        "body": "Pokazuje własne sekcje w szczegółach kontaktu i przyciski na liście kontaktów."
+      },
+      "ui_tasks": {
+        "title": "Elementy w widoku zadań",
+        "body": "Pokazuje własne sekcje w szczegółach zadania i przyciski na liście zadań."
+      },
+      "ui_files": {
+        "title": "Elementy w widoku plików",
+        "body": "Pokazuje własne sekcje w podglądzie pliku i pozycje w menu pliku."
+      },
+      "ui_commands": {
+        "title": "Własne polecenia",
+        "body": "Dodaje własne pozycje do palety poleceń (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Własne strony",
+        "body": "Dodaje do aplikacji własne strony, każdą z przyciskiem na pasku nawigacyjnym."
+      },
+      "http_proxy": {
+        "title": "Korzystanie z połączonych przez Ciebie kont",
+        "body": "Wysyła żądania przez serwer Bulwark z użyciem konta lub klucza skonfigurowanego przez Ciebie lub Twojego administratora. Wtyczka nigdy nie widzi hasła, ale może zrobić na tym serwerze wszystko, co może to konto."
+      }
+    },
+    "dialog": {
+      "from_plugin": "Od wtyczki {name}",
+      "ok": "OK",
+      "submit": "Wyślij",
+      "confirm": "Potwierdź",
+      "cancel": "Anuluj",
+      "close": "Zamknij",
+      "turn_off": "Wyłącz {name}",
+      "plugin_menu": "Opcje dla {name}",
+      "password_note": "Ten formularz pochodzi z wtyczki {name}, a nie z poczty. Wpisz hasło tylko wtedy, gdy ufasz tej wtyczce.",
+      "toast_auto_disabled": "{name} wyłączono, bo wielokrotnie zawodziło."
+    },
+    "connect": {
+      "title": "Połącz z {label}",
+      "intro_password": "{name} chce używać Twojego konta {label}. Bulwark przechowuje hasło na swoim serwerze i wysyła je tylko do {host}. Wtyczka nigdy go nie widzi.",
+      "intro_password_any": "{name} chce używać Twojego konta {label}. Bulwark przechowuje hasło na swoim serwerze i wysyła je tylko do serwera, który tu wpiszesz. Wtyczka nigdy go nie widzi.",
+      "intro_signin": "{name} chce zalogować się na Twoje konto {label}. Wpisz tu serwer, a potem zaloguj się na jego stronie. Bulwark przechowuje uzyskany dostęp na swoim serwerze; wtyczka nigdy go nie widzi.",
+      "server": "Adres serwera",
+      "server_hint": "cloud.example.com",
+      "username": "Nazwa użytkownika",
+      "secret": "Hasło lub klucz",
+      "connect": "Połącz",
+      "continue": "Dalej",
+      "cancel": "Anuluj",
+      "saving": "Zapisywanie…",
+      "error_server": "Wpisz adres serwera, na przykład https://cloud.example.com",
+      "error_save": "Nie udało się zapisać: {error}"
     }
   },
   "global_search": {
@@ -3998,5 +4349,41 @@
     "preview_empty": "Wybierz wynik, aby zobaczyć podgląd",
     "open_full": "Otwórz",
     "view_label": "Widok"
+  },
+  "top_bar": {
+    "more": "Więcej opcji"
+  },
+  "plugin_pages": {
+    "loading": "Wczytywanie strony",
+    "not_available_title": "Ta strona jest niedostępna",
+    "not_available_description": "Wtyczka, która ją dodała, jest wyłączona lub nie jest już zainstalowana.",
+    "back_to_mail": "Wróć do poczty",
+    "settings_group": "Wtyczki"
+  },
+  "command_palette": {
+    "title": "Paleta poleceń",
+    "open": "Otwórz paletę poleceń",
+    "placeholder": "Wpisz polecenie",
+    "no_results": "Brak pasujących poleceń",
+    "go_to": "Przejdź do: {name}",
+    "compose": "Nowa wiadomość",
+    "search": "Szukaj w poczcie",
+    "theme_dark": "Przełącz na ciemny motyw",
+    "theme_light": "Przełącz na jasny motyw",
+    "shortcuts": "Pokaż skróty klawiszowe",
+    "group_navigation": "Przejdź do",
+    "group_actions": "Działania",
+    "group_plugins": "Wtyczki"
+  },
+  "notification_center": {
+    "title": "Powiadomienia",
+    "mark_all_read": "Oznacz wszystkie jako przeczytane",
+    "clear": "Wyczyść",
+    "empty": "Brak powiadomień",
+    "close": "Zamknij",
+    "unread": "Nieprzeczytane",
+    "unread_count": "Nieprzeczytane: {count}",
+    "level_error": "Błąd",
+    "level_warning": "Ostrzeżenie"
   }
 }

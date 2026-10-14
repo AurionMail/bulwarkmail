@@ -1,3 +1,6 @@
+import type { CredentialSpec } from './plugin-secrets/credentials';
+import type { CatalogSlotName } from './plugin-slot-catalog';
+
 // Plugin & Theme system types
 
 // ─── Common ──────────────────────────────────────────────────
@@ -103,6 +106,12 @@ export interface ThemeManifest {
 }
 
 export interface PluginManifest {
+  /**
+   * Accounts and API keys the plugin uses through the server proxy
+   * (`api.proxy.fetch`). The secret stays on the server; see
+   * lib/plugin-secrets/credentials.ts.
+   */
+  credentials?: Record<string, CredentialSpec>;
   id: string;
   name: string;
   version: string;
@@ -209,6 +218,8 @@ export interface InstalledTheme {
   builtIn: boolean;
   managed?: boolean;
   forceEnabled?: boolean;
+  /** Server content hash of a managed theme's CSS + skin; see ServerTheme. */
+  contentHash?: string;
 
   // ─── Advanced (Theme API v2) ─ carried over from the manifest ─
   apiVersion?: 1 | 2;
@@ -221,6 +232,8 @@ export interface InstalledTheme {
 }
 
 export interface InstalledPlugin {
+  /** From the manifest: see PluginManifest.credentials. */
+  credentials?: Record<string, CredentialSpec>;
   id: string;
   name: string;
   version: string;
@@ -268,35 +281,21 @@ export interface InstalledPlugin {
    * skip the consent prompt (admin pre-approval).
    */
   grantedPermissions?: string[];
+  /**
+   * For plugins the user installed: the validated manifest, kept so the
+   * package can be rebuilt for an approval request, and the hash an admin
+   * approval is pinned to (see packageHash in lib/extension-package.ts).
+   */
+  packageManifest?: Record<string, unknown>;
+  approvalHash?: string;
+  /** Last answer from the server about this package's approval. */
+  approvalStatus?: 'pending' | 'approved' | 'denied' | 'not-requested';
 }
 
 // ─── UI Slots ────────────────────────────────────────────────
 
-export type SlotName =
-  | 'toolbar-actions'
-  | 'app-top-banner'
-  | 'email-banner'
-  | 'email-footer'
-  | 'composer-toolbar'
-  | 'composer-sidebar'
-  | 'composer-sidebar-right'
-  | 'sidebar-widget'
-  | 'email-detail-sidebar'
-  | 'email-details-section'
-  | 'settings-section'
-  | 'context-menu-email'
-  | 'navigation-rail-bottom'
-  | 'calendar-event-actions'
-  | 'admin-plugin-page'
-  | 'contact-cryptokeys'
-  | 'attachment-actions'
-  | 'composer-attachment-source'
-  // Rendered inside a plugin-requested host dialog (see `ui.openDialog` /
-  // PluginDialogHost), NOT in-page like every other slot above - this is
-  // the only slot that renders inside the app-root fixed overlay instead of
-  // wherever the slot is placed in the page, so it's the one to use for a
-  // large, genuinely clickable custom UI a small toolbar/row slot can't fit.
-  | 'plugin-dialog';
+/** Every slot and action surface; see lib/plugin-slot-catalog.ts. */
+export type SlotName = CatalogSlotName;
 
 export interface SlotRegistration {
   pluginId: string;
@@ -408,6 +407,12 @@ export interface EmailReadView {
   isRead: boolean;
   isFlagged: boolean;
   hasAttachment: boolean;
+  /**
+   * The message's attachments. `blobId` is what `email.getAttachment`
+   * takes. Inline images are included and marked. Empty until the host has
+   * loaded the message's body structure.
+   */
+  attachments: { blobId: string; name: string; type: string; size: number; inline: boolean }[];
   preview: string;
   keywords: string[];
   /** Full plain-text body of the message (HTML-only bodies are stripped to
@@ -440,6 +445,25 @@ export interface EmailReadView {
   };
 }
 
+/**
+ * The light view of a message used by list-level hooks (new mail, selection,
+ * moves): headers and flags, no body or source. Same email:read sensitivity
+ * as EmailReadView.
+ */
+export interface EmailSummary {
+  id: string;
+  threadId: string;
+  mailboxIds: string[];
+  from: { name: string; email: string }[];
+  to: { name: string; email: string }[];
+  subject: string;
+  receivedAt: string;
+  preview: string;
+  keywords: string[];
+  hasAttachment: boolean;
+  size: number;
+}
+
 export interface DraftView {
   to: string[];
   cc: string[];
@@ -463,15 +487,26 @@ export interface MailboxView {
 
 export interface CalendarEventView {
   id: string;
+  /** JSCalendar uid, stable across edits and the same for every occurrence. */
+  uid: string;
   calendarId: string;
   title: string;
   description: string;
+  /** Local start, as stored (ISO 8601 without zone, see `timeZone`). */
   start: string;
-  end: string;
+  /** ISO 8601 duration, e.g. PT1H. */
+  duration: string;
+  timeZone: string | null;
+  /** UTC start and end when the server computed them. */
+  utcStart: string | null;
+  utcEnd: string | null;
   isAllDay: boolean;
   location: string;
   status: string;
-  recurrenceRule?: string;
+  /** Attendee addresses, organizer included. */
+  participants: { name: string; email: string; role: string; status: string }[];
+  isRecurring: boolean;
+  keywords: string[];
 }
 
 export interface CalendarView {
@@ -480,17 +515,86 @@ export interface CalendarView {
   color: string;
   isVisible: boolean;
   isDefault: boolean;
+  /** Holds tasks only; events can't be put in it. */
+  isTasksOnly: boolean;
+}
+
+/**
+ * What a plugin passes to `api.calendar.createEvent` (and, every field
+ * optional, to `updateEvent`). Times are written one of three ways:
+ * `2026-05-01` (a day), `2026-05-01T09:30` (a wall-clock time in `timeZone`)
+ * or `2026-05-01T07:30:00Z` (UTC). Give `end` or `duration`, not both; with
+ * neither an event lasts one hour, or one day when it is all-day.
+ */
+export interface CalendarEventInput {
+  /** 1-500 characters. */
+  title: string;
+  /** Up to 10,000 characters of plain text. */
+  description?: string;
+  start: string;
+  /** Exclusive: an all-day event on May 1 ends on `2026-05-02`. */
+  end?: string;
+  /** ISO 8601 duration such as `PT1H30M`, or whole days (`P2D`) when all-day. */
+  duration?: string;
+  /** IANA zone of a wall-clock `start`. Defaults to the user's zone. */
+  timeZone?: string;
+  /** Defaults to true when `start` is a date without a time. */
+  isAllDay?: boolean;
+  /** Up to 500 characters. */
+  location?: string;
+  /** From `api.calendar.listCalendars()`. Defaults to the default calendar. */
+  calendarId?: string;
+  /**
+   * Attendees, at most 50, stored with the user as organizer. No invitation
+   * is sent; the user can send them from the event. An empty array removes
+   * them.
+   */
+  participants?: { email: string; name?: string }[];
+  /**
+   * Repeat the event. `until` is a date (YYYY-MM-DD); give `count` or
+   * `until`, not both. null removes the repetition (updates).
+   */
+  repeat?: { frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'; interval?: number; count?: number; until?: string } | null;
+  /**
+   * createEvent only: your own stable id for the event, 1-128 of
+   * `A-Z a-z 0-9 . _ : -`. It is stored as `<uid>@<pluginId>.plugin.bulwark`,
+   * which is what CalendarEventView.uid then shows, so you can find the
+   * event again without remembering its id.
+   */
+  uid?: string;
+}
+
+/** What a plugin passes to `api.tasks.create` (and, every field optional, to `update`). */
+export interface TaskInput {
+  /** 1-500 characters. */
+  title: string;
+  /** Up to 10,000 characters of plain text. */
+  description?: string;
+  /** `2026-05-01` or `2026-05-01T17:00` (wall clock). null removes it on update. */
+  due?: string | null;
+  /** 0 (none), 1 (highest) to 9 (lowest). */
+  priority?: number;
+  /** Defaults to the tasks calendar, else the default calendar. */
+  calendarId?: string;
 }
 
 export interface ContactView {
   id: string;
+  uid: string;
   addressBookId: string;
+  kind: string;
+  fullName: string;
   firstName: string;
   lastName: string;
   emails: string[];
   phones: string[];
   company: string;
   notes: string;
+  /**
+   * Birthdays, anniversaries and other dates, as `--MM-DD` when the year is
+   * unknown or `YYYY-MM-DD` when it is known.
+   */
+  anniversaries: { kind: string; date: string }[];
 }
 
 export interface AddressBookView {
@@ -527,20 +631,122 @@ export interface IdentityView {
 
 export interface TaskView {
   id: string;
+  uid: string;
   title: string;
   description: string;
   isComplete: boolean;
+  progress: string;
   dueDate: string | null;
-  priority: string;
+  /** 0 (none) or 1 (highest) to 9 (lowest), as in JSCalendar. */
+  priority: number;
   calendarId: string;
+  keywords: string[];
 }
 
 export interface TemplateView {
   id: string;
   name: string;
+  category: string;
   subject: string;
-  htmlBody: string;
-  textBody: string;
+  body: string;
+  isHTML: boolean;
+}
+
+/** What a plugin passes to `api.templates.create` (and, every field optional, to `update`). */
+export interface TemplateInput {
+  /** 1-200 characters. */
+  name: string;
+  /** Up to 998 characters. */
+  subject?: string;
+  /** Up to 100,000 characters. When isHTML, sanitised like any HTML a plugin hands the host. */
+  body?: string;
+  isHTML?: boolean;
+  /** Up to 100 characters; '' for none. */
+  category?: string;
+}
+
+/** What a plugin may change on a sender identity with `api.identities.update`. The address can't be changed. */
+export interface IdentityPatch {
+  /** Up to 256 characters. */
+  name?: string;
+  /** At most 10 addresses (`a@example.com` or `Name <a@example.com>`); null or [] removes them. */
+  replyTo?: string[] | null;
+  /** Up to 20,000 characters; null or '' removes it. */
+  textSignature?: string | null;
+  /** Up to 100,000 characters, sanitised like a signature typed into Settings; null or '' removes it. */
+  htmlSignature?: string | null;
+}
+
+/** What a plugin passes to `api.vacation.set`. Fields left out keep their value. */
+export interface VacationInput {
+  isEnabled: boolean;
+  /** Up to 500 characters. */
+  subject?: string;
+  /** Up to 64,000 characters. Derived from htmlBody when that is given and this is not. */
+  textBody?: string;
+  /** Up to 64,000 characters, sanitised like the HTML typed into Settings; null removes it. */
+  htmlBody?: string | null;
+  /** When the reply starts, with a zone (`2026-05-01T00:00:00Z`), or null for now. */
+  fromDate?: string | null;
+  /** When it ends, or null for open-ended. */
+  toDate?: string | null;
+}
+
+/**
+ * A file the plugin uploaded with `api.jmap.uploadBlob`, to attach to a
+ * message it opens or saves.
+ */
+export interface BlobAttachmentRef {
+  blobId: string;
+  /** 1-255 characters. */
+  name: string;
+  /** A media type such as application/pdf. */
+  type: string;
+  /** Bytes. */
+  size: number;
+}
+
+/**
+ * What a plugin passes to `api.compose.open`. Addresses are
+ * `a@example.com` or `Name <a@example.com>`; at most 100 recipients and 20
+ * attachments.
+ */
+export interface ComposeInput {
+  to?: string[];
+  cc?: string[];
+  bcc?: string[];
+  /** One line, up to 998 characters. */
+  subject?: string;
+  /** Up to 512 KB. Plain text unless isHtml; HTML is sanitised. */
+  body?: string;
+  isHtml?: boolean;
+  attachments?: BlobAttachmentRef[];
+}
+
+/** What a plugin passes to `api.drafts.create`: the same fields as ComposeInput. */
+export type DraftInput = ComposeInput;
+
+/**
+ * What a plugin passes to `api.notifications.show`. The plugin's name is
+ * added to what the user sees, so they know who sent it.
+ */
+export interface NotificationInput {
+  /** 1-120 characters, one line. */
+  title: string;
+  /** Up to 300 characters, one line. */
+  body?: string;
+  /**
+   * 1-64 letters, digits or `. _ : -`. A new notification with the same tag
+   * replaces the old one, and onNotificationClick hands the tag back.
+   */
+  tag?: string;
+  /**
+   * A link the host shows as a button on the toast and as a link in the
+   * notification panel, opened in a new tab. The URL must be http(s) and on
+   * a server the plugin already talks to: one of its `httpOrigins`, or the
+   * server of one of its proxy credentials.
+   */
+  action?: { label: string; url: string };
 }
 
 export interface FilterRuleView {
@@ -1048,12 +1254,22 @@ export const ALL_PERMISSIONS = [
   // Submit a fully-formed raw RFC822 message via JMAP (used after a plugin
   // signs/encrypts an outgoing message itself).
   'email:raw-send',
-  // Fetch a message blob's raw bytes by blobId (for decrypt/verify).
+  // Read the bytes of a message's attachments and its full source
+  // (email.getAttachment / email.getRaw), and of files the user attaches.
+  // Arbitrary blob ids (jmap.fetchBlob) stay privileged-tier only.
   'email:blob-read',
   // Upload a file to server (for encrypt).
   'email:blob-write',
   // Replace the rendered body of an opened email (render-takeover).
   'email:render-takeover',
+  // Open the composer filled in (api.compose.open). Low risk: the user still
+  // has to press Send.
+  'compose:open',
+  // Read the message being written (api.composer.getBody/getSelection), in
+  // a composer that handed the plugin its id.
+  'compose:read',
+  // Change the message being written (api.composer.replaceSelection/replaceBody).
+  'compose:write',
   'calendar:read', 'calendar:write',
   'contacts:read', 'contacts:write',
   'files:read', 'files:write',
@@ -1061,7 +1277,6 @@ export const ALL_PERMISSIONS = [
   'filters:read', 'filters:write',
   'tasks:read', 'tasks:write',
   'templates:read', 'templates:write',
-  'smime:read',
   'vacation:read', 'vacation:write',
   'settings:read', 'settings:write',
   'security:read',
@@ -1072,17 +1287,32 @@ export const ALL_PERMISSIONS = [
   'ui:observe', 'ui:toolbar', 'ui:app-top-banner', 'ui:email-banner', 'ui:email-footer', 'ui:contact-cryptokeys',
   'ui:email-details',
   'ui:download-file',
+  // Show a system notification, or a toast when the user hasn't allowed them
+  // (api.notifications.show).
+  'ui:notifications',
   // Register native message-list category tabs (Gmail-style inbox tabs).
   'ui:message-list-tabs',
   'ui:composer-toolbar', 'ui:composer-sidebar',
   'ui:sidebar-widget', 'ui:settings-section',
   'ui:context-menu', 'ui:navigation-rail', 'ui:keyboard',
   'ui:calendar-action', 'ui:admin-page',
+  // Surfaces from the slot catalogue (lib/plugin-slot-catalog.ts).
+  'ui:message-list', 'ui:contacts', 'ui:tasks', 'ui:files', 'ui:commands', 'ui:app-page',
+  // Requests that carry an account or API key, added by the server (lib/plugin-secrets).
+  'http:proxy',
   'admin:config',
   'app:lifecycle',
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
+
+/**
+ * Permissions older plugins may still name that no longer grant anything:
+ * `smime:read` covered the built-in S/MIME code, which moved into a plugin.
+ * Accepted and dropped at install, with a warning, so those plugins still
+ * install.
+ */
+export const DEPRECATED_PERMISSIONS: readonly string[] = ['smime:read'];
 
 /** Permissions always granted regardless of manifest */
 export const IMPLICIT_PERMISSIONS: Permission[] = ['ui:observe', 'app:lifecycle'];

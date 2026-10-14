@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Mail, Phone, Building, MapPin, StickyNote, Pencil, Trash2, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, Download, MoreHorizontal, Printer } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
@@ -16,6 +16,8 @@ import { exportContact } from "./contact-export";
 import { printContact } from "./contact-print";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { contactHooks } from "@/lib/plugin-hooks";
+import { contactToView } from "@/lib/plugin-projection";
 
 type MoreItem =
   | {
@@ -123,6 +125,17 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   const cryptoKeys = contact?.cryptoKeys ? Object.values(contact.cryptoKeys) : [];
   const hasCryptoKeysSlotOffers = usePluginSlotOffers('contact-cryptokeys').length > 0;
+  const pluginContactProps = useMemo(() => (contact ? { contact: contactToView(contact) } : null), [contact]);
+
+  // Tell plugins once per contact shown here, not on every edit of that card.
+  const latestContact = useRef(contact);
+  useEffect(() => { latestContact.current = contact; });
+  const openedId = contact?.id;
+  useEffect(() => {
+    const opened = latestContact.current;
+    if (!openedId || !opened) return;
+    void contactHooks.onContactOpen.emit(contactToView(opened));
+  }, [openedId]);
 
   if (!contact) {
     return (
@@ -495,6 +508,10 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
               </div>
             </div>
           </Section>
+        )}
+
+        {pluginContactProps && (
+          <PluginSlot name="contact-detail-section" className="w-full py-6" extraProps={pluginContactProps} />
         )}
 
         <ContactActivity contact={contact} />

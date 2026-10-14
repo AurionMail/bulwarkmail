@@ -63,16 +63,30 @@ const DEFAULT_TIMEOUT_MS = 5000;
 // reply-all, mailto, attachment upload), so they need a much longer budget
 // than observer / transform hooks.
 const INTERCEPT_TIMEOUT_MS = 60_000;
-// onBeforeBlobUpload handlers may push the attachment to an external store
-// before handing back a link (see ExternalAttachmentResult), which is a real
-// upload over the wire - 5s would kill every offload of a file worth
-// offloading, and three of those in a minute would auto-disable the plugin.
-const BLOB_UPLOAD_TIMEOUT_MS = 120_000;
+// onBeforeBlobUpload handlers may ask the user and then push the attachment
+// to an external store before handing back a link (see
+// ExternalAttachmentResult): a real upload of a file too big to mail, which
+// takes minutes on a slow line. Two minutes cut off large offloads and
+// counted them toward auto-disable.
+const BLOB_UPLOAD_TIMEOUT_MS = 15 * 60_000;
+
+class HookTimeoutError extends Error {}
+
+let timeoutListener: ((pluginId: string) => void) | null = null;
+
+/**
+ * Called with the plugin id whenever one of its handlers runs out of time.
+ * The loader uses it to close that plugin's open dialogs: the host has
+ * already moved on, so a dialog left on screen would answer nothing.
+ */
+export function setHookTimeoutListener(listener: ((pluginId: string) => void) | null): void {
+  timeoutListener = listener;
+}
 
 function withTimeout<T>(promise: T | Promise<T>, ms: number = DEFAULT_TIMEOUT_MS): Promise<T> {
   if (!(promise instanceof Promise)) return Promise.resolve(promise);
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Hook timed out after ${ms}ms`)), ms);
+    const timer = setTimeout(() => reject(new HookTimeoutError(`Hook timed out after ${ms}ms`)), ms);
     promise.then(
       (val) => { clearTimeout(timer); resolve(val); },
       (err) => { clearTimeout(timer); reject(err); },
@@ -115,8 +129,21 @@ export class HookBus<T extends (...args: any[]) => any> {
    *   Defaults to 5s; a bus whose handlers legitimately do network work sets
    *   its own (see `onBeforeBlobUpload`). `intercept` keeps its own longer
    *   budget because those hooks block on user dialogs.
+   * @param opts.failClosed For intercepts guarding an action that can't be
+   *   taken back (sending mail): a handler that throws or runs out of time
+   *   cancels the action instead of letting it through.
    */
-  constructor(private readonly timeoutMs: number = DEFAULT_TIMEOUT_MS) {}
+  constructor(
+    private readonly timeoutMs: number = DEFAULT_TIMEOUT_MS,
+    private readonly opts: { failClosed?: boolean } = {},
+  ) {}
+
+  private recordFailure(pluginId: string, err: unknown): void {
+    pluginErrorTracker.record(pluginId, err);
+    if (err instanceof HookTimeoutError) {
+      try { timeoutListener?.(pluginId); } catch { /* ignore */ }
+    }
+  }
 
   register(pluginId: string, handler: T, order: number = 100): Disposable {
     const entry: HookEntry<T> = { pluginId, handler, order };
@@ -150,7 +177,7 @@ export class HookBus<T extends (...args: any[]) => any> {
       try {
         await withTimeout(handler(...args), this.timeoutMs);
       } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
+        this.recordFailure(pluginId, err);
       }
     }
   }
@@ -167,18 +194,40 @@ export class HookBus<T extends (...args: any[]) => any> {
     }
   }
 
+  /** Observer emit to one plugin's handlers only. */
+  async emitTo(pluginId: string, ...args: Parameters<T>): Promise<void> {
+    for (const { pluginId: owner, handler } of this.handlers) {
+      if (owner !== pluginId || pluginErrorTracker.isDisabled(owner)) continue;
+      try {
+        await withTimeout(handler(...args), this.timeoutMs);
+      } catch (err) {
+        this.recordFailure(owner, err);
+      }
+    }
+  }
+
   /** Fire handlers as interceptors - any returning false cancels the operation */
   async intercept(...args: Parameters<T>): Promise<boolean> {
+    return (await this.interceptOutcome(...args)) === 'allowed';
+  }
+
+  /**
+   * Like `intercept`, but says why an operation was stopped: `vetoed` when a
+   * handler said no (it is expected to have told the user), `failed` when a
+   * fail-closed bus stopped it because a handler threw or ran out of time.
+   */
+  async interceptOutcome(...args: Parameters<T>): Promise<'allowed' | 'vetoed' | 'failed'> {
     for (const { pluginId, handler } of this.handlers) {
       if (pluginErrorTracker.isDisabled(pluginId)) continue;
       try {
         const result = await withTimeout(handler(...args), Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS));
-        if (result === false) return false;
+        if (result === false) return 'vetoed';
       } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
+        this.recordFailure(pluginId, err);
+        if (this.opts.failClosed) return 'failed';
       }
     }
-    return true;
+    return 'allowed';
   }
 
   /**
@@ -194,13 +243,45 @@ export class HookBus<T extends (...args: any[]) => any> {
       try {
         result = await withTimeout(handler(...args), Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS));
       } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
+        this.recordFailure(pluginId, err);
         return 'failed';
       }
       if (result === false) return 'handled';
       if (isAbortResult(result)) return 'aborted';
     }
     return 'default';
+  }
+
+  /**
+   * For "before" hooks whose handlers may stop an action (return `false`) or
+   * change what it does (return a value). Handlers run once each, in order,
+   * with the intercept budget; `accept` turns a return value into the next
+   * value, or returns undefined to ignore it. A handler that throws or runs
+   * out of time is skipped (fail open), and counts as a failure like any
+   * other hook error.
+   */
+  async interceptWithValue<V>(
+    initial: V,
+    accept: (result: unknown, current: V) => V | undefined,
+    opts: { timeoutMs?: number } = {},
+  ): Promise<{ allowed: false } | { allowed: true; value: V }> {
+    const budget = opts.timeoutMs ?? Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS);
+    let value = initial;
+    for (const { pluginId, handler } of this.handlers) {
+      if (pluginErrorTracker.isDisabled(pluginId)) continue;
+      let result: unknown;
+      try {
+        result = await withTimeout((handler as (v: V) => unknown)(value), budget);
+      } catch (err) {
+        this.recordFailure(pluginId, err);
+        continue;
+      }
+      if (result === false) return { allowed: false };
+      if (result === undefined || result === null || result === true) continue;
+      const next = accept(result, value);
+      if (next !== undefined) value = next;
+    }
+    return { allowed: true, value };
   }
 
   /** Fire handlers as transforms - each receives the output of the previous */
@@ -214,7 +295,7 @@ export class HookBus<T extends (...args: any[]) => any> {
           value = result as V;
         }
       } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
+        this.recordFailure(pluginId, err);
       }
     }
     return value;
@@ -274,7 +355,10 @@ export const emailHooks = {
   // Return false to cancel opening the composer.
   onBeforeCompose: new HookBus(),
   onComposerOpen: new HookBus(),
-  onBeforeEmailSend: new HookBus(),
+  onComposerClose: new HookBus(),
+  // Fails closed with the long send budget: a guard that asks the user and
+  // gets no answer must not let the mail go out behind its dialog.
+  onBeforeEmailSend: new HookBus(COMPOSE_SEND_TIMEOUT_MS, { failClosed: true }),
   onAfterEmailSend: new HookBus(),
   // Transform hook - fires before the draft is auto-saved to the server.
   // Receive fields passed to client.createDraft and may mutate fields in place.
@@ -288,25 +372,35 @@ export const emailHooks = {
   onAfterEmailDelete: new HookBus(),
   onBeforeEmailMove: new HookBus(),
   onAfterEmailMove: new HookBus(),
+  onBeforeEmailArchive: new HookBus(),
   // Fired after one or more emails are archived to the Archive mailbox
   onEmailArchive: new HookBus(),
   // Fired after one or more emails are moved out of the Archive mailbox
   onEmailUnarchive: new HookBus(),
+  onBeforeEmailReadStateChange: new HookBus(),
   onEmailReadStateChange: new HookBus(),
+  onBeforeEmailStarToggle: new HookBus(),
   onEmailStarToggle: new HookBus(),
+  onBeforeEmailSpamToggle: new HookBus(),
   onEmailSpamToggle: new HookBus(),
+  onBeforeEmailKeywordChange: new HookBus(),
   onEmailKeywordChange: new HookBus(),
   onMailboxChange: new HookBus(),
   onMailboxesRefresh: new HookBus(),
+  onBeforeMailboxCreate: new HookBus(),
   onMailboxCreate: new HookBus(),
+  onBeforeMailboxRename: new HookBus(),
   onMailboxRename: new HookBus(),
+  onBeforeMailboxDelete: new HookBus(),
   onMailboxDelete: new HookBus(),
+  onBeforeMailboxEmpty: new HookBus(),
   onMailboxEmpty: new HookBus(),
   onSearch: new HookBus(),
   onSearchResults: new HookBus(),
   onEmailSelectionChange: new HookBus(),
   onNewEmailReceived: new HookBus(),
   onPushConnectionChange: new HookBus(),
+  onSyncStateChange: new HookBus(),
   onQuotaChange: new HookBus(),
   // Intercept hook - fired when a mailto: link is clicked.
   // Return false to prevent the browser from opening the system mail client.
@@ -397,7 +491,9 @@ export const calendarHooks = {
   onAfterEventUpdate: new HookBus(),
   onBeforeEventDelete: new HookBus(),
   onAfterEventDelete: new HookBus(),
+  onBeforeEventRsvp: new HookBus(),
   onEventRsvp: new HookBus(),
+  onBeforeEventsImport: new HookBus(),
   onEventsImport: new HookBus(),
   onCalendarDateChange: new HookBus(),
   onCalendarViewChange: new HookBus(),
@@ -475,6 +571,7 @@ export const fileHooks = {
   // Return false to cancel the rename.
   onBeforeFileRename: new HookBus(),
   onFileRename: new HookBus(),
+  onBeforeFileMove: new HookBus(),
   onFileMove: new HookBus(),
   onFileCopy: new HookBus(),
   onFileDuplicate: new HookBus(),
@@ -506,6 +603,7 @@ export const authHooks = {
 
 // §7.6 Settings Hooks
 export const settingsHooks = {
+  onBeforeSettingChange: new HookBus(),
   onSettingChange: new HookBus(),
   onSettingsExport: new HookBus(),
   onSettingsImport: new HookBus(),
@@ -518,6 +616,7 @@ export const settingsHooks = {
 // §7.7 Identity Hooks
 export const identityHooks = {
   onIdentitiesLoaded: new HookBus(),
+  onBeforeIdentityChange: new HookBus(),
   onIdentityCreate: new HookBus(),
   onIdentityUpdate: new HookBus(),
   onIdentityDelete: new HookBus(),
@@ -529,6 +628,7 @@ export const identityHooks = {
 export const filterHooks = {
   onFiltersLoaded: new HookBus(),
   onFilterRuleChange: new HookBus(),
+  onBeforeFiltersSave: new HookBus(),
   // Observer fired after the host successfully uploads the account's active
   // Sieve script (visual-builder save or plugin-triggered regenerate).
   onFiltersSave: new HookBus(),
@@ -550,8 +650,11 @@ export const filterHooks = {
 // §7.9 Task Hooks
 export const taskHooks = {
   onTasksLoaded: new HookBus(),
+  onBeforeTaskCreate: new HookBus(),
   onTaskCreate: new HookBus(),
+  onBeforeTaskUpdate: new HookBus(),
   onTaskUpdate: new HookBus(),
+  onBeforeTaskDelete: new HookBus(),
   onTaskDelete: new HookBus(),
   onTaskToggleComplete: new HookBus(),
   onTaskFilterChange: new HookBus(),
@@ -567,17 +670,10 @@ export const templateHooks = {
   onTemplateRender: new HookBus(),
 };
 
-// §7.11 S/MIME Hooks
-export const smimeHooks = {
-  onSmimeKeyImport: new HookBus(),
-  onSmimeCertImport: new HookBus(),
-  onSmimeKeyStateChange: new HookBus(),
-  onSmimeDefaultsChange: new HookBus(),
-};
-
 // §7.12 Vacation Hooks
 export const vacationHooks = {
   onVacationLoaded: new HookBus(),
+  onBeforeVacationUpdate: new HookBus(),
   onVacationUpdate: new HookBus(),
 };
 
@@ -589,7 +685,6 @@ export const uiHooks = {
   onDeviceTypeChange: new HookBus(),
   onColumnResize: new HookBus(),
   onMobileBack: new HookBus(),
-  onMobileViewSwitch: new HookBus(),
   // Intercept hook - fires when the user clicks an external link inside the
   // app (typically inside an email body iframe). Handler receives
   // ExternalLinkContext; return false to cancel the navigation. Mutate
@@ -623,7 +718,6 @@ export const themeHooks = {
 export const toastHooks = {
   onToastShow: new HookBus(),
   onToastDismiss: new HookBus(),
-  onBrowserNotification: new HookBus(),
   // Observer fired when the user clicks an OS-level browser notification
   // dispatched by the host. Handler receives { tag: string, data?: unknown }
   // matching the original notification options.
@@ -640,7 +734,6 @@ export const dragDropHooks = {
 
 // §7.17 Keyboard Hooks
 export const keyboardHooks = {
-  registerShortcut: new HookBus(),
   onBeforeShortcut: new HookBus(),
   onAfterShortcut: new HookBus(),
 };
@@ -675,7 +768,6 @@ export const accountSecurityHooks = {
 export const sidebarAppHooks = {
   onSidebarAppOpen: new HookBus(),
   onSidebarAppClose: new HookBus(),
-  onSidebarAppChange: new HookBus(),
 };
 
 // §7.21 Avatar Hooks
@@ -749,7 +841,7 @@ export const messageListTabHooks = {
 const allHookGroups = [
   emailHooks, calendarHooks, calendarFormHooks, contactHooks, fileHooks,
   authHooks, settingsHooks, identityHooks, filterHooks,
-  taskHooks, templateHooks, smimeHooks, vacationHooks,
+  taskHooks, templateHooks, vacationHooks,
   uiHooks, themeHooks, toastHooks, dragDropHooks,
   keyboardHooks, appLifecycleHooks, accountSecurityHooks, sidebarAppHooks,
   avatarHooks, renderHooks, routerHooks, messageListTabHooks,

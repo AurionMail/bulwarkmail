@@ -25,7 +25,7 @@ import { CalendarMonthView } from "@/components/calendar/calendar-month-view";
 import { CalendarWeekView } from "@/components/calendar/calendar-week-view";
 import { CalendarDayView } from "@/components/calendar/calendar-day-view";
 import { CalendarAgendaView } from "@/components/calendar/calendar-agenda-view";
-import { TaskListView } from "@/components/calendar/task-list-view";
+import { TaskListView, filterTasksForList } from "@/components/calendar/task-list-view";
 import { TaskToolbar } from "@/components/calendar/task-toolbar";
 import { TaskModal } from "@/components/calendar/task-modal";
 import { MiniCalendar } from "@/components/calendar/mini-calendar";
@@ -97,6 +97,8 @@ import { findMeetingLink } from "@/lib/event-links";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { MvTopBar } from "@/components/layout/mv-top-bar";
 import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
+import { calendarHooks } from "@/lib/plugin-hooks";
+import { eventToView } from "@/lib/plugin-projection";
 
 type PendingScopeAction =
   | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; sendScheduling?: boolean }
@@ -707,6 +709,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     setDetailPinned(true);
     setDetailEvent(event);
     setDetailAnchorRect(anchorRect);
+    // A click opens the event's card; the hover preview does not count as
+    // opening it. The editor reports its own opens (event-modal).
+    void calendarHooks.onCalendarEventOpen.emit(eventToView(event));
   }, [isMobile, closeDetail, openEditModal]);
 
   const {
@@ -1206,7 +1211,10 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             delete (newEventData as Record<string, unknown>).uid;
             delete (newEventData as Record<string, unknown>).recurrenceId;
             try {
-              await createEvent(client, newEventData, sendScheduling);
+              // null when the save failed or a plugin stopped it: either way
+              // the truncated master has to be restored.
+              const created = await createEvent(client, newEventData, sendScheduling);
+              if (!created) throw new Error("The new series was not created");
             } catch (createError) {
               debug.error("Failed to create new series, rolling back master truncation:", createError);
               try {
@@ -1480,6 +1488,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     return filtered;
   }, [events, selectedCalendarIds, showBirthdayCalendar, birthdayEvents]);
 
+  // The tasks the task list shows; plugin buttons in its toolbar act on them.
+  const listedTaskIds = useMemo(
+    () => filterTasksForList(taskStore.tasks, selectedCalendarIds, taskStore.filter, taskStore.showCompleted).map((task) => task.id),
+    [taskStore.tasks, selectedCalendarIds, taskStore.filter, taskStore.showCompleted],
+  );
+
   // Tasks on the month, week and day grids follow the calendar filter like
   // the events do (#1107).
   const calendarTasks = useMemo(() => {
@@ -1671,6 +1685,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 onFilterChange={taskStore.setFilter}
                 onShowCompletedChange={taskStore.setShowCompleted}
                 onCreateTask={openCreateTaskModal}
+                taskIds={listedTaskIds}
+                compact={isMobile}
               />
               <TaskListView
                 tasks={taskStore.tasks}

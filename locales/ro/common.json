@@ -620,7 +620,9 @@
       "copied": "Cod copiat",
       "copy_failed": "Codul nu a putut fi copiat"
     },
-    "mv_position": "{index} din {total}"
+    "mv_position": "{index} din {total}",
+    "plugin_panel_show": "Afișează panoul pluginului",
+    "plugin_panel_hide": "Ascunde panoul pluginului"
   },
   "email_composer": {
     "minimize": "Minimizează",
@@ -813,7 +815,8 @@
       "remove_background_color": "Elimină culoarea fundalului"
     },
     "send_filing_warning": "Trimis - dar curățarea ulterioară a eșuat, poate rămâne o ciornă veche.",
-    "pop_out": "Deschide răspunsul într-o fereastră"
+    "pop_out": "Deschide răspunsul într-o fereastră",
+    "send_guard_failed": "Nu s-a trimis - un plugin care verifică mesajele înainte de trimitere a eșuat sau nu a răspuns."
   },
   "confirm_dialog": {
     "confirm": "Confirmare",
@@ -3970,6 +3973,354 @@
       "failed_detail": "Autorizarea a eșuat: {error}",
       "missing_params": "Lipsește codul de autorizare sau starea.",
       "delivery_failed": "Rezultatul autorizării nu a putut fi transmis filei aplicației. Închideți această fereastră și încercați din nou."
+    },
+    "settings": {
+      "title": "Pluginuri",
+      "description": "Pluginuri adăugate de administrator. Activați-le sau dezactivați-le pentru contul dvs.",
+      "description_uploads": "Pluginurile adaugă funcții în webmail. Activați-le sau dezactivați-le pentru contul dvs. sau instalați-vă propriile pluginuri.",
+      "description_demo": "Pluginurile nu sunt disponibile în demo.",
+      "install_button": "Instalați un plugin",
+      "install_hint": "Alegeți un fișier ZIP cu un plugin.",
+      "install_hint_approval": "Alegeți un fișier ZIP cu un plugin. Un administrator trebuie să-l aprobe înainte să-l puteți activa.",
+      "install_uploads_off": "Administratorul dvs. nu permite instalarea pluginurilor.",
+      "install_managed_id": "Administratorul dvs. oferă deja un plugin cu acest nume, așa că nu poate fi înlocuit.",
+      "install_invalid": "Acest fișier nu este un plugin care poate fi instalat: {details}",
+      "toast_installed": "Pluginul a fost instalat. Activați-l mai jos.",
+      "toast_installed_pending": "Pluginul a fost instalat și trimis administratorului spre aprobare.",
+      "toast_enabled": "{name} este activat",
+      "toast_disabled": "{name} este dezactivat",
+      "toast_removed": "{name} a fost eliminat",
+      "toast_forced": "Administratorul dvs. menține {name} activat",
+      "toast_approval_requested": "{name} așteaptă aprobarea administratorului",
+      "empty_title": "Niciun plugin încă",
+      "empty_admin": "Administratorul dvs. nu a adăugat niciun plugin.",
+      "empty_uploads": "Pentru a începe, instalați un plugin dintr-un fișier ZIP.",
+      "empty_demo": "Pluginurile au nevoie de un cont real, așa că demo-ul nu are niciunul.",
+      "syncing": "Se verifică pluginurile cu serverul…",
+      "status_installed": "Dezactivat",
+      "status_enabled": "Se pornește",
+      "status_running": "Activat",
+      "status_disabled": "Dezactivat",
+      "status_error": "Problemă",
+      "badge_forced": "Obligatoriu",
+      "badge_managed": "De la administrator",
+      "badge_yours": "Instalat de dvs.",
+      "badge_awaiting": "Așteaptă aprobarea",
+      "toggle_label": "Activați sau dezactivați {name}",
+      "forced_note": "Administratorul dvs. impune acest plugin, așa că nu poate fi dezactivat.",
+      "permissions": "Ce poate face",
+      "permissions_managed": "Ce poate face (aprobat de administrator)",
+      "settings": "Setări",
+      "remove": "Eliminați",
+      "remove_title": "Eliminați {name}?",
+      "remove_message": "Pluginul și tot ce a stocat în acest browser vor fi șterse. Îl puteți instala din nou mai târziu.",
+      "remove_confirm": "Eliminați",
+      "error_user_plugins_off": "Administratorul dvs. a dezactivat pluginurile instalate de utilizatori, așa că acest plugin nu rulează.",
+      "error_approval_unavailable": "Acest plugin a fost instalat înainte ca aprobările să fie obligatorii. Eliminați-l și instalați-l din nou pentru a-l trimite spre aprobare.",
+      "error_approval_denied": "Administratorul dvs. nu a aprobat acest plugin.",
+      "error_approval_pending": "Se așteaptă ca administratorul să aprobe acest plugin.",
+      "error_auto_disabled": "Dezactivat pentru că a eșuat în mod repetat. Activați-l din nou pentru a reîncerca.",
+      "accounts_heading": "Conturi conectate",
+      "account_on": "{label} pe {host}",
+      "account_waiting": "{label} pe {host} (conectare neterminată)",
+      "disconnect": "Deconectați",
+      "disconnect_failed": "{label} nu a putut fi deconectat"
+    },
+    "consent": {
+      "title": "Permiteți ca {name} să facă acest lucru?",
+      "intro": "Pluginul cere permisiunile de mai jos. Le primește doar dacă le permiteți.",
+      "high_risk_note": "Elementele marcate oferă pluginului acces la conținutul e-mailurilor dvs. sau îi permit să trimită date în altă parte. Permiteți-le doar pluginurilor în care aveți încredere.",
+      "revoke_hint": "Puteți dezactiva sau elimina pluginul oricând din Setări.",
+      "deny": "Nu permiteți",
+      "allow": "Permiteți"
+    },
+    "permissions": {
+      "none": "Nu are nevoie de permisiuni speciale.",
+      "high_risk": "Necesită atenție",
+      "email_read": {
+        "title": "Citirea e-mailurilor",
+        "body": "Vede expeditorii, destinatarii, subiectele și textul complet al oricărui mesaj din contul dvs., precum și dosarele dvs."
+      },
+      "email_write": {
+        "title": "Modificarea și organizarea e-mailurilor",
+        "body": "Adaugă sau elimină etichete, marcaje și alte cuvinte cheie din mesajele dvs., le mută între dosarele dvs. și în arhivă și salvează ciorne."
+      },
+      "email_send": {
+        "title": "Modificarea e-mailurilor înainte de trimitere",
+        "body": "Citește și modifică destinatarii, subiectul, textul și atașamentele mesajelor pe care le scrieți și poate opri trimiterea unui mesaj."
+      },
+      "crypto_full": {
+        "title": "Acces complet la această aplicație",
+        "body": "Rulează cu aceleași drepturi ca webmailul însuși. Poate citi toate e-mailurile și cheile stocate și poate acționa în numele dvs. Permiteți acest lucru doar pluginurilor în care aveți încredere deplină."
+      },
+      "email_raw_send": {
+        "title": "Trimiterea mesajelor create de el însuși",
+        "body": "Trimite mesaje complete, de exemplu semnate sau criptate, din contul dvs."
+      },
+      "email_blob_read": {
+        "title": "Citirea conținutului brut al mesajelor",
+        "body": "Citește datele originale ale mesajelor și atașamentelor dvs. și ale fiecărui fișier pe care îl atașați înainte de trimitere."
+      },
+      "email_blob_write": {
+        "title": "Înlocuirea atașamentelor înainte de trimitere",
+        "body": "Încarcă fișiere pe serverul dvs. de e-mail și înlocuiește un fișier atașat cu altul înainte ca mesajul să fie trimis."
+      },
+      "email_render_takeover": {
+        "title": "Modificarea modului în care sunt afișate mesajele",
+        "body": "Înlocuiește textul mesajelor pe care le deschideți și al listei de mesaje, de exemplu pentru a afișa conținut decriptat."
+      },
+      "calendar_read": {
+        "title": "Citirea calendarului",
+        "body": "Vede calendarele dvs. și evenimentele lor."
+      },
+      "calendar_write": {
+        "title": "Modificarea calendarului",
+        "body": "Creează, modifică și șterge evenimente."
+      },
+      "contacts_read": {
+        "title": "Citirea contactelor",
+        "body": "Caută în agendele dvs. și le citește."
+      },
+      "contacts_write": {
+        "title": "Modificarea contactelor",
+        "body": "Creează, modifică și șterge contacte și agende."
+      },
+      "files_read": {
+        "title": "Citirea fișierelor",
+        "body": "Răsfoiește și deschide fișierele stocate în contul dvs."
+      },
+      "files_write": {
+        "title": "Modificarea fișierelor",
+        "body": "Încarcă, redenumește, mută și șterge fișiere din contul dvs."
+      },
+      "identity_read": {
+        "title": "Vizualizarea identităților de expediere",
+        "body": "Vede adresele de pe care trimiteți și semnăturile lor."
+      },
+      "identity_write": {
+        "title": "Modificarea identităților de expediere",
+        "body": "Creează, modifică și șterge identități de expediere și semnături."
+      },
+      "filters_read": {
+        "title": "Citirea filtrelor de e-mail",
+        "body": "Vede regulile care sortează e-mailurile primite."
+      },
+      "filters_write": {
+        "title": "Modificarea filtrelor de e-mail",
+        "body": "Adaugă reguli în filtrele de pe server. Aceste reguli pot muta, redirecționa sau șterge e-mailurile primite."
+      },
+      "tasks_read": {
+        "title": "Citirea sarcinilor",
+        "body": "Vede listele de sarcini și sarcinile dvs."
+      },
+      "tasks_write": {
+        "title": "Modificarea sarcinilor",
+        "body": "Creează, modifică, finalizează și șterge sarcini."
+      },
+      "templates_read": {
+        "title": "Citirea șabloanelor",
+        "body": "Vede șabloanele de mesaje salvate."
+      },
+      "templates_write": {
+        "title": "Modificarea șabloanelor",
+        "body": "Creează, modifică și șterge șabloane de mesaje."
+      },
+      "smime_read": {
+        "title": "Vizualizarea stării S/MIME",
+        "body": "Vede dacă aveți chei și certificate S/MIME, fără acces la chei."
+      },
+      "vacation_read": {
+        "title": "Vizualizarea răspunsului automat",
+        "body": "Vede dacă răspunsul automat este activat și ce conține."
+      },
+      "vacation_write": {
+        "title": "Modificarea răspunsului automat",
+        "body": "Activează sau dezactivează răspunsul automat și îi modifică textul și datele."
+      },
+      "settings_read": {
+        "title": "Citirea setărilor",
+        "body": "Vede preferințele dvs. și definițiile etichetelor."
+      },
+      "settings_write": {
+        "title": "Modificarea setărilor",
+        "body": "Adaugă și reordonează etichete și modifică preferințele dvs."
+      },
+      "security_read": {
+        "title": "Vizualizarea securității contului",
+        "body": "Vede dacă autentificarea în doi pași și criptarea sunt activate, fără acces la secrete."
+      },
+      "auth_observe": {
+        "title": "Aflarea momentului autentificării",
+        "body": "Este anunțat când vă autentificați, schimbați contul sau sesiunea este reînnoită."
+      },
+      "auth_emit": {
+        "title": "Deconectarea dvs.",
+        "body": "Vă deconectează din webmail."
+      },
+      "account_read": {
+        "title": "Vizualizarea conturilor",
+        "body": "Vede conturile pe care le-ați adăugat, cu adresele și serverele lor."
+      },
+      "http_post": {
+        "title": "Folosirea serverului webmail în numele dvs.",
+        "body": "Apelează aceste endpointuri ale serverului cu datele dvs. de autentificare:"
+      },
+      "http_fetch": {
+        "title": "Conectarea la alte site-uri",
+        "body": "Trimite cereri către aceste site-uri. Orice poate citi pluginul poate fi trimis acolo:"
+      },
+      "admin_config": {
+        "title": "Citirea setărilor de la administrator",
+        "body": "Citește setările pe care administratorul le-a salvat pentru acest plugin."
+      },
+      "ui_observe": {
+        "title": "Urmărirea locului în care vă aflați în aplicație",
+        "body": "Știe ce pagină este deschisă și reacționează la linkurile pe care faceți clic."
+      },
+      "ui_toolbar": {
+        "title": "Adăugarea de butoane în barele de instrumente",
+        "body": "Afișează butoane proprii în bara de instrumente a mesajelor, pe un mesaj deschis și în bara de sus."
+      },
+      "ui_app_top_banner": {
+        "title": "Afișarea unui banner în partea de sus",
+        "body": "Afișează o notificare în partea de sus a aplicației."
+      },
+      "ui_email_banner": {
+        "title": "Afișarea de notificări pe mesaje",
+        "body": "Afișează notificări și rezumate proprii deasupra, în interiorul și între părțile unui mesaj sau ale unei conversații deschise."
+      },
+      "ui_email_footer": {
+        "title": "Adăugarea de conținut sub mesaje",
+        "body": "Afișează conținut propriu sub un mesaj deschis."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Afișarea cheilor de criptare ale contactelor",
+        "body": "Afișează și gestionează cheile de criptare ale unui contact."
+      },
+      "ui_email_details": {
+        "title": "Adăugarea de panouri la detaliile mesajului",
+        "body": "Afișează un panou propriu lângă sau sub un mesaj deschis."
+      },
+      "ui_download_file": {
+        "title": "Salvarea fișierelor pe dispozitiv",
+        "body": "Oferă spre descărcare fișierele create de el."
+      },
+      "ui_message_list_tabs": {
+        "title": "Adăugarea de file în Primite",
+        "body": "Sortează mesajele primite în file precum Actualizări sau Promoții."
+      },
+      "ui_composer_toolbar": {
+        "title": "Adăugarea în fereastra de redactare",
+        "body": "Afișează butoane, opțiuni de meniu și secțiuni proprii în timp ce scrieți un mesaj."
+      },
+      "ui_composer_sidebar": {
+        "title": "Adăugarea unui panou în fereastra de redactare",
+        "body": "Afișează un panou propriu lângă mesajul pe care îl scrieți."
+      },
+      "ui_sidebar_widget": {
+        "title": "Adăugarea în bara laterală",
+        "body": "Afișează casete și secțiuni proprii în bara laterală a e-mailului."
+      },
+      "ui_settings_section": {
+        "title": "Adăugarea unei pagini de setări",
+        "body": "Afișează o pagină proprie în Setări."
+      },
+      "ui_context_menu": {
+        "title": "Adăugarea de opțiuni în meniul mesajului",
+        "body": "Adaugă opțiuni în meniul care se deschide când faceți clic dreapta pe un mesaj."
+      },
+      "ui_navigation_rail": {
+        "title": "Adăugarea în bara de navigare",
+        "body": "Afișează un buton propriu în bara de navigare."
+      },
+      "ui_keyboard": {
+        "title": "Adăugarea de comenzi rapide de la tastatură",
+        "body": "Reacționează la comenzile rapide de la tastatură pe care le definește."
+      },
+      "ui_calendar_action": {
+        "title": "Adăugarea în vizualizarea calendarului",
+        "body": "Afișează butoane și secțiuni proprii la evenimente, precum și etichete scurte și puncte la zilele din calendar."
+      },
+      "ui_admin_page": {
+        "title": "Adăugarea unei pagini de administrare",
+        "body": "Afișează o pagină proprie în setările de administrare."
+      },
+      "app_lifecycle": {
+        "title": "Aflarea momentului pornirii și opririi aplicației",
+        "body": "Este anunțat când aplicația pornește, trece offline sau vă deconectați."
+      },
+      "compose_open": {
+        "title": "Deschiderea ferestrei de redactare",
+        "body": "Deschide un mesaj nou cu destinatarii, textul sau atașamentele deja completate. Dvs. decideți în continuare dacă îl trimiteți."
+      },
+      "compose_read": {
+        "title": "Citirea mesajului pe care îl scrieți",
+        "body": "Citirea textului unui mesaj în timp ce îl scrieți, când folosiți pluginul în editor. Nu și semnătura sau mesajul citat."
+      },
+      "compose_write": {
+        "title": "Modificarea mesajului pe care îl scrieți",
+        "body": "Înlocuirea sau adăugarea de text într-un mesaj în timp ce îl scrieți, când folosiți pluginul în editor. Puteți anula fiecare modificare și decideți în continuare dacă îl trimiteți."
+      },
+      "ui_notifications": {
+        "title": "Afișarea notificărilor",
+        "body": "Afișează notificări pe dispozitiv sau în aplicație, dacă nu le-ați permis. Fiecare indică numele pluginului."
+      },
+      "ui_message_list": {
+        "title": "Adăugarea în lista de mesaje",
+        "body": "Afișează conținut propriu deasupra listei de mesaje, precum și butoane pe mesaje și în bara mesajelor selectate."
+      },
+      "ui_contacts": {
+        "title": "Adăugarea în vizualizarea contactelor",
+        "body": "Afișează secțiuni proprii în detaliile unui contact și butoane în lista de contacte."
+      },
+      "ui_tasks": {
+        "title": "Adăugarea în vizualizarea sarcinilor",
+        "body": "Afișează secțiuni proprii în detaliile unei sarcini și butoane în lista de sarcini."
+      },
+      "ui_files": {
+        "title": "Adăugarea în vizualizarea fișierelor",
+        "body": "Afișează secțiuni proprii în previzualizarea fișierelor și opțiuni în meniul unui fișier."
+      },
+      "ui_commands": {
+        "title": "Adăugarea de comenzi",
+        "body": "Adaugă opțiuni proprii în paleta de comenzi (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Adăugarea de pagini",
+        "body": "Adaugă pagini proprii în aplicație, fiecare cu un buton în bara de navigare."
+      },
+      "http_proxy": {
+        "title": "Folosirea conturilor pe care le conectați",
+        "body": "Trimite cereri prin serverul Bulwark cu un cont sau o cheie configurate de dvs. sau de administratorul dvs. Pluginul nu vede niciodată parola, dar poate face tot ce poate face acel cont pe serverul său."
+      }
+    },
+    "dialog": {
+      "from_plugin": "De la pluginul {name}",
+      "ok": "OK",
+      "submit": "Trimite",
+      "confirm": "Confirmă",
+      "cancel": "Anulează",
+      "close": "Închide",
+      "turn_off": "Dezactivează {name}",
+      "plugin_menu": "Opțiuni pentru {name}",
+      "password_note": "Acest formular vine de la pluginul {name}, nu de la webmail. Introduceți o parolă doar dacă aveți încredere în acest plugin.",
+      "toast_auto_disabled": "{name} a fost dezactivat pentru că a eșuat în mod repetat."
+    },
+    "connect": {
+      "title": "Conectați {label}",
+      "intro_password": "{name} vrea să folosească contul dvs. {label}. Bulwark păstrează parola pe serverul său și o trimite doar către {host}. Pluginul nu o vede niciodată.",
+      "intro_password_any": "{name} vrea să folosească contul dvs. {label}. Bulwark păstrează parola pe serverul său și o trimite doar către serverul pe care îl introduceți aici. Pluginul nu o vede niciodată.",
+      "intro_signin": "{name} vrea să se conecteze la contul dvs. {label}. Introduceți aici serverul, apoi conectați-vă pe pagina acestuia. Bulwark păstrează pe serverul său accesul obținut; pluginul nu îl vede niciodată.",
+      "server": "Adresa serverului",
+      "server_hint": "cloud.example.com",
+      "username": "Nume de utilizator",
+      "secret": "Parolă sau cheie",
+      "connect": "Conectați",
+      "continue": "Continuați",
+      "cancel": "Anulați",
+      "saving": "Se salvează…",
+      "error_server": "Introduceți adresa serverului, de exemplu https://cloud.example.com",
+      "error_save": "Nu s-a putut salva: {error}"
     }
   },
   "global_search": {
@@ -3998,5 +4349,41 @@
     "preview_empty": "Selectează un rezultat pentru previzualizare",
     "open_full": "Deschide",
     "view_label": "Vizualizare"
+  },
+  "top_bar": {
+    "more": "Mai multe opțiuni"
+  },
+  "plugin_pages": {
+    "loading": "Se încarcă pagina",
+    "not_available_title": "Această pagină nu este disponibilă",
+    "not_available_description": "Pluginul care a adăugat-o este dezactivat sau nu mai este instalat.",
+    "back_to_mail": "Înapoi la e-mail",
+    "settings_group": "Pluginuri"
+  },
+  "command_palette": {
+    "title": "Paleta de comenzi",
+    "open": "Deschide paleta de comenzi",
+    "placeholder": "Tastați o comandă",
+    "no_results": "Nicio comandă potrivită",
+    "go_to": "Mergi la {name}",
+    "compose": "Mesaj nou",
+    "search": "Caută în e-mail",
+    "theme_dark": "Comută la tema întunecată",
+    "theme_light": "Comută la tema luminoasă",
+    "shortcuts": "Afișează comenzile rapide de la tastatură",
+    "group_navigation": "Mergi la",
+    "group_actions": "Acțiuni",
+    "group_plugins": "Pluginuri"
+  },
+  "notification_center": {
+    "title": "Notificări",
+    "mark_all_read": "Marchează toate ca citite",
+    "clear": "Golește",
+    "empty": "Nicio notificare",
+    "close": "Închide",
+    "unread": "Necitită",
+    "unread_count": "Necitite: {count}",
+    "level_error": "Eroare",
+    "level_warning": "Avertisment"
   }
 }

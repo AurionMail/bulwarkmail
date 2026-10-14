@@ -30,3 +30,56 @@ export type OAuthCallbackPayload =
         error_description?: string;
         receivedAt?: number;
     };
+
+// ─── State values bound to the plugin that started the flow ───
+
+const STATES_KEY = "plugin-oauth-states";
+/** A flow that takes longer than this is abandoned. */
+const STATE_TTL_MS = 15 * 60_000;
+
+type StateTable = Record<string, { pluginId: string; created: number }>;
+
+function readStates(): StateTable {
+  try {
+    const raw = localStorage.getItem(STATES_KEY);
+    const parsed = raw ? JSON.parse(raw) as StateTable : {};
+    const now = Date.now();
+    for (const [state, entry] of Object.entries(parsed)) {
+      if (!entry || typeof entry.pluginId !== "string" || now - entry.created > STATE_TTL_MS) delete parsed[state];
+    }
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+function writeStates(table: StateTable): void {
+  try { localStorage.setItem(STATES_KEY, JSON.stringify(table)); } catch { /* storage blocked */ }
+}
+
+/**
+ * A fresh `state` for a plugin's OAuth redirect. The callback is delivered
+ * only to the plugin that asked for this value; before, every plugin with
+ * http:fetch received every code. Kept in localStorage so the tab that gets
+ * the callback event finds it even if another tab started the flow.
+ */
+export function createOAuthState(pluginId: string): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  const state = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const table = readStates();
+  table[state] = { pluginId, created: Date.now() };
+  writeStates(table);
+  return state;
+}
+
+/** The plugin a callback belongs to, consumed so it can't be delivered twice. */
+export function takeOAuthStateOwner(state: string | undefined): string | null {
+  if (!state) return null;
+  const table = readStates();
+  const entry = table[state];
+  if (!entry) return null;
+  delete table[state];
+  writeStates(table);
+  return entry.pluginId;
+}

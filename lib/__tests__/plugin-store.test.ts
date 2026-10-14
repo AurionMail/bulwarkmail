@@ -40,10 +40,15 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/browser-navigation', () => ({
   apiFetch: (...args: unknown[]) => mocks.apiFetch(...args),
 }));
+const bridge = vi.hoisted(() => ({ setSettings: vi.fn() }));
+vi.mock('@/lib/plugin-sandbox/host-bridge', () => ({
+  forEachInstance: (_id: string, fn: (i: { setSettings: typeof bridge.setSettings }) => void) => fn({ setSettings: bridge.setSettings }),
+}));
 vi.mock('@/lib/plugin-sandbox/bundle-fetch', () => ({
   downloadManagedBundle: (...args: unknown[]) => mocks.downloadManagedBundle(...args),
 }));
 
+import { register as registerActive, deregister as deregisterActive, get as getActive } from '@/lib/plugin-sandbox/registry';
 // Import after mocks
 import { usePluginStore } from '@/stores/plugin-store';
 import { pluginStorage } from '@/lib/plugin-storage';
@@ -171,7 +176,7 @@ describe('usePluginStore', () => {
     it('installs a new server plugin and caches its bundle', async () => {
       await usePluginStore.getState().initializePlugins();
 
-      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1', { requireSignature: false });
       expect(pluginStorage.saveCode).toHaveBeenCalledWith('managed-plugin', 'bundle-code');
       const p = usePluginStore.getState().plugins.find(x => x.id === 'managed-plugin');
       expect(p).toMatchObject({ managed: true, enabled: true, bundleHash: 'hash-v1' });
@@ -183,7 +188,7 @@ describe('usePluginStore', () => {
 
       await usePluginStore.getState().initializePlugins();
 
-      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1', { requireSignature: false });
       expect(pluginStorage.saveCode).toHaveBeenCalledWith('managed-plugin', 'bundle-code');
       expect(usePluginStore.getState().plugins).toHaveLength(1);
     });
@@ -204,7 +209,7 @@ describe('usePluginStore', () => {
 
       await usePluginStore.getState().initializePlugins();
 
-      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1');
+      expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1', { requireSignature: false });
       expect(usePluginStore.getState().plugins[0].bundleHash).toBe('hash-v1');
     });
 
@@ -219,5 +224,169 @@ describe('usePluginStore', () => {
       expect(usePluginStore.getState().plugins).toHaveLength(1);
       expect(usePluginStore.getState().initialized).toBe(true);
     });
+  });
+});
+
+describe('installPlugin', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  it('keeps the translations a plugin ships', async () => {
+    const { extractPlugin } = await import('@/lib/plugin-validator');
+    vi.mocked(extractPlugin).mockResolvedValueOnce({
+      valid: true, errors: [], warnings: [], preview: null, code: 'module.exports = {}',
+      manifest: {
+        id: 'translated', name: 'T', version: '1.0.0', author: 'a', description: '', type: 'hook',
+        permissions: [], entrypoint: 'index.js', locales: { de: { hello: 'Hallo' } },
+      },
+    });
+
+    const result = await usePluginStore.getState().installPlugin(new File(['x'], 'p.zip'));
+
+    expect(result.success).toBe(true);
+    expect(usePluginStore.getState().plugins[0].locales).toEqual({ de: { hello: 'Hallo' } });
+  });
+});
+
+describe('plugins the user installs', () => {
+  const MANIFEST = {
+    id: 'mine', name: 'Mine', version: '1.0.0', author: 'a', description: '', type: 'hook' as const,
+    permissions: [], entrypoint: 'index.js',
+  };
+
+  async function setFeatures(features: Record<string, boolean>) {
+    const { usePolicyStore } = await import('@/stores/policy-store');
+    const { DEFAULT_POLICY } = await import('@/lib/admin/types');
+    usePolicyStore.setState({ policy: { ...DEFAULT_POLICY, features: { ...DEFAULT_POLICY.features, ...features } } });
+  }
+
+  async function mockExtract() {
+    const { extractPlugin } = await import('@/lib/plugin-validator');
+    vi.mocked(extractPlugin).mockResolvedValue({
+      valid: true, errors: [], warnings: [], preview: null, code: 'module.exports = {}', manifest: MANIFEST,
+    });
+  }
+
+  beforeEach(() => {
+    resetStore();
+    localStorage.removeItem('server-managed-plugin-ids');
+    mocks.apiFetch.mockReset();
+  });
+
+  it('refuses an install when the admin turned uploads off', async () => {
+    await setFeatures({ pluginsUploadEnabled: false });
+    await mockExtract();
+
+    const result = await usePluginStore.getState().installPlugin(new File(['x'], 'p.zip'));
+
+    expect(result).toMatchObject({ success: false, reason: 'uploads-disabled' });
+    expect(usePluginStore.getState().plugins).toHaveLength(0);
+  });
+
+  it('refuses a package that reuses the id of an admin plugin', async () => {
+    await setFeatures({ pluginsUploadEnabled: true, requirePluginApproval: false });
+    await mockExtract();
+    usePluginStore.setState({ plugins: [mockPlugin({ id: 'mine', managed: true })] });
+
+    const result = await usePluginStore.getState().installPlugin(new File(['x'], 'p.zip'));
+
+    expect(result).toMatchObject({ success: false, reason: 'managed-id' });
+    expect(usePluginStore.getState().plugins[0].managed).toBe(true);
+  });
+
+  it('sends the package for approval and keeps it off until approved', async () => {
+    await setFeatures({ pluginsUploadEnabled: true, requirePluginApproval: true });
+    await mockExtract();
+    mocks.apiFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return new Response(JSON.stringify({ status: 'pending' }));
+      return new Response(JSON.stringify({ status: 'pending' }));
+    });
+
+    const result = await usePluginStore.getState().installPlugin(new File(['x'], 'p.zip'));
+    await usePluginStore.getState().enablePlugin('mine');
+
+    expect(result.approvalStatus).toBe('pending');
+    const posted = mocks.apiFetch.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === 'POST');
+    expect((posted?.[1] as RequestInit).body).toBeInstanceOf(FormData);
+    const plugin = usePluginStore.getState().plugins[0];
+    expect(plugin.enabled).toBe(false);
+    expect(plugin.error).toBe('approval-pending');
+  });
+
+  it('turns an approved package on', async () => {
+    await setFeatures({ pluginsUploadEnabled: true, requirePluginApproval: true });
+    await mockExtract();
+    mocks.apiFetch.mockImplementation(async () => new Response(JSON.stringify({ status: 'approved' })));
+
+    await usePluginStore.getState().installPlugin(new File(['x'], 'p.zip'));
+    await usePluginStore.getState().enablePlugin('mine');
+
+    expect(usePluginStore.getState().plugins[0].enabled).toBe(true);
+  });
+
+  it('does not load a user plugin whose approval was revoked', async () => {
+    await setFeatures({ pluginsUploadEnabled: true, requirePluginApproval: true });
+    const { loadPlugin } = await import('@/lib/plugin-loader');
+    vi.mocked(loadPlugin).mockClear();
+    usePluginStore.setState({ plugins: [mockPlugin({ id: 'mine', enabled: true, status: 'enabled', managed: false, approvalHash: 'a'.repeat(64) })] });
+    mocks.apiFetch.mockImplementation(async (url: string) =>
+      url.startsWith('/api/plugins') ? new Response(JSON.stringify({ plugins: [], themes: [] })) : new Response(JSON.stringify({ status: 'denied' })));
+
+    await usePluginStore.getState().initializePlugins();
+
+    expect(loadPlugin).not.toHaveBeenCalled();
+    expect(usePluginStore.getState().plugins[0].error).toBe('approval-denied');
+  });
+});
+
+describe('updatePluginSettings', () => {
+  it('sends the new settings to the running plugin right away', () => {
+    // Settings used to reach a plugin only after a reload.
+    resetStore();
+    bridge.setSettings.mockClear();
+    usePluginStore.setState({ plugins: [mockPlugin({
+      id: 'p', settings: {},
+      settingsSchema: { size: { type: 'number', label: 'Size', default: 160, min: 16, max: 512 } },
+    })] });
+
+    usePluginStore.getState().updatePluginSettings('p', { size: 9000 });
+
+    expect(usePluginStore.getState().plugins[0].settings.size).toBe(512);
+    expect(bridge.setSettings).toHaveBeenCalledWith({ size: 512 });
+  });
+
+  it('passes on settings that arrive another way, and new slots start with them', () => {
+    resetStore();
+    bridge.setSettings.mockClear();
+    const plugin = mockPlugin({ id: 'synced', settings: { zone: 'Europe/Berlin' } });
+    usePluginStore.setState({ plugins: [plugin] });
+    registerActive({ plugin, code: '', tier: 'untrusted', background: {}, slotOffers: [], hookDisposables: [] } as never);
+    try {
+      // A server sync replaces the plugin list without updatePluginSettings.
+      usePluginStore.setState({ plugins: [{ ...plugin, settings: { zone: 'Asia/Tokyo' } }] });
+
+      expect(bridge.setSettings).toHaveBeenCalledWith(expect.objectContaining({ zone: 'Asia/Tokyo' }));
+      expect(getActive('synced')?.plugin.settings).toEqual({ zone: 'Asia/Tokyo' });
+    } finally {
+      deregisterActive('synced');
+    }
+  });
+});
+
+describe('plugins the admin removed', () => {
+  it('lose what they stored, like an uninstalled plugin', async () => {
+    // Their data used to survive and come back when the admin re-added them.
+    resetStore();
+    localStorage.setItem('server-managed-plugin-ids', JSON.stringify(['gone']));
+    localStorage.setItem('plugin:gone:@acct:notes', '"secret"');
+    usePluginStore.setState({ plugins: [mockPlugin({ id: 'gone', managed: true })] });
+    mocks.apiFetch.mockImplementation(async () => new Response(JSON.stringify({ plugins: [], themes: [] })));
+
+    await usePluginStore.getState().initializePlugins();
+
+    expect(usePluginStore.getState().plugins.some((p) => p.id === 'gone')).toBe(false);
+    expect(localStorage.getItem('plugin:gone:@acct:notes')).toBeNull();
+    expect(pluginStorage.deletePreview).toHaveBeenCalledWith('gone');
   });
 });

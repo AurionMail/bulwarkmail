@@ -305,3 +305,103 @@ describe('native keyword extension API', () => {
     }
   });
 });
+
+describe('jmap.uploadBlob', () => {
+  it('is open to an untrusted plugin with email:blob-write, for composer attachment sources', async () => {
+    const p = plugin({ permissions: ['email:blob-write'], grantedPermissions: ['email:blob-write'] });
+    expect(await gateError(p, 'jmap.uploadBlob', [new Uint8Array(1), 'a.bin', 'application/octet-stream']))
+      .not.toMatch(GATE_FAILURE);
+  });
+
+  it('still needs email:blob-write', async () => {
+    expect(await gateError(plugin(), 'jmap.uploadBlob', [new Uint8Array(1), 'a.bin', 'x/y']))
+      .toMatch(/lacks permission "email:blob-write"/);
+  });
+
+  describe('checks what it uploads', () => {
+    const uploader = () => plugin({ permissions: ['email:blob-write'], grantedPermissions: ['email:blob-write'] });
+    const uploadBlob = vi.fn(async (file: File) => ({ blobId: 'b1', size: file.size, type: file.type, name: file.name }));
+    let maxSizeUpload = 0;
+    const session = () => useAuthStore.setState({ client: { uploadBlob, getMaxSizeUpload: () => maxSizeUpload } as never });
+
+    afterEach(() => {
+      uploadBlob.mockClear();
+      maxSizeUpload = 0;
+      useAuthStore.setState({ client: null });
+    });
+
+    it('refuses a missing or blank name, a bad media type and content that is not bytes', async () => {
+      session();
+      expect(await gateError(uploader(), 'jmap.uploadBlob', [new Uint8Array(1), '', 'text/plain'])).toMatch(/name must be 1-255 characters/);
+      expect(await gateError(uploader(), 'jmap.uploadBlob', [new Uint8Array(1), '\u0000\u0001', 'text/plain'])).toMatch(/name must be 1-255 characters/);
+      expect(await gateError(uploader(), 'jmap.uploadBlob', [new Uint8Array(1), 'x'.repeat(256), 'text/plain'])).toMatch(/name must be 1-255 characters/);
+      expect(await gateError(uploader(), 'jmap.uploadBlob', [new Uint8Array(1), 'a.txt', 'text/plain; charset=utf-8'])).toMatch(/type is not a media type/);
+      expect(await gateError(uploader(), 'jmap.uploadBlob', [new Uint8Array(1), 'a.txt', 42])).toMatch(/type must be a string/);
+      expect(await gateError(uploader(), 'jmap.uploadBlob', ['hello', 'a.txt', 'text/plain'])).toMatch(/content must be a Uint8Array/);
+      expect(uploadBlob).not.toHaveBeenCalled();
+    });
+
+    it('caps the size at the server limit, or 50 MB when the server names none', async () => {
+      session();
+      maxSizeUpload = 10;
+      expect(await gateError(uploader(), 'jmap.uploadBlob', [new Uint8Array(11), 'a.bin', 'application/octet-stream'])).toMatch(/more than the 10 bytes allowed/);
+      expect(await gateError(uploader(), 'jmap.uploadBlob', [new Uint8Array(10), 'a.bin', 'application/octet-stream'])).toBe('');
+
+      maxSizeUpload = 0;
+      expect(await gateError(uploader(), 'jmap.uploadBlob', [new Uint8Array(50 * 1024 * 1024 + 1), 'a.bin', 'application/octet-stream']))
+        .toMatch(/more than the 52428800 bytes allowed/);
+      expect(uploadBlob).toHaveBeenCalledTimes(1);
+    });
+
+    it('uploads a clean file under its name and type', async () => {
+      session();
+      await dispatchApiCall(uploader(), 'jmap.uploadBlob', [new Uint8Array([1, 2, 3]), 'scan\u0007.pdf', 'application/pdf']);
+      const file = uploadBlob.mock.calls[0][0];
+      expect(file.name).toBe('scan.pdf');
+      expect(file.type).toBe('application/pdf');
+      expect(file.size).toBe(3);
+    });
+  });
+});
+
+describe('email.setKeyword and email.removeKeyword', () => {
+  const setKeyword = vi.fn(async () => {});
+  const removeKeyword = vi.fn(async () => {});
+  afterEach(() => {
+    setKeyword.mockClear();
+    removeKeyword.mockClear();
+    useAuthStore.setState({ client: null });
+  });
+
+  it('check the email id and account id like jmap.setKeyword does', async () => {
+    useAuthStore.setState({ client: { setKeyword, removeKeyword } as never });
+    const writer = plugin({ permissions: ['email:write'], grantedPermissions: ['email:write'] });
+    for (const method of ['email.setKeyword', 'email.removeKeyword']) {
+      expect(await gateError(writer, method, [undefined, '$label:work'])).toMatch(/emailId is required/);
+      expect(await gateError(writer, method, ['', '$label:work'])).toMatch(/emailId is required/);
+      expect(await gateError(writer, method, [{ id: 'e1' }, '$label:work'])).toMatch(/emailId is required/);
+      expect(await gateError(writer, method, ['e1', '$label:work', 7])).toMatch(/accountId must be a non-empty string/);
+    }
+    expect(setKeyword).not.toHaveBeenCalled();
+    expect(removeKeyword).not.toHaveBeenCalled();
+
+    await dispatchApiCall(writer, 'email.setKeyword', ['e1', '$label:work', 'acc-2']);
+    expect(setKeyword).toHaveBeenCalledWith('e1', '$label:work', 'acc-2');
+    await dispatchApiCall(writer, 'email.removeKeyword', ['e1', '$label:work']);
+    expect(removeKeyword).toHaveBeenCalledWith('e1', '$label:work', undefined);
+  });
+});
+
+describe('WebAuthn PRF salt', () => {
+  it("uses the calling plugin's id, not the one in the arguments", async () => {
+    const get = vi.fn(async () => { throw new Error('stop'); });
+    Object.defineProperty(navigator, 'credentials', { value: { get }, configurable: true });
+    const p = plugin({ id: 'mine', permissions: ['crypto:full'], managed: true, tier: 'privileged' });
+
+    await dispatchApiCall(p, 'crypto.getWebAuthn', [[1, 2, 3], 'someone-else'], { privileged: true }).catch(() => {});
+
+    const salt = (get.mock.calls[0] as unknown as [{ publicKey: { extensions: { prf: { eval: { first: Uint8Array } } } } }])[0]
+      .publicKey.extensions.prf.eval.first;
+    expect(new TextDecoder().decode(salt)).toBe('bulwark-plugins-v1mine');
+  });
+});

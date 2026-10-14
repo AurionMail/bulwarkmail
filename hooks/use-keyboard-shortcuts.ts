@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { Email } from "@/lib/jmap/types";
 import { isEditableEventTarget } from "@/lib/keyboard";
+import { keyboardHooks } from "@/lib/plugin-hooks";
 import type { InterfaceLayout } from "@/stores/settings-store";
 
 export interface KeyboardShortcutHandlers {
@@ -120,6 +121,22 @@ export function useKeyboardShortcuts({
 
       const h = handlersRef.current;
       const key = physicalShortcutKey(event);
+      const keyName = `${event.ctrlKey || event.metaKey ? "mod+" : ""}${event.shiftKey && key.length === 1 && /[a-z]/.test(key) ? "shift+" : ""}${key}`;
+      // Runs a shortcut's action. Plugins may stop it first (onBeforeShortcut)
+      // and hear about it after; with no plugin listening it runs at once.
+      const run = (action: string, fn: (() => void) | undefined) => {
+        if (!fn) return;
+        const payload = { key: keyName, action };
+        const done = () => {
+          fn();
+          void keyboardHooks.onAfterShortcut.emit(payload);
+        };
+        if (keyboardHooks.onBeforeShortcut.size === 0) {
+          done();
+          return;
+        }
+        void keyboardHooks.onBeforeShortcut.intercept(payload).then((ok) => { if (ok) done(); });
+      };
       const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
 
       // Shortcuts that work with modifiers
@@ -128,7 +145,7 @@ export function useKeyboardShortcuts({
           case "a":
             // Ctrl/Cmd + A: Select all
             event.preventDefault();
-            h.onSelectAll?.();
+            run("select-all", h.onSelectAll);
             return;
         }
       }
@@ -146,7 +163,8 @@ export function useKeyboardShortcuts({
         const target = GO_TO_KEYS[key];
         if (target && h.onGoToMailbox) {
           event.preventDefault();
-          h.onGoToMailbox(target);
+          const goTo = h.onGoToMailbox;
+          run(`go-to-${target}`, () => goTo(target));
           return;
         }
       }
@@ -156,27 +174,26 @@ export function useKeyboardShortcuts({
         case "j":
         case "arrowdown":
           event.preventDefault();
-          h.onNextEmail?.();
+          run("next-email", h.onNextEmail);
           break;
 
         case "k":
         case "arrowup":
           event.preventDefault();
-          h.onPreviousEmail?.();
+          run("previous-email", h.onPreviousEmail);
           break;
 
         case "enter":
         case "o":
           if (selectedEmailId) {
             event.preventDefault();
-            h.onOpenEmail?.();
+            run("open-email", h.onOpenEmail);
           }
           break;
 
         case "escape":
           event.preventDefault();
-          h.onCloseEmail?.();
-          h.onDeselectAll?.();
+          run("close", h.onCloseEmail || h.onDeselectAll ? () => { h.onCloseEmail?.(); h.onDeselectAll?.(); } : undefined);
           break;
 
         // Email actions (only when email is selected)
@@ -184,9 +201,9 @@ export function useKeyboardShortcuts({
           if (selectedEmailId) {
             event.preventDefault();
             if (event.shiftKey) {
-              h.onReplyAll?.();
+              run("reply-all", h.onReplyAll);
             } else {
-              h.onReply?.();
+              run("reply", h.onReply);
             }
           }
           break;
@@ -194,28 +211,28 @@ export function useKeyboardShortcuts({
         case "a":
           if (selectedEmailId) {
             event.preventDefault();
-            h.onReplyAll?.();
+            run("reply-all", h.onReplyAll);
           }
           break;
 
         case "f":
           if (selectedEmailId) {
             event.preventDefault();
-            h.onForward?.();
+            run("forward", h.onForward);
           }
           break;
 
         case "s":
           if (selectedEmailId) {
             event.preventDefault();
-            h.onToggleStar?.();
+            run("toggle-star", h.onToggleStar);
           }
           break;
 
         case "e":
           if (hasBatchTarget) {
             event.preventDefault();
-            h.onArchive?.();
+            run("archive", h.onArchive);
           }
           break;
 
@@ -224,51 +241,51 @@ export function useKeyboardShortcuts({
         case "backspace":
           if (hasBatchTarget) {
             event.preventDefault();
-            h.onDelete?.();
+            run("delete", h.onDelete);
           }
           break;
 
         case "u":
           if (hasBatchTarget) {
             event.preventDefault();
-            h.onMarkAsUnread?.();
+            run("mark-as-unread", h.onMarkAsUnread);
           }
           break;
 
         case "i":
           if (hasBatchTarget && event.shiftKey) {
             event.preventDefault();
-            h.onMarkAsRead?.();
+            run("mark-as-read", h.onMarkAsRead);
           }
           break;
 
         case "!":
           if (hasBatchTarget) {
             event.preventDefault();
-            h.onToggleSpam?.();
+            run("toggle-spam", h.onToggleSpam);
           }
           break;
 
         // Global actions
         case "c":
           event.preventDefault();
-          h.onCompose?.();
+          run("compose", h.onCompose);
           break;
 
         case "/":
           event.preventDefault();
-          h.onFocusSearch?.();
+          run("focus-search", h.onFocusSearch);
           break;
 
         case "?":
           event.preventDefault();
-          h.onShowHelp?.();
+          run("show-help", h.onShowHelp);
           break;
 
         case "g":
           if (event.shiftKey) {
             event.preventDefault();
-            h.onRefresh?.();
+            run("refresh", h.onRefresh);
           } else if (mountainViewKeys && h.onGoToMailbox) {
             // Arm the sequence; the next key either completes it or lapses.
             event.preventDefault();
@@ -283,11 +300,11 @@ export function useKeyboardShortcuts({
           if (mountainViewKeys) {
             if (selectedEmailId) {
               event.preventDefault();
-              h.onToggleSelection?.();
+              run("toggle-selection", h.onToggleSelection);
             }
           } else if (selectedEmailId) {
             event.preventDefault();
-            h.onToggleThreadExpansion?.();
+            run("toggle-thread-expansion", h.onToggleThreadExpansion);
           }
           break;
       }
@@ -347,6 +364,8 @@ export interface ShortcutEntry {
   readonly key: string;
   readonly description: string;
   readonly layout?: InterfaceLayout;
+  /** Listed only in the Pro shell, or only outside it. */
+  readonly shell?: "pro" | "standard";
 }
 
 // Shortcut definitions for the help modal
@@ -372,7 +391,8 @@ export const KEYBOARD_SHORTCUTS = {
   global: [
     { key: "c", description: "shortcuts.global.compose" },
     { key: "/", description: "shortcuts.global.search" },
-    { key: "Ctrl/⌘ + K", description: "shortcuts.global.global_search" },
+    { key: "Ctrl/⌘ + K", description: "shortcuts.global.global_search", shell: "pro" },
+    { key: "Ctrl/⌘ + K", description: "command_palette.open", shell: "standard" },
     { key: "?", description: "shortcuts.global.help" },
     { key: "Shift + G", description: "shortcuts.global.refresh" },
     { key: "Ctrl + A", description: "shortcuts.global.select_all" },

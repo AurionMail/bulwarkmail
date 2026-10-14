@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPluginBundle, getPlugin } from '@/lib/admin/plugin-registry';
+import { getPluginBundle, getPlugin, getPluginSignature } from '@/lib/admin/plugin-registry';
 import { getDevPlugin, readDevBundle } from '@/lib/admin/plugin-dev';
 import { signBytes } from '@/lib/admin/plugin-signing';
+import { canSeeInstanceDetails } from '@/lib/auth/instance-details';
 
 async function safeSign(code: string): Promise<string | null> {
   try { return await signBytes(code); } catch { return null; }
@@ -10,13 +11,18 @@ async function safeSign(code: string): Promise<string | null> {
 /**
  * GET /api/admin/plugins/[id]/bundle - Serve plugin JS bundle
  *
- * Public endpoint so the client-side plugin loader can fetch bundles.
+ * Serves bundles to signed-in users so the client-side plugin loader can fetch them.
  * Only serves plugins that exist in the registry and are enabled.
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // Bundles are delivered to signed-in users only, like the plugin list
+  // that names them (/api/plugins).
+  if (!(await canSeeInstanceDetails(request))) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
   try {
     const { id } = await params;
 
@@ -65,7 +71,7 @@ export async function GET(
     };
     if (etag) headers['ETag'] = etag;
 
-    const signature = await safeSign(code);
+    const signature = await getPluginSignature(id, code);
     if (signature) headers['X-Bundle-Signature'] = signature;
 
     if (etag && request.headers.get('if-none-match') === etag) {

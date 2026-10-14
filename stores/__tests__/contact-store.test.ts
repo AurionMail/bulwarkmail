@@ -42,64 +42,64 @@ describe('contact-store', () => {
   });
 
   describe('addLocalContact', () => {
-    it('should append contact to array', () => {
-      useContactStore.getState().addLocalContact(makeContact());
+    it('should append contact to array', async () => {
+      await useContactStore.getState().addLocalContact(makeContact());
       expect(useContactStore.getState().contacts).toHaveLength(1);
       expect(useContactStore.getState().contacts[0].id).toBe('contact-1');
     });
 
-    it('should preserve existing contacts', () => {
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c2' }));
+    it('should preserve existing contacts', async () => {
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c2' }));
       expect(useContactStore.getState().contacts).toHaveLength(2);
     });
   });
 
   describe('updateLocalContact', () => {
-    it('should update matching contact', () => {
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
-      useContactStore.getState().updateLocalContact('c1', {
+    it('should update matching contact', async () => {
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
+      await useContactStore.getState().updateLocalContact('c1', {
         emails: { e0: { address: 'updated@example.com' } },
       });
       expect(useContactStore.getState().contacts[0].emails!.e0.address).toBe('updated@example.com');
     });
 
-    it('should not modify other contacts', () => {
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c2', emails: { e0: { address: 'c2@test.com' } } }));
-      useContactStore.getState().updateLocalContact('c1', { emails: { e0: { address: 'new@test.com' } } });
+    it('should not modify other contacts', async () => {
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c2', emails: { e0: { address: 'c2@test.com' } } }));
+      await useContactStore.getState().updateLocalContact('c1', { emails: { e0: { address: 'new@test.com' } } });
       expect(useContactStore.getState().contacts[1].emails!.e0.address).toBe('c2@test.com');
     });
 
-    it('should no-op for non-existent id', () => {
-      useContactStore.getState().addLocalContact(makeContact());
-      useContactStore.getState().updateLocalContact('nonexistent', { kind: 'org' });
+    it('should no-op for non-existent id', async () => {
+      await useContactStore.getState().addLocalContact(makeContact());
+      await useContactStore.getState().updateLocalContact('nonexistent', { kind: 'org' });
       expect(useContactStore.getState().contacts).toHaveLength(1);
       expect(useContactStore.getState().contacts[0].kind).toBeUndefined();
     });
   });
 
   describe('deleteLocalContact', () => {
-    it('should remove contact by id', () => {
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c2' }));
-      useContactStore.getState().deleteLocalContact('c1');
+    it('should remove contact by id', async () => {
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c2' }));
+      await useContactStore.getState().deleteLocalContact('c1');
       expect(useContactStore.getState().contacts).toHaveLength(1);
       expect(useContactStore.getState().contacts[0].id).toBe('c2');
     });
 
-    it('should clear selectedContactId when deleting selected', () => {
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
+    it('should clear selectedContactId when deleting selected', async () => {
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
       useContactStore.getState().setSelectedContact('c1');
-      useContactStore.getState().deleteLocalContact('c1');
+      await useContactStore.getState().deleteLocalContact('c1');
       expect(useContactStore.getState().selectedContactId).toBeNull();
     });
 
-    it('should preserve selectedContactId when deleting other', () => {
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c2' }));
+    it('should preserve selectedContactId when deleting other', async () => {
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c2' }));
       useContactStore.getState().setSelectedContact('c1');
-      useContactStore.getState().deleteLocalContact('c2');
+      await useContactStore.getState().deleteLocalContact('c2');
       expect(useContactStore.getState().selectedContactId).toBe('c1');
     });
   });
@@ -574,7 +574,7 @@ describe('contact-store', () => {
     });
 
     it('should preserve selectedContactId when deleting other group', async () => {
-      useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
+      await useContactStore.getState().addLocalContact(makeContact({ id: 'c1' }));
       useContactStore.getState().setSelectedContact('c1');
       await useContactStore.getState().createGroup(null, 'Team', []);
       const groupId = useContactStore.getState().contacts[1].id;

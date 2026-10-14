@@ -6,22 +6,29 @@ import { pluginStorage } from '../plugin-storage';
 import {
   emailHooks, calendarHooks, calendarFormHooks, contactHooks, fileHooks,
   authHooks, settingsHooks, identityHooks, filterHooks,
-  taskHooks, templateHooks, smimeHooks, vacationHooks,
+  taskHooks, templateHooks, vacationHooks,
   uiHooks, themeHooks, toastHooks, dragDropHooks,
   keyboardHooks, appLifecycleHooks, accountSecurityHooks,
   sidebarAppHooks, avatarHooks, renderHooks, routerHooks,
   messageListTabHooks,
-  removeAllPluginHooks, pluginErrorTracker,
+  removeAllPluginHooks, pluginErrorTracker, setHookTimeoutListener,
 } from '../plugin-hooks';
 import { useMessageListTabsStore } from '@/stores/message-list-tabs-store';
 import { verifyBundle } from './bundle-integrity';
 import { downloadManagedBundle } from './bundle-fetch';
-import { createBackgroundInstance } from './host-bridge';
+import { createBackgroundInstance, forEachInstance } from './host-bridge';
 import { resolvePluginTier } from './tier';
-import { register as registerActive, deregister as deregisterActive, all as allActiveEntries } from './registry';
+import { register as registerActive, deregister as deregisterActive, all as allActiveEntries, get as getActive } from './registry';
 import { cancelPluginDialogs } from './host-api';
 import { registerShortcuts } from './shortcuts';
-import { mayOfferSlot, mayRegisterHook } from './permissions';
+import { mayOfferSlot, mayRegisterHook, pluginHasPermission, slotPropsFor } from './permissions';
+import { clearPluginActions, setActionDispatcher } from './actions';
+import { clearDayLabels } from './day-labels';
+import { clearPluginPages } from './pages';
+import { clearSectionTitle } from './section-titles';
+import { cancelPluginProxyRequests } from './proxy-client';
+import { cancelConnectFor } from './connect-dialog';
+import type { SlotName } from '../plugin-types';
 
 // ─── Hook-bus lookup (one flat map for name → bus) ────────────
 
@@ -30,7 +37,7 @@ type AnyBus = { register: (pluginId: string, handler: (...args: unknown[]) => un
 const HOOK_BUSES: Record<string, AnyBus> = Object.assign({},
   emailHooks, calendarHooks, calendarFormHooks, contactHooks, fileHooks,
   authHooks, settingsHooks, identityHooks, filterHooks,
-  taskHooks, templateHooks, smimeHooks, vacationHooks,
+  taskHooks, templateHooks, vacationHooks,
   uiHooks, themeHooks, toastHooks, dragDropHooks,
   keyboardHooks, appLifecycleHooks, accountSecurityHooks,
   sidebarAppHooks, avatarHooks, renderHooks, routerHooks,
@@ -39,7 +46,11 @@ const HOOK_BUSES: Record<string, AnyBus> = Object.assign({},
 
 // ─── Store accessor (status updates flow through the existing store) ──
 
-type StoreAccessor = { setPluginStatus: (id: string, status: InstalledPlugin['status'], error?: string) => void };
+type StoreAccessor = {
+  setPluginStatus: (id: string, status: InstalledPlugin['status'], error?: string) => void;
+  /** Turn a failing plugin off for good (until the user turns it on again). */
+  markAutoDisabled?: (id: string) => void;
+};
 let storeAccessor: StoreAccessor | null = null;
 export function setSandboxStoreAccessor(a: StoreAccessor): void { storeAccessor = a; }
 
@@ -51,12 +62,17 @@ export function setSandboxLocale(locale: string): void {
   // good locale back to '' - the initial 'en' default stands until the real
   // locale arrives via the store subscription.
   if (!locale) return;
+  const changed = locale !== currentLocale;
   currentLocale = locale;
   // Background instances read `currentLocale` at load time; the slot-iframe
   // component reads this global at spawn time (plugin-iframe-slot.tsx). Keep
-  // both in step from one place. Already-running instances are not re-pushed,
-  // so a locale switch only affects plugins/slots loaded afterwards.
+  // both in step from one place.
   (globalThis as unknown as { __APP_LOCALE__?: string }).__APP_LOCALE__ = locale;
+  if (!changed) return;
+  // Running plugins switch too: their slots re-render in the new language
+  // and their onLocaleChange handlers run.
+  forEachInstance(null, (instance) => instance.setLocale(locale));
+  void themeHooks.onLocaleChange.emit({ locale });
 }
 
 // ─── Bundle fetch ─────────────────────────────────────────────
@@ -100,7 +116,9 @@ async function getBundleCode(plugin: InstalledPlugin): Promise<string> {
     throw new Error(`No bundle in storage for plugin "${plugin.id}". Reinstall to populate.`);
   }
 
-  const code = await downloadManagedBundle(plugin.id, plugin.bundleHash);
+  const code = await downloadManagedBundle(plugin.id, plugin.bundleHash, {
+    requireSignature: plugin.tier === 'privileged',
+  });
   await verifyBundle(code, plugin.bundleHash);
   try {
     await pluginStorage.saveCode(plugin.id, code);
@@ -131,8 +149,24 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   });
 }
 
-export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
-  if (typeof window === 'undefined') return;
+const loading = new Map<string, Promise<void>>();
+
+/**
+ * Start a plugin. Calling it again for a plugin that is running or still
+ * starting does nothing: start-up and a force-enable sync used to both load
+ * a plugin, leaving two background iframes whose hooks all fired twice.
+ */
+export function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (getActive(plugin.id)) return Promise.resolve();
+  const pending = loading.get(plugin.id);
+  if (pending) return pending;
+  const run = startSandboxedPlugin(plugin).finally(() => loading.delete(plugin.id));
+  loading.set(plugin.id, run);
+  return run;
+}
+
+async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
 
   let background: ReturnType<typeof createBackgroundInstance> | null = null;
   try {
@@ -171,6 +205,9 @@ export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void
     const hookDisposables: Disposable[] = [];
     for (const hookName of info.hooks) {
       if (hookName.startsWith('shortcut:')) continue;
+      // Not a bus: the host calls it directly for clicks on this plugin's own
+      // actions (see setActionDispatcher below).
+      if (hookName === 'onAction') continue;
       const bus = HOOK_BUSES[hookName];
       if (!bus) {
         console.warn(`[plugin-sandbox] Plugin "${plugin.id}" registered unknown hook "${hookName}"`);
@@ -180,20 +217,22 @@ export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void
         console.warn(`[plugin-sandbox] Plugin "${plugin.id}" lacks the permission for hook "${hookName}"; not registered`);
         continue;
       }
-      const proxy = async (...args: unknown[]) => {
-        try {
-          return await bg.invokeHook(hookName, args);
-        } catch (err) {
-          pluginErrorTracker.record(plugin.id, err);
-          throw err;
-        }
-      };
+      // The bus records a failure once; recording it here too made the
+      // three-strikes breaker trip on the second error.
+      const proxy = (...args: unknown[]) => bg.invokeHook(hookName, args);
       hookDisposables.push(bus.register(plugin.id, proxy as (...a: unknown[]) => unknown));
     }
 
-    // Install plugin-declared keyboard shortcuts.
-    const shortcutDispose = registerShortcuts(bg, info.shortcuts ?? []);
-    hookDisposables.push({ dispose: shortcutDispose });
+    // Install plugin-declared keyboard shortcuts. A shortcut sees every
+    // key press outside text fields, so it needs ui:keyboard like the hooks.
+    if ((info.shortcuts ?? []).length > 0) {
+      if (pluginHasPermission(plugin, 'ui:keyboard')) {
+        const shortcutDispose = registerShortcuts(bg, info.shortcuts ?? []);
+        hookDisposables.push({ dispose: shortcutDispose });
+      } else {
+        console.warn(`[plugin-sandbox] Plugin "${plugin.id}" declares shortcuts without the ui:keyboard permission; not registered`);
+      }
+    }
 
     const slotOffers = info.slots.filter((offer) => {
       if (mayOfferSlot(plugin, offer.name)) return true;
@@ -224,6 +263,22 @@ export async function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void
   }
 }
 
+// ─── Action clicks ────────────────────────────────────────────
+
+// A click on a button a plugin declared (api.ui.setActions) goes to that
+// plugin's background instance as its `onAction` hook, with the surface's
+// context cut down to what the plugin may see.
+setActionDispatcher(async (pluginId, surface, actionId, context) => {
+  const entry = allActiveEntries().find((e) => e.plugin.id === pluginId);
+  if (!entry) return;
+  const visible = slotPropsFor(entry.plugin, surface as SlotName, context);
+  try {
+    await entry.background.invokeHook('onAction', [{ surface, actionId, context: visible }]);
+  } catch (err) {
+    pluginErrorTracker.record(pluginId, err);
+  }
+});
+
 // ─── Unload ───────────────────────────────────────────────────
 
 export function unloadSandboxedPlugin(pluginId: string): void {
@@ -236,6 +291,14 @@ export function unloadSandboxedPlugin(pluginId: string): void {
   // Drop any message-list category tabs the plugin registered so the strip
   // disappears (and the inbox unfilters) the moment the plugin is disabled.
   try { useMessageListTabsStore.getState().clearTabs(pluginId); } catch { /* ignore */ }
+  // Same for the buttons, day labels and pages it declared, and anything
+  // still running through the proxy for it.
+  clearPluginActions(pluginId);
+  clearDayLabels(pluginId);
+  clearPluginPages(pluginId);
+  clearSectionTitle(pluginId);
+  cancelPluginProxyRequests(pluginId);
+  cancelConnectFor(pluginId);
   try { entry.background.destroy(); } catch { /* ignore */ }
   cancelPluginDialogs(pluginId);
   pluginErrorTracker.reset(pluginId);
@@ -260,9 +323,15 @@ export function deactivateAllSandboxed(): void {
 // ─── Auto-disable ─────────────────────────────────────────────
 
 export function setupSandboxAutoDisable(): void {
+  setHookTimeoutListener((pluginId) => cancelPluginDialogs(pluginId));
   pluginErrorTracker.setAutoDisableCallback((pluginId) => {
     unloadSandboxedPlugin(pluginId);
-    storeAccessor?.setPluginStatus(pluginId, 'error', 'Auto-disabled due to repeated errors');
+    if (storeAccessor?.markAutoDisabled) storeAccessor.markAutoDisabled(pluginId);
+    else storeAccessor?.setPluginStatus(pluginId, 'error', 'auto-disabled');
+    // PluginDialogHost turns this into a toast in the user's language.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('plugin:auto-disabled', { detail: { pluginId } }));
+    }
   });
 }
 

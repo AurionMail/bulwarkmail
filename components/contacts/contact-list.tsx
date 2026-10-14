@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ContactListItem } from "./contact-list-item";
 import { ContactContextMenu } from "./contact-context-menu";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { cn } from "@/lib/utils";
 import type { AnniversaryDate, ContactCard } from "@/lib/jmap/types";
@@ -268,6 +269,7 @@ export function ContactList({
   }, [sorted, locale, sortByLastName]);
 
   const hasSelection = selectedContactIds.size > 0;
+  const pluginContext = useMemo(() => ({ contactIds: [...selectedContactIds] }), [selectedContactIds]);
   const allSelected = sorted.length > 0 && sorted.every(c => selectedContactIds.has(c.id));
 
   return (
@@ -521,6 +523,7 @@ export function ContactList({
             <Trash2 className="w-3.5 h-3.5 me-1" />
             {t("bulk.delete")}
           </Button>
+          <PluginActions surface="contact-list-actions" context={pluginContext} />
           <Button variant="ghost" size="icon" onClick={onClearSelection} className="h-7 w-7">
             <X className="w-3.5 h-3.5" />
           </Button>

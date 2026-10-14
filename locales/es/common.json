@@ -620,7 +620,9 @@
       "copied": "Código copiado",
       "copy_failed": "No se pudo copiar el código"
     },
-    "mv_position": "{index} de {total}"
+    "mv_position": "{index} de {total}",
+    "plugin_panel_show": "Mostrar el panel del complemento",
+    "plugin_panel_hide": "Ocultar el panel del complemento"
   },
   "email_composer": {
     "minimize": "Minimizar",
@@ -813,7 +815,8 @@
       "remove_background_color": "Quitar color de fondo"
     },
     "send_filing_warning": "Enviado - pero la limpieza posterior falló, puede quedar un borrador obsoleto.",
-    "pop_out": "Abrir la respuesta en una ventana"
+    "pop_out": "Abrir la respuesta en una ventana",
+    "send_guard_failed": "No enviado: un complemento que revisa los mensajes antes de enviarlos falló o no respondió."
   },
   "confirm_dialog": {
     "confirm": "Confirmar",
@@ -3970,6 +3973,354 @@
       "failed_detail": "Error de autorización: {error}",
       "missing_params": "Falta el código de autorización o el estado.",
       "delivery_failed": "No se pudo entregar el resultado de la autorización a la pestaña de la aplicación. Cierre esta ventana e inténtelo de nuevo."
+    },
+    "settings": {
+      "title": "Complementos",
+      "description": "Complementos que añadió tu administrador. Actívalos o desactívalos para tu cuenta.",
+      "description_uploads": "Los complementos añaden funciones al webmail. Actívalos o desactívalos para tu cuenta, o instala los tuyos.",
+      "description_demo": "Los complementos no están disponibles en la demo.",
+      "install_button": "Instalar complemento",
+      "install_hint": "Elige el archivo ZIP de un complemento.",
+      "install_hint_approval": "Elige el archivo ZIP de un complemento. Un administrador tiene que aprobarlo antes de que puedas activarlo.",
+      "install_uploads_off": "Tu administrador no permite instalar complementos.",
+      "install_managed_id": "Tu administrador ya ofrece un complemento con este nombre, así que no se puede reemplazar.",
+      "install_invalid": "Este archivo no es un complemento que se pueda instalar: {details}",
+      "toast_installed": "Complemento instalado. Actívalo abajo.",
+      "toast_installed_pending": "Complemento instalado y enviado a tu administrador para su aprobación.",
+      "toast_enabled": "{name} está activado",
+      "toast_disabled": "{name} está desactivado",
+      "toast_removed": "Se eliminó {name}",
+      "toast_forced": "Tu administrador mantiene {name} activado",
+      "toast_approval_requested": "{name} está pendiente de la aprobación de tu administrador",
+      "empty_title": "Aún no hay complementos",
+      "empty_admin": "Tu administrador no ha añadido ningún complemento.",
+      "empty_uploads": "Instala un complemento desde un archivo ZIP para empezar.",
+      "empty_demo": "Los complementos necesitan una cuenta real, así que la demo no tiene ninguno.",
+      "syncing": "Comprobando los complementos con el servidor…",
+      "status_installed": "Desactivado",
+      "status_enabled": "Iniciando",
+      "status_running": "Activado",
+      "status_disabled": "Desactivado",
+      "status_error": "Problema",
+      "badge_forced": "Obligatorio",
+      "badge_managed": "De tu administrador",
+      "badge_yours": "Instalado por ti",
+      "badge_awaiting": "Pendiente de aprobación",
+      "toggle_label": "Activar o desactivar {name}",
+      "forced_note": "Tu administrador exige este complemento, así que no se puede desactivar.",
+      "permissions": "Qué puede hacer",
+      "permissions_managed": "Qué puede hacer (aprobado por tu administrador)",
+      "settings": "Configuración",
+      "remove": "Eliminar",
+      "remove_title": "¿Eliminar {name}?",
+      "remove_message": "Se eliminarán el complemento y todo lo que guardó en este navegador. Puedes volver a instalarlo más tarde.",
+      "remove_confirm": "Eliminar",
+      "error_user_plugins_off": "Tu administrador desactivó los complementos instalados por usuarios, así que este complemento no se ejecuta.",
+      "error_approval_unavailable": "Este complemento se instaló antes de que se exigiera aprobación. Elimínalo e instálalo de nuevo para enviarlo a aprobación.",
+      "error_approval_denied": "Tu administrador no aprobó este complemento.",
+      "error_approval_pending": "Esperando a que tu administrador apruebe este complemento.",
+      "error_auto_disabled": "Desactivado porque fallaba una y otra vez. Actívalo de nuevo para volver a intentarlo.",
+      "accounts_heading": "Cuentas conectadas",
+      "account_on": "{label} en {host}",
+      "account_waiting": "{label} en {host} (inicio de sesión sin terminar)",
+      "disconnect": "Desconectar",
+      "disconnect_failed": "No se pudo desconectar {label}"
+    },
+    "consent": {
+      "title": "¿Permitir que {name} haga esto?",
+      "intro": "El complemento pide los permisos de abajo. Solo los obtiene si se los concedes.",
+      "high_risk_note": "Los elementos marcados dan al complemento acceso al contenido de tu correo o le permiten enviar datos a otros sitios. Permítelos solo en complementos de confianza.",
+      "revoke_hint": "Puedes desactivar o eliminar el complemento en Configuración en cualquier momento.",
+      "deny": "No permitir",
+      "allow": "Permitir"
+    },
+    "permissions": {
+      "none": "No necesita permisos especiales.",
+      "high_risk": "Con cuidado",
+      "email_read": {
+        "title": "Leer tu correo",
+        "body": "Ver remitentes, destinatarios, asuntos y el texto completo de cualquier mensaje de tu cuenta, y tus carpetas."
+      },
+      "email_write": {
+        "title": "Cambiar y organizar tu correo",
+        "body": "Añadir o quitar etiquetas, marcas y otras palabras clave de tus mensajes, moverlos entre tus carpetas y al archivo, y guardar borradores."
+      },
+      "email_send": {
+        "title": "Cambiar el correo antes de enviarlo",
+        "body": "Leer y cambiar los destinatarios, el asunto, el texto y los adjuntos de los mensajes que escribes, e impedir que se envíe un mensaje."
+      },
+      "crypto_full": {
+        "title": "Acceso total a esta aplicación",
+        "body": "Se ejecuta con los mismos derechos que el propio webmail. Puede leer todo tu correo y tus claves guardadas y actuar en tu nombre. Permítelo solo en complementos en los que confíes plenamente."
+      },
+      "email_raw_send": {
+        "title": "Enviar mensajes que creó él mismo",
+        "body": "Enviar mensajes completos, por ejemplo firmados o cifrados, desde tu cuenta."
+      },
+      "email_blob_read": {
+        "title": "Leer el contenido sin procesar de los mensajes",
+        "body": "Leer los datos originales de tus mensajes y adjuntos, y de cada archivo que adjuntas antes de enviarlo."
+      },
+      "email_blob_write": {
+        "title": "Reemplazar adjuntos antes de enviar",
+        "body": "Subir archivos a tu servidor de correo y reemplazar un archivo adjunto por otro antes de enviar el mensaje."
+      },
+      "email_render_takeover": {
+        "title": "Cambiar cómo se muestran los mensajes",
+        "body": "Reemplazar el texto de los mensajes que abres y de la lista de mensajes, por ejemplo para mostrar contenido descifrado."
+      },
+      "calendar_read": {
+        "title": "Leer tu calendario",
+        "body": "Ver tus calendarios y sus eventos."
+      },
+      "calendar_write": {
+        "title": "Cambiar tu calendario",
+        "body": "Crear, cambiar y eliminar eventos."
+      },
+      "contacts_read": {
+        "title": "Leer tus contactos",
+        "body": "Buscar y leer en tus libretas de direcciones."
+      },
+      "contacts_write": {
+        "title": "Cambiar tus contactos",
+        "body": "Crear, cambiar y eliminar contactos y libretas de direcciones."
+      },
+      "files_read": {
+        "title": "Leer tus archivos",
+        "body": "Explorar y abrir los archivos guardados en tu cuenta."
+      },
+      "files_write": {
+        "title": "Cambiar tus archivos",
+        "body": "Subir, renombrar, mover y eliminar archivos de tu cuenta."
+      },
+      "identity_read": {
+        "title": "Ver tus direcciones de remitente",
+        "body": "Ver las direcciones desde las que envías y sus firmas."
+      },
+      "identity_write": {
+        "title": "Cambiar tus direcciones de remitente",
+        "body": "Crear, cambiar y eliminar direcciones de remitente y firmas."
+      },
+      "filters_read": {
+        "title": "Leer tus filtros de correo",
+        "body": "Ver las reglas que ordenan tu correo entrante."
+      },
+      "filters_write": {
+        "title": "Cambiar tus filtros de correo",
+        "body": "Añadir reglas a tus filtros del servidor. Esas reglas pueden mover, reenviar o eliminar el correo entrante."
+      },
+      "tasks_read": {
+        "title": "Leer tus tareas",
+        "body": "Ver tus listas de tareas y tus tareas."
+      },
+      "tasks_write": {
+        "title": "Cambiar tus tareas",
+        "body": "Crear, cambiar, completar y eliminar tareas."
+      },
+      "templates_read": {
+        "title": "Leer tus plantillas",
+        "body": "Ver tus plantillas de mensaje guardadas."
+      },
+      "templates_write": {
+        "title": "Cambiar tus plantillas",
+        "body": "Crear, cambiar y eliminar plantillas de mensaje."
+      },
+      "smime_read": {
+        "title": "Ver tu estado de S/MIME",
+        "body": "Ver si tienes claves y certificados S/MIME, sin acceso a las claves."
+      },
+      "vacation_read": {
+        "title": "Ver tu respuesta de ausencia",
+        "body": "Ver si tu respuesta automática está activada y qué dice."
+      },
+      "vacation_write": {
+        "title": "Cambiar tu respuesta de ausencia",
+        "body": "Activar o desactivar tu respuesta automática y cambiar su texto y sus fechas."
+      },
+      "settings_read": {
+        "title": "Leer tu configuración",
+        "body": "Ver tus preferencias y las definiciones de tus etiquetas."
+      },
+      "settings_write": {
+        "title": "Cambiar tu configuración",
+        "body": "Añadir y reordenar etiquetas y cambiar tus preferencias."
+      },
+      "security_read": {
+        "title": "Ver la seguridad de tu cuenta",
+        "body": "Ver si el inicio de sesión con dos factores y el cifrado están activados, sin acceso a secretos."
+      },
+      "auth_observe": {
+        "title": "Saber cuándo inicias sesión",
+        "body": "Recibir un aviso cuando inicias sesión, cambias de cuenta o se renueva tu sesión."
+      },
+      "auth_emit": {
+        "title": "Cerrar tu sesión",
+        "body": "Cerrar tu sesión en el webmail."
+      },
+      "account_read": {
+        "title": "Ver tus cuentas",
+        "body": "Ver las cuentas que añadiste, con sus direcciones y servidores."
+      },
+      "http_post": {
+        "title": "Usar el servidor del webmail por ti",
+        "body": "Llamar a estos endpoints del servidor con tu inicio de sesión:"
+      },
+      "http_fetch": {
+        "title": "Conectarse a otros sitios web",
+        "body": "Enviar solicitudes a estos sitios. Todo lo que el complemento pueda leer se puede enviar allí:"
+      },
+      "admin_config": {
+        "title": "Leer su configuración de tu administrador",
+        "body": "Leer la configuración que tu administrador guardó para este complemento."
+      },
+      "ui_observe": {
+        "title": "Seguir dónde estás en la aplicación",
+        "body": "Saber qué página está abierta y reaccionar a los enlaces en los que haces clic."
+      },
+      "ui_toolbar": {
+        "title": "Añadir botones a las barras de herramientas",
+        "body": "Mostrar sus propios botones en la barra de herramientas de mensajes, en un mensaje abierto y en la barra superior."
+      },
+      "ui_app_top_banner": {
+        "title": "Mostrar un banner arriba",
+        "body": "Mostrar un aviso a lo ancho de la parte superior de la aplicación."
+      },
+      "ui_email_banner": {
+        "title": "Mostrar avisos en los mensajes",
+        "body": "Mostrar sus propios avisos y resúmenes encima, dentro y entre las partes de un mensaje o una conversación abiertos."
+      },
+      "ui_email_footer": {
+        "title": "Añadir contenido debajo de los mensajes",
+        "body": "Mostrar su propio contenido debajo de un mensaje abierto."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Mostrar las claves de cifrado de los contactos",
+        "body": "Mostrar y gestionar las claves de cifrado de un contacto."
+      },
+      "ui_email_details": {
+        "title": "Añadir paneles a los detalles del mensaje",
+        "body": "Mostrar su propio panel junto a un mensaje abierto o debajo de él."
+      },
+      "ui_download_file": {
+        "title": "Guardar archivos en tu dispositivo",
+        "body": "Ofrecer para descargar archivos que creó."
+      },
+      "ui_message_list_tabs": {
+        "title": "Añadir pestañas a tu bandeja de entrada",
+        "body": "Ordenar tu bandeja de entrada en pestañas como Novedades o Promociones."
+      },
+      "ui_composer_toolbar": {
+        "title": "Añadir al editor",
+        "body": "Mostrar sus propios botones, entradas de menú y secciones mientras escribes un mensaje."
+      },
+      "ui_composer_sidebar": {
+        "title": "Añadir un panel al editor",
+        "body": "Mostrar su propio panel junto al mensaje que escribes."
+      },
+      "ui_sidebar_widget": {
+        "title": "Añadir a la barra lateral",
+        "body": "Mostrar sus propios recuadros y secciones en la barra lateral del correo."
+      },
+      "ui_settings_section": {
+        "title": "Añadir una página de configuración",
+        "body": "Mostrar su propia página en Configuración."
+      },
+      "ui_context_menu": {
+        "title": "Añadir al menú del mensaje",
+        "body": "Añadir entradas al menú que se abre al hacer clic derecho en un mensaje."
+      },
+      "ui_navigation_rail": {
+        "title": "Añadir a la barra de navegación",
+        "body": "Mostrar su propio botón en la barra de navegación."
+      },
+      "ui_keyboard": {
+        "title": "Añadir atajos de teclado",
+        "body": "Reaccionar a los atajos de teclado que define."
+      },
+      "ui_calendar_action": {
+        "title": "Añadir a la vista de calendario",
+        "body": "Mostrar sus propios botones y secciones en los eventos, y etiquetas cortas y puntos en los días del calendario."
+      },
+      "ui_admin_page": {
+        "title": "Añadir una página de administración",
+        "body": "Mostrar su propia página en la configuración de administración."
+      },
+      "app_lifecycle": {
+        "title": "Saber cuándo se inicia y se cierra la aplicación",
+        "body": "Recibir un aviso cuando la aplicación se inicia, se queda sin conexión o cierras sesión."
+      },
+      "compose_open": {
+        "title": "Abrir el editor por ti",
+        "body": "Abrir un mensaje nuevo con los destinatarios, el texto o los adjuntos ya rellenados. Tú sigues decidiendo si se envía."
+      },
+      "compose_read": {
+        "title": "Leer el mensaje que escribes",
+        "body": "Leer el texto de un mensaje mientras lo escribes, cuando usas el complemento en el editor. No la firma ni el mensaje citado."
+      },
+      "compose_write": {
+        "title": "Cambiar el mensaje que escribes",
+        "body": "Sustituir o añadir texto en un mensaje mientras lo escribes, cuando usas el complemento en el editor. Puedes deshacer cada cambio y sigues decidiendo si lo envías."
+      },
+      "ui_notifications": {
+        "title": "Mostrar notificaciones",
+        "body": "Mostrar notificaciones en tu dispositivo, o dentro de la aplicación si no las has permitido. Cada una indica el nombre del complemento."
+      },
+      "ui_message_list": {
+        "title": "Añadir a la lista de mensajes",
+        "body": "Mostrar su propio contenido encima de la lista de mensajes, y botones en los mensajes y en la barra de los mensajes seleccionados."
+      },
+      "ui_contacts": {
+        "title": "Añadir a la vista de contactos",
+        "body": "Mostrar sus propias secciones en los detalles de un contacto y botones en la lista de contactos."
+      },
+      "ui_tasks": {
+        "title": "Añadir a la vista de tareas",
+        "body": "Mostrar sus propias secciones en los detalles de una tarea y botones en la lista de tareas."
+      },
+      "ui_files": {
+        "title": "Añadir a la vista de archivos",
+        "body": "Mostrar sus propias secciones en la vista previa de archivos y entradas en el menú de un archivo."
+      },
+      "ui_commands": {
+        "title": "Añadir comandos",
+        "body": "Añadir sus propias entradas a la paleta de comandos (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Añadir páginas",
+        "body": "Añadir sus propias páginas a la aplicación, cada una con un botón en la barra de navegación."
+      },
+      "http_proxy": {
+        "title": "Usar las cuentas que conectes",
+        "body": "Enviar solicitudes a través del servidor de Bulwark con una cuenta o clave configurada por ti o por tu administrador. El complemento nunca ve la contraseña, pero puede hacer todo lo que esa cuenta puede hacer en su propio servidor."
+      }
+    },
+    "dialog": {
+      "from_plugin": "Del complemento {name}",
+      "ok": "Aceptar",
+      "submit": "Enviar",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "turn_off": "Desactivar {name}",
+      "plugin_menu": "Opciones de {name}",
+      "password_note": "Este formulario viene del complemento {name}, no del correo web. Introduce una contraseña solo si confías en este complemento.",
+      "toast_auto_disabled": "{name} se desactivó porque fallaba una y otra vez."
+    },
+    "connect": {
+      "title": "Conectar {label}",
+      "intro_password": "{name} quiere usar tu cuenta de {label}. Bulwark guarda la contraseña en su servidor y solo la envía a {host}. El complemento nunca la ve.",
+      "intro_password_any": "{name} quiere usar tu cuenta de {label}. Bulwark guarda la contraseña en su servidor y solo la envía al servidor que indiques aquí. El complemento nunca la ve.",
+      "intro_signin": "{name} quiere iniciar sesión en tu cuenta de {label}. Indica aquí el servidor y luego inicia sesión en su propia página. Bulwark guarda en su servidor el acceso que obtiene; el complemento nunca lo ve.",
+      "server": "Dirección del servidor",
+      "server_hint": "cloud.example.com",
+      "username": "Nombre de usuario",
+      "secret": "Contraseña o clave",
+      "connect": "Conectar",
+      "continue": "Continuar",
+      "cancel": "Cancelar",
+      "saving": "Guardando…",
+      "error_server": "Indica la dirección del servidor, por ejemplo https://cloud.example.com",
+      "error_save": "No se pudo guardar: {error}"
     }
   },
   "global_search": {
@@ -3998,5 +4349,41 @@
     "preview_empty": "Selecciona un resultado para previsualizarlo",
     "open_full": "Abrir",
     "view_label": "Vista"
+  },
+  "top_bar": {
+    "more": "Más opciones"
+  },
+  "plugin_pages": {
+    "loading": "Cargando la página",
+    "not_available_title": "Esta página no está disponible",
+    "not_available_description": "El complemento que la añadió está desactivado o ya no está instalado.",
+    "back_to_mail": "Volver al correo",
+    "settings_group": "Complementos"
+  },
+  "command_palette": {
+    "title": "Paleta de comandos",
+    "open": "Abrir la paleta de comandos",
+    "placeholder": "Escribe un comando",
+    "no_results": "No hay comandos que coincidan",
+    "go_to": "Ir a {name}",
+    "compose": "Mensaje nuevo",
+    "search": "Buscar en el correo",
+    "theme_dark": "Cambiar al tema oscuro",
+    "theme_light": "Cambiar al tema claro",
+    "shortcuts": "Mostrar atajos de teclado",
+    "group_navigation": "Ir a",
+    "group_actions": "Acciones",
+    "group_plugins": "Complementos"
+  },
+  "notification_center": {
+    "title": "Notificaciones",
+    "mark_all_read": "Marcar todo como leído",
+    "clear": "Borrar",
+    "empty": "No hay notificaciones",
+    "close": "Cerrar",
+    "unread": "Sin leer",
+    "unread_count": "{count} sin leer",
+    "level_error": "Error",
+    "level_warning": "Advertencia"
   }
 }

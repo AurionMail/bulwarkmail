@@ -620,7 +620,9 @@
       "copied": "Kode kopiert",
       "copy_failed": "Kunne ikke kopiere koden"
     },
-    "mv_position": "{index} av {total}"
+    "mv_position": "{index} av {total}",
+    "plugin_panel_show": "Vis tilleggspanel",
+    "plugin_panel_hide": "Skjul tilleggspanel"
   },
   "email_composer": {
     "minimize": "Minimer",
@@ -813,7 +815,8 @@
       "remove_background_color": "Fjern bakgrunnsfarge"
     },
     "send_filing_warning": "Meldingen ble sendt, men oppryddingen etterpå mislyktes. Et gammelt utkast kan bli liggende.",
-    "pop_out": "Åpne svaret i et eget vindu"
+    "pop_out": "Åpne svaret i et eget vindu",
+    "send_guard_failed": "Ikke sendt - et tillegg som sjekker meldinger før sending, feilet eller svarte ikke."
   },
   "confirm_dialog": {
     "confirm": "Bekreft",
@@ -3970,6 +3973,354 @@
       "failed_detail": "Autorisering mislyktes: {error}",
       "missing_params": "Mangler autorisasjonskode eller tilstand.",
       "delivery_failed": "Autoriseringsresultatet kunne ikke leveres til app-fanen. Lukk dette vinduet og prøv igjen."
+    },
+    "settings": {
+      "title": "Tillegg",
+      "description": "Tillegg som administratoren din har lagt til. Slå dem på eller av for kontoen din.",
+      "description_uploads": "Tillegg gir webmailen flere funksjoner. Slå dem på eller av for kontoen din, eller installer dine egne.",
+      "description_demo": "Tillegg er ikke tilgjengelige i demoen.",
+      "install_button": "Installer tillegg",
+      "install_hint": "Velg en ZIP-fil med et tillegg.",
+      "install_hint_approval": "Velg en ZIP-fil med et tillegg. En administrator må godkjenne det før du kan slå det på.",
+      "install_uploads_off": "Administratoren din tillater ikke at du installerer tillegg.",
+      "install_managed_id": "Administratoren din tilbyr allerede et tillegg med dette navnet, så det kan ikke erstattes.",
+      "install_invalid": "Denne filen er ikke et tillegg som kan installeres: {details}",
+      "toast_installed": "Tillegget er installert. Slå det på nedenfor.",
+      "toast_installed_pending": "Tillegget er installert og sendt til administratoren din for godkjenning.",
+      "toast_enabled": "{name} er på",
+      "toast_disabled": "{name} er av",
+      "toast_removed": "{name} er fjernet",
+      "toast_forced": "Administratoren din holder {name} slått på",
+      "toast_approval_requested": "{name} venter på godkjenning fra administratoren din",
+      "empty_title": "Ingen tillegg ennå",
+      "empty_admin": "Administratoren din har ikke lagt til noen tillegg.",
+      "empty_uploads": "Installer et tillegg fra en ZIP-fil for å komme i gang.",
+      "empty_demo": "Tillegg krever en ekte konto, så demoen har ingen.",
+      "syncing": "Sjekker tilleggene mot serveren…",
+      "status_installed": "Av",
+      "status_enabled": "Starter",
+      "status_running": "På",
+      "status_disabled": "Av",
+      "status_error": "Problem",
+      "badge_forced": "Påkrevd",
+      "badge_managed": "Fra administratoren din",
+      "badge_yours": "Installert av deg",
+      "badge_awaiting": "Venter på godkjenning",
+      "toggle_label": "Slå {name} på eller av",
+      "forced_note": "Administratoren din krever dette tillegget, så det kan ikke slås av.",
+      "permissions": "Hva det kan gjøre",
+      "permissions_managed": "Hva det kan gjøre (godkjent av administratoren din)",
+      "settings": "Innstillinger",
+      "remove": "Fjern",
+      "remove_title": "Vil du fjerne {name}?",
+      "remove_message": "Tillegget og alt det har lagret i denne nettleseren, blir slettet. Du kan installere det på nytt senere.",
+      "remove_confirm": "Fjern",
+      "error_user_plugins_off": "Administratoren din har slått av tillegg som brukere har installert, så dette tillegget kjører ikke.",
+      "error_approval_unavailable": "Dette tillegget ble installert før godkjenning ble påkrevd. Fjern det og installer det på nytt for å sende det til godkjenning.",
+      "error_approval_denied": "Administratoren din godkjente ikke dette tillegget.",
+      "error_approval_pending": "Venter på at administratoren din skal godkjenne dette tillegget.",
+      "error_auto_disabled": "Slått av fordi det feilet gjentatte ganger. Slå det på igjen for å prøve på nytt.",
+      "accounts_heading": "Tilkoblede kontoer",
+      "account_on": "{label} på {host}",
+      "account_waiting": "{label} på {host} (pålogging ikke fullført)",
+      "disconnect": "Koble fra",
+      "disconnect_failed": "Kunne ikke koble fra {label}"
+    },
+    "consent": {
+      "title": "Vil du la {name} gjøre dette?",
+      "intro": "Tillegget ber om tillatelsene nedenfor. Det får dem bare hvis du tillater det.",
+      "high_risk_note": "Merkede punkter gir tillegget tilgang til innholdet i e-posten din eller lar det sende data andre steder. Tillat dem bare for tillegg du stoler på.",
+      "revoke_hint": "Du kan når som helst slå av eller fjerne tillegget under Innstillinger.",
+      "deny": "Ikke tillat",
+      "allow": "Tillat"
+    },
+    "permissions": {
+      "none": "Det trenger ingen spesielle tillatelser.",
+      "high_risk": "Krever varsomhet",
+      "email_read": {
+        "title": "Lese e-posten din",
+        "body": "Se avsendere, mottakere, emner og hele teksten i alle meldinger på kontoen din, og mappene dine."
+      },
+      "email_write": {
+        "title": "Endre og organisere e-posten din",
+        "body": "Legge til eller fjerne etiketter, flagg og andre nøkkelord på meldingene dine, flytte dem mellom mappene dine og til arkivet, og lagre utkast."
+      },
+      "email_send": {
+        "title": "Endre e-post før den sendes",
+        "body": "Lese og endre mottakere, emne, tekst og vedlegg i meldingene du skriver, og stoppe en melding fra å bli sendt."
+      },
+      "crypto_full": {
+        "title": "Full tilgang til denne appen",
+        "body": "Kjører med de samme rettighetene som selve webmailen. Det kan lese all e-posten din og lagrede nøkler og handle på dine vegne. Tillat dette bare for tillegg du stoler fullt på."
+      },
+      "email_raw_send": {
+        "title": "Sende meldinger det har laget selv",
+        "body": "Sende ferdige meldinger, for eksempel signerte eller krypterte, fra kontoen din."
+      },
+      "email_blob_read": {
+        "title": "Lese råinnholdet i meldinger",
+        "body": "Lese de opprinnelige dataene i meldingene og vedleggene dine, og i hver fil du legger ved før den sendes."
+      },
+      "email_blob_write": {
+        "title": "Erstatte vedlegg før sending",
+        "body": "Laste opp filer til e-postserveren din og erstatte et vedlegg med en annen fil før meldingen sendes."
+      },
+      "email_render_takeover": {
+        "title": "Endre hvordan meldinger vises",
+        "body": "Erstatte teksten i meldingene du åpner og i meldingslisten, for eksempel for å vise dekryptert innhold."
+      },
+      "calendar_read": {
+        "title": "Lese kalenderen din",
+        "body": "Se kalenderne dine og hendelsene i dem."
+      },
+      "calendar_write": {
+        "title": "Endre kalenderen din",
+        "body": "Opprette, endre og slette hendelser."
+      },
+      "contacts_read": {
+        "title": "Lese kontaktene dine",
+        "body": "Søke i og lese adressebøkene dine."
+      },
+      "contacts_write": {
+        "title": "Endre kontaktene dine",
+        "body": "Opprette, endre og slette kontakter og adressebøker."
+      },
+      "files_read": {
+        "title": "Lese filene dine",
+        "body": "Bla gjennom og åpne filene som er lagret på kontoen din."
+      },
+      "files_write": {
+        "title": "Endre filene dine",
+        "body": "Laste opp, gi nytt navn til, flytte og slette filer på kontoen din."
+      },
+      "identity_read": {
+        "title": "Se avsenderidentitetene dine",
+        "body": "Se adressene du sender fra, og signaturene deres."
+      },
+      "identity_write": {
+        "title": "Endre avsenderidentitetene dine",
+        "body": "Opprette, endre og slette avsenderidentiteter og signaturer."
+      },
+      "filters_read": {
+        "title": "Lese e-postfiltrene dine",
+        "body": "Se reglene som sorterer innkommende e-post."
+      },
+      "filters_write": {
+        "title": "Endre e-postfiltrene dine",
+        "body": "Legge til regler i filtrene dine på serveren. Slike regler kan flytte, videresende eller slette innkommende e-post."
+      },
+      "tasks_read": {
+        "title": "Lese oppgavene dine",
+        "body": "Se oppgavelistene og oppgavene dine."
+      },
+      "tasks_write": {
+        "title": "Endre oppgavene dine",
+        "body": "Opprette, endre, fullføre og slette oppgaver."
+      },
+      "templates_read": {
+        "title": "Lese malene dine",
+        "body": "Se de lagrede meldingsmalene dine."
+      },
+      "templates_write": {
+        "title": "Endre malene dine",
+        "body": "Opprette, endre og slette meldingsmaler."
+      },
+      "smime_read": {
+        "title": "Se S/MIME-statusen din",
+        "body": "Se om du har S/MIME-nøkler og -sertifikater, uten tilgang til nøklene."
+      },
+      "vacation_read": {
+        "title": "Se fraværssvaret ditt",
+        "body": "Se om det automatiske svaret ditt er på, og hva det sier."
+      },
+      "vacation_write": {
+        "title": "Endre fraværssvaret ditt",
+        "body": "Slå det automatiske svaret på eller av og endre teksten og datoene."
+      },
+      "settings_read": {
+        "title": "Lese innstillingene dine",
+        "body": "Se innstillingene og etikettdefinisjonene dine."
+      },
+      "settings_write": {
+        "title": "Endre innstillingene dine",
+        "body": "Legge til og endre rekkefølgen på etiketter og endre innstillingene dine."
+      },
+      "security_read": {
+        "title": "Se kontosikkerheten din",
+        "body": "Se om tofaktorautentisering og kryptering er slått på, uten tilgang til hemmeligheter."
+      },
+      "auth_observe": {
+        "title": "Vite når du logger på",
+        "body": "Få beskjed når du logger på, bytter konto eller økten din fornyes."
+      },
+      "auth_emit": {
+        "title": "Logge deg ut",
+        "body": "Logge deg ut av webmailen."
+      },
+      "account_read": {
+        "title": "Se kontoene dine",
+        "body": "Se kontoene du har lagt til, med adressene og serverne deres."
+      },
+      "http_post": {
+        "title": "Bruke webmailserveren for deg",
+        "body": "Kalle disse serverendepunktene med påloggingen din:"
+      },
+      "http_fetch": {
+        "title": "Koble til andre nettsteder",
+        "body": "Sende forespørsler til disse nettstedene. Alt tillegget kan lese, kan bli sendt dit:"
+      },
+      "admin_config": {
+        "title": "Lese innstillingene sine fra administratoren din",
+        "body": "Lese innstillingene administratoren din har lagret for dette tillegget."
+      },
+      "ui_observe": {
+        "title": "Følge med på hvor du er i appen",
+        "body": "Vite hvilken side som er åpen, og reagere på lenker du klikker på."
+      },
+      "ui_toolbar": {
+        "title": "Legge til knapper i verktøylinjer",
+        "body": "Vise egne knapper i meldingsverktøylinjen, på en åpen melding og i topplinjen."
+      },
+      "ui_app_top_banner": {
+        "title": "Vise et banner øverst",
+        "body": "Vise et varsel over hele toppen av appen."
+      },
+      "ui_email_banner": {
+        "title": "Vise varsler på meldinger",
+        "body": "Vise egne varsler og sammendrag over, i og mellom delene av en åpen melding eller samtale."
+      },
+      "ui_email_footer": {
+        "title": "Legge til innhold under meldinger",
+        "body": "Vise eget innhold under en åpen melding."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Vise krypteringsnøklene til kontakter",
+        "body": "Vise og administrere krypteringsnøklene på en kontakt."
+      },
+      "ui_email_details": {
+        "title": "Legge til paneler i meldingsdetaljene",
+        "body": "Vise et eget panel ved siden av eller under en åpen melding."
+      },
+      "ui_download_file": {
+        "title": "Lagre filer på enheten din",
+        "body": "Tilby filer det har laget, for nedlasting."
+      },
+      "ui_message_list_tabs": {
+        "title": "Legge til faner i innboksen din",
+        "body": "Sortere innboksen din i faner som Oppdateringer eller Kampanjer."
+      },
+      "ui_composer_toolbar": {
+        "title": "Legge til i meldingsvinduet",
+        "body": "Vise egne knapper, menyvalg og seksjoner mens du skriver en melding."
+      },
+      "ui_composer_sidebar": {
+        "title": "Legge til et panel i meldingsvinduet",
+        "body": "Vise et eget panel ved siden av meldingen du skriver."
+      },
+      "ui_sidebar_widget": {
+        "title": "Legge til i sidefeltet",
+        "body": "Vise egne bokser og seksjoner i sidefeltet for e-post."
+      },
+      "ui_settings_section": {
+        "title": "Legge til en innstillingsside",
+        "body": "Vise en egen side under Innstillinger."
+      },
+      "ui_context_menu": {
+        "title": "Legge til i meldingsmenyen",
+        "body": "Legge til valg i menyen som åpnes når du høyreklikker på en melding."
+      },
+      "ui_navigation_rail": {
+        "title": "Legge til i navigasjonsfeltet",
+        "body": "Vise en egen knapp i navigasjonsfeltet."
+      },
+      "ui_keyboard": {
+        "title": "Legge til tastatursnarveier",
+        "body": "Reagere på tastatursnarveier det definerer selv."
+      },
+      "ui_calendar_action": {
+        "title": "Legge til i kalendervisningen",
+        "body": "Vise egne knapper og seksjoner på hendelser, og korte etiketter og prikker på kalenderdager."
+      },
+      "ui_admin_page": {
+        "title": "Legge til en administrasjonsside",
+        "body": "Vise en egen side i administrasjonsinnstillingene."
+      },
+      "app_lifecycle": {
+        "title": "Vite når appen starter og stopper",
+        "body": "Få beskjed når appen starter, går frakoblet eller du logger ut."
+      },
+      "compose_open": {
+        "title": "Åpne meldingsvinduet for deg",
+        "body": "Åpne en ny melding med mottakere, tekst eller vedlegg fylt ut. Du bestemmer fortsatt om den skal sendes."
+      },
+      "compose_read": {
+        "title": "Lese meldingen du skriver",
+        "body": "Lese teksten i en melding mens du skriver den, når du bruker tillegget i redigeringsvinduet. Ikke signaturen eller den siterte meldingen."
+      },
+      "compose_write": {
+        "title": "Endre meldingen du skriver",
+        "body": "Erstatte eller legge til tekst i en melding mens du skriver den, når du bruker tillegget i redigeringsvinduet. Du kan angre hver endring, og du bestemmer fortsatt om den skal sendes."
+      },
+      "ui_notifications": {
+        "title": "Vise varsler",
+        "body": "Vise varsler på enheten din, eller i appen hvis du ikke har tillatt dem. Hvert varsel viser navnet på tillegget."
+      },
+      "ui_message_list": {
+        "title": "Legge til i meldingslisten",
+        "body": "Vise eget innhold over meldingslisten, og knapper på meldinger og i verktøylinjen for valgte meldinger."
+      },
+      "ui_contacts": {
+        "title": "Legge til i kontaktvisningen",
+        "body": "Vise egne seksjoner i detaljene for en kontakt og knapper i kontaktlisten."
+      },
+      "ui_tasks": {
+        "title": "Legge til i oppgavevisningen",
+        "body": "Vise egne seksjoner i detaljene for en oppgave og knapper i oppgavelisten."
+      },
+      "ui_files": {
+        "title": "Legge til i filvisningen",
+        "body": "Vise egne seksjoner i forhåndsvisningen av filer og valg i menyen for en fil."
+      },
+      "ui_commands": {
+        "title": "Legge til kommandoer",
+        "body": "Legge til egne valg i kommandopaletten (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Legge til sider",
+        "body": "Legge til egne sider i appen, hver med en knapp i navigasjonsfeltet."
+      },
+      "http_proxy": {
+        "title": "Bruke kontoer du kobler til",
+        "body": "Sende forespørsler via Bulwarks server med en konto eller nøkkel som du eller administratoren din har satt opp. Tillegget ser aldri passordet, men det kan gjøre alt den kontoen kan gjøre på sin egen server."
+      }
+    },
+    "dialog": {
+      "from_plugin": "Fra tillegget {name}",
+      "ok": "OK",
+      "submit": "Send",
+      "confirm": "Bekreft",
+      "cancel": "Avbryt",
+      "close": "Lukk",
+      "turn_off": "Slå av {name}",
+      "plugin_menu": "Alternativer for {name}",
+      "password_note": "Dette skjemaet kommer fra tillegget {name}, ikke fra webmailen. Skriv bare inn et passord hvis du stoler på dette tillegget.",
+      "toast_auto_disabled": "{name} ble slått av fordi det feilet gjentatte ganger."
+    },
+    "connect": {
+      "title": "Koble til {label}",
+      "intro_password": "{name} vil bruke kontoen din hos {label}. Bulwark lagrer passordet på sin server og sender det bare til {host}. Tillegget ser det aldri.",
+      "intro_password_any": "{name} vil bruke kontoen din hos {label}. Bulwark lagrer passordet på sin server og sender det bare til serveren du skriver inn her. Tillegget ser det aldri.",
+      "intro_signin": "{name} vil logge på kontoen din hos {label}. Skriv inn serveren her, og logg deretter på via serverens egen side. Bulwark lagrer tilgangen det får, på sin server; tillegget ser den aldri.",
+      "server": "Serveradresse",
+      "server_hint": "cloud.example.com",
+      "username": "Brukernavn",
+      "secret": "Passord eller nøkkel",
+      "connect": "Koble til",
+      "continue": "Fortsett",
+      "cancel": "Avbryt",
+      "saving": "Lagrer…",
+      "error_server": "Skriv inn adressen til serveren, for eksempel https://cloud.example.com",
+      "error_save": "Kunne ikke lagre: {error}"
     }
   },
   "global_search": {
@@ -3998,5 +4349,41 @@
     "preview_empty": "Velg et resultat for å forhåndsvise det",
     "open_full": "Åpne",
     "view_label": "Visning"
+  },
+  "top_bar": {
+    "more": "Flere alternativer"
+  },
+  "plugin_pages": {
+    "loading": "Laster inn siden",
+    "not_available_title": "Denne siden er ikke tilgjengelig",
+    "not_available_description": "Tillegget som la den til, er slått av eller ikke lenger installert.",
+    "back_to_mail": "Tilbake til e-post",
+    "settings_group": "Tillegg"
+  },
+  "command_palette": {
+    "title": "Kommandopalett",
+    "open": "Åpne kommandopaletten",
+    "placeholder": "Skriv en kommando",
+    "no_results": "Ingen samsvarende kommandoer",
+    "go_to": "Gå til {name}",
+    "compose": "Ny melding",
+    "search": "Søk i e-post",
+    "theme_dark": "Bytt til mørkt tema",
+    "theme_light": "Bytt til lyst tema",
+    "shortcuts": "Vis tastatursnarveier",
+    "group_navigation": "Gå til",
+    "group_actions": "Handlinger",
+    "group_plugins": "Tillegg"
+  },
+  "notification_center": {
+    "title": "Varsler",
+    "mark_all_read": "Merk alle som lest",
+    "clear": "Tøm",
+    "empty": "Ingen varsler",
+    "close": "Lukk",
+    "unread": "Ulest",
+    "unread_count": "{count} uleste",
+    "level_error": "Feil",
+    "level_warning": "Advarsel"
   }
 }

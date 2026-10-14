@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Mail, Calendar, BookUser, HardDrive, Settings, Keyboard, Plus, Shield, LogOut, Check, Search } from "@/components/icons";
+import { Mail, Calendar, BookUser, HardDrive, Settings, Keyboard, Plus, Shield, LogOut, Check, Search, Puzzle } from "@/components/icons";
 import { AccountSwitcher } from "./account-switcher";
 import { iconForName } from "@/components/icons";
 import { useConfig } from "@/hooks/use-config";
@@ -27,6 +27,8 @@ import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { getPathPrefix, withBasePath } from "@/lib/browser-navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { toUnicodeEmail } from "@/lib/idn";
+import { usePluginPages, pluginPageHref, isPluginPageActive } from "@/hooks/use-plugin-pages";
+import { NotificationBell } from "@/components/notifications/notification-center";
 
 interface NavItem {
   id: string;
@@ -220,6 +222,8 @@ export function NavigationRail({
   // Operator-provided apps (#931) plus the user's own; the gate above only
   // removes the user's, so a pinned set still shows when custom apps are off.
   const visibleSidebarApps = useResolvedSidebarApps();
+  // Pages plugins added (api.ui.setPages); listed after the built-in apps.
+  const pluginPages = usePluginPages();
   const inboxUnread = mailboxes.find(m => m.role === "inbox")?.unreadEmails || 0;
   const isStalwartAdmin = useStalwartAdmin();
   const hasUpdate = useUpdateStore(selectHasUpdate);
@@ -378,6 +382,40 @@ export function NavigationRail({
                 )}
               </div>
               <span className="text-[10px] font-medium leading-tight truncate max-w-full">{t(item.labelKey)}</span>
+            </Link>
+          );
+        })}
+
+        {/* Plugin pages, after the built-in apps */}
+        {pluginPages.map((page) => {
+          const isActive = !activeAppId && isPluginPageActive(pathname, page);
+          const PageIcon = iconForName(page.icon) ?? Puzzle;
+          return (
+            <Link
+              key={`plugin-page:${page.pluginId}:${page.id}`}
+              href={pluginPageHref(page)}
+              onClick={() => { if (activeAppId) onCloseInlineApp?.(); }}
+              data-plugin-page-link={`${page.pluginId}/${page.id}`}
+              title={page.pluginName}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px]",
+                "transition-colors duration-150",
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <div className={cn(
+                "relative",
+                mountainView && isActive && "min-w-14 rounded-full bg-primary/15 px-4 py-[3px]"
+              )}>
+                <PageIcon className="w-5 h-5" />
+                {isActive && !mountainView && (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-primary" />
+                )}
+              </div>
+              <span className="text-[10px] font-medium leading-tight truncate max-w-full">{page.title}</span>
             </Link>
           );
         })}
@@ -554,6 +592,37 @@ export function NavigationRail({
           );
         })}
 
+        {/* Plugin pages, after the built-in apps */}
+        {pluginPages.map((page) => {
+          const isActive = !activeAppId && isPluginPageActive(pathname, page);
+          const PageIcon = iconForName(page.icon) ?? Puzzle;
+          return (
+            <Link
+              key={`plugin-page:${page.pluginId}:${page.id}`}
+              href={pluginPageHref(page)}
+              onClick={() => { if (activeAppId) onCloseInlineApp?.(); }}
+              data-plugin-page-link={`${page.pluginId}/${page.id}`}
+              className={cn(
+                "relative flex items-center gap-2.5 rounded-md transition-colors duration-150",
+                collapsed
+                  ? "justify-center w-10 h-10"
+                  : "px-2.5 text-sm",
+                "max-lg:min-h-[44px]",
+                isActive
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+              aria-current={isActive ? "page" : undefined}
+              aria-label={collapsed ? page.title : undefined}
+              title={collapsed ? `${page.title} (${page.pluginName})` : page.pluginName}
+              style={collapsed ? undefined : { paddingBlock: 'var(--density-sidebar-py)' }}
+            >
+              <PageIcon className={cn("w-[18px] h-[18px] flex-shrink-0", isActive && "text-primary")} />
+              {!collapsed && <span className="truncate">{page.title}</span>}
+            </Link>
+          );
+        })}
+
         {/* Custom sidebar apps */}
         {visibleSidebarApps.length > 0 && (
           <div
@@ -641,6 +710,8 @@ export function NavigationRail({
             )}
           </a>
         )}
+
+        <NotificationBell placement="side" className="w-10 h-10 rounded-md" />
 
         <Link
           href="/settings"

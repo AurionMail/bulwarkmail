@@ -5,15 +5,19 @@ import { X, Download } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { ZoomableImage } from "@/components/files/zoomable-image";
+import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
+import type { FileResourceView } from "@/lib/plugin-types";
 
 interface ImagePreviewModalProps {
   name: string;
   onClose: () => void;
   onDownload: (name: string) => Promise<void>;
   getImageUrl: (name: string) => Promise<string>;
+  /** The previewed file as plugins see it (file-preview-section). */
+  file?: FileResourceView | null;
 }
 
-export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl }: ImagePreviewModalProps) {
+export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file }: ImagePreviewModalProps) {
   const t = useTranslations("files");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,6 +115,7 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl }: Im
           <ZoomableImage src={imageUrl} alt={name} onBackgroundClick={onClose} />
         )}
       </div>
+      <FilePreviewPluginSection file={file} />
     </div>
   );
 }

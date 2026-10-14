@@ -620,7 +620,9 @@
       "copied": "Kód zkopírován",
       "copy_failed": "Kód se nepodařilo zkopírovat"
     },
-    "mv_position": "{index} z {total}"
+    "mv_position": "{index} z {total}",
+    "plugin_panel_show": "Zobrazit panel pluginu",
+    "plugin_panel_hide": "Skrýt panel pluginu"
   },
   "email_composer": {
     "minimize": "Minimalizovat",
@@ -813,7 +815,8 @@
       "remove_background_color": "Odebrat barvu pozadí"
     },
     "send_filing_warning": "Odesláno - ale následný úklid selhal, může zůstat zastaralý koncept.",
-    "pop_out": "Otevřít odpověď v okně"
+    "pop_out": "Otevřít odpověď v okně",
+    "send_guard_failed": "Neodesláno - plugin, který kontroluje zprávy před odesláním, selhal nebo neodpověděl."
   },
   "confirm_dialog": {
     "confirm": "Potvrdit",
@@ -3970,6 +3973,354 @@
       "failed_detail": "Autorizace se nezdařila: {error}",
       "missing_params": "Chybí autorizační kód nebo stav.",
       "delivery_failed": "Výsledek autorizace se nepodařilo předat kartě aplikace. Zavřete toto okno a zkuste to znovu."
+    },
+    "settings": {
+      "title": "Pluginy",
+      "description": "Pluginy přidané vaším správcem. Pro svůj účet je můžete zapnout nebo vypnout.",
+      "description_uploads": "Pluginy přidávají do webmailu další funkce. Pro svůj účet je můžete zapnout nebo vypnout, případně nainstalovat vlastní.",
+      "description_demo": "Pluginy nejsou v ukázkové verzi k dispozici.",
+      "install_button": "Nainstalovat plugin",
+      "install_hint": "Vyberte soubor ZIP s pluginem.",
+      "install_hint_approval": "Vyberte soubor ZIP s pluginem. Než ho budete moci zapnout, musí ho schválit správce.",
+      "install_uploads_off": "Váš správce nepovoluje instalaci pluginů.",
+      "install_managed_id": "Váš správce už poskytuje plugin s tímto názvem, proto ho nelze nahradit.",
+      "install_invalid": "Tento soubor není plugin, který lze nainstalovat: {details}",
+      "toast_installed": "Plugin nainstalován. Zapněte ho níže.",
+      "toast_installed_pending": "Plugin nainstalován a odeslán správci ke schválení.",
+      "toast_enabled": "Plugin {name} je zapnutý",
+      "toast_disabled": "Plugin {name} je vypnutý",
+      "toast_removed": "Plugin {name} byl odstraněn",
+      "toast_forced": "Váš správce ponechává plugin {name} zapnutý",
+      "toast_approval_requested": "Plugin {name} čeká na schválení správcem",
+      "empty_title": "Zatím žádné pluginy",
+      "empty_admin": "Váš správce zatím nepřidal žádné pluginy.",
+      "empty_uploads": "Začněte instalací pluginu ze souboru ZIP.",
+      "empty_demo": "Pluginy vyžadují skutečný účet, proto je ukázková verze nemá.",
+      "syncing": "Kontrola pluginů na serveru…",
+      "status_installed": "Vypnuto",
+      "status_enabled": "Spouští se",
+      "status_running": "Zapnuto",
+      "status_disabled": "Vypnuto",
+      "status_error": "Problém",
+      "badge_forced": "Povinný",
+      "badge_managed": "Od správce",
+      "badge_yours": "Nainstalováno vámi",
+      "badge_awaiting": "Čeká na schválení",
+      "toggle_label": "Zapnout nebo vypnout plugin {name}",
+      "forced_note": "Váš správce tento plugin vyžaduje, proto ho nelze vypnout.",
+      "permissions": "Co může dělat",
+      "permissions_managed": "Co může dělat (schváleno správcem)",
+      "settings": "Nastavení",
+      "remove": "Odstranit",
+      "remove_title": "Odstranit plugin {name}?",
+      "remove_message": "Plugin i vše, co uložil v tomto prohlížeči, bude smazáno. Později ho můžete nainstalovat znovu.",
+      "remove_confirm": "Odstranit",
+      "error_user_plugins_off": "Váš správce vypnul pluginy instalované uživateli, proto tento plugin neběží.",
+      "error_approval_unavailable": "Tento plugin byl nainstalován dříve, než bylo vyžadováno schválení. Odstraňte ho a nainstalujte znovu, aby se odeslal ke schválení.",
+      "error_approval_denied": "Váš správce tento plugin neschválil.",
+      "error_approval_pending": "Čeká se, až správce tento plugin schválí.",
+      "error_auto_disabled": "Vypnuto, protože opakovaně selhávalo. Zapněte ho znovu a zkuste to znovu.",
+      "accounts_heading": "Připojené účty",
+      "account_on": "{label} na {host}",
+      "account_waiting": "{label} na {host} (přihlášení nedokončeno)",
+      "disconnect": "Odpojit",
+      "disconnect_failed": "{label} se nepodařilo odpojit"
+    },
+    "consent": {
+      "title": "Povolit pluginu {name} tyto akce?",
+      "intro": "Plugin žádá o níže uvedená oprávnění. Dostane je, jen pokud je povolíte.",
+      "high_risk_note": "Označené položky dávají pluginu přístup k obsahu vaší pošty nebo mu umožňují posílat data jinam. Povolte je jen pluginům, kterým důvěřujete.",
+      "revoke_hint": "Plugin můžete kdykoli vypnout nebo odstranit v Nastavení.",
+      "deny": "Nepovolit",
+      "allow": "Povolit"
+    },
+    "permissions": {
+      "none": "Nepotřebuje žádná zvláštní oprávnění.",
+      "high_risk": "Vyžaduje opatrnost",
+      "email_read": {
+        "title": "Číst vaši poštu",
+        "body": "Vidí odesílatele, příjemce, předměty a celý text kterékoli zprávy ve vašem účtu i vaše složky."
+      },
+      "email_write": {
+        "title": "Měnit a třídit vaši poštu",
+        "body": "Přidává nebo odebírá štítky, příznaky a další klíčová slova u vašich zpráv, přesouvá je mezi vašimi složkami a do archivu a ukládá koncepty."
+      },
+      "email_send": {
+        "title": "Měnit poštu před odesláním",
+        "body": "Čte a mění příjemce, předmět, text a přílohy zpráv, které píšete, a může zastavit odeslání zprávy."
+      },
+      "crypto_full": {
+        "title": "Plný přístup k této aplikaci",
+        "body": "Běží se stejnými právy jako samotný webmail. Může číst veškerou vaši poštu a uložené klíče a jednat vaším jménem. Povolte to jen pluginům, kterým plně důvěřujete."
+      },
+      "email_raw_send": {
+        "title": "Odesílat zprávy, které sám vytvořil",
+        "body": "Odesílá z vašeho účtu kompletní zprávy, například podepsané nebo šifrované."
+      },
+      "email_blob_read": {
+        "title": "Číst nezpracovaný obsah zpráv",
+        "body": "Čte původní data vašich zpráv a příloh i každého souboru, který připojíte před odesláním."
+      },
+      "email_blob_write": {
+        "title": "Nahrazovat přílohy před odesláním",
+        "body": "Nahrává soubory na váš poštovní server a před odesláním zprávy nahradí připojený soubor jiným."
+      },
+      "email_render_takeover": {
+        "title": "Měnit zobrazení zpráv",
+        "body": "Nahrazuje text zpráv, které otevřete, i seznamu zpráv, například aby zobrazil dešifrovaný obsah."
+      },
+      "calendar_read": {
+        "title": "Číst váš kalendář",
+        "body": "Vidí vaše kalendáře a jejich události."
+      },
+      "calendar_write": {
+        "title": "Měnit váš kalendář",
+        "body": "Vytváří, mění a maže události."
+      },
+      "contacts_read": {
+        "title": "Číst vaše kontakty",
+        "body": "Prohledává a čte vaše adresáře."
+      },
+      "contacts_write": {
+        "title": "Měnit vaše kontakty",
+        "body": "Vytváří, mění a maže kontakty a adresáře."
+      },
+      "files_read": {
+        "title": "Číst vaše soubory",
+        "body": "Prochází a otevírá soubory uložené ve vašem účtu."
+      },
+      "files_write": {
+        "title": "Měnit vaše soubory",
+        "body": "Nahrává, přejmenovává, přesouvá a maže soubory ve vašem účtu."
+      },
+      "identity_read": {
+        "title": "Vidět vaše identity odesílatele",
+        "body": "Vidí adresy, ze kterých odesíláte, a jejich podpisy."
+      },
+      "identity_write": {
+        "title": "Měnit vaše identity odesílatele",
+        "body": "Vytváří, mění a maže identity odesílatele a podpisy."
+      },
+      "filters_read": {
+        "title": "Číst vaše filtry pošty",
+        "body": "Vidí pravidla, která třídí vaši příchozí poštu."
+      },
+      "filters_write": {
+        "title": "Měnit vaše filtry pošty",
+        "body": "Přidává pravidla do filtrů na serveru. Taková pravidla mohou příchozí poštu přesouvat, přeposílat nebo mazat."
+      },
+      "tasks_read": {
+        "title": "Číst vaše úkoly",
+        "body": "Vidí vaše seznamy úkolů a úkoly."
+      },
+      "tasks_write": {
+        "title": "Měnit vaše úkoly",
+        "body": "Vytváří, mění, dokončuje a maže úkoly."
+      },
+      "templates_read": {
+        "title": "Číst vaše šablony",
+        "body": "Vidí vaše uložené šablony zpráv."
+      },
+      "templates_write": {
+        "title": "Měnit vaše šablony",
+        "body": "Vytváří, mění a maže šablony zpráv."
+      },
+      "smime_read": {
+        "title": "Vidět stav S/MIME",
+        "body": "Vidí, zda máte klíče a certifikáty S/MIME, bez přístupu ke klíčům."
+      },
+      "vacation_read": {
+        "title": "Vidět automatickou odpověď v nepřítomnosti",
+        "body": "Vidí, zda je automatická odpověď zapnutá a co obsahuje."
+      },
+      "vacation_write": {
+        "title": "Měnit automatickou odpověď v nepřítomnosti",
+        "body": "Zapíná a vypíná automatickou odpověď a mění její text a data."
+      },
+      "settings_read": {
+        "title": "Číst vaše nastavení",
+        "body": "Vidí vaše předvolby a definice štítků."
+      },
+      "settings_write": {
+        "title": "Měnit vaše nastavení",
+        "body": "Přidává štítky, mění jejich pořadí a mění vaše předvolby."
+      },
+      "security_read": {
+        "title": "Vidět zabezpečení účtu",
+        "body": "Vidí, zda je zapnuté dvoufázové ověření a šifrování, bez přístupu k tajným údajům."
+      },
+      "auth_observe": {
+        "title": "Vědět, kdy se přihlásíte",
+        "body": "Dostává zprávu, když se přihlásíte, přepnete účet nebo se obnoví vaše relace."
+      },
+      "auth_emit": {
+        "title": "Odhlásit vás",
+        "body": "Může vás odhlásit z webmailu."
+      },
+      "account_read": {
+        "title": "Vidět vaše účty",
+        "body": "Vidí účty, které jste přidali, včetně jejich adres a serverů."
+      },
+      "http_post": {
+        "title": "Používat server webmailu vaším jménem",
+        "body": "Volá tyto koncové body serveru s vaším přihlášením:"
+      },
+      "http_fetch": {
+        "title": "Připojovat se k jiným webům",
+        "body": "Odesílá požadavky na tyto weby. Cokoli, co plugin může číst, tam může být odesláno:"
+      },
+      "admin_config": {
+        "title": "Číst nastavení od správce",
+        "body": "Čte nastavení, která pro tento plugin uložil váš správce."
+      },
+      "ui_observe": {
+        "title": "Sledovat, kde se v aplikaci nacházíte",
+        "body": "Ví, která stránka je otevřená, a reaguje na odkazy, na které kliknete."
+      },
+      "ui_toolbar": {
+        "title": "Přidávat tlačítka na panely nástrojů",
+        "body": "Zobrazuje vlastní tlačítka na panelu nástrojů zpráv, u otevřené zprávy a v horní liště."
+      },
+      "ui_app_top_banner": {
+        "title": "Zobrazovat banner nahoře",
+        "body": "Zobrazuje oznámení přes horní část aplikace."
+      },
+      "ui_email_banner": {
+        "title": "Zobrazovat oznámení u zpráv",
+        "body": "Zobrazuje vlastní oznámení a shrnutí nad částmi otevřené zprávy nebo konverzace, uvnitř nich a mezi nimi."
+      },
+      "ui_email_footer": {
+        "title": "Přidávat obsah pod zprávy",
+        "body": "Zobrazuje vlastní obsah pod otevřenou zprávou."
+      },
+      "ui_contact_cryptokeys": {
+        "title": "Zobrazovat šifrovací klíče kontaktů",
+        "body": "Zobrazuje a spravuje šifrovací klíče u kontaktu."
+      },
+      "ui_email_details": {
+        "title": "Přidávat panely do podrobností zprávy",
+        "body": "Zobrazuje vlastní panel vedle otevřené zprávy nebo pod ní."
+      },
+      "ui_download_file": {
+        "title": "Ukládat soubory do zařízení",
+        "body": "Nabízí ke stažení soubory, které vytvořil."
+      },
+      "ui_message_list_tabs": {
+        "title": "Přidávat karty do Doručených",
+        "body": "Rozděluje Doručené do karet, například Aktualizace nebo Akce."
+      },
+      "ui_composer_toolbar": {
+        "title": "Přidávat obsah do editoru zprávy",
+        "body": "Zobrazuje vlastní tlačítka, položky nabídky a sekce, když píšete zprávu."
+      },
+      "ui_composer_sidebar": {
+        "title": "Přidávat panel do editoru zprávy",
+        "body": "Zobrazuje vlastní panel vedle zprávy, kterou píšete."
+      },
+      "ui_sidebar_widget": {
+        "title": "Přidávat obsah do postranního panelu",
+        "body": "Zobrazuje vlastní pole a sekce v postranním panelu pošty."
+      },
+      "ui_settings_section": {
+        "title": "Přidávat stránku nastavení",
+        "body": "Zobrazuje vlastní stránku v Nastavení."
+      },
+      "ui_context_menu": {
+        "title": "Přidávat položky do nabídky zprávy",
+        "body": "Přidává položky do nabídky, která se otevře po kliknutí pravým tlačítkem na zprávu."
+      },
+      "ui_navigation_rail": {
+        "title": "Přidávat tlačítko do navigačního panelu",
+        "body": "Zobrazuje vlastní tlačítko v navigačním panelu."
+      },
+      "ui_keyboard": {
+        "title": "Přidávat klávesové zkratky",
+        "body": "Reaguje na klávesové zkratky, které sám definuje."
+      },
+      "ui_calendar_action": {
+        "title": "Přidávat obsah do sekce Kalendář",
+        "body": "Zobrazuje vlastní tlačítka a sekce u událostí a krátké popisky a tečky u dnů v kalendáři."
+      },
+      "ui_admin_page": {
+        "title": "Přidávat stránku administrace",
+        "body": "Zobrazuje vlastní stránku v nastavení administrace."
+      },
+      "app_lifecycle": {
+        "title": "Vědět, kdy se aplikace spouští a ukončuje",
+        "body": "Dostává zprávu, když se aplikace spustí, přejde do režimu offline nebo když se odhlásíte."
+      },
+      "compose_open": {
+        "title": "Otevírat editor zprávy",
+        "body": "Otevře novou zprávu s vyplněnými příjemci, textem nebo přílohami. O odeslání stále rozhodujete vy."
+      },
+      "compose_read": {
+        "title": "Číst zprávu, kterou píšete",
+        "body": "Číst text zprávy během psaní, když plugin použijete v editoru. Ne podpis ani citovanou zprávu."
+      },
+      "compose_write": {
+        "title": "Měnit zprávu, kterou píšete",
+        "body": "Nahrazovat nebo přidávat text ve zprávě během psaní, když plugin použijete v editoru. Každou změnu můžete vrátit a o odeslání stále rozhodujete vy."
+      },
+      "ui_notifications": {
+        "title": "Zobrazovat oznámení",
+        "body": "Zobrazuje oznámení ve vašem zařízení, nebo v aplikaci, pokud jste je nepovolili. Každé uvádí název pluginu."
+      },
+      "ui_message_list": {
+        "title": "Přidávat obsah do seznamu zpráv",
+        "body": "Zobrazuje vlastní obsah nad seznamem zpráv a tlačítka u zpráv a na panelu nástrojů pro vybrané zprávy."
+      },
+      "ui_contacts": {
+        "title": "Přidávat obsah do sekce Kontakty",
+        "body": "Zobrazuje vlastní sekce v podrobnostech kontaktu a tlačítka v seznamu kontaktů."
+      },
+      "ui_tasks": {
+        "title": "Přidávat obsah do sekce Úkoly",
+        "body": "Zobrazuje vlastní sekce v podrobnostech úkolu a tlačítka v seznamu úkolů."
+      },
+      "ui_files": {
+        "title": "Přidávat obsah do sekce Soubory",
+        "body": "Zobrazuje vlastní sekce v náhledu souboru a položky v nabídce souboru."
+      },
+      "ui_commands": {
+        "title": "Přidávat příkazy",
+        "body": "Přidává vlastní položky do palety příkazů (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Přidávat stránky",
+        "body": "Přidává do aplikace vlastní stránky, každou s tlačítkem v navigačním panelu."
+      },
+      "http_proxy": {
+        "title": "Používat účty, které připojíte",
+        "body": "Odesílá požadavky přes server Bulwarku pomocí účtu nebo klíče, který jste nastavili vy nebo váš správce. Plugin nikdy nevidí heslo, ale může na příslušném serveru dělat cokoli, co může tento účet."
+      }
+    },
+    "dialog": {
+      "from_plugin": "Od pluginu {name}",
+      "ok": "OK",
+      "submit": "Odeslat",
+      "confirm": "Potvrdit",
+      "cancel": "Zrušit",
+      "close": "Zavřít",
+      "turn_off": "Vypnout {name}",
+      "plugin_menu": "Možnosti pro {name}",
+      "password_note": "Tento formulář pochází z pluginu {name}, ne z webmailu. Heslo zadejte jen tehdy, když tomuto pluginu důvěřujete.",
+      "toast_auto_disabled": "{name} byl vypnut, protože opakovaně selhával."
+    },
+    "connect": {
+      "title": "Připojit {label}",
+      "intro_password": "{name} chce používat váš účet {label}. Bulwark uchovává heslo na svém serveru a posílá ho jen na {host}. Plugin ho nikdy nevidí.",
+      "intro_password_any": "{name} chce používat váš účet {label}. Bulwark uchovává heslo na svém serveru a posílá ho jen na server, který zde zadáte. Plugin ho nikdy nevidí.",
+      "intro_signin": "{name} se chce přihlásit k vašemu účtu {label}. Zadejte zde server a pak se přihlaste na jeho vlastní stránce. Bulwark uchovává získaný přístup na svém serveru; plugin ho nikdy nevidí.",
+      "server": "Adresa serveru",
+      "server_hint": "cloud.example.com",
+      "username": "Uživatelské jméno",
+      "secret": "Heslo nebo klíč",
+      "connect": "Připojit",
+      "continue": "Pokračovat",
+      "cancel": "Zrušit",
+      "saving": "Ukládání…",
+      "error_server": "Zadejte adresu serveru, například https://cloud.example.com",
+      "error_save": "Uložení se nezdařilo: {error}"
     }
   },
   "global_search": {
@@ -3998,5 +4349,41 @@
     "preview_empty": "Vyberte výsledek pro náhled",
     "open_full": "Otevřít",
     "view_label": "Zobrazení"
+  },
+  "top_bar": {
+    "more": "Další možnosti"
+  },
+  "plugin_pages": {
+    "loading": "Načítání stránky",
+    "not_available_title": "Tato stránka není k dispozici",
+    "not_available_description": "Plugin, který ji přidal, je vypnutý nebo už není nainstalovaný.",
+    "back_to_mail": "Zpět na poštu",
+    "settings_group": "Pluginy"
+  },
+  "command_palette": {
+    "title": "Paleta příkazů",
+    "open": "Otevřít paletu příkazů",
+    "placeholder": "Zadejte příkaz",
+    "no_results": "Žádné odpovídající příkazy",
+    "go_to": "Přejít na {name}",
+    "compose": "Nová zpráva",
+    "search": "Hledat v poště",
+    "theme_dark": "Přepnout na tmavý motiv",
+    "theme_light": "Přepnout na světlý motiv",
+    "shortcuts": "Zobrazit klávesové zkratky",
+    "group_navigation": "Přejít na",
+    "group_actions": "Akce",
+    "group_plugins": "Pluginy"
+  },
+  "notification_center": {
+    "title": "Oznámení",
+    "mark_all_read": "Označit vše jako přečtené",
+    "clear": "Vymazat",
+    "empty": "Žádná oznámení",
+    "close": "Zavřít",
+    "unread": "Nepřečtené",
+    "unread_count": "Nepřečtené: {count}",
+    "level_error": "Chyba",
+    "level_warning": "Upozornění"
   }
 }

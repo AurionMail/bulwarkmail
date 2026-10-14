@@ -4,6 +4,8 @@ import React, { useSyncExternalStore } from 'react';
 import type { SlotName } from '@/lib/plugin-types';
 import { offersForSlot, subscribe } from '@/lib/plugin-sandbox/registry';
 import { PluginIframeSlot } from './plugin-iframe-slot';
+import { isInlineSlot } from '@/lib/plugin-sandbox/slot-layout';
+import { cn } from '@/lib/utils';
 
 interface PluginSlotProps {
   name: SlotName;
@@ -17,8 +19,12 @@ export function PluginSlot({ name, className, extraProps }: PluginSlotProps) {
 
   if (offers.length === 0) return null;
 
+  // Inline slots line up next to each other in a toolbar row.
   return (
-    <div className={className} data-plugin-slot={name}>
+    <div
+      className={isInlineSlot(name) ? cn('inline-flex flex-wrap items-center gap-1', className) : className}
+      data-plugin-slot={name}
+    >
       {offers.map((offer) => (
         <PluginIframeSlot
           key={offer.pluginId}

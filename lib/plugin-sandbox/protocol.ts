@@ -135,6 +135,8 @@ export interface HookResultMsg {
 export interface SlotResizeMsg {
   type: 'slot-resize';
   height: number;
+  /** Natural content width, sent by inline slots (see slot-layout.ts). */
+  width?: number;
 }
 
 export interface SlotShouldShowResultMsg {
@@ -177,6 +179,9 @@ export interface LocaleChangeMsg { type: 'locale-change'; locale: string; }
 /** Host → sandbox: the resolved theme changed; re-inject the slot's theme CSS. */
 export interface ThemeChangeMsg { type: 'theme-change'; theme: ThemeSnapshot; }
 
+/** Host → sandbox: the user changed this plugin's settings. */
+export interface SettingsChangeMsg { type: 'settings-change'; settings: Record<string, unknown>; }
+
 export interface PropsUpdateMsg { type: 'props-update'; props: Record<string, unknown>; }
 
 export interface SlotShouldShowMsg {
@@ -186,13 +191,24 @@ export interface SlotShouldShowMsg {
   context: unknown;
 }
 
+/** Host → sandbox: a piece of a streamed api.proxy.fetch response. */
+export interface StreamChunkMsg { type: 'stream-chunk'; streamId: string; chunk: ArrayBuffer; }
+/** Host → sandbox: a streamed response ended (error set when it broke off). */
+export interface StreamEndMsg { type: 'stream-end'; streamId: string; error?: string; }
+/** Host → sandbox: upload progress of an api.proxy.fetch request. */
+export interface StreamProgressMsg { type: 'stream-progress'; streamId: string; loaded: number; total: number; }
+
 export type HostToSandbox =
   | InitMsg
+  | StreamChunkMsg
+  | StreamEndMsg
+  | StreamProgressMsg
   | ApiResponseMsg
   | CallbackResponseMsg
   | HookInvokeMsg
   | LocaleChangeMsg
   | ThemeChangeMsg
+  | SettingsChangeMsg
   | PropsUpdateMsg
   | SlotShouldShowMsg;
 

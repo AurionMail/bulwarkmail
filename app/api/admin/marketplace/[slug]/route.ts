@@ -5,8 +5,7 @@ import {
   getPluginRegistry,
   getThemeRegistry,
 } from '@/lib/admin/plugin-registry';
-import JSZip from 'jszip';
-import { MAX_PLUGIN_SIZE, MAX_THEME_SIZE } from '@/lib/plugin-types';
+import { openPackage, readManifest, readText } from '@/lib/extension-package';
 import { configManager } from '@/lib/admin/config-manager';
 
 async function getDirectoryUrl(): Promise<string> {
@@ -79,61 +78,28 @@ export async function GET(
         } else {
           const buffer = await bundleRes.arrayBuffer();
           bundleSize = buffer.byteLength;
-          const maxSize = type === 'theme' ? MAX_THEME_SIZE : MAX_PLUGIN_SIZE;
-          if (buffer.byteLength > maxSize) {
-            bundleError = `Bundle exceeds ${type === 'theme' ? '1 MB' : '5 MB'} size limit`;
-          } else {
-            const zip = await JSZip.loadAsync(buffer);
+          // Opening the preview must not inflate an arbitrary bundle in
+          // full: every read goes through the capped package reader.
+          const pkg = await openPackage(buffer, type === 'theme' ? 'theme' : 'plugin');
+          try {
+            manifest = await readManifest(pkg);
+          } catch (err) {
+            bundleError = err instanceof Error ? err.message : 'Invalid manifest.json in bundle';
+          }
 
-            // Detect optional root directory inside the ZIP.
-            const entries = Object.keys(zip.files);
-            const topDirs = new Set(entries.map((e) => e.split('/')[0]));
-            let root = '';
-            if (topDirs.size === 1) {
-              const dir = [...topDirs][0];
-              if (zip.files[dir + '/'] || entries.some((e) => e.startsWith(dir + '/'))) {
-                root = dir + '/';
-              }
-            }
-
-            const manifestFile = zip.file(root + 'manifest.json');
-            if (!manifestFile) {
-              bundleError = 'Bundle missing manifest.json';
-            } else {
-              try {
-                manifest = JSON.parse(await manifestFile.async('string'));
-              } catch {
-                bundleError = 'Invalid manifest.json in bundle';
-              }
-            }
-
-            if (manifest) {
-              if (type === 'theme') {
-                const cssFile = zip.file(root + 'theme.css');
-                if (cssFile) {
-                  const css = await cssFile.async('string');
-                  sourcePreview = {
-                    name: 'theme.css',
-                    content: css.length > MAX_PREVIEW_SOURCE_LEN
-                      ? css.slice(0, MAX_PREVIEW_SOURCE_LEN)
-                      : css,
-                    truncated: css.length > MAX_PREVIEW_SOURCE_LEN,
-                  };
-                }
-              } else {
-                const entrypoint = (manifest.entrypoint as string) || 'index.js';
-                const jsFile = zip.file(root + entrypoint);
-                if (jsFile) {
-                  const code = await jsFile.async('string');
-                  sourcePreview = {
-                    name: entrypoint,
-                    content: code.length > MAX_PREVIEW_SOURCE_LEN
-                      ? code.slice(0, MAX_PREVIEW_SOURCE_LEN)
-                      : code,
-                    truncated: code.length > MAX_PREVIEW_SOURCE_LEN,
-                  };
-                }
-              }
+          if (manifest) {
+            const name = type === 'theme'
+              ? 'theme.css'
+              : (typeof manifest.entrypoint === 'string' && manifest.entrypoint) || 'index.js';
+            const content = await readText(pkg, name);
+            if (content !== null) {
+              sourcePreview = {
+                name,
+                content: content.length > MAX_PREVIEW_SOURCE_LEN
+                  ? content.slice(0, MAX_PREVIEW_SOURCE_LEN)
+                  : content,
+                truncated: content.length > MAX_PREVIEW_SOURCE_LEN,
+              };
             }
           }
         }

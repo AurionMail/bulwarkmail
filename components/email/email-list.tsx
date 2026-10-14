@@ -9,7 +9,7 @@ import { listVerificationCode } from "@/lib/verification-code";
 import { EmailContextMenu, type CopyTargetAccount } from "./email-context-menu";
 import { BatchTagButton } from "./batch-tag-button";
 import { cn, cleanPreview } from "@/lib/utils";
-import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck } from "@/components/icons";
+import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, X } from "@/components/icons";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -31,7 +31,10 @@ import { TagDisplayContext, useMeasuredTagDisplay } from "@/hooks/use-tag-displa
 import { SearchChips } from "@/components/search/search-chips";
 import { isFilterEmpty, DEFAULT_SEARCH_FILTERS } from "@/lib/jmap/search-utils";
 import { getOwnAddresses } from "@/lib/filters/quick-rule-target";
+import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { normalizeAddress } from "@/lib/filters/quick-rules";
+import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 
 interface EmailListProps {
   emails: Email[];
@@ -71,6 +74,9 @@ interface EmailListProps {
    */
   hideBatchToolbar?: boolean;
 }
+
+/** Below this width the batch toolbar drops its labels (see batchNarrow). */
+const BATCH_TOOLBAR_WIDE = 480;
 
 export function EmailList({
   emails,
@@ -264,6 +270,20 @@ export function EmailList({
     observer.observe(toolbar);
     return () => observer.disconnect();
   }, []);
+  // A narrow list (folder sidebar open, phones) has no room for the batch
+  // toolbar's labels: plugin buttons go behind one "more" button and "Clear
+  // selection" becomes an icon, instead of wrapping into each other.
+  const [batchNarrow, setBatchNarrow] = useState(false);
+  useEffect(() => {
+    const toolbar = batchToolbarRef.current;
+    if (!toolbar || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? toolbar.getBoundingClientRect().width;
+      if (width > 0) setBatchNarrow(width < BATCH_TOOLBAR_WIDE);
+    });
+    observer.observe(toolbar);
+    return () => observer.disconnect();
+  }, []);
   // One tag treatment for the whole list, measured from the scroll container.
   const tagDisplay = useMeasuredTagDisplay(parentRef);
   const density = useSettingsStore((state) => state.density);
@@ -380,6 +400,19 @@ export function EmailList({
   );
 
   const hasSelection = selectedEmailKeys.size > 0;
+  // What plugin buttons in the selection toolbar act on: the JMAP ids of the
+  // selected messages, thread members included.
+  const selectedEmailIds = useMemo(
+    () => resolveSelectedEmails({ emails, threadEmailsCache, selectedEmailKeys }).map((email) => email.id),
+    [emails, threadEmailsCache, selectedEmailKeys],
+  );
+  const bulkActionContext = useMemo(() => ({ emailIds: selectedEmailIds }), [selectedEmailIds]);
+  const listSlotProps = useMemo(
+    () => ({ mailboxId: selectedMailbox || null, mailboxRole: effectiveMailboxRole ?? null }),
+    [selectedMailbox, effectiveMailboxRole],
+  );
+  const isSearching = !!searchQuery || !isFilterEmpty(searchFilters);
+  const emptySlotProps = useMemo(() => ({ ...listSlotProps, searching: isSearching }), [listSlotProps, isSearching]);
 
   const handleBatchMarkAsRead = async (read: boolean) => {
     if (!client || isProcessing) return;
@@ -497,18 +530,34 @@ export function EmailList({
     }
   }, [client, hasMoreEmails, isLoadingMore, isLoading, isScheduledView, loadMoreEmails, onLoadMoreScheduled]);
 
+  // The messages of a thread as the list knows them, for onThreadExpand.
+  const threadMembers = useCallback((threadKey: string): Email[] => (
+    useEmailStore.getState().threadEmailsCache.get(threadKey)
+      ?? threadGroups.find((g) => g.threadKey === threadKey)?.emails
+      ?? []
+  ), [threadGroups]);
+
   const handleToggleThreadExpansion = useCallback(async (threadKey: string) => {
     const isExpanded = expandedThreadIds.has(threadKey);
 
     if (!isExpanded && client) {
       toggleThreadExpansion(threadKey);
       await fetchThreadEmails(client, threadKey);
+      emitThreadExpand(threadKey, threadMembers(threadKey), true);
       // Mark all unread emails in this thread as read
       void markThreadAsRead(client, threadKey);
     } else {
       toggleThreadExpansion(threadKey);
+      emitThreadExpand(threadKey, threadMembers(threadKey), !isExpanded);
     }
-  }, [client, expandedThreadIds, toggleThreadExpansion, fetchThreadEmails, markThreadAsRead]);
+  }, [client, expandedThreadIds, toggleThreadExpansion, fetchThreadEmails, markThreadAsRead, threadMembers]);
+
+  const collapseAllThreadsAndNotify = useCallback(() => {
+    const wereExpanded = [...useEmailStore.getState().expandedThreadIds];
+    const members = wereExpanded.map((key) => [key, threadMembers(key)] as const);
+    collapseAllThreads();
+    for (const [key, emails] of members) emitThreadExpand(key, emails, false);
+  }, [collapseAllThreads, threadMembers]);
 
   // Range-based load more: trigger when last visible item is near the end.
   // Debounce to prevent rapid cascade when thread grouping reduces item
@@ -562,13 +611,13 @@ export function EmailList({
           hasSelection && !isScheduledView && !hideBatchToolbar ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <div className="px-4 py-2 border-b bg-accent/30 border-border flex items-center justify-between">
-          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-3 duration-300">
-            <span className="text-sm font-medium text-foreground">
+        <div className={cn("py-2 border-b bg-accent/30 border-border flex items-center justify-between gap-2", batchNarrow ? "px-2" : "px-4")} data-batch-narrow={batchNarrow ? "" : undefined}>
+          <div className="flex items-center gap-2 min-w-0 animate-in fade-in slide-in-from-left-3 duration-300">
+            <span className="text-sm font-medium text-foreground whitespace-nowrap truncate">
               {t('batch_actions.selected_messages', { count: selectedEmailKeys.size })}
             </span>
           </div>
-          <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-3 duration-300">
+          <div className={cn("flex items-center flex-shrink-0 animate-in fade-in slide-in-from-right-3 duration-300", batchNarrow ? "gap-0.5 [&_button]:px-2" : "gap-1")}>
             <Button
               variant="ghost"
               size="sm"
@@ -636,16 +685,27 @@ export function EmailList({
                 <Trash2 className="w-4 h-4" />
               )}
             </Button>
-            <div className="w-px h-6 bg-border mx-1" />
+            {hasSelection && (
+              <PluginActions
+                surface="message-bulk-actions"
+                context={bulkActionContext}
+                mailboxRole={effectiveMailboxRole ?? null}
+                compact
+                overflow={batchNarrow}
+                className="flex-nowrap"
+              />
+            )}
+            <div className={cn("w-px h-6 bg-border", batchNarrow ? "mx-0.5" : "mx-1")} />
             <Button
               variant="ghost"
               size="sm"
               onClick={clearSelection}
               title={t('batch_actions.clear_selection')}
+              aria-label={t('batch_actions.clear_selection')}
               disabled={isProcessing}
-              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 whitespace-nowrap"
             >
-              {t('batch_actions.clear_selection')}
+              {batchNarrow ? <X className="w-4 h-4" /> : t('batch_actions.clear_selection')}
             </Button>
           </div>
         </div>
@@ -691,6 +751,8 @@ export function EmailList({
         </div>
       )}
 
+      <PluginSlot name="message-list-header" className="w-full" extraProps={listSlotProps} />
+
       {/* Email List */}
       <div ref={parentRef} className="flex-1 overflow-y-auto bg-background relative" data-tour="email-list">
         {/* Loading overlay */}
@@ -722,6 +784,7 @@ export function EmailList({
             <p className="text-sm mt-1 text-muted-foreground">
               {isScheduledView ? t('no_scheduled_emails_description') : searchQuery || !isFilterEmpty(searchFilters) ? t('no_search_results_description') : t('no_emails_description')}
             </p>
+            <PluginSlot name="message-list-empty" className="mt-4 w-full max-w-md px-4" extraProps={emptySlotProps} />
           </div>
         ) : (
           <>
@@ -756,14 +819,14 @@ export function EmailList({
                       isLoading={isLoadingThread === thread.threadKey}
                       expandedEmails={threadEmailsCache.get(thread.threadKey)}
                       onToggleExpand={() => handleToggleThreadExpansion(thread.threadKey)}
-                      onCollapseAllThreads={collapseAllThreads}
+                      onCollapseAllThreads={collapseAllThreadsAndNotify}
                       onEmailSelect={(email) => {
                         // Collapse expanded threads when selecting an email outside the expanded thread
                         const currentExpanded = useEmailStore.getState().expandedThreadIds;
                         if (currentExpanded.size > 0) {
                           // Check if the selected email belongs to any expanded thread via its threadId
                           if (!email.threadId || !currentExpanded.has(threadKeyFor(email))) {
-                            collapseAllThreads();
+                            collapseAllThreadsAndNotify();
                           }
                         }
                         onEmailSelect?.(email);

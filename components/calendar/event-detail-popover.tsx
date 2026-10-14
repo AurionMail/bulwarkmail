@@ -25,6 +25,8 @@ import { canUserRsvp, getEventEditability, type EditabilityContext } from "@/lib
 import { useFormatEventDate } from "@/hooks/use-format-event-date";
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
+import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { eventToView } from "@/lib/plugin-projection";
 
 interface EventDetailPopoverProps {
   event: CalendarEvent;
@@ -52,13 +54,18 @@ const POPOVER_GAP = 8;
 const VIEWPORT_MARGIN = 12;
 const MAX_HEIGHT = 480;
 
+/** As tall as MAX_HEIGHT, but never taller than the window. */
+function maxPopoverHeight(): number {
+  return Math.max(0, Math.min(MAX_HEIGHT, window.innerHeight - 2 * VIEWPORT_MARGIN));
+}
+
 function computePosition(
   anchorRect: DOMRect,
   popoverHeight: number
 ): { top: number; left: number } {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const clampedHeight = Math.min(popoverHeight, MAX_HEIGHT);
+  const clampedHeight = Math.min(popoverHeight, maxPopoverHeight());
 
   const clampTop = (top: number) =>
     Math.min(Math.max(VIEWPORT_MARGIN, top), vh - clampedHeight - VIEWPORT_MARGIN);
@@ -145,6 +152,7 @@ export function EventDetailPopover({
   // Invitations (Teams above all) leave virtualLocations empty and bury the
   // join URL in the description; surface it as the meeting link anyway.
   const meeting = useMemo(() => findMeetingLink(event), [event]);
+  const pluginProps = useMemo(() => ({ event: eventToView(event) }), [event]);
   const virtualLocation = meeting?.uri ?? null;
 
   // A URL opens as a link, a location that only names the service joins the
@@ -223,6 +231,19 @@ export function EventDetailPopover({
     if (!ready) requestAnimationFrame(() => setReady(true));
   }, [anchorRect, noteExpanded, showDeleteConfirm, ready]);
 
+  // Content that grows after the popover was placed (a plugin section reports
+  // its height a moment later) moves it again, so it stays in the window.
+  useEffect(() => {
+    const node = popoverRef.current;
+    if (!node || isMobile || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      const next = computePosition(anchorRect, node.offsetHeight);
+      setPosition((prev) => (prev && prev.top === next.top && prev.left === next.left ? prev : next));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [anchorRect, isMobile]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -299,14 +320,14 @@ export function EventDetailPopover({
         "fixed z-[60] bg-background border border-border shadow-xl overflow-hidden transition-[opacity,transform] duration-150 ease-out",
         isMobile
           ? "inset-0 rounded-none flex flex-col"
-          : "rounded-lg"
+          : "rounded-lg flex flex-col"
       )}
       style={isMobile ? {
         opacity: 1,
         transform: "none",
       } : {
         width: POPOVER_WIDTH,
-        maxHeight: MAX_HEIGHT,
+        maxHeight: maxPopoverHeight(),
         top: position?.top ?? -9999,
         left: position?.left ?? -9999,
         opacity: ready ? 1 : 0,
@@ -410,7 +431,7 @@ export function EventDetailPopover({
       {/* Content */}
       <div className={cn(
         "px-4 py-2 space-y-2.5 overflow-y-auto",
-        isMobile ? "flex-1" : ""
+        isMobile ? "flex-1" : "min-h-0"
       )} style={isMobile ? undefined : { maxHeight: MAX_HEIGHT - 140 }}>
         {/* Date & Time */}
         <div className="flex items-start gap-2.5">
@@ -580,6 +601,8 @@ export function EventDetailPopover({
             </p>
           </div>
         )}
+
+        <PluginSlot name="calendar-event-detail" className="w-full" extraProps={pluginProps} />
       </div>
 
       {/* Quick Note */}

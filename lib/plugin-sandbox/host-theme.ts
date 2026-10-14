@@ -121,6 +121,8 @@ export function themeSnapshotToCSS(snapshot: ThemeSnapshot): string {
     ':root {',
     declarations,
     `  color-scheme: ${colorScheme};`,
+    // The user's font size setting, so rem units in a slot match the app.
+    ...(snapshot.vars['--font-size-base'] ? ['  font-size: var(--font-size-base);'] : []),
     '}',
     'html, body {',
     `  font-family: ${snapshot.fontFamily};`,
