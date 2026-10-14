@@ -89,8 +89,17 @@ export function removeSignatureRange(
     if (!removeUntil && isQuoteBoundary(next)) break;
     cursor = next;
   }
-  const insertBefore = toRemove[toRemove.length - 1]?.nextSibling ?? null;
+  let insertBefore = toRemove[toRemove.length - 1]?.nextSibling ?? null;
   toRemove.forEach((node) => parent.removeChild(node));
+  // The end marker is the empty line under the signature, so a click below
+  // the signature puts the caret there. Text typed into it is the user's,
+  // not part of the signature: keep it as an ordinary paragraph after it.
+  if (removeUntil && removeUntil.textContent?.trim()) {
+    const kept = removeUntil.cloneNode(true) as Element;
+    kept.removeAttribute(SIGNATURE_RANGE_MARKER);
+    parent.insertBefore(kept, insertBefore);
+    insertBefore = kept;
+  }
   return { parent, insertBefore };
 }
 

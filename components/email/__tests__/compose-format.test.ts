@@ -117,6 +117,17 @@ describe('switching identity swaps the signature', () => {
         .toBe(dom(`<p>Hi</p>${embed(other)}<blockquote>original</blockquote>`));
     });
 
+    it('keeps text typed on the line under the signature', () => {
+      const typedBelow = embed(identity).replace(
+        `<p ${SIGNATURE_RANGE_MARKER}="end"></p>`,
+        `<p ${SIGNATURE_RANGE_MARKER}="end">P.S. see you</p>`,
+      );
+      expect(replaceEmbeddedSignature(`<p>Hi</p>${typedBelow}`, embed(none)))
+        .toBe('<p>Hi</p><p>P.S. see you</p>');
+      expect(replaceEmbeddedSignature(`<p>Hi</p>${typedBelow}`, embed(other)))
+        .toBe(dom(`<p>Hi</p>${embed(other)}<p>P.S. see you</p>`));
+    });
+
     it('adds a signature at the end when there is no quote', () => {
       expect(replaceEmbeddedSignature('<p>Hi</p>', embed(other))).toBe(dom(`<p>Hi</p>${embed(other)}`));
     });
