@@ -97,6 +97,19 @@ export async function resolveCredential(user: VaultUser, pluginId: string, crede
  * set). No secret or address leaves the server; plugins learn only yes/no.
  */
 export async function adminCredentialStatus(pluginId: string): Promise<{ credentialId: string; configured: boolean }[]> {
+  return (await adminCredentials(pluginId)).map(({ credentialId, origin }) => ({ credentialId, configured: !!origin }));
+}
+
+/**
+ * The servers of a plugin's admin credentials that are set up. Only for the
+ * host page, which checks links a plugin shows against them: plugins
+ * themselves still learn only yes/no (adminCredentialStatus).
+ */
+export async function adminCredentialOrigins(pluginId: string): Promise<string[]> {
+  return (await adminCredentials(pluginId)).flatMap(({ origin }) => (origin ? [origin] : []));
+}
+
+async function adminCredentials(pluginId: string): Promise<{ credentialId: string; origin: string | null }[]> {
   const plugin = await getPlugin(pluginId);
   const specs = (plugin as { credentials?: Record<string, CredentialSpec> } | null)?.credentials;
   if (!plugin || !plugin.enabled || !specs) return [];
@@ -105,7 +118,7 @@ export async function adminCredentialStatus(pluginId: string): Promise<{ credent
   const user = { username: '', serverUrl: '' };
   return Promise.all(adminIds.map(async (credentialId) => ({
     credentialId,
-    configured: !!(await resolveAdminOnly(user, pluginId, credentialId)),
+    origin: (await resolveAdminOnly(user, pluginId, credentialId))?.origin ?? null,
   })));
 }
 

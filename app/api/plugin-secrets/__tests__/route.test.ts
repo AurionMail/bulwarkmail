@@ -33,10 +33,11 @@ vi.mock('@/lib/plugin-secrets/proxy', async (orig) => {
     ...real,
     proxyRequest: vi.fn(async (input: unknown) => { proxied.push(input); return new Response('ok'); }),
     adminCredentialStatus: vi.fn(async () => [{ credentialId: 'shared', configured: true }]),
+    adminCredentialOrigins: vi.fn(async () => ['https://paperless.example.com']),
   };
 });
 
-import { POST as saveCredential } from '../route';
+import { GET as listCredentials, POST as saveCredential } from '../route';
 import { POST as proxy } from '../../plugin-proxy/route';
 
 const VALID = {
@@ -58,6 +59,15 @@ beforeEach(() => {
   sameOrigin = true;
   store.clear();
   proxied.length = 0;
+});
+
+describe('GET /api/plugin-secrets', () => {
+  it("names the servers of set-up admin credentials for one plugin, for the host page's link check", async () => {
+    const res = await listCredentials(new NextRequest('http://localhost/api/plugin-secrets?plugin=paperless'));
+    expect(await res.json()).toMatchObject({ admin: [{ credentialId: 'shared', configured: true }], adminOrigins: ['https://paperless.example.com'] });
+    const all = await listCredentials(new NextRequest('http://localhost/api/plugin-secrets'));
+    expect((await all.json()).adminOrigins).toEqual([]);
+  });
 });
 
 describe('POST /api/plugin-secrets', () => {

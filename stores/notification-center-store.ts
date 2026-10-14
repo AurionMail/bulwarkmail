@@ -19,6 +19,8 @@ export interface CenterEntry {
   pluginId?: string;
   pluginName?: string;
   tag?: string;
+  /** A link the plugin added (checked by the host when it was shown). */
+  action?: { label: string; url: string };
   read: boolean;
 }
 
@@ -37,7 +39,21 @@ function isEntry(value: unknown): value is CenterEntry {
   const e = value as Record<string, unknown>;
   return typeof e.id === 'string' && typeof e.time === 'number' && typeof e.title === 'string'
     && typeof e.body === 'string' && typeof e.read === 'boolean'
-    && (e.level === 'error' || e.level === 'warning' || e.level === 'info');
+    && (e.level === 'error' || e.level === 'warning' || e.level === 'info')
+    && (e.action === undefined || isLink(e.action));
+}
+
+// Storage is the user's own, but a link is only ever shown when it is http(s).
+function isLink(value: unknown): value is { label: string; url: string } {
+  if (!value || typeof value !== 'object') return false;
+  const { label, url } = value as Record<string, unknown>;
+  if (typeof label !== 'string' || typeof url !== 'string') return false;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === 'https:' || protocol === 'http:';
+  } catch {
+    return false;
+  }
 }
 
 function load(): CenterEntry[] {
@@ -72,6 +88,7 @@ export const useNotificationCenterStore = create<NotificationCenterState>((set, 
       body: input.body,
       ...(input.pluginId ? { pluginId: input.pluginId, pluginName: input.pluginName ?? input.pluginId } : {}),
       ...(input.tag ? { tag: input.tag } : {}),
+      ...(input.action && isLink(input.action) ? { action: { label: input.action.label, url: input.action.url } } : {}),
       read: false,
     };
     const entries = [entry, ...get().entries].slice(0, MAX_ENTRIES);

@@ -3,7 +3,7 @@ import { configManager } from '@/lib/admin/config-manager';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { CREDENTIAL_ID_RE, checkInject, credentialOrigin } from '@/lib/plugin-secrets/credentials';
-import { adminCredentialStatus } from '@/lib/plugin-secrets/proxy';
+import { adminCredentialOrigins, adminCredentialStatus } from '@/lib/plugin-secrets/proxy';
 import {
   VaultFullError,
   deleteUserCredentials,
@@ -35,9 +35,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid plugin id' }, { status: 400 });
   }
   const credentials = await listUserCredentials(user, pluginId);
-  // For one plugin, also say which of its admin credentials are set up.
-  const admin = pluginId ? await adminCredentialStatus(pluginId) : [];
-  return NextResponse.json({ credentials, admin }, { headers: NO_STORE });
+  // For one plugin, also say which of its admin credentials are set up, and
+  // on which servers: the host page checks the links a plugin shows against
+  // them (the plugin itself only gets yes/no, see proxyAccounts).
+  const [admin, adminOrigins] = pluginId
+    ? await Promise.all([adminCredentialStatus(pluginId), adminCredentialOrigins(pluginId)])
+    : [[], []];
+  return NextResponse.json({ credentials, admin, adminOrigins }, { headers: NO_STORE });
 }
 
 /**

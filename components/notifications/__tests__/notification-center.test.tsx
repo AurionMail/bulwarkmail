@@ -77,6 +77,25 @@ describe('notification bell', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it("shows a plugin's link under its entry, opening in a new tab without the opener", () => {
+    act(() => {
+      add({ level: 'info', title: 'Filed', body: '', pluginId: 'rss', pluginName: 'Paperless-ngx', action: { label: 'Open in Paperless', url: 'https://paperless.example.com/documents/12/details' } });
+      add({ level: 'info', title: 'Odd', body: '', pluginId: 'rss', pluginName: 'X', action: { label: 'Run', url: 'javascript:alert(1)' } });
+    });
+    render(<NavigationRail collapsed />);
+    fireEvent.click(bell());
+
+    const panel = screen.getByRole('dialog', { name: 'title' });
+    const links = within(panel).getAllByRole('link');
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveTextContent('Open in Paperless');
+    expect(links[0]).toHaveAttribute('href', 'https://paperless.example.com/documents/12/details');
+    expect(links[0]).toHaveAttribute('target', '_blank');
+    expect(links[0].getAttribute('rel')).toContain('noopener');
+    // Not inside the entry's button.
+    expect(links[0].closest('button')).toBeNull();
+  });
+
   it('marks all read and clears', () => {
     act(() => {
       add({ level: 'warning', title: 'a', body: '' });

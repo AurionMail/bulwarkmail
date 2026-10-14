@@ -124,19 +124,27 @@ export async function listConnectedAccounts(pluginId?: string): Promise<Connecte
   return (await credentialOverview(pluginId)).credentials;
 }
 
+export interface CredentialOverview {
+  credentials: ConnectedAccount[];
+  admin: { credentialId: string; configured: boolean }[];
+  /** Servers of the admin credentials that are set up. For the host page only. */
+  adminOrigins: string[];
+}
+
 /** The user's connected accounts, and (for one plugin) which admin credentials are set up. */
-export async function credentialOverview(pluginId?: string): Promise<{ credentials: ConnectedAccount[]; admin: { credentialId: string; configured: boolean }[] }> {
+export async function credentialOverview(pluginId?: string): Promise<CredentialOverview> {
   const query = pluginId ? `?plugin=${encodeURIComponent(pluginId)}` : '';
   try {
     const res = await apiFetch(`/api/plugin-secrets${query}`);
-    if (!res.ok) return { credentials: [], admin: [] };
-    const body = await res.json() as { credentials?: ConnectedAccount[]; admin?: { credentialId: string; configured: boolean }[] };
+    if (!res.ok) return { credentials: [], admin: [], adminOrigins: [] };
+    const body = await res.json() as Partial<CredentialOverview>;
     return {
       credentials: Array.isArray(body.credentials) ? body.credentials : [],
       admin: Array.isArray(body.admin) ? body.admin : [],
+      adminOrigins: Array.isArray(body.adminOrigins) ? body.adminOrigins.filter((o): o is string => typeof o === 'string') : [],
     };
   } catch {
-    return { credentials: [], admin: [] };
+    return { credentials: [], admin: [], adminOrigins: [] };
   }
 }
 

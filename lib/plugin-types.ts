@@ -740,6 +740,13 @@ export interface NotificationInput {
    * replaces the old one, and onNotificationClick hands the tag back.
    */
   tag?: string;
+  /**
+   * A link the host shows as a button on the toast and as a link in the
+   * notification panel, opened in a new tab. The URL must be http(s) and on
+   * a server the plugin already talks to: one of its `httpOrigins`, or the
+   * server of one of its proxy credentials.
+   */
+  action?: { label: string; url: string };
 }
 
 export interface FilterRuleView {

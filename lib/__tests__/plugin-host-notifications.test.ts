@@ -10,6 +10,11 @@ vi.mock('@/stores/toast-store', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: (...a: unknown[]) => toastInfo(...a), warning: vi.fn() },
 }));
 
+const overview = vi.fn();
+vi.mock('../plugin-sandbox/connect-dialog', () => ({
+  credentialOverview: (...a: unknown[]) => overview(...a),
+}));
+
 import { dispatchApiCall } from '../plugin-sandbox/host-api';
 
 function plugin(id: string, perms = ['ui:notifications']): InstalledPlugin {
@@ -36,6 +41,8 @@ class FakeNotification {
 beforeEach(() => {
   resetPluginRateLimits();
   toastInfo.mockClear();
+  overview.mockReset();
+  overview.mockResolvedValue({ credentials: [], admin: [], adminOrigins: [] });
   FakeNotification.shown = [];
   FakeNotification.permission = 'granted';
   vi.stubGlobal('Notification', FakeNotification);
@@ -138,5 +145,60 @@ describe('api.notifications.show in the notification panel', () => {
     await expect(call(RSS, { title: 'too many' })).rejects.toThrow();
     expect((await entries()).map((e) => e.title)).not.toContain('too many');
     expect(await entries()).toHaveLength(5);
+  });
+});
+
+describe('api.notifications.show with a link', () => {
+  const PAPERLESS = { ...plugin('paperless', ['ui:notifications', 'http:proxy']), name: 'Paperless-ngx' };
+  const link = (url: string) => ({ title: 'project-notes is in Paperless now', action: { label: 'Open in Paperless', url } });
+  const entries = async () => (await import('@/stores/notification-center-store')).useNotificationCenterStore.getState().entries;
+
+  beforeEach(async () => {
+    FakeNotification.permission = 'default';
+    const { useNotificationCenterStore } = await import('@/stores/notification-center-store');
+    useNotificationCenterStore.getState().clear();
+  });
+
+  it('puts a button on the toast that opens the link in a new tab without a handle on the app', async () => {
+    overview.mockResolvedValue({ credentials: [], admin: [{ credentialId: 'shared', configured: true }], adminOrigins: ['https://paperless.example.com'] });
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    expect(await call(PAPERLESS, link('https://paperless.example.com/documents/12/details'))).toBe('toast');
+    const options = toastInfo.mock.calls[0][1] as { action: { label: string; onClick: () => void } };
+    expect(options.action.label).toBe('Open in Paperless');
+    options.action.onClick();
+    expect(open).toHaveBeenCalledWith('https://paperless.example.com/documents/12/details', '_blank', 'noopener,noreferrer');
+    expect((await entries())[0].action).toEqual({ label: 'Open in Paperless', url: 'https://paperless.example.com/documents/12/details' });
+  });
+
+  it('accepts the server of a credential the user connected, and the manifest httpOrigins', async () => {
+    overview.mockResolvedValue({
+      credentials: [{ pluginId: 'paperless', credentialId: 'personal', label: 'P', origin: 'https://docs.alice.example', connected: true, updatedAt: '' }],
+      admin: [], adminOrigins: [],
+    });
+    await call(PAPERLESS, link('https://docs.alice.example/documents/?title__icontains=x'));
+    await call({ ...plugin('feeds'), httpOrigins: ['https://feeds.example.org'] }, link('https://feeds.example.org/item/1'));
+    expect((await entries()).map((e) => e.action?.url)).toEqual([
+      'https://feeds.example.org/item/1',
+      'https://docs.alice.example/documents/?title__icontains=x',
+    ]);
+  });
+
+  it('refuses a link to a server the plugin does not talk to, and shows nothing', async () => {
+    overview.mockResolvedValue({ credentials: [], admin: [], adminOrigins: ['https://paperless.example.com'] });
+    await expect(call(PAPERLESS, link('https://paperless.example.com.evil.example/login'))).rejects.toThrow(/action.url must be on a server the plugin talks to/);
+    await expect(call({ ...plugin('feeds'), httpOrigins: ['https://feeds.example.org'] }, link('https://phish.example/'))).rejects.toThrow(/action.url must be on a server/);
+    expect(toastInfo).not.toHaveBeenCalled();
+    expect(await entries()).toHaveLength(0);
+  });
+
+  it('refuses links that are not plain http(s)', async () => {
+    overview.mockResolvedValue({ credentials: [], admin: [], adminOrigins: ['https://paperless.example.com'] });
+    await expect(call(PAPERLESS, link('javascript:alert(1)'))).rejects.toThrow(/http or https/);
+    await expect(call(PAPERLESS, link('/documents/1'))).rejects.toThrow(/absolute URL/);
+    await expect(call(PAPERLESS, link('https://u:p@paperless.example.com/'))).rejects.toThrow(/user name or password/);
+    await expect(call(PAPERLESS, { title: 'x', action: { label: '', url: 'https://paperless.example.com/' } })).rejects.toThrow(/label/);
+    await expect(call(PAPERLESS, { title: 'x', action: { label: 'ok', url: 'https://paperless.example.com/', target: '_self' } })).rejects.toThrow(/unknown property "target"/);
+    expect(toastInfo).not.toHaveBeenCalled();
   });
 });

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFormatter, useTranslations } from "next-intl";
-import { AlertCircle, AlertTriangle, Bell, CheckCheck, Puzzle, Trash2, X } from "@/components/icons";
+import { AlertCircle, AlertTriangle, Bell, CheckCheck, ExternalLink, Puzzle, Trash2, X } from "@/components/icons";
 import { useConfig } from "@/hooks/use-config";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { isDocumentRTL } from "@/i18n/direction";
@@ -129,6 +129,20 @@ export function NotificationPanel({ onClose, className, sheet = false }: { onClo
                   <div className="flex items-start gap-2.5 px-3 py-2">
                     {content}
                   </div>
+                )}
+                {entry.action && (
+                  // Lined up with the text above (padding + icon + gap). A link of
+                  // its own, outside the entry's button: one control can't hold another.
+                  <a
+                    href={entry.action.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => markRead(entry.id)}
+                    className="-mt-1 mb-1 ms-[38px] inline-flex items-center gap-1 rounded text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {entry.action.label}
+                    <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                  </a>
                 )}
               </li>
             );
