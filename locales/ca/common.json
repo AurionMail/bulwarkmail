@@ -4340,5 +4340,8 @@
     "preview_empty": "Seleccioneu un resultat per previsualitzar-lo",
     "open_full": "Obre",
     "view_label": "Vista"
+  },
+  "top_bar": {
+    "more": "Més opcions"
   }
 }

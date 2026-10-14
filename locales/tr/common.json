@@ -4340,5 +4340,8 @@
     "preview_empty": "Önizlemek için bir sonuç seçin",
     "open_full": "Aç",
     "view_label": "Görünüm"
+  },
+  "top_bar": {
+    "more": "Diğer seçenekler"
   }
 }

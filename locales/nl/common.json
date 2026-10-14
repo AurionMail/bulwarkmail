@@ -4340,5 +4340,8 @@
     "preview_empty": "Selecteer een resultaat voor een voorbeeld",
     "open_full": "Openen",
     "view_label": "Weergave"
+  },
+  "top_bar": {
+    "more": "Meer opties"
   }
 }

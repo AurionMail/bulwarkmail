@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, ArrowLeft, Plus, Search, X } from "@/components/icons";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Menu, ArrowLeft, Plus, Search, X, MoreVertical } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/stores/ui-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -8,6 +9,65 @@ import { useIsDesktop } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { AccountSwitcher } from "@/components/layout/account-switcher";
+import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
+import { useMenuNavigation } from "@/hooks/use-menu-navigation";
+
+/** Plugin buttons in the top bar are not about any one item. */
+const TOP_BAR_CONTEXT: Record<string, unknown> = {};
+
+/**
+ * The phone header's overflow menu: what the desktop top bar shows as
+ * buttons (plugin top-bar-actions) and has no room for here. Renders nothing
+ * while it would be empty, so the header keeps its layout without plugins.
+ */
+function MobileHeaderMenu() {
+  const t = useTranslations('top_bar');
+  const pluginActions = usePluginActions('top-bar-actions');
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  const { menuRef, onKeyDown } = useMenuNavigation<HTMLDivElement>({ open, onClose: close, triggerRef });
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (triggerRef.current?.contains(e.target as Node) || menuRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open, menuRef]);
+
+  if (pluginActions.length === 0) return null;
+
+  return (
+    <div className="relative">
+      <Button
+        ref={triggerRef}
+        variant="ghost"
+        size="icon"
+        onClick={() => setOpen((v) => !v)}
+        className={cn("h-11 w-11", open && "bg-accent")}
+        aria-label={t('more')}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <MoreVertical className="h-5 w-5" />
+      </Button>
+      {open && (
+        <div
+          ref={menuRef}
+          onKeyDown={onKeyDown}
+          role="menu"
+          aria-label={t('more')}
+          className="absolute end-0 top-full mt-1 z-50 min-w-[200px] max-w-[calc(100vw-2rem)] rounded-md border border-border bg-background py-1 shadow-lg"
+        >
+          <PluginActions surface="top-bar-actions" context={TOP_BAR_CONTEXT} variant="menu" onRan={close} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface MobileHeaderProps {
   title: string;
@@ -165,6 +225,8 @@ export function MobileHeader({
             <Plus className="h-5 w-5" />
           </Button>
         )}
+
+        <MobileHeaderMenu />
 
         {/* Which account you are reading is otherwise only visible after
             opening the drawer. Last in this group so it sits on the far

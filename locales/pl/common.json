@@ -4340,5 +4340,8 @@
     "preview_empty": "Wybierz wynik, aby zobaczyć podgląd",
     "open_full": "Otwórz",
     "view_label": "Widok"
+  },
+  "top_bar": {
+    "more": "Więcej opcji"
   }
 }

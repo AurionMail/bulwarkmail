@@ -4340,5 +4340,8 @@
     "preview_empty": "Izvēlieties rezultātu, lai to priekšskatītu",
     "open_full": "Atvērt",
     "view_label": "Skats"
+  },
+  "top_bar": {
+    "more": "Citas iespējas"
   }
 }

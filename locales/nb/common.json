@@ -4340,5 +4340,8 @@
     "preview_empty": "Velg et resultat for å forhåndsvise det",
     "open_full": "Åpne",
     "view_label": "Visning"
+  },
+  "top_bar": {
+    "more": "Flere alternativer"
   }
 }

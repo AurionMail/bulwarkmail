@@ -4340,5 +4340,8 @@
     "preview_empty": "Seleziona un risultato per l'anteprima",
     "open_full": "Apri",
     "view_label": "Vista"
+  },
+  "top_bar": {
+    "more": "Altre opzioni"
   }
 }

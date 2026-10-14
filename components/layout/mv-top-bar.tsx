@@ -31,7 +31,11 @@ import { useUpdateStore, selectHasUpdate } from "@/stores/update-store";
 import { cn } from "@/lib/utils";
 import { AccountSwitcher } from "@/components/layout/account-switcher";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
+
+/** The top bar is not about any one item: plugin clicks carry no context. */
+const TOP_BAR_CONTEXT: Record<string, unknown> = {};
 
 /** Mail search, which only the mail surface puts into the bar. */
 interface MvTopBarSearch {
@@ -228,6 +232,9 @@ export function MvTopBar({
           />
         </div>
       )}
+
+      {/* Plugin buttons (top-bar-actions), next to the search field */}
+      <PluginActions surface="top-bar-actions" context={TOP_BAR_CONTEXT} compact className="shrink-0 flex-nowrap" />
 
       {/* Spacer keeps the right cluster pinned while search stays left */}
       <div className="flex-1 min-w-0" />

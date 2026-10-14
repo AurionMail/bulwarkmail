@@ -4340,5 +4340,8 @@
     "preview_empty": "プレビューする結果を選択してください",
     "open_full": "開く",
     "view_label": "表示"
+  },
+  "top_bar": {
+    "more": "その他のオプション"
   }
 }

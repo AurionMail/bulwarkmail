@@ -4340,5 +4340,8 @@
     "preview_empty": "Vælg et resultat for at se det",
     "open_full": "Åbn",
     "view_label": "Visning"
+  },
+  "top_bar": {
+    "more": "Flere muligheder"
   }
 }

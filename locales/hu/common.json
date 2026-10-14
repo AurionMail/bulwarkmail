@@ -4340,5 +4340,8 @@
     "preview_empty": "Válasszon egy találatot az előnézethez",
     "open_full": "Megnyitás",
     "view_label": "Nézet"
+  },
+  "top_bar": {
+    "more": "További lehetőségek"
   }
 }

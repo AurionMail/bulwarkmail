@@ -4340,5 +4340,8 @@
     "preview_empty": "Vyberte výsledek pro náhled",
     "open_full": "Otevřít",
     "view_label": "Zobrazení"
+  },
+  "top_bar": {
+    "more": "Další možnosti"
   }
 }

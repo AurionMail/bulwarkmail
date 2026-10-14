@@ -4340,5 +4340,8 @@
     "preview_empty": "選擇結果以預覽",
     "open_full": "開啟",
     "view_label": "檢視"
+  },
+  "top_bar": {
+    "more": "更多選項"
   }
 }

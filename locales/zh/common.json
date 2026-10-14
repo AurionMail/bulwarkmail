@@ -4340,5 +4340,8 @@
     "preview_empty": "选择一个结果以预览",
     "open_full": "打开",
     "view_label": "视图"
+  },
+  "top_bar": {
+    "more": "更多选项"
   }
 }
