@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, resourceServerRef, type UploadResult } from "@/stores/file-store";
+import { useFileStore, resourceServerRef, resourceToView, type UploadResult } from "@/stores/file-store";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
 import { NavigationRail } from "@/components/layout/navigation-rail";
@@ -544,6 +544,13 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   const proInterfaceActive = useProInterfaceActive();
   const isFocusedProTab = useIsFocusedProTab();
   const filesLinkPath = appPath(buildFilesPath(currentPath, previewFile));
+
+  // The previewed file as plugins see it (file-preview-section).
+  const previewedName = previewFile ?? previewImage;
+  const previewedView = useMemo(() => {
+    const resource = previewedName ? resources.find((r) => r.name === previewedName) : undefined;
+    return resource ? resourceToView(resource, currentPath) : null;
+  }, [previewedName, resources, currentPath]);
   useDeepLinkUrl(
     isEmbedded
       ? (isFocusedProTab ? filesLinkPath : null)
@@ -715,6 +722,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
           onClose={() => setPreviewImage(null)}
           onDownload={handleDownload}
           getImageUrl={getImageUrl}
+          file={previewedView}
         />
       )}
 
@@ -725,6 +733,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
           onClose={() => setPreviewFile(null)}
           onDownload={() => handleDownload(previewFile)}
           getFileContent={() => getFileContent(previewFile)}
+          file={previewedView}
         />
       )}
 

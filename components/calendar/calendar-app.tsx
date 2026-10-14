@@ -25,7 +25,7 @@ import { CalendarMonthView } from "@/components/calendar/calendar-month-view";
 import { CalendarWeekView } from "@/components/calendar/calendar-week-view";
 import { CalendarDayView } from "@/components/calendar/calendar-day-view";
 import { CalendarAgendaView } from "@/components/calendar/calendar-agenda-view";
-import { TaskListView } from "@/components/calendar/task-list-view";
+import { TaskListView, filterTasksForList } from "@/components/calendar/task-list-view";
 import { TaskToolbar } from "@/components/calendar/task-toolbar";
 import { TaskModal } from "@/components/calendar/task-modal";
 import { MiniCalendar } from "@/components/calendar/mini-calendar";
@@ -1488,6 +1488,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     return filtered;
   }, [events, selectedCalendarIds, showBirthdayCalendar, birthdayEvents]);
 
+  // The tasks the task list shows; plugin buttons in its toolbar act on them.
+  const listedTaskIds = useMemo(
+    () => filterTasksForList(taskStore.tasks, selectedCalendarIds, taskStore.filter, taskStore.showCompleted).map((task) => task.id),
+    [taskStore.tasks, selectedCalendarIds, taskStore.filter, taskStore.showCompleted],
+  );
+
   // Tasks on the month, week and day grids follow the calendar filter like
   // the events do (#1107).
   const calendarTasks = useMemo(() => {
@@ -1679,6 +1685,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
                 onFilterChange={taskStore.setFilter}
                 onShowCompletedChange={taskStore.setShowCompleted}
                 onCreateTask={openCreateTaskModal}
+                taskIds={listedTaskIds}
+                compact={isMobile}
               />
               <TaskListView
                 tasks={taskStore.tasks}

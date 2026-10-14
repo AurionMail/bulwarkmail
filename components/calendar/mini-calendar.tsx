@@ -12,6 +12,7 @@ import { getEventDayBounds } from "@/lib/calendar-utils";
 import { displayNow } from "@/lib/timezone";
 import type { CalendarEvent } from "@/lib/jmap/types";
 import { useCalendarLocale } from "@/hooks/use-calendar-locale";
+import { PluginDayLabel } from "./plugin-day-label";
 
 type PickerView = "days" | "months" | "years";
 
@@ -199,6 +200,7 @@ export function MiniCalendar({
                   {hasEvent && !selected && !today && (
                     <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
                   )}
+                  <PluginDayLabel surface="mini-calendar-marks" date={format(day, "yyyy-MM-dd")} />
                 </button>
               </Fragment>
             );

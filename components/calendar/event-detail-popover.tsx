@@ -25,6 +25,8 @@ import { canUserRsvp, getEventEditability, type EditabilityContext } from "@/lib
 import { useFormatEventDate } from "@/hooks/use-format-event-date";
 import { useContactNameResolver } from "@/hooks/use-contact-name-resolver";
 import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
+import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { eventToView } from "@/lib/plugin-projection";
 
 interface EventDetailPopoverProps {
   event: CalendarEvent;
@@ -145,6 +147,7 @@ export function EventDetailPopover({
   // Invitations (Teams above all) leave virtualLocations empty and bury the
   // join URL in the description; surface it as the meeting link anyway.
   const meeting = useMemo(() => findMeetingLink(event), [event]);
+  const pluginProps = useMemo(() => ({ event: eventToView(event) }), [event]);
   const virtualLocation = meeting?.uri ?? null;
 
   // A URL opens as a link, a location that only names the service joins the
@@ -580,6 +583,8 @@ export function EventDetailPopover({
             </p>
           </div>
         )}
+
+        <PluginSlot name="calendar-event-detail" className="w-full" extraProps={pluginProps} />
       </div>
 
       {/* Quick Note */}

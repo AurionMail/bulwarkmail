@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Mail, Phone, Building, MapPin, StickyNote, Pencil, Trash2, BookUser, Copy, Send, Globe, Cake, KeyRound, Users, Briefcase, Heart, Languages, Calendar, UserCircle, Download, MoreHorizontal, Printer } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
@@ -125,6 +125,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   const cryptoKeys = contact?.cryptoKeys ? Object.values(contact.cryptoKeys) : [];
   const hasCryptoKeysSlotOffers = usePluginSlotOffers('contact-cryptokeys').length > 0;
+  const pluginContactProps = useMemo(() => (contact ? { contact: contactToView(contact) } : null), [contact]);
 
   // Tell plugins once per contact shown here, not on every edit of that card.
   const latestContact = useRef(contact);
@@ -507,6 +508,10 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
               </div>
             </div>
           </Section>
+        )}
+
+        {pluginContactProps && (
+          <PluginSlot name="contact-detail-section" className="w-full py-6" extraProps={pluginContactProps} />
         )}
 
         <ContactActivity contact={contact} />
