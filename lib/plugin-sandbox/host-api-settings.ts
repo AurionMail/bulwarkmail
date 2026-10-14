@@ -9,7 +9,7 @@ import type {
 } from '../plugin-types';
 import type { EmailAddress, Identity } from '../jmap/types';
 import { useTemplateStore } from '@/stores/template-store';
-import { useIdentityStore } from '@/stores/identity-store';
+import { updateIdentityWithHooks, useIdentityStore } from '@/stores/identity-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { identityToView, templateToView, vacationToView } from '../plugin-projection';
 import { sanitizeEmailHtml, sanitizePluginBodyHtml, sanitizeSignatureHtml } from '../email-sanitization';
@@ -112,7 +112,7 @@ const MAX_HTML_SIGNATURE = 100_000;
  * address itself can't be changed; an HTML signature is sanitised exactly
  * like one typed into Settings > Identities.
  */
-export async function doIdentitiesUpdate(id: unknown, patch: unknown): Promise<IdentityView> {
+export async function doIdentitiesUpdate(id: unknown, patch: unknown): Promise<IdentityView | null> {
   const method = 'identities.update';
   const identityId = readId(id, method);
   if (patch && typeof patch === 'object' && 'email' in patch) {
@@ -141,7 +141,10 @@ export async function doIdentitiesUpdate(id: unknown, patch: unknown): Promise<I
     updates.htmlSignature = html.trim() ? sanitizeSignatureHtml(html) : null;
   }
 
-  await sessionClient(method).updateIdentity(identityId, updates);
+  // Through the store's hooked update, so onBeforeIdentityChange can stop a
+  // plugin's change like it stops one made in Settings.
+  const done = await updateIdentityWithHooks(sessionClient(method), identity as Identity, updates as Parameters<typeof updateIdentityWithHooks>[2]);
+  if (!done) return null;
   useIdentityStore.getState().updateIdentityLocal(identityId, updates as Partial<Identity>);
   return identityToView({ ...identity, ...updates } as Identity);
 }

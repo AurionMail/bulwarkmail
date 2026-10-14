@@ -7,6 +7,7 @@ import { useTemplateStore } from '@/stores/template-store';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { HIGH_RISK_PERMISSIONS } from '../plugin-sandbox/permission-text';
+import { clearAllHooks, identityHooks } from '../plugin-hooks';
 
 vi.mock('@/stores/toast-store', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
@@ -131,6 +132,16 @@ describe('api.identities.update', () => {
     await expect(call(READ_ONLY, 'identities.update', 'id1', { name: 'x' })).rejects.toThrow(/lacks permission "identity:write"/);
     expect(client.updateIdentity).not.toHaveBeenCalled();
     expect(HIGH_RISK_PERMISSIONS.has('identity:write')).toBe(true);
+  });
+
+  it('lets another plugin stop the change, like one made in Settings', async () => {
+    identityHooks.onBeforeIdentityChange.register('guard', () => false);
+    try {
+      await expect(call(ALL, 'identities.update', 'id1', { name: 'x' })).resolves.toBeNull();
+      expect(client.updateIdentity).not.toHaveBeenCalled();
+    } finally {
+      clearAllHooks();
+    }
   });
 });
 

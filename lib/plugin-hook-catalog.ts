@@ -270,7 +270,7 @@ export const HOOK_CATALOG = {
   // ─── Notifications ─────────────────────────────────────────
   onToastShow: H('notifications', 'observer', 'ui:observe', '{ id, type, title, message }', 'when the app shows a toast'),
   onToastDismiss: H('notifications', 'observer', 'ui:observe', '{ id }', 'when a toast is dismissed'),
-  onNotificationClick: H('notifications', 'observer', 'email:read', '{ tag, data }', 'when a system notification is clicked'),
+  onNotificationClick: H('notifications', 'observer', 'ui:notifications', '{ tag }', 'when a notification the plugin showed, or one from the app, is clicked'),
 
   // ─── App lifecycle ─────────────────────────────────────────
   onAppReady: H('app', 'observer', 'app:lifecycle', '{ accountId }', 'once after the app has started and the mail data is loaded'),

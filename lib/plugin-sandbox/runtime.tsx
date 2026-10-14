@@ -693,10 +693,11 @@ function buildPluginApi(manifest: PluginManifest) {
       /**
        * Change the name, reply-to addresses or signatures of one identity.
        * The address can't be changed. An HTML signature is sanitised like
-       * one typed into Settings. Resolves to the identity as changed.
+       * one typed into Settings. Resolves to the identity as changed, or null
+       * when an onBeforeIdentityChange handler stopped it.
        */
       update: (id: string, patch: IdentityPatch) =>
-        callApi('identities.update', [id, patch]) as Promise<IdentityView>,
+        callApi('identities.update', [id, patch]) as Promise<IdentityView | null>,
     },
     // Out-of-office reply (permissions: vacation:read / vacation:write).
     vacation: {

@@ -69,7 +69,9 @@ export function PluginAppEvents() {
     const onSwMessage = (e: MessageEvent) => {
       const msg = e.data as { kind?: string; tag?: string; data?: unknown } | null;
       if (msg && msg.kind === 'notificationclick' && typeof msg.tag === 'string') {
-        void toastHooks.onNotificationClick.emit({ tag: msg.tag, data: msg.data });
+        // App notifications (new mail, reminders): the tag only. Their data
+        // names messages and events, which this hook's permission doesn't cover.
+        void toastHooks.onNotificationClick.emit({ tag: msg.tag });
       }
     };
 

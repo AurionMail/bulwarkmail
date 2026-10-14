@@ -11,6 +11,8 @@ import { ALL_PERMISSIONS, IMPLICIT_PERMISSIONS } from '../plugin-types';
  */
 export const HIGH_RISK_PERMISSIONS: ReadonlySet<string> = new Set([
   'crypto:full',
+  // email.get reads any message in the account, not only the open one.
+  'email:read',
   'email:send',
   'email:raw-send',
   'email:blob-read',
