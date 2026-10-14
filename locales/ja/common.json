@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "その他のオプション"
+  },
+  "plugin_pages": {
+    "loading": "ページを読み込んでいます",
+    "not_available_title": "このページは利用できません",
+    "not_available_description": "このページを追加したプラグインがオフになっているか、インストールされていません。",
+    "back_to_mail": "メールに戻る"
   }
 }

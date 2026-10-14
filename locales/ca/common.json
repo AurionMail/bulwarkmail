@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "Més opcions"
+  },
+  "plugin_pages": {
+    "loading": "S'està carregant la pàgina",
+    "not_available_title": "Aquesta pàgina no està disponible",
+    "not_available_description": "El connector que l'ha afegida està desactivat o ja no està instal·lat.",
+    "back_to_mail": "Torna al correu"
   }
 }

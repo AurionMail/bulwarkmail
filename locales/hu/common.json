@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "További lehetőségek"
+  },
+  "plugin_pages": {
+    "loading": "Oldal betöltése",
+    "not_available_title": "Ez az oldal nem érhető el",
+    "not_available_description": "A bővítmény, amely hozzáadta, ki van kapcsolva, vagy már nincs telepítve.",
+    "back_to_mail": "Vissza a levelekhez"
   }
 }

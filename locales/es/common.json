@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "Más opciones"
+  },
+  "plugin_pages": {
+    "loading": "Cargando la página",
+    "not_available_title": "Esta página no está disponible",
+    "not_available_description": "El complemento que la añadió está desactivado o ya no está instalado.",
+    "back_to_mail": "Volver al correo"
   }
 }

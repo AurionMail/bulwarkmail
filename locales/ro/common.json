@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "Mai multe opțiuni"
+  },
+  "plugin_pages": {
+    "loading": "Se încarcă pagina",
+    "not_available_title": "Această pagină nu este disponibilă",
+    "not_available_description": "Pluginul care a adăugat-o este dezactivat sau nu mai este instalat.",
+    "back_to_mail": "Înapoi la e-mail"
   }
 }

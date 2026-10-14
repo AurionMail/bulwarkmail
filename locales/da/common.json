@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "Flere muligheder"
+  },
+  "plugin_pages": {
+    "loading": "Indlæser side",
+    "not_available_title": "Denne side er ikke tilgængelig",
+    "not_available_description": "Det plugin, der tilføjede den, er slået fra eller ikke længere installeret.",
+    "back_to_mail": "Tilbage til mail"
   }
 }

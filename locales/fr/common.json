@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "Plus d'options"
+  },
+  "plugin_pages": {
+    "loading": "Chargement de la page",
+    "not_available_title": "Cette page n'est pas disponible",
+    "not_available_description": "Le plugin qui l'a ajoutée est désactivé ou n'est plus installé.",
+    "back_to_mail": "Retour à la messagerie"
   }
 }

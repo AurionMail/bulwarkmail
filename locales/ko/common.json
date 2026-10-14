@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "추가 옵션"
+  },
+  "plugin_pages": {
+    "loading": "페이지를 불러오는 중",
+    "not_available_title": "이 페이지를 사용할 수 없습니다",
+    "not_available_description": "이 페이지를 추가한 플러그인이 꺼져 있거나 더 이상 설치되어 있지 않습니다.",
+    "back_to_mail": "메일로 돌아가기"
   }
 }

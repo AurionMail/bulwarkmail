@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Mail,
   Menu,
+  Puzzle,
   Settings,
   Shield,
   SlidersHorizontal,
@@ -32,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { AccountSwitcher } from "@/components/layout/account-switcher";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import { PluginActions } from "@/components/plugins/plugin-actions";
+import { usePluginPages, pluginPageHref, isPluginPageActive } from "@/hooks/use-plugin-pages";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
 
 /** The top bar is not about any one item: plugin clicks carry no context. */
@@ -111,6 +113,7 @@ export function MvTopBar({
   // The same gate the navigation rail puts on its "add app" button.
   const sidebarAppsEnabled = usePolicyStore((s) => s.isFeatureEnabled("sidebarAppsEnabled"));
   const sidebarApps = useResolvedSidebarApps();
+  const pluginPages = usePluginPages();
   const isStalwartAdmin = useStalwartAdmin();
   const hasUpdate = useUpdateStore(selectHasUpdate);
   // The navigation rail starts the update check, and this bar replaces it on
@@ -327,6 +330,29 @@ export function MvTopBar({
                     >
                       <Icon className="w-6 h-6 text-muted-foreground" />
                       <span className="text-xs truncate max-w-full">{app.label}</span>
+                    </Link>
+                  );
+                })}
+                {pluginPages.map((page) => {
+                  const PageIcon = iconForName(page.icon) ?? Puzzle;
+                  return (
+                    <Link
+                      key={`plugin-page:${page.pluginId}:${page.id}`}
+                      href={pluginPageHref(page)}
+                      role="menuitem"
+                      title={page.pluginName}
+                      data-plugin-page-link={`${page.pluginId}/${page.id}`}
+                      onClick={() => {
+                        if (activeAppId) onCloseInlineApp?.();
+                        setAppsOpen(false);
+                      }}
+                      className={cn(
+                        "flex flex-col items-center gap-1.5 rounded-lg py-3 px-1 text-center transition-colors hover:bg-muted",
+                        !activeAppId && isPluginPageActive(pathname, page) && "bg-muted"
+                      )}
+                    >
+                      <PageIcon className="w-6 h-6 text-muted-foreground" />
+                      <span className="text-xs truncate max-w-full">{page.title}</span>
                     </Link>
                   );
                 })}

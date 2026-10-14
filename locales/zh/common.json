@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "更多选项"
+  },
+  "plugin_pages": {
+    "loading": "正在加载页面",
+    "not_available_title": "此页面不可用",
+    "not_available_description": "添加此页面的插件已关闭或已不再安装。",
+    "back_to_mail": "返回邮件"
   }
 }

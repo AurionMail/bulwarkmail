@@ -4343,5 +4343,11 @@
   },
   "top_bar": {
     "more": "Meer opties"
+  },
+  "plugin_pages": {
+    "loading": "Pagina laden",
+    "not_available_title": "Deze pagina is niet beschikbaar",
+    "not_available_description": "De plug-in die hem heeft toegevoegd, staat uit of is niet meer geïnstalleerd.",
+    "back_to_mail": "Terug naar e-mail"
   }
 }
