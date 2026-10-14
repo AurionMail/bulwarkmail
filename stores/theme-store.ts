@@ -645,3 +645,13 @@ async function downloadThemeAsset(theme: ServerThemeInfo, kind: 'css' | 'skin'):
     return null;
   }
 }
+// Plugins hear about every change of scheme or theme, whichever path made it
+// (settings, the system switching to dark, a forced admin theme).
+useThemeStore.subscribe((state, prev) => {
+  if (state.theme !== prev.theme || state.resolvedTheme !== prev.resolvedTheme) {
+    void themeHooks.onThemeChange.emit({ theme: state.theme, resolved: state.resolvedTheme });
+  }
+  if (state.activeThemeId !== prev.activeThemeId) {
+    void themeHooks.onCustomThemeChange.emit({ themeId: state.activeThemeId });
+  }
+});

@@ -37,7 +37,7 @@ const sources = ['app', 'components', 'hooks', 'lib', 'stores'].flatMap((d) => s
 
 /** A call site that fires the hook: `xHooks.onFoo.emit(` and friends. */
 function isFired(hookName: string, groupName: string): boolean {
-  const re = new RegExp(`\\b${groupName}\\.${hookName}\\.(emit|emitSync|emitTo|intercept|interceptOutcome|transform|takeOver)\\b`);
+  const re = new RegExp(`\\b${groupName}\\.${hookName}\\s*\\.(emit|emitSync|emitTo|intercept|interceptOutcome|transform|takeOver)\\b`);
   return re.test(sources);
 }
 
@@ -47,7 +47,7 @@ function isFired(hookName: string, groupName: string): boolean {
 const NOT_YET_WIRED = new Set<HookGroup>([
   'mail-list', 'mail-read', 'mail-compose', 'mail-send', 'mail-organize', 'mail-mailboxes', 'mail-search',
   'mail-sync', 'calendar', 'contacts', 'tasks', 'files', 'settings', 'identities',
-  'filters', 'vacation', 'templates', 'auth', 'security', 'theme', 'notifications', 'ui', 'keyboard',
+  'filters', 'vacation', 'templates', 'auth', 'security', 'notifications', 'ui', 'keyboard',
 ]);
 
 describe('hook catalogue', () => {
