@@ -342,7 +342,12 @@ interface EmailStore {
   /** Pass emails rather than ids where you have them: an id alone can name another account's namesake. */
   copyEmailsToAccount: (emails: Array<string | Email>, destAccountId: string, destMailboxId: string) => Promise<void>;
   searchEmails: (client: IJMAPClient, query: string) => Promise<void>;
-  advancedSearch: (client: IJMAPClient) => Promise<void>;
+  /**
+   * Runs the search held in searchQuery/searchFilters. `transformed` is the
+   * query and filters onSearch already returned for this search (searchEmails
+   * hands over when a plugin added filters), so plugins are not asked twice.
+   */
+  advancedSearch: (client: IJMAPClient, transformed?: { query: string; filters: SearchFilters }) => Promise<void>;
   setSearchFilters: (filters: Partial<SearchFilters>) => void;
   setSearchMailboxId: (mailboxId: string) => void;
   scopeSearchToOpenFolder: () => void;
@@ -798,6 +803,17 @@ function reportNewInboxMail(client: IJMAPClient, accountId: string, pushedState:
   });
   newMailQueue = next;
   return next;
+}
+
+/** Let plugins change a search before it runs (onSearch); keeps what they return only when it is usable. */
+async function transformSearch(query: string, filters: SearchFilters): Promise<{ query: string; filters: SearchFilters }> {
+  const out = await emailHooks.onSearch.transform({ query, filters: { ...filters } }) as { query?: unknown; filters?: unknown } | null;
+  return {
+    query: typeof out?.query === 'string' ? out.query : query,
+    filters: out?.filters && typeof out.filters === 'object'
+      ? { ...DEFAULT_SEARCH_FILTERS, ...(out.filters as Partial<SearchFilters>) }
+      : filters,
+  };
 }
 
 /** Overlapping state-change runs share one syncing/idle cycle (onSyncStateChange). */
@@ -3550,7 +3566,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
   },
 
-  searchEmails: async (client, query) => {
+  searchEmails: async (client, typedQuery) => {
     const { searchAbortController } = get();
 
     if (searchAbortController) {
@@ -3561,13 +3577,25 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     set({
       isLoading: true,
       error: null,
-      searchQuery: query,
+      searchQuery: typedQuery,
       emails: [],
       hasMoreEmails: false,
       totalEmails: 0,
       searchAbortController: controller,
     }); // Clear emails for loading state
     try {
+      // The store keeps what the user typed; plugins' changes apply to this run.
+      // Without listeners the request goes out in this same tick, as before.
+      const search = emailHooks.onSearch.size > 0
+        ? await transformSearch(typedQuery, get().searchFilters)
+        : { query: typedQuery, filters: get().searchFilters };
+      if (controller.signal.aborted) return;
+      if (!isFilterEmpty(search.filters)) {
+        // A plugin added filters: only the advanced search applies them.
+        await get().advancedSearch(client, search);
+        return;
+      }
+      const query = search.query;
       const { isUnifiedView, unifiedRole, crossView, searchMailboxId, searchFilters, selectedKeyword } = get();
       const emailsPerPage = useSettingsStore.getState().emailsPerPage;
 
@@ -3669,8 +3697,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
   },
 
-  advancedSearch: async (client) => {
-    const { searchQuery, searchFilters, searchMailboxId, searchAbortController, isUnifiedView, unifiedRole, crossView, selectedKeyword } = get();
+  advancedSearch: async (client, transformed) => {
+    const { searchQuery: typedQuery, searchFilters: typedFilters, searchMailboxId, searchAbortController, isUnifiedView, unifiedRole, crossView, selectedKeyword } = get();
     const mailboxes = resolveActionMailboxes();
 
     if (searchAbortController) {
@@ -3688,6 +3716,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     });
 
     try {
+      const { query: searchQuery, filters: searchFilters } = transformed
+        ?? (emailHooks.onSearch.size > 0 ? await transformSearch(typedQuery, typedFilters) : { query: typedQuery, filters: typedFilters });
+      if (controller.signal.aborted) return;
       const emailsPerPage = useSettingsStore.getState().emailsPerPage;
       let result;
       let accountId;
