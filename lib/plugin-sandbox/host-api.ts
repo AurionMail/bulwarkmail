@@ -37,6 +37,10 @@ import {
   doCalendarListCalendars, doCalendarUpdateEvent, doTasksCreate, doTasksDelete, doTasksGet,
   doTasksList, doTasksSetComplete, doTasksUpdate,
 } from './host-api-calendar';
+import {
+  doIdentitiesUpdate, doTemplatesCreate, doTemplatesDelete, doTemplatesGet, doTemplatesList,
+  doTemplatesUpdate, doVacationGet, doVacationSet,
+} from './host-api-settings';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -194,6 +198,17 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'tasks.update': 'tasks:write',
   'tasks.setComplete': 'tasks:write',
   'tasks.delete': 'tasks:write',
+  // message templates
+  'templates.list': 'templates:read',
+  'templates.get': 'templates:read',
+  'templates.create': 'templates:write',
+  'templates.update': 'templates:write',
+  'templates.delete': 'templates:write',
+  // sender identities: name, reply-to and signatures, never the address
+  'identities.update': 'identity:write',
+  // out-of-office reply
+  'vacation.get': 'vacation:read',
+  'vacation.set': 'vacation:write',
 };
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
@@ -1868,6 +1883,17 @@ export async function dispatchApiCall(
     case 'tasks.update': return doTasksUpdate(args[0], args[1]);
     case 'tasks.setComplete': return doTasksSetComplete(args[0], args[1]);
     case 'tasks.delete': return doTasksDelete(args[0]);
+
+    case 'templates.list': return doTemplatesList();
+    case 'templates.get': return doTemplatesGet(args[0]);
+    case 'templates.create': return doTemplatesCreate(args[0]);
+    case 'templates.update': return doTemplatesUpdate(args[0], args[1]);
+    case 'templates.delete': doTemplatesDelete(args[0]); return undefined;
+
+    case 'identities.update': return doIdentitiesUpdate(args[0], args[1]);
+
+    case 'vacation.get': return doVacationGet();
+    case 'vacation.set': return doVacationSet(args[0]);
 
     default:
       throw new Error(`Unhandled method "${method}"`);

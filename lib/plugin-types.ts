@@ -646,6 +646,46 @@ export interface TemplateView {
   isHTML: boolean;
 }
 
+/** What a plugin passes to `api.templates.create` (and, every field optional, to `update`). */
+export interface TemplateInput {
+  /** 1-200 characters. */
+  name: string;
+  /** Up to 998 characters. */
+  subject?: string;
+  /** Up to 100,000 characters. When isHTML, sanitised like any HTML a plugin hands the host. */
+  body?: string;
+  isHTML?: boolean;
+  /** Up to 100 characters; '' for none. */
+  category?: string;
+}
+
+/** What a plugin may change on a sender identity with `api.identities.update`. The address can't be changed. */
+export interface IdentityPatch {
+  /** Up to 256 characters. */
+  name?: string;
+  /** At most 10 addresses (`a@example.com` or `Name <a@example.com>`); null or [] removes them. */
+  replyTo?: string[] | null;
+  /** Up to 20,000 characters; null or '' removes it. */
+  textSignature?: string | null;
+  /** Up to 100,000 characters, sanitised like a signature typed into Settings; null or '' removes it. */
+  htmlSignature?: string | null;
+}
+
+/** What a plugin passes to `api.vacation.set`. Fields left out keep their value. */
+export interface VacationInput {
+  isEnabled: boolean;
+  /** Up to 500 characters. */
+  subject?: string;
+  /** Up to 64,000 characters. Derived from htmlBody when that is given and this is not. */
+  textBody?: string;
+  /** Up to 64,000 characters, sanitised like the HTML typed into Settings; null removes it. */
+  htmlBody?: string | null;
+  /** When the reply starts, with a zone (`2026-05-01T00:00:00Z`), or null for now. */
+  fromDate?: string | null;
+  /** When it ends, or null for open-ended. */
+  toDate?: string | null;
+}
+
 export interface FilterRuleView {
   id: string;
   name: string;

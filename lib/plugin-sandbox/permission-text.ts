@@ -19,6 +19,12 @@ export const HIGH_RISK_PERMISSIONS: ReadonlySet<string> = new Set([
   'http:fetch',
   'http:post',
   'filters:write',
+  // A plugin can point the reply-to of a sender address elsewhere, so
+  // answers to the user's mail go to someone else.
+  'identity:write',
+  // The out-of-office reply goes out to everyone who writes, in the user's
+  // name, with whatever text the plugin set.
+  'vacation:write',
 ]);
 
 /** Locale key segment for a permission: `email:read` → `email_read`. */

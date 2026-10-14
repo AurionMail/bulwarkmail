@@ -31,7 +31,8 @@ import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  CalendarEventInput, CalendarEventView, CalendarView, SlotName, TaskInput, TaskView,
+  CalendarEventInput, CalendarEventView, CalendarView, IdentityPatch, IdentityView, SlotName,
+  TaskInput, TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
 } from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
@@ -529,6 +530,35 @@ function buildPluginApi(manifest: PluginManifest) {
       /** Mark a task done or not done. */
       setComplete: (id: string, complete: boolean) => callApi('tasks.setComplete', [id, complete]) as Promise<void>,
       delete: (id: string) => callApi('tasks.delete', [id]) as Promise<void>,
+    },
+    // Message templates (permissions: templates:read / templates:write).
+    // They live with the user's settings and sync across devices.
+    templates: {
+      list: () => callApi('templates.list', []) as Promise<TemplateView[]>,
+      /** One template, or null. */
+      get: (id: string) => callApi('templates.get', [id]) as Promise<TemplateView | null>,
+      /** At most 500 templates in all. An HTML body is sanitised. */
+      create: (template: TemplateInput) => callApi('templates.create', [template]) as Promise<TemplateView>,
+      update: (id: string, patch: Partial<TemplateInput>) =>
+        callApi('templates.update', [id, patch]) as Promise<TemplateView>,
+      delete: (id: string) => callApi('templates.delete', [id]) as Promise<void>,
+    },
+    // Sender identities. Read them with api.user.getIdentities()
+    // (identity:read); change one with identity:write.
+    identities: {
+      /**
+       * Change the name, reply-to addresses or signatures of one identity.
+       * The address can't be changed. An HTML signature is sanitised like
+       * one typed into Settings. Resolves to the identity as changed.
+       */
+      update: (id: string, patch: IdentityPatch) =>
+        callApi('identities.update', [id, patch]) as Promise<IdentityView>,
+    },
+    // Out-of-office reply (permissions: vacation:read / vacation:write).
+    vacation: {
+      get: () => callApi('vacation.get', []) as Promise<VacationView>,
+      /** Resolves to the reply as saved, or null when another plugin stopped the change. */
+      set: (vacation: VacationInput) => callApi('vacation.set', [vacation]) as Promise<VacationView | null>,
     },
     // OAuth with a third party (permission: http:fetch). Put createState()'s
     // value in the authorize URL; the code comes back through the
