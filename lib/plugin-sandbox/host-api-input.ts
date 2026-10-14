@@ -7,6 +7,14 @@ import { useAuthStore } from '@/stores/auth-store';
 import type { IJMAPClient } from '../jmap/client-interface';
 import { isValidEmail } from '../validation';
 
+/**
+ * Largest body the host hands a plugin in one answer: an http.fetch
+ * response, an attachment or a message source. It is copied across
+ * postMessage, so an unbounded one could take the tab down. Bigger transfers
+ * go through the server proxy.
+ */
+export const MAX_PLUGIN_FETCH_BYTES = 25 * 1024 * 1024;
+
 /** Longest id (event, task, template, email, blob, ...) a plugin may pass. */
 export const MAX_PLUGIN_ID_LENGTH = 256;
 

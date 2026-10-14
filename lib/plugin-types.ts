@@ -1191,7 +1191,9 @@ export const ALL_PERMISSIONS = [
   // Submit a fully-formed raw RFC822 message via JMAP (used after a plugin
   // signs/encrypts an outgoing message itself).
   'email:raw-send',
-  // Fetch a message blob's raw bytes by blobId (for decrypt/verify).
+  // Read the bytes of a message's attachments and its full source
+  // (email.getAttachment / email.getRaw), and of files the user attaches.
+  // Arbitrary blob ids (jmap.fetchBlob) stay privileged-tier only.
   'email:blob-read',
   // Upload a file to server (for encrypt).
   'email:blob-write',

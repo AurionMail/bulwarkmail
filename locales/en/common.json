@@ -4054,7 +4054,7 @@
       },
       "email_blob_read": {
         "title": "Read the raw content of messages",
-        "body": "Read the original data of your messages and attachments, and of every file you attach before it is sent."
+        "body": "Read attachments and the full source of messages you act on, and every file you attach before it is sent."
       },
       "email_blob_write": {
         "title": "Replace attachments before sending",

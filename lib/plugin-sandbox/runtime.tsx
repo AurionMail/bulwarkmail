@@ -442,6 +442,18 @@ function buildPluginApi(manifest: PluginManifest) {
        */
       list: (options?: { mailboxId?: string; limit?: number; position?: number }) =>
         callApi('email.list', [options]) as Promise<EmailSummary[]>,
+      /**
+       * The bytes of one attachment of a message (email:blob-read, at most
+       * 25 MB). `blobId` must be one of that message's attachments, e.g.
+       * from an `attachment-actions` slot or onAttachmentDownload.
+       */
+      getAttachment: (emailId: string, blobId: string) =>
+        callApi('email.getAttachment', [emailId, blobId], NETWORK_API_TIMEOUT_MS) as Promise<{
+          name: string; type: string; size: number; data: ArrayBuffer;
+        }>,
+      /** The full RFC 5322 source of a message, to save as .eml (email:blob-read, at most 25 MB). */
+      getRaw: (emailId: string) =>
+        callApi('email.getRaw', [emailId], NETWORK_API_TIMEOUT_MS) as Promise<ArrayBuffer>,
       setKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.setKeyword', [emailId, keyword, accountId]) as Promise<void>,
       removeKeyword: (emailId: string, keyword: string, accountId?: string) =>

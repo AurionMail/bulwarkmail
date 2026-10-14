@@ -1,6 +1,7 @@
-// Host side of reading mail for plugins: api.email.get / list and
-// api.mailboxes.list. Reads go to the server through the JMAP client and
-// never change what the user has open.
+// Host side of reading mail for plugins: api.email.get / list,
+// api.mailboxes.list, and the bytes of an attachment or a whole message
+// (api.email.getAttachment / getRaw). Reads go to the server through the
+// JMAP client and never change what the user has open.
 //
 // Messages are read from the signed-in account itself; mail in folders shared
 // from other accounts is not reached by id here.
@@ -10,7 +11,9 @@ import type { Email, Mailbox } from '../jmap/types';
 import type { IJMAPClient } from '../jmap/client-interface';
 import { useEmailStore } from '@/stores/email-store';
 import { emailSummary, emailToReadView } from '../plugin-projection';
-import { readId, readInteger, readObject, sessionClient } from './host-api-input';
+import {
+  MAX_PLUGIN_FETCH_BYTES, readId, readInteger, readObject, sessionClient,
+} from './host-api-input';
 
 /** Most messages one api.email.list call returns. */
 export const MAX_PLUGIN_EMAIL_PAGE = 100;
@@ -73,4 +76,61 @@ export async function doEmailList(options: unknown): Promise<EmailSummary[]> {
   }
   const { emails } = await client.getEmails(jmapMailboxId, accountId, limit, position);
   return emails.map(emailSummary);
+}
+
+// ─── Bytes ────────────────────────────────────────────────────
+
+/** Every attachment part of a message, nested ones included. */
+function attachmentParts(email: Email): NonNullable<Email['attachments']> {
+  return email.attachments ?? [];
+}
+
+function tooBig(method: string): Error {
+  return new Error(`${method}: it is larger than ${MAX_PLUGIN_FETCH_BYTES} bytes`);
+}
+
+export interface PluginAttachmentData {
+  name: string;
+  type: string;
+  size: number;
+  data: ArrayBuffer;
+}
+
+/**
+ * The bytes of one attachment of one message. The blob has to be an
+ * attachment of that message: a plugin can't use this to read arbitrary
+ * blobs (that stays jmap.fetchBlob, privileged tier only).
+ */
+export async function doEmailGetAttachment(emailIdArg: unknown, blobIdArg: unknown): Promise<PluginAttachmentData> {
+  const method = 'email.getAttachment';
+  const emailId = readId(emailIdArg, method, 'emailId');
+  const blobId = readId(blobIdArg, method, 'blobId');
+  const client = sessionClient(method);
+  const email = await loadEmail(client, emailId);
+  if (!email) throw new Error(`${method}: no message with id "${emailId}"`);
+  const part = attachmentParts(email).find((a) => a.blobId === blobId);
+  if (!part) throw new Error(`${method}: that blob is not an attachment of this message`);
+  if (part.size > MAX_PLUGIN_FETCH_BYTES) throw tooBig(method);
+  const data = await client.fetchBlobArrayBuffer(blobId, part.name || undefined, part.type || undefined);
+  if (data.byteLength > MAX_PLUGIN_FETCH_BYTES) throw tooBig(method);
+  return {
+    name: part.name || 'attachment',
+    type: part.type || 'application/octet-stream',
+    size: data.byteLength,
+    data,
+  };
+}
+
+/** The message as the server stores it (RFC 5322), e.g. to save it as a .eml file. */
+export async function doEmailGetRaw(emailIdArg: unknown): Promise<ArrayBuffer> {
+  const method = 'email.getRaw';
+  const emailId = readId(emailIdArg, method, 'emailId');
+  const client = sessionClient(method);
+  const email = await loadEmail(client, emailId);
+  if (!email) throw new Error(`${method}: no message with id "${emailId}"`);
+  if (!email.blobId) throw new Error(`${method}: the server did not say where the message source is`);
+  if (email.size > MAX_PLUGIN_FETCH_BYTES) throw tooBig(method);
+  const data = await client.fetchBlobArrayBuffer(email.blobId, 'message.eml', 'message/rfc822');
+  if (data.byteLength > MAX_PLUGIN_FETCH_BYTES) throw tooBig(method);
+  return data;
 }

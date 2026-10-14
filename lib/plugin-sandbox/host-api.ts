@@ -41,7 +41,10 @@ import {
   doIdentitiesUpdate, doTemplatesCreate, doTemplatesDelete, doTemplatesGet, doTemplatesList,
   doTemplatesUpdate, doVacationGet, doVacationSet,
 } from './host-api-settings';
-import { doEmailGet, doEmailList, doMailboxesList } from './host-api-mail';
+import {
+  doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doMailboxesList,
+} from './host-api-mail';
+import { MAX_PLUGIN_FETCH_BYTES } from './host-api-input';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -214,6 +217,11 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'email.get': 'email:read',
   'email.list': 'email:read',
   'mailboxes.list': 'email:read',
+  // The bytes of one attachment of a given message, or of the message
+  // itself. Unlike jmap.fetchBlob these only reach blobs of a message the
+  // plugin names, so the untrusted tier may call them.
+  'email.getAttachment': 'email:blob-read',
+  'email.getRaw': 'email:blob-read',
 };
 
 // ─── Cross-origin allow-list (mirrors lib/plugin-api.ts) ──────
@@ -550,12 +558,10 @@ interface PluginFetchInit {
   body?: string | ArrayBuffer | ArrayBufferView | null;
 }
 
-/**
- * Largest response body http.fetch hands to a plugin. The body is copied
- * across postMessage twice (text and bytes), so an unbounded one could take
- * the tab down. Bigger transfers go through the server proxy.
- */
-export const MAX_PLUGIN_FETCH_BYTES = 25 * 1024 * 1024;
+// The http.fetch body is copied across postMessage twice (text and bytes);
+// MAX_PLUGIN_FETCH_BYTES (host-api-input.ts) caps it like every other body
+// the host hands a plugin.
+export { MAX_PLUGIN_FETCH_BYTES };
 
 async function readCapped(res: Response, limit: number): Promise<ArrayBuffer> {
   const declared = Number(res.headers.get('content-length'));
@@ -1903,6 +1909,8 @@ export async function dispatchApiCall(
     case 'email.get': return doEmailGet(args[0]);
     case 'email.list': return doEmailList(args[0]);
     case 'mailboxes.list': return doMailboxesList();
+    case 'email.getAttachment': return doEmailGetAttachment(args[0], args[1]);
+    case 'email.getRaw': return doEmailGetRaw(args[0]);
 
     default:
       throw new Error(`Unhandled method "${method}"`);
