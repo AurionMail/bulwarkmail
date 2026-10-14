@@ -3,6 +3,7 @@ import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
 import {
+  getPlugin,
   getPluginRegistry,
   savePlugin,
   deletePlugin as removePlugin,
@@ -10,6 +11,7 @@ import {
 } from '@/lib/admin/plugin-registry';
 import { listDevPlugins } from '@/lib/admin/plugin-dev';
 import { invalidateFrameOriginsCache } from '@/lib/admin/csp-frame-origins';
+import { cleanUpDeletedPlugin } from '@/lib/admin/extension-cleanup';
 import { ExtensionPackageError, readPluginPackage, suspiciousCode } from '@/lib/extension-package';
 import { MAX_PLUGIN_SIZE } from '@/lib/plugin-types';
 
@@ -86,6 +88,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // A new upload of an installed plugin is an update: keep whether the
+    // admin had it enabled or forced instead of switching it on for everyone.
+    const existing = await getPlugin(manifest.id);
     const now = new Date().toISOString();
     const plugin: ServerPlugin = {
       id: manifest.id,
@@ -97,7 +102,8 @@ export async function POST(request: NextRequest) {
       ...(manifest.tier === 'privileged' ? { tier: 'privileged' } : {}),
       permissions: manifest.permissions,
       entrypoint: manifest.entrypoint,
-      enabled: true,
+      enabled: existing?.enabled ?? true,
+      ...(existing?.forceEnabled !== undefined ? { forceEnabled: existing.forceEnabled } : {}),
       ...(manifest.configSchema ? { configSchema: manifest.configSchema } : {}),
       ...(manifest.settingsSchema ? { settingsSchema: manifest.settingsSchema } : {}),
       ...(manifest.locales ? { locales: manifest.locales } : {}),
@@ -193,6 +199,7 @@ export async function DELETE(request: NextRequest) {
     if (!removed) {
       return NextResponse.json({ error: 'Plugin not found' }, { status: 404 });
     }
+    await cleanUpDeletedPlugin(id);
 
     invalidateFrameOriginsCache();
     await auditLog('plugin.delete', { id }, ip);

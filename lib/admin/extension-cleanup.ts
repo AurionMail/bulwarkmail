@@ -1,4 +1,5 @@
 import { configManager } from './config-manager';
+import { deletePluginConfig } from './plugin-config';
 
 /**
  * Drop a deleted plugin or theme from the policy lists that refer to it by
@@ -12,4 +13,14 @@ export async function forgetExtensionInPolicy(kind: 'plugin' | 'theme', id: stri
   const list = policy[key] ?? [];
   if (!list.includes(id)) return;
   await configManager.setPolicy({ ...policy, [key]: list.filter((x) => x !== id) });
+}
+
+/**
+ * Everything the server keeps about an admin plugin besides its registry
+ * entry: the forced flag and its config (which can hold secrets). A plugin
+ * installed later under the same id starts clean.
+ */
+export async function cleanUpDeletedPlugin(id: string): Promise<void> {
+  await forgetExtensionInPolicy('plugin', id);
+  await deletePluginConfig(id);
 }

@@ -38,7 +38,7 @@ vi.mock('@/lib/admin/csp-frame-origins', async (orig) => ({
   invalidateFrameOriginsCache: vi.fn(),
 }));
 
-import { POST } from '../route';
+import { DELETE, POST } from '../route';
 
 const MANIFEST = {
   id: 'demo-plugin', name: 'Demo', version: '1.0.0', author: 'me', description: 'd',
@@ -98,5 +98,30 @@ describe('POST /api/admin/plugins', () => {
     });
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe('re-uploading and deleting', () => {
+  it('keeps a plugin the admin disabled disabled when a new version is uploaded', async () => {
+    registry.set('demo-plugin', { id: 'demo-plugin', enabled: false, forceEnabled: true });
+
+    await upload({ 'manifest.json': JSON.stringify({ ...MANIFEST, version: '1.1.0' }), 'index.js': '' });
+
+    expect(registry.get('demo-plugin')).toMatchObject({ version: '1.1.0', enabled: false, forceEnabled: true });
+  });
+
+  it('drops the config and the forced flag when a plugin is deleted', async () => {
+    registry.set('demo-plugin', { id: 'demo-plugin' });
+    policy = { forceEnabledPlugins: ['demo-plugin', 'other'] };
+
+    const res = await DELETE(new NextRequest('http://localhost/api/admin/plugins', {
+      method: 'DELETE',
+      body: JSON.stringify({ id: 'demo-plugin' }),
+      headers: { 'content-type': 'application/json' },
+    }));
+
+    expect(res.status).toBe(200);
+    expect(removedConfig).toEqual(['demo-plugin']);
+    expect(policy.forceEnabledPlugins).toEqual(['other']);
   });
 });

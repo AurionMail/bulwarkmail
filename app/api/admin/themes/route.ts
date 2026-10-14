@@ -3,6 +3,7 @@ import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
 import {
+  getTheme,
   getThemeRegistry,
   saveTheme,
   deleteTheme as removeTheme,
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
     }
     const { manifest, css, skin, warnings } = read;
 
+    const existing = await getTheme(manifest.id);
     const now = new Date().toISOString();
     const theme: ServerTheme = {
       id: manifest.id,
@@ -63,8 +65,9 @@ export async function POST(request: NextRequest) {
       author: manifest.author,
       description: manifest.description || '',
       variants: manifest.variants,
-      enabled: true,
-      installedAt: now,
+      enabled: existing?.enabled ?? true,
+      ...(existing?.forceEnabled !== undefined ? { forceEnabled: existing.forceEnabled } : {}),
+      installedAt: existing?.installedAt ?? now,
       updatedAt: now,
     };
 
