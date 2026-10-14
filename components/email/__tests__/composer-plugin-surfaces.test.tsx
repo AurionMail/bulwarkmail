@@ -400,7 +400,9 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     expect(screen.queryByTestId('slot-composer-sidebar-right')).toBeNull();
     unmount();
 
-    stubWidth(600);
+    // The reading pane of a 1280 px window: an open panel would leave the
+    // composer too narrow for its bottom bar.
+    stubWidth(792);
     render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
     expect(panel('left').dataset.composerSidebarMode).toBe('folded');
     expect(panel('right').dataset.composerSidebarMode).toBe('folded');

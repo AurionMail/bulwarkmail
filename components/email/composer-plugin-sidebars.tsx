@@ -17,8 +17,11 @@ import { cn } from "@/lib/utils";
 export const COMPOSER_SIDEBAR_WIDTH = 260;
 /** Width of a folded panel (the strip with its toggle). */
 export const COMPOSER_SIDEBAR_STRIP = 37;
-/** Narrowest the composer itself may get next to open panels. */
-export const MIN_COMPOSER_WIDTH = 480;
+/**
+ * Narrowest the composer itself may get next to open panels: below this its
+ * bottom bar (Attach, Templates, Options, Discard, Send) runs into itself.
+ */
+export const MIN_COMPOSER_WIDTH = 560;
 
 export type ComposerSidebarSide = "left" | "right";
 /** docked: open beside the composer; folded: a strip; overlay: open over the composer. */
