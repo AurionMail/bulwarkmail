@@ -9,6 +9,8 @@
 //   style; a click reaches the plugin as `onAction`. For surfaces that repeat
 //   per row or item, where an iframe each would be far too heavy, and for
 //   menus that must look like the rest of the app.
+// - `data`: the plugin hands the host plain data to draw, such as labels on
+//   calendar days (`api.ui.setDayLabels`).
 // Badges on list rows are data too (the onEmailListItemRender hook).
 
 import type { Permission } from './plugin-types';
@@ -19,7 +21,7 @@ export type SlotArea =
 
 export interface SlotSpec {
   area: SlotArea;
-  kind: 'frame' | 'action';
+  kind: 'frame' | 'action' | 'data';
   /** Any one of these lets a plugin use the slot. */
   permissions: readonly Permission[];
   /** Props (frame) or click context (action) and the permission each needs; null = none. */
@@ -87,8 +89,8 @@ export const SLOT_CATALOG = {
   'calendar-event-actions': S('calendar', 'frame', ['ui:calendar-action'], { eventData: 'calendar:read', setVirtualLocation: null }, 'buttons in the event form', true),
   'calendar-event-detail': S('calendar', 'frame', ['ui:calendar-action'], { event: 'calendar:read' }, 'a section in an event\'s details'),
   'calendar-event-form': S('calendar', 'frame', ['ui:calendar-action'], { event: 'calendar:read' }, 'a section in the form for a new or edited event'),
-  'calendar-day-header': S('calendar', 'action', ['ui:calendar-action'], { date: null }, 'a short label under a day\'s name in the day and week views (api.ui.setDayLabels)'),
-  'mini-calendar-marks': S('calendar', 'action', ['ui:calendar-action'], { date: null }, 'dots on days in the small month calendar (api.ui.setDayLabels)'),
+  'calendar-day-header': S('calendar', 'data', ['ui:calendar-action'], { date: null }, 'a short label under a day\'s name in the day and week views (api.ui.setDayLabels)'),
+  'mini-calendar-marks': S('calendar', 'data', ['ui:calendar-action'], { date: null }, 'dots on days in the small month calendar (api.ui.setDayLabels)'),
 
   // ─── Contacts ──────────────────────────────────────────────
   'contact-cryptokeys': S('contacts', 'frame', ['ui:contact-cryptokeys'], { cryptoKeys: 'contacts:read' }, 'the encryption keys section of a contact'),
