@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { logger } from '@/lib/logger';
 import type { ServerPlugin } from './plugin-registry';
-import { sanitizeFrameOrigins, sanitizeHttpOrigins, sanitizeApiPostPaths } from './csp-frame-origins';
+import { checkPluginManifest } from '@/lib/extension-package';
 
 /**
  * Dev-mode plugin loading.
@@ -64,16 +64,23 @@ interface ResolvedBundle {
   needsBundle: boolean;
 }
 
+/** Whether `candidate` lies inside `dir` (after resolving `..`). */
+function isInside(dir: string, candidate: string): boolean {
+  const rel = path.relative(dir, path.resolve(candidate));
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+}
+
 function resolveBundlePath(pluginDir: string, entrypoint: string): ResolvedBundle | null {
-  const srcCandidate = path.join(pluginDir, 'src', entrypoint);
-  if (existsSync(srcCandidate)) return { bundlePath: srcCandidate, needsBundle: true };
-
-  const rootCandidate = path.join(pluginDir, entrypoint);
-  if (existsSync(rootCandidate)) return { bundlePath: rootCandidate, needsBundle: false };
-
-  const distCandidate = path.join(pluginDir, 'dist', entrypoint);
-  if (existsSync(distCandidate)) return { bundlePath: distCandidate, needsBundle: false };
-
+  // The bundle route serves this file to anyone, so it must stay inside the
+  // plugin's own folder whatever the manifest says.
+  const candidates: Array<[string, boolean]> = [
+    [path.join(pluginDir, 'src', entrypoint), true],
+    [path.join(pluginDir, entrypoint), false],
+    [path.join(pluginDir, 'dist', entrypoint), false],
+  ];
+  for (const [candidate, needsBundle] of candidates) {
+    if (isInside(pluginDir, candidate) && existsSync(candidate)) return { bundlePath: candidate, needsBundle };
+  }
   return null;
 }
 
@@ -145,8 +152,22 @@ async function loadDevPlugin(pluginDir: string): Promise<DevPluginEntry | null> 
     logger.warn(`[plugin-dev] manifest id "${id}" rejected by id regex (${manifestPath})`);
     return null;
   }
+  // Same checks as an upload, with the fields a work-in-progress manifest
+  // may leave out filled in.
+  const check = checkPluginManifest({
+    version: '0.0.0',
+    author: 'dev',
+    type: 'hook',
+    ...manifest,
+    name: asString(manifest.name, id) || id,
+  });
+  if (!check.manifest) {
+    logger.warn(`[plugin-dev] ${id}: ${check.errors.join('; ')}`);
+    return null;
+  }
+  const valid = check.manifest;
 
-  const entrypoint = asString(manifest.entrypoint, 'index.js');
+  const entrypoint = valid.entrypoint;
   const resolved = resolveBundlePath(pluginDir, entrypoint);
   if (!resolved) {
     logger.warn(`[plugin-dev] entrypoint "${entrypoint}" not found at src/, root, or dist/ for ${id}`);
@@ -178,34 +199,24 @@ async function loadDevPlugin(pluginDir: string): Promise<DevPluginEntry | null> 
     /* ignore */
   }
 
-  const permissions = Array.isArray(manifest.permissions)
-    ? manifest.permissions.filter((p): p is string => typeof p === 'string')
-    : [];
-
-  const frameOrigins = sanitizeFrameOrigins(manifest.frameOrigins);
-  const httpOrigins = sanitizeHttpOrigins(manifest.httpOrigins);
-  const apiPostPaths = sanitizeApiPostPaths(manifest.apiPostPaths);
-
   const plugin: ServerPlugin = {
     id,
-    name: asString(manifest.name, id),
-    version: asString(manifest.version, '0.0.0-dev'),
-    author: asString(manifest.author),
-    description: asString(manifest.description),
-    type: asString(manifest.type, 'hook'),
-    permissions,
+    name: valid.name,
+    version: valid.version,
+    author: valid.author,
+    description: valid.description,
+    type: valid.type,
+    ...(valid.tier === 'privileged' ? { tier: 'privileged' } : {}),
+    permissions: valid.permissions,
     entrypoint,
     enabled: true,
     forceEnabled: false,
-    ...(manifest.configSchema && typeof manifest.configSchema === 'object'
-      ? { configSchema: manifest.configSchema as ServerPlugin['configSchema'] }
-      : {}),
-    ...(manifest.settingsSchema && typeof manifest.settingsSchema === 'object'
-      ? { settingsSchema: manifest.settingsSchema as ServerPlugin['settingsSchema'] }
-      : {}),
-    ...(frameOrigins.length > 0 ? { frameOrigins } : {}),
-    ...(httpOrigins.length > 0 ? { httpOrigins } : {}),
-    ...(apiPostPaths.length > 0 ? { apiPostPaths } : {}),
+    ...(valid.configSchema ? { configSchema: valid.configSchema } : {}),
+    ...(valid.settingsSchema ? { settingsSchema: valid.settingsSchema } : {}),
+    ...(valid.locales ? { locales: valid.locales } : {}),
+    ...(valid.frameOrigins ? { frameOrigins: valid.frameOrigins } : {}),
+    ...(valid.httpOrigins ? { httpOrigins: valid.httpOrigins } : {}),
+    ...(valid.apiPostPaths ? { apiPostPaths: valid.apiPostPaths } : {}),
     installedAt,
     updatedAt: new Date().toISOString(),
     bundleHash,

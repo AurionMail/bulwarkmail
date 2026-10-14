@@ -41,9 +41,13 @@ export async function getEnabledPluginFrameOrigins(): Promise<string[]> {
 
   try {
     const registry = await getPluginRegistry();
+    // Dev plugins (PLUGIN_DEV_DIR) are served next to the installed ones and
+    // need their embeds allowed too.
+    const { listDevPlugins } = await import('./plugin-dev');
+    const devPlugins = (await listDevPlugins()).map((e) => e.plugin);
     const seen = new Set<string>();
     const out: string[] = [];
-    for (const plugin of registry.plugins) {
+    for (const plugin of [...registry.plugins, ...devPlugins]) {
       if (!plugin.enabled) continue;
       const origins = sanitizeFrameOrigins(plugin.frameOrigins);
       for (const o of origins) {
