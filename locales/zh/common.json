@@ -3801,7 +3801,7 @@
     "processing": "处理中…",
     "close": "关闭",
     "certificate_details": "证书详情",
-    "cert_subject": "主题",
+    "cert_subject": "主体",
     "cert_issuer": "颁发者",
     "cert_email": "邮件",
     "cert_serial": "序列号",

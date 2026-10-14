@@ -996,7 +996,7 @@
       "appearance": "Aspect",
       "language": "Limba, regiunea și ora",
       "email": "Comportamentul e-mailurilor",
-      "composer": "Compozitor",
+      "composer": "Redactare",
       "privacy": "Confidențialitate și securitate",
       "account": "Cont",
       "identities": "Identități",
@@ -1646,7 +1646,7 @@
       }
     },
     "composer": {
-      "title": "Compozitor",
+      "title": "Redactare",
       "description": "Configurați setările de redactare a e-mailurilor",
       "autosave": {
         "label": "Interval de salvare automată",
@@ -2586,7 +2586,7 @@
       "actions": "Acțiuni de e-mail",
       "global": "Global",
       "threads": "Subiecte",
-      "composer": "Compozitor"
+      "composer": "Redactare"
     },
     "navigation": {
       "next_email": "Următorul e-mail",
@@ -3843,7 +3843,7 @@
     "processing": "Se procesează…",
     "close": "Închide",
     "certificate_details": "Detalii certificat",
-    "cert_subject": "Subiect",
+    "cert_subject": "Titular",
     "cert_issuer": "Emitent",
     "cert_email": "E-mail",
     "cert_serial": "Număr de serie",

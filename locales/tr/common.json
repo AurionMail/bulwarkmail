@@ -993,7 +993,7 @@
       "appearance": "Görünüm",
       "language": "Dil, Bölge ve Saat",
       "email": "E-posta Davranışı",
-      "composer": "Yazıcı",
+      "composer": "İleti düzenleyici",
       "privacy": "Gizlilik ve Güvenlik",
       "account": "Hesap",
       "identities": "Kimlikler",
@@ -1643,7 +1643,7 @@
       }
     },
     "composer": {
-      "title": "Yazıcı",
+      "title": "İleti düzenleyici",
       "description": "E-posta yazma ayarlarını yapılandırın",
       "autosave": {
         "label": "Otomatik Kaydetme Aralığı",
@@ -2480,7 +2480,7 @@
     "email_list_error": "E-postalar yüklenemedi",
     "viewer_error_title": "E-posta görüntülenemiyor",
     "viewer_error_description": "Bu e-posta oluşturulurken sorun oluştu. Desteklenmeyen içerik bulunuyor olabilir.",
-    "composer_error": "Yazıcı yüklenemedi",
+    "composer_error": "İleti düzenleyici yüklenemedi",
     "settings_error_title": "Ayarlar kullanılamıyor",
     "settings_error_description": "Ayarlar yüklenemedi. Tercihleriniz kaydedilmemiş olabilir.",
     "try_again": "Tekrar dene",
@@ -2586,7 +2586,7 @@
       "actions": "E-posta İşlemleri",
       "global": "Genel",
       "threads": "İleti Dizileri",
-      "composer": "Yazıcı"
+      "composer": "İleti düzenleyici"
     },
     "navigation": {
       "next_email": "Sonraki e-posta",
@@ -3912,8 +3912,8 @@
     "settings_desc": "Her şeyi özelleştirin: tema, yoğunluk, imzalar, filtreler, klavye kısayolları, takvim varsayılanları ve daha fazlası.",
     "shortcuts_title": "Klavye kısayolları",
     "shortcuts_desc": "Deneyimli kullanıcılar bunu sever. Mevcut tüm kısayolları görmek için istediğiniz zaman ? tuşuna basın. Fareye dokunmadan gezinebilir, e-posta oluşturabilir ve yönetebilirsiniz.",
-    "compose_open_title": "Yazıcı",
-    "compose_open_desc": "Bu e-posta yazıcısıdır. Alıcılar ekleyin, iletinizi yazın, dosya ekleyin ve zengin metin biçimlendirmesi kullanın. Ayrıca taslak kaydedebilir ve şablonları kullanabilirsiniz.",
+    "compose_open_title": "İleti düzenleyici",
+    "compose_open_desc": "Bu, e-posta düzenleyicisidir. Alıcılar ekleyin, iletinizi yazın, dosya ekleyin ve zengin metin biçimlendirmesi kullanın. Ayrıca taslak kaydedebilir ve şablonları kullanabilirsiniz.",
     "calendar_view_title": "Takviminiz",
     "calendar_view_desc": "İşte örnek etkinliklerin bulunduğu takviminiz. Araç çubuğunu kullanarak gün, hafta, ay ve gündem görünümleri arasında geçiş yapabilirsiniz.",
     "create_event_title": "Etkinlik oluştur",

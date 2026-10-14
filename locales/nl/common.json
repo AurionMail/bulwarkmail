@@ -3801,7 +3801,7 @@
     "processing": "Bezig met verwerken…",
     "close": "Sluiten",
     "certificate_details": "Certificaatdetails",
-    "cert_subject": "Onderwerp",
+    "cert_subject": "Houder",
     "cert_issuer": "Uitgever",
     "cert_email": "E-mail",
     "cert_serial": "Serienummer",

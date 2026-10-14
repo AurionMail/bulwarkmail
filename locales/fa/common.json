@@ -3843,7 +3843,7 @@
     "processing": "در حال پردازش…",
     "close": "بستن",
     "certificate_details": "جزئیات گواهی",
-    "cert_subject": "موضوع",
+    "cert_subject": "دارنده",
     "cert_issuer": "صادرکننده",
     "cert_email": "ایمیل",
     "cert_serial": "شماره سریال",

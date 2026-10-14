@@ -3801,7 +3801,7 @@
     "processing": "処理中…",
     "close": "閉じる",
     "certificate_details": "証明書の詳細",
-    "cert_subject": "件名",
+    "cert_subject": "サブジェクト",
     "cert_issuer": "発行者",
     "cert_email": "メールアドレス",
     "cert_serial": "シリアル番号",

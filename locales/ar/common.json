@@ -3843,7 +3843,7 @@
     "processing": "جارٍ المعالجة…",
     "close": "إغلاق",
     "certificate_details": "تفاصيل الشهادة",
-    "cert_subject": "الموضوع",
+    "cert_subject": "صاحب الشهادة",
     "cert_issuer": "الجهة المُصدِرة",
     "cert_email": "البريد الإلكتروني",
     "cert_serial": "الرقم التسلسلي",

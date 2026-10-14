@@ -155,3 +155,36 @@ describe('translations used in source code exist in en locale', () => {
     ).toEqual([]);
   });
 });
+
+describe('mail terms are not mistranslated', () => {
+  const locales = fs.readdirSync(localesDir).filter((l) => l !== referenceLocale);
+
+  // "Composer" was translated as the music composer (or a printer in tr) in
+  // several languages, and "Create" as "manufacture" in mn.
+  const WRONG_WORDS: Record<string, RegExp> = {
+    da: /komponist/i,
+    es: /\bcompositor/i,
+    fr: /compositeur/i,
+    it: /\bcompositore/i,
+    mn: /Хөгжмийн зохиолч|Үйлдвэрлэх/,
+    pt: /\bcompositor/i,
+    ro: /compozitor/i,
+    tr: /yazıcı/i,
+    uk: /композитор/i,
+  };
+
+  it.each(Object.keys(WRONG_WORDS))('%s does not call the composer a music composer or a printer', (locale) => {
+    const table = loadLocale(locale);
+    const wrong = getLeafKeys(table)
+      .map((key) => [key, resolveKey(table, key)] as const)
+      .filter(([, value]) => typeof value === 'string' && WRONG_WORDS[locale].test(value));
+    expect(wrong).toEqual([]);
+  });
+
+  // A certificate's subject is its holder, not an email's subject line.
+  // Turkish keeps "Konu", the word Windows' certificate dialog uses.
+  it.each(locales.filter((l) => l !== 'tr'))('%s names the certificate subject differently from the email subject', (locale) => {
+    const table = loadLocale(locale);
+    expect(resolveKey(table, 'smime.cert_subject')).not.toBe(resolveKey(table, 'email_composer.subject'));
+  });
+});

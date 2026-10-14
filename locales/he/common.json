@@ -3724,7 +3724,7 @@
     "processing": "מעבד...",
     "close": "לִסְגוֹר",
     "certificate_details": "פרטי תעודה",
-    "cert_subject": "נושא",
+    "cert_subject": "בעל האישור",
     "cert_issuer": "מנפיק",
     "cert_email": "אֶלֶקטרוֹנִי",
     "cert_serial": "מספר סידורי",

@@ -171,7 +171,7 @@
     "description": "Vælg om e-mail- og kalenderlinks åbnes i Bulwark. Teknisk set registrerer Bulwark sig som protokolhåndtering for mailto:- og webcal:-links.",
     "unsupported": "Denne browser eller forbindelse understøtter ikke manuel registrering af protokolhåndtering. Du kan muligvis stadig bruge den installerede PWA via browser- eller OS-indstillinger.",
     "mailto_label": "E-mail-links",
-    "mailto_description": "Åbn mailto:-links i Bulwark med en forudfyldt komponist.",
+    "mailto_description": "Åbn mailto:-links i Bulwark med et forudfyldt skrivevindue.",
     "protocol_open_mode_label": "Ved åbning af protokollinks",
     "protocol_open_mode_description": "Vælg om Bulwark åbner mailto:- og webcal:-links i en ny fane eller genbruger en åben session. Indstillingen \\\"aktiv session\\\" kræver notifikationstilladelse, så du kan klikke på en nødnotifikation for at bringe Bulwark frem, hvis browseren blokerer fokus.",
     "protocol_open_mode_active_session": "Åbn i aktiv session hvis muligt",
@@ -185,7 +185,7 @@
     "mailto_registered": "Registrering af e-mail-håndtering anmodet",
     "webcal_registered": "Registrering af kalenderhåndtering anmodet",
     "registration_failed": "Registrering af protokolhåndtering mislykkedes",
-    "opening_mailto": "Åbner komponist...",
+    "opening_mailto": "Åbner skrivevindue...",
     "opening_webcal": "Åbner kalender...",
     "browser_note": "Din browser eller dit operativsystem beder dig muligvis bekræfte dette og kræver muligvis, at Bulwark er installeret, før det kan vælges som standardapp.",
     "select_account_title": "Vælg konto",
@@ -996,7 +996,7 @@
       "appearance": "Udseende",
       "language": "Sprog, region & tid",
       "email": "E-mail-adfærd",
-      "composer": "Komponist",
+      "composer": "Skrivevindue",
       "privacy": "Privatliv & sikkerhed",
       "account": "Konto",
       "identities": "Identiteter",
@@ -1646,7 +1646,7 @@
       }
     },
     "composer": {
-      "title": "Komponist",
+      "title": "Skrivevindue",
       "description": "Konfigurér indstillinger for e-mail-komposition",
       "autosave": {
         "label": "Auto-gem interval",
@@ -2480,7 +2480,7 @@
     "email_list_error": "Kunne ikke indlæse e-mails",
     "viewer_error_title": "Kan ikke vise e-mail",
     "viewer_error_description": "Der var et problem med at vise denne e-mail. Den kan indeholde indhold, der ikke understøttes.",
-    "composer_error": "Kunne ikke indlæse komponist",
+    "composer_error": "Kunne ikke indlæse skrivevinduet",
     "settings_error_title": "Indstillinger utilgængelige",
     "settings_error_description": "Kunne ikke indlæse indstillinger. Dine præferencer bliver muligvis ikke gemt.",
     "try_again": "Prøv igen",
@@ -2586,7 +2586,7 @@
       "actions": "E-mail-handlinger",
       "global": "Globalt",
       "threads": "Tråde",
-      "composer": "Komponist"
+      "composer": "Skrivevindue"
     },
     "navigation": {
       "next_email": "Næste e-mail",
@@ -3843,7 +3843,7 @@
     "processing": "Behandler…",
     "close": "Luk",
     "certificate_details": "Certifikatdetaljer",
-    "cert_subject": "Emne",
+    "cert_subject": "Indehaver",
     "cert_issuer": "Udsteder",
     "cert_email": "E-mail",
     "cert_serial": "Serienummer",
@@ -3912,8 +3912,8 @@
     "settings_desc": "Tilpas alt: tema, tæthed, signaturer, filtre, tastaturgenveje, kalenderstandarder og meget mere.",
     "shortcuts_title": "Tastaturgenveje",
     "shortcuts_desc": "Strømbrugere elsker dette. Tryk ? når som helst for at se alle tilgængelige genveje. Du kan navigere, skrive og administrere e-mails uden at røre musen.",
-    "compose_open_title": "Komponisten",
-    "compose_open_desc": "Dette er e-mail-komponisten. Tilføj modtagere, skriv din besked, vedhæft filer, og brug rig tekstformatering. Du kan også gemme kladder og bruge skabeloner.",
+    "compose_open_title": "Skrivevinduet",
+    "compose_open_desc": "Dette er skrivevinduet. Tilføj modtagere, skriv din besked, vedhæft filer, og brug rig tekstformatering. Du kan også gemme kladder og bruge skabeloner.",
     "calendar_view_title": "Din kalender",
     "calendar_view_desc": "Her er din kalender med eksempelbegivenheder. Du kan skifte mellem dag-, uge-, måneds- og agendavisning ved hjælp af værktøjslinjen.",
     "create_event_title": "Opret en begivenhed",
@@ -4210,11 +4210,11 @@
         "body": "Sortere din indbakke i faner som Opdateringer eller Kampagner."
       },
       "ui_composer_toolbar": {
-        "title": "Tilføje til komponisten",
+        "title": "Tilføje til skrivevinduet",
         "body": "Vise sine egne knapper, menupunkter og sektioner, mens du skriver en besked."
       },
       "ui_composer_sidebar": {
-        "title": "Tilføje et panel til komponisten",
+        "title": "Tilføje et panel til skrivevinduet",
         "body": "Vise sit eget panel ved siden af den besked, du skriver."
       },
       "ui_sidebar_widget": {
@@ -4250,7 +4250,7 @@
         "body": "Få besked, når appen starter, går offline, eller du logger ud."
       },
       "compose_open": {
-        "title": "Åbne komponisten for dig",
+        "title": "Åbne skrivevinduet for dig",
         "body": "Åbne en ny besked med modtagere, tekst eller vedhæftninger udfyldt. Du bestemmer stadig, om den sendes."
       },
       "compose_read": {

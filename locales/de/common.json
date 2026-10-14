@@ -3801,7 +3801,7 @@
     "processing": "Wird verarbeitet…",
     "close": "Schließen",
     "certificate_details": "Zertifikatsdetails",
-    "cert_subject": "Betreff",
+    "cert_subject": "Inhaber",
     "cert_issuer": "Aussteller",
     "cert_email": "E-Mail",
     "cert_serial": "Seriennummer",

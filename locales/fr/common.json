@@ -993,7 +993,7 @@
       "appearance": "Apparence",
       "language": "Langue, région et heure",
       "email": "Comportement email",
-      "composer": "Compositeur",
+      "composer": "Rédaction",
       "privacy": "Confidentialité et sécurité",
       "account": "Compte",
       "identities": "Identités",
@@ -1643,7 +1643,7 @@
       }
     },
     "composer": {
-      "title": "Compositeur",
+      "title": "Rédaction",
       "description": "Configurez les paramètres de composition d'email",
       "autosave": {
         "label": "Intervalle de sauvegarde automatique",
@@ -2480,7 +2480,7 @@
     "email_list_error": "Impossible de charger les emails",
     "viewer_error_title": "Impossible d'afficher l'email",
     "viewer_error_description": "Un problème est survenu lors de l'affichage de cet email. Il peut contenir du contenu non pris en charge.",
-    "composer_error": "Impossible de charger le compositeur",
+    "composer_error": "Impossible de charger l'éditeur",
     "settings_error_title": "Paramètres indisponibles",
     "settings_error_description": "Impossible de charger les paramètres. Vos préférences peuvent ne pas être sauvegardées.",
     "try_again": "Réessayer",
@@ -3870,8 +3870,8 @@
     "settings_desc": "Personnalisez tout : thème, densité, signatures, filtres, raccourcis clavier, paramètres du calendrier et plus encore.",
     "shortcuts_title": "Raccourcis clavier",
     "shortcuts_desc": "Les utilisateurs avancés adorent ça. Appuyez sur ? à tout moment pour voir tous les raccourcis disponibles. Naviguez, rédigez et gérez vos emails sans toucher à la souris.",
-    "compose_open_title": "Le compositeur",
-    "compose_open_desc": "Voici le compositeur d'e-mail. Ajoutez des destinataires, rédigez votre message, joignez des fichiers et utilisez la mise en forme enrichie. Vous pouvez aussi sauvegarder des brouillons et utiliser des modèles.",
+    "compose_open_title": "L'éditeur",
+    "compose_open_desc": "Voici l'éditeur d'e-mail. Ajoutez des destinataires, rédigez votre message, joignez des fichiers et utilisez la mise en forme enrichie. Vous pouvez aussi sauvegarder des brouillons et utiliser des modèles.",
     "calendar_view_title": "Votre calendrier",
     "calendar_view_desc": "Voici votre calendrier avec des événements exemples. Basculez entre les vues jour, semaine, mois et agenda avec la barre d'outils.",
     "create_event_title": "Créer un événement",
