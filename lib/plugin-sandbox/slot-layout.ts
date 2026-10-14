@@ -1,6 +1,7 @@
 // How slot iframes are sized. Shared by the host (which sizes the iframe)
 // and the sandbox runtime (which measures the plugin's content).
 
+import { SLOT_CATALOG, type SlotSpec } from '../plugin-slot-catalog';
 import type { SlotName } from '../plugin-types';
 
 /**
@@ -8,13 +9,11 @@ import type { SlotName } from '../plugin-types';
  * the event form's action row). Their iframe takes the plugin content's own
  * width; everything else fills the width of its container.
  */
-export const INLINE_SLOTS: ReadonlySet<SlotName> = new Set<SlotName>([
-  'toolbar-actions',
-  'composer-toolbar',
-  'composer-attachment-source',
-  'attachment-actions',
-  'calendar-event-actions',
-]);
+export const INLINE_SLOTS: ReadonlySet<SlotName> = new Set<SlotName>(
+  (Object.entries(SLOT_CATALOG) as [SlotName, SlotSpec][])
+    .filter(([, spec]) => spec.kind === 'frame' && spec.inline)
+    .map(([name]) => name),
+);
 
 export function isInlineSlot(slot: SlotName | string | null | undefined): boolean {
   return !!slot && INLINE_SLOTS.has(slot as SlotName);

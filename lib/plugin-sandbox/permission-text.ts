@@ -19,6 +19,7 @@ export const HIGH_RISK_PERMISSIONS: ReadonlySet<string> = new Set([
   'http:fetch',
   'http:post',
   'filters:write',
+  'http:proxy',
 ]);
 
 /** Locale key segment for a permission: `email:read` → `email_read`. */

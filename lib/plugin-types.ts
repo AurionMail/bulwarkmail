@@ -1,4 +1,5 @@
 import type { CredentialSpec } from './plugin-secrets/credentials';
+import type { CatalogSlotName } from './plugin-slot-catalog';
 
 // Plugin & Theme system types
 
@@ -293,31 +294,8 @@ export interface InstalledPlugin {
 
 // ─── UI Slots ────────────────────────────────────────────────
 
-export type SlotName =
-  | 'toolbar-actions'
-  | 'app-top-banner'
-  | 'email-banner'
-  | 'email-footer'
-  | 'composer-toolbar'
-  | 'composer-sidebar'
-  | 'composer-sidebar-right'
-  | 'sidebar-widget'
-  | 'email-detail-sidebar'
-  | 'email-details-section'
-  | 'settings-section'
-  | 'context-menu-email'
-  | 'navigation-rail-bottom'
-  | 'calendar-event-actions'
-  | 'admin-plugin-page'
-  | 'contact-cryptokeys'
-  | 'attachment-actions'
-  | 'composer-attachment-source'
-  // Rendered inside a plugin-requested host dialog (see `ui.openDialog` /
-  // PluginDialogHost), NOT in-page like every other slot above - this is
-  // the only slot that renders inside the app-root fixed overlay instead of
-  // wherever the slot is placed in the page, so it's the one to use for a
-  // large, genuinely clickable custom UI a small toolbar/row slot can't fit.
-  | 'plugin-dialog';
+/** Every slot and action surface; see lib/plugin-slot-catalog.ts. */
+export type SlotName = CatalogSlotName;
 
 export interface SlotRegistration {
   pluginId: string;
@@ -1141,6 +1119,10 @@ export const ALL_PERMISSIONS = [
   'ui:sidebar-widget', 'ui:settings-section',
   'ui:context-menu', 'ui:navigation-rail', 'ui:keyboard',
   'ui:calendar-action', 'ui:admin-page',
+  // Surfaces from the slot catalogue (lib/plugin-slot-catalog.ts).
+  'ui:message-list', 'ui:contacts', 'ui:tasks', 'ui:files', 'ui:commands', 'ui:app-page',
+  // Requests that carry an account or API key, added by the server (lib/plugin-secrets).
+  'http:proxy',
   'admin:config',
   'app:lifecycle',
 ] as const;

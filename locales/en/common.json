@@ -4178,8 +4178,8 @@
         "body": "Know which page is open and react to links you click."
       },
       "ui_toolbar": {
-        "title": "Add buttons to the message toolbar",
-        "body": "Show its own buttons above an open message."
+        "title": "Add buttons to toolbars",
+        "body": "Show its own buttons in the message toolbar, on an open message and in the top bar."
       },
       "ui_app_top_banner": {
         "title": "Show a banner at the top",
@@ -4187,7 +4187,7 @@
       },
       "ui_email_banner": {
         "title": "Show notices on messages",
-        "body": "Show a notice above the text of an open message."
+        "body": "Show its own notices and summaries above, inside and between the parts of an open message or conversation."
       },
       "ui_email_footer": {
         "title": "Add content below messages",
@@ -4210,16 +4210,16 @@
         "body": "Sort your inbox into tabs such as Updates or Promotions."
       },
       "ui_composer_toolbar": {
-        "title": "Add buttons to the composer",
-        "body": "Show its own buttons while you write a message."
+        "title": "Add to the composer",
+        "body": "Show its own buttons, menu entries and sections while you write a message."
       },
       "ui_composer_sidebar": {
         "title": "Add a panel to the composer",
         "body": "Show its own panel next to the message you write."
       },
       "ui_sidebar_widget": {
-        "title": "Add a box to the sidebar",
-        "body": "Show its own content in the mail sidebar."
+        "title": "Add to the sidebar",
+        "body": "Show its own boxes and sections in the mail sidebar."
       },
       "ui_settings_section": {
         "title": "Add a settings page",
@@ -4238,8 +4238,8 @@
         "body": "React to keyboard shortcuts it defines."
       },
       "ui_calendar_action": {
-        "title": "Add buttons to events",
-        "body": "Show its own buttons when you create or edit an event."
+        "title": "Add to the calendar",
+        "body": "Show its own buttons and sections on events, and short labels and dots on calendar days."
       },
       "ui_admin_page": {
         "title": "Add an admin page",
@@ -4248,6 +4248,34 @@
       "app_lifecycle": {
         "title": "Know when the app starts and stops",
         "body": "Be told when the app starts, goes offline or you sign out."
+      },
+      "ui_message_list": {
+        "title": "Add to the message list",
+        "body": "Show its own content above the message list, and buttons on messages and in the selection toolbar."
+      },
+      "ui_contacts": {
+        "title": "Add to contacts",
+        "body": "Show its own sections in a contact's details and buttons in the contact list."
+      },
+      "ui_tasks": {
+        "title": "Add to tasks",
+        "body": "Show its own sections in a task's details and buttons in the task list."
+      },
+      "ui_files": {
+        "title": "Add to files",
+        "body": "Show its own sections in the file preview and entries in a file's menu."
+      },
+      "ui_commands": {
+        "title": "Add commands",
+        "body": "Add its own entries to the command palette (Ctrl+K)."
+      },
+      "ui_app_page": {
+        "title": "Add pages",
+        "body": "Add its own pages to the app, each with a button in the navigation bar."
+      },
+      "http_proxy": {
+        "title": "Use accounts you connect",
+        "body": "Send requests through Bulwark's server with an account or key that you or your administrator set up. The plugin never sees the password, but it can do anything that account can do on its own server."
       }
     },
     "dialog": {
