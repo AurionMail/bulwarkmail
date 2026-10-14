@@ -167,6 +167,9 @@ export class SandboxInstance {
     if (!this.privileged && process.env.NODE_ENV === 'development') warnDevSandboxOnce();
     this.iframe.setAttribute('sandbox', sandboxFlags);
     this.iframe.setAttribute('referrerpolicy', 'no-referrer');
+    // "Copy" buttons in plugin UIs. Writing only; reading the clipboard
+    // stays off.
+    this.iframe.setAttribute('allow', 'clipboard-write');
     this.iframe.title = `plugin-${plugin.id}-${initPayload.mode}`;
     this.iframe.style.border = 'none';
     this.iframe.style.display = 'block';

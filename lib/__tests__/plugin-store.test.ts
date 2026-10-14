@@ -48,6 +48,7 @@ vi.mock('@/lib/plugin-sandbox/bundle-fetch', () => ({
   downloadManagedBundle: (...args: unknown[]) => mocks.downloadManagedBundle(...args),
 }));
 
+import { register as registerActive, deregister as deregisterActive, get as getActive } from '@/lib/plugin-sandbox/registry';
 // Import after mocks
 import { usePluginStore } from '@/stores/plugin-store';
 import { pluginStorage } from '@/lib/plugin-storage';
@@ -353,6 +354,23 @@ describe('updatePluginSettings', () => {
 
     expect(usePluginStore.getState().plugins[0].settings.size).toBe(512);
     expect(bridge.setSettings).toHaveBeenCalledWith({ size: 512 });
+  });
+
+  it('passes on settings that arrive another way, and new slots start with them', () => {
+    resetStore();
+    bridge.setSettings.mockClear();
+    const plugin = mockPlugin({ id: 'synced', settings: { zone: 'Europe/Berlin' } });
+    usePluginStore.setState({ plugins: [plugin] });
+    registerActive({ plugin, code: '', tier: 'untrusted', background: {}, slotOffers: [], hookDisposables: [] } as never);
+    try {
+      // A server sync replaces the plugin list without updatePluginSettings.
+      usePluginStore.setState({ plugins: [{ ...plugin, settings: { zone: 'Asia/Tokyo' } }] });
+
+      expect(bridge.setSettings).toHaveBeenCalledWith(expect.objectContaining({ zone: 'Asia/Tokyo' }));
+      expect(getActive('synced')?.plugin.settings).toEqual({ zone: 'Asia/Tokyo' });
+    } finally {
+      deregisterActive('synced');
+    }
   });
 });
 

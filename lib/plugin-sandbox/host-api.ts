@@ -145,6 +145,8 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // user
   'user.getAccounts': 'account:read',
   'user.getIdentities': 'identity:read',
+  // The IANA zone the app shows times in (Settings or the browser's).
+  'user.getTimeZone': null,
   'user.logout': 'auth:emit',
   // admin
   'admin.getConfig': 'admin:config',
@@ -1594,6 +1596,13 @@ async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
   if (!res.ok) return {};
   return res.json();
 }
+/** The zone the app shows times in: the user's choice, else the browser's. */
+function userTimeZone(): string {
+  const setting = useSettingsStore.getState().timeZone;
+  if (typeof setting === 'string' && setting && setting !== 'auto') return setting;
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+}
+
 /** The admin's settings for this plugin that aren't secrets (any user may read them). */
 async function publicConfig(pluginId: string): Promise<Record<string, unknown>> {
   const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config?public=1`);
@@ -1776,6 +1785,7 @@ export async function dispatchApiCall(
 
     case 'user.getAccounts':   return doUserGetAccounts();
     case 'user.getIdentities': return doUserGetIdentities();
+    case 'user.getTimeZone': return userTimeZone();
     case 'user.logout' : return doUserLogout();
 
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);

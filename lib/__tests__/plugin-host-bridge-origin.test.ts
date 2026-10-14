@@ -148,3 +148,17 @@ describe('host bookkeeping', () => {
     expect(table.size).toBe(1);
   });
 });
+
+describe('plugin frame permissions', () => {
+  it('may write to the clipboard and use forms, nothing more', () => {
+    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    try {
+      expect(inst.iframe.getAttribute('allow')).toBe('clipboard-write');
+      expect(inst.iframe.getAttribute('sandbox')?.split(' ').sort()).toEqual(
+        process.env.NODE_ENV === 'development' ? ['allow-same-origin', 'allow-scripts'] : ['allow-forms', 'allow-scripts'],
+      );
+    } finally {
+      inst.destroy();
+    }
+  });
+});

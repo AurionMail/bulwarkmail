@@ -99,3 +99,13 @@ describe('WKD hash', () => {
     expect(await getWkdHash('Joe.Doe')).toBe('iy9q119eutrkn8s1mk4r39qejnbu3n5q');
   });
 });
+
+describe('api.user.getTimeZone', () => {
+  it('gives the zone the app shows times in', async () => {
+    const { useSettingsStore } = await import('@/stores/settings-store');
+    useSettingsStore.setState({ timeZone: 'Asia/Tokyo' } as never);
+    expect(await dispatchApiCall(plugin(), 'user.getTimeZone', [])).toBe('Asia/Tokyo');
+    useSettingsStore.setState({ timeZone: 'auto' } as never);
+    expect(await dispatchApiCall(plugin(), 'user.getTimeZone', [])).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  });
+});

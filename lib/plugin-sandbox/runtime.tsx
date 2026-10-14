@@ -338,6 +338,8 @@ function buildPluginApi(manifest: PluginManifest) {
     user: {
       getAccounts: () => callApi('user.getAccounts', []),
       getIdentities: () => callApi('user.getIdentities', []),
+      /** The IANA time zone the app shows times in (the user's setting, else the browser's). */
+      getTimeZone: () => callApi('user.getTimeZone', []) as Promise<string>,
       logout: () => callApi('user.logout', []),
     },
     http: {

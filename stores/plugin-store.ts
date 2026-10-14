@@ -17,6 +17,7 @@ import JSZip from 'jszip';
 import { sha256Hex } from '@/lib/plugin-sandbox/bundle-integrity';
 import { downloadManagedBundle } from '@/lib/plugin-sandbox/bundle-fetch';
 import { forEachInstance } from '@/lib/plugin-sandbox/host-bridge';
+import { get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
 import { coerceSetting, effectiveSettings } from '@/lib/plugin-settings';
 import { usePolicyStore } from '@/stores/policy-store';
 import { apiFetch } from '@/lib/browser-navigation';
@@ -235,9 +236,8 @@ export const usePluginStore = create<PluginStoreState>()(
         }
         const updated = { ...plugin, settings: { ...plugin.settings, ...accepted } };
         set({ plugins: plugins.map(p => (p.id === id ? updated : p)) });
-        // Running iframes get the change right away; no reload needed.
-        const next = effectiveSettings(updated);
-        forEachInstance(id, (instance) => instance.setSettings(next));
+        // The subscription at the end of this file passes it on to the
+        // running plugin.
       },
 
       setPluginStatus: (id: string, status: PluginStatus, error?: string) => {
@@ -694,3 +694,18 @@ async function userPluginMayRun(
   void get;
   return false;
 }
+
+// Whatever changed a plugin's settings (Settings, a server sync, an
+// import), the running plugin hears it right away, and slots it opens later
+// start with the new values: they are built from the running plugin's record.
+usePluginStore.subscribe((state, prev) => {
+  if (state.plugins === prev.plugins) return;
+  for (const plugin of state.plugins) {
+    const before = prev.plugins.find((p) => p.id === plugin.id);
+    if (!before || before.settings === plugin.settings) continue;
+    const active = getActivePlugin(plugin.id);
+    if (active) active.plugin = { ...active.plugin, settings: plugin.settings };
+    const next = effectiveSettings(plugin);
+    forEachInstance(plugin.id, (instance) => instance.setSettings(next));
+  }
+});
