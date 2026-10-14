@@ -122,6 +122,8 @@ export class SandboxInstance {
   private pendingShouldShow = new Map<string, (show: boolean) => void>();
   /** Host-side function references the sandbox can call back via 'callback-invoke'. */
   private callbackTable = new Map<string, (...args: unknown[]) => unknown>();
+  /** Ids in callbackTable that came from the current props. */
+  private propCallbackIds = new Set<string>();
 
   constructor(
     private plugin: InstalledPlugin,
@@ -137,7 +139,9 @@ export class SandboxInstance {
     // Slot iframes get `extraProps`; encode any function values now so the
     // structured-clone send doesn't drop them.
     if (initPayload.mode === 'slot') {
+      const before = new Set(this.callbackTable.keys());
       initPayload.extraProps = encodeCallbacks(initPayload.extraProps, this.callbackTable) as Record<string, unknown>;
+      this.propCallbackIds = new Set([...this.callbackTable.keys()].filter((k) => !before.has(k)));
     }
 
     this.readyPromise = new Promise<void>((res) => { this.resolveReady = res; });
@@ -315,9 +319,23 @@ export class SandboxInstance {
     if (this.destroyed) return Promise.reject(new Error('sandbox destroyed'));
     const id = uid();
     const p = new Promise<unknown>((resolve, reject) => {
-      this.pendingHookInvokes.set(id, { resolve, reject });
+      // The bus gives up on a slow handler, but the entry used to stay here
+      // until the iframe answered, which a hung plugin never does.
+      const timer = setTimeout(() => {
+        if (this.pendingHookInvokes.delete(id)) reject(new Error(`hook ${hookName} got no answer`));
+      }, HOOK_INVOKE_TTL_MS);
+      this.pendingHookInvokes.set(id, {
+        resolve: (v) => { clearTimeout(timer); resolve(v); },
+        reject: (e) => { clearTimeout(timer); reject(e); },
+      });
     });
-    this.send({ type: 'hook-invoke', id, hookName, args });
+    try {
+      this.send({ type: 'hook-invoke', id, hookName, args });
+    } catch (err) {
+      // Arguments that can't be cloned: fail this call, don't leak it.
+      this.pendingHookInvokes.get(id)?.reject(err as Error);
+      this.pendingHookInvokes.delete(id);
+    }
     return p;
   }
 
@@ -354,10 +372,13 @@ export class SandboxInstance {
 
   updateProps(props: Record<string, unknown>): void {
     if (this.destroyed) return;
-    // Stale references would leak if we kept growing the table without
-    // bound; for now we let it grow until destroy(). A future refinement
-    // could diff old vs new props and drop entries no longer referenced.
-    const encoded = encodeCallbacks(props, this.callbackTable) as Record<string, unknown>;
+    // Callbacks from the props being replaced are dropped, so the table
+    // holds only what the slot can currently reach.
+    const fresh = new Map<string, (...args: unknown[]) => unknown>();
+    const encoded = encodeCallbacks(props, fresh) as Record<string, unknown>;
+    for (const id of this.propCallbackIds) this.callbackTable.delete(id);
+    this.propCallbackIds = new Set(fresh.keys());
+    for (const [id, fn] of fresh) this.callbackTable.set(id, fn);
     this.send({ type: 'props-update', props: encoded });
   }
 
@@ -396,6 +417,9 @@ function warnDevSandboxOnce(): void {
   console.warn('[plugin-sandbox] next dev runs untrusted plugins same-origin (Next needs it for HMR). '
     + 'They can reach the whole app here; test isolation against a production build.');
 }
+
+/** How long the host waits for a hook answer; longer than any bus budget. */
+const HOOK_INVOKE_TTL_MS = 11 * 60_000;
 
 function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);

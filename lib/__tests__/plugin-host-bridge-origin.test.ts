@@ -124,3 +124,27 @@ describe('shouldShow context', () => {
     expect(msg?.context).toEqual({ nested: { n: 1 } });
   });
 });
+
+describe('host bookkeeping', () => {
+  it('fails a hook call whose arguments cannot be sent, without keeping it pending', async () => {
+    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    instances.push(inst);
+    vi.spyOn(inst.iframe.contentWindow!, 'postMessage').mockImplementation(() => { throw new DOMException('no clone', 'DataCloneError'); });
+
+    await expect(inst.invokeHook('onEmailOpen', [() => {}])).rejects.toThrow(/no clone/);
+    expect((inst as unknown as { pendingHookInvokes: Map<string, unknown> }).pendingHookInvokes.size).toBe(0);
+  });
+
+  it('drops callbacks of props that were replaced', () => {
+    const inst = createSlotInstance({
+      plugin: plugin(), slot: 'email-banner', code: '', locale: 'en', tier: 'untrusted', extraProps: { a: () => 1 },
+      hostContainer: document.body, onResize: () => {},
+    });
+    instances.push(inst);
+    const table = (inst as unknown as { callbackTable: Map<string, unknown> }).callbackTable;
+
+    for (let i = 0; i < 50; i++) inst.updateProps({ onAttach: () => i });
+
+    expect(table.size).toBe(1);
+  });
+});
