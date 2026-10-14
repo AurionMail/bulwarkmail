@@ -139,7 +139,7 @@ vi.mock('@/lib/plugin-hooks', () => ({
     getRecipientSuggestions: { call: async () => [] },
     onRecipientChipsChange: { transform: async (chips: unknown) => chips },
     onDraftChange: { emit: () => {} },
-    onBeforeEmailSend: { intercept: async () => true },
+    onBeforeEmailSend: { intercept: async () => true, interceptOutcome: async () => 'allowed' },
     onComposeSend: { takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
   },

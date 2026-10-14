@@ -813,7 +813,8 @@
       "remove_background_color": "Fjern bakgrunnsfarge"
     },
     "send_filing_warning": "Meldingen ble sendt, men oppryddingen etterpå mislyktes. Et gammelt utkast kan bli liggende.",
-    "pop_out": "Åpne svaret i et eget vindu"
+    "pop_out": "Åpne svaret i et eget vindu",
+    "send_guard_failed": "Ikke sendt - et tillegg som sjekker meldinger før sending, feilet eller svarte ikke."
   },
   "confirm_dialog": {
     "confirm": "Bekreft",

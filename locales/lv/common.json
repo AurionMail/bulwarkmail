@@ -813,7 +813,8 @@
       "remove_background_color": "Noņemt fona krāsu"
     },
     "send_filing_warning": "Nosūtīts - bet pēcapstrāde neizdevās, var palikt novecojis melnraksts.",
-    "pop_out": "Atvērt atbildi atsevišķā logā"
+    "pop_out": "Atvērt atbildi atsevišķā logā",
+    "send_guard_failed": "Nav nosūtīts - spraudnis, kas pārbauda ziņojumus pirms sūtīšanas, neizdevās vai neatbildēja."
   },
   "confirm_dialog": {
     "confirm": "Apstiprināt",

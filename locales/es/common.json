@@ -813,7 +813,8 @@
       "remove_background_color": "Quitar color de fondo"
     },
     "send_filing_warning": "Enviado - pero la limpieza posterior falló, puede quedar un borrador obsoleto.",
-    "pop_out": "Abrir la respuesta en una ventana"
+    "pop_out": "Abrir la respuesta en una ventana",
+    "send_guard_failed": "No enviado: un complemento que revisa los mensajes antes de enviarlos falló o no respondió."
   },
   "confirm_dialog": {
     "confirm": "Confirmar",

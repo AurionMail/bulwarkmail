@@ -69,10 +69,23 @@ const INTERCEPT_TIMEOUT_MS = 60_000;
 // offloading, and three of those in a minute would auto-disable the plugin.
 const BLOB_UPLOAD_TIMEOUT_MS = 120_000;
 
+class HookTimeoutError extends Error {}
+
+let timeoutListener: ((pluginId: string) => void) | null = null;
+
+/**
+ * Called with the plugin id whenever one of its handlers runs out of time.
+ * The loader uses it to close that plugin's open dialogs: the host has
+ * already moved on, so a dialog left on screen would answer nothing.
+ */
+export function setHookTimeoutListener(listener: ((pluginId: string) => void) | null): void {
+  timeoutListener = listener;
+}
+
 function withTimeout<T>(promise: T | Promise<T>, ms: number = DEFAULT_TIMEOUT_MS): Promise<T> {
   if (!(promise instanceof Promise)) return Promise.resolve(promise);
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Hook timed out after ${ms}ms`)), ms);
+    const timer = setTimeout(() => reject(new HookTimeoutError(`Hook timed out after ${ms}ms`)), ms);
     promise.then(
       (val) => { clearTimeout(timer); resolve(val); },
       (err) => { clearTimeout(timer); reject(err); },
@@ -115,8 +128,21 @@ export class HookBus<T extends (...args: any[]) => any> {
    *   Defaults to 5s; a bus whose handlers legitimately do network work sets
    *   its own (see `onBeforeBlobUpload`). `intercept` keeps its own longer
    *   budget because those hooks block on user dialogs.
+   * @param opts.failClosed For intercepts guarding an action that can't be
+   *   taken back (sending mail): a handler that throws or runs out of time
+   *   cancels the action instead of letting it through.
    */
-  constructor(private readonly timeoutMs: number = DEFAULT_TIMEOUT_MS) {}
+  constructor(
+    private readonly timeoutMs: number = DEFAULT_TIMEOUT_MS,
+    private readonly opts: { failClosed?: boolean } = {},
+  ) {}
+
+  private recordFailure(pluginId: string, err: unknown): void {
+    pluginErrorTracker.record(pluginId, err);
+    if (err instanceof HookTimeoutError) {
+      try { timeoutListener?.(pluginId); } catch { /* ignore */ }
+    }
+  }
 
   register(pluginId: string, handler: T, order: number = 100): Disposable {
     const entry: HookEntry<T> = { pluginId, handler, order };
@@ -150,7 +176,7 @@ export class HookBus<T extends (...args: any[]) => any> {
       try {
         await withTimeout(handler(...args), this.timeoutMs);
       } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
+        this.recordFailure(pluginId, err);
       }
     }
   }
@@ -169,16 +195,26 @@ export class HookBus<T extends (...args: any[]) => any> {
 
   /** Fire handlers as interceptors - any returning false cancels the operation */
   async intercept(...args: Parameters<T>): Promise<boolean> {
+    return (await this.interceptOutcome(...args)) === 'allowed';
+  }
+
+  /**
+   * Like `intercept`, but says why an operation was stopped: `vetoed` when a
+   * handler said no (it is expected to have told the user), `failed` when a
+   * fail-closed bus stopped it because a handler threw or ran out of time.
+   */
+  async interceptOutcome(...args: Parameters<T>): Promise<'allowed' | 'vetoed' | 'failed'> {
     for (const { pluginId, handler } of this.handlers) {
       if (pluginErrorTracker.isDisabled(pluginId)) continue;
       try {
         const result = await withTimeout(handler(...args), Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS));
-        if (result === false) return false;
+        if (result === false) return 'vetoed';
       } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
+        this.recordFailure(pluginId, err);
+        if (this.opts.failClosed) return 'failed';
       }
     }
-    return true;
+    return 'allowed';
   }
 
   /**
@@ -194,7 +230,7 @@ export class HookBus<T extends (...args: any[]) => any> {
       try {
         result = await withTimeout(handler(...args), Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS));
       } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
+        this.recordFailure(pluginId, err);
         return 'failed';
       }
       if (result === false) return 'handled';
@@ -214,7 +250,7 @@ export class HookBus<T extends (...args: any[]) => any> {
           value = result as V;
         }
       } catch (err) {
-        pluginErrorTracker.record(pluginId, err);
+        this.recordFailure(pluginId, err);
       }
     }
     return value;
@@ -274,7 +310,9 @@ export const emailHooks = {
   // Return false to cancel opening the composer.
   onBeforeCompose: new HookBus(),
   onComposerOpen: new HookBus(),
-  onBeforeEmailSend: new HookBus(),
+  // Fails closed with the long send budget: a guard that asks the user and
+  // gets no answer must not let the mail go out behind its dialog.
+  onBeforeEmailSend: new HookBus(COMPOSE_SEND_TIMEOUT_MS, { failClosed: true }),
   onAfterEmailSend: new HookBus(),
   // Transform hook - fires before the draft is auto-saved to the server.
   // Receive fields passed to client.createDraft and may mutate fields in place.

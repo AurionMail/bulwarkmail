@@ -813,7 +813,8 @@
       "remove_background_color": "Elimină culoarea fundalului"
     },
     "send_filing_warning": "Trimis - dar curățarea ulterioară a eșuat, poate rămâne o ciornă veche.",
-    "pop_out": "Deschide răspunsul într-o fereastră"
+    "pop_out": "Deschide răspunsul într-o fereastră",
+    "send_guard_failed": "Nu s-a trimis - un plugin care verifică mesajele înainte de trimitere a eșuat sau nu a răspuns."
   },
   "confirm_dialog": {
     "confirm": "Confirmare",

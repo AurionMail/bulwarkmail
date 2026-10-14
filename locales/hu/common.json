@@ -813,7 +813,8 @@
       "remove_background_color": "Háttérszín eltávolítása"
     },
     "send_filing_warning": "Elküldve - de az utólagos rendrakás nem sikerült, egy elavult piszkozat megmaradhat.",
-    "pop_out": "Válasz megnyitása külön ablakban"
+    "pop_out": "Válasz megnyitása külön ablakban",
+    "send_guard_failed": "Nem lett elküldve - egy bővítmény, amely küldés előtt ellenőrzi az üzeneteket, hibát jelzett vagy nem válaszolt."
   },
   "confirm_dialog": {
     "confirm": "Megerősítés",

@@ -813,7 +813,8 @@
       "remove_background_color": "Remover cor de fundo"
     },
     "send_filing_warning": "Enviado - mas a limpeza posterior falhou, um rascunho antigo pode permanecer.",
-    "pop_out": "Abrir a resposta numa janela"
+    "pop_out": "Abrir a resposta numa janela",
+    "send_guard_failed": "Não enviado - um plugin que verifica as mensagens antes do envio falhou ou não respondeu."
   },
   "confirm_dialog": {
     "confirm": "Confirmar",

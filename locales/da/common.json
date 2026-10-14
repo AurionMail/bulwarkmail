@@ -813,7 +813,8 @@
       "remove_background_color": "Fjern baggrundsfarve"
     },
     "send_filing_warning": "Sendt - men oprydningen bagefter mislykkedes, en forældet kladde kan blive stående.",
-    "pop_out": "Åbn svaret i et vindue"
+    "pop_out": "Åbn svaret i et vindue",
+    "send_guard_failed": "Ikke sendt - et plugin, der kontrollerer beskeder før afsendelse, fejlede eller svarede ikke."
   },
   "confirm_dialog": {
     "confirm": "Bekræft",

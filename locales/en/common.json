@@ -813,7 +813,8 @@
       "remove_background_color": "Remove background color"
     },
     "send_filing_warning": "Sent - but the post-send cleanup failed, a stale draft may remain.",
-    "pop_out": "Pop out reply"
+    "pop_out": "Pop out reply",
+    "send_guard_failed": "Not sent - a plugin that checks messages before sending failed or did not answer."
   },
   "confirm_dialog": {
     "confirm": "Confirm",

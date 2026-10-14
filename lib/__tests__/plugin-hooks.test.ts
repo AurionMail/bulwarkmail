@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HookBus, pluginErrorTracker, removeAllPluginHooks, clearAllHooks, emailHooks, calendarHooks, isExternalAttachmentResult } from '../plugin-hooks';
+import { HookBus, pluginErrorTracker, removeAllPluginHooks, clearAllHooks, emailHooks, calendarHooks, isExternalAttachmentResult, setHookTimeoutListener } from '../plugin-hooks';
 import type { CalendarEventFormView } from '../plugin-types';
 
 beforeEach(() => {
@@ -415,5 +415,48 @@ describe('clearAllHooks', () => {
     clearAllHooks();
     expect(emailHooks.onEmailOpen.size).toBe(0);
     expect(calendarHooks.onCalendarEventOpen.size).toBe(0);
+  });
+});
+
+describe('onBeforeEmailSend fails closed', () => {
+  it('does not send when the plugin never answers', async () => {
+    // A plugin that shows a confirm and waits for the user used to let the
+    // mail go out after 60 s, with the dialog still on screen.
+    vi.useFakeTimers();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      emailHooks.onBeforeEmailSend.register('guard', () => new Promise(() => {}));
+      const result = emailHooks.onBeforeEmailSend.intercept({});
+      await vi.advanceTimersByTimeAsync(10 * 60_000 + 100);
+      expect(await result).toBe(false);
+    } finally {
+      consoleSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not send when the plugin throws', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    emailHooks.onBeforeEmailSend.register('guard', () => { throw new Error('boom'); });
+    expect(await emailHooks.onBeforeEmailSend.intercept({})).toBe(false);
+    consoleSpy.mockRestore();
+  });
+
+  it('closes the dialogs of a plugin whose hook ran out of time', async () => {
+    vi.useFakeTimers();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onTimeout = vi.fn();
+    setHookTimeoutListener(onTimeout);
+    try {
+      emailHooks.onBeforeReply.register('slow', () => new Promise(() => {}));
+      const result = emailHooks.onBeforeReply.intercept({});
+      await vi.advanceTimersByTimeAsync(60_000 + 100);
+      expect(await result).toBe(true);
+      expect(onTimeout).toHaveBeenCalledWith('slow');
+    } finally {
+      setHookTimeoutListener(null);
+      consoleSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });

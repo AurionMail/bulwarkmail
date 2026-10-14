@@ -813,7 +813,8 @@
       "remove_background_color": "Achtergrondkleur verwijderen"
     },
     "send_filing_warning": "Verzonden - maar het opruimen daarna is mislukt, mogelijk blijft een oud concept staan.",
-    "pop_out": "Antwoord in een apart venster openen"
+    "pop_out": "Antwoord in een apart venster openen",
+    "send_guard_failed": "Niet verzonden - een plug-in die berichten controleert voor het verzenden is mislukt of reageerde niet."
   },
   "confirm_dialog": {
     "confirm": "Bevestigen",

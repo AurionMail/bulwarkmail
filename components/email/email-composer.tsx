@@ -2623,11 +2623,14 @@ export function EmailComposer({
           .map(a => ({ name: a.name, type: a.type || 'application/octet-stream', size: a.size })),
         inReplyTo: threadingHeaders?.inReplyTo?.[0],
       };
-      const sendAllowed = await emailHooks.onBeforeEmailSend.intercept(sendablePreview);
-      if (!sendAllowed) {
+      const sendCheck = await emailHooks.onBeforeEmailSend.interceptOutcome(sendablePreview);
+      if (sendCheck !== 'allowed') {
         // A plugin vetoed the send (it is expected to show its own UI).
         // Leave a trace so a silent no-op send is diagnosable (#592).
-        debug.log('email', 'Send aborted by an onBeforeEmailSend plugin handler');
+        debug.log('email', `Send stopped by an onBeforeEmailSend plugin handler (${sendCheck})`);
+        // A guard that crashed or never answered showed nothing; say why
+        // the message is still here.
+        if (sendCheck === 'failed') toast.error(t('send_guard_failed'));
         return;
       }
 

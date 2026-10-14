@@ -11,7 +11,7 @@ import {
   keyboardHooks, appLifecycleHooks, accountSecurityHooks,
   sidebarAppHooks, avatarHooks, renderHooks, routerHooks,
   messageListTabHooks,
-  removeAllPluginHooks, pluginErrorTracker,
+  removeAllPluginHooks, pluginErrorTracker, setHookTimeoutListener,
 } from '../plugin-hooks';
 import { useMessageListTabsStore } from '@/stores/message-list-tabs-store';
 import { verifyBundle } from './bundle-integrity';
@@ -262,6 +262,7 @@ export function deactivateAllSandboxed(): void {
 // ─── Auto-disable ─────────────────────────────────────────────
 
 export function setupSandboxAutoDisable(): void {
+  setHookTimeoutListener((pluginId) => cancelPluginDialogs(pluginId));
   pluginErrorTracker.setAutoDisableCallback((pluginId) => {
     unloadSandboxedPlugin(pluginId);
     storeAccessor?.setPluginStatus(pluginId, 'error', 'Auto-disabled due to repeated errors');

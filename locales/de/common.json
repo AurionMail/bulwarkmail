@@ -813,7 +813,8 @@
       "remove_background_color": "Hintergrundfarbe entfernen"
     },
     "send_filing_warning": "Gesendet - aber das Aufräumen danach schlug fehl, evtl. bleibt ein alter Entwurf sichtbar.",
-    "pop_out": "Antwort in eigenem Fenster öffnen"
+    "pop_out": "Antwort in eigenem Fenster öffnen",
+    "send_guard_failed": "Nicht gesendet - ein Plugin, das Nachrichten vor dem Senden prüft, ist fehlgeschlagen oder hat nicht geantwortet."
   },
   "confirm_dialog": {
     "confirm": "Bestätigen",

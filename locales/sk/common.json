@@ -813,7 +813,8 @@
       "remove_background_color": "Odstrániť farbu pozadia"
     },
     "send_filing_warning": "Odoslané - ale následné upratovanie zlyhalo, môže zostať zastaraný koncept.",
-    "pop_out": "Otvoriť odpoveď v okne"
+    "pop_out": "Otvoriť odpoveď v okne",
+    "send_guard_failed": "Neodoslané - doplnok, ktorý kontroluje správy pred odoslaním, zlyhal alebo neodpovedal."
   },
   "confirm_dialog": {
     "confirm": "Potvrdiť",

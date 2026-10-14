@@ -813,7 +813,8 @@
       "remove_background_color": "Rimuovi colore di sfondo"
     },
     "send_filing_warning": "Inviato - ma la pulizia successiva non è riuscita, potrebbe restare una bozza obsoleta.",
-    "pop_out": "Apri la risposta in una finestra"
+    "pop_out": "Apri la risposta in una finestra",
+    "send_guard_failed": "Non inviato - un plugin che controlla i messaggi prima dell'invio non è riuscito o non ha risposto."
   },
   "confirm_dialog": {
     "confirm": "Conferma",

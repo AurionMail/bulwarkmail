@@ -813,7 +813,8 @@
       "remove_background_color": "Usuń kolor tła"
     },
     "send_filing_warning": "Wysłano - ale późniejsze porządkowanie nie powiodło się, może pozostać nieaktualna wersja robocza.",
-    "pop_out": "Otwórz odpowiedź w oknie"
+    "pop_out": "Otwórz odpowiedź w oknie",
+    "send_guard_failed": "Nie wysłano - wtyczka sprawdzająca wiadomości przed wysłaniem zawiodła lub nie odpowiedziała."
   },
   "confirm_dialog": {
     "confirm": "Potwierdź",

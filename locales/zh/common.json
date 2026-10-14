@@ -813,7 +813,8 @@
       "remove_background_color": "移除背景颜色"
     },
     "send_filing_warning": "已发送，但发送后的清理失败，可能会残留旧草稿。",
-    "pop_out": "在单独窗口中打开回复"
+    "pop_out": "在单独窗口中打开回复",
+    "send_guard_failed": "未发送 - 发送前检查邮件的插件出错或没有响应。"
   },
   "confirm_dialog": {
     "confirm": "确认",

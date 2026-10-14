@@ -813,7 +813,8 @@
       "remove_background_color": "Odebrat barvu pozadí"
     },
     "send_filing_warning": "Odesláno - ale následný úklid selhal, může zůstat zastaralý koncept.",
-    "pop_out": "Otevřít odpověď v okně"
+    "pop_out": "Otevřít odpověď v okně",
+    "send_guard_failed": "Neodesláno - plugin, který kontroluje zprávy před odesláním, selhal nebo neodpověděl."
   },
   "confirm_dialog": {
     "confirm": "Potvrdit",

@@ -813,7 +813,8 @@
       "remove_background_color": "Elimina el color de fons"
     },
     "send_filing_warning": "Enviat, però la neteja posterior a l'enviament ha fallat; és possible que quedi un esborrany obsolet.",
-    "pop_out": "Obre la resposta en una finestra"
+    "pop_out": "Obre la resposta en una finestra",
+    "send_guard_failed": "No s'ha enviat: un connector que revisa els missatges abans d'enviar-los ha fallat o no ha respost."
   },
   "confirm_dialog": {
     "confirm": "Confirma",
