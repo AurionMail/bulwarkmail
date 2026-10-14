@@ -22,6 +22,8 @@ vi.mock('@/components/plugins/plugin-slot', () => ({
     (propsSeen[name] ??= []).push(extraProps);
     useEffect(() => {
       mounts[name] = (mounts[name] ?? 0) + 1;
+      // Runs once per mount on purpose: that is what the test counts.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     return React.createElement('div', { 'data-slot': name });
   },
