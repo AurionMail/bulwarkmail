@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Este complemento se instaló antes de que se exigiera aprobación. Elimínalo e instálalo de nuevo para enviarlo a aprobación.",
       "error_approval_denied": "Tu administrador no aprobó este complemento.",
       "error_approval_pending": "Esperando a que tu administrador apruebe este complemento.",
-      "error_auto_disabled": "Desactivado porque fallaba una y otra vez. Actívalo de nuevo para volver a intentarlo."
+      "error_auto_disabled": "Desactivado porque fallaba una y otra vez. Actívalo de nuevo para volver a intentarlo.",
+      "accounts_heading": "Cuentas conectadas",
+      "account_on": "{label} en {host}",
+      "account_waiting": "{label} en {host} (inicio de sesión sin terminar)",
+      "disconnect": "Desconectar",
+      "disconnect_failed": "No se pudo desconectar {label}"
     },
     "consent": {
       "title": "¿Permitir que {name} haga esto?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Desactivar {name}",
       "password_note": "Este formulario viene del complemento {name}, no del correo web. Introduce una contraseña solo si confías en este complemento.",
       "toast_auto_disabled": "{name} se desactivó porque fallaba una y otra vez."
+    },
+    "connect": {
+      "title": "Conectar {label}",
+      "intro_password": "{name} quiere usar tu cuenta de {label}. Bulwark guarda la contraseña en su servidor y solo la envía a {host}. El complemento nunca la ve.",
+      "intro_password_any": "{name} quiere usar tu cuenta de {label}. Bulwark guarda la contraseña en su servidor y solo la envía al servidor que indiques aquí. El complemento nunca la ve.",
+      "intro_signin": "{name} quiere iniciar sesión en tu cuenta de {label}. Indica aquí el servidor y luego inicia sesión en su propia página. Bulwark guarda en su servidor el acceso que obtiene; el complemento nunca lo ve.",
+      "server": "Dirección del servidor",
+      "server_hint": "cloud.example.com",
+      "username": "Nombre de usuario",
+      "secret": "Contraseña o clave",
+      "connect": "Conectar",
+      "continue": "Continuar",
+      "cancel": "Cancelar",
+      "saving": "Guardando…",
+      "error_server": "Indica la dirección del servidor, por ejemplo https://cloud.example.com",
+      "error_save": "No se pudo guardar: {error}"
     }
   },
   "global_search": {

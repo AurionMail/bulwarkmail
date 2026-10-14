@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "此外掛程式是在需要核准之前安裝的。請移除後重新安裝，以送交核准。",
       "error_approval_denied": "管理員未核准此外掛程式。",
       "error_approval_pending": "正在等待管理員核准此外掛程式。",
-      "error_auto_disabled": "由於反覆出錯已關閉。重新開啟即可再試一次。"
+      "error_auto_disabled": "由於反覆出錯已關閉。重新開啟即可再試一次。",
+      "accounts_heading": "已連線的帳號",
+      "account_on": "{host} 上的 {label}",
+      "account_waiting": "{host} 上的 {label}（尚未完成登入）",
+      "disconnect": "中斷連線",
+      "disconnect_failed": "無法中斷 {label} 的連線"
     },
     "consent": {
       "title": "要允許 {name} 執行這些動作嗎？",
@@ -4255,6 +4260,22 @@
       "turn_off": "關閉 {name}",
       "password_note": "此表單來自外掛程式 {name}，而不是網頁郵件。只有在您信任此外掛程式時才輸入密碼。",
       "toast_auto_disabled": "{name} 因反覆出錯已被關閉。"
+    },
+    "connect": {
+      "title": "連線至 {label}",
+      "intro_password": "{name} 想使用您的 {label} 帳號。Bulwark 會將密碼保存在自己的伺服器上，只會傳送給 {host}。外掛程式永遠看不到密碼。",
+      "intro_password_any": "{name} 想使用您的 {label} 帳號。Bulwark 會將密碼保存在自己的伺服器上，只會傳送給您在此輸入的伺服器。外掛程式永遠看不到密碼。",
+      "intro_signin": "{name} 想登入您的 {label} 帳號。請在此輸入伺服器，然後在該伺服器自己的頁面上登入。Bulwark 會將取得的存取權保存在自己的伺服器上；外掛程式永遠看不到它。",
+      "server": "伺服器位址",
+      "server_hint": "cloud.example.com",
+      "username": "使用者名稱",
+      "secret": "密碼或金鑰",
+      "connect": "連線",
+      "continue": "繼續",
+      "cancel": "取消",
+      "saving": "正在儲存…",
+      "error_server": "請輸入伺服器位址，例如 https://cloud.example.com",
+      "error_save": "無法儲存：{error}"
     }
   },
   "global_search": {

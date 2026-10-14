@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Dette plugin blev installeret, før godkendelse var påkrævet. Fjern det, og installer det igen for at sende det til godkendelse.",
       "error_approval_denied": "Din administrator har ikke godkendt dette plugin.",
       "error_approval_pending": "Venter på, at din administrator godkender dette plugin.",
-      "error_auto_disabled": "Slået fra, fordi det blev ved med at fejle. Slå det til igen for at prøve igen."
+      "error_auto_disabled": "Slået fra, fordi det blev ved med at fejle. Slå det til igen for at prøve igen.",
+      "accounts_heading": "Forbundne konti",
+      "account_on": "{label} på {host}",
+      "account_waiting": "{label} på {host} (login ikke afsluttet)",
+      "disconnect": "Afbryd forbindelse",
+      "disconnect_failed": "Kunne ikke afbryde forbindelsen til {label}"
     },
     "consent": {
       "title": "Vil du tillade {name} at gøre dette?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Slå {name} fra",
       "password_note": "Denne formular kommer fra pluginet {name}, ikke fra webmailen. Indtast kun en adgangskode, hvis du stoler på dette plugin.",
       "toast_auto_disabled": "{name} blev slået fra, fordi det blev ved med at fejle."
+    },
+    "connect": {
+      "title": "Forbind {label}",
+      "intro_password": "{name} vil bruge din konto hos {label}. Bulwark gemmer adgangskoden på sin server og sender den kun til {host}. Pluginnet ser den aldrig.",
+      "intro_password_any": "{name} vil bruge din konto hos {label}. Bulwark gemmer adgangskoden på sin server og sender den kun til den server, du angiver her. Pluginnet ser den aldrig.",
+      "intro_signin": "{name} vil logge ind på din konto hos {label}. Angiv serveren her, og log derefter ind på serverens egen side. Bulwark gemmer den adgang, det får, på sin server; pluginnet ser den aldrig.",
+      "server": "Serveradresse",
+      "server_hint": "cloud.example.com",
+      "username": "Brugernavn",
+      "secret": "Adgangskode eller nøgle",
+      "connect": "Forbind",
+      "continue": "Fortsæt",
+      "cancel": "Annuller",
+      "saving": "Gemmer…",
+      "error_server": "Angiv serverens adresse, for eksempel https://cloud.example.com",
+      "error_save": "Kunne ikke gemme: {error}"
     }
   },
   "global_search": {

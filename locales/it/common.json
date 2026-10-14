@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Questo plugin è stato installato prima che fosse richiesta l'approvazione. Rimuovilo e installalo di nuovo per inviarlo in approvazione.",
       "error_approval_denied": "Il tuo amministratore non ha approvato questo plugin.",
       "error_approval_pending": "In attesa che il tuo amministratore approvi questo plugin.",
-      "error_auto_disabled": "Disattivato perché continuava a non funzionare. Riattivalo per riprovare."
+      "error_auto_disabled": "Disattivato perché continuava a non funzionare. Riattivalo per riprovare.",
+      "accounts_heading": "Account collegati",
+      "account_on": "{label} su {host}",
+      "account_waiting": "{label} su {host} (accesso non completato)",
+      "disconnect": "Disconnetti",
+      "disconnect_failed": "Impossibile disconnettere {label}"
     },
     "consent": {
       "title": "Consentire a {name} di fare questo?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Disattiva {name}",
       "password_note": "Questo modulo proviene dal plugin {name}, non dalla webmail. Inserisci una password solo se ti fidi di questo plugin.",
       "toast_auto_disabled": "{name} è stato disattivato perché continuava a non funzionare."
+    },
+    "connect": {
+      "title": "Connetti {label}",
+      "intro_password": "{name} vuole usare il tuo account {label}. Bulwark conserva la password sul proprio server e la invia solo a {host}. Il plugin non la vede mai.",
+      "intro_password_any": "{name} vuole usare il tuo account {label}. Bulwark conserva la password sul proprio server e la invia solo al server che inserisci qui. Il plugin non la vede mai.",
+      "intro_signin": "{name} vuole accedere al tuo account {label}. Inserisci qui il server, poi accedi sulla sua pagina. Bulwark conserva sul proprio server l'accesso ottenuto; il plugin non lo vede mai.",
+      "server": "Indirizzo del server",
+      "server_hint": "cloud.example.com",
+      "username": "Nome utente",
+      "secret": "Password o chiave",
+      "connect": "Connetti",
+      "continue": "Continua",
+      "cancel": "Annulla",
+      "saving": "Salvataggio…",
+      "error_server": "Inserisci l'indirizzo del server, ad esempio https://cloud.example.com",
+      "error_save": "Impossibile salvare: {error}"
     }
   },
   "global_search": {

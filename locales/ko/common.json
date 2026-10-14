@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "이 플러그인은 승인이 필요해지기 전에 설치되었어요. 승인을 요청하려면 삭제한 뒤 다시 설치하세요.",
       "error_approval_denied": "관리자가 이 플러그인을 승인하지 않았어요.",
       "error_approval_pending": "관리자가 이 플러그인을 승인하기를 기다리고 있어요.",
-      "error_auto_disabled": "계속 실패해서 꺼졌습니다. 다시 시도하려면 다시 켜세요."
+      "error_auto_disabled": "계속 실패해서 꺼졌습니다. 다시 시도하려면 다시 켜세요.",
+      "accounts_heading": "연결된 계정",
+      "account_on": "{host}의 {label}",
+      "account_waiting": "{host}의 {label} (로그인 미완료)",
+      "disconnect": "연결 해제",
+      "disconnect_failed": "{label} 연결을 해제하지 못했어요"
     },
     "consent": {
       "title": "{name}에 이 권한을 허용할까요?",
@@ -4255,6 +4260,22 @@
       "turn_off": "{name} 끄기",
       "password_note": "이 양식은 웹메일이 아니라 플러그인 {name}에서 표시한 것입니다. 이 플러그인을 신뢰할 때만 비밀번호를 입력하세요.",
       "toast_auto_disabled": "{name}이(가) 계속 실패해서 꺼졌습니다."
+    },
+    "connect": {
+      "title": "{label} 연결",
+      "intro_password": "{name}이(가) {label} 계정을 사용하려고 해요. Bulwark는 비밀번호를 자체 서버에 보관하고 {host}에만 보내요. 플러그인은 비밀번호를 볼 수 없어요.",
+      "intro_password_any": "{name}이(가) {label} 계정을 사용하려고 해요. Bulwark는 비밀번호를 자체 서버에 보관하고 여기에 입력한 서버에만 보내요. 플러그인은 비밀번호를 볼 수 없어요.",
+      "intro_signin": "{name}이(가) {label} 계정에 로그인하려고 해요. 여기에 서버를 입력한 다음 해당 서버의 페이지에서 로그인하세요. Bulwark는 받은 접근 권한을 자체 서버에 보관하며, 플러그인은 이를 볼 수 없어요.",
+      "server": "서버 주소",
+      "server_hint": "cloud.example.com",
+      "username": "사용자 이름",
+      "secret": "비밀번호 또는 키",
+      "connect": "연결",
+      "continue": "계속",
+      "cancel": "취소",
+      "saving": "저장하는 중…",
+      "error_server": "서버 주소를 입력하세요. 예: https://cloud.example.com",
+      "error_save": "저장하지 못했어요: {error}"
     }
   },
   "global_search": {

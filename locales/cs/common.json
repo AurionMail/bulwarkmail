@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Tento plugin byl nainstalován dříve, než bylo vyžadováno schválení. Odstraňte ho a nainstalujte znovu, aby se odeslal ke schválení.",
       "error_approval_denied": "Váš správce tento plugin neschválil.",
       "error_approval_pending": "Čeká se, až správce tento plugin schválí.",
-      "error_auto_disabled": "Vypnuto, protože opakovaně selhávalo. Zapněte ho znovu a zkuste to znovu."
+      "error_auto_disabled": "Vypnuto, protože opakovaně selhávalo. Zapněte ho znovu a zkuste to znovu.",
+      "accounts_heading": "Připojené účty",
+      "account_on": "{label} na {host}",
+      "account_waiting": "{label} na {host} (přihlášení nedokončeno)",
+      "disconnect": "Odpojit",
+      "disconnect_failed": "{label} se nepodařilo odpojit"
     },
     "consent": {
       "title": "Povolit pluginu {name} tyto akce?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Vypnout {name}",
       "password_note": "Tento formulář pochází z pluginu {name}, ne z webmailu. Heslo zadejte jen tehdy, když tomuto pluginu důvěřujete.",
       "toast_auto_disabled": "{name} byl vypnut, protože opakovaně selhával."
+    },
+    "connect": {
+      "title": "Připojit {label}",
+      "intro_password": "{name} chce používat váš účet {label}. Bulwark uchovává heslo na svém serveru a posílá ho jen na {host}. Plugin ho nikdy nevidí.",
+      "intro_password_any": "{name} chce používat váš účet {label}. Bulwark uchovává heslo na svém serveru a posílá ho jen na server, který zde zadáte. Plugin ho nikdy nevidí.",
+      "intro_signin": "{name} se chce přihlásit k vašemu účtu {label}. Zadejte zde server a pak se přihlaste na jeho vlastní stránce. Bulwark uchovává získaný přístup na svém serveru; plugin ho nikdy nevidí.",
+      "server": "Adresa serveru",
+      "server_hint": "cloud.example.com",
+      "username": "Uživatelské jméno",
+      "secret": "Heslo nebo klíč",
+      "connect": "Připojit",
+      "continue": "Pokračovat",
+      "cancel": "Zrušit",
+      "saving": "Ukládání…",
+      "error_server": "Zadejte adresu serveru, například https://cloud.example.com",
+      "error_save": "Uložení se nezdařilo: {error}"
     }
   },
   "global_search": {

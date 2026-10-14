@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Ta wtyczka została zainstalowana, zanim wprowadzono zatwierdzanie. Usuń ją i zainstaluj ponownie, aby wysłać ją do zatwierdzenia.",
       "error_approval_denied": "Administrator nie zatwierdził tej wtyczki.",
       "error_approval_pending": "Czeka na zatwierdzenie przez administratora.",
-      "error_auto_disabled": "Wyłączono, bo wielokrotnie zawodziło. Włącz ponownie, aby spróbować jeszcze raz."
+      "error_auto_disabled": "Wyłączono, bo wielokrotnie zawodziło. Włącz ponownie, aby spróbować jeszcze raz.",
+      "accounts_heading": "Połączone konta",
+      "account_on": "{label} na {host}",
+      "account_waiting": "{label} na {host} (logowanie niedokończone)",
+      "disconnect": "Rozłącz",
+      "disconnect_failed": "Nie udało się rozłączyć {label}"
     },
     "consent": {
       "title": "Zezwolić wtyczce {name} na te działania?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Wyłącz {name}",
       "password_note": "Ten formularz pochodzi z wtyczki {name}, a nie z poczty. Wpisz hasło tylko wtedy, gdy ufasz tej wtyczce.",
       "toast_auto_disabled": "{name} wyłączono, bo wielokrotnie zawodziło."
+    },
+    "connect": {
+      "title": "Połącz z {label}",
+      "intro_password": "{name} chce używać Twojego konta {label}. Bulwark przechowuje hasło na swoim serwerze i wysyła je tylko do {host}. Wtyczka nigdy go nie widzi.",
+      "intro_password_any": "{name} chce używać Twojego konta {label}. Bulwark przechowuje hasło na swoim serwerze i wysyła je tylko do serwera, który tu wpiszesz. Wtyczka nigdy go nie widzi.",
+      "intro_signin": "{name} chce zalogować się na Twoje konto {label}. Wpisz tu serwer, a potem zaloguj się na jego stronie. Bulwark przechowuje uzyskany dostęp na swoim serwerze; wtyczka nigdy go nie widzi.",
+      "server": "Adres serwera",
+      "server_hint": "cloud.example.com",
+      "username": "Nazwa użytkownika",
+      "secret": "Hasło lub klucz",
+      "connect": "Połącz",
+      "continue": "Dalej",
+      "cancel": "Anuluj",
+      "saving": "Zapisywanie…",
+      "error_server": "Wpisz adres serwera, na przykład https://cloud.example.com",
+      "error_save": "Nie udało się zapisać: {error}"
     }
   },
   "global_search": {

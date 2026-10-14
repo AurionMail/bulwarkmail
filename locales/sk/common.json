@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Tento doplnok bol nainštalovaný skôr, než sa vyžadovalo schválenie. Odstráňte ho a nainštalujte znova, aby sa odoslal na schválenie.",
       "error_approval_denied": "Váš správca tento doplnok neschválil.",
       "error_approval_pending": "Čaká sa, kým správca tento doplnok schváli.",
-      "error_auto_disabled": "Vypnuté, pretože opakovane zlyhávalo. Zapnite ho znova a skúste to znova."
+      "error_auto_disabled": "Vypnuté, pretože opakovane zlyhávalo. Zapnite ho znova a skúste to znova.",
+      "accounts_heading": "Pripojené účty",
+      "account_on": "{label} na {host}",
+      "account_waiting": "{label} na {host} (prihlásenie nedokončené)",
+      "disconnect": "Odpojiť",
+      "disconnect_failed": "{label} sa nepodarilo odpojiť"
     },
     "consent": {
       "title": "Povoliť doplnku {name} tieto akcie?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Vypnúť {name}",
       "password_note": "Tento formulár pochádza z doplnku {name}, nie z webmailu. Heslo zadajte, len ak tomuto doplnku dôverujete.",
       "toast_auto_disabled": "{name} bol vypnutý, pretože opakovane zlyhával."
+    },
+    "connect": {
+      "title": "Pripojiť {label}",
+      "intro_password": "{name} chce používať váš účet {label}. Bulwark uchováva heslo na svojom serveri a posiela ho len na {host}. Doplnok ho nikdy nevidí.",
+      "intro_password_any": "{name} chce používať váš účet {label}. Bulwark uchováva heslo na svojom serveri a posiela ho len na server, ktorý tu zadáte. Doplnok ho nikdy nevidí.",
+      "intro_signin": "{name} sa chce prihlásiť do vášho účtu {label}. Zadajte tu server a potom sa prihláste na jeho vlastnej stránke. Bulwark uchováva získaný prístup na svojom serveri; doplnok ho nikdy nevidí.",
+      "server": "Adresa servera",
+      "server_hint": "cloud.example.com",
+      "username": "Používateľské meno",
+      "secret": "Heslo alebo kľúč",
+      "connect": "Pripojiť",
+      "continue": "Pokračovať",
+      "cancel": "Zrušiť",
+      "saving": "Ukladá sa…",
+      "error_server": "Zadajte adresu servera, napríklad https://cloud.example.com",
+      "error_save": "Uloženie zlyhalo: {error}"
     }
   },
   "global_search": {

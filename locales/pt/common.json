@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Este plugin foi instalado antes de as aprovações serem exigidas. Remova-o e instale-o novamente para enviá-lo para aprovação.",
       "error_approval_denied": "Seu administrador não aprovou este plugin.",
       "error_approval_pending": "Aguardando o seu administrador aprovar este plugin.",
-      "error_auto_disabled": "Desativado porque falhava repetidamente. Ative-o de novo para tentar outra vez."
+      "error_auto_disabled": "Desativado porque falhava repetidamente. Ative-o de novo para tentar outra vez.",
+      "accounts_heading": "Contas conectadas",
+      "account_on": "{label} em {host}",
+      "account_waiting": "{label} em {host} (login não concluído)",
+      "disconnect": "Desconectar",
+      "disconnect_failed": "Não foi possível desconectar {label}"
     },
     "consent": {
       "title": "Permitir que {name} faça isto?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Desativar {name}",
       "password_note": "Este formulário vem do plugin {name}, não do webmail. Só introduza uma palavra-passe se confiar neste plugin.",
       "toast_auto_disabled": "{name} foi desativado porque falhava repetidamente."
+    },
+    "connect": {
+      "title": "Conectar {label}",
+      "intro_password": "{name} quer usar sua conta {label}. O Bulwark guarda a senha no servidor dele e só a envia para {host}. O plugin nunca a vê.",
+      "intro_password_any": "{name} quer usar sua conta {label}. O Bulwark guarda a senha no servidor dele e só a envia para o servidor que você informar aqui. O plugin nunca a vê.",
+      "intro_signin": "{name} quer entrar na sua conta {label}. Informe o servidor aqui e depois entre na página dele. O Bulwark guarda no servidor dele o acesso que recebe; o plugin nunca o vê.",
+      "server": "Endereço do servidor",
+      "server_hint": "cloud.example.com",
+      "username": "Nome de usuário",
+      "secret": "Senha ou chave",
+      "connect": "Conectar",
+      "continue": "Continuar",
+      "cancel": "Cancelar",
+      "saving": "Salvando…",
+      "error_server": "Informe o endereço do servidor, por exemplo https://cloud.example.com",
+      "error_save": "Não foi possível salvar: {error}"
     }
   },
   "global_search": {

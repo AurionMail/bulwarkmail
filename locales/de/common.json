@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Dieses Plugin wurde installiert, bevor eine Freigabe nötig war. Entfernen Sie es und installieren Sie es erneut, um es zur Freigabe vorzulegen.",
       "error_approval_denied": "Ihr Administrator hat dieses Plugin nicht freigegeben.",
       "error_approval_pending": "Wartet darauf, dass Ihr Administrator dieses Plugin freigibt.",
-      "error_auto_disabled": "Ausgeschaltet, weil es wiederholt fehlgeschlagen ist. Schalten Sie es wieder ein, um es erneut zu versuchen."
+      "error_auto_disabled": "Ausgeschaltet, weil es wiederholt fehlgeschlagen ist. Schalten Sie es wieder ein, um es erneut zu versuchen.",
+      "accounts_heading": "Verbundene Konten",
+      "account_on": "{label} auf {host}",
+      "account_waiting": "{label} auf {host} (Anmeldung nicht abgeschlossen)",
+      "disconnect": "Trennen",
+      "disconnect_failed": "{label} konnte nicht getrennt werden"
     },
     "consent": {
       "title": "{name} Folgendes erlauben?",
@@ -4255,6 +4260,22 @@
       "turn_off": "{name} ausschalten",
       "password_note": "Dieses Formular stammt vom Plugin {name}, nicht vom Webmail. Geben Sie ein Passwort nur ein, wenn Sie diesem Plugin vertrauen.",
       "toast_auto_disabled": "{name} wurde ausgeschaltet, weil es wiederholt fehlgeschlagen ist."
+    },
+    "connect": {
+      "title": "{label} verbinden",
+      "intro_password": "{name} möchte Ihr Konto bei {label} verwenden. Bulwark speichert das Passwort auf seinem Server und sendet es nur an {host}. Das Plugin sieht es nie.",
+      "intro_password_any": "{name} möchte Ihr Konto bei {label} verwenden. Bulwark speichert das Passwort auf seinem Server und sendet es nur an den Server, den Sie hier eingeben. Das Plugin sieht es nie.",
+      "intro_signin": "{name} möchte sich bei Ihrem Konto bei {label} anmelden. Geben Sie hier den Server ein und melden Sie sich dann auf dessen eigener Seite an. Bulwark speichert den erhaltenen Zugang auf seinem Server; das Plugin sieht ihn nie.",
+      "server": "Serveradresse",
+      "server_hint": "cloud.example.com",
+      "username": "Benutzername",
+      "secret": "Passwort oder Schlüssel",
+      "connect": "Verbinden",
+      "continue": "Weiter",
+      "cancel": "Abbrechen",
+      "saving": "Wird gespeichert…",
+      "error_server": "Geben Sie die Adresse des Servers ein, zum Beispiel https://cloud.example.com",
+      "error_save": "Speichern fehlgeschlagen: {error}"
     }
   },
   "global_search": {

@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Acest plugin a fost instalat înainte ca aprobările să fie obligatorii. Eliminați-l și instalați-l din nou pentru a-l trimite spre aprobare.",
       "error_approval_denied": "Administratorul dvs. nu a aprobat acest plugin.",
       "error_approval_pending": "Se așteaptă ca administratorul să aprobe acest plugin.",
-      "error_auto_disabled": "Dezactivat pentru că a eșuat în mod repetat. Activați-l din nou pentru a reîncerca."
+      "error_auto_disabled": "Dezactivat pentru că a eșuat în mod repetat. Activați-l din nou pentru a reîncerca.",
+      "accounts_heading": "Conturi conectate",
+      "account_on": "{label} pe {host}",
+      "account_waiting": "{label} pe {host} (conectare neterminată)",
+      "disconnect": "Deconectați",
+      "disconnect_failed": "{label} nu a putut fi deconectat"
     },
     "consent": {
       "title": "Permiteți ca {name} să facă acest lucru?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Dezactivează {name}",
       "password_note": "Acest formular vine de la pluginul {name}, nu de la webmail. Introduceți o parolă doar dacă aveți încredere în acest plugin.",
       "toast_auto_disabled": "{name} a fost dezactivat pentru că a eșuat în mod repetat."
+    },
+    "connect": {
+      "title": "Conectați {label}",
+      "intro_password": "{name} vrea să folosească contul dvs. {label}. Bulwark păstrează parola pe serverul său și o trimite doar către {host}. Pluginul nu o vede niciodată.",
+      "intro_password_any": "{name} vrea să folosească contul dvs. {label}. Bulwark păstrează parola pe serverul său și o trimite doar către serverul pe care îl introduceți aici. Pluginul nu o vede niciodată.",
+      "intro_signin": "{name} vrea să se conecteze la contul dvs. {label}. Introduceți aici serverul, apoi conectați-vă pe pagina acestuia. Bulwark păstrează pe serverul său accesul obținut; pluginul nu îl vede niciodată.",
+      "server": "Adresa serverului",
+      "server_hint": "cloud.example.com",
+      "username": "Nume de utilizator",
+      "secret": "Parolă sau cheie",
+      "connect": "Conectați",
+      "continue": "Continuați",
+      "cancel": "Anulați",
+      "saving": "Se salvează…",
+      "error_server": "Introduceți adresa serverului, de exemplu https://cloud.example.com",
+      "error_save": "Nu s-a putut salva: {error}"
     }
   },
   "global_search": {

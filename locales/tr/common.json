@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Bu eklenti, onay zorunlu olmadan önce yüklendi. Onaya göndermek için kaldırıp yeniden yükleyin.",
       "error_approval_denied": "Yöneticiniz bu eklentiyi onaylamadı.",
       "error_approval_pending": "Bu eklentinin yöneticiniz tarafından onaylanması bekleniyor.",
-      "error_auto_disabled": "Sürekli hata verdiği için kapatıldı. Yeniden denemek için tekrar açın."
+      "error_auto_disabled": "Sürekli hata verdiği için kapatıldı. Yeniden denemek için tekrar açın.",
+      "accounts_heading": "Bağlı hesaplar",
+      "account_on": "{host} üzerinde {label}",
+      "account_waiting": "{host} üzerinde {label} (giriş tamamlanmadı)",
+      "disconnect": "Bağlantıyı kes",
+      "disconnect_failed": "{label} bağlantısı kesilemedi"
     },
     "consent": {
       "title": "{name} eklentisine bu izin verilsin mi?",
@@ -4255,6 +4260,22 @@
       "turn_off": "{name} eklentisini kapat",
       "password_note": "Bu form web postasından değil, {name} eklentisinden geliyor. Yalnızca bu eklentiye güveniyorsanız parola girin.",
       "toast_auto_disabled": "{name} sürekli hata verdiği için kapatıldı."
+    },
+    "connect": {
+      "title": "{label} hesabını bağla",
+      "intro_password": "{name}, {label} hesabınızı kullanmak istiyor. Bulwark parolayı kendi sunucusunda saklar ve yalnızca {host} adresine gönderir. Eklenti parolayı hiçbir zaman görmez.",
+      "intro_password_any": "{name}, {label} hesabınızı kullanmak istiyor. Bulwark parolayı kendi sunucusunda saklar ve yalnızca burada girdiğiniz sunucuya gönderir. Eklenti parolayı hiçbir zaman görmez.",
+      "intro_signin": "{name}, {label} hesabınıza giriş yapmak istiyor. Sunucuyu buraya girin, ardından sunucunun kendi sayfasında giriş yapın. Bulwark aldığı erişimi kendi sunucusunda saklar; eklenti bunu hiçbir zaman görmez.",
+      "server": "Sunucu adresi",
+      "server_hint": "cloud.example.com",
+      "username": "Kullanıcı adı",
+      "secret": "Parola veya anahtar",
+      "connect": "Bağla",
+      "continue": "Devam",
+      "cancel": "İptal",
+      "saving": "Kaydediliyor…",
+      "error_server": "Sunucunun adresini girin, örneğin https://cloud.example.com",
+      "error_save": "Kaydedilemedi: {error}"
     }
   },
   "global_search": {

@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Dette tillegget ble installert før godkjenning ble påkrevd. Fjern det og installer det på nytt for å sende det til godkjenning.",
       "error_approval_denied": "Administratoren din godkjente ikke dette tillegget.",
       "error_approval_pending": "Venter på at administratoren din skal godkjenne dette tillegget.",
-      "error_auto_disabled": "Slått av fordi det feilet gjentatte ganger. Slå det på igjen for å prøve på nytt."
+      "error_auto_disabled": "Slått av fordi det feilet gjentatte ganger. Slå det på igjen for å prøve på nytt.",
+      "accounts_heading": "Tilkoblede kontoer",
+      "account_on": "{label} på {host}",
+      "account_waiting": "{label} på {host} (pålogging ikke fullført)",
+      "disconnect": "Koble fra",
+      "disconnect_failed": "Kunne ikke koble fra {label}"
     },
     "consent": {
       "title": "Vil du la {name} gjøre dette?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Slå av {name}",
       "password_note": "Dette skjemaet kommer fra tillegget {name}, ikke fra webmailen. Skriv bare inn et passord hvis du stoler på dette tillegget.",
       "toast_auto_disabled": "{name} ble slått av fordi det feilet gjentatte ganger."
+    },
+    "connect": {
+      "title": "Koble til {label}",
+      "intro_password": "{name} vil bruke kontoen din hos {label}. Bulwark lagrer passordet på sin server og sender det bare til {host}. Tillegget ser det aldri.",
+      "intro_password_any": "{name} vil bruke kontoen din hos {label}. Bulwark lagrer passordet på sin server og sender det bare til serveren du skriver inn her. Tillegget ser det aldri.",
+      "intro_signin": "{name} vil logge på kontoen din hos {label}. Skriv inn serveren her, og logg deretter på via serverens egen side. Bulwark lagrer tilgangen det får, på sin server; tillegget ser den aldri.",
+      "server": "Serveradresse",
+      "server_hint": "cloud.example.com",
+      "username": "Brukernavn",
+      "secret": "Passord eller nøkkel",
+      "connect": "Koble til",
+      "continue": "Fortsett",
+      "cancel": "Avbryt",
+      "saving": "Lagrer…",
+      "error_server": "Skriv inn adressen til serveren, for eksempel https://cloud.example.com",
+      "error_save": "Kunne ikke lagre: {error}"
     }
   },
   "global_search": {

@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Ce plugin a été installé avant que l'approbation soit requise. Supprimez-le et réinstallez-le pour l'envoyer en approbation.",
       "error_approval_denied": "Votre administrateur n'a pas approuvé ce plugin.",
       "error_approval_pending": "En attente de l'approbation de ce plugin par votre administrateur.",
-      "error_auto_disabled": "Désactivé parce qu'il échouait sans cesse. Réactivez-le pour réessayer."
+      "error_auto_disabled": "Désactivé parce qu'il échouait sans cesse. Réactivez-le pour réessayer.",
+      "accounts_heading": "Comptes connectés",
+      "account_on": "{label} sur {host}",
+      "account_waiting": "{label} sur {host} (connexion non terminée)",
+      "disconnect": "Déconnecter",
+      "disconnect_failed": "Impossible de déconnecter {label}"
     },
     "consent": {
       "title": "Autoriser {name} à faire ceci ?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Désactiver {name}",
       "password_note": "Ce formulaire provient du plugin {name}, pas du webmail. Ne saisissez un mot de passe que si vous faites confiance à ce plugin.",
       "toast_auto_disabled": "{name} a été désactivé parce qu'il échouait sans cesse."
+    },
+    "connect": {
+      "title": "Connecter {label}",
+      "intro_password": "{name} souhaite utiliser votre compte {label}. Bulwark garde le mot de passe sur son serveur et ne l'envoie qu'à {host}. Le plugin ne le voit jamais.",
+      "intro_password_any": "{name} souhaite utiliser votre compte {label}. Bulwark garde le mot de passe sur son serveur et ne l'envoie qu'au serveur que vous saisissez ici. Le plugin ne le voit jamais.",
+      "intro_signin": "{name} souhaite se connecter à votre compte {label}. Saisissez le serveur ici, puis connectez-vous sur sa propre page. Bulwark garde l'accès obtenu sur son serveur ; le plugin ne le voit jamais.",
+      "server": "Adresse du serveur",
+      "server_hint": "cloud.example.com",
+      "username": "Nom d'utilisateur",
+      "secret": "Mot de passe ou clé",
+      "connect": "Connecter",
+      "continue": "Continuer",
+      "cancel": "Annuler",
+      "saving": "Enregistrement…",
+      "error_server": "Saisissez l'adresse du serveur, par exemple https://cloud.example.com",
+      "error_save": "Impossible d'enregistrer : {error}"
     }
   },
   "global_search": {

@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "此插件是在需要审批之前安装的。请移除后重新安装，以提交审批。",
       "error_approval_denied": "管理员未批准此插件。",
       "error_approval_pending": "正在等待管理员批准此插件。",
-      "error_auto_disabled": "由于反复出错已关闭。重新开启即可再试一次。"
+      "error_auto_disabled": "由于反复出错已关闭。重新开启即可再试一次。",
+      "accounts_heading": "已连接的账户",
+      "account_on": "{host} 上的 {label}",
+      "account_waiting": "{host} 上的 {label}（尚未完成登录）",
+      "disconnect": "断开连接",
+      "disconnect_failed": "无法断开 {label} 的连接"
     },
     "consent": {
       "title": "允许 {name} 执行这些操作？",
@@ -4255,6 +4260,22 @@
       "turn_off": "关闭 {name}",
       "password_note": "此表单来自插件 {name}，而不是网页邮箱。只有在您信任此插件时才输入密码。",
       "toast_auto_disabled": "{name} 因反复出错已被关闭。"
+    },
+    "connect": {
+      "title": "连接 {label}",
+      "intro_password": "{name} 想使用您的 {label} 账户。Bulwark 将密码保存在自己的服务器上，只会发送给 {host}。插件永远看不到密码。",
+      "intro_password_any": "{name} 想使用您的 {label} 账户。Bulwark 将密码保存在自己的服务器上，只会发送给您在此处输入的服务器。插件永远看不到密码。",
+      "intro_signin": "{name} 想登录您的 {label} 账户。请在此处输入服务器，然后在该服务器自己的页面上登录。Bulwark 将获得的访问权限保存在自己的服务器上；插件永远看不到它。",
+      "server": "服务器地址",
+      "server_hint": "cloud.example.com",
+      "username": "用户名",
+      "secret": "密码或密钥",
+      "connect": "连接",
+      "continue": "继续",
+      "cancel": "取消",
+      "saving": "正在保存…",
+      "error_server": "请输入服务器地址，例如 https://cloud.example.com",
+      "error_save": "无法保存：{error}"
     }
   },
   "global_search": {

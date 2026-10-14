@@ -4020,7 +4020,12 @@
       "error_approval_unavailable": "התוסף הזה הותקן לפני שנדרש אישור. הסירו אותו והתקינו אותו מחדש כדי לשלוח אותו לאישור.",
       "error_approval_denied": "מנהל המערכת לא אישר את התוסף הזה.",
       "error_approval_pending": "ממתין לאישור התוסף הזה על ידי מנהל המערכת.",
-      "error_auto_disabled": "כובה כי נכשל שוב ושוב. הפעילו אותו מחדש כדי לנסות שוב."
+      "error_auto_disabled": "כובה כי נכשל שוב ושוב. הפעילו אותו מחדש כדי לנסות שוב.",
+      "accounts_heading": "חשבונות מחוברים",
+      "account_on": "{label} בשרת {host}",
+      "account_waiting": "{label} בשרת {host} (ההתחברות לא הושלמה)",
+      "disconnect": "ניתוק",
+      "disconnect_failed": "לא ניתן לנתק את {label}"
     },
     "consent": {
       "title": "לאפשר ל-{name} לעשות זאת?",
@@ -4256,6 +4261,22 @@
       "turn_off": "כיבוי {name}",
       "password_note": "הטופס הזה מגיע מהתוסף {name}, לא מהדואר האינטרנטי. הזינו סיסמה רק אם אתם סומכים על התוסף הזה.",
       "toast_auto_disabled": "{name} כובה כי נכשל שוב ושוב."
+    },
+    "connect": {
+      "title": "חיבור {label}",
+      "intro_password": "{name} רוצה להשתמש בחשבון {label} שלכם. Bulwark שומר את הסיסמה בשרת שלו ושולח אותה רק אל {host}. התוסף אף פעם לא רואה אותה.",
+      "intro_password_any": "{name} רוצה להשתמש בחשבון {label} שלכם. Bulwark שומר את הסיסמה בשרת שלו ושולח אותה רק לשרת שתזינו כאן. התוסף אף פעם לא רואה אותה.",
+      "intro_signin": "{name} רוצה להתחבר לחשבון {label} שלכם. הזינו כאן את השרת, ואז התחברו בדף של השרת עצמו. Bulwark שומר בשרת שלו את הגישה שהוא מקבל; התוסף אף פעם לא רואה אותה.",
+      "server": "כתובת השרת",
+      "server_hint": "cloud.example.com",
+      "username": "שם משתמש",
+      "secret": "סיסמה או מפתח",
+      "connect": "חיבור",
+      "continue": "המשך",
+      "cancel": "ביטול",
+      "saving": "שומר…",
+      "error_server": "הזינו את כתובת השרת, למשל https://cloud.example.com",
+      "error_save": "השמירה נכשלה: {error}"
     }
   },
   "global_search": {

@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Šis spraudnis tika instalēts, pirms bija vajadzīgs apstiprinājums. Noņemiet to un instalējiet vēlreiz, lai nosūtītu apstiprināšanai.",
       "error_approval_denied": "Jūsu administrators neapstiprināja šo spraudni.",
       "error_approval_pending": "Gaida, kad jūsu administrators apstiprinās šo spraudni.",
-      "error_auto_disabled": "Izslēgts, jo atkārtoti neizdevās. Ieslēdziet to vēlreiz, lai mēģinātu vēlreiz."
+      "error_auto_disabled": "Izslēgts, jo atkārtoti neizdevās. Ieslēdziet to vēlreiz, lai mēģinātu vēlreiz.",
+      "accounts_heading": "Savienotie konti",
+      "account_on": "{label} serverī {host}",
+      "account_waiting": "{label} serverī {host} (pierakstīšanās nav pabeigta)",
+      "disconnect": "Atvienot",
+      "disconnect_failed": "Neizdevās atvienot {label}"
     },
     "consent": {
       "title": "Atļaut spraudnim {name} to darīt?",
@@ -4255,6 +4260,22 @@
       "turn_off": "Izslēgt {name}",
       "password_note": "Šī veidlapa nāk no spraudņa {name}, nevis no tīmekļa pasta. Ievadiet paroli tikai tad, ja uzticaties šim spraudnim.",
       "toast_auto_disabled": "{name} tika izslēgts, jo atkārtoti neizdevās."
+    },
+    "connect": {
+      "title": "Savienot {label}",
+      "intro_password": "{name} vēlas izmantot jūsu {label} kontu. Bulwark glabā paroli savā serverī un sūta to tikai uz {host}. Spraudnis to nekad neredz.",
+      "intro_password_any": "{name} vēlas izmantot jūsu {label} kontu. Bulwark glabā paroli savā serverī un sūta to tikai uz serveri, ko šeit ievadāt. Spraudnis to nekad neredz.",
+      "intro_signin": "{name} vēlas pierakstīties jūsu {label} kontā. Ievadiet šeit serveri un pēc tam pierakstieties šī servera lapā. Bulwark glabā iegūto piekļuvi savā serverī; spraudnis to nekad neredz.",
+      "server": "Servera adrese",
+      "server_hint": "cloud.example.com",
+      "username": "Lietotājvārds",
+      "secret": "Parole vai atslēga",
+      "connect": "Savienot",
+      "continue": "Turpināt",
+      "cancel": "Atcelt",
+      "saving": "Saglabā…",
+      "error_server": "Ievadiet servera adresi, piemēram, https://cloud.example.com",
+      "error_save": "Neizdevās saglabāt: {error}"
     }
   },
   "global_search": {

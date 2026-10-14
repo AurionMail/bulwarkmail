@@ -4019,7 +4019,12 @@
       "error_approval_unavailable": "Ezt a bővítményt még azelőtt telepítetted, hogy jóváhagyás kellett volna. Távolítsd el, majd telepítsd újra, hogy jóváhagyásra kerüljön.",
       "error_approval_denied": "A rendszergazda nem hagyta jóvá ezt a bővítményt.",
       "error_approval_pending": "Várakozás arra, hogy a rendszergazda jóváhagyja ezt a bővítményt.",
-      "error_auto_disabled": "Kikapcsolva, mert többször is hibát okozott. Kapcsolja be újra, ha ismét meg szeretné próbálni."
+      "error_auto_disabled": "Kikapcsolva, mert többször is hibát okozott. Kapcsolja be újra, ha ismét meg szeretné próbálni.",
+      "accounts_heading": "Csatlakoztatott fiókok",
+      "account_on": "{label} – {host}",
+      "account_waiting": "{label} – {host} (a bejelentkezés nincs befejezve)",
+      "disconnect": "Leválasztás",
+      "disconnect_failed": "Nem sikerült leválasztani: {label}"
     },
     "consent": {
       "title": "{name}: engedélyezed ezeket a műveleteket?",
@@ -4255,6 +4260,22 @@
       "turn_off": "{name} kikapcsolása",
       "password_note": "Ez az űrlap a(z) {name} bővítménytől származik, nem a webmailtől. Csak akkor adjon meg jelszót, ha megbízik ebben a bővítményben.",
       "toast_auto_disabled": "{name} ki lett kapcsolva, mert többször is hibát okozott."
+    },
+    "connect": {
+      "title": "{label} csatlakoztatása",
+      "intro_password": "A(z) {name} bővítmény használni szeretné a(z) {label} fiókodat. A Bulwark a saját szerverén tárolja a jelszót, és csak ide küldi el: {host}. A bővítmény soha nem látja.",
+      "intro_password_any": "A(z) {name} bővítmény használni szeretné a(z) {label} fiókodat. A Bulwark a saját szerverén tárolja a jelszót, és csak az itt megadott szervernek küldi el. A bővítmény soha nem látja.",
+      "intro_signin": "A(z) {name} bővítmény be szeretne jelentkezni a(z) {label} fiókodba. Add meg itt a szervert, majd jelentkezz be a szerver saját oldalán. A Bulwark a saját szerverén tárolja a kapott hozzáférést; a bővítmény soha nem látja.",
+      "server": "Szervercím",
+      "server_hint": "cloud.example.com",
+      "username": "Felhasználónév",
+      "secret": "Jelszó vagy kulcs",
+      "connect": "Csatlakoztatás",
+      "continue": "Tovább",
+      "cancel": "Mégse",
+      "saving": "Mentés…",
+      "error_server": "Add meg a szerver címét, például https://cloud.example.com",
+      "error_save": "Nem sikerült menteni: {error}"
     }
   },
   "global_search": {
