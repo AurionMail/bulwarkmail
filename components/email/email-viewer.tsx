@@ -983,6 +983,12 @@ function SidebarSection({ icon: Icon, title, children }: { icon: React.Component
   );
 }
 
+// Shared "nothing here" values for the per-message attachment state. Every
+// open resets that state; a fresh [] each time is a new value, so React
+// renders the viewer once more even though nothing changed.
+const NO_POSTAL_ATTACHMENTS: PostalMimeAttachment[] = [];
+const NO_TNEF_ATTACHMENTS: TnefAttachment[] = [];
+
 export function EmailViewer({
   email,
   blobSource,
@@ -1401,7 +1407,7 @@ export function EmailViewer({
   // crypto plugin's own email-banner slot, so the host keeps no S/MIME state.
   const [pluginRenderedHtml, setPluginRenderedHtml] = useState<string | null>(null);
   const [pluginRenderedText, setPluginRenderedText] = useState<string | null>(null);
-  const [pluginRenderedAttachments, setPluginRenderedAttachments] = useState<PostalMimeAttachment[]>([]);
+  const [pluginRenderedAttachments, setPluginRenderedAttachments] = useState<PostalMimeAttachment[]>(NO_POSTAL_ATTACHMENTS);
   // Bumped when a plugin calls `api.ui.rerenderEmail` (e.g. the S/MIME plugin
   // after the user unlocks a key from the banner) to force the onRenderEmailBody
   // hook to run again for the open message so the body re-decrypts.
@@ -1415,12 +1421,12 @@ export function EmailViewer({
   // TNEF (winmail.dat) support
   const [tnefHtml, setTnefHtml] = useState<string | null>(null);
   const [tnefText, setTnefText] = useState<string | null>(null);
-  const [tnefAttachments, setTnefAttachments] = useState<TnefAttachment[]>([]);
+  const [tnefAttachments, setTnefAttachments] = useState<TnefAttachment[]>(NO_TNEF_ATTACHMENTS);
 
   // Embedded message/rfc822 unwrapping (Outlook forward-as-attachment)
   const [embeddedEmailHtml, setEmbeddedEmailHtml] = useState<string | null>(null);
   const [embeddedEmailText, setEmbeddedEmailText] = useState<string | null>(null);
-  const [embeddedEmailAttachments, setEmbeddedEmailAttachments] = useState<PostalMimeAttachment[]>([]);
+  const [embeddedEmailAttachments, setEmbeddedEmailAttachments] = useState<PostalMimeAttachment[]>(NO_POSTAL_ATTACHMENTS);
 
   // Plugin detail sidebar state. Collapsed/width persist across opens and
   // sessions so the panel reopens the way the user last left it.
@@ -1771,13 +1777,13 @@ export function EmailViewer({
     setEmailViewDarkOverride(null);
     setPluginRenderedHtml(null);
     setPluginRenderedText(null);
-    setPluginRenderedAttachments([]);
+    setPluginRenderedAttachments(NO_POSTAL_ATTACHMENTS);
     setTnefHtml(null);
     setTnefText(null);
-    setTnefAttachments([]);
+    setTnefAttachments(NO_TNEF_ATTACHMENTS);
     setEmbeddedEmailHtml(null);
     setEmbeddedEmailText(null);
-    setEmbeddedEmailAttachments([]);
+    setEmbeddedEmailAttachments(NO_POSTAL_ATTACHMENTS);
   }, [email?.id, externalContentPolicy]);
 
   // Crypto-plugin body takeover (S/MIME, PGP, …). A privileged crypto plugin
@@ -1787,6 +1793,14 @@ export function EmailViewer({
   // via its email-banner slot. Falls through to normal rendering otherwise.
   useEffect(() => {
     if (!email) return;
+    // No plugin renders bodies: nothing to ask, and no async round through the
+    // hook whose only outcome would be resetting state already reset.
+    if (renderHooks.onRenderEmailBody.size === 0) {
+      setPluginRenderedHtml(null);
+      setPluginRenderedText(null);
+      setPluginRenderedAttachments(NO_POSTAL_ATTACHMENTS);
+      return;
+    }
     let cancelled = false;
 
     const dataUrlToBytes = (dataUrl: string): Uint8Array | null => {
@@ -1831,7 +1845,7 @@ export function EmailViewer({
         if (!result || !result.handledBy) {
           setPluginRenderedHtml(null);
           setPluginRenderedText(null);
-          setPluginRenderedAttachments([]);
+          setPluginRenderedAttachments(NO_POSTAL_ATTACHMENTS);
           return;
         }
         setPluginRenderedHtml(typeof result.html === 'string' && result.html ? result.html : null);
@@ -1851,7 +1865,7 @@ export function EmailViewer({
         debug.error('onRenderEmailBody hook failed:', err);
         setPluginRenderedHtml(null);
         setPluginRenderedText(null);
-        setPluginRenderedAttachments([]);
+        setPluginRenderedAttachments(NO_POSTAL_ATTACHMENTS);
       }
     })();
 
@@ -2824,7 +2838,13 @@ export function EmailViewer({
 
   // Gates the quick reply on the iframe having loaded the current srcDoc, so
   // it doesn't flash in below a still-resizing iframe.
-  const [iframeReady, setIframeReady] = useState(false);
+  // The srcDoc whose document has been wired up (handleIframeLoad), or null.
+  // Readiness is derived from it rather than reset per message: a reset in
+  // the srcDoc layout effect rendered this component a second time, during
+  // the commit, on every open.
+  const [iframeReadyFor, setIframeReadyFor] = useState<string | null>(null);
+  const latestSrcDocRef = useRef<string | null>(null);
+  const iframeReady = iframeReadyFor !== null && iframeReadyFor === emailIframeSrcDoc;
   // The plain-text body, where reader-above-quote mounts between text and quote.
   const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);
   // One object per body: React writes innerHTML again whenever this object
@@ -2849,7 +2869,7 @@ export function EmailViewer({
   const frameSizeObserverRef = useRef<ResizeObserver | null>(null);
   useEffect(() => () => frameSizeObserverRef.current?.disconnect(), []);
   useLayoutEffect(() => {
-    setIframeReady(false);
+    latestSrcDocRef.current = emailIframeSrcDoc;
     initializedDocRef.current = null;
     // Runs during commit, before the browser processes the new srcDoc, so
     // contentDocument here is still the outgoing document.
@@ -2986,7 +3006,7 @@ export function EmailViewer({
           applyHeight();
         }, 200);
         window.setTimeout(() => window.clearInterval(poll), 2400);
-        setIframeReady(true);
+        setIframeReadyFor(latestSrcDocRef.current);
 
         // Hide images that fail to load (dead/mixed-content/unreachable external
         // URLs) rather than leaving the browser's broken-image placeholder and
