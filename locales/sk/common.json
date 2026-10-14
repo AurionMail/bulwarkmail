@@ -4241,6 +4241,16 @@
         "title": "Vedieť, kedy sa aplikácia spúšťa a ukončuje",
         "body": "Dostáva správu, keď sa aplikácia spustí, prejde do režimu offline alebo keď sa odhlásite."
       }
+    },
+    "dialog": {
+      "from_plugin": "Od doplnku {name}",
+      "ok": "OK",
+      "submit": "Odoslať",
+      "confirm": "Potvrdiť",
+      "cancel": "Zrušiť",
+      "close": "Zavrieť",
+      "turn_off": "Vypnúť {name}",
+      "password_note": "Tento formulár pochádza z doplnku {name}, nie z webmailu. Heslo zadajte, len ak tomuto doplnku dôverujete."
     }
   },
   "global_search": {

@@ -4241,6 +4241,16 @@
         "title": "Aflarea momentului pornirii și opririi aplicației",
         "body": "Este anunțat când aplicația pornește, trece offline sau vă deconectați."
       }
+    },
+    "dialog": {
+      "from_plugin": "De la pluginul {name}",
+      "ok": "OK",
+      "submit": "Trimite",
+      "confirm": "Confirmă",
+      "cancel": "Anulează",
+      "close": "Închide",
+      "turn_off": "Dezactivează {name}",
+      "password_note": "Acest formular vine de la pluginul {name}, nu de la webmail. Introduceți o parolă doar dacă aveți încredere în acest plugin."
     }
   },
   "global_search": {

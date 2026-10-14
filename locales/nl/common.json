@@ -4241,6 +4241,16 @@
         "title": "Weten wanneer de app start en stopt",
         "body": "Een melding krijgen wanneer de app start, offline gaat of je je afmeldt."
       }
+    },
+    "dialog": {
+      "from_plugin": "Van de plug-in {name}",
+      "ok": "OK",
+      "submit": "Versturen",
+      "confirm": "Bevestigen",
+      "cancel": "Annuleren",
+      "close": "Sluiten",
+      "turn_off": "{name} uitzetten",
+      "password_note": "Dit formulier komt van de plug-in {name}, niet van de webmail. Vul alleen een wachtwoord in als je deze plug-in vertrouwt."
     }
   },
   "global_search": {

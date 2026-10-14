@@ -4241,6 +4241,16 @@
         "title": "Erfahren, wann die App startet und beendet wird",
         "body": "Benachrichtigt werden, wenn die App startet, offline geht oder Sie sich abmelden."
       }
+    },
+    "dialog": {
+      "from_plugin": "Vom Plugin {name}",
+      "ok": "OK",
+      "submit": "Senden",
+      "confirm": "Bestätigen",
+      "cancel": "Abbrechen",
+      "close": "Schließen",
+      "turn_off": "{name} ausschalten",
+      "password_note": "Dieses Formular stammt vom Plugin {name}, nicht vom Webmail. Geben Sie ein Passwort nur ein, wenn Sie diesem Plugin vertrauen."
     }
   },
   "global_search": {

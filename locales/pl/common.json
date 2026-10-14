@@ -4241,6 +4241,16 @@
         "title": "Informacja o uruchomieniu i zamknięciu aplikacji",
         "body": "Otrzymuje informację, gdy aplikacja się uruchamia, przechodzi w tryb offline lub gdy się wylogowujesz."
       }
+    },
+    "dialog": {
+      "from_plugin": "Od wtyczki {name}",
+      "ok": "OK",
+      "submit": "Wyślij",
+      "confirm": "Potwierdź",
+      "cancel": "Anuluj",
+      "close": "Zamknij",
+      "turn_off": "Wyłącz {name}",
+      "password_note": "Ten formularz pochodzi z wtyczki {name}, a nie z poczty. Wpisz hasło tylko wtedy, gdy ufasz tej wtyczce."
     }
   },
   "global_search": {

@@ -4241,6 +4241,16 @@
         "title": "Zināt, kad lietotne startē un apstājas",
         "body": "Saņemt ziņu, kad lietotne startē, pāriet bezsaistē vai jūs izrakstāties."
       }
+    },
+    "dialog": {
+      "from_plugin": "No spraudņa {name}",
+      "ok": "Labi",
+      "submit": "Nosūtīt",
+      "confirm": "Apstiprināt",
+      "cancel": "Atcelt",
+      "close": "Aizvērt",
+      "turn_off": "Izslēgt {name}",
+      "password_note": "Šī veidlapa nāk no spraudņa {name}, nevis no tīmekļa pasta. Ievadiet paroli tikai tad, ja uzticaties šim spraudnim."
     }
   },
   "global_search": {

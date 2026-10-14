@@ -4241,6 +4241,16 @@
         "title": "Sapere quando l'app si avvia e si chiude",
         "body": "Ricevere un avviso quando l'app si avvia, va offline o ti disconnetti."
       }
+    },
+    "dialog": {
+      "from_plugin": "Dal plugin {name}",
+      "ok": "OK",
+      "submit": "Invia",
+      "confirm": "Conferma",
+      "cancel": "Annulla",
+      "close": "Chiudi",
+      "turn_off": "Disattiva {name}",
+      "password_note": "Questo modulo proviene dal plugin {name}, non dalla webmail. Inserisci una password solo se ti fidi di questo plugin."
     }
   },
   "global_search": {

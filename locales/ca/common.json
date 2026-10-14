@@ -4241,6 +4241,16 @@
         "title": "Saber quan l'aplicació s'inicia i s'atura",
         "body": "Rebre un avís quan l'aplicació s'inicia, es queda sense connexió o tanqueu la sessió."
       }
+    },
+    "dialog": {
+      "from_plugin": "Del connector {name}",
+      "ok": "D'acord",
+      "submit": "Envia",
+      "confirm": "Confirma",
+      "cancel": "Cancel·la",
+      "close": "Tanca",
+      "turn_off": "Desactiva {name}",
+      "password_note": "Aquest formulari ve del connector {name}, no del correu web. Introduïu una contrasenya només si confieu en aquest connector."
     }
   },
   "global_search": {

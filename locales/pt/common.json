@@ -4241,6 +4241,16 @@
         "title": "Saber quando o aplicativo inicia e para",
         "body": "Ser avisado quando o aplicativo inicia, fica offline ou você sai."
       }
+    },
+    "dialog": {
+      "from_plugin": "Do plugin {name}",
+      "ok": "OK",
+      "submit": "Enviar",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "close": "Fechar",
+      "turn_off": "Desativar {name}",
+      "password_note": "Este formulário vem do plugin {name}, não do webmail. Só introduza uma palavra-passe se confiar neste plugin."
     }
   },
   "global_search": {

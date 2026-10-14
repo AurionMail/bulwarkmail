@@ -4241,6 +4241,16 @@
         "title": "Savoir quand l'application démarre et s'arrête",
         "body": "Être averti lorsque l'application démarre, passe hors ligne ou que vous vous déconnectez."
       }
+    },
+    "dialog": {
+      "from_plugin": "Du plugin {name}",
+      "ok": "OK",
+      "submit": "Envoyer",
+      "confirm": "Confirmer",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "turn_off": "Désactiver {name}",
+      "password_note": "Ce formulaire provient du plugin {name}, pas du webmail. Ne saisissez un mot de passe que si vous faites confiance à ce plugin."
     }
   },
   "global_search": {

@@ -4241,6 +4241,16 @@
         "title": "앱 시작과 종료 알림 받기",
         "body": "앱이 시작되거나, 오프라인이 되거나, 로그아웃할 때 알림을 받아요."
       }
+    },
+    "dialog": {
+      "from_plugin": "플러그인 {name}에서",
+      "ok": "확인",
+      "submit": "제출",
+      "confirm": "확인",
+      "cancel": "취소",
+      "close": "닫기",
+      "turn_off": "{name} 끄기",
+      "password_note": "이 양식은 웹메일이 아니라 플러그인 {name}에서 표시한 것입니다. 이 플러그인을 신뢰할 때만 비밀번호를 입력하세요."
     }
   },
   "global_search": {

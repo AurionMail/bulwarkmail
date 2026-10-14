@@ -4241,6 +4241,16 @@
         "title": "Vědět, kdy se aplikace spouští a ukončuje",
         "body": "Dostává zprávu, když se aplikace spustí, přejde do režimu offline nebo když se odhlásíte."
       }
+    },
+    "dialog": {
+      "from_plugin": "Od pluginu {name}",
+      "ok": "OK",
+      "submit": "Odeslat",
+      "confirm": "Potvrdit",
+      "cancel": "Zrušit",
+      "close": "Zavřít",
+      "turn_off": "Vypnout {name}",
+      "password_note": "Tento formulář pochází z pluginu {name}, ne z webmailu. Heslo zadejte jen tehdy, když tomuto pluginu důvěřujete."
     }
   },
   "global_search": {

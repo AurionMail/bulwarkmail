@@ -4241,6 +4241,16 @@
         "title": "Vite når appen starter og stopper",
         "body": "Få beskjed når appen starter, går frakoblet eller du logger ut."
       }
+    },
+    "dialog": {
+      "from_plugin": "Fra tillegget {name}",
+      "ok": "OK",
+      "submit": "Send",
+      "confirm": "Bekreft",
+      "cancel": "Avbryt",
+      "close": "Lukk",
+      "turn_off": "Slå av {name}",
+      "password_note": "Dette skjemaet kommer fra tillegget {name}, ikke fra webmailen. Skriv bare inn et passord hvis du stoler på dette tillegget."
     }
   },
   "global_search": {

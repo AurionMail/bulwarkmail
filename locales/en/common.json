@@ -4241,6 +4241,16 @@
         "title": "Know when the app starts and stops",
         "body": "Be told when the app starts, goes offline or you sign out."
       }
+    },
+    "dialog": {
+      "from_plugin": "From the plugin {name}",
+      "ok": "OK",
+      "submit": "Submit",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "close": "Close",
+      "turn_off": "Turn off {name}",
+      "password_note": "This form comes from the plugin {name}, not from the webmail. Only enter a password if you trust this plugin."
     }
   },
   "global_search": {

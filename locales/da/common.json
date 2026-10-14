@@ -4241,6 +4241,16 @@
         "title": "Vide, når appen starter og stopper",
         "body": "Få besked, når appen starter, går offline, eller du logger ud."
       }
+    },
+    "dialog": {
+      "from_plugin": "Fra pluginet {name}",
+      "ok": "OK",
+      "submit": "Send",
+      "confirm": "Bekræft",
+      "cancel": "Annuller",
+      "close": "Luk",
+      "turn_off": "Slå {name} fra",
+      "password_note": "Denne formular kommer fra pluginet {name}, ikke fra webmailen. Indtast kun en adgangskode, hvis du stoler på dette plugin."
     }
   },
   "global_search": {

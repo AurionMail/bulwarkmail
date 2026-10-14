@@ -4241,6 +4241,16 @@
         "title": "Uygulamanın başladığını ve durduğunu bilme",
         "body": "Uygulama başladığında, çevrimdışı olduğunda veya çıkış yaptığınızda haber alma."
       }
+    },
+    "dialog": {
+      "from_plugin": "{name} eklentisinden",
+      "ok": "Tamam",
+      "submit": "Gönder",
+      "confirm": "Onayla",
+      "cancel": "İptal",
+      "close": "Kapat",
+      "turn_off": "{name} eklentisini kapat",
+      "password_note": "Bu form web postasından değil, {name} eklentisinden geliyor. Yalnızca bu eklentiye güveniyorsanız parola girin."
     }
   },
   "global_search": {

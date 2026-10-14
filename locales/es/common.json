@@ -4241,6 +4241,16 @@
         "title": "Saber cuándo se inicia y se cierra la aplicación",
         "body": "Recibir un aviso cuando la aplicación se inicia, se queda sin conexión o cierras sesión."
       }
+    },
+    "dialog": {
+      "from_plugin": "Del complemento {name}",
+      "ok": "Aceptar",
+      "submit": "Enviar",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "turn_off": "Desactivar {name}",
+      "password_note": "Este formulario viene del complemento {name}, no del correo web. Introduce una contraseña solo si confías en este complemento."
     }
   },
   "global_search": {

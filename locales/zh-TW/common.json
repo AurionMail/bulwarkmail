@@ -4241,6 +4241,16 @@
         "title": "得知應用程式何時啟動和停止",
         "body": "在應用程式啟動、離線或您登出時收到通知。"
       }
+    },
+    "dialog": {
+      "from_plugin": "來自外掛程式 {name}",
+      "ok": "確定",
+      "submit": "送出",
+      "confirm": "確認",
+      "cancel": "取消",
+      "close": "關閉",
+      "turn_off": "關閉 {name}",
+      "password_note": "此表單來自外掛程式 {name}，而不是網頁郵件。只有在您信任此外掛程式時才輸入密碼。"
     }
   },
   "global_search": {
