@@ -125,6 +125,7 @@ export const usePluginStore = create<PluginStoreState>()(
           ...(manifest.apiPostPaths && manifest.apiPostPaths.length > 0
             ? { apiPostPaths: manifest.apiPostPaths }
             : {}),
+          ...(manifest.credentials ? { credentials: manifest.credentials } : {}),
         };
 
         // Save code to IndexedDB
@@ -400,6 +401,7 @@ interface ServerPluginInfo {
   settingsSchema?: InstalledPlugin['settingsSchema'];
   /** Plugin-declared i18n tables (locale -> key -> string), from the manifest. */
   locales?: InstalledPlugin['locales'];
+  credentials?: InstalledPlugin['credentials'];
 }
 
 /**
@@ -425,6 +427,7 @@ function serverMeta(sp: ServerPluginInfo) {
     apiPostPaths: sp.apiPostPaths,
     settingsSchema: sp.settingsSchema,
     locales: sp.locales,
+    credentials: sp.credentials,
   };
 }
 

@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
       ...(manifest.frameOrigins ? { frameOrigins: manifest.frameOrigins } : {}),
       ...(manifest.httpOrigins ? { httpOrigins: manifest.httpOrigins } : {}),
       ...(manifest.apiPostPaths ? { apiPostPaths: manifest.apiPostPaths } : {}),
+      ...(manifest.credentials ? { credentials: manifest.credentials } : {}),
       installedAt: now,
       updatedAt: now,
     };

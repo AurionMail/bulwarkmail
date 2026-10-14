@@ -6,6 +6,7 @@
 // permission list, some the origin lists, and none bounded how much a ZIP may
 // inflate to.
 
+import { checkCredentials } from './plugin-secrets/credentials';
 import JSZip from 'jszip';
 import {
   ALL_PERMISSIONS,
@@ -453,6 +454,8 @@ export function checkPluginManifest(m: Record<string, unknown>, opts: { appVersi
   const frameOrigins = originList(m, 'frameOrigins', sanitizeFrameOrigins, errors, warnings);
   const httpOrigins = originList(m, 'httpOrigins', sanitizeHttpOrigins, errors, warnings);
   const apiPostPaths = originList(m, 'apiPostPaths', sanitizeApiPostPaths, errors, warnings);
+  const credentialCheck = checkCredentials(m.credentials, configSchema);
+  errors.push(...credentialCheck.errors);
 
   if (errors.length > 0) return { manifest: null, errors, warnings };
 
@@ -466,6 +469,7 @@ export function checkPluginManifest(m: Record<string, unknown>, opts: { appVersi
     ...(frameOrigins ? { frameOrigins } : {}),
     ...(httpOrigins ? { httpOrigins } : {}),
     ...(apiPostPaths ? { apiPostPaths } : {}),
+    ...(credentialCheck.credentials && Object.keys(credentialCheck.credentials).length ? { credentials: credentialCheck.credentials } : {}),
   };
   return { manifest, errors, warnings };
 }

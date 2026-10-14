@@ -1,3 +1,5 @@
+import type { CredentialSpec } from './plugin-secrets/credentials';
+
 // Plugin & Theme system types
 
 // ─── Common ──────────────────────────────────────────────────
@@ -103,6 +105,12 @@ export interface ThemeManifest {
 }
 
 export interface PluginManifest {
+  /**
+   * Accounts and API keys the plugin uses through the server proxy
+   * (`api.proxy.fetch`). The secret stays on the server; see
+   * lib/plugin-secrets/credentials.ts.
+   */
+  credentials?: Record<string, CredentialSpec>;
   id: string;
   name: string;
   version: string;
@@ -223,6 +231,8 @@ export interface InstalledTheme {
 }
 
 export interface InstalledPlugin {
+  /** From the manifest: see PluginManifest.credentials. */
+  credentials?: Record<string, CredentialSpec>;
   id: string;
   name: string;
   version: string;

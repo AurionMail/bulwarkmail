@@ -258,6 +258,7 @@ export async function POST(request: NextRequest) {
       ...(manifest.httpOrigins ? { httpOrigins: manifest.httpOrigins } : {}),
       ...(manifest.apiPostPaths ? { apiPostPaths: manifest.apiPostPaths } : {}),
       ...(manifest.locales ? { locales: manifest.locales } : {}),
+      ...(manifest.credentials ? { credentials: manifest.credentials } : {}),
     };
 
     await savePlugin(plugin, code);

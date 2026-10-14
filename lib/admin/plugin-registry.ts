@@ -1,3 +1,4 @@
+import type { CredentialSpec } from '@/lib/plugin-secrets/credentials';
 import { readFile, writeFile, mkdir, rename, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -89,6 +90,8 @@ export interface ServerPlugin {
    * `InstalledPlugin.apiPostPaths` in `lib/plugin-types.ts`.
    */
   apiPostPaths?: string[];
+  /** Credentials the plugin uses through the server proxy (no secrets here). */
+  credentials?: Record<string, CredentialSpec>;
 }
 
 export interface ServerTheme {

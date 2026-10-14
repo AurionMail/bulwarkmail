@@ -216,6 +216,7 @@ async function loadDevPlugin(pluginDir: string): Promise<DevPluginEntry | null> 
     ...(valid.locales ? { locales: valid.locales } : {}),
     ...(valid.frameOrigins ? { frameOrigins: valid.frameOrigins } : {}),
     ...(valid.httpOrigins ? { httpOrigins: valid.httpOrigins } : {}),
+    ...(valid.credentials ? { credentials: valid.credentials } : {}),
     ...(valid.apiPostPaths ? { apiPostPaths: valid.apiPostPaths } : {}),
     installedAt,
     updatedAt: new Date().toISOString(),
