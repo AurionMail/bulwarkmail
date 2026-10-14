@@ -26,6 +26,7 @@ import { useKeywordFormat } from "@/hooks/use-keyword-format";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { getSecurityStatus, extractListHeaders, getSenderVerification } from "@/lib/email-headers";
 import { emailToReadView } from "@/lib/plugin-projection";
+import type { EmailReadView } from "@/lib/plugin-types";
 import { generateEmailSource } from "@/lib/email-source";
 import {
   Reply,
@@ -951,6 +952,15 @@ function MvPager({
   );
 }
 
+/**
+ * The plugin slot under one "more details" category. Props are memoised so
+ * re-renders of the viewer don't post them to the plugin again.
+ */
+function DetailsCategorySlot({ email, category }: { email: EmailReadView | null; category: string | null }) {
+  const props = useMemo(() => ({ email, category }), [email, category]);
+  return <PluginSlot name="email-details-section" className="mt-2 empty:mt-0" extraProps={props} />;
+}
+
 function SidebarSection({ icon: Icon, title, children }: { icon: React.ComponentType<{ className?: string }>; title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -1390,6 +1400,16 @@ export function EmailViewer({
   // Whether any plugin offers a "more details" section, so we only render the
   // bottom plugin category wrapper when something will fill it.
   const hasDetailsSlotOffers = usePluginSlotOffers('email-details-section').length > 0;
+  const hasBannerOffers = usePluginSlotOffers('email-banner').length > 0;
+  // One projected view per message for all plugin slots on it, built only
+  // when a plugin is there to see it. A fresh object on every render made
+  // each slot post its props to the plugin again and re-run shouldShow.
+  const wantsPluginEmailView = hasDetailSidebar || hasDetailsSlotOffers || hasBannerOffers;
+  const pluginEmailView = useMemo(
+    () => (email && wantsPluginEmailView ? emailToReadView(email) : null),
+    [email, wantsPluginEmailView],
+  );
+  const pluginEmailProps = useMemo(() => ({ email: pluginEmailView }), [pluginEmailView]);
   const [detailSidebarCollapsed, setDetailSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try { return localStorage.getItem('emailDetailSidebarCollapsed') === '1'; } catch { return false; }
@@ -4917,20 +4937,13 @@ export function EmailViewer({
           const hasListInfo = !!(listHeaders?.listId || listHeaders?.listUnsubscribe || listHeaders?.listHelp || listHeaders?.listPost);
           const hasAuthSection = !!(auth?.spf || auth?.dkim || auth?.dmarc || auth?.iprev || email.spamScore !== undefined || email.spamLLM);
 
-          // Projected, read-only view handed to plugins that render in the
-          // "more details" panel. Includes the parsed `headers` map and full
-          // `source` so plugins can inspect raw headers / message source.
-          // Built lazily here - only when the details panel is expanded.
-          const detailsView = emailToReadView(email);
           // Lets a plugin add rows under an existing category. The plugin's
           // own `shouldShow({ email, category })` decides which category it
           // appears under (or `category === null` for the new bottom section).
-          const CategorySlot = ({ category }: { category: string }) => (
-            <PluginSlot
-              name="email-details-section"
-              className="mt-2 empty:mt-0"
-              extraProps={{ email: detailsView, category }}
-            />
+          // A component defined here would be a new type on every render and
+          // remount the plugin's iframe each time, so it lives outside.
+          const categorySlot = (category: string) => (
+            <DetailsCategorySlot email={pluginEmailView} category={category} />
           );
 
           return (
@@ -5004,7 +5017,7 @@ export function EmailViewer({
                       )}
                     </Row>
                   </dl>
-                  <CategorySlot category="recipients_routing" />
+                  {categorySlot("recipients_routing")}
                 </section>
 
                 {hasAuthSection && (
@@ -5090,7 +5103,7 @@ export function EmailViewer({
                         </div>
                       </div>
                     )}
-                    <CategorySlot category="authentication_security" />
+                    {categorySlot("authentication_security")}
                   </section>
                 )}
 
@@ -5125,7 +5138,7 @@ export function EmailViewer({
                         <Row label={t('details.thread_id')} mono>{email.threadId}</Row>
                       )}
                     </dl>
-                    <CategorySlot category="identifiers_threading" />
+                    {categorySlot("identifiers_threading")}
                   </section>
                 )}
 
@@ -5153,7 +5166,7 @@ export function EmailViewer({
                       <Row label={t('details.account')}>{email.accountLabel}</Row>
                     )}
                   </dl>
-                  <CategorySlot category="message_properties" />
+                  {categorySlot("message_properties")}
                 </section>
 
                 {hasListInfo && (
@@ -5179,7 +5192,7 @@ export function EmailViewer({
                         <Row label={t('details.list_post')}><span className="break-all">{listHeaders.listPost}</span></Row>
                       )}
                     </dl>
-                    <CategorySlot category="mailing_list" />
+                    {categorySlot("mailing_list")}
                   </section>
                 )}
 
@@ -5187,10 +5200,7 @@ export function EmailViewer({
                     `category === null` render their own titled section here. */}
                 {hasDetailsSlotOffers && (
                   <section className="lg:col-span-2 min-w-0">
-                    <PluginSlot
-                      name="email-details-section"
-                      extraProps={{ email: detailsView, category: null }}
-                    />
+                    <DetailsCategorySlot email={pluginEmailView} category={null} />
                   </section>
                 )}
               </div>
@@ -5373,7 +5383,7 @@ export function EmailViewer({
           </div>
         )}
 
-        <PluginSlot name="email-banner" extraProps={{ email: emailToReadView(email) }} />
+        <PluginSlot name="email-banner" extraProps={pluginEmailProps} />
 
       {/* === ATTACHMENTS below header (below-header mode, desktop only) === */}
       {attachmentPosition === 'below-header' && effectiveAttachments.length > 0 && (
@@ -6103,7 +6113,7 @@ export function EmailViewer({
                 </Button>
               </div>
               <div className="flex-1 overflow-y-auto">
-                <PluginSlot name="email-detail-sidebar" extraProps={{ email: emailToReadView(email) }} />
+                <PluginSlot name="email-detail-sidebar" extraProps={pluginEmailProps} />
               </div>
             </div>
           </>
