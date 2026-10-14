@@ -488,6 +488,13 @@ function buildPluginApi(manifest: PluginManifest) {
       run: (query: unknown, options?: { label?: string }) =>
         callApi('search.run', [query, options]) as Promise<void>,
     },
+    // OAuth with a third party (permission: http:fetch). Put createState()'s
+    // value in the authorize URL; the code comes back through the
+    // onOAuthCallback hook, to this plugin only.
+    oauth: {
+      createState: () => callApi('oauth.createState', []) as Promise<string>,
+      getRedirectUri: () => callApi('oauth.getRedirectUri', []) as Promise<string>,
+    },
     // Sieve integration for delivery-time classification (permissions:
     // filters:read / filters:write). Plugins never write scripts directly -
     // they register an onSieveScriptGenerate transform hook and call

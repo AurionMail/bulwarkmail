@@ -193,6 +193,18 @@ export class HookBus<T extends (...args: any[]) => any> {
     }
   }
 
+  /** Observer emit to one plugin's handlers only. */
+  async emitTo(pluginId: string, ...args: Parameters<T>): Promise<void> {
+    for (const { pluginId: owner, handler } of this.handlers) {
+      if (owner !== pluginId || pluginErrorTracker.isDisabled(owner)) continue;
+      try {
+        await withTimeout(handler(...args), this.timeoutMs);
+      } catch (err) {
+        this.recordFailure(owner, err);
+      }
+    }
+  }
+
   /** Fire handlers as interceptors - any returning false cancels the operation */
   async intercept(...args: Parameters<T>): Promise<boolean> {
     return (await this.interceptOutcome(...args)) === 'allowed';

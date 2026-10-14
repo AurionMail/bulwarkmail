@@ -19,7 +19,8 @@ import {
   type KeywordVisibility,
 } from '@/stores/settings-store';
 import type { MessageListTabsConfig } from '../plugin-types';
-import { apiFetch, getPathPrefix } from '../browser-navigation';
+import { apiFetch, getPathPrefix, withBasePath } from '../browser-navigation';
+import { createOAuthState } from '../plugin-oauth';
 import { reportUploadProgress } from '../upload-progress';
 import { DEFAULT_KEYWORD_SCAN_LIMIT } from '../jmap/client';
 import { suggestKeywordColor } from '../keyword-discovery';
@@ -164,6 +165,10 @@ const PERM_PER_METHOD: Record<string, Permission | null> = {
   // message-list search: the plugin never sees the results, but it decides
   // which messages the list shows.
   'search.run': 'email:read',
+  // OAuth with a third party: a state value bound to this plugin, and the
+  // redirect URI the provider sends the user back to.
+  'oauth.createState': 'http:fetch',
+  'oauth.getRedirectUri': 'http:fetch',
   // sieve (delivery-time classification)
   'sieve.isSupported': 'filters:read',
   'sieve.getActiveScript': 'filters:read',
@@ -1809,6 +1814,12 @@ export async function dispatchApiCall(
     case 'tabs.categorize': return doTabsCategorize(args[0], args[1]);
 
     case 'search.run': return doSearchRun(plugin, args[0], args[1]);
+
+    case 'oauth.createState': return createOAuthState(plugin.id);
+    case 'oauth.getRedirectUri': {
+      const locale = (globalThis as unknown as { __APP_LOCALE__?: string }).__APP_LOCALE__ || 'en';
+      return `${window.location.origin}${withBasePath(`/${encodeURIComponent(locale)}/plugins/oauth/callback`)}`;
+    }
 
     case 'sieve.isSupported': {
       const { client } = useAuthStore.getState();
