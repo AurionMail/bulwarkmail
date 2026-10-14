@@ -159,6 +159,14 @@ describe('reader-header and reader-below-subject', () => {
   });
 });
 
+describe('email-footer', () => {
+  it('hands the frame the id of the open message', () => {
+    offerSlots('p1', ['email-footer']);
+    viewer(textMail('Hi'));
+    expect(slotProps(screen.getByTestId('slot-email-footer'))).toEqual({ emailId: 'e1' });
+  });
+});
+
 describe('reader-above-quote', () => {
   it('sits between the new text of a plain-text reply and its folded quote', () => {
     offerSlots('p1', ['reader-above-quote']);
@@ -170,6 +178,11 @@ describe('reader-above-quote', () => {
     expect(follows(frame, quote)).toBe(true);
     expect(follows(screen.getByText(/Sounds good/), frame)).toBe(true);
     expect((slotProps(frame).email as { id: string }).id).toBe('e1');
+    // The frame renders inside the anchor, so the anchor must grow with it
+    // instead of letting the frame spill over the quote toggle and the footer.
+    const anchor = container.querySelector<HTMLElement>(`[${QUOTE_ANCHOR_ATTR}]`)!;
+    expect(anchor.contains(frame)).toBe(true);
+    expect(anchor.style.height).toBe('');
   });
 
   it('is not mounted for a message without a quote, or without a plugin', () => {

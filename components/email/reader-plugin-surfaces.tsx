@@ -145,7 +145,10 @@ export function insertQuoteAnchor(root: HTMLElement): HTMLElement | null {
   if (!toggle?.parentNode) return null;
   const anchor = root.ownerDocument.createElement("div");
   anchor.setAttribute(QUOTE_ANCHOR_ATTR, "");
-  anchor.style.cssText = "display:block;margin:0;padding:0;border:0;height:0;white-space:normal;";
+  // No fixed height: in a plain-text body the frame renders inside the anchor
+  // and must push the quote toggle down, not lie over it. QuoteOverlay sets
+  // the height itself for an HTML body.
+  anchor.style.cssText = "display:block;margin:0;padding:0;border:0;white-space:normal;";
   toggle.parentNode.insertBefore(anchor, toggle);
   return anchor;
 }

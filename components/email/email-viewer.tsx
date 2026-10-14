@@ -1437,6 +1437,7 @@ export function EmailViewer({
   );
   const pluginEmailProps = useMemo(() => ({ email: pluginEmailView }), [pluginEmailView]);
   const readerActionContext = useMemo(() => ({ emailId: email?.id }), [email?.id]);
+  const pluginFooterProps = useMemo(() => ({ emailId: email?.id }), [email?.id]);
   const [detailSidebarCollapsed, setDetailSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try { return localStorage.getItem('emailDetailSidebarCollapsed') === '1'; } catch { return false; }
@@ -5952,7 +5953,7 @@ export function EmailViewer({
             )}
           </div>
 
-          <PluginSlot name="email-footer" />
+          <PluginSlot name="email-footer" extraProps={pluginFooterProps} />
 
           {/* Mountain View: the conversation's later messages, folded. */}
           {mvAfter.length > 0 && (
