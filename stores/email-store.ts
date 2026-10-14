@@ -257,6 +257,17 @@ interface EmailStore {
    */
   fetchAccountMailboxes: (client: IJMAPClient, accountId: string) => Promise<void>;
   selectEmail: (email: Email | null) => void;
+  /**
+   * Shows a list row in the viewer while its body is on its way: selects it
+   * and marks the body loading in one store write, so the click renders once.
+   * Plugins hear onEmailOpen only from finishOpenEmail, with the full message:
+   * a row has no body, headers or attachments to show them.
+   */
+  beginOpenEmail: (row: Email) => void;
+  /** The fetched message replaces the row beginOpenEmail showed (one write). */
+  finishOpenEmail: (email: Email) => void;
+  /** The fetch failed: back to what was open before, without the loading state. */
+  abandonOpenEmail: (previous: Email | null) => void;
   /** Holds a list row in place (see listHold); `rowKey` as from listRowKey. */
   holdListRow: (rowKey: string) => void;
   selectMailbox: (mailboxId: string) => void;
@@ -976,6 +987,9 @@ export function resolveEmailBlobContext(
  * list - a search, a tag, a unified view, or a folder still loading.
  */
 let shownFolderList: { key: string; mailboxId: string; pageSize: number } | null = null;
+
+/** The list row beginOpenEmail put in the viewer, until its message arrives. */
+let openingRow: Email | null = null;
 
 /**
  * The per-thread message counts to store once a page arrived: the counts that
@@ -2182,6 +2196,36 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
     if (email && (!prev || email.id !== prev.id) && emailHooks.onEmailOpen.size > 0) {
       emailHooks.onEmailOpen.emitSync(emailToReadView(email));
+    }
+  },
+  beginOpenEmail: (row) => {
+    const prev = get().selectedEmail;
+    openingRow = row;
+    set({ selectedEmail: row, lastSelectedEmailKey: emailKeyFor(row), isLoadingEmail: true });
+    if (prev && row.id !== prev.id && emailHooks.onEmailClose.size > 0) {
+      emailHooks.onEmailClose.emitSync({ emailId: prev.id });
+    }
+  },
+  finishOpenEmail: (email) => {
+    const prev = get().selectedEmail;
+    const announced = prev !== null && prev !== openingRow;
+    openingRow = null;
+    set({ selectedEmail: email, lastSelectedEmailKey: emailKeyFor(email), isLoadingEmail: false });
+    if (announced && prev.id !== email.id && emailHooks.onEmailClose.size > 0) {
+      emailHooks.onEmailClose.emitSync({ emailId: prev.id });
+    }
+    if ((!announced || prev.id !== email.id) && emailHooks.onEmailOpen.size > 0) {
+      emailHooks.onEmailOpen.emitSync(emailToReadView(email));
+    }
+  },
+  abandonOpenEmail: (previous) => {
+    const showing = get().selectedEmail;
+    const wasRow = showing !== null && showing === openingRow;
+    openingRow = null;
+    set({ selectedEmail: previous, isLoadingEmail: false });
+    // beginOpenEmail announced the close of `previous`; it is open again.
+    if (wasRow && previous && showing.id !== previous.id && emailHooks.onEmailOpen.size > 0) {
+      emailHooks.onEmailOpen.emitSync(emailToReadView(previous));
     }
   },
   holdListRow: (rowKey) => {

@@ -255,6 +255,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Whether the bootstrap fetch for the default mailbox has landed. Deep links
   // wait for it so their folder switch isn't overwritten (#733).
   const [initialMailLoadDone, setInitialMailLoadDone] = useState(false);
+  // Counts opens, so a slow fetch can tell it was overtaken (handleEmailSelect).
+  const emailOpenSeqRef = useRef(0);
   const { isAuthenticated, client, logout, checkAuth, switchAccount, activeAccountId, isLoading: authLoading, connectionLost, isRateLimited, rateLimitUntil } = useAuthStore(useShallow((state) => ({
     isAuthenticated: state.isAuthenticated,
     client: state.client,
@@ -405,6 +407,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     isLoading,
     isLoadingEmail,
     setLoadingEmail,
+    beginOpenEmail,
+    finishOpenEmail,
+    abandonOpenEmail,
     setPushConnected,
     handleStateChange,
     clearNewEmailNotification,
@@ -494,6 +499,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     isLoading: state.isLoading,
     isLoadingEmail: state.isLoadingEmail,
     setLoadingEmail: state.setLoadingEmail,
+    beginOpenEmail: state.beginOpenEmail,
+    finishOpenEmail: state.finishOpenEmail,
+    abandonOpenEmail: state.abandonOpenEmail,
     setPushConnected: state.setPushConnected,
     handleStateChange: state.handleStateChange,
     clearNewEmailNotification: state.clearNewEmailNotification,
@@ -3878,9 +3886,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       setShowComposer(false);
     }
 
-    // Find the list-level email for metadata (accountId, scheduled flags, etc.)
-    // but don't select it yet — wait for the full fetch to avoid a toolbar flash
-    // caused by rendering with the stub (no bodyValues) then re-rendering with the full email.
+    // Find the list-level email for metadata (accountId, scheduled flags, etc.).
     //
     // JMAP email ids are only unique per account (RFC 8621 §1.3) and Stalwart
     // hands out overlapping id ranges, so in aggregate views one bare id can name
@@ -3895,7 +3901,21 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         && (email.sourceAccountId === undefined || e.sourceAccountId === email.sourceAccountId))
       ?? (email.sourceClientAccountId ? email : undefined);
 
-    setLoadingEmail(true);
+    // Only the newest open may touch the viewer: a slow fetch for a message
+    // the user has already clicked away from must neither replace the one
+    // they are looking at nor end its loading state.
+    const openSeq = ++emailOpenSeqRef.current;
+    const previousEmail = useEmailStore.getState().selectedEmail;
+    // Paint the header from the row at once (subject, sender and date are in
+    // hand) and let the body follow; the viewer shows a row without body
+    // values as loading. Mountain View shows the message inside its
+    // conversation, which is fetched alongside, so it waits for both.
+    const rowEmail = !mvConversationView && listEmail && 'receivedAt' in listEmail ? listEmail as Email : null;
+    if (rowEmail) {
+      beginOpenEmail(rowEmail);
+    } else {
+      setLoadingEmail(true);
+    }
 
     // On mobile, switch to viewer
     if (isMobile) {
@@ -3912,6 +3932,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const { client: fetchClient, accountId } = resolveEmailBlobContext(listEmail ?? null, client);
       if (!fetchClient) {
         console.warn('[mail-app] No connected client for email source');
+        if (openSeq === emailOpenSeqRef.current) abandonOpenEmail(previousEmail);
         return;
       }
 
@@ -3921,6 +3942,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         ? loadMvConversation(listEmail as Email, client)
         : null;
       const fullEmail = await fetchClient.getEmail(email.id, accountId);
+      if (openSeq !== emailOpenSeqRef.current) return;
       if (fullEmail) {
         if (listEmail?.isScheduled) {
           fullEmail.scheduledSendAt = listEmail.scheduledSendAt;
@@ -3949,14 +3971,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), MV_CONVERSATION_WAIT_MS)),
           ]);
           if (conversation !== undefined) setMvConversation(conversation);
+          if (openSeq !== emailOpenSeqRef.current) return;
         }
-        selectEmail(fullEmail);
+        // One write: the message, and the end of its loading state.
+        finishOpenEmail(fullEmail);
         // Mark-as-read logic is now handled by useEffect
+      } else {
+        abandonOpenEmail(previousEmail);
       }
     } catch (error) {
       console.error('Failed to fetch email content:', error);
-    } finally {
-      setLoadingEmail(false);
+      if (openSeq === emailOpenSeqRef.current) abandonOpenEmail(previousEmail);
     }
   };
 
