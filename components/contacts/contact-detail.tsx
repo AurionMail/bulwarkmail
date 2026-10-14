@@ -16,6 +16,8 @@ import { exportContact } from "./contact-export";
 import { printContact } from "./contact-print";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { contactHooks } from "@/lib/plugin-hooks";
+import { contactToView } from "@/lib/plugin-projection";
 
 type MoreItem =
   | {
@@ -123,6 +125,16 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   const cryptoKeys = contact?.cryptoKeys ? Object.values(contact.cryptoKeys) : [];
   const hasCryptoKeysSlotOffers = usePluginSlotOffers('contact-cryptokeys').length > 0;
+
+  // Tell plugins once per contact shown here, not on every edit of that card.
+  const latestContact = useRef(contact);
+  useEffect(() => { latestContact.current = contact; });
+  const openedId = contact?.id;
+  useEffect(() => {
+    const opened = latestContact.current;
+    if (!openedId || !opened) return;
+    void contactHooks.onContactOpen.emit(contactToView(opened));
+  }, [openedId]);
 
   if (!contact) {
     return (

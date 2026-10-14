@@ -14,6 +14,12 @@ function draftContactView(contact: Partial<ContactCard>) {
   return contactToView({ addressBookIds: {}, ...contact, id: contact.id ?? '' } as ContactCard);
 }
 
+function sameIdSet(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const id of a) if (!b.has(id)) return false;
+  return true;
+}
+
 /** One compose-autocomplete suggestion: a person, or a contact group. */
 type RecipientSuggestion = { name: string; email: string; group?: { id: string; memberCount: number } };
 
@@ -831,9 +837,11 @@ export const useContactStore = create<ContactStore>()(
           members,
         };
 
+        let groupId: string;
         if (client && get().supportsSync) {
           const created = await client.createContact(groupData);
           set((state) => ({ contacts: [...state.contacts, created] }));
+          groupId = created.id;
         } else {
           const localGroup: ContactCard = {
             id: `local-${generateUUID()}`,
@@ -841,7 +849,9 @@ export const useContactStore = create<ContactStore>()(
             ...groupData,
           } as ContactCard;
           set((state) => ({ contacts: [...state.contacts, localGroup] }));
+          groupId = localGroup.id;
         }
+        void contactHooks.onContactGroupChange.emit({ groupId, change: 'created' });
       },
 
       updateGroup: async (client, groupId, name) => {
@@ -859,6 +869,7 @@ export const useContactStore = create<ContactStore>()(
             c.id === groupId ? { ...c, ...updates } : c
           ),
         }));
+        void contactHooks.onContactGroupChange.emit({ groupId, change: 'updated' });
       },
 
       addMembersToGroup: async (client, groupId, memberIds) => {
@@ -867,9 +878,11 @@ export const useContactStore = create<ContactStore>()(
         if (!group) return;
 
         const newMembers = { ...group.members };
+        const added: string[] = [];
         memberIds.forEach(id => {
           const contact = contacts.find(c => c.id === id);
           const key = contact?.uid || contact?.originalId || id;
+          if (!newMembers[key]) added.push(id);
           newMembers[key] = true;
         });
 
@@ -884,6 +897,9 @@ export const useContactStore = create<ContactStore>()(
             c.id === groupId ? { ...c, members: newMembers } : c
           ),
         }));
+        if (added.length > 0) {
+          void contactHooks.onContactGroupMemberChange.emit({ groupId, added, removed: [] });
+        }
       },
 
       removeMembersFromGroup: async (client, groupId, memberIds) => {
@@ -892,16 +908,19 @@ export const useContactStore = create<ContactStore>()(
         if (!group?.members) return;
 
         const newMembers = { ...group.members };
+        const removed: string[] = [];
         memberIds.forEach(id => {
           // Try direct id match first
           if (newMembers[id] !== undefined) {
             delete newMembers[id];
+            removed.push(id);
             return;
           }
           // Try uid-based match
           const contact = contacts.find(c => c.id === id);
           if (contact?.uid && newMembers[contact.uid] !== undefined) {
             delete newMembers[contact.uid];
+            removed.push(id);
           } else {
             // Try stripping urn:uuid: prefix matching
             for (const key of Object.keys(newMembers)) {
@@ -909,6 +928,7 @@ export const useContactStore = create<ContactStore>()(
               const bareUid = contact?.uid?.startsWith('urn:uuid:') ? contact.uid.slice(9) : contact?.uid;
               if (bareKey === id || bareKey === bareUid) {
                 delete newMembers[key];
+                removed.push(id);
                 break;
               }
             }
@@ -926,6 +946,9 @@ export const useContactStore = create<ContactStore>()(
             c.id === groupId ? { ...c, members: newMembers } : c
           ),
         }));
+        if (removed.length > 0) {
+          void contactHooks.onContactGroupMemberChange.emit({ groupId, added: [], removed });
+        }
       },
 
       deleteGroup: async (client, groupId) => {
@@ -939,6 +962,7 @@ export const useContactStore = create<ContactStore>()(
           contacts: state.contacts.filter(c => c.id !== groupId),
           selectedContactId: state.selectedContactId === groupId ? null : state.selectedContactId,
         }));
+        void contactHooks.onContactGroupChange.emit({ groupId, change: 'deleted' });
       },
 
       toggleContactSelection: (id) => set((state) => {
@@ -1038,6 +1062,7 @@ export const useContactStore = create<ContactStore>()(
                 c.id === id ? { ...c, addressBookIds: { [addressBook.id]: true } } : c
               ),
             }));
+            void contactHooks.onContactMove.emit({ contactId: id, toAddressBookId: addressBook.id });
           } else {
             // Cross-account: create in target, delete from source
             const { originalId: _oid, accountId: _aid, accountName: _an, isShared: _is, id: _id, ...contactData } = contact;
@@ -1064,6 +1089,7 @@ export const useContactStore = create<ContactStore>()(
                 };
               }),
             }));
+            void contactHooks.onContactMove.emit({ contactId: id, toAddressBookId: addressBook.id });
           }
         }
       },
@@ -1347,26 +1373,30 @@ export const useContactStore = create<ContactStore>()(
       importContacts: async (client, contacts) => {
         const { supportsSync } = get();
         let imported = 0;
+        // The book the cards landed in, as the server filed the first one.
+        let addressBookId = '';
 
         for (const contact of contacts) {
           try {
+            let added: ContactCard;
             if (client && supportsSync) {
               const { id: _id, ...data } = contact;
-              const created = await client.createContact(data);
-              set((state) => ({ contacts: [...state.contacts, created] }));
+              added = await client.createContact(data);
             } else {
-              const localContact: ContactCard = {
+              added = {
                 ...contact,
                 id: `local-${generateUUID()}`,
               };
-              set((state) => ({ contacts: [...state.contacts, localContact] }));
             }
+            set((state) => ({ contacts: [...state.contacts, added] }));
+            if (!addressBookId) addressBookId = Object.keys(added.addressBookIds || {}).find(k => added.addressBookIds[k]) || '';
             imported++;
           } catch (error) {
             console.error('Failed to import contact:', error);
           }
         }
 
+        if (imported > 0) void contactHooks.onContactsImport.emit({ addressBookId, imported });
         return imported;
       },
     });
@@ -1380,5 +1410,16 @@ export const useContactStore = create<ContactStore>()(
     }
   )
 );
+
+// Tell plugins when the set of checked contacts changes, whichever action
+// changed it (toggle, range, select all, clear, bulk actions). Re-setting the
+// same ids is not a change.
+useContactStore.subscribe((state, prev) => {
+  if (state.selectedContactIds === prev.selectedContactIds) return;
+  if (contactHooks.onContactSelectionChange.size === 0) return;
+  const next = state.selectedContactIds ?? new Set<string>();
+  if (sameIdSet(next, prev.selectedContactIds ?? new Set<string>())) return;
+  void contactHooks.onContactSelectionChange.emit({ contactIds: [...next] });
+});
 
 export type { ContactName };

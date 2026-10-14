@@ -249,3 +249,147 @@ describe('contact-store plugin hooks: contact CRUD', () => {
     });
   });
 });
+
+describe('contact-store plugin hooks: groups, import, move, selection', () => {
+  beforeEach(() => {
+    clearAllHooks();
+    useContactStore.setState({
+      contacts: [], addressBooks: [], selectedContactId: null, error: null,
+      supportsSync: true, selectedContactIds: new Set<string>(), lastSelectedContactId: null,
+    });
+  });
+
+  it('reports created, renamed and deleted groups', async () => {
+    const client = makeClient({
+      createContact: vi.fn(async (c: Partial<ContactCard>) => ({ ...c, id: 'g1' } as ContactCard)),
+    });
+    const changes = vi.fn();
+    contactHooks.onContactGroupChange.register('test', changes);
+
+    await useContactStore.getState().createGroup(client, 'Team', []);
+    await useContactStore.getState().updateGroup(client, 'g1', 'Crew');
+    await useContactStore.getState().deleteGroup(client, 'g1');
+    await flush();
+
+    expect(changes.mock.calls.map(c => c[0])).toEqual([
+      { groupId: 'g1', change: 'created' },
+      { groupId: 'g1', change: 'updated' },
+      { groupId: 'g1', change: 'deleted' },
+    ]);
+  });
+
+  it('does not report a group change the server refused', async () => {
+    useContactStore.setState({ contacts: [card({ id: 'g1', kind: 'group', members: {} })] });
+    const client = makeClient({ deleteContact: vi.fn().mockRejectedValue(new Error('nope')) });
+    const changes = vi.fn();
+    contactHooks.onContactGroupChange.register('test', changes);
+
+    await expect(useContactStore.getState().deleteGroup(client, 'g1')).rejects.toThrow();
+    await flush();
+    expect(changes).not.toHaveBeenCalled();
+  });
+
+  it('reports the members that were really added or removed, once per action', async () => {
+    useContactStore.setState({
+      contacts: [
+        card({ id: 'a', uid: 'uid-a' }), card({ id: 'b', uid: 'uid-b' }),
+        card({ id: 'g1', kind: 'group', members: { 'uid-a': true } }),
+      ],
+    });
+    const client = makeClient();
+    const members = vi.fn();
+    contactHooks.onContactGroupMemberChange.register('test', members);
+
+    // a is already in the group; only b is new. bulkAddToGroup goes through
+    // addMembersToGroup and must not fire twice.
+    await useContactStore.getState().bulkAddToGroup(client, 'g1', ['a', 'b']);
+    await useContactStore.getState().removeMembersFromGroup(client, 'g1', ['a']);
+    await flush();
+
+    expect(members.mock.calls.map(c => c[0])).toEqual([
+      { groupId: 'g1', added: ['b'], removed: [] },
+      { groupId: 'g1', added: [], removed: ['a'] },
+    ]);
+  });
+
+  it('does not report members the server refused', async () => {
+    useContactStore.setState({ contacts: [card({ id: 'a' }), card({ id: 'g1', kind: 'group', members: {} })] });
+    const client = makeClient({ updateContact: vi.fn().mockRejectedValue(new Error('nope')) });
+    const members = vi.fn();
+    contactHooks.onContactGroupMemberChange.register('test', members);
+
+    await expect(useContactStore.getState().addMembersToGroup(client, 'g1', ['a'])).rejects.toThrow();
+    await flush();
+    expect(members).not.toHaveBeenCalled();
+  });
+
+  it('reports an import with the book and the count', async () => {
+    let n = 0;
+    const client = makeClient({
+      createContact: vi.fn(async (c: Partial<ContactCard>) => ({ ...c, id: `srv-${++n}`, addressBookIds: { 'book-9': true } } as ContactCard)),
+    });
+    const imported = vi.fn();
+    contactHooks.onContactsImport.register('test', imported);
+
+    await useContactStore.getState().importContacts(client, [card({ id: 'x' }), card({ id: 'y' })]);
+    await flush();
+
+    expect(imported).toHaveBeenCalledOnce();
+    expect(imported).toHaveBeenCalledWith({ addressBookId: 'book-9', imported: 2 });
+  });
+
+  it('does not report an import where nothing arrived', async () => {
+    const client = makeClient({ createContact: vi.fn().mockRejectedValue(new Error('nope')) });
+    const imported = vi.fn();
+    contactHooks.onContactsImport.register('test', imported);
+
+    await useContactStore.getState().importContacts(client, [card({ id: 'x' })]);
+    await flush();
+    expect(imported).not.toHaveBeenCalled();
+  });
+
+  it('reports each moved contact with the target book', async () => {
+    useContactStore.setState({ contacts: [card({ id: 'a' }), card({ id: 'b' })] });
+    const client = makeClient({ getContactsAccountId: () => 'acc' });
+    const moved = vi.fn();
+    contactHooks.onContactMove.register('test', moved);
+
+    await useContactStore.getState().moveContactToAddressBook(client, ['a', 'b'], { id: 'book-2', name: 'Work' } as never);
+    await flush();
+
+    expect(moved.mock.calls.map(c => c[0])).toEqual([
+      { contactId: 'a', toAddressBookId: 'book-2' },
+      { contactId: 'b', toAddressBookId: 'book-2' },
+    ]);
+  });
+
+  it('does not report a move the server refused', async () => {
+    useContactStore.setState({ contacts: [card({ id: 'a' })] });
+    const client = makeClient({ getContactsAccountId: () => 'acc', updateContact: vi.fn().mockRejectedValue(new Error('nope')) });
+    const moved = vi.fn();
+    contactHooks.onContactMove.register('test', moved);
+
+    await expect(useContactStore.getState().moveContactToAddressBook(client, ['a'], { id: 'book-2', name: 'Work' } as never)).rejects.toThrow();
+    await flush();
+    expect(moved).not.toHaveBeenCalled();
+  });
+
+  it('reports selection changes, and only real ones', async () => {
+    const selection = vi.fn();
+    contactHooks.onContactSelectionChange.register('test', selection);
+    const store = useContactStore.getState();
+
+    store.toggleContactSelection('a');
+    store.selectRangeContacts('c', ['a', 'b', 'c']);
+    store.selectAllContacts(['a', 'b', 'c']); // same ids: no change
+    store.clearSelection();
+    store.clearSelection(); // already empty: no change
+    await flush();
+
+    expect(selection.mock.calls.map(c => c[0])).toEqual([
+      { contactIds: ['a'] },
+      { contactIds: ['a', 'b', 'c'] },
+      { contactIds: [] },
+    ]);
+  });
+});
