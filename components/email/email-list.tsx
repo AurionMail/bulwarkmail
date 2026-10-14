@@ -14,6 +14,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, type ListRow } from "@/stores/email-store";
+import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -116,7 +117,7 @@ export function EmailList({
   const tSpam = useTranslations('email_viewer.spam');
   const tNotifications = useTranslations('notifications');
   const tViewer = useTranslations('email_viewer');
-  const { client } = useAuthStore();
+  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const {
     selectedEmailKeys,
     selectAllEmails: _selectAllEmails,
@@ -149,7 +150,39 @@ export function EmailList({
     searchQuery,
     isUnifiedView,
     unifiedRole,
-  } = useEmailStore();
+  } = useEmailStore(useShallow((state) => ({
+    selectedEmailKeys: state.selectedEmailKeys,
+    selectAllEmails: state.selectAllEmails,
+    clearSelection: state.clearSelection,
+    batchMarkAsRead: state.batchMarkAsRead,
+    batchSetTag: state.batchSetTag,
+    batchDelete: state.batchDelete,
+    batchMoveToMailbox: state.batchMoveToMailbox,
+    batchArchive: state.batchArchive,
+    batchMarkAsSpam: state.batchMarkAsSpam,
+    batchUndoSpam: state.batchUndoSpam,
+    loadMoreEmails: state.loadMoreEmails,
+    hasMoreEmails: state.hasMoreEmails,
+    isLoadingMore: state.isLoadingMore,
+    mailboxes: state.mailboxes,
+    selectedMailbox: state.selectedMailbox,
+    emptyMailbox: state.emptyMailbox,
+    expandedThreadIds: state.expandedThreadIds,
+    threadEmailsCache: state.threadEmailsCache,
+    isLoadingThread: state.isLoadingThread,
+    toggleThreadExpansion: state.toggleThreadExpansion,
+    fetchThreadEmails: state.fetchThreadEmails,
+    markThreadAsRead: state.markThreadAsRead,
+    collapseAllThreads: state.collapseAllThreads,
+    threadEmailCounts: state.threadEmailCounts,
+    searchFilters: state.searchFilters,
+    setSearchFilters: state.setSearchFilters,
+    clearSearchFilters: state.clearSearchFilters,
+    advancedSearch: state.advancedSearch,
+    searchQuery: state.searchQuery,
+    isUnifiedView: state.isUnifiedView,
+    unifiedRole: state.unifiedRole,
+  })));
 
   // In aggregate role-views (e.g. "All Junk") the selected mailbox is virtual, so
   // there is no concrete mailbox to read the role from. Fall back to the unified

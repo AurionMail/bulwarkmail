@@ -13,6 +13,7 @@ import { SelectableAvatar } from "@/components/email/selectable-avatar";
 import { Paperclip, Star, Pin, Circle, ChevronRight, ChevronDown, Loader2, MessageSquare, CheckSquare, Square, Reply, Forward, CalendarClock, Folder, Archive, Trash2, MailOpen, ShieldAlert } from "@/components/icons";
 import type { AppIcon } from "@/components/icons";
 import { useSettingsStore, KEYWORD_PALETTE } from "@/stores/settings-store";
+import { useShallow } from "zustand/react/shallow";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { accountTintKey, generateAvatarColor } from "@/lib/account-utils";
 import { useUIStore } from "@/stores/ui-store";
@@ -294,7 +295,16 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const isAnswered = email.keywords?.$answered;
     const isForwarded = email.keywords?.$forwarded;
     const showPaperclip = useListHasAttachment(email, loadAttachments);
-    const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore();
+    const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore(useShallow((state) => ({
+      selectedMailbox: state.selectedMailbox,
+      mailboxes: state.mailboxes,
+      selectedEmailKeys: state.selectedEmailKeys,
+      toggleEmailSelection: state.toggleEmailSelection,
+      selectRangeEmails: state.selectRangeEmails,
+      clearSelection: state.clearSelection,
+      isUnifiedView: state.isUnifiedView,
+      unifiedRole: state.unifiedRole,
+    })));
     // In Sent/Drafts folders, show recipient instead of sender (which is always
     // "me"). In aggregate role-views the selected mailbox is virtual → fall back
     // to the unified role so junk-contextual UI and avatar hiding work.
@@ -849,7 +859,16 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       ? formatScheduledSendAt(latestEmail.scheduledSendAt, timeFormat)
       : null;
 
-    const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore();
+    const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore(useShallow((state) => ({
+      selectedMailbox: state.selectedMailbox,
+      mailboxes: state.mailboxes,
+      selectedEmailKeys: state.selectedEmailKeys,
+      toggleEmailSelection: state.toggleEmailSelection,
+      selectRangeEmails: state.selectRangeEmails,
+      clearSelection: state.clearSelection,
+      isUnifiedView: state.isUnifiedView,
+      unifiedRole: state.unifiedRole,
+    })));
     const showSourceFolder = isUnifiedView && !!latestEmail.sourceFolder;
     const getAccountById = useAccountStore((state) => state.getAccountById);
     const threadAccount = latestEmail.accountId ? getAccountById(latestEmail.accountId) : undefined;

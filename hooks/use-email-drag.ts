@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, DragEvent } from "react";
 import { Email } from "@/lib/jmap/types";
 import { IJMAPClient } from "@/lib/jmap/client-interface";
 import { useEmailStore } from "@/stores/email-store";
+import { useShallow } from "zustand/react/shallow";
 import { emailKeyFor } from "@/lib/thread-utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDragDropContext } from "@/contexts/drag-drop-context";
@@ -142,7 +143,7 @@ function getReadyBundle(emails: Email[]): { url: string; name: string } | null {
 }
 
 export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailDragOptions): UseEmailDragReturn {
-  const { selectedEmailKeys, emails } = useEmailStore();
+  const { selectedEmailKeys, emails } = useEmailStore(useShallow((state) => ({ selectedEmailKeys: state.selectedEmailKeys, emails: state.emails })));
   const { startDrag, endDrag, isDragging, draggedEmails } = useDragDropContext();
   const isMobile = useUIStore((state) => state.isMobile);
   const client = useAuthStore((state) => state.client);

@@ -22,6 +22,7 @@ import { useTranslations, useFormatter } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { isDocumentRTL } from '@/i18n/direction';
 import { useAuthStore } from '@/stores/auth-store';
+import { useShallow } from "zustand/react/shallow";
 import { useEmailStore } from '@/stores/email-store';
 import { useCalendarStore } from '@/stores/calendar-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -389,7 +390,15 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const currentUserEmail = useAuthStore((s) => s.primaryIdentity?.email);
   const calendarInvitationParsingEnabled = useSettingsStore((s) => s.calendarInvitationParsingEnabled);
   const timeFormat = useSettingsStore((s) => s.timeFormat);
-  const { calendars, supportsCalendar, importEvents, rsvpEvent, updateEvent, events: storeEvents, setSelectedDate } = useCalendarStore();
+  const { calendars, supportsCalendar, importEvents, rsvpEvent, updateEvent, events: storeEvents, setSelectedDate } = useCalendarStore(useShallow((state) => ({
+    calendars: state.calendars,
+    supportsCalendar: state.supportsCalendar,
+    importEvents: state.importEvents,
+    rsvpEvent: state.rsvpEvent,
+    updateEvent: state.updateEvent,
+    events: state.events,
+    setSelectedDate: state.setSelectedDate,
+  })));
 
   const [state, setState] = useState<BannerState>('loading');
   const [parsedEvent, setParsedEvent] = useState<Partial<CalendarEvent> | null>(null);

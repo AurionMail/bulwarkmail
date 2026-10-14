@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Menu, ArrowLeft, Plus, Search, X, MoreVertical, Terminal, Bell } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/stores/ui-store";
+import { useShallow } from "zustand/react/shallow";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useIsDesktop } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
@@ -130,7 +131,7 @@ export function MobileHeader({
   allInboxesSelected = false,
 }: MobileHeaderProps) {
   const t = useTranslations('sidebar');
-  const { toggleSidebar, goBack, sidebarOpen } = useUIStore();
+  const { toggleSidebar, goBack, sidebarOpen } = useUIStore(useShallow((state) => ({ toggleSidebar: state.toggleSidebar, goBack: state.goBack, sidebarOpen: state.sidebarOpen })));
   const mountainView = useSettingsStore((state) => state.interfaceLayout === 'mountain-view');
   // Pane-aware: in Pro split mode the viewport is desktop-wide while the
   // pane is narrow. The Tailwind `lg:hidden` variant alone would never fire

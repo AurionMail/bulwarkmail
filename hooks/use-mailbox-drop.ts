@@ -3,6 +3,7 @@
 import { useCallback, useState, DragEvent } from "react";
 import { Mailbox, Email } from "@/lib/jmap/types";
 import { useEmailStore } from "@/stores/email-store";
+import { useShallow } from "zustand/react/shallow";
 import { emailKeyFor } from "@/lib/thread-utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDragDropContext } from "@/contexts/drag-drop-context";
@@ -66,8 +67,15 @@ interface UseMailboxDropReturn {
 
 export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: UseMailboxDropOptions): UseMailboxDropReturn {
   const [isOver, setIsOver] = useState(false);
-  const { client } = useAuthStore();
-  const { moveEmailsToMailbox, crossAccountMoveEmails, selectedEmailKeys, clearSelection, refreshCurrentMailbox, mailboxes } = useEmailStore();
+  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
+  const { moveEmailsToMailbox, crossAccountMoveEmails, selectedEmailKeys, clearSelection, refreshCurrentMailbox, mailboxes } = useEmailStore(useShallow((state) => ({
+    moveEmailsToMailbox: state.moveEmailsToMailbox,
+    crossAccountMoveEmails: state.crossAccountMoveEmails,
+    selectedEmailKeys: state.selectedEmailKeys,
+    clearSelection: state.clearSelection,
+    refreshCurrentMailbox: state.refreshCurrentMailbox,
+    mailboxes: state.mailboxes,
+  })));
   const { isDragging, sourceMailboxId, draggedEmails, endDrag, markDropped } = useDragDropContext();
 
   // Determine if this is a valid drop target

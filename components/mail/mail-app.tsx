@@ -28,6 +28,7 @@ import { ThreadConversationView } from "@/components/email/thread-conversation-v
 import { MobileHeader } from "@/components/layout/mobile-header";
 import { ThreadGroup, Email, Mailbox, type StateChange, isUnifiedMailboxId, UNIFIED_MAILBOX_IDS, UNIFIED_ROLE_BY_ID, CROSS_VIEW_BY_ID, CROSS_VIEW_IDS, isCrossViewId } from "@/lib/jmap/types";
 import { useAccountStore, waitForConnectedAccount } from "@/stores/account-store";
+import { useShallow } from "zustand/react/shallow";
 import { usePolicyStore } from "@/stores/policy-store";
 import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
@@ -253,13 +254,24 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Whether the bootstrap fetch for the default mailbox has landed. Deep links
   // wait for it so their folder switch isn't overwritten (#733).
   const [initialMailLoadDone, setInitialMailLoadDone] = useState(false);
-  const { isAuthenticated, client, logout, checkAuth, switchAccount, activeAccountId, isLoading: authLoading, connectionLost, isRateLimited, rateLimitUntil } = useAuthStore();
-  const { identities } = useIdentityStore();
+  const { isAuthenticated, client, logout, checkAuth, switchAccount, activeAccountId, isLoading: authLoading, connectionLost, isRateLimited, rateLimitUntil } = useAuthStore(useShallow((state) => ({
+    isAuthenticated: state.isAuthenticated,
+    client: state.client,
+    logout: state.logout,
+    checkAuth: state.checkAuth,
+    switchAccount: state.switchAccount,
+    activeAccountId: state.activeAccountId,
+    isLoading: state.isLoading,
+    connectionLost: state.connectionLost,
+    isRateLimited: state.isRateLimited,
+    rateLimitUntil: state.rateLimitUntil,
+  })));
+  const { identities } = useIdentityStore(useShallow((state) => ({ identities: state.identities })));
   const multiAccountIdentities = useProMultiAccountIdentities();
   useIdentitySync();
   const trustedSendersAddressBook = useSettingsStore((state) => state.trustedSendersAddressBook);
   const sendDelaySeconds = useSettingsStore((state) => state.sendDelaySeconds);
-  const { loadTrustedSendersBook, trustedSendersLoaded, loadRecentRecipients } = useContactStore();
+  const { loadTrustedSendersBook, trustedSendersLoaded, loadRecentRecipients } = useContactStore(useShallow((state) => ({ loadTrustedSendersBook: state.loadTrustedSendersBook, trustedSendersLoaded: state.trustedSendersLoaded, loadRecentRecipients: state.loadRecentRecipients })));
 
   const promptForRescheduleDelayedUntil = useCallback((): string | null => {
     const value = window.prompt(t('email_viewer.reschedule_prompt'));
@@ -342,7 +354,25 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // after a split closes and reopens at a different size.
   const clampEmailListWidth = (width: number) =>
     paneWidth !== null ? Math.min(width, Math.max(220, Math.floor(paneWidth * 0.55))) : width;
-  const { activeView, sidebarOpen, setSidebarOpen, setActiveView, tabletListVisible, setTabletListVisible, sidebarWidth, emailListWidth, emailListHeight, setSidebarWidth, setEmailListWidth, setEmailListHeight, persistColumnWidths, sidebarCollapsed, resetSidebarWidth, resetEmailListWidth, resetEmailListHeight } = useUIStore();
+  const { activeView, sidebarOpen, setSidebarOpen, setActiveView, tabletListVisible, setTabletListVisible, sidebarWidth, emailListWidth, emailListHeight, setSidebarWidth, setEmailListWidth, setEmailListHeight, persistColumnWidths, sidebarCollapsed, resetSidebarWidth, resetEmailListWidth, resetEmailListHeight } = useUIStore(useShallow((state) => ({
+    activeView: state.activeView,
+    sidebarOpen: state.sidebarOpen,
+    setSidebarOpen: state.setSidebarOpen,
+    setActiveView: state.setActiveView,
+    tabletListVisible: state.tabletListVisible,
+    setTabletListVisible: state.setTabletListVisible,
+    sidebarWidth: state.sidebarWidth,
+    emailListWidth: state.emailListWidth,
+    emailListHeight: state.emailListHeight,
+    setSidebarWidth: state.setSidebarWidth,
+    setEmailListWidth: state.setEmailListWidth,
+    setEmailListHeight: state.setEmailListHeight,
+    persistColumnWidths: state.persistColumnWidths,
+    sidebarCollapsed: state.sidebarCollapsed,
+    resetSidebarWidth: state.resetSidebarWidth,
+    resetEmailListWidth: state.resetEmailListWidth,
+    resetEmailListHeight: state.resetEmailListHeight,
+  })));
   const {
     emails,
     mailboxes,
@@ -432,7 +462,96 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     selectAccountMailbox,
     setViewingAccount,
     refreshCurrentMailbox,
-  } = useEmailStore();
+  } = useEmailStore(useShallow((state) => ({
+    emails: state.emails,
+    mailboxes: state.mailboxes,
+    selectedEmail: state.selectedEmail,
+    selectedMailbox: state.selectedMailbox,
+    quota: state.quota,
+    isPushConnected: state.isPushConnected,
+    newEmailNotification: state.newEmailNotification,
+    selectEmail: state.selectEmail,
+    selectMailbox: state.selectMailbox,
+    selectedEmailKeys: state.selectedEmailKeys,
+    selectAllEmails: state.selectAllEmails,
+    clearSelection: state.clearSelection,
+    toggleEmailSelection: state.toggleEmailSelection,
+    fetchMailboxes: state.fetchMailboxes,
+    fetchEmails: state.fetchEmails,
+    fetchQuota: state.fetchQuota,
+    sendEmail: state.sendEmail,
+    deleteEmail: state.deleteEmail,
+    markAsRead: state.markAsRead,
+    toggleStar: state.toggleStar,
+    patchEmailKeywords: state.patchEmailKeywords,
+    moveToMailbox: state.moveToMailbox,
+    moveToMailboxCrossAware: state.moveToMailboxCrossAware,
+    moveThreadToMailbox: state.moveThreadToMailbox,
+    searchEmails: state.searchEmails,
+    searchQuery: state.searchQuery,
+    setSearchQuery: state.setSearchQuery,
+    isLoading: state.isLoading,
+    isLoadingEmail: state.isLoadingEmail,
+    setLoadingEmail: state.setLoadingEmail,
+    setPushConnected: state.setPushConnected,
+    handleStateChange: state.handleStateChange,
+    clearNewEmailNotification: state.clearNewEmailNotification,
+    markAsSpam: state.markAsSpam,
+    undoSpam: state.undoSpam,
+    searchFilters: state.searchFilters,
+    searchMailboxId: state.searchMailboxId,
+    isAdvancedSearchOpen: state.isAdvancedSearchOpen,
+    setSearchFilters: state.setSearchFilters,
+    setSearchMailboxId: state.setSearchMailboxId,
+    scopeSearchToOpenFolder: state.scopeSearchToOpenFolder,
+    clearSearchFilters: state.clearSearchFilters,
+    toggleAdvancedSearch: state.toggleAdvancedSearch,
+    advancedSearch: state.advancedSearch,
+    selectedKeyword: state.selectedKeyword,
+    selectKeyword: state.selectKeyword,
+    hasMoreEmails: state.hasMoreEmails,
+    fetchTagCounts: state.fetchTagCounts,
+    fetchEmailContent: state.fetchEmailContent,
+    isUnifiedView: state.isUnifiedView,
+    unifiedRole: state.unifiedRole,
+    scheduledEmails: state.scheduledEmails,
+    scheduledTotal: state.scheduledTotal,
+    scheduledTotalByAccount: state.scheduledTotalByAccount,
+    scheduledHasMore: state.scheduledHasMore,
+    isLoadingScheduled: state.isLoadingScheduled,
+    isScheduledView: state.isScheduledView,
+    scheduledAccountScope: state.scheduledAccountScope,
+    setScheduledView: state.setScheduledView,
+    fetchScheduledEmails: state.fetchScheduledEmails,
+    loadMoreScheduledEmails: state.loadMoreScheduledEmails,
+    cancelScheduledEmailForEdit: state.cancelScheduledEmailForEdit,
+    rescheduleScheduledEmail: state.rescheduleScheduledEmail,
+    refreshScheduledMetadata: state.refreshScheduledMetadata,
+    cancelUndoSend: state.cancelUndoSend,
+    clearPendingUndoSend: state.clearPendingUndoSend,
+    pendingUndoSend: state.pendingUndoSend,
+    fetchUnifiedEmails: state.fetchUnifiedEmails,
+    fetchCrossView: state.fetchCrossView,
+    refreshUnifiedCounts: state.refreshUnifiedCounts,
+    refreshCrossCounts: state.refreshCrossCounts,
+    crossUnreadCount: state.crossUnreadCount,
+    exitUnifiedView: state.exitUnifiedView,
+    emptyMailbox: state.emptyMailbox,
+    markMailboxAsRead: state.markMailboxAsRead,
+    createMailbox: state.createMailbox,
+    renameMailbox: state.renameMailbox,
+    deleteMailbox: state.deleteMailbox,
+    batchDelete: state.batchDelete,
+    batchArchive: state.batchArchive,
+    batchMarkAsRead: state.batchMarkAsRead,
+    batchMarkAsSpam: state.batchMarkAsSpam,
+    batchUndoSpam: state.batchUndoSpam,
+    accountMailboxes: state.accountMailboxes,
+    viewingAccountId: state.viewingAccountId,
+    selectAccountMailbox: state.selectAccountMailbox,
+    setViewingAccount: state.setViewingAccount,
+    refreshCurrentMailbox: state.refreshCurrentMailbox,
+  })));
 
   // Mailboxes of the account currently being browsed. Mirrors the store's
   // action-mailbox resolution so a lookup by `selectedMailbox` hits the same
