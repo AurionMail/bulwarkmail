@@ -133,3 +133,12 @@ describe('compareVersions', () => {
     expect(compareVersions('0.9.0', '1.0.0')).toBe(-1);
   });
 });
+
+describe('deprecated permissions', () => {
+  it('drops smime:read with a warning instead of refusing the plugin', () => {
+    const { manifest, warnings } = checkPluginManifest({ ...BASE, permissions: ['email:read', 'smime:read'] });
+
+    expect(manifest?.permissions).toEqual(['email:read']);
+    expect(warnings.join()).toMatch(/smime:read/);
+  });
+});

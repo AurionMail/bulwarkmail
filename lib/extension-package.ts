@@ -10,6 +10,7 @@ import JSZip from 'jszip';
 import {
   ALL_PERMISSIONS,
   ALLOWED_PLUGIN_FILES,
+  DEPRECATED_PERMISSIONS,
   MAX_PLUGIN_SIZE,
   MAX_THEME_SIZE,
   type PluginManifest,
@@ -427,6 +428,11 @@ export function checkPluginManifest(m: Record<string, unknown>, opts: { appVersi
       errors.push('"permissions" must be a list of strings');
     } else {
       permissions = [...new Set(m.permissions as string[])];
+      const deprecated = permissions.filter((p) => DEPRECATED_PERMISSIONS.includes(p));
+      if (deprecated.length > 0) {
+        warnings.push(`Ignored permissions that no longer grant anything: ${deprecated.join(', ')}`);
+        permissions = permissions.filter((p) => !DEPRECATED_PERMISSIONS.includes(p));
+      }
       const unknown = permissions.filter((p) => !KNOWN_PERMISSIONS.has(p));
       if (unknown.length > 0) errors.push(`Unknown permissions: ${unknown.join(', ')} (this Bulwark version does not offer them)`);
     }

@@ -6,7 +6,7 @@ import { pluginStorage } from '../plugin-storage';
 import {
   emailHooks, calendarHooks, calendarFormHooks, contactHooks, fileHooks,
   authHooks, settingsHooks, identityHooks, filterHooks,
-  taskHooks, templateHooks, smimeHooks, vacationHooks,
+  taskHooks, templateHooks, vacationHooks,
   uiHooks, themeHooks, toastHooks, dragDropHooks,
   keyboardHooks, appLifecycleHooks, accountSecurityHooks,
   sidebarAppHooks, avatarHooks, renderHooks, routerHooks,
@@ -30,7 +30,7 @@ type AnyBus = { register: (pluginId: string, handler: (...args: unknown[]) => un
 const HOOK_BUSES: Record<string, AnyBus> = Object.assign({},
   emailHooks, calendarHooks, calendarFormHooks, contactHooks, fileHooks,
   authHooks, settingsHooks, identityHooks, filterHooks,
-  taskHooks, templateHooks, smimeHooks, vacationHooks,
+  taskHooks, templateHooks, vacationHooks,
   uiHooks, themeHooks, toastHooks, dragDropHooks,
   keyboardHooks, appLifecycleHooks, accountSecurityHooks,
   sidebarAppHooks, avatarHooks, renderHooks, routerHooks,

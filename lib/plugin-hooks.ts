@@ -322,6 +322,7 @@ export const emailHooks = {
   // Return false to cancel opening the composer.
   onBeforeCompose: new HookBus(),
   onComposerOpen: new HookBus(),
+  onComposerClose: new HookBus(),
   // Fails closed with the long send budget: a guard that asks the user and
   // gets no answer must not let the mail go out behind its dialog.
   onBeforeEmailSend: new HookBus(COMPOSE_SEND_TIMEOUT_MS, { failClosed: true }),
@@ -338,25 +339,35 @@ export const emailHooks = {
   onAfterEmailDelete: new HookBus(),
   onBeforeEmailMove: new HookBus(),
   onAfterEmailMove: new HookBus(),
+  onBeforeEmailArchive: new HookBus(),
   // Fired after one or more emails are archived to the Archive mailbox
   onEmailArchive: new HookBus(),
   // Fired after one or more emails are moved out of the Archive mailbox
   onEmailUnarchive: new HookBus(),
+  onBeforeEmailReadStateChange: new HookBus(),
   onEmailReadStateChange: new HookBus(),
+  onBeforeEmailStarToggle: new HookBus(),
   onEmailStarToggle: new HookBus(),
+  onBeforeEmailSpamToggle: new HookBus(),
   onEmailSpamToggle: new HookBus(),
+  onBeforeEmailKeywordChange: new HookBus(),
   onEmailKeywordChange: new HookBus(),
   onMailboxChange: new HookBus(),
   onMailboxesRefresh: new HookBus(),
+  onBeforeMailboxCreate: new HookBus(),
   onMailboxCreate: new HookBus(),
+  onBeforeMailboxRename: new HookBus(),
   onMailboxRename: new HookBus(),
+  onBeforeMailboxDelete: new HookBus(),
   onMailboxDelete: new HookBus(),
+  onBeforeMailboxEmpty: new HookBus(),
   onMailboxEmpty: new HookBus(),
   onSearch: new HookBus(),
   onSearchResults: new HookBus(),
   onEmailSelectionChange: new HookBus(),
   onNewEmailReceived: new HookBus(),
   onPushConnectionChange: new HookBus(),
+  onSyncStateChange: new HookBus(),
   onQuotaChange: new HookBus(),
   // Intercept hook - fired when a mailto: link is clicked.
   // Return false to prevent the browser from opening the system mail client.
@@ -447,7 +458,9 @@ export const calendarHooks = {
   onAfterEventUpdate: new HookBus(),
   onBeforeEventDelete: new HookBus(),
   onAfterEventDelete: new HookBus(),
+  onBeforeEventRsvp: new HookBus(),
   onEventRsvp: new HookBus(),
+  onBeforeEventsImport: new HookBus(),
   onEventsImport: new HookBus(),
   onCalendarDateChange: new HookBus(),
   onCalendarViewChange: new HookBus(),
@@ -525,6 +538,7 @@ export const fileHooks = {
   // Return false to cancel the rename.
   onBeforeFileRename: new HookBus(),
   onFileRename: new HookBus(),
+  onBeforeFileMove: new HookBus(),
   onFileMove: new HookBus(),
   onFileCopy: new HookBus(),
   onFileDuplicate: new HookBus(),
@@ -556,6 +570,7 @@ export const authHooks = {
 
 // §7.6 Settings Hooks
 export const settingsHooks = {
+  onBeforeSettingChange: new HookBus(),
   onSettingChange: new HookBus(),
   onSettingsExport: new HookBus(),
   onSettingsImport: new HookBus(),
@@ -568,6 +583,7 @@ export const settingsHooks = {
 // §7.7 Identity Hooks
 export const identityHooks = {
   onIdentitiesLoaded: new HookBus(),
+  onBeforeIdentityChange: new HookBus(),
   onIdentityCreate: new HookBus(),
   onIdentityUpdate: new HookBus(),
   onIdentityDelete: new HookBus(),
@@ -579,6 +595,7 @@ export const identityHooks = {
 export const filterHooks = {
   onFiltersLoaded: new HookBus(),
   onFilterRuleChange: new HookBus(),
+  onBeforeFiltersSave: new HookBus(),
   // Observer fired after the host successfully uploads the account's active
   // Sieve script (visual-builder save or plugin-triggered regenerate).
   onFiltersSave: new HookBus(),
@@ -600,8 +617,11 @@ export const filterHooks = {
 // §7.9 Task Hooks
 export const taskHooks = {
   onTasksLoaded: new HookBus(),
+  onBeforeTaskCreate: new HookBus(),
   onTaskCreate: new HookBus(),
+  onBeforeTaskUpdate: new HookBus(),
   onTaskUpdate: new HookBus(),
+  onBeforeTaskDelete: new HookBus(),
   onTaskDelete: new HookBus(),
   onTaskToggleComplete: new HookBus(),
   onTaskFilterChange: new HookBus(),
@@ -617,17 +637,10 @@ export const templateHooks = {
   onTemplateRender: new HookBus(),
 };
 
-// §7.11 S/MIME Hooks
-export const smimeHooks = {
-  onSmimeKeyImport: new HookBus(),
-  onSmimeCertImport: new HookBus(),
-  onSmimeKeyStateChange: new HookBus(),
-  onSmimeDefaultsChange: new HookBus(),
-};
-
 // §7.12 Vacation Hooks
 export const vacationHooks = {
   onVacationLoaded: new HookBus(),
+  onBeforeVacationUpdate: new HookBus(),
   onVacationUpdate: new HookBus(),
 };
 
@@ -639,7 +652,6 @@ export const uiHooks = {
   onDeviceTypeChange: new HookBus(),
   onColumnResize: new HookBus(),
   onMobileBack: new HookBus(),
-  onMobileViewSwitch: new HookBus(),
   // Intercept hook - fires when the user clicks an external link inside the
   // app (typically inside an email body iframe). Handler receives
   // ExternalLinkContext; return false to cancel the navigation. Mutate
@@ -690,7 +702,6 @@ export const dragDropHooks = {
 
 // §7.17 Keyboard Hooks
 export const keyboardHooks = {
-  registerShortcut: new HookBus(),
   onBeforeShortcut: new HookBus(),
   onAfterShortcut: new HookBus(),
 };
@@ -725,7 +736,6 @@ export const accountSecurityHooks = {
 export const sidebarAppHooks = {
   onSidebarAppOpen: new HookBus(),
   onSidebarAppClose: new HookBus(),
-  onSidebarAppChange: new HookBus(),
 };
 
 // §7.21 Avatar Hooks
@@ -799,7 +809,7 @@ export const messageListTabHooks = {
 const allHookGroups = [
   emailHooks, calendarHooks, calendarFormHooks, contactHooks, fileHooks,
   authHooks, settingsHooks, identityHooks, filterHooks,
-  taskHooks, templateHooks, smimeHooks, vacationHooks,
+  taskHooks, templateHooks, vacationHooks,
   uiHooks, themeHooks, toastHooks, dragDropHooks,
   keyboardHooks, appLifecycleHooks, accountSecurityHooks, sidebarAppHooks,
   avatarHooks, renderHooks, routerHooks, messageListTabHooks,

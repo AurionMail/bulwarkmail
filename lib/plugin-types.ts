@@ -1072,7 +1072,6 @@ export const ALL_PERMISSIONS = [
   'filters:read', 'filters:write',
   'tasks:read', 'tasks:write',
   'templates:read', 'templates:write',
-  'smime:read',
   'vacation:read', 'vacation:write',
   'settings:read', 'settings:write',
   'security:read',
@@ -1094,6 +1093,14 @@ export const ALL_PERMISSIONS = [
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
+
+/**
+ * Permissions older plugins may still name that no longer grant anything:
+ * `smime:read` covered the built-in S/MIME code, which moved into a plugin.
+ * Accepted and dropped at install, with a warning, so those plugins still
+ * install.
+ */
+export const DEPRECATED_PERMISSIONS: readonly string[] = ['smime:read'];
 
 /** Permissions always granted regardless of manifest */
 export const IMPLICIT_PERMISSIONS: Permission[] = ['ui:observe', 'app:lifecycle'];
