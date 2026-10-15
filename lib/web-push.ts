@@ -8,6 +8,13 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { EmailPushConfig, Mailbox } from '@/lib/jmap/types';
 import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
 import { IS_LITE } from '@/lib/lite';
+import {
+  EMPTY_NOTIFICATION_MUTES,
+  isAccountMuted,
+  isMailboxMuted,
+  mailboxOverridesForAccount,
+  type NotificationMutes,
+} from '@/lib/notification-mutes';
 
 // Per-account keys: a single browser may be signed in to multiple accounts,
 // each with its own JMAP PushSubscription and its own relay record. Scoping
@@ -86,10 +93,16 @@ export function serverSupportsEmailPush(client: IJMAPClient): boolean {
  * account with no Inbox we can see (someone shared a single folder with us)
  * gets a filter that never matches: leaving it out of the map would make the
  * server fall back to unfiltered pushes for that account.
+ *
+ * Muted accounts and folders (#1169) are cut out of the same filter. In the
+ * default mode a muted folder joins Junk in the "not only in" list; a muted
+ * account only lets through mail in the folders the user unmuted again, or
+ * nothing at all. In inbox-only mode a muted Inbox silences the account.
  */
 export async function buildEmailPushConfig(
   client: IJMAPClient,
   inboxOnly: boolean,
+  mutes: NotificationMutes = EMPTY_NOTIFICATION_MUTES,
 ): Promise<Record<string, EmailPushConfig>> {
   const primary = client.getAccountId();
   // Every account that has any mailbox gets a filter entry - a secondary/shared
@@ -98,10 +111,13 @@ export async function buildEmailPushConfig(
   const accountIds = new Set<string>([primary]);
   const junkByAccount = new Map<string, string[]>();
   const inboxByAccount = new Map<string, string>();
+  const mailboxIdsByAccount = new Map<string, Set<string>>();
   // In inbox-only mode a swallowed fetch failure would masquerade as "no Inbox
-  // mailbox" below, so let the real error surface; the default mode can still
-  // degrade to keyword-only filtering on a transient miss.
-  const mailboxes = inboxOnly
+  // mailbox" below, and with mutes it would drop them all and unmute
+  // everything, so let the real error surface; otherwise the default mode can
+  // still degrade to keyword-only filtering on a transient miss.
+  const hasMutes = mutes.accounts.length > 0 || Object.keys(mutes.mailboxes).length > 0;
+  const mailboxes = inboxOnly || hasMutes
     ? await client.getAllMailboxes()
     : await client.getAllMailboxes().catch(() => [] as Mailbox[]);
   for (const m of mailboxes) {
@@ -109,17 +125,24 @@ export async function buildEmailPushConfig(
     accountIds.add(accountId);
     // Shared-account mailboxes carry a client-side "<account>:<id>" id;
     // the server only knows the original.
+    const serverId = m.originalId ?? m.id;
+    const ids = mailboxIdsByAccount.get(accountId) ?? new Set<string>();
+    ids.add(serverId);
+    mailboxIdsByAccount.set(accountId, ids);
     if (m.role === 'junk') {
       const junk = junkByAccount.get(accountId) ?? [];
-      junk.push(m.originalId ?? m.id);
+      junk.push(serverId);
       junkByAccount.set(accountId, junk);
     }
-    if (m.role === 'inbox') inboxByAccount.set(accountId, m.originalId ?? m.id);
+    if (m.role === 'inbox') inboxByAccount.set(accountId, serverId);
   }
 
   const config: Record<string, EmailPushConfig> = {};
   for (const accountId of accountIds) {
     const junkIds = junkByAccount.get(accountId) ?? [];
+    // Settings for folders that no longer exist are left out.
+    const existing = mailboxIdsByAccount.get(accountId) ?? new Set<string>();
+    const overrides = mailboxOverridesForAccount(mutes, accountId);
     const conditions: Record<string, unknown>[] = [{ notKeyword: '$junk' }];
     if (inboxOnly) {
       const inboxId = inboxByAccount.get(accountId);
@@ -128,9 +151,19 @@ export async function buildEmailPushConfig(
       if (!inboxId && accountId === primary) {
         throw new Error(`No Inbox mailbox found for account ${accountId}; cannot build an inbox-only push filter`);
       }
-      conditions.push(inboxId ? { inMailbox: inboxId } : { hasKeyword: '$junk' });
-    } else if (junkIds.length > 0) {
-      conditions.push({ inMailboxOtherThan: [...junkIds].sort() });
+      conditions.push(inboxId && !isMailboxMuted(mutes, accountId, inboxId)
+        ? { inMailbox: inboxId }
+        : NEVER_MATCH);
+    } else if (isAccountMuted(mutes, accountId)) {
+      const allowed = overrides.unmuted
+        .filter((id) => existing.has(id) && !junkIds.includes(id))
+        .sort();
+      if (allowed.length === 0) conditions.push(NEVER_MATCH);
+      else if (allowed.length === 1) conditions.push({ inMailbox: allowed[0] });
+      else conditions.push({ operator: 'OR', conditions: allowed.map((id) => ({ inMailbox: id })) });
+    } else {
+      const excluded = new Set([...junkIds, ...overrides.muted.filter((id) => existing.has(id))]);
+      if (excluded.size > 0) conditions.push({ inMailboxOtherThan: [...excluded].sort() });
     }
     config[accountId] = {
       // Always the operator form: that's how the server echoes it back, so a
@@ -142,6 +175,10 @@ export async function buildEmailPushConfig(
   }
   return config;
 }
+
+// Contradicts the `notKeyword: '$junk'` every filter starts with, so the AND
+// never matches: the account stays in the map but never pushes.
+const NEVER_MATCH = { hasKeyword: '$junk' } as const;
 
 function normalizeEmailPush(value: unknown): string {
   const sortKeys = (v: unknown): unknown => {
@@ -181,6 +218,8 @@ export interface EnableWebPushParams {
   // pushNotifyInboxOnly. Required, not optional: it changes the server-side
   // delivery filter, so every caller must decide explicitly.
   inboxOnly: boolean;
+  // Muted accounts and folders, settings-store's notificationMutes (#1169).
+  mutes?: NotificationMutes;
 }
 
 export interface EnableWebPushResult {
@@ -513,7 +552,7 @@ export async function enableWebPush(
   // revoked shared-mailbox access (#841).
   const existingSubs = await params.client.listPushSubscriptions().catch(() => []);
   const emailPush = serverSupportsEmailPush(params.client)
-    ? await buildEmailPushConfig(params.client, params.inboxOnly)
+    ? await buildEmailPushConfig(params.client, params.inboxOnly, params.mutes)
     : null;
   const subIdKey = subscriptionIdKey(accountId);
   const storedServerId = localStorage.getItem(subIdKey);
@@ -731,6 +770,10 @@ export interface ResyncWebPushParams {
   accountLabel?: string;
   // Mirrors settings-store's pushNotifyInboxOnly - see EnableWebPushParams.
   inboxOnly: boolean;
+  mutes?: NotificationMutes;
+  // Skip the once-a-day limit: the filter itself changed (a folder was
+  // muted) and has to reach the server now.
+  force?: boolean;
 }
 
 /**
@@ -749,7 +792,7 @@ export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolea
   }
   if (!accountId) return false;
   const last = lastResyncAt.get(accountId);
-  if (last !== undefined && Date.now() - last < RESYNC_INTERVAL_MS) return false;
+  if (!params.force && last !== undefined && Date.now() - last < RESYNC_INTERVAL_MS) return false;
   try {
     // The browser may have lost its endpoint while our saved opt-in and
     // server registration survived. Recreate it through the normal enable
@@ -763,6 +806,7 @@ export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolea
       relayBaseUrl: params.relayBaseUrl,
       accountLabel: params.accountLabel,
       inboxOnly: params.inboxOnly,
+      mutes: params.mutes,
     });
     return true;
   } catch {
@@ -804,7 +848,7 @@ export interface BulkWebPushResult {
 export async function enableWebPushForAccounts(
   targets: BulkWebPushTarget[],
   // inboxOnly mirrors settings-store's pushNotifyInboxOnly, as for a single account.
-  options: { relayBaseUrl?: string; forceRecreate?: boolean; inboxOnly: boolean },
+  options: { relayBaseUrl?: string; forceRecreate?: boolean; inboxOnly: boolean; mutes?: NotificationMutes },
 ): Promise<BulkWebPushResult> {
   const result: BulkWebPushResult = { enabled: [], failed: [] };
   let browserRefusal: unknown;
@@ -820,6 +864,7 @@ export async function enableWebPushForAccounts(
         accountLabel: target.accountLabel,
         forceRecreate: options.forceRecreate,
         inboxOnly: options.inboxOnly,
+        mutes: options.mutes,
       });
       result.enabled.push(target.accountId);
     } catch (error) {

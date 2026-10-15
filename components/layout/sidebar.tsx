@@ -55,7 +55,7 @@ import { useKeywordFormat } from "@/hooks/use-keyword-format";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { Mailbox } from "@/lib/jmap/types";
 import { useContextMenu } from "@/hooks/use-context-menu";
-import { MailboxContextMenu, type MailboxContextTarget } from "./mailbox-context-menu";
+import { MailboxContextMenu, type MailboxContextTarget, type MailboxNotificationActions } from "./mailbox-context-menu";
 import { useAccountStore } from '@/stores/account-store';
 import { useShallow } from "zustand/react/shallow";
 import { UNIFIED_MAILBOX_IDS, CROSS_VIEW_IDS } from '@/lib/jmap/types';
@@ -78,6 +78,16 @@ import { buildSettingsPath, SCHEDULED_MAILBOX_ID, scopedScheduledMailboxId } fro
 import { useTour } from "@/components/tour/tour-provider";
 import { toUnicodeEmail } from "@/lib/idn";
 import { hiddenSharedMailIds, isSharedMailAccountVisible, setSharedMailAccountHidden } from "@/lib/shared-mail-visibility";
+import {
+  isAccountMuted,
+  isMailboxMuted,
+  mailboxOverridesForAccount,
+  resetMailboxMutes,
+  setAccountMuted,
+  setMailboxMuted,
+  type NotificationMutes,
+} from "@/lib/notification-mutes";
+import { serverSupportsEmailPush } from "@/lib/web-push";
 
 interface SidebarProps {
   mailboxes: Mailbox[];
@@ -298,6 +308,8 @@ interface SidebarRowProps {
   isValidDropTarget?: boolean;
   isInvalidDropTarget?: boolean;
   onContextMenu?: (e: React.MouseEvent) => void;
+  /** New mail here does not notify (#1169). */
+  muted?: boolean;
   /** Stable identifiers for integration tests (not user-visible). */
   testRole?: string | null;
   testName?: string;
@@ -324,6 +336,7 @@ function SidebarRow({
   isValidDropTarget,
   isInvalidDropTarget,
   onContextMenu,
+  muted = false,
   testRole,
   testName,
   testMailboxId,
@@ -402,6 +415,13 @@ function SidebarRow({
         {!isCollapsed && (
           <>
             <span ref={labelRef} className="flex-1 truncate">{shortenedLabel}</span>
+            {muted && (
+              <BellOff
+                className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground"
+                aria-label={t('notifications_muted')}
+                data-testid="folder-muted"
+              />
+            )}
             <SidebarRowCounts
               unread={unread}
               total={total}
@@ -502,6 +522,15 @@ function SidebarSectionHeader({
   );
 }
 
+/** Whether new mail in this folder of the active login stays silent (#1169). */
+function useMutedMailbox(node: MailboxNode | null): boolean {
+  const client = useAuthStore((s) => s.client);
+  return useSettingsStore((s) => {
+    if (!node || !client) return false;
+    return isMailboxMuted(s.notificationMutes, node.accountId || client.getAccountId(), node.originalId || node.id);
+  });
+}
+
 function MailboxTreeItem({
   node,
   selectedMailbox,
@@ -536,6 +565,9 @@ function MailboxTreeItem({
   const isVirtualNode = node.id.startsWith('shared-');
   const isSelected = selectedMailbox === node.id;
   const label = localizeMailboxName(node.role, node.name, (k) => tSidebar(`mailboxes.${k}`));
+  // Only for the active login's folders: its client tells a missing
+  // accountId (own mailbox) apart.
+  const muted = useMutedMailbox(isVirtualNode || dragAccountId ? null : node);
 
   const isEmbedded = useIsEmbedded();
   // Pro shell only: folder rows are drag sources so a folder can be dropped
@@ -607,6 +639,7 @@ function MailboxTreeItem({
         isValidDropTarget={isValidDropTarget}
         isInvalidDropTarget={isInvalidDropTarget}
         onContextMenu={onContextMenu && !isVirtualNode ? (e) => onContextMenu(e, node) : undefined}
+        muted={muted}
       />
 
       {hasChildren && isExpanded && !isCollapsed && node.children.map((child) => (
@@ -1277,6 +1310,28 @@ function SidebarImpl({
       }
     : undefined;
 
+  // Muting only takes effect through the server's emailPush filter, so the
+  // menu offers it only where that exists, like the "Inbox only" setting.
+  const authClient = useAuthStore((s) => s.client);
+  const notificationMutes = useSettingsStore((s) => s.notificationMutes);
+  const notificationActions = useMemo<MailboxNotificationActions | undefined>(() => {
+    if (!authClient || !serverSupportsEmailPush(authClient)) return undefined;
+    const accountOf = (accountId?: string) => accountId || authClient.getAccountId();
+    const mailboxRef = (mailbox: Mailbox) => [accountOf(mailbox.accountId), mailbox.originalId || mailbox.id] as const;
+    const save = (next: NotificationMutes) => useSettingsStore.getState().updateSetting('notificationMutes', next);
+    return {
+      isMailboxMuted: (mailbox) => isMailboxMuted(notificationMutes, ...mailboxRef(mailbox)),
+      isAccountMuted: (accountId) => isAccountMuted(notificationMutes, accountOf(accountId)),
+      hasFolderSettings: (accountId) => {
+        const { muted, unmuted } = mailboxOverridesForAccount(notificationMutes, accountOf(accountId));
+        return muted.length + unmuted.length > 0;
+      },
+      setMailboxMuted: (mailbox, muted) => save(setMailboxMuted(notificationMutes, ...mailboxRef(mailbox), muted)),
+      setAccountMuted: (accountId, muted) => save(setAccountMuted(notificationMutes, accountOf(accountId), muted)),
+      resetFolderSettings: (accountId) => save(resetMailboxMutes(notificationMutes, accountOf(accountId))),
+    };
+  }, [authClient, notificationMutes]);
+
   return (
     <div
       onMouseEnter={mvShell && sidebarCollapsed ? () => setRailHovered(true) : undefined}
@@ -1718,6 +1773,7 @@ function SidebarImpl({
         onImportEmail={onImportEmail}
         onRefresh={onRefreshMailboxes}
         onHideSharedAccount={hideSharedAccount}
+        notifications={notificationActions}
       />
     </div>
   );

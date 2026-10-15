@@ -564,6 +564,84 @@ describe('buildEmailPushConfig inbox-only mode', () => {
   });
 });
 
+// Muted accounts and folders (#1169) are left out by the server-side filter.
+describe('buildEmailPushConfig with muted folders and accounts', () => {
+  const mutes = (accounts: string[], mailboxes: Record<string, boolean> = {}) => ({ accounts, mailboxes });
+
+  it('adds a muted folder to the excluded mailboxes next to Junk', async () => {
+    const client = makeClient([], { emailPushCapability: true });
+
+    const config = await buildEmailPushConfig(client, false, mutes([], { [`${ACCOUNT_ID}/mb-archive`]: true }));
+
+    expect(config[ACCOUNT_ID].filter).toEqual({
+      operator: 'AND',
+      conditions: [{ notKeyword: '$junk' }, { inMailboxOtherThan: [JUNK_ID, 'mb-archive'].sort() }],
+    });
+    // Another account's folders are untouched.
+    expect(config[SHARED_ACCOUNT_ID]).toEqual(EXPECTED_EMAIL_PUSH[SHARED_ACCOUNT_ID]);
+  });
+
+  it('silences a muted account entirely', async () => {
+    const client = makeClient([], { emailPushCapability: true });
+
+    const config = await buildEmailPushConfig(client, false, mutes([SHARED_ACCOUNT_ID]));
+
+    expect(config[SHARED_ACCOUNT_ID].filter).toEqual({
+      operator: 'AND',
+      conditions: [{ notKeyword: '$junk' }, { hasKeyword: '$junk' }],
+    });
+    expect(config[ACCOUNT_ID]).toEqual(EXPECTED_EMAIL_PUSH[ACCOUNT_ID]);
+  });
+
+  it('lets a muted account notify for the folders unmuted again', async () => {
+    const client = makeClient([], { emailPushCapability: true });
+
+    const one = await buildEmailPushConfig(client, false, mutes([ACCOUNT_ID], { [`${ACCOUNT_ID}/mb-archive`]: false }));
+    expect(one[ACCOUNT_ID].filter).toEqual({
+      operator: 'AND',
+      conditions: [{ notKeyword: '$junk' }, { inMailbox: 'mb-archive' }],
+    });
+
+    const two = await buildEmailPushConfig(client, false, mutes([ACCOUNT_ID], {
+      [`${ACCOUNT_ID}/mb-inbox`]: false,
+      [`${ACCOUNT_ID}/mb-archive`]: false,
+      // Gone from the server: must not end up in the filter.
+      [`${ACCOUNT_ID}/mb-deleted`]: false,
+    }));
+    expect(two[ACCOUNT_ID].filter).toEqual({
+      operator: 'AND',
+      conditions: [
+        { notKeyword: '$junk' },
+        { operator: 'OR', conditions: [{ inMailbox: 'mb-archive' }, { inMailbox: 'mb-inbox' }] },
+      ],
+    });
+  });
+
+  it('silences the account in inbox-only mode when its Inbox is muted', async () => {
+    const client = makeClient([], { emailPushCapability: true });
+
+    const config = await buildEmailPushConfig(client, true, mutes([], { [`${SHARED_ACCOUNT_ID}/mb-shared-inbox`]: true }));
+
+    expect(config[SHARED_ACCOUNT_ID].filter).toEqual({
+      operator: 'AND',
+      conditions: [{ notKeyword: '$junk' }, { hasKeyword: '$junk' }],
+    });
+    expect(config[ACCOUNT_ID].filter).toEqual({
+      operator: 'AND',
+      conditions: [{ notKeyword: '$junk' }, { inMailbox: 'mb-inbox' }],
+    });
+  });
+
+  it('fails instead of dropping the mutes when the mailboxes cannot be read', async () => {
+    const client = makeClient([], { emailPushCapability: true });
+    client.getAllMailboxes = vi.fn(async () => {
+      throw new Error('JMAP down');
+    }) as unknown as IJMAPClient['getAllMailboxes'];
+
+    await expect(buildEmailPushConfig(client, false, mutes([ACCOUNT_ID]))).rejects.toThrow(/JMAP down/);
+  });
+});
+
 describe('disableWebPush', () => {
   it('destroys every subscription this device owns, not just the recorded id', async () => {
     localStorage.setItem(DEVICE_KEY, THIS_DEVICE);

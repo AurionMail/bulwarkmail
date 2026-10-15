@@ -4,6 +4,7 @@ import { useThemeStore } from './theme-store';
 import { useLocaleStore } from './locale-store';
 import type { EmailTemplate } from '@/lib/template-types';
 import type { NotificationSoundChoice } from '@/lib/notification-sound';
+import { EMPTY_NOTIFICATION_MUTES, normalizeNotificationMutes, type NotificationMutes } from '@/lib/notification-mutes';
 import { apiFetch } from '@/lib/browser-navigation';
 import { settingsHooks } from '@/lib/plugin-hooks';
 import { generateAccountId } from '@/lib/account-utils';
@@ -551,6 +552,8 @@ interface SettingsState {
   notificationSoundChoice: NotificationSoundChoice;
   /** Web Push only fires for mail that lands in the Inbox; Sieve-filed mail stays silent. */
   pushNotifyInboxOnly: boolean;
+  /** Accounts and folders that never notify (#1169); see lib/notification-mutes. */
+  notificationMutes: NotificationMutes;
   /** Chosen Web Push relay URL. Empty = the admin-configured default. */
   pushRelayUrl: string;
 
@@ -817,6 +820,7 @@ const DEFAULT_SETTINGS = {
   emailNotificationSound: true,
   notificationSoundChoice: 'default' as NotificationSoundChoice,
   pushNotifyInboxOnly: false,
+  notificationMutes: EMPTY_NOTIFICATION_MUTES,
   pushRelayUrl: '',
 
   // Protocol Handlers
@@ -1044,6 +1048,7 @@ export const useSettingsStore = create<SettingsState>()(
           emailNotificationSound: state.emailNotificationSound,
           notificationSoundChoice: state.notificationSoundChoice,
           pushNotifyInboxOnly: state.pushNotifyInboxOnly,
+          notificationMutes: state.notificationMutes,
           pushRelayUrl: state.pushRelayUrl,
           protocolOpenMode: state.protocolOpenMode,
           calendarNotificationsEnabled: state.calendarNotificationsEnabled,
@@ -1194,6 +1199,10 @@ export const useSettingsStore = create<SettingsState>()(
                 return;
               }
               if (key === 'hiddenSharedMailAccounts' && !isPlainRecord(settings[key])) {
+                return;
+              }
+              if (key === 'notificationMutes') {
+                put(key, { notificationMutes: normalizeNotificationMutes(settings[key]) });
                 return;
               }
               // The list order is sent to the server as a sort array, so an
@@ -1528,6 +1537,7 @@ export const useSettingsStore = create<SettingsState>()(
             if (!isPlainRecord(state.hiddenSharedMailAccounts)) {
               state.hiddenSharedMailAccounts = {};
             }
+            state.notificationMutes = normalizeNotificationMutes(state.notificationMutes);
             state.messageListOrder = sanitizeSortLevels(state.messageListOrder);
             if (state.messageListOrderScope !== 'inbox' && state.messageListOrderScope !== 'all') {
               state.messageListOrderScope = 'inbox';

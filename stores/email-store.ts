@@ -5,6 +5,7 @@ import type { IJMAPClient, SearchEmailsResult } from "@/lib/jmap/client-interfac
 import { withSearchSnippets, type DeferredSnippetBatch } from "@/lib/search-snippet";
 import { afterRequestDispatch } from "@/lib/after-request-dispatch";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
+import { isMailboxMuted } from "@/lib/notification-mutes";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, placeHeldRows, sanitizeSortLevels, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
 import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty } from "@/lib/jmap/search-utils";
@@ -5237,7 +5238,12 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         !currentEmails.some(e => e.id === newFirst.id) &&
         (!keepOpenThread || insertedCount > 0)
       ) {
-        get().handleNewEmailNotification(newFirst);
+        // A muted Inbox (or account) stays quiet in the app too (#1169).
+        const accountId = mailbox.accountId || resolveActionClient(client).getAccountId();
+        const muted = isMailboxMuted(
+          useSettingsStore.getState().notificationMutes, accountId, mailbox.originalId || mailbox.id,
+        );
+        if (!muted) get().handleNewEmailNotification(newFirst);
       }
 
       // Merge the refreshed first page with the existing loaded emails.

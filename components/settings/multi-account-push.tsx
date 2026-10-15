@@ -76,7 +76,11 @@ export function MultiAccountPushSettings({ relayBaseUrl }: { relayBaseUrl?: stri
       if (action === 'enable') {
         const outcome = await enableWebPushForAccounts(
           targets.map(a => ({ accountId: a.id, client: auth.getClientForAccount(a.id)!, accountLabel: a.username })),
-          { relayBaseUrl, inboxOnly: useSettingsStore.getState().pushNotifyInboxOnly },
+          {
+            relayBaseUrl,
+            inboxOnly: useSettingsStore.getState().pushNotifyInboxOnly,
+            mutes: useSettingsStore.getState().notificationMutes,
+          },
         );
         setNotice(outcome.failed.length
           ? t('result_partial', { enabled: outcome.enabled.length, failed: outcome.failed.length })

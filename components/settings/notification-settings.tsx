@@ -157,6 +157,7 @@ export function NotificationSettings() {
         accountLabel: username ?? undefined,
         forceRecreate,
         inboxOnly: pushNotifyInboxOnly,
+        mutes: useSettingsStore.getState().notificationMutes,
       });
       setPushStatus({ kind: 'enabled' });
     } catch (err) {
@@ -193,6 +194,7 @@ export function NotificationSettings() {
       relayBaseUrl: activeRelayUrl,
       accountLabel: username ?? undefined,
       inboxOnly: pushNotifyInboxOnly,
+      mutes: useSettingsStore.getState().notificationMutes,
     })
       .then(() => { if (!cancelled) setPushStatus({ kind: 'enabled' }); })
       .catch((err) => {
