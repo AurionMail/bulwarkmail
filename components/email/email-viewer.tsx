@@ -1394,6 +1394,12 @@ export function EmailViewer({
   // previous state makes React call this component once more before bailing
   // out; comparing here means an unchanged result schedules nothing at all.
   const appliedHiddenPrioritiesRef = useRef<Set<number>>(hiddenPriorities);
+  // The toolbar's overflow answers measured so far, by what the toolbar
+  // looked like (see layoutKey), and the width it last had: an open that
+  // brings back a toolbar already measured at this width needs no measuring.
+  // A loading message and a loaded one can differ, so a few are kept.
+  const measuredToolbarRef = useRef(new Map<string, Set<number>>());
+  const toolbarWidthRef = useRef<number | undefined>(undefined);
   const currentTagIds = getEmailTagIds(email?.keywords);
   const sortedTagIds = sortTagIds(currentTagIds);
   // The header spans the reading pane, so it measures its own width rather than
@@ -1560,11 +1566,27 @@ export function EmailViewer({
       setHiddenPriorities(hidden);
     };
 
+    // Everything the decision depends on that can be read without a layout.
+    const layoutKey = (items: HTMLElement[]) => [
+      toolbarWidthRef.current, toolbarPosition, showToolbarLabels, isTablet, tabletListVisible,
+      ...items.map((item) => `${item.dataset.overflowPriority}:${item.className}:${item.textContent}`),
+    ].join('|');
+
     const calculate = () => {
       rafId = null;
       const items = Array.from(el.querySelectorAll<HTMLElement>('[data-overflow-item]'));
       if (items.length === 0) {
         applyHidden(new Set());
+        return;
+      }
+      // Opening another message usually leaves the toolbar as it was. Then
+      // the last answer still holds: apply it without reading any width,
+      // which would force a layout on every open.
+      const key = layoutKey(items);
+      const known = toolbarWidthRef.current !== undefined ? measuredToolbarRef.current.get(key) : undefined;
+      if (known) {
+        for (const item of items) item.style.display = known.has(Number(item.dataset.overflowPriority)) ? 'none' : '';
+        applyHidden(known);
         return;
       }
       // Sort descending by priority so highest number (least important) is hidden first
@@ -1605,6 +1627,9 @@ export function EmailViewer({
       leftGroup.style.flexShrink = '';
       rightGroup.style.flexShrink = '';
       el.style.overflow = '';
+      const answers = measuredToolbarRef.current;
+      if (answers.size >= 8) answers.delete(answers.keys().next().value!);
+      answers.set(key, hidden);
       applyHidden(hidden);
     };
 
@@ -1616,12 +1641,17 @@ export function EmailViewer({
     // Recalculate on container resize. An observer reports once as soon as it
     // starts observing; that first report is the size the synchronous
     // calculation below has just measured, so it is not worth a second pass.
+    // Any other size invalidates the last measurement.
     let sawInitialReport = false;
-    const resizeObserver = new ResizeObserver(() => {
+    const resizeObserver = new ResizeObserver((entries) => {
+      const width = entries[entries.length - 1]?.contentRect.width;
+      const known = toolbarWidthRef.current;
+      toolbarWidthRef.current = width;
       if (!sawInitialReport) {
         sawInitialReport = true;
-        return;
+        if (width === known) return;
       }
+      measuredToolbarRef.current.clear();
       scheduleCalculate();
     });
     resizeObserver.observe(el);
