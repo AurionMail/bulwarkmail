@@ -878,9 +878,12 @@ export function saveRedirectAfterLogin(): void {
  * session was usable on this page load there is no mail state to throw away,
  * so a client-side navigation does and the app isn't downloaded and started
  * a second time; after one, the reload is what clears it.
+ *
+ * Not in Lite: its static router lands on `/login/` with a trailing slash,
+ * which the login path checks here (`/login`) don't recognise.
  */
 export function canEnterLoginInPlace(): boolean {
-  return !signedInSincePageLoad && !leavingForProviderLogout;
+  return !IS_LITE && !signedInSincePageLoad && !leavingForProviderLogout;
 }
 
 export function redirectToLogin(): void {
