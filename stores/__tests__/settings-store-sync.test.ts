@@ -400,4 +400,16 @@ describe('calendar subscription sync', () => {
     const ids = useCalendarStore.getState().icalSubscriptions.map((s) => s.id).sort();
     expect(ids).toEqual(['mine', 'unowned']);
   });
+
+  it('does not push settings when only calendar view state changes', async () => {
+    useSettingsStore.getState().enableSync('a@example.com', 'https://mail-a.example.com');
+    await useSettingsStore.getState().flushSync();
+    apiFetch.mockClear();
+
+    useCalendarStore.setState({ selectedDate: new Date('2026-05-01T00:00:00Z'), isLoadingEvents: true });
+    useCalendarStore.setState({ isLoadingEvents: false, events: [] });
+    await useSettingsStore.getState().flushSync();
+
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
 });

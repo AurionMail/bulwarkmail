@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   mergeSyncedSubscriptions,
+  mergeStoredSubscriptions,
   parseSyncedSubscriptions,
   parseSubscriptionTombstones,
   SUBSCRIPTION_TOMBSTONE_TTL_MS,
@@ -169,5 +170,53 @@ describe('mergeSyncedSubscriptions', () => {
       NOW
     );
     expect(merged.deletedSubscriptionIds).toEqual({});
+  });
+});
+
+describe('legacy subscriptions without updatedAt', () => {
+  it('stay deleted when another device removed them', () => {
+    const legacy = { ...makeSubscription({ id: 'old', lastRefreshed: '2026-02-20T00:00:00Z' }), updatedAt: undefined };
+    const parsed = parseSyncedSubscriptions([legacy])!;
+    const merged = mergeSyncedSubscriptions(
+      { icalSubscriptions: [], deletedSubscriptionIds: { old: '2026-02-10T00:00:00Z' } },
+      { icalSubscriptions: parsed, deletedSubscriptionIds: {} },
+      NOW,
+    );
+    expect(merged.icalSubscriptions).toEqual([]);
+    expect(merged.deletedSubscriptionIds).toEqual({ old: '2026-02-10T00:00:00Z' });
+  });
+
+  it('drops URLs that only look like http(s)', () => {
+    expect(parseSyncedSubscriptions([makeSubscription({ url: 'https://' })])).toEqual([]);
+  });
+});
+
+describe('mergeStoredSubscriptions', () => {
+  const stored = {
+    icalSubscriptions: [makeSubscription({ id: 'a' }), makeSubscription({ id: 'gone' })],
+    deletedSubscriptionIds: {},
+  };
+
+  it('keeps a subscription another device added when a stale client pushes', () => {
+    const saved = mergeStoredSubscriptions(stored, {
+      fontSize: 'large',
+      icalSubscriptions: [makeSubscription({ id: 'gone' })],
+      deletedSubscriptionIds: {},
+    }, NOW);
+    expect((saved.icalSubscriptions as ICalSubscription[]).map((s) => s.id).sort()).toEqual(['a', 'gone']);
+    expect(saved.fontSize).toBe('large');
+  });
+
+  it('applies a deletion the push carries', () => {
+    const saved = mergeStoredSubscriptions(stored, {
+      icalSubscriptions: [makeSubscription({ id: 'a' })],
+      deletedSubscriptionIds: { gone: '2026-02-01T00:00:00Z' },
+    }, NOW);
+    expect((saved.icalSubscriptions as ICalSubscription[]).map((s) => s.id)).toEqual(['a']);
+  });
+
+  it('keeps stored subscriptions when the push has none', () => {
+    const saved = mergeStoredSubscriptions(stored, { fontSize: 'large' }, NOW);
+    expect((saved.icalSubscriptions as ICalSubscription[]).map((s) => s.id).sort()).toEqual(['a', 'gone']);
   });
 });

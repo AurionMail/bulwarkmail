@@ -10,6 +10,7 @@ import { configManager } from '@/lib/admin/config-manager';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { mergeStoredTemplates } from '@/lib/template-merge';
+import { mergeStoredSubscriptions } from '@/lib/calendar-subscription-sync';
 
 function classifyError(error: unknown): { message: string; status: number } {
   const code = (error as NodeJS.ErrnoException).code;
@@ -177,10 +178,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Templates are merged into the stored blob rather than replaced, so a
-    // stale tab or device cannot drop templates another one added.
+    // Templates and iCal subscriptions are merged into the stored blob rather
+    // than replaced, so a stale tab or device cannot drop ones another added.
     const stored = await loadUserSettings(accountName, serverUrl);
-    await saveUserSettings(accountName, serverUrl, mergeStoredTemplates(stored, filteredSettings));
+    await saveUserSettings(
+      accountName,
+      serverUrl,
+      mergeStoredSubscriptions(stored, mergeStoredTemplates(stored, filteredSettings)),
+    );
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

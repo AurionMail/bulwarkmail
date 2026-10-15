@@ -15,6 +15,21 @@ export function subscriptionOwnerFor(serverUrl: string, username: string): strin
   return `${serverUrl.replace(/\/+$/, '').toLowerCase()}|${username.toLowerCase()}`;
 }
 
+const EPOCH = new Date(0).toISOString();
+
+function validTime(value: unknown): string | undefined {
+  return typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : undefined;
+}
+
+function isParseableUrl(value: string): boolean {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export interface SyncedSubscriptionState {
   icalSubscriptions: ICalSubscription[];
   /** Subscription id -> ISO time it was deleted. */
@@ -32,7 +47,6 @@ export function parseSyncedSubscriptions(value: unknown): ICalSubscription[] | n
 
   const subscriptions: ICalSubscription[] = [];
   const seen = new Set<string>();
-  const now = new Date().toISOString();
 
   for (const item of value) {
     if (typeof item !== 'object' || item === null) continue;
@@ -40,7 +54,7 @@ export function parseSyncedSubscriptions(value: unknown): ICalSubscription[] | n
     if (typeof s.id !== 'string' || !s.id || seen.has(s.id)) continue;
     if (typeof s.url !== 'string' || !s.url.trim()) continue;
     const normalizedUrl = s.url.trim().replace(/^webcals?:\/\//i, 'https://');
-    if (!/^https?:\/\//i.test(normalizedUrl)) continue;
+    if (!/^https?:\/\//i.test(normalizedUrl) || !isParseableUrl(normalizedUrl)) continue;
     if (typeof s.calendarId !== 'string' || !s.calendarId.trim()) continue;
     if (typeof s.name !== 'string' || !s.name.trim()) continue;
     seen.add(s.id);
@@ -59,7 +73,11 @@ export function parseSyncedSubscriptions(value: unknown): ICalSubscription[] | n
       lastRefreshed: typeof s.lastRefreshed === 'string' ? s.lastRefreshed : null,
       accountId: typeof s.accountId === 'string' && s.accountId ? s.accountId : undefined,
       owner: typeof s.owner === 'string' && s.owner ? s.owner : undefined,
-      updatedAt: typeof s.updatedAt === 'string' && s.updatedAt ? s.updatedAt : (typeof s.lastRefreshed === 'string' && s.lastRefreshed ? s.lastRefreshed : now),
+      // A subscription saved before updatedAt existed is as old as it can
+      // be: neither the parse time nor a feed refresh (lastRefreshed) is an
+      // edit, and either would make it newer than a deletion
+      // made on another device and bring it back.
+      updatedAt: validTime(s.updatedAt) ?? EPOCH,
     });
   }
   return subscriptions;
@@ -126,4 +144,34 @@ export function mergeSyncedSubscriptions(
   }
 
   return { icalSubscriptions, deletedSubscriptionIds: tombstones };
+}
+
+/**
+ * Server-side counterpart of the client merge, applied when a settings blob
+ * is saved (same idea as mergeStoredTemplates). A push carries the pushing
+ * tab's whole subscription list, so without this a tab or device that has
+ * not loaded since another one added or deleted a subscription overwrites
+ * the stored blob. A push without an `icalSubscriptions` array (calendar
+ * store not registered yet, or an older build) keeps the stored ones.
+ */
+export function mergeStoredSubscriptions(
+  stored: Record<string, unknown> | null,
+  incoming: Record<string, unknown>,
+  now: Date = new Date()
+): Record<string, unknown> {
+  const storedSubs = stored ? parseSyncedSubscriptions(stored.icalSubscriptions) : null;
+  if (!storedSubs) return incoming;
+
+  const storedTombstones = parseSubscriptionTombstones(stored!.deletedSubscriptionIds);
+  const incomingSubs = parseSyncedSubscriptions(incoming.icalSubscriptions);
+  if (!incomingSubs) {
+    return { ...incoming, icalSubscriptions: storedSubs, deletedSubscriptionIds: storedTombstones };
+  }
+
+  const merged = mergeSyncedSubscriptions(
+    { icalSubscriptions: storedSubs, deletedSubscriptionIds: storedTombstones },
+    { icalSubscriptions: incomingSubs, deletedSubscriptionIds: parseSubscriptionTombstones(incoming.deletedSubscriptionIds) },
+    now
+  );
+  return { ...incoming, ...merged };
 }

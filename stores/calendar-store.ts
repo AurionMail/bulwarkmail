@@ -1934,6 +1934,15 @@ registerCalendarSubscriptionSyncBridge(
       useCalendarStore.getState().applySyncedState(subscriptions, deletedSubscriptionIds, opts);
     },
   },
-  (listener) => useCalendarStore.subscribe(listener)
+  // The calendar store changes on every navigation and event load; only a
+  // change to the synced subscription state should schedule a settings push.
+  (listener) => useCalendarStore.subscribe((state, prev) => {
+    if (
+      state.icalSubscriptions !== prev.icalSubscriptions ||
+      state.deletedSubscriptionIds !== prev.deletedSubscriptionIds
+    ) {
+      listener();
+    }
+  })
 );
 
