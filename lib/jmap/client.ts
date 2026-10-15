@@ -5421,28 +5421,29 @@ export class JMAPClient implements IJMAPClient {
     return this.hasCapability("urn:ietf:params:jmap:vacationresponse");
   }
 
-  supportsContacts(accountId?: string): boolean {
-    // Gate on the ACCOUNT capability: a server can advertise contacts while an
-    // account has its jmap-contact-* / dav-card-* permissions revoked. Shared accounts
-    // aren't always advertised per-account, so fall back to the server-wide
-    // capability - accountCapabilities is a subset of it (RFC 8620 s2).
-    const id = accountId || this.accountId;
-    const account = this.accounts[id];
+  /**
+   * Whether the user may use a capability's methods with an account. The
+   * account's own accountCapabilities decide (RFC 8620 s2): a server can
+   * advertise a capability while an account has the matching permissions
+   * revoked. Some shared accounts list no capabilities at all, so an explicitly
+   * shared account (isPersonal === false) with an empty list falls back to the
+   * server-wide capability - accountCapabilities is a subset of it (#1239).
+   */
+  accountSupports(accountId: string, capability: string): boolean {
+    const account = this.accounts[accountId];
     if (!account) return false;
-    if (account.accountCapabilities?.["urn:ietf:params:jmap:contacts"]) return true;
-    return !account.isPersonal && !!this.capabilities?.["urn:ietf:params:jmap:contacts"];
+    const caps = account.accountCapabilities;
+    if (caps?.[capability]) return true;
+    if (caps && Object.keys(caps).length > 0) return false;
+    return account.isPersonal === false && !!this.capabilities?.[capability];
+  }
+
+  supportsContacts(accountId?: string): boolean {
+    return this.accountSupports(accountId || this.accountId, "urn:ietf:params:jmap:contacts");
   }
 
   supportsCalendars(accountId?: string): boolean {
-    // Gate on the ACCOUNT capability: a server can advertise calendars while an
-    // account has its jmap-calendar-* / dav-cal-* permissions revoked. Shared accounts
-    // aren't always advertised per-account, so fall back to the server-wide
-    // capability - accountCapabilities is a subset of it (RFC 8620 s2).
-    const id = accountId || this.accountId;
-    const account = this.accounts[id];
-    if (!account) return false;
-    if (account.accountCapabilities?.["urn:ietf:params:jmap:calendars"]) return true;
-    return !account.isPersonal && !!this.capabilities?.["urn:ietf:params:jmap:calendars"];
+    return this.accountSupports(accountId || this.accountId, "urn:ietf:params:jmap:calendars");
   }
 
   supportsSieve(): boolean {
@@ -5464,31 +5465,27 @@ export class JMAPClient implements IJMAPClient {
 
   /**
    * Accounts (primary + shared/group) visible in this session, each tagged with
-   * the capabilities it advertises. Unifies the per-feature enumeration that
-   * getCalendarCapableAccountIds()/getContactCapableAccountIds()/
-   * getFilesCapableAccountIds() do: a non-primary account is included when it
-   * advertises a capability OR is a non-personal (shared/group) account, since
-   * Stalwart doesn't always advertise capabilities on those even when they
-   * support the feature. Primary account first; name from the session account
-   * (primary falls back to the username). Drives the settings "Shared with me"
-   * list and the scoped-settings tab gating.
+   * the capabilities the user may use with it (accountSupports()). Primary
+   * account first; a non-primary account is listed when it supports at least
+   * one editable capability. Name from the session account (primary falls back
+   * to the username). Drives the settings "Shared with me" list and the
+   * scoped-settings tab gating.
    */
   getSharedAccounts(): SharedAccount[] {
     const primaryId = this.getSieveAccountId();
     const toEntry = (id: string, isPrimary: boolean): SharedAccount => {
       const account = this.accounts[id];
-      const caps = account?.accountCapabilities;
-      const shared = !account?.isPersonal;
+      const has = (cap: string) => this.accountSupports(id, cap);
       return {
         id,
         name: account?.name || (isPrimary ? (this.username || id) : id),
         isPrimary,
         capabilities: {
-          mail: !!caps?.["urn:ietf:params:jmap:mail"] || shared,
-          sieve: !!caps?.["urn:ietf:params:jmap:sieve"] || shared,
-          calendars: !!caps?.["urn:ietf:params:jmap:calendars"] || shared,
-          contacts: !!caps?.["urn:ietf:params:jmap:contacts"] || shared,
-          filenode: !!caps?.["urn:ietf:params:jmap:filenode"] || shared,
+          mail: has("urn:ietf:params:jmap:mail"),
+          sieve: has("urn:ietf:params:jmap:sieve"),
+          calendars: has("urn:ietf:params:jmap:calendars"),
+          contacts: has("urn:ietf:params:jmap:contacts"),
+          filenode: has("urn:ietf:params:jmap:filenode"),
         },
       };
     };
@@ -5496,18 +5493,9 @@ export class JMAPClient implements IJMAPClient {
     const result = [toEntry(primaryId, true)];
     for (const id of Object.keys(this.accounts)) {
       if (id === primaryId) continue;
-      const account = this.accounts[id];
-      // Mirror the per-feature helpers: include any non-personal account, plus
-      // accounts that advertise at least one editable capability.
-      const caps = account.accountCapabilities;
-      const advertisesAny =
-        !!caps?.["urn:ietf:params:jmap:mail"] ||
-        !!caps?.["urn:ietf:params:jmap:sieve"] ||
-        !!caps?.["urn:ietf:params:jmap:calendars"] ||
-        !!caps?.["urn:ietf:params:jmap:contacts"] ||
-        !!caps?.["urn:ietf:params:jmap:filenode"];
-      if (!account.isPersonal || advertisesAny) {
-        result.push(toEntry(id, false));
+      const entry = toEntry(id, false);
+      if (Object.values(entry.capabilities).some(Boolean)) {
+        result.push(entry);
       }
     }
     return result;
@@ -5758,13 +5746,9 @@ export class JMAPClient implements IJMAPClient {
   private getCalendarCapableAccountIds(): string[] {
     const primaryId = this.getCalendarsAccountId();
     const accountIds: string[] = [];
-    for (const [id, account] of Object.entries(this.accounts)) {
+    for (const id of Object.keys(this.accounts)) {
       if (id === primaryId) continue;
-      // Include accounts that either advertise calendar capability
-      // or are non-personal (shared/group) accounts - Stalwart doesn't
-      // always advertise capabilities on group accounts even when they
-      // have calendar resources.
-      if (account.accountCapabilities?.["urn:ietf:params:jmap:calendars"] || account.isPersonal === false) {
+      if (this.accountSupports(id, "urn:ietf:params:jmap:calendars")) {
         accountIds.push(id);
       }
     }
@@ -5774,13 +5758,9 @@ export class JMAPClient implements IJMAPClient {
   private getContactCapableAccountIds(): string[] {
     const primaryId = this.getContactsAccountId();
     const accountIds: string[] = [];
-    for (const [id, account] of Object.entries(this.accounts)) {
+    for (const id of Object.keys(this.accounts)) {
       if (id === primaryId) continue;
-      // Include accounts that either advertise contacts capability
-      // or are non-personal (shared/group) accounts - Stalwart doesn't
-      // always advertise capabilities on group accounts even when they
-      // have contact resources.
-      if (account.accountCapabilities?.["urn:ietf:params:jmap:contacts"] || account.isPersonal === false) {
+      if (this.accountSupports(id, "urn:ietf:params:jmap:contacts")) {
         accountIds.push(id);
       }
     }
@@ -7928,13 +7908,8 @@ export class JMAPClient implements IJMAPClient {
     // A server can advertise urn:ietf:params:jmap:filenode while a specific
     // account has its jmap-file-node-* permissions revoked, in which case the
     // capability is absent from that account's accountCapabilities and every
-    // FileNode action fails with an authorization error (#563). Mirror
-    // getFilesCapableAccountIds(): non-personal (shared/group) accounts don't
-    // always advertise per-account, so treat those as capable.
-    const id = accountId || this.accountId;
-    const account = this.accounts[id];
-    if (!account) return false;
-    return !!account.accountCapabilities?.["urn:ietf:params:jmap:filenode"] || !account.isPersonal;
+    // FileNode action fails with an authorization error (#563).
+    return this.accountSupports(accountId || this.accountId, "urn:ietf:params:jmap:filenode");
   }
 
   async probeFileNodeSupport(): Promise<boolean> {
@@ -7995,15 +7970,13 @@ export class JMAPClient implements IJMAPClient {
   ];
 
   // Accounts (primary + shared/group) that can hold FileNodes. Mirrors
-  // getCalendarCapableAccountIds(): includes any non-primary account that
-  // advertises the filenode capability or is a non-personal (shared/group)
-  // account, since Stalwart doesn't always advertise capabilities on those.
+  // getCalendarCapableAccountIds().
   private getFilesCapableAccountIds(): string[] {
     const primaryId = this.getFilesAccountId();
     const accountIds: string[] = [];
-    for (const [id, account] of Object.entries(this.accounts)) {
+    for (const id of Object.keys(this.accounts)) {
       if (id === primaryId) continue;
-      if (account.accountCapabilities?.["urn:ietf:params:jmap:filenode"] || !account.isPersonal) {
+      if (this.accountSupports(id, "urn:ietf:params:jmap:filenode")) {
         accountIds.push(id);
       }
     }
