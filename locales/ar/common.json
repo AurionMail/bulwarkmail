@@ -3468,6 +3468,8 @@
       "new_event_in_calendar": "حدث جديد في هذا التقويم",
       "shared_with": "مشترك مع {names}",
       "shared_with_count": "{count, plural, zero {غير مشترك مع أحد} one {مشترك مع شخص واحد} two {مشترك مع شخصين} few {مشترك مع # أشخاص} many {مشترك مع # شخصًا} other {مشترك مع # شخص}}",
+      "move_up": "تحريك لأعلى",
+      "move_down": "تحريك لأسفل",
       "kind": "المحتوى",
       "kind_events": "الأحداث",
       "kind_tasks": "المهام",

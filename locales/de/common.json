@@ -3441,6 +3441,8 @@
       "new_event_in_calendar": "Neuer Termin in diesem Kalender",
       "shared_with": "Geteilt mit {names}",
       "shared_with_count": "{count, plural, one {Mit 1 Person geteilt} other {Mit # Personen geteilt}}",
+      "move_up": "Nach oben",
+      "move_down": "Nach unten",
       "kind": "Inhalt",
       "kind_events": "Termine",
       "kind_tasks": "Aufgaben",

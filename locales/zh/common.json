@@ -3441,6 +3441,8 @@
       "new_event_in_calendar": "在此日历中新建事件",
       "shared_with": "已与 {names} 共享",
       "shared_with_count": "{count, plural, other {已与 # 人共享}}",
+      "move_up": "上移",
+      "move_down": "下移",
       "kind": "内容",
       "kind_events": "日程",
       "kind_tasks": "任务",

@@ -3441,6 +3441,8 @@
       "new_event_in_calendar": "이 캘린더에 새 일정",
       "shared_with": "공유 대상: {names}",
       "shared_with_count": "{count, plural, other {#명과 공유됨}}",
+      "move_up": "위로 이동",
+      "move_down": "아래로 이동",
       "kind": "내용",
       "kind_events": "일정",
       "kind_tasks": "할 일",

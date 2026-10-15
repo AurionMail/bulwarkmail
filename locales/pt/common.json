@@ -3467,6 +3467,8 @@
       "new_event_in_calendar": "Novo evento neste calendário",
       "shared_with": "Compartilhado com {names}",
       "shared_with_count": "{count, plural, one {Compartilhado com 1 pessoa} other {Compartilhado com # pessoas}}",
+      "move_up": "Mover para cima",
+      "move_down": "Mover para baixo",
       "kind": "Conteúdo",
       "kind_events": "Eventos",
       "kind_tasks": "Tarefas",

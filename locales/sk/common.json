@@ -3468,6 +3468,8 @@
       "new_event_in_calendar": "Nová udalosť v tomto kalendári",
       "shared_with": "Zdieľané s: {names}",
       "shared_with_count": "{count, plural, one {Zdieľané s 1 osobou} few {Zdieľané s # osobami} many {Zdieľané s # osoby} other {Zdieľané s # osobami}}",
+      "move_up": "Posunúť nahor",
+      "move_down": "Posunúť nadol",
       "kind": "Obsah",
       "kind_events": "Udalosti",
       "kind_tasks": "Úlohy",

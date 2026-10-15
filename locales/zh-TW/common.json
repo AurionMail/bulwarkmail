@@ -3468,6 +3468,8 @@
       "new_event_in_calendar": "在此行事曆中新增活動",
       "shared_with": "已與 {names} 共用",
       "shared_with_count": "{count, plural, other {已與 # 人共用}}",
+      "move_up": "上移",
+      "move_down": "下移",
       "kind": "內容",
       "kind_events": "活動",
       "kind_tasks": "任務",

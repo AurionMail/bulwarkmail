@@ -3467,6 +3467,8 @@
       "new_event_in_calendar": "Bu takvimde yeni etkinlik",
       "shared_with": "Paylaşılan kişiler: {names}",
       "shared_with_count": "{count, plural, one {1 kişiyle paylaşıldı} other {# kişiyle paylaşıldı}}",
+      "move_up": "Yukarı taşı",
+      "move_down": "Aşağı taşı",
       "kind": "İçerik",
       "kind_events": "Etkinlikler",
       "kind_tasks": "Görevler",

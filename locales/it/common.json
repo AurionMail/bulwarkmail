@@ -3441,6 +3441,8 @@
       "new_event_in_calendar": "Nuovo evento in questo calendario",
       "shared_with": "Condiviso con {names}",
       "shared_with_count": "{count, plural, one {Condiviso con 1 persona} other {Condiviso con # persone}}",
+      "move_up": "Sposta su",
+      "move_down": "Sposta giù",
       "kind": "Contenuto",
       "kind_events": "Eventi",
       "kind_tasks": "Attività",

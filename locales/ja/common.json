@@ -3441,6 +3441,8 @@
       "new_event_in_calendar": "このカレンダーに新規イベント",
       "shared_with": "{names} と共有",
       "shared_with_count": "{count, plural, other {#人と共有}}",
+      "move_up": "上に移動",
+      "move_down": "下に移動",
       "kind": "内容",
       "kind_events": "イベント",
       "kind_tasks": "タスク",

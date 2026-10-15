@@ -3441,6 +3441,8 @@
       "new_event_in_calendar": "Nieuwe afspraak in deze agenda",
       "shared_with": "Gedeeld met {names}",
       "shared_with_count": "{count, plural, one {Gedeeld met 1 persoon} other {Gedeeld met # personen}}",
+      "move_up": "Omhoog verplaatsen",
+      "move_down": "Omlaag verplaatsen",
       "kind": "Inhoud",
       "kind_events": "Afspraken",
       "kind_tasks": "Taken",

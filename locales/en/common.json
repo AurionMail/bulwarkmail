@@ -3468,6 +3468,8 @@
       "new_event_in_calendar": "New event in this calendar",
       "shared_with": "Shared with {names}",
       "shared_with_count": "{count, plural, one {Shared with 1 person} other {Shared with # people}}",
+      "move_up": "Move up",
+      "move_down": "Move down",
       "kind": "Contents",
       "kind_events": "Events",
       "kind_tasks": "Tasks",

@@ -3468,6 +3468,8 @@
       "new_event_in_calendar": "Ny hendelse i denne kalenderen",
       "shared_with": "Delt med {names}",
       "shared_with_count": "{count, plural, one {Delt med 1 person} other {Delt med # personer}}",
+      "move_up": "Flytt opp",
+      "move_down": "Flytt ned",
       "kind": "Innhold",
       "kind_events": "Hendelser",
       "kind_tasks": "Oppgaver",

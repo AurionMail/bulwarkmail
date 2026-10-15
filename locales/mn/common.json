@@ -3468,6 +3468,8 @@
       "new_event_in_calendar": "Энэ хуанли дахь шинэ арга хэмжээ",
       "shared_with": "Хуваалцсан: {names}",
       "shared_with_count": "{count, plural, one {1 хүнтэй хуваалцсан} other {# хүнтэй хуваалцсан}}",
+      "move_up": "Дээш хөдлөх",
+      "move_down": "Доошоо шилжих",
       "kind": "Агуулга",
       "kind_events": "Үйл явдлууд",
       "kind_tasks": "Даалгаврууд",

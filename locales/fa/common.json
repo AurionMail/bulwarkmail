@@ -3468,6 +3468,8 @@
       "new_event_in_calendar": "رویداد جدید در این تقویم",
       "shared_with": "به اشتراک گذاشته شده با {names}",
       "shared_with_count": "{count, plural, one {با ۱ نفر به اشتراک گذاشته شده} other {با # نفر به اشتراک گذاشته شده}}",
+      "move_up": "انتقال به بالا",
+      "move_down": "انتقال به پایین",
       "kind": "محتوا",
       "kind_events": "رویدادها",
       "kind_tasks": "وظایف",

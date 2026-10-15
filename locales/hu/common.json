@@ -3468,6 +3468,8 @@
       "new_event_in_calendar": "Új esemény ebben a naptárban",
       "shared_with": "Megosztva: {names}",
       "shared_with_count": "{count, plural, one {Megosztva 1 személlyel} other {Megosztva # személlyel}}",
+      "move_up": "Mozgatás fel",
+      "move_down": "Mozgatás le",
       "kind": "Tartalom",
       "kind_events": "Események",
       "kind_tasks": "Feladatok",
