@@ -3465,6 +3465,8 @@
       "url_copied": "CalDAV URL'si panoya kopyalandı",
       "share": "Takvimi paylaş",
       "new_event_in_calendar": "Bu takvimde yeni etkinlik",
+      "shared_with": "Paylaşılan kişiler: {names}",
+      "shared_with_count": "{count, plural, one {1 kişiyle paylaşıldı} other {# kişiyle paylaşıldı}}",
       "kind": "İçerik",
       "kind_events": "Etkinlikler",
       "kind_tasks": "Görevler",

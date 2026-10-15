@@ -3439,6 +3439,8 @@
       "error_clear": "Kan agendagebeurtenissen niet verwijderen",
       "share": "Agenda delen",
       "new_event_in_calendar": "Nieuwe afspraak in deze agenda",
+      "shared_with": "Gedeeld met {names}",
+      "shared_with_count": "{count, plural, one {Gedeeld met 1 persoon} other {Gedeeld met # personen}}",
       "kind": "Inhoud",
       "kind_events": "Afspraken",
       "kind_tasks": "Taken",

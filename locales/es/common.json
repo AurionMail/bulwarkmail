@@ -3439,6 +3439,8 @@
       "error_clear": "No se pudieron borrar los eventos del calendario",
       "share": "Compartir calendario",
       "new_event_in_calendar": "Nuevo evento en este calendario",
+      "shared_with": "Compartido con {names}",
+      "shared_with_count": "{count, plural, one {Compartido con 1 persona} other {Compartido con # personas}}",
       "kind": "Contenido",
       "kind_events": "Eventos",
       "kind_tasks": "Tareas",

@@ -3466,6 +3466,8 @@
       "url_copied": "CalDAV URL copiat în clipboard",
       "share": "Partajare calendar",
       "new_event_in_calendar": "Eveniment nou în acest calendar",
+      "shared_with": "Partajat cu {names}",
+      "shared_with_count": "{count, plural, one {Partajat cu 1 persoană} few {Partajat cu # persoane} other {Partajat cu # de persoane}}",
       "kind": "Conținut",
       "kind_events": "Evenimente",
       "kind_tasks": "Sarcini",

@@ -3465,6 +3465,8 @@
       "url_copied": "CalDAV-URL kopieret til udklipsholder",
       "share": "Del kalender",
       "new_event_in_calendar": "Ny begivenhed i denne kalender",
+      "shared_with": "Delt med {names}",
+      "shared_with_count": "{count, plural, one {Delt med 1 person} other {Delt med # personer}}",
       "kind": "Indhold",
       "kind_events": "Begivenheder",
       "kind_tasks": "Opgaver",

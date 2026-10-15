@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "@/components/icons";
 import { useAuthStore } from "@/stores/auth-store";
-import type { IJMAPClient } from "@/lib/jmap/client-interface";
+import { cachedPrincipals } from "@/lib/jmap/principal-cache";
 import type { BusyPeriod, Principal } from "@/lib/jmap/types";
 import { cn } from "@/lib/utils";
 
@@ -42,17 +42,6 @@ export function availabilityFor(periods: BusyPeriod[], start: Date, end: Date): 
   return status;
 }
 
-const principalCache = new WeakMap<IJMAPClient, Promise<Principal[]>>();
-
-function principalsOf(client: IJMAPClient): Promise<Principal[]> {
-  let cached = principalCache.get(client);
-  if (!cached) {
-    cached = client.getPrincipals().catch(() => [] as Principal[]);
-    principalCache.set(client, cached);
-  }
-  return cached;
-}
-
 /**
  * Free/busy of the invited attendees for the event window
  * (Principal/getAvailability). Only attendees that are principals on this
@@ -84,7 +73,7 @@ export function ParticipantAvailability({ attendees, start, end }: ParticipantAv
     // Debounce: typing a time or adding several people must not fire a
     // query per keystroke.
     const timer = setTimeout(async () => {
-      const principals = await principalsOf(client);
+      const principals = await cachedPrincipals(client);
       const byEmail = new Map<string, Principal>();
       for (const p of principals) {
         if (p.email) byEmail.set(p.email.toLowerCase(), p);

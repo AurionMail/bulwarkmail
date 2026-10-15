@@ -3438,6 +3438,8 @@
       "url_copied": "CalDAV URL nokopēts starpliktuvē",
       "share": "Kopīgot kalendāru",
       "new_event_in_calendar": "Jauns notikums šajā kalendārā",
+      "shared_with": "Kopīgots ar: {names}",
+      "shared_with_count": "{count, plural, zero {Kopīgots ar # personām} one {Kopīgots ar # personu} other {Kopīgots ar # personām}}",
       "kind": "Saturs",
       "kind_events": "Notikumi",
       "kind_tasks": "Uzdevumi",

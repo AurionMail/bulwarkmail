@@ -3466,6 +3466,8 @@
       "url_copied": "تم نسخ رابط CalDAV إلى الحافظة",
       "share": "مشاركة التقويم",
       "new_event_in_calendar": "حدث جديد في هذا التقويم",
+      "shared_with": "مشترك مع {names}",
+      "shared_with_count": "{count, plural, zero {غير مشترك مع أحد} one {مشترك مع شخص واحد} two {مشترك مع شخصين} few {مشترك مع # أشخاص} many {مشترك مع # شخصًا} other {مشترك مع # شخص}}",
       "kind": "المحتوى",
       "kind_events": "الأحداث",
       "kind_tasks": "المهام",

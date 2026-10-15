@@ -3439,6 +3439,8 @@
       "error_clear": "カレンダーイベントの削除に失敗しました",
       "share": "カレンダーを共有",
       "new_event_in_calendar": "このカレンダーに新規イベント",
+      "shared_with": "{names} と共有",
+      "shared_with_count": "{count, plural, other {#人と共有}}",
       "kind": "内容",
       "kind_events": "イベント",
       "kind_tasks": "タスク",

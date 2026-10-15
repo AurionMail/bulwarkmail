@@ -3439,6 +3439,8 @@
       "error_clear": "Impossibile cancellare gli eventi del calendario",
       "share": "Condividi calendario",
       "new_event_in_calendar": "Nuovo evento in questo calendario",
+      "shared_with": "Condiviso con {names}",
+      "shared_with_count": "{count, plural, one {Condiviso con 1 persona} other {Condiviso con # persone}}",
       "kind": "Contenuto",
       "kind_events": "Eventi",
       "kind_tasks": "Attività",

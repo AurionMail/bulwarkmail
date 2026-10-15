@@ -3348,6 +3348,8 @@
       "error_default": "נכשל בהגדרת לוח שנה ברירת מחדל",
       "share": "שתף לוח שנה",
       "new_event_in_calendar": "אירוע חדש בלוח שנה זה",
+      "shared_with": "משותף עם {names}",
+      "shared_with_count": "{count, plural, one {משותף עם אדם אחד} two {משותף עם שני אנשים} other {משותף עם # אנשים}}",
       "kind": "תוכן",
       "kind_events": "אירועים",
       "kind_tasks": "משימות",

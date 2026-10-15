@@ -3465,6 +3465,8 @@
       "error_clear": "Falha ao limpar os eventos do calendário",
       "share": "Compartilhar calendário",
       "new_event_in_calendar": "Novo evento neste calendário",
+      "shared_with": "Compartilhado com {names}",
+      "shared_with_count": "{count, plural, one {Compartilhado com 1 pessoa} other {Compartilhado com # pessoas}}",
       "kind": "Conteúdo",
       "kind_events": "Eventos",
       "kind_tasks": "Tarefas",

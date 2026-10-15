@@ -3439,6 +3439,8 @@
       "url_copied": "URL-адресу CalDAV скопійовано в буфер обміну",
       "share": "Поділитися календарем",
       "new_event_in_calendar": "Нова подія в цьому календарі",
+      "shared_with": "Доступ надано: {names}",
+      "shared_with_count": "{count, plural, one {Доступ надано # особі} few {Доступ надано # особам} many {Доступ надано # особам} other {Доступ надано # особи}}",
       "kind": "Вміст",
       "kind_events": "Події",
       "kind_tasks": "Завдання",

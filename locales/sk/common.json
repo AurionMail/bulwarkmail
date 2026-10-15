@@ -3466,6 +3466,8 @@
       "url_copied": "URL CalDAV skopírovaná do schránky",
       "share": "Zdieľať kalendár",
       "new_event_in_calendar": "Nová udalosť v tomto kalendári",
+      "shared_with": "Zdieľané s: {names}",
+      "shared_with_count": "{count, plural, one {Zdieľané s 1 osobou} few {Zdieľané s # osobami} many {Zdieľané s # osoby} other {Zdieľané s # osobami}}",
       "kind": "Obsah",
       "kind_events": "Udalosti",
       "kind_tasks": "Úlohy",
