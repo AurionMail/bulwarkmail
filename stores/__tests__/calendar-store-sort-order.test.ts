@@ -119,3 +119,32 @@ describe('calendar order', () => {
     expect(updateCalendar).not.toHaveBeenCalled();
   });
 });
+
+describe('new calendars after a reorder', () => {
+  it('createCalendar puts a new calendar after the reordered own calendars', async () => {
+    useCalendarStore.setState({
+      calendars: [
+        cal({ id: 'a', name: 'A', sortOrder: 1 }),
+        cal({ id: 'b', name: 'B', sortOrder: 2 }),
+        cal({ id: 's', name: 'Shared', sortOrder: 9, isShared: true, accountId: 'other' }),
+      ],
+    });
+    const createCalendar = vi.fn(async (c: Partial<Calendar>) => cal({ ...c, id: 'n' }));
+    const client = { createCalendar } as unknown as IJMAPClient;
+
+    await useCalendarStore.getState().createCalendar(client, { name: 'Aardvark' });
+
+    expect(createCalendar.mock.calls[0][0]).toMatchObject({ name: 'Aardvark', sortOrder: 3 });
+    expect(names()).toEqual(['A', 'B', 'Aardvark', 'Shared']);
+  });
+
+  it('createCalendar leaves sortOrder unset while nothing was reordered', async () => {
+    useCalendarStore.setState({ calendars: [cal({ id: 'a', name: 'A' })] });
+    const createCalendar = vi.fn(async (c: Partial<Calendar>) => cal({ ...c, id: 'n' }));
+    const client = { createCalendar } as unknown as IJMAPClient;
+
+    await useCalendarStore.getState().createCalendar(client, { name: 'B' });
+
+    expect(createCalendar.mock.calls[0][0]).not.toHaveProperty('sortOrder');
+  });
+});

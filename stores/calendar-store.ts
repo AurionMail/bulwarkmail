@@ -56,6 +56,19 @@ function resolveAccountClient<T extends IJMAPClient>(active: T, localAccountId?:
 }
 
 /**
+ * A new calendar without a sortOrder gets 0 and, once the user has reordered
+ * the account's calendars (1, 2, 3...), would jump to the top. Give it the
+ * next number instead, so it lands after the user's own calendars.
+ */
+function withNextSortOrder<T extends Partial<Calendar>>(client: IJMAPClient, calendars: Calendar[], calendar: T): T {
+  if (calendar.sortOrder !== undefined) return calendar;
+  const highest = Math.max(0, ...calendars
+    .filter((c) => !c.isShared && resolveAccountClient(client, c.localAccountId) === client)
+    .map((c) => c.sortOrder ?? 0));
+  return highest > 0 ? { ...calendar, sortOrder: highest + 1 } : calendar;
+}
+
+/**
  * Strip the local-account namespace prefix from an id (if present). Used
  * before passing ids back to a JMAP client, since the prefix only exists
  * to keep multi-account ids unique inside the client-side store.
@@ -1243,7 +1256,7 @@ export const useCalendarStore = create<CalendarStore>()(
       createCalendar: async (client, calendar, options) => {
         set({ error: null });
         try {
-          const created = await client.createCalendar(calendar, undefined, options);
+          const created = await client.createCalendar(withNextSortOrder(client, get().calendars, calendar), undefined, options);
           // Added with its raw id; the next aggregated refetch namespaces it and
           // reconcileSelectedIds() remaps the selection so it stays visible.
           set((state) => ({
@@ -1397,12 +1410,12 @@ export const useCalendarStore = create<CalendarStore>()(
 
         let calendar: Calendar | null = null;
         try {
-          calendar = await client.createCalendar({
+          calendar = await client.createCalendar(withNextSortOrder(client, get().calendars, {
             name,
             color,
             isVisible: true,
             isSubscribed: true,
-          });
+          }));
           if (!calendar) throw new Error('Failed to create calendar');
 
           const now = new Date().toISOString();
