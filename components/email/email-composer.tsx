@@ -333,6 +333,11 @@ type ComposerAttachment = {
   fromDraftPart?: boolean;
 };
 
+// Inline image uploads younger than this are sent as they are. RFC 8620 §6.1
+// asks servers to keep an upload for an hour, but Stalwart's uploadTtl can be
+// set much lower (a minute on the server in #1243).
+const INLINE_UPLOAD_REFRESH_MS = 30 * 1000;
+
 function formatLocalDateTimeInput(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -791,7 +796,9 @@ export function EmailComposer({
     }
     return [];
   });
-  const inlineImagesRef = useRef<Array<{ cid: string; blobId: string; type: string; name: string; size: number; dataUrl: string; sourceAccountId?: string }>>([]);
+  // uploadedAt is set for images uploaded from this composer, whose blobId
+  // expires (see refreshStaleInlineUploads).
+  const inlineImagesRef = useRef<Array<{ cid: string; blobId: string; type: string; name: string; size: number; dataUrl: string; sourceAccountId?: string; uploadedAt?: number }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [validationErrors, setValidationErrors] = useState<{ to?: boolean; body?: boolean }>({});
   const [shakeField, setShakeField] = useState<string | null>(null);
@@ -927,6 +934,24 @@ export function EmailComposer({
       if (!inlineCids.has(entry.cid) || !isForeign(entry.sourceAccountId)) continue;
       entry.blobId = await copyBlob(entry);
       entry.sourceAccountId = composerAccountId;
+    }
+  };
+
+  // An uploaded blob is only kept for a while when nothing references it
+  // (RFC 8620 §6.1). Attachments are re-pointed at the saved draft's parts
+  // after each save, but images dropped into the body are saved as data: URLs
+  // and only go out as parts at send time, so unless they were uploaded just
+  // now they are uploaded again from the copy in memory (#1243).
+  const refreshStaleInlineUploads = async (inlineCids: ReadonlySet<string>): Promise<void> => {
+    const target = composerClient;
+    if (!target) return;
+    for (const entry of inlineImagesRef.current) {
+      if (!inlineCids.has(entry.cid) || !entry.uploadedAt || !entry.dataUrl) continue;
+      if (Date.now() - entry.uploadedAt < INLINE_UPLOAD_REFRESH_MS) continue;
+      const bytes = Uint8Array.from(atob(entry.dataUrl.slice(entry.dataUrl.indexOf(',') + 1)), c => c.charCodeAt(0));
+      const { blobId } = await target.uploadBlob(new File([bytes], entry.name, { type: entry.type }));
+      entry.blobId = blobId;
+      entry.uploadedAt = Date.now();
     }
   };
   // RFC 5322 §3.6.4 threading for this message: computed from the original
@@ -1994,6 +2019,7 @@ export function EmailComposer({
         name: file.name,
         size: file.size,
         dataUrl,
+        uploadedAt: Date.now(),
       });
       return { src: dataUrl, cid };
     } catch (error) {
@@ -2333,12 +2359,15 @@ export function EmailComposer({
       lastSavedDataRef.current = currentData;
       savedVersionRef.current = versionAtStart;
 
-      // Attachments hydrated from a previous draft version reference part
-      // blobs that died when that version was destroyed. Re-point them at
-      // the matching parts (by name+size) of the version just created, so
-      // the next save/send references live blobs instead of failing with
-      // blobNotFound (#849).
-      if (uploadedAttachments.length && attachmentsRef.current.some(att => att.fromDraftPart && att.blobId)) {
+      // Re-point every saved attachment at the matching part (by name+size)
+      // of the version just created. Parts hydrated from a previous draft
+      // version died when that version was destroyed (#849), and an upload's
+      // own blobId expires after the server's upload TTL (RFC 8620 §6.1), so
+      // a message written for longer failed to save or send with
+      // blobNotFound (#1243).
+      // A part lives as long as its draft version does.
+      const savedBlobIds = new Set(uploadedAttachments.map(att => att.blobId));
+      if (savedBlobIds.size) {
         try {
           const freshDraft = await composerClient.getEmail(savedDraftId);
           const freshParts = (freshDraft?.attachments ?? []).filter(p => !!p.blobId);
@@ -2346,12 +2375,13 @@ export function EmailComposer({
             const remap = (list: ComposerAttachment[]): ComposerAttachment[] => {
               const claimed = new Set<number>();
               return list.map(att => {
-                if (!att.fromDraftPart || !att.blobId || att.uploading) return att;
+                // Uploads that finished during the save are not in this version.
+                if (!att.blobId || att.uploading || !savedBlobIds.has(att.blobId)) return att;
                 const idx = freshParts.findIndex((p, i) =>
                   !claimed.has(i) && (p.name || 'attachment') === att.name && p.size === att.size);
                 if (idx === -1) return att;
                 claimed.add(idx);
-                return { ...att, blobId: freshParts[idx].blobId };
+                return { ...att, blobId: freshParts[idx].blobId, fromDraftPart: true };
               });
             };
             // Ref first, synchronously: a send that awaited this save reads
@@ -2907,7 +2937,9 @@ export function EmailComposer({
     // Before any blobId is read: forwarded parts may still sit on the account
     // that holds the original message.
     try {
-      await rehomeForeignBlobs(plainTextMode ? undefined : bodyInlineCids(body));
+      const inlineCids = plainTextMode ? undefined : bodyInlineCids(body);
+      await rehomeForeignBlobs(inlineCids);
+      if (inlineCids?.size) await refreshStaleInlineUploads(inlineCids);
     } catch (error) {
       // Nothing was sent; the composer and its draft stay as they are.
       debug.warn('email', 'Failed to copy forwarded parts to the sending account:', error);
