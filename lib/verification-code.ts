@@ -290,13 +290,50 @@ export function listVerificationCode(
 const MAX_BODY_HTML = 200_000;
 const MAX_BODY_TEXT = 50_000;
 
+// Every code word above contains one of these (any case), so a body without
+// any of them has no code to find, and the HTML need not be turned into text.
+const CODE_WORD_HINT = /cod|cód|kod|kód|kood|код|κωδικ|קוד|رمز|کد|kennwort|passwort|pass(?:word|code)|コード|認証番号|確認番号|验证码|驗證碼|校验码|动态码|인증|코드/iu;
+const UPPERCASE_HINT = /PIN|OTP|TAN/;
+// Entities that stand for no letter, decoded so they can't hide a code word.
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ensp: ' ', emsp: ' ', thinsp: ' ',
+  shy: '', zwnj: '', zwj: '', lrm: '', rlm: '', copy: '', reg: '', trade: '', hellip: '', mdash: '',
+  ndash: '', lsquo: '', rsquo: '', ldquo: '', rdquo: '', laquo: '', raquo: '', bull: '', middot: '',
+  euro: '', pound: '', cent: '', yen: '', deg: '', times: '', sect: '', para: '',
+};
+
+/**
+ * False when the HTML cannot hold a code word, so verificationCodeBodyText
+ * can skip parsing it (the costly part of opening a big HTML mail). Errs on
+ * the side of true: tags are dropped so a word split by markup joins up
+ * again, numeric entities are decoded, invisible spacers removed, and any
+ * named entity that might be a letter counts as a possible code word.
+ */
+export function htmlMayNameACode(html: string): boolean {
+  let unknownEntity = false;
+  const text = html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);/gi, (_m, ref: string) => {
+      if (ref[0] === '#') {
+        const cp = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+        return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : '';
+      }
+      const known = NAMED_ENTITIES[ref.toLowerCase()];
+      if (known === undefined) unknownEntity = true;
+      return known ?? '';
+    })
+    .replace(/[\u00ad\u200b-\u200f\u2060\ufeff]|\u034f/g, '');
+  return unknownEntity || CODE_WORD_HINT.test(text) || UPPERCASE_HINT.test(text);
+}
+
 /** The text of a loaded mail as the reader shows it, for finding its code. */
 export function verificationCodeBodyText(email: Pick<Email, 'htmlBody' | 'textBody' | 'bodyValues'>): string {
   const html = getRenderableHtmlBody(email);
   if (html) {
     // htmlToPlainText walks the body, and a <style> in it is text there.
-    const markup = html.replace(/<(style|script|title)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
-    return htmlToPlainText(markup.slice(0, MAX_BODY_HTML)).slice(0, MAX_BODY_TEXT);
+    const markup = html.replace(/<(style|script|title)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ').slice(0, MAX_BODY_HTML);
+    if (!htmlMayNameACode(markup)) return '';
+    return htmlToPlainText(markup).slice(0, MAX_BODY_TEXT);
   }
   const textPart = email.textBody?.[0]?.partId;
   return ((textPart && email.bodyValues?.[textPart]?.value) || '').slice(0, MAX_BODY_TEXT);
