@@ -102,7 +102,9 @@ function RowChips({ email, loadAttachments, onOpenAttachment }: {
 }) {
   const code = useListVerificationCode(email);
   const leading = code ? <VerificationCodeChip code={code} /> : undefined;
-  if (onOpenAttachment) {
+  // Most rows have no attachment: no loader for them, nor an empty chip row.
+  const mayHaveAttachments = email.hasAttachment || (email.attachments?.length ?? 0) > 0;
+  if (onOpenAttachment && mayHaveAttachments) {
     return <ListAttachmentChips email={email} load={loadAttachments} onOpen={onOpenAttachment} leading={leading} className="mt-1.5" />;
   }
   return leading ? <div className="mt-1.5 flex">{leading}</div> : null;
