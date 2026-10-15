@@ -19,6 +19,7 @@ import type { AppIcon as AppIconType } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { useAuthStore } from "@/stores/auth-store";
+import { useShallow } from "zustand/react/shallow";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { useConfig } from "@/hooks/use-config";
 import { usePolicyStore } from "@/stores/policy-store";
@@ -107,7 +108,7 @@ export function MvTopBar({
   const toggleSidebarCollapsed = useUIStore((s) => s.toggleSidebarCollapsed);
 
   const client = useAuthStore((s) => s.client);
-  const { supportsCalendar } = useCalendarStore();
+  const { supportsCalendar } = useCalendarStore(useShallow((state) => ({ supportsCalendar: state.supportsCalendar })));
   const calendarEnabled = usePolicyStore((s) => s.isFeatureEnabled("calendarEnabled"));
   const contactsEnabled = usePolicyStore((s) => s.isFeatureEnabled("contactsEnabled"));
   const filesEnabled = usePolicyStore((s) => s.isFeatureEnabled("filesEnabled"));

@@ -1,6 +1,7 @@
 import type { Email, Mailbox, UnifiedMailboxRole, CrossView } from '@/lib/jmap/types';
 import { CROSS_EXCLUDED_ROLES } from '@/lib/jmap/types';
-import type { IJMAPClient } from '@/lib/jmap/client-interface';
+import type { IJMAPClient, SearchEmailsResult, SearchRequestOptions } from '@/lib/jmap/client-interface';
+import type { DeferredSnippetBatch } from '@/lib/search-snippet';
 import { andFilters } from '@/lib/jmap/search-utils';
 import { compareEmails, type SortLevel } from '@/lib/message-list-order';
 
@@ -43,6 +44,8 @@ export interface UnifiedFetchResult {
   total: number;
   hasMore: boolean;
   errors: Map<string, string>; // accountId -> error message
+  /** Deferred search snippets per account (see SearchRequestOptions.deferSnippets). */
+  snippets?: Promise<DeferredSnippetBatch[]>;
 }
 
 export interface UnifiedMailboxCounts {
@@ -591,7 +594,7 @@ export async function fetchTagEmails(
   );
 }
 
-export interface AcrossAccountsSearchOptions {
+export interface AcrossAccountsSearchOptions extends SearchRequestOptions {
   /**
    * Leave every account's Trash and Junk out: the search panel's default
    * scope, "All folders except Spam and Trash". Its "All folders" scope
@@ -624,8 +627,9 @@ export async function searchAcrossAccounts(
       return exclusion
         ? account.client.advancedSearchEmails(
             andFilters({ text: query.trim() }, exclusion), jmapAccountId, limit, positionFor(position, account),
+            ...searchRequestOptions(options),
           )
-        : account.client.searchEmails(query, undefined, jmapAccountId, limit, positionFor(position, account));
+        : account.client.searchEmails(query, undefined, jmapAccountId, limit, positionFor(position, account), ...searchRequestOptions(options));
     },
     newestFirst,
   );
@@ -649,9 +653,15 @@ export async function advancedSearchAcrossAccounts(
       jmapAccountId,
       limit,
       positionFor(position, account),
+      ...searchRequestOptions(options),
     ),
     newestFirst,
   );
+}
+
+/** The trailing SearchRequestOptions argument, left off when nothing is asked of it. */
+function searchRequestOptions(options: AcrossAccountsSearchOptions): [] | [SearchRequestOptions] {
+  return options.deferSnippets ? [{ deferSnippets: true }] : [];
 }
 
 function newestFirst(a: Email, b: Email): number {
@@ -669,14 +679,14 @@ async function fanOutAccountQuery(
   run: (
     account: UnifiedAccountClient,
     jmapAccountId: string | undefined,
-  ) => Promise<{ emails: Email[]; total: number; hasMore: boolean }>,
+  ) => Promise<SearchEmailsResult>,
   sort: (a: Email, b: Email) => number,
 ): Promise<UnifiedFetchResult> {
   const errors = new Map<string, string>();
 
   type AccountResult = {
     account: UnifiedAccountClient;
-    result: { emails: Email[]; total: number; hasMore: boolean };
+    result: SearchEmailsResult;
   } | null;
 
   const promises = accounts.map(async (account): Promise<AccountResult> => {
@@ -695,10 +705,14 @@ async function fanOutAccountQuery(
   let mergedEmails: Email[] = [];
   let totalSum = 0;
   let anyHasMore = false;
+  const snippetBatches: Promise<DeferredSnippetBatch | null>[] = [];
 
   for (const outcome of results) {
     if (outcome.status !== 'fulfilled' || outcome.value === null) continue;
     const { account, result } = outcome.value;
+    if (result.snippets) {
+      snippetBatches.push(result.snippets.then((list) => (list ? { accountId: account.accountId, list } : null)));
+    }
     // Decorate shallow copies, not the shared client-returned objects. The
     // source stamps are what routes every later action (read, move, delete,
     // thread expansion) back to the owning account.
@@ -717,7 +731,10 @@ async function fanOutAccountQuery(
 
   mergedEmails.sort(sort);
 
-  return { emails: mergedEmails, total: totalSum, hasMore: anyHasMore, errors };
+  const snippets = snippetBatches.length > 0
+    ? Promise.all(snippetBatches).then((batches) => batches.filter((batch): batch is DeferredSnippetBatch => batch !== null))
+    : undefined;
+  return { emails: mergedEmails, total: totalSum, hasMore: anyHasMore, errors, ...(snippets ? { snippets } : {}) };
 }
 
 /**

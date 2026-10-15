@@ -511,12 +511,16 @@ async function persistSession(slot: number, session: RememberedSession): Promise
     saveLiteBasicSession(slot, session);
     return;
   }
+  // A slot being signed out must not get its cookie back; sign-out waits for
+  // a write still running (login doesn't wait for it, see there).
+  if (closingSlots.has(slot)) return;
   try {
-    const res = await apiFetch(`/api/auth/session?slot=${slot}`, {
+    const res = await trackSessionWrite(slot, (signal) => apiFetch(`/api/auth/session?slot=${slot}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...session, slot }),
-    });
+      signal,
+    }));
     if (!res.ok) debug.error('Failed to store session: server returned', res.status);
   } catch (err) {
     debug.error('Failed to store session:', err);
@@ -852,12 +856,31 @@ export function saveRedirectAfterLogin(): void {
     const loginPath = getLocaleLoginPath();
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
+    // The app's home is where a login lands anyway. Saving it only made the
+    // login page navigate a second time, through the locale-aware router,
+    // which prefixes the locale again (/en/en) and races the first.
+    const home = `${getPathPrefix()}/${getLocaleFromPath()}`;
+    if (currentPath === home || currentPath === `${home}/`) {
+      sessionStorage.removeItem('redirect_after_login');
+      return;
+    }
+
     if (currentPath !== loginPath) {
       sessionStorage.setItem('redirect_after_login', currentPath);
     }
   } catch {
     /* noop */
   }
+}
+
+/**
+ * Whether the login page can be reached without reloading the app. Before a
+ * session was usable on this page load there is no mail state to throw away,
+ * so a client-side navigation does and the app isn't downloaded and started
+ * a second time; after one, the reload is what clears it.
+ */
+export function canEnterLoginInPlace(): boolean {
+  return !signedInSincePageLoad && !leavingForProviderLogout;
 }
 
 export function redirectToLogin(): void {
@@ -1415,18 +1438,20 @@ export const useAuthStore = create<AuthState>()(
           // Run the remaining independent requests in parallel. The session
           // write and stalwart-context write are best-effort persistence; the
           // outer login still succeeds even if they log a warning. Errors are
-          // caught locally so Promise.all doesn't reject on either.
+          // caught locally so Promise.all doesn't reject on either. Only the
+          // context is waited for: the server-side helpers the mail view
+          // calls next need it, while the remembered session only matters
+          // for the next visit (and sign-out waits for its write).
           // In Lite a Basic session is kept for the tab (sessionStorage) on a
           // server without token login, so a reload does not sign the user
           // out; the regular build only writes the cookie when the user asked
           // to be remembered.
-          const sessionWrite: Promise<unknown> = ((IS_LITE ? tokenLoginUnavailable : rememberMe) && !upgradedToOAuth)
-            ? persistSession(cookieSlot, { serverUrl, username, password })
-            : Promise.resolve();
+          if ((IS_LITE ? tokenLoginUnavailable : rememberMe) && !upgradedToOAuth) {
+            void persistSession(cookieSlot, { serverUrl, username, password });
+          }
 
           const [rawIdentities] = await Promise.all([
             identitiesPromise,
-            sessionWrite,
             syncStalwartAuthContext(serverUrl, username, client.getAuthHeader(), cookieSlot),
           ]);
 
@@ -3061,6 +3086,12 @@ setClientLookup((accountId) => useAuthStore.getState().getClientForAccount(accou
 // policy; fetch the rest once a session exists.
 useAuthStore.subscribe((state, prev) => {
   if (state.isAuthenticated && !prev.isAuthenticated) void usePolicyStore.getState().refreshIfPartial();
+});
+
+// See canEnterLoginInPlace.
+let signedInSincePageLoad = useAuthStore.getState().isAuthenticated;
+useAuthStore.subscribe((state) => {
+  if (state.isAuthenticated) signedInSincePageLoad = true;
 });
 
 // Another tab signed everyone out: this one's cookies and account list are

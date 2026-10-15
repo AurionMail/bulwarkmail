@@ -20,6 +20,7 @@ import {
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
+import { useShallow } from "zustand/react/shallow";
 import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { toast } from "@/stores/toast-store";
@@ -129,7 +130,25 @@ export function MvListToolbar({
     batchSetTag,
     isUnifiedView,
     unifiedRole,
-  } = useEmailStore();
+  } = useEmailStore(useShallow((state) => ({
+    emails: state.emails,
+    mailboxes: state.mailboxes,
+    selectedMailbox: state.selectedMailbox,
+    selectedEmailKeys: state.selectedEmailKeys,
+    // Read at render by resolveSelectedEmails (Move menu owner account).
+    threadEmailsCache: state.threadEmailsCache,
+    selectAllEmails: state.selectAllEmails,
+    clearSelection: state.clearSelection,
+    batchArchive: state.batchArchive,
+    batchDelete: state.batchDelete,
+    batchMarkAsRead: state.batchMarkAsRead,
+    batchMarkAsSpam: state.batchMarkAsSpam,
+    batchUndoSpam: state.batchUndoSpam,
+    batchMoveToMailbox: state.batchMoveToMailbox,
+    batchSetTag: state.batchSetTag,
+    isUnifiedView: state.isUnifiedView,
+    unifiedRole: state.unifiedRole,
+  })));
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);

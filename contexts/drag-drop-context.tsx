@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useRef, ReactNode } from "react";
 import { Email } from "@/lib/jmap/types";
 import { dragDropHooks } from "@/lib/plugin-hooks";
 
@@ -55,8 +55,15 @@ export function DragDropProvider({ children }: { children: ReactNode }) {
     if (current.current) current.current.dropped = true;
   }, []);
 
+  // The provider re-renders with the mail view; a new value object each time
+  // would re-render every message row and folder that reads the context.
+  const value = useMemo(
+    () => ({ ...state, startDrag, endDrag, markDropped }),
+    [state, startDrag, endDrag, markDropped],
+  );
+
   return (
-    <DragDropContext.Provider value={{ ...state, startDrag, endDrag, markDropped }}>
+    <DragDropContext.Provider value={value}>
       {children}
     </DragDropContext.Provider>
   );

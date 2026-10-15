@@ -110,6 +110,43 @@ export function snippetFilterFor(filter: Record<string, unknown>): Record<string
 }
 
 /**
+ * Snippets fetched after their results were listed (see
+ * SearchRequestOptions.deferSnippets), with the account they were asked in.
+ * Ids repeat across accounts, so a search fanned out over several keeps each
+ * account's snippets to its own rows; no `accountId` matches every row.
+ */
+export interface DeferredSnippetBatch {
+  accountId?: string;
+  list: SearchSnippetResult[];
+}
+
+/**
+ * attachSearchSnippets for a list that is already on screen: returns a new
+ * list with new objects for the emails that gained a snippet, and the same
+ * list when none did, so a store update re-renders only the rows that changed.
+ */
+export function withSearchSnippets(emails: Email[], batches: DeferredSnippetBatch[]): Email[] {
+  const lookups = batches
+    .filter((batch) => batch.list.length > 0)
+    .map((batch) => ({ accountId: batch.accountId, byId: new Map(batch.list.map((s) => [s.emailId, s])) }));
+  if (lookups.length === 0) return emails;
+  let changed = false;
+  const next = emails.map((email) => {
+    for (const { accountId, byId } of lookups) {
+      if (accountId !== undefined && email.accountId !== accountId) continue;
+      const snippet = byId.get(email.id);
+      if (!snippet) continue;
+      const [withSnippet] = attachSearchSnippets([{ ...email }], [snippet]);
+      if (!withSnippet.searchSnippet) return email;
+      changed = true;
+      return withSnippet;
+    }
+    return email;
+  });
+  return changed ? next : emails;
+}
+
+/**
  * Attaches the snippets to the emails they belong to. A snippet without any
  * highlighted term (the server found nothing to mark, or returned the plain
  * subject) is dropped, so the list falls back to the regular subject/preview.

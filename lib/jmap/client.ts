@@ -1,7 +1,7 @@
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PushSubscription, EmailPushConfig, DeliveryStatus, EmailSubmission, RejectedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
-import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
+import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration, SearchEmailsResult, SearchRequestOptions } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { batched, itemsPerRequest } from "./request-limits";
 import { keywordPointer } from "./patch-pointer";
@@ -27,6 +27,10 @@ import { toInertBlob } from "@/lib/file-preview";
 // / #884). Bounded well above the default so it stays rare in practice while
 // still guarding against unbounded memory use on a malicious/oversized body.
 const TRUNCATED_BODY_REFETCH_MAX_BYTES = 8_000_000;
+// Opening one message needs its whole body, so its fetch takes more than the
+// list-sized cap: a newsletter just over 256 kB came back truncated and was
+// fetched a second time. Larger bodies still take the refetch above.
+const OPEN_EMAIL_MAX_BODY_BYTES = 1_000_000;
 
 // Names of nodes created over WebDAV come back percent-encoded from
 // FileNode/get (see decodeFileNodeName / #869). Normalize at the boundary so
@@ -673,6 +677,20 @@ const CONCURRENT_REQUEST_RETRY_DELAYS_MS = [200, 400, 800];
 const FILE_NODE_QUERY_PAGE = 5000;
 /** Safety bound on how many FileNode ids one listing pages through. */
 const FILE_NODE_MAX_IDS = 200_000;
+
+/**
+ * Message counts per thread id from the Thread/get chained onto a list
+ * request; undefined when the server did not answer it (one that cannot
+ * resolve a wildcard back-reference fails just that call).
+ */
+function threadCountsFrom(methodResponse: unknown): Record<string, number> | undefined {
+  if (!Array.isArray(methodResponse) || methodResponse[0] !== "Thread/get") return undefined;
+  const list = (methodResponse[1] as { list?: Thread[] } | undefined)?.list;
+  if (!Array.isArray(list)) return undefined;
+  const counts: Record<string, number> = {};
+  for (const thread of list) counts[thread.id] = thread.emailIds?.length ?? 0;
+  return counts;
+}
 
 function computeHasMore(position: number, emailCount: number, total: number, limit: number): boolean {
   if (total > 0) return (position + emailCount) < total;
@@ -1991,7 +2009,7 @@ export class JMAPClient implements IJMAPClient {
   // Throws when the page cannot be read. Answering with an empty page made a
   // failed refresh empty the list, and callers could not tell it from an
   // empty folder.
-  async getEmails(mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order: SortLevel[] = []): Promise<{ emails: Email[], hasMore: boolean, total: number, state?: string }> {
+  async getEmails(mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order: SortLevel[] = []): Promise<{ emails: Email[], hasMore: boolean, total: number, state?: string, threadCounts?: Record<string, number> }> {
     const targetAccountId = accountId || this.accountId;
     const simple: { inMailbox?: string; hasKeyword?: string } = {};
     if (mailboxId) {
@@ -2030,6 +2048,13 @@ export class JMAPClient implements IJMAPClient {
         "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
         properties: [...EMAIL_LIST_PROPERTIES],
       }, "1"],
+      // The page's conversation sizes, off the thread ids the Email/get
+      // returns (RFC 8620 §3.7 wildcard path): no second round trip, and the
+      // list paints with its counts instead of re-rendering for them.
+      ["Thread/get", {
+        accountId: targetAccountId,
+        "#ids": { resultOf: "1", name: "Email/get", path: "/list/*/threadId" },
+      }, "2"],
     ]);
 
     let response = await query(built.sort);
@@ -2064,7 +2089,7 @@ export class JMAPClient implements IJMAPClient {
       // The Email collection state this page was read at; the store keeps
       // it so a later push can be applied with Email/changes.
       const state = typeof getResponse.state === 'string' ? getResponse.state : undefined;
-      return { emails, hasMore, total, state };
+      return { emails, hasMore, total, state, threadCounts: threadCountsFrom(response.methodResponses?.[2]) };
     }
 
     throw new Error(methodErrorMessage(response, 'Failed to get emails'));
@@ -2348,7 +2373,7 @@ export class JMAPClient implements IJMAPClient {
           fetchTextBodyValues: true,
           fetchHTMLBodyValues: true,
           fetchAllBodyValues: true,
-          maxBodyValueBytes: 256000,
+          maxBodyValueBytes: OPEN_EMAIL_MAX_BODY_BYTES,
         }, "0"],
       ]);
 
@@ -3290,7 +3315,7 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
-  async searchEmails(query: string, mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0): Promise<{ emails: Email[], hasMore: boolean, total: number }> {
+  async searchEmails(query: string, mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, options: SearchRequestOptions = {}): Promise<SearchEmailsResult> {
     try {
       const targetAccountId = accountId || this.accountId;
 
@@ -3326,7 +3351,7 @@ export class JMAPClient implements IJMAPClient {
           "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
           properties: [...EMAIL_LIST_PROPERTIES],
         }, "1"],
-        this.searchSnippetCall(targetAccountId, filter),
+        ...(options.deferSnippets ? [] : [this.searchSnippetCall(targetAccountId, filter)]),
       ]);
       assertQuerySucceeded(response, 'Search');
 
@@ -3346,7 +3371,7 @@ export class JMAPClient implements IJMAPClient {
         namespaceMailboxIds(emails, accountId);
       }
 
-      return { emails, hasMore, total };
+      return { emails, hasMore, total, ...this.deferredSnippets(options, targetAccountId, filter, emails) };
     } catch (error) {
       // Rethrow: an empty result would read as "No results found".
       console.error('Search failed:', error);
@@ -3372,6 +3397,35 @@ export class JMAPClient implements IJMAPClient {
     }, "snippets"];
   }
 
+  /**
+   * With `deferSnippets`, the snippets of a result page as a request of their
+   * own, already in flight. Chained onto the search they cost no round trip
+   * but hold the whole response back while the server excerpts every hit,
+   * several times longer than the query itself, so an interactive search
+   * lists its results first and highlights them when this resolves. Never
+   * rejects: a failure leaves the results without snippets, as it does when
+   * chained.
+   */
+  private deferredSnippets(
+    options: SearchRequestOptions,
+    accountId: string,
+    filter: Record<string, unknown> | undefined,
+    emails: Email[],
+  ): Pick<SearchEmailsResult, 'snippets'> {
+    if (!options.deferSnippets || emails.length === 0 || !filter || !filterHasSnippetTerms(filter)) return {};
+    const snippets = this.request([
+      ["SearchSnippet/get", {
+        accountId,
+        filter: snippetFilterFor(filter),
+        emailIds: emails.map((email) => email.id),
+      }, "snippets"],
+    ]).then((response) => this.searchSnippetsFrom(response)).catch((error) => {
+      debug.warn("jmap", "SearchSnippet/get failed:", error);
+      return undefined;
+    });
+    return { snippets };
+  }
+
   /** The SearchSnippet list of a search response, if the call succeeded. */
   private searchSnippetsFrom(response: JMAPResponse): SearchSnippetResult[] | undefined {
     for (const [method, result, callId] of response.methodResponses ?? []) {
@@ -3386,8 +3440,9 @@ export class JMAPClient implements IJMAPClient {
     filter: Record<string, unknown>,
     accountId?: string,
     limit: number = 50,
-    position: number = 0
-  ): Promise<{ emails: Email[], hasMore: boolean, total: number }> {
+    position: number = 0,
+    options: SearchRequestOptions = {},
+  ): Promise<SearchEmailsResult> {
     try {
       const targetAccountId = accountId || this.accountId;
 
@@ -3409,7 +3464,7 @@ export class JMAPClient implements IJMAPClient {
           "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
           properties: [...EMAIL_LIST_PROPERTIES],
         }, "1"],
-        this.searchSnippetCall(targetAccountId, hasFilter ? filter : undefined),
+        ...(options.deferSnippets ? [] : [this.searchSnippetCall(targetAccountId, hasFilter ? filter : undefined)]),
       ]);
       assertQuerySucceeded(response, 'Search');
 
@@ -3429,7 +3484,7 @@ export class JMAPClient implements IJMAPClient {
         namespaceMailboxIds(emails, accountId);
       }
 
-      return { emails, hasMore, total };
+      return { emails, hasMore, total, ...this.deferredSnippets(options, targetAccountId, hasFilter ? filter : undefined, emails) };
     } catch (error) {
       console.error('Advanced search failed:', error);
       throw error;

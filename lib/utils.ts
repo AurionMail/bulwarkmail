@@ -69,6 +69,25 @@ function resolveDateLocale<T extends string | undefined>(
   }
 }
 
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * An Intl.DateTimeFormat for `locale` and `options`, built once. Each
+ * toLocale*String call constructs one afresh, and the list formats every
+ * row's date on every render. Only for option sets that name a date or time
+ * field: then toLocaleString, toLocaleDateString and toLocaleTimeString all
+ * format exactly as the formatter does.
+ */
+function cachedDateFormat(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${locale}|${JSON.stringify(options)}`;
+  let formatter = dateFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options);
+    dateFormatters.set(key, formatter);
+  }
+  return formatter;
+}
+
 /**
  * Formats a received-at date for the email list. The output style is
  * controlled by the `dateFormat` user setting:
@@ -131,16 +150,16 @@ export function formatDate(
     if (minutes < 60) return rtf.format(-minutes, "minute");
     if (hours < 24) return rtf.format(-hours, "hour");
     if (days < 7) return rtf.format(-days, "day");
-    return d.toLocaleDateString(uiLocale, {
+    return cachedDateFormat(uiLocale, {
       timeZone,
       month: "short",
       day: "numeric",
       year: getWallClock(d, timeZone).year !== getWallClock(now, timeZone).year ? "numeric" : undefined,
-    });
+    }).format(d);
   }
 
   if (dateFormat === "full") {
-    return d.toLocaleString(numericLocale, {
+    return cachedDateFormat(numericLocale, {
       timeZone,
       year: "numeric",
       month: "2-digit",
@@ -148,16 +167,16 @@ export function formatDate(
       hour: "2-digit",
       minute: "2-digit",
       hour12,
-    });
+    }).format(d);
   }
 
   // 'smart' (default)
-  const timeStr = d.toLocaleTimeString(uiLocale, {
+  const timeStr = cachedDateFormat(uiLocale, {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",
     hour12,
-  });
+  }).format(d);
 
   // Calendar-day comparison in the display zone, not the browser zone.
   const dWall = getWallClock(d, timeZone);
@@ -170,27 +189,27 @@ export function formatDate(
 
   if (overrides?.listStyle === 'mountain-view') {
     if (dWall.year === nowWall.year) {
-      return d.toLocaleDateString(uiLocale, { timeZone, month: "short", day: "numeric" });
+      return cachedDateFormat(uiLocale, { timeZone, month: "short", day: "numeric" }).format(d);
     }
-    return d.toLocaleDateString(numericLocale, { timeZone, year: "2-digit", month: "numeric", day: "numeric" });
+    return cachedDateFormat(numericLocale, { timeZone, year: "2-digit", month: "numeric", day: "numeric" }).format(d);
   }
 
   const daysAgo = Math.floor((now.getTime() - d.getTime()) / 86400000);
   if (daysAgo < 7) {
     // German Intl outputs "Fr." with a trailing dot for `weekday: 'short'`;
     // strip it so the result reads cleanly next to the time.
-    const weekday = d
-      .toLocaleDateString(uiLocale, { timeZone, weekday: "short" })
+    const weekday = cachedDateFormat(uiLocale, { timeZone, weekday: "short" })
+      .format(d)
       .replace(/\.$/, "");
     return `${weekday} ${timeStr}`;
   }
 
-  return d.toLocaleDateString(numericLocale, {
+  return cachedDateFormat(numericLocale, {
     timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  });
+  }).format(d);
 }
 
 /**

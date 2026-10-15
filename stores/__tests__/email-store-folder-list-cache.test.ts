@@ -44,7 +44,7 @@ const folder = (id: string, role: string | null) =>
     myRights: {},
   }) as unknown as Mailbox;
 
-type Page = { emails: Email[]; hasMore: boolean; total: number; state?: string };
+type Page = { emails: Email[]; hasMore: boolean; total: number; state?: string; threadCounts?: Record<string, number> };
 
 function makeClient(pages: Record<string, () => Promise<Page>>) {
   const getEmails = vi.fn((mailboxId: string) => pages[mailboxId]());
@@ -171,5 +171,85 @@ describe('remembered folder lists', () => {
     fresh.resolve({ emails: [makeEmail('w')], hasMore: false, total: 1, state: 's1' });
     await loading;
     expect(ids()).toEqual(['w']);
+  });
+});
+
+describe('remembered folder lists with Email/changes', () => {
+  beforeEach(() => {
+    forgetFolderLists();
+    useSettingsStore.setState({ emailsPerPage: 50 });
+    useEmailStore.setState({
+      selectedMailbox: 'inbox',
+      mailboxes: [folder('inbox', 'inbox'), folder('work', null)],
+      accountMailboxes: {},
+      viewingAccountId: null,
+      emails: [],
+      totalEmails: 0,
+      hasMoreEmails: false,
+      emailListSync: null,
+      isUnifiedView: false,
+      isScheduledView: false,
+      selectedKeyword: null,
+      searchQuery: '',
+      isLoading: false,
+      error: null,
+    });
+  });
+
+  function clientWithChanges(changes: { created?: string[]; updated?: string[]; destroyed?: string[] }) {
+    const { client, getEmails } = makeClient({
+      inbox: async () => ({ emails: [makeEmail('a'), makeEmail('b')], hasMore: false, total: 2, state: 's1', threadCounts: { 't-a': 3, 't-b': 1 } } as Page),
+      work: async () => ({ emails: [makeEmail('w')], hasMore: false, total: 1, state: 's1' }),
+    });
+    const getEmailChanges = vi.fn(async () => ({
+      oldState: 's1', newState: 's2', hasMoreChanges: false,
+      created: changes.created ?? [], updated: changes.updated ?? [], destroyed: changes.destroyed ?? [],
+    }));
+    const getSomeEmails = vi.fn(async (wanted: string[]) => wanted.map((id) => makeEmail(id, { keywords: { $seen: true } })));
+    Object.assign(client, { getEmailChanges, getSomeEmails });
+    return { client, getEmails, getEmailChanges };
+  }
+
+  it('asks only what changed on a revisit and keeps the rows when nothing did', async () => {
+    const { client, getEmails, getEmailChanges } = clientWithChanges({});
+    await open(client, 'inbox');
+    await open(client, 'work');
+    getEmails.mockClear();
+
+    const loading = open(client, 'inbox');
+    const painted = useEmailStore.getState().emails;
+    await loading;
+
+    expect(getEmailChanges).toHaveBeenCalledWith('s1', undefined, expect.any(Number));
+    expect(getEmails).not.toHaveBeenCalled();
+    // The very same list: nothing for the rows to render again.
+    expect(useEmailStore.getState().emails).toBe(painted);
+    expect(useEmailStore.getState().emailListSync?.state).toBe('s2');
+    // The conversation sizes come back with the page; a switch cleared them.
+    expect(useEmailStore.getState().threadEmailCounts.get('t-a')).toBe(3);
+  });
+
+  it('patches a row that changed elsewhere without re-reading the page', async () => {
+    const { client, getEmails } = clientWithChanges({ updated: ['a'] });
+    await open(client, 'inbox');
+    await open(client, 'work');
+    getEmails.mockClear();
+
+    await open(client, 'inbox');
+
+    expect(getEmails).not.toHaveBeenCalled();
+    expect(ids()).toEqual(['a', 'b']);
+    expect(useEmailStore.getState().emails[0].keywords).toEqual({ $seen: true });
+  });
+
+  it('re-reads the page when mail arrived in the folder', async () => {
+    const { client, getEmails } = clientWithChanges({ created: ['new'] });
+    (client.getSomeEmails as ReturnType<typeof vi.fn>).mockImplementation(async (wanted: string[]) => wanted.map((id) => makeEmail(id)));
+    await open(client, 'inbox');
+    await open(client, 'work');
+    getEmails.mockClear();
+
+    await open(client, 'inbox');
+    expect(getEmails).toHaveBeenCalledTimes(1);
   });
 });

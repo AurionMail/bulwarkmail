@@ -47,7 +47,7 @@ describe('onSearch', () => {
     await useEmailStore.getState().searchEmails(client, 'invoice');
 
     expect(handler).toHaveBeenCalledWith({ query: 'invoice', filters: DEFAULT_SEARCH_FILTERS });
-    expect(client.searchEmails).toHaveBeenCalledWith('invoice -label:ads', 'inbox', undefined, 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('invoice -label:ads', 'inbox', undefined, 50, 0, { deferSnippets: true });
     expect(useEmailStore.getState().searchQuery).toBe('invoice');
   });
 

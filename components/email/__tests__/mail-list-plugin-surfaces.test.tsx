@@ -219,6 +219,8 @@ describe('message-row-actions', () => {
     const onSelect = vi.fn();
     const [thread] = groupEmailsByThread([mail('a')]);
     render(<ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={onSelect} />);
+    // The hover actions mount once the row has been pointed at.
+    fireEvent.pointerEnter(screen.getByTestId('email-list-item'));
 
     const button = screen.getByRole('button', { name: 'Later' });
     const star = screen.getByTestId('hover-action-star');
@@ -234,12 +236,14 @@ describe('message-row-actions', () => {
     useSettingsStore.setState({ hoverActions: [] } as never);
     act(() => setPluginActions('p', 'P', 'message-row-actions', [{ id: 'later', label: 'Later' }]));
     render(row(mail('a')));
+    fireEvent.pointerEnter(screen.getByTestId('email-list-item'));
     expect(screen.getByRole('button', { name: 'Later' })).toBeInTheDocument();
   });
 
   it('honours the folder roles the plugin asked for', () => {
     act(() => setPluginActions('p', 'P', 'message-row-actions', [{ id: 'later', label: 'Later', mailboxRoles: ['sent'] }]));
     render(row(mail('a')));
+    fireEvent.pointerEnter(screen.getByTestId('email-list-item'));
     expect(screen.queryByRole('button', { name: 'Later' })).toBeNull();
   });
 

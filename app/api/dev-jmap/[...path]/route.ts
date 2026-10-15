@@ -949,6 +949,73 @@ const emails: MockEmail[] = [
   },
 ];
 
+appendBenchCorpus(Number(process.env.DEV_MOCK_JMAP_BULK) || 0);
+
+/**
+ * DEV_MOCK_JMAP_BULK=<n> replaces the fixtures above with n synthetic
+ * messages shaped like the benchmark rig's seed (repos/benchmark/seed):
+ * "#<n>" subjects, 60 % plain text, the rest HTML or with an attachment,
+ * spread 70/15/5/5/5 over Inbox, Sent, Drafts, Junk and Trash. For
+ * performance tests, where a folder of a few messages hides every per-row
+ * cost. Deterministic, so counts are stable.
+ */
+function appendBenchCorpus(count: number): void {
+  if (count <= 0) return;
+  let seed = 0x1234abcd;
+  const rand = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const pick = <T,>(list: T[]): T => list[Math.floor(rand() * list.length)];
+  const prefixes = ['Re:', 'Fwd:', '', '', '', '[BENCH]', '[BENCH]', '[BENCH]'];
+  const nouns = ['Quarterly review', 'Project status', 'Lunch tomorrow?', 'Merge request',
+    'Production incident', 'Vacation policy update', 'Architecture review', 'Customer feedback',
+    'Standup notes', 'Performance budget', 'Release plan', 'Database migration', 'Security audit',
+    'Team offsite', 'Onboarding doc', 'Roadmap Q4', 'Bug triage', 'Design review', 'Hiring loop',
+    'Budget proposal', 'New customer', 'Postmortem draft'];
+  const senders = ['Alice', 'Bob', 'Carol', 'Dave', 'Marketing', 'Updates', 'Reports'];
+  const domains = ['github.com', 'example.com', 'stripe.com', 'vendor.io', 'product.com', 'analytics.io'];
+  const lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. ';
+  const text = (chars: number) => lorem.repeat(Math.ceil(chars / lorem.length)).slice(0, chars);
+  const folders: Array<[string, number]> = [['mb-inbox', 0.70], ['mb-sent', 0.85], ['mb-drafts', 0.90], ['mb-junk', 0.95], ['mb-trash', 1]];
+  const now = Date.now();
+  emails.length = 0;
+  for (let n = 1; n <= count; n++) {
+    const name = pick(senders);
+    const body = `Hi,\n\n${text(800 + Math.floor(rand() * 2000))}\n\nSynthetic seed message ${n}/${count}.`;
+    const kind = rand();
+    // The seed's attachment messages carry their own subject.
+    const subject = kind >= 0.95 ? `[BENCH] Document attached #${n}` : `${pick(prefixes)} ${pick(nouns)} #${n}`.trim();
+    const slot = rand();
+    const mailboxId = folders.find(([, upTo]) => slot < upTo)![0];
+    const id = `email-bench-${n}`;
+    const email: MockEmail = {
+      id, threadId: `thread-bench-${n}`, mailboxIds: { [mailboxId]: true },
+      keywords: { ...(rand() < 0.7 ? { $seen: true } : {}), ...(mailboxId === 'mb-drafts' ? { $draft: true } : {}) },
+      size: body.length + 600, receivedAt: new Date(now - n * 37 * 60_000).toISOString(),
+      from: [{ name, email: `${name.toLowerCase()}@${pick(domains)}` }],
+      to: [{ name: 'Dev User', email: 'dev@localhost' }], cc: [],
+      subject, preview: body.slice(4, 200).replace(/\s+/g, ' '),
+      hasAttachment: kind >= 0.95,
+      textBody: [{ partId: 'p1', blobId: `blob-${id}-p1`, size: body.length, type: 'text/plain' }],
+      htmlBody: [],
+      bodyValues: { p1: { value: body } },
+    };
+    if (kind >= 0.60 && kind < 0.95) {
+      const html = `<!doctype html><html><body style="font-family:system-ui"><h2>${subject}</h2><p>${text(200)}</p><table border="1" cellpadding="6"><tr><th>Item</th><th>Value</th></tr>${Array.from({ length: 8 }, (_, i) => `<tr><td>row-${i}</td><td>${rand().toFixed(8)}</td></tr>`).join('')}</table><p>${text(kind < 0.80 ? 8000 : 40000)}</p></body></html>`;
+      email.htmlBody = [{ partId: 'p2', blobId: `blob-${id}-p2`, size: html.length, type: 'text/html' }];
+      email.bodyValues.p2 = { value: html };
+    }
+    if (email.hasAttachment) {
+      email.attachments = [{ partId: 'att1', blobId: `blob-${id}-att1`, size: 50_000, name: `synthetic-${n}.txt`, type: 'text/plain' }];
+    }
+    emails.push(email);
+  }
+  recomputeMailboxCounts();
+}
+
 // ---------------------------------------------------------------------------
 // Identities
 // ---------------------------------------------------------------------------
@@ -2414,6 +2481,24 @@ const METHOD_HANDLERS: Record<string, MethodHandler> = {
 // Resolve back-references between method calls
 // ---------------------------------------------------------------------------
 
+/** A JSON pointer with "*" wildcard steps, as JMAP result references use. */
+function resolvePointer(value: unknown, path: string): unknown {
+  const steps = path.replace(/^\//, '').split('/').filter((step) => step.length > 0);
+  let current: unknown[] = [value];
+  for (const step of steps) {
+    const next: unknown[] = [];
+    for (const item of current) {
+      if (step === '*') {
+        if (Array.isArray(item)) next.push(...item);
+      } else if (item && typeof item === 'object') {
+        next.push((item as Record<string, unknown>)[step]);
+      }
+    }
+    current = next;
+  }
+  return steps.includes('*') ? current : current[0];
+}
+
 function resolveBackReferences(
   methodCalls: Array<[string, MethodArgs, string]>,
   responses: MethodResult[],
@@ -2422,15 +2507,17 @@ function resolveBackReferences(
     const [method, args, callId] = call;
     const resolved = { ...args };
 
-    // Handle #ids back-reference (used by Email/get after Email/query)
-    if (resolved['#ids']) {
-      const ref = resolved['#ids'] as { resultOf: string; name: string; path: string };
+    // Every "#name" argument is a back-reference (RFC 8620 §3.7): the value at
+    // `path` in an earlier response replaces it under the plain name, where a
+    // "*" step collects across an array (e.g. /list/*/threadId).
+    for (const key of Object.keys(resolved)) {
+      if (!key.startsWith('#')) continue;
+      const ref = resolved[key] as { resultOf: string; name: string; path: string };
       const refResponse = responses.find((r) => r[2] === ref.resultOf && r[0] === ref.name);
       if (refResponse) {
-        const path = ref.path.replace(/^\//, '');
-        resolved.ids = refResponse[1][path] as string[];
+        resolved[key.slice(1)] = resolvePointer(refResponse[1], ref.path);
       }
-      delete resolved['#ids'];
+      delete resolved[key];
     }
 
     return [method, resolved, callId] as [string, MethodArgs, string];

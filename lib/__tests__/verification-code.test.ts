@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   findVerificationCode,
+  htmlMayNameACode,
   listVerificationCode,
   verificationCodeBodyText,
   VERIFICATION_CODE_MAX_AGE_MS,
@@ -143,6 +144,30 @@ describe('verificationCodeBodyText', () => {
     });
     expect(text).not.toContain('600px');
     expect(findVerificationCode('Verification Code', text)).toBe('261765');
+  });
+
+  // Opening a big HTML mail spent most of its script time turning the HTML
+  // into text to look for a code. Without any word that names a code there is
+  // nothing to find, so that step is skipped; it must never skip a mail that
+  // has one, however the word is written.
+  const html = (body: string) => verificationCodeBodyText({
+    htmlBody: [part('1', 'text/html')],
+    textBody: [],
+    bodyValues: { 1: value(`<html><body>${body}</body></html>`) },
+  });
+
+  it('skips reading HTML that names no code', () => {
+    const newsletter = '<h2>Vacation policy update #998</h2><table><tr><td>row-1</td><td>0.16487150</td></tr></table><p>Lorem ipsum 482910 commodo</p>';
+    expect(htmlMayNameACode(newsletter)).toBe(false);
+    expect(html(newsletter)).toBe('');
+  });
+
+  it('still reads HTML whose code word is marked up, escaped or padded', () => {
+    expect(findVerificationCode('', html('Your verification <b>code</b> is 482910'))).toBe('482910');
+    expect(findVerificationCode('', html('Tu c&oacute;digo de verificaci&oacute;n es 482910'))).toBe('482910');
+    expect(findVerificationCode('', html('Ваш &#1082;&#1086;&#1076;: 482910'))).toBe('482910');
+    expect(findVerificationCode('', html('Your verification co&shy;de is 482910'))).toBe('482910');
+    expect(findVerificationCode('', html('Ihre m&#x54;AN lautet 482910'))).toBe('482910');
   });
 
   it('reads plain-text mail', () => {

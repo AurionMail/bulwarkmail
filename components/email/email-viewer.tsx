@@ -16,6 +16,7 @@ import { useCopyLink } from "@/hooks/use-copy-link";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
+import { itemsToHide } from "@/lib/toolbar-overflow";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
 import { emailDisplayDate } from "@/lib/email-date";
@@ -92,6 +93,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import type { Attachment as PostalMimeAttachment } from 'postal-mime';
 import { useSettingsStore } from "@/stores/settings-store";
+import { useShallow } from "zustand/react/shallow";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { useUIStore } from "@/stores/ui-store";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
@@ -981,6 +983,12 @@ function SidebarSection({ icon: Icon, title, children }: { icon: React.Component
   );
 }
 
+// Shared "nothing here" values for the per-message attachment state. Every
+// open resets that state; a fresh [] each time is a new value, so React
+// renders the viewer once more even though nothing changed.
+const NO_POSTAL_ATTACHMENTS: PostalMimeAttachment[] = [];
+const NO_TNEF_ATTACHMENTS: TnefAttachment[] = [];
+
 export function EmailViewer({
   email,
   blobSource,
@@ -1189,8 +1197,8 @@ export function EmailViewer({
   // `sm:hidden` must not be trusted - the viewport may be desktop-sized
   // while the pane is phone-sized.
   const isPaneScoped = useIsPaneScoped();
-  const { tabletListVisible } = useUIStore();
-  const { identities, client, isDemoMode, activeAccountId } = useAuthStore();
+  const { tabletListVisible } = useUIStore(useShallow((state) => ({ tabletListVisible: state.tabletListVisible })));
+  const { identities, client, isDemoMode, activeAccountId } = useAuthStore(useShallow((state) => ({ identities: state.identities, client: state.client, isDemoMode: state.isDemoMode, activeAccountId: state.activeAccountId })));
   const activeAccount = useAccountStore((s) => s.accounts.find((a) => a.id === activeAccountId));
   // The standard mail UI supplies message routing for preview/download,
   // inline images, export and attachment drag-out. Other viewer hosts keep
@@ -1381,6 +1389,17 @@ export function EmailViewer({
     return () => cancelAnimationFrame(frame);
   }, [moreMenuSub, moreMenuOpen, isMobile]);
   const [hiddenPriorities, setHiddenPriorities] = useState<Set<number>>(new Set());
+  // What the overflow measurement last applied. It mostly runs from observer
+  // and animation-frame callbacks, where even an updater that returns the
+  // previous state makes React call this component once more before bailing
+  // out; comparing here means an unchanged result schedules nothing at all.
+  const appliedHiddenPrioritiesRef = useRef<Set<number>>(hiddenPriorities);
+  // The toolbar's overflow answers measured so far, by what the toolbar
+  // looked like (see layoutKey), and the width it last had: an open that
+  // brings back a toolbar already measured at this width needs no measuring.
+  // A loading message and a loaded one can differ, so a few are kept.
+  const measuredToolbarRef = useRef(new Map<string, Set<number>>());
+  const toolbarWidthRef = useRef<number | undefined>(undefined);
   const currentTagIds = getEmailTagIds(email?.keywords);
   const sortedTagIds = sortTagIds(currentTagIds);
   // The header spans the reading pane, so it measures its own width rather than
@@ -1394,7 +1413,7 @@ export function EmailViewer({
   // crypto plugin's own email-banner slot, so the host keeps no S/MIME state.
   const [pluginRenderedHtml, setPluginRenderedHtml] = useState<string | null>(null);
   const [pluginRenderedText, setPluginRenderedText] = useState<string | null>(null);
-  const [pluginRenderedAttachments, setPluginRenderedAttachments] = useState<PostalMimeAttachment[]>([]);
+  const [pluginRenderedAttachments, setPluginRenderedAttachments] = useState<PostalMimeAttachment[]>(NO_POSTAL_ATTACHMENTS);
   // Bumped when a plugin calls `api.ui.rerenderEmail` (e.g. the S/MIME plugin
   // after the user unlocks a key from the banner) to force the onRenderEmailBody
   // hook to run again for the open message so the body re-decrypts.
@@ -1408,12 +1427,12 @@ export function EmailViewer({
   // TNEF (winmail.dat) support
   const [tnefHtml, setTnefHtml] = useState<string | null>(null);
   const [tnefText, setTnefText] = useState<string | null>(null);
-  const [tnefAttachments, setTnefAttachments] = useState<TnefAttachment[]>([]);
+  const [tnefAttachments, setTnefAttachments] = useState<TnefAttachment[]>(NO_TNEF_ATTACHMENTS);
 
   // Embedded message/rfc822 unwrapping (Outlook forward-as-attachment)
   const [embeddedEmailHtml, setEmbeddedEmailHtml] = useState<string | null>(null);
   const [embeddedEmailText, setEmbeddedEmailText] = useState<string | null>(null);
-  const [embeddedEmailAttachments, setEmbeddedEmailAttachments] = useState<PostalMimeAttachment[]>([]);
+  const [embeddedEmailAttachments, setEmbeddedEmailAttachments] = useState<PostalMimeAttachment[]>(NO_POSTAL_ATTACHMENTS);
 
   // Plugin detail sidebar state. Collapsed/width persist across opens and
   // sessions so the panel reopens the way the user last left it.
@@ -1540,11 +1559,34 @@ export function EmailViewer({
 
     let rafId: number | null = null;
 
+    const applyHidden = (hidden: Set<number>) => {
+      const applied = appliedHiddenPrioritiesRef.current;
+      if (applied.size === hidden.size && [...hidden].every(p => applied.has(p))) return;
+      appliedHiddenPrioritiesRef.current = hidden;
+      setHiddenPriorities(hidden);
+    };
+
+    // Everything the decision depends on that can be read without a layout.
+    const layoutKey = (items: HTMLElement[]) => [
+      toolbarWidthRef.current, toolbarPosition, showToolbarLabels, isTablet, tabletListVisible,
+      ...items.map((item) => `${item.dataset.overflowPriority}:${item.className}:${item.textContent}`),
+    ].join('|');
+
     const calculate = () => {
       rafId = null;
       const items = Array.from(el.querySelectorAll<HTMLElement>('[data-overflow-item]'));
       if (items.length === 0) {
-        setHiddenPriorities(prev => prev.size === 0 ? prev : new Set());
+        applyHidden(new Set());
+        return;
+      }
+      // Opening another message usually leaves the toolbar as it was. Then
+      // the last answer still holds: apply it without reading any width,
+      // which would force a layout on every open.
+      const key = layoutKey(items);
+      const known = toolbarWidthRef.current !== undefined ? measuredToolbarRef.current.get(key) : undefined;
+      if (known) {
+        for (const item of items) item.style.display = known.has(Number(item.dataset.overflowPriority)) ? 'none' : '';
+        applyHidden(known);
         return;
       }
       // Sort descending by priority so highest number (least important) is hidden first
@@ -1561,25 +1603,34 @@ export function EmailViewer({
       leftGroup.style.flexShrink = '0';
       rightGroup.style.flexShrink = '0';
       el.style.overflow = 'hidden';
-      // Iteratively hide items until content fits
+      // Measure every width in one pass and decide from the numbers (see
+      // itemsToHide) rather than hiding items one by one and re-reading.
+      const groupIds = new Map<Element, string>([[leftGroup, 'left'], [rightGroup, 'right']]);
+      const groupOf = (item: HTMLElement) => {
+        const parent = item.parentElement;
+        if (!parent) return '';
+        if (!groupIds.has(parent)) groupIds.set(parent, String(groupIds.size));
+        return groupIds.get(parent)!;
+      };
+      const measured = items.map((item) => ({ width: item.offsetWidth, group: groupOf(item) }));
+      const overflow = leftGroup.scrollWidth + rightGroup.scrollWidth + mainGap - (containerWidth + 1);
+      const gapOf = {
+        left: parseFloat(getComputedStyle(leftGroup).gap) || 0,
+        right: parseFloat(getComputedStyle(rightGroup).gap) || 0,
+      };
       const hidden = new Set<number>();
-      const isOverflowing = () =>
-        leftGroup.scrollWidth + rightGroup.scrollWidth + mainGap > containerWidth + 1;
-      for (const item of items) {
-        if (!isOverflowing()) break;
-        // Skip items already hidden by CSS (e.g., on mobile)
-        if (item.offsetWidth === 0) continue;
-        item.style.display = 'none';
-        hidden.add(Number(item.dataset.overflowPriority));
+      for (const i of itemsToHide(measured, overflow, gapOf)) {
+        items[i].style.display = 'none';
+        hidden.add(Number(items[i].dataset.overflowPriority));
       }
       // Restore layout
       leftGroup.style.flexShrink = '';
       rightGroup.style.flexShrink = '';
       el.style.overflow = '';
-      setHiddenPriorities(prev => {
-        if (prev.size === hidden.size && [...hidden].every(p => prev.has(p))) return prev;
-        return hidden;
-      });
+      const answers = measuredToolbarRef.current;
+      if (answers.size >= 8) answers.delete(answers.keys().next().value!);
+      answers.set(key, hidden);
+      applyHidden(hidden);
     };
 
     const scheduleCalculate = () => {
@@ -1587,8 +1638,22 @@ export function EmailViewer({
       rafId = requestAnimationFrame(calculate);
     };
 
-    // Recalculate on container resize
-    const resizeObserver = new ResizeObserver(scheduleCalculate);
+    // Recalculate on container resize. An observer reports once as soon as it
+    // starts observing; that first report is the size the synchronous
+    // calculation below has just measured, so it is not worth a second pass.
+    // Any other size invalidates the last measurement.
+    let sawInitialReport = false;
+    const resizeObserver = new ResizeObserver((entries) => {
+      const width = entries[entries.length - 1]?.contentRect.width;
+      const known = toolbarWidthRef.current;
+      toolbarWidthRef.current = width;
+      if (!sawInitialReport) {
+        sawInitialReport = true;
+        if (width === known) return;
+      }
+      measuredToolbarRef.current.clear();
+      scheduleCalculate();
+    });
     resizeObserver.observe(el);
 
     // Recalculate when children change (conditional items, label visibility)
@@ -1742,13 +1807,13 @@ export function EmailViewer({
     setEmailViewDarkOverride(null);
     setPluginRenderedHtml(null);
     setPluginRenderedText(null);
-    setPluginRenderedAttachments([]);
+    setPluginRenderedAttachments(NO_POSTAL_ATTACHMENTS);
     setTnefHtml(null);
     setTnefText(null);
-    setTnefAttachments([]);
+    setTnefAttachments(NO_TNEF_ATTACHMENTS);
     setEmbeddedEmailHtml(null);
     setEmbeddedEmailText(null);
-    setEmbeddedEmailAttachments([]);
+    setEmbeddedEmailAttachments(NO_POSTAL_ATTACHMENTS);
   }, [email?.id, externalContentPolicy]);
 
   // Crypto-plugin body takeover (S/MIME, PGP, …). A privileged crypto plugin
@@ -1758,6 +1823,14 @@ export function EmailViewer({
   // via its email-banner slot. Falls through to normal rendering otherwise.
   useEffect(() => {
     if (!email) return;
+    // No plugin renders bodies: nothing to ask, and no async round through the
+    // hook whose only outcome would be resetting state already reset.
+    if (renderHooks.onRenderEmailBody.size === 0) {
+      setPluginRenderedHtml(null);
+      setPluginRenderedText(null);
+      setPluginRenderedAttachments(NO_POSTAL_ATTACHMENTS);
+      return;
+    }
     let cancelled = false;
 
     const dataUrlToBytes = (dataUrl: string): Uint8Array | null => {
@@ -1802,7 +1875,7 @@ export function EmailViewer({
         if (!result || !result.handledBy) {
           setPluginRenderedHtml(null);
           setPluginRenderedText(null);
-          setPluginRenderedAttachments([]);
+          setPluginRenderedAttachments(NO_POSTAL_ATTACHMENTS);
           return;
         }
         setPluginRenderedHtml(typeof result.html === 'string' && result.html ? result.html : null);
@@ -1822,7 +1895,7 @@ export function EmailViewer({
         debug.error('onRenderEmailBody hook failed:', err);
         setPluginRenderedHtml(null);
         setPluginRenderedText(null);
-        setPluginRenderedAttachments([]);
+        setPluginRenderedAttachments(NO_POSTAL_ATTACHMENTS);
       }
     })();
 
@@ -2795,7 +2868,13 @@ export function EmailViewer({
 
   // Gates the quick reply on the iframe having loaded the current srcDoc, so
   // it doesn't flash in below a still-resizing iframe.
-  const [iframeReady, setIframeReady] = useState(false);
+  // The srcDoc whose document has been wired up (handleIframeLoad), or null.
+  // Readiness is derived from it rather than reset per message: a reset in
+  // the srcDoc layout effect rendered this component a second time, during
+  // the commit, on every open.
+  const [iframeReadyFor, setIframeReadyFor] = useState<string | null>(null);
+  const latestSrcDocRef = useRef<string | null>(null);
+  const iframeReady = iframeReadyFor !== null && iframeReadyFor === emailIframeSrcDoc;
   // The plain-text body, where reader-above-quote mounts between text and quote.
   const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);
   // One object per body: React writes innerHTML again whenever this object
@@ -2820,7 +2899,7 @@ export function EmailViewer({
   const frameSizeObserverRef = useRef<ResizeObserver | null>(null);
   useEffect(() => () => frameSizeObserverRef.current?.disconnect(), []);
   useLayoutEffect(() => {
-    setIframeReady(false);
+    latestSrcDocRef.current = emailIframeSrcDoc;
     initializedDocRef.current = null;
     // Runs during commit, before the browser processes the new srcDoc, so
     // contentDocument here is still the outgoing document.
@@ -2902,8 +2981,21 @@ export function EmailViewer({
         // Auto-resize iframe to fit content
         // Measure max(documentElement, body): a height:100% wrapper can leave
         // documentElement.scrollHeight short while the real content lives in body.
-        const applyHeight = () => {
+        // The document as last measured. Re-measuring is not free: the fit
+        // first clears its own transform and width, which dirties the layout,
+        // so the read after it lays the whole mail out again. Reading the
+        // scroll sizes of an untouched document costs nothing, so the poll and
+        // the observers only pay for the full pass when something changed.
+        const sizes = () => ({
+          width: Math.max(doc.body.scrollWidth, doc.documentElement.scrollWidth),
+          height: Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight),
+          viewport: doc.documentElement.clientWidth,
+        });
+        let measured = { width: -1, height: -1, viewport: -1 };
+        const applyHeight = (force = false) => {
           if (iframe.contentDocument !== doc) return; // navigated away; stale
+          const now = sizes();
+          if (!force && now.width === measured.width && now.height === measured.height && now.viewport === measured.viewport) return;
           // Shrink desktop-width mail to fit a phone screen first: it changes
           // the layout height, and the transform doesn't shrink the measured
           // (layout) height, so the iframe box has to be scaled by hand.
@@ -2913,8 +3005,9 @@ export function EmailViewer({
           );
           iframe.style.height = height + 'px';
           lastBodyHeightRef.current = height;
+          measured = sizes();
         };
-        const resizeObserver = new ResizeObserver(applyHeight);
+        const resizeObserver = new ResizeObserver(() => applyHeight());
         resizeObserver.observe(doc.body);
         // Re-fit when the iframe itself changes width. Height-only changes are
         // our own applyHeight writing back, so they're ignored - re-entering on
@@ -2925,11 +3018,11 @@ export function EmailViewer({
           if (iframe.contentDocument !== doc) return;
           if (iframe.clientWidth === lastFrameWidth) return;
           lastFrameWidth = iframe.clientWidth;
-          applyHeight();
+          applyHeight(true);
         });
         frameObserver.observe(iframe);
         frameSizeObserverRef.current = frameObserver;
-        applyHeight();
+        applyHeight(true);
         // The ResizeObserver only fires on body's border box; a content overflow
         // that grows scrollHeight without resizing that box (e.g. a height:100%
         // wrapper, or images that reflow the layout after onload) is otherwise
@@ -2943,7 +3036,7 @@ export function EmailViewer({
           applyHeight();
         }, 200);
         window.setTimeout(() => window.clearInterval(poll), 2400);
-        setIframeReady(true);
+        setIframeReadyFor(latestSrcDocRef.current);
 
         // Hide images that fail to load (dead/mixed-content/unreachable external
         // URLs) rather than leaving the browser's broken-image placeholder and

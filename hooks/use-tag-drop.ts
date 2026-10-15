@@ -2,6 +2,7 @@
 
 import { useCallback, useState, DragEvent } from "react";
 import { useEmailStore } from "@/stores/email-store";
+import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDragDropContext } from "@/contexts/drag-drop-context";
 import { dragDropHooks } from "@/lib/plugin-hooks";
@@ -26,8 +27,8 @@ interface UseTagDropReturn {
 
 export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): UseTagDropReturn {
   const [isOver, setIsOver] = useState(false);
-  const { client } = useAuthStore();
-  const { fetchEmails, fetchTagCounts, selectedMailbox } = useEmailStore();
+  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
+  const { fetchEmails, fetchTagCounts, selectedMailbox } = useEmailStore(useShallow((state) => ({ fetchEmails: state.fetchEmails, fetchTagCounts: state.fetchTagCounts, selectedMailbox: state.selectedMailbox })));
   const { isDragging, endDrag, markDropped } = useDragDropContext();
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {

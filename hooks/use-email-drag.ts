@@ -142,7 +142,10 @@ function getReadyBundle(emails: Email[]): { url: string; name: string } | null {
 }
 
 export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailDragOptions): UseEmailDragReturn {
-  const { selectedEmailKeys, emails } = useEmailStore();
+  // The selection and the list are read when a drag starts, not subscribed
+  // to: every message row runs this hook, and a subscription to the list
+  // re-rendered every row on each list update (new results, a snippet, a
+  // read flag elsewhere), however memoised the rows were.
   const { startDrag, endDrag, isDragging, draggedEmails } = useDragDropContext();
   const isMobile = useUIStore((state) => state.isMobile);
   const client = useAuthStore((state) => state.client);
@@ -195,6 +198,7 @@ export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailD
   }, [dragOutEnabled, client, email, filenameOptions]);
 
   const handlePointerEnter = useCallback(() => {
+    const { selectedEmailKeys, emails } = useEmailStore.getState();
     if (!dragOutEnabled || !client) return;
     const isSelected = selectedEmailKeys.has(emailKeyFor(email));
     const isMulti = isSelected && selectedEmailKeys.size > 1;
@@ -207,9 +211,10 @@ export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailD
     } else {
       prefetchSingle();
     }
-  }, [dragOutEnabled, client, selectedEmailKeys, email, emails, prefetchSingle, filenameOptions, bundleOptions]);
+  }, [dragOutEnabled, client, email, prefetchSingle, filenameOptions, bundleOptions]);
 
   const handleDragStart = useCallback((e: DragEvent<HTMLDivElement>) => {
+    const { selectedEmailKeys, emails } = useEmailStore.getState();
     // Determine which emails to drag:
     // - If current email is selected, drag all selected
     // - If threadEmails provided (thread header), drag all thread emails
@@ -285,7 +290,7 @@ export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailD
     });
 
     startDrag(emailsToDrag, sourceMailboxId);
-  }, [email, selectedEmailKeys, emails, sourceMailboxId, startDrag, threadEmails, dragOutEnabled, client, prefetchSingle, filenameOptions, bundleOptions]);
+  }, [email, sourceMailboxId, startDrag, threadEmails, dragOutEnabled, client, prefetchSingle, filenameOptions, bundleOptions]);
 
   const handleDragEnd = useCallback(() => {
     endDrag();

@@ -5,6 +5,7 @@ import {
   hasMarkedSegment,
   parseSearchSnippet,
   snippetFilterFor,
+  withSearchSnippets,
 } from '../search-snippet';
 import type { Email } from '@/lib/jmap/types';
 
@@ -94,5 +95,38 @@ describe('attachSearchSnippets', () => {
     attachSearchSnippets(emails, undefined);
     attachSearchSnippets(emails, []);
     expect(emails[0].searchSnippet).toBeUndefined();
+  });
+});
+
+describe('withSearchSnippets', () => {
+  const email = (id: string, accountId?: string) => ({ id, subject: `Subject ${id}`, accountId }) as unknown as Email;
+  const marked = (emailId: string) => ({ emailId, subject: `<mark>Subject</mark> ${emailId}`, preview: null });
+
+  it('returns new objects only for the emails that gained a snippet', () => {
+    const emails = [email('e1'), email('e2')];
+    const next = withSearchSnippets(emails, [{ list: [marked('e2')] }]);
+
+    expect(next).not.toBe(emails);
+    expect(next[0]).toBe(emails[0]);
+    expect(next[1]).not.toBe(emails[1]);
+    expect(next[1].searchSnippet).toEqual({ subject: '<mark>Subject</mark> e2', preview: null });
+    // The list already on screen is left untouched.
+    expect(emails[1].searchSnippet).toBeUndefined();
+  });
+
+  it('returns the same list when nothing is highlighted', () => {
+    const emails = [email('e1')];
+    expect(withSearchSnippets(emails, [])).toBe(emails);
+    expect(withSearchSnippets(emails, [{ list: [] }])).toBe(emails);
+    expect(withSearchSnippets(emails, [{ list: [{ emailId: 'e1', subject: 'Subject e1', preview: null }] }])).toBe(emails);
+    expect(withSearchSnippets(emails, [{ list: [marked('other')] }])).toBe(emails);
+  });
+
+  it("keeps each account's snippets to its own rows, since ids repeat across accounts", () => {
+    const emails = [email('a', 'own'), email('a', 'group')];
+    const next = withSearchSnippets(emails, [{ accountId: 'group', list: [marked('a')] }]);
+
+    expect(next[0]).toBe(emails[0]);
+    expect(next[1].searchSnippet?.subject).toBe('<mark>Subject</mark> a');
   });
 });

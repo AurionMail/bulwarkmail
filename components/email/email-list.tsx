@@ -1,7 +1,8 @@
 "use client";
 
 import { Email, ThreadGroup } from "@/lib/jmap/types";
-import { ThreadListItem } from "./thread-list-item";
+import { MemoizedThreadListItem } from "./thread-list-item";
+import { useStableHandlers } from "@/hooks/use-stable-handlers";
 import type { Attachment } from "@/lib/jmap/types";
 import type { LoadListAttachments } from "@/lib/list-attachments";
 import { listRowShowsChips } from "./attachment-chips";
@@ -14,6 +15,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, type ListRow } from "@/stores/email-store";
+import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -40,6 +42,8 @@ interface EmailListProps {
   emails: Email[];
   selectedEmailId?: string;
   onEmailSelect?: (email: Email) => void;
+  /** A mouse was pressed on a row: the click that follows will open it. */
+  onEmailPrefetch?: (email: Email) => void;
   onEmailDoubleClick?: (email: Email) => void;
   /** Mountain View: search for the mail a sender has sent, from the row menu. */
   onFindFromSender?: (sender: { name: string; email: string }) => void;
@@ -82,6 +86,7 @@ export function EmailList({
   emails,
   selectedEmailId,
   onEmailSelect,
+  onEmailPrefetch,
   onEmailDoubleClick,
   onFindFromSender,
   className,
@@ -116,7 +121,7 @@ export function EmailList({
   const tSpam = useTranslations('email_viewer.spam');
   const tNotifications = useTranslations('notifications');
   const tViewer = useTranslations('email_viewer');
-  const { client } = useAuthStore();
+  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const {
     selectedEmailKeys,
     selectAllEmails: _selectAllEmails,
@@ -149,7 +154,39 @@ export function EmailList({
     searchQuery,
     isUnifiedView,
     unifiedRole,
-  } = useEmailStore();
+  } = useEmailStore(useShallow((state) => ({
+    selectedEmailKeys: state.selectedEmailKeys,
+    selectAllEmails: state.selectAllEmails,
+    clearSelection: state.clearSelection,
+    batchMarkAsRead: state.batchMarkAsRead,
+    batchSetTag: state.batchSetTag,
+    batchDelete: state.batchDelete,
+    batchMoveToMailbox: state.batchMoveToMailbox,
+    batchArchive: state.batchArchive,
+    batchMarkAsSpam: state.batchMarkAsSpam,
+    batchUndoSpam: state.batchUndoSpam,
+    loadMoreEmails: state.loadMoreEmails,
+    hasMoreEmails: state.hasMoreEmails,
+    isLoadingMore: state.isLoadingMore,
+    mailboxes: state.mailboxes,
+    selectedMailbox: state.selectedMailbox,
+    emptyMailbox: state.emptyMailbox,
+    expandedThreadIds: state.expandedThreadIds,
+    threadEmailsCache: state.threadEmailsCache,
+    isLoadingThread: state.isLoadingThread,
+    toggleThreadExpansion: state.toggleThreadExpansion,
+    fetchThreadEmails: state.fetchThreadEmails,
+    markThreadAsRead: state.markThreadAsRead,
+    collapseAllThreads: state.collapseAllThreads,
+    threadEmailCounts: state.threadEmailCounts,
+    searchFilters: state.searchFilters,
+    setSearchFilters: state.setSearchFilters,
+    clearSearchFilters: state.clearSearchFilters,
+    advancedSearch: state.advancedSearch,
+    searchQuery: state.searchQuery,
+    isUnifiedView: state.isUnifiedView,
+    unifiedRole: state.unifiedRole,
+  })));
 
   // In aggregate role-views (e.g. "All Junk") the selected mailbox is virtual, so
   // there is no concrete mailbox to read the role from. Fall back to the unified
@@ -558,6 +595,46 @@ export function EmailList({
     for (const [key, emails] of members) emitThreadExpand(key, emails, false);
   }, [collapseAllThreads, threadMembers]);
 
+  // Rows are memoised (MemoizedThreadListItem), which only pays off if what
+  // they are handed keeps its identity from one render to the next.
+  const rowHandlers = useStableHandlers({
+    onToggleExpandKey: handleToggleThreadExpansion,
+    onCollapseAllThreads: collapseAllThreadsAndNotify,
+    onEmailSelect: (email: Email) => {
+      // Collapse expanded threads when selecting an email outside the expanded thread
+      const currentExpanded = useEmailStore.getState().expandedThreadIds;
+      if (currentExpanded.size > 0) {
+        // Check if the selected email belongs to any expanded thread via its threadId
+        if (!email.threadId || !currentExpanded.has(threadKeyFor(email))) {
+          collapseAllThreadsAndNotify();
+        }
+      }
+      onEmailSelect?.(email);
+    },
+    onEmailDoubleClick,
+    onPrefetch: onEmailPrefetch,
+    onContextMenu: openContextMenu,
+    onOpenConversation,
+    onToggleStar,
+    onMarkAsRead,
+    onDelete,
+    onArchive,
+    onSetTag,
+    onMarkAsSpam,
+    onUndoSpam,
+    onOpenAttachment,
+  });
+  // One expand toggle per thread, kept for as long as the list lives.
+  const toggleExpandByThread = useRef(new Map<string, () => void>());
+  const toggleExpandFor = (threadKey: string) => {
+    let toggle = toggleExpandByThread.current.get(threadKey);
+    if (!toggle) {
+      toggle = () => rowHandlers.onToggleExpandKey(threadKey);
+      toggleExpandByThread.current.set(threadKey, toggle);
+    }
+    return toggle;
+  };
+
   // Range-based load more: trigger when last visible item is near the end.
   // Debounce to prevent rapid cascade when thread grouping reduces item
   // count below the viewport size (e.g. 2400 emails → fewer thread groups).
@@ -587,9 +664,15 @@ export function EmailList({
       thread.latestEmail.id === selectedEmailId ||
       thread.emails.some(e => e.id === selectedEmailId)
     );
-    if (index >= 0) {
-      virtualizer.scrollToIndex(index, { align: 'auto' });
-    }
+    if (index < 0) return;
+    // A row clicked in the list is already on screen; scrollToIndex would
+    // still measure and schedule a scroll. Judge from the virtualizer's own
+    // numbers, which cost no layout read.
+    const item = virtualizer.measurementsCache[index];
+    const top = virtualizer.scrollOffset;
+    const height = virtualizer.scrollRect?.height;
+    if (item && top !== null && height !== undefined && item.start >= top && item.end <= top + height) return;
+    virtualizer.scrollToIndex(index, { align: 'auto' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEmailId]);
 
@@ -811,36 +894,27 @@ export function EmailList({
                       width: '100%',
                     }}
                   >
-                    <ThreadListItem
+                    <MemoizedThreadListItem
                       thread={thread}
                       isExpanded={expandedThreadIds.has(thread.threadKey)}
                       selectedEmailId={selectedEmailId}
                       isLoading={isLoadingThread === thread.threadKey}
                       expandedEmails={threadEmailsCache.get(thread.threadKey)}
-                      onToggleExpand={() => handleToggleThreadExpansion(thread.threadKey)}
-                      onCollapseAllThreads={collapseAllThreadsAndNotify}
-                      onEmailSelect={(email) => {
-                        // Collapse expanded threads when selecting an email outside the expanded thread
-                        const currentExpanded = useEmailStore.getState().expandedThreadIds;
-                        if (currentExpanded.size > 0) {
-                          // Check if the selected email belongs to any expanded thread via its threadId
-                          if (!email.threadId || !currentExpanded.has(threadKeyFor(email))) {
-                            collapseAllThreadsAndNotify();
-                          }
-                        }
-                        onEmailSelect?.(email);
-                      }}
-                      onEmailDoubleClick={onEmailDoubleClick ? (email) => onEmailDoubleClick(email) : undefined}
-                      onContextMenu={openContextMenu}
-                      onOpenConversation={onOpenConversation}
-                      onToggleStar={onToggleStar ? (email) => onToggleStar(email) : undefined}
-                      onMarkAsRead={onMarkAsRead ? (email, read) => onMarkAsRead(email, read) : undefined}
-                      onDelete={onDelete ? (email) => onDelete(email) : undefined}
-                      onArchive={onArchive ? (email) => onArchive(email) : undefined}
-                      onSetTag={onSetTag}
-                      onMarkAsSpam={onMarkAsSpam ? (email) => onMarkAsSpam(email) : undefined}
-                      onUndoSpam={onUndoSpam ? (email) => onUndoSpam(email) : undefined}
-                      onOpenAttachment={onOpenAttachment}
+                      onToggleExpand={toggleExpandFor(thread.threadKey)}
+                      onCollapseAllThreads={rowHandlers.onCollapseAllThreads}
+                      onEmailSelect={rowHandlers.onEmailSelect}
+                      onEmailDoubleClick={rowHandlers.onEmailDoubleClick}
+                      onPrefetch={rowHandlers.onPrefetch}
+                      onContextMenu={rowHandlers.onContextMenu}
+                      onOpenConversation={rowHandlers.onOpenConversation}
+                      onToggleStar={rowHandlers.onToggleStar}
+                      onMarkAsRead={rowHandlers.onMarkAsRead}
+                      onDelete={rowHandlers.onDelete}
+                      onArchive={rowHandlers.onArchive}
+                      onSetTag={rowHandlers.onSetTag}
+                      onMarkAsSpam={rowHandlers.onMarkAsSpam}
+                      onUndoSpam={rowHandlers.onUndoSpam}
+                      onOpenAttachment={rowHandlers.onOpenAttachment}
                       loadAttachments={loadAttachments}
                     />
                   </div>

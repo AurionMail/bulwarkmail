@@ -120,3 +120,15 @@ describe('command palette commands on the mail page', () => {
     expect(peekParkedAppCommand()).toBeNull();
   });
 });
+
+describe('code warm-up once signed in', () => {
+  it('fetches the viewer and editor code when the browser is idle', async () => {
+    const idle = vi.fn(() => 1);
+    vi.stubGlobal('requestIdleCallback', idle);
+    vi.stubGlobal('cancelIdleCallback', vi.fn());
+    const { unmount } = render(<MailApp />);
+    await act(async () => {});
+    expect(idle).toHaveBeenCalled();
+    unmount();
+  });
+});

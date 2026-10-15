@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { Email, Mailbox, StateChange, ScheduledEmail, SendEmailResult, isUnifiedMailboxId, isCrossViewId } from "@/lib/jmap/types";
 import type { UnifiedMailboxRole, CrossView } from "@/lib/jmap/types";
-import type { IJMAPClient } from "@/lib/jmap/client-interface";
+import type { IJMAPClient, SearchEmailsResult } from "@/lib/jmap/client-interface";
+import { withSearchSnippets, type DeferredSnippetBatch } from "@/lib/search-snippet";
+import { afterRequestDispatch } from "@/lib/after-request-dispatch";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
@@ -17,7 +19,7 @@ import { defaultSearchScopeFor, isAllFoldersSearchScope, SEARCH_SCOPE_ALL_FOLDER
 import { useAuthStore } from "@/stores/auth-store";
 import { pathNamesMailFolder } from "@/lib/deep-links";
 import { currentStoreEpoch } from "@/lib/store-epoch";
-import { folderListKey, forgetFolderLists, rememberFolderList, rememberedFolderList } from "@/lib/folder-list-cache";
+import { folderListKey, forgetFolderLists, rememberFolderList, rememberedFolderList, type FolderList } from "@/lib/folder-list-cache";
 import { keywordPointer } from "@/lib/jmap/patch-pointer";
 import { useAccountStore } from "@/stores/account-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
@@ -255,6 +257,17 @@ interface EmailStore {
    */
   fetchAccountMailboxes: (client: IJMAPClient, accountId: string) => Promise<void>;
   selectEmail: (email: Email | null) => void;
+  /**
+   * Shows a list row in the viewer while its body is on its way: selects it
+   * and marks the body loading in one store write, so the click renders once.
+   * Plugins hear onEmailOpen only from finishOpenEmail, with the full message:
+   * a row has no body, headers or attachments to show them.
+   */
+  beginOpenEmail: (row: Email) => void;
+  /** The fetched message replaces the row beginOpenEmail showed (one write). */
+  finishOpenEmail: (email: Email) => void;
+  /** The fetch failed: back to what was open before, without the loading state. */
+  abandonOpenEmail: (previous: Email | null) => void;
   /** Holds a list row in place (see listHold); `rowKey` as from listRowKey. */
   holdListRow: (rowKey: string) => void;
   selectMailbox: (mailboxId: string) => void;
@@ -651,7 +664,7 @@ function refillAfterKeywordChange(get: StoreGet, client: IJMAPClient, changed: I
   void s.refreshCurrentMailbox(client);
 }
 
-async function applyEmailDeltaNow(client: IJMAPClient, newState: string, get: StoreGet, set: StoreSet): Promise<boolean> {
+async function applyEmailDeltaNow(client: IJMAPClient, newState: string | null, get: StoreGet, set: StoreSet): Promise<boolean> {
   const s = get();
   const sync = s.emailListSync;
   if (!sync) return false;
@@ -675,8 +688,9 @@ async function applyEmailDeltaNow(client: IJMAPClient, newState: string, get: St
   const effectiveClient = resolveActionClient(client);
   if (!effectiveClient.getEmailChanges) return false;
   // The push carries the state we already hold (our own Email/set raised it,
-  // or a duplicate notification): nothing to do, and no request either.
-  if (sync.state === newState) return true;
+  // or a duplicate notification): nothing to do, and no request either. A
+  // null newState (a folder repainted from memory) only the server can judge.
+  if (newState !== null && sync.state === newState) return true;
 
   const accountArg = mailbox?.isShared ? mailbox.accountId : undefined;
   const delta = await effectiveClient.getEmailChanges(sync.state, accountArg, EMAIL_DELTA_MAX_CHANGES);
@@ -722,6 +736,15 @@ async function applyEmailDeltaNow(client: IJMAPClient, newState: string, get: St
   const replacementById = new Map(
     annotateScheduledEmails(replacements, get().scheduledSubmissionByEmailId).map((e) => [e.id, e]),
   );
+
+  // Nothing on the page changed: advance the baseline and leave the list be,
+  // rather than hand it a new array that renders the same rows again.
+  if (removed.size === 0 && replacementById.size === 0) {
+    set((state) => ({
+      emailListSync: state.emailListSync?.mailboxId === sync.mailboxId ? { ...sync, state: delta.newState } : state.emailListSync,
+    }));
+    return true;
+  }
 
   // Re-read the list: the requests above may have overlapped a user action.
   const current = get().emails;
@@ -974,6 +997,57 @@ export function resolveEmailBlobContext(
  * list - a search, a tag, a unified view, or a folder still loading.
  */
 let shownFolderList: { key: string; mailboxId: string; pageSize: number } | null = null;
+
+/**
+ * The initial data load login() started for this client (prefetchInitialData):
+ * the promise while it runs, 'done' (once) after it loaded the mailboxes and a page.
+ * The mail view's own bootstrap joins or skips it rather than sending the
+ * same Mailbox/get, folder page and tag counts a second time.
+ */
+export function pendingInitialData(client: IJMAPClient): Promise<void> | 'done' | undefined {
+  const target = client as IJMAPClient & { __prefetchPromise?: Promise<void>; __initialDataLoaded?: boolean };
+  if (target.__prefetchPromise) return target.__prefetchPromise;
+  // Good for the one bootstrap that follows the login; any later one (an
+  // account switch back to this client) refreshes as before.
+  if (!target.__initialDataLoaded) return undefined;
+  delete target.__initialDataLoaded;
+  return 'done';
+}
+
+/** What a folder's list is remembered as (see lib/folder-list-cache). */
+function folderListState(s: EmailStore): FolderList {
+  return {
+    emails: s.emails,
+    totalEmails: s.totalEmails,
+    hasMoreEmails: s.hasMoreEmails,
+    sync: s.emailListSync,
+    threadEmailCounts: s.threadEmailCounts,
+  };
+}
+
+/** The list row beginOpenEmail put in the viewer, until its message arrives. */
+let openingRow: Email | null = null;
+
+/**
+ * The per-thread message counts to store once a page arrived: the counts that
+ * page brought along (Thread/get chained onto its query) under the keys the
+ * list groups threads by, merged over `current`. Empty when it brought none,
+ * so the caller knows to ask for them separately.
+ */
+function threadCountsPatch(
+  emails: Email[],
+  counts: Record<string, number> | undefined,
+  current: Map<string, number>,
+): { threadEmailCounts: Map<string, number> } | Record<string, never> {
+  if (!counts) return {};
+  const merged = new Map(current);
+  for (const email of emails) {
+    if (!email.threadId) continue;
+    const count = counts[email.threadId];
+    if (count !== undefined) merged.set(threadKeyFor(email), count);
+  }
+  return { threadEmailCounts: merged };
+}
 
 function captureEmailListView(): () => boolean {
   const view = useEmailStore.getState();
@@ -1469,6 +1543,34 @@ function isUnscopedSearchActive(
  * The fan-out options of a folder-less search scope: only "All folders"
  * searches Trash and Junk, the default scope ("") leaves them out.
  */
+/** A single-account search result with its deferred snippets in fan-out shape. */
+function withSnippetBatches(
+  result: SearchEmailsResult,
+): Omit<SearchEmailsResult, 'snippets'> & { snippets?: Promise<DeferredSnippetBatch[]> } {
+  const { snippets, ...rest } = result;
+  return snippets ? { ...rest, snippets: snippets.then((list) => (list ? [{ list }] : [])) } : rest;
+}
+
+/**
+ * Highlights the results of an interactive search once its deferred
+ * SearchSnippet/get lands (see SearchRequestOptions.deferSnippets). The list
+ * is on screen by then, so this applies only while that same search still is:
+ * matching ids would not do, since a folder opened in the meantime can hold
+ * the same messages and must not show search excerpts.
+ */
+function highlightWhenSnippetsArrive(snippets: Promise<DeferredSnippetBatch[]> | undefined): void {
+  if (!snippets) return;
+  const { searchQuery, searchFilters, searchMailboxId } = useEmailStore.getState();
+  const isSameView = captureEmailListView();
+  void snippets.then((batches) => {
+    const state = useEmailStore.getState();
+    if (!isSameView() || state.isLoading) return;
+    if (state.searchQuery !== searchQuery || state.searchFilters !== searchFilters || state.searchMailboxId !== searchMailboxId) return;
+    const emails = withSearchSnippets(state.emails, batches);
+    if (emails !== state.emails) useEmailStore.setState({ emails });
+  });
+}
+
 function acrossAccountsSearchOptions(searchMailboxId: string): AcrossAccountsSearchOptions {
   return { excludeTrashAndJunk: searchMailboxId !== SEARCH_SCOPE_ALL_FOLDERS };
 }
@@ -2133,6 +2235,36 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       emailHooks.onEmailOpen.emitSync(emailToReadView(email));
     }
   },
+  beginOpenEmail: (row) => {
+    const prev = get().selectedEmail;
+    openingRow = row;
+    set({ selectedEmail: row, lastSelectedEmailKey: emailKeyFor(row), isLoadingEmail: true });
+    if (prev && row.id !== prev.id && emailHooks.onEmailClose.size > 0) {
+      emailHooks.onEmailClose.emitSync({ emailId: prev.id });
+    }
+  },
+  finishOpenEmail: (email) => {
+    const prev = get().selectedEmail;
+    const announced = prev !== null && prev !== openingRow;
+    openingRow = null;
+    set({ selectedEmail: email, lastSelectedEmailKey: emailKeyFor(email), isLoadingEmail: false });
+    if (announced && prev.id !== email.id && emailHooks.onEmailClose.size > 0) {
+      emailHooks.onEmailClose.emitSync({ emailId: prev.id });
+    }
+    if ((!announced || prev.id !== email.id) && emailHooks.onEmailOpen.size > 0) {
+      emailHooks.onEmailOpen.emitSync(emailToReadView(email));
+    }
+  },
+  abandonOpenEmail: (previous) => {
+    const showing = get().selectedEmail;
+    const wasRow = showing !== null && showing === openingRow;
+    openingRow = null;
+    set({ selectedEmail: previous, isLoadingEmail: false });
+    // beginOpenEmail announced the close of `previous`; it is open again.
+    if (wasRow && previous && showing.id !== previous.id && emailHooks.onEmailOpen.size > 0) {
+      emailHooks.onEmailOpen.emitSync(emailToReadView(previous));
+    }
+  },
   holdListRow: (rowKey) => {
     const { listHold, emails, isScheduledView } = get();
     if (listHold?.rowKey === rowKey) return;
@@ -2350,7 +2482,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // Coalesce overlapping callers (e.g. login() and a slow home-page useEffect
     // racing for the same fetch). The promise is stashed on the client so we
     // don't need a separate keyed map and stale entries can't outlive the client.
-    const target = client as IJMAPClient & { __prefetchPromise?: Promise<void> };
+    const target = client as IJMAPClient & { __prefetchPromise?: Promise<void>; __initialDataLoaded?: boolean };
     if (target.__prefetchPromise) return target.__prefetchPromise;
     target.__prefetchPromise = (async () => {
       try {
@@ -2364,6 +2496,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         } else {
           await get().fetchEmails(client);
         }
+        target.__initialDataLoaded = get().mailboxes.length > 0;
         // Tag counts can finish whenever; don't block the prefetch on them.
         void get().fetchTagCounts(client);
       } finally {
@@ -2515,8 +2648,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           hasMoreEmails: remembered.hasMoreEmails,
           totalEmails: remembered.totalEmails,
           listOrder: order,
-          // The remembered page has no state a push delta could start from.
-          emailListSync: null,
+          // The state the page was current at, if it was a plain folder list:
+          // a push delta, and the catch-up below, start from it.
+          emailListSync: remembered.sync?.mailboxId === targetMailboxId ? remembered.sync : null,
+          threadEmailCounts: remembered.threadEmailCounts ?? new Map(),
           threadEmailsCache: new Map(),
           expandedThreadIds: new Set(),
           isLoadingThread: null,
@@ -2526,6 +2661,19 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // Until this folder's rows are on screen, edits to the list belong to
       // whatever was showing before and must not be remembered under this key.
       shownFolderList = remembered ? { key: listKey, mailboxId: targetMailboxId, pageSize: emailsPerPage } : null;
+
+      // A remembered page with a baseline only needs what changed since
+      // (Email/changes): usually nothing, and then the rows stay as they are
+      // instead of being re-read and rendered again. Anything the delta
+      // cannot settle falls through to the full page below.
+      if (remembered && get().emailListSync && !categoryFilter) {
+        const upToDate = await applyEmailDeltaNow(client, null, get, set);
+        if (!isCurrentView()) return;
+        if (upToDate) {
+          rememberFolderList(listKey, folderListState(get()), emailsPerPage);
+          return;
+        }
+      }
 
       const result = await effectiveClient.getEmails(
         jmapMailboxId,
@@ -2550,6 +2698,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
               mailboxId: targetMailboxId,
             }
           : null;
+      const threadCounts = threadCountsPatch(enrichedEmails, result.threadCounts, get().threadEmailCounts);
       set({
         emails: annotateScheduledEmails(enrichedEmails, get().scheduledSubmissionByEmailId),
         hasMoreEmails: result.hasMore,
@@ -2560,12 +2709,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         threadEmailsCache: new Map(),
         expandedThreadIds: new Set(),
         isLoadingThread: null,
+        ...threadCounts,
         isLoading: false
       });
       shownFolderList = { key: listKey, mailboxId: targetMailboxId, pageSize: emailsPerPage };
-      rememberFolderList(listKey, get(), emailsPerPage);
-      // Fetch full thread counts in the background (non-blocking)
-      void get().fetchThreadEmailCounts(client);
+      rememberFolderList(listKey, folderListState(get()), emailsPerPage);
+      // Only a server that did not answer the chained Thread/get needs a
+      // request of its own for the conversation sizes.
+      if (!('threadEmailCounts' in threadCounts)) void get().fetchThreadEmailCounts(client);
     } catch (error) {
       if (!isCurrentView()) return;
       console.error('Failed to fetch emails:', error);
@@ -2789,14 +2940,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
       const enrichedNewEmails = await emailHooks.onEmailsFetched.transform(newEmails);
       if (!isCurrentView()) return;
+      const threadCounts = threadCountsPatch(
+        enrichedNewEmails, 'threadCounts' in result ? result.threadCounts : undefined, get().threadEmailCounts,
+      );
       set({
         emails: [...currentEmails, ...enrichedNewEmails],
         hasMoreEmails: result.hasMore,
         totalEmails: result.total,
+        ...threadCounts,
         isLoadingMore: false
       });
-      // Fetch full thread counts for newly loaded threads in the background
-      if (enrichedNewEmails.length > 0) {
+      // Thread counts for the new rows, unless the page brought them along.
+      if (enrichedNewEmails.length > 0 && !('threadEmailCounts' in threadCounts)) {
         void get().fetchThreadEmailCounts(client);
       }
     } catch (error) {
@@ -3618,15 +3773,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
 
     const controller = new AbortController();
-    set({
-      isLoading: true,
-      error: null,
-      searchQuery: typedQuery,
-      emails: [],
-      hasMoreEmails: false,
-      totalEmails: 0,
-      searchAbortController: controller,
-    }); // Clear emails for loading state
+    // The rows on screen stay, dimmed, until the results land, as on a folder
+    // switch, instead of being torn down for a skeleton and rebuilt a round
+    // trip later. What the mail view renders from is written only once the
+    // request is on its way (see afterRequestDispatch); the controller is
+    // recorded at once so a superseding search can still cancel this one.
+    set({ searchAbortController: controller });
+    afterRequestDispatch(() => {
+      if (get().searchAbortController === controller) set({ isLoading: true, error: null, searchQuery: typedQuery });
+    });
     try {
       // The store keeps what the user typed; plugins' changes apply to this run.
       // Without listeners the request goes out in this same tick, as before.
@@ -3679,7 +3834,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // shared accounts' mail (#1082). The default scope leaves every
         // account's Trash and Junk out; "All folders" searches them too.
         const built = buildTagViewAccountClients(client);
-        result = await searchAcrossAccounts(built, query, emailsPerPage, 0, acrossAccountsSearchOptions(searchMailboxId));
+        result = await searchAcrossAccounts(built, query, emailsPerPage, 0, { ...acrossAccountsSearchOptions(searchMailboxId), deferSnippets: true });
         unifiedErrors = result.errors;
 
       } else {
@@ -3691,7 +3846,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // Only pass accountId for shared mailboxes, not for primary account
         accountId = mailbox?.isShared ? mailbox.accountId : undefined;
 
-        result = await resolveActionClient(client).searchEmails(query, jmapMailboxId, accountId, emailsPerPage, 0);
+        result = withSnippetBatches(await resolveActionClient(client).searchEmails(query, jmapMailboxId, accountId, emailsPerPage, 0, { deferSnippets: true }));
       }
 
       // Plugins may add messages to the results by id; the messages are
@@ -3717,14 +3872,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         externalSearchResults: externals,
         hasMoreEmails: result.hasMore,
         totalEmails: result.total,
+        // Also here: a fast answer can land before the deferred loading write.
+        searchQuery: typedQuery,
         isLoading: false,
         searchAbortController: null,
         ...(unifiedErrors ? { unifiedErrors } : {})
       });
+      highlightWhenSnippetsArrive('snippets' in result ? result.snippets : undefined);
     } catch (error) {
       if (controller.signal.aborted) return;
       set({
         error: error instanceof Error ? error.message : "Failed to search emails",
+        searchQuery: typedQuery,
         isLoading: false,
         emails: [],
         externalSearchResults: [],
@@ -3744,13 +3903,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
 
     const controller = new AbortController();
-    set({
-      isLoading: true,
-      error: null,
-      emails: [],
-      hasMoreEmails: false,
-      totalEmails: 0,
-      searchAbortController: controller,
+    // See searchEmails: the rows stay, the loading state follows the request.
+    set({ searchAbortController: controller });
+    afterRequestDispatch(() => {
+      if (get().searchAbortController === controller) set({ isLoading: true, error: null });
     });
 
     try {
@@ -3799,7 +3955,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         const built = buildTagViewAccountClients(client);
         result = await advancedSearchAcrossAccounts(
           built, buildJMAPFilter(searchQuery, searchFilters, undefined), emailsPerPage, 0,
-          acrossAccountsSearchOptions(searchMailboxId),
+          { ...acrossAccountsSearchOptions(searchMailboxId), deferSnippets: true },
         );
         unifiedErrors = result.errors;
 
@@ -3809,7 +3965,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         accountId = mailbox?.isShared ? mailbox.accountId : undefined;
 
         const filter = buildJMAPFilter(searchQuery, searchFilters, jmapMailboxId);
-        result = await resolveActionClient(client).advancedSearchEmails(filter, accountId, emailsPerPage, 0);
+        result = withSnippetBatches(await resolveActionClient(client).advancedSearchEmails(filter, accountId, emailsPerPage, 0, { deferSnippets: true }));
       }
 
       if (controller.signal.aborted) return;
@@ -3841,6 +3997,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         searchAbortController: null,
         ...(unifiedErrors ? { unifiedErrors } : {})
       });
+      highlightWhenSnippetsArrive('snippets' in result ? result.snippets : undefined);
     } catch (error) {
       if (controller.signal.aborted) return;
       set({
@@ -6522,7 +6679,7 @@ useEmailStore.subscribe((state, prev) => {
     shownFolderList = null;
     return;
   }
-  rememberFolderList(shownFolderList.key, state, shownFolderList.pageSize);
+  rememberFolderList(shownFolderList.key, folderListState(state), shownFolderList.pageSize);
 });
 
 // ---------------------------------------------------------------------------

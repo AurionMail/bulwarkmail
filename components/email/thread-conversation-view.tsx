@@ -12,6 +12,7 @@ import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collaps
 import { fitEmailBodyWidth } from "@/lib/email-fit-width";
 import { DARK_PENDING_CLASS, applyEmailDarkMode, emailDarkModeCss } from "@/lib/email-dark-mode";
 import { useThemeStore } from "@/stores/theme-store";
+import { useShallow } from "zustand/react/shallow";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatFileSize, cn, cleanPreview } from "@/lib/utils";
@@ -96,7 +97,7 @@ export function useConversationExternalContent() {
   const trustedSendersAddressBook = useSettingsStore((state) => state.trustedSendersAddressBook);
   const isTrustedAddressBookSender = useContactStore((state) => state.isTrustedAddressBookSender);
   const addToTrustedSendersBook = useContactStore((state) => state.addToTrustedSendersBook);
-  const { client } = useAuthStore();
+  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const [allowedIds, setAllowedIds] = useState<Set<string>>(new Set());
 
   const allow = useCallback((emailId: string) => {
@@ -513,7 +514,7 @@ export function ConversationEmailBody({
   );
   const [hasBlockedContent, setHasBlockedContent] = useState(false);
   const [cidBlobUrls, setCidBlobUrls] = useState<Record<string, string>>({});
-  const { client } = useAuthStore();
+  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   // reader-above-quote: the body the quote was collapsed in, once it is on screen.
   const [htmlBodyEl, setHtmlBodyEl] = useState<HTMLElement | null>(null);
   const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);

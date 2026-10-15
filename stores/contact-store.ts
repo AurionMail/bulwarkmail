@@ -413,6 +413,9 @@ interface ContactStore {
   searchRecipients: (client: IJMAPClient, query: string) => Promise<Array<{ name: string; email: string }>>;
 }
 
+/** The Sent-folder read loadRecentRecipients has in flight, if any. */
+let recentRecipientsLoading: Promise<void> | null = null;
+
 export const useContactStore = create<ContactStore>()(
   persist(
     (set, get) => {
@@ -1239,27 +1242,33 @@ export const useContactStore = create<ContactStore>()(
       loadRecentRecipients: async (client, sentMailboxId) => {
         if (sentMailboxId) set({ sentMailboxId });
         if (get().recentRecipientsLoaded || !sentMailboxId) return;
-        try {
-          // Read the Sent folder and collect the people we've written to, so
-          // compose autocomplete can suggest them (OWA-style). getEmails sorts
-          // receivedAt desc, so keeping the first occurrence per address yields
-          // the most recent one plus its display name.
-          const { emails } = await client.getEmails(sentMailboxId, undefined, 300, 0);
-          const byEmail = new Map<string, { name: string; email: string }>();
-          for (const email of emails) {
-            for (const r of [...(email.to || []), ...(email.cc || [])]) {
-              if (!r.email) continue;
-              const key = r.email.toLowerCase().trim();
-              if (!key || byEmail.has(key)) continue;
-              byEmail.set(key, { name: (r.name || '').trim(), email: r.email });
+        // One read of the Sent folder at a time: callers retry whenever the
+        // folder list changes, which it does several times while signing in.
+        if (recentRecipientsLoading) return recentRecipientsLoading;
+        recentRecipientsLoading = (async () => {
+          try {
+            // Read the Sent folder and collect the people we've written to, so
+            // compose autocomplete can suggest them (OWA-style). getEmails sorts
+            // receivedAt desc, so keeping the first occurrence per address yields
+            // the most recent one plus its display name.
+            const { emails } = await client.getEmails(sentMailboxId, undefined, 300, 0);
+            const byEmail = new Map<string, { name: string; email: string }>();
+            for (const email of emails) {
+              for (const r of [...(email.to || []), ...(email.cc || [])]) {
+                if (!r.email) continue;
+                const key = r.email.toLowerCase().trim();
+                if (!key || byEmail.has(key)) continue;
+                byEmail.set(key, { name: (r.name || '').trim(), email: r.email });
+              }
             }
+            set({ recentRecipients: Array.from(byEmail.values()), recentRecipientsLoaded: true });
+            debug.log('contacts', 'Loaded', byEmail.size, 'recent recipients from Sent');
+          } catch (error) {
+            debug.error('Failed to load recent recipients:', error);
+            set({ recentRecipientsLoaded: true });
           }
-          set({ recentRecipients: Array.from(byEmail.values()), recentRecipientsLoaded: true });
-          debug.log('contacts', 'Loaded', byEmail.size, 'recent recipients from Sent');
-        } catch (error) {
-          debug.error('Failed to load recent recipients:', error);
-          set({ recentRecipientsLoaded: true });
-        }
+        })().finally(() => { recentRecipientsLoading = null; });
+        return recentRecipientsLoading;
       },
 
       searchRecipients: async (client, query) => {

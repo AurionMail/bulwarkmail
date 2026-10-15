@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Fragment, ReactNode } from "react";
+import { memo, useState, useEffect, useMemo, Fragment, ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
@@ -57,6 +57,7 @@ import { Mailbox } from "@/lib/jmap/types";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { MailboxContextMenu, type MailboxContextTarget } from "./mailbox-context-menu";
 import { useAccountStore } from '@/stores/account-store';
+import { useShallow } from "zustand/react/shallow";
 import { UNIFIED_MAILBOX_IDS, CROSS_VIEW_IDS } from '@/lib/jmap/types';
 import type { UnifiedMailboxRole } from '@/lib/jmap/types';
 import { useDragDropContext } from "@/contexts/drag-drop-context";
@@ -746,7 +747,7 @@ function TagItem({
 
 function DemoBanner() {
   const t = useTranslations('sidebar');
-  const { isDemoMode, loginDemo } = useAuthStore();
+  const { isDemoMode, loginDemo } = useAuthStore(useShallow((state) => ({ isDemoMode: state.isDemoMode, loginDemo: state.loginDemo })));
   const { startTour, resetTourCompletion } = useTour();
   const router = useRouter();
   const [isResetting, setIsResetting] = useState(false);
@@ -808,7 +809,7 @@ function DemoBanner() {
 function VacationBanner() {
   const t = useTranslations('sidebar');
   const router = useRouter();
-  const { isEnabled, isSupported } = useVacationStore();
+  const { isEnabled, isSupported } = useVacationStore(useShallow((state) => ({ isEnabled: state.isEnabled, isSupported: state.isSupported })));
 
   if (!isSupported || !isEnabled) return null;
 
@@ -828,7 +829,7 @@ function VacationBanner() {
   );
 }
 
-export function Sidebar({
+function SidebarImpl({
   mailboxes = [],
   selectedMailbox = "",
   selectedKeyword = null,
@@ -866,7 +867,7 @@ export function Sidebar({
   mvShell = false,
 }: SidebarProps) {
   const router = useRouter();
-  const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
+  const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore(useShallow((state) => ({ sidebarCollapsed: state.sidebarCollapsed, toggleSidebarCollapsed: state.toggleSidebarCollapsed })));
   // Mountain View's collapsed rail is a peek, not a commitment: putting the pointer on
   // it slides the full list back out over the message list and takes it away
   // again on leaving, so a folder two clicks deep costs no clicks at all. It
@@ -875,7 +876,7 @@ export function Sidebar({
   const [railHovered, setRailHovered] = useState(false);
   const hoverExpanded = mvShell && sidebarCollapsed && railHovered;
   const isCollapsed = sidebarCollapsed && !hoverExpanded;
-  const { primaryIdentity: _primaryIdentity, activeAccountId } = useAuthStore();
+  const { primaryIdentity: _primaryIdentity, activeAccountId } = useAuthStore(useShallow((state) => ({ primaryIdentity: state.primaryIdentity, activeAccountId: state.activeAccountId })));
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set());
   const [showAllTags, setShowAllTags] = useState(false);
@@ -951,7 +952,7 @@ export function Sidebar({
   const showUnified =
     (multiAccountMode || enableUnifiedMailbox) &&
     (crossAccountActive || (includeGroupInUnified && hasGroupInboxes) || anyCrossViewEnabled);
-  const { unifiedCounts } = useEmailStore();
+  const { unifiedCounts } = useEmailStore(useShallow((state) => ({ unifiedCounts: state.unifiedCounts })));
   // While the other logins are still reconnecting after a load, the unified
   // counts cover only the ones already back: say how many, so a partial total
   // is not read as the whole. Gone as soon as the restore finishes, whatever
@@ -1721,3 +1722,11 @@ export function Sidebar({
     </div>
   );
 }
+
+/**
+ * The mail sidebar, re-rendered only when one of its props changes. The mail
+ * view renders on every open and every list update; without this each of
+ * those rendered the whole folder tree again. Its handlers come from
+ * useStableHandlers in the mail view, so they keep their identity.
+ */
+export const Sidebar = memo(SidebarImpl);

@@ -110,8 +110,8 @@ describe('"All folders" search across the own and group accounts (#1082)', () =>
     expect(state.hasMoreEmails).toBe(false);
     // One folder-less query per account.
     expect(client.searchEmails).toHaveBeenCalledTimes(2);
-    expect(client.searchEmails).toHaveBeenCalledWith('acesso', undefined, undefined, 50, 0);
-    expect(client.searchEmails).toHaveBeenCalledWith('acesso', undefined, 'group', 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('acesso', undefined, undefined, 50, 0, { deferSnippets: true });
+    expect(client.searchEmails).toHaveBeenCalledWith('acesso', undefined, 'group', 50, 0, { deferSnippets: true });
   });
 
   it('merges own and group hits newest first and stamps each with its source', async () => {
@@ -151,7 +151,7 @@ describe('"All folders" search across the own and group accounts (#1082)', () =>
     await useEmailStore.getState().searchEmails(client, 'acesso');
 
     expect(client.searchEmails).toHaveBeenCalledTimes(1);
-    expect(client.searchEmails).toHaveBeenCalledWith('acesso', 'inbox', 'group', 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('acesso', 'inbox', 'group', 50, 0, { deferSnippets: true });
   });
 
   it('makes a single own-account query for a login without group folders', async () => {
@@ -160,7 +160,7 @@ describe('"All folders" search across the own and group accounts (#1082)', () =>
     await useEmailStore.getState().searchEmails(client, 'fatura');
 
     expect(client.searchEmails).toHaveBeenCalledTimes(1);
-    expect(client.searchEmails).toHaveBeenCalledWith('fatura', undefined, undefined, 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('fatura', undefined, undefined, 50, 0, { deferSnippets: true });
     expect(useEmailStore.getState().emails.map(e => e.id)).toEqual(['own-1', 'own-2']);
   });
 
@@ -281,8 +281,8 @@ describe('Spam and Trash in the folder-less search scopes', () => {
     await useEmailStore.getState().searchEmails(client, 'acesso');
 
     expect(client.advancedSearchEmails).not.toHaveBeenCalled();
-    expect(client.searchEmails).toHaveBeenCalledWith('acesso', undefined, undefined, 50, 0);
-    expect(client.searchEmails).toHaveBeenCalledWith('acesso', undefined, 'group', 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('acesso', undefined, undefined, 50, 0, { deferSnippets: true });
+    expect(client.searchEmails).toHaveBeenCalledWith('acesso', undefined, 'group', 50, 0, { deferSnippets: true });
 
     client.searchEmails.mockClear();
     useEmailStore.setState({ searchFilters: { ...DEFAULT_SEARCH_FILTERS, from: 'sender@example.com' } });
@@ -296,7 +296,7 @@ describe('Spam and Trash in the folder-less search scopes', () => {
     await useEmailStore.getState().searchEmails(client, 'fatura');
 
     expect(client.searchEmails).toHaveBeenCalledTimes(1);
-    expect(client.searchEmails).toHaveBeenCalledWith('fatura', 'trash', undefined, 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('fatura', 'trash', undefined, 50, 0, { deferSnippets: true });
   });
 
   it('goes back to the default scope when the filters are cleared', () => {
@@ -311,7 +311,7 @@ describe('Spam and Trash in the folder-less search scopes', () => {
 
     await useEmailStore.getState().searchEmails(client, 'fatura');
     expect(client.searchEmails).toHaveBeenCalledTimes(1);
-    expect(client.searchEmails).toHaveBeenCalledWith('fatura', 'trash', undefined, 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('fatura', 'trash', undefined, 50, 0, { deferSnippets: true });
 
     useEmailStore.getState().selectMailbox(ownJunk.id);
     expect(useEmailStore.getState().searchMailboxId).toBe('junk');
@@ -326,7 +326,7 @@ describe('Spam and Trash in the folder-less search scopes', () => {
     await useEmailStore.getState().searchEmails(client, 'acesso');
 
     expect(client.searchEmails).toHaveBeenCalledTimes(1);
-    expect(client.searchEmails).toHaveBeenCalledWith('acesso', 'trash', 'group', 50, 0);
+    expect(client.searchEmails).toHaveBeenCalledWith('acesso', 'trash', 'group', 50, 0, { deferSnippets: true });
   });
 
   it('keeps a scope the user picked when entering or leaving Spam and Trash', () => {

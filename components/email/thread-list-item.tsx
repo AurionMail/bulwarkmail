@@ -13,6 +13,7 @@ import { SelectableAvatar } from "@/components/email/selectable-avatar";
 import { Paperclip, Star, Pin, Circle, ChevronRight, ChevronDown, Loader2, MessageSquare, CheckSquare, Square, Reply, Forward, CalendarClock, Folder, Archive, Trash2, MailOpen, ShieldAlert } from "@/components/icons";
 import type { AppIcon } from "@/components/icons";
 import { useSettingsStore, KEYWORD_PALETTE } from "@/stores/settings-store";
+import { useShallow } from "zustand/react/shallow";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { accountTintKey, generateAvatarColor } from "@/lib/account-utils";
 import { useUIStore } from "@/stores/ui-store";
@@ -42,6 +43,44 @@ import { useTranslations } from "next-intl";
  * it once the row grows a chip line. Extra-compact rows have no avatar and
  * anchor it on their single line instead (top padding + half a line).
  */
+/**
+ * A mouse press on the row itself, i.e. one about to become a click that opens
+ * it: a touch may be a scroll starting, and a press on a control inside the
+ * row (checkbox, hover action, link) does something else.
+ */
+function isMousePressOnRow(e: React.PointerEvent): boolean {
+  if (e.pointerType !== 'mouse' || e.button !== 0) return false;
+  return !(e.target as Element).closest('button, input, a');
+}
+
+/**
+ * Whether a row has been pointed at yet. The hover actions stay display:none
+ * until the pointer is over the row, so mounting them for every row up front
+ * only added a handful of icon buttons per row to every list render. They
+ * mount on the first pointer-enter and stay from then on, so the hover
+ * behaviour itself is unchanged.
+ */
+/**
+ * Role of the folder the list shows (sender vs recipient, junk actions). In
+ * aggregate role views the selected mailbox is virtual, so the unified role
+ * stands in for it.
+ */
+function listMailboxRole(state: {
+  mailboxes: { id: string; role?: string | null }[];
+  selectedMailbox: string;
+  isUnifiedView: boolean;
+  unifiedRole: string | null;
+}): string | undefined {
+  return state.mailboxes.find((mb) => mb.id === state.selectedMailbox)?.role
+    ?? (state.isUnifiedView ? (state.unifiedRole ?? undefined) : undefined);
+}
+
+function useArmOnPointerEnter(): [boolean, () => void] {
+  const [armed, setArmed] = React.useState(false);
+  const arm = React.useCallback(() => setArmed(true), []);
+  return [armed, arm];
+}
+
 function UnreadDot({ besideAvatar }: { besideAvatar: boolean }) {
   const t = useTranslations('email_viewer');
   return (
@@ -63,7 +102,9 @@ function RowChips({ email, loadAttachments, onOpenAttachment }: {
 }) {
   const code = useListVerificationCode(email);
   const leading = code ? <VerificationCodeChip code={code} /> : undefined;
-  if (onOpenAttachment) {
+  // Most rows have no attachment: no loader for them, nor an empty chip row.
+  const mayHaveAttachments = email.hasAttachment || (email.attachments?.length ?? 0) > 0;
+  if (onOpenAttachment && mayHaveAttachments) {
     return <ListAttachmentChips email={email} load={loadAttachments} onOpen={onOpenAttachment} leading={leading} className="mt-1.5" />;
   }
   return leading ? <div className="mt-1.5 flex">{leading}</div> : null;
@@ -240,6 +281,8 @@ interface ThreadListItemProps {
   onCollapseAllThreads?: () => void;
   onEmailSelect: (email: Email) => void;
   onEmailDoubleClick?: (email: Email) => void;
+  /** A mouse was pressed on the row: the click that follows will open it. */
+  onPrefetch?: (email: Email) => void;
   onContextMenu?: (e: React.MouseEvent, email: Email) => void;
   onOpenConversation?: (thread: ThreadGroup) => void;
   onToggleStar?: (email: Email) => void;
@@ -258,6 +301,7 @@ interface SingleEmailItemProps {
   selected: boolean;
   onClick: () => void;
   onDoubleClick?: () => void;
+  onPrefetch?: () => void;
   onContextMenu?: (e: React.MouseEvent, email: Email) => void;
   showPreview: boolean;
   rowTint: string | null;
@@ -283,7 +327,7 @@ const SWIPE_ACTION_META: Record<Exclude<SwipeAction, 'none'>, { icon: AppIcon; b
 };
 
 const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
-  function SingleEmailItem({ email, selected, onClick, onDoubleClick, onContextMenu, showPreview, rowTint, onToggleStar, onMarkAsRead, onDelete, onArchive, onSetTag, onMarkAsSpam, onUndoSpam, onOpenAttachment, loadAttachments }, ref) {
+  function SingleEmailItem({ email, selected, onClick, onDoubleClick, onPrefetch, onContextMenu, showPreview, rowTint, onToggleStar, onMarkAsRead, onDelete, onArchive, onSetTag, onMarkAsSpam, onUndoSpam, onOpenAttachment, loadAttachments }, ref) {
     const t = useTranslations('email_viewer');
     const tBatch = useTranslations('email_list.batch_actions');
     const tHover = useTranslations('settings.email_behavior.hover_actions');
@@ -294,12 +338,20 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const isAnswered = email.keywords?.$answered;
     const isForwarded = email.keywords?.$forwarded;
     const showPaperclip = useListHasAttachment(email, loadAttachments);
-    const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore();
+    const { selectedMailbox, currentMailboxRole, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView } = useEmailStore(useShallow((state) => ({
+      selectedMailbox: state.selectedMailbox,
+      // The role, not the folder list: the list is a new array on every
+      // count update, and subscribing to it re-rendered every row for each.
+      currentMailboxRole: listMailboxRole(state),
+      selectedEmailKeys: state.selectedEmailKeys,
+      toggleEmailSelection: state.toggleEmailSelection,
+      selectRangeEmails: state.selectRangeEmails,
+      clearSelection: state.clearSelection,
+      isUnifiedView: state.isUnifiedView,
+    })));
     // In Sent/Drafts folders, show recipient instead of sender (which is always
     // "me"). In aggregate role-views the selected mailbox is virtual → fall back
     // to the unified role so junk-contextual UI and avatar hiding work.
-    const currentMailboxRole = mailboxes.find(mb => mb.id === selectedMailbox)?.role
-      ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
     const showRecipient = currentMailboxRole === 'sent' || currentMailboxRole === 'drafts';
     const sender = showRecipient ? (email.to?.[0] ?? email.from?.[0]) : email.from?.[0];
     const formatAddress = useOwnDomainAddress();
@@ -362,6 +414,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
       sourceMailboxId: selectedMailbox,
     });
 
+    const [hoverActionsArmed, armHoverActions] = useArmOnPointerEnter();
     const { onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, isPressed } = useLongPress(
       useCallback((pos) => {
         onContextMenu?.(
@@ -452,6 +505,8 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         {...dragHandlers}
         {...touchHandlers}
         data-testid="email-list-item"
+        onPointerEnter={armHoverActions}
+        onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(); }}
         data-email-id={email.id}
         data-subject={email.subject || ''}
         data-unread={isUnread ? 'true' : 'false'}
@@ -770,7 +825,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         </div>
 
         {/* Hover Quick Actions */}
-        {!email.isScheduled && (
+        {hoverActionsArmed && !email.isScheduled && (
           <EmailHoverActions
             email={email}
             backgroundClassName={resolvedRowTint ? resolvedRowTint : mvRow ? mvHoverBackground(isChecked, isUnread, selected) : ((selected || isChecked) ? "bg-accent" : "bg-muted")}
@@ -804,6 +859,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     onCollapseAllThreads,
     onEmailSelect,
     onEmailDoubleClick,
+    onPrefetch,
     onContextMenu,
     onOpenConversation,
     onToggleStar,
@@ -849,7 +905,17 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       ? formatScheduledSendAt(latestEmail.scheduledSendAt, timeFormat)
       : null;
 
-    const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore();
+    const { selectedMailbox, currentMailboxRole, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView } = useEmailStore(useShallow((state) => ({
+      selectedMailbox: state.selectedMailbox,
+      // The role, not the folder list: the list is a new array on every
+      // count update, and subscribing to it re-rendered every row for each.
+      currentMailboxRole: listMailboxRole(state),
+      selectedEmailKeys: state.selectedEmailKeys,
+      toggleEmailSelection: state.toggleEmailSelection,
+      selectRangeEmails: state.selectRangeEmails,
+      clearSelection: state.clearSelection,
+      isUnifiedView: state.isUnifiedView,
+    })));
     const showSourceFolder = isUnifiedView && !!latestEmail.sourceFolder;
     const getAccountById = useAccountStore((state) => state.getAccountById);
     const threadAccount = latestEmail.accountId ? getAccountById(latestEmail.accountId) : undefined;
@@ -858,8 +924,6 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     // In Sent/Drafts folders, show recipient instead of sender (which is always
     // "me"). Aggregate role-views use a virtual selected mailbox → fall back to
     // the unified role so junk-contextual UI and avatar hiding work.
-    const currentMailboxRole = mailboxes.find(mb => mb.id === selectedMailbox)?.role
-      ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
     const showRecipient = currentMailboxRole === 'sent' || currentMailboxRole === 'drafts';
     const displayNames = showRecipient
       ? Array.from(new Set(
@@ -875,6 +939,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       threadEmails: thread.emails,
     });
 
+    const [hoverActionsArmed, armHoverActions] = useArmOnPointerEnter();
     const { onTouchStart: threadOnTouchStart, onTouchEnd: threadOnTouchEnd, onTouchMove: threadOnTouchMove, onTouchCancel: threadOnTouchCancel, isPressed: isThreadPressed } = useLongPress(
       useCallback((pos) => {
         onContextMenu?.(
@@ -914,6 +979,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           selected={selectedEmailId === latestEmail.id}
           onClick={() => onEmailSelect(latestEmail)}
           onDoubleClick={onEmailDoubleClick ? () => onEmailDoubleClick(latestEmail) : undefined}
+          onPrefetch={onPrefetch ? () => onPrefetch(latestEmail) : undefined}
           onContextMenu={onContextMenu}
           showPreview={showPreview}
           rowTint={rowTint}
@@ -1009,6 +1075,8 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         <div
           {...dragHandlers}
           {...threadLongPressHandlers}
+          onPointerEnter={armHoverActions}
+          onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(latestEmail); }}
           aria-current={isSelected ? 'true' : undefined}
           data-unread={hasUnread ? 'true' : 'false'}
           data-mv-mobile-row={mvMobileRow ? "" : undefined}
@@ -1369,7 +1437,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           </div>
 
           {/* Hover Quick Actions for thread header */}
-          {!latestEmail.isScheduled && (
+          {hoverActionsArmed && !latestEmail.isScheduled && (
             <EmailHoverActions
               email={latestEmail}
               backgroundClassName={rowTint ? rowTint : mvRow ? mvHoverBackground(isChecked, hasUnread, isSelected) : ((isSelected || isChecked) ? "bg-accent" : "bg-muted")}
@@ -1413,3 +1481,60 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     );
   }
 );
+
+ThreadListItem.displayName = "ThreadListItem";
+
+/**
+ * Whether two groupings describe the same thread row. The grouping is rebuilt
+ * whenever the list or the thread counts change, which hands every row a new
+ * `thread` object even when its messages are the very same objects.
+ */
+function isSameThread(a: ThreadGroup, b: ThreadGroup): boolean {
+  if (a === b) return true;
+  return a.threadKey === b.threadKey
+    && a.threadId === b.threadId
+    && a.emailCount === b.emailCount
+    && a.latestEmail === b.latestEmail
+    && a.hasUnread === b.hasUnread
+    && a.hasStarred === b.hasStarred
+    && a.hasPinned === b.hasPinned
+    && a.hasAttachment === b.hasAttachment
+    && a.hasAnswered === b.hasAnswered
+    && a.hasForwarded === b.hasForwarded
+    && a.emails.length === b.emails.length
+    && a.emails.every((email, i) => email === b.emails[i])
+    && a.participantNames.length === b.participantNames.length
+    && a.participantNames.every((name, i) => name === b.participantNames[i]);
+}
+
+/** The open message, if this row draws it; otherwise none of the row's business. */
+function openMessageWithin(props: ThreadListItemProps): string | undefined {
+  const id = props.selectedEmailId;
+  if (!id) return undefined;
+  const drawn = props.thread.emails.some((email) => email.id === id)
+    || (props.expandedEmails?.some((email) => email.id === id) ?? false);
+  return drawn ? id : undefined;
+}
+
+/** Props equality for MemoizedThreadListItem. */
+export function areThreadRowPropsEqual(prev: ThreadListItemProps, next: ThreadListItemProps): boolean {
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]) as Set<keyof ThreadListItemProps>;
+  for (const key of keys) {
+    if (key === 'thread') {
+      if (!isSameThread(prev.thread, next.thread)) return false;
+    } else if (key === 'selectedEmailId') {
+      if (openMessageWithin(prev) !== openMessageWithin(next)) return false;
+    } else if (!Object.is(prev[key], next[key])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * ThreadListItem for the message list. Opening a message, switching folder or
+ * a late thread count re-rendered every row on screen; this one re-renders
+ * only when something it draws has changed. Handlers are compared by
+ * identity, so the list passes stable ones (see useStableHandlers).
+ */
+export const MemoizedThreadListItem = React.memo(ThreadListItem, areThreadRowPropsEqual);
