@@ -1504,8 +1504,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   }, [isAuthenticated, client, fetchMailboxes, fetchEmails, fetchQuota, fetchTagCounts, refreshScheduledMetadata]);
 
   // Warm the code-split viewer/composer chunks once the browser is idle so the
-  // first message open or compose click doesn't wait on a chunk fetch.
+  // first message open or compose click doesn't wait on a chunk fetch. Only
+  // once signed in: a visitor on the way to the login form would otherwise
+  // download and run the whole editor while that form renders.
   useEffect(() => {
+    if (!isAuthenticated) return;
     const warm = () => {
       void import("@/components/email/email-viewer");
       void import("@/components/email/email-composer");
@@ -1516,7 +1519,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
     const id = setTimeout(warm, 1500);
     return () => clearTimeout(id);
-  }, []);
+  }, [isAuthenticated]);
 
   // Push notifications: one binding per CONNECTED client, kept for as long as
   // that client is connected.

@@ -59,6 +59,16 @@ afterEach(() => {
 });
 
 describe('mail view without a session', () => {
+  it('leaves the viewer and editor code alone while sending the visitor to log in', async () => {
+    const idle = vi.fn(() => 1);
+    vi.stubGlobal('requestIdleCallback', idle);
+    vi.stubGlobal('cancelIdleCallback', vi.fn());
+    render(<MailApp />);
+    await act(async () => {});
+    expect(nav.replace).toHaveBeenCalledWith('/login');
+    expect(idle).not.toHaveBeenCalled();
+  });
+
   it('opens the login page in place when nothing was signed in yet', async () => {
     render(<MailApp />);
     await act(async () => {});
