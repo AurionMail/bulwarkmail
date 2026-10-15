@@ -364,6 +364,30 @@ describe('forwarding a message held by another account', () => {
     ]);
   });
 
+  it('copies only the parts tagged with another account in a mixed batch forward', async () => {
+    // Forward as attachments from the Unified Inbox: one message on the
+    // active login, one on another. No single replyTo.accountId fits both.
+    multi.allIdentities = [ACTIVE_IDENTITY];
+    const { activeClient, sourceClient } = mockClients();
+    const LOCAL = { blobId: 'blob-local', name: 'local.eml', type: 'message/rfc822', size: 7 };
+    render(
+      <EmailComposer
+        mode="forward"
+        replyTo={{ subject: 'Scans', attachments: [LOCAL, { ...SCAN, sourceAccountId: 'acct-src' }] }}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByDisplayValue(/Scans/), { target: { value: 'Scans for you' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+
+    expect(sourceClient.fetchBlobArrayBuffer).toHaveBeenCalledTimes(1);
+    expect(sourceClient.fetchBlobArrayBuffer).toHaveBeenCalledWith('blob-src', 'scan.pdf', 'application/pdf');
+    expect(activeClient.createDraft.mock.calls[0][8]).toEqual([
+      LOCAL,
+      { blobId: 'blob-copied', name: 'scan.pdf', type: 'application/pdf', size: 5 },
+    ]);
+  });
+
   it('leaves the blobs alone for a message on the active account', async () => {
     multi.allIdentities = [ACTIVE_IDENTITY, SOURCE_IDENTITY];
     const { activeClient, sourceClient } = mockClients();

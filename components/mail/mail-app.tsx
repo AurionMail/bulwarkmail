@@ -2623,6 +2623,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (!ok) return;
     }
 
+    if (!(await withComposeGate('forward', { subject: payload.subject }, () => {}))) return;
+
+    // A selection in the Unified Inbox can span logins, and a blobId only
+    // resolves on the login that holds the message. Tag each attachment with
+    // its own login so the composer copies the foreign ones over before
+    // saving; when they all share one, the composer also defaults to it.
+    const owners = transformed
+      .filter((e) => e.blobId)
+      .map((e) => e.sourceClientAccountId ?? viewingAccountId ?? undefined);
+    const attachments = payload.attachments.map((att, i) =>
+      owners[i] ? { ...att, sourceAccountId: owners[i] } : att);
+    const sharedOwner = owners.every((o) => o === owners[0]) ? owners[0] : undefined;
+
     startFreshComposerSession();
     setPendingDraft({
       to: "",
@@ -2638,7 +2651,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       draftId: null,
       // No single original subject to quote - the count-based subject above
       // is the whole story, and the composer seeds attachments from this array.
-      replyTo: { attachments: payload.attachments },
+      replyTo: { attachments, ...(sharedOwner ? { accountId: sharedOwner } : {}) },
     });
     setComposerMode('forward');
     setShowComposer(true);

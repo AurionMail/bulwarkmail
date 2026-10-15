@@ -284,7 +284,9 @@ interface EmailComposerProps {
     htmlBody?: string;
     receivedAt?: string;
     accountId?: string;
-    attachments?: Array<{ blobId: string; name?: string; type: string; size: number; cid?: string; disposition?: string }>;
+    // sourceAccountId: login holding this part, when it differs per part
+    // (a batch forward across accounts); otherwise the original's login.
+    attachments?: Array<{ blobId: string; name?: string; type: string; size: number; cid?: string; disposition?: string; sourceAccountId?: string }>;
     // Threading: parent's Message-ID and References, used to set RFC 5322
     // In-Reply-To and References on outgoing replies. See #234.
     messageId?: string;
@@ -791,7 +793,7 @@ export function EmailComposer({
           type: att.type || 'application/octet-stream',
           size: att.size,
           blobId: att.blobId,
-          sourceAccountId: sourceAccountId ?? undefined,
+          sourceAccountId: att.sourceAccountId ?? sourceAccountId ?? undefined,
         }));
     }
     return [];
