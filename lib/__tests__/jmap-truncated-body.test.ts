@@ -178,7 +178,7 @@ describe('JMAPClient truncated body refetch (#884)', () => {
     // a 300 kB newsletter came back truncated and was fetched twice.
     const client = await createConnectedClient();
     const html = '<html>' + 'x'.repeat(300_000) + '</html>';
-    fetchSpy.mockImplementation(async (_input, init) => {
+    fetchSpy.mockImplementation(async (_input: unknown, init?: RequestInit) => {
       const call = JSON.parse((init as RequestInit).body as string).methodCalls[0][1];
       const cap = call.maxBodyValueBytes as number;
       return mockFetchResponse(200, {
