@@ -6523,64 +6523,84 @@ export class JMAPClient implements IJMAPClient {
    * calendar UI can hide them. Stalwart's Calendar/get exposes no
    * supported-component set, so this is derived by inspecting objects per calendar.
    *
-   * Queries each calendar specifically via `inCalendar` condition and checks
-   * whether it contains any non-task (event) objects. Empty calendars stay visible.
+   * Each calendar is queried on its own with the singular `inCalendar`
+   * condition, so a large event archive in one calendar no longer pushes the
+   * scan past its cap for all the others. A calendar stops being scanned as
+   * soon as one event turns up; one whose pages are all tasks is paged to the
+   * end and only then marked. Queries are chunked by maxCallsInRequest and gets
+   * by maxObjectsInGet. Past the per-calendar cap, on a failed query or on any
+   * error the calendar is left visible (fail open). Empty calendars stay visible.
    */
   private async getTasksOnlyCalendarIds(accountId: string, rawCalendarIds: string[]): Promise<Set<string>> {
     if (rawCalendarIds.length === 0) return new Set();
 
-    const QUERY_LIMIT = 200;
+    const QUERY_PAGE = 200;
+    const MAX_SCAN_PER_CALENDAR = 5000; // safety bound; beyond this we fail open
     const PROPERTIES = ['id', '@type', 'due', 'progress', 'percentComplete', 'calendarIds'];
     const timeZone = getUserTimeZone();
+    const maxCalls = Math.max(1, this.getMaxCallsInRequest());
+    const maxGet = Math.max(1, this.getMaxObjectsInGet());
     const tasksOnly = new Set<string>();
+    const position = new Map<string, number>();
+    let pending = Array.from(new Set(rawCalendarIds)); // calendars with no event seen so far
 
     try {
-      const queryCalls: JMAPMethodCall[] = rawCalendarIds.map((calId, idx) => [
-        "CalendarEvent/query",
-        {
-          accountId,
-          filter: { inCalendar: calId },
-          limit: QUERY_LIMIT,
-          ...(timeZone ? { timeZone } : {}),
-        },
-        `q_${idx}`,
-      ]);
-
-      const qResp = await this.request(queryCalls, this.calendarUsing());
-      if (!qResp.methodResponses || qResp.methodResponses.length === 0) return new Set();
-
-      const calQueriesToFetch: { calId: string; pageIds: string[] }[] = [];
-      for (let i = 0; i < rawCalendarIds.length; i++) {
-        const tag = `q_${i}`;
-        const match = qResp.methodResponses.find((r) => r[2] === tag && r[0] === "CalendarEvent/query");
-        if (!match) continue;
-        const pageIds: string[] = match[1]?.ids || [];
-        if (pageIds.length > 0) {
-          calQueriesToFetch.push({ calId: rawCalendarIds[i], pageIds });
+      while (pending.length > 0) {
+        const pageIds = new Map<string, string[]>();
+        for (let i = 0; i < pending.length; i += maxCalls) {
+          const chunk = pending.slice(i, i + maxCalls);
+          const queryCalls: JMAPMethodCall[] = chunk.map((calId, idx) => [
+            "CalendarEvent/query",
+            {
+              accountId,
+              filter: { inCalendar: calId },
+              position: position.get(calId) ?? 0,
+              limit: QUERY_PAGE,
+              ...(timeZone ? { timeZone } : {}),
+            },
+            `q_${idx}`,
+          ]);
+          const qResp = await this.request(queryCalls, this.calendarUsing());
+          chunk.forEach((calId, idx) => {
+            const match = qResp.methodResponses?.find((r) => r[2] === `q_${idx}`);
+            // A failed query leaves this calendar out, so it stays visible.
+            if (match?.[0] === "CalendarEvent/query") pageIds.set(calId, match[1]?.ids || []);
+          });
         }
-      }
 
-      if (calQueriesToFetch.length === 0) return new Set();
-
-      const allIdsToFetch = Array.from(new Set(calQueriesToFetch.flatMap((c) => c.pageIds)));
-      const getResp = await this.request([
-        ["CalendarEvent/get", { accountId, ids: allIdsToFetch, properties: PROPERTIES, ...(timeZone ? { timeZone } : {}) }, "0"]
-      ], this.calendarUsing());
-
-      if (getResp.methodResponses?.[0]?.[0] !== "CalendarEvent/get") return new Set();
-      const list = (getResp.methodResponses[0][1]?.list || []) as ScannedCalendarObject[];
-      const objectMap = new Map<string, ScannedCalendarObject>();
-      for (const obj of list) {
-        if (obj.id) objectMap.set(obj.id as string, obj);
-      }
-
-      for (const { calId, pageIds } of calQueriesToFetch) {
-        const calObjects = pageIds.map((id) => objectMap.get(id)).filter(Boolean) as ScannedCalendarObject[];
-        if (calObjects.length === 0) continue;
-        const hasEvent = calObjects.some((obj) => !isTaskLikeObject(obj));
-        if (!hasEvent) {
-          tasksOnly.add(calId);
+        const allIds = Array.from(new Set(Array.from(pageIds.values()).flat()));
+        const objectMap = new Map<string, ScannedCalendarObject>();
+        for (let i = 0; i < allIds.length; i += maxGet) {
+          const getResp = await this.request([
+            ["CalendarEvent/get", { accountId, ids: allIds.slice(i, i + maxGet), properties: PROPERTIES, ...(timeZone ? { timeZone } : {}) }, "0"]
+          ], this.calendarUsing());
+          if (getResp.methodResponses?.[0]?.[0] !== "CalendarEvent/get") return new Set(); // fail open
+          for (const obj of (getResp.methodResponses[0][1]?.list || []) as ScannedCalendarObject[]) {
+            if (obj.id) objectMap.set(obj.id as string, obj);
+          }
         }
+
+        const next: string[] = [];
+        for (const [calId, ids] of pageIds) {
+          const start = position.get(calId) ?? 0;
+          if (ids.length === 0) {
+            // End of the calendar. Only mark it if earlier pages held tasks.
+            if (start > 0) tasksOnly.add(calId);
+            continue;
+          }
+          const calObjects = ids.map((id) => objectMap.get(id)).filter(Boolean) as ScannedCalendarObject[];
+          if (calObjects.length === 0) continue;
+          if (calObjects.some((obj) => !isTaskLikeObject(obj))) continue; // holds an event
+          if (ids.length < QUERY_PAGE) {
+            tasksOnly.add(calId);
+            continue;
+          }
+          const nextPosition = start + ids.length;
+          if (nextPosition >= MAX_SCAN_PER_CALENDAR) continue; // too many to check, keep it visible
+          position.set(calId, nextPosition);
+          next.push(calId);
+        }
+        pending = next;
       }
 
       return tasksOnly;
