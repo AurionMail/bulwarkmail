@@ -856,6 +856,15 @@ export function saveRedirectAfterLogin(): void {
     const loginPath = getLocaleLoginPath();
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
+    // The app's home is where a login lands anyway. Saving it only made the
+    // login page navigate a second time, through the locale-aware router,
+    // which prefixes the locale again (/en/en) and races the first.
+    const home = `${getPathPrefix()}/${getLocaleFromPath()}`;
+    if (currentPath === home || currentPath === `${home}/`) {
+      sessionStorage.removeItem('redirect_after_login');
+      return;
+    }
+
     if (currentPath !== loginPath) {
       sessionStorage.setItem('redirect_after_login', currentPath);
     }
