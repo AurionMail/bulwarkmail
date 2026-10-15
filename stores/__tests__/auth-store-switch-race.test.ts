@@ -43,6 +43,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useEmailStore } from '@/stores/email-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import { evictAccount } from '@/lib/account-state-manager';
 
 const acct = (username: string, host: string, slot: number) => ({
@@ -88,4 +89,30 @@ it("overlapping switches keep every account's data under its own key", async () 
   expect((st.client as unknown as { username: string }).username).toBe('a@x.test');
   expect(st.primaryIdentity?.email).toBe('a@x.test');
   expect(useEmailStore.getState().emails.map((e) => e.subject)).toEqual(['mail of A']);
+});
+
+it("keeps the outgoing account's mail on screen while its settings are saved", async () => {
+  useAccountStore.setState({ accounts: [A, B] as never, activeAccountId: A.id, defaultAccountId: A.id });
+  useAuthStore.setState({ isAuthenticated: true, activeAccountId: A.id, client: null });
+  const sw = (id: string) => useAuthStore.getState().switchAccount(id);
+  // Connect both, so the next switch takes the seamless path.
+  await sw(B.id); await sw(A.id);
+  useEmailStore.setState({ emails: [{ id: 'mA', subject: 'mail of A' }] as never });
+
+  // The flush is a request; whatever the store holds meanwhile is on screen.
+  const flushSync = useSettingsStore.getState().flushSync;
+  let onScreen: string[] = [];
+  useSettingsStore.setState({
+    flushSync: async () => {
+      await sleep(0);
+      onScreen = useEmailStore.getState().emails.map((e) => e.subject ?? '');
+    },
+  });
+  try {
+    await sw(B.id);
+  } finally {
+    useSettingsStore.setState({ flushSync });
+  }
+  expect(onScreen).toEqual(['mail of A']);
+  expect(useAuthStore.getState().activeAccountId).toBe(B.id);
 });

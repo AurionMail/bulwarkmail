@@ -82,6 +82,31 @@ interface EmailListProps {
 /** Below this width the batch toolbar drops its labels (see batchNarrow). */
 const BATCH_TOOLBAR_WIDE = 480;
 
+// Declared out here so re-renders of the list keep the same element. Inside
+// EmailList every render made a new component, which remounted the skeleton
+// and replayed its fade-in each time the store changed while a list loaded.
+function LoadingSkeleton() {
+  return (
+    <div className="animate-in fade-in duration-200" data-testid="email-list-skeleton">
+      {[...Array(8)].map((_, i) => (
+        <div key={i} className="border-b border-border px-4 py-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-muted/50 rounded-full" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-4 bg-muted/50 rounded w-32" />
+                <div className="h-3 bg-muted/50 rounded w-16" />
+              </div>
+              <div className="h-4 bg-muted/50 rounded w-3/4 mb-2" />
+              <div className="h-3 bg-muted/50 rounded w-full" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function EmailList({
   emails,
   selectedEmailId,
@@ -415,26 +440,6 @@ export function EmailList({
     shownViewKey.current = viewKey;
     virtualizer.scrollToOffset(0);
   }, [viewKey, virtualizer]);
-
-  const LoadingSkeleton = () => (
-    <div className="animate-in fade-in duration-200">
-      {[...Array(8)].map((_, i) => (
-        <div key={i} className="border-b border-border px-4 py-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-muted/50 rounded-full" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <div className="h-4 bg-muted/50 rounded w-32" />
-                <div className="h-3 bg-muted/50 rounded w-16" />
-              </div>
-              <div className="h-4 bg-muted/50 rounded w-3/4 mb-2" />
-              <div className="h-3 bg-muted/50 rounded w-full" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 
   const hasSelection = selectedEmailKeys.size > 0;
   // What plugin buttons in the selection toolbar act on: the JMAP ids of the

@@ -2499,11 +2499,13 @@ export const useAuthStore = create<AuthState>()(
         // clearing it), so snapshot + clear it now - synchronously, right before
         // the restore and client swap below - so the UI never blanks between the
         // two accounts. The network path already snapshotted and cleared above.
+        // The settings flush is a request, so it goes first: awaited after the
+        // clear, the list showed "No emails" until it came back.
         if (wasConnected) {
-          snapshotAndClearForSwitch(get().activeAccountId);
           await useSettingsStore.getState().flushSync();
           useSettingsStore.getState().disableSync();
           if (superseded()) return;
+          snapshotAndClearForSwitch(get().activeAccountId);
         }
 
         // Restore cached state or fetch fresh

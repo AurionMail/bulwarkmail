@@ -2449,7 +2449,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         || isUnifiedMailboxId(currentSelectedMailbox)
         || isCrossViewId(currentSelectedMailbox)
         || (currentSelectedMailbox && mailboxes.some(m => m.id === currentSelectedMailbox));
-      const loadingPatch = isInitialLoad
+      // A first load with folders leaves isLoading on: the first page is
+      // fetched next and turns it off. Dropping it here showed "No emails"
+      // between the two, and a new skeleton after it.
+      const loadingPatch = isInitialLoad && mailboxes.length === 0
         ? { isLoading: false, mailboxSyncStates: fetched.states }
         : { mailboxSyncStates: fetched.states };
       if (!selectionValid) {
