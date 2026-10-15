@@ -5,6 +5,7 @@ import { EmailComposer } from '../email-composer';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
+import { usePolicyStore } from '@/stores/policy-store';
 
 // ─── Heavy component mocks (mirrors recipient-paste.test.tsx) ─────────────────
 
@@ -354,6 +355,24 @@ describe('composer reply addressing', () => {
       expect(identitySelect().value).toBe('id-me');
     } finally {
       settings.setState({ autoSelectReplyIdentity: false, replyIdentityMatch: 'domain' });
+    }
+  });
+
+  // The admin's custom From gate takes the rewrite away even when the user
+  // asked for domain matching.
+  it('does not rewrite From when the admin turned custom From off', () => {
+    const setCustomFrom = (on: boolean) => usePolicyStore.setState((state) => ({
+      policy: { ...state.policy, features: { ...state.policy.features, customFromEnabled: on } },
+    }));
+    setAutoSelect(true);
+    setCustomFrom(false);
+    try {
+      render(<EmailComposer mode="reply" replyTo={RECEIVED_CATCH_ALL} />);
+      expect(screen.queryByDisplayValue('colleague@example.com')).toBeNull();
+      expect(identitySelect().value).toBe('id-me');
+    } finally {
+      setAutoSelect(false);
+      setCustomFrom(true);
     }
   });
 

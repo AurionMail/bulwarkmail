@@ -483,6 +483,7 @@ export function EmailComposer({
   const { isFeatureEnabled } = usePolicyStore();
   const templatesEnabled = isFeatureEnabled('templatesEnabled');
   const filesEnabled = isFeatureEnabled('filesEnabled');
+  const customFromEnabled = isFeatureEnabled('customFromEnabled');
 
   // The signature identity used when embedding the signature into the initial
   // body for "above quote" mode. Mirrors the signatureIdentity derivation
@@ -799,7 +800,10 @@ export function EmailComposer({
   // signature, also when it has none (see ownSignatureIdentity).
   const [identityPickedByUser, setIdentityPickedByUser] = useState(false);
   const [subAddressTag, setSubAddressTag] = useState<string>(initialData?.subAddressTag ?? '');
-  const [fromOverrideEnabled, setFromOverrideEnabled] = useState<boolean>(initialData?.fromOverrideEnabled ?? false);
+  const [fromOverrideChosen, setFromOverrideEnabled] = useState<boolean>(initialData?.fromOverrideEnabled ?? false);
+  // With the admin's customFromEnabled gate off, a draft saved with a custom
+  // From opens, sends and saves again from its identity instead.
+  const fromOverrideEnabled = customFromEnabled && fromOverrideChosen;
   const [fromOverrideEmail, setFromOverrideEmail] = useState<string>(initialData?.fromOverrideEmail ?? '');
   const [fromOverrideName, setFromOverrideName] = useState<string>(initialData?.fromOverrideName ?? '');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
@@ -1108,7 +1112,9 @@ export function EmailComposer({
     // lets a user keep the setting on but limit it to configured identities,
     // for domains where the other addresses are distribution lists (#1000).
     if (autoSelectReplyIdentity && mode !== 'forward') {
-      const resolved = resolveReplyFrom(sourceAccountIdentities, recipients, replyIdentityMatch);
+      // Without custom From the catch-all rewrite has nothing to write into.
+      const matchMode = customFromEnabled ? replyIdentityMatch : 'exact';
+      const resolved = resolveReplyFrom(sourceAccountIdentities, recipients, matchMode);
       if (resolved) {
         setSelectedIdentityId(resolved.identityId);
         if (resolved.overrideEmail && !fromOverrideEnabled) {
@@ -1134,6 +1140,7 @@ export function EmailComposer({
   }, [
     autoSelectReplyIdentity,
     replyIdentityMatch,
+    customFromEnabled,
     composeFromAccountEmail,
     fromOverrideEnabled,
     identities,
@@ -3620,28 +3627,30 @@ export function EmailComposer({
                   <X className="w-3 h-3" />
                 </Button>
               )}
-              <Button
-                type="button"
-                variant={fromOverrideEnabled ? 'outline' : 'ghost'}
-                size="sm"
-                onClick={() => {
-                  if (fromOverrideEnabled) {
-                    setFromOverrideEnabled(false);
-                  } else {
-                    setFromOverrideEnabled(true);
-                    if (!fromOverrideEmail && currentIdentity?.email) {
-                      setFromOverrideEmail(currentIdentity.email);
+              {customFromEnabled && (
+                <Button
+                  type="button"
+                  variant={fromOverrideEnabled ? 'outline' : 'ghost'}
+                  size="sm"
+                  onClick={() => {
+                    if (fromOverrideEnabled) {
+                      setFromOverrideEnabled(false);
+                    } else {
+                      setFromOverrideEnabled(true);
+                      if (!fromOverrideEmail && currentIdentity?.email) {
+                        setFromOverrideEmail(currentIdentity.email);
+                      }
+                      if (!fromOverrideName && currentIdentity?.name) {
+                        setFromOverrideName(currentIdentity.name);
+                      }
                     }
-                    if (!fromOverrideName && currentIdentity?.name) {
-                      setFromOverrideName(currentIdentity.name);
-                    }
-                  }
-                }}
-                className="h-6 px-2 text-xs shrink-0"
-                title={t('from_override.toggle_tooltip')}
-              >
-                {fromOverrideEnabled ? t('from_override.toggle_on') : t('from_override.toggle_off')}
-              </Button>
+                  }}
+                  className="h-6 px-2 text-xs shrink-0"
+                  title={t('from_override.toggle_tooltip')}
+                >
+                  {fromOverrideEnabled ? t('from_override.toggle_on') : t('from_override.toggle_off')}
+                </Button>
+              )}
             </div>
           </div>
           {overrideEnvelopeFallback && (
