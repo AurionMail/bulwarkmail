@@ -8,6 +8,7 @@ import { EMPTY_NOTIFICATION_MUTES, normalizeNotificationMutes, type Notification
 import { apiFetch } from '@/lib/browser-navigation';
 import { settingsHooks } from '@/lib/plugin-hooks';
 import { generateAccountId } from '@/lib/account-utils';
+import { subscriptionOwnerFor } from '@/lib/calendar-subscription-sync';
 import { orderForMailbox, sanitizeSortLevels, type MessageListOrderScope, type SortLevel } from '@/lib/message-list-order';
 import {
   DEFAULT_SUB_ADDRESS_DELIMITER,
@@ -130,6 +131,32 @@ function localTemplatesAhead(serverSettings: Record<string, unknown> | null): bo
   if (!serverSettings) return true;
   return templateStateKey(local.templates, local.deletedTemplateIds) !==
     templateStateKey(serverSettings.templates, serverSettings.deletedTemplateIds);
+}
+
+// --- Calendar subscription sync bridge ---------------------------------------
+// iCal subscriptions ride along in the synced settings blob to avoid turning
+// into writable/lost calendars on browser cache clear or new devices.
+interface CalendarSubscriptionSyncBridge {
+  getSyncedState: () => {
+    icalSubscriptions: Array<{ owner?: string }>;
+    deletedSubscriptionIds: Record<string, string>;
+  };
+  applySyncedState: (
+    subscriptions: unknown,
+    deletedSubscriptionIds: unknown,
+    opts: { merge: boolean; owner?: string }
+  ) => void;
+}
+
+let calendarSubscriptionSyncBridge: CalendarSubscriptionSyncBridge | null = null;
+let onCalendarSubscriptionStoreChange: (() => void) | null = null;
+
+export function registerCalendarSubscriptionSyncBridge(
+  bridge: CalendarSubscriptionSyncBridge,
+  subscribe: (listener: () => void) => void
+): void {
+  calendarSubscriptionSyncBridge = bridge;
+  subscribe(() => onCalendarSubscriptionStoreChange?.());
 }
 
 async function syncSettingsJob(job: SettingsSyncJob, retries = 1): Promise<void> {
@@ -684,8 +711,8 @@ interface SettingsState {
   ) => void;
   resetToDefaults: () => void;
   /** `forSync` builds the snapshot pushed to the server; it is not a user export. */
-  exportSettings: (opts?: { forSync?: boolean }) => string;
-  importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean }) => boolean;
+  exportSettings: (opts?: { forSync?: boolean; subscriptionOwner?: string }) => string;
+  importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean; subscriptionOwner?: string }) => boolean;
 
   // Folder icons
   setFolderIcon: (mailboxId: string, icon: string) => void;
@@ -993,9 +1020,10 @@ export const useSettingsStore = create<SettingsState>()(
         }
       };
 
-      const buildExport = (): string => {
+      const buildExport = (opts?: { subscriptionOwner?: string }): string => {
         const state = get();
         const templateSync = templateSyncBridge?.getSyncedState();
+        const subscriptionSync = calendarSubscriptionSyncBridge?.getSyncedState();
         const settings = {
           fontSize: state.fontSize,
           density: state.density,
@@ -1121,6 +1149,21 @@ export const useSettingsStore = create<SettingsState>()(
                 deletedTemplateIds: templateSync.deletedTemplateIds,
               }
             : {}),
+          // Omitted entirely if the bridge has not registered, so an importing
+          // device leaves its calendar subscriptions alone.
+          ...(subscriptionSync
+            ? {
+                // A server blob carries only its own login's subscriptions:
+                // feed URLs are secrets, and another login's (or an unowned
+                // one's) would reappear there after that login signs out.
+                icalSubscriptions: opts?.subscriptionOwner
+                  ? subscriptionSync.icalSubscriptions.filter(
+                      (sub) => sub.owner === opts.subscriptionOwner,
+                    )
+                  : subscriptionSync.icalSubscriptions,
+                deletedSubscriptionIds: subscriptionSync.deletedSubscriptionIds,
+              }
+            : {}),
         };
         return JSON.stringify(settings, null, 2);
       };
@@ -1146,14 +1189,14 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       exportSettings: (opts) => {
-        const json = buildExport();
+        const json = buildExport(opts);
         if (!opts?.forSync) {
           void settingsHooks.onSettingsExport.emit({ keys: Object.keys(JSON.parse(json)) });
         }
         return json;
       },
 
-      importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean }) => {
+      importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean; subscriptionOwner?: string }) => {
         try {
           const settings = JSON.parse(json);
 
@@ -1266,6 +1309,11 @@ export const useSettingsStore = create<SettingsState>()(
             settings.templates,
             settings.deletedTemplateIds,
             { merge: Boolean(opts?.serverAccountId) }
+          );
+          calendarSubscriptionSyncBridge?.applySyncedState(
+            settings.icalSubscriptions,
+            settings.deletedSubscriptionIds,
+            { merge: Boolean(opts?.serverAccountId), owner: opts?.subscriptionOwner }
           );
 
           // A load from the server reports itself as a sync (loadFromServer);
@@ -1489,6 +1537,7 @@ export const useSettingsStore = create<SettingsState>()(
             get().importSettings(JSON.stringify(settings), {
               serverAccountId: accountId,
               keepCrossAccountViews,
+              subscriptionOwner: subscriptionOwnerFor(serverUrl, username),
             });
             isLoadingFromServer = false;
             writeSettingsOwner(accountId);
@@ -1751,7 +1800,10 @@ if (typeof window !== 'undefined') {
     pendingSync = {
       username: syncUsername,
       serverUrl: syncServerUrl,
-      settings: JSON.parse(useSettingsStore.getState().exportSettings({ forSync: true })),
+      settings: JSON.parse(useSettingsStore.getState().exportSettings({
+        forSync: true,
+        subscriptionOwner: subscriptionOwnerFor(syncServerUrl, syncUsername),
+      })),
     };
     if (syncTimeout) clearTimeout(syncTimeout);
     syncTimeout = setTimeout(async () => {
@@ -1792,12 +1844,17 @@ if (typeof window !== 'undefined') {
     if (useSettingsStore.getState().settingsSyncDisabled) return;
     triggerSync();
   };
-  // Ensure template-store is loaded (and the bridge registered) even before
-  // any UI component imports it, so the first sync push already carries the
-  // templates. Best effort: the UI imports the store itself when it needs it,
-  // and under vitest a short test file can finish (and tear its environment
-  // down) before this chain has loaded, which rejects the import.
+
+  // And when iCal subscriptions change (they ride along in the synced blob).
+  onCalendarSubscriptionStoreChange = () => {
+    if (useSettingsStore.getState().settingsSyncDisabled) return;
+    triggerSync();
+  };
+
+  // Ensure template-store and calendar-store are loaded (and bridges registered) even before
+  // any UI component imports them, so the first sync push already carries them.
   import('./template-store').catch(() => {});
+  import('./calendar-store').catch(() => {});
 }
 
 /**
