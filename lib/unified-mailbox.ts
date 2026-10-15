@@ -370,7 +370,7 @@ export function fetchUnifiedMailboxCounts(
 // ─── Cross-account views (unread / starred / all) ─────────────────────────────
 //
 // These merge messages across EVERY account (including shared) and across all
-// folders except the CROSS_EXCLUDED_ROLES (junk, sent, archive, trash, drafts),
+// folders except the CROSS_EXCLUDED_ROLES (junk, sent, archive, trash, drafts, all),
 // i.e. inbox + custom folders, into one date-sorted list. Unlike the per-role
 // unified fan-out above, the query spans many mailboxes per account, so the
 // filter is built from each account's included-mailbox ids.

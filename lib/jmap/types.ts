@@ -1077,8 +1077,10 @@ export function isCrossViewId(id: string): boolean {
 
 /**
  * Mailbox roles excluded from the cross-account views. Everything else (inbox
- * and custom/no-role folders) is included.
+ * and custom/no-role folders) is included. `all` (RFC 6154 \All) holds every
+ * message, so including it would bring back sent/archive mail and count inbox
+ * unread twice.
  */
 export const CROSS_EXCLUDED_ROLES: ReadonlySet<string> = new Set([
-  'junk', 'sent', 'archive', 'trash', 'drafts',
+  'junk', 'sent', 'archive', 'trash', 'drafts', 'all',
 ]);
