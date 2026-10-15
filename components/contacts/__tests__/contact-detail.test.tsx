@@ -7,6 +7,7 @@ import type { BlobBatch } from '@/lib/jmap/client-interface';
 import { useAuthStore } from '@/stores/auth-store';
 import { useContactStore } from '@/stores/contact-store';
 import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
+import { contactHooks, clearAllHooks } from '@/lib/plugin-hooks';
 
 beforeEach(() => {
   Object.assign(navigator, {
@@ -140,5 +141,25 @@ describe('ContactDetail', () => {
       expect(container.querySelector('img')).toBeNull();
       expect(fetchBlob).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('ContactDetail plugin hooks', () => {
+  beforeEach(() => clearAllHooks());
+
+  it('tells plugins once when a contact is opened, again for another one', async () => {
+    const opened = vi.fn();
+    contactHooks.onContactOpen.register('test', opened);
+
+    const { rerender } = render(<ContactDetail contact={contact} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    // Same contact with changed data: still the same open contact.
+    rerender(<ContactDetail contact={{ ...contact, notes: {} }} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    rerender(<ContactDetail contact={{ ...contact, id: '2' }} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    rerender(<ContactDetail contact={null} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    await Promise.resolve();
+
+    expect(opened).toHaveBeenCalledTimes(2);
+    expect(opened.mock.calls[0][0]).toMatchObject({ id: '1', fullName: 'Alice Smith', emails: ['alice@example.com'] });
+    expect(opened.mock.calls[1][0]).toMatchObject({ id: '2' });
   });
 });

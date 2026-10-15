@@ -5,6 +5,7 @@ import type { Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { UNIFIED_MAILBOX_IDS } from '@/lib/jmap/types';
 import { emailHooks } from '@/lib/plugin-hooks';
+import { mailboxToView } from '@/lib/plugin-mail-hooks';
 
 function makeMailbox(overrides: Partial<Mailbox> = {}): Mailbox {
   return {
@@ -454,7 +455,7 @@ describe('email-store folder management', () => {
 
       try {
         await useEmailStore.getState().fetchMailboxes(client);
-        expect(observer).toHaveBeenCalledWith(refreshed);
+        expect(observer).toHaveBeenCalledWith(refreshed.map(mailboxToView));
       } finally {
         disposable.dispose();
       }

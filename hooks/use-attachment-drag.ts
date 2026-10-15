@@ -5,8 +5,20 @@ import { useCallback, useEffect, useRef, DragEvent } from "react";
 // Chromium ships the `DownloadURL` DataTransfer entry, which the OS reads on
 // drop to materialize a real file. Firefox and Safari ignore it, so we only
 // enable drag-out where it actually works.
+//
+// Every message row asks, on every render; the answer is kept per user agent.
+let dragOutSupport: { ua: string; supported: boolean } | null = null;
+
 export function isDragOutSupported(): boolean {
   if (typeof navigator === "undefined") return false;
+  const agent = navigator.userAgent || "";
+  if (dragOutSupport?.ua === agent) return dragOutSupport.supported;
+  const supported = detectDragOutSupport();
+  dragOutSupport = { ua: agent, supported };
+  return supported;
+}
+
+function detectDragOutSupport(): boolean {
   const uaData = (navigator as { userAgentData?: { brands?: { brand: string }[] } }).userAgentData;
   if (uaData?.brands?.length) {
     return uaData.brands.some((b) => /Chromium|Google Chrome|Microsoft Edge|Brave|Opera/i.test(b.brand));

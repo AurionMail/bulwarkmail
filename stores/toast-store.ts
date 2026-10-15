@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { Toast, ToastAction } from "@/components/ui/toast";
 import { generateUUID } from "@/lib/utils";
+import { toastHooks } from "@/lib/plugin-hooks";
+import { recordNotification } from "@/stores/notification-center-store";
 
 interface ToastStore {
   toasts: Toast[];
@@ -11,7 +13,7 @@ interface ToastStore {
   clearToasts: () => void;
 }
 
-export const useToastStore = create<ToastStore>((set) => ({
+export const useToastStore = create<ToastStore>((set, get) => ({
   toasts: [],
 
   addToast: (toast) => {
@@ -29,6 +31,13 @@ export const useToastStore = create<ToastStore>((set) => ({
     set((state) => ({
       toasts: [...state.toasts, newToast],
     }));
+    void toastHooks.onToastShow.emit({
+      id, type: toast.type, title: toast.title, message: toast.message ?? "",
+    });
+    // Errors and warnings stay in the bell's list after the toast is gone.
+    if (toast.type === "error" || toast.type === "warning") {
+      recordNotification({ level: toast.type, title: toast.title, body: toast.message ?? "" });
+    }
     return id;
   },
 
@@ -39,9 +48,11 @@ export const useToastStore = create<ToastStore>((set) => ({
   },
 
   removeToast: (id) => {
+    if (!get().toasts.some((t) => t.id === id)) return;
     set((state) => ({
       toasts: state.toasts.filter((toast) => toast.id !== id),
     }));
+    void toastHooks.onToastDismiss.emit({ id });
   },
 
   clearToasts: () => {

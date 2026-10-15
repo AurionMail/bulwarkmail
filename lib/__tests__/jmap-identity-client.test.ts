@@ -191,6 +191,36 @@ describe('JMAPClient identity methods', () => {
       expect(createArgs.textSignature).toBe('text sig');
       expect(createArgs.htmlSignature).toBe('<b>html sig</b>');
     });
+
+    it('should leave blank signatures out of the create instead of sending null', async () => {
+      const client = createClient();
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+      fetchSpy.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(JSON.stringify({
+          methodResponses: [['Identity/set', { created: { 'new-identity': { id: 'new-id' } } }, '0']],
+        })),
+      } as Response);
+
+      fetchSpy.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(JSON.stringify({
+          methodResponses: [['Identity/get', { list: [{ ...mockIdentity, id: 'new-id' }] }, '0']],
+        })),
+      } as Response);
+
+      await client.createIdentity('Test', 'test@example.com', null, null, null, null);
+
+      const body = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
+      const createArgs = body.methodCalls[0][1].create['new-identity'];
+      expect(createArgs).not.toHaveProperty('textSignature');
+      expect(createArgs).not.toHaveProperty('htmlSignature');
+      expect(createArgs.replyTo).toBeNull();
+      expect(createArgs.bcc).toBeNull();
+    });
   });
 
   describe('updateIdentity', () => {

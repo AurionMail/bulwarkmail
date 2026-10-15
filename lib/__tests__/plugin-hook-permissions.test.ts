@@ -9,6 +9,7 @@ import type { InstalledPlugin, Permission } from '../plugin-types';
 
 const mocks = vi.hoisted(() => ({
   background: { hooks: [] as string[], slots: [] as Array<{ name: string }> },
+  invokeHook: null as null | ((name: string, args: unknown[]) => Promise<unknown>),
 }));
 
 const CODE = 'export default { activate() {} }';
@@ -19,11 +20,15 @@ vi.mock('../plugin-storage', () => ({
 }));
 vi.mock('../plugin-sandbox/bundle-fetch', () => ({ downloadManagedBundle: vi.fn() }));
 vi.mock('../plugin-sandbox/host-bridge', () => ({
-  createBackgroundInstance: () => ({
-    initPromise: Promise.resolve({ hooks: mocks.background.hooks, slots: mocks.background.slots, shortcuts: [] }),
-    invokeHook: vi.fn(async () => ({ to: ['a@example.org'], bcc: ['attacker@evil.example'] })),
-    destroy: vi.fn(),
-  }),
+  createBackgroundInstance: () => {
+    const invokeHook = vi.fn(async () => ({ to: ['a@example.org'], bcc: ['attacker@evil.example'] }));
+    mocks.invokeHook = invokeHook;
+    return {
+      initPromise: Promise.resolve({ hooks: mocks.background.hooks, slots: mocks.background.slots, shortcuts: [] }),
+      invokeHook,
+      destroy: vi.fn(),
+    };
+  },
   SandboxInstance: class {},
 }));
 vi.mock('../plugin-sandbox/host-api', () => ({ cancelPluginDialogs: vi.fn() }));
@@ -33,6 +38,8 @@ import { loadSandboxedPlugin, unloadSandboxedPlugin, setSandboxStoreAccessor } f
 import { get as getActive } from '../plugin-sandbox/registry';
 import { emailHooks, renderHooks, appLifecycleHooks } from '../plugin-hooks';
 import { hookPermission, mayOfferSlot, mayRegisterHook, pluginHasPermission } from '../plugin-sandbox/permissions';
+import { useEmailStore } from '@/stores/email-store';
+import type { Email } from '../jmap/types';
 
 function plugin(overrides: Partial<InstalledPlugin> = {}): InstalledPlugin {
   return {
@@ -98,6 +105,34 @@ describe('sandboxed plugin hooks and slots', () => {
 
     expect(emailHooks.onTransformOutgoingEmail.size).toBe(0);
     expect(renderHooks.onRenderEmailBody.size).toBe(1);
+  });
+});
+
+describe('a message that is already open', () => {
+  const open = { id: 'm1', threadId: 't1', subject: 'Your parcel', from: [{ name: 'Shop', email: 'shop@example.org' }], to: [], receivedAt: '2026-10-14T10:00:00Z', keywords: {}, mailboxIds: {} } as unknown as Email;
+
+  afterEach(() => { useEmailStore.setState({ selectedEmail: null }); });
+
+  it('reaches a plugin that starts after it was opened', async () => {
+    useEmailStore.setState({ selectedEmail: open });
+    mocks.background.hooks = ['onEmailOpen'];
+    await loadSandboxedPlugin(plugin({ permissions: ['email:read'] }));
+
+    const calls = (mocks.invokeHook as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === 'onEmailOpen');
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1][0]).toMatchObject({ id: 'm1', subject: 'Your parcel' });
+  });
+
+  it('is not handed to a plugin without the permission, nor when nothing is open', async () => {
+    mocks.background.hooks = ['onEmailOpen'];
+    useEmailStore.setState({ selectedEmail: open });
+    await loadSandboxedPlugin(plugin());
+    expect((mocks.invokeHook as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
+    unloadSandboxedPlugin('hook-plugin');
+
+    useEmailStore.setState({ selectedEmail: null });
+    await loadSandboxedPlugin(plugin({ permissions: ['email:read'] }));
+    expect((mocks.invokeHook as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
   });
 });
 

@@ -512,12 +512,16 @@ async function persistSession(slot: number, session: RememberedSession): Promise
     saveLiteBasicSession(slot, session);
     return;
   }
+  // A slot being signed out must not get its cookie back; sign-out waits for
+  // a write still running (login doesn't wait for it, see there).
+  if (closingSlots.has(slot)) return;
   try {
-    const res = await apiFetch(`/api/auth/session?slot=${slot}`, {
+    const res = await trackSessionWrite(slot, (signal) => apiFetch(`/api/auth/session?slot=${slot}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...session, slot }),
-    });
+      signal,
+    }));
     if (!res.ok) debug.error('Failed to store session: server returned', res.status);
   } catch (err) {
     debug.error('Failed to store session:', err);
@@ -788,7 +792,7 @@ export function applyPreferredIdentity(accountId?: string | null): void {
     if (legacy) {
       preferred = legacy;
       const current = useSettingsStore.getState().preferredIdentityIds;
-      useSettingsStore.getState().updateSetting('preferredIdentityIds', { ...current, [targetId]: legacy });
+      useSettingsStore.getState().updateSetting('preferredIdentityIds', { ...current, [targetId]: legacy }, { internal: true });
     }
   }
   if (!preferred) return;
@@ -831,12 +835,34 @@ export function saveRedirectAfterLogin(): void {
     const loginPath = getLocaleLoginPath();
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
+    // The app's home is where a login lands anyway. Saving it only made the
+    // login page navigate a second time, through the locale-aware router,
+    // which prefixes the locale again (/en/en) and races the first.
+    const home = `${getPathPrefix()}/${getLocaleFromPath()}`;
+    if (currentPath === home || currentPath === `${home}/`) {
+      sessionStorage.removeItem('redirect_after_login');
+      return;
+    }
+
     if (currentPath !== loginPath) {
       sessionStorage.setItem('redirect_after_login', currentPath);
     }
   } catch {
     /* noop */
   }
+}
+
+/**
+ * Whether the login page can be reached without reloading the app. Before a
+ * session was usable on this page load there is no mail state to throw away,
+ * so a client-side navigation does and the app isn't downloaded and started
+ * a second time; after one, the reload is what clears it.
+ *
+ * Not in Lite: its static router lands on `/login/` with a trailing slash,
+ * which the login path checks here (`/login`) don't recognise.
+ */
+export function canEnterLoginInPlace(): boolean {
+  return !IS_LITE && !signedInSincePageLoad && !leavingForProviderLogout;
 }
 
 export function redirectToLogin(): void {
@@ -910,7 +936,7 @@ function initializeFeatureStores(client: IJMAPClient): void {
     // user has already made an explicit choice (`null` = not yet decided).
     const settings = useSettingsStore.getState();
     if (settings.trustedSendersAddressBook === null) {
-      settings.updateSetting('trustedSendersAddressBook', true);
+      settings.updateSetting('trustedSendersAddressBook', true, { internal: true });
     }
   } else {
     useContactStore.getState().setSupportsSync(false);
@@ -1222,6 +1248,25 @@ function performFullLogout(set: (state: Partial<AuthState>) => void): void {
   broadcastSignOut();
 }
 
+/**
+ * How long sign-out waits for plugins to tidy up. Plugins observe sign-out;
+ * they cannot stop it or hold it up, or a plugin could keep the user signed
+ * in on a shared computer.
+ */
+export const LOGOUT_HOOK_BUDGET_MS = 2000;
+
+function notifySignedIn(state: { activeAccountId: string | null; username: string | null }): void {
+  if (!state.activeAccountId) return;
+  void authHooks.onLogin.emit({ accountId: state.activeAccountId, username: state.username ?? '' });
+}
+
+function beforeLogoutHooks(accountId: string): Promise<void> {
+  return Promise.race([
+    authHooks.onBeforeLogout.emit({ accountId }),
+    new Promise<void>((resolve) => setTimeout(resolve, LOGOUT_HOOK_BUDGET_MS)),
+  ]);
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -1375,18 +1420,20 @@ export const useAuthStore = create<AuthState>()(
           // Run the remaining independent requests in parallel. The session
           // write and stalwart-context write are best-effort persistence; the
           // outer login still succeeds even if they log a warning. Errors are
-          // caught locally so Promise.all doesn't reject on either.
+          // caught locally so Promise.all doesn't reject on either. Only the
+          // context is waited for: the server-side helpers the mail view
+          // calls next need it, while the remembered session only matters
+          // for the next visit (and sign-out waits for its write).
           // In Lite a Basic session is kept for the tab (sessionStorage) on a
           // server without token login, so a reload does not sign the user
           // out; the regular build only writes the cookie when the user asked
           // to be remembered.
-          const sessionWrite: Promise<unknown> = ((IS_LITE ? tokenLoginUnavailable : rememberMe) && !upgradedToOAuth)
-            ? persistSession(cookieSlot, { serverUrl, username, password })
-            : Promise.resolve();
+          if ((IS_LITE ? tokenLoginUnavailable : rememberMe) && !upgradedToOAuth) {
+            void persistSession(cookieSlot, { serverUrl, username, password });
+          }
 
           const [rawIdentities] = await Promise.all([
             identitiesPromise,
-            sessionWrite,
             syncStalwartAuthContext(serverUrl, username, client.getAuthHeader(), cookieSlot),
           ]);
 
@@ -1473,6 +1520,7 @@ export const useAuthStore = create<AuthState>()(
             });
           }).catch(() => {});
 
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('Login error:', error);
@@ -1587,6 +1635,7 @@ export const useAuthStore = create<AuthState>()(
           }).catch(() => {});
 
           resumeSettingsSync({ id: accountId, username, serverUrl });
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('Token login error:', error);
@@ -1652,6 +1701,7 @@ export const useAuthStore = create<AuthState>()(
             activeAccountId: demoAccountId,
             isDemoMode: true,
           });
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('Demo login error:', error);
@@ -1795,6 +1845,7 @@ export const useAuthStore = create<AuthState>()(
             sessionStorage.removeItem('oauth_cookie_slot');
           }
 
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('OAuth login error:', error);
@@ -1932,6 +1983,7 @@ export const useAuthStore = create<AuthState>()(
             });
           }).catch(() => {});
 
+          notifySignedIn(get());
           return true;
         } catch (error) {
           debug.error('Server SSO login error:', error);
@@ -2026,6 +2078,7 @@ export const useAuthStore = create<AuthState>()(
 
             resetRefreshBackoff(accountId ?? undefined);
             scheduleRefresh(expires_in, get().refreshAccessToken, accountId ?? undefined);
+            if (accountId) void authHooks.onTokenRefresh.emit({ accountId });
             return access_token;
           } catch (error) {
             // Network failure (offline, Wi-Fi switch, server unreachable) -
@@ -2059,13 +2112,7 @@ export const useAuthStore = create<AuthState>()(
         const userInitiated = options?.endProviderSession !== false;
         const endProviderSession = userInitiated && !wasDemoMode && shouldEndProviderSession(account);
 
-        const ok = await authHooks.onBeforeLogout.intercept({
-          accountId: accountId ?? 'all',
-        });
-
-        if(!ok){
-          return;
-        }
+        await beforeLogoutHooks(accountId ?? 'all');
 
         // From here on nothing may renew this slot's session; the cleanup
         // below reopens it once the credentials are gone.
@@ -2090,7 +2137,7 @@ export const useAuthStore = create<AuthState>()(
         await useSettingsStore.getState().flushSync();
         useSettingsStore.getState().disableSync();
 
-        await authHooks.onAfterLogout.emit({
+        void authHooks.onAfterLogout.emit({
           accountId: accountId ?? 'all',
         });
 
@@ -2213,13 +2260,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logoutAll: async () => {
-        const ok = await authHooks.onBeforeLogout.intercept({
-          accountId: 'all'
-        });
-
-        if(!ok){
-          return;
-        }
+        await beforeLogoutHooks('all');
 
         const accountStore = useAccountStore.getState();
         const allAccounts = [...accountStore.accounts];
@@ -2251,7 +2292,7 @@ export const useAuthStore = create<AuthState>()(
           accountStore.removeAccount(account.id);
         }
 
-        await authHooks.onAfterLogout.emit({
+        void authHooks.onAfterLogout.emit({
           accountId: 'all'
         });
 
@@ -2437,11 +2478,13 @@ export const useAuthStore = create<AuthState>()(
         // clearing it), so snapshot + clear it now - synchronously, right before
         // the restore and client swap below - so the UI never blanks between the
         // two accounts. The network path already snapshotted and cleared above.
+        // The settings flush is a request, so it goes first: awaited after the
+        // clear, the list showed "No emails" until it came back.
         if (wasConnected) {
-          snapshotAndClearForSwitch(get().activeAccountId);
           await useSettingsStore.getState().flushSync();
           useSettingsStore.getState().disableSync();
           if (superseded()) return;
+          snapshotAndClearForSwitch(get().activeAccountId);
         }
 
         // Restore cached state or fetch fresh
@@ -3029,6 +3072,12 @@ useAuthStore.subscribe((state, prev) => {
   if (state.isAuthenticated && !prev.isAuthenticated) void usePolicyStore.getState().refreshIfPartial();
 });
 
+// See canEnterLoginInPlace.
+let signedInSincePageLoad = useAuthStore.getState().isAuthenticated;
+useAuthStore.subscribe((state) => {
+  if (state.isAuthenticated) signedInSincePageLoad = true;
+});
+
 // Another tab signed everyone out: this one's cookies and account list are
 // gone too, so leave for the login page instead of showing stale mail.
 if (typeof window !== 'undefined') {
@@ -3036,3 +3085,14 @@ if (typeof window !== 'undefined') {
     if (useAuthStore.getState().isAuthenticated) navigateToLogin();
   });
 }
+
+// Plugins hear when a session becomes usable (after start-up or a sign-in)
+// and when another account becomes active, whichever path got there.
+useAuthStore.subscribe((state, prev) => {
+  const ready = state.isAuthenticated && !!state.client && !!state.activeAccountId;
+  const wasReady = prev.isAuthenticated && !!prev.client && !!prev.activeAccountId;
+  if (ready && !wasReady) void authHooks.onAuthReady.emit({ accountId: state.activeAccountId });
+  if (state.activeAccountId && prev.activeAccountId && state.activeAccountId !== prev.activeAccountId) {
+    void authHooks.onAccountSwitch.emit({ accountId: state.activeAccountId, previousAccountId: prev.activeAccountId });
+  }
+});

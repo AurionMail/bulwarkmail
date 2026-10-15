@@ -202,3 +202,65 @@ describe('SearchBox and password managers', () => {
     expect(input()).toHaveAttribute('type', 'search');
   });
 });
+
+describe('SearchBox draft', () => {
+  beforeEach(() => {
+    useSearchHistoryStore.setState({ recentSearches: [] });
+  });
+
+  it('keeps the typed text to itself until it is submitted', () => {
+    const onChange = vi.fn();
+    const onSubmit = vi.fn();
+    render(<Harness onChange={onChange} onSubmit={onSubmit} />);
+    fireEvent.change(input(), { target: { value: 'i' } });
+    fireEvent.change(input(), { target: { value: 'in' } });
+    fireEvent.change(input(), { target: { value: 'invoice' } });
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(input().value).toBe('invoice');
+
+    fireEvent.submit(input().closest('form')!);
+    expect(onSubmit).toHaveBeenCalledWith('invoice');
+  });
+
+  it('hands the typed text over when focus leaves the box', () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    fireEvent.change(input(), { target: { value: 'invoice' } });
+    fireEvent.blur(input());
+    expect(onChange).toHaveBeenCalledWith('invoice');
+  });
+
+  it('leaves the search on Enter in an emptied box, like the clear button', () => {
+    const onClear = vi.fn();
+    const onSubmit = vi.fn();
+    render(<Harness initial="invoice" onClear={onClear} onSubmit={onSubmit} />);
+    fireEvent.change(input(), { target: { value: '' } });
+    fireEvent.submit(input().closest('form')!);
+
+    expect(onClear).toHaveBeenCalledTimes(1);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('does nothing on Enter in an empty box when no search is in force', () => {
+    const onClear = vi.fn();
+    render(<Harness onClear={onClear} />);
+    fireEvent.submit(input().closest('form')!);
+    expect(onClear).not.toHaveBeenCalled();
+  });
+
+  it('shows a query set from outside', () => {
+    function Outside() {
+      const [value, setValue] = React.useState('');
+      return (
+        <>
+          <button onClick={() => setValue('from:alice')}>set</button>
+          <SearchBox value={value} onChange={setValue} onSubmit={() => {}} onClear={() => {}} onSelectContact={() => {}} />
+        </>
+      );
+    }
+    render(<Outside />);
+    fireEvent.click(screen.getByText('set'));
+    expect(input().value).toBe('from:alice');
+  });
+});

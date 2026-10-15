@@ -20,7 +20,8 @@ import {
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails } from "@/stores/email-store";
+import { useShallow } from "zustand/react/shallow";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { toast } from "@/stores/toast-store";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -31,6 +32,7 @@ import { localizeMailboxName } from "@/lib/mailbox-label";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { cn, type MailboxNode } from "@/lib/utils";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 
 interface MvListToolbarProps {
   /** Loaded conversation count, for the right-hand range readout. */
@@ -128,7 +130,25 @@ export function MvListToolbar({
     batchSetTag,
     isUnifiedView,
     unifiedRole,
-  } = useEmailStore();
+  } = useEmailStore(useShallow((state) => ({
+    emails: state.emails,
+    mailboxes: state.mailboxes,
+    selectedMailbox: state.selectedMailbox,
+    selectedEmailKeys: state.selectedEmailKeys,
+    // Read at render by resolveSelectedEmails (Move menu owner account).
+    threadEmailsCache: state.threadEmailsCache,
+    selectAllEmails: state.selectAllEmails,
+    clearSelection: state.clearSelection,
+    batchArchive: state.batchArchive,
+    batchDelete: state.batchDelete,
+    batchMarkAsRead: state.batchMarkAsRead,
+    batchMarkAsSpam: state.batchMarkAsSpam,
+    batchUndoSpam: state.batchUndoSpam,
+    batchMoveToMailbox: state.batchMoveToMailbox,
+    batchSetTag: state.batchSetTag,
+    isUnifiedView: state.isUnifiedView,
+    unifiedRole: state.unifiedRole,
+  })));
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -239,15 +259,19 @@ export function MvListToolbar({
   const handleDelete = () =>
     run(async () => {
       if (!client) return;
-      const confirmed = await confirmDialog({
-        title: isInTrash ? t("permanent_delete_confirm_title") : tBatch("delete_confirm_title"),
-        message: isInTrash
-          ? t("permanent_delete_confirm_batch_message", { count: selectionCount })
-          : tBatch("delete_confirm_message", { count: selectionCount }),
-        confirmText: isInTrash ? t("permanent_delete") : tBatch("delete"),
-        variant: "destructive",
-      });
-      if (!confirmed) return;
+      const target = { role: currentRole };
+      const permanent = bulkDeleteIsPermanent(target);
+      if (shouldConfirmBulkDelete(target)) {
+        const confirmed = await confirmDialog({
+          title: permanent ? t("permanent_delete_confirm_title") : tBatch("delete_confirm_title"),
+          message: permanent
+            ? t("permanent_delete_confirm_batch_message", { count: selectionCount })
+            : tBatch("delete_confirm_message", { count: selectionCount }),
+          confirmText: permanent ? t("permanent_delete") : tBatch("delete"),
+          variant: "destructive",
+        });
+        if (!confirmed) return;
+      }
       await runBatchEmailAction(() => batchDelete(client, isInTrash), {
         success: tNotifications("emails_deleted", { count: selectionCount }),
         error: tNotifications("error_deleting"),
@@ -346,11 +370,9 @@ export function MvListToolbar({
       const ids = resolveSelectedEmails(useEmailStore.getState()).map((email) => email.id);
       try {
         if (isInJunk) {
-          await batchUndoSpam(client, ids);
-          toast.success(tSpam("toast_not_spam_batch", { count: ids.length }));
+          if (await batchUndoSpam(client, ids)) toast.success(tSpam("toast_not_spam_batch", { count: ids.length }));
         } else {
-          await batchMarkAsSpam(client, ids);
-          toast.success(tSpam("toast_batch", { count: ids.length }));
+          if (await batchMarkAsSpam(client, ids)) toast.success(tSpam("toast_batch", { count: ids.length }));
         }
       } catch {
         toast.error(isInJunk ? tSpam("error_not_spam") : tSpam("error"));
@@ -602,6 +624,13 @@ export function MvListToolbar({
               </div>
             )}
           </div>
+          <PluginActions
+            surface="message-bulk-actions"
+            context={{ emailIds: selectedEmails.map((email) => email.id) }}
+            mailboxRole={currentRole ?? null}
+            compact
+            className="shrink-0"
+          />
           <span className="ms-2 text-sm text-muted-foreground truncate">
             {tBatch("selected_messages", { count: selectionCount })}
           </span>

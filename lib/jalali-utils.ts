@@ -63,11 +63,6 @@ export function jalaliMonthLength(jy: number, jm: number): number {
   return jalaali.jalaaliMonthLength(jy, jm);
 }
 
-/** Is the given Jalali year a leap year? */
-export function isJalaliLeapYear(jy: number): boolean {
-  return jalaali.isLeapJalaaliYear(jy);
-}
-
 // ---------------------------------------------------------------------------
 // Calendar grid helpers (analogous to date-fns startOfWeek / eachDayOfInterval)
 // ---------------------------------------------------------------------------
@@ -160,10 +155,4 @@ export function getDayHeaderKeys(
  */
 export function shouldUseJalaliCalendar(locale: string): boolean {
   return locale === 'fa';
-}
-
-/** Default `firstDayOfWeek` for a given locale. */
-export function defaultFirstDayOfWeek(locale: string): number {
-  if (locale === 'fa') return 6; // Saturday
-  return 1; // Monday (ISO convention)
 }

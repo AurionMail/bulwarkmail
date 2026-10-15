@@ -9,8 +9,11 @@ import { ProtocolLaunchHandlerProvider } from "@/components/protocol/protocol-la
 import { ProInterfaceRedirect } from "@/components/pro/pro-interface-redirect";
 import { ImpersonationReconciler } from "@/components/impersonation/impersonation-reconciler";
 import { PluginDialogHost } from "@/components/plugins/plugin-dialog-host";
+import { CommandPaletteHost } from "@/components/command-palette/command-palette";
+import { PluginConnectDialog } from "@/components/plugins/plugin-connect-dialog";
 import { QuickRuleHost } from "@/components/filters/quick-rule-host";
 import { PluginConsentDialog } from "@/components/plugins/plugin-consent-dialog";
+import { PluginAppEvents } from "@/components/providers/plugin-app-events";
 import { PluginOAuthCallbackListener } from "@/components/providers/plugin-oauth-callback-listener";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationPrompt } from "@/components/push-notification-prompt";
@@ -56,9 +59,12 @@ export default async function LocaleLayout({
                   <ImpersonationReconciler />
                   {children}
                   <PluginDialogHost />
+                  <CommandPaletteHost />
+                  <PluginConnectDialog />
                   <QuickRuleHost />
                   <PluginConsentDialog />
                   <PluginOAuthCallbackListener />
+                  <PluginAppEvents />
                   <PWAInstallPrompt />
                   <PushNotificationPrompt />
                 </ProtocolLaunchHandlerProvider>

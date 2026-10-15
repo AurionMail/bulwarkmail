@@ -20,12 +20,6 @@ export interface AdminStateData {
   passwordChangedAt: string;
 }
 
-/**
- * Combined view used by getAdminMeta() and tests. Constructed by merging
- * admin.json + admin-state.json at read time.
- */
-export interface AdminData extends AdminConfigData, AdminStateData {}
-
 export interface AdminSessionPayload {
   role: 'admin';
   iat: number;
@@ -69,6 +63,8 @@ export interface FeatureGates {
   unifiedCrossAccountEnabled: boolean;
   /** Encrypted account list kept on the server, restorable on another device. */
   accountArchiveEnabled: boolean;
+  /** Composer "Custom" From: free-text sender address instead of an identity. */
+  customFromEnabled: boolean;
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
@@ -97,6 +93,7 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   crossAllViewEnabled: false,
   unifiedCrossAccountEnabled: false,
   accountArchiveEnabled: false,
+  customFromEnabled: true,
 };
 
 export interface ThemePolicy {
@@ -147,6 +144,10 @@ export interface SettingsPolicy {
   /** Plugin IDs that are force-enabled (users cannot disable) */
   forceEnabledPlugins: string[];
   /** Plugin IDs that have been approved by admin (users can enable) */
+  /**
+   * @deprecated Never had a writer, and approving an id approved any code
+   * under it. Approvals are per package now (lib/admin/plugin-approvals.ts).
+   */
   approvedPlugins: string[];
   /** Theme IDs that are force-enabled (users cannot deactivate) */
   forceEnabledThemes: string[];
@@ -242,6 +243,9 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   // password. For JMAP servers that hand out API tokens, such as Fastmail,
   // whose API accepts no passwords at all.
   loginShowTokenLogin: { envVar: 'LOGIN_SHOW_TOKEN_LOGIN', type: 'boolean', defaultValue: false },
+  // Show the "Remember me" box on the login form. Off (the default) remembers
+  // every sign-in, as long as a SESSION_SECRET makes that possible.
+  loginShowRememberMe: { envVar: 'LOGIN_SHOW_REMEMBER_ME', type: 'boolean', defaultValue: false },
   // Show the build version in the login footer. Off keeps the exact version
   // from being disclosed to unauthenticated visitors.
   loginShowVersion: { envVar: 'LOGIN_SHOW_VERSION', type: 'boolean', defaultValue: true },
@@ -289,6 +293,13 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   logLevel: { envVar: 'LOG_LEVEL', type: 'enum', defaultValue: 'info', enumValues: ['error', 'warn', 'info', 'debug'] },
   sessionSecret: { envVar: 'SESSION_SECRET', fileEnvVar: 'SESSION_SECRET_FILE', fileKey: "sessionSecretFile", type: 'string', defaultValue: '' },
   extensionDirectoryUrl: { envVar: 'EXTENSION_DIRECTORY_URL', type: 'url', defaultValue: 'https://extensions.bulwarkmail.org' },
+  // Root keys (base64 raw Ed25519, comma-separated) a self-hosted extension
+  // directory signs its keyring with. The official directory's are built in
+  // (lib/admin/directory-keys.ts); with none known, marketplace bundles are
+  // installed without a signature check.
+  extensionDirectoryRootKeys: { envVar: 'EXTENSION_DIRECTORY_ROOT_KEYS', type: 'string', defaultValue: '' },
+  // 'beta' also offers pre-release versions from the marketplace.
+  extensionDirectoryChannel: { envVar: 'EXTENSION_DIRECTORY_CHANNEL', type: 'enum', defaultValue: 'stable', enumValues: ['stable', 'beta'] },
   // Connector links (connector.bulwarkmail.org): docs and the extension
   // directory link to a destination, and the reader's own browser resolves it
   // to their instance. `connectorEnabled` covers both halves - the

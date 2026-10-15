@@ -6,6 +6,9 @@ import { fileNodeDepth } from '@/lib/jmap/filenode-depth';
 import { jmapError } from '@/lib/jmap/jmap-error';
 import { folderDepthError } from '@/lib/file-errors';
 import { imageBlobUrl } from '@/lib/file-preview';
+import { fileHooks } from '@/lib/plugin-hooks';
+import { fileToView } from '@/lib/plugin-projection';
+import type { FileResourceView } from '@/lib/plugin-types';
 
 export interface FileResource {
   id: string;
@@ -62,6 +65,8 @@ interface ClipboardState {
    */
   sourceParentIds?: (string | null)[];
   sourcePath: string;
+  /** The cut or copied items as plugins see them, taken when they were picked. */
+  files: FileResourceView[];
 }
 
 interface UndoAction {
@@ -122,22 +127,24 @@ interface FileState {
   uploadFiles: (files: File[]) => Promise<UploadReport>;
   uploadFolder: (files: File[]) => Promise<UploadReport>;
   cancelUpload: () => void;
-  deleteResource: (name: string) => Promise<void>;
-  deleteResources: (names: string[]) => Promise<void>;
-  renameResource: (oldName: string, newName: string) => Promise<void>;
+  // Deletes, renames and moves resolve to false when a plugin stopped them
+  // (onBeforeFileDelete / Rename / Move); nothing changed then.
+  deleteResource: (name: string) => Promise<boolean>;
+  deleteResources: (names: string[]) => Promise<boolean>;
+  renameResource: (oldName: string, newName: string) => Promise<boolean>;
   downloadResource: (name: string) => Promise<void>;
   downloadResources: (names: string[]) => Promise<void>;
   getImageUrl: (name: string) => Promise<string>;
   getFileContent: (name: string) => Promise<{ blob: Blob; contentType: string }>;
   createTextFile: (name: string) => Promise<void>;
   duplicateResource: (name: string) => Promise<void>;
-  moveToFolder: (names: string[], targetFolder: string) => Promise<void>;
-  moveToParent: (names: string[]) => Promise<void>;
+  moveToFolder: (names: string[], targetFolder: string) => Promise<boolean>;
+  moveToParent: (names: string[]) => Promise<boolean>;
   /** Move listed items into any folder by id (null = the root), e.g. a tree or breadcrumb drop. */
-  moveToFolderId: (names: string[], targetId: string | null) => Promise<void>;
+  moveToFolderId: (names: string[], targetId: string | null) => Promise<boolean>;
   cutResources: (names: string[]) => void;
   copyResources: (names: string[]) => void;
-  pasteResources: () => Promise<void>;
+  pasteResources: () => Promise<boolean>;
   selectResource: (name: string | null) => void;
   toggleSelect: (name: string) => void;
   selectAll: () => void;
@@ -150,9 +157,9 @@ interface FileState {
   /** Open the folder holding a node and return the node's name, or null when it is gone. */
   revealNode: (id: string) => Promise<string | null>;
   /** Rename any node by id, e.g. a folder in the tree that is not listed. */
-  renameNode: (id: string, newName: string) => Promise<void>;
+  renameNode: (id: string, newName: string) => Promise<boolean>;
   /** Delete any node by id; leaves the folder on screen if it was inside it. */
-  deleteNode: (id: string) => Promise<void>;
+  deleteNode: (id: string) => Promise<boolean>;
   /** Download a file by id, wherever it lives. */
   downloadNode: (id: string) => Promise<void>;
   removeRecentFile: (id: string) => void;
@@ -434,6 +441,81 @@ function buildPathFromStack(stack: { id: string | null; name: string }[]): strin
   return '/' + stack.slice(1).map(s => s.name).join('/');
 }
 
+function joinPath(base: string, name: string): string {
+  if (!name) return base;
+  return base === '/' || base === '' ? `/${name}` : `${base}/${name}`;
+}
+
+/** A listed item as plugins see it; `path` is the folder that holds it. */
+export function resourceToView(r: FileResource, path: string): FileResourceView {
+  return fileToView({
+    id: r.id,
+    parentId: r.parentId,
+    name: r.name,
+    type: r.isDirectory ? 'd' : r.contentType,
+    blobId: r.isDirectory ? null : r.blobId,
+    size: r.contentLength,
+    created: r.lastModified,
+    modified: r.lastModified,
+  }, path);
+}
+
+/** Path of the folder holding a node, from the folder list ('' when unknown). */
+function parentPath(folders: FileResource[], parentId: string | null | undefined): string {
+  if (parentId == null) return '/';
+  return folderPath(folders, parentId) ?? '';
+}
+
+/** Views of the items whose ids the server reports as destroyed. */
+function destroyedViews(views: FileResourceView[], result: { destroyed?: string[] } | undefined): FileResourceView[] {
+  if (!result?.destroyed) return views;
+  const gone = new Set(result.destroyed);
+  return views.filter(v => gone.has(v.id));
+}
+
+/** A starred folder as plugins see it; favourites are kept by path. */
+function favoriteFolderView(folders: FileResource[], path: string): FileResourceView {
+  const slash = path.lastIndexOf('/');
+  const parent = slash > 0 ? path.slice(0, slash) : '/';
+  const folder = folders.find(f => folderPath(folders, f.id) === path);
+  if (folder) return resourceToView(folder, parent);
+  return { id: '', name: path.slice(slash + 1), type: 'directory', size: 0, mimeType: '', path: parent, modified: '' };
+}
+
+function sameNameSet(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const n of a) if (!b.has(n)) return false;
+  return true;
+}
+
+/** A node that is not in any listing; plugins get at least its id. */
+function unknownNodeView(id: string): FileResourceView {
+  return { id, name: '', type: 'file', size: 0, mimeType: '', path: '', modified: '' };
+}
+
+/** Ask plugins once about moving these items from `fromPath` to `toPath`. */
+async function approveMove(items: FileResource[], fromPath: string, toPath: string): Promise<boolean> {
+  if (items.length === 0) return true;
+  const files = items.map(r => resourceToView(r, fromPath));
+  return fileHooks.onBeforeFileMove.intercept({ files, toPath });
+}
+
+/**
+ * Move each item with `moveOne`, then tell plugins which ones moved. Items
+ * moved before a failure are still reported; the error is passed on.
+ */
+async function reportMoves(items: FileResource[], toPath: string, moveOne: (r: FileResource) => Promise<void>): Promise<void> {
+  const moved: FileResourceView[] = [];
+  try {
+    for (const resource of items) {
+      await moveOne(resource);
+      moved.push(resourceToView(resource, toPath));
+    }
+  } finally {
+    if (moved.length > 0) void fileHooks.onFileMove.emit({ files: moved, toPath });
+  }
+}
+
 export const useFileStore = create<FileState>((set, get) => ({
   currentParentId: null,
   currentPath: '/',
@@ -694,8 +776,10 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   navigate: async (parentId: string | null, name?: string) => {
-    const { client, pathStack } = get();
+    const { client, pathStack, currentParentId: previousParentId, hasListed } = get();
     if (!client) return;
+    // A refresh lists the same folder again; plugins only hear about a new one.
+    const opensFolder = !hasListed || parentId !== previousParentId;
 
     set({ isLoading: true, error: null, currentParentId: parentId, selectedResources: new Set() });
 
@@ -752,6 +836,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       } else {
         set({ resources, allFolders, isLoading: false, hasListed: true });
       }
+      if (opensFolder) void fileHooks.onFileNavigate.emit({ path: newPath });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to list directory',
@@ -809,18 +894,20 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   createDirectory: async (name: string) => {
-    const { client, currentParentId, refresh } = get();
+    const { client, currentParentId, currentPath, refresh } = get();
     if (!client) return;
     assertCanAddTo(currentParentId);
 
-    await client.createFileDirectory(name, currentParentId);
+    const created = await client.createFileDirectory(name, currentParentId);
+    void fileHooks.onDirectoryCreate.emit(fileToView(created, currentPath));
     await refresh();
   },
 
   uploadFile: async (file: File) => {
-    const { client, currentParentId } = get();
+    const { client, currentParentId, currentPath } = get();
     if (!client) return;
     assertCanAddTo(currentParentId);
+    if (!(await fileHooks.onBeforeFileUpload.intercept({ name: file.name, size: file.size, type: file.type, path: currentPath }))) return;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -836,17 +923,27 @@ export const useFileStore = create<FileState>((set, get) => ({
       });
       if (abortController.signal.aborted) return;
       set({ uploadProgress: { name: file.name, loaded: file.size, total: file.size, current: 1, totalFiles: 1 } });
-      await client.createFileNode(file.name, blobId, type || file.type || 'application/octet-stream', file.size, currentParentId);
+      const node = await client.createFileNode(file.name, blobId, type || file.type || 'application/octet-stream', file.size, currentParentId);
+      void fileHooks.onAfterFileUpload.emit(fileToView(node, currentPath));
     } finally {
       set({ uploadProgress: null, uploadAbortController: null });
     }
   },
 
-  uploadFiles: async (files: File[]) => {
-    const { client, currentParentId, resources } = get();
+  uploadFiles: async (allFiles: File[]) => {
+    const { client, currentParentId, currentPath, resources } = get();
     const report: UploadReport = { uploaded: 0, failed: [], canceled: false };
     if (!client) return report;
     assertCanAddTo(currentParentId);
+
+    // Plugins may hold back single files; the rest go up.
+    const files: File[] = [];
+    for (const file of allFiles) {
+      if (await fileHooks.onBeforeFileUpload.intercept({ name: file.name, size: file.size, type: file.type, path: currentPath })) {
+        files.push(file);
+      }
+    }
+    if (files.length === 0) return report;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -870,8 +967,9 @@ export const useFileStore = create<FileState>((set, get) => ({
         });
         if (abortController.signal.aborted) break;
         set({ uploadProgress: { name: file.name, loaded: file.size, total: file.size, current: i + 1, totalFiles } });
-        await client.createFileNode(uniqueName, blobId, type || file.type || 'application/octet-stream', file.size, currentParentId);
+        const node = await client.createFileNode(uniqueName, blobId, type || file.type || 'application/octet-stream', file.size, currentParentId);
         report.uploaded++;
+        void fileHooks.onAfterFileUpload.emit(fileToView(node, currentPath));
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') break;
         report.failed.push({ name: file.name, error: err });
@@ -884,24 +982,41 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   cancelUpload: () => {
-    const { uploadAbortController } = get();
+    const { uploadAbortController, uploadProgress, currentPath } = get();
     if (uploadAbortController) {
       uploadAbortController.abort();
       set({ uploadProgress: null, uploadAbortController: null });
+      void fileHooks.onFileUploadCancel.emit({ name: uploadProgress?.name ?? '', path: currentPath });
     }
   },
 
-  uploadFolder: async (files: File[]) => {
-    const { client, currentParentId } = get();
+  uploadFolder: async (allFiles: File[]) => {
+    const { client, currentParentId, currentPath } = get();
     const report: UploadReport = { uploaded: 0, failed: [], canceled: false };
-    if (!client || files.length === 0) return report;
+    if (!client || allFiles.length === 0) return report;
     assertCanAddTo(currentParentId);
+
+    const relativePathOf = (file: File) => (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+    const dirOf = (relativePath: string) => {
+      const slash = relativePath.lastIndexOf('/');
+      return slash >= 0 ? relativePath.slice(0, slash) : '';
+    };
+    const levelsOf = (path: string) => (path ? path.split('/').length : 0);
+
+    // Ask plugins about every file before anything is created, so a folder
+    // that only held refused files is not created either.
+    const files: File[] = [];
+    for (const file of allFiles) {
+      const path = joinPath(currentPath, dirOf(relativePathOf(file)));
+      if (await fileHooks.onBeforeFileUpload.intercept({ name: file.name, size: file.size, type: file.type, path })) {
+        files.push(file);
+      }
+    }
+    if (files.length === 0) return report;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
     const totalFiles = files.length;
-    const relativePathOf = (file: File) => (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-    const levelsOf = (path: string) => (path ? path.split('/').length : 0);
 
     // Collect unique directory paths (relative to the dropped folder) and
     // create them as real nested directories, mapping each path to its node id.
@@ -954,6 +1069,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       try {
         const created = await client.createFileDirectory(dirName, parentId);
         dirIds.set(dir, created.id);
+        void fileHooks.onDirectoryCreate.emit(fileToView(created, joinPath(currentPath, parentPath)));
       } catch (err) {
         dirErrors.set(dir, err);
       }
@@ -964,8 +1080,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       if (abortController.signal.aborted) break;
       const file = files[i];
       const relativePath = relativePathOf(file);
-      const slash = relativePath.lastIndexOf('/');
-      const dirPath = slash >= 0 ? relativePath.slice(0, slash) : '';
+      const dirPath = dirOf(relativePath);
       const parentId = dirIds.get(dirPath);
       if (parentId === undefined) {
         report.failed.push({ name: relativePath, error: dirErrors.get(dirPath) });
@@ -988,8 +1103,9 @@ export const useFileStore = create<FileState>((set, get) => ({
         });
         if (abortController.signal.aborted) break;
         set({ uploadProgress: { name: relativePath, loaded: file.size, total: file.size, current: i + 1, totalFiles } });
-        await client.createFileNode(file.name, blobId, type || file.type || 'application/octet-stream', file.size, parentId);
+        const node = await client.createFileNode(file.name, blobId, type || file.type || 'application/octet-stream', file.size, parentId);
         report.uploaded++;
+        void fileHooks.onAfterFileUpload.emit(fileToView(node, joinPath(currentPath, dirPath)));
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') break;
         report.failed.push({ name: relativePath, error: err });
@@ -1002,50 +1118,68 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   deleteResource: async (name: string) => {
-    const { client, resources, recentFiles, refresh } = get();
-    if (!client) return;
+    const { client, resources, recentFiles, currentPath, refresh } = get();
+    if (!client) return false;
 
     const resource = resources.find(r => r.name === name);
-    if (!resource) return;
+    if (!resource) return false;
+
+    const files = [resourceToView(resource, currentPath)];
+    if (!(await fileHooks.onBeforeFileDelete.intercept({ files }))) return false;
 
     // The server removes descendant nodes (onDestroyRemoveChildren).
-    await client.destroyFileNodes([resource.id]);
+    const result = await client.destroyFileNodes([resource.id]);
+    const deleted = destroyedViews(files, result);
+    if (deleted.length > 0) void fileHooks.onAfterFileDelete.emit({ files: deleted });
     const nextRecentFiles = recentFiles.filter(r => r.id !== resource.id);
     set({ recentFiles: nextRecentFiles });
     try { localStorage.setItem('files-recent-files', JSON.stringify(nextRecentFiles)); } catch { /* ignore */ }
     await refresh();
+    return true;
   },
 
   deleteResources: async (names: string[]) => {
-    const { client, resources, recentFiles, refresh } = get();
-    if (!client) return;
+    const { client, resources, recentFiles, currentPath, refresh } = get();
+    if (!client) return false;
 
     const idsToDelete: string[] = [];
+    const files: FileResourceView[] = [];
     for (const name of names) {
       const resource = resources.find(r => r.name === name);
-      if (resource) idsToDelete.push(resource.id);
+      if (resource) {
+        idsToDelete.push(resource.id);
+        files.push(resourceToView(resource, currentPath));
+      }
     }
 
-    if (idsToDelete.length === 0) return;
+    if (idsToDelete.length === 0) return false;
+    if (!(await fileHooks.onBeforeFileDelete.intercept({ files }))) return false;
 
     // The server removes descendant nodes (onDestroyRemoveChildren).
-    await client.destroyFileNodes(idsToDelete);
+    const result = await client.destroyFileNodes(idsToDelete);
+    const deleted = destroyedViews(files, result);
+    if (deleted.length > 0) void fileHooks.onAfterFileDelete.emit({ files: deleted });
     const deletedIdSet = new Set(idsToDelete);
     const nextRecentFiles = recentFiles.filter(r => !deletedIdSet.has(r.id));
     set({ selectedResources: new Set() });
     set({ recentFiles: nextRecentFiles });
     try { localStorage.setItem('files-recent-files', JSON.stringify(nextRecentFiles)); } catch { /* ignore */ }
     await refresh();
+    return true;
   },
 
   renameResource: async (oldName: string, newName: string) => {
-    const { client, resources, refresh } = get();
-    if (!client) return;
+    const { client, resources, currentPath, refresh } = get();
+    if (!client) return false;
 
     const resource = resources.find(r => r.name === oldName);
-    if (!resource) return;
+    if (!resource) return false;
+
+    const file = resourceToView(resource, currentPath);
+    if (!(await fileHooks.onBeforeFileRename.intercept({ file, newName }))) return false;
 
     await client.updateFileNode(resource.id, { name: newName });
+    void fileHooks.onFileRename.emit({ file: { ...file, name: newName }, previousName: oldName });
 
     set({
       lastAction: {
@@ -1055,16 +1189,18 @@ export const useFileStore = create<FileState>((set, get) => ({
       },
     });
     await refresh();
+    return true;
   },
 
   downloadResource: async (name: string) => {
-    const { client, resources } = get();
+    const { client, resources, currentPath } = get();
     if (!client) return;
 
     const resource = resources.find(r => r.name === name);
     if (!resource?.blobId) return;
 
     await client.downloadBlob(resource.blobId, resource.name, resource.contentType);
+    void fileHooks.onFileDownload.emit(resourceToView(resource, currentPath));
   },
 
   downloadResources: async (names: string[]) => {
@@ -1112,7 +1248,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   duplicateResource: async (name: string) => {
-    const { client, resources, currentParentId, refresh } = get();
+    const { client, resources, currentParentId, currentPath, refresh } = get();
     if (!client) return;
 
     const resource = resources.find(r => r.name === name);
@@ -1124,56 +1260,67 @@ export const useFileStore = create<FileState>((set, get) => ({
       ? `${name.substring(0, dotIdx)} (copy)${name.substring(dotIdx)}`
       : `${name} (copy)`;
 
-    await client.copyFileNode(resource.id, copyName, currentParentId);
+    const copy = await client.copyFileNode(resource.id, copyName, currentParentId);
+    void fileHooks.onFileDuplicate.emit(fileToView(copy, currentPath));
     await refresh();
   },
 
   moveToFolder: async (names: string[], targetFolder: string) => {
-    const { client, resources, refresh } = get();
-    if (!client) return;
+    const { client, resources, currentPath, refresh } = get();
+    if (!client) return false;
 
     const targetResource = resources.find(r => r.name === targetFolder && r.isDirectory);
-    if (!targetResource) return;
+    if (!targetResource) return false;
+
+    const toMove = names
+      .map(name => resources.find(r => r.name === name))
+      .filter((r): r is FileResource => !!r && r.id !== targetResource.id);
+    const toPath = joinPath(currentPath, targetFolder);
+    if (!(await approveMove(toMove, currentPath, toPath))) return false;
 
     const entries: UndoAction['entries'] = [];
-    for (const name of names) {
-      const resource = resources.find(r => r.name === name);
-      if (!resource || resource.id === targetResource.id) continue;
+    await reportMoves(toMove, toPath, async (resource) => {
       await client.updateFileNode(resource.id, { parentId: targetResource.id });
       entries.push({ id: resource.id, from: { parentId: resource.parentId }, to: { parentId: targetResource.id } });
-    }
+    });
     set({
       selectedResources: new Set(),
       lastAction: { type: 'move', entries, sourceParentId: null },
     });
     await refresh();
+    return true;
   },
 
   moveToParent: async (names: string[]) => {
-    const { client, resources, pathStack, refresh } = get();
-    if (!client || pathStack.length <= 1) return;
+    const { client, resources, pathStack, currentPath, refresh } = get();
+    if (!client || pathStack.length <= 1) return false;
 
     // Move into the grandparent of the current folder's contents, i.e. the
     // entry one level up in the breadcrumb stack.
     const newParentId = pathStack[pathStack.length - 2].id;
 
+    const toMove = names
+      .map(name => resources.find(r => r.name === name))
+      .filter((r): r is FileResource => !!r);
+    const toPath = buildPathFromStack(pathStack.slice(0, -1));
+    if (!(await approveMove(toMove, currentPath, toPath))) return false;
+
     const entries: UndoAction['entries'] = [];
-    for (const name of names) {
-      const resource = resources.find(r => r.name === name);
-      if (!resource) continue;
+    await reportMoves(toMove, toPath, async (resource) => {
       await client.updateFileNode(resource.id, { parentId: newParentId });
       entries.push({ id: resource.id, from: { parentId: resource.parentId }, to: { parentId: newParentId } });
-    }
+    });
     set({
       selectedResources: new Set(),
       lastAction: { type: 'move', entries, sourceParentId: null },
     });
     await refresh();
+    return true;
   },
 
   moveToFolderId: async (names: string[], targetId: string | null) => {
-    const { client, resources, currentParentId, allFolders, refresh } = get();
-    if (!client || targetId === currentParentId) return;
+    const { client, resources, currentParentId, currentPath, allFolders, refresh } = get();
+    if (!client || targetId === currentParentId) return false;
     assertCanAddTo(targetId);
 
     // A folder must not move into itself or anything below it.
@@ -1185,19 +1332,23 @@ export const useFileStore = create<FileState>((set, get) => ({
       return false;
     };
 
+    const toMove = names
+      .map(name => resources.find(r => r.name === name))
+      .filter((r): r is FileResource => !!r && !(r.isDirectory && isInside(targetId, r.id)));
+    const toPath = parentPath(allFolders, targetId);
+    if (!(await approveMove(toMove, currentPath, toPath))) return false;
+
     const entries: UndoAction['entries'] = [];
-    for (const name of names) {
-      const resource = resources.find(r => r.name === name);
-      if (!resource) continue;
-      if (resource.isDirectory && isInside(targetId, resource.id)) continue;
+    await reportMoves(toMove, toPath, async (resource) => {
       await client.updateFileNode(resource.id, { parentId: targetId });
       entries.push({ id: resource.id, from: { parentId: resource.parentId }, to: { parentId: targetId } });
-    }
+    });
     set({
       selectedResources: new Set(),
       lastAction: entries.length > 0 ? { type: 'move', entries, sourceParentId: null } : get().lastAction,
     });
     await refresh();
+    return true;
   },
 
   cutResources: (names: string[]) => {
@@ -1214,6 +1365,7 @@ export const useFileStore = create<FileState>((set, get) => ({
         sourceParentId: currentParentId,
         sourceParentIds: picked.map(r => r.parentId ?? null),
         sourcePath: currentPath,
+        files: picked.map(r => resourceToView(r, currentPath)),
       },
     });
   },
@@ -1238,29 +1390,48 @@ export const useFileStore = create<FileState>((set, get) => ({
         serverNames: picked.map(r => r.serverName),
         sourceParentId: currentParentId,
         sourcePath: currentPath,
+        files: picked.map(r => resourceToView(r, currentPath)),
       },
     });
   },
 
   pasteResources: async () => {
-    const { client, currentParentId, clipboard, refresh } = get();
-    if (!client || !clipboard) return;
+    const { client, currentParentId, currentPath, clipboard, refresh } = get();
+    if (!client || !clipboard) return false;
     assertCanAddTo(currentParentId);
 
+    const viewOf = (id: string) => clipboard.files?.find(f => f.id === id);
+    if (clipboard.mode === 'cut') {
+      const files = clipboard.ids.map(viewOf).filter((f): f is FileResourceView => !!f);
+      if (!(await fileHooks.onBeforeFileMove.intercept({ files, toPath: currentPath }))) return false;
+    }
+
     const entries: UndoAction['entries'] = [];
+    const done: FileResourceView[] = [];
     // Each copy reads the source and target trees; read them once per paste.
     const listings: FileNodeListings = new Map();
 
-    for (let i = 0; i < clipboard.ids.length; i++) {
-      const id = clipboard.ids[i];
-      const displayName = clipboard.names[i];
+    try {
+      for (let i = 0; i < clipboard.ids.length; i++) {
+        const id = clipboard.ids[i];
+        const displayName = clipboard.names[i];
 
-      if (clipboard.mode === 'cut') {
-        await client.updateFileNode(id, { parentId: currentParentId });
-        const from = clipboard.sourceParentIds ? clipboard.sourceParentIds[i] : clipboard.sourceParentId;
-        entries.push({ id, from: { parentId: from }, to: { parentId: currentParentId } });
-      } else {
-        await client.copyFileNode(id, displayName, currentParentId, listings);
+        if (clipboard.mode === 'cut') {
+          await client.updateFileNode(id, { parentId: currentParentId });
+          const from = clipboard.sourceParentIds ? clipboard.sourceParentIds[i] : clipboard.sourceParentId;
+          entries.push({ id, from: { parentId: from }, to: { parentId: currentParentId } });
+          const view = viewOf(id);
+          if (view) done.push({ ...view, path: currentPath });
+        } else {
+          const copy = await client.copyFileNode(id, displayName, currentParentId, listings);
+          done.push(fileToView(copy, currentPath));
+        }
+      }
+    } finally {
+      // Report what really happened, also when a later item failed.
+      if (done.length > 0) {
+        if (clipboard.mode === 'cut') void fileHooks.onFileMove.emit({ files: done, toPath: currentPath });
+        else void fileHooks.onFileCopy.emit({ files: done, toPath: currentPath });
       }
     }
 
@@ -1271,6 +1442,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       });
     }
     await refresh();
+    return true;
   },
 
   selectResource: (name: string | null) => {
@@ -1327,12 +1499,14 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   toggleFavorite: (path: string) => {
-    const { favorites } = get();
-    const next = favorites.includes(path)
-      ? favorites.filter(f => f !== path)
-      : [...favorites, path];
+    const { favorites, allFolders } = get();
+    const favorite = !favorites.includes(path);
+    const next = favorite ? [...favorites, path] : favorites.filter(f => f !== path);
     set({ favorites: next });
     try { localStorage.setItem('files-favorites', JSON.stringify(next)); } catch { /* ignore */ }
+    if (fileHooks.onFileFavoriteToggle.size > 0) {
+      void fileHooks.onFileFavoriteToggle.emit({ file: favoriteFolderView(allFolders, path), favorite });
+    }
   },
 
   addRecentFile: (name: string, id: string) => {
@@ -1375,11 +1549,15 @@ export const useFileStore = create<FileState>((set, get) => ({
   },
 
   renameNode: async (id: string, newName: string) => {
-    const { client, allFolders, favorites, refresh } = get();
-    if (!client) return;
+    const { client, allFolders, resources, favorites, refresh } = get();
+    if (!client) return false;
     const node = allFolders.find(f => f.id === id);
     const oldPath = folderPath(allFolders, id);
+    const known = node ?? resources.find(r => r.id === id);
+    const file = known ? resourceToView(known, parentPath(allFolders, known.parentId)) : unknownNodeView(id);
+    if (!(await fileHooks.onBeforeFileRename.intercept({ file, newName }))) return false;
     await client.updateFileNode(id, { name: newName });
+    void fileHooks.onFileRename.emit({ file: { ...file, name: newName }, previousName: file.name });
     // Starred folders are kept by path: follow the rename.
     if (oldPath) {
       const newPath = oldPath.slice(0, oldPath.lastIndexOf('/') + 1) + newName;
@@ -1401,13 +1579,19 @@ export const useFileStore = create<FileState>((set, get) => ({
       set({ currentPath: buildPathFromStack(get().pathStack) });
     }
     await refresh();
+    return true;
   },
 
   deleteNode: async (id: string) => {
-    const { client, allFolders, favorites, recentFiles, pathStack, navigate, refresh } = get();
-    if (!client) return;
+    const { client, allFolders, resources, favorites, recentFiles, pathStack, navigate, refresh } = get();
+    if (!client) return false;
     const path = folderPath(allFolders, id);
-    await client.destroyFileNodes([id]);
+    const known = allFolders.find(f => f.id === id) ?? resources.find(r => r.id === id);
+    const files = [known ? resourceToView(known, parentPath(allFolders, known.parentId)) : unknownNodeView(id)];
+    if (!(await fileHooks.onBeforeFileDelete.intercept({ files }))) return false;
+    const result = await client.destroyFileNodes([id]);
+    const deleted = destroyedViews(files, result);
+    if (deleted.length > 0) void fileHooks.onAfterFileDelete.emit({ files: deleted });
 
     const nextFavorites = path ? favorites.filter(f => !isUnder(f, path)) : favorites;
     // Recent files only know their own id; drop the one deleted, the rest are
@@ -1425,9 +1609,10 @@ export const useFileStore = create<FileState>((set, get) => ({
       const parent = pathStack[idx - 1];
       set({ pathStack: pathStack.slice(0, idx) });
       await navigate(parent.id, parent.name);
-      return;
+      return true;
     }
     await refresh();
+    return true;
   },
 
   downloadNode: async (id: string) => {
@@ -1439,6 +1624,8 @@ export const useFileStore = create<FileState>((set, get) => ({
     const node = nodes.find(n => n.id === id);
     if (!node?.blobId) throw new Error('File not found');
     await client.downloadBlob(node.blobId, node.name, node.type);
+    const folders = nodes.filter(isFolder).map(nodeToResource);
+    void fileHooks.onFileDownload.emit(fileToView(node, parentPath(folders, node.parentId)));
   },
 
   removeRecentFile: (id: string) => {
@@ -1455,6 +1642,12 @@ export const useFileStore = create<FileState>((set, get) => ({
       await client.updateFileNode(entry.id, entry.from);
     }
     set({ lastAction: null });
+    void fileHooks.onFileUndo.emit({
+      action: {
+        type: lastAction.type,
+        entries: lastAction.entries.map(e => ({ id: e.id, from: { ...e.from }, to: { ...e.to } })),
+      },
+    });
     await refresh();
   },
 
@@ -1504,3 +1697,15 @@ export const useFileStore = create<FileState>((set, get) => ({
     return true;
   },
 }));
+
+// Tell plugins when the selected files change, whichever action changed it
+// (click, toggle, select all, clear, navigating away, after a delete or move).
+// Selecting the same files again is not a change.
+useFileStore.subscribe((state, prev) => {
+  if (state.selectedResources === prev.selectedResources) return;
+  if (fileHooks.onFileSelectionChange.size === 0) return;
+  const next = state.selectedResources ?? new Set<string>();
+  if (sameNameSet(next, prev.selectedResources ?? new Set<string>())) return;
+  const files = state.resources.filter(r => next.has(r.name)).map(r => resourceToView(r, state.currentPath));
+  void fileHooks.onFileSelectionChange.emit({ files });
+});

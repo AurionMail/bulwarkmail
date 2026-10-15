@@ -2,8 +2,10 @@
 
 import { useCallback, useState, DragEvent } from "react";
 import { useEmailStore } from "@/stores/email-store";
+import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDragDropContext } from "@/contexts/drag-drop-context";
+import { dragDropHooks } from "@/lib/plugin-hooks";
 
 
 interface UseTagDropOptions {
@@ -25,9 +27,9 @@ interface UseTagDropReturn {
 
 export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): UseTagDropReturn {
   const [isOver, setIsOver] = useState(false);
-  const { client } = useAuthStore();
-  const { fetchEmails, fetchTagCounts, selectedMailbox } = useEmailStore();
-  const { isDragging, endDrag } = useDragDropContext();
+  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
+  const { fetchEmails, fetchTagCounts, selectedMailbox } = useEmailStore(useShallow((state) => ({ fetchEmails: state.fetchEmails, fetchTagCounts: state.fetchTagCounts, selectedMailbox: state.selectedMailbox })));
+  const { isDragging, endDrag, markDropped } = useDragDropContext();
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -71,21 +73,31 @@ export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): Us
       }
 
       const emailIds: string[] = JSON.parse(emailIdsJson);
+      markDropped();
 
+      // Emails that carry the tag afterwards; a plugin may stop some or all.
+      const tagged: string[] = [];
       for (const emailId of emailIds) {
         // Read fresh state to avoid stale closures
         const emailState = useEmailStore.getState();
         const email = emailState.emails.find(em => em.id === emailId);
         const keywords = { ...(email?.keywords || {}) };
 
+        if (keywords[`$label:${tagId}`]) {
+          tagged.push(emailId);
+          continue;
+        }
         // Add the tag without removing existing ones
         keywords[`$label:${tagId}`] = true;
 
         // Routes the write to the email's own account - the email's source in an
         // aggregate view, the selected folder's owner when a shared folder is
         // open directly. (#281)
-        await emailState.setEmailKeywords(client, emailId, keywords);
+        if (await emailState.setEmailKeywords(client, emailId, keywords)) tagged.push(emailId);
       }
+      if (tagged.length === 0) return;
+
+      void dragDropHooks.onTagDrop.emit({ emailIds: tagged, keyword: `$label:${tagId}` });
 
       // Refresh the email list
       await fetchEmails(client, selectedMailbox);
@@ -93,14 +105,14 @@ export function useTagDrop({ tagId, onSuccess, onError }: UseTagDropOptions): Us
       // Refresh tag counts
       fetchTagCounts(client);
 
-      onSuccess?.(emailIds.length, tagId);
+      onSuccess?.(tagged.length, tagId);
     } catch (error) {
       console.error("Failed to tag emails:", error);
       onError?.(error instanceof Error ? error.message : "Unknown error");
     } finally {
       endDrag();
     }
-  }, [client, isDragging, tagId, fetchEmails, fetchTagCounts, selectedMailbox, endDrag, onSuccess, onError]);
+  }, [client, isDragging, tagId, fetchEmails, fetchTagCounts, selectedMailbox, endDrag, markDropped, onSuccess, onError]);
 
   return {
     dropHandlers: {

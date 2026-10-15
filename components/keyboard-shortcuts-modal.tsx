@@ -7,6 +7,8 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useTour } from "@/components/tour/tour-provider";
+import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
+import { usePluginActions } from "@/components/plugins/plugin-actions";
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
@@ -17,9 +19,12 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
   const t = useTranslations();
   const { startTour } = useTour();
   const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
-  // Rows that belong to one interface layout are listed only under it.
+  const shell = useProInterfaceActive() ? "pro" : "standard";
+  // Plugin buttons in the composer that have a shortcut (composer-toolbar-actions).
+  const pluginComposerShortcuts = usePluginActions("composer-toolbar-actions").filter((a) => a.shortcut);
+  // Rows that belong to one interface layout (or one shell) are listed only under it.
   const shown = (entries: readonly ShortcutEntry[]) =>
-    entries.filter((entry) => !entry.layout || entry.layout === interfaceLayout);
+    entries.filter((entry) => (!entry.layout || entry.layout === interfaceLayout) && (!entry.shell || entry.shell === shell));
 
   const modalRef = useFocusTrap({
     isActive: isOpen,
@@ -140,6 +145,13 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                     key={shortcut.key}
                     shortcutKey={shortcut.key}
                     description={t(shortcut.description)}
+                  />
+                ))}
+                {pluginComposerShortcuts.map((action) => (
+                  <ShortcutRow
+                    key={`${action.pluginId}:${action.id}`}
+                    shortcutKey={action.shortcut!}
+                    description={`${action.label} (${action.pluginName})`}
                   />
                 ))}
               </div>

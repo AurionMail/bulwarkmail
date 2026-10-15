@@ -415,7 +415,7 @@ export function FolderSettings() {
     if (!client || !newFolderName.trim()) return;
     setIsLoading(true);
     try {
-      await createMailbox(client, newFolderName.trim(), creatingParentId ?? undefined);
+      if (!(await createMailbox(client, newFolderName.trim(), creatingParentId ?? undefined))) return;
       setNewFolderName('');
       setIsCreating(false);
       setCreatingParentId(null);
@@ -431,7 +431,7 @@ export function FolderSettings() {
     if (!client || !editingName.trim()) return;
     setIsLoading(true);
     try {
-      await renameMailbox(client, mailboxId, editingName.trim());
+      if (!(await renameMailbox(client, mailboxId, editingName.trim()))) return;
       setEditingId(null);
       setEditingName('');
       toast.success(t('folder_renamed'));
@@ -446,7 +446,7 @@ export function FolderSettings() {
     if (!client) return;
     setIsLoading(true);
     try {
-      await deleteMailbox(client, mailboxId);
+      if (!(await deleteMailbox(client, mailboxId))) return;
       setDeletingId(null);
       toast.success(t('folder_deleted'));
     } catch (err: unknown) {

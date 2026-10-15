@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
       loginShowSubtitle: configManager.get<boolean>('loginShowSubtitle', true),
       loginShowTotp: configManager.get<boolean>('loginShowTotp', true),
       loginShowTokenLogin: configManager.get<boolean>('loginShowTokenLogin', false),
+      loginShowRememberMe: configManager.get<boolean>('loginShowRememberMe', false),
       loginShowVersion: configManager.get<boolean>('loginShowVersion', true),
       demoMode: configManager.get<boolean>('demoMode', false),
       allowCustomJmapEndpoint: configManager.get<boolean>('allowCustomJmapEndpoint', false),

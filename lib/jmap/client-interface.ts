@@ -3,6 +3,8 @@ import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { FileNameRules } from "@/lib/file-name-rules";
 import type { SortLevel } from "@/lib/message-list-order";
 import type { AccountInfo } from "./types";
+import type { SearchSnippetResult } from "@/lib/search-snippet";
+import type { StorageQuota } from "@/lib/quota";
 
 /** What `migrateKeyword` managed to do. */
 export interface KeywordMigration {
@@ -69,6 +71,23 @@ export interface CalendarQueryOptions {
  * Start each paste with an empty map.
  */
 export type FileNodeListings = Map<string, Promise<FileNode[]>>;
+/** How a search request fetches its SearchSnippet/get highlights. */
+export interface SearchRequestOptions {
+  /**
+   * Fetch the snippets in a follow-up request instead of chaining them onto
+   * the search, and hand them back as `snippets`. For interactive searches,
+   * where the list must not wait for the highlighting.
+   */
+  deferSnippets?: boolean;
+}
+
+export interface SearchEmailsResult {
+  emails: Email[];
+  hasMore: boolean;
+  total: number;
+  /** Set only with `deferSnippets`, when the filter has a term to highlight. */
+  snippets?: Promise<SearchSnippetResult[] | undefined>;
+}
 
 export interface IJMAPClient {
   // ── Connection lifecycle ──────────────────────────────────────
@@ -155,7 +174,7 @@ export interface IJMAPClient {
   destroyPushSubscription(id: string): Promise<void>;
 
   // ── Quota ─────────────────────────────────────────────────────
-  getQuota(): Promise<{ used: number; total: number } | null>;
+  getQuota(): Promise<StorageQuota | null>;
 
   // ── Mailboxes ─────────────────────────────────────────────────
   getMailboxes(accountId?: string): Promise<Mailbox[]>;
@@ -214,7 +233,11 @@ export interface IJMAPClient {
   // server-side after pinned-first; see lib/message-list-order.ts.
   // `state` is the Email collection state the page was read at (RFC 8620
   // §5.1), when the client reports it; the store uses it for Email/changes.
-  getEmails(mailboxId?: string, accountId?: string, limit?: number, position?: number, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order?: SortLevel[]): Promise<{ emails: Email[]; hasMore: boolean; total: number; state?: string }>;
+  /**
+   * A page of a view. `threadCounts` (message count per thread id) comes with
+   * the page when the server answers the Thread/get chained onto it.
+   */
+  getEmails(mailboxId?: string, accountId?: string, limit?: number, position?: number, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order?: SortLevel[]): Promise<{ emails: Email[]; hasMore: boolean; total: number; state?: string; threadCounts?: Record<string, number> }>;
   /**
    * Sort properties the account's server advertises for Email/query
    * (`emailQuerySortOptions` in the mail capability, RFC 8621 §1.3), or null
@@ -262,13 +285,14 @@ export interface IJMAPClient {
   }): Promise<{ keywords: Record<string, number>; scanned: number; total: number; complete: boolean }>;
   /** Per-tab unread counts for message-list category tabs (filter = resolved tab fragment, null = unfiltered). */
   getCategoryUnreadCounts(mailboxId: string, tabs: Array<{ id: string; filter: Record<string, unknown> | null }>, accountId?: string): Promise<Record<string, number>>;
-  searchEmails(query: string, mailboxId?: string, accountId?: string, limit?: number, position?: number): Promise<{ emails: Email[]; hasMore: boolean; total: number }>;
+  searchEmails(query: string, mailboxId?: string, accountId?: string, limit?: number, position?: number, options?: SearchRequestOptions): Promise<SearchEmailsResult>;
   advancedSearchEmails(
     filter: Record<string, unknown>,
     accountId?: string,
     limit?: number,
     position?: number,
-  ): Promise<{ emails: Email[]; hasMore: boolean; total: number }>;
+    options?: SearchRequestOptions,
+  ): Promise<SearchEmailsResult>;
   /**
    * Lean recipient search for compose autocomplete ("search the server" action):
    * finds messages in `sentMailboxId` whose to/cc matches `query` and returns

@@ -102,7 +102,9 @@ export type PayloadPurpose =
   /** WOPI access token, scoped to one file node and a six-hour expiry. */
   | 'wopi-token'
   /** The app password an impersonation handoff minted, kept for revocation. */
-  | 'impersonation-grant';
+  | 'impersonation-grant'
+  /** A user's plugin credentials (lib/plugin-secrets/vault.ts). */
+  | 'plugin-secrets';
 
 /**
  * Whether a blob minted before purposes were bound may be re-admitted for
@@ -122,6 +124,7 @@ const LEGACY_PAYLOAD_MARKERS: Record<PayloadPurpose, (payload: Record<string, un
   'pair-refresh': () => false,
   'wopi-token': (p) => p.t === 'wopi',
   'impersonation-grant': () => false,
+  'plugin-secrets': () => false,
 };
 
 export function encryptPayload(payload: Record<string, unknown>, purpose: PayloadPurpose): string {

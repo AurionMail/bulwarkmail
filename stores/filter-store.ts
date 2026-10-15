@@ -3,7 +3,10 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FilterRule, SieveCapabilities, VacationAudience, VacationForward, VacationSieveConfig } from '@/lib/jmap/sieve-types';
 import { parseScript } from '@/lib/sieve/parser';
 import { generateScript, supportsSpamGuard, VACATION_SCRIPT_NAME } from '@/lib/sieve/generator';
-import { OpaqueFiltersError, applyScriptTransforms, supportsInclude, writeFiltersScript } from '@/lib/filters/account-filters';
+import {
+  OpaqueFiltersError, applyScriptTransforms, assertFiltersSaveAllowed, filterRuleToView, supportsInclude, writeFiltersScript,
+} from '@/lib/filters/account-filters';
+import { filterHooks } from '@/lib/plugin-hooks';
 import { worstCaseForwards } from '@/lib/filters/forward-limit';
 import { supportsPeriods } from '@/lib/sieve/period';
 import { isValidVacationForward, withVacationPeriod } from '@/lib/sieve/vacation-forward';
@@ -14,6 +17,22 @@ interface SieveAccount {
   id: string;
   name: string;
   isPrimary: boolean;
+}
+
+function emitFiltersLoaded(rules: FilterRule[]): void {
+  if (filterHooks.onFiltersLoaded.size > 0) void filterHooks.onFiltersLoaded.emit(rules.map(filterRuleToView));
+}
+
+type RuleChange = 'added' | 'updated' | 'deleted' | 'reordered' | 'toggled';
+
+function emitRuleChange(ruleId: string, change: RuleChange): void {
+  void filterHooks.onFilterRuleChange.emit({ ruleId, change });
+}
+
+/** Rules from other clients and hand-edited scripts are read-only here. */
+function isEditableRule(rules: FilterRule[], ruleId: string): boolean {
+  const rule = rules.find(r => r.id === ruleId);
+  return !!rule && rule.origin !== 'external' && rule.origin !== 'opaque';
 }
 
 interface FilterStore {
@@ -108,6 +127,7 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
 
       const activeScript = scripts.find(s => s.isActive) || scripts[0];
       if (!activeScript) {
+        emitFiltersLoaded([]);
         set({
           isLoading: false,
           rules: [],
@@ -131,6 +151,7 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
 
       if (result.isOpaque) {
         debug.log('filters', 'Sieve script is opaque (hand-edited)');
+        emitFiltersLoaded([]);
         set({
           isLoading: false,
           isOpaque: true,
@@ -143,6 +164,7 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
         });
       } else {
         debug.log('filters', 'Parsed', result.rules.length, 'filter rules');
+        emitFiltersLoaded(result.rules);
         set({
           isLoading: false,
           isOpaque: false,
@@ -189,6 +211,9 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
         isOpaque, rawScript, rules, activeScriptId, vacationSettings, externalRequires, includeVacation,
         vacationForward, vacationAudience, selectedAccountId, sieveCapabilities,
       } = get();
+      // Throws FiltersSaveVetoedError (handled below like any failed save,
+      // so the settings UI puts its optimistic change back).
+      await assertFiltersSaveAllowed(rules);
 
       let content: string;
       if (isOpaque) {
@@ -229,9 +254,11 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
       const external = state.rules.filter(r => r.origin === 'external' || r.origin === 'opaque');
       return { rules: [...bulwark, rule, ...external] };
     });
+    emitRuleChange(rule.id, 'added');
   },
 
   updateRule: (ruleId, updates) => {
+    if (!isEditableRule(get().rules, ruleId)) return;
     set((state) => ({
       rules: state.rules.map(r => {
         if (r.id !== ruleId) return r;
@@ -239,18 +266,22 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
         return { ...r, ...updates };
       }),
     }));
+    emitRuleChange(ruleId, 'updated');
   },
 
   deleteRule: (ruleId) => {
+    if (!isEditableRule(get().rules, ruleId)) return;
     set((state) => ({
       rules: state.rules.filter(r => {
         if (r.id !== ruleId) return true;
         return r.origin === 'external' || r.origin === 'opaque';
       }),
     }));
+    emitRuleChange(ruleId, 'deleted');
   },
 
   reorderRules: (ruleIds) => {
+    const before = get().rules;
     // Only reorder bulwark rules; external rules always stay at the end in
     // their original order.
     set((state) => {
@@ -261,9 +292,14 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
       const reordered = ruleIds.map(id => bulwarkMap.get(id)).filter(Boolean) as FilterRule[];
       return { rules: [...reordered, ...external] };
     });
+    // A reorder moves several rules at once, so the first rule that changed
+    // place stands for it.
+    const moved = get().rules.find((r, i) => r.id !== before[i]?.id);
+    if (moved) emitRuleChange(moved.id, 'reordered');
   },
 
   toggleRule: (ruleId) => {
+    if (!isEditableRule(get().rules, ruleId)) return;
     set((state) => ({
       rules: state.rules.map(r => {
         if (r.id !== ruleId) return r;
@@ -271,6 +307,7 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
         return { ...r, enabled: !r.enabled };
       }),
     }));
+    emitRuleChange(ruleId, 'toggled');
   },
 
   setRawScript: (content) => set({ rawScript: content }),

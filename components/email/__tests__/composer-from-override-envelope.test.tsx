@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
+import { usePolicyStore } from '@/stores/policy-store';
 
 // ─── Heavy component mocks (mirrors composer-reopened-draft-signature.test.tsx) ─
 
@@ -136,6 +137,14 @@ vi.mock('@/stores/toast-store', () => ({
 }));
 
 vi.mock('@/lib/plugin-hooks', () => ({
+  identityHooks: {
+    onSignatureRender: { size: 0, transform: async (value: unknown) => value },
+    onIdentitySelect: { size: 0, emit: async () => {} },
+  },
+  templateHooks: {
+    onTemplateRender: { size: 0, transform: async (value: unknown) => value },
+    onTemplateApply: { size: 0, emit: async () => {} },
+  },
   emailHooks: {
     onComposerOpen: { call: async () => [] },
     onRecipientChange: { call: async () => [] },
@@ -143,7 +152,7 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onRecipientChipsChange: { transform: async (chips: unknown) => chips },
     onDraftChange: { emit: () => {} },
     onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
-    onBeforeEmailSend: { intercept: async () => true },
+    onBeforeEmailSend: { intercept: async () => true, interceptOutcome: async () => 'allowed' },
     onComposeSend: { takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
   },
@@ -238,5 +247,36 @@ describe('composer From override envelope (#1009)', () => {
     const sent = await send(onSend);
     expect(sent.fromEmail).toBe('me@example.com');
     expect(sent.envelopeMailFrom).toBeUndefined();
+  });
+
+  describe('with custom From switched off by the admin', () => {
+    const setCustomFrom = (on: boolean) => usePolicyStore.setState((state) => ({
+      policy: { ...state.policy, features: { ...state.policy.features, customFromEnabled: on } },
+    }));
+    beforeEach(() => setCustomFrom(false));
+    afterEach(() => setCustomFrom(true));
+
+    it('sends a draft saved with a custom From from its identity', async () => {
+      const onSend = vi.fn();
+      render(<EmailComposer initialData={{ ...DRAFT, fromOverrideEmail: 'shop@example.com' }} onSend={onSend} />);
+      expect(screen.queryByDisplayValue('shop@example.com')).not.toBeInTheDocument();
+
+      const sent = await send(onSend);
+      expect(sent.fromEmail).toBe('me@example.com');
+      expect(sent.envelopeMailFrom).toBeUndefined();
+    });
+
+    it('offers no Custom button', () => {
+      render(<EmailComposer />);
+      expect(screen.queryByText('from_override.toggle_off')).not.toBeInTheDocument();
+    });
+
+    // Control: the button is there with the gate on, so the test above is not
+    // passing on a renamed label.
+    it('offers the Custom button with the gate on', () => {
+      setCustomFrom(true);
+      render(<EmailComposer />);
+      expect(screen.getByText('from_override.toggle_off')).toBeInTheDocument();
+    });
   });
 });

@@ -13,6 +13,7 @@ import { getPendingAlerts, getPendingTaskAlerts, buildAlertKey } from '@/lib/cal
 import { playNotificationSound } from '@/lib/notification-sound';
 import { getPathPrefix } from '@/lib/browser-navigation';
 import type { CalendarEvent } from '@/lib/jmap/types';
+import { calendarHooks } from '@/lib/plugin-hooks';
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 const PROACTIVE_FETCH_HOURS = 24;
@@ -55,6 +56,13 @@ export function useCalendarAlerts() {
         const diffMs = (alert.event.utcStart ? new Date(alert.event.utcStart).getTime() : parseISO(alert.event.start).getTime()) - now;
         const diffMin = Math.round(diffMs / 60000);
 
+        void calendarHooks.onCalendarAlert.emit({
+          id: alert.alertId,
+          eventId: alert.eventId,
+          eventTitle: alert.event.title || '',
+          triggerTime: new Date(alert.fireTimeMs).toISOString(),
+        });
+
         const timeLabel = diffMin <= 0
           ? t('alert_now')
           : t('alert_in_minutes', { count: diffMin });
@@ -70,6 +78,9 @@ export function useCalendarAlerts() {
           duration: 15000,
           onClick: () => {
             window.location.href = `${getPathPrefix(locale)}/${locale}/calendar`;
+          },
+          onDismiss: () => {
+            void calendarHooks.onCalendarAlertAcknowledge.emit({ alertId: alert.alertId, eventId: alert.eventId });
           },
         });
       }

@@ -1,6 +1,6 @@
 {
   "name": "bulwark-webmail",
-  "version": "1.14.2",
+  "version": "1.15.0",
   "description": "Bulwark Webmail - a modern webmail client built for Stalwart Mail Server",
   "author": "Bulwark Mail <dev@bulwarkmail.org>",
   "license": "AGPL-3.0-only",
@@ -28,6 +28,7 @@
     "lite:serve": "node scripts/lite/serve.mjs out 4173",
     "test:lite-smoke": "playwright test -c scripts/lite/smoke/playwright.config.ts",
     "test:lite-smoke:stalwart": "playwright test -c scripts/lite/smoke/playwright.stalwart.config.ts",
+    "test:perf-guard": "playwright test -c scripts/perf-guard/playwright.config.ts",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

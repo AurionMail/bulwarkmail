@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useAccountStore } from '@/stores/account-store';
 import { useEmailStore } from '@/stores/email-store';
+import { hiddenSharedMailIds, setSharedMailAccountHidden } from '@/lib/shared-mail-visibility';
 
 const MAIL_LAYOUT_PREVIEW_ROWS = [
   { sender: 'Alice', subject: 'Quarterly roadmap', preview: 'The draft is ready for review.', selected: false },
@@ -124,6 +125,16 @@ export function LayoutSettings() {
   const activeAccountId = useAccountStore(s => s.activeAccountId);
   const mailboxes = useEmailStore(s => s.mailboxes);
   const hasGroupInboxes = useMemo(() => mailboxes.some(m => m.isShared), [mailboxes]);
+  const showSharedMailAccounts = useSettingsStore(s => s.showSharedMailAccounts);
+  const hiddenSharedMailAccounts = useSettingsStore(s => s.hiddenSharedMailAccounts);
+  const hiddenSharedIds = hiddenSharedMailIds(hiddenSharedMailAccounts, activeAccountId);
+  const sharedMailAccounts = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const m of mailboxes) {
+      if (m.isShared && m.accountId && !byId.has(m.accountId)) byId.set(m.accountId, m.accountName || m.accountId);
+    }
+    return Array.from(byId, ([id, name]) => ({ id, name }));
+  }, [mailboxes]);
   const connectedAccountCount = useMemo(() => accounts.filter(a => a.isConnected).length, [accounts]);
   const unifiedCrossAccountAllowed = isFeatureEnabled('unifiedCrossAccountEnabled');
   // Unified Mailbox entries (All mail / Unread / Starred), each gated independently
@@ -272,6 +283,35 @@ export function LayoutSettings() {
           onChange={(checked) => updateSetting('faviconUnreadBadge', checked)}
         />
       </SettingItem>
+
+      {sharedMailAccounts.length > 0 && !isSettingHidden('showSharedMailAccounts') && (
+        <SettingItem
+          label={t('show_shared_mail_accounts.label')}
+          description={t('show_shared_mail_accounts.description')}
+          locked={isSettingLocked('showSharedMailAccounts')}
+        >
+          <ToggleSwitch
+            checked={showSharedMailAccounts}
+            onChange={(v) => updateSetting('showSharedMailAccounts', v)}
+          />
+        </SettingItem>
+      )}
+
+      {sharedMailAccounts.length > 0 && showSharedMailAccounts && activeAccountId && !isSettingHidden('showSharedMailAccounts') && (
+        <div className="ms-4 border-s-2 border-border ps-4 -mt-2" data-testid="shared-mail-account-list">
+          {sharedMailAccounts.map(({ id, name }) => (
+            <SettingItem key={id} label={name}>
+              <ToggleSwitch
+                checked={!hiddenSharedIds.includes(id)}
+                onChange={(v) => updateSetting(
+                  'hiddenSharedMailAccounts',
+                  setSharedMailAccountHidden(hiddenSharedMailAccounts, activeAccountId, id, !v),
+                )}
+              />
+            </SettingItem>
+          ))}
+        </div>
+      )}
 
       {!isSettingHidden('enableUnifiedMailbox') && (
         <SettingItem

@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, stat, unlink } from 'node:fs/promises';
+import { readFile, writeFile, rename, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { logger } from '@/lib/logger';
 import {
@@ -222,35 +222,4 @@ async function migrateAuditLog(): Promise<boolean> {
     logger.info('Migrated audit.log to state dir');
   }
   return moved;
-}
-
-/**
- * Returns approximate size of legacy data still mixed in the config dir
- * (for diagnostics / admin UI). Always returns 0 once migration has run.
- */
-export async function getLegacyDataInfo(): Promise<{ adminJsonHasTimestamps: boolean; auditLogInConfigDir: boolean }> {
-  let adminJsonHasTimestamps = false;
-  const adminJsonPath = getConfigPath('admin.json');
-  if (existsSync(adminJsonPath)) {
-    try {
-      const raw = await readFile(adminJsonPath, 'utf-8');
-      const parsed = JSON.parse(raw);
-      adminJsonHasTimestamps =
-        'createdAt' in parsed ||
-        'lastLogin' in parsed ||
-        'passwordChangedAt' in parsed;
-    } catch {
-      /* ignore */
-    }
-  }
-
-  let auditLogInConfigDir = false;
-  try {
-    await stat(getConfigPath('audit.log'));
-    auditLogInConfigDir = true;
-  } catch {
-    /* not present - good */
-  }
-
-  return { adminJsonHasTimestamps, auditLogInConfigDir };
 }

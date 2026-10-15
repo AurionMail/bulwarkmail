@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Identity } from '@/lib/jmap/types';
+import type { EmailAddress, Identity } from '@/lib/jmap/types';
+import type { IJMAPClient } from '@/lib/jmap/client-interface';
+import { identityHooks } from '@/lib/plugin-hooks';
+import { identityToView } from '@/lib/plugin-projection';
 
 // Constants for sub-addressing limits
 const MAX_RECENT_TAGS = 10;
@@ -53,7 +56,15 @@ export const useIdentityStore = create<IdentityStore>()(
         tagSuggestions: {},
       },
 
-      setIdentities: (identities) => set({ identities }),
+      setIdentities: (identities) => {
+        const changed = identitySetKey(get().identities) !== identitySetKey(identities);
+        set({ identities });
+        // Reordering (a new default sender) is not a load; only tell plugins
+        // when the identities themselves are new or differ.
+        if (changed && identityHooks.onIdentitiesLoaded.size > 0) {
+          void identityHooks.onIdentitiesLoaded.emit(identities.map(identityToView));
+        }
+      },
 
       addIdentity: (identity) => set((state) => ({
         identities: [...state.identities, identity]
@@ -138,3 +149,63 @@ export const useIdentityStore = create<IdentityStore>()(
     }
   )
 );
+
+/** Order-independent fingerprint of an identity list. */
+function identitySetKey(identities: Identity[]): string {
+  return JSON.stringify(identities.map((i) => JSON.stringify(i)).sort());
+}
+
+export interface IdentityInput {
+  name: string;
+  email: string;
+  replyTo?: EmailAddress[] | null;
+  bcc?: EmailAddress[] | null;
+  textSignature?: string | null;
+  htmlSignature?: string | null;
+}
+
+// Identity changes made by the user (Settings > Identities). Each asks
+// onBeforeIdentityChange first, makes the JMAP call, and tells plugins only
+// once the server accepted it. They return false when a plugin stopped the
+// change, true otherwise; server errors are thrown to the caller.
+
+export async function createIdentityWithHooks(client: IJMAPClient, data: IdentityInput): Promise<boolean> {
+  const draft = identityToView({ id: '', mayDelete: true, ...data } as Identity);
+  if (!(await identityHooks.onBeforeIdentityChange.intercept({ change: 'create', identity: draft }))) return false;
+  const created = await client.createIdentity(
+    data.name, data.email, data.replyTo, data.bcc, data.textSignature, data.htmlSignature,
+  );
+  void identityHooks.onIdentityCreate.emit(identityToView(created));
+  return true;
+}
+
+export async function updateIdentityWithHooks(
+  client: IJMAPClient,
+  identity: Identity,
+  updates: Omit<IdentityInput, 'email'>,
+): Promise<boolean> {
+  const next = identityToView({ ...identity, ...updates } as Identity);
+  if (!(await identityHooks.onBeforeIdentityChange.intercept({ identityId: identity.id, change: 'update', identity: next }))) {
+    return false;
+  }
+  await client.updateIdentity(identity.id, updates);
+  void identityHooks.onIdentityUpdate.emit(next);
+  return true;
+}
+
+export async function deleteIdentityWithHooks(client: IJMAPClient, identity: Identity): Promise<boolean> {
+  if (!(await identityHooks.onBeforeIdentityChange.intercept({
+    identityId: identity.id, change: 'delete', identity: identityToView(identity),
+  }))) {
+    return false;
+  }
+  await client.deleteIdentity(identity.id);
+  void identityHooks.onIdentityDelete.emit({ identityId: identity.id });
+  return true;
+}
+
+/** Tells plugins the user picked another From identity in the composer. */
+export function notifyIdentitySelected(identities: Identity[], identityId: string): void {
+  const identity = identities.find((i) => i.id === identityId);
+  if (identity) void identityHooks.onIdentitySelect.emit(identityToView(identity));
+}

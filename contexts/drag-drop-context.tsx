@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useRef, ReactNode } from "react";
 import { Email } from "@/lib/jmap/types";
+import { dragDropHooks } from "@/lib/plugin-hooks";
 
 interface DragDropState {
   isDragging: boolean;
@@ -13,6 +14,8 @@ interface DragDropState {
 interface DragDropContextValue extends DragDropState {
   startDrag: (emails: Email[], sourceMailboxId: string) => void;
   endDrag: () => void;
+  /** A drop target accepted the dragged messages. */
+  markDropped: () => void;
 }
 
 const initialState: DragDropState = {
@@ -26,8 +29,13 @@ const DragDropContext = createContext<DragDropContextValue | null>(null);
 
 export function DragDropProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DragDropState>(initialState);
+  // The drag plugins were told about; endDrag runs more than once per drag
+  // (the drop target and the dragged row both call it).
+  const current = useRef<{ ids: string[]; dropped: boolean } | null>(null);
 
   const startDrag = useCallback((emails: Email[], sourceMailboxId: string) => {
+    current.current = { ids: emails.map((e) => e.id), dropped: false };
+    void dragDropHooks.onDragStart.emit({ kind: "email", ids: current.current.ids });
     setState({
       isDragging: true,
       draggedEmails: emails,
@@ -37,11 +45,25 @@ export function DragDropProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const endDrag = useCallback(() => {
+    const drag = current.current;
+    current.current = null;
+    if (drag) void dragDropHooks.onDragEnd.emit({ kind: "email", ids: drag.ids, dropped: drag.dropped });
     setState(initialState);
   }, []);
 
+  const markDropped = useCallback(() => {
+    if (current.current) current.current.dropped = true;
+  }, []);
+
+  // The provider re-renders with the mail view; a new value object each time
+  // would re-render every message row and folder that reads the context.
+  const value = useMemo(
+    () => ({ ...state, startDrag, endDrag, markDropped }),
+    [state, startDrag, endDrag, markDropped],
+  );
+
   return (
-    <DragDropContext.Provider value={{ ...state, startDrag, endDrag }}>
+    <DragDropContext.Provider value={value}>
       {children}
     </DragDropContext.Provider>
   );

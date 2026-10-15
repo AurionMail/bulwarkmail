@@ -24,7 +24,12 @@ const mocks = vi.hoisted(() => ({
     getAllConnectedClients: () => new Map(mocks.authState.connected),
   },
   accounts: [] as { id: string; username: string }[],
-  settingsState: { emailNotificationsEnabled: true, pushRelayUrl: "" },
+  settingsState: {
+    emailNotificationsEnabled: true,
+    pushRelayUrl: "",
+    pushNotifyInboxOnly: false,
+    notificationMutes: { accounts: [] as string[], mailboxes: {} as Record<string, boolean> },
+  },
   policyState: {
     loaded: true,
     policy: {
@@ -52,9 +57,11 @@ vi.mock("@/stores/account-store", () => ({
 }));
 
 vi.mock("@/stores/settings-store", () => ({
-  useSettingsStore: (
-    selector: (state: typeof mocks.settingsState) => unknown,
-  ) => selector(mocks.settingsState),
+  useSettingsStore: Object.assign(
+    (selector: (state: typeof mocks.settingsState) => unknown) =>
+      selector(mocks.settingsState),
+    { getState: () => mocks.settingsState },
+  ),
 }));
 
 vi.mock("@/stores/policy-store", () => ({
@@ -103,6 +110,7 @@ describe("PushNotificationPrompt", () => {
     mocks.authState.isDemoMode = false;
     mocks.settingsState.emailNotificationsEnabled = true;
     mocks.settingsState.pushRelayUrl = "";
+    mocks.settingsState.notificationMutes = { accounts: [], mailboxes: {} };
     mocks.policyState.loaded = true;
     mocks.policyState.policy.pushRelayUrl =
       "https://notifications.relay.bulwarkmail.org";
@@ -140,6 +148,8 @@ describe("PushNotificationPrompt", () => {
       client: mocks.authState.client,
       relayBaseUrl: "https://notifications.relay.bulwarkmail.org",
       accountLabel: "alice@example.com",
+      inboxOnly: false,
+      mutes: { accounts: [], mailboxes: {} },
     });
     expect(screen.queryByText("title")).not.toBeInTheDocument();
   });
@@ -285,6 +295,31 @@ describe("PushNotificationPrompt", () => {
     rerender(<PushNotificationPrompt />);
     await advancePromptDelay();
 
+    expect(mocks.resyncWebPush.mock.calls.map(([p]) => p.client)).toContain(bob);
+  });
+
+  it("sends a changed mute to every login right away, past the daily limit", async () => {
+    const bob = { getAccountId: () => "account-2" };
+    mocks.authState.connected.set("bob@mail.example.com", bob);
+    const { rerender } = render(<PushNotificationPrompt />);
+    await advancePromptDelay();
+    mocks.resyncWebPush.mockClear();
+
+    // An equal object from a settings sync is no change.
+    mocks.settingsState.notificationMutes = { accounts: [], mailboxes: {} };
+    rerender(<PushNotificationPrompt />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(mocks.resyncWebPush).not.toHaveBeenCalled();
+
+    const muted = { accounts: ["account-2"], mailboxes: {} };
+    mocks.settingsState.notificationMutes = muted;
+    rerender(<PushNotificationPrompt />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+
+    expect(mocks.resyncWebPush).toHaveBeenCalledTimes(2);
+    for (const [params] of mocks.resyncWebPush.mock.calls) {
+      expect(params).toMatchObject({ mutes: muted, force: true });
+    }
     expect(mocks.resyncWebPush.mock.calls.map(([p]) => p.client)).toContain(bob);
   });
 

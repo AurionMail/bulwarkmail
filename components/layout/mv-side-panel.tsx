@@ -299,7 +299,9 @@ function TasksPanel({ onClose }: { onClose: () => void }) {
             const title = draft.trim();
             if (!title) return;
             setDraft("");
-            await createTask(client, { "@type": "Task", title, progress: "needs-action", calendarIds: { [taskCalendar.id]: true } });
+            // null: a plugin stopped it; give the user their text back.
+            const created = await createTask(client, { "@type": "Task", title, progress: "needs-action", calendarIds: { [taskCalendar.id]: true } });
+            if (!created) setDraft(title);
           }}
         >
           <label className="flex items-center gap-3 rounded-full px-1 py-1.5 text-sm text-primary hover:bg-muted/60">

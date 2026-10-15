@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Menu, ChevronRight, Search, X, ArrowUpDown, Check, LayoutGrid, LayoutList,
@@ -12,6 +12,8 @@ import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { cn } from "@/lib/utils";
 import { anchorEvent, isInternalDrag, readDraggedNames } from "@/components/files/file-item-parts";
+import { PluginActions } from "@/components/plugins/plugin-actions";
+import type { FileResourceView } from "@/lib/plugin-types";
 
 export type SortKey = "name" | "size" | "modified";
 export type SortDir = "asc" | "desc";
@@ -39,6 +41,10 @@ interface SelectionActions {
   onCopy: () => void;
   onDelete: () => void;
   onClear: () => void;
+  /** The selection as plugins see it (file-actions). */
+  pluginFiles: FileResourceView[];
+  /** The one selected item's type, so plugins can offer type-specific actions; undefined for several. */
+  pluginMimeType?: string;
 }
 
 interface FilesHeaderProps {
@@ -132,7 +138,10 @@ export function FilesHeader({
           <ToolButton icon={Scissors} label={t("cut")} onClick={selection.onCut} compact />
           <ToolButton icon={Copy} label={t("copy")} onClick={selection.onCopy} compact />
           <ToolButton icon={Trash2} label={t("delete")} onClick={selection.onDelete} compact destructive />
+          {!compact && <SelectionPluginActions files={selection.pluginFiles} mimeType={selection.pluginMimeType} />}
         </div>
+        {/* Outside the scrolling row, so the "more" button never scrolls out of sight. */}
+        {compact && <SelectionPluginActions files={selection.pluginFiles} mimeType={selection.pluginMimeType} overflow />}
         <div className="flex-1" />
         <DetailsToggle showDetails={showDetails} onToggle={onToggleDetails} label={t("details")} />
       </div>
@@ -425,4 +434,13 @@ function SortItem({ label, checked, onClick, icon: Icon }: {
       <span className="flex-1">{label}</span>
     </button>
   );
+}
+
+/**
+ * Plugin buttons in the selection toolbar, icon-only like the app's own. On
+ * phones the toolbar has no room for them: they go behind one "more" button.
+ */
+function SelectionPluginActions({ files, mimeType, overflow }: { files: FileResourceView[]; mimeType?: string; overflow?: boolean }) {
+  const context = useMemo(() => ({ files }), [files]);
+  return <PluginActions surface="file-actions" context={context} mimeType={mimeType} compact overflow={overflow} className="flex-nowrap gap-0.5 flex-shrink-0" />;
 }

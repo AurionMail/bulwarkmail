@@ -21,7 +21,6 @@ vi.mock('@/components/plugins/plugin-iframe-slot', () => ({
 
 // Import after mocks
 import { PluginSlot } from '@/components/plugins/plugin-slot';
-import { PluginErrorBoundary } from '@/components/plugins/plugin-error-boundary';
 
 beforeEach(() => {
   Object.keys(mockOffers).forEach(k => delete mockOffers[k]);
@@ -58,47 +57,5 @@ describe('PluginSlot', () => {
       React.createElement(PluginSlot, { name: 'sidebar-widget' })
     );
     expect(container.querySelector('[data-plugin-slot="sidebar-widget"]')).toBeTruthy();
-  });
-});
-
-describe('PluginErrorBoundary', () => {
-  it('renders children when no error', () => {
-    const { getByText } = render(
-      React.createElement(
-        PluginErrorBoundary,
-        { pluginId: 'test' },
-        React.createElement('span', null, 'Child')
-      )
-    );
-    expect(getByText('Child')).toBeTruthy();
-  });
-
-  it('renders fallback on error', () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const ThrowingComponent = () => { throw new Error('boom'); };
-    const { getByText } = render(
-      React.createElement(
-        PluginErrorBoundary,
-        { pluginId: 'err', fallback: React.createElement('span', null, 'Error caught') },
-        React.createElement(ThrowingComponent)
-      )
-    );
-    expect(getByText('Error caught')).toBeTruthy();
-    consoleSpy.mockRestore();
-  });
-
-  it('renders null on error when no fallback provided', () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const ThrowingComponent = () => { throw new Error('boom'); };
-    const { container } = render(
-      React.createElement(
-        PluginErrorBoundary,
-        { pluginId: 'err2' },
-        React.createElement(ThrowingComponent)
-      )
-    );
-    // ErrorBoundary renders null fallback
-    expect(container.innerHTML).toBe('');
-    consoleSpy.mockRestore();
   });
 });

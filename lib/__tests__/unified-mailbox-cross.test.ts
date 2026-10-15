@@ -45,6 +45,14 @@ describe('getCrossIncludedMailboxes', () => {
     expect(ids).toEqual(['inbox', 'projects']);
   });
 
+  it('excludes an RFC 6154 All mailbox, which would pull in sent/archive mail (#1241)', () => {
+    const account = makeAccount({
+      accountId: 'a',
+      mailboxes: [mb('inbox', 'inbox'), mb('all', 'all'), mb('sent', 'sent')],
+    });
+    expect(getCrossIncludedMailboxes(account).map((m) => m.id)).toEqual(['inbox']);
+  });
+
   it('honors an explicit crossIncludedMailboxIds selection (folder picker)', () => {
     const account = makeAccount({
       accountId: 'a',
@@ -107,6 +115,14 @@ describe('getCrossUnreadTotal', () => {
       mailboxes: [mb('inbox', 'inbox', 5), mb('sent', 'sent', 99)],
     });
     expect(getCrossUnreadTotal([a, b])).toBe(10);
+  });
+
+  it('does not count inbox unread twice through an all mailbox (#1241)', () => {
+    const a = makeAccount({
+      accountId: 'a',
+      mailboxes: [mb('inbox', 'inbox', 1), mb('all', 'all', 1), mb('sent', 'sent', 0)],
+    });
+    expect(getCrossUnreadTotal([a])).toBe(1);
   });
 
   it('counts only the selected folders when crossIncludedMailboxIds is set; shared accounts stay unrestricted', () => {

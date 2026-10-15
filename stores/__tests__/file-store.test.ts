@@ -585,7 +585,7 @@ describe('file-store "Shared with me"', () => {
     expect(await refusal(store.uploadFiles([new File(['x'], 'a.txt')]))).toBe('forbidden');
     expect(await refusal(store.uploadFolder([new File(['x'], 'a.txt')]))).toBe('forbidden');
     expect(await refusal(store.duplicateResource('notes.txt'))).toBe('forbidden');
-    useFileStore.setState({ clipboard: { mode: 'copy', ids: ['owner:plan'], names: ['plan.pdf'], serverNames: ['plan.pdf'], sourceParentId: null, sourcePath: '/' } });
+    useFileStore.setState({ clipboard: { mode: 'copy', ids: ['owner:plan'], names: ['plan.pdf'], serverNames: ['plan.pdf'], sourceParentId: null, sourcePath: '/', files: [] } });
     expect(await refusal(useFileStore.getState().pasteResources())).toBe('forbidden');
     expect(client._nodes()).toEqual([]);
   });

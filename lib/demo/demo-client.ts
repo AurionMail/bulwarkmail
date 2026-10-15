@@ -6,6 +6,7 @@ import { generateDemoId } from './demo-utils';
 import { compareEmails, type SortLevel } from '@/lib/message-list-order';
 import { withBasePath } from '@/lib/browser-navigation';
 import { toInertBlob } from '@/lib/file-preview';
+import type { StorageQuota } from "@/lib/quota";
 
 // Fixture blobs with real bytes behind them, served from public/demo/. The
 // photos are CC0 / public domain from Wikimedia Commons: "Wedding couple
@@ -143,7 +144,7 @@ export class DemoJMAPClient implements IJMAPClient {
 
   // ── Quota ─────────────────────────────────────────────────────
 
-  async getQuota(): Promise<{ used: number; total: number } | null> {
+  async getQuota(): Promise<StorageQuota | null> {
     return { used: 245_366_784, total: 1_073_741_824 };
   }
 

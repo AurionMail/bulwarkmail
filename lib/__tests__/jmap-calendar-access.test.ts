@@ -9,7 +9,7 @@ import { JMAPClient } from '../jmap/client';
 
 function makeSession() {
   return {
-    capabilities: { 'urn:ietf:params:jmap:core': {} },
+    capabilities: { 'urn:ietf:params:jmap:core': {}, 'urn:ietf:params:jmap:calendars': {} },
     accounts: {
       'acct-1': { name: 'test', isPersonal: true, accountCapabilities: {} },
       // Shared account without calendar access: probed because it is

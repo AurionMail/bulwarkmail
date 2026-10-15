@@ -59,6 +59,14 @@ describe('downloadManagedBundle', () => {
     expect(console.warn).toHaveBeenCalled();
   });
 
+  it('refuses an unsigned bundle for a plugin that must be signed', async () => {
+    // Privileged plugins run with the app's own rights; without the
+    // install-time signature anyone who can write the bundle file decides
+    // what they run.
+    mocks.apiFetch.mockResolvedValue(response('code'));
+    await expect(downloadManagedBundle('my-plugin', 'abc', { requireSignature: true })).rejects.toThrow(/not signed/);
+  });
+
   it('reports an HTTP failure with the status', async () => {
     mocks.apiFetch.mockResolvedValue(response('', { ok: false, status: 404 }));
     await expect(downloadManagedBundle('my-plugin')).rejects.toThrow(/HTTP 404/);

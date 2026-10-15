@@ -143,6 +143,14 @@ vi.mock('@/stores/toast-store', () => ({
 }));
 
 vi.mock('@/lib/plugin-hooks', () => ({
+  identityHooks: {
+    onSignatureRender: { size: 0, transform: async (value: unknown) => value },
+    onIdentitySelect: { size: 0, emit: async () => {} },
+  },
+  templateHooks: {
+    onTemplateRender: { size: 0, transform: async (value: unknown) => value },
+    onTemplateApply: { size: 0, emit: async () => {} },
+  },
   emailHooks: {
     onComposerOpen: { call: async () => [] },
     onRecipientChange: { call: async () => [] },
@@ -150,7 +158,7 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onRecipientChipsChange: { transform: async (chips: unknown) => chips },
     onDraftChange: { emit: () => {} },
     onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
-    onBeforeEmailSend: { intercept: async () => true },
+    onBeforeEmailSend: { intercept: async () => true, interceptOutcome: async () => 'allowed' },
     onComposeSend: { takeOver: async () => 'default' },
     onTransformOutgoingEmail: { transform: async (email: unknown) => email },
   },
@@ -353,6 +361,30 @@ describe('forwarding a message held by another account', () => {
     expect(onSend.mock.calls[0][0].attachments).toEqual([
       { blobId: 'blob-scan-copy', name: 'scan.pdf', type: 'application/pdf', size: 5 },
       { blobId: 'blob-notes-copy', name: 'notes.txt', type: 'text/plain', size: 3 },
+    ]);
+  });
+
+  it('copies only the parts tagged with another account in a mixed batch forward', async () => {
+    // Forward as attachments from the Unified Inbox: one message on the
+    // active login, one on another. No single replyTo.accountId fits both.
+    multi.allIdentities = [ACTIVE_IDENTITY];
+    const { activeClient, sourceClient } = mockClients();
+    const LOCAL = { blobId: 'blob-local', name: 'local.eml', type: 'message/rfc822', size: 7 };
+    render(
+      <EmailComposer
+        mode="forward"
+        replyTo={{ subject: 'Scans', attachments: [LOCAL, { ...SCAN, sourceAccountId: 'acct-src' }] }}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByDisplayValue(/Scans/), { target: { value: 'Scans for you' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2500); });
+
+    expect(sourceClient.fetchBlobArrayBuffer).toHaveBeenCalledTimes(1);
+    expect(sourceClient.fetchBlobArrayBuffer).toHaveBeenCalledWith('blob-src', 'scan.pdf', 'application/pdf');
+    expect(activeClient.createDraft.mock.calls[0][8]).toEqual([
+      LOCAL,
+      { blobId: 'blob-copied', name: 'scan.pdf', type: 'application/pdf', size: 5 },
     ]);
   });
 

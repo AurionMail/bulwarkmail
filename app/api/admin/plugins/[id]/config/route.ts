@@ -34,8 +34,12 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid plugin ID' }, { status: 400 });
     }
 
+    // ?public=1: only the fields any signed-in user may see, even for an
+    // admin. The plugin API uses it so a plugin never gets secrets just
+    // because the user is also signed in to the admin dashboard.
+    const publicOnly = request.nextUrl.searchParams.get('public') === '1';
     const adminAuth = await requireAdminAuth(request);
-    const isAdmin = !('error' in adminAuth);
+    const isAdmin = !publicOnly && !('error' in adminAuth);
 
     if (!isAdmin) {
       const creds = await getStalwartCredentials(request);

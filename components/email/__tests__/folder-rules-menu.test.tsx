@@ -60,7 +60,7 @@ describe('Rules entry of the folder menu', () => {
       { id: 'e1', mailboxIds: { archive: true }, keywords: {}, from: [{ email: 'anna@acme.com' }] },
       { id: 'e2', mailboxIds: { archive: true }, keywords: {}, from: [{ email: 'bob@acme.com' }] },
     ]);
-    const batchMoveToMailbox = vi.fn(async () => {});
+    const batchMoveToMailbox = vi.fn(async () => true);
     useEmailStore.setState({ batchMoveToMailbox });
 
     renderMenu(mailboxes[1]);

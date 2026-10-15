@@ -51,6 +51,12 @@ export async function setPluginConfig(pluginId: string, key: string, value: unkn
   await rename(tmpPath, filePath);
 }
 
+/** Remove all stored config, secrets included, when a plugin is deleted. */
+export async function deletePluginConfig(pluginId: string): Promise<void> {
+  assertWritable('delete plugin config');
+  try { await unlink(configPath(pluginId)); } catch { /* none stored */ }
+}
+
 /**
  * Delete a single config key for a plugin.
  */
@@ -70,12 +76,4 @@ export async function deletePluginConfigKey(pluginId: string, key: string): Prom
   const tmpPath = filePath + '.tmp';
   await writeFile(tmpPath, JSON.stringify(config, null, 2), 'utf-8');
   await rename(tmpPath, filePath);
-}
-
-/**
- * Delete all config for a plugin (used when uninstalling).
- */
-export async function deleteAllPluginConfig(pluginId: string): Promise<void> {
-  assertWritable('delete plugin config');
-  try { await unlink(configPath(pluginId)); } catch { /* ok if missing */ }
 }

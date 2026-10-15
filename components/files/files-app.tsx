@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, isSharedLocation, linkedPreviewResource, resourceServerRef, type UploadReport } from "@/stores/file-store";
+import { useFileStore, isSharedLocation, linkedPreviewResource, resourceServerRef, resourceToView, type UploadReport } from "@/stores/file-store";
 import { fileErrorKind, isPartialCopy } from "@/lib/file-errors";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
@@ -407,7 +407,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     if (!confirmed) return;
 
     try {
-      await deleteResource(name);
+      if (!await deleteResource(name)) return;
       toast.success(t("delete_success"));
     } catch (err) {
       console.error("Failed to delete:", err);
@@ -425,7 +425,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     if (!confirmed) return;
 
     try {
-      await deleteResources(names);
+      if (!await deleteResources(names)) return;
       toast.success(t("batch_delete_success", { count: names.length }));
     } catch (err) {
       console.error("Failed to batch delete:", err);
@@ -445,7 +445,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const handleRename = useCallback(async (oldName: string, newName: string) => {
     try {
-      await renameResource(oldName, newName);
+      if (!await renameResource(oldName, newName)) return;
       toast.success(t("rename_success"), {
         action: { label: t("undo"), onClick: handleUndo },
       });
@@ -501,7 +501,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const handleMoveTo = useCallback(async (names: string[], targetId: string | null) => {
     try {
-      await moveToFolderId(names, targetId);
+      if (!await moveToFolderId(names, targetId)) return;
       toast.success(t("move_success", { count: names.length }), {
         action: { label: t("undo"), onClick: handleUndo },
       });
@@ -513,7 +513,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const handlePaste = useCallback(async () => {
     try {
-      await pasteResources();
+      if (!await pasteResources()) return;
       toast.success(t("paste_success"), {
         action: lastAction ? { label: t("undo"), onClick: handleUndo } : undefined,
       });
@@ -535,7 +535,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
 
   const handleRenameNode = useCallback(async (id: string, newName: string) => {
     try {
-      await renameNode(id, newName);
+      if (!await renameNode(id, newName)) return;
       toast.success(t("rename_success"), {
         action: { label: t("undo"), onClick: handleUndo },
       });
@@ -554,7 +554,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     });
     if (!confirmed) return;
     try {
-      await deleteNode(id);
+      if (!await deleteNode(id)) return;
       toast.success(t("delete_success"));
     } catch (err) {
       console.error("Failed to delete:", err);
@@ -597,6 +597,13 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   const filesLinkPath = appPath(isSharedLocation(currentParentId)
     ? buildSharedFilesPath(currentParentId, previewFile)
     : buildFilesPath(currentPath, previewFile));
+
+  // The previewed file as plugins see it (file-preview-section).
+  const previewedName = previewFile ?? previewImage;
+  const previewedView = useMemo(() => {
+    const resource = previewedName ? resources.find((r) => r.name === previewedName) : undefined;
+    return resource ? resourceToView(resource, currentPath) : null;
+  }, [previewedName, resources, currentPath]);
   useDeepLinkUrl(
     isEmbedded
       ? (isFocusedProTab ? filesLinkPath : null)
@@ -768,6 +775,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
           onClose={() => setPreviewImage(null)}
           onDownload={handleDownload}
           getImageUrl={getImageUrl}
+          file={previewedView}
         />
       )}
 
@@ -778,6 +786,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
           onClose={() => setPreviewFile(null)}
           onDownload={() => handleDownload(previewFile)}
           getFileContent={() => getFileContent(previewFile)}
+          file={previewedView}
         />
       )}
 

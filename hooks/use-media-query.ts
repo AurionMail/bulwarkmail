@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useUIStore } from "@/stores/ui-store";
+import { useShallow } from "zustand/react/shallow";
 import { usePaneSize } from "@/hooks/use-pane-size";
 
 // Tailwind v4 breakpoints
@@ -68,7 +69,7 @@ function classifyPane(paneWidth: number | null) {
  * it directly (mobile navigation helpers etc.).
  */
 export function useDeviceDetection() {
-  const { setDeviceType, isMobile, isTablet, isDesktop } = useUIStore();
+  const { setDeviceType, isMobile, isTablet, isDesktop } = useUIStore(useShallow((state) => ({ setDeviceType: state.setDeviceType, isMobile: state.isMobile, isTablet: state.isTablet, isDesktop: state.isDesktop })));
   const paneWidth = usePaneSize();
   const paneClassification = classifyPane(paneWidth);
 
@@ -96,24 +97,8 @@ export function useIsMobile() {
   return paneWidth !== null ? paneWidth < BREAKPOINTS.md : viewport;
 }
 
-export function useIsTablet() {
-  const paneWidth = usePaneSize();
-  const viewport = useMediaQuery(
-    `(min-width: ${BREAKPOINTS.md}px) and (max-width: ${BREAKPOINTS.lg - 1}px)`
-  );
-  return paneWidth !== null
-    ? paneWidth >= BREAKPOINTS.md && paneWidth < BREAKPOINTS.lg
-    : viewport;
-}
-
 export function useIsDesktop() {
   const paneWidth = usePaneSize();
   const viewport = useMediaQuery(`(min-width: ${BREAKPOINTS.lg}px)`);
   return paneWidth !== null ? paneWidth >= BREAKPOINTS.lg : viewport;
-}
-
-export function useBreakpoint(breakpoint: keyof typeof BREAKPOINTS) {
-  const paneWidth = usePaneSize();
-  const viewport = useMediaQuery(`(min-width: ${BREAKPOINTS[breakpoint]}px)`);
-  return paneWidth !== null ? paneWidth >= BREAKPOINTS[breakpoint] : viewport;
 }

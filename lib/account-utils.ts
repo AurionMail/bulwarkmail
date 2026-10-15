@@ -92,11 +92,6 @@ export function getInitials(name: string, email?: string): string {
   return '?';
 }
 
-/** Build an account-scoped localStorage key */
-export function getAccountScopedKey(baseKey: string, accountId: string): string {
-  return `${baseKey}::${accountId}`;
-}
-
 /**
  * Hard upper bound on cookie slots. Each slot can hold up to ~3 cookies
  * (session, refresh token, server id, auth context), so 50 slots ≈ 125

@@ -256,6 +256,84 @@ describe('ThreadListItem row content', () => {
   });
 });
 
+describe('ThreadListItem opening a thread on the phone', () => {
+  const twoMessageThread = () => groupEmailsByThread([
+    makeEmail({ id: 'older', receivedAt: '2024-01-14T10:00:00Z' }),
+    makeEmail({ id: 'newer', receivedAt: '2024-01-15T10:00:00Z' }),
+  ])[0];
+
+  function tap(interfaceLayout: 'mountain-view' | 'default') {
+    useSettingsStore.setState({ interfaceLayout, mailLayout: 'split' });
+    useUIStore.setState({ isMobile: true, isTablet: false, isDesktop: false });
+    useEmailStore.setState({ selectedEmailKeys: new Set<string>(), selectedMailbox: 'inbox' });
+    const onEmailSelect = vi.fn();
+    const onOpenConversation = vi.fn();
+    render(
+      <ThreadListItem
+        thread={twoMessageThread()}
+        isExpanded={false}
+        onToggleExpand={() => {}}
+        onEmailSelect={onEmailSelect}
+        onOpenConversation={onOpenConversation}
+      />,
+    );
+    fireEvent.click(screen.getByText('Test Subject'));
+    return { onEmailSelect, onOpenConversation };
+  }
+
+  // #1224: the phone thread view lists newest first and has no details, so
+  // Mountain View opens the thread in the viewer, as on the desktop.
+  it('opens the latest message in the viewer in Mountain View', () => {
+    const { onEmailSelect, onOpenConversation } = tap('mountain-view');
+    expect(onOpenConversation).not.toHaveBeenCalled();
+    expect(onEmailSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'newer' }));
+  });
+
+  it('keeps the phone thread view in the default layout', () => {
+    const { onEmailSelect, onOpenConversation } = tap('default');
+    expect(onOpenConversation).toHaveBeenCalledTimes(1);
+    expect(onEmailSelect).not.toHaveBeenCalled();
+  });
+});
+
+// #1231: opening a message threw away the ticked rows. Mountain View on the
+// desktop keeps them, as Gmail does, so selecting can carry on after reading.
+describe('ThreadListItem keeping the selection when a message opens', () => {
+  function open(interfaceLayout: 'mountain-view' | 'default', emails: Email[]) {
+    useSettingsStore.setState({ interfaceLayout, mailLayout: 'split' });
+    useUIStore.setState({ isMobile: false, isTablet: false, isDesktop: true });
+    useEmailStore.setState({ selectedEmailKeys: new Set(['other']), selectedMailbox: 'inbox' });
+    const onEmailSelect = vi.fn();
+    const [thread] = groupEmailsByThread(emails);
+    render(
+      <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={onEmailSelect} />,
+    );
+    fireEvent.click(screen.getByText('Test Subject'));
+    return onEmailSelect;
+  }
+  const conversation = () => [
+    makeEmail({ id: 'older', receivedAt: '2024-01-14T10:00:00Z' }),
+    makeEmail({ id: 'newer', receivedAt: '2024-01-15T10:00:00Z' }),
+  ];
+
+  it('keeps the ticked rows when a Mountain View message opens', () => {
+    const onEmailSelect = open('mountain-view', [makeEmail()]);
+    expect(onEmailSelect).toHaveBeenCalledTimes(1);
+    expect([...useEmailStore.getState().selectedEmailKeys]).toEqual(['other']);
+  });
+
+  it('keeps them when a Mountain View conversation opens', () => {
+    const onEmailSelect = open('mountain-view', conversation());
+    expect(onEmailSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'newer' }));
+    expect([...useEmailStore.getState().selectedEmailKeys]).toEqual(['other']);
+  });
+
+  it('still clears them in the default layout', () => {
+    open('default', [makeEmail()]);
+    expect(useEmailStore.getState().selectedEmailKeys.size).toBe(0);
+  });
+});
+
 describe('ThreadListItem Mountain View phone row layout', () => {
   it('sets the star at the end of the preview line, not under the time', () => {
     useSettingsStore.setState({ interfaceLayout: 'mountain-view', mailLayout: 'split', showPreview: true, density: 'regular' } as never);
@@ -537,5 +615,34 @@ describe('ThreadListItem Mountain View desktop row', () => {
     fireEvent.click(screen.getByText('Test Subject'));
     expect(onEmailSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'b' }));
     expect(onToggleExpand).not.toHaveBeenCalled();
+  });
+});
+
+describe('ThreadListItem prefetch on mouse press', () => {
+  const renderWithPrefetch = (onPrefetch: (email: Email) => void) => {
+    const [thread] = groupEmailsByThread([makeEmail()]);
+    return render(
+      <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} onPrefetch={onPrefetch} />,
+    );
+  };
+
+  it('asks for the message when a mouse is pressed on the row', () => {
+    const onPrefetch = vi.fn();
+    renderWithPrefetch(onPrefetch);
+    fireEvent.pointerDown(screen.getByTestId('email-list-item'), { pointerType: 'mouse', button: 0 });
+    expect(onPrefetch).toHaveBeenCalledWith(expect.objectContaining({ id: 'email-1' }));
+  });
+
+  it('leaves touches, other buttons and presses on controls in the row alone', () => {
+    const onPrefetch = vi.fn();
+    renderWithPrefetch(onPrefetch);
+    const row = screen.getByTestId('email-list-item');
+    fireEvent.pointerDown(row, { pointerType: 'touch', button: 0 });
+    fireEvent.pointerDown(row, { pointerType: 'mouse', button: 2 });
+    fireEvent.pointerEnter(row);
+    const control = row.querySelector('button');
+    expect(control).not.toBeNull();
+    fireEvent.pointerDown(control!, { pointerType: 'mouse', button: 0 });
+    expect(onPrefetch).not.toHaveBeenCalled();
   });
 });

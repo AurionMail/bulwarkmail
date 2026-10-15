@@ -36,6 +36,7 @@ export interface ConfigData {
   loginShowSubtitle: boolean;
   loginShowTotp: boolean;
   loginShowTokenLogin: boolean;
+  loginShowRememberMe: boolean;
   loginShowVersion: boolean;
   demoMode: boolean;
   autoSsoEnabled: boolean;
@@ -107,12 +108,6 @@ async function fetchServerConfig(): Promise<ConfigData> {
   throw lastError;
 }
 
-/** Test hook: forget the cached config so the next fetch hits the network again. */
-export function resetConfigCache(): void {
-  configCache = null;
-  configPromise = null;
-}
-
 export async function fetchConfig(): Promise<ConfigData> {
   // Return cached config if available
   if (configCache) {
@@ -176,6 +171,7 @@ export function useConfig(): AppConfig {
     loginShowSubtitle: configCache?.loginShowSubtitle ?? true,
     loginShowTotp: configCache?.loginShowTotp ?? true,
     loginShowTokenLogin: configCache?.loginShowTokenLogin ?? false,
+    loginShowRememberMe: configCache?.loginShowRememberMe ?? false,
     loginShowVersion: configCache?.loginShowVersion ?? true,
     demoMode: configCache?.demoMode || false,
     autoSsoEnabled: configCache?.autoSsoEnabled || false,
@@ -220,6 +216,7 @@ export function useConfig(): AppConfig {
         loginShowSubtitle: configCache.loginShowSubtitle,
         loginShowTotp: configCache.loginShowTotp,
         loginShowTokenLogin: configCache.loginShowTokenLogin,
+        loginShowRememberMe: configCache.loginShowRememberMe,
         loginShowVersion: configCache.loginShowVersion,
         demoMode: configCache.demoMode,
         autoSsoEnabled: configCache.autoSsoEnabled,
@@ -265,6 +262,7 @@ export function useConfig(): AppConfig {
           loginShowSubtitle: data.loginShowSubtitle,
           loginShowTotp: data.loginShowTotp,
           loginShowTokenLogin: data.loginShowTokenLogin,
+          loginShowRememberMe: data.loginShowRememberMe,
           loginShowVersion: data.loginShowVersion,
           demoMode: data.demoMode,
           autoSsoEnabled: data.autoSsoEnabled,

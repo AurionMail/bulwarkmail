@@ -4,6 +4,7 @@ import { initAdminPassword } from "./lib/admin/password";
 import { migrateLegacyAdminLayout, migratePolicyUnifiedMailbox } from "./lib/admin/migrate";
 import { detectSetupState } from "./lib/setup/state";
 import { ensureSetupToken } from "./lib/setup/token";
+import { ensureSessionSecret } from "./lib/auth/session-secret";
 
 const pkg = JSON.parse(
   readFileSync(`${process.cwd()}/package.json`, "utf-8")
@@ -19,6 +20,16 @@ migrateLegacyAdminLayout()
   .then(() => initAdminPassword())
   .then(async () => {
     console.info("Admin dashboard initialized");
+    try {
+      if (await ensureSessionSecret()) {
+        console.info(
+          "Generated a session secret in the admin state dir. Keep that dir on a " +
+          "persistent volume, or set SESSION_SECRET, so restarts don't sign everyone out.",
+        );
+      }
+    } catch (err) {
+      console.warn("Failed to generate a session secret:", err instanceof Error ? err.message : err);
+    }
     // If we're in bootstrap state (no JMAP_SERVER_URL env and no
     // setupComplete in config.json), generate/refresh the setup token and
     // print it to the logs so the operator can complete the web wizard

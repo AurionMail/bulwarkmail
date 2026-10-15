@@ -6,6 +6,14 @@ export interface ParsedMailto {
   bcc: string[];
   subject: string;
   body: string;
+  /**
+   * Only from a plugin's api.compose.open, never from a mailto: URL: an HTML
+   * body (sanitised by the host) the composer opens in HTML mode instead of
+   * `body`.
+   */
+  htmlBody?: string;
+  /** Only from api.compose.open: files the plugin uploaded, attached as they are. */
+  attachments?: Array<{ blobId: string; name: string; type: string; size: number }>;
 }
 
 const MAX_RECIPIENTS = 200;
@@ -117,6 +125,23 @@ export function parseMailto(raw: string): ParsedMailto | null {
   };
 }
 
+/**
+ * A mailto: URL for parsed fields, for hooks that report the link when the
+ * original URL is gone (a request that came through the OS handler).
+ */
+export function formatMailto(fields: Pick<ParsedMailto, "to"> & Partial<Omit<ParsedMailto, "to">>): string {
+  const params: string[] = [];
+  const add = (key: string, value: string | undefined) => {
+    if (value) params.push(`${key}=${encodeURIComponent(value)}`);
+  };
+  add("cc", fields.cc?.join(","));
+  add("bcc", fields.bcc?.join(","));
+  add("subject", fields.subject);
+  add("body", fields.body);
+  const to = fields.to.map(encodeURIComponent).join(",");
+  return `mailto:${to}${params.length ? `?${params.join("&")}` : ""}`;
+}
+
 /** Window event carrying a parsed in-app mailto request to the mail page. */
 export const INTERNAL_MAILTO_EVENT = "bulwark:mailto";
 
@@ -134,10 +159,22 @@ export function requestInternalMailto(raw: string): boolean {
   if (typeof window === "undefined") return false;
   const parsed = parseMailto(raw);
   if (!parsed || parsed.to.length === 0) return false;
+  return requestInternalCompose(parsed, raw);
+}
+
+/**
+ * Ask the mail page to open its composer with this draft, the way an in-app
+ * mailto: click does. Returns false when no mail page is mounted to take it.
+ */
+export function requestInternalCompose(draft: ParsedMailto, href?: string): boolean {
+  if (typeof window === "undefined") return false;
   // The listener signals "handled" by cancelling the event, which makes
   // dispatchEvent report false - so an uncancelled dispatch means nobody took it.
   const uncancelled = window.dispatchEvent(
-    new CustomEvent<ParsedMailto>(INTERNAL_MAILTO_EVENT, { detail: parsed, cancelable: true }),
+    new CustomEvent<ParsedMailto & { href: string }>(INTERNAL_MAILTO_EVENT, {
+      detail: { ...draft, href: href ?? formatMailto(draft) },
+      cancelable: true,
+    }),
   );
   return !uncancelled;
 }

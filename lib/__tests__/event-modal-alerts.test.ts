@@ -55,11 +55,19 @@ function edit(event: Pick<CalendarEvent, 'alerts' | 'useDefaultAlerts'>, change:
   return buildAlertsPatch(event, change(rows), preserved, Object.keys(DEFAULTS));
 }
 
-const newRow = (value: number, unit: AlertRow['unit']): AlertRow => ({ id: `new-${value}-${unit}`, value, unit });
+const newRow = (value: number, unit: AlertRow['unit']): AlertRow => ({ id: `new-${value}-${unit}`, value, unit, action: 'display' });
 
 describe('saving the alerts of an event that uses its calendar’s default alerts', () => {
-  it('sends nothing when they were not touched, on Stalwart 1.0', () => {
-    expect(edit(get10({ own: {}, useDefaultAlerts: true }), (rows) => rows)).toEqual({});
+  it('keeps the defaults as alerts of its own when the user customizes them unchanged, on Stalwart 1.0', () => {
+    // The editor saves through the rows only after "Customize"; untouched,
+    // the event stays on its calendar's defaults.
+    let stored: Stored = { own: {}, useDefaultAlerts: true };
+    const patch = edit(get10(stored), (rows) => rows);
+
+    expect(patch.useDefaultAlerts).toBe(false);
+    expect(Object.keys(patch.alerts ?? {})).not.toContain('default-15');
+    stored = update10(stored, patch);
+    expect(offsets(get10(stored).alerts)).toEqual(['-PT15M']);
   });
 
   it('keeps a changed alert on Stalwart 1.0 by turning the defaults off', () => {
@@ -139,8 +147,9 @@ describe('saving the alerts of an event with alerts of its own', () => {
 });
 
 describe('saving the alerts of a new event', () => {
-  it('sends the rows as new alerts, and nothing without rows', () => {
-    expect(buildAlertsPatch(null, [newRow(10, 'minutes')], {})).toEqual({ alerts: { alert1: offsetAlert('-PT10M') } });
-    expect(buildAlertsPatch(null, [], {})).toEqual({});
+  it('sends the rows as new alerts and turns the calendar defaults off', () => {
+    expect(buildAlertsPatch(null, [newRow(10, 'minutes')], {}))
+      .toEqual({ useDefaultAlerts: false, alerts: { alert1: offsetAlert('-PT10M') } });
+    expect(buildAlertsPatch(null, [], {})).toEqual({ useDefaultAlerts: false });
   });
 });

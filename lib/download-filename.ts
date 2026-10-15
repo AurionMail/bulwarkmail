@@ -20,13 +20,6 @@ export interface EmailFilenameOptions extends FilenameTransformOptions {
   template?: string;
 }
 
-export const DEFAULT_TRANSFORM: Required<FilenameTransformOptions> = {
-  spaceReplacement: "keep",
-  lowercase: false,
-  stripDiacritics: false,
-  collapseSeparators: true,
-};
-
 export const DEFAULT_EMAIL_TEMPLATE = "{date} ({from}-{to}) {subject}";
 export const DEFAULT_ATTACHMENT_TEMPLATE = "{filename}";
 export const DEFAULT_BUNDLE_TEMPLATE = "emails-{count}";

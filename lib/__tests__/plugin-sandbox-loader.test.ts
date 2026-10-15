@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   saveCode: vi.fn(),
   downloadManagedBundle: vi.fn(),
   createBackgroundInstance: vi.fn(),
+  registerShortcuts: vi.fn((..._args: unknown[]) => () => {}),
+  setLocale: vi.fn(),
 }));
 
 vi.mock('../plugin-storage', () => ({
@@ -21,16 +23,17 @@ vi.mock('../plugin-sandbox/bundle-fetch', () => ({
 }));
 vi.mock('../plugin-sandbox/host-bridge', () => ({
   createBackgroundInstance: (...args: unknown[]) => mocks.createBackgroundInstance(...args),
+  forEachInstance: (_id: string | null, fn: (i: { setLocale: (l: string) => void }) => void) => fn({ setLocale: mocks.setLocale }),
   SandboxInstance: class {},
 }));
 vi.mock('../plugin-sandbox/host-api', () => ({
   cancelPluginDialogs: vi.fn(),
 }));
 vi.mock('../plugin-sandbox/shortcuts', () => ({
-  registerShortcuts: () => () => {},
+  registerShortcuts: (...args: unknown[]) => mocks.registerShortcuts(...args),
 }));
 
-import { loadSandboxedPlugin, unloadSandboxedPlugin, setSandboxStoreAccessor } from '../plugin-sandbox/loader';
+import { loadSandboxedPlugin, unloadSandboxedPlugin, setSandboxStoreAccessor, setSandboxLocale } from '../plugin-sandbox/loader';
 import { get as getActive } from '../plugin-sandbox/registry';
 
 const CODE = 'export default { activate() {} }';
@@ -104,7 +107,7 @@ describe('loadSandboxedPlugin bundle sourcing', () => {
     mocks.getCode.mockResolvedValue(null);
     mocks.downloadManagedBundle.mockResolvedValue(CODE);
     await loadSandboxedPlugin(plugin());
-    expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', HASH);
+    expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', HASH, { requireSignature: false });
     expect(mocks.saveCode).toHaveBeenCalledWith('managed-plugin', CODE);
     expect(lastStatus()).toMatchObject({ status: 'running' });
     expect(getActive('managed-plugin')?.code).toBe(CODE);
@@ -141,7 +144,7 @@ describe('loadSandboxedPlugin bundle sourcing', () => {
   it('accepts a managed bundle without a recorded hash (older records)', async () => {
     mocks.downloadManagedBundle.mockResolvedValue(CODE);
     await loadSandboxedPlugin(plugin({ bundleHash: undefined }));
-    expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', undefined);
+    expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', undefined, { requireSignature: false });
     expect(lastStatus()).toMatchObject({ status: 'running' });
   });
 
@@ -175,5 +178,78 @@ describe('loadSandboxedPlugin bundle sourcing', () => {
     await loadSandboxedPlugin(plugin({ id: 'user-plugin', managed: false }));
     expect(mocks.downloadManagedBundle).not.toHaveBeenCalled();
     expect(lastStatus()).toMatchObject({ status: 'error', error: expect.stringMatching(/integrity mismatch/) });
+  });
+});
+
+describe('plugin shortcuts', () => {
+  const SHORTCUT = [{ id: 'new', keys: 'Alt+N', label: 'New' }];
+  function withShortcuts() {
+    return { ...fakeBackground(), initPromise: Promise.resolve({ hooks: [], slots: [], shortcuts: SHORTCUT }) };
+  }
+
+  it('does not install shortcuts for a plugin without ui:keyboard', async () => {
+    mocks.getCode.mockResolvedValue(CODE);
+    mocks.createBackgroundInstance.mockImplementation(withShortcuts);
+    mocks.registerShortcuts.mockClear();
+
+    await loadSandboxedPlugin(plugin());
+
+    expect(mocks.registerShortcuts).not.toHaveBeenCalled();
+  });
+
+  it('installs them with ui:keyboard', async () => {
+    mocks.getCode.mockResolvedValue(CODE);
+    mocks.createBackgroundInstance.mockImplementation(withShortcuts);
+    mocks.registerShortcuts.mockClear();
+
+    await loadSandboxedPlugin(plugin({ permissions: ['ui:keyboard'] }));
+
+    expect(mocks.registerShortcuts).toHaveBeenCalledWith(expect.anything(), SHORTCUT);
+  });
+});
+
+describe('setSandboxLocale', () => {
+  it('switches running plugins to the new language', () => {
+    // Running plugins used to keep the old language until a reload.
+    setSandboxLocale('en');
+    mocks.setLocale.mockClear();
+
+    setSandboxLocale('de');
+
+    expect(mocks.setLocale).toHaveBeenCalledWith('de');
+  });
+});
+
+describe('failing hooks', () => {
+  it('turns a plugin off on its third failure, not its second', async () => {
+    const { emailHooks, pluginErrorTracker } = await import('../plugin-hooks');
+    const { setupSandboxAutoDisable } = await import('../plugin-sandbox/loader');
+    const markAutoDisabled = vi.fn();
+    setSandboxStoreAccessor({ setPluginStatus: () => {}, markAutoDisabled });
+    setupSandboxAutoDisable();
+    pluginErrorTracker.reset('managed-plugin');
+    mocks.getCode.mockResolvedValue(CODE);
+    mocks.createBackgroundInstance.mockImplementation(() => ({
+      ...fakeBackground(),
+      initPromise: Promise.resolve({ hooks: ['onEmailOpen'], slots: [], shortcuts: [] }),
+      invokeHook: vi.fn(() => Promise.reject(new Error('boom'))),
+    }));
+    await loadSandboxedPlugin(plugin({ permissions: ['email:read'] }));
+
+    await emailHooks.onEmailOpen.emit({});
+    await emailHooks.onEmailOpen.emit({});
+    expect(markAutoDisabled).not.toHaveBeenCalled();
+    await emailHooks.onEmailOpen.emit({});
+    expect(markAutoDisabled).toHaveBeenCalledWith('managed-plugin');
+  });
+});
+
+describe('loading the same plugin twice', () => {
+  it('starts one background instance, also when the loads overlap', async () => {
+    mocks.getCode.mockResolvedValue(CODE);
+    await Promise.all([loadSandboxedPlugin(plugin()), loadSandboxedPlugin(plugin())]);
+    await loadSandboxedPlugin(plugin());
+
+    expect(mocks.createBackgroundInstance).toHaveBeenCalledTimes(1);
   });
 });

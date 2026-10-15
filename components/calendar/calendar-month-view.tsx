@@ -20,6 +20,7 @@ import { useCalendarLocale } from "@/hooks/use-calendar-locale";
 import { useScrollWindow } from "@/hooks/use-scroll-window";
 import { dayKey, parseDayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
+import { PluginDayLabel } from "./plugin-day-label";
 
 interface CalendarMonthViewProps extends ScrollWindowViewProps {
   selectedDate: Date;
@@ -385,6 +386,8 @@ export function CalendarMonthView({
                     >
                       {formatDayNumber(day)}
                     </button>
+                    {/* Phones have no room for the text: a dot stands in for it. */}
+                    <PluginDayLabel surface="calendar-day-header" date={key} compact={isMobile} className={isMobile ? undefined : "min-w-0 flex-1"} />
                   </div>
                   {isMobile && !showChips ? (
                     <div className="flex items-center justify-center gap-0.5 flex-wrap">

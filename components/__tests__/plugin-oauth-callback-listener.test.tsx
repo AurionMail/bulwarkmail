@@ -2,6 +2,7 @@ import { authHooks } from "@/lib/plugin-hooks";
 import {
     PLUGIN_OAUTH_EVENT,
     PLUGIN_OAUTH_STORAGE_KEY,
+    createOAuthState,
 } from "@/lib/plugin-oauth";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,6 +26,8 @@ function emitStorageEvent(newValue: string | null) {
   });
 }
 
+let STATE = "";
+
 describe("PluginOAuthCallbackListener", () => {
   let handler: (payload: unknown) => Promise<void>;
   let disposable: { dispose: () => void };
@@ -35,6 +38,7 @@ describe("PluginOAuthCallbackListener", () => {
     mockUsePathname.mockReturnValue("/en/mail");
     handler = vi.fn<(payload: unknown) => Promise<void>>().mockResolvedValue(undefined);
     disposable = authHooks.onOAuthCallback.register("test-plugin", handler);
+    STATE = createOAuthState("test-plugin");
   });
 
   afterEach(() => {
@@ -43,14 +47,14 @@ describe("PluginOAuthCallbackListener", () => {
 
   it("delivers a success payload via the storage event", () => {
     const { unmount } = render(<PluginOAuthCallbackListener />);
-    const payload = { code: "abc", state: "xyz", receivedAt: 1 };
+    const payload = { code: "abc", state: STATE, receivedAt: 1 };
     localStorage.setItem(PLUGIN_OAUTH_STORAGE_KEY, JSON.stringify(payload));
 
     emitStorageEvent(JSON.stringify(payload));
 
     expect(handler).toHaveBeenCalledOnce();
     expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "abc", state: "xyz" }),
+      expect.objectContaining({ code: "abc", state: STATE }),
     );
     // Best-effort cleanup after delivery
     expect(localStorage.getItem(PLUGIN_OAUTH_STORAGE_KEY)).toBeNull();
@@ -59,14 +63,14 @@ describe("PluginOAuthCallbackListener", () => {
 
   it("delivers an error payload (denial) with state", () => {
     const { unmount } = render(<PluginOAuthCallbackListener />);
-    const payload = { state: "xyz", error: "access_denied", receivedAt: 1 };
+    const payload = { state: STATE, error: "access_denied", receivedAt: 1 };
     localStorage.setItem(PLUGIN_OAUTH_STORAGE_KEY, JSON.stringify(payload));
 
     emitStorageEvent(JSON.stringify(payload));
 
     expect(handler).toHaveBeenCalledOnce();
     expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({ state: "xyz", error: "access_denied" }),
+      expect.objectContaining({ state: STATE, error: "access_denied" }),
     );
     unmount();
   });
@@ -74,7 +78,7 @@ describe("PluginOAuthCallbackListener", () => {
   it("does nothing on the callback route", () => {
     mockUsePathname.mockReturnValue("/en/plugins/oauth/callback");
     const { unmount } = render(<PluginOAuthCallbackListener />);
-    const payload = { code: "abc", state: "xyz", receivedAt: 1 };
+    const payload = { code: "abc", state: STATE, receivedAt: 1 };
     localStorage.setItem(PLUGIN_OAUTH_STORAGE_KEY, JSON.stringify(payload));
 
     emitStorageEvent(JSON.stringify(payload));
@@ -95,7 +99,7 @@ describe("PluginOAuthCallbackListener", () => {
 
     emitStorageEvent("not json");
     emitStorageEvent(JSON.stringify({ foo: "bar" }));
-    emitStorageEvent(JSON.stringify({ code: 123, state: "xyz" }));
+    emitStorageEvent(JSON.stringify({ code: 123, state: STATE }));
     emitStorageEvent(null);
 
     expect(handler).not.toHaveBeenCalled();
@@ -119,7 +123,7 @@ describe("PluginOAuthCallbackListener", () => {
     try {
       vi.setSystemTime(0);
       const { unmount } = render(<PluginOAuthCallbackListener />);
-      const payload = { code: "abc", state: "xyz", receivedAt: 1 };
+      const payload = { code: "abc", state: STATE, receivedAt: 1 };
       localStorage.setItem(PLUGIN_OAUTH_STORAGE_KEY, JSON.stringify(payload));
 
       emitStorageEvent(JSON.stringify(payload));
@@ -127,10 +131,10 @@ describe("PluginOAuthCallbackListener", () => {
 
       expect(handler).toHaveBeenCalledOnce();
 
-      // Outside the dedup window the same payload is delivered again
+      // A state is used once: replaying it later delivers nothing either.
       vi.setSystemTime(61_000);
       emitStorageEvent(JSON.stringify(payload));
-      expect(handler).toHaveBeenCalledTimes(2);
+      expect(handler).toHaveBeenCalledOnce();
 
       unmount();
     } finally {
@@ -140,7 +144,7 @@ describe("PluginOAuthCallbackListener", () => {
 
   it("delivers same-tab custom events", () => {
     const { unmount } = render(<PluginOAuthCallbackListener />);
-    const payload = { code: "abc", state: "xyz", receivedAt: 1 };
+    const payload = { code: "abc", state: STATE, receivedAt: 1 };
 
     act(() => {
       window.dispatchEvent(
@@ -150,7 +154,7 @@ describe("PluginOAuthCallbackListener", () => {
 
     expect(handler).toHaveBeenCalledOnce();
     expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "abc", state: "xyz" }),
+      expect.objectContaining({ code: "abc", state: STATE }),
     );
     unmount();
   });
@@ -159,7 +163,7 @@ describe("PluginOAuthCallbackListener", () => {
     const { unmount } = render(<PluginOAuthCallbackListener />);
     unmount();
 
-    const payload = { code: "abc", state: "xyz", receivedAt: 1 };
+    const payload = { code: "abc", state: STATE, receivedAt: 1 };
     localStorage.setItem(PLUGIN_OAUTH_STORAGE_KEY, JSON.stringify(payload));
     emitStorageEvent(JSON.stringify(payload));
     act(() => {
@@ -169,5 +173,30 @@ describe("PluginOAuthCallbackListener", () => {
     });
 
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("delivers the code only to the plugin that started the flow", () => {
+    // Every plugin with http:fetch used to receive every code.
+    const other = vi.fn<(payload: unknown) => Promise<void>>().mockResolvedValue(undefined);
+    const otherDisposable = authHooks.onOAuthCallback.register("other-plugin", other);
+    const { unmount } = render(<PluginOAuthCallbackListener />);
+
+    emitStorageEvent(JSON.stringify({ code: "abc", state: STATE, receivedAt: 1 }));
+
+    expect(handler).toHaveBeenCalledOnce();
+    expect(other).not.toHaveBeenCalled();
+    otherDisposable.dispose();
+    unmount();
+  });
+
+  it("drops a callback whose state no plugin created", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { unmount } = render(<PluginOAuthCallbackListener />);
+
+    emitStorageEvent(JSON.stringify({ code: "abc", state: "made-up", receivedAt: 1 }));
+
+    expect(handler).not.toHaveBeenCalled();
+    warn.mockRestore();
+    unmount();
   });
 });

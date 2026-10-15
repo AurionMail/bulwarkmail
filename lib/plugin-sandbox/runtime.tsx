@@ -28,7 +28,14 @@ import type {
   SlotInit,
 } from './protocol';
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
-import type { SlotName } from '../plugin-types';
+import { pluginUiKit, SlotPropsContext } from './ui-kit';
+import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
+import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
+import type {
+  CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
+  EmailSummary, IdentityPatch, IdentityView, MailboxView, NotificationInput, SlotName, TaskInput,
+  TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
+} from '../plugin-types';
 import { AddressBook, ContactCard } from '../jmap/types';
 import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-security-store';
 
@@ -62,6 +69,35 @@ let bootDone = false;
 let readyPosted = false;
 
 const pendingApi = new Map<string, { resolve: (v: unknown) => void; reject: (err: Error) => void }>();
+
+// The plugin's settings. One object for the iframe's lifetime, updated in
+// place on 'settings-change', so code that kept a reference sees new values.
+const settingsState: Record<string, unknown> = {};
+
+// The app language, pushed by the host on init and on every change.
+const localeListeners = new Set<(locale: string) => void>();
+function currentLocale(): string {
+  return (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ || 'en';
+}
+function applyLocale(locale: string): void {
+  (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ = locale;
+  document.documentElement.lang = locale;
+  // Slots sit inside an RTL page in Arabic, Hebrew and Persian; their own
+  // document has to flip too.
+  document.documentElement.dir = textDirection(locale);
+  for (const listener of localeListeners) {
+    try { listener(locale); } catch (err) { console.error('[plugin] locale listener failed', err); }
+  }
+}
+const settingsListeners = new Set<(settings: Record<string, unknown>) => void>();
+
+function applySettings(next: Record<string, unknown>): void {
+  for (const key of Object.keys(settingsState)) delete settingsState[key];
+  Object.assign(settingsState, next);
+  for (const listener of settingsListeners) {
+    try { listener(settingsState); } catch (err) { console.error('[plugin] settings listener failed', err); }
+  }
+}
 const pendingCallbacks = new Map<string, { resolve: (v: unknown) => void; reject: (err: Error) => void }>();
 const hookHandlers: Record<string, (...args: unknown[]) => unknown> = {};
 
@@ -159,6 +195,61 @@ function callApi(method: string, args: unknown[], timeoutMs: number = DEFAULT_AP
   });
 }
 
+// ─── api.proxy streams ───────────────────────────────────────
+
+interface ProxyStream {
+  controller?: ReadableStreamDefaultController<Uint8Array>;
+  onProgress?: (loaded: number, total: number) => void;
+}
+const proxyStreams = new Map<string, ProxyStream>();
+
+interface ProxyFetchInit {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string | ArrayBuffer | Uint8Array | Blob | null;
+  /** "text" (default), "json", "arraybuffer", or "stream" for a ReadableStream body. */
+  responseType?: 'text' | 'json' | 'arraybuffer' | 'stream';
+  /** Upload progress, in bytes. */
+  onProgress?: (loaded: number, total: number) => void;
+  /** Store these JSON fields of the response as the credential instead of returning them. */
+  capture?: { secret: string; username?: string };
+  /** Stops the request (and a streamed body). */
+  signal?: AbortSignal;
+}
+
+async function proxyFetch(credentialId: string, url: string, init: ProxyFetchInit = {}): Promise<unknown> {
+  const streamId = uid().replace(/[^a-z0-9]/g, '').slice(0, 24);
+  const entry: ProxyStream = { onProgress: init.onProgress };
+  proxyStreams.set(streamId, entry);
+  const stream = init.responseType === 'stream'
+    ? new ReadableStream<Uint8Array>({
+        start(controller) { entry.controller = controller; },
+        cancel() {
+          proxyStreams.delete(streamId);
+          void callApi('proxy.cancel', [streamId]).catch(() => {});
+        },
+      })
+    : null;
+  const abort = () => {
+    void callApi('proxy.cancel', [streamId]).catch(() => {});
+    try { entry.controller?.error(new Error('cancelled')); } catch { /* closed */ }
+    proxyStreams.delete(streamId);
+  };
+  init.signal?.addEventListener('abort', abort, { once: true });
+  const { onProgress: _p, signal: _s, ...plain } = init;
+  void _p; void _s;
+  try {
+    // No overall timeout: a big upload or a long AI answer takes as long as
+    // it takes, and api.proxy.cancel / the signal stop it.
+    const res = await callApi('proxy.fetch', [credentialId, url, { ...plain, streamId }], 0) as Record<string, unknown>;
+    if (!stream || !res.ok) proxyStreams.delete(streamId);
+    return stream && res.ok ? { ...res, body: stream } : res;
+  } catch (err) {
+    proxyStreams.delete(streamId);
+    throw err;
+  }
+}
+
 function invokeHostCallback(callbackId: string, args: unknown[]): Promise<unknown> {
   const id = uid();
   return new Promise((resolve, reject) => {
@@ -215,11 +306,19 @@ interface PluginKeywordCounts {
 }
 
 function buildPluginApi(manifest: PluginManifest) {
+  applySettings({ ...manifest.settings });
+  const localeTables: LocaleTables = JSON.parse(JSON.stringify(manifest.locales ?? {}));
   return {
     plugin: {
       id: manifest.id,
       version: manifest.version,
-      settings: { ...manifest.settings },
+      /** Current settings, defaults filled in. Updated in place when the user changes them. */
+      settings: settingsState,
+      /** Called with the new settings whenever the user changes them. Returns an unsubscribe function. */
+      onSettingsChange: (listener: (settings: Record<string, unknown>) => void) => {
+        settingsListeners.add(listener);
+        return () => { settingsListeners.delete(listener); };
+      },
     },
     crypto: {
       getPublicKeys: () => callApi('crypto.getPublicKeys', []),
@@ -240,6 +339,8 @@ function buildPluginApi(manifest: PluginManifest) {
     user: {
       getAccounts: () => callApi('user.getAccounts', []),
       getIdentities: () => callApi('user.getIdentities', []),
+      /** The IANA time zone the app shows times in (the user's setting, else the browser's). */
+      getTimeZone: () => callApi('user.getTimeZone', []) as Promise<string>,
       logout: () => callApi('user.logout', []),
     },
     http: {
@@ -290,6 +391,7 @@ function buildPluginApi(manifest: PluginManifest) {
       /** Fetch a blob's raw bytes by id. Resolves to a Uint8Array. */
       fetchBlob: (blobId: string, opts?: { name?: string; type?: string, rangeHeader?: number }) =>
         callApi('jmap.fetchBlob', [blobId, opts]) as Promise<Uint8Array>,
+      /** Upload bytes to the mail server (email:blob-write); pass the blob id to a composer's onAttach. */
       uploadBlob: (content: Uint8Array, name: string, type: string) =>
         callApi('jmap.uploadBlob', [content, name, type]) as Promise<{ blobId: string; size: number; type: string; }>,
       /** Submit a fully-formed raw RFC822 message (already signed/encrypted). */
@@ -336,6 +438,41 @@ function buildPluginApi(manifest: PluginManifest) {
       get: (fileId:string) =>
         callApi('upfiles.get', [fileId]) as Promise<File>,
     },
+    // Notifications (permission: ui:notifications).
+    notifications: {
+      /**
+       * A system notification when the user allowed them for the webmail,
+       * otherwise a toast; either way it names this plugin. At most 5 a
+       * minute. Clicking a system notification brings the webmail to the
+       * front and fires this plugin's onNotificationClick hook with the tag.
+       * Resolves to 'system' or 'toast'.
+       */
+      show: (notification: NotificationInput) =>
+        callApi('notifications.show', [notification]) as Promise<'system' | 'toast'>,
+    },
+    // The message being written. `composerId` comes from the composer: the
+    // context of a click on a composer action, or a composer slot's props.
+    composer: {
+      /** The user's own text (no signature, no quote) as { html, text }. Needs compose:read. */
+      getBody: (composerId: string) =>
+        callApi('composer.getBody', [composerId]) as Promise<{ html: string; text: string }>,
+      /** The selection as { html, text, empty }. Needs compose:read. */
+      getSelection: (composerId: string) =>
+        callApi('composer.getSelection', [composerId]) as Promise<{ html: string; text: string; empty: boolean }>,
+      /**
+       * Replace the selection, or insert at the caret when nothing is
+       * selected; `{ below: true }` adds after the selection instead. One
+       * Ctrl+Z undoes it. Needs compose:write.
+       */
+      replaceSelection: (composerId: string, content: { text: string } | { html: string }, options?: { below?: boolean }) =>
+        callApi('composer.replaceSelection', [composerId, content, options]) as Promise<boolean>,
+      /** Replace the user's own text; the signature and the quote stay. Needs compose:write. */
+      replaceBody: (composerId: string, content: { text: string } | { html: string }) =>
+        callApi('composer.replaceBody', [composerId, content]) as Promise<boolean>,
+      /** Attach a blob from jmap.uploadBlob. Needs email:blob-write. */
+      attach: (composerId: string, file: { blobId: string; name: string; type?: string; size: number }) =>
+        callApi('composer.attach', [composerId, file]) as Promise<boolean>,
+    },
     toast: {
       success: (m: string) => { void callApi('toast.success', [m]); },
       error: (m: string) => { void callApi('toast.error', [m]); },
@@ -379,16 +516,122 @@ function buildPluginApi(manifest: PluginManifest) {
       openExternalUrl: (url: string, target?: string) =>
         callApi('ui.openExternalUrl', [url, target]) as Promise<void>,
       /** Downloads a file generated by the plugin. Not a user's file or attachment. */
-      downloadFile: (opts: { content: string; filename: string; contentType?: string }) =>
+      /** `content` is text, or the file's bytes (ArrayBuffer / Uint8Array). */
+      downloadFile: (opts: { content: string | ArrayBuffer | Uint8Array; filename: string; contentType?: string }) =>
         callApi('ui.downloadFile', [opts]) as Promise<void>,
+      /**
+       * Buttons or menu entries on an action surface (see the slot catalogue:
+       * message rows, the selection toolbar, attachment menus, the command
+       * palette, ...). Replaces what this plugin set there before; [] removes
+       * them. Clicks arrive in the `onAction({ surface, actionId, context })` hook.
+       */
+      setActions: (surface: string, actions: Array<{ id: string; label: string; icon?: string; order?: number; mailboxRoles?: string[]; mimeTypes?: string[]; danger?: boolean }>) =>
+        callApi('ui.setActions', [surface, actions]) as Promise<void>,
+      /**
+       * Ask every visible message row for its onEmailListItemRender badges
+       * again, e.g. after a task was created elsewhere. At most once a second.
+       */
+      refreshRowBadges: () => callApi('ui.refreshRowBadges', []) as Promise<void>,
+      /** Short labels and dots on calendar days. Replaces this plugin's earlier labels. */
+      setDayLabels: (labels: Array<{ date: string; text?: string; title?: string; dot?: boolean }>) =>
+        callApi('ui.setDayLabels', [labels]) as Promise<void>,
+      /** Full pages with a button in the navigation bar; the `app-page` slot renders them. */
+      setPages: (pages: Array<{ id: string; title: string; icon?: string }>) =>
+        callApi('ui.setPages', [pages]) as Promise<void>,
+      /**
+       * The header of this plugin's sidebar section (the host draws it like
+       * Folders and Tags), e.g. a translated "Upcoming birthdays". null goes
+       * back to the plugin's name. At most 40 characters.
+       */
+      setSectionTitle: (title: string | null) => callApi('ui.setSectionTitle', [title]) as Promise<void>,
     },
-    // Email keyword mutations (permission: email:write). Keywords follow JMAP
-    // syntax, e.g. '$category-promotions' or '$label:<tagId>'.
+    // Requests with an account or key the manifest declares under
+    // `credentials`; the server adds the secret (permission http:proxy).
+    proxy: {
+      fetch: proxyFetch,
+      /** Show the host's dialog to connect a user credential. */
+      connect: (credentialId: string, opts?: { mode?: 'password' | 'signin'; server?: string; username?: string }) =>
+        callApi('proxy.connect', [credentialId, opts ?? {}], 0) as Promise<{ connected: boolean; origin?: string }>,
+      /**
+       * Which credentials are ready: accounts the user connected (scope
+       * 'user', with server and user name) and the admin's (scope 'admin',
+       * connected = set up). No secrets.
+       */
+      accounts: () => callApi('proxy.accounts', []) as Promise<Array<{ credentialId: string; scope: 'user' | 'admin'; origin?: string; username?: string; connected: boolean }>>,
+      disconnect: (credentialId: string) => callApi('proxy.disconnect', [credentialId]) as Promise<boolean>,
+    },
+    // Reading mail (permission: email:read) and keyword mutations
+    // (permission: email:write). Keywords follow JMAP syntax, e.g.
+    // '$category-promotions' or '$label:<tagId>'.
     email: {
+      /**
+       * One message with its plain text, headers and source, or null when
+       * there is none with that id. Any message of the account, not only the
+       * open one.
+       */
+      get: (emailId: string) => callApi('email.get', [emailId]) as Promise<EmailReadView | null>,
+      /**
+       * Move messages (at most 100) into a folder of the account, like the
+       * user would; the move hooks run. 20 moves a minute. Needs email:write.
+       */
+      move: (emailIds: string[], mailboxId: string) => callApi('email.move', [emailIds, mailboxId]) as Promise<void>,
+      /** Move messages into the account's Archive folder. Needs email:write. */
+      archive: (emailIds: string[]) => callApi('email.archive', [emailIds]) as Promise<void>,
+      /**
+       * A page of a folder (or of all mail without mailboxId), in the user's
+       * list order: summaries without the body. limit 1-100 (default 50).
+       */
+      list: (options?: { mailboxId?: string; limit?: number; position?: number }) =>
+        callApi('email.list', [options]) as Promise<EmailSummary[]>,
+      /**
+       * The bytes of one attachment of a message (email:blob-read, at most
+       * 25 MB). `blobId` must be one of that message's attachments, e.g.
+       * from an `attachment-actions` slot or onAttachmentDownload.
+       */
+      getAttachment: (emailId: string, blobId: string) =>
+        callApi('email.getAttachment', [emailId, blobId], NETWORK_API_TIMEOUT_MS) as Promise<{
+          name: string; type: string; size: number; data: ArrayBuffer;
+        }>,
+      /** The full RFC 5322 source of a message, to save as .eml (email:blob-read, at most 25 MB). */
+      getRaw: (emailId: string) =>
+        callApi('email.getRaw', [emailId], NETWORK_API_TIMEOUT_MS) as Promise<ArrayBuffer>,
       setKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.setKeyword', [emailId, keyword, accountId]) as Promise<void>,
       removeKeyword: (emailId: string, keyword: string, accountId?: string) =>
         callApi('email.removeKeyword', [emailId, keyword, accountId]) as Promise<void>,
+    },
+    // The composer (permission: compose:open). Opens it filled in; the user
+    // reviews the message and decides whether to send it.
+    compose: {
+      /**
+       * Open the composer with these fields. On the mail page it opens in
+       * place; anywhere else the app first goes to the mail page (the
+       * plugin is reloaded with it). Resolves to 'opened' or 'navigating'.
+       * At most 5 times a minute.
+       */
+      open: (message: ComposeInput) => callApi('compose.open', [message]) as Promise<'opened' | 'navigating'>,
+      /**
+       * Reply to the message open in the reader (`all` for reply to all),
+       * starting the reply with `text`. Only the open message; resolves to
+       * true when the composer opened. Shares compose.open's 5 a minute.
+       */
+      reply: (emailId: string, reply?: { text?: string; all?: boolean }) =>
+        callApi('compose.reply', [emailId, reply]) as Promise<boolean>,
+    },
+    // Drafts (permission: email:write).
+    drafts: {
+      /**
+       * Save a draft in the Drafts folder, from the user's default sender
+       * address, without opening the composer. Attachments are blobs the
+       * plugin uploaded with api.jmap.uploadBlob. Resolves to the draft's
+       * email id. At most 10 a minute.
+       */
+      create: (draft: DraftInput) => callApi('drafts.create', [draft]) as Promise<string>,
+    },
+    // Folders (permission: email:read).
+    mailboxes: {
+      /** Every folder with its role, parent and message counts. */
+      list: () => callApi('mailboxes.list', []) as Promise<MailboxView[]>,
     },
     // Native sidebar tag definitions. Definition reads/writes use the existing
     // settings permissions; server discovery and message counts use email:read.
@@ -448,6 +691,83 @@ function buildPluginApi(manifest: PluginManifest) {
       run: (query: unknown, options?: { label?: string }) =>
         callApi('search.run', [query, options]) as Promise<void>,
     },
+    // Calendar events (permissions: calendar:read / calendar:write). Writes
+    // go through the calendar the way the user's own edits do, so other
+    // plugins' hooks run and may stop them. Nothing here sends invitations,
+    // updates or cancellations to participants.
+    calendar: {
+      /** The user's calendars. */
+      listCalendars: () => callApi('calendar.listCalendars', []) as Promise<CalendarView[]>,
+      /**
+       * Events from `from` to `to` (at most 366 days; `2026-05-01`,
+       * `2026-05-01T09:00` or `...Z`), recurring events expanded into their
+       * occurrences, earliest first, at most 1000.
+       */
+      getEvents: (range: { from: string; to: string; calendarIds?: string[] }) =>
+        callApi('calendar.getEvents', [range]) as Promise<CalendarEventView[]>,
+      /** One event, or null when there is none with that id. */
+      getEvent: (id: string) => callApi('calendar.getEvent', [id]) as Promise<CalendarEventView | null>,
+      /** Resolves to the new event, or null when it was not created (a plugin stopped it or the server refused). */
+      createEvent: (event: CalendarEventInput) =>
+        callApi('calendar.createEvent', [event]) as Promise<CalendarEventView | null>,
+      /** Change the given fields; times are worked out against the event's current ones. */
+      updateEvent: (id: string, patch: Partial<CalendarEventInput>) =>
+        callApi('calendar.updateEvent', [id, patch]) as Promise<void>,
+      /** Delete an event, or one occurrence when given an occurrence's id. */
+      deleteEvent: (id: string) => callApi('calendar.deleteEvent', [id]) as Promise<void>,
+    },
+    // Tasks (permissions: tasks:read / tasks:write), through the task list
+    // the way the user's own edits go.
+    tasks: {
+      /** Open tasks, or every task with includeCompleted. At most 1000. */
+      list: (options?: { includeCompleted?: boolean }) => callApi('tasks.list', [options]) as Promise<TaskView[]>,
+      /** One task, or null. */
+      get: (id: string) => callApi('tasks.get', [id]) as Promise<TaskView | null>,
+      /** Resolves to the new task, or null when another plugin stopped it. */
+      create: (task: TaskInput) => callApi('tasks.create', [task]) as Promise<TaskView | null>,
+      /** Change the given fields. */
+      update: (id: string, patch: Partial<TaskInput>) => callApi('tasks.update', [id, patch]) as Promise<void>,
+      /** Mark a task done or not done. */
+      setComplete: (id: string, complete: boolean) => callApi('tasks.setComplete', [id, complete]) as Promise<void>,
+      delete: (id: string) => callApi('tasks.delete', [id]) as Promise<void>,
+    },
+    // Message templates (permissions: templates:read / templates:write).
+    // They live with the user's settings and sync across devices.
+    templates: {
+      list: () => callApi('templates.list', []) as Promise<TemplateView[]>,
+      /** One template, or null. */
+      get: (id: string) => callApi('templates.get', [id]) as Promise<TemplateView | null>,
+      /** At most 500 templates in all. An HTML body is sanitised. */
+      create: (template: TemplateInput) => callApi('templates.create', [template]) as Promise<TemplateView>,
+      update: (id: string, patch: Partial<TemplateInput>) =>
+        callApi('templates.update', [id, patch]) as Promise<TemplateView>,
+      delete: (id: string) => callApi('templates.delete', [id]) as Promise<void>,
+    },
+    // Sender identities. Read them with api.user.getIdentities()
+    // (identity:read); change one with identity:write.
+    identities: {
+      /**
+       * Change the name, reply-to addresses or signatures of one identity.
+       * The address can't be changed. An HTML signature is sanitised like
+       * one typed into Settings. Resolves to the identity as changed, or null
+       * when an onBeforeIdentityChange handler stopped it.
+       */
+      update: (id: string, patch: IdentityPatch) =>
+        callApi('identities.update', [id, patch]) as Promise<IdentityView | null>,
+    },
+    // Out-of-office reply (permissions: vacation:read / vacation:write).
+    vacation: {
+      get: () => callApi('vacation.get', []) as Promise<VacationView>,
+      /** Resolves to the reply as saved, or null when another plugin stopped the change. */
+      set: (vacation: VacationInput) => callApi('vacation.set', [vacation]) as Promise<VacationView | null>,
+    },
+    // OAuth with a third party (permission: http:fetch). Put createState()'s
+    // value in the authorize URL; the code comes back through the
+    // onOAuthCallback hook, to this plugin only.
+    oauth: {
+      createState: () => callApi('oauth.createState', []) as Promise<string>,
+      getRedirectUri: () => callApi('oauth.getRedirectUri', []) as Promise<string>,
+    },
     // Sieve integration for delivery-time classification (permissions:
     // filters:read / filters:write). Plugins never write scripts directly -
     // they register an onSieveScriptGenerate transform hook and call
@@ -460,6 +780,14 @@ function buildPluginApi(manifest: PluginManifest) {
         callApi('sieve.validateScript', [content]) as Promise<{ isValid: boolean; errors?: string[] }>,
       /** Rebuild + re-upload the active script, running onSieveScriptGenerate. */
       regenerate: () => callApi('sieve.regenerate', []) as Promise<void>,
+    },
+    /**
+     * The admin's settings for this plugin (configSchema) that aren't secrets,
+     * e.g. a server address. No permission needed; `type: "secret"` fields
+     * are never included. Use credentials for secrets.
+     */
+    config: {
+      get: () => callApi('plugin.getConfig', []) as Promise<Record<string, unknown>>,
     },
     admin: {
       getConfig: (key: string) => callApi('admin.getConfig', [key]),
@@ -475,22 +803,27 @@ function buildPluginApi(manifest: PluginManifest) {
     },
     // Localization for plugins. The host pushes the active locale (init +
     // 'locale-change'); `t` resolves a key against the plugin's declared
-    // `locales` map (manifest.locales), falling back to English then the key
-    // itself, with optional {placeholder} interpolation.
+    // `locales` map (manifest.locales) plus anything added at runtime,
+    // trying `de-CH`, then `de`, then English, then the key itself, with
+    // optional {placeholder} interpolation.
     i18n: {
       get locale(): string {
-        return (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ || 'en';
+        return currentLocale();
       },
+      getLocale: () => currentLocale(),
       t(key: string, vars?: Record<string, string | number>): string {
-        const loc = (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ || 'en';
-        const tables = manifest.locales || {};
-        let out = tables[loc]?.[key] ?? tables['en']?.[key] ?? key;
-        if (vars) {
-          for (const [k, v] of Object.entries(vars)) {
-            out = out.split('{' + k + '}').join(String(v));
-          }
-        }
-        return out;
+        return interpolate(lookup(localeTables, currentLocale(), key) ?? key, vars);
+      },
+      /** Whether any table has `key`, for `has(k) ? t(k) : fallback`. */
+      has: (key: string) => lookup(localeTables, currentLocale(), key) !== undefined,
+      /** Add or override strings for one locale. */
+      addTranslations(locale: string, strings: Record<string, string>): void {
+        localeTables[locale] = { ...(localeTables[locale] ?? {}), ...strings };
+      },
+      /** Called with the new locale when the user switches language. Returns an unsubscribe function. */
+      onLocaleChange: (listener: (locale: string) => void) => {
+        localeListeners.add(listener);
+        return () => { localeListeners.delete(listener); };
       },
     },
   };
@@ -507,7 +840,7 @@ function buildPluginApi(manifest: PluginManifest) {
  * The host injects the per-plugin API as `@plugin-host`, so plugin code can
  * `const api = require('@plugin-host')` in both background and slot modes.
  */
-function makePluginRequire(api: ReturnType<typeof buildPluginApi> | null): (name: string) => unknown {
+export function makePluginRequire(api: ReturnType<typeof buildPluginApi> | null): (name: string) => unknown {
   const known: Record<string, unknown> = {
     'react': React,
     'react-dom': ReactDOM,
@@ -516,6 +849,9 @@ function makePluginRequire(api: ReturnType<typeof buildPluginApi> | null): (name
     'react/jsx-dev-runtime': ReactJSXRuntime,
   };
   if (api) known['@plugin-host'] = api;
+  // The app's controls (lib/plugin-sandbox/ui-kit), so plugins draw the same
+  // buttons, fields and lists as the app without bundling their own.
+  known['@plugin-host/ui'] = pluginUiKit;
   return (name: string) => {
     if (Object.prototype.hasOwnProperty.call(known, name)) return known[name];
     throw new Error(`Plugin sandbox: module "${name}" is not available. Externalise it in your bundler or ship it bundled.`);
@@ -620,6 +956,7 @@ function bootSlot(payload: SlotInit): void {
 
   let currentProps = decodeCallbacks(payload.extraProps) as Record<string, unknown>;
   const Component = slotDef.component;
+  const inline = isInlineSlot(payload.slot);
 
   // A trivial pub/sub so host-pushed `props-update` messages re-render the
   // slot tree without tearing down the iframe.
@@ -634,26 +971,48 @@ function bootSlot(payload: SlotInit): void {
   const SlotShell = () => {
     const wrapRef = React.useRef<HTMLDivElement>(null);
     const [props, setProps] = React.useState(currentProps);
+    const [, setSettingsVersion] = React.useState(0);
     React.useEffect(() => {
       propsListeners.add(setProps);
       return () => { propsListeners.delete(setProps); };
     }, []);
+    // Re-render the slot when its settings change, so a component that reads
+    // api.plugin.settings while rendering shows the new values.
+    React.useEffect(() => {
+      const bump = () => setSettingsVersion((v) => v + 1);
+      settingsListeners.add(bump);
+      localeListeners.add(bump);
+      return () => {
+        settingsListeners.delete(bump);
+        localeListeners.delete(bump);
+      };
+    }, []);
     React.useEffect(() => {
       if (!wrapRef.current) return;
+      const el = wrapRef.current;
       let lastHeight = -1;
-      const ro = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const h = Math.ceil(entry.contentRect.height);
-          if (h !== lastHeight) {
-            lastHeight = h;
-            sendToHost({ type: 'slot-resize', height: h });
-          }
+      let lastWidth = -1;
+      const ro = new ResizeObserver(() => {
+        const rect = el.getBoundingClientRect();
+        const h = Math.ceil(rect.height);
+        const w = inline ? Math.ceil(rect.width) : undefined;
+        if (h !== lastHeight || (w !== undefined && w !== lastWidth)) {
+          lastHeight = h;
+          if (w !== undefined) lastWidth = w;
+          sendToHost({ type: 'slot-resize', height: h, ...(w !== undefined ? { width: w } : {}) });
         }
       });
-      ro.observe(wrapRef.current);
+      ro.observe(el);
       return () => ro.disconnect();
     }, []);
-    return React.createElement('div', { ref: wrapRef }, React.createElement(Component, props));
+    // An inline slot is measured at its natural width (max-content), not the
+    // iframe's: in a toolbar row the iframe starts out narrow, and content
+    // that wraps to fit it reports a narrow width back, so it never grew.
+    const style = inline
+      ? { display: 'inline-block', width: 'max-content', maxWidth: MAX_INLINE_SLOT_WIDTH }
+      : undefined;
+    return React.createElement('div', { ref: wrapRef, style },
+      React.createElement(SlotPropsContext.Provider, { value: props }, React.createElement(Component, props)));
   };
 
   const reactRoot = ReactDOM.createRoot(rootEl);
@@ -670,7 +1029,7 @@ async function handleInit(payload: InitPayload): Promise<void> {
   mode = payload.mode;
   // Make the active locale available to plugin code (api.i18n) right away -
   // not only after the first 'locale-change' push.
-  (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ = payload.locale;
+  applyLocale(payload.locale);
   try {
     if (payload.mode === 'background') {
       await bootBackground(payload);
@@ -752,15 +1111,39 @@ function handleHostMessage(ev: MessageEvent): void {
     }
 
     case 'locale-change':
-      (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ = msg.locale;
+      applyLocale(msg.locale);
       break;
 
     case 'theme-change':
       applyHostTheme(msg.theme);
       break;
 
+    case 'settings-change':
+      applySettings(msg.settings ?? {});
+      break;
+
     case 'props-update':
       slotPropsUpdater?.(msg.props ?? {});
+      break;
+
+    case 'stream-chunk': {
+      const entry = proxyStreams.get(msg.streamId);
+      try { entry?.controller?.enqueue(new Uint8Array(msg.chunk)); } catch { /* cancelled */ }
+      break;
+    }
+
+    case 'stream-end': {
+      const entry = proxyStreams.get(msg.streamId);
+      proxyStreams.delete(msg.streamId);
+      try {
+        if (msg.error) entry?.controller?.error(new Error(msg.error));
+        else entry?.controller?.close();
+      } catch { /* already closed */ }
+      break;
+    }
+
+    case 'stream-progress':
+      try { proxyStreams.get(msg.streamId)?.onProgress?.(msg.loaded, msg.total); } catch { /* plugin's own error */ }
       break;
   }
 }

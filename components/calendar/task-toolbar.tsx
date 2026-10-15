@@ -1,9 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Plus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PluginActions } from "@/components/plugins/plugin-actions";
 import type { TaskViewFilter } from "@/stores/task-store";
 
 interface TaskToolbarProps {
@@ -12,7 +14,13 @@ interface TaskToolbarProps {
   onFilterChange: (filter: TaskViewFilter) => void;
   onShowCompletedChange: (show: boolean) => void;
   onCreateTask: () => void;
+  /** The tasks the list shows, in order: what plugin buttons here act on. */
+  taskIds?: string[];
+  /** Icon-only plugin buttons (phones). */
+  compact?: boolean;
 }
+
+const NO_IDS: string[] = [];
 
 const FILTERS: TaskViewFilter[] = ["all", "pending", "completed", "overdue"];
 
@@ -22,8 +30,11 @@ export function TaskToolbar({
   onFilterChange,
   onShowCompletedChange,
   onCreateTask,
+  taskIds = NO_IDS,
+  compact,
 }: TaskToolbarProps) {
   const t = useTranslations("calendar");
+  const pluginContext = useMemo(() => ({ taskIds }), [taskIds]);
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 border-b border-border flex-wrap">
@@ -60,6 +71,8 @@ export function TaskToolbar({
         <Plus className="w-4 h-4 me-1" />
         {t("tasks.create")}
       </Button>
+
+      <PluginActions surface="task-list-actions" context={pluginContext} compact={compact} />
     </div>
   );
 }

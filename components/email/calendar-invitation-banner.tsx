@@ -22,6 +22,7 @@ import { useTranslations, useFormatter } from 'next-intl';
 import { useRouter } from '@/i18n/navigation';
 import { isDocumentRTL } from '@/i18n/direction';
 import { useAuthStore } from '@/stores/auth-store';
+import { useShallow } from "zustand/react/shallow";
 import { useEmailStore } from '@/stores/email-store';
 import { useCalendarStore } from '@/stores/calendar-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -418,7 +419,15 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const currentUserEmail = useAuthStore((s) => s.primaryIdentity?.email);
   const calendarInvitationParsingEnabled = useSettingsStore((s) => s.calendarInvitationParsingEnabled);
   const timeFormat = useSettingsStore((s) => s.timeFormat);
-  const { calendars, supportsCalendar, importEvents, rsvpEvent, updateEvent, events: storeEvents, setSelectedDate } = useCalendarStore();
+  const { calendars, supportsCalendar, importEvents, rsvpEvent, updateEvent, events: storeEvents, setSelectedDate } = useCalendarStore(useShallow((state) => ({
+    calendars: state.calendars,
+    supportsCalendar: state.supportsCalendar,
+    importEvents: state.importEvents,
+    rsvpEvent: state.rsvpEvent,
+    updateEvent: state.updateEvent,
+    events: state.events,
+    setSelectedDate: state.setSelectedDate,
+  })));
 
   const [state, setState] = useState<BannerState>('loading');
   const [parsedEvent, setParsedEvent] = useState<Partial<CalendarEvent> | null>(null);
@@ -630,7 +639,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
         && (!eventForRsvp?.participants || Object.keys(eventForRsvp.participants).length === 0)
       );
       if (eventForRsvp && existingEventParticipant) {
-        await rsvpEvent(client, eventForRsvp.id, existingEventParticipant.id, status, replyToForRsvp);
+        // false: a plugin stopped it and said why; keep the old answer.
+        if (!(await rsvpEvent(client, eventForRsvp.id, existingEventParticipant.id, status, replyToForRsvp))) return;
         setRsvpStatus(status);
         setActionNotice(t('rsvp_sent'));
         setState('parsed');
@@ -640,7 +650,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
         if (!repairedParticipants) {
           setActionError(t('action_failed'));
         } else {
-          await updateEvent(client, eventForRsvp.id, {
+          const updated = await updateEvent(client, eventForRsvp.id, {
             participants: repairedParticipants,
             // Stalwart routes the iTIP REPLY via the stored ORGANIZER
             // (organizerCalendarAddress; the RFC 8984 replyTo is retired).
@@ -649,6 +659,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
               ? { organizerCalendarAddress: replyToForRsvp.imip }
               : {}),
           }, true);
+          if (!updated) return;
           setRsvpStatus(status);
           setActionNotice(t('rsvp_sent'));
           setState('parsed');
@@ -659,6 +670,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
         // A refusal (Stalwart 1.0's participant limit, say) lands in the
         // catch below and is said as it is.
         const imported = await importEvents(client, [parsedEvent], calId, { throwIfNoneImported: true });
+        if (imported === null) return;
         if (imported > 0) {
           const newEvent = useCalendarStore.getState().events.find(
             (e) => e.uid === parsedEvent.uid
@@ -666,7 +678,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
           const participant = myParticipant
             || (newEvent && currentUserEmail ? findParticipantByEmail(newEvent, currentUserEmail) : null);
           if (newEvent && participant) {
-            await rsvpEvent(client, newEvent.id, participant.id, status, replyToForRsvp);
+            if (!(await rsvpEvent(client, newEvent.id, participant.id, status, replyToForRsvp))) return;
             setRsvpStatus(status);
             setActionNotice(t('rsvp_sent'));
           } else {
@@ -715,6 +727,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     setIsProcessing(true);
     try {
       const count = await importEvents(client, [parsedEvent], calId, { throwIfNoneImported: true });
+      if (count === null) return;
       if (count > 0) {
         setActionNotice(t('added'));
         setState('parsed');
@@ -777,7 +790,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       // again, as the editor and a drag ask them (participantsAskedAgain).
       const moves = (['start', 'duration', 'timeZone', 'showWithoutTime'] as const).some((key) => key in proposalPatch);
       const participants = moves ? participantsAskedAgain(proposalTarget) : null;
-      await updateEvent(client, proposalTarget.id, participants ? { ...proposalPatch, participants } : proposalPatch, true);
+      if (!(await updateEvent(client, proposalTarget.id, participants ? { ...proposalPatch, participants } : proposalPatch, true))) return;
       setActionNotice(t('proposal_applied'));
       setState('parsed');
       setRsvpStatus(null);

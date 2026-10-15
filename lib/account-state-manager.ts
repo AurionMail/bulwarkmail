@@ -52,6 +52,13 @@ export function snapshotAccount(accountId: string): void {
       selectedMailbox: emailState.selectedMailbox,
       searchQuery: emailState.searchQuery,
       quota: emailState.quota ? { ...emailState.quota } : emailState.quota,
+      // The list is drawn sorted by listOrder, so the rows need the order they
+      // were fetched in: without it a restored "unread first" page showed by
+      // date and jumped when the refresh landed. The sync state lets that
+      // refresh ask only for what changed instead of re-reading the page.
+      listOrder: emailState.listOrder,
+      emailListSync: emailState.emailListSync,
+      threadEmailCounts: new Map(emailState.threadEmailCounts),
     },
     contact: {
       contacts: [...contactState.contacts],
@@ -131,6 +138,10 @@ export function clearAllStores(): void {
     isLoadingThread: null,
     selectedKeyword: null,
     tagCounts: {},
+    listOrder: [],
+    listHold: null,
+    emailListSync: null,
+    threadEmailCounts: new Map(),
     searchFilters: { ...DEFAULT_SEARCH_FILTERS },
     isAdvancedSearchOpen: false,
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Bell, Loader2, X } from "@/components/icons";
@@ -23,6 +23,7 @@ import {
 
 const DISMISSED_KEY_PREFIX = "bulwark.push.onboarding.dismissed.v1.";
 export const PUSH_NOTIFICATION_PROMPT_DELAY_MS = 1_000;
+export const MUTES_RESYNC_DELAY_MS = 1_000;
 
 function dismissedKey(accountId: string): string {
   return `${DISMISSED_KEY_PREFIX}${accountId}`;
@@ -170,6 +171,7 @@ export function PushNotificationPrompt() {
           relayBaseUrl,
           accountLabel: target.accountLabel,
           inboxOnly: pushNotifyInboxOnly,
+          mutes: useSettingsStore.getState().notificationMutes,
         });
       }
     };
@@ -183,6 +185,39 @@ export function PushNotificationPrompt() {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [accountId, client, connectedAccountsRevision, isAuthenticated, isDemoMode, policyLoaded, pushNotifyInboxOnly, relayBaseUrl, username]);
+
+  // Muting a folder or account changes the server-side push filter, which the
+  // daily renewal above would only send tomorrow. Send it to every login with
+  // push on now, after a short pause so a few clicks in a row make one update.
+  // Compared by content: a settings sync hands back an equal but new object.
+  const notificationMutes = useSettingsStore((state) => state.notificationMutes);
+  const mutesKey = JSON.stringify(notificationMutes);
+  const lastMutesKey = useRef(mutesKey);
+  useEffect(() => {
+    if (lastMutesKey.current === mutesKey) return;
+    lastMutesKey.current = mutesKey;
+    if (!policyLoaded || !isAuthenticated || !client || isDemoMode) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      for (const target of resyncTargets(client, username ?? undefined)) {
+        if (cancelled) return;
+        await resyncWebPush({
+          client: target.client,
+          relayBaseUrl,
+          accountLabel: target.accountLabel,
+          inboxOnly: useSettingsStore.getState().pushNotifyInboxOnly,
+          mutes: useSettingsStore.getState().notificationMutes,
+          force: true,
+        });
+      }
+    }, MUTES_RESYNC_DELAY_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // Only a change of the mutes should send an update; the rest is read live.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mutesKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,6 +280,7 @@ export function PushNotificationPrompt() {
         relayBaseUrl,
         accountLabel: username ?? undefined,
         inboxOnly: pushNotifyInboxOnly,
+        mutes: useSettingsStore.getState().notificationMutes,
       });
       setShowPrompt(false);
     } catch (err) {

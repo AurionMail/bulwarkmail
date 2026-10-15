@@ -300,7 +300,7 @@ export function VacationSettings() {
     const { sanitizedHtml, textBody } = payload;
 
     try {
-      await updateVacationResponse(client, {
+      const saved = await updateVacationResponse(client, {
         isEnabled: localEnabled,
         fromDate: localFromDate || null,
         toDate: localToDate || null,
@@ -311,7 +311,8 @@ export function VacationSettings() {
         audience: audienceChanged ? audienceSettings : undefined,
       }, managedAccountId ?? undefined);
 
-      toast.success(tNotifications('vacation_saved'));
+      // false: a plugin stopped the change and is expected to have said why.
+      if (saved) toast.success(tNotifications('vacation_saved'));
     } catch (error) {
       console.error('Failed to save vacation response:', error);
       toast.error(tNotifications(

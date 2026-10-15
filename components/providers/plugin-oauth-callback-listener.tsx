@@ -20,6 +20,7 @@ import { authHooks } from '@/lib/plugin-hooks';
 import {
   PLUGIN_OAUTH_EVENT as EVENT_NAME,
   PLUGIN_OAUTH_STORAGE_KEY as STORAGE_KEY,
+  takeOAuthStateOwner,
   type OAuthCallbackPayload,
 } from '@/lib/plugin-oauth';
 import { usePathname } from 'next/navigation';
@@ -83,7 +84,13 @@ export function PluginOAuthCallbackListener() {
       lastCode = code;
       lastState = payload.state ?? null;
       lastAt = now;
-      void authHooks.onOAuthCallback.emit(payload);
+      // Only the plugin that created this state gets the code.
+      const pluginId = takeOAuthStateOwner(payload.state);
+      if (pluginId) {
+        void authHooks.onOAuthCallback.emitTo(pluginId, payload);
+      } else {
+        console.warn('[plugin-oauth] callback with a state no plugin asked for; ignored');
+      }
       // Best-effort cleanup so a reload doesn't replay an old payload.
       try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     };

@@ -23,14 +23,10 @@ export type TierResolution =
  *
  * Privileged tier gates (ALL required):
  *  1. Manifest declares the umbrella high-risk permission `crypto:full`.
- *  2. Signed bundle: only bundles delivered through the admin/server channel
- *     are Ed25519-signed (verified at download time — see `verifySignature`
- *     usage in the plugin store). Self-uploaded bundles are unsigned and can
- *     therefore never reach the privileged tier. `managed` is the signal that
- *     the bundle came through that signed channel.
- *  3. Admin approval pins operator trust in this specific bundle.
- *  4. Explicit high-risk consent for `crypto:full` (granted via the consent
- *     dialog at enable time; admin-managed plugins are pre-approved).
+ *  2. An admin installed it (`managed`). Admin installs are the operator's
+ *     decision, so there is no separate approval or per-user consent step.
+ *  3. Its bundle verifies against the signature made at install time; the
+ *     download refuses an unsigned or mis-signed privileged bundle.
  */
 export function resolvePluginTier(plugin: InstalledPlugin): TierResolution {
   if (plugin.tier !== 'privileged') {
@@ -42,22 +38,13 @@ export function resolvePluginTier(plugin: InstalledPlugin): TierResolution {
     return { tier: null, error: 'Privileged tier requires the "crypto:full" permission' };
   }
 
-  // 2 + 3. Trust root: signed (managed) bundle AND admin approval. A bundle
-  // uploaded by the user directly carries no signature, so it cannot be
-  // privileged regardless of what its manifest claims.
+  // 2. Only an admin can install a privileged plugin. A plugin the user
+  // uploaded is never privileged, whatever its manifest claims; installing
+  // over an admin plugin's id is refused (see installPlugin). The bundle
+  // itself must carry the signature made at admin install time, which the
+  // bundle download checks for privileged plugins (downloadManagedBundle).
   if (!plugin.managed) {
     return { tier: null, error: 'Privileged tier requires a signed bundle delivered through the admin channel' };
-  }
-  if (!(plugin.adminApproved || plugin.managed)) {
-    return { tier: null, error: 'Privileged tier requires administrator approval' };
-  }
-
-  // 4. Explicit high-risk consent. Admin-managed plugins are pre-approved by
-  // the operator and skip the per-user prompt (mirrors the existing consent
-  // gate in the plugin store); otherwise the user must have granted crypto:full.
-  const consented = plugin.managed || (plugin.grantedPermissions ?? []).includes('crypto:full');
-  if (!consented) {
-    return { tier: null, error: 'Privileged tier requires explicit consent for "crypto:full"' };
   }
 
   return { tier: 'privileged' };

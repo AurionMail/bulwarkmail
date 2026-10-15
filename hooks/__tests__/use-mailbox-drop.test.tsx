@@ -11,6 +11,7 @@ const drag = vi.hoisted(() => ({
   sourceMailboxId: '' as string | null,
   draggedEmails: [] as Email[],
   endDrag: () => {},
+  markDropped: () => {},
 }));
 vi.mock('@/contexts/drag-drop-context', () => ({ useDragDropContext: () => drag }));
 
@@ -48,8 +49,8 @@ describe('useMailboxDrop', () => {
   let crossAccountMoveEmails: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    moveEmailsToMailbox = vi.fn().mockResolvedValue(undefined);
-    crossAccountMoveEmails = vi.fn().mockResolvedValue(undefined);
+    moveEmailsToMailbox = vi.fn().mockResolvedValue(true);
+    crossAccountMoveEmails = vi.fn().mockResolvedValue(true);
     useAuthStore.setState({
       client: client016,
       activeAccountId: 'userb@v016',

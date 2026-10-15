@@ -11,7 +11,9 @@ import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-iden
 import { findDraftIdentityIdForLogin } from "@/lib/draft-source";
 import { useSettingsStore } from "@/stores/settings-store";
 import { toast } from "@/stores/toast-store";
-import { useProTabStore, type ProEmailTabData, type ProReplyContext } from "@/stores/pro-tab-store";
+import { useProTabStore, type ProComposeTabData, type ProEmailTabData, type ProReplyContext } from "@/stores/pro-tab-store";
+import { emailHooks } from "@/lib/plugin-hooks";
+import { composeOptionsFor, runBeforeCompose, type ComposePrefill } from "@/lib/plugin-compose-gate";
 import type { Email } from "@/lib/jmap/types";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { buildReplySubject, buildForwardSubject } from "@/lib/subject-prefix";
@@ -103,11 +105,37 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
   const identities = useIdentityStore((s) => s.identities);
   const multiAccountIdentities = useProMultiAccountIdentities();
 
-  const openComposeTab = useProTabStore((s) => s.openComposeTab);
+  const openComposeTabNow = useProTabStore((s) => s.openComposeTab);
 
   const [email, setEmail] = useState<Email | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const composerSessionIdRef = useRef(0);
+
+  // Every compose tab opened from here asks onBeforeCompose first: a plugin
+  // may stop it or prefill it. Opens straight away when nobody listens.
+  const openComposeTab = useCallback((
+    data: Omit<ProComposeTabData, 'sessionId'>,
+    fields: Omit<NonNullable<Parameters<typeof composeOptionsFor>[1]>, 'ownEmails' | 'replyPrefix' | 'forwardPrefix'>,
+    onOpened?: () => void,
+  ) => {
+    const open = (prefill: ComposePrefill | null) => {
+      composerSessionIdRef.current += 1;
+      openComposeTabNow({ ...data, sessionId: composerSessionIdRef.current, prefill });
+      onOpened?.();
+    };
+    if (emailHooks.onBeforeCompose.size === 0) {
+      open(null);
+      return;
+    }
+    void runBeforeCompose(composeOptionsFor(data.mode, {
+      ...fields,
+      ownEmails: identities.map((i) => i.email).filter((e): e is string => Boolean(e)),
+      replyPrefix: t('email_composer.prefix.reply'),
+      forwardPrefix: t('email_composer.prefix.forward'),
+    })).then((prefill) => {
+      if (prefill) open(Object.keys(prefill).length > 0 ? prefill : null);
+    });
+  }, [identities, openComposeTabNow, t]);
 
   // Held in a ref so a host passing an inline callback doesn't refetch the
   // message on every render.
@@ -147,39 +175,33 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
 
   const handleReply = useCallback((draftText?: string) => {
     if (!email) return;
-    composerSessionIdRef.current += 1;
     openComposeTab({
-      sessionId: composerSessionIdRef.current,
       mode: 'reply',
       replyTo: buildReplyContext(email),
       sourceEmailId: email.id,
       initialDraftText: draftText,
       title: buildReplySubject(email.subject || t('email_composer.new_message'), t('email_composer.prefix.reply')),
-    });
+    }, { source: email, body: draftText ?? '' });
   }, [email, openComposeTab, t]);
 
   const handleReplyAll = useCallback(() => {
     if (!email) return;
-    composerSessionIdRef.current += 1;
     openComposeTab({
-      sessionId: composerSessionIdRef.current,
       mode: 'replyAll',
       replyTo: buildReplyContext(email),
       sourceEmailId: email.id,
       title: buildReplySubject(email.subject || t('email_composer.new_message'), t('email_composer.prefix.reply')),
-    });
+    }, { source: email });
   }, [email, openComposeTab, t]);
 
   const handleForward = useCallback(() => {
     if (!email) return;
-    composerSessionIdRef.current += 1;
     openComposeTab({
-      sessionId: composerSessionIdRef.current,
       mode: 'forward',
       replyTo: buildReplyContext(email),
       sourceEmailId: email.id,
       title: buildForwardSubject(email.subject || t('email_composer.new_message'), t('email_composer.prefix.forward')),
-    });
+    }, { source: email });
   }, [email, openComposeTab, t]);
 
   // Mirrors handleForward, but attaches the original as a message/rfc822
@@ -207,9 +229,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     });
     if (!payload) return;
 
-    composerSessionIdRef.current += 1;
     openComposeTab({
-      sessionId: composerSessionIdRef.current,
       mode: 'forward',
       replyTo: {
         subject: email.subject,
@@ -223,14 +243,14 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
       // above uses - reusing payload.subject here would give the tab an
       // empty title instead of e.g. "Fwd: New message".
       title: buildForwardSubject(email.subject || t('email_composer.new_message'), t('email_composer.prefix.forward')),
-    });
+    }, { subject: payload.subject });
   }, [email, openComposeTab, t]);
 
   const handleDelete = useCallback(async () => {
     if (!client || !email) return;
     try {
-      await deleteEmail(client, email.id);
-      onClose();
+      // false: not deleted (a plugin stopped it), so the tab stays open.
+      if (await deleteEmail(client, email.id)) onClose();
     } catch (err) {
       console.error('Delete failed:', err);
       toast.error(tNotifications('error_deleting'));
@@ -242,7 +262,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     const archiveMb = mailboxes.find((m) => m.role === 'archive');
     if (!archiveMb) return;
     try {
-      await moveToMailbox(client, email.id, archiveMb.id);
+      if (!(await moveToMailbox(client, email.id, archiveMb.id))) return;
       toast.success(tNotifications('email_archived'));
       onClose();
     } catch (err) {
@@ -253,7 +273,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
   const handleToggleStar = useCallback(async () => {
     if (!client || !email) return;
     try {
-      await toggleStar(client, email.id);
+      if (!(await toggleStar(client, email.id))) return;
       // Reflect locally - the viewer re-reads from email-store's selectedEmail
       // shape only for the mail tab; here we update our local copy too.
       setEmail((prev) => prev ? {
@@ -272,7 +292,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
   const handleMarkAsRead = useCallback(async (emailIdToMark: string, read: boolean, opts?: { automatic?: boolean }) => {
     if (!client) return;
     try {
-      await markAsRead(client, emailIdToMark, read);
+      if (!(await markAsRead(client, emailIdToMark, read))) return;
       setEmail((prev) => prev && prev.id === emailIdToMark ? {
         ...prev,
         keywords: { ...prev.keywords, $seen: read },
@@ -313,8 +333,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
   const handleMoveToMailbox = useCallback(async (mailboxId: string) => {
     if (!client || !email) return;
     try {
-      await moveToMailbox(client, email.id, mailboxId);
-      onClose();
+      if (await moveToMailbox(client, email.id, mailboxId)) onClose();
     } catch (err) {
       console.error('Move failed:', err);
     }
@@ -356,9 +375,9 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
       : identities;
     const matchedIdentityId = findDraftIdentityIdForLogin(composerIdentities, email.from?.[0], localAccountId);
 
-    composerSessionIdRef.current += 1;
+    const draftSubject = email.subject && email.subject !== t('email_composer.no_subject') ? email.subject : '';
+    const addresses = (list: Email['to']) => (list ?? []).map((a) => a.email).filter(Boolean);
     openComposeTab({
-      sessionId: composerSessionIdRef.current,
       mode: 'compose',
       title: email.subject || t('email_composer.new_message'),
       initialData: {
@@ -385,8 +404,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         // composer without its files and the next save stripped them.
         attachments: email.attachments,
       },
-    });
-    onClose();
+    }, { to: addresses(email.to), cc: addresses(email.cc), subject: draftSubject, body: bodyText }, onClose);
   }, [email, accountId, localAccountId, identities, multiAccountIdentities, openComposeTab, onClose, t]);
 
   return (

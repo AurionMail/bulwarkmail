@@ -8,7 +8,8 @@ import { useEmailStore } from '@/stores/email-store';
 import { useFilterStore } from '@/stores/filter-store';
 import { useToastStore } from '@/stores/toast-store';
 import { useQuickRuleStore } from '@/stores/quick-rule-store';
-import { runPresetRule, saveEditorRule, type QuickRuleText } from '../quick-rule-flow';
+import { executePlan, runPresetRule, saveEditorRule, type QuickRuleText } from '../quick-rule-flow';
+import { emailHooks } from '@/lib/plugin-hooks';
 import type { QuickRuleTarget } from '../quick-rule-target';
 import { collectSenders, sharedDomain, type QuickRuleSubject } from '../quick-rules';
 import { mockSieveAccount } from './sieve-mock';
@@ -168,7 +169,7 @@ describe('quick rules from a message', () => {
       { id: 'e2', mailboxIds: { inbox: true }, keywords: {}, from: [{ email: 'joanna@acme.com' }] },
       { id: 'e3', mailboxIds: { inbox: true }, keywords: { $seen: true }, from: [{ email: 'ANNA@acme.com' }] },
     ]);
-    const batchMoveToMailbox = vi.fn(async () => {});
+    const batchMoveToMailbox = vi.fn(async () => true);
     useEmailStore.setState({ batchMoveToMailbox, error: null });
 
     await runPresetRule({ target: targetFor(accountB, 'b'), preset: { kind: 'move_sender', mailbox: news }, subject: subject('anna@acme.com'), sourceMailboxId: 'inbox', text });
@@ -204,5 +205,47 @@ describe('quick rules from a message', () => {
     const target = targetFor(accountB, 'b');
     await saveEditorRule({ mode: 'edit', target, rule: rule('first'), suggestions: [], sourceMailboxId: null }, rule('first', { name: 'Renamed' }), false, text);
     expect(parseScript(accountB.content('filters')).rules.map((r) => [r.id, r.name])).toEqual([['x', 'Rule x'], ['first', 'Renamed']]);
+  });
+});
+
+describe('running a rule over existing mail', () => {
+  // The keyword step writes to the server directly, so it has to ask and
+  // tell plugins itself; a refusal stops the rest of the plan.
+  it('asks plugins before tagging and reports the tags', async () => {
+    const account = mockSieveAccount('');
+    account.client.batchUpdateKeywords = vi.fn(async () => {});
+    const before = vi.fn(() => true);
+    const after = vi.fn();
+    emailHooks.onBeforeEmailKeywordChange.register('t', before);
+    emailHooks.onEmailKeywordChange.register('t', after);
+    try {
+      const ran = await executePlan(targetFor(account, 'a'), { ids: ['e1'], steps: [{ kind: 'keyword', ids: ['e1'], keyword: '$label:work' }] });
+      expect(ran).toBe(true);
+      expect(before).toHaveBeenCalledWith({ emailIds: ['e1'], added: ['$label:work'], removed: [] });
+      expect(account.client.batchUpdateKeywords).toHaveBeenCalled();
+      expect(after).toHaveBeenCalledWith({ emailIds: ['e1'], added: ['$label:work'], removed: [] });
+    } finally {
+      emailHooks.onBeforeEmailKeywordChange.removePlugin('t');
+      emailHooks.onEmailKeywordChange.removePlugin('t');
+    }
+  });
+
+  it('stops when a plugin refuses a step', async () => {
+    const account = mockSieveAccount('');
+    account.client.batchUpdateKeywords = vi.fn(async () => {});
+    const batchMoveToMailbox = vi.fn(async () => true);
+    useEmailStore.setState({ batchMoveToMailbox, error: null });
+    emailHooks.onBeforeEmailKeywordChange.register('t', () => false);
+    try {
+      const ran = await executePlan(targetFor(account, 'a'), {
+        ids: ['e1'],
+        steps: [{ kind: 'keyword', ids: ['e1'], keyword: '$label:work' }, { kind: 'move', ids: ['e1'], mailboxId: 'news' }],
+      });
+      expect(ran).toBe(false);
+      expect(account.client.batchUpdateKeywords).not.toHaveBeenCalled();
+      expect(batchMoveToMailbox).not.toHaveBeenCalled();
+    } finally {
+      emailHooks.onBeforeEmailKeywordChange.removePlugin('t');
+    }
   });
 });

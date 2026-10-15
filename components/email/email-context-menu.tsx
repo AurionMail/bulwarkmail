@@ -12,6 +12,7 @@ import {
   ContextMenuHeader,
 } from "@/components/ui/context-menu";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { PluginActions, usePluginActions } from "@/components/plugins/plugin-actions";
 import {
   Reply,
   ReplyAll,
@@ -116,6 +117,7 @@ interface EmailContextMenuProps {
    */
   copyTargets?: CopyTargetAccount[];
   onCopyToAccount?: (accountId: string, mailboxId: string) => void;
+  onBatchForwardAsAttachment?: () => void;
 }
 
 // Get mailbox icon based on role
@@ -171,6 +173,7 @@ export function EmailContextMenu({
   onBatchMoveToMailbox,
   onBatchMarkAsSpam,
   onBatchUndoSpam,
+  onBatchForwardAsAttachment,
   onEditDraft,
   onCancelScheduledForEdit,
   onRescheduleScheduled,
@@ -265,6 +268,23 @@ export function EmailContextMenu({
 
   // Stable, so the Rules entry does not re-resolve its account every render.
   const ruleSenderEmails = useMemo(() => ruleEmails ?? [email], [ruleEmails, email]);
+
+  // The row's plugin buttons (message-row-actions). On phones the long press
+  // opens this menu, so it is where those buttons live there.
+  const hasRowPluginActions = usePluginActions("message-row-actions", { mailboxRole: currentMailboxRole ?? null }).length > 0;
+  const rowPluginContext = useMemo(() => ({ emailId: email.id }), [email.id]);
+  const rowPluginBlock = !showBatchActions && hasRowPluginActions ? (
+    <>
+      <ContextMenuSeparator />
+      <PluginActions
+        surface="message-row-actions"
+        variant="menu"
+        context={rowPluginContext}
+        mailboxRole={currentMailboxRole ?? null}
+        onRan={onClose}
+      />
+    </>
+  ) : null;
 
   // The menu's entries, composed below in the default layout's order or,
   // under Mountain View, in Gmail's.
@@ -534,6 +554,22 @@ export function EmailContextMenu({
       {!isScheduled && (
         <>
 
+      {/* Batch forward - multi-select sibling of the single-message item below.
+          First action in batch mode so compose-style actions stay above the
+          archive/delete group, mirroring the single menu's ordering. */}
+      {showBatchActions && (
+        <>
+          <ContextMenuItem
+            icon={Paperclip}
+            label={t("forward_as_attachments")}
+            testId="ctx-batch-forward-as-attachment"
+            onClick={() => handleAction(onBatchForwardAsAttachment!)}
+            disabled={!onBatchForwardAsAttachment}
+          />
+          <ContextMenuSeparator />
+        </>
+      )}
+
       {/* Edit Draft - only for single draft emails */}
       {!isScheduled && !showBatchActions && isDraft && onEditDraft && (
         <>
@@ -564,6 +600,7 @@ export function EmailContextMenu({
           {findBlock}
           <ContextMenuSeparator />
           {permalinkBlock}
+          {rowPluginBlock}
         </>
       ) : (
         <>
@@ -581,6 +618,7 @@ export function EmailContextMenu({
           {spamBlock}
           <ContextMenuSeparator />
           {readItem}
+          {rowPluginBlock}
         </>
       )}
         </>

@@ -1,0 +1,76 @@
+/* Styles for the plugin UI kit (lib/plugin-sandbox/ui-kit), loaded into
+   every plugin iframe. Built from the same Tailwind classes as the app's own
+   components, so a kit Button is the app's Button. Only the kit's sources
+   are scanned, which keeps the file small.
+
+   No Tailwind preflight: plugins written before the kit style plain HTML
+   elements and rely on the browser's defaults. The kit's elements get the
+   same reset through the .bk class each kit component puts on its root. */
+
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "../theme-inline.css";
+
+@source "../../lib/plugin-sandbox/ui-kit";
+@source "../../components/ui/button.tsx";
+@source "../../components/ui/input.tsx";
+@source "../../components/files/file-icons.tsx";
+
+
+@layer base {
+  /* Tailwind's preflight, limited to the kit's own elements. :where() keeps
+     it at zero specificity, so every utility still wins. */
+  :where(.bk, .bk *, .bk ::before, .bk ::after) {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid var(--color-border);
+  }
+  :where(button.bk, input.bk, select.bk, textarea.bk, .bk button, .bk input, .bk select, .bk textarea) {
+    font: inherit;
+    font-feature-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background-color: transparent;
+    border-radius: 0;
+    opacity: 1;
+  }
+  :where(button.bk, select.bk, [role="button"].bk, [role="switch"].bk, [role="checkbox"].bk, .bk button, .bk select, .bk [role="button"], .bk [role="tab"], .bk [role="switch"], .bk [role="checkbox"], .bk [role="option"]):not(:disabled, [aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  :where(button.bk:disabled, select.bk:disabled, .bk[aria-disabled="true"], .bk button:disabled, .bk select:disabled, .bk [aria-disabled="true"]) {
+    cursor: not-allowed;
+  }
+  :where(.bk h1, .bk h2, .bk h3, .bk h4) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  :where(a.bk, .bk a) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+  :where(.bk ol, .bk ul) {
+    list-style: none;
+  }
+  :where(.bk img, .bk svg) {
+    display: block;
+    vertical-align: middle;
+  }
+  :where(.bk input::placeholder, .bk textarea::placeholder) {
+    color: var(--color-muted-foreground);
+    opacity: 1;
+  }
+  :where(.bk table) {
+    border-collapse: collapse;
+    text-indent: 0;
+  }
+  /* Same as globals.css: native option lists only follow these. */
+  :where(.bk option, .bk optgroup) {
+    background-color: var(--color-popover);
+    color: var(--color-popover-foreground);
+  }
+  :where(.dark .bk select) {
+    color-scheme: dark;
+  }
+}

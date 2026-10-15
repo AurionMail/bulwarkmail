@@ -63,6 +63,8 @@ export async function GET(request: NextRequest) {
       httpOrigins: p.httpOrigins,
       // Surface so clients can enforce api.http.post path allowlists.
       apiPostPaths: p.apiPostPaths,
+      // Which credentials the plugin may use through the proxy; no secrets.
+      credentials: p.credentials,
       // Per-user settings schema, captured from the manifest at upload/load
       // time so the client can render the settings UI without re-parsing.
       settingsSchema: p.settingsSchema,
@@ -82,6 +84,8 @@ export async function GET(request: NextRequest) {
         description: t.description,
         variants: t.variants,
         forceEnabled: t.forceEnabled || false,
+        hasSkin: t.hasSkin || false,
+        contentHash: t.contentHash,
       }));
 
     return NextResponse.json(

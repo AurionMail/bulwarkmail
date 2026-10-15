@@ -961,6 +961,44 @@ describe('saveOccurrenceEdit for every occurrence', () => {
   });
 });
 
+// The calendar store resolves false when a plugin stopped a write and has
+// told the user why; the app must not report the change as saved.
+describe('occurrence changes a plugin stops', () => {
+  it('reports a stopped change of every occurrence', async () => {
+    const occurrence = serverOccurrence('1.0');
+    const deps = actions(series('1.0'));
+    deps.updateEvent.mockResolvedValue(false);
+
+    const saved = await saveOccurrenceEdit('all', {
+      event: occurrence, updates: editorUpdates(occurrence, { title: 'Planning, room 2' }), editor: editorOn(occurrence),
+      sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    expect(saved).toBe('stopped');
+  });
+
+  it('creates no new series when ending the old one was stopped', async () => {
+    const occurrence = serverOccurrence('1.0');
+    const deps = actions(series('1.0'));
+    deps.updateEvent.mockResolvedValue(false);
+
+    const saved = await saveOccurrenceEdit('this_and_future', {
+      event: occurrence, updates: editorUpdates(occurrence, { title: 'Planning, room 2' }), editor: editorOn(occurrence),
+      sendScheduling: true, userEmails: [ORGANIZER],
+    }, deps);
+
+    expect(saved).toBe('stopped');
+    expect(deps.createEvent).not.toHaveBeenCalled();
+  });
+
+  it('reports a stopped deletion of one occurrence', async () => {
+    const occurrence = serverOccurrence('1.0');
+    const deps = { ...actions(series('1.0')), deleteEvent: vi.fn().mockResolvedValue(false) };
+
+    expect(await deleteOccurrence('this', { event: occurrence, userEmails: [ORGANIZER] }, deps)).toBe('stopped');
+  });
+});
+
 
 // 0.16 sends the change of one occurrence with its SEQUENCE raised, without
 // keeping the raise itself. A later rename of every occurrence carried the

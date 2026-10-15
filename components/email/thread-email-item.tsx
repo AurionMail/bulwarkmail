@@ -10,6 +10,7 @@ import { Paperclip, Star, Circle, CheckSquare, Square, Reply, Forward } from "@/
 import { useEmailDrag } from "@/hooks/use-email-drag";
 import { useLongPress } from "@/hooks/use-long-press";
 import { useEmailStore } from "@/stores/email-store";
+import { useShallow } from "zustand/react/shallow";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useUIStore } from "@/stores/ui-store";
 import { emailKeyFor, getEmailTagIds } from "@/lib/thread-utils";
@@ -45,7 +46,13 @@ export function ThreadEmailItem({
   // header pools them, so without this they disappear on the way in.
   const tagIds = sortTagIds(getEmailTagIds(email.keywords));
   const sender = email.from?.[0];
-  const { selectedMailbox, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection } = useEmailStore();
+  const { selectedMailbox, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection } = useEmailStore(useShallow((state) => ({
+    selectedMailbox: state.selectedMailbox,
+    selectedEmailKeys: state.selectedEmailKeys,
+    toggleEmailSelection: state.toggleEmailSelection,
+    selectRangeEmails: state.selectRangeEmails,
+    clearSelection: state.clearSelection,
+  })));
   const density = useSettingsStore((state) => state.density);
   const isChecked = selectedEmailKeys.has(emailKeyFor(email));
 

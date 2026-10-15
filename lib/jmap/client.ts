@@ -1,7 +1,7 @@
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, DeliveryStatus, EmailSubmission, RejectedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
-import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileNodeListings, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
+import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileNodeListings, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration, SearchEmailsResult, SearchRequestOptions } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { textConditions, textFilter } from "./search-utils";
 import { batched, batchedBySize, itemsPerRequest } from "./request-limits";
@@ -10,7 +10,7 @@ import { FirstTouchGate } from "./first-touch-gate";
 import { debug } from "@/lib/debug";
 import { normalizeCalendarEventLike, parseDurationSeconds } from "@/lib/calendar-event-normalization";
 import { SYNTHETIC_ID_PROBE, RECURRENCE_BASE_PROPERTIES, hydrateRecurrenceInstances, isServerRecurrenceInstance } from "@/lib/recurrence-instances";
-import { findTasksOnlyCalendarIds, isTaskLikeObject, type ScannedCalendarObject } from "@/lib/calendar-component-detection";
+import { isTaskLikeObject, type ScannedCalendarObject } from "@/lib/calendar-component-detection";
 import { DEFAULT_CALENDAR_COMPONENTS, mkCalendarCollection, newCalendarCollectionName } from "@/lib/webdav/calendar-collection";
 import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
@@ -31,12 +31,17 @@ import { emailMatchesLogin, sortIdentities } from "@/lib/identity-order";
 import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
 import { toInertBlob } from "@/lib/file-preview";
+import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
 
 // Cap for the follow-up Email/get issued when a displayed body part comes
 // back truncated at the normal 256000-byte limit (see refetchTruncatedBodyValues
 // / #884). Bounded well above the default so it stays rare in practice while
 // still guarding against unbounded memory use on a malicious/oversized body.
 const TRUNCATED_BODY_REFETCH_MAX_BYTES = 8_000_000;
+// Opening one message needs its whole body, so its fetch takes more than the
+// list-sized cap: a newsletter just over 256 kB came back truncated and was
+// fetched a second time. Larger bodies still take the refetch above.
+const OPEN_EMAIL_MAX_BODY_BYTES = 1_000_000;
 
 // Names of nodes created over WebDAV come back percent-encoded from
 // FileNode/get (see decodeFileNodeName / #869). Normalize at the boundary so
@@ -337,15 +342,6 @@ interface JMAPAccount {
   isPersonal?: boolean;
   isReadOnly?: boolean;
   accountCapabilities?: Record<string, unknown>;
-}
-
-interface JMAPQuota {
-  resourceType?: string;
-  scope?: string;
-  types?: string[];
-  used?: number;
-  hardLimit?: number;
-  limit?: number;
 }
 
 interface JMAPMailbox {
@@ -813,6 +809,19 @@ const BLOB_CAPABILITY = "urn:ietf:params:jmap:blob";
 const BLOB_BATCH_BYTES = 4 * 1024 * 1024;
 /** The largest contact photo Stalwart 1.0 takes by default (maxMediaSize). */
 const BLOB_LARGE_BYTES = 2 * 1024 * 1024;
+/**
+ * Message counts per thread id from the Thread/get chained onto a list
+ * request; undefined when the server did not answer it (one that cannot
+ * resolve a wildcard back-reference fails just that call).
+ */
+function threadCountsFrom(methodResponse: unknown): Record<string, number> | undefined {
+  if (!Array.isArray(methodResponse) || methodResponse[0] !== "Thread/get") return undefined;
+  const list = (methodResponse[1] as { list?: Thread[] } | undefined)?.list;
+  if (!Array.isArray(list)) return undefined;
+  const counts: Record<string, number> = {};
+  for (const thread of list) counts[thread.id] = thread.emailIds?.length ?? 0;
+  return counts;
+}
 
 function computeHasMore(position: number, emailCount: number, total: number, limit: number): boolean {
   if (total > 0) return (position + emailCount) < total;
@@ -1995,7 +2004,7 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
-  async getQuota(): Promise<{ used: number; total: number } | null> {
+  async getQuota(): Promise<StorageQuota | null> {
     if (!this.supportsQuota()) return null;
 
     try {
@@ -2006,21 +2015,7 @@ export class JMAPClient implements IJMAPClient {
       ], ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:quota"]);
 
       if (response.methodResponses?.[0]?.[0] === "Quota/get") {
-        const quotas = (response.methodResponses[0][1].list || []) as JMAPQuota[];
-        const coversMail = (q: JMAPQuota) =>
-          !q.types?.length || q.types.some((t) => t === "Email" || t === "Mail");
-        // storage quotas use resourceType "octets" (e.g. Stalwart, with
-        // scope "account"); fall back to the pre-RFC "mail" shape for older servers.
-        const mailQuota =
-          quotas.find((q) => q.resourceType === "octets" && coversMail(q)) ||
-          quotas.find((q) => q.resourceType === "mail" || q.scope === "mail");
-
-        if (mailQuota) {
-          return {
-            used: mailQuota.used ?? 0,
-            total: mailQuota.hardLimit ?? mailQuota.limit ?? 0
-          };
-        }
+        return toStorageQuota((response.methodResponses[0][1].list || []) as JMAPQuota[]);
       }
 
       return null;
@@ -2415,7 +2410,7 @@ export class JMAPClient implements IJMAPClient {
   // Throws when the page cannot be read. Answering with an empty page made a
   // failed refresh empty the list, and callers could not tell it from an
   // empty folder.
-  async getEmails(mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order: SortLevel[] = []): Promise<{ emails: Email[], hasMore: boolean, total: number, state?: string }> {
+  async getEmails(mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order: SortLevel[] = []): Promise<{ emails: Email[], hasMore: boolean, total: number, state?: string, threadCounts?: Record<string, number> }> {
     const targetAccountId = accountId || this.accountId;
     const simple: { inMailbox?: string; hasKeyword?: string } = {};
     if (mailboxId) {
@@ -2454,6 +2449,13 @@ export class JMAPClient implements IJMAPClient {
         "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
         properties: [...EMAIL_LIST_PROPERTIES],
       }, "1"],
+      // The page's conversation sizes, off the thread ids the Email/get
+      // returns (RFC 8620 §3.7 wildcard path): no second round trip, and the
+      // list paints with its counts instead of re-rendering for them.
+      ["Thread/get", {
+        accountId: targetAccountId,
+        "#ids": { resultOf: "1", name: "Email/get", path: "/list/*/threadId" },
+      }, "2"],
     ]);
 
     let response = await query(built.sort);
@@ -2499,7 +2501,7 @@ export class JMAPClient implements IJMAPClient {
       // The Email collection state this page was read at; the store keeps
       // it so a later push can be applied with Email/changes.
       const state = typeof getResponse.state === 'string' ? getResponse.state : undefined;
-      return { emails, hasMore, total, state };
+      return { emails, hasMore, total, state, threadCounts: threadCountsFrom(response.methodResponses?.[2]) };
     }
 
     throw new Error(methodErrorMessage(response, 'Failed to get emails'));
@@ -2788,7 +2790,7 @@ export class JMAPClient implements IJMAPClient {
           fetchTextBodyValues: true,
           fetchHTMLBodyValues: true,
           fetchAllBodyValues: true,
-          maxBodyValueBytes: 256000,
+          maxBodyValueBytes: OPEN_EMAIL_MAX_BODY_BYTES,
         }, "0"],
       ]);
 
@@ -3804,7 +3806,7 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
-  async searchEmails(query: string, mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0): Promise<{ emails: Email[], hasMore: boolean, total: number }> {
+  async searchEmails(query: string, mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, options: SearchRequestOptions = {}): Promise<SearchEmailsResult> {
     try {
       const targetAccountId = accountId || this.accountId;
 
@@ -3839,7 +3841,7 @@ export class JMAPClient implements IJMAPClient {
           "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
           properties: [...EMAIL_LIST_PROPERTIES],
         }, "1"],
-        this.searchSnippetCall(targetAccountId, filter),
+        ...(options.deferSnippets ? [] : [this.searchSnippetCall(targetAccountId, filter)]),
       ]);
       assertQuerySucceeded(response, 'Search');
 
@@ -3859,7 +3861,7 @@ export class JMAPClient implements IJMAPClient {
         namespaceMailboxIds(emails, accountId);
       }
 
-      return { emails, hasMore, total };
+      return { emails, hasMore, total, ...this.deferredSnippets(options, targetAccountId, filter, emails) };
     } catch (error) {
       // Rethrow: an empty result would read as "No results found".
       console.error('Search failed:', error);
@@ -3885,6 +3887,35 @@ export class JMAPClient implements IJMAPClient {
     }, "snippets"];
   }
 
+  /**
+   * With `deferSnippets`, the snippets of a result page as a request of their
+   * own, already in flight. Chained onto the search they cost no round trip
+   * but hold the whole response back while the server excerpts every hit,
+   * several times longer than the query itself, so an interactive search
+   * lists its results first and highlights them when this resolves. Never
+   * rejects: a failure leaves the results without snippets, as it does when
+   * chained.
+   */
+  private deferredSnippets(
+    options: SearchRequestOptions,
+    accountId: string,
+    filter: Record<string, unknown> | undefined,
+    emails: Email[],
+  ): Pick<SearchEmailsResult, 'snippets'> {
+    if (!options.deferSnippets || emails.length === 0 || !filter || !filterHasSnippetTerms(filter)) return {};
+    const snippets = this.request([
+      ["SearchSnippet/get", {
+        accountId,
+        filter: snippetFilterFor(filter),
+        emailIds: emails.map((email) => email.id),
+      }, "snippets"],
+    ]).then((response) => this.searchSnippetsFrom(response)).catch((error) => {
+      debug.warn("jmap", "SearchSnippet/get failed:", error);
+      return undefined;
+    });
+    return { snippets };
+  }
+
   /** The SearchSnippet list of a search response, if the call succeeded. */
   private searchSnippetsFrom(response: JMAPResponse): SearchSnippetResult[] | undefined {
     for (const [method, result, callId] of response.methodResponses ?? []) {
@@ -3899,8 +3930,9 @@ export class JMAPClient implements IJMAPClient {
     filter: Record<string, unknown>,
     accountId?: string,
     limit: number = 50,
-    position: number = 0
-  ): Promise<{ emails: Email[], hasMore: boolean, total: number }> {
+    position: number = 0,
+    options: SearchRequestOptions = {},
+  ): Promise<SearchEmailsResult> {
     try {
       const targetAccountId = accountId || this.accountId;
 
@@ -3922,7 +3954,7 @@ export class JMAPClient implements IJMAPClient {
           "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
           properties: [...EMAIL_LIST_PROPERTIES],
         }, "1"],
-        this.searchSnippetCall(targetAccountId, hasFilter ? filter : undefined),
+        ...(options.deferSnippets ? [] : [this.searchSnippetCall(targetAccountId, hasFilter ? filter : undefined)]),
       ]);
       assertQuerySucceeded(response, 'Search');
 
@@ -3942,7 +3974,7 @@ export class JMAPClient implements IJMAPClient {
         namespaceMailboxIds(emails, accountId);
       }
 
-      return { emails, hasMore, total };
+      return { emails, hasMore, total, ...this.deferredSnippets(options, targetAccountId, hasFilter ? filter : undefined, emails) };
     } catch (error) {
       console.error('Advanced search failed:', error);
       throw error;
@@ -4191,19 +4223,17 @@ export class JMAPClient implements IJMAPClient {
     textSignature?: string | null,
     htmlSignature?: string | null
   ): Promise<Identity> {
+    // The signatures are String (default ""), so null is not a valid value in
+    // a create. Leave blank ones out and let the server apply the default.
+    // replyTo and bcc are nullable, so null is fine there.
+    const create: Record<string, unknown> = { name, email, replyTo, bcc };
+    if (textSignature != null) create.textSignature = textSignature;
+    if (htmlSignature != null) create.htmlSignature = htmlSignature;
+
     const response = await this.request([
       ["Identity/set", {
         accountId: this.accountId,
-        create: {
-          "new-identity": {
-            name,
-            email,
-            replyTo,
-            bcc,
-            textSignature,
-            htmlSignature,
-          }
-        }
+        create: { "new-identity": create }
       }, "0"]
     ]);
 
@@ -5021,6 +5051,7 @@ export class JMAPClient implements IJMAPClient {
       from: [{ name: opts.attendeeName || undefined, email: opts.attendeeEmail }],
       to: [{ name: opts.organizerName || undefined, email: opts.organizerEmail }],
       subject,
+      messageId: [generateMessageId(opts.attendeeEmail)],
       keywords: { "$seen": true, "$draft": true },
       mailboxIds: { [draftsMailbox.id]: true },
       bodyStructure: {
@@ -5213,6 +5244,7 @@ export class JMAPClient implements IJMAPClient {
       from: [{ name: organizerName || undefined, email: organizerEmail }],
       to: toAddresses,
       subject,
+      messageId: [generateMessageId(organizerEmail)],
       keywords: { "$seen": true, "$draft": true },
       mailboxIds: { [draftsMailbox.id]: true },
       bodyStructure: {
@@ -5369,6 +5401,7 @@ export class JMAPClient implements IJMAPClient {
       from: [{ name: organizerName || undefined, email: organizerEmail }],
       to: toAddresses,
       subject,
+      messageId: [generateMessageId(organizerEmail)],
       keywords: { "$seen": true, "$draft": true },
       mailboxIds: { [draftsMailbox.id]: true },
       bodyStructure: {
@@ -6066,28 +6099,29 @@ export class JMAPClient implements IJMAPClient {
     return this.hasCapability("urn:ietf:params:jmap:vacationresponse");
   }
 
-  supportsContacts(accountId?: string): boolean {
-    // Gate on the ACCOUNT capability: a server can advertise contacts while an
-    // account has its jmap-contact-* / dav-card-* permissions revoked. Shared accounts
-    // aren't always advertised per-account, so fall back to the server-wide
-    // capability - accountCapabilities is a subset of it (RFC 8620 s2).
-    const id = accountId || this.accountId;
-    const account = this.accounts[id];
+  /**
+   * Whether the user may use a capability's methods with an account. The
+   * account's own accountCapabilities decide (RFC 8620 s2): a server can
+   * advertise a capability while an account has the matching permissions
+   * revoked. Some shared accounts list no capabilities at all, so an explicitly
+   * shared account (isPersonal === false) with an empty list falls back to the
+   * server-wide capability - accountCapabilities is a subset of it (#1239).
+   */
+  accountSupports(accountId: string, capability: string): boolean {
+    const account = this.accounts[accountId];
     if (!account) return false;
-    if (account.accountCapabilities?.["urn:ietf:params:jmap:contacts"]) return true;
-    return !account.isPersonal && !!this.capabilities?.["urn:ietf:params:jmap:contacts"];
+    const caps = account.accountCapabilities;
+    if (caps?.[capability]) return true;
+    if (caps && Object.keys(caps).length > 0) return false;
+    return account.isPersonal === false && !!this.capabilities?.[capability];
+  }
+
+  supportsContacts(accountId?: string): boolean {
+    return this.accountSupports(accountId || this.accountId, "urn:ietf:params:jmap:contacts");
   }
 
   supportsCalendars(accountId?: string): boolean {
-    // Gate on the ACCOUNT capability: a server can advertise calendars while an
-    // account has its jmap-calendar-* / dav-cal-* permissions revoked. Shared accounts
-    // aren't always advertised per-account, so fall back to the server-wide
-    // capability - accountCapabilities is a subset of it (RFC 8620 s2).
-    const id = accountId || this.accountId;
-    const account = this.accounts[id];
-    if (!account) return false;
-    if (account.accountCapabilities?.["urn:ietf:params:jmap:calendars"]) return true;
-    return !account.isPersonal && !!this.capabilities?.["urn:ietf:params:jmap:calendars"];
+    return this.accountSupports(accountId || this.accountId, "urn:ietf:params:jmap:calendars");
   }
 
   supportsSieve(): boolean {
@@ -6109,31 +6143,27 @@ export class JMAPClient implements IJMAPClient {
 
   /**
    * Accounts (primary + shared/group) visible in this session, each tagged with
-   * the capabilities it advertises. Unifies the per-feature enumeration that
-   * getCalendarCapableAccountIds()/getContactCapableAccountIds()/
-   * getFilesCapableAccountIds() do: a non-primary account is included when it
-   * advertises a capability OR is a non-personal (shared/group) account, since
-   * Stalwart doesn't always advertise capabilities on those even when they
-   * support the feature. Primary account first; name from the session account
-   * (primary falls back to the username). Drives the settings "Shared with me"
-   * list and the scoped-settings tab gating.
+   * the capabilities the user may use with it (accountSupports()). Primary
+   * account first; a non-primary account is listed when it supports at least
+   * one editable capability. Name from the session account (primary falls back
+   * to the username). Drives the settings "Shared with me" list and the
+   * scoped-settings tab gating.
    */
   getSharedAccounts(): SharedAccount[] {
     const primaryId = this.getSieveAccountId();
     const toEntry = (id: string, isPrimary: boolean): SharedAccount => {
       const account = this.accounts[id];
-      const caps = account?.accountCapabilities;
-      const shared = !account?.isPersonal;
+      const has = (cap: string) => this.accountSupports(id, cap);
       return {
         id,
         name: account?.name || (isPrimary ? (this.username || id) : id),
         isPrimary,
         capabilities: {
-          mail: !!caps?.["urn:ietf:params:jmap:mail"] || shared,
-          sieve: !!caps?.["urn:ietf:params:jmap:sieve"] || shared,
-          calendars: !!caps?.["urn:ietf:params:jmap:calendars"] || shared,
-          contacts: !!caps?.["urn:ietf:params:jmap:contacts"] || shared,
-          filenode: !!caps?.["urn:ietf:params:jmap:filenode"] || shared,
+          mail: has("urn:ietf:params:jmap:mail"),
+          sieve: has("urn:ietf:params:jmap:sieve"),
+          calendars: has("urn:ietf:params:jmap:calendars"),
+          contacts: has("urn:ietf:params:jmap:contacts"),
+          filenode: has("urn:ietf:params:jmap:filenode"),
         },
       };
     };
@@ -6141,18 +6171,9 @@ export class JMAPClient implements IJMAPClient {
     const result = [toEntry(primaryId, true)];
     for (const id of Object.keys(this.accounts)) {
       if (id === primaryId) continue;
-      const account = this.accounts[id];
-      // Mirror the per-feature helpers: include any non-personal account, plus
-      // accounts that advertise at least one editable capability.
-      const caps = account.accountCapabilities;
-      const advertisesAny =
-        !!caps?.["urn:ietf:params:jmap:mail"] ||
-        !!caps?.["urn:ietf:params:jmap:sieve"] ||
-        !!caps?.["urn:ietf:params:jmap:calendars"] ||
-        !!caps?.["urn:ietf:params:jmap:contacts"] ||
-        !!caps?.["urn:ietf:params:jmap:filenode"];
-      if (!account.isPersonal || advertisesAny) {
-        result.push(toEntry(id, false));
+      const entry = toEntry(id, false);
+      if (Object.values(entry.capabilities).some(Boolean)) {
+        result.push(entry);
       }
     }
     return result;
@@ -6423,13 +6444,9 @@ export class JMAPClient implements IJMAPClient {
   private getCalendarCapableAccountIds(): string[] {
     const primaryId = this.getCalendarsAccountId();
     const accountIds: string[] = [];
-    for (const [id, account] of Object.entries(this.accounts)) {
+    for (const id of Object.keys(this.accounts)) {
       if (id === primaryId) continue;
-      // Include accounts that either advertise calendar capability
-      // or are non-personal (shared/group) accounts - Stalwart doesn't
-      // always advertise capabilities on group accounts even when they
-      // have calendar resources.
-      if (account.accountCapabilities?.["urn:ietf:params:jmap:calendars"] || account.isPersonal === false) {
+      if (this.accountSupports(id, "urn:ietf:params:jmap:calendars")) {
         accountIds.push(id);
       }
     }
@@ -6439,13 +6456,9 @@ export class JMAPClient implements IJMAPClient {
   private getContactCapableAccountIds(): string[] {
     const primaryId = this.getContactsAccountId();
     const accountIds: string[] = [];
-    for (const [id, account] of Object.entries(this.accounts)) {
+    for (const id of Object.keys(this.accounts)) {
       if (id === primaryId) continue;
-      // Include accounts that either advertise contacts capability
-      // or are non-personal (shared/group) accounts - Stalwart doesn't
-      // always advertise capabilities on group accounts even when they
-      // have contact resources.
-      if (account.accountCapabilities?.["urn:ietf:params:jmap:contacts"] || account.isPersonal === false) {
+      if (this.accountSupports(id, "urn:ietf:params:jmap:contacts")) {
         accountIds.push(id);
       }
     }
@@ -7344,53 +7357,89 @@ export class JMAPClient implements IJMAPClient {
   /**
    * Ids of the given calendars that hold only tasks and no events, so the event
    * calendar UI can hide them. Stalwart's Calendar/get exposes no
-   * supported-component set, so this is derived by scanning the objects.
+   * supported-component set, so this is derived by inspecting objects per calendar.
    *
-   * Cheap in the common case and safe on the edges: each page is classified as
-   * it arrives and, as soon as EVERY calendar has been seen to contain an event,
-   * the scan stops (a normal event account exits after one page). It only marks
-   * a calendar tasks-only after scanning ALL of that account's objects; if the
-   * account has more than the scan cap, it fails OPEN (marks nothing) rather
-   * than risk hiding a calendar whose events sit past the cap. Any error also
-   * fails open. Empty calendars are never marked (they must stay visible).
+   * Each calendar is queried on its own with the singular `inCalendar`
+   * condition, so a large event archive in one calendar no longer pushes the
+   * scan past its cap for all the others. A calendar stops being scanned as
+   * soon as one event turns up; one whose pages are all tasks is paged to the
+   * end and only then marked. Queries are chunked by maxCallsInRequest and gets
+   * by maxObjectsInGet. Past the per-calendar cap, on a failed query or on any
+   * error the calendar is left visible (fail open). Empty calendars stay visible.
    */
   private async getTasksOnlyCalendarIds(accountId: string, rawCalendarIds: string[]): Promise<Set<string>> {
     if (rawCalendarIds.length === 0) return new Set();
 
-    const QUERY_PAGE = 500;
-    const MAX_SCAN = 5000; // safety bound; beyond this we fail open
+    const QUERY_PAGE = 200;
+    const MAX_SCAN_PER_CALENDAR = 5000; // safety bound; beyond this we fail open
     const PROPERTIES = ['id', '@type', 'due', 'progress', 'percentComplete', 'calendarIds'];
     const timeZone = await this.calendarTimeZone();
-    const objects: ScannedCalendarObject[] = [];
-    const remaining = new Set(rawCalendarIds); // calendars not yet known to hold an event
+    const maxCalls = Math.max(1, this.getMaxCallsInRequest());
+    const maxGet = Math.max(1, this.getMaxObjectsInGet());
+    const tasksOnly = new Set<string>();
+    const position = new Map<string, number>();
+    let pending = Array.from(new Set(rawCalendarIds)); // calendars with no event seen so far
 
     try {
-      let exhausted = false;
-      for (let position = 0; position < MAX_SCAN;) {
-        const queryArgs: Record<string, unknown> = { accountId, limit: QUERY_PAGE, position };
-        if (timeZone) queryArgs.timeZone = timeZone;
-        const qResp = await this.request([["CalendarEvent/query", queryArgs, "0"]], this.calendarUsing());
-        if (qResp.methodResponses?.[0]?.[0] === "error") return new Set(); // fail open
-        const pageIds: string[] = qResp.methodResponses?.[0]?.[1]?.ids || [];
-        if (pageIds.length === 0) { exhausted = true; break; }
+      while (pending.length > 0) {
+        const pageIds = new Map<string, string[]>();
+        for (let i = 0; i < pending.length; i += maxCalls) {
+          const chunk = pending.slice(i, i + maxCalls);
+          const queryCalls: JMAPMethodCall[] = chunk.map((calId, idx) => [
+            "CalendarEvent/query",
+            {
+              accountId,
+              filter: { inCalendar: calId },
+              position: position.get(calId) ?? 0,
+              limit: QUERY_PAGE,
+              ...(timeZone ? { timeZone } : {}),
+            },
+            `q_${idx}`,
+          ]);
+          const qResp = await this.request(queryCalls, this.calendarUsing());
+          chunk.forEach((calId, idx) => {
+            const match = qResp.methodResponses?.find((r) => r[2] === `q_${idx}`);
+            // A failed query leaves this calendar out, so it stays visible.
+            if (match?.[0] === "CalendarEvent/query") pageIds.set(calId, match[1]?.ids || []);
+          });
+        }
 
-        const getResp = await this.request([
-          ["CalendarEvent/get", { accountId, ids: pageIds, properties: PROPERTIES, ...(timeZone ? { timeZone } : {}) }, "0"]
-        ], this.calendarUsing());
-        const list = (getResp.methodResponses?.[0]?.[1]?.list || []) as ScannedCalendarObject[];
-        for (const obj of list) {
-          objects.push(obj);
-          if (!isTaskLikeObject(obj) && obj.calendarIds) {
-            for (const id of Object.keys(obj.calendarIds)) remaining.delete(id);
+        const allIds = Array.from(new Set(Array.from(pageIds.values()).flat()));
+        const objectMap = new Map<string, ScannedCalendarObject>();
+        for (let i = 0; i < allIds.length; i += maxGet) {
+          const getResp = await this.request([
+            ["CalendarEvent/get", { accountId, ids: allIds.slice(i, i + maxGet), properties: PROPERTIES, ...(timeZone ? { timeZone } : {}) }, "0"]
+          ], this.calendarUsing());
+          if (getResp.methodResponses?.[0]?.[0] !== "CalendarEvent/get") return new Set(); // fail open
+          for (const obj of (getResp.methodResponses[0][1]?.list || []) as ScannedCalendarObject[]) {
+            if (obj.id) objectMap.set(obj.id as string, obj);
           }
         }
-        // Every calendar has at least one event -> none can be tasks-only.
-        if (remaining.size === 0) return new Set();
-        if (pageIds.length < QUERY_PAGE) { exhausted = true; break; }
-        position += pageIds.length;
+
+        const next: string[] = [];
+        for (const [calId, ids] of pageIds) {
+          const start = position.get(calId) ?? 0;
+          if (ids.length === 0) {
+            // End of the calendar. Only mark it if earlier pages held tasks.
+            if (start > 0) tasksOnly.add(calId);
+            continue;
+          }
+          const calObjects = ids.map((id) => objectMap.get(id)).filter(Boolean) as ScannedCalendarObject[];
+          if (calObjects.length === 0) continue;
+          if (calObjects.some((obj) => !isTaskLikeObject(obj))) continue; // holds an event
+          if (ids.length < QUERY_PAGE) {
+            tasksOnly.add(calId);
+            continue;
+          }
+          const nextPosition = start + ids.length;
+          if (nextPosition >= MAX_SCAN_PER_CALENDAR) continue; // too many to check, keep it visible
+          position.set(calId, nextPosition);
+          next.push(calId);
+        }
+        pending = next;
       }
-      if (!exhausted) return new Set(); // hit the cap without finishing -> hide nothing
-      return findTasksOnlyCalendarIds(objects, rawCalendarIds);
+
+      return tasksOnly;
     } catch {
       return new Set(); // fail open
     }
@@ -8854,13 +8903,8 @@ export class JMAPClient implements IJMAPClient {
     // A server can advertise urn:ietf:params:jmap:filenode while a specific
     // account has its jmap-file-node-* permissions revoked, in which case the
     // capability is absent from that account's accountCapabilities and every
-    // FileNode action fails with an authorization error (#563). Mirror
-    // getFilesCapableAccountIds(): non-personal (shared/group) accounts don't
-    // always advertise per-account, so treat those as capable.
-    const id = accountId || this.accountId;
-    const account = this.accounts[id];
-    if (!account) return false;
-    return !!account.accountCapabilities?.["urn:ietf:params:jmap:filenode"] || !account.isPersonal;
+    // FileNode action fails with an authorization error (#563).
+    return this.accountSupports(accountId || this.accountId, "urn:ietf:params:jmap:filenode");
   }
 
   async probeFileNodeSupport(): Promise<boolean> {
@@ -8923,15 +8967,13 @@ export class JMAPClient implements IJMAPClient {
   ];
 
   // Accounts (primary + shared/group) that can hold FileNodes. Mirrors
-  // getCalendarCapableAccountIds(): includes any non-primary account that
-  // advertises the filenode capability or is a non-personal (shared/group)
-  // account, since Stalwart doesn't always advertise capabilities on those.
+  // getCalendarCapableAccountIds().
   private getFilesCapableAccountIds(): string[] {
     const primaryId = this.getFilesAccountId();
     const accountIds: string[] = [];
-    for (const [id, account] of Object.entries(this.accounts)) {
+    for (const id of Object.keys(this.accounts)) {
       if (id === primaryId) continue;
-      if (account.accountCapabilities?.["urn:ietf:params:jmap:filenode"] || !account.isPersonal) {
+      if (this.accountSupports(id, "urn:ietf:params:jmap:filenode")) {
         accountIds.push(id);
       }
     }

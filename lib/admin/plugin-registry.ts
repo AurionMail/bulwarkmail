@@ -1,3 +1,4 @@
+import type { CredentialSpec } from '@/lib/plugin-secrets/credentials';
 import { readFile, writeFile, mkdir, rename, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -89,6 +90,8 @@ export interface ServerPlugin {
    * `InstalledPlugin.apiPostPaths` in `lib/plugin-types.ts`.
    */
   apiPostPaths?: string[];
+  /** Credentials the plugin uses through the server proxy (no secrets here). */
+  credentials?: Record<string, CredentialSpec>;
 }
 
 export interface ServerTheme {
@@ -102,6 +105,13 @@ export interface ServerTheme {
   forceEnabled?: boolean;
   installedAt: string;
   updatedAt: string;
+  /** True when a Theme API v2 skin.css is stored next to the CSS. */
+  hasSkin?: boolean;
+  /**
+   * SHA-256 of the CSS and skin. Clients use it to notice a re-upload of
+   * the same version and as a cache key on the CSS and skin URLs.
+   */
+  contentHash?: string;
 }
 
 interface PluginRegistry {
@@ -134,9 +144,21 @@ async function readJsonFile<T>(filePath: string, fallback: T): Promise<T> {
 async function writeJsonFile(filePath: string, data: unknown): Promise<void> {
   const dir = path.dirname(filePath);
   await ensureDir(dir);
-  const tmpPath = filePath + '.tmp';
+  // A temp name per write: two writers sharing one ".tmp" overwrote each
+  // other's file and the second rename failed (a 500 on concurrent installs).
+  const tmpPath = `${filePath}.${process.pid}.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}.tmp`;
   await writeFile(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
   await rename(tmpPath, filePath);
+}
+
+// Changes to one registry file run one after another, so two admin actions
+// at once can't read the same old list and drop each other's change.
+const registryQueues = new Map<string, Promise<unknown>>();
+function withRegistryLock<T>(name: 'plugins' | 'themes', task: () => Promise<T>): Promise<T> {
+  const run = (registryQueues.get(name) ?? Promise.resolve()).then(task, task);
+  const tail = run.catch(() => {});
+  registryQueues.set(name, tail);
+  return run;
 }
 
 // ─── Plugin Operations ───────────────────────────────────────
@@ -184,7 +206,11 @@ export async function getPlugin(id: string): Promise<ServerPlugin | null> {
 
 const SAFE_ID_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
 
-export async function savePlugin(
+export function savePlugin(plugin: ServerPlugin, code: string): Promise<void> {
+  return withRegistryLock('plugins', () => savePluginNow(plugin, code));
+}
+
+async function savePluginNow(
   plugin: ServerPlugin,
   code: string,
 ): Promise<void> {
@@ -198,6 +224,10 @@ export async function savePlugin(
   // Save code bundle
   const bundlePath = path.join(dir, `${plugin.id}.js`);
   await writeFile(bundlePath, code, 'utf-8');
+  // Sign now and keep the signature with the bundle. Signing at serve time
+  // would sign whatever is on disk, so a bundle file swapped after install
+  // would still verify.
+  await storePluginSignature(plugin.id, code);
 
   // Stamp content hash + updatedAt so clients can detect re-uploads even
   // when the manifest version hasn't changed. Preserve the original
@@ -222,7 +252,11 @@ export async function savePlugin(
   await writeJsonFile(pluginRegistryPath(), registry);
 }
 
-export async function updatePluginMeta(id: string, updates: Partial<Pick<ServerPlugin, 'enabled' | 'forceEnabled'>>): Promise<ServerPlugin | null> {
+export function updatePluginMeta(id: string, updates: Partial<Pick<ServerPlugin, 'enabled' | 'forceEnabled'>>): Promise<ServerPlugin | null> {
+  return withRegistryLock('plugins', () => updatePluginMetaNow(id, updates));
+}
+
+async function updatePluginMetaNow(id: string, updates: Partial<Pick<ServerPlugin, 'enabled' | 'forceEnabled'>>): Promise<ServerPlugin | null> {
   assertWritable('update plugin metadata');
   const registry = await getPluginRegistry();
   const idx = registry.plugins.findIndex(p => p.id === id);
@@ -233,7 +267,11 @@ export async function updatePluginMeta(id: string, updates: Partial<Pick<ServerP
   return registry.plugins[idx];
 }
 
-export async function deletePlugin(id: string): Promise<boolean> {
+export function deletePlugin(id: string): Promise<boolean> {
+  return withRegistryLock('plugins', () => deletePluginNow(id));
+}
+
+async function deletePluginNow(id: string): Promise<boolean> {
   assertWritable('delete plugin');
   const registry = await getPluginRegistry();
   const idx = registry.plugins.findIndex(p => p.id === id);
@@ -242,11 +280,41 @@ export async function deletePlugin(id: string): Promise<boolean> {
   registry.plugins.splice(idx, 1);
   await writeJsonFile(pluginRegistryPath(), registry);
 
-  // Remove bundle file
-  const bundlePath = path.join(getPluginsDir(), `${id}.js`);
-  try { await unlink(bundlePath); } catch { /* ok if missing */ }
+  // Remove bundle and signature files
+  for (const file of [`${id}.js`, `${id}.sig`]) {
+    try { await unlink(path.join(getPluginsDir(), file)); } catch { /* ok if missing */ }
+  }
 
   return true;
+}
+
+async function storePluginSignature(id: string, code: string): Promise<string | null> {
+  const sigPath = path.join(getPluginsDir(), `${id}.sig`);
+  try {
+    const { signBytes } = await import('./plugin-signing');
+    const signature = await signBytes(code);
+    await writeFile(sigPath, signature, 'utf-8');
+    return signature;
+  } catch (err) {
+    // Without a key the bundle still installs; it just can't run privileged.
+    try { await unlink(sigPath); } catch { /* none */ }
+    logger.warn('[plugin-registry] could not sign plugin bundle', { id, error: err instanceof Error ? err.message : String(err) });
+    return null;
+  }
+}
+
+/**
+ * The signature made when the bundle was installed. Bundles installed before
+ * signatures were stored get one on first request (trust on first use), so
+ * a later change to the file on disk stops verifying from then on.
+ */
+export async function getPluginSignature(id: string, code: string): Promise<string | null> {
+  if (!SAFE_ID_RE.test(id)) return null;
+  try {
+    return (await readFile(path.join(getPluginsDir(), `${id}.sig`), 'utf-8')).trim() || null;
+  } catch {
+    return storePluginSignature(id, code);
+  }
 }
 
 export async function getPluginBundle(id: string): Promise<string | null> {
@@ -271,9 +339,14 @@ export async function getTheme(id: string): Promise<ServerTheme | null> {
   return registry.themes.find(t => t.id === id) || null;
 }
 
-export async function saveTheme(
+export function saveTheme(theme: ServerTheme, css: string, skin: string | null = null): Promise<void> {
+  return withRegistryLock('themes', () => saveThemeNow(theme, css, skin));
+}
+
+async function saveThemeNow(
   theme: ServerTheme,
   css: string,
+  skin: string | null = null,
 ): Promise<void> {
   assertWritable('install theme');
   if (!SAFE_ID_RE.test(theme.id)) {
@@ -285,6 +358,17 @@ export async function saveTheme(
   // Save CSS file
   const cssPath = path.join(dir, `${theme.id}.css`);
   await writeFile(cssPath, css, 'utf-8');
+  const skinPath = path.join(dir, `${theme.id}.skin.css`);
+  if (skin) {
+    await writeFile(skinPath, skin, 'utf-8');
+  } else {
+    try { await unlink(skinPath); } catch { /* none stored */ }
+  }
+  theme = {
+    ...theme,
+    hasSkin: !!skin,
+    contentHash: createHash('sha256').update(css).update('\0').update(skin ?? '').digest('hex'),
+  };
 
   // Update registry
   const registry = await getThemeRegistry();
@@ -297,7 +381,11 @@ export async function saveTheme(
   await writeJsonFile(themeRegistryPath(), registry);
 }
 
-export async function updateThemeMeta(id: string, updates: Partial<Pick<ServerTheme, 'enabled' | 'forceEnabled'>>): Promise<ServerTheme | null> {
+export function updateThemeMeta(id: string, updates: Partial<Pick<ServerTheme, 'enabled' | 'forceEnabled'>>): Promise<ServerTheme | null> {
+  return withRegistryLock('themes', () => updateThemeMetaNow(id, updates));
+}
+
+async function updateThemeMetaNow(id: string, updates: Partial<Pick<ServerTheme, 'enabled' | 'forceEnabled'>>): Promise<ServerTheme | null> {
   assertWritable('update theme metadata');
   const registry = await getThemeRegistry();
   const idx = registry.themes.findIndex(t => t.id === id);
@@ -308,7 +396,11 @@ export async function updateThemeMeta(id: string, updates: Partial<Pick<ServerTh
   return registry.themes[idx];
 }
 
-export async function deleteTheme(id: string): Promise<boolean> {
+export function deleteTheme(id: string): Promise<boolean> {
+  return withRegistryLock('themes', () => deleteThemeNow(id));
+}
+
+async function deleteThemeNow(id: string): Promise<boolean> {
   assertWritable('delete theme');
   const registry = await getThemeRegistry();
   const idx = registry.themes.findIndex(t => t.id === id);
@@ -317,11 +409,36 @@ export async function deleteTheme(id: string): Promise<boolean> {
   registry.themes.splice(idx, 1);
   await writeJsonFile(themeRegistryPath(), registry);
 
-  // Remove CSS file
-  const cssPath = path.join(getThemesDir(), `${id}.css`);
-  try { await unlink(cssPath); } catch { /* ok if missing */ }
+  // Remove CSS and skin files
+  for (const file of [`${id}.css`, `${id}.skin.css`]) {
+    try { await unlink(path.join(getThemesDir(), file)); } catch { /* ok if missing */ }
+  }
 
   return true;
+}
+
+export async function getThemeSkin(id: string): Promise<string | null> {
+  if (!SAFE_ID_RE.test(id)) return null;
+  try {
+    return await readFile(path.join(getThemesDir(), `${id}.skin.css`), 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * CSS of every installed theme and every built-in theme, keyed by id, for
+ * resolving a new theme's `extends`.
+ */
+export async function themeCSSResolver(): Promise<(id: string) => string | null> {
+  const { BUILTIN_THEMES } = await import('@/lib/builtin-themes');
+  const map = new Map<string, string>();
+  for (const t of BUILTIN_THEMES) if (t.css) map.set(t.id, t.css);
+  for (const t of (await getThemeRegistry()).themes) {
+    const css = await getThemeCSS(t.id);
+    if (css) map.set(t.id, css);
+  }
+  return (id) => map.get(id) ?? null;
 }
 
 export async function getThemeCSS(id: string): Promise<string | null> {

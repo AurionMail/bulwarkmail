@@ -49,6 +49,31 @@ function normaliseCombo(combo: string): NormalisedCombo | null {
   return { ctrl, shift, alt, meta, key };
 }
 
+// Keys a plugin may never bind: the app and the browser need them.
+const RESERVED_KEYS = new Set(['escape', 'tab', 'enter', 'f1', 'f5', 'f11', 'f12', 'delete', 'backspace']);
+// Ctrl/Cmd+Shift chords browsers use (reopen tab, new private window,
+// devtools, …).
+const BROWSER_SHIFT_CHORDS = new Set(['t', 'n', 'w', 'q', 'i', 'j', 'c', 'r', 'p', 'b', 'o', 'delete', 'tab', 'enter', 'k']);
+
+/**
+ * Whether a plugin may bind this combo. The app uses bare keys (j, k, c, /,
+ * Shift+G…) and Escape, and browsers own plain Ctrl/Cmd chords, so a plugin
+ * needs Alt, Ctrl/Cmd+Shift or Ctrl/Cmd+Alt.
+ */
+export function isAllowedPluginCombo(keys: string): boolean {
+  const combo = normaliseCombo(keys);
+  if (!combo) return false;
+  if (RESERVED_KEYS.has(combo.key)) return false;
+  const primary = combo.ctrl || combo.meta;
+  if (combo.alt) return true;
+  if (primary && combo.shift) return !BROWSER_SHIFT_CHORDS.has(combo.key);
+  return false;
+}
+
+function comboId(combo: NormalisedCombo): string {
+  return `${combo.ctrl || combo.meta ? 'C' : ''}${combo.shift ? 'S' : ''}${combo.alt ? 'A' : ''}+${combo.key}`;
+}
+
 function eventMatches(ev: KeyboardEvent, combo: NormalisedCombo): boolean {
   if (combo.ctrl !== (ev.ctrlKey || ev.metaKey ? ev.ctrlKey : false)) {
     // Treat Ctrl and Cmd as equivalent: a binding declaring Ctrl matches a
@@ -60,7 +85,18 @@ function eventMatches(ev: KeyboardEvent, combo: NormalisedCombo): boolean {
   if (combo.shift !== ev.shiftKey) return false;
   if (combo.alt !== ev.altKey) return false;
   if (!combo.ctrl && combo.meta !== ev.metaKey) return false;
-  return ev.key.toLowerCase() === combo.key;
+  if (ev.key.toLowerCase() === combo.key) return true;
+  // With Alt held, macOS types another character (Alt+A is "å"): match the
+  // physical key for letters and digits.
+  if (/^[a-z]$/.test(combo.key)) return ev.code === `Key${combo.key.toUpperCase()}`;
+  if (/^[0-9]$/.test(combo.key)) return ev.code === `Digit${combo.key}`;
+  return false;
+}
+
+/** Whether a key event is the combo ("Ctrl+Shift+A"); Ctrl and Cmd count the same. */
+export function matchesCombo(keys: string, ev: Pick<KeyboardEvent, 'key' | 'code' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'>): boolean {
+  const combo = normaliseCombo(keys);
+  return !!combo && eventMatches(ev as KeyboardEvent, combo);
 }
 
 function onKeyDown(ev: KeyboardEvent): void {
@@ -70,8 +106,8 @@ function onKeyDown(ev: KeyboardEvent): void {
     const combo = normaliseCombo(binding.keys);
     if (!combo) continue;
     if (eventMatches(ev, combo)) {
+      // Not stopPropagation: the app's own listeners still see the key.
       ev.preventDefault();
-      ev.stopPropagation();
       void binding.invoke();
       return;
     }
@@ -90,8 +126,22 @@ export function registerShortcuts(
 ): () => void {
   ensureListener();
   const keys: string[] = [];
+  const taken = new Set([...bindings.values()].map((b) => {
+    const c = normaliseCombo(b.keys);
+    return c ? comboId(c) : '';
+  }));
   for (const sc of shortcuts) {
     const key = `${instance.pluginId}:${sc.id}`;
+    const combo = normaliseCombo(sc.keys);
+    if (!combo || !isAllowedPluginCombo(sc.keys)) {
+      console.warn(`[plugin-shortcuts] "${instance.pluginId}" may not bind ${sc.keys}; use Alt, Ctrl+Shift or Ctrl+Alt`);
+      continue;
+    }
+    if (taken.has(comboId(combo))) {
+      console.warn(`[plugin-shortcuts] ${sc.keys} is already used by another plugin; "${instance.pluginId}" does not get it`);
+      continue;
+    }
+    taken.add(comboId(combo));
     bindings.set(key, {
       pluginId: instance.pluginId,
       shortcutId: sc.id,
@@ -111,15 +161,4 @@ export function registerShortcuts(
   return () => {
     for (const k of keys) bindings.delete(k);
   };
-}
-
-/** Snapshot of currently active shortcuts. Used by the help modal. */
-export function listShortcuts(): Array<{ pluginId: string; id: string; keys: string; label: string; category?: string }> {
-  return [...bindings.values()].map(b => ({
-    pluginId: b.pluginId,
-    id: b.shortcutId,
-    keys: b.keys,
-    label: b.label,
-    category: b.category,
-  }));
 }

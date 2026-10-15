@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useAuthStore } from "@/stores/auth-store";
+import { useShallow } from "zustand/react/shallow";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { useWebDAVStore } from "@/stores/webdav-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -37,10 +38,10 @@ export function useTour() {
 export function TourProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isDemoMode } = useAuthStore();
-  const { supportsCalendar } = useCalendarStore();
+  const { isDemoMode } = useAuthStore(useShallow((state) => ({ isDemoMode: state.isDemoMode })));
+  const { supportsCalendar } = useCalendarStore(useShallow((state) => ({ supportsCalendar: state.supportsCalendar })));
   const calendarEnabled = usePolicyStore((s) => s.isFeatureEnabled('calendarEnabled'));
-  const { supportsWebDAV } = useWebDAVStore();
+  const { supportsWebDAV } = useWebDAVStore(useShallow((state) => ({ supportsWebDAV: state.supportsWebDAV })));
   const tourCompleted = useSettingsStore((s) => s.tourCompleted);
   const showOnboardingOnNewDevices = useSettingsStore((s) => s.showOnboardingOnNewDevices);
   const updateSetting = useSettingsStore((s) => s.updateSetting);

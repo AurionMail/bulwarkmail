@@ -6,10 +6,12 @@
 // null-origin context; its height is pushed back via postMessage and applied
 // to a wrapper <div>.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { SlotName } from '@/lib/plugin-types';
 import { get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
 import { createSlotInstance, type SandboxInstance } from '@/lib/plugin-sandbox/host-bridge';
+import { slotPropsFor } from '@/lib/plugin-sandbox/permissions';
+import { isInlineSlot } from '@/lib/plugin-sandbox/slot-layout';
 import { snapshotHostTheme } from '@/lib/plugin-sandbox/host-theme';
 import { useThemeStore } from '@/stores/theme-store';
 
@@ -23,8 +25,18 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<SandboxInstance | null>(null);
   const [height, setHeight] = useState<number>(0);
+  const [width, setWidth] = useState<number | undefined>(undefined);
+  const inline = isInlineSlot(slot);
   // null = pending, true/false = decided
   const [show, setShow] = useState<boolean | null>(null);
+
+  // What the plugin may see of the surface the slot sits on. Everything the
+  // plugin receives (shouldShow context, mount props, updates) goes through
+  // this, so a ui:* permission never hands over mail, events or contacts.
+  const props = useMemo(() => {
+    const active = getActivePlugin(pluginId);
+    return active ? slotPropsFor(active.plugin, slot, extraProps ?? {}) : {};
+  }, [pluginId, slot, extraProps]);
 
   // Decide whether to mount based on the plugin's shouldShow (background-side).
   useEffect(() => {
@@ -35,11 +47,11 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
     if (!offer.hasShouldShow) { setShow(true); return; }
     let cancelled = false;
     active.background
-      .evaluateShouldShow(slot, extraProps ?? {})
+      .evaluateShouldShow(slot, props)
       .then((s) => { if (!cancelled) setShow(s); })
       .catch(() => { if (!cancelled) setShow(false); });
     return () => { cancelled = true; };
-  }, [pluginId, slot, extraProps]);
+  }, [pluginId, slot, props]);
 
   // Spawn / tear down the slot iframe.
   useEffect(() => {
@@ -53,24 +65,27 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
       code: active.code,
       locale,
       tier: active.tier,
-      extraProps: extraProps ?? {},
+      extraProps: props,
       hostContainer: wrapperRef.current,
-      onResize: (h) => setHeight(h),
+      onResize: (h, w) => {
+        setHeight(h);
+        if (w !== undefined) setWidth(w);
+      },
     });
     instanceRef.current = inst;
     return () => {
       try { inst.destroy(); } catch { /* ignore */ }
       instanceRef.current = null;
     };
-    // We intentionally don't depend on extraProps here - propagating prop
+    // We intentionally don't depend on props here - propagating prop
     // changes happens via postMessage below to avoid iframe churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, pluginId, slot]);
 
   // Push prop updates without remount.
   useEffect(() => {
-    instanceRef.current?.updateProps(extraProps ?? {});
-  }, [extraProps]);
+    instanceRef.current?.updateProps(props);
+  }, [props]);
 
   // Re-theme the live slot iframe when the host theme changes (dark/light
   // toggle or custom theme switch), without tearing down the iframe. Reacting
@@ -80,8 +95,20 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   useEffect(() => {
     instanceRef.current?.setTheme(snapshotHostTheme());
+    // The store may apply the new theme to the page after this render: read
+    // it again a frame later, so the frame never keeps the old values.
+    const frame = requestAnimationFrame(() => instanceRef.current?.setTheme(snapshotHostTheme()));
+    return () => cancelAnimationFrame(frame);
   }, [resolvedTheme, activeThemeId]);
 
   if (show !== true) return null;
-  return <div ref={wrapperRef} style={{ height, minHeight: height }} data-plugin-iframe-slot={`${pluginId}:${slot}`} />;
+  return (
+    <div
+      ref={wrapperRef}
+      style={inline
+        ? { display: 'inline-block', verticalAlign: 'middle', height, width: width ?? 0, maxWidth: '100%', overflow: 'hidden' }
+        : { height, minHeight: height }}
+      data-plugin-iframe-slot={`${pluginId}:${slot}`}
+    />
+  );
 }

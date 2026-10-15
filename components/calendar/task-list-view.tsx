@@ -62,6 +62,60 @@ function getDueDateLabel(due: string, showWithoutTime: boolean, t: ReturnType<ty
   };
 }
 
+/** The tasks the list shows, in its order: filtered by calendar and status. */
+export function filterTasksForList(
+  tasks: CalendarTask[],
+  selectedCalendarIds: string[],
+  filter: TaskViewFilter,
+  showCompleted: boolean,
+): CalendarTask[] {
+  let result = tasks.filter(task => {
+    const calIds = Object.keys(task.calendarIds);
+    return calIds.some(id => selectedCalendarIds.includes(id));
+  });
+
+  if (!showCompleted) {
+    result = result.filter(task => task.progress !== "completed" && task.progress !== "cancelled");
+  }
+
+  switch (filter) {
+    case "pending":
+      result = result.filter(task => task.progress === "needs-action" || task.progress === "in-process");
+      break;
+    case "completed":
+      result = result.filter(task => task.progress === "completed");
+      break;
+    case "overdue":
+      result = result.filter(task => {
+        if (!task.due || task.progress === "completed" || task.progress === "cancelled") return false;
+        return isBefore(parseISO(task.due), displayNow()) && !isDisplayToday(parseISO(task.due));
+      });
+      break;
+  }
+
+  // Sort: overdue first, then by due date (no due date last), then by priority
+  result.sort((a, b) => {
+    // Completed tasks at the bottom
+    if (a.progress === "completed" && b.progress !== "completed") return 1;
+    if (a.progress !== "completed" && b.progress === "completed") return -1;
+
+    // Tasks with due dates before those without
+    if (a.due && !b.due) return -1;
+    if (!a.due && b.due) return 1;
+    if (a.due && b.due) {
+      const dateCompare = new Date(a.due).getTime() - new Date(b.due).getTime();
+      if (dateCompare !== 0) return dateCompare;
+    }
+
+    // Higher priority first (lower number = higher priority, but 0 = no priority goes last)
+    const aPri = a.priority || 10;
+    const bPri = b.priority || 10;
+    return aPri - bPri;
+  });
+
+  return result;
+}
+
 export function TaskListView({
   tasks,
   calendars,
@@ -77,53 +131,10 @@ export function TaskListView({
   const timeFormat = useSettingsStore((s) => s.timeFormat);
   const [quickAddTitle, setQuickAddTitle] = useState("");
 
-  const filteredTasks = useMemo(() => {
-    let result = tasks.filter(task => {
-      const calIds = Object.keys(task.calendarIds);
-      return calIds.some(id => selectedCalendarIds.includes(id));
-    });
-
-    if (!showCompleted) {
-      result = result.filter(task => task.progress !== "completed" && task.progress !== "cancelled");
-    }
-
-    switch (filter) {
-      case "pending":
-        result = result.filter(task => task.progress === "needs-action" || task.progress === "in-process");
-        break;
-      case "completed":
-        result = result.filter(task => task.progress === "completed");
-        break;
-      case "overdue":
-        result = result.filter(task => {
-          if (!task.due || task.progress === "completed" || task.progress === "cancelled") return false;
-          return isBefore(parseISO(task.due), displayNow()) && !isDisplayToday(parseISO(task.due));
-        });
-        break;
-    }
-
-    // Sort: overdue first, then by due date (no due date last), then by priority
-    result.sort((a, b) => {
-      // Completed tasks at the bottom
-      if (a.progress === "completed" && b.progress !== "completed") return 1;
-      if (a.progress !== "completed" && b.progress === "completed") return -1;
-
-      // Tasks with due dates before those without
-      if (a.due && !b.due) return -1;
-      if (!a.due && b.due) return 1;
-      if (a.due && b.due) {
-        const dateCompare = new Date(a.due).getTime() - new Date(b.due).getTime();
-        if (dateCompare !== 0) return dateCompare;
-      }
-
-      // Higher priority first (lower number = higher priority, but 0 = no priority goes last)
-      const aPri = a.priority || 10;
-      const bPri = b.priority || 10;
-      return aPri - bPri;
-    });
-
-    return result;
-  }, [tasks, selectedCalendarIds, filter, showCompleted]);
+  const filteredTasks = useMemo(
+    () => filterTasksForList(tasks, selectedCalendarIds, filter, showCompleted),
+    [tasks, selectedCalendarIds, filter, showCompleted],
+  );
 
   const handleToggle = useCallback((e: React.MouseEvent, task: CalendarTask) => {
     e.stopPropagation();

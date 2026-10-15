@@ -13,6 +13,7 @@ import { useProTabStore, registerProTabCloseInterceptor, type ProComposeTabData 
 import { debug } from "@/lib/debug";
 import { threadKeyFor } from "@/lib/thread-utils";
 import { formatRejectedRecipients } from "@/lib/jmap/client";
+import { announceSent } from "@/lib/plugin-after-send";
 
 interface ProComposeTabBodyProps {
   tabId: string;
@@ -97,6 +98,7 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
           recipients: formatRejectedRecipients(result.rejectedRecipients),
         }));
       }
+      announceSent(result, sendData);
 
       if (result.scheduled) {
         await handleScheduledSendCreated();
@@ -230,6 +232,9 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
           replyTo={data.replyTo}
           initialDraftText={data.initialDraftText}
           initialData={data.initialData}
+          prefill={data.prefill}
+          sessionKey={`pro-${tabId}-${data.sessionId}`}
+          sourceEmailId={data.sourceEmailId ?? undefined}
           composeFromAccountEmail={composeFromAccountEmail}
           onSend={handleSend}
           onScheduledSendCreated={handleScheduledSendCreated}

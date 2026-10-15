@@ -40,10 +40,6 @@ export function hasRemoteQuery(parsed: ParsedQuery, kind: SearchKind): boolean {
     || mail.dateAfter || mail.dateBefore || parsed.mailboxRole);
 }
 
-export function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === 'AbortError';
-}
-
 function snapshot(outcome: SearchOutcome): SearchOutcome {
   return {
     hits: { ...outcome.hits },

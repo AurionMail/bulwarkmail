@@ -2,8 +2,6 @@
  * Multi-server JMAP support: schema, parsing, lookup, and redaction helpers.
  */
 
-import { toAsciiDomain } from '@/lib/idn';
-
 export interface JmapServerOAuthConfig {
   clientId?: string;
   issuerUrl?: string;
@@ -150,22 +148,6 @@ export function findServerByUrl(servers: JmapServerEntry[], url: string | null |
   if (!url) return undefined;
   const target = normalizeUrl(url);
   return servers.find((s) => normalizeUrl(s.url) === target);
-}
-
-function domainKey(domain: string): string {
-  return toAsciiDomain(domain) ?? domain.trim().toLowerCase();
-}
-
-/**
- * Find the server whose `domains` array matches the given email's domain
- * (case-insensitive, IDN domains compared in their ASCII form).
- */
-export function findServerByEmailDomain(servers: JmapServerEntry[], email: string | null | undefined): JmapServerEntry | undefined {
-  if (!email || !email.includes('@')) return undefined;
-  const domain = email.split('@')[1]?.trim();
-  if (!domain) return undefined;
-  const key = domainKey(domain);
-  return servers.find((s) => (s.domains ?? []).some((d) => domainKey(d) === key));
 }
 
 /**

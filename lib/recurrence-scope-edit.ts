@@ -638,6 +638,18 @@ function raisesSequences(series: Partial<CalendarEvent>, master: CalendarEvent, 
 }
 
 /** What saving an occurrence edit works with: the calendar store's actions and the app's series lookup. */
+/**
+ * How an occurrence edit or deletion ended: true when it was made, false when
+ * the series could not be found, "stopped" when a plugin refused a write (and
+ * said why itself).
+ */
+export type OccurrenceOutcome = boolean | 'stopped';
+
+/** The store actions resolve to false when a plugin stopped the write. */
+function stopped(result: boolean | void): boolean {
+  return result === false;
+}
+
 export interface OccurrenceEditActions {
   client: IJMAPClient;
   updateEvent: (
@@ -646,7 +658,7 @@ export interface OccurrenceEditActions {
     updates: Partial<CalendarEvent>,
     sendSchedulingMessages?: boolean,
     options?: EventUpdateOptions,
-  ) => Promise<void>;
+  ) => Promise<boolean | void>;
   createEvent: (client: IJMAPClient, event: Partial<CalendarEvent>, sendSchedulingMessages?: boolean) => Promise<CalendarEvent | null>;
   /** The base event of a series, from one of its occurrences. */
   findMasterEvent: (occurrence: CalendarEvent) => Promise<CalendarEvent | null>;
@@ -706,14 +718,15 @@ function splitKeyOf(occurrence: CalendarEvent, master: CalendarEvent): string {
  * a changed one showed on in the old series, next to the new one (live on
  * 1.0 and 0.16.23). Resolves to what puts the series back, for a rollback -
  * its rules as they were and those overrides - whether the attendees were
- * told, and the overrides, for the new series.
+ * told, and the overrides, for the new series; null when a plugin stopped
+ * the truncation.
  */
 async function truncateSeries(
   master: CalendarEvent,
   occurrence: CalendarEvent,
   actions: Pick<OccurrenceEditActions, 'client' | 'updateEvent'>,
   scheduling: { sendScheduling?: boolean; userEmails?: string[] } = {},
-): Promise<{ restore: Partial<CalendarEvent>; announced: true | undefined; removed: OverrideMap }> {
+): Promise<{ restore: Partial<CalendarEvent>; announced: true | undefined; removed: OverrideMap } | null> {
   const originalRules = master.recurrenceRules
     ? JSON.parse(JSON.stringify(master.recurrenceRules))
     : null;
@@ -738,7 +751,7 @@ async function truncateSeries(
   // no overrides at all, which the truncation may just have left it with.
   if (Object.keys(removed).length > 0) restore.recurrenceOverrides = withoutUpdated(master.recurrenceOverrides!);
   const announced = scheduling.sendScheduling && userOrganizes(master, scheduling.userEmails ?? []) ? true : undefined;
-  await actions.updateEvent(actions.client, master.id, patch as Partial<CalendarEvent>, announced);
+  if (stopped(await actions.updateEvent(actions.client, master.id, patch as Partial<CalendarEvent>, announced))) return null;
   return { restore, announced, removed };
 }
 
@@ -957,28 +970,29 @@ async function overrideForEveryone(
   master: CalendarEvent,
   updates: Partial<CalendarEvent>,
   actions: Pick<OccurrenceEditActions, 'client' | 'updateEvent'>,
-): Promise<boolean> {
+): Promise<OccurrenceOutcome> {
   const key = resolveOverrideKey(occurrence, occurrence.recurrenceOverrides);
   const copy = buildFallbackOverridePatch(occurrence, withNewOverrideDetails(occurrence, {}, { seriesKeys: true }));
   if (!key || !copy) return false;
-  await actions.updateEvent(actions.client, master.id, copy, false);
+  if (stopped(await actions.updateEvent(actions.client, master.id, copy, false))) return 'stopped';
   const written = (copy.recurrenceOverrides?.[key] ?? (copy as Record<string, unknown>)[`recurrenceOverrides/${key}`]) as OverrideMap[string];
   const overridden = { ...occurrence, recurrenceOverrides: { ...(occurrence.recurrenceOverrides ?? {}), [key]: written } };
   const change = buildFallbackOverridePatch(overridden, withNewOverrideDetails(overridden, updates, { seriesKeys: true }));
   if (!change) return false;
-  await actions.updateEvent(actions.client, master.id, change, true);
+  if (stopped(await actions.updateEvent(actions.client, master.id, change, true))) return 'stopped';
   return true;
 }
 
 /**
  * Save the editor's change to one occurrence for `scope`. Resolves to false
- * when the series the occurrence belongs to cannot be found.
+ * when the series the occurrence belongs to cannot be found, to "stopped"
+ * when a plugin refused a write.
  */
 export async function saveOccurrenceEdit(
   scope: RecurrenceEditScope,
   edit: OccurrenceEdit,
   actions: OccurrenceEditActions,
-): Promise<boolean> {
+): Promise<OccurrenceOutcome> {
   const { client, updateEvent, createEvent, findMasterEvent } = actions;
   const { event, updates, sendScheduling } = edit;
   switch (scope) {
@@ -990,7 +1004,7 @@ export async function saveOccurrenceEdit(
           ...event,
           participants: updates.participants === undefined ? event.participants : updates.participants,
         }, edit.userEmails);
-        await updateEvent(client, event.id, updates, sendScheduling, { asOrganizer });
+        if (stopped(await updateEvent(client, event.id, updates, sendScheduling, { asOrganizer }))) return 'stopped';
         return true;
       }
       // An override outside an expanded series, or the series itself standing
@@ -1006,13 +1020,13 @@ export async function saveOccurrenceEdit(
         }
         const overridePatch = buildFallbackOverridePatch(occurrence, withNewOverrideDetails(occurrence, updates, { seriesKeys: true }));
         if (!overridePatch) return false;
-        await updateEvent(client, master.id, overridePatch, sendScheduling);
+        if (stopped(await updateEvent(client, master.id, overridePatch, sendScheduling))) return 'stopped';
         return true;
       }
       // One occurrence the server keeps as an event of its own (an
       // invitation to that occurrence alone) is itself what changes.
       if (isSeries(event)) return false;
-      await updateEvent(client, event.id, updates, sendScheduling);
+      if (stopped(await updateEvent(client, event.id, updates, sendScheduling))) return 'stopped';
       return true;
     }
     case 'this_and_future': {
@@ -1021,7 +1035,9 @@ export async function saveOccurrenceEdit(
       // From the first occurrence on is the whole series; ended before its
       // first occurrence, the series would be left with none.
       if (isFirstOccurrence(event, master)) return saveOccurrenceEdit('all', edit, actions);
-      const { restore, announced, removed } = await truncateSeries(master, event, actions, { sendScheduling, userEmails: edit.userEmails });
+      const truncated = await truncateSeries(master, event, actions, { sendScheduling, userEmails: edit.userEmails });
+      if (!truncated) return 'stopped';
+      const { restore, announced, removed } = truncated;
       const newEventData = followingSeriesData(event, master, updates, restore.recurrenceRules ?? null, {
         editor: edit.editor,
         overrides: removed,
@@ -1059,13 +1075,13 @@ export async function saveOccurrenceEdit(
       }
       if (raisesSequences(seriesUpdates, master, edit)) {
         const series = seriesUpdates;
-        await updateEvent(client, master.id, withRaisedSequences(series, master), sendScheduling, {
+        const raised = await updateEvent(client, master.id, withRaisedSequences(series, master), sendScheduling, {
           keepSequence: true,
           fromCurrent: (current) => withRaisedSequences(series, current),
         });
-        return true;
+        return stopped(raised) ? 'stopped' : true;
       }
-      await updateEvent(client, master.id, seriesUpdates, sendScheduling);
+      if (stopped(await updateEvent(client, master.id, seriesUpdates, sendScheduling))) return 'stopped';
       return true;
     }
     default: {
@@ -1077,18 +1093,19 @@ export async function saveOccurrenceEdit(
 
 /** What deleting part of a series works with: the calendar store's actions and the app's series lookup. */
 export interface OccurrenceDeleteActions extends Pick<OccurrenceEditActions, 'client' | 'updateEvent' | 'findMasterEvent'> {
-  deleteEvent: (client: IJMAPClient, id: string, sendSchedulingMessages?: boolean) => Promise<void>;
+  deleteEvent: (client: IJMAPClient, id: string, sendSchedulingMessages?: boolean) => Promise<boolean | void>;
 }
 
 /**
  * Delete the part of a series `scope` names, from `event`, the occurrence
- * the user picked it on. Resolves to false when the series cannot be found.
+ * the user picked it on. Resolves to false when the series cannot be found,
+ * to "stopped" when a plugin refused a write.
  */
 export async function deleteOccurrence(
   scope: RecurrenceEditScope,
   deletion: { event: CalendarEvent; sendScheduling?: boolean; userEmails: string[] },
   actions: OccurrenceDeleteActions,
-): Promise<boolean> {
+): Promise<OccurrenceOutcome> {
   const { client, updateEvent, deleteEvent, findMasterEvent } = actions;
   const { event, sendScheduling } = deletion;
   switch (scope) {
@@ -1096,7 +1113,7 @@ export async function deleteOccurrence(
       if (isServerRecurrenceInstance(event) || isBrowserExpandedOccurrence(event)) {
         // The store destroys a server occurrence, or excludes one the
         // browser expanded on its base event.
-        await deleteEvent(client, event.id, sendScheduling);
+        if (stopped(await deleteEvent(client, event.id, sendScheduling))) return 'stopped';
         return true;
       }
       // An override outside an expanded series, or the series itself standing
@@ -1106,27 +1123,27 @@ export async function deleteOccurrence(
       if (master) {
         const excludePatch = buildFallbackExcludePatch(asOccurrenceOf(event, master));
         if (!excludePatch) return false;
-        await updateEvent(client, master.id, excludePatch, sendScheduling);
+        if (stopped(await updateEvent(client, master.id, excludePatch, sendScheduling))) return 'stopped';
         return true;
       }
       if (isSeries(event)) return false;
-      await deleteEvent(client, event.id, sendScheduling);
+      if (stopped(await deleteEvent(client, event.id, sendScheduling))) return 'stopped';
       return true;
     }
     case 'this_and_future': {
       const master = await findMasterEvent(event);
       if (!master) return false;
       if (isFirstOccurrence(event, master)) {
-        await deleteEvent(client, master.id, sendScheduling);
+        if (stopped(await deleteEvent(client, master.id, sendScheduling))) return 'stopped';
         return true;
       }
-      await truncateSeries(master, event, actions, { sendScheduling, userEmails: deletion.userEmails });
-      return true;
+      const truncated = await truncateSeries(master, event, actions, { sendScheduling, userEmails: deletion.userEmails });
+      return truncated ? true : 'stopped';
     }
     case 'all': {
       const master = await findMasterEvent(event);
       if (!master) return false;
-      await deleteEvent(client, master.id, sendScheduling);
+      if (stopped(await deleteEvent(client, master.id, sendScheduling))) return 'stopped';
       return true;
     }
     default: {

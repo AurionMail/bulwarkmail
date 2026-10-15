@@ -4,8 +4,11 @@ import { useThemeStore } from './theme-store';
 import { useLocaleStore } from './locale-store';
 import type { EmailTemplate } from '@/lib/template-types';
 import type { NotificationSoundChoice } from '@/lib/notification-sound';
+import { EMPTY_NOTIFICATION_MUTES, normalizeNotificationMutes, type NotificationMutes } from '@/lib/notification-mutes';
 import { apiFetch } from '@/lib/browser-navigation';
+import { settingsHooks } from '@/lib/plugin-hooks';
 import { generateAccountId } from '@/lib/account-utils';
+import { subscriptionOwnerFor } from '@/lib/calendar-subscription-sync';
 import { orderForMailbox, sanitizeSortLevels, type MessageListOrderScope, type SortLevel } from '@/lib/message-list-order';
 import {
   DEFAULT_SUB_ADDRESS_DELIMITER,
@@ -130,6 +133,32 @@ function localTemplatesAhead(serverSettings: Record<string, unknown> | null): bo
     templateStateKey(serverSettings.templates, serverSettings.deletedTemplateIds);
 }
 
+// --- Calendar subscription sync bridge ---------------------------------------
+// iCal subscriptions ride along in the synced settings blob to avoid turning
+// into writable/lost calendars on browser cache clear or new devices.
+interface CalendarSubscriptionSyncBridge {
+  getSyncedState: () => {
+    icalSubscriptions: Array<{ owner?: string }>;
+    deletedSubscriptionIds: Record<string, string>;
+  };
+  applySyncedState: (
+    subscriptions: unknown,
+    deletedSubscriptionIds: unknown,
+    opts: { merge: boolean; owner?: string }
+  ) => void;
+}
+
+let calendarSubscriptionSyncBridge: CalendarSubscriptionSyncBridge | null = null;
+let onCalendarSubscriptionStoreChange: (() => void) | null = null;
+
+export function registerCalendarSubscriptionSyncBridge(
+  bridge: CalendarSubscriptionSyncBridge,
+  subscribe: (listener: () => void) => void
+): void {
+  calendarSubscriptionSyncBridge = bridge;
+  subscribe(() => onCalendarSubscriptionStoreChange?.());
+}
+
 async function syncSettingsJob(job: SettingsSyncJob, retries = 1): Promise<void> {
   syncLog('Syncing settings to server for', job.username);
   const res = await apiFetch('/api/settings', {
@@ -153,7 +182,48 @@ async function syncSettingsJob(job: SettingsSyncJob, retries = 1): Promise<void>
     syncError('Settings sync failed:', body.error || `status ${res.status}`);
   } else {
     syncLog('Settings synced to server successfully');
+    void settingsHooks.onSettingsSync.emit({ direction: 'pushed' });
   }
+}
+
+/**
+ * Keys the app writes for its own bookkeeping rather than because the user
+ * changed a preference. Plugins are neither asked nor told about these: a
+ * plugin vetoing "the welcome banner was dismissed" would leave the banner
+ * stuck, and reporting it as a preference change is noise.
+ *
+ * How the line is drawn: a key belongs here when only the app writes it (a
+ * dismissed banner, a finished tour) and Settings shows no control for it.
+ * Everything else set through updateSetting is a user preference. When the
+ * app itself writes a user-facing key (a one-time migration, a default
+ * resolved on first connect), the caller passes `{ internal: true }`.
+ * Imports, resets and server loads have their own hooks (onSettingsImport,
+ * onSettingsReset, onSettingsSync) and do not fire per-key ones.
+ */
+const BOOKKEEPING_SETTING_KEYS = new Set<string>(['onboardingCompleted', 'tourCompleted']);
+
+/**
+ * Runs a user's change to one preference through the plugin hooks: asks
+ * onBeforeSettingChange first (false keeps the old value), applies it, then
+ * tells onSettingChange. With no interceptor registered the change applies
+ * synchronously, so inputs bound to the store keep behaving as before.
+ */
+function changePreference(key: string, value: unknown, previous: unknown, apply: () => void): void {
+  const commit = () => {
+    apply();
+    void settingsHooks.onSettingChange.emit({ key, value, previous });
+  };
+  if (settingsHooks.onBeforeSettingChange.size === 0) {
+    commit();
+    return;
+  }
+  void settingsHooks.onBeforeSettingChange.intercept({ key, value, previous }).then((allowed) => {
+    if (allowed) commit();
+  });
+}
+
+function toKeywordViews(keywords: KeywordDefinition[]): { id: string; name: string; color: string }[] {
+  return keywords.map((k) => ({ id: k.id, name: k.label, color: k.color }));
 }
 
 export type FontSize = 'small' | 'medium' | 'large';
@@ -165,8 +235,6 @@ export type Density = 'extra-compact' | 'compact' | 'regular' | 'comfortable';
  * docked compose window) that keeps the theme's icons, type and palette.
  */
 export type InterfaceLayout = 'default' | 'mountain-view';
-/** @deprecated Use Density instead */
-export type ListDensity = Density;
 export type DeleteAction = 'trash' | 'trash-and-read' | 'permanent';
 export type ReplyMode = 'reply' | 'replyAll';
 export type SignaturePosition = 'above_quote' | 'below_quote';
@@ -424,6 +492,7 @@ interface SettingsState {
   markAsReadDelay: number; // milliseconds (0 = instant, -1 = never)
   deleteAction: DeleteAction;
   permanentlyDeleteJunk: boolean; // Permanently delete emails from junk/spam instead of moving to trash
+  confirmBulkDelete: boolean; // Ask before moving several selected emails to Trash (permanent deletes always ask)
   returnToListAfterAction: boolean; // After delete / mark-unread in an open message, return to the list instead of opening the next message
   clearSearchOnFolderChange: boolean; // Reset the search query + advanced filters when switching folders, instead of re-running the search in the newly selected folder (#553 keeps it applied when this is off)
   showPreview: boolean;
@@ -510,6 +579,8 @@ interface SettingsState {
   notificationSoundChoice: NotificationSoundChoice;
   /** Web Push only fires for mail that lands in the Inbox; Sieve-filed mail stays silent. */
   pushNotifyInboxOnly: boolean;
+  /** Accounts and folders that never notify (#1169); see lib/notification-mutes. */
+  notificationMutes: NotificationMutes;
   /** Chosen Web Push relay URL. Empty = the admin-configured default. */
   pushRelayUrl: string;
 
@@ -570,6 +641,13 @@ interface SettingsState {
   tintListRowsByTag: boolean; // Tint mail-list rows by the first tag color
   tintListRowsByAccount: boolean; // In the unified view, tint rows by account colour instead of showing the account dot
   showFolderTotalCount: boolean; // Show total message count next to folders/tags (alongside unread)
+  // Mail folders of shared (group/delegated) JMAP accounts in the sidebar.
+  // Turning it off hides every shared account's folders; their calendars,
+  // contacts and files stay. (#1228)
+  showSharedMailAccounts: boolean;
+  // Shared accounts whose mail folders are hidden one by one, keyed by
+  // AccountEntry.id -> JMAP accountIds, since those ids are per server.
+  hiddenSharedMailAccounts: Record<string, string[]>;
 
   // Folders
   folderIcons: Record<string, string>; // mailboxId -> icon name
@@ -621,13 +699,20 @@ interface SettingsState {
   settingsSyncDisabled: boolean;
 
   // Actions
+  /**
+   * Changes one preference. Plugins may stop the change (onBeforeSettingChange)
+   * and are told about it afterwards (onSettingChange). Pass `internal: true`
+   * for writes the app makes on its own; those skip the plugin hooks.
+   */
   updateSetting: <K extends keyof SettingsState>(
     key: K,
-    value: SettingsState[K]
+    value: SettingsState[K],
+    opts?: { internal?: boolean }
   ) => void;
   resetToDefaults: () => void;
-  exportSettings: () => string;
-  importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean }) => boolean;
+  /** `forSync` builds the snapshot pushed to the server; it is not a user export. */
+  exportSettings: (opts?: { forSync?: boolean; subscriptionOwner?: string }) => string;
+  importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean; subscriptionOwner?: string }) => boolean;
 
   // Folder icons
   setFolderIcon: (mailboxId: string, icon: string) => void;
@@ -689,6 +774,7 @@ const DEFAULT_SETTINGS = {
   markAsReadDelay: 0, // Instant
   deleteAction: 'trash' as DeleteAction,
   permanentlyDeleteJunk: false,
+  confirmBulkDelete: true,
   returnToListAfterAction: true,
   clearSearchOnFolderChange: false,
   showPreview: true,
@@ -761,6 +847,7 @@ const DEFAULT_SETTINGS = {
   emailNotificationSound: true,
   notificationSoundChoice: 'default' as NotificationSoundChoice,
   pushNotifyInboxOnly: false,
+  notificationMutes: EMPTY_NOTIFICATION_MUTES,
   pushRelayUrl: '',
 
   // Protocol Handlers
@@ -802,6 +889,8 @@ const DEFAULT_SETTINGS = {
   tintListRowsByTag: true,
   tintListRowsByAccount: false,
   showFolderTotalCount: true,
+  showSharedMailAccounts: true,
+  hiddenSharedMailAccounts: {} as Record<string, string[]>,
 
   // Folders
   folderIcons: {} as Record<string, string>,
@@ -906,11 +995,8 @@ export const useSettingsStore = create<SettingsState>()(
         applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
       };
 
-      return {
-      ...DEFAULT_SETTINGS,
-
-      updateSetting: (key, value) => {
-        set({ [key]: value });
+      const applySetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
+        set({ [key]: value } as Partial<SettingsState>);
 
         // Apply font size to document root
         if (key === 'fontSize') {
@@ -932,19 +1018,12 @@ export const useSettingsStore = create<SettingsState>()(
         if (key === 'animationsEnabled') {
           applyAnimations(value as boolean);
         }
-      },
+      };
 
-      resetToDefaults: () => {
-        set(DEFAULT_SETTINGS);
-        applyFontSize(DEFAULT_SETTINGS.fontSize);
-        applyDensity(DEFAULT_SETTINGS.density, DEFAULT_SETTINGS.interfaceLayout);
-        applyInterfaceLayout(DEFAULT_SETTINGS.interfaceLayout, DEFAULT_SETTINGS.density);
-        applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
-      },
-
-      exportSettings: () => {
+      const buildExport = (opts?: { subscriptionOwner?: string }): string => {
         const state = get();
         const templateSync = templateSyncBridge?.getSyncedState();
+        const subscriptionSync = calendarSubscriptionSyncBridge?.getSyncedState();
         const settings = {
           fontSize: state.fontSize,
           density: state.density,
@@ -960,6 +1039,7 @@ export const useSettingsStore = create<SettingsState>()(
           markAsReadDelay: state.markAsReadDelay,
           deleteAction: state.deleteAction,
           returnToListAfterAction: state.returnToListAfterAction,
+          confirmBulkDelete: state.confirmBulkDelete,
           clearSearchOnFolderChange: state.clearSearchOnFolderChange,
           showPreview: state.showPreview,
           showVerificationCodes: state.showVerificationCodes,
@@ -996,6 +1076,7 @@ export const useSettingsStore = create<SettingsState>()(
           emailNotificationSound: state.emailNotificationSound,
           notificationSoundChoice: state.notificationSoundChoice,
           pushNotifyInboxOnly: state.pushNotifyInboxOnly,
+          notificationMutes: state.notificationMutes,
           pushRelayUrl: state.pushRelayUrl,
           protocolOpenMode: state.protocolOpenMode,
           calendarNotificationsEnabled: state.calendarNotificationsEnabled,
@@ -1038,6 +1119,8 @@ export const useSettingsStore = create<SettingsState>()(
           tintListRowsByTag: state.tintListRowsByTag,
           tintListRowsByAccount: state.tintListRowsByAccount,
           showFolderTotalCount: state.showFolderTotalCount,
+          showSharedMailAccounts: state.showSharedMailAccounts,
+          hiddenSharedMailAccounts: state.hiddenSharedMailAccounts,
           folderIcons: state.folderIcons,
           emailKeywords: state.emailKeywords,
           nestedTags: state.nestedTags,
@@ -1066,11 +1149,54 @@ export const useSettingsStore = create<SettingsState>()(
                 deletedTemplateIds: templateSync.deletedTemplateIds,
               }
             : {}),
+          // Omitted entirely if the bridge has not registered, so an importing
+          // device leaves its calendar subscriptions alone.
+          ...(subscriptionSync
+            ? {
+                // A server blob carries only its own login's subscriptions:
+                // feed URLs are secrets, and another login's (or an unowned
+                // one's) would reappear there after that login signs out.
+                icalSubscriptions: opts?.subscriptionOwner
+                  ? subscriptionSync.icalSubscriptions.filter(
+                      (sub) => sub.owner === opts.subscriptionOwner,
+                    )
+                  : subscriptionSync.icalSubscriptions,
+                deletedSubscriptionIds: subscriptionSync.deletedSubscriptionIds,
+              }
+            : {}),
         };
         return JSON.stringify(settings, null, 2);
+      };
+
+      return {
+      ...DEFAULT_SETTINGS,
+
+      updateSetting: (key, value, opts) => {
+        if (opts?.internal || BOOKKEEPING_SETTING_KEYS.has(key)) {
+          applySetting(key, value);
+          return;
+        }
+        changePreference(key, value, get()[key], () => applySetting(key, value));
       },
 
-      importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean }) => {
+      resetToDefaults: () => {
+        set(DEFAULT_SETTINGS);
+        applyFontSize(DEFAULT_SETTINGS.fontSize);
+        applyDensity(DEFAULT_SETTINGS.density, DEFAULT_SETTINGS.interfaceLayout);
+        applyInterfaceLayout(DEFAULT_SETTINGS.interfaceLayout, DEFAULT_SETTINGS.density);
+        applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
+        void settingsHooks.onSettingsReset.emit({});
+      },
+
+      exportSettings: (opts) => {
+        const json = buildExport(opts);
+        if (!opts?.forSync) {
+          void settingsHooks.onSettingsExport.emit({ keys: Object.keys(JSON.parse(json)) });
+        }
+        return json;
+      },
+
+      importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean; subscriptionOwner?: string }) => {
         try {
           const settings = JSON.parse(json);
 
@@ -1083,14 +1209,20 @@ export const useSettingsStore = create<SettingsState>()(
             settings.protocolOpenMode = settings.protocolMailtoOpenMode;
           }
 
-          // Apply settings
+          // Apply settings, noting which keys were taken over for the
+          // onSettingsImport hook.
+          const imported: string[] = [];
+          const put = (key: string, patch: Record<string, unknown>) => {
+            set(patch as Partial<SettingsState>);
+            imported.push(key);
+          };
           Object.keys(settings).forEach((key) => {
             if (key in DEFAULT_SETTINGS) {
               if (key === 'subAddressDelimiter' && !isValidSubAddressDelimiter(settings[key])) {
                 return;
               }
               if (key === 'sendDelaySeconds' && ![0, 10, 30, 60].includes(settings[key])) {
-                set({ sendDelaySeconds: 0 });
+                put(key, { sendDelaySeconds: 0 });
                 return;
               }
               // Validity of the zone id itself is checked at use time
@@ -1109,11 +1241,18 @@ export const useSettingsStore = create<SettingsState>()(
               if (key === 'preferredIdentityIds' && !isPlainRecord(settings[key])) {
                 return;
               }
+              if (key === 'hiddenSharedMailAccounts' && !isPlainRecord(settings[key])) {
+                return;
+              }
+              if (key === 'notificationMutes') {
+                put(key, { notificationMutes: normalizeNotificationMutes(settings[key]) });
+                return;
+              }
               // The list order is sent to the server as a sort array, so an
               // unknown criterion from a newer/older client must never get
               // through (an unsupportedSort refusal empties the folder).
               if (key === 'messageListOrder') {
-                set({ messageListOrder: sanitizeSortLevels(settings[key]) });
+                put(key, { messageListOrder: sanitizeSortLevels(settings[key]) });
                 return;
               }
               if (key === 'messageListOrderScope' && settings[key] !== 'inbox' && settings[key] !== 'all') {
@@ -1133,17 +1272,17 @@ export const useSettingsStore = create<SettingsState>()(
               // the map and the composer picks another account's default sender
               // (login-order dependent). File imports (no serverAccountId)
               // still replace wholesale.
-              if (opts?.serverAccountId && (key === 'preferredIdentityIds' || key === 'allMailFolderIds')) {
+              if (opts?.serverAccountId && (key === 'preferredIdentityIds' || key === 'allMailFolderIds' || key === 'hiddenSharedMailAccounts')) {
                 const existing = (get() as unknown as Record<string, unknown>)[key];
                 const merged: Record<string, unknown> = isPlainRecord(existing) ? { ...existing } : {};
                 const incoming = settings[key] as Record<string, unknown>;
                 if (Object.prototype.hasOwnProperty.call(incoming, opts.serverAccountId)) {
                   merged[opts.serverAccountId] = incoming[opts.serverAccountId];
                 }
-                set({ [key]: merged });
+                put(key, { [key]: merged });
                 return;
               }
-              set({ [key]: settings[key] });
+              put(key, { [key]: settings[key] });
             }
           });
 
@@ -1171,6 +1310,20 @@ export const useSettingsStore = create<SettingsState>()(
             settings.deletedTemplateIds,
             { merge: Boolean(opts?.serverAccountId) }
           );
+          calendarSubscriptionSyncBridge?.applySyncedState(
+            settings.icalSubscriptions,
+            settings.deletedSubscriptionIds,
+            { merge: Boolean(opts?.serverAccountId), owner: opts?.subscriptionOwner }
+          );
+
+          // A load from the server reports itself as a sync (loadFromServer);
+          // only a file import the user picked is an import.
+          if (!opts?.serverAccountId) {
+            if (settings.theme) imported.push('theme');
+            if (settings.locale) imported.push('locale');
+            if (settings.templates !== undefined) imported.push('templates');
+            void settingsHooks.onSettingsImport.emit({ keys: imported });
+          }
 
           return true;
         } catch (error) {
@@ -1180,23 +1333,25 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       // Folder icon methods
+      // These map-valued preferences go through updateSetting so plugins see
+      // them like any other preference change.
       setFolderIcon: (mailboxId: string, icon: string) => {
-        set({ folderIcons: { ...get().folderIcons, [mailboxId]: icon } });
+        get().updateSetting('folderIcons', { ...get().folderIcons, [mailboxId]: icon });
       },
 
       removeFolderIcon: (mailboxId: string) => {
         const { [mailboxId]: _, ...rest } = get().folderIcons;
-        set({ folderIcons: rest });
+        get().updateSetting('folderIcons', rest);
       },
 
       // Shared-calendar color override methods
       setSharedCalendarColor: (key: string, color: string) => {
-        set({ sharedCalendarColors: { ...get().sharedCalendarColors, [key]: color } });
+        get().updateSetting('sharedCalendarColors', { ...get().sharedCalendarColors, [key]: color });
       },
 
       removeSharedCalendarColor: (key: string) => {
         const { [key]: _, ...rest } = get().sharedCalendarColors;
-        set({ sharedCalendarColors: rest });
+        get().updateSetting('sharedCalendarColors', rest);
       },
 
       // Trusted senders methods
@@ -1208,6 +1363,7 @@ export const useSettingsStore = create<SettingsState>()(
         const current = get().trustedSenders;
         if (!current.includes(emailAddress)) {
           set({ trustedSenders: [...current, emailAddress] });
+          void settingsHooks.onTrustedSenderChange.emit({ email: emailAddress, trusted: true });
         }
       },
 
@@ -1216,9 +1372,10 @@ export const useSettingsStore = create<SettingsState>()(
         const trimmed = email.trim();
         const angleMatch = trimmed.match(/^(.+?)\s*<([^>]+)>$/);
         const emailAddress = (angleMatch ? angleMatch[2] : trimmed).toLowerCase().trim();
-        set({
-          trustedSenders: get().trustedSenders.filter(e => e !== emailAddress)
-        });
+        const current = get().trustedSenders;
+        if (!current.includes(emailAddress)) return;
+        set({ trustedSenders: current.filter(e => e !== emailAddress) });
+        void settingsHooks.onTrustedSenderChange.emit({ email: emailAddress, trusted: false });
       },
 
       isSenderTrusted: (email: string) => {
@@ -1268,23 +1425,21 @@ export const useSettingsStore = create<SettingsState>()(
       addSidebarApp: (app: SidebarApp) => {
         const current = get().sidebarApps;
         if (current.some(a => a.id === app.id)) return;
-        set({ sidebarApps: [...current, app] });
+        get().updateSetting('sidebarApps', [...current, app]);
       },
 
       updateSidebarApp: (id: string, updates: Partial<Omit<SidebarApp, 'id'>>) => {
-        set({
-          sidebarApps: get().sidebarApps.map(a =>
-            a.id === id ? { ...a, ...updates } : a
-          ),
-        });
+        get().updateSetting('sidebarApps', get().sidebarApps.map(a =>
+          a.id === id ? { ...a, ...updates } : a
+        ));
       },
 
       removeSidebarApp: (id: string) => {
-        set({ sidebarApps: get().sidebarApps.filter(a => a.id !== id) });
+        get().updateSetting('sidebarApps', get().sidebarApps.filter(a => a.id !== id));
       },
 
       reorderSidebarApps: (apps: SidebarApp[]) => {
-        set({ sidebarApps: apps });
+        get().updateSetting('sidebarApps', apps);
       },
 
       // Settings sync methods
@@ -1382,11 +1537,13 @@ export const useSettingsStore = create<SettingsState>()(
             get().importSettings(JSON.stringify(settings), {
               serverAccountId: accountId,
               keepCrossAccountViews,
+              subscriptionOwner: subscriptionOwnerFor(serverUrl, username),
             });
             isLoadingFromServer = false;
             writeSettingsOwner(accountId);
             pushTemplatesAfterLoad = localTemplatesAhead(settings);
             syncLog('Settings loaded from server successfully');
+            void settingsHooks.onSettingsSync.emit({ direction: 'pulled' });
             // The per-account preferred sender identity (#507) is re-applied by
             // applyPreferredIdentity() in auth-store, invoked from the
             // loadFromServer().finally() of every login / switch / restore path,
@@ -1426,6 +1583,10 @@ export const useSettingsStore = create<SettingsState>()(
             if (!isPlainRecord(state.preferredIdentityIds)) {
               state.preferredIdentityIds = {};
             }
+            if (!isPlainRecord(state.hiddenSharedMailAccounts)) {
+              state.hiddenSharedMailAccounts = {};
+            }
+            state.notificationMutes = normalizeNotificationMutes(state.notificationMutes);
             state.messageListOrder = sanitizeSortLevels(state.messageListOrder);
             if (state.messageListOrderScope !== 'inbox' && state.messageListOrderScope !== 'all') {
               state.messageListOrderScope = 'inbox';
@@ -1617,6 +1778,15 @@ function applyAnimations(enabled: boolean) {
   }
 }
 
+// Tag definitions change from the settings editor, from plugins (host-api
+// writes the store directly) and from imports and server loads. Watching the
+// list catches every path once instead of hooking each writer.
+useSettingsStore.subscribe((state, prev) => {
+  if (state.emailKeywords === prev.emailKeywords) return;
+  if (JSON.stringify(state.emailKeywords) === JSON.stringify(prev.emailKeywords)) return;
+  void settingsHooks.onKeywordChange.emit({ keywords: toKeywordViews(state.emailKeywords) });
+});
+
 // Initialize settings on load
 if (typeof window !== 'undefined') {
   const store = useSettingsStore.getState();
@@ -1630,7 +1800,10 @@ if (typeof window !== 'undefined') {
     pendingSync = {
       username: syncUsername,
       serverUrl: syncServerUrl,
-      settings: JSON.parse(useSettingsStore.getState().exportSettings()),
+      settings: JSON.parse(useSettingsStore.getState().exportSettings({
+        forSync: true,
+        subscriptionOwner: subscriptionOwnerFor(syncServerUrl, syncUsername),
+      })),
     };
     if (syncTimeout) clearTimeout(syncTimeout);
     syncTimeout = setTimeout(async () => {
@@ -1671,12 +1844,17 @@ if (typeof window !== 'undefined') {
     if (useSettingsStore.getState().settingsSyncDisabled) return;
     triggerSync();
   };
-  // Ensure template-store is loaded (and the bridge registered) even before
-  // any UI component imports it, so the first sync push already carries the
-  // templates. Best effort: the UI imports the store itself when it needs it,
-  // and under vitest a short test file can finish (and tear its environment
-  // down) before this chain has loaded, which rejects the import.
+
+  // And when iCal subscriptions change (they ride along in the synced blob).
+  onCalendarSubscriptionStoreChange = () => {
+    if (useSettingsStore.getState().settingsSyncDisabled) return;
+    triggerSync();
+  };
+
+  // Ensure template-store and calendar-store are loaded (and bridges registered) even before
+  // any UI component imports them, so the first sync push already carries them.
   import('./template-store').catch(() => {});
+  import('./calendar-store').catch(() => {});
 }
 
 /**
