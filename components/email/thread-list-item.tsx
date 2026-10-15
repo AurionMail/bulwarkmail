@@ -60,6 +60,21 @@ function isMousePressOnRow(e: React.PointerEvent): boolean {
  * mount on the first pointer-enter and stay from then on, so the hover
  * behaviour itself is unchanged.
  */
+/**
+ * Role of the folder the list shows (sender vs recipient, junk actions). In
+ * aggregate role views the selected mailbox is virtual, so the unified role
+ * stands in for it.
+ */
+function listMailboxRole(state: {
+  mailboxes: { id: string; role?: string | null }[];
+  selectedMailbox: string;
+  isUnifiedView: boolean;
+  unifiedRole: string | null;
+}): string | undefined {
+  return state.mailboxes.find((mb) => mb.id === state.selectedMailbox)?.role
+    ?? (state.isUnifiedView ? (state.unifiedRole ?? undefined) : undefined);
+}
+
 function useArmOnPointerEnter(): [boolean, () => void] {
   const [armed, setArmed] = React.useState(false);
   const arm = React.useCallback(() => setArmed(true), []);
@@ -321,21 +336,20 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const isAnswered = email.keywords?.$answered;
     const isForwarded = email.keywords?.$forwarded;
     const showPaperclip = useListHasAttachment(email, loadAttachments);
-    const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore(useShallow((state) => ({
+    const { selectedMailbox, currentMailboxRole, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView } = useEmailStore(useShallow((state) => ({
       selectedMailbox: state.selectedMailbox,
-      mailboxes: state.mailboxes,
+      // The role, not the folder list: the list is a new array on every
+      // count update, and subscribing to it re-rendered every row for each.
+      currentMailboxRole: listMailboxRole(state),
       selectedEmailKeys: state.selectedEmailKeys,
       toggleEmailSelection: state.toggleEmailSelection,
       selectRangeEmails: state.selectRangeEmails,
       clearSelection: state.clearSelection,
       isUnifiedView: state.isUnifiedView,
-      unifiedRole: state.unifiedRole,
     })));
     // In Sent/Drafts folders, show recipient instead of sender (which is always
     // "me"). In aggregate role-views the selected mailbox is virtual → fall back
     // to the unified role so junk-contextual UI and avatar hiding work.
-    const currentMailboxRole = mailboxes.find(mb => mb.id === selectedMailbox)?.role
-      ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
     const showRecipient = currentMailboxRole === 'sent' || currentMailboxRole === 'drafts';
     const sender = showRecipient ? (email.to?.[0] ?? email.from?.[0]) : email.from?.[0];
     const formatAddress = useOwnDomainAddress();
@@ -889,15 +903,16 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       ? formatScheduledSendAt(latestEmail.scheduledSendAt, timeFormat)
       : null;
 
-    const { selectedMailbox, mailboxes, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView, unifiedRole } = useEmailStore(useShallow((state) => ({
+    const { selectedMailbox, currentMailboxRole, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView } = useEmailStore(useShallow((state) => ({
       selectedMailbox: state.selectedMailbox,
-      mailboxes: state.mailboxes,
+      // The role, not the folder list: the list is a new array on every
+      // count update, and subscribing to it re-rendered every row for each.
+      currentMailboxRole: listMailboxRole(state),
       selectedEmailKeys: state.selectedEmailKeys,
       toggleEmailSelection: state.toggleEmailSelection,
       selectRangeEmails: state.selectRangeEmails,
       clearSelection: state.clearSelection,
       isUnifiedView: state.isUnifiedView,
-      unifiedRole: state.unifiedRole,
     })));
     const showSourceFolder = isUnifiedView && !!latestEmail.sourceFolder;
     const getAccountById = useAccountStore((state) => state.getAccountById);
@@ -907,8 +922,6 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     // In Sent/Drafts folders, show recipient instead of sender (which is always
     // "me"). Aggregate role-views use a virtual selected mailbox → fall back to
     // the unified role so junk-contextual UI and avatar hiding work.
-    const currentMailboxRole = mailboxes.find(mb => mb.id === selectedMailbox)?.role
-      ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
     const showRecipient = currentMailboxRole === 'sent' || currentMailboxRole === 'drafts';
     const displayNames = showRecipient
       ? Array.from(new Set(
