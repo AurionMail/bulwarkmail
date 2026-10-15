@@ -27,6 +27,10 @@ import { toInertBlob } from "@/lib/file-preview";
 // / #884). Bounded well above the default so it stays rare in practice while
 // still guarding against unbounded memory use on a malicious/oversized body.
 const TRUNCATED_BODY_REFETCH_MAX_BYTES = 8_000_000;
+// Opening one message needs its whole body, so its fetch takes more than the
+// list-sized cap: a newsletter just over 256 kB came back truncated and was
+// fetched a second time. Larger bodies still take the refetch above.
+const OPEN_EMAIL_MAX_BODY_BYTES = 1_000_000;
 
 // Names of nodes created over WebDAV come back percent-encoded from
 // FileNode/get (see decodeFileNodeName / #869). Normalize at the boundary so
@@ -2369,7 +2373,7 @@ export class JMAPClient implements IJMAPClient {
           fetchTextBodyValues: true,
           fetchHTMLBodyValues: true,
           fetchAllBodyValues: true,
-          maxBodyValueBytes: 256000,
+          maxBodyValueBytes: OPEN_EMAIL_MAX_BODY_BYTES,
         }, "0"],
       ]);
 

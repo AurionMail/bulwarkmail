@@ -172,4 +172,26 @@ describe('JMAPClient truncated body refetch (#884)', () => {
     expect(emails.find((e) => e.id === 'email-1')?.bodyValues?.html1.value).toBe('full-1');
     expect(emails.find((e) => e.id === 'email-2')?.bodyValues?.html1.value).toBe('full-2');
   });
+
+  it('getEmail fetches a body just over the list cap in one request', async () => {
+    // Opening one message needs all of its body; at the list-sized 256 kB cap
+    // a 300 kB newsletter came back truncated and was fetched twice.
+    const client = await createConnectedClient();
+    const html = '<html>' + 'x'.repeat(300_000) + '</html>';
+    fetchSpy.mockImplementation(async (_input, init) => {
+      const call = JSON.parse((init as RequestInit).body as string).methodCalls[0][1];
+      const cap = call.maxBodyValueBytes as number;
+      return mockFetchResponse(200, {
+        methodResponses: [['Email/get', { list: [{
+          ...truncatedEmail(),
+          bodyValues: { html1: { value: html.slice(0, cap), isTruncated: html.length > cap } },
+        }] }, '0']],
+      });
+    });
+
+    const email = await client.getEmail('email-1');
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(email?.bodyValues?.html1.value).toBe(html);
+  });
 });
