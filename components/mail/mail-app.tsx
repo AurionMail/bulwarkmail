@@ -2575,20 +2575,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Batch sibling of handleForwardAsAttachment above: opens ONE composer with
   // every selected message attached as message/rfc822. Resolution goes through
   // useEmailStore.getState() - always fresh, immune to the closure-staleness
-  // noted above - and filters the current list so attachment order follows the
-  // list, not checkbox-click order. Stale selection ids (folder switched under
-  // the selection) simply drop out of the filter rather than forwarding
-  // something the user can no longer see.
+  // noted above - and matches the account-scoped selection keys against the
+  // loaded rows and expanded thread members, so attachment order follows the
+  // list, not checkbox-click order. Stale selection keys (folder switched under
+  // the selection) simply drop out rather than forwarding something the user
+  // can no longer see. Scheduled view offers no selection (its batch toolbar
+  // and menu are gated off), so resolving the regular lists is enough.
   const handleBatchForwardAsAttachment = async () => {
-    const state = useEmailStore.getState();
-    const ids = state.selectedEmailIds;
-    if (ids.size < 2) return; // menu only offers this for >1; guards future wiring
-    // Unreachable from the menu in the scheduled view (the whole actions block
-    // is isScheduled-gated); resolve the right pool anyway so a future shortcut
-    // can't silently read the wrong list.
-    const pool = state.isScheduledView ? state.scheduledEmails : state.emails;
-    const selected = pool.filter((e) => ids.has(e.id));
-    if (selected.length === 0) return;
+    const selected = resolveSelectedEmails(useEmailStore.getState());
+    if (selected.length < 2) return; // menu only offers this for >1; guards future wiring
 
     const {
       emailDownloadTemplate,
