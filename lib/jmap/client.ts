@@ -3733,19 +3733,17 @@ export class JMAPClient implements IJMAPClient {
     textSignature?: string | null,
     htmlSignature?: string | null
   ): Promise<Identity> {
+    // The signatures are String (default ""), so null is not a valid value in
+    // a create. Leave blank ones out and let the server apply the default.
+    // replyTo and bcc are nullable, so null is fine there.
+    const create: Record<string, unknown> = { name, email, replyTo, bcc };
+    if (textSignature != null) create.textSignature = textSignature;
+    if (htmlSignature != null) create.htmlSignature = htmlSignature;
+
     const response = await this.request([
       ["Identity/set", {
         accountId: this.accountId,
-        create: {
-          "new-identity": {
-            name,
-            email,
-            replyTo,
-            bcc,
-            textSignature,
-            htmlSignature,
-          }
-        }
+        create: { "new-identity": create }
       }, "0"]
     ]);
 
