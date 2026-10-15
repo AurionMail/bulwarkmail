@@ -3431,6 +3431,8 @@
       "url_copied": "CalDAV URL скопирован в буфер обмена",
       "share": "Поделиться календарём",
       "new_event_in_calendar": "Новое событие в этом календаре",
+      "shared_with": "Доступ открыт: {names}",
+      "shared_with_count": "{count, plural, one {Доступ открыт # человеку} few {Доступ открыт # людям} many {Доступ открыт # людям} other {Доступ открыт # человека}}",
       "kind": "Содержимое",
       "kind_events": "События",
       "kind_tasks": "Задачи",

@@ -18,6 +18,7 @@ import { useContextMenu } from "@/hooks/use-context-menu";
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { displayNow } from "@/lib/timezone";
 import { readableTextOn } from "@/lib/color-transform";
+import { shareRecipientNames, useShareRecipientLabels } from "@/hooks/use-share-recipient-labels";
 
 /**
  * Split a per-account calendar list into "owned" (the user's own) and
@@ -139,6 +140,20 @@ export function CalendarSidebarPanel({
   const eventCalendars = useMemo(() => calendars.filter(c => !c.isTasksOnly), [calendars]);
 
   const personalCalendars = useMemo(() => eventCalendars.filter(c => !c.isShared), [eventCalendars]);
+
+  // Names for the "shared with" hint. Principal ids belong to one server, so
+  // only calendars of the account `client` talks to are resolved.
+  const resolvesShares = (cal: Calendar) => !cal.localAccountId || cal.localAccountId === activeLocalAccountId;
+  const hasSharedCalendar = eventCalendars.some(
+    (c) => !c.isShared && Object.keys(c.shareWith ?? {}).length > 0 && resolvesShares(c),
+  );
+  const shareLabels = useShareRecipientLabels(client, hasSharedCalendar);
+  const sharedWithLabel = (cal: Calendar) => {
+    const names = resolvesShares(cal) ? shareRecipientNames(cal.shareWith, shareLabels) : null;
+    return names
+      ? tMgmt('shared_with', { names: names.join(', ') })
+      : tMgmt('shared_with_count', { count: Object.keys(cal.shareWith ?? {}).length });
+  };
   const sharedAccountGroups = useMemo(() => {
     const shared = eventCalendars.filter(c => c.isShared);
     const groups = new Map<string, { accountName: string; calendars: Calendar[] }>();
@@ -286,12 +301,15 @@ export function CalendarSidebarPanel({
           {cal.id === BIRTHDAY_CALENDAR_ID && (
             <Cake className="w-3 h-3 text-muted-foreground flex-shrink-0" />
           )}
-          {!cal.isShared && Object.keys(cal.shareWith || {}).length > 0 && (
-            <Users
-              className="w-3 h-3 text-muted-foreground flex-shrink-0"
-              aria-label={tMgmt('share')}
-            />
-          )}
+          {!cal.isShared && Object.keys(cal.shareWith || {}).length > 0 && (() => {
+            const label = sharedWithLabel(cal);
+            return (
+              <span className="flex-shrink-0 flex items-center" title={label} data-testid="calendar-shared-indicator">
+                <Users className="w-3 h-3 text-muted-foreground" aria-hidden="true" />
+                <span className="sr-only">{label}</span>
+              </span>
+            );
+          })()}
         </button>
         {hasMenu && (
           <button

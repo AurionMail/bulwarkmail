@@ -3457,6 +3457,8 @@
       "error_clear": "Impossible de supprimer les événements du calendrier",
       "share": "Partager le calendrier",
       "new_event_in_calendar": "Nouvel événement dans ce calendrier",
+      "shared_with": "Partagé avec {names}",
+      "shared_with_count": "{count, plural, one {Partagé avec 1 personne} other {Partagé avec # personnes}}",
       "kind": "Contenu",
       "kind_events": "Événements",
       "kind_tasks": "Tâches",

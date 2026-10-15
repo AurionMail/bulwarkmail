@@ -3458,6 +3458,8 @@
       "url_copied": "CalDAV URL copied to clipboard",
       "share": "Share calendar",
       "new_event_in_calendar": "New event in this calendar",
+      "shared_with": "Shared with {names}",
+      "shared_with_count": "{count, plural, one {Shared with 1 person} other {Shared with # people}}",
       "kind": "Contents",
       "kind_events": "Events",
       "kind_tasks": "Tasks",

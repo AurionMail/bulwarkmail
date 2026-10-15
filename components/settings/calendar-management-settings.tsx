@@ -19,9 +19,11 @@ import { ICalImportModal } from '@/components/calendar/ical-import-modal';
 import { ICalSubscriptionModal } from '@/components/calendar/ical-subscription-modal';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useManagedAccountStore } from '@/stores/managed-account-store';
+import { useAccountStore } from '@/stores/account-store';
 import { apiFetch } from '@/lib/browser-navigation';
 import { CALENDAR_COLORS, sharedCalendarColorKey } from '@/lib/shared-calendar-colors';
 import { IS_LITE } from '@/lib/lite';
+import { shareRecipientNames, useShareRecipientLabels } from '@/hooks/use-share-recipient-labels';
 
 function CalendarColorPicker({
   value,
@@ -264,6 +266,15 @@ export function CalendarManagementSettings() {
   const sharedCalendarColors = useSettingsStore((s) => s.sharedCalendarColors);
   const setSharedCalendarColor = useSettingsStore((s) => s.setSharedCalendarColor);
   const colorPickerRef = useRef<HTMLDivElement>(null);
+
+  // Principal ids belong to one server: only calendars of the account
+  // `client` talks to get their recipients named.
+  const activeLocalAccountId = useAccountStore((s) => s.activeAccountId);
+  const resolvesShares = (cal: Calendar) => !cal.localAccountId || cal.localAccountId === activeLocalAccountId;
+  const shareLabels = useShareRecipientLabels(
+    client,
+    calendars.some(cal => !cal.isShared && Object.keys(cal.shareWith ?? {}).length > 0 && resolvesShares(cal)),
+  );
 
   // Load calendars if not yet loaded
   useEffect(() => {
@@ -646,13 +657,19 @@ export function CalendarManagementSettings() {
               {(() => {
                 const shareCount = Object.keys(cal.shareWith || {}).length;
                 if (shareCount === 0 || cal.isShared) return null;
+                const names = resolvesShares(cal) ? shareRecipientNames(cal.shareWith, shareLabels) : null;
+                const label = names
+                  ? t('shared_with', { names: names.join(', ') })
+                  : t('shared_with_count', { count: shareCount });
                 return (
                   <span
                     className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full"
-                    title={t('share')}
+                    title={label}
+                    data-testid="calendar-shared-indicator"
                   >
-                    <Users className="w-3 h-3" />
-                    {shareCount}
+                    <Users className="w-3 h-3" aria-hidden="true" />
+                    <span aria-hidden="true">{shareCount}</span>
+                    <span className="sr-only">{label}</span>
                   </span>
                 );
               })()}

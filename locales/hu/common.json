@@ -3458,6 +3458,8 @@
       "url_copied": "CalDAV URL a vágólapra másolva",
       "share": "Naptár megosztása",
       "new_event_in_calendar": "Új esemény ebben a naptárban",
+      "shared_with": "Megosztva: {names}",
+      "shared_with_count": "{count, plural, one {Megosztva 1 személlyel} other {Megosztva # személlyel}}",
       "kind": "Tartalom",
       "kind_events": "Események",
       "kind_tasks": "Feladatok",

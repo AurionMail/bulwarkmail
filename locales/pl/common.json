@@ -3431,6 +3431,8 @@
       "url_copied": "Adres URL CalDAV skopiowano do schowka",
       "share": "Udostępnij kalendarz",
       "new_event_in_calendar": "Nowe wydarzenie w tym kalendarzu",
+      "shared_with": "Udostępniono: {names}",
+      "shared_with_count": "{count, plural, one {Udostępniono 1 osobie} few {Udostępniono # osobom} many {Udostępniono # osobom} other {Udostępniono # osoby}}",
       "kind": "Zawartość",
       "kind_events": "Wydarzenia",
       "kind_tasks": "Zadania",
