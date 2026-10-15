@@ -1,5 +1,99 @@
 # Changelog
 
+## 1.15.0 (2026-10-15)
+
+1.15.0 opens the plugin system up: plugins can add UI in most places of the app, hear and stop most actions, and use accounts and API keys through the server without seeing them, and users can install their own plugins once an admin has reviewed the code. Opening folders and messages is faster, with far fewer re-renders and requests. Calendars get default reminders, notifications can be muted per folder or account, and every sign-in is now remembered unless the admin shows the Remember me box.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Features
+
+- **Notifications**: Folders and whole accounts can be muted from the folder context menu. A muted folder or account sends no push notifications and shows a muted mark in the sidebar (#1169, thanks @xnilsit)
+- **Calendar**: Each calendar has default reminders, set in calendar management. New events start on them, an event that switches back to the defaults picks up the current ones, and the event popover lists every reminder (#1209, thanks @rich0)
+- **Calendar**: Each reminder can be a notification or an email (#1209, thanks @rich0)
+- **Accounts**: Shared mail accounts can be hidden from the sidebar, from their context menu or under Settings > Layout (#1228, thanks @chodid)
+- **Mail**: The prompt before deleting several messages can be turned off (#1225, thanks @mmomjian)
+- **UI**: In Mountain View, several messages of a conversation can be open at once, the compose window stays open while reading other mail, and the selection is kept while reading a message (#1222, #1229, #1231, thanks @mmomjian)
+- **UI**: Ctrl+K opens a command palette, and a notifications panel collects plugin notifications and app errors
+- **Admin**: "Custom From Address" under Admin > Policy turns off the free-text sender address in the composer, so users can only send as their identities
+- **Admin**: Without a configured SESSION_SECRET, one is generated on first start and kept in data/admin-state. Keep that folder on a persistent volume
+- **Plugins**: Users can install their own plugins from Settings > Plugins when the admin allows uploads. The server reads the manifest and code itself, the admin reviews the actual code in the Plugins tab before approving, and the approval is checked again on every start. Settings lists in plain words what each plugin may do
+- **Plugins**: Plugins can add UI to the message list, reader, composer, sidebar, top bar, calendar, contacts, tasks, files and settings, and pages of their own with a navigation entry. Every area has its own permission
+- **Plugins**: Plugins are told about sign-in, navigation, mail, folder, calendar, contact, task, file, template, identity, filter, preference and theme changes, and can stop most of them
+- **Plugins**: Plugins can read messages and folders, move and archive messages, open a filled-in composer or a reply, edit the message being written, save drafts, read and change events and tasks, and manage templates, signatures and the out-of-office reply
+- **Plugins**: Users connect accounts for plugins in a dialog the plugin can't read, and plugins use those accounts and admin-set API keys through the server without seeing them
+- **Plugins**: The UI kit gives plugins the app's own controls and dialogs, plus side panels, detail rows, colour dots, labelled check boxes and a change preview
+- **Plugins**: Marketplace installs check the extension directory's signature
+
+### Changes
+
+- **Login**: The Remember me box is hidden by default and every sign-in is remembered. Set LOGIN_SHOW_REMEMBER_ME=true to show the box again
+- **Performance**: Opening a message, switching folders and searching render much less. Message rows, the folder sidebar and the reading pane only redraw what changed, a visited folder reopens without reloading, and a message starts loading when the mouse is pressed on it
+- **Performance**: Login loads the mailboxes and first page once instead of twice, the mail view's code loads while the login form is shown, and large HTML messages open with one request instead of two
+- **Performance**: Search results show before their highlighted excerpts arrive, and the list stays on screen while a search runs
+
+### Fixes
+
+- **Send**: Attachments stay sendable after the server's upload time limit runs out (#1243, thanks @lemourin)
+- **Send**: Uploads over 10 MB that pass through the server, such as office documents saved from the editor, are no longer cut off
+- **Login**: The sign-in response stays small enough for proxies when OIDC tokens are large, so logins on a subdomain no longer fail with a 502 (#1237, thanks @kadogams)
+- **Login**: Lite reloads into the login page instead of a missing route
+- **Mail**: The storage quota counts against the soft limit when the server sets one (#1242, thanks @somus)
+- **Mail**: The All mail and All unread views leave out a server's own "all" mailbox (#1241, thanks @somus)
+- **Mail**: Contacts, filters, calendars and files are only offered for shared accounts that support them (#1239, thanks @somus)
+- **Mail**: User folders named like system folders, such as "Spam reports", get the plain folder icon (#1235, thanks @dlrudie)
+- **Mail**: ISO timestamps are no longer offered as verification codes (#1236, thanks @mmomjian)
+- **Mail**: Shift-click selects the rows shown between the two ends instead of messages in other conversations from that time span (#1230, thanks @mmomjian)
+- **Mail**: The message list no longer reorders or repaints when switching accounts, and the loading skeleton no longer flickers after a reload or account switch
+- **Mail**: In Mountain View, a message opens together with its conversation, and threads open as a conversation on the phone (#1223, #1224, thanks @mmomjian)
+- **Identities**: A new identity is created without blank signatures (#1240, thanks @somus)
+- **Composer**: A cell range pasted from Excel becomes a table instead of an image (#1233, thanks @soringabrielalbu)
+- **Composer**: Text typed under the signature stays when the signature is swapped or removed, and picking a From address without a signature removes the old one
+- **Composer**: Dropped files no longer insert their path into the message body
+- **Composer**: The top and bottom bar buttons are easier to hit on a phone
+- **Calendar**: Invitations and replies carry the sender's Message-ID
+- **Contacts**: The contact name stays readable when the detail pane is narrow
+- **UI**: The iOS app gets its full screen height back after resuming (#1226, thanks @mmomjian)
+- **UI**: An attachment's download and menu buttons show when the keyboard reaches them
+- **Plugins**: A message is never sent when a plugin that checks it before sending fails or does not answer, and plugins can no longer block or stall sign-out
+- **Plugins**: Privileged plugins need a signed bundle, plugin network access is limited to the origins in the manifest, plugin bundles are only served to signed-in users, and slot plugins only get messages, events or contacts with the matching read permission
+- **Plugins**: Plugin and theme packages are checked the same way on every install path, marketplace bundles whose id differs from the directory entry are refused, and Theme API v2 themes install from the admin page and the marketplace
+- **Plugins**: A deleted or disabled theme is no longer forced, an extension keeps its admin state on re-upload, and a plugin's stored data is cleared when the admin removes it
+- **Plugins**: Plugins start once on every page, get their default settings, follow setting and language changes without a reload, and lay out right-to-left in Arabic, Hebrew and Persian
+- **Plugins**: Actions a plugin stopped are no longer reported as done
+- **Plugins**: Plugin buttons and panels fold away in narrow composers, toolbars and phone layouts instead of overlapping, and plugin frames keep the app's theme in dark mode
+- **Translations**: The new plugin, calendar reminder and notification strings are translated, and "composer" and the certificate subject are no longer translated as a music composer and an email subject
+
 ## 1.14.2 (2026-10-12)
 
 1.14.2 brings Mountain View closer to Gmail: the open message shows the whole conversation, replies are written in place under it, and a side panel holds calendar, tasks and contacts. Tasks can now be moved into calendars shared with you, and the "Date sent" list order works again.
