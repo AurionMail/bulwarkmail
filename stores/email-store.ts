@@ -998,6 +998,22 @@ export function resolveEmailBlobContext(
  */
 let shownFolderList: { key: string; mailboxId: string; pageSize: number } | null = null;
 
+/**
+ * The initial data load login() started for this client (prefetchInitialData):
+ * the promise while it runs, 'done' (once) after it loaded the mailboxes and a page.
+ * The mail view's own bootstrap joins or skips it rather than sending the
+ * same Mailbox/get, folder page and tag counts a second time.
+ */
+export function pendingInitialData(client: IJMAPClient): Promise<void> | 'done' | undefined {
+  const target = client as IJMAPClient & { __prefetchPromise?: Promise<void>; __initialDataLoaded?: boolean };
+  if (target.__prefetchPromise) return target.__prefetchPromise;
+  // Good for the one bootstrap that follows the login; any later one (an
+  // account switch back to this client) refreshes as before.
+  if (!target.__initialDataLoaded) return undefined;
+  delete target.__initialDataLoaded;
+  return 'done';
+}
+
 /** What a folder's list is remembered as (see lib/folder-list-cache). */
 function folderListState(s: EmailStore): FolderList {
   return {
@@ -2466,7 +2482,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // Coalesce overlapping callers (e.g. login() and a slow home-page useEffect
     // racing for the same fetch). The promise is stashed on the client so we
     // don't need a separate keyed map and stale entries can't outlive the client.
-    const target = client as IJMAPClient & { __prefetchPromise?: Promise<void> };
+    const target = client as IJMAPClient & { __prefetchPromise?: Promise<void>; __initialDataLoaded?: boolean };
     if (target.__prefetchPromise) return target.__prefetchPromise;
     target.__prefetchPromise = (async () => {
       try {
@@ -2480,6 +2496,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         } else {
           await get().fetchEmails(client);
         }
+        target.__initialDataLoaded = get().mailboxes.length > 0;
         // Tag counts can finish whenever; don't block the prefetch on them.
         void get().fetchTagCounts(client);
       } finally {

@@ -33,7 +33,7 @@ import { usePolicyStore } from "@/stores/policy-store";
 import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
 import { formatRejectedRecipients, type JMAPClient } from "@/lib/jmap/client";
@@ -1412,6 +1412,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     const loadData = async (attempt = 1) => {
       try {
+        // login() is already loading mailboxes, quota, this folder's page and
+        // the tag counts for this client: wait for that instead of asking for
+        // all of it again.
+        const inFlight = attempt === 1 ? pendingInitialData(client) : undefined;
+        if (inFlight) {
+          if (inFlight !== 'done') await inFlight.catch(() => {});
+          if (cancelled) return;
+          if (useEmailStore.getState().mailboxes.length > 0) {
+            void refreshScheduledMetadata(client);
+            setInitialMailLoadDone(true);
+            return;
+          }
+        }
         const needsMailboxes = useEmailStore.getState().mailboxes.length === 0;
         // Quota only feeds the sidebar meter - never gate the list on it.
         void fetchQuota(client);
