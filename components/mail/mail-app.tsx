@@ -579,12 +579,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
   // Load recent recipients (from the Sent folder) for compose autocomplete.
   // Runs once when the Sent mailbox is known; the store guards against reloads.
-  useEffect(() => {
+  // Keyed on the folder's id, not the folder list, which changes with every
+  // count; and started when the browser is idle, since it reads up to 300
+  // messages that only the composer needs.
+  const sentMailboxId = useMemo(() => {
     const sent = mailboxes.find((m) => m.role === 'sent');
-    if (client && sent) {
-      loadRecentRecipients(client, sent.originalId || sent.id);
+    return sent ? sent.originalId || sent.id : null;
+  }, [mailboxes]);
+  useEffect(() => {
+    if (!client || !sentMailboxId) return;
+    const run = () => { void loadRecentRecipients(client, sentMailboxId); };
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(run, { timeout: 5000 });
+      return () => window.cancelIdleCallback(handle);
     }
-  }, [client, mailboxes, loadRecentRecipients]);
+    const timer = window.setTimeout(run, 1000);
+    return () => window.clearTimeout(timer);
+  }, [client, sentMailboxId, loadRecentRecipients]);
 
   // Pro shell: populate per-account mailbox cache so the sidebar can render
   // every connected account Thunderbird-style.
