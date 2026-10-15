@@ -6,7 +6,7 @@ import { withSearchSnippets, type DeferredSnippetBatch } from "@/lib/search-snip
 import { afterRequestDispatch } from "@/lib/after-request-dispatch";
 import { useSettingsStore, getMessageListOrderFor } from "@/stores/settings-store";
 import { useCalendarStore } from "@/stores/calendar-store";
-import { orderKeywords, placeHeldRows, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
+import { orderKeywords, placeHeldRows, sanitizeSortLevels, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
 import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty } from "@/lib/jmap/search-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
 import { allowEmailMove, createMailboxWithHooks, emitEmailMove, idsFromSelectionKeys, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
@@ -2662,15 +2662,26 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // whatever was showing before and must not be remembered under this key.
       shownFolderList = remembered ? { key: listKey, mailboxId: targetMailboxId, pageSize: emailsPerPage } : null;
 
+      // A background refresh of rows already on screen for this folder, in
+      // this order (an account switch or boot restoring its snapshot), can
+      // start from their baseline too instead of replacing every row.
+      const shownSync = get().emailListSync;
+      const refreshesShownRows = background && !remembered && !!shownSync
+        && shownSync.mailboxId === targetMailboxId
+        && JSON.stringify(get().listOrder) === JSON.stringify(order);
+      if (refreshesShownRows) shownFolderList = { key: listKey, mailboxId: targetMailboxId, pageSize: emailsPerPage };
+
       // A remembered page with a baseline only needs what changed since
       // (Email/changes): usually nothing, and then the rows stay as they are
       // instead of being re-read and rendered again. Anything the delta
       // cannot settle falls through to the full page below.
-      if (remembered && get().emailListSync && !categoryFilter) {
+      if ((remembered || refreshesShownRows) && get().emailListSync && !categoryFilter) {
         const upToDate = await applyEmailDeltaNow(client, null, get, set);
         if (!isCurrentView()) return;
         if (upToDate) {
           rememberFolderList(listKey, folderListState(get()), emailsPerPage);
+          // The boot snapshot carries no conversation sizes.
+          if (get().threadEmailCounts.size === 0) void get().fetchThreadEmailCounts(client);
           return;
         }
       }
@@ -6697,6 +6708,11 @@ const EMAIL_SNAPSHOT_KEY = 'email-snapshot';
 const EMAIL_SNAPSHOT_VERSION = 3;
 const EMAIL_SNAPSHOT_MAX_EMAILS = 50;
 
+function isEmailListSync(value: unknown, mailboxId: string): value is EmailListSync {
+  const sync = value as EmailListSync | null;
+  return !!sync && typeof sync.state === 'string' && typeof sync.accountId === 'string' && sync.mailboxId === mailboxId;
+}
+
 /** The signed-in session persisted by auth-store, read without importing it. */
 function persistedAuthState(): { isAuthenticated?: unknown; activeAccountId?: unknown } | null {
   try {
@@ -6742,6 +6758,11 @@ if (typeof window !== 'undefined') {
                 emails: snap.emails,
                 totalEmails: typeof snap.totalEmails === 'number' ? snap.totalEmails : snap.emails.length,
                 hasMoreEmails: !!snap.hasMoreEmails,
+                // The order the rows were fetched in; the list is drawn sorted
+                // by it, so without it an "unread first" page shows by date
+                // until the live fetch lands and re-sorts it.
+                ...(Array.isArray(snap.listOrder) ? { listOrder: sanitizeSortLevels(snap.listOrder) } : {}),
+                ...(isEmailListSync(snap.emailListSync, snapMailbox) ? { emailListSync: snap.emailListSync } : {}),
               }
             : {}),
         });
@@ -6789,6 +6810,8 @@ if (typeof window !== 'undefined') {
           emails: s.emails.slice(0, EMAIL_SNAPSHOT_MAX_EMAILS),
           totalEmails: s.totalEmails,
           hasMoreEmails: s.hasMoreEmails || s.emails.length > EMAIL_SNAPSHOT_MAX_EMAILS,
+          listOrder: s.listOrder,
+          emailListSync: s.emailListSync,
         }));
       } catch { /* storage quota - skip */ }
     }, 1000);

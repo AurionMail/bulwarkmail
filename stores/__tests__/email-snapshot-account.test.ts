@@ -78,6 +78,16 @@ describe('email boot snapshot folder', { timeout: 30_000 }, () => {
     expect(state.emails).toHaveLength(1);
   });
 
+  // Without the order the cached "unread first" page was drawn by date and
+  // jumped when the live fetch re-sorted it.
+  it('restores the order and sync state the cached rows were fetched with', async () => {
+    const listOrder = [{ criterion: 'unread', direction: 'desc' }];
+    const emailListSync = { state: 's1', accountId: 'acc', mailboxId: 'm-inbox' };
+    const state = await boot('/', { mailboxes: FOLDERS, selectedMailbox: 'm-inbox', emails: [{ id: 'e2' }], listOrder, emailListSync });
+    expect(state.listOrder).toEqual(listOrder);
+    expect(state.emailListSync).toEqual(emailListSync);
+  });
+
   it('keeps the snapshot folder when the account has no inbox of its own', async () => {
     const state = await boot('/', { mailboxes: FOLDERS.slice(1), selectedMailbox: 'm-trash', emails: TRASH_ROWS });
     expect(state.selectedMailbox).toBe('m-trash');
