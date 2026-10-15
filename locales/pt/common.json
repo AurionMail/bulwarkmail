@@ -3457,6 +3457,8 @@
       "error_clear": "Falha ao limpar os eventos do calendário",
       "share": "Compartilhar calendário",
       "new_event_in_calendar": "Novo evento neste calendário",
+      "move_up": "Mover para cima",
+      "move_down": "Mover para baixo",
       "kind": "Conteúdo",
       "kind_events": "Eventos",
       "kind_tasks": "Tarefas",

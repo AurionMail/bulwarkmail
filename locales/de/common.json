@@ -3431,6 +3431,8 @@
       "error_clear": "Kalenderereignisse konnten nicht gelöscht werden",
       "share": "Kalender freigeben",
       "new_event_in_calendar": "Neuer Termin in diesem Kalender",
+      "move_up": "Nach oben",
+      "move_down": "Nach unten",
       "kind": "Inhalt",
       "kind_events": "Termine",
       "kind_tasks": "Aufgaben",

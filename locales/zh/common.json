@@ -3431,6 +3431,8 @@
       "url_copied": "CalDAV URL 已复制到剪贴板",
       "share": "共享日历",
       "new_event_in_calendar": "在此日历中新建事件",
+      "move_up": "上移",
+      "move_down": "下移",
       "kind": "内容",
       "kind_events": "日程",
       "kind_tasks": "任务",

@@ -3457,6 +3457,8 @@
       "error_clear": "Impossible de supprimer les événements du calendrier",
       "share": "Partager le calendrier",
       "new_event_in_calendar": "Nouvel événement dans ce calendrier",
+      "move_up": "Déplacer vers le haut",
+      "move_down": "Déplacer vers le bas",
       "kind": "Contenu",
       "kind_events": "Événements",
       "kind_tasks": "Tâches",

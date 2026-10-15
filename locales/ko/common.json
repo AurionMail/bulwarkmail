@@ -3431,6 +3431,8 @@
       "url_copied": "CalDAV URL이 클립보드에 복사되었어요",
       "share": "캘린더 공유",
       "new_event_in_calendar": "이 캘린더에 새 일정",
+      "move_up": "위로 이동",
+      "move_down": "아래로 이동",
       "kind": "내용",
       "kind_events": "일정",
       "kind_tasks": "할 일",

@@ -3458,6 +3458,8 @@
       "url_copied": "URL de CalDAV copiat al porta-retalls",
       "share": "Comparteix el calendari",
       "new_event_in_calendar": "Esdeveniment nou en aquest calendari",
+      "move_up": "Mou amunt",
+      "move_down": "Mou avall",
       "kind": "Contingut",
       "kind_events": "Esdeveniments",
       "kind_tasks": "Tasques",

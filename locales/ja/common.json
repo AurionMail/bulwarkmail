@@ -3431,6 +3431,8 @@
       "error_clear": "カレンダーイベントの削除に失敗しました",
       "share": "カレンダーを共有",
       "new_event_in_calendar": "このカレンダーに新規イベント",
+      "move_up": "上に移動",
+      "move_down": "下に移動",
       "kind": "内容",
       "kind_events": "イベント",
       "kind_tasks": "タスク",

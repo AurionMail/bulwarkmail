@@ -3430,6 +3430,8 @@
       "url_copied": "CalDAV URL nokopēts starpliktuvē",
       "share": "Kopīgot kalendāru",
       "new_event_in_calendar": "Jauns notikums šajā kalendārā",
+      "move_up": "Pārvietot uz augšu",
+      "move_down": "Pārvietot uz leju",
       "kind": "Saturs",
       "kind_events": "Notikumi",
       "kind_tasks": "Uzdevumi",

@@ -3431,6 +3431,8 @@
       "error_clear": "No se pudieron borrar los eventos del calendario",
       "share": "Compartir calendario",
       "new_event_in_calendar": "Nuevo evento en este calendario",
+      "move_up": "Mover arriba",
+      "move_down": "Mover abajo",
       "kind": "Contenido",
       "kind_events": "Eventos",
       "kind_tasks": "Tareas",

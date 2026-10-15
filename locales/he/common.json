@@ -3345,6 +3345,8 @@
       "error_default": "נכשל בהגדרת לוח שנה ברירת מחדל",
       "share": "שתף לוח שנה",
       "new_event_in_calendar": "אירוע חדש בלוח שנה זה",
+      "move_up": "עבור למעלה",
+      "move_down": "עבור למטה",
       "kind": "תוכן",
       "kind_events": "אירועים",
       "kind_tasks": "משימות",

@@ -3458,6 +3458,8 @@
       "url_copied": "تم نسخ رابط CalDAV إلى الحافظة",
       "share": "مشاركة التقويم",
       "new_event_in_calendar": "حدث جديد في هذا التقويم",
+      "move_up": "تحريك لأعلى",
+      "move_down": "تحريك لأسفل",
       "kind": "المحتوى",
       "kind_events": "الأحداث",
       "kind_tasks": "المهام",

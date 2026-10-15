@@ -3458,6 +3458,8 @@
       "url_copied": "CalDAV URL copiat în clipboard",
       "share": "Partajare calendar",
       "new_event_in_calendar": "Eveniment nou în acest calendar",
+      "move_up": "Mutați în sus",
+      "move_down": "Mutați în jos",
       "kind": "Conținut",
       "kind_events": "Evenimente",
       "kind_tasks": "Sarcini",

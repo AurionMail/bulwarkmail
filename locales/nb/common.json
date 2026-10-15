@@ -3458,6 +3458,8 @@
       "url_copied": "CalDAV-URL kopiert til utklippstavlen",
       "share": "Del kalender",
       "new_event_in_calendar": "Ny hendelse i denne kalenderen",
+      "move_up": "Flytt opp",
+      "move_down": "Flytt ned",
       "kind": "Innhold",
       "kind_events": "Hendelser",
       "kind_tasks": "Oppgaver",

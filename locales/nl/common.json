@@ -3431,6 +3431,8 @@
       "error_clear": "Kan agendagebeurtenissen niet verwijderen",
       "share": "Agenda delen",
       "new_event_in_calendar": "Nieuwe afspraak in deze agenda",
+      "move_up": "Omhoog verplaatsen",
+      "move_down": "Omlaag verplaatsen",
       "kind": "Inhoud",
       "kind_events": "Afspraken",
       "kind_tasks": "Taken",

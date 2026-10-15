@@ -3431,6 +3431,8 @@
       "url_copied": "URL CalDAV zkopírováno do schránky",
       "share": "Sdílet kalendář",
       "new_event_in_calendar": "Nová událost v tomto kalendáři",
+      "move_up": "Posunout nahoru",
+      "move_down": "Posunout dolů",
       "kind": "Obsah",
       "kind_events": "Události",
       "kind_tasks": "Úkoly",

@@ -3431,6 +3431,8 @@
       "error_clear": "Impossibile cancellare gli eventi del calendario",
       "share": "Condividi calendario",
       "new_event_in_calendar": "Nuovo evento in questo calendario",
+      "move_up": "Sposta su",
+      "move_down": "Sposta giù",
       "kind": "Contenuto",
       "kind_events": "Eventi",
       "kind_tasks": "Attività",
