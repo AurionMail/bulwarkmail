@@ -42,7 +42,8 @@ import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
 import { ShareNotificationToaster } from "@/components/layout/share-notification-toaster";
 import { CalendarEventNotificationToaster } from "@/components/layout/calendar-event-notification-toaster";
-import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
+import { useAuthStore, redirectToLogin, saveRedirectAfterLogin, canEnterLoginInPlace } from '@/stores/auth-store';
+import { useRouter } from '@/i18n/navigation';
 import { useSettingsStore } from "@/stores/settings-store";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { useContactStore } from "@/stores/contact-store";
@@ -1266,13 +1267,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated. Without a session so far this is
+  // a client-side navigation: reloading would download and start the whole
+  // app again just to show the form.
+  const router = useRouter();
   useEffect(() => {
     if (initialCheckDone && !isAuthenticated && !authLoading) {
       saveRedirectAfterLogin();
-      redirectToLogin();
+      if (canEnterLoginInPlace()) router.replace('/login');
+      else redirectToLogin();
     }
-  }, [initialCheckDone, isAuthenticated, authLoading]);
+  }, [initialCheckDone, isAuthenticated, authLoading, router]);
 
   // onBeforeCompose, in front of every way the composer opens. `open` runs
   // once plugins agreed (straight away when none listens); a plugin's

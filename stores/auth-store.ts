@@ -860,6 +860,16 @@ export function saveRedirectAfterLogin(): void {
   }
 }
 
+/**
+ * Whether the login page can be reached without reloading the app. Before a
+ * session was usable on this page load there is no mail state to throw away,
+ * so a client-side navigation does and the app isn't downloaded and started
+ * a second time; after one, the reload is what clears it.
+ */
+export function canEnterLoginInPlace(): boolean {
+  return !signedInSincePageLoad && !leavingForProviderLogout;
+}
+
 export function redirectToLogin(): void {
   if (typeof window === 'undefined' || leavingForProviderLogout) return;
   navigateToLogin();
@@ -3061,6 +3071,12 @@ setClientLookup((accountId) => useAuthStore.getState().getClientForAccount(accou
 // policy; fetch the rest once a session exists.
 useAuthStore.subscribe((state, prev) => {
   if (state.isAuthenticated && !prev.isAuthenticated) void usePolicyStore.getState().refreshIfPartial();
+});
+
+// See canEnterLoginInPlace.
+let signedInSincePageLoad = useAuthStore.getState().isAuthenticated;
+useAuthStore.subscribe((state) => {
+  if (state.isAuthenticated) signedInSincePageLoad = true;
 });
 
 // Another tab signed everyone out: this one's cookies and account list are
