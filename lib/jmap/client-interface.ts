@@ -3,6 +3,7 @@ import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { FileNameRules } from "@/lib/file-name-rules";
 import type { SortLevel } from "@/lib/message-list-order";
 import type { SearchSnippetResult } from "@/lib/search-snippet";
+import type { StorageQuota } from "@/lib/quota";
 
 /** What `migrateKeyword` managed to do. */
 export interface KeywordMigration {
@@ -138,7 +139,7 @@ export interface IJMAPClient {
   destroyPushSubscription(id: string): Promise<void>;
 
   // ── Quota ─────────────────────────────────────────────────────
-  getQuota(): Promise<{ used: number; total: number } | null>;
+  getQuota(): Promise<StorageQuota | null>;
 
   // ── Mailboxes ─────────────────────────────────────────────────
   getMailboxes(accountId?: string): Promise<Mailbox[]>;

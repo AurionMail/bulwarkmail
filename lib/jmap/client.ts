@@ -21,6 +21,7 @@ import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/f
 import { getEffectiveTimeZone, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
 import { toInertBlob } from "@/lib/file-preview";
+import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
 
 // Cap for the follow-up Email/get issued when a displayed body part comes
 // back truncated at the normal 256000-byte limit (see refetchTruncatedBodyValues
@@ -270,15 +271,6 @@ interface JMAPAccount {
   isPersonal?: boolean;
   isReadOnly?: boolean;
   accountCapabilities?: Record<string, unknown>;
-}
-
-interface JMAPQuota {
-  resourceType?: string;
-  scope?: string;
-  types?: string[];
-  used?: number;
-  hardLimit?: number;
-  limit?: number;
 }
 
 interface JMAPMailbox {
@@ -1607,7 +1599,7 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
-  async getQuota(): Promise<{ used: number; total: number } | null> {
+  async getQuota(): Promise<StorageQuota | null> {
     if (!this.supportsQuota()) return null;
 
     try {
@@ -1618,21 +1610,7 @@ export class JMAPClient implements IJMAPClient {
       ], ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:quota"]);
 
       if (response.methodResponses?.[0]?.[0] === "Quota/get") {
-        const quotas = (response.methodResponses[0][1].list || []) as JMAPQuota[];
-        const coversMail = (q: JMAPQuota) =>
-          !q.types?.length || q.types.some((t) => t === "Email" || t === "Mail");
-        // storage quotas use resourceType "octets" (e.g. Stalwart, with
-        // scope "account"); fall back to the pre-RFC "mail" shape for older servers.
-        const mailQuota =
-          quotas.find((q) => q.resourceType === "octets" && coversMail(q)) ||
-          quotas.find((q) => q.resourceType === "mail" || q.scope === "mail");
-
-        if (mailQuota) {
-          return {
-            used: mailQuota.used ?? 0,
-            total: mailQuota.hardLimit ?? mailQuota.limit ?? 0
-          };
-        }
+        return toStorageQuota((response.methodResponses[0][1].list || []) as JMAPQuota[]);
       }
 
       return null;

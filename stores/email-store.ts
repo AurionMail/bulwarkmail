@@ -23,6 +23,7 @@ import { folderListKey, forgetFolderLists, rememberFolderList, rememberedFolderL
 import { keywordPointer } from "@/lib/jmap/patch-pointer";
 import { useAccountStore } from "@/stores/account-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
+import type { StorageQuota } from "@/lib/quota";
 
 type ScheduledSubmissionMetadata = {
   submissionId: string;
@@ -123,7 +124,7 @@ interface EmailStore {
   isLoadingMore: boolean; // Track when loading more emails (pagination)
   error: string | null;
   searchQuery: string;
-  quota: { used: number; total: number } | null;
+  quota: StorageQuota | null;
   processingReadStatus: Set<string>; // Track emails being marked as read/unread
   selectedEmailKeys: Set<string>; // Track selected emails for batch operations
   // Emails the user just read (unread view) or unstarred (starred view) that
@@ -275,7 +276,7 @@ interface EmailStore {
   setLoadingEmail: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setSearchQuery: (query: string) => void;
-  setQuota: (quota: { used: number; total: number } | null) => void;
+  setQuota: (quota: StorageQuota | null) => void;
   selectKeyword: (keyword: string | null) => void;
   fetchTagCounts: (client: IJMAPClient) => Promise<void>;
   /** Take the email, not its id: the id alone collides across accounts. */

@@ -21,6 +21,7 @@ import { useUpdateStore, selectHasUpdate } from "@/stores/update-store";
 import { getMaxAccounts } from "@/lib/account-utils";
 import { isDocumentRTL } from "@/i18n/direction";
 import { cn, formatFileSize } from "@/lib/utils";
+import { quotaLevel, type StorageQuota } from "@/lib/quota";
 import { useMenuNavigation } from "@/hooks/use-menu-navigation";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { useStalwartAdmin } from "@/hooks/use-stalwart-admin";
@@ -44,7 +45,7 @@ interface NavigationRailProps {
   orientation?: "vertical" | "horizontal";
   collapsed?: boolean;
   className?: string;
-  quota?: { used: number; total: number } | null;
+  quota?: StorageQuota | null;
   isPushConnected?: boolean;
   onLogout?: () => void;
   onShowShortcuts?: () => void;
@@ -72,7 +73,7 @@ interface NavigationRailProps {
   onOpenSearch?: () => void;
 }
 
-function StorageQuotaCircle({ quota, usagePercent }: { quota: { used: number; total: number }; usagePercent: number }) {
+function StorageQuotaCircle({ quota, usagePercent }: { quota: StorageQuota; usagePercent: number }) {
   const t = useTranslations("sidebar");
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -119,9 +120,10 @@ function StorageQuotaCircle({ quota, usagePercent }: { quota: { used: number; to
 
   // Usage can legitimately exceed the quota (e.g. limit lowered after the fact)
   const free = Math.max(0, quota.total - quota.used);
-  const strokeColor = usagePercent > 90
+  const level = quotaLevel(quota);
+  const strokeColor = level === "full"
     ? "stroke-destructive"
-    : usagePercent > 70
+    : level === "warn"
       ? "stroke-warning"
       : "stroke-success";
 
@@ -169,9 +171,9 @@ function StorageQuotaCircle({ quota, usagePercent }: { quota: { used: number; to
             <div
               className={cn(
                 "h-1.5 rounded-full transition-all",
-                usagePercent > 90
+                level === "full"
                   ? "bg-destructive"
-                  : usagePercent > 70
+                  : level === "warn"
                     ? "bg-warning"
                     : "bg-success"
               )}
