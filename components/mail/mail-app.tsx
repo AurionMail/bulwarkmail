@@ -122,6 +122,7 @@ import { mailtoComposerDraft } from "./mailto-draft";
 import { getQuoteBodies } from "@/lib/email-composer-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
 import { afterRequestDispatch } from "@/lib/after-request-dispatch";
+import { useStableHandlers } from "@/hooks/use-stable-handlers";
 import { prefetchEmailContent, requestEmailContent } from "@/lib/email-prefetch";
 import { createMailboxWithHooks } from "@/lib/plugin-mail-hooks";
 import { emailToReadView } from "@/lib/plugin-projection";
@@ -3853,6 +3854,40 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   };
 
   // Show loading state while checking auth
+  // The sidebar is memoised; handlers that keep their identity across renders
+  // are what let it skip the mail view's renders (opening a message, a list
+  // update), which change nothing it shows.
+  const sidebarHandlers = useStableHandlers({
+    onOpenStarred: mvShell ? goToStarred : undefined,
+    onMailboxSelect: handleMailboxSelect,
+    onTagSelect: handleTagSelect,
+    onUnreadFilterClick: handleUnreadFilterClick,
+    onMarkFolderRead: handleMarkFolderRead,
+    onMarkFolderTreeRead: handleMarkFolderTreeRead,
+    onMarkAllFoldersRead: handleMarkAllFoldersRead,
+    onEmptyFolder: handleEmptyFolderFromContextMenu,
+    onCreateSubfolder: handleCreateSubfolderFromContextMenu,
+    onCreateFolder: handleCreateFolderFromContextMenu,
+    onRenameFolder: handleRenameFolderFromContextMenu,
+    onDeleteFolder: handleDeleteFolderFromContextMenu,
+    onShareFolder: supportsMailboxSharing ? handleShareFolderFromContextMenu : undefined,
+    onImportEmail: handleImportEmailFromContextMenu,
+    onRefreshMailboxes: handleRefreshMailboxes,
+    onCompose: () => {
+      void withComposeGate('compose', {}, () => {
+        startFreshComposerSession();
+        setComposerMode('compose');
+        setShowComposer(true);
+        if (isMobile) {
+          setSidebarOpen(false);
+          setActiveView('viewer');
+        }
+      });
+    },
+    onSidebarClose: () => setSidebarOpen(false),
+    onAccountMailboxSelect: handleAccountMailboxSelect,
+  });
+
   if (!initialCheckDone || authLoading || (!isAuthenticated || !client)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -4395,40 +4430,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               crossAccountActive={crossAccountActive}
               showCrossUnread={showCrossUnread}
               showCrossStarred={showCrossStarred}
-              onOpenStarred={mvShell ? goToStarred : undefined}
               showCrossAll={showCrossAll}
               crossUnreadCount={crossUnreadCount}
-              onMailboxSelect={handleMailboxSelect}
-              onTagSelect={handleTagSelect}
-              onUnreadFilterClick={handleUnreadFilterClick}
-              onMarkFolderRead={handleMarkFolderRead}
-              onMarkFolderTreeRead={handleMarkFolderTreeRead}
-              onMarkAllFoldersRead={handleMarkAllFoldersRead}
-              onEmptyFolder={handleEmptyFolderFromContextMenu}
-              onCreateSubfolder={handleCreateSubfolderFromContextMenu}
-              onCreateFolder={handleCreateFolderFromContextMenu}
-              onRenameFolder={handleRenameFolderFromContextMenu}
-              onDeleteFolder={handleDeleteFolderFromContextMenu}
-              onShareFolder={supportsMailboxSharing ? handleShareFolderFromContextMenu : undefined}
-              onImportEmail={handleImportEmailFromContextMenu}
-              onRefreshMailboxes={handleRefreshMailboxes}
-              onCompose={() => {
-                void withComposeGate('compose', {}, () => {
-                  startFreshComposerSession();
-                  setComposerMode('compose');
-                  setShowComposer(true);
-                  if (isMobile) {
-                    setSidebarOpen(false);
-                    setActiveView('viewer');
-                  }
-                });
-              }}
-              onSidebarClose={() => setSidebarOpen(false)}
+              {...sidebarHandlers}
               mvShell={mvShell}
               multiAccountMode={isEmbedded}
               accountMailboxes={accountMailboxes}
               viewingAccountId={viewingAccountId}
-              onAccountMailboxSelect={handleAccountMailboxSelect}
             />
           </ErrorBoundary>
         </div>

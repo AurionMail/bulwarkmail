@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Fragment, ReactNode } from "react";
+import { memo, useState, useEffect, useMemo, Fragment, ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
@@ -829,7 +829,7 @@ function VacationBanner() {
   );
 }
 
-export function Sidebar({
+function SidebarImpl({
   mailboxes = [],
   selectedMailbox = "",
   selectedKeyword = null,
@@ -1722,3 +1722,11 @@ export function Sidebar({
     </div>
   );
 }
+
+/**
+ * The mail sidebar, re-rendered only when one of its props changes. The mail
+ * view renders on every open and every list update; without this each of
+ * those rendered the whole folder tree again. Its handlers come from
+ * useStableHandlers in the mail view, so they keep their identity.
+ */
+export const Sidebar = memo(SidebarImpl);
