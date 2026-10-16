@@ -126,6 +126,33 @@ describe('calendar-utils all-day handling', () => {
     expect(getEventEndDate(event).toISOString()).toBe('2026-03-15T14:00:00.000Z');
   });
 
+  it('reads start in the event timezone when utcStart is missing (CalendarEvent/parse, #1252)', () => {
+    const event = makeEvent({
+      start: '2026-10-20T15:00:00',
+      duration: 'PT25M',
+      timeZone: 'Europe/London',
+      showWithoutTime: false,
+      utcStart: undefined,
+      utcEnd: undefined,
+    });
+
+    expect(getEventStartDate(event).toISOString()).toBe('2026-10-20T14:00:00.000Z');
+    expect(getEventEndDate(event).toISOString()).toBe('2026-10-20T14:25:00.000Z');
+  });
+
+  it('keeps floating start times as wall clock when utcStart is missing', () => {
+    const event = makeEvent({
+      start: '2026-10-20T15:00:00',
+      duration: 'PT1H',
+      timeZone: null,
+      showWithoutTime: false,
+      utcStart: undefined,
+      utcEnd: undefined,
+    });
+
+    expectLocalDateParts(getEventStartDate(event), 2026, 10, 20, 15);
+  });
+
   it('clips timed multi-day events to the visible day bounds', () => {
     const event = makeEvent({
       start: '2026-03-14T22:00:00',

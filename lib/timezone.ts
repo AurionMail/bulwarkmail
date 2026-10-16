@@ -89,6 +89,24 @@ export interface WallClock {
   second: number;
 }
 
+/**
+ * Wall-clock fields of a JMAP LocalDateTime ("YYYY-MM-DDTHH:mm:ss", or a bare
+ * date). Returns null for anything else, including strings with `Z` or an
+ * offset, which are instants rather than wall clocks.
+ */
+export function parseLocalDateTime(value: string): WallClock | null {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (!match) return null;
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+    hour: Number(match[4] || 0),
+    minute: Number(match[5] || 0),
+    second: Number(match[6] || 0),
+  };
+}
+
 // Constructing Intl.DateTimeFormat is expensive (ICU data lookup); cache one
 // formatter per zone - the calendar calls into this for every event.
 const wallClockFormatterCache = new Map<string, Intl.DateTimeFormat>();

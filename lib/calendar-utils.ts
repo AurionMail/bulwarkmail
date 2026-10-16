@@ -1,7 +1,7 @@
 import { addDays, differenceInCalendarDays, parseISO, startOfDay, subMilliseconds } from "date-fns";
 import { parseDuration } from "@/components/calendar/event-card";
 import type { CalendarEvent } from "@/lib/jmap/types";
-import { toDisplayDate } from "@/lib/timezone";
+import { fromWallClock, isValidTimeZone, parseLocalDateTime, toDisplayDate } from "@/lib/timezone";
 
 export interface CalendarWeekSegment {
   event: CalendarEvent;
@@ -30,7 +30,7 @@ export interface TimedEventLayout {
  * with `fromDisplayDate` before turning grid positions into instants.
  */
 export function getEventStartDate(
-  event: Pick<CalendarEvent, 'start' | 'utcStart' | 'showWithoutTime'>,
+  event: Pick<CalendarEvent, 'start' | 'utcStart' | 'showWithoutTime'> & Partial<Pick<CalendarEvent, 'timeZone'>>,
 ): Date {
   // Prefer utcStart for timed events but fall back to start if utcStart is
   // missing or unparseable - a malformed utcStart used to surface as an
@@ -38,6 +38,12 @@ export function getEventStartDate(
   if (!event.showWithoutTime && event.utcStart) {
     const utc = parseISO(event.utcStart);
     if (!isNaN(utc.getTime())) return toDisplayDate(utc);
+  }
+  // CalendarEvent/parse (.ics import, invitations) returns no utcStart: read
+  // `start` as the wall clock in the event's own zone, not the user's (#1252).
+  if (!event.showWithoutTime && event.timeZone && isValidTimeZone(event.timeZone)) {
+    const wall = event.start ? parseLocalDateTime(event.start) : null;
+    if (wall) return toDisplayDate(fromWallClock(wall, event.timeZone));
   }
   return parseISO(event.start);
 }

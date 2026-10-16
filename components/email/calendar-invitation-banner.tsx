@@ -33,12 +33,15 @@ import {
   getInvitationActorSummary,
   getInvitationTrustAssessment,
   formatEventSummary,
+  formatInvitationSchedule,
   findParticipantByEmail,
   extractMethodFromRawIcs,
+  type EventSummary,
   type InvitationMethod,
   type InvitationTrustAssessment,
 } from '@/lib/calendar-invitation';
 import { cn } from '@/lib/utils';
+import { getEventStartDate } from '@/lib/calendar-utils';
 import { sanitizeColor } from '@/components/calendar/event-card';
 import { RecipientPopover } from './recipient-popover';
 
@@ -260,7 +263,7 @@ function buildInvitationChangeItems(
   t: ReturnType<typeof useTranslations>,
   currentEvent: Partial<CalendarEvent> | null,
   proposedEvent: Partial<CalendarEvent> | null,
-  formatDateTime: (dateStr: string | null) => string,
+  formatSchedule: (summary: EventSummary) => string,
 ): InvitationChangeItem[] {
   if (!currentEvent || !proposedEvent) {
     return [];
@@ -279,10 +282,10 @@ function buildInvitationChangeItems(
   }
 
   const currentSchedule = currentSummary.start
-    ? `${formatDateTime(currentSummary.start)}${currentSummary.end ? ` - ${formatDateTime(currentSummary.end)}` : ''}`
+    ? formatSchedule(currentSummary)
     : t('change_empty');
   const proposedSchedule = proposedSummary.start
-    ? `${formatDateTime(proposedSummary.start)}${proposedSummary.end ? ` - ${formatDateTime(proposedSummary.end)}` : ''}`
+    ? formatSchedule(proposedSummary)
     : t('change_empty');
   if (currentSchedule !== proposedSchedule && proposedSummary.start) {
     changes.push({
@@ -667,13 +670,14 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   };
 
   const handleViewInCalendar = () => {
-    const targetDate = existingEvent?.utcStart
-      || existingEvent?.start
-      || parsedEvent?.utcStart
-      || parsedEvent?.start;
-
-    if (targetDate) {
-      const parsedDate = new Date(targetDate);
+    const target = existingEvent?.start ? existingEvent : parsedEvent;
+    if (target?.start) {
+      const parsedDate = getEventStartDate({
+        start: target.start,
+        utcStart: target.utcStart ?? null,
+        showWithoutTime: target.showWithoutTime ?? false,
+        timeZone: target.timeZone,
+      });
       if (!Number.isNaN(parsedDate.getTime())) {
         setSelectedDate(parsedDate);
       }
@@ -708,31 +712,14 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     }
   };
 
-  const isAllDayEvent = parsedEvent?.showWithoutTime ?? false;
-
-  const formatDateTime = (dateStr: string | null) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    if (isAllDayEvent) {
-      return format.dateTime(date, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-      });
-    }
-    return format.dateTime(date, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: timeFormat === '12h',
-    });
-  };
+  const formatSchedule = (eventSummary: EventSummary) => formatInvitationSchedule(
+    eventSummary,
+    (date, options) => format.dateTime(date, options),
+    timeFormat === '12h',
+  );
 
   const proposedChanges = method === 'counter' && existingEvent && parsedEvent
-    ? buildInvitationChangeItems(t, existingEvent, parsedEvent, formatDateTime)
+    ? buildInvitationChangeItems(t, existingEvent, parsedEvent, formatSchedule)
     : [];
   const canApplyProposal = Boolean(
     client
@@ -887,8 +874,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
               <span className="flex items-center gap-1.5 min-w-0">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="truncate">
-                  {formatDateTime(summary.start)}
-                  {summary.end && ` – ${formatDateTime(summary.end)}`}
+                  {formatSchedule(summary)}
                 </span>
               </span>
             )}
