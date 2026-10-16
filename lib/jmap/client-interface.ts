@@ -88,6 +88,8 @@ export interface IJMAPClient {
   // ── Capabilities ──────────────────────────────────────────────
   getCapabilities(): Record<string, unknown>;
   hasAccountCapability(capability: string, accountId?: string): boolean;
+  /** The value of an account capability (primary account by default). */
+  getAccountCapability?(capability: string, accountId?: string): unknown;
   /** FileNode naming rules the server publishes (Stalwart 0.16.6+), if any. */
   getFileNameRules?(accountId?: string): FileNameRules | null;
   getMaxSizeUpload(): number;

@@ -484,6 +484,91 @@ describe('enableWebPush delivery filter (emailPush)', () => {
   });
 });
 
+// Stalwart refuses emailPush entries for accounts that only shared a folder
+// with the user; only the own account and groups the user belongs to pass.
+describe('enableWebPush with a folder shared by another user (#1050)', () => {
+  const GROUP_ACCOUNT_ID = 'acct-group';
+  const FORBIDDEN = 'PushSubscription/set create failed: {"type":"forbidden","description":"No access to one of the accounts in the emailPush map."}';
+  const pushParams = (client: IJMAPClient, call: number) =>
+    (client.createPushSubscription as ReturnType<typeof vi.fn>).mock.calls[call][0];
+
+  // Behaves like Stalwart: any map naming the sharing account is refused.
+  function refuseSharedAccount(client: IJMAPClient) {
+    vi.mocked(client.createPushSubscription).mockImplementation(async (params) => {
+      if (params.emailPush && SHARED_ACCOUNT_ID in params.emailPush) throw new Error(FORBIDDEN);
+      return 'push-new';
+    });
+    vi.mocked(client.updatePushSubscription).mockImplementation(async (_id, patch) =>
+      !(patch.emailPush && SHARED_ACCOUNT_ID in patch.emailPush));
+  }
+
+  it('still creates the subscription, filtered for the own account only', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    const client = makeClient([], { emailPushCapability: true });
+    refuseSharedAccount(client);
+    installFetch({});
+
+    const result = await enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(result.subscriptionId).toBe('push-new');
+    expect(client.verifyPushSubscription).toHaveBeenCalledWith('push-new', 'code-123');
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(2);
+    expect(pushParams(client, 1).emailPush).toEqual({ [ACCOUNT_ID]: EXPECTED_EMAIL_PUSH[ACCOUNT_ID] });
+  });
+
+  it('keeps the filter for a group account the user belongs to', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    const client = makeClient([], { emailPushCapability: true });
+    const base = await client.getAllMailboxes();
+    vi.mocked(client.getAllMailboxes).mockResolvedValue([
+      ...base,
+      { ...base[0], id: `${GROUP_ACCOUNT_ID}:mb-group-inbox`, originalId: 'mb-group-inbox', accountId: GROUP_ACCOUNT_ID },
+    ]);
+    // What Stalwart's session says: create rights on owned accounts (own and
+    // group), none on an account that only shared a folder.
+    (client as { getAccountCapability?: unknown }).getAccountCapability = vi.fn(
+      (urn: string, accountId: string) => (urn === 'urn:ietf:params:jmap:calendars'
+        ? { mayCreateCalendar: accountId !== SHARED_ACCOUNT_ID }
+        : undefined),
+    );
+    refuseSharedAccount(client);
+    installFetch({});
+
+    await enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(2);
+    expect(Object.keys(pushParams(client, 1).emailPush).sort()).toEqual([GROUP_ACCOUNT_ID, ACCOUNT_ID].sort());
+  });
+
+  it('does not retry a create that failed for another reason', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    const client = makeClient([], { emailPushCapability: true });
+    vi.mocked(client.createPushSubscription).mockRejectedValue(new Error('PushSubscription/set create failed: {"type":"overQuota"}'));
+    installFetch({});
+
+    await expect(enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).rejects.toThrow(/overQuota/);
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes an existing subscription with the accounts the server accepts', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)], { emailPushCapability: true });
+    refuseSharedAccount(client);
+    installFetch({});
+
+    const result = await enableWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+
+    expect(result.subscriptionId).toBe('push-old');
+    expect(client.createPushSubscription).not.toHaveBeenCalled();
+    expect(client.destroyed).toEqual([]);
+    expect(client.updatePushSubscription).toHaveBeenLastCalledWith(
+      'push-old',
+      expect.objectContaining({ emailPush: { [ACCOUNT_ID]: EXPECTED_EMAIL_PUSH[ACCOUNT_ID] } }),
+    );
+  });
+});
+
 // Inbox-only mode swaps the "not in Junk" mailbox condition for a positive
 // "in Inbox" one, so mail a Sieve rule files into any other folder never
 // reaches the push subscription.

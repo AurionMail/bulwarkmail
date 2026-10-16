@@ -202,6 +202,99 @@ function sameEmailPush(
   return normalizeEmailPush(a) === normalizeEmailPush(b);
 }
 
+function pickAccounts(
+  config: Record<string, EmailPushConfig>,
+  accountIds: readonly string[],
+): Record<string, EmailPushConfig> {
+  const out: Record<string, EmailPushConfig> = {};
+  for (const id of accountIds) if (config[id]) out[id] = config[id];
+  return out;
+}
+
+// A stored filter that the fallback below narrowed down still counts as up to
+// date: same entries for the accounts it covers, and it covers the primary.
+// Without this every resync would retry the full map and get refused again.
+function coveredByEmailPush(
+  stored: Record<string, EmailPushConfig> | null | undefined,
+  desired: Record<string, EmailPushConfig>,
+  primary: string,
+): boolean {
+  if (!stored || !stored[primary]) return false;
+  const keys = Object.keys(stored);
+  if (!keys.every((id) => desired[id])) return false;
+  return sameEmailPush(stored, pickAccounts(desired, keys));
+}
+
+function isForbiddenError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes('"type":"forbidden"');
+}
+
+/**
+ * Smaller emailPush maps to retry with after the server refused the full one.
+ *
+ * Stalwart only accepts emailPush entries for the user's own account and the
+ * groups they belong to. An entry for an account that merely shared a folder
+ * with them fails the whole PushSubscription/set with `forbidden` (#1050).
+ * Those accounts never push to this subscription anyway - Stalwart fans out
+ * to member accounts only - so leaving their entries out loses nothing. The
+ * session lists both kinds alike, so first keep the accounts that look owned
+ * (see OWNERSHIP_FLAGS), then fall back to the primary account alone. The
+ * native app does the same (repos/react-native emailPushFallbacks).
+ */
+function narrowedEmailPushConfigs(
+  client: IJMAPClient,
+  config: Record<string, EmailPushConfig>,
+): Record<string, EmailPushConfig>[] {
+  const primary = client.getAccountId();
+  const others = Object.keys(config).filter((id) => id !== primary);
+  if (others.length === 0) return [];
+  const candidates: Record<string, EmailPushConfig>[] = [];
+  const owned = others.filter((id) => looksOwned(client, id));
+  if (owned.length > 0 && owned.length < others.length) {
+    candidates.push(pickAccounts(config, [primary, ...owned]));
+  }
+  candidates.push(pickAccounts(config, [primary]));
+  return candidates;
+}
+
+// Stalwart marks the accounts a user owns - their own and the groups they
+// belong to - through the create flags of its per-account collection
+// capabilities: true there, false on accounts shared with them by ACL.
+const OWNERSHIP_FLAGS: ReadonlyArray<readonly [string, string]> = [
+  ['urn:ietf:params:jmap:calendars', 'mayCreateCalendar'],
+  ['urn:ietf:params:jmap:contacts', 'mayCreateAddressBook'],
+  ['urn:ietf:params:jmap:filenode', 'mayCreateTopLevelFileNode'],
+];
+
+function looksOwned(client: IJMAPClient, accountId: string): boolean {
+  return OWNERSHIP_FLAGS.some(([urn, flag]) => {
+    const capability = client.getAccountCapability?.(urn, accountId) as Record<string, unknown> | undefined;
+    return capability?.[flag] === true;
+  });
+}
+
+async function createPushSubscriptionWithEmailPush(
+  client: IJMAPClient,
+  params: Omit<Parameters<IJMAPClient['createPushSubscription']>[0], 'emailPush'>,
+  emailPush: Record<string, EmailPushConfig> | null,
+): Promise<string> {
+  try {
+    return await client.createPushSubscription({ ...params, ...(emailPush ? { emailPush } : {}) });
+  } catch (err) {
+    if (!emailPush || !isForbiddenError(err)) throw err;
+    let lastError = err;
+    for (const narrowed of narrowedEmailPushConfigs(client, emailPush)) {
+      try {
+        return await client.createPushSubscription({ ...params, emailPush: narrowed });
+      } catch (retryErr) {
+        if (!isForbiddenError(retryErr)) throw retryErr;
+        lastError = retryErr;
+      }
+    }
+    throw lastError;
+  }
+}
+
 export interface EnableWebPushParams {
   client: IJMAPClient;
   // Optional - falls back to DEFAULT_RELAY_BASE_URL.
@@ -473,7 +566,22 @@ async function refreshSubscriptionExpires(
     };
     if (typesNeedUpdate) patch.types = [...PUSH_TYPES];
     if (emailPushNeedsUpdate && desiredEmailPush) patch.emailPush = desiredEmailPush;
-    return await client.updatePushSubscription(sub.id, patch);
+    if (await client.updatePushSubscription(sub.id, patch)) return true;
+    if (!patch.emailPush) return false;
+    // The server may refuse entries for accounts that only shared a folder
+    // with us (#1050). Retry with the accounts it accepted last time, then
+    // with the same smaller maps a fresh create would fall back to.
+    const desired = patch.emailPush;
+    const candidates: Record<string, EmailPushConfig>[] = [];
+    if (coveredByEmailPush(sub.emailPush, desired, client.getAccountId())) {
+      candidates.push(pickAccounts(desired, Object.keys(sub.emailPush ?? {})));
+    } else {
+      candidates.push(...narrowedEmailPushConfigs(client, desired));
+    }
+    for (const narrowed of candidates) {
+      if (await client.updatePushSubscription(sub.id, { ...patch, emailPush: narrowed })) return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -595,13 +703,12 @@ export async function enableWebPush(
     }
   }
 
-  const serverAssignedId = await params.client.createPushSubscription({
+  const serverAssignedId = await createPushSubscriptionWithEmailPush(params.client, {
     deviceClientId,
     url: buildRelayUrl(relayBaseUrl, `/api/push/jmap/${encodeURIComponent(deviceClientId)}`),
     types: [...PUSH_TYPES],
     expires: expiresFromNow(SUBSCRIPTION_EXPIRES_DAYS),
-    ...(emailPush ? { emailPush } : {}),
-  });
+  }, emailPush);
 
   const verificationCode = await pollVerificationCode(relayBaseUrl, deviceClientId);
   await params.client.verifyPushSubscription(serverAssignedId, verificationCode);
