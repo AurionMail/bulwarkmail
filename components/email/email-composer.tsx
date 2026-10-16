@@ -105,6 +105,7 @@ import {
   formatRecipientList,
   expandRecipients,
   splitPastedRecipients,
+  invalidRecipientAddresses,
   defaultSuggestionIndex,
   waitForPendingUploads,
   extractUserAuthoredText,
@@ -2881,11 +2882,11 @@ export function EmailComposer({
 
     // Catch addresses the server would reject before asking it. Its answer
     // ("No recipients found in email") does not say which one is wrong.
-    const invalidRecipients = [
+    const invalidRecipients = invalidRecipientAddresses([
       ...withInput(to, toInput),
       ...withInput(cc, ccInput),
       ...withInput(bcc, bccInput),
-    ].filter(r => !r.group && !isValidEmail(r.email)).map(r => r.email);
+    ]);
     if (invalidRecipients.length > 0) {
       toast.error(t('validation.invalid_recipients', { addresses: invalidRecipients.join(', ') }));
       return;
@@ -4999,7 +5000,7 @@ function RecipientChipInput({
           if(chip.extra?.icon){
              IconComponent = ICON_MAP[chip.extra?.icon];
           }
-          const isInvalid = !chip.group && !isValidEmail(chip.email);
+          const isInvalid = invalidRecipientAddresses([chip]).length > 0;
           const customColor = isInvalid ? 'destructive' : chip.extra?.color;
 
           return (
