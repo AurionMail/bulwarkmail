@@ -2625,7 +2625,8 @@
       "help": "Show shortcuts",
       "refresh": "Refresh emails",
       "select_all": "Select all",
-      "global_search": "Search everything"
+      "global_search": "Search everything",
+      "extend_selection": "Extend selection down / up"
     },
     "threads": {
       "expand_collapse": "Expand/collapse thread",

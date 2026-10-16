@@ -2625,7 +2625,8 @@
       "help": "Afficher les raccourcis",
       "refresh": "Actualiser les emails",
       "select_all": "Tout sélectionner",
-      "global_search": "Tout rechercher"
+      "global_search": "Tout rechercher",
+      "extend_selection": "Étendre la sélection vers le bas / le haut"
     },
     "threads": {
       "expand_collapse": "Développer/réduire la conversation",

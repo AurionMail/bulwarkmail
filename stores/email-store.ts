@@ -283,7 +283,17 @@ interface EmailStore {
   /** Take the email, not its id: the id alone collides across accounts. */
   toggleEmailSelection: (email: SelectableEmail) => void;
   selectRangeEmails: (target: SelectableEmail) => void;
+  /**
+   * Shift+Arrow (and Shift+J/K): grow or shrink the selection by one row,
+   * from the open or last ticked message, like a desktop mail client. (#992)
+   */
+  extendSelection: (direction: 1 | -1) => void;
   lastSelectedEmailKey: string | null;
+  /**
+   * The moving end of a keyboard range and the anchor it was taken from.
+   * Only valid while the anchor is still lastSelectedEmailKey.
+   */
+  selectionFocus: { anchor: string; focus: string } | null;
   /**
    * The message list's rows in screen order, each with the keys a click on it
    * selects. Shift-click ranges walk these, so a thread is in a range only
@@ -2140,6 +2150,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   selectedEmailKeys: new Set(),
   retainedInViewIds: new Set(),
   lastSelectedEmailKey: null,
+  selectionFocus: null,
   listRows: null,
   hasMoreEmails: false,
   totalEmails: 0,
@@ -2411,7 +2422,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         for (let i = Math.min(anchorRow, targetRow); i <= Math.max(anchorRow, targetRow); i++) {
           for (const key of listRows[i].members) newSelection.add(key);
         }
-        set({ selectedEmailKeys: newSelection });
+        set({ selectedEmailKeys: newSelection, selectionFocus: { anchor: anchorKey, focus: targetKeyForRows } });
         return;
       }
     }
@@ -2425,7 +2436,48 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     for (let i = start; i <= end; i++) {
       newSelection.add(emailKeyFor(emails[i]));
     }
-    set({ selectedEmailKeys: newSelection });
+    set({ selectedEmailKeys: newSelection, selectionFocus: { anchor: anchorKey, focus: targetKey } });
+  },
+
+  extendSelection: (direction) => {
+    const { emails, listRows, lastSelectedEmailKey, selectedEmail, selectedEmailKeys, selectionFocus } = get();
+    // Walk the rows on screen, as shift-click does; without them, the emails.
+    const rows: ListRow[] = listRows && listRows.length > 0
+      ? listRows
+      : emails.map((e) => ({ key: emailKeyFor(e), members: [emailKeyFor(e)] }));
+    if (rows.length === 0) return;
+    const membersOf = (from: number, to: number) => {
+      const keys: string[] = [];
+      for (let i = Math.min(from, to); i <= Math.max(from, to); i++) keys.push(...rows[i].members);
+      return keys;
+    };
+
+    const anchorKey = lastSelectedEmailKey ?? (selectedEmail ? emailKeyFor(selectedEmail) : null);
+    const anchor = anchorKey ? findListRow(rows, anchorKey) : -1;
+    if (!anchorKey || anchor === -1) {
+      // Nothing to extend from: start with the row at the end the key points from.
+      const start = rows[direction > 0 ? 0 : rows.length - 1];
+      set({
+        selectedEmailKeys: new Set([...selectedEmailKeys, ...start.members]),
+        lastSelectedEmailKey: start.key,
+        selectionFocus: { anchor: start.key, focus: start.key },
+      });
+      return;
+    }
+
+    // Continue the range this anchor already has, or begin one at the anchor.
+    const previous = selectionFocus && selectionFocus.anchor === anchorKey && selectedEmailKeys.size > 0
+      ? findListRow(rows, selectionFocus.focus)
+      : -1;
+    const focus = previous === -1 ? anchor : previous;
+    const nextFocus = Math.max(0, Math.min(rows.length - 1, focus + direction));
+
+    const newSelection = new Set(selectedEmailKeys);
+    if (previous !== -1) {
+      for (const key of membersOf(anchor, previous)) newSelection.delete(key);
+    }
+    for (const key of membersOf(anchor, nextFocus)) newSelection.add(key);
+    set({ selectedEmailKeys: newSelection, selectionFocus: { anchor: anchorKey, focus: rows[nextFocus].key } });
   },
 
   selectAllEmails: () => {

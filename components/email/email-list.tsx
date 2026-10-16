@@ -683,6 +683,15 @@ export function EmailList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEmailId]);
 
+  // Keep the moving end of a Shift+Arrow range on screen (#992).
+  const selectionFocusKey = useEmailStore((state) => state.selectionFocus?.focus ?? null);
+  useEffect(() => {
+    if (!selectionFocusKey) return;
+    const index = threadGroups.findIndex((thread) => thread.emails.some((e) => emailKeyFor(e) === selectionFocusKey));
+    if (index >= 0) virtualizer.scrollToIndex(index, { align: 'auto' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectionFocusKey]);
+
   // Re-measure all items when density or preview settings change
   useEffect(() => {
     virtualizer.measure();

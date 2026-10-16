@@ -2625,7 +2625,8 @@
       "help": "Sneltoetsen tonen",
       "refresh": "E-mails vernieuwen",
       "select_all": "Alles selecteren",
-      "global_search": "Alles doorzoeken"
+      "global_search": "Alles doorzoeken",
+      "extend_selection": "Selectie omlaag / omhoog uitbreiden"
     },
     "threads": {
       "expand_collapse": "Gesprek uitklappen/inklappen",

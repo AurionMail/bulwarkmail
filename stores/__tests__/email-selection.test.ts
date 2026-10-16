@@ -146,6 +146,69 @@ describe('email-store selection', () => {
     });
   });
 
+  // #992: Shift+Arrow grows the selection from the open message one row at a
+  // time and shrinks it again when the direction reverses.
+  describe('extendSelection', () => {
+    const keys = () => [...useEmailStore.getState().selectedEmailKeys].sort();
+
+    beforeEach(() => {
+      // Opening a message makes it the anchor, as selectEmail does.
+      useEmailStore.setState({ lastSelectedEmailKey: 'b', selectionFocus: null });
+    });
+
+    it('selects the open message and the next one on the first press', () => {
+      useEmailStore.getState().extendSelection(1);
+      expect(keys()).toEqual(['b', 'c']);
+    });
+
+    it('keeps growing in the same direction', () => {
+      useEmailStore.getState().extendSelection(1);
+      useEmailStore.getState().extendSelection(1);
+      expect(keys()).toEqual(['b', 'c', 'd']);
+    });
+
+    it('shrinks back when the direction reverses', () => {
+      useEmailStore.getState().extendSelection(1);
+      useEmailStore.getState().extendSelection(1);
+      useEmailStore.getState().extendSelection(-1);
+      expect(keys()).toEqual(['b', 'c']);
+    });
+
+    it('crosses the anchor and grows the other way', () => {
+      useEmailStore.getState().extendSelection(1);
+      useEmailStore.getState().extendSelection(-1);
+      useEmailStore.getState().extendSelection(-1);
+      expect(keys()).toEqual(['a', 'b']);
+    });
+
+    it('stops at the end of the list', () => {
+      for (let i = 0; i < 10; i++) useEmailStore.getState().extendSelection(1);
+      expect(keys()).toEqual(['b', 'c', 'd', 'e']);
+    });
+
+    it('continues a shift-click range', () => {
+      useEmailStore.getState().selectRangeEmails({ id: 'd' });
+      useEmailStore.getState().extendSelection(-1);
+      expect(keys()).toEqual(['b', 'c']);
+    });
+
+    it('walks list rows, taking a whole thread with its row', () => {
+      useEmailStore.setState({
+        emails: ['t2', 'x', 't1', 'y'].map((id) => makeEmail(id, id.startsWith('t') ? 'thread-t' : `thread-${id}`)),
+        listRows: [
+          { key: 'x', members: ['x'] },
+          { key: 't2', members: ['t2', 't1'] },
+          { key: 'y', members: ['y'] },
+        ],
+        lastSelectedEmailKey: 'x',
+      });
+      useEmailStore.getState().extendSelection(1);
+      expect(keys()).toEqual(['t1', 't2', 'x']);
+      useEmailStore.getState().extendSelection(-1);
+      expect(keys()).toEqual(['x']);
+    });
+  });
+
   describe('selectAllEmails', () => {
     it('should select all emails', () => {
       useEmailStore.getState().selectAllEmails();

@@ -1007,6 +1007,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onDeselectAll: () => {
       clearSelection();
     },
+    // Shift + ↓/↑ (and Shift + j/k): grow or shrink the ticked range from the
+    // open message without opening each row on the way. (#992)
+    onExtendSelection: (direction: 1 | -1) => {
+      if (isScheduledView) return;
+      useEmailStore.getState().extendSelection(direction);
+    },
     // `x` under Mountain View: put the focused conversation in or out of the
     // selection. Only reachable there, where `x` is handed over from thread
     // expansion.

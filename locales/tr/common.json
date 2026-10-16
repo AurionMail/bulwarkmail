@@ -2625,7 +2625,8 @@
       "help": "Kısayolları göster",
       "refresh": "E-postaları yenile",
       "select_all": "Tümünü seç",
-      "global_search": "Her yerde ara"
+      "global_search": "Her yerde ara",
+      "extend_selection": "Seçimi aşağı / yukarı genişlet"
     },
     "threads": {
       "expand_collapse": "İleti dizisini genişlet/daralt",

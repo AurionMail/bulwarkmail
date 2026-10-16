@@ -2625,7 +2625,8 @@
       "help": "Afișați comenzile rapide",
       "refresh": "Reîmprospătați e-mailurile",
       "select_all": "Selectează tot",
-      "global_search": "Caută în tot"
+      "global_search": "Caută în tot",
+      "extend_selection": "Extinde selecția în jos / în sus"
     },
     "threads": {
       "expand_collapse": "Extindeți/reduceți firul de discuție",

@@ -2625,7 +2625,8 @@
       "help": "Zobraziť skratky",
       "refresh": "Obnoviť e-maily",
       "select_all": "Vybrať všetko",
-      "global_search": "Hľadať všade"
+      "global_search": "Hľadať všade",
+      "extend_selection": "Rozšíriť výber nadol / nahor"
     },
     "threads": {
       "expand_collapse": "Rozbaliť/zbaliť vlákno",

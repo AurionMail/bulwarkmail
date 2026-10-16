@@ -2625,7 +2625,8 @@
       "help": "Pokaż skróty",
       "refresh": "Odśwież wiadomości",
       "select_all": "Zaznacz wszystko",
-      "global_search": "Szukaj wszędzie"
+      "global_search": "Szukaj wszędzie",
+      "extend_selection": "Rozszerz zaznaczenie w dół / w górę"
     },
     "threads": {
       "expand_collapse": "Rozwiń/zwiń wątek",

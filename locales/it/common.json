@@ -2625,7 +2625,8 @@
       "help": "Mostra scorciatoie",
       "refresh": "Aggiorna messaggi",
       "select_all": "Seleziona tutto",
-      "global_search": "Cerca ovunque"
+      "global_search": "Cerca ovunque",
+      "extend_selection": "Estendi la selezione in basso / in alto"
     },
     "threads": {
       "expand_collapse": "Espandi/comprimi conversazione",

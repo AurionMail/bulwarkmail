@@ -2625,7 +2625,8 @@
       "help": "Vis genveje",
       "refresh": "Opdatér e-mails",
       "select_all": "Vælg alle",
-      "global_search": "Søg i alt"
+      "global_search": "Søg i alt",
+      "extend_selection": "Udvid markering ned / op"
     },
     "threads": {
       "expand_collapse": "Udvid/skjul tråd",

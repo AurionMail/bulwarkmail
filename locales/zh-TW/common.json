@@ -2625,7 +2625,8 @@
       "help": "顯示快速鍵",
       "refresh": "重新整理郵件",
       "select_all": "全部選取",
-      "global_search": "全域搜尋"
+      "global_search": "全域搜尋",
+      "extend_selection": "向下 / 向上擴展選取"
     },
     "threads": {
       "expand_collapse": "展開／收合對話串",

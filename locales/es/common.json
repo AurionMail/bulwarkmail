@@ -2625,7 +2625,8 @@
       "help": "Mostrar atajos",
       "refresh": "Actualizar correos",
       "select_all": "Seleccionar todo",
-      "global_search": "Buscar en todo"
+      "global_search": "Buscar en todo",
+      "extend_selection": "Ampliar la selección hacia abajo / arriba"
     },
     "threads": {
       "expand_collapse": "Expandir/contraer conversación",

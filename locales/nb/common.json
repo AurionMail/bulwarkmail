@@ -2625,7 +2625,8 @@
       "help": "Vis tastatursnarveier",
       "refresh": "Oppdater e-poster",
       "select_all": "Velg alle",
-      "global_search": "Søk i alt"
+      "global_search": "Søk i alt",
+      "extend_selection": "Utvid markeringen ned / opp"
     },
     "threads": {
       "expand_collapse": "Utvid eller fold sammen tråden",

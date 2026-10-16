@@ -2625,7 +2625,8 @@
       "help": "نمایش میانبرها",
       "refresh": "بازنشانی ایمیل‌ها",
       "select_all": "انتخاب همه",
-      "global_search": "جستجو در همه جا"
+      "global_search": "جستجو در همه جا",
+      "extend_selection": "گسترش انتخاب به پایین / بالا"
     },
     "threads": {
       "expand_collapse": "باز/بسته کردن رشته",

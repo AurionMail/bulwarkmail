@@ -2625,7 +2625,8 @@
       "help": "显示快捷方式",
       "refresh": "刷新邮件",
       "select_all": "全选",
-      "global_search": "全局搜索"
+      "global_search": "全局搜索",
+      "extend_selection": "向下 / 向上扩展选择"
     },
     "threads": {
       "expand_collapse": "展开/折叠会话",

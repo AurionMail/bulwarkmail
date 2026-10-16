@@ -2625,7 +2625,8 @@
       "help": "إظهار الاختصارات",
       "refresh": "تحديث الرسائل",
       "select_all": "تحديد الكل",
-      "global_search": "البحث في كل شيء"
+      "global_search": "البحث في كل شيء",
+      "extend_selection": "توسيع التحديد لأسفل / لأعلى"
     },
     "threads": {
       "expand_collapse": "توسيع/طي المحادثة",

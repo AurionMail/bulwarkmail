@@ -2625,7 +2625,8 @@
       "help": "Zobrazit zkratky",
       "refresh": "Obnovit zprávy",
       "select_all": "Vybrat vše",
-      "global_search": "Hledat ve všem"
+      "global_search": "Hledat ve všem",
+      "extend_selection": "Rozšířit výběr dolů / nahoru"
     },
     "threads": {
       "expand_collapse": "Rozbalit/sbalit vlákno",

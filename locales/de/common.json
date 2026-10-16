@@ -2625,7 +2625,8 @@
       "help": "Tastaturkürzel anzeigen",
       "refresh": "E-Mails aktualisieren",
       "select_all": "Alle auswählen",
-      "global_search": "Alles durchsuchen"
+      "global_search": "Alles durchsuchen",
+      "extend_selection": "Auswahl nach unten / oben erweitern"
     },
     "threads": {
       "expand_collapse": "Unterhaltung erweitern/einklappen",

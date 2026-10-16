@@ -2625,7 +2625,8 @@
       "help": "Rādīt īsinājumtaustiņus",
       "refresh": "Atsvaidzināt vēstules",
       "select_all": "Atlasīt visas",
-      "global_search": "Meklēt visā"
+      "global_search": "Meklēt visā",
+      "extend_selection": "Paplašināt atlasi uz leju / uz augšu"
     },
     "threads": {
       "expand_collapse": "Izvērst/sairt sarunu",

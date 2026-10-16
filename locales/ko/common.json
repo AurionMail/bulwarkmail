@@ -2625,7 +2625,8 @@
       "help": "단축키 보기",
       "refresh": "메일 새로고침",
       "select_all": "모두 선택",
-      "global_search": "전체 검색"
+      "global_search": "전체 검색",
+      "extend_selection": "선택 범위를 아래 / 위로 확장"
     },
     "threads": {
       "expand_collapse": "대화 펼치기/접기",

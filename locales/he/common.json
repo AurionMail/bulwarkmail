@@ -2543,7 +2543,8 @@
       "help": "הצג קיצורי דרך",
       "refresh": "רענן מיילים",
       "select_all": "בחר הכל",
-      "global_search": "חיפוש בכל מקום"
+      "global_search": "חיפוש בכל מקום",
+      "extend_selection": "הרחבת הבחירה למטה / למעלה"
     },
     "threads": {
       "expand_collapse": "הרחב/כווץ את השרשור",

@@ -2625,7 +2625,8 @@
       "help": "Товчлол харуулах",
       "refresh": "Имэйл сэргээх",
       "select_all": "Бүгдийг сонго",
-      "global_search": "Бүгдийг хайх"
+      "global_search": "Бүгдийг хайх",
+      "extend_selection": "Сонголтыг доош / дээш өргөтгөх"
     },
     "threads": {
       "expand_collapse": "Хэлхээсийг дэлгэх/хумих",

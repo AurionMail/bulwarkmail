@@ -2625,7 +2625,8 @@
       "help": "Parancsok mutatása",
       "refresh": "E-mailek frissítése",
       "select_all": "Összes kijelölése",
-      "global_search": "Keresés mindenben"
+      "global_search": "Keresés mindenben",
+      "extend_selection": "Kijelölés bővítése lefelé / felfelé"
     },
     "threads": {
       "expand_collapse": "Beszélgetés kibontása/összecsukása",

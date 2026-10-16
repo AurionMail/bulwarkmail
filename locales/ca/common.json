@@ -2625,7 +2625,8 @@
       "help": "Mostra les dreceres",
       "refresh": "Actualitza els correus",
       "select_all": "Selecciona-ho tot",
-      "global_search": "Cerca-ho tot"
+      "global_search": "Cerca-ho tot",
+      "extend_selection": "Amplia la selecció cap avall / amunt"
     },
     "threads": {
       "expand_collapse": "Desplega/replega el fil",
