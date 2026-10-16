@@ -4,6 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallba
 import DOMPurify from "dompurify";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { EMAIL_SANITIZE_CONFIG, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizeEmailBodyForIframe, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
+import { emailDisplayDate } from "@/lib/email-date";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
 import { findVerificationCode, verificationCodeBodyText } from "@/lib/verification-code";
 import { VerificationCodeChip } from "./verification-code-chip";
@@ -383,7 +384,7 @@ function EmailCard({
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {formatDate(email.receivedAt)}
+            {formatDate(emailDisplayDate(email))}
           </div>
           {!isExpanded && density !== 'extra-compact' && (
             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">

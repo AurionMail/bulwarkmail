@@ -3450,9 +3450,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
       let imported = 0;
       let failed = 0;
-      for (const { blob } of emails) {
+      for (const { blob, receivedAt } of emails) {
         try {
-          await client.importRawEmail(blob, { [targetMailboxId]: true }, { '$seen': true });
+          await client.importRawEmail(blob, { [targetMailboxId]: true }, { '$seen': true }, undefined, receivedAt);
           imported++;
         } catch {
           failed++;

@@ -646,3 +646,39 @@ describe('ThreadListItem prefetch on mouse press', () => {
     expect(onPrefetch).not.toHaveBeenCalled();
   });
 });
+
+describe('ThreadListItem date (#891)', () => {
+  // A migrated mailbox: the server stamped every message with the import day,
+  // but the Date header still carries when the mail was really sent.
+  const imported = { receivedAt: '2024-01-15T10:00:00Z', sentAt: '2019-03-05T08:30:00Z' };
+
+  beforeEach(() => {
+    useSettingsStore.setState({
+      emailKeywords: [...DEFAULT_KEYWORDS],
+      showPreview: false,
+      mailLayout: 'split',
+      interfaceLayout: 'default',
+      dateFormat: 'full',
+    });
+    useEmailStore.setState({ selectedEmailKeys: new Set<string>(), selectedMailbox: 'inbox' });
+  });
+
+  it('shows the Date header, not the import time, on a single-message row', () => {
+    const { container } = renderRow(makeEmail(imported));
+    expect(container.textContent).toMatch(/2019/);
+    expect(container.textContent).not.toMatch(/2024/);
+  });
+
+  it('shows the Date header of the latest message on a thread row', () => {
+    const emails = [
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T09:00:00Z', sentAt: '2019-03-04T08:30:00Z' }),
+      makeEmail({ id: 'b', ...imported }),
+    ];
+    const [thread] = groupEmailsByThread(emails);
+    const { container } = render(
+      <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} />,
+    );
+    expect(container.textContent).toMatch(/2019/);
+    expect(container.textContent).not.toMatch(/2024/);
+  });
+});

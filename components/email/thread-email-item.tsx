@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { emailDisplayDate } from "@/lib/email-date";
 import { useTranslations } from "next-intl";
 import { cleanPreview, formatDate } from "@/lib/utils";
 import { Email } from "@/lib/jmap/types";
@@ -221,7 +222,7 @@ export function ThreadEmailItem({
                 ? "text-foreground font-medium"
                 : "text-muted-foreground"
             )}>
-              {formatDate(email.receivedAt)}
+              {formatDate(emailDisplayDate(email))}
             </span>
           </div>
         </div>

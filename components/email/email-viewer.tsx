@@ -711,7 +711,7 @@ function MvConversationCard({ email, onOpen, timeFormat, compact }: { email: Ema
             {sender?.name || sender?.email || ''}
           </span>
           <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
-            {compact ? formatDate(email.receivedAt) : mvSenderDate(email.receivedAt, timeFormat)}
+            {compact ? formatDate(emailDisplayDate(email)) : mvSenderDate(emailDisplayDate(email), timeFormat)}
           </span>
         </span>
         <span className="block text-sm text-muted-foreground truncate">{cleanPreview(email.preview)}</span>
@@ -826,7 +826,7 @@ export function MvExpandedConversationCard({
               <span className="text-xs text-muted-foreground truncate">&lt;{sender.email}&gt;</span>
             )}
             <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
-              {compact ? formatDate(email.receivedAt) : mvSenderDate(email.receivedAt, timeFormat)}
+              {compact ? formatDate(emailDisplayDate(email)) : mvSenderDate(emailDisplayDate(email), timeFormat)}
             </span>
           </span>
           <button
@@ -3205,9 +3205,9 @@ export function EmailViewer({
 
       let imported = 0;
       let failed = 0;
-      for (const { blob } of emails) {
+      for (const { blob, receivedAt } of emails) {
         try {
-          await client.importRawEmail(blob, { [mailboxId]: true }, { '$seen': true });
+          await client.importRawEmail(blob, { [mailboxId]: true }, { '$seen': true }, undefined, receivedAt);
           imported++;
         } catch {
           failed++;

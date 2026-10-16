@@ -2,6 +2,7 @@
 
 import React, { useCallback } from "react";
 import { cleanPreview, formatDate } from "@/lib/utils";
+import { emailDisplayDate } from "@/lib/email-date";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { cn } from "@/lib/utils";
@@ -688,7 +689,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                       'text-xs tabular-nums',
                       isUnread ? (mvRow ? 'text-foreground font-bold' : 'text-foreground font-semibold') : 'text-muted-foreground'
                     )}>
-                      {formatDate(email.receivedAt, mvRow ? { listStyle: 'mountain-view' } : undefined)}
+                      {formatDate(emailDisplayDate(email), mvRow ? { listStyle: 'mountain-view' } : undefined)}
                     </span>
                   )}
                 </div>
@@ -766,7 +767,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                           ? "text-foreground font-semibold"
                           : "text-muted-foreground"
                       )}>
-                        {formatDate(email.receivedAt)}
+                        {formatDate(emailDisplayDate(email))}
                       </span>
                     )}
                     {mvMobileRow && !(showPreview && density !== 'extra-compact' && density !== 'compact') && (
@@ -1289,7 +1290,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                         'text-xs tabular-nums',
                         hasUnread ? (mvRow ? 'text-foreground font-bold' : 'text-foreground font-semibold') : 'text-muted-foreground'
                       )}>
-                        {formatDate(latestEmail.receivedAt, mvRow ? { listStyle: 'mountain-view' } : undefined)}
+                        {formatDate(emailDisplayDate(latestEmail), mvRow ? { listStyle: 'mountain-view' } : undefined)}
                       </span>
                     )}
                   </div>
@@ -1374,7 +1375,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                             ? "text-foreground font-semibold"
                             : "text-muted-foreground"
                         )}>
-                          {formatDate(latestEmail.receivedAt)}
+                          {formatDate(emailDisplayDate(latestEmail))}
                         </span>
                       )}
                       {mvMobileRow && !(showPreview && density !== 'extra-compact' && density !== 'compact') && (

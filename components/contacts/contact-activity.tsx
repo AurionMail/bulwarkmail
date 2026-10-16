@@ -9,6 +9,7 @@ import { useEmailStore } from "@/stores/email-store";
 import { useCalendarStore } from "@/stores/calendar-store";
 import { Avatar } from "@/components/ui/avatar";
 import { cleanPreview } from "@/lib/utils";
+import { emailDisplayDate } from "@/lib/email-date";
 import { Section } from "./contact-detail";
 import type { ContactCard, Email, CalendarEvent } from "@/lib/jmap/types";
 
@@ -239,7 +240,7 @@ export function ContactActivity({ contact }: ContactActivityProps) {
                         {sender.name || t("unknown_sender")}
                       </span>
                       <span className="text-xs text-muted-foreground flex-shrink-0">
-                        {formatEmailDate(email.receivedAt)}
+                        {formatEmailDate(emailDisplayDate(email))}
                       </span>
                     </div>
                     <div className="text-sm truncate">
