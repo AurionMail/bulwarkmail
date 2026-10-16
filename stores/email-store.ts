@@ -18,7 +18,7 @@ import { emailSummary, emailToReadView } from "@/lib/plugin-projection";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import { emailKeyFor, threadKeyFor, threadIdFromKey, KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
 import type { ExternalSearchResult } from "@/lib/plugin-types";
-import { positionsByAccount, fetchUnifiedEmails, fetchUnifiedMailboxCounts, searchUnifiedEmails, advancedSearchUnifiedEmails, fetchCrossViewEmails, searchCrossViewEmails, advancedSearchCrossViewEmails, fetchTagEmails, trashAndJunkIds, searchAcrossAccounts, advancedSearchAcrossAccounts, getCrossUnreadTotal, dedupeUnifiedAccounts, type AcrossAccountsSearchOptions, type UnifiedAccountClient, type UnifiedMailboxCounts } from "@/lib/unified-mailbox";
+import { positionsByAccount, fetchUnifiedEmails, fetchUnifiedMailboxCounts, searchUnifiedEmails, advancedSearchUnifiedEmails, fetchCrossViewEmails, searchCrossViewEmails, advancedSearchCrossViewEmails, fetchTagEmails, trashAndJunkIds, searchAcrossAccounts, advancedSearchAcrossAccounts, getCrossUnreadTotal, dedupeUnifiedAccounts, unifiedServerKey, type AcrossAccountsSearchOptions, type UnifiedAccountClient, type UnifiedMailboxCounts } from "@/lib/unified-mailbox";
 import { defaultSearchScopeFor, isAllFoldersSearchScope, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { useAuthStore } from "@/stores/auth-store";
 import { pathNamesMailFolder } from "@/lib/deep-links";
@@ -1492,7 +1492,7 @@ export async function buildUnifiedAccountClients(
   const ownLoginJmapIds = new Set<string>();
   for (const a of authAccounts) {
     const c = allClients.get(a.id);
-    if (c) ownLoginJmapIds.add(c.getAccountId());
+    if (c) ownLoginJmapIds.add(`${unifiedServerKey(c)} ${c.getAccountId()}`);
   }
   // Every login at once rather than one after the other: the slowest login,
   // not the sum of all of them, bounds how long the scope takes.
@@ -1548,7 +1548,7 @@ export async function buildUnifiedAccountClients(
           // in the owner account instead of falling back to the active account.
           // When the owner is logged in too, its own (un-namespaced) list wins:
           // dedupeUnifiedAccounts routes that folder through the owner's login.
-          if (!ownLoginJmapIds.has(ownerId)) publish(ownerId, ownerMailboxes);
+          if (!ownLoginJmapIds.has(`${unifiedServerKey(c)} ${ownerId}`)) publish(ownerId, ownerMailboxes);
         }
       }
     } catch {

@@ -768,6 +768,11 @@ export function connectedAccountsGrew(previous: string | null, current: string):
   return current.split(',').some((id) => id !== '' && !before.has(id));
 }
 
+/** The server a client talks to, compared without case or a trailing slash. */
+export function unifiedServerKey(client: Pick<IJMAPClient, 'getServerUrl'> | undefined): string {
+  return (client?.getServerUrl?.() ?? '').trim().replace(/\/+$/, '').toLowerCase();
+}
+
 /**
  * How far the unified scope has got while logins are still reconnecting:
  * `{ loaded, total }` while some logins expected in it are not there yet,
@@ -795,18 +800,22 @@ export function unifiedLoadProgress(input: {
  * shared with two logins at once, otherwise yields one entry per reaching
  * login: its messages list twice and its unread count is summed twice.
  *
- * A mailbox is identified by its owning JMAP account + server-side id (a shared
- * entry's `originalId`). Personal entries always win and are never trimmed, so
+ * A mailbox is identified by its server, its owning JMAP account and its
+ * server-side id (a shared entry's `originalId`). JMAP account and mailbox ids
+ * are only unique on one server (Stalwart hands out short ids like "b" or "c"
+ * everywhere), so logins on different servers never cover each other's
+ * folders. Personal entries always win and are never trimmed, so
  * an owner's folder is read through the owner's own login and honors their
  * folder selection. Shared entries keep only mailboxes not already covered and
  * are dropped when none remain. Order is preserved.
  */
 export function dedupeUnifiedAccounts(accounts: UnifiedAccountClient[]): UnifiedAccountClient[] {
   const seen = new Set<string>();
-  const key = (jmapAccountId: string, mailboxId: string) => `${jmapAccountId}\u0000${mailboxId}`;
+  const key = (account: UnifiedAccountClient, mailboxId: string) =>
+    `${unifiedServerKey(account.client)}\u0000${account.jmapAccountId}\u0000${mailboxId}`;
   for (const account of accounts) {
     if (account.isShared) continue;
-    for (const m of account.mailboxes) seen.add(key(account.jmapAccountId, m.id));
+    for (const m of account.mailboxes) seen.add(key(account, m.id));
   }
   const out: UnifiedAccountClient[] = [];
   for (const account of accounts) {
@@ -815,7 +824,7 @@ export function dedupeUnifiedAccounts(accounts: UnifiedAccountClient[]): Unified
       continue;
     }
     const mailboxes = account.mailboxes.filter((m) => {
-      const k = key(account.jmapAccountId, m.originalId ?? m.id);
+      const k = key(account, m.originalId ?? m.id);
       if (seen.has(k)) return false;
       seen.add(k);
       return true;

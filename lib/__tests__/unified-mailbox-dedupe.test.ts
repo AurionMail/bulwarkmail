@@ -54,4 +54,24 @@ describe('dedupeUnifiedAccounts', () => {
     const group = sharedEntry('G', 'login-a', [mb('G:inbox', 'inbox', 1, 'inbox')]);
     expect(dedupeUnifiedAccounts([a, b, group])).toEqual([a, b, group]);
   });
+  it('does not merge equal JMAP ids that live on different servers', () => {
+    // Stalwart hands out the same short account and mailbox ids on every
+    // server, so login A's own folder and a folder shared to login B on
+    // another server can both be account "c", mailbox "f1".
+    const server = (url: string) => ({ getServerUrl: () => url } as unknown as IJMAPClient);
+    const own = makeAccount({ accountId: 'login-a', jmapAccountId: 'c', client: server('https://one.example'), mailboxes: [mb('f1', undefined, 1)] });
+    const sharedElsewhere = sharedEntry('c', 'login-b', [mb('c:f1', undefined, 2, 'f1')]);
+    sharedElsewhere.client = server('https://two.example');
+    const out = dedupeUnifiedAccounts([own, sharedElsewhere]);
+    expect(out).toEqual([own, sharedElsewhere]);
+    expect(getCrossUnreadTotal(out)).toBe(3);
+  });
+
+  it('still merges the same folder reached through two logins of one server', () => {
+    const server = (url: string) => ({ getServerUrl: () => url } as unknown as IJMAPClient);
+    const own = makeAccount({ accountId: 'login-a', jmapAccountId: 'c', client: server('https://one.example'), mailboxes: [mb('f1', undefined, 1)] });
+    const viaGrantee = sharedEntry('c', 'login-b', [mb('c:f1', undefined, 1, 'f1')]);
+    viaGrantee.client = server('https://ONE.example/');
+    expect(dedupeUnifiedAccounts([viaGrantee, own])).toEqual([own]);
+  });
 });
