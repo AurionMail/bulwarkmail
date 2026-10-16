@@ -258,7 +258,7 @@ function FloatingDropdownPortal({
   return createPortal(
     <div
       ref={dropdownRef}
-      id={dropdown.id}
+      id={`plugin-dropdown-${dropdown.id}`}
       role="listbox"
       aria-multiselectable={dropdown.multiple || undefined}
       aria-label={dropdown.ariaLabel}
@@ -287,7 +287,7 @@ function FloatingDropdownPortal({
             <div
               key={opt.value}
               ref={(el) => { optionRefs.current[i] = el; }}
-              id={`${dropdown.id}-opt-${i}`}
+              id={`plugin-dropdown-${dropdown.id}-opt-${i}`}
               role="option"
               aria-selected={isSelected}
               aria-disabled={opt.disabled}

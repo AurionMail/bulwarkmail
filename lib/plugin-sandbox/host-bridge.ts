@@ -18,9 +18,94 @@ import type {
   SandboxToHost, HostToSandbox, InitMsg, InitPayload, StreamChunkMsg, StreamEndMsg, StreamProgressMsg,
   FloatingDropdownOpenMsg, FloatingDropdownUpdateMsg, FloatingDropdownCloseMsg,
   FloatingDropdownSelectMsg, FloatingDropdownHighlightMsg, FloatingDropdownDismissMsg,
+  FloatingDropdownOption, FloatingDropdownRect,
 } from './protocol';
 
 export type FloatingDropdownHostMsg = FloatingDropdownOpenMsg | FloatingDropdownUpdateMsg | FloatingDropdownCloseMsg;
+
+// ─── Floating dropdown messages ──────────────────────────────
+
+const MAX_DROPDOWN_OPTIONS = 500;
+const MAX_DROPDOWN_TEXT = 500;
+
+function str(v: unknown, max = MAX_DROPDOWN_TEXT): string | undefined {
+  return typeof v === 'string' ? v.slice(0, max) : undefined;
+}
+
+function clamp(v: unknown, min: number, max: number): number | null {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+  return Math.min(Math.max(v, min), Math.max(min, max));
+}
+
+function cleanRect(r: unknown, frameW: number, frameH: number): FloatingDropdownRect | null {
+  if (!r || typeof r !== 'object') return null;
+  const o = r as Record<string, unknown>;
+  const left = clamp(o.left, 0, frameW);
+  const top = clamp(o.top, 0, frameH);
+  if (left === null || top === null) return null;
+  const bottom = clamp(o.bottom, top, frameH);
+  const width = clamp(o.width, 0, frameW - left);
+  if (bottom === null || width === null) return null;
+  return { left, top, bottom, width, height: bottom - top };
+}
+
+function cleanOptions(v: unknown): FloatingDropdownOption[] | null {
+  if (!Array.isArray(v)) return null;
+  const out: FloatingDropdownOption[] = [];
+  for (const item of v.slice(0, MAX_DROPDOWN_OPTIONS)) {
+    if (!item || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    const value = str(o.value);
+    const label = str(o.label);
+    if (value === undefined || label === undefined) continue;
+    out.push(o.disabled === true ? { value, label, disabled: true } : { value, label });
+  }
+  return out;
+}
+
+function cleanValues(v: unknown): string[] | null {
+  if (!Array.isArray(v)) return null;
+  return v.slice(0, MAX_DROPDOWN_OPTIONS).filter((x): x is string => typeof x === 'string');
+}
+
+/**
+ * Check a floating-dropdown message from a plugin before the host renders
+ * it in its own DOM: drop messages with a bad id or shape, cap sizes, keep
+ * only string labels, and clamp the anchor rect (iframe coordinates) to the
+ * frame so a plugin can't put a host-drawn popup anywhere on the page.
+ */
+export function sanitizeFloatingDropdownMsg(
+  msg: FloatingDropdownHostMsg,
+  frameW: number,
+  frameH: number,
+): FloatingDropdownHostMsg | null {
+  const id = str(msg.id, 200);
+  if (!id) return null;
+  if (msg.type === 'floating-dropdown-close') return { type: msg.type, id };
+  const highlighted = typeof msg.highlightedIndex === 'number' && Number.isInteger(msg.highlightedIndex)
+    ? msg.highlightedIndex : undefined;
+  if (msg.type === 'floating-dropdown-open') {
+    const rect = cleanRect(msg.rect, frameW, frameH);
+    const options = cleanOptions(msg.options);
+    if (!rect || !options) return null;
+    return {
+      type: msg.type, id, rect, options,
+      multiple: msg.multiple === true,
+      selectedValues: cleanValues(msg.selectedValues) ?? [],
+      singleValue: str(msg.singleValue),
+      highlightedIndex: highlighted ?? -1,
+      ariaLabel: str(msg.ariaLabel),
+    };
+  }
+  const out: FloatingDropdownUpdateMsg = { type: 'floating-dropdown-update', id };
+  if (msg.rect !== undefined) { const r = cleanRect(msg.rect, frameW, frameH); if (r) out.rect = r; }
+  if (msg.options !== undefined) { const o = cleanOptions(msg.options); if (o) out.options = o; }
+  if (msg.selectedValues !== undefined) { const v = cleanValues(msg.selectedValues); if (v) out.selectedValues = v; }
+  if (typeof msg.multiple === 'boolean') out.multiple = msg.multiple;
+  if (typeof msg.singleValue === 'string') out.singleValue = str(msg.singleValue);
+  if (highlighted !== undefined) out.highlightedIndex = highlighted;
+  return out;
+}
 
 // ─── Callback marshalling ────────────────────────────────────
 
@@ -375,7 +460,11 @@ export class SandboxInstance {
       case 'floating-dropdown-open':
       case 'floating-dropdown-update':
       case 'floating-dropdown-close': {
-        this.slotFloatingDropdownCb?.(msg);
+        // The host draws this dropdown in its own DOM, so a malformed message
+        // must not crash the app, and the anchor must stay inside the frame.
+        const frame = this.iframe.getBoundingClientRect();
+        const clean = sanitizeFloatingDropdownMsg(msg, frame.width, frame.height);
+        if (clean) this.slotFloatingDropdownCb?.(clean);
         return;
       }
     }
