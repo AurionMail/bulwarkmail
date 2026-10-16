@@ -300,7 +300,8 @@ Der Inhalt dieser E-Mail ist vertraulich.
       const out = serializeEditorContent(editor);
       // Leading paragraph + separator + ONE signature paragraph + end marker.
       expect((out.match(/<p/g) || []).length).toBe(4);
-      expect((out.match(/<br/g) || []).length).toBe(7);
+      // 7 in the signature, 1 keeping the empty first line visible (#1015).
+      expect((out.match(/<br/g) || []).length).toBe(8);
       expect(out).toContain('font-size: 9pt');
       expect(out).toContain('Jane Doe');
     } finally {

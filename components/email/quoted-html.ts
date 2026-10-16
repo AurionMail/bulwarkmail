@@ -5,6 +5,7 @@ import { DOMSerializer } from "@tiptap/pm/model";
 import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
 import type { Editor } from "@tiptap/react";
 
+import { addTrailingParagraphBreaks } from "@/components/email/paragraph-breaks";
 import { buildSignatureBlock } from "@/components/email/signature-block";
 import { parkRemoteResources, restoreRemoteResources } from "@/lib/email-sanitization";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -235,7 +236,14 @@ export const QuotedHtml = TiptapNode.create({
 export function serializeEditorContent(editor: Editor): string {
   const serializer = DOMSerializer.fromSchema(editor.schema);
   const parts: string[] = [];
-  editor.state.doc.forEach((node) => {
+  // Empty paragraphs at the very end (the editor keeps one after a quote)
+  // stay invisible; every other empty line gets a <br> so it keeps its
+  // height in the recipient's client (#1015).
+  let lastLine = -1;
+  editor.state.doc.forEach((node, _offset, index) => {
+    if (node.type.name !== "paragraph" || node.childCount > 0) lastLine = index;
+  });
+  editor.state.doc.forEach((node, _offset, index) => {
     if (node.type.name === "quotedHtml") {
       // Emit the SAME wrapper buildQuotedHtmlBlock produces, so a saved draft
       // round-trips: re-opening parses this back into a QuotedHtml node
@@ -253,6 +261,7 @@ export function serializeEditorContent(editor: Editor): string {
     const fragment = serializer.serializeNode(node);
     const tmp = document.createElement("div");
     tmp.appendChild(fragment);
+    if (index <= lastLine) addTrailingParagraphBreaks(tmp);
     parts.push(tmp.innerHTML);
   });
   return parts.join("");
