@@ -1569,7 +1569,7 @@ export function buildTagViewAccountClients(passedClient: IJMAPClient): UnifiedAc
  * with their source account (#1082). A search scoped to one folder stays
  * single-account.
  */
-function isUnscopedSearchActive(
+export function isUnscopedSearchActive(
   s: Pick<EmailStore, 'isUnifiedView' | 'searchMailboxId' | 'searchQuery' | 'searchFilters'>,
 ): boolean {
   return !s.isUnifiedView && isAllFoldersSearchScope(s.searchMailboxId) && (!!s.searchQuery || !isFilterEmpty(s.searchFilters));

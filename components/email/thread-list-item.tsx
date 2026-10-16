@@ -18,7 +18,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
 import { accountTintKey, generateAvatarColor } from "@/lib/account-utils";
 import { useUIStore } from "@/stores/ui-store";
-import { useEmailStore } from "@/stores/email-store";
+import { useEmailStore, isUnscopedSearchActive } from "@/stores/email-store";
 import { useAccountStore, type AccountEntry } from "@/stores/account-store";
 import { emailKeyFor, getThreadTagIds, getEmailTagIds } from "@/lib/thread-utils";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
@@ -250,6 +250,15 @@ function SourceFolderTag({ name }: { name: string }) {
 }
 
 /**
+ * Whether rows show their folder chip: in the aggregate "All …" views, and in
+ * search results that span every folder rather than the one picked in the
+ * search panel (#1172). Rows of a single-folder list carry no sourceFolder.
+ */
+function useShowSourceFolder(): boolean {
+  return useEmailStore((state) => state.isUnifiedView || isUnscopedSearchActive(state));
+}
+
+/**
  * How many messages a collapsed thread stands for.
  *
  * Built from the tag lozenge so it lines up with the tags it sits next to: the
@@ -368,7 +377,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
     const hideJunkAvatarImages = currentMailboxRole === 'junk' && !showAvatarsInJunk;
     // Show the originating folder in the aggregate "All …" views.
-    const showSourceFolder = isUnifiedView && !!email.sourceFolder;
+    const showSourceFolder = useShowSourceFolder() && !!email.sourceFolder;
     const getAccountById = useAccountStore((state) => state.getAccountById);
     const account = email.accountId ? getAccountById(email.accountId) : undefined;
     const accountColor = account?.avatarColor;
@@ -923,7 +932,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       selectRangeEmails: state.selectRangeEmails,
       isUnifiedView: state.isUnifiedView,
     })));
-    const showSourceFolder = isUnifiedView && !!latestEmail.sourceFolder;
+    const showSourceFolder = useShowSourceFolder() && !!latestEmail.sourceFolder;
     const getAccountById = useAccountStore((state) => state.getAccountById);
     const threadAccount = latestEmail.accountId ? getAccountById(latestEmail.accountId) : undefined;
     const threadAccountColor = threadAccount?.avatarColor;
