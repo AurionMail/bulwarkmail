@@ -711,6 +711,10 @@
     "option_dsn_hint": "Saņemt atskaiti, kad serveris to piegādā",
     "option_require_tls": "Pieprasīt šifrētu piegādi",
     "option_require_tls_hint": "Piegādāt tikai caur TLS, citādi atgriezt",
+    "option_priority": "Prioritāte",
+    "option_priority_high": "Augsta",
+    "option_priority_normal": "Parasta",
+    "option_priority_low": "Zema",
     "validation": {
       "recipient_required": "Norādiet vismaz vienu saņēmēju",
       "body_required": "Ierakstiet ziņojumu vai pievienojiet failu",

@@ -714,6 +714,10 @@
     "option_dsn_hint": "Jelentés, amikor a szerver kézbesíti",
     "option_require_tls": "Titkosított kézbesítés megkövetelése",
     "option_require_tls_hint": "Csak TLS-en kézbesítse, különben utasítsa vissza",
+    "option_priority": "Fontosság",
+    "option_priority_high": "Magas",
+    "option_priority_normal": "Normál",
+    "option_priority_low": "Alacsony",
     "validation": {
       "recipient_required": "Adj meg egy címzettet a küldéshez",
       "body_required": "Írj üzenetet vagy csatolj fájlt",

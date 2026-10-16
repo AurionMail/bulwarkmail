@@ -711,6 +711,10 @@
     "option_dsn_hint": "Получить отчёт, когда сервер доставит письмо",
     "option_require_tls": "Требовать шифрованную доставку",
     "option_require_tls_hint": "Доставлять только через TLS, иначе вернуть",
+    "option_priority": "Важность",
+    "option_priority_high": "Высокая",
+    "option_priority_normal": "Обычная",
+    "option_priority_low": "Низкая",
     "validation": {
       "recipient_required": "Укажите получателя для отправки",
       "body_required": "Напишите сообщение или прикрепите файл",

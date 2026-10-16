@@ -711,6 +711,10 @@
     "option_dsn_hint": "서버가 배달하면 보고서를 받습니다",
     "option_require_tls": "암호화된 배달 필수",
     "option_require_tls_hint": "TLS로만 배달하고, 불가능하면 반송합니다",
+    "option_priority": "중요도",
+    "option_priority_high": "높음",
+    "option_priority_normal": "보통",
+    "option_priority_low": "낮음",
     "validation": {
       "recipient_required": "보내려면 받는 사람을 추가해 주세요",
       "body_required": "메시지를 작성하거나 파일을 첨부해 주세요",

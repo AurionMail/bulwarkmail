@@ -658,6 +658,10 @@
     "option_dsn_hint": "לקבל דוח כשהשרת מוסר את ההודעה",
     "option_require_tls": "חיוב מסירה מוצפנת",
     "option_require_tls_hint": "למסור רק דרך TLS, אחרת להחזיר",
+    "option_priority": "עדיפות",
+    "option_priority_high": "גבוהה",
+    "option_priority_normal": "רגילה",
+    "option_priority_low": "נמוכה",
     "validation": {
       "recipient_required": "הוסף נמען לשליחה",
       "body_required": "כתוב הודעה או צרף קובץ",

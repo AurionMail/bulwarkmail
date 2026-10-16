@@ -715,6 +715,10 @@
     "option_dsn_hint": "Get a report when the server delivers it",
     "option_require_tls": "Require encrypted delivery",
     "option_require_tls_hint": "Only deliver over TLS, otherwise bounce",
+    "option_priority": "Priority",
+    "option_priority_high": "High",
+    "option_priority_normal": "Normal",
+    "option_priority_low": "Low",
     "validation": {
       "recipient_required": "Add a recipient to send",
       "body_required": "Write a message or attach a file",

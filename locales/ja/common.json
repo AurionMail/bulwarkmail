@@ -711,6 +711,10 @@
     "option_dsn_hint": "サーバーが配信したときにレポートを受け取ります",
     "option_require_tls": "暗号化された配信を必須にする",
     "option_require_tls_hint": "TLS でのみ配信し、できなければ返送します",
+    "option_priority": "重要度",
+    "option_priority_high": "高",
+    "option_priority_normal": "標準",
+    "option_priority_low": "低",
     "validation": {
       "recipient_required": "送信するには宛先を追加してください",
       "body_required": "メッセージを入力するかファイルを添付してください",

@@ -713,6 +713,10 @@
     "option_dsn_hint": "Få en rapport, når serveren leverer den",
     "option_require_tls": "Kræv krypteret levering",
     "option_require_tls_hint": "Lever kun over TLS, ellers afvis",
+    "option_priority": "Prioritet",
+    "option_priority_high": "Høj",
+    "option_priority_normal": "Normal",
+    "option_priority_low": "Lav",
     "validation": {
       "recipient_required": "Tilføj en modtager for at sende",
       "body_required": "Skriv en besked eller vedhæft en fil",

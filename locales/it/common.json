@@ -711,6 +711,10 @@
     "option_dsn_hint": "Ricevi un rapporto quando il server lo consegna",
     "option_require_tls": "Richiedi consegna cifrata",
     "option_require_tls_hint": "Consegna solo tramite TLS, altrimenti respingi",
+    "option_priority": "Priorità",
+    "option_priority_high": "Alta",
+    "option_priority_normal": "Normale",
+    "option_priority_low": "Bassa",
     "validation": {
       "recipient_required": "Aggiungi un destinatario per inviare",
       "body_required": "Scrivi un messaggio o allega un file",

@@ -4,6 +4,7 @@ import type { FileNameRules } from "@/lib/file-name-rules";
 import type { SortLevel } from "@/lib/message-list-order";
 import type { SearchSnippetResult } from "@/lib/search-snippet";
 import type { StorageQuota } from "@/lib/quota";
+import type { MessagePriority } from "@/lib/message-priority";
 
 /** What `migrateKeyword` managed to do. */
 export interface KeywordMigration {
@@ -338,6 +339,8 @@ export interface IJMAPClient {
     htmlBody?: string,
     inReplyTo?: string[],
     references?: string[],
+    // Importance / X-Priority headers, so a re-opened draft keeps its priority (#970).
+    options?: { priority?: MessagePriority },
   ): Promise<string>;
 
   sendEmail(
@@ -362,7 +365,7 @@ export interface IJMAPClient {
     // requestDsn / requireTls map to RFC 3461 / RFC 8689 envelope parameters
     // and need the matching `submissionExtensions` entry (see
     // supportsSubmissionExtension).
-    options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean },
+    options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority },
   ): Promise<SendEmailResult>;
   /** Whether the submission account advertises an SMTP extension ("DSN", "REQUIRETLS", …). */
   supportsSubmissionExtension?(extension: string, accountId?: string): boolean;

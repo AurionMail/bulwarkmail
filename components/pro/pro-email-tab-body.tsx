@@ -22,6 +22,7 @@ import { buildForwardAsAttachmentPayload } from "@/lib/forward-as-attachment";
 import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
 import { cn } from "@/lib/utils";
 import { getDraftTextBody } from '@/lib/email-body-selection';
+import { messagePriorityFromHeaders } from '@/lib/message-priority';
 
 interface ProEmailTabBodyProps {
   tabId: string;
@@ -381,6 +382,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
         // since #849; without this the Pro draft tab still opened the
         // composer without its files and the next save stripped them.
         attachments: email.attachments,
+        priority: messagePriorityFromHeaders(email.headers),
       },
     }, { to: addresses(email.to), cc: addresses(email.cc), subject: draftSubject, body: bodyText }, onClose);
   }, [email, identities, multiAccountIdentities, openComposeTab, onClose, t]);

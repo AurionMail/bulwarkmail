@@ -714,6 +714,10 @@
     "option_dsn_hint": "Sunucu teslim ettiğinde rapor al",
     "option_require_tls": "Şifreli teslimat zorunlu",
     "option_require_tls_hint": "Yalnızca TLS ile teslim et, yoksa geri çevir",
+    "option_priority": "Öncelik",
+    "option_priority_high": "Yüksek",
+    "option_priority_normal": "Normal",
+    "option_priority_low": "Düşük",
     "validation": {
       "recipient_required": "Göndermek için bir alıcı ekleyin",
       "body_required": "Bir ileti yazın veya dosya ekleyin",

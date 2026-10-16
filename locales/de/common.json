@@ -711,6 +711,10 @@
     "option_dsn_hint": "Bericht erhalten, sobald der Server zustellt",
     "option_require_tls": "Verschlüsselte Zustellung erzwingen",
     "option_require_tls_hint": "Nur über TLS zustellen, sonst zurückweisen",
+    "option_priority": "Wichtigkeit",
+    "option_priority_high": "Hoch",
+    "option_priority_normal": "Normal",
+    "option_priority_low": "Niedrig",
     "validation": {
       "recipient_required": "Empfänger hinzufügen zum Senden",
       "body_required": "Nachricht schreiben oder Datei anhängen",

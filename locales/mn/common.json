@@ -714,6 +714,10 @@
     "option_dsn_hint": "Сервер хүргэх үед тайлан авах",
     "option_require_tls": "Шифрлэгдсэн хүргэлт шаардах",
     "option_require_tls_hint": "Зөвхөн TLS-ээр хүргэх, үгүй бол буцаах",
+    "option_priority": "Чухал байдал",
+    "option_priority_high": "Өндөр",
+    "option_priority_normal": "Энгийн",
+    "option_priority_low": "Бага",
     "validation": {
       "recipient_required": "Илгээхийн тулд хүлээн авагч нэмэх",
       "body_required": "Мессеж бичих эсвэл файл хавсаргах",

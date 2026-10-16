@@ -714,6 +714,10 @@
     "option_dsn_hint": "伺服器投遞後收到報告",
     "option_require_tls": "要求加密投遞",
     "option_require_tls_hint": "僅透過 TLS 投遞，否則退回",
+    "option_priority": "優先順序",
+    "option_priority_high": "高",
+    "option_priority_normal": "一般",
+    "option_priority_low": "低",
     "validation": {
       "recipient_required": "請新增收件者",
       "body_required": "請輸入郵件內容或新增附件",

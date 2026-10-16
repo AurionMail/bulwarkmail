@@ -23,6 +23,7 @@ import { getEffectiveTimeZone, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
 import { toInertBlob } from "@/lib/file-preview";
 import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
+import { messagePriorityHeaders, type MessagePriority } from "@/lib/message-priority";
 
 // Cap for the follow-up Email/get issued when a displayed body part comes
 // back truncated at the normal 256000-byte limit (see refetchTruncatedBodyValues
@@ -958,6 +959,8 @@ export interface SubmissionSendOptions {
   requestReadReceipt?: boolean;
   requestDsn?: boolean;
   requireTls?: boolean;
+  /** Importance / X-Priority headers (#970); see lib/message-priority.ts. */
+  priority?: MessagePriority;
 }
 
 /** The MAIL FROM / RCPT TO parameters the options translate to. */
@@ -3881,6 +3884,7 @@ export class JMAPClient implements IJMAPClient {
     htmlBody?: string,
     inReplyTo?: string[],
     references?: string[],
+    options?: { priority?: MessagePriority },
   ): Promise<string> {
     const mailboxes = await this.getMailboxes();
     const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
@@ -3904,6 +3908,7 @@ export class JMAPClient implements IJMAPClient {
       attachments?: { blobId: string; type: string; name: string; disposition: string; cid?: string }[];
       inReplyTo?: string[];
       references?: string[];
+      [header: `header:${string}`]: string;
     }
 
     const sanitizedFromName = sanitizeIdentityDisplayName(fromName);
@@ -3931,6 +3936,8 @@ export class JMAPClient implements IJMAPClient {
       ...(htmlBody ? { htmlBody: [{ partId: "html", type: "text/html" }] } : {}),
       ...(draftInReplyTo?.length ? { inReplyTo: draftInReplyTo } : {}),
       ...(draftReferences?.length ? { references: draftReferences } : {}),
+      // A re-opened draft reads its priority back from these (#970).
+      ...messagePriorityHeaders(options?.priority),
     };
 
     if (attachments?.length) {
@@ -4100,6 +4107,8 @@ export class JMAPClient implements IJMAPClient {
       // via the "header:<Name>:asText" property form.
       emailCreate["header:Disposition-Notification-To:asText"] = fromEmail || this.username;
     }
+
+    Object.assign(emailCreate, messagePriorityHeaders(options?.priority));
 
     if (htmlBody) {
       // Send as multipart/alternative with both text and HTML

@@ -36,6 +36,8 @@ import {
   BookUser,
 } from "@/components/icons";
 import { ComposerPluginMenuItems, ComposerPluginToolbarButtons, ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
+import { ComposerToolbarMenuRadioItem } from "@/components/email/composer-toolbar-menu";
+import type { MessagePriority } from "@/lib/message-priority";
 import { registerComposer } from "@/lib/plugin-sandbox/composer-registry";
 import { plainOwnRange, readOwnContent, readSelection as readEditorSelection, replaceOwnContent, replaceSelection as replaceEditorSelection, replaceTextareaRange, textToEditorHtml, type OwnTextOptions } from "@/lib/plugin-sandbox/composer-edit";
 import { actionsFor, runAction } from "@/lib/plugin-sandbox/actions";
@@ -205,6 +207,8 @@ export interface ComposerDraftData {
    */
   inReplyTo?: string[];
   references?: string[];
+  /** Priority of a re-opened draft, read back from its headers (#970). */
+  priority?: MessagePriority;
 }
 
 interface EmailComposerProps {
@@ -234,6 +238,8 @@ interface EmailComposerProps {
     requestDsn?: boolean;
     /** Refuse delivery over an unencrypted hop (RFC 8689 REQUIRETLS). */
     requireTls?: boolean;
+    /** Importance / X-Priority; absent for normal (#970). */
+    priority?: MessagePriority;
   }) => void | Promise<void>;
   onScheduledSendCreated?: () => void | Promise<void>;
   onClose?: () => void;
@@ -801,6 +807,10 @@ export function EmailComposer({
   // extension (RFC 8621 §1.3 submissionExtensions).
   const [requestDsn, setRequestDsn] = useState(false);
   const [requireTls, setRequireTls] = useState(false);
+  // Message priority (#970): normal writes no header at all.
+  const [priority, setPriority] = useState<MessagePriority>(initialData?.priority ?? 'normal');
+  const priorityRef = useRef(priority);
+  priorityRef.current = priority;
   const [draftId, setDraftId] = useState<string | null>(initialData?.draftId ?? null);
   // Mirror of draftId for synchronous reads inside chained saves; React's
   // setDraftId is async, so a queued saveDraft would otherwise see the old
@@ -1471,6 +1481,17 @@ export function EmailComposer({
     // `!==`, not `>`: a re-opened draft starts with hydrated attachments, and
     // removing one must count as dirty or the removal never reaches the server.
     body !== initialValuesRef.current.body || attachments.length !== initialValuesRef.current.attachmentCount;
+  // A priority change alone is an edit worth saving (#970).
+  const initialPriorityRef = useRef(priority);
+  if (priority !== initialPriorityRef.current) isDirtyRef.current = true;
+  const firstPriorityRunRef = useRef(true);
+  useEffect(() => {
+    if (firstPriorityRunRef.current) {
+      firstPriorityRunRef.current = false;
+      return;
+    }
+    changeVersionRef.current += 1;
+  }, [priority]);
 
   // Ref to latest saveDraft for use in event handlers with stale closures
   const saveDraftRef = useRef<() => Promise<string | null>>(() => Promise.resolve(null));
@@ -1516,6 +1537,7 @@ export function EmailComposer({
           ...s,
           mode,
           replyTo,
+          priority: priorityRef.current,
         });
       }
     };
@@ -2375,7 +2397,7 @@ export function EmailComposer({
     // draft version (below), and hashing them would mark each save dirty
     // again - an endless save loop. Name+type+size identifies an attachment
     // for change detection.
-    const currentData = JSON.stringify({ to: toAddresses, cc: ccAddresses, bcc: bccAddresses, subject, body: draftHtmlBody ?? draftTextBody, attachments: uploadedAttachments.map(({ name, type, size, cid }) => ({ name, type, size, cid })), identityId: selectedIdentityId, subAddressTag });
+    const currentData = JSON.stringify({ to: toAddresses, cc: ccAddresses, bcc: bccAddresses, subject, body: draftHtmlBody ?? draftTextBody, attachments: uploadedAttachments.map(({ name, type, size, cid }) => ({ name, type, size, cid })), identityId: selectedIdentityId, subAddressTag, priority });
 
     // Only save if data has changed
     if (currentData === lastSavedDataRef.current) {
@@ -2448,6 +2470,7 @@ export function EmailComposer({
         savedDraft.htmlBody,
         replyThreadingHeaders?.inReplyTo,
         replyThreadingHeaders?.references,
+        { priority },
       );
 
       // Update the ref synchronously so a queued save sees the new id and
@@ -2726,7 +2749,7 @@ export function EmailComposer({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- saveDraft reads current state when called, not when effect is set up
-  }, [toStr, ccStr, bccStr, subject, body, attachments]);
+  }, [toStr, ccStr, bccStr, subject, body, attachments, priority]);
 
   useEffect(() => {
     return () => {
@@ -3201,6 +3224,7 @@ export function EmailComposer({
           requestReadReceipt,
           requestDsn: requestDsn || undefined,
           requireTls: requireTls || undefined,
+          priority: priority !== 'normal' ? priority : undefined,
           delayedUntil: effectiveDelayedUntil,
         });
 
@@ -4239,7 +4263,7 @@ export function EmailComposer({
             <ComposerToolbarMenu
               icon={SlidersHorizontal}
               label={t('options')}
-              activeCount={[plainTextMode, requestReadReceipt, requestDsn, requireTls].filter(Boolean).length + pluginOptionsOn}
+              activeCount={[plainTextMode, requestReadReceipt, requestDsn, requireTls, priority !== 'normal'].filter(Boolean).length + pluginOptionsOn}
               testId="composer-options-menu"
             >
               {(close) => <>
@@ -4279,6 +4303,20 @@ export function EmailComposer({
                     {t('option_require_tls')}
                   </ComposerToolbarMenuCheckItem>
                 )}
+                <div role="separator" className="my-1 h-px bg-border" />
+                <div role="group" aria-label={t('option_priority')} data-testid="composer-priority">
+                  <div className="px-3 pt-1 pb-0.5 text-xs font-medium text-muted-foreground" aria-hidden="true">{t('option_priority')}</div>
+                  {(['high', 'normal', 'low'] as const).map((level) => (
+                    <ComposerToolbarMenuRadioItem
+                      key={level}
+                      checked={priority === level}
+                      onSelect={() => setPriority(level)}
+                      testId={`composer-priority-${level}`}
+                    >
+                      {t(`option_priority_${level}`)}
+                    </ComposerToolbarMenuRadioItem>
+                  ))}
+                </div>
                 <ComposerPluginMenuItems surface="composer-options-menu" context={composerActionContext} onSelect={close} separator />
                 <ComposerPluginMenuItems surface="composer-toolbar-actions" context={composerActionContext} onSelect={close} separator onlyWhenNarrow />
               </>}

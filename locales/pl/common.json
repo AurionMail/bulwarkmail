@@ -711,6 +711,10 @@
     "option_dsn_hint": "Otrzymaj raport, gdy serwer ją doręczy",
     "option_require_tls": "Wymagaj szyfrowanego doręczenia",
     "option_require_tls_hint": "Doręcz tylko przez TLS, inaczej odrzuć",
+    "option_priority": "Priorytet",
+    "option_priority_high": "Wysoki",
+    "option_priority_normal": "Normalny",
+    "option_priority_low": "Niski",
     "validation": {
       "recipient_required": "Dodaj odbiorcę, aby wysłać",
       "body_required": "Napisz wiadomość lub załącz plik",

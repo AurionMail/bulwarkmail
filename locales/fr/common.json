@@ -711,6 +711,10 @@
     "option_dsn_hint": "Recevoir un rapport quand le serveur le remet",
     "option_require_tls": "Exiger une remise chiffrée",
     "option_require_tls_hint": "Remettre uniquement via TLS, sinon rejeter",
+    "option_priority": "Priorité",
+    "option_priority_high": "Haute",
+    "option_priority_normal": "Normale",
+    "option_priority_low": "Basse",
     "validation": {
       "recipient_required": "Ajoutez un destinataire pour envoyer",
       "body_required": "Rédigez un message ou joignez un fichier",

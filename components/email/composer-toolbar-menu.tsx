@@ -142,6 +142,38 @@ export function ComposerToolbarMenuCheckItem({ checked, onToggle, description, t
   );
 }
 
+interface RadioItemProps {
+  checked: boolean;
+  onSelect: () => void;
+  testId?: string;
+  children: React.ReactNode;
+}
+
+/** One choice of a group (message priority); stays open like the check items. */
+export function ComposerToolbarMenuRadioItem({ checked, onSelect, testId, children }: RadioItemProps) {
+  return (
+    <button
+      type="button"
+      role="menuitemradio"
+      aria-checked={checked}
+      onClick={onSelect}
+      data-testid={testId}
+      className="flex w-full items-center gap-2 rounded-sm px-3 py-1.5 text-start text-sm hover:bg-accent hover:text-accent-foreground"
+    >
+      <span
+        className={cn(
+          "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
+          checked ? "border-primary" : "border-muted-foreground/50"
+        )}
+        aria-hidden="true"
+      >
+        {checked && <span className="h-2 w-2 rounded-full bg-primary" />}
+      </span>
+      <span className="flex-1">{children}</span>
+    </button>
+  );
+}
+
 interface PluginItemsProps {
   /** A surface of kind 'action' in lib/plugin-slot-catalog.ts. */
   surface: string;

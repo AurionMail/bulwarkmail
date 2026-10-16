@@ -711,6 +711,10 @@
     "option_dsn_hint": "Отримати звіт, коли сервер доставить лист",
     "option_require_tls": "Вимагати шифровану доставку",
     "option_require_tls_hint": "Доставляти лише через TLS, інакше повернути",
+    "option_priority": "Важливість",
+    "option_priority_high": "Висока",
+    "option_priority_normal": "Звичайна",
+    "option_priority_low": "Низька",
     "validation": {
       "recipient_required": "Додайте одержувача для надсилання",
       "body_required": "Напишіть повідомлення або прикріпіть файл",

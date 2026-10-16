@@ -714,6 +714,10 @@
     "option_dsn_hint": "احصل على تقرير عندما يسلّمها الخادم",
     "option_require_tls": "اشتراط التسليم المشفّر",
     "option_require_tls_hint": "التسليم عبر TLS فقط، وإلا تُرفض",
+    "option_priority": "الأهمية",
+    "option_priority_high": "عالية",
+    "option_priority_normal": "عادية",
+    "option_priority_low": "منخفضة",
     "validation": {
       "recipient_required": "أضف مستلمًا للإرسال",
       "body_required": "اكتب رسالة أو أرفق ملفًا",

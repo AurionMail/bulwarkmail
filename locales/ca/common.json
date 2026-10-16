@@ -714,6 +714,10 @@
     "option_dsn_hint": "Rep un informe quan el servidor el lliuri",
     "option_require_tls": "Exigeix lliurament xifrat",
     "option_require_tls_hint": "Lliura només per TLS; si no, retorna'l",
+    "option_priority": "Prioritat",
+    "option_priority_high": "Alta",
+    "option_priority_normal": "Normal",
+    "option_priority_low": "Baixa",
     "validation": {
       "recipient_required": "Afegiu un destinatari per enviar",
       "body_required": "Escriviu un missatge o adjunteu un fitxer",

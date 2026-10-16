@@ -711,6 +711,10 @@
     "option_dsn_hint": "Een rapport krijgen zodra de server het bezorgt",
     "option_require_tls": "Versleutelde bezorging vereisen",
     "option_require_tls_hint": "Alleen via TLS bezorgen, anders terugsturen",
+    "option_priority": "Prioriteit",
+    "option_priority_high": "Hoog",
+    "option_priority_normal": "Normaal",
+    "option_priority_low": "Laag",
     "validation": {
       "recipient_required": "Voeg een ontvanger toe om te verzenden",
       "body_required": "Schrijf een bericht of voeg een bestand toe",

@@ -714,6 +714,10 @@
     "option_dsn_hint": "Primește un raport când serverul îl livrează",
     "option_require_tls": "Cere livrare criptată",
     "option_require_tls_hint": "Livrează doar prin TLS, altfel respinge",
+    "option_priority": "Prioritate",
+    "option_priority_high": "Ridicată",
+    "option_priority_normal": "Normală",
+    "option_priority_low": "Scăzută",
     "validation": {
       "recipient_required": "Adăugați un destinatar căruia să îi trimiteți mesajul",
       "body_required": "Scrieți un mesaj sau atașați un fișier",

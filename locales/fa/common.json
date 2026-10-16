@@ -714,6 +714,10 @@
     "option_dsn_hint": "دریافت گزارش وقتی سرور آن را تحویل داد",
     "option_require_tls": "الزام تحویل رمزگذاری‌شده",
     "option_require_tls_hint": "فقط از طریق TLS تحویل شود، وگرنه برگشت بخورد",
+    "option_priority": "اولویت",
+    "option_priority_high": "بالا",
+    "option_priority_normal": "عادی",
+    "option_priority_low": "پایین",
     "validation": {
       "recipient_required": "یک گیرنده اضافه کنید",
       "body_required": "پیامی بنویسید یا فایلی پیوست کنید",

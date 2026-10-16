@@ -32,6 +32,7 @@ import { useShallow } from "zustand/react/shallow";
 import { usePolicyStore } from "@/stores/policy-store";
 import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
+import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
@@ -2050,6 +2051,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     requestReadReceipt?: boolean;
     requestDsn?: boolean;
     requireTls?: boolean;
+    priority?: MessagePriority;
   }) => {
     if (!client) return;
 
@@ -2072,7 +2074,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const effectiveMode = pendingDraft?.mode ?? composerMode;
       const originalEmailId = composerSourceEmail?.id;
 
-      const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, localAccountId: data.localAccountId });
+      const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, priority: data.priority, localAccountId: data.localAccountId });
       submitted = true;
       announceSent(result, data);
       setShowComposer(false);
@@ -2342,6 +2344,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // come along or the reply leaves its thread.
       inReplyTo: draft.inReplyTo ?? undefined,
       references: draft.references ?? undefined,
+      priority: messagePriorityFromHeaders(draft.headers),
       // Existing server-side attachments must ride along, or the composer
       // starts empty and the next save/send silently rebuilds the draft
       // without them (#849).

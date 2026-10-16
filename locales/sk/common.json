@@ -714,6 +714,10 @@
     "option_dsn_hint": "Dostať správu, keď ju server doručí",
     "option_require_tls": "Vyžadovať šifrované doručenie",
     "option_require_tls_hint": "Doručiť len cez TLS, inak vrátiť",
+    "option_priority": "Priorita",
+    "option_priority_high": "Vysoká",
+    "option_priority_normal": "Normálna",
+    "option_priority_low": "Nízka",
     "validation": {
       "recipient_required": "Pridajte príjemcu na odoslanie",
       "body_required": "Napíšte správu alebo priložte súbor",

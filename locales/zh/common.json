@@ -711,6 +711,10 @@
     "option_dsn_hint": "服务器投递后收到报告",
     "option_require_tls": "要求加密投递",
     "option_require_tls_hint": "仅通过 TLS 投递，否则退回",
+    "option_priority": "优先级",
+    "option_priority_high": "高",
+    "option_priority_normal": "普通",
+    "option_priority_low": "低",
     "validation": {
       "recipient_required": "请添加收件人",
       "body_required": "请输入邮件内容或添加附件",
