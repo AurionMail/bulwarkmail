@@ -2068,7 +2068,11 @@
       },
       "sender_favicons": {
         "label": "Sūtītāju ikonas",
-        "description": "Rādīt vietņu ikonas kā sūtītāju avatarus"
+        "description": "Rādīt vietņu ikonas kā sūtītāju avatarus",
+        "refresh_label": "Atsvaidzināt sūtītāju ikonas",
+        "refresh_description": "Vēlreiz ielādēt vietņu ikonas, piemēram, ja sūtītājs ir nomainījis savu ikonu",
+        "refresh_button": "Atsvaidzināt",
+        "refresh_done": "Sūtītāju ikonas tiks ielādētas vēlreiz"
       },
       "show_avatars_in_junk": {
         "label": "Rādīt avatarus mēstuļu mapē",

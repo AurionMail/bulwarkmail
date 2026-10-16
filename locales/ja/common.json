@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "送信者ファビコン",
-        "description": "ビジネス送信者のプロフィール画像としてウェブサイトアイコンを表示"
+        "description": "ビジネス送信者のプロフィール画像としてウェブサイトアイコンを表示",
+        "refresh_label": "送信者アイコンを更新",
+        "refresh_description": "送信者がアイコンを変更した場合などに、ウェブサイトのアイコンを再取得します",
+        "refresh_button": "更新",
+        "refresh_done": "送信者アイコンを再取得します"
       },
       "show_avatars_in_junk": {
         "label": "迷惑メールフォルダでアバターを表示",

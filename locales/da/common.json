@@ -2090,7 +2090,11 @@
       },
       "sender_favicons": {
         "label": "Afsender-favicons",
-        "description": "Vis hjemmesideikoner som profilbilleder for forretningsafsendere"
+        "description": "Vis hjemmesideikoner som profilbilleder for forretningsafsendere",
+        "refresh_label": "Opdater afsenderikoner",
+        "refresh_description": "Hent webstedsikonerne igen, f.eks. når en afsender har skiftet sit ikon",
+        "refresh_button": "Opdater",
+        "refresh_done": "Afsenderikonerne hentes igen"
       },
       "show_avatars_in_junk": {
         "label": "Vis avatarer i spam-mappe",

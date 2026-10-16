@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "Favicons des expéditeurs",
-        "description": "Afficher les icônes de sites web comme photos de profil pour les expéditeurs professionnels"
+        "description": "Afficher les icônes de sites web comme photos de profil pour les expéditeurs professionnels",
+        "refresh_label": "Actualiser les icônes des expéditeurs",
+        "refresh_description": "Récupérer à nouveau les icônes des sites web, par exemple quand un expéditeur a changé la sienne",
+        "refresh_button": "Actualiser",
+        "refresh_done": "Les icônes des expéditeurs vont être récupérées à nouveau"
       },
       "show_avatars_in_junk": {
         "label": "Afficher les avatars dans le dossier indésirable",

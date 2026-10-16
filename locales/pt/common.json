@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "Favicons de remetente",
-        "description": "Exibir ícones de sites como fotos de perfil para remetentes empresariais"
+        "description": "Exibir ícones de sites como fotos de perfil para remetentes empresariais",
+        "refresh_label": "Atualizar ícones dos remetentes",
+        "refresh_description": "Obter novamente os ícones dos sites, por exemplo quando um remetente alterou o seu",
+        "refresh_button": "Atualizar",
+        "refresh_done": "Os ícones dos remetentes serão obtidos novamente"
       },
       "show_avatars_in_junk": {
         "label": "Mostrar avatares na pasta de spam",

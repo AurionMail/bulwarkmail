@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "Absender-Favicons",
-        "description": "Website-Symbole als Profilbilder für geschäftliche Absender anzeigen"
+        "description": "Website-Symbole als Profilbilder für geschäftliche Absender anzeigen",
+        "refresh_label": "Absender-Symbole aktualisieren",
+        "refresh_description": "Website-Symbole neu laden, zum Beispiel wenn ein Absender sein Symbol geändert hat",
+        "refresh_button": "Aktualisieren",
+        "refresh_done": "Absender-Symbole werden neu geladen"
       },
       "show_avatars_in_junk": {
         "label": "Avatare im Spam-Ordner anzeigen",

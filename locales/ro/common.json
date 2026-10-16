@@ -2094,7 +2094,11 @@
       },
       "sender_favicons": {
         "label": "Favicon-uri ale expeditorului",
-        "description": "Afișați pictogramele site-urilor web ca imagini de profil pentru expeditorii de afaceri"
+        "description": "Afișați pictogramele site-urilor web ca imagini de profil pentru expeditorii de afaceri",
+        "refresh_label": "Reîmprospătează pictogramele expeditorilor",
+        "refresh_description": "Descarcă din nou pictogramele site-urilor, de exemplu când un expeditor și-a schimbat pictograma",
+        "refresh_button": "Reîmprospătează",
+        "refresh_done": "Pictogramele expeditorilor vor fi descărcate din nou"
       },
       "show_avatars_in_junk": {
         "label": "Afișați avatarurile din folderul „Junk”",

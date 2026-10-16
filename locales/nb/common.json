@@ -2094,7 +2094,11 @@
       },
       "sender_favicons": {
         "label": "Nettstedsikoner for avsendere",
-        "description": "Vis nettstedsikoner som profilbilder for bedriftsavsendere"
+        "description": "Vis nettstedsikoner som profilbilder for bedriftsavsendere",
+        "refresh_label": "Oppdater avsenderikoner",
+        "refresh_description": "Hent nettstedikonene på nytt, for eksempel når en avsender har byttet ikon",
+        "refresh_button": "Oppdater",
+        "refresh_done": "Avsenderikonene hentes på nytt"
       },
       "show_avatars_in_junk": {
         "label": "Vis profilbilder i søppelpostmappen",

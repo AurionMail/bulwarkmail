@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "보낸 사람 파비콘",
-        "description": "비즈니스 메일의 경우 해당 웹사이트의 아이콘을 프로필 사진으로 보여줘요"
+        "description": "비즈니스 메일의 경우 해당 웹사이트의 아이콘을 프로필 사진으로 보여줘요",
+        "refresh_label": "발신자 아이콘 새로 고침",
+        "refresh_description": "발신자가 아이콘을 바꾼 경우 등에 웹사이트 아이콘을 다시 가져옵니다",
+        "refresh_button": "새로 고침",
+        "refresh_done": "발신자 아이콘을 다시 가져옵니다"
       },
       "show_avatars_in_junk": {
         "label": "스팸함에서 아바타 표시",

@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "Afzender-favicons",
-        "description": "Toon websitepictogrammen als profielfoto's voor zakelijke afzenders"
+        "description": "Toon websitepictogrammen als profielfoto's voor zakelijke afzenders",
+        "refresh_label": "Afzenderpictogrammen vernieuwen",
+        "refresh_description": "De websitepictogrammen opnieuw ophalen, bijvoorbeeld als een afzender het zijne heeft gewijzigd",
+        "refresh_button": "Vernieuwen",
+        "refresh_done": "Afzenderpictogrammen worden opnieuw opgehaald"
       },
       "show_avatars_in_junk": {
         "label": "Avatars tonen in de map ongewenst",

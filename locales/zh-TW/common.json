@@ -2094,7 +2094,11 @@
       },
       "sender_favicons": {
         "label": "寄件者圖示",
-        "description": "使用企業寄件者的網站圖示作為頭像"
+        "description": "使用企業寄件者的網站圖示作為頭像",
+        "refresh_label": "重新整理寄件者圖示",
+        "refresh_description": "重新取得網站圖示，例如寄件者更換了圖示時",
+        "refresh_button": "重新整理",
+        "refresh_done": "將重新取得寄件者圖示"
       },
       "show_avatars_in_junk": {
         "label": "在垃圾郵件信件匣顯示頭像",

@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "Favikony nadawców",
-        "description": "Pokazuj ikony stron internetowych jako zdjęcia profilowe nadawców firmowych"
+        "description": "Pokazuj ikony stron internetowych jako zdjęcia profilowe nadawców firmowych",
+        "refresh_label": "Odśwież ikony nadawców",
+        "refresh_description": "Pobierz ponownie ikony stron, na przykład gdy nadawca zmienił swoją ikonę",
+        "refresh_button": "Odśwież",
+        "refresh_done": "Ikony nadawców zostaną pobrane ponownie"
       },
       "show_avatars_in_junk": {
         "label": "Pokazuj awatary w folderze spam",

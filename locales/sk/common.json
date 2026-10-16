@@ -2094,7 +2094,11 @@
       },
       "sender_favicons": {
         "label": "Favikony odosielateľov",
-        "description": "Zobrazovať ikony webových stránok ako profilové obrázky firemných odosielateľov"
+        "description": "Zobrazovať ikony webových stránok ako profilové obrázky firemných odosielateľov",
+        "refresh_label": "Obnoviť ikony odosielateľov",
+        "refresh_description": "Znova načítať ikony webov, napríklad keď odosielateľ zmenil svoju ikonu",
+        "refresh_button": "Obnoviť",
+        "refresh_done": "Ikony odosielateľov sa načítajú znova"
       },
       "show_avatars_in_junk": {
         "label": "Zobrazovať avatáry v spame",

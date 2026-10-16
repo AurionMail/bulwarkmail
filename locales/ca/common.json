@@ -2094,7 +2094,11 @@
       },
       "sender_favicons": {
         "label": "Icones dels remitents",
-        "description": "Mostra icones de llocs web com a imatges de perfil per als remitents d'empresa"
+        "description": "Mostra icones de llocs web com a imatges de perfil per als remitents d'empresa",
+        "refresh_label": "Actualitza les icones dels remitents",
+        "refresh_description": "Torna a obtenir les icones dels llocs web, per exemple quan un remitent ha canviat la seva",
+        "refresh_button": "Actualitza",
+        "refresh_done": "Es tornaran a obtenir les icones dels remitents"
       },
       "show_avatars_in_junk": {
         "label": "Mostra els avatars a la carpeta de brossa",

@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "发件人图标",
-        "description": "使用企业发件人的网站图标作为头像"
+        "description": "使用企业发件人的网站图标作为头像",
+        "refresh_label": "刷新发件人图标",
+        "refresh_description": "重新获取网站图标，例如发件人更换了图标时",
+        "refresh_button": "刷新",
+        "refresh_done": "将重新获取发件人图标"
       },
       "show_avatars_in_junk": {
         "label": "在垃圾邮件文件夹中显示头像",

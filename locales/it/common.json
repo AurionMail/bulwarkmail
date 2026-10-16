@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "Favicon dei mittenti",
-        "description": "Mostra le icone dei siti web come immagini profilo per i mittenti aziendali"
+        "description": "Mostra le icone dei siti web come immagini profilo per i mittenti aziendali",
+        "refresh_label": "Aggiorna icone dei mittenti",
+        "refresh_description": "Scarica di nuovo le icone dei siti web, ad esempio quando un mittente ha cambiato la sua",
+        "refresh_button": "Aggiorna",
+        "refresh_done": "Le icone dei mittenti verranno scaricate di nuovo"
       },
       "show_avatars_in_junk": {
         "label": "Mostra avatar nella cartella spam",

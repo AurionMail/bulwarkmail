@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "Favikony odesílatelů",
-        "description": "Zobrazovat ikony webových stránek jako profilové obrázky firemních odesílatelů"
+        "description": "Zobrazovat ikony webových stránek jako profilové obrázky firemních odesílatelů",
+        "refresh_label": "Obnovit ikony odesílatelů",
+        "refresh_description": "Znovu načíst ikony webů, například když odesílatel změnil svou ikonu",
+        "refresh_button": "Obnovit",
+        "refresh_done": "Ikony odesílatelů se načtou znovu"
       },
       "show_avatars_in_junk": {
         "label": "Zobrazovat avatary ve spamu",

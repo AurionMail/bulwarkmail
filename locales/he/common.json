@@ -2052,7 +2052,11 @@
       },
       "sender_favicons": {
         "label": "סמלים של השולח (ניסיוני)",
-        "description": "הצג סמלי אתרים כתמונות פרופיל עבור שולחים עסקיים"
+        "description": "הצג סמלי אתרים כתמונות פרופיל עבור שולחים עסקיים",
+        "refresh_label": "רענון סמלי שולחים",
+        "refresh_description": "טעינה מחדש של סמלי האתרים, למשל כששולח החליף את הסמל שלו",
+        "refresh_button": "רענון",
+        "refresh_done": "סמלי השולחים ייטענו מחדש"
       },
       "sender_avatars": {},
       "keyboard_shortcuts": {

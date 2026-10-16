@@ -2094,7 +2094,11 @@
       },
       "sender_favicons": {
         "label": "Sender Favicons",
-        "description": "Show website icons as profile pictures for business senders"
+        "description": "Show website icons as profile pictures for business senders",
+        "refresh_label": "Refresh Sender Icons",
+        "refresh_description": "Fetch the website icons again, for example when a sender changed theirs",
+        "refresh_button": "Refresh",
+        "refresh_done": "Sender icons will be fetched again"
       },
       "show_avatars_in_junk": {
         "label": "Show Avatars in Junk Folder",

@@ -2087,7 +2087,11 @@
       },
       "sender_favicons": {
         "label": "Gönderici Favorikonları",
-        "description": "İş göndericileri için profil resmi olarak web sitesi simgelerini göster"
+        "description": "İş göndericileri için profil resmi olarak web sitesi simgelerini göster",
+        "refresh_label": "Gönderen simgelerini yenile",
+        "refresh_description": "Web sitesi simgelerini yeniden al, örneğin bir gönderen simgesini değiştirdiğinde",
+        "refresh_button": "Yenile",
+        "refresh_done": "Gönderen simgeleri yeniden alınacak"
       },
       "show_avatars_in_junk": {
         "label": "İstem Dışı Klasöründe Avatarları Göster",

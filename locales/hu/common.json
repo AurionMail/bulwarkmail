@@ -2090,7 +2090,11 @@
       },
       "sender_favicons": {
         "label": "Feladó faviconok",
-        "description": "Weboldal ikonok megjelenítése profilképekként az üzleti feladók számára"
+        "description": "Weboldal ikonok megjelenítése profilképekként az üzleti feladók számára",
+        "refresh_label": "Feladóikonok frissítése",
+        "refresh_description": "A webhelyikonok újbóli letöltése, például ha egy feladó lecserélte a sajátját",
+        "refresh_button": "Frissítés",
+        "refresh_done": "A feladóikonok újra le lesznek töltve"
       },
       "show_avatars_in_junk": {
         "label": "Avatárok mutatása a Spam mappában",
