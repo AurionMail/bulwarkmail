@@ -163,3 +163,72 @@ describe('applyEmailDarkMode', () => {
     expect(doc.documentElement.classList.contains(DARK_PENDING_CLASS)).toBe(false);
   });
 });
+
+// #693: cells coloured through the legacy bgcolor attribute stayed white in
+// dark mode. Browsers map bgcolor to background-color as a presentational hint
+// (below every author style), which the pass reads back through computed
+// style. jsdom has no presentational hints, so the helper below adds the same
+// mapping as zero-specificity rules at the top of the cascade.
+describe('applyEmailDarkMode with bgcolor', () => {
+  const mapBgcolorLikeBrowser = (doc: Document) => {
+    const rules: string[] = [];
+    doc.querySelectorAll('[bgcolor]').forEach((el, i) => {
+      el.setAttribute('data-bgcolor-hint', String(i));
+      rules.push(`:where([data-bgcolor-hint="${i}"]) { background-color: ${el.getAttribute('bgcolor')}; }`);
+    });
+    const sheet = doc.createElement('style');
+    sheet.textContent = rules.join('\n');
+    doc.head.prepend(sheet);
+  };
+
+  const render = (mail: string, bodyBgcolor?: string) => {
+    const { html } = sanitizeEmailBodyForIframe(mail, true);
+    const frame = document.createElement('iframe');
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument!;
+    doc.documentElement.className = DARK_PENDING_CLASS;
+    doc.documentElement.style.backgroundColor = 'rgb(20, 20, 20)';
+    if (bodyBgcolor) doc.body.setAttribute('bgcolor', bodyBgcolor);
+    doc.body.innerHTML = html;
+    mapBgcolorLikeBrowser(doc);
+    applyEmailDarkMode(doc);
+    return doc;
+  };
+
+  // The darkened colour the pass wrote over the sender's one.
+  const rewrittenBg = (el: HTMLElement) => {
+    expect(el.style.getPropertyPriority('background-color')).toBe('important');
+    return c(el.ownerDocument.defaultView!.getComputedStyle(el).backgroundColor);
+  };
+
+  it.each([
+    ['td', '<table><tr><td id="x" bgcolor="#ffffff"><p id="p" style="color:#333333">Hello</p></td></tr></table>'],
+    ['tr', '<table><tr id="x" bgcolor="#ffffff"><td><p id="p" style="color:#333333">Hello</p></td></tr></table>'],
+    ['table', '<table id="x" bgcolor="#ffffff" width="100%"><tr><td><p id="p" style="color:#333333">Hello</p></td></tr></table>'],
+    ['td with a named colour', '<table><tr><td id="x" bgcolor="white"><p id="p" style="color:#333333">Hello</p></td></tr></table>'],
+    ['td with a light tint', '<table><tr><td id="x" bgcolor="#f4f4f4"><p id="p" style="color:#333333">Hello</p></td></tr></table>'],
+  ])('darkens a light bgcolor on %s and keeps its text readable', (_, mail) => {
+    const doc = render(mail);
+    const bg = rewrittenBg(doc.getElementById('x')!);
+    expect(lightness(bg)).toBeLessThan(40);
+    const text = c(doc.defaultView!.getComputedStyle(doc.getElementById('p')!).color);
+    expect(contrastRatio(text, bg)).toBeGreaterThan(4.5);
+  });
+
+  it('darkens the inline background when a cell has both', () => {
+    const doc = render('<table><tr><td id="x" bgcolor="#000000" style="background-color:#ffffff">Hello</td></tr></table>');
+    expect(lightness(rewrittenBg(doc.getElementById('x')!))).toBeLessThan(40);
+  });
+
+  it('keeps a vivid bgcolor as sent', () => {
+    const doc = render('<table><tr><td id="x" bgcolor="#e30613" style="color:#ffffff">Sale</td></tr></table>');
+    const cell = doc.getElementById('x')!;
+    expect(c(doc.defaultView!.getComputedStyle(cell).backgroundColor)).toEqual(c('rgb(227, 6, 19)'));
+    expect(cell.style.getPropertyValue('background-color')).toBe('');
+  });
+
+  it('darkens a white body bgcolor', () => {
+    const doc = render('<p id="p" style="color:#222222">Hello</p>', '#ffffff');
+    expect(lightness(rewrittenBg(doc.body))).toBeLessThan(40);
+  });
+});
