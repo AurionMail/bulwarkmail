@@ -20,8 +20,15 @@ export function AuthTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [configReadOnly, setConfigReadOnly] = useState(false);
 
-  useEffect(() => { fetchConfig(); }, []);
+  useEffect(() => {
+    fetchConfig();
+    apiFetch('/api/setup/status')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => setConfigReadOnly(data?.readOnly === true))
+      .catch(() => {});
+  }, []);
 
   async function fetchConfig() {
     setLoading(true);
@@ -168,10 +175,15 @@ export function AuthTab() {
               Registers an OAuth client on the connected Stalwart server, generates a client secret, and saves the settings here.
               Requires your Stalwart account to have admin permissions.
             </p>
+            {configReadOnly && (
+              <p className="text-xs text-destructive mt-1">
+                Not available while the configuration is read-only (ADMIN_CONFIG_READONLY).
+              </p>
+            )}
           </div>
           <button
             onClick={openSetupDialog}
-            disabled={setupRunning}
+            disabled={setupRunning || configReadOnly}
             className="shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-all shadow-sm"
           >
             {setupRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
