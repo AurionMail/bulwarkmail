@@ -59,8 +59,24 @@ describe('restoreArchive', () => {
     });
     const result = await restoreArchive([entry('a@example.com', 'right'), entry('b@example.com', 'stale'), entry('c@example.com')], true);
     expect(auth.signIn).toHaveBeenCalledTimes(2);
-    expect(auth.signIn).toHaveBeenCalledWith(generateAccountId('a@example.com', server), 'right', true);
+    expect(auth.signIn).toHaveBeenCalledWith(generateAccountId('a@example.com', server), 'right', false);
     expect(result).toMatchObject({ added: 3, signedIn: 1, signInFailed: 1, waiting: 2 });
+  });
+
+  it('remembers the restored sign-ins only when the restoring account is remembered', async () => {
+    auth.signIn.mockResolvedValue(true);
+    const owner = add('owner@example.com', 'basic');
+    useAccountStore.getState().updateAccount(owner, { rememberMe: false });
+    useAccountStore.setState({ activeAccountId: owner });
+    await restoreArchive([entry('a@example.com', 'right')], true);
+    expect(auth.signIn).toHaveBeenLastCalledWith(generateAccountId('a@example.com', server), 'right', false);
+
+    useAccountStore.getState().updateAccount(owner, { rememberMe: true });
+    await restoreArchive([entry('b@example.com', 'right')], true);
+    expect(auth.signIn).toHaveBeenLastCalledWith(generateAccountId('b@example.com', server), 'right', true);
+
+    await restoreArchive([entry('c@example.com', 'right')], false);
+    expect(auth.signIn).toHaveBeenLastCalledWith(generateAccountId('c@example.com', server), 'right', false);
   });
 
   it('does not sign in again to an account already connected here', async () => {

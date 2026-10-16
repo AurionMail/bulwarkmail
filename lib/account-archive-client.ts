@@ -75,8 +75,15 @@ export function restoreAccounts(archived: ArchivedAccount[]): { added: number; u
  * Restores the list, then signs in one by one to the accounts saved with a
  * password that are not signed in here yet. An account whose password no
  * longer works keeps waiting for a sign-in by hand.
+ *
+ * A restored sign-in is remembered only when the server allows it and the
+ * account doing the restore was itself signed in with "Remember me": on a
+ * shared computer, restoring must not leave long-lived sessions behind.
  */
-export async function restoreArchive(archived: ArchivedAccount[], rememberMe: boolean) {
+export async function restoreArchive(archived: ArchivedAccount[], rememberMeAllowed: boolean) {
+  const accounts = useAccountStore.getState();
+  const active = accounts.accounts.find(a => a.id === accounts.activeAccountId);
+  const rememberMe = rememberMeAllowed && !!active?.rememberMe;
   const result = restoreAccounts(archived);
   let signedIn = 0, signInFailed = 0;
   for (const entry of archived) {
