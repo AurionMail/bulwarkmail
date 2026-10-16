@@ -339,7 +339,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const isAnswered = email.keywords?.$answered;
     const isForwarded = email.keywords?.$forwarded;
     const showPaperclip = useListHasAttachment(email, loadAttachments);
-    const { selectedMailbox, currentMailboxRole, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView } = useEmailStore(useShallow((state) => ({
+    const { selectedMailbox, currentMailboxRole, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, isUnifiedView } = useEmailStore(useShallow((state) => ({
       selectedMailbox: state.selectedMailbox,
       // The role, not the folder list: the list is a new array on every
       // count update, and subscribing to it re-rendered every row for each.
@@ -347,7 +347,6 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
       selectedEmailKeys: state.selectedEmailKeys,
       toggleEmailSelection: state.toggleEmailSelection,
       selectRangeEmails: state.selectRangeEmails,
-      clearSelection: state.clearSelection,
       isUnifiedView: state.isUnifiedView,
     })));
     // In Sent/Drafts folders, show recipient instead of sender (which is always
@@ -486,6 +485,11 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
       onContextMenu?.(e, email);
     };
 
+    // Once something is ticked, the whole row is the checkbox, as in phone
+    // mail apps (#1014). Mountain View on the desktop opens the message and
+    // keeps the ticks instead, as Gmail does (#1231).
+    const togglesOnClick = selectedEmailKeys.size > 0 && !mvRow;
+
     const handleClick = (e: React.MouseEvent) => {
       if (swipeEnabled && consumeTap()) { return; }
       if (e.ctrlKey || e.metaKey) {
@@ -494,10 +498,11 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
       } else if (e.shiftKey) {
         e.preventDefault();
         selectRangeEmails(email);
+      } else if (togglesOnClick) {
+        toggleEmailSelection(email);
       } else {
         // Mountain View keeps the ticked rows while a message is read, as
         // Gmail does, so selecting can carry on afterwards. (#1231)
-        if (selectedEmailKeys.size > 0 && !mvRow) clearSelection();
         onClick();
       }
     };
@@ -542,7 +547,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         onClick={handleClick}
         onDoubleClick={(e) => {
           if (e.ctrlKey || e.metaKey || e.shiftKey) return;
-          if (!onDoubleClick) return;
+          if (!onDoubleClick || togglesOnClick) return;
           e.preventDefault();
           onDoubleClick();
         }}
@@ -908,7 +913,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       ? formatScheduledSendAt(latestEmail.scheduledSendAt, timeFormat)
       : null;
 
-    const { selectedMailbox, currentMailboxRole, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection, isUnifiedView } = useEmailStore(useShallow((state) => ({
+    const { selectedMailbox, currentMailboxRole, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, isUnifiedView } = useEmailStore(useShallow((state) => ({
       selectedMailbox: state.selectedMailbox,
       // The role, not the folder list: the list is a new array on every
       // count update, and subscribing to it re-rendered every row for each.
@@ -916,7 +921,6 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       selectedEmailKeys: state.selectedEmailKeys,
       toggleEmailSelection: state.toggleEmailSelection,
       selectRangeEmails: state.selectRangeEmails,
-      clearSelection: state.clearSelection,
       isUnifiedView: state.isUnifiedView,
     })));
     const showSourceFolder = isUnifiedView && !!latestEmail.sourceFolder;
@@ -1026,6 +1030,9 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       toggleThreadSelection();
     };
 
+    // See SingleEmailItem: with rows ticked, a click ticks instead of opening.
+    const threadTogglesOnClick = selectedEmailKeys.size > 0 && !mvRow;
+
     const handleHeaderClick = (e: React.MouseEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
@@ -1039,6 +1046,14 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         return;
       }
 
+      // In selection mode the row ticks the whole thread (#1014); the
+      // chevron still unfolds it.
+      const target = e.target as HTMLElement;
+      if (threadTogglesOnClick && !target.closest('[data-expand-toggle]')) {
+        toggleThreadSelection();
+        return;
+      }
+
       // Mountain View opens the conversation in the reading pane, as Gmail
       // does, rather than unfolding it inside the list. On the phone too: the
       // separate phone thread view would list it newest first. (#1224)
@@ -1049,16 +1064,13 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
 
       if (mvRow || mvMobileRow) {
         // Desktop keeps the ticked rows while the conversation is read (#1231).
-        if (selectedEmailKeys.size > 0 && !mvRow) clearSelection();
         onEmailSelect(latestEmail);
         return;
       }
 
-      const target = e.target as HTMLElement;
       if (target.closest('[data-expand-toggle]')) {
         onToggleExpand();
       } else {
-        if (selectedEmailKeys.size > 0) clearSelection();
         if (!isExpanded) {
           onCollapseAllThreads?.();
           onToggleExpand();
@@ -1110,7 +1122,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           onClick={handleHeaderClick}
           onDoubleClick={(e) => {
             if (e.ctrlKey || e.metaKey || e.shiftKey) return;
-            if (!onEmailDoubleClick) return;
+            if (!onEmailDoubleClick || threadTogglesOnClick) return;
             e.preventDefault();
             onEmailDoubleClick(latestEmail);
           }}

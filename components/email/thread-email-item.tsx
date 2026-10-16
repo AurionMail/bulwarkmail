@@ -47,12 +47,11 @@ export function ThreadEmailItem({
   // header pools them, so without this they disappear on the way in.
   const tagIds = sortTagIds(getEmailTagIds(email.keywords));
   const sender = email.from?.[0];
-  const { selectedMailbox, selectedEmailKeys, toggleEmailSelection, selectRangeEmails, clearSelection } = useEmailStore(useShallow((state) => ({
+  const { selectedMailbox, selectedEmailKeys, toggleEmailSelection, selectRangeEmails } = useEmailStore(useShallow((state) => ({
     selectedMailbox: state.selectedMailbox,
     selectedEmailKeys: state.selectedEmailKeys,
     toggleEmailSelection: state.toggleEmailSelection,
     selectRangeEmails: state.selectRangeEmails,
-    clearSelection: state.clearSelection,
   })));
   const density = useSettingsStore((state) => state.density);
   const isChecked = selectedEmailKeys.has(emailKeyFor(email));
@@ -91,8 +90,10 @@ export function ThreadEmailItem({
     } else if (e.shiftKey) {
       e.preventDefault();
       selectRangeEmails(email);
+    } else if (selectedEmailKeys.size > 0) {
+      // Selection mode: the whole row is the checkbox (#1014).
+      toggleEmailSelection(email);
     } else {
-      if (selectedEmailKeys.size > 0) clearSelection();
       onClick?.();
     }
   };
@@ -117,7 +118,7 @@ export function ThreadEmailItem({
       onClick={handleClick}
       onDoubleClick={(e) => {
         if (e.ctrlKey || e.metaKey || e.shiftKey) return;
-        if (!onDoubleClick) return;
+        if (!onDoubleClick || selectedEmailKeys.size > 0) return;
         e.preventDefault();
         onDoubleClick();
       }}
