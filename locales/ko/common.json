@@ -2615,7 +2615,9 @@
       "previous_email": "이전 메일",
       "open_email": "메일 열기",
       "close_email": "닫기 / 선택 해제",
-      "go_to_folder": "폴더로 이동"
+      "go_to_folder": "폴더로 이동",
+      "next_unread": "다음 읽지 않은 메일",
+      "no_more_unread": "목록 아래쪽에 읽지 않은 메일이 더 없습니다"
     },
     "actions": {
       "reply": "답장",

@@ -2615,7 +2615,9 @@
       "previous_email": "Předchozí zpráva",
       "open_email": "Otevřít zprávu",
       "close_email": "Zavřít / Zrušit výběr",
-      "go_to_folder": "Přejít do složky"
+      "go_to_folder": "Přejít do složky",
+      "next_unread": "Další nepřečtený e-mail",
+      "no_more_unread": "Níže v seznamu už nejsou žádné nepřečtené e-maily"
     },
     "actions": {
       "reply": "Odpovědět",

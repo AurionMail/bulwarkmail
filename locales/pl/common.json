@@ -2615,7 +2615,9 @@
       "previous_email": "Poprzednia wiadomość",
       "open_email": "Otwórz wiadomość",
       "close_email": "Zamknij / Odznacz",
-      "go_to_folder": "Przejdź do folderu"
+      "go_to_folder": "Przejdź do folderu",
+      "next_unread": "Następna nieprzeczytana wiadomość",
+      "no_more_unread": "Niżej na liście nie ma już nieprzeczytanych wiadomości"
     },
     "actions": {
       "reply": "Odpowiedz",

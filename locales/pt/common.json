@@ -2615,7 +2615,9 @@
       "previous_email": "E-mail anterior",
       "open_email": "Abrir e-mail",
       "close_email": "Fechar / Desselecionar",
-      "go_to_folder": "Ir para a pasta"
+      "go_to_folder": "Ir para a pasta",
+      "next_unread": "Próximo e-mail não lido",
+      "no_more_unread": "Não há mais e-mails não lidos mais abaixo na lista"
     },
     "actions": {
       "reply": "Responder",

@@ -12,6 +12,8 @@ export interface KeyboardShortcutHandlers {
   onPreviousEmail?: () => void;
   onOpenEmail?: () => void;
   onCloseEmail?: () => void;
+  /** `n`: open the next unread message below the current one (#514). */
+  onNextUnread?: () => void;
 
   // Email actions
   onReply?: () => void;
@@ -319,6 +321,14 @@ export function useKeyboardShortcuts({
             run("toggle-thread-expansion", h.onToggleThreadExpansion);
           }
           break;
+
+        // Navigation: next unread, as in Thunderbird (#514)
+        case "n":
+          if (!event.shiftKey) {
+            event.preventDefault();
+            run("next-unread", h.onNextUnread);
+          }
+          break;
       }
     },
     [selectedEmailId, selectionCount, mountainViewKeys]
@@ -387,6 +397,7 @@ export const KEYBOARD_SHORTCUTS = {
     { key: "k / ↑", description: "shortcuts.navigation.previous_email" },
     { key: "Enter / o", description: "shortcuts.navigation.open_email" },
     { key: "Esc", description: "shortcuts.navigation.close_email" },
+    { key: "n", description: "shortcuts.navigation.next_unread" },
     { key: "g → i / s / t / d / a", description: "shortcuts.navigation.go_to_folder", layout: "mountain-view" },
   ],
   actions: [

@@ -2615,7 +2615,9 @@
       "previous_email": "Előző e-mail",
       "open_email": "E-mail megnyitása",
       "close_email": "Bezárás / Kijelölés megszüntetése",
-      "go_to_folder": "Ugrás mappára"
+      "go_to_folder": "Ugrás mappára",
+      "next_unread": "Következő olvasatlan e-mail",
+      "no_more_unread": "Lejjebb a listában nincs több olvasatlan e-mail"
     },
     "actions": {
       "reply": "Válasz",

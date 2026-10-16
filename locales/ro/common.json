@@ -2615,7 +2615,9 @@
       "previous_email": "E-mailul anterior",
       "open_email": "Deschide e-mailul",
       "close_email": "Închide / Deselectează",
-      "go_to_folder": "Mergi la dosar"
+      "go_to_folder": "Mergi la dosar",
+      "next_unread": "Următorul e-mail necitit",
+      "no_more_unread": "Nu mai sunt e-mailuri necitite mai jos în listă"
     },
     "actions": {
       "reply": "Răspunde",

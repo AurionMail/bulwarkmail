@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { useKeyboardShortcuts } from '../use-keyboard-shortcuts';
+import { useKeyboardShortcuts, KEYBOARD_SHORTCUTS } from '../use-keyboard-shortcuts';
 
 // #683: the help modal advertises `x` for thread expansion and the hook binds
 // it; the handler must actually be invoked when a message is selected.
@@ -88,5 +88,45 @@ describe('useKeyboardShortcuts: Shift + arrow extends the selection', () => {
 
     expect(onNextEmail).toHaveBeenCalledTimes(1);
     expect(onExtendSelection).not.toHaveBeenCalled();
+  });
+});
+
+// #514: `n` jumps to the next unread message, with or without one open.
+describe('useKeyboardShortcuts: n opens the next unread message', () => {
+  function pressN(shiftKey = false) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: shiftKey ? 'N' : 'n', code: 'KeyN', shiftKey, bubbles: true }));
+  }
+
+  it('calls onNextUnread with a message open', () => {
+    const onNextUnread = vi.fn();
+    renderHook(() =>
+      useKeyboardShortcuts({ enabled: true, emails: [], selectedEmailId: 'e1', handlers: { onNextUnread } }),
+    );
+
+    pressN();
+
+    expect(onNextUnread).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onNextUnread with nothing open', () => {
+    const onNextUnread = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ enabled: true, emails: [], handlers: { onNextUnread } }));
+
+    pressN();
+
+    expect(onNextUnread).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores Shift + N', () => {
+    const onNextUnread = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ enabled: true, emails: [], handlers: { onNextUnread } }));
+
+    pressN(true);
+
+    expect(onNextUnread).not.toHaveBeenCalled();
+  });
+
+  it('is listed in the help modal under navigation', () => {
+    expect(KEYBOARD_SHORTCUTS.navigation).toContainEqual({ key: 'n', description: 'shortcuts.navigation.next_unread' });
   });
 });

@@ -2615,7 +2615,9 @@
       "previous_email": "Önceki e-posta",
       "open_email": "E-postayı aç",
       "close_email": "Kapat / Seçimi kaldır",
-      "go_to_folder": "Klasöre git"
+      "go_to_folder": "Klasöre git",
+      "next_unread": "Sonraki okunmamış e-posta",
+      "no_more_unread": "Listenin aşağısında okunmamış e-posta yok"
     },
     "actions": {
       "reply": "Yanıtla",

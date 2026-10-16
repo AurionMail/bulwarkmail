@@ -2615,7 +2615,9 @@
       "previous_email": "Vorherige E-Mail",
       "open_email": "E-Mail öffnen",
       "close_email": "Schließen / Auswahl aufheben",
-      "go_to_folder": "Zum Ordner springen"
+      "go_to_folder": "Zum Ordner springen",
+      "next_unread": "Nächste ungelesene E-Mail",
+      "no_more_unread": "Weiter unten in der Liste gibt es keine ungelesenen E-Mails"
     },
     "actions": {
       "reply": "Antworten",

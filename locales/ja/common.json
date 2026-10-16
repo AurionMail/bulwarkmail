@@ -2615,7 +2615,9 @@
       "previous_email": "前のメール",
       "open_email": "メールを開く",
       "close_email": "閉じる / 選択解除",
-      "go_to_folder": "フォルダーに移動"
+      "go_to_folder": "フォルダーに移動",
+      "next_unread": "次の未読メール",
+      "no_more_unread": "リストのこれより下に未読メールはありません"
     },
     "actions": {
       "reply": "返信",

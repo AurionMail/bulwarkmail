@@ -2533,7 +2533,9 @@
       "previous_email": "אימייל קודם",
       "open_email": "פתח אימייל",
       "close_email": "סגור / בטל בחירה",
-      "go_to_folder": "מעבר לתיקייה"
+      "go_to_folder": "מעבר לתיקייה",
+      "next_unread": "ההודעה הבאה שלא נקראה",
+      "no_more_unread": "אין הודעות שלא נקראו בהמשך הרשימה"
     },
     "actions": {
       "reply": "השב",

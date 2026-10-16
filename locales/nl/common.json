@@ -2615,7 +2615,9 @@
       "previous_email": "Vorige e-mail",
       "open_email": "E-mail openen",
       "close_email": "Sluiten / Deselecteren",
-      "go_to_folder": "Ga naar map"
+      "go_to_folder": "Ga naar map",
+      "next_unread": "Volgende ongelezen e-mail",
+      "no_more_unread": "Verderop in de lijst staan geen ongelezen e-mails meer"
     },
     "actions": {
       "reply": "Beantwoorden",

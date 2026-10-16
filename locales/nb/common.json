@@ -2615,7 +2615,9 @@
       "previous_email": "Forrige e-post",
       "open_email": "Åpne e-post",
       "close_email": "Lukk / fjern valget",
-      "go_to_folder": "Gå til mappe"
+      "go_to_folder": "Gå til mappe",
+      "next_unread": "Neste uleste e-post",
+      "no_more_unread": "Det er ingen flere uleste e-poster lenger ned i listen"
     },
     "actions": {
       "reply": "Svar",

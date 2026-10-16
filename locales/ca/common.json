@@ -2615,7 +2615,9 @@
       "previous_email": "Correu anterior",
       "open_email": "Obre el correu",
       "close_email": "Tanca / Desselecciona",
-      "go_to_folder": "Vés a la carpeta"
+      "go_to_folder": "Vés a la carpeta",
+      "next_unread": "Següent correu no llegit",
+      "no_more_unread": "No hi ha més correus no llegits més avall a la llista"
     },
     "actions": {
       "reply": "Respon",

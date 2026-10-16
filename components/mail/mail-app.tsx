@@ -53,6 +53,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePaneSize } from "@/hooks/use-pane-size";
 import { usePaneId } from "@/hooks/use-pane-context";
 import { useKeyboardShortcuts, type GoToMailboxTarget } from "@/hooks/use-keyboard-shortcuts";
+import { findNextUnreadIndex } from "@/lib/next-unread-email";
 import { useRefreshGesture } from "@/hooks/use-refresh-gesture";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { usePromptDialog } from "@/hooks/use-prompt-dialog";
@@ -848,6 +849,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         void handleEmailSelect(activeEmails[prevIndex]);
         if (mvShell) setCursorOnly(true);
       }
+    },
+    // `n`: open the next unread message below the current one, in the order
+    // the list has loaded. Only the loaded rows count; say so when none is
+    // left instead of wrapping to the top. (#514)
+    onNextUnread: () => {
+      const nextIndex = findNextUnreadIndex(activeEmails, selectedEmail?.id);
+      if (nextIndex === -1) {
+        toast.info(t('shortcuts.navigation.no_more_unread'));
+        return;
+      }
+      void handleEmailSelect(activeEmails[nextIndex]);
     },
     onOpenEmail: () => {
       // Outside Mountain View the email is already open by virtue of being

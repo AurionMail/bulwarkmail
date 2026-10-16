@@ -2615,7 +2615,9 @@
       "previous_email": "上一封郵件",
       "open_email": "開啟郵件",
       "close_email": "關閉／取消選取",
-      "go_to_folder": "跳至資料夾"
+      "go_to_folder": "跳至資料夾",
+      "next_unread": "下一封未讀郵件",
+      "no_more_unread": "清單下方沒有更多未讀郵件"
     },
     "actions": {
       "reply": "回覆",
