@@ -58,6 +58,7 @@ import {
   plainComposeBodyToHtml,
   replaceEmbeddedSignature,
   replacePlainTextSignature,
+  replacePlainTextSignatureAboveQuote,
 } from "@/components/email/compose-format";
 import { emailHooks, contactHooks, isExternalAttachmentResult } from "@/lib/plugin-hooks";
 import { onUploadProgress } from "@/lib/upload-progress";
@@ -552,6 +553,29 @@ export function EmailComposer({
       return buildReplySubject(replyTo.subject, t('prefix.reply'));
     }
     return "";
+  };
+
+  // The first line of the quote header getInitialBody writes under the reply
+  // area ("On ... wrote:", the forwarded-message line, or a plugin's header).
+  // A signature that arrives after the body was built - From resolves to a
+  // matching identity, or the identities load late - goes above it.
+  const getQuoteHeaderLine = (): string => {
+    if (mode !== 'reply' && mode !== 'replyAll' && mode !== 'forward') return '';
+    if (!replyTo?.body && !replyTo?.htmlBody) return '';
+    const pluginHeader = replyTo.quoteHeaderText
+      ?? (replyTo.quoteHeaderHtml !== undefined ? htmlToPlainText(replyTo.quoteHeaderHtml) : undefined);
+    if (pluginHeader !== undefined) {
+      return pluginHeader.split('\n').map((line) => line.trim()).find(Boolean) ?? '';
+    }
+    if (mode === 'forward') return tQuote('forwarded_separator');
+    const date = replyTo.receivedAt ? formatDateTime(replyTo.receivedAt, timeFormat, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : "";
+    const from = replyTo.from?.[0];
+    const fromStrFull = from
+      ? (from.name && from.email && from.name !== from.email
+          ? `${from.name} <${from.email}>`
+          : (from.email || from.name || tCommon('unknown')))
+      : tCommon('unknown');
+    return tQuote('reply_line', { date, from: fromStrFull });
   };
 
   const getInitialBody = () => {
@@ -1062,11 +1086,20 @@ export function EmailComposer({
 
     if (plainTextMode) {
       // A new plain-text message carries the signature at the end of the
-      // body; in a reply the quote follows it.
-      if (!identityChanged || mode !== 'compose') return;
-      setBody((prev) => replacePlainTextSignature(prev, previousIdentity, signatureIdentity, {
-        separator: signatureSeparatorEnabled,
-      }));
+      // body, a reply or forward above its quote header.
+      if (!identityChanged) return;
+      const options = { separator: signatureSeparatorEnabled };
+      if (mode === 'compose') {
+        setBody((prev) => replacePlainTextSignature(prev, previousIdentity, signatureIdentity, options));
+        return;
+      }
+      // The signature identity of a reply is often only known after the body
+      // was built: the reply's From resolves to the alias it was sent to, or
+      // the identities load late. Swap it above the quote header like an
+      // HTML body does; leaving it out lost it, since an above-quote reply
+      // is never signed at send time (#842).
+      const quoteHeader = getQuoteHeaderLine();
+      setBody((prev) => replacePlainTextSignatureAboveQuote(prev, quoteHeader, previousIdentity, signatureIdentity, options));
       return;
     }
     if (!editor) return;
@@ -1082,7 +1115,7 @@ export function EmailComposer({
     const nextHtml = replaceEmbeddedSignature(currentHtml, buildEmbeddedSignatureHtml(signatureIdentity, {
       embed: true,
       separator: signatureSeparatorEnabled,
-    }));
+    }), { quoteHeader: getQuoteHeaderLine() });
     if (nextHtml !== currentHtml) {
       editor.commands.setContent(nextHtml, { emitUpdate: true });
     }
