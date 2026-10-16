@@ -4,7 +4,8 @@ import type { FilterRule, SieveCapabilities, VacationAudience, VacationForward, 
 import { parseScript } from '@/lib/sieve/parser';
 import { generateScript, supportsSpamGuard, VACATION_SCRIPT_NAME } from '@/lib/sieve/generator';
 import {
-  OpaqueFiltersError, applyScriptTransforms, assertFiltersSaveAllowed, filterRuleToView, supportsInclude, writeFiltersScript,
+  OpaqueFiltersError, applyScriptTransforms, assertFiltersSaveAllowed, filterRuleToView, readAccountFilters, renderFiltersScript,
+  supportsInclude, writeFiltersScript,
 } from '@/lib/filters/account-filters';
 import { countKeywordUses, renameKeywordInRules } from '@/lib/sieve/keyword-rename';
 import { filterHooks } from '@/lib/plugin-hooks';
@@ -284,54 +285,35 @@ export const useFilterStore = create<FilterStore>()((set, get) => ({
     // permits, and which the caller's message migration, bound to the mail
     // primary, would not have covered anyway.
     const accountId = client.getSieveAccountId();
-    const scripts = (await client.getSieveScripts(accountId)).filter(s => s.name !== 'vacation');
-    const activeScript = scripts.find(s => s.isActive);
-    if (!activeScript) {
-      // Nothing is filtering mail right now. Rewriting an inactive script would
-      // mean activating it - updateSieveScript activates on write - and a tag
-      // rename must not switch someone's filters back on.
+    // The same read, render and write a normal save and a rule made from a
+    // message use, so the vacation include, forwarding, audience and the
+    // plugin pipeline survive the rename.
+    const filters = await readAccountFilters(client, accountId);
+    if (!filters.script || filters.activeScriptId !== filters.script.id) {
+      // Nothing is filtering mail right now. Writing would activate the
+      // script, and a tag rename must not switch someone's filters back on.
       return nothing;
     }
-
-    const content = await client.getSieveScriptContent(activeScript.blobId, accountId);
-    const parsed = parseScript(content);
-    if (parsed.isOpaque) {
-      return { changed: 0, unhandled: countKeywordUses(content, oldId) };
+    if (filters.parsed.isOpaque) {
+      return { changed: 0, unhandled: countKeywordUses(filters.content, oldId) };
     }
 
-    const { rules, changed } = renameKeywordInRules(parsed.rules, oldId, newId);
-    if (changed === 0) return { changed: 0, unhandled: countKeywordUses(content, oldId) };
+    const { rules, changed } = renameKeywordInRules(filters.parsed.rules, oldId, newId);
+    if (changed === 0) return { changed: 0, unhandled: countKeywordUses(filters.content, oldId) };
 
-    let script = generateScript(rules, parsed.vacation || undefined, {
-      externalRequires: parsed.externalRequires,
-    });
-    // Same plugin pipeline a normal save runs through: a plugin's managed
-    // section is grafted on at generate time, so skipping the transform here
-    // would drop it from the script this write makes active.
-    const transformed = await filterHooks.onSieveScriptGenerate.transform(script, { accountId });
-    if (typeof transformed === 'string' && transformed.trim().length > 0) {
-      script = transformed;
-    }
-
-    // Count what still names the old tag in the script actually being written,
+    // A plugin can veto filter saves; the caller warns when this throws.
+    await assertFiltersSaveAllowed(rules);
+    const written = await writeFiltersScript(client, accountId, renderFiltersScript(rules, filters), filters.script.id);
+    // Count what still names the old tag in the script actually written,
     // after the plugin transform: a rule kept verbatim, a test comparing
     // against the keyword, or a section a plugin just grafted back on.
-    const unhandled = countKeywordUses(script, oldId);
-
-    await client.updateSieveScript(activeScript.id, script, true, accountId);
+    const unhandled = countKeywordUses(written.content, oldId);
     debug.log('filters', 'Renamed tag in', changed, 'filter action(s)');
 
     const state = get();
     if (state.selectedAccountId === accountId && !state.isOpaque) {
-      set({
-        rules,
-        rawScript: script,
-        activeScriptId: activeScript.id,
-        vacationSettings: parsed.vacation || null,
-        externalRequires: parsed.externalRequires,
-      });
+      set({ rules, rawScript: written.content, activeScriptId: written.scriptId });
     }
-    void filterHooks.onSieveScriptChange.emit({ accountId, script });
     return { changed, unhandled };
   },
 

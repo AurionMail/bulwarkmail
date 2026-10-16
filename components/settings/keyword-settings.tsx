@@ -602,13 +602,11 @@ export function KeywordSettings() {
         const outcome = await renameKeywordInFilters(client, oldId, keyword.id);
         rewroteFilters = outcome.changed > 0;
         if (outcome.unhandled > 0) {
-          const toastModule = await import('sonner');
-          toastModule.toast.warning(t("filters_migration_error"));
+          toast.warning(t("filters_migration_error"));
         }
       } catch (error) {
         console.error("Failed to migrate keyword in filters:", error);
-        const toastModule = await import('sonner');
-        toastModule.toast.warning(t("filters_migration_error"));
+        toast.warning(t("filters_migration_error"));
       }
 
       if (rewroteFilters) {
@@ -621,8 +619,7 @@ export function KeywordSettings() {
           fetchTagCounts(client);
         } catch (error) {
           console.error("Failed to sweep up mail tagged during the rename:", error);
-          const toastModule = await import('sonner');
-          toastModule.toast.error(t("migration_error"));
+          toast.error(t("migration_error"));
         }
       }
 

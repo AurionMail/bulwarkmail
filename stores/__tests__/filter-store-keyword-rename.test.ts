@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useFilterStore } from '../filter-store';
 import { generateScript } from '@/lib/sieve/generator';
+import { parseScript } from '@/lib/sieve/parser';
 import { filterHooks } from '@/lib/plugin-hooks';
 import type { FilterRule } from '@/lib/jmap/sieve-types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
@@ -114,6 +115,7 @@ describe('filter-store renameKeywordInFilters', () => {
     const client = {
       supportsSieve: () => true,
       getSieveAccountId: () => 'primary',
+      getSieveCapabilities: () => null,
       getSieveScripts: async () => [],
     } as unknown as IJMAPClient;
 
@@ -198,5 +200,27 @@ describe('filter-store renameKeywordInFilters', () => {
     await expect(
       useFilterStore.getState().renameKeywordInFilters(client, 'red', 'iso'),
     ).rejects.toThrow('over quota');
+  });
+  it('keeps the forwarding set up in the vacation card', async () => {
+    const forward = { enabled: true, to: 'kollege@example.com', keepCopy: false };
+    const { client, updateSieveScript } = makeClient(generateScript([makeRule()], undefined, { vacationForward: forward }));
+    expect(parseScript(generateScript([makeRule()], undefined, { vacationForward: forward })).vacationForward).toEqual(forward);
+
+    await useFilterStore.getState().renameKeywordInFilters(client, 'red', 'iso');
+
+    const uploaded = updateSieveScript.mock.calls[0][1];
+    expect(uploaded).toContain('$label:iso');
+    expect(parseScript(uploaded).vacationForward).toEqual(forward);
+  });
+
+  it('writes nothing when a plugin stops filter saves', async () => {
+    filterHooks.onBeforeFiltersSave.register('test-veto', () => false);
+    try {
+      const { client, updateSieveScript } = makeClient(generateScript([makeRule()]));
+      await expect(useFilterStore.getState().renameKeywordInFilters(client, 'red', 'iso')).rejects.toThrow();
+      expect(updateSieveScript).not.toHaveBeenCalled();
+    } finally {
+      filterHooks.onBeforeFiltersSave.clear();
+    }
   });
 });
