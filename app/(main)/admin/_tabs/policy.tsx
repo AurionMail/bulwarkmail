@@ -6,6 +6,7 @@ import { iconForName } from '@/components/icons';
 import type { SettingsPolicy, FeatureGates, PushRelayOption, AdminSidebarApp } from '@/lib/admin/types';
 import { DEFAULT_FEATURE_GATES, DEFAULT_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
+import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
 import { DEFAULT_SIDEBAR_APP_ID_PREFIX, MAX_DEFAULT_SIDEBAR_APPS } from '@/lib/sidebar-apps';
 import { generateUUID } from '@/lib/utils';
 import {
@@ -248,6 +249,8 @@ export function PolicyTab() {
     }
     setSaving(false);
   }
+
+  useAdminUnsavedChanges('policy', dirty);
 
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading...</div>;

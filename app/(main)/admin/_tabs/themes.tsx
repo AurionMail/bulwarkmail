@@ -5,6 +5,7 @@ import { Upload, Trash2, Power, PowerOff, Loader2, Palette, Save, Shield, Lock, 
 import type { SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY, DEFAULT_THEME_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
+import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
 import { BUILTIN_THEMES } from '@/lib/builtin-themes';
 
 // Derive from the single source of truth so newly added built-in themes show
@@ -296,6 +297,8 @@ export function ThemesTab() {
       setMessage({ type: 'error', text: data.error || 'Delete failed' });
     }
   }
+
+  useAdminUnsavedChanges('themes', policyDirty);
 
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading...</div>;

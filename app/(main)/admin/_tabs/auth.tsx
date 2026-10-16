@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Save, Loader2, RotateCcw, Sparkles } from '@/components/icons';
 import { apiFetch } from '@/lib/browser-navigation';
+import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
 import { DEFAULT_OAUTH_SCOPES } from '@/lib/oauth/scopes';
 
 interface ConfigEntry {
@@ -134,6 +135,8 @@ export function AuthTab() {
   const setupIssuerValid = /^https?:\/\/[^/]+$/.test(setupIssuer.trim().replace(/\/+$/, ''));
 
   const hasEdits = Object.keys(edits).length > 0;
+
+  useAdminUnsavedChanges('auth', hasEdits);
 
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading...</div>;

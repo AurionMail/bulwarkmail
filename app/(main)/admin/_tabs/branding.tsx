@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Save, Loader2, RotateCcw, ImageIcon, Upload, Trash2, Globe, Plus, X } from '@/components/icons';
 import { apiFetch, withBasePath } from '@/lib/browser-navigation';
+import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
 import {
   BRANDING_OVERRIDE_KEYS,
   parseDomainBranding,
@@ -339,6 +340,8 @@ export function BrandingTab() {
 
   const hasEdits = Object.keys(edits).length > 0;
   const wildcardScope = !!selectedHost && !EXACT_HOST_RE.test(selectedHost);
+
+  useAdminUnsavedChanges('branding', hasEdits);
 
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading...</div>;

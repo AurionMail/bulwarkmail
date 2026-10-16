@@ -5,6 +5,7 @@ import { Upload, Trash2, Power, PowerOff, AlertTriangle, Loader2, Package, Save,
 import type { SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
+import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
 import { PluginConfigPanel } from './plugin-config-panel';
 import { PluginApprovalsPanel } from './plugin-approvals-panel';
 
@@ -251,6 +252,8 @@ export function PluginsTab() {
       setMessage({ type: 'error', text: data.error || 'Delete failed' });
     }
   }
+
+  useAdminUnsavedChanges('plugins', policyDirty);
 
   if (configuringId) {
     return <PluginConfigPanel pluginId={configuringId} onBack={() => { setConfiguringId(null); fetchPlugins(); }} />;

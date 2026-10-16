@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Save, RotateCcw, Loader2 } from '@/components/icons';
 import { apiFetch } from '@/lib/browser-navigation';
+import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
 import { JmapServersSection } from './_jmap-servers-section';
 import type { JmapServerEntry } from '@/lib/admin/jmap-servers';
 
@@ -82,6 +83,8 @@ export function SettingsTab() {
   }
 
   const hasEdits = Object.keys(edits).length > 0;
+
+  useAdminUnsavedChanges('settings', hasEdits);
 
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">Loading...</div>;
