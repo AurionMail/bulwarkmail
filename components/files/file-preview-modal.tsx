@@ -9,6 +9,7 @@ import { getFilePreviewKind, imageBlobUrl, isMimeTypeSafeForInlinePreview, previ
 import dynamic from "next/dynamic";
 import { EmlPreview, type ParsedEml } from "@/components/files/eml-preview";
 import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
+import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
 import type { FileResourceView } from "@/lib/plugin-types";
 
 // pdf.js-based inline viewer for mobile (no native inline PDF viewer). Loaded
@@ -274,7 +275,9 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
       <div className="flex items-center justify-between gap-2 pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))] pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 bg-background/90 backdrop-blur border-b border-border" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-sm font-medium truncate">{name}</h3>
         <div className="flex items-center gap-2">
-          {objectUrl && canOpenInNewTab && (
+          {/* An installed app hands the new window to the system browser,
+              which cannot load our blob: URL (#865): no dead button there. */}
+          {objectUrl && canOpenInNewTab && canOpenUrlInNewWindow(objectUrl) && (
             <Button
               variant="ghost"
               size="icon"

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Loader2, ExternalLink } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { liteMountedAssetUrl } from "@/lib/lite";
+import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
 
 // Real inline PDF preview for mobile browsers. Android Chrome / iOS WebKit have
 // no native inline PDF viewer, so the desktop <iframe src=blob:> approach
@@ -216,15 +217,21 @@ export function PdfMobileViewer({ url, blob }: { url: string; blob: Blob }) {
       {status === "error" && (
         // pdf.js couldn't render this document (corrupt/encrypted, worker load
         // failure, ...). Offer the OS/native viewer instead of a stuck frame.
+        // An installed app cannot open the blob: URL in a new window (#865),
+        // so it only says so; the header's download button still works.
         <div className="flex justify-center py-10">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
-          >
-            <ExternalLink className="w-4 h-4 me-2" />
-            {t("open_in_new_tab")}
-          </Button>
+          {canOpenUrlInNewWindow(url) ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+            >
+              <ExternalLink className="w-4 h-4 me-2" />
+              {t("open_in_new_tab")}
+            </Button>
+          ) : (
+            <p className="text-sm text-destructive">{t("preview_error")}</p>
+          )}
         </div>
       )}
       <div ref={pagesRef} className="w-full" />

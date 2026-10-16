@@ -116,6 +116,8 @@ import { RecipientPopover } from "./recipient-popover";
 import { MailtoLink } from "@/components/ui/mailto-link";
 import { requestInternalMailto } from "@/lib/protocol-handlers/mailto";
 import { imageBlobUrl, inertBlobType, isFilePreviewable, isMimeTypeSafeForInlinePreview, toInertBlob } from "@/lib/file-preview";
+import { openPreviewInNewWindow } from "@/lib/standalone-display";
+import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { parseTnef, isTnefAttachment } from "@/lib/tnef";
 import { debug } from "@/lib/debug";
@@ -1274,7 +1276,26 @@ export function EmailViewer({
   // at a part can be routed through the attachment preview/download gate
   // instead of window.open() (GHSA-xvjh-v9c6-qcvc). A ref because the iframe
   // click handler is bound once per document.
-  const cidBlobPartsRef = useRef<Map<string, { name: string; type?: string }>>(new Map());
+  const cidBlobPartsRef = useRef<Map<string, { name: string; type?: string; blob: Blob }>>(new Map());
+  // A locally held attachment (TNEF, decrypted, cid: part) shown in the
+  // in-app preview because an installed app cannot open its blob: URL in a
+  // new window (#865).
+  const [inAppPreview, setInAppPreview] = useState<{ name: string; downloadName: string; blob: Blob; contentType: string } | null>(null);
+  const getInAppPreviewContent = useCallback(async () => {
+    if (!inAppPreview) throw new Error('No attachment selected');
+    return { blob: inAppPreview.blob, contentType: inAppPreview.contentType };
+  }, [inAppPreview]);
+  const downloadInAppPreview = useCallback(() => {
+    if (!inAppPreview) return;
+    const url = URL.createObjectURL(inAppPreview.blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = inAppPreview.downloadName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }, [inAppPreview]);
   const [quickReplyText, setQuickReplyText] = useState("");
   const [isQuickReplyFocused, setIsQuickReplyFocused] = useState(false);
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
@@ -2089,7 +2110,7 @@ export function EmailViewer({
         const objectUrl = URL.createObjectURL(blob);
         urls[cidValue] = objectUrl;
         objectUrls.push(objectUrl);
-        cidBlobParts.set(objectUrl, { name: att.filename || cidValue, type: att.mimeType });
+        cidBlobParts.set(objectUrl, { name: att.filename || cidValue, type: att.mimeType, blob });
       });
 
       setCidBlobUrls(urls);
@@ -2123,11 +2144,12 @@ export function EmailViewer({
           // the Blob type; re-type anything that could execute as our origin
           // before it becomes a blob: URL (GHSA-xvjh-v9c6-qcvc).
           const blob = await blobClient!.fetchBlob(att.blobId, att.name || 'inline', att.type, blobAccountId);
-          const objectUrl = URL.createObjectURL(toInertBlob(blob));
+          const inertBlob = toInertBlob(blob);
+          const objectUrl = URL.createObjectURL(inertBlob);
           if (!cancelled) {
             urls[cidValue] = objectUrl;
             objectUrls.push(objectUrl);
-            cidBlobParts.set(objectUrl, { name: att.name || cidValue, type: att.type });
+            cidBlobParts.set(objectUrl, { name: att.name || cidValue, type: att.type, blob: inertBlob });
           } else {
             URL.revokeObjectURL(objectUrl);
           }
@@ -2494,7 +2516,9 @@ export function EmailViewer({
 
       if (opensPreview) {
         const transformed = await emailHooks.onAttachmentPreview.transform({ previewUrl: objectUrl } as AttachmentPreview, info);
-        window.open(transformed.previewUrl || objectUrl, '_blank', 'noopener,noreferrer');
+        if (!openPreviewInNewWindow(transformed.previewUrl || objectUrl)) {
+          setInAppPreview({ name: attachment.name || downloadName, downloadName, blob, contentType: blob.type });
+        }
       } else {
         emailHooks.onAttachmentDownload.emit(info);
         const anchor = document.createElement('a');
@@ -2524,7 +2548,9 @@ export function EmailViewer({
 
     if (opensPreview) {
       const transformed = await emailHooks.onAttachmentPreview.transform({ previewUrl: objectUrl } as AttachmentPreview, info);
-      window.open(transformed.previewUrl || objectUrl, '_blank', 'noopener,noreferrer');
+      if (!openPreviewInNewWindow(transformed.previewUrl || objectUrl)) {
+        setInAppPreview({ name: attachment.name || downloadName, downloadName, blob, contentType: blob.type });
+      }
     } else {
       emailHooks.onAttachmentDownload.emit(info);
       const anchor = document.createElement('a');
@@ -2940,7 +2966,9 @@ export function EmailViewer({
       && isFilePreviewable(part.name, part.type)
       && isMimeTypeSafeForInlinePreview(part.type);
     if (opensPreview) {
-      window.open(href, '_blank', 'noopener,noreferrer');
+      if (!openPreviewInNewWindow(href)) {
+        setInAppPreview({ name: part.name, downloadName: part.name, blob: part.blob, contentType: part.type || part.blob.type });
+      }
       return;
     }
     const anchor = document.createElement('a');
@@ -6329,6 +6357,15 @@ export function EmailViewer({
               .then((created) => { if (created) toast.success('Contact added'); });
           }
         }}
+      />
+    )}
+
+    {inAppPreview && (
+      <FilePreviewModal
+        name={inAppPreview.name}
+        onClose={() => setInAppPreview(null)}
+        onDownload={downloadInAppPreview}
+        getFileContent={getInAppPreviewContent}
       />
     )}
 
