@@ -45,6 +45,31 @@ function isOwnAddress(email: string | undefined, ownEmails: string[]): boolean {
 }
 
 /**
+ * The addresses a reply treats as the user's own: their identities plus the
+ * account's login and primary address. Identities load from the server after
+ * the app starts and aren't persisted, so a composer opened before they arrive
+ * saw none and reply-all kept the user in To/Cc (#803). The account's
+ * addresses are known from the start and cover the usual case until then.
+ * A bare login name without a domain can't match an address, so it's skipped.
+ */
+export function ownReplyAddresses(
+  identityEmails: (string | undefined | null)[],
+  accountAddresses: (string | undefined | null)[] = [],
+): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const email of [...identityEmails, ...accountAddresses]) {
+    const trimmed = email?.trim();
+    if (!trimmed || !trimmed.includes('@')) continue;
+    const key = normalize(trimmed);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(trimmed);
+  }
+  return result;
+}
+
+/**
  * Is this a message the user themself sent? True when the From address is one
  * of their own identities - the case that shows up when browsing a thread and
  * replying to your own last message.

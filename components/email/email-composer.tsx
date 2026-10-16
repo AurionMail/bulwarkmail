@@ -91,7 +91,7 @@ import type { EmailTemplate } from "@/lib/template-types";
 import { appendPlainTextSignature, getPlainTextSignature, plainTextBodyHasSignature, plainTextBodyWithoutSignature } from "@/lib/signature-utils";
 import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { findComposeIdentityId, findDraftIdentityId, findReplyIdentityId, resolveReplyFrom } from "@/lib/reply-identity";
-import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
+import { buildReplyRecipients, isSelfSent, ownReplyAddresses } from "@/lib/reply-recipients";
 import { computeReplyThreadingHeaders, type ReplyThreadingHeaders } from "@/lib/email-threading";
 import { RecipientsRejectedError, RequestTimeoutError, ScheduleTooLateError, SendUnconfirmedError, formatRejectedRecipients } from "@/lib/jmap/client";
 import {
@@ -520,7 +520,17 @@ export function EmailComposer({
   const toRecipient = (r: { name?: string; email?: string }): Recipient =>
     ({ name: r.name && r.name !== r.email ? r.name : undefined, email: r.email ?? "" });
 
-  const ownIdentityEmails = identities.map(i => i.email).filter((e): e is string => Boolean(e));
+  // Identities can still be loading when the composer opens (cold start, PWA
+  // relaunch), so the account's own addresses stand in until they arrive (#803).
+  const composerAccount = activeAccountId ? useAccountStore.getState().getAccountById(activeAccountId) : undefined;
+  const replyAccount = sourceAccountId && sourceAccountId !== activeAccountId
+    ? useAccountStore.getState().getAccountById(sourceAccountId)
+    : undefined;
+  const ownIdentityEmails = ownReplyAddresses(
+    identities.map(i => i.email),
+    [composerAccount?.email, composerAccount?.username, replyAccount?.email, replyAccount?.username],
+  );
+  const ownIdentityEmailsKey = ownIdentityEmails.map((e) => e.toLowerCase()).join(',');
 
   // Initialize with reply/forward data if provided
   const getInitialTo = (): Recipient[] => {
@@ -726,6 +736,34 @@ export function EmailComposer({
   const [showCc, setShowCc] = useState(() => initialData?.showCc
     ?? (prefill?.cc ? prefill.cc.length > 0 : getInitialCc().length > 0));
   const [showBcc, setShowBcc] = useState(initialData?.showBcc ?? false);
+  // The reply recipients worked out when the composer opened. When the
+  // identities arrive later (#803) they're worked out again, but only while
+  // To and Cc still hold exactly what was filled in, so nothing the user
+  // changed is overwritten. Drafts and prefilled composes are left alone.
+  const autoRecipientsRef = useRef<{ to: Recipient[]; cc: Recipient[] } | null>(
+    !initialData && !prefill && (mode === 'reply' || mode === 'replyAll')
+      ? { to, cc }
+      : null,
+  );
+  useEffect(() => {
+    const auto = autoRecipientsRef.current;
+    if (!auto) return;
+    const same = (a: Recipient[], b: Recipient[]) =>
+      a.length === b.length && a.every((r, i) => r.email === b[i].email && r.name === b[i].name);
+    if (!same(to, auto.to) || !same(cc, auto.cc)) {
+      autoRecipientsRef.current = null;
+      return;
+    }
+    const nextTo = getInitialTo();
+    const nextCc = getInitialCc();
+    if (same(nextTo, auto.to) && same(nextCc, auto.cc)) return;
+    autoRecipientsRef.current = { to: nextTo, cc: nextCc };
+    setTo(nextTo);
+    setCc(nextCc);
+    if (nextCc.length > 0) setShowCc(true);
+    // Only a change in the user's own addresses should redo the recipients.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownIdentityEmailsKey]);
   // Committed recipients plus any not-yet-committed text the user has typed.
   // Send/validation/draft paths treat a typed-but-uncommitted address as a
   // real recipient, matching the previous string-based behavior.

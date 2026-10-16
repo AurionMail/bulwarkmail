@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
+import { useIdentityStore } from '@/stores/identity-store';
 import { usePolicyStore } from '@/stores/policy-store';
 
 // ─── Heavy component mocks (mirrors recipient-paste.test.tsx) ─────────────────
@@ -488,6 +489,59 @@ describe('composer reply addressing', () => {
       render(<EmailComposer mode="reply" replyTo={{ ...TO_ALIAS, to: [{ email: 'info@example.com' }], accountId: 'owner-jmap-id' }} />);
       expect(identitySelect().value).toBe('local-1::id-info');
     });
+  });
+});
+
+// #803: identities load from the server after the app starts and aren't
+// persisted. A reply-all opened before they arrive used to keep our own
+// address in To, and nothing fixed it once they loaded.
+describe('reply-all before identities have loaded', () => {
+  const identityStore = useIdentityStore as unknown as {
+    getState: () => { identities: unknown[] };
+    setState: (p: Record<string, unknown>) => void;
+  };
+  const accountStore = useAccountStore as unknown as { setState: (p: Record<string, unknown>) => void };
+  const authStore = useAuthStore as unknown as { setState: (p: Record<string, unknown>) => void };
+  let loaded: unknown[];
+
+  beforeEach(() => {
+    loaded = identityStore.getState().identities;
+    identityStore.setState({ identities: [] });
+  });
+
+  afterEach(() => {
+    identityStore.setState({ identities: loaded });
+    accountStore.setState({ accounts: [] });
+    authStore.setState({ activeAccountId: null });
+  });
+
+  it('drops our own address using the account address', () => {
+    accountStore.setState({
+      accounts: [{ id: 'local-1', email: 'me@example.com', username: 'me@example.com', isConnected: true }],
+    });
+    authStore.setState({ activeAccountId: 'local-1' });
+    render(<EmailComposer mode="replyAll" replyTo={RECEIVED} />);
+    expect(toChips()).toEqual(['Bob (bob@other.com)', 'Carol (carol@other.com)']);
+  });
+
+  it('drops our own address once the identities arrive', () => {
+    const { rerender } = render(<EmailComposer mode="replyAll" replyTo={RECEIVED} />);
+    expect(toChips()).toContain('Me (me@example.com)');
+    identityStore.setState({ identities: loaded });
+    rerender(<EmailComposer mode="replyAll" replyTo={RECEIVED} />);
+    expect(toChips()).toEqual(['Bob (bob@other.com)', 'Carol (carol@other.com)']);
+    expect(ccChips()).toEqual(['Dave (dave@other.com)']);
+  });
+
+  it('leaves the recipients alone once the user has changed them', () => {
+    const { rerender } = render(<EmailComposer mode="replyAll" replyTo={RECEIVED} />);
+    const carol = Array.from(screen.getByTestId('composer-to').querySelectorAll('[draggable]'))
+      .find((el) => el.textContent?.includes('carol@other.com')) as HTMLElement;
+    fireEvent.click(carol.querySelector('button') as HTMLElement);
+    expect(toChips()).toEqual(['Bob (bob@other.com)', 'Me (me@example.com)']);
+    identityStore.setState({ identities: loaded });
+    rerender(<EmailComposer mode="replyAll" replyTo={RECEIVED} />);
+    expect(toChips()).toEqual(['Bob (bob@other.com)', 'Me (me@example.com)']);
   });
 });
 

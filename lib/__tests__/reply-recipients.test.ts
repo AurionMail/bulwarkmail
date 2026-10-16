@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildReplyRecipients, isSelfSent } from '@/lib/reply-recipients';
+import { buildReplyRecipients, isSelfSent, ownReplyAddresses } from '@/lib/reply-recipients';
 
 const OWN = ['me@example.com', 'info@example.com'];
 
@@ -133,5 +133,31 @@ describe('buildReplyRecipients', () => {
     expect(isSelfSent({ from: [{ email: 'ME@Example.com ' }] }, OWN)).toBe(true);
     expect(isSelfSent({ from: [] }, OWN)).toBe(false);
     expect(isSelfSent(undefined, OWN)).toBe(false);
+  });
+});
+
+// #803: identities load after the app starts, so a composer opened before
+// they arrive had no own addresses and reply-all kept the user in To.
+describe('ownReplyAddresses', () => {
+  const received = {
+    from: [{ email: 'bob@other.com' }],
+    to: [{ email: 'me@example.com' }, { email: 'carol@other.com' }],
+    cc: [{ email: 'Me@Example.com' }],
+  };
+
+  it('drops our own address on reply-all before identities have loaded', () => {
+    const own = ownReplyAddresses([], ['me@example.com', 'me']);
+    const { to, cc } = buildReplyRecipients(received, 'replyAll', own);
+    expect(emails(to)).toEqual(['bob@other.com', 'carol@other.com']);
+    expect(cc).toEqual([]);
+  });
+
+  it('merges identities with the account addresses, once each', () => {
+    expect(ownReplyAddresses(['me@example.com', undefined, ''], ['ME@example.com ', 'info@example.com']))
+      .toEqual(['me@example.com', 'info@example.com']);
+  });
+
+  it('skips a login name without a domain', () => {
+    expect(ownReplyAddresses([], ['linus', null, undefined])).toEqual([]);
   });
 });
