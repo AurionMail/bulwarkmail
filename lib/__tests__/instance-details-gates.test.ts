@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // Endpoints answering anyone used to hand out what fingerprints an instance:
@@ -56,12 +56,17 @@ import { GET as health } from '@/app/api/health/route';
 import { GET as updateStatus } from '@/app/api/system/update-status/route';
 import { GET as plugins } from '@/app/api/plugins/route';
 import { GET as policy } from '@/app/api/admin/policy/route';
+import { GET as connectorCapabilities } from '@/app/api/connector/capabilities/route';
 
 const req = (path: string) => new NextRequest(`https://mail.example${path}`);
 
 beforeEach(() => {
   gate.signedIn = false;
   config.values = {};
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('endpoints for visitors who are not signed in', () => {
@@ -85,6 +90,17 @@ describe('endpoints for visitors who are not signed in', () => {
 
     gate.signedIn = true;
     expect((await (await updateStatus(req('/api/system/update-status'))).json()).status).toEqual(STATUS);
+  });
+
+  it('the connector probe follows loginShowVersion and still lists its targets', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_VERSION', '1.9.0');
+    expect((await (await connectorCapabilities()).json()).version).toBe('1.9.0');
+
+    config.values.loginShowVersion = false;
+    const hidden = await (await connectorCapabilities()).json();
+    expect(hidden.version).toBeNull();
+    expect(hidden.product).toBe('bulwark-webmail');
+    expect(hidden.targets.length).toBeGreaterThan(0);
   });
 
   it('the plugin list needs a session', async () => {
