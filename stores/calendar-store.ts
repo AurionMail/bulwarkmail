@@ -1909,7 +1909,10 @@ async function importEventsUnhooked(
       description: src.description,
       descriptionContentType: src.descriptionContentType,
       start: src.start,
-      duration: src.showWithoutTime ? normalizeAllDayDuration(src.duration) : src.duration,
+      // CalendarEvent/parse drops a DTEND equal to DTSTART; without an
+      // explicit zero duration Stalwart stores the event ending at
+      // 23:59:59 of its start day. (#837)
+      duration: src.showWithoutTime ? normalizeAllDayDuration(src.duration) : (src.duration || 'PT0S'),
       timeZone: src.showWithoutTime ? null : src.timeZone,
       showWithoutTime: src.showWithoutTime,
       status: src.status,

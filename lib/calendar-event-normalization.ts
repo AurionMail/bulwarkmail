@@ -113,12 +113,25 @@ function normalizeStalwartPropertyNames<T extends Partial<CalendarEvent>>(event:
   return result;
 }
 
+/**
+ * A timed event without a duration lasts zero seconds (RFC 8984 default
+ * PT0S). Stalwart drops a DTEND equal to DTSTART and then ends such an
+ * event at 23:59:59 of its start day, so its utcEnd is wrong. Only server
+ * objects carry utcStart, which keeps partial update patches untouched. (#837)
+ */
+function withZeroDurationEnd<T extends Partial<CalendarEvent>>(event: T): T {
+  if (event.showWithoutTime || event.duration || !event.start || !event.utcStart) {
+    return event;
+  }
+  return { ...event, duration: 'PT0S', utcEnd: event.utcStart } as T;
+}
+
 export function normalizeCalendarEventLike<T extends Partial<CalendarEvent>>(event: T): T {
   // First normalize Stalwart's singular property names to RFC 8984 plural forms
   const normalized = normalizeStalwartPropertyNames(event);
 
   if (!isAllDayEventLike(normalized)) {
-    return normalized;
+    return withZeroDurationEnd(normalized);
   }
 
   return {

@@ -344,6 +344,7 @@ describe('formatEventSummary', () => {
       utcStart: '2026-02-17T15:00:00Z',
       utcEnd: '2026-02-17T16:00:00Z',
       start: '2026-02-17T10:00:00',
+      duration: 'PT1H',
     });
     expect(summary.start).toBe('2026-02-17T15:00:00Z');
     expect(summary.end).toBe('2026-02-17T16:00:00Z');
