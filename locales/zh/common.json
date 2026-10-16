@@ -142,6 +142,8 @@
     "show_all_tags": "显示全部（{count}）",
     "show_fewer_tags": "收起",
     "folders": "文件夹",
+    "your_folders": "我的文件夹",
+    "create_folder": "新建文件夹",
     "show_more": "更多",
     "show_fewer": "收起",
     "mail": "邮件",

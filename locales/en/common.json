@@ -142,6 +142,8 @@
     "show_all_tags": "Show all ({count})",
     "show_fewer_tags": "Show less",
     "folders": "Folders",
+    "your_folders": "Your folders",
+    "create_folder": "Create folder",
     "show_more": "More",
     "show_fewer": "Less",
     "shared": "Shared",

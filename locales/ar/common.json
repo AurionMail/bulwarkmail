@@ -142,6 +142,8 @@
     "show_all_tags": "إظهار الكل ({count})",
     "show_fewer_tags": "إظهار أقل",
     "folders": "المجلدات",
+    "your_folders": "مجلداتك",
+    "create_folder": "إنشاء مجلد",
     "show_more": "المزيد",
     "show_fewer": "أقل",
     "shared": "مشترك",

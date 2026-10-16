@@ -142,6 +142,8 @@
     "show_all_tags": "Показать все ({count})",
     "show_fewer_tags": "Показать меньше",
     "folders": "Папки",
+    "your_folders": "Ваши папки",
+    "create_folder": "Создать папку",
     "show_more": "Ещё",
     "show_fewer": "Свернуть",
     "mail": "Почта",

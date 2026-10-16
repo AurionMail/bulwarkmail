@@ -142,6 +142,8 @@
     "show_all_tags": "نمایش همه ({count})",
     "show_fewer_tags": "نمایش کمتر",
     "folders": "پوشه‌ها",
+    "your_folders": "پوشه‌های شما",
+    "create_folder": "ایجاد پوشه",
     "show_more": "بیشتر",
     "show_fewer": "کمتر",
     "shared": "اشتراکی",

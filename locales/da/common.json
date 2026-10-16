@@ -142,6 +142,8 @@
     "show_all_tags": "Vis alle ({count})",
     "show_fewer_tags": "Vis færre",
     "folders": "Mapper",
+    "your_folders": "Dine mapper",
+    "create_folder": "Opret mappe",
     "show_more": "Mere",
     "show_fewer": "Mindre",
     "shared": "Delt",

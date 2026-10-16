@@ -142,6 +142,8 @@
     "show_all_tags": "Показати всі ({count})",
     "show_fewer_tags": "Показати менше",
     "folders": "Папки",
+    "your_folders": "Ваші теки",
+    "create_folder": "Створити теку",
     "show_more": "Більше",
     "show_fewer": "Менше",
     "mail": "Пошта",

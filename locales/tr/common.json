@@ -142,6 +142,8 @@
     "show_all_tags": "Tümünü göster ({count})",
     "show_fewer_tags": "Daha az göster",
     "folders": "Klasörler",
+    "your_folders": "Klasörleriniz",
+    "create_folder": "Klasör oluştur",
     "show_more": "Diğer",
     "show_fewer": "Daha az",
     "shared": "Paylaşılan",

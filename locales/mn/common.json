@@ -142,6 +142,8 @@
     "show_all_tags": "Бүгдийг нь харуулах ({count})",
     "show_fewer_tags": "Бага харуулах",
     "folders": "Хавтас",
+    "your_folders": "Таны хавтаснууд",
+    "create_folder": "Хавтас үүсгэх",
     "show_more": "Илүү",
     "show_fewer": "Бага",
     "shared": "Хуваалцсан",

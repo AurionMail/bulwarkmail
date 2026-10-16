@@ -142,6 +142,8 @@
     "show_all_tags": "すべて表示（{count}）",
     "show_fewer_tags": "表示を減らす",
     "folders": "フォルダ",
+    "your_folders": "マイフォルダ",
+    "create_folder": "フォルダを作成",
     "show_more": "もっと見る",
     "show_fewer": "折りたたむ",
     "mail": "メール",

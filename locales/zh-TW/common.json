@@ -142,6 +142,8 @@
     "show_all_tags": "顯示全部（{count}）",
     "show_fewer_tags": "顯示較少",
     "folders": "信件匣",
+    "your_folders": "我的資料夾",
+    "create_folder": "建立資料夾",
     "show_more": "更多",
     "show_fewer": "收合",
     "shared": "共用",

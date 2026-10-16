@@ -142,6 +142,8 @@
     "show_all_tags": "전체 보기({count})",
     "show_fewer_tags": "간략히 보기",
     "folders": "폴더",
+    "your_folders": "내 폴더",
+    "create_folder": "폴더 만들기",
     "show_more": "더보기",
     "show_fewer": "간략히",
     "mail": "메일",

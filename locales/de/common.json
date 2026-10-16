@@ -142,6 +142,8 @@
     "show_all_tags": "Alle anzeigen ({count})",
     "show_fewer_tags": "Weniger anzeigen",
     "folders": "Ordner",
+    "your_folders": "Eigene Ordner",
+    "create_folder": "Ordner erstellen",
     "show_more": "Mehr",
     "show_fewer": "Weniger",
     "mail": "E-Mail",

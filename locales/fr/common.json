@@ -142,6 +142,8 @@
     "show_all_tags": "Tout afficher ({count})",
     "show_fewer_tags": "Afficher moins",
     "folders": "Dossiers",
+    "your_folders": "Vos dossiers",
+    "create_folder": "Créer un dossier",
     "show_more": "Plus",
     "show_fewer": "Moins",
     "mail": "Messagerie",
