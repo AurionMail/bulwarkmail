@@ -1179,6 +1179,10 @@
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
       },
+      "show_account_dot": {
+        "label": "Show Account Dot",
+        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
+      },
       "tint_list_rows_by_account": {
         "label": "Colora le righe in base all'account",
         "description": "Nella vista unificata, colora ogni riga con il colore del suo account invece di mostrare il pallino. Ha la precedenza sulla tinta del tag; i tag mantengono il loro colore sulle etichette."

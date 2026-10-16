@@ -1182,6 +1182,10 @@
         "label": "依標籤顏色為清單列上色",
         "description": "以第一個標籤的顏色為每封郵件列加上底色。停用後郵件列保持無底色，但標籤圓點與標籤仍會顯示該顏色。"
       },
+      "show_account_dot": {
+        "label": "Show Account Dot",
+        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
+      },
       "tint_list_rows_by_account": {
         "label": "Tint List Rows by Account Color",
         "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."

@@ -360,6 +360,8 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const { variant: tagVariant, placement: tagPlacement } = useTagDisplay();
     const tintListRowsByTag = useSettingsStore((state) => state.tintListRowsByTag);
     const tintListRowsByAccount = useSettingsStore((state) => state.tintListRowsByAccount);
+    // The tint replaces the dot, and the dot can be switched off on its own (#912).
+    const showAccountDot = useSettingsStore((state) => state.showAccountDot) && !tintListRowsByAccount;
     const density = useSettingsStore((state) => state.density);
     const mailLayout = useEffectiveMailLayout();
     const timeFormat = useSettingsStore((state) => state.timeFormat);
@@ -624,7 +626,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
               <>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
-                  {isUnifiedView && email.accountId && accountColor && !tintListRowsByAccount && (
+                  {isUnifiedView && email.accountId && accountColor && showAccountDot && (
                     <span
                       className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: accountColor }}
@@ -702,7 +704,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
               <>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    {isUnifiedView && email.accountId && accountColor && !tintListRowsByAccount && (
+                    {isUnifiedView && email.accountId && accountColor && showAccountDot && (
                       <span
                         className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ backgroundColor: accountColor }}
@@ -956,6 +958,8 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     const { variant: tagVariant, placement: tagPlacement } = useTagDisplay();
     const tintListRowsByTag = useSettingsStore((state) => state.tintListRowsByTag);
     const tintListRowsByAccount = useSettingsStore((state) => state.tintListRowsByAccount);
+    // The tint replaces the dot, and the dot can be switched off on its own (#912).
+    const showAccountDot = useSettingsStore((state) => state.showAccountDot) && !tintListRowsByAccount;
     // A collapsed row speaks for every message under it, so it carries their tags too.
     const tagIds = sortTagIds(getThreadTagIds(thread.emails));
     const threadTintSource = threadAccountColor
@@ -1204,7 +1208,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                 <>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    {isUnifiedView && latestEmail.accountId && threadAccountColor && !tintListRowsByAccount && (
+                    {isUnifiedView && latestEmail.accountId && threadAccountColor && showAccountDot && (
                       <span
                         className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ backgroundColor: threadAccountColor }}
@@ -1307,7 +1311,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                 <>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      {isUnifiedView && latestEmail.accountId && threadAccountColor && !tintListRowsByAccount && (
+                      {isUnifiedView && latestEmail.accountId && threadAccountColor && showAccountDot && (
                         <span
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: threadAccountColor }}

@@ -642,6 +642,7 @@ interface SettingsState {
   colorfulSidebarIcons: boolean; // Tint folder icons by role (inbox blue, junk red, etc.)
   tintListRowsByTag: boolean; // Tint mail-list rows by the first tag color
   tintListRowsByAccount: boolean; // In the unified view, tint rows by account colour instead of showing the account dot
+  showAccountDot: boolean; // In the unified view, show the account colour dot next to the sender
   showFolderTotalCount: boolean; // Show total message count next to folders/tags (alongside unread)
   // Mail folders of shared (group/delegated) JMAP accounts in the sidebar.
   // Turning it off hides every shared account's folders; their calendars,
@@ -904,6 +905,7 @@ const DEFAULT_SETTINGS = {
   colorfulSidebarIcons: true,
   tintListRowsByTag: true,
   tintListRowsByAccount: false,
+  showAccountDot: true,
   showFolderTotalCount: true,
   showSharedMailAccounts: true,
   hiddenSharedMailAccounts: {} as Record<string, string[]>,
@@ -1231,6 +1233,7 @@ export const useSettingsStore = create<SettingsState>()(
           colorfulSidebarIcons: state.colorfulSidebarIcons,
           tintListRowsByTag: state.tintListRowsByTag,
           tintListRowsByAccount: state.tintListRowsByAccount,
+          showAccountDot: state.showAccountDot,
           showFolderTotalCount: state.showFolderTotalCount,
           showSharedMailAccounts: state.showSharedMailAccounts,
           hiddenSharedMailAccounts: state.hiddenSharedMailAccounts,

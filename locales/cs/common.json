@@ -1179,6 +1179,10 @@
         "label": "Podbarvit řádky barvou štítku",
         "description": "Podbarvit každý řádek zprávy barvou jejího prvního štítku. Po vypnutí zůstanou řádky bílé; tečky a chipy štítků barvu dál zobrazují."
       },
+      "show_account_dot": {
+        "label": "Show Account Dot",
+        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
+      },
       "tint_list_rows_by_account": {
         "label": "Podbarvit řádky barvou účtu",
         "description": "Ve sjednoceném zobrazení podbarvit každý řádek barvou účtu místo zobrazení tečky účtu. Má přednost před podbarvením štítkem; štítky si barvu na chipech ponechají."

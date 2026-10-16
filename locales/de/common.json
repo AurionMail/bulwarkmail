@@ -1179,6 +1179,10 @@
         "label": "Nachrichtenzeilen mit Tag-Farbe einfärben",
         "description": "Die einzelnen Nachrichtenzeilen mit der Farbe ihres ersten Tags einfärben. Deaktivieren Sie diese Option, um die Zeilen neutral zu halten; Tag-Punkte und -Markierungen zeigen die Farbe weiterhin an."
       },
+      "show_account_dot": {
+        "label": "Konto-Punkt anzeigen",
+        "description": "Zeigt in der gemeinsamen Ansicht einen Punkt in der Kontofarbe neben dem Absender, damit Sie sehen, aus welchem Konto eine Nachricht kommt. Wirkt nicht, solange Zeilen nach Kontofarbe eingefärbt werden."
+      },
       "tint_list_rows_by_account": {
         "label": "Tint List Rows by Account Color",
         "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
