@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
 import DOMPurify from "dompurify";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
-import { EMAIL_SANITIZE_CONFIG, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
+import { EMAIL_SANITIZE_CONFIG, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizeEmailBodyForIframe, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
 import { findVerificationCode, verificationCodeBodyText } from "@/lib/verification-code";
 import { VerificationCodeChip } from "./verification-code-chip";
@@ -46,6 +46,7 @@ import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
+import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 
@@ -515,6 +516,8 @@ export function ConversationEmailBody({
   const [hasBlockedContent, setHasBlockedContent] = useState(false);
   const [cidBlobUrls, setCidBlobUrls] = useState<Record<string, string>>({});
   const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
+  // A crypto plugin's decrypted body (PGP, S/MIME) replaces the message's own.
+  const pluginBody = usePluginRenderedBody(email);
   // reader-above-quote: the body the quote was collapsed in, once it is on screen.
   const [htmlBodyEl, setHtmlBodyEl] = useState<HTMLElement | null>(null);
   const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);
@@ -574,6 +577,30 @@ export function ConversationEmailBody({
   // Sanitize and prepare email HTML content
   const emailContent = useMemo(() => {
     if (!email) return { html: "", isHtml: false };
+
+    // Plugin-rendered bodies get the reader's sanitizer and remote-content
+    // blocking, like any other mail body (#797).
+    if (pluginBody.html) {
+      const withCids = pluginBody.html.replace(
+        /\bcid:([^"'\s)]+)/gi,
+        (_match, cidRef) => pluginBody.cidUrls[cidRef] || cidBlobUrls[cidRef] || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      );
+      const { html, blockedExternalContent } = sanitizeEmailBodyForIframe(withCids, !allowExternal);
+      if (blockedExternalContent) {
+        if (!hasBlockedContent) setHasBlockedContent(true);
+        return { html: collapseBlockedImageContainers(html), isHtml: true };
+      }
+      return { html, isHtml: true };
+    }
+    if (pluginBody.text) {
+      return {
+        html: collapsePlainTextQuotes(plainTextToSafeHtml(pluginBody.text, 'text-primary hover:underline'), {
+          show: t('email_viewer.show_quoted_text'),
+          hide: t('email_viewer.hide_quoted_text'),
+        }),
+        isHtml: false,
+      };
+    }
 
     if (email.bodyValues) {
       let htmlContent = getRenderableHtmlBody(email);
@@ -651,7 +678,7 @@ export function ConversationEmailBody({
   // `hasBlockedContent` is only read to skip a redundant setState; as a
   // dependency it would re-run the sanitizer once the banner shows.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, allowExternal, cidBlobUrls, t]);
+  }, [email, allowExternal, cidBlobUrls, pluginBody, t]);
 
   // Parts the body embeds via cid: stay out of the attachment row while the
   // user hides inline images - the desktop viewer's rule, shared through
