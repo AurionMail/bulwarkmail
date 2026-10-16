@@ -128,7 +128,7 @@ function FlagTW(props: FlagProps) {
 
 // Estonia is not in Twemoji's set used above; drawn here in the same style.
 function FlagEE(props: FlagProps) {
-  return <Flag {...props}><clipPath id="flag-ee-clip"><rect x="0" y="5" width="36" height="26" rx="4" /></clipPath><g clipPath="url(#flag-ee-clip)"><path fill="#0072CE" d="M0 5h36v8.67H0z" /><path fill="#000" d="M0 13.67h36v8.66H0z" /><path fill="#EEE" d="M0 22.33h36V31H0z" /></g></Flag>;
+  return <Flag {...props}><path fill="#0072CE" d="M32 5H4C1.791 5 0 6.791 0 9v4.667h36V9c0-2.209-1.791-4-4-4z" /><path fill="#141414" d="M0 13.667h36v8.667H0z" /><path fill="#EEE" d="M0 27c0 2.209 1.791 4 4 4h28c2.209 0 4-1.791 4-4v-4.667H0V27z" /></Flag>;
 }
 
 export const flagComponents: Record<string, (props: FlagProps) => ReactElement> = {
