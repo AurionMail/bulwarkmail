@@ -61,7 +61,7 @@ import { debug } from "@/lib/debug";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { cn, getMailboxPath } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
-import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, groupEmailsByThread, threadKeyFor } from "@/lib/thread-utils";
+import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, emailKeyFor, groupEmailsByThread, threadKeyFor } from "@/lib/thread-utils";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import {
   ErrorBoundary,
@@ -2692,7 +2692,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
       try {
         // false: a plugin stopped it and said why, so no "deleted" here.
-        if (await deleteEmail(client, emailToDelete.id, true)) toast.success(t('notifications.email_deleted'));
+        if (await deleteEmail(client, emailToDelete.id, true, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
       } catch (error) {
         console.error("Failed to permanently delete email:", error);
         toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
@@ -2714,7 +2714,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         });
       if (trashMailbox) {
         try {
-          if (await moveToMailbox(client, emailToDelete.id, trashMailbox.id)) toast.success(t('notifications.email_deleted'));
+          if (await moveToMailbox(client, emailToDelete.id, trashMailbox.id, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
         } catch (error) {
           console.error("Failed to move email to trash:", error);
           toast.error(error instanceof Error ? error.message : 'Failed to move email to trash');

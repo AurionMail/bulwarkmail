@@ -307,9 +307,11 @@ interface EmailStore {
   fetchQuota: (client: IJMAPClient) => Promise<void>;
   sendEmail: (client: IJMAPClient, to: string[], subject: string, body: string, cc?: string[], bcc?: string[], identityId?: string, fromEmail?: string, draftId?: string, fromName?: string, htmlBody?: string, attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>, inReplyTo?: string[], references?: string[], delayedUntil?: string, envelopeMailFrom?: string, options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; localAccountId?: string }) => Promise<SendEmailResult>;
   sendRawEmail: (client: IJMAPClient, rawMimeBlob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[]) => Promise<SendEmailResult>;
-  deleteEmail: (client: IJMAPClient, emailId: string, forceDelete?: boolean) => Promise<boolean>;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  deleteEmail: (client: IJMAPClient, emailId: string, forceDelete?: boolean, emailKey?: string) => Promise<boolean>;
   markAsRead: (client: IJMAPClient, emailId: string, read: boolean) => Promise<boolean>;
-  moveToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string) => Promise<boolean>;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  moveToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string) => Promise<boolean>;
   /**
    * Move a single email, routing across the account boundary when the
    * destination folder is owned by a different JMAP account (a delegated/shared
@@ -500,6 +502,38 @@ function getNextSelectedEmailAfterRemoval(state: { emails: Email[]; selectedEmai
 
 function getNextSelectedEmail(state: { emails: Email[]; selectedEmail: Email | null }, removedEmailId: string): Email | null {
   return getNextSelectedEmailAfterRemoval(state, new Set([removedEmailId]));
+}
+
+/**
+ * Matches the list row a single-email action is about. Email ids repeat across
+ * accounts, so in a merged view (unified inbox, tags) the bare id also matches
+ * the other account's namesake: deleting one row moved or hid the other as
+ * well (#857). With the row's `emailKeyFor` key only that row matches.
+ */
+function singleEmailMatcher(emailId: string, emailKey?: string): (email: Email) => boolean {
+  return emailKey ? (email) => emailKeyFor(email) === emailKey : (email) => email.id === emailId;
+}
+
+/** getNextSelectedEmail for the one row `isRemoved` matches. */
+function getNextSelectedEmailAfterRemovingRow(
+  state: { emails: Email[]; selectedEmail: Email | null },
+  isRemoved: (email: Email) => boolean,
+): Email | null {
+  const selected = state.selectedEmail;
+  if (!selected || !isRemoved(selected)) return selected;
+
+  const selectedKey = emailKeyFor(selected);
+  let idx = state.emails.findIndex(e => emailKeyFor(e) === selectedKey);
+  if (idx === -1) idx = state.emails.findIndex(e => e.id === selected.id);
+  if (idx === -1) return null;
+
+  for (let nextIndex = idx + 1; nextIndex < state.emails.length; nextIndex++) {
+    if (!isRemoved(state.emails[nextIndex])) return state.emails[nextIndex];
+  }
+  for (let prevIndex = idx - 1; prevIndex >= 0; prevIndex--) {
+    if (!isRemoved(state.emails[prevIndex])) return state.emails[prevIndex];
+  }
+  return null;
 }
 
 function annotateScheduledEmails(
@@ -3080,10 +3114,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
   },
 
-  deleteEmail: async (client, emailId, forceDelete): Promise<boolean> => {
+  deleteEmail: async (client, emailId, forceDelete, emailKey): Promise<boolean> => {
     try {
       // Get the email to check if it's unread and which mailboxes it belongs to
-      const email = get().emails.find(e => e.id === emailId);
+      const isTarget = singleEmailMatcher(emailId, emailKey);
+      const email = get().emails.find(isTarget);
       if (!email) return false;
 
       const isUnread = !email.keywords?.$seen;
@@ -3157,8 +3192,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
               : {};
 
             return {
-              emails: state.emails.filter(e => e.id !== emailId),
-              selectedEmail: getNextSelectedEmail(state, emailId),
+              emails: state.emails.filter(e => !isTarget(e)),
+              selectedEmail: getNextSelectedEmailAfterRemovingRow(state, isTarget),
               ...mailboxPatch,
             };
           });
@@ -3191,8 +3226,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           : {};
 
         return {
-          emails: state.emails.filter(e => e.id !== emailId),
-          selectedEmail: getNextSelectedEmail(state, emailId),
+          emails: state.emails.filter(e => !isTarget(e)),
+          selectedEmail: getNextSelectedEmailAfterRemovingRow(state, isTarget),
           ...mailboxPatch,
         };
       });
@@ -3380,9 +3415,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     );
   },
 
-  moveToMailbox: async (client, emailId, destinationMailboxId): Promise<boolean> => {
+  moveToMailbox: async (client, emailId, destinationMailboxId, emailKey): Promise<boolean> => {
     try {
-      const email = get().emails.find(e => e.id === emailId);
+      const isTarget = singleEmailMatcher(emailId, emailKey);
+      const email = get().emails.find(isTarget);
       if (!email) return false;
 
       const isUnread = !email.keywords?.$seen;
@@ -3426,8 +3462,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         });
 
         return {
-          emails: state.emails.filter(e => e.id !== emailId),
-          selectedEmail: getNextSelectedEmail(state, emailId),
+          emails: state.emails.filter(e => !isTarget(e)),
+          selectedEmail: getNextSelectedEmailAfterRemovingRow(state, isTarget),
           ...mailboxPatch,
         };
       });
