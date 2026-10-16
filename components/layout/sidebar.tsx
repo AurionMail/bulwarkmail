@@ -88,6 +88,7 @@ import {
   type NotificationMutes,
 } from "@/lib/notification-mutes";
 import { serverSupportsEmailPush } from "@/lib/web-push";
+import { resolveFolderCounts } from "@/lib/folder-counts";
 
 interface SidebarProps {
   mailboxes: Mailbox[];
@@ -210,34 +211,43 @@ function SidebarRowCounts({
   unread,
   total,
   role,
+  mailboxId,
   onUnreadClick,
 }: {
   unread?: number;
   total?: number;
   role?: string | null;
+  mailboxId?: string;
   isSelected: boolean;
   onUnreadClick?: () => void;
 }) {
   const showFolderTotalCount = useSettingsStore(s => s.showFolderTotalCount);
   const mountainView = useSettingsStore(s => s.interfaceLayout === 'mountain-view');
+  // Per-folder override from the folder settings (#982).
+  const countMode = useSettingsStore(s => (mailboxId ? s.folderCountModes?.[mailboxId] : undefined));
+  const counts = resolveFolderCounts({
+    unread, total, role, mode: countMode,
+    showTotalGlobally: showFolderTotalCount, mountainView,
+  });
   // Mountain View counts one thing per row: what is unread, or for Drafts,
   // how many there are, since a draft is never unread.
   if (mountainView) {
-    const count = role === 'drafts' ? (total ?? 0) : (unread ?? 0);
+    const showsTotal = counts.total > 0;
+    const count = showsTotal ? counts.total : counts.unread;
     if (count === 0) return null;
     return (
       <span
-        className={cn("ms-2 flex-shrink-0 text-xs tabular-nums", role === 'drafts' ? "text-muted-foreground" : "font-bold text-foreground")}
+        className={cn("ms-2 flex-shrink-0 text-xs tabular-nums", showsTotal ? "text-muted-foreground" : "font-bold text-foreground")}
         data-testid="folder-counts"
         data-unread={unread ?? 0}
-        data-total={role === 'drafts' ? count : 0}
+        data-total={counts.total}
       >
         {count.toLocaleString()}
       </span>
     );
   }
-  const unreadCount = unread ?? 0;
-  const totalCount = showFolderTotalCount ? (total ?? 0) : 0;
+  const unreadCount = counts.unread;
+  const totalCount = counts.total;
 
   if (unreadCount === 0 && totalCount === 0) return null;
 
@@ -426,6 +436,7 @@ function SidebarRow({
               unread={unread}
               total={total}
               role={testRole}
+              mailboxId={testMailboxId}
               isSelected={isSelected}
               onUnreadClick={onUnreadClick}
             />

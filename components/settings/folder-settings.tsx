@@ -32,6 +32,7 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { isFolderCountMode } from '@/lib/folder-counts';
 
 // Must match the per-level indentation used in the row styles below: dragging
 // a folder this many pixels right/left targets one nesting level deeper/higher.
@@ -164,7 +165,7 @@ export function FolderSettings() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const { folderIcons, setFolderIcon } = useSettingsStore();
+  const { folderIcons, setFolderIcon, folderCountModes, updateSetting } = useSettingsStore();
   const { isFeatureEnabled } = usePolicyStore();
   const folderIconsAllowed = isFeatureEnabled('folderIconsEnabled');
 
@@ -719,6 +720,21 @@ export function FolderSettings() {
             )}
           </div>
           <div className="flex items-center gap-0.5">
+            <Select
+              value={folderCountModes?.[mb.id] ?? ''}
+              onChange={(value) => {
+                const { [mb.id]: _, ...rest } = folderCountModes ?? {};
+                updateSetting('folderCountModes', isFolderCountMode(value) ? { ...rest, [mb.id]: value } : rest);
+              }}
+              ariaLabel={t('count_mode', { name: mb.name })}
+              className="px-1.5 py-0.5 text-xs max-w-[9rem]"
+              options={[
+                { value: '', label: t('count_mode_default') },
+                { value: 'unread', label: t('count_mode_unread') },
+                { value: 'all', label: t('count_mode_all') },
+                { value: 'none', label: t('count_mode_none') },
+              ]}
+            />
             {mb.myRights?.mayCreateChild && (
               <button
                 onClick={() => startCreateSubfolder(mb.id)}

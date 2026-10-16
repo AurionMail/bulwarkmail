@@ -11,6 +11,7 @@ import { apiFetch } from '@/lib/browser-navigation';
 import { settingsHooks } from '@/lib/plugin-hooks';
 import { generateAccountId } from '@/lib/account-utils';
 import { subscriptionOwnerFor } from '@/lib/calendar-subscription-sync';
+import type { FolderCountMode } from '@/lib/folder-counts';
 import { orderForMailbox, sanitizeSortLevels, type MessageListOrderScope, type SortLevel } from '@/lib/message-list-order';
 import {
   DEFAULT_SUB_ADDRESS_DELIMITER,
@@ -654,6 +655,7 @@ interface SettingsState {
 
   // Folders
   folderIcons: Record<string, string>; // mailboxId -> icon name
+  folderCountModes: Record<string, FolderCountMode>; // mailboxId -> counter override (#982)
 
   // Keywords (labels/tags)
   emailKeywords: KeywordDefinition[];
@@ -912,6 +914,7 @@ const DEFAULT_SETTINGS = {
 
   // Folders
   folderIcons: {} as Record<string, string>,
+  folderCountModes: {} as Record<string, FolderCountMode>,
 
   // Keywords
   emailKeywords: USING_MOCK_SERVER ? DEV_KEYWORDS : DEFAULT_KEYWORDS,
@@ -1238,6 +1241,7 @@ export const useSettingsStore = create<SettingsState>()(
           showSharedMailAccounts: state.showSharedMailAccounts,
           hiddenSharedMailAccounts: state.hiddenSharedMailAccounts,
           folderIcons: state.folderIcons,
+          folderCountModes: state.folderCountModes,
           emailKeywords: state.emailKeywords,
           nestedTags: state.nestedTags,
           attachmentReminderEnabled: state.attachmentReminderEnabled,
