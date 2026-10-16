@@ -15,6 +15,7 @@ import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
+import { PrincipalsRequestError } from "./principals-error";
 
 export { SchedulingDeniedError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
@@ -5916,7 +5917,7 @@ export class JMAPClient implements IJMAPClient {
    * to the chained Principal/get, which the server refuses with
    * `requestTooLarge` once the directory holds more than that (500).
    */
-  async getPrincipals(targetAccountId?: string): Promise<Principal[]> {
+  async getPrincipals(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<Principal[]> {
     if (!this.supportsPrincipals()) return [];
     const accountId = targetAccountId || this.accountId;
     const pageSize = this.getMaxObjectsInGet();
@@ -5934,7 +5935,11 @@ export class JMAPClient implements IJMAPClient {
 
         const ids: string[] = response.methodResponses?.find((r) => r[0] === "Principal/query")?.[1]?.ids ?? [];
         const getResp = response.methodResponses?.find((r) => r[0] === "Principal/get");
-        if (!getResp) break;
+        if (!getResp) {
+          if (!options?.throwOnError) break;
+          const err = response.methodResponses?.find((r) => r[0] === "error")?.[1] as { type?: string; description?: string } | undefined;
+          throw new PrincipalsRequestError(err?.type ?? null, err?.description);
+        }
         const list = (getResp[1].list || []) as Principal[];
         all.push(...list.map((p) => ({ ...p, accountId })));
         if (ids.length < pageSize) break;
@@ -5942,6 +5947,11 @@ export class JMAPClient implements IJMAPClient {
       }
       return all;
     } catch (error) {
+      if (options?.throwOnError) {
+        throw error instanceof PrincipalsRequestError
+          ? error
+          : new PrincipalsRequestError(null, error instanceof Error ? error.message : undefined);
+      }
       console.error("Failed to fetch principals:", error);
       return [];
     }

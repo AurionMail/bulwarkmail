@@ -507,7 +507,8 @@ export interface IJMAPClient {
 
   // ── Sharing (RFC 9670 Principals) ─────────────────────────────
   supportsPrincipals(): boolean;
-  getPrincipals(targetAccountId?: string): Promise<Principal[]>;
+  /** Errors are logged and yield [] unless `throwOnError` (PrincipalsRequestError). */
+  getPrincipals(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<Principal[]>;
   setCalendarShare(calendarId: string, principalId: string, rights: CalendarRights | null, targetAccountId?: string): Promise<void>;
   setAddressBookShare(addressBookId: string, principalId: string, rights: AddressBookRights | null, targetAccountId?: string): Promise<void>;
   setFileNodeShare(fileNodeId: string, principalId: string, rights: FileNodeRights | null, targetAccountId?: string): Promise<void>;

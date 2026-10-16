@@ -33,6 +33,7 @@ import {
   ReplyAll,
   Reply,
   Forward,
+  BookUser,
 } from "@/components/icons";
 import { ComposerPluginMenuItems, ComposerPluginToolbarButtons, ComposerToolbarMenu, ComposerToolbarMenuItem, ComposerToolbarMenuCheckItem } from "@/components/email/composer-toolbar-menu";
 import { registerComposer } from "@/lib/plugin-sandbox/composer-registry";
@@ -73,6 +74,8 @@ import { usePluginActions } from "@/components/plugins/plugin-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { FilePickerDialog } from "@/components/files/file-picker-dialog";
+import { DirectoryPickerDialog } from "@/components/contacts/directory-picker-dialog";
+import type { DirectoryEntry } from "@/stores/contact-store";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { FileNode } from "@/lib/jmap/types";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
@@ -819,6 +822,7 @@ export function EmailComposer({
   // The Files account being browsed for attachments, fixed when the picker
   // opens so the picked blobs are tagged with the login that owns them.
   const [filesPicker, setFilesPicker] = useState<{ client: IJMAPClient; accountId?: string } | null>(null);
+  const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   // The formatting toolbar is folded away on a phone until asked for.
@@ -1642,6 +1646,26 @@ export function EmailComposer({
       setIsSearchingServer(false);
     }
   }, [autoQuery, composerClient, isSearchingServer, searchRecipients]);
+
+  // Recipients picked in the directory dialog; addresses already in that
+  // field are skipped.
+  const addDirectoryRecipients = useCallback((field: 'to' | 'cc' | 'bcc', entries: DirectoryEntry[]) => {
+    const setter = field === 'to' ? setTo : field === 'cc' ? setCc : setBcc;
+    setter(prev => {
+      const seen = new Set(prev.filter(r => !r.group).map(r => r.email.toLowerCase()));
+      const next = [...prev];
+      for (const e of entries) {
+        const key = e.email.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push({ name: e.name !== e.email ? e.name : undefined, email: e.email });
+      }
+      return next;
+    });
+    if (field === 'to' && validationErrors.to) setValidationErrors(prev => ({ ...prev, to: false }));
+    if (field === 'cc') setShowCc(true);
+    if (field === 'bcc') setShowBcc(true);
+  }, [validationErrors.to]);
 
   const insertAutocomplete = (suggestion: SuggestionItem, field: 'to' | 'cc' | 'bcc') => {
     if (autocompleteTimeoutRef.current) clearTimeout(autocompleteTimeoutRef.current);
@@ -3726,6 +3750,20 @@ export function EmailComposer({
               onMoveChip={handleMoveChip}
             />
             <div className="flex gap-0.5 shrink-0">
+              {activeClient?.supportsPrincipals() && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDirectoryPicker(true)}
+                  className="h-7 w-7 p-0"
+                  title={t('select_from_directory')}
+                  aria-label={t('select_from_directory')}
+                  data-testid="composer-directory-picker"
+                >
+                  <BookUser className="w-4 h-4" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -4261,6 +4299,14 @@ export function EmailComposer({
           isOpen={showTemplatePicker}
           onClose={() => setShowTemplatePicker(false)}
           onSelect={handleTemplateSelect}
+        />
+      )}
+
+      {showDirectoryPicker && (
+        <DirectoryPickerDialog
+          client={activeClient}
+          onClose={() => setShowDirectoryPicker(false)}
+          onAdd={addDirectoryRecipients}
         />
       )}
 

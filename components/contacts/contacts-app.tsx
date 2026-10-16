@@ -15,10 +15,12 @@ import { ContactGroupForm } from "@/components/contacts/contact-group-form";
 import { ContactGroupDetail } from "@/components/contacts/contact-group-detail";
 import { ContactsSidebar, type ContactCategory } from "@/components/contacts/contacts-sidebar";
 import { ContactImportDialog } from "@/components/contacts/contact-import-dialog";
+import { DirectoryBrowser, directoryKey } from "@/components/contacts/directory-browser";
+import { DirectoryEntryDetail } from "@/components/contacts/directory-entry-detail";
 import { RenameDialog } from "@/components/files/rename-dialog";
 import { exportContacts } from "@/components/contacts/contact-export";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
-import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
+import { useContactStore, getContactDisplayName, getContactPrimaryEmail, type DirectoryEntry } from "@/stores/contact-store";
 import { savePendingMailto } from "@/lib/protocol-handlers/session";
 import { formatRecipient, formatRecipientEntry, type Recipient } from "@/lib/email-composer-utils";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
@@ -55,7 +57,8 @@ type View =
   | "group-detail"
   | "group-create"
   | "group-edit"
-  | "bulk-add-to-group";
+  | "bulk-add-to-group"
+  | "directory-detail";
 
 export interface ContactsAppProps {
   /** Path segments after `/contacts` (`['<contactId>', 'edit']`). */
@@ -123,6 +126,10 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const [returnToEmail, setReturnToEmail] = useState(false);
   const [renamingKeyword, setRenamingKeyword] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [directorySelection, setDirectorySelection] = useState<Set<string>>(() => new Set());
+  const [openDirectoryKey, setOpenDirectoryKey] = useState<string | null>(null);
+  const directoryPrincipals = useContactStore((s) => s.directoryPrincipals);
+  const showDirectory = !!client?.supportsPrincipals();
   const hasFetched = useRef(false);
   const { dialogProps: confirmDialogProps, confirm: confirmDialog } = useConfirmDialog();
   const isMobile = useIsMobile();
@@ -291,7 +298,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
 
   // Contacts to display based on active category
   const displayedContacts = useMemo(() => {
-    if (activeCategory === "all") return individuals;
+    if (activeCategory === "all" || activeCategory === "directory") return individuals;
     if (activeCategory === "uncategorized") {
       return individuals.filter(c => !c.keywords || Object.keys(c.keywords).filter(k => c.keywords![k]).length === 0);
     }
@@ -312,9 +319,14 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   const handleSelectCategory = useCallback((category: ContactCategory) => {
     setActiveCategory(category);
     clearSelection();
+    setDirectorySelection(new Set());
     if (typeof category === "object" && "groupId" in category) {
       setSelectedGroupId(category.groupId);
       setView("group-detail");
+    } else if (category === "directory") {
+      setSelectedGroupId(null);
+      setOpenDirectoryKey(null);
+      setView("list");
     } else {
       setSelectedGroupId(null);
     }
@@ -599,6 +611,19 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     openComposeInApp([formatRecipientEntry(chip)], field);
   }, [getGroupMembers, t, openComposeInApp]);
 
+  const handleComposeDirectory = useCallback((entries: DirectoryEntry[]) => {
+    if (entries.length === 0) return;
+    openComposeInApp(entries.map((e) => formatRecipient(e.name !== e.email ? e.name : "", e.email)), "to");
+  }, [openComposeInApp]);
+
+  const handleAddDirectoryEntryToContacts = useCallback((entry: DirectoryEntry) => {
+    setCreatePrefill({ email: entry.email, name: entry.name !== entry.email ? entry.name : undefined });
+    setSelectedContact(null);
+    setDefaultBookIdForCreate(undefined);
+    setActiveCategory("all");
+    setView("create");
+  }, [setSelectedContact]);
+
   const handleComposeContact = useCallback((contact: ContactCard) => {
     const email = getContactPrimaryEmail(contact).trim();
     if (!email) return;
@@ -744,6 +769,16 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
   if (!isAuthenticated) return null;
 
   const renderRightPanel = () => {
+    // The directory is read-only: its panel shows the open entry whatever the view.
+    if (activeCategory === "directory") {
+      return (
+        <DirectoryEntryDetail
+          entry={directoryPrincipals.find((e) => directoryKey(e) === openDirectoryKey) ?? null}
+          onCompose={(entry) => handleComposeDirectory([entry])}
+          onAddToContacts={handleAddDirectoryEntryToContacts}
+        />
+      );
+    }
     switch (view) {
       case "create":
         return <ContactForm addressBooks={addressBooks} allKeywords={allKeywords} defaultAddressBookId={defaultBookIdForCreate} prefill={createPrefill} onSave={handleSaveNew} onCancel={handleCancel} />;
@@ -1002,6 +1037,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                         }
                       } : undefined}
                       onRenameKeyword={(kw) => setRenamingKeyword(kw)}
+                      directoryCount={showDirectory ? directoryPrincipals.length : undefined}
                       multiAccountMode={multiAccountEnabled && accountClients.length > 1}
                     />
                   </div>
@@ -1029,6 +1065,35 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                 )}
                 style={!isMobile ? { width: `${listWidth}px` } : undefined}
               >
+                {activeCategory === "directory" ? (
+                  <>
+                    <DirectoryBrowser
+                      client={client}
+                      selected={directorySelection}
+                      onSelectedChange={setDirectorySelection}
+                      onOpen={(entry) => { setOpenDirectoryKey(directoryKey(entry)); setView("directory-detail"); }}
+                      activeKey={openDirectoryKey}
+                      onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
+                      className="flex-1"
+                    />
+                    {directorySelection.size > 0 && (
+                      <div className="flex items-center gap-2 px-3 py-2 border-t border-border">
+                        <span className="text-xs text-muted-foreground me-auto tabular-nums">
+                          {t("directory.selected_count", { count: directorySelection.size })}
+                        </span>
+                        <Button size="sm" variant="ghost" onClick={() => setDirectorySelection(new Set())}>
+                          {t("bulk.clear")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleComposeDirectory(directoryPrincipals.filter((e) => directorySelection.has(directoryKey(e))))}
+                        >
+                          {t("directory.write_email")}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
                 <ContactList
                   contacts={displayedContacts}
                   selectedContactId={selectedContactId}
@@ -1051,6 +1116,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
                   onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : undefined}
                   isLoading={supportsSync && !contactsLoaded}
                 />
+                )}
               </div>
 
               {!isMobile && (

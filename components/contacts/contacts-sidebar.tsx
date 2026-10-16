@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef, type DragEvent } from "react";
 import { useTranslations } from "next-intl";
-import { BookUser, User, Users, Plus, Share2, Book, BookPlus, ChevronRight, ChevronDown, UserPlus, UsersRound, Upload, Tag, Pencil, Trash2, Settings, Mail, Star } from "@/components/icons";
+import { BookUser, Building2, User, Users, Plus, Share2, Book, BookPlus, ChevronRight, ChevronDown, UserPlus, UsersRound, Upload, Tag, Pencil, Trash2, Settings, Mail, Star } from "@/components/icons";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuSubMenu } from "@/components/ui/context-menu";
@@ -12,7 +12,7 @@ import type { ContactCard, AddressBook } from "@/lib/jmap/types";
 import { getContactDisplayName } from "@/stores/contact-store";
 import { useAccountStore } from "@/stores/account-store";
 
-export type ContactCategory = "all" | { groupId: string } | { addressBookId: string } | { keyword: string } | "uncategorized";
+export type ContactCategory = "all" | "directory" | { groupId: string } | { addressBookId: string } | { keyword: string } | "uncategorized";
 
 interface ContactsSidebarProps {
   groups: ContactCard[];
@@ -35,6 +35,8 @@ interface ContactsSidebarProps {
   onCreateContactInBook?: (addressBook: AddressBook) => void;
   onDeleteAddressBook?: (addressBook: AddressBook) => void;
   onRenameKeyword?: (keyword: string) => void;
+  /** Entries in the company directory; the Directory entry shows only when set. */
+  directoryCount?: number;
   className?: string;
   /**
    * Pro shell: render one collapsible section per connected local account
@@ -106,6 +108,7 @@ export function ContactsSidebar({
   onCreateContactInBook,
   onDeleteAddressBook,
   onRenameKeyword,
+  directoryCount,
   className,
   multiAccountMode,
 }: ContactsSidebarProps) {
@@ -345,6 +348,29 @@ export function ContactsSidebar({
             {individuals.length}
           </span>
         </button>
+
+        {/* Company directory (server principals), read-only */}
+        {directoryCount !== undefined && (
+          <button
+            onClick={() => onSelectCategory("directory")}
+            className={cn(
+              "w-full flex items-center gap-2 px-3 text-sm transition-colors",
+              activeCategory === "directory"
+                ? "bg-accent text-accent-foreground font-medium"
+                : "text-foreground/80 hover:bg-muted"
+            )}
+            style={{ paddingBlock: 'var(--density-sidebar-py, 4px)', minHeight: '32px' }}
+            data-testid="contacts-directory-entry"
+          >
+            <Building2 className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">{t("directory.title")}</span>
+            {directoryCount > 0 && (
+              <span className="ms-auto text-xs text-muted-foreground tabular-nums">
+                {directoryCount}
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Address Books: per-account groups in multi-account Pro mode, else the
             classic "My Address Books" section. */}
