@@ -14,6 +14,7 @@ import { invalidateFrameOriginsCache } from '@/lib/admin/csp-frame-origins';
 import { cleanUpDeletedPlugin } from '@/lib/admin/extension-cleanup';
 import { ExtensionPackageError, readPluginPackage, suspiciousCode } from '@/lib/extension-package';
 import { MAX_PLUGIN_SIZE } from '@/lib/plugin-types';
+import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 /**
  * GET /api/admin/plugins - List all admin-managed plugins
@@ -124,6 +125,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ plugin, warnings: pkg.warnings });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Plugin install error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -175,6 +178,8 @@ export async function PATCH(request: NextRequest) {
     await auditLog('plugin.update', { id, ...updates }, ip);
     return NextResponse.json({ plugin: updated });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Plugin update error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -206,6 +211,8 @@ export async function DELETE(request: NextRequest) {
     await auditLog('plugin.delete', { id }, ip);
     return NextResponse.json({ success: true });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Plugin delete error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

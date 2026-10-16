@@ -5,6 +5,7 @@ import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
 import { POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
 import { canSeeInstanceDetails } from '@/lib/auth/instance-details';
+import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 /**
  * GET /api/admin/policy - Get settings policy (NOT admin-protected - users read this;
@@ -81,6 +82,8 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Policy update error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

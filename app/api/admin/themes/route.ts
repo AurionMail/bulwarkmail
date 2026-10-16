@@ -13,6 +13,7 @@ import {
 import { forgetExtensionInPolicy } from '@/lib/admin/extension-cleanup';
 
 import { readThemePackage } from '@/lib/extension-package';
+import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 /**
  * GET /api/admin/themes - List all admin-managed themes
@@ -76,6 +77,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ theme, warnings });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Theme install error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -113,6 +116,8 @@ export async function PATCH(request: NextRequest) {
     await auditLog('theme.update', { id, ...updates }, ip);
     return NextResponse.json({ theme: updated });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Theme update error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -143,6 +148,8 @@ export async function DELETE(request: NextRequest) {
     await auditLog('theme.delete', { id }, ip);
     return NextResponse.json({ success: true });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Theme delete error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

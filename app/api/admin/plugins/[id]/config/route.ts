@@ -4,6 +4,7 @@ import { getDevPlugin } from '@/lib/admin/plugin-dev';
 import { getPluginConfig, setPluginConfig, deletePluginConfigKey } from '@/lib/admin/plugin-config';
 import { requireAdminAuth } from '@/lib/admin/session';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 /** Resolve a plugin from the persisted registry first, then PLUGIN_DEV_DIR. */
 async function resolvePlugin(id: string) {
@@ -128,7 +129,9 @@ export async function PUT(
 
     await setPluginConfig(id, body.key, body.value);
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -165,7 +168,9 @@ export async function DELETE(
 
     await deletePluginConfigKey(id, body.key);
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

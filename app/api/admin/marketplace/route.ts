@@ -23,6 +23,7 @@ import {
 } from '@/lib/extension-package';
 import { configManager } from '@/lib/admin/config-manager';
 import { checkBundleSignature } from '@/lib/admin/directory-keys';
+import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 async function getDirectoryUrl(): Promise<string> {
   await configManager.ensureLoaded();
@@ -303,6 +304,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, plugin, warnings: pkg.warnings, updated: isUpdate, signature: signature.status });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Marketplace install error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Installation failed' }, { status: 500 });
   }

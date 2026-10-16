@@ -185,9 +185,12 @@ export async function changeAdminPassword(currentPassword: string, newPassword: 
   const valid = await verifyAdminPassword(currentPassword);
   if (!valid) return false;
 
+  // Write first, then swap the cache: a refused write (read-only config)
+  // must not leave the new password active until the next restart.
   const hash = await hashPassword(newPassword);
-  cachedConfig = { passwordHash: hash, passwordHashFile: undefined };
-  await writeConfigData(cachedConfig);
+  const next: AdminConfigData = { passwordHash: hash, passwordHashFile: undefined };
+  await writeConfigData(next);
+  cachedConfig = next;
 
   cachedState = {
     ...(cachedState ?? freshState()),

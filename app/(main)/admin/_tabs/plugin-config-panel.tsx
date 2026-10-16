@@ -115,6 +115,13 @@ export function PluginConfigPanel({ pluginId, onBack }: Props) {
 
     try {
       let hasError = false;
+      let firstError: string | null = null;
+      const noteError = async (res: Response) => {
+        hasError = true;
+        if (firstError) return;
+        const data = await res.json().catch(() => null);
+        if (typeof data?.error === 'string') firstError = data.error;
+      };
       for (const [key, field] of Object.entries(plugin.configSchema)) {
         const newVal = formValues[key] ?? '';
         const oldVal = config[key] !== undefined ? String(config[key]) : '';
@@ -135,7 +142,7 @@ export function PluginConfigPanel({ pluginId, onBack }: Props) {
           if (res.ok) {
             setConfig(prev => { const next = { ...prev }; delete next[key]; return next; });
           } else {
-            hasError = true;
+            await noteError(res);
           }
           continue;
         }
@@ -148,12 +155,12 @@ export function PluginConfigPanel({ pluginId, onBack }: Props) {
         if (res.ok) {
           setConfig(prev => ({ ...prev, [key]: value }));
         } else {
-          hasError = true;
+          await noteError(res);
         }
       }
 
       setMessage(hasError
-        ? { type: 'error', text: 'Some settings failed to save' }
+        ? { type: 'error', text: firstError ?? 'Some settings failed to save' }
         : { type: 'success', text: 'Configuration saved' }
       );
     } catch {

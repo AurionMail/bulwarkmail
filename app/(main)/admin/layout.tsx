@@ -90,6 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [authError, setAuthError] = useState<string | null>(null);
   const [isStalwartAutoLogin, setIsStalwartAutoLogin] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [configReadOnly, setConfigReadOnly] = useState(false);
   const { appLogoLightUrl, appLogoDarkUrl, loginLogoLightUrl, loginLogoDarkUrl } = useConfig();
   const filesEnabled = usePolicyStore((s) => s.isFeatureEnabled('filesEnabled'));
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
@@ -177,6 +178,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     checkAuth();
     return () => { cancelled = true; };
   }, [pathname, router]);
+
+  // With ADMIN_CONFIG_READONLY the panel still shows every setting, but
+  // nothing can be saved; say so up front instead of after a failed save (#1249).
+  useEffect(() => {
+    if (!authenticated) return;
+    let cancelled = false;
+    apiFetch('/api/setup/status')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (!cancelled) setConfigReadOnly(data?.readOnly === true); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [authenticated]);
 
   function handleLogout() {
     requestLeave(async () => {
@@ -425,7 +438,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Loading admin panel…
             </div>
           ) : authenticated ? (
-            children
+            <>
+              {configReadOnly && (
+                <div role="status" className="mb-4 rounded-lg border border-border bg-muted p-4 text-sm">
+                  <p className="font-medium text-foreground">The configuration is read-only</p>
+                  <p className="mt-1 text-muted-foreground">
+                    ADMIN_CONFIG_READONLY is set, so you can look at the settings here but not save changes.
+                    Change them in the mounted config files or environment instead.
+                  </p>
+                </div>
+              )}
+              {children}
+            </>
           ) : null}
         </div>
       </main>
