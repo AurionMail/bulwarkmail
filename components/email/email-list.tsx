@@ -10,11 +10,12 @@ import { listVerificationCode } from "@/lib/verification-code";
 import { EmailContextMenu, type CopyTargetAccount } from "./email-context-menu";
 import { BatchTagButton } from "./batch-tag-button";
 import { cn, cleanPreview } from "@/lib/utils";
-import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, X } from "@/components/icons";
+import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, X, FolderX } from "@/components/icons";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, type ListRow } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder, type ListRow } from "@/stores/email-store";
+import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
@@ -451,6 +452,25 @@ export function EmailList({
     [emails, threadEmailsCache, selectedEmailKeys],
   );
   const bulkActionContext = useMemo(() => ({ emailIds: selectedEmailIds }), [selectedEmailIds]);
+  // "Remove from this folder" (#615): offered for a selection only when every
+  // selected message is also in another folder.
+  const removeFromFolder = useRemoveFromFolder();
+  const folderToLeave = useEmailStore(removalFolder);
+  const selectedEmailsForRemoval = useMemo(
+    () => (hasSelection ? resolveSelectedEmails({ emails, threadEmailsCache, selectedEmailKeys }) : []),
+    [hasSelection, emails, threadEmailsCache, selectedEmailKeys],
+  );
+  const selectionCanLeaveFolder = selectedEmailsForRemoval.length > 0
+    && selectedEmailsForRemoval.every((email) => canRemoveFromFolder(email, folderToLeave));
+  const handleBatchRemoveFromFolder = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await removeFromFolder(resolveSelectedEmails(useEmailStore.getState()));
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
+  };
   const listSlotProps = useMemo(
     () => ({ mailboxId: selectedMailbox || null, mailboxRole: effectiveMailboxRole ?? null }),
     [selectedMailbox, effectiveMailboxRole],
@@ -769,6 +789,24 @@ export function EmailList({
                 )}
               </Button>
             )}
+            {selectionCanLeaveFolder && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBatchRemoveFromFolder}
+                title={tContextMenu('remove_from_folder')}
+                aria-label={tContextMenu('remove_from_folder')}
+                disabled={isProcessing}
+                data-testid="batch-remove-from-folder"
+                className="hover:bg-accent transition-colors disabled:opacity-50"
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FolderX className="w-4 h-4" />
+                )}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -984,6 +1022,7 @@ export function EmailList({
           onArchive={() => onArchive?.(contextMenuEmail!)}
           onSetTag={(color) => onSetTag?.(contextMenuEmail!.id, color)}
           onMoveToMailbox={(mailboxId) => onMoveToMailbox?.(contextMenuEmail!.id, mailboxId)}
+          onRemoveFromFolder={() => void removeFromFolder([contextMenuEmail!])}
           onMarkAsSpam={() => onMarkAsSpam?.(contextMenuEmail!)}
           onUndoSpam={() => onUndoSpam?.(contextMenuEmail!)}
           onEditDraft={() => onEditDraft?.(contextMenuEmail!)}
@@ -1025,6 +1064,8 @@ export function EmailList({
                 : undefined,
             });
           }}
+          batchEmails={selectedEmailsForRemoval}
+          onBatchRemoveFromFolder={() => void handleBatchRemoveFromFolder()}
           onBatchMoveToMailbox={async (mailboxId) => {
             if (!client) return;
             const count = selectedEmailKeys.size;

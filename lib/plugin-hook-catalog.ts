@@ -85,8 +85,8 @@ export const HOOK_CATALOG = {
   // ─── Mail: organizing ──────────────────────────────────────
   onBeforeEmailDelete: H('mail-organize', 'intercept', 'email:write', '{ emailIds, permanent }', 'before messages are deleted or moved to Trash'),
   onAfterEmailDelete: H('mail-organize', 'observer', 'email:read', '{ emailIds, permanent }', 'after messages were deleted'),
-  onBeforeEmailMove: H('mail-organize', 'intercept', 'email:write', '{ emailIds, fromMailboxId, toMailboxId }', 'before messages are moved'),
-  onAfterEmailMove: H('mail-organize', 'observer', 'email:read', '{ emailIds, fromMailboxId, toMailboxId }', 'after messages were moved'),
+  onBeforeEmailMove: H('mail-organize', 'intercept', 'email:write', '{ emailIds, fromMailboxId, toMailboxId }', 'before messages are moved (toMailboxId null: removed from fromMailboxId only, still in other folders)'),
+  onAfterEmailMove: H('mail-organize', 'observer', 'email:read', '{ emailIds, fromMailboxId, toMailboxId }', 'after messages were moved (toMailboxId null: removed from fromMailboxId only, still in other folders)'),
   onBeforeEmailArchive: H('mail-organize', 'intercept', 'email:write', '{ emailIds }', 'before messages are archived'),
   onEmailArchive: H('mail-organize', 'observer', 'email:read', '{ emailIds }', 'after messages were archived'),
   onEmailUnarchive: H('mail-organize', 'observer', 'email:read', '{ emailIds, toMailboxId }', 'after messages were moved out of the archive'),

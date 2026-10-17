@@ -312,6 +312,12 @@ export interface IJMAPClient {
     accountId?: string,
   ): Promise<void>;
   moveEmail(emailId: string, toMailboxId: string, accountId?: string): Promise<void>;
+  /**
+   * Take messages out of one mailbox and leave every other mailbox they are
+   * in alone (a `mailboxIds/<id>: null` patch). A message must stay in at
+   * least one mailbox, so the server refuses this for a message only in it.
+   */
+  removeEmailsFromMailbox(emailIds: string[], mailboxId: string, accountId?: string): Promise<void>;
   emptyMailbox(mailboxId: string, accountId?: string): Promise<number>;
   moveMailboxContents(fromMailboxId: string, toMailboxId: string, accountId?: string, markAsRead?: boolean): Promise<number>;
   markMailboxAsRead(mailboxId: string, accountId?: string): Promise<number>;

@@ -528,6 +528,17 @@ export class DemoJMAPClient implements IJMAPClient {
     this.recalcMailboxCounts();
   }
 
+  async removeEmailsFromMailbox(emailIds: string[], mailboxId: string): Promise<void> {
+    for (const email of this.data.emails) {
+      if (!emailIds.includes(email.id) || !email.mailboxIds[mailboxId]) continue;
+      // A message has to stay in at least one mailbox.
+      if (Object.keys(email.mailboxIds).filter(id => email.mailboxIds[id]).length < 2) continue;
+      const { [mailboxId]: _removed, ...rest } = email.mailboxIds;
+      email.mailboxIds = rest;
+    }
+    this.recalcMailboxCounts();
+  }
+
   async emptyMailbox(mailboxId: string, _accountId?: string): Promise<number> {
     const before = this.data.emails.length;
     this.data.emails = this.data.emails.filter(e => !e.mailboxIds[mailboxId]);

@@ -62,7 +62,8 @@ export function isArchiveFolder(mailboxId: string | null | undefined, mailboxes:
 export interface EmailMove {
   emailIds: string[];
   fromMailboxId: string | null;
-  toMailboxId: string;
+  /** Null when the messages only leave fromMailboxId and stay in their other folders. */
+  toMailboxId: string | null;
 }
 
 /**

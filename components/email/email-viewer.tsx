@@ -75,6 +75,7 @@ import {
   PanelRightOpen,
   Send,
   FolderInput,
+  FolderX,
   Inbox,
   Folder,
   Sun,
@@ -163,6 +164,11 @@ interface EmailViewerProps {
   onMarkAsSpam?: () => void;
   onUndoSpam?: () => void;
   onMoveToMailbox?: (mailboxId: string) => void;
+  /**
+   * Take the message out of the open folder only (#615). Passed only when
+   * the message is also in another folder.
+   */
+  onRemoveFromFolder?: () => void;
   onBack?: () => void;
   onNavigateNext?: () => void;
   onNavigatePrev?: () => void;
@@ -1009,6 +1015,7 @@ export function EmailViewer({
   onMarkAsSpam,
   onUndoSpam,
   onMoveToMailbox,
+  onRemoveFromFolder,
   onBack,
   onNavigateNext,
   onNavigatePrev,
@@ -4039,6 +4046,17 @@ export function EmailViewer({
                   )}
                 </div>
               )}
+              {onRemoveFromFolder && (
+                <button
+                  role="menuitem"
+                  data-testid="viewer-remove-from-folder"
+                  onClick={() => { onRemoveFromFolder(); setMoreMenuOpen(false); setMoreMenuSub(null); }}
+                  className="w-full px-3 py-1.5 text-sm text-start hover:bg-muted text-foreground flex items-center gap-2"
+                >
+                  <FolderX className="w-4 h-4" />
+                  {tContextMenu('remove_from_folder')}
+                </button>
+              )}
               {/* Overflow: tag - submenu */}
               {(emailKeywords.length > 0 || currentTagIds.length > 0) && (
                 <div className={cn("relative", hiddenPriorities.has(6) ? "" : "sm:hidden")}
@@ -4317,6 +4335,16 @@ export function EmailViewer({
                   <FolderInput className="w-5 h-5" />
                   <span className="flex-1">{t('move_to')}</span>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+              {onRemoveFromFolder && (
+                <button
+                  role="menuitem"
+                  onClick={() => { onRemoveFromFolder(); setMoreMenuOpen(false); }}
+                  className="w-full px-4 py-3 min-h-[44px] text-sm text-start hover:bg-muted text-foreground flex items-center gap-3"
+                >
+                  <FolderX className="w-5 h-5" />
+                  {tContextMenu('remove_from_folder')}
                 </button>
               )}
               {/* Tag (opens sub-view) */}

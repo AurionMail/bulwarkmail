@@ -334,6 +334,13 @@ interface EmailStore {
   moveEmailsToMailbox: (client: IJMAPClient, emailIds: string[], mailboxId: string) => Promise<boolean>;
   moveThreadToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string) => Promise<boolean>;
   /**
+   * Take messages out of the open folder only, leaving them in their other
+   * folders (#615). Acts on those of `emails` that removalFolder and
+   * canRemoveFromFolder allow; resolves false when none qualify or a plugin
+   * said no.
+   */
+  removeFromMailbox: (client: IJMAPClient, emails: Email[]) => Promise<boolean>;
+  /**
    * Move emails across JMAP accounts. JMAP has no native cross-account move,
    * so for each email we fetch the source's raw RFC822 blob, import it into
    * the destination account's target mailbox, then delete the original.
@@ -1702,6 +1709,40 @@ function emailInMailbox(
     return !!ids[mailbox.originalId];
   }
   return false;
+}
+
+/**
+ * The folder "Remove from this folder" takes messages out of (#615): the
+ * folder the list shows, when it shows exactly one. A search scoped to one
+ * folder counts as that folder. Null in the unified, cross-account, tag and
+ * scheduled views and in a search across folders, where no single folder is
+ * open.
+ */
+export function removalFolder(
+  state: Pick<EmailStore,
+    | 'isUnifiedView' | 'crossView' | 'selectedKeyword' | 'isScheduledView'
+    | 'selectedMailbox' | 'searchMailboxId' | 'searchQuery' | 'searchFilters'
+    | 'viewingAccountId' | 'accountMailboxes' | 'mailboxes'>,
+): Mailbox | null {
+  if (state.isUnifiedView || state.crossView || state.selectedKeyword || state.isScheduledView) return null;
+  const searching = !!state.searchQuery || !isFilterEmpty(state.searchFilters);
+  if (searching && isAllFoldersSearchScope(state.searchMailboxId)) return null;
+  const folderId = searching ? state.searchMailboxId : state.selectedMailbox;
+  if (!folderId) return null;
+  return mailboxesInView(state).find(mb => mb.id === folderId) ?? null;
+}
+
+/**
+ * Whether a message can leave `folder` and still be somewhere: it is in that
+ * folder and in at least one other. JMAP lets a message sit in several
+ * mailboxes at once, but never in none.
+ */
+export function canRemoveFromFolder(
+  email: Pick<Email, 'mailboxIds' | 'sourceAccountId'>,
+  folder: Mailbox | null,
+): boolean {
+  if (!folder || !emailInMailbox(email, folder)) return false;
+  return Object.values(email.mailboxIds ?? {}).filter(Boolean).length > 1;
 }
 
 // Apply a per-mailbox counter adjustment to the mailbox list that actually holds
@@ -3621,6 +3662,83 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       set({ error: error instanceof Error ? error.message : 'Failed to move emails' });
       throw error;
     }
+    return true;
+  },
+
+  removeFromMailbox: async (client, targets): Promise<boolean> => {
+    const folder = removalFolder(get());
+    if (!folder) return false;
+    // Rows are matched by key, not id: ids of different accounts can collide.
+    const removable = new Map<string, Email>();
+    for (const email of targets) {
+      if (canRemoveFromFolder(email, folder)) removable.set(emailKeyFor(email), email);
+    }
+    if (removable.size === 0) return false;
+
+    const mailboxes = resolveActionMailboxes();
+    const leaving = [...removable.values()];
+    // Plugins see it as a move out of the folder that lands nowhere new.
+    const move = { emailIds: [...new Set(leaving.map(e => e.id))], fromMailboxId: folder.id, toMailboxId: null };
+    if (!(await allowEmailMove(move, mailboxes))) return false;
+
+    try {
+      await resolveActionClient(client).removeEmailsFromMailbox(
+        move.emailIds,
+        folder.originalId || folder.id,
+        folder.isShared ? folder.accountId : undefined,
+      );
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Failed to remove from folder' });
+      throw error;
+    }
+
+    const isLeaving = (e: Email) => removable.has(emailKeyFor(e));
+    const unread = leaving.filter(e => !e.keywords?.$seen).length;
+    const withoutFolder = (e: Email): Email => {
+      const mailboxIds = { ...e.mailboxIds };
+      delete mailboxIds[folder.id];
+      if (folder.originalId) delete mailboxIds[folder.originalId];
+      return { ...e, mailboxIds };
+    };
+
+    set((state) => {
+      // Only the open folder loses them; their other folders keep them.
+      const adjust = (mb: Mailbox): Mailbox => mb.id !== folder.id ? mb : {
+        ...mb,
+        totalEmails: Math.max(0, mb.totalEmails - leaving.length),
+        unreadEmails: Math.max(0, mb.unreadEmails - unread),
+      };
+      const inViewingList = !!state.viewingAccountId && !!state.accountMailboxes[state.viewingAccountId];
+      const counters = inViewingList
+        ? { accountMailboxes: { ...state.accountMailboxes, [state.viewingAccountId!]: state.accountMailboxes[state.viewingAccountId!].map(adjust) } }
+        : { mailboxes: state.mailboxes.map(adjust) };
+
+      // The open message moves on to its neighbour, as after a move.
+      let selectedEmail = state.selectedEmail;
+      if (selectedEmail && isLeaving(selectedEmail)) {
+        const index = state.emails.findIndex(e => emailKeyFor(e) === emailKeyFor(selectedEmail!));
+        const after = state.emails.slice(index + 1).find(e => !isLeaving(e));
+        const before = state.emails.slice(0, Math.max(0, index)).reverse().find(e => !isLeaving(e));
+        selectedEmail = index === -1 ? null : (removable.size === 1 ? after ?? before ?? null : null);
+      }
+
+      // Loaded thread members keep their other folders.
+      let threadEmailsCache = state.threadEmailsCache;
+      for (const [key, members] of state.threadEmailsCache) {
+        if (!members.some(isLeaving)) continue;
+        if (threadEmailsCache === state.threadEmailsCache) threadEmailsCache = new Map(state.threadEmailsCache);
+        threadEmailsCache.set(key, members.map(e => (isLeaving(e) ? withoutFolder(e) : e)));
+      }
+
+      return {
+        emails: state.emails.filter(e => !isLeaving(e)),
+        selectedEmail,
+        selectedEmailKeys: dropFromSelection(state, isLeaving),
+        threadEmailsCache,
+        ...counters,
+      };
+    });
+    emitEmailMove(move, mailboxes);
     return true;
   },
 

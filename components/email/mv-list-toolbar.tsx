@@ -6,6 +6,7 @@ import {
   CheckSquare,
   Folder,
   FolderInput,
+  FolderX,
   Loader2,
   Mail,
   MailOpen,
@@ -21,7 +22,8 @@ import {
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShallow } from "zustand/react/shallow";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { toast } from "@/stores/toast-store";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -279,6 +281,12 @@ export function MvListToolbar({
     });
 
   const selectedEmails = resolveSelectedEmails(useEmailStore.getState());
+  // "Remove from this folder" (#615), when every selected message is also in
+  // another folder.
+  const removeFromFolder = useRemoveFromFolder();
+  const folderToLeave = useEmailStore(removalFolder);
+  const selectionCanLeaveFolder = selectedEmails.length > 0
+    && selectedEmails.every((email) => canRemoveFromFolder(email, folderToLeave));
 
   // The same targets the row's own context menu offers, with the account of
   // the selection leading (#1149).
@@ -509,6 +517,14 @@ export function MvListToolbar({
               icon={isInJunk ? ShieldCheck : ShieldAlert}
               label={isInJunk ? tActions("not_spam") : tActions("spam")}
               onClick={handleSpam}
+              disabled={isProcessing}
+            />
+          )}
+          {selectionCanLeaveFolder && (
+            <ToolbarButton
+              icon={FolderX}
+              label={tMenu("remove_from_folder")}
+              onClick={() => run(() => removeFromFolder(resolveSelectedEmails(useEmailStore.getState())))}
               disabled={isProcessing}
             />
           )}

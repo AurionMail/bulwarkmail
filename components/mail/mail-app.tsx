@@ -34,7 +34,8 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
 import { formatRejectedRecipients, type JMAPClient } from "@/lib/jmap/client";
@@ -2845,6 +2846,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
+  // "Remove from this folder" for the open message (#615): only when it is
+  // in the folder the list shows and in another one too.
+  const removeFromFolder = useRemoveFromFolder();
+  const folderToLeave = useEmailStore(removalFolder);
+  const openEmailCanLeaveFolder = !!selectedEmail && canRemoveFromFolder(selectedEmail, folderToLeave);
+
   const handleMoveToMailbox = async (emailId: string, mailboxId: string) => {
     if (!client) return;
     const destinationList = [mailboxes, ...Object.values(accountMailboxes)]
@@ -5288,6 +5295,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onMoveToMailbox={async (mailboxId) => {
                       if (selectedEmail) await handleMoveToMailbox(selectedEmail.id, mailboxId);
                     }}
+                    onRemoveFromFolder={openEmailCanLeaveFolder ? () => {
+                      if (selectedEmail) void removeFromFolder([selectedEmail]);
+                    } : undefined}
                     className={isMobile ? "flex-1" : undefined}
                   />
                 </ErrorBoundary>

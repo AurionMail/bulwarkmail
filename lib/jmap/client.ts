@@ -4,7 +4,7 @@ import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { CalendarEventUpdateOptions, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration, SearchEmailsResult, SearchRequestOptions } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { batched, itemsPerRequest } from "./request-limits";
-import { keywordPointer } from "./patch-pointer";
+import { keywordPointer, pointerToken } from "./patch-pointer";
 import { FirstTouchGate } from "./first-touch-gate";
 import { debug } from "@/lib/debug";
 import { normalizeCalendarEventLike } from "@/lib/calendar-event-normalization";
@@ -2934,6 +2934,21 @@ export class JMAPClient implements IJMAPClient {
     const result = response.methodResponses?.[0]?.[1];
     if (result?.notUpdated?.[emailId]) {
       throw new Error(`Failed to move email: ${result.notUpdated[emailId].type || 'unknown error'}`);
+    }
+  }
+
+  async removeEmailsFromMailbox(emailIds: string[], mailboxId: string, accountId?: string): Promise<void> {
+    if (emailIds.length === 0) return;
+    // A pointer patch, not a full mailboxIds replacement: the other mailboxes
+    // the message is in stay as the server has them, even when the copy the
+    // client holds is out of date.
+    const patch = { [`mailboxIds/${pointerToken(mailboxId)}`]: null };
+    for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
+      const update = Object.fromEntries(batch.map(id => [id, { ...patch }]));
+      const response = await this.request([
+        ["Email/set", { accountId: accountId || this.accountId, update }, "0"],
+      ]);
+      assertSetSucceeded(response, 'Failed to remove from folder');
     }
   }
 
