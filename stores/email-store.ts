@@ -11,6 +11,7 @@ import { useCalendarStore } from "@/stores/calendar-store";
 import { orderKeywords, placeHeldRows, sanitizeSortLevels, type HeldKeywords, type SortLevel } from "@/lib/message-list-order";
 import { SearchFilters, DEFAULT_SEARCH_FILTERS, buildJMAPFilter, isFilterEmpty } from "@/lib/jmap/search-utils";
 import { emailHooks } from "@/lib/plugin-hooks";
+import { scheduleAutoMarkAsRead } from "@/lib/mark-as-read-delay";
 import { allowEmailMove, createMailboxWithHooks, emitEmailMove, idsFromSelectionKeys, keywordChangeLists, mailboxToView, quotaToView } from "@/lib/plugin-mail-hooks";
 import { emailSummary, emailToReadView } from "@/lib/plugin-projection";
 import { resolveThreadRoute } from "@/lib/thread-routing";
@@ -453,6 +454,17 @@ interface EmailStore {
   updateThreadCache: (threadId: string, emails: Email[]) => void;
   fetchThreadEmailCounts: (client: IJMAPClient) => Promise<void>;
   markThreadAsRead: (client: IJMAPClient, threadKey: string) => Promise<void>;
+  /**
+   * Marks an expanded thread read the way the reading pane marks a message:
+   * following `markAsReadDelay` (never / instantly / after a delay). A delayed
+   * mark is dropped when the thread is collapsed first.
+   */
+  autoMarkExpandedThreadAsRead: (client: IJMAPClient, threadKey: string) => void;
+  /**
+   * Drops a still-pending delayed mark for the thread, without collapsing it.
+   * Used when the user moves on to a message outside that thread.
+   */
+  cancelAutoMarkThreadAsRead: (threadKey: string) => void;
 
   // Mailbox management
   createMailbox: (client: IJMAPClient, name: string, parentId?: string, accountId?: string) => Promise<boolean>;
@@ -1081,6 +1093,18 @@ function folderListState(s: EmailStore): FolderList {
 
 /** The list row beginOpenEmail put in the viewer, until its message arrives. */
 let openingRow: Email | null = null;
+
+// Pending delayed "mark thread read" timers, by thread key. Collapsing the
+// thread, or opening a message outside it, cancels its timer.
+const pendingThreadReads = new Map<string, () => void>();
+
+function cancelPendingThreadRead(threadKey?: string): void {
+  const keys = threadKey === undefined ? [...pendingThreadReads.keys()] : [threadKey];
+  for (const key of keys) {
+    pendingThreadReads.get(key)?.();
+    pendingThreadReads.delete(key);
+  }
+}
 
 /**
  * The per-thread message counts to store once a page arrived: the counts that
@@ -5646,9 +5670,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
     if (newExpandedThreadIds.has(threadKey)) {
       newExpandedThreadIds.delete(threadKey);
+      cancelPendingThreadRead(threadKey);
     } else {
       newExpandedThreadIds.add(threadKey);
-      // Expanding marks the thread read; hold it before that lands.
+      // Expanding may mark the thread read; hold it before that lands.
       get().holdListRow(threadKey);
     }
 
@@ -5716,6 +5741,22 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       set({ isLoadingThread: null });
       return [];
     }
+  },
+
+  autoMarkExpandedThreadAsRead: (client, threadKey) => {
+    cancelPendingThreadRead(threadKey);
+    const { markAsReadDelay } = useSettingsStore.getState();
+    const cancel = scheduleAutoMarkAsRead(markAsReadDelay, () => {
+      pendingThreadReads.delete(threadKey);
+      // Collapsed (or the list was reset) before the delay ran out.
+      if (!get().expandedThreadIds.has(threadKey)) return;
+      void get().markThreadAsRead(client, threadKey);
+    });
+    if (markAsReadDelay > 0) pendingThreadReads.set(threadKey, cancel);
+  },
+
+  cancelAutoMarkThreadAsRead: (threadKey) => {
+    cancelPendingThreadRead(threadKey);
   },
 
   markThreadAsRead: async (client, threadKey) => {
@@ -5815,6 +5856,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   collapseAllThreads: () => {
+    cancelPendingThreadRead();
     set({
       expandedThreadIds: new Set(),
       isLoadingThread: null
