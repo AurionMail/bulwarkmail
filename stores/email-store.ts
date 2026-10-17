@@ -5742,20 +5742,27 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     const emailsById = new Map<string, Email>();
     for (const e of allEmailMap.values()) emailsById.set(e.id, e);
 
-    // Group unread IDs by account client
-    const groups = new Map<IJMAPClient, string[]>();
+    // Group unread IDs by account client AND owning JMAP account: a shared
+    // folder is reached through the login client, but its ids belong to the
+    // owner's account. Without the accountId the write lands in the login's
+    // own account, which may hold a different message with the same id.
+    const groups = new Map<IJMAPClient, Map<string | undefined, string[]>>();
     for (const id of unreadIds) {
       const email = emailsById.get(id)!;
-      const { client: actionClient } = resolveEmailActionContext(email, client);
-      if (!groups.has(actionClient)) groups.set(actionClient, []);
-      groups.get(actionClient)!.push(id);
+      const { client: actionClient, accountId } = resolveEmailActionContext(email, client);
+      if (!groups.has(actionClient)) groups.set(actionClient, new Map());
+      const byAccount = groups.get(actionClient)!;
+      if (!byAccount.has(accountId)) byAccount.set(accountId, []);
+      byAccount.get(accountId)!.push(id);
     }
 
     // Mark all as read on the server
     try {
       await Promise.all(
-        Array.from(groups.entries()).map(([actionClient, emailIds]) =>
-          actionClient.batchMarkAsRead(emailIds, true)
+        Array.from(groups.entries()).flatMap(([actionClient, byAccount]) =>
+          Array.from(byAccount.entries()).map(([accountId, emailIds]) =>
+            actionClient.batchMarkAsRead(emailIds, true, accountId)
+          )
         )
       );
     } catch (error) {
