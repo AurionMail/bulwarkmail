@@ -82,14 +82,15 @@ export async function POST(request: NextRequest) {
 
     // Wrong passwords tried from here count against this server's address
     // upstream; over budget the browser probes the JMAP server itself.
-    const refund = reserveVerifyProbe(getClientIP(request));
+    const clientIp = getClientIP(request);
+    const refund = reserveVerifyProbe(clientIp);
     if (!refund) return respond('inconclusive');
 
     const authHeader = hasToken
       ? `Bearer ${token}`
       : 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
     try {
-      await verifyJmapAuth(upstreamUrl, authHeader, { trusted: upstreamTrusted });
+      await verifyJmapAuth(upstreamUrl, authHeader, { trusted: upstreamTrusted, clientIp });
       refund();
       return respond('ok');
     } catch (error) {

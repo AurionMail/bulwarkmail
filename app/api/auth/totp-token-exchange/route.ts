@@ -12,6 +12,8 @@ import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { DEFAULT_CLIENT_ID } from '@/lib/oauth/token-exchange';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { stalwartPasswordLogin } from '@/lib/auth/stalwart-password-login';
+import { loginClientAddress } from '@/lib/auth/client-address';
+import { LOGIN_BUDGET_RETRY_AFTER_SECONDS, reserveLoginAttempt } from '@/lib/auth/verify-budget';
 
 /**
  * Exchange a password + (optional) TOTP code for OAuth tokens.
@@ -35,6 +37,7 @@ async function attemptLogin(
   slot: number,
   serverId: string | null,
   upstreamTrusted: boolean,
+  clientIp: string,
 ): Promise<NextResponse> {
   const base = upstreamUrl.replace(/\/+$/, '');
 
@@ -52,6 +55,15 @@ async function attemptLogin(
     || readFileEnv(process.env.OAUTH_CLIENT_SECRET_FILE)
     || '';
 
+  // Wrong passwords tried from here count against this server's address
+  // upstream, so each client gets a failure budget (lib/auth/verify-budget.ts).
+  const refund = reserveLoginAttempt(clientIp);
+  if (!refund) {
+    return NextResponse.json(
+      { error: 'too_many_attempts' },
+      { status: 429, headers: { 'Retry-After': String(LOGIN_BUDGET_RETRY_AFTER_SECONDS) } },
+    );
+  }
   const result = await stalwartPasswordLogin({
     serverUrl: base,
     username,
@@ -61,7 +73,12 @@ async function attemptLogin(
     clientSecret,
     redirectUri,
     trusted: upstreamTrusted,
+    clientIp,
   });
+  // Only a rejected password spends the budget. `totp_required` means the
+  // password was right and the code is still missing, which every TOTP login
+  // goes through once; outages say nothing about the password.
+  if (result.ok || result.error !== 'invalid_credentials') refund();
 
   if (!result.ok) {
     switch (result.error) {
@@ -160,7 +177,17 @@ export async function POST(request: NextRequest) {
         ? bodyRedirectUri
         : trimUrl(upstreamUrl);
 
-    return await attemptLogin(upstreamUrl, username, password, totpCode, redirectUri, slot, resolvedServerId, upstreamTrusted);
+    return await attemptLogin(
+      upstreamUrl,
+      username,
+      password,
+      totpCode,
+      redirectUri,
+      slot,
+      resolvedServerId,
+      upstreamTrusted,
+      loginClientAddress(request),
+    );
   } catch (error) {
     logger.error('TOTP login error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

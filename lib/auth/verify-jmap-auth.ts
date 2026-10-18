@@ -4,6 +4,7 @@ import {
   isPublicHttpUrl,
   type PublicFetchResponse,
 } from '@/lib/security/url-guard';
+import { forwardedClientHeaders } from '@/lib/auth/client-address';
 
 const VERIFY_TIMEOUT_MS = 10000;
 const MAX_REDIRECTS = 3;
@@ -157,6 +158,12 @@ export interface VerifiedJmapSession {
 
 export interface VerifyJmapAuthOptions {
   trusted?: boolean;
+  /**
+   * Address of the client whose credential is checked, forwarded upstream as
+   * `X-Forwarded-For` so a mail server that trusts this host counts a wrong
+   * password against that client rather than against the webmail.
+   */
+  clientIp?: string;
 }
 
 /**
@@ -307,7 +314,11 @@ async function fetchIdentityEmails(
     }
     const requestInit = {
       method: 'POST',
-      headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: authHeader,
+        'Content-Type': 'application/json',
+        ...forwardedClientHeaders(options.clientIp),
+      },
       body: JSON.stringify({
         using: ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:mail'],
         methodCalls: [['Identity/get', { accountId, ids: null }, '0']],
@@ -384,7 +395,7 @@ async function fetchVerifiedSession(
 
       const requestInit = {
         method: 'GET',
-        headers: { Authorization: authHeader },
+        headers: { Authorization: authHeader, ...forwardedClientHeaders(options.clientIp) },
         signal: controller.signal,
       };
       // Untrusted (user-supplied) endpoints connect through the rebinding-safe

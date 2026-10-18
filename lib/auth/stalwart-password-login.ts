@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import { DisallowedUrlError, fetchPublicUrl } from '@/lib/security/url-guard';
 import { generateCodeVerifier, generateCodeChallenge } from '@/lib/oauth/pkce';
+import { forwardedClientHeaders } from '@/lib/auth/client-address';
 
 /**
  * Exchange a password + (optional) TOTP code for OAuth tokens at Stalwart.
@@ -41,6 +42,12 @@ export interface StalwartPasswordLoginOptions {
    * admin-configured servers may live on private addresses.
    */
   trusted: boolean;
+  /**
+   * Address of the signing-in client, forwarded as `X-Forwarded-For` so a
+   * mail server that trusts this host counts a wrong password against that
+   * client rather than against the webmail (see lib/auth/client-address.ts).
+   */
+  clientIp?: string;
 }
 
 export interface StalwartTokens {
@@ -107,7 +114,7 @@ export async function stalwartPasswordLogin(
   try {
     const loginResponse = await upstreamFetch(`${base}/api/auth`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...forwardedClientHeaders(opts.clientIp) },
       body: JSON.stringify({
         type: 'authCode',
         accountName: opts.username,
@@ -174,7 +181,7 @@ export async function stalwartPasswordLogin(
   try {
     const tokenResponse = await upstreamFetch(tokenEndpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...forwardedClientHeaders(opts.clientIp) },
       body: tokenParams.toString(),
     });
 
