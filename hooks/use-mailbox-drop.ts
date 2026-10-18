@@ -68,8 +68,9 @@ interface UseMailboxDropReturn {
 export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: UseMailboxDropOptions): UseMailboxDropReturn {
   const [isOver, setIsOver] = useState(false);
   const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
-  const { moveEmailsToMailbox, crossAccountMoveEmails, selectedEmailKeys, clearSelection, refreshCurrentMailbox, mailboxes } = useEmailStore(useShallow((state) => ({
+  const { moveEmailsToMailbox, moveToMailbox, crossAccountMoveEmails, selectedEmailKeys, clearSelection, refreshCurrentMailbox, mailboxes } = useEmailStore(useShallow((state) => ({
     moveEmailsToMailbox: state.moveEmailsToMailbox,
+    moveToMailbox: state.moveToMailbox,
     crossAccountMoveEmails: state.crossAccountMoveEmails,
     selectedEmailKeys: state.selectedEmailKeys,
     clearSelection: state.clearSelection,
@@ -175,8 +176,36 @@ export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: 
         sourceAccountIds.some((src) => src !== destAccountId);
       const isCrossAccount = isJmapCrossAccount || isLocalCrossAccount;
 
+      // Aggregate views (unified, cross-account search) have no real source
+      // folder; each email is stamped with the JMAP account it lives in, and
+      // bare ids repeat across accounts. Route every dragged email by its own
+      // stamp: a bare-id move resolves the first namesake in the list, which
+      // can belong to another account. (#857)
+      const stamped = draggedEmails.filter((em) => emailIds.includes(em.id) && em.sourceAccountId && em.sourceClientAccountId);
+      const routeByStamp = !sourceMb && !!destJmapAccountId && stamped.length > 0;
+
       let moved: boolean;
-      if (isCrossAccount) {
+      if (routeByStamp) {
+        moved = true;
+        const elsewhere = new Map<string, Email[]>();
+        for (const em of stamped) {
+          if (em.sourceAccountId === destJmapAccountId) {
+            moved = (await moveToMailbox(client, em.id, mailbox.id, emailKeyFor(em))) && moved;
+          } else {
+            if (!elsewhere.has(em.sourceAccountId!)) elsewhere.set(em.sourceAccountId!, []);
+            elsewhere.get(em.sourceAccountId!)!.push(em);
+          }
+        }
+        if (elsewhere.size > 0) {
+          if (!destAccountId) throw new Error('Could not resolve destination account');
+          const jmapDestId = mailbox.originalId || mailbox.id;
+          const destJmapOverride = mailbox.isShared ? mailbox.accountId : undefined;
+          for (const [sourceJmapId, group] of elsewhere) {
+            const ids = new Map([[group[0].sourceClientAccountId!, group.map((em) => em.id)]]);
+            moved = (await crossAccountMoveEmails(ids, destAccountId, jmapDestId, destJmapOverride, sourceJmapId)) && moved;
+          }
+        }
+      } else if (isCrossAccount) {
         if (!destAccountId) {
           throw new Error('Could not resolve destination account');
         }
@@ -242,7 +271,7 @@ export function useMailboxDrop({ mailbox, onDropComplete, onSuccess, onError }: 
     } finally {
       endDrag();
     }
-  }, [client, mailbox, mailboxes, isValidTarget, moveEmailsToMailbox, crossAccountMoveEmails, draggedEmails, sourceMailboxId, selectedEmailKeys, clearSelection, refreshCurrentMailbox, endDrag, markDropped, onDropComplete, onSuccess, onError]);
+  }, [client, mailbox, mailboxes, isValidTarget, moveEmailsToMailbox, moveToMailbox, crossAccountMoveEmails, draggedEmails, sourceMailboxId, selectedEmailKeys, clearSelection, refreshCurrentMailbox, endDrag, markDropped, onDropComplete, onSuccess, onError]);
 
   const valid = isValidTarget();
 
