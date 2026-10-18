@@ -230,6 +230,14 @@ describe('POST /api/auth/session (GHSA-wxcm-j4jc-9fxq)', () => {
       expect.anything(), 0, expect.objectContaining({ username: 'alice@example.org', serverUrl: SERVER }),
     );
   });
+
+  it('records the account a bare Bearer claim resolves to, so per-user data is not keyed on the claim', async () => {
+    const { status } = await postSession({ serverUrl: SERVER, username: 'mallory', token: 'tok-mallory', slot: 0 });
+    expect(status).toBe(200);
+    expect(setStalwartAuthContextInStore).toHaveBeenCalledWith(
+      expect.anything(), 0, expect.objectContaining({ username: 'mallory', accountName: 'mallory@example.org' }),
+    );
+  });
 });
 
 describe('POST /api/auth/stalwart-context (GHSA-wxcm-j4jc-9fxq)', () => {

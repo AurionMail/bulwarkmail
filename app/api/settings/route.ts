@@ -79,19 +79,24 @@ async function verifyIdentity(username: string, serverUrl: string): Promise<stri
   const normalizedServerUrl = normalizeUrl(serverUrl);
 
   for (let slot = 0; slot < MAX_ACCOUNT_SLOTS; slot++) {
-    // Check basic-auth session cookie
+    // The context cookie first: it is the one that knows the account name,
+    // and every sign-in path that writes the session cookie writes it too.
+    const ctx = readStalwartAuthContextFromStore(cookieStore, slot);
+    if (ctx && ctx.username === username && normalizeUrl(ctx.serverUrl) === normalizedServerUrl) {
+      return ctx.accountName ?? username;
+    }
+
+    // Remember-me session cookie without a context (older sign-ins). A
+    // password login proves exactly the claimed name; a token login may have
+    // claimed a bare local part that only the context could resolve, so it
+    // does not key anything on its own.
     const token = cookieStore.get(sessionCookieName(slot))?.value;
     if (token) {
       const session = decryptSession(token);
       if (session && session.username === username && normalizeUrl(session.serverUrl) === normalizedServerUrl) {
+        if ('token' in session && session.token && !username.includes('@')) continue;
         return username;
       }
-    }
-
-    // Check stalwart auth context cookie (set for all auth modes)
-    const ctx = readStalwartAuthContextFromStore(cookieStore, slot);
-    if (ctx && ctx.username === username && normalizeUrl(ctx.serverUrl) === normalizedServerUrl) {
-      return ctx.accountName ?? username;
     }
   }
 

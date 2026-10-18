@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger';
 import { encryptSession, decryptSession, sessionAuthHeader, type SessionCredentials } from '@/lib/auth/crypto';
 import { SESSION_COOKIE_MAX_AGE, sessionCookieName } from '@/lib/auth/session-cookie';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
-import { JmapAuthVerificationError, verifyJmapIdentity } from '@/lib/auth/verify-jmap-auth';
+import { JmapAuthVerificationError, resolveJmapIdentity } from '@/lib/auth/verify-jmap-auth';
 import {
   clearStalwartAuthContextInStore,
   setStalwartAuthContextInStore,
@@ -144,12 +144,17 @@ export async function POST(request: NextRequest) {
         { status: 429, headers: { 'Retry-After': String(LOGIN_BUDGET_RETRY_AFTER_SECONDS) } },
       );
     }
+    // The context cookie also records which account the credential belongs
+    // to: a Bearer login may claim a bare local part (`john`) that several
+    // accounts on a multi-domain server answer to, and per-user data such as
+    // synced settings must be keyed on the account, not on the claim.
     let normalizedServerUrl: string;
+    let accountName: string;
     try {
-      normalizedServerUrl = await verifyJmapIdentity(upstreamUrl, authHeader, username, {
+      ({ serverUrl: normalizedServerUrl, accountName } = await resolveJmapIdentity(upstreamUrl, authHeader, username, {
         trusted: upstreamTrusted,
         clientIp,
-      });
+      }));
     } catch (error) {
       // Only a credential the server rejected spends the budget; an outage
       // or a mismatched claim says nothing about the password.
@@ -164,6 +169,7 @@ export async function POST(request: NextRequest) {
       serverUrl: normalizedServerUrl,
       username,
       authHeader,
+      ...(accountName !== username ? { accountName } : {}),
     });
 
     void recordLogin(username, normalizedServerUrl);
