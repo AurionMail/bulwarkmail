@@ -10,6 +10,7 @@
  * Portraits are Unsplash photos (free to use under the Unsplash License),
  * resized to 256px and served from public/demo/portraits/.
  */
+import { withBasePath } from '@/lib/browser-navigation';
 import type { EmailAddress } from '@/lib/jmap/types';
 
 export interface Person extends EmailAddress {
@@ -73,8 +74,10 @@ export const PORTRAITS: Person[] = [
   TOMAS, LENA, YUSUF,
 ];
 
+// Through withBasePath: a Lite bundle mounted at /webmail must ask for
+// /webmail/demo/portraits/..., or the request leaves the bundle.
 export const portraitUri = (person: Person): string | undefined =>
-  person.portrait ? `/demo/portraits/${person.portrait}.jpg` : undefined;
+  person.portrait ? withBasePath(`/demo/portraits/${person.portrait}.jpg`) : undefined;
 
 /** Plain address, without the fixture-only fields, for From/To lists. */
 export const addr = (person: Person): EmailAddress => ({ name: person.name, email: person.email });
