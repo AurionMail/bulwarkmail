@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // In-memory LRU cache: domain -> { data, contentType, fetchedAt }
 const CACHE_MAX_SIZE = 1000;
 const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
+/** Concurrent upstream icon fetches across all callers (see GET). */
+const MAX_UPSTREAM_IN_FLIGHT = 16;
+let upstreamInFlight = 0;
 
 interface CacheEntry {
   data: ArrayBuffer;
@@ -463,6 +466,14 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // Unauthenticated and keyed by domain, so without a ceiling on concurrent
+  // upstream fetches any visitor could have this instance open one
+  // connection per made-up domain name. Over the ceiling the icon is simply
+  // missing for now; the browser asks again later.
+  if (upstreamInFlight >= MAX_UPSTREAM_IN_FLIGHT) {
+    return new NextResponse(TRANSPARENT_PNG, { headers: MISSING_FAVICON_HEADERS });
+  }
+  upstreamInFlight++;
   try {
     const upstream = await fetch(
       `https://icons.duckduckgo.com/ip3/${encodeURIComponent(normalizedDomain)}.ico`,
@@ -510,6 +521,8 @@ export async function GET(request: NextRequest) {
       status: 502,
       headers: { 'Cache-Control': 'public, max-age=300' }, // 5 min
     });
+  } finally {
+    upstreamInFlight--;
   }
 }
 
