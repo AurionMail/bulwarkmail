@@ -11,6 +11,7 @@ import { contactHooks } from '@/lib/plugin-hooks';
 import { contactToView } from '@/lib/plugin-projection';
 import { PrincipalsRequestError } from '@/lib/jmap/principals-error';
 import type { Principal } from '@/lib/jmap/types';
+import { currentStoreEpoch } from '@/lib/store-epoch';
 
 /** A contact that is about to be created, projected for plugins (no id yet). */
 function draftContactView(contact: Partial<ContactCard>) {
@@ -514,12 +515,19 @@ export const useContactStore = create<ContactStore>()(
       directoryLoaded: false,
       directoryStatus: 'idle' as DirectoryStatus,
 
+      // Every fetch below captures the store epoch before awaiting the server
+      // and drops its result once the stores were cleared for another account
+      // (lib/store-epoch.ts): a slow answer for account A must not become
+      // account B's address book, autocomplete and contact list.
       fetchContacts: async (client) => {
+        const epoch = currentStoreEpoch();
         set({ isLoading: true, error: null });
         try {
           const contacts = await client.getAllContacts();
+          if (currentStoreEpoch() !== epoch) return;
           set({ contacts, isLoading: false, contactsLoaded: true });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           console.error('Failed to fetch contacts:', error);
           set({ error: 'Failed to fetch contacts', isLoading: false, contactsLoaded: true });
         }
@@ -530,11 +538,14 @@ export const useContactStore = create<ContactStore>()(
           set({ directoryStatus: 'unavailable' });
           return;
         }
+        const epoch = currentStoreEpoch();
         set({ directoryStatus: 'loading' });
         try {
           const principals = await client.getPrincipals(undefined, { throwOnError: true });
+          if (currentStoreEpoch() !== epoch) return;
           set({ directoryPrincipals: principalsToDirectory(principals), directoryLoaded: true, directoryStatus: 'ready' });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch directory principals:', error);
           // Keep what an earlier fetch returned: autocomplete still works off it.
           const forbidden = error instanceof PrincipalsRequestError && error.type === 'forbidden';
@@ -543,16 +554,20 @@ export const useContactStore = create<ContactStore>()(
       },
 
       fetchAddressBooks: async (client) => {
+        const epoch = currentStoreEpoch();
         try {
           const addressBooks = await client.getAllAddressBooks();
+          if (currentStoreEpoch() !== epoch) return;
           set({ addressBooks });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           console.error('Failed to fetch address books:', error);
           set({ error: 'Failed to fetch address books' });
         }
       },
 
       fetchAllAccountsContacts: async (accounts) => {
+        const epoch = currentStoreEpoch();
         set({ isLoading: true, error: null });
         try {
           const results = await Promise.all(
@@ -566,14 +581,17 @@ export const useContactStore = create<ContactStore>()(
               }
             }),
           );
+          if (currentStoreEpoch() !== epoch) return;
           set({ contacts: results.flat(), isLoading: false, contactsLoaded: true });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           console.error('Failed to fetch all-account contacts:', error);
           set({ error: 'Failed to fetch contacts', isLoading: false, contactsLoaded: true });
         }
       },
 
       fetchAllAccountsAddressBooks: async (accounts) => {
+        const epoch = currentStoreEpoch();
         try {
           const results = await Promise.all(
             accounts.map(async ({ client, localAccountId }) => {
@@ -586,8 +604,10 @@ export const useContactStore = create<ContactStore>()(
               }
             }),
           );
+          if (currentStoreEpoch() !== epoch) return;
           set({ addressBooks: results.flat() });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           console.error('Failed to fetch all-account address books:', error);
           set({ error: 'Failed to fetch address books' });
         }

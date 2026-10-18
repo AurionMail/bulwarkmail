@@ -36,6 +36,7 @@ import {
   subscriptionOwnerFor,
 } from '@/lib/calendar-subscription-sync';
 import { registerCalendarSubscriptionSyncBridge } from './settings-store';
+import { currentStoreEpoch } from '@/lib/store-epoch';
 
 /**
  * When the Pro shell aggregates calendars/events from every connected
@@ -698,7 +699,12 @@ export const useCalendarStore = create<CalendarStore>()(
         }));
       },
 
+      // Every fetch below captures the store epoch before awaiting the server
+      // and drops its result once the stores were cleared for another account
+      // (lib/store-epoch.ts): a slow answer for account A must not become
+      // account B's calendar list or month view.
       fetchCalendars: async (client) => {
+        const epoch = currentStoreEpoch();
         set({ isLoading: true, error: null });
         // Identities are independent of the calendar list; load them
         // alongside without blocking the grid.
@@ -707,6 +713,7 @@ export const useCalendarStore = create<CalendarStore>()(
           // Throws when the primary account fails, so a failed fetch leaves the
           // list and the selection as they were.
           const { calendars: fetched, failedAccountIds } = await client.getAllCalendarsWithFailures();
+          if (currentStoreEpoch() !== epoch) return;
           const calendars = sortCalendars(fetched);
           // Default the visible selection to event calendars only - tasks-only
           // calendars stay out of the event grid.
@@ -723,12 +730,14 @@ export const useCalendarStore = create<CalendarStore>()(
             ),
           });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch calendars:', error);
           set({ error: 'Failed to load calendars', isLoading: false });
         }
       },
 
       fetchEvents: async (client, start, end, options) => {
+        const epoch = currentStoreEpoch();
         refetchVisibleRange = () => get().fetchEvents(client, start, end, { silent: true });
         set(options?.silent ? { error: null } : { isLoadingEvents: true, error: null });
         try {
@@ -736,6 +745,7 @@ export const useCalendarStore = create<CalendarStore>()(
             after: start,
             before: end,
           });
+          if (currentStoreEpoch() !== epoch) return;
           // Filter out malformed events missing required 'start' field, or
           // whose start string fails to parse (would otherwise crash format()
           // calls in the rendering path - #316).
@@ -761,12 +771,14 @@ export const useCalendarStore = create<CalendarStore>()(
           }
           set({ events, isLoadingEvents: false, dateRange: { start, end } });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch events:', error);
           set({ error: 'Failed to load events', isLoadingEvents: false });
         }
       },
 
       fetchAllAccountsCalendars: async (accounts) => {
+        const epoch = currentStoreEpoch();
         set({ isLoading: true, error: null });
         try {
           // Id prefixes of the calendars that could not be loaded this time.
@@ -785,6 +797,7 @@ export const useCalendarStore = create<CalendarStore>()(
               }
             }),
           );
+          if (currentStoreEpoch() !== epoch) return;
           const calendars = sortCalendars(results.flat());
           set({
             calendars,
@@ -797,12 +810,14 @@ export const useCalendarStore = create<CalendarStore>()(
             ),
           });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch all-account calendars:', error);
           set({ error: 'Failed to load calendars', isLoading: false });
         }
       },
 
       fetchAllAccountsEvents: async (accounts, start, end, options) => {
+        const epoch = currentStoreEpoch();
         refetchVisibleRange = () => get().fetchAllAccountsEvents(accounts, start, end, { silent: true });
         set(options?.silent ? { error: null } : { isLoadingEvents: true, error: null });
         try {
@@ -821,8 +836,10 @@ export const useCalendarStore = create<CalendarStore>()(
               }
             }),
           );
+          if (currentStoreEpoch() !== epoch) return;
           set({ events: results.flat(), isLoadingEvents: false, dateRange: { start, end } });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch all-account events:', error);
           set({ error: 'Failed to load events', isLoadingEvents: false });
         }
