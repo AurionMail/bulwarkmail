@@ -40,16 +40,16 @@ Bulwark Webmail is a self-hosted webmail client for [Stalwart Mail Server](https
 
 <p align="center">
   <a href="https://bulwarkmail.org/docs/features/calendar"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-calendar-week.webp" /><img src="screenshots/light-calendar-week.webp" alt="Calendar week view with events from several calendars" width="49%" /></picture></a>
-  <a href="https://bulwarkmail.org/docs/features/contacts"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-contact.webp" /><img src="screenshots/light-contact.webp" alt="Contact details with recent mail and upcoming events" width="49%" /></picture></a>
+  <a href="https://bulwarkmail.org/docs/features/contacts"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-contacts-detail.webp" /><img src="screenshots/light-contacts-detail.webp" alt="Contact details with recent mail and upcoming events" width="49%" /></picture></a>
   <br />
   <sub>Calendar week view&nbsp;&nbsp;·&nbsp;&nbsp;Contact details with recent mail and upcoming events</sub>
 </p>
 
 <p align="center">
-  <a href="https://bulwarkmail.org/docs/features/email/composing"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-composer.webp" /><img src="screenshots/light-composer.webp" alt="Rich-text composer next to the message list" width="49%" /></picture></a>
+  <a href="https://bulwarkmail.org/docs/features/email/composing"><picture><source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-composer-mention.webp" /><img src="screenshots/light-composer-mention.webp" alt="The composer with an @mention chip and the contact card it opens" width="49%" /></picture></a>
   <a href="https://bulwarkmail.org/docs/guides/customization"><img src="screenshots/split-inbox.webp" alt="The inbox split diagonally between the light and dark theme" width="49%" /></a>
   <br />
-  <sub>Composer with identities and formatting&nbsp;&nbsp;·&nbsp;&nbsp;Light and dark themes</sub>
+  <sub>Composer with @mention cards&nbsp;&nbsp;·&nbsp;&nbsp;Light and dark themes</sub>
 </p>
 
 ## Features
