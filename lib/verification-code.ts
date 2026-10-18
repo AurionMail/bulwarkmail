@@ -120,10 +120,16 @@ const ALNUM = /[\p{L}\p{N}]/u;
  *  "ai177945Copy", and are not one group of an id like "4887a30a5a2si2098"
  *  or "PAXPR03MB8065". */
 function gluedToWords(text: string, start: number, end: number): boolean {
-  while (start > 0 && ALNUM.test(text[start - 1])) start--;
-  while (end < text.length && ALNUM.test(text[end])) end++;
+  // A longer run is never word + code + word; walking it whole for every
+  // digit group in it would make one long token cost quadratic time.
+  const floor = Math.max(0, start - GLUED_CONTEXT);
+  const ceiling = Math.min(text.length, end + GLUED_CONTEXT);
+  while (start > floor && ALNUM.test(text[start - 1])) start--;
+  while (end < ceiling && ALNUM.test(text[end])) end++;
+  if ((start > 0 && ALNUM.test(text[start - 1])) || (end < text.length && ALNUM.test(text[end]))) return false;
   return /^\p{L}*\d+\p{L}*$/u.test(text.slice(start, end));
 }
+const GLUED_CONTEXT = 40;
 
 const YEAR = /^(?:19|20)\d\d$/;
 // 10min, 600px, 100GB
@@ -225,17 +231,23 @@ function normalize(text: string): string {
   return text
     // Invisible spacers senders put between characters
     .replace(/[\u00ad\u200b-\u200f\u2060\ufeff]|\u034f/g, '')
-    // Links and addresses carry ids and tokens, never the code to type
+    // Links and addresses carry ids and tokens, never the code to type.
+    // Anchored to the start of a token so a long run of letters is scanned
+    // once, not once per character.
     .replace(/https?:\/\/\S+|www\.\S+/gi, ' ')
-    .replace(/\S*@\S+/g, ' ')
+    .replace(/(?<!\S)\S*@\S+/g, ' ')
     // Keep line breaks (a code often stands on a line of its own) but not
     // the runs of blank lines and indentation between table cells.
     .replace(/[^\S\n]+/g, ' ')
     .replace(/ ?\n[\s]*/g, '\n')
     // A preview is cut off with "...", and the word it cut may be half a code.
-    .replace(/[\p{L}\p{N}-]*(?:\.\.\.|…)\s*$/u, '')
+    .replace(/(?<![\p{L}\p{N}-])[\p{L}\p{N}-]*(?:\.\.\.|…)\s*$/u, '')
     .trim();
 }
+
+// A subject is a line, not a document; the MTA's message size is the only
+// bound on its length, and the list runs this for every row.
+const MAX_SUBJECT = 1_000;
 
 function bestCandidate(rawText: string): Candidate | null {
   const text = normalize(rawText);
@@ -261,7 +273,9 @@ function bestCandidate(rawText: string): Candidate | null {
  * it next to unrelated numbers in the body.
  */
 export function findVerificationCode(subject: string | null | undefined, text: string | null | undefined): string | null {
-  return bestCandidate(subject ?? '')?.code ?? bestCandidate(text ?? '')?.code ?? null;
+  return bestCandidate((subject ?? '').slice(0, MAX_SUBJECT))?.code
+    ?? bestCandidate((text ?? '').slice(0, MAX_BODY_TEXT))?.code
+    ?? null;
 }
 
 /** Only fresh codes are worth a chip in the list; they expire within minutes to a day. */
@@ -312,7 +326,9 @@ const NAMED_ENTITIES: Record<string, string> = {
 export function htmlMayNameACode(html: string): boolean {
   let unknownEntity = false;
   const text = html
-    .replace(/<[^>]*>/g, '')
+    // `[^<>]` so a `<` without a `>` after it is given up at the next `<`,
+    // not after scanning to the end once per `<`.
+    .replace(/<[^<>]*>/g, '')
     .replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);/gi, (_m, ref: string) => {
       if (ref[0] === '#') {
         const cp = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
@@ -331,7 +347,11 @@ export function verificationCodeBodyText(email: Pick<Email, 'htmlBody' | 'textBo
   const html = getRenderableHtmlBody(email);
   if (html) {
     // htmlToPlainText walks the body, and a <style> in it is text there.
-    const markup = html.replace(/<(style|script|title)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ').slice(0, MAX_BODY_HTML);
+    // Cut first, then strip: an unclosed element runs to the end of what is
+    // left, once, rather than to the end of the whole body once per opener.
+    const markup = html
+      .slice(0, MAX_BODY_HTML)
+      .replace(/<(style|script|title)\b[^<>]*>[\s\S]*?(?:<\/\1\s*>|$)/gi, ' ');
     if (!htmlMayNameACode(markup)) return '';
     return htmlToPlainText(markup).slice(0, MAX_BODY_TEXT);
   }
