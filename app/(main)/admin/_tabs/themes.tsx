@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Upload, Trash2, Power, PowerOff, Loader2, Palette, Save, Shield, Lock, LockOpen } from '@/components/icons';
+import Link from 'next/link';
+import { Upload, Trash2, Power, PowerOff, Loader2, Palette, Save, Shield, Lock, LockOpen, RotateCcw, Store } from '@/components/icons';
 import type { ColorMode, SettingsPolicy, ThemePolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY, DEFAULT_THEME_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
@@ -23,6 +24,9 @@ interface ThemeEntry {
   forceEnabled?: boolean;
   installedAt: string;
   updatedAt: string;
+  source?: { kind: 'marketplace'; slug: string; directoryUrl: string } | { kind: 'upload' };
+  /** Versions kept on this server for a rollback, most recently replaced first. */
+  previousVersions?: string[];
 }
 
 export function ThemesTab() {
@@ -292,6 +296,26 @@ export function ThemesTab() {
     }
   }
 
+  async function rollbackTheme(theme: ThemeEntry) {
+    const version = theme.previousVersions?.[0];
+    if (!version) return;
+    if (!confirm(`Put v${version} of "${theme.name}" back in place of v${theme.version}? The copy kept on this server is used.`)) return;
+
+    setMessage(null);
+    const res = await apiFetch(`/api/admin/extensions/theme/${encodeURIComponent(theme.id)}/rollback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setMessage({ type: 'success', text: `"${theme.name}" rolled back to v${version}` });
+      await fetchThemes();
+    } else {
+      setMessage({ type: 'error', text: data.error || 'Rollback failed' });
+    }
+  }
+
   async function deleteTheme(id: string, name: string) {
     if (!confirm(`Remove theme "${name}"? This cannot be undone.`)) return;
 
@@ -555,12 +579,27 @@ export function ThemesTab() {
                   {theme.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">{theme.description}</p>
                   )}
-                  <div className="text-xs text-muted-foreground mt-1">
-                    by {theme.author} &middot; {theme.variants.join(', ')} &middot; installed {new Date(theme.installedAt).toLocaleDateString()}
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+                    <span>by {theme.author} &middot; {theme.variants.join(', ')} &middot; installed {new Date(theme.installedAt).toLocaleDateString()}</span>
+                    {theme.source?.kind === 'marketplace' && (
+                      <Link href={`/admin/marketplace/${encodeURIComponent(theme.source.slug)}`} className="inline-flex items-center gap-1 hover:text-foreground hover:underline">
+                        &middot; <Store className="w-3 h-3" /> Marketplace
+                      </Link>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {theme.previousVersions && theme.previousVersions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => rollbackTheme(theme)}
+                      title={`Roll back to v${theme.previousVersions[0]}`}
+                      className="p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => toggleForceEnabled(theme.id, !theme.forceEnabled)}
                     title={theme.forceEnabled ? 'Remove force-enable (users can deactivate)' : 'Force enable (users cannot deactivate)'}

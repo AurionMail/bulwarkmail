@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Upload, Trash2, Power, PowerOff, AlertTriangle, Loader2, Package, Save, Shield, Lock, LockOpen, Settings } from '@/components/icons';
+import Link from 'next/link';
+import { Upload, Trash2, Power, PowerOff, AlertTriangle, Loader2, Package, Save, Shield, Lock, LockOpen, Settings, RotateCcw, Store } from '@/components/icons';
 import type { SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
@@ -21,6 +22,9 @@ interface PluginEntry {
   permissions: string[];
   installedAt: string;
   updatedAt: string;
+  source?: { kind: 'marketplace'; slug: string; directoryUrl: string } | { kind: 'upload' };
+  /** Versions kept on this server for a rollback, most recently replaced first. */
+  previousVersions?: string[];
 }
 
 export function PluginsTab() {
@@ -234,6 +238,26 @@ export function PluginsTab() {
     }
   }
 
+  async function rollbackPlugin(plugin: PluginEntry) {
+    const version = plugin.previousVersions?.[0];
+    if (!version) return;
+    if (!confirm(`Put v${version} of "${plugin.name}" back in place of v${plugin.version}? The copy kept on this server is used.`)) return;
+
+    setMessage(null);
+    const res = await apiFetch(`/api/admin/extensions/plugin/${encodeURIComponent(plugin.id)}/rollback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setMessage({ type: 'success', text: `"${plugin.name}" rolled back to v${version}` });
+      await fetchPlugins();
+    } else {
+      setMessage({ type: 'error', text: data.error || 'Rollback failed' });
+    }
+  }
+
   async function deletePlugin(id: string, name: string) {
     if (!confirm(`Remove plugin "${name}"? This cannot be undone.`)) return;
 
@@ -414,8 +438,13 @@ export function PluginsTab() {
                 {plugin.description && (
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">{plugin.description}</p>
                 )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  by {plugin.author} &middot; {plugin.type} &middot; installed {new Date(plugin.installedAt).toLocaleDateString()}
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1 flex-wrap">
+                  <span>by {plugin.author} &middot; {plugin.type} &middot; installed {new Date(plugin.installedAt).toLocaleDateString()}</span>
+                  {plugin.source?.kind === 'marketplace' && (
+                    <Link href={`/admin/marketplace/${encodeURIComponent(plugin.source.slug)}`} className="inline-flex items-center gap-1 hover:text-foreground hover:underline">
+                      &middot; <Store className="w-3 h-3" /> Marketplace
+                    </Link>
+                  )}
                 </div>
                 {plugin.permissions.length > 0 && (
                   <div className="flex items-center gap-1 mt-1">
@@ -428,6 +457,16 @@ export function PluginsTab() {
               </div>
 
               <div className="flex items-center gap-2">
+                {plugin.previousVersions && plugin.previousVersions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => rollbackPlugin(plugin)}
+                    title={`Roll back to v${plugin.previousVersions[0]}`}
+                    className="p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setConfiguringId(plugin.id)}

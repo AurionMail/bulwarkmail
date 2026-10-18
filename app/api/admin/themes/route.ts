@@ -11,6 +11,7 @@ import {
   type ServerTheme,
 } from '@/lib/admin/plugin-registry';
 import { forgetExtensionInPolicy } from '@/lib/admin/extension-cleanup';
+import { listHistory } from '@/lib/admin/extension-history';
 
 import { readThemePackage } from '@/lib/extension-package';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
@@ -24,7 +25,12 @@ export async function GET(request: NextRequest) {
     if ('error' in result) return result.error;
 
     const registry = await getThemeRegistry();
-    return NextResponse.json(registry.themes, {
+    const themes = await Promise.all(registry.themes.map(async t => ({
+      ...t,
+      // Versions this server still has a copy of (lib/admin/extension-history.ts).
+      previousVersions: (await listHistory('theme', t.id).catch(() => [])).map(h => h.version),
+    })));
+    return NextResponse.json(themes, {
       headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
@@ -70,6 +76,7 @@ export async function POST(request: NextRequest) {
       ...(existing?.forceEnabled !== undefined ? { forceEnabled: existing.forceEnabled } : {}),
       installedAt: existing?.installedAt ?? now,
       updatedAt: now,
+      source: { kind: 'upload' },
     };
 
     await saveTheme(theme, css, skin);

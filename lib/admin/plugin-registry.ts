@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { logger } from '@/lib/logger';
 import { getConfigDir, assertWritable } from './paths';
+import { forgetVersion, purgeHistory, snapshotPlugin, snapshotTheme } from './extension-history';
 
 function getPluginsDir(): string {
   return path.join(getConfigDir(), 'plugins');
@@ -40,6 +41,16 @@ export interface PluginSettingsField {
   min?: number;
   max?: number;
 }
+
+/**
+ * Where an installed extension came from. Set on install; entries written
+ * before this existed have none. The marketplace uses it to ask the directory
+ * about updates, yanked versions and advisories for exactly the extensions
+ * that came from it, and the admin UI uses it to link back to the listing.
+ */
+export type ExtensionSource =
+  | { kind: 'marketplace'; slug: string; directoryUrl: string }
+  | { kind: 'upload' };
 
 export interface ServerPlugin {
   id: string;
@@ -92,6 +103,7 @@ export interface ServerPlugin {
   apiPostPaths?: string[];
   /** Credentials the plugin uses through the server proxy (no secrets here). */
   credentials?: Record<string, CredentialSpec>;
+  source?: ExtensionSource;
 }
 
 export interface ServerTheme {
@@ -105,6 +117,7 @@ export interface ServerTheme {
   forceEnabled?: boolean;
   installedAt: string;
   updatedAt: string;
+  source?: ExtensionSource;
   /** True when a Theme API v2 skin.css is stored next to the CSS. */
   hasSkin?: boolean;
   /**
@@ -221,8 +234,24 @@ async function savePluginNow(
   const dir = getPluginsDir();
   await ensureDir(dir);
 
-  // Save code bundle
+  const bundleHash = createHash('sha256').update(code).digest('hex');
+  const registry = await getPluginRegistry();
+  const idx = registry.plugins.findIndex(p => p.id === plugin.id);
+
+  // Keep what is about to be replaced, so the update can be undone
+  // (extension-history.ts). The same bytes under the same version are not
+  // a replacement worth keeping.
   const bundlePath = path.join(dir, `${plugin.id}.js`);
+  if (idx >= 0) {
+    const current = registry.plugins[idx];
+    await forgetVersion('plugin', plugin.id, plugin.version);
+    if (current.version !== plugin.version || current.bundleHash !== bundleHash) {
+      const currentCode = await readFile(bundlePath, 'utf-8').catch(() => null);
+      if (currentCode !== null) await snapshotPlugin(current, currentCode);
+    }
+  }
+
+  // Save code bundle
   await writeFile(bundlePath, code, 'utf-8');
   // Sign now and keep the signature with the bundle. Signing at serve time
   // would sign whatever is on disk, so a bundle file swapped after install
@@ -233,11 +262,8 @@ async function savePluginNow(
   // when the manifest version hasn't changed. Preserve the original
   // installedAt across re-uploads. The full SHA-256 is required because the
   // client-side verifyBundle compares the entire digest length-checked.
-  const bundleHash = createHash('sha256').update(code).digest('hex');
   const now = new Date().toISOString();
 
-  const registry = await getPluginRegistry();
-  const idx = registry.plugins.findIndex(p => p.id === plugin.id);
   const next: ServerPlugin = {
     ...plugin,
     bundleHash,
@@ -284,6 +310,7 @@ async function deletePluginNow(id: string): Promise<boolean> {
   for (const file of [`${id}.js`, `${id}.sig`]) {
     try { await unlink(path.join(getPluginsDir(), file)); } catch { /* ok if missing */ }
   }
+  await purgeHistory('plugin', id);
 
   return true;
 }
@@ -355,24 +382,33 @@ async function saveThemeNow(
   const dir = getThemesDir();
   await ensureDir(dir);
 
-  // Save CSS file
+  const contentHash = createHash('sha256').update(css).update('\0').update(skin ?? '').digest('hex');
+  const registry = await getThemeRegistry();
+  const idx = registry.themes.findIndex(t => t.id === theme.id);
   const cssPath = path.join(dir, `${theme.id}.css`);
-  await writeFile(cssPath, css, 'utf-8');
   const skinPath = path.join(dir, `${theme.id}.skin.css`);
+
+  // Keep the theme being replaced for a rollback (extension-history.ts).
+  if (idx >= 0) {
+    const current = registry.themes[idx];
+    await forgetVersion('theme', theme.id, theme.version);
+    if (current.version !== theme.version || current.contentHash !== contentHash) {
+      const currentCss = await readFile(cssPath, 'utf-8').catch(() => null);
+      const currentSkin = current.hasSkin ? await readFile(skinPath, 'utf-8').catch(() => null) : null;
+      if (currentCss !== null) await snapshotTheme(current, currentCss, currentSkin);
+    }
+  }
+
+  // Save CSS file
+  await writeFile(cssPath, css, 'utf-8');
   if (skin) {
     await writeFile(skinPath, skin, 'utf-8');
   } else {
     try { await unlink(skinPath); } catch { /* none stored */ }
   }
-  theme = {
-    ...theme,
-    hasSkin: !!skin,
-    contentHash: createHash('sha256').update(css).update('\0').update(skin ?? '').digest('hex'),
-  };
+  theme = { ...theme, hasSkin: !!skin, contentHash };
 
   // Update registry
-  const registry = await getThemeRegistry();
-  const idx = registry.themes.findIndex(t => t.id === theme.id);
   if (idx >= 0) {
     registry.themes[idx] = theme;
   } else {
@@ -413,6 +449,7 @@ async function deleteThemeNow(id: string): Promise<boolean> {
   for (const file of [`${id}.css`, `${id}.skin.css`]) {
     try { await unlink(path.join(getThemesDir(), file)); } catch { /* ok if missing */ }
   }
+  await purgeHistory('theme', id);
 
   return true;
 }
