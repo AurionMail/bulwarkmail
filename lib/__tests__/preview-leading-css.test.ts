@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanPreview, stripLeadingCss } from '@/lib/utils';
+import { cleanPreview, stripEmphasisMarkers, stripLeadingCss } from '@/lib/utils';
 
 // Some servers build a message preview from its HTML without skipping the
 // <style> element, so a marketing mail's preview starts with its style sheet.
@@ -42,6 +42,28 @@ describe('cleanPreview', () => {
     expect(cleanPreview('\u034f \u200b.x{color:red} Real text')).toBe('Real text');
     expect(cleanPreview('.x{color:red} ...')).toBe('');
     expect(cleanPreview(null)).toBe('');
+  });
+});
+
+// The preview comes from the text/plain part, which marks bold with asterisks
+// where the HTML part uses <strong> (#1260).
+describe('stripEmphasisMarkers', () => {
+  it('drops emphasis markers around words', () => {
+    expect(cleanPreview('*@Claude* mentioned you: please review')).toBe('@Claude mentioned you: please review');
+    expect(stripEmphasisMarkers('This is **really** important.')).toBe('This is really important.');
+    expect(stripEmphasisMarkers('See _the docs_ and __this__, (*now*)')).toBe('See the docs and this, (now)');
+  });
+
+  it('leaves asterisks and underscores inside words or between spaces alone', () => {
+    for (const text of [
+      '2 * 3 * 4 = 24',
+      'a*b*c and snake_case_name',
+      'rating: * * *',
+      'my_var_ is set',
+      'footnote* and *',
+      '***',
+      '__init__.py changed',
+    ]) expect(stripEmphasisMarkers(text)).toBe(text);
   });
 });
 

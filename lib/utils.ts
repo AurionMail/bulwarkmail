@@ -349,9 +349,23 @@ export function stripLeadingCss(text: string): string {
   return rest;
 }
 
-/** A message preview ready to show: no leading padding, no leading style sheet. */
+// Plain-text emphasis: "*bold*", "**bold**", "_italic_", "__bold__". The
+// markers sit at word edges, so "2 * 3 * 4", "a*b*c", "snake_case_name" and
+// "__init__.py" are left alone.
+const EMPHASIS_RE = /(^|[\s([{"'])(\*\*|__|\*|_)([^\s*_]|[^\s*_].*?[^\s])\2(?=$|[\s)\]}"']|[.,;:!?](?!\w))/g;
+
+/**
+ * Drops plain-text emphasis markers. The server builds the preview from the
+ * text/plain part, where senders like GitHub write "*@user* mentioned you"
+ * while the HTML part shows it in bold.
+ */
+export function stripEmphasisMarkers(text: string): string {
+  return text.replace(EMPHASIS_RE, '$1$3');
+}
+
+/** A message preview ready to show: no leading padding, style sheet or emphasis markers. */
 export function cleanPreview(text: string | null | undefined): string {
-  return stripInvisibleLeading(stripLeadingCss(stripInvisibleLeading(text ?? '')));
+  return stripEmphasisMarkers(stripInvisibleLeading(stripLeadingCss(stripInvisibleLeading(text ?? ''))));
 }
 
 /**
