@@ -974,6 +974,9 @@ function bootSlot(payload: SlotInit): void {
     const [, setSettingsVersion] = React.useState(0);
     React.useEffect(() => {
       propsListeners.add(setProps);
+      // An update can land between the first render and this effect; the
+      // props it replaced carry callbacks the host has already dropped.
+      setProps(currentProps);
       return () => { propsListeners.delete(setProps); };
     }, []);
     // Re-render the slot when its settings change, so a component that reads

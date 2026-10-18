@@ -147,6 +147,29 @@ describe('host bookkeeping', () => {
 
     expect(table.size).toBe(1);
   });
+
+  it('boots a slot with the props updated before init, whose callbacks still answer', async () => {
+    // The update used to drop the callbacks init was still going to carry,
+    // so the slot's first call got "unknown callback" (#1266).
+    const inst = createSlotInstance({
+      plugin: plugin(), slot: 'calendar-event-actions', code: '', locale: 'en', tier: 'untrusted',
+      extraProps: { setVirtualLocation: () => 'old' }, hostContainer: document.body, onResize: () => {},
+    });
+    instances.push(inst);
+    const sent = vi.spyOn(inst.iframe.contentWindow!, 'postMessage');
+    inst.updateProps({ setVirtualLocation: () => 'new' });
+
+    post(inst.iframe.contentWindow, 'null', { type: 'sandbox-ready' });
+    await new Promise((r) => setTimeout(r, 0));
+    type Msg = { type: string; payload?: { extraProps: { setVirtualLocation: { __pluginCallback: string } } } };
+    const messages = () => sent.mock.calls.map(([m]) => m as Msg);
+    const callbackId = messages().find((m) => m.type === 'init')!.payload!.extraProps.setVirtualLocation.__pluginCallback;
+    post(inst.iframe.contentWindow, 'null', { type: 'callback-invoke', id: 'c1', callbackId, args: [] });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(messages().find((m) => m.type === 'callback-response')).toEqual({ type: 'callback-response', id: 'c1', ok: true, result: 'new' });
+    expect(messages().map((m) => m.type)).not.toContain('props-update');
+  });
 });
 
 describe('plugin frame permissions', () => {

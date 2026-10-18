@@ -164,6 +164,8 @@ export class SandboxInstance {
   private callbackTable = new Map<string, (...args: unknown[]) => unknown>();
   /** Ids in callbackTable that came from the current props. */
   private propCallbackIds = new Set<string>();
+  /** The init payload until it has been sent; props updates before that go into it. */
+  private pendingInit: InitPayload | null;
 
   constructor(
     private plugin: InstalledPlugin,
@@ -183,6 +185,7 @@ export class SandboxInstance {
       initPayload.extraProps = encodeCallbacks(initPayload.extraProps, this.callbackTable) as Record<string, unknown>;
       this.propCallbackIds = new Set([...this.callbackTable.keys()].filter((k) => !before.has(k)));
     }
+    this.pendingInit = initPayload;
 
     this.readyPromise = new Promise<void>((res) => { this.resolveReady = res; });
     this.initPromise = new Promise<InitDoneInfo>((res, rej) => {
@@ -249,8 +252,9 @@ export class SandboxInstance {
 
     // Send init after the iframe runtime signals it's ready.
     this.readyPromise.then(() => {
-      if (this.destroyed) return;
-      const msg: InitMsg = { type: 'init', payload: initPayload };
+      if (this.destroyed || !this.pendingInit) return;
+      const msg: InitMsg = { type: 'init', payload: this.pendingInit };
+      this.pendingInit = null;
       this.send(msg);
     });
   }
@@ -442,6 +446,13 @@ export class SandboxInstance {
     for (const id of this.propCallbackIds) this.callbackTable.delete(id);
     this.propCallbackIds = new Set(fresh.keys());
     for (const [id, fn] of fresh) this.callbackTable.set(id, fn);
+    // Before init has gone out the frame has no slot to update, and init
+    // would boot it with the callbacks just dropped: send the new props
+    // with init instead.
+    if (this.pendingInit?.mode === 'slot') {
+      this.pendingInit.extraProps = encoded;
+      return;
+    }
     this.send({ type: 'props-update', props: encoded });
   }
 
