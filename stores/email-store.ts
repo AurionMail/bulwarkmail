@@ -5634,8 +5634,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
           result = await effectiveClient.getEmails(jmapMailboxId, accountId, windowSize, 0, undefined, true, categoryFilter ?? undefined, order);
           // This page is the new delta-sync baseline for the folder; the
-          // search / unified paths above cannot be delta-synced.
-          syncAfterRefresh = result.state
+          // search / unified paths above cannot be delta-synced, and neither
+          // can a category tab's page (see fetchEmails).
+          syncAfterRefresh = result.state && !categoryFilter
             ? { state: result.state, accountId: accountId ?? effectiveClient.getAccountId(), mailboxId: selectedMailbox }
             : null;
         }

@@ -78,4 +78,27 @@ describe('refreshing a folder with a category tab open (#1264)', () => {
     expect(useEmailStore.getState().emails.map((e) => e.id)).toEqual(['receipt']);
     expect(useEmailStore.getState().newEmailNotification).toBeNull();
   });
+
+  it('leaves no delta baseline for the tab page, as the first load does', async () => {
+    useMessageListTabsStore.getState().setActiveTab('receipts', 'inbox');
+    const receipt = email('receipt', '2026-10-01T00:00:00Z');
+    const newsletter = email('newsletter', '2026-10-15T00:00:00Z');
+    const c = {
+      ...client([]),
+      getEmails: vi.fn(async (...args: unknown[]) => {
+        const rows = args[6] ? [receipt] : [newsletter, receipt];
+        return { emails: rows, total: rows.length, hasMore: false, state: 's' };
+      }),
+      getEmailChanges: vi.fn(async () => ({ created: [], updated: [], destroyed: [], newState: 's', hasMoreChanges: false })),
+    } as unknown as IJMAPClient;
+    await useEmailStore.getState().refreshCurrentMailbox(c);
+    expect(useEmailStore.getState().emailListSync).toBeNull();
+
+    // The baseline would be saved with the rows (boot snapshot). On the next
+    // boot, before the plugin has registered its tabs again, the folder loads
+    // behind those rows and must not take the tab's page for the whole folder.
+    useMessageListTabsStore.getState().clearTabs('receipts-plugin');
+    await useEmailStore.getState().fetchEmails(c, 'inbox', { background: true });
+    expect(useEmailStore.getState().emails.map((e) => e.id)).toEqual(['newsletter', 'receipt']);
+  });
 });
