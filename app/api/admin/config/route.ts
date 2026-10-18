@@ -9,6 +9,7 @@ import { initAdminPassword, isAdminEnabled } from '@/lib/admin/password';
 import { logger } from '@/lib/logger';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
+import { checkExtensionDirectoryUrl } from '@/lib/admin/directory-url';
 
 // Strings that count as "no real secret configured" - used so the dashboard
 // can warn about a placeholder session secret without us ever returning the
@@ -89,6 +90,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({
         error: 'sessionSecret cannot be changed from the dashboard. Set SESSION_SECRET in the environment instead.',
       }, { status: 400 });
+    }
+
+    // The directory is fetched server-side on the admin's behalf and its JSON
+    // handed back, so it must not name an internal host (lib/admin/directory-url.ts).
+    if ('extensionDirectoryUrl' in updates) {
+      const problem = await checkExtensionDirectoryUrl(updates.extensionDirectoryUrl);
+      if (problem) return NextResponse.json({ error: problem }, { status: 400 });
     }
 
     // Enum keys only accept their declared values; a stray string would
