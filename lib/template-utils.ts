@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify';
+import { sanitizeEmailHtml } from './email-sanitization';
 import type { EmailTemplate } from './template-types';
 import { BUILT_IN_PLACEHOLDERS } from './template-types';
 import { generateUUID } from './utils';
@@ -138,6 +139,16 @@ function sanitizeText(value: unknown): string {
   return DOMPurify.sanitize(String(value || ''), STRIP_HTML_CONFIG);
 }
 
+/**
+ * An HTML template body from outside the app (a templates file, a synced
+ * settings blob written by another client) as the store may hold it. Bodies
+ * the plugin API creates are sanitised at creation; these were kept raw and
+ * reached the composer's placeholder preview as markup in the app document.
+ */
+function sanitizeTemplateHtml(value: unknown): string {
+  return sanitizeEmailHtml(String(value || ''));
+}
+
 interface ExportData {
   version: 1;
   type: 'webmail-templates';
@@ -199,7 +210,7 @@ export function parseSyncedTemplates(value: unknown): EmailTemplate[] | null {
       id: t.id,
       name: sanitizeText(t.name),
       subject: sanitizeText(t.subject),
-      body: t.isHTML ? String(t.body || '') : sanitizeText(t.body),
+      body: t.isHTML ? sanitizeTemplateHtml(t.body) : sanitizeText(t.body),
       isHTML: Boolean(t.isHTML),
       category: sanitizeText(t.category),
       defaultRecipients: recipients && typeof recipients === 'object'
@@ -277,7 +288,7 @@ export function importTemplates(json: string): ImportResult {
       id: generateUUID(),
       name: sanitizeText(t.name),
       subject: sanitizeText(t.subject),
-      body: t.isHTML ? String(t.body || '') : sanitizeText(t.body),
+      body: t.isHTML ? sanitizeTemplateHtml(t.body) : sanitizeText(t.body),
       isHTML: Boolean(t.isHTML),
       category: sanitizeText(t.category),
       defaultRecipients: recipients && typeof recipients === 'object'

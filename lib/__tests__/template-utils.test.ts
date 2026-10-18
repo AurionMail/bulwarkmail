@@ -221,6 +221,20 @@ describe('importTemplates', () => {
     expect(result.templates[0].id).not.toBe('test-id');
   });
 
+  it('strips script and event handlers from an imported HTML body', () => {
+    // The body reaches the composer's placeholder preview as markup in the
+    // app document; it used to be kept exactly as the file had it.
+    const json = JSON.stringify({
+      type: 'webmail-templates',
+      version: 1,
+      templates: [{ name: 'Evil', isHTML: true, body: '<p>Hi {{name}}</p><img src=x onerror="alert(1)"><script>alert(2)</script>' }],
+    });
+    const body = importTemplates(json).templates[0].body;
+    expect(body).toContain('Hi {{name}}');
+    expect(body).not.toContain('onerror');
+    expect(body).not.toContain('<script');
+  });
+
   it('returns error for invalid JSON', () => {
     const result = importTemplates('not json');
     expect(result.templates).toHaveLength(0);
