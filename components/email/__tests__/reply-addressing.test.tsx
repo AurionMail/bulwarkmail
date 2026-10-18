@@ -489,6 +489,24 @@ describe('composer reply addressing', () => {
       render(<EmailComposer mode="reply" replyTo={{ ...TO_ALIAS, to: [{ email: 'info@example.com' }], accountId: 'owner-jmap-id' }} />);
       expect(identitySelect().value).toBe('local-1::id-info');
     });
+
+    // Mail one connected account sent to another was received by the second:
+    // the reply goes back to the sender, from the address that received it.
+    it('answers mail another connected account sent here like received mail', () => {
+      render(
+        <EmailComposer
+          mode="reply"
+          replyTo={{
+            from: [{ email: 'login@elsewhere.net', name: 'Login' }],
+            to: [{ email: 'info@example.com', name: 'Info' }],
+            subject: 'Booking',
+            accountId: 'local-1',
+          }}
+        />,
+      );
+      expect(toChips()).toEqual(['Login (login@elsewhere.net)']);
+      expect(identitySelect().value).toBe('local-1::id-info');
+    });
   });
 });
 
