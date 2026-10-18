@@ -97,6 +97,7 @@ export class DemoJMAPClient implements IJMAPClient {
   supportsEmailSubmission(): boolean { return true; }
   supportsQuota(): boolean { return true; }
   supportsVacationResponse(): boolean { return true; }
+  accountSupports(): boolean { return true; }
   supportsContacts(): boolean { return true; }
   supportsCalendars(): boolean { return true; }
   supportsSieve(): boolean { return true; }

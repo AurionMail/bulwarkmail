@@ -105,6 +105,8 @@ export interface IJMAPClient {
   supportsEmailSubmission(): boolean;
   supportsQuota(): boolean;
   supportsVacationResponse(): boolean;
+  /** Whether the user may use a capability's methods with an account (its accountCapabilities). */
+  accountSupports(accountId: string, capability: string): boolean;
   supportsContacts(): boolean;
   supportsCalendars(): boolean;
   supportsSieve(): boolean;
