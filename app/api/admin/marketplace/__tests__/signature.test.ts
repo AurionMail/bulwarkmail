@@ -70,7 +70,13 @@ function serve(bytes: Uint8Array, headers: Record<string, string>) {
   const ringBody = { _type: 'https://extensions.bulwarkmail.org/keyring/v1', rootKeyId: root.keyId, issuedAt: '2026-10-14T00:00:00.000Z', keys: [{ keyId: online.keyId, publicKey: online.raw, status: 'active', notBefore: '2026-10-14T00:00:00.000Z', notAfter: null }] };
   const ring = { ...ringBody, signature: sign(null, Buffer.from(canonicalJson(ringBody)), root.privateKey).toString('base64') };
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-    if (String(url).endsWith('/api/v2/keys')) return Response.json(ring);
+    const u = String(url);
+    if (u.endsWith('/api/v2/keys')) return Response.json(ring);
+    // The version lookup before the download; the listing names the hash of
+    // the bytes that are then served, so only the signature decides here.
+    if (u.includes('/versions/') && !u.endsWith('/bundle')) {
+      return Response.json({ data: { version: '1.0.0', channel: 'stable', yanked: null, minAppVersion: null, maxAppVersion: null, sha256: createHash('sha256').update(bytes).digest('hex') } });
+    }
     return new Response(bytes.slice().buffer as ArrayBuffer, { headers });
   }));
 }
