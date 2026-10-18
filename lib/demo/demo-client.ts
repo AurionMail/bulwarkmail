@@ -303,8 +303,24 @@ export class DemoJMAPClient implements IJMAPClient {
     return true;
   }
 
-  async getEmails(mailboxId?: string, _accountId?: string, limit: number = 50, position: number = 0, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order: SortLevel[] = []): Promise<{ emails: Email[]; hasMore: boolean; total: number }> {
-    let filtered = this.data.emails;
+  /**
+   * The mail one JMAP account holds. Shared accounts (the Support mailbox)
+   * own the mail in their folders; the primary account owns the rest. The
+   * unified views query each account in turn, so a query without this scope
+   * would hand the same mail back twice.
+   */
+  private inAccount(accountId: string | undefined): (e: Email) => boolean {
+    const shared = this.data.sharedMailboxes;
+    if (accountId && accountId !== this.data.accountId && shared[accountId]) {
+      const ids = new Set(shared[accountId].mailboxes.map((m) => m.id));
+      return (e) => Object.keys(e.mailboxIds).some((id) => e.mailboxIds[id] && ids.has(id));
+    }
+    const sharedIds = new Set(Object.values(shared).flatMap((s) => s.mailboxes.map((m) => m.id)));
+    return (e) => Object.keys(e.mailboxIds).some((id) => e.mailboxIds[id] && !sharedIds.has(id));
+  }
+
+  async getEmails(mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0, hasKeyword?: string, pinnedFirst?: boolean, extraFilter?: Record<string, unknown>, order: SortLevel[] = []): Promise<{ emails: Email[]; hasMore: boolean; total: number }> {
+    let filtered = this.data.emails.filter(this.inAccount(accountId));
     if (mailboxId) {
       filtered = filtered.filter(e => e.mailboxIds[mailboxId]);
     }
@@ -348,11 +364,12 @@ export class DemoJMAPClient implements IJMAPClient {
     return this.data.emails.find(e => e.id === emailId) ?? null;
   }
 
-  async getTagCounts(tagIds: string[], _accountId?: string, excludeMailboxIds?: string[]): Promise<Record<string, { total: number; unread: number }>> {
+  async getTagCounts(tagIds: string[], accountId?: string, excludeMailboxIds?: string[]): Promise<Record<string, { total: number; unread: number }>> {
     const result: Record<string, { total: number; unread: number }> = {};
     const exclusion = excludeMailboxIds?.length ? { inMailboxOtherThan: excludeMailboxIds } : null;
+    const inAccount = this.inAccount(accountId);
     for (const tagId of tagIds) {
-      const tagged = this.data.emails.filter(e => e.keywords[tagId] && (!exclusion || this.matchesFilter(e, exclusion)));
+      const tagged = this.data.emails.filter(e => inAccount(e) && e.keywords[tagId] && (!exclusion || this.matchesFilter(e, exclusion)));
       result[tagId] = {
         total: tagged.length,
         unread: tagged.filter(e => !e.keywords.$seen).length,
@@ -409,9 +426,9 @@ export class DemoJMAPClient implements IJMAPClient {
     return result;
   }
 
-  async searchEmails(query: string, mailboxId?: string, _accountId?: string, limit: number = 50, position: number = 0): Promise<{ emails: Email[]; hasMore: boolean; total: number }> {
+  async searchEmails(query: string, mailboxId?: string, accountId?: string, limit: number = 50, position: number = 0): Promise<{ emails: Email[]; hasMore: boolean; total: number }> {
     const q = query.toLowerCase();
-    let filtered = this.data.emails.filter(e => {
+    let filtered = this.data.emails.filter(this.inAccount(accountId)).filter(e => {
       const text = [e.subject, e.preview, e.from?.[0]?.name, e.from?.[0]?.email].filter(Boolean).join(' ').toLowerCase();
       return text.includes(q);
     });
@@ -422,8 +439,8 @@ export class DemoJMAPClient implements IJMAPClient {
     return { emails, hasMore: position + limit < total, total };
   }
 
-  async advancedSearchEmails(filter: Record<string, unknown>, _accountId?: string, limit: number = 50, position: number = 0): Promise<{ emails: Email[]; hasMore: boolean; total: number }> {
-    const filtered = this.data.emails.filter(e => this.matchesFilter(e, filter));
+  async advancedSearchEmails(filter: Record<string, unknown>, accountId?: string, limit: number = 50, position: number = 0): Promise<{ emails: Email[]; hasMore: boolean; total: number }> {
+    const filtered = this.data.emails.filter(this.inAccount(accountId)).filter(e => this.matchesFilter(e, filter));
     filtered.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
     const total = filtered.length;
     const emails = filtered.slice(position, position + limit);
@@ -452,8 +469,8 @@ export class DemoJMAPClient implements IJMAPClient {
     return this.data.emails.filter(e => wanted.has(e.id)).map(e => this.pickEmailFields(e, properties));
   }
 
-  async queryEmailFields(filter: Record<string, unknown>, properties: string[], _accountId?: string, limit: number = 10000): Promise<Array<Record<string, unknown>>> {
-    const filtered = this.data.emails.filter(e => this.matchesFilter(e, filter));
+  async queryEmailFields(filter: Record<string, unknown>, properties: string[], accountId?: string, limit: number = 10000): Promise<Array<Record<string, unknown>>> {
+    const filtered = this.data.emails.filter(this.inAccount(accountId)).filter(e => this.matchesFilter(e, filter));
     filtered.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
     return filtered.slice(0, limit).map(e => this.pickEmailFields(e, properties));
   }

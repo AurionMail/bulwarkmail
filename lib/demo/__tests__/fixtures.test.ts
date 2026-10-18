@@ -290,3 +290,19 @@ describe('demo fixtures: calendar times', () => {
     expect(new Date(standup.utcEnd!).getTime() - new Date(standup.utcStart!).getTime()).toBe(15 * 60 * 1000);
   });
 });
+
+describe('demo client: account scope', () => {
+  it('a query for the shared Support account returns only its mail, and the primary account never returns it', async () => {
+    const client = new DemoJMAPClient('work');
+    const support = await client.searchEmails('Beacon', undefined, SUPPORT_ACCOUNT_ID);
+    expect(support.emails.length).toBeGreaterThan(0);
+    expect(support.emails.every((e) => Object.keys(e.mailboxIds).some((id) => id.startsWith('demo-support-')))).toBe(true);
+    const own = await client.searchEmails('Beacon');
+    expect(own.emails.some((e) => Object.keys(e.mailboxIds).some((id) => id.startsWith('demo-support-')))).toBe(false);
+    // The two scopes together cover every match exactly once.
+    const all = [...own.emails, ...support.emails].map((e) => e.id);
+    expect(new Set(all).size).toBe(all.length);
+    const { emails: inbox } = await client.getEmails(undefined, SUPPORT_ACCOUNT_ID);
+    expect(inbox.every((e) => Object.keys(e.mailboxIds).some((id) => id.startsWith('demo-support-')))).toBe(true);
+  });
+});
