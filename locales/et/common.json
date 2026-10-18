@@ -142,6 +142,8 @@
     "show_all_tags": "Näita kõiki ({count})",
     "show_fewer_tags": "Näita vähem",
     "folders": "Kaustad",
+    "your_folders": "Sinu kaustad",
+    "create_folder": "Loo kaust",
     "show_more": "Rohkem",
     "show_fewer": "Vähem",
     "shared": "Jagatud",
@@ -713,6 +715,10 @@
     "option_dsn_hint": "Saa aruanne, kui server kirja kohale toimetab",
     "option_require_tls": "Nõua krüpteeritud kohaletoimetamist",
     "option_require_tls_hint": "Toimeta kohale ainult TLS-iga, muidu lükka tagasi",
+    "option_priority": "Prioriteet",
+    "option_priority_high": "Kõrge",
+    "option_priority_normal": "Tavaline",
+    "option_priority_low": "Madal",
     "validation": {
       "recipient_required": "Saatmiseks lisa saaja",
       "body_required": "Kirjuta sõnum või lisa fail",
@@ -876,6 +882,8 @@
     "emails_moved": "{count} e-kirja liigutati",
     "moved_to_mailbox": "Liigutatud kausta {mailbox}",
     "move_failed": "Liigutamine ebaõnnestus",
+    "removed_from_folder": "Eemaldatud kaustast {mailbox}",
+    "remove_from_folder_failed": "Sellest kaustast ei õnnestunud eemaldada",
     "emails_copied": "{count} kirja kopeeritud",
     "copy_failed": "Kopeerimine ebaõnnestus",
     "move_error": "E-kirju ei õnnestunud valitud kausta liigutada",
@@ -1181,6 +1189,10 @@
       "tint_list_rows": {
         "label": "Värvi loendirida sildi värviga",
         "description": "Tooni iga kirja rida selle esimese sildi värviga. Lülita välja, et read jääksid tavalised; sildipunktid ja -märgised näitavad värvi ikkagi."
+      },
+      "show_account_dot": {
+        "label": "Näita konto täppi",
+        "description": "Ühendatud vaates näidatakse saatja kõrval konto värvi täppi, et oleks näha, millisest kontost kiri pärineb. Ei mõju, kui read on konto värviga toonitud."
       },
       "tint_list_rows_by_account": {
         "label": "Toonita nimekirja read konto värviga",
@@ -1736,6 +1748,7 @@
       "backup": {
         "title": "Kontode nimekirja varukoopia",
         "description": "Hoia selle brauseri kontode nimekirja serveris, krüpteeritult parooliga, mida tead ainult sina, ja too see tagasi teises seadmes. Postkastide paroole ei salvestata: igasse taastatud kontosse logid ise sisse.",
+        "description_passwords": "Hoia selle brauseri kontode nimekirja serveris, krüpteeritult parooliga, mida tead ainult sina, ja too see tagasi teises seadmes. Soovi korral saad lisada ka postkastide paroolid, nii et taastatud kontod logivad ise sisse.",
         "status_none": "Kontole {account} pole nimekirja salvestatud.",
         "status_saved": "Kontole {account} on nimekiri salvestatud.",
         "save": "Salvesta nimekiri",
@@ -1747,9 +1760,15 @@
         "password_hint": "Vähemalt 10 märki. Seda ei saa taastada: kui unustad, salvesta nimekiri uuesti uue parooliga.",
         "restore_hint": "Parool, mille valisid nimekirja salvestamisel.",
         "confirm": "Kinnita parool",
+        "include_passwords": "Lisa postkastide paroolid",
+        "include_passwords_hint": "Siin parooliga sisse logitud kontod logivad pärast taastamist ise sisse. Igaüks, kes teab varukoopia parooli, pääseb ligi kõigile nimekirja postkastidele.",
         "saved": "Nimekiri salvestatud ({count, plural, one {# konto} other {# kontot}}).",
         "restored": "Lisatud kontosid: {added}. Juba olemasolevaid ja uuendatud kontosid: {updated}. Sisselogimiseks ava iga uus konto kontode nimekirjast.",
+        "restored_signed_in": "Lisatud kontosid: {added}. Juba olemasolevaid ja uuendatud kontosid: {updated}.",
         "skipped": "{count, plural, one {# kontot} other {# kontot}} ei lisatud: kontode piir on täis.",
+        "saved_passwords": "Paroolid lisatud {count, plural, one {# kontole} other {# kontole}}.",
+        "signed_in": "Salvestatud parooliga logiti sisse {count, plural, one {# kontosse} other {# kontosse}}.",
+        "sign_in_failed": "{count, plural, one {# salvestatud parool lükati tagasi} other {# salvestatud parooli lükati tagasi}}: logi neisse kontodesse kontode nimekirjast sisse.",
         "deleted": "Salvestatud nimekiri kustutatud.",
         "errors": {
           "mismatch": "Paroolid ei kattu.",
@@ -2036,6 +2055,11 @@
       "new_folder_name": "Kausta nimi",
       "rename": "Nimeta ümber",
       "change_icon": "Muuda ikooni",
+      "count_mode": "Kausta {name} loendur",
+      "count_mode_default": "Loendur: vaikimisi",
+      "count_mode_unread": "Ainult lugemata",
+      "count_mode_all": "Lugemata ja kokku",
+      "count_mode_none": "Loendurit pole",
       "delete": "Kustuta",
       "confirm_delete": "Kas oled kindel, et soovid kustutada kausta \"{name}\"? Selles kaustas olevad kirjad liigutatakse prügikasti.",
       "create": "Loo",
@@ -2085,7 +2109,11 @@
       },
       "sender_favicons": {
         "label": "Saatja favicon'id",
-        "description": "Näita äriliste saatjate profiilipiltidena veebisaitide ikoone"
+        "description": "Näita äriliste saatjate profiilipiltidena veebisaitide ikoone",
+        "refresh_label": "Värskenda saatjate ikoone",
+        "refresh_description": "Laadi veebisaitide ikoonid uuesti, näiteks kui saatja on oma ikooni muutnud",
+        "refresh_button": "Värskenda",
+        "refresh_done": "Saatjate ikoonid laaditakse uuesti"
       },
       "show_avatars_in_junk": {
         "label": "Näita avatare rämpsposti kaustas",
@@ -2505,6 +2533,7 @@
     "unpin": "Eemalda kinnitus",
     "move_to": "Liiguta kausta...",
     "copy_to_account": "Kopeeri kontole...",
+    "remove_from_folder": "Eemalda sellest kaustast",
     "archive": "Arhiveeri",
     "delete": "Kustuta",
     "mark_as_spam": "Märgi rämpspostiks",
@@ -2602,7 +2631,9 @@
       "previous_email": "Eelmine e-kiri",
       "open_email": "Ava e-kiri",
       "close_email": "Sulge / tühista valik",
-      "go_to_folder": "Mine kausta"
+      "go_to_folder": "Mine kausta",
+      "next_unread": "Järgmine lugemata e-kiri",
+      "no_more_unread": "Allpool loendis pole rohkem lugemata e-kirju"
     },
     "actions": {
       "reply": "Vasta",
@@ -2621,7 +2652,8 @@
       "help": "Näita kiirklahve",
       "refresh": "Värskenda e-kirjad",
       "select_all": "Vali kõik",
-      "global_search": "Otsi kõike"
+      "global_search": "Otsi kõike",
+      "extend_selection": "Laienda valikut alla / üles"
     },
     "threads": {
       "expand_collapse": "Ava/sulge vestlus",
