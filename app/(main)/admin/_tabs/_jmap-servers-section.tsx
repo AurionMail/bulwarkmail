@@ -20,6 +20,7 @@ interface RowDraft {
   oauthIssuerUrl: string;
   oauthClientSecret: string;
   oauthButtonLabel: string;
+  oauthEndSessionUrl: string;
   oauthExpanded: boolean;
 }
 
@@ -33,7 +34,8 @@ function entryToDraft(e: JmapServerEntry): RowDraft {
     oauthIssuerUrl: e.oauth?.issuerUrl ?? '',
     oauthClientSecret: e.oauth?.clientSecret ?? '',
     oauthButtonLabel: e.oauth?.buttonLabel ?? '',
-    oauthExpanded: !!(e.oauth && (e.oauth.clientId || e.oauth.issuerUrl || e.oauth.clientSecret)),
+    oauthEndSessionUrl: e.oauth?.endSessionUrl ?? '',
+    oauthExpanded: !!(e.oauth && (e.oauth.clientId || e.oauth.issuerUrl || e.oauth.clientSecret || e.oauth.endSessionUrl)),
   };
 }
 
@@ -49,12 +51,14 @@ function draftToEntry(d: RowDraft): JmapServerEntry | null {
   const issuerUrl = d.oauthIssuerUrl.trim().replace(/\/+$/, '');
   const clientSecret = d.oauthClientSecret;
   const buttonLabel = d.oauthButtonLabel.trim();
-  const oauth = clientId || issuerUrl || clientSecret
+  const endSessionUrl = d.oauthEndSessionUrl.trim();
+  const oauth = clientId || issuerUrl || clientSecret || endSessionUrl
     ? {
         ...(clientId ? { clientId } : {}),
         ...(issuerUrl ? { issuerUrl } : {}),
         ...(clientSecret ? { clientSecret } : {}),
         ...(buttonLabel ? { buttonLabel } : {}),
+        ...(endSessionUrl ? { endSessionUrl } : {}),
       }
     : undefined;
   return {
@@ -76,6 +80,7 @@ function emptyDraft(): RowDraft {
     oauthIssuerUrl: '',
     oauthClientSecret: '',
     oauthButtonLabel: '',
+    oauthEndSessionUrl: '',
     oauthExpanded: false,
   };
 }
@@ -266,6 +271,19 @@ export function JmapServersSection({ value, source, onChange, onRevert }: Props)
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     With a client ID, this label gives the server its own sign-in button on the login page, whichever server is selected and even while OAuth is off globally.
+                  </p>
+                </div>
+                <div className="sm:col-span-3">
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">Provider logout URL</label>
+                  <input
+                    type="url"
+                    value={d.oauthEndSessionUrl}
+                    onChange={(e) => update(i, { oauthEndSessionUrl: e.target.value })}
+                    placeholder="https://auth.example.com/logout"
+                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Where signing out sends the browser to end the provider&apos;s session, instead of the end_session_endpoint from discovery. Set it for providers that advertise none, such as Stalwart. Must be https.
                   </p>
                 </div>
               </div>

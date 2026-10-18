@@ -11,7 +11,9 @@ import { fitsSetCookieBudget } from '@/lib/oauth/set-cookie-budget';
  * "Sign in with SSO" silently signs the same person back in. Signing out
  * therefore finishes with a top-level navigation to the provider's
  * end_session_endpoint, carrying the parameters it needs to identify the
- * session and the client.
+ * session and the client. Providers that advertise none get a logout URL
+ * from the admin instead (OAUTH_END_SESSION_URL or a server's
+ * oauth.endSessionUrl, #1279), and it is sent the same parameters.
  */
 
 export const ID_TOKEN_COOKIE = 'jmap_idt';
@@ -106,7 +108,7 @@ export function getPostLogoutRedirectUri(): string | undefined {
 
 /**
  * The URL to navigate the browser to so the provider ends its session, or
- * null when the discovered endpoint is unusable.
+ * null when the discovered or configured endpoint is unusable.
  *
  * `client_id` is always sent: providers use it to validate the redirect URI
  * and to find the session when no id token is at hand. `id_token_hint` is sent

@@ -70,17 +70,26 @@ async function revokeRefreshToken(token: string, serverId: string | null, metada
   }
 }
 
-/** The provider logout URL for a slot being signed out, or null when there is none to visit. */
+/**
+ * The provider logout URL for a slot being signed out, or null when there is
+ * none to visit. A logout URL the admin configured (#1279) goes before the
+ * discovered one: it is there for providers that advertise none, such as
+ * Stalwart, and for a logout page shared with other apps, which must keep
+ * working once the provider starts advertising its own.
+ */
 function endSessionUrlFor(metadata: OAuthMetadata | null, serverId: string | null, idToken: string | undefined): string | null {
-  if (!metadata?.end_session_endpoint || !isEndSessionEnabled()) return null;
+  if (!isEndSessionEnabled()) return null;
   let clientId: string;
+  let configuredEndpoint: string | undefined;
   try {
-    ({ clientId } = getRequiredConfig(serverId));
+    ({ clientId, endSessionUrl: configuredEndpoint } = getRequiredConfig(serverId));
   } catch {
     return null;
   }
+  const endpoint = configuredEndpoint || metadata?.end_session_endpoint;
+  if (!endpoint) return null;
   return buildEndSessionUrl({
-    endpoint: metadata.end_session_endpoint,
+    endpoint,
     clientId,
     idToken,
     postLogoutRedirectUri: getPostLogoutRedirectUri(),
@@ -265,7 +274,7 @@ export async function PUT(request: NextRequest) {
 /**
  * Revoke a slot's refresh token and clear its token cookies. With
  * `endSession`, also returns the URL that ends the provider's session, or null
- * when the provider has no usable end_session_endpoint.
+ * when there is no usable logout URL.
  */
 async function signOutSlot(
   cookieStore: CookieStore,

@@ -8,6 +8,8 @@ export interface JmapServerOAuthConfig {
   clientSecret?: string;
   /** Text of this server's sign-in button, e.g. "Sign in with Google"; the generic SSO label otherwise. */
   buttonLabel?: string;
+  /** The provider's logout URL, used instead of a discovered end_session_endpoint (#1279). Never sent to the browser. */
+  endSessionUrl?: string;
 }
 
 export interface JmapServerEntry {
@@ -82,12 +84,15 @@ export function parseJmapServers(raw: unknown): JmapServerEntry[] {
       const issuerUrl = typeof o.issuerUrl === 'string' ? trimUrl(o.issuerUrl) : '';
       const clientSecret = typeof o.clientSecret === 'string' ? o.clientSecret : '';
       const buttonLabel = typeof o.buttonLabel === 'string' ? o.buttonLabel.trim().slice(0, 64) : '';
-      if (clientId || issuerUrl || clientSecret) {
+      // Kept as written: some providers' logout path ends in a slash.
+      const endSessionUrl = typeof o.endSessionUrl === 'string' ? o.endSessionUrl.trim() : '';
+      if (clientId || issuerUrl || clientSecret || endSessionUrl) {
         oauth = {};
         if (clientId) oauth.clientId = clientId;
         if (issuerUrl && isHttpUrl(issuerUrl)) oauth.issuerUrl = issuerUrl;
         if (clientSecret) oauth.clientSecret = clientSecret;
         if (buttonLabel) oauth.buttonLabel = buttonLabel;
+        if (endSessionUrl && isHttpUrl(endSessionUrl)) oauth.endSessionUrl = endSessionUrl;
       }
     }
     out.push({

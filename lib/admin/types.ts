@@ -266,6 +266,11 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   // through its end_session_endpoint (#905). Off keeps the provider signed in,
   // for providers shared with other apps that should stay signed in.
   oauthEndSession: { envVar: 'OAUTH_END_SESSION', type: 'boolean', defaultValue: true },
+  // The provider's logout URL, for providers whose discovery document has no
+  // end_session_endpoint (#1279). Used instead of the discovered one when set.
+  // Applies to the global provider only; JMAP_SERVERS entries set their own
+  // oauth.endSessionUrl.
+  oauthEndSessionUrl: { envVar: 'OAUTH_END_SESSION_URL', type: 'url', defaultValue: '' },
   // Where the provider sends the browser after ending its session. Must be
   // registered with the provider as a post-logout redirect URI. Empty = none
   // is sent and the provider shows its own signed-out page.
