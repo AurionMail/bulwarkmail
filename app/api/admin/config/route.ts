@@ -3,7 +3,7 @@ import { configManager } from '@/lib/admin/config-manager';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { CONFIG_ENV_MAP, SENSITIVE_CONFIG_KEYS } from '@/lib/admin/types';
-import { parseJmapServers } from '@/lib/admin/jmap-servers';
+import { parseJmapServers, redactJmapServersForAdmin, withStoredClientSecrets } from '@/lib/admin/jmap-servers';
 import { parseDomainBranding } from '@/lib/admin/domain-branding';
 import { initAdminPassword, isAdminEnabled } from '@/lib/admin/password';
 import { logger } from '@/lib/logger';
@@ -41,6 +41,9 @@ export async function GET(request: NextRequest) {
           // Nothing configured, but the secret generated on first start is there.
           (key === 'sessionSecret' && entry.source === 'default' && hasSessionSecret());
         safe[key] = { source: entry.source, hasValue };
+      } else if (key === 'jmapServers') {
+        // Per-server OAuth client secrets are secrets like the global one.
+        safe[key] = { source: entry.source, value: redactJmapServersForAdmin(parseJmapServers(entry.value)) };
       } else {
         safe[key] = entry;
       }
@@ -77,6 +80,17 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: `Unknown config keys: ${invalidKeys.join(', ')}` }, { status: 400 });
     }
 
+    // The session secret is the key behind every session cookie and the
+    // synced-settings encryption. The dashboard hides its value for a reason;
+    // letting an admin session replace it with a value of its choosing would
+    // hand that session the key (and sign everyone else out). Only the setup
+    // wizard writes it, before any session exists.
+    if ('sessionSecret' in updates) {
+      return NextResponse.json({
+        error: 'sessionSecret cannot be changed from the dashboard. Set SESSION_SECRET in the environment instead.',
+      }, { status: 400 });
+    }
+
     // Enum keys only accept their declared values; a stray string would
     // otherwise be persisted and fail closed (or open) at the read site.
     for (const [key, value] of Object.entries(updates)) {
@@ -106,7 +120,11 @@ export async function PATCH(request: NextRequest) {
       if (incoming != null && !Array.isArray(incoming)) {
         return NextResponse.json({ error: 'jmapServers must be an array' }, { status: 400 });
       }
-      const sanitized = parseJmapServers(incoming);
+      // The dashboard never sees the stored client secrets (GET redacts
+      // them), so an entry that omits one keeps it.
+      const sanitized = parseJmapServers(
+        withStoredClientSecrets(incoming, parseJmapServers(configManager.get<unknown>('jmapServers', []))),
+      );
       const incomingCount = Array.isArray(incoming) ? incoming.length : 0;
       if (sanitized.length !== incomingCount) {
         return NextResponse.json({
