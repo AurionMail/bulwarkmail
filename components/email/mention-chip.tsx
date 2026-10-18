@@ -77,6 +77,20 @@ export const MentionChip = Node.create({
           },
         },
         props: {
+          // The chip is a mailto: link that isn't editable, and Firefox
+          // follows such links even inside the editor - asking which app
+          // should write the mail. A click only selects it (and opens the
+          // card); ProseMirror's selection doesn't rely on the default.
+          handleDOMEvents: {
+            click: (_view, event) => {
+              if ((event.target as Element | null)?.closest?.("a.mention")) event.preventDefault();
+              return false;
+            },
+            auxclick: (_view, event) => {
+              if ((event.target as Element | null)?.closest?.("a.mention")) event.preventDefault();
+              return false;
+            },
+          },
           decorations(state) {
             const recipients = mentionRecipientsKey.getState(state);
             if (!recipients) return null;

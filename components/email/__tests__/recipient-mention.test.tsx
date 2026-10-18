@@ -189,6 +189,21 @@ describe('RecipientMention insertion', () => {
     editor.destroy();
   });
 
+  it('never lets a click on a chip follow its mailto link', () => {
+    // Firefox follows a link in a non-editable island of the editor.
+    const { editor } = setup('<p>Hi <a href="mailto:eva.weber@dornig.de">@Eva</a> and <a href="mailto:info@dornig.de">us</a></p>');
+    document.body.appendChild(editor.view.dom);
+    const chip = editor.view.dom.querySelector('a.mention')!;
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    chip.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(true);
+    const middle = new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 });
+    chip.dispatchEvent(middle);
+    expect(middle.defaultPrevented).toBe(true);
+    editor.view.dom.remove();
+    editor.destroy();
+  });
+
   it('turns a sent mention back into a chip, and leaves other mailto links alone', () => {
     const { editor } = setup(
       '<p>Hi <a href="mailto:eva.weber@dornig.de">@Eva</a> and <a href="mailto:info@dornig.de">write us</a></p>',
