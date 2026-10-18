@@ -427,16 +427,27 @@ function isApiPostPathAllowed(path: string, allowlist: readonly string[]): boole
  */
 const PLUGIN_POST_DENIED_ROUTES = new Set([
   'account',
+  'account-archive',
   'admin',
   'auth',
   'caldav',
+  // The user's agenda, a server-side fetch of any URL, and a third-party
+  // relay: each is data or reach a plugin gets only through its own
+  // permission-gated API, not through a POST with the user's cookies.
+  'calendar-agenda',
   'dev-jmap',
+  'fetch-ical',
   'plugin-approval-status',
+  // Another plugin's connected accounts and admin keys: the proxy injects
+  // the credential named in the query string, whichever plugin asks.
+  'plugin-proxy',
+  'plugin-secrets',
   'plugins',
   'push',
   'settings',
   'setup',
   'system',
+  'translate',
   'webdav',
   'wopi',
 ]);
@@ -445,7 +456,7 @@ const PLUGIN_POST_DENIED_ROUTES = new Set([
  * Checked on the path the router will see: decoded once and with repeated
  * slashes collapsed, so `/api/%61dmin/...` cannot pass for something else.
  */
-function isPluginPostDenied(pathname: string): boolean {
+export function isPluginPostDenied(pathname: string): boolean {
   let routePath: string;
   try {
     routePath = decodeURIComponent(pathname);

@@ -61,6 +61,9 @@ export function isValidApiPostPath(path: unknown): path is string {
   if (typeof path !== 'string') return false;
   if (path.length === 0 || path.length > 200) return false;
   if (!path.startsWith('/api/')) return false;
+  // A route, not the whole API: `/api/` or `/api//x` would name every
+  // endpoint at once, and the consent screen could not say which.
+  if (!/^\/api\/[A-Za-z0-9._-]+/.test(path)) return false;
   if (path.includes('..')) return false;
   if (/[\s'"`;,()?#]/.test(path)) return false;
   if (!/^[/A-Za-z0-9._-]+$/.test(path)) return false;
