@@ -18,7 +18,7 @@ import { emailSummary, emailToReadView } from "@/lib/plugin-projection";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import { emailKeyFor, threadKeyFor, threadIdFromKey, KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
 import type { ExternalSearchResult } from "@/lib/plugin-types";
-import { positionsByAccount, fetchUnifiedEmails, fetchUnifiedMailboxCounts, searchUnifiedEmails, advancedSearchUnifiedEmails, fetchCrossViewEmails, searchCrossViewEmails, advancedSearchCrossViewEmails, fetchTagEmails, trashAndJunkIds, searchAcrossAccounts, advancedSearchAcrossAccounts, getCrossUnreadTotal, type AcrossAccountsSearchOptions, type UnifiedAccountClient, type UnifiedMailboxCounts } from "@/lib/unified-mailbox";
+import { positionsByAccount, fetchUnifiedEmails, fetchUnifiedMailboxCounts, searchUnifiedEmails, advancedSearchUnifiedEmails, fetchCrossViewEmails, searchCrossViewEmails, advancedSearchCrossViewEmails, fetchTagEmails, trashAndJunkIds, searchAcrossAccounts, advancedSearchAcrossAccounts, getCrossUnreadTotal, dedupeUnifiedAccounts, type AcrossAccountsSearchOptions, type UnifiedAccountClient, type UnifiedMailboxCounts } from "@/lib/unified-mailbox";
 import { defaultSearchScopeFor, isAllFoldersSearchScope, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { useAuthStore } from "@/stores/auth-store";
 import { pathNamesMailFolder } from "@/lib/deep-links";
@@ -1395,6 +1395,9 @@ function resolveDestLocalAccountId(mailbox: Mailbox): string | null {
  * `allMailFolderIds` folder selection, restricting the All mail / Unread /
  * Starred cross views to the chosen own folders (shared entries are left
  * unrestricted so all their folders are included).
+ *
+ * A folder reachable through several logins (owner + grantee, or two grantees)
+ * is kept only once - see `dedupeUnifiedAccounts`.
  */
 /**
  * Folder lists of the logins in the unified scope, shared between builds.
@@ -1486,6 +1489,11 @@ export async function buildUnifiedAccountClients(
   // after the fan-out so single-email actions can resolve role-based
   // destinations (trash/archive) in the email's own account (issue #281).
   const fetchedMailboxes: Record<string, Mailbox[]> = {};
+  const ownLoginJmapIds = new Set<string>();
+  for (const a of authAccounts) {
+    const c = allClients.get(a.id);
+    if (c) ownLoginJmapIds.add(c.getAccountId());
+  }
   // Every login at once rather than one after the other: the slowest login,
   // not the sum of all of them, bounds how long the scope takes.
   const fetched = await Promise.allSettled(authAccounts.map(async (a) => {
@@ -1538,7 +1546,9 @@ export async function buildUnifiedAccountClients(
           // Cache the owner's mailbox list keyed by its JMAP id so single-email
           // and batch actions can resolve role-based destinations (trash/archive)
           // in the owner account instead of falling back to the active account.
-          publish(ownerId, ownerMailboxes);
+          // When the owner is logged in too, its own (un-namespaced) list wins:
+          // dedupeUnifiedAccounts routes that folder through the owner's login.
+          if (!ownLoginJmapIds.has(ownerId)) publish(ownerId, ownerMailboxes);
         }
       }
     } catch {
@@ -1550,7 +1560,7 @@ export async function buildUnifiedAccountClients(
       accountMailboxes: { ...state.accountMailboxes, ...fetchedMailboxes },
     }));
   }
-  return built;
+  return dedupeUnifiedAccounts(built);
 }
 
 /**
