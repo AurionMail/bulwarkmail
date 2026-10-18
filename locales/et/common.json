@@ -1246,6 +1246,7 @@
       "cancel": "Tühista",
       "migrating": "Sildi uuendamine olemasolevatel kirjadel…",
       "migration_error": "Sildi uuendamine olemasolevatel kirjadel ebaõnnestus",
+      "filters_migration_error": "Mõned filtrireeglid kasutavad endiselt vana silti: uuenda need käsitsi",
       "nesting": {
         "label": "Pesastatud sildid",
         "description": "Pesasta silte teiste siltide alla ja kuva neid külgribal puuna."
