@@ -1184,8 +1184,8 @@
         "description": "Colore les icônes de dossiers et d'étiquettes par type (Boîte de réception en bleu, Indésirable en rouge, Envoyés en vert, etc.). Désactivez pour une barre latérale monochrome."
       },
       "tint_list_rows": {
-        "label": "Tint List Rows by Tag Color",
-        "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
+        "label": "Lignes de liste colorées selon la couleur d'étiquette",
+        "description": "Appliquez une couleur de fond à chaque ligne de message en fonction de la couleur de sa première étiquette. Désactivez cette option pour conserver des lignes unies. Les points et les pastilles d'étiquette continueront d'afficher la couleur."
       },
       "show_account_dot": {
         "label": "Show Account Dot",
@@ -1200,8 +1200,8 @@
         "description": "Affiche le nombre total de messages à côté des dossiers et des étiquettes, en plus du nombre de messages non lus. Désactivez pour n'afficher que les messages non lus."
       },
       "favicon_unread_badge": {
-        "label": "Unread Count on Tab Icon",
-        "description": "Show the inbox unread count as a badge on the browser tab icon, so new mail is visible when the tab is not focused. Disable to keep the icon unbadged."
+        "label": "Nombre de non-lu sur l'icône de l'onglet",
+        "description": "Afficher le nombre de messages non lus de la boîte de réception sous forme de badge sur l’icône de l’onglet du navigateur, afin que les nouveaux messages restent visibles lorsque l’onglet n’est pas actif. Désactiver cette option pour ne pas afficher de badge sur l’icône."
       },
       "show_shared_mail_accounts": {
         "label": "Afficher les comptes de messagerie partagés",
@@ -1375,12 +1375,12 @@
         "preview_older": "Plus ancien :"
       },
       "date_locale": {
-        "label": "Date format region",
-        "description": "How numeric dates are ordered (day, month, year)",
+        "label": "Format de date",
+        "description": "Comment sont ordonnées des dates (jour, mois, année)",
         "auto": "Automatic",
         "iso": "ISO 8601",
-        "dmy": "Day/Month/Year",
-        "mdy": "Month/Day/Year"
+        "dmy": "Jour/Mois/Année",
+        "mdy": "Mois/Jour/Année"
       },
       "time_format": {
         "label": "Format d'heure",
@@ -1395,10 +1395,10 @@
         "monday": "Lundi"
       },
       "time_zone": {
-        "label": "Time zone",
-        "description": "Show email and calendar times in this time zone instead of the one reported by your browser",
-        "auto": "Automatic ({zone})",
-        "preview_now": "Now:"
+        "label": "Fuseau horaire",
+        "description": "Afficher les heures des e-mails et du calendrier dans ce fuseau horaire plutôt que dans celui indiqué par votre navigateur",
+        "auto": "Automatique ({zone})",
+        "preview_now": "Maintenant :"
       }
     },
     "email_behavior": {
@@ -2111,9 +2111,9 @@
         "button": "Voir les raccourcis"
       },
       "refresh_cache": {
-        "label": "Refresh cached data",
-        "description": "Reload contacts, calendars, and folders from the server. Keeps your accounts and sessions — fixes a stale or wrong view without signing out.",
-        "button": "Refresh"
+        "label": "Actualiser les données en cache",
+        "description": "Actualiser les contacts, calendriers et dossiers depuis le serveur. Vos comptes et sessions sont conservés. Corrige un affichage obsolète ou incorrect sans vous déconnecter.",
+        "button": "Actualiser"
       },
       "reset_settings": {
         "label": "Réinitialiser les paramètres",
@@ -2915,16 +2915,16 @@
       "cert_already_imported": "Certificat déjà importé",
       "cert_imported": "Certificat importé",
       "cert_import_failed": "Échec de l'import du certificat",
-      "section_contact": "Contact details",
-      "section_work": "Work",
-      "section_personal": "Personal",
-      "email_default_label": "Email",
-      "phone_default_label": "Phone",
-      "address_default_label": "Address",
-      "online_service_default_label": "Online",
-      "organization_label": "Organization",
-      "title_label": "Title",
-      "role_label": "Role",
+      "section_contact": "Détails du contact",
+      "section_work": "Travail",
+      "section_personal": "Personnel",
+      "email_default_label": "E-mail",
+      "phone_default_label": "Téléphone",
+      "address_default_label": "Adresse",
+      "online_service_default_label": "En ligne",
+      "organization_label": "Organisation",
+      "title_label": "Titre",
+      "role_label": "Rôle",
       "language_label": "Language",
       "related_default_label": "Related",
       "more_actions": "Plus d'actions",
@@ -2932,15 +2932,15 @@
       "years_since": "{count, plural, one {il y a 1 an} other {il y a # ans}}"
     },
     "activity": {
-      "recent_emails": "Recent Emails",
-      "upcoming_events": "Upcoming Events",
-      "no_emails": "No recent emails",
-      "no_events": "No upcoming events",
-      "no_subject": "(No subject)",
-      "no_title": "(No title)",
-      "load_failed": "Failed to load",
+      "recent_emails": "Courriels récents",
+      "upcoming_events": "Évènements à venir",
+      "no_emails": "Aucun courriel récent",
+      "no_events": "Aucun évènement à venir",
+      "no_subject": "(Aucun objet)",
+      "no_title": "(Aucun titre)",
+      "load_failed": "Échec du chargement",
       "unknown_sender": "Unknown sender",
-      "all_day": "All day"
+      "all_day": "Toute la journée"
     },
     "form": {
       "create_title": "Nouveau contact",
@@ -3062,9 +3062,9 @@
       "no_members": "Aucun membre dans ce groupe",
       "member_count": "{count, plural, =0 {Aucun membre} one {1 membre} other {# membres}}",
       "send_email": "Send email to group",
-      "send_email_to": "To",
+      "send_email_to": "À",
       "send_email_cc": "Cc",
-      "send_email_bcc": "Bcc",
+      "send_email_bcc": "Cci",
       "no_member_emails": "This group has no members with an email address."
     },
     "import": {

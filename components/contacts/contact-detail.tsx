@@ -41,9 +41,26 @@ interface ContactDetailProps {
   className?: string;
 }
 
-function formatPhoneFeatures(features?: Record<string, boolean>): string {
+// Contexts and phone features the contact form offers, shown with the same
+// labels here. Anything else (custom vCard types) is shown as stored.
+const CONTEXT_LABEL_KEYS: Record<string, string> = {
+  work: "form.context_work",
+  private: "form.context_private",
+};
+
+const PHONE_FEATURE_LABEL_KEYS: Record<string, string> = {
+  voice: "form.phone_voice",
+  cell: "form.phone_cell",
+  mobile: "form.phone_cell",
+  fax: "form.phone_fax",
+  pager: "form.phone_pager",
+  video: "form.phone_video",
+  text: "form.phone_text",
+};
+
+function formatPhoneFeatures(features: Record<string, boolean> | undefined, label: (key: string) => string): string {
   if (!features) return "";
-  return Object.keys(features).filter(k => features[k]).join(", ");
+  return Object.keys(features).filter(k => features[k]).map(label).join(", ");
 }
 
 function getDateParts(dateInput: AnniversaryDate): { year?: number; month?: number; day?: number } {
@@ -122,6 +139,8 @@ function formatDate(dateInput: AnniversaryDate): string {
 
 export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onCompose, isMobile, className }: ContactDetailProps) {
   const t = useTranslations("contacts");
+  const contextLabel = (key: string) => (CONTEXT_LABEL_KEYS[key] ? t(CONTEXT_LABEL_KEYS[key]) : key);
+  const featureLabel = (key: string) => (PHONE_FEATURE_LABEL_KEYS[key] ? t(PHONE_FEATURE_LABEL_KEYS[key]) : key);
 
   const cryptoKeys = contact?.cryptoKeys ? Object.values(contact.cryptoKeys) : [];
   const hasCryptoKeysSlotOffers = usePluginSlotOffers('contact-cryptokeys').length > 0;
@@ -248,7 +267,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
           <Section title={t("detail.section_contact")}>
             <div className="space-y-3">
               {emails.map((e, i) => (
-                <FieldRow key={`em${i}`} icon={Mail} label={e.label || formatContexts(e.contexts) || t("detail.email_default_label")}>
+                <FieldRow key={`em${i}`} icon={Mail} label={e.label || formatContexts(e.contexts, contextLabel) || t("detail.email_default_label")}>
                   <div className="flex items-center gap-2 group">
                     <MailtoLink to={e.address} className="text-sm text-primary hover:underline break-all">
                       {e.address}
@@ -269,8 +288,8 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
               ))}
 
               {phones.map((p, i) => {
-                const features = formatPhoneFeatures(p.features);
-                const labelParts = [p.label, formatContexts(p.contexts), features].filter(Boolean) as string[];
+                const features = formatPhoneFeatures(p.features, featureLabel);
+                const labelParts = [p.label, formatContexts(p.contexts, contextLabel), features].filter(Boolean) as string[];
                 return (
                   <FieldRow key={`ph${i}`} icon={Phone} label={labelParts.length ? labelParts.join(" · ") : t("detail.phone_default_label")}>
                     <div className="flex items-center gap-2 group">
@@ -299,7 +318,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
                   lines.push(...parts);
                 }
                 return (
-                  <FieldRow key={`ad${i}`} icon={MapPin} label={formatContexts(a.contexts) || t("detail.address_default_label")}>
+                  <FieldRow key={`ad${i}`} icon={MapPin} label={formatContexts(a.contexts, contextLabel) || t("detail.address_default_label")}>
                     <div className="text-sm space-y-0.5">
                       {lines.map((line, idx) => (
                         <div key={idx}>{line}</div>
@@ -316,7 +335,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
                 <FieldRow
                   key={`os${i}`}
                   icon={Globe}
-                  label={[svc.service, formatContexts(svc.contexts)].filter(Boolean).join(" · ") || t("detail.online_service_default_label")}
+                  label={[svc.service, formatContexts(svc.contexts, contextLabel)].filter(Boolean).join(" · ") || t("detail.online_service_default_label")}
                 >
                   <div className="flex items-center gap-2 group">
                     {typeof svc.uri === 'string' && svc.uri.startsWith("http") ? (
@@ -398,7 +417,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
                 <FieldRow
                   key={`lg${i}`}
                   icon={Languages}
-                  label={formatContexts(lang.contexts) || t("detail.language_label")}
+                  label={formatContexts(lang.contexts, contextLabel) || t("detail.language_label")}
                 >
                   <div className="text-sm">{lang.language}</div>
                 </FieldRow>
@@ -527,9 +546,9 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
   );
 }
 
-function formatContexts(contexts?: Record<string, boolean>): string {
+function formatContexts(contexts: Record<string, boolean> | undefined, label: (key: string) => string): string {
   if (!contexts) return "";
-  return Object.keys(contexts).filter(k => contexts[k]).join(", ");
+  return Object.keys(contexts).filter(k => contexts[k]).map(label).join(", ");
 }
 
 export function Section({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
