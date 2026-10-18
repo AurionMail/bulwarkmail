@@ -49,6 +49,8 @@ if (isLite && (process.env.NEXT_PUBLIC_LOCALE_PREFIX ?? "never") !== "always") {
 
 const nextConfig: NextConfig = {
   output: isLite ? "export" : "standalone",
+  // No `X-Powered-By: Next.js` on every response.
+  poweredByHeader: false,
   // Directory-style pages (out/en/mail/index.html) are what static hosts and
   // the shipped SPA-fallback rules expect; next/image has no optimizer here.
   ...(isLite ? { trailingSlash: true, images: { unoptimized: true } } : {}),
