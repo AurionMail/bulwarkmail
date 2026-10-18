@@ -144,6 +144,19 @@ function skipBlockComment(s: string, i: number): number {
   return end === -1 ? s.length : end + 2;
 }
 
+// Past a `text:` string: every line up to and including the lone ".".
+function skipMultiLineString(s: string, i: number): number {
+  let line = s.indexOf('\n', i) + 1;
+  if (line === 0) return s.length;
+  while (line < s.length) {
+    const nl = s.indexOf('\n', line);
+    const next = nl === -1 ? s.length : nl + 1;
+    if (s.slice(line, next).replace(/\r?\n$/, '') === '.') return next;
+    line = next;
+  }
+  return s.length;
+}
+
 function skipStatement(s: string, i: number): number {
   while (i < s.length) {
     const c = s[i];
@@ -700,14 +713,25 @@ function extractNextcloudRegions(content: string): {
   requires: string[];
 } {
   const marker = NEXTCLOUD_BLOCK_MARKER;
+  // Only a comment line counts. The same text inside a string (a rule's value,
+  // an auto-reply) is data, and taken for a region it would be written back
+  // as live Sieve.
   const positions: number[] = [];
-  let searchFrom = 0;
-  while (true) {
-    const idx = content.indexOf(marker, searchFrom);
-    if (idx === -1) break;
-    const atLineStart = idx === 0 || content[idx - 1] === '\n';
-    if (atLineStart) positions.push(idx);
-    searchFrom = idx + marker.length;
+  let i = 0;
+  while (i < content.length) {
+    const c = content[i];
+    if (c === '"') { i = skipStringLit(content, i); continue; }
+    if (c === '/' && content[i + 1] === '*') { i = skipBlockComment(content, i); continue; }
+    if (c === '#') {
+      if ((i === 0 || content[i - 1] === '\n') && content.startsWith(marker, i)) positions.push(i);
+      i = skipHashComment(content, i);
+      continue;
+    }
+    if (content.slice(i, i + 5).toLowerCase() === 'text:' && !/\w/.test(content[i - 1] ?? '')) {
+      i = skipMultiLineString(content, i);
+      continue;
+    }
+    i++;
   }
 
   if (positions.length < 2) {
