@@ -3,13 +3,14 @@
 // (api.email.getAttachment / getRaw). Reads go to the server through the
 // JMAP client and never change what the user has open.
 //
-// Messages are read from the signed-in account itself; mail in folders shared
-// from other accounts is not reached by id here.
+// api.email.get also reads a message of a shared account when it is in the
+// loaded list, from the account that owns it. The bytes of attachments and
+// sources are read from the signed-in account only.
 
 import type { EmailReadView, EmailSummary, MailboxView } from '../plugin-types';
 import type { Email, Mailbox } from '../jmap/types';
 import type { IJMAPClient } from '../jmap/client-interface';
-import { useEmailStore } from '@/stores/email-store';
+import { resolveEmailBlobContext, useEmailStore } from '@/stores/email-store';
 import { emailSummary, emailToReadView } from '../plugin-projection';
 import {
   MAX_PLUGIN_FETCH_BYTES, readId, readInteger, readObject, sessionClient, withinRate,
@@ -30,7 +31,14 @@ async function loadEmail(client: IJMAPClient, emailId: string): Promise<Email | 
 export async function doEmailGet(id: unknown): Promise<EmailReadView | null> {
   const method = 'email.get';
   const emailId = readId(id, method, 'emailId');
-  const email = await loadEmail(sessionClient(method), emailId);
+  const client = sessionClient(method);
+  // A listed message of a shared account is asked of the account that owns
+  // it; the signed-in account doesn't know its id.
+  const listed = useEmailStore.getState().emails.find((e) => e.id === emailId);
+  const owner = listed ? resolveEmailBlobContext(listed, client) : null;
+  const email = owner?.client && owner.accountId
+    ? await owner.client.getEmail(emailId, owner.accountId)
+    : await loadEmail(client, emailId);
   return email ? emailToReadView(email) : null;
 }
 

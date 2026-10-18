@@ -54,7 +54,7 @@ beforeEach(() => {
 
 afterEach(() => {
   useAuthStore.setState({ client: null });
-  useEmailStore.setState({ mailboxes: [], selectedEmail: null });
+  useEmailStore.setState({ mailboxes: [], selectedEmail: null, selectedMailbox: '', emails: [] });
 });
 
 describe('api.email.get', () => {
@@ -65,6 +65,14 @@ describe('api.email.get', () => {
     }));
     expect(client.getEmail).toHaveBeenCalledWith('m1');
     expect(await call(READER, 'email.get', 'gone')).toBeNull();
+  });
+
+  it('asks the owning account for a listed message of a shared folder', async () => {
+    client.getEmail.mockImplementation(async (id: string, accountId?: string) => (
+      id === 's1' && accountId === 'acc2' ? mail('s1', { subject: 'Shared' }) : null));
+    useEmailStore.setState({ selectedMailbox: 'acc2:box', emails: [mail('s1', { mailboxIds: { 'acc2:box': true } })] });
+    expect(await call(READER, 'email.get', 's1')).toEqual(expect.objectContaining({ id: 's1', subject: 'Shared' }));
+    expect(client.getEmail).toHaveBeenCalledWith('s1', 'acc2');
   });
 
   it('uses the open message when its body is loaded', async () => {
