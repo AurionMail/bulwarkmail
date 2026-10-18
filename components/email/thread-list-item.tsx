@@ -253,9 +253,13 @@ function SourceFolderTag({ name }: { name: string }) {
  * Whether rows show their folder chip: in the aggregate "All …" views, and in
  * search results that span every folder rather than the one picked in the
  * search panel (#1172). Rows of a single-folder list carry no sourceFolder.
+ *
+ * Such a row never subscribes to the view state: starting a search flips it
+ * while the old list is still on screen, and every row re-rendered for a chip
+ * it has nothing to put in.
  */
-function useShowSourceFolder(): boolean {
-  return useEmailStore((state) => state.isUnifiedView || isUnscopedSearchActive(state));
+function useShowSourceFolder(sourceFolder: string | undefined): boolean {
+  return useEmailStore((state) => !!sourceFolder && (state.isUnifiedView || isUnscopedSearchActive(state)));
 }
 
 /**
@@ -377,7 +381,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
     const hideJunkAvatarImages = currentMailboxRole === 'junk' && !showAvatarsInJunk;
     // Show the originating folder in the aggregate "All …" views.
-    const showSourceFolder = useShowSourceFolder() && !!email.sourceFolder;
+    const showSourceFolder = useShowSourceFolder(email.sourceFolder);
     const getAccountById = useAccountStore((state) => state.getAccountById);
     const account = email.accountId ? getAccountById(email.accountId) : undefined;
     const accountColor = account?.avatarColor;
@@ -932,7 +936,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       selectRangeEmails: state.selectRangeEmails,
       isUnifiedView: state.isUnifiedView,
     })));
-    const showSourceFolder = useShowSourceFolder() && !!latestEmail.sourceFolder;
+    const showSourceFolder = useShowSourceFolder(latestEmail.sourceFolder);
     const getAccountById = useAccountStore((state) => state.getAccountById);
     const threadAccount = latestEmail.accountId ? getAccountById(latestEmail.accountId) : undefined;
     const threadAccountColor = threadAccount?.avatarColor;

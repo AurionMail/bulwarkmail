@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { Profiler } from 'react';
+import { act, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ThreadListItem } from '../thread-list-item';
 import { useSettingsStore, DEFAULT_KEYWORDS } from '@/stores/settings-store';
@@ -56,6 +57,7 @@ function renderThread(emails: Email[]) {
   );
 }
 
+const noop = () => {};
 const single = () => [makeEmail()];
 const conversation = () => [
   makeEmail({ id: 'email-1', receivedAt: '2024-01-15T10:00:00Z' }),
@@ -122,6 +124,21 @@ describe('ThreadListItem folder chip in search results (#1172)', () => {
       useEmailStore.setState({ isUnifiedView: true });
       renderThread(emails());
       expect(screen.getByTitle('Archive')).toBeTruthy();
+    });
+
+    it('does not re-render a row without a folder when a search starts', () => {
+      // The folder's own list stays on screen until the results arrive; its
+      // rows carry no sourceFolder and have no chip to show.
+      const [thread] = groupEmailsByThread(emails().map((e) => ({ ...e, sourceFolder: undefined })));
+      const onRender = vi.fn();
+      render(
+        <Profiler id="row" onRender={onRender}>
+          <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={noop} onEmailSelect={noop} />
+        </Profiler>,
+      );
+      onRender.mockClear();
+      act(() => useEmailStore.setState({ searchQuery: 'invoice', searchMailboxId: '' }));
+      expect(onRender).not.toHaveBeenCalled();
     });
   });
 });
