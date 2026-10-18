@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Auf dem Server suchen",
     "autocomplete_searching": "Suche läuft...",
     "mention_recipients": "Empfänger",
+    "mention_card_not_recipient": "Nicht in An oder CC, bekommt diese Nachricht also nicht.",
+    "mention_card_add": "Zu {field} hinzufügen",
+    "mention_card_remove": "Erwähnung entfernen",
     "toolbar": {
       "bold": "Fett",
       "italic": "Kursiv",

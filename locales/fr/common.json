@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Rechercher sur le serveur",
     "autocomplete_searching": "Recherche en cours...",
     "mention_recipients": "Destinataires",
+    "mention_card_not_recipient": "Absent de À et de Cc : cette personne ne recevra pas ce message.",
+    "mention_card_add": "Ajouter à {field}",
+    "mention_card_remove": "Retirer la mention",
     "toolbar": {
       "bold": "Gras",
       "italic": "Italique",

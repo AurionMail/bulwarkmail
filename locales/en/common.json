@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Search the server",
     "autocomplete_searching": "Searching...",
     "mention_recipients": "Recipients",
+    "mention_card_not_recipient": "Not in To or Cc, so they won't get this message.",
+    "mention_card_add": "Add to {field}",
+    "mention_card_remove": "Remove mention",
     "toolbar": {
       "bold": "Bold",
       "italic": "Italic",

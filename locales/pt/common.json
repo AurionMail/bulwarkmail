@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Pesquisar no servidor",
     "autocomplete_searching": "Pesquisando...",
     "mention_recipients": "Destinatários",
+    "mention_card_not_recipient": "Não está em Para nem em CC, por isso não vai receber esta mensagem.",
+    "mention_card_add": "Adicionar a {field}",
+    "mention_card_remove": "Remover menção",
     "toolbar": {
       "bold": "Negrito",
       "italic": "Itálico",

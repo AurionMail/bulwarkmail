@@ -27,6 +27,7 @@ import { trailingParagraphBreakRule } from "@/components/email/paragraph-breaks"
 import { SignatureBlock } from "@/components/email/signature-block";
 import { styledBlockAttributes } from "@/components/email/styled-block-attributes";
 import { RecipientMention, RecipientMentionList, type RecipientMentionListHandle } from "@/components/email/recipient-mention";
+import { MentionChipCard, setMentionRecipients } from "@/components/email/mention-chip";
 import { mentionSuggestions, type MentionCandidate, type MentionContact } from "@/lib/recipient-mentions";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -385,6 +386,12 @@ export function RichTextEditor({
   useEffect(() => {
     if (editor) onEditorReadyRef.current?.(editor);
   }, [editor]);
+
+  // Mention chips of anyone not in To or Cc are marked, so a mention
+  // doesn't quietly name someone who never gets the message.
+  useEffect(() => {
+    if (editor) setMentionRecipients(editor, mentionCandidates ? mentionCandidates.map((c) => c.email) : null);
+  }, [editor, mentionCandidates]);
 
   const addLink = useCallback(() => {
     if (!editor) return;
@@ -876,6 +883,14 @@ export function RichTextEditor({
 
       {/* Editor */}
       <EditorContent editor={editor} />
+
+      <MentionChipCard
+        editor={editor}
+        recipients={mentionCandidates}
+        findContacts={findMentionContacts}
+        addsTo={mentionAddsTo}
+        onAdd={onMentionAdd}
+      />
 
       {mention && mention.items.length > 0 && createPortal(
         <RecipientMentionList

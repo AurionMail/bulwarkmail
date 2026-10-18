@@ -91,7 +91,7 @@ export function htmlToPlainText(html: string, options: HtmlToPlainTextOptions = 
     const normalized = value.replace(/\s+/g, ' ');
     if (!normalized.trim()) return;
     const previous = chunks[chunks.length - 1];
-    if (previous && !previous.endsWith('\n') && !previous.endsWith(' ')) {
+    if (previous && !previous.endsWith('\n') && !previous.endsWith(' ') && !normalized.startsWith(' ')) {
       chunks.push(' ');
     }
     chunks.push(normalized);
@@ -146,6 +146,11 @@ export function htmlToPlainText(html: string, options: HtmlToPlainTextOptions = 
       const href = element.getAttribute('href')?.trim() || '';
       const normalizedHref = href.replace(/^mailto:/i, '');
       if (text && normalizedHref && text === normalizedHref) {
+        appendText(text);
+        return;
+      }
+      // An @mention reads as just "@Name"; the address is in the To or Cc.
+      if (/^mailto:/i.test(href) && text.startsWith('@') && element.children.length === 0) {
         appendText(text);
         return;
       }

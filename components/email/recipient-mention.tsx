@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { MentionCandidate } from "@/lib/recipient-mentions";
+import { MentionChip } from "@/components/email/mention-chip";
 
 export const recipientMentionPluginKey = new PluginKey<{ active: boolean }>("recipientMention");
 
@@ -21,20 +22,22 @@ export function isRecipientMentionActive(editor: Editor | null | undefined): boo
 }
 
 /**
- * Replaces the typed "@que" with "@Label " as plain text. Never as HTML: the
- * label comes from recipient display names, which a reply-all takes from the
- * incoming message.
+ * Replaces the typed "@que" with a mention chip and a space. The label is
+ * an attribute rendered as text, never parsed as HTML: it comes from
+ * recipient display names, which a reply-all takes from the incoming message.
  */
-export function insertMention(editor: Editor, range: Range, label: string) {
-  const text = `@${label}`;
+export function insertMention(editor: Editor, range: Range, person: { label: string; email: string }) {
   const after = editor.state.doc.resolve(range.to).nodeAfter;
   const spaceFollows = !!after?.isText && /^\s/.test(after.text ?? "");
   editor
     .chain()
     .focus()
-    .command(({ tr }) => {
-      tr.insertText(spaceFollows ? text : `${text} `, range.from, range.to);
-      tr.setSelection(TextSelection.create(tr.doc, range.from + text.length + 1));
+    .command(({ tr, state }) => {
+      const marks = state.doc.resolve(range.from).marks();
+      const chip = state.schema.nodes[MentionChip.name].create({ label: person.label, email: person.email });
+      tr.replaceWith(range.from, range.to, spaceFollows ? chip : [chip, state.schema.text(" ", marks)]);
+      // After the chip and its space, ready to go on typing.
+      tr.setSelection(TextSelection.create(tr.doc, range.from + chip.nodeSize + 1));
       tr.scrollIntoView();
       return true;
     })
@@ -51,7 +54,7 @@ export interface RecipientMentionOptions {
 
 /**
  * "@" in the body offers the message's recipients, and contacts who can be
- * added as one, and inserts the chosen one's first name as plain text. The
+ * added as one, and inserts the chosen one's first name as a mention chip. The
  * suggestion is only active while someone matches what was typed, so an @
  * nobody matches leaves Enter and Escape to the editor and composer.
  */
@@ -60,6 +63,10 @@ export const RecipientMention = Extension.create<RecipientMentionOptions>({
   // While the list is open its Enter, Tab and arrows go ahead of the list,
   // table and core keymaps, which run at the default priority (100).
   priority: 101,
+
+  addExtensions() {
+    return [MentionChip];
+  },
 
   addOptions() {
     return {
@@ -96,7 +103,7 @@ export const RecipientMention = Extension.create<RecipientMentionOptions>({
         },
         items: ({ query }) => getCandidates(query),
         command: ({ editor, range, props }) => {
-          insertMention(editor, range, props.label);
+          insertMention(editor, range, props);
           onPick?.(props);
         },
         render,

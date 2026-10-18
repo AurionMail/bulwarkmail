@@ -759,6 +759,9 @@
     "autocomplete_search_server": "חיפוש בשרת",
     "autocomplete_searching": "מחפש...",
     "mention_recipients": "נמענים",
+    "mention_card_not_recipient": "לא נמצא ב\"אל\" או ב\"עותק\", ולכן לא יקבל את ההודעה.",
+    "mention_card_add": "הוספה ל{field}",
+    "mention_card_remove": "הסרת האזכור",
     "toolbar": {
       "bold": "מודגש",
       "italic": "נטוי",

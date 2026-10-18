@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Hľadať na serveri",
     "autocomplete_searching": "Hľadanie...",
     "mention_recipients": "Príjemcovia",
+    "mention_card_not_recipient": "Nie je v poli Komu ani Kópia, takže túto správu nedostane.",
+    "mention_card_add": "Pridať do {field}",
+    "mention_card_remove": "Odstrániť zmienku",
     "toolbar": {
       "bold": "Tučné",
       "italic": "Kurzíva",

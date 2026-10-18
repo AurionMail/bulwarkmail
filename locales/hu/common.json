@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Keresés a kiszolgálón",
     "autocomplete_searching": "Keresés...",
     "mention_recipients": "Címzettek",
+    "mention_card_not_recipient": "Nincs a Címzett vagy a Másolat mezőben, így nem kapja meg az üzenetet.",
+    "mention_card_add": "Hozzáadás: {field}",
+    "mention_card_remove": "Említés eltávolítása",
     "toolbar": {
       "bold": "Félkövér",
       "italic": "Dőlt",

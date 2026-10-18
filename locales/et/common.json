@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Otsi serverist",
     "autocomplete_searching": "Otsimine...",
     "mention_recipients": "Adressaadid",
+    "mention_card_not_recipient": "Pole väljal Saajale ega CC, seega seda kirja ei saa.",
+    "mention_card_add": "Lisa väljale {field}",
+    "mention_card_remove": "Eemalda mainimine",
     "toolbar": {
       "bold": "Rasvane",
       "italic": "Kaldkiri",

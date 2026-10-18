@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Søk på serveren",
     "autocomplete_searching": "Søker...",
     "mention_recipients": "Mottakere",
+    "mention_card_not_recipient": "Ikke i Til eller Kopi, så de får ikke denne meldingen.",
+    "mention_card_add": "Legg til i {field}",
+    "mention_card_remove": "Fjern omtale",
     "toolbar": {
       "bold": "Fet skrift",
       "italic": "Kursiv",

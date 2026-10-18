@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Серверээс хайх",
     "autocomplete_searching": "Хайж байна...",
     "mention_recipients": "Хүлээн авагчид",
+    "mention_card_not_recipient": "Хэнд эсвэл CC-д байхгүй тул энэ захидлыг хүлээн авахгүй.",
+    "mention_card_add": "{field}-д нэмэх",
+    "mention_card_remove": "Дурдалтыг хасах",
     "toolbar": {
       "bold": "Болд",
       "italic": "Налуу",

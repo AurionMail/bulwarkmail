@@ -794,6 +794,9 @@
     "autocomplete_search_server": "جستجو در سرور",
     "autocomplete_searching": "در حال جستجو...",
     "mention_recipients": "گیرندگان",
+    "mention_card_not_recipient": "در «به» یا «رونوشت» نیست، پس این پیام را دریافت نمی‌کند.",
+    "mention_card_add": "افزودن به {field}",
+    "mention_card_remove": "حذف اشاره",
     "toolbar": {
       "bold": "پررنگ",
       "italic": "کج",

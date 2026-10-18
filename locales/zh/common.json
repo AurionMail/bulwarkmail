@@ -794,6 +794,9 @@
     "autocomplete_search_server": "在服务器上搜索",
     "autocomplete_searching": "搜索中...",
     "mention_recipients": "收件人",
+    "mention_card_not_recipient": "不在收件人或抄送中，因此不会收到这封邮件。",
+    "mention_card_add": "添加到{field}",
+    "mention_card_remove": "移除提及",
     "toolbar": {
       "bold": "加粗",
       "italic": "斜体",

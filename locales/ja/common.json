@@ -794,6 +794,9 @@
     "autocomplete_search_server": "サーバーを検索",
     "autocomplete_searching": "検索中...",
     "mention_recipients": "宛先",
+    "mention_card_not_recipient": "宛先にも CC にも入っていないため、このメッセージは届きません。",
+    "mention_card_add": "{field}に追加",
+    "mention_card_remove": "メンションを削除",
     "toolbar": {
       "bold": "太字",
       "italic": "斜体",

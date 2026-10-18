@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Искать на сервере",
     "autocomplete_searching": "Поиск...",
     "mention_recipients": "Получатели",
+    "mention_card_not_recipient": "Нет в полях «Кому» и «Копия», поэтому письмо не получит.",
+    "mention_card_add": "Добавить в {field}",
+    "mention_card_remove": "Убрать упоминание",
     "toolbar": {
       "bold": "Жирный",
       "italic": "Курсив",

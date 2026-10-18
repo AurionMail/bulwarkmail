@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Caută pe server",
     "autocomplete_searching": "Se caută...",
     "mention_recipients": "Destinatari",
+    "mention_card_not_recipient": "Nu este în Către sau CC, deci nu va primi acest mesaj.",
+    "mention_card_add": "Adaugă la {field}",
+    "mention_card_remove": "Elimină mențiunea",
     "toolbar": {
       "bold": "Aldin",
       "italic": "Cursiv",

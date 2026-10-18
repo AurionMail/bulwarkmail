@@ -164,9 +164,16 @@ export function mentionSuggestions(
     if (filterMentionCandidates([candidate], query).length > 0) extra.push(candidate);
   }
   if (extra.length === 0) return matched;
-  // A contact who would also be "@Max" next to a recipient Max: both shown
-  // by full name, so the list tells them apart.
-  return distinguishLabels([...matched.map((c) => ({ ...c })), ...extra]);
+  // A contact who would also be "@Max" next to a recipient Max goes by full
+  // name, or mailbox name. The recipient keeps "@Max": the contact isn't on
+  // the message, so readers can't confuse the two.
+  const taken = new Set(recipients.map((r) => r.label.toLowerCase()));
+  distinguishLabels(extra);
+  for (const c of extra) {
+    if (!taken.has(c.label.toLowerCase())) continue;
+    c.label = c.name && !taken.has(naturalOrder(c.name).toLowerCase()) ? naturalOrder(c.name) : localPartOf(c.email);
+  }
+  return [...matched, ...extra];
 }
 
 /**

@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Sunucuda ara",
     "autocomplete_searching": "Aranıyor...",
     "mention_recipients": "Alıcılar",
+    "mention_card_not_recipient": "Kime veya CC alanında değil, bu yüzden iletiyi almayacak.",
+    "mention_card_add": "{field} alanına ekle",
+    "mention_card_remove": "Bahsetmeyi kaldır",
     "toolbar": {
       "bold": "Kalın",
       "italic": "İtalik",

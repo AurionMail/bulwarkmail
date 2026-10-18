@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Op de server zoeken",
     "autocomplete_searching": "Bezig met zoeken...",
     "mention_recipients": "Ontvangers",
+    "mention_card_not_recipient": "Staat niet in Aan of CC en krijgt dit bericht dus niet.",
+    "mention_card_add": "Toevoegen aan {field}",
+    "mention_card_remove": "Vermelding verwijderen",
     "toolbar": {
       "bold": "Vet",
       "italic": "Cursief",

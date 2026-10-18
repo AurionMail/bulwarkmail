@@ -794,6 +794,9 @@
     "autocomplete_search_server": "서버에서 검색",
     "autocomplete_searching": "검색 중...",
     "mention_recipients": "수신자",
+    "mention_card_not_recipient": "받는 사람이나 참조에 없어서 이 메시지를 받지 못합니다.",
+    "mention_card_add": "{field}에 추가",
+    "mention_card_remove": "멘션 삭제",
     "toolbar": {
       "bold": "굵게",
       "italic": "기울임꼴",

@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Cerca nel server",
     "autocomplete_searching": "Ricerca in corso...",
     "mention_recipients": "Destinatari",
+    "mention_card_not_recipient": "Non è in A o CC, quindi non riceverà questo messaggio.",
+    "mention_card_add": "Aggiungi in {field}",
+    "mention_card_remove": "Rimuovi menzione",
     "toolbar": {
       "bold": "Grassetto",
       "italic": "Corsivo",

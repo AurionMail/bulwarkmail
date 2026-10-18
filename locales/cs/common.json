@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Hledat na serveru",
     "autocomplete_searching": "Hledání...",
     "mention_recipients": "Příjemci",
+    "mention_card_not_recipient": "Není v Komu ani v Kopii, takže tuto zprávu nedostane.",
+    "mention_card_add": "Přidat do {field}",
+    "mention_card_remove": "Odebrat zmínku",
     "toolbar": {
       "bold": "Tučné",
       "italic": "Kurzíva",

@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Szukaj na serwerze",
     "autocomplete_searching": "Wyszukiwanie...",
     "mention_recipients": "Odbiorcy",
+    "mention_card_not_recipient": "Brak w polach Do i DW, więc ta osoba nie dostanie wiadomości.",
+    "mention_card_add": "Dodaj do {field}",
+    "mention_card_remove": "Usuń wzmiankę",
     "toolbar": {
       "bold": "Pogrubienie",
       "italic": "Kursywa",

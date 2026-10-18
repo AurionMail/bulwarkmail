@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Søg på serveren",
     "autocomplete_searching": "Søger...",
     "mention_recipients": "Modtagere",
+    "mention_card_not_recipient": "Ikke i Til eller CC, så vedkommende får ikke beskeden.",
+    "mention_card_add": "Tilføj til {field}",
+    "mention_card_remove": "Fjern omtale",
     "toolbar": {
       "bold": "Fed",
       "italic": "Kursiv",

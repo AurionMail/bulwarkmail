@@ -794,6 +794,9 @@
     "autocomplete_search_server": "البحث في الخادم",
     "autocomplete_searching": "جارٍ البحث...",
     "mention_recipients": "المستلمون",
+    "mention_card_not_recipient": "ليس في \"إلى\" أو \"نسخة\"، لذلك لن تصله هذه الرسالة.",
+    "mention_card_add": "إضافة إلى {field}",
+    "mention_card_remove": "إزالة الإشارة",
     "toolbar": {
       "bold": "غامق",
       "italic": "مائل",

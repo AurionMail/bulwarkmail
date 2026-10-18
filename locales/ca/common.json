@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Cerca al servidor",
     "autocomplete_searching": "Cercant...",
     "mention_recipients": "Destinataris",
+    "mention_card_not_recipient": "No és a Per a ni a CC, així que no rebrà aquest missatge.",
+    "mention_card_add": "Afegeix a {field}",
+    "mention_card_remove": "Elimina la menció",
     "toolbar": {
       "bold": "Negreta",
       "italic": "Cursiva",

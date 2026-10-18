@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Meklēt serverī",
     "autocomplete_searching": "Meklē...",
     "mention_recipients": "Adresāti",
+    "mention_card_not_recipient": "Nav laukā Kam vai Kopija, tāpēc šo vēstuli nesaņems.",
+    "mention_card_add": "Pievienot laukam {field}",
+    "mention_card_remove": "Noņemt pieminējumu",
     "toolbar": {
       "bold": "Treknraksts",
       "italic": "Kursīvs",

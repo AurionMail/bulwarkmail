@@ -794,6 +794,9 @@
     "autocomplete_search_server": "Шукати на сервері",
     "autocomplete_searching": "Пошук...",
     "mention_recipients": "Одержувачі",
+    "mention_card_not_recipient": "Немає в полях «Кому» та «Копія», тож лист не отримає.",
+    "mention_card_add": "Додати в {field}",
+    "mention_card_remove": "Прибрати згадку",
     "toolbar": {
       "bold": "Жирний",
       "italic": "Курсив",

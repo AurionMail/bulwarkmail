@@ -155,10 +155,10 @@ describe('mentionSuggestions', () => {
     expect(mentionSuggestions([], contacts, 'ma', 'to')).toEqual([]);
   });
 
-  it('tells a contact apart from a recipient with the same first name', () => {
+  it('renames a contact who shares a first name with a recipient, not the recipient', () => {
     const contacts = [{ name: 'Max Müller', email: 'max.mueller@dornig.de' }];
     expect(shown(mentionSuggestions(recipients, contacts, 'max', 'to'))).toEqual([
-      'Max Mustermann max.mustermann@dornig.de -',
+      'Max max.mustermann@dornig.de -',
       'Max Müller max.mueller@dornig.de to',
     ]);
     // The recipient list itself keeps its labels.
