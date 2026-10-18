@@ -304,7 +304,7 @@ interface ThreadListItemProps {
   onMarkAsRead?: (email: Email, read: boolean) => void;
   onDelete?: (email: Email) => void;
   onArchive?: (email: Email) => void;
-  onSetTag?: (emailId: string, tagId: string | null) => void;
+  onSetTag?: (emailId: string, tagId: string | null, emailKey?: string) => void;
   onMarkAsSpam?: (email: Email) => void;
   onUndoSpam?: (email: Email) => void;
   onOpenAttachment?: (email: Email, attachment: Attachment) => void;
@@ -1030,7 +1030,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
           onMarkAsRead={onMarkAsRead ? (read) => onMarkAsRead(latestEmail, read) : undefined}
           onDelete={onDelete ? () => onDelete(latestEmail) : undefined}
           onArchive={onArchive ? () => onArchive(latestEmail) : undefined}
-          onSetTag={onSetTag ? (color) => onSetTag(latestEmail.id, color) : undefined}
+          onSetTag={onSetTag ? (color) => onSetTag(latestEmail.id, color, emailKeyFor(latestEmail)) : undefined}
           onMarkAsSpam={onMarkAsSpam ? () => onMarkAsSpam(latestEmail) : undefined}
           onUndoSpam={onUndoSpam ? () => onUndoSpam(latestEmail) : undefined}
           onOpenAttachment={onOpenAttachment ? (a) => onOpenAttachment(latestEmail, a) : undefined}
@@ -1537,7 +1537,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
               onMarkAsRead={onMarkAsRead ? (read) => onMarkAsRead(latestEmail, read) : undefined}
               onDelete={onDelete ? () => onDelete(latestEmail) : undefined}
               onArchive={onArchive ? () => onArchive(latestEmail) : undefined}
-              onSetTag={onSetTag ? (color) => onSetTag(latestEmail.id, color) : undefined}
+              onSetTag={onSetTag ? (color) => onSetTag(latestEmail.id, color, emailKeyFor(latestEmail)) : undefined}
               onMarkAsSpam={onMarkAsSpam ? () => onMarkAsSpam(latestEmail) : undefined}
               onUndoSpam={onUndoSpam ? () => onUndoSpam(latestEmail) : undefined}
               isInJunk={currentMailboxRole === 'junk'}

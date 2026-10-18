@@ -323,7 +323,8 @@ interface EmailStore {
   sendRawEmail: (client: IJMAPClient, rawMimeBlob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[]) => Promise<SendEmailResult>;
   /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
   deleteEmail: (client: IJMAPClient, emailId: string, forceDelete?: boolean, emailKey?: string) => Promise<boolean>;
-  markAsRead: (client: IJMAPClient, emailId: string, read: boolean) => Promise<boolean>;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  markAsRead: (client: IJMAPClient, emailId: string, read: boolean, emailKey?: string) => Promise<boolean>;
   /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
   moveToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string) => Promise<boolean>;
   /**
@@ -333,9 +334,10 @@ interface EmailStore {
    * equivalent of what drag-and-drop already does. Falls back to the plain
    * single-account `moveToMailbox` when source and destination share an account.
    */
-  moveToMailboxCrossAware: (client: IJMAPClient, emailId: string, mailboxId: string) => Promise<boolean>;
+  moveToMailboxCrossAware: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string) => Promise<boolean>;
   moveEmailsToMailbox: (client: IJMAPClient, emailIds: string[], mailboxId: string) => Promise<boolean>;
-  moveThreadToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string) => Promise<boolean>;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  moveThreadToMailbox: (client: IJMAPClient, emailId: string, mailboxId: string, emailKey?: string) => Promise<boolean>;
   /**
    * Take messages out of the open folder only, leaving them in their other
    * folders (#615). Acts on those of `emails` that removalFolder and
@@ -391,15 +393,18 @@ interface EmailStore {
   scopeSearchToOpenFolder: () => void;
   clearSearchFilters: () => void;
   toggleAdvancedSearch: () => void;
-  toggleStar: (client: IJMAPClient, emailId: string) => Promise<boolean>;
-  setEmailKeywords: (client: IJMAPClient, emailId: string, keywords: Record<string, boolean>) => Promise<boolean>;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  toggleStar: (client: IJMAPClient, emailId: string, emailKey?: string) => Promise<boolean>;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  setEmailKeywords: (client: IJMAPClient, emailId: string, keywords: Record<string, boolean>, emailKey?: string) => Promise<boolean>;
   /**
    * Set (true) or clear (false) just the named keywords. Every other keyword
    * is left as the server has it.
    */
-  patchEmailKeywords: (client: IJMAPClient, emailId: string, changes: Record<string, boolean>) => Promise<boolean>;
+  patchEmailKeywords: (client: IJMAPClient, emailId: string, changes: Record<string, boolean>, emailKey?: string) => Promise<boolean>;
   markEmailKeyword: (client: IJMAPClient, emailId: string, keyword: string) => Promise<void>;
-  setEmailKeywordsLocal: (emailId: string, keywords: Record<string, boolean>) => void;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  setEmailKeywordsLocal: (emailId: string, keywords: Record<string, boolean>, emailKey?: string) => void;
 
   // Batch operations
   /** Acts on the selection, or on `target`'s messages when given. */
@@ -423,8 +428,10 @@ interface EmailStore {
   // owning JMAP account (passed to JMAP), `sourceClientAccountId` is the login the
   // email is reachable through (used to pick the right client). (#281)
   spamUndoCache: Map<string, { emailId: string; originalMailboxId: string; accountId?: string; sourceClientAccountId?: string }>;
-  markAsSpam: (client: IJMAPClient, emailId: string) => Promise<boolean>;
-  undoSpam: (client: IJMAPClient, emailId: string) => Promise<boolean>;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  markAsSpam: (client: IJMAPClient, emailId: string, emailKey?: string) => Promise<boolean>;
+  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
+  undoSpam: (client: IJMAPClient, emailId: string, emailKey?: string) => Promise<boolean>;
   batchMarkAsSpam: (client: IJMAPClient, emailIds: string[]) => Promise<boolean>;
   batchUndoSpam: (client: IJMAPClient, emailIds: string[]) => Promise<boolean>;
 
@@ -530,10 +537,6 @@ function getNextSelectedEmailAfterRemoval(state: { emails: Email[]; selectedEmai
   }
 
   return null;
-}
-
-function getNextSelectedEmail(state: { emails: Email[]; selectedEmail: Email | null }, removedEmailId: string): Email | null {
-  return getNextSelectedEmailAfterRemoval(state, new Set([removedEmailId]));
 }
 
 /**
@@ -1348,10 +1351,14 @@ export function resolveEmailActionContext(
 function resolveKeywordActionContext(
   emailId: string,
   passedClient: IJMAPClient,
+  emailKey?: string,
 ): { client: IJMAPClient; accountId: string | undefined } {
   const state = useEmailStore.getState();
-  const email = state.emails.find(e => e.id === emailId)
-    ?? (state.selectedEmail?.id === emailId ? state.selectedEmail : undefined);
+  // By the row's key when given: in a merged view the bare id also matches
+  // another account's namesake, whose account would receive the write.
+  const isTarget = singleEmailMatcher(emailId, emailKey);
+  const email = state.emails.find(isTarget)
+    ?? (state.selectedEmail && isTarget(state.selectedEmail) ? state.selectedEmail : undefined);
   if (!email) return { client: passedClient, accountId: undefined };
   const { client, accountId } = resolveEmailActionContext(email, passedClient);
   return { client, accountId };
@@ -3378,17 +3385,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
-  markAsRead: async (client, emailId, read): Promise<boolean> => {
+  markAsRead: async (client, emailId, read, emailKey): Promise<boolean> => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     try {
       // Check if this email is already being processed
-      const processingKey = `${emailId}-${read}`;
+      const processingKey = `${emailKey ?? emailId}-${read}`;
       const currentProcessing = get().processingReadStatus;
       if (currentProcessing.has(processingKey)) {
         return true; // Already being processed
       }
 
       // Get the email to check its current state and mailboxes
-      const email = get().emails.find(e => e.id === emailId);
+      const email = get().emails.find(isTarget);
       if (!email) return false;
 
       // Check if already in the desired state
@@ -3425,7 +3433,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         newProcessingSet.delete(processingKey);
 
         // Only update counters if the state is actually changing
-        const emailInState = state.emails.find(e => e.id === emailId);
+        const emailInState = state.emails.find(isTarget);
         if (!emailInState) return { processingReadStatus: newProcessingSet };
 
         const wasRead = emailInState.keywords?.$seen;
@@ -3458,9 +3466,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
         return {
           emails: state.emails.map(e =>
-            e.id === emailId ? { ...e, keywords: { ...e.keywords, $seen: read } } : e
+            isTarget(e) ? { ...e, keywords: { ...e.keywords, $seen: read } } : e
           ),
-          selectedEmail: state.selectedEmail?.id === emailId
+          selectedEmail: (!!state.selectedEmail && isTarget(state.selectedEmail))
             ? { ...state.selectedEmail, keywords: { ...state.selectedEmail.keywords, $seen: read } }
             : state.selectedEmail,
           retainedInViewIds,
@@ -3476,7 +3484,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
             let updated = false;
             const newCache = new Map(state.threadEmailsCache);
             for (const [tid, cachedEmails] of newCache) {
-              const idx = cachedEmails.findIndex(e => e.id === emailId);
+              const idx = cachedEmails.findIndex(isTarget);
               if (idx !== -1) {
                 newCache.set(tid, cachedEmails.map((e, i) =>
                   i === idx ? { ...e, keywords: { ...e.keywords, $seen: read } } : e
@@ -3506,9 +3514,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
-  moveToMailboxCrossAware: async (client, emailId, destinationMailboxId): Promise<boolean> => {
+  moveToMailboxCrossAware: async (client, emailId, destinationMailboxId, emailKey): Promise<boolean> => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     const state = get();
-    const email = state.emails.find((e) => e.id === emailId);
+    const email = state.emails.find(isTarget);
     if (!email) return false;
 
     const { mailboxes } = resolveEmailActionContext(email, client);
@@ -3528,7 +3537,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       sourceMailbox.accountId !== destMailbox.accountId;
 
     if (!isCrossAccount) {
-      return await get().moveToMailbox(client, emailId, destinationMailboxId);
+      return await get().moveToMailbox(client, emailId, destinationMailboxId, emailKey);
     }
 
     const destAccountId = resolveDestLocalAccountId(destMailbox!);
@@ -3536,7 +3545,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       email.accountId ?? state.viewingAccountId ?? useAuthStore.getState().activeAccountId;
     if (!destAccountId || !sourceAccountId) {
       // Can't resolve the local endpoints — fall back rather than drop the mail.
-      return await get().moveToMailbox(client, emailId, destinationMailboxId);
+      return await get().moveToMailbox(client, emailId, destinationMailboxId, emailKey);
     }
 
     // JMAP has no cross-account move: copy the raw message into the destination
@@ -3971,14 +3980,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
   },
 
-  moveThreadToMailbox: async (client, emailId, destinationMailboxId): Promise<boolean> => {
+  moveThreadToMailbox: async (client, emailId, destinationMailboxId, emailKey): Promise<boolean> => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     try {
       const state = get();
-      const email = state.emails.find(e => e.id === emailId)
-        ?? (state.selectedEmail?.id === emailId ? state.selectedEmail : null);
+      const email = state.emails.find(isTarget)
+        ?? ((!!state.selectedEmail && isTarget(state.selectedEmail)) ? state.selectedEmail : null);
 
       if (!email?.threadId) {
-        return await get().moveToMailbox(client, emailId, destinationMailboxId);
+        return await get().moveToMailbox(client, emailId, destinationMailboxId, emailKey);
       }
 
       // In unified view route to the email's own account (client + that
@@ -3991,7 +4001,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const threadEmailIds = thread?.emailIds?.length ? thread.emailIds : [emailId];
 
       if (threadEmailIds.length <= 1) {
-        return await get().moveToMailbox(client, emailId, destinationMailboxId);
+        return await get().moveToMailbox(client, emailId, destinationMailboxId, emailKey);
       }
 
       const move = { emailIds: threadEmailIds, fromMailboxId: moveSourceMailboxId([email], mailboxes), toMailboxId: destinationMailboxId };
@@ -4307,9 +4317,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     set((state) => ({ isAdvancedSearchOpen: !state.isAdvancedSearchOpen }));
   },
 
-  toggleStar: async (client, emailId): Promise<boolean> => {
+  toggleStar: async (client, emailId, emailKey): Promise<boolean> => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     try {
-      const email = get().emails.find(e => e.id === emailId);
+      const email = get().emails.find(isTarget);
       if (!email) return false;
 
       const isFlagged = email.keywords.$flagged || false;
@@ -4325,9 +4336,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // Update local state
       set((state) => ({
         emails: state.emails.map(e =>
-          e.id === emailId ? { ...e, keywords: { ...e.keywords, $flagged: !isFlagged } } : e
+          isTarget(e) ? { ...e, keywords: { ...e.keywords, $flagged: !isFlagged } } : e
         ),
-        selectedEmail: state.selectedEmail?.id === emailId
+        selectedEmail: (!!state.selectedEmail && isTarget(state.selectedEmail))
           ? { ...state.selectedEmail, keywords: { ...state.selectedEmail.keywords, $flagged: !isFlagged } }
           : state.selectedEmail,
         // In the starred cross view, un-starring drops the mail out of the
@@ -4364,7 +4375,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     void emailHooks.onEmailKeywordChange.emit({ emailIds: [emailId], added: [keyword], removed: [] });
   },
 
-  setEmailKeywords: async (client, emailId, keywords): Promise<boolean> => {
+  setEmailKeywords: async (client, emailId, keywords, emailKey): Promise<boolean> => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     // Route the write to the email's OWN account, exactly like toggleStar and
     // every other single-email action. `resolveEmailActionContext` covers both
     // shapes: in an aggregate view the owner comes from the email's
@@ -4381,54 +4393,56 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // Only the keywords that differ from the row are written (see
     // patchEmailKeywords): replacing the whole set from the row undid what
     // another client had set since, such as `$seen` or `$answered`.
-    const previous = (get().emails.find(e => e.id === emailId) ?? get().selectedEmail)?.keywords ?? {};
+    const previous = (get().emails.find(isTarget) ?? get().selectedEmail)?.keywords ?? {};
     const changes: Record<string, boolean> = {};
     for (const key of new Set([...Object.keys(previous), ...Object.keys(keywords)])) {
       if (!!previous[key] !== !!keywords[key]) changes[key] = !!keywords[key];
     }
-    return await get().patchEmailKeywords(client, emailId, changes);
+    return await get().patchEmailKeywords(client, emailId, changes, emailKey);
   },
 
-  patchEmailKeywords: async (client, emailId, changes): Promise<boolean> => {
+  patchEmailKeywords: async (client, emailId, changes, emailKey): Promise<boolean> => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     const keys = Object.keys(changes);
     if (keys.length === 0) return true;
     if (emailHooks.onBeforeEmailKeywordChange.size > 0
       && !(await emailHooks.onBeforeEmailKeywordChange.intercept({ emailIds: [emailId], ...keywordChangeLists(changes) }))) {
       return false;
     }
-    const { client: actionClient, accountId } = resolveKeywordActionContext(emailId, client);
+    const { client: actionClient, accountId } = resolveKeywordActionContext(emailId, client, emailKey);
     // `keywords/<name>` pointers touch only these keywords on the server;
     // a cleared keyword is removed (null), since a keyword map holds `true`
     // values only.
     const patch = Object.fromEntries(keys.map(key => [keywordPointer(key), changes[key] ? true : null]));
     await actionClient.batchUpdateKeywords([emailId], patch, accountId);
 
-    const previous = (get().emails.find(e => e.id === emailId) ?? get().selectedEmail)?.keywords ?? {};
+    const previous = (get().emails.find(isTarget) ?? get().selectedEmail)?.keywords ?? {};
     const next: Record<string, boolean> = { ...previous };
     for (const key of keys) {
       if (changes[key]) next[key] = true;
       else delete next[key];
     }
-    get().setEmailKeywordsLocal(emailId, next);
+    get().setEmailKeywordsLocal(emailId, next, emailKey);
     void emailHooks.onEmailKeywordChange.emit({ emailIds: [emailId], ...keywordChangeLists(changes) });
     refillAfterKeywordChange(get, client, keys.filter(k => !!previous[k] !== !!changes[k]));
     return true;
   },
 
-  setEmailKeywordsLocal: (emailId, keywords) => {
+  setEmailKeywordsLocal: (emailId, keywords, emailKey) => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     set((state) => {
       // This patch replaces the whole keyword map, so it can flip $seen as well
       // as labels. Only a genuine read-state change moves the tag unread counts.
-      const previous = state.emails.find(e => e.id === emailId) ?? state.selectedEmail;
+      const previous = state.emails.find(isTarget) ?? state.selectedEmail;
       const wasRead = previous?.keywords?.$seen ?? false;
       const isRead = keywords.$seen ?? false;
       const delta = wasRead === isRead ? 0 : (isRead ? -1 : 1);
 
       return {
         emails: state.emails.map(e =>
-          e.id === emailId ? { ...e, keywords: { ...keywords } } : e
+          isTarget(e) ? { ...e, keywords: { ...keywords } } : e
         ),
-        selectedEmail: state.selectedEmail?.id === emailId
+        selectedEmail: (!!state.selectedEmail && isTarget(state.selectedEmail))
           ? { ...state.selectedEmail, keywords: { ...keywords } }
           : state.selectedEmail,
         tagCounts: applyTagCountReadDelta(state.tagCounts, [{ keywords, delta }]),
@@ -5127,14 +5141,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   // Spam operations
-  markAsSpam: async (client, emailId): Promise<boolean> => {
+  markAsSpam: async (client, emailId, emailKey): Promise<boolean> => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     // The viewer may show an email the list no longer holds (e.g. the unread
     // quick-filter dropped it once it was read), so fall back to the selected
     // email like moveThreadToMailbox does. Throw rather than no-op so the
     // caller's success toast cannot fire for a message that was not moved. (#695)
     const state = get();
-    const email = state.emails.find(e => e.id === emailId)
-      ?? (state.selectedEmail?.id === emailId ? state.selectedEmail : null);
+    const email = state.emails.find(isTarget)
+      ?? ((!!state.selectedEmail && isTarget(state.selectedEmail)) ? state.selectedEmail : null);
     if (!email) {
       throw new Error('Email not found - cannot mark as spam');
     }
@@ -5159,7 +5174,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // still move the message, and undo falls back to the inbox. Returning
     // here let the caller show a success toast for a message never moved.
     if (currentMailbox) {
-      get().spamUndoCache.set(emailId, {
+      get().spamUndoCache.set(emailKey ?? emailId, {
         emailId,
         originalMailboxId: currentMailbox.originalId || currentMailbox.id,
         accountId,
@@ -5205,8 +5220,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         });
 
         return {
-          emails: state.emails.filter(e => e.id !== emailId),
-          selectedEmail: getNextSelectedEmail(state, emailId),
+          emails: state.emails.filter(e => !isTarget(e)),
+          selectedEmail: getNextSelectedEmailAfterRemovingRow(state, isTarget),
           ...mailboxPatch,
         };
       });
@@ -5218,7 +5233,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
-  undoSpam: async (client, emailId): Promise<boolean> => {
+  undoSpam: async (client, emailId, emailKey): Promise<boolean> => {
+    const isTarget = singleEmailMatcher(emailId, emailKey);
     if (emailHooks.onBeforeEmailSpamToggle.size > 0
       && !(await emailHooks.onBeforeEmailSpamToggle.intercept({ emailIds: [emailId], spam: false }))) {
       return false;
@@ -5227,7 +5243,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     const mailboxes = resolveActionMailboxes();
 
     // Try cache first (preserves exact original mailbox for toast undo)
-    const cachedData = get().spamUndoCache.get(emailId);
+    const cachedData = get().spamUndoCache.get(emailKey ?? emailId);
 
     let targetMailboxId: string;
     let accountId: string | undefined;
@@ -5242,13 +5258,13 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       if (cachedData.sourceClientAccountId) {
         undoClient = useAuthStore.getState().getClientForAccount(cachedData.sourceClientAccountId) ?? undoClient;
       }
-      get().spamUndoCache.delete(emailId);
+      get().spamUndoCache.delete(emailKey ?? emailId);
     } else {
       // Generic "not spam" (button/menu, no undo cache). In aggregate views
       // (e.g. "All Junk") route to the email's own account so shared/group
       // messages move back to *their* inbox via *their* client, not the active
       // account's. (#281)
-      const listEmail = get().emails.find(e => e.id === emailId);
+      const listEmail = get().emails.find(isTarget);
       let inboxMailboxes = mailboxes;
       if (listEmail?.sourceClientAccountId && listEmail?.sourceAccountId) {
         undoClient = useAuthStore.getState().getClientForAccount(listEmail.sourceClientAccountId) ?? undoClient;
@@ -5279,8 +5295,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // message to the next one, mirroring markAsSpam. Without this the viewer
       // stays stuck on the mail that just left the folder.
       set(state => ({
-        emails: state.emails.filter(e => e.id !== emailId),
-        selectedEmail: getNextSelectedEmail(state, emailId),
+        emails: state.emails.filter(e => !isTarget(e)),
+        selectedEmail: getNextSelectedEmailAfterRemovingRow(state, isTarget),
       }));
       void emailHooks.onEmailSpamToggle.emit({ emailIds: [emailId], spam: false });
 

@@ -80,7 +80,7 @@ describe('email-store moveToMailboxCrossAware', () => {
     await useEmailStore.getState().moveToMailboxCrossAware(client, 'e1', 'archive-A');
 
     expect(crossSpy).not.toHaveBeenCalled();
-    expect(moveSpy).toHaveBeenCalledWith(client, 'e1', 'archive-A');
+    expect(moveSpy).toHaveBeenCalledWith(client, 'e1', 'archive-A', undefined);
   });
 
   it('reverse: shared → own also routes cross-account (source override set)', async () => {

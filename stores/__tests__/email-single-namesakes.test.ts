@@ -36,6 +36,11 @@ const makeClient = () => ({
   moveToTrash: vi.fn().mockResolvedValue(undefined),
   deleteEmail: vi.fn().mockResolvedValue(undefined),
   getMailboxes: vi.fn().mockResolvedValue([]),
+  markAsRead: vi.fn().mockResolvedValue(undefined),
+  toggleStar: vi.fn().mockResolvedValue(undefined),
+  batchUpdateKeywords: vi.fn().mockResolvedValue(undefined),
+  markAsSpam: vi.fn().mockResolvedValue(undefined),
+  undoSpam: vi.fn().mockResolvedValue(undefined),
 }) as unknown as IJMAPClient & Record<string, ReturnType<typeof vi.fn>>;
 
 // The list is newest first: account A's namesake sits right above the row
@@ -102,5 +107,111 @@ describe('single-email actions with a namesake in another account', () => {
     expect(clientB.moveToTrash).toHaveBeenCalledWith('eiaaaabc', 'b', 'account-b', false);
     expect(clientA.moveToTrash).not.toHaveBeenCalled();
     expect(useEmailStore.getState().emails.map(e => e.sourceAccountId)).toEqual(['account-a']);
+  });
+});
+
+/**
+ * The other single-email actions resolved the row by its bare id as well, so in
+ * a merged view a hover star, a hover or menu read toggle, a tag or "spam" went
+ * to the FIRST row with that id - another account's message (measured against
+ * Stalwart 0.16: the hover star on one account's Sent message flagged another
+ * account's). With the row's key each reaches only the clicked row.
+ */
+describe('keyword and spam actions with a namesake in another account', () => {
+  beforeEach(() => {
+    useEmailStore.setState({
+      emails: [above, { ...clicked, keywords: {} } as Email],
+      selectedEmail: null,
+      processingReadStatus: new Set(),
+    } as never);
+  });
+
+  it('stars only the clicked row', async () => {
+    await useEmailStore.getState().toggleStar(clientA, clicked.id, emailKeyFor(clicked));
+
+    expect(clientB.toggleStar).toHaveBeenCalledWith('eiaaaabc', true, 'account-b');
+    expect(clientA.toggleStar).not.toHaveBeenCalled();
+    const [a, b] = useEmailStore.getState().emails;
+    expect(a.keywords.$flagged).toBeFalsy();
+    expect(b.keywords.$flagged).toBe(true);
+  });
+
+  it('marks only the clicked row read', async () => {
+    await useEmailStore.getState().markAsRead(clientA, clicked.id, true, emailKeyFor(clicked));
+
+    expect(clientB.markAsRead).toHaveBeenCalledWith('eiaaaabc', true, 'account-b');
+    expect(clientA.markAsRead).not.toHaveBeenCalled();
+    const [a, b] = useEmailStore.getState().emails;
+    expect(a.keywords.$seen).toBe(true);
+    expect(b.keywords.$seen).toBe(true);
+  });
+
+  it('marks only the clicked row unread and leaves the namesake read', async () => {
+    useEmailStore.setState({ emails: [above, clicked] } as never);
+    await useEmailStore.getState().markAsRead(clientA, clicked.id, false, emailKeyFor(clicked));
+
+    expect(clientB.markAsRead).toHaveBeenCalledWith('eiaaaabc', false, 'account-b');
+    expect(clientA.markAsRead).not.toHaveBeenCalled();
+    const [a, b] = useEmailStore.getState().emails;
+    expect(a.keywords.$seen).toBe(true);
+    expect(b.keywords.$seen).toBeFalsy();
+  });
+
+  it('writes a keyword change only to the clicked row', async () => {
+    await useEmailStore.getState().patchEmailKeywords(clientA, clicked.id, { $label1: true }, emailKeyFor(clicked));
+
+    expect(clientB.batchUpdateKeywords).toHaveBeenCalledWith(['eiaaaabc'], { 'keywords/$label1': true }, 'account-b');
+    expect(clientA.batchUpdateKeywords).not.toHaveBeenCalled();
+    const [a, b] = useEmailStore.getState().emails;
+    expect(a.keywords.$label1).toBeUndefined();
+    expect(b.keywords.$label1).toBe(true);
+  });
+
+  it('without a key keeps the previous single-account behaviour (bare id)', async () => {
+    useEmailStore.setState({ isUnifiedView: false, emails: [{ ...clicked, sourceClientAccountId: undefined, sourceAccountId: undefined } as Email] } as never);
+    await useEmailStore.getState().toggleStar(clientA, clicked.id);
+
+    expect(clientA.toggleStar).toHaveBeenCalledWith('eiaaaabc', true, undefined);
+  });
+});
+
+/**
+ * Spam and "not spam" took the row by its bare id too, the toast's undo cache
+ * was keyed by it, and the next open message was picked by it: with a namesake
+ * listed above, both rows dropped out of the selection walk.
+ */
+describe('spam actions with a namesake in another account', () => {
+  it('reports only the clicked row and opens the namesake next', async () => {
+    await useEmailStore.getState().markAsSpam(clientA, clicked.id, emailKeyFor(clicked));
+
+    expect(clientB.markAsSpam).toHaveBeenCalledWith('eiaaaabc', 'account-b', false);
+    expect(clientA.markAsSpam).not.toHaveBeenCalled();
+    const state = useEmailStore.getState();
+    expect(state.emails.map(e => e.sourceAccountId)).toEqual(['account-a']);
+    expect(state.selectedEmail?.sourceAccountId).toBe('account-a');
+  });
+
+  it('moves only the clicked row out of junk with "not spam"', async () => {
+    // The list is refetched after the move; keep the local result in view.
+    useEmailStore.setState({ fetchUnifiedEmails: vi.fn() } as never);
+    await useEmailStore.getState().undoSpam(clientA, clicked.id, emailKeyFor(clicked));
+
+    expect(clientB.undoSpam).toHaveBeenCalledWith('eiaaaabc', 'a', 'account-b');
+    expect(clientA.undoSpam).not.toHaveBeenCalled();
+    const state = useEmailStore.getState();
+    expect(state.emails.map(e => e.sourceAccountId)).toEqual(['account-a']);
+    expect(state.selectedEmail?.sourceAccountId).toBe('account-a');
+  });
+
+  it('keeps one undo entry per row when both namesakes are reported', async () => {
+    useEmailStore.setState({ spamUndoCache: new Map() } as never);
+    await useEmailStore.getState().markAsSpam(clientA, clicked.id, emailKeyFor(clicked));
+    useEmailStore.setState({ emails: [above] } as never);
+    await useEmailStore.getState().markAsSpam(clientA, above.id, emailKeyFor(above));
+
+    await useEmailStore.getState().undoSpam(clientA, clicked.id, emailKeyFor(clicked));
+
+    expect(clientB.undoSpam).toHaveBeenCalledWith('eiaaaabc', 'a', 'account-b');
+    expect(clientA.undoSpam).not.toHaveBeenCalled();
   });
 });

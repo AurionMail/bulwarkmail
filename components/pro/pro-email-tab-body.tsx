@@ -19,7 +19,7 @@ import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { buildReplySubject, buildForwardSubject } from "@/lib/subject-prefix";
 import { getQuoteBodies } from "@/lib/email-composer-utils";
 import { buildForwardAsAttachmentPayload } from "@/lib/forward-as-attachment";
-import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
+import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, emailKeyFor } from "@/lib/thread-utils";
 import { cn } from "@/lib/utils";
 import { getDraftTextBody } from '@/lib/email-body-selection';
 import { messagePriorityFromHeaders } from '@/lib/message-priority';
@@ -252,7 +252,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
     const archiveMb = mailboxes.find((m) => m.role === 'archive');
     if (!archiveMb) return;
     try {
-      if (!(await moveToMailbox(client, email.id, archiveMb.id))) return;
+      if (!(await moveToMailbox(client, email.id, archiveMb.id, emailKeyFor(email)))) return;
       toast.success(tNotifications('email_archived'));
       onClose();
     } catch (err) {
@@ -263,7 +263,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
   const handleToggleStar = useCallback(async () => {
     if (!client || !email) return;
     try {
-      if (!(await toggleStar(client, email.id))) return;
+      if (!(await toggleStar(client, email.id, emailKeyFor(email)))) return;
       // Reflect locally - the viewer re-reads from email-store's selectedEmail
       // shape only for the mail tab; here we update our local copy too.
       setEmail((prev) => prev ? {
@@ -320,7 +320,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
   const handleMoveToMailbox = useCallback(async (mailboxId: string) => {
     if (!client || !email) return;
     try {
-      if (await moveToMailbox(client, email.id, mailboxId)) onClose();
+      if (await moveToMailbox(client, email.id, mailboxId, emailKeyFor(email))) onClose();
     } catch (err) {
       console.error('Move failed:', err);
     }

@@ -838,7 +838,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const keyboardHandlers = useMemo(() => ({
     onNextEmail: () => {
       if (activeEmails.length === 0) return;
-      const currentIndex = selectedEmail ? activeEmails.findIndex(e => e.id === selectedEmail.id) : -1;
+      const currentIndex = selectedEmail ? activeEmails.findIndex(e => emailKeyFor(e) === emailKeyFor(selectedEmail)) : -1;
       const nextIndex = currentIndex < activeEmails.length - 1 ? currentIndex + 1 : currentIndex;
       if (nextIndex >= 0 && nextIndex < activeEmails.length) {
         void handleEmailSelect(activeEmails[nextIndex]);
@@ -847,7 +847,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     onPreviousEmail: () => {
       if (activeEmails.length === 0) return;
-      const currentIndex = selectedEmail ? activeEmails.findIndex(e => e.id === selectedEmail.id) : activeEmails.length;
+      const currentIndex = selectedEmail ? activeEmails.findIndex(e => emailKeyFor(e) === emailKeyFor(selectedEmail)) : activeEmails.length;
       const prevIndex = currentIndex > 0 ? currentIndex - 1 : 0;
       if (prevIndex >= 0 && prevIndex < activeEmails.length) {
         void handleEmailSelect(activeEmails[prevIndex]);
@@ -946,7 +946,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (shortcutsTargetSelection) {
         await batchMarkAsRead(client, false);
       } else if (selectedEmail) {
-        await markAsRead(client, selectedEmail.id, false);
+        await markAsRead(client, selectedEmail.id, false, emailKeyFor(selectedEmail));
       }
     },
     onMarkAsRead: async () => {
@@ -955,7 +955,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (shortcutsTargetSelection) {
         await batchMarkAsRead(client, true);
       } else if (selectedEmail) {
-        await markAsRead(client, selectedEmail.id, true);
+        await markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail));
       }
     },
     onToggleSpam: async () => {
@@ -1953,13 +1953,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     } else if (markAsReadDelay === 0) {
       // Mark as read instantly
       debug.log('email', '[Mark as Read] Instant mode - marking as read now');
-      markAsRead(client, selectedEmail.id, true);
+      markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail));
     } else {
       // Mark as read after delay
       debug.log('email', '[Mark as Read] Delayed mode - will mark as read in', markAsReadDelay, 'ms');
       markAsReadTimeoutRef.current = setTimeout(() => {
         debug.log('email', '[Mark as Read] Timeout fired - marking as read now');
-        markAsRead(client, selectedEmail.id, true);
+        markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail));
         markAsReadTimeoutRef.current = null;
       }, markAsReadDelay);
     }
@@ -2798,7 +2798,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
       let archived: boolean;
       if (archiveMode === 'single') {
-        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id);
+        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id, emailKeyFor(emailToArchive));
       } else {
         const emailDate = new Date(emailToArchive.receivedAt);
         const year = emailDate.getFullYear().toString();
@@ -2815,7 +2815,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         }
 
         if (archiveMode === 'year') {
-          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id);
+          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id, emailKeyFor(emailToArchive));
         } else {
           const yearId = yearMailbox.originalId || yearMailbox.id;
           const afterYear = readMailboxes();
@@ -2827,7 +2827,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             if (!monthMailbox) return; // a plugin refused the folder
             await refreshMailboxes();
           }
-          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id);
+          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id, emailKeyFor(emailToArchive));
         }
       }
       if (!archived) return;
@@ -2855,13 +2855,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const folderToLeave = useEmailStore(removalFolder);
   const openEmailCanLeaveFolder = !!selectedEmail && canRemoveFromFolder(selectedEmail, folderToLeave);
 
-  const handleMoveToMailbox = async (emailId: string, mailboxId: string) => {
+  const handleMoveToMailbox = async (emailId: string, mailboxId: string, emailKey?: string) => {
     if (!client) return;
     const destinationList = [mailboxes, ...Object.values(accountMailboxes)]
       .find(list => list.some(m => m.id === mailboxId));
     const destination = destinationList?.find(m => m.id === mailboxId);
     try {
-      if (!(await moveToMailboxCrossAware(client, emailId, mailboxId))) return;
+      if (!(await moveToMailboxCrossAware(client, emailId, mailboxId, emailKey))) return;
       toast.success(
         t('notifications.email_moved'),
         destination && destinationList
@@ -2878,7 +2878,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || !selectedEmail) return;
 
     try {
-      await toggleStar(client, selectedEmail.id);
+      await toggleStar(client, selectedEmail.id, emailKeyFor(selectedEmail));
     } catch (error) {
       console.error("Failed to toggle star:", error);
       toast.error(t('notifications.error_updating'));
@@ -2891,14 +2891,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const emailId = emailToMark.id;
 
     try {
-      if (!(await markAsSpam(client, emailId))) return;
+      if (!(await markAsSpam(client, emailId, emailKeyFor(emailToMark)))) return;
 
       toast.success(t('email_viewer.spam.toast_success'), {
         action: {
           label: t('email_viewer.spam.toast_undo'),
           onClick: async () => {
             try {
-              if (await undoSpam(client, emailId)) toast.success(t('notifications.email_moved'));
+              if (await undoSpam(client, emailId, emailKeyFor(emailToMark))) toast.success(t('notifications.email_moved'));
             } catch (_error) {
               console.error("Failed to undo spam:", _error);
               toast.error(t('email_viewer.spam.error'));
@@ -2917,7 +2917,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || !emailToRestore) return;
 
     try {
-      if (!(await undoSpam(client, emailToRestore.id))) return;
+      if (!(await undoSpam(client, emailToRestore.id, emailKeyFor(emailToRestore)))) return;
 
       toast.success(t('email_viewer.spam.toast_not_spam_success'));
     } catch (_error) {
@@ -2930,7 +2930,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client) return;
 
     try {
-      const email = emails.find(e => e.id === emailToPin.id) ?? emailToPin;
+      const email = emails.find(e => emailKeyFor(e) === emailKeyFor(emailToPin)) ?? emailToPin;
       const isPinned = email.keywords?.['$pinned'] === true;
 
       // Same routing as tags: the write goes to the email's own account, and
@@ -2940,7 +2940,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // would replace a tag-filtered list (refreshCurrentMailbox fetches by
       // folder only). (#281)
       // Only $pinned changes; the row's other keywords may be stale.
-      await patchEmailKeywords(client, email.id, { $pinned: !isPinned });
+      await patchEmailKeywords(client, email.id, { $pinned: !isPinned }, emailKeyFor(email));
       if (!isUnifiedView && !useEmailStore.getState().selectedKeyword) {
         void refreshCurrentMailbox(client);
       }
@@ -2950,12 +2950,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
-  const handleSetTag = async (emailId: string, tagId: string | null) => {
+  const handleSetTag = async (emailId: string, tagId: string | null, emailKey?: string) => {
     if (!client) return;
 
     try {
-      // Remove any existing tag keywords
-      const email = emails.find(e => e.id === emailId);
+      // Remove any existing tag keywords. By the row's key when given: the bare
+      // id can also be another account's message in a merged view.
+      const email = emailKey ? emails.find(e => emailKeyFor(e) === emailKey) : emails.find(e => e.id === emailId);
       if (!email) return;
 
       // Only the tag keywords change: writing the whole set from this row
@@ -2991,7 +2992,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // call site covered only the unified view, so a tag set on a directly
       // selected shared folder was written to the reaching account and silently
       // dropped by the server. (#281)
-      await patchEmailKeywords(client, emailId, changes);
+      await patchEmailKeywords(client, emailId, changes, emailKeyFor(email));
 
       // Refresh tag counts
       fetchTagCounts(client);
@@ -3971,9 +3972,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || target.keywords?.$seen) return;
     try {
       if (useEmailStore.getState().emails.some((e) => e.id === target.id)) {
-        await markAsRead(client, target.id, true);
+        await markAsRead(client, target.id, true, emailKeyFor(target));
         // Still unread: a plugin stopped it, so the copy here stays unread too.
-        if (!useEmailStore.getState().emails.find((e) => e.id === target.id)?.keywords?.$seen) return;
+        if (!useEmailStore.getState().emails.find((e) => emailKeyFor(e) === emailKeyFor(target))?.keywords?.$seen) return;
       } else {
         // Not in the store's list, so the store action can't ask plugins.
         if (emailHooks.onBeforeEmailReadStateChange.size > 0
@@ -4212,7 +4213,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   };
 
   // Navigate to next/previous email in the list
-  const selectedEmailIndex = selectedEmail ? activeEmails.findIndex(e => e.id === selectedEmail.id) : -1;
+  const selectedEmailIndex = selectedEmail ? activeEmails.findIndex(e => emailKeyFor(e) === emailKeyFor(selectedEmail)) : -1;
 
   const handleNavigateNext = selectedEmailIndex >= 0 && selectedEmailIndex < activeEmails.length - 1
     ? () => handleEmailSelect(activeEmails[selectedEmailIndex + 1])
@@ -4709,9 +4710,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                         // The open message when it is in this list, else the
                         // first row - as an email, so the selection is keyed by
                         // its owning account and not by a colliding id.
-                        const target = (selectedEmail && activeEmails.some((e) => e.id === selectedEmail.id)
-                          ? activeEmails.find((e) => e.id === selectedEmail.id)
-                          : activeEmails[0])!;
+                        const openKey = selectedEmail ? emailKeyFor(selectedEmail) : null;
+                        const target = activeEmails.find((e) => emailKeyFor(e) === openKey) ?? activeEmails[0];
                         toggleEmailSelection(target);
                       }
                     }}
@@ -5058,12 +5058,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 }}
                 onMarkAsRead={async (email, read) => {
                   if (client) {
-                    await markAsRead(client, email.id, read);
+                    await markAsRead(client, email.id, read, emailKeyFor(email));
                   }
                 }}
                 onToggleStar={async (email) => {
                   if (client) {
-                    await toggleStar(client, email.id);
+                    await toggleStar(client, email.id, emailKeyFor(email));
                   }
                 }}
                 onTogglePinned={async (email) => {
@@ -5075,8 +5075,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onArchive={archiveActionEnabled ? async (email) => {
                   await handleArchive(email);
                 } : undefined}
-                onSetTag={(emailId, color) => {
-                  handleSetTag(emailId, color);
+                onSetTag={(emailId, color, emailKey) => {
+                  handleSetTag(emailId, color, emailKey);
                 }}
                 onMoveToMailbox={handleMoveToMailbox}
                 onMarkAsSpam={async (email) => {
@@ -5212,7 +5212,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onDownloadAttachment={handleDownloadAttachment}
                 onMarkAsRead={async (emailId, read) => {
                   if (client) {
-                    await markAsRead(client, emailId, read);
+                    const target = conversationEmails.find((e) => e.id === emailId);
+                    await markAsRead(client, emailId, read, target ? emailKeyFor(target) : undefined);
                   }
                 }}
                 mailboxRole={mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined)}
@@ -5246,8 +5247,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onUndoSpam={() => handleUndoSpam()}
                     onMarkAsRead={async (emailId, read) => {
                       if (client) {
-                        await markAsRead(client, emailId, read);
-                        const nowRead = !!useEmailStore.getState().emails.find((e) => e.id === emailId)?.keywords?.$seen;
+                        const emailKey = selectedEmail?.id === emailId ? emailKeyFor(selectedEmail) : undefined;
+                        await markAsRead(client, emailId, read, emailKey);
+                        const nowRead = !!useEmailStore.getState().emails
+                          .find((e) => (emailKey ? emailKeyFor(e) === emailKey : e.id === emailId))?.keywords?.$seen;
                         if (nowRead !== read) return; // a plugin stopped it
                         // Marking the open message unread returns to the list
                         // (Gmail-style, gated on returnToListAfterAction). Staying

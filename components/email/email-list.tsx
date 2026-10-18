@@ -64,8 +64,9 @@ interface EmailListProps {
   onTogglePinned?: (email: Email) => void;
   onDelete?: (email: Email) => void;
   onArchive?: (email: Email) => void;
-  onSetTag?: (emailId: string, tagId: string | null) => void;
-  onMoveToMailbox?: (emailId: string, mailboxId: string) => void;
+  /** `emailKey` (emailKeyFor of the row) tells namesakes in other accounts apart. */
+  onSetTag?: (emailId: string, tagId: string | null, emailKey?: string) => void;
+  onMoveToMailbox?: (emailId: string, mailboxId: string, emailKey?: string) => void;
   onMarkAsSpam?: (email: Email) => void;
   onUndoSpam?: (email: Email) => void;
   onOpenAttachment?: (email: Email, attachment: Attachment) => void;
@@ -252,8 +253,11 @@ export function EmailList({
    * the message it was handed when it opened, but tags can be applied from
    * inside it without dismissing it, so what it draws has to keep up.
    */
+  // The live copy of the row the menu was opened on, by its key: in a merged
+  // view the bare id is also another account's message, and every action of
+  // the menu would go to that namesake instead.
   const contextMenuEmail = contextMenu.data
-    ? emails.find((email) => email.id === contextMenu.data!.id) ?? contextMenu.data
+    ? emails.find((email) => emailKeyFor(email) === emailKeyFor(contextMenu.data!)) ?? contextMenu.data
     : null;
   /**
    * Whose sender the menu's Rules entry uses: every selected message, or the
@@ -1034,8 +1038,8 @@ export function EmailList({
           onTogglePinned={onTogglePinned ? () => onTogglePinned(contextMenuEmail!) : undefined}
           onDelete={() => onDelete?.(contextMenuEmail!)}
           onArchive={() => onArchive?.(contextMenuEmail!)}
-          onSetTag={(color) => onSetTag?.(contextMenuEmail!.id, color)}
-          onMoveToMailbox={(mailboxId) => onMoveToMailbox?.(contextMenuEmail!.id, mailboxId)}
+          onSetTag={(color) => onSetTag?.(contextMenuEmail!.id, color, emailKeyFor(contextMenuEmail!))}
+          onMoveToMailbox={(mailboxId) => onMoveToMailbox?.(contextMenuEmail!.id, mailboxId, emailKeyFor(contextMenuEmail!))}
           onRemoveFromFolder={() => void removeFromFolder([contextMenuEmail!])}
           onMarkAsSpam={() => onMarkAsSpam?.(contextMenuEmail!)}
           onUndoSpam={() => onUndoSpam?.(contextMenuEmail!)}
