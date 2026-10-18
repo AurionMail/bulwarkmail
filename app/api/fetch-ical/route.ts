@@ -19,6 +19,43 @@ function getFetchTimeoutMs(maxBytes: number): number {
   return Math.max(BASE_TIMEOUT_MS, Math.ceil(BASE_TIMEOUT_MS * (maxBytes / DEFAULT_MAX_BYTES)));
 }
 
+/**
+ * The body as bytes, or null once it exceeds `maxBytes`, in which case the
+ * upstream connection is aborted rather than drained.
+ */
+async function readBodyCapped(
+  response: { body: ReadableStream<Uint8Array> | null; arrayBuffer: () => Promise<ArrayBuffer> },
+  maxBytes: number,
+  controller: AbortController,
+): Promise<ArrayBuffer | null> {
+  if (!response.body) {
+    const buffer = await response.arrayBuffer();
+    return buffer.byteLength > maxBytes ? null : buffer;
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    received += value.byteLength;
+    if (received > maxBytes) {
+      controller.abort();
+      reader.cancel().catch(() => {});
+      return null;
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out.buffer;
+}
+
 function tooLarge(maxBytes: number) {
   const limitMb = Math.round((maxBytes / (1024 * 1024)) * 10) / 10;
   return NextResponse.json(
@@ -144,8 +181,12 @@ export async function POST(request: NextRequest) {
       return tooLarge(maxResponseSize);
     }
 
-    const buffer = await response.arrayBuffer();
-    if (buffer.byteLength > maxResponseSize) {
+    // Read up to the cap and no further: a chunked body with no
+    // Content-Length used to be buffered whole before it was measured, so a
+    // feed that streams for the whole timeout could take the process's
+    // memory with it.
+    const buffer = await readBodyCapped(response, maxResponseSize, controller);
+    if (!buffer) {
       return tooLarge(maxResponseSize);
     }
 
