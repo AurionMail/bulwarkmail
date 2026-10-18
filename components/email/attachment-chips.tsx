@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { FileText, FileSpreadsheet, FileImage, FileArchive, File as FileIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { stripBidiControls } from "@/lib/bidi";
 import type { Attachment, Email } from "@/lib/jmap/types";
 import type { LoadListAttachments } from "@/lib/list-attachments";
 
@@ -78,11 +79,11 @@ export function AttachmentChips({ attachments, onOpen, max = 2, leading, classNa
             // The row itself opens the message; a chip must not do both.
             onClick={(e) => { e.stopPropagation(); onOpen(a); }}
             onDoubleClick={(e) => e.stopPropagation()}
-            title={a.name}
+            title={stripBidiControls(a.name ?? "")}
             className={cn(CHIP_BOX_CLASS, "max-w-[12rem] bg-background/60 text-foreground/80 hover:bg-muted hover:text-foreground")}
           >
             <Icon className={cn(CHIP_ICON_CLASS, iconClass)} />
-            <span className="truncate">{shortName(a.name ?? "")}</span>
+            <span className="truncate">{shortName(stripBidiControls(a.name ?? ""))}</span>
           </button>
         );
       })}

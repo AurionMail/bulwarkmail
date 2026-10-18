@@ -11,6 +11,7 @@ import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collaps
 import { DARK_PENDING_CLASS, applyEmailDarkMode, emailColorScheme, emailDarkModeCss, emailHasNativeDarkMode as htmlHasNativeDarkMode, resolveColorSchemeMedia } from "@/lib/email-dark-mode";
 import { fitEmailBodyWidth } from "@/lib/email-fit-width";
 import { hasFullBleedCanvas } from "@/lib/email-full-bleed";
+import { stripBidiControls } from "@/lib/bidi";
 import { withBasePath } from "@/lib/browser-navigation";
 import { buildContactsPath, buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
@@ -269,7 +270,9 @@ const MIME_TYPE_LABELS: Record<string, string> = {
 };
 
 const getAttachmentDisplayName = (name: string | null | undefined, mimeType?: string): string => {
-  if (name) return name;
+  // Without directional overrides, which would show `report‮fdp.exe`
+  // as `reportexe.pdf` (the download name is cleaned separately).
+  if (name) return stripBidiControls(name);
   if (mimeType) {
     const label = MIME_TYPE_LABELS[mimeType.toLowerCase()];
     if (label) return label;
