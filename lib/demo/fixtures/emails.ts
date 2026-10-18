@@ -1,842 +1,675 @@
+/**
+ * Mail in Nora's work account. One busy week around the Beacon launch: the
+ * team, a designer's invoice, a trip to a conference, receipts, newsletters,
+ * and the usual noise. See people.ts for who everyone is.
+ *
+ * Dates float with the clock: `ago()` for today, `at(daysAgo, h, m)` for
+ * earlier days. Body text never names a weekday directly; it uses dayName().
+ */
 import type { Email } from '@/lib/jmap/types';
-import { demoDate } from '../demo-utils';
+import { ago, at, authFail, authPass, dayLabel, dayName, listHeaders, mail, mid } from './mail';
+import { attachment } from './assets';
+import { MB } from './mailboxes';
+import {
+  addr, NORA, NORA_ALIAS, ALICE, BOB, PRIYA, AHMED, JAMES, MICHAEL, RACHEL, WEI, MARIA, LISA,
+  SARAH, OLIVIA, JENNIFER, KENJI, TOMAS, WORK_DOMAIN,
+} from './people';
 
-const USER = { name: 'Demo User', email: 'demo@example.com' } as const;
+const me = addr(NORA);
+const alice = addr(ALICE);
+const bob = addr(BOB);
+const priya = addr(PRIYA);
+const ahmed = addr(AHMED);
+const lisa = addr(LISA);
+const michael = addr(MICHAEL);
+const beaconTeam = [me, alice, bob, priya, ahmed, lisa];
 
-// Helper to keep the fixtures short - auto-assigns a partId/blobId per body.
-let bodyCounter = 0;
-function body(value: string, type: 'text/plain' | 'text/html' = 'text/plain') {
-  const partId = String(++bodyCounter);
-  const blobId = `blob-${partId}`;
-  return {
-    part: { partId, blobId, size: value.length, type },
-    values: { [partId]: { value } },
-  };
-}
+const company = authPass(WORK_DOMAIN);
 
-/** Build text+html parts in one shot. */
-function bodies(text: string, html: string) {
-  const t = body(text, 'text/plain');
-  const h = body(html, 'text/html');
-  return {
-    textBody: [t.part],
-    htmlBody: [h.part],
-    bodyValues: { ...t.values, ...h.values },
-  };
-}
-
-function textOnly(text: string) {
-  const t = body(text, 'text/plain');
-  return { textBody: [t.part], bodyValues: t.values };
-}
+/** Blob id of the go/no-go invitation; the client serves the ICS and parses it. */
+export const GONOGO_INVITE_BLOB = 'demo-blob-invite-gonogo';
+export const GONOGO_UID = 'beacon-gonogo-2026@meridianlabs.example';
 
 export function createDemoEmails(): Email[] {
   return [
-    // ── Inbox ───────────────────────────────────────────────────
-    {
-      id: 'demo-email-1',
-      threadId: 'demo-thread-1',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 4200,
-      receivedAt: demoDate(0, -2),
-      from: [{ name: 'Bulwark Team', email: 'welcome@bulwark.email' }],
-      to: [USER],
-      subject: 'Welcome to Bulwark Mail!',
-      sentAt: demoDate(0, -2),
-      preview: 'Thanks for trying out Bulwark Mail. This is a demo environment where you can explore all features...',
-      hasAttachment: false,
-      ...bodies(
-        'Thanks for trying out Bulwark Mail!\n\nThis is a demo environment where you can explore all features without connecting to a real server. All data stays on your device.\n\nFeel free to:\n- Read, compose, and organize emails\n- Manage contacts and calendars\n- Configure filters and settings\n- Try keyboard shortcuts (press ? to see them)\n\nEnjoy exploring!',
-        '<div><h2>Welcome to Bulwark Mail!</h2><p>Thanks for trying out Bulwark Mail!</p><p>This is a demo environment where you can explore all features without connecting to a real server. <strong>All data stays on your device.</strong></p><p>Feel free to:</p><ul><li>Read, compose, and organize emails</li><li>Manage contacts and calendars</li><li>Configure filters and settings</li><li>Try keyboard shortcuts (press <kbd>?</kbd> to see them)</li></ul><p>Enjoy exploring!</p></div>',
-      ),
-      messageId: '<welcome@demo.bulwark.email>',
-    },
+    // ══ Inbox ═══════════════════════════════════════════════════
 
-    // Mom - personal message, unread
-    {
-      id: 'demo-email-mom',
-      threadId: 'demo-thread-mom',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 1900,
-      receivedAt: demoDate(0, -4, -12),
-      from: [{ name: 'Sofia Russo', email: 'sofia.russo@example.com' }],
-      to: [USER],
-      subject: 'when are you coming home?',
-      sentAt: demoDate(0, -4, -12),
-      preview: 'Hi sweetie, your father and I were just talking - we miss you. Any chance you can come down for a weekend...',
-      hasAttachment: false,
-      ...textOnly(
-        "Hi sweetie,\n\nYour father and I were just talking - we miss you. Any chance you can come down for a weekend before Christmas?\n\nNo pressure if you're swamped with work. Anna said she might be in town the 22nd, would be nice to all be in one place again.\n\nThe lemon tree finally fruited! Twelve lemons. I'll save you some.\n\nLove,\nMom",
-      ),
-      messageId: '<5a8c-mom@example.com>',
-    },
+    // A verification code, 12 minutes old: the list shows it as a chip.
+    mail({
+      id: 'demo-email-github-code', mailbox: MB.inbox, date: ago(0, 12),
+      from: { name: 'GitHub', email: 'noreply@github.com' },
+      subject: '482913 is your GitHub authentication code',
+      text: 'Here is your GitHub authentication code: 482913\n\nThis code expires in 10 minutes. If you did not try to sign in, change your password now.\n\nThanks,\nThe GitHub Team',
+      headers: authPass('github.com'),
+    }),
 
-    // GitHub - PR review request
-    {
-      id: 'demo-email-gh-pr',
-      threadId: 'demo-thread-gh-pr',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 6400,
-      receivedAt: demoDate(0, -3, -5),
-      from: [{ name: 'Alice Johnson (via GitHub)', email: 'notifications@github.com' }],
-      replyTo: [{ name: 'reply', email: 'reply+abc123@reply.github.com' }],
-      to: [USER],
-      subject: '[acme/api-gateway] Add token-bucket rate limiter (#1284)',
-      sentAt: demoDate(0, -3, -5),
-      preview: '@demo-user requested your review on this pull request. Replaces the fixed-window limiter with a leaky token-bucket...',
-      hasAttachment: false,
-      ...bodies(
-        '@demo-user requested your review on this pull request.\n\nReplaces the fixed-window limiter with a leaky token-bucket so we stop punishing clients at the second-boundary edge. Per-endpoint config lives in rate-limit.toml.\n\nThree files changed, +312 −47.\n\nView it on GitHub:\nhttps://github.com/acme/api-gateway/pull/1284\n\n-\nReply to this email directly, or view it on GitHub.',
-        '<table style="font-family:-apple-system,sans-serif"><tr><td><strong>@demo-user</strong> requested your review on this pull request.</td></tr><tr><td style="padding-top:12px">Replaces the fixed-window limiter with a leaky token-bucket so we stop punishing clients at the second-boundary edge. Per-endpoint config lives in <code>rate-limit.toml</code>.</td></tr><tr><td style="padding-top:12px;color:#666">Three files changed, <span style="color:#16a34a">+312</span> <span style="color:#dc2626">−47</span></td></tr><tr><td style="padding-top:16px"><a href="https://github.com/acme/api-gateway/pull/1284" style="background:#1f2328;color:#fff;padding:8px 16px;text-decoration:none;border-radius:6px">View on GitHub</a></td></tr></table>',
-      ),
-      messageId: '<acme/api-gateway/pull/1284@github.com>',
-    },
+    // Bob: short, unread, a reply in the rollback thread (3 messages).
+    mail({
+      id: 'demo-email-rollback-3', thread: 'demo-thread-rollback', mailbox: MB.inbox, date: ago(0, 38),
+      from: bob, to: [me], cc: [alice],
+      subject: 'Re: Rollback plan for the Beacon launch',
+      text: `+1 on the draft, two comments:\n\n1. Step 3 (drain the queue) should say who watches the dashboard while it drains. I'd put Ahmed's name there.\n2. The signing-key question at the end: I asked the auditor, we keep rotating during a rollback. Nothing to change.\n\nI'll sign off once those are in. Nice work, it's half the length I feared.\n\nBob`,
+      keywords: ['$label:beacon'],
+      headers: company,
+      inReplyTo: [mid('demo-email-rollback-2')], references: [mid('demo-email-rollback-1'), mid('demo-email-rollback-2')],
+    }),
 
-    // Hacker Newsletter - newsletter, read
-    {
-      id: 'demo-email-2',
-      threadId: 'demo-thread-2',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 18500,
-      receivedAt: demoDate(-1, -5),
-      from: [{ name: 'TechDigest Weekly', email: 'newsletter@techdigest.example' }],
-      to: [USER],
-      subject: 'Issue #218 - RFC 9844, the second WebAssembly draft, and a quiet announcement from Mozilla',
-      sentAt: demoDate(-1, -5),
-      preview: 'Your weekly roundup of the most important technology news and open source developments...',
-      hasAttachment: false,
-      ...bodies(
-        'TechDigest #218\n\n- THE WEEK IN STANDARDS -\n\n1. RFC 9844: Per-message TLS extensions are now official. The implications for SMTP delivery reports are surprisingly large - Mike Crispin has a write-up that runs through what changes for transactional senders.\n\n2. WebAssembly 2.0 (second public draft). Tail calls are in. SIMD is in. Component model is *almost* in but punted to a separate spec, which feels like the right call.\n\n3. Mozilla quietly shipped a privacy-preserving telemetry channel to Firefox 132. No, it doesn\'t replace ad tracking. Yes, it\'s a real cryptographic system. Worth reading the post.\n\n- TOOLS -\n\n- Datasette 1.0 is out. Ten years from the first commit.\n- Fly.io published their object store, Tigris-style, written in Go.\n- Linear added an SSO migration tool that actually handles the IdP-initiated case.\n\n- ESSAYS -\n\n* "Postgres is enough" by E. Tan - a long-form rebuttal to the microservices-by-default pattern.\n* "I rewrote my home network in TypeScript so you don\'t have to" - exactly what it sounds like.\n\n- UNSUBSCRIBE -\n\nManage your subscription at techdigest.example/manage.',
-        '<div style="max-width:560px;margin:0 auto;font-family:-apple-system,sans-serif;line-height:1.5"><div style="border-bottom:2px solid #111;padding-bottom:16px"><div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#888">TechDigest · Issue #218</div><h1 style="font-size:22px;margin:4px 0 0">RFC 9844, the second WebAssembly draft, and a quiet announcement from Mozilla</h1></div><h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:#666;margin-top:24px">The week in standards</h2><p><strong>1.</strong> RFC 9844: Per-message TLS extensions are now official. The implications for SMTP delivery reports are surprisingly large - Mike Crispin has a <a href="#" style="color:#db2d54">write-up</a> that runs through what changes for transactional senders.</p><p><strong>2.</strong> WebAssembly 2.0 (second public draft). Tail calls are in. SIMD is in. Component model is <em>almost</em> in but punted to a separate spec, which feels like the right call.</p><p><strong>3.</strong> Mozilla quietly shipped a privacy-preserving telemetry channel to Firefox 132. No, it doesn\'t replace ad tracking. Yes, it\'s a real cryptographic system.</p><h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:#666;margin-top:24px">Tools</h2><ul><li>Datasette 1.0 is out. Ten years from the first commit.</li><li>Fly.io published their object store, Tigris-style, written in Go.</li><li>Linear added an SSO migration tool that actually handles the IdP-initiated case.</li></ul><h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:#666;margin-top:24px">Essays</h2><p style="margin:0 0 6px">"Postgres is enough" by E. Tan - a long-form rebuttal to the microservices-by-default pattern.</p><p style="margin:0">"I rewrote my home network in TypeScript so you don\'t have to" - exactly what it sounds like.</p><div style="margin-top:28px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#888">Manage your subscription at <a href="#" style="color:#888">techdigest.example/manage</a></div></div>',
-      ),
-      messageId: '<weekly-218@techdigest.example>',
-    },
+    // Alice opened the thread, mentioning Nora and Bob with @ links. The
+    // viewer turns those into contact chips.
+    mail({
+      id: 'demo-email-rollback-1', thread: 'demo-thread-rollback', mailbox: MB.inbox, date: at(1, 10, 2),
+      from: alice, to: [me, bob], cc: [ahmed],
+      subject: 'Rollback plan for the Beacon launch',
+      text: `Hi both,\n\nMichael wants a written rollback plan before the go/no-go, one page, no slides. @Nora can you own it? You know the tenant router best. @Bob please review for anything the auditor would flag.\n\nWhat it needs: when we roll back (numbers, not feelings), the steps, who does what, and what customers see. Ahmed has the dashboards ready if you need numbers.\n\nEnd of ${dayName(1)} would be ideal so it can go out with the agenda.\n\nThanks,\nAlice`,
+      html: `<p>Hi both,</p><p>Michael wants a written rollback plan before the go/no-go, one page, no slides. <a href="mailto:${NORA.email}">@Nora</a> can you own it? You know the tenant router best. <a href="mailto:${BOB.email}">@Bob</a> please review for anything the auditor would flag.</p><p>What it needs: when we roll back (numbers, not feelings), the steps, who does what, and what customers see. Ahmed has the dashboards ready if you need numbers.</p><p>End of ${dayName(1)} would be ideal so it can go out with the agenda.</p><p>Thanks,<br>Alice</p>`,
+      keywords: ['$seen', '$label:beacon'],
+      headers: company,
+    }),
 
-    // Thread: Q4 Project Timeline - Alice → Bob → Alice (4 messages)
-    {
-      id: 'demo-email-3a',
-      threadId: 'demo-thread-3',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 3100,
-      receivedAt: demoDate(-3, -10),
-      from: [{ name: 'Alice Johnson', email: 'alice.johnson@example.com' }],
-      to: [USER, { name: 'Bob Chen', email: 'bob.chen@example.com' }],
-      subject: 'Q4 Project Timeline',
-      sentAt: demoDate(-3, -10),
-      preview: 'Hi team, I wanted to share the updated timeline for our Q4 deliverables...',
-      hasAttachment: false,
-      ...bodies(
-        'Hi team,\n\nI wanted to share the updated timeline for our Q4 deliverables:\n\n- Phase 1: Design review - Oct 15\n- Phase 2: Development - Nov 1-30\n- Phase 3: Testing - Dec 1-15\n- Phase 4: Launch - Dec 20\n\nPlease review and let me know if you see any conflicts.\n\nBest,\nAlice',
-        '<p>Hi team,</p><p>I wanted to share the updated timeline for our Q4 deliverables:</p><ul><li>Phase 1: Design review - Oct 15</li><li>Phase 2: Development - Nov 1-30</li><li>Phase 3: Testing - Dec 1-15</li><li>Phase 4: Launch - Dec 20</li></ul><p>Please review and let me know if you see any conflicts.</p><p>Best,<br>Alice</p>',
-      ),
-      messageId: '<q4-timeline-1@example.com>',
-    },
-    {
-      id: 'demo-email-3b',
-      threadId: 'demo-thread-3',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 3500,
-      receivedAt: demoDate(-2, -8),
-      from: [{ name: 'Bob Chen', email: 'bob.chen@example.com' }],
-      to: [{ name: 'Alice Johnson', email: 'alice.johnson@example.com' }, USER],
-      subject: 'Re: Q4 Project Timeline',
-      sentAt: demoDate(-2, -8),
-      preview: 'Looks good to me! One concern: the testing window might be tight given the holidays...',
-      hasAttachment: false,
-      ...textOnly(
-        "Looks good to me! One concern: the testing window might be tight given the holidays. Could we start testing a few days earlier?\n\nAlso, should we set up a shared doc for tracking blockers?\n\n- Bob",
-      ),
-      messageId: '<q4-timeline-2@example.com>',
-      inReplyTo: ['<q4-timeline-1@example.com>'],
-      references: ['<q4-timeline-1@example.com>'],
-    },
-    {
-      id: 'demo-email-3c',
-      threadId: 'demo-thread-3',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 3800,
-      receivedAt: demoDate(-1, -3),
-      from: [{ name: 'Alice Johnson', email: 'alice.johnson@example.com' }],
-      to: [{ name: 'Bob Chen', email: 'bob.chen@example.com' }, USER],
-      subject: 'Re: Q4 Project Timeline',
-      sentAt: demoDate(-1, -3),
-      preview: "Great point Bob. Let's move testing to Nov 28. I'll create the shared doc today...",
-      hasAttachment: false,
-      ...textOnly(
-        "Great point Bob. Let's move testing to Nov 28. I'll create the shared doc today and share the link.\n\nUpdated timeline:\n- Design review: Oct 15\n- Development: Nov 1-27\n- Testing: Nov 28 - Dec 15\n- Launch: Dec 20\n\n- Alice",
-      ),
-      messageId: '<q4-timeline-3@example.com>',
-      inReplyTo: ['<q4-timeline-2@example.com>'],
-      references: ['<q4-timeline-1@example.com>', '<q4-timeline-2@example.com>'],
-    },
+    // The go/no-go invitation. The .ics is served by the client; the banner
+    // offers Accept / Tentative / Decline.
+    mail({
+      id: 'demo-email-gonogo-invite', mailbox: MB.inbox, date: at(1, 9, 48),
+      from: alice, to: beaconTeam, cc: [michael],
+      subject: `Invitation: Beacon go / no-go review, ${dayName(1)} 14:00`,
+      text: `You are invited to "Beacon go / no-go review".\n\nWhen: ${dayName(1)}, ${dayLabel(1)}, 14:00 to 15:00 (Europe/Berlin)\nWhere: Room Spree, 4th floor, and Zoom\n\nAgenda:\n1. Soak test results (Ahmed)\n2. Rollback plan (Nora)\n3. Open bugs, BEA-412 in particular (Priya)\n4. Decision\n\nPlease respond so I know who is in the room and who dials in.`,
+      attachments: [{ partId: 'ics-gonogo', blobId: GONOGO_INVITE_BLOB, size: 1480, name: 'invite.ics', type: 'text/calendar; method=REQUEST' }],
+      keywords: ['$label:beacon'],
+      headers: company,
+    }),
 
-    // Stripe receipt
-    {
-      id: 'demo-email-stripe',
-      threadId: 'demo-thread-stripe',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 11200,
-      receivedAt: demoDate(-1, -1, -22),
-      from: [{ name: 'Stripe', email: 'receipts@stripe.com' }],
-      to: [USER],
+    mail({
+      id: 'demo-email-coffee', mailbox: MB.inbox, date: ago(1, 2),
+      from: bob,
+      subject: 'Coffee before the go/no-go?',
+      text: `Kranzler at 13:15 ${dayName(1)}? I want to walk through the queue-drain step once more without six people watching.\n\nb`,
+      headers: company,
+    }),
+
+    mail({
+      id: 'demo-email-linear', mailbox: MB.inbox, date: ago(2, 3),
+      from: { name: 'Linear', email: 'notifications@linear.app' },
+      subject: 'BEA-412 was assigned to you - Webhook retries double delivery volume during a partial outage',
+      text: 'Priya Sharma assigned BEA-412 to you.\n\nBEA-412 · Webhook retries double delivery volume during a partial outage\nPriority: High · Project: Beacon · Cycle 41\n\nWhen eu-2 is unreachable for more than 30 s, deliveries that already succeeded on eu-1 are retried from eu-2 once it is back. Customers see every webhook twice. The per-tenant budget caps it at 2x, which is the documented worst case, but the dedup key is not honoured across regions.\n\nOpen in Linear: https://linear.app/meridian/issue/BEA-412',
+      html: '<table style="font-family:-apple-system,sans-serif;max-width:560px"><tr><td><div style="font-size:11px;color:#888;letter-spacing:0.08em;text-transform:uppercase">Linear · BEA-412</div><div style="font-size:18px;font-weight:600;margin-top:6px">Webhook retries double delivery volume during a partial outage</div><div style="margin-top:8px;color:#666"><strong>Priya Sharma</strong> assigned this issue to you · Priority <span style="color:#dc2626">High</span> · Cycle 41</div></td></tr><tr><td style="padding-top:16px;color:#444">When eu-2 is unreachable for more than 30 s, deliveries that already succeeded on eu-1 are retried from eu-2 once it is back. Customers see every webhook twice. The per-tenant budget caps it at 2x, which is the documented worst case, but the dedup key is not honoured across regions.</td></tr><tr><td style="padding-top:16px"><a href="https://linear.app/meridian/issue/BEA-412" style="background:#5e6ad2;color:#fff;padding:8px 16px;text-decoration:none;border-radius:6px;font-size:13px">Open in Linear</a></td></tr></table>',
+      keywords: ['$label:beacon'],
+      headers: authPass('linear.app'),
+    }),
+
+    mail({
+      id: 'demo-email-github-pr', mailbox: MB.inbox, date: ago(2, 50),
+      from: { name: 'Lisa Tanaka (via GitHub)', email: 'notifications@github.com' },
+      replyTo: [{ name: 'meridianlabs/beacon', email: 'reply+AAZK3@reply.github.com' }],
+      subject: '[meridianlabs/beacon] Signed webhook deliveries: rotate keys without a gap (#1284)',
+      text: '@nora-lindqvist requested your review on this pull request.\n\nKeeps the previous signing key valid for 48 h after a rotation and adds the key id to the X-Beacon-Signature header, so receivers can verify during the overlap. Closes BEA-398.\n\n7 files changed, +412 -58.\n\nView it on GitHub:\nhttps://github.com/meridianlabs/beacon/pull/1284',
+      html: '<table style="font-family:-apple-system,sans-serif"><tr><td><strong>@lisa-tanaka</strong> requested your review on this pull request.</td></tr><tr><td style="padding-top:12px">Keeps the previous signing key valid for 48 h after a rotation and adds the key id to the <code>X-Beacon-Signature</code> header, so receivers can verify during the overlap. Closes BEA-398.</td></tr><tr><td style="padding-top:12px;color:#666">7 files changed, <span style="color:#16a34a">+412</span> <span style="color:#dc2626">−58</span></td></tr><tr><td style="padding-top:16px"><a href="https://github.com/meridianlabs/beacon/pull/1284" style="background:#1f2328;color:#fff;padding:8px 16px;text-decoration:none;border-radius:6px">View on GitHub</a></td></tr></table>',
+      keywords: ['$label:beacon'],
+      headers: { ...authPass('github.com'), 'List-Id': 'meridianlabs/beacon <beacon.meridianlabs.github.com>' },
+    }),
+
+    mail({
+      id: 'demo-email-datadog', mailbox: MB.inbox, date: at(1, 3, 12),
+      from: { name: 'Datadog', email: 'alert@dtdg.co' },
+      subject: '[Recovered] beacon-eu-2 p95 delivery latency above 400 ms',
+      text: 'Monitor: beacon-eu-2 p95 delivery latency\nStatus: Recovered after 4 minutes\n\nPeak: 612 ms at 03:07, back under 200 ms at 03:11. The alert fired during the nightly key rotation; the overlap window in #1284 should remove the spike.\n\nNotified: @nora, @ahmed',
+      keywords: ['$seen', '$label:beacon'],
+      headers: authPass('dtdg.co'),
+    }),
+
+    // Sarah's invoice and prototype, the message the docs open in the inbox shot.
+    mail({
+      id: 'demo-email-sarah-invoice', mailbox: MB.inbox, date: at(1, 16, 5),
+      from: addr(SARAH),
+      subject: 'Invoice 2026-089 and landing-page prototype v3',
+      text: `Hi Nora,\n\nAttached are the invoice for this month and a screenshot of the latest prototype. I went with option B for the hero (the asymmetric grid) since you said the symmetrical version felt too flat on our last call.\n\nIf the line items look off, ping me. I backed out the pre-payment for next month as agreed.\n\nBest,\nSarah`,
+      attachments: [attachment('demo-blob-invoice-designco'), attachment('demo-blob-prototype')],
+      keywords: ['$label:work', '$label:finance'],
+      headers: authPass('designco.example'),
+    }),
+
+    mail({
+      id: 'demo-email-lisa-longpoll', mailbox: MB.inbox, date: at(1, 17, 30),
+      from: lisa, to: [me], cc: [bob],
+      subject: 'Long-poll reconnect test: one weird thing',
+      text: `The staging tenant reconnected fine at cutover, once, as planned. But three clients reconnected twice, about 90 s apart. Not harmful, they just see one empty response.\n\nI think it's the load balancer's idle timeout racing the first reconnect. I can extend the timeout on the LB or teach the client to back off. Preference? I'd rather not touch the client this close to launch.\n\nLisa`,
+      keywords: ['$label:beacon'],
+      headers: company,
+    }),
+
+    // Ahmed, with the dashboard screenshot and the numbers.
+    mail({
+      id: 'demo-email-soak', mailbox: MB.inbox, date: at(1, 18, 42),
+      from: ahmed, to: beaconTeam,
+      subject: 'Soak test passed: 48 h at 3x peak',
+      text: 'Done. 48 hours at three times peak traffic on eu-1 and eu-2, no retry-budget breach, no manual intervention.\n\nDeliveries/s: 42,380 peak\np95 delivery latency: 184 ms\nErrors: 0.02%\nRetry budget used: 11% (worst tenant)\n\nDashboard screenshot and the hourly numbers attached. The dip around hour 31 is the key rotation, see BEA-398.\n\nI\'d call it a pass. Priya wants one more night at 1x on the canary tenants, which I agree with.\n\nAhmed',
+      attachments: [attachment('demo-blob-soak-dashboard'), attachment('demo-blob-soak-metrics')],
+      keywords: ['$seen', '$flagged', '$label:beacon'],
+      headers: company,
+    }),
+
+    mail({
+      id: 'demo-email-rachel-quote', mailbox: MB.inbox, date: at(1, 13, 20),
+      from: addr(RACHEL),
+      subject: 'Launch announcement draft: need a quote from you',
+      text: `Hi Nora,\n\nThe blog post is drafted (link in Notion). I need one quote from engineering, two sentences, why Beacon matters to someone running webhooks today. Not "we are excited".\n\nCan I have it by ${dayName(3)}? Rachel`,
+      keywords: ['$label:work', '$label:follow-up'],
+      headers: company,
+    }),
+
+    mail({
+      id: 'demo-email-vercel', mailbox: MB.inbox, date: at(1, 22, 15),
+      from: { name: 'Vercel', email: 'notifications@vercel.com' },
+      subject: 'Deployment failed: meridianlabs-website (main)',
+      text: 'Your deployment of meridianlabs-website failed.\n\nBranch: main\nCommit: 7c21f3e "hero: switch to option B grid"\nError: Image optimisation failed for /hero/prototype-v3.png (file too large)\n\nView the build logs: https://vercel.com/meridianlabs/website/deployments/dpl_9x2',
+      keywords: ['$label:work'],
+      headers: authPass('vercel.com'),
+    }),
+
+    mail({
+      id: 'demo-email-notion', mailbox: MB.inbox, date: at(1, 10, 5),
+      from: { name: 'Olivia Bennett (via Notion)', email: 'notify@mail.notion.so' },
+      subject: 'Olivia shared "Beacon onboarding flow, v2" with you',
+      text: 'Olivia Bennett shared a page with you in the Northwind workspace.\n\n"Beacon onboarding flow, v2"\n\nOpen in Notion: https://notion.so/northwind/beacon-onboarding-v2',
+      keywords: ['$seen', '$label:work'],
+      headers: authPass('mail.notion.so'),
+    }),
+
+    mail({
+      id: 'demo-email-techdigest', mailbox: MB.inbox, date: at(1, 6, 30),
+      from: { name: 'TechDigest Weekly', email: 'newsletter@techdigest.example' },
+      subject: 'Issue #231: RFC 9844, the second WebAssembly draft, and a quiet announcement from Mozilla',
+      text: 'TechDigest #231\n\n- THE WEEK IN STANDARDS -\n\n1. RFC 9844: per-message TLS extensions are now official. The implications for SMTP delivery reports are surprisingly large.\n\n2. WebAssembly 2.0 (second public draft). Tail calls are in. SIMD is in. The component model is almost in but punted to a separate spec.\n\n3. Mozilla quietly shipped a privacy-preserving telemetry channel. No, it does not replace ad tracking. Yes, it is a real cryptographic system.\n\n- TOOLS -\n\n- Datasette 1.0 is out. Ten years from the first commit.\n- Fly.io published their object store, written in Go.\n\n- ESSAYS -\n\n* "Postgres is enough": a long-form rebuttal to microservices by default.\n\nManage your subscription at techdigest.example/manage.',
+      html: '<div style="max-width:560px;margin:0 auto;font-family:-apple-system,sans-serif;line-height:1.5"><div style="border-bottom:2px solid #111;padding-bottom:16px"><div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#888">TechDigest · Issue #231</div><h1 style="font-size:22px;margin:4px 0 0">RFC 9844, the second WebAssembly draft, and a quiet announcement from Mozilla</h1></div><h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:#666;margin-top:24px">The week in standards</h2><p><strong>1.</strong> RFC 9844: per-message TLS extensions are now official. The implications for SMTP delivery reports are surprisingly large.</p><p><strong>2.</strong> WebAssembly 2.0 (second public draft). Tail calls are in. SIMD is in. The component model is <em>almost</em> in but punted to a separate spec.</p><p><strong>3.</strong> Mozilla quietly shipped a privacy-preserving telemetry channel. No, it does not replace ad tracking. Yes, it is a real cryptographic system.</p><h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:#666;margin-top:24px">Tools</h2><ul><li>Datasette 1.0 is out. Ten years from the first commit.</li><li>Fly.io published their object store, written in Go.</li></ul><h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.08em;color:#666;margin-top:24px">Essays</h2><p>"Postgres is enough": a long-form rebuttal to microservices by default.</p><div style="margin-top:28px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#888">Manage your subscription at <a href="https://techdigest.example/manage" style="color:#888">techdigest.example/manage</a></div></div>',
+      keywords: ['$seen'],
+      headers: { ...authPass('techdigest.example'), ...listHeaders('TechDigest Weekly', 'techdigest.example') },
+    }),
+
+    // Michael asks for a read receipt; the viewer offers to send one.
+    mail({
+      id: 'demo-email-launch-plan', mailbox: MB.inbox, date: at(2, 9, 12),
+      from: michael, to: beaconTeam, cc: [addr(JAMES), addr(RACHEL)],
+      subject: 'Beacon launch plan v3 (please read before the go/no-go)',
+      text: `Team,\n\nv3 of the launch plan is attached. Changes from v2: the canary runs 24 h instead of 12, the rollback runbook is a gate (Nora), and GA moves to ${dayLabel(8)} so the blog post and the changelog land on the same day.\n\nPlease read it before the review. If you disagree with a date, say so in the thread, not in the meeting.\n\nMichael`,
+      attachments: [attachment('demo-blob-launch-plan')],
+      keywords: ['$seen', '$label:beacon'],
+      headers: { ...company, 'Disposition-Notification-To': `Michael Torres <${MICHAEL.email}>` },
+    }),
+
+    // Priya and Nora, a thread that spans Inbox and Sent.
+    mail({
+      id: 'demo-email-canary-3', thread: 'demo-thread-canary', mailbox: MB.inbox, date: at(1, 8, 55),
+      from: priya, to: [me], cc: [ahmed],
+      subject: 'Re: Canary length: 12 h or 24 h?',
+      text: 'Agreed, 24 h and we pick the five tenants together on the day. I\'ll add the overnight check to the QA plan.\n\nOne more: I want BEA-412 fixed or explicitly accepted before the canary, not during. Can you raise it at the review?\n\nPriya',
+      keywords: ['$seen', '$label:beacon'],
+      headers: company,
+      inReplyTo: [mid('demo-email-canary-2')], references: [mid('demo-email-canary-1'), mid('demo-email-canary-2')],
+    }),
+    mail({
+      id: 'demo-email-canary-1', thread: 'demo-thread-canary', mailbox: MB.inbox, date: at(2, 14, 30),
+      from: priya, to: [me], cc: [ahmed],
+      subject: 'Canary length: 12 h or 24 h?',
+      text: 'The plan says 12 h for the canary. That gives us one business-hours window and no night. Most of the retry weirdness we saw in the soak was at night, when the batch customers run.\n\nI\'d like 24 h. It costs one day on the schedule. Thoughts before I put it to Michael?\n\nPriya',
+      keywords: ['$seen', '$label:beacon'],
+      headers: company,
+    }),
+
+    mail({
+      id: 'demo-email-docusign', mailbox: MB.inbox, date: at(2, 11, 25),
+      from: { name: 'Michael Torres via DocuSign', email: 'dse@docusign.net' },
+      subject: 'Please review and sign: Lumen Logistics service agreement',
+      text: 'Michael Torres sent you a document to review and sign.\n\nLumen Logistics service agreement (Business plan, Beacon add-on)\n\nReview document: https://app.docusign.com/signing/9f3a2c\n\nThis is a demo of a signing request; the link does not go anywhere.',
+      keywords: ['$label:work', '$label:follow-up'],
+      headers: authPass('docusign.net'),
+    }),
+
+    mail({
+      id: 'demo-email-tomas-po', mailbox: MB.inbox, date: at(4, 9, 50),
+      from: addr(TOMAS), to: [me], cc: [michael],
+      subject: 'Re: Beacon add-on for Lumen Logistics',
+      text: 'Hi Nora,\n\nThank you for the walkthrough last week. Finance approved: the purchase order is attached, Business plan plus the Beacon add-on for fifty tenants. We would like to start on the canary if you will have us; our Lisbon team is used to being first.\n\nTomás\n\nTomás Ferreira · Head of Operations · Lumen Logistics S.A.',
+      attachments: [attachment('demo-blob-po-lumen')],
+      keywords: ['$seen', '$label:work', '$label:finance'],
+      headers: authPass('lumenlogistics.example'),
+    }),
+
+    mail({
+      id: 'demo-email-kenji', mailbox: MB.inbox, date: at(2, 16, 40),
+      from: addr(KENJI),
+      subject: 'Speaker logistics: your slot, the AV check and the dinner',
+      text: `Dear Nora,\n\nThank you again for speaking at Infra Summit. The details:\n\nYour talk: "Rolling back without rolling over", ${dayName(11)} 11:30, Auditorium 2, 30 min plus 10 for questions.\nAV check: ${dayName(11)} 08:45 at the auditorium. Bring your own adapter if you need USB-C to HDMI, though we have a few.\nSpeakers' dinner: ${dayName(10)} 20:00 at Cervejaria Ramiro, five minutes from the venue.\n\nYour ticket is attached; it also covers the workshop day.\n\nSee you in Lisbon,\nKenji\n\nKenji Watanabe · Programme chair, Infra Summit`,
+      attachments: [attachment('demo-blob-summit-ticket')],
+      keywords: ['$seen', '$label:travel'],
+      headers: authPass('infrasummit.example'),
+    }),
+
+    mail({
+      id: 'demo-email-james', mailbox: MB.inbox, date: at(2, 19, 5),
+      from: addr(JAMES),
+      subject: 'Re: Board update',
+      text: 'Nora, this was the clearest engineering update the board has had. Two questions came back, both about the migration tooling for long-poll customers, which tells me the rest landed. Thank you.\n\nJ',
+      keywords: ['$seen', '$label:work'],
+      headers: company,
+      inReplyTo: [mid('demo-email-sent-board')], references: [mid('demo-email-sent-board')],
+    }),
+
+    mail({
+      id: 'demo-email-sentry', mailbox: MB.inbox, date: at(2, 22, 40),
+      from: { name: 'Sentry', email: 'noreply@md.getsentry.com' },
+      subject: '[beacon-api] New issue: TypeError in WebhookSigner.sign (key id undefined)',
+      text: 'A new issue was seen in beacon-api (production).\n\nTypeError: Cannot read properties of undefined (reading \'id\')\n  at WebhookSigner.sign (signer.ts:84)\n  at deliver (delivery.ts:211)\n\n3 events · 1 user · first seen 22:38\n\nView on Sentry: https://sentry.io/organizations/meridian/issues/51822',
+      keywords: ['$seen', '$label:beacon'],
+      headers: authPass('md.getsentry.com'),
+    }),
+
+    mail({
+      id: 'demo-email-lufthansa', mailbox: MB.inbox, date: at(3, 12, 15),
+      from: { name: 'Lufthansa', email: 'noreply@lufthansa.com' },
+      subject: 'Your booking E7KQ2R: Berlin to Lisbon',
+      text: `Thank you for your booking.\n\nLH 1796 · ${dayLabel(9)} · Berlin (BER) 08:35 to Lisbon (LIS) 11:20\nLH 1797 · ${dayLabel(12)} · Lisbon (LIS) 12:10 to Berlin (BER) 16:50\n\nPassenger: Nora Lindqvist · Seat 14A / 11F · Economy\nBooking reference: E7KQ2R\n\nYour e-ticket is attached. Online check-in opens 23 hours before departure.`,
+      attachments: [attachment('demo-blob-boarding-pass', { name: 'E-ticket-E7KQ2R.pdf' })],
+      keywords: ['$seen', '$label:travel'],
+      headers: authPass('lufthansa.com'),
+    }),
+
+    // Booking.com: an HTML mail with a remote image, so the viewer asks before loading it.
+    mail({
+      id: 'demo-email-booking', mailbox: MB.inbox, date: at(3, 12, 40),
+      from: { name: 'Booking.com', email: 'noreply@booking.com' },
+      subject: 'Confirmation 4892.771.433: Hotel Tejo Vista, Lisbon',
+      text: `Your booking is confirmed.\n\nHotel Tejo Vista, Rua do Alecrim 48, Lisbon\nCheck-in: ${dayLabel(9)}, from 15:00\nCheck-out: ${dayLabel(12)}, until 11:00\n\nSuperior double, river view, breakfast included\nTotal: EUR 486 (paid)\n\nConfirmation number: 4892.771.433 · PIN 2047\n\nYour voucher is attached. Show it at reception.`,
+      html: `<div style="max-width:560px;margin:0 auto;font-family:-apple-system,sans-serif"><img src="https://cf.bstatic.com/static/img/demo/tejo-vista-hero.jpg" alt="Hotel Tejo Vista" width="560" height="280" style="display:block;width:100%;height:auto;border-radius:8px"><h1 style="font-size:20px;margin:20px 0 4px">Your booking is confirmed</h1><p style="color:#555;margin:0 0 20px">Hotel Tejo Vista, Rua do Alecrim 48, Lisbon</p><table style="width:100%;border-top:1px solid #eee"><tr><td style="padding:10px 0;color:#666">Check-in</td><td style="padding:10px 0;text-align:right">${dayLabel(9)}, from 15:00</td></tr><tr><td style="padding:10px 0;color:#666;border-top:1px solid #f4f4f4">Check-out</td><td style="padding:10px 0;text-align:right;border-top:1px solid #f4f4f4">${dayLabel(12)}, until 11:00</td></tr><tr><td style="padding:10px 0;color:#666;border-top:1px solid #f4f4f4">Room</td><td style="padding:10px 0;text-align:right;border-top:1px solid #f4f4f4">Superior double, river view</td></tr><tr><td style="padding:10px 0;color:#666;border-top:1px solid #f4f4f4">Total</td><td style="padding:10px 0;text-align:right;border-top:1px solid #f4f4f4;font-weight:600">EUR 486 (paid)</td></tr></table><p style="color:#666;font-size:13px;margin-top:20px">Confirmation number <strong>4892.771.433</strong> · PIN <strong>2047</strong>. Your voucher is attached.</p></div>`,
+      attachments: [attachment('demo-blob-hotel-voucher')],
+      keywords: ['$seen', '$label:travel'],
+      headers: authPass('booking.com'),
+    }),
+
+    mail({
+      id: 'demo-email-jennifer', mailbox: MB.inbox, date: at(3, 10, 10),
+      from: addr(JENNIFER),
+      subject: 'Head of Platform, Series B, Berlin or remote',
+      text: 'Hi Nora,\n\nI came across your talk abstract for Infra Summit and thought of a client of mine: a Series B in real-time data infrastructure, 60 engineers, Berlin office with a remote-first culture. They are hiring a Head of Platform.\n\nStack is Rust and Postgres with a fair amount of Go. Compensation is in the range you would expect at that stage, with meaningful equity.\n\nWould you be open to a 15-minute call this week or next?\n\nBest,\nJennifer Hayes\nTalent Partners',
+      headers: authPass('talent-partners.example'),
+    }),
+
+    mail({
+      id: 'demo-email-maria', mailbox: MB.inbox, date: at(3, 9, 0),
+      from: addr(MARIA), to: [{ name: 'All staff', email: `all@${WORK_DOMAIN}` }],
+      subject: 'Reminder: Q4 development conversations',
+      text: `Hi everyone,\n\nA reminder that Q4 development conversations run until the end of the month. Managers, please book the 45 minutes with each report by ${dayLabel(10)} and use the new template in Notion (it is shorter, you will like it).\n\nQuestions to me, as always.\n\nMaria\nPeople Ops`,
+      keywords: ['$seen'],
+      headers: company,
+    }),
+
+    mail({
+      id: 'demo-email-ahmed-status', mailbox: MB.inbox, date: at(3, 16, 5),
+      from: ahmed, to: [me, lisa],
+      subject: 'Status page component for Beacon is on staging',
+      text: 'https://status-staging.meridianlabs.example/beacon\n\nShows delivery success rate and p95 per region, 90 days. Lisa, the colours come from the website tokens so it should match the redesign. Tell me if the legend reads wrong on dark.\n\nA',
+      keywords: ['$seen', '$label:beacon'],
+      headers: company,
+    }),
+
+    mail({
+      id: 'demo-email-wei', mailbox: MB.inbox, date: at(4, 15, 20),
+      from: addr(WEI), to: [me, michael],
+      subject: 'Beacon adoption model: early numbers',
+      text: 'Quick one before the plan is final. Based on the beta cohort, 38% of tenants enable webhooks in the first week and 71% within a month. Long-poll usage drops to under 10% of requests by week six. So the migration window of a year is generous; six months would do.\n\nFull model in the Beacon folder. Wei',
+      keywords: ['$seen', '$label:beacon'],
+      headers: company,
+    }),
+
+    mail({
+      id: 'demo-email-figma', mailbox: MB.inbox, date: at(5, 10, 30),
+      from: { name: 'Figma', email: 'no-reply@figma.com' },
+      subject: 'Sarah Kim invited you to "Meridian website redesign"',
+      text: 'Sarah Kim (sarah@designco.example) invited you to edit the file "Meridian website redesign".\n\nOpen in Figma: https://www.figma.com/file/demo/meridian-website-redesign',
+      keywords: ['$seen', '$label:work'],
+      headers: authPass('figma.com'),
+    }),
+
+    mail({
+      id: 'demo-email-aws', mailbox: MB.inbox, date: at(5, 8, 15),
+      from: { name: 'Amazon Web Services', email: 'no-reply-aws@amazon.com' },
+      subject: 'Your AWS invoice is available: USD 1,284.17',
+      text: 'Your invoice for the previous billing period is now available.\n\nTotal this period: USD 1,284.17 (up USD 96.40, Beacon soak test)\n\nTop services:\n  Amazon EC2       USD 612.08\n  Amazon S3        USD 288.94\n  Amazon CloudFront USD 141.50\n  Amazon Route 53  USD 64.00\n  Other            USD 177.65\n\nView the full invoice in the Billing console.',
+      keywords: ['$seen', '$label:finance'],
+      headers: authPass('amazon.com'),
+    }),
+
+    mail({
+      id: 'demo-email-1password', mailbox: MB.inbox, date: at(2, 7, 45),
+      from: { name: '1Password', email: 'support@1password.com' },
+      subject: 'Your 1Password Business subscription renews in 7 days',
+      text: 'Hi Nora,\n\nYour 1Password Business subscription for Meridian Labs (24 seats) renews automatically in 7 days. The card on file ends in 4242.\n\nNothing to do unless you want to change the plan or the payment method.\n\nThe 1Password team',
+      keywords: ['$seen', '$label:finance'],
+      headers: authPass('1password.com'),
+    }),
+
+    mail({
+      id: 'demo-email-linkedin', mailbox: MB.inbox, date: at(4, 11, 0),
+      from: { name: 'LinkedIn', email: 'jobs-noreply@linkedin.com' },
+      subject: '5 jobs matching "staff engineer · remote · eu", including one at Datadog',
+      text: 'Based on your saved search "staff engineer · remote · eu":\n\n1. Staff Software Engineer, Datadog (Remote, EU)\n2. Principal Engineer, Platform, Sentry (Remote, EU)\n3. Staff Backend Engineer, Linear (Remote)\n4. Tech Lead, Infrastructure, Tailscale (Remote, EU)\n5. Staff Engineer, Mobile, Notion (Remote, EU)\n\nManage job alerts at linkedin.com/jobs/preferences.',
+      keywords: ['$seen'],
+      headers: { ...authPass('linkedin.com'), ...listHeaders('LinkedIn Job Alerts', 'linkedin.com') },
+    }),
+
+    mail({
+      id: 'demo-email-github-key', mailbox: MB.inbox, date: at(4, 20, 12),
+      from: { name: 'GitHub', email: 'noreply@github.com' },
+      subject: '[GitHub] A new SSH key was added to your account',
+      text: 'Hey nora-lindqvist,\n\nA new public key was added to your account:\n\n  nora@framework-16 (ED25519) SHA256:k9Qz...\n\nIf you believe this key was added in error, you can remove it in your SSH keys settings.\n\nThanks,\nThe GitHub Team',
+      keywords: ['$seen'],
+      headers: authPass('github.com'),
+    }),
+
+    mail({
+      id: 'demo-email-dependabot', mailbox: MB.inbox, date: at(5, 6, 0),
+      from: { name: 'dependabot[bot]', email: 'notifications@github.com' },
+      subject: '[meridianlabs/beacon] Bump jsonwebtoken from 9.0.0 to 9.0.2 in /beacon-api (#1279)',
+      text: 'Bumps jsonwebtoken from 9.0.0 to 9.0.2.\n\nRelease notes: fixes a verification bypass when the algorithm is not pinned (GHSA-8cf7-32gw-wr33).\n\nDependabot will resolve any conflicts with this PR as long as you don\'t alter it yourself.',
+      keywords: ['$seen', '$label:beacon'],
+      headers: { ...authPass('github.com'), 'List-Id': 'meridianlabs/beacon <beacon.meridianlabs.github.com>' },
+    }),
+
+    mail({
+      id: 'demo-email-olivia-workshop', mailbox: MB.inbox, date: at(6, 14, 0),
+      from: addr(OLIVIA),
+      subject: 'Workshop at Northwind: two slots left',
+      text: `Hi Nora,\n\nWe are running the onboarding workshop for Beacon design partners on ${dayLabel(13)}, two slots left. I kept one for Meridian in case you or Lisa want to sit in and hear what the first customers stumble over.\n\nSay the word and I'll put you down.\n\nOlivia`,
+      keywords: ['$seen', '$label:work'],
+      headers: authPass('northwind.example'),
+    }),
+
+    mail({
+      id: 'demo-email-hetzner-maint', mailbox: MB.inbox, date: at(6, 9, 30),
+      from: { name: 'Hetzner Cloud', email: 'noreply@hetzner.com' },
+      subject: `Scheduled maintenance: Falkenstein network, ${dayLabel(5)} 02:00 to 04:00 CEST`,
+      text: `Dear customer,\n\nWe will perform network maintenance in our Falkenstein data centre on ${dayLabel(5)} between 02:00 and 04:00 CEST. Affected: the load balancer lb-beacon-eu-1. Expect up to two minutes of packet loss.\n\nNo action is required on your side.\n\nHetzner Cloud`,
+      keywords: ['$seen', '$label:beacon'],
+      headers: authPass('hetzner.com'),
+    }),
+
+    // ══ Sent ═══════════════════════════════════════════════════
+    mail({
+      id: 'demo-email-rollback-2', thread: 'demo-thread-rollback', mailbox: MB.sent, date: at(1, 16, 20),
+      from: me, to: [alice, bob], cc: [ahmed],
+      subject: 'Re: Rollback plan for the Beacon launch',
+      text: 'Draft attached, one page plus a table. The short version: we roll back on numbers (error rate above 0.5% for ten minutes, p95 above 1 s, or a retry-budget breach on three tenants), the on-call decides alone, and the whole thing is five steps.\n\nBob, the open question at the end is for you: do we keep rotating signing keys during a rollback window?\n\nNora',
+      attachments: [attachment('demo-blob-runbook')],
+      keywords: ['$seen', '$label:beacon'],
+      inReplyTo: [mid('demo-email-rollback-1')], references: [mid('demo-email-rollback-1')],
+    }),
+    mail({
+      id: 'demo-email-canary-2', thread: 'demo-thread-canary', mailbox: MB.sent, date: at(2, 15, 10),
+      from: me, to: [priya], cc: [ahmed],
+      subject: 'Re: Canary length: 12 h or 24 h?',
+      text: '24 h. The night is where the batch customers live and that is exactly who we are nervous about. I\'ll tell Michael it costs a day and why; he will take it.\n\nCan we pick the five canary tenants together? I want Lumen in there, they asked to be first.\n\nNora',
+      keywords: ['$seen', '$label:beacon'],
+      inReplyTo: [mid('demo-email-canary-1')], references: [mid('demo-email-canary-1')],
+    }),
+    mail({
+      id: 'demo-email-sent-board', mailbox: MB.sent, date: at(2, 18, 30),
+      from: me, to: [addr(JAMES), michael],
+      subject: 'Board update',
+      text: 'James, Michael,\n\nThe quarterly report for the board pack is attached. Engineering section is two pages: uptime, latency, Beacon status, and what next quarter costs. I kept the migration tooling as an open item rather than promising a date.\n\nShout if anything needs softening before it goes out.\n\nNora',
+      attachments: [attachment('demo-blob-quarterly-report')],
+      keywords: ['$seen', '$label:work'],
+    }),
+    mail({
+      id: 'demo-email-sent-kenji', mailbox: MB.sent, date: at(2, 17, 55),
+      from: me, to: [addr(KENJI)],
+      subject: 'Re: Speaker logistics: your slot, the AV check and the dinner',
+      text: 'Dear Kenji,\n\nAll noted, thank you. I\'ll be at the AV check at 08:45 and I would love to join the dinner. One request: could my slides go on the venue machine as well? I have had a laptop die on stage once and would rather not repeat it.\n\nSee you in Lisbon,\nNora',
+      keywords: ['$seen', '$label:travel'],
+      inReplyTo: [mid('demo-email-kenji', 'infrasummit.example')], references: [mid('demo-email-kenji', 'infrasummit.example')],
+    }),
+    mail({
+      id: 'demo-email-sent-sarah', mailbox: MB.sent, date: at(5, 11, 40),
+      from: me, to: [addr(SARAH)],
+      subject: 'Re: Prototype v2: hero options',
+      text: 'Hi Sarah,\n\nOption B. The symmetrical one is calmer but it reads like every other developer-tool site this year. Go with the asymmetric grid, and let\'s see v3 with the real copy from Rachel.\n\nInvoice whenever you are ready; the pre-payment for next month can wait until the launch is out.\n\nThanks,\nNora',
+      keywords: ['$seen', '$label:work'],
+    }),
+
+    // ══ Drafts ═════════════════════════════════════════════════
+    mail({
+      id: 'demo-email-draft-jennifer', mailbox: MB.drafts, date: at(1, 12, 10),
+      from: me, to: [addr(JENNIFER)],
+      subject: 'Re: Head of Platform, Series B, Berlin or remote',
+      text: 'Hi Jennifer,\n\nThanks for reaching out. I am not looking right now; we are two weeks from a launch and I like where this is going. That said, I\'d be curious what "meaningful equity" means at Series B these days, so if you want to send the ',
+      keywords: ['$seen', '$draft'],
+    }),
+    mail({
+      id: 'demo-email-draft-lumen', mailbox: MB.drafts, date: at(1, 15, 45),
+      from: me, to: [addr(TOMAS)], cc: [michael],
+      subject: 'Lumen Logistics: kickoff and the canary',
+      text: 'Hi Tomás,\n\nThank you for the PO, and yes: Lumen is on the canary list. Attached is the draft service agreement for your legal team to look at before DocuSign goes out; the SLA section is the one worth reading.\n\nFor the kickoff I would suggest ',
+      attachments: [attachment('demo-blob-service-agreement')],
+      keywords: ['$seen', '$draft', '$label:work'],
+    }),
+    // Scheduled: in Drafts with a pending submission (see demo-client).
+    mail({
+      id: 'demo-email-scheduled-prep', mailbox: MB.drafts, date: ago(0, 25),
+      from: me, to: beaconTeam.filter((a) => a.email !== me.email),
+      subject: 'Go/no-go prep: what I need from each of you by noon',
+      text: `Morning all,\n\nBefore 14:00 today, please have ready:\n\n- Ahmed: the soak dashboard link and the hour-31 explanation\n- Priya: the open bug list with BEA-412 at the top\n- Lisa: the reconnect numbers from staging\n- Bob: your sign-off on the runbook, or what is missing\n\nI'll bring the rollback plan and the canary tenant list. Short meeting if we do this.\n\nNora`,
+      keywords: ['$seen', '$draft', '$label:beacon'],
+    }),
+
+    // ══ Archive ════════════════════════════════════════════════
+    mail({
+      id: 'demo-email-archive-pto', mailbox: MB.archive, date: at(14, 9, 20),
+      from: addr(MARIA), to: [{ name: 'All staff', email: `all@${WORK_DOMAIN}` }],
+      subject: 'Updated leave policy, effective next quarter',
+      text: 'Dear team,\n\nThe updated leave policy takes effect at the start of next quarter. Key changes: 28 days instead of 26, half days anywhere, and up to ten days roll over.\n\nThe full text is in Notion. Please acknowledge by replying to this mail.\n\nMaria\nPeople Ops',
+      keywords: ['$seen'], headers: company,
+    }),
+    mail({
+      id: 'demo-email-archive-hetzner-ticket', mailbox: MB.archive, date: at(21, 15, 4),
+      from: { name: 'Hetzner Support', email: 'support@hetzner.com' },
+      subject: 'Re: Ticket #2026101234: packet loss between fsn1 and hel1',
+      text: 'Hello Nora,\n\nThank you for the traceroutes. We were able to reproduce the loss on one upstream path and have rerouted it. Please let us know if you see it again.\n\nTicket closed.\n\nBest regards,\nTobias, Hetzner Support',
+      keywords: ['$seen'], headers: authPass('hetzner.com'),
+    }),
+    mail({
+      id: 'demo-email-archive-linear-welcome', mailbox: MB.archive, date: at(26, 10, 0),
+      from: { name: 'Linear', email: 'hello@linear.app' },
+      subject: 'Welcome to Linear, Meridian Labs',
+      text: 'Your workspace is ready. Invite your team, import from Jira if you must, and set up your first cycle.\n\nThe Linear team',
+      keywords: ['$seen'], headers: authPass('linear.app'),
+    }),
+    mail({
+      id: 'demo-email-archive-offsite', mailbox: MB.archive2025, date: at(120, 18, 30),
+      from: addr(RACHEL), to: [{ name: 'All staff', email: `all@${WORK_DOMAIN}` }],
+      subject: 'Offsite photos',
+      text: 'The good one from the lake is attached; the rest are in the shared drive under Photos. Thank you all, that was a proper break.\n\nRachel',
+      attachments: [attachment('demo-blob-team-photo')],
+      keywords: ['$seen'], headers: company,
+    }),
+    mail({
+      id: 'demo-email-archive-review', mailbox: MB.archive2025, date: at(200, 11, 15),
+      from: alice,
+      subject: 'Your development conversation: notes',
+      text: 'Nora, thanks for a good conversation. The notes as promised: you want to lead a launch end to end, and you want to speak more outside the company. Both are on the plan for next year. Alice',
+      keywords: ['$seen'], headers: company,
+    }),
+    mail({
+      id: 'demo-email-archive-2024-welcome', mailbox: MB.archive2024, date: at(560, 9, 5),
+      from: addr(MARIA),
+      subject: 'Welcome to Meridian Labs',
+      text: 'Hi Nora,\n\nWelcome aboard! Your laptop is on your desk, your accounts are set up, and Alice will meet you at 09:30 on your first day. Lunch is on us.\n\nMaria',
+      keywords: ['$seen'], headers: company,
+    }),
+    mail({
+      id: 'demo-email-archive-2024-laptop', mailbox: MB.archive2024, date: at(555, 14, 50),
+      from: ahmed,
+      subject: 'Your laptop: setup notes',
+      text: 'Disk is encrypted, 1Password is installed, the VPN config is in your vault. Shout if anything does not work. Ahmed',
+      keywords: ['$seen'], headers: company,
+    }),
+
+    // ══ Trash ══════════════════════════════════════════════════
+    mail({
+      id: 'demo-email-trash-promo', mailbox: MB.trash, date: at(5, 13, 0),
+      from: { name: 'CloudConf', email: 'hello@cloudconf.example' },
+      subject: 'Last chance: 40% off CloudConf tickets',
+      text: 'Early-bird pricing ends at midnight. Use code LAST40 at checkout.',
+      keywords: ['$seen'], headers: { ...authPass('cloudconf.example'), ...listHeaders('CloudConf News', 'cloudconf.example') },
+    }),
+    mail({
+      id: 'demo-email-trash-calendar', mailbox: MB.trash, date: at(7, 8, 0),
+      from: { name: 'Calendar', email: `calendar@${WORK_DOMAIN}` },
+      subject: 'Reminder: Beacon weekly in 15 minutes',
+      text: 'Beacon weekly starts at 10:00 in Room Spree and on Zoom.',
+      keywords: ['$seen'],
+    }),
+
+    // ══ Spam ═══════════════════════════════════════════════════
+    // Phishing: claims to be Meridian IT, fails DMARC, and the link text does
+    // not match the link target.
+    mail({
+      id: 'demo-email-spam-phish', mailbox: MB.junk, date: at(1, 2, 3),
+      from: { name: 'Meridian Labs IT', email: `it-helpdesk@${WORK_DOMAIN}` },
+      subject: 'Action required: your mailbox password expires today',
+      text: 'Your Meridian Labs mailbox password expires in 24 hours. To keep access to your email, verify your account now:\n\nhttps://meridianlabs-sso.verify-account.example/login\n\nIT Helpdesk',
+      html: '<p>Your Meridian Labs mailbox password expires in <b>24 hours</b>. To keep access to your email, verify your account now:</p><p><a href="https://meridianlabs-sso.verify-account.example/login">https://sso.meridianlabs.example/password</a></p><p>IT Helpdesk</p>',
+      headers: authFail(WORK_DOMAIN, 'verify-account.example', { spam: 12.4, llm: 'SPAM (Impersonates the recipient\'s own IT department, urges immediate action, and the link target does not match the link text.)' }),
+    }),
+    mail({
+      id: 'demo-email-spam-prize', mailbox: MB.junk, date: at(2, 4, 40),
+      from: { name: 'Prize Center', email: 'winner@totallylegit.example' },
+      subject: 'Congratulations! You have been selected',
+      text: 'Dear lucky winner,\n\nYou have been selected to receive a prize of considerable value. Click below to claim it immediately.\n\n[This is a demo spam message.]',
+      headers: authFail('totallylegit.example', 'mailer-7.bulk-send.example', { spam: 9.8 }),
+    }),
+    mail({
+      id: 'demo-email-spam-crypto', mailbox: MB.junk, date: at(3, 19, 15),
+      from: { name: 'CryptoGrowth Daily', email: 'invest@cryptogrowth.example' },
+      subject: 'The coin nobody is talking about yet',
+      text: 'Three early backers turned a small stake into a fortune in 90 days. Limited spots. No experience needed.\n\n[Demo spam.]',
+      headers: authFail('cryptogrowth.example', 'cryptogrowth.example', { spam: 7.2 }),
+    }),
+
+    // ══ Projects / Beacon ══════════════════════════════════════
+    mail({
+      id: 'demo-email-beacon-naming', mailbox: MB.beacon, date: at(9, 11, 30),
+      from: michael, to: beaconTeam,
+      subject: 'Naming decision: it stays "Beacon"',
+      text: 'Legal cleared it, marketing likes it, and nobody could come up with anything better in three weeks. Beacon it is. Rename the internal repos when convenient, not before launch.\n\nM',
+      keywords: ['$seen', '$pinned', '$label:beacon'], headers: company,
+    }),
+    mail({
+      id: 'demo-email-beacon-rfc', mailbox: MB.beacon, date: at(12, 16, 20),
+      from: bob, to: beaconTeam,
+      subject: 'RFC: per-tenant retry budgets',
+      text: 'The RFC is in the repo (docs/rfc/0007-retry-budgets.md). Summary: every tenant gets a budget of retries per hour proportional to its normal volume; when it is spent, retries queue instead of firing. It caps the worst case at 2x delivery volume and stops one customer\'s outage from costing everyone else.\n\nComments in the PR please. Bob',
+      keywords: ['$seen', '$label:beacon'], headers: company,
+    }),
+    mail({
+      id: 'demo-email-beacon-sprint', mailbox: MB.beacon, date: at(8, 9, 0),
+      from: alice, to: beaconTeam,
+      subject: 'Sprint 41 planning: agenda',
+      text: '1. Soak test schedule (Ahmed)\n2. Signing key rotation, #1284 (Lisa)\n3. Launch checklist walkthrough (Nora)\n4. What we cut if the canary slips (everyone)\n\nCome with numbers. Alice',
+      keywords: ['$seen', '$label:beacon'], headers: company,
+    }),
+
+    // ══ Projects / Website redesign ════════════════════════════
+    mail({
+      id: 'demo-email-website-feedback-2', thread: 'demo-thread-website-feedback', mailbox: MB.website, date: at(7, 15, 30),
+      from: addr(SARAH),
+      subject: 'Re: Design feedback, round 2',
+      text: 'All taken on board. v3 of the prototype comes with the invoice this week; the hero has two options for you to pick from.\n\nSarah',
+      keywords: ['$seen', '$label:work'], headers: authPass('designco.example'),
+      inReplyTo: [mid('demo-email-website-feedback-1')], references: [mid('demo-email-website-feedback-1')],
+    }),
+    mail({
+      id: 'demo-email-website-feedback-1', thread: 'demo-thread-website-feedback', mailbox: MB.website, date: at(8, 17, 10),
+      from: me, to: [addr(SARAH)], cc: [addr(RACHEL)],
+      subject: 'Design feedback, round 2',
+      text: 'Hi Sarah,\n\nRound two, shorter than round one:\n\n- The pricing table is right. Ship it.\n- The docs navigation needs a search field above the tree, not below.\n- The hero still says "platform" four times. Rachel is rewriting the copy.\n\nNora',
+      keywords: ['$seen', '$label:work'],
+    }),
+
+    // ══ Receipts ═══════════════════════════════════════════════
+    mail({
+      id: 'demo-email-receipt-hetzner', mailbox: MB.receipts, date: at(3, 7, 20),
+      from: { name: 'Hetzner Online', email: 'billing@hetzner.com' },
+      subject: 'Invoice R0012345678: EUR 51.71 (paid)',
+      text: 'Your invoice R0012345678 for the current period is attached. EUR 51.71 was collected by SEPA direct debit.\n\nHetzner Online GmbH',
+      attachments: [attachment('demo-blob-hetzner-invoice')],
+      keywords: ['$seen', '$label:finance'], headers: authPass('hetzner.com'),
+    }),
+    mail({
+      id: 'demo-email-receipt-stripe', mailbox: MB.receipts, date: at(1, 7, 2),
+      from: { name: 'Stripe', email: 'receipts@stripe.com' },
       subject: 'Your receipt from Linear Inc. [#2451-9928]',
-      sentAt: demoDate(-1, -1, -22),
-      preview: 'Receipt from Linear Inc. for $16.00. Thanks for your business.',
-      hasAttachment: false,
-      ...bodies(
-        'Receipt from Linear Inc.\nAmount paid: $16.00\nDate paid: yesterday\nPayment method: Visa •••• 4242\n\nDescription: Linear Standard (monthly)\n\nReceipt #2451-9928\n\nThis charge will appear on your statement as LINEAR INC.\n\nQuestions? Contact support@linear.app.',
-        '<div style="max-width:560px;margin:0 auto;font-family:-apple-system,sans-serif"><div style="text-align:center;padding:24px 0"><div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase">Receipt</div><div style="font-size:32px;font-weight:700;margin-top:4px">$16.00</div><div style="color:#666;margin-top:4px">Linear Inc.</div></div><table style="width:100%;border-top:1px solid #eee;border-bottom:1px solid #eee"><tr><td style="padding:10px 0;color:#666">Amount</td><td style="padding:10px 0;text-align:right">$16.00</td></tr><tr><td style="padding:10px 0;color:#666;border-top:1px solid #f4f4f4">Payment method</td><td style="padding:10px 0;text-align:right;border-top:1px solid #f4f4f4">Visa •••• 4242</td></tr><tr><td style="padding:10px 0;color:#666;border-top:1px solid #f4f4f4">Receipt number</td><td style="padding:10px 0;text-align:right;border-top:1px solid #f4f4f4;font-family:monospace">2451-9928</td></tr></table><p style="color:#666;font-size:13px;margin-top:24px">Description: Linear Standard (monthly). This charge will appear on your statement as LINEAR INC.</p></div>',
-      ),
-      messageId: '<receipt-2451-9928@stripe.com>',
-    },
+      text: 'Receipt from Linear Inc.\nAmount paid: USD 192.00\nPayment method: Visa ending 4242\n\nDescription: Linear Standard, 12 seats (monthly)\nReceipt #2451-9928\n\nThis charge will appear on your statement as LINEAR INC.',
+      html: '<div style="max-width:560px;margin:0 auto;font-family:-apple-system,sans-serif"><div style="text-align:center;padding:24px 0"><div style="font-size:11px;letter-spacing:0.12em;color:#888;text-transform:uppercase">Receipt</div><div style="font-size:32px;font-weight:700;margin-top:4px">$192.00</div><div style="color:#666;margin-top:4px">Linear Inc.</div></div><table style="width:100%;border-top:1px solid #eee;border-bottom:1px solid #eee"><tr><td style="padding:10px 0;color:#666">Amount</td><td style="padding:10px 0;text-align:right">$192.00</td></tr><tr><td style="padding:10px 0;color:#666;border-top:1px solid #f4f4f4">Payment method</td><td style="padding:10px 0;text-align:right;border-top:1px solid #f4f4f4">Visa •••• 4242</td></tr><tr><td style="padding:10px 0;color:#666;border-top:1px solid #f4f4f4">Receipt number</td><td style="padding:10px 0;text-align:right;border-top:1px solid #f4f4f4;font-family:monospace">2451-9928</td></tr></table><p style="color:#666;font-size:13px;margin-top:24px">Description: Linear Standard, 12 seats (monthly). This charge will appear on your statement as LINEAR INC.</p></div>',
+      keywords: ['$seen', '$label:finance'], headers: authPass('stripe.com'),
+    }),
+    mail({
+      id: 'demo-email-receipt-github', mailbox: MB.receipts, date: at(11, 6, 10),
+      from: { name: 'GitHub', email: 'billing@github.com' },
+      subject: '[GitHub] Payment receipt for Meridian Labs',
+      text: 'Thanks for your payment.\n\nGitHub Team, 18 seats · USD 72.00\nGitHub Actions, 4,200 minutes · USD 33.60\nTotal: USD 105.60 · Visa ending 4242',
+      keywords: ['$seen', '$label:finance'], headers: authPass('github.com'),
+    }),
+    mail({
+      id: 'demo-email-receipt-porkbun', mailbox: MB.receipts, date: at(18, 8, 0),
+      from: { name: 'Porkbun', email: 'support@porkbun.com' },
+      subject: 'Renewal confirmation: meridianlabs.example (1 year)',
+      text: 'Your domain meridianlabs.example has been renewed for one year.\n\nAmount: USD 11.06\nAuto-renew: on\n\nReply to this mail if you need an invoice with your VAT id.',
+      keywords: ['$seen', '$label:finance'], headers: authPass('porkbun.com'),
+    }),
 
-    // Email with attachments - invoice
-    {
-      id: 'demo-email-4',
-      threadId: 'demo-thread-4',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 245000,
-      receivedAt: demoDate(0, -6),
-      from: [{ name: 'Sarah Kim', email: 'sarah.kim@example.com' }],
-      to: [USER],
-      subject: 'Invoice #2024-089 & landing-page prototype v3',
-      sentAt: demoDate(0, -6),
-      preview: "Hi, please find attached the invoice for October and a screenshot of the latest prototype...",
-      hasAttachment: true,
-      ...textOnly(
-        "Hi,\n\nPlease find attached the invoice for October and a screenshot of the latest prototype. I went with Option B for the hero (the one with the asymmetric grid) since you mentioned the symmetrical version felt too flat in our last call.\n\nIf the invoice line items look off, ping me - I had to back out the November pre-payment.\n\nBest regards,\nSarah",
-      ),
-      attachments: [
-        { partId: 'att-1', blobId: 'demo-blob-att-1', size: 145000, name: 'Invoice-2024-089.pdf', type: 'application/pdf' },
-        { partId: 'att-2', blobId: 'demo-blob-att-2', size: 21864, name: 'prototype-v3.png', type: 'image/png' },
-      ],
-      messageId: '<invoice-089@example.com>',
-    },
+    // ══ Travel ═════════════════════════════════════════════════
+    mail({
+      id: 'demo-email-travel-accepted', mailbox: MB.travel, date: at(24, 10, 20),
+      from: addr(KENJI),
+      subject: 'Infra Summit Lisbon: your talk is accepted',
+      text: 'Dear Nora,\n\nThe programme committee accepted "Rolling back without rolling over: safe launches for event platforms". Congratulations, it was one of the highest-rated proposals.\n\nWe cover travel and two hotel nights. Logistics follow closer to the date.\n\nKenji Watanabe\nProgramme chair',
+      keywords: ['$seen', '$flagged', '$label:travel'], headers: authPass('infrasummit.example'),
+    }),
+    mail({
+      id: 'demo-email-travel-db', mailbox: MB.travel, date: at(40, 19, 5),
+      from: { name: 'Deutsche Bahn', email: 'noreply@bahn.de' },
+      subject: 'Your ticket: Berlin Hbf to Hamburg Hbf',
+      text: 'Thank you for your booking.\n\nICE 802 · Berlin Hbf 07:34 to Hamburg Hbf 09:21 · 2nd class, seat 42, coach 7\nReturn: ICE 1601 · Hamburg Hbf 18:46 to Berlin Hbf 20:35\n\nYour ticket is in the DB Navigator app.',
+      keywords: ['$seen', '$label:travel'], headers: authPass('bahn.de'),
+    }),
 
-    // Carlos - starred, social
-    {
-      id: 'demo-email-5',
-      threadId: 'demo-thread-5',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true, $flagged: true },
-      size: 2800,
-      receivedAt: demoDate(-2, -1),
-      from: [{ name: 'Carlos Rivera', email: 'carlos.rivera@example.com' }],
-      to: [USER],
-      subject: 'Friday dinner - moved to 7:30 (sorry!)',
-      sentAt: demoDate(-2, -1),
-      preview: 'Quick heads up - had to push the dinner back half an hour. Bistro could only do the late seating...',
-      hasAttachment: false,
-      ...textOnly(
-        "Quick heads up - had to push the dinner back half an hour. Bistro could only do the late seating.\n\nNew time: Friday, 7:30 PM\nThe Garden Bistro, 123 Oak Street\n\nReservation under my name, 8 people. Let me know if that doesn't work for you and I can try to wrangle something.\n\nCheers,\nCarlos",
-      ),
-      messageId: '<dinner-reminder@example.com>',
-    },
-
-    // Linear - issue assigned
-    {
-      id: 'demo-email-linear',
-      threadId: 'demo-thread-linear',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 5400,
-      receivedAt: demoDate(0, -7, -15),
-      from: [{ name: 'Linear', email: 'notifications@linear.app' }],
-      to: [USER],
-      subject: 'BUL-2031 was assigned to you - "Compose: drag-and-drop attachments duplicated on slow networks"',
-      sentAt: demoDate(0, -7, -15),
-      preview: 'Priya Sharma assigned this issue to you. Repro on a throttled connection (Slow 3G): drop a file twice and...',
-      hasAttachment: false,
-      ...bodies(
-        "Priya Sharma assigned BUL-2031 to you.\n\nTitle: Compose: drag-and-drop attachments duplicated on slow networks\nPriority: Medium\n\nRepro on a throttled connection (Slow 3G): drop a file twice in quick succession into the compose drop zone. The first upload doesn't get debounced and both attempts complete, so the attachment shows up twice in the draft.\n\nOpen in Linear: https://linear.app/bulwark/issue/BUL-2031",
-        '<table style="font-family:-apple-system,sans-serif;max-width:520px"><tr><td><div style="font-size:11px;color:#888;letter-spacing:0.08em;text-transform:uppercase">Linear · BUL-2031</div><div style="font-size:18px;font-weight:600;margin-top:6px">Compose: drag-and-drop attachments duplicated on slow networks</div><div style="margin-top:8px;color:#666"><strong>Priya Sharma</strong> assigned this issue to you · Priority Medium</div></td></tr><tr><td style="padding-top:16px;color:#444">Repro on a throttled connection (Slow 3G): drop a file twice in quick succession into the compose drop zone. The first upload doesn\'t get debounced and both attempts complete, so the attachment shows up twice in the draft.</td></tr><tr><td style="padding-top:16px"><a href="https://linear.app/bulwark/issue/BUL-2031" style="background:#5e6ad2;color:#fff;padding:8px 16px;text-decoration:none;border-radius:6px;font-size:13px">Open in Linear</a></td></tr></table>',
-      ),
-      messageId: '<BUL-2031-assign@linear.app>',
-    },
-
-    // Anna - sister, photos
-    {
-      id: 'demo-email-anna',
-      threadId: 'demo-thread-anna',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 4800000,
-      receivedAt: demoDate(-1, -19),
-      from: [{ name: 'Anna Kowalski', email: 'anna.kowalski@example.com' }],
-      to: [USER],
-      subject: 'photos from the wedding',
-      sentAt: demoDate(-1, -19),
-      preview: "finally got around to going through these. there are like 600 more on the drive but here's the highlights...",
-      hasAttachment: true,
-      ...textOnly(
-        "ok finally got around to going through these. there are like 600 more on the drive but here's the highlights - the ones I'd actually want to print.\n\nmom looked SO happy. dad cried during the speech btw, did you see?\n\nlet me know which ones you want full-res of\n\na",
-      ),
-      attachments: [
-        { partId: 'att-3', blobId: 'demo-blob-att-3', size: 170392, name: 'wedding-001.jpg', type: 'image/jpeg' },
-        { partId: 'att-4', blobId: 'demo-blob-att-4', size: 154740, name: 'wedding-014-mom-dad.jpg', type: 'image/jpeg' },
-        { partId: 'att-5', blobId: 'demo-blob-att-5', size: 133897, name: 'wedding-038-the-toast.jpg', type: 'image/jpeg' },
-      ],
-      messageId: '<wedding-photos@example.com>',
-    },
-
-    // AWS billing
-    {
-      id: 'demo-email-aws',
-      threadId: 'demo-thread-aws',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 9100,
-      receivedAt: demoDate(-2, -3, -45),
-      from: [{ name: 'AWS Billing', email: 'no-reply-aws@amazon.com' }],
-      to: [USER],
-      subject: 'Your AWS bill is available - $127.43',
-      sentAt: demoDate(-2, -3, -45),
-      preview: 'Your bill for the previous billing period is now available. Total this period: $127.43 (down $4.12)...',
-      hasAttachment: false,
-      ...textOnly(
-        "Your bill for the previous billing period is now available.\n\nTotal this period: $127.43 (down $4.12 from last period)\n\nTop services:\n  EC2 - $61.20\n  S3 - $28.94\n  Route 53 - $14.50\n  CloudFront - $11.02\n  Other - $11.77\n\nView the full invoice in the Billing Console.",
-      ),
-      messageId: '<aws-bill-2024-11@amazon.com>',
-    },
-
-    // 2FA code - system, unread
-    {
-      id: 'demo-email-2fa',
-      threadId: 'demo-thread-2fa',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 1700,
-      receivedAt: demoDate(0, -1, -8),
-      from: [{ name: '1Password', email: 'noreply@1password.com' }],
-      to: [USER],
-      subject: 'Your one-time verification code is 814-302',
-      sentAt: demoDate(0, -1, -8),
-      preview: "Use this code within 10 minutes to sign in. If you didn't request it, ignore this email.",
-      hasAttachment: false,
-      ...textOnly(
-        "Your verification code: 814-302\n\nUse this code within 10 minutes to sign in. If you didn't request it, you can safely ignore this email - your account remains secure.",
-      ),
-      messageId: '<otp-814302@1password.com>',
-    },
-
-    // LinkedIn - cold-ish
-    {
-      id: 'demo-email-linkedin',
-      threadId: 'demo-thread-linkedin',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 8200,
-      receivedAt: demoDate(-3, -11),
-      from: [{ name: 'LinkedIn', email: 'jobs-noreply@linkedin.com' }],
-      to: [USER],
-      subject: '5 jobs matching "staff engineer · remote · eu" - including one at Datadog',
-      sentAt: demoDate(-3, -11),
-      preview: "We thought you'd be interested in these jobs based on your profile and search history.",
-      hasAttachment: false,
-      ...textOnly(
-        'Based on your saved search "staff engineer · remote · eu":\n\n1. Staff Software Engineer - Datadog (Remote, EU)\n2. Principal Engineer, Platform - Sentry (Remote, EU)\n3. Staff Backend Engineer - Linear (Remote)\n4. Tech Lead, Infrastructure - Tailscale (Remote, EU)\n5. Staff Engineer, Mobile - Notion (Remote, EU)\n\nManage job alerts at linkedin.com/jobs/preferences.',
-      ),
-      messageId: '<jobs-1107@linkedin.com>',
-    },
-
-    // Book club - Marcus
-    {
-      id: 'demo-email-bookclub',
-      threadId: 'demo-thread-bookclub',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 2400,
-      receivedAt: demoDate(-1, -14),
-      from: [{ name: 'Marcus Hughes', email: 'marcus.hughes@example.com' }],
-      to: [USER, { name: 'Emma Wilson', email: 'emma.wilson@example.com' }, { name: 'David Park', email: 'david.park@example.com' }],
-      subject: 'book club thursday - picking the next one',
-      sentAt: demoDate(-1, -14),
-      preview: 'Reminder: 7pm at mine. We finish off Le Guin and pick the next read. My vote is the Calvino but I know Emma...',
-      hasAttachment: false,
-      ...textOnly(
-        "Reminder: 7pm at mine. We finish off Le Guin and pick the next read.\n\nMy vote is the Calvino but I know Emma's been pushing for the Knausgaard. I'll bring wine, can someone else handle snacks?\n\nm",
-      ),
-      messageId: '<bookclub-nov@example.com>',
-    },
-
-    // DHL package
-    {
-      id: 'demo-email-dhl',
-      threadId: 'demo-thread-dhl',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 5600,
-      receivedAt: demoDate(0, -9, -30),
-      from: [{ name: 'DHL Express', email: 'noreply@dhl.com' }],
-      to: [USER],
-      subject: 'Your package is out for delivery - arriving today',
-      sentAt: demoDate(0, -9, -30),
-      preview: 'Tracking 1Z 999 AA1 0123 4567 84 · Estimated delivery: today between 14:00 and 18:00.',
-      hasAttachment: false,
-      ...textOnly(
-        'Your package is on the truck.\n\nTracking: 1Z 999 AA1 0123 4567 84\nEstimated delivery window: today, 14:00–18:00\n\nIf no one is home, the driver will attempt redelivery tomorrow or leave it at the nearest pickup point.\n\nTrack live at dhl.com/track.',
-      ),
-      messageId: '<delivery-1Z999AA1@dhl.com>',
-    },
-
-    // Notion
-    {
-      id: 'demo-email-notion',
-      threadId: 'demo-thread-notion',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 4100,
-      receivedAt: demoDate(-2, -16),
-      from: [{ name: 'Olivia Bennett (via Notion)', email: 'team@mail.notion.so' }],
-      to: [USER],
-      subject: 'Olivia shared "Q1 2026 - design north star" with you',
-      sentAt: demoDate(-2, -16),
-      preview: 'Olivia Bennett shared a page with you in the Northwind workspace. Open in Notion to view.',
-      hasAttachment: false,
-      ...textOnly(
-        'Olivia Bennett shared a page with you in the Northwind workspace.\n\n"Q1 2026 - design north star"\n\nOpen in Notion: https://notion.so/northwind/q1-design-north-star',
-      ),
-      messageId: '<share-northwind-q1@mail.notion.so>',
-    },
-
-    // Spotify wrap
-    {
-      id: 'demo-email-spotify',
-      threadId: 'demo-thread-spotify',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 7400,
-      receivedAt: demoDate(-4, -8),
-      from: [{ name: 'Spotify', email: 'no-reply@spotify.com' }],
-      to: [USER],
-      subject: 'Your year in music is ready',
-      sentAt: demoDate(-4, -8),
-      preview: 'You spent 38,420 minutes listening this year. Your top artist was Big Thief, and your top genre was indie folk.',
-      hasAttachment: false,
-      ...textOnly(
-        'Your year, in music.\n\n38,420 minutes listened\nTop artist: Big Thief\nTop song: "Vampire Empire"\nTop genre: indie folk\nDiscover Weekly hit rate: 41%\n\nOpen Spotify to see your full Wrapped.',
-      ),
-      messageId: '<wrapped-2025@spotify.com>',
-    },
-
-    // Booking.com confirmation
-    {
-      id: 'demo-email-booking',
-      threadId: 'demo-thread-booking',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 32100,
-      receivedAt: demoDate(-5, -10),
-      from: [{ name: 'Booking.com', email: 'no-reply@booking.com' }],
-      to: [USER],
-      subject: 'Confirmation 4892-7714-3320 - Hotel Lago, Lake Como (Dec 22–25)',
-      sentAt: demoDate(-5, -10),
-      preview: 'Your booking is confirmed. Check-in: Dec 22, after 15:00. Check-out: Dec 25, before 11:00.',
-      hasAttachment: true,
-      ...textOnly(
-        'Your booking is confirmed.\n\nHotel Lago, Lake Como (Italy)\nCheck-in: Dec 22, after 15:00\nCheck-out: Dec 25, before 11:00\n\nRoom: Lake-view double, breakfast included\nTotal: €612 (paid)\n\nConfirmation number: 4892-7714-3320\n\nYour voucher is attached. Show it at reception.',
-      ),
-      attachments: [
-        { partId: 'att-6', blobId: 'demo-blob-att-6', size: 31000, name: 'booking-voucher-4892-7714-3320.pdf', type: 'application/pdf' },
-      ],
-      messageId: '<conf-4892-7714-3320@booking.com>',
-    },
-
-    // Substack post
-    {
-      id: 'demo-email-substack',
-      threadId: 'demo-thread-substack',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: { $seen: true },
-      size: 22400,
-      receivedAt: demoDate(-1, -12),
-      from: [{ name: 'Robin Sloan', email: 'robin@substack.com' }],
-      to: [USER],
+    // ══ Newsletters ════════════════════════════════════════════
+    mail({
+      id: 'demo-email-nl-substack', mailbox: MB.newsletters, date: at(2, 6, 12),
+      from: { name: 'Robin Sloan', email: 'robin@substack.com' },
       subject: 'a small newsletter about a small forge',
-      sentAt: demoDate(-1, -12),
-      preview: 'I have been spending the slow weeks of November in the workshop, slowly forging a knife from a piece of...',
-      hasAttachment: false,
-      ...textOnly(
-        "Hello, friends.\n\nI have been spending the slow weeks of November in the workshop, slowly forging a knife from a piece of railway track. It is going badly, in the way that is good for one's soul.\n\nWhat I'm reading: Annie Dillard, again. \"The Writing Life\". Specifically the chapter about her cabin, which I read every year around this time and which always makes me want to throw my laptop into the sea.\n\nWhat I'm watching: very little. There is something about December that makes television feel like an admission of defeat.\n\nUntil next month -\nR.",
-      ),
-      messageId: '<nov-2025@robin.substack.com>',
-    },
+      text: 'Hello, friends.\n\nI have been spending the slow weeks in the workshop, slowly forging a knife from a piece of railway track. It is going badly, in the way that is good for one\'s soul.\n\nWhat I\'m reading: Annie Dillard, again. "The Writing Life". Specifically the chapter about her cabin, which always makes me want to throw my laptop into the sea.\n\nUntil next month,\nR.',
+      keywords: ['$seen'], headers: { ...authPass('substack.com'), ...listHeaders('Robin Sloan', 'substack.com') },
+    }),
+    mail({
+      id: 'demo-email-nl-pragmatic', mailbox: MB.newsletters, date: at(4, 7, 0),
+      from: { name: 'The Pragmatic Engineer', email: 'pragmaticengineer@substack.com' },
+      subject: 'How launch reviews work at companies that ship well',
+      text: 'This week: what a good go/no-go looks like, why the best teams write the rollback plan before the launch plan, and a reader question about canary sizes.\n\nRead online or reply with your own launch stories.',
+      keywords: ['$seen'], headers: { ...authPass('substack.com'), ...listHeaders('The Pragmatic Engineer', 'substack.com') },
+    }),
+    mail({
+      id: 'demo-email-nl-postgres', mailbox: MB.newsletters, date: at(6, 5, 45),
+      from: { name: 'Postgres Weekly', email: 'postgres@cooperpress.com' },
+      subject: '#612: Logical replication in 18, and a tale of two vacuums',
+      text: 'Postgres Weekly #612\n\n- What changed in logical replication in Postgres 18\n- A tale of two vacuums: autovacuum tuning for append-mostly tables\n- pg_stat_io, one year on\n\nUnsubscribe or change your address at the link below.',
+      keywords: ['$seen'], headers: { ...authPass('cooperpress.com'), ...listHeaders('Postgres Weekly', 'cooperpress.com') },
+    }),
 
-    // Recruiter cold outreach
-    {
-      id: 'demo-email-recruiter',
-      threadId: 'demo-thread-recruiter',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 3200,
-      receivedAt: demoDate(0, -10),
-      from: [{ name: 'Jennifer Hayes', email: 'jennifer@talent-partners.example' }],
-      to: [USER],
-      subject: 'Senior role - Distributed Systems - €180-220k + equity',
-      sentAt: demoDate(0, -10),
-      preview: "Hi, I came across your profile and thought you'd be a great fit for a senior position with one of our clients...",
-      hasAttachment: false,
-      ...textOnly(
-        "Hi,\n\nI came across your profile and thought you'd be a great fit for a senior position with one of our clients - a well-funded Series B (real-time data infrastructure, 60-person eng team, fully remote within EU).\n\nThe core stack: Rust + Postgres + a non-trivial amount of Go. Hiring level is roughly equivalent to Staff at FAANG.\n\nWould you be open to a 15-minute call this week or next?\n\nBest,\nJennifer Hayes\nTalent Partners",
-      ),
-      messageId: '<outreach-jh-2025-11@talent-partners.example>',
-    },
-
-    // Dentist reminder
-    {
-      id: 'demo-email-dentist',
-      threadId: 'demo-thread-dentist',
-      mailboxIds: { 'demo-mailbox-inbox': true },
-      keywords: {},
-      size: 2200,
-      receivedAt: demoDate(-1, -2),
-      from: [{ name: "Dr. Smith's Office", email: 'appointments@drsmith.example' }],
-      to: [USER],
-      subject: 'Appointment reminder - Tuesday at 10:00',
-      sentAt: demoDate(-1, -2),
-      preview: 'This is a friendly reminder of your upcoming cleaning appointment on Tuesday at 10:00 AM.',
-      hasAttachment: false,
-      ...textOnly(
-        "Hello,\n\nThis is a friendly reminder of your upcoming cleaning appointment on Tuesday at 10:00 AM with Dr. Smith.\n\nLocation: 123 Medical Plaza, Suite 4\n\nNeed to reschedule? Reply to this email or call (555) 010-7878.\n\nSee you Tuesday!\nDr. Smith's office",
-      ),
-      messageId: '<appt-reminder-dr-smith@drsmith.example>',
-    },
-
-    // ── Sent ────────────────────────────────────────────────────
-    {
-      id: 'demo-email-6',
-      threadId: 'demo-thread-6',
-      mailboxIds: { 'demo-mailbox-sent': true },
-      keywords: { $seen: true },
-      size: 2100,
-      receivedAt: demoDate(-1, -4),
-      from: [USER],
-      to: [{ name: 'Alice Johnson', email: 'alice.johnson@example.com' }],
-      subject: 'Updated Requirements Document',
-      sentAt: demoDate(-1, -4),
-      preview: "Hi Alice, I've updated the requirements document with the changes we discussed...",
-      hasAttachment: false,
-      ...textOnly(
-        "Hi Alice,\n\nI've updated the requirements document with the changes we discussed in yesterday's meeting. The main updates are in sections 3 and 5.\n\nLet me know if you have any questions.\n\nBest,\nDemo User",
-      ),
-      messageId: '<sent-1@example.com>',
-    },
-    {
-      id: 'demo-email-7',
-      threadId: 'demo-thread-7',
-      mailboxIds: { 'demo-mailbox-sent': true },
-      keywords: { $seen: true },
-      size: 1800,
-      receivedAt: demoDate(-4, -2),
-      from: [USER],
-      to: [{ name: 'Sarah Kim', email: 'sarah.kim@example.com' }],
-      subject: 'Re: Design Feedback',
-      sentAt: demoDate(-4, -2),
-      preview: 'Thanks Sarah! The new color scheme looks great. I especially like the contrast improvements...',
-      hasAttachment: false,
-      ...textOnly(
-        "Thanks Sarah! The new color scheme looks great. I especially like the contrast improvements for accessibility.\n\nLet's go with Option B for the navigation.\n\nBest,\nDemo User",
-      ),
-      messageId: '<sent-2@example.com>',
-    },
-    {
-      id: 'demo-email-sent-mom',
-      threadId: 'demo-thread-mom',
-      mailboxIds: { 'demo-mailbox-sent': true },
-      keywords: { $seen: true },
-      size: 1400,
-      receivedAt: demoDate(0, -2, -10),
-      from: [USER],
-      to: [{ name: 'Sofia Russo', email: 'sofia.russo@example.com' }],
-      subject: 'Re: when are you coming home?',
-      sentAt: demoDate(0, -2, -10),
-      preview: "Mom - I miss you too. Let me check the calendar tonight and I'll get back to you tomorrow about the weekend...",
-      hasAttachment: false,
-      ...textOnly(
-        "Mom - I miss you too. Let me check the calendar tonight and I'll get back to you tomorrow about the weekend. Lemons sound like a bribe and I will not pretend otherwise.\n\nLove you both.",
-      ),
-      messageId: '<re-mom-1@example.com>',
-      inReplyTo: ['<5a8c-mom@example.com>'],
-      references: ['<5a8c-mom@example.com>'],
-    },
-
-    // ── Drafts ──────────────────────────────────────────────────
-    {
-      id: 'demo-email-8',
-      threadId: 'demo-thread-8',
-      mailboxIds: { 'demo-mailbox-drafts': true },
-      keywords: { $seen: true, $draft: true },
-      size: 900,
-      receivedAt: demoDate(0, -1),
-      from: [USER],
-      to: [{ name: 'Bob Chen', email: 'bob.chen@example.com' }],
-      subject: 'Meeting Notes - Draft',
-      sentAt: demoDate(0, -1),
-      preview: "Here are the notes from today's standup...",
-      hasAttachment: false,
-      ...textOnly(
-        "Here are the notes from today's standup:\n\n- API integration on track\n- Need to resolve the caching issue\n- ",
-      ),
-      messageId: '<draft-1@example.com>',
-    },
-    {
-      id: 'demo-email-draft-recruiter',
-      threadId: 'demo-thread-draft-recruiter',
-      mailboxIds: { 'demo-mailbox-drafts': true },
-      keywords: { $seen: true, $draft: true },
-      size: 720,
-      receivedAt: demoDate(0, -8),
-      from: [USER],
-      to: [{ name: 'Jennifer Hayes', email: 'jennifer@talent-partners.example' }],
-      subject: 'Re: Senior role - Distributed Systems',
-      sentAt: demoDate(0, -8),
-      preview: "Hi Jennifer, thanks for reaching out. I'm not actively looking, but the role sounds interesting enough that...",
-      hasAttachment: false,
-      ...textOnly(
-        "Hi Jennifer,\n\nThanks for reaching out. I'm not actively looking, but the role sounds interesting enough that I'd be open to a quick call. A few questions before we set something up:\n\n- ",
-      ),
-      messageId: '<draft-recruiter@example.com>',
-    },
-
-    // ── Trash ───────────────────────────────────────────────────
-    {
-      id: 'demo-email-9',
-      threadId: 'demo-thread-9',
-      mailboxIds: { 'demo-mailbox-trash': true },
-      keywords: { $seen: true },
-      size: 15200,
-      receivedAt: demoDate(-5, -3),
-      from: [{ name: 'Promo Store', email: 'deals@promostore.example' }],
-      to: [USER],
-      subject: '🎉 Flash Sale: 50% Off Everything!',
-      sentAt: demoDate(-5, -3),
-      preview: 'Limited time offer! Get 50% off all items in our store...',
-      hasAttachment: false,
-      ...textOnly(
-        'Limited time offer! Get 50% off all items in our store. Use code FLASH50 at checkout.',
-      ),
-      messageId: '<promo-1@promostore.example>',
-    },
-    {
-      id: 'demo-email-10',
-      threadId: 'demo-thread-10',
-      mailboxIds: { 'demo-mailbox-trash': true },
-      keywords: { $seen: true },
-      size: 2300,
-      receivedAt: demoDate(-7, 0),
-      from: [{ name: 'System Notification', email: 'noreply@service.example' }],
-      to: [USER],
-      subject: 'Your password was changed',
-      sentAt: demoDate(-7, 0),
-      preview: 'Your account password was successfully changed on...',
-      hasAttachment: false,
-      ...textOnly(
-        'Your account password was successfully changed. If you did not make this change, please contact support immediately.',
-      ),
-      messageId: '<notification-1@service.example>',
-    },
-
-    // ── Projects ────────────────────────────────────────────────
-    {
-      id: 'demo-email-11',
-      threadId: 'demo-thread-11',
-      mailboxIds: { 'demo-mailbox-projects': true },
-      keywords: { $seen: true, $flagged: true },
-      size: 4500,
-      receivedAt: demoDate(-2, -7),
-      from: [{ name: 'Alice Johnson', email: 'alice.johnson@example.com' }],
-      to: [USER],
-      subject: '[Project] Sprint Planning Agenda',
-      sentAt: demoDate(-2, -7),
-      preview: "Here's the agenda for next week's sprint planning session...",
-      hasAttachment: false,
-      ...textOnly(
-        "Hi team,\n\nHere's the agenda for next week's sprint planning:\n\n1. Review previous sprint velocity\n2. Discuss tech debt items\n3. Prioritize backlog\n4. Assign story points\n5. Capacity planning\n\nPlease come prepared with your updates.\n\nThanks,\nAlice",
-      ),
-      messageId: '<project-1@example.com>',
-    },
-    {
-      id: 'demo-email-12',
-      threadId: 'demo-thread-12',
-      mailboxIds: { 'demo-mailbox-projects': true },
-      keywords: {},
-      size: 3200,
-      receivedAt: demoDate(0, -8),
-      from: [{ name: 'Bob Chen', email: 'bob.chen@example.com' }],
-      to: [USER],
-      subject: '[Project] API Rate Limiting Discussion',
-      sentAt: demoDate(0, -8),
-      preview: "I've been thinking about our rate limiting approach and wanted to propose a few changes...",
-      hasAttachment: false,
-      ...textOnly(
-        "Hey,\n\nI've been thinking about our rate limiting approach and wanted to propose:\n\n1. Token bucket algorithm instead of fixed window\n2. Per-endpoint limits rather than global\n3. Graduated response (warn → throttle → block)\n\nThoughts? I can put together a more detailed RFC if we agree on the direction.\n\n- Bob",
-      ),
-      messageId: '<project-2@example.com>',
-    },
-    {
-      id: 'demo-email-roadmap',
-      threadId: 'demo-thread-roadmap',
-      mailboxIds: { 'demo-mailbox-projects': true },
-      keywords: {},
-      size: 4900,
-      receivedAt: demoDate(-1, -15),
-      from: [{ name: 'Michael Torres', email: 'michael.torres@company.example' }],
-      to: [USER, { name: 'Alice Johnson', email: 'alice.johnson@example.com' }, { name: 'James Miller', email: 'james.miller@company.example' }],
-      subject: '[Project] Q1 2026 roadmap - first cut',
-      sentAt: demoDate(-1, -15),
-      preview: 'Attached is the first cut of the Q1 roadmap. Three themes: reliability, mobile, and the long-promised...',
-      hasAttachment: true,
-      ...textOnly(
-        "Team,\n\nAttached is the first cut of the Q1 roadmap. Three themes:\n\n1. Reliability (Alice's team)\n2. Mobile parity (cross-functional)\n3. The long-promised search rework (James, this is mostly on you)\n\nLet's leave comments in the doc rather than do a meeting - I'd rather have the meeting be the *decisions*, not the discussion. Closing comments end-of-week.\n\nM",
-      ),
-      attachments: [
-        { partId: 'att-7', blobId: 'demo-blob-att-7', size: 84000, name: 'Q1-2026-roadmap-v0.pdf', type: 'application/pdf' },
-      ],
-      messageId: '<roadmap-q1-2026@company.example>',
-    },
-
-    // ── Archive ─────────────────────────────────────────────────
-    {
-      id: 'demo-email-13',
-      threadId: 'demo-thread-13',
-      mailboxIds: { 'demo-mailbox-archive': true },
-      keywords: { $seen: true },
-      size: 2600,
-      receivedAt: demoDate(-14, -6),
-      from: [{ name: 'Maria Lopez', email: 'maria.lopez@company.example' }],
-      to: [USER],
-      subject: 'Updated PTO Policy - Effective January 1',
-      sentAt: demoDate(-14, -6),
-      preview: 'Please review the updated PTO policy that takes effect January 1st...',
-      hasAttachment: false,
-      ...textOnly(
-        'Dear team,\n\nPlease review the updated PTO policy effective January 1st. Key changes include:\n\n- Increased annual allowance from 20 to 25 days\n- Flexible half-day options\n- Rollover limit increased to 10 days\n\nPlease acknowledge receipt.\n\nBest,\nMaria - People Ops',
-      ),
-      messageId: '<hr-policy-1@company.example>',
-    },
-    {
-      id: 'demo-email-archive-support',
-      threadId: 'demo-thread-archive-support',
-      mailboxIds: { 'demo-mailbox-archive': true },
-      keywords: { $seen: true },
-      size: 3400,
-      receivedAt: demoDate(-21, -4),
-      from: [{ name: 'Fastmail Support', email: 'support@fastmail.com' }],
-      to: [USER],
-      subject: 'Re: Ticket #438201 - DKIM signing fails on cross-account aliases',
-      sentAt: demoDate(-21, -4),
-      preview: "Thanks for the additional logs. We were able to reproduce on our side - the issue was indeed the alias resolution...",
-      hasAttachment: false,
-      ...textOnly(
-        "Hi,\n\nThanks for the additional logs. We were able to reproduce on our side - the issue was indeed the alias resolution path skipping the DKIM signer step. Fix has been deployed to the AU and SY clusters; EU rolls out tomorrow.\n\nResolved on our end. Please reopen if you see anything related.\n\nBest,\nClaire - Fastmail Support",
-      ),
-      messageId: '<ticket-438201-resolved@fastmail.com>',
-    },
-
-    // ── Receipts ────────────────────────────────────────────────
-    {
-      id: 'demo-email-14',
-      threadId: 'demo-thread-14',
-      mailboxIds: { 'demo-mailbox-receipts': true },
-      keywords: { $seen: true },
-      size: 5200,
-      receivedAt: demoDate(-3, -12),
-      from: [{ name: 'Hetzner', email: 'billing@hetzner.com' }],
-      to: [USER],
-      subject: 'Invoice #INV-2024-1042 - €49.99 (paid)',
-      sentAt: demoDate(-3, -12),
-      preview: 'Your payment of €49.99 has been processed successfully...',
-      hasAttachment: true,
-      ...textOnly(
-        'Payment Confirmation\n\nAmount: €49.99\nDate: 3 days ago\nInvoice: INV-2024-1042\nService: CX22 dedicated (Helsinki, monthly)\n\nThank you for your payment.',
-      ),
-      attachments: [
-        { partId: 'att-8', blobId: 'demo-blob-att-8', size: 28000, name: 'INV-2024-1042.pdf', type: 'application/pdf' },
-      ],
-      messageId: '<receipt-1@hetzner.com>',
-    },
-    {
-      id: 'demo-email-receipts-domain',
-      threadId: 'demo-thread-receipts-domain',
-      mailboxIds: { 'demo-mailbox-receipts': true },
-      keywords: { $seen: true },
-      size: 3100,
-      receivedAt: demoDate(-9, -8),
-      from: [{ name: 'Porkbun', email: 'support@porkbun.com' }],
-      to: [USER],
-      subject: 'Renewal confirmation - example.com (1 year)',
-      sentAt: demoDate(-9, -8),
-      preview: 'Your domain example.com has been renewed for 1 year. Next renewal: 11 months from today.',
-      hasAttachment: false,
-      ...textOnly(
-        "Hi,\n\nYour domain example.com has been renewed for 1 year.\n\nAmount: $11.06\nNext renewal: 11 months from today\nAutorenew: on\n\nReply to this email if you need a tax-receipt-style invoice.\n\n- Porkbun",
-      ),
-      messageId: '<renewal-example.com@porkbun.com>',
-    },
-
-    // ── Spam ────────────────────────────────────────────────────
-    {
-      id: 'demo-email-15',
-      threadId: 'demo-thread-15',
-      mailboxIds: { 'demo-mailbox-junk': true },
-      keywords: {},
-      size: 8900,
-      receivedAt: demoDate(-1, -9),
-      from: [{ name: 'Prize Center', email: 'winner@totallylegit.example' }],
-      to: [USER],
-      subject: 'Congratulations! You Won $1,000,000!!!',
-      sentAt: demoDate(-1, -9),
-      preview: 'Dear lucky winner, you have been selected to receive one million dollars...',
-      hasAttachment: false,
-      ...textOnly(
-        'Dear lucky winner,\n\nYou have been selected to receive ONE MILLION DOLLARS! Click below to claim your prize immediately.\n\n[This is a demo spam email]',
-      ),
-      messageId: '<spam-1@totallylegit.example>',
-    },
-    {
-      id: 'demo-email-spam-phish',
-      threadId: 'demo-thread-spam-phish',
-      mailboxIds: { 'demo-mailbox-junk': true },
-      keywords: {},
-      size: 4600,
-      receivedAt: demoDate(-2, -3),
-      from: [{ name: 'Secure Banking', email: 'security-alert@secur1ty-bank.example' }],
-      to: [USER],
-      subject: 'URGENT: Unusual activity on your account - verify within 24 hours',
-      sentAt: demoDate(-2, -3),
-      preview: "We've detected suspicious activity. Click below to verify your identity or your account will be suspended...",
-      hasAttachment: false,
-      ...textOnly(
-        "We've detected suspicious activity on your account. To prevent suspension, please verify your details within 24 hours by clicking the link below.\n\n[Phishing demo - never click links like this in real life.]",
-      ),
-      messageId: '<phish-1@secur1ty-bank.example>',
-    },
-    {
-      id: 'demo-email-spam-crypto',
-      threadId: 'demo-thread-spam-crypto',
-      mailboxIds: { 'demo-mailbox-junk': true },
-      keywords: {},
-      size: 6800,
-      receivedAt: demoDate(-3, -19),
-      from: [{ name: 'CryptoGrowth Daily', email: 'invest@cryptogrowth.example' }],
-      to: [USER],
-      subject: '🚀 The coin Elon won\'t tell you about - 1000x potential',
-      sentAt: demoDate(-3, -19),
-      preview: 'Three early backers turned $500 into $5M in 90 days. Today, you have a chance to get in even earlier...',
-      hasAttachment: false,
-      ...textOnly(
-        'Three early backers turned $500 into $5M in 90 days. Today, you have a chance to get in even earlier. Limited spots. No experience needed.\n\n[Demo spam.]',
-      ),
-      messageId: '<spam-crypto@cryptogrowth.example>',
-    },
+    // A mail to the alias, so the identity picker has something to show.
+    mail({
+      id: 'demo-email-alias', mailbox: MB.inbox, date: at(5, 14, 22),
+      from: { name: 'Infra Summit', email: 'speakers@infrasummit.example' }, to: [addr(NORA_ALIAS)],
+      subject: 'Speaker profile: please check your bio and photo',
+      text: 'Your speaker profile is live at infrasummit.example/speakers/nora-lindqvist. Please check the bio and the photo; reply to this mail with changes by the end of the week.',
+      keywords: ['$seen', '$label:travel'], headers: { ...authPass('infrasummit.example'), ...listHeaders('Infra Summit Speakers', 'infrasummit.example') },
+    }),
   ];
 }

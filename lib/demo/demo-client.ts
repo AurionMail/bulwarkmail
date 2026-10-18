@@ -1,34 +1,40 @@
 import type { IJMAPClient, KeywordDiscoveryResult, KeywordMigration } from '@/lib/jmap/client-interface';
 import type { Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, VacationResponse, Calendar, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, ScheduledEmail, SendEmailResult, SharedAccount } from '@/lib/jmap/types';
 import type { SieveScript, SieveCapabilities } from '@/lib/jmap/sieve-types';
-import { getDemoData, type DemoData } from './demo-data';
+import { getDemoData, demoSharedAccounts, type DemoData, type DemoProfile } from './demo-data';
 import { generateDemoId } from './demo-utils';
+import { DEMO_ASSETS } from './fixtures/assets';
+import { GONOGO_INVITE_BLOB } from './fixtures/emails';
+import { createGoNoGoInvitationIcs, GONOGO_EVENT_ID } from './fixtures/calendars';
+import { ALICE, BOB, SARAH, PRIYA, LISA } from './fixtures/people';
+import { parseAuthenticationResults, parseSpamLLM, parseSpamScore } from '@/lib/email-headers';
 import { compareEmails, type SortLevel } from '@/lib/message-list-order';
 import { withBasePath } from '@/lib/browser-navigation';
 import { toInertBlob } from '@/lib/file-preview';
 import type { StorageQuota } from "@/lib/quota";
 
-// Fixture blobs with real bytes behind them, served from public/demo/. The
-// photos are CC0 / public domain from Wikimedia Commons: "Wedding couple
-// (1294004)", "Wedding couple (1293575)", "Men drinking", "Lake Mountain
-// Landscape" and "Team members of startup". prototype-v3.png is drawn for the
-// demo. Every other fixture blob falls back to a text placeholder.
-const DEMO_BLOB_ASSETS: Record<string, string> = {
-  'demo-blob-att-2': '/demo/prototype-v3.png',
-  'demo-blob-att-3': '/demo/wedding-001.jpg',
-  'demo-blob-att-4': '/demo/wedding-014-mom-dad.jpg',
-  'demo-blob-att-5': '/demo/wedding-038-the-toast.jpg',
-  'demo-blob-file-4': '/demo/vacation.jpg',
-  'demo-blob-file-5': '/demo/team-photo.jpg',
-};
+// Fixture blobs with real bytes behind them, served from public/demo/ (see
+// fixtures/assets.ts for the list and the licences). Any other blob id falls
+// back to a text placeholder.
+const DEMO_BLOB_ASSETS: Record<string, string> = Object.fromEntries(
+  Object.entries(DEMO_ASSETS).map(([blobId, asset]) => [blobId, asset.path]),
+);
+
+/** localStorage key that switches the simulated incoming mail off (screenshot runs). */
+export const DEMO_SIMULATE_KEY = 'bulwark-demo-simulate';
 
 /**
  * In-memory JMAP client for demo mode.
  * All data lives in memory - no server calls, no cookies. Only the demo
  * images under public/demo are fetched, from the app's own origin.
+ *
+ * One instance per demo login: `new DemoJMAPClient('work')` is the primary
+ * account (with the shared Support mailbox delegated to it), and
+ * `new DemoJMAPClient('personal')` the mail-only second account.
  */
 export class DemoJMAPClient implements IJMAPClient {
   private data: DemoData;
+  private readonly profile: DemoProfile;
   private blobStore = new Map<string, Blob>();
   private scheduledSubmissions = new Map<string, { id: string; emailId: string; identityId: string; sendAt: string; undoStatus: 'pending' | 'final' | 'canceled'; isSmime: boolean }>();
   private connectionCallback: ((connected: boolean) => void) | null = null;
@@ -36,15 +42,47 @@ export class DemoJMAPClient implements IJMAPClient {
   private lastStates: AccountStates = {};
   private incomingTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor() {
-    this.data = getDemoData();
+  constructor(profile: DemoProfile = 'work') {
+    this.profile = profile;
+    this.data = getDemoData(profile);
+    // Fixtures carry raw headers the way a server sends them; derive the
+    // parsed fields the viewer reads, as JMAPClient.parseEmailHeaders does.
+    for (const email of this.data.emails) this.deriveHeaderFields(email);
+    this.recalcMailboxCounts();
+    for (const s of this.data.scheduled) {
+      const id = generateDemoId('submission');
+      this.scheduledSubmissions.set(id, { id, emailId: s.emailId, identityId: s.identityId, sendAt: s.sendAt, undoStatus: 'pending', isSmime: false });
+    }
+  }
+
+  private deriveHeaderFields(email: Email): void {
+    const headers = email.headers;
+    if (!headers) return;
+    const header = (name: string) => {
+      const key = Object.keys(headers).find((k) => k.toLowerCase() === name);
+      return key ? headers[key] : undefined;
+    };
+    const auth = header('authentication-results');
+    if (auth && !email.authenticationResults) email.authenticationResults = parseAuthenticationResults(auth);
+    const spam = header('x-spam-score') ?? header('x-spam-status');
+    if (typeof spam === 'string' && email.spamScore === undefined) {
+      const parsed = parseSpamScore(spam);
+      if (parsed) { email.spamScore = parsed.score; email.spamStatus = parsed.status; }
+    }
+    const llm = header('x-spam-llm');
+    if (typeof llm === 'string' && !email.spamLLM) {
+      const parsed = parseSpamLLM(llm);
+      if (parsed) email.spamLLM = parsed;
+    }
   }
 
   // ── Connection lifecycle ──────────────────────────────────────
 
   async connect(): Promise<void> {
-    // Start simulated incoming email timer
-    this.startIncomingEmailTimer();
+    // Simulated incoming mail, unless a screenshot run switched it off.
+    let simulate = true;
+    try { simulate = typeof localStorage === 'undefined' || localStorage.getItem(DEMO_SIMULATE_KEY) !== 'off'; } catch { /* storage blocked */ }
+    if (simulate) this.startIncomingEmailTimer();
   }
 
   disconnect(): void {
@@ -64,10 +102,13 @@ export class DemoJMAPClient implements IJMAPClient {
   upgradeToBearer(): void { /* no-op */ }
   enableTotpReauth(): void { /* no-op */ }
   updateBasicAuth(): void { /* no-op */ }
-  getAccountId(): string { return 'demo-account'; }
-  getUsername(): string { return 'demo@example.com'; }
+  getAccountId(): string { return this.data.accountId; }
+  getUsername(): string { return this.data.username; }
 
   // ── Capabilities ──────────────────────────────────────────────
+
+  /** The personal login is mail only; everything else lives in the work account. */
+  private get mailOnly(): boolean { return this.profile === 'personal'; }
 
   hasAccountCapability(capability: string, _accountId?: string): boolean {
     return capability === 'urn:ietf:params:jmap:submission';
@@ -79,11 +120,13 @@ export class DemoJMAPClient implements IJMAPClient {
       'urn:ietf:params:jmap:mail': {},
       'urn:ietf:params:jmap:submission': { maxDelayedSend: 30 * 24 * 60 * 60, submissionExtensions: { FUTURERELEASE: true } },
       'urn:ietf:params:jmap:vacationresponse': {},
-      'urn:ietf:params:jmap:contacts': {},
-      'urn:ietf:params:jmap:calendars': {},
-      'urn:ietf:params:jmap:sieve': {},
       'urn:ietf:params:jmap:quota': {},
-      'urn:ietf:params:jmap:files': {},
+      ...(this.mailOnly ? {} : {
+        'urn:ietf:params:jmap:contacts': {},
+        'urn:ietf:params:jmap:calendars': {},
+        'urn:ietf:params:jmap:sieve': {},
+        'urn:ietf:params:jmap:files': {},
+      }),
     };
   }
 
@@ -98,10 +141,10 @@ export class DemoJMAPClient implements IJMAPClient {
   supportsQuota(): boolean { return true; }
   supportsVacationResponse(): boolean { return true; }
   accountSupports(): boolean { return true; }
-  supportsContacts(): boolean { return true; }
-  supportsCalendars(): boolean { return true; }
-  supportsSieve(): boolean { return true; }
-  supportsFiles(): boolean { return true; }
+  supportsContacts(): boolean { return !this.mailOnly; }
+  supportsCalendars(): boolean { return !this.mailOnly; }
+  supportsSieve(): boolean { return !this.mailOnly; }
+  supportsFiles(): boolean { return !this.mailOnly; }
   supportsPrincipals(): boolean { return false; }
   async getPrincipals(): Promise<never[]> { return []; }
   async setCalendarShare(): Promise<void> { /* demo: no-op */ }
@@ -134,13 +177,38 @@ export class DemoJMAPClient implements IJMAPClient {
   // ── Quota ─────────────────────────────────────────────────────
 
   async getQuota(): Promise<StorageQuota | null> {
-    return { used: 245_366_784, total: 1_073_741_824 };
+    return { ...this.data.quota };
   }
 
   // ── Mailboxes ─────────────────────────────────────────────────
 
-  async getMailboxes(_accountId?: string): Promise<Mailbox[]> { return [...this.data.mailboxes]; }
-  async getAllMailboxes(): Promise<Mailbox[]> { return [...this.data.mailboxes]; }
+  async getMailboxes(accountId?: string): Promise<Mailbox[]> {
+    if (accountId && accountId !== this.data.accountId) {
+      return [...(this.data.sharedMailboxes[accountId]?.mailboxes ?? [])];
+    }
+    return [...this.data.mailboxes];
+  }
+
+  /**
+   * Own folders plus the folders of accounts shared with this login, the
+   * latter namespaced `<ownerId>:<id>` and tagged `isShared`, as
+   * JMAPClient.getAllMailboxes does. Mail keeps the bare ids in mailboxIds;
+   * the store queries shared folders by `originalId` + owner `accountId`.
+   */
+  async getAllMailboxes(): Promise<Mailbox[]> {
+    const shared = Object.entries(this.data.sharedMailboxes).flatMap(([accountId, { name, mailboxes }]) =>
+      mailboxes.map((mb) => ({
+        ...mb,
+        id: `${accountId}:${mb.id}`,
+        originalId: mb.id,
+        parentId: mb.parentId ? `${accountId}:${mb.parentId}` : undefined,
+        accountId,
+        accountName: name,
+        isShared: true,
+      })),
+    );
+    return [...this.data.mailboxes, ...shared];
+  }
 
   async createMailbox(name: string, parentId?: string, _accountId?: string, options?: { role?: string }): Promise<Mailbox> {
     const mb: Mailbox = {
@@ -207,10 +275,25 @@ export class DemoJMAPClient implements IJMAPClient {
         (f.email || '').toLowerCase().includes(q) || (f.name || '').toLowerCase().includes(q));
       if (!match) return false;
     }
+    const addressMatch = (list: EmailAddress[] | undefined, q: string) =>
+      (list || []).some(a => (a.email || '').toLowerCase().includes(q) || (a.name || '').toLowerCase().includes(q));
+    if (typeof filter.to === 'string' && !addressMatch(e.to, filter.to.toLowerCase())) return false;
+    if (typeof filter.cc === 'string' && !addressMatch(e.cc, filter.cc.toLowerCase())) return false;
+    if (typeof filter.bcc === 'string' && !addressMatch(e.bcc, filter.bcc.toLowerCase())) return false;
+    if (typeof filter.subject === 'string' && !(e.subject || '').toLowerCase().includes(filter.subject.toLowerCase())) return false;
+    if (typeof filter.hasAttachment === 'boolean' && e.hasAttachment !== filter.hasAttachment) return false;
+    if (typeof filter.before === 'string' && e.receivedAt >= filter.before) return false;
+    if (typeof filter.after === 'string' && e.receivedAt < filter.after) return false;
     if (typeof filter.text === 'string') {
       const q = filter.text.toLowerCase();
-      const text = [e.subject, e.preview, e.from?.[0]?.name, e.from?.[0]?.email].filter(Boolean).join(' ').toLowerCase();
+      const bodyText = Object.values(e.bodyValues || {}).map(v => v.value).join(' ');
+      const text = [e.subject, e.preview, e.from?.[0]?.name, e.from?.[0]?.email, bodyText].filter(Boolean).join(' ').toLowerCase();
       if (!text.includes(q)) return false;
+    }
+    if (typeof filter.body === 'string') {
+      const q = filter.body.toLowerCase();
+      const bodyText = Object.values(e.bodyValues || {}).map(v => v.value).join(' ').toLowerCase();
+      if (!bodyText.includes(q)) return false;
     }
     if (typeof filter.inMailbox === 'string' && !e.mailboxIds[filter.inMailbox]) return false;
     if (Array.isArray(filter.inMailboxOtherThan)) {
@@ -654,11 +737,11 @@ export class DemoJMAPClient implements IJMAPClient {
 
     const email: Email = {
       id, threadId: generateDemoId('thread'),
-      mailboxIds: { [draftsMb?.id || 'demo-mailbox-drafts']: true },
+      mailboxIds: { [draftsMb?.id || this.data.mailboxes[0].id]: true },
       keywords: { $seen: true, $draft: true },
       size: body.length,
       receivedAt: new Date().toISOString(),
-      from: [{ name: 'Demo User', email: 'demo@example.com' }],
+      from: [this.fromAddress(_identityId, _fromEmail, _fromName)],
       to: to.map(e => ({ email: e })),
       cc: cc?.length ? cc.map(e => ({ email: e })) : undefined,
       bcc: bcc?.length ? bcc.map(e => ({ email: e })) : undefined,
@@ -710,11 +793,11 @@ export class DemoJMAPClient implements IJMAPClient {
     const sentMb = this.data.mailboxes.find(m => m.role === 'sent');
     const email: Email = {
       id: generateDemoId('email'), threadId: generateDemoId('thread'),
-      mailboxIds: { [delayedUntil ? (this.data.mailboxes.find(m => m.role === 'drafts')?.id || 'demo-mailbox-drafts') : (sentMb?.id || 'demo-mailbox-sent')]: true },
+      mailboxIds: { [delayedUntil ? (this.data.mailboxes.find(m => m.role === 'drafts')?.id || this.data.mailboxes[0].id) : (sentMb?.id || this.data.mailboxes[0].id)]: true },
       keywords: delayedUntil ? { $seen: true, $draft: true } : { $seen: true },
       size: body.length + (htmlBody?.length || 0),
       receivedAt: new Date().toISOString(),
-      from: [{ name: 'Demo User', email: 'demo@example.com' }],
+      from: [this.fromAddress(_identityId, _fromEmail, _fromName)],
       to: to.map(e => ({ email: e })),
       cc: cc?.length ? cc.map(e => ({ email: e })) : undefined,
       bcc: bcc?.length ? bcc.map(e => ({ email: e })) : undefined,
@@ -737,7 +820,7 @@ export class DemoJMAPClient implements IJMAPClient {
       this.scheduledSubmissions.set(emailSubmissionId, {
         id: emailSubmissionId,
         emailId: email.id,
-        identityId: _identityId || 'demo-identity',
+        identityId: _identityId || this.data.identities[0]?.id || 'demo-identity',
         sendAt: delayedUntil,
         undoStatus: 'pending',
         isSmime: false,
@@ -747,6 +830,14 @@ export class DemoJMAPClient implements IJMAPClient {
     return delayedUntil
       ? { scheduled: true, emailId: email.id, emailSubmissionId, sendAt: delayedUntil }
       : { scheduled: false, emailId: email.id };
+  }
+
+  /** The From address of new mail: the chosen identity, else the account's own address. */
+  private fromAddress(identityId?: string, fromEmail?: string, fromName?: string): EmailAddress {
+    const identity = identityId ? this.data.identities.find(i => i.id === identityId) : undefined;
+    if (identity) return { name: identity.name, email: identity.email };
+    if (fromEmail) return { name: fromName || this.data.self.name, email: fromEmail };
+    return { ...this.data.self };
   }
 
   async sendImipReply(): Promise<void> { /* no-op in demo */ }
@@ -784,6 +875,9 @@ export class DemoJMAPClient implements IJMAPClient {
   async fetchBlob(blobId: string): Promise<Blob> {
     const stored = this.blobStore.get(blobId);
     if (stored) return stored;
+    if (blobId === GONOGO_INVITE_BLOB) {
+      return new Blob([createGoNoGoInvitationIcs()], { type: 'text/calendar; method=REQUEST' });
+    }
     const asset = DEMO_BLOB_ASSETS[blobId];
     if (asset) {
       try {
@@ -865,7 +959,7 @@ export class DemoJMAPClient implements IJMAPClient {
 
   // ── Contacts ──────────────────────────────────────────────────
 
-  getContactsAccountId(): string { return 'demo-account'; }
+  getContactsAccountId(): string { return this.data.accountId; }
 
   async getAddressBooks(): Promise<AddressBook[]> { return [...this.data.addressBooks]; }
   async getAllAddressBooks(): Promise<AddressBook[]> { return [...this.data.addressBooks]; }
@@ -906,7 +1000,7 @@ export class DemoJMAPClient implements IJMAPClient {
   async createContact(contact: Partial<ContactCard>): Promise<ContactCard> {
     const full: ContactCard = {
       id: generateDemoId('contact'),
-      addressBookIds: contact.addressBookIds ?? { 'demo-addressbook-personal': true },
+      addressBookIds: contact.addressBookIds ?? { [(this.data.addressBooks.find(b => b.isDefault) ?? this.data.addressBooks[0])?.id ?? 'demo-addressbook-personal']: true },
       ...contact,
     } as ContactCard;
     this.data.contacts.push(full);
@@ -933,7 +1027,7 @@ export class DemoJMAPClient implements IJMAPClient {
 
   // ── Calendars ─────────────────────────────────────────────────
 
-  getCalendarsAccountId(): string { return 'demo-account'; }
+  getCalendarsAccountId(): string { return this.data.accountId; }
 
   async getCalendars(): Promise<Calendar[]> { return [...this.data.calendars]; }
   async getAllCalendars(): Promise<Calendar[]> { return [...this.data.calendars]; }
@@ -990,7 +1084,7 @@ export class DemoJMAPClient implements IJMAPClient {
   async createCalendarEvent(event: Partial<CalendarEvent>): Promise<CalendarEvent> {
     const full: CalendarEvent = {
       id: generateDemoId('event'),
-      calendarIds: event.calendarIds ?? { 'demo-calendar-personal': true },
+      calendarIds: event.calendarIds ?? { [(this.data.calendars.find(c => c.isDefault) ?? this.data.calendars[0])?.id ?? 'demo-calendar-work']: true },
       '@type': 'Event',
       uid: generateDemoId('uid'),
       title: event.title ?? 'New Event',
@@ -1029,10 +1123,27 @@ export class DemoJMAPClient implements IJMAPClient {
     return { created, failed: [], notCreated: {} };
   }
 
+  /**
+   * Applies a CalendarEvent/set patch. Keys may be JSON pointers
+   * (`participants/p2/participationStatus`), which is how the store sends
+   * an RSVP; plain keys replace the property.
+   */
   async updateCalendarEvent(eventId: string, updates: Partial<CalendarEvent>): Promise<void> {
     const event = this.data.calendarEvents.find(e => e.id === eventId);
     if (!event) throw new Error('Event not found');
-    Object.assign(event, updates, { updated: new Date().toISOString() });
+    const target = event as unknown as Record<string, unknown>;
+    for (const [key, value] of Object.entries(updates as Record<string, unknown>)) {
+      if (!key.includes('/')) { target[key] = value; continue; }
+      const path = key.split('/').map(s => s.replace(/~1/g, '/').replace(/~0/g, '~'));
+      let node = target;
+      for (const segment of path.slice(0, -1)) {
+        if (typeof node[segment] !== 'object' || node[segment] === null) node[segment] = {};
+        node = node[segment] as Record<string, unknown>;
+      }
+      const last = path[path.length - 1];
+      if (value === null) delete node[last]; else node[last] = value;
+    }
+    event.updated = new Date().toISOString();
   }
 
   async deleteCalendarEvent(eventId: string): Promise<void> {
@@ -1047,6 +1158,7 @@ export class DemoJMAPClient implements IJMAPClient {
 
   async queryCalendarEvents(filter: CalendarEventFilter): Promise<CalendarEvent[]> {
     return this.data.calendarEvents.filter(e => {
+      if (filter.uid && e.uid !== filter.uid) return false;
       if (filter.after && e.start < filter.after) return false;
       if (filter.before && e.start > filter.before) return false;
       const q = (filter.text ?? filter.title)?.toLowerCase();
@@ -1062,8 +1174,11 @@ export class DemoJMAPClient implements IJMAPClient {
     return this.queryCalendarEvents(filter);
   }
 
-  async parseCalendarEvents(): Promise<Partial<CalendarEvent>[]> {
-    return []; // no-op in demo
+  /** Only the go/no-go invitation carries a parsable .ics in the demo. */
+  async parseCalendarEvents(_accountId: string, blobId: string): Promise<Partial<CalendarEvent>[]> {
+    if (blobId !== GONOGO_INVITE_BLOB) return [];
+    const event = this.data.calendarEvents.find(e => e.id === GONOGO_EVENT_ID);
+    return event ? [JSON.parse(JSON.stringify(event))] : [];
   }
 
   // ── Calendar Tasks ────────────────────────────────────────────
@@ -1119,15 +1234,10 @@ export class DemoJMAPClient implements IJMAPClient {
   // ── Sieve / Filters ──────────────────────────────────────────
 
   getSharedAccounts(): SharedAccount[] {
-    return [{
-      id: 'demo-account',
-      name: 'Demo',
-      isPrimary: true,
-      capabilities: { mail: true, sieve: true, calendars: true, contacts: true, filenode: true },
-    }];
+    return demoSharedAccounts(this.profile);
   }
 
-  getSieveAccountId(): string { return 'demo-account'; }
+  getSieveAccountId(): string { return this.data.accountId; }
 
   getSieveAccounts(): { id: string; name: string; isPrimary: boolean }[] {
     return this.getSharedAccounts()
@@ -1192,7 +1302,7 @@ export class DemoJMAPClient implements IJMAPClient {
 
   // ── Files (FileNode) ─────────────────────────────────────────
 
-  getFilesAccountId(): string { return 'demo-account'; }
+  getFilesAccountId(): string { return this.data.accountId; }
 
   async probeFileNodeSupport(): Promise<boolean> { return true; }
 
@@ -1281,18 +1391,18 @@ export class DemoJMAPClient implements IJMAPClient {
     }
     return delayedUntil ? { scheduled: true, emailId, emailSubmissionId, sendAt: delayedUntil, isSmime: true } : { scheduled: false, emailId, isSmime: true };
   }
-  async sendRawEmail(_blob?: Blob, identityId = 'demo-identity', _sentMailboxId?: string, _draftMailboxId?: string, delayedUntil?: string, _envelopeRecipients?: string[]): Promise<SendEmailResult> {
+  async sendRawEmail(_blob?: Blob, identityId = 'demo-identity-primary', _sentMailboxId?: string, _draftMailboxId?: string, delayedUntil?: string, _envelopeRecipients?: string[]): Promise<SendEmailResult> {
     const emailId = generateDemoId('email');
     const draftsMailbox = this.data.mailboxes.find(m => m.role === 'drafts');
     const sentMailbox = this.data.mailboxes.find(m => m.role === 'sent');
     const email: Email = {
       id: emailId,
       threadId: generateDemoId('thread'),
-      mailboxIds: { [(delayedUntil ? draftsMailbox?.id : sentMailbox?.id) || 'demo-mailbox-sent']: true },
+      mailboxIds: { [(delayedUntil ? draftsMailbox?.id : sentMailbox?.id) || this.data.mailboxes[0].id]: true },
       keywords: delayedUntil ? { $seen: true, $draft: true } : { $seen: true },
       size: 1024,
       receivedAt: new Date().toISOString(),
-      from: [{ name: 'Demo User', email: 'demo@example.com' }],
+      from: [this.fromAddress(identityId)],
       to: [],
       subject: 'S/MIME message',
       preview: 'Signed/encrypted demo message',
@@ -1355,7 +1465,8 @@ export class DemoJMAPClient implements IJMAPClient {
   // ── Internal helpers ──────────────────────────────────────────
 
   private recalcMailboxCounts(): void {
-    for (const mb of this.data.mailboxes) {
+    const shared = Object.values(this.data.sharedMailboxes).flatMap((s) => s.mailboxes);
+    for (const mb of [...this.data.mailboxes, ...shared]) {
       const inMb = this.data.emails.filter(e => e.mailboxIds[mb.id]);
       mb.totalEmails = inMb.length;
       mb.unreadEmails = inMb.filter(e => !e.keywords.$seen).length;
@@ -1385,19 +1496,16 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   private simulateIncomingEmail(): void {
-    const senders = [
-      { name: 'Alice Johnson', email: 'alice.johnson@example.com' },
-      { name: 'Bob Chen', email: 'bob.chen@example.com' },
-      { name: 'Sarah Kim', email: 'sarah.kim@example.com' },
-      { name: 'Carlos Rivera', email: 'carlos.rivera@example.com' },
-    ];
+    const inbox = this.data.mailboxes.find(m => m.role === 'inbox');
+    if (!inbox || this.profile !== 'work') return;
+    const senders = [ALICE, BOB, SARAH, PRIYA, LISA].map(p => ({ name: p.name, email: p.email }));
     const subjects = [
-      'Quick question about the project',
-      'Meeting rescheduled to tomorrow',
-      'FYI: Updated documentation',
-      'Can you review this PR?',
+      'Quick question about the canary list',
+      'Go/no-go moved by 15 minutes',
+      'FYI: runbook comments addressed',
+      'Can you look at #1291 before lunch?',
       'Lunch today?',
-      'Important: deadline reminder',
+      'Reminder: changelog quote',
     ];
 
     const sender = senders[Math.floor(Math.random() * senders.length)];
@@ -1406,12 +1514,12 @@ export class DemoJMAPClient implements IJMAPClient {
 
     const email: Email = {
       id, threadId: generateDemoId('thread'),
-      mailboxIds: { 'demo-mailbox-inbox': true },
+      mailboxIds: { [inbox.id]: true },
       keywords: {},
       size: 1800,
       receivedAt: new Date().toISOString(),
       from: [sender],
-      to: [{ name: 'Demo User', email: 'demo@example.com' }],
+      to: [{ ...this.data.self }],
       subject, sentAt: new Date().toISOString(),
       preview: `Hi, ${subject.toLowerCase()}. Let me know what you think.`,
       hasAttachment: false,
@@ -1428,7 +1536,7 @@ export class DemoJMAPClient implements IJMAPClient {
     // Notify state change to trigger UI refresh
     this.stateChangeCallback?.({
       '@type': 'StateChange',
-      changed: { 'demo-account': { Email: generateDemoId('state'), Mailbox: generateDemoId('state') } },
+      changed: { [this.data.accountId]: { Email: generateDemoId('state'), Mailbox: generateDemoId('state') } },
     });
   }
 }

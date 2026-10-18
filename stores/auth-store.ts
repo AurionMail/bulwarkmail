@@ -1003,6 +1003,9 @@ let refreshPromise: Promise<string | null> | null = null;
 // Multi-account state: per-account JMAP clients and refresh timers
 const clients = new Map<string, JMAPClient>();
 
+/** Server URL recorded on the demo accounts; nothing is ever sent to it. */
+const DEMO_SERVER_URL = 'https://demo.example.com';
+
 /**
  * Account switches can overlap (click B, then C before B lands). Each switch
  * takes a generation and gives up at its next await once a newer one has
@@ -1685,30 +1688,46 @@ export const useAuthStore = create<AuthState>()(
           clearAllStores();
 
           const { DemoJMAPClient } = await import('@/lib/demo/demo-client');
-          const client = new DemoJMAPClient();
-          await client.connect();
+          const { seedDemoPreferences } = await import('@/lib/demo/demo-preferences');
+          // Two logins: the work account (primary, with the shared Support
+          // mailbox) and a mail-only personal account, so the account
+          // switcher and the merged inbox have more than one source.
+          const client = new DemoJMAPClient('work');
+          const personal = new DemoJMAPClient('personal');
+          await Promise.all([client.connect(), personal.connect()]);
 
           const username = client.getUsername();
           const { identities, primaryIdentity } = loadIdentities(await client.getIdentities(), username);
           initializeFeatureStores(client);
 
-          // Register a demo account entry so the account-switcher shows
-          // proper avatar/name instead of a "?" placeholder.
+          // Register the account entries so the account switcher shows
+          // names and avatars, and the unified views find both clients.
           const accountStore = useAccountStore.getState();
-          const demoAccountId = accountStore.addAccount({
-            label: primaryIdentity?.name || 'Demo User',
-            serverUrl: 'https://demo.example.com',
-            username,
-            authMode: 'basic',
-            rememberMe: false,
-            displayName: primaryIdentity?.name || 'Demo User',
-            email: primaryIdentity?.email || username,
-            lastLoginAt: Date.now(),
-            isConnected: true,
-            hasError: false,
-            isDefault: true,
-          });
+          const displayName = primaryIdentity?.name || 'Nora Lindqvist';
+          const register = (demoClient: InstanceType<typeof DemoJMAPClient>, label: string, isDefault: boolean) => {
+            const email = demoClient.getUsername();
+            const id = accountStore.addAccount({
+              label,
+              serverUrl: DEMO_SERVER_URL,
+              username: email,
+              authMode: 'basic',
+              rememberMe: false,
+              displayName,
+              email,
+              lastLoginAt: Date.now(),
+              isConnected: true,
+              hasError: false,
+              isDefault,
+            });
+            // The registry is typed for the real client; the unified views only
+            // use the IJMAPClient surface, which the demo client implements.
+            clients.set(id, demoClient as unknown as JMAPClient);
+            return id;
+          };
+          const demoAccountId = register(client, 'Meridian Labs', true);
+          register(personal, 'Personal', false);
           accountStore.setActiveAccount(demoAccountId);
+          seedDemoPreferences();
 
           set({
             isAuthenticated: true,
@@ -2563,9 +2582,9 @@ export const useAuthStore = create<AuthState>()(
         const accountStore = useAccountStore.getState();
         let accounts = accountStore.accounts;
 
-        // If the only account is the demo account, re-initialize demo mode
+        // If every account is a demo account, re-initialize demo mode
         // instead of trying to restore a server session (which doesn't exist).
-        if (accounts.length === 1 && accounts[0].serverUrl === 'https://demo.example.com') {
+        if (accounts.length > 0 && accounts.every((a) => a.serverUrl === DEMO_SERVER_URL)) {
           await get().loginDemo();
           return;
         }

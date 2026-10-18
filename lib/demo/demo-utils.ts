@@ -29,6 +29,18 @@ export function demoISODate(daysOffset: number, hours: number = 0, minutes: numb
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
 }
 
+/**
+ * The UTC instant of a local wall-clock time on a day relative to today
+ * (`demoAt(1, 14)` is tomorrow 14:00 local, as an ISO string). Pairs with
+ * demoISODate for JSCalendar utcStart/utcEnd.
+ */
+export function demoAt(daysOffset: number, hours: number = 0, minutes: number = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  d.setHours(hours, minutes, 0, 0);
+  return d.toISOString();
+}
+
 /** Deep clone fixture data so in-memory mutations don't corrupt originals. */
 export function cloneFixtures<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));

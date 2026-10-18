@@ -62,7 +62,7 @@ export function AccountSettings() {
   // `account.displayName` is refreshed from the server on every login/restore
   // (Stalwart principal "Full name" when available - #900); the identity name
   // is only a fallback until that entry exists.
-  const displayName = account?.displayName || primaryIdentity?.name || (isDemoMode ? 'Demo User' : undefined);
+  const displayName = account?.displayName || primaryIdentity?.name || (isDemoMode ? 'Nora Lindqvist' : undefined);
   const email = primaryIdentity?.email || account?.email || username;
   const max = getMaxAccounts();
 

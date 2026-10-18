@@ -832,6 +832,8 @@ function DemoBanner() {
   const handleReset = async () => {
     setIsResetting(true);
     router.push('/');
+    // Also put the seeded demo preferences (tags, merged inbox, templates) back.
+    try { localStorage.removeItem('bulwark-demo-seed'); } catch { /* storage blocked */ }
     await loginDemo();
     setIsResetting(false);
   };

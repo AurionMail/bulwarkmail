@@ -13,6 +13,13 @@ interface PolicyState {
    * full policy is fetched again once a session exists.
    */
   partial: boolean;
+  /**
+   * Gates the demo switches on regardless of the deployment's policy, so the
+   * demo's two accounts and shared mailbox can show the merged views. Set by
+   * the demo login only; empty everywhere else.
+   */
+  demoFeatureOverrides: Partial<FeatureGates>;
+  setDemoFeatureOverrides: (overrides: Partial<FeatureGates>) => void;
   fetchPolicy: () => Promise<void>;
   /** Fetch the full policy if only the public subset is loaded. */
   refreshIfPartial: () => Promise<void>;
@@ -42,6 +49,9 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
   policy: { ...DEFAULT_POLICY },
   loaded: false,
   partial: false,
+  demoFeatureOverrides: {},
+
+  setDemoFeatureOverrides: (overrides) => set({ demoFeatureOverrides: overrides }),
 
   fetchPolicy: async () => {
     // A fetch started before signing in may answer after the one started
@@ -86,6 +96,8 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
   },
 
   isFeatureEnabled: (feature) => {
+    const override = get().demoFeatureOverrides[feature];
+    if (override !== undefined) return override;
     return get().policy.features[feature] ?? true;
   },
 
