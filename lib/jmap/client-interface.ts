@@ -88,6 +88,8 @@ export interface IJMAPClient {
 
   // ── Capabilities ──────────────────────────────────────────────
   getCapabilities(): Record<string, unknown>;
+  /** Account-scoped session capability data; primary account by default. */
+  getAccountCapability?(capability: string, accountId?: string): unknown;
   hasAccountCapability(capability: string, accountId?: string): boolean;
   /** The value of an account capability (primary account by default). */
   getAccountCapability?(capability: string, accountId?: string): unknown;
