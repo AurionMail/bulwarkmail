@@ -238,6 +238,13 @@
     "show_on_mobile": "Mobilde Göster"
   },
   "email_list": {
+    "columns": {
+      "from": "Kimden",
+      "to": "Kime",
+      "subject": "Konu",
+      "date": "Tarih",
+      "size": "Boyut"
+    },
     "no_emails": "Mesaj bulunamadı",
     "no_emails_description": "Bu posta kutusu boş",
     "no_search_results": "Sonuç bulunamadı",
@@ -1476,6 +1483,10 @@
         "focus_description": "İleti başına bir satır gösterin ve klasör kenar çubuğu görünürken postayı tam genişlikte açın.",
         "horizontal": "Okuma bölmesi altta",
         "horizontal_description": "Mesaj listesini üstte gösterin ve seçilen mesajı altındaki okuma bölmesinde açın."
+      },
+      "list_columns": {
+        "label": "Listeyi sütunlar halinde göster",
+        "description": "Tek satırlık satırları bir başlık altında Kimden, Konu, Tarih ve Boyut sütunlarıyla tablo olarak gösterir."
       },
       "show_preview": {
         "label": "Önizleme Metnini Göster",

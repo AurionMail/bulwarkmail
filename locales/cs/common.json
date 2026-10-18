@@ -238,6 +238,13 @@
     "show_on_mobile": "Zobrazit na mobilu"
   },
   "email_list": {
+    "columns": {
+      "from": "Od",
+      "to": "Komu",
+      "subject": "Předmět",
+      "date": "Datum",
+      "size": "Velikost"
+    },
     "no_emails": "Nenalezeny žádné zprávy",
     "no_emails_description": "Tato schránka je prázdná",
     "no_search_results": "Nenalezeny žádné výsledky",
@@ -1476,6 +1483,10 @@
         "focus_description": "Zobrazit jeden řádek na zprávu a otevřít poštu na plnou šířku s viditelným panelem složek.",
         "horizontal": "Čtecí panel dole",
         "horizontal_description": "Zobrazit seznam zpráv nahoře a otevřít vybranou zprávu ve čtecím panelu pod ním."
+      },
+      "list_columns": {
+        "label": "Zobrazit seznam ve sloupcích",
+        "description": "Zobrazí jednořádkové řádky jako tabulku se sloupci Od, Předmět, Datum a Velikost pod záhlavím."
       },
       "show_preview": {
         "label": "Zobrazit náhledový text",

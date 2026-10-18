@@ -18,6 +18,8 @@ import { emailKeyFor, getEmailTagIds } from "@/lib/thread-utils";
 import { useKeywordFormat } from "@/hooks/use-keyword-format";
 import { useTagDisplay } from "@/hooks/use-tag-display";
 import { TagBadge } from "./tag-badge";
+import { useListRowShape, LIST_COLUMN_CLASS } from "@/hooks/use-list-row-shape";
+import { SizeCell, listLeadClass } from "./list-columns";
 
 interface ThreadEmailItemProps {
   email: Email;
@@ -62,6 +64,7 @@ export function ThreadEmailItem({
   });
 
   const isMobile = useUIStore((state) => state.isMobile);
+  const { columns } = useListRowShape();
 
   const { onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, isPressed } = useLongPress(
     useCallback((pos) => {
@@ -97,6 +100,96 @@ export function ThreadEmailItem({
       onClick?.();
     }
   };
+
+  const rowHandlers = {
+    onClick: handleClick,
+    onDoubleClick: (e: React.MouseEvent) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (!onDoubleClick || selectedEmailKeys.size > 0) return;
+      e.preventDefault();
+      onDoubleClick();
+    },
+    onContextMenu: handleContextMenu,
+  };
+
+  if (columns) {
+    // A message of an unfolded conversation as a row of the table: its own
+    // sender and date in the columns, indented under the conversation's
+    // names, and its text where the subject goes (#262).
+    const selecting = selectedEmailKeys.size > 0;
+    const lead = listLeadClass(density, selecting);
+    return (
+      <div
+        {...dragHandlers}
+        {...longPressHandlers}
+        {...rowHandlers}
+        data-testid="thread-email-row"
+        className={cn(
+          "relative cursor-pointer select-none px-3 transition-colors duration-150",
+          selected ? "bg-selection" : "hover:bg-muted/50",
+          isUnread && !selected && "bg-warning/10",
+          !isLast && "border-b border-border/30",
+          isChecked && "ring-2 ring-primary/20 bg-accent/40",
+          isDragging && "opacity-50",
+          isPressed && "bg-muted"
+        )}
+        style={{ paddingBlock: 'var(--density-item-py)' }}
+      >
+        <div className="flex items-center" style={{ gap: 'var(--density-item-gap)' }}>
+          {lead && (
+            <span className={cn(lead, 'flex shrink-0 items-center justify-center')}>
+              {selecting ? (
+                <button
+                  onClick={handleCheckboxClick}
+                  role="checkbox"
+                  aria-checked={isChecked}
+                  className={cn("rounded p-1 hover:bg-muted/50", isChecked && "text-primary")}
+                >
+                  {isChecked ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5 text-muted-foreground" />}
+                </button>
+              ) : isUnread ? (
+                <Circle className="w-1.5 h-1.5 fill-unread text-unread" />
+              ) : null}
+            </span>
+          )}
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <span className={cn(LIST_COLUMN_CLASS.from, 'flex items-center gap-2 ps-9 text-sm')}>
+                <span className={cn(
+                  "min-w-0 truncate",
+                  isUnread ? "font-semibold text-foreground" : "font-medium text-muted-foreground"
+                )}>
+                  {sender?.name || sender?.email?.split('@')[0] || "Unknown"}
+                </span>
+              </span>
+              <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                {tagIds.map((id) => (
+                  <TagBadge key={id} tagId={id} variant={tagVariant} />
+                ))}
+                <span className={cn("min-w-0 truncate", isUnread ? "text-muted-foreground" : "text-muted-foreground/70")}>
+                  {cleanPreview(email.preview) || t('no_preview_available')}
+                </span>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2.5">
+              {isStarred && <Star className="w-3 h-3 fill-amber-400 text-amber-400" />}
+              {isAnswered && <Reply className="w-3 h-3 text-muted-foreground" />}
+              {isForwarded && <Forward className="w-3 h-3 text-muted-foreground" />}
+              {email.hasAttachment && <Paperclip className="w-3 h-3 text-muted-foreground" />}
+              <span className={cn(
+                LIST_COLUMN_CLASS.date,
+                "text-xs tabular-nums",
+                isUnread ? "text-foreground font-medium" : "text-muted-foreground"
+              )}>
+                {formatDate(emailDisplayDate(email))}
+              </span>
+              <SizeCell bytes={email.size} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

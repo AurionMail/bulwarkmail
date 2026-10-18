@@ -238,6 +238,13 @@
     "show_on_mobile": "Mostra su mobile"
   },
   "email_list": {
+    "columns": {
+      "from": "Da",
+      "to": "A",
+      "subject": "Oggetto",
+      "date": "Data",
+      "size": "Dimensione"
+    },
     "no_emails": "Nessun messaggio trovato",
     "no_emails_description": "Questa casella è vuota",
     "no_search_results": "Nessun risultato trovato",
@@ -1476,6 +1483,10 @@
         "focus_description": "Mostra una riga per messaggio e apri la posta a larghezza piena mantenendo visibile la barra laterale delle cartelle.",
         "horizontal": "Riquadro di lettura in basso",
         "horizontal_description": "Mostra l'elenco dei messaggi in alto e apri il messaggio selezionato in un riquadro di lettura sotto."
+      },
+      "list_columns": {
+        "label": "Mostra l'elenco in colonne",
+        "description": "Mostra le righe su una sola riga come tabella con le colonne Da, Oggetto, Data e Dimensione sotto un'intestazione."
       },
       "disable_threading": {
         "label": "Disabilita raggruppamento conversazioni",

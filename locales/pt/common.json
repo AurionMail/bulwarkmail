@@ -238,6 +238,13 @@
     "show_on_mobile": "Mostrar no celular"
   },
   "email_list": {
+    "columns": {
+      "from": "De",
+      "to": "Para",
+      "subject": "Assunto",
+      "date": "Data",
+      "size": "Tamanho"
+    },
     "no_emails": "Nenhuma mensagem encontrada",
     "no_emails_description": "Esta caixa de correio está vazia",
     "no_search_results": "Nenhum resultado encontrado",
@@ -1476,6 +1483,10 @@
         "focus_description": "Mostrar uma linha por mensagem e abrir o e-mail em largura total mantendo a barra lateral de pastas visível.",
         "horizontal": "Painel de leitura em baixo",
         "horizontal_description": "Mostre a lista de mensagens em cima e abra a mensagem selecionada num painel de leitura abaixo."
+      },
+      "list_columns": {
+        "label": "Mostrar a lista em colunas",
+        "description": "Mostra as linhas de uma linha como uma tabela com as colunas De, Assunto, Data e Tamanho sob um cabeçalho."
       },
       "disable_threading": {
         "label": "Desativar agrupamento de conversas",

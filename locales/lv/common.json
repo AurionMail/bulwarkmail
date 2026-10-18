@@ -238,6 +238,13 @@
     "show_on_mobile": "Rādīt mobilajā ierīcē"
   },
   "email_list": {
+    "columns": {
+      "from": "No",
+      "to": "Kam",
+      "subject": "Temats",
+      "date": "Datums",
+      "size": "Izmērs"
+    },
     "no_emails": "Vēstules nav atrastas",
     "no_emails_description": "Mape ir tukša",
     "no_search_results": "Nekas netika atrasts",
@@ -1476,6 +1483,10 @@
         "focus_description": "Rādīt vienu rindu katram ziņojumam un atvērt vēstuli pilnā platumā.",
         "horizontal": "Lasīšanas rūts apakšā",
         "horizontal_description": "Rādīt ziņojumu sarakstu augšā un atvērt atlasīto ziņojumu lasīšanas rūtī zem tā."
+      },
+      "list_columns": {
+        "label": "Rādīt sarakstu kolonnās",
+        "description": "Rāda vienas rindas ierakstus kā tabulu ar kolonnām No, Temats, Datums un Izmērs zem galvenes."
       },
       "disable_threading": {
         "label": "Izslēgt sarunu grupēšanu",

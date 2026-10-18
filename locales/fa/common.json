@@ -238,6 +238,13 @@
     "show_on_mobile": "نمایش در موبایل"
   },
   "email_list": {
+    "columns": {
+      "from": "از",
+      "to": "به",
+      "subject": "موضوع",
+      "date": "تاریخ",
+      "size": "اندازه"
+    },
     "no_emails": "پیامی یافت نشد",
     "no_emails_description": "این صندوق پستی خالی است",
     "no_search_results": "نتیجه‌ای یافت نشد",
@@ -1479,6 +1486,10 @@
         "focus_description": "نمای متمرکز",
         "horizontal": "پنل پایین",
         "horizontal_description": "لیست بالا، پنل پایین"
+      },
+      "list_columns": {
+        "label": "نمایش فهرست به‌صورت ستونی",
+        "description": "ردیف‌های تک‌خطی را به‌صورت جدولی با ستون‌های فرستنده، موضوع، تاریخ و اندازه زیر یک سرستون نشان می‌دهد."
       },
       "show_preview": {
         "label": "نمایش پیش‌نمایش",

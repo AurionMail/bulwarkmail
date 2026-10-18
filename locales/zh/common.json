@@ -238,6 +238,13 @@
     "show_on_mobile": "在手机上显示"
   },
   "email_list": {
+    "columns": {
+      "from": "发件人",
+      "to": "收件人",
+      "subject": "主题",
+      "date": "日期",
+      "size": "大小"
+    },
     "no_emails": "未找到邮件",
     "no_emails_description": "此邮箱为空",
     "no_search_results": "未找到结果",
@@ -1476,6 +1483,10 @@
         "focus_description": "每封邮件显示一行，打开邮件时使用全宽阅读视图，同时保留文件夹侧边栏。",
         "horizontal": "底部阅读窗格",
         "horizontal_description": "在顶部显示邮件列表，并在下方的阅读窗格中打开所选邮件。"
+      },
+      "list_columns": {
+        "label": "以列显示列表",
+        "description": "将单行列表显示为表格，表头下方为发件人、主题、日期和大小列。"
       },
       "show_preview": {
         "label": "显示预览文本",

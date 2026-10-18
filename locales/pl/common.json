@@ -238,6 +238,13 @@
     "show_on_mobile": "Pokaż na telefonie"
   },
   "email_list": {
+    "columns": {
+      "from": "Od",
+      "to": "Do",
+      "subject": "Temat",
+      "date": "Data",
+      "size": "Rozmiar"
+    },
     "no_emails": "Nie znaleziono wiadomości",
     "no_emails_description": "Ta skrzynka jest pusta",
     "no_search_results": "Nie znaleziono wyników",
@@ -1476,6 +1483,10 @@
         "focus_description": "Pokazuj jeden wiersz na wiadomość i otwieraj pocztę na pełną szerokość, pozostawiając widoczny pasek folderów.",
         "horizontal": "Okienko czytania na dole",
         "horizontal_description": "Pokaż listę wiadomości u góry i otwórz wybraną wiadomość w okienku czytania pod nią."
+      },
+      "list_columns": {
+        "label": "Pokaż listę w kolumnach",
+        "description": "Wyświetla jednowierszowe wiersze jako tabelę z kolumnami Od, Temat, Data i Rozmiar pod nagłówkiem."
       },
       "show_preview": {
         "label": "Pokaż tekst podglądu",

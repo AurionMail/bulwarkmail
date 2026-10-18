@@ -74,6 +74,7 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.appearance.show_shared_mail_accounts',
     'settings.appearance.pro_interface',
     'settings.email_behavior.mail_layout',
+    'settings.email_behavior.list_columns',
   ],
   reading: [
     'settings.email_behavior.mark_read',

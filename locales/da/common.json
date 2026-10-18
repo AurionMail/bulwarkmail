@@ -238,6 +238,13 @@
     "show_on_mobile": "Vis på mobil"
   },
   "email_list": {
+    "columns": {
+      "from": "Fra",
+      "to": "Til",
+      "subject": "Emne",
+      "date": "Dato",
+      "size": "Størrelse"
+    },
     "no_emails": "Ingen beskeder fundet",
     "no_emails_description": "Denne postkasse er tom",
     "no_search_results": "Ingen resultater fundet",
@@ -1479,6 +1486,10 @@
         "focus_description": "Vis én linje pr. besked og åbn mail i fuld bredde, mens mappesidepanelet forbliver synligt.",
         "horizontal": "Læserude i bunden",
         "horizontal_description": "Vis beskedlisten øverst og åbn den valgte besked i en læserude nedenunder."
+      },
+      "list_columns": {
+        "label": "Vis listen som kolonner",
+        "description": "Vis enkeltlinjerækker som en tabel med kolonnerne Fra, Emne, Dato og Størrelse under en overskrift."
       },
       "show_preview": {
         "label": "Vis forhåndsvisningstekst",

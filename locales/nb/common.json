@@ -238,6 +238,13 @@
     "show_on_mobile": "Vis på mobil"
   },
   "email_list": {
+    "columns": {
+      "from": "Fra",
+      "to": "Til",
+      "subject": "Emne",
+      "date": "Dato",
+      "size": "Størrelse"
+    },
     "no_emails": "Ingen meldinger funnet",
     "no_emails_description": "Denne postkassen er tom",
     "no_search_results": "Ingen resultater funnet",
@@ -1479,6 +1486,10 @@
         "focus_description": "Vis én linje per melding, og åpne meldingen i full bredde samtidig som mappesidefeltet forblir synlig.",
         "horizontal": "Leseruten nederst",
         "horizontal_description": "Vis meldingslisten øverst og åpne den valgte meldingen i en leserute under den."
+      },
+      "list_columns": {
+        "label": "Vis listen som kolonner",
+        "description": "Vis enlinjesrader som en tabell med kolonnene Fra, Emne, Dato og Størrelse under en overskrift."
       },
       "show_preview": {
         "label": "Vis forhåndsvisningstekst",

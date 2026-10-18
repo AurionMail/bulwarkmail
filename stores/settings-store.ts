@@ -502,6 +502,7 @@ interface SettingsState {
   showPreview: boolean;
   showVerificationCodes: boolean; // Offer the one-time code of a sign-in mail as a copy chip in the list and the reader
   mailLayout: MailLayout;
+  listColumns: boolean; // One-line list rows as a table: From, Subject, Date and Size columns under a header (#262)
   emailsPerPage: number;
   externalContentPolicy: ExternalContentPolicy;
   messageSpacing: MessageSpacing; // Gutter around the message body in the reader
@@ -803,6 +804,7 @@ const DEFAULT_SETTINGS = {
   showPreview: true,
   showVerificationCodes: true,
   mailLayout: 'split' as MailLayout,
+  listColumns: false,
   emailsPerPage: 50,
   externalContentPolicy: 'ask' as ExternalContentPolicy,
   messageSpacing: 'auto' as MessageSpacing,
@@ -1167,6 +1169,7 @@ export const useSettingsStore = create<SettingsState>()(
           showPreview: state.showPreview,
           showVerificationCodes: state.showVerificationCodes,
           mailLayout: state.mailLayout,
+          listColumns: state.listColumns,
           emailsPerPage: state.emailsPerPage,
           externalContentPolicy: state.externalContentPolicy,
           messageSpacing: state.messageSpacing,

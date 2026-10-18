@@ -238,6 +238,13 @@
     "show_on_mobile": "在行動裝置上顯示"
   },
   "email_list": {
+    "columns": {
+      "from": "寄件者",
+      "to": "收件者",
+      "subject": "主旨",
+      "date": "日期",
+      "size": "大小"
+    },
     "no_emails": "找不到郵件",
     "no_emails_description": "此信件匣中沒有郵件",
     "no_search_results": "找不到結果",
@@ -1479,6 +1486,10 @@
         "focus_description": "每封郵件顯示一列，開啟郵件時以全寬顯示，同時保留信件匣側邊欄。",
         "horizontal": "底部閱讀窗格",
         "horizontal_description": "在頂端顯示郵件清單，並在下方閱讀窗格開啟選取的郵件。"
+      },
+      "list_columns": {
+        "label": "以欄位顯示清單",
+        "description": "將單行列表顯示為表格，標題下方為寄件者、主旨、日期和大小欄位。"
       },
       "show_preview": {
         "label": "顯示預覽文字",

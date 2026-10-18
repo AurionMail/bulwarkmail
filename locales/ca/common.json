@@ -238,6 +238,13 @@
     "show_on_mobile": "Mostra al mòbil"
   },
   "email_list": {
+    "columns": {
+      "from": "De",
+      "to": "Per a",
+      "subject": "Assumpte",
+      "date": "Data",
+      "size": "Mida"
+    },
     "no_emails": "No s'ha trobat cap missatge",
     "no_emails_description": "Aquesta bústia és buida",
     "no_search_results": "No s'ha trobat cap resultat",
@@ -1479,6 +1486,10 @@
         "focus_description": "Mostra una línia per missatge i obre el correu a amplada completa mantenint visible la barra lateral de carpetes.",
         "horizontal": "Subfinestra de lectura a baix",
         "horizontal_description": "Mostra la llista de missatges a dalt i obre el missatge seleccionat en una subfinestra de lectura a sota."
+      },
+      "list_columns": {
+        "label": "Mostra la llista en columnes",
+        "description": "Mostra les files d'una línia com una taula amb les columnes De, Assumpte, Data i Mida sota una capçalera."
       },
       "show_preview": {
         "label": "Mostra el text de previsualització",

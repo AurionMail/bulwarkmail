@@ -119,7 +119,7 @@ function MailLayoutPreview({
 export function LayoutSettings() {
   const t = useTranslations('settings.appearance');
   const tEmail = useTranslations('settings.email_behavior');
-  const { toolbarPosition, showToolbarLabels, hideAccountSwitcher, showRailAccountList, enableUnifiedMailbox, includeGroupInUnified, unifiedCrossAccount, allMailFolderIds, enableCrossUnreadView, enableCrossStarredView, enableCrossAllView, colorfulSidebarIcons, tintListRowsByTag, tintListRowsByAccount, showAccountDot, showFolderTotalCount, faviconUnreadBadge, mailLayout, proInterface, interfaceLayout, updateSetting } = useSettingsStore();
+  const { toolbarPosition, showToolbarLabels, hideAccountSwitcher, showRailAccountList, enableUnifiedMailbox, includeGroupInUnified, unifiedCrossAccount, allMailFolderIds, enableCrossUnreadView, enableCrossStarredView, enableCrossAllView, colorfulSidebarIcons, tintListRowsByTag, tintListRowsByAccount, showAccountDot, showFolderTotalCount, faviconUnreadBadge, mailLayout, listColumns, proInterface, interfaceLayout, updateSetting } = useSettingsStore();
   const { isSettingLocked, isSettingHidden, isFeatureEnabled } = usePolicyStore();
   const accounts = useAccountStore(s => s.accounts);
   const activeAccountId = useAccountStore(s => s.activeAccountId);
@@ -212,6 +212,15 @@ export function LayoutSettings() {
           />
           <MailLayoutPreview value={mailLayout} t={tEmail} />
         </div>
+      </SettingItem>
+      )}
+      {/* Only the layouts with one-line rows can draw them as a table. */}
+      {!isSettingHidden('listColumns') && !mountainView && mailLayout !== 'split' && (
+      <SettingItem label={tEmail('list_columns.label')} description={tEmail('list_columns.description')} locked={isSettingLocked('listColumns')}>
+        <ToggleSwitch
+          checked={listColumns}
+          onChange={(checked) => updateSetting('listColumns', checked)}
+        />
       </SettingItem>
       )}
 

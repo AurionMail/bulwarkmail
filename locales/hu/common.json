@@ -238,6 +238,13 @@
     "show_on_mobile": "Megjelenítés mobilon"
   },
   "email_list": {
+    "columns": {
+      "from": "Feladó",
+      "to": "Címzett",
+      "subject": "Tárgy",
+      "date": "Dátum",
+      "size": "Méret"
+    },
     "no_emails": "Nincs üzenet",
     "no_emails_description": "Ez a postafiók üres",
     "no_search_results": "Nincs találat",
@@ -1479,6 +1486,10 @@
         "focus_description": "Egy sor üzenetenként, és a levél teljes szélességben nyílik meg, miközben a mappa oldalsáv látható marad.",
         "horizontal": "Olvasóablak alul",
         "horizontal_description": "Üzenetlista felül, a kiválasztott üzenet pedig egy olvasóablakban alatta."
+      },
+      "list_columns": {
+        "label": "Lista megjelenítése oszlopokban",
+        "description": "Az egysoros sorokat táblázatként jeleníti meg Feladó, Tárgy, Dátum és Méret oszlopokkal egy fejléc alatt."
       },
       "show_preview": {
         "label": "Előnézeti szöveg mutatása",

@@ -238,6 +238,13 @@
     "show_on_mobile": "모바일에서 보기"
   },
   "email_list": {
+    "columns": {
+      "from": "보낸 사람",
+      "to": "받는 사람",
+      "subject": "제목",
+      "date": "날짜",
+      "size": "크기"
+    },
     "no_emails": "메시지가 없어요",
     "no_emails_description": "편지함이 비어있어요",
     "no_search_results": "검색 결과가 없어요",
@@ -1476,6 +1483,10 @@
         "focus_description": "메일을 한 줄로 보여주고, 클릭하면 폴더 사이드바는 남겨둔 채 메일 내용을 넓게 보여줘요.",
         "horizontal": "읽기 창 하단 표시",
         "horizontal_description": "메시지 목록을 상단에 표시하고 선택한 메시지를 하단 읽기 창에서 엽니다."
+      },
+      "list_columns": {
+        "label": "목록을 열로 표시",
+        "description": "한 줄 행을 머리글 아래 보낸 사람, 제목, 날짜, 크기 열이 있는 표로 표시합니다."
       },
       "show_preview": {
         "label": "미리보기 텍스트 표시",

@@ -238,6 +238,13 @@
     "show_on_mobile": "Afficher sur mobile"
   },
   "email_list": {
+    "columns": {
+      "from": "De",
+      "to": "À",
+      "subject": "Objet",
+      "date": "Date",
+      "size": "Taille"
+    },
     "no_emails": "Aucun message trouvé",
     "no_emails_description": "Cette boîte est vide",
     "no_search_results": "Aucun résultat trouvé",
@@ -1476,6 +1483,10 @@
         "focus_description": "Afficher une ligne par message et ouvrir le courrier en pleine largeur tout en gardant la barre latérale des dossiers visible.",
         "horizontal": "Volet de lecture en bas",
         "horizontal_description": "Afficher la liste des messages en haut et ouvrir le message sélectionné dans un volet de lecture en dessous."
+      },
+      "list_columns": {
+        "label": "Afficher la liste en colonnes",
+        "description": "Affiche les lignes sur une seule ligne sous forme de tableau avec les colonnes De, Objet, Date et Taille sous un en-tête."
       },
       "disable_threading": {
         "label": "Désactiver le regroupement par conversation",

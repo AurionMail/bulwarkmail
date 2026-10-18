@@ -238,6 +238,13 @@
     "show_on_mobile": "Auf Mobilgerät anzeigen"
   },
   "email_list": {
+    "columns": {
+      "from": "Von",
+      "to": "An",
+      "subject": "Betreff",
+      "date": "Datum",
+      "size": "Größe"
+    },
     "no_emails": "Keine Nachrichten gefunden",
     "no_emails_description": "Dieses Postfach ist leer",
     "no_search_results": "Keine Ergebnisse gefunden",
@@ -1476,6 +1483,10 @@
         "focus_description": "Eine Zeile pro Nachricht anzeigen und E-Mails in voller Breite öffnen, während die Ordner-Seitenleiste sichtbar bleibt.",
         "horizontal": "Lesebereich unten",
         "horizontal_description": "Nachrichtenliste oben anzeigen und ausgewählte Nachricht in einem darunter liegenden Lesebereich öffnen."
+      },
+      "list_columns": {
+        "label": "Liste als Spalten anzeigen",
+        "description": "Zeigt einzeilige Zeilen als Tabelle mit den Spalten Von, Betreff, Datum und Größe unter einer Kopfzeile."
       },
       "show_preview": {
         "label": "Vorschautext anzeigen",

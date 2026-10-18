@@ -238,6 +238,13 @@
     "show_on_mobile": "Weergeven op mobiel"
   },
   "email_list": {
+    "columns": {
+      "from": "Van",
+      "to": "Aan",
+      "subject": "Onderwerp",
+      "date": "Datum",
+      "size": "Grootte"
+    },
     "no_emails": "Geen berichten gevonden",
     "no_emails_description": "Deze mailbox is leeg",
     "no_search_results": "Geen resultaten gevonden",
@@ -1476,6 +1483,10 @@
         "focus_description": "Toon één regel per bericht en open e-mail op volledige breedte terwijl de mappenzijbalk zichtbaar blijft.",
         "horizontal": "Leesvenster onderaan",
         "horizontal_description": "Toon de berichtenlijst bovenaan en open het geselecteerde bericht in een leesvenster eronder."
+      },
+      "list_columns": {
+        "label": "Lijst in kolommen weergeven",
+        "description": "Toont rijen van één regel als tabel met de kolommen Van, Onderwerp, Datum en Grootte onder een kop."
       },
       "disable_threading": {
         "label": "Conversatiegroepering uitschakelen",

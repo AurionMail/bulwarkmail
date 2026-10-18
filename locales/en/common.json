@@ -238,6 +238,13 @@
     "show_on_mobile": "Show on Mobile"
   },
   "email_list": {
+    "columns": {
+      "from": "From",
+      "to": "To",
+      "subject": "Subject",
+      "date": "Date",
+      "size": "Size"
+    },
     "no_emails": "No messages found",
     "no_emails_description": "This mailbox is empty",
     "no_search_results": "No results found",
@@ -1479,6 +1486,10 @@
         "focus_description": "Show one line per message and open mail full-width while keeping the folder sidebar visible.",
         "horizontal": "Reading pane at bottom",
         "horizontal_description": "Show the message list on top and open the selected message in a reading pane below it."
+      },
+      "list_columns": {
+        "label": "Show the list as columns",
+        "description": "Draw one-line rows as a table with From, Subject, Date and Size columns under a header."
       },
       "show_preview": {
         "label": "Show Preview Text",

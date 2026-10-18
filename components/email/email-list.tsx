@@ -1,7 +1,8 @@
 "use client";
 
 import { Email, ThreadGroup } from "@/lib/jmap/types";
-import { MemoizedThreadListItem } from "./thread-list-item";
+import { MemoizedThreadListItem, listMailboxRole } from "./thread-list-item";
+import { ListColumnsHeader } from "./list-columns";
 import { useStableHandlers } from "@/hooks/use-stable-handlers";
 import type { Attachment } from "@/lib/jmap/types";
 import type { LoadListAttachments } from "@/lib/list-attachments";
@@ -20,7 +21,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
-import { useEffectiveMailLayout } from "@/hooks/use-effective-mail-layout";
+import { useListRowShape } from "@/hooks/use-list-row-shape";
 import { useUIStore } from "@/stores/ui-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
 import { emailKeyFor, groupEmailsByThread, sortThreadGroups, threadKeyFor, getEmailTagIds } from "@/lib/thread-utils";
@@ -354,7 +355,11 @@ export function EmailList({
   const density = useSettingsStore((state) => state.density);
   const showPreview = useSettingsStore((state) => state.showPreview);
   const showVerificationCodes = useSettingsStore((state) => state.showVerificationCodes);
-  const mailLayout = useEffectiveMailLayout();
+  const { oneLine: isFocusedMailLayout, columns: listColumns } = useListRowShape();
+  const showRecipientColumn = useEmailStore((state) => {
+    const role = listMailboxRole(state);
+    return role === 'sent' || role === 'drafts';
+  });
   const footerHasMore = hasMore ?? hasMoreEmails;
   const footerIsLoadingMore = isLoadingMoreItems ?? isLoadingMore;
   const isMobile = useUIStore((state) => state.isMobile);
@@ -376,8 +381,7 @@ export function EmailList({
   }, [threadGroups, expandedThreadIds, threadEmailsCache, isMobile, setListRows]);
   useEffect(() => () => setListRows(null), [setListRows]);
 
-  // Match the list items: focus layout collapses to multi-line on mobile, so virtualizer estimates must match.
-  const isFocusedMailLayout = mailLayout === 'focus' && !isMobile;
+  // The virtualizer's guesses follow the rows' shape (see useListRowShape).
 
   const estimateSize = useCallback((index: number) => {
     if (isFocusedMailLayout) {
@@ -889,8 +893,18 @@ export function EmailList({
 
       <PluginSlot name="message-list-header" className="w-full" extraProps={listSlotProps} />
 
+      {listColumns && (
+        <ListColumnsHeader density={density} selecting={hasSelection} showRecipient={showRecipientColumn} />
+      )}
+
       {/* Email List */}
-      <div ref={parentRef} className="flex-1 overflow-y-auto bg-background relative" data-tour="email-list">
+      <div
+        ref={parentRef}
+        className="flex-1 overflow-y-auto bg-background relative"
+        data-tour="email-list"
+        // The column header above keeps the same gutter, so its titles stay over the columns.
+        style={listColumns ? { scrollbarGutter: 'stable' } : undefined}
+      >
         {/* Loading overlay */}
         {isLoading && emails.length > 0 && (
           <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center animate-in fade-in duration-150">

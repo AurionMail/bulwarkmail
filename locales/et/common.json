@@ -238,6 +238,13 @@
     "show_on_mobile": "Näita mobiilis"
   },
   "email_list": {
+    "columns": {
+      "from": "Saatja",
+      "to": "Saaja",
+      "subject": "Teema",
+      "date": "Kuupäev",
+      "size": "Suurus"
+    },
     "no_emails": "Sõnumeid ei leitud",
     "no_emails_description": "See postkast on tühi",
     "no_search_results": "Tulemusi ei leitud",
@@ -1479,6 +1486,10 @@
         "focus_description": "Kuva iga kirja kohta üks rida ja ava kiri täislaiuses, hoides kaustade külgriba nähtaval.",
         "horizontal": "Lugemispaan all",
         "horizontal_description": "Kuva kirjade loend üleval ja ava valitud kiri selle all olevas lugemispaanis."
+      },
+      "list_columns": {
+        "label": "Näita loendit veergudena",
+        "description": "Näitab üherealisi ridu tabelina, mille päise all on veerud Saatja, Teema, Kuupäev ja Suurus."
       },
       "show_preview": {
         "label": "Kuva eelvaate tekst",

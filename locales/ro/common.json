@@ -238,6 +238,13 @@
     "show_on_mobile": "Afișare pe mobil"
   },
   "email_list": {
+    "columns": {
+      "from": "De la",
+      "to": "Către",
+      "subject": "Subiect",
+      "date": "Dată",
+      "size": "Dimensiune"
+    },
     "no_emails": "Nu s-au găsit mesaje",
     "no_emails_description": "Această căsuță poștală este goală",
     "no_search_results": "Nu s-au găsit rezultate",
@@ -1479,6 +1486,10 @@
         "focus_description": "Afișați câte o linie pe mesaj și deschideți e-mailul pe toată lățimea ecranului, menținând în același timp vizibilă bara laterală a folderelor.",
         "horizontal": "Panoul de citire în partea de jos",
         "horizontal_description": "Afișați lista de mesaje în partea de sus și deschideți mesajul selectat într-un panou de citire situat sub aceasta."
+      },
+      "list_columns": {
+        "label": "Afișează lista pe coloane",
+        "description": "Afișează rândurile pe o singură linie ca tabel cu coloanele De la, Subiect, Dată și Dimensiune sub un antet."
       },
       "show_preview": {
         "label": "Afișați textul de previzualizare",

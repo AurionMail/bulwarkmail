@@ -238,6 +238,13 @@
     "show_on_mobile": "モバイルで表示"
   },
   "email_list": {
+    "columns": {
+      "from": "差出人",
+      "to": "宛先",
+      "subject": "件名",
+      "date": "日付",
+      "size": "サイズ"
+    },
     "no_emails": "メッセージが見つかりません",
     "no_emails_description": "このメールボックスは空です",
     "no_search_results": "結果が見つかりません",
@@ -1476,6 +1483,10 @@
         "focus_description": "メッセージごとに1行表示し、フォルダサイドバーを表示したままメールを全幅で開きます。",
         "horizontal": "閲覧ペインを下に表示",
         "horizontal_description": "メッセージ一覧を上に表示し、選択したメッセージを下の閲覧ペインで開きます。"
+      },
+      "list_columns": {
+        "label": "リストを列で表示",
+        "description": "1行表示の行を、見出しの下に差出人・件名・日付・サイズの列を持つ表として表示します。"
       },
       "disable_threading": {
         "label": "会話グループ化を無効にする",
