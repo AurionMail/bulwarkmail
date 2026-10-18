@@ -202,48 +202,7 @@ export function ContextMenuSubMenu({
   hint,
 }: ContextMenuSubMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [subMenuPos, setSubMenuPos] = useState<Position | null>(null);
-  const itemRef = useRef<HTMLDivElement>(null);
-  const subMenuRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useLayoutEffect(() => {
-    if (!isOpen) {
-      setSubMenuPos(null);
-      return;
-    }
-    const itemEl = itemRef.current;
-    const subEl = subMenuRef.current;
-    if (!itemEl || !subEl) return;
-
-    const itemRect = itemEl.getBoundingClientRect();
-    const subRect = subEl.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    let left: number;
-    if (itemRect.right + subRect.width <= vw - VIEWPORT_MARGIN) {
-      left = itemRect.right;
-    } else if (itemRect.left - subRect.width >= VIEWPORT_MARGIN) {
-      left = itemRect.left - subRect.width;
-    } else {
-      left = Math.max(VIEWPORT_MARGIN, vw - subRect.width - VIEWPORT_MARGIN);
-    }
-
-    let top = itemRect.top;
-    if (top + subRect.height > vh - VIEWPORT_MARGIN) {
-      top = vh - subRect.height - VIEWPORT_MARGIN;
-    }
-    top = Math.max(VIEWPORT_MARGIN, top);
-
-    // The submenu is measured while it still sits at left/top 0, so its rect
-    // is the origin `position: fixed` resolves against. That is the viewport,
-    // unless a theme gives the parent menu a backdrop-filter, filter or
-    // transform: then the parent is the containing block and viewport
-    // coordinates land offset by the parent's own position, far from the
-    // entry (#1149).
-    setSubMenuPos({ x: left - subRect.left, y: top - subRect.top });
-  }, [isOpen]);
 
   useEffect(() => {
     return () => clearTimeout(closeTimerRef.current ?? undefined);
@@ -266,7 +225,6 @@ export function ContextMenuSubMenu({
 
   return (
     <div
-      ref={itemRef}
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -297,22 +255,78 @@ export function ContextMenuSubMenu({
       </div>
 
       {isOpen && !disabled && (
-        <div
-          ref={subMenuRef}
-          className="fixed z-50 min-w-[180px] bg-background rounded-md shadow-lg border border-border"
-          style={{
-            left: subMenuPos?.x ?? 0,
-            top: subMenuPos?.y ?? 0,
-            visibility: subMenuPos ? "visible" : "hidden",
-          }}
+        <SubMenuPanel
+          className="min-w-[180px] bg-background rounded-md shadow-lg border border-border"
           role="menu"
         >
           <div className="py-1 max-h-[min(300px,calc(100vh-40px))] overflow-y-auto">
             {children}
           </div>
-        </div>
+        </SubMenuPanel>
       )}
     </div>
+  );
+}
+
+interface SubMenuPanelProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** The side of the entry to open on when it fits; flips with the text direction. */
+  side?: "start" | "end";
+}
+
+/**
+ * A submenu's panel, placed beside the entry it is rendered in (its parent
+ * element): on `side` when it fits in the window, else on the other side,
+ * else clamped inside the window. It is `position: fixed`, so a pane that
+ * clips its overflow can't cut it off.
+ */
+export function SubMenuPanel({ side = "end", className, style, ...rest }: SubMenuPanelProps) {
+  const [pos, setPos] = useState<Position | null>(null);
+  const subMenuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const subEl = subMenuRef.current;
+    const itemEl = subEl?.parentElement;
+    if (!subEl || !itemEl) return;
+
+    const itemRect = itemEl.getBoundingClientRect();
+    const subRect = subEl.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Where the panel's left edge goes on either side, if it fits there.
+    const onRight = itemRect.right + subRect.width <= vw - VIEWPORT_MARGIN ? itemRect.right : null;
+    const onLeft = itemRect.left - subRect.width >= VIEWPORT_MARGIN ? itemRect.left - subRect.width : null;
+    const rightFirst = (side === "end") !== (getComputedStyle(itemEl).direction === "rtl");
+    const x = (rightFirst ? (onRight ?? onLeft) : (onLeft ?? onRight))
+      ?? Math.max(VIEWPORT_MARGIN, vw - subRect.width - VIEWPORT_MARGIN);
+
+    let top = itemRect.top;
+    if (top + subRect.height > vh - VIEWPORT_MARGIN) {
+      top = vh - subRect.height - VIEWPORT_MARGIN;
+    }
+    top = Math.max(VIEWPORT_MARGIN, top);
+
+    // The submenu is measured while it still sits at left/top 0, so its rect
+    // is the origin `position: fixed` resolves against. That is the viewport,
+    // unless a theme gives the parent menu a backdrop-filter, filter or
+    // transform: then the parent is the containing block and viewport
+    // coordinates land offset by the parent's own position, far from the
+    // entry (#1149).
+    setPos({ x: x - subRect.left, y: top - subRect.top });
+  }, [side]);
+
+  return (
+    <div
+      {...rest}
+      ref={subMenuRef}
+      className={cn("fixed z-50", className)}
+      style={{
+        ...style,
+        left: pos?.x ?? 0,
+        top: pos?.y ?? 0,
+        visibility: pos ? "visible" : "hidden",
+      }}
+    />
   );
 }
 

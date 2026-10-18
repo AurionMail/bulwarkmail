@@ -15,6 +15,7 @@ import { buildContactsPath, buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { SubMenuPanel } from "@/components/ui/context-menu";
 import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
 import { itemsToHide } from "@/lib/toolbar-overflow";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
@@ -4004,10 +4005,11 @@ export function EmailViewer({
                     <ChevronRight className="w-3 h-3 text-muted-foreground" />
                   </button>
                   {moreMenuSub === 'move' && (
-                    <div
+                    <SubMenuPanel
+                      side="start"
                       role="menu"
                       aria-label={t('move_to')}
-                      className="absolute end-full top-0 me-1 py-1 w-48 max-h-72 overflow-y-auto bg-background rounded-md shadow-lg border border-border z-10"
+                      className="py-1 w-48 max-h-72 overflow-y-auto bg-background rounded-md shadow-lg border border-border"
                     >
                       {(() => {
                         const renderMobileNodes = (nodes: MailboxNode[], depth = 0) => {
@@ -4042,7 +4044,7 @@ export function EmailViewer({
                         };
                         return renderMobileNodes(moveTree);
                       })()}
-                    </div>
+                    </SubMenuPanel>
                   )}
                 </div>
               )}
@@ -4076,16 +4078,17 @@ export function EmailViewer({
                     <ChevronRight className="w-3 h-3 text-muted-foreground" />
                   </button>
                   {moreMenuSub === 'tag' && (
-                    <div
+                    <SubMenuPanel
+                      side="start"
                       role="menu"
                       aria-label={t('tag')}
-                      className="absolute end-full top-0 me-1 py-1 w-56 bg-background rounded-md shadow-lg border border-border z-10"
+                      className="py-1 w-56 bg-background rounded-md shadow-lg border border-border"
                     >
                       <TagPicker
                         selectedIds={currentTagIds}
                         onToggle={(tagId) => { if (email) onSetTag?.(email.id, tagId); }}
                       />
-                    </div>
+                    </SubMenuPanel>
                   )}
                 </div>
               )}
@@ -4109,13 +4112,14 @@ export function EmailViewer({
                     <ChevronRight className="w-3 h-3 text-muted-foreground" />
                   </button>
                   {moreMenuSub === 'rules' && (
-                    <div
+                    <SubMenuPanel
+                      side="start"
                       role="menu"
                       aria-label={tContextMenu('rules.title')}
-                      className="absolute end-full top-0 me-1 py-1 w-72 max-h-80 overflow-y-auto bg-background rounded-md shadow-lg border border-border z-10"
+                      className="py-1 w-72 max-h-80 overflow-y-auto bg-background rounded-md shadow-lg border border-border"
                     >
                       <RulesPanel email={email} target={rulesTarget} variant="desktop" onDone={closeMoreMenu} />
-                    </div>
+                    </SubMenuPanel>
                   )}
                 </div>
               )}
