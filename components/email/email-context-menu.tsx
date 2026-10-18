@@ -50,6 +50,7 @@ import { localizeMailboxName } from "@/lib/mailbox-label";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { TagPicker } from "./tag-picker";
 import { RulesContextSubMenu } from "./rules-menu";
+import { useArchiveActionEnabled } from "@/lib/archive-gate";
 
 interface Position {
   x: number;
@@ -194,6 +195,7 @@ export function EmailContextMenu({
   onCopyToAccount,
 }: EmailContextMenuProps) {
   const t = useTranslations("context_menu");
+  const archiveActionEnabled = useArchiveActionEnabled();
   const mountainView = useSettingsStore((state) => state.interfaceLayout === "mountain-view");
   const tSidebar = useTranslations("sidebar");
   const tEmailViewer = useTranslations("email_viewer");
@@ -368,7 +370,7 @@ export function EmailContextMenu({
         )}
     </>
   );
-  const archiveItem = (
+  const archiveItem = archiveActionEnabled && (
     <>
         {/* Archive */}
         <ContextMenuItem

@@ -23,6 +23,7 @@ import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
 import { cn } from "@/lib/utils";
 import { getDraftTextBody } from '@/lib/email-body-selection';
 import { messagePriorityFromHeaders } from '@/lib/message-priority';
+import { useArchiveActionEnabled } from '@/lib/archive-gate';
 
 interface ProEmailTabBodyProps {
   tabId: string;
@@ -82,6 +83,7 @@ function buildReplyContext(email: Email): ProReplyContext {
 export function ProEmailView({ emailId, client: clientOverride, accountId, onLoaded, onClose, className }: ProEmailViewProps) {
   const t = useTranslations();
   const tNotifications = useTranslations('notifications');
+  const archiveActionEnabled = useArchiveActionEnabled();
 
   const activeClient = useAuthStore((s) => s.client);
   const client = clientOverride ?? activeClient;
@@ -398,7 +400,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
           onForward={handleForward}
           onForwardAsAttachment={handleForwardAsAttachment}
           onDelete={handleDelete}
-          onArchive={handleArchive}
+          onArchive={archiveActionEnabled ? handleArchive : undefined}
           onToggleStar={handleToggleStar}
           onMarkAsRead={handleMarkAsRead}
           onSetTag={handleSetTag}
