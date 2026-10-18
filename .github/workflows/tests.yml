@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# The job builds and runs the checked-out code; a compromised step must not
+# hold a token that can write to the repository.
+permissions:
+  contents: read
+
 jobs:
   vitest:
     name: Vitest
