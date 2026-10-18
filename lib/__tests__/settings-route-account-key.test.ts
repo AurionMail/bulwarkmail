@@ -128,4 +128,20 @@ describe('settings route keys on the account the credential belongs to', () => {
     }));
     expect([...store.keys()]).toEqual([`alice@example.org|${SERVER}`]);
   });
+
+  it('refuses a settings blob over the size cap before parsing it', async () => {
+    // One blob per account, re-read on every sync: it was accepted at any size.
+    await signIn({ username: 'alice@example.org' });
+    const { POST } = await import('@/app/api/settings/route');
+    const big = JSON.stringify({ username: 'alice@example.org', serverUrl: SERVER, settings: { signature: 'x'.repeat(2 * 1024 * 1024 + 10) } });
+    const res = await POST(new NextRequest('https://webmail.example/api/settings', { method: 'POST', headers: SAME_ORIGIN, body: big }));
+    expect(res.status).toBe(413);
+    expect(store.size).toBe(0);
+    const claimed = await POST(new NextRequest('https://webmail.example/api/settings', {
+      method: 'POST',
+      headers: { ...SAME_ORIGIN, 'content-length': String(3 * 1024 * 1024) },
+      body: JSON.stringify({ username: 'alice@example.org', serverUrl: SERVER, settings: { theme: 'dark' } }),
+    }));
+    expect(claimed.status).toBe(413);
+  });
 });

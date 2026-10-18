@@ -12,6 +12,9 @@ import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { mergeStoredTemplates } from '@/lib/template-merge';
 import { mergeStoredSubscriptions } from '@/lib/calendar-subscription-sync';
 
+/** Largest settings blob a client may store (templates and signatures included). */
+const SETTINGS_MAX_BYTES = 2 * 1024 * 1024;
+
 function classifyError(error: unknown): { message: string; status: number } {
   const code = (error as NodeJS.ErrnoException).code;
   const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -142,7 +145,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { username, serverUrl, settings } = await request.json();
+    // One settings blob per account, read back on every sync: bound it
+    // before parsing, the way the account archive is.
+    if (Number(request.headers.get('content-length') ?? 0) > SETTINGS_MAX_BYTES) {
+      return NextResponse.json({ error: 'Settings are too large' }, { status: 413 });
+    }
+    const text = await request.text();
+    if (text.length > SETTINGS_MAX_BYTES) {
+      return NextResponse.json({ error: 'Settings are too large' }, { status: 413 });
+    }
+    const { username, serverUrl, settings } = JSON.parse(text);
     if (!username || !serverUrl || !settings) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
