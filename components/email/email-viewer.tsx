@@ -10,6 +10,7 @@ import { collectReferencedCids, isEmbeddedInBody, normalizeCid } from "@/lib/att
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
 import { DARK_PENDING_CLASS, applyEmailDarkMode, emailColorScheme, emailDarkModeCss, emailHasNativeDarkMode as htmlHasNativeDarkMode, resolveColorSchemeMedia } from "@/lib/email-dark-mode";
 import { fitEmailBodyWidth } from "@/lib/email-fit-width";
+import { hasFullBleedCanvas } from "@/lib/email-full-bleed";
 import { withBasePath } from "@/lib/browser-navigation";
 import { buildContactsPath, buildMailPath } from "@/lib/deep-links";
 import { useCopyLink } from "@/hooks/use-copy-link";
@@ -2819,13 +2820,10 @@ export function EmailViewer({
     // background. A <style> tag alone is too weak a signal: plenty of
     // transactional mails ship one for web fonts yet have no gutter of their
     // own, and zeroing the padding glues their content to the corner.
-    const emailHtml = effectiveEmailContent.html;
-    const hasFullBleedCanvas =
-      /<(?:table|div|body)\b[^>]*(?:\bwidth\s*=\s*["']?\s*100%|width\s*:\s*100%)[^>]*(?:\bbgcolor\s*=|background(?:-color)?\s*:)/i.test(emailHtml) ||
-      /<(?:table|div|body)\b[^>]*(?:\bbgcolor\s*=|background(?:-color)?\s*:)[^>]*(?:\bwidth\s*=\s*["']?\s*100%|width\s*:\s*100%)/i.test(emailHtml);
-    const autoDropsGutter = effectiveEmailContent.hasStyleTag && !isWordHtml && hasFullBleedCanvas;
-    const dropGutter =
-      messageSpacing === 'edge' || (messageSpacing === 'auto' && autoDropsGutter);
+    // Only looked at when it decides anything (lib/email-full-bleed.ts).
+    const autoDropsGutter =
+      messageSpacing === 'auto' && effectiveEmailContent.hasStyleTag && !isWordHtml && hasFullBleedCanvas(effectiveEmailContent.html);
+    const dropGutter = messageSpacing === 'edge' || autoDropsGutter;
     const bodyPadding = dropGutter ? '0' : '1rem 1.25rem';
     const mobileBodyPaddingX = dropGutter ? '0' : '0.75rem';
 
@@ -3362,8 +3360,11 @@ export function EmailViewer({
       }
     }
     if (!raw) return null;
-    const m = raw.match(/<([^>]+)>/);
-    const addr = (m ? m[1] : raw).trim();
+    // A header is a line: cap it, and give up an unclosed `<` at the next
+    // `<` rather than rescanning to the end once per `<` (sender-controlled).
+    const line = raw.slice(0, 1000);
+    const m = line.match(/<([^<>]+)>/);
+    const addr = (m ? m[1] : line).trim();
     return addr || null;
   }, [email?.headers]);
 
