@@ -44,9 +44,12 @@ export default function AdminLoginPage() {
       const next = safeAdminNext(new URLSearchParams(window.location.search).get('next'));
       if (next) {
         const [path, query] = next.split('?', 2);
-        const tab = new URLSearchParams(query ?? '').get('tab');
+        const search = new URLSearchParams(query ?? '');
+        const tab = search.get('tab');
         if (tab && isAdminTab(tab)) useAdminTabStore.getState().setActiveTab(tab);
-        router.push(path);
+        // The tab rides in the store; a version pick (an install link to one
+        // version of an extension) stays in the URL for the marketplace page.
+        router.push(search.has('version') ? next : path);
         return;
       }
       router.push('/admin');
