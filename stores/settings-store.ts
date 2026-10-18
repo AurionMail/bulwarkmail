@@ -1261,6 +1261,7 @@ export const useSettingsStore = create<SettingsState>()(
           explicitSettings: state.explicitSettings,
           // Cross-store settings
           theme: useThemeStore.getState().theme,
+          themeChosen: useThemeStore.getState().themeChosen,
           locale: useLocaleStore.getState().locale,
           // Omitted entirely (rather than emitted empty) if the bridge has
           // not registered, so an importing device leaves its templates alone.
@@ -1445,7 +1446,11 @@ export const useSettingsStore = create<SettingsState>()(
 
           // Apply cross-store settings
           if (settings.theme) {
-            useThemeStore.getState().setTheme(settings.theme);
+            // A mode the user never chose leaves room for the operator's
+            // default (#1280). Blobs from before themeChosen count any mode
+            // but the built-in default as chosen.
+            const themeChosen = typeof settings.themeChosen === 'boolean' ? settings.themeChosen : settings.theme !== 'system';
+            useThemeStore.getState().setTheme(settings.theme, { chosen: themeChosen });
           }
           if (settings.locale) {
             useLocaleStore.getState().setLocale(settings.locale);

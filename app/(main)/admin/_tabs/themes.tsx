@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Upload, Trash2, Power, PowerOff, Loader2, Palette, Save, Shield, Lock, LockOpen } from '@/components/icons';
-import type { SettingsPolicy } from '@/lib/admin/types';
+import type { ColorMode, SettingsPolicy, ThemePolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY, DEFAULT_THEME_POLICY } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
 import { useAdminUnsavedChanges } from '@/stores/admin-unsaved-store';
@@ -113,6 +113,19 @@ export function ThemesTab() {
         ...DEFAULT_THEME_POLICY,
         ...prev.themePolicy,
         defaultThemeId: themeId,
+      },
+    }));
+    setPolicyDirty(true);
+    setMessage(null);
+  }
+
+  function setColorModePolicy(patch: Partial<Pick<ThemePolicy, 'defaultColorMode' | 'lockColorMode'>>) {
+    setPolicy(prev => ({
+      ...prev,
+      themePolicy: {
+        ...DEFAULT_THEME_POLICY,
+        ...prev.themePolicy,
+        ...patch,
       },
     }));
     setPolicyDirty(true);
@@ -306,6 +319,7 @@ export function ThemesTab() {
 
   const themesEnabled = policy.features.themesEnabled ?? true;
   const userThemesEnabled = policy.features.userThemesEnabled ?? true;
+  const lockColorMode = policy.themePolicy?.lockColorMode === true;
 
   return (
     <div className="space-y-6">
@@ -435,6 +449,34 @@ export function ThemesTab() {
                 )}
               </select>
             </div>
+          </div>
+
+          <div className="px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <span className="text-sm text-foreground">Default Color Mode</span>
+              <p className="text-xs text-muted-foreground mt-0.5">Light, dark or system for users who have not picked one</p>
+            </div>
+            <select
+              value={policy.themePolicy?.defaultColorMode || 'system'}
+              onChange={(e) => setColorModePolicy({ defaultColorMode: e.target.value === 'system' ? null : e.target.value as ColorMode })}
+              className="h-8 px-2 w-full sm:w-auto shrink-0 rounded-md border border-input bg-background text-sm text-foreground"
+            >
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+
+          <div className="px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <span className="text-sm text-foreground">Lock Color Mode</span>
+              <p className="text-xs text-muted-foreground mt-0.5">Everyone gets the default color mode and cannot switch it in settings, on the login page or in the command palette</p>
+            </div>
+            <button type="button" role="switch" aria-checked={lockColorMode} aria-label="Lock Color Mode"
+              onClick={() => setColorModePolicy({ lockColorMode: !lockColorMode })}
+              className={`shrink-0 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${lockColorMode ? 'bg-primary' : 'bg-muted-foreground/25 dark:bg-muted-foreground/50'}`}>
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-background shadow transition-transform ${lockColorMode ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+            </button>
           </div>
 
           <div className="px-4 py-3">

@@ -103,6 +103,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
   const client = useAuthStore((s) => s.client);
   const supportsCalendar = useCalendarStore((s) => s.supportsCalendar);
   const isFeatureEnabled = usePolicyStore((s) => s.isFeatureEnabled);
+  const colorModeLocked = usePolicyStore((s) => s.getColorModePolicy().locked);
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const pluginActions = usePluginActions(surface);
 
@@ -132,15 +133,18 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       { id: "go-settings", group: "navigation", icon: Settings, label: t("go_to", { name: tSidebar("settings") }), run: go("/settings") },
       { id: "compose", group: "actions", icon: PenLine, label: t("compose"), run: onMail("compose") },
       { id: "search", group: "actions", icon: Search, label: t("search"), run: onMail("search") },
-      {
+    );
+    // The theme policy can pin the color mode (#1280).
+    if (!colorModeLocked) {
+      list.push({
         id: "theme",
         group: "actions",
         icon: resolvedTheme === "dark" ? Sun : Moon,
         label: resolvedTheme === "dark" ? t("theme_light") : t("theme_dark"),
         run: () => useThemeStore.getState().setTheme(resolvedTheme === "dark" ? "light" : "dark"),
-      },
-      { id: "shortcuts", group: "actions", icon: Keyboard, label: t("shortcuts"), run: onShowShortcuts },
-    );
+      });
+    }
+    list.push({ id: "shortcuts", group: "actions", icon: Keyboard, label: t("shortcuts"), run: onShowShortcuts });
     for (const action of pluginActions) {
       list.push({
         id: `plugin:${action.pluginId}:${action.id}`,
@@ -152,7 +156,7 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       });
     }
     return list;
-  }, [client, supportsCalendar, isFeatureEnabled, resolvedTheme, pluginActions, router, t, tSidebar, onShowShortcuts]);
+  }, [client, supportsCalendar, isFeatureEnabled, colorModeLocked, resolvedTheme, pluginActions, router, t, tSidebar, onShowShortcuts]);
 
   const needle = query.trim().toLowerCase();
   const visible = needle

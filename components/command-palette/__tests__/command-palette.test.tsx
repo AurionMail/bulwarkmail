@@ -22,6 +22,8 @@ vi.mock('@/components/keyboard-shortcuts-modal', () => ({
 const { CommandPaletteHost } = await import('../command-palette');
 const { useAuthStore } = await import('@/stores/auth-store');
 const { useThemeStore } = await import('@/stores/theme-store');
+const { usePolicyStore } = await import('@/stores/policy-store');
+const { DEFAULT_POLICY, DEFAULT_THEME_POLICY } = await import('@/lib/admin/types');
 const appCommands = await import('@/lib/app-commands');
 
 const dispatch = vi.fn().mockResolvedValue(undefined);
@@ -35,6 +37,7 @@ beforeEach(() => {
   dispatch.mockClear();
   setActionDispatcher(dispatch);
   useAuthStore.setState({ isAuthenticated: true, client: null } as never);
+  usePolicyStore.setState({ policy: { ...DEFAULT_POLICY } });
 });
 afterEach(() => {
   appCommands.parkAppCommand(null as never);
@@ -170,5 +173,13 @@ describe('command palette', () => {
     pressCtrlK();
     act(() => { fireEvent.click(screen.getByRole('option', { name: 'shortcuts' })); });
     expect(screen.getByText('shortcuts help')).toBeInTheDocument();
+  });
+
+  it('offers no theme switch while the theme policy locks the color mode (#1280)', () => {
+    usePolicyStore.setState({ policy: { ...DEFAULT_POLICY, themePolicy: { ...DEFAULT_THEME_POLICY, lockColorMode: true } } });
+    render(<CommandPaletteHost />);
+    pressCtrlK();
+    expect(screen.queryByRole('option', { name: /^theme_/ })).toBeNull();
+    expect(screen.getByRole('option', { name: 'shortcuts' })).toBeInTheDocument();
   });
 });

@@ -96,6 +96,8 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   customFromEnabled: true,
 };
 
+export type ColorMode = 'light' | 'dark' | 'system';
+
 export interface ThemePolicy {
   /** Built-in theme IDs that are disabled (hidden from users) */
   disabledBuiltinThemes: string[];
@@ -103,12 +105,18 @@ export interface ThemePolicy {
   disabledThemes: string[];
   /** Default theme ID for new users (null = system default) */
   defaultThemeId: string | null;
+  /** Color mode for users who have not picked one (null = system) */
+  defaultColorMode: ColorMode | null;
+  /** Every user gets defaultColorMode (system when unset) and cannot switch it */
+  lockColorMode: boolean;
 }
 
 export const DEFAULT_THEME_POLICY: ThemePolicy = {
   disabledBuiltinThemes: [],
   disabledThemes: [],
   defaultThemeId: null,
+  defaultColorMode: null,
+  lockColorMode: false,
 };
 
 /** One entry of the Web Push relay list users can pick from. */

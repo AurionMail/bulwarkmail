@@ -74,11 +74,11 @@ export function AppearanceSettings() {
   const { fontSize, density, animationsEnabled, senderFavicons, showAvatarsInJunk, showOnboardingOnNewDevices, updateSetting } = useSettingsStore();
   const { startTour, resetTourCompletion } = useTour();
   const refreshFavicons = useFaviconRefreshStore((s) => s.refresh);
-  const { isSettingLocked, isSettingHidden } = usePolicyStore();
+  const { isSettingLocked, isSettingHidden, getColorModePolicy } = usePolicyStore();
 
   return (
     <SettingsSection title={t('title')} description={t('description')}>
-      <SettingItem label={t('theme.label')} description={t('theme.description')}>
+      <SettingItem label={t('theme.label')} description={t('theme.description')} locked={getColorModePolicy().locked}>
         <RadioGroup
           value={theme}
           onChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
