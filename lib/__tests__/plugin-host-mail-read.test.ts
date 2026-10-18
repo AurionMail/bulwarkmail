@@ -39,6 +39,7 @@ const shared = {
 } as unknown as Mailbox;
 
 let client: Record<string, ReturnType<typeof vi.fn>>;
+const realGetClientForAccount = useAuthStore.getState().getClientForAccount;
 
 beforeEach(() => {
   client = {
@@ -53,7 +54,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  useAuthStore.setState({ client: null });
+  useAuthStore.setState({ client: null, getClientForAccount: realGetClientForAccount });
   useEmailStore.setState({ mailboxes: [], selectedEmail: null, selectedMailbox: '', emails: [] });
 });
 
@@ -73,6 +74,19 @@ describe('api.email.get', () => {
     useEmailStore.setState({ selectedMailbox: 'acc2:box', emails: [mail('s1', { mailboxIds: { 'acc2:box': true } })] });
     expect(await call(READER, 'email.get', 's1')).toEqual(expect.objectContaining({ id: 's1', subject: 'Shared' }));
     expect(client.getEmail).toHaveBeenCalledWith('s1', 'acc2');
+  });
+
+  it('reads no listed message of another connected login', async () => {
+    // Rows can be put in the list by a plugin (onEmailsFetched), stamps included.
+    const other = { getEmail: vi.fn(async () => mail('x1', { subject: 'Other login' })) };
+    useAuthStore.setState({
+      getClientForAccount: ((id: string) => (id === 'login2' ? other : undefined)) as never,
+    });
+    useEmailStore.setState({ emails: [mail('x1', { sourceClientAccountId: 'login2', sourceAccountId: 'acc9' })] });
+    expect(await call(READER, 'email.get', 'x1')).toBeNull();
+    expect(other.getEmail).not.toHaveBeenCalled();
+    // Nor is the signed-in login asked for an id that belongs to another one.
+    expect(client.getEmail).not.toHaveBeenCalled();
   });
 
   it('uses the open message when its body is loaded', async () => {

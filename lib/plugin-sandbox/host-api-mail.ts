@@ -4,8 +4,9 @@
 // JMAP client and never change what the user has open.
 //
 // api.email.get also reads a message of a shared account when it is in the
-// loaded list, from the account that owns it. The bytes of attachments and
-// sources are read from the signed-in account only.
+// loaded list, from the account that owns it, always through the signed-in
+// login. The bytes of attachments and sources are read from the signed-in
+// account only.
 
 import type { EmailReadView, EmailSummary, MailboxView } from '../plugin-types';
 import type { Email, Mailbox } from '../jmap/types';
@@ -36,8 +37,13 @@ export async function doEmailGet(id: unknown): Promise<EmailReadView | null> {
   // it; the signed-in account doesn't know its id.
   const listed = useEmailStore.getState().emails.find((e) => e.id === emailId);
   const owner = listed ? resolveEmailBlobContext(listed, client) : null;
-  const email = owner?.client && owner.accountId
-    ? await owner.client.getEmail(emailId, owner.accountId)
+  // Only through the signed-in login. A row of another connected login is
+  // not read here, nor asked of this login under an id that isn't its own.
+  // The rows can come from a plugin (onEmailsFetched), so their stamps must
+  // not pick which login is asked.
+  if (owner && owner.client !== client) return null;
+  const email = owner?.accountId
+    ? await client.getEmail(emailId, owner.accountId)
     : await loadEmail(client, emailId);
   return email ? emailToReadView(email) : null;
 }
