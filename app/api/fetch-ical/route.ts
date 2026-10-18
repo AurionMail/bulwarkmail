@@ -24,7 +24,7 @@ function getFetchTimeoutMs(maxBytes: number): number {
  * upstream connection is aborted rather than drained.
  */
 async function readBodyCapped(
-  response: { body: ReadableStream<Uint8Array> | null; arrayBuffer: () => Promise<ArrayBuffer> },
+  response: Pick<Response, 'body' | 'arrayBuffer'>,
   maxBytes: number,
   controller: AbortController,
 ): Promise<ArrayBuffer | null> {
@@ -39,13 +39,14 @@ async function readBodyCapped(
     const { done, value } = await reader.read();
     if (done) break;
     if (!value) continue;
-    received += value.byteLength;
+    const chunk = value as Uint8Array;
+    received += chunk.byteLength;
     if (received > maxBytes) {
       controller.abort();
       reader.cancel().catch(() => {});
       return null;
     }
-    chunks.push(value);
+    chunks.push(chunk);
   }
   const out = new Uint8Array(received);
   let offset = 0;

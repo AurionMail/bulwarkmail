@@ -209,7 +209,7 @@ function getOrganizerEmail(event: Partial<CalendarEvent>): string | null {
  * the bare `spf=pass` made the forged invitation look trusted.
  */
 function hasVerifiedAuthentication(email?: Pick<Email, 'from' | 'authenticationResults'>): boolean {
-  return hasAlignedAuthenticationPass(email?.authenticationResults, getPrimaryAddressEmail(email?.from));
+  return hasAlignedAuthenticationPass(email?.authenticationResults, getPrimaryAddressEmail(email?.from) ?? undefined);
 }
 
 function hasAuthenticationFailure(email?: Pick<Email, 'authenticationResults'>): boolean {
