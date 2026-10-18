@@ -274,13 +274,14 @@ export function formatRelativeAgo(date: Date | string, now: Date = new Date()): 
     const w = getWallClock(x, timeZone);
     return Date.UTC(w.year, w.month - 1, w.day) / 86400000;
   };
-  const days = Math.max(1, dayNumber(now) - dayNumber(d));
+  const days = dayNumber(now) - dayNumber(d);
   if (days >= 30) return '';
   const locale = getEffectiveLocale();
   const rtf = new Intl.RelativeTimeFormat(locale === 'en' ? 'en-US' : locale, { numeric: 'auto' });
   if (minutes < 1) return rtf.format(0, 'second');
   if (minutes < 60) return rtf.format(-minutes, 'minute');
-  if (hours < 24) return rtf.format(-hours, 'hour');
+  // The day the clocks go back has 25 hours: 24 of them can still be today.
+  if (hours < 24 || days < 1) return rtf.format(-hours, 'hour');
   return rtf.format(-days, 'day');
 }
 

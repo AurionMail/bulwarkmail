@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { SubMenuPanel } from "@/components/ui/context-menu";
 import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
+import { getEffectiveTimeZone, getWallClock } from "@/lib/timezone";
 import { itemsToHide } from "@/lib/toolbar-overflow";
 import { formatScheduledSendAt } from "@/lib/scheduled-send-label";
 import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets";
@@ -689,7 +690,12 @@ function DraggableAttachmentChip({ attachment, client, accountId, enabled, downl
  */
 function mvSenderDate(date: Date | string, timeFormat: '12h' | '24h'): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  const today = new Date().toDateString() === d.toDateString();
+  // "Today" in the time zone setting, the zone the time and the relative
+  // part are shown in, not the browser's (#1259).
+  const zone = getEffectiveTimeZone();
+  const day = Number.isNaN(d.getTime()) ? null : getWallClock(d, zone);
+  const now = getWallClock(new Date(), zone);
+  const today = !!day && day.year === now.year && day.month === now.month && day.day === now.day;
   const when = today
     ? formatDateTime(d, timeFormat)
     : formatDateTime(d, timeFormat, { year: 'numeric', month: 'short', day: 'numeric' });

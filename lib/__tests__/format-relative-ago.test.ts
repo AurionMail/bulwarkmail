@@ -32,4 +32,10 @@ describe('formatRelativeAgo', () => {
     // Under a day still reads in hours, even across midnight.
     expect(formatRelativeAgo(new Date('2026-10-15T23:00:00Z'), denverNow)).toBe('17 hours ago');
   });
+
+  it('does not call the same day yesterday on the 25-hour day the clocks go back', () => {
+    useSettingsStore.setState({ timeZone: 'America/Denver' });
+    // 1 Nov 2026 in Denver: 00:10 MDT, and 24.5 hours later 23:40 MST.
+    expect(formatRelativeAgo(new Date('2026-11-01T06:10:00Z'), new Date('2026-11-02T06:40:00Z'))).toBe('24 hours ago');
+  });
 });
