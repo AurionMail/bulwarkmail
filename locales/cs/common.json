@@ -60,6 +60,12 @@
     "demo_login_button": "Spustit demoverzi",
     "demo_tagline": "Vyzkoušejte plně funkční e-mailový klient. Účet není vyžadován.",
     "demo_no_signup": "Bez registrace - volně prozkoumejte s ukázkovými daty",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Dokončování přihlášení...",
     "oauth_error": {
       "title": "Ověření selhalo",

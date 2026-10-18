@@ -60,6 +60,12 @@
     "demo_login_button": "تشغيل النسخة التجريبية",
     "demo_tagline": "جرّب عميل بريد إلكتروني متكامل الميزات. لا حاجة إلى حساب.",
     "demo_no_signup": "لا حاجة للتسجيل - استكشف بحرية باستخدام بيانات نموذجية",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "جارٍ إتمام تسجيل الدخول...",
     "oauth_error": {
       "title": "فشلت المصادقة",

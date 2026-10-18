@@ -60,6 +60,12 @@
     "demo_login_button": "デモを開始",
     "demo_tagline": "フル機能のメールクライアントを体験。アカウント不要。",
     "demo_no_signup": "登録不要 - サンプルデータで自由に探索",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "サインイン処理中...",
     "oauth_error": {
       "title": "認証に失敗しました",

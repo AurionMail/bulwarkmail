@@ -60,6 +60,12 @@
     "demo_login_button": "Lansați demonstrația",
     "demo_tagline": "Descoperiți un client de e-mail cu funcționalități complete. Nu este necesar un cont.",
     "demo_no_signup": "Nu este necesară înregistrarea – explorați liber cu date de exemplu",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Se finalizează autentificarea...",
     "oauth_error": {
       "title": "Autentificare eșuată",
