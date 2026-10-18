@@ -23,13 +23,15 @@ const QUOTED_REMOTE_ALLOWED_ATTR = "data-quoted-remote";
 const ATOM_BLOCKS = new Set(["quotedHtml", "signatureBlock"]);
 
 // Reusable style for the quote bar when quoting email text (like in a reply).
-// `contain:paint` with a positioned, clipping box: the quoted original is a
+const QUOTE_BAR_STYLE =
+  "border-left:2px solid #c5c5c5;padding-left:12px;margin-top:8px;";
+
+// Editor-only, never serialized into the sent mail: the quoted original is a
 // sender's HTML rendered in the app document (the shadow root isolates its
 // styles, not its layout), so a `position:fixed` element in it would cover
-// the composer and the app with whatever the sender drew. Painting is
-// confined to the quote's own box.
-const QUOTE_BAR_STYLE =
-  "border-left:2px solid #c5c5c5;padding-left:12px;margin-top:8px;position:relative;overflow:hidden;contain:paint;";
+// the composer and the app with whatever the sender drew. `contain:paint`
+// with a positioned, clipping box confines painting to the quote's own box.
+const QUOTE_ISLAND_CONTAINMENT_STYLE = "position:relative;overflow:hidden;contain:paint;";
 
 /**
  * QuotedHtml — an atomic block node that carries the *verbatim* HTML of a
@@ -135,7 +137,7 @@ export const QuotedHtml = TiptapNode.create({
       const dom = document.createElement("div");
       dom.setAttribute(QUOTED_HTML_MARKER, "");
       dom.className = "quoted-html-island";
-      dom.style.cssText = QUOTE_BAR_STYLE;
+      dom.style.cssText = QUOTE_BAR_STYLE + QUOTE_ISLAND_CONTAINMENT_STYLE;
 
       // CRITICAL: render the quoted email inside a Shadow Root. The app's
       // global CSS (Tailwind preflight, .tiptap table/td rules, box-sizing
