@@ -1621,6 +1621,13 @@
         "label": "Mention recipients with @",
         "description": "Typing @ in the message offers its recipients and inserts the chosen one's first name. Enter or Tab picks the highlighted name."
       },
+      "mention_adds_recipient": {
+        "label": "Contacts in @ mentions",
+        "description": "Typing @ also offers your contacts and people from the directory. Picking someone who isn't a recipient yet adds them to the message.",
+        "to": "Add to To",
+        "cc": "Add to Cc",
+        "off": "Only offer recipients"
+      },
       "hide_inline_image_attachments": {
         "label": "Hide inline images from attachments",
         "description": "Images embedded in the message body are not listed as separate attachments"

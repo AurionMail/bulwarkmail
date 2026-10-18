@@ -1621,6 +1621,13 @@
         "label": "Nevn mottakere med @",
         "description": "Når du skriver @ i meldingen, foreslås mottakerne, og fornavnet til den valgte settes inn. Enter eller Tab velger det uthevede navnet."
       },
+      "mention_adds_recipient": {
+        "label": "Kontakter i @-omtaler",
+        "description": "Når du skriver @, foreslås også kontaktene dine og personer fra katalogen. Velger du noen som ennå ikke er mottaker, legges de til i meldingen.",
+        "to": "Legg til i Til",
+        "cc": "Legg til i Kopi",
+        "off": "Bare foreslå mottakere"
+      },
       "hide_inline_image_attachments": {
         "label": "Skjul innebygde bilder i vedleggslisten",
         "description": "Bilder som er innebygd i meldingsteksten, er ikke oppført som separate vedlegg"

@@ -84,6 +84,9 @@ vi.mock('@/stores/email-store', () => {
 
 const updateSetting = vi.fn();
 
+// What the address autocomplete finds: contacts, directory, recent recipients.
+const addressBook = vi.hoisted(() => ({ entries: [] as Array<{ name: string; email: string; group?: unknown }> }));
+
 vi.mock('@/stores/settings-store', () => {
   const state = {
     timeFormat: '24h',
@@ -94,6 +97,7 @@ vi.mock('@/stores/settings-store', () => {
     attachmentReminderKeywords: [],
     emptySubjectWarningEnabled: true,
     recipientMentionsEnabled: true,
+    mentionAddsRecipientTo: 'to',
     sendDelaySeconds: 0,
     signaturePosition: 'above_quote',
     signatureSeparatorEnabled: false,
@@ -112,7 +116,10 @@ vi.mock('@/stores/settings-store', () => {
 vi.mock('@/stores/contact-store', () => {
   const state = {
     contacts: [],
-    getAutocomplete: async () => [],
+    // Matches anywhere, as the real one does.
+    getAutocomplete: (query: string) => addressBook.entries.filter((e) =>
+      `${e.name} ${e.email}`.toLowerCase().includes(query.toLowerCase())),
+    getGroupMembers: () => [],
     addToTrustedSendersBook: async () => {},
   };
   const hook = (sel?: (s: typeof state) => unknown) =>
@@ -371,5 +378,69 @@ describe('composer with the @ recipient list', () => {
     await nextFrame();
     expect(editor.getText()).toBe('Hallo @Bob ');
     await waitFor(() => expect(mentionList()).toBeNull());
+  });
+  describe('with contacts', () => {
+    beforeAll(() => {
+      addressBook.entries = [
+        { name: 'Dana Scully', email: 'dana@example.com' },
+        // Already on the message: in To, and blind-copied.
+        { name: 'Bob Builder', email: 'bob@example.com' },
+        { name: 'Geheim', email: 'geheim@example.com' },
+        { name: 'Devs', email: '', group: { id: 'g1', memberCount: 3 } },
+      ];
+    });
+    afterAll(() => {
+      addressBook.entries = [];
+      useSettingsStore.setState({ mentionAddsRecipientTo: 'to' } as never);
+    });
+
+    const toField = () => screen.getByTestId('composer-to');
+
+    it('offers a contact once something is typed, and adds the picked one to To', async () => {
+      const { editor } = await renderComposer();
+      await typeInto(editor, ' @');
+      // A bare @ is about the recipients only.
+      expect(within(await screen.findByRole('listbox', { name: 'mention_recipients' })).getAllByRole('option')).toHaveLength(2);
+      await typeInto(editor, 'd');
+      const options = within(await screen.findByRole('listbox', { name: 'mention_recipients' })).getAllByRole('option');
+      expect(options.map((o) => o.textContent)).toEqual(['@DanaDana Scully · dana@example.com+ to']);
+      expect(within(toField()).queryByText(/Dana/)).toBeNull();
+
+      press(editor, 'Enter');
+      await nextFrame();
+      expect(editor.getText()).toBe('Hallo @Dana ');
+      expect(within(toField()).getByText(/Dana Scully/)).toBeTruthy();
+    });
+
+    it('never offers someone in Bcc, or a contact group', async () => {
+      const { editor } = await renderComposer();
+      await typeInto(editor, ' @ge');
+      expect(mentionList()).toBeNull();
+      await typeInto(editor, ' @dev');
+      expect(mentionList()).toBeNull();
+    });
+
+    it('adds the picked contact to Cc when the settings say so', async () => {
+      useSettingsStore.setState({ mentionAddsRecipientTo: 'cc' } as never);
+      const { editor } = await renderComposer();
+      expect(screen.queryByText('cc_label')).toBeNull();
+      await typeInto(editor, ' @da');
+      const list = await screen.findByRole('listbox', { name: 'mention_recipients' });
+      expect(within(list).getByRole('option')).toHaveTextContent('+ cc');
+      press(editor, 'Tab');
+      await nextFrame();
+      const ccRow = (await screen.findByText('cc_label')).parentElement!;
+      expect(within(ccRow).getByText(/Dana Scully/)).toBeTruthy();
+      expect(within(toField()).queryByText(/Dana/)).toBeNull();
+    });
+
+    it('offers recipients only when contacts are turned off', async () => {
+      useSettingsStore.setState({ mentionAddsRecipientTo: 'off' } as never);
+      const { editor } = await renderComposer();
+      await typeInto(editor, ' @da');
+      expect(mentionList()).toBeNull();
+      await typeInto(editor, ' @b');
+      expect(await screen.findByRole('listbox', { name: 'mention_recipients' })).toBeTruthy();
+    });
   });
 });

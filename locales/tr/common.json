@@ -1618,6 +1618,13 @@
         "label": "Alıcılardan @ ile bahset",
         "description": "Mesajda @ yazınca alıcılar önerilir ve seçilenin adı eklenir. Enter veya Tab vurgulanan adı seçer."
       },
+      "mention_adds_recipient": {
+        "label": "@ bahsetmelerinde kişiler",
+        "description": "@ yazdığınızda kişileriniz ve dizindeki kişiler de önerilir. Henüz alıcı olmayan birini seçerseniz iletiye eklenir.",
+        "to": "Kime alanına ekle",
+        "cc": "CC alanına ekle",
+        "off": "Yalnızca alıcılar"
+      },
       "hide_inline_image_attachments": {
         "label": "Satır içi görüntüleri eklerden gizle",
         "description": "İleti gövdesine gömülü görseller ayrı ek olarak listelenmez"

@@ -1621,6 +1621,13 @@
         "label": "Maini adressaate @-ga",
         "description": "Kirjas @ trükkimine pakub selle adressaate ja lisab valitu eesnime. Enter või Tab valib esiletõstetud nime."
       },
+      "mention_adds_recipient": {
+        "label": "Kontaktid @-mainimistes",
+        "description": "@ kirjutamisel pakutakse ka sinu kontakte ja kataloogis olevaid inimesi. Kui valid kellegi, kes pole veel adressaat, lisatakse ta kirjale.",
+        "to": "Lisa väljale Saajale",
+        "cc": "Lisa väljale CC",
+        "off": "Paku ainult adressaate"
+      },
       "hide_inline_image_attachments": {
         "label": "Peida reasisesed pildid manuste hulgast",
         "description": "Kirja sisusse põimitud pilte ei kuvata eraldi manustena"

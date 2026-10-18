@@ -1621,6 +1621,13 @@
         "label": "Nævn modtagere med @",
         "description": "Når du skriver @ i beskeden, foreslås modtagerne, og den valgtes fornavn indsættes. Enter eller Tab vælger det fremhævede navn."
       },
+      "mention_adds_recipient": {
+        "label": "Kontakter i @-omtaler",
+        "description": "Når du skriver @, foreslås også dine kontakter og personer fra adressebogen. Vælger du en, der endnu ikke er modtager, tilføjes vedkommende til beskeden.",
+        "to": "Tilføj til Til",
+        "cc": "Tilføj til CC",
+        "off": "Foreslå kun modtagere"
+      },
       "hide_inline_image_attachments": {
         "label": "Skjul indlejrede billeder fra vedhæftninger",
         "description": "Billeder indlejret i beskedteksten vises ikke som separate vedhæftninger"

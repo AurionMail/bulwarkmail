@@ -1618,6 +1618,13 @@
         "label": "Menziona i destinatari con @",
         "description": "Digitando @ nel messaggio vengono proposti i destinatari e viene inserito il nome di quello scelto. Invio o Tab seleziona il nome evidenziato."
       },
+      "mention_adds_recipient": {
+        "label": "Contatti nelle menzioni con @",
+        "description": "Digitando @ vengono proposti anche i tuoi contatti e le persone della rubrica aziendale. Se scegli qualcuno che non è ancora destinatario, viene aggiunto al messaggio.",
+        "to": "Aggiungi in A",
+        "cc": "Aggiungi in CC",
+        "off": "Solo destinatari"
+      },
       "hide_inline_image_attachments": {
         "label": "Nascondi le immagini inline dagli allegati",
         "description": "Le immagini incorporate nel corpo del messaggio non vengono elencate come allegati separati"

@@ -7,7 +7,7 @@ import { Suggestion, exitSuggestion, type SuggestionMount, type SuggestionOption
 import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { filterMentionCandidates, type MentionCandidate } from "@/lib/recipient-mentions";
+import type { MentionCandidate } from "@/lib/recipient-mentions";
 
 export const recipientMentionPluginKey = new PluginKey<{ active: boolean }>("recipientMention");
 
@@ -42,16 +42,18 @@ export function insertMention(editor: Editor, range: Range, label: string) {
 }
 
 export interface RecipientMentionOptions {
-  /** The recipients an @ can address right now; read on every keystroke. */
-  getCandidates: () => MentionCandidate[];
+  /** Who an @ followed by `query` offers right now; asked on every keystroke. */
+  getCandidates: (query: string) => MentionCandidate[];
+  /** Called after a pick, so a contact who isn't a recipient yet can be added. */
+  onPick?: (candidate: MentionCandidate) => void;
   render?: SuggestionOptions<MentionCandidate, MentionCandidate>["render"];
 }
 
 /**
- * "@" in the body offers the message's recipients and inserts the chosen
- * one's first name as plain text. The suggestion is only active while a
- * recipient matches what was typed, so an @ nobody matches - or one typed
- * without recipients - leaves Enter and Escape to the editor and composer.
+ * "@" in the body offers the message's recipients, and contacts who can be
+ * added as one, and inserts the chosen one's first name as plain text. The
+ * suggestion is only active while someone matches what was typed, so an @
+ * nobody matches leaves Enter and Escape to the editor and composer.
  */
 export const RecipientMention = Extension.create<RecipientMentionOptions>({
   name: "recipientMention",
@@ -62,6 +64,7 @@ export const RecipientMention = Extension.create<RecipientMentionOptions>({
   addOptions() {
     return {
       getCandidates: () => [],
+      onPick: undefined,
       render: undefined,
     };
   },
@@ -73,7 +76,7 @@ export const RecipientMention = Extension.create<RecipientMentionOptions>({
   },
 
   addProseMirrorPlugins() {
-    const { getCandidates, render } = this.options;
+    const { getCandidates, onPick, render } = this.options;
     return [
       Suggestion<MentionCandidate, MentionCandidate>({
         editor: this.editor,
@@ -89,10 +92,13 @@ export const RecipientMention = Extension.create<RecipientMentionOptions>({
           const code = state.schema.marks.code;
           if (code && state.doc.rangeHasMark(range.from, range.to, code)) return false;
           const query = state.doc.textBetween(range.from + 1, range.to);
-          return filterMentionCandidates(getCandidates(), query).length > 0;
+          return getCandidates(query).length > 0;
         },
-        items: ({ query }) => filterMentionCandidates(getCandidates(), query),
-        command: ({ editor, range, props }) => insertMention(editor, range, props.label),
+        items: ({ query }) => getCandidates(query),
+        command: ({ editor, range, props }) => {
+          insertMention(editor, range, props.label);
+          onPick?.(props);
+        },
         render,
       }),
     ];
@@ -218,6 +224,13 @@ export const RecipientMentionList = forwardRef<RecipientMentionListHandle, Recip
             <span className="text-muted-foreground truncate">
               {item.name && item.name !== item.label ? `${item.name} · ${item.email}` : item.email}
             </span>
+            {/* Picking a contact also adds them as a recipient; say so
+                before it happens. */}
+            {item.addsTo && (
+              <span className="ms-auto shrink-0 rounded px-1.5 py-0.5 text-[11px] bg-muted text-muted-foreground">
+                + {t(item.addsTo)}
+              </span>
+            )}
           </button>
         ))}
       </div>

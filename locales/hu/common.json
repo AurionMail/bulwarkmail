@@ -1621,6 +1621,13 @@
         "label": "Címzettek említése @ jellel",
         "description": "Ha @ jelet ír az üzenetbe, megjelennek a címzettek, és a kiválasztott keresztneve kerül beszúrásra. Az Enter vagy a Tab a kiemelt nevet választja."
       },
+      "mention_adds_recipient": {
+        "label": "Névjegyek a @ említéseknél",
+        "description": "A @ beírásakor a névjegyeid és a címtárban szereplő személyek is megjelennek. Ha olyat választasz, aki még nem címzett, hozzáadjuk az üzenethez.",
+        "to": "Hozzáadás: Címzett",
+        "cc": "Hozzáadás: Másolat",
+        "off": "Csak a címzettek"
+      },
       "hide_inline_image_attachments": {
         "label": "Beágyazott képek elrejtése a csatolmányok közül",
         "description": "Az üzenet törzsébe ágyazott képek nem jelennek meg külön csatolmányként"

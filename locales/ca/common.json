@@ -1621,6 +1621,13 @@
         "label": "Esmentar destinataris amb @",
         "description": "En escriure @ al missatge s'ofereixen els destinataris i s'insereix el nom de pila del triat. Retorn o Tab tria el nom ressaltat."
       },
+      "mention_adds_recipient": {
+        "label": "Contactes a les mencions amb @",
+        "description": "En escriure @ també s'ofereixen els teus contactes i persones del directori. Si tries algú que encara no és destinatari, s'afegeix al missatge.",
+        "to": "Afegeix a Per a",
+        "cc": "Afegeix a CC",
+        "off": "Només destinataris"
+      },
       "hide_inline_image_attachments": {
         "label": "Amaga les imatges incrustades dels fitxers adjunts",
         "description": "Les imatges incrustades al cos del missatge no es llisten com a fitxers adjunts separats"

@@ -1618,6 +1618,13 @@
         "label": "Wspominaj odbiorców za pomocą @",
         "description": "Wpisanie @ w wiadomości podpowiada jej odbiorców i wstawia imię wybranego. Enter lub Tab wybiera podświetlone imię."
       },
+      "mention_adds_recipient": {
+        "label": "Kontakty we wzmiankach @",
+        "description": "Po wpisaniu @ podpowiadane są też Twoje kontakty i osoby z katalogu. Wybranie kogoś, kto nie jest jeszcze odbiorcą, dodaje go do wiadomości.",
+        "to": "Dodaj do Do",
+        "cc": "Dodaj do DW",
+        "off": "Tylko odbiorcy"
+      },
       "hide_inline_image_attachments": {
         "label": "Ukryj obrazy osadzone z listy załączników",
         "description": "Obrazy osadzone w treści wiadomości nie są wyświetlane jako osobne załączniki"

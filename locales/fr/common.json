@@ -1618,6 +1618,13 @@
         "label": "Mentionner les destinataires avec @",
         "description": "Saisir @ dans le message propose ses destinataires et insère le prénom de celui choisi. Entrée ou Tab sélectionne le nom en surbrillance."
       },
+      "mention_adds_recipient": {
+        "label": "Contacts dans les mentions @",
+        "description": "Taper @ propose aussi vos contacts et les personnes de l'annuaire. Choisir quelqu'un qui n'est pas encore destinataire l'ajoute au message.",
+        "to": "Ajouter à À",
+        "cc": "Ajouter en Cc",
+        "off": "Destinataires uniquement"
+      },
       "hide_inline_image_attachments": {
         "label": "Masquer les images intégrées des pièces jointes",
         "description": "Les images intégrées au corps du message ne sont pas listées comme pièces jointes séparées"

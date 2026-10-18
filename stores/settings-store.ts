@@ -244,6 +244,7 @@ export type SignaturePosition = 'above_quote' | 'below_quote';
 export type ReplyIdentityMatch = 'exact' | 'domain';
 /** How to handle an incoming Disposition-Notification-To (read-receipt) request. */
 export type ReadReceiptResponse = 'ask' | 'always' | 'never';
+export type MentionAddsRecipientTo = 'to' | 'cc' | 'off';
 export type DateFormat = 'smart' | 'relative' | 'full';
 /**
  * Regional ordering of numeric dates, independent of the `DateFormat` style.
@@ -670,6 +671,9 @@ interface SettingsState {
 
   // "@" in the message body offers the recipients and inserts a first name
   recipientMentionsEnabled: boolean;
+  // Where an "@" puts a picked contact who isn't a recipient yet; 'off'
+  // offers the recipients only
+  mentionAddsRecipientTo: MentionAddsRecipientTo;
 
   // Hide inline images (images referenced by cid in the HTML body) from the
   // attachment list shown above the message body.
@@ -953,6 +957,7 @@ const DEFAULT_SETTINGS = {
 
   emptySubjectWarningEnabled: true,
   recipientMentionsEnabled: true,
+  mentionAddsRecipientTo: 'to' as MentionAddsRecipientTo,
 
   hideInlineImageAttachments: true,
   attachmentImagePreviewsEnabled: true,
@@ -1248,6 +1253,7 @@ export const useSettingsStore = create<SettingsState>()(
           attachmentReminderKeywords: state.attachmentReminderKeywords,
           emptySubjectWarningEnabled: state.emptySubjectWarningEnabled,
           recipientMentionsEnabled: state.recipientMentionsEnabled,
+          mentionAddsRecipientTo: state.mentionAddsRecipientTo,
           hideInlineImageAttachments: state.hideInlineImageAttachments,
           attachmentImagePreviewsEnabled: state.attachmentImagePreviewsEnabled,
           sidebarApps: state.sidebarApps,

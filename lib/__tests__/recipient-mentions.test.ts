@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildMentionCandidates, filterMentionCandidates, mentionLabel } from '../recipient-mentions';
+import { buildMentionCandidates, filterMentionCandidates, mentionLabel, mentionSuggestions } from '../recipient-mentions';
 
 describe('mentionLabel', () => {
   it('takes the first name from a display name', () => {
@@ -120,5 +120,53 @@ describe('filterMentionCandidates', () => {
     expect(labels('jü')).toEqual(['Jürgen']);
     expect(labels('jue')).toEqual(['Jürgen']);
     expect(labels('mül')).toEqual(['Jürgen']);
+  });
+});
+
+describe('mentionSuggestions', () => {
+  const recipients = buildMentionCandidates(
+    [{ name: 'Max Mustermann', email: 'max.mustermann@dornig.de' }],
+    [{ name: 'Eva Weber', email: 'eva.weber@dornig.de' }],
+  );
+  const shown = (list: ReturnType<typeof mentionSuggestions>) => list.map((c) => `${c.label} ${c.email} ${c.addsTo ?? '-'}`);
+
+  it('offers matching recipients first, then contacts marked with the field they go to', () => {
+    const contacts = [{ name: 'Marta Klein', email: 'marta@dornig.de' }];
+    expect(shown(mentionSuggestions(recipients, contacts, 'ma', 'to'))).toEqual([
+      'Max max.mustermann@dornig.de -',
+      'Marta marta@dornig.de to',
+    ]);
+    expect(mentionSuggestions(recipients, contacts, 'ma', 'cc')[1].addsTo).toBe('cc');
+  });
+
+  it('leaves out contacts who are already recipients', () => {
+    const contacts = [{ name: 'Eva W.', email: 'Eva.Weber@dornig.de' }];
+    expect(shown(mentionSuggestions(recipients, contacts, 'ev', 'to'))).toEqual(['Eva eva.weber@dornig.de -']);
+  });
+
+  it('drops contacts that only matched in the middle of a word', () => {
+    // The address autocomplete matches anywhere; an @ matches word starts.
+    const contacts = [{ name: 'Thomas Bauer', email: 'thomas@dornig.de' }];
+    expect(mentionSuggestions(recipients, contacts, 'ma', 'to').map((c) => c.email)).toEqual(['max.mustermann@dornig.de']);
+  });
+
+  it('skips groups and entries without a usable address', () => {
+    const contacts = [{ name: 'Marketing', email: '' }, { name: 'Mara', email: 'mara' }];
+    expect(mentionSuggestions([], contacts, 'ma', 'to')).toEqual([]);
+  });
+
+  it('tells a contact apart from a recipient with the same first name', () => {
+    const contacts = [{ name: 'Max Müller', email: 'max.mueller@dornig.de' }];
+    expect(shown(mentionSuggestions(recipients, contacts, 'max', 'to'))).toEqual([
+      'Max Mustermann max.mustermann@dornig.de -',
+      'Max Müller max.mueller@dornig.de to',
+    ]);
+    // The recipient list itself keeps its labels.
+    expect(recipients[0].label).toBe('Max');
+  });
+
+  it('caps the contacts it offers', () => {
+    const contacts = Array.from({ length: 20 }, (_, i) => ({ name: `Mia ${i}`, email: `mia${i}@dornig.de` }));
+    expect(mentionSuggestions([], contacts, 'mia', 'to')).toHaveLength(8);
   });
 });

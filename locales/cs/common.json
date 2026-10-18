@@ -1618,6 +1618,13 @@
         "label": "Zmiňovat příjemce pomocí @",
         "description": "Napsáním @ ve zprávě se nabídnou její příjemci a vloží se křestní jméno vybraného. Enter nebo Tab vybere zvýrazněné jméno."
       },
+      "mention_adds_recipient": {
+        "label": "Kontakty při zmínkách přes @",
+        "description": "Po napsání @ se nabídnou i vaše kontakty a lidé z adresáře. Kdo ještě není příjemcem, bude po výběru do zprávy přidán.",
+        "to": "Přidat do Komu",
+        "cc": "Přidat do Kopie",
+        "off": "Nabízet jen příjemce"
+      },
       "hide_inline_image_attachments": {
         "label": "Skrýt vložené obrázky ze seznamu příloh",
         "description": "Obrázky vložené přímo do textu zprávy se nezobrazí jako samostatné přílohy"

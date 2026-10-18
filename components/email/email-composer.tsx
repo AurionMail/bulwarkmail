@@ -120,7 +120,7 @@ import {
 import type { ComposePrefill } from "@/lib/plugin-compose-gate";
 import { composerContextMode, composerMounted, composerUnmounted, draftSaved } from "@/lib/plugin-composer-hooks";
 import { isValidEmail } from "@/lib/validation";
-import { buildMentionCandidates } from "@/lib/recipient-mentions";
+import { buildMentionCandidates, type MentionCandidate } from "@/lib/recipient-mentions";
 import { normalizeCid } from "@/lib/attachment-visibility";
 import { RichTextEditor } from "@/components/email/rich-text-editor";
 import { isRecipientMentionActive } from "@/components/email/recipient-mention";
@@ -446,6 +446,7 @@ export function EmailComposer({
   const attachmentReminderKeywords = useSettingsStore((state) => state.attachmentReminderKeywords);
   const emptySubjectWarningEnabled = useSettingsStore((state) => state.emptySubjectWarningEnabled);
   const recipientMentionsEnabled = useSettingsStore((state) => state.recipientMentionsEnabled);
+  const mentionAddsRecipientTo = useSettingsStore((state) => state.mentionAddsRecipientTo);
   const updateSetting = useSettingsStore((state) => state.updateSetting);
   const sendDelaySeconds = useSettingsStore((state) => state.sendDelaySeconds);
   const signaturePosition = useSettingsStore((state) => state.signaturePosition);
@@ -1453,6 +1454,27 @@ export function EmailComposer({
   // Who an "@" in the body offers. Never Bcc: naming a blind-copied
   // recipient in the text would disclose them to everyone else.
   const mentionCandidates = useMemo(() => buildMentionCandidates(to, cc), [to, cc]);
+
+  // Contacts an "@" offers after the recipients; picking one adds them to
+  // To or Cc. Anyone already on the message is left out, Bcc and the
+  // identity's own Bcc included, so an "@" never names a blind copy.
+  const onMessage = useMemo(() => new Set(
+    expandRecipients([...to, ...cc, ...withInput(bcc, bccInput), ...(currentIdentity?.bcc ?? [])])
+      .map((r) => r.email.trim().toLowerCase()),
+  ), [to, cc, bcc, bccInput, currentIdentity]);
+  const findMentionContacts = useCallback((query: string) =>
+    getAutocomplete(query).filter((s) => !s.group && s.email && !onMessage.has(s.email.trim().toLowerCase())),
+  [getAutocomplete, onMessage]);
+  const addMentionedRecipient = useCallback((candidate: MentionCandidate) => {
+    const field = candidate.addsTo === 'cc' ? 'cc' : 'to';
+    const setter = field === 'cc' ? setCc : setTo;
+    setter((prev) => {
+      const key = candidate.email.toLowerCase();
+      if (expandRecipients(prev).some((r) => r.email.trim().toLowerCase() === key)) return prev;
+      return [...prev, { name: candidate.name, email: candidate.email }];
+    });
+    if (field === 'cc') setShowCc(true);
+  }, [setTo, setCc, setShowCc]);
 
   // Uploaded/hydrated attachments in ComposerDraftData shape, so a state
   // snapshot (pro tab move, unmount save) carries them across a remount
@@ -4048,6 +4070,9 @@ export function EmailComposer({
                 }
               }}
               mentionCandidates={recipientMentionsEnabled ? mentionCandidates : undefined}
+              findMentionContacts={recipientMentionsEnabled && mentionAddsRecipientTo !== 'off' ? findMentionContacts : undefined}
+              mentionAddsTo={mentionAddsRecipientTo === 'cc' ? 'cc' : 'to'}
+              onMentionAdd={addMentionedRecipient}
             />
           </div>
         )}

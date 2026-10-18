@@ -1618,6 +1618,13 @@
         "label": "Mencionar destinatarios con @",
         "description": "Al escribir @ en el mensaje se ofrecen sus destinatarios y se inserta el nombre de pila del elegido. Intro o Tab elige el nombre resaltado."
       },
+      "mention_adds_recipient": {
+        "label": "Contactos en las menciones con @",
+        "description": "Al escribir @ también se ofrecen tus contactos y personas del directorio. Si eliges a alguien que aún no es destinatario, se añade al mensaje.",
+        "to": "Añadir a Para",
+        "cc": "Añadir a CC",
+        "off": "Solo destinatarios"
+      },
       "hide_inline_image_attachments": {
         "label": "Ocultar imágenes incrustadas de los adjuntos",
         "description": "Las imágenes incrustadas en el cuerpo del mensaje no se listan como adjuntos separados"

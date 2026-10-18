@@ -1618,6 +1618,13 @@
         "label": "Empfänger mit @ erwähnen",
         "description": "@ in der Nachricht bietet ihre Empfänger an und fügt den Vornamen des gewählten ein. Enter oder Tab übernimmt den markierten Namen."
       },
+      "mention_adds_recipient": {
+        "label": "Kontakte bei @-Erwähnungen",
+        "description": "Beim Tippen von @ werden auch deine Kontakte und Personen aus dem Verzeichnis angeboten. Wer noch kein Empfänger ist, wird beim Auswählen zur Nachricht hinzugefügt.",
+        "to": "Zu An hinzufügen",
+        "cc": "Zu CC hinzufügen",
+        "off": "Nur Empfänger anbieten"
+      },
       "hide_inline_image_attachments": {
         "label": "Eingebettete Bilder in Anhangsliste ausblenden",
         "description": "Im Nachrichtentext eingebettete Bilder werden nicht als separate Anhänge aufgeführt"

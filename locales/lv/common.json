@@ -1618,6 +1618,13 @@
         "label": "Pieminēt saņēmējus ar @",
         "description": "Ierakstot @ ziņojumā, tiek piedāvāti tā saņēmēji un ievietots izvēlētā vārds. Enter vai Tab izvēlas iezīmēto vārdu."
       },
+      "mention_adds_recipient": {
+        "label": "Kontakti @ pieminējumos",
+        "description": "Ierakstot @, tiek piedāvāti arī tavi kontakti un cilvēki no direktorija. Ja izvēlies kādu, kas vēl nav adresāts, viņš tiek pievienots vēstulei.",
+        "to": "Pievienot laukam Kam",
+        "cc": "Pievienot laukam Kopija",
+        "off": "Piedāvāt tikai adresātus"
+      },
       "hide_inline_image_attachments": {
         "label": "Slēpt iegultos attēlus no pielikumu saraksta",
         "description": "Ziņojuma pamattekstā iegultie attēli netiek rādīti kā atsevišķi pielikumi"

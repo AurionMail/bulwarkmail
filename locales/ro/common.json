@@ -1621,6 +1621,13 @@
         "label": "Menționează destinatarii cu @",
         "description": "Tastarea @ în mesaj propune destinatarii și inserează prenumele celui ales. Enter sau Tab alege numele evidențiat."
       },
+      "mention_adds_recipient": {
+        "label": "Contacte în mențiunile cu @",
+        "description": "Când tastezi @ sunt propuse și contactele tale și persoanele din director. Dacă alegi pe cineva care nu e încă destinatar, este adăugat la mesaj.",
+        "to": "Adaugă la Către",
+        "cc": "Adaugă la CC",
+        "off": "Doar destinatarii"
+      },
       "hide_inline_image_attachments": {
         "label": "Ascundeți imaginile încorporate din atașamente",
         "description": "Imaginile încorporate în corpul mesajului nu sunt listate ca atașamente separate"

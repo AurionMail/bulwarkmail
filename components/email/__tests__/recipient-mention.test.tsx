@@ -11,7 +11,7 @@ import type { SuggestionProps } from '@tiptap/suggestion';
 
 import { RichTextEditor } from '../rich-text-editor';
 import { RecipientMention, insertMention } from '../recipient-mention';
-import { buildMentionCandidates, type MentionCandidate } from '@/lib/recipient-mentions';
+import { buildMentionCandidates, filterMentionCandidates, type MentionCandidate } from '@/lib/recipient-mentions';
 
 // The avatar resolves app config and favicons; neither matters here.
 vi.mock('@/components/ui/avatar', () => ({ Avatar: () => null }));
@@ -45,7 +45,7 @@ function setup(content: string, candidates: MentionCandidate[] = PEOPLE, extensi
     extensions: [
       ...extensions,
       RecipientMention.configure({
-        getCandidates: () => candidates,
+        getCandidates: (query) => filterMentionCandidates(candidates, query),
         render: () => ({
           onStart: (props) => { suggestion.props = props; },
           onUpdate: (props) => { if (!props.loading) suggestion.props = props; },

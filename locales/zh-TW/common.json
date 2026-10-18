@@ -1621,6 +1621,13 @@
         "label": "使用 @ 提及收件者",
         "description": "在內文輸入 @ 會列出收件者，並插入所選收件者的名字。按 Enter 或 Tab 選擇醒目標示的名字。"
       },
+      "mention_adds_recipient": {
+        "label": "在 @ 提及中顯示聯絡人",
+        "description": "輸入 @ 時也會建議你的聯絡人和目錄中的人員。選擇尚未在收件者中的人會將其加入郵件。",
+        "to": "加入收件者",
+        "cc": "加入副本",
+        "off": "僅顯示收件者"
+      },
       "hide_inline_image_attachments": {
         "label": "在附件清單中隱藏內嵌圖片",
         "description": "嵌入到郵件內文中的圖片不會作為單獨的附件顯示"

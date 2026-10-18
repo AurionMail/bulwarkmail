@@ -1618,6 +1618,13 @@
         "label": "Ontvangers noemen met @",
         "description": "Als je @ typt in het bericht, worden de ontvangers voorgesteld en wordt de voornaam van de gekozen ontvanger ingevoegd. Enter of Tab kiest de gemarkeerde naam."
       },
+      "mention_adds_recipient": {
+        "label": "Contacten bij @-vermeldingen",
+        "description": "Bij het typen van @ worden ook je contacten en mensen uit de adreslijst voorgesteld. Kies je iemand die nog geen ontvanger is, dan wordt die aan het bericht toegevoegd.",
+        "to": "Toevoegen aan Aan",
+        "cc": "Toevoegen aan CC",
+        "off": "Alleen ontvangers"
+      },
       "hide_inline_image_attachments": {
         "label": "Inline-afbeeldingen verbergen uit bijlagenlijst",
         "description": "Afbeeldingen die in de berichttekst zijn ingesloten worden niet als aparte bijlagen weergegeven"

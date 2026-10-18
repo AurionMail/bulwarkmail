@@ -1618,6 +1618,13 @@
         "label": "Mencionar destinatários com @",
         "description": "Ao digitar @ na mensagem, são sugeridos os destinatários e é inserido o primeiro nome do escolhido. Enter ou Tab escolhe o nome destacado."
       },
+      "mention_adds_recipient": {
+        "label": "Contactos nas menções com @",
+        "description": "Ao escrever @ também são sugeridos os seus contactos e pessoas do diretório. Escolher alguém que ainda não é destinatário adiciona-o à mensagem.",
+        "to": "Adicionar a Para",
+        "cc": "Adicionar a CC",
+        "off": "Só destinatários"
+      },
       "hide_inline_image_attachments": {
         "label": "Ocultar imagens incorporadas dos anexos",
         "description": "As imagens incorporadas no corpo da mensagem não são listadas como anexos separados"

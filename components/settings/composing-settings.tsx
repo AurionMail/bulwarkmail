@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSettingsStore } from '@/stores/settings-store';
-import type { ReplyIdentityMatch, SendDelaySeconds } from '@/stores/settings-store';
+import type { MentionAddsRecipientTo, ReplyIdentityMatch, SendDelaySeconds } from '@/stores/settings-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePolicyStore } from '@/stores/policy-store';
 import { SettingsSection, SettingItem, Select, ToggleSwitch } from './settings-section';
@@ -30,6 +30,7 @@ export function ComposingSettings() {
     attachmentReminderKeywords,
     emptySubjectWarningEnabled,
     recipientMentionsEnabled,
+    mentionAddsRecipientTo,
     sendDelaySeconds,
     subAddressDelimiter,
     signaturePosition,
@@ -190,6 +191,20 @@ export function ComposingSettings() {
           onChange={(checked) => updateSetting('recipientMentionsEnabled', checked)}
         />
       </SettingItem>
+
+      {recipientMentionsEnabled && (
+        <SettingItem label={t('mention_adds_recipient.label')} description={t('mention_adds_recipient.description')}>
+          <Select
+            value={mentionAddsRecipientTo}
+            onChange={(value) => updateSetting('mentionAddsRecipientTo', value as MentionAddsRecipientTo)}
+            options={[
+              { value: 'to', label: t('mention_adds_recipient.to') },
+              { value: 'cc', label: t('mention_adds_recipient.cc') },
+              { value: 'off', label: t('mention_adds_recipient.off') },
+            ]}
+          />
+        </SettingItem>
+      )}
 
       <SettingItem label={t('attachment_reminder.label')} description={t('attachment_reminder.description')}>
         <ToggleSwitch

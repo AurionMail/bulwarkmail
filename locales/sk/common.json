@@ -1621,6 +1621,13 @@
         "label": "Spomínať príjemcov pomocou @",
         "description": "Napísaním @ v správe sa ponúknu jej príjemcovia a vloží sa krstné meno vybraného. Enter alebo Tab vyberie zvýraznené meno."
       },
+      "mention_adds_recipient": {
+        "label": "Kontakty pri zmienkach cez @",
+        "description": "Po napísaní @ sa ponúknu aj vaše kontakty a ľudia z adresára. Kto ešte nie je príjemcom, bude po výbere do správy pridaný.",
+        "to": "Pridať do Komu",
+        "cc": "Pridať do Kópia",
+        "off": "Ponúkať iba príjemcov"
+      },
       "hide_inline_image_attachments": {
         "label": "Skryť vložené obrázky zo zoznamu príloh",
         "description": "Obrázky vložené priamo do textu správy sa nezobrazia ako samostatné prílohy"

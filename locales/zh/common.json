@@ -1618,6 +1618,13 @@
         "label": "使用 @ 提及收件人",
         "description": "在正文中输入 @ 会列出收件人，并插入所选收件人的名字。按 Enter 或 Tab 选择高亮的名字。"
       },
+      "mention_adds_recipient": {
+        "label": "在 @ 提及中显示联系人",
+        "description": "输入 @ 时也会推荐你的联系人和目录中的人员。选择尚未在收件人中的人会将其添加到邮件。",
+        "to": "添加到收件人",
+        "cc": "添加到抄送",
+        "off": "仅显示收件人"
+      },
       "hide_inline_image_attachments": {
         "label": "在附件列表中隐藏内嵌图片",
         "description": "嵌入到邮件正文中的图片不会作为单独的附件显示"
