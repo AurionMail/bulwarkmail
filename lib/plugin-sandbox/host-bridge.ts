@@ -338,6 +338,18 @@ export class SandboxInstance {
 
     this.listener = (ev) => this.onMessage(ev);
     window.addEventListener('message', this.listener);
+    // A sandboxed frame may navigate itself. The first load is the sandbox
+    // document; a later one is some other page, and the host posts hook
+    // payloads with targetOrigin '*' (the frame is opaque-origin), so it
+    // must stop talking to the frame rather than wait for timeouts.
+    let loads = 0;
+    this.iframe.addEventListener('load', () => {
+      loads++;
+      if (loads > 1 && !this.destroyed) {
+        this.rejectInit(new Error('sandbox frame navigated away'));
+        this.destroy();
+      }
+    });
     hostContainer.appendChild(this.iframe);
     liveInstances.add(this);
     if (this.mode === 'slot') ensureThemeWatcher();

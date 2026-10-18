@@ -47,6 +47,23 @@ describe('host bridge origin pin for untrusted sandboxes', () => {
 
     expect(dispatchApiCall).not.toHaveBeenCalled();
   });
+
+  it('tears the frame down once it loads a second document', async () => {
+    // The host posts hook payloads with targetOrigin '*'; after the sandbox
+    // navigates itself, whatever page it shows must not keep receiving them.
+    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    instances.push(inst);
+    const frame = inst.iframe;
+    frame.dispatchEvent(new Event('load')); // the sandbox document
+    expect(frame.isConnected).toBe(true);
+
+    frame.dispatchEvent(new Event('load')); // some other page
+    expect(frame.isConnected).toBe(false);
+    await expect(inst.initPromise).rejects.toThrow(/navigated away/);
+    post(frame.contentWindow, 'null', { type: 'api-request', id: '1', method: 'storage.keys', args: [] });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(dispatchApiCall).not.toHaveBeenCalled();
+  });
 });
 
 describe('init payload settings', () => {
