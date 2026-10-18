@@ -8,7 +8,7 @@ import { emailDisplayDate } from "@/lib/email-date";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
 import { findVerificationCode, verificationCodeBodyText } from "@/lib/verification-code";
 import { VerificationCodeChip } from "./verification-code-chip";
-import { collectReferencedCids, isEmbeddedInBody } from "@/lib/attachment-visibility";
+import { collectReferencedCids, isEmbeddedInBody, normalizeCid } from "@/lib/attachment-visibility";
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
 import { fitEmailBodyWidth } from "@/lib/email-fit-width";
 import { DARK_PENDING_CLASS, applyEmailDarkMode, emailDarkModeCss } from "@/lib/email-dark-mode";
@@ -547,7 +547,7 @@ export function ConversationEmailBody({
     async function fetchCidBlobs() {
       const urls: Record<string, string> = {};
       await Promise.all(cidAttachments.map(async (att) => {
-        const cidValue = att.cid!.replace(/^<|>$/g, '');
+        const cidValue = normalizeCid(att.cid!);
         try {
           // Re-type sender-declared script-bearing parts before they become a
           // blob: URL in our origin (GHSA-xvjh-v9c6-qcvc).

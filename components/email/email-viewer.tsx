@@ -6,7 +6,7 @@ import { emailExportFilename, attachmentDownloadFilename, attachmentsBundleFilen
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
 import { applyNewTabToAnchor, emailIframeCsp, escapeHtml, isExternalResourceUrl, isOpenableLinkHref, plainTextToSafeHtml, sanitizeEmailBodyForIframe, sanitizeEmailHtml, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
-import { collectReferencedCids, isEmbeddedInBody } from "@/lib/attachment-visibility";
+import { collectReferencedCids, isEmbeddedInBody, normalizeCid } from "@/lib/attachment-visibility";
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
 import { DARK_PENDING_CLASS, applyEmailDarkMode, emailColorScheme, emailDarkModeCss, emailHasNativeDarkMode as htmlHasNativeDarkMode, resolveColorSchemeMedia } from "@/lib/email-dark-mode";
 import { fitEmailBodyWidth } from "@/lib/email-fit-width";
@@ -2112,7 +2112,7 @@ export function EmailViewer({
       decryptedCidAttachments.forEach((att) => {
         const bytes = getAttachmentContentBytes(att);
         if (!bytes) return;
-        const cidValue = att.contentId!.replace(/^<|>$/g, '');
+        const cidValue = normalizeCid(att.contentId!);
         const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
         // Sender-typed part: never let a script-bearing MIME type reach a
         // blob: URL in our origin (GHSA-xvjh-v9c6-qcvc).
@@ -2148,7 +2148,7 @@ export function EmailViewer({
     async function fetchCidBlobs() {
       const urls: Record<string, string> = {};
       await Promise.all(cidAttachments.map(async (att) => {
-        const cidValue = att.cid!.replace(/^<|>$/g, '');
+        const cidValue = normalizeCid(att.cid!);
         try {
           // The download URL echoes the sender-declared Content-Type back as
           // the Blob type; re-type anything that could execute as our origin

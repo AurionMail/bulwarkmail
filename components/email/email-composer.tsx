@@ -121,6 +121,7 @@ import type { ComposePrefill } from "@/lib/plugin-compose-gate";
 import { composerContextMode, composerMounted, composerUnmounted, draftSaved } from "@/lib/plugin-composer-hooks";
 import { isValidEmail } from "@/lib/validation";
 import { buildMentionCandidates } from "@/lib/recipient-mentions";
+import { normalizeCid } from "@/lib/attachment-visibility";
 import { RichTextEditor } from "@/components/email/rich-text-editor";
 import { isRecipientMentionActive } from "@/components/email/recipient-mention";
 import type { Editor } from "@tiptap/react";
@@ -867,9 +868,10 @@ export function EmailComposer({
       const embeddedCids = collectInlineImageCids(body);
       return replyTo.attachments
         // Skip inline cid-referenced images - they're embedded in the forwarded HTML body
-        // (matches the viewer's hideInlineImageAttachments logic).
+        // (matches the viewer's hideInlineImageAttachments logic). att.cid may still
+        // carry angle brackets while embeddedCids (parsed from the body) never does.
         .filter(att => !(att.cid && (
-          embeddedCids.has(att.cid) ||
+          embeddedCids.has(normalizeCid(att.cid)) ||
           (att.disposition === 'inline' && (att.type || '').startsWith('image/'))
         )))
         .map(att => ({
@@ -1302,15 +1304,20 @@ export function EmailComposer({
     // lenient (email-viewer.tsx: `att.cid && att.blobId`), so reading and
     // replying now agree. The real type is sniffed from the bytes below.
     const embeddedCids = collectInlineImageCids(body);
-    const inlineAtts = replyTo.attachments.filter((att) =>
-      att.cid && att.blobId && embeddedCids.has(att.cid)
-    );
+    // Attachment cids may still carry the RFC angle brackets (e.g.
+    // `<logo123@sender>`) while `src="cid:logo123@sender"` in the body never
+    // does - normalize here the same way email-viewer.tsx and
+    // thread-conversation-view.tsx do, so the comparisons below actually
+    // match (#912: inline images silently missing from every reply/forward).
+    const inlineAtts = replyTo.attachments
+      .filter((att) => att.cid && att.blobId)
+      .map((att) => ({ ...att, cid: normalizeCid(att.cid!) }))
+      .filter((att) => embeddedCids.has(att.cid));
     if (inlineAtts.length === 0) return;
 
     // Seed the ref synchronously so a fast Send still attaches the right blobs
     // even if the FileReader work below hasn't resolved yet.
     for (const att of inlineAtts) {
-      if (!att.cid) continue;
       if (inlineImagesRef.current.some((e) => e.cid === att.cid)) continue;
       inlineImagesRef.current.push({
         cid: att.cid,
@@ -1327,7 +1334,6 @@ export function EmailComposer({
     (async () => {
       const updates = new Map<string, string>();
       for (const att of inlineAtts) {
-        if (!att.cid) continue;
         try {
           const buffer = await originClient.fetchBlobArrayBuffer(
             att.blobId,
