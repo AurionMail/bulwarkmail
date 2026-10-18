@@ -480,12 +480,17 @@ describe('composer with the @ recipient list', () => {
       expect(editor.getText()).toBe('Hallo ');
     });
 
-    it('opens on hover and closes when the pointer leaves', async () => {
+    it('waits for a click: hovering a chip opens nothing, selecting it does', async () => {
       const { editor } = await renderComposer({ body: '<p>Hallo <a href="mailto:bob@example.com">@Bob</a></p>' });
       const chip = editor.view.dom.querySelector('a.mention')!;
       fireEvent.mouseOver(chip);
+      await act(() => new Promise<void>((resolve) => setTimeout(resolve, 500)));
+      expect(card()).toBeNull();
+
+      act(() => { editor.commands.setNodeSelection(chipPos(editor, 'bob@example.com')); });
       expect(await screen.findByTestId('mention-card')).toHaveTextContent('Bob Builder');
-      fireEvent.mouseOut(chip, { relatedTarget: document.body });
+      // Moving the cursor off the chip closes it.
+      act(() => { editor.commands.setTextSelection(1); });
       await waitFor(() => expect(card()).toBeNull());
     });
 

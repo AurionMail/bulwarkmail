@@ -827,12 +827,20 @@ optgroup {
   font-weight: 500;
   line-height: 1.35;
   text-decoration: none;
-  cursor: default;
+  cursor: pointer;
   user-select: none;
+  transition: background-color 120ms, box-shadow 120ms;
 }
 
+/* Hover says it opens something on click; the card itself waits for the click. */
 .tiptap a.mention:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+  background-color: color-mix(in srgb, var(--color-primary) 24%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.tiptap a.mention.mention-outside:hover {
+  background-color: color-mix(in srgb, currentColor 10%, transparent);
+  box-shadow: inset 0 0 0 1px currentColor;
 }
 
 .tiptap a.mention.ProseMirror-selectednode {

@@ -97,8 +97,6 @@ export const MentionChip = Node.create({
 interface ChipTarget {
   pos: number;
   element: HTMLElement;
-  /** Opened by selecting the chip (click, tap, keyboard), not by hovering. */
-  pinned: boolean;
 }
 
 interface MentionChipCardProps {
@@ -112,88 +110,42 @@ interface MentionChipCardProps {
   onAdd?: (candidate: MentionCandidate) => void;
 }
 
-const HOVER_DELAY = 300;
-const LEAVE_DELAY = 150;
-
 /**
  * The card for a mention chip: who it is, whether they're on the message,
- * and buttons to add them or remove the mention. Hovering a chip shows it;
- * selecting the chip (a click or tap) keeps it open.
+ * and buttons to add them or remove the mention. Selecting the chip (a
+ * click, a tap, or the keyboard) opens it; hovering only shows the chip is
+ * clickable.
  */
 export function MentionChipCard({ editor, recipients, findContacts, addsTo, onAdd }: MentionChipCardProps) {
   const t = useTranslations("email_composer");
   const [target, setTarget] = useState<ChipTarget | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const clearTimer = () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-  };
+  const close = useCallback(() => setTarget(null), []);
 
-  const close = useCallback(() => {
-    clearTimer();
-    setTarget(null);
-  }, []);
-
-  // Hover: open after a short pause, close a moment after leaving the chip
-  // unless the pointer moved onto the card.
-  useEffect(() => {
-    if (editor.isDestroyed) return;
-    const dom = editor.view.dom;
-    const chipAt = (node: EventTarget | null) =>
-      node instanceof Element ? node.closest<HTMLElement>("a.mention") : null;
-    const onOver = (event: MouseEvent) => {
-      const element = chipAt(event.target);
-      if (!element || !dom.contains(element)) return;
-      clearTimer();
-      timer.current = setTimeout(() => {
-        if (editor.isDestroyed) return;
-        const pos = editor.view.posAtDOM(element, 0);
-        setTarget((current) => current?.pinned ? current : { pos, element, pinned: false });
-      }, HOVER_DELAY);
-    };
-    const onOut = (event: MouseEvent) => {
-      if (!chipAt(event.target) || chipAt(event.relatedTarget)) return;
-      clearTimer();
-      timer.current = setTimeout(() => {
-        setTarget((current) => current?.pinned ? current : null);
-      }, LEAVE_DELAY);
-    };
-    dom.addEventListener("mouseover", onOver);
-    dom.addEventListener("mouseout", onOut);
-    return () => {
-      dom.removeEventListener("mouseover", onOver);
-      dom.removeEventListener("mouseout", onOut);
-      clearTimer();
-    };
-  }, [editor]);
-
-  // Selecting a chip pins the card; moving the selection off it closes it.
+  // Selecting a chip opens the card; moving the selection off it, or the
+  // focus out of the editor, closes it. A press on the card's own buttons
+  // keeps the focus in the editor.
   useEffect(() => {
     const onSelection = () => {
       const { selection } = editor.state;
       if (selection instanceof NodeSelection && selection.node.type.name === "mentionChip") {
         const element = editor.view.nodeDOM(selection.from);
         if (element instanceof HTMLElement) {
-          clearTimer();
-          setTarget({ pos: selection.from, element, pinned: true });
+          setTarget({ pos: selection.from, element });
           return;
         }
       }
-      setTarget((current) => current?.pinned ? null : current);
+      setTarget(null);
     };
-    // A blur closes it too, but not a press on the card's own buttons,
-    // which keep the focus in the editor.
-    const onBlur = () => setTarget((current) => current?.pinned ? null : current);
     editor.on("selectionUpdate", onSelection);
-    editor.on("blur", onBlur);
+    editor.on("blur", close);
     return () => {
       editor.off("selectionUpdate", onSelection);
-      editor.off("blur", onBlur);
+      editor.off("blur", close);
     };
-  }, [editor]);
+  }, [editor, close]);
 
   // The chip it belongs to went away (deleted, undone): close.
   useEffect(() => {
@@ -254,7 +206,6 @@ export function MentionChipCard({ editor, recipients, findContacts, addsTo, onAd
 
   const add = () => {
     onAdd?.({ label, name: name !== label ? name : undefined, email, addsTo });
-    if (!target.pinned) close();
   };
 
   return createPortal(
@@ -271,12 +222,6 @@ export function MentionChipCard({ editor, recipients, findContacts, addsTo, onAd
       }}
       // Pressing a button keeps the focus (and the chip's selection) in the editor.
       onMouseDown={(e) => e.preventDefault()}
-      onMouseEnter={clearTimer}
-      onMouseLeave={() => {
-        if (target.pinned) return;
-        clearTimer();
-        timer.current = setTimeout(close, LEAVE_DELAY);
-      }}
     >
       <RecipientCard
         name={name !== label ? name : undefined}
