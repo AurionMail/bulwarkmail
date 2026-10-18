@@ -10,7 +10,24 @@ import dynamic from "next/dynamic";
 import { EmlPreview, type ParsedEml } from "@/components/files/eml-preview";
 import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
 import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
+import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitization";
+import { useSettingsStore } from "@/stores/settings-store";
 import type { FileResourceView } from "@/lib/plugin-types";
+
+/**
+ * An HTML attachment as a document for a fully locked frame (sandbox="",
+ * srcdoc): the sender's markup sanitised like a mail body, remote content
+ * blocked under the same setting, and a CSP as the network backstop. It used
+ * to be shown from a text/html blob: URL, which is a document of the webmail
+ * origin: a link inside the sandboxed frame resolved to that URL, and dragging
+ * or copying it into a new tab ran the sender's script as the webmail
+ * (the mechanism of GHSA-xvjh-v9c6-qcvc), while nothing sanitised it or
+ * stopped its remote images and meta refreshes.
+ */
+export function htmlAttachmentDocument(html: string, blockRemote: boolean): string {
+  const body = sanitizeEmailBodyForIframe(html, blockRemote).html;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${emailIframeCsp(blockRemote)}"><meta name="referrer" content="no-referrer"></head><body>${body}</body></html>`;
+}
 
 // pdf.js-based inline viewer for mobile (no native inline PDF viewer). Loaded
 // only on the mobile PDF path so pdfjs-dist + its worker never reach the
@@ -138,6 +155,8 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   // connect-src (#871). The URL is still what the <iframe> and the
   // open-in-new-tab fallback use.
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [htmlDoc, setHtmlDoc] = useState<string | null>(null);
+  const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow";
 
   // Decide whether to render the PDF in a plain <iframe> (desktop) or with the
   // pdf.js canvas viewer (mobile). navigator.pdfViewerEnabled is the standard
@@ -192,6 +211,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
     setCanOpenInNewTab(false);
     setEmlContent(null);
     setPdfBlob(null);
+    setHtmlDoc(null);
     setLoading(true);
     setError(false);
     setResolvedFileType(getFilePreviewKind(name));
@@ -208,6 +228,11 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         if (previewType === "text" || previewType === "markdown") {
           const text = await blob.text();
           if (!cancelled) setContent(text);
+        } else if (previewType === "html") {
+          // Sanitised text in a srcdoc frame, like the .eml preview; never a
+          // blob: URL of the sender's bytes (see htmlAttachmentDocument).
+          const text = await blob.text();
+          if (!cancelled) setHtmlDoc(htmlAttachmentDocument(text, blockRemote));
         } else if (previewType === "eml") {
           // Parse the embedded message (postal-mime, dynamic-imported so it
           // stays off the bundle) and render it like an email via EmlPreview.
@@ -251,7 +276,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         URL.revokeObjectURL(revokeUrl);
       }
     };
-  }, [getFileContent, name]);
+  }, [getFileContent, name, blockRemote]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -337,9 +362,9 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
           </div>
         )}
 
-        {!loading && !error && fileType === "html" && objectUrl && (
+        {!loading && !error && fileType === "html" && htmlDoc && (
           <iframe
-            src={objectUrl}
+            srcDoc={htmlDoc}
             sandbox=""
             className="w-full max-w-5xl h-full rounded-lg bg-white"
             title={name}
