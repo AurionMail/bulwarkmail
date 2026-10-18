@@ -23,8 +23,13 @@ const QUOTED_REMOTE_ALLOWED_ATTR = "data-quoted-remote";
 const ATOM_BLOCKS = new Set(["quotedHtml", "signatureBlock"]);
 
 // Reusable style for the quote bar when quoting email text (like in a reply).
+// `contain:paint` with a positioned, clipping box: the quoted original is a
+// sender's HTML rendered in the app document (the shadow root isolates its
+// styles, not its layout), so a `position:fixed` element in it would cover
+// the composer and the app with whatever the sender drew. Painting is
+// confined to the quote's own box.
 const QUOTE_BAR_STYLE =
-  "border-left:2px solid #c5c5c5;padding-left:12px;margin-top:8px;";
+  "border-left:2px solid #c5c5c5;padding-left:12px;margin-top:8px;position:relative;overflow:hidden;contain:paint;";
 
 /**
  * QuotedHtml — an atomic block node that carries the *verbatim* HTML of a
