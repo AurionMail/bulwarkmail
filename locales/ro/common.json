@@ -622,7 +622,9 @@
       "not_in_contacts": "Nu se află în lista dvs. de contacte",
       "add_to_contacts": "Adaugă la contacte",
       "copied": "Copiat!",
-      "copy_failed": "Copierea a eșuat"
+      "copy_failed": "Copierea a eșuat",
+      "view_contact": "Vezi contactul",
+      "view_details": "Vezi detaliile"
     },
     "send_now": "Trimite acum",
     "verification_code": {

@@ -622,7 +622,9 @@
       "not_in_contacts": "Немає у ваших контактах",
       "add_to_contacts": "Додати до контактів",
       "copied": "Скопійовано!",
-      "copy_failed": "Не вдалося скопіювати"
+      "copy_failed": "Не вдалося скопіювати",
+      "view_contact": "Переглянути контакт",
+      "view_details": "Докладніше"
     },
     "send_now": "Надіслати зараз",
     "verification_code": {

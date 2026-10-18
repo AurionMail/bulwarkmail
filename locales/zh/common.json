@@ -622,7 +622,9 @@
       "not_in_contacts": "不在您的联系人中",
       "add_to_contacts": "添加到联系人",
       "copied": "已复制！",
-      "copy_failed": "复制失败"
+      "copy_failed": "复制失败",
+      "view_contact": "查看联系人",
+      "view_details": "查看详情"
     },
     "send_now": "立即发送",
     "verification_code": {

@@ -622,7 +622,9 @@
       "not_in_contacts": "Nincs a névjegyei között",
       "add_to_contacts": "Hozzáadás a névjegyekhez",
       "copied": "Másolva!",
-      "copy_failed": "A másolás nem sikerült"
+      "copy_failed": "A másolás nem sikerült",
+      "view_contact": "Névjegy megtekintése",
+      "view_details": "Részletek megtekintése"
     },
     "send_now": "Küldés most",
     "verification_code": {

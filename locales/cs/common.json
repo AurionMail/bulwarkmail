@@ -622,7 +622,9 @@
       "not_in_contacts": "Není ve vašich kontaktech",
       "add_to_contacts": "Přidat do kontaktů",
       "copied": "Zkopírováno!",
-      "copy_failed": "Kopírování se nezdařilo"
+      "copy_failed": "Kopírování se nezdařilo",
+      "view_contact": "Zobrazit kontakt",
+      "view_details": "Zobrazit podrobnosti"
     },
     "send_now": "Odeslat nyní",
     "verification_code": {

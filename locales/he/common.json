@@ -587,7 +587,9 @@
       "not_in_contacts": "לא בקשרים שלך",
       "add_to_contacts": "הוסף לקשרים",
       "copied": "הועתק!",
-      "copy_failed": "העתקה נכשלה"
+      "copy_failed": "העתקה נכשלה",
+      "view_contact": "הצגת איש הקשר",
+      "view_details": "הצגת פרטים"
     },
     "send_now": "שלח עכשיו",
     "verification_code": {

@@ -622,7 +622,9 @@
       "not_in_contacts": "Niet in uw contacten",
       "add_to_contacts": "Aan contacten toevoegen",
       "copied": "Gekopieerd!",
-      "copy_failed": "Kopiëren mislukt"
+      "copy_failed": "Kopiëren mislukt",
+      "view_contact": "Contact bekijken",
+      "view_details": "Details bekijken"
     },
     "send_now": "Nu verzenden",
     "verification_code": {

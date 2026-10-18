@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
-import { RecipientPopover } from '../recipient-popover';
+import { RecipientCardPopover, RecipientPopover } from '../recipient-popover';
 import { useContactStore } from '@/stores/contact-store';
 import type { ContactCard } from '@/lib/jmap/types';
 
@@ -35,5 +35,43 @@ describe('RecipientPopover', () => {
     openPopover();
     expect(screen.getByText('WP Blog')).toBeTruthy();
     expect(screen.getByText(address)).toBeTruthy();
+  });
+});
+
+describe('RecipientCardPopover', () => {
+  const anchor = { top: 10, bottom: 30, left: 10 };
+
+  it('offers copy, email and view details, and extra actions', () => {
+    const onViewContact = vi.fn();
+    render(
+      <RecipientCardPopover
+        anchor={anchor}
+        email={address}
+        name="WordPress"
+        onViewContact={onViewContact}
+        onClose={() => {}}
+        actions={<button type="button">extra</button>}
+      />,
+    );
+    const card = screen.getByRole('dialog', { name: 'WordPress' });
+    expect(card).toHaveTextContent('action_copy');
+    expect(card).toHaveTextContent('action_email');
+    fireEvent.click(screen.getByRole('button', { name: /view_details/ }));
+    expect(onViewContact).toHaveBeenCalledWith(null, address);
+    expect(screen.getByRole('button', { name: 'extra' })).toBeTruthy();
+  });
+
+  it('closes on a press outside, Escape, and the window losing focus', () => {
+    const onClose = vi.fn();
+    render(<RecipientCardPopover anchor={anchor} email={address} onClose={onClose} />);
+    fireEvent.mouseDown(screen.getByRole('dialog'));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.mouseDown(document.body);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(2);
+    // A click into a message body's iframe.
+    fireEvent.blur(window);
+    expect(onClose).toHaveBeenCalledTimes(3);
   });
 });

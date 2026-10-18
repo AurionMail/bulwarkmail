@@ -622,7 +622,9 @@
       "not_in_contacts": "Kişilerinizde yok",
       "add_to_contacts": "Kişilere ekle",
       "copied": "Kopyalandı!",
-      "copy_failed": "Kopyalanamadı"
+      "copy_failed": "Kopyalanamadı",
+      "view_contact": "Kişiyi görüntüle",
+      "view_details": "Ayrıntıları görüntüle"
     },
     "send_now": "Şimdi gönder",
     "verification_code": {

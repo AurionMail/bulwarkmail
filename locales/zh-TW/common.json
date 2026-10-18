@@ -622,7 +622,9 @@
       "not_in_contacts": "不在您的聯絡人清單中",
       "add_to_contacts": "新增至聯絡人",
       "copied": "已複製！",
-      "copy_failed": "複製失敗"
+      "copy_failed": "複製失敗",
+      "view_contact": "檢視聯絡人",
+      "view_details": "檢視詳細資料"
     },
     "send_now": "立即傳送",
     "verification_code": {

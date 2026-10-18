@@ -622,7 +622,9 @@
       "not_in_contacts": "ليست ضمن جهات اتصالك",
       "add_to_contacts": "إضافة إلى جهات الاتصال",
       "copied": "تم النسخ!",
-      "copy_failed": "فشل النسخ"
+      "copy_failed": "فشل النسخ",
+      "view_contact": "عرض جهة الاتصال",
+      "view_details": "عرض التفاصيل"
     },
     "send_now": "إرسال الآن",
     "verification_code": {

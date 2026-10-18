@@ -622,7 +622,9 @@
       "not_in_contacts": "No és als vostres contactes",
       "add_to_contacts": "Afegeix als contactes",
       "copied": "Copiat!",
-      "copy_failed": "No s'ha pogut copiar"
+      "copy_failed": "No s'ha pogut copiar",
+      "view_contact": "Mostra el contacte",
+      "view_details": "Mostra els detalls"
     },
     "send_now": "Envia ara",
     "verification_code": {

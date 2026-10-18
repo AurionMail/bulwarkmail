@@ -622,7 +622,9 @@
       "not_in_contacts": "Ikke i dine kontakter",
       "add_to_contacts": "Tilføj til kontakter",
       "copied": "Kopieret!",
-      "copy_failed": "Kunne ikke kopiere"
+      "copy_failed": "Kunne ikke kopiere",
+      "view_contact": "Vis kontakt",
+      "view_details": "Vis detaljer"
     },
     "send_now": "Send nu",
     "verification_code": {

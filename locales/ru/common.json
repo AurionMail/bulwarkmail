@@ -622,7 +622,9 @@
       "not_in_contacts": "Нет в ваших контактах",
       "add_to_contacts": "Добавить в контакты",
       "copied": "Скопировано!",
-      "copy_failed": "Не удалось скопировать"
+      "copy_failed": "Не удалось скопировать",
+      "view_contact": "Открыть контакт",
+      "view_details": "Подробнее"
     },
     "send_now": "Отправить сейчас",
     "verification_code": {

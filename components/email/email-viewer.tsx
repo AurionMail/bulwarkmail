@@ -115,7 +115,8 @@ import { stripCrossAccountIdentityPrefix } from "@/hooks/use-pro-multi-account-i
 import { useTour } from "@/components/tour/tour-provider";
 import { useMenuNavigation } from "@/hooks/use-menu-navigation";
 import { findCalendarAttachment, isCalendarMimeType } from "@/lib/calendar-invitation";
-import { RecipientPopover } from "./recipient-popover";
+import { RecipientPopover, RecipientCardPopover, type CardAnchor } from "./recipient-popover";
+import { mentionFromLink } from "@/lib/recipient-mentions";
 import { MailtoLink } from "@/components/ui/mailto-link";
 import { requestInternalMailto } from "@/lib/protocol-handlers/mailto";
 import { imageBlobUrl, inertBlobType, isFilePreviewable, isMimeTypeSafeForInlinePreview, toInertBlob } from "@/lib/file-preview";
@@ -1773,6 +1774,13 @@ export function EmailViewer({
     setContactSidebarEmail(null);
   }, [email?.id]);
 
+  // An @mention clicked in the message body: the card for that person, as
+  // for a name in the header, instead of starting a new message.
+  const [bodyMention, setBodyMention] = useState<{ email: string; anchor: CardAnchor } | null>(null);
+  useEffect(() => {
+    setBodyMention(null);
+  }, [email?.id]);
+
   const [dismissedUnsubBanners, setDismissedUnsubBanners] = useState<Set<string>>(
     () => {
       if (typeof window === 'undefined') return new Set();
@@ -3115,6 +3123,19 @@ export function EmailViewer({
           const href = targetEl.getAttribute('href') || '';
           if (!href || href.startsWith('#')) return;
           if (/^mailto:/i.test(href)) {
+            const mention = mentionFromLink(targetEl as HTMLElement);
+            if (mention) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              // The link's box is in the iframe's coordinates.
+              const frame = iframe.getBoundingClientRect();
+              const box = targetEl.getBoundingClientRect();
+              setBodyMention({
+                email: mention.email,
+                anchor: { top: frame.top + box.top, bottom: frame.top + box.bottom, left: frame.left + box.left },
+              });
+              return;
+            }
             // Write it here, like any other address in the app; the mail page
             // asks onMailtoIntercept first. Not taken (no recipient, nobody
             // listening): the browser's own handling stays.
@@ -3150,6 +3171,9 @@ export function EmailViewer({
           window.open(target, '_blank', 'noopener,noreferrer');
         };
         doc.addEventListener('click', onLinkClick, true);
+        // A press in the body closes a mention's card. The page never sees
+        // it: the focus is already inside the iframe, so there is no blur.
+        doc.addEventListener('mousedown', () => setBodyMention(null), true);
 
       }
     } catch {
@@ -6366,6 +6390,17 @@ export function EmailViewer({
           </>
         )}
       </>
+    )}
+
+    {bodyMention && (
+      <RecipientCardPopover
+        anchor={bodyMention.anchor}
+        email={bodyMention.email}
+        name={[...(email?.from || []), ...(email?.to || []), ...(email?.cc || []), ...(email?.replyTo || [])]
+          .find((r) => r.email.toLowerCase() === bodyMention.email.toLowerCase())?.name || undefined}
+        onViewContact={handleViewContactSidebar}
+        onClose={() => setBodyMention(null)}
+      />
     )}
 
     {/* Contact Detail Sidebar - desktop only */}

@@ -210,3 +210,32 @@ export function filterMentionCandidates(candidates: MentionCandidate[], query: s
       .some((term) => fold(term).startsWith(typed)),
   );
 }
+
+/**
+ * A mailto: href for the address. Characters that would start a query or
+ * fragment (a crafted reply-all address) are escaped, so the link can only
+ * ever address this one mailbox.
+ */
+export function mentionHref(email: string): string {
+  return `mailto:${email.replace(/[%?#&\s"'<>]/g, (c) => encodeURIComponent(c))}`;
+}
+
+/**
+ * The mention a link stands for: a mailto: link whose whole text is
+ * "@Name". That is what a sent mention is, from Bulwark or from Outlook,
+ * so a reopened draft or a pasted mention becomes a chip again.
+ */
+export function mentionFromLink(element: HTMLElement): { label: string; email: string } | null {
+  const href = element.getAttribute('href')?.trim() ?? '';
+  if (!/^mailto:/i.test(href) || element.children.length > 0) return null;
+  const text = element.textContent?.trim() ?? '';
+  if (!text.startsWith('@') || text.length < 2) return null;
+  let email: string;
+  try {
+    email = decodeURIComponent(href.slice('mailto:'.length).split('?')[0]).trim();
+  } catch {
+    return null;
+  }
+  if (email.lastIndexOf('@') <= 0) return null;
+  return { label: text.slice(1), email };
+}

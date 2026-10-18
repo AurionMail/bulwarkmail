@@ -622,7 +622,9 @@
       "not_in_contacts": "Nav jūsu kontaktpersonās",
       "add_to_contacts": "Pievienot kontaktpersonām",
       "copied": "Nokopēts!",
-      "copy_failed": "Neizdevās nokopēt"
+      "copy_failed": "Neizdevās nokopēt",
+      "view_contact": "Skatīt kontaktu",
+      "view_details": "Skatīt informāciju"
     },
     "send_now": "Sūtīt tagad",
     "verification_code": {

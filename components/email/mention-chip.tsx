@@ -6,8 +6,9 @@ import { Node, type Editor } from "@tiptap/core";
 import { NodeSelection, Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { useTranslations } from "next-intl";
-import { Avatar } from "@/components/ui/avatar";
-import type { MentionCandidate, MentionContact } from "@/lib/recipient-mentions";
+import { X } from "@/components/icons";
+import { RecipientCard, recipientCardClass } from "@/components/email/recipient-popover";
+import { mentionFromLink, mentionHref, type MentionCandidate, type MentionContact } from "@/lib/recipient-mentions";
 
 /**
  * Addresses on the message (To and Cc) that mentions are checked against;
@@ -22,35 +23,6 @@ export function setMentionRecipients(editor: Editor, emails: string[] | null) {
   const current = mentionRecipientsKey.getState(editor.state);
   if (current === next || (current && next && current.size === next.size && [...next].every((e) => current.has(e)))) return;
   editor.view.dispatch(editor.state.tr.setMeta(mentionRecipientsKey, next).setMeta("addToHistory", false));
-}
-
-/**
- * A mailto: href for the address. Characters that would start a query or
- * fragment (a crafted reply-all address) are escaped, so the link can only
- * ever address this one mailbox.
- */
-export function mentionHref(email: string): string {
-  return `mailto:${email.replace(/[%?#&\s"<>]/g, (c) => encodeURIComponent(c))}`;
-}
-
-/**
- * The mention a link stands for: a mailto: link whose whole text is
- * "@Name". That is what a sent mention is, from Bulwark or from Outlook,
- * so a reopened draft or a pasted mention becomes a chip again.
- */
-export function mentionFromLink(element: HTMLElement): { label: string; email: string } | null {
-  const href = element.getAttribute("href")?.trim() ?? "";
-  if (!/^mailto:/i.test(href) || element.children.length > 0) return null;
-  const text = element.textContent?.trim() ?? "";
-  if (!text.startsWith("@") || text.length < 2) return null;
-  let email: string;
-  try {
-    email = decodeURIComponent(href.slice("mailto:".length).split("?")[0]).trim();
-  } catch {
-    return null;
-  }
-  if (email.lastIndexOf("@") <= 0) return null;
-  return { label: text.slice(1), email };
 }
 
 /**
@@ -291,9 +263,8 @@ export function MentionChipCard({ editor, recipients, findContacts, addsTo, onAd
       role="dialog"
       aria-label={name}
       data-testid="mention-card"
-      className="z-50 w-72 max-w-[calc(100vw-16px)] bg-background border border-border rounded-md shadow-lg p-3 text-sm"
+      className={recipientCardClass}
       style={{
-        position: "fixed",
         left: position?.x ?? 0,
         top: position?.y ?? 0,
         visibility: position ? undefined : "hidden",
@@ -307,34 +278,35 @@ export function MentionChipCard({ editor, recipients, findContacts, addsTo, onAd
         timer.current = setTimeout(close, LEAVE_DELAY);
       }}
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <Avatar name={name} email={email} size="sm" className="shrink-0 w-8 h-8 text-xs" />
-        <div className="min-w-0">
-          <div className="font-medium text-foreground truncate">{name}</div>
-          <div className="text-muted-foreground truncate">{email}</div>
-        </div>
-      </div>
-      {outside && (
-        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">{t("mention_card_not_recipient")}</p>
-      )}
-      <div className="mt-3 flex flex-wrap gap-2">
-        {outside && onAdd && (
+      <RecipientCard
+        name={name !== label ? name : undefined}
+        email={email}
+        actions={
           <button
             type="button"
-            onClick={add}
-            className="px-2.5 py-1 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={remove}
+            className="ms-auto flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1.5 rounded hover:bg-muted transition-colors"
           >
-            {t("mention_card_add", { field: t(addsTo) })}
+            <X className="w-3.5 h-3.5" />
+            {t("mention_card_remove")}
           </button>
+        }
+      >
+        {outside && (
+          <div className="space-y-2">
+            <p className="text-xs text-amber-600 dark:text-amber-400">{t("mention_card_not_recipient")}</p>
+            {onAdd && (
+              <button
+                type="button"
+                onClick={add}
+                className="px-2.5 py-1 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {t("mention_card_add", { field: t(addsTo) })}
+              </button>
+            )}
+          </div>
         )}
-        <button
-          type="button"
-          onClick={remove}
-          className="px-2.5 py-1 rounded-md text-xs font-medium bg-muted text-foreground hover:bg-accent"
-        >
-          {t("mention_card_remove")}
-        </button>
-      </div>
+      </RecipientCard>
     </div>,
     document.body,
   );

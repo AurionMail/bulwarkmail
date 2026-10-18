@@ -622,7 +622,9 @@
       "not_in_contacts": "Таны харилцагчид байхгүй",
       "add_to_contacts": "Харилцагчдад нэмэх",
       "copied": "Хуулбарласан!",
-      "copy_failed": "Хуулж чадсангүй"
+      "copy_failed": "Хуулж чадсангүй",
+      "view_contact": "Харилцагчийг харах",
+      "view_details": "Дэлгэрэнгүй харах"
     },
     "send_now": "Одоо илгээх",
     "verification_code": {

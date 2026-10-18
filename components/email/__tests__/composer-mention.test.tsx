@@ -470,6 +470,7 @@ describe('composer with the @ recipient list', () => {
       const shown = await screen.findByTestId('mention-card');
       expect(shown).toHaveTextContent('Bob Builder');
       expect(shown).toHaveTextContent('bob@example.com');
+      expect(shown).toHaveTextContent('action_copy');
       expect(shown).not.toHaveTextContent('mention_card_not_recipient');
       expect(within(shown).queryByRole('button', { name: 'mention_card_add' })).toBeNull();
 

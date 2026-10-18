@@ -622,7 +622,9 @@
       "not_in_contacts": "Ei ole sinu kontaktides",
       "add_to_contacts": "Lisa kontaktidesse",
       "copied": "Kopeeritud!",
-      "copy_failed": "Kopeerimine ebaõnnestus"
+      "copy_failed": "Kopeerimine ebaõnnestus",
+      "view_contact": "Kuva kontakt",
+      "view_details": "Kuva üksikasjad"
     },
     "send_now": "Saada kohe",
     "verification_code": {

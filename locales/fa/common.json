@@ -622,7 +622,9 @@
       "not_in_contacts": "در مخاطبین شما نیست",
       "add_to_contacts": "افزودن به مخاطبین",
       "copied": "کپی شد!",
-      "copy_failed": "کپی ناموفق بود"
+      "copy_failed": "کپی ناموفق بود",
+      "view_contact": "مشاهده مخاطب",
+      "view_details": "مشاهده جزئیات"
     },
     "send_now": "ارسال فوری",
     "verification_code": {

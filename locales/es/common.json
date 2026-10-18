@@ -622,7 +622,9 @@
       "not_in_contacts": "No está en sus contactos",
       "add_to_contacts": "Añadir a contactos",
       "copied": "¡Copiado!",
-      "copy_failed": "Error al copiar"
+      "copy_failed": "Error al copiar",
+      "view_contact": "Ver contacto",
+      "view_details": "Ver detalles"
     },
     "send_now": "Enviar ahora",
     "verification_code": {

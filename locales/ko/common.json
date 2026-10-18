@@ -622,7 +622,9 @@
       "not_in_contacts": "연락처에 없음",
       "add_to_contacts": "연락처에 추가",
       "copied": "복사됨!",
-      "copy_failed": "복사하지 못했습니다"
+      "copy_failed": "복사하지 못했습니다",
+      "view_contact": "연락처 보기",
+      "view_details": "세부 정보 보기"
     },
     "send_now": "지금 보내기",
     "verification_code": {
