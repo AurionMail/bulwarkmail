@@ -3,6 +3,23 @@
 
 @import "./theme-inline.css";
 
+/* The app's font stack replaces Tailwind's default --font-sans, so the
+   font-sans utility and body use the same stack, and a theme's
+   typography.fontSans (compiled to --font-sans on :root) restyles both. */
+@theme {
+  --font-sans:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Noto Sans Thai",
+    "Leelawadee UI",
+    Tahoma,
+    sans-serif;
+}
+
 :root {
   font-size: var(--font-size-base);
 
@@ -142,17 +159,7 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    "Noto Sans Thai",
-    "Leelawadee UI",
-    Tahoma,
-    sans-serif;
+  font-family: var(--font-sans);
   font-feature-settings:
     "rlig" 1,
     "calt" 1;
