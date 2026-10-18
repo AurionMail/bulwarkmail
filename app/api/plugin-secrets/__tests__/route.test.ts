@@ -26,6 +26,14 @@ vi.mock('@/lib/plugin-secrets/vault', () => ({
   listUserCredentials: vi.fn(async () => []),
   deleteUserCredentials: vi.fn(async () => {}),
 }));
+// What the server knows the plugins declare (lib/plugin-secrets/known-plugins).
+const declared: Record<string, { scope: 'user'; label: string; inject: { type: string }; origin?: string }> = {
+  'nextcloud/cloud': { scope: 'user', label: 'Nextcloud', inject: { type: 'basic' } },
+  'paperless/docs': { scope: 'user', label: 'Paperless', inject: { type: 'bearer' }, origin: 'https://paperless.example.com' },
+};
+vi.mock('@/lib/plugin-secrets/known-plugins', () => ({
+  declaredUserCredential: async (pluginId: string, credentialId: string) => declared[`${pluginId}/${credentialId}`] ?? null,
+}));
 const proxied: unknown[] = [];
 vi.mock('@/lib/plugin-secrets/proxy', async (orig) => {
   const real = await orig<typeof import('@/lib/plugin-secrets/proxy')>();
@@ -88,6 +96,20 @@ describe('POST /api/plugin-secrets', () => {
 
     expect(res.status).toBe(400);
     expect(store.size).toBe(0);
+  });
+
+  it('refuses a credential no known plugin declares, so the proxy is no relay for made-up plugin ids', async () => {
+    expect((await save({ ...VALID, pluginId: 'made-up' })).status).toBe(404);
+    expect((await save({ ...VALID, credentialId: 'other' })).status).toBe(404);
+    expect(store.size).toBe(0);
+  });
+
+  it('keeps a credential on the server its plugin fixes and stores the inject the manifest declares', async () => {
+    const paperless = { ...VALID, pluginId: 'paperless', credentialId: 'docs', inject: { type: 'basic' } };
+    expect((await save({ ...paperless, origin: 'https://elsewhere.example.com' })).status).toBe(400);
+    expect(store.size).toBe(0);
+    expect((await save({ ...paperless, origin: 'https://paperless.example.com/api/' })).status).toBe(200);
+    expect(store.get('paperless/docs')).toMatchObject({ origin: 'https://paperless.example.com', inject: { type: 'bearer' } });
   });
 
   it('refuses without a session, with plugins off, or from another site', async () => {

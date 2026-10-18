@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger';
 import { DisallowedUrlError, fetchPublicUrl } from '@/lib/security/url-guard';
 import { authHeaderFor, credentialOrigin, privateProxyOrigins, type CredentialInject, type CredentialSpec } from './credentials';
 import { getUserCredential, setUserCredentialSecret, userKey, type VaultUser } from './vault';
+import { declaredUserCredential } from './known-plugins';
 
 /** Largest request body the proxy forwards (one upload chunk); see proxyClientMaxBodySize in next.config.ts. */
 export const MAX_PROXY_REQUEST_BYTES = 100 * 1024 * 1024;
@@ -69,6 +70,11 @@ export interface ResolvedCredential {
 export async function resolveCredential(user: VaultUser, pluginId: string, credentialId: string): Promise<ResolvedCredential | null> {
   const stored = await getUserCredential(user, pluginId, credentialId);
   if (stored) {
+    // Only for a plugin this server knows declares it, on the server the
+    // manifest fixes (see declaredUserCredential).
+    const spec = await declaredUserCredential(pluginId, credentialId);
+    if (!spec) return null;
+    if (spec.origin && credentialOrigin(spec.origin) !== stored.origin) return null;
     return {
       origin: stored.origin, inject: stored.inject, secret: stored.secret, username: stored.username,
       trusted: privateProxyOrigins().includes(stored.origin), scope: 'user',

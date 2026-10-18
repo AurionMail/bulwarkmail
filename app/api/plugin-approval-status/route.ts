@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
       permissions: manifest.permissions,
       httpOrigins: manifest.httpOrigins,
       apiPostPaths: manifest.apiPostPaths,
+      ...(manifest.credentials ? { credentials: manifest.credentials } : {}),
     };
 
     let entry: ApprovalEntry;

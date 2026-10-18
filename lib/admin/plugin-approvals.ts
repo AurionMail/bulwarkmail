@@ -15,6 +15,7 @@ import nodePath from 'node:path';
 import { existsSync } from 'node:fs';
 import { logger } from '@/lib/logger';
 import { ensureConfigDir, getConfigPath, assertWritable } from './paths';
+import type { CredentialSpec } from '@/lib/plugin-secrets/credentials';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'denied';
 
@@ -31,6 +32,8 @@ export interface ApprovalEntry {
     permissions?: string[];
     httpOrigins?: string[];
     apiPostPaths?: string[];
+    /** The credentials it may use through the plugin proxy (lib/plugin-secrets). */
+    credentials?: Record<string, CredentialSpec>;
   };
   requestedBy: string;     // JMAP username who triggered the request
   requestedAt: string;     // ISO 8601
