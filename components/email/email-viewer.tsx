@@ -1005,6 +1005,13 @@ function SidebarSection({ icon: Icon, title, children }: { icon: React.Component
 // open resets that state; a fresh [] each time is a new value, so React
 // renders the viewer once more even though nothing changed.
 const NO_POSTAL_ATTACHMENTS: PostalMimeAttachment[] = [];
+/**
+ * Largest winmail.dat or message/rfc822 part the reader downloads and parses
+ * on its own, on the UI thread, when a message is merely selected. A bigger
+ * one stays an attachment chip; a sender must not be able to make every
+ * selection of their message decode tens of megabytes.
+ */
+const MAX_INLINE_PARSE_BYTES = 5 * 1024 * 1024;
 const NO_TNEF_ATTACHMENTS: TnefAttachment[] = [];
 
 export function EmailViewer({
@@ -1976,6 +1983,11 @@ export function EmailViewer({
     } else {
       debug.log('email', 'TNEF: Email has no usable HTML body, proceeding with full TNEF extraction');
     }
+    if ((tnefAtt.size ?? 0) > MAX_INLINE_PARSE_BYTES) {
+      debug.log('email', 'TNEF: attachment too large to decode on open, leaving it as a chip');
+      debug.groupEnd();
+      return;
+    }
 
     let cancelled = false;
 
@@ -2049,6 +2061,7 @@ export function EmailViewer({
       att => att.type === 'message/rfc822' && att.blobId
     );
     if (!rfc822Att?.blobId) return;
+    if ((rfc822Att.size ?? 0) > MAX_INLINE_PARSE_BYTES) return;
 
     // Only unwrap if the outer body is effectively empty
     const htmlPartId = email.htmlBody?.[0]?.partId;
