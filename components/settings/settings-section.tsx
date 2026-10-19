@@ -1,8 +1,103 @@
 'use client';
 
-import { ReactNode, createContext, useContext, useId } from 'react';
+import { ReactNode, createContext, useContext, useEffect, useId, useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Lock } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import { useSettingsStore } from '@/stores/settings-store';
+
+/**
+ * The Advanced switch. Rows and sections marked `advanced` render nothing
+ * while it is off, but report themselves so the page can say how many it
+ * hid. The provider wraps one settings page; without one (tests, plugin
+ * previews) advanced rows simply show.
+ */
+interface AdvancedSettingsContextValue {
+  show: boolean;
+  register: (id: string, hidden: boolean) => void;
+}
+const AdvancedSettingsContext = createContext<AdvancedSettingsContextValue | null>(null);
+
+export function AdvancedSettingsProvider({ children }: { children: ReactNode }) {
+  const show = useSettingsStore((s) => s.showAdvancedSettings);
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const register = useCallback((id: string, isHidden: boolean) => {
+    setHidden((prev) => {
+      if (prev.has(id) === isHidden) return prev;
+      const next = new Set(prev);
+      if (isHidden) next.add(id); else next.delete(id);
+      return next;
+    });
+  }, []);
+  const value = useMemo(() => ({ show, register }), [show, register]);
+  return (
+    <AdvancedSettingsContext.Provider value={value}>
+      {children}
+      <HiddenAdvancedNotice count={hidden.size} />
+    </AdvancedSettingsContext.Provider>
+  );
+}
+
+/** True when this row or section should render; registers it as hidden otherwise. */
+function useAdvancedVisible(advanced: boolean | undefined): boolean {
+  const ctx = useContext(AdvancedSettingsContext);
+  const id = useId();
+  const hidden = Boolean(advanced) && ctx !== null && !ctx.show;
+  const register = ctx?.register;
+  useEffect(() => {
+    if (!register) return;
+    register(id, hidden);
+    return () => register(id, false);
+  }, [register, id, hidden]);
+  return !hidden;
+}
+
+function HiddenAdvancedNotice({ count }: { count: number }) {
+  const t = useTranslations('settings.advanced_switch');
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  if (count === 0) return null;
+  return (
+    <div
+      data-testid="settings-hidden-advanced"
+      className="mt-6 flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+    >
+      <span>{t('hidden_count', { count })}</span>
+      <button
+        type="button"
+        onClick={() => updateSetting('showAdvancedSettings', true)}
+        className="font-medium text-primary hover:underline"
+      >
+        {t('show')}
+      </button>
+    </div>
+  );
+}
+
+/** The sidebar switch that reveals advanced rows and sections everywhere. */
+export function AdvancedSettingsSwitch() {
+  const t = useTranslations('settings.advanced_switch');
+  const show = useSettingsStore((s) => s.showAdvancedSettings);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  const labelId = useId();
+  return (
+    <div className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+      <span id={labelId}>{t('label')}</span>
+      <SettingLabelContext.Provider value={labelId}>
+        <ToggleSwitch checked={show} onChange={(checked) => updateSetting('showAdvancedSettings', checked)} testId="settings-advanced-switch" />
+      </SettingLabelContext.Provider>
+    </div>
+  );
+}
+
+/** Small marker next to a label of a row that only shows with Advanced on. */
+function AdvancedBadge() {
+  const t = useTranslations('settings.advanced_switch');
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+      {t('badge')}
+    </span>
+  );
+}
 
 /**
  * Lets the controls inside a SettingItem borrow the row's visible label as
@@ -15,13 +110,22 @@ interface SettingsSectionProps {
   title: string;
   description?: string;
   children: ReactNode;
+  /** Hidden until the Advanced switch is on. */
+  advanced?: boolean;
+  /** Anchor for section deep links and the in-page jump row. */
+  id?: string;
 }
 
-export function SettingsSection({ title, description, children }: SettingsSectionProps) {
+export function SettingsSection({ title, description, children, advanced, id }: SettingsSectionProps) {
+  const visible = useAdvancedVisible(advanced);
+  if (!visible) return null;
   return (
-    <div data-search-label={title} className="space-y-4">
+    <div data-search-label={title} data-settings-section={id} className="space-y-4 scroll-mt-4">
       <div>
-        <h3 className="text-lg font-medium text-foreground">{title}</h3>
+        <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
+          {title}
+          {advanced && <AdvancedBadge />}
+        </h3>
         {description && (
           <p className="text-sm text-muted-foreground mt-1">{description}</p>
         )}
@@ -36,19 +140,30 @@ interface SettingItemProps {
   description?: string;
   children: ReactNode;
   locked?: boolean;
+  /** Hidden until the Advanced switch is on. */
+  advanced?: boolean;
+  /** Indented under the row above it, for a sub-option of a toggle. */
+  nested?: boolean;
 }
 
-export function SettingItem({ label, description, children, locked }: SettingItemProps) {
+export function SettingItem({ label, description, children, locked, advanced, nested }: SettingItemProps) {
   const labelId = useId();
+  const visible = useAdvancedVisible(advanced);
+  if (!visible) return null;
   return (
     <div
       data-search-label={label}
-      className={cn("flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 py-3 border-b border-border last:border-0", locked && "opacity-60")}
+      className={cn(
+        "flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4 py-3 border-b border-border last:border-0",
+        locked && "opacity-60",
+        nested && "ms-4 ps-3 border-s-2 border-s-border border-b-transparent py-2",
+      )}
     >
       <div className="flex-1 min-w-0 sm:pe-4">
         <div className="flex items-center gap-1.5">
           <label id={labelId} className="text-sm font-medium text-foreground">{label}</label>
           {locked && <Lock className="w-3 h-3 text-muted-foreground" aria-label="Managed by administrator" />}
+          {advanced && <AdvancedBadge />}
         </div>
         {description && (
           <p className="text-xs text-muted-foreground mt-1">{description}</p>

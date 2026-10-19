@@ -69,6 +69,7 @@ import { PluginsSettings } from '@/components/settings/plugins-settings';
 import { PluginIframeSlot } from '@/components/plugins/plugin-iframe-slot';
 import { offersForSlot as pluginOffersForSlot, subscribe as pluginRegistrySubscribe, get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
 import { ProtocolHandlerSettings } from '@/components/settings/protocol-handler-settings';
+import { AdvancedSettingsProvider, AdvancedSettingsSwitch } from '@/components/settings/settings-section';
 import { appPath, buildSettingsPath, parseSettingsPath } from '@/lib/deep-links';
 import { consumePendingDeepLink, subscribePendingDeepLink } from '@/lib/deep-link-handoff';
 import { useDeepLinkUrl } from '@/hooks/use-deep-link-url';
@@ -691,7 +692,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const activeTabLabel = visibleTabs.find((tab) => tab.id === effectiveActiveTab)?.label ?? '';
 
   const renderTabContent = () => (
-    <>
+    <AdvancedSettingsProvider key={effectiveActiveTab}>
       {managedAccountId && managedAccount && (
         <button
           type="button"
@@ -770,7 +771,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           </div>
         </>
       )}
-    </>
+    </AdvancedSettingsProvider>
   );
 
   // Mobile layout
@@ -897,6 +898,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
             ))}
           </div>
 
+          <div className="border-t border-border px-2 py-2">
+            <AdvancedSettingsSwitch />
+          </div>
           <div className="border-t border-border px-5 py-3">
             <button
               onClick={() => logout()}
@@ -1051,6 +1055,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
               </div>
             ))}
           </div>
+        </div>
+        <div className="border-t border-border px-1 py-1">
+          <AdvancedSettingsSwitch />
         </div>
       </div>
 

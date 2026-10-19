@@ -603,6 +603,9 @@ interface SettingsState {
   hideAccountSwitcher: boolean;
   showRailAccountList: boolean;
   proInterface: boolean;
+  // Settings marked `advanced` (power-user and integrator rows) stay hidden
+  // until this is on. Synced like the rest: it is a preference, not a device.
+  showAdvancedSettings: boolean;
 
   // Unified Mailbox
   enableUnifiedMailbox: boolean;
@@ -889,6 +892,7 @@ const DEFAULT_SETTINGS = {
   hideAccountSwitcher: false,
   showRailAccountList: false,
   proInterface: false,
+  showAdvancedSettings: false,
 
   // Unified Mailbox
   enableUnifiedMailbox: false,
@@ -1228,6 +1232,7 @@ export const useSettingsStore = create<SettingsState>()(
           toolbarPosition: state.toolbarPosition,
           hideAccountSwitcher: state.hideAccountSwitcher,
           showRailAccountList: state.showRailAccountList,
+          showAdvancedSettings: state.showAdvancedSettings,
           // proInterface is intentionally omitted - it's a per-device choice
           // (see DEVICE_LOCAL_SETTING_KEYS) and must not be synced.
           enableUnifiedMailbox: state.enableUnifiedMailbox,
