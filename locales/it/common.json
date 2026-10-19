@@ -1020,34 +1020,17 @@
     "keep_editing": "Continua a modificare",
     "tabs": {
       "appearance": "Aspetto",
-      "language": "Lingua, regione e ora",
-      "email": "Comportamento email",
-      "composer": "Editor",
-      "privacy": "Privacy e sicurezza",
       "account": "Account",
-      "identities": "Identità",
       "vacation": "Assenza",
-      "advanced": "Avanzate",
       "calendar": "Calendario",
       "filters": "Filtri",
-      "templates": "Modelli",
       "folders": "Cartelle",
-      "keywords": "Etichette",
       "security": "Sicurezza",
-      "encryption": "Cifratura",
       "files": "File",
       "contacts": "Contatti",
-      "protocol_handlers": "App predefinite",
-      "sidebar_apps": "App nella barra laterale",
       "notifications": "Notifiche",
-      "layout": "Layout",
-      "themes": "Temi",
       "reading": "Lettura",
       "composing": "Composizione",
-      "downloads": "Download",
-      "content_senders": "Contenuto e mittenti",
-      "about_data": "Informazioni e dati",
-      "debug": "Debug",
       "message_list": "Elenco messaggi",
       "general": "Generale",
       "organize": "Cartelle ed etichette",
@@ -1067,15 +1050,8 @@
       "admin_enforced": "Imposto dall'amministratore"
     },
     "tab_groups": {
-      "general": "Generale",
-      "account": "Account e identità",
-      "organization": "Organizzazione e-mail",
       "apps": "Applicazioni",
-      "system": "Sistema",
-      "appearance": "Aspetto",
-      "mail": "Posta",
-      "privacy": "Privacy e sicurezza",
-      "advanced": "Avanzate"
+      "mail": "Posta"
     },
     "appearance": {
       "message_list_order": {
@@ -1209,14 +1185,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Colora le righe in base all'account",
-        "description": "Nella vista unificata, colora ogni riga con il colore del suo account invece di mostrare il pallino. Ha la precedenza sulla tinta del tag; i tag mantengono il loro colore sulle etichette."
       },
       "show_folder_total_count": {
         "label": "Mostra il numero totale di messaggi",
@@ -1517,10 +1485,6 @@
         "label": "Mostra l'elenco in colonne",
         "description": "Mostra le righe su una sola riga come tabella con le colonne Da, Oggetto, Data e Dimensione sotto un'intestazione."
       },
-      "disable_threading": {
-        "label": "Disabilita raggruppamento conversazioni",
-        "description": "Mostra le email come messaggi singoli anziché raggruppati per conversazione"
-      },
       "plain_text_mode": {
         "label": "Solo testo normale",
         "description": "Disabilita l'editor di testo formattato e invia tutte le email solo come testo normale, incluse risposte e inoltri"
@@ -1712,51 +1676,6 @@
         "label": "Firme",
         "description": "Ogni indirizzo email ha la propria firma. Modificale insieme ai tuoi indirizzi.",
         "button": "Indirizzi email"
-      }
-    },
-    "composer": {
-      "title": "Editor",
-      "description": "Configura le impostazioni di composizione email",
-      "autosave": {
-        "label": "Intervallo di salvataggio automatico",
-        "description": "Con quale frequenza salvare automaticamente le bozze",
-        "30s": "Ogni 30 secondi",
-        "1m": "Ogni minuto",
-        "2m": "Ogni 2 minuti",
-        "5m": "Ogni 5 minuti"
-      },
-      "send_confirmation": {
-        "label": "Conferma invio",
-        "description": "Chiedi conferma prima di inviare messaggi"
-      },
-      "default_reply": {
-        "label": "Modalità risposta predefinita",
-        "description": "Azione predefinita quando si fa clic su rispondi",
-        "reply": "Rispondi",
-        "reply_all": "Rispondi a tutti"
-      }
-    },
-    "privacy": {
-      "title": "Privacy e sicurezza",
-      "description": "Gestisci le tue impostazioni di privacy e sicurezza",
-      "external_images": {
-        "label": "Blocca immagini esterne",
-        "description": "Impedisci il tracciamento attraverso immagini esterne"
-      },
-      "session_timeout": {
-        "label": "Timeout sessione",
-        "description": "Disconnetti automaticamente dopo inattività",
-        "never": "Mai",
-        "30m": "30 minuti",
-        "1h": "1 ora",
-        "4h": "4 ore"
-      },
-      "clear_cache": {
-        "label": "Cancella cache",
-        "description": "Rimuovi dati memorizzati nella cache e file temporanei",
-        "button": "Cancella cache",
-        "confirm": "Sei sicuro di voler cancellare la cache?",
-        "success": "Cache cancellata con successo"
       }
     },
     "account": {
@@ -1995,7 +1914,6 @@
       }
     },
     "identities": {
-      "title": "Identità di invio",
       "description": "Gestisci gli indirizzi email da cui puoi inviare",
       "identities_count": {
         "label": "Le tue identità",
@@ -2136,8 +2054,6 @@
       "error_role": "Impossibile aggiornare il ruolo della cartella"
     },
     "advanced": {
-      "title": "Avanzate",
-      "description": "Opzioni avanzate e impostazioni per sviluppatori",
       "debug_mode": {
         "label": "Modalità debug",
         "description": "Abilita registrazione dettagliata per la risoluzione dei problemi"
@@ -4551,8 +4467,7 @@
     "loading": "Caricamento della pagina",
     "not_available_title": "Questa pagina non è disponibile",
     "not_available_description": "Il plugin che l'ha aggiunta è disattivato o non è più installato.",
-    "back_to_mail": "Torna alla posta",
-    "settings_group": "Plugin"
+    "back_to_mail": "Torna alla posta"
   },
   "command_palette": {
     "title": "Tavolozza comandi",

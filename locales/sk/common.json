@@ -1023,34 +1023,17 @@
     "search_no_results": "Žiadne zodpovedajúce nastavenia",
     "tabs": {
       "appearance": "Vzhľad",
-      "language": "Jazyk, región a čas",
-      "email": "Správanie e-mailov",
-      "composer": "Skladanie správ",
-      "privacy": "Súkromie a zabezpečenie",
       "account": "Účet",
-      "identities": "Identity",
       "vacation": "Neprítomnosť",
-      "advanced": "Pokročilé",
       "calendar": "Kalendár",
       "filters": "Filtre",
-      "templates": "Šablóny",
       "folders": "Priečinky",
-      "keywords": "Štítky",
       "security": "Zabezpečenie",
       "files": "Súbory",
       "contacts": "Kontakty",
-      "encryption": "Šifrovanie",
-      "protocol_handlers": "Predvolené aplikácie",
-      "sidebar_apps": "Aplikácie postranného panela",
       "notifications": "Oznámenia",
-      "layout": "Rozloženie",
-      "themes": "Motívy",
       "reading": "Čítanie",
       "composing": "Pisanie",
-      "downloads": "Stiahnuté",
-      "content_senders": "Obsah a odosielatelia",
-      "about_data": "Info a dáta",
-      "debug": "Ladenie",
       "message_list": "Zoznam správ",
       "general": "Všeobecné",
       "organize": "Priečinky a štítky",
@@ -1070,15 +1053,8 @@
       "admin_enforced": "Vynútené správcom"
     },
     "tab_groups": {
-      "general": "Všeobecné",
-      "account": "Účet a identita",
-      "organization": "Organizácia pošty",
       "apps": "Aplikácie",
-      "system": "Systém",
-      "appearance": "Vzhľad",
-      "mail": "Pošta",
-      "privacy": "Súkromie a zabezpečenie",
-      "advanced": "Pokročilé"
+      "mail": "Pošta"
     },
     "appearance": {
       "message_list_order": {
@@ -1212,14 +1188,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Zobraziť celkový počet správ",
@@ -1529,10 +1497,6 @@
         "label": "Zobrazovať overovacie kódy",
         "description": "Ponúkať kód z prihlasovacích a potvrdzovacích e-mailov na skopírovanie jedným kliknutím, v zozname počas jedného dňa a v správe"
       },
-      "disable_threading": {
-        "label": "Zakázať zoskupovanie konverzácií",
-        "description": "Zobrazovať e-maily ako jednotlivé správy namiesto zoskupovania do vlákien"
-      },
       "plain_text_mode": {
         "label": "Iba prostý text",
         "description": "Zakázať editor formátovaného textu a odosielať všetky e-maily iba ako prostý text"
@@ -1715,51 +1679,6 @@
         "label": "Podpisy",
         "description": "Každá e-mailová adresa má vlastný podpis. Upravte ich spolu so svojimi adresami.",
         "button": "E-mailové adresy"
-      }
-    },
-    "composer": {
-      "title": "Skladanie správ",
-      "description": "Nakonfigurujte nastavenia pre písanie e-mailov",
-      "autosave": {
-        "label": "Interval automatického ukladania",
-        "description": "Ako často sa majú koncepty automaticky ukladať",
-        "30s": "Každých 30 sekúnd",
-        "1m": "Každú minútu",
-        "2m": "Každé 2 minúty",
-        "5m": "Každých 5 minút"
-      },
-      "send_confirmation": {
-        "label": "Potvrdenie odoslania",
-        "description": "Pred odoslaním správy požiadať o potvrdenie"
-      },
-      "default_reply": {
-        "label": "Predvolený režim odpovede",
-        "description": "Predvolená akcia po kliknutí na Odpovedať",
-        "reply": "Odpovedať",
-        "reply_all": "Odpovedať všetkým"
-      }
-    },
-    "privacy": {
-      "title": "Súkromie a zabezpečenie",
-      "description": "Správa nastavení súkromia a zabezpečenia",
-      "external_images": {
-        "label": "Blokovať externé obrázky",
-        "description": "Zabrániť sledovaniu prostredníctvom externých obrázkov"
-      },
-      "session_timeout": {
-        "label": "Časový limit relácie",
-        "description": "Automaticky odhlásiť po určitej dobe nečinnosti",
-        "never": "Nikdy",
-        "30m": "30 minút",
-        "1h": "1 hodina",
-        "4h": "4 hodiny"
-      },
-      "clear_cache": {
-        "label": "Vymazať vyrovnávaciu pamäť",
-        "description": "Odstrániť dáta z vyrovnávacej pamäte a dočasné súbory",
-        "button": "Vymazať vyrovnávaciu pamäť",
-        "confirm": "Naozaj chcete vymazať vyrovnávaciu pamäť?",
-        "success": "Vyrovnávacia pamäť bola vymazaná"
       }
     },
     "account": {
@@ -2002,7 +1921,6 @@
       }
     },
     "identities": {
-      "title": "Identity odosielateľa",
       "description": "Správa e-mailových adries, z ktorých môžete odosielať správy",
       "identities_count": {
         "label": "Vaše identity",
@@ -2143,8 +2061,6 @@
       "error_role": "Rolu priečinka sa nepodarilo aktualizovať"
     },
     "advanced": {
-      "title": "Pokročilé",
-      "description": "Pokročilé možnosti a nastavenia pre vývojárov",
       "debug_mode": {
         "label": "Režim ladenia",
         "description": "Povoliť podrobné protokolovanie na riešenie problémov"
@@ -4551,8 +4467,7 @@
     "loading": "Načítava sa stránka",
     "not_available_title": "Táto stránka nie je k dispozícii",
     "not_available_description": "Doplnok, ktorý ju pridal, je vypnutý alebo už nie je nainštalovaný.",
-    "back_to_mail": "Späť na poštu",
-    "settings_group": "Doplnky"
+    "back_to_mail": "Späť na poštu"
   },
   "command_palette": {
     "title": "Paleta príkazov",

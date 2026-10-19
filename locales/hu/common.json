@@ -1023,34 +1023,17 @@
     "search_no_results": "Nincs találat a beállításokban",
     "tabs": {
       "appearance": "Megjelenés",
-      "language": "Nyelv, régió és idő",
-      "email": "E-mail viselkedés",
-      "composer": "Szerkesztő",
-      "privacy": "Adatvédelem és biztonság",
       "account": "Fiók",
-      "identities": "Azonosságok",
       "vacation": "Távollét",
-      "advanced": "Speciális",
       "calendar": "Naptár",
       "filters": "Szűrők",
-      "templates": "Sablonok",
       "folders": "Mappák",
-      "keywords": "Címkék",
       "security": "Biztonság",
       "files": "Fájlok",
       "contacts": "Névjegyek",
-      "encryption": "Titkosítás",
-      "protocol_handlers": "Alapértelmezett alkalmazások",
-      "sidebar_apps": "Oldalsáv alkalmazások",
       "notifications": "Értesítések",
-      "layout": "Elrendezés",
-      "themes": "Témák",
       "reading": "Olvasás",
       "composing": "Írás",
-      "downloads": "Letöltések",
-      "content_senders": "Tartalom és feladók",
-      "about_data": "Névjegy és adatok",
-      "debug": "Hibakeresés",
       "message_list": "Üzenetlista",
       "general": "Általános",
       "organize": "Mappák és címkék",
@@ -1070,15 +1053,8 @@
       "admin_enforced": "Rendszergazda által előírva"
     },
     "tab_groups": {
-      "general": "Általános",
-      "account": "Fiók és azonosság",
-      "organization": "Levelezés szervezése",
       "apps": "Alkalmazások",
-      "system": "Rendszer",
-      "appearance": "Megjelenés",
-      "mail": "Levelek",
-      "privacy": "Adatvédelem és biztonság",
-      "advanced": "Speciális"
+      "mail": "Levelek"
     },
     "appearance": {
       "message_list_order": {
@@ -1212,14 +1188,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Összes üzenet számának megjelenítése",
@@ -1529,10 +1497,6 @@
         "label": "Ellenőrző kódok megjelenítése",
         "description": "A bejelentkezési és megerősítő e-mailek kódjának felajánlása egy kattintásos másolásra, a listában egy napig és az üzenetben"
       },
-      "disable_threading": {
-        "label": "Beszélgetéscsoportosítás letiltása",
-        "description": "E-mailek megjelenítése egyedi üzenetként ahelyett, hogy beszélgetésekbe lennének csoportosítva"
-      },
       "plain_text_mode": {
         "label": "Csak szöveges mód",
         "description": "Rich text szerkesztő letiltása és az összes e-mail küldése csak szöveges formátumban, beleértve a válaszokat és továbbításokat"
@@ -1715,51 +1679,6 @@
         "label": "Aláírások",
         "description": "Minden e-mail-címnek saját aláírása van. A címekkel együtt szerkesztheti őket.",
         "button": "E-mail-címek"
-      }
-    },
-    "composer": {
-      "title": "Szerkesztő",
-      "description": "E-mail írási beállítások konfigurálása",
-      "autosave": {
-        "label": "Automatikus mentés időköze",
-        "description": "Milyen gyakran mentse a piszkozatokat automatikusan",
-        "30s": "30 másodpercenként",
-        "1m": "Percre",
-        "2m": "2 percenként",
-        "5m": "5 percenként"
-      },
-      "send_confirmation": {
-        "label": "Küldés megerősítés",
-        "description": "Megerősítés kérése e-mailek küldése előtt"
-      },
-      "default_reply": {
-        "label": "Alapértelmezett válasz mód",
-        "description": "Alapértelmezett művelet a válasz gombra kattintáskor",
-        "reply": "Válasz",
-        "reply_all": "Válasz mindenkinek"
-      }
-    },
-    "privacy": {
-      "title": "Adatvédelem és biztonság",
-      "description": "Adatvédelmi és biztonsági beállítások kezelése",
-      "external_images": {
-        "label": "Külső képek blokkolása",
-        "description": "Követés megakadályozása külső képeken keresztül"
-      },
-      "session_timeout": {
-        "label": "Munkamenet időtúllépés",
-        "description": "Automatikus kijelentkezés inaktivitás után",
-        "never": "Soha",
-        "30m": "30 perc",
-        "1h": "1 óra",
-        "4h": "4 óra"
-      },
-      "clear_cache": {
-        "label": "Gyorsítótár törlése",
-        "description": "Gyorsítótárazott adatok és ideiglenes fájlok eltávolítása",
-        "button": "Gyorsítótár törlése",
-        "confirm": "Biztosan törölni szeretnéd a gyorsítótárat?",
-        "success": "Gyorsítótár sikeresen törölve"
       }
     },
     "account": {
@@ -1998,7 +1917,6 @@
       }
     },
     "identities": {
-      "title": "Küldő azonosságok",
       "description": "Azon e-mail címek kezelése, amelyekről küldhetsz",
       "identities_count": {
         "label": "Azonosságaid",
@@ -2139,8 +2057,6 @@
       "error_role": "Nem sikerült frissíteni a mappa szerepkört"
     },
     "advanced": {
-      "title": "Speciális",
-      "description": "Speciális opciók és fejlesztői beállítások",
       "debug_mode": {
         "label": "Hibakeresési mód",
         "description": "Részletes naplózás engedélyezése hibaelhárításhoz"
@@ -4551,8 +4467,7 @@
     "loading": "Oldal betöltése",
     "not_available_title": "Ez az oldal nem érhető el",
     "not_available_description": "A bővítmény, amely hozzáadta, ki van kapcsolva, vagy már nincs telepítve.",
-    "back_to_mail": "Vissza a levelekhez",
-    "settings_group": "Bővítmények"
+    "back_to_mail": "Vissza a levelekhez"
   },
   "command_palette": {
     "title": "Parancspaletta",

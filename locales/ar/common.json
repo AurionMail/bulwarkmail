@@ -1023,34 +1023,17 @@
     "search_no_results": "لا توجد إعدادات مطابقة",
     "tabs": {
       "appearance": "المظهر",
-      "language": "اللغة والمنطقة والوقت",
-      "email": "سلوك البريد",
-      "composer": "محرر الرسائل",
-      "privacy": "الخصوصية والأمان",
       "account": "الحساب",
-      "identities": "الهويات",
       "vacation": "الغياب",
-      "advanced": "متقدم",
       "calendar": "التقويم",
       "filters": "المرشحات",
-      "templates": "القوالب",
       "folders": "المجلدات",
-      "keywords": "الوسوم",
       "security": "الأمان",
       "files": "الملفات",
       "contacts": "جهات الاتصال",
-      "encryption": "التشفير",
-      "protocol_handlers": "التطبيقات الافتراضية",
-      "sidebar_apps": "تطبيقات الشريط الجانبي",
       "notifications": "الإشعارات",
-      "layout": "التخطيط",
-      "themes": "السمات",
       "reading": "القراءة",
       "composing": "الكتابة",
-      "downloads": "التنزيلات",
-      "content_senders": "المحتوى والمرسلون",
-      "about_data": "حول والبيانات",
-      "debug": "التصحيح",
       "message_list": "قائمة الرسائل",
       "general": "عام",
       "organize": "المجلدات والوسوم",
@@ -1070,15 +1053,8 @@
       "admin_enforced": "مفروضة من المسؤول"
     },
     "tab_groups": {
-      "general": "عام",
-      "account": "الحساب والهوية",
-      "organization": "تنظيم البريد",
       "apps": "التطبيقات",
-      "system": "النظام",
-      "appearance": "المظهر",
-      "mail": "البريد",
-      "privacy": "الخصوصية والأمان",
-      "advanced": "متقدم"
+      "mail": "البريد"
     },
     "appearance": {
       "message_list_order": {
@@ -1212,14 +1188,6 @@
       "tint_list_rows": {
         "label": "تلوين صفوف القائمة بلون الوسم",
         "description": "تظليل كل صف رسالة بلون أول وسم فيها. عطّل هذا لإبقاء الصفوف عادية؛ ستظل نقاط الوسوم وشاراتها تظهر اللون."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "إظهار إجمالي عدد الرسائل",
@@ -1529,10 +1497,6 @@
         "label": "إظهار رموز التحقق",
         "description": "عرض الرمز من رسائل تسجيل الدخول والتأكيد لنسخه بنقرة واحدة، في القائمة لمدة يوم وفي الرسالة"
       },
-      "disable_threading": {
-        "label": "تعطيل تجميع المحادثات",
-        "description": "إظهار الرسائل كرسائل منفردة بدلًا من تجميعها حسب المحادثة"
-      },
       "plain_text_mode": {
         "label": "نص عادي فقط",
         "description": "تعطيل محرر النصوص المنسقة وإرسال جميع الرسائل كنص عادي فقط، بما في ذلك الردود وإعادة التوجيه"
@@ -1715,51 +1679,6 @@
         "label": "التوقيعات",
         "description": "لكل عنوان بريد توقيعه الخاص. حرّرها مع عناوينك.",
         "button": "عناوين البريد الإلكتروني"
-      }
-    },
-    "composer": {
-      "title": "محرر الرسائل",
-      "description": "إعداد خيارات كتابة البريد الإلكتروني",
-      "autosave": {
-        "label": "فاصل الحفظ التلقائي",
-        "description": "عدد مرات حفظ المسودات تلقائيًا",
-        "30s": "كل 30 ثانية",
-        "1m": "كل دقيقة",
-        "2m": "كل دقيقتين",
-        "5m": "كل 5 دقائق"
-      },
-      "send_confirmation": {
-        "label": "تأكيد الإرسال",
-        "description": "طلب تأكيد قبل إرسال الرسائل"
-      },
-      "default_reply": {
-        "label": "وضع الرد الافتراضي",
-        "description": "الإجراء الافتراضي عند النقر على رد",
-        "reply": "رد",
-        "reply_all": "الرد على الجميع"
-      }
-    },
-    "privacy": {
-      "title": "الخصوصية والأمان",
-      "description": "إدارة إعدادات الخصوصية والأمان",
-      "external_images": {
-        "label": "حظر الصور الخارجية",
-        "description": "منع التتبع عبر الصور الخارجية"
-      },
-      "session_timeout": {
-        "label": "مهلة الجلسة",
-        "description": "تسجيل الخروج تلقائيًا بعد فترة من عدم النشاط",
-        "never": "أبدًا",
-        "30m": "30 دقيقة",
-        "1h": "ساعة واحدة",
-        "4h": "4 ساعات"
-      },
-      "clear_cache": {
-        "label": "مسح ذاكرة التخزين المؤقت",
-        "description": "إزالة البيانات المخزنة مؤقتًا والملفات المؤقتة",
-        "button": "مسح ذاكرة التخزين المؤقت",
-        "confirm": "هل أنت متأكد أنك تريد مسح ذاكرة التخزين المؤقت؟",
-        "success": "تم مسح ذاكرة التخزين المؤقت بنجاح"
       }
     },
     "account": {
@@ -2002,7 +1921,6 @@
       }
     },
     "identities": {
-      "title": "هويات الإرسال",
       "description": "إدارة عناوين البريد الإلكتروني التي يمكنك الإرسال منها",
       "identities_count": {
         "label": "هوياتك",
@@ -2143,8 +2061,6 @@
       "error_role": "فشل تحديث دور المجلد"
     },
     "advanced": {
-      "title": "متقدم",
-      "description": "خيارات متقدمة وإعدادات المطورين",
       "debug_mode": {
         "label": "وضع التصحيح",
         "description": "تفعيل التسجيل المفصّل لاستكشاف الأخطاء وإصلاحها"
@@ -4551,8 +4467,7 @@
     "loading": "جارٍ تحميل الصفحة",
     "not_available_title": "هذه الصفحة غير متاحة",
     "not_available_description": "الإضافة التي أضافتها متوقفة أو لم تعد مثبتة.",
-    "back_to_mail": "العودة إلى البريد",
-    "settings_group": "الإضافات"
+    "back_to_mail": "العودة إلى البريد"
   },
   "command_palette": {
     "title": "لوحة الأوامر",

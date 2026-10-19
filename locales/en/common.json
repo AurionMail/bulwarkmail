@@ -1023,34 +1023,17 @@
     "search_no_results": "No matching settings",
     "tabs": {
       "appearance": "Appearance",
-      "language": "Language, Region & Time",
-      "email": "Email Behavior",
-      "composer": "Composer",
-      "privacy": "Privacy & Security",
       "account": "Account",
-      "identities": "Identities",
       "vacation": "Out of Office",
-      "advanced": "Advanced",
       "calendar": "Calendar",
       "filters": "Filters",
-      "templates": "Templates",
       "folders": "Folders",
-      "keywords": "Tags",
       "security": "Security",
       "files": "Files",
       "contacts": "Contacts",
-      "encryption": "Encryption",
-      "protocol_handlers": "Default apps",
-      "sidebar_apps": "Sidebar Apps",
       "notifications": "Notifications",
-      "layout": "Layout",
-      "themes": "Themes",
       "reading": "Reading",
       "composing": "Composing",
-      "downloads": "Downloads",
-      "content_senders": "Content & Senders",
-      "about_data": "About & Data",
-      "debug": "Debug",
       "message_list": "Message list",
       "general": "General",
       "organize": "Folders & tags",
@@ -1070,15 +1053,8 @@
       "admin_enforced": "Admin enforced"
     },
     "tab_groups": {
-      "general": "General",
-      "account": "Account & Identity",
-      "organization": "Mail Organization",
       "apps": "Apps",
-      "system": "System",
-      "appearance": "Appearance",
-      "mail": "Mail",
-      "privacy": "Privacy & Security",
-      "advanced": "Advanced"
+      "mail": "Mail"
     },
     "appearance": {
       "message_list_order": {
@@ -1212,14 +1188,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Show Total Message Count",
@@ -1529,10 +1497,6 @@
         "label": "Show Verification Codes",
         "description": "Offer the code from sign-in and confirmation emails for one-click copying, in the list for a day and in the message"
       },
-      "disable_threading": {
-        "label": "Disable Conversation Grouping",
-        "description": "Show emails as individual messages instead of grouped by conversation"
-      },
       "plain_text_mode": {
         "label": "Plain Text Only",
         "description": "Disable the rich text editor and send all emails as plain text only, including replies and forwards"
@@ -1715,51 +1679,6 @@
         "label": "Signatures",
         "description": "Each email address has its own signature. Edit them together with your addresses.",
         "button": "Email addresses"
-      }
-    },
-    "composer": {
-      "title": "Composer",
-      "description": "Configure email composition settings",
-      "autosave": {
-        "label": "Auto-save Interval",
-        "description": "How often to save drafts automatically",
-        "30s": "Every 30 seconds",
-        "1m": "Every minute",
-        "2m": "Every 2 minutes",
-        "5m": "Every 5 minutes"
-      },
-      "send_confirmation": {
-        "label": "Send Confirmation",
-        "description": "Ask for confirmation before sending emails"
-      },
-      "default_reply": {
-        "label": "Default Reply Mode",
-        "description": "Default action when clicking reply",
-        "reply": "Reply",
-        "reply_all": "Reply All"
-      }
-    },
-    "privacy": {
-      "title": "Privacy & Security",
-      "description": "Manage your privacy and security settings",
-      "external_images": {
-        "label": "Block External Images",
-        "description": "Prevent tracking through external images"
-      },
-      "session_timeout": {
-        "label": "Session Timeout",
-        "description": "Automatically log out after inactivity",
-        "never": "Never",
-        "30m": "30 minutes",
-        "1h": "1 hour",
-        "4h": "4 hours"
-      },
-      "clear_cache": {
-        "label": "Clear Cache",
-        "description": "Remove cached data and temporary files",
-        "button": "Clear Cache",
-        "confirm": "Are you sure you want to clear the cache?",
-        "success": "Cache cleared successfully"
       }
     },
     "account": {
@@ -2002,7 +1921,6 @@
       }
     },
     "identities": {
-      "title": "Sending Identities",
       "description": "Manage email addresses you can send from",
       "identities_count": {
         "label": "Your Identities",
@@ -2143,8 +2061,6 @@
       "error_role": "Failed to update folder role"
     },
     "advanced": {
-      "title": "Advanced",
-      "description": "Advanced options and developer settings",
       "debug_mode": {
         "label": "Debug Mode",
         "description": "Enable detailed logging for troubleshooting"
@@ -4551,8 +4467,7 @@
     "loading": "Loading page",
     "not_available_title": "This page is not available",
     "not_available_description": "The plugin that added it is turned off or no longer installed.",
-    "back_to_mail": "Back to Mail",
-    "settings_group": "Plugins"
+    "back_to_mail": "Back to Mail"
   },
   "command_palette": {
     "title": "Command palette",

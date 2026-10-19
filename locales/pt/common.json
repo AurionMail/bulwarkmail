@@ -1020,34 +1020,17 @@
     "keep_editing": "Continuar editando",
     "tabs": {
       "appearance": "Aparência",
-      "language": "Idioma, Região e Hora",
-      "email": "Comportamento de E-mail",
-      "composer": "Editor",
-      "privacy": "Privacidade e Segurança",
       "account": "Conta",
-      "identities": "Identidades",
       "vacation": "Ausência",
-      "advanced": "Avançado",
       "calendar": "Calendário",
       "filters": "Filtros",
-      "templates": "Modelos",
       "folders": "Pastas",
-      "keywords": "Etiquetas",
       "security": "Segurança",
-      "encryption": "Criptografia",
       "files": "Arquivos",
       "contacts": "Contatos",
-      "protocol_handlers": "Aplicativos padrão",
-      "sidebar_apps": "Apps da barra lateral",
       "notifications": "Notificações",
-      "layout": "Layout",
-      "themes": "Temas",
       "reading": "Leitura",
       "composing": "Composição",
-      "downloads": "Downloads",
-      "content_senders": "Conteúdo e remetentes",
-      "about_data": "Sobre e dados",
-      "debug": "Depuração",
       "message_list": "Lista de mensagens",
       "general": "Geral",
       "organize": "Pastas e etiquetas",
@@ -1067,15 +1050,8 @@
       "admin_enforced": "Imposto pelo administrador"
     },
     "tab_groups": {
-      "general": "Geral",
-      "account": "Conta e identidade",
-      "organization": "Organização de e-mail",
       "apps": "Aplicativos",
-      "system": "Sistema",
-      "appearance": "Aparência",
-      "mail": "Correio",
-      "privacy": "Privacidade e segurança",
-      "advanced": "Avançado"
+      "mail": "Correio"
     },
     "appearance": {
       "message_list_order": {
@@ -1209,14 +1185,6 @@
       "tint_list_rows": {
         "label": "Colorir as linhas da lista de acordo com a cor da etiqueta",
         "description": "Aplicar sombreado a cada linha de mensagem com a cor da primeira etiqueta. Desative essa opção para manter as linhas sem sombreado; os pontos e os ícones das etiquetas continuarão exibindo a cor."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Mostrar contagem total de mensagens",
@@ -1517,10 +1485,6 @@
         "label": "Mostrar a lista em colunas",
         "description": "Mostra as linhas de uma linha como uma tabela com as colunas De, Assunto, Data e Tamanho sob um cabeçalho."
       },
-      "disable_threading": {
-        "label": "Desativar agrupamento de conversas",
-        "description": "Mostrar e-mails como mensagens individuais em vez de agrupados por conversa"
-      },
       "plain_text_mode": {
         "label": "Apenas texto simples",
         "description": "Desativar o editor de texto formatado e enviar todos os e-mails apenas como texto simples, incluindo respostas e encaminhamentos"
@@ -1712,51 +1676,6 @@
         "label": "Assinaturas",
         "description": "Cada endereço de e-mail tem a sua própria assinatura. Edite-as junto com os seus endereços.",
         "button": "Endereços de e-mail"
-      }
-    },
-    "composer": {
-      "title": "Editor",
-      "description": "Configure as configurações de composição de e-mail",
-      "autosave": {
-        "label": "Intervalo de Salvamento Automático",
-        "description": "Com que frequência salvar rascunhos automaticamente",
-        "30s": "A cada 30 segundos",
-        "1m": "A cada minuto",
-        "2m": "A cada 2 minutos",
-        "5m": "A cada 5 minutos"
-      },
-      "send_confirmation": {
-        "label": "Confirmação de Envio",
-        "description": "Pedir confirmação antes de enviar e-mails"
-      },
-      "default_reply": {
-        "label": "Modo de Resposta Padrão",
-        "description": "Ação padrão ao clicar em responder",
-        "reply": "Responder",
-        "reply_all": "Responder a Todos"
-      }
-    },
-    "privacy": {
-      "title": "Privacidade e Segurança",
-      "description": "Gerencie suas configurações de privacidade e segurança",
-      "external_images": {
-        "label": "Bloquear Imagens Externas",
-        "description": "Prevenir rastreamento através de imagens externas"
-      },
-      "session_timeout": {
-        "label": "Tempo Limite de Sessão",
-        "description": "Sair automaticamente após inatividade",
-        "never": "Nunca",
-        "30m": "30 minutos",
-        "1h": "1 hora",
-        "4h": "4 horas"
-      },
-      "clear_cache": {
-        "label": "Limpar Cache",
-        "description": "Remover dados em cache e arquivos temporários",
-        "button": "Limpar Cache",
-        "confirm": "Tem certeza de que deseja limpar o cache?",
-        "success": "Cache limpo com sucesso"
       }
     },
     "account": {
@@ -1995,7 +1914,6 @@
       }
     },
     "identities": {
-      "title": "Identidades de Envio",
       "description": "Gerencie endereços de e-mail que você pode usar para enviar",
       "identities_count": {
         "label": "Suas Identidades",
@@ -2136,8 +2054,6 @@
       "error_role": "Falha ao atualizar a função da pasta"
     },
     "advanced": {
-      "title": "Avançado",
-      "description": "Opções avançadas e configurações de desenvolvedor",
       "debug_mode": {
         "label": "Modo de Depuração",
         "description": "Habilitar registro detalhado para solução de problemas"
@@ -4551,8 +4467,7 @@
     "loading": "Carregando a página",
     "not_available_title": "Esta página não está disponível",
     "not_available_description": "O plugin que a adicionou está desativado ou não está mais instalado.",
-    "back_to_mail": "Voltar ao e-mail",
-    "settings_group": "Plugins"
+    "back_to_mail": "Voltar ao e-mail"
   },
   "command_palette": {
     "title": "Paleta de comandos",

@@ -1023,34 +1023,17 @@
     "search_no_results": "找不到相符的設定",
     "tabs": {
       "appearance": "外觀",
-      "language": "語言、地區與時間",
-      "email": "郵件行為",
-      "composer": "郵件撰寫",
-      "privacy": "隱私權與安全",
       "account": "帳號",
-      "identities": "寄件身分",
       "vacation": "外出",
-      "advanced": "進階",
       "calendar": "行事曆",
       "filters": "篩選規則",
-      "templates": "範本",
       "folders": "信件匣",
-      "keywords": "標籤",
       "security": "安全",
       "files": "檔案",
       "contacts": "聯絡人",
-      "encryption": "加密",
-      "protocol_handlers": "預設應用程式",
-      "sidebar_apps": "側邊欄應用程式",
       "notifications": "通知",
-      "layout": "版面配置",
-      "themes": "主題",
       "reading": "閱讀",
       "composing": "撰寫",
-      "downloads": "下載",
-      "content_senders": "內容與寄件者",
-      "about_data": "關於與資料",
-      "debug": "除錯",
       "message_list": "郵件清單",
       "general": "一般",
       "organize": "資料夾與標籤",
@@ -1070,15 +1053,8 @@
       "admin_enforced": "管理員強制"
     },
     "tab_groups": {
-      "general": "一般",
-      "account": "帳號與寄件身分",
-      "organization": "郵件整理",
       "apps": "應用程式",
-      "system": "系統",
-      "appearance": "外觀",
-      "mail": "郵件",
-      "privacy": "隱私權與安全",
-      "advanced": "進階"
+      "mail": "郵件"
     },
     "appearance": {
       "message_list_order": {
@@ -1212,14 +1188,6 @@
       "tint_list_rows": {
         "label": "依標籤顏色為清單列上色",
         "description": "以第一個標籤的顏色為每封郵件列加上底色。停用後郵件列保持無底色，但標籤圓點與標籤仍會顯示該顏色。"
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "顯示郵件總數",
@@ -1529,10 +1497,6 @@
         "label": "顯示驗證碼",
         "description": "提供登入與確認郵件中的驗證碼，一鍵複製（在清單中顯示一天，在郵件中始終顯示）"
       },
-      "disable_threading": {
-        "label": "停用對話串群組",
-        "description": "將郵件個別顯示，而不是依對話串分組"
-      },
       "plain_text_mode": {
         "label": "僅純文字",
         "description": "停用富文字編輯器，並將所有郵件（包括回覆和轉寄）以純文字傳送"
@@ -1715,51 +1679,6 @@
         "label": "簽名",
         "description": "每個電子郵件地址都有自己的簽名。請與地址一起編輯。",
         "button": "電子郵件地址"
-      }
-    },
-    "composer": {
-      "title": "郵件撰寫",
-      "description": "設定郵件撰寫偏好",
-      "autosave": {
-        "label": "自動儲存間隔",
-        "description": "自動儲存草稿的頻率",
-        "30s": "每 30 秒",
-        "1m": "每分鐘",
-        "2m": "每 2 分鐘",
-        "5m": "每 5 分鐘"
-      },
-      "send_confirmation": {
-        "label": "傳送前確認",
-        "description": "傳送郵件前要求確認"
-      },
-      "default_reply": {
-        "label": "預設回覆模式",
-        "description": "點擊回覆時的預設動作",
-        "reply": "回覆",
-        "reply_all": "全部回覆"
-      }
-    },
-    "privacy": {
-      "title": "隱私權與安全",
-      "description": "管理您的隱私權與安全設定",
-      "external_images": {
-        "label": "封鎖外部圖片",
-        "description": "防止透過外部圖片進行追蹤"
-      },
-      "session_timeout": {
-        "label": "工作階段逾時",
-        "description": "一段時間未操作後自動登出",
-        "never": "永不",
-        "30m": "30 分鐘",
-        "1h": "1 小時",
-        "4h": "4 小時"
-      },
-      "clear_cache": {
-        "label": "清除快取",
-        "description": "移除快取資料與暫存檔案",
-        "button": "清除快取",
-        "confirm": "您確定要清除快取嗎？",
-        "success": "已成功清除快取"
       }
     },
     "account": {
@@ -2002,7 +1921,6 @@
       }
     },
     "identities": {
-      "title": "寄件身分",
       "description": "管理可用來寄信的電子郵件地址",
       "identities_count": {
         "label": "您的寄件身分",
@@ -2143,8 +2061,6 @@
       "error_role": "無法更新信件匣角色"
     },
     "advanced": {
-      "title": "進階",
-      "description": "進階選項與開發者設定",
       "debug_mode": {
         "label": "除錯模式",
         "description": "啟用詳細記錄以進行疑難排解"
@@ -4551,8 +4467,7 @@
     "loading": "正在載入頁面",
     "not_available_title": "此頁面無法使用",
     "not_available_description": "新增此頁面的外掛程式已關閉或已不再安裝。",
-    "back_to_mail": "返回郵件",
-    "settings_group": "外掛程式"
+    "back_to_mail": "返回郵件"
   },
   "command_palette": {
     "title": "命令面板",

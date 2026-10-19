@@ -985,34 +985,17 @@
     "keep_editing": "תמשיך לערוך",
     "tabs": {
       "appearance": "מראה",
-      "language": "שפה ואזור",
-      "email": "התנהגות אימייל",
-      "composer": "עורך",
-      "privacy": "פרטיות ואבטחה",
       "account": "חשבון",
-      "identities": "זהויות",
       "vacation": "היעדרות",
-      "advanced": "מתקדם",
       "calendar": "לוּחַ שָׁנָה",
       "filters": "מסננים",
-      "templates": "תבניות",
       "folders": "תיקיות",
-      "keywords": "מילות מפתח",
       "security": "אבטחה",
       "files": "קבצים",
       "contacts": "אנשי קשר",
-      "encryption": "הצפנה",
-      "sidebar_apps": "אפליקציות בסרגל הצד",
       "notifications": "התראות",
-      "protocol_handlers": "יישומים ברירת מחדל",
-      "layout": "פריסה",
-      "themes": "ערכות נושא",
       "reading": "קריאה",
       "composing": "הרכבה",
-      "downloads": "הורדות",
-      "content_senders": "תוכן ושולחים",
-      "about_data": "בערך וגדול",
-      "debug": "ניפוי שגיאות",
       "message_list": "רשימת הודעות",
       "general": "כללי",
       "organize": "תיקיות ותגיות",
@@ -1032,15 +1015,8 @@
       "admin_enforced": "נאכף על ידי המנהל"
     },
     "tab_groups": {
-      "general": "כללי",
-      "account": "חשבון וזהות",
-      "organization": "ארגון דואר",
       "apps": "אפליקציות",
-      "system": "מערכת",
-      "appearance": "הופעה",
-      "mail": "דוא״ל",
-      "privacy": "פרטיות וביטחון",
-      "advanced": "מתקדם"
+      "mail": "דוא״ל"
     },
     "appearance": {
       "message_list_order": {
@@ -1174,14 +1150,6 @@
       "tint_list_rows": {
         "label": "צביעת שורות הרשימה לפי צבע התגית",
         "description": "צובע כל שורת הודעה בצבע התגית הראשונה שלה. כבו כדי להשאיר את השורות ללא צבע; נקודות ותוויות התגיות עדיין יציגו את הצבע."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "הצגת מספר ההודעות הכולל",
@@ -1480,10 +1448,6 @@
         "label": "הצגת קודי אימות",
         "description": "הצעת הקוד מהודעות כניסה ואישור להעתקה בלחיצה אחת, ברשימה למשך יום ובהודעה"
       },
-      "disable_threading": {
-        "label": "השבת את קיבוץ השיחות",
-        "description": "הצג הודעות אימייל כהודעות בודדות במקום מקובצות לפי שיחה"
-      },
       "plain_text_mode": {
         "label": "טקסט רגיל בלבד",
         "description": "השבת את עורך הטקסט העשיר ושלח את כל המיילים כטקסט רגיל בלבד, כולל תשובות והעברה"
@@ -1677,51 +1641,6 @@
         "label": "חתימות",
         "description": "לכל כתובת אימייל יש חתימה משלה. ניתן לערוך אותן יחד עם הכתובות.",
         "button": "כתובות אימייל"
-      }
-    },
-    "composer": {
-      "title": "עורך",
-      "description": "הגדר את הגדרות הרכב דוא\"ל",
-      "autosave": {
-        "label": "מרווח שמירה אוטומטית",
-        "description": "באיזו תדירות לשמור טיוטות באופן אוטומטי",
-        "30s": "כל 30 שניות",
-        "1m": "כל דקה",
-        "2m": "כל 2 דקות",
-        "5m": "כל 5 דקות"
-      },
-      "send_confirmation": {
-        "label": "שלח אישור",
-        "description": "בקשו אישור לפני שליחת מיילים"
-      },
-      "default_reply": {
-        "label": "מצב תגובה ברירת מחדל",
-        "description": "פעולת ברירת מחדל בעת לחיצה על השב",
-        "reply": "השב",
-        "reply_all": "השב לכולם"
-      }
-    },
-    "privacy": {
-      "title": "פרטיות ואבטחה",
-      "description": "נהל את הגדרות הפרטיות והאבטחה שלך",
-      "external_images": {
-        "label": "חסום תמונות חיצוניות",
-        "description": "מנע מעקב דרך תמונות חיצוניות"
-      },
-      "session_timeout": {
-        "label": "זמן קצוב להפעלה",
-        "description": "התנתק אוטומטית לאחר חוסר פעילות",
-        "never": "לעולם לא",
-        "30m": "30 דקות",
-        "1h": "שעה אחת",
-        "4h": "4 שעות"
-      },
-      "clear_cache": {
-        "label": "נקה את המטמון",
-        "description": "הסר נתונים בקובץ שמור וקבצים זמניים",
-        "button": "נקה את המטמון",
-        "confirm": "האם אתה בטוח שברצונך לנקות את המטמון?",
-        "success": "המטמון נוקה בהצלחה"
       }
     },
     "account": {
@@ -1960,7 +1879,6 @@
       }
     },
     "identities": {
-      "title": "שליחת זהויות",
       "description": "נהל כתובות דוא\"ל שמהן תוכל לשלוח",
       "identities_count": {
         "label": "הזהויות שלך",
@@ -2101,8 +2019,6 @@
       "role_memos": "הערות"
     },
     "advanced": {
-      "title": "מתקדם",
-      "description": "אפשרויות מתקדמות והגדרות מפתח",
       "debug_mode": {
         "label": "מצב ניפוי באגים",
         "description": "אפשר רישום מפורט לצורך פתרון בעיות"
@@ -4552,8 +4468,7 @@
     "loading": "טוען את הדף",
     "not_available_title": "הדף הזה אינו זמין",
     "not_available_description": "התוסף שהוסיף אותו כבוי או שאינו מותקן עוד.",
-    "back_to_mail": "חזרה לדואר",
-    "settings_group": "תוספים"
+    "back_to_mail": "חזרה לדואר"
   },
   "command_palette": {
     "title": "לוח פקודות",

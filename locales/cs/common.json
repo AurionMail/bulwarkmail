@@ -1020,34 +1020,17 @@
     "keep_editing": "Pokračovat v úpravách",
     "tabs": {
       "appearance": "Vzhled",
-      "language": "Jazyk, region a čas",
-      "email": "Chování e-mailu",
-      "composer": "Psaní zpráv",
-      "privacy": "Soukromí a bezpečnost",
       "account": "Účet",
-      "identities": "Identity",
       "vacation": "Nepřítomnost",
-      "advanced": "Pokročilé",
       "calendar": "Kalendář",
       "filters": "Filtry",
-      "templates": "Šablony",
       "folders": "Složky",
-      "keywords": "Štítky",
       "security": "Zabezpečení",
       "files": "Soubory",
       "contacts": "Kontakty",
-      "encryption": "Šifrování",
-      "protocol_handlers": "Výchozí aplikace",
-      "sidebar_apps": "Aplikace postranního panelu",
       "notifications": "Oznámení",
-      "layout": "Vzhled",
-      "themes": "Motivy",
       "reading": "Čtení",
       "composing": "Psaní",
-      "downloads": "Stažené",
-      "content_senders": "Obsah a odesílatelé",
-      "about_data": "Info a data",
-      "debug": "Ladění",
       "message_list": "Seznam zpráv",
       "general": "Obecné",
       "organize": "Složky a štítky",
@@ -1067,15 +1050,8 @@
       "admin_enforced": "Vynuceno správcem"
     },
     "tab_groups": {
-      "general": "Obecné",
-      "account": "Účet a identita",
-      "organization": "Organizace pošty",
       "apps": "Aplikace",
-      "system": "Systém",
-      "appearance": "Vzhled",
-      "mail": "Pošta",
-      "privacy": "Soukromí a zabezpečení",
-      "advanced": "Pokročilé"
+      "mail": "Pošta"
     },
     "appearance": {
       "message_list_order": {
@@ -1209,14 +1185,6 @@
       "tint_list_rows": {
         "label": "Podbarvit řádky barvou štítku",
         "description": "Podbarvit každý řádek zprávy barvou jejího prvního štítku. Po vypnutí zůstanou řádky bílé; tečky a chipy štítků barvu dál zobrazují."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Podbarvit řádky barvou účtu",
-        "description": "Ve sjednoceném zobrazení podbarvit každý řádek barvou účtu místo zobrazení tečky účtu. Má přednost před podbarvením štítkem; štítky si barvu na chipech ponechají."
       },
       "show_folder_total_count": {
         "label": "Zobrazit celkový počet zpráv",
@@ -1526,10 +1494,6 @@
         "label": "Zobrazovat ověřovací kódy",
         "description": "Nabízet kód z přihlašovacích a potvrzovacích e-mailů ke zkopírování jedním kliknutím, v seznamu po dobu jednoho dne a ve zprávě"
       },
-      "disable_threading": {
-        "label": "Zakázat seskupování konverzací",
-        "description": "Zobrazovat e-maily jako jednotlivé zprávy namísto seskupování do vláken"
-      },
       "plain_text_mode": {
         "label": "Pouze prostý text",
         "description": "Zakázat editor formátovaného textu a odesílat všechny e-maily pouze jako prostý text, včetně odpovědí a přeposílání"
@@ -1712,51 +1676,6 @@
         "label": "Podpisy",
         "description": "Každá e-mailová adresa má vlastní podpis. Upravte je spolu se svými adresami.",
         "button": "E-mailové adresy"
-      }
-    },
-    "composer": {
-      "title": "Psaní zpráv",
-      "description": "Nakonfigurujte nastavení pro psaní e-mailů",
-      "autosave": {
-        "label": "Interval automatického ukládání",
-        "description": "Jak často se mají koncepty automaticky ukládat",
-        "30s": "Každých 30 sekund",
-        "1m": "Každou minutu",
-        "2m": "Každé 2 minuty",
-        "5m": "Každých 5 minut"
-      },
-      "send_confirmation": {
-        "label": "Potvrzení odeslání",
-        "description": "Před odesláním zprávy požádat o potvrzení"
-      },
-      "default_reply": {
-        "label": "Výchozí režim odpovědi",
-        "description": "Výchozí akce po kliknutí na Odpovědět",
-        "reply": "Odpovědět",
-        "reply_all": "Odpovědět všem"
-      }
-    },
-    "privacy": {
-      "title": "Soukromí a bezpečnost",
-      "description": "Správa nastavení soukromí a bezpečnosti",
-      "external_images": {
-        "label": "Blokovat externí obrázky",
-        "description": "Zabránit sledování pomocí externích obrázků"
-      },
-      "session_timeout": {
-        "label": "Časový limit relace",
-        "description": "Automaticky odhlásit po určité době nečinnosti",
-        "never": "Nikdy",
-        "30m": "30 minut",
-        "1h": "1 hodina",
-        "4h": "4 hodiny"
-      },
-      "clear_cache": {
-        "label": "Vymazat mezipaměť",
-        "description": "Odstranit data z mezipaměti a dočasné soubory",
-        "button": "Vymazat mezipaměť",
-        "confirm": "Opravdu chcete vymazat mezipaměť?",
-        "success": "Mezipaměť byla vymazána"
       }
     },
     "account": {
@@ -1995,7 +1914,6 @@
       }
     },
     "identities": {
-      "title": "Identity odesílatele",
       "description": "Správa e-mailových adres, ze kterých můžete odesílat zprávy",
       "identities_count": {
         "label": "Vaše identity",
@@ -2136,8 +2054,6 @@
       "error_role": "Roli složky se nepodařilo aktualizovat"
     },
     "advanced": {
-      "title": "Pokročilé",
-      "description": "Pokročilé možnosti a nastavení pro vývojáře",
       "debug_mode": {
         "label": "Režim ladění",
         "description": "Povolit podrobné protokolování pro řešení problémů"
@@ -4551,8 +4467,7 @@
     "loading": "Načítání stránky",
     "not_available_title": "Tato stránka není k dispozici",
     "not_available_description": "Plugin, který ji přidal, je vypnutý nebo už není nainstalovaný.",
-    "back_to_mail": "Zpět na poštu",
-    "settings_group": "Pluginy"
+    "back_to_mail": "Zpět na poštu"
   },
   "command_palette": {
     "title": "Paleta příkazů",

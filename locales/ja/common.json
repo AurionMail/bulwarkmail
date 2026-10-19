@@ -1020,34 +1020,17 @@
     "keep_editing": "編集を続ける",
     "tabs": {
       "appearance": "外観",
-      "language": "言語、地域、時刻",
-      "email": "メール動作",
-      "composer": "作成",
-      "privacy": "プライバシーとセキュリティ",
       "account": "アカウント",
-      "identities": "送信者情報",
       "vacation": "不在",
-      "advanced": "詳細設定",
       "calendar": "カレンダー",
       "filters": "フィルター",
-      "templates": "テンプレート",
       "folders": "フォルダー",
-      "keywords": "ラベル",
       "security": "セキュリティ",
-      "encryption": "暗号化",
       "files": "ファイル",
       "contacts": "連絡先",
-      "protocol_handlers": "既定のアプリ",
-      "sidebar_apps": "サイドバーアプリ",
       "notifications": "通知",
-      "layout": "レイアウト",
-      "themes": "テーマ",
       "reading": "閲覧",
       "composing": "作成",
-      "downloads": "ダウンロード",
-      "content_senders": "コンテンツと送信者",
-      "about_data": "情報とデータ",
-      "debug": "デバッグ",
       "message_list": "メッセージ一覧",
       "general": "一般",
       "organize": "フォルダーとタグ",
@@ -1067,15 +1050,8 @@
       "admin_enforced": "管理者により固定"
     },
     "tab_groups": {
-      "general": "一般",
-      "account": "アカウントと身元",
-      "organization": "メール整理",
       "apps": "アプリ",
-      "system": "システム",
-      "appearance": "外観",
-      "mail": "メール",
-      "privacy": "プライバシーとセキュリティ",
-      "advanced": "詳細"
+      "mail": "メール"
     },
     "appearance": {
       "message_list_order": {
@@ -1209,14 +1185,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "メッセージの総数を表示",
@@ -1517,10 +1485,6 @@
         "label": "リストを列で表示",
         "description": "1行表示の行を、見出しの下に差出人・件名・日付・サイズの列を持つ表として表示します。"
       },
-      "disable_threading": {
-        "label": "会話グループ化を無効にする",
-        "description": "メールを会話ごとにグループ化せず、個別のメッセージとして表示します"
-      },
       "plain_text_mode": {
         "label": "プレーンテキストのみ",
         "description": "リッチテキストエディターを無効にし、返信や転送を含むすべてのメールをプレーンテキストのみで送信します"
@@ -1712,51 +1676,6 @@
         "label": "署名",
         "description": "署名はメールアドレスごとに設定します。アドレスと一緒に編集してください。",
         "button": "メールアドレス"
-      }
-    },
-    "composer": {
-      "title": "作成",
-      "description": "メール作成の設定を構成",
-      "autosave": {
-        "label": "自動保存間隔",
-        "description": "下書きを自動保存する頻度",
-        "30s": "30秒ごと",
-        "1m": "1分ごと",
-        "2m": "2分ごと",
-        "5m": "5分ごと"
-      },
-      "send_confirmation": {
-        "label": "送信確認",
-        "description": "メール送信前に確認を求める"
-      },
-      "default_reply": {
-        "label": "デフォルトの返信モード",
-        "description": "返信をクリックしたときのデフォルト動作",
-        "reply": "返信",
-        "reply_all": "全員に返信"
-      }
-    },
-    "privacy": {
-      "title": "プライバシーとセキュリティ",
-      "description": "プライバシーとセキュリティ設定を管理",
-      "external_images": {
-        "label": "外部画像をブロック",
-        "description": "外部画像による追跡を防止"
-      },
-      "session_timeout": {
-        "label": "セッションタイムアウト",
-        "description": "非アクティブ時に自動的にログアウト",
-        "never": "なし",
-        "30m": "30分",
-        "1h": "1時間",
-        "4h": "4時間"
-      },
-      "clear_cache": {
-        "label": "キャッシュをクリア",
-        "description": "キャッシュデータと一時ファイルを削除",
-        "button": "キャッシュをクリア",
-        "confirm": "キャッシュをクリアしてもよろしいですか？",
-        "success": "キャッシュをクリアしました"
       }
     },
     "account": {
@@ -1995,7 +1914,6 @@
       }
     },
     "identities": {
-      "title": "送信者情報",
       "description": "送信に使用するメールアドレスを管理",
       "identities_count": {
         "label": "送信者情報",
@@ -2136,8 +2054,6 @@
       "error_role": "フォルダーの役割の更新に失敗しました"
     },
     "advanced": {
-      "title": "詳細設定",
-      "description": "詳細オプションと開発者設定",
       "debug_mode": {
         "label": "デバッグモード",
         "description": "トラブルシューティング用の詳細ログを有効化"
@@ -4551,8 +4467,7 @@
     "loading": "ページを読み込んでいます",
     "not_available_title": "このページは利用できません",
     "not_available_description": "このページを追加したプラグインがオフになっているか、インストールされていません。",
-    "back_to_mail": "メールに戻る",
-    "settings_group": "プラグイン"
+    "back_to_mail": "メールに戻る"
   },
   "command_palette": {
     "title": "コマンドパレット",

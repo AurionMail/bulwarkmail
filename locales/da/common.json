@@ -1023,34 +1023,17 @@
     "search_no_results": "Ingen match i indstillinger",
     "tabs": {
       "appearance": "Udseende",
-      "language": "Sprog, region & tid",
-      "email": "E-mail-adfærd",
-      "composer": "Skrivevindue",
-      "privacy": "Privatliv & sikkerhed",
       "account": "Konto",
-      "identities": "Identiteter",
       "vacation": "Fravær",
-      "advanced": "Avanceret",
       "calendar": "Kalender",
       "filters": "Filtre",
-      "templates": "Skabeloner",
       "folders": "Mapper",
-      "keywords": "Tags",
       "security": "Sikkerhed",
       "files": "Filer",
       "contacts": "Kontakter",
-      "encryption": "Kryptering",
-      "protocol_handlers": "Standardapps",
-      "sidebar_apps": "Sidepanel-apps",
       "notifications": "Notifikationer",
-      "layout": "Layout",
-      "themes": "Temaer",
       "reading": "Læsning",
       "composing": "Skrivning",
-      "downloads": "Downloads",
-      "content_senders": "Indhold & afsendere",
-      "about_data": "Om & data",
-      "debug": "Debug",
       "message_list": "Beskedliste",
       "general": "Generelt",
       "organize": "Mapper og tags",
@@ -1070,15 +1053,8 @@
       "admin_enforced": "Gennemtvunget af administrator"
     },
     "tab_groups": {
-      "general": "Generelt",
-      "account": "Konto & identitet",
-      "organization": "Mailorganisering",
       "apps": "Apps",
-      "system": "System",
-      "appearance": "Udseende",
-      "mail": "Mail",
-      "privacy": "Privatliv & sikkerhed",
-      "advanced": "Avanceret"
+      "mail": "Mail"
     },
     "appearance": {
       "message_list_order": {
@@ -1212,14 +1188,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Vis samlet antal beskeder",
@@ -1529,10 +1497,6 @@
         "label": "Vis bekræftelseskoder",
         "description": "Tilbyd koden fra login- og bekræftelsesmails til kopiering med ét klik, i listen i en dag og i beskeden"
       },
-      "disable_threading": {
-        "label": "Deaktivér samtale-gruppering",
-        "description": "Vis e-mails som individuelle beskeder i stedet for grupperet efter samtale"
-      },
       "plain_text_mode": {
         "label": "Kun almindelig tekst",
         "description": "Deaktivér den rige teksteditor og send alle e-mails som ren tekst, inklusive svar og videresendelser"
@@ -1715,51 +1679,6 @@
         "label": "Signaturer",
         "description": "Hver e-mailadresse har sin egen signatur. Rediger dem sammen med dine adresser.",
         "button": "E-mailadresser"
-      }
-    },
-    "composer": {
-      "title": "Skrivevindue",
-      "description": "Konfigurér indstillinger for e-mail-komposition",
-      "autosave": {
-        "label": "Auto-gem interval",
-        "description": "Hvor ofte kladder gemmes automatisk",
-        "30s": "Hvert 30. sekund",
-        "1m": "Hvert minut",
-        "2m": "Hvert 2. minut",
-        "5m": "Hvert 5. minut"
-      },
-      "send_confirmation": {
-        "label": "Send-bekræftelse",
-        "description": "Spørg om bekræftelse før afsendelse af e-mails"
-      },
-      "default_reply": {
-        "label": "Standard svar-tilstand",
-        "description": "Standardhandling ved klik på svar",
-        "reply": "Svar",
-        "reply_all": "Svar alle"
-      }
-    },
-    "privacy": {
-      "title": "Privatliv & sikkerhed",
-      "description": "Administrér dine privatlivs- og sikkerhedsindstillinger",
-      "external_images": {
-        "label": "Bloker eksterne billeder",
-        "description": "Forhindr sporing via eksterne billeder"
-      },
-      "session_timeout": {
-        "label": "Sessionstimeout",
-        "description": "Log automatisk ud efter inaktivitet",
-        "never": "Aldrig",
-        "30m": "30 minutter",
-        "1h": "1 time",
-        "4h": "4 timer"
-      },
-      "clear_cache": {
-        "label": "Ryd cache",
-        "description": "Fjern cached data og midlertidige filer",
-        "button": "Ryd cache",
-        "confirm": "Er du sikker på, at du vil rydde cachen?",
-        "success": "Cache ryddet succesfuldt"
       }
     },
     "account": {
@@ -1998,7 +1917,6 @@
       }
     },
     "identities": {
-      "title": "Afsenderidentiteter",
       "description": "Administrér e-mailadresser du kan sende fra",
       "identities_count": {
         "label": "Dine identiteter",
@@ -2139,8 +2057,6 @@
       "error_role": "Kunne ikke opdatere mappens rolle"
     },
     "advanced": {
-      "title": "Avanceret",
-      "description": "Avancerede indstillinger og udviklerindstillinger",
       "debug_mode": {
         "label": "Debug-tilstand",
         "description": "Aktivér detaljeret logning til fejlfinding"
@@ -4551,8 +4467,7 @@
     "loading": "Indlæser side",
     "not_available_title": "Denne side er ikke tilgængelig",
     "not_available_description": "Det plugin, der tilføjede den, er slået fra eller ikke længere installeret.",
-    "back_to_mail": "Tilbage til mail",
-    "settings_group": "Plugins"
+    "back_to_mail": "Tilbage til mail"
   },
   "command_palette": {
     "title": "Kommandopalet",

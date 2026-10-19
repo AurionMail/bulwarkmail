@@ -1020,34 +1020,17 @@
     "keep_editing": "Weiter bearbeiten",
     "tabs": {
       "appearance": "Darstellung",
-      "language": "Sprache, Region & Zeit",
-      "email": "E-Mail-Verhalten",
-      "composer": "Editor",
-      "privacy": "Datenschutz & Sicherheit",
       "account": "Konto",
-      "identities": "Identitäten",
       "vacation": "Abwesenheit",
-      "advanced": "Erweitert",
       "calendar": "Kalender",
       "filters": "Filter",
-      "templates": "Vorlagen",
       "folders": "Ordner",
-      "keywords": "Labels",
       "security": "Sicherheit",
-      "encryption": "Verschlüsselung",
       "files": "Dateien",
       "contacts": "Kontakte",
-      "protocol_handlers": "Standard-Apps",
-      "sidebar_apps": "Sidebar-Apps",
       "notifications": "Benachrichtigungen",
-      "layout": "Layout",
-      "themes": "Designs",
       "reading": "Lesen",
       "composing": "Verfassen",
-      "downloads": "Downloads",
-      "content_senders": "Inhalte & Absender",
-      "about_data": "Über & Daten",
-      "debug": "Debug",
       "message_list": "Nachrichtenliste",
       "general": "Allgemein",
       "organize": "Ordner & Tags",
@@ -1067,15 +1050,8 @@
       "admin_enforced": "Vom Administrator erzwungen"
     },
     "tab_groups": {
-      "general": "Allgemein",
-      "account": "Konto & Identität",
-      "organization": "E-Mail-Organisation",
       "apps": "Apps",
-      "system": "System",
-      "appearance": "Darstellung",
-      "mail": "E-Mail",
-      "privacy": "Datenschutz & Sicherheit",
-      "advanced": "Erweitert"
+      "mail": "E-Mail"
     },
     "appearance": {
       "message_list_order": {
@@ -1209,14 +1185,6 @@
       "tint_list_rows": {
         "label": "Nachrichtenzeilen mit Tag-Farbe einfärben",
         "description": "Die einzelnen Nachrichtenzeilen mit der Farbe ihres ersten Tags einfärben. Deaktivieren Sie diese Option, um die Zeilen neutral zu halten; Tag-Punkte und -Markierungen zeigen die Farbe weiterhin an."
-      },
-      "show_account_dot": {
-        "label": "Konto-Punkt anzeigen",
-        "description": "Zeigt in der gemeinsamen Ansicht einen Punkt in der Kontofarbe neben dem Absender, damit Sie sehen, aus welchem Konto eine Nachricht kommt. Wirkt nicht, solange Zeilen nach Kontofarbe eingefärbt werden."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Nachrichtenzeilen mit Kontofarbe einfärben",
-        "description": "In der gemeinsamen Ansicht jede Nachrichtenzeile in der Farbe ihres Kontos einfärben, statt den Konto-Punkt anzuzeigen. Hat Vorrang vor der Tag-Farbe; Tags behalten ihre Farbe auf ihren Markierungen."
       },
       "show_folder_total_count": {
         "label": "Gesamtzahl der Nachrichten anzeigen",
@@ -1526,10 +1494,6 @@
         "label": "Bestätigungscodes anzeigen",
         "description": "Code aus Anmelde- und Bestätigungs-E-Mails zum Kopieren mit einem Klick anbieten, in der Liste einen Tag lang und in der Nachricht"
       },
-      "disable_threading": {
-        "label": "Konversationsgruppierung deaktivieren",
-        "description": "E-Mails als einzelne Nachrichten statt nach Konversation gruppiert anzeigen"
-      },
       "plain_text_mode": {
         "label": "Nur Klartext",
         "description": "Rich-Text-Editor deaktivieren und alle E-Mails nur als Klartext senden, einschließlich Antworten und Weiterleitungen"
@@ -1712,51 +1676,6 @@
         "label": "Signaturen",
         "description": "Jede E-Mail-Adresse hat ihre eigene Signatur. Bearbeiten Sie sie zusammen mit Ihren Adressen.",
         "button": "E-Mail-Adressen"
-      }
-    },
-    "composer": {
-      "title": "Editor",
-      "description": "Konfigurieren Sie die E-Mail-Erstellungseinstellungen",
-      "autosave": {
-        "label": "Automatisches Speichern",
-        "description": "Wie oft Entwürfe automatisch gespeichert werden",
-        "30s": "Alle 30 Sekunden",
-        "1m": "Jede Minute",
-        "2m": "Alle 2 Minuten",
-        "5m": "Alle 5 Minuten"
-      },
-      "send_confirmation": {
-        "label": "Sendebestätigung",
-        "description": "Vor dem Senden von E-Mails um Bestätigung bitten"
-      },
-      "default_reply": {
-        "label": "Standard-Antwortmodus",
-        "description": "Standardaktion beim Klicken auf Antworten",
-        "reply": "Antworten",
-        "reply_all": "Allen antworten"
-      }
-    },
-    "privacy": {
-      "title": "Datenschutz & Sicherheit",
-      "description": "Verwalten Sie Ihre Datenschutz- und Sicherheitseinstellungen",
-      "external_images": {
-        "label": "Externe Bilder blockieren",
-        "description": "Verhindern Sie Tracking durch externe Bilder"
-      },
-      "session_timeout": {
-        "label": "Sitzungszeitüberschreitung",
-        "description": "Automatisch abmelden nach Inaktivität",
-        "never": "Nie",
-        "30m": "30 Minuten",
-        "1h": "1 Stunde",
-        "4h": "4 Stunden"
-      },
-      "clear_cache": {
-        "label": "Cache leeren",
-        "description": "Zwischengespeicherte Daten und temporäre Dateien entfernen",
-        "button": "Cache leeren",
-        "confirm": "Sind Sie sicher, dass Sie den Cache leeren möchten?",
-        "success": "Cache erfolgreich geleert"
       }
     },
     "account": {
@@ -1995,7 +1914,6 @@
       }
     },
     "identities": {
-      "title": "Sendeidentitäten",
       "description": "Verwalten Sie E-Mail-Adressen, von denen Sie senden können",
       "identities_count": {
         "label": "Ihre Identitäten",
@@ -2136,8 +2054,6 @@
       "error_role": "Ordnerrolle konnte nicht aktualisiert werden"
     },
     "advanced": {
-      "title": "Erweitert",
-      "description": "Erweiterte Optionen und Entwicklereinstellungen",
       "debug_mode": {
         "label": "Debug-Modus",
         "description": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren"
@@ -4551,8 +4467,7 @@
     "loading": "Seite wird geladen",
     "not_available_title": "Diese Seite ist nicht verfügbar",
     "not_available_description": "Das Plugin, das sie hinzugefügt hat, ist ausgeschaltet oder nicht mehr installiert.",
-    "back_to_mail": "Zurück zu E-Mail",
-    "settings_group": "Plugins"
+    "back_to_mail": "Zurück zu E-Mail"
   },
   "command_palette": {
     "title": "Befehlspalette",

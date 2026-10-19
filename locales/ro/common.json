@@ -1023,34 +1023,17 @@
     "search_no_results": "Nu există setări corespunzătoare",
     "tabs": {
       "appearance": "Aspect",
-      "language": "Limba, regiunea și ora",
-      "email": "Comportamentul e-mailurilor",
-      "composer": "Redactare",
-      "privacy": "Confidențialitate și securitate",
       "account": "Cont",
-      "identities": "Identități",
       "vacation": "Absență",
-      "advanced": "Nivel avansat",
       "calendar": "Calendar",
       "filters": "Filtre",
-      "templates": "Șabloane",
       "folders": "Dosare",
-      "keywords": "Etichete",
       "security": "Securitate",
       "files": "Fișiere",
       "contacts": "Contacte",
-      "encryption": "Criptare",
-      "protocol_handlers": "Aplicații implicite",
-      "sidebar_apps": "Aplicații din bara laterală",
       "notifications": "Notificări",
-      "layout": "Aspect",
-      "themes": "Teme",
       "reading": "Citire",
       "composing": "Redactarea",
-      "downloads": "Descărcări",
-      "content_senders": "Conținut și expeditori",
-      "about_data": "Despre & Date",
-      "debug": "Depanare",
       "message_list": "Lista de mesaje",
       "general": "General",
       "organize": "Dosare și etichete",
@@ -1070,15 +1053,8 @@
       "admin_enforced": "Impusă de administrator"
     },
     "tab_groups": {
-      "general": "Generalități",
-      "account": "Cont și identitate",
-      "organization": "Organizarea e-mailurilor",
       "apps": "Aplicații",
-      "system": "Sistem",
-      "appearance": "Aspect",
-      "mail": "E-mail",
-      "privacy": "Confidențialitate și securitate",
-      "advanced": "Nivel avansat"
+      "mail": "E-mail"
     },
     "appearance": {
       "message_list_order": {
@@ -1212,14 +1188,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Afișează numărul total de mesaje",
@@ -1529,10 +1497,6 @@
         "label": "Afișează codurile de verificare",
         "description": "Oferă codul din e-mailurile de autentificare și confirmare pentru copiere cu un clic, în listă timp de o zi și în mesaj"
       },
-      "disable_threading": {
-        "label": "Dezactivați gruparea conversațiilor",
-        "description": "Afișați e-mailurile ca mesaje individuale, în loc să le grupați pe conversații"
-      },
       "plain_text_mode": {
         "label": "Numai text simplu",
         "description": "Dezactivați editorul de text formatat și trimiteți toate e-mailurile doar ca text simplu, inclusiv răspunsurile și redirecționările"
@@ -1715,51 +1679,6 @@
         "label": "Semnături",
         "description": "Fiecare adresă de e-mail are propria semnătură. Editați-le împreună cu adresele.",
         "button": "Adrese de e-mail"
-      }
-    },
-    "composer": {
-      "title": "Redactare",
-      "description": "Configurați setările de redactare a e-mailurilor",
-      "autosave": {
-        "label": "Interval de salvare automată",
-        "description": "Cât de des să se salveze automat schițele",
-        "30s": "La fiecare 30 de secunde",
-        "1m": "În fiecare minut",
-        "2m": "La fiecare 2 minute",
-        "5m": "La fiecare 5 minute"
-      },
-      "send_confirmation": {
-        "label": "Confirmare trimitere",
-        "description": "Solicitați confirmarea înainte de a trimite e-mailurile"
-      },
-      "default_reply": {
-        "label": "Modul implicit de răspuns",
-        "description": "Acțiunea implicită la clic pe „Răspunde”",
-        "reply": "Răspunde",
-        "reply_all": "Răspunde tuturor"
-      }
-    },
-    "privacy": {
-      "title": "Confidențialitate și securitate",
-      "description": "Gestionați-vă setările de confidențialitate și securitate",
-      "external_images": {
-        "label": "Blocați imaginile externe",
-        "description": "Preveniți urmărirea prin intermediul imaginilor externe"
-      },
-      "session_timeout": {
-        "label": "Expirarea sesiunii",
-        "description": "Deconectare automată după o perioadă de inactivitate",
-        "never": "Niciodată",
-        "30m": "30 de minute",
-        "1h": "1 oră",
-        "4h": "4 ore"
-      },
-      "clear_cache": {
-        "label": "Golește memoria cache",
-        "description": "Ștergeți datele stocate în cache și fișierele temporare",
-        "button": "Golește memoria cache",
-        "confirm": "Sunteți sigur că doriți să goliți memoria cache?",
-        "success": "Memoria cache a fost golită cu succes"
       }
     },
     "account": {
@@ -2002,7 +1921,6 @@
       }
     },
     "identities": {
-      "title": "Identități de expediere",
       "description": "Gestionați adresele de e-mail de la care puteți trimite mesaje",
       "identities_count": {
         "label": "Identitățile tale",
@@ -2143,8 +2061,6 @@
       "error_role": "Nu s-a putut actualiza rolul folderului"
     },
     "advanced": {
-      "title": "Nivel avansat",
-      "description": "Opțiuni avansate și setări pentru dezvoltatori",
       "debug_mode": {
         "label": "Modul de depanare",
         "description": "Activați înregistrarea detaliată a evenimentelor pentru depanare"
@@ -4551,8 +4467,7 @@
     "loading": "Se încarcă pagina",
     "not_available_title": "Această pagină nu este disponibilă",
     "not_available_description": "Pluginul care a adăugat-o este dezactivat sau nu mai este instalat.",
-    "back_to_mail": "Înapoi la e-mail",
-    "settings_group": "Pluginuri"
+    "back_to_mail": "Înapoi la e-mail"
   },
   "command_palette": {
     "title": "Paleta de comenzi",

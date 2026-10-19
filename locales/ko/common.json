@@ -1020,34 +1020,17 @@
     "keep_editing": "계속 수정하기",
     "tabs": {
       "appearance": "화면 설정",
-      "language": "언어, 지역 및 시간",
-      "email": "메일 동작",
-      "composer": "메일 쓰기",
-      "privacy": "개인정보 및 보안",
       "account": "계정",
-      "identities": "보내는 사람",
       "vacation": "부재중",
-      "advanced": "고급 설정",
       "calendar": "캘린더",
       "filters": "필터",
-      "templates": "템플릿",
       "folders": "폴더",
-      "keywords": "태그",
       "security": "보안",
       "files": "파일",
       "contacts": "연락처",
-      "encryption": "암호화",
-      "protocol_handlers": "기본 앱",
-      "sidebar_apps": "사이드바 앱",
       "notifications": "알림",
-      "layout": "레이아웃",
-      "themes": "테마",
       "reading": "읽기",
       "composing": "작성",
-      "downloads": "다운로드",
-      "content_senders": "콘텐츠 및 발신자",
-      "about_data": "정보 및 데이터",
-      "debug": "디버그",
       "message_list": "메시지 목록",
       "general": "일반",
       "organize": "폴더 및 태그",
@@ -1067,15 +1050,8 @@
       "admin_enforced": "관리자가 지정함"
     },
     "tab_groups": {
-      "general": "일반",
-      "account": "계정 및 인증",
-      "organization": "메일 정리",
       "apps": "앱",
-      "system": "시스템",
-      "appearance": "모양",
-      "mail": "메일",
-      "privacy": "개인정보 및 보안",
-      "advanced": "고급"
+      "mail": "메일"
     },
     "appearance": {
       "message_list_order": {
@@ -1209,14 +1185,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "전체 메시지 수 표시",
@@ -1526,10 +1494,6 @@
         "label": "인증 코드 표시",
         "description": "로그인 및 확인 메일의 코드를 한 번의 클릭으로 복사할 수 있게 합니다(목록에서는 하루 동안, 메시지에서는 항상)"
       },
-      "disable_threading": {
-        "label": "대화형 보기 끄기",
-        "description": "관련된 메일을 그룹으로 묶지 않고 개별 메시지로 보여줘요"
-      },
       "plain_text_mode": {
         "label": "일반 텍스트만 사용",
         "description": "서식 있는 텍스트 편집기를 끄고, 답장이나 전달을 포함한 모든 메일을 일반 텍스트로만 보내요"
@@ -1712,51 +1676,6 @@
         "label": "서명",
         "description": "이메일 주소마다 고유한 서명이 있습니다. 주소와 함께 편집하세요.",
         "button": "이메일 주소"
-      }
-    },
-    "composer": {
-      "title": "메일 쓰기",
-      "description": "메일 작성과 관련된 설정을 확인해 보세요",
-      "autosave": {
-        "label": "자동 저장 간격",
-        "description": "작성 중인 메일을 임시보관함에 자동으로 저장하는 간격이에요",
-        "30s": "30초마다",
-        "1m": "1분마다",
-        "2m": "2분마다",
-        "5m": "5분마다"
-      },
-      "send_confirmation": {
-        "label": "전송 전 확인",
-        "description": "메일을 보내기 전에 한 번 더 물어볼까요?"
-      },
-      "default_reply": {
-        "label": "기본 답장 모드",
-        "description": "답장 버튼을 눌렀을 때의 기본 동작을 설정해요",
-        "reply": "답장",
-        "reply_all": "전체 답장"
-      }
-    },
-    "privacy": {
-      "title": "개인정보 및 보안",
-      "description": "개인정보와 보안 설정을 관리해 보세요",
-      "external_images": {
-        "label": "외부 이미지 차단",
-        "description": "외부 이미지를 통한 추적을 방지해요"
-      },
-      "session_timeout": {
-        "label": "세션 만료 시간",
-        "description": "일정 시간 동안 사용하지 않으면 자동으로 로그아웃돼요",
-        "never": "사용 안 함",
-        "30m": "30분",
-        "1h": "1시간",
-        "4h": "4시간"
-      },
-      "clear_cache": {
-        "label": "캐시 지우기",
-        "description": "저장된 임시 데이터와 캐시를 모두 삭제해요",
-        "button": "캐시 지우기",
-        "confirm": "정말 캐시를 모두 지울까요?",
-        "success": "캐시가 깔끔하게 지워졌어요!"
       }
     },
     "account": {
@@ -1995,7 +1914,6 @@
       }
     },
     "identities": {
-      "title": "보내는 사람",
       "description": "메일을 보낼 때 사용할 이메일 주소를 관리해요",
       "identities_count": {
         "label": "내 이메일 주소",
@@ -2136,8 +2054,6 @@
       "error_role": "폴더 역할을 업데이트하지 못했어요"
     },
     "advanced": {
-      "title": "고급 설정",
-      "description": "고급 옵션 및 개발자 설정이에요",
       "debug_mode": {
         "label": "디버그 모드",
         "description": "문제 해결을 위해 자세한 로그를 기록해요"
@@ -4551,8 +4467,7 @@
     "loading": "페이지를 불러오는 중",
     "not_available_title": "이 페이지를 사용할 수 없습니다",
     "not_available_description": "이 페이지를 추가한 플러그인이 꺼져 있거나 더 이상 설치되어 있지 않습니다.",
-    "back_to_mail": "메일로 돌아가기",
-    "settings_group": "플러그인"
+    "back_to_mail": "메일로 돌아가기"
   },
   "command_palette": {
     "title": "명령 팔레트",

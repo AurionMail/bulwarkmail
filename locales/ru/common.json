@@ -1020,34 +1020,17 @@
     "keep_editing": "Продолжить редактирование",
     "tabs": {
       "appearance": "Внешний вид",
-      "language": "Язык, регион и время",
-      "email": "Поведение почты",
-      "composer": "Редактор",
-      "privacy": "Конфиденциальность и безопасность",
       "account": "Аккаунт",
-      "identities": "Удостоверения",
       "vacation": "Отсутствие",
-      "advanced": "Дополнительно",
       "calendar": "Календарь",
       "filters": "Фильтры",
-      "templates": "Шаблоны",
       "folders": "Папки",
-      "keywords": "Теги",
       "security": "Безопасность",
       "files": "Файлы",
       "contacts": "Контакты",
-      "encryption": "Шифрование",
-      "protocol_handlers": "Приложения по умолчанию",
-      "sidebar_apps": "Приложения боковой панели",
       "notifications": "Уведомления",
-      "layout": "Макет",
-      "themes": "Темы",
       "reading": "Чтение",
       "composing": "Написание",
-      "downloads": "Загрузки",
-      "content_senders": "Содержимое и отправители",
-      "about_data": "О программе и данные",
-      "debug": "Отладка",
       "message_list": "Список писем",
       "general": "Общие",
       "organize": "Папки и метки",
@@ -1067,15 +1050,8 @@
       "admin_enforced": "Задано администратором"
     },
     "tab_groups": {
-      "general": "Общие",
-      "account": "Аккаунт и удостоверение",
-      "organization": "Организация почты",
       "apps": "Приложения",
-      "system": "Система",
-      "appearance": "Внешний вид",
-      "mail": "Почта",
-      "privacy": "Конфиденциальность и безопасность",
-      "advanced": "Дополнительно"
+      "mail": "Почта"
     },
     "appearance": {
       "message_list_order": {
@@ -1209,14 +1185,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Показывать общее количество сообщений",
@@ -1517,10 +1485,6 @@
         "label": "Показывать список в виде столбцов",
         "description": "Показывает однострочные строки в виде таблицы со столбцами «От», «Тема», «Дата» и «Размер» под заголовком."
       },
-      "disable_threading": {
-        "label": "Отключить группировку по беседам",
-        "description": "Отображать письма как отдельные сообщения, а не сгруппированные по беседам"
-      },
       "plain_text_mode": {
         "label": "Только простой текст",
         "description": "Отключить редактор форматированного текста и отправлять все письма только в виде простого текста, включая ответы и пересылки"
@@ -1712,51 +1676,6 @@
         "label": "Подписи",
         "description": "У каждого адреса своя подпись. Редактируйте их вместе с адресами.",
         "button": "Адреса электронной почты"
-      }
-    },
-    "composer": {
-      "title": "Редактор",
-      "description": "Настройте параметры написания писем",
-      "autosave": {
-        "label": "Интервал автосохранения",
-        "description": "Как часто автоматически сохранять черновики",
-        "30s": "Каждые 30 секунд",
-        "1m": "Каждую минуту",
-        "2m": "Каждые 2 минуты",
-        "5m": "Каждые 5 минут"
-      },
-      "send_confirmation": {
-        "label": "Подтверждение отправки",
-        "description": "Запрашивать подтверждение перед отправкой писем"
-      },
-      "default_reply": {
-        "label": "Режим ответа по умолчанию",
-        "description": "Действие по умолчанию при нажатии «Ответить»",
-        "reply": "Ответить",
-        "reply_all": "Ответить всем"
-      }
-    },
-    "privacy": {
-      "title": "Конфиденциальность и безопасность",
-      "description": "Управляйте настройками конфиденциальности и безопасности",
-      "external_images": {
-        "label": "Блокировать внешние изображения",
-        "description": "Предотвращать отслеживание через внешние изображения"
-      },
-      "session_timeout": {
-        "label": "Тайм-аут сессии",
-        "description": "Автоматически выходить после бездействия",
-        "never": "Никогда",
-        "30m": "30 минут",
-        "1h": "1 час",
-        "4h": "4 часа"
-      },
-      "clear_cache": {
-        "label": "Очистить кэш",
-        "description": "Удалить кэшированные данные и временные файлы",
-        "button": "Очистить кэш",
-        "confirm": "Вы уверены, что хотите очистить кэш?",
-        "success": "Кэш успешно очищен"
       }
     },
     "account": {
@@ -1995,7 +1914,6 @@
       }
     },
     "identities": {
-      "title": "Удостоверения отправителя",
       "description": "Управляйте email-адресами, с которых можно отправлять письма",
       "identities_count": {
         "label": "Ваши удостоверения",
@@ -2136,8 +2054,6 @@
       "error_role": "Не удалось обновить роль папки"
     },
     "advanced": {
-      "title": "Дополнительно",
-      "description": "Расширенные параметры и настройки разработчика",
       "debug_mode": {
         "label": "Режим отладки",
         "description": "Включить подробное журналирование для диагностики"
@@ -4551,8 +4467,7 @@
     "loading": "Загрузка страницы",
     "not_available_title": "Эта страница недоступна",
     "not_available_description": "Плагин, который её добавил, выключен или больше не установлен.",
-    "back_to_mail": "Вернуться к почте",
-    "settings_group": "Плагины"
+    "back_to_mail": "Вернуться к почте"
   },
   "command_palette": {
     "title": "Палитра команд",

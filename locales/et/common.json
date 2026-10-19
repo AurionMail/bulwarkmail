@@ -1023,34 +1023,17 @@
     "search_no_results": "Vastavaid seadeid ei leitud",
     "tabs": {
       "appearance": "Välimus",
-      "language": "Keel, piirkond ja kellaaeg",
-      "email": "E-kirjade käitumine",
-      "composer": "Kirja koostamine",
-      "privacy": "Privaatsus ja turvalisus",
       "account": "Konto",
-      "identities": "Identiteedid",
       "vacation": "Puhkusevastaja",
-      "advanced": "Täpsemalt",
       "calendar": "Kalender",
       "filters": "Filtrid",
-      "templates": "Mallid",
       "folders": "Kaustad",
-      "keywords": "Sildid",
       "security": "Turvalisus",
       "files": "Failid",
       "contacts": "Kontaktid",
-      "encryption": "Krüpteerimine",
-      "protocol_handlers": "Vaikerakendused",
-      "sidebar_apps": "Külgriba rakendused",
       "notifications": "Teavitused",
-      "layout": "Paigutus",
-      "themes": "Teemad",
       "reading": "Lugemine",
       "composing": "Kirjutamine",
-      "downloads": "Allalaadimised",
-      "content_senders": "Sisu ja saatjad",
-      "about_data": "Teave ja andmed",
-      "debug": "Silumine",
       "message_list": "Kirjade loend",
       "general": "Üldine",
       "organize": "Kaustad ja sildid",
@@ -1070,15 +1053,8 @@
       "admin_enforced": "Administraatori määratud"
     },
     "tab_groups": {
-      "general": "Üldine",
-      "account": "Konto ja identiteet",
-      "organization": "Kirjade korraldamine",
       "apps": "Rakendused",
-      "system": "Süsteem",
-      "appearance": "Välimus",
-      "mail": "Post",
-      "privacy": "Privaatsus ja turvalisus",
-      "advanced": "Täpsemalt"
+      "mail": "Post"
     },
     "appearance": {
       "message_list_order": {
@@ -1212,14 +1188,6 @@
       "tint_list_rows": {
         "label": "Värvi loendirida sildi värviga",
         "description": "Tooni iga kirja rida selle esimese sildi värviga. Lülita välja, et read jääksid tavalised; sildipunktid ja -märgised näitavad värvi ikkagi."
-      },
-      "show_account_dot": {
-        "label": "Näita konto täppi",
-        "description": "Ühendatud vaates näidatakse saatja kõrval konto värvi täppi, et oleks näha, millisest kontost kiri pärineb. Ei mõju, kui read on konto värviga toonitud."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Toonita nimekirja read konto värviga",
-        "description": "Ühendatud vaates varjuta iga rida konto värviga konto punkti näitamise asemel. Sellel on eelis sildi värvi ees; sildid säilitavad oma värvi oma märgistel."
       },
       "show_folder_total_count": {
         "label": "Näita kirjade koguarvu",
@@ -1529,10 +1497,6 @@
         "label": "Näita kinnituskoode",
         "description": "Paku sisselogimis- ja kinnituskirjade koodi ühe klõpsuga kopeerimiseks, nimekirjas ühe päeva jooksul ja kirjas endas"
       },
-      "disable_threading": {
-        "label": "Keela vestluste rühmitamine",
-        "description": "Kuva e-kirjad üksikute kirjadena vestluste kaupa rühmitamise asemel"
-      },
       "plain_text_mode": {
         "label": "Ainult lihttekst",
         "description": "Keela vormindatud teksti redaktor ja saada kõik kirjad ainult lihttekstina, sealhulgas vastused ja edastused"
@@ -1715,51 +1679,6 @@
         "label": "Allkirjad",
         "description": "Igal e-posti aadressil on oma allkiri. Muuda neid koos oma aadressidega.",
         "button": "E-posti aadressid"
-      }
-    },
-    "composer": {
-      "title": "Koostamine",
-      "description": "Seadista kirja koostamise sätteid",
-      "autosave": {
-        "label": "Automaatsalvestuse intervall",
-        "description": "Kui sageli mustandeid automaatselt salvestatakse",
-        "30s": "Iga 30 sekundi järel",
-        "1m": "Iga minuti järel",
-        "2m": "Iga 2 minuti järel",
-        "5m": "Iga 5 minuti järel"
-      },
-      "send_confirmation": {
-        "label": "Saatmise kinnitus",
-        "description": "Küsi kinnitust enne kirjade saatmist"
-      },
-      "default_reply": {
-        "label": "Vaikimisi vastamisrežiim",
-        "description": "Vaikimisi toiming vastamisel klõpsates",
-        "reply": "Vasta",
-        "reply_all": "Vasta kõigile"
-      }
-    },
-    "privacy": {
-      "title": "Privaatsus ja turvalisus",
-      "description": "Halda oma privaatsuse ja turvalisuse sätteid",
-      "external_images": {
-        "label": "Blokeeri välised pildid",
-        "description": "Väldi jälgimist väliste piltide kaudu"
-      },
-      "session_timeout": {
-        "label": "Seansi aegumine",
-        "description": "Logi automaatselt välja pärast tegevusetust",
-        "never": "Mitte kunagi",
-        "30m": "30 minutit",
-        "1h": "1 tund",
-        "4h": "4 tundi"
-      },
-      "clear_cache": {
-        "label": "Tühjenda vahemälu",
-        "description": "Eemalda vahemällu salvestatud andmed ja ajutised failid",
-        "button": "Tühjenda vahemälu",
-        "confirm": "Kas oled kindel, et soovid vahemälu tühjendada?",
-        "success": "Vahemälu tühjendati edukalt"
       }
     },
     "account": {
@@ -2002,7 +1921,6 @@
       }
     },
     "identities": {
-      "title": "Saatja identiteedid",
       "description": "Halda e-posti aadresse, millelt saad kirju saata",
       "identities_count": {
         "label": "Sinu identiteedid",
@@ -2143,8 +2061,6 @@
       "error_role": "Kausta rolli uuendamine ebaõnnestus"
     },
     "advanced": {
-      "title": "Täpsemalt",
-      "description": "Täpsemad valikud ja arendaja seaded",
       "debug_mode": {
         "label": "Silumisrežiim",
         "description": "Luba tõrkeotsinguks üksikasjalik logimine"
@@ -4551,8 +4467,7 @@
     "loading": "Lehe laadimine",
     "not_available_title": "See leht pole saadaval",
     "not_available_description": "Pistikprogramm, mis selle lisas, on välja lülitatud või enam paigaldamata.",
-    "back_to_mail": "Tagasi meili juurde",
-    "settings_group": "Pistikprogrammid"
+    "back_to_mail": "Tagasi meili juurde"
   },
   "command_palette": {
     "title": "Käsupalett",

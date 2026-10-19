@@ -1020,34 +1020,17 @@
     "keep_editing": "Düzenlemeye devam et",
     "tabs": {
       "appearance": "Görünüm",
-      "language": "Dil, Bölge ve Saat",
-      "email": "E-posta Davranışı",
-      "composer": "İleti düzenleyici",
-      "privacy": "Gizlilik ve Güvenlik",
       "account": "Hesap",
-      "identities": "Kimlikler",
       "vacation": "Ofis Dışında",
-      "advanced": "Gelişmiş",
       "calendar": "Takvim",
       "filters": "Filtreler",
-      "templates": "Şablonlar",
       "folders": "Klasörler",
-      "keywords": "Etiketler",
       "security": "Güvenlik",
       "files": "Dosyalar",
       "contacts": "Kişiler",
-      "encryption": "Şifreleme",
-      "sidebar_apps": "Kenar Çubuğu Uygulamaları",
-      "protocol_handlers": "Varsayılan uygulamalar",
       "notifications": "Bildirimler",
-      "layout": "Düzen",
-      "themes": "Temalar",
       "reading": "Okuma",
       "composing": "Yazma",
-      "downloads": "İndirilenler",
-      "content_senders": "İçerik ve Göndericiler",
-      "about_data": "Hakkında ve Veriler",
-      "debug": "Hata Ayıklama",
       "message_list": "İleti listesi",
       "general": "Genel",
       "organize": "Klasörler ve etiketler",
@@ -1067,15 +1050,8 @@
       "admin_enforced": "Yönetici tarafından zorunlu"
     },
     "tab_groups": {
-      "general": "Genel",
-      "account": "Hesap ve Kimlik",
-      "organization": "Posta Düzeni",
       "apps": "Uygulamalar",
-      "system": "Sistem",
-      "appearance": "Görünüm",
-      "mail": "Posta",
-      "privacy": "Gizlilik ve Güvenlik",
-      "advanced": "Gelişmiş"
+      "mail": "Posta"
     },
     "appearance": {
       "message_list_order": {
@@ -1209,14 +1185,6 @@
       "tint_list_rows": {
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
-      },
-      "show_account_dot": {
-        "label": "Show Account Dot",
-        "description": "In the unified view, show a dot in the account color next to the sender, so you can tell which account a message came from. Has no effect while rows are tinted by account color."
-      },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
       },
       "show_folder_total_count": {
         "label": "Toplam mesaj sayısını göster",
@@ -1526,10 +1494,6 @@
         "label": "Doğrulama kodlarını göster",
         "description": "Giriş ve onay e-postalarındaki kodu tek tıkla kopyalamak için sun; listede bir gün boyunca ve iletide"
       },
-      "disable_threading": {
-        "label": "Konuşma Gruplamamayı Devre Dışı Bırak",
-        "description": "E-postaları konuşmaya göre gruplamak yerine ayrı iletiler olarak göster"
-      },
       "plain_text_mode": {
         "label": "Yalnızca Düz Metin",
         "description": "Zengin metin düzenleyicisini devre dışı bırak ve yanıtlar ve iletmeler dahil tüm e-postaları yalnızca düz metin olarak gönder"
@@ -1712,51 +1676,6 @@
         "label": "İmzalar",
         "description": "Her e-posta adresinin kendi imzası vardır. Bunları adreslerinizle birlikte düzenleyin.",
         "button": "E-posta adresleri"
-      }
-    },
-    "composer": {
-      "title": "İleti düzenleyici",
-      "description": "E-posta yazma ayarlarını yapılandırın",
-      "autosave": {
-        "label": "Otomatik Kaydetme Aralığı",
-        "description": "Taslakların otomatik kaydedilme sıklığı",
-        "30s": "Her 30 saniyede bir",
-        "1m": "Her dakika",
-        "2m": "Her 2 dakikada bir",
-        "5m": "Her 5 dakikada bir"
-      },
-      "send_confirmation": {
-        "label": "Gönderme Onayı",
-        "description": "E-posta göndermeden önce onay isteyin"
-      },
-      "default_reply": {
-        "label": "Varsayılan Yanıt Modu",
-        "description": "Yanıtla'ya tıklandığında varsayılan işlem",
-        "reply": "Yanıtla",
-        "reply_all": "Tümünü Yanıtla"
-      }
-    },
-    "privacy": {
-      "title": "Gizlilik ve Güvenlik",
-      "description": "Gizlilik ve güvenlik ayarlarınızı yönetin",
-      "external_images": {
-        "label": "Harici Görselleri Engelle",
-        "description": "Harici görseller aracılığıyla izlemeyi önle"
-      },
-      "session_timeout": {
-        "label": "Oturum Zaman Aşımı",
-        "description": "Hareketsizlik sonrası otomatik oturumu kapat",
-        "never": "Hiçbir zaman",
-        "30m": "30 dakika",
-        "1h": "1 saat",
-        "4h": "4 saat"
-      },
-      "clear_cache": {
-        "label": "Önbelleği Temizle",
-        "description": "Önbelleğe alınmış verileri ve geçici dosyaları kaldır",
-        "button": "Önbelleği Temizle",
-        "confirm": "Önbelleği temizlemek istediğinizden emin misiniz?",
-        "success": "Önbellek başarıyla temizlendi"
       }
     },
     "account": {
@@ -1995,7 +1914,6 @@
       }
     },
     "identities": {
-      "title": "Gönderme Kimlikleri",
       "description": "Gönderebildiğiniz e-posta adreslerini yönetin",
       "identities_count": {
         "label": "Kimlikleriniz",
@@ -2136,8 +2054,6 @@
       "error_role": "Klasör rolü güncellenemedi"
     },
     "advanced": {
-      "title": "Gelişmiş",
-      "description": "Gelişmiş seçenekler ve geliştirici ayarları",
       "debug_mode": {
         "label": "Hata Ayıklama Modu",
         "description": "Sorun giderme için ayrıntılı günlük kaydını etkinleştir"
@@ -4551,8 +4467,7 @@
     "loading": "Sayfa yükleniyor",
     "not_available_title": "Bu sayfa kullanılamıyor",
     "not_available_description": "Bu sayfayı ekleyen eklenti kapalı veya artık yüklü değil.",
-    "back_to_mail": "Postaya dön",
-    "settings_group": "Eklentiler"
+    "back_to_mail": "Postaya dön"
   },
   "command_palette": {
     "title": "Komut paleti",
