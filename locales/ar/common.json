@@ -1050,7 +1050,9 @@
       "default_restored": "تمت استعادة السمة الافتراضية",
       "default_name": "الافتراضية",
       "default_badge": "افتراضية",
-      "admin_enforced": "مفروضة من المسؤول"
+      "admin_enforced": "مفروضة من المسؤول",
+      "show_all": "إظهار كل السمات ({count})",
+      "show_fewer": "إظهار أقل"
     },
     "tab_groups": {
       "apps": "التطبيقات",

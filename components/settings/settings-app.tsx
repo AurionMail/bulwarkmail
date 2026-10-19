@@ -516,6 +516,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         new CustomEvent('settings-plugin-expand', { detail: { pluginId: pendingHighlight.pluginId } })
       );
     }
+    // Collapsed lists (the theme gallery) open when the result is inside them.
+    window.dispatchEvent(new CustomEvent('settings-reveal', { detail: { label: pendingHighlight.label } }));
 
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;

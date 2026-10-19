@@ -1047,7 +1047,9 @@
       "default_restored": "デフォルトのテーマに戻しました",
       "default_name": "デフォルト",
       "default_badge": "デフォルト",
-      "admin_enforced": "管理者により固定"
+      "admin_enforced": "管理者により固定",
+      "show_all": "すべてのテーマ（{count}件）を表示",
+      "show_fewer": "表示を減らす"
     },
     "tab_groups": {
       "apps": "アプリ",

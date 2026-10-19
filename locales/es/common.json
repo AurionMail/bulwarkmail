@@ -1047,7 +1047,9 @@
       "default_restored": "Tema predeterminado restaurado",
       "default_name": "Predeterminado",
       "default_badge": "Predeterminado",
-      "admin_enforced": "Impuesto por el administrador"
+      "admin_enforced": "Impuesto por el administrador",
+      "show_all": "Mostrar los {count} temas",
+      "show_fewer": "Mostrar menos"
     },
     "tab_groups": {
       "apps": "Aplicaciones",

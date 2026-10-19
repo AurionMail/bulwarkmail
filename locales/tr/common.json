@@ -1047,7 +1047,9 @@
       "default_restored": "Varsayılan tema geri yüklendi",
       "default_name": "Varsayılan",
       "default_badge": "Varsayılan",
-      "admin_enforced": "Yönetici tarafından zorunlu"
+      "admin_enforced": "Yönetici tarafından zorunlu",
+      "show_all": "Tüm {count} temayı göster",
+      "show_fewer": "Daha az göster"
     },
     "tab_groups": {
       "apps": "Uygulamalar",

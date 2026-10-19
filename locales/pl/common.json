@@ -1047,7 +1047,9 @@
       "default_restored": "Przywrócono domyślny motyw",
       "default_name": "Domyślny",
       "default_badge": "Domyślny",
-      "admin_enforced": "Wymuszony przez administratora"
+      "admin_enforced": "Wymuszony przez administratora",
+      "show_all": "Pokaż wszystkie motywy ({count})",
+      "show_fewer": "Pokaż mniej"
     },
     "tab_groups": {
       "apps": "Aplikacje",

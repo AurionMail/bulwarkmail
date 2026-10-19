@@ -1047,7 +1047,9 @@
       "default_restored": "已恢复默认主题",
       "default_name": "默认",
       "default_badge": "默认",
-      "admin_enforced": "管理员强制"
+      "admin_enforced": "管理员强制",
+      "show_all": "显示全部 {count} 个主题",
+      "show_fewer": "收起"
     },
     "tab_groups": {
       "apps": "应用",

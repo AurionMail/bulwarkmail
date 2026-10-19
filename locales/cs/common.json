@@ -1047,7 +1047,9 @@
       "default_restored": "Výchozí motiv obnoven",
       "default_name": "Výchozí",
       "default_badge": "Výchozí",
-      "admin_enforced": "Vynuceno správcem"
+      "admin_enforced": "Vynuceno správcem",
+      "show_all": "Zobrazit všechny motivy ({count})",
+      "show_fewer": "Zobrazit méně"
     },
     "tab_groups": {
       "apps": "Aplikace",

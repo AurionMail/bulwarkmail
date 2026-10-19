@@ -1050,7 +1050,9 @@
       "default_restored": "Predvolený motív bol obnovený",
       "default_name": "Predvolený",
       "default_badge": "Predvolený",
-      "admin_enforced": "Vynútené správcom"
+      "admin_enforced": "Vynútené správcom",
+      "show_all": "Zobraziť všetky motívy ({count})",
+      "show_fewer": "Zobraziť menej"
     },
     "tab_groups": {
       "apps": "Aplikácie",

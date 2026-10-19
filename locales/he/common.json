@@ -1012,7 +1012,9 @@
       "default_restored": "ערכת הנושא המוגדרת כברירת מחדל שוחזרה",
       "default_name": "ברירת מחדל",
       "default_badge": "ברירת מחדל",
-      "admin_enforced": "נאכף על ידי המנהל"
+      "admin_enforced": "נאכף על ידי המנהל",
+      "show_all": "הצגת כל {count} ערכות הנושא",
+      "show_fewer": "הצגת פחות"
     },
     "tab_groups": {
       "apps": "אפליקציות",

@@ -1050,7 +1050,9 @@
       "default_restored": "Default theme restored",
       "default_name": "Default",
       "default_badge": "Default",
-      "admin_enforced": "Admin enforced"
+      "admin_enforced": "Admin enforced",
+      "show_all": "Show all {count} themes",
+      "show_fewer": "Show fewer"
     },
     "tab_groups": {
       "apps": "Apps",

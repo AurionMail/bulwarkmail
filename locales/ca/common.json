@@ -1050,7 +1050,9 @@
       "default_restored": "S'ha restaurat el tema predeterminat",
       "default_name": "Predeterminat",
       "default_badge": "Predeterminat",
-      "admin_enforced": "Imposat per l'administrador"
+      "admin_enforced": "Imposat per l'administrador",
+      "show_all": "Mostra els {count} temes",
+      "show_fewer": "Mostra'n menys"
     },
     "tab_groups": {
       "apps": "Aplicacions",

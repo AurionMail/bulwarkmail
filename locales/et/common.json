@@ -1050,7 +1050,9 @@
       "default_restored": "Vaiketeema taastatud",
       "default_name": "Vaikimisi",
       "default_badge": "Vaikimisi",
-      "admin_enforced": "Administraatori määratud"
+      "admin_enforced": "Administraatori määratud",
+      "show_all": "Kuva kõik {count} teemat",
+      "show_fewer": "Kuva vähem"
     },
     "tab_groups": {
       "apps": "Rakendused",

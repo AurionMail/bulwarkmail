@@ -1047,7 +1047,9 @@
       "default_restored": "Standaardthema hersteld",
       "default_name": "Standaard",
       "default_badge": "Standaard",
-      "admin_enforced": "Afgedwongen door beheerder"
+      "admin_enforced": "Afgedwongen door beheerder",
+      "show_all": "Alle {count} thema's tonen",
+      "show_fewer": "Minder tonen"
     },
     "tab_groups": {
       "apps": "Apps",

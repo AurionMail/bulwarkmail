@@ -1050,7 +1050,9 @@
       "default_restored": "Alapértelmezett téma visszaállítva",
       "default_name": "Alapértelmezett",
       "default_badge": "Alapértelmezett",
-      "admin_enforced": "Rendszergazda által előírva"
+      "admin_enforced": "Rendszergazda által előírva",
+      "show_all": "Mind a(z) {count} téma megjelenítése",
+      "show_fewer": "Kevesebb megjelenítése"
     },
     "tab_groups": {
       "apps": "Alkalmazások",

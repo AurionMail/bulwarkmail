@@ -1047,7 +1047,9 @@
       "default_restored": "Tema padrão restaurado",
       "default_name": "Padrão",
       "default_badge": "Padrão",
-      "admin_enforced": "Imposto pelo administrador"
+      "admin_enforced": "Imposto pelo administrador",
+      "show_all": "Mostrar todos os {count} temas",
+      "show_fewer": "Mostrar menos"
     },
     "tab_groups": {
       "apps": "Aplicativos",

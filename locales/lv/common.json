@@ -1047,7 +1047,9 @@
       "default_restored": "Noklusējuma tēma atjaunota",
       "default_name": "Noklusējuma",
       "default_badge": "Noklusējuma",
-      "admin_enforced": "Noteicis administrators"
+      "admin_enforced": "Noteicis administrators",
+      "show_all": "Rādīt visas {count} tēmas",
+      "show_fewer": "Rādīt mazāk"
     },
     "tab_groups": {
       "apps": "Lietotnes",

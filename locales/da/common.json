@@ -1050,7 +1050,9 @@
       "default_restored": "Standardtema gendannet",
       "default_name": "Standard",
       "default_badge": "Standard",
-      "admin_enforced": "Gennemtvunget af administrator"
+      "admin_enforced": "Gennemtvunget af administrator",
+      "show_all": "Vis alle {count} temaer",
+      "show_fewer": "Vis færre"
     },
     "tab_groups": {
       "apps": "Apps",

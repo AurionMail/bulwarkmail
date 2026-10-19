@@ -1050,7 +1050,9 @@
       "default_restored": "Standardtema gjenopprettet",
       "default_name": "Standard",
       "default_badge": "Standard",
-      "admin_enforced": "Påtvunget av administrator"
+      "admin_enforced": "Påtvunget av administrator",
+      "show_all": "Vis alle {count} temaer",
+      "show_fewer": "Vis færre"
     },
     "tab_groups": {
       "apps": "Apper",

@@ -1050,7 +1050,9 @@
       "default_restored": "Tema implicită a fost restabilită",
       "default_name": "Implicită",
       "default_badge": "Implicită",
-      "admin_enforced": "Impusă de administrator"
+      "admin_enforced": "Impusă de administrator",
+      "show_all": "Afișează toate cele {count} teme",
+      "show_fewer": "Afișează mai puține"
     },
     "tab_groups": {
       "apps": "Aplicații",

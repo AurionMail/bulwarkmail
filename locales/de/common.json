@@ -1047,7 +1047,9 @@
       "default_restored": "Standarddesign wiederhergestellt",
       "default_name": "Standard",
       "default_badge": "Standard",
-      "admin_enforced": "Vom Administrator erzwungen"
+      "admin_enforced": "Vom Administrator erzwungen",
+      "show_all": "Alle {count} Themes anzeigen",
+      "show_fewer": "Weniger anzeigen"
     },
     "tab_groups": {
       "apps": "Apps",

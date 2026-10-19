@@ -1050,7 +1050,9 @@
       "default_restored": "Үндсэн сэдвийг сэргээлээ",
       "default_name": "Үндсэн",
       "default_badge": "Үндсэн",
-      "admin_enforced": "Администратор тогтоосон"
+      "admin_enforced": "Администратор тогтоосон",
+      "show_all": "Бүх {count} загварыг харуулах",
+      "show_fewer": "Цөөнийг харуулах"
     },
     "tab_groups": {
       "apps": "Програмууд",

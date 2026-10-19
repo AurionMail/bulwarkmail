@@ -1047,7 +1047,9 @@
       "default_restored": "Thème par défaut restauré",
       "default_name": "Par défaut",
       "default_badge": "Par défaut",
-      "admin_enforced": "Imposé par l'administrateur"
+      "admin_enforced": "Imposé par l'administrateur",
+      "show_all": "Afficher les {count} thèmes",
+      "show_fewer": "Afficher moins"
     },
     "tab_groups": {
       "apps": "Applications",

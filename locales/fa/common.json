@@ -1050,7 +1050,9 @@
       "default_restored": "پوسته پیش‌فرض بازیابی شد",
       "default_name": "پیش‌فرض",
       "default_badge": "پیش‌فرض",
-      "admin_enforced": "اجباری از سوی مدیر"
+      "admin_enforced": "اجباری از سوی مدیر",
+      "show_all": "نمایش همه {count} پوسته",
+      "show_fewer": "نمایش کمتر"
     },
     "tab_groups": {
       "apps": "برنامه‌ها",

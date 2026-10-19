@@ -1047,7 +1047,9 @@
       "default_restored": "Тема по умолчанию восстановлена",
       "default_name": "По умолчанию",
       "default_badge": "По умолчанию",
-      "admin_enforced": "Задано администратором"
+      "admin_enforced": "Задано администратором",
+      "show_all": "Показать все темы ({count})",
+      "show_fewer": "Показать меньше"
     },
     "tab_groups": {
       "apps": "Приложения",

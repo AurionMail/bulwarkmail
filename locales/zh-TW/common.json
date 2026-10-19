@@ -1050,7 +1050,9 @@
       "default_restored": "已還原預設主題",
       "default_name": "預設",
       "default_badge": "預設",
-      "admin_enforced": "管理員強制"
+      "admin_enforced": "管理員強制",
+      "show_all": "顯示全部 {count} 個主題",
+      "show_fewer": "收合"
     },
     "tab_groups": {
       "apps": "應用程式",
