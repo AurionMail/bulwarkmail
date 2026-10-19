@@ -2789,6 +2789,10 @@
       "recipient_name": "Alıcı adı",
       "company": "Şirket adı",
       "date": "Bugünün tarihi",
+      "short_date": "Rakamlarla tarih",
+      "day": "Gün (iki basamaklı)",
+      "month": "Ay (iki basamaklı)",
+      "year": "Yıl",
       "day_of_week": "Haftanın günü",
       "sender_name": "Adınız"
     }

@@ -2789,6 +2789,10 @@
       "recipient_name": "收件者姓名",
       "company": "公司名稱",
       "date": "目前日期",
+      "short_date": "數字日期",
+      "day": "日（兩位）",
+      "month": "月（兩位）",
+      "year": "年",
       "day_of_week": "星期幾",
       "sender_name": "您的姓名"
     }

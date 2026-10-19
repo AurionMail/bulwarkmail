@@ -2789,6 +2789,10 @@
       "recipient_name": "Saņēmēja vārds",
       "company": "Uzņēmuma nosaukums",
       "date": "Pašreizējais datums",
+      "short_date": "Datums cipariem",
+      "day": "Diena (divi cipari)",
+      "month": "Mēnesis (divi cipari)",
+      "year": "Gads",
       "day_of_week": "Nedēļas diena",
       "sender_name": "Jūsu vārds"
     }

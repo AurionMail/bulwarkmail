@@ -2789,6 +2789,10 @@
       "recipient_name": "Nom del destinatari",
       "company": "Nom de l'empresa",
       "date": "Data actual",
+      "short_date": "Data en xifres",
+      "day": "Dia (dues xifres)",
+      "month": "Mes (dues xifres)",
+      "year": "Any",
       "day_of_week": "Dia de la setmana",
       "sender_name": "El vostre nom"
     }

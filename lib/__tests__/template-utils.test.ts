@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   extractPlaceholders,
   substitutePlaceholders,
@@ -140,6 +140,21 @@ describe('getAutoFilledPlaceholders', () => {
     const result = getAutoFilledPlaceholders({});
     expect(result).toHaveProperty('date');
     expect(result).toHaveProperty('day_of_week');
+  });
+
+  it('offers the date in numbers and as day, month and year (#1284)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 5, 12, 0, 0));
+    try {
+      const de = getAutoFilledPlaceholders({ locale: 'de' });
+      expect(de.short_date).toBe('05.10.2026');
+      expect(de.day).toBe('05');
+      expect(de.month).toBe('10');
+      expect(de.year).toBe('2026');
+      expect(getAutoFilledPlaceholders({ locale: 'en' }).short_date).toBe('10/05/2026');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('includes sender_name when provided', () => {

@@ -2789,6 +2789,10 @@
       "recipient_name": "Címzett neve",
       "company": "Cégnév",
       "date": "Aktuális dátum",
+      "short_date": "Dátum számokkal",
+      "day": "Nap (két számjegy)",
+      "month": "Hónap (két számjegy)",
+      "year": "Év",
       "day_of_week": "A hét napja",
       "sender_name": "A te neved"
     }

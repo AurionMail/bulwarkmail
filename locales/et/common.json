@@ -2789,6 +2789,10 @@
       "recipient_name": "Saaja nimi",
       "company": "Ettevõtte nimi",
       "date": "Tänane kuupäev",
+      "short_date": "Kuupäev numbritena",
+      "day": "Päev (kahekohaline)",
+      "month": "Kuu (kahekohaline)",
+      "year": "Aasta",
       "day_of_week": "Nädalapäev",
       "sender_name": "Sinu nimi"
     }

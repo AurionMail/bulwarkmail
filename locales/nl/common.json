@@ -2789,6 +2789,10 @@
       "recipient_name": "Naam ontvanger",
       "company": "Bedrijfsnaam",
       "date": "Huidige datum",
+      "short_date": "Datum in cijfers",
+      "day": "Dag (twee cijfers)",
+      "month": "Maand (twee cijfers)",
+      "year": "Jaar",
       "day_of_week": "Dag van de week",
       "sender_name": "Uw naam"
     }

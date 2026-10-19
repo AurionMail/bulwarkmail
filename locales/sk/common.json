@@ -2789,6 +2789,10 @@
       "recipient_name": "Meno príjemcu",
       "company": "Názov spoločnosti",
       "date": "Aktuálny dátum",
+      "short_date": "Dátum číslicami",
+      "day": "Deň (dve číslice)",
+      "month": "Mesiac (dve číslice)",
+      "year": "Rok",
       "day_of_week": "Deň v týždni",
       "sender_name": "Vaše meno"
     }

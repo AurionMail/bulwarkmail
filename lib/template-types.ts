@@ -20,6 +20,10 @@ export const BUILT_IN_PLACEHOLDERS = [
   'recipient_name',
   'company',
   'date',
+  'short_date',
+  'day',
+  'month',
+  'year',
   'day_of_week',
   'sender_name',
 ] as const;

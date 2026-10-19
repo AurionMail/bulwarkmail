@@ -52,6 +52,12 @@ export function getAutoFilledPlaceholders(
 
   const values: Record<string, string> = {
     date: now.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' }),
+    // The locale's all-numeric form (19.10.2026, 10/19/2026), and the parts
+    // for any other order or separator (#1284).
+    short_date: now.toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }),
+    day: String(now.getDate()).padStart(2, '0'),
+    month: String(now.getMonth() + 1).padStart(2, '0'),
+    year: String(now.getFullYear()),
     day_of_week: now.toLocaleDateString(locale, { weekday: 'long' }),
   };
 

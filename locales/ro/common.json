@@ -2789,6 +2789,10 @@
       "recipient_name": "Numele destinatarului",
       "company": "Numele companiei",
       "date": "Data curentă",
+      "short_date": "Data în cifre",
+      "day": "Ziua (două cifre)",
+      "month": "Luna (două cifre)",
+      "year": "Anul",
       "day_of_week": "Ziua săptămânii",
       "sender_name": "Numele dvs."
     }

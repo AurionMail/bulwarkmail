@@ -2789,6 +2789,10 @@
       "recipient_name": "Modtagers navn",
       "company": "Virksomhedsnavn",
       "date": "Dagens dato",
+      "short_date": "Dato med tal",
+      "day": "Dag (to cifre)",
+      "month": "Måned (to cifre)",
+      "year": "År",
       "day_of_week": "Ugedag",
       "sender_name": "Dit navn"
     }

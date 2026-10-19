@@ -2789,6 +2789,10 @@
       "recipient_name": "받는 사람 이름",
       "company": "회사 이름",
       "date": "오늘 날짜",
+      "short_date": "숫자 날짜",
+      "day": "일 (두 자리)",
+      "month": "월 (두 자리)",
+      "year": "연도",
       "day_of_week": "요일",
       "sender_name": "내 이름"
     }

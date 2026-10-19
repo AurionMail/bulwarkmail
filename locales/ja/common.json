@@ -2789,6 +2789,10 @@
       "recipient_name": "宛先の名前",
       "company": "会社名",
       "date": "今日の日付",
+      "short_date": "数字の日付",
+      "day": "日（2桁）",
+      "month": "月（2桁）",
+      "year": "年",
       "day_of_week": "曜日",
       "sender_name": "あなたの名前"
     }
