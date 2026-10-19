@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "Berichten groeperen per gesprek",
         "description": "Antwoorden samen als één gesprek tonen in plaats van als losse berichten."
+      },
+      "signatures_link": {
+        "label": "Handtekeningen",
+        "description": "Elk e-mailadres heeft zijn eigen handtekening. Bewerk ze samen met uw adressen.",
+        "button": "E-mailadressen"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Afbeeldingen en externe inhoud",
         "images_description": "Externe afbeeldingen kunnen de afzender verraden dat u het bericht hebt geopend.",
         "attachments": "Bijlagen"
+      }
+    },
+    "composing_page": {
+      "title": "Opstellen",
+      "description": "Schrijven, beantwoorden en verzenden.",
+      "sections": {
+        "replying": "Beantwoorden",
+        "sending": "Voor het verzenden",
+        "receipts": "Leesbevestigingen"
       }
     }
   },

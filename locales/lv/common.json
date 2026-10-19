@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "Grupēt ziņas pēc sarunas",
         "description": "Rādīt atbildes kopā kā vienu sarunu, nevis kā atsevišķas ziņas."
+      },
+      "signatures_link": {
+        "label": "Paraksti",
+        "description": "Katrai e-pasta adresei ir savs paraksts. Rediģējiet tos kopā ar adresēm.",
+        "button": "E-pasta adreses"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Attēli un ārējs saturs",
         "images_description": "Attālie attēli var atklāt sūtītājam, ka esat atvēris ziņu.",
         "attachments": "Pielikumi"
+      }
+    },
+    "composing_page": {
+      "title": "Rakstīšana",
+      "description": "Rakstīšana, atbildēšana un sūtīšana.",
+      "sections": {
+        "replying": "Atbildēšana",
+        "sending": "Pirms sūtīšanas",
+        "receipts": "Lasīšanas apstiprinājumi"
       }
     }
   },

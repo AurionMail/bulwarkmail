@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "按会话分组邮件",
         "description": "将回复合并为一个会话显示，而不是作为单独的邮件。"
+      },
+      "signatures_link": {
+        "label": "签名",
+        "description": "每个电子邮件地址都有自己的签名。请与地址一起编辑。",
+        "button": "电子邮件地址"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "图片与外部内容",
         "images_description": "远程图片可能会让发件人知道您已打开邮件。",
         "attachments": "附件"
+      }
+    },
+    "composing_page": {
+      "title": "撰写",
+      "description": "撰写、回复和发送。",
+      "sections": {
+        "replying": "回复",
+        "sending": "发送前",
+        "receipts": "已读回执"
       }
     }
   },

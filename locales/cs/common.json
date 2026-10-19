@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "Seskupovat zprávy podle konverzace",
         "description": "Zobrazovat odpovědi pohromadě jako jednu konverzaci místo jako samostatné zprávy."
+      },
+      "signatures_link": {
+        "label": "Podpisy",
+        "description": "Každá e-mailová adresa má vlastní podpis. Upravte je spolu se svými adresami.",
+        "button": "E-mailové adresy"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Obrázky a externí obsah",
         "images_description": "Vzdálené obrázky mohou odesílateli prozradit, že jste zprávu otevřeli.",
         "attachments": "Přílohy"
+      }
+    },
+    "composing_page": {
+      "title": "Psaní",
+      "description": "Psaní, odpovídání a odesílání.",
+      "sections": {
+        "replying": "Odpovídání",
+        "sending": "Před odesláním",
+        "receipts": "Potvrzení o přečtení"
       }
     }
   },

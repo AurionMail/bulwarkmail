@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "Grouper les messages par conversation",
         "description": "Afficher les réponses ensemble, comme une seule conversation, plutôt que comme des messages séparés."
+      },
+      "signatures_link": {
+        "label": "Signatures",
+        "description": "Chaque adresse e-mail a sa propre signature. Modifiez-les avec vos adresses.",
+        "button": "Adresses e-mail"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Images et contenu externe",
         "images_description": "Les images distantes peuvent révéler à l'expéditeur que vous avez ouvert le message.",
         "attachments": "Pièces jointes"
+      }
+    },
+    "composing_page": {
+      "title": "Rédaction",
+      "description": "Rédiger, répondre et envoyer.",
+      "sections": {
+        "replying": "Réponses",
+        "sending": "Avant l'envoi",
+        "receipts": "Accusés de lecture"
       }
     }
   },

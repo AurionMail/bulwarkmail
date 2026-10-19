@@ -13,7 +13,6 @@ export type SettingsSearchTab =
   | 'downloads'
   | 'vacation'
   | 'filters'
-  | 'templates'
   | 'folders'
   | 'keywords'
   | 'security'
@@ -105,6 +104,8 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.email_behavior.hide_inline_image_attachments',
   ],
   composing: [
+    'settings.templates',
+    'settings.email_behavior.signatures_link',
     'settings.email_behavior.attachment_reminder',
     'settings.email_behavior.auto_select_reply_identity',
     'settings.email_behavior.reply_identity_match',
@@ -117,12 +118,10 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.email_behavior.signature_separator',
     'settings.email_behavior.request_read_receipt',
     'settings.email_behavior.read_receipt_response',
-    'settings.email_behavior.sub_address_delimiter',
   ],
   downloads: ['settings.downloads'],
   vacation: ['settings.vacation'],
   filters: ['settings.filters'],
-  templates: ['settings.templates'],
   folders: ['settings.folders'],
   keywords: ['settings.keywords'],
   security: ['settings.security'],
@@ -147,11 +146,10 @@ export const tabKeywords: Record<Tab, string> = {
   appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher icons rail layout reading pane',
   message_list: 'inbox list preview thread conversation grouping sort order columns archive delete swipe hover favicon avatar tag color',
   reading: 'mark read attachment open monospace mono font plain text images remote content block sender privacy tracking dark light',
-  composing: 'editor signature plain text reply forward draft compose',
+  composing: 'editor signature plain text reply forward draft compose template snippet quick reply mention undo send receipt attachment reminder',
   downloads: 'download filename template eml attachment save export',
   vacation: 'auto reply away out of office holiday responder',
   filters: 'sieve rules block junk forward',
-  templates: 'snippet quick reply',
   folders: 'mailbox subscribe',
   keywords: 'tags labels colors',
   security: 'password 2fa two-factor passkey app password mfa api key token phone mobile app pair qr thunderbird outlook imap client encryption pgp smime',

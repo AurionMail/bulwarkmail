@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "Nachrichten nach Unterhaltung gruppieren",
         "description": "Antworten als eine Unterhaltung zusammenfassen statt als einzelne Nachrichten anzeigen."
+      },
+      "signatures_link": {
+        "label": "Signaturen",
+        "description": "Jede E-Mail-Adresse hat ihre eigene Signatur. Bearbeiten Sie sie zusammen mit Ihren Adressen.",
+        "button": "E-Mail-Adressen"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Bilder & externe Inhalte",
         "images_description": "Externe Bilder können dem Absender verraten, dass Sie die Mail geöffnet haben.",
         "attachments": "Anhänge"
+      }
+    },
+    "composing_page": {
+      "title": "Schreiben",
+      "description": "Schreiben, Antworten und Senden.",
+      "sections": {
+        "replying": "Antworten",
+        "sending": "Vor dem Senden",
+        "receipts": "Lesebestätigungen"
       }
     }
   },

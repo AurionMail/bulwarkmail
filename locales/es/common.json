@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "Agrupar mensajes por conversación",
         "description": "Mostrar las respuestas juntas como una conversación en lugar de como mensajes separados."
+      },
+      "signatures_link": {
+        "label": "Firmas",
+        "description": "Cada dirección de correo tiene su propia firma. Edítelas junto con sus direcciones.",
+        "button": "Direcciones de correo"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Imágenes y contenido externo",
         "images_description": "Las imágenes remotas pueden revelar al remitente que ha abierto el mensaje.",
         "attachments": "Adjuntos"
+      }
+    },
+    "composing_page": {
+      "title": "Redacción",
+      "description": "Escribir, responder y enviar.",
+      "sections": {
+        "replying": "Respuestas",
+        "sending": "Antes de enviar",
+        "receipts": "Confirmaciones de lectura"
       }
     }
   },

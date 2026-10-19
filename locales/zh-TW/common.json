@@ -1707,6 +1707,11 @@
       "group_conversations": {
         "label": "依對話分組郵件",
         "description": "將回覆合併為一個對話顯示，而不是作為個別郵件。"
+      },
+      "signatures_link": {
+        "label": "簽名",
+        "description": "每個電子郵件地址都有自己的簽名。請與地址一起編輯。",
+        "button": "電子郵件地址"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "圖片與外部內容",
         "images_description": "遠端圖片可能會讓寄件者知道您已開啟郵件。",
         "attachments": "附件"
+      }
+    },
+    "composing_page": {
+      "title": "撰寫",
+      "description": "撰寫、回覆與傳送。",
+      "sections": {
+        "replying": "回覆",
+        "sending": "傳送前",
+        "receipts": "讀取回條"
       }
     }
   },

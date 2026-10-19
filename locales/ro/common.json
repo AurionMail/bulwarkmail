@@ -1707,6 +1707,11 @@
       "group_conversations": {
         "label": "Grupează mesajele pe conversații",
         "description": "Afișează răspunsurile împreună, ca o singură conversație, în loc de mesaje separate."
+      },
+      "signatures_link": {
+        "label": "Semnături",
+        "description": "Fiecare adresă de e-mail are propria semnătură. Editați-le împreună cu adresele.",
+        "button": "Adrese de e-mail"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Imagini și conținut extern",
         "images_description": "Imaginile la distanță îi pot spune expeditorului că ați deschis mesajul.",
         "attachments": "Atașamente"
+      }
+    },
+    "composing_page": {
+      "title": "Redactare",
+      "description": "Scriere, răspuns și trimitere.",
+      "sections": {
+        "replying": "Răspunsuri",
+        "sending": "Înainte de trimitere",
+        "receipts": "Confirmări de citire"
       }
     }
   },

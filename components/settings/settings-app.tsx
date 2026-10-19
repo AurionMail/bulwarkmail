@@ -15,7 +15,6 @@ import {
   PalmtreeIcon,
   Calendar,
   Filter,
-  FileText,
   FolderOpen,
   Tags,
   HardDrive,
@@ -46,7 +45,6 @@ import { CalendarSettings } from '@/components/settings/calendar-settings';
 import { CalendarManagementSettings } from '@/components/settings/calendar-management-settings';
 import { AddressBookManagementSettings } from '@/components/settings/address-book-management-settings';
 import { FilterSettings } from '@/components/settings/filter-settings';
-import { TemplateSettings } from '@/components/settings/template-settings';
 import { AboutDataSettings } from '@/components/settings/about-data-settings';
 import { DebugSettings } from '@/components/settings/debug-settings';
 import { FolderSettings } from '@/components/settings/folder-settings';
@@ -130,7 +128,6 @@ const tabIcons: Record<Tab, AppIcon> = {
   downloads: Download,
   vacation: PalmtreeIcon,
   filters: Filter,
-  templates: FileText,
   folders: FolderOpen,
   keywords: Tags,
   security: Shield,
@@ -157,6 +154,7 @@ export const LEGACY_TAB_MAP: Record<string, Tab> = {
   identities: 'account',
   language: 'general',
   protocol_handlers: 'general',
+  templates: 'composing',
 };
 
 function readPersistedTab(): SettingsTabId {
@@ -566,7 +564,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     { id: 'downloads', label: t('tabs.downloads'), icon: tabIcons.downloads, group: 'mail' },
     ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
     ...(supportsSieve ? [{ id: 'filters' as Tab, label: t('tabs.filters'), icon: tabIcons.filters, group: 'mail' as TabGroup }] : []),
-    ...(isFeatureEnabled('templatesEnabled') ? [{ id: 'templates' as Tab, label: t('tabs.templates'), icon: tabIcons.templates, group: 'mail' as TabGroup }] : []),
     { id: 'folders', label: t('tabs.folders'), icon: tabIcons.folders, group: 'mail' },
     ...(isFeatureEnabled('customKeywordsEnabled') ? [{ id: 'keywords' as Tab, label: t('tabs.keywords'), icon: tabIcons.keywords, group: 'mail' as TabGroup }] : []),
 
@@ -709,7 +706,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'downloads' && <DownloadsSettings />}
       {effectiveActiveTab === 'vacation' && <VacationSettings />}
       {effectiveActiveTab === 'filters' && <FilterSettings />}
-      {effectiveActiveTab === 'templates' && <TemplateSettings />}
       {effectiveActiveTab === 'folders' && <FolderSettings />}
       {effectiveActiveTab === 'keywords' && <KeywordSettings />}
       {effectiveActiveTab === 'security' && <AccountSecuritySettings />}

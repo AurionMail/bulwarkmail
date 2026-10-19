@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "Grupuj wiadomości w wątki",
         "description": "Pokazuj odpowiedzi razem jako jedną rozmowę zamiast jako osobne wiadomości."
+      },
+      "signatures_link": {
+        "label": "Podpisy",
+        "description": "Każdy adres e-mail ma własny podpis. Edytuj je razem z adresami.",
+        "button": "Adresy e-mail"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Obrazy i treści zewnętrzne",
         "images_description": "Zdalne obrazy mogą zdradzić nadawcy, że otworzono wiadomość.",
         "attachments": "Załączniki"
+      }
+    },
+    "composing_page": {
+      "title": "Pisanie",
+      "description": "Pisanie, odpowiadanie i wysyłanie.",
+      "sections": {
+        "replying": "Odpowiadanie",
+        "sending": "Przed wysłaniem",
+        "receipts": "Potwierdzenia przeczytania"
       }
     }
   },

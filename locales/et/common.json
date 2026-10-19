@@ -1707,6 +1707,11 @@
       "group_conversations": {
         "label": "Rühmita kirjad vestluse kaupa",
         "description": "Näita vastuseid koos ühe vestlusena, mitte eraldi kirjadena."
+      },
+      "signatures_link": {
+        "label": "Allkirjad",
+        "description": "Igal e-posti aadressil on oma allkiri. Muuda neid koos oma aadressidega.",
+        "button": "E-posti aadressid"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Pildid ja väline sisu",
         "images_description": "Kaugpildid võivad saatjale reeta, et avasid kirja.",
         "attachments": "Manused"
+      }
+    },
+    "composing_page": {
+      "title": "Kirjutamine",
+      "description": "Kirjutamine, vastamine ja saatmine.",
+      "sections": {
+        "replying": "Vastamine",
+        "sending": "Enne saatmist",
+        "receipts": "Lugemiskinnitused"
       }
     }
   },

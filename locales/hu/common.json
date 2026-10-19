@@ -1707,6 +1707,11 @@
       "group_conversations": {
         "label": "Üzenetek csoportosítása beszélgetés szerint",
         "description": "A válaszok egy beszélgetésként jelenjenek meg, ne külön üzenetekként."
+      },
+      "signatures_link": {
+        "label": "Aláírások",
+        "description": "Minden e-mail-címnek saját aláírása van. A címekkel együtt szerkesztheti őket.",
+        "button": "E-mail-címek"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Képek és külső tartalom",
         "images_description": "A távoli képek elárulhatják a feladónak, hogy megnyitotta a levelet.",
         "attachments": "Mellékletek"
+      }
+    },
+    "composing_page": {
+      "title": "Írás",
+      "description": "Írás, válaszolás és küldés.",
+      "sections": {
+        "replying": "Válaszolás",
+        "sending": "Küldés előtt",
+        "receipts": "Olvasási visszaigazolások"
       }
     }
   },

@@ -1707,6 +1707,11 @@
       "group_conversations": {
         "label": "Agrupa els missatges per conversa",
         "description": "Mostra les respostes juntes com una conversa en lloc de missatges separats."
+      },
+      "signatures_link": {
+        "label": "Signatures",
+        "description": "Cada adreça de correu té la seva pròpia signatura. Editeu-les juntament amb les adreces.",
+        "button": "Adreces de correu"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Imatges i contingut extern",
         "images_description": "Les imatges remotes poden revelar al remitent que heu obert el missatge.",
         "attachments": "Fitxers adjunts"
+      }
+    },
+    "composing_page": {
+      "title": "Redacció",
+      "description": "Escriure, respondre i enviar.",
+      "sections": {
+        "replying": "Respostes",
+        "sending": "Abans d'enviar",
+        "receipts": "Confirmacions de lectura"
       }
     }
   },

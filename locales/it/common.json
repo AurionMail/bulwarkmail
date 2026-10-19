@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "Raggruppa i messaggi per conversazione",
         "description": "Mostra le risposte insieme come un'unica conversazione invece che come messaggi separati."
+      },
+      "signatures_link": {
+        "label": "Firme",
+        "description": "Ogni indirizzo email ha la propria firma. Modificale insieme ai tuoi indirizzi.",
+        "button": "Indirizzi email"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Immagini e contenuti esterni",
         "images_description": "Le immagini remote possono rivelare al mittente che hai aperto il messaggio.",
         "attachments": "Allegati"
+      }
+    },
+    "composing_page": {
+      "title": "Scrittura",
+      "description": "Scrivere, rispondere e inviare.",
+      "sections": {
+        "replying": "Risposte",
+        "sending": "Prima dell'invio",
+        "receipts": "Conferme di lettura"
       }
     }
   },

@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "メッセージをスレッドにまとめる",
         "description": "返信を個別のメッセージではなく、1つのスレッドとしてまとめて表示します。"
+      },
+      "signatures_link": {
+        "label": "署名",
+        "description": "署名はメールアドレスごとに設定します。アドレスと一緒に編集してください。",
+        "button": "メールアドレス"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "画像と外部コンテンツ",
         "images_description": "外部画像を読み込むと、開封したことが送信者に伝わることがあります。",
         "attachments": "添付ファイル"
+      }
+    },
+    "composing_page": {
+      "title": "作成",
+      "description": "作成、返信、送信。",
+      "sections": {
+        "replying": "返信",
+        "sending": "送信前",
+        "receipts": "開封確認"
       }
     }
   },

@@ -1707,6 +1707,11 @@
       "group_conversations": {
         "label": "Gruppér beskeder efter samtale",
         "description": "Vis svar samlet som én samtale i stedet for som separate beskeder."
+      },
+      "signatures_link": {
+        "label": "Signaturer",
+        "description": "Hver e-mailadresse har sin egen signatur. Rediger dem sammen med dine adresser.",
+        "button": "E-mailadresser"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Billeder og eksternt indhold",
         "images_description": "Eksterne billeder kan afsløre over for afsenderen, at du har åbnet mailen.",
         "attachments": "Vedhæftninger"
+      }
+    },
+    "composing_page": {
+      "title": "Skrivning",
+      "description": "Skriv, besvar og send.",
+      "sections": {
+        "replying": "Svar",
+        "sending": "Før afsendelse",
+        "receipts": "Læsekvitteringer"
       }
     }
   },

@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "메시지를 대화별로 묶기",
         "description": "답장을 별도 메시지 대신 하나의 대화로 묶어 표시합니다."
+      },
+      "signatures_link": {
+        "label": "서명",
+        "description": "이메일 주소마다 고유한 서명이 있습니다. 주소와 함께 편집하세요.",
+        "button": "이메일 주소"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "이미지 및 외부 콘텐츠",
         "images_description": "원격 이미지는 메일을 열었다는 사실을 보낸 사람에게 알릴 수 있습니다.",
         "attachments": "첨부 파일"
+      }
+    },
+    "composing_page": {
+      "title": "작성",
+      "description": "작성, 답장, 보내기입니다.",
+      "sections": {
+        "replying": "답장",
+        "sending": "보내기 전",
+        "receipts": "읽음 확인"
       }
     }
   },

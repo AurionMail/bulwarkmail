@@ -1704,6 +1704,11 @@
       "group_conversations": {
         "label": "İletileri konuşmaya göre grupla",
         "description": "Yanıtları ayrı iletiler yerine tek bir konuşma olarak birlikte göster."
+      },
+      "signatures_link": {
+        "label": "İmzalar",
+        "description": "Her e-posta adresinin kendi imzası vardır. Bunları adreslerinizle birlikte düzenleyin.",
+        "button": "E-posta adresleri"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Resimler ve dış içerik",
         "images_description": "Uzak resimler, iletiyi açtığınızı gönderene bildirebilir.",
         "attachments": "Ekler"
+      }
+    },
+    "composing_page": {
+      "title": "Yazma",
+      "description": "Yazma, yanıtlama ve gönderme.",
+      "sections": {
+        "replying": "Yanıtlama",
+        "sending": "Göndermeden önce",
+        "receipts": "Okundu bilgileri"
       }
     }
   },

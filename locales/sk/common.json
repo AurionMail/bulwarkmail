@@ -1707,6 +1707,11 @@
       "group_conversations": {
         "label": "Zoskupovať správy podľa konverzácie",
         "description": "Zobrazovať odpovede spolu ako jednu konverzáciu namiesto samostatných správ."
+      },
+      "signatures_link": {
+        "label": "Podpisy",
+        "description": "Každá e-mailová adresa má vlastný podpis. Upravte ich spolu so svojimi adresami.",
+        "button": "E-mailové adresy"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Obrázky a externý obsah",
         "images_description": "Vzdialené obrázky môžu odosielateľovi prezradiť, že ste správu otvorili.",
         "attachments": "Prílohy"
+      }
+    },
+    "composing_page": {
+      "title": "Písanie",
+      "description": "Písanie, odpovedanie a odosielanie.",
+      "sections": {
+        "replying": "Odpovedanie",
+        "sending": "Pred odoslaním",
+        "receipts": "Potvrdenia o prečítaní"
       }
     }
   },

@@ -1707,6 +1707,11 @@
       "group_conversations": {
         "label": "Group messages by conversation",
         "description": "Show replies together as one conversation instead of as separate messages."
+      },
+      "signatures_link": {
+        "label": "Signatures",
+        "description": "Each email address has its own signature. Edit them together with your addresses.",
+        "button": "Email addresses"
       }
     },
     "composer": {
@@ -2584,6 +2589,15 @@
         "images": "Images & external content",
         "images_description": "Remote images can tell the sender that you opened the mail.",
         "attachments": "Attachments"
+      }
+    },
+    "composing_page": {
+      "title": "Composing",
+      "description": "Writing, replying and sending.",
+      "sections": {
+        "replying": "Replying",
+        "sending": "Before sending",
+        "receipts": "Read receipts"
       }
     }
   },
