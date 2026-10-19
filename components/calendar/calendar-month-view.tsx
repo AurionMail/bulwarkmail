@@ -155,21 +155,29 @@ export function CalendarMonthView({
   }, [events, weeks, tasksByDate]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
   // Six rows fill the viewport, as a single month used to; taller rows grow
   // with their chips.
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => setViewportHeight(el.clientHeight));
+    const observer = new ResizeObserver(() => {
+      setViewportHeight(el.clientHeight);
+      if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
+    });
     observer.observe(el);
+    if (headerRef.current) observer.observe(headerRef.current);
     setViewportHeight(el.clientHeight);
+    if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
     return () => observer.disconnect();
   }, []);
-  const rowMinHeight = Math.max(baseRowMinHeight, Math.floor(viewportHeight / 6));
+  const availableHeight = Math.max(0, viewportHeight - headerHeight);
+  const rowMinHeight = Math.max(baseRowMinHeight, Math.floor(availableHeight / 6));
   // On wide screens a week keeps its height: a day with more entries than
   // fit shows the first ones and a "N more" link (as in Google Calendar).
   // Phones keep growing the row to fit.
@@ -185,7 +193,8 @@ export function CalendarMonthView({
   const sampleVisibleMonth = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const sampleY = el.getBoundingClientRect().top + el.clientHeight * VISIBLE_MONTH_SAMPLE;
+    const hHeight = headerRef.current?.offsetHeight ?? 0;
+    const sampleY = el.getBoundingClientRect().top + hHeight + (el.clientHeight - hHeight) * VISIBLE_MONTH_SAMPLE;
     const rows = el.querySelectorAll<HTMLElement>("[data-week]");
     let hit: HTMLElement | null = null;
     for (const row of rows) {
@@ -217,7 +226,8 @@ export function CalendarMonthView({
     const targetKey = dayKey(grid[0] ?? focus.date);
     const row = el.querySelector<HTMLElement>(`[data-week="${targetKey}"]`);
     if (row) {
-      el.scrollTop += row.getBoundingClientRect().top - el.getBoundingClientRect().top;
+      const hHeight = headerRef.current?.offsetHeight ?? 0;
+      el.scrollTop += row.getBoundingClientRect().top - el.getBoundingClientRect().top - hHeight;
     }
     visibleMonthRef.current = focus.date;
     setVisibleMonthDate(focus.date);
@@ -279,22 +289,25 @@ export function CalendarMonthView({
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden" role="grid" aria-label={formatFullDate(selectedDate)}>
-      <div className="grid grid-cols-7 border-b border-border" role="row">
-        {dayHeaderKeys.map((d) => (
-          <div key={d} role="columnheader" className={cn(
-            "text-center text-xs font-medium text-muted-foreground py-2 border-e border-border last:border-e-0",
-            isMobile && "py-1.5 text-[11px]"
-          )}>
-            {isMobile ? t(`days.${d}`).slice(0, 2) : t(`days.${d}`)}
-          </div>
-        ))}
-      </div>
-
       <div
         ref={scrollRef}
         className="flex-1 flex flex-col overflow-y-auto [overflow-anchor:none]"
         onScroll={handleScroll}
       >
+        <div
+          ref={headerRef}
+          className="sticky top-0 z-50 bg-background grid grid-cols-7 border-b border-border"
+          role="row"
+        >
+          {dayHeaderKeys.map((d) => (
+            <div key={d} role="columnheader" className={cn(
+              "text-center text-xs font-medium text-muted-foreground py-2 border-e border-border last:border-e-0",
+              isMobile && "py-1.5 text-[11px]"
+            )}>
+              {isMobile ? t(`days.${d}`).slice(0, 2) : t(`days.${d}`)}
+            </div>
+          ))}
+        </div>
         <div ref={topSentinelRef} data-testid="month-top-sentinel" className="h-px flex-shrink-0" />
         {weekSegments.map(({ week, segments, rowCount, dayEventRows, dayTasks, contentRows }) => {
           const overflowing = capRows && contentRows > rowCapacity;
