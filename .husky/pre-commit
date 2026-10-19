@@ -1,1 +1,6 @@
-npx tsc --noEmit && npx eslint . --ext .ts,.tsx
+#!/bin/sh
+# Typecheck the project (incremental, a few seconds warm) and lint only the
+# staged files. The full lint and typecheck run in CI for every push and PR.
+npx tsc --noEmit || exit 1
+files=$(git diff --cached --name-only --diff-filter=ACM -- '*.ts' '*.tsx' '*.js' '*.mjs')
+[ -z "$files" ] || echo "$files" | xargs npx eslint --no-warn-ignored
