@@ -329,7 +329,7 @@
     "forward": "Weiterleiten",
     "delete": "Löschen",
     "archive": "Archivieren",
-    "archive_mailbox_not_found": "Archive mailbox not found - cannot archive email",
+    "archive_mailbox_not_found": "Archivordner nicht gefunden, die E-Mail kann nicht archiviert werden",
     "star": "Stern hinzufügen",
     "unstar": "Stern entfernen",
     "mark_unread": "Als ungelesen markieren",
@@ -1204,8 +1204,8 @@
         "description": "Zeigt in der gemeinsamen Ansicht einen Punkt in der Kontofarbe neben dem Absender, damit Sie sehen, aus welchem Konto eine Nachricht kommt. Wirkt nicht, solange Zeilen nach Kontofarbe eingefärbt werden."
       },
       "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
+        "label": "Nachrichtenzeilen mit Kontofarbe einfärben",
+        "description": "In der gemeinsamen Ansicht jede Nachrichtenzeile in der Farbe ihres Kontos einfärben, statt den Konto-Punkt anzuzeigen. Hat Vorrang vor der Tag-Farbe; Tags behalten ihre Farbe auf ihren Markierungen."
       },
       "show_folder_total_count": {
         "label": "Gesamtzahl der Nachrichten anzeigen",
@@ -1294,16 +1294,16 @@
         "relax": "Entspannt"
       },
       "push_all": {
-          "title": "All accounts",
-          "description": "Turn push on or off for several accounts at once. One browser subscription serves them all.",
-          "select_all": "Select every connected account",
-          "state_on": "notifications on",
-          "state_off": "notifications off",
-          "enable_selected": "Enable for selected",
-          "disable_selected": "Disable for selected",
-          "result_enabled": "Notifications enabled for {count} accounts.",
-          "result_partial": "Enabled for {enabled} accounts; {failed} could not be enabled.",
-          "result_disabled": "Notifications disabled for {count} accounts."
+          "title": "Alle Konten",
+          "description": "Push-Benachrichtigungen für mehrere Konten auf einmal ein- oder ausschalten. Ein einziges Browser-Abonnement gilt für alle.",
+          "select_all": "Alle verbundenen Konten auswählen",
+          "state_on": "Benachrichtigungen an",
+          "state_off": "Benachrichtigungen aus",
+          "enable_selected": "Für ausgewählte aktivieren",
+          "disable_selected": "Für ausgewählte deaktivieren",
+          "result_enabled": "Benachrichtigungen für {count} Konten aktiviert.",
+          "result_partial": "Für {enabled} Konten aktiviert; {failed} konnten nicht aktiviert werden.",
+          "result_disabled": "Benachrichtigungen für {count} Konten deaktiviert."
         },
       "sound_selection": {
         "title": "Benachrichtigungston",
@@ -1318,8 +1318,8 @@
         "enabled_desc": "Benachrichtigungen anzeigen, wenn neue E-Mails eintreffen",
         "sound": "Benachrichtigungston",
         "sound_desc": "Einen Ton abspielen, wenn neue E-Mails eintreffen",
-        "inbox_only": "Inbox only",
-        "inbox_only_desc": "Only notify for mail that lands in the Inbox; skip mail a filter files into another folder"
+        "inbox_only": "Nur Posteingang",
+        "inbox_only_desc": "Nur bei E-Mails benachrichtigen, die im Posteingang landen; E-Mails, die ein Filter in einen anderen Ordner verschiebt, auslassen"
       },
       "calendar": {
         "title": "Kalender-Benachrichtigungen",
