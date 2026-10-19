@@ -107,7 +107,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
-import { useEmailStore } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, type EmailBlobContext } from "@/stores/email-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
@@ -129,7 +129,7 @@ import { parseTnef, isTnefAttachment } from "@/lib/tnef";
 import { debug } from "@/lib/debug";
 import { findVerificationCode, verificationCodeBodyText } from "@/lib/verification-code";
 import { VerificationCodeChip } from "./verification-code-chip";
-import { ConversationEmailBody, useConversationExternalContent, useMarkReadWhenShown } from "./thread-conversation-view";
+import { ConversationEmailBody, type ConversationAttachmentHandler, useConversationExternalContent, useMarkReadWhenShown } from "./thread-conversation-view";
 import type { TnefAttachment } from "@/lib/tnef";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { PluginActions } from "@/components/plugins/plugin-actions";
@@ -154,7 +154,7 @@ const SUB_MENU_ITEM_SELECTOR = '[role="menuitem"],[role="menuitemcheckbox"],[rol
 interface EmailViewerProps {
   email: Email | null;
   /** Captured message routing supplied by the standard mail UI. */
-  blobSource?: { client: IJMAPClient | null; accountId?: string };
+  blobSource?: EmailBlobContext;
   isLoading?: boolean;
   onReply?: (draftText?: string) => void;
   onReplyAll?: () => void;
@@ -165,7 +165,7 @@ interface EmailViewerProps {
   onToggleStar?: () => void;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
   onSetTag?: (emailId: string, tagId: string | null) => void;
-  onDownloadAttachment?: (blobId: string, name: string, type?: string, forceDownload?: boolean) => void;
+  onDownloadAttachment?: (blobId: string, name: string, type?: string, forceDownload?: boolean, source?: EmailBlobContext) => void;
   onQuickReply?: (body: string) => Promise<void>;
   onMarkAsSpam?: () => void;
   onUndoSpam?: () => void;
@@ -791,6 +791,7 @@ export function MvExpandedConversationCard({
   onMarkRead,
   onReply,
   onDownloadAttachment,
+  blobSource,
   compact,
 }: {
   email: Email;
@@ -800,7 +801,8 @@ export function MvExpandedConversationCard({
   onLoadBody?: (email: Email) => void;
   onMarkRead?: (email: Email) => void;
   onReply?: (email: Email) => void;
-  onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
+  onDownloadAttachment?: ConversationAttachmentHandler;
+  blobSource?: EmailBlobContext;
 }) {
   const t = useTranslations('email_viewer');
   const externalContent = useConversationExternalContent();
@@ -883,6 +885,7 @@ export function MvExpandedConversationCard({
           onAllowExternal={() => externalContent.allow(email.id)}
           onTrustSender={externalContent.trustSender(email)}
           onDownloadAttachment={onDownloadAttachment}
+          blobSource={blobSource}
           className={cn("pb-4", compact ? "px-4" : "ps-[80px] pe-6")}
           bodyStyle={{ paddingBlock: '0.25rem 0.5rem' }}
         />
@@ -1215,7 +1218,10 @@ export function EmailViewer({
       onLoadBody={onLoadConversationEmail}
       onMarkRead={onMarkConversationEmailRead}
       onReply={onReplyConversationEmail}
-      onDownloadAttachment={onDownloadAttachment}
+      blobSource={target.sourceClientAccountId || target.sourceAccountId
+        ? resolveEmailBlobContext(target, client)
+        : blobSource ?? resolveEmailBlobContext(target, client)}
+      onDownloadAttachment={(blobId, name, type, source) => onDownloadAttachment?.(blobId, name, type, false, source)}
       compact={mvMobileViewer}
     />
   );

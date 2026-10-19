@@ -35,7 +35,7 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
@@ -233,6 +233,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const [isResizing, setIsResizing] = useState(false);
   const dragStartWidth = useRef(0);
   // Mobile conversation view state
+  const [conversationBlobSource, setConversationBlobSource] = useState<EmailBlobContext | undefined>();
+  const conversationOpenSeqRef = useRef(0);
   const [conversationThread, setConversationThread] = useState<ThreadGroup | null>(null);
   // Mountain View writes replies in place under the conversation until the
   // user pops one out into the docked window.
@@ -242,11 +244,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   }, [showComposer]);
   const handleMvPopOut = useCallback(() => setMvReplyPoppedOut(true), []);
   // Mountain View: the open message's whole conversation, light properties only.
-  const [mvConversation, setMvConversation] = useState<Email[] | null>(null);
+  const [mvConversationResult, setMvConversationResult] = useState<{
+    emails: Email[]; source: EmailBlobContext; threadId: string;
+  } | null>(null);
   // The thread whose conversation is being fetched, so the viewer waits for it
   // instead of showing the message alone first. (#1223)
   const [mvConversationLoading, setMvConversationLoading] = useState<string | null>(null);
-  const mvConversationLoadRef = useRef<{ key: string; startedAt: number; promise: Promise<Email[] | null> } | null>(null);
+  const mvConversationLoadRef = useRef<{
+    client: NonNullable<EmailBlobContext['client']>; accountId?: string;
+    threadId: string; emailId: string; startedAt: number; promise: Promise<Email[] | null>;
+  } | null>(null);
+  const mvConversationOpenSeqRef = useRef(0);
   const [conversationEmails, setConversationEmails] = useState<Email[]>([]);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number | null>(null);
@@ -768,6 +776,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // to return to a thread, we silently skip - back navigation always works.
     if ((state.threadId ?? null) !== ctx.conversationThreadId) {
       if (state.threadId === null) {
+        ++conversationOpenSeqRef.current;
+        setConversationBlobSource(undefined);
         setConversationThread(null);
         setConversationEmails([]);
       }
@@ -1784,9 +1794,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // Conversation. One fetch serves both layouts: mobile opens the dedicated
     // conversation view, desktop opens the newest message of the thread (which
     // is what clicking a thread in the list does there).
+    const openSeq = ++conversationOpenSeqRef.current;
+    const source: EmailBlobContext = {
+      client: activeClient, clientAccountId: useAuthStore.getState().activeAccountId ?? undefined,
+    };
     setLoadingEmail(true);
     try {
       const threadEmails = await activeClient.getThreadEmails(link.id);
+      if (openSeq !== conversationOpenSeqRef.current) return;
       const [group] = groupEmailsByThread(threadEmails);
       if (!group) {
         toast.error(t('deep_link.thread_not_found'));
@@ -1794,6 +1809,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
       if (isMobile) {
         setConversationThread(group);
+        setConversationBlobSource(source);
         setConversationEmails(threadEmails);
         setActiveView('viewer');
       } else {
@@ -2833,6 +2849,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (!archived) return;
 
       if (conversationThread && conversationThread.threadKey === threadKeyFor(emailToArchive)) {
+        ++conversationOpenSeqRef.current;
+        setConversationBlobSource(undefined);
         setConversationThread(null);
         setConversationEmails([]);
       }
@@ -3685,8 +3703,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     return load;
   }, []);
 
-  const handleDownloadAttachment = async (blobId: string, name: string, type?: string, forceDownload?: boolean) => {
-    const { blobClient, accountId, clientAccountId } = resolveBlobSource(selectedEmail);
+  const handleDownloadAttachment = async (blobId: string, name: string, type?: string, forceDownload?: boolean, source?: EmailBlobContext) => {
+    const { client: blobClient, accountId, clientAccountId } = source ?? resolveEmailBlobContext(selectedEmail, client);
     if (!blobClient) return;
 
     try {
@@ -3705,6 +3723,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       console.error("Failed to download attachment:", error);
     }
   };
+
+  const handleDownloadConversationAttachment = (blobId: string, name: string, type: string | undefined, source: EmailBlobContext) =>
+    handleDownloadAttachment(blobId, name, type, false, source);
 
   const handlePreviewAttachmentDownload = useCallback(async () => {
     const c = previewAttachment?.client;
@@ -3890,26 +3911,31 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const mvConversationThreadId = mvConversationView && !cursorOnly ? (selectedEmail?.threadId ?? null) : null;
   const mvConversationRef = mvConversationView && !cursorOnly ? selectedEmail : null;
   const mvConversationRoute = (ref: Email, fallback: NonNullable<typeof client>) => {
-    const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
-    const threadClient = route.clientAccountId
-      ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? fallback)
-      : fallback;
-    return { threadClient, accountId: route.accountId };
+    const source = resolveEmailBlobContext(ref, fallback);
+    return { threadClient: source.client, accountId: source.accountId };
   };
+  const mvBlobSource = resolveEmailBlobContext(mvConversationRef, client);
+  // Do not render the previous owner's cards while the replacement loads.
+  const mvConversation = mvConversationResult?.source.client === mvBlobSource.client
+    && mvConversationResult?.source.accountId === mvBlobSource.accountId
+    && mvConversationResult?.threadId === mvConversationThreadId
+    ? mvConversationResult.emails : null;
   // Fetches the conversation around `ref`, oldest first. Opening a message
   // starts this next to the message fetch, and the effect below picks up that
   // same request rather than sending a second one.
   const loadMvConversation = (ref: Email, fallback: NonNullable<typeof client>): Promise<Email[] | null> => {
-    const key = `${ref.sourceClientAccountId ?? ''}:${ref.sourceAccountId ?? ''}:${ref.threadId}:${ref.id}`;
+    const { threadClient, accountId } = mvConversationRoute(ref, fallback);
+    if (!threadClient) return Promise.resolve(null);
     const pending = mvConversationLoadRef.current;
-    if (pending?.key === key && Date.now() - pending.startedAt < 10_000) return pending.promise;
-    const route = mvConversationRoute(ref, fallback);
-    const threadClient = route.threadClient;
+    // Bare ids overlap across shared owners and across connected clients.
+    if (pending?.client === threadClient && pending.accountId === accountId
+      && pending.threadId === ref.threadId && pending.emailId === ref.id
+      && Date.now() - pending.startedAt < 10_000) return pending.promise;
     const promise = (async () => {
-      const thread = await threadClient.getThread(ref.threadId, route.accountId);
+      const thread = await threadClient.getThread(ref.threadId, accountId);
       const ids = thread?.emailIds ?? [];
       if (ids.length < 2) return null;
-      const emails = await threadClient.getSomeEmails(ids, route.accountId);
+      const emails = await threadClient.getSomeEmails(ids, accountId);
       for (const e of emails) {
         // Carry the open message's source stamps, so opening one of these
         // in a merged view reaches the right account.
@@ -3922,37 +3948,45 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         .filter((e) => e.id === ref.id || !e.keywords?.$draft)
         .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
     })().catch(() => null);
-    mvConversationLoadRef.current = { key, startedAt: Date.now(), promise };
+    mvConversationLoadRef.current = { client: threadClient, accountId, threadId: ref.threadId, emailId: ref.id, startedAt: Date.now(), promise };
     return promise;
   };
 
   useEffect(() => {
+    ++mvConversationOpenSeqRef.current;
     if (!mvConversationThreadId || !client || !mvConversationRef) {
-      setMvConversation(null);
+      setMvConversationResult(null);
       setMvConversationLoading(null);
       return;
     }
     let cancelled = false;
+    setMvConversationResult(null);
     setMvConversationLoading(mvConversationThreadId);
     void loadMvConversation(mvConversationRef, client).then((conversation) => {
       if (cancelled) return;
-      setMvConversation(conversation);
+      setMvConversationResult(conversation ? {
+        emails: conversation, source: mvBlobSource, threadId: mvConversationThreadId,
+      } : null);
       setMvConversationLoading(null);
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; ++mvConversationOpenSeqRef.current; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the open message, not on every list refresh
-  }, [mvConversationThreadId, mvConversationRef?.id, client]);
+  }, [mvConversationThreadId, mvConversationRef?.id, mvBlobSource.client, mvBlobSource.accountId, client]);
 
   const patchMvConversation = (id: string, patch: (e: Email) => Email) =>
-    setMvConversation((prev) => prev?.map((e) => (e.id === id ? patch(e) : e)) ?? prev);
+    setMvConversationResult(prev => prev ? {
+      ...prev, emails: prev.emails.map(e => e.id === id ? patch(e) : e),
+    } : null);
 
   // An unfolded conversation message needs its body: the thread fetch above
   // only carries list properties.
   const handleLoadConversationEmail = async (target: Email): Promise<Email | null> => {
     if (!client) return null;
     const { threadClient, accountId } = mvConversationRoute(target, client);
+    if (!threadClient) return null;
+    const openSeq = mvConversationOpenSeqRef.current;
     const fetched = await threadClient.getEmail(target.id, accountId);
-    if (!fetched) return null;
+    if (!fetched || openSeq !== mvConversationOpenSeqRef.current) return null;
     const full: Email = {
       ...fetched,
       accountId: target.accountId,
@@ -3982,6 +4016,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           return;
         }
         const { threadClient, accountId } = mvConversationRoute(target, client);
+        if (!threadClient) return;
         await threadClient.markAsRead(target.id, true, accountId);
         void emailHooks.onEmailReadStateChange.emit({ emailIds: [target.id], read: true });
       }
@@ -4138,7 +4173,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     // Fetch the full content
     try {
-      const { client: fetchClient, accountId } = resolveEmailBlobContext(listEmail ?? null, client);
+      const source = resolveEmailBlobContext(listEmail ?? null, client);
+      const { client: fetchClient, accountId } = source;
       if (!fetchClient) {
         console.warn('[mail-app] No connected client for email source');
         if (openSeq === emailOpenSeqRef.current) abandonOpenEmail(previousEmail);
@@ -4180,8 +4216,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             conversationPrefetch,
             new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), MV_CONVERSATION_WAIT_MS)),
           ]);
-          if (conversation !== undefined) setMvConversation(conversation);
           if (openSeq !== emailOpenSeqRef.current) return;
+          if (conversation !== undefined) setMvConversationResult(conversation ? {
+            emails: conversation, source, threadId: fullEmail.threadId,
+          } : null);
         }
         // One write: the message, and the end of its loading state.
         finishOpenEmail(fullEmail);
@@ -4202,6 +4240,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // The OS / hardware back button is still wired through popstate → handleNavRestore.
   const handleMobileBack = () => {
     if (conversationThread) {
+      ++conversationOpenSeqRef.current;
+      setConversationBlobSource(undefined);
       setConversationThread(null);
       setConversationEmails([]);
     }
@@ -4226,42 +4266,36 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Handle opening conversation view on mobile
   const handleOpenConversation = async (thread: ThreadGroup) => {
     if (!client) return;
+    const source = resolveEmailBlobContext(thread.latestEmail, client);
+    // Never fetch a stamped thread through an unrelated login.
+    if (!source.client) return;
+    const openSeq = ++conversationOpenSeqRef.current;
 
-    // The view marks the thread read; keep its row where it was tapped.
     useEmailStore.getState().holdListRow(thread.threadKey);
     setConversationThread(thread);
+    setConversationBlobSource(source);
+    setConversationEmails([]);
     setIsLoadingConversation(true);
     setActiveView("viewer");
 
     try {
-      // The thread may belong to another account: in unified/aggregate views via
-      // the email's own source stamp (#281), and in a directly-browsed shared
-      // folder via the selected mailbox's owner (#814). Either way the fetch has
-      // to name that account - thread ids are per-account, so an unscoped fetch
-      // resolves to an unrelated thread in the active one.
-      const ref = thread.emails?.[0];
-      const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
-      const threadClient = route.clientAccountId
-        ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
-        : client;
-      const emails = await threadClient.getThreadEmails(thread.threadId, route.accountId);
-      // Re-stamp the source reference so conversation actions (reply/move/…)
-      // resolve to the right account; the fetched objects don't carry it.
-      if (isUnifiedView && ref) {
-        for (const e of emails) {
-          e.accountId = ref.accountId;
-          e.accountLabel = ref.accountLabel;
-          e.sourceClientAccountId = ref.sourceClientAccountId;
-          e.sourceAccountId = ref.sourceAccountId;
-        }
-      }
-      setConversationEmails(emails);
+      const emails = await source.client.getThreadEmails(thread.threadId, source.accountId);
+      if (openSeq !== conversationOpenSeqRef.current) return;
+      // Preserve UI identity stamps; direct-folder messages stay unstamped.
+      const ref = thread.latestEmail;
+      setConversationEmails(emails.map(e => ({
+        ...e,
+        accountId: ref.accountId,
+        accountLabel: ref.accountLabel,
+        sourceClientAccountId: ref.sourceClientAccountId,
+        sourceAccountId: ref.sourceAccountId,
+      })));
     } catch (error) {
+      if (openSeq !== conversationOpenSeqRef.current) return;
       console.error('Failed to fetch thread emails:', error);
-      // Fall back to thread.emails
       setConversationEmails(thread.emails);
     } finally {
-      setIsLoadingConversation(false);
+      if (openSeq === conversationOpenSeqRef.current) setIsLoadingConversation(false);
     }
   };
 
@@ -5209,7 +5243,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onReply={handleConversationReply}
                 onReplyAll={handleConversationReplyAll}
                 onForward={handleConversationForward}
-                onDownloadAttachment={handleDownloadAttachment}
+                blobSource={conversationBlobSource}
+                onDownloadAttachment={handleDownloadConversationAttachment}
                 onMarkAsRead={async (emailId, read) => {
                   if (client) {
                     const target = conversationEmails.find((e) => e.id === emailId);

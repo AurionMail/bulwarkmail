@@ -39,6 +39,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useContactStore } from "@/stores/contact-store";
+import { useEmailStore, resolveEmailBlobContext, type EmailBlobContext } from "@/stores/email-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { isFilePreviewable, toInertBlob } from "@/lib/file-preview";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
@@ -51,6 +52,10 @@ import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 
+export type ConversationAttachmentHandler = (
+  blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
+) => void;
+
 interface ThreadConversationViewProps {
   thread: ThreadGroup;
   emails: Email[];
@@ -59,7 +64,9 @@ interface ThreadConversationViewProps {
   onReply?: (email: Email) => void;
   onReplyAll?: (email: Email) => void;
   onForward?: (email: Email) => void;
-  onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
+  onDownloadAttachment?: ConversationAttachmentHandler;
+  /** Routing captured when this conversation was opened. */
+  blobSource?: EmailBlobContext;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
   /** Role of the folder the conversation was opened from, for plugin actions limited to some folders. */
   mailboxRole?: string | null;
@@ -176,6 +183,7 @@ export function ThreadConversationView({
   onReplyAll,
   onForward,
   onDownloadAttachment,
+  blobSource,
   onMarkAsRead,
   mailboxRole,
 }: ThreadConversationViewProps) {
@@ -274,6 +282,7 @@ export function ThreadConversationView({
               onReplyAll={onReplyAll ? () => onReplyAll(email) : undefined}
               onForward={onForward ? () => onForward(email) : undefined}
               onDownloadAttachment={onDownloadAttachment}
+            blobSource={blobSource}
               onMarkAsRead={onMarkAsRead}
               mailboxRole={mailboxRole}
             />
@@ -296,7 +305,9 @@ interface EmailCardProps {
   onReply?: () => void;
   onReplyAll?: () => void;
   onForward?: () => void;
-  onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
+  onDownloadAttachment?: ConversationAttachmentHandler;
+  /** Routing captured when this conversation was opened. */
+  blobSource?: EmailBlobContext;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
   mailboxRole?: string | null;
 }
@@ -330,6 +341,7 @@ function EmailCard({
   onReplyAll,
   onForward,
   onDownloadAttachment,
+  blobSource,
   onMarkAsRead,
   mailboxRole,
 }: EmailCardProps) {
@@ -412,6 +424,7 @@ function EmailCard({
             onAllowExternal={onAllowExternal}
             onTrustSender={onTrustSender}
             onDownloadAttachment={onDownloadAttachment}
+            blobSource={blobSource}
           />
           <PluginSlot name="email-footer" className="w-full" extraProps={plugin.idProps} />
 
@@ -479,7 +492,9 @@ interface ConversationEmailBodyProps {
   allowExternal: boolean;
   onAllowExternal: () => void;
   onTrustSender?: () => void;
-  onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
+  onDownloadAttachment?: ConversationAttachmentHandler;
+  /** Routing captured when this conversation was opened. */
+  blobSource?: EmailBlobContext;
   /** Padding around the body; the phone card's density padding by default. */
   bodyStyle?: React.CSSProperties;
   className?: string;
@@ -496,6 +511,7 @@ export function ConversationEmailBody({
   onAllowExternal,
   onTrustSender,
   onDownloadAttachment,
+  blobSource,
   bodyStyle,
   className,
 }: ConversationEmailBodyProps) {
@@ -515,8 +531,18 @@ export function ConversationEmailBody({
     [showVerificationCodes, email.id, email.subject, email.bodyValues],
   );
   const [hasBlockedContent, setHasBlockedContent] = useState(false);
-  const [cidBlobUrls, setCidBlobUrls] = useState<Record<string, string>>({});
-  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
+  const { client } = useAuthStore(useShallow((state) => ({
+    client: state.client, revision: state.connectedAccountsRevision,
+  })));
+  const fallbackSource = useEmailStore(useShallow(() => resolveEmailBlobContext(email, client)));
+  const source = blobSource ?? fallbackSource;
+  const { client: blobClient, accountId } = source;
+  // Local CID URLs belong to a particular client/owner/message/part list.
+  // Hide the previous set during render, before the new fetch's effect runs.
+  const cidRequest = useMemo(() => ({ blobClient, accountId, emailId: email.id, attachments: email.attachments }),
+    [blobClient, accountId, email.id, email.attachments]);
+  const [cidResult, setCidResult] = useState<{ request: typeof cidRequest; urls: Record<string, string> } | null>(null);
+  const cidBlobUrls = useMemo(() => cidResult?.request === cidRequest ? cidResult.urls : {}, [cidResult, cidRequest]);
   // A crypto plugin's decrypted body (PGP, S/MIME) replaces the message's own.
   const pluginBody = usePluginRenderedBody(email);
   // reader-above-quote: the body the quote was collapsed in, once it is on screen.
@@ -530,14 +556,14 @@ export function ConversationEmailBody({
 
   // Fetch inline CID images with authentication to prevent browser auth dialogs
   useEffect(() => {
-    if (!client || !email?.attachments) {
-      setCidBlobUrls({});
+    if (!blobClient || !cidRequest.attachments) {
+      setCidResult(null);
       return;
     }
 
-    const cidAttachments = email.attachments.filter(att => att.cid && att.blobId);
+    const cidAttachments = cidRequest.attachments.filter(att => att.cid && att.blobId);
     if (cidAttachments.length === 0) {
-      setCidBlobUrls({});
+      setCidResult(null);
       return;
     }
 
@@ -551,7 +577,7 @@ export function ConversationEmailBody({
         try {
           // Re-type sender-declared script-bearing parts before they become a
           // blob: URL in our origin (GHSA-xvjh-v9c6-qcvc).
-          const objectUrl = URL.createObjectURL(toInertBlob(await client!.fetchBlob(att.blobId, att.name || 'inline', att.type)));
+          const objectUrl = URL.createObjectURL(toInertBlob(await blobClient!.fetchBlob(att.blobId, att.name || 'inline', att.type, accountId)));
           if (!cancelled) {
             urls[cidValue] = objectUrl;
             objectUrls.push(objectUrl);
@@ -563,7 +589,7 @@ export function ConversationEmailBody({
         }
       }));
       if (!cancelled) {
-        setCidBlobUrls(urls);
+        setCidResult({ request: cidRequest, urls });
       }
     }
 
@@ -573,7 +599,7 @@ export function ConversationEmailBody({
       cancelled = true;
       objectUrls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [client, email?.id, email?.attachments]);
+  }, [cidRequest, blobClient, accountId]);
 
   // Sanitize and prepare email HTML content
   const emailContent = useMemo(() => {
@@ -867,7 +893,7 @@ export function ConversationEmailBody({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDownloadAttachment?.(attachment.blobId, attachment.name || 'attachment', attachment.type);
+                    onDownloadAttachment?.(attachment.blobId, attachment.name || 'attachment', attachment.type, source);
                   }}
                   title={opensPreview ? t('files.preview') : t('email_viewer.download')}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm"
