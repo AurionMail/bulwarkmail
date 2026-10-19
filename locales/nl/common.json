@@ -1349,9 +1349,7 @@
         "enabled": "Evenementmeldingen",
         "enabled_desc": "Waarschuwingen tonen voor aankomende agenda-evenementen",
         "sound": "Meldingsgeluid",
-        "sound_desc": "Een geluid afspelen voor agendaherinneringen",
-        "invitation_parsing": "E-mailuitnodigingen herkennen",
-        "invitation_parsing_desc": "Agenda-uitnodigingen in e-mailbijlagen detecteren en agendaacties tonen"
+        "sound_desc": "Een geluid afspelen voor agendaherinneringen"
       },
       "push": {
         "confirm_disable_message": "Dit apparaat ontvangt geen meldingen meer als de site is gesloten.",

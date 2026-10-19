@@ -1388,9 +1388,7 @@
         "enabled": "Esemény értesítések",
         "enabled_desc": "Figyelmeztetések megjelenítése a közelgő naptári eseményekhez",
         "sound": "Értesítési hang",
-        "sound_desc": "Hangjelzés lejátszása naptári emlékeztetőkhöz",
-        "invitation_parsing": "E-mail meghívók feldolgozása",
-        "invitation_parsing_desc": "Naptármeghívók észlelése az e-mail csatolmányokban és naptár műveletek megjelenítése"
+        "sound_desc": "Hangjelzés lejátszása naptári emlékeztetőkhöz"
       }
     },
     "language_region": {

@@ -1349,9 +1349,7 @@
         "enabled": "Pasākumu paziņojumi",
         "enabled_desc": "Rādīt brīdinājumus par gaidāmajiem kalendāra pasākumiem",
         "sound": "Paziņojuma skaņa",
-        "sound_desc": "Atskaņot skaņas signālu kalendāra atgādinājumiem",
-        "invitation_parsing": "Atpazīt uzaicinājumus e-pastā",
-        "invitation_parsing_desc": "Noteikt kalendāra uzaicinājumus pielikumos un rādīt kalendāra darbības"
+        "sound_desc": "Atskaņot skaņas signālu kalendāra atgādinājumiem"
       },
       "push": {
         "confirm_disable_message": "Šī ierīce vairs nesaņems brīdinājumus, kad vietne būs aizvērta.",

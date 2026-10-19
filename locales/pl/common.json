@@ -1349,9 +1349,7 @@
         "enabled": "Powiadomienia o wydarzeniach",
         "enabled_desc": "Pokazuj alerty o nadchodzących wydarzeniach kalendarza",
         "sound": "Dźwięk powiadomienia",
-        "sound_desc": "Odtwarzaj sygnał dźwiękowy dla przypomnień kalendarza",
-        "invitation_parsing": "Rozpoznawaj zaproszenia e-mail",
-        "invitation_parsing_desc": "Wykrywaj zaproszenia kalendarzowe w załącznikach wiadomości e-mail i pokazuj akcje kalendarza"
+        "sound_desc": "Odtwarzaj sygnał dźwiękowy dla przypomnień kalendarza"
       },
       "push": {
         "confirm_disable_message": "To urządzenie przestanie otrzymywać powiadomienia, gdy strona jest zamknięta.",

@@ -1352,9 +1352,7 @@
         "enabled": "Oznámenia o udalostiach",
         "enabled_desc": "Zobrazovať upozornenia na nadchádzajúce udalosti v kalendári",
         "sound": "Zvuk oznámenia",
-        "sound_desc": "Prehrať zvukové upozornenie pre pripomenutia kalendára",
-        "invitation_parsing": "Rozpoznávať e-mailové pozvánky",
-        "invitation_parsing_desc": "Rozpoznávať pozvánky kalendára v prílohách e-mailov a zobrazovať akcie kalendára"
+        "sound_desc": "Prehrať zvukové upozornenie pre pripomenutia kalendára"
       },
       "push": {
         "title": "Oznámenia na pozadí",

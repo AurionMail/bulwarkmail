@@ -1388,9 +1388,7 @@
         "enabled": "Hendelsesvarsler",
         "enabled_desc": "Vis varsler for kommende kalenderhendelser",
         "sound": "Varslingslyd",
-        "sound_desc": "Spill av et lydvarsel for kalenderpåminnelser",
-        "invitation_parsing": "Les kalenderinvitasjoner i e-post",
-        "invitation_parsing_desc": "Finn kalenderinvitasjoner i e-postvedlegg og vis tilgjengelige kalenderhandlinger"
+        "sound_desc": "Spill av et lydvarsel for kalenderpåminnelser"
       }
     },
     "language_region": {

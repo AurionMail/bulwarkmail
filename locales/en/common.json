@@ -1388,9 +1388,7 @@
         "enabled": "Event notifications",
         "enabled_desc": "Show alerts for upcoming calendar events",
         "sound": "Notification sound",
-        "sound_desc": "Play an audio alert for calendar reminders",
-        "invitation_parsing": "Parse email invitations",
-        "invitation_parsing_desc": "Detect calendar invitations in email attachments and show calendar actions"
+        "sound_desc": "Play an audio alert for calendar reminders"
       }
     },
     "language_region": {

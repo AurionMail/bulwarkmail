@@ -1388,9 +1388,7 @@
         "enabled": "اعلان‌های رویداد",
         "enabled_desc": "نمایش هشدار برای رویدادها",
         "sound": "صدای اعلان",
-        "sound_desc": "پخش صدا برای یادآورها",
-        "invitation_parsing": "پردازش دعوت‌نامه‌های ایمیل",
-        "invitation_parsing_desc": "تشخیص دعوت‌نامه در پیوست ایمیل"
+        "sound_desc": "پخش صدا برای یادآورها"
       }
     },
     "language_region": {

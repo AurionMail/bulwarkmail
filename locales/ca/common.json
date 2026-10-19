@@ -1388,9 +1388,7 @@
         "enabled": "Notificacions d'esdeveniments",
         "enabled_desc": "Mostra avisos per als esdeveniments propers del calendari",
         "sound": "So de notificació",
-        "sound_desc": "Reprodueix un avís sonor per als recordatoris del calendari",
-        "invitation_parsing": "Analitza les invitacions per correu",
-        "invitation_parsing_desc": "Detecta les invitacions de calendari als fitxers adjunts del correu i mostra les accions del calendari"
+        "sound_desc": "Reprodueix un avís sonor per als recordatoris del calendari"
       }
     },
     "language_region": {

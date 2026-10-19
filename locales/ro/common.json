@@ -1388,9 +1388,7 @@
         "enabled": "Notificări privind evenimentele",
         "enabled_desc": "Afișați alerte pentru evenimentele viitoare din calendar",
         "sound": "Sunet de notificare",
-        "sound_desc": "Redă o alertă audio pentru mementourile din calendar",
-        "invitation_parsing": "Analizați invitațiile prin e-mail",
-        "invitation_parsing_desc": "Detectați invitațiile din calendar din atașamentele de e-mail și afișați acțiunile din calendar"
+        "sound_desc": "Redă o alertă audio pentru mementourile din calendar"
       }
     },
     "language_region": {

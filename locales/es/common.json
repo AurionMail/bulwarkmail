@@ -1349,9 +1349,7 @@
         "enabled": "Notificaciones de eventos",
         "enabled_desc": "Mostrar alertas para próximos eventos del calendario",
         "sound": "Sonido de notificación",
-        "sound_desc": "Reproducir un sonido para recordatorios del calendario",
-        "invitation_parsing": "Analizar invitaciones por correo",
-        "invitation_parsing_desc": "Detectar invitaciones de calendario en archivos adjuntos y mostrar acciones de calendario"
+        "sound_desc": "Reproducir un sonido para recordatorios del calendario"
       },
       "push": {
         "confirm_disable_message": "Este dispositivo dejará de recibir alertas cuando el sitio esté cerrado.",

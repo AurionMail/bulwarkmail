@@ -1349,9 +1349,7 @@
         "enabled": "Etkinlik bildirimleri",
         "enabled_desc": "Yaklaşan takvim etkinlikleri için uyarılar göster",
         "sound": "Bildirim sesi",
-        "sound_desc": "Takvim hatırlatıcıları için sesli uyarı çal",
-        "invitation_parsing": "E-posta davetlerini ayrıştır",
-        "invitation_parsing_desc": "E-posta eklerindeki takvim davetlerini algıla ve takvim işlemlerini göster"
+        "sound_desc": "Takvim hatırlatıcıları için sesli uyarı çal"
       },
       "push": {
         "confirm_disable_message": "Bu cihaz, site kapalıyken uyarı almayı durduracak.",

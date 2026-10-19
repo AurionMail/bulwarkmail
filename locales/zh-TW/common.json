@@ -1388,9 +1388,7 @@
         "enabled": "活動通知",
         "enabled_desc": "顯示即將開始的行事曆活動提醒",
         "sound": "通知聲音",
-        "sound_desc": "播放行事曆提醒的音訊提醒",
-        "invitation_parsing": "解析郵件邀請",
-        "invitation_parsing_desc": "偵測郵件附件中的行事曆邀請，並顯示行事曆動作"
+        "sound_desc": "播放行事曆提醒的音訊提醒"
       }
     },
     "language_region": {

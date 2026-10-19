@@ -188,7 +188,7 @@ export function LayoutSection() {
 /** The Appearance page's Sidebar section: what the folder sidebar and rail show. */
 export function SidebarSection() {
   const t = useTranslations('settings.appearance');
-  const { hideAccountSwitcher, showRailAccountList, colorfulSidebarIcons, showFolderTotalCount, faviconUnreadBadge, updateSetting } = useSettingsStore();
+  const { hideAccountSwitcher, showRailAccountList, colorfulSidebarIcons, showFolderTotalCount, updateSetting } = useSettingsStore();
   const accounts = useAccountStore(s => s.accounts);
   const multiAccount = accounts.length > 1;
 
@@ -227,13 +227,6 @@ export function SidebarSection() {
           />
         </SettingItem>
       )}
-
-      <SettingItem label={t('favicon_unread_badge.label')} description={t('favicon_unread_badge.description')}>
-        <ToggleSwitch
-          checked={faviconUnreadBadge}
-          onChange={(checked) => updateSetting('faviconUnreadBadge', checked)}
-        />
-      </SettingItem>
     </SettingsSection>
   );
 }

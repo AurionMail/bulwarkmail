@@ -1349,9 +1349,7 @@
         "enabled": "Terminbenachrichtigungen",
         "enabled_desc": "Erinnerungen für bevorstehende Kalendertermine anzeigen",
         "sound": "Benachrichtigungston",
-        "sound_desc": "Einen Ton für Kalendererinnerungen abspielen",
-        "invitation_parsing": "E-Mail-Einladungen erkennen",
-        "invitation_parsing_desc": "Kalendereinladungen in E-Mail-Anhängen erkennen und Kalenderaktionen anzeigen"
+        "sound_desc": "Einen Ton für Kalendererinnerungen abspielen"
       },
       "push": {
         "confirm_disable_message": "Dieses Gerät erhält keine Benachrichtigungen mehr, wenn die Seite geschlossen ist.",

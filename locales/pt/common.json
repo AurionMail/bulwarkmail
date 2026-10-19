@@ -1349,9 +1349,7 @@
         "enabled": "Notificações de eventos",
         "enabled_desc": "Mostrar alertas para próximos eventos do calendário",
         "sound": "Som de notificação",
-        "sound_desc": "Reproduzir um som para lembretes do calendário",
-        "invitation_parsing": "Analisar convites por e-mail",
-        "invitation_parsing_desc": "Detectar convites de calendário em anexos de e-mail e mostrar ações de calendário"
+        "sound_desc": "Reproduzir um som para lembretes do calendário"
       },
       "push": {
         "confirm_disable_message": "Este dispositivo deixará de receber alertas quando o site estiver fechado.",

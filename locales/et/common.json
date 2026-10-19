@@ -1388,9 +1388,7 @@
         "enabled": "Sündmuste teavitused",
         "enabled_desc": "Kuva märguanded eelseisvate kalendrisündmuste kohta",
         "sound": "Teavitusheli",
-        "sound_desc": "Mängi helimärguanne kalendri meeldetuletuste puhul",
-        "invitation_parsing": "Tuvasta e-kirjade kutsed",
-        "invitation_parsing_desc": "Tuvasta kalendrikutsed e-kirjade manustest ja kuva kalenditoimingud"
+        "sound_desc": "Mängi helimärguanne kalendri meeldetuletuste puhul"
       }
     },
     "language_region": {

@@ -1388,9 +1388,7 @@
         "enabled": "Begivenhedsnotifikationer",
         "enabled_desc": "Vis alarmer for kommende kalenderbegivenheder",
         "sound": "Notifikationslyd",
-        "sound_desc": "Afspil en lyd for kalenderpåmindelser",
-        "invitation_parsing": "Pars e-mail-invitationer",
-        "invitation_parsing_desc": "Registrér kalenderinvitationer i e-mail-vedhæftninger og vis kalenderhandlinger"
+        "sound_desc": "Afspil en lyd for kalenderpåmindelser"
       }
     },
     "language_region": {

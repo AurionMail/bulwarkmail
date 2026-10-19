@@ -1349,9 +1349,7 @@
         "enabled": "Oznámení o událostech",
         "enabled_desc": "Zobrazovat upozornění na nadcházející události v kalendáři",
         "sound": "Zvuk oznámení",
-        "sound_desc": "Přehrát zvukové upozornění pro připomenutí kalendáře",
-        "invitation_parsing": "Rozpoznávat e-mailové pozvánky",
-        "invitation_parsing_desc": "Rozpoznávat pozvánky kalendáře v přílohách e-mailů a zobrazovat akce kalendáře"
+        "sound_desc": "Přehrát zvukové upozornění pro připomenutí kalendáře"
       },
       "push": {
         "confirm_disable_message": "Toto zařízení přestane přijímat upozornění, když je web zavřený.",

@@ -1349,9 +1349,7 @@
         "enabled": "일정 알림",
         "enabled_desc": "다가오는 일정에 대한 알림을 보여줘요",
         "sound": "알림음",
-        "sound_desc": "일정 알림이 올 때 소리로 알려줘요",
-        "invitation_parsing": "이메일 초대장 분석",
-        "invitation_parsing_desc": "이메일 첨부파일에서 캘린더 초대장을 감지하고 캘린더에 표시해요"
+        "sound_desc": "일정 알림이 올 때 소리로 알려줘요"
       },
       "push": {
         "confirm_disable_message": "이 사이트가 닫혀 있을 때 이 기기는 알림을 더 이상 받지 않습니다.",

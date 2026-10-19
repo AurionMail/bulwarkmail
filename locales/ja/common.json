@@ -1349,9 +1349,7 @@
         "enabled": "イベント通知",
         "enabled_desc": "今後のカレンダーイベントのアラートを表示",
         "sound": "通知音",
-        "sound_desc": "カレンダーリマインダーの音を鳴らす",
-        "invitation_parsing": "メール招待を解析",
-        "invitation_parsing_desc": "メール添付ファイルのカレンダー招待を検出し、カレンダーアクションを表示"
+        "sound_desc": "カレンダーリマインダーの音を鳴らす"
       },
       "push": {
         "confirm_disable_message": "このデバイスは、サイトが閉じているときに通知を受信しなくなります。",

@@ -1349,9 +1349,7 @@
         "enabled": "Notifiche eventi",
         "enabled_desc": "Mostra avvisi per i prossimi eventi del calendario",
         "sound": "Suono di notifica",
-        "sound_desc": "Riproduci un suono per i promemoria del calendario",
-        "invitation_parsing": "Analizza inviti via e-mail",
-        "invitation_parsing_desc": "Rileva inviti calendario negli allegati e mostra azioni calendario"
+        "sound_desc": "Riproduci un suono per i promemoria del calendario"
       },
       "push": {
         "confirm_disable_message": "Questo dispositivo non riceverà più avvisi quando il sito è chiuso.",

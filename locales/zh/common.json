@@ -1349,9 +1349,7 @@
         "enabled": "事件通知",
         "enabled_desc": "显示即将发生的日历事件的提醒",
         "sound": "通知声音",
-        "sound_desc": "播放日历提醒的音频提醒",
-        "invitation_parsing": "解析邮件邀请",
-        "invitation_parsing_desc": "检测邮件附件中的日历邀请并显示日历操作"
+        "sound_desc": "播放日历提醒的音频提醒"
       },
       "push": {
         "confirm_disable_message": "当网站关闭时，此设备将停止接收提醒。",

@@ -79,6 +79,9 @@ describe('settings search index (English messages)', () => {
     expect(labels).toContain('Free scrolling');
     expect(labels).toContain('Show week numbers');
     expect(labels).toContain('Organize invitations as');
+    expect(labels).toContain('Parse email invitations');
+    expect(labelsFor('notifications')).toContain('Unread Count on Tab and App Icon');
+    expect(labelsFor('notifications')).not.toContain('Parse email invitations');
     expect(labels).toContain('Contact birthday calendar');
     // Option values are not settings of their own.
     expect(labels).not.toContain('Disabled');
