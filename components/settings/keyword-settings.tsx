@@ -14,7 +14,7 @@ import {
 import { useAuthStore } from "@/stores/auth-store";
 import { useEmailStore } from "@/stores/email-store";
 import { useFilterStore } from "@/stores/filter-store";
-import { SettingsSection, SettingItem, ToggleSwitch, Select } from "./settings-section";
+import { SettingsSection, SettingItem, ToggleSwitch, Select, AdvancedOnly } from './settings-section';
 import { Plus, Pencil, Trash2, GripVertical, Check, X, Loader2, Search } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { KEYWORD_PREFIX } from "@/lib/thread-utils";
@@ -640,7 +640,7 @@ export function KeywordSettings() {
   };
 
   return (
-    <SettingsSection title={t("title")} description={t("description")}>
+    <SettingsSection id="tags" title={t("title")} description={t("description")}>
       <SettingItem label={t("nesting.label")} description={t("nesting.description")}>
         <ToggleSwitch
           checked={nestedTags}
@@ -713,7 +713,9 @@ export function KeywordSettings() {
         )}
       </div>
 
-      <UnrecognizedKeywords />
+      <AdvancedOnly>
+        <UnrecognizedKeywords />
+      </AdvancedOnly>
     </SettingsSection>
   );
 }

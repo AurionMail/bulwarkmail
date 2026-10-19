@@ -774,7 +774,7 @@ export function FolderSettings() {
   return (
     <div className="space-y-8">
       {/* Folder List - primary section */}
-      <SettingsSection title={t('folder_list')} description={t('folder_list_description')}>
+      <SettingsSection id="folders" title={t('folder_list')} description={t('folder_list_description')}>
         {selectedCount > 0 && (
           <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 p-2.5 rounded-md border border-border bg-background">
             <span className="text-sm text-foreground me-auto">
@@ -846,7 +846,7 @@ export function FolderSettings() {
       </SettingsSection>
 
       {/* Standard Folder Roles - advanced section */}
-      <SettingsSection title={t('standard_roles')} description={t('standard_roles_description')}>
+      <SettingsSection id="roles" advanced title={t('standard_roles')} description={t('standard_roles_description')}>
         {STANDARD_ROLES.map((role) => {
           // Offer the folders in sidebar order (the built tree: role priority,
           // then name, children under their parent) rather than raw server

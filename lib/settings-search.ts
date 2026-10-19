@@ -13,8 +13,7 @@ export type SettingsSearchTab =
   | 'downloads'
   | 'vacation'
   | 'filters'
-  | 'folders'
-  | 'keywords'
+  | 'organize'
   | 'security'
   | 'calendar'
   | 'contacts'
@@ -122,8 +121,7 @@ export const tabSearchPaths: Record<Tab, string[]> = {
   downloads: ['settings.downloads'],
   vacation: ['settings.vacation'],
   filters: ['settings.filters'],
-  folders: ['settings.folders'],
-  keywords: ['settings.keywords'],
+  organize: ['settings.folders', 'settings.keywords'],
   security: ['settings.security'],
   calendar: ['calendar.settings', 'calendar.management'],
   contacts: ['settings.contacts', 'contacts'],
@@ -150,8 +148,7 @@ export const tabKeywords: Record<Tab, string> = {
   downloads: 'download filename template eml attachment save export',
   vacation: 'auto reply away out of office holiday responder',
   filters: 'sieve rules block junk forward',
-  folders: 'mailbox subscribe',
-  keywords: 'tags labels colors',
+  organize: 'folders mailbox subscribe roles tags labels keywords colors nested',
   security: 'password 2fa two-factor passkey app password mfa api key token phone mobile app pair qr thunderbird outlook imap client encryption pgp smime',
   calendar: 'event schedule appointment meeting timezone invitation ics tasks birthday working hours',
   contacts: 'address book contact',

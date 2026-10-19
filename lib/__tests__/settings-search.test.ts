@@ -103,6 +103,8 @@ describe('settings search index (English messages)', () => {
     expect(labelsFor('appearance')).toContain('Themes');
     expect(labelsFor('general')).toContain('Time zone');
     expect(labelsFor('general')).toContain('Email links');
+    expect(labelsFor('organize')).toContain('Nested Tags');
+    expect(haystackFor('organize')).toContain('standard folder roles');
   });
 
   it('matches the calendar tab for a free-scroll query', () => {

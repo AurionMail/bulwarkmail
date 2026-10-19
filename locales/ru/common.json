@@ -1049,7 +1049,8 @@
       "about_data": "О программе и данные",
       "debug": "Отладка",
       "message_list": "Список писем",
-      "general": "Общие"
+      "general": "Общие",
+      "organize": "Папки и метки"
     },
     "themes": {
       "title": "Темы",

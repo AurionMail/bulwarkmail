@@ -1049,7 +1049,8 @@
       "about_data": "Informazioni e dati",
       "debug": "Debug",
       "message_list": "Elenco messaggi",
-      "general": "Generale"
+      "general": "Generale",
+      "organize": "Cartelle ed etichette"
     },
     "themes": {
       "title": "Temi",

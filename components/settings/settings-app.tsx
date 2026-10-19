@@ -16,7 +16,6 @@ import {
   Calendar,
   Filter,
   FolderOpen,
-  Tags,
   HardDrive,
   BookUser,
   PanelLeftClose,
@@ -47,8 +46,7 @@ import { AddressBookManagementSettings } from '@/components/settings/address-boo
 import { FilterSettings } from '@/components/settings/filter-settings';
 import { AboutDataSettings } from '@/components/settings/about-data-settings';
 import { DebugSettings } from '@/components/settings/debug-settings';
-import { FolderSettings } from '@/components/settings/folder-settings';
-import { KeywordSettings } from '@/components/settings/keyword-settings';
+import { OrganizeSettings } from '@/components/settings/organize-settings';
 import { AccountSecuritySettings } from '@/components/settings/account-security-settings';
 import { FilesSettingsComponent } from '@/components/settings/files-settings';
 import { DownloadsSettings } from '@/components/settings/downloads-settings';
@@ -128,8 +126,7 @@ const tabIcons: Record<Tab, AppIcon> = {
   downloads: Download,
   vacation: PalmtreeIcon,
   filters: Filter,
-  folders: FolderOpen,
-  keywords: Tags,
+  organize: FolderOpen,
   security: Shield,
   calendar: Calendar,
   contacts: BookUser,
@@ -155,6 +152,8 @@ export const LEGACY_TAB_MAP: Record<string, Tab> = {
   language: 'general',
   protocol_handlers: 'general',
   templates: 'composing',
+  folders: 'organize',
+  keywords: 'organize',
 };
 
 function readPersistedTab(): SettingsTabId {
@@ -564,8 +563,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     { id: 'downloads', label: t('tabs.downloads'), icon: tabIcons.downloads, group: 'mail' },
     ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
     ...(supportsSieve ? [{ id: 'filters' as Tab, label: t('tabs.filters'), icon: tabIcons.filters, group: 'mail' as TabGroup }] : []),
-    { id: 'folders', label: t('tabs.folders'), icon: tabIcons.folders, group: 'mail' },
-    ...(isFeatureEnabled('customKeywordsEnabled') ? [{ id: 'keywords' as Tab, label: t('tabs.keywords'), icon: tabIcons.keywords, group: 'mail' as TabGroup }] : []),
+    { id: 'organize', label: isFeatureEnabled('customKeywordsEnabled') ? t('tabs.organize') : t('tabs.folders'), icon: tabIcons.organize, group: 'mail' },
 
     // Privacy & Security
     ...(stalwartFeaturesEnabled ? [{ id: 'security' as Tab, label: t('tabs.security'), icon: tabIcons.security, group: 'privacy' as TabGroup }] : []),
@@ -706,8 +704,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'downloads' && <DownloadsSettings />}
       {effectiveActiveTab === 'vacation' && <VacationSettings />}
       {effectiveActiveTab === 'filters' && <FilterSettings />}
-      {effectiveActiveTab === 'folders' && <FolderSettings />}
-      {effectiveActiveTab === 'keywords' && <KeywordSettings />}
+      {effectiveActiveTab === 'organize' && <OrganizeSettings />}
       {effectiveActiveTab === 'security' && <AccountSecuritySettings />}
       {effectiveActiveTab === 'calendar' && (
         managedAccountId
