@@ -1048,7 +1048,8 @@
       "content_senders": "コンテンツと送信者",
       "about_data": "情報とデータ",
       "debug": "デバッグ",
-      "message_list": "メッセージ一覧"
+      "message_list": "メッセージ一覧",
+      "general": "一般"
     },
     "themes": {
       "title": "テーマ",

@@ -74,7 +74,7 @@ export function ProtocolHandlerSettings({ supportsCalendar }: ProtocolHandlerSet
   };
 
   return (
-    <SettingsSection title={t("title")} description={t("description")}>
+    <SettingsSection id="links" title={t("title")} description={t("description")}>
       {!supported && (
         <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
           {t("unsupported")}
@@ -91,7 +91,7 @@ export function ProtocolHandlerSettings({ supportsCalendar }: ProtocolHandlerSet
         </SettingItem>
       )}
 
-      <SettingItem label={t("protocol_open_mode_label")} description={t("protocol_open_mode_description")}>
+      <SettingItem advanced label={t("protocol_open_mode_label")} description={t("protocol_open_mode_description")}>
         <Select
           value={protocolOpenMode}
           onChange={handleOpenModeChange}

@@ -1048,7 +1048,8 @@
       "content_senders": "콘텐츠 및 발신자",
       "about_data": "정보 및 데이터",
       "debug": "디버그",
-      "message_list": "메시지 목록"
+      "message_list": "메시지 목록",
+      "general": "일반"
     },
     "themes": {
       "title": "테마",

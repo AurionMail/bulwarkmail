@@ -1048,7 +1048,8 @@
       "content_senders": "Obsah a odesílatelé",
       "about_data": "Info a data",
       "debug": "Ladění",
-      "message_list": "Seznam zpráv"
+      "message_list": "Seznam zpráv",
+      "general": "Obecné"
     },
     "themes": {
       "title": "Motivy",

@@ -99,11 +99,12 @@ describe('settings search index (English messages)', () => {
     expect(labelsFor('account')).toContain('Tell accounts apart');
     expect(labelsFor('account')).toContain('Your Identities');
     expect(labelsFor('appearance')).toContain('Themes');
-    expect(labelsFor('language')).toContain('Time zone');
+    expect(labelsFor('general')).toContain('Time zone');
+    expect(labelsFor('general')).toContain('Email links');
   });
 
   it('matches the calendar tab for a free-scroll query', () => {
     expect(haystackFor('calendar')).toContain('free scrolling');
-    expect(haystackFor('language')).toContain('time zone');
+    expect(haystackFor('general')).toContain('time zone');
   });
 });

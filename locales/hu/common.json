@@ -1051,7 +1051,8 @@
       "content_senders": "Tartalom és feladók",
       "about_data": "Névjegy és adatok",
       "debug": "Hibakeresés",
-      "message_list": "Üzenetlista"
+      "message_list": "Üzenetlista",
+      "general": "Általános"
     },
     "themes": {
       "title": "Témák",

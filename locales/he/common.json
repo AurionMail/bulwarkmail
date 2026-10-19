@@ -1013,7 +1013,8 @@
       "content_senders": "תוכן ושולחים",
       "about_data": "בערך וגדול",
       "debug": "ניפוי שגיאות",
-      "message_list": "רשימת הודעות"
+      "message_list": "רשימת הודעות",
+      "general": "כללי"
     },
     "themes": {
       "title": "ערכות נושא",

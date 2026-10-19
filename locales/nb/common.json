@@ -1051,7 +1051,8 @@
       "content_senders": "Innhold og avsendere",
       "about_data": "Om programmet og data",
       "debug": "Feilsøking",
-      "message_list": "Meldingsliste"
+      "message_list": "Meldingsliste",
+      "general": "Generelt"
     },
     "themes": {
       "title": "Temaer",

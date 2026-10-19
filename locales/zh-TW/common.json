@@ -1051,7 +1051,8 @@
       "content_senders": "內容與寄件者",
       "about_data": "關於與資料",
       "debug": "除錯",
-      "message_list": "郵件清單"
+      "message_list": "郵件清單",
+      "general": "一般"
     },
     "themes": {
       "title": "主題",

@@ -1048,7 +1048,8 @@
       "content_senders": "Вміст і відправники",
       "about_data": "Про програму та дані",
       "debug": "Налагодження",
-      "message_list": "Список листів"
+      "message_list": "Список листів",
+      "general": "Загальні"
     },
     "themes": {
       "title": "Теми",

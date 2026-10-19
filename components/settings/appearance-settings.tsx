@@ -7,9 +7,6 @@ import { SettingsSection, SettingItem, RadioGroup, ToggleSwitch } from './settin
 import { ThemesSettings } from './themes-settings';
 import { LayoutSection, SidebarSection, ExperimentalSection } from './layout-settings';
 import { cn } from '@/lib/utils';
-import { useTour } from '@/components/tour/tour-provider';
-import { Button } from '@/components/ui/button';
-import { PlayCircle } from '@/components/icons';
 import { usePolicyStore } from '@/stores/policy-store';
 
 const DENSITY_PREVIEW: Record<Density, { py: string; gap: string; showAvatar: boolean; showPreview: boolean }> = {
@@ -71,10 +68,8 @@ function DensityPreview({ density }: { density: Density }) {
  */
 export function AppearanceSettings() {
   const t = useTranslations('settings.appearance');
-  const tTour = useTranslations('tour');
   const { theme, setTheme } = useThemeStore();
-  const { fontSize, density, animationsEnabled, showOnboardingOnNewDevices, updateSetting } = useSettingsStore();
-  const { startTour, resetTourCompletion } = useTour();
+  const { fontSize, density, animationsEnabled, updateSetting } = useSettingsStore();
   const { isSettingLocked, isSettingHidden, getColorModePolicy, isFeatureEnabled } = usePolicyStore();
 
   return (
@@ -139,27 +134,6 @@ export function AppearanceSettings() {
 
       <LayoutSection />
       <SidebarSection />
-
-      <SettingsSection id="tour" title={tTour('settings_section')}>
-        <SettingItem label={tTour('restart_title')} description={tTour('restart_desc')}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { resetTourCompletion(); startTour(); }}
-            className="text-xs h-7"
-          >
-            <PlayCircle className="w-3.5 h-3.5 me-1" />
-            {tTour('restart_button')}
-          </Button>
-        </SettingItem>
-
-        <SettingItem label={tTour('show_on_new_devices_title')} description={tTour('show_on_new_devices_desc')} advanced>
-          <ToggleSwitch
-            checked={showOnboardingOnNewDevices}
-            onChange={(checked) => updateSetting('showOnboardingOnNewDevices', checked)}
-          />
-        </SettingItem>
-      </SettingsSection>
 
       <ExperimentalSection />
     </div>

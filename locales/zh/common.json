@@ -1048,7 +1048,8 @@
       "content_senders": "内容和发件人",
       "about_data": "关于和数据",
       "debug": "调试",
-      "message_list": "邮件列表"
+      "message_list": "邮件列表",
+      "general": "常规"
     },
     "themes": {
       "title": "主题",

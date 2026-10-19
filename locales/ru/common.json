@@ -1048,7 +1048,8 @@
       "content_senders": "Содержимое и отправители",
       "about_data": "О программе и данные",
       "debug": "Отладка",
-      "message_list": "Список писем"
+      "message_list": "Список писем",
+      "general": "Общие"
     },
     "themes": {
       "title": "Темы",

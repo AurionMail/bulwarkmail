@@ -1048,7 +1048,8 @@
       "content_senders": "Inhalte & Absender",
       "about_data": "Über & Daten",
       "debug": "Debug",
-      "message_list": "Nachrichtenliste"
+      "message_list": "Nachrichtenliste",
+      "general": "Allgemein"
     },
     "themes": {
       "title": "Designs",

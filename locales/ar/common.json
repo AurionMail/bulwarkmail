@@ -1051,7 +1051,8 @@
       "content_senders": "المحتوى والمرسلون",
       "about_data": "حول والبيانات",
       "debug": "التصحيح",
-      "message_list": "قائمة الرسائل"
+      "message_list": "قائمة الرسائل",
+      "general": "عام"
     },
     "themes": {
       "title": "السمات",

@@ -23,11 +23,9 @@ import {
   PanelLeftClose,
   Bell,
   Puzzle,
-  Link as LinkIcon,
   BookOpen,
   PenLine,
   LayoutList,
-  Languages,
   Info,
   Bug,
   Download,
@@ -38,7 +36,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppearanceSettings } from '@/components/settings/appearance-settings';
 import { AppTopBannerSlot } from '@/components/plugins/app-top-banner-slot';
-import { LanguageSettings } from '@/components/settings/language-settings';
+import { GeneralSettings } from '@/components/settings/general-settings';
 import { ReadingSettings } from '@/components/settings/reading-settings';
 import { MessageListSettings } from '@/components/settings/message-list-settings';
 import { ComposingSettings } from '@/components/settings/composing-settings';
@@ -62,7 +60,6 @@ import { NotificationSettings } from '@/components/settings/notification-setting
 import { PluginsSettings } from '@/components/settings/plugins-settings';
 import { PluginIframeSlot } from '@/components/plugins/plugin-iframe-slot';
 import { offersForSlot as pluginOffersForSlot, subscribe as pluginRegistrySubscribe, get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
-import { ProtocolHandlerSettings } from '@/components/settings/protocol-handler-settings';
 import { AdvancedSettingsProvider, AdvancedSettingsSwitch } from '@/components/settings/settings-section';
 import { appPath, buildSettingsPath, parseSettingsPath } from '@/lib/deep-links';
 import { consumePendingDeepLink, subscribePendingDeepLink } from '@/lib/deep-link-handoff';
@@ -84,7 +81,6 @@ import { useIsEmbedded } from '@/hooks/use-is-embedded';
 import { useIsFocusedProTab } from '@/hooks/use-pane-context';
 import { ResizeHandle } from '@/components/layout/resize-handle';
 import { useConfig } from '@/hooks/use-config';
-import { IS_LITE } from '@/lib/lite';
 import { usePolicyStore } from '@/stores/policy-store';
 import { cn } from '@/lib/utils';
 import {
@@ -125,7 +121,7 @@ interface TabDef {
 
 const tabIcons: Record<Tab, AppIcon> = {
   account: User,
-  language: Languages,
+  general: SettingsIcon,
   notifications: Bell,
   appearance: Palette,
   message_list: LayoutList,
@@ -141,7 +137,6 @@ const tabIcons: Record<Tab, AppIcon> = {
   calendar: Calendar,
   contacts: BookUser,
   files: HardDrive,
-  protocol_handlers: LinkIcon,
   sidebar_apps: PanelLeftClose,
   about_data: Info,
   plugins: Puzzle,
@@ -160,6 +155,8 @@ export const LEGACY_TAB_MAP: Record<string, Tab> = {
   themes: 'appearance',
   content_senders: 'reading',
   identities: 'account',
+  language: 'general',
+  protocol_handlers: 'general',
 };
 
 function readPersistedTab(): SettingsTabId {
@@ -556,10 +553,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const tabs: TabDef[] = [
     // General
     { id: 'account', label: t('tabs.account'), icon: tabIcons.account, group: 'general' },
-    { id: 'language', label: t('tabs.language'), icon: tabIcons.language, group: 'general' },
+    { id: 'general', label: t('tabs.general'), icon: tabIcons.general, group: 'general' },
     { id: 'notifications', label: t('tabs.notifications'), icon: tabIcons.notifications, group: 'general' },
-    // The handler URLs point at /protocol/*, server routes the static Lite export does not ship.
-    ...(IS_LITE ? [] : [{ id: 'protocol_handlers' as Tab, label: t('tabs.protocol_handlers'), icon: tabIcons.protocol_handlers, group: 'general' as TabGroup }]),
 
     // Appearance
     { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'appearance' },
@@ -705,7 +700,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         </button>
       )}
       {effectiveActiveTab === 'account' && <AccountSettings />}
-      {effectiveActiveTab === 'language' && <LanguageSettings />}
+      {effectiveActiveTab === 'general' && <GeneralSettings supportsCalendar={supportsCalendar} />}
       {effectiveActiveTab === 'notifications' && <NotificationSettings />}
       {effectiveActiveTab === 'appearance' && <AppearanceSettings />}
       {effectiveActiveTab === 'message_list' && <MessageListSettings />}
@@ -729,7 +724,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           : <><ContactsSettings /><div className="mt-8"><AddressBookManagementSettings /></div></>
       )}
       {effectiveActiveTab === 'files' && <FilesSettingsComponent />}
-      {effectiveActiveTab === 'protocol_handlers' && <ProtocolHandlerSettings supportsCalendar={supportsCalendar} />}
       {effectiveActiveTab === 'sidebar_apps' && <SidebarAppsSettings />}
       {effectiveActiveTab === 'about_data' && <AboutDataSettings />}
       {effectiveActiveTab === 'plugins' && <PluginsSettings />}

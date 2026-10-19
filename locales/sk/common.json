@@ -1051,7 +1051,8 @@
       "content_senders": "Obsah a odosielatelia",
       "about_data": "Info a dáta",
       "debug": "Ladenie",
-      "message_list": "Zoznam správ"
+      "message_list": "Zoznam správ",
+      "general": "Všeobecné"
     },
     "themes": {
       "title": "Motívy",

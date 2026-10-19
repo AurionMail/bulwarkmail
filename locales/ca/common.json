@@ -1051,7 +1051,8 @@
       "content_senders": "Contingut i remitents",
       "about_data": "Quant a i dades",
       "debug": "Depuració",
-      "message_list": "Llista de missatges"
+      "message_list": "Llista de missatges",
+      "general": "General"
     },
     "themes": {
       "title": "Temes",

@@ -1051,7 +1051,8 @@
       "content_senders": "Content & Senders",
       "about_data": "About & Data",
       "debug": "Debug",
-      "message_list": "Message list"
+      "message_list": "Message list",
+      "general": "General"
     },
     "themes": {
       "title": "Themes",

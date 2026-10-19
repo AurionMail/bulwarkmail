@@ -1051,7 +1051,8 @@
       "content_senders": "Conținut și expeditori",
       "about_data": "Despre & Date",
       "debug": "Depanare",
-      "message_list": "Lista de mesaje"
+      "message_list": "Lista de mesaje",
+      "general": "General"
     },
     "themes": {
       "title": "Teme",

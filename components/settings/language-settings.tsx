@@ -97,7 +97,7 @@ export function LanguageSettings() {
   }, [timeZone, timeFormat, locale]);
 
   return (
-    <SettingsSection title={t('title')} description={t('description')}>
+    <SettingsSection id="language" title={t('title')} description={t('description')}>
       <SettingItem label={t('language.label')} description={t('language.description')}>
         <LanguageSwitcher />
       </SettingItem>
@@ -130,7 +130,7 @@ export function LanguageSettings() {
         </div>
       </SettingItem>
 
-      <SettingItem label={t('date_locale.label')} description={t('date_locale.description')}>
+      <SettingItem advanced label={t('date_locale.label')} description={t('date_locale.description')}>
         <Select
           value={dateLocale}
           onChange={(value) => updateSetting('dateLocale', value as DateLocale)}

@@ -1051,7 +1051,8 @@
       "content_senders": "Агуулга ба Илгээгчид",
       "about_data": "Тухай & Өгөгдөл",
       "debug": "Дабаглах",
-      "message_list": "Мессежийн жагсаалт"
+      "message_list": "Мессежийн жагсаалт",
+      "general": "Ерөнхий"
     },
     "themes": {
       "title": "Сэдэв",

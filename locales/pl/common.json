@@ -1048,7 +1048,8 @@
       "content_senders": "Treść i nadawcy",
       "about_data": "O programie i dane",
       "debug": "Debugowanie",
-      "message_list": "Lista wiadomości"
+      "message_list": "Lista wiadomości",
+      "general": "Ogólne"
     },
     "themes": {
       "title": "Motywy",

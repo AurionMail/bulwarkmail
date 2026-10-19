@@ -1048,7 +1048,8 @@
       "content_senders": "Saturs un sūtītāji",
       "about_data": "Par un dati",
       "debug": "Atkļūdošana",
-      "message_list": "Ziņu saraksts"
+      "message_list": "Ziņu saraksts",
+      "general": "Vispārīgi"
     },
     "themes": {
       "title": "Tēmas",

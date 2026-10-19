@@ -1048,7 +1048,8 @@
       "content_senders": "İçerik ve Göndericiler",
       "about_data": "Hakkında ve Veriler",
       "debug": "Hata Ayıklama",
-      "message_list": "İleti listesi"
+      "message_list": "İleti listesi",
+      "general": "Genel"
     },
     "themes": {
       "title": "Temalar",

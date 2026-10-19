@@ -4,7 +4,7 @@
 
 export type SettingsSearchTab =
   | 'account'
-  | 'language'
+  | 'general'
   | 'notifications'
   | 'appearance'
   | 'message_list'
@@ -20,7 +20,6 @@ export type SettingsSearchTab =
   | 'calendar'
   | 'contacts'
   | 'files'
-  | 'protocol_handlers'
   | 'sidebar_apps'
   | 'about_data'
   | 'plugins'
@@ -55,7 +54,7 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.appearance.show_shared_mail_accounts',
     'settings.account.shared_accounts',
   ],
-  language: ['settings.language_region'],
+  general: ['settings.language_region', 'protocol_handlers', 'tour.restart_title', 'tour.show_on_new_devices_title'],
   notifications: ['settings.notifications', 'settings.appearance.favicon_unread_badge'],
   appearance: [
     'settings.appearance.theme',
@@ -71,8 +70,6 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.appearance.show_folder_total_count',
     'settings.appearance.hide_account_switcher',
     'settings.appearance.show_rail_account_list',
-    'tour.restart_title',
-    'tour.show_on_new_devices_title',
     'settings.appearance.pro_interface',
   ],
   message_list: [
@@ -132,7 +129,6 @@ export const tabSearchPaths: Record<Tab, string[]> = {
   calendar: ['calendar.settings', 'calendar.management'],
   contacts: ['settings.contacts', 'contacts'],
   files: ['settings.files'],
-  protocol_handlers: ['protocol_handlers'],
   sidebar_apps: ['settings.sidebar_apps', 'sidebar_apps'],
   about_data: ['settings.advanced'],
   plugins: [],
@@ -146,9 +142,9 @@ export const archiveActionSearchPaths: ReadonlySet<string> = new Set(['settings.
 
 export const tabKeywords: Record<Tab, string> = {
   account: 'profile email user signin signout reorder rearrange drag dropdown switcher multi-account identities from address signature plus addressing unified mailbox shared group',
-  language: 'locale region timezone date time format',
+  general: 'language locale region timezone date time format mailto webcal links default app protocol handler tour onboarding',
   notifications: 'sound alert push badge favicon tab icon unread count background relay device',
-  appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher icons rail layout reading pane tour',
+  appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher icons rail layout reading pane',
   message_list: 'inbox list preview thread conversation grouping sort order columns archive delete swipe hover favicon avatar tag color',
   reading: 'mark read attachment open monospace mono font plain text images remote content block sender privacy tracking dark light',
   composing: 'editor signature plain text reply forward draft compose',
@@ -162,7 +158,6 @@ export const tabKeywords: Record<Tab, string> = {
   calendar: 'event schedule appointment meeting timezone invitation ics tasks birthday working hours',
   contacts: 'address book contact',
   files: 'attachments cloud drive storage upload',
-  protocol_handlers: 'mailto webcal links default app protocol handler',
   sidebar_apps: 'apps webview iframe',
   about_data: 'export import storage quota privacy backup',
   plugins: 'extensions addons',

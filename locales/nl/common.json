@@ -1048,7 +1048,8 @@
       "content_senders": "Inhoud en afzenders",
       "about_data": "Over en gegevens",
       "debug": "Debuggen",
-      "message_list": "Berichtenlijst"
+      "message_list": "Berichtenlijst",
+      "general": "Algemeen"
     },
     "themes": {
       "title": "Thema's",

@@ -1051,7 +1051,8 @@
       "content_senders": "Indhold & afsendere",
       "about_data": "Om & data",
       "debug": "Debug",
-      "message_list": "Beskedliste"
+      "message_list": "Beskedliste",
+      "general": "Generelt"
     },
     "themes": {
       "title": "Temaer",

@@ -1048,7 +1048,8 @@
       "content_senders": "Contenu et expéditeurs",
       "about_data": "À propos et données",
       "debug": "Débogage",
-      "message_list": "Liste des messages"
+      "message_list": "Liste des messages",
+      "general": "Général"
     },
     "themes": {
       "title": "Thèmes",

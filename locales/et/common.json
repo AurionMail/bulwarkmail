@@ -1051,7 +1051,8 @@
       "content_senders": "Sisu ja saatjad",
       "about_data": "Teave ja andmed",
       "debug": "Silumine",
-      "message_list": "Kirjade loend"
+      "message_list": "Kirjade loend",
+      "general": "Üldine"
     },
     "themes": {
       "title": "Teemad",

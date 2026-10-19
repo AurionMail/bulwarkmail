@@ -1051,7 +1051,8 @@
       "content_senders": "محتوا و فرستندگان",
       "about_data": "درباره و داده‌ها",
       "debug": "اشکال‌زدایی",
-      "message_list": "فهرست پیام‌ها"
+      "message_list": "فهرست پیام‌ها",
+      "general": "عمومی"
     },
     "themes": {
       "title": "پوسته‌ها",
