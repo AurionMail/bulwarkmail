@@ -1025,16 +1025,19 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         style={{ width: `${settingsSidebarWidth}px` }}
       >
         {!proInterface && (
-          <div className="p-4 border-b border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/')}
-              className="w-full justify-start"
-            >
-              <ArrowLeft className="w-4 h-4 me-2" />
-              {t('back_to_mail')}
-            </Button>
+          // Same h-14 box as the mail sidebar's account switcher, so the apps line up.
+          <div className="border-b border-border">
+            <div className="flex items-center h-14 px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                className="w-full justify-start"
+              >
+                <ArrowLeft className="w-4 h-4 me-2" />
+                {t('back_to_mail')}
+              </Button>
+            </div>
           </div>
         )}
 
