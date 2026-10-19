@@ -50,8 +50,8 @@ import { AddonsSettings } from '@/components/settings/addons-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
 import { PluginIframeSlot } from '@/components/plugins/plugin-iframe-slot';
 import { offersForSlot as pluginOffersForSlot, subscribe as pluginRegistrySubscribe, get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
-import { AdvancedSettingsProvider, AdvancedSettingsSwitch } from '@/components/settings/settings-section';
-import { appPath, buildSettingsPath, parseSettingsPath } from '@/lib/deep-links';
+import { AdvancedSettingsProvider, AdvancedSettingsSwitch, SectionNav, scrollToSettingsSection } from '@/components/settings/settings-section';
+import { appPath, buildSettingsPath, parseSettingsPath, parseSettingsSection } from '@/lib/deep-links';
 import { consumePendingDeepLink, subscribePendingDeepLink } from '@/lib/deep-link-handoff';
 import { useDeepLinkUrl } from '@/hooks/use-deep-link-url';
 import { useProInterfaceActive } from '@/components/pro/pro-interface-redirect';
@@ -156,6 +156,40 @@ export const LEGACY_TAB_MAP: Record<string, Tab> = {
   debug: 'backup',
 };
 
+// Where on the new page a legacy tab's settings now sit, so an old link
+// lands on that section rather than at the top of the page.
+const LEGACY_SECTION_MAP: Record<string, string> = {
+  layout: 'layout',
+  themes: 'theme',
+  content_senders: 'images',
+  identities: 'addresses',
+  language: 'language',
+  protocol_handlers: 'links',
+  templates: 'templates',
+  folders: 'folders',
+  keywords: 'tags',
+  downloads: 'downloads',
+  sidebar_apps: 'sidebar-apps',
+  plugins: 'plugins',
+  about_data: 'backup',
+  debug: 'debug',
+};
+
+/** A tab and, optionally, the section of it a link or event names. */
+interface SettingsTarget {
+  tab: SettingsTabId;
+  section: string | null;
+}
+
+/**
+ * Migrates a legacy tab id to the page and section that hold it now. An
+ * explicit section wins over the legacy one.
+ */
+function migrateTarget(raw: string, section: string | null = null): { tab: string; section: string | null } {
+  const tab = raw in LEGACY_TAB_MAP ? LEGACY_TAB_MAP[raw] : raw;
+  return { tab, section: section ?? (raw in LEGACY_SECTION_MAP ? LEGACY_SECTION_MAP[raw] : null) };
+}
+
 function readPersistedTab(): SettingsTabId {
   try {
     // One-shot deep link from the sidebar section gears (Folders / Tags).
@@ -185,13 +219,13 @@ function readPersistedTab(): SettingsTabId {
  * renamed falls back to the persisted tab rather than rendering an empty pane.
  * Legacy ids are migrated the same way the stored value is.
  */
-function tabFromDeepLink(segments: string[] | null | undefined): SettingsTabId | null {
+function targetFromDeepLink(segments: string[] | null | undefined): SettingsTarget | null {
   const raw = parseSettingsPath(segments ?? []);
   if (!raw) return null;
-  const migrated = raw in LEGACY_TAB_MAP ? LEGACY_TAB_MAP[raw] : raw;
-  if (migrated in tabIcons) return migrated as SettingsTabId;
-  if (migrated.startsWith('plugin:')) return migrated as SettingsTabId;
-  if (migrated.startsWith(PLUGIN_PAGE_PREFIX)) return migrated as SettingsTabId;
+  const { tab, section } = migrateTarget(raw, parseSettingsSection(segments ?? []));
+  if (tab in tabIcons || tab.startsWith('plugin:') || tab.startsWith(PLUGIN_PAGE_PREFIX)) {
+    return { tab: tab as SettingsTabId, section };
+  }
   return null;
 }
 
@@ -231,8 +265,17 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const archiveActionEnabled = isFeatureEnabled('archiveActionEnabled');
   // A tab in the URL wins over the persisted one; without it, nothing changes.
   const [activeTab, setActiveTab] = useState<SettingsTabId>(
-    () => tabFromDeepLink(linkSegments) ?? readPersistedTab(),
+    () => targetFromDeepLink(linkSegments)?.tab ?? readPersistedTab(),
   );
+  // The section a link or event asked for; scrolled to once the page shows it.
+  const [pendingSection, setPendingSection] = useState<{ tab: SettingsTabId; id: string } | null>(() => {
+    const target = targetFromDeepLink(linkSegments);
+    return target?.section ? { tab: target.tab, id: target.section } : null;
+  });
+  const goTo = useCallback((target: SettingsTarget) => {
+    setActiveTab(target.tab);
+    setPendingSection(target.section ? { tab: target.tab, id: target.section } : null);
+  }, []);
   // Active plugins that expose a `settings-section` slot — each becomes its own
   // Settings menu entry. Referentially stable per registry mutation, so it is
   // safe to feed useSyncExternalStore directly.
@@ -258,19 +301,19 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   // through the handoff the redirect parked (#733).
   useEffect(() => {
     if (linkSegments) return;
-    const tab = tabFromDeepLink(consumePendingDeepLink('settings'));
-    if (tab) setActiveTab(tab);
-  }, [linkSegments]);
+    const target = targetFromDeepLink(consumePendingDeepLink('settings'));
+    if (target) goTo(target);
+  }, [linkSegments, goTo]);
   // Pro shell only: this surface stays mounted for the whole session, so links
   // arriving later (e.g. the sidebar's folder-settings gear) are delivered
   // live instead of being parked for a mount that already happened.
   useEffect(() => {
     if (!isEmbedded) return;
     return subscribePendingDeepLink('settings', (segments) => {
-      const tab = tabFromDeepLink(segments);
-      if (tab) setActiveTab(tab);
+      const target = targetFromDeepLink(segments);
+      if (target) goTo(target);
     });
-  }, [isEmbedded]);
+  }, [isEmbedded, goTo]);
   const [mobileShowContent, setMobileShowContent] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingHighlight, setPendingHighlight] = useState<{ tab: SettingsTabId; label: string; pluginId?: string } | null>(null);
@@ -381,18 +424,50 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     });
   }, [checkAuth]);
 
-  // Listen for tab change events from child components (with legacy migration)
+  // Listen for tab change events from child components (with legacy
+  // migration). The detail is a tab id, or `{ tab, section }` to land on one
+  // section of the page.
   useEffect(() => {
     const handler = (e: Event) => {
-      const raw = (e as CustomEvent).detail as string;
+      const detail = (e as CustomEvent).detail as string | { tab?: string; section?: string } | null;
+      const raw = typeof detail === 'string' ? detail : detail?.tab;
       if (!raw) return;
-      const tab = (LEGACY_TAB_MAP[raw] ?? raw) as Tab;
-      setActiveTab(tab);
+      const { tab, section } = migrateTarget(raw, typeof detail === 'object' && detail?.section ? detail.section : null);
+      goTo({ tab: tab as SettingsTabId, section });
       try { localStorage.setItem('settings-active-tab', tab); } catch { /* ignore */ }
     };
     window.addEventListener('settings-tab-change', handler);
     return () => window.removeEventListener('settings-tab-change', handler);
-  }, []);
+  }, [goTo]);
+
+  // Scroll to the section a link or event asked for once the page has it.
+  // Pages fetch and render their sections after a loading state, so retry;
+  // an advanced section stays hidden until the switch is on, so after a
+  // short wait turn it on rather than give up.
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  useEffect(() => {
+    if (!pendingSection || pendingSection.tab !== activeTab) return;
+    if (typeof window === 'undefined') return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const started = Date.now();
+    const deadline = started + 2000;
+    const attempt = () => {
+      if (cancelled) return;
+      if (scrollToSettingsSection(pendingSection.id)) { setPendingSection(null); return; }
+      if (Date.now() - started > 400 && !useSettingsStore.getState().showAdvancedSettings) {
+        updateSetting('showAdvancedSettings', true);
+      }
+      if (Date.now() < deadline) timer = setTimeout(attempt, 80);
+      else setPendingSection(null);
+    };
+    const raf = window.requestAnimationFrame(attempt);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf);
+      if (timer) clearTimeout(timer);
+    };
+  }, [pendingSection, activeTab, updateSetting]);
 
   // Leaving the settings panel drops any shared-account scope so it never
   // leaks into the next visit or another session.
@@ -455,6 +530,10 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       if (cancelled) return;
       const el = document.querySelector<HTMLElement>(selector);
       if (!el) {
+        // The row may be an advanced one the switch hides: reveal, then keep looking.
+        if (Date.now() > deadline - 1600 && !useSettingsStore.getState().showAdvancedSettings) {
+          useSettingsStore.getState().updateSetting('showAdvancedSettings', true);
+        }
         if (Date.now() < deadline) {
           retryTimer = setTimeout(tryHighlight, 80);
         }
@@ -655,6 +734,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
   const handleTabSelect = (tabId: SettingsTabId) => {
     setActiveTab(tabId);
+    setPendingSection(null);
     try { localStorage.setItem('settings-active-tab', tabId); } catch { /* ignore */ }
     if (!isDesktop) {
       setMobileShowContent(true);
@@ -670,6 +750,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
   const renderTabContent = () => (
     <AdvancedSettingsProvider key={effectiveActiveTab}>
+      <SectionNav />
       {managedAccountId && managedAccount && (
         <button
           type="button"
@@ -1002,6 +1083,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                     <div key={tab.id}>
                       <button
                         data-testid={`settings-tab-${tab.id}`}
+                        aria-current={effectiveActiveTab === tab.id ? 'page' : undefined}
                         onClick={() => handleTabSelect(tab.id)}
                         className={cn(
                           'w-full text-start py-2 pe-3 rounded-md text-sm transition-colors duration-150 flex items-center gap-2.5',

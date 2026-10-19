@@ -447,17 +447,27 @@ export function parseFilesPath(
 // Settings
 // ---------------------------------------------------------------------------
 
-export function buildSettingsPath(tabId: string | null | undefined): string {
-  return tabId ? `/settings/${encodeSegment(tabId)}` : '/settings';
+/** `/settings/<tab>`, or `/settings/<tab>/<section>` to land on one section of the page. */
+export function buildSettingsPath(tabId: string | null | undefined, section?: string | null): string {
+  if (!tabId) return '/settings';
+  const base = `/settings/${encodeSegment(tabId)}`;
+  return section ? `${base}/${encodeSegment(section)}` : base;
 }
 
 /**
- * The tab id from `/settings/<tab>`. Validation against the real tab registry
- * is the settings page's job - it owns the list and the legacy-id migration.
+ * The tab id from `/settings/<tab>[/<section>]`. Validation against the real
+ * tab registry is the settings page's job - it owns the list and the
+ * legacy-id migration.
  */
 export function parseSettingsPath(segments: string[] = []): string | null {
   const [tab] = segments;
   return tab ? decodeSegment(tab) : null;
+}
+
+/** The section id from `/settings/<tab>/<section>`, if the link names one. */
+export function parseSettingsSection(segments: string[] = []): string | null {
+  const [, section] = segments;
+  return section ? decodeSegment(section) : null;
 }
 
 // ---------------------------------------------------------------------------

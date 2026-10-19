@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, createContext, useContext, useEffect, useId, useState, useCallback, useMemo } from 'react';
+import { ReactNode, createContext, useContext, useEffect, useId, useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Lock } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -93,6 +93,56 @@ export function AdvancedSettingsSwitch() {
 export function AdvancedOnly({ children }: { children: ReactNode }) {
   const visible = useAdvancedVisible(true);
   return visible ? <>{children}</> : null;
+}
+
+/** Scrolls the section with this id into view, if the open page has it. */
+export function scrollToSettingsSection(id: string, root: ParentNode = document): boolean {
+  const el = root.querySelector<HTMLElement>(`[data-settings-section="${id.replace(/"/g, '\\"')}"]`);
+  if (!el) return false;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return true;
+}
+
+/**
+ * The jump row at the top of a page: one button per section on the page,
+ * read from the rendered sections so a page needs nothing beyond giving its
+ * SettingsSections an id. Hidden while the page has fewer than two.
+ */
+export function SectionNav() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [sections, setSections] = useState<{ id: string; title: string }[]>([]);
+
+  useEffect(() => {
+    const host = ref.current?.parentElement;
+    if (!host) return;
+    const collect = () => {
+      const list = Array.from(host.querySelectorAll<HTMLElement>('[data-settings-section]'))
+        .map((el) => ({ id: el.dataset.settingsSection ?? '', title: el.querySelector('h3')?.textContent?.trim() ?? '' }))
+        .filter((entry) => entry.id && entry.title);
+      setSections((prev) => (
+        prev.length === list.length && prev.every((p, i) => p.id === list[i].id && p.title === list[i].title) ? prev : list
+      ));
+    };
+    collect();
+    const observer = new MutationObserver(collect);
+    observer.observe(host, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} hidden={sections.length < 2} data-testid="settings-section-nav" className="flex flex-wrap gap-1.5 mb-6">
+      {sections.map((section) => (
+        <button
+          key={section.id}
+          type="button"
+          onClick={() => { if (ref.current?.parentElement) scrollToSettingsSection(section.id, ref.current.parentElement); }}
+          className="px-3 py-1.5 text-xs rounded-md bg-muted hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
+        >
+          {section.title}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /** Small marker next to a label of a row that only shows with Advanced on. */

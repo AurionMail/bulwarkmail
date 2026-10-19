@@ -1390,8 +1390,8 @@ function SidebarImpl({
   // The tab now travels in the URL (#733) rather than through sessionStorage,
   // so a gear click is a link the user can also bookmark or share. It still
   // steers only this one open - the persisted default is written on tab click.
-  const openFolderSettings = () => { router.push(buildSettingsPath('folders')); };
-  const openKeywordSettings = () => { router.push(buildSettingsPath('keywords')); };
+  const openFolderSettings = () => { router.push(buildSettingsPath('organize', 'folders')); };
+  const openKeywordSettings = () => { router.push(buildSettingsPath('organize', 'tags')); };
 
   const {
     contextMenu: mailboxContextMenu,

@@ -234,7 +234,7 @@ export function ComposingSettings() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.dispatchEvent(new CustomEvent('settings-tab-change', { detail: 'account' }))}
+            onClick={() => window.dispatchEvent(new CustomEvent('settings-tab-change', { detail: { tab: 'account', section: 'addresses' } }))}
           >
             {t('signatures_link.button')}
             <ChevronRight className="w-4 h-4 ms-1" />
