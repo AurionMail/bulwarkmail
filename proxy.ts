@@ -398,6 +398,13 @@ export async function proxy(request: NextRequest) {
 
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("X-XSS-Protection", "0");
+  // Only on a request that arrived over TLS (directly or via the reverse
+  // proxy's X-Forwarded-Proto): a plain-http dev or LAN install must not be
+  // pinned to https by a header it cannot honour. No includeSubDomains, which
+  // would speak for the operator's other hosts.
+  if (request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https") {
+    response.headers.set("Strict-Transport-Security", "max-age=63072000");
+  }
   response.headers.set(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(), payment=()"

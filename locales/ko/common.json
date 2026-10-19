@@ -60,6 +60,12 @@
     "demo_login_button": "데모 시작",
     "demo_tagline": "모든 기능을 갖춘 이메일 클라이언트를 경험해 보세요. 계정이 없어도 괜찮아요.",
     "demo_no_signup": "가입할 필요 없이 샘플 데이터로 자유롭게 둘러보세요",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "로그인을 완료하는 중...",
     "oauth_error": {
       "title": "인증 실패",

@@ -31,6 +31,18 @@ afterEach(() => {
   useSettingsStore.setState({ externalContentPolicy: 'ask' });
 });
 
+describe('quoted island layout containment', () => {
+  it('confines the quoted original to its own box, so a fixed overlay in it cannot cover the app', () => {
+    // The shadow root isolates styles, not layout: without containment a
+    // sender's `position:fixed; inset:0` element painted over the composer.
+    editor = mount(buildQuotedHtmlBlock('<div style="position:fixed;inset:0;z-index:2147483647;background:#fff">Session expired</div>'));
+    const host = editor.view.dom.querySelector('.quoted-html-island') as HTMLElement;
+    expect(host.style.contain).toBe('paint');
+    expect(host.style.position).toBe('relative');
+    expect(host.style.overflow).toBe('hidden');
+  });
+});
+
 describe('parkRemoteResources', () => {
   it('parks every external reference and restores it exactly', () => {
     const { html, parked } = parkRemoteResources(QUOTE);

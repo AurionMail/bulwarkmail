@@ -14,6 +14,10 @@ interface DiscoveryResult {
   resolvedAccount: string | null;
 }
 
+/** Bounds on the fan-out of one request (each candidate is a PROPFIND upstream). */
+const MAX_ACCOUNTS = 10;
+const MAX_CANDIDATES_PER_ACCOUNT = 10;
+
 function buildPublicUrl(serverUrl: string, path: string): string {
   return new URL(path, serverUrl).toString();
 }
@@ -68,7 +72,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const accounts = Array.isArray(body.accounts) ? body.accounts as DiscoveryAccountRequest[] : [];
+    // Each candidate is a PROPFIND against the user's server; the lists are
+    // bounded so one request cannot fan out into hundreds of them.
+    const accounts = (Array.isArray(body.accounts) ? body.accounts as DiscoveryAccountRequest[] : []).slice(0, MAX_ACCOUNTS);
     const wellKnownUrl = buildPublicUrl(creds.serverUrl, '/.well-known/caldav');
     const discovered: Record<string, DiscoveryResult> = {};
 
@@ -76,10 +82,10 @@ export async function POST(request: NextRequest) {
       if (!account?.key) continue;
 
       const candidates = Array.from(new Set(
-        (account.candidates || [])
-          .map((candidate) => candidate?.trim())
+        (Array.isArray(account.candidates) ? account.candidates : [])
+          .map((candidate) => (typeof candidate === 'string' ? candidate.trim() : ''))
           .filter((candidate): candidate is string => Boolean(candidate))
-      ));
+      )).slice(0, MAX_CANDIDATES_PER_ACCOUNT);
 
       let url: string | null = null;
       let resolvedAccount: string | null = null;

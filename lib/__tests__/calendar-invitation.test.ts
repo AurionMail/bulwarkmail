@@ -477,6 +477,32 @@ describe('getInvitationTrustAssessment', () => {
     expect(result.level).toBe('trusted');
     expect(result.reason).toBeNull();
   });
+
+  it('does not trust an SPF or DKIM pass for a domain other than the From domain', () => {
+    // MAIL FROM at the attacker's domain (SPF pass there), From and ORGANIZER
+    // at the victim's; the victim publishes no DMARC policy, so dmarc=none.
+    const event: Partial<CalendarEvent> = {
+      participants: {
+        org: makeParticipant({ roles: { owner: true }, email: 'organizer@example.com' }),
+      },
+    };
+    const email = (authenticationResults: NonNullable<ReturnType<typeof makeEmail>['authenticationResults']>) =>
+      makeEmail({ from: [{ email: 'organizer@example.com' }], authenticationResults });
+
+    const spf = getInvitationTrustAssessment(event, email({
+      spf: { result: 'pass', domain: 'attacker.example', ip: '203.0.113.5' },
+      dmarc: { result: 'none', domain: 'example.com' },
+    }), 'request');
+    expect(spf.level).toBe('caution');
+    expect(spf.reason).toBe('authentication_missing');
+
+    const dkim = getInvitationTrustAssessment(event, email({
+      dkim: { result: 'pass', domain: 'attacker.example', selector: 's1' },
+      dmarc: { result: 'none', domain: 'example.com' },
+    }), 'request');
+    expect(dkim.level).toBe('caution');
+    expect(dkim.reason).toBe('authentication_missing');
+  });
 });
 
 describe('findParticipantByEmail', () => {

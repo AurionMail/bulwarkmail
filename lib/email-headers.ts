@@ -41,6 +41,47 @@ function hasDkimPass(auth: AuthenticationResults): boolean {
   return auth.dkim?.result === 'pass' || !!auth.dkim?.all?.some((entry) => entry.result === 'pass');
 }
 
+/**
+ * Whether `candidate` is the From domain or a parent/child of it: the
+ * relaxed alignment DMARC applies, without a public-suffix list.
+ */
+function alignedWith(fromDomain: string, candidate: string | undefined): boolean {
+  const other = candidate ? domainOf(`@${candidate}`) : undefined;
+  if (!other) return false;
+  return other === fromDomain || other.endsWith(`.${fromDomain}`) || fromDomain.endsWith(`.${other}`);
+}
+
+/**
+ * An SPF pass for the MAIL FROM identity whose domain aligns with the From
+ * domain. Any sender can pass SPF for a domain of their own and still write
+ * someone else's address in From; only an aligned pass says anything about
+ * the visible sender. A HELO pass never does.
+ */
+function hasAlignedSpfPass(auth: AuthenticationResults, fromDomain: string): boolean {
+  if (auth.spf?.all) {
+    return auth.spf.all.some((entry) => entry.identity !== 'helo' && entry.result === 'pass' && alignedWith(fromDomain, entry.domain));
+  }
+  return auth.spf?.result === 'pass' && alignedWith(fromDomain, auth.spf.domain);
+}
+
+/** A DKIM pass for a signing domain that aligns with the From domain. */
+function hasAlignedDkimPass(auth: AuthenticationResults, fromDomain: string): boolean {
+  const entries = auth.dkim?.all ?? (auth.dkim ? [auth.dkim] : []);
+  return entries.some((entry) => entry.result === 'pass' && alignedWith(fromDomain, entry.domain));
+}
+
+/**
+ * Whether the receiving server's checks tie the message to the visible From
+ * domain: an aligned DMARC, SPF or DKIM pass. Shared by the sender
+ * verification notice and the calendar invitation trust assessment.
+ */
+export function hasAlignedAuthenticationPass(auth: AuthenticationResults | undefined, fromEmail: string | undefined): boolean {
+  if (!auth || !fromEmail) return false;
+  const domain = domainOf(fromEmail);
+  if (!domain) return false;
+  return auth.dmarc?.result === 'pass' || hasAlignedSpfPass(auth, domain) || hasAlignedDkimPass(auth, domain);
+}
+
 function domainOf(address: string): string | undefined {
   const domain = address.slice(address.lastIndexOf('@') + 1).trim().toLowerCase().replace(/\.$/, '');
   return /^[^\s<>@]+\.[^\s<>@]+$/.test(domain) ? domain : undefined;
@@ -79,13 +120,16 @@ export function getSenderVerification(
   // DMARC only counts the MAIL FROM identity; a HELO pass proves nothing
   // about who wrote the message.
   const mailFrom = auth.spf?.all?.find((entry) => entry.identity === 'mailfrom');
-  const spfPass = auth.spf?.all ? mailFrom?.result === 'pass' : auth.spf?.result === 'pass';
   const envelope = mailFrom?.domain ?? auth.spf?.domain;
   const envelopeDomain = envelope ? domainOf(envelope) : undefined;
   const sentFrom = envelopeDomain && envelopeDomain !== domain ? envelopeDomain : undefined;
 
   if (isAuthenticationSpoofed(auth)) return { status: 'failed', domain, sentFrom };
-  if (auth.dmarc?.result === 'pass' || spfPass || hasDkimPass(auth)) return null;
+  // Only a pass that aligns with the From domain counts: `spf=pass` for the
+  // sender's own envelope domain under someone else's From is the forgery
+  // this notice exists for, and a DKIM signature by a third domain is no
+  // better. The DMARC verdict is `none` in both cases (no policy published).
+  if (hasAlignedAuthenticationPass(auth, fromEmail)) return null;
   return { status: 'unverified', domain, sentFrom };
 }
 

@@ -35,6 +35,30 @@ describe('oauth/discovery', () => {
     discoverOAuth = mod.discoverOAuth;
   });
 
+  it('does not read a well-known document from another host the configured one redirects to', async () => {
+    // The endpoints inside the document were validated, but the document
+    // itself followed redirects anywhere.
+    const redirect = { status: 302, ok: false, headers: new Headers({ location: 'https://evil.example/.well-known/openid-configuration' }), json: async () => ({}) };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(redirect));
+    const result = await discoverOAuth('https://mail.example.com', { validateEndpoint });
+    expect(result).toBeNull();
+    for (const call of (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls) {
+      expect(String(call[0])).toContain('mail.example.com');
+    }
+  });
+
+  it('follows one redirect that stays on the same host', async () => {
+    const redirect = { status: 301, ok: false, headers: new Headers({ location: '/auth/.well-known/openid-configuration' }), json: async () => ({}) };
+    const document = { status: 200, ok: true, headers: new Headers(), json: async () => VALID_METADATA };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(redirect).mockResolvedValueOnce(document));
+    const result = await discoverOAuth('https://mail.example.com', { validateEndpoint });
+    expect(result).toEqual(VALID_METADATA);
+    expect(fetch).toHaveBeenLastCalledWith(
+      'https://mail.example.com/auth/.well-known/openid-configuration',
+      expect.objectContaining({ redirect: 'error' }),
+    );
+  });
+
   it('discovers metadata from oauth-authorization-server', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
       ok: true,

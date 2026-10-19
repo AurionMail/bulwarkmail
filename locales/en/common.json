@@ -60,6 +60,12 @@
     "demo_login_button": "Launch Demo",
     "demo_tagline": "Experience a full-featured email client. No account required.",
     "demo_no_signup": "No signup needed - explore freely with sample data",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Completing sign in...",
     "oauth_error": {
       "title": "Authentication Failed",

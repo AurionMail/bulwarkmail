@@ -1,5 +1,6 @@
 import type { Email, Attachment, CalendarEvent, CalendarParticipant, EmailBodyPart } from '@/lib/jmap/types';
 import { normalizeCalendarEventLike } from '@/lib/calendar-event-normalization';
+import { hasAlignedAuthenticationPass } from '@/lib/email-headers';
 import { fromWallClock, isValidTimeZone, parseLocalDateTime, type WallClock } from '@/lib/timezone';
 
 export type InvitationMethod =
@@ -200,13 +201,15 @@ function getOrganizerEmail(event: Partial<CalendarEvent>): string | null {
   return null;
 }
 
-function hasVerifiedAuthentication(email?: Pick<Email, 'authenticationResults'>): boolean {
-  const authenticationResults = email?.authenticationResults;
-  return Boolean(
-    authenticationResults?.dmarc?.result === 'pass'
-    || authenticationResults?.dkim?.result === 'pass'
-    || authenticationResults?.spf?.result === 'pass'
-  );
+/**
+ * Whether the server's checks tie the message to its From domain. Only an
+ * aligned pass counts: a sender passes SPF for their own envelope domain, or
+ * signs with their own DKIM key, and still writes the organizer's address in
+ * From. With no DMARC policy on that domain the verdict is `dmarc=none`, and
+ * the bare `spf=pass` made the forged invitation look trusted.
+ */
+function hasVerifiedAuthentication(email?: Pick<Email, 'from' | 'authenticationResults'>): boolean {
+  return hasAlignedAuthenticationPass(email?.authenticationResults, getPrimaryAddressEmail(email?.from) ?? undefined);
 }
 
 function hasAuthenticationFailure(email?: Pick<Email, 'authenticationResults'>): boolean {

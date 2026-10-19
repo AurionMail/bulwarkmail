@@ -20,6 +20,8 @@ import { parseJmapServers, resolveTrustedJmapUrl } from '@/lib/admin/jmap-server
 import { fetchPublicUrl, type PublicFetchResponse } from '@/lib/security/url-guard';
 
 const MAX_REDIRECTS = 5;
+/** Deadline for one upstream request when the caller sets none. */
+export const UPSTREAM_TIMEOUT_MS = 30_000;
 
 export async function isTrustedJmapServerUrl(serverUrl: string): Promise<boolean> {
   await configManager.ensureLoaded();
@@ -56,9 +58,13 @@ function headersToRecord(init: HeadersInit | undefined): Record<string, string> 
  */
 export async function fetchJmapServer(
   url: string,
-  init: ServerFetchInit = {},
+  givenInit: ServerFetchInit = {},
   trusted: boolean | undefined,
 ): Promise<Response> {
+  // Every call gets a deadline: a slow or silent server (with custom
+  // endpoints on, one the user chose) must not pin a connection for as long
+  // as it likes. Callers with their own signal keep it.
+  const init: ServerFetchInit = givenInit.signal ? givenInit : { ...givenInit, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) };
   if (trusted !== false) {
     return fetch(url, init);
   }

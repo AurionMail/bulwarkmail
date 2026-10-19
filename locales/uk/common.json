@@ -60,6 +60,12 @@
     "demo_login_button": "Запустити демонстрацію",
     "demo_tagline": "Спробуйте повнофункціональний поштовий клієнт. Обліковий запис не потрібен.",
     "demo_no_signup": "Реєстрація не потрібна - вільно досліджуйте з зразками даних",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Завершення входу...",
     "oauth_error": {
       "title": "Помилка автентифікації",

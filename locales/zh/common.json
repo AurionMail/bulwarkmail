@@ -60,6 +60,12 @@
     "demo_login_button": "启动演示",
     "demo_tagline": "体验功能完整的邮件客户端，无需账号。",
     "demo_no_signup": "无需注册，直接使用示例数据体验",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "正在完成登录…",
     "oauth_error": {
       "title": "认证失败",

@@ -61,7 +61,9 @@ describe('plugin http.post denied paths', () => {
   });
 
   it('still reaches a plugin sidecar route', async () => {
-    await dispatchApiCall(plugin(['/api/translate']), 'http.post', ['/api/translate', { text: 'hi' }]);
+    // /api/translate used to be the example here; it is a third-party relay
+    // with the user's cookies and is denied now like the other app routes.
+    await dispatchApiCall(plugin(['/api/my-plugin/translate']), 'http.post', ['/api/my-plugin/translate', { text: 'hi' }]);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 

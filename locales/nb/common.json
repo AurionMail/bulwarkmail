@@ -60,6 +60,12 @@
     "demo_login_button": "Start demoen",
     "demo_tagline": "Prøv en fullverdig e-postklient. Du trenger ingen konto.",
     "demo_no_signup": "Ingen registrering nødvendig – utforsk fritt med eksempeldata",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Fullfører pålogging...",
     "oauth_error": {
       "title": "Autentisering mislyktes",

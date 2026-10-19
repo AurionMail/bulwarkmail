@@ -32,6 +32,8 @@ import {
 } from "@/lib/auth/lite-oauth";
 import { toAsciiDomain } from "@/lib/idn";
 import { usePrefetchMailView } from "@/hooks/use-prefetch-mail-view";
+import { buildMobileHandoffUrl, mobileHandoffTarget } from "@/lib/auth/mobile-handoff";
+import { MobileHandoffConsent } from "@/components/auth/mobile-handoff-consent";
 
 /** The domain of a complete address (`user@example.com`), or '' while it is still being typed. */
 function completeAddressDomain(username: string): string {
@@ -134,11 +136,6 @@ function VersionBadge() {
   );
 }
 
-// Only redirect targets matching this scheme are honored by the mobile
-// handoff path. Without the check the login page becomes an open redirector
-// that funnels password and token material to any caller-supplied URL.
-const MOBILE_REDIRECT_SCHEME = "bulwarkmobile://";
-
 function LoginPageContent() {
   const router = useRouter();
   const t = useTranslations("login");
@@ -150,13 +147,13 @@ function LoginPageContent() {
   // these params. We grab them once at mount and stash them in a ref so any
   // login path that completes (password or OAuth) can hand control back to
   // the app instead of routing into /mail.
-  const rawMobileRedirectUri = searchParams.get("mobile_redirect_uri") ?? "";
+  // Only the app's own callback link is a handoff target, and nothing is
+  // handed over before the user confirms it (lib/auth/mobile-handoff.ts).
   const rawMobileState = searchParams.get("mobile_state") ?? "";
-  const mobileRedirectUri = rawMobileRedirectUri.startsWith(MOBILE_REDIRECT_SCHEME)
-    ? rawMobileRedirectUri
-    : "";
+  const mobileRedirectUri = mobileHandoffTarget(searchParams.get("mobile_redirect_uri"));
   const mobileState = mobileRedirectUri ? rawMobileState : "";
   const isMobileHandoff = Boolean(mobileRedirectUri);
+  const [pendingHandoff, setPendingHandoff] = useState<{ url: string; username: string } | null>(null);
   usePrefetchMailView(!isMobileHandoff);
   const { login, loginWithToken, loginDemo, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const { theme, setTheme, initializeTheme } = useThemeStore(useShallow((s) => ({ theme: s.theme, setTheme: s.setTheme, initializeTheme: s.initializeTheme })));
@@ -374,12 +371,13 @@ function LoginPageContent() {
       // mobile app instead of pushing to /mail. handleSubmit captured the
       // values needed for the fragment.
       if (isMobileHandoff && mobileHandoffPayloadRef.current) {
-        const fragment = new URLSearchParams({
-          flow: "password",
-          ...mobileHandoffPayloadRef.current,
-          state: mobileState,
+        const payload = mobileHandoffPayloadRef.current;
+        mobileHandoffPayloadRef.current = null;
+        // Shown to the user first; the navigation happens on their confirmation.
+        setPendingHandoff({
+          url: buildMobileHandoffUrl(mobileRedirectUri, { flow: "password", ...payload, state: mobileState }),
+          username: payload.username,
         });
-        window.location.replace(`${mobileRedirectUri}#${fragment.toString()}`);
         return;
       }
       let redirectTo = '/';
@@ -1110,6 +1108,14 @@ function LoginPageContent() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-muted/10 to-muted/30 relative px-4">
+      <MobileHandoffConsent
+        url={pendingHandoff?.url ?? null}
+        username={pendingHandoff?.username ?? ""}
+        onCancel={() => {
+          setPendingHandoff(null);
+          router.push('/');
+        }}
+      />
       {/* Theme toggle - top right, dropdown style; hidden while the theme policy locks the mode (#1280) */}
       <div className="absolute top-5 right-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
         <button

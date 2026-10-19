@@ -1070,6 +1070,10 @@ write_env_file() {
         echo -e "    ${OK} Backed up existing .env.local --> $(basename "$backup")"
     fi
 
+    # The file holds the session secret and the OAuth client secret: readable
+    # by this user only, whatever the umask says.
+    (umask 077; : > "$ENV_FILE")
+    chmod 600 "$ENV_FILE"
     cat > "$ENV_FILE" << ENVEOF
 # =============================================================================
 # Bulwark Webmail -- Configuration

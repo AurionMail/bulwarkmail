@@ -60,6 +60,12 @@
     "demo_login_button": "Demó indítása",
     "demo_tagline": "Tapasztalj meg egy teljes értékű e-mail klienst. Nincs szükség fiókra.",
     "demo_no_signup": "Nincs szükség regisztrációra - fedezd fel szabadon mintaadatokkal",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Bejelentkezés befejezése...",
     "oauth_error": {
       "title": "Hitelesítés sikertelen",

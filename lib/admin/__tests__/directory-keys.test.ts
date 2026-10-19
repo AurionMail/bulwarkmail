@@ -1,10 +1,22 @@
 /**
  * @vitest-environment node
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash, generateKeyPairSync, sign, type KeyObject } from 'node:crypto';
+import { rmSync } from 'node:fs';
 import { canonicalJson } from '@/lib/extension-package';
 import { checkBundleSignature, clearKeyringCache, keyIdOf, OFFICIAL_DIRECTORY, rootKeysFor } from '../directory-keys';
+
+// The newest keyring issue date per directory is remembered in the state dir.
+const stateDir = await vi.hoisted(async () => {
+  const { mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = mkdtempSync(join(tmpdir(), 'bulwark-directory-keys-'));
+  process.env.ADMIN_STATE_DIR = dir;
+  return dir;
+});
+afterAll(() => rmSync(stateDir, { recursive: true, force: true }));
 
 function keypair() {
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
@@ -90,5 +102,27 @@ describe('checkBundleSignature', () => {
   it('always knows the official directory root key', () => {
     expect(Object.keys(rootKeysFor(OFFICIAL_DIRECTORY, null))).toHaveLength(1);
     expect(rootKeysFor('https://self-hosted.example', null)).toEqual({});
+  });
+
+  it('refuses a keyring older than the newest one it has seen from that directory', async () => {
+    // A root-signed keyring stays valid on its own, so a compromised
+    // directory host could replay one in which a since-revoked key is still
+    // active and sign bundles with that leaked key.
+    const ringAt = (issuedAt: string) => {
+      const body = {
+        _type: 'https://extensions.bulwarkmail.org/keyring/v1',
+        rootKeyId: root.keyId,
+        issuedAt,
+        keys: [{ keyId: online.keyId, publicKey: online.raw, status: 'active', notBefore: issuedAt, notAfter: null }],
+      };
+      return { ...body, signature: sig(root.privateKey, canonicalJson(body)) };
+    };
+    const dir = 'https://replay.directory.test';
+    expect(await check(signedHeaders(), { dir, ring: ringAt('2026-10-20T00:00:00.000Z') })).toMatchObject({ status: 'verified' });
+    clearKeyringCache();
+    expect(await check(signedHeaders(), { dir, ring: ringAt('2026-10-14T00:00:00.000Z') }))
+      .toMatchObject({ status: 'invalid', reason: expect.stringContaining('older than the one seen before') });
+    clearKeyringCache();
+    expect(await check(signedHeaders(), { dir, ring: ringAt('2026-10-21T00:00:00.000Z') })).toMatchObject({ status: 'verified' });
   });
 });

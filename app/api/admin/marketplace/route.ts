@@ -14,6 +14,7 @@ import {
 import { invalidateFrameOriginsCache } from '@/lib/admin/csp-frame-origins';
 import {
   EXTENSION_ID_RE,
+  EXTENSION_VERSION_RE,
   ExtensionPackageError,
   readPluginPackage,
   readThemePackage,
@@ -112,6 +113,31 @@ export async function POST(request: NextRequest) {
 
     if (type !== 'plugin' && type !== 'theme') {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
+    }
+
+    // The version goes into a URL, the registry and the history directory
+    // name; anything but a version string breaks the next update of the
+    // extension (dirNameFor throws on a non-string) and is echoed to the UI.
+    if (typeof version !== 'string' || !EXTENSION_VERSION_RE.test(version)) {
+      return NextResponse.json({ error: 'Invalid version: must look like 1.2.3' }, { status: 400 });
+    }
+
+    // An older release than the installed one is refused unless the admin
+    // insists (`force`, the same confirm step as for a withdrawn version):
+    // a directory, or someone in the path to it, that lists an old,
+    // vulnerable release as the latest must not have an "update" quietly
+    // install it.
+    if (force !== true) {
+      const installed = type === 'theme' ? await getTheme(slug) : await getPlugin(slug);
+      if (installed && EXTENSION_VERSION_RE.test(installed.version) && compareVersions(version, installed.version) < 0) {
+        return NextResponse.json(
+          {
+            error: `Version ${version} is older than the installed ${installed.version}.`,
+            downgrade: { installedVersion: installed.version },
+          },
+          { status: 409 },
+        );
+      }
     }
 
     // The slug becomes a file name and the registry key; it must be a plain id.

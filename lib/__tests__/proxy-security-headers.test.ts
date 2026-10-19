@@ -135,6 +135,19 @@ describe('ALLOWED_FRAME_ANCESTORS', () => {
     else process.env.ALLOWED_FRAME_ANCESTORS = original;
   });
 
+  it('sends HSTS only on a request that arrived over TLS', async () => {
+    const plain = await load('/en/mail');
+    expect(plain.headers.get('strict-transport-security')).toBeNull();
+    const forwarded = await proxy(new NextRequest('http://localhost:3000/en/mail', {
+      headers: { 'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate', 'sec-fetch-site': 'none', 'x-forwarded-proto': 'https' },
+    }));
+    expect(forwarded.headers.get('strict-transport-security')).toBe('max-age=63072000');
+    const direct = await proxy(new NextRequest('https://webmail.example/en/mail', {
+      headers: { 'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate', 'sec-fetch-site': 'none' },
+    }));
+    expect(direct.headers.get('strict-transport-security')).toBe('max-age=63072000');
+  });
+
   it('lets a portal frame the mail UI', async () => {
     const res = await load('/en/mail');
     expect(res.headers.get('content-security-policy')).toContain('frame-ancestors https://portal.example');

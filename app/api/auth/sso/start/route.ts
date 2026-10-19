@@ -11,15 +11,15 @@ import { getCookieOptions } from '@/lib/oauth/cookie-config';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { configManager } from '@/lib/admin/config-manager';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
+import { mobileHandoffTarget } from '@/lib/auth/mobile-handoff';
 
 const SSO_PENDING_COOKIE = 'sso_pending';
 const SSO_PENDING_MAX_AGE = 300; // 5 minutes
 
-// The mobile app's deep-link scheme. Only redirect targets starting with
-// this prefix may flow through the mobile handoff path; without the guard
-// the SSO complete route would be coerced into returning tokens to whatever
+// Only the mobile app's own callback link may flow through the mobile
+// handoff path (lib/auth/mobile-handoff.ts); without the guard the SSO
+// complete route would be coerced into returning tokens to whatever
 // caller-controlled URL the attacker chose.
-const MOBILE_REDIRECT_SCHEME = 'bulwarkmobile://';
 
 /**
  * A re-auth mints the grant a paired phone keeps using. Providers such as
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         : null;
     const mobileState =
       typeof rawMobileState === 'string' && rawMobileState ? rawMobileState : null;
-    if (mobileRedirectUri && !mobileRedirectUri.startsWith(MOBILE_REDIRECT_SCHEME)) {
+    if (mobileRedirectUri && !mobileHandoffTarget(mobileRedirectUri)) {
       return NextResponse.json({ error: 'Invalid mobile_redirect_uri' }, { status: 400 });
     }
 

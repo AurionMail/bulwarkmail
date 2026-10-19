@@ -60,6 +60,12 @@
     "demo_login_button": "Iniciar demo",
     "demo_tagline": "Experimenta un cliente de correo completo. Sin necesidad de cuenta.",
     "demo_no_signup": "Sin registro - explora libremente con datos de ejemplo",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Completando inicio de sesión...",
     "oauth_error": {
       "title": "Error de autenticación",

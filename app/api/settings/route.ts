@@ -12,6 +12,9 @@ import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { mergeStoredTemplates } from '@/lib/template-merge';
 import { mergeStoredSubscriptions } from '@/lib/calendar-subscription-sync';
 
+/** Largest settings blob a client may store (templates and signatures included). */
+const SETTINGS_MAX_BYTES = 2 * 1024 * 1024;
+
 function classifyError(error: unknown): { message: string; status: number } {
   const code = (error as NodeJS.ErrnoException).code;
   const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -79,19 +82,24 @@ async function verifyIdentity(username: string, serverUrl: string): Promise<stri
   const normalizedServerUrl = normalizeUrl(serverUrl);
 
   for (let slot = 0; slot < MAX_ACCOUNT_SLOTS; slot++) {
-    // Check basic-auth session cookie
+    // The context cookie first: it is the one that knows the account name,
+    // and every sign-in path that writes the session cookie writes it too.
+    const ctx = readStalwartAuthContextFromStore(cookieStore, slot);
+    if (ctx && ctx.username === username && normalizeUrl(ctx.serverUrl) === normalizedServerUrl) {
+      return ctx.accountName ?? username;
+    }
+
+    // Remember-me session cookie without a context (older sign-ins). A
+    // password login proves exactly the claimed name; a token login may have
+    // claimed a bare local part that only the context could resolve, so it
+    // does not key anything on its own.
     const token = cookieStore.get(sessionCookieName(slot))?.value;
     if (token) {
       const session = decryptSession(token);
       if (session && session.username === username && normalizeUrl(session.serverUrl) === normalizedServerUrl) {
+        if ('token' in session && session.token && !username.includes('@')) continue;
         return username;
       }
-    }
-
-    // Check stalwart auth context cookie (set for all auth modes)
-    const ctx = readStalwartAuthContextFromStore(cookieStore, slot);
-    if (ctx && ctx.username === username && normalizeUrl(ctx.serverUrl) === normalizedServerUrl) {
-      return ctx.accountName ?? username;
     }
   }
 
@@ -137,7 +145,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { username, serverUrl, settings } = await request.json();
+    // One settings blob per account, read back on every sync: bound it
+    // before parsing, the way the account archive is.
+    if (Number(request.headers.get('content-length') ?? 0) > SETTINGS_MAX_BYTES) {
+      return NextResponse.json({ error: 'Settings are too large' }, { status: 413 });
+    }
+    const text = await request.text();
+    if (text.length > SETTINGS_MAX_BYTES) {
+      return NextResponse.json({ error: 'Settings are too large' }, { status: 413 });
+    }
+    const { username, serverUrl, settings } = JSON.parse(text);
     if (!username || !serverUrl || !settings) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }

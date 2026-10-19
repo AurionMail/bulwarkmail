@@ -19,12 +19,15 @@ interface RowDraft {
   oauthClientId: string;
   oauthIssuerUrl: string;
   oauthClientSecret: string;
+  /** The server holds a secret the dashboard is not shown; an empty field keeps it. */
+  hasClientSecret: boolean;
   oauthButtonLabel: string;
   oauthEndSessionUrl: string;
   oauthExpanded: boolean;
 }
 
 function entryToDraft(e: JmapServerEntry): RowDraft {
+  const hasClientSecret = !!(e.oauth?.hasClientSecret || e.oauth?.clientSecret);
   return {
     id: e.id,
     label: e.label,
@@ -32,10 +35,11 @@ function entryToDraft(e: JmapServerEntry): RowDraft {
     domains: (e.domains ?? []).join(', '),
     oauthClientId: e.oauth?.clientId ?? '',
     oauthIssuerUrl: e.oauth?.issuerUrl ?? '',
-    oauthClientSecret: e.oauth?.clientSecret ?? '',
+    oauthClientSecret: '',
+    hasClientSecret,
     oauthButtonLabel: e.oauth?.buttonLabel ?? '',
     oauthEndSessionUrl: e.oauth?.endSessionUrl ?? '',
-    oauthExpanded: !!(e.oauth && (e.oauth.clientId || e.oauth.issuerUrl || e.oauth.clientSecret || e.oauth.endSessionUrl)),
+    oauthExpanded: !!(e.oauth && (e.oauth.clientId || e.oauth.issuerUrl || hasClientSecret || e.oauth.endSessionUrl)),
   };
 }
 
@@ -52,11 +56,14 @@ function draftToEntry(d: RowDraft): JmapServerEntry | null {
   const clientSecret = d.oauthClientSecret;
   const buttonLabel = d.oauthButtonLabel.trim();
   const endSessionUrl = d.oauthEndSessionUrl.trim();
-  const oauth = clientId || issuerUrl || clientSecret || endSessionUrl
+  // A typed secret replaces the stored one; an empty field keeps it (the
+  // server fills it back in), and the flag keeps the block alive so the
+  // server knows there is still an OAuth client here.
+  const oauth = clientId || issuerUrl || clientSecret || endSessionUrl || d.hasClientSecret
     ? {
         ...(clientId ? { clientId } : {}),
         ...(issuerUrl ? { issuerUrl } : {}),
-        ...(clientSecret ? { clientSecret } : {}),
+        ...(clientSecret ? { clientSecret } : d.hasClientSecret ? { hasClientSecret: true } : {}),
         ...(buttonLabel ? { buttonLabel } : {}),
         ...(endSessionUrl ? { endSessionUrl } : {}),
       }
@@ -79,6 +86,7 @@ function emptyDraft(): RowDraft {
     oauthClientId: '',
     oauthIssuerUrl: '',
     oauthClientSecret: '',
+    hasClientSecret: false,
     oauthButtonLabel: '',
     oauthEndSessionUrl: '',
     oauthExpanded: false,
@@ -256,6 +264,7 @@ export function JmapServersSection({ value, source, onChange, onRevert }: Props)
                     type="password"
                     value={d.oauthClientSecret}
                     onChange={(e) => update(i, { oauthClientSecret: e.target.value })}
+                    placeholder={d.hasClientSecret ? '••••••••  (saved - type to replace)' : undefined}
                     className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 </div>

@@ -56,13 +56,14 @@ export const detailHref = (slug: string, version?: string | null) =>
   `/admin/marketplace/${encodeURIComponent(slug)}${version ? `?version=${encodeURIComponent(version)}` : ''}`;
 
 /**
- * Installs one version of an extension. A version the publisher withdrew
- * comes back as 409; the admin is asked, and the install is repeated with
- * `force` if they insist. Returns the error text to show, or null.
+ * Installs one version of an extension. A version the publisher withdrew,
+ * or one older than the installed version, comes back as 409; the admin is
+ * asked, and the install is repeated with `force` if they insist. Returns
+ * the error text to show, or null.
  */
 export async function installVersion(
   body: { slug: string; version: string; type: 'plugin' | 'theme' },
-  confirmYanked: (message: string) => boolean = (m) => window.confirm(m),
+  confirm: (message: string) => boolean = (m) => window.confirm(m),
 ): Promise<{ ok: true; warnings: string[]; signature: string | null; updated: boolean } | { ok: false; error: string }> {
   const send = (force: boolean) => apiFetch('/api/admin/marketplace', {
     method: 'POST',
@@ -74,7 +75,10 @@ export async function installVersion(
     if (res.status === 409) {
       const data = await res.json().catch(() => ({}));
       if (data.yanked) {
-        if (!confirmYanked(`${data.error}\n\nInstall it anyway?`)) return { ok: false, error: 'Not installed.' };
+        if (!confirm(`${data.error}\n\nInstall it anyway?`)) return { ok: false, error: 'Not installed.' };
+        res = await send(true);
+      } else if (data.downgrade) {
+        if (!confirm(`${data.error}\n\nInstall the older version anyway?`)) return { ok: false, error: 'Not installed.' };
         res = await send(true);
       } else {
         return { ok: false, error: data.error || 'Installation failed' };
