@@ -8,6 +8,7 @@ import type { EmailTemplate } from '@/lib/template-types';
 import type { NotificationSoundChoice } from '@/lib/notification-sound';
 import { EMPTY_NOTIFICATION_MUTES, normalizeNotificationMutes, type NotificationMutes } from '@/lib/notification-mutes';
 import { apiFetch } from '@/lib/browser-navigation';
+import { writePushPreferences } from '@/lib/push-preferences';
 import { settingsHooks } from '@/lib/plugin-hooks';
 import { generateAccountId } from '@/lib/account-utils';
 import { subscriptionOwnerFor } from '@/lib/calendar-subscription-sync';
@@ -1973,6 +1974,18 @@ if (typeof window !== 'undefined') {
   applyDensity(store.density, store.interfaceLayout);
   applyInterfaceLayout(store.interfaceLayout, store.density);
   applyAnimations(store.animationsEnabled);
+
+  // The service worker shows push notifications without this store, so it
+  // reads the sound preference from its own Cache store (#1289).
+  const pushSound = (s: SettingsState) => s.emailNotificationsEnabled && s.emailNotificationSound;
+  let lastPushSound = pushSound(store);
+  void writePushPreferences({ sound: lastPushSound });
+  useSettingsStore.subscribe((state) => {
+    const sound = pushSound(state);
+    if (sound === lastPushSound) return;
+    lastPushSound = sound;
+    void writePushPreferences({ sound });
+  });
 
   // The policy arrives after this store has rehydrated (and again with the
   // full scope once signed in), so its defaults apply whenever it changes.

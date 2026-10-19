@@ -206,7 +206,8 @@ async function handlePush(event) {
     body = unreadTotal > 1 ? `${unreadTotal} unread messages` : "You have new mail";
   }
 
-  const quiet = await withinQuietWindow(accountId);
+  // With the sound setting off, nothing rings and no quiet window starts.
+  const audible = (await soundPreference()) && !(await withinQuietWindow(accountId));
   await self.registration.showNotification(title, {
     body,
     // Shared per-account tag: each new push replaces the account's single
@@ -217,10 +218,10 @@ async function handlePush(event) {
     icon: `${BASE_PATH}/api/pwa-icon/192`,
     badge: `${BASE_PATH}/api/pwa-icon/192`,
     data,
-    // Inside the quiet window the notification still appears or updates,
-    // without a sound.
-    renotify: !quiet,
-    silent: quiet,
+    // Inside the quiet window, or with the sound setting off, the
+    // notification still appears or updates, without a sound.
+    renotify: audible,
+    silent: !audible,
   });
 
   const announced = freshIds.length > 0 ? freshIds : (email ? [email.id] : []);
@@ -240,6 +241,26 @@ const QUIET_WINDOW_MS = 30_000;
 
 function lastAlertKey() {
   return `${self.location.origin}${BASE_PATH}/__push-state/last-alert`;
+}
+
+function pushPreferencesKey() {
+  return `${self.location.origin}${BASE_PATH}/__push-state/prefs`;
+}
+
+/**
+ * The webmail's "Notification sound" setting, mirrored into this store by
+ * the page (lib/push-preferences.ts, #1289). Nothing stored: a sound, as
+ * before.
+ */
+async function soundPreference() {
+  try {
+    const cache = await caches.open(PUSH_STATE_CACHE);
+    const res = await cache.match(pushPreferencesKey());
+    const prefs = res ? await res.json() : null;
+    return !prefs || prefs.sound !== false;
+  } catch (_) {
+    return true;
+  }
 }
 
 /** True when another account alerted audibly less than QUIET_WINDOW_MS ago; otherwise records this one. */
