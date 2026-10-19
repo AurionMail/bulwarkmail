@@ -1050,7 +1050,9 @@
       "debug": "Debug",
       "message_list": "Nachrichtenliste",
       "general": "Allgemein",
-      "organize": "Ordner & Tags"
+      "organize": "Ordner & Tags",
+      "addons": "Erweiterungen",
+      "backup": "Sicherung & Zurücksetzen"
     },
     "themes": {
       "title": "Designs",
@@ -2229,6 +2231,12 @@
           "delivered": "Zugestellt",
           "mistakes": "Fehler"
         }
+      },
+      "sections": {
+        "backup": "Einstellungen sichern",
+        "backup_description": "Ihre Einstellungen über Browser und Geräte hinweg behalten.",
+        "fix": "Probleme beheben",
+        "fix_description": "Wenn eine Ansicht veraltet oder falsch aussieht oder Sie neu anfangen möchten."
       }
     },
     "sidebar_apps": {

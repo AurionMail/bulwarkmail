@@ -1053,7 +1053,9 @@
       "debug": "Depuració",
       "message_list": "Llista de missatges",
       "general": "General",
-      "organize": "Carpetes i etiquetes"
+      "organize": "Carpetes i etiquetes",
+      "addons": "Complements",
+      "backup": "Còpia de seguretat i restabliment"
     },
     "themes": {
       "title": "Temes",
@@ -2236,6 +2238,12 @@
           "delivered": "Lliurats",
           "mistakes": "Errors"
         }
+      },
+      "sections": {
+        "backup": "Còpia de seguretat de la configuració",
+        "backup_description": "Conserveu la configuració entre navegadors i dispositius.",
+        "fix": "Solucionar problemes",
+        "fix_description": "Quan una vista sembla antiga o incorrecta, o voleu començar de nou."
       }
     },
     "sidebar_apps": {

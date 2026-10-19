@@ -1053,7 +1053,9 @@
       "debug": "Hibakeresés",
       "message_list": "Üzenetlista",
       "general": "Általános",
-      "organize": "Mappák és címkék"
+      "organize": "Mappák és címkék",
+      "addons": "Bővítmények",
+      "backup": "Biztonsági mentés és visszaállítás"
     },
     "themes": {
       "title": "Témák",
@@ -2232,6 +2234,12 @@
           "delivered": "Kézbesítve",
           "mistakes": "Hibák"
         }
+      },
+      "sections": {
+        "backup": "Beállítások mentése",
+        "backup_description": "Őrizze meg beállításait böngészők és eszközök között.",
+        "fix": "Hibák elhárítása",
+        "fix_description": "Ha egy nézet elavultnak vagy hibásnak tűnik, vagy elölről szeretné kezdeni."
       }
     },
     "sidebar_apps": {

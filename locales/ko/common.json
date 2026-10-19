@@ -1050,7 +1050,9 @@
       "debug": "디버그",
       "message_list": "메시지 목록",
       "general": "일반",
-      "organize": "폴더 및 태그"
+      "organize": "폴더 및 태그",
+      "addons": "추가 기능",
+      "backup": "백업 및 초기화"
     },
     "themes": {
       "title": "테마",
@@ -2229,6 +2231,12 @@
           "delivered": "배달",
           "mistakes": "실수"
         }
+      },
+      "sections": {
+        "backup": "설정 백업",
+        "backup_description": "브라우저와 기기 간에 설정을 유지합니다.",
+        "fix": "문제 해결",
+        "fix_description": "보기가 오래되었거나 잘못되었을 때, 또는 처음부터 다시 시작하고 싶을 때."
       }
     },
     "sidebar_apps": {

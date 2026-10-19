@@ -1050,7 +1050,9 @@
       "debug": "调试",
       "message_list": "邮件列表",
       "general": "常规",
-      "organize": "文件夹与标签"
+      "organize": "文件夹与标签",
+      "addons": "附加组件",
+      "backup": "备份与重置"
     },
     "themes": {
       "title": "主题",
@@ -2229,6 +2231,12 @@
           "delivered": "已送达",
           "mistakes": "失误"
         }
+      },
+      "sections": {
+        "backup": "设置备份",
+        "backup_description": "在浏览器和设备之间保留您的设置。",
+        "fix": "修复问题",
+        "fix_description": "当视图看起来过时或有误，或者您想重新开始时。"
       }
     },
     "sidebar_apps": {

@@ -1050,7 +1050,9 @@
       "debug": "Debug",
       "message_list": "Elenco messaggi",
       "general": "Generale",
-      "organize": "Cartelle ed etichette"
+      "organize": "Cartelle ed etichette",
+      "addons": "Componenti aggiuntivi",
+      "backup": "Backup e ripristino"
     },
     "themes": {
       "title": "Temi",
@@ -2229,6 +2231,12 @@
           "delivered": "Consegnati",
           "mistakes": "Errori"
         }
+      },
+      "sections": {
+        "backup": "Backup delle impostazioni",
+        "backup_description": "Conserva le impostazioni tra browser e dispositivi.",
+        "fix": "Risolvere i problemi",
+        "fix_description": "Quando una vista sembra obsoleta o sbagliata, o vuoi ricominciare da capo."
       }
     },
     "sidebar_apps": {

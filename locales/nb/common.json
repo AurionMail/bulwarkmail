@@ -1053,7 +1053,9 @@
       "debug": "Feilsøking",
       "message_list": "Meldingsliste",
       "general": "Generelt",
-      "organize": "Mapper og etiketter"
+      "organize": "Mapper og etiketter",
+      "addons": "Tillegg",
+      "backup": "Sikkerhetskopi og tilbakestilling"
     },
     "themes": {
       "title": "Temaer",
@@ -2236,6 +2238,12 @@
           "delivered": "Levert",
           "mistakes": "Feil"
         }
+      },
+      "sections": {
+        "backup": "Sikkerhetskopi av innstillinger",
+        "backup_description": "Behold innstillingene dine på tvers av nettlesere og enheter.",
+        "fix": "Løs problemer",
+        "fix_description": "Når en visning ser utdatert eller feil ut, eller du vil starte på nytt."
       }
     },
     "sidebar_apps": {

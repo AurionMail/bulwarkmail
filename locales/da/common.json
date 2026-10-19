@@ -1053,7 +1053,9 @@
       "debug": "Debug",
       "message_list": "Beskedliste",
       "general": "Generelt",
-      "organize": "Mapper og tags"
+      "organize": "Mapper og tags",
+      "addons": "Tilføjelser",
+      "backup": "Sikkerhedskopi og nulstilling"
     },
     "themes": {
       "title": "Temaer",
@@ -2232,6 +2234,12 @@
           "delivered": "Leveret",
           "mistakes": "Fejl"
         }
+      },
+      "sections": {
+        "backup": "Sikkerhedskopi af indstillinger",
+        "backup_description": "Behold dine indstillinger på tværs af browsere og enheder.",
+        "fix": "Løs problemer",
+        "fix_description": "Når en visning ser forældet eller forkert ud, eller du vil starte forfra."
       }
     },
     "sidebar_apps": {

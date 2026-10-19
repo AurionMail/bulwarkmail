@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { getPathPrefix, withBasePath } from '@/lib/browser-navigation';
 import { clearCachedData } from '@/lib/clear-cached-data';
 import { SpamSiegeGame } from './spam-siege-game';
+import { DebugSettings } from './debug-settings';
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "0.0.0";
 const GIT_COMMIT = process.env.NEXT_PUBLIC_GIT_COMMIT || "unknown";
@@ -49,24 +50,20 @@ function VersionUpdateTag() {
   );
 }
 
-export function AboutDataSettings() {
+/**
+ * The About card, in the settings sidebar's footer: logo, version with the
+ * update tag, and the source link. A modified build must offer its own
+ * source (AGPL-3.0 §13), so a configured URL replaces the upstream link.
+ * Three clicks on the logo open Spam Siege, as before.
+ */
+export function AboutFooter() {
   const t = useTranslations('settings.advanced');
-  const tCommon = useTranslations('common');
-  const tSettings = useTranslations('settings');
-  const { settingsSyncDisabled, updateSetting, resetToDefaults, exportSettings, importSettings } =
-    useSettingsStore();
-  // A modified build must offer its own source (AGPL-3.0 §13), so a
-  // configured URL replaces the upstream repository link.
-  const { settingsSyncEnabled, sourceCodeUrl, appName, appLogoLightUrl, appLogoDarkUrl } = useConfig();
+  const { sourceCodeUrl, appName, appLogoLightUrl, appLogoDarkUrl } = useConfig();
   // A branded deployment (APP_NAME / APP_LOGO_*) shows its own name and logo
   // here; without them the card keeps the Bulwark mark and title. (#1160)
   const branded = appName && appName !== 'Webmail';
   const logoLight = withBasePath(appLogoLightUrl || appLogoDarkUrl) || `${getPathPrefix()}/branding/Bulwark_Logo_Color.svg`;
   const logoDark = withBasePath(appLogoDarkUrl || appLogoLightUrl) || `${getPathPrefix()}/branding/Bulwark_Logo_White.svg`;
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { isFeatureEnabled } = usePolicyStore();
   const [showGame, setShowGame] = useState(false);
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,6 +79,58 @@ export function AboutDataSettings() {
     }
   };
 
+  return (
+    <div data-testid="settings-about" className="px-3 py-2">
+      {showGame && <SpamSiegeGame onClose={() => setShowGame(false)} />}
+      <div className="flex items-center gap-3">
+        <button onClick={handleLogoClick} className="flex items-center gap-3 flex-1 min-w-0 text-start focus:outline-none group/about cursor-pointer" aria-label="About">
+          <img
+            src={logoLight}
+            alt={branded ? appName : 'Bulwark'}
+            className="w-7 h-7 shrink-0 object-contain dark:hidden group-active/about:scale-95 transition-transform"
+          />
+          <img
+            src={logoDark}
+            alt={branded ? appName : 'Bulwark'}
+            className="w-7 h-7 shrink-0 object-contain hidden dark:block group-active/about:scale-95 transition-transform"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-foreground truncate">{branded ? appName : t('about.title')}</p>
+            <p className="text-[11px] text-muted-foreground truncate">
+              v{APP_VERSION} <span className="text-muted-foreground/60">({GIT_COMMIT})</span>
+              <VersionUpdateTag />
+            </p>
+          </div>
+        </button>
+        <a
+          href={sourceCodeUrl || UPSTREAM_SOURCE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {sourceCodeUrl ? t('about.source_code') : 'GitHub'} <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Backup & reset page: keep settings (sync, export, import), fix a stale
+ * view, start over, and (Advanced, where the admin allows it) debug logging.
+ * The About card moved to the settings sidebar's footer.
+ */
+export function AboutDataSettings() {
+  const t = useTranslations('settings.advanced');
+  const tCommon = useTranslations('common');
+  const tSettings = useTranslations('settings');
+  const { settingsSyncDisabled, updateSetting, resetToDefaults, exportSettings, importSettings } =
+    useSettingsStore();
+  const { settingsSyncEnabled } = useConfig();
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isFeatureEnabled } = usePolicyStore();
   const handleExport = () => {
     const settingsJson = exportSettings();
     const blob = new Blob([settingsJson], { type: 'application/json' });
@@ -137,45 +186,8 @@ export function AboutDataSettings() {
   };
 
   return (
-    <>
-      {showGame && <SpamSiegeGame onClose={() => setShowGame(false)} />}
-      <div className="rounded-lg border border-border bg-card p-5 mb-6">
-        <div className="flex items-center gap-4">
-          <button onClick={handleLogoClick} className="flex items-center gap-4 flex-1 text-start focus:outline-none group/about cursor-pointer" aria-label="About">
-            <div className="shrink-0">
-              <img
-                src={logoLight}
-                alt={branded ? appName : 'Bulwark'}
-                className="w-12 h-12 object-contain dark:hidden group-hover/about:scale-105 group-active/about:scale-95 transition-transform"
-              />
-              <img
-                src={logoDark}
-                alt={branded ? appName : 'Bulwark'}
-                className="w-12 h-12 object-contain hidden dark:block group-hover/about:scale-105 group-active/about:scale-95 transition-transform"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                {branded ? appName : t('about.title')}
-              </p>
-              <p className="text-xs text-muted-foreground group-hover/about:translate-x-0.5 group-active/about:translate-y-px transition-transform">
-                v{APP_VERSION} <span className="text-muted-foreground/60">({GIT_COMMIT})</span>
-                <VersionUpdateTag />
-              </p>
-            </div>
-          </button>
-          <a
-            href={sourceCodeUrl || UPSTREAM_SOURCE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {sourceCodeUrl ? t('about.source_code') : 'GitHub'} <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
-      </div>
-
-      <SettingsSection title={t('title')} description={t('description')}>
+    <div className="space-y-8">
+      <SettingsSection id="backup" title={t('sections.backup')} description={t('sections.backup_description')}>
         {settingsSyncEnabled && (
           <SettingItem label={t('settings_sync.label')} description={t('settings_sync.description')}>
             <ToggleSwitch checked={!settingsSyncDisabled} onChange={(checked) => updateSetting('settingsSyncDisabled', !checked)} />
@@ -206,7 +218,9 @@ export function AboutDataSettings() {
           </>
         </SettingItem>
         )}
+      </SettingsSection>
 
+      <SettingsSection id="fix" title={t('sections.fix')} description={t('sections.fix_description')}>
         <SettingItem label={t('refresh_cache.label')} description={t('refresh_cache.description')}>
           <Button
             variant={showRefreshConfirm ? 'default' : 'outline'}
@@ -227,6 +241,8 @@ export function AboutDataSettings() {
           </Button>
         </SettingItem>
       </SettingsSection>
-    </>
+
+      <DebugSettings />
+    </div>
   );
 }

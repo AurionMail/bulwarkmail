@@ -1050,7 +1050,9 @@
       "debug": "Hata Ayıklama",
       "message_list": "İleti listesi",
       "general": "Genel",
-      "organize": "Klasörler ve etiketler"
+      "organize": "Klasörler ve etiketler",
+      "addons": "Eklentiler",
+      "backup": "Yedekleme ve sıfırlama"
     },
     "themes": {
       "title": "Temalar",
@@ -2229,6 +2231,12 @@
           "delivered": "Teslim edilen",
           "mistakes": "Hatalar"
         }
+      },
+      "sections": {
+        "backup": "Ayar yedeği",
+        "backup_description": "Ayarlarınızı tarayıcılar ve cihazlar arasında koruyun.",
+        "fix": "Sorunları giderme",
+        "fix_description": "Bir görünüm eski ya da yanlış göründüğünde ya da baştan başlamak istediğinizde."
       }
     },
     "sidebar_apps": {

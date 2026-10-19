@@ -1053,7 +1053,9 @@
       "debug": "Silumine",
       "message_list": "Kirjade loend",
       "general": "Üldine",
-      "organize": "Kaustad ja sildid"
+      "organize": "Kaustad ja sildid",
+      "addons": "Lisad",
+      "backup": "Varundus ja lähtestamine"
     },
     "themes": {
       "title": "Teemad",
@@ -2236,6 +2238,12 @@
           "delivered": "Kohale jõudnud",
           "mistakes": "Vead"
         }
+      },
+      "sections": {
+        "backup": "Seadete varundus",
+        "backup_description": "Säilita oma seaded brauserite ja seadmete vahel.",
+        "fix": "Probleemide lahendamine",
+        "fix_description": "Kui vaade tundub aegunud või vale või soovid otsast alustada."
       }
     },
     "sidebar_apps": {

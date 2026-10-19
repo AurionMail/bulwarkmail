@@ -1050,7 +1050,9 @@
       "debug": "Depuración",
       "message_list": "Lista de mensajes",
       "general": "General",
-      "organize": "Carpetas y etiquetas"
+      "organize": "Carpetas y etiquetas",
+      "addons": "Complementos",
+      "backup": "Copia de seguridad y restablecer"
     },
     "themes": {
       "title": "Temas",
@@ -2229,6 +2231,12 @@
           "delivered": "Entregados",
           "mistakes": "Errores"
         }
+      },
+      "sections": {
+        "backup": "Copia de seguridad de los ajustes",
+        "backup_description": "Conserve sus ajustes entre navegadores y dispositivos.",
+        "fix": "Solucionar problemas",
+        "fix_description": "Cuando una vista parece desactualizada o incorrecta, o quiere empezar de cero."
       }
     },
     "sidebar_apps": {

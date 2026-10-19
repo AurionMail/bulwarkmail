@@ -1050,7 +1050,9 @@
       "debug": "デバッグ",
       "message_list": "メッセージ一覧",
       "general": "一般",
-      "organize": "フォルダーとタグ"
+      "organize": "フォルダーとタグ",
+      "addons": "アドオン",
+      "backup": "バックアップとリセット"
     },
     "themes": {
       "title": "テーマ",
@@ -2229,6 +2231,12 @@
           "delivered": "配信",
           "mistakes": "ミス"
         }
+      },
+      "sections": {
+        "backup": "設定のバックアップ",
+        "backup_description": "ブラウザーやデバイスをまたいで設定を保持します。",
+        "fix": "問題の解決",
+        "fix_description": "表示が古い、または正しくないとき、あるいは最初からやり直したいときに。"
       }
     },
     "sidebar_apps": {

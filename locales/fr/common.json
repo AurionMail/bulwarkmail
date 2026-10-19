@@ -1050,7 +1050,9 @@
       "debug": "Débogage",
       "message_list": "Liste des messages",
       "general": "Général",
-      "organize": "Dossiers et étiquettes"
+      "organize": "Dossiers et étiquettes",
+      "addons": "Extensions",
+      "backup": "Sauvegarde et réinitialisation"
     },
     "themes": {
       "title": "Thèmes",
@@ -2229,6 +2231,12 @@
           "delivered": "Distribués",
           "mistakes": "Erreurs"
         }
+      },
+      "sections": {
+        "backup": "Sauvegarde des paramètres",
+        "backup_description": "Conservez vos paramètres d'un navigateur et d'un appareil à l'autre.",
+        "fix": "Résoudre les problèmes",
+        "fix_description": "Quand une vue semble obsolète ou incorrecte, ou pour repartir de zéro."
       }
     },
     "sidebar_apps": {

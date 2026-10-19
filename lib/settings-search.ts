@@ -17,10 +17,8 @@ export type SettingsSearchTab =
   | 'calendar'
   | 'contacts'
   | 'files'
-  | 'sidebar_apps'
-  | 'about_data'
-  | 'plugins'
-  | 'debug';
+  | 'addons'
+  | 'backup';
 
 type Tab = SettingsSearchTab;
 
@@ -125,10 +123,8 @@ export const tabSearchPaths: Record<Tab, string[]> = {
   calendar: ['calendar.settings', 'calendar.management'],
   contacts: ['settings.contacts', 'contacts'],
   files: ['settings.files'],
-  sidebar_apps: ['settings.sidebar_apps', 'sidebar_apps'],
-  about_data: ['settings.advanced'],
-  plugins: [],
-  debug: ['settings.advanced'],
+  addons: ['settings.sidebar_apps', 'sidebar_apps', 'plugins.settings'],
+  backup: ['settings.advanced'],
 };
 
 // Extra English keywords per tab so common search terms hit even when the
@@ -151,10 +147,8 @@ export const tabKeywords: Record<Tab, string> = {
   calendar: 'event schedule appointment meeting timezone invitation ics tasks birthday working hours',
   contacts: 'address book contact',
   files: 'attachments cloud drive storage upload',
-  sidebar_apps: 'apps webview iframe',
-  about_data: 'export import storage quota privacy backup',
-  plugins: 'extensions addons',
-  debug: 'logs developer console diagnostic',
+  addons: 'apps webview iframe plugins extensions addons sidebar',
+  backup: 'export import storage quota privacy backup reset sync cache about version debug logs developer console diagnostic',
 };
 
 export function flattenStrings(node: unknown, sink: string[]): void {

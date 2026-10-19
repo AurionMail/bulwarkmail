@@ -18,14 +18,12 @@ import {
   FolderOpen,
   HardDrive,
   BookUser,
-  PanelLeftClose,
   Bell,
   Puzzle,
   BookOpen,
   PenLine,
   LayoutList,
-  Info,
-  Bug,
+  Database,
   X,
   type AppIcon,
 } from '@/components/icons';
@@ -43,15 +41,13 @@ import { CalendarSettings } from '@/components/settings/calendar-settings';
 import { CalendarManagementSettings } from '@/components/settings/calendar-management-settings';
 import { AddressBookManagementSettings } from '@/components/settings/address-book-management-settings';
 import { FilterSettings } from '@/components/settings/filter-settings';
-import { AboutDataSettings } from '@/components/settings/about-data-settings';
-import { DebugSettings } from '@/components/settings/debug-settings';
+import { AboutDataSettings, AboutFooter } from '@/components/settings/about-data-settings';
 import { OrganizeSettings } from '@/components/settings/organize-settings';
 import { AccountSecuritySettings } from '@/components/settings/account-security-settings';
 import { FilesSettingsComponent } from '@/components/settings/files-settings';
 import { ContactsSettings } from '@/components/settings/contacts-settings';
-import { SidebarAppsSettings } from '@/components/settings/sidebar-apps-settings';
+import { AddonsSettings } from '@/components/settings/addons-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
-import { PluginsSettings } from '@/components/settings/plugins-settings';
 import { PluginIframeSlot } from '@/components/plugins/plugin-iframe-slot';
 import { offersForSlot as pluginOffersForSlot, subscribe as pluginRegistrySubscribe, get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
 import { AdvancedSettingsProvider, AdvancedSettingsSwitch } from '@/components/settings/settings-section';
@@ -128,10 +124,8 @@ const tabIcons: Record<Tab, AppIcon> = {
   calendar: Calendar,
   contacts: BookUser,
   files: HardDrive,
-  sidebar_apps: PanelLeftClose,
-  about_data: Info,
-  plugins: Puzzle,
-  debug: Bug,
+  addons: Puzzle,
+  backup: Database,
 };
 
 const tabGroupOrder: TabGroup[] = ['general', 'appearance', 'mail', 'privacy', 'apps', 'plugins', 'advanced'];
@@ -141,7 +135,7 @@ const tabGroupOrder: TabGroup[] = ['general', 'appearance', 'mail', 'privacy', '
 // land on the page that now holds the setting.
 export const LEGACY_TAB_MAP: Record<string, Tab> = {
   email: 'reading',
-  advanced: 'about_data',
+  advanced: 'backup',
   layout: 'appearance',
   themes: 'appearance',
   content_senders: 'reading',
@@ -152,6 +146,10 @@ export const LEGACY_TAB_MAP: Record<string, Tab> = {
   folders: 'organize',
   keywords: 'organize',
   downloads: 'reading',
+  sidebar_apps: 'addons',
+  plugins: 'addons',
+  about_data: 'backup',
+  debug: 'backup',
 };
 
 function readPersistedTab(): SettingsTabId {
@@ -323,7 +321,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           : '';
         return `${p.name} ${p.description} ${p.author} ${fieldText}`;
       }).join(' ');
-      haystacks.plugins = `${haystacks.plugins ?? ''} ${haystackText}`.toLowerCase();
+      haystacks.addons = `${haystacks.addons ?? ''} ${haystackText}`.toLowerCase();
       const pluginSubs: SubResult[] = installedPlugins.flatMap((p) => {
         const items: SubResult[] = [{ label: p.name, description: p.description }];
         if (p.settingsSchema) {
@@ -337,7 +335,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         }
         return items;
       });
-      subs.plugins = [...(subs.plugins ?? []), ...pluginSubs];
+      subs.addons = [...(subs.addons ?? []), ...pluginSubs];
     }
     // Themes are a section of Appearance now, so installed themes match there.
     if (installedThemes.length) {
@@ -350,9 +348,9 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     }
     if (sidebarAppsList.length) {
       const text = sidebarAppsList.map((a) => `${a.name} ${a.url}`).join(' ');
-      haystacks.sidebar_apps = `${haystacks.sidebar_apps ?? ''} ${text}`.toLowerCase();
-      subs.sidebar_apps = [
-        ...(subs.sidebar_apps ?? []),
+      haystacks.addons = `${haystacks.addons ?? ''} ${text}`.toLowerCase();
+      subs.addons = [
+        ...(subs.addons ?? []),
         ...sidebarAppsList.map((a) => ({ label: a.name, description: a.url })),
       ];
     }
@@ -569,7 +567,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     ...(supportsCalendar && isFeatureEnabled('calendarEnabled') ? [{ id: 'calendar' as Tab, label: t('tabs.calendar'), icon: tabIcons.calendar, group: 'apps' as TabGroup }] : []),
     ...(isFeatureEnabled('contactsEnabled') ? [{ id: 'contacts' as Tab, label: t('tabs.contacts'), icon: tabIcons.contacts, group: 'apps' as TabGroup }] : []),
     ...(supportsFiles && isFeatureEnabled('filesEnabled') ? [{ id: 'files' as Tab, label: t('tabs.files'), icon: tabIcons.files, group: 'apps' as TabGroup }] : []),
-    ...(isFeatureEnabled('sidebarAppsEnabled') ? [{ id: 'sidebar_apps' as Tab, label: t('tabs.sidebar_apps'), icon: tabIcons.sidebar_apps, group: 'apps' as TabGroup }] : []),
+    ...(isFeatureEnabled('sidebarAppsEnabled') || isFeatureEnabled('pluginsEnabled') ? [{ id: 'addons' as Tab, label: t('tabs.addons'), icon: tabIcons.addons, group: 'apps' as TabGroup }] : []),
     // Plugin-contributed settings pages: one entry per active plugin that
     // offers a `settings-section` slot (e.g. S/MIME key & certificate manager).
     // A plugin that also has a page of its own gets that entry only, with the
@@ -590,9 +588,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     })),
 
     // Advanced
-    { id: 'about_data', label: t('tabs.about_data'), icon: tabIcons.about_data, group: 'advanced' },
-    ...(isFeatureEnabled('pluginsEnabled') ? [{ id: 'plugins' as Tab, label: 'Plugins', icon: tabIcons.plugins, group: 'advanced' as TabGroup }] : []),
-    ...(isFeatureEnabled('debugModeEnabled') ? [{ id: 'debug' as Tab, label: t('tabs.debug'), icon: tabIcons.debug, group: 'advanced' as TabGroup }] : []),
+    { id: 'backup', label: t('tabs.backup'), icon: tabIcons.backup, group: 'advanced' },
   ];
 
   // In scoped (shared-account) mode, restrict to the account-relevant tabs the
@@ -713,10 +709,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           : <><ContactsSettings /><div className="mt-8"><AddressBookManagementSettings /></div></>
       )}
       {effectiveActiveTab === 'files' && <FilesSettingsComponent />}
-      {effectiveActiveTab === 'sidebar_apps' && <SidebarAppsSettings />}
-      {effectiveActiveTab === 'about_data' && <AboutDataSettings />}
-      {effectiveActiveTab === 'plugins' && <PluginsSettings />}
-      {effectiveActiveTab === 'debug' && <DebugSettings />}
+      {effectiveActiveTab === 'addons' && <AddonsSettings />}
+      {effectiveActiveTab === 'backup' && <AboutDataSettings />}
       {effectiveActiveTab.startsWith('plugin:') && (
         <PluginIframeSlot
           key={effectiveActiveTab}
@@ -875,6 +869,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
           <div className="border-t border-border px-2 py-2">
             <AdvancedSettingsSwitch />
+            <AboutFooter />
           </div>
           <div className="border-t border-border px-5 py-3">
             <button
@@ -1033,6 +1028,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         </div>
         <div className="border-t border-border px-1 py-1">
           <AdvancedSettingsSwitch />
+          <AboutFooter />
         </div>
       </div>
 

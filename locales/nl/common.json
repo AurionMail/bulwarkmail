@@ -1050,7 +1050,9 @@
       "debug": "Debuggen",
       "message_list": "Berichtenlijst",
       "general": "Algemeen",
-      "organize": "Mappen en tags"
+      "organize": "Mappen en tags",
+      "addons": "Add-ons",
+      "backup": "Back-up en herstel"
     },
     "themes": {
       "title": "Thema's",
@@ -2229,6 +2231,12 @@
           "delivered": "Bezorgd",
           "mistakes": "Fouten"
         }
+      },
+      "sections": {
+        "backup": "Back-up van instellingen",
+        "backup_description": "Bewaar uw instellingen over browsers en apparaten heen.",
+        "fix": "Problemen oplossen",
+        "fix_description": "Als een weergave verouderd of onjuist lijkt, of u opnieuw wilt beginnen."
       }
     },
     "sidebar_apps": {

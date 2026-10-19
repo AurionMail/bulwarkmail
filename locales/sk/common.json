@@ -1053,7 +1053,9 @@
       "debug": "Ladenie",
       "message_list": "Zoznam správ",
       "general": "Všeobecné",
-      "organize": "Priečinky a štítky"
+      "organize": "Priečinky a štítky",
+      "addons": "Doplnky",
+      "backup": "Záloha a obnovenie"
     },
     "themes": {
       "title": "Motívy",
@@ -2236,6 +2238,12 @@
           "delivered": "Doručené",
           "mistakes": "Chyby"
         }
+      },
+      "sections": {
+        "backup": "Záloha nastavení",
+        "backup_description": "Zachovajte nastavenia naprieč prehliadačmi a zariadeniami.",
+        "fix": "Riešenie problémov",
+        "fix_description": "Keď zobrazenie vyzerá zastarano alebo chybne, alebo chcete začať odznova."
       }
     },
     "sidebar_apps": {

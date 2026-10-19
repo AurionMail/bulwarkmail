@@ -10,16 +10,12 @@ export function DebugSettings() {
   const { debugMode, debugCategories, updateSetting } = useSettingsStore();
   const { isSettingLocked, isSettingHidden, isFeatureEnabled } = usePolicyStore();
 
-  if (isSettingHidden('debugMode') || !isFeatureEnabled('debugModeEnabled')) {
-    return (
-      <SettingsSection title={t('debug_mode.label')} description={t('debug_mode.description')}>
-        <p className="text-sm text-muted-foreground py-2">{t('debug_mode.description')}</p>
-      </SettingsSection>
-    );
-  }
+  // A section of the Backup & reset page now; nothing to show when the admin
+  // keeps debug logging off.
+  if (isSettingHidden('debugMode') || !isFeatureEnabled('debugModeEnabled')) return null;
 
   return (
-    <SettingsSection title={t('debug_mode.label')} description={t('debug_mode.description')}>
+    <SettingsSection id="debug" advanced title={t('debug_mode.label')} description={t('debug_mode.description')}>
       <SettingItem label={t('debug_mode.label')} description={t('debug_mode.description')} locked={isSettingLocked('debugMode')}>
         <ToggleSwitch checked={debugMode} onChange={(checked) => updateSetting('debugMode', checked)} />
       </SettingItem>

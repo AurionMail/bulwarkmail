@@ -1050,7 +1050,9 @@
       "debug": "Atkļūdošana",
       "message_list": "Ziņu saraksts",
       "general": "Vispārīgi",
-      "organize": "Mapes un tagi"
+      "organize": "Mapes un tagi",
+      "addons": "Papildinājumi",
+      "backup": "Dublēšana un atiestatīšana"
     },
     "themes": {
       "title": "Tēmas",
@@ -2229,6 +2231,12 @@
           "delivered": "Piegādātas",
           "mistakes": "Kļūdas"
         }
+      },
+      "sections": {
+        "backup": "Iestatījumu dublējums",
+        "backup_description": "Saglabājiet iestatījumus dažādās pārlūkprogrammās un ierīcēs.",
+        "fix": "Problēmu novēršana",
+        "fix_description": "Ja skats izskatās novecojis vai nepareizs, vai vēlaties sākt no jauna."
       }
     },
     "sidebar_apps": {

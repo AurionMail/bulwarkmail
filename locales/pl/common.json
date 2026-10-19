@@ -1050,7 +1050,9 @@
       "debug": "Debugowanie",
       "message_list": "Lista wiadomości",
       "general": "Ogólne",
-      "organize": "Foldery i tagi"
+      "organize": "Foldery i tagi",
+      "addons": "Dodatki",
+      "backup": "Kopia zapasowa i reset"
     },
     "themes": {
       "title": "Motywy",
@@ -2229,6 +2231,12 @@
           "delivered": "Dostarczone",
           "mistakes": "Błędy"
         }
+      },
+      "sections": {
+        "backup": "Kopia zapasowa ustawień",
+        "backup_description": "Zachowaj ustawienia w różnych przeglądarkach i na różnych urządzeniach.",
+        "fix": "Rozwiązywanie problemów",
+        "fix_description": "Gdy widok wygląda na nieaktualny lub błędny albo chcesz zacząć od nowa."
       }
     },
     "sidebar_apps": {

@@ -1050,7 +1050,9 @@
       "debug": "Ladění",
       "message_list": "Seznam zpráv",
       "general": "Obecné",
-      "organize": "Složky a štítky"
+      "organize": "Složky a štítky",
+      "addons": "Doplňky",
+      "backup": "Záloha a obnovení"
     },
     "themes": {
       "title": "Motivy",
@@ -2229,6 +2231,12 @@
           "delivered": "Doručeno",
           "mistakes": "Chyby"
         }
+      },
+      "sections": {
+        "backup": "Záloha nastavení",
+        "backup_description": "Zachovejte nastavení napříč prohlížeči a zařízeními.",
+        "fix": "Řešení potíží",
+        "fix_description": "Když zobrazení vypadá zastarale nebo chybně, nebo chcete začít znovu."
       }
     },
     "sidebar_apps": {

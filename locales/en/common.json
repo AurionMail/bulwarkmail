@@ -1053,7 +1053,9 @@
       "debug": "Debug",
       "message_list": "Message list",
       "general": "General",
-      "organize": "Folders & tags"
+      "organize": "Folders & tags",
+      "addons": "Add-ons",
+      "backup": "Backup & reset"
     },
     "themes": {
       "title": "Themes",
@@ -2236,6 +2238,12 @@
           "delivered": "Delivered",
           "mistakes": "Mistakes"
         }
+      },
+      "sections": {
+        "backup": "Settings backup",
+        "backup_description": "Keep your settings across browsers and devices.",
+        "fix": "Fix problems",
+        "fix_description": "When a view looks stale or wrong, or you want to start over."
       }
     },
     "sidebar_apps": {

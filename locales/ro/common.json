@@ -1053,7 +1053,9 @@
       "debug": "Depanare",
       "message_list": "Lista de mesaje",
       "general": "General",
-      "organize": "Dosare și etichete"
+      "organize": "Dosare și etichete",
+      "addons": "Suplimente",
+      "backup": "Copie de rezervă și resetare"
     },
     "themes": {
       "title": "Teme",
@@ -2236,6 +2238,12 @@
           "delivered": "Livrate",
           "mistakes": "Greșeli"
         }
+      },
+      "sections": {
+        "backup": "Copie de rezervă a setărilor",
+        "backup_description": "Păstrați-vă setările între browsere și dispozitive.",
+        "fix": "Rezolvarea problemelor",
+        "fix_description": "Când o vizualizare pare învechită sau greșită, sau vreți să o luați de la capăt."
       }
     },
     "sidebar_apps": {
