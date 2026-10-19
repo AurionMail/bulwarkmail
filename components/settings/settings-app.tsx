@@ -90,7 +90,9 @@ import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
 
 type Tab = SettingsSearchTab;
 
-type TabGroup = 'general' | 'appearance' | 'mail' | 'privacy' | 'apps' | 'plugins' | 'advanced';
+// `top` and `bottom` have no heading: the first five pages, and Backup & reset
+// after a rule at the end.
+type TabGroup = 'top' | 'mail' | 'apps' | 'bottom';
 
 // A plugin that exposes a `settings-section` slot gets its own first-class
 // Settings entry, keyed `plugin:<id>`, so its UI (e.g. S/MIME key import) is
@@ -107,6 +109,8 @@ interface TabDef {
   label: string;
   icon: AppIcon;
   group: TabGroup;
+  /** Indented under the entry before it (plugin pages under Add-ons). */
+  sub?: boolean;
 }
 
 const tabIcons: Record<Tab, AppIcon> = {
@@ -128,7 +132,7 @@ const tabIcons: Record<Tab, AppIcon> = {
   backup: Database,
 };
 
-const tabGroupOrder: TabGroup[] = ['general', 'appearance', 'mail', 'privacy', 'apps', 'plugins', 'advanced'];
+const tabGroupOrder: TabGroup[] = ['top', 'mail', 'apps', 'bottom'];
 
 // Map legacy tab IDs to current ones; runs once on read of localStorage and
 // for every deep link, so old bookmarks, connector links and sidebar gears
@@ -243,7 +247,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     () => pluginOffersForSlot('settings-page'),
     () => pluginOffersForSlot('settings-page'),
   );
-  const tPluginPages = useTranslations('plugin_pages');
   const pluginPageIds = useMemo(() => new Set(pluginPageOffers.map((offer) => offer.pluginId)), [pluginPageOffers]);
   const pluginSectionIds = useMemo(() => new Set(pluginSettingsOffers.map((offer) => offer.pluginId)), [pluginSettingsOffers]);
   // Consume the one-shot deep-link key so a section gear only steers this one
@@ -544,51 +547,47 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const supportsFiles = client?.supportsFiles() ?? false;
 
   const tabs: TabDef[] = [
-    // General
-    { id: 'account', label: t('tabs.account'), icon: tabIcons.account, group: 'general' },
-    { id: 'general', label: t('tabs.general'), icon: tabIcons.general, group: 'general' },
-    { id: 'notifications', label: t('tabs.notifications'), icon: tabIcons.notifications, group: 'general' },
-
-    // Appearance
-    { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'appearance' },
+    // You and the app
+    { id: 'account', label: t('tabs.account'), icon: tabIcons.account, group: 'top' },
+    ...(stalwartFeaturesEnabled ? [{ id: 'security' as Tab, label: t('tabs.security'), icon: tabIcons.security, group: 'top' as TabGroup }] : []),
+    { id: 'notifications', label: t('tabs.notifications'), icon: tabIcons.notifications, group: 'top' },
+    { id: 'general', label: t('tabs.general'), icon: tabIcons.general, group: 'top' },
+    { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'top' },
 
     // Mail
     { id: 'message_list', label: t('tabs.message_list'), icon: tabIcons.message_list, group: 'mail' },
     { id: 'reading', label: t('tabs.reading'), icon: tabIcons.reading, group: 'mail' },
     { id: 'composing', label: t('tabs.composing'), icon: tabIcons.composing, group: 'mail' },
-    ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
-    ...(supportsSieve ? [{ id: 'filters' as Tab, label: t('tabs.filters'), icon: tabIcons.filters, group: 'mail' as TabGroup }] : []),
     { id: 'organize', label: isFeatureEnabled('customKeywordsEnabled') ? t('tabs.organize') : t('tabs.folders'), icon: tabIcons.organize, group: 'mail' },
-
-    // Privacy & Security
-    ...(stalwartFeaturesEnabled ? [{ id: 'security' as Tab, label: t('tabs.security'), icon: tabIcons.security, group: 'privacy' as TabGroup }] : []),
+    ...(supportsSieve ? [{ id: 'filters' as Tab, label: t('tabs.filters'), icon: tabIcons.filters, group: 'mail' as TabGroup }] : []),
+    ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
 
     // Apps
     ...(supportsCalendar && isFeatureEnabled('calendarEnabled') ? [{ id: 'calendar' as Tab, label: t('tabs.calendar'), icon: tabIcons.calendar, group: 'apps' as TabGroup }] : []),
     ...(isFeatureEnabled('contactsEnabled') ? [{ id: 'contacts' as Tab, label: t('tabs.contacts'), icon: tabIcons.contacts, group: 'apps' as TabGroup }] : []),
     ...(supportsFiles && isFeatureEnabled('filesEnabled') ? [{ id: 'files' as Tab, label: t('tabs.files'), icon: tabIcons.files, group: 'apps' as TabGroup }] : []),
     ...(isFeatureEnabled('sidebarAppsEnabled') || isFeatureEnabled('pluginsEnabled') ? [{ id: 'addons' as Tab, label: t('tabs.addons'), icon: tabIcons.addons, group: 'apps' as TabGroup }] : []),
-    // Plugin-contributed settings pages: one entry per active plugin that
-    // offers a `settings-section` slot (e.g. S/MIME key & certificate manager).
-    // A plugin that also has a page of its own gets that entry only, with the
-    // section on its page, instead of two entries with the same name.
+    // Plugin-contributed pages nest under Add-ons: a page of its own for each
+    // plugin that offers one, and an entry for each plugin that offers only a
+    // `settings-section` slot (e.g. S/MIME key & certificate manager). A plugin
+    // with both gets the page entry only, with the section on its page.
+    ...pluginPageOffers.map((offer): TabDef => ({
+      id: `${PLUGIN_PAGE_PREFIX}${offer.pluginId}` as PluginPageTabId,
+      label: getActivePlugin(offer.pluginId)?.plugin.name || offer.pluginId,
+      icon: Puzzle,
+      group: 'apps',
+      sub: true,
+    })),
     ...pluginSettingsOffers.filter((offer) => !pluginPageIds.has(offer.pluginId)).map((offer): TabDef => ({
       id: `plugin:${offer.pluginId}` as PluginTabId,
       label: getActivePlugin(offer.pluginId)?.plugin.name ?? offer.pluginId,
       icon: Puzzle,
       group: 'apps',
+      sub: true,
     })),
 
-    // Plugins: a page of its own for each plugin that offers one.
-    ...pluginPageOffers.map((offer): TabDef => ({
-      id: `${PLUGIN_PAGE_PREFIX}${offer.pluginId}` as PluginPageTabId,
-      label: getActivePlugin(offer.pluginId)?.plugin.name || offer.pluginId,
-      icon: Puzzle,
-      group: 'plugins',
-    })),
-
-    // Advanced
-    { id: 'backup', label: t('tabs.backup'), icon: tabIcons.backup, group: 'advanced' },
+    // After a rule at the end, with no heading.
+    { id: 'backup', label: t('tabs.backup'), icon: tabIcons.backup, group: 'bottom' },
   ];
 
   // In scoped (shared-account) mode, restrict to the account-relevant tabs the
@@ -607,11 +606,11 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     ? tabs.filter((tab) => scopedTabIds.includes(tab.id as Tab))
     : tabs;
 
-  // Group tabs by category
+  // Group tabs by category. Only Mail and Apps carry a heading.
   const groupedTabs = tabGroupOrder
     .map((group) => ({
       group,
-      label: group === 'plugins' ? tPluginPages('settings_group') : t(`tab_groups.${group}`),
+      label: group === 'mail' || group === 'apps' ? t(`tab_groups.${group}`) : null,
       items: visibleTabs.filter((tab) => tab.group === group),
     }))
     .filter((g) => g.items.length > 0);
@@ -830,11 +829,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
             {filteredGroupedTabs.map((group, groupIndex) => (
               <div key={group.group}>
                 {groupIndex > 0 && <div className="mx-5 my-2 border-t border-border" />}
-                <div className="px-5 pt-3 pb-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {group.label}
-                  </span>
-                </div>
+                {group.label && (
+                  <div className="px-5 pt-3 pb-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </span>
+                  </div>
+                )}
                 {group.items.map((tab) => {
                   const Icon = tab.icon;
                   const subs = subResultsForTab(tab.id);
@@ -843,7 +844,10 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                       <button
                         data-testid={`settings-tab-${tab.id}`}
                         onClick={() => handleTabSelect(tab.id)}
-                        className="w-full flex items-center justify-between px-5 py-3.5 text-sm text-foreground hover:bg-muted transition-colors duration-150"
+                        className={cn(
+                          'w-full flex items-center justify-between py-3.5 pe-5 text-sm text-foreground hover:bg-muted transition-colors duration-150',
+                          tab.sub ? 'ps-12' : 'ps-5',
+                        )}
                       >
                         <span className="flex items-center gap-3">
                           <Icon className="w-4 h-4 text-muted-foreground" />
@@ -984,11 +988,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
             {filteredGroupedTabs.map((group, groupIndex) => (
               <div key={group.group}>
                 {groupIndex > 0 && <div className="mx-1 my-2 border-t border-border" />}
-                <div className="px-3 pt-2.5 pb-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {group.label}
-                  </span>
-                </div>
+                {group.label && (
+                  <div className="px-3 pt-2.5 pb-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </span>
+                  </div>
+                )}
                 {group.items.map((tab) => {
                   const Icon = tab.icon;
                   const subs = subResultsForTab(tab.id);
@@ -998,7 +1004,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                         data-testid={`settings-tab-${tab.id}`}
                         onClick={() => handleTabSelect(tab.id)}
                         className={cn(
-                          'w-full text-start px-3 py-2 rounded-md text-sm transition-colors duration-150 flex items-center gap-2.5',
+                          'w-full text-start py-2 pe-3 rounded-md text-sm transition-colors duration-150 flex items-center gap-2.5',
+                          tab.sub ? 'ps-9' : 'ps-3',
                           effectiveActiveTab === tab.id
                             ? 'bg-accent text-accent-foreground font-medium'
                             : 'hover:bg-muted text-foreground'

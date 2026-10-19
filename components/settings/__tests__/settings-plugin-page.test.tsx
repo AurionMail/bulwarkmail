@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { InstalledPlugin } from '@/lib/plugin-types';
 
 // settings-page: a page of its own in Settings for each plugin that offers
-// one, listed under a "Plugins" group with the plugin's name.
+// one, nested under Add-ons with the plugin's name.
 
 const createSlotInstance = vi.fn((..._args: unknown[]) => ({ destroy: vi.fn(), updateProps: vi.fn(), setTheme: vi.fn() }));
 vi.mock('@/lib/plugin-sandbox/host-bridge', () => ({
@@ -67,20 +67,24 @@ afterEach(() => {
 });
 
 describe('Settings plugin pages', () => {
-  it('has no Plugins group without a plugin that offers a page', () => {
+  it('nests a plugin with only a section under Add-ons', () => {
     activate('smime', 'S/MIME', ['settings-section']);
     render(<SettingsApp linkSegments={[]} />);
 
-    expect(screen.queryByText('plugin_pages.settings_group')).toBeNull();
+    const addons = screen.getByTestId('settings-tab-addons');
+    const entry = screen.getByTestId('settings-tab-plugin:smime');
+    expect(addons.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(entry.className).toContain('ps-9');
   });
 
-  it('lists the plugin by name under Plugins and opens its page full width', async () => {
+  it('lists the plugin by name under Add-ons and opens its page full width', async () => {
     activate('kanban', 'Kanban', ['settings-page']);
     const { container } = render(<SettingsApp linkSegments={[]} />);
 
-    const group = screen.getByText('plugin_pages.settings_group');
+    const addons = screen.getByTestId('settings-tab-addons');
     const entry = screen.getByRole('button', { name: /Kanban/ });
-    expect(group.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(addons.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(entry.className).toContain('ps-9');
     expect(createSlotInstance).not.toHaveBeenCalled();
 
     act(() => { fireEvent.click(entry); });
