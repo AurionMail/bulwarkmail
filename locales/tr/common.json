@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Tüm hesaplar: Tüm postalar",
         "description": "Tüm hesaplar bölümünde, tüm hesaplardaki tüm postaları listeleyen bir giriş gösterir; önemsiz, gönderilmiş, arşiv, çöp ve taslaklar dışındaki tüm klasörleri kapsar."
+      },
+      "sections": {
+        "text": "Metin ve hareket",
+        "layout": "Düzen",
+        "sidebar": "Kenar çubuğu",
+        "accounts": "Birden çok hesap",
+        "accounts_description": "Hesaplarınızın ve paylaşılan posta kutularının birlikte nasıl göründüğü.",
+        "experimental": "Deneysel"
+      },
+      "account_marker": {
+        "label": "Hesapları ayırt etme",
+        "description": "Birleşik görünümlerde her iletiyi geldiği hesabın rengiyle işaretle.",
+        "dot": "Renkli nokta",
+        "tint": "Renkli satır",
+        "none": "Hiçbiri"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Hesabıma geri dön",
       "managing": "Yönetiliyor: {name}"
+    },
+    "advanced_switch": {
+      "label": "Gelişmiş ayarları göster",
+      "show": "Gelişmiş ayarları göster",
+      "badge": "Gelişmiş",
+      "hidden_count": "{count, plural, one {Bu sayfada 1 gelişmiş ayar gizli.} other {Bu sayfada # gelişmiş ayar gizli.}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "Demo kontrolleri",
     "demo_banner_desc": "Demo modundasınız - her şey tarayıcınızda kalır. Temiz örnek verilerle yeniden başlamak için istediğiniz zaman 'Demoyu Sıfırla'ya basın.",
     "quota_title": "Depolama kullanımı",
-    "quota_desc": "Posta kutusu boyutunuzu buradan takip edin. Daha fazla alan kullandıkça daire dolmaya başlar."
+    "quota_desc": "Posta kutusu boyutunuzu buradan takip edin. Daha fazla alan kullandıkça daire dolmaya başlar.",
+    "settings_section": "Başlarken"
   },
   "unified_mailbox": {
     "search_unavailable": "Birleşik görünümde arama kullanılamaz"

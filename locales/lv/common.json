@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Visi konti: Visas vēstules",
         "description": "Rāda ierakstu sadaļā “Visi konti”, kas uzskaita visas vēstules no visiem kontiem, aptverot visas mapes, izņemot mēstules, nosūtītās, arhīvu, miskasti un melnrakstus."
+      },
+      "sections": {
+        "text": "Teksts un animācija",
+        "layout": "Izkārtojums",
+        "sidebar": "Sānjosla",
+        "accounts": "Vairāki konti",
+        "accounts_description": "Kā jūsu konti un koplietotās pastkastes tiek rādītas kopā.",
+        "experimental": "Eksperimentāli"
+      },
+      "account_marker": {
+        "label": "Kontu atšķiršana",
+        "description": "Apvienotajos skatos atzīmēt katru ziņu ar tā konta krāsu, no kura tā nākusi.",
+        "dot": "Krāsains punkts",
+        "tint": "Tonēta rinda",
+        "none": "Nekas"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Atpakaļ uz manu kontu",
       "managing": "Pārvalda: {name}"
+    },
+    "advanced_switch": {
+      "label": "Rādīt papildu iestatījumus",
+      "show": "Rādīt papildu iestatījumus",
+      "badge": "Papildu",
+      "hidden_count": "{count, plural, zero {Šajā lapā nav paslēptu papildu iestatījumu.} one {Šajā lapā ir paslēpts # papildu iestatījums.} other {Šajā lapā ir paslēpti # papildu iestatījumi.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Demo vadība",
     "demo_banner_desc": "Jūs esat demo režīmā - visi dati paliek jūsu pārlūkā. Nospiediet «Atiestatīt demo», lai sāktu no jauna.",
     "quota_title": "Krātuves izmantošana",
-    "quota_desc": "Sekojiet līdzi savas pastkastes aizpildījumam šeit."
+    "quota_desc": "Sekojiet līdzi savas pastkastes aizpildījumam šeit.",
+    "settings_section": "Darba sākšana"
   },
   "unified_mailbox": {
     "search_unavailable": "Meklēšana nav pieejama apvienotajā skatā"

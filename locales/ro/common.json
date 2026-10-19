@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "Toate conturile: Toată poșta",
         "description": "Afișează în secțiunea Toate conturile o intrare cu toată poșta din toate conturile, în toate folderele cu excepția spam, trimise, arhivă, coș și ciorne."
+      },
+      "sections": {
+        "text": "Text și animații",
+        "layout": "Aspect",
+        "sidebar": "Bară laterală",
+        "accounts": "Mai multe conturi",
+        "accounts_description": "Cum apar împreună conturile și căsuțele partajate.",
+        "experimental": "Experimental"
+      },
+      "account_marker": {
+        "label": "Deosebirea conturilor",
+        "description": "În vizualizările unificate, marchează fiecare mesaj cu culoarea contului din care provine.",
+        "dot": "Punct colorat",
+        "tint": "Rând colorat",
+        "none": "Nimic"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
       "preview": {
         "label": "Previzualizare"
       }
+    },
+    "advanced_switch": {
+      "label": "Afișează setările avansate",
+      "show": "Afișează setările avansate",
+      "badge": "Avansat",
+      "hidden_count": "{count, plural, one {1 setare avansată este ascunsă pe această pagină.} few {# setări avansate sunt ascunse pe această pagină.} other {# de setări avansate sunt ascunse pe această pagină.}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "Controale demo",
     "demo_banner_desc": "Vă aflați în modul demo – totul rămâne în browserul dvs. Apăsați „Resetare demo” oricând pentru a începe de la zero cu date de exemplu curate.",
     "quota_title": "Utilizarea spațiului de stocare",
-    "quota_desc": "Urmăriți aici dimensiunea căsuței dvs. de e-mail. Cercul se umple pe măsură ce utilizați mai mult spațiu."
+    "quota_desc": "Urmăriți aici dimensiunea căsuței dvs. de e-mail. Cercul se umple pe măsură ce utilizați mai mult spațiu.",
+    "settings_section": "Primii pași"
   },
   "unified_mailbox": {
     "search_unavailable": "Funcția de căutare nu este disponibilă în vizualizarea unificată"

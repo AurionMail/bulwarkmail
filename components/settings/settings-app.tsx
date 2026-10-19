@@ -24,7 +24,6 @@ import {
   PanelLeftClose,
   Bell,
   Puzzle,
-  LayoutGrid,
   Link as LinkIcon,
   BookOpen,
   PenLine,
@@ -32,7 +31,6 @@ import {
   Languages,
   Info,
   Bug,
-  SwatchBook,
   Download,
   X,
   type AppIcon,
@@ -41,7 +39,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppearanceSettings } from '@/components/settings/appearance-settings';
 import { AppTopBannerSlot } from '@/components/plugins/app-top-banner-slot';
-import { LayoutSettings } from '@/components/settings/layout-settings';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { ReadingSettings } from '@/components/settings/reading-settings';
 import { ComposingSettings } from '@/components/settings/composing-settings';
@@ -64,7 +61,6 @@ import { DownloadsSettings } from '@/components/settings/downloads-settings';
 import { ContactsSettings } from '@/components/settings/contacts-settings';
 import { SidebarAppsSettings } from '@/components/settings/sidebar-apps-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
-import { ThemesSettings } from '@/components/settings/themes-settings';
 import { PluginsSettings } from '@/components/settings/plugins-settings';
 import { PluginIframeSlot } from '@/components/plugins/plugin-iframe-slot';
 import { offersForSlot as pluginOffersForSlot, subscribe as pluginRegistrySubscribe, get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
@@ -134,7 +130,6 @@ const tabIcons: Record<Tab, AppIcon> = {
   language: Languages,
   notifications: Bell,
   appearance: Palette,
-  layout: LayoutGrid,
   reading: BookOpen,
   composing: PenLine,
   downloads: Download,
@@ -152,17 +147,20 @@ const tabIcons: Record<Tab, AppIcon> = {
   protocol_handlers: LinkIcon,
   sidebar_apps: PanelLeftClose,
   about_data: Info,
-  themes: SwatchBook,
   plugins: Puzzle,
   debug: Bug,
 };
 
 const tabGroupOrder: TabGroup[] = ['general', 'appearance', 'mail', 'privacy', 'apps', 'plugins', 'advanced'];
 
-// Map legacy tab IDs to current ones; runs once on read of localStorage.
-const LEGACY_TAB_MAP: Record<string, Tab> = {
+// Map legacy tab IDs to current ones; runs once on read of localStorage and
+// for every deep link, so old bookmarks, connector links and sidebar gears
+// land on the page that now holds the setting.
+export const LEGACY_TAB_MAP: Record<string, Tab> = {
   email: 'reading',
   advanced: 'about_data',
+  layout: 'appearance',
+  themes: 'appearance',
 };
 
 function readPersistedTab(): SettingsTabId {
@@ -350,11 +348,12 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       });
       subs.plugins = [...(subs.plugins ?? []), ...pluginSubs];
     }
+    // Themes are a section of Appearance now, so installed themes match there.
     if (installedThemes.length) {
       const text = installedThemes.map((th) => `${th.name} ${th.description} ${th.author}`).join(' ');
-      haystacks.themes = `${haystacks.themes ?? ''} ${text}`.toLowerCase();
-      subs.themes = [
-        ...(subs.themes ?? []),
+      haystacks.appearance = `${haystacks.appearance ?? ''} ${text}`.toLowerCase();
+      subs.appearance = [
+        ...(subs.appearance ?? []),
         ...installedThemes.map((th) => ({ label: th.name, description: th.description })),
       ];
     }
@@ -565,8 +564,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
     // Appearance
     { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'appearance' },
-    { id: 'layout', label: t('tabs.layout'), icon: tabIcons.layout, group: 'appearance' },
-    ...(isFeatureEnabled('themesEnabled') ? [{ id: 'themes' as Tab, label: t('tabs.themes'), icon: tabIcons.themes, group: 'appearance' as TabGroup }] : []),
 
     // Mail
     { id: 'reading', label: t('tabs.reading'), icon: tabIcons.reading, group: 'mail' },
@@ -713,7 +710,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'language' && <LanguageSettings />}
       {effectiveActiveTab === 'notifications' && <NotificationSettings />}
       {effectiveActiveTab === 'appearance' && <AppearanceSettings />}
-      {effectiveActiveTab === 'layout' && <LayoutSettings />}
       {effectiveActiveTab === 'reading' && <ReadingSettings />}
       {effectiveActiveTab === 'composing' && <ComposingSettings />}
       {effectiveActiveTab === 'downloads' && <DownloadsSettings />}
@@ -739,7 +735,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'protocol_handlers' && <ProtocolHandlerSettings supportsCalendar={supportsCalendar} />}
       {effectiveActiveTab === 'sidebar_apps' && <SidebarAppsSettings />}
       {effectiveActiveTab === 'about_data' && <AboutDataSettings />}
-      {effectiveActiveTab === 'themes' && <ThemesSettings />}
       {effectiveActiveTab === 'plugins' && <PluginsSettings />}
       {effectiveActiveTab === 'debug' && <DebugSettings />}
       {effectiveActiveTab.startsWith('plugin:') && (

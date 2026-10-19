@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Tous les comptes : Tout le courrier",
         "description": "Affiche une entrée dans la section Tous les comptes répertoriant tout le courrier de tous les comptes, couvrant tous les dossiers sauf indésirables, envoyés, archives, corbeille et brouillons."
+      },
+      "sections": {
+        "text": "Texte et animations",
+        "layout": "Disposition",
+        "sidebar": "Barre latérale",
+        "accounts": "Plusieurs comptes",
+        "accounts_description": "Comment vos comptes et boîtes partagées apparaissent ensemble.",
+        "experimental": "Expérimental"
+      },
+      "account_marker": {
+        "label": "Distinguer les comptes",
+        "description": "Dans les vues unifiées, marquer chaque message avec la couleur du compte dont il provient.",
+        "dot": "Point coloré",
+        "tint": "Ligne teintée",
+        "none": "Rien"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Retour à mon compte",
       "managing": "Gestion : {name}"
+    },
+    "advanced_switch": {
+      "label": "Afficher les paramètres avancés",
+      "show": "Afficher les paramètres avancés",
+      "badge": "Avancé",
+      "hidden_count": "{count, plural, one {1 paramètre avancé est masqué sur cette page.} other {# paramètres avancés sont masqués sur cette page.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Contrôles de démo",
     "demo_banner_desc": "Vous êtes en mode démo - tout reste dans votre navigateur. Cliquez sur 'Réinitialiser la démo' à tout moment pour repartir avec des données fraîches.",
     "quota_title": "Utilisation du stockage",
-    "quota_desc": "Suivez la taille de votre boîte mail ici. Le cercle se remplit au fur et à mesure que vous utilisez plus d'espace."
+    "quota_desc": "Suivez la taille de votre boîte mail ici. Le cercle se remplit au fur et à mesure que vous utilisez plus d'espace.",
+    "settings_section": "Premiers pas"
   },
   "unified_mailbox": {
     "search_unavailable": "La recherche n'est pas disponible dans la vue unifiée"

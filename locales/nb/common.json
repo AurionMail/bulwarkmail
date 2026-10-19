@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "All e-post",
         "description": "Vis All e-post i den samlede postkassen, med all e-post fra de valgte mappene."
+      },
+      "sections": {
+        "text": "Tekst og animasjon",
+        "layout": "Oppsett",
+        "sidebar": "Sidepanel",
+        "accounts": "Flere kontoer",
+        "accounts_description": "Hvordan kontoene og de delte postkassene dine vises sammen.",
+        "experimental": "Eksperimentelt"
+      },
+      "account_marker": {
+        "label": "Skill kontoene fra hverandre",
+        "description": "Marker hver melding i de samlede visningene med fargen til kontoen den kom fra.",
+        "dot": "Farget prikk",
+        "tint": "Farget rad",
+        "none": "Ingenting"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
       "preview": {
         "label": "Forhåndsvisning"
       }
+    },
+    "advanced_switch": {
+      "label": "Vis avanserte innstillinger",
+      "show": "Vis avanserte innstillinger",
+      "badge": "Avansert",
+      "hidden_count": "{count, plural, one {1 avansert innstilling er skjult på denne siden.} other {# avanserte innstillinger er skjult på denne siden.}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "Demokontroller",
     "demo_banner_desc": "Du er i demomodus – alt forblir i nettleseren. Trykk på «Tilbakestill demo» når som helst for å begynne på nytt med nye eksempeldata.",
     "quota_title": "Lagringsbruk",
-    "quota_desc": "Følg med på størrelsen på postkassen her. Sirkelen fylles opp etter hvert som du bruker mer plass."
+    "quota_desc": "Følg med på størrelsen på postkassen her. Sirkelen fylles opp etter hvert som du bruker mer plass.",
+    "settings_section": "Kom i gang"
   },
   "unified_mailbox": {
     "search_unavailable": "Søk er ikke tilgjengelig i den samlede visningen"

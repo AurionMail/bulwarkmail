@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useThemeStore } from '@/stores/theme-store';
 import { useSettingsStore, type Density } from '@/stores/settings-store';
 import { SettingsSection, SettingItem, RadioGroup, ToggleSwitch } from './settings-section';
+import { ThemesSettings } from './themes-settings';
+import { LayoutSection, SidebarSection, MultipleAccountsSection, ExperimentalSection } from './layout-settings';
 import { cn } from '@/lib/utils';
 import { useTour } from '@/components/tour/tour-provider';
 import { Button } from '@/components/ui/button';
@@ -66,6 +68,11 @@ function DensityPreview({ density }: { density: Density }) {
   );
 }
 
+/**
+ * The Appearance page: theme, text and motion, layout, sidebar, how several
+ * accounts show together, and the experimental Pro interface. The former
+ * Layout and Themes tabs live here as sections.
+ */
 export function AppearanceSettings() {
   const t = useTranslations('settings.appearance');
   const tAdvanced = useTranslations('settings.advanced');
@@ -74,108 +81,121 @@ export function AppearanceSettings() {
   const { fontSize, density, animationsEnabled, senderFavicons, showAvatarsInJunk, showOnboardingOnNewDevices, updateSetting } = useSettingsStore();
   const { startTour, resetTourCompletion } = useTour();
   const refreshFavicons = useFaviconRefreshStore((s) => s.refresh);
-  const { isSettingLocked, isSettingHidden, getColorModePolicy } = usePolicyStore();
+  const { isSettingLocked, isSettingHidden, getColorModePolicy, isFeatureEnabled } = usePolicyStore();
 
   return (
-    <SettingsSection title={t('title')} description={t('description')}>
-      <SettingItem label={t('theme.label')} description={t('theme.description')} locked={getColorModePolicy().locked}>
-        <RadioGroup
-          value={theme}
-          onChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
-          options={[
-            { value: 'light', label: t('theme.light') },
-            { value: 'dark', label: t('theme.dark') },
-            { value: 'system', label: t('theme.system') },
-          ]}
-        />
-      </SettingItem>
-
-      {!isSettingHidden('fontSize') && (
-      <SettingItem label={t('font_size.label')} description={t('font_size.description')} locked={isSettingLocked('fontSize')}>
-        <RadioGroup
-          value={fontSize}
-          onChange={(value) => updateSetting('fontSize', value as 'small' | 'medium' | 'large')}
-          options={[
-            { value: 'small', label: t('font_size.small') },
-            { value: 'medium', label: t('font_size.medium') },
-            { value: 'large', label: t('font_size.large') },
-          ]}
-        />
-      </SettingItem>
-      )}
-
-      {!isSettingHidden('density') && (
-      <SettingItem label={t('list_density.label')} description={t('list_density.description')} locked={isSettingLocked('density')}>
-        <RadioGroup
-          value={density}
-          onChange={(value) =>
-            updateSetting('density', value as Density)
-          }
-          options={[
-            { value: 'extra-compact', label: t('list_density.extra_compact') },
-            { value: 'compact', label: t('list_density.compact') },
-            { value: 'regular', label: t('list_density.regular') },
-            { value: 'comfortable', label: t('list_density.comfortable') },
-          ]}
-        />
-        <DensityPreview density={density} />
-      </SettingItem>
-      )}
-
-      <MessageListOrderSettings />
-
-      {!isSettingHidden('animationsEnabled') && (
-      <SettingItem label={t('animations.label')} description={t('animations.description')} locked={isSettingLocked('animationsEnabled')}>
-        <ToggleSwitch
-          checked={animationsEnabled}
-          onChange={(checked) => updateSetting('animationsEnabled', checked)}
-        />
-      </SettingItem>
-      )}
-
-      {/* Sender favicons come from the /api/favicon proxy, absent in the static Lite build (components/ui/avatar.tsx). */}
-      {!IS_LITE && (
-        <SettingItem label={tAdvanced('sender_favicons.label')} description={tAdvanced('sender_favicons.description')}>
-          <ToggleSwitch checked={senderFavicons} onChange={(checked) => updateSetting('senderFavicons', checked)} />
+    <div className="space-y-8">
+      <SettingsSection id="theme" title={t('title')} description={t('description')}>
+        <SettingItem label={t('theme.label')} description={t('theme.description')} locked={getColorModePolicy().locked}>
+          <RadioGroup
+            value={theme}
+            onChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
+            options={[
+              { value: 'light', label: t('theme.light') },
+              { value: 'dark', label: t('theme.dark') },
+              { value: 'system', label: t('theme.system') },
+            ]}
+          />
         </SettingItem>
-      )}
+        {isFeatureEnabled('themesEnabled') && <ThemesSettings embedded />}
+      </SettingsSection>
 
-      {!IS_LITE && senderFavicons && (
-        <SettingItem label={tAdvanced('sender_favicons.refresh_label')} description={tAdvanced('sender_favicons.refresh_description')}>
+      <SettingsSection id="text" title={t('sections.text')}>
+        {!isSettingHidden('fontSize') && (
+        <SettingItem label={t('font_size.label')} description={t('font_size.description')} locked={isSettingLocked('fontSize')}>
+          <RadioGroup
+            value={fontSize}
+            onChange={(value) => updateSetting('fontSize', value as 'small' | 'medium' | 'large')}
+            options={[
+              { value: 'small', label: t('font_size.small') },
+              { value: 'medium', label: t('font_size.medium') },
+              { value: 'large', label: t('font_size.large') },
+            ]}
+          />
+        </SettingItem>
+        )}
+
+        {!isSettingHidden('density') && (
+        <SettingItem label={t('list_density.label')} description={t('list_density.description')} locked={isSettingLocked('density')}>
+          <RadioGroup
+            value={density}
+            onChange={(value) =>
+              updateSetting('density', value as Density)
+            }
+            options={[
+              { value: 'extra-compact', label: t('list_density.extra_compact') },
+              { value: 'compact', label: t('list_density.compact') },
+              { value: 'regular', label: t('list_density.regular') },
+              { value: 'comfortable', label: t('list_density.comfortable') },
+            ]}
+          />
+          <DensityPreview density={density} />
+        </SettingItem>
+        )}
+
+        {!isSettingHidden('animationsEnabled') && (
+        <SettingItem label={t('animations.label')} description={t('animations.description')} locked={isSettingLocked('animationsEnabled')}>
+          <ToggleSwitch
+            checked={animationsEnabled}
+            onChange={(checked) => updateSetting('animationsEnabled', checked)}
+          />
+        </SettingItem>
+        )}
+
+        <MessageListOrderSettings />
+
+        {/* Sender favicons come from the /api/favicon proxy, absent in the static Lite build (components/ui/avatar.tsx). */}
+        {!IS_LITE && (
+          <SettingItem label={tAdvanced('sender_favicons.label')} description={tAdvanced('sender_favicons.description')}>
+            <ToggleSwitch checked={senderFavicons} onChange={(checked) => updateSetting('senderFavicons', checked)} />
+          </SettingItem>
+        )}
+
+        {!IS_LITE && senderFavicons && (
+          <SettingItem nested label={tAdvanced('sender_favicons.refresh_label')} description={tAdvanced('sender_favicons.refresh_description')}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { refreshFavicons(); toast.success(tAdvanced('sender_favicons.refresh_done')); }}
+              className="text-xs h-7"
+            >
+              <RefreshCw className="w-3.5 h-3.5 me-1" />
+              {tAdvanced('sender_favicons.refresh_button')}
+            </Button>
+          </SettingItem>
+        )}
+
+        <SettingItem label={tAdvanced('show_avatars_in_junk.label')} description={tAdvanced('show_avatars_in_junk.description')} advanced>
+          <ToggleSwitch checked={showAvatarsInJunk} onChange={(checked) => updateSetting('showAvatarsInJunk', checked)} />
+        </SettingItem>
+      </SettingsSection>
+
+      <LayoutSection />
+      <SidebarSection />
+      <MultipleAccountsSection />
+
+      <SettingsSection id="tour" title={tTour('settings_section')}>
+        <SettingItem label={tTour('restart_title')} description={tTour('restart_desc')}>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { refreshFavicons(); toast.success(tAdvanced('sender_favicons.refresh_done')); }}
+            onClick={() => { resetTourCompletion(); startTour(); }}
             className="text-xs h-7"
           >
-            <RefreshCw className="w-3.5 h-3.5 me-1" />
-            {tAdvanced('sender_favicons.refresh_button')}
+            <PlayCircle className="w-3.5 h-3.5 me-1" />
+            {tTour('restart_button')}
           </Button>
         </SettingItem>
-      )}
 
-      <SettingItem label={tAdvanced('show_avatars_in_junk.label')} description={tAdvanced('show_avatars_in_junk.description')}>
-        <ToggleSwitch checked={showAvatarsInJunk} onChange={(checked) => updateSetting('showAvatarsInJunk', checked)} />
-      </SettingItem>
+        <SettingItem label={tTour('show_on_new_devices_title')} description={tTour('show_on_new_devices_desc')} advanced>
+          <ToggleSwitch
+            checked={showOnboardingOnNewDevices}
+            onChange={(checked) => updateSetting('showOnboardingOnNewDevices', checked)}
+          />
+        </SettingItem>
+      </SettingsSection>
 
-      <SettingItem label={tTour('restart_title')} description={tTour('restart_desc')}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => { resetTourCompletion(); startTour(); }}
-          className="text-xs h-7"
-        >
-          <PlayCircle className="w-3.5 h-3.5 me-1" />
-          {tTour('restart_button')}
-        </Button>
-      </SettingItem>
-
-      <SettingItem label={tTour('show_on_new_devices_title')} description={tTour('show_on_new_devices_desc')}>
-        <ToggleSwitch
-          checked={showOnboardingOnNewDevices}
-          onChange={(checked) => updateSetting('showOnboardingOnNewDevices', checked)}
-        />
-      </SettingItem>
-    </SettingsSection>
+      <ExperimentalSection />
+    </div>
   );
 }

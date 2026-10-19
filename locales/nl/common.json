@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Alle accounts: Alle e-mail",
         "description": "Toont een item in de sectie Alle accounts met alle e-mail van alle accounts, in alle mappen behalve ongewenst, verzonden, archief, prullenbak en concepten."
+      },
+      "sections": {
+        "text": "Tekst en animatie",
+        "layout": "Indeling",
+        "sidebar": "Zijbalk",
+        "accounts": "Meerdere accounts",
+        "accounts_description": "Hoe uw accounts en gedeelde postvakken samen worden getoond.",
+        "experimental": "Experimenteel"
+      },
+      "account_marker": {
+        "label": "Accounts onderscheiden",
+        "description": "Markeer in de gecombineerde weergaven elk bericht met de kleur van het account waar het vandaan komt.",
+        "dot": "Gekleurde stip",
+        "tint": "Gekleurde rij",
+        "none": "Niets"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Terug naar mijn account",
       "managing": "Beheren: {name}"
+    },
+    "advanced_switch": {
+      "label": "Geavanceerde instellingen tonen",
+      "show": "Geavanceerde instellingen tonen",
+      "badge": "Geavanceerd",
+      "hidden_count": "{count, plural, one {1 geavanceerde instelling is verborgen op deze pagina.} other {# geavanceerde instellingen zijn verborgen op deze pagina.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Demo-bediening",
     "demo_banner_desc": "U bent in demomodus - alles blijft in uw browser. Klik op 'Demo resetten' om opnieuw te beginnen met schone voorbeeldgegevens.",
     "quota_title": "Opslaggebruik",
-    "quota_desc": "Volg de grootte van uw mailbox hier. De cirkel vult zich naarmate u meer ruimte gebruikt."
+    "quota_desc": "Volg de grootte van uw mailbox hier. De cirkel vult zich naarmate u meer ruimte gebruikt.",
+    "settings_section": "Aan de slag"
   },
   "unified_mailbox": {
     "search_unavailable": "Zoeken is niet beschikbaar in de gecombineerde weergave"

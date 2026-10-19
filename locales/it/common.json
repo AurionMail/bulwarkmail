@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Tutti gli account: Tutta la posta",
         "description": "Mostra una voce nella sezione Tutti gli account che elenca tutta la posta di tutti gli account, in tutte le cartelle tranne posta indesiderata, inviata, archivio, cestino e bozze."
+      },
+      "sections": {
+        "text": "Testo e animazioni",
+        "layout": "Layout",
+        "sidebar": "Barra laterale",
+        "accounts": "Più account",
+        "accounts_description": "Come appaiono insieme i tuoi account e le caselle condivise.",
+        "experimental": "Sperimentale"
+      },
+      "account_marker": {
+        "label": "Distinguere gli account",
+        "description": "Nelle viste unificate, contrassegna ogni messaggio con il colore dell'account da cui proviene.",
+        "dot": "Punto colorato",
+        "tint": "Riga colorata",
+        "none": "Niente"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Torna al mio account",
       "managing": "Gestione: {name}"
+    },
+    "advanced_switch": {
+      "label": "Mostra impostazioni avanzate",
+      "show": "Mostra impostazioni avanzate",
+      "badge": "Avanzato",
+      "hidden_count": "{count, plural, one {1 impostazione avanzata è nascosta in questa pagina.} other {# impostazioni avanzate sono nascoste in questa pagina.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Controlli demo",
     "demo_banner_desc": "Sei in modalità demo - tutto rimane nel tuo browser. Premi 'Reimposta Demo' in qualsiasi momento per ricominciare con dati puliti.",
     "quota_title": "Utilizzo dello spazio",
-    "quota_desc": "Monitora le dimensioni della tua casella qui. Il cerchio si riempie man mano che utilizzi più spazio."
+    "quota_desc": "Monitora le dimensioni della tua casella qui. Il cerchio si riempie man mano che utilizzi più spazio.",
+    "settings_section": "Per iniziare"
   },
   "unified_mailbox": {
     "search_unavailable": "La ricerca non è disponibile nella vista unificata"

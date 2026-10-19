@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "Összes fiók: Összes levél",
         "description": "Megjelenít egy bejegyzést az Összes fiók szakaszban, amely az összes fiók összes levelét listázza, a levélszemét, elküldött, archívum, kuka és piszkozatok mappák kivételével minden mappára kiterjedően."
+      },
+      "sections": {
+        "text": "Szöveg és animáció",
+        "layout": "Elrendezés",
+        "sidebar": "Oldalsáv",
+        "accounts": "Több fiók",
+        "accounts_description": "Hogyan jelennek meg együtt a fiókjai és a megosztott postaládák.",
+        "experimental": "Kísérleti"
+      },
+      "account_marker": {
+        "label": "Fiókok megkülönböztetése",
+        "description": "Az egyesített nézetekben minden üzenetet jelöljön annak a fióknak a színével, amelyből érkezett.",
+        "dot": "Színes pont",
+        "tint": "Színezett sor",
+        "none": "Semmi"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Vissza a saját fiókomhoz",
       "managing": "Kezelés: {name}"
+    },
+    "advanced_switch": {
+      "label": "Speciális beállítások megjelenítése",
+      "show": "Speciális beállítások megjelenítése",
+      "badge": "Speciális",
+      "hidden_count": "{count, plural, one {1 speciális beállítás rejtve van ezen az oldalon.} other {# speciális beállítás rejtve van ezen az oldalon.}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "Demó vezérlők",
     "demo_banner_desc": "Demó módban vagy - minden a böngésződben marad. Nyomd meg a 'Demó visszaállítása' gombot bármikor a tiszta mintaadatokkal való újrakezdéshez.",
     "quota_title": "Tárhely használat",
-    "quota_desc": "Kövesd nyomon a postafiókod méretét itt. A kör kitöltődik, ahogy egyre több helyet használsz."
+    "quota_desc": "Kövesd nyomon a postafiókod méretét itt. A kör kitöltődik, ahogy egyre több helyet használsz.",
+    "settings_section": "Első lépések"
   },
   "unified_mailbox": {
     "search_unavailable": "A keresés nem érhető el az egységes nézetben"

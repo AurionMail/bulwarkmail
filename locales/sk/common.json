@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "Všetky účty: Všetka pošta",
         "description": "Zobraziť položku v sekcii Všetky účty so všetkou poštou zo všetkých účtov."
+      },
+      "sections": {
+        "text": "Text a animácie",
+        "layout": "Rozloženie",
+        "sidebar": "Bočný panel",
+        "accounts": "Viac účtov",
+        "accounts_description": "Ako sa vaše účty a zdieľané schránky zobrazujú spolu.",
+        "experimental": "Experimentálne"
+      },
+      "account_marker": {
+        "label": "Rozlíšenie účtov",
+        "description": "V zjednotených zobrazeniach označiť každú správu farbou účtu, z ktorého pochádza.",
+        "dot": "Farebná bodka",
+        "tint": "Podfarbený riadok",
+        "none": "Nič"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
       "preview": {
         "label": "Náhľad"
       }
+    },
+    "advanced_switch": {
+      "label": "Zobraziť rozšírené nastavenia",
+      "show": "Zobraziť rozšírené nastavenia",
+      "badge": "Rozšírené",
+      "hidden_count": "{count, plural, one {1 rozšírené nastavenie je na tejto stránke skryté.} few {# rozšírené nastavenia sú na tejto stránke skryté.} many {# rozšíreného nastavenia je na tejto stránke skrytého.} other {# rozšírených nastavení je na tejto stránke skrytých.}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "Ovládanie dema",
     "demo_banner_desc": "Nachádzate sa v demo režime – všetko zostáva vo vašom prehliadači.",
     "quota_title": "Využitie úložiska",
-    "quota_desc": "Tu môžete sledovať veľkosť svojej poštovej schránky."
+    "quota_desc": "Tu môžete sledovať veľkosť svojej poštovej schránky.",
+    "settings_section": "Začíname"
   },
   "unified_mailbox": {
     "search_unavailable": "Vyhľadávanie nie je v zjednotenom zobrazení k dispozícii"

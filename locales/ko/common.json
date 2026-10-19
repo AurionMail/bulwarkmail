@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "모든 계정: 모든 메일",
         "description": "모든 계정 섹션에 모든 계정의 모든 메일을 나열하는 항목을 표시합니다. 스팸, 보낸편지함, 보관함, 휴지통, 임시보관함을 제외한 모든 폴더가 대상입니다."
+      },
+      "sections": {
+        "text": "텍스트 및 애니메이션",
+        "layout": "레이아웃",
+        "sidebar": "사이드바",
+        "accounts": "여러 계정",
+        "accounts_description": "계정과 공유 사서함을 함께 표시하는 방식입니다.",
+        "experimental": "실험적 기능"
+      },
+      "account_marker": {
+        "label": "계정 구분",
+        "description": "통합 보기에서 각 메시지를 해당 계정의 색상으로 표시합니다.",
+        "dot": "색상 점",
+        "tint": "행 색조",
+        "none": "없음"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "내 계정으로 돌아가기",
       "managing": "관리 중: {name}"
+    },
+    "advanced_switch": {
+      "label": "고급 설정 표시",
+      "show": "고급 설정 표시",
+      "badge": "고급",
+      "hidden_count": "{count, plural, other {이 페이지에서 고급 설정 #개가 숨겨져 있습니다.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "데모 컨트롤러",
     "demo_banner_desc": "현재 데모 모드예요. 모든 작업은 브라우저 안에서만 이뤄집니다. 언제든 '초기화'를 누르면 처음의 깨끗한 샘플 데이터로 돌아가요.",
     "quota_title": "저장 공간 사용량",
-    "quota_desc": "편지함 용량을 여기서 확인하세요. 공간을 많이 쓸수록 원이 점점 채워질 거예요."
+    "quota_desc": "편지함 용량을 여기서 확인하세요. 공간을 많이 쓸수록 원이 점점 채워질 거예요.",
+    "settings_section": "시작하기"
   },
   "unified_mailbox": {
     "search_unavailable": "통합 보기에서는 검색을 사용할 수 없습니다"

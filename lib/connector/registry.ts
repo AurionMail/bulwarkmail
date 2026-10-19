@@ -32,13 +32,20 @@ import type { SettingsSearchTab } from '@/lib/settings-search';
 import { buildSettingsPath, buildFilesPath } from '@/lib/deep-links';
 import { RELEASE_VERSION } from '@/lib/release-version';
 
-/** Mirrors `SettingsSearchTab`. Listed so an unknown tab is refused here. */
-const SETTINGS_TABS: readonly SettingsSearchTab[] = [
-  'account', 'language', 'notifications', 'appearance', 'layout', 'reading',
+/**
+ * Mirrors `SettingsSearchTab`, plus the ids of tabs that have since been
+ * folded into another page: a connector link made for an old tab still
+ * opens the page that holds the setting now (the settings page migrates
+ * the id). Listed so an unknown tab is refused here.
+ */
+const LEGACY_SETTINGS_TABS = ['layout', 'themes'] as const;
+const SETTINGS_TABS: readonly (SettingsSearchTab | typeof LEGACY_SETTINGS_TABS[number])[] = [
+  'account', 'language', 'notifications', 'appearance', 'reading',
   'composing', 'downloads', 'identities', 'vacation', 'filters', 'templates',
   'folders', 'keywords', 'security', 'content_senders', 'calendar', 'contacts',
-  'files', 'protocol_handlers', 'sidebar_apps', 'about_data', 'themes',
+  'files', 'protocol_handlers', 'sidebar_apps', 'about_data',
   'plugins', 'debug',
+  ...LEGACY_SETTINGS_TABS,
 ];
 
 const CALENDAR_VIEWS = ['month', 'week', 'day', 'agenda', 'tasks'] as const;

@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Todas las cuentas: Todo el correo",
         "description": "Muestra una entrada en la sección Todas las cuentas con todo el correo de todas las cuentas, abarcando todas las carpetas excepto spam, enviados, archivo, papelera y borradores."
+      },
+      "sections": {
+        "text": "Texto y animaciones",
+        "layout": "Diseño",
+        "sidebar": "Barra lateral",
+        "accounts": "Varias cuentas",
+        "accounts_description": "Cómo se muestran juntos sus cuentas y buzones compartidos.",
+        "experimental": "Experimental"
+      },
+      "account_marker": {
+        "label": "Distinguir las cuentas",
+        "description": "En las vistas unificadas, marcar cada mensaje con el color de la cuenta de la que procede.",
+        "dot": "Punto de color",
+        "tint": "Fila coloreada",
+        "none": "Nada"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Volver a mi cuenta",
       "managing": "Gestionando: {name}"
+    },
+    "advanced_switch": {
+      "label": "Mostrar ajustes avanzados",
+      "show": "Mostrar ajustes avanzados",
+      "badge": "Avanzado",
+      "hidden_count": "{count, plural, one {1 ajuste avanzado está oculto en esta página.} other {# ajustes avanzados están ocultos en esta página.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Controles de demo",
     "demo_banner_desc": "Estás en modo demo - todo permanece en tu navegador. Haz clic en 'Restablecer demo' en cualquier momento.",
     "quota_title": "Uso de almacenamiento",
-    "quota_desc": "Controla el tamaño de tu buzón aquí. El círculo se llena a medida que usas más espacio."
+    "quota_desc": "Controla el tamaño de tu buzón aquí. El círculo se llena a medida que usas más espacio.",
+    "settings_section": "Primeros pasos"
   },
   "unified_mailbox": {
     "search_unavailable": "La búsqueda no está disponible en la vista unificada"

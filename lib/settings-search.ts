@@ -7,7 +7,6 @@ export type SettingsSearchTab =
   | 'language'
   | 'notifications'
   | 'appearance'
-  | 'layout'
   | 'reading'
   | 'composing'
   | 'downloads'
@@ -25,7 +24,6 @@ export type SettingsSearchTab =
   | 'protocol_handlers'
   | 'sidebar_apps'
   | 'about_data'
-  | 'themes'
   | 'plugins'
   | 'debug';
 
@@ -50,31 +48,33 @@ export const tabSearchPaths: Record<Tab, string[]> = {
   notifications: ['settings.notifications'],
   appearance: [
     'settings.appearance.theme',
+    'settings.themes',
     'settings.appearance.font_size',
     'settings.appearance.list_density',
     'settings.appearance.animations',
     'settings.appearance.message_list_order',
     'settings.advanced.sender_favicons',
     'settings.advanced.show_avatars_in_junk',
-  ],
-  layout: [
+    'settings.appearance.interface_layout',
+    'settings.email_behavior.mail_layout',
+    'settings.email_behavior.list_columns',
     'settings.appearance.toolbar_position',
     'settings.appearance.toolbar_labels',
+    'settings.appearance.colorful_sidebar_icons',
+    'settings.appearance.show_folder_total_count',
     'settings.appearance.hide_account_switcher',
     'settings.appearance.show_rail_account_list',
+    'settings.appearance.favicon_unread_badge',
     'settings.appearance.unified_mailbox',
     'settings.appearance.cross_unread',
     'settings.appearance.cross_starred',
     'settings.appearance.cross_all',
     'settings.appearance.all_mail',
-    'settings.appearance.colorful_sidebar_icons',
-    'settings.appearance.tint_list_rows',
-    'settings.appearance.show_folder_total_count',
-    'settings.appearance.favicon_unread_badge',
+    'settings.appearance.account_marker',
     'settings.appearance.show_shared_mail_accounts',
+    'tour.restart_title',
+    'tour.show_on_new_devices_title',
     'settings.appearance.pro_interface',
-    'settings.email_behavior.mail_layout',
-    'settings.email_behavior.list_columns',
   ],
   reading: [
     'settings.email_behavior.mark_read',
@@ -131,7 +131,6 @@ export const tabSearchPaths: Record<Tab, string[]> = {
   protocol_handlers: ['protocol_handlers'],
   sidebar_apps: ['settings.sidebar_apps', 'sidebar_apps'],
   about_data: ['settings.advanced'],
-  themes: ['settings.themes'],
   plugins: [],
   debug: ['settings.advanced'],
 };
@@ -145,8 +144,7 @@ export const tabKeywords: Record<Tab, string> = {
   account: 'profile email password user signin signout reorder rearrange drag dropdown switcher multi-account',
   language: 'locale region timezone date time format',
   notifications: 'sound alert push badge',
-  appearance: 'theme dark light font size accent color animation density',
-  layout: 'toolbar sidebar account switcher unified mailbox icons rail',
+  appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher unified mailbox icons rail layout reading pane tour',
   reading: 'mark read preview thread conversation archive delete attachment open monospace mono font plain text',
   composing: 'editor signature plain text reply forward draft compose',
   downloads: 'download filename template eml attachment save export',
@@ -164,7 +162,6 @@ export const tabKeywords: Record<Tab, string> = {
   protocol_handlers: 'mailto webcal links default app protocol handler',
   sidebar_apps: 'apps webview iframe',
   about_data: 'export import storage quota privacy backup',
-  themes: 'custom theme css skin appearance',
   plugins: 'extensions addons',
   debug: 'logs developer console diagnostic',
 };

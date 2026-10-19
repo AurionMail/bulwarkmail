@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Všechny účty: Veškerá pošta",
         "description": "Zobrazí v sekci Všechny účty položku s veškerou poštou ze všech účtů, napříč všemi složkami kromě spamu, odeslané, archivu, koše a konceptů."
+      },
+      "sections": {
+        "text": "Text a animace",
+        "layout": "Rozvržení",
+        "sidebar": "Postranní panel",
+        "accounts": "Více účtů",
+        "accounts_description": "Jak se vaše účty a sdílené schránky zobrazují společně.",
+        "experimental": "Experimentální"
+      },
+      "account_marker": {
+        "label": "Rozlišení účtů",
+        "description": "Ve sjednocených zobrazeních označit každou zprávu barvou účtu, ze kterého pochází.",
+        "dot": "Barevná tečka",
+        "tint": "Podbarvený řádek",
+        "none": "Nic"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Zpět na můj účet",
       "managing": "Správa: {name}"
+    },
+    "advanced_switch": {
+      "label": "Zobrazit pokročilá nastavení",
+      "show": "Zobrazit pokročilá nastavení",
+      "badge": "Pokročilé",
+      "hidden_count": "{count, plural, one {1 pokročilé nastavení je na této stránce skryté.} few {# pokročilá nastavení jsou na této stránce skrytá.} many {# pokročilého nastavení je na této stránce skrytého.} other {# pokročilých nastavení je na této stránce skrytých.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Ovládání demoverze",
     "demo_banner_desc": "Nacházíte se v demo režimu - vše zůstává ve vašem prohlížeči. Kdykoli klikněte na „Resetovat“, abyste začali znovu s čistými ukázkovými daty.",
     "quota_title": "Využití úložiště",
-    "quota_desc": "Zde můžete sledovat velikost své poštovní schránky. Kruh se plní podle využití kapacity."
+    "quota_desc": "Zde můžete sledovat velikost své poštovní schránky. Kruh se plní podle využití kapacity.",
+    "settings_section": "Začínáme"
   },
   "unified_mailbox": {
     "search_unavailable": "Vyhledávání není ve sjednoceném zobrazení k dispozici"

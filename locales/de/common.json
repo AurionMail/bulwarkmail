@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Alle Konten: Alle Mails",
         "description": "Zeigt in der Sektion „All accounts“ einen Eintrag mit allen Mails über alle Konten, über alle Ordner außer Junk, Gesendet, Archiv, Papierkorb und Entwürfe."
+      },
+      "sections": {
+        "text": "Text & Animation",
+        "layout": "Layout",
+        "sidebar": "Seitenleiste",
+        "accounts": "Mehrere Konten",
+        "accounts_description": "Wie Ihre Konten und freigegebenen Postfächer gemeinsam erscheinen.",
+        "experimental": "Experimentell"
+      },
+      "account_marker": {
+        "label": "Konten unterscheiden",
+        "description": "In den vereinten Ansichten jede Nachricht mit der Farbe ihres Kontos kennzeichnen.",
+        "dot": "Farbpunkt",
+        "tint": "Eingefärbte Zeile",
+        "none": "Nichts"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Zurück zu meinem Konto",
       "managing": "Verwaltung: {name}"
+    },
+    "advanced_switch": {
+      "label": "Erweiterte Einstellungen anzeigen",
+      "show": "Erweiterte Einstellungen anzeigen",
+      "badge": "Erweitert",
+      "hidden_count": "{count, plural, one {1 erweiterte Einstellung ist auf dieser Seite ausgeblendet.} other {# erweiterte Einstellungen sind auf dieser Seite ausgeblendet.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Demo-Steuerung",
     "demo_banner_desc": "Sie sind im Demo-Modus - alles bleibt in Ihrem Browser. Klicken Sie jederzeit auf 'Demo zurücksetzen'.",
     "quota_title": "Speichernutzung",
-    "quota_desc": "Verfolgen Sie Ihre Postfachgröße hier. Der Kreis füllt sich mit zunehmendem Verbrauch."
+    "quota_desc": "Verfolgen Sie Ihre Postfachgröße hier. Der Kreis füllt sich mit zunehmendem Verbrauch.",
+    "settings_section": "Erste Schritte"
   },
   "unified_mailbox": {
     "search_unavailable": "Die Suche ist in der vereinheitlichten Ansicht nicht verfügbar"

@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "所有郵件",
         "description": "在整合信箱顯示「所有郵件」項目，列出所選信件匣中的所有郵件。"
+      },
+      "sections": {
+        "text": "文字與動畫",
+        "layout": "版面配置",
+        "sidebar": "側邊欄",
+        "accounts": "多個帳號",
+        "accounts_description": "您的帳號與共用信箱如何一起顯示。",
+        "experimental": "實驗性"
+      },
+      "account_marker": {
+        "label": "區分帳號",
+        "description": "在統一檢視中，以來源帳號的顏色標記每封郵件。",
+        "dot": "彩色圓點",
+        "tint": "列著色",
+        "none": "無"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
       "preview": {
         "label": "預覽"
       }
+    },
+    "advanced_switch": {
+      "label": "顯示進階設定",
+      "show": "顯示進階設定",
+      "badge": "進階",
+      "hidden_count": "{count, plural, other {此頁面隱藏了 # 項進階設定。}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "示範控制",
     "demo_banner_desc": "目前處於示範模式，所有資料都保留在瀏覽器中。隨時點擊「重設示範」即可用全新的範例資料重新開始。",
     "quota_title": "儲存使用情況",
-    "quota_desc": "在這裡查看信箱的儲存空間使用量。使用的空間越多，圓形指示器就會填得越滿。"
+    "quota_desc": "在這裡查看信箱的儲存空間使用量。使用的空間越多，圓形指示器就會填得越滿。",
+    "settings_section": "新手入門"
   },
   "unified_mailbox": {
     "search_unavailable": "整合檢視中無法使用搜尋"

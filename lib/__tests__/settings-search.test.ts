@@ -90,7 +90,9 @@ describe('settings search index (English messages)', () => {
     expect(labelsFor('composing')).toContain('Undo send / send delay');
     expect(labelsFor('composing')).toContain('Request read receipts by default');
     expect(labelsFor('appearance')).toContain('Message list order');
-    expect(labelsFor('layout')).toContain('Pro Interface (Experimental)');
+    expect(labelsFor('appearance')).toContain('Pro Interface (Experimental)');
+    expect(labelsFor('appearance')).toContain('Tell accounts apart');
+    expect(labelsFor('appearance')).toContain('Themes');
     expect(labelsFor('language')).toContain('Time zone');
   });
 

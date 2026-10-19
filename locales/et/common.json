@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "Kõik kirjad",
         "description": "Kuva ühendatud postkastis kirje Kõik kirjad, mis loetleb kõik valitud kaustade kirjad."
+      },
+      "sections": {
+        "text": "Tekst ja liikumine",
+        "layout": "Paigutus",
+        "sidebar": "Külgriba",
+        "accounts": "Mitu kontot",
+        "accounts_description": "Kuidas sinu kontod ja jagatud postkastid koos kuvatakse.",
+        "experimental": "Katseline"
+      },
+      "account_marker": {
+        "label": "Kontode eristamine",
+        "description": "Ühendatud vaadetes märgi iga kiri selle konto värviga, kust see tuli.",
+        "dot": "Värviline täpp",
+        "tint": "Toonitud rida",
+        "none": "Mitte midagi"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
       "preview": {
         "label": "Eelvaade"
       }
+    },
+    "advanced_switch": {
+      "label": "Kuva täpsemad seaded",
+      "show": "Kuva täpsemad seaded",
+      "badge": "Täpsem",
+      "hidden_count": "{count, plural, one {Sellel lehel on peidetud 1 täpsem seade.} other {Sellel lehel on peidetud # täpsemat seadet.}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "Demorežiimi juhtnupud",
     "demo_banner_desc": "Oled demorežiimis - kõik jääb sinu brauserisse. Vajuta igal ajal 'Lähtesta demo', et alustada puhta näidisandmestikuga otsast peale.",
     "quota_title": "Mahu kasutus",
-    "quota_desc": "Jälgi siin oma postkasti suurust. Ring täitub, mida rohkem ruumi kasutad."
+    "quota_desc": "Jälgi siin oma postkasti suurust. Ring täitub, mida rohkem ruumi kasutad.",
+    "settings_section": "Alustamine"
   },
   "unified_mailbox": {
     "search_unavailable": "Otsing pole ühendatud vaates saadaval"

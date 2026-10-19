@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "Alle konti: Al post",
         "description": "Viser en post i sektionen Alle konti med al post fra alle konti, på tværs af alle mapper undtagen spam, sendt, arkiv, papirkurv og kladder."
+      },
+      "sections": {
+        "text": "Tekst og animation",
+        "layout": "Layout",
+        "sidebar": "Sidepanel",
+        "accounts": "Flere konti",
+        "accounts_description": "Hvordan dine konti og delte postkasser vises sammen.",
+        "experimental": "Eksperimentelt"
+      },
+      "account_marker": {
+        "label": "Skeln mellem konti",
+        "description": "Markér hver besked i de samlede visninger med farven på den konto, den kom fra.",
+        "dot": "Farvet prik",
+        "tint": "Farvet række",
+        "none": "Intet"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Tilbage til min konto",
       "managing": "Administrerer: {name}"
+    },
+    "advanced_switch": {
+      "label": "Vis avancerede indstillinger",
+      "show": "Vis avancerede indstillinger",
+      "badge": "Avanceret",
+      "hidden_count": "{count, plural, one {1 avanceret indstilling er skjult på denne side.} other {# avancerede indstillinger er skjult på denne side.}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "Demo-kontroller",
     "demo_banner_desc": "Du er i demo-tilstand - alt forbliver i din browser. Tryk 'Nulstil demo' når som helst for at starte forfra med rent eksempeldata.",
     "quota_title": "Lagerforbrug",
-    "quota_desc": "Spor din postkassestørrelse her. Cirklen fyldes op, efterhånden som du bruger mere plads."
+    "quota_desc": "Spor din postkassestørrelse her. Cirklen fyldes op, efterhånden som du bruger mere plads.",
+    "settings_section": "Kom godt i gang"
   },
   "unified_mailbox": {
     "search_unavailable": "Søgning er ikke tilgængelig i den samlede visning"

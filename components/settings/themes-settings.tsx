@@ -9,7 +9,12 @@ import { Check, Lock } from '@/components/icons';
 import { toast } from '@/stores/toast-store';
 import { usePolicyStore } from '@/stores/policy-store';
 
-export function ThemesSettings() {
+/**
+ * The theme gallery. On its own it is a section; `embedded` draws only the
+ * grid (with its lock notice) inside the Appearance page's Theme section,
+ * right under the light/dark choice.
+ */
+export function ThemesSettings({ embedded }: { embedded?: boolean } = {}) {
   const t = useTranslations('settings.themes');
   const { installedThemes, activeThemeId, activateTheme } = useThemeStore();
   const { isThemeDisabled, getThemePolicy, getForcedThemeId, isThemeForceEnabled } = usePolicyStore();
@@ -63,9 +68,8 @@ export function ThemesSettings() {
     toast.success(id ? t('activated') : t('default_restored'));
   };
 
-  return (
-    <SettingsSection title={t('title')} description={t('description')}>
-
+  const grid = (
+    <>
       {forcedThemeId && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
           {t('locked')}
@@ -110,6 +114,22 @@ export function ThemesSettings() {
           );
         })}
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div data-search-label={t('title')} className="py-3">
+        <div className="text-sm font-medium text-foreground">{t('title')}</div>
+        <p className="text-xs text-muted-foreground mt-1 mb-3">{t('description')}</p>
+        {grid}
+      </div>
+    );
+  }
+
+  return (
+    <SettingsSection title={t('title')} description={t('description')}>
+      {grid}
     </SettingsSection>
   );
 }

@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "所有账户：全部邮件",
         "description": "在“所有账户”部分显示一个条目，列出所有账户的全部邮件，涵盖除垃圾邮件、已发送、归档、废纸篓和草稿之外的所有文件夹。"
+      },
+      "sections": {
+        "text": "文字与动画",
+        "layout": "布局",
+        "sidebar": "侧边栏",
+        "accounts": "多个账户",
+        "accounts_description": "您的账户和共享邮箱如何一起显示。",
+        "experimental": "实验性"
+      },
+      "account_marker": {
+        "label": "区分账户",
+        "description": "在统一视图中，用来源账户的颜色标记每封邮件。",
+        "dot": "彩色圆点",
+        "tint": "行着色",
+        "none": "无"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "返回我的账户",
       "managing": "管理：{name}"
+    },
+    "advanced_switch": {
+      "label": "显示高级设置",
+      "show": "显示高级设置",
+      "badge": "高级",
+      "hidden_count": "{count, plural, other {此页面隐藏了 # 项高级设置。}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "演示控制",
     "demo_banner_desc": "当前为演示模式，所有数据仅保存在浏览器中。随时点击\"重置演示\"即可恢复初始示例数据。",
     "quota_title": "存储使用情况",
-    "quota_desc": "在这里查看邮箱的存储使用情况。随着空间使用增加，进度圆环会逐渐填满。"
+    "quota_desc": "在这里查看邮箱的存储使用情况。随着空间使用增加，进度圆环会逐渐填满。",
+    "settings_section": "新手入门"
   },
   "unified_mailbox": {
     "search_unavailable": "统一视图中无法使用搜索"

@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "Tot el correu",
         "description": "Mostra una entrada de Tot el correu a la bústia unificada amb tot el correu de les carpetes seleccionades."
+      },
+      "sections": {
+        "text": "Text i moviment",
+        "layout": "Disposició",
+        "sidebar": "Barra lateral",
+        "accounts": "Diversos comptes",
+        "accounts_description": "Com es mostren junts els vostres comptes i bústies compartides.",
+        "experimental": "Experimental"
+      },
+      "account_marker": {
+        "label": "Distingir els comptes",
+        "description": "A les vistes unificades, marca cada missatge amb el color del compte d'on prové.",
+        "dot": "Punt de color",
+        "tint": "Fila tenyida",
+        "none": "Res"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
       "preview": {
         "label": "Previsualització"
       }
+    },
+    "advanced_switch": {
+      "label": "Mostra la configuració avançada",
+      "show": "Mostra la configuració avançada",
+      "badge": "Avançat",
+      "hidden_count": "{count, plural, one {1 configuració avançada està amagada en aquesta pàgina.} other {# configuracions avançades estan amagades en aquesta pàgina.}}"
     }
   },
   "errors": {
@@ -4046,7 +4067,8 @@
     "demo_banner_title": "Controls de la demo",
     "demo_banner_desc": "Esteu en mode de demostració: tot es queda al navegador. Premeu «Reinicia la demo» en qualsevol moment per començar de nou amb dades d'exemple netes.",
     "quota_title": "Ús de l'emmagatzematge",
-    "quota_desc": "Feu un seguiment de la mida de la bústia aquí. El cercle s'omple a mesura que utilitzeu més espai."
+    "quota_desc": "Feu un seguiment de la mida de la bústia aquí. El cercle s'omple a mesura que utilitzeu més espai.",
+    "settings_section": "Primers passos"
   },
   "unified_mailbox": {
     "search_unavailable": "La cerca no està disponible a la vista unificada"

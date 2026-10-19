@@ -1245,6 +1245,21 @@
       "cross_all": {
         "label": "All mail",
         "description": "Show an All mail entry in the Unified Mailbox listing all mail across the selected folders."
+      },
+      "sections": {
+        "text": "Text & motion",
+        "layout": "Layout",
+        "sidebar": "Sidebar",
+        "accounts": "Multiple accounts",
+        "accounts_description": "How your accounts and shared mailboxes appear together.",
+        "experimental": "Experimental"
+      },
+      "account_marker": {
+        "label": "Tell accounts apart",
+        "description": "In the unified views, mark each message with the color of the account it came from.",
+        "dot": "Colored dot",
+        "tint": "Tinted row",
+        "none": "Nothing"
       }
     },
     "keywords": {
@@ -4052,7 +4067,8 @@
     "demo_banner_title": "Demo controls",
     "demo_banner_desc": "You're in demo mode - everything stays in your browser. Hit 'Reset Demo' anytime to start fresh with clean sample data.",
     "quota_title": "Storage usage",
-    "quota_desc": "Track your mailbox size here. The circle fills up as you use more space."
+    "quota_desc": "Track your mailbox size here. The circle fills up as you use more space.",
+    "settings_section": "Getting started"
   },
   "unified_mailbox": {
     "search_unavailable": "Search is not available in the unified view"

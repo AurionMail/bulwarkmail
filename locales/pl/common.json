@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Wszystkie konta: Cała poczta",
         "description": "Pokazuje pozycję w sekcji Wszystkie konta z całą pocztą ze wszystkich kont, obejmującą wszystkie foldery oprócz spamu, wysłanych, archiwum, kosza i roboczych."
+      },
+      "sections": {
+        "text": "Tekst i animacje",
+        "layout": "Układ",
+        "sidebar": "Pasek boczny",
+        "accounts": "Wiele kont",
+        "accounts_description": "Jak Twoje konta i udostępnione skrzynki są wyświetlane razem.",
+        "experimental": "Eksperymentalne"
+      },
+      "account_marker": {
+        "label": "Rozróżnianie kont",
+        "description": "W widokach połączonych oznaczaj każdą wiadomość kolorem konta, z którego pochodzi.",
+        "dot": "Kolorowa kropka",
+        "tint": "Podbarwiony wiersz",
+        "none": "Nic"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Powrót do mojego konta",
       "managing": "Zarządzanie: {name}"
+    },
+    "advanced_switch": {
+      "label": "Pokaż ustawienia zaawansowane",
+      "show": "Pokaż ustawienia zaawansowane",
+      "badge": "Zaawansowane",
+      "hidden_count": "{count, plural, one {1 ustawienie zaawansowane jest ukryte na tej stronie.} few {# ustawienia zaawansowane są ukryte na tej stronie.} many {# ustawień zaawansowanych jest ukrytych na tej stronie.} other {# ustawienia zaawansowanego jest ukryte na tej stronie.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Sterowanie wersją demo",
     "demo_banner_desc": "Jesteś w trybie demo - wszystko pozostaje w Twojej przeglądarce. W każdej chwili kliknij „Reset Demo”, aby zacząć od nowa z czystymi danymi przykładowymi.",
     "quota_title": "Wykorzystanie miejsca",
-    "quota_desc": "Tutaj możesz śledzić rozmiar swojej skrzynki pocztowej. Okrąg wypełnia się wraz ze wzrostem użycia przestrzeni."
+    "quota_desc": "Tutaj możesz śledzić rozmiar swojej skrzynki pocztowej. Okrąg wypełnia się wraz ze wzrostem użycia przestrzeni.",
+    "settings_section": "Pierwsze kroki"
   },
   "unified_mailbox": {
     "search_unavailable": "Wyszukiwanie jest niedostępne w widoku ujednoliconym"

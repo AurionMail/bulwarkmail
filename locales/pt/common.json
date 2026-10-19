@@ -1242,6 +1242,21 @@
       "cross_all": {
         "label": "Todas as contas: Todo o correio",
         "description": "Mostra uma entrada na seção Todas as contas listando todo o correio de todas as contas, abrangendo todas as pastas exceto spam, enviados, arquivo, lixeira e rascunhos."
+      },
+      "sections": {
+        "text": "Texto e animações",
+        "layout": "Disposição",
+        "sidebar": "Barra lateral",
+        "accounts": "Várias contas",
+        "accounts_description": "Como as suas contas e caixas partilhadas aparecem em conjunto.",
+        "experimental": "Experimental"
+      },
+      "account_marker": {
+        "label": "Distinguir as contas",
+        "description": "Nas vistas unificadas, marcar cada mensagem com a cor da conta de onde veio.",
+        "dot": "Ponto colorido",
+        "tint": "Linha colorida",
+        "none": "Nada"
       }
     },
     "keywords": {
@@ -2532,6 +2547,12 @@
     "scoped": {
       "back": "Voltar para minha conta",
       "managing": "Gerenciando: {name}"
+    },
+    "advanced_switch": {
+      "label": "Mostrar definições avançadas",
+      "show": "Mostrar definições avançadas",
+      "badge": "Avançado",
+      "hidden_count": "{count, plural, one {1 definição avançada está oculta nesta página.} other {# definições avançadas estão ocultas nesta página.}}"
     }
   },
   "errors": {
@@ -4004,7 +4025,8 @@
     "demo_banner_title": "Controles de demonstração",
     "demo_banner_desc": "Está no modo de demonstração - tudo permanece no seu navegador. Clique em 'Repor Demonstração' a qualquer momento para recomeçar com dados limpos.",
     "quota_title": "Utilização do armazenamento",
-    "quota_desc": "Acompanhe o tamanho da sua caixa de correio aqui. O círculo preenche-se à medida que utiliza mais espaço."
+    "quota_desc": "Acompanhe o tamanho da sua caixa de correio aqui. O círculo preenche-se à medida que utiliza mais espaço.",
+    "settings_section": "Primeiros passos"
   },
   "unified_mailbox": {
     "search_unavailable": "A pesquisa não está disponível na vista unificada"
