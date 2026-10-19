@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Email, Mailbox } from '@/lib/jmap/types';
+import type { Email, Mailbox, ThreadGroup } from '@/lib/jmap/types';
 import { JMAPClient } from '@/lib/jmap/client';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { useAuthStore } from '@/stores/auth-store';
@@ -10,7 +10,10 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { usePluginStore } from '@/stores/plugin-store';
 import { useThemeStore } from '@/stores/theme-store';
 import { DEFAULT_SEARCH_FILTERS } from '@/lib/jmap/search-utils';
+import { useUIStore } from '@/stores/ui-store';
 import { threadKeyFor } from '@/lib/thread-utils';
+
+const device = vi.hoisted(() => ({ mobile: false }));
 
 // Keep the real MailApp selection/download handlers and EmailViewer. Stub
 // unrelated shell UI and bootstrap requests so no server is contacted.
@@ -25,6 +28,8 @@ vi.mock('@/components/layout/sidebar', () => ({ Sidebar: () => null }));
 vi.mock('@/components/layout/navigation-rail', () => ({ NavigationRail: () => null }));
 vi.mock('@/components/layout/calendar-event-notification-toaster', () => ({ CalendarEventNotificationToaster: () => null }));
 vi.mock('@/components/layout/share-notification-toaster', () => ({ ShareNotificationToaster: () => null }));
+vi.mock('@/components/layout/mv-top-bar', () => ({ MvTopBar: () => null }));
+vi.mock('@/components/layout/mv-side-panel', () => ({ MvSidePanel: () => null }));
 vi.mock('@/components/layout/mobile-header', () => ({ MobileHeader: () => null }));
 vi.mock('@/components/email/message-list-tabs', () => ({ MessageListTabs: () => null }));
 vi.mock('@/components/search/search-box', () => ({ SearchBox: () => null }));
@@ -38,22 +43,38 @@ vi.mock('@/hooks/use-pro-multi-account-mailboxes', () => ({ useProMultiAccountMa
 vi.mock('@/hooks/use-wopi-status', () => ({ useWopiStatus: () => null, canWopiOpen: () => false }));
 vi.mock('@/hooks/use-browser-navigation', () => ({ useBrowserNavigation: () => {} }));
 vi.mock('@/hooks/use-media-query', () => ({
-  useDeviceDetection: () => ({ isMobile: false, isTablet: false, isDesktop: true }),
+  useDeviceDetection: () => ({ isMobile: device.mobile, isTablet: false, isDesktop: !device.mobile }),
   useMediaQuery: () => false,
   useIsDesktop: () => true,
 }));
 vi.mock('@/lib/push-bindings', () => ({ reconcilePushBindings: () => {}, releasePushBindings: () => {} }));
-vi.mock('@/components/email/email-list', () => ({ EmailList: ({ emails, onEmailSelect, onOpenAttachment }: {
-  emails: Email[]; onEmailSelect: (email: Email) => void; onOpenAttachment: (email: Email, attachment: NonNullable<Email['attachments']>[number]) => void;
-}) => <div>{emails.map((email, i) => <div key={i}>
-  <button onClick={() => onEmailSelect(email)}>Select {i}</button>
-  <button onClick={() => onOpenAttachment(email, email.attachments![0])}>List attachment {i}</button>
-</div>)}</div> }));
+vi.mock('@/components/email/email-list', async () => {
+  const { ThreadListItem } = await import('@/components/email/thread-list-item');
+  const { groupEmailsByThread } = await import('@/lib/thread-utils');
+  return { EmailList: ({ emails, onEmailSelect, onOpenAttachment, onOpenConversation }: {
+    emails: Email[];
+    onOpenConversation: (thread: ThreadGroup) => void;
+    onEmailSelect: (email: Email) => void;
+    onOpenAttachment: (email: Email, attachment: NonNullable<Email['attachments']>[number]) => void;
+  }) => device.mobile ? (
+    <div>{groupEmailsByThread(emails).map(thread => (
+      <ThreadListItem key={thread.threadKey} thread={thread} isExpanded={false}
+        onToggleExpand={() => {}} onEmailSelect={onEmailSelect} onOpenConversation={onOpenConversation} />
+    ))}</div>
+  ) : (
+    <div>{emails.map((email, i) => <div key={i}>
+      <button onClick={() => onEmailSelect(email)}>Select {i}</button>
+      <button onClick={() => onOpenAttachment(email, email.attachments![0])}>List attachment {i}</button>
+    </div>)}</div>
+  ) };
+});
 vi.mock('@/components/files/file-preview-modal', () => ({ FilePreviewModal: ({ onDownload, getFileContent }: {
   onDownload: () => void; getFileContent: () => Promise<unknown>;
 }) => <div><button onClick={onDownload}>Preview download</button><button onClick={() => void getFileContent()}>Preview fetch</button></div> }));
 
 const { MailApp } = await import('../mail-app');
+const { ConversationEmailBody } = await import('@/components/email/thread-conversation-view');
+const { EmailViewer } = await import('@/components/email/email-viewer');
 
 const sharedMailbox = { id: 'nrichmond:inbox', originalId: 'inbox', name: 'Shared', isShared: true, accountId: 'nrichmond' } as Mailbox;
 const primaryMailbox = { id: 'inbox', name: 'Inbox', role: 'inbox' } as Mailbox;
@@ -90,6 +111,8 @@ let other: ReturnType<typeof makeClient>;
 const asClient = (c: ReturnType<typeof makeClient>) => c as unknown as IJMAPClient;
 
 beforeEach(() => {
+  device.mobile = false;
+  useUIStore.setState({ isMobile: false });
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Unexpected network request')));
   usePluginStore.setState({ initializePlugins: vi.fn().mockResolvedValue(undefined) });
   useThemeStore.setState({ syncServerThemes: vi.fn().mockResolvedValue(undefined) });
@@ -104,7 +127,7 @@ beforeEach(() => {
     getClientForAccount: (id) => (id === 'login-primary' ? asClient(primary) : id === 'login-other' ? asClient(other) : undefined) as never,
     getAllConnectedClients: () => new Map([['login-primary', asClient(primary)], ['login-other', asClient(other)]]) as never,
   });
-  useSettingsStore.setState({ enableUnifiedMailbox: false, mailAttachmentAction: 'download', mailLayout: 'split', attachmentImagePreviewsEnabled: false, postExportAction: 'none', attachmentDownloadTemplate: '{filename}', filenameLowercase: false } as never);
+  useSettingsStore.setState({ interfaceLayout: 'default', markAsReadDelay: -1, enableUnifiedMailbox: false, mailAttachmentAction: 'download', mailLayout: 'split', attachmentImagePreviewsEnabled: false, postExportAction: 'none', attachmentDownloadTemplate: '{filename}', filenameLowercase: false } as never);
   useEmailStore.setState({
     emails: [message()], selectedEmail: message(), selectedMailbox: sharedMailbox.id,
     mailboxes: [primaryMailbox, sharedMailbox], viewingAccountId: null, accountMailboxes: {},
@@ -350,5 +373,232 @@ describe('standard mail UI blob routing', () => {
     useEmailStore.setState({ selectedEmail: message({ attachments: [{ partId: 'image', blobId: 'same-blob', name: 'inline.png', cid: 'cid-image', type: 'image/png', size: 50 }] }) });
     render(<MailApp />);
     await waitFor(() => expect(primary.fetchBlob).toHaveBeenCalledWith('same-blob', 'inline.png', 'image/png', 'nrichmond'));
+  });
+});
+
+
+// Exercise real thread-row clicks, MailApp conversation loading, the card body,
+// and JMAP URL/authentication. Only unrelated shell UI and responses are mocked.
+async function conversationClients() {
+  const a = await connectDownloadClient('https://primary.example.com', 'primary-login', 'postal12345');
+  const b = await connectDownloadClient('https://secondary.example.com', 'secondary-login', 'secondary-primary');
+  useAuthStore.setState({ client: a,
+    getClientForAccount: id => id === 'login-primary' ? a : id === 'login-other' ? b : undefined,
+    getAllConnectedClients: () => new Map([['login-primary', a], ['login-other', b]]),
+  });
+  const fetchMock = vi.mocked(fetch);
+  fetchMock.mockClear();
+  fetchMock.mockImplementation(async () => new Response('blob bytes', {
+    status: 200, headers: { 'Content-Type': 'image/png' },
+  }));
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  return { a, b, fetchMock };
+}
+const cardAttachment = { partId: '3', blobId: 'same-blob', name: 'card.png', type: 'image/png', size: 50 };
+function conversationMessage(overrides: Partial<Email> = {}) {
+  return message({ id: 'card', subject: 'Routing conversation', attachments: [cardAttachment], ...overrides });
+}
+function inlineMessage(overrides: Partial<Email> = {}) {
+  return conversationMessage({
+    htmlBody: [{ partId: '1', blobId: 'html-blob', type: 'text/html', size: 30 }], textBody: [],
+    bodyValues: { '1': { value: '<img src="cid:test-image">', isTruncated: false, isEncodingProblem: false } },
+    attachments: [{ ...cardAttachment, cid: 'test-image' }], ...overrides,
+  });
+}
+function expectBlobRequest(url: string, login: string, index = 0) {
+  const calls = vi.mocked(fetch).mock.calls;
+  expect(String(calls[index][0])).toBe(url);
+  expect(calls[index][1]?.headers).toEqual(expect.objectContaining({
+    Authorization: `Basic ${btoa(`${login}:test-password`)}`,
+  }));
+}
+async function openPhoneConversation(ref: Email, threadClient: JMAPClient, selected: Email | null = null, unified = true) {
+  device.mobile = true;
+  useUIStore.setState({ isMobile: true });
+  const older = { ...ref, id: 'older', receivedAt: '2025-12-31T00:00:00Z', attachments: [] };
+  // Email/get/Thread/get results have no UI source stamps.
+  const raw = (email: Email) => ({ ...email, sourceClientAccountId: undefined, sourceAccountId: undefined });
+  const threadFetch = vi.spyOn(threadClient, 'getThreadEmails').mockResolvedValue([raw(ref), raw(older)]);
+  useEmailStore.setState({ emails: [ref, older], selectedEmail: selected,
+    selectedMailbox: unified ? '__unified_inbox__' : sharedMailbox.id,
+    isUnifiedView: unified, unifiedRole: unified ? 'inbox' : null,
+  });
+  render(<MailApp />);
+  fireEvent.click(await screen.findByText('Routing conversation'));
+  await screen.findByRole('button', { name: 'email_viewer.back_to_list' });
+  await waitFor(() => expect(threadFetch).toHaveBeenCalled());
+  await screen.findByText('threads.messages_other');
+  return threadFetch;
+}
+
+describe('conversation blob routing', () => {
+  it.each([
+    { source: 'direct shared folder', login: 'login-primary', owner: 'nrichmond', unified: false },
+    { source: 'secondary login and shared owner', login: 'login-other', owner: 'nrichmond', unified: true },
+    { source: 'primary account', login: 'login-primary', owner: 'postal12345', unified: true },
+  ])('routes phone CID images for $source', async ({ login, owner, unified }) => {
+    const { a, b, fetchMock } = await conversationClients();
+    const ref = inlineMessage(unified ? { sourceClientAccountId: login, sourceAccountId: owner } : {});
+    const threadFetch = await openPhoneConversation(ref, login === 'login-other' ? b : a, null, unified);
+    expect(threadFetch).toHaveBeenCalledWith('thread', unified ? owner : 'nrichmond');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expectBlobRequest(`https://${login === 'login-other' ? 'secondary' : 'primary'}.example.com/download/${owner}/same-blob/card.png?accept=image%2Fpng`, login === 'login-other' ? 'secondary-login' : 'primary-login');
+  });
+
+  it('routes a direct shared-folder conversation through the browsing login', async () => {
+    const { b, fetchMock } = await conversationClients();
+    useEmailStore.setState({ viewingAccountId: 'login-other', accountMailboxes: { 'login-other': [sharedMailbox] } });
+    await openPhoneConversation(inlineMessage(), b, null, false);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expectBlobRequest('https://secondary.example.com/download/nrichmond/same-blob/card.png?accept=image%2Fpng', 'secondary-login');
+  });
+
+  it.each([
+    { selection: 'null', login: 'login-other', owner: 'nrichmond' },
+    { selection: 'unrelated', login: 'login-other', owner: 'nrichmond' },
+    { selection: 'null', login: 'login-primary', owner: 'postal12345' },
+  ])('downloads the phone card on $login with $selection selectedEmail', async ({ selection, login, owner }) => {
+    const { a, b, fetchMock } = await conversationClients();
+    const selected = selection === 'null' ? null : message({ id: 'unrelated', subject: 'Other message', sourceClientAccountId: 'login-primary', sourceAccountId: 'unrelated-owner' });
+    await openPhoneConversation(conversationMessage({ sourceClientAccountId: login, sourceAccountId: owner }), login === 'login-other' ? b : a, selected);
+    fireEvent.click(await screen.findByRole('button', { name: /card.png/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expectBlobRequest(`https://${login === 'login-other' ? 'secondary' : 'primary'}.example.com/download/${owner}/same-blob/card.png?accept=image%2Fpng`, login === 'login-other' ? 'secondary-login' : 'primary-login');
+  });
+
+  it.each([false, true])('retains phone preview routing after navigation (direct shared=%s)', async direct => {
+    const { a, b, fetchMock } = await conversationClients();
+    useSettingsStore.setState({ mailAttachmentAction: 'preview' });
+    const ref = conversationMessage(direct ? {} : { sourceClientAccountId: 'login-other', sourceAccountId: 'nrichmond' });
+    await openPhoneConversation(ref, direct ? a : b, null, !direct);
+    fireEvent.click(await screen.findByRole('button', { name: /card.png/ }));
+    await screen.findByText('Preview fetch');
+    act(() => {
+      useEmailStore.setState({ selectedMailbox: 'inbox', selectedEmail: message({ sourceClientAccountId: 'login-primary', sourceAccountId: 'other-owner' }) });
+      useAuthStore.setState({ client: b, activeAccountId: 'login-other' });
+    });
+    fireEvent.click(screen.getByText('Preview fetch'));
+    fireEvent.click(screen.getByText('Preview download'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    for (const index of [0, 1]) expectBlobRequest(`https://${direct ? 'primary' : 'secondary'}.example.com/download/nrichmond/same-blob/card.png?accept=image%2Fpng`, direct ? 'primary-login' : 'secondary-login', index);
+  });
+
+  it.each([false, true])('routes Mountain View expanded sibling CID and attachment (mobile=%s)', async mobile => {
+    const { b, fetchMock } = await conversationClients();
+    device.mobile = mobile;
+    useUIStore.setState({ isMobile: mobile });
+    useSettingsStore.setState({ interfaceLayout: 'mountain-view' });
+    const sibling = inlineMessage({ attachments: [...inlineMessage().attachments!, { ...cardAttachment, name: 'download.png', partId: '4' }], id: 'sibling', from: [{ name: 'Older sender', email: 'older@example.com' }], sourceClientAccountId: 'login-other', sourceAccountId: 'nrichmond' });
+    const open = conversationMessage({ id: 'open', attachments: [], receivedAt: '2026-01-02T00:00:00Z', sourceClientAccountId: 'login-other', sourceAccountId: 'nrichmond' });
+    const download = vi.fn();
+    const { container } = render(<EmailViewer email={open} blobSource={{ client: b, accountId: 'nrichmond' }} mvConversation={[sibling, open]} onDownloadAttachment={download} />);
+    fireEvent.click(await screen.findByText('Older sender'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expectBlobRequest('https://secondary.example.com/download/nrichmond/same-blob/card.png?accept=image%2Fpng', 'secondary-login');
+    const card = container.querySelector('[data-mv-conversation-expanded]') as HTMLElement;
+    fireEvent.click(within(card).getByRole('button', { name: /download.png/ }));
+    expect(download).toHaveBeenCalledWith('same-blob', 'download.png', 'image/png', false, expect.objectContaining({ client: b, accountId: 'nrichmond' }));
+  });
+
+  it('downloads overlapping card blob ids from successive phone conversations', async () => {
+    const { a, b, fetchMock } = await conversationClients();
+    device.mobile = true;
+    useUIStore.setState({ isMobile: true });
+    const one = conversationMessage({ subject: 'First conversation', sourceClientAccountId: 'login-primary', sourceAccountId: 'owner-a' });
+    const two = conversationMessage({ subject: 'Second conversation', sourceClientAccountId: 'login-other', sourceAccountId: 'owner-b' });
+    const rows = [one, { ...one, id: 'older' }, two, { ...two, id: 'older' }];
+    vi.spyOn(a, 'getThreadEmails').mockResolvedValue([one]);
+    vi.spyOn(b, 'getThreadEmails').mockResolvedValue([two]);
+    useEmailStore.setState({ emails: rows, selectedEmail: null, selectedMailbox: '__unified_inbox__', isUnifiedView: true, unifiedRole: 'inbox' });
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('First conversation'));
+    fireEvent.click(await screen.findByRole('button', { name: /card.png/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'email_viewer.back_to_list' }));
+    fireEvent.click(screen.getByText('Second conversation'));
+    fireEvent.click(await screen.findByRole('button', { name: /card.png/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expectBlobRequest('https://primary.example.com/download/owner-a/same-blob/card.png?accept=image%2Fpng', 'primary-login', 0);
+    expectBlobRequest('https://secondary.example.com/download/owner-b/same-blob/card.png?accept=image%2Fpng', 'secondary-login', 1);
+  });
+
+  it.each(['owner', 'client'] as const)('scopes Mountain View pending loads when only the %s changes', async changed => {
+    const { a, b, fetchMock } = await conversationClients();
+    useSettingsStore.setState({ interfaceLayout: 'mountain-view' });
+    const nextOwner = changed === 'owner' ? 'next-owner' : 'nrichmond';
+    const nextMailbox = { ...sharedMailbox, id: 'next-inbox', accountId: nextOwner };
+    const open = conversationMessage({ id: 'open', attachments: [], receivedAt: '2026-01-02T00:00:00Z' });
+    const sibling = (label: string) => conversationMessage({
+      id: 'sibling', keywords: {}, from: [{ name: label, email: 'older@example.com' }],
+    });
+    const getThreadA = vi.spyOn(a, 'getThread').mockResolvedValue({ id: 'thread', emailIds: ['sibling', 'open'] });
+    const getThreadB = vi.spyOn(b, 'getThread').mockResolvedValue({ id: 'thread', emailIds: ['sibling', 'open'] });
+    vi.spyOn(a, 'getSomeEmails').mockImplementation(async (_ids, owner) => [sibling(owner === nextOwner && changed === 'owner' ? 'Next sender' : 'First sender'), { ...open }]);
+    vi.spyOn(b, 'getSomeEmails').mockResolvedValue([sibling('Next sender'), { ...open }]);
+    useEmailStore.setState({ emails: [open], selectedEmail: open, selectedMailbox: sharedMailbox.id,
+      mailboxes: [sharedMailbox, nextMailbox], accountMailboxes: { 'login-other': [sharedMailbox, nextMailbox] },
+    });
+    const { container } = render(<MailApp />);
+    await screen.findByText('First sender');
+    expect(fetchMock).not.toHaveBeenCalled();
+    act(() => useEmailStore.setState({
+      selectedMailbox: nextMailbox.id, selectedEmail: { ...open },
+      viewingAccountId: changed === 'client' ? 'login-other' : null,
+    }));
+    await waitFor(() => expect(container.querySelector('[data-mv-conversation-expanded]')?.textContent).toContain('Next sender'));
+    const card = container.querySelector('[data-mv-conversation-expanded]') as HTMLElement;
+    fireEvent.click(within(card).getByRole('button', { name: /card.png/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(changed === 'client' ? getThreadB : getThreadA).toHaveBeenLastCalledWith('thread', nextOwner);
+    expectBlobRequest(`https://${changed === 'client' ? 'secondary' : 'primary'}.example.com/download/${nextOwner}/same-blob/card.png?accept=image%2Fpng`, changed === 'client' ? 'secondary-login' : 'primary-login');
+  });
+
+  it('does not fetch a disconnected stamped source through another login', async () => {
+    const { fetchMock } = await conversationClients();
+    render(<ConversationEmailBody email={inlineMessage({ sourceClientAccountId: 'disconnected', sourceAccountId: 'nrichmond' })} allowExternal={false} onAllowExternal={() => {}} />);
+    await act(async () => {});
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('isolates equal email/blob/CID ids across clients and owners and discards late CID results', async () => {
+    await conversationClients();
+    let finishFirst!: (blob: Blob) => void;
+    const firstClient = asClient(primary);
+    const secondClient = asClient(other);
+    const first = vi.spyOn(firstClient, 'fetchBlob').mockImplementation(() => new Promise(resolve => { finishFirst = resolve; }));
+    const second = vi.spyOn(secondClient, 'fetchBlob').mockResolvedValue(new Blob(['second'], { type: 'image/png' }));
+    useAuthStore.setState({ client: firstClient as never,
+      getClientForAccount: id => (id === 'login-primary' ? firstClient : secondClient) as never,
+    });
+    const attachments = inlineMessage().attachments;
+    const one = inlineMessage({ attachments, sourceClientAccountId: 'login-primary', sourceAccountId: 'owner-a' });
+    const two = { ...one, sourceClientAccountId: 'login-other', sourceAccountId: 'owner-b' };
+    vi.mocked(URL.createObjectURL).mockReturnValueOnce('blob:second').mockReturnValueOnce('blob:late');
+    const body = (email: Email) => <ConversationEmailBody email={email} allowExternal={false} onAllowExternal={() => {}} />;
+    const { container, rerender, unmount } = render(body(one));
+    await waitFor(() => expect(first).toHaveBeenCalled());
+    rerender(body(two));
+    await waitFor(() => expect(second).toHaveBeenCalledWith('same-blob', 'card.png', 'image/png', 'owner-b'));
+    await waitFor(() => expect(container.querySelector('iframe')?.getAttribute('srcdoc')).toContain('blob:second'));
+    await act(async () => finishFirst(new Blob(['late'], { type: 'image/png' })));
+    expect(container.querySelector('iframe')?.getAttribute('srcdoc')).toContain('blob:second');
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:late');
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:second');
+  });
+
+  it('clears resolved CID URLs immediately when only the owning account changes', async () => {
+    const { a, fetchMock } = await conversationClients();
+    vi.mocked(URL.createObjectURL).mockReturnValue('blob:owner-a');
+    const first = inlineMessage({ sourceClientAccountId: 'login-primary', sourceAccountId: 'owner-a' });
+    const body = (email: Email) => <ConversationEmailBody email={email} allowExternal={false} onAllowExternal={() => {}} />;
+    const { container, rerender } = render(body(first));
+    await waitFor(() => expect(container.querySelector('iframe')?.getAttribute('srcdoc')).toContain('blob:owner-a'));
+    vi.spyOn(a, 'fetchBlob').mockImplementation(() => new Promise(() => {}));
+    rerender(body({ ...first, sourceAccountId: 'owner-b' }));
+    expect(container.querySelector('iframe')?.getAttribute('srcdoc')).not.toContain('blob:owner-a');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(a.fetchBlob).toHaveBeenLastCalledWith('same-blob', 'card.png', 'image/png', 'owner-b');
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:owner-a');
   });
 });

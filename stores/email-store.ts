@@ -1043,10 +1043,16 @@ function findListRow(rows: ListRow[], key: string): number {
   return own !== -1 ? own : rows.findIndex((row) => row.members.includes(key));
 }
 
+export interface EmailBlobContext {
+  client: IJMAPClient | null;
+  accountId?: string;
+  clientAccountId?: string;
+}
+
 export function resolveEmailBlobContext(
   email: Pick<Email, 'sourceClientAccountId' | 'sourceAccountId'> | null,
   passedClient: IJMAPClient | null,
-): { client: IJMAPClient | null; accountId?: string; clientAccountId?: string } {
+): EmailBlobContext {
   const state = useEmailStore.getState();
   const auth = useAuthStore.getState();
   const clientAccountId = email?.sourceClientAccountId ?? state.viewingAccountId ?? undefined;
