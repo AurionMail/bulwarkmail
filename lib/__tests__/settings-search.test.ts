@@ -92,6 +92,7 @@ describe('settings search index (English messages)', () => {
     expect(labelsFor('message_list')).toContain('Swipe right action (mobile)');
     expect(labelsFor('message_list')).toContain('Message list order');
     expect(labelsFor('reading')).toContain('Trusted Senders');
+    expect(labelsFor('reading')).toContain('Email (.eml) filename');
     expect(labelsFor('reading')).not.toContain('Delete Action');
     expect(labelsFor('composing')).toContain('Undo send / send delay');
     expect(labelsFor('composing')).toContain('Request read receipts by default');

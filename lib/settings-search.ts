@@ -10,7 +10,6 @@ export type SettingsSearchTab =
   | 'message_list'
   | 'reading'
   | 'composing'
-  | 'downloads'
   | 'vacation'
   | 'filters'
   | 'organize'
@@ -101,6 +100,7 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.email_behavior.attachment_click_action',
     'settings.email_behavior.attachment_image_previews',
     'settings.email_behavior.hide_inline_image_attachments',
+    'settings.downloads',
   ],
   composing: [
     'settings.templates',
@@ -118,7 +118,6 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.email_behavior.request_read_receipt',
     'settings.email_behavior.read_receipt_response',
   ],
-  downloads: ['settings.downloads'],
   vacation: ['settings.vacation'],
   filters: ['settings.filters'],
   organize: ['settings.folders', 'settings.keywords'],
@@ -143,9 +142,8 @@ export const tabKeywords: Record<Tab, string> = {
   notifications: 'sound alert push badge favicon tab icon unread count background relay device',
   appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher icons rail layout reading pane',
   message_list: 'inbox list preview thread conversation grouping sort order columns archive delete swipe hover favicon avatar tag color',
-  reading: 'mark read attachment open monospace mono font plain text images remote content block sender privacy tracking dark light',
+  reading: 'mark read attachment open monospace mono font plain text images remote content block sender privacy tracking dark light download filename template eml save export',
   composing: 'editor signature plain text reply forward draft compose template snippet quick reply mention undo send receipt attachment reminder',
-  downloads: 'download filename template eml attachment save export',
   vacation: 'auto reply away out of office holiday responder',
   filters: 'sieve rules block junk forward',
   organize: 'folders mailbox subscribe roles tags labels keywords colors nested',

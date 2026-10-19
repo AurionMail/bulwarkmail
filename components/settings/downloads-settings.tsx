@@ -188,7 +188,7 @@ export function DownloadsSettings() {
   );
 
   return (
-    <SettingsSection title={t("title")} description={t("description")}>
+    <SettingsSection id="downloads" advanced title={t("title")} description={t("description")}>
       <TemplateEditor
         label={t("email_template.label")}
         description={t("email_template.description")}

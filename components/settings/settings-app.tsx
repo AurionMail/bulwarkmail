@@ -26,7 +26,6 @@ import {
   LayoutList,
   Info,
   Bug,
-  Download,
   X,
   type AppIcon,
 } from '@/components/icons';
@@ -49,7 +48,6 @@ import { DebugSettings } from '@/components/settings/debug-settings';
 import { OrganizeSettings } from '@/components/settings/organize-settings';
 import { AccountSecuritySettings } from '@/components/settings/account-security-settings';
 import { FilesSettingsComponent } from '@/components/settings/files-settings';
-import { DownloadsSettings } from '@/components/settings/downloads-settings';
 import { ContactsSettings } from '@/components/settings/contacts-settings';
 import { SidebarAppsSettings } from '@/components/settings/sidebar-apps-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
@@ -123,7 +121,6 @@ const tabIcons: Record<Tab, AppIcon> = {
   message_list: LayoutList,
   reading: BookOpen,
   composing: PenLine,
-  downloads: Download,
   vacation: PalmtreeIcon,
   filters: Filter,
   organize: FolderOpen,
@@ -154,6 +151,7 @@ export const LEGACY_TAB_MAP: Record<string, Tab> = {
   templates: 'composing',
   folders: 'organize',
   keywords: 'organize',
+  downloads: 'reading',
 };
 
 function readPersistedTab(): SettingsTabId {
@@ -560,7 +558,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     { id: 'message_list', label: t('tabs.message_list'), icon: tabIcons.message_list, group: 'mail' },
     { id: 'reading', label: t('tabs.reading'), icon: tabIcons.reading, group: 'mail' },
     { id: 'composing', label: t('tabs.composing'), icon: tabIcons.composing, group: 'mail' },
-    { id: 'downloads', label: t('tabs.downloads'), icon: tabIcons.downloads, group: 'mail' },
     ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
     ...(supportsSieve ? [{ id: 'filters' as Tab, label: t('tabs.filters'), icon: tabIcons.filters, group: 'mail' as TabGroup }] : []),
     { id: 'organize', label: isFeatureEnabled('customKeywordsEnabled') ? t('tabs.organize') : t('tabs.folders'), icon: tabIcons.organize, group: 'mail' },
@@ -701,7 +698,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'message_list' && <MessageListSettings />}
       {effectiveActiveTab === 'reading' && <ReadingSettings />}
       {effectiveActiveTab === 'composing' && <ComposingSettings />}
-      {effectiveActiveTab === 'downloads' && <DownloadsSettings />}
       {effectiveActiveTab === 'vacation' && <VacationSettings />}
       {effectiveActiveTab === 'filters' && <FilterSettings />}
       {effectiveActiveTab === 'organize' && <OrganizeSettings />}

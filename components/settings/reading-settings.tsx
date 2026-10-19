@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSettingsStore } from '@/stores/settings-store';
 import { SettingsSection, SettingItem, Select, ToggleSwitch } from './settings-section';
+import { DownloadsSettings } from './downloads-settings';
 import { TrustedSendersModal } from '@/components/trusted-senders-modal';
 import { ChevronRight } from '@/components/icons';
 import { usePolicyStore } from '@/stores/policy-store';
@@ -13,7 +14,8 @@ import { useAuthStore } from '@/stores/auth-store';
 /**
  * The Reading page: the open message. Opening it, how its body is drawn,
  * remote images and trusted senders (the former Content & Senders tab), and
- * attachments. List, delete and swipe rows live on the Message list page.
+ * attachments, and (Advanced) how downloads are named, the former Downloads
+ * tab. List, delete and swipe rows live on the Message list page.
  */
 export function ReadingSettings() {
   const t = useTranslations('settings.email_behavior');
@@ -192,6 +194,8 @@ export function ReadingSettings() {
           />
         </SettingItem>
       </SettingsSection>
+
+      <DownloadsSettings />
     </div>
   );
 }
