@@ -1980,6 +1980,11 @@
         "key_label": "Publiskā atslēga (S/MIME vai PGP ASCII formātā)",
         "key_placeholder": "Ielīmējiet šeit savu publisko atslēgu",
         "none": "Nav konfigurēta neviena publiskā atslēga"
+      },
+      "sections": {
+        "devices": "Citas lietotnes un ierīces",
+        "devices_description": "Izmantojiet savu pastu ārpus šīs pārlūkprogrammas.",
+        "encryption": "Šifrēšana"
       }
     },
     "identities": {

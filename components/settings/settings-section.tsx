@@ -89,6 +89,12 @@ export function AdvancedSettingsSwitch() {
   );
 }
 
+/** Wraps a block that is not a SettingItem but should still hide with Advanced off. */
+export function AdvancedOnly({ children }: { children: ReactNode }) {
+  const visible = useAdvancedVisible(true);
+  return visible ? <>{children}</> : null;
+}
+
 /** Small marker next to a label of a row that only shows with Advanced on. */
 function AdvancedBadge() {
   const t = useTranslations('settings.advanced_switch');

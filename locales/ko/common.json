@@ -1980,6 +1980,11 @@
         "key_label": "공개 키(S/MIME 또는 PGP ASCII 형식)",
         "key_placeholder": "여기에 공개 키를 붙여넣으세요",
         "none": "설정된 공개 키가 없어요"
+      },
+      "sections": {
+        "devices": "다른 앱 및 기기",
+        "devices_description": "이 브라우저 밖에서 메일을 사용합니다.",
+        "encryption": "암호화"
       }
     },
     "identities": {

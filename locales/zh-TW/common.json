@@ -1987,6 +1987,11 @@
         "link_another": "連結其他裝置",
         "use_sso": "改用單一登入",
         "error_insecure_server": "行動應用程式只透過 https 連線到郵件伺服器，而此伺服器使用的是 http。"
+      },
+      "sections": {
+        "devices": "其他應用程式與裝置",
+        "devices_description": "在此瀏覽器之外使用您的郵件。",
+        "encryption": "加密"
       }
     },
     "identities": {

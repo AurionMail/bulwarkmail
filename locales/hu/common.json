@@ -1983,6 +1983,11 @@
         "key_label": "Nyilvános kulcs (S/MIME vagy PGP ASCII formátumban)",
         "key_placeholder": "Illessze be ide a nyilvános kulcsát",
         "none": "Nincs beállítva nyilvános kulcs"
+      },
+      "sections": {
+        "devices": "Más alkalmazások és eszközök",
+        "devices_description": "Használja a leveleit ezen a böngészőn kívül.",
+        "encryption": "Titkosítás"
       }
     },
     "identities": {

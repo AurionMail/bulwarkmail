@@ -1980,6 +1980,11 @@
         "key_label": "Openbare sleutel (S/MIME of PGP in ASCII-formaat)",
         "key_placeholder": "Plak hier uw openbare sleutel",
         "none": "Geen openbare sleutels geconfigureerd"
+      },
+      "sections": {
+        "devices": "Andere apps en apparaten",
+        "devices_description": "Gebruik uw e-mail buiten deze browser.",
+        "encryption": "Versleuteling"
       }
     },
     "identities": {

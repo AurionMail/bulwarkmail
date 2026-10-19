@@ -1945,6 +1945,11 @@
         "key_label": "מפתח ציבורי (S/MIME או PGP בפורמט ASCII)",
         "key_placeholder": "הדבק כאן את המפתח הציבורי שלך",
         "none": "לא הוגדרו מפתחות ציבוריים"
+      },
+      "sections": {
+        "devices": "אפליקציות ומכשירים אחרים",
+        "devices_description": "שימוש בדואר שלך מחוץ לדפדפן זה.",
+        "encryption": "הצפנה"
       }
     },
     "identities": {

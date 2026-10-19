@@ -1980,6 +1980,11 @@
         "key_label": "Veřejný klíč (S/MIME nebo PGP ve formátu ASCII)",
         "key_placeholder": "Sem vložte svůj veřejný klíč",
         "none": "Nejsou nastaveny žádné veřejné klíče"
+      },
+      "sections": {
+        "devices": "Další aplikace a zařízení",
+        "devices_description": "Používejte svou poštu mimo tento prohlížeč.",
+        "encryption": "Šifrování"
       }
     },
     "identities": {

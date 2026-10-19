@@ -1980,6 +1980,11 @@
         "key_label": "Klucz publiczny (S/MIME lub PGP w formacie ASCII)",
         "key_placeholder": "Wklej tutaj swój klucz publiczny",
         "none": "Nie skonfigurowano żadnych kluczy publicznych"
+      },
+      "sections": {
+        "devices": "Inne aplikacje i urządzenia",
+        "devices_description": "Korzystaj z poczty poza tą przeglądarką.",
+        "encryption": "Szyfrowanie"
       }
     },
     "identities": {

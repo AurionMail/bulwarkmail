@@ -1980,6 +1980,11 @@
         "key_label": "Öffentlicher Schlüssel (S/MIME oder PGP im ASCII-Format)",
         "key_placeholder": "Fügen Sie hier Ihren öffentlichen Schlüssel ein",
         "none": "Keine öffentlichen Schlüssel konfiguriert"
+      },
+      "sections": {
+        "devices": "Andere Apps und Geräte",
+        "devices_description": "Ihre E-Mails außerhalb dieses Browsers nutzen.",
+        "encryption": "Verschlüsselung"
       }
     },
     "identities": {

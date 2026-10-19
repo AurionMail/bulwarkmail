@@ -1987,6 +1987,11 @@
         "key_label": "Verejný kľúč (S/MIME alebo PGP vo formáte ASCII)",
         "key_placeholder": "Sem vložte svoj verejný kľúč",
         "none": "Nie sú nastavené žiadne verejné kľúče"
+      },
+      "sections": {
+        "devices": "Ďalšie aplikácie a zariadenia",
+        "devices_description": "Používajte svoju poštu mimo tohto prehliadača.",
+        "encryption": "Šifrovanie"
       }
     },
     "identities": {

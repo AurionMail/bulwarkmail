@@ -1983,6 +1983,11 @@
         "key_label": "Offentlig nøgle (S/MIME eller PGP i ASCII-format)",
         "key_placeholder": "Indsæt din offentlige nøgle her",
         "none": "Ingen offentlige nøgler konfigureret"
+      },
+      "sections": {
+        "devices": "Andre apps og enheder",
+        "devices_description": "Brug din mail uden for denne browser.",
+        "encryption": "Kryptering"
       }
     },
     "identities": {

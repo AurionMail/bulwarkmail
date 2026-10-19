@@ -1987,6 +1987,11 @@
         "key_label": "Cheie publică (S/MIME sau PGP în format ASCII)",
         "key_placeholder": "Lipiți aici cheia dvs. publică",
         "none": "Nicio cheie publică configurată"
+      },
+      "sections": {
+        "devices": "Alte aplicații și dispozitive",
+        "devices_description": "Folosiți-vă e-mailul în afara acestui browser.",
+        "encryption": "Criptare"
       }
     },
     "identities": {

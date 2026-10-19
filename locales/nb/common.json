@@ -1987,6 +1987,11 @@
         "link_another": "Koble til en annen enhet",
         "use_sso": "Bruk enkel pålogging i stedet",
         "error_insecure_server": "Mobilappen kobler bare til e-postservere over https, og denne bruker http."
+      },
+      "sections": {
+        "devices": "Andre apper og enheter",
+        "devices_description": "Bruk e-posten din utenfor denne nettleseren.",
+        "encryption": "Kryptering"
       }
     },
     "identities": {

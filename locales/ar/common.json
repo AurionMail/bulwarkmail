@@ -1987,6 +1987,11 @@
         "key_label": "المفتاح العام (S/MIME أو PGP بترميز ASCII)",
         "key_placeholder": "الصق مفتاحك العام هنا",
         "none": "لا توجد مفاتيح عامة مُعدّة"
+      },
+      "sections": {
+        "devices": "تطبيقات وأجهزة أخرى",
+        "devices_description": "استخدم بريدك خارج هذا المتصفح.",
+        "encryption": "التشفير"
       }
     },
     "identities": {

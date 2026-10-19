@@ -1980,6 +1980,11 @@
         "key_label": "公開鍵（S/MIME または PGP の ASCII 形式）",
         "key_placeholder": "ここに公開鍵を貼り付けてください",
         "none": "公開鍵が設定されていません"
+      },
+      "sections": {
+        "devices": "他のアプリとデバイス",
+        "devices_description": "このブラウザー以外でメールを使う。",
+        "encryption": "暗号化"
       }
     },
     "identities": {

@@ -1987,6 +1987,11 @@
         "link_another": "Seo teine seade",
         "use_sso": "Kasuta hoopis ühekordset sisselogimist",
         "error_insecure_server": "Mobiilirakendus ühendub meiliserveritega ainult üle https-i ja see server kasutab http-d."
+      },
+      "sections": {
+        "devices": "Muud rakendused ja seadmed",
+        "devices_description": "Kasuta oma posti väljaspool seda brauserit.",
+        "encryption": "Krüpteerimine"
       }
     },
     "identities": {

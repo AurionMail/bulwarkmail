@@ -1987,6 +1987,11 @@
         "link_another": "Link another device",
         "use_sso": "Use single sign-on instead",
         "error_insecure_server": "The mobile app only connects to mail servers over https, and this one uses http."
+      },
+      "sections": {
+        "devices": "Other apps and devices",
+        "devices_description": "Use your mail outside this browser.",
+        "encryption": "Encryption"
       }
     },
     "identities": {

@@ -1980,6 +1980,11 @@
         "key_label": "Clave pública (S/MIME o PGP en formato ASCII)",
         "key_placeholder": "Pega aquí tu clave pública",
         "none": "No hay claves públicas configuradas"
+      },
+      "sections": {
+        "devices": "Otras aplicaciones y dispositivos",
+        "devices_description": "Use su correo fuera de este navegador.",
+        "encryption": "Cifrado"
       }
     },
     "identities": {

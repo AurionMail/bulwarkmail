@@ -1980,6 +1980,11 @@
         "key_label": "Chiave pubblica (S/MIME o PGP in formato ASCII)",
         "key_placeholder": "Incolla qui la tua chiave pubblica",
         "none": "Nessuna chiave pubblica configurata"
+      },
+      "sections": {
+        "devices": "Altre app e dispositivi",
+        "devices_description": "Usa la tua posta al di fuori di questo browser.",
+        "encryption": "Crittografia"
       }
     },
     "identities": {

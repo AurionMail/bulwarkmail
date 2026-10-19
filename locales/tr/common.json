@@ -1980,6 +1980,11 @@
         "key_label": "Ortak anahtar (S/MIME veya PGP ASCII biçiminde)",
         "key_placeholder": "Ortak anahtarınızı buraya yapıştırın",
         "none": "Yapılandırılmış ortak anahtar yok"
+      },
+      "sections": {
+        "devices": "Diğer uygulamalar ve cihazlar",
+        "devices_description": "Postanızı bu tarayıcının dışında kullanın.",
+        "encryption": "Şifreleme"
       }
     },
     "identities": {

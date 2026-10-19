@@ -159,7 +159,7 @@ export const tabKeywords: Record<Tab, string> = {
   templates: 'snippet quick reply',
   folders: 'mailbox subscribe',
   keywords: 'tags labels colors',
-  security: 'password 2fa two-factor passkey app password mfa',
+  security: 'password 2fa two-factor passkey app password mfa api key token phone mobile app pair qr thunderbird outlook imap client encryption pgp smime',
   calendar: 'event schedule appointment meeting timezone',
   contacts: 'address book contact',
   files: 'attachments cloud drive storage upload',

@@ -1987,6 +1987,11 @@
         "key_label": "Clau pública (S/MIME o PGP en ASCII armor)",
         "key_placeholder": "Enganxeu aquí la vostra clau pública",
         "none": "No hi ha cap clau pública configurada"
+      },
+      "sections": {
+        "devices": "Altres aplicacions i dispositius",
+        "devices_description": "Feu servir el correu fora d'aquest navegador.",
+        "encryption": "Xifratge"
       }
     },
     "identities": {

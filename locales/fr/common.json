@@ -1980,6 +1980,11 @@
         "key_label": "Clé publique (S/MIME ou PGP au format ASCII)",
         "key_placeholder": "Collez votre clé publique ici",
         "none": "Aucune clé publique configurée"
+      },
+      "sections": {
+        "devices": "Autres applications et appareils",
+        "devices_description": "Utilisez votre messagerie en dehors de ce navigateur.",
+        "encryption": "Chiffrement"
       }
     },
     "identities": {
