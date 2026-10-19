@@ -80,7 +80,7 @@ export function CalendarSettings() {
   };
 
   return (
-    <SettingsSection title={t('title')}>
+    <SettingsSection id="calendar" title={t('title')}>
       <SettingItem label={t('default_view')}>
         <Select
           value={viewMode}

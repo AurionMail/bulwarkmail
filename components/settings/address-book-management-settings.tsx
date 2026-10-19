@@ -249,7 +249,7 @@ export function AddressBookManagementSettings() {
 
   return (
     <>
-    <SettingsSection title={tSettings("manage_title")} description={tSettings("manage_description")}>
+    <SettingsSection id="address-books" title={tSettings("manage_title")} description={tSettings("manage_description")}>
       <div className="space-y-2">
         {/* In scoped mode (managing a shared account) hide the user's own
             address books and show only the managed account's group. */}
@@ -290,7 +290,7 @@ export function AddressBookManagementSettings() {
         shared account, so hide them while scoped to a shared account. */}
     {!managedAccountId && (
     <div className="mt-8">
-      <SettingsSection title={tSettings("categories_title")} description={tSettings("categories_description")}>
+      <SettingsSection id="categories" title={tSettings("categories_title")} description={tSettings("categories_description")}>
         <div className="space-y-2">
           {sortedKeywords.map(([keyword, count]) => {
             if (editingKeyword === keyword) {

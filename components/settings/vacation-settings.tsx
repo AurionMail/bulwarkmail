@@ -388,7 +388,7 @@ export function VacationSettings() {
         </SettingItem>
       </SettingsSection>
 
-      <SettingsSection title={t('auto_reply.title')} description={t('status.description')}>
+      <SettingsSection id="reply" title={t('auto_reply.title')} description={t('status.description')}>
         <SettingItem label={t('status.label')}>
           <StatusSwitch
             checked={localEnabled}
@@ -503,7 +503,7 @@ export function VacationSettings() {
       })()}
 
       {forwardAvailable && (
-        <SettingsSection title={t('forward.title')} description={t('forward.description')}>
+        <SettingsSection id="forward" title={t('forward.title')} description={t('forward.description')}>
           <SettingItem label={t('forward.enabled_label')}>
             <StatusSwitch
               checked={forwardEnabled}

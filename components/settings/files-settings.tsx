@@ -185,7 +185,7 @@ export function FilesSettingsComponent() {
       </div>
 
       <div className="space-y-8">
-        <SettingsSection title={t("display.title")} description={t("display.description")}>
+        <SettingsSection id="display" title={t("display.title")} description={t("display.description")}>
         <SettingItem label={t("default_view.label")} description={t("default_view.description")}>
           <RadioGroup
             value={settings.defaultViewMode}
@@ -219,7 +219,7 @@ export function FilesSettingsComponent() {
         </SettingItem>
       </SettingsSection>
 
-      <SettingsSection title={t("icons.title")} description={t("icons.description")}>
+      <SettingsSection id="icons" title={t("icons.title")} description={t("icons.description")}>
         <SettingItem label={t("show_icons.label")} description={t("show_icons.description")}>
           <ToggleSwitch
             checked={settings.showIcons}
@@ -241,8 +241,8 @@ export function FilesSettingsComponent() {
         </SettingItem>
       </SettingsSection>
 
-      <SettingsSection title={t("behavior.title")} description={t("behavior.description")}>
-        <SettingItem label={t("show_hidden.label")} description={t("show_hidden.description")}>
+      <SettingsSection id="behavior" advanced title={t("behavior.title")} description={t("behavior.description")}>
+        <SettingItem advanced label={t("show_hidden.label")} description={t("show_hidden.description")}>
           <ToggleSwitch
             checked={settings.showHiddenFiles}
             onChange={(v) => update({ showHiddenFiles: v })}

@@ -505,7 +505,7 @@ export function FilterSettings() {
 
   return (
     <div className="space-y-6">
-      <SettingsSection title={t("title")} description={t("description")}>
+      <SettingsSection id="rules" title={t("title")} description={t("description")}>
         {isOpaque && (
           <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400">
             <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />

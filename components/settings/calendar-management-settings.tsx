@@ -531,7 +531,7 @@ export function CalendarManagementSettings() {
   };
 
   return (
-    <SettingsSection title={t('title')} description={t('description')}>
+    <SettingsSection id="calendars" title={t('title')} description={t('description')}>
       <div className="space-y-2">
         {listedCalendars.map((cal) => {
           const color = (cal.isShared && sharedCalendarColors[sharedCalendarColorKey(cal)]) || cal.color || '#3b82f6';
