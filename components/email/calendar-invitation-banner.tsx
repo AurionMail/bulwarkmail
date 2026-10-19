@@ -34,7 +34,7 @@ import {
   getInvitationTrustAssessment,
   formatEventSummary,
   formatInvitationSchedule,
-  findParticipantByEmail,
+  findParticipantByEmails,
   extractMethodFromRawIcs,
   type EventSummary,
   type InvitationMethod,
@@ -390,7 +390,14 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const viewedMailbox = viewMailboxes.find((m) => m.id === selectedMailboxId);
   const sharedOwnerAccountId = viewedMailbox?.isShared ? viewedMailbox.accountId : undefined;
   const blobAccountId = email.sourceAccountId ?? sharedOwnerAccountId ?? parseClient?.getAccountId();
-  const currentUserEmail = useAuthStore((s) => s.primaryIdentity?.email);
+  // Every address the user sends as, primary first: an invite may be
+  // addressed to an alias identity (#1283).
+  const identityEmails = useAuthStore(useShallow((s) => {
+    const emails = [s.primaryIdentity?.email, ...s.identities.map((identity) => identity.email)]
+      .filter((address): address is string => Boolean(address))
+      .map((address) => address.toLowerCase());
+    return Array.from(new Set(emails));
+  }));
   const calendarInvitationParsingEnabled = useSettingsStore((s) => s.calendarInvitationParsingEnabled);
   const timeFormat = useSettingsStore((s) => s.timeFormat);
   const { calendars, supportsCalendar, importEvents, rsvpEvent, updateEvent, events: storeEvents, setSelectedDate } = useCalendarStore(useShallow((state) => ({
@@ -524,12 +531,12 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     ? storeEvents.find((e) => e.uid === parsedEvent.uid)
     : null;
 
-  const currentUserParticipant = existingEvent && currentUserEmail
-    ? findParticipantByEmail(existingEvent, currentUserEmail)
+  const currentUserParticipant = existingEvent
+    ? findParticipantByEmails(existingEvent, identityEmails)
     : null;
 
-  const fallbackParsedParticipant = !currentUserParticipant && parsedEvent && currentUserEmail
-    ? findParticipantByEmail(parsedEvent, currentUserEmail)
+  const fallbackParsedParticipant = !currentUserParticipant && parsedEvent
+    ? findParticipantByEmails(parsedEvent, identityEmails)
     : null;
 
   const participantForUser = currentUserParticipant || fallbackParsedParticipant;
@@ -545,9 +552,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     || myParticipant?.participant.participationStatus
     || null;
   const userIsOrganizer = Boolean(isOnlyOrganizer);
-  const userIsSender = Boolean(
-    currentUserEmail && email.from?.[0]?.email?.toLowerCase() === currentUserEmail.toLowerCase()
-  );
+  const senderAddress = email.from?.[0]?.email?.toLowerCase();
+  const userIsSender = Boolean(senderAddress && identityEmails.includes(senderAddress));
   const bannerTitle = getBannerTitle(t, method);
   const bannerInfo = getBannerInfo(t, method, userIsOrganizer, supportsCalendar);
   const trustAssessment = parsedEvent && !userIsSender ? getInvitationTrustAssessment(parsedEvent, email, method) : null;
@@ -602,8 +608,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       const eventForRsvp = existingEvent
         ? await resolveExistingEventForRsvp()
         : null;
-      const existingEventParticipant = eventForRsvp && currentUserEmail
-        ? findParticipantByEmail(eventForRsvp, currentUserEmail)
+      const existingEventParticipant = eventForRsvp
+        ? findParticipantByEmails(eventForRsvp, identityEmails)
         : null;
       const canFallbackToParsedParticipant = Boolean(
         existingEvent
@@ -646,7 +652,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
             (e) => e.uid === parsedEvent.uid
           );
           const participant = myParticipant
-            || (newEvent && currentUserEmail ? findParticipantByEmail(newEvent, currentUserEmail) : null);
+            || (newEvent ? findParticipantByEmails(newEvent, identityEmails) : null);
           if (newEvent && participant) {
             if (!(await rsvpEvent(client, newEvent.id, participant.id, status, replyToForRsvp))) return;
             setRsvpStatus(status);

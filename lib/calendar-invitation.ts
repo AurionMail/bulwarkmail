@@ -702,6 +702,22 @@ export function formatInvitationSchedule(
   return range.end ? `${start} – ${formatPoint(range.end, true)}` : start;
 }
 
+/**
+ * The participant matching the first of `emails` found in the event. The
+ * user's identities, primary first: an invite may be addressed to an alias
+ * identity rather than the primary address (#1283).
+ */
+export function findParticipantByEmails(
+  event: Partial<CalendarEvent>,
+  emails: readonly string[]
+): { id: string; participant: CalendarParticipant } | null {
+  for (const email of emails) {
+    const found = findParticipantByEmail(event, email);
+    if (found) return found;
+  }
+  return null;
+}
+
 export function findParticipantByEmail(
   event: Partial<CalendarEvent>,
   email: string
