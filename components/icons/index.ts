@@ -51,6 +51,7 @@ export {
   IconCalendarCheck as CalendarCheck,
   IconCalendarClock as CalendarClock,
   IconCalendarMonth as CalendarDays,
+  IconCalendarEvent as CalendarEvent,
   IconCalendarX as CalendarX,
   IconCamera as Camera,
   IconCheck as Check,

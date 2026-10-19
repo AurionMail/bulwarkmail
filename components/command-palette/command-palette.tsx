@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  BookUser,
-  Calendar,
-  HardDrive,
+  CalendarEvent,
+  Folder,
+  Users,
   Keyboard,
   Mail,
   Moon,
@@ -121,13 +121,13 @@ function CommandPalette({ onClose, onShowShortcuts }: { onClose: () => void; onS
       { id: "go-mail", group: "navigation", icon: Mail, label: t("go_to", { name: tSidebar("mail") }), run: go("/") },
     ];
     if (supportsCalendar && isFeatureEnabled("calendarEnabled")) {
-      list.push({ id: "go-calendar", group: "navigation", icon: Calendar, label: t("go_to", { name: tSidebar("calendar") }), run: go("/calendar") });
+      list.push({ id: "go-calendar", group: "navigation", icon: CalendarEvent, label: t("go_to", { name: tSidebar("calendar") }), run: go("/calendar") });
     }
     if ((client?.supportsContacts?.() ?? false) && isFeatureEnabled("contactsEnabled")) {
-      list.push({ id: "go-contacts", group: "navigation", icon: BookUser, label: t("go_to", { name: tSidebar("contacts") }), run: go("/contacts") });
+      list.push({ id: "go-contacts", group: "navigation", icon: Users, label: t("go_to", { name: tSidebar("contacts") }), run: go("/contacts") });
     }
     if ((client?.supportsFiles?.() ?? false) && isFeatureEnabled("filesEnabled")) {
-      list.push({ id: "go-files", group: "navigation", icon: HardDrive, label: t("go_to", { name: tSidebar("files") }), run: go("/files") });
+      list.push({ id: "go-files", group: "navigation", icon: Folder, label: t("go_to", { name: tSidebar("files") }), run: go("/files") });
     }
     list.push(
       { id: "go-settings", group: "navigation", icon: Settings, label: t("go_to", { name: tSidebar("settings") }), run: go("/settings") },
