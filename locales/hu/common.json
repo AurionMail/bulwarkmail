@@ -1050,7 +1050,8 @@
       "downloads": "Letöltések",
       "content_senders": "Tartalom és feladók",
       "about_data": "Névjegy és adatok",
-      "debug": "Hibakeresés"
+      "debug": "Hibakeresés",
+      "message_list": "Üzenetlista"
     },
     "themes": {
       "title": "Témák",
@@ -1703,6 +1704,10 @@
       "rtl_editing": {
         "label": "Jobbról balra írás támogatása",
         "description": "Iránygombot ad a szerkesztő eszköztárához, amellyel a bekezdések balról jobbra vagy jobbról balra állíthatók"
+      },
+      "group_conversations": {
+        "label": "Üzenetek csoportosítása beszélgetés szerint",
+        "description": "A válaszok egy beszélgetésként jelenjenek meg, ne külön üzenetekként."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Speciális beállítások megjelenítése",
       "badge": "Speciális",
       "hidden_count": "{count, plural, one {1 speciális beállítás rejtve van ezen az oldalon.} other {# speciális beállítás rejtve van ezen az oldalon.}}"
+    },
+    "message_list": {
+      "title": "Üzenetlista",
+      "description": "Mit mutat a lista, és mit tesz egy kattintás vagy pöccintés.",
+      "sections": {
+        "senders": "Feladók képei",
+        "actions": "Gyorsműveletek",
+        "delete": "Törlés és archiválás",
+        "loading": "Betöltés és keresés"
+      }
+    },
+    "reading_page": {
+      "title": "Olvasás",
+      "description": "A megnyitott üzenet.",
+      "sections": {
+        "display": "Üzenet megjelenítése",
+        "images": "Képek és külső tartalom",
+        "images_description": "A távoli képek elárulhatják a feladónak, hogy megnyitotta a levelet.",
+        "attachments": "Mellékletek"
+      }
     }
   },
   "errors": {

@@ -27,7 +27,7 @@ import {
   Link as LinkIcon,
   BookOpen,
   PenLine,
-  EyeOff,
+  LayoutList,
   Languages,
   Info,
   Bug,
@@ -41,8 +41,8 @@ import { AppearanceSettings } from '@/components/settings/appearance-settings';
 import { AppTopBannerSlot } from '@/components/plugins/app-top-banner-slot';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { ReadingSettings } from '@/components/settings/reading-settings';
+import { MessageListSettings } from '@/components/settings/message-list-settings';
 import { ComposingSettings } from '@/components/settings/composing-settings';
-import { ContentSendersSettings } from '@/components/settings/content-senders-settings';
 import { AccountSettings } from '@/components/settings/account-settings';
 import { IdentitySettings } from '@/components/settings/identity-settings';
 import { VacationSettings } from '@/components/settings/vacation-settings';
@@ -130,6 +130,7 @@ const tabIcons: Record<Tab, AppIcon> = {
   language: Languages,
   notifications: Bell,
   appearance: Palette,
+  message_list: LayoutList,
   reading: BookOpen,
   composing: PenLine,
   downloads: Download,
@@ -140,7 +141,6 @@ const tabIcons: Record<Tab, AppIcon> = {
   folders: FolderOpen,
   keywords: Tags,
   security: Shield,
-  content_senders: EyeOff,
   calendar: Calendar,
   contacts: BookUser,
   files: HardDrive,
@@ -161,6 +161,7 @@ export const LEGACY_TAB_MAP: Record<string, Tab> = {
   advanced: 'about_data',
   layout: 'appearance',
   themes: 'appearance',
+  content_senders: 'reading',
 };
 
 function readPersistedTab(): SettingsTabId {
@@ -566,6 +567,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'appearance' },
 
     // Mail
+    { id: 'message_list', label: t('tabs.message_list'), icon: tabIcons.message_list, group: 'mail' },
     { id: 'reading', label: t('tabs.reading'), icon: tabIcons.reading, group: 'mail' },
     { id: 'composing', label: t('tabs.composing'), icon: tabIcons.composing, group: 'mail' },
     { id: 'downloads', label: t('tabs.downloads'), icon: tabIcons.downloads, group: 'mail' },
@@ -578,7 +580,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
     // Privacy & Security
     ...(stalwartFeaturesEnabled ? [{ id: 'security' as Tab, label: t('tabs.security'), icon: tabIcons.security, group: 'privacy' as TabGroup }] : []),
-    { id: 'content_senders', label: t('tabs.content_senders'), icon: tabIcons.content_senders, group: 'privacy' },
 
     // Apps
     ...(supportsCalendar && isFeatureEnabled('calendarEnabled') ? [{ id: 'calendar' as Tab, label: t('tabs.calendar'), icon: tabIcons.calendar, group: 'apps' as TabGroup }] : []),
@@ -710,6 +711,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'language' && <LanguageSettings />}
       {effectiveActiveTab === 'notifications' && <NotificationSettings />}
       {effectiveActiveTab === 'appearance' && <AppearanceSettings />}
+      {effectiveActiveTab === 'message_list' && <MessageListSettings />}
       {effectiveActiveTab === 'reading' && <ReadingSettings />}
       {effectiveActiveTab === 'composing' && <ComposingSettings />}
       {effectiveActiveTab === 'downloads' && <DownloadsSettings />}
@@ -720,7 +722,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'folders' && <FolderSettings />}
       {effectiveActiveTab === 'keywords' && <KeywordSettings />}
       {effectiveActiveTab === 'security' && <AccountSecuritySettings />}
-      {effectiveActiveTab === 'content_senders' && <ContentSendersSettings />}
       {effectiveActiveTab === 'calendar' && (
         managedAccountId
           ? <CalendarManagementSettings />

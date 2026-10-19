@@ -1047,7 +1047,8 @@
       "downloads": "下载",
       "content_senders": "内容和发件人",
       "about_data": "关于和数据",
-      "debug": "调试"
+      "debug": "调试",
+      "message_list": "邮件列表"
     },
     "themes": {
       "title": "主题",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "从右到左编辑支持",
         "description": "在编辑器工具栏中添加方向按钮，可将段落设置为从左到右或从右到左"
+      },
+      "group_conversations": {
+        "label": "按会话分组邮件",
+        "description": "将回复合并为一个会话显示，而不是作为单独的邮件。"
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "显示高级设置",
       "badge": "高级",
       "hidden_count": "{count, plural, other {此页面隐藏了 # 项高级设置。}}"
+    },
+    "message_list": {
+      "title": "邮件列表",
+      "description": "列表显示的内容，以及点击或滑动的作用。",
+      "sections": {
+        "senders": "发件人图片",
+        "actions": "快捷操作",
+        "delete": "删除与归档",
+        "loading": "加载与搜索"
+      }
+    },
+    "reading_page": {
+      "title": "阅读",
+      "description": "打开的邮件。",
+      "sections": {
+        "display": "邮件显示",
+        "images": "图片与外部内容",
+        "images_description": "远程图片可能会让发件人知道您已打开邮件。",
+        "attachments": "附件"
+      }
     }
   },
   "errors": {

@@ -1050,7 +1050,8 @@
       "downloads": "Stiahnuté",
       "content_senders": "Obsah a odosielatelia",
       "about_data": "Info a dáta",
-      "debug": "Ladenie"
+      "debug": "Ladenie",
+      "message_list": "Zoznam správ"
     },
     "themes": {
       "title": "Motívy",
@@ -1703,6 +1704,10 @@
       "rtl_editing": {
         "label": "Podpora písania sprava doľava",
         "description": "Pridá do panela nástrojov editora tlačidlo smeru textu, ktorým možno odseky nastaviť zľava doprava alebo sprava doľava"
+      },
+      "group_conversations": {
+        "label": "Zoskupovať správy podľa konverzácie",
+        "description": "Zobrazovať odpovede spolu ako jednu konverzáciu namiesto samostatných správ."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Zobraziť rozšírené nastavenia",
       "badge": "Rozšírené",
       "hidden_count": "{count, plural, one {1 rozšírené nastavenie je na tejto stránke skryté.} few {# rozšírené nastavenia sú na tejto stránke skryté.} many {# rozšíreného nastavenia je na tejto stránke skrytého.} other {# rozšírených nastavení je na tejto stránke skrytých.}}"
+    },
+    "message_list": {
+      "title": "Zoznam správ",
+      "description": "Čo zoznam zobrazuje a čo urobí kliknutie alebo potiahnutie.",
+      "sections": {
+        "senders": "Obrázky odosielateľov",
+        "actions": "Rýchle akcie",
+        "delete": "Mazanie a archivácia",
+        "loading": "Načítavanie a hľadanie"
+      }
+    },
+    "reading_page": {
+      "title": "Čítanie",
+      "description": "Otvorená správa.",
+      "sections": {
+        "display": "Zobrazenie správy",
+        "images": "Obrázky a externý obsah",
+        "images_description": "Vzdialené obrázky môžu odosielateľovi prezradiť, že ste správu otvorili.",
+        "attachments": "Prílohy"
+      }
     }
   },
   "errors": {

@@ -85,11 +85,13 @@ describe('settings search index (English messages)', () => {
   });
 
   it('finds the newer mail settings on their tabs', () => {
-    expect(labelsFor('reading')).toContain('Clear search when switching folders');
-    expect(labelsFor('reading')).toContain('Swipe right action (mobile)');
+    expect(labelsFor('message_list')).toContain('Clear search when switching folders');
+    expect(labelsFor('message_list')).toContain('Swipe right action (mobile)');
+    expect(labelsFor('message_list')).toContain('Message list order');
+    expect(labelsFor('reading')).toContain('Trusted Senders');
+    expect(labelsFor('reading')).not.toContain('Delete Action');
     expect(labelsFor('composing')).toContain('Undo send / send delay');
     expect(labelsFor('composing')).toContain('Request read receipts by default');
-    expect(labelsFor('appearance')).toContain('Message list order');
     expect(labelsFor('appearance')).toContain('Pro Interface (Experimental)');
     expect(labelsFor('appearance')).toContain('Tell accounts apart');
     expect(labelsFor('appearance')).toContain('Themes');

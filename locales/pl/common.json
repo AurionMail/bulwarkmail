@@ -1047,7 +1047,8 @@
       "downloads": "Pobrane",
       "content_senders": "Treść i nadawcy",
       "about_data": "O programie i dane",
-      "debug": "Debugowanie"
+      "debug": "Debugowanie",
+      "message_list": "Lista wiadomości"
     },
     "themes": {
       "title": "Motywy",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "Obsługa edycji od prawej do lewej",
         "description": "Dodaje przycisk kierunku do paska narzędzi edytora, pozwalający ustawić akapity od lewej do prawej lub od prawej do lewej"
+      },
+      "group_conversations": {
+        "label": "Grupuj wiadomości w wątki",
+        "description": "Pokazuj odpowiedzi razem jako jedną rozmowę zamiast jako osobne wiadomości."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Pokaż ustawienia zaawansowane",
       "badge": "Zaawansowane",
       "hidden_count": "{count, plural, one {1 ustawienie zaawansowane jest ukryte na tej stronie.} few {# ustawienia zaawansowane są ukryte na tej stronie.} many {# ustawień zaawansowanych jest ukrytych na tej stronie.} other {# ustawienia zaawansowanego jest ukryte na tej stronie.}}"
+    },
+    "message_list": {
+      "title": "Lista wiadomości",
+      "description": "Co pokazuje lista i co robi kliknięcie lub przesunięcie.",
+      "sections": {
+        "senders": "Obrazy nadawców",
+        "actions": "Szybkie działania",
+        "delete": "Usuwanie i archiwizacja",
+        "loading": "Ładowanie i wyszukiwanie"
+      }
+    },
+    "reading_page": {
+      "title": "Czytanie",
+      "description": "Otwarta wiadomość.",
+      "sections": {
+        "display": "Wyświetlanie wiadomości",
+        "images": "Obrazy i treści zewnętrzne",
+        "images_description": "Zdalne obrazy mogą zdradzić nadawcy, że otworzono wiadomość.",
+        "attachments": "Załączniki"
+      }
     }
   },
   "errors": {

@@ -1,12 +1,15 @@
 import { render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // The admin policy's archiveActionEnabled gate (#1257): off, the settings offer
 // no archive mode, no archive hover or swipe action and no archive after an
 // export, and a stored 'archive' shows as the choice that now applies.
 // vitest.setup.ts renders labels as their raw keys.
 
-const { ReadingSettings } = await import('../reading-settings');
+// Swipe rows only render on touch screens.
+vi.mock('@/hooks/use-media-query', () => ({ useMediaQuery: () => true }));
+
+const { MessageListSettings } = await import('../message-list-settings');
 const { DownloadsSettings } = await import('../downloads-settings');
 const { usePolicyStore } = await import('@/stores/policy-store');
 const { useSettingsStore } = await import('@/stores/settings-store');
@@ -30,19 +33,19 @@ function selectFor(optionKey: string): HTMLSelectElement {
 }
 
 describe('the settings and the Archive action gate', () => {
-  it('reading: archive mode, archive hover and swipe actions while the gate is on', () => {
+  it('message list: archive mode, archive hover and swipe actions while the gate is on', () => {
     useSettingsStore.setState({ swipeRightAction: 'archive' } as never);
-    render(<ReadingSettings />);
+    render(<MessageListSettings />);
     expect(screen.getByText('archive_mode.label')).toBeInTheDocument();
     expect(screen.getAllByRole('option', { name: 'swipe_actions.archive' })).toHaveLength(2);
     expect(screen.getByText('hover_actions.archive')).toBeInTheDocument();
     expect(selectFor('swipe_actions.archive').value).toBe('archive');
   });
 
-  it('reading: none of them with the gate off, a stored archive swipe shown as none', () => {
+  it('message list: none of them with the gate off, a stored archive swipe shown as none', () => {
     setArchiveGate(false);
     useSettingsStore.setState({ swipeRightAction: 'archive' } as never);
-    render(<ReadingSettings />);
+    render(<MessageListSettings />);
     expect(screen.queryByText('archive_mode.label')).toBeNull();
     expect(screen.queryAllByRole('option', { name: 'swipe_actions.archive' })).toHaveLength(0);
     expect(screen.queryByText('hover_actions.archive')).toBeNull();

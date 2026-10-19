@@ -1047,7 +1047,8 @@
       "downloads": "Téléchargements",
       "content_senders": "Contenu et expéditeurs",
       "about_data": "À propos et données",
-      "debug": "Débogage"
+      "debug": "Débogage",
+      "message_list": "Liste des messages"
     },
     "themes": {
       "title": "Thèmes",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "Prise en charge de la saisie de droite à gauche",
         "description": "Ajoute un bouton de direction à la barre d'outils de l'éditeur pour mettre les paragraphes de gauche à droite ou de droite à gauche"
+      },
+      "group_conversations": {
+        "label": "Grouper les messages par conversation",
+        "description": "Afficher les réponses ensemble, comme une seule conversation, plutôt que comme des messages séparés."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Afficher les paramètres avancés",
       "badge": "Avancé",
       "hidden_count": "{count, plural, one {1 paramètre avancé est masqué sur cette page.} other {# paramètres avancés sont masqués sur cette page.}}"
+    },
+    "message_list": {
+      "title": "Liste des messages",
+      "description": "Ce que la liste affiche et ce que fait un clic ou un balayage.",
+      "sections": {
+        "senders": "Images des expéditeurs",
+        "actions": "Actions rapides",
+        "delete": "Suppression et archivage",
+        "loading": "Chargement et recherche"
+      }
+    },
+    "reading_page": {
+      "title": "Lecture",
+      "description": "Le message ouvert.",
+      "sections": {
+        "display": "Affichage du message",
+        "images": "Images et contenu externe",
+        "images_description": "Les images distantes peuvent révéler à l'expéditeur que vous avez ouvert le message.",
+        "attachments": "Pièces jointes"
+      }
     }
   },
   "errors": {

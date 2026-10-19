@@ -1047,7 +1047,8 @@
       "downloads": "Downloads",
       "content_senders": "Inhoud en afzenders",
       "about_data": "Over en gegevens",
-      "debug": "Debuggen"
+      "debug": "Debuggen",
+      "message_list": "Berichtenlijst"
     },
     "themes": {
       "title": "Thema's",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "Ondersteuning voor rechts-naar-links bewerken",
         "description": "Voegt een richtingsknop toe aan de werkbalk van de editor waarmee alinea's links-naar-rechts of rechts-naar-links kunnen worden ingesteld"
+      },
+      "group_conversations": {
+        "label": "Berichten groeperen per gesprek",
+        "description": "Antwoorden samen als één gesprek tonen in plaats van als losse berichten."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Geavanceerde instellingen tonen",
       "badge": "Geavanceerd",
       "hidden_count": "{count, plural, one {1 geavanceerde instelling is verborgen op deze pagina.} other {# geavanceerde instellingen zijn verborgen op deze pagina.}}"
+    },
+    "message_list": {
+      "title": "Berichtenlijst",
+      "description": "Wat de lijst toont en wat een klik of veeg doet.",
+      "sections": {
+        "senders": "Afbeeldingen van afzenders",
+        "actions": "Snelle acties",
+        "delete": "Verwijderen en archiveren",
+        "loading": "Laden en zoeken"
+      }
+    },
+    "reading_page": {
+      "title": "Lezen",
+      "description": "Het geopende bericht.",
+      "sections": {
+        "display": "Berichtweergave",
+        "images": "Afbeeldingen en externe inhoud",
+        "images_description": "Externe afbeeldingen kunnen de afzender verraden dat u het bericht hebt geopend.",
+        "attachments": "Bijlagen"
+      }
     }
   },
   "errors": {

@@ -1047,7 +1047,8 @@
       "downloads": "İndirilenler",
       "content_senders": "İçerik ve Göndericiler",
       "about_data": "Hakkında ve Veriler",
-      "debug": "Hata Ayıklama"
+      "debug": "Hata Ayıklama",
+      "message_list": "İleti listesi"
     },
     "themes": {
       "title": "Temalar",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "Sağdan sola düzenleme desteği",
         "description": "Düzenleyici araç çubuğuna paragrafları soldan sağa veya sağdan sola ayarlayabileceğiniz bir yön düğmesi ekler"
+      },
+      "group_conversations": {
+        "label": "İletileri konuşmaya göre grupla",
+        "description": "Yanıtları ayrı iletiler yerine tek bir konuşma olarak birlikte göster."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Gelişmiş ayarları göster",
       "badge": "Gelişmiş",
       "hidden_count": "{count, plural, one {Bu sayfada 1 gelişmiş ayar gizli.} other {Bu sayfada # gelişmiş ayar gizli.}}"
+    },
+    "message_list": {
+      "title": "İleti listesi",
+      "description": "Listenin ne gösterdiği ve bir tıklama ya da kaydırmanın ne yaptığı.",
+      "sections": {
+        "senders": "Gönderen resimleri",
+        "actions": "Hızlı işlemler",
+        "delete": "Silme ve arşivleme",
+        "loading": "Yükleme ve arama"
+      }
+    },
+    "reading_page": {
+      "title": "Okuma",
+      "description": "Açık ileti.",
+      "sections": {
+        "display": "İleti görünümü",
+        "images": "Resimler ve dış içerik",
+        "images_description": "Uzak resimler, iletiyi açtığınızı gönderene bildirebilir.",
+        "attachments": "Ekler"
+      }
     }
   },
   "errors": {

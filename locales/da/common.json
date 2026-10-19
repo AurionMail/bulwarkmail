@@ -1050,7 +1050,8 @@
       "downloads": "Downloads",
       "content_senders": "Indhold & afsendere",
       "about_data": "Om & data",
-      "debug": "Debug"
+      "debug": "Debug",
+      "message_list": "Beskedliste"
     },
     "themes": {
       "title": "Temaer",
@@ -1703,6 +1704,10 @@
       "rtl_editing": {
         "label": "Understøttelse af højre-mod-venstre-redigering",
         "description": "Tilføjer en retningsknap til værktøjslinjen i editoren, så afsnit kan sættes venstre-mod-højre eller højre-mod-venstre"
+      },
+      "group_conversations": {
+        "label": "Gruppér beskeder efter samtale",
+        "description": "Vis svar samlet som én samtale i stedet for som separate beskeder."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Vis avancerede indstillinger",
       "badge": "Avanceret",
       "hidden_count": "{count, plural, one {1 avanceret indstilling er skjult på denne side.} other {# avancerede indstillinger er skjult på denne side.}}"
+    },
+    "message_list": {
+      "title": "Beskedliste",
+      "description": "Hvad listen viser, og hvad et klik eller swipe gør.",
+      "sections": {
+        "senders": "Afsenderbilleder",
+        "actions": "Hurtige handlinger",
+        "delete": "Sletning og arkivering",
+        "loading": "Indlæsning og søgning"
+      }
+    },
+    "reading_page": {
+      "title": "Læsning",
+      "description": "Den åbne besked.",
+      "sections": {
+        "display": "Beskedvisning",
+        "images": "Billeder og eksternt indhold",
+        "images_description": "Eksterne billeder kan afsløre over for afsenderen, at du har åbnet mailen.",
+        "attachments": "Vedhæftninger"
+      }
     }
   },
   "errors": {

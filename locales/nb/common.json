@@ -1050,7 +1050,8 @@
       "downloads": "Nedlastinger",
       "content_senders": "Innhold og avsendere",
       "about_data": "Om programmet og data",
-      "debug": "Feilsøking"
+      "debug": "Feilsøking",
+      "message_list": "Meldingsliste"
     },
     "themes": {
       "title": "Temaer",
@@ -1703,6 +1704,10 @@
       "rtl_editing": {
         "label": "Støtte for redigering fra høyre mot venstre",
         "description": "Legger til en retningsknapp på verktøylinjen for å angi avsnitt fra venstre mot høyre eller høyre mot venstre"
+      },
+      "group_conversations": {
+        "label": "Grupper meldinger etter samtale",
+        "description": "Vis svar samlet som én samtale i stedet for som separate meldinger."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Vis avanserte innstillinger",
       "badge": "Avansert",
       "hidden_count": "{count, plural, one {1 avansert innstilling er skjult på denne siden.} other {# avanserte innstillinger er skjult på denne siden.}}"
+    },
+    "message_list": {
+      "title": "Meldingsliste",
+      "description": "Hva listen viser, og hva et klikk eller sveip gjør.",
+      "sections": {
+        "senders": "Avsenderbilder",
+        "actions": "Hurtighandlinger",
+        "delete": "Sletting og arkivering",
+        "loading": "Lasting og søk"
+      }
+    },
+    "reading_page": {
+      "title": "Lesing",
+      "description": "Den åpne meldingen.",
+      "sections": {
+        "display": "Meldingsvisning",
+        "images": "Bilder og eksternt innhold",
+        "images_description": "Eksterne bilder kan fortelle avsenderen at du åpnet e-posten.",
+        "attachments": "Vedlegg"
+      }
     }
   },
   "errors": {

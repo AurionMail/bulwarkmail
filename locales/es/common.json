@@ -1047,7 +1047,8 @@
       "downloads": "Descargas",
       "content_senders": "Contenido y remitentes",
       "about_data": "Acerca de y datos",
-      "debug": "Depuración"
+      "debug": "Depuración",
+      "message_list": "Lista de mensajes"
     },
     "themes": {
       "title": "Temas",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "Compatibilidad con edición de derecha a izquierda",
         "description": "Añade un botón de dirección a la barra de herramientas del editor para configurar los párrafos de izquierda a derecha o de derecha a izquierda"
+      },
+      "group_conversations": {
+        "label": "Agrupar mensajes por conversación",
+        "description": "Mostrar las respuestas juntas como una conversación en lugar de como mensajes separados."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Mostrar ajustes avanzados",
       "badge": "Avanzado",
       "hidden_count": "{count, plural, one {1 ajuste avanzado está oculto en esta página.} other {# ajustes avanzados están ocultos en esta página.}}"
+    },
+    "message_list": {
+      "title": "Lista de mensajes",
+      "description": "Qué muestra la lista y qué hace un clic o un deslizamiento.",
+      "sections": {
+        "senders": "Imágenes de remitentes",
+        "actions": "Acciones rápidas",
+        "delete": "Eliminar y archivar",
+        "loading": "Carga y búsqueda"
+      }
+    },
+    "reading_page": {
+      "title": "Lectura",
+      "description": "El mensaje abierto.",
+      "sections": {
+        "display": "Visualización del mensaje",
+        "images": "Imágenes y contenido externo",
+        "images_description": "Las imágenes remotas pueden revelar al remitente que ha abierto el mensaje.",
+        "attachments": "Adjuntos"
+      }
     }
   },
   "errors": {

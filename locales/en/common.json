@@ -1050,7 +1050,8 @@
       "downloads": "Downloads",
       "content_senders": "Content & Senders",
       "about_data": "About & Data",
-      "debug": "Debug"
+      "debug": "Debug",
+      "message_list": "Message list"
     },
     "themes": {
       "title": "Themes",
@@ -1703,6 +1704,10 @@
       "rtl_editing": {
         "label": "Right-to-left editing support",
         "description": "Adds a direction button to the composer toolbar so you can set paragraphs left-to-right or right-to-left"
+      },
+      "group_conversations": {
+        "label": "Group messages by conversation",
+        "description": "Show replies together as one conversation instead of as separate messages."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "badge": "Advanced",
       "hidden_count": "{count, plural, one {1 advanced setting is hidden on this page.} other {# advanced settings are hidden on this page.}}",
       "show": "Show advanced settings"
+    },
+    "message_list": {
+      "title": "Message list",
+      "description": "What the list shows, and what a click or swipe does.",
+      "sections": {
+        "senders": "Sender pictures",
+        "actions": "Quick actions",
+        "delete": "Deleting & archiving",
+        "loading": "Loading & search"
+      }
+    },
+    "reading_page": {
+      "title": "Reading",
+      "description": "The open message.",
+      "sections": {
+        "display": "Message display",
+        "images": "Images & external content",
+        "images_description": "Remote images can tell the sender that you opened the mail.",
+        "attachments": "Attachments"
+      }
     }
   },
   "errors": {

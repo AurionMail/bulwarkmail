@@ -1047,7 +1047,8 @@
       "downloads": "ダウンロード",
       "content_senders": "コンテンツと送信者",
       "about_data": "情報とデータ",
-      "debug": "デバッグ"
+      "debug": "デバッグ",
+      "message_list": "メッセージ一覧"
     },
     "themes": {
       "title": "テーマ",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "右から左への編集サポート",
         "description": "エディターのツールバーに文字方向ボタンを追加し、段落を左から右または右から左に設定できます"
+      },
+      "group_conversations": {
+        "label": "メッセージをスレッドにまとめる",
+        "description": "返信を個別のメッセージではなく、1つのスレッドとしてまとめて表示します。"
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "詳細設定を表示",
       "badge": "詳細",
       "hidden_count": "{count, plural, other {このページでは # 件の詳細設定が非表示です。}}"
+    },
+    "message_list": {
+      "title": "メッセージ一覧",
+      "description": "一覧に表示する内容と、クリックやスワイプの動作。",
+      "sections": {
+        "senders": "送信者の画像",
+        "actions": "クイック操作",
+        "delete": "削除とアーカイブ",
+        "loading": "読み込みと検索"
+      }
+    },
+    "reading_page": {
+      "title": "閲覧",
+      "description": "開いているメッセージ。",
+      "sections": {
+        "display": "メッセージの表示",
+        "images": "画像と外部コンテンツ",
+        "images_description": "外部画像を読み込むと、開封したことが送信者に伝わることがあります。",
+        "attachments": "添付ファイル"
+      }
     }
   },
   "errors": {

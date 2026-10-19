@@ -123,7 +123,7 @@ function MailLayoutPreview({
 export function LayoutSection() {
   const t = useTranslations('settings.appearance');
   const tEmail = useTranslations('settings.email_behavior');
-  const { toolbarPosition, showToolbarLabels, mailLayout, listColumns, interfaceLayout, updateSetting } = useSettingsStore();
+  const { toolbarPosition, showToolbarLabels, mailLayout, interfaceLayout, updateSetting } = useSettingsStore();
   const { isSettingLocked, isSettingHidden } = usePolicyStore();
   const mountainView = interfaceLayout === 'mountain-view';
 
@@ -162,16 +162,6 @@ export function LayoutSection() {
         </div>
       </SettingItem>
       )}
-      {/* Only the layouts with one-line rows can draw them as a table. */}
-      {!isSettingHidden('listColumns') && !mountainView && mailLayout !== 'split' && (
-      <SettingItem label={tEmail('list_columns.label')} description={tEmail('list_columns.description')} locked={isSettingLocked('listColumns')}>
-        <ToggleSwitch
-          checked={listColumns}
-          onChange={(checked) => updateSetting('listColumns', checked)}
-        />
-      </SettingItem>
-      )}
-
       <SettingItem label={t('toolbar_position.label')} description={t('toolbar_position.description')}>
         <RadioGroup
           value={toolbarPosition}

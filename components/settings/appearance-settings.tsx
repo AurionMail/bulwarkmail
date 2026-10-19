@@ -9,12 +9,8 @@ import { LayoutSection, SidebarSection, MultipleAccountsSection, ExperimentalSec
 import { cn } from '@/lib/utils';
 import { useTour } from '@/components/tour/tour-provider';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, RefreshCw } from '@/components/icons';
+import { PlayCircle } from '@/components/icons';
 import { usePolicyStore } from '@/stores/policy-store';
-import { IS_LITE } from '@/lib/lite';
-import { MessageListOrderSettings } from './message-list-order-settings';
-import { useFaviconRefreshStore } from '@/stores/favicon-refresh-store';
-import { toast } from '@/stores/toast-store';
 
 const DENSITY_PREVIEW: Record<Density, { py: string; gap: string; showAvatar: boolean; showPreview: boolean }> = {
   'extra-compact': { py: 'py-0.5', gap: 'gap-1.5', showAvatar: false, showPreview: false },
@@ -75,12 +71,10 @@ function DensityPreview({ density }: { density: Density }) {
  */
 export function AppearanceSettings() {
   const t = useTranslations('settings.appearance');
-  const tAdvanced = useTranslations('settings.advanced');
   const tTour = useTranslations('tour');
   const { theme, setTheme } = useThemeStore();
-  const { fontSize, density, animationsEnabled, senderFavicons, showAvatarsInJunk, showOnboardingOnNewDevices, updateSetting } = useSettingsStore();
+  const { fontSize, density, animationsEnabled, showOnboardingOnNewDevices, updateSetting } = useSettingsStore();
   const { startTour, resetTourCompletion } = useTour();
-  const refreshFavicons = useFaviconRefreshStore((s) => s.refresh);
   const { isSettingLocked, isSettingHidden, getColorModePolicy, isFeatureEnabled } = usePolicyStore();
 
   return (
@@ -141,33 +135,6 @@ export function AppearanceSettings() {
           />
         </SettingItem>
         )}
-
-        <MessageListOrderSettings />
-
-        {/* Sender favicons come from the /api/favicon proxy, absent in the static Lite build (components/ui/avatar.tsx). */}
-        {!IS_LITE && (
-          <SettingItem label={tAdvanced('sender_favicons.label')} description={tAdvanced('sender_favicons.description')}>
-            <ToggleSwitch checked={senderFavicons} onChange={(checked) => updateSetting('senderFavicons', checked)} />
-          </SettingItem>
-        )}
-
-        {!IS_LITE && senderFavicons && (
-          <SettingItem nested label={tAdvanced('sender_favicons.refresh_label')} description={tAdvanced('sender_favicons.refresh_description')}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { refreshFavicons(); toast.success(tAdvanced('sender_favicons.refresh_done')); }}
-              className="text-xs h-7"
-            >
-              <RefreshCw className="w-3.5 h-3.5 me-1" />
-              {tAdvanced('sender_favicons.refresh_button')}
-            </Button>
-          </SettingItem>
-        )}
-
-        <SettingItem label={tAdvanced('show_avatars_in_junk.label')} description={tAdvanced('show_avatars_in_junk.description')} advanced>
-          <ToggleSwitch checked={showAvatarsInJunk} onChange={(checked) => updateSetting('showAvatarsInJunk', checked)} />
-        </SettingItem>
       </SettingsSection>
 
       <LayoutSection />

@@ -1050,7 +1050,8 @@
       "downloads": "Allalaadimised",
       "content_senders": "Sisu ja saatjad",
       "about_data": "Teave ja andmed",
-      "debug": "Silumine"
+      "debug": "Silumine",
+      "message_list": "Kirjade loend"
     },
     "themes": {
       "title": "Teemad",
@@ -1703,6 +1704,10 @@
       "rtl_editing": {
         "label": "Paremalt vasakule kirjutamise tugi",
         "description": "Lisab koostamise tööriistaribale suunanupu, millega saad määrata lõigud vasakult paremale või paremalt vasakule"
+      },
+      "group_conversations": {
+        "label": "Rühmita kirjad vestluse kaupa",
+        "description": "Näita vastuseid koos ühe vestlusena, mitte eraldi kirjadena."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Kuva täpsemad seaded",
       "badge": "Täpsem",
       "hidden_count": "{count, plural, one {Sellel lehel on peidetud 1 täpsem seade.} other {Sellel lehel on peidetud # täpsemat seadet.}}"
+    },
+    "message_list": {
+      "title": "Kirjade loend",
+      "description": "Mida loend näitab ning mida klõps või pühkimine teeb.",
+      "sections": {
+        "senders": "Saatjate pildid",
+        "actions": "Kiirtoimingud",
+        "delete": "Kustutamine ja arhiveerimine",
+        "loading": "Laadimine ja otsing"
+      }
+    },
+    "reading_page": {
+      "title": "Lugemine",
+      "description": "Avatud kiri.",
+      "sections": {
+        "display": "Kirja kuvamine",
+        "images": "Pildid ja väline sisu",
+        "images_description": "Kaugpildid võivad saatjale reeta, et avasid kirja.",
+        "attachments": "Manused"
+      }
     }
   },
   "errors": {

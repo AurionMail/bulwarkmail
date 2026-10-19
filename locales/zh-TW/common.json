@@ -1050,7 +1050,8 @@
       "downloads": "下載",
       "content_senders": "內容與寄件者",
       "about_data": "關於與資料",
-      "debug": "除錯"
+      "debug": "除錯",
+      "message_list": "郵件清單"
     },
     "themes": {
       "title": "主題",
@@ -1703,6 +1704,10 @@
       "rtl_editing": {
         "label": "支援從右至左編輯",
         "description": "在編輯器工具列中新增方向按鈕，可將段落設定為從左到右或從右到左"
+      },
+      "group_conversations": {
+        "label": "依對話分組郵件",
+        "description": "將回覆合併為一個對話顯示，而不是作為個別郵件。"
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "顯示進階設定",
       "badge": "進階",
       "hidden_count": "{count, plural, other {此頁面隱藏了 # 項進階設定。}}"
+    },
+    "message_list": {
+      "title": "郵件清單",
+      "description": "清單顯示的內容，以及點選或滑動的作用。",
+      "sections": {
+        "senders": "寄件者圖片",
+        "actions": "快速操作",
+        "delete": "刪除與封存",
+        "loading": "載入與搜尋"
+      }
+    },
+    "reading_page": {
+      "title": "閱讀",
+      "description": "開啟的郵件。",
+      "sections": {
+        "display": "郵件顯示",
+        "images": "圖片與外部內容",
+        "images_description": "遠端圖片可能會讓寄件者知道您已開啟郵件。",
+        "attachments": "附件"
+      }
     }
   },
   "errors": {

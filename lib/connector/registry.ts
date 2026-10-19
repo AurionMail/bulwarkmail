@@ -38,11 +38,11 @@ import { RELEASE_VERSION } from '@/lib/release-version';
  * opens the page that holds the setting now (the settings page migrates
  * the id). Listed so an unknown tab is refused here.
  */
-const LEGACY_SETTINGS_TABS = ['layout', 'themes'] as const;
+const LEGACY_SETTINGS_TABS = ['layout', 'themes', 'content_senders'] as const;
 const SETTINGS_TABS: readonly (SettingsSearchTab | typeof LEGACY_SETTINGS_TABS[number])[] = [
-  'account', 'language', 'notifications', 'appearance', 'reading',
+  'account', 'language', 'notifications', 'appearance', 'message_list', 'reading',
   'composing', 'downloads', 'identities', 'vacation', 'filters', 'templates',
-  'folders', 'keywords', 'security', 'content_senders', 'calendar', 'contacts',
+  'folders', 'keywords', 'security', 'calendar', 'contacts',
   'files', 'protocol_handlers', 'sidebar_apps', 'about_data',
   'plugins', 'debug',
   ...LEGACY_SETTINGS_TABS,

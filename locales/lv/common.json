@@ -1047,7 +1047,8 @@
       "downloads": "Lejupielādes",
       "content_senders": "Saturs un sūtītāji",
       "about_data": "Par un dati",
-      "debug": "Atkļūdošana"
+      "debug": "Atkļūdošana",
+      "message_list": "Ziņu saraksts"
     },
     "themes": {
       "title": "Tēmas",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "Rakstīšanas no labās uz kreiso atbalsts",
         "description": "Pievieno redaktora rīkjoslai virziena pogu, ar kuru rindkopas var iestatīt no kreisās uz labo vai no labās uz kreiso"
+      },
+      "group_conversations": {
+        "label": "Grupēt ziņas pēc sarunas",
+        "description": "Rādīt atbildes kopā kā vienu sarunu, nevis kā atsevišķas ziņas."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Rādīt papildu iestatījumus",
       "badge": "Papildu",
       "hidden_count": "{count, plural, zero {Šajā lapā nav paslēptu papildu iestatījumu.} one {Šajā lapā ir paslēpts # papildu iestatījums.} other {Šajā lapā ir paslēpti # papildu iestatījumi.}}"
+    },
+    "message_list": {
+      "title": "Ziņu saraksts",
+      "description": "Ko rāda saraksts un ko dara klikšķis vai vilkšana.",
+      "sections": {
+        "senders": "Sūtītāju attēli",
+        "actions": "Ātrās darbības",
+        "delete": "Dzēšana un arhivēšana",
+        "loading": "Ielāde un meklēšana"
+      }
+    },
+    "reading_page": {
+      "title": "Lasīšana",
+      "description": "Atvērtā ziņa.",
+      "sections": {
+        "display": "Ziņas attēlojums",
+        "images": "Attēli un ārējs saturs",
+        "images_description": "Attālie attēli var atklāt sūtītājam, ka esat atvēris ziņu.",
+        "attachments": "Pielikumi"
+      }
     }
   },
   "errors": {

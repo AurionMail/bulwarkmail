@@ -7,6 +7,7 @@ export type SettingsSearchTab =
   | 'language'
   | 'notifications'
   | 'appearance'
+  | 'message_list'
   | 'reading'
   | 'composing'
   | 'downloads'
@@ -17,7 +18,6 @@ export type SettingsSearchTab =
   | 'folders'
   | 'keywords'
   | 'security'
-  | 'content_senders'
   | 'calendar'
   | 'contacts'
   | 'files'
@@ -52,12 +52,8 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.appearance.font_size',
     'settings.appearance.list_density',
     'settings.appearance.animations',
-    'settings.appearance.message_list_order',
-    'settings.advanced.sender_favicons',
-    'settings.advanced.show_avatars_in_junk',
     'settings.appearance.interface_layout',
     'settings.email_behavior.mail_layout',
-    'settings.email_behavior.list_columns',
     'settings.appearance.toolbar_position',
     'settings.appearance.toolbar_labels',
     'settings.appearance.colorful_sidebar_icons',
@@ -76,26 +72,37 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'tour.show_on_new_devices_title',
     'settings.appearance.pro_interface',
   ],
-  reading: [
-    'settings.email_behavior.mark_read',
-    'settings.email_behavior.message_spacing',
-    'settings.email_behavior.archive_mode',
-    'settings.email_behavior.delete_action',
-    'settings.email_behavior.attachment_click_action',
-    'settings.email_behavior.attachment_image_previews',
-    'settings.email_behavior.attachment_position',
-    'settings.email_behavior.disable_threading',
-    'settings.email_behavior.emails_per_page',
-    'settings.email_behavior.hide_inline_image_attachments',
-    'settings.email_behavior.hover_actions',
-    'settings.email_behavior.permanently_delete_junk',
-    'settings.email_behavior.confirm_bulk_delete',
-    'settings.email_behavior.plain_text_font',
+  message_list: [
+    'settings.email_behavior.group_conversations',
     'settings.email_behavior.show_preview',
-    'settings.email_behavior.return_to_list_after_action',
+    'settings.email_behavior.list_columns',
+    'settings.appearance.message_list_order',
+    'settings.appearance.tint_list_rows',
+    'settings.email_behavior.show_verification_codes',
+    'settings.advanced.sender_favicons',
+    'settings.advanced.show_avatars_in_junk',
+    'settings.email_behavior.hover_actions',
     'settings.email_behavior.swipe_right_action',
     'settings.email_behavior.swipe_left_action',
+    'settings.email_behavior.delete_action',
+    'settings.email_behavior.archive_mode',
+    'settings.email_behavior.confirm_bulk_delete',
+    'settings.email_behavior.permanently_delete_junk',
+    'settings.email_behavior.emails_per_page',
     'settings.email_behavior.clear_search_on_folder_change',
+  ],
+  reading: [
+    'settings.email_behavior.mark_read',
+    'settings.email_behavior.return_to_list_after_action',
+    'settings.email_behavior.message_spacing',
+    'settings.email_behavior.plain_text_font',
+    'settings.email_behavior.always_light_mode',
+    'settings.email_behavior.external_content',
+    'settings.email_behavior.trusted_senders',
+    'settings.email_behavior.attachment_position',
+    'settings.email_behavior.attachment_click_action',
+    'settings.email_behavior.attachment_image_previews',
+    'settings.email_behavior.hide_inline_image_attachments',
   ],
   composing: [
     'settings.email_behavior.attachment_reminder',
@@ -120,11 +127,6 @@ export const tabSearchPaths: Record<Tab, string[]> = {
   folders: ['settings.folders'],
   keywords: ['settings.keywords'],
   security: ['settings.security'],
-  content_senders: [
-    'settings.email_behavior.always_light_mode',
-    'settings.email_behavior.external_content',
-    'settings.email_behavior.trusted_senders',
-  ],
   calendar: ['calendar.settings', 'calendar.management'],
   contacts: ['settings.contacts', 'contacts'],
   files: ['settings.files'],
@@ -145,7 +147,8 @@ export const tabKeywords: Record<Tab, string> = {
   language: 'locale region timezone date time format',
   notifications: 'sound alert push badge',
   appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher unified mailbox icons rail layout reading pane tour',
-  reading: 'mark read preview thread conversation archive delete attachment open monospace mono font plain text',
+  message_list: 'inbox list preview thread conversation grouping sort order columns archive delete swipe hover favicon avatar tag color',
+  reading: 'mark read attachment open monospace mono font plain text images remote content block sender privacy tracking dark light',
   composing: 'editor signature plain text reply forward draft compose',
   downloads: 'download filename template eml attachment save export',
   identities: 'from address signature email',
@@ -155,7 +158,6 @@ export const tabKeywords: Record<Tab, string> = {
   folders: 'mailbox subscribe',
   keywords: 'tags labels colors',
   security: 'password 2fa two-factor passkey app password mfa',
-  content_senders: 'block sender remote images privacy tracking',
   calendar: 'event schedule appointment meeting timezone',
   contacts: 'address book contact',
   files: 'attachments cloud drive storage upload',

@@ -1047,7 +1047,8 @@
       "downloads": "Downloads",
       "content_senders": "Inhalte & Absender",
       "about_data": "Über & Daten",
-      "debug": "Debug"
+      "debug": "Debug",
+      "message_list": "Nachrichtenliste"
     },
     "themes": {
       "title": "Designs",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "Unterstützung für Rechts-nach-links-Bearbeitung",
         "description": "Fügt der Editor-Symbolleiste eine Schreibrichtungs-Schaltfläche hinzu, mit der Absätze auf links-nach-rechts oder rechts-nach-links gestellt werden können"
+      },
+      "group_conversations": {
+        "label": "Nachrichten nach Unterhaltung gruppieren",
+        "description": "Antworten als eine Unterhaltung zusammenfassen statt als einzelne Nachrichten anzeigen."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Erweiterte Einstellungen anzeigen",
       "badge": "Erweitert",
       "hidden_count": "{count, plural, one {1 erweiterte Einstellung ist auf dieser Seite ausgeblendet.} other {# erweiterte Einstellungen sind auf dieser Seite ausgeblendet.}}"
+    },
+    "message_list": {
+      "title": "Nachrichtenliste",
+      "description": "Was die Liste zeigt und was ein Klick oder Wischen bewirkt.",
+      "sections": {
+        "senders": "Absenderbilder",
+        "actions": "Schnellaktionen",
+        "delete": "Löschen & Archivieren",
+        "loading": "Laden & Suche"
+      }
+    },
+    "reading_page": {
+      "title": "Lesen",
+      "description": "Die geöffnete Nachricht.",
+      "sections": {
+        "display": "Nachrichtenanzeige",
+        "images": "Bilder & externe Inhalte",
+        "images_description": "Externe Bilder können dem Absender verraten, dass Sie die Mail geöffnet haben.",
+        "attachments": "Anhänge"
+      }
     }
   },
   "errors": {

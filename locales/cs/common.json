@@ -1047,7 +1047,8 @@
       "downloads": "Stažené",
       "content_senders": "Obsah a odesílatelé",
       "about_data": "Info a data",
-      "debug": "Ladění"
+      "debug": "Ladění",
+      "message_list": "Seznam zpráv"
     },
     "themes": {
       "title": "Motivy",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "Podpora psaní zprava doleva",
         "description": "Přidá do panelu nástrojů editoru tlačítko směru textu, kterým lze odstavce nastavit zleva doprava nebo zprava doleva"
+      },
+      "group_conversations": {
+        "label": "Seskupovat zprávy podle konverzace",
+        "description": "Zobrazovat odpovědi pohromadě jako jednu konverzaci místo jako samostatné zprávy."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Zobrazit pokročilá nastavení",
       "badge": "Pokročilé",
       "hidden_count": "{count, plural, one {1 pokročilé nastavení je na této stránce skryté.} few {# pokročilá nastavení jsou na této stránce skrytá.} many {# pokročilého nastavení je na této stránce skrytého.} other {# pokročilých nastavení je na této stránce skrytých.}}"
+    },
+    "message_list": {
+      "title": "Seznam zpráv",
+      "description": "Co seznam zobrazuje a co udělá kliknutí nebo přejetí.",
+      "sections": {
+        "senders": "Obrázky odesílatelů",
+        "actions": "Rychlé akce",
+        "delete": "Mazání a archivace",
+        "loading": "Načítání a hledání"
+      }
+    },
+    "reading_page": {
+      "title": "Čtení",
+      "description": "Otevřená zpráva.",
+      "sections": {
+        "display": "Zobrazení zprávy",
+        "images": "Obrázky a externí obsah",
+        "images_description": "Vzdálené obrázky mohou odesílateli prozradit, že jste zprávu otevřeli.",
+        "attachments": "Přílohy"
+      }
     }
   },
   "errors": {

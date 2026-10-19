@@ -1047,7 +1047,8 @@
       "downloads": "다운로드",
       "content_senders": "콘텐츠 및 발신자",
       "about_data": "정보 및 데이터",
-      "debug": "디버그"
+      "debug": "디버그",
+      "message_list": "메시지 목록"
     },
     "themes": {
       "title": "테마",
@@ -1700,6 +1701,10 @@
       "rtl_editing": {
         "label": "오른쪽에서 왼쪽 편집 지원",
         "description": "편집기 도구 모음에 방향 버튼을 추가하여 단락을 왼쪽에서 오른쪽 또는 오른쪽에서 왼쪽으로 설정할 수 있습니다"
+      },
+      "group_conversations": {
+        "label": "메시지를 대화별로 묶기",
+        "description": "답장을 별도 메시지 대신 하나의 대화로 묶어 표시합니다."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "고급 설정 표시",
       "badge": "고급",
       "hidden_count": "{count, plural, other {이 페이지에서 고급 설정 #개가 숨겨져 있습니다.}}"
+    },
+    "message_list": {
+      "title": "메시지 목록",
+      "description": "목록에 표시할 내용과 클릭 또는 스와이프 동작입니다.",
+      "sections": {
+        "senders": "보낸 사람 이미지",
+        "actions": "빠른 작업",
+        "delete": "삭제 및 보관",
+        "loading": "불러오기 및 검색"
+      }
+    },
+    "reading_page": {
+      "title": "읽기",
+      "description": "열어 본 메시지입니다.",
+      "sections": {
+        "display": "메시지 표시",
+        "images": "이미지 및 외부 콘텐츠",
+        "images_description": "원격 이미지는 메일을 열었다는 사실을 보낸 사람에게 알릴 수 있습니다.",
+        "attachments": "첨부 파일"
+      }
     }
   },
   "errors": {

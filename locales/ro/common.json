@@ -1050,7 +1050,8 @@
       "downloads": "Descărcări",
       "content_senders": "Conținut și expeditori",
       "about_data": "Despre & Date",
-      "debug": "Depanare"
+      "debug": "Depanare",
+      "message_list": "Lista de mesaje"
     },
     "themes": {
       "title": "Teme",
@@ -1703,6 +1704,10 @@
       "rtl_editing": {
         "label": "Suport pentru editare de la dreapta la stânga",
         "description": "Adaugă un buton de direcție în bara de instrumente a editorului, cu care paragrafele pot fi setate de la stânga la dreapta sau de la dreapta la stânga"
+      },
+      "group_conversations": {
+        "label": "Grupează mesajele pe conversații",
+        "description": "Afișează răspunsurile împreună, ca o singură conversație, în loc de mesaje separate."
       }
     },
     "composer": {
@@ -2553,6 +2558,26 @@
       "show": "Afișează setările avansate",
       "badge": "Avansat",
       "hidden_count": "{count, plural, one {1 setare avansată este ascunsă pe această pagină.} few {# setări avansate sunt ascunse pe această pagină.} other {# de setări avansate sunt ascunse pe această pagină.}}"
+    },
+    "message_list": {
+      "title": "Lista de mesaje",
+      "description": "Ce arată lista și ce face un clic sau o glisare.",
+      "sections": {
+        "senders": "Imaginile expeditorilor",
+        "actions": "Acțiuni rapide",
+        "delete": "Ștergere și arhivare",
+        "loading": "Încărcare și căutare"
+      }
+    },
+    "reading_page": {
+      "title": "Citire",
+      "description": "Mesajul deschis.",
+      "sections": {
+        "display": "Afișarea mesajului",
+        "images": "Imagini și conținut extern",
+        "images_description": "Imaginile la distanță îi pot spune expeditorului că ați deschis mesajul.",
+        "attachments": "Atașamente"
+      }
     }
   },
   "errors": {
