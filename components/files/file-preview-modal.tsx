@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { generateUUID } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { X, Download, Loader2, ExternalLink } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,10 @@ function processInline(text: string): React.ReactNode {
   return parts.length === 1 ? parts[0] : <>{parts}</>;
 }
 
+// Closing one preview can leave an asynchronous Back traversal in flight.
+// A replacement must not install its popstate listener until that completes.
+let pendingPreviewHistoryBack: Promise<void> | null = null;
+
 export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file }: FilePreviewModalProps) {
   const t = useTranslations("files");
   const [content, setContent] = useState<string | null>(null);
@@ -181,22 +186,37 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Make the Android/browser Back button close the preview instead of
-  // navigating the page underneath: push a throwaway history entry when the
-  // modal opens and close it on popstate. On a normal close (X / backdrop /
-  // Escape) the modal unmounts and we pop that entry ourselves, so the user's
-  // next Back isn't swallowed by it.
+  // Defer history setup so Strict Mode's setup/cleanup/setup replay can
+  // cancel the first setup without scheduling a browser Back traversal.
   useEffect(() => {
-    window.history.pushState({ __filePreview: true }, "");
+    const entryId = generateUUID();
+    let cancelled = false;
+    let started = false;
     let poppedByBack = false;
     const onPop = () => {
       poppedByBack = true;
       onCloseRef.current();
     };
-    window.addEventListener("popstate", onPop);
+    const timer = window.setTimeout(async () => {
+      if (pendingPreviewHistoryBack) await pendingPreviewHistoryBack;
+      if (cancelled) return;
+      window.history.pushState({ ...window.history.state, __filePreview: entryId }, "");
+      started = true;
+      window.addEventListener("popstate", onPop);
+    }, 0);
     return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
       window.removeEventListener("popstate", onPop);
-      if (!poppedByBack) window.history.back();
+      if (started && !poppedByBack && window.history.state?.__filePreview === entryId) {
+        pendingPreviewHistoryBack = new Promise<void>(resolve => {
+          window.addEventListener("popstate", () => {
+            pendingPreviewHistoryBack = null;
+            resolve();
+          }, { once: true });
+        });
+        window.history.back();
+      }
     };
   }, []);
 
