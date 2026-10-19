@@ -1833,6 +1833,9 @@
         "title": "Velem megosztva",
         "description": "Csoportos és megosztott fiókok, amelyeket kezelhet. Válasszon egyet a szűrői, távolléti válasza, naptárai és névjegyei szerkesztéséhez.",
         "shared_label": "Megosztott fiók"
+      },
+      "sections": {
+        "addresses": "E-mail-címek"
       }
     },
     "security": {

@@ -1833,6 +1833,9 @@
         "title": "Delt med mig",
         "description": "Gruppe- og delte konti, du kan administrere. Vælg en for at redigere dens filtre, autosvar ved fravær, kalendere og kontakter.",
         "shared_label": "Delt konto"
+      },
+      "sections": {
+        "addresses": "E-mailadresser"
       }
     },
     "security": {

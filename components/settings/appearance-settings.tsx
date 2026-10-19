@@ -5,7 +5,7 @@ import { useThemeStore } from '@/stores/theme-store';
 import { useSettingsStore, type Density } from '@/stores/settings-store';
 import { SettingsSection, SettingItem, RadioGroup, ToggleSwitch } from './settings-section';
 import { ThemesSettings } from './themes-settings';
-import { LayoutSection, SidebarSection, MultipleAccountsSection, ExperimentalSection } from './layout-settings';
+import { LayoutSection, SidebarSection, ExperimentalSection } from './layout-settings';
 import { cn } from '@/lib/utils';
 import { useTour } from '@/components/tour/tour-provider';
 import { Button } from '@/components/ui/button';
@@ -139,7 +139,6 @@ export function AppearanceSettings() {
 
       <LayoutSection />
       <SidebarSection />
-      <MultipleAccountsSection />
 
       <SettingsSection id="tour" title={tTour('settings_section')}>
         <SettingItem label={tTour('restart_title')} description={tTour('restart_desc')}>

@@ -1830,6 +1830,9 @@
         "title": "Condivisi con me",
         "description": "Account di gruppo e condivisi che puoi gestire. Selezionane uno per modificarne filtri, risponditore automatico, calendari e contatti.",
         "shared_label": "Account condiviso"
+      },
+      "sections": {
+        "addresses": "Indirizzi email"
       }
     },
     "security": {

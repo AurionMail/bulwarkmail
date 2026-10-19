@@ -1830,6 +1830,9 @@
         "title": "Mit mir geteilt",
         "description": "Gruppen- und freigegebene Konten, die Sie verwalten können. Wählen Sie eines aus, um dessen Filter, Abwesenheitsnotiz, Kalender und Kontakte zu bearbeiten.",
         "shared_label": "Freigegebenes Konto"
+      },
+      "sections": {
+        "addresses": "E-Mail-Adressen"
       }
     },
     "security": {

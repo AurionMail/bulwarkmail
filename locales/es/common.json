@@ -1830,6 +1830,9 @@
         "title": "Compartido conmigo",
         "description": "Cuentas de grupo y compartidas que puedes gestionar. Selecciona una para editar sus filtros, respuesta de vacaciones, calendarios y contactos.",
         "shared_label": "Cuenta compartida"
+      },
+      "sections": {
+        "addresses": "Direcciones de correo"
       }
     },
     "security": {

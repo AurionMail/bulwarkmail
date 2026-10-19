@@ -1833,6 +1833,9 @@
         "title": "Compartit amb mi",
         "description": "Comptes de grup i compartits que podeu gestionar. Seleccioneu-ne un per editar-ne els filtres, la resposta automàtica, els calendaris i els contactes.",
         "shared_label": "Compte compartit"
+      },
+      "sections": {
+        "addresses": "Adreces de correu"
       }
     },
     "scoped": {

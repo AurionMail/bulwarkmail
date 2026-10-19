@@ -1830,6 +1830,9 @@
         "title": "Sdíleno se mnou",
         "description": "Skupinové a sdílené účty, které můžete spravovat. Vyberte jeden pro úpravu jeho filtrů, odpovědi v nepřítomnosti, kalendářů a kontaktů.",
         "shared_label": "Sdílený účet"
+      },
+      "sections": {
+        "addresses": "E-mailové adresy"
       }
     },
     "security": {

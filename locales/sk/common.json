@@ -1833,6 +1833,9 @@
         "title": "Zdieľané so mnou",
         "description": "Skupinové a zdieľané účty, ktoré môžete spravovať.",
         "shared_label": "Zdieľaný účet"
+      },
+      "sections": {
+        "addresses": "E-mailové adresy"
       }
     },
     "scoped": {

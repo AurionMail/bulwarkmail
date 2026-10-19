@@ -12,7 +12,6 @@ import {
   Search,
   User,
   Shield,
-  UserPen,
   PalmtreeIcon,
   Calendar,
   Filter,
@@ -44,7 +43,6 @@ import { ReadingSettings } from '@/components/settings/reading-settings';
 import { MessageListSettings } from '@/components/settings/message-list-settings';
 import { ComposingSettings } from '@/components/settings/composing-settings';
 import { AccountSettings } from '@/components/settings/account-settings';
-import { IdentitySettings } from '@/components/settings/identity-settings';
 import { VacationSettings } from '@/components/settings/vacation-settings';
 import { CalendarSettings } from '@/components/settings/calendar-settings';
 import { CalendarManagementSettings } from '@/components/settings/calendar-management-settings';
@@ -134,7 +132,6 @@ const tabIcons: Record<Tab, AppIcon> = {
   reading: BookOpen,
   composing: PenLine,
   downloads: Download,
-  identities: UserPen,
   vacation: PalmtreeIcon,
   filters: Filter,
   templates: FileText,
@@ -162,6 +159,7 @@ export const LEGACY_TAB_MAP: Record<string, Tab> = {
   layout: 'appearance',
   themes: 'appearance',
   content_senders: 'reading',
+  identities: 'account',
 };
 
 function readPersistedTab(): SettingsTabId {
@@ -571,7 +569,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     { id: 'reading', label: t('tabs.reading'), icon: tabIcons.reading, group: 'mail' },
     { id: 'composing', label: t('tabs.composing'), icon: tabIcons.composing, group: 'mail' },
     { id: 'downloads', label: t('tabs.downloads'), icon: tabIcons.downloads, group: 'mail' },
-    { id: 'identities', label: t('tabs.identities'), icon: tabIcons.identities, group: 'mail' },
     ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
     ...(supportsSieve ? [{ id: 'filters' as Tab, label: t('tabs.filters'), icon: tabIcons.filters, group: 'mail' as TabGroup }] : []),
     ...(isFeatureEnabled('templatesEnabled') ? [{ id: 'templates' as Tab, label: t('tabs.templates'), icon: tabIcons.templates, group: 'mail' as TabGroup }] : []),
@@ -715,7 +712,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       {effectiveActiveTab === 'reading' && <ReadingSettings />}
       {effectiveActiveTab === 'composing' && <ComposingSettings />}
       {effectiveActiveTab === 'downloads' && <DownloadsSettings />}
-      {effectiveActiveTab === 'identities' && <IdentitySettings />}
       {effectiveActiveTab === 'vacation' && <VacationSettings />}
       {effectiveActiveTab === 'filters' && <FilterSettings />}
       {effectiveActiveTab === 'templates' && <TemplateSettings />}

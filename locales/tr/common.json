@@ -1830,6 +1830,9 @@
         "title": "Benimle paylaşılanlar",
         "description": "Yönetebileceğiniz grup ve paylaşılan hesaplar. Filtrelerini, tatil yanıtlayıcısını, takvimlerini ve kişilerini düzenlemek için birini seçin.",
         "shared_label": "Paylaşılan hesap"
+      },
+      "sections": {
+        "addresses": "E-posta adresleri"
       }
     },
     "security": {

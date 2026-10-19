@@ -1830,6 +1830,9 @@
         "title": "나와 공유됨",
         "description": "관리할 수 있는 그룹 및 공유 계정입니다. 하나를 선택하여 필터, 부재 중 자동 응답, 캘린더, 연락처를 편집하세요.",
         "shared_label": "공유 계정"
+      },
+      "sections": {
+        "addresses": "이메일 주소"
       }
     },
     "security": {

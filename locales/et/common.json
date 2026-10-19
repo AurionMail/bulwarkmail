@@ -1833,6 +1833,9 @@
         "title": "Minuga jagatud",
         "description": "Grupi- ja jagatud kontod, mida saad hallata. Vali üks, et muuta selle filtreid, puhkusevastust, kalendreid ja kontakte.",
         "shared_label": "Jagatud konto"
+      },
+      "sections": {
+        "addresses": "E-posti aadressid"
       }
     },
     "scoped": {

@@ -1833,6 +1833,9 @@
         "title": "Delt med meg",
         "description": "Gruppekontoer og delte kontoer du kan administrere. Velg en konto for å redigere filtre, feriesvar, kalendere og kontakter.",
         "shared_label": "Delt konto"
+      },
+      "sections": {
+        "addresses": "E-postadresser"
       }
     },
     "scoped": {

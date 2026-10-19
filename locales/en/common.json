@@ -1833,6 +1833,9 @@
         "title": "Shared with me",
         "description": "Group and shared accounts you can manage. Select one to edit its filters, vacation responder, calendars, and contacts.",
         "shared_label": "Shared account"
+      },
+      "sections": {
+        "addresses": "Email addresses"
       }
     },
     "scoped": {

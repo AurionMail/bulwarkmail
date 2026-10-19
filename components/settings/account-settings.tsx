@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, GripVertical, Plus, Star, AlertCircle, ChevronRight } from '@/components/icons';
 import { useAuthStore } from '@/stores/auth-store';
@@ -18,6 +18,10 @@ import { toUnicodeDomain, toUnicodeEmail } from '@/lib/idn';
 import { IS_LITE } from '@/lib/lite';
 import { usePolicyStore } from '@/stores/policy-store';
 import { AccountArchiveSettings } from './account-archive-settings';
+import { DisplayNameSection } from './account-security-settings';
+import { EmailAddressesSection } from './identity-settings';
+import { MultipleAccountsSection } from './layout-settings';
+import { useAccountSecurityStore } from '@/stores/account-security-store';
 
 function hostnameOf(serverUrl: string): string {
   try { return toUnicodeDomain(new URL(serverUrl).hostname); } catch { return serverUrl; }
@@ -42,6 +46,22 @@ export function AccountSettings() {
   const switchAccount = useAuthStore((s) => s.switchAccount);
   const setManagedAccount = useManagedAccountStore((s) => s.setManagedAccount);
   const archiveEnabled = usePolicyStore((s) => s.isFeatureEnabled('accountArchiveEnabled')) && !IS_LITE && !isDemoMode;
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  // The display name is editable on Stalwart (the principal's name) for
+  // password sign-ins; OAuth and token sessions cannot manage the principal.
+  const { isStalwart, probe, fetchPrincipal } = useAccountSecurityStore();
+  const canEditDisplayName = isStalwart === true && authMode !== 'oauth' && authMode !== 'token';
+  // Wait for `client` before probing, as the Security page does: on reload
+  // the persisted session flips authenticated before the client reconnects.
+  useEffect(() => {
+    if (!isAuthenticated || !client) return;
+    if (isStalwart === null) {
+      void probe().then((detected) => { if (detected) void fetchPrincipal(); });
+    } else if (isStalwart) {
+      void fetchPrincipal();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, client, isStalwart]);
 
   // Shared/group accounts delegated to this session (excludes the user's own
   // primary account). These can be drilled into for scoped settings editing.
@@ -123,11 +143,15 @@ export function AccountSettings() {
 
   return (
     <div className="space-y-8">
-      <SettingsSection title={t('title')} description={t('description')}>
-        {/* Display Name */}
-        <SettingItem label={t('name_label')}>
-          <span className="text-sm text-foreground">{displayName || tCommon('unknown')}</span>
-        </SettingItem>
+      <SettingsSection id="profile" title={t('title')} description={t('description')}>
+        {/* Display Name: editable where the server lets us, read-only otherwise. */}
+        {canEditDisplayName ? (
+          <DisplayNameSection />
+        ) : (
+          <SettingItem label={t('name_label')}>
+            <span className="text-sm text-foreground">{displayName || tCommon('unknown')}</span>
+          </SettingItem>
+        )}
 
         {/* Email Address */}
         <SettingItem label={t('email.label')}>
@@ -151,7 +175,7 @@ export function AccountSettings() {
         </SettingItem>
 
         {/* Server */}
-        <SettingItem label={t('server.label')}>
+        <SettingItem label={t('server.label')} advanced>
           <span className="text-sm text-foreground truncate max-w-xs">
             {serverUrl || tCommon('unknown')}
           </span>
@@ -191,9 +215,11 @@ export function AccountSettings() {
         )}
       </SettingsSection>
 
+      <EmailAddressesSection />
+
       {/* Logged-in accounts list */}
       {accounts.length > 0 && (
-        <SettingsSection title={t('accounts.title')} description={t('accounts.description')}>
+        <SettingsSection id="browser" title={t('accounts.title')} description={t('accounts.description')}>
           <div className="space-y-2">
             {accounts.map((a, index) => (
               <AccountRow
@@ -241,10 +267,12 @@ export function AccountSettings() {
 
       {archiveEnabled && <AccountArchiveSettings />}
 
+      <MultipleAccountsSection />
+
       {/* Shared / group accounts delegated to this session. Clicking one drills
           into a scoped settings view (filters, vacation, calendars, contacts). */}
       {sharedAccounts.length > 0 && (
-        <SettingsSection title={t('shared_accounts.title')} description={t('shared_accounts.description')}>
+        <SettingsSection id="shared" title={t('shared_accounts.title')} description={t('shared_accounts.description')}>
           <div className="space-y-2">
             {sharedAccounts.map((acc) => {
               const editable = firstScopedTab(acc.capabilities) !== null;

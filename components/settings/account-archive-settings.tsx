@@ -84,7 +84,7 @@ export function AccountArchiveSettings() {
   };
 
   return (
-    <SettingsSection title={t('title')} description={t(passwordsAllowed ? 'description_passwords' : 'description')}>
+    <SettingsSection id="backup" advanced title={t('title')} description={t(passwordsAllowed ? 'description_passwords' : 'description')}>
       <p className="text-sm text-muted-foreground">
         {saved === null ? '…' : t(saved ? 'status_saved' : 'status_none', { account: toUnicodeEmail(owner.username) })}
       </p>

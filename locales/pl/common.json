@@ -1830,6 +1830,9 @@
         "title": "Udostępnione mnie",
         "description": "Konta grupowe i udostępnione, którymi możesz zarządzać. Wybierz jedno, aby edytować jego filtry, odpowiedź wakacyjną, kalendarze i kontakty.",
         "shared_label": "Konto udostępnione"
+      },
+      "sections": {
+        "addresses": "Adresy e-mail"
       }
     },
     "security": {

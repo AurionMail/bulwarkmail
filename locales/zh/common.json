@@ -1830,6 +1830,9 @@
         "title": "与我共享",
         "description": "您可以管理的群组和共享账户。选择一个以编辑其筛选器、休假自动回复、日历和联系人。",
         "shared_label": "共享账户"
+      },
+      "sections": {
+        "addresses": "电子邮件地址"
       }
     },
     "security": {

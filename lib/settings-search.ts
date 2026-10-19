@@ -11,7 +11,6 @@ export type SettingsSearchTab =
   | 'reading'
   | 'composing'
   | 'downloads'
-  | 'identities'
   | 'vacation'
   | 'filters'
   | 'templates'
@@ -36,13 +35,25 @@ type Tab = SettingsSearchTab;
 export const tabSearchPaths: Record<Tab, string[]> = {
   account: [
     'settings.account.name_label',
+    'settings.security.display_name',
     'settings.account.username_label',
     'settings.account.account_type_label',
     'settings.account.auth_method_label',
     'settings.account.email',
     'settings.account.server',
     'settings.account.storage',
+    'settings.identities',
+    'settings.email_behavior.sub_address_delimiter',
     'settings.account.accounts',
+    'settings.account.backup',
+    'settings.appearance.unified_mailbox',
+    'settings.appearance.cross_unread',
+    'settings.appearance.cross_starred',
+    'settings.appearance.cross_all',
+    'settings.appearance.all_mail',
+    'settings.appearance.account_marker',
+    'settings.appearance.show_shared_mail_accounts',
+    'settings.account.shared_accounts',
   ],
   language: ['settings.language_region'],
   notifications: ['settings.notifications'],
@@ -61,13 +72,6 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.appearance.hide_account_switcher',
     'settings.appearance.show_rail_account_list',
     'settings.appearance.favicon_unread_badge',
-    'settings.appearance.unified_mailbox',
-    'settings.appearance.cross_unread',
-    'settings.appearance.cross_starred',
-    'settings.appearance.cross_all',
-    'settings.appearance.all_mail',
-    'settings.appearance.account_marker',
-    'settings.appearance.show_shared_mail_accounts',
     'tour.restart_title',
     'tour.show_on_new_devices_title',
     'settings.appearance.pro_interface',
@@ -120,7 +124,6 @@ export const tabSearchPaths: Record<Tab, string[]> = {
     'settings.email_behavior.sub_address_delimiter',
   ],
   downloads: ['settings.downloads'],
-  identities: ['settings.identities'],
   vacation: ['settings.vacation'],
   filters: ['settings.filters'],
   templates: ['settings.templates'],
@@ -143,15 +146,14 @@ export const tabSearchPaths: Record<Tab, string[]> = {
 export const archiveActionSearchPaths: ReadonlySet<string> = new Set(['settings.email_behavior.archive_mode']);
 
 export const tabKeywords: Record<Tab, string> = {
-  account: 'profile email password user signin signout reorder rearrange drag dropdown switcher multi-account',
+  account: 'profile email user signin signout reorder rearrange drag dropdown switcher multi-account identities from address signature plus addressing unified mailbox shared group',
   language: 'locale region timezone date time format',
   notifications: 'sound alert push badge',
-  appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher unified mailbox icons rail layout reading pane tour',
+  appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher icons rail layout reading pane tour',
   message_list: 'inbox list preview thread conversation grouping sort order columns archive delete swipe hover favicon avatar tag color',
   reading: 'mark read attachment open monospace mono font plain text images remote content block sender privacy tracking dark light',
   composing: 'editor signature plain text reply forward draft compose',
   downloads: 'download filename template eml attachment save export',
-  identities: 'from address signature email',
   vacation: 'auto reply away out of office holiday responder',
   filters: 'sieve rules block junk forward',
   templates: 'snippet quick reply',

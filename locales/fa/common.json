@@ -1833,6 +1833,9 @@
         "title": "اشتراکی با من",
         "description": "حساب‌های گروهی",
         "shared_label": "حساب اشتراکی"
+      },
+      "sections": {
+        "addresses": "نشانی‌های ایمیل"
       }
     },
     "scoped": {

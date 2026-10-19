@@ -146,7 +146,11 @@ function PasswordChangeSection() {
   );
 }
 
-function DisplayNameSection() {
+/**
+ * Editable display name (the Stalwart principal's name). Rendered by the
+ * Account page's Profile section; the Security page no longer repeats it.
+ */
+export function DisplayNameSection() {
   const t = useTranslations('settings.security');
   const { displayName, updateDisplayName, isSaving, isLoadingPrincipal } = useAccountSecurityStore();
   const [name, setName] = useState(displayName);
@@ -1507,8 +1511,6 @@ export function AccountSecuritySettings() {
         {!withoutPassword && (
           <>
             <PasswordChangeSection />
-            <div className="border-t border-border" />
-            <DisplayNameSection />
             <div className="border-t border-border" />
             <div>
               <div className="flex items-center gap-2 mb-3">

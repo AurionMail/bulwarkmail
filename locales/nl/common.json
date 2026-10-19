@@ -1830,6 +1830,9 @@
         "title": "Gedeeld met mij",
         "description": "Groeps- en gedeelde accounts die u kunt beheren. Selecteer er een om de filters, afwezigheidsassistent, agenda's en contacten te bewerken.",
         "shared_label": "Gedeeld account"
+      },
+      "sections": {
+        "addresses": "E-mailadressen"
       }
     },
     "security": {

@@ -1830,6 +1830,9 @@
         "title": "Partagé avec moi",
         "description": "Comptes de groupe et partagés que vous pouvez gérer. Sélectionnez-en un pour modifier ses filtres, son répondeur d'absence, ses calendriers et ses contacts.",
         "shared_label": "Compte partagé"
+      },
+      "sections": {
+        "addresses": "Adresses e-mail"
       }
     },
     "security": {

@@ -8,14 +8,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import { usePolicyStore } from '@/stores/policy-store';
 import { SettingsSection, SettingItem, Select, ToggleSwitch } from './settings-section';
 import { X } from '@/components/icons';
-import {
-  SUPPORTED_SUB_ADDRESS_DELIMITERS,
-  isSupportedSubAddressDelimiter,
-  isValidSubAddressDelimiter,
-} from '@/lib/sub-addressing';
-
-const CUSTOM_DELIMITER_SENTINEL = '__custom__';
-const DEFAULT_CUSTOM_DELIMITER = '~';
 
 export function ComposingSettings() {
   const t = useTranslations('settings.email_behavior');
@@ -32,7 +24,6 @@ export function ComposingSettings() {
     recipientMentionsEnabled,
     mentionAddsRecipientTo,
     sendDelaySeconds,
-    subAddressDelimiter,
     signaturePosition,
     signatureSeparatorEnabled,
     requestReadReceiptDefault,
@@ -133,49 +124,6 @@ export function ComposingSettings() {
             { value: 'never', label: t('read_receipt_response.never') },
           ]}
         />
-      </SettingItem>
-
-      <SettingItem
-        label={t('sub_address_delimiter.label')}
-        description={t('sub_address_delimiter.description', { delimiter: subAddressDelimiter })}
-      >
-        <div className="flex flex-col items-end gap-2">
-          <Select
-            value={isSupportedSubAddressDelimiter(subAddressDelimiter) ? subAddressDelimiter : CUSTOM_DELIMITER_SENTINEL}
-            onChange={(value) => {
-              if (value === CUSTOM_DELIMITER_SENTINEL) {
-                if (isSupportedSubAddressDelimiter(subAddressDelimiter)) {
-                  updateSetting('subAddressDelimiter', DEFAULT_CUSTOM_DELIMITER);
-                }
-              } else {
-                updateSetting('subAddressDelimiter', value);
-              }
-            }}
-            options={[
-              ...SUPPORTED_SUB_ADDRESS_DELIMITERS.map((delim) => ({
-                value: delim,
-                label: t('sub_address_delimiter.option', { delimiter: delim }),
-              })),
-              { value: CUSTOM_DELIMITER_SENTINEL, label: t('sub_address_delimiter.custom') },
-            ]}
-          />
-          {!isSupportedSubAddressDelimiter(subAddressDelimiter) && (
-            <input
-              type="text"
-              maxLength={1}
-              value={subAddressDelimiter}
-              onChange={(e) => {
-                const next = e.target.value.slice(0, 1);
-                if (next && isValidSubAddressDelimiter(next)) {
-                  updateSetting('subAddressDelimiter', next);
-                }
-              }}
-              aria-label={t('sub_address_delimiter.custom_input_label')}
-              placeholder={DEFAULT_CUSTOM_DELIMITER}
-              className="w-16 px-2 py-1 text-sm font-mono text-center bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          )}
-        </div>
       </SettingItem>
 
       <SettingItem label={t('empty_subject_warning.label')} description={t('empty_subject_warning.description')}>

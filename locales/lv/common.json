@@ -1830,6 +1830,9 @@
         "title": "Kopīgots ar mani",
         "description": "Grupas un kopīgotie konti, kurus varat pārvaldīt. Atlasiet vienu, lai rediģētu tā filtrus, prombūtnes atbildētāju, kalendārus un kontaktus.",
         "shared_label": "Kopīgots konts"
+      },
+      "sections": {
+        "addresses": "E-pasta adreses"
       }
     },
     "security": {

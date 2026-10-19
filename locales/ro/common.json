@@ -1833,6 +1833,9 @@
         "title": "Partajat cu mine",
         "description": "Conturi de grup și conturi partajate pe care le puteți gestiona. Selectați unul pentru a-i edita filtrele, răspunsul automat de vacanță, calendarele și contactele.",
         "shared_label": "Cont partajat"
+      },
+      "sections": {
+        "addresses": "Adrese de e-mail"
       }
     },
     "scoped": {
