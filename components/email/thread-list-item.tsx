@@ -59,8 +59,11 @@ function isMousePressOnRow(e: React.PointerEvent): boolean {
  * Whether a row has been pointed at yet. The hover actions stay display:none
  * until the pointer is over the row, so mounting them for every row up front
  * only added a handful of icon buttons per row to every list render. They
- * mount on the first pointer-enter and stay from then on, so the hover
- * behaviour itself is unchanged.
+ * mount on the first pointer-over and stay from then on, so the hover
+ * behaviour itself is unchanged. Pointer-over rather than pointer-enter: when
+ * a row slides under a resting pointer (the row above was just deleted from
+ * its hover actions), the browser's pointerover comes from the list around
+ * it, and React builds no onPointerEnter from that.
  */
 /**
  * Role of the folder the list shows (sender vs recipient, junk actions). In
@@ -77,7 +80,7 @@ export function listMailboxRole(state: {
     ?? (state.isUnifiedView ? (state.unifiedRole ?? undefined) : undefined);
 }
 
-function useArmOnPointerEnter(): [boolean, () => void] {
+function useArmOnPointerOver(): [boolean, () => void] {
   const [armed, setArmed] = React.useState(false);
   const arm = React.useCallback(() => setArmed(true), []);
   return [armed, arm];
@@ -429,7 +432,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
       sourceMailboxId: selectedMailbox,
     });
 
-    const [hoverActionsArmed, armHoverActions] = useArmOnPointerEnter();
+    const [hoverActionsArmed, armHoverActions] = useArmOnPointerOver();
     const { onTouchStart, onTouchEnd, onTouchMove, onTouchCancel, isPressed } = useLongPress(
       useCallback((pos) => {
         onContextMenu?.(
@@ -526,7 +529,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         {...dragHandlers}
         {...touchHandlers}
         data-testid="email-list-item"
-        onPointerEnter={armHoverActions}
+        onPointerOver={armHoverActions}
         onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(); }}
         data-email-id={email.id}
         data-subject={email.subject || ''}
@@ -980,7 +983,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
       threadEmails: thread.emails,
     });
 
-    const [hoverActionsArmed, armHoverActions] = useArmOnPointerEnter();
+    const [hoverActionsArmed, armHoverActions] = useArmOnPointerOver();
     const { onTouchStart: threadOnTouchStart, onTouchEnd: threadOnTouchEnd, onTouchMove: threadOnTouchMove, onTouchCancel: threadOnTouchCancel, isPressed: isThreadPressed } = useLongPress(
       useCallback((pos) => {
         onContextMenu?.(
@@ -1126,7 +1129,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         <div
           {...dragHandlers}
           {...threadLongPressHandlers}
-          onPointerEnter={armHoverActions}
+          onPointerOver={armHoverActions}
           onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(latestEmail); }}
           aria-current={isSelected ? 'true' : undefined}
           data-unread={hasUnread ? 'true' : 'false'}
