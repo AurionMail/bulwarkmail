@@ -101,7 +101,7 @@ const nextConfig: NextConfig = {
     "!(next-server)": ["./data/**/*", "./local-data/**/*", "./.env*"],
   },
   turbopack: {
-    root: import.meta.dirname,
+    root: process.env.NEXT_TURBOPACK_ROOT || import.meta.dirname,
   },
   env: {
     NEXT_PUBLIC_GIT_COMMIT: gitCommitHash,

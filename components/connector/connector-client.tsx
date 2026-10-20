@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { resolveTarget, type ResolveResult } from '@/lib/connector/registry';
 import { appPath } from '@/lib/deep-links';
 import { replaceWindowLocation } from '@/lib/browser-navigation';
-import { useAdminTabStore } from '@/stores/admin-tab-store';
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '';
 
@@ -26,7 +25,6 @@ const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '';
  */
 export function ConnectorClient({ target }: { target: string }) {
   const [result, setResult] = useState<ResolveResult | null>(null);
-  const setAdminTab = useAdminTabStore((s) => s.setActiveTab);
 
   useEffect(() => {
     setResult(resolveTarget(target, new URLSearchParams(window.location.search)));
@@ -34,21 +32,16 @@ export function ConnectorClient({ target }: { target: string }) {
 
   const destination = useMemo(() => {
     if (result?.kind !== 'ok') return null;
-    const { path, adminTab } = result.resolution;
-    // The admin shell keeps its active tab in a store rather than in the URL,
-    // so a link to a specific panel selects it here. The store is persisted,
-    // so the choice survives an admin login in between.
-    return { url: appPath(path), adminTab: adminTab ?? null };
+    return { url: appPath(result.resolution.path) };
   }, [result]);
 
   useEffect(() => {
     if (!destination) return;
-    if (destination.adminTab) setAdminTab(destination.adminTab);
     // Nothing is appended to the URL. An admin who is not signed in gets
     // bounced by the admin layout, which parks this destination in its own
     // `?next=` - adding one here would nest inside that one and be refused.
     replaceWindowLocation(destination.url);
-  }, [destination, setAdminTab]);
+  }, [destination]);
 
   if (result === null || result.kind === 'ok') {
     return <Shell>Opening…</Shell>;

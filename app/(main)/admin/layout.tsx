@@ -2,124 +2,31 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { useAdminTabStore, type AdminTabId } from '@/stores/admin-tab-store';
-import {
-  LayoutDashboard,
-  Settings,
-  Palette,
-  Shield,
-  Scale,
-  ScrollText,
-  LogOut,
-  KeyRound,
-  Puzzle,
-  SwatchBook,
-  Activity,
-  Package,
-  Mail,
-  Calendar,
-  BookUser,
-  HardDrive,
-  Store,
-  Menu,
-  X,
-} from '@/components/icons';
-import { cn } from '@/lib/utils';
-import { useConfig } from '@/hooks/use-config';
-import { usePolicyStore } from '@/stores/policy-store';
-import { useThemeStore } from '@/stores/theme-store';
 import { getActiveAccountSlotHeaders } from '@/lib/auth/active-account-slot';
-
-import { useUpdateStore, selectHasUpdate } from '@/stores/update-store';
-import { apiFetch, getPathPrefix, withBasePath } from '@/lib/browser-navigation';
+import { apiFetch } from '@/lib/browser-navigation';
 import { useAdminUnsavedStore } from '@/stores/admin-unsaved-store';
+import { AdminShell } from '@/components/admin/admin-shell';
 import { UnsavedChangesGuard } from './_unsaved-changes-guard';
 
-// Single-page tab navigation: clicks update a Zustand store. The URL stays
-// at /admin so React doesn't fire a route transition on every tab switch -
-// matches the regular settings page pattern, fixes the dev-mode "Rendering…"
-// hang we saw with both /admin/<segment> routes and ?tab= search params.
-const NAV_GROUPS: ReadonlyArray<{
-  label: string;
-  items: ReadonlyArray<{ tab: AdminTabId; label: string; icon: typeof LayoutDashboard }>;
-}> = [
-  {
-    label: 'Overview',
-    items: [
-      { tab: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    ],
-  },
-  {
-    label: 'Configuration',
-    items: [
-      { tab: 'settings', label: 'Settings', icon: Settings },
-      { tab: 'branding', label: 'Branding', icon: Palette },
-      { tab: 'auth', label: 'Authentication', icon: Shield },
-      { tab: 'policy', label: 'Policy', icon: Scale },
-    ],
-  },
-  {
-    label: 'Extensions',
-    items: [
-      { tab: 'plugins', label: 'Plugins', icon: Puzzle },
-      { tab: 'themes', label: 'Themes', icon: SwatchBook },
-      { tab: 'marketplace', label: 'Marketplace', icon: Store },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { tab: 'version', label: 'Version', icon: Package },
-      { tab: 'telemetry', label: 'Telemetry', icon: Activity },
-      { tab: 'logs', label: 'Audit Log', icon: ScrollText },
-    ],
-  },
-];
-
+/**
+ * Gates the admin panel behind the admin session and draws its shell. The
+ * pages themselves are one route (./[[...segments]]) and switch through
+ * history.pushState, so this layout stays mounted across them.
+ */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const storeActiveTab = useAdminTabStore((s) => s.activeTab);
-  const setActiveTab = useAdminTabStore((s) => s.setActiveTab);
   const requestLeave = useAdminUnsavedStore((s) => s.requestLeave);
-  // Highlight the active tab only on /admin itself - on dynamic routes
-  // (e.g. /admin/plugins/[id]) no tab is "current".
-  const activeTab = pathname === '/admin' ? storeActiveTab : null;
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isStalwartAutoLogin, setIsStalwartAutoLogin] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [configReadOnly, setConfigReadOnly] = useState(false);
-  const { appLogoLightUrl, appLogoDarkUrl, loginLogoLightUrl, loginLogoDarkUrl } = useConfig();
-  const filesEnabled = usePolicyStore((s) => s.isFeatureEnabled('filesEnabled'));
-  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
-  const logoUrl = withBasePath(resolvedTheme === 'dark'
-    ? (appLogoDarkUrl || appLogoLightUrl || loginLogoDarkUrl)
-    : (appLogoLightUrl || appLogoDarkUrl || loginLogoLightUrl));
-
-  // Match the navigation rail: red for security/deprecated, amber for normal.
-  const hasUpdate = useUpdateStore(selectHasUpdate);
-  const updateSeverity = useUpdateStore((s) => s.status?.severity);
-  const startUpdatePolling = useUpdateStore((s) => s.startPolling);
-  useEffect(() => { startUpdatePolling(); }, [startUpdatePolling]);
-  const updateImportant = updateSeverity === 'security' || updateSeverity === 'deprecated';
-
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!mobileNavOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [mobileNavOpen]);
 
   useEffect(() => {
     if (pathname === '/admin/login') return;
+    // One check per visit, not one per page: the pages switch without a
+    // route change, and the session does not change with them.
+    if (authenticated === true) return;
     let cancelled = false;
 
     async function checkAuth() {
@@ -165,7 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         // Carry the page that was asked for through the login, so a connector
         // link to a panel (/connector/admin_extension?slug=x) does not dump
-        // the admin on the dashboard after signing in.
+        // the admin on the overview after signing in.
         const next = encodeURIComponent(`${pathname}${window.location.search}`);
         router.replace(`/admin/login?next=${next}`);
       } catch (err) {
@@ -177,7 +84,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     checkAuth();
     return () => { cancelled = true; };
-  }, [pathname, router]);
+  }, [pathname, router, authenticated]);
 
   // With ADMIN_CONFIG_READONLY the panel still shows every setting, but
   // nothing can be saved; say so up front instead of after a failed save (#1249).
@@ -203,316 +110,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
 
-  // /admin lives outside the [locale] tree, so links back to the webmail
-  // apps are bare <a> tags (hard navigation). Next.js only auto-applies
-  // basePath to <Link>/router APIs - for these we prepend it manually so
-  // NEXT_PUBLIC_BASE_PATH=/webmail deployments don't redirect to "/".
-  const prefix = getPathPrefix();
-
-  const navContent = (
-    <>
-      <div className="flex-1 overflow-y-auto py-2">
-        <div className="px-2 space-y-0.5">
-          {NAV_GROUPS.map((group, groupIndex) => (
-            <div key={group.label}>
-              {groupIndex > 0 && <div className="mx-1 my-2 border-t border-border" />}
-              <div className="px-3 pt-2.5 pb-1">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {group.label}
-                </span>
-              </div>
-              {group.items.map(({ tab, label, icon: Icon }) => {
-                const active = activeTab === tab;
-                const showDot = tab === 'version' && hasUpdate;
-                const handleClick = () => {
-                  if (active) return;
-                  requestLeave(() => {
-                    setActiveTab(tab);
-                    // From a dynamic route (/admin/plugins/[id], /admin/marketplace/[slug])
-                    // we still need a real navigation back to /admin so the page renders.
-                    if (pathname !== '/admin') router.push('/admin');
-                  });
-                };
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={handleClick}
-                    className={cn(
-                      'w-full text-start px-3 py-2 rounded-md text-sm transition-colors duration-150 flex items-center gap-2.5',
-                      active
-                        ? 'bg-accent text-accent-foreground font-medium'
-                        : 'hover:bg-muted text-foreground'
-                    )}
-                  >
-                    <span className="relative shrink-0">
-                      <Icon className={cn(
-                        'w-4 h-4',
-                        active ? 'text-accent-foreground' : 'text-muted-foreground'
-                      )} />
-                      {showDot && (
-                        <span
-                          className={cn(
-                            'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2',
-                            active ? 'ring-accent' : 'ring-background',
-                            updateImportant ? 'bg-red-500' : 'bg-amber-500',
-                          )}
-                          aria-label={updateImportant ? 'Important update available' : 'Update available'}
-                        />
-                      )}
-                    </span>
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="px-2 py-2 border-t border-border space-y-0.5 shrink-0">
-        {!isStalwartAutoLogin && (
-          <Link
-            href="/admin/change-password"
-            className={cn(
-              'w-full text-start px-3 py-2 rounded-md text-sm transition-colors duration-150 flex items-center gap-2.5',
-              pathname === '/admin/change-password'
-                ? 'bg-accent text-accent-foreground font-medium'
-                : 'hover:bg-muted text-foreground'
-            )}
-          >
-            <KeyRound className={cn(
-              'w-4 h-4 shrink-0',
-              pathname === '/admin/change-password' ? 'text-accent-foreground' : 'text-muted-foreground'
-            )} />
-            Change Password
-          </Link>
-        )}
-        <button
-          onClick={handleLogout}
-          className="w-full text-start px-3 py-2 rounded-md text-sm transition-colors duration-150 flex items-center gap-2.5 hover:bg-muted text-foreground"
-        >
-          <LogOut className="w-4 h-4 shrink-0 text-muted-foreground" />
-          Sign out
-        </button>
-      </div>
-    </>
-  );
-
   return (
-    <div className="min-h-screen flex bg-background">
+    <>
       <UnsavedChangesGuard />
-      {/* Slim webmail nav rail (desktop only) */}
-      <nav className="hidden md:flex w-14 bg-secondary flex-col items-center py-3 gap-2 border-e border-border sticky top-0 h-screen shrink-0">
-        {logoUrl ? (
-          <img src={logoUrl} alt="" className="w-7 h-7 object-contain mb-2" />
-        ) : (
-          <div className="w-7 h-7 mb-2" />
-        )}
-        <a
-          href={`${prefix}/`}
-          className="flex items-center justify-center w-10 h-10 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
-          title="Mail"
-        >
-          <Mail className="w-[18px] h-[18px]" />
-        </a>
-        <a
-          href={`${prefix}/calendar`}
-          className="flex items-center justify-center w-10 h-10 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
-          title="Calendar"
-        >
-          <Calendar className="w-[18px] h-[18px]" />
-        </a>
-        <a
-          href={`${prefix}/contacts`}
-          className="flex items-center justify-center w-10 h-10 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
-          title="Contacts"
-        >
-          <BookUser className="w-[18px] h-[18px]" />
-        </a>
-        {filesEnabled && (
-          <a
-            href={`${prefix}/files`}
-            className="flex items-center justify-center w-10 h-10 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
-            title="Files"
-          >
-            <HardDrive className="w-[18px] h-[18px]" />
-          </a>
-        )}
-        <div className="mt-auto flex flex-col items-center gap-2">
-          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary/10 text-primary" title="Admin">
-            <Shield className="w-[18px] h-[18px]" />
-          </div>
-          <a
-            href={`${prefix}/settings`}
-            className="flex items-center justify-center w-10 h-10 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
-            title="Settings"
-          >
-            <Settings className="w-[18px] h-[18px]" />
-          </a>
-        </div>
-      </nav>
-
-      {/* Admin Sidebar (desktop only) */}
-      <aside className="hidden md:flex w-60 border-e border-border bg-secondary flex-col sticky top-0 h-screen">
-        <div className="h-14 flex items-center px-4 border-b border-border shrink-0">
-          {logoUrl ? (
-            <img src={logoUrl} alt="" className="w-5 h-5 object-contain me-2" />
-          ) : (
-            <Shield className="w-5 h-5 text-primary me-2" />
-          )}
-          <span className="font-semibold text-sm text-foreground">Admin Panel</span>
-        </div>
-        {navContent}
-      </aside>
-
-      {/* Mobile drawer overlay */}
-      {mobileNavOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-          onClick={() => setMobileNavOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Mobile drawer */}
-      <aside
-        className={cn(
-          'md:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] border-e border-border bg-secondary flex flex-col transition-transform duration-200 ease-out',
-          mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-        aria-label="Admin navigation"
-        aria-hidden={!mobileNavOpen}
+      <AdminShell
+        authenticated={authenticated === true}
+        isStalwartAutoLogin={isStalwartAutoLogin}
+        configReadOnly={configReadOnly}
+        onLogout={handleLogout}
       >
-        <div className="h-14 flex items-center justify-between px-3 border-b border-border shrink-0">
-          <div className="flex items-center min-w-0">
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className="w-5 h-5 object-contain me-2" />
-            ) : (
-              <Shield className="w-5 h-5 text-primary me-2" />
-            )}
-            <span className="font-semibold text-sm text-foreground truncate">Admin Panel</span>
+        {authError ? (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-medium">Admin authentication failed</p>
+            <p className="mt-1 text-destructive/80">{authError}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setMobileNavOpen(false)}
-            className="flex items-center justify-center w-9 h-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="Close navigation"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        {navContent}
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 min-w-0 overflow-x-hidden">
-        {/* Mobile header */}
-        <div className="md:hidden sticky top-0 z-30 h-14 flex items-center gap-2 px-3 border-b border-border bg-background">
-          <button
-            type="button"
-            onClick={() => setMobileNavOpen(true)}
-            className="flex items-center justify-center w-9 h-9 rounded-md text-foreground hover:bg-muted transition-colors"
-            aria-label="Open navigation"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex items-center min-w-0">
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className="w-5 h-5 object-contain me-2" />
-            ) : (
-              <Shield className="w-5 h-5 text-primary me-2" />
-            )}
-            <span className="font-semibold text-sm text-foreground truncate">Admin Panel</span>
+        ) : authenticated === null ? (
+          <div className="py-12 text-center text-sm text-muted-foreground animate-pulse">
+            Loading admin panel…
           </div>
-        </div>
-
-        <div className="max-w-4xl mx-auto p-4 md:p-6 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-6">
-          {authError ? (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-              <p className="font-medium">Admin authentication failed</p>
-              <p className="mt-1 text-destructive/80">{authError}</p>
-            </div>
-          ) : authenticated === null ? (
-            <div className="py-12 text-center text-sm text-muted-foreground animate-pulse">
-              Loading admin panel…
-            </div>
-          ) : authenticated ? (
-            <>
-              {configReadOnly && (
-                <div role="status" className="mb-4 rounded-lg border border-border bg-muted p-4 text-sm">
-                  <p className="font-medium text-foreground">The configuration is read-only</p>
-                  <p className="mt-1 text-muted-foreground">
-                    ADMIN_CONFIG_READONLY is set, so you can look at the settings here but not save changes.
-                    Change them in the mounted config files or environment instead.
-                  </p>
-                </div>
-              )}
-              {children}
-            </>
-          ) : null}
-        </div>
-      </main>
-
-      {/* Mobile bottom nav (main webmail nav) */}
-      <nav
-        className="md:hidden fixed inset-x-0 bottom-0 z-30 flex items-center bg-background border-t border-border pb-[env(safe-area-inset-bottom)]"
-        aria-label="Main navigation"
-      >
-        <a
-          href={`${prefix}/`}
-          className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] transition-colors duration-150 text-muted-foreground hover:text-foreground"
-          title="Mail"
-        >
-          <Mail className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-tight truncate max-w-full">Mail</span>
-        </a>
-        <a
-          href={`${prefix}/calendar`}
-          className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] transition-colors duration-150 text-muted-foreground hover:text-foreground"
-          title="Calendar"
-        >
-          <Calendar className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-tight truncate max-w-full">Calendar</span>
-        </a>
-        <a
-          href={`${prefix}/contacts`}
-          className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] transition-colors duration-150 text-muted-foreground hover:text-foreground"
-          title="Contacts"
-        >
-          <BookUser className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-tight truncate max-w-full">Contacts</span>
-        </a>
-        {filesEnabled && (
-          <a
-            href={`${prefix}/files`}
-            className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] transition-colors duration-150 text-muted-foreground hover:text-foreground"
-            title="Files"
-          >
-            <HardDrive className="w-5 h-5" />
-            <span className="text-[10px] font-medium leading-tight truncate max-w-full">Files</span>
-          </a>
-        )}
-        <div
-          className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] text-primary"
-          title="Admin"
-          aria-current="page"
-        >
-          <div className="relative">
-            <Shield className="w-5 h-5" />
-            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-primary" />
-          </div>
-          <span className="text-[10px] font-medium leading-tight truncate max-w-full">Admin</span>
-        </div>
-        <a
-          href={`${prefix}/settings`}
-          className="flex flex-col items-center justify-center gap-1 py-2 px-1 min-h-[44px] grow shrink-0 basis-[64px] transition-colors duration-150 text-muted-foreground hover:text-foreground"
-          title="Settings"
-        >
-          <Settings className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-tight truncate max-w-full">Settings</span>
-        </a>
-      </nav>
-    </div>
+        ) : authenticated ? children : null}
+      </AdminShell>
+    </>
   );
 }

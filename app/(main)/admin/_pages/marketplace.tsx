@@ -1,0 +1,751 @@
+'use client';
+
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+  Search, Download, Check, Loader2, Store, Puzzle, SwatchBook, Star, Eye, AlertTriangle,
+  ArrowUpCircle, ExternalLink, RefreshCw, Ban, ShieldAlert, Info, Upload,
+} from '@/components/icons';
+import { apiFetch } from '@/lib/browser-navigation';
+import { compareVersions } from '@/lib/version-compare';
+import type { MarketplaceListing } from '@/lib/admin/marketplace-directory';
+import { adminPageDef, adminPath } from '@/lib/admin/admin-nav';
+import { cn } from '@/lib/utils';
+import { SettingsSection } from '@/components/settings/settings-section';
+import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/page-header';
+import { AdminLink } from '@/components/admin/admin-link';
+import { AdminButtonLink } from '@/components/admin/button-link';
+import { AdminList, AdminListRow } from '@/components/admin/list';
+import { Badge } from '@/components/admin/badge';
+import { EmptyState } from '@/components/admin/empty-state';
+import { Flash, useFlash } from '@/components/admin/flash-message';
+import { ConfigNote, inputClass } from '@/components/admin/config-items';
+
+const CURRENT_APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0';
+
+interface SearchResult {
+  data: MarketplaceListing[];
+  meta: { page: number; perPage: number; total: number };
+  channel: 'stable' | 'beta';
+  directoryUrl: string;
+}
+
+interface InstalledEntry {
+  id: string;
+  kind: 'plugin' | 'theme';
+  name: string;
+  version: string;
+  enabled: boolean;
+  source: { kind: 'marketplace'; slug: string; directoryUrl: string } | { kind: 'upload' } | null;
+}
+
+interface UpdatesResult {
+  installed: InstalledEntry[];
+  updates: Array<{ slug: string; currentVersion: string; version: string; channel: 'stable' | 'beta'; changelog: string | null }>;
+  yanked: Array<{ slug: string; version: string; reason: string | null; at: string }>;
+  deprecated: Array<{ slug: string; message: string | null; replacement: string | null }>;
+  suspended: string[];
+  advisories: Array<{ id: string; extension: string; severity: string; summary: string; fixedIn: string | null; installedVersion?: string }>;
+  unknown: string[];
+  directoryUrl: string;
+  channel: 'stable' | 'beta';
+  error: string | null;
+}
+
+type TypeFilter = 'all' | 'plugin' | 'theme';
+type Sort = 'created' | 'downloads' | 'updated' | 'name';
+type View = 'browse' | 'installed';
+
+const SORTS: Array<{ value: Sort; label: string }> = [
+  { value: 'created', label: 'Newest' },
+  { value: 'downloads', label: 'Most downloaded' },
+  { value: 'updated', label: 'Recently updated' },
+  { value: 'name', label: 'Name' },
+];
+
+const PAGE = adminPageDef('marketplace');
+
+export const detailHref = (slug: string, version?: string | null) =>
+  `${adminPath('marketplace', slug)}${version ? `?version=${encodeURIComponent(version)}` : ''}`;
+
+/** The segmented Browse / Installed and All / Plugins / Themes switches. */
+const pillGroupClass = 'flex items-center gap-0.5 rounded-md bg-muted p-0.5 self-start';
+const pillClass = (active: boolean) => cn(
+  'h-8 rounded px-3 text-sm font-medium transition-colors',
+  active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+);
+
+/**
+ * Installs one version of an extension. A version the publisher withdrew,
+ * or one older than the installed version, comes back as 409; the admin is
+ * asked, and the install is repeated with `force` if they insist. Returns
+ * the error text to show, or null.
+ */
+export async function installVersion(
+  body: { slug: string; version: string; type: 'plugin' | 'theme' },
+  confirm: (message: string) => boolean = (m) => window.confirm(m),
+): Promise<{ ok: true; warnings: string[]; signature: string | null; updated: boolean } | { ok: false; error: string }> {
+  const send = (force: boolean) => apiFetch('/api/admin/marketplace', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(force ? { ...body, force: true } : body),
+  });
+  try {
+    let res = await send(false);
+    if (res.status === 409) {
+      const data = await res.json().catch(() => ({}));
+      if (data.yanked) {
+        if (!confirm(`${data.error}\n\nInstall it anyway?`)) return { ok: false, error: 'Not installed.' };
+        res = await send(true);
+      } else if (data.downgrade) {
+        if (!confirm(`${data.error}\n\nInstall the older version anyway?`)) return { ok: false, error: 'Not installed.' };
+        res = await send(true);
+      } else {
+        return { ok: false, error: data.error || 'Installation failed' };
+      }
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error || 'Installation failed' };
+    return { ok: true, warnings: data.warnings ?? [], signature: data.signature ?? null, updated: !!data.updated };
+  } catch {
+    return { ok: false, error: 'Installation failed - network error' };
+  }
+}
+
+export function MarketplacePage() {
+  const [extensions, setExtensions] = useState<MarketplaceListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [sort, setSort] = useState<Sort>('created');
+  const [view, setView] = useState<View>('browse');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [perPage] = useState(12);
+  const [directoryUrl, setDirectoryUrl] = useState<string | null>(null);
+  const [channel, setChannel] = useState<'stable' | 'beta'>('stable');
+  const [installing, setInstalling] = useState<Set<string>>(new Set());
+  const [message, setMessage] = useFlash();
+  const [error, setError] = useState<string | null>(null);
+  const [updates, setUpdates] = useState<UpdatesResult | null>(null);
+  const [updatesLoading, setUpdatesLoading] = useState(true);
+
+  const fetchExtensions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (query) params.set('q', query);
+      if (typeFilter !== 'all') params.set('type', typeFilter);
+      params.set('page', String(page));
+      params.set('perPage', String(perPage));
+      params.set('sort', sort);
+      params.set('order', sort === 'name' ? 'asc' : 'desc');
+
+      const res = await apiFetch(`/api/admin/marketplace?${params}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Failed to connect to extension directory');
+        setExtensions([]);
+        return;
+      }
+
+      const data: SearchResult = await res.json();
+      setExtensions(data.data || []);
+      setTotal(data.meta?.total || 0);
+      setDirectoryUrl(data.directoryUrl ?? null);
+      setChannel(data.channel ?? 'stable');
+    } catch {
+      setError('Failed to connect to extension directory. Make sure it is running.');
+      setExtensions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [query, typeFilter, page, perPage, sort]);
+
+  const fetchUpdates = useCallback(async () => {
+    setUpdatesLoading(true);
+    try {
+      const res = await apiFetch('/api/admin/marketplace/updates');
+      if (res.ok) setUpdates(await res.json());
+    } catch { /* the strip just stays empty */ } finally {
+      setUpdatesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchExtensions(); }, [fetchExtensions]);
+  useEffect(() => { fetchUpdates(); }, [fetchUpdates]);
+
+  const [searchInput, setSearchInput] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setQuery(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const markInstalling = (slug: string, on: boolean) => setInstalling((prev) => {
+    const next = new Set(prev);
+    if (on) next.add(slug); else next.delete(slug);
+    return next;
+  });
+
+  async function install(ext: { slug: string; name: string; type: 'plugin' | 'theme' }, version: string, isUpdate: boolean) {
+    markInstalling(ext.slug, true);
+    setMessage(null);
+    const result = await installVersion({ slug: ext.slug, version, type: ext.type });
+    markInstalling(ext.slug, false);
+    if (!result.ok) {
+      setMessage({ type: 'error', text: result.error });
+      return false;
+    }
+    const warnings = result.warnings.length ? ` (${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'})` : '';
+    const signed = result.signature === 'verified' ? ', signed by the directory' : '';
+    setMessage({
+      type: 'success',
+      text: isUpdate
+        ? `"${ext.name}" updated to v${version}${signed}${warnings}`
+        : `"${ext.name}" installed (v${version})${signed}${warnings}`,
+    });
+    setExtensions((prev) => prev.map((e) => (e.slug === ext.slug
+      ? { ...e, installed: true, installedVersion: version, installedSource: { kind: 'marketplace', slug: ext.slug, directoryUrl: directoryUrl ?? '' } }
+      : e)));
+    fetchUpdates();
+    return true;
+  }
+
+  async function updateAll() {
+    if (!updates) return;
+    const byId = new Map(updates.installed.map((e) => [e.id, e]));
+    let failed = 0;
+    for (const u of updates.updates) {
+      const entry = byId.get(u.slug);
+      if (!entry) continue;
+      const ok = await install({ slug: u.slug, name: entry.name, type: entry.kind }, u.version, true);
+      if (!ok) failed++;
+    }
+    setMessage(failed
+      ? { type: 'error', text: `${failed} update${failed === 1 ? '' : 's'} failed; see above` }
+      : { type: 'success', text: `All ${updates.updates.length} update${updates.updates.length === 1 ? '' : 's'} installed` });
+  }
+
+  const totalPages = Math.ceil(total / perPage);
+  const installedCount = updates?.installed.length ?? 0;
+  const noticeCount = updates
+    ? updates.updates.length + updates.yanked.length + updates.advisories.length + updates.deprecated.length + updates.suspended.length
+    : 0;
+
+  return (
+    <div>
+      <AdminPageHeader
+        title={PAGE.label}
+        description={PAGE.description}
+        actions={(
+          <>
+            {channel === 'beta' && (
+              <Badge tone="info" title="Pre-release versions are offered (extensionDirectoryChannel)">Beta channel</Badge>
+            )}
+            {directoryUrl && (
+              <AdminButtonLink external href={directoryUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4" />
+                Open directory
+              </AdminButtonLink>
+            )}
+          </>
+        )}
+      />
+
+      <Flash message={message} onDismiss={() => setMessage(null)} />
+
+      <div className="space-y-10">
+        {updates && noticeCount > 0 && (
+          <UpdatesSection
+            updates={updates}
+            installing={installing}
+            onUpdate={(u) => {
+              const entry = updates.installed.find((e) => e.id === u.slug);
+              if (entry) install({ slug: u.slug, name: entry.name, type: entry.kind }, u.version, true);
+            }}
+            onUpdateAll={updateAll}
+          />
+        )}
+
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className={pillGroupClass}>
+              {([['browse', 'Browse'], ['installed', `Installed${installedCount ? ` (${installedCount})` : ''}`]] as const).map(([v, label]) => (
+                <button key={v} type="button" onClick={() => setView(v)} aria-pressed={view === v} className={pillClass(view === v)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={view === 'browse' ? 'Search extensions...' : 'Filter installed...'}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                aria-label={view === 'browse' ? 'Search extensions' : 'Filter installed'}
+                className={cn(inputClass, 'w-full ps-9')}
+              />
+            </div>
+            {view === 'browse' && (
+              <>
+                <div className={cn(pillGroupClass, 'sm:self-auto')}>
+                  {(['all', 'plugin', 'theme'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => { setTypeFilter(t); setPage(1); }}
+                      aria-pressed={typeFilter === t}
+                      className={pillClass(typeFilter === t)}
+                    >
+                      {t === 'all' ? 'All' : t === 'plugin' ? 'Plugins' : 'Themes'}
+                    </button>
+                  ))}
+                </div>
+                <select
+                  value={sort}
+                  onChange={(e) => { setSort(e.target.value as Sort); setPage(1); }}
+                  aria-label="Sort"
+                  className={cn(inputClass, 'cursor-pointer self-start pe-8 sm:self-auto')}
+                >
+                  {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              </>
+            )}
+          </div>
+
+          {view === 'installed' ? (
+            <InstalledView
+              updates={updates}
+              loading={updatesLoading}
+              filter={query}
+              installing={installing}
+              onUpdate={(entry, version) => install({ slug: entry.id, name: entry.name, type: entry.kind }, version, true)}
+            />
+          ) : (
+            <>
+              {error && (
+                <EmptyState
+                  icon={Store}
+                  title={error}
+                  hint="The directory needs its v2 API (extensions.bulwarkmail.org has it; a self-hosted one must be from October 2026 or later)"
+                  action={<Button size="sm" onClick={fetchExtensions}>Retry</Button>}
+                />
+              )}
+
+              {loading && !error && (
+                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" /> Loading
+                </div>
+              )}
+
+              {!loading && !error && extensions.length === 0 && (
+                <EmptyState
+                  icon={Store}
+                  title="No extensions found"
+                  hint={query ? 'Try a different search term' : undefined}
+                />
+              )}
+
+              {!loading && !error && extensions.length > 0 && (
+                <>
+                  <div className="text-xs text-muted-foreground">
+                    {total} extension{total !== 1 ? 's' : ''} found
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {extensions.map((ext) => (
+                      <ExtensionCard
+                        key={ext.slug}
+                        extension={ext}
+                        installing={installing.has(ext.slug)}
+                        onInstall={() => ext.latestVersion && install(ext, ext.latestVersion, ext.installed)}
+                      />
+                    ))}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>
+                        Previous
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Page {page} of {totalPages}
+                      </span>
+                      <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Updates and warnings for what is installed, from one directory request. */
+function UpdatesSection({
+  updates,
+  installing,
+  onUpdate,
+  onUpdateAll,
+}: {
+  updates: UpdatesResult;
+  installing: Set<string>;
+  onUpdate: (u: UpdatesResult['updates'][number]) => void;
+  onUpdateAll: () => void;
+}) {
+  const names = new Map(updates.installed.map((e) => [e.id, e.name]));
+  const name = (slug: string) => names.get(slug) ?? slug;
+  const busy = installing.size > 0;
+  const hasNotices = updates.advisories.length > 0 || updates.yanked.length > 0 || updates.suspended.length > 0 || updates.deprecated.length > 0;
+  const title = updates.updates.length > 0
+    ? `${updates.updates.length} update${updates.updates.length === 1 ? '' : 's'} available`
+    : 'Notices';
+
+  return (
+    <SettingsSection id="updates" title={title}>
+      {updates.updates.length > 0 && (
+        <div className="space-y-3">
+          {updates.updates.length > 1 && (
+            <div className="flex justify-end">
+              <Button size="sm" className="gap-1.5" onClick={onUpdateAll} disabled={busy}>
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                Update all
+              </Button>
+            </div>
+          )}
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {updates.updates.map((u) => (
+              <li key={u.slug} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 text-sm">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <AdminLink href={detailHref(u.slug, u.version)} className="font-medium text-foreground hover:underline">{name(u.slug)}</AdminLink>
+                    <span className="text-muted-foreground">v{u.currentVersion} → v{u.version}</span>
+                    {u.channel === 'beta' && <Badge tone="info">beta</Badge>}
+                  </div>
+                  {u.changelog && <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">{u.changelog}</p>}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0 gap-1.5 self-start text-xs"
+                  onClick={() => onUpdate(u)}
+                  disabled={installing.has(u.slug)}
+                >
+                  {installing.has(u.slug) ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUpCircle className="h-3 w-3" />}
+                  Update
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {hasNotices && (
+        <ul className="space-y-2 text-sm">
+          {updates.advisories.map((a) => (
+            <li key={a.id} className="flex items-start gap-2 text-destructive">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <AdminLink href={detailHref(a.extension)} className="font-medium hover:underline">{name(a.extension)}</AdminLink>
+                {' '}has a security advisory ({a.severity}): {a.summary}
+                {a.fixedIn ? ` Fixed in v${a.fixedIn}.` : ' No fixed version yet.'}
+              </span>
+            </li>
+          ))}
+          {updates.suspended.map((slug) => (
+            <li key={slug} className="flex items-start gap-2 text-destructive">
+              <Ban className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <AdminLink href={detailHref(slug)} className="font-medium hover:underline">{name(slug)}</AdminLink>
+                {' '}was suspended by the directory. Consider removing it.
+              </span>
+            </li>
+          ))}
+          {updates.yanked.map((y) => (
+            <li key={`${y.slug}@${y.version}`} className="flex items-start gap-2 text-amber-800 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                The installed v{y.version} of{' '}
+                <AdminLink href={detailHref(y.slug)} className="font-medium hover:underline">{name(y.slug)}</AdminLink>
+                {' '}was withdrawn by its publisher{y.reason ? `: ${y.reason}` : '.'}
+              </span>
+            </li>
+          ))}
+          {updates.deprecated.map((d) => (
+            <li key={d.slug} className="flex items-start gap-2 text-muted-foreground">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <AdminLink href={detailHref(d.slug)} className="font-medium text-foreground hover:underline">{name(d.slug)}</AdminLink>
+                {' '}is deprecated{d.message ? `: ${d.message}` : '.'}
+                {d.replacement && <> Use <AdminLink href={detailHref(d.replacement)} className="underline">{d.replacement}</AdminLink> instead.</>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SettingsSection>
+  );
+}
+
+/** Everything installed here, with where it came from and whether it can be updated. */
+function InstalledView({
+  updates,
+  loading,
+  filter,
+  installing,
+  onUpdate,
+}: {
+  updates: UpdatesResult | null;
+  loading: boolean;
+  filter: string;
+  installing: Set<string>;
+  onUpdate: (entry: InstalledEntry, version: string) => void;
+}) {
+  const rows = useMemo(() => {
+    if (!updates) return [];
+    const q = filter.trim().toLowerCase();
+    const newer = new Map(updates.updates.map((u) => [u.slug, u.version]));
+    const yanked = new Set(updates.yanked.map((y) => y.slug));
+    const advisories = new Set(updates.advisories.map((a) => a.extension));
+    return updates.installed
+      .filter((e) => !q || e.name.toLowerCase().includes(q) || e.id.toLowerCase().includes(q))
+      .map((e) => ({ entry: e, newer: newer.get(e.id) ?? null, yanked: yanked.has(e.id), advisory: advisories.has(e.id) }));
+  }, [updates, filter]);
+
+  if (loading && !updates) {
+    return (
+      <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+        <Loader2 className="me-2 h-4 w-4 animate-spin" /> Loading
+      </div>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <EmptyState icon={Store} title={filter ? 'Nothing installed matches' : 'Nothing installed yet'} />
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {updates?.error && (
+        <ConfigNote tone="warning">Could not check for updates: {updates.error}</ConfigNote>
+      )}
+      <AdminList>
+        {rows.map(({ entry, newer, yanked, advisory }) => {
+          const fromMarketplace = entry.source?.kind === 'marketplace' || entry.source === null;
+          const manageHref = entry.kind === 'plugin' ? adminPath('plugins', entry.id) : adminPath('themes', entry.id);
+          return (
+            <AdminListRow
+              key={`${entry.kind}:${entry.id}`}
+              href={fromMarketplace ? detailHref(entry.id) : undefined}
+              icon={entry.kind === 'plugin' ? <Puzzle /> : <SwatchBook />}
+              title={entry.name}
+              titleExtra={(
+                <>
+                  <span className="text-xs text-muted-foreground">v{entry.version}</span>
+                  {!entry.enabled && <Badge>Off</Badge>}
+                  {entry.source?.kind === 'upload'
+                    ? <Badge icon={<Upload className="h-3 w-3" />}>Uploaded</Badge>
+                    : <Badge icon={<Store className="h-3 w-3" />}>Marketplace</Badge>}
+                  {advisory && <Badge tone="danger" icon={<ShieldAlert className="h-3 w-3" />}>Advisory</Badge>}
+                  {yanked && <Badge tone="warning" icon={<AlertTriangle className="h-3 w-3" />}>Withdrawn</Badge>}
+                </>
+              )}
+              control={(
+                <>
+                  {newer && (
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1.5 text-xs"
+                      onClick={() => onUpdate(entry, newer)}
+                      disabled={installing.has(entry.id)}
+                    >
+                      {installing.has(entry.id) ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUpCircle className="h-3 w-3" />}
+                      Update to v{newer}
+                    </Button>
+                  )}
+                  <AdminButtonLink href={manageHref} className="h-8 text-xs">Manage</AdminButtonLink>
+                </>
+              )}
+            />
+          );
+        })}
+      </AdminList>
+    </div>
+  );
+}
+
+function Rating({ rating }: { rating: { average: number; count: number } }) {
+  if (!rating.count) return null;
+  return (
+    <span className="inline-flex items-center gap-1" title={`${rating.average} out of 5 from ${rating.count} rating${rating.count === 1 ? '' : 's'}`}>
+      <Star className="w-3 h-3 fill-current" />
+      {rating.average.toFixed(1)}
+      <span className="opacity-70">({rating.count})</span>
+    </span>
+  );
+}
+
+function ExtensionCard({
+  extension,
+  installing,
+  onInstall,
+}: {
+  extension: MarketplaceListing;
+  installing: boolean;
+  onInstall: () => void;
+}) {
+  const isPlugin = extension.type === 'plugin';
+  const previewHref = detailHref(extension.slug);
+  const offered = extension.latest;
+  const updateAvailable = extension.installed
+    && !!extension.installedVersion
+    && !!offered
+    && compareVersions(offered.version, extension.installedVersion) > 0;
+
+  return (
+    <div className="group relative border border-border rounded-lg overflow-hidden hover:border-ring/30 transition-colors">
+      {extension.bannerUrl && (
+        <AdminLink href={previewHref} className="block focus:outline-none">
+          <img
+            src={extension.bannerUrl}
+            alt=""
+            className="block h-24 w-full object-cover border-b border-border"
+            loading="lazy"
+          />
+        </AdminLink>
+      )}
+      <AdminLink href={previewHref} className="block p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded-lg">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+            {extension.iconUrl ? (
+              <img
+                src={extension.iconUrl}
+                alt=""
+                className="w-10 h-10 object-cover"
+                loading="lazy"
+              />
+            ) : isPlugin ? (
+              <Puzzle className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <SwatchBook className="w-5 h-5 text-muted-foreground" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium text-foreground truncate group-hover:underline">
+                {extension.name}
+              </span>
+              {extension.featured && (
+                <Star className="w-3.5 h-3.5 text-warning shrink-0 fill-warning" />
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <Badge tone={isPlugin ? 'info' : 'accent'}>
+                {isPlugin ? (extension.pluginType || 'plugin') : 'theme'}
+              </Badge>
+              {offered?.channel === 'beta' && <Badge tone="info">beta</Badge>}
+              {extension.deprecated && <Badge>deprecated</Badge>}
+              {extension.author && (
+                <span className="text-xs text-muted-foreground truncate">
+                  by {extension.author.displayName}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground mt-3 line-clamp-2">
+          {extension.description}
+        </p>
+
+        {extension.tags && extension.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-3">
+            {extension.tags.slice(0, 3).map(tag => (
+              <Badge key={tag}>{tag}</Badge>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Download className="w-3 h-3" />
+              {extension.totalDownloads.toLocaleString()}
+            </span>
+            <Rating rating={extension.rating} />
+            {extension.permissions && extension.permissions.length > 0 && (
+              <span title={extension.permissions.join(', ')}>
+                {extension.permissions.length} permission{extension.permissions.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground">
+            <Eye className="w-3 h-3" />
+            Details
+          </span>
+        </div>
+      </AdminLink>
+
+      <div className="px-4 pb-4 -mt-1 flex items-center gap-2 flex-wrap">
+        {extension.installed && updateAvailable && offered ? (
+          <Button
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onInstall(); }}
+            disabled={installing}
+            title={`Update from v${extension.installedVersion} to v${offered.version}`}
+          >
+            {installing ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <ArrowUpCircle className="w-3 h-3" />
+            )}
+            Update to v{offered.version}
+          </Button>
+        ) : extension.installed ? (
+          <Badge
+            tone="success"
+            icon={<Check className="w-3 h-3" />}
+            title={extension.installedVersion ? `Installed: v${extension.installedVersion}` : undefined}
+          >
+            Installed{extension.installedVersion ? ` v${extension.installedVersion}` : ''}
+          </Badge>
+        ) : !offered ? (
+          <Badge
+            tone="warning"
+            icon={<AlertTriangle className="w-3 h-3" />}
+            title={`No published version runs on Bulwark v${CURRENT_APP_VERSION}. Open the details to see what the newest version needs.`}
+          >
+            Not for v{CURRENT_APP_VERSION}
+          </Badge>
+        ) : (
+          <Button
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onInstall(); }}
+            disabled={installing}
+            title={`Install v${offered.version}`}
+          >
+            {installing ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Download className="w-3 h-3" />
+            )}
+            Quick install
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

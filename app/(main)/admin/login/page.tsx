@@ -7,7 +7,6 @@ import { useConfig } from '@/hooks/use-config';
 import { useThemeStore } from '@/stores/theme-store';
 import { apiFetch, withBasePath } from '@/lib/browser-navigation';
 import { safeAdminNext } from '@/lib/connector/admin-next';
-import { isAdminTab, useAdminTabStore } from '@/stores/admin-tab-store';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -37,22 +36,12 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // A connector link to an admin panel parks its destination in ?next=
-      // so logging in lands on the panel that was clicked, not the dashboard.
+      // A connector link to an admin page parks its destination in ?next=
+      // so logging in lands on the page that was clicked, not the overview.
       // safeAdminNext() is the gate: it is the only path here that comes out
-      // of a URL rather than out of a fixed template.
-      const next = safeAdminNext(new URLSearchParams(window.location.search).get('next'));
-      if (next) {
-        const [path, query] = next.split('?', 2);
-        const search = new URLSearchParams(query ?? '');
-        const tab = search.get('tab');
-        if (tab && isAdminTab(tab)) useAdminTabStore.getState().setActiveTab(tab);
-        // The tab rides in the store; a version pick (an install link to one
-        // version of an extension) stays in the URL for the marketplace page.
-        router.push(search.has('version') ? next : path);
-        return;
-      }
-      router.push('/admin');
+      // of a URL rather than out of a fixed template. A version pick (an
+      // install link to one version of an extension) rides in its query.
+      router.push(safeAdminNext(new URLSearchParams(window.location.search).get('next')) ?? '/admin');
     } catch {
       setError('Network error. Please try again.');
     } finally {
