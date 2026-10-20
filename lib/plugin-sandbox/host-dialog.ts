@@ -157,6 +157,28 @@ export function cancelForPlugin(pluginId: string): void {
   if (changed) notify();
 }
 
+/** Whether the plugin has a dialog showing or waiting in the queue. */
+export function hasDialogFor(pluginId: string): boolean {
+  return queue.some((d) => d.pluginId === pluginId);
+}
+
+/**
+ * Calls `cb` once the plugin has no dialog left in the queue (right away if it
+ * has none). Returns a function that drops the callback.
+ */
+export function whenNoDialogFor(pluginId: string, cb: () => void): () => void {
+  if (!hasDialogFor(pluginId)) {
+    cb();
+    return () => {};
+  }
+  const unsubscribe = subscribe(() => {
+    if (hasDialogFor(pluginId)) return;
+    unsubscribe();
+    cb();
+  });
+  return unsubscribe;
+}
+
 export function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   return () => { listeners.delete(listener); };

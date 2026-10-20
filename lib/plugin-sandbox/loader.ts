@@ -11,7 +11,7 @@ import {
   keyboardHooks, appLifecycleHooks, accountSecurityHooks,
   sidebarAppHooks, avatarHooks, renderHooks, routerHooks,
   messageListTabHooks,
-  removeAllPluginHooks, pluginErrorTracker, setHookTimeoutListener,
+  removeAllPluginHooks, pluginErrorTracker, setHookDialogGate,
 } from '../plugin-hooks';
 import { useMessageListTabsStore } from '@/stores/message-list-tabs-store';
 import { useEmailStore } from '@/stores/email-store';
@@ -22,6 +22,7 @@ import { createBackgroundInstance, forEachInstance } from './host-bridge';
 import { resolvePluginTier } from './tier';
 import { register as registerActive, deregister as deregisterActive, all as allActiveEntries, get as getActive } from './registry';
 import { cancelPluginDialogs } from './host-api';
+import { hasDialogFor, whenNoDialogFor } from './host-dialog';
 import { registerShortcuts } from './shortcuts';
 import { mayOfferSlot, mayRegisterHook, pluginHasPermission, slotPropsFor } from './permissions';
 import { clearPluginActions, setActionDispatcher } from './actions';
@@ -335,7 +336,7 @@ export function deactivateAllSandboxed(): void {
 // ─── Auto-disable ─────────────────────────────────────────────
 
 export function setupSandboxAutoDisable(): void {
-  setHookTimeoutListener((pluginId) => cancelPluginDialogs(pluginId));
+  setHookDialogGate({ hasOpenDialog: hasDialogFor, whenDialogsClosed: whenNoDialogFor });
   pluginErrorTracker.setAutoDisableCallback((pluginId) => {
     unloadSandboxedPlugin(pluginId);
     if (storeAccessor?.markAutoDisabled) storeAccessor.markAutoDisabled(pluginId);
