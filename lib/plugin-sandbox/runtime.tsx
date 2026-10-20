@@ -33,7 +33,7 @@ import { initFloatingDropdownBridge, dispatchFloatingDropdownEvent } from './ui-
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isFillableSlot, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  AppInfoView, CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
+  AppInfoView, AppSettingsView, SettingsSearchResult, CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
   EmailSummary, IdentityPatch, IdentityView, MailboxView, NotificationInput, SlotName, TaskInput,
   TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
 } from '../plugin-types';
@@ -324,6 +324,11 @@ function buildPluginApi(manifest: PluginManifest) {
     /** The app the plugin runs in: product, the administrator's name for it, version, edition. No permission needed. */
     app: {
       getInfo: () => callApi('app.getInfo', []) as Promise<AppInfoView>,
+      /** Settings matching a query (the user's language or English): page, label, description. No permission needed. */
+      searchSettings: (query: string, options?: { limit?: number }) =>
+        callApi('app.searchSettings', [query, options]) as Promise<SettingsSearchResult[]>,
+      /** The user's preferences: layout, formats, reading and sending behaviour. Needs settings:read. */
+      getSettings: () => callApi('app.getSettings', []) as Promise<AppSettingsView>,
     },
     crypto: {
       getPublicKeys: () => callApi('crypto.getPublicKeys', []),

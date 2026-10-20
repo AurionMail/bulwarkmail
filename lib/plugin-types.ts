@@ -827,6 +827,19 @@ export interface AppInfoView {
   demoMode: boolean;
 }
 
+/** One setting `api.app.searchSettings` found, in the user's language. */
+export interface SettingsSearchResult {
+  /** The settings page's id: account, appearance, composing, vacation, ... */
+  pageId: string;
+  /** The page's name as the user sees it. */
+  page: string;
+  label: string;
+  description?: string;
+}
+
+/** The user's preferences `api.app.getSettings()` shares: plain values by setting name. */
+export type AppSettingsView = Record<string, string | number | boolean | number[] | string[]>;
+
 export interface AppConfigView {
   appName: string;
   demoMode: boolean;

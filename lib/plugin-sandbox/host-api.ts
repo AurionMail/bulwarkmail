@@ -5,6 +5,7 @@
 import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
 import { fetchConfig } from '@/hooks/use-config';
 import { IS_LITE } from '../lite';
+import { doAppGetSettings, doAppSearchSettings } from './host-api-app';
 import { mayOfferSlot, pluginHasPermission } from './permissions';
 import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, type StreamSink } from './proxy-client';
 import { checkActions, isActionSurface, setPluginActions } from './actions';
@@ -154,6 +155,10 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'user.getTimeZone': null,
   // The app's name and version: nothing about the user.
   'app.getInfo': null,
+  // Where a setting is: the app's own texts, nothing about the user.
+  'app.searchSettings': null,
+  // The user's preferences (layout, formats, reading and sending behaviour).
+  'app.getSettings': 'settings:read',
   'user.logout': 'auth:emit',
   // admin
   'admin.getConfig': 'admin:config',
@@ -1859,6 +1864,8 @@ export async function dispatchApiCall(
     case 'user.getIdentities': return doUserGetIdentities();
     case 'user.getTimeZone': return userTimeZone();
     case 'app.getInfo': return doAppGetInfo();
+    case 'app.searchSettings': return doAppSearchSettings(args[0], args[1]);
+    case 'app.getSettings': return doAppGetSettings();
     case 'user.logout' : return doUserLogout();
 
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);
