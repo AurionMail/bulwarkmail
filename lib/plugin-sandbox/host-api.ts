@@ -2,7 +2,9 @@
 // on `plugin.permissions` BEFORE doing the underlying work, and only returns
 // structured-cloneable data back to the iframe.
 
-import type { InstalledPlugin, Permission } from '../plugin-types';
+import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
+import { fetchConfig } from '@/hooks/use-config';
+import { IS_LITE } from '../lite';
 import { mayOfferSlot, pluginHasPermission } from './permissions';
 import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, type StreamSink } from './proxy-client';
 import { checkActions, isActionSurface, setPluginActions } from './actions';
@@ -150,6 +152,8 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'user.getIdentities': 'identity:read',
   // The IANA zone the app shows times in (Settings or the browser's).
   'user.getTimeZone': null,
+  // The app's name and version: nothing about the user.
+  'app.getInfo': null,
   'user.logout': 'auth:emit',
   // admin
   'admin.getConfig': 'admin:config',
@@ -1644,6 +1648,20 @@ async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
   if (!res.ok) return {};
   return res.json();
 }
+/** The app a plugin runs in: product, the administrator's name for it, version, edition. */
+async function doAppGetInfo(): Promise<AppInfoView> {
+  let config: Awaited<ReturnType<typeof fetchConfig>> | null = null;
+  try { config = await fetchConfig(); } catch { config = null; }
+  return {
+    product: 'Bulwark Mail',
+    name: config?.appName || 'Webmail',
+    version: process.env.NEXT_PUBLIC_APP_VERSION || '',
+    edition: IS_LITE ? 'lite' : 'full',
+    stalwartFeatures: config?.stalwartFeaturesEnabled ?? true,
+    demoMode: config?.demoMode ?? false,
+  };
+}
+
 /** The zone the app shows times in: the user's choice, else the browser's. */
 function userTimeZone(): string {
   const setting = useSettingsStore.getState().timeZone;
@@ -1840,6 +1858,7 @@ export async function dispatchApiCall(
     case 'user.getAccounts':   return doUserGetAccounts();
     case 'user.getIdentities': return doUserGetIdentities();
     case 'user.getTimeZone': return userTimeZone();
+    case 'app.getInfo': return doAppGetInfo();
     case 'user.logout' : return doUserLogout();
 
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);

@@ -33,7 +33,7 @@ import { initFloatingDropdownBridge, dispatchFloatingDropdownEvent } from './ui-
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isFillableSlot, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
+  AppInfoView, CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
   EmailSummary, IdentityPatch, IdentityView, MailboxView, NotificationInput, SlotName, TaskInput,
   TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
 } from '../plugin-types';
@@ -320,6 +320,10 @@ function buildPluginApi(manifest: PluginManifest) {
         settingsListeners.add(listener);
         return () => { settingsListeners.delete(listener); };
       },
+    },
+    /** The app the plugin runs in: product, the administrator's name for it, version, edition. No permission needed. */
+    app: {
+      getInfo: () => callApi('app.getInfo', []) as Promise<AppInfoView>,
     },
     crypto: {
       getPublicKeys: () => callApi('crypto.getPublicKeys', []),

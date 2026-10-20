@@ -811,6 +811,22 @@ export interface KeyboardEventView {
   metaKey: boolean;
 }
 
+/** What `api.app.getInfo()` tells a plugin about the app it runs in. */
+export interface AppInfoView {
+  /** The product: always "Bulwark Mail". */
+  product: string;
+  /** The name the administrator gave this installation (APP_NAME), e.g. "Webmail". */
+  name: string;
+  /** The app's version, e.g. "1.17.0". */
+  version: string;
+  /** "full", or "lite" for the static build without a server of its own. */
+  edition: 'full' | 'lite';
+  /** Whether the Stalwart-specific features (filters, vacation, password) are on. */
+  stalwartFeatures: boolean;
+  /** A demo installation with sample data. */
+  demoMode: boolean;
+}
+
 export interface AppConfigView {
   appName: string;
   demoMode: boolean;
