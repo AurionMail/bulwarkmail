@@ -518,17 +518,19 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     offerSlots('p1', ['composer-sidebar', 'composer-sidebar-right']);
     const { unmount } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
 
+    // A mouse drag, as pointer events with the button held (the handle follows pointers).
+    const drag = (handle: HTMLElement, from: number, to: number) => {
+      fireEvent.pointerDown(handle, { pointerId: 1, button: 0, buttons: 1, pointerType: 'mouse', clientX: from, clientY: 10 });
+      fireEvent.pointerMove(document, { pointerId: 1, buttons: 1, pointerType: 'mouse', clientX: to, clientY: 10 });
+      fireEvent.pointerUp(document, { pointerId: 1, button: 0, buttons: 0, pointerType: 'mouse' });
+    };
     // The right panel's handle is on its left edge: dragging left widens it.
     const right = screen.getByTestId('composer-sidebar-resize-right');
-    fireEvent.mouseDown(right, { clientX: 1000 });
-    fireEvent.mouseMove(document, { clientX: 900 });
-    fireEvent.mouseUp(document);
+    drag(right, 1000, 900);
     expect(panel('right').style.width).toBe('360px');
     // The left panel's handle is on its right edge: dragging left narrows it, down to the minimum.
     const left = screen.getByTestId('composer-sidebar-resize-left');
-    fireEvent.mouseDown(left, { clientX: 300 });
-    fireEvent.mouseMove(document, { clientX: 100 });
-    fireEvent.mouseUp(document);
+    drag(left, 300, 100);
     expect(panel('left').style.width).toBe('220px');
     fireEvent.keyDown(left, { key: 'ArrowRight' });
     expect(panel('left').style.width).toBe('230px');
