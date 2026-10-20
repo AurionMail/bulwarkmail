@@ -466,6 +466,42 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     expect(panel('right').dataset.composerSidebarMode).toBe('folded');
   });
 
+  it('hand the panels the composer id, the draft and the selection', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const props = slotProps(screen.getByTestId('slot-composer-sidebar-right'));
+    expect(typeof props.composerId).toBe('string');
+    expect((props.draft as { subject: string }).subject).toBe('Lunch');
+    expect(props.selection).toEqual({ text: '', empty: true });
+  });
+
+  it('send the panels the selected text a moment after it changes', () => {
+    useSettingsStore.setState({ plainTextMode: true });
+    try {
+      stubWidth(1400);
+      offerSlots('p1', ['composer-sidebar-right']);
+      const { container } = render(<EmailComposer initialData={{ ...DRAFT, body: 'Hello there' }} onClose={vi.fn()} />);
+      vi.useFakeTimers();
+      const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+
+      textarea.focus();
+      textarea.setSelectionRange(0, 5);
+      act(() => { document.dispatchEvent(new Event('selectionchange')); });
+      expect(slotProps(screen.getByTestId('slot-composer-sidebar-right')).selection).toEqual({ text: '', empty: true });
+
+      act(() => { vi.advanceTimersByTime(200); });
+      expect(slotProps(screen.getByTestId('slot-composer-sidebar-right')).selection).toEqual({ text: 'Hello', empty: false });
+
+      textarea.setSelectionRange(2, 2);
+      act(() => { document.dispatchEvent(new Event('selectionchange')); vi.advanceTimersByTime(200); });
+      expect(slotProps(screen.getByTestId('slot-composer-sidebar-right')).selection).toEqual({ text: '', empty: true });
+    } finally {
+      useSettingsStore.setState({ plainTextMode: false });
+    }
+  });
+
   it('open a folded panel over the composer when there is no room beside it', () => {
     stubWidth(600);
     offerSlots('p1', ['composer-sidebar-right']);

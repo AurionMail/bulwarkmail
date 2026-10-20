@@ -124,11 +124,14 @@ export function ComposerPluginSidebar({
   mode,
   onOpen,
   onClose,
+  extraProps,
 }: {
   side: ComposerSidebarSide;
   mode: ComposerSidebarMode | null;
   onOpen: () => void;
   onClose: () => void;
+  /** What the panel's plugins get: the composer id, the draft and the selection (see the slot catalogue). */
+  extraProps?: Record<string, unknown>;
 }) {
   const t = useTranslations("email_viewer");
   if (!mode) return null;
@@ -181,8 +184,8 @@ export function ComposerPluginSidebar({
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {side === "left"
-          ? <PluginSlot name="composer-sidebar" className="flex flex-col" />
-          : <PluginSlot name="composer-sidebar-right" className="flex flex-col" />}
+          ? <PluginSlot name="composer-sidebar" className="flex flex-col" extraProps={extraProps} />
+          : <PluginSlot name="composer-sidebar-right" className="flex flex-col" extraProps={extraProps} />}
       </div>
     </div>
   );

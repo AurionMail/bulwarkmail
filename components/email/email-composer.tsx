@@ -390,6 +390,9 @@ const DRAFT_HOOK_TIMEOUT_MS = 5000;
 
 /** Longest text a plugin may insert into the message at once. */
 const MAX_PLUGIN_INSERT_LENGTH = 100_000;
+/** How long after the last caret move the selection goes to the plugin frames. */
+const PLUGIN_SELECTION_DELAY_MS = 150;
+const EMPTY_SELECTION = { text: '', empty: true } as const;
 
 export function EmailComposer({
   onSend,
@@ -2279,6 +2282,9 @@ export function EmailComposer({
   const pluginAttachmentSourceOffers = usePluginSlotOffers('composer-attachment-source');
   const hasAboveBodyOffers = usePluginSlotOffers('composer-above-body').length > 0;
   const hasBelowBodyOffers = usePluginSlotOffers('composer-below-body').length > 0;
+  const hasLeftSidebarOffers = usePluginSlotOffers('composer-sidebar').length > 0;
+  const hasRightSidebarOffers = usePluginSlotOffers('composer-sidebar-right').length > 0;
+  const hasSidebarOffers = hasLeftSidebarOffers || hasRightSidebarOffers;
   // Plugin entries make the Send and Attach buttons menus even where the app
   // itself has nothing else to put there.
   const hasSendMenuActions = usePluginActions('composer-send-menu').length > 0;
@@ -2619,7 +2625,7 @@ export function EmailComposer({
   // composer-above-body / composer-below-body get the draft when they appear
   // and then 2 seconds after the last change, like onDraftChange: a new prop
   // object on every keystroke would post the whole body into their iframes.
-  const wantsPluginDraft = hasAboveBodyOffers || hasBelowBodyOffers;
+  const wantsPluginDraft = hasAboveBodyOffers || hasBelowBodyOffers || hasSidebarOffers;
   const [pluginDraft, setPluginDraft] = useState<ReturnType<typeof draftSnapshot> | null>(null);
   const pluginDraftShownRef = useRef(false);
   useEffect(() => {
@@ -2737,9 +2743,58 @@ export function EmailComposer({
     return unregister;
   }, []);
 
+  // The selected text of the message, for the plugin frames around it and
+  // the panels beside it (an assistant works on what the user highlights).
+  // Read from the editor's own selection state, which stays put while the
+  // user clicks into a panel, and sent only when it changed, a moment after
+  // the last change: a prop object per caret move would flood the frames.
+  const wantsPluginSelection = wantsPluginDraft;
+  const [pluginSelection, setPluginSelection] = useState<{ text: string; empty: boolean }>(EMPTY_SELECTION);
+  const [pluginEditor, setPluginEditor] = useState<Editor | null>(null);
+  useEffect(() => {
+    if (!wantsPluginSelection) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const publish = () => {
+      timer = null;
+      let next: { text: string; empty: boolean } = EMPTY_SELECTION;
+      if (plainTextModeRef.current) {
+        const textarea = bodyRef.current;
+        if (textarea) {
+          const text = textarea.value.slice(textarea.selectionStart ?? 0, textarea.selectionEnd ?? 0);
+          next = text ? { text, empty: false } : EMPTY_SELECTION;
+        }
+      } else if (pluginEditor) {
+        const { text, empty } = readEditorSelection(pluginEditor);
+        next = empty ? EMPTY_SELECTION : { text, empty: false };
+      }
+      setPluginSelection((prev) => (prev.empty === next.empty && prev.text === next.text ? prev : next));
+    };
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(publish, PLUGIN_SELECTION_DELAY_MS);
+    };
+    // The textarea has no selection event of its own that covers the
+    // keyboard; the document's selectionchange fires for it.
+    const onDocumentSelection = () => {
+      if (plainTextModeRef.current && document.activeElement === bodyRef.current) schedule();
+    };
+    document.addEventListener('selectionchange', onDocumentSelection);
+    pluginEditor?.on('selectionUpdate', schedule);
+    publish();
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('selectionchange', onDocumentSelection);
+      pluginEditor?.off('selectionUpdate', schedule);
+    };
+  }, [wantsPluginSelection, pluginEditor, plainTextMode]);
+
   const pluginDraftProps = useMemo(
-    () => ({ draft: pluginDraft, insertText: pluginInsertText, getSelectedText: pluginSelectedText, composerId: pluginComposerId }),
-    [pluginDraft, pluginInsertText, pluginSelectedText, pluginComposerId],
+    () => ({ draft: pluginDraft, selection: pluginSelection, insertText: pluginInsertText, getSelectedText: pluginSelectedText, composerId: pluginComposerId }),
+    [pluginDraft, pluginSelection, pluginInsertText, pluginSelectedText, pluginComposerId],
+  );
+  const pluginSidebarProps = useMemo(
+    () => ({ draft: pluginDraft, selection: pluginSelection, composerId: pluginComposerId }),
+    [pluginDraft, pluginSelection, pluginComposerId],
   );
   const pluginToolbarProps = useMemo(
     () => ({ insertText: pluginInsertText, getSelectedText: pluginSelectedText, composerId: pluginComposerId }),
@@ -3519,7 +3574,7 @@ export function EmailComposer({
       className={cn("flex h-full bg-background relative", className)}
       onKeyDownCapture={handleComposerKeyDown}
     >
-      <ComposerPluginSidebar side="left" mode={pluginSidebars.modes.left} onOpen={() => pluginSidebars.open('left')} onClose={() => pluginSidebars.close('left')} />
+      <ComposerPluginSidebar side="left" mode={pluginSidebars.modes.left} onOpen={() => pluginSidebars.open('left')} onClose={() => pluginSidebars.close('left')} extraProps={pluginSidebarProps} />
       {/* Right-side composer sidebar slot is rendered after the main content div below. */}
     <div
       className="flex flex-col h-full bg-background relative flex-1 min-w-0"
@@ -4064,6 +4119,7 @@ export function EmailComposer({
               toolbarPlacement={mvWindow ? (mvShowFormatting ? 'bottom' : 'hidden') : 'top'}
               onEditorReady={(ed) => {
                 editorRef.current = ed;
+                setPluginEditor(ed);
                 if (!replyFocusedRef.current && (mode === 'reply' || mode === 'replyAll')) {
                   replyFocusedRef.current = true;
                   ed.commands.focus('start');
@@ -4670,7 +4726,7 @@ export function EmailComposer({
         />
       )}
     </div>
-      <ComposerPluginSidebar side="right" mode={pluginSidebars.modes.right} onOpen={() => pluginSidebars.open('right')} onClose={() => pluginSidebars.close('right')} />
+      <ComposerPluginSidebar side="right" mode={pluginSidebars.modes.right} onOpen={() => pluginSidebars.open('right')} onClose={() => pluginSidebars.close('right')} extraProps={pluginSidebarProps} />
     </div>
   );
 }
