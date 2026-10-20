@@ -70,9 +70,10 @@ export const SLOT_CATALOG = {
   'email-footer': S('reader', 'frame', ['ui:email-footer'], { emailId: 'email:read' }, 'below the message body'),
   'thread-summary': S('reader', 'frame', ['ui:email-banner'], { threadId: 'email:read', emailIds: 'email:read' }, 'above the messages of an open conversation (the phone conversation view and Mountain View; the default desktop layout opens one message at a time and has no conversation view)'),
   'reader-actions': S('reader', 'action', ['ui:toolbar'], { emailId: 'email:read' }, 'buttons in the open message\'s toolbar', true),
-  'email-detail-sidebar': S('reader', 'frame', ['ui:email-details'], { email: 'email:read' }, 'a side panel next to the open message'),
+  'email-detail-sidebar': S('reader', 'frame', ['ui:email-details'], { email: 'email:read', selection: 'email:read' }, 'a side panel next to the open message; `selection` is the text selected in the message as the user changes it ({ text })'),
   'email-details-section': S('reader', 'frame', ['ui:email-details'], { email: 'email:read', category: null }, 'a section in the message details'),
   'attachment-actions': S('reader', 'frame', ['email:read'], { attachment: null }, 'buttons on each attachment', true),
+  'reader-selection-menu': S('reader', 'action', ['ui:context-menu', 'ui:toolbar'], { emailId: 'email:read', selection: 'email:read' }, 'entries in the right-click menu on selected text in a message (without plugin entries the browser\'s own menu stays); the click\'s selection is { text }'),
   'attachment-menu': S('reader', 'action', ['email:read'], { emailId: 'email:read', blobId: 'email:read', name: 'email:read', type: 'email:read', size: 'email:read' }, 'entries in each attachment\'s menu (for example "Save to Nextcloud")'),
 
   // ─── Composer ──────────────────────────────────────────────

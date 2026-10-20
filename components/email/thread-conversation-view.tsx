@@ -46,6 +46,7 @@ import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { useOwnDomainAddress } from "@/hooks/use-own-domain-address";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection } from "./reader-selection-menu";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
@@ -548,6 +549,7 @@ export function ConversationEmailBody({
   // reader-above-quote: the body the quote was collapsed in, once it is on screen.
   const [htmlBodyEl, setHtmlBodyEl] = useState<HTMLElement | null>(null);
   const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);
+  const selectionMenu = useReaderSelectionMenu();
   const wantsQuoteSlot = usePluginSlotOffers('reader-above-quote').length > 0;
   const quoteSlotProps = useMemo(
     () => ({ email: wantsQuoteSlot ? emailToReadView(email) : null }),
@@ -796,11 +798,17 @@ export function ConversationEmailBody({
         a.setAttribute('target', '_blank');
         a.setAttribute('rel', 'noopener noreferrer');
       });
+      // Selected text: the onTextSelectionChange hook and the right-click
+      // menu plugins may add entries to.
+      watchBodySelection(doc, iframe, {
+        emailId: email.id,
+        onContextMenu: (point, text) => selectionMenu.openRef.current(point, { emailId: email.id, text }),
+      });
       setHtmlBodyEl(doc.body);
     } catch {
       // contentDocument may be inaccessible under stricter sandboxes; ignore.
     }
-  }, [t, isDark, allowExternal]);
+  }, [t, isDark, allowExternal, email.id, selectionMenu.openRef]);
 
   return (
     <div className={className}>
@@ -868,9 +876,13 @@ export function ConversationEmailBody({
               "[&_img]:max-w-full [&_img]:h-auto"
             )}
             style={{ whiteSpace: 'pre-wrap', ...(plainTextFont === 'mono' && { fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace' }), fontSize: '13px' }}
+            data-plugin-source="email-body"
+            data-email-id={email.id}
+            onContextMenu={(e) => selectionMenu.onElementContextMenu(e, email.id)}
             dangerouslySetInnerHTML={plainBodyHtml}
           />
         )}
+        <ReaderSelectionMenu menu={selectionMenu} />
         <ReaderAboveQuoteSlot
           root={emailContent.isHtml ? htmlBodyEl : plainBodyEl}
           frame={emailContent.isHtml ? iframeRef.current : null}

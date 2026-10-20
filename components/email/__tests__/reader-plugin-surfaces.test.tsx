@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import type { Email, Mailbox, ThreadGroup } from '@/lib/jmap/types';
@@ -133,6 +133,66 @@ describe('email-detail-sidebar', () => {
 
     const panel = screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!;
     expect(panel.getAttribute('data-plugin-detail-panel')).toBe('docked');
+  });
+});
+
+describe('reader-selection-menu and the side panel\'s selection', () => {
+  const SURFACE = 'reader-selection-menu';
+  const plainBody = () => document.querySelector<HTMLElement>('[data-plugin-source="email-body"]')!;
+  const selectBody = () => {
+    const range = document.createRange();
+    range.selectNodeContents(plainBody());
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+  const rightClick = () => {
+    const event = createEvent.contextMenu(plainBody(), { clientX: 30, clientY: 40 });
+    fireEvent(plainBody(), event);
+    return event;
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+    window.getSelection()?.removeAllRanges();
+  });
+
+  it('leaves the browser menu alone without plugin entries, and without a selection', () => {
+    viewer(textMail('Hi there'));
+    selectBody();
+    expect(rightClick().defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    act(() => { setPluginActions('p1', 'P1', SURFACE, [{ id: 'explain', label: 'Explain' }]); });
+    window.getSelection()!.removeAllRanges();
+    expect(rightClick().defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('offers Copy and the plugin entries on selected text, and hands the click the message and the text', async () => {
+    act(() => { setPluginActions('p1', 'P1', SURFACE, [{ id: 'explain', label: 'Explain', icon: 'sparkles' }]); });
+    viewer(textMail('Hi there'));
+    selectBody();
+
+    expect(rightClick().defaultPrevented).toBe(true);
+    expect(screen.getByRole('menu')).toHaveTextContent('copy');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Explain' }));
+    await act(async () => {});
+    expect(dispatch).toHaveBeenCalledWith('p1', SURFACE, 'explain', { emailId: 'e1', selection: { text: 'Hi there' } });
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('sends the side panel the selected text a moment after it changes', () => {
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi there'));
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).selection).toEqual({ text: '' });
+
+    vi.useFakeTimers();
+    selectBody();
+    act(() => { document.dispatchEvent(new Event('selectionchange')); });
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).selection).toEqual({ text: '' });
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).selection).toEqual({ text: 'Hi there' });
   });
 });
 

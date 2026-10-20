@@ -18,6 +18,7 @@ import { useCopyLink } from "@/hooks/use-copy-link";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { SubMenuPanel } from "@/components/ui/context-menu";
+import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection, watchElementSelection } from "./reader-selection-menu";
 import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
 import { getEffectiveTimeZone, getWallClock } from "@/lib/timezone";
 import { itemsToHide } from "@/lib/toolbar-overflow";
@@ -994,6 +995,7 @@ function DetailsCategorySlot({ email, category }: { email: EmailReadView | null;
 
 /** Narrowest the message may get next to a plugin panel before the panel collapses. */
 const MIN_READER_WIDTH = 480;
+const NO_BODY_SELECTION = { text: '' };
 
 function SidebarSection({ icon: Icon, title, children }: { icon: React.ComponentType<{ className?: string }>; title: string; children: React.ReactNode }) {
   return (
@@ -1510,6 +1512,18 @@ export function EmailViewer({
     [email, wantsPluginEmailView],
   );
   const pluginEmailProps = useMemo(() => ({ email: pluginEmailView }), [pluginEmailView]);
+  // The text selected in the body, for the side panel (a plugin working on
+  // what the user highlights) and the right-click menu on it. Reset per
+  // message; the body documents report changes a moment after they happen.
+  const [bodySelection, setBodySelection] = useState<{ text: string }>(NO_BODY_SELECTION);
+  useEffect(() => { setBodySelection(NO_BODY_SELECTION); }, [email?.id]);
+  const onBodySelection = useCallback((text: string) => {
+    setBodySelection((prev) => (prev.text === text ? prev : (text ? { text } : NO_BODY_SELECTION)));
+  }, []);
+  const pluginDetailProps = useMemo(() => ({ email: pluginEmailView, selection: bodySelection }), [pluginEmailView, bodySelection]);
+  const selectionMenu = useReaderSelectionMenu();
+  const emailIdRef = useRef(email?.id);
+  emailIdRef.current = email?.id;
   const readerActionContext = useMemo(() => ({ emailId: email?.id }), [email?.id]);
   const pluginFooterProps = useMemo(() => ({ emailId: email?.id }), [email?.id]);
   const [detailSidebarCollapsed, setDetailSidebarCollapsed] = useState<boolean>(() => {
@@ -2947,6 +2961,11 @@ export function EmailViewer({
   const iframeReady = iframeReadyFor !== null && iframeReadyFor === emailIframeSrcDoc;
   // The plain-text body, where reader-above-quote mounts between text and quote.
   const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);
+  // A plain-text body sits in the page: watch the page's selection for it.
+  useEffect(() => {
+    if (!plainBodyEl || !hasDetailSidebar) return;
+    return watchElementSelection(plainBodyEl, { emailId: email?.id, onSelection: onBodySelection });
+  }, [plainBodyEl, hasDetailSidebar, email?.id, onBodySelection]);
   // One object per body: React writes innerHTML again whenever this object
   // changes, which would drop what was mounted in the body and fold the quote
   // back up on every render.
@@ -3194,12 +3213,19 @@ export function EmailViewer({
         // A press in the body closes a mention's card. The page never sees
         // it: the focus is already inside the iframe, so there is no blur.
         doc.addEventListener('mousedown', () => setBodyMention(null), true);
+        // Selected text, for the side panel, the onTextSelectionChange hook
+        // and the right-click menu plugins may add entries to.
+        watchBodySelection(doc, iframe, {
+          emailId: email?.id,
+          onSelection: (text) => { if (iframe.contentDocument === doc) onBodySelection(text); },
+          onContextMenu: (point, text) => selectionMenu.openRef.current(point, { emailId: emailIdRef.current, text }),
+        });
 
       }
     } catch {
       // Cross-origin restrictions - iframe will still display content
     }
-  }, [isDark, effectiveEmailContent.externalBlocked, email?.id, t, openCidPartLink]);
+  }, [isDark, effectiveEmailContent.externalBlocked, email?.id, t, openCidPartLink, onBodySelection, selectionMenu.openRef]);
 
   // Wire up the iframe as soon as its sandboxed document has parsed, rather than
   // waiting for the iframe 'load' event. 'load' also waits on every subresource,
@@ -6074,6 +6100,9 @@ export function EmailViewer({
                 ref={setPlainBodyEl}
                 className="email-content-text text-foreground"
                 dir="auto"
+                data-plugin-source="email-body"
+                data-email-id={email?.id}
+                onContextMenu={(e) => selectionMenu.onElementContextMenu(e, email?.id)}
                 dangerouslySetInnerHTML={plainBodyHtml}
                 style={{
                   ...(plainTextFont === 'mono' && { fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace' }),
@@ -6349,6 +6378,7 @@ export function EmailViewer({
       </nav>
     )}
 
+    <ReaderSelectionMenu menu={selectionMenu} />
     {/* Plugin Detail Sidebar - resizable, collapsible */}
     {hasDetailSidebar && !isMobile && (
       <>
@@ -6407,7 +6437,7 @@ export function EmailViewer({
                 </Button>
               </div>
               <div className="flex-1 overflow-y-auto">
-                <PluginSlot name="email-detail-sidebar" extraProps={pluginEmailProps} />
+                <PluginSlot name="email-detail-sidebar" extraProps={pluginDetailProps} />
               </div>
             </div>
           </>
