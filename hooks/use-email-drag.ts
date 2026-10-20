@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, DragEvent } from "react";
 import { Email } from "@/lib/jmap/types";
 import { IJMAPClient } from "@/lib/jmap/client-interface";
-import { useEmailStore } from "@/stores/email-store";
+import { resolveEmailBlobContext, resolveSelectedEmails, useEmailStore } from "@/stores/email-store";
 import { emailKeyFor } from "@/lib/thread-utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDragDropContext } from "@/contexts/drag-drop-context";
@@ -63,10 +63,8 @@ function bundleFilename(count: number, options: EmailFilenameOptions): string {
   return bundleExportFilename(count, options);
 }
 
-// Shared bundle cache. The .zip is keyed by the sorted list of email IDs in
-// the selection, so two rows in the same selection reuse the same in-flight
-// build. When the selection changes, the previous bundle URL is scheduled for
-// revoke and a new build starts.
+// Rows in the same selection share a bundle. Scope cached bytes to the actual
+// authenticated client, owner and message, since raw email/blob IDs can collide.
 type BundleEntry = {
   key: string;
   name: string;
@@ -76,26 +74,49 @@ type BundleEntry = {
 
 let currentBundle: BundleEntry | null = null;
 
-function selectionKey(ids: string[]): string {
-  return [...ids].sort().join(",");
+// Object identity also distinguishes a reconnected/replaced client for the same login.
+const clientKeys = new WeakMap<IJMAPClient, number>();
+let nextClientKey = 0;
+
+function routeEmail(email: Email, options: EmailFilenameOptions) {
+  const { client, accountId: owner, clientAccountId } = resolveEmailBlobContext(email, useAuthStore.getState().client);
+  const accountId = owner ?? client?.getAccountId();
+  if (client && !clientKeys.has(client)) clientKeys.set(client, ++nextClientKey);
+  const name = emailExportFilename(email, options);
+  const key = JSON.stringify([
+    client ? clientKeys.get(client) : null, clientAccountId,
+    accountId, emailKeyFor(email), email.blobId, name,
+  ]);
+  return { email, client, accountId, name, key };
 }
 
-async function buildEmailZip(client: IJMAPClient, emails: Email[], options: EmailFilenameOptions): Promise<string | null> {
-  const eligible = emails.filter((em) => !!em.blobId);
+type RoutedEmail = ReturnType<typeof routeEmail>;
+
+function selectionKey(emails: RoutedEmail[], bundleOptions: EmailFilenameOptions): string {
+  return JSON.stringify([emails.map((entry) => entry.key).sort(), bundleOptions]);
+}
+
+function revokeLater(url: string): void {
+  // Chromium may read the URL asynchronously after the drop completes.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+async function buildEmailZip(emails: RoutedEmail[]): Promise<string | null> {
+  const eligible = emails.filter(({ email, client }) => !!email.blobId && !!client);
   if (eligible.length === 0) return null;
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const used = new Set<string>();
   await Promise.all(
-    eligible.map(async (em) => {
-      const base = emailExportFilename(em, options).replace(/\.eml$/, "");
+    eligible.map(async ({ email: em, client, accountId, name: filename }) => {
+      const base = filename.replace(/\.eml$/, "");
       // Full id, not a prefix: messages in one thread share their leading
       // characters (Stalwart packs the thread id into the high bits), and a
       // prefix collision here used to spin the main thread forever (#1039).
       const name = uniqueFilename(used, base, ".eml", em.id);
       used.add(name);
       try {
-        const blob = await client.fetchBlob(em.blobId!, name, "message/rfc822");
+        const blob = await client!.fetchBlob(em.blobId!, name, "message/rfc822", accountId);
         zip.file(name, blob);
       } catch {
         // Skip individual failures; remaining messages still bundle.
@@ -107,16 +128,14 @@ async function buildEmailZip(client: IJMAPClient, emails: Email[], options: Emai
 }
 
 function prefetchEmailBundle(
-  client: IJMAPClient,
-  emails: Email[],
-  emailOptions: EmailFilenameOptions,
+  emails: RoutedEmail[],
   bundleOptions: EmailFilenameOptions,
 ): void {
-  const key = selectionKey(emails.map((e) => e.id));
+  const key = selectionKey(emails, bundleOptions);
   if (currentBundle && currentBundle.key === key) return;
   if (currentBundle?.url) {
     const old = currentBundle.url;
-    setTimeout(() => URL.revokeObjectURL(old), 60_000);
+    revokeLater(old);
   }
   const entry: BundleEntry = {
     key,
@@ -124,17 +143,20 @@ function prefetchEmailBundle(
     url: null,
     promise: null,
   };
-  entry.promise = buildEmailZip(client, emails, emailOptions)
+  entry.promise = buildEmailZip(emails)
     .then((url) => {
-      if (url && currentBundle === entry) entry.url = url;
+      if (url) {
+        if (currentBundle === entry) entry.url = url;
+        else revokeLater(url);
+      }
       return url;
     })
     .catch(() => null);
   currentBundle = entry;
 }
 
-function getReadyBundle(emails: Email[]): { url: string; name: string } | null {
-  const key = selectionKey(emails.map((e) => e.id));
+function getReadyBundle(emails: RoutedEmail[], bundleOptions: EmailFilenameOptions): { url: string; name: string } | null {
+  const key = selectionKey(emails, bundleOptions);
   if (currentBundle && currentBundle.key === key && currentBundle.url) {
     return { url: currentBundle.url, name: currentBundle.name };
   }
@@ -165,63 +187,63 @@ export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailD
   );
 
   const dragOutEnabled = !isMobile && isDragOutSupported() && !!client;
-  const singleBlobUrlRef = useRef<string | null>(null);
-  const inFlightRef = useRef<Promise<string | null> | null>(null);
+  const singleRef = useRef<BundleEntry | null>(null);
 
   useEffect(() => {
     return () => {
-      if (singleBlobUrlRef.current) {
-        const url = singleBlobUrlRef.current;
-        singleBlobUrlRef.current = null;
-        // Defer revoke - Chromium asynchronously reads the blob: URL after the
-        // drop completes, so revoking immediately can race the OS.
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      }
-      inFlightRef.current = null;
+      if (singleRef.current?.url) revokeLater(singleRef.current.url);
+      // A late completion must not repopulate a retired row's cache.
+      singleRef.current = null;
     };
-  }, [email.id]);
+  }, [email.id, email.blobId, email.sourceClientAccountId, email.sourceAccountId, client, filenameOptions]);
 
-  const prefetchSingle = useCallback(() => {
-    if (!dragOutEnabled || !client || !email.blobId) return;
-    if (singleBlobUrlRef.current || inFlightRef.current) return;
-    const name = emailExportFilename(email, filenameOptions);
-    inFlightRef.current = client
-      .fetchBlobAsObjectUrl(email.blobId, name, "message/rfc822")
+  const prefetchSingle = useCallback((target: Email) => {
+    if (!dragOutEnabled || !target.blobId) return;
+    const route = routeEmail(target, filenameOptions);
+    if (!route.client) return;
+    const previous = singleRef.current;
+    if (previous?.key === route.key && (previous.url || previous.promise)) return;
+    if (previous?.url) revokeLater(previous.url);
+    const entry: BundleEntry = { key: route.key, name: route.name, url: null, promise: null };
+    singleRef.current = entry;
+    entry.promise = route.client
+      .fetchBlobAsObjectUrl(target.blobId, route.name, "message/rfc822", route.accountId)
       .then((url) => {
-        if (url && !singleBlobUrlRef.current) singleBlobUrlRef.current = url;
+        if (url) {
+          if (singleRef.current === entry && routeEmail(target, filenameOptions).key === entry.key) entry.url = url;
+          else revokeLater(url);
+        }
         return url;
       })
       .catch(() => null)
-      .finally(() => {
-        inFlightRef.current = null;
-      });
-  }, [dragOutEnabled, client, email, filenameOptions]);
+      .finally(() => { entry.promise = null; });
+  }, [dragOutEnabled, filenameOptions]);
 
   const handlePointerEnter = useCallback(() => {
-    const { selectedEmailKeys, emails } = useEmailStore.getState();
-    if (!dragOutEnabled || !client) return;
-    const isSelected = selectedEmailKeys.has(emailKeyFor(email));
-    const isMulti = isSelected && selectedEmailKeys.size > 1;
-    if (isMulti) {
-      const selected = emails.filter((em) => selectedEmailKeys.has(emailKeyFor(em)));
-      // Only worth bundling when at least one selected email has a blobId.
+    const state = useEmailStore.getState();
+    if (!dragOutEnabled) return;
+    const selected = state.selectedEmailKeys.has(emailKeyFor(email))
+      ? resolveSelectedEmails(state)
+      : threadEmails || [email];
+    if (selected.length > 1) {
       if (selected.some((em) => em.blobId)) {
-        prefetchEmailBundle(client, selected, filenameOptions, bundleOptions);
+        prefetchEmailBundle(selected.map((em) => routeEmail(em, filenameOptions)), bundleOptions);
       }
-    } else {
-      prefetchSingle();
+    } else if (selected[0]) {
+      prefetchSingle(selected[0]);
     }
-  }, [dragOutEnabled, client, email, prefetchSingle, filenameOptions, bundleOptions]);
+  }, [dragOutEnabled, email, threadEmails, prefetchSingle, filenameOptions, bundleOptions]);
 
   const handleDragStart = useCallback((e: DragEvent<HTMLDivElement>) => {
-    const { selectedEmailKeys, emails } = useEmailStore.getState();
+    const state = useEmailStore.getState();
+    const { selectedEmailKeys } = state;
     // Determine which emails to drag:
     // - If current email is selected, drag all selected
     // - If threadEmails provided (thread header), drag all thread emails
     // - Otherwise, drag only this email
     const isSelected = selectedEmailKeys.has(emailKeyFor(email));
     const emailsToDrag = isSelected
-      ? emails.filter(em => selectedEmailKeys.has(emailKeyFor(em)))
+      ? resolveSelectedEmails(state)
       : threadEmails || [email];
 
     e.dataTransfer.effectAllowed = "copyMove";
@@ -249,7 +271,8 @@ export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailD
     // Drag-out to file explorer.
     if (dragOutEnabled && client) {
       if (emailsToDrag.length === 1 && emailsToDrag[0].blobId) {
-        const url = singleBlobUrlRef.current;
+        const route = routeEmail(emailsToDrag[0], filenameOptions);
+        const url = singleRef.current?.key === route.key ? singleRef.current.url : null;
         if (url) {
           const name = emailExportFilename(emailsToDrag[0], filenameOptions);
           // `DownloadURL` format: <mime>:<filename>:<url>. Chromium expects
@@ -264,10 +287,11 @@ export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailD
         } else {
           // Not warmed up yet â€” kick off so the next attempt works. Don't
           // preventDefault: in-app drop still has to function.
-          prefetchSingle();
+          prefetchSingle(emailsToDrag[0]);
         }
       } else if (emailsToDrag.length > 1) {
-        const ready = getReadyBundle(emailsToDrag);
+        const routed = emailsToDrag.map((em) => routeEmail(em, filenameOptions));
+        const ready = getReadyBundle(routed, bundleOptions);
         if (ready) {
           e.dataTransfer.setData(
             "DownloadURL",
@@ -275,7 +299,7 @@ export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailD
           );
         } else {
           // Kick off the bundle build for the next attempt.
-          prefetchEmailBundle(client, emailsToDrag, filenameOptions, bundleOptions);
+          prefetchEmailBundle(routed, bundleOptions);
         }
       }
     }
@@ -297,11 +321,12 @@ export function useEmailDrag({ email, sourceMailboxId, threadEmails }: UseEmailD
     // Defer-revoke the per-row single .eml URL. The shared bundle URL stays
     // cached until the selection changes - revoking it here would break a
     // subsequent drag of the same selection.
-    if (singleBlobUrlRef.current) {
-      const url = singleBlobUrlRef.current;
-      singleBlobUrlRef.current = null;
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    if (singleRef.current?.url) {
+      revokeLater(singleRef.current.url);
+      singleRef.current = null;
     }
+    // A cold drag has no DownloadURL. Keep its pending fetch so a retry can
+    // use the completed bytes, provided the originating context is still valid.
   }, [endDrag]);
 
   // Check if this specific email is being dragged

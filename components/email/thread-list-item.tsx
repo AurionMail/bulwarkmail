@@ -526,7 +526,10 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
         {...dragHandlers}
         {...touchHandlers}
         data-testid="email-list-item"
-        onPointerEnter={armHoverActions}
+        onPointerEnter={() => {
+          armHoverActions();
+          dragHandlers.onPointerEnter?.();
+        }}
         onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(); }}
         data-email-id={email.id}
         data-subject={email.subject || ''}
@@ -1126,7 +1129,10 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
         <div
           {...dragHandlers}
           {...threadLongPressHandlers}
-          onPointerEnter={armHoverActions}
+          onPointerEnter={() => {
+            armHoverActions();
+            dragHandlers.onPointerEnter?.();
+          }}
           onPointerDown={(e) => { if (onPrefetch && isMousePressOnRow(e)) onPrefetch(latestEmail); }}
           aria-current={isSelected ? 'true' : undefined}
           data-unread={hasUnread ? 'true' : 'false'}
