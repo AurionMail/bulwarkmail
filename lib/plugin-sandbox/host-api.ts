@@ -47,7 +47,7 @@ import {
   doTemplatesUpdate, doVacationGet, doVacationSet,
 } from './host-api-settings';
 import {
-  doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doMailboxesList,
+  doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doEmailSearch, doMailboxesList,
 } from './host-api-mail';
 import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } from './host-api-input';
 import { doComposeOpen, doComposeReply, doDraftsCreate } from './host-api-compose';
@@ -248,6 +248,7 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // reading mail: one message with its text, a page of a folder, the folders
   'email.get': 'email:read',
   'email.list': 'email:read',
+  'email.search': 'email:read',
   'mailboxes.list': 'email:read',
   // The bytes of one attachment of a given message, or of the message
   // itself. Unlike jmap.fetchBlob these only reach blobs of a message the
@@ -2031,6 +2032,7 @@ export async function dispatchApiCall(
 
     case 'email.get': return doEmailGet(args[0]);
     case 'email.list': return doEmailList(args[0]);
+    case 'email.search': return doEmailSearch(args[0]);
     case 'mailboxes.list': return doMailboxesList();
     case 'email.getAttachment': return doEmailGetAttachment(args[0], args[1]);
     case 'email.getRaw': return doEmailGetRaw(args[0]);

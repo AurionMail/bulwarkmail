@@ -597,6 +597,15 @@ function buildPluginApi(manifest: PluginManifest) {
       list: (options?: { mailboxId?: string; limit?: number; position?: number }) =>
         callApi('email.list', [options]) as Promise<EmailSummary[]>,
       /**
+       * Messages matching a search, newest first, as summaries without the
+       * body: `text` (sender, recipients, subject and body, whole words),
+       * `from`, `to`, `subject`, `after`/`before` (dates), `hasAttachment`,
+       * in one folder with `mailboxId`. At least one condition; limit 1-50
+       * (default 20).
+       */
+      search: (query: { text?: string; from?: string; to?: string; subject?: string; after?: string; before?: string; hasAttachment?: boolean; mailboxId?: string; limit?: number }) =>
+        callApi('email.search', [query]) as Promise<EmailSummary[]>,
+      /**
        * The bytes of one attachment of a message (email:blob-read, at most
        * 25 MB). `blobId` must be one of that message's attachments, e.g.
        * from an `attachment-actions` slot or onAttachmentDownload.
