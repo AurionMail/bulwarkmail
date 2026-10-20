@@ -27,7 +27,7 @@ vi.mock('next-intl/middleware', async () => {
   return { default: () => () => NextResponse.next() };
 });
 
-import { proxy, isStaticAssetPath } from '@/proxy';
+import { proxy, isStaticAssetPath, mailFrameAncestors } from '@/proxy';
 
 function load(path: string): Promise<Response> {
   return proxy(new NextRequest('http://localhost:3000' + path, {
@@ -150,13 +150,42 @@ describe('ALLOWED_FRAME_ANCESTORS', () => {
 
   it('lets a portal frame the mail UI', async () => {
     const res = await load('/en/mail');
-    expect(res.headers.get('content-security-policy')).toContain('frame-ancestors https://portal.example');
+    expect(res.headers.get('content-security-policy')).toContain("frame-ancestors 'self' https://portal.example;");
+    expect(res.headers.get('x-frame-options')).toBeNull();
   });
 
   it.each(['/admin', '/admin/login', '/admin/settings'])('never lets anyone frame %s', async (path) => {
     const res = await load(path);
     expect(res.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
     expect(res.headers.get('x-frame-options')).toBe('DENY');
+  });
+});
+
+// The PDF preview frames a blob: document, and Safari enforces the page's
+// frame-ancestors on it, so the mail UI must always allow 'self' (#1301).
+describe('frame-ancestors of the mail UI', () => {
+  const original = process.env.ALLOWED_FRAME_ANCESTORS;
+  afterEach(() => {
+    if (original === undefined) delete process.env.ALLOWED_FRAME_ANCESTORS;
+    else process.env.ALLOWED_FRAME_ANCESTORS = original;
+  });
+
+  it('allows only the app itself by default', async () => {
+    delete process.env.ALLOWED_FRAME_ANCESTORS;
+    const res = await load('/en/mail/folder/inbox');
+    expect(res.headers.get('content-security-policy')).toContain("frame-ancestors 'self';");
+    expect(res.headers.get('x-frame-options')).toBe('SAMEORIGIN');
+  });
+
+  it("reads 'none' as no other site", async () => {
+    process.env.ALLOWED_FRAME_ANCESTORS = "'none'";
+    const res = await load('/en/mail/folder/inbox');
+    expect(res.headers.get('content-security-policy')).toContain("frame-ancestors 'self';");
+  });
+
+  it("does not repeat 'self' the operator already listed", () => {
+    expect(mailFrameAncestors(" https://a.example  'SELF' ")).toBe("https://a.example 'SELF'");
+    expect(mailFrameAncestors('')).toBe("'self'");
   });
 });
 

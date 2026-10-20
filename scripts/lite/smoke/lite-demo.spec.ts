@@ -123,9 +123,9 @@ test.describe("Bulwark Lite demo export", () => {
     expect(await deep.text()).toContain("__next_f");
     const headers = deep.headers();
     expect(headers["content-security-policy"]).toContain(`connect-src 'self' ${connectSrc};`);
-    expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+    expect(headers["content-security-policy"]).toContain("frame-ancestors 'self'");
     expect(headers["x-content-type-options"]).toBe("nosniff");
-    expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers["x-frame-options"]).toBe("SAMEORIGIN");
     expect(headers["cache-control"]).toBe("no-cache");
     expect(headers["server"]).toBe("nginx");
     expect(headers["content-encoding"]).toBe("gzip");

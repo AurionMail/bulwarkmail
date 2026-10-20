@@ -139,6 +139,18 @@ function isOriginGateExempt(routePath: string): boolean {
   return routePath.startsWith("/api/wopi/files/");
 }
 
+/**
+ * frame-ancestors for the mail UI. It always includes 'self': the PDF preview
+ * frames a blob: document, and Safari enforces the page's frame-ancestors on
+ * that document too, so without 'self' the preview stays blank (#1301).
+ * 'none' in ALLOWED_FRAME_ANCESTORS means "no other site" here.
+ */
+export function mailFrameAncestors(allowed: string | undefined): string {
+  const sources = (allowed ?? "").trim().split(/\s+/).filter((s) => s && s.toLowerCase() !== "'none'");
+  if (!sources.some((s) => s.toLowerCase() === "'self'")) sources.unshift("'self'");
+  return sources.join(" ");
+}
+
 function isSetupPath(pathname: string): boolean {
   return (
     pathname === "/setup" ||
@@ -280,7 +292,7 @@ export async function proxy(request: NextRequest) {
     ? `'self'`
     : isAdminOrSetupPath
     ? "'none'"
-    : process.env.ALLOWED_FRAME_ANCESTORS?.trim() || "'none'";
+    : mailFrameAncestors(process.env.ALLOWED_FRAME_ANCESTORS);
 
   // Plugins may declare iframe origins they need (e.g. for embedded video).
   // Each origin is validated at install time and re-validated here.
@@ -394,6 +406,8 @@ export async function proxy(request: NextRequest) {
   // specifies explicit origins, we rely solely on the CSP header.
   if (frameAncestors === "'none'") {
     response.headers.set("X-Frame-Options", "DENY");
+  } else if (frameAncestors === "'self'") {
+    response.headers.set("X-Frame-Options", "SAMEORIGIN");
   }
 
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
