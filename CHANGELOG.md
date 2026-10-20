@@ -1,5 +1,56 @@
 # Changelog
 
+## 1.17.0 (2026-10-20)
+
+1.17.0 gives plugins real panels: a panel next to the message you write or read can fill its height, start folded, be opened by the plugin, and be dragged wider, and plugins get right-click menus on selected text in the composer and in a message. The AI Writing Assistant 2.0 in the marketplace builds on this and needs this release. The admin panel is reworked around a settings-style sidebar with one URL per page.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- [@bultester](https://github.com/bultester)
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@superspacehosting](https://github.com/superspacehosting)
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Features
+
+- **Plugins**: A panel slot (`composer-sidebar`, `composer-sidebar-right`, `email-detail-sidebar`) can fill its panel and scroll inside (`fill`), start folded until the user or the plugin opens it (`startFolded`), and be opened, closed and toggled by the plugin with `api.ui.openPanel`, `closePanel` and `togglePanel`, which answer null where no panel is on screen (phones), so a plugin can fall back to a dialog. A panel opened this way gets a `focusRequest` prop
+- **Plugins**: The composer's plugin panels get the composer id, the draft and the selected text as it changes; the reader's side panel gets the selected text; reader frames learn whether they are on a phone, a tablet or a desktop (`deviceType`)
+- **Plugins**: Right-click menus on selected text: `composer-selection-menu` in the message being written and `reader-selection-menu` in an open message. The browser's own menu stays until a plugin adds entries; the webmail then draws Cut and Copy and the plugin's entries, and the click carries the selected text
+- **Plugins**: Text selected inside a message's body (an HTML mail in its frame) now reaches `onTextSelectionChange`
+- **Composer**: The plugin panels beside the composer can be dragged wider or narrower, and keep their width
+- **Admin**: The admin panel is reworked around a settings-style sidebar with one URL per page, the real navigation rail and extension icons
+
+### Fixes
+
+- **i18n**: The German dialog that hands a sign-in to the mobile app is translated (#1296, thanks @dealerweb)
+
 ## 1.16.0 (2026-10-19)
 
 1.16.0 regroups the settings into fewer pages with an Advanced switch for the power-user options, shows the message list as columns on request, turns @mentions into contact chips, and opens the company directory in contacts and the composer. The marketplace can install any version of an extension and roll back to a replaced one, admins get policies for the colour mode, archiving and the provider sign-out, and the Estonian locale arrives. A security audit of the whole app fixed cross-account actions on repeated message ids and about thirty smaller findings.
