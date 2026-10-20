@@ -10,11 +10,13 @@ interface ResizeHandleProps {
   onDoubleClick?: () => void;
   orientation?: "vertical" | "horizontal";
   className?: string;
+  /** Stable hook for tests (not user-visible). */
+  testId?: string;
 }
 
 const KEYBOARD_STEP = 10;
 
-export function ResizeHandle({ onResizeStart, onResize, onResizeEnd, onDoubleClick, orientation = "vertical", className }: ResizeHandleProps) {
+export function ResizeHandle({ onResizeStart, onResize, onResizeEnd, onDoubleClick, orientation = "vertical", className, testId }: ResizeHandleProps) {
   const isDragging = useRef(false);
   const startPos = useRef(0);
   const isHorizontal = orientation === "horizontal";
@@ -72,6 +74,7 @@ export function ResizeHandle({ onResizeStart, onResize, onResizeEnd, onDoubleCli
       role="separator"
       aria-orientation={isHorizontal ? "horizontal" : "vertical"}
       aria-label="Resize"
+      data-testid={testId}
       tabIndex={0}
       onMouseDown={handleMouseDown}
       onKeyDown={handleKeyDown}

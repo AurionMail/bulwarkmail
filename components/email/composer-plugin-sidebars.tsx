@@ -1,10 +1,11 @@
 "use client";
 
-// The composer-sidebar and composer-sidebar-right plugin panels. Each gets a
-// fixed width and a toggle to fold it to a thin strip. When the composer is
-// too narrow for an open panel next to it, the panel folds by itself (right
-// first); opening it anyway lays it over the composer instead of squeezing
-// the message into a column nobody can write in.
+// The composer-sidebar and composer-sidebar-right plugin panels. Each has a
+// width the user can drag (kept across composers) and a toggle to fold it
+// to a thin strip. When the composer is too narrow for an open panel next
+// to it, the panel folds by itself (right first); opening it anyway lays it
+// over the composer instead of squeezing the message into a column nobody
+// can write in.
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -12,10 +13,13 @@ import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { onPanelRequest, type PanelRequest } from "@/lib/plugin-sandbox/panel-requests";
+import { ResizeHandle } from "@/components/layout/resize-handle";
 import { cn } from "@/lib/utils";
 
-/** Width of an open panel. */
+/** Width of an open panel until the user drags it. */
 export const COMPOSER_SIDEBAR_WIDTH = 260;
+export const MIN_COMPOSER_SIDEBAR_WIDTH = 220;
+export const MAX_COMPOSER_SIDEBAR_WIDTH = 480;
 /** Width of a folded panel (the strip with its toggle). */
 export const COMPOSER_SIDEBAR_STRIP = 37;
 /**
@@ -34,6 +38,8 @@ interface SideState {
   collapsed: boolean;
   /** Opened by the user while there was no room for it. */
   overlayOpen?: boolean;
+  /** The user's width for it; the default when not dragged yet. */
+  width?: number;
 }
 
 /**
@@ -51,7 +57,7 @@ export function composerSidebarModes(
   const place = (side: SideState): ComposerSidebarMode | null => {
     if (!side.present) return null;
     if (side.collapsed) return "folded";
-    const extra = COMPOSER_SIDEBAR_WIDTH - COMPOSER_SIDEBAR_STRIP;
+    const extra = (side.width ?? COMPOSER_SIDEBAR_WIDTH) - COMPOSER_SIDEBAR_STRIP;
     if (extra <= room) {
       room -= extra;
       return "docked";
@@ -63,10 +69,23 @@ export function composerSidebarModes(
 }
 
 const storageKey = (side: ComposerSidebarSide) => `composerPluginSidebarCollapsed:${side}`;
+const widthKey = (side: ComposerSidebarSide) => `composerPluginSidebarWidth:${side}`;
 
 function readCollapsed(side: ComposerSidebarSide): boolean {
   if (typeof window === "undefined") return false;
   try { return localStorage.getItem(storageKey(side)) === "1"; } catch { return false; }
+}
+
+export function clampSidebarWidth(width: number): number {
+  return Math.max(MIN_COMPOSER_SIDEBAR_WIDTH, Math.min(MAX_COMPOSER_SIDEBAR_WIDTH, Math.round(width)));
+}
+
+function readWidth(side: ComposerSidebarSide): number {
+  if (typeof window === "undefined") return COMPOSER_SIDEBAR_WIDTH;
+  try {
+    const n = parseInt(localStorage.getItem(widthKey(side)) ?? "", 10);
+    return Number.isFinite(n) ? clampSidebarWidth(n) : COMPOSER_SIDEBAR_WIDTH;
+  } catch { return COMPOSER_SIDEBAR_WIDTH; }
 }
 
 /**
@@ -83,6 +102,7 @@ export function useComposerSidebars(root: HTMLElement | null, composerId: string
     right: readCollapsed("right"),
   }));
   const [overlayOpen, setOverlayOpen] = useState<Record<ComposerSidebarSide, boolean>>({ left: false, right: false });
+  const [widths, setWidths] = useState<Record<ComposerSidebarSide, number>>(() => ({ left: readWidth("left"), right: readWidth("right") }));
 
   useEffect(() => {
     if (!root || (!hasLeft && !hasRight) || typeof ResizeObserver === "undefined") return;
@@ -95,9 +115,16 @@ export function useComposerSidebars(root: HTMLElement | null, composerId: string
 
   const modes = composerSidebarModes(
     width,
-    { present: hasLeft, collapsed: collapsed.left, overlayOpen: overlayOpen.left },
-    { present: hasRight, collapsed: collapsed.right, overlayOpen: overlayOpen.right },
+    { present: hasLeft, collapsed: collapsed.left, overlayOpen: overlayOpen.left, width: widths.left },
+    { present: hasRight, collapsed: collapsed.right, overlayOpen: overlayOpen.right, width: widths.right },
   );
+
+  /** The user dragged a panel's edge. */
+  const setSideWidth = (side: ComposerSidebarSide, value: number) => {
+    const next = clampSidebarWidth(value);
+    setWidths((prev) => (prev[side] === next ? prev : { ...prev, [side]: next }));
+    try { localStorage.setItem(widthKey(side), String(next)); } catch { /* storage blocked */ }
+  };
 
   const setSideCollapsed = (side: ComposerSidebarSide, value: boolean) => {
     setCollapsed((prev) => ({ ...prev, [side]: value }));
@@ -109,8 +136,8 @@ export function useComposerSidebars(root: HTMLElement | null, composerId: string
     const next = { ...collapsed, [side]: false };
     const fits = composerSidebarModes(
       width,
-      { present: hasLeft, collapsed: next.left },
-      { present: hasRight, collapsed: next.right },
+      { present: hasLeft, collapsed: next.left, width: widths.left },
+      { present: hasRight, collapsed: next.right, width: widths.right },
     )[side] === "docked";
     setSideCollapsed(side, false);
     setOverlayOpen((prev) => ({ ...prev, [side]: !fits }));
@@ -142,7 +169,7 @@ export function useComposerSidebars(root: HTMLElement | null, composerId: string
     return wantOpen;
   }), []);
 
-  return { modes, open, close, focusRequests };
+  return { modes, open, close, focusRequests, widths, setSideWidth };
 }
 
 /** One plugin panel of the composer, in the mode useComposerSidebars picked. */
@@ -152,6 +179,8 @@ export function ComposerPluginSidebar({
   onOpen,
   onClose,
   extraProps,
+  width = COMPOSER_SIDEBAR_WIDTH,
+  onWidthChange,
 }: {
   side: ComposerSidebarSide;
   mode: ComposerSidebarMode | null;
@@ -159,8 +188,12 @@ export function ComposerPluginSidebar({
   onClose: () => void;
   /** What the panel's plugins get: the composer id, the draft and the selection (see the slot catalogue). */
   extraProps?: Record<string, unknown>;
+  width?: number;
+  /** The user drags the panel's edge; without it the panel has no handle. */
+  onWidthChange?: (width: number) => void;
 }) {
   const t = useTranslations("email_viewer");
+  const dragStart = useRef(width);
   if (!mode) return null;
   const border = side === "left" ? "border-e" : "border-s";
   const OpenIcon = side === "left" ? PanelLeftOpen : PanelRightOpen;
@@ -187,14 +220,28 @@ export function ComposerPluginSidebar({
     );
   }
 
+  // Docked beside the composer: a handle on the panel's inner edge. Dragging
+  // towards the composer widens the panel (the delta flips for the right one).
+  const handle = mode === "docked" && onWidthChange ? (
+    <ResizeHandle
+      testId={`composer-sidebar-resize-${side}`}
+      className="hidden md:block"
+      onResizeStart={() => { dragStart.current = width; }}
+      onResize={(delta) => onWidthChange(dragStart.current + (side === "left" ? delta : -delta))}
+      onResizeEnd={() => { dragStart.current = width; }}
+      onDoubleClick={() => onWidthChange(COMPOSER_SIDEBAR_WIDTH)}
+    />
+  ) : null;
   return (
+    <>
+    {side === "right" && handle}
     <div
       className={cn(
         "hidden md:flex flex-col shrink-0 h-full border-border bg-background overflow-hidden",
         border,
         mode === "overlay" && cn("absolute inset-y-0 z-30 shadow-xl", side === "left" ? "start-0" : "end-0"),
       )}
-      style={{ width: COMPOSER_SIDEBAR_WIDTH }}
+      style={{ width }}
       data-composer-sidebar={side}
       data-composer-sidebar-mode={mode}
     >
@@ -215,5 +262,7 @@ export function ComposerPluginSidebar({
           : <PluginSlot name="composer-sidebar-right" className="flex flex-col" extraProps={extraProps} />}
       </div>
     </div>
+    {side === "left" && handle}
+    </>
   );
 }

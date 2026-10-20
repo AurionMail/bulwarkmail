@@ -495,6 +495,8 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     try {
       localStorage.removeItem('composerPluginSidebarCollapsed:left');
       localStorage.removeItem('composerPluginSidebarCollapsed:right');
+      localStorage.removeItem('composerPluginSidebarWidth:left');
+      localStorage.removeItem('composerPluginSidebarWidth:right');
     } catch { /* ignore */ }
   });
 
@@ -509,6 +511,43 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     }
     expect(panel('left')).toContainElement(screen.getByTestId('slot-composer-sidebar'));
     expect(panel('right')).toContainElement(screen.getByTestId('slot-composer-sidebar-right'));
+  });
+
+  it('let the user drag a panel wider or narrower, within limits, and remember it', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar', 'composer-sidebar-right']);
+    const { unmount } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    // The right panel's handle is on its left edge: dragging left widens it.
+    const right = screen.getByTestId('composer-sidebar-resize-right');
+    fireEvent.mouseDown(right, { clientX: 1000 });
+    fireEvent.mouseMove(document, { clientX: 900 });
+    fireEvent.mouseUp(document);
+    expect(panel('right').style.width).toBe('360px');
+    // The left panel's handle is on its right edge: dragging left narrows it, down to the minimum.
+    const left = screen.getByTestId('composer-sidebar-resize-left');
+    fireEvent.mouseDown(left, { clientX: 300 });
+    fireEvent.mouseMove(document, { clientX: 100 });
+    fireEvent.mouseUp(document);
+    expect(panel('left').style.width).toBe('220px');
+    fireEvent.keyDown(left, { key: 'ArrowRight' });
+    expect(panel('left').style.width).toBe('230px');
+    fireEvent.doubleClick(left);
+    expect(panel('left').style.width).toBe('260px');
+    expect(localStorage.getItem('composerPluginSidebarWidth:right')).toBe('360');
+    unmount();
+
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').style.width).toBe('360px');
+  });
+
+  it('folds a widened panel sooner, since it needs the room', () => {
+    localStorage.setItem('composerPluginSidebarWidth:right', '480');
+    stubWidth(1000);
+    offerSlots('p1', ['composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+    expect(screen.queryByTestId('composer-sidebar-resize-right')).toBeNull();
   });
 
   it('fold the right panel, then both, when the composer would get too narrow', () => {
