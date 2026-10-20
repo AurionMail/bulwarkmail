@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} de {total}",
     "plugin_panel_show": "Mostrar el panel del complemento",
-    "plugin_panel_hide": "Ocultar el panel del complemento"
+    "plugin_panel_hide": "Ocultar el panel del complemento",
+    "copy": "Copiar"
   },
   "email_composer": {
     "select_from_directory": "Seleccionar del directorio",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Enviado - pero la limpieza posterior falló, puede quedar un borrador obsoleto.",
     "pop_out": "Abrir la respuesta en una ventana",
-    "send_guard_failed": "No enviado: un complemento que revisa los mensajes antes de enviarlos falló o no respondió."
+    "send_guard_failed": "No enviado: un complemento que revisa los mensajes antes de enviarlos falló o no respondió.",
+    "cut": "Cortar",
+    "copy": "Copiar"
   },
   "confirm_dialog": {
     "confirm": "Confirmar",

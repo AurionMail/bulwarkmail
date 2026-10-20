@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} no {total}",
     "plugin_panel_show": "Rādīt spraudņa paneli",
-    "plugin_panel_hide": "Slēpt spraudņa paneli"
+    "plugin_panel_hide": "Slēpt spraudņa paneli",
+    "copy": "Kopēt"
   },
   "email_composer": {
     "select_from_directory": "Izvēlēties no kataloga",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Nosūtīts - bet pēcapstrāde neizdevās, var palikt novecojis melnraksts.",
     "pop_out": "Atvērt atbildi atsevišķā logā",
-    "send_guard_failed": "Nav nosūtīts - spraudnis, kas pārbauda ziņojumus pirms sūtīšanas, neizdevās vai neatbildēja."
+    "send_guard_failed": "Nav nosūtīts - spraudnis, kas pārbauda ziņojumus pirms sūtīšanas, neizdevās vai neatbildēja.",
+    "cut": "Izgriezt",
+    "copy": "Kopēt"
   },
   "confirm_dialog": {
     "confirm": "Apstiprināt",

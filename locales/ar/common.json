@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} من {total}",
     "plugin_panel_show": "إظهار لوحة الإضافة",
-    "plugin_panel_hide": "إخفاء لوحة الإضافة"
+    "plugin_panel_hide": "إخفاء لوحة الإضافة",
+    "copy": "نسخ"
   },
   "email_composer": {
     "select_from_directory": "الاختيار من الدليل",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "تم الإرسال - لكن التنظيف بعد الإرسال فشل، وقد تبقى مسودة قديمة.",
     "pop_out": "فتح الرد في نافذة منفصلة",
-    "send_guard_failed": "لم يُرسَل - فشلت إضافة تفحص الرسائل قبل الإرسال أو لم تستجب."
+    "send_guard_failed": "لم يُرسَل - فشلت إضافة تفحص الرسائل قبل الإرسال أو لم تستجب.",
+    "cut": "قص",
+    "copy": "نسخ"
   },
   "confirm_dialog": {
     "confirm": "تأكيد",

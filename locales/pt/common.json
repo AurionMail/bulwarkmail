@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} de {total}",
     "plugin_panel_show": "Mostrar o painel do plugin",
-    "plugin_panel_hide": "Ocultar o painel do plugin"
+    "plugin_panel_hide": "Ocultar o painel do plugin",
+    "copy": "Copiar"
   },
   "email_composer": {
     "select_from_directory": "Selecionar do diretório",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Enviado - mas a limpeza posterior falhou, um rascunho antigo pode permanecer.",
     "pop_out": "Abrir a resposta numa janela",
-    "send_guard_failed": "Não enviado - um plugin que verifica as mensagens antes do envio falhou ou não respondeu."
+    "send_guard_failed": "Não enviado - um plugin que verifica as mensagens antes do envio falhou ou não respondeu.",
+    "cut": "Cortar",
+    "copy": "Copiar"
   },
   "confirm_dialog": {
     "confirm": "Confirmar",

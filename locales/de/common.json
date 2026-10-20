@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} von {total}",
     "plugin_panel_show": "Plugin-Bereich einblenden",
-    "plugin_panel_hide": "Plugin-Bereich ausblenden"
+    "plugin_panel_hide": "Plugin-Bereich ausblenden",
+    "copy": "Kopieren"
   },
   "email_composer": {
     "select_from_directory": "Aus Verzeichnis auswählen",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Gesendet - aber das Aufräumen danach schlug fehl, evtl. bleibt ein alter Entwurf sichtbar.",
     "pop_out": "Antwort in eigenem Fenster öffnen",
-    "send_guard_failed": "Nicht gesendet - ein Plugin, das Nachrichten vor dem Senden prüft, ist fehlgeschlagen oder hat nicht geantwortet."
+    "send_guard_failed": "Nicht gesendet - ein Plugin, das Nachrichten vor dem Senden prüft, ist fehlgeschlagen oder hat nicht geantwortet.",
+    "cut": "Ausschneiden",
+    "copy": "Kopieren"
   },
   "confirm_dialog": {
     "confirm": "Bestätigen",

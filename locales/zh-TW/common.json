@@ -640,7 +640,8 @@
     },
     "mv_position": "第 {index} 封，共 {total} 封",
     "plugin_panel_show": "顯示外掛程式面板",
-    "plugin_panel_hide": "隱藏外掛程式面板"
+    "plugin_panel_hide": "隱藏外掛程式面板",
+    "copy": "複製"
   },
   "email_composer": {
     "select_from_directory": "從目錄中選取",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "郵件已傳送，但寄送後清理失敗，可能仍保留舊草稿。",
     "pop_out": "在獨立視窗中開啟回覆",
-    "send_guard_failed": "未傳送 - 傳送前檢查郵件的外掛程式發生錯誤或沒有回應。"
+    "send_guard_failed": "未傳送 - 傳送前檢查郵件的外掛程式發生錯誤或沒有回應。",
+    "cut": "剪下",
+    "copy": "複製"
   },
   "confirm_dialog": {
     "confirm": "確認",

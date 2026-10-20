@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "Näita pistikprogrammi paneeli",
-    "plugin_panel_hide": "Peida pistikprogrammi paneel"
+    "plugin_panel_hide": "Peida pistikprogrammi paneel",
+    "copy": "Kopeeri"
   },
   "email_composer": {
     "select_from_directory": "Vali kataloogist",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Saadetud - kuid saatmisjärgne koristus ebaõnnestus, mustand võib alles jääda.",
     "pop_out": "Ava vastus eraldi aknas",
-    "send_guard_failed": "Ei saadetud - kirju enne saatmist kontrolliv pistikprogramm ebaõnnestus või ei vastanud."
+    "send_guard_failed": "Ei saadetud - kirju enne saatmist kontrolliv pistikprogramm ebaõnnestus või ei vastanud.",
+    "cut": "Lõika",
+    "copy": "Kopeeri"
   },
   "confirm_dialog": {
     "confirm": "Kinnita",

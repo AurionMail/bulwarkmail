@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} din {total}",
     "plugin_panel_show": "Afișează panoul pluginului",
-    "plugin_panel_hide": "Ascunde panoul pluginului"
+    "plugin_panel_hide": "Ascunde panoul pluginului",
+    "copy": "Copiază"
   },
   "email_composer": {
     "select_from_directory": "Selectează din director",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Trimis - dar curățarea ulterioară a eșuat, poate rămâne o ciornă veche.",
     "pop_out": "Deschide răspunsul într-o fereastră",
-    "send_guard_failed": "Nu s-a trimis - un plugin care verifică mesajele înainte de trimitere a eșuat sau nu a răspuns."
+    "send_guard_failed": "Nu s-a trimis - un plugin care verifică mesajele înainte de trimitere a eșuat sau nu a răspuns.",
+    "cut": "Decupează",
+    "copy": "Copiază"
   },
   "confirm_dialog": {
     "confirm": "Confirmare",

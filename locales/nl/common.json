@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} van {total}",
     "plugin_panel_show": "Plug-inpaneel tonen",
-    "plugin_panel_hide": "Plug-inpaneel verbergen"
+    "plugin_panel_hide": "Plug-inpaneel verbergen",
+    "copy": "Kopiëren"
   },
   "email_composer": {
     "select_from_directory": "Kiezen uit adresboek van de organisatie",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Verzonden - maar het opruimen daarna is mislukt, mogelijk blijft een oud concept staan.",
     "pop_out": "Antwoord in een apart venster openen",
-    "send_guard_failed": "Niet verzonden - een plug-in die berichten controleert voor het verzenden is mislukt of reageerde niet."
+    "send_guard_failed": "Niet verzonden - een plug-in die berichten controleert voor het verzenden is mislukt of reageerde niet.",
+    "cut": "Knippen",
+    "copy": "Kopiëren"
   },
   "confirm_dialog": {
     "confirm": "Bevestigen",
