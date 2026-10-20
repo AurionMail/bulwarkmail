@@ -2753,6 +2753,17 @@ export function EmailComposer({
   const wantsPluginSelection = wantsPluginDraft;
   const [pluginSelection, setPluginSelection] = useState<{ text: string; empty: boolean }>(EMPTY_SELECTION);
   const [pluginEditor, setPluginEditor] = useState<Editor | null>(null);
+  // One callback for the composer's life: the editor reports itself ready
+  // whenever this changes, and every report now sets state, so a new arrow
+  // per render would report, render and report again without end.
+  const handleEditorReady = useCallback((ed: Editor) => {
+    editorRef.current = ed;
+    setPluginEditor(ed);
+    if (!replyFocusedRef.current && (mode === 'reply' || mode === 'replyAll')) {
+      replyFocusedRef.current = true;
+      ed.commands.focus('start');
+    }
+  }, [mode]);
   useEffect(() => {
     if (!wantsPluginSelection) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -4158,14 +4169,7 @@ export function EmailComposer({
               hasError={validationErrors.body}
               collapseToolbarOnMobile={!showFormattingOnMobile}
               toolbarPlacement={mvWindow ? (mvShowFormatting ? 'bottom' : 'hidden') : 'top'}
-              onEditorReady={(ed) => {
-                editorRef.current = ed;
-                setPluginEditor(ed);
-                if (!replyFocusedRef.current && (mode === 'reply' || mode === 'replyAll')) {
-                  replyFocusedRef.current = true;
-                  ed.commands.focus('start');
-                }
-              }}
+              onEditorReady={handleEditorReady}
               mentionCandidates={recipientMentionsEnabled ? mentionCandidates : undefined}
               findMentionContacts={recipientMentionsEnabled && mentionAddsRecipientTo !== 'off' ? findMentionContacts : undefined}
               mentionAddsTo={mentionAddsRecipientTo === 'cc' ? 'cc' : 'to'}
