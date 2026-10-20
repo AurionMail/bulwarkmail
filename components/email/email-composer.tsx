@@ -71,6 +71,7 @@ import { useProMultiAccountIdentities, stripCrossAccountIdentityPrefix } from "@
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { ComposerPluginSidebar, useComposerSidebars } from "./composer-plugin-sidebars";
+import { ComposerSelectionMenu, useComposerSelectionMenu } from "./composer-selection-menu";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { usePluginActions } from "@/components/plugins/plugin-actions";
@@ -2796,6 +2797,40 @@ export function EmailComposer({
     () => ({ draft: pluginDraft, selection: pluginSelection, composerId: pluginComposerId }),
     [pluginDraft, pluginSelection, pluginComposerId],
   );
+
+  // The right-click menu on selected text, when a plugin put entries in it.
+  const selectionMenu = useComposerSelectionMenu();
+  const readSelectedText = useCallback((): string => {
+    if (plainTextModeRef.current) {
+      const textarea = bodyRef.current;
+      return textarea ? textarea.value.slice(textarea.selectionStart ?? 0, textarea.selectionEnd ?? 0) : '';
+    }
+    const editor = editorRef.current;
+    return editor ? readEditorSelection(editor).text : '';
+  }, []);
+  const onBodyContextMenu = useCallback((e: React.MouseEvent) => {
+    selectionMenu.onContextMenu(e, readSelectedText);
+  }, [selectionMenu, readSelectedText]);
+  // Cut and Copy from that menu: the browser's own command, run with the
+  // selection active again, keeps formatting on the clipboard; when the
+  // command is not available the plain text goes there.
+  const clipboardFromMenu = useCallback((command: 'cut' | 'copy') => {
+    const text = readSelectedText();
+    const plain = plainTextModeRef.current;
+    const textarea = bodyRef.current;
+    const editor = editorRef.current;
+    if (plain) textarea?.focus(); else editor?.commands.focus();
+    let done = false;
+    try { done = typeof document.execCommand === 'function' && document.execCommand(command); } catch { done = false; }
+    if (done) return;
+    void navigator.clipboard?.writeText(text).catch(() => {});
+    if (command !== 'cut') return;
+    if (plain) {
+      if (textarea) replaceTextareaRange(textarea, textarea.selectionStart ?? 0, textarea.selectionEnd ?? 0, '');
+    } else {
+      editor?.commands.deleteSelection();
+    }
+  }, [readSelectedText]);
   const pluginToolbarProps = useMemo(
     () => ({ insertText: pluginInsertText, getSelectedText: pluginSelectedText, composerId: pluginComposerId }),
     [pluginInsertText, pluginSelectedText, pluginComposerId],
@@ -4103,9 +4138,10 @@ export function EmailComposer({
             )}
             style={{ height: 'calc(100vh - 350px)' }}
             aria-invalid={validationErrors.body || undefined}
+            onContextMenu={onBodyContextMenu}
           />
         ) : (
-          <div ref={editorContainerRef}>
+          <div ref={editorContainerRef} onContextMenu={onBodyContextMenu}>
             <RichTextEditor
               content={body}
               onChange={(html) => {
@@ -4727,6 +4763,7 @@ export function EmailComposer({
       )}
     </div>
       <ComposerPluginSidebar side="right" mode={pluginSidebars.modes.right} onOpen={() => pluginSidebars.open('right')} onClose={() => pluginSidebars.close('right')} extraProps={pluginSidebarProps} />
+      <ComposerSelectionMenu menu={selectionMenu} composerId={pluginComposerId} onClipboard={clipboardFromMenu} />
     </div>
   );
 }

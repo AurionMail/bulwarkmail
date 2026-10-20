@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
@@ -410,6 +410,66 @@ describe('composer-attach-menu', () => {
     render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
     expect(screen.queryByTestId('composer-attach-menu')).toBeNull();
     expect(screen.getByRole('button', { name: 'attach' })).toBeInTheDocument();
+  });
+});
+
+describe('composer-selection-menu', () => {
+  const SURFACE = 'composer-selection-menu';
+  const rightClick = (el: HTMLElement) => {
+    const event = createEvent.contextMenu(el, { clientX: 40, clientY: 50 });
+    fireEvent(el, event);
+    return event;
+  };
+
+  beforeEach(() => { useSettingsStore.setState({ plainTextMode: true }); });
+  afterEach(() => { useSettingsStore.setState({ plainTextMode: false }); });
+
+  it('leaves the browser menu alone without plugin entries, and without a selection', () => {
+    const { container } = render(<EmailComposer initialData={{ ...DRAFT, body: 'Hello there' }} onClose={vi.fn()} />);
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.setSelectionRange(0, 5);
+    expect(rightClick(textarea).defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    act(() => { setPluginActions('p1', 'P1', SURFACE, checkActions([{ id: 'improve', label: 'Improve' }])); });
+    textarea.setSelectionRange(3, 3);
+    expect(rightClick(textarea).defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('offers Cut, Copy and the plugin entries on selected text, and hands the click the selection', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    try {
+      act(() => { setPluginActions('p1', 'P1', SURFACE, checkActions([{ id: 'improve', label: 'Improve', icon: 'sparkles' }])); });
+      const { container } = render(<EmailComposer initialData={{ ...DRAFT, body: 'Hello there' }} onClose={vi.fn()} />);
+      const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+      textarea.setSelectionRange(0, 5);
+
+      expect(rightClick(textarea).defaultPrevented).toBe(true);
+      const menu = screen.getByRole('menu');
+      expect(menu).toHaveTextContent('cut');
+      expect(menu).toHaveTextContent('copy');
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Improve' }));
+      await act(async () => {});
+      expect(dispatch).toHaveBeenCalledWith('p1', SURFACE, 'improve', expect.objectContaining({ selection: { text: 'Hello' } }));
+      expect(typeof dispatch.mock.calls[0][3].composerId).toBe('string');
+      expect(screen.queryByRole('menu')).toBeNull();
+
+      textarea.setSelectionRange(0, 5);
+      rightClick(textarea);
+      fireEvent.click(screen.getByTestId('composer-selection-copy'));
+      expect(writeText).toHaveBeenCalledWith('Hello');
+      expect(textarea.value).toBe('Hello there');
+
+      textarea.setSelectionRange(0, 6);
+      rightClick(textarea);
+      fireEvent.click(screen.getByTestId('composer-selection-cut'));
+      expect(writeText).toHaveBeenLastCalledWith('Hello ');
+      expect(textarea.value).toBe('there');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

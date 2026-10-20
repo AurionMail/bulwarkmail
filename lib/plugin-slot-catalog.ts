@@ -86,6 +86,7 @@ export const SLOT_CATALOG = {
   'composer-attach-menu': S('composer', 'action', ['ui:composer-toolbar'], { composerId: null }, 'entries in the Attach menu (for example "From Nextcloud"); the click\'s composerId lets api.composer.attach add files'),
   'composer-options-menu': S('composer', 'action', ['ui:composer-toolbar'], { composerId: null }, 'entries in the composer\'s Options menu'),
   'composer-toolbar-actions': S('composer', 'action', ['ui:composer-toolbar'], { composerId: null }, 'buttons in the composer\'s bottom bar, after Attach, Templates and Options; an action\'s shortcut works while the composer has focus', true),
+  'composer-selection-menu': S('composer', 'action', ['ui:composer-toolbar'], { composerId: null, selection: 'compose:read' }, 'entries in the right-click menu on selected text in the message (without plugin entries the browser\'s own menu stays); the click\'s selection is { text }'),
 
   // ─── Calendar ──────────────────────────────────────────────
   'calendar-event-actions': S('calendar', 'frame', ['ui:calendar-action'], { eventData: 'calendar:read', setVirtualLocation: null }, 'buttons in the event form', true),
