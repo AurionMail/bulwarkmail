@@ -1157,6 +1157,9 @@ export function EmailViewer({
 
   // Tablet list visibility
   const { isTablet, isMobile } = useDeviceDetection();
+  // The top toolbar leaves the message column on desktops and tablets, so
+  // it runs over the side panels to the right edge.
+  const liftToolbar = !isMobile;
   // Mountain View's conversation view: an icon-only toolbar at the top, and Reply /
   // Reply all / Forward as buttons under the message rather than in the bar.
   const mvViewer = interfaceLayout === 'mountain-view' && !isMobile;
@@ -1774,6 +1777,7 @@ export function EmailViewer({
     };
   }, [
     toolbarPosition,
+    liftToolbar,
     email?.id,
     showToolbarLabels,
     isLoading,
@@ -4360,12 +4364,42 @@ export function EmailViewer({
     </>
   );
 
+  // The top toolbar. On a desktop or tablet it spans the whole reader, over
+  // the plugin and contact side panels too; on a phone it stays in the
+  // message column.
+  const topToolbar = (
+    <div
+      data-viewer-top-toolbar={liftToolbar ? "full-width" : "column"}
+      className={cn(
+        "bg-background flex-shrink-0",
+        !mvViewer && "border-b border-border",
+        "max-lg:sticky max-lg:top-0 max-lg:z-10"
+      )}
+    >
+      <div className={cn("px-2 sm:px-4 lg:px-6 flex items-center", mvViewer ? "h-12 lg:ps-4" : "h-14")}>
+        <div
+          ref={toolbarRef}
+          data-mv-viewer-toolbar={mvViewer ? "" : undefined}
+          className={cn("flex items-center gap-0.5 sm:gap-2 w-full", mvViewer ? "justify-start" : "justify-between")}
+        >
+          {renderToolbarItems(true)}
+          {mvViewer && mvPosition && (
+            <MvPager position={mvPosition} onPrev={onNavigatePrev} onNext={onNavigateNext} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div
       ref={setViewerRootEl}
       data-tour="email-viewer"
-      className={cn("flex-1 flex flex-row h-full bg-background overflow-hidden relative", className)}
+      className={cn("flex-1 flex flex-col h-full bg-background overflow-hidden relative", className)}
     >
+    {toolbarPosition === 'top' && liftToolbar && topToolbar}
+    {/* The message and the side panels, below the toolbar. Overlays anchor here. */}
+    <div className="flex-1 min-h-0 flex flex-row overflow-hidden relative">
     {/* Mobile More menu sidebar overlay. Inside a Pro pane both pieces
         anchor to the viewer's relative root with absolute positioning: the
         viewport is desktop-sized there even though the pane is phone-sized,
@@ -4633,26 +4667,7 @@ export function EmailViewer({
     {/* Main email content */}
     <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
       {/* === TOOLBAR (top position) === */}
-      {toolbarPosition === 'top' && (
-        <div className={cn(
-          "bg-background",
-          !mvViewer && "border-b border-border",
-          "max-lg:sticky max-lg:top-0 max-lg:z-10"
-        )}>
-          <div className={cn("px-2 sm:px-4 lg:px-6 flex items-center", mvViewer ? "h-12 lg:ps-4" : "h-14")}>
-            <div
-              ref={toolbarRef}
-              data-mv-viewer-toolbar={mvViewer ? "" : undefined}
-              className={cn("flex items-center gap-0.5 sm:gap-2 w-full", mvViewer ? "justify-start" : "justify-between")}
-            >
-              {renderToolbarItems(true)}
-              {mvViewer && mvPosition && (
-                <MvPager position={mvPosition} onPrev={onNavigatePrev} onNext={onNavigateNext} />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {toolbarPosition === 'top' && !liftToolbar && topToolbar}
 
       <PluginSlot name="reader-header" className="w-full bg-background" extraProps={pluginEmailProps} />
 
@@ -6537,6 +6552,7 @@ export function EmailViewer({
       />
     )}
 
+    </div>
     </div>
   );
 }
