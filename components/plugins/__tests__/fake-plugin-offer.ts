@@ -15,14 +15,14 @@ export function lastSlotProps(slot: string): Record<string, unknown> {
   return lastProps.get(slot) ?? {};
 }
 
-/** Registers a fake plugin that offers the given slots; `fill` names the panel slots whose frame fills the panel. */
-export function offerSlots(pluginId: string, slots: string[], { fill = [] }: { fill?: string[] } = {}): void {
+/** Registers a fake plugin that offers the given slots; `fill` names the panel slots whose frame fills the panel, `startFolded` those that start folded. */
+export function offerSlots(pluginId: string, slots: string[], { fill = [], startFolded = [] }: { fill?: string[]; startFolded?: string[] } = {}): void {
   register({
     plugin: { id: pluginId, name: pluginId },
     code: '',
     tier: 'untrusted',
     background: {},
-    slotOffers: slots.map((name) => ({ name: name as SlotName, order: 100, hasShouldShow: false, ...(fill.includes(name) ? { fill: true } : {}) })),
+    slotOffers: slots.map((name) => ({ name: name as SlotName, order: 100, hasShouldShow: false, ...(fill.includes(name) ? { fill: true } : {}), ...(startFolded.includes(name) ? { startFolded: true } : {}) })),
     hookDisposables: [],
   } as unknown as ActivePlugin);
   offered.add(pluginId);

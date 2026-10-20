@@ -92,7 +92,7 @@ export interface InitDoneMsg {
   /** Hook names the plugin registered. The host installs proxy handlers. */
   hooks: string[];
   /** Slots the plugin claims. Used by the host to know when a slot is offered. `fill`: a panel slot that fills its panel (see slot-layout.ts). */
-  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean }>;
+  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean; startFolded?: boolean }>;
   /**
    * Keyboard shortcuts the plugin declares. The host installs a global
    * keydown listener that dispatches to the `shortcut:<id>` hook when the

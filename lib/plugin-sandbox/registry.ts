@@ -15,6 +15,8 @@ export interface SlotOffer {
   hasShouldShow: boolean;
   /** The frame fills its panel (panel slots only; see slot-layout.ts). */
   fill?: boolean;
+  /** The panel starts folded until the user or the plugin opens it (panel slots only). */
+  startFolded?: boolean;
 }
 
 export interface ActivePlugin {
@@ -34,6 +36,7 @@ export interface ResolvedSlotOffer {
   order: number;
   hasShouldShow: boolean;
   fill?: boolean;
+  startFolded?: boolean;
 }
 
 const active = new Map<string, ActivePlugin>();
@@ -83,7 +86,7 @@ export function offersForSlot(slot: SlotName): readonly ResolvedSlotOffer[] {
   for (const entry of active.values()) {
     for (const offer of entry.slotOffers) {
       if (offer.name === slot) {
-        out.push({ pluginId: entry.plugin.id, order: offer.order, hasShouldShow: offer.hasShouldShow, ...(offer.fill ? { fill: true } : {}) });
+        out.push({ pluginId: entry.plugin.id, order: offer.order, hasShouldShow: offer.hasShouldShow, ...(offer.fill ? { fill: true } : {}), ...(offer.startFolded ? { startFolded: true } : {}) });
       }
     }
   }

@@ -71,9 +71,13 @@ export function composerSidebarModes(
 const storageKey = (side: ComposerSidebarSide) => `composerPluginSidebarCollapsed:${side}`;
 const widthKey = (side: ComposerSidebarSide) => `composerPluginSidebarWidth:${side}`;
 
-function readCollapsed(side: ComposerSidebarSide): boolean {
-  if (typeof window === "undefined") return false;
-  try { return localStorage.getItem(storageKey(side)) === "1"; } catch { return false; }
+/** The user's choice for a side; null until they fold or open it once. */
+function readCollapsed(side: ComposerSidebarSide): boolean | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(storageKey(side));
+    return stored === "1" ? true : stored === "0" ? false : null;
+  } catch { return null; }
 }
 
 export function clampSidebarWidth(width: number): number {
@@ -94,13 +98,21 @@ function readWidth(side: ComposerSidebarSide): number {
  * api.ui.openPanel requests for it are answered here.
  */
 export function useComposerSidebars(root: HTMLElement | null, composerId: string | null = null) {
-  const hasLeft = usePluginSlotOffers("composer-sidebar").length > 0;
-  const hasRight = usePluginSlotOffers("composer-sidebar-right").length > 0;
+  const leftOffers = usePluginSlotOffers("composer-sidebar");
+  const rightOffers = usePluginSlotOffers("composer-sidebar-right");
+  const hasLeft = leftOffers.length > 0;
+  const hasRight = rightOffers.length > 0;
   const [width, setWidth] = useState(0);
-  const [collapsed, setCollapsed] = useState<Record<ComposerSidebarSide, boolean>>(() => ({
+  // The user's choice per side; until they make one, a panel whose plugin
+  // asked to start folded (a chat opened on demand) is folded, the rest open.
+  const [chosen, setChosen] = useState<Record<ComposerSidebarSide, boolean | null>>(() => ({
     left: readCollapsed("left"),
     right: readCollapsed("right"),
   }));
+  const collapsed: Record<ComposerSidebarSide, boolean> = {
+    left: chosen.left ?? leftOffers.some((o) => o.startFolded),
+    right: chosen.right ?? rightOffers.some((o) => o.startFolded),
+  };
   const [overlayOpen, setOverlayOpen] = useState<Record<ComposerSidebarSide, boolean>>({ left: false, right: false });
   const [widths, setWidths] = useState<Record<ComposerSidebarSide, number>>(() => ({ left: readWidth("left"), right: readWidth("right") }));
 
@@ -127,7 +139,7 @@ export function useComposerSidebars(root: HTMLElement | null, composerId: string
   };
 
   const setSideCollapsed = (side: ComposerSidebarSide, value: boolean) => {
-    setCollapsed((prev) => ({ ...prev, [side]: value }));
+    setChosen((prev) => ({ ...prev, [side]: value }));
     try { localStorage.setItem(storageKey(side), value ? "1" : "0"); } catch { /* storage blocked */ }
   };
 

@@ -1531,10 +1531,16 @@ export function EmailViewer({
   emailIdRef.current = email?.id;
   const readerActionContext = useMemo(() => ({ emailId: email?.id }), [email?.id]);
   const pluginFooterProps = useMemo(() => ({ emailId: email?.id }), [email?.id]);
-  const [detailSidebarCollapsed, setDetailSidebarCollapsed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try { return localStorage.getItem('emailDetailSidebarCollapsed') === '1'; } catch { return false; }
+  // The user's choice; until they make one, a panel whose plugin asked to
+  // start folded (a chat opened on demand) is folded, the rest open.
+  const [detailSidebarChoice, setDetailSidebarCollapsed] = useState<boolean | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = localStorage.getItem('emailDetailSidebarCollapsed');
+      return stored === '1' ? true : stored === '0' ? false : null;
+    } catch { return null; }
   });
+  const detailSidebarCollapsed = detailSidebarChoice ?? detailSlots.some((o) => o.startFolded);
   const [detailSidebarWidth, setDetailSidebarWidth] = useState<number>(() => {
     if (typeof window === 'undefined') return 280;
     try {
@@ -1588,8 +1594,9 @@ export function EmailViewer({
   }), []);
 
   useEffect(() => {
-    try { localStorage.setItem('emailDetailSidebarCollapsed', detailSidebarCollapsed ? '1' : '0'); } catch { /* ignore */ }
-  }, [detailSidebarCollapsed]);
+    if (detailSidebarChoice === null) return;
+    try { localStorage.setItem('emailDetailSidebarCollapsed', detailSidebarChoice ? '1' : '0'); } catch { /* ignore */ }
+  }, [detailSidebarChoice]);
   useEffect(() => {
     try { localStorage.setItem('emailDetailSidebarWidth', String(detailSidebarWidth)); } catch { /* ignore */ }
   }, [detailSidebarWidth]);

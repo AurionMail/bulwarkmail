@@ -43,7 +43,7 @@ import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-securit
 // ─── Module-scope state ──────────────────────────────────────
 
 interface PluginExports {
-  slots?: Record<string, { component: React.ComponentType<Record<string, unknown>>; shouldShow?: (ctx: unknown) => boolean; order?: number; fill?: boolean }>;
+  slots?: Record<string, { component: React.ComponentType<Record<string, unknown>>; shouldShow?: (ctx: unknown) => boolean; order?: number; fill?: boolean; startFolded?: boolean }>;
   hooks?: Record<string, (...args: unknown[]) => unknown>;
   /**
    * Keyboard shortcut bindings. Each entry's `handler` is registered as a
@@ -913,7 +913,7 @@ async function bootBackground(payload: BackgroundInit): Promise<void> {
   }
 
   // Enumerate slot offers.
-  const slotInfo: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean }> = [];
+  const slotInfo: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean; startFolded?: boolean }> = [];
   const slots = exports.slots ?? {};
   for (const [name, def] of Object.entries(slots)) {
     if (def && typeof def.component === 'function') {
@@ -923,6 +923,8 @@ async function bootBackground(payload: BackgroundInit): Promise<void> {
         order: typeof def.order === 'number' ? def.order : 100,
         // A panel that fills its panel instead of growing with its content.
         ...(def.fill === true && isFillableSlot(name) ? { fill: true } : {}),
+        // A panel the user opens when they want it (a chat), not on every message.
+        ...(def.startFolded === true && isFillableSlot(name) ? { startFolded: true } : {}),
       });
     }
   }

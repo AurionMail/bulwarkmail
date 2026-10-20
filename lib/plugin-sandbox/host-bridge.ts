@@ -172,7 +172,7 @@ export interface SlotOptions {
 
 export interface InitDoneInfo {
   hooks: string[];
-  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean }>;
+  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean; startFolded?: boolean }>;
   shortcuts: Array<{ id: string; keys: string; label: string; category?: string }>;
 }
 

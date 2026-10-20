@@ -647,6 +647,22 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     expect(open).toBeNull();
   });
 
+  it('start folded when the plugin asks for it, until the user or the plugin opens it', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar-right'], { startFolded: ['composer-sidebar-right'] });
+    const { unmount } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+    act(() => { requestPanel('p1', 'composer-sidebar-right', 'open', undefined); });
+    expect(panel('right').dataset.composerSidebarMode).toBe('docked');
+    unmount();
+
+    // Opened once: it stays open for the next composer.
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').dataset.composerSidebarMode).toBe('docked');
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_hide' }));
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+  });
+
   it('open a folded panel over the composer when there is no room beside it', () => {
     stubWidth(600);
     offerSlots('p1', ['composer-sidebar-right']);

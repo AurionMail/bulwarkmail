@@ -163,6 +163,18 @@ describe('email-detail-sidebar', () => {
     expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
   });
 
+  it('starts folded when the plugin asks for it, and remembers the user opening it', () => {
+    stubWidth(1000);
+    offerSlots('p1', ['email-detail-sidebar'], { startFolded: ['email-detail-sidebar'] });
+    const { unmount } = viewer(textMail('Hi'));
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_show' }));
+    expect(screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!.getAttribute('data-plugin-detail-panel')).toBe('docked');
+    unmount();
+    viewer(textMail('Hi'));
+    expect(screen.getByTestId('slot-email-detail-sidebar')).toBeInTheDocument();
+  });
+
   it('docks next to the message when there is room', () => {
     stubWidth(1000);
     offerSlots('p1', ['email-detail-sidebar']);
