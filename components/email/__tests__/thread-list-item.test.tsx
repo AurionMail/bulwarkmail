@@ -781,3 +781,31 @@ describe('ThreadListItem date (#891)', () => {
     expect(container.textContent).not.toMatch(/2024/);
   });
 });
+
+describe('ThreadListItem hover actions', () => {
+  // When the row above is deleted from its hover actions, the next row slides
+  // under the resting pointer. The browser then reports a pointerover whose
+  // relatedTarget is the list around the row, and React builds no
+  // onPointerEnter from that, so the row has to arm its actions on pointerover.
+  const renderInList = (thread: ReturnType<typeof groupEmailsByThread>[number]) =>
+    render(
+      <div data-testid="list">
+        <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} onDelete={() => {}} />
+      </div>,
+    );
+
+  it.each([
+    ['a single message', () => groupEmailsByThread([makeEmail()])[0]],
+    ['a conversation', () => groupEmailsByThread([
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T10:00:00Z' }),
+      makeEmail({ id: 'b', receivedAt: '2024-01-15T11:00:00Z' }),
+    ])[0]],
+  ])('mounts them for %s that slides under a resting pointer', (_name, makeThread) => {
+    const { container } = renderInList(makeThread());
+    expect(screen.queryByTestId('hover-action-delete')).toBeNull();
+    const row = screen.queryByTestId('email-list-item') ?? container.querySelector('[data-unread]');
+    expect(row).not.toBeNull();
+    fireEvent.pointerOver(row!, { relatedTarget: screen.getByTestId('list') });
+    expect(screen.getByTestId('hover-action-delete')).toBeTruthy();
+  });
+});
