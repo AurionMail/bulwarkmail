@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { EmailViewer } from "@/components/email/email-viewer";
 import { ErrorBoundary, EmailViewerErrorFallback } from "@/components/error";
 import { useAuthStore } from "@/stores/auth-store";
-import { useEmailStore } from "@/stores/email-store";
+import { useEmailStore, resolveEmailBlobContext, type EmailBlobContext } from "@/stores/email-store";
 import { useIdentityStore } from "@/stores/identity-store";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
 import { findDraftIdentityId } from "@/lib/reply-identity";
@@ -100,6 +100,17 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
   const openComposeTabNow = useProTabStore((s) => s.openComposeTab);
 
   const [email, setEmail] = useState<Email | null>(null);
+  const [blobSource, setBlobSource] = useState<EmailBlobContext>({ client: null });
+  // A reader owns its load, including an in-flight one across account switches.
+  // Only a different message or explicit tab context starts a new load.
+  const loadRef = useRef<{
+    emailId: string;
+    clientOverride: typeof clientOverride;
+    accountId: typeof accountId;
+    blobSource: EmailBlobContext;
+    promise: Promise<Email | null>;
+    applied: boolean;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const composerSessionIdRef = useRef(0);
 
@@ -137,11 +148,34 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
   useEffect(() => {
     let cancelled = false;
     if (!client) return;
+    let load = loadRef.current;
+    if (!load || load.emailId !== emailId || load.clientOverride !== clientOverride || load.accountId !== accountId) {
+      const state = useEmailStore.getState();
+      const ref = state.selectedEmail?.id === emailId
+        ? state.selectedEmail
+        : state.emails.find((e) => e.id === emailId);
+      // Folder/search panes supply their own context. A primary folder must
+      // not inherit an unrelated globally selected shared folder's owner.
+      const source = accountId || clientOverride
+        ? { client, accountId: accountId ?? client.getAccountId() }
+        : resolveEmailBlobContext(ref ?? null, client);
+      load = {
+        emailId, clientOverride, accountId, blobSource: source, applied: false,
+        promise: accountId || clientOverride
+          ? client.getEmail(emailId, source.accountId)
+          : fetchEmailContent(client, emailId),
+      };
+      loadRef.current = load;
+    }
+    const pending = load;
+    if (pending.applied) return;
     setIsLoading(true);
-    (accountId ? client.getEmail(emailId, accountId) : fetchEmailContent(client, emailId))
+    pending.promise
       .then((loaded) => {
         if (cancelled) return;
+        pending.applied = true;
         setEmail(loaded);
+        setBlobSource(pending.blobSource);
         if (loaded) onLoadedRef.current?.(loaded);
       })
       .catch((err) => {
@@ -153,7 +187,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
     return () => {
       cancelled = true;
     };
-  }, [client, emailId, accountId, fetchEmailContent]);
+  }, [client, clientOverride, emailId, accountId, fetchEmailContent]);
 
   const currentMailboxRole = useMemo(() => {
     if (!email) return undefined;
@@ -326,14 +360,15 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
     }
   }, [client, email, moveToMailbox, onClose]);
 
-  const handleDownloadAttachment = useCallback(async (blobId: string, name: string, type?: string) => {
-    if (!client) return;
+  const handleDownloadAttachment = useCallback(async (blobId: string, name: string, type?: string, _forceDownload?: boolean, source?: EmailBlobContext) => {
+    const context = source ?? blobSource;
+    if (!context.client) return;
     try {
-      await client.downloadBlob(blobId, name, type);
+      await context.client.downloadBlob(blobId, name, type, context.accountId);
     } catch (err) {
       console.error('Download failed:', err);
     }
-  }, [client]);
+  }, [blobSource]);
 
   const handleQuickReply = useCallback(async (body: string) => {
     handleReply(body);
@@ -394,6 +429,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
       <ErrorBoundary fallback={EmailViewerErrorFallback}>
         <EmailViewer
           email={email}
+          blobSource={blobSource}
           isLoading={isLoading}
           onReply={handleReply}
           onReplyAll={handleReplyAll}
