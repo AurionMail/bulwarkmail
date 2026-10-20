@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { cleanup } from '@testing-library/react';
@@ -6,7 +6,7 @@ import type { Email, Mailbox } from '@/lib/jmap/types';
 
 // On a desktop the reader's top toolbar runs over the plugin side panel to
 // the right edge; the panel starts below it. On a phone the toolbar stays in
-// the message column.
+// the message column. Its menus close when a click goes into a frame.
 
 const device = { isMobile: false };
 vi.mock('@/hooks/use-media-query', () => ({
@@ -73,6 +73,16 @@ describe('the reader toolbar and the plugin side panel', () => {
     const root = document.querySelector('[data-tour="email-viewer"]')!;
     expect(root.firstElementChild!.contains(item)).toBe(true);
     expect(root.firstElementChild!.contains(panel)).toBe(false);
+  });
+
+  it('closes the More menu when a click goes into a frame', () => {
+    show();
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'more_actions' })); });
+    expect(screen.getByRole('menu', { name: 'more_actions' })).toBeTruthy();
+    // A click in the message body or a plugin panel moves focus into that
+    // frame: this document sees no mousedown, only the window losing focus.
+    act(() => { window.dispatchEvent(new Event('blur')); });
+    expect(screen.queryByRole('menu', { name: 'more_actions' })).toBeNull();
   });
 
   it('keeps the toolbar in the message column on a phone', () => {

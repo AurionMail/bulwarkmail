@@ -1648,8 +1648,20 @@ export function EmailViewer({
         setMoveMenuOpen(false);
       }
     }
+    // A click into a frame (the message body, a plugin's side panel) never
+    // reaches this document; the window losing focus to it is the click away.
+    function handleWindowBlur() {
+      setMoreMenuOpen(false);
+      setMoreMenuSub(null);
+      setTagMenuOpen(false);
+      setMoveMenuOpen(false);
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('blur', handleWindowBlur);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
   }, [moreMenuOpen, tagMenuOpen, moveMenuOpen, mobileMoreRef]);
 
   // Close dropdowns when email changes
