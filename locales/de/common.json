@@ -61,10 +61,10 @@
     "demo_tagline": "Erleben Sie einen voll ausgestatteten E-Mail-Client. Kein Konto erforderlich.",
     "demo_no_signup": "Keine Registrierung nötig - erkunden Sie frei mit Beispieldaten",
     "mobile_handoff": {
-      "title": "Open the Bulwark mobile app?",
-      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
-      "confirm": "Hand over to the app",
-      "cancel": "Stay in the webmail"
+      "title": "Bulwark Mail App öffnen?",
+      "description": "Diese Anmeldeseite wurde von einer App auf diesem Gerät geöffnet. Ihre Anmeldung für {username} wird an die App übergeben, die den Bulwark-Link registriert hat. Fahren Sie nur fort, wenn Sie die Anmeldung in der Bulwark Mail App gestartet haben.",
+      "confirm": "An die App übergeben",
+      "cancel": "Im Webmail bleiben"
     },
     "oauth_completing": "Anmeldung wird abgeschlossen...",
     "oauth_error": {
