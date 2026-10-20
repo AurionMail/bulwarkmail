@@ -22,6 +22,8 @@ export const MIN_COMPOSER_SIDEBAR_WIDTH = 220;
 export const MAX_COMPOSER_SIDEBAR_WIDTH = 480;
 /** Width of a folded panel (the strip with its toggle). */
 export const COMPOSER_SIDEBAR_STRIP = 37;
+/** Below this window width the panels are not shown at all (the `md` breakpoint). */
+export const COMPOSER_SIDEBAR_MIN_WINDOW = 768;
 /**
  * Narrowest the composer itself may get next to open panels: below this its
  * bottom bar (Attach, Templates, Options, Discard, Send) runs into itself.
@@ -170,6 +172,9 @@ export function useComposerSidebars(root: HTMLElement | null, composerId: string
     const state = latest.current;
     if (request.composerId && request.composerId !== state.composerId) return null;
     if (!(side === "left" ? state.hasLeft : state.hasRight)) return null;
+    // On a phone the panels are not on screen (hidden below md): the plugin
+    // then falls back to a dialog.
+    if (typeof window !== "undefined" && window.innerWidth < COMPOSER_SIDEBAR_MIN_WINDOW) return null;
     const isOpen = state.modes[side] === "docked" || state.modes[side] === "overlay";
     const wantOpen = request.mode === "open" ? true : request.mode === "close" ? false : !isOpen;
     if (wantOpen) {

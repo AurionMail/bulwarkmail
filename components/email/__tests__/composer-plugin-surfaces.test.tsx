@@ -663,6 +663,21 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     expect(panel('right').dataset.composerSidebarMode).toBe('folded');
   });
 
+  it('answer no request on a phone, where the panels are not shown', () => {
+    const width = window.innerWidth;
+    window.innerWidth = 390;
+    try {
+      stubWidth(390);
+      offerSlots('p1', ['composer-sidebar-right']);
+      render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+      let open: boolean | null = true;
+      act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'open', undefined); });
+      expect(open).toBeNull();
+    } finally {
+      window.innerWidth = width;
+    }
+  });
+
   it('open a folded panel over the composer when there is no room beside it', () => {
     stubWidth(600);
     offerSlots('p1', ['composer-sidebar-right']);
