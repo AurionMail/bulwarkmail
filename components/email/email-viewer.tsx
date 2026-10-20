@@ -1582,6 +1582,17 @@ export function EmailViewer({
   // click on the toggle, plus a new focusRequest for the slot.
   const detailPanelRef = useRef({ hasDetailSidebar, sidebarCollapsed, readerTooNarrow, isMobile });
   detailPanelRef.current = { hasDetailSidebar, sidebarCollapsed, readerTooNarrow, isMobile };
+  // The toolbar's panel button, like a plugin's request: opening focuses the panel.
+  const toggleDetailSidebar = () => {
+    if (sidebarCollapsed) {
+      setDetailSidebarCollapsed(false);
+      if (readerTooNarrow) setDetailSidebarForcedOpen(true);
+      setDetailFocusRequest((n) => n + 1);
+    } else {
+      setDetailSidebarCollapsed(true);
+      setDetailSidebarForcedOpen(false);
+    }
+  };
   useEffect(() => onPanelRequest((request) => {
     if (request.slot !== 'email-detail-sidebar') return null;
     const state = detailPanelRef.current;
@@ -3546,10 +3557,98 @@ export function EmailViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readReceiptResponse, shouldOfferReadReceipt, email?.id, sendReadReceiptNow]);
 
+  // The plugin side panel. One element in the same place whatever the viewer
+  // shows (a message, the next one loading, none), so its frame lives on while
+  // the user reads on instead of starting over with every message.
+  const panelToggleInToolbar = !!email;
+  const sidePanel = (
+  <>
+    {hasDetailSidebar && !isMobile && (
+      <div className="contents" data-reader-side-panel="">
+        {/* With a message open the toggle sits in its toolbar; without one, here. */}
+        {sidebarCollapsed && !panelToggleInToolbar && (
+          <div className="flex flex-col items-center border-s border-border bg-background">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setDetailSidebarCollapsed(false);
+                if (readerTooNarrow) setDetailSidebarForcedOpen(true);
+              }}
+              className="h-8 w-8 m-1"
+              aria-label={t('plugin_panel_show')}
+            >
+              <PanelRightOpen className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+        {!sidebarCollapsed && (
+          <>
+            {!sidebarOverlay && (
+              <ResizeHandle
+                onResizeStart={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
+                onResize={(delta) => {
+                  const newWidth = Math.max(200, Math.min(500, detailSidebarWidthRef.current - delta));
+                  setDetailSidebarWidth(newWidth);
+                }}
+                onResizeEnd={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
+                onDoubleClick={() => setDetailSidebarWidth(280)}
+              />
+            )}
+            <div
+              data-plugin-detail-panel={sidebarOverlay ? 'overlay' : 'docked'}
+              className={cn(
+                "flex flex-col h-full border-s border-border bg-background overflow-hidden",
+                sidebarOverlay && "absolute inset-y-0 end-0 z-30 shadow-xl",
+              )}
+              style={sidebarOverlay
+                ? { width: Math.min(detailSidebarWidth, Math.max(200, viewerWidth - 48)) }
+                : { width: detailSidebarWidth, minWidth: detailSidebarWidth }}
+            >
+              {!panelToggleInToolbar && (
+                <div className="flex items-center justify-end px-1 py-1 border-b border-border shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setDetailSidebarCollapsed(true);
+                      setDetailSidebarForcedOpen(false);
+                    }}
+                    className="h-7 w-7"
+                    aria-label={t('plugin_panel_hide')}
+                  >
+                    <PanelRightClose className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <PluginSlot name="email-detail-sidebar" extraProps={pluginDetailProps} />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    )}
+  </>
+  );
+  const shell = (content: React.ReactNode) => (
+    <div
+      ref={setViewerRootEl}
+      className={cn("flex-1 flex flex-col h-full bg-background overflow-hidden relative", className)}
+    >
+      {null}
+      <div className="flex-1 min-h-0 flex flex-row overflow-hidden relative">
+        {content}
+        {sidePanel}
+        {null}
+      </div>
+    </div>
+  );
+
   // Show loading skeleton while email is being fetched
   if (isLoading && !email) {
-    return (
-      <div className={cn("flex-1 flex flex-col h-full bg-background overflow-hidden animate-in fade-in duration-200", className)}>
+    return shell(
+      <div className="flex-1 min-w-0 flex flex-col h-full bg-background overflow-hidden animate-in fade-in duration-200">
         {/* Loading Header Skeleton - gentler animation */}
         <div className="bg-background border-b border-border">
           <div className="px-4 lg:px-6 py-3 lg:py-4">
@@ -3601,8 +3700,8 @@ export function EmailViewer({
       const logoSrc = withBasePath(resolvedTheme === 'dark'
         ? '/branding/Bulwark_Logo_with_Lettering_White_and_Color.svg'
         : '/branding/Bulwark_Logo_with_Lettering_Dark_Color.svg');
-      return (
-        <div className={cn("flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-muted/30 to-muted/50", className)}>
+      return shell(
+        <div className="flex-1 min-w-0 flex flex-col items-center justify-center bg-gradient-to-br from-muted/30 to-muted/50">
           <div className="text-center p-8 max-w-md">
             <img
               src={logoSrc}
@@ -3646,8 +3745,8 @@ export function EmailViewer({
     // Rendered in Pro (embedded) too: a silent void here read as "broken"
     // in a split pane - the empty reading pane should always say what it is
     // and offer a way forward.
-    return (
-      <div className={cn("flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-muted/30 to-muted/50", className)}>
+    return shell(
+      <div className="flex-1 min-w-0 flex flex-col items-center justify-center bg-gradient-to-br from-muted/30 to-muted/50">
         <div className="text-center p-8">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-background shadow-lg flex items-center justify-center">
             <Mail className="w-10 h-10 text-muted-foreground" />
@@ -4371,6 +4470,21 @@ export function EmailViewer({
             </div>
           )}
         </div>
+        {/* The plugin side panel: shown or hidden for every message alike. */}
+        {hasDetailSidebar && !isMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleDetailSidebar}
+            className={cn("h-8 w-8", mvViewer && "order-10")}
+            title={t(sidebarCollapsed ? 'plugin_panel_show' : 'plugin_panel_hide')}
+            aria-label={t(sidebarCollapsed ? 'plugin_panel_show' : 'plugin_panel_hide')}
+            aria-pressed={!sidebarCollapsed}
+            data-plugin-panel-toggle=""
+          >
+            {sidebarCollapsed ? <PanelRightOpen className="w-4 h-4 text-muted-foreground" /> : <PanelRightClose className="w-4 h-4 text-muted-foreground" />}
+          </Button>
+        )}
       </div>
       )}
     </>
@@ -4412,6 +4526,7 @@ export function EmailViewer({
     {toolbarPosition === 'top' && liftToolbar && topToolbar}
     {/* The message and the side panels, below the toolbar. Overlays anchor here. */}
     <div className="flex-1 min-h-0 flex flex-row overflow-hidden relative">
+    <>
     {/* Mobile More menu sidebar overlay. Inside a Pro pane both pieces
         anchor to the viewer's relative root with absolute positioning: the
         viewport is desktop-sized there even though the pane is phone-sized,
@@ -6441,72 +6556,9 @@ export function EmailViewer({
     )}
 
     <ReaderSelectionMenu menu={selectionMenu} />
-    {/* Plugin Detail Sidebar - resizable, collapsible */}
-    {hasDetailSidebar && !isMobile && (
-      <>
-        {/* Collapse toggle when sidebar is collapsed */}
-        {sidebarCollapsed && (
-          <div className="flex flex-col items-center border-s border-border bg-background">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setDetailSidebarCollapsed(false);
-                if (readerTooNarrow) setDetailSidebarForcedOpen(true);
-              }}
-              className="h-8 w-8 m-1"
-              aria-label={t('plugin_panel_show')}
-            >
-              <PanelRightOpen className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-        {!sidebarCollapsed && (
-          <>
-            {!sidebarOverlay && (
-              <ResizeHandle
-                onResizeStart={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
-                onResize={(delta) => {
-                  const newWidth = Math.max(200, Math.min(500, detailSidebarWidthRef.current - delta));
-                  setDetailSidebarWidth(newWidth);
-                }}
-                onResizeEnd={() => { detailSidebarWidthRef.current = detailSidebarWidth; }}
-                onDoubleClick={() => setDetailSidebarWidth(280)}
-              />
-            )}
-            <div
-              data-plugin-detail-panel={sidebarOverlay ? 'overlay' : 'docked'}
-              className={cn(
-                "flex flex-col h-full border-s border-border bg-background overflow-hidden",
-                sidebarOverlay && "absolute inset-y-0 end-0 z-30 shadow-xl",
-              )}
-              style={sidebarOverlay
-                ? { width: Math.min(detailSidebarWidth, Math.max(200, viewerWidth - 48)) }
-                : { width: detailSidebarWidth, minWidth: detailSidebarWidth }}
-            >
-              <div className="flex items-center justify-end px-1 py-1 border-b border-border shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setDetailSidebarCollapsed(true);
-                    setDetailSidebarForcedOpen(false);
-                  }}
-                  className="h-7 w-7"
-                  aria-label={t('plugin_panel_hide')}
-                >
-                  <PanelRightClose className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <PluginSlot name="email-detail-sidebar" extraProps={pluginDetailProps} />
-              </div>
-            </div>
-          </>
-        )}
-      </>
-    )}
-
+    </>
+    {sidePanel}
+    <>
     {bodyMention && (
       <RecipientCardPopover
         anchor={bodyMention.anchor}
@@ -6563,7 +6615,7 @@ export function EmailViewer({
         getFileContent={getInAppPreviewContent}
       />
     )}
-
+    </>
     </div>
     </div>
   );

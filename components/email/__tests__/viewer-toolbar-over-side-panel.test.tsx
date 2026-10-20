@@ -1,12 +1,14 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { cleanup } from '@testing-library/react';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 
 // On a desktop the reader's top toolbar runs over the plugin side panel to
 // the right edge; the panel starts below it. On a phone the toolbar stays in
-// the message column. Its menus close when a click goes into a frame.
+// the message column. Its menus close when a click goes into a frame. The
+// panel is the reader's, not the message's: its frame lives on from one
+// message to the next, and its toggle sits at the end of the toolbar.
 
 const device = { isMobile: false };
 vi.mock('@/hooks/use-media-query', () => ({
@@ -16,8 +18,16 @@ vi.mock('@/hooks/use-media-query', () => ({
 vi.mock('@/components/tour/tour-provider', () => ({
   useTour: () => ({ activeTour: null, startTour: vi.fn(), endTour: vi.fn(), registerStep: vi.fn() }),
 }));
+const mounts: Record<string, number> = {};
 vi.mock('@/components/plugins/plugin-slot', () => ({
-  PluginSlot: ({ name }: { name: string }) => React.createElement('div', { 'data-slot': name }),
+  PluginSlot: ({ name }: { name: string }) => {
+    useEffect(() => {
+      mounts[name] = (mounts[name] ?? 0) + 1;
+      // Once per mount on purpose: that is what the test counts.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    return React.createElement('div', { 'data-slot': name });
+  },
 }));
 vi.mock('@/hooks/use-plugin-slot-offers', () => ({
   usePluginSlotOffers: (slot: string) => (slot === 'email-detail-sidebar' ? [{ pluginId: 'p', order: 100 }] : []),
@@ -83,6 +93,37 @@ describe('the reader toolbar and the plugin side panel', () => {
     // frame: this document sees no mousedown, only the window losing focus.
     act(() => { window.dispatchEvent(new Event('blur')); });
     expect(screen.queryByRole('menu', { name: 'more_actions' })).toBeNull();
+  });
+
+  it('keeps the side panel frame while the user reads on, and between messages', () => {
+    const other = { ...email, id: 'e2', blobId: 'b2', threadId: 't2', subject: 'Second' } as unknown as Email;
+    const view = (props: { email: Email | null; isLoading: boolean }) => (
+      <EmailViewer mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" onDelete={() => {}} {...props} />
+    );
+    mounts['email-detail-sidebar'] = 0;
+    const { rerender } = render(view({ email, isLoading: false }));
+    expect(mounts['email-detail-sidebar']).toBe(1);
+    // The next message loading, then open; then none at all.
+    rerender(view({ email: null, isLoading: true }));
+    rerender(view({ email: other, isLoading: false }));
+    rerender(view({ email: null, isLoading: false }));
+    expect(screen.getByText('no_conversation_selected')).toBeTruthy();
+    expect(document.querySelector('[data-slot="email-detail-sidebar"]')).toBeTruthy();
+    expect(mounts['email-detail-sidebar']).toBe(1);
+  });
+
+  it('folds and unfolds the side panel from the toolbar', () => {
+    show();
+    const toggle = document.querySelector('[data-plugin-panel-toggle]') as HTMLElement;
+    // At the end of the toolbar, not in the panel.
+    expect(toggle.closest('[data-plugin-detail-panel]')).toBeNull();
+    expect(toggle.getAttribute('aria-label')).toBe('plugin_panel_hide');
+    act(() => { fireEvent.click(toggle); });
+    expect(document.querySelector('[data-plugin-detail-panel]')).toBeNull();
+    // Folded, the panel leaves no strip of its own: the toolbar button brings it back.
+    expect(screen.getAllByLabelText('plugin_panel_show')).toHaveLength(1);
+    act(() => { fireEvent.click(screen.getByLabelText('plugin_panel_show')); });
+    expect(document.querySelector('[data-plugin-detail-panel]')).toBeTruthy();
   });
 
   it('keeps the toolbar in the message column on a phone', () => {
