@@ -6,11 +6,12 @@
 // first); opening it anyway lays it over the composer instead of squeezing
 // the message into a column nobody can write in.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "@/components/icons";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
+import { onPanelRequest, type PanelRequest } from "@/lib/plugin-sandbox/panel-requests";
 import { cn } from "@/lib/utils";
 
 /** Width of an open panel. */
@@ -68,8 +69,12 @@ function readCollapsed(side: ComposerSidebarSide): boolean {
   try { return localStorage.getItem(storageKey(side)) === "1"; } catch { return false; }
 }
 
-/** Layout state of both panels for a composer whose root element is `root`. */
-export function useComposerSidebars(root: HTMLElement | null) {
+/**
+ * Layout state of both panels for a composer whose root element is `root`.
+ * `composerId` is the id plugins know this composer by; their
+ * api.ui.openPanel requests for it are answered here.
+ */
+export function useComposerSidebars(root: HTMLElement | null, composerId: string | null = null) {
   const hasLeft = usePluginSlotOffers("composer-sidebar").length > 0;
   const hasRight = usePluginSlotOffers("composer-sidebar-right").length > 0;
   const [width, setWidth] = useState(0);
@@ -115,7 +120,29 @@ export function useComposerSidebars(root: HTMLElement | null) {
     setOverlayOpen((prev) => ({ ...prev, [side]: false }));
   };
 
-  return { modes, open, close };
+  // Plugins opening their panel (api.ui.openPanel): counts up per side when
+  // it opens, and reaches the slot as `focusRequest`.
+  const [focusRequests, setFocusRequests] = useState<Record<ComposerSidebarSide, number>>({ left: 0, right: 0 });
+  const latest = useRef({ modes, open, close, composerId, hasLeft, hasRight });
+  latest.current = { modes, open, close, composerId, hasLeft, hasRight };
+  useEffect(() => onPanelRequest((request: PanelRequest) => {
+    const side: ComposerSidebarSide | null = request.slot === "composer-sidebar" ? "left" : request.slot === "composer-sidebar-right" ? "right" : null;
+    if (!side) return null;
+    const state = latest.current;
+    if (request.composerId && request.composerId !== state.composerId) return null;
+    if (!(side === "left" ? state.hasLeft : state.hasRight)) return null;
+    const isOpen = state.modes[side] === "docked" || state.modes[side] === "overlay";
+    const wantOpen = request.mode === "open" ? true : request.mode === "close" ? false : !isOpen;
+    if (wantOpen) {
+      if (!isOpen) state.open(side);
+      setFocusRequests((prev) => ({ ...prev, [side]: prev[side] + 1 }));
+    } else if (isOpen) {
+      state.close(side);
+    }
+    return wantOpen;
+  }), []);
+
+  return { modes, open, close, focusRequests };
 }
 
 /** One plugin panel of the composer, in the mode useComposerSidebars picked. */

@@ -4,6 +4,7 @@ import React from 'react';
 import type { Email, Mailbox, ThreadGroup } from '@/lib/jmap/types';
 import { resetActions, setActionDispatcher, setPluginActions } from '@/lib/plugin-sandbox/actions';
 import { clearOffers, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
+import { requestPanel } from '@/lib/plugin-sandbox/panel-requests';
 
 // Plugin surfaces of the open message: frames above the subject, under the
 // sender, between new text and quote, above a conversation; buttons in the
@@ -124,6 +125,42 @@ describe('email-detail-sidebar', () => {
     const panel = screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!;
     expect(panel.getAttribute('data-plugin-detail-panel')).toBe('overlay');
     expect(panel.className).toContain('absolute');
+  });
+
+  it('opens, closes and toggles on a plugin\'s request, and tells the slot to focus', () => {
+    stubWidth(584);
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi'));
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+
+    let open: boolean | null = false;
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'open', undefined); });
+    expect(open).toBe(true);
+    const panel = screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!;
+    expect(panel.getAttribute('data-plugin-detail-panel')).toBe('overlay');
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).focusRequest).toBe(1);
+
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'toggle', undefined); });
+    expect(open).toBe(false);
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'toggle', undefined); });
+    expect(open).toBe(true);
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).focusRequest).toBe(2);
+
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'close', undefined); });
+    expect(open).toBe(false);
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+  });
+
+  it('answers no request on phones, where there is no panel', () => {
+    device.isMobile = true;
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi'));
+    let open: boolean | null = true;
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'open', undefined); });
+    expect(open).toBeNull();
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
   });
 
   it('docks next to the message when there is room', () => {

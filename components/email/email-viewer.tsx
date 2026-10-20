@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { SubMenuPanel } from "@/components/ui/context-menu";
 import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection, watchElementSelection } from "./reader-selection-menu";
+import { onPanelRequest } from "@/lib/plugin-sandbox/panel-requests";
 import { formatFileSize, cn, MailboxNode, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview } from "@/lib/utils";
 import { getEffectiveTimeZone, getWallClock } from "@/lib/timezone";
 import { itemsToHide } from "@/lib/toolbar-overflow";
@@ -1520,7 +1521,11 @@ export function EmailViewer({
   const onBodySelection = useCallback((text: string) => {
     setBodySelection((prev) => (prev.text === text ? prev : (text ? { text } : NO_BODY_SELECTION)));
   }, []);
-  const pluginDetailProps = useMemo(() => ({ email: pluginEmailView, selection: bodySelection }), [pluginEmailView, bodySelection]);
+  const [detailFocusRequest, setDetailFocusRequest] = useState(0);
+  const pluginDetailProps = useMemo(
+    () => ({ email: pluginEmailView, selection: bodySelection, focusRequest: detailFocusRequest }),
+    [pluginEmailView, bodySelection, detailFocusRequest],
+  );
   const selectionMenu = useReaderSelectionMenu();
   const emailIdRef = useRef(email?.id);
   emailIdRef.current = email?.id;
@@ -1561,6 +1566,26 @@ export function EmailViewer({
   // Opened by hand while the message is too narrow for it: the panel lies over
   // the message instead of squeezing it.
   const sidebarOverlay = !sidebarCollapsed && readerTooNarrow;
+  // Plugins opening their panel (api.ui.openPanel): the same as the user's
+  // click on the toggle, plus a new focusRequest for the slot.
+  const detailPanelRef = useRef({ hasDetailSidebar, sidebarCollapsed, readerTooNarrow, isMobile });
+  detailPanelRef.current = { hasDetailSidebar, sidebarCollapsed, readerTooNarrow, isMobile };
+  useEffect(() => onPanelRequest((request) => {
+    if (request.slot !== 'email-detail-sidebar') return null;
+    const state = detailPanelRef.current;
+    if (!state.hasDetailSidebar || state.isMobile) return null;
+    const isOpen = !state.sidebarCollapsed;
+    const wantOpen = request.mode === 'open' ? true : request.mode === 'close' ? false : !isOpen;
+    if (wantOpen) {
+      setDetailSidebarCollapsed(false);
+      if (state.readerTooNarrow) setDetailSidebarForcedOpen(true);
+      setDetailFocusRequest((n) => n + 1);
+    } else {
+      setDetailSidebarCollapsed(true);
+      setDetailSidebarForcedOpen(false);
+    }
+    return wantOpen;
+  }), []);
 
   useEffect(() => {
     try { localStorage.setItem('emailDetailSidebarCollapsed', detailSidebarCollapsed ? '1' : '0'); } catch { /* ignore */ }

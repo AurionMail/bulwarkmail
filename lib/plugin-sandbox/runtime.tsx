@@ -545,6 +545,18 @@ function buildPluginApi(manifest: PluginManifest) {
        * back to the plugin's name. At most 40 characters.
        */
       setSectionTitle: (title: string | null) => callApi('ui.setSectionTitle', [title]) as Promise<void>,
+      /**
+       * Open, close or toggle the panel this plugin's slot sits in:
+       * 'composer-sidebar', 'composer-sidebar-right' (pass the composerId
+       * from the click context or the slot's props) or 'email-detail-sidebar'.
+       * Resolve to whether the panel is open afterwards, or null when no such
+       * panel is on screen (no composer or message open, or a phone), so the
+       * plugin can fall back to a dialog. A panel opened this way gets a new
+       * `focusRequest` prop, so the slot can focus its input.
+       */
+      openPanel: (slot: string, opts?: { composerId?: string }) => callApi('ui.setPanel', [slot, 'open', opts]) as Promise<boolean | null>,
+      closePanel: (slot: string, opts?: { composerId?: string }) => callApi('ui.setPanel', [slot, 'close', opts]) as Promise<boolean | null>,
+      togglePanel: (slot: string, opts?: { composerId?: string }) => callApi('ui.setPanel', [slot, 'toggle', opts]) as Promise<boolean | null>,
     },
     // Requests with an account or key the manifest declares under
     // `credentials`; the server adds the secret (permission http:proxy).

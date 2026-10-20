@@ -7,6 +7,7 @@ import { checkActions, resetActions, setActionDispatcher, setPluginActions } fro
 import { clearOffers, lastSlotProps, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
 import { useSettingsStore } from '@/stores/settings-store';
 import { SLOT_CATALOG } from '@/lib/plugin-slot-catalog';
+import { requestPanel, resetPanelRequests } from '@/lib/plugin-sandbox/panel-requests';
 
 // Plugin surfaces of the composer: frames above and below the message text
 // (fed the draft, at most every 2 seconds), and entries in the Send and
@@ -220,6 +221,7 @@ beforeEach(() => {
 afterEach(() => {
   clearOffers();
   setActionDispatcher(null);
+  resetPanelRequests();
   vi.useRealTimers();
 });
 
@@ -560,6 +562,40 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     } finally {
       useSettingsStore.setState({ plainTextMode: false });
     }
+  });
+
+  it('open, close and toggle on a plugin\'s request, for that composer only, and tell the slot to focus', () => {
+    stubWidth(600);
+    offerSlots('p1', ['composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+
+    let open: boolean | null = false;
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'open', { composerId: 'someone-else' }); });
+    expect(open).toBeNull();
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'open', undefined); });
+    expect(open).toBe(true);
+    expect(panel('right').dataset.composerSidebarMode).toBe('overlay');
+    const props = slotProps(screen.getByTestId('slot-composer-sidebar-right'));
+    expect(props.focusRequest).toBe(1);
+    const composerId = props.composerId as string;
+
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'toggle', { composerId }); });
+    expect(open).toBe(false);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'toggle', { composerId }); });
+    expect(open).toBe(true);
+    expect(slotProps(screen.getByTestId('slot-composer-sidebar-right')).focusRequest).toBe(2);
+
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'close', { composerId }); });
+    expect(open).toBe(false);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+    // The left panel is not on this composer: nobody answers.
+    act(() => { open = requestPanel('p1', 'composer-sidebar', 'open', { composerId }); });
+    expect(open).toBeNull();
   });
 
   it('open a folded panel over the composer when there is no room beside it', () => {

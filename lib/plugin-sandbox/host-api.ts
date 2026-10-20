@@ -53,6 +53,7 @@ import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } fr
 import { doComposeOpen, doComposeReply, doDraftsCreate } from './host-api-compose';
 import { doNotificationsShow } from './host-api-notify';
 import { setSectionTitle } from './section-titles';
+import { requestPanel } from './panel-requests';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
 
 /**
@@ -210,6 +211,9 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'ui.setDayLabels': 'ui:calendar-action',
   'ui.setPages': 'ui:app-page',
   'ui.setSectionTitle': 'ui:sidebar-widget',
+  // Open, close or toggle the panel the plugin's slot sits in; the panel's
+  // own permission is checked per call (see the slot catalogue).
+  'ui.setPanel': null,
   // sieve (delivery-time classification)
   'sieve.isSupported': 'filters:read',
   'sieve.getActiveScript': 'filters:read',
@@ -1749,6 +1753,11 @@ export async function dispatchApiCall(
     case 'ui.setDayLabels': setDayLabels(plugin.id, plugin.name, checkDayLabels(args[0])); return undefined;
     case 'ui.setPages': setPluginPages(plugin.id, plugin.name, checkPages(args[0])); return undefined;
     case 'ui.setSectionTitle': setSectionTitle(plugin.id, args[0]); return undefined;
+    case 'ui.setPanel': {
+      const slot = args[0];
+      if (typeof slot !== 'string' || !mayOfferSlot(plugin, slot)) throw new Error(`Plugin "${plugin.id}" may not open the panel "${String(slot)}"`);
+      return requestPanel(plugin.id, slot, args[1], args[2]);
+    }
 
     case 'storage.get': return storageGet(plugin.id, args[0] as string);
     case 'storage.set': storageSet(plugin.id, args[0] as string, args[1]); return undefined;

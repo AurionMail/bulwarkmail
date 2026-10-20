@@ -16,6 +16,7 @@ import { dispatchApiCall } from '../plugin-sandbox/host-api';
 import { actionsFor, resetActions, runAction, checkActions } from '../plugin-sandbox/actions';
 import { dayLabelsByDate, resetDayLabels } from '../plugin-sandbox/day-labels';
 import { allPages, resetPages } from '../plugin-sandbox/pages';
+import { onPanelRequest, resetPanelRequests } from '../plugin-sandbox/panel-requests';
 import type { StreamSink } from '../plugin-sandbox/proxy-client';
 import '../plugin-sandbox/loader';
 
@@ -33,6 +34,36 @@ beforeEach(() => {
   resetDayLabels();
   resetPages();
   registryEntries.length = 0;
+});
+
+describe('ui.setPanel (openPanel, closePanel, togglePanel)', () => {
+  beforeEach(() => { resetPanelRequests(); });
+
+  it('needs the permission of the panel\'s slot', async () => {
+    await expect(dispatchApiCall(plugin({ permissions: [] }), 'ui.setPanel', ['composer-sidebar-right', 'open', { composerId: 'c1' }]))
+      .rejects.toThrow(/may not open the panel/);
+    await expect(dispatchApiCall(plugin({ permissions: ['ui:composer-sidebar'] }), 'ui.setPanel', ['email-detail-sidebar', 'open', undefined]))
+      .rejects.toThrow(/may not open the panel/);
+    await expect(dispatchApiCall(plugin({ permissions: ['ui:email-details'] }), 'ui.setPanel', ['sidebar-widget', 'open', undefined]))
+      .rejects.toThrow(/may not open the panel/);
+  });
+
+  it('delivers the request to the panel on screen and answers with its state', async () => {
+    const seen: unknown[] = [];
+    onPanelRequest((request) => { seen.push(request); return request.mode !== 'close'; });
+    await expect(dispatchApiCall(plugin({ permissions: ['ui:composer-sidebar'] }), 'ui.setPanel', ['composer-sidebar-right', 'toggle', { composerId: 'c1' }])).resolves.toBe(true);
+    await expect(dispatchApiCall(plugin({ permissions: ['ui:email-details'] }), 'ui.setPanel', ['email-detail-sidebar', 'close', undefined])).resolves.toBe(false);
+    expect(seen).toEqual([
+      { pluginId: 'p1', slot: 'composer-sidebar-right', mode: 'toggle', composerId: 'c1' },
+      { pluginId: 'p1', slot: 'email-detail-sidebar', mode: 'close' },
+    ]);
+  });
+
+  it('answers null when no panel is on screen, and refuses odd arguments', async () => {
+    await expect(dispatchApiCall(plugin({ permissions: ['ui:email-details'] }), 'ui.setPanel', ['email-detail-sidebar', 'open', undefined])).resolves.toBeNull();
+    await expect(dispatchApiCall(plugin({ permissions: ['ui:composer-sidebar'] }), 'ui.setPanel', ['composer-sidebar', 'open', { composerId: 5 }])).rejects.toThrow(/composerId/);
+    await expect(dispatchApiCall(plugin({ permissions: ['ui:composer-sidebar'] }), 'ui.setPanel', ['composer-sidebar', 'sideways', undefined])).rejects.toThrow(/mode/);
+  });
 });
 
 describe('ui.setActions', () => {
