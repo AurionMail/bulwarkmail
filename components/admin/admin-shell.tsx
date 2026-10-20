@@ -215,22 +215,22 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
 
   // The admin session is its own: a password admin signs out of the panel,
   // not of their mailbox, so these stay with the panel rather than the rail.
+  // A Stalwart admin signed in automatically has neither a password to change
+  // nor a session worth ending, since opening the panel signs them back in.
   const sessionLinks = (mobile: boolean) => (
     <>
-      {!isStalwartAutoLogin && (
-        <AdminLink
-          href="/admin/change-password"
-          aria-current={onChangePassword ? 'page' : undefined}
-          className={cn(
-            'flex w-full items-center gap-2.5 rounded-md text-sm transition-colors duration-150',
-            mobile ? 'px-3 py-2.5' : 'px-3 py-2',
-            onChangePassword ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground hover:bg-muted',
-          )}
-        >
-          <KeyRound className={cn('h-4 w-4 shrink-0', onChangePassword ? 'text-accent-foreground' : 'text-muted-foreground')} />
-          Change password
-        </AdminLink>
-      )}
+      <AdminLink
+        href="/admin/change-password"
+        aria-current={onChangePassword ? 'page' : undefined}
+        className={cn(
+          'flex w-full items-center gap-2.5 rounded-md text-sm transition-colors duration-150',
+          mobile ? 'px-3 py-2.5' : 'px-3 py-2',
+          onChangePassword ? 'bg-accent font-medium text-accent-foreground' : 'text-foreground hover:bg-muted',
+        )}
+      >
+        <KeyRound className={cn('h-4 w-4 shrink-0', onChangePassword ? 'text-accent-foreground' : 'text-muted-foreground')} />
+        Change password
+      </AdminLink>
       <button
         type="button"
         onClick={onLogout}
@@ -333,7 +333,7 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-border px-2 py-2">{sessionLinks(true)}</div>
+                {!isStalwartAutoLogin && <div className="border-t border-border px-2 py-2">{sessionLinks(true)}</div>}
                 <div className="border-t border-border px-2 py-2"><AboutFooter /></div>
               </>
             ) : (
@@ -424,7 +424,7 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
           </div>
 
           <div className="border-t border-border px-1 py-1">
-            <div className="space-y-0.5 px-1 py-1">{sessionLinks(false)}</div>
+            {!isStalwartAutoLogin && <div className="space-y-0.5 px-1 py-1">{sessionLinks(false)}</div>}
             <AboutFooter />
           </div>
         </aside>
