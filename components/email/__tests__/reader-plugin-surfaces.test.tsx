@@ -246,6 +246,16 @@ describe('reader-selection-menu and the side panel\'s selection', () => {
 });
 
 describe('reader-header and reader-below-subject', () => {
+  it('tell the frames which layout they are in', () => {
+    offerSlots('p1', ['email-banner']);
+    const { unmount } = viewer(textMail('Hi'));
+    expect(slotProps(screen.getByTestId('slot-email-banner')).deviceType).toBe('desktop');
+    unmount();
+    device.isMobile = true;
+    viewer(textMail('Hi'));
+    expect(slotProps(screen.getByTestId('slot-email-banner')).deviceType).toBe('mobile');
+  });
+
   it('put the frames above the subject and under the sender, with the message', () => {
     offerSlots('p1', ['reader-header', 'reader-below-subject']);
     const { container } = viewer(textMail('Hi'));
@@ -344,12 +354,13 @@ describe('thread-summary', () => {
   ];
 
   it('sits above the messages of the phone conversation view', () => {
+    device.isMobile = true;
     offerSlots('p1', ['thread-summary']);
     const thread = { threadKey: 't1', latestEmail: conversation[1], emails: conversation, emailCount: 2 } as unknown as ThreadGroup;
     render(<ThreadConversationView thread={thread} emails={[conversation[1], conversation[0]]} onBack={() => {}} />);
 
     const frame = screen.getByTestId('slot-thread-summary');
-    expect(slotProps(frame)).toEqual({ threadId: 't1', emailIds: ['m2', 'm1'] });
+    expect(slotProps(frame)).toEqual({ threadId: 't1', emailIds: ['m2', 'm1'], deviceType: 'mobile' });
     expect(follows(frame, screen.getAllByText('Alice')[0])).toBe(true);
   });
 
@@ -358,7 +369,7 @@ describe('thread-summary', () => {
     useSettingsStore.setState({ interfaceLayout: 'mountain-view', markAsReadDelay: 0 });
     viewer(conversation[1], { mvConversation: conversation });
 
-    expect(slotProps(screen.getByTestId('slot-thread-summary'))).toEqual({ threadId: 't1', emailIds: ['m1', 'm2'] });
+    expect(slotProps(screen.getByTestId('slot-thread-summary'))).toEqual({ threadId: 't1', emailIds: ['m1', 'm2'], deviceType: 'desktop' });
   });
 
   it('draws nothing without a plugin, and nothing for a single message', () => {

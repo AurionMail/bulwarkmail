@@ -49,6 +49,7 @@ import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection } from "./reader-selection-menu";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
+import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
@@ -191,9 +192,10 @@ export function ThreadConversationView({
   const t = useTranslations();
   const externalContent = useConversationExternalContent();
   const emailIdList = emails.map((email) => email.id).join(',');
+  const { isMobile: summaryOnPhone, isTablet: summaryOnTablet } = useDeviceDetection();
   const threadSummaryProps = useMemo(
-    () => ({ threadId: thread.latestEmail.threadId ?? null, emailIds: emailIdList ? emailIdList.split(',') : [] }),
-    [thread.latestEmail.threadId, emailIdList],
+    () => ({ threadId: thread.latestEmail.threadId ?? null, emailIds: emailIdList ? emailIdList.split(',') : [], deviceType: summaryOnPhone ? 'mobile' : summaryOnTablet ? 'tablet' : 'desktop' }),
+    [thread.latestEmail.threadId, emailIdList, summaryOnPhone, summaryOnTablet],
   );
 
   // Track which emails are expanded (most recent by default)
@@ -325,7 +327,9 @@ function useConversationPluginProps(email: Email) {
   const belowSubjectOffers = usePluginSlotOffers('reader-below-subject').length;
   const bannerOffers = usePluginSlotOffers('email-banner').length;
   const wantsView = headerOffers + belowSubjectOffers + bannerOffers > 0;
-  const emailProps = useMemo(() => ({ email: wantsView ? emailToReadView(email) : null }), [email, wantsView]);
+  const { isMobile, isTablet } = useDeviceDetection();
+  const deviceType = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
+  const emailProps = useMemo(() => ({ email: wantsView ? emailToReadView(email) : null, deviceType }), [email, wantsView, deviceType]);
   const idProps = useMemo(() => ({ emailId: email.id }), [email.id]);
   return { emailProps, idProps };
 }

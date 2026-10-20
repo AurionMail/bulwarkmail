@@ -1170,8 +1170,8 @@ export function EmailViewer({
   const mvAfter = mvOpenIndex >= 0 ? mvConversation!.slice(mvOpenIndex + 1) : [];
   const mvConversationIds = mvOpenIndex >= 0 ? mvConversation!.map((e) => e.id).join(',') : '';
   const threadSummaryProps = useMemo(
-    () => ({ threadId: email?.threadId ?? null, emailIds: mvConversationIds ? mvConversationIds.split(',') : [] }),
-    [email?.threadId, mvConversationIds],
+    () => ({ threadId: email?.threadId ?? null, emailIds: mvConversationIds ? mvConversationIds.split(',') : [], deviceType: isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop' }),
+    [email?.threadId, mvConversationIds, isMobile, isTablet],
   );
   // Mountain View: which other messages of the conversation are unfolded. A
   // conversation opens with its unread messages unfolded, as Gmail does, so
@@ -1512,7 +1512,10 @@ export function EmailViewer({
     () => (email && wantsPluginEmailView ? emailToReadView(email) : null),
     [email, wantsPluginEmailView],
   );
-  const pluginEmailProps = useMemo(() => ({ email: pluginEmailView }), [pluginEmailView]);
+  // Reader frames learn the layout: the bar a plugin shows on phones has no
+  // place next to a side panel on a desktop.
+  const pluginDeviceType = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
+  const pluginEmailProps = useMemo(() => ({ email: pluginEmailView, deviceType: pluginDeviceType }), [pluginEmailView, pluginDeviceType]);
   // The text selected in the body, for the side panel (a plugin working on
   // what the user highlights) and the right-click menu on it. Reset per
   // message; the body documents report changes a moment after they happen.

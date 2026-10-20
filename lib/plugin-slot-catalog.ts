@@ -65,10 +65,10 @@ export const SLOT_CATALOG = {
   // ─── Reader ────────────────────────────────────────────────
   'reader-header': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'at the top of the open message, above the subject'),
   'reader-below-subject': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'right under the subject and sender of the open message'),
-  'email-banner': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'a banner above the message body'),
+  'email-banner': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read', deviceType: null }, 'a banner above the message body; `deviceType` ("mobile" | "tablet" | "desktop") says whether the reader has a side panel (not on phones)'),
   'reader-above-quote': S('reader', 'frame', ['ui:email-banner'], { email: 'email:read' }, 'between the new text of a message and the quoted text below it'),
   'email-footer': S('reader', 'frame', ['ui:email-footer'], { emailId: 'email:read' }, 'below the message body'),
-  'thread-summary': S('reader', 'frame', ['ui:email-banner'], { threadId: 'email:read', emailIds: 'email:read' }, 'above the messages of an open conversation (the phone conversation view and Mountain View; the default desktop layout opens one message at a time and has no conversation view)'),
+  'thread-summary': S('reader', 'frame', ['ui:email-banner'], { threadId: 'email:read', emailIds: 'email:read', deviceType: null }, 'above the messages of an open conversation (the phone conversation view and Mountain View; the default desktop layout opens one message at a time and has no conversation view)'),
   'reader-actions': S('reader', 'action', ['ui:toolbar'], { emailId: 'email:read' }, 'buttons in the open message\'s toolbar', true),
   'email-detail-sidebar': S('reader', 'frame', ['ui:email-details'], { email: 'email:read', selection: 'email:read', focusRequest: null }, 'a side panel next to the open message; `selection` is the text selected in the message as the user changes it ({ text }); `focusRequest` counts up when the plugin opened the panel with api.ui.openPanel'),
   'email-details-section': S('reader', 'frame', ['ui:email-details'], { email: 'email:read', category: null }, 'a section in the message details'),
