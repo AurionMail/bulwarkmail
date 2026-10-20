@@ -17,7 +17,9 @@ import { AdminSaveBar } from '@/components/admin/save-bar';
 import { Badge } from '@/components/admin/badge';
 import { EmptyState } from '@/components/admin/empty-state';
 import { Flash, useFlash } from '@/components/admin/flash-message';
+import { ExtensionIcon } from '@/components/admin/extension-icon';
 import { PluginApprovalsPanel } from './plugin-approvals-panel';
+import { useExtensionIcons } from './use-extension-icons';
 import type { ExtensionEntry } from './extension-detail';
 
 export function PluginsPage() {
@@ -30,6 +32,7 @@ export function PluginsPage() {
   const [policy, setPolicy] = useState<SettingsPolicy>({ ...DEFAULT_POLICY });
   const [savedPolicy, setSavedPolicy] = useState<SettingsPolicy>({ ...DEFAULT_POLICY });
   const [savingPolicy, setSavingPolicy] = useState(false);
+  const iconFor = useExtensionIcons();
 
   const fetchPlugins = useCallback(async () => {
     try {
@@ -215,7 +218,7 @@ export function PluginsPage() {
                       key={plugin.id}
                       data-testid={`admin-plugin-${plugin.id}`}
                       href={adminPath('plugins', plugin.id)}
-                      icon={<Puzzle />}
+                      icon={<ExtensionIcon url={iconFor(plugin)} fallback={Puzzle} />}
                       title={plugin.name}
                       titleExtra={(
                         <>

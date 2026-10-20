@@ -6,21 +6,16 @@ import {
   ArrowLeft,
   ArrowUpCircle,
   Activity,
-  BookUser,
-  Calendar,
   ChevronRight,
-  HardDrive,
   KeyRound,
   LayoutDashboard,
   LogOut,
-  Mail,
   Palette,
   Puzzle,
   Scale,
   ScrollText,
   Search,
   Server,
-  Settings,
   Shield,
   Store,
   SwatchBook,
@@ -28,15 +23,14 @@ import {
   type AppIcon,
 } from '@/components/icons';
 import { Input } from '@/components/ui/input';
+import { NavigationRail } from '@/components/layout/navigation-rail';
+import { AboutFooter } from '@/components/settings/about-data-settings';
 import { scrollToSettingsSection } from '@/components/settings/settings-section';
-import { useConfig } from '@/hooks/use-config';
 import { useIsDesktop } from '@/hooks/use-media-query';
 import { useAdminLocation, navigateAdmin } from '@/hooks/use-admin-navigation';
-import { usePolicyStore } from '@/stores/policy-store';
-import { useThemeStore } from '@/stores/theme-store';
 import { useUpdateStore, selectHasUpdate } from '@/stores/update-store';
 import { useAdminUnsavedStore } from '@/stores/admin-unsaved-store';
-import { apiFetch, getPathPrefix, withBasePath } from '@/lib/browser-navigation';
+import { apiFetch, getPathPrefix } from '@/lib/browser-navigation';
 import { ADMIN_PAGES, adminPath, type AdminPageDef, type AdminPageId, type AdminSectionDef } from '@/lib/admin/admin-nav';
 import { cn } from '@/lib/utils';
 import { AdminLink } from './admin-link';
@@ -78,8 +72,9 @@ interface Match {
 }
 
 /**
- * The admin panel's frame: the app rail, the page list with search, the
- * content column and (on phones) the list-then-page flow of the settings.
+ * The admin panel's frame: the webmail's own navigation rail, the page list
+ * laid out like the settings sidebar (search included), the content column
+ * and, on phones, the settings' list-then-page flow.
  */
 export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly, onLogout, children }: AdminShellProps) {
   const pathname = usePathname();
@@ -95,13 +90,6 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
   const onChangePassword = pathname === '/admin/change-password';
   const activePage: AdminPageId | null = location.page ?? (isDesktop && !onChangePassword ? 'dashboard' : null);
   const activeDef = location.page ? ADMIN_PAGES.find((p) => p.id === location.page) ?? null : null;
-
-  const { appLogoLightUrl, appLogoDarkUrl, loginLogoLightUrl, loginLogoDarkUrl } = useConfig();
-  const filesEnabled = usePolicyStore((s) => s.isFeatureEnabled('filesEnabled'));
-  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
-  const logoUrl = withBasePath(resolvedTheme === 'dark'
-    ? (appLogoDarkUrl || appLogoLightUrl || loginLogoDarkUrl)
-    : (appLogoLightUrl || appLogoDarkUrl || loginLogoLightUrl));
 
   // Match the navigation rail: red for security/deprecated, amber for normal.
   const hasUpdate = useUpdateStore(selectHasUpdate);
@@ -225,7 +213,9 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
     <div className="px-3 py-6 text-center text-sm text-muted-foreground">Nothing matches</div>
   );
 
-  const footerLinks = (mobile: boolean) => (
+  // The admin session is its own: a password admin signs out of the panel,
+  // not of their mailbox, so these stay with the panel rather than the rail.
+  const sessionLinks = (mobile: boolean) => (
     <>
       {!isStalwartAutoLogin && (
         <AdminLink
@@ -250,7 +240,7 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
         )}
       >
         <LogOut className="h-4 w-4 shrink-0 text-muted-foreground" />
-        Sign out
+        Sign out of admin
       </button>
     </>
   );
@@ -264,13 +254,6 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
       </p>
     </div>
   );
-
-  const appLinks = [
-    { href: `${prefix}/`, label: 'Mail', icon: Mail },
-    { href: `${prefix}/calendar`, label: 'Calendar', icon: Calendar },
-    { href: `${prefix}/contacts`, label: 'Contacts', icon: BookUser },
-    ...(filesEnabled ? [{ href: `${prefix}/files`, label: 'Files', icon: HardDrive }] : []),
-  ];
 
   if (!isDesktop) {
     const showIndex = location.page === null && !onChangePassword;
@@ -350,7 +333,8 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-border px-2 py-2">{footerLinks(true)}</div>
+                <div className="border-t border-border px-2 py-2">{sessionLinks(true)}</div>
+                <div className="border-t border-border px-2 py-2"><AboutFooter /></div>
               </>
             ) : (
               <div className="p-4 pb-6">
@@ -362,41 +346,7 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
 
           <div ref={setSaveBarHost} className="shrink-0" />
 
-          <nav
-            className="flex shrink-0 items-center border-t border-border bg-background pb-[env(safe-area-inset-bottom)]"
-            aria-label="Main navigation"
-          >
-            {appLinks.map(({ href, label, icon: Icon }) => (
-              <a
-                key={label}
-                href={href}
-                className="flex min-h-[44px] grow shrink-0 basis-[64px] flex-col items-center justify-center gap-1 px-1 py-2 text-muted-foreground transition-colors duration-150 hover:text-foreground"
-                title={label}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="max-w-full truncate text-[10px] font-medium leading-tight">{label}</span>
-              </a>
-            ))}
-            <div
-              className="flex min-h-[44px] grow shrink-0 basis-[64px] flex-col items-center justify-center gap-1 px-1 py-2 text-primary"
-              title="Admin"
-              aria-current="page"
-            >
-              <div className="relative">
-                <Shield className="h-5 w-5" />
-                <span className="absolute -bottom-1 left-1/2 h-0.5 w-4 -translate-x-1/2 rounded-full bg-primary" />
-              </div>
-              <span className="max-w-full truncate text-[10px] font-medium leading-tight">Admin</span>
-            </div>
-            <a
-              href={`${prefix}/settings`}
-              className="flex min-h-[44px] grow shrink-0 basis-[64px] flex-col items-center justify-center gap-1 px-1 py-2 text-muted-foreground transition-colors duration-150 hover:text-foreground"
-              title="Settings"
-            >
-              <Settings className="h-5 w-5" />
-              <span className="max-w-full truncate text-[10px] font-medium leading-tight">Settings</span>
-            </a>
-          </nav>
+          <NavigationRail orientation="horizontal" adminActive />
         </div>
       </AdminShellContext.Provider>
     );
@@ -405,37 +355,9 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
   return (
     <AdminShellContext.Provider value={contextValue}>
       <div className="flex h-dvh bg-background pt-[env(safe-area-inset-top)]">
-        {/* The app rail, as the mail and settings screens draw it. */}
-        <div className="flex w-14 shrink-0 flex-col items-center bg-secondary" style={{ borderRight: '1px solid rgba(128, 128, 128, 0.3)' }}>
-          {logoUrl && (
-            <div className="flex items-center justify-center px-1 py-3">
-              <img src={logoUrl} alt="" className="h-8 w-8 object-contain" />
-            </div>
-          )}
-          <nav className="flex flex-1 flex-col items-center gap-1 px-1 py-3" aria-label="Apps">
-            {appLinks.map(({ href, label, icon: Icon }) => (
-              <a
-                key={label}
-                href={href}
-                className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
-                title={label}
-              >
-                <Icon className="h-[18px] w-[18px]" />
-              </a>
-            ))}
-          </nav>
-          <div className="mt-auto flex flex-col items-center gap-2 px-1 pb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary" title="Admin" aria-current="page">
-              <Shield className="h-[18px] w-[18px]" />
-            </div>
-            <a
-              href={`${prefix}/settings`}
-              className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="Settings"
-            >
-              <Settings className="h-[18px] w-[18px]" />
-            </a>
-          </div>
+        {/* The same rail as mail and settings, with Admin as the current app. */}
+        <div className="flex w-14 shrink-0 flex-col bg-secondary" style={{ borderRight: '1px solid rgba(128, 128, 128, 0.3)' }}>
+          <NavigationRail collapsed adminActive />
         </div>
 
         {/* The page list, laid out like the settings sidebar. */}
@@ -447,7 +369,7 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
                 className="flex h-9 w-full items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <ArrowLeft className="me-2 h-4 w-4" />
-                Back to mail
+                Back to Mail
               </a>
             </div>
           </div>
@@ -501,7 +423,10 @@ export function AdminShell({ authenticated, isStalwartAutoLogin, configReadOnly,
             </nav>
           </div>
 
-          <div className="space-y-0.5 border-t border-border px-2 py-2">{footerLinks(false)}</div>
+          <div className="border-t border-border px-1 py-1">
+            <div className="space-y-0.5 px-1 py-1">{sessionLinks(false)}</div>
+            <AboutFooter />
+          </div>
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">

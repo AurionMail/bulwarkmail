@@ -17,7 +17,9 @@ import { AdminSaveBar } from '@/components/admin/save-bar';
 import { Badge } from '@/components/admin/badge';
 import { Flash, useFlash } from '@/components/admin/flash-message';
 import { inputClass } from '@/components/admin/config-items';
+import { ExtensionIcon } from '@/components/admin/extension-icon';
 import { cn } from '@/lib/utils';
+import { useExtensionIcons } from './use-extension-icons';
 
 export interface ConfigField {
   type: 'string' | 'secret' | 'boolean' | 'number' | 'select';
@@ -80,6 +82,7 @@ export function ExtensionDetailPage({ kind, id }: Props) {
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useFlash();
+  const iconFor = useExtensionIcons();
 
   const load = useCallback(async () => {
     const [listRes, configRes] = await Promise.all([
@@ -284,8 +287,8 @@ export function ExtensionDetailPage({ kind, id }: Props) {
       <AdminPageHeader
         back={back}
         leading={(
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-            <Icon className="h-5 w-5" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-muted-foreground">
+            <ExtensionIcon url={iconFor(entry)} fallback={Icon} className={iconFor(entry) ? 'h-full w-full object-cover' : 'h-5 w-5'} />
           </div>
         )}
         title={(
@@ -323,29 +326,6 @@ export function ExtensionDetailPage({ kind, id }: Props) {
       <Flash message={message} onDismiss={() => setMessage(null)} />
 
       <div className="space-y-10">
-        {kind === 'plugin' && hasSchema && schema && (
-          <SettingsSection id="settings" title="Settings" description="What this plugin reads from the server. Saved for every user.">
-            {Object.entries(schema).map(([key, field]) => (
-              <SettingItem
-                key={key}
-                label={field.required ? `${field.label} *` : field.label}
-                description={field.description}
-              >
-                <ConfigFieldControl
-                  field={field}
-                  value={formValues[key] ?? ''}
-                  stored={config[key] !== undefined && config[key] !== null && config[key] !== ''}
-                  revealed={!!revealSecrets[key]}
-                  onReveal={() => setRevealSecrets((prev) => ({ ...prev, [key]: !prev[key] }))}
-                  onChange={(v) => setFormValues((prev) => ({ ...prev, [key]: v }))}
-                />
-              </SettingItem>
-            ))}
-          </SettingsSection>
-        )}
-
-        {kind === 'plugin' && <PluginAdminSection pluginId={id} />}
-
         <SettingsSection id="availability" title="Availability" description={`Whether users get this ${words.one} and whether they can turn it off.`}>
           <SettingItem
             label="Force on for everyone"
@@ -400,6 +380,30 @@ export function ExtensionDetailPage({ kind, id }: Props) {
             </SettingItem>
           ))}
         </SettingsSection>
+
+        {kind === 'plugin' && <PluginAdminSection pluginId={id} />}
+
+        {/* The plugin's own settings come last: they are the long part. */}
+        {kind === 'plugin' && hasSchema && schema && (
+          <SettingsSection id="settings" title="Settings" description="What this plugin reads from the server. Saved for every user.">
+            {Object.entries(schema).map(([key, field]) => (
+              <SettingItem
+                key={key}
+                label={field.required ? `${field.label} *` : field.label}
+                description={field.description}
+              >
+                <ConfigFieldControl
+                  field={field}
+                  value={formValues[key] ?? ''}
+                  stored={config[key] !== undefined && config[key] !== null && config[key] !== ''}
+                  revealed={!!revealSecrets[key]}
+                  onReveal={() => setRevealSecrets((prev) => ({ ...prev, [key]: !prev[key] }))}
+                  onChange={(v) => setFormValues((prev) => ({ ...prev, [key]: v }))}
+                />
+              </SettingItem>
+            ))}
+          </SettingsSection>
+        )}
       </div>
 
       <AdminSaveBar

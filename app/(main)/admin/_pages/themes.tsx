@@ -19,6 +19,8 @@ import { EmptyState } from '@/components/admin/empty-state';
 import { Flash, useFlash } from '@/components/admin/flash-message';
 import { inputClass } from '@/components/admin/config-items';
 import { cn } from '@/lib/utils';
+import { ExtensionIcon } from '@/components/admin/extension-icon';
+import { useExtensionIcons } from './use-extension-icons';
 import type { ExtensionEntry } from './extension-detail';
 
 // Derive from the single source of truth so newly added built-in themes show
@@ -37,6 +39,7 @@ function withThemeDefaults(data: SettingsPolicy): SettingsPolicy {
 
 export function ThemesPage() {
   const [themes, setThemes] = useState<ExtensionEntry[]>([]);
+  const iconFor = useExtensionIcons();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -288,7 +291,7 @@ export function ThemesPage() {
                     key={theme.id}
                     data-testid={`admin-theme-${theme.id}`}
                     href={adminPath('themes', theme.id)}
-                    icon={<SwatchBook />}
+                    icon={<ExtensionIcon url={iconFor(theme)} fallback={SwatchBook} />}
                     title={theme.name}
                     titleExtra={(
                       <>
