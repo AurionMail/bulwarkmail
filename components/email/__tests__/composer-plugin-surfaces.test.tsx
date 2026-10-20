@@ -567,6 +567,16 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     expect(panel('right').dataset.composerSidebarMode).toBe('folded');
   });
 
+  it('let a plugin frame fill the panel, so it can pin a chat input at the bottom', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar-right'], { fill: ['composer-sidebar-right'] });
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const frame = screen.getByTestId('slot-composer-sidebar-right');
+    expect(frame.dataset.fill).toBe('true');
+    expect(frame.closest('[data-plugin-slot]')!.className).toContain('h-full');
+  });
+
   it('hand the panels the composer id, the draft and the selection', () => {
     stubWidth(1400);
     offerSlots('p1', ['composer-sidebar-right']);

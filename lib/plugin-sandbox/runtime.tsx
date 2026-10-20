@@ -31,7 +31,7 @@ import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { pluginUiKit, SlotPropsContext } from './ui-kit';
 import { initFloatingDropdownBridge, dispatchFloatingDropdownEvent } from './ui-kit/floating-dropdown-bridge';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
-import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
+import { isFillableSlot, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
   CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
   EmailSummary, IdentityPatch, IdentityView, MailboxView, NotificationInput, SlotName, TaskInput,
@@ -43,7 +43,7 @@ import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-securit
 // ─── Module-scope state ──────────────────────────────────────
 
 interface PluginExports {
-  slots?: Record<string, { component: React.ComponentType<Record<string, unknown>>; shouldShow?: (ctx: unknown) => boolean; order?: number }>;
+  slots?: Record<string, { component: React.ComponentType<Record<string, unknown>>; shouldShow?: (ctx: unknown) => boolean; order?: number; fill?: boolean }>;
   hooks?: Record<string, (...args: unknown[]) => unknown>;
   /**
    * Keyboard shortcut bindings. Each entry's `handler` is registered as a
@@ -913,7 +913,7 @@ async function bootBackground(payload: BackgroundInit): Promise<void> {
   }
 
   // Enumerate slot offers.
-  const slotInfo: Array<{ name: SlotName; hasShouldShow: boolean; order: number }> = [];
+  const slotInfo: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean }> = [];
   const slots = exports.slots ?? {};
   for (const [name, def] of Object.entries(slots)) {
     if (def && typeof def.component === 'function') {
@@ -921,6 +921,8 @@ async function bootBackground(payload: BackgroundInit): Promise<void> {
         name: name as SlotName,
         hasShouldShow: typeof def.shouldShow === 'function',
         order: typeof def.order === 'number' ? def.order : 100,
+        // A panel that fills its panel instead of growing with its content.
+        ...(def.fill === true && isFillableSlot(name) ? { fill: true } : {}),
       });
     }
   }
@@ -970,6 +972,15 @@ function bootSlot(payload: SlotInit): void {
   let currentProps = decodeCallbacks(payload.extraProps) as Record<string, unknown>;
   const Component = slotDef.component;
   const inline = isInlineSlot(payload.slot);
+  // Filling its panel: the document is as tall as the frame and the slot's
+  // root takes all of it; the height is the panel's, so nothing is measured.
+  const fill = payload.fill === true && isFillableSlot(payload.slot);
+  if (fill) {
+    document.documentElement.style.height = '100%';
+    document.body.style.height = '100%';
+    document.body.style.overflow = 'hidden';
+    rootEl.style.height = '100%';
+  }
 
   // A trivial pub/sub so host-pushed `props-update` messages re-render the
   // slot tree without tearing down the iframe.
@@ -1004,7 +1015,7 @@ function bootSlot(payload: SlotInit): void {
       };
     }, []);
     React.useEffect(() => {
-      if (!wrapRef.current) return;
+      if (!wrapRef.current || fill) return;
       const el = wrapRef.current;
       let lastHeight = -1;
       let lastWidth = -1;
@@ -1026,7 +1037,7 @@ function bootSlot(payload: SlotInit): void {
     // that wraps to fit it reports a narrow width back, so it never grew.
     const style = inline
       ? { display: 'inline-block', width: 'max-content', maxWidth: MAX_INLINE_SLOT_WIDTH }
-      : undefined;
+      : fill ? { height: '100%' } : undefined;
     return React.createElement('div', { ref: wrapRef, style },
       React.createElement(SlotPropsContext.Provider, { value: props }, React.createElement(Component, props)));
   };

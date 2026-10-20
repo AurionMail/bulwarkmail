@@ -6461,7 +6461,7 @@ export function EmailViewer({
                   <PanelRightClose className="w-4 h-4" />
                 </Button>
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 min-h-0 overflow-y-auto">
                 <PluginSlot name="email-detail-sidebar" extraProps={pluginDetailProps} />
               </div>
             </div>

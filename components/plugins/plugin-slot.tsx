@@ -19,10 +19,15 @@ export function PluginSlot({ name, className, extraProps }: PluginSlotProps) {
 
   if (offers.length === 0) return null;
 
-  // Inline slots line up next to each other in a toolbar row.
+  // Inline slots line up next to each other in a toolbar row. A panel slot
+  // with a frame that fills the panel takes the panel's height and shares
+  // it between such frames.
+  const fills = offers.some((offer) => offer.fill);
   return (
     <div
-      className={isInlineSlot(name) ? cn('inline-flex flex-wrap items-center gap-1', className) : className}
+      className={isInlineSlot(name)
+        ? cn('inline-flex flex-wrap items-center gap-1', className)
+        : cn(className, fills && 'h-full flex flex-col min-h-0')}
       data-plugin-slot={name}
     >
       {offers.map((offer) => (
@@ -31,6 +36,7 @@ export function PluginSlot({ name, className, extraProps }: PluginSlotProps) {
           pluginId={offer.pluginId}
           slot={name}
           extraProps={extraProps}
+          fill={offer.fill}
         />
       ))}
     </div>

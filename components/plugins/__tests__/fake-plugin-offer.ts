@@ -15,14 +15,14 @@ export function lastSlotProps(slot: string): Record<string, unknown> {
   return lastProps.get(slot) ?? {};
 }
 
-/** Registers a fake plugin that offers the given slots. */
-export function offerSlots(pluginId: string, slots: string[]): void {
+/** Registers a fake plugin that offers the given slots; `fill` names the panel slots whose frame fills the panel. */
+export function offerSlots(pluginId: string, slots: string[], { fill = [] }: { fill?: string[] } = {}): void {
   register({
     plugin: { id: pluginId, name: pluginId },
     code: '',
     tier: 'untrusted',
     background: {},
-    slotOffers: slots.map((name) => ({ name: name as SlotName, order: 100, hasShouldShow: false })),
+    slotOffers: slots.map((name) => ({ name: name as SlotName, order: 100, hasShouldShow: false, ...(fill.includes(name) ? { fill: true } : {}) })),
     hookDisposables: [],
   } as unknown as ActivePlugin);
   offered.add(pluginId);
@@ -35,12 +35,13 @@ export function clearOffers(): void {
 }
 
 /** Stand-in for PluginIframeSlot: a div carrying the slot name and its props as JSON. */
-export function FakeIframeSlot({ pluginId, slot, extraProps }: { pluginId: string; slot: string; extraProps?: Record<string, unknown> }) {
+export function FakeIframeSlot({ pluginId, slot, extraProps, fill }: { pluginId: string; slot: string; extraProps?: Record<string, unknown>; fill?: boolean }) {
   lastProps.set(slot, extraProps ?? {});
   return React.createElement('div', {
     'data-testid': `slot-${slot}`,
     'data-plugin': pluginId,
     'data-props': JSON.stringify(extraProps ?? {}),
+    'data-fill': fill ? 'true' : undefined,
   });
 }
 

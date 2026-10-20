@@ -160,6 +160,8 @@ export interface SlotOptions {
   /** Resolved execution tier (from `resolvePluginTier`). */
   tier: PluginTier;
   extraProps: Record<string, unknown>;
+  /** The frame fills its panel instead of growing with its content (SlotInit.fill). */
+  fill?: boolean;
   /** Container element the visible slot iframe is mounted into. */
   hostContainer: HTMLElement;
   /** Called whenever the sandbox reports a new content size (width only for inline slots). */
@@ -170,7 +172,7 @@ export interface SlotOptions {
 
 export interface InitDoneInfo {
   hooks: string[];
-  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number }>;
+  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean }>;
   shortcuts: Array<{ id: string; keys: string; label: string; category?: string }>;
 }
 
@@ -325,6 +327,10 @@ export class SandboxInstance {
       // Starts at the widest it may get; the first resize shrinks it.
       this.iframe.style.width = `${MAX_INLINE_SLOT_WIDTH}px`;
       this.iframe.style.height = '0px';
+    } else if (initPayload.mode === 'slot' && initPayload.fill) {
+      // As tall as its panel; the plugin scrolls inside.
+      this.iframe.style.width = '100%';
+      this.iframe.style.height = '100%';
     } else {
       this.iframe.style.width = '100%';
       this.iframe.style.height = '0px';
@@ -661,6 +667,7 @@ export function createSlotInstance(opts: SlotOptions): SandboxInstance {
       httpOrigins: opts.plugin.httpOrigins,
     },
     extraProps: opts.extraProps,
+    ...(opts.fill ? { fill: true } : {}),
     locale: opts.locale,
     theme: snapshotHostTheme(),
   };

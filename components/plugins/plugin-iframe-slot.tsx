@@ -23,6 +23,8 @@ interface Props {
   pluginId: string;
   slot: SlotName;
   extraProps?: Record<string, unknown>;
+  /** The frame fills its panel and scrolls inside, instead of growing with its content. */
+  fill?: boolean;
 }
 
 interface FloatingDropdownState {
@@ -36,7 +38,7 @@ interface FloatingDropdownState {
   ariaLabel?: string;
 }
 
-export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
+export function PluginIframeSlot({ pluginId, slot, extraProps, fill = false }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<SandboxInstance | null>(null);
   const [height, setHeight] = useState<number>(0);
@@ -82,6 +84,7 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
       locale,
       tier: active.tier,
       extraProps: props,
+      fill,
       hostContainer: wrapperRef.current,
       onResize: (h, w) => {
         setHeight(h);
@@ -126,7 +129,7 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
     // We intentionally don't depend on props here - propagating prop
     // changes happens via postMessage below to avoid iframe churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show, pluginId, slot]);
+  }, [show, pluginId, slot, fill]);
 
   // Push prop updates without remount.
   useEffect(() => {
@@ -154,8 +157,9 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
         ref={wrapperRef}
         style={inline
           ? { display: 'inline-block', verticalAlign: 'middle', height, width: width ?? 0, maxWidth: '100%', overflow: 'hidden' }
-          : { height, minHeight: height }}
+          : fill ? { flex: '1 1 0%', minHeight: 0 } : { height, minHeight: height }}
         data-plugin-iframe-slot={`${pluginId}:${slot}`}
+        data-plugin-iframe-fill={fill || undefined}
       />
       {floatingDropdown && (
         <FloatingDropdownPortal

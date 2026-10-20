@@ -13,6 +13,8 @@ export interface SlotOffer {
   name: SlotName;
   order: number;
   hasShouldShow: boolean;
+  /** The frame fills its panel (panel slots only; see slot-layout.ts). */
+  fill?: boolean;
 }
 
 export interface ActivePlugin {
@@ -31,6 +33,7 @@ export interface ResolvedSlotOffer {
   pluginId: string;
   order: number;
   hasShouldShow: boolean;
+  fill?: boolean;
 }
 
 const active = new Map<string, ActivePlugin>();
@@ -80,7 +83,7 @@ export function offersForSlot(slot: SlotName): readonly ResolvedSlotOffer[] {
   for (const entry of active.values()) {
     for (const offer of entry.slotOffers) {
       if (offer.name === slot) {
-        out.push({ pluginId: entry.plugin.id, order: offer.order, hasShouldShow: offer.hasShouldShow });
+        out.push({ pluginId: entry.plugin.id, order: offer.order, hasShouldShow: offer.hasShouldShow, ...(offer.fill ? { fill: true } : {}) });
       }
     }
   }

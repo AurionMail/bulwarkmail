@@ -12,7 +12,7 @@ vi.mock('@/lib/plugin-sandbox/registry', () => ({
     code: '',
     tier: 'untrusted',
     background: { evaluateShouldShow },
-    slotOffers: [{ name: 'email-banner', hasShouldShow, order: 100 }],
+    slotOffers: [{ name: 'email-banner', hasShouldShow, order: 100 }, { name: 'composer-sidebar-right', hasShouldShow: false, order: 100, fill: true }],
   }),
 }));
 
@@ -40,6 +40,18 @@ beforeEach(() => {
 });
 
 describe('PluginIframeSlot', () => {
+  it('lets a panel frame fill its panel instead of growing with its content', async () => {
+    activePlugin = plugin(['ui:composer-sidebar']);
+    const { container } = render(<PluginIframeSlot pluginId="p1" slot="composer-sidebar-right" extraProps={{}} fill />);
+
+    await waitFor(() => expect(createSlotInstance).toHaveBeenCalled());
+    const opts = (createSlotInstance.mock.calls[0] as unknown[])[0] as { fill?: boolean };
+    expect(opts.fill).toBe(true);
+    const wrapper = container.querySelector('[data-plugin-iframe-slot]') as HTMLElement;
+    expect(wrapper.dataset.pluginIframeFill).toBe('true');
+    expect(wrapper.style.flex).toBe('1 1 0%');
+  });
+
   it('mounts a banner-only plugin without the opened message', async () => {
     activePlugin = plugin(['ui:email-banner']);
     render(<PluginIframeSlot pluginId="p1" slot="email-banner" extraProps={{ email: EMAIL }} />);

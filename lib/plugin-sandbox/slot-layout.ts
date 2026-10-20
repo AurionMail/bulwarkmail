@@ -37,3 +37,15 @@ export function clampSlotHeight(height: unknown): number | null {
 export function clampSlotWidth(width: unknown): number | null {
   return clamp(width, MAX_INLINE_SLOT_WIDTH);
 }
+
+/**
+ * Panel slots whose frame may fill the panel (`slots[name].fill = true`):
+ * the plugin's root is then as tall as the panel and scrolls inside, so it
+ * can pin controls at the bottom, like a chat input. Elsewhere a frame grows
+ * with its content.
+ */
+export const FILLABLE_SLOTS: readonly string[] = ['composer-sidebar', 'composer-sidebar-right', 'email-detail-sidebar'];
+
+export function isFillableSlot(slot: string): boolean {
+  return FILLABLE_SLOTS.includes(slot);
+}
