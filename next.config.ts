@@ -105,7 +105,8 @@ const nextConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_GIT_COMMIT: gitCommitHash,
-    NEXT_PUBLIC_APP_VERSION: appVersion,
+    // A dev server may announce another version, e.g. to try a plugin that needs the next release.
+    NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || appVersion,
     NEXT_PUBLIC_BASE_PATH: basePath,
     NEXT_PUBLIC_DEV_MOCK_JMAP: process.env.DEV_MOCK_JMAP ?? "",
     NEXT_PUBLIC_BULWARK_LITE: isLite ? "1" : "",
