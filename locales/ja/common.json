@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "プラグインパネルを表示",
-    "plugin_panel_hide": "プラグインパネルを隠す"
+    "plugin_panel_hide": "プラグインパネルを隠す",
+    "copy": "コピー"
   },
   "email_composer": {
     "select_from_directory": "ディレクトリから選択",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "送信されましたが、送信後の整理に失敗しました。古い下書きが残る場合があります。",
     "pop_out": "返信を別ウィンドウで開く",
-    "send_guard_failed": "送信されませんでした - 送信前にメッセージを確認するプラグインが失敗したか、応答しませんでした。"
+    "send_guard_failed": "送信されませんでした - 送信前にメッセージを確認するプラグインが失敗したか、応答しませんでした。",
+    "cut": "切り取り",
+    "copy": "コピー"
   },
   "confirm_dialog": {
     "confirm": "確認",

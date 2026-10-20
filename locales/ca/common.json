@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} de {total}",
     "plugin_panel_show": "Mostra el tauler del connector",
-    "plugin_panel_hide": "Amaga el tauler del connector"
+    "plugin_panel_hide": "Amaga el tauler del connector",
+    "copy": "Copia"
   },
   "email_composer": {
     "select_from_directory": "Selecciona del directori",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Enviat, però la neteja posterior a l'enviament ha fallat; és possible que quedi un esborrany obsolet.",
     "pop_out": "Obre la resposta en una finestra",
-    "send_guard_failed": "No s'ha enviat: un connector que revisa els missatges abans d'enviar-los ha fallat o no ha respost."
+    "send_guard_failed": "No s'ha enviat: un connector que revisa els missatges abans d'enviar-los ha fallat o no ha respost.",
+    "cut": "Retalla",
+    "copy": "Copia"
   },
   "confirm_dialog": {
     "confirm": "Confirma",

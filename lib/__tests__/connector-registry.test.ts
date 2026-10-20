@@ -66,15 +66,15 @@ describe('resolving to app paths', () => {
     expect(path('files')).toBe('/files');
   });
 
-  it('marks the admin targets, and carries the tab the shell keeps in a store', () => {
+  it('marks the admin targets and resolves a tab to that page\'s URL', () => {
     const admin = resolve('admin', { tab: 'policy' });
     expect(admin.kind).toBe('ok');
     if (admin.kind === 'ok') {
-      expect(admin.resolution).toEqual({ path: '/admin', adminTab: 'policy', admin: true });
+      expect(admin.resolution).toEqual({ path: '/admin/policy', admin: true });
     }
 
     const auth = resolve('admin_auth');
-    if (auth.kind === 'ok') expect(auth.resolution.adminTab).toBe('auth');
+    if (auth.kind === 'ok') expect(auth.resolution).toEqual({ path: '/admin/auth', admin: true });
 
     const ext = resolve('admin_extension', { slug: 'quick-reply' });
     if (ext.kind === 'ok') {
@@ -100,9 +100,10 @@ describe('resolving to app paths', () => {
     expect(safeAdminNext(encodeURIComponent(versioned))).toBe(versioned);
   });
 
-  it('defaults the admin tab when the link named none', () => {
+  it('opens the panel front page when the link named no tab', () => {
     const admin = resolve('admin');
-    if (admin.kind === 'ok') expect(admin.resolution.adminTab).toBe('dashboard');
+    expect(admin.kind).toBe('ok');
+    if (admin.kind === 'ok') expect(admin.resolution).toEqual({ path: '/admin', admin: true });
   });
 
   it('leaves the user targets unmarked, so they take the normal login path', () => {

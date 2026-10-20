@@ -31,9 +31,9 @@ import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { pluginUiKit, SlotPropsContext } from './ui-kit';
 import { initFloatingDropdownBridge, dispatchFloatingDropdownEvent } from './ui-kit/floating-dropdown-bridge';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
-import { isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
+import { isFillableSlot, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import type {
-  CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
+  AppInfoView, AppSettingsView, SettingsSearchResult, CalendarEventInput, CalendarEventView, CalendarView, ComposeInput, DraftInput, EmailReadView,
   EmailSummary, IdentityPatch, IdentityView, MailboxView, NotificationInput, SlotName, TaskInput,
   TaskView, TemplateInput, TemplateView, VacationInput, VacationView,
 } from '../plugin-types';
@@ -43,7 +43,7 @@ import { EncryptionAtRestConfig, PublicKeyInput } from '@/stores/account-securit
 // ─── Module-scope state ──────────────────────────────────────
 
 interface PluginExports {
-  slots?: Record<string, { component: React.ComponentType<Record<string, unknown>>; shouldShow?: (ctx: unknown) => boolean; order?: number }>;
+  slots?: Record<string, { component: React.ComponentType<Record<string, unknown>>; shouldShow?: (ctx: unknown) => boolean; order?: number; fill?: boolean; startFolded?: boolean }>;
   hooks?: Record<string, (...args: unknown[]) => unknown>;
   /**
    * Keyboard shortcut bindings. Each entry's `handler` is registered as a
@@ -321,6 +321,15 @@ function buildPluginApi(manifest: PluginManifest) {
         return () => { settingsListeners.delete(listener); };
       },
     },
+    /** The app the plugin runs in: product, the administrator's name for it, version, edition. No permission needed. */
+    app: {
+      getInfo: () => callApi('app.getInfo', []) as Promise<AppInfoView>,
+      /** Settings matching a query (the user's language or English): page, label, description. No permission needed. */
+      searchSettings: (query: string, options?: { limit?: number }) =>
+        callApi('app.searchSettings', [query, options]) as Promise<SettingsSearchResult[]>,
+      /** The user's preferences: layout, formats, reading and sending behaviour. Needs settings:read. */
+      getSettings: () => callApi('app.getSettings', []) as Promise<AppSettingsView>,
+    },
     crypto: {
       getPublicKeys: () => callApi('crypto.getPublicKeys', []),
       createPublicKey: (input: PublicKeyInput) => callApi('crypto.createPublicKey', [input]),
@@ -545,6 +554,18 @@ function buildPluginApi(manifest: PluginManifest) {
        * back to the plugin's name. At most 40 characters.
        */
       setSectionTitle: (title: string | null) => callApi('ui.setSectionTitle', [title]) as Promise<void>,
+      /**
+       * Open, close or toggle the panel this plugin's slot sits in:
+       * 'composer-sidebar', 'composer-sidebar-right' (pass the composerId
+       * from the click context or the slot's props) or 'email-detail-sidebar'.
+       * Resolve to whether the panel is open afterwards, or null when no such
+       * panel is on screen (no composer or message open, or a phone), so the
+       * plugin can fall back to a dialog. A panel opened this way gets a new
+       * `focusRequest` prop, so the slot can focus its input.
+       */
+      openPanel: (slot: string, opts?: { composerId?: string }) => callApi('ui.setPanel', [slot, 'open', opts]) as Promise<boolean | null>,
+      closePanel: (slot: string, opts?: { composerId?: string }) => callApi('ui.setPanel', [slot, 'close', opts]) as Promise<boolean | null>,
+      togglePanel: (slot: string, opts?: { composerId?: string }) => callApi('ui.setPanel', [slot, 'toggle', opts]) as Promise<boolean | null>,
     },
     // Requests with an account or key the manifest declares under
     // `credentials`; the server adds the secret (permission http:proxy).
@@ -584,6 +605,15 @@ function buildPluginApi(manifest: PluginManifest) {
        */
       list: (options?: { mailboxId?: string; limit?: number; position?: number }) =>
         callApi('email.list', [options]) as Promise<EmailSummary[]>,
+      /**
+       * Messages matching a search, newest first, as summaries without the
+       * body: `text` (sender, recipients, subject and body, whole words),
+       * `from`, `to`, `subject`, `after`/`before` (dates), `hasAttachment`,
+       * in one folder with `mailboxId`. At least one condition; limit 1-50
+       * (default 20).
+       */
+      search: (query: { text?: string; from?: string; to?: string; subject?: string; after?: string; before?: string; hasAttachment?: boolean; mailboxId?: string; limit?: number }) =>
+        callApi('email.search', [query]) as Promise<EmailSummary[]>,
       /**
        * The bytes of one attachment of a message (email:blob-read, at most
        * 25 MB). `blobId` must be one of that message's attachments, e.g.
@@ -901,7 +931,7 @@ async function bootBackground(payload: BackgroundInit): Promise<void> {
   }
 
   // Enumerate slot offers.
-  const slotInfo: Array<{ name: SlotName; hasShouldShow: boolean; order: number }> = [];
+  const slotInfo: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean; startFolded?: boolean }> = [];
   const slots = exports.slots ?? {};
   for (const [name, def] of Object.entries(slots)) {
     if (def && typeof def.component === 'function') {
@@ -909,6 +939,10 @@ async function bootBackground(payload: BackgroundInit): Promise<void> {
         name: name as SlotName,
         hasShouldShow: typeof def.shouldShow === 'function',
         order: typeof def.order === 'number' ? def.order : 100,
+        // A panel that fills its panel instead of growing with its content.
+        ...(def.fill === true && isFillableSlot(name) ? { fill: true } : {}),
+        // A panel the user opens when they want it (a chat), not on every message.
+        ...(def.startFolded === true && isFillableSlot(name) ? { startFolded: true } : {}),
       });
     }
   }
@@ -958,6 +992,15 @@ function bootSlot(payload: SlotInit): void {
   let currentProps = decodeCallbacks(payload.extraProps) as Record<string, unknown>;
   const Component = slotDef.component;
   const inline = isInlineSlot(payload.slot);
+  // Filling its panel: the document is as tall as the frame and the slot's
+  // root takes all of it; the height is the panel's, so nothing is measured.
+  const fill = payload.fill === true && isFillableSlot(payload.slot);
+  if (fill) {
+    document.documentElement.style.height = '100%';
+    document.body.style.height = '100%';
+    document.body.style.overflow = 'hidden';
+    rootEl.style.height = '100%';
+  }
 
   // A trivial pub/sub so host-pushed `props-update` messages re-render the
   // slot tree without tearing down the iframe.
@@ -992,7 +1035,7 @@ function bootSlot(payload: SlotInit): void {
       };
     }, []);
     React.useEffect(() => {
-      if (!wrapRef.current) return;
+      if (!wrapRef.current || fill) return;
       const el = wrapRef.current;
       let lastHeight = -1;
       let lastWidth = -1;
@@ -1014,7 +1057,7 @@ function bootSlot(payload: SlotInit): void {
     // that wraps to fit it reports a narrow width back, so it never grew.
     const style = inline
       ? { display: 'inline-block', width: 'max-content', maxWidth: MAX_INLINE_SLOT_WIDTH }
-      : undefined;
+      : fill ? { height: '100%' } : undefined;
     return React.createElement('div', { ref: wrapRef, style },
       React.createElement(SlotPropsContext.Provider, { value: props }, React.createElement(Component, props)));
   };

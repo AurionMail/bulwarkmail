@@ -44,6 +44,12 @@ export interface SlotInit {
   tier: PluginTier;
   /** Slot name the iframe should render a component for. */
   slot: SlotName;
+  /**
+   * The frame fills its panel instead of growing with its content: the
+   * plugin's root is as tall as the panel and scrolls inside, so it can pin
+   * controls at the bottom (a chat input). Only for panel slots.
+   */
+  fill?: boolean;
   /** Same bundle code as the background instance. */
   code: string;
   /**
@@ -85,8 +91,8 @@ export interface InitDoneMsg {
   type: 'init-done';
   /** Hook names the plugin registered. The host installs proxy handlers. */
   hooks: string[];
-  /** Slots the plugin claims. Used by the host to know when a slot is offered. */
-  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number }>;
+  /** Slots the plugin claims. Used by the host to know when a slot is offered. `fill`: a panel slot that fills its panel (see slot-layout.ts). */
+  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean; startFolded?: boolean }>;
   /**
    * Keyboard shortcuts the plugin declares. The host installs a global
    * keydown listener that dispatches to the `shortcut:<id>` hook when the

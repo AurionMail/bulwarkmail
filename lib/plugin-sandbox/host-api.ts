@@ -2,7 +2,10 @@
 // on `plugin.permissions` BEFORE doing the underlying work, and only returns
 // structured-cloneable data back to the iframe.
 
-import type { InstalledPlugin, Permission } from '../plugin-types';
+import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
+import { fetchConfig } from '@/hooks/use-config';
+import { IS_LITE } from '../lite';
+import { doAppGetSettings, doAppSearchSettings } from './host-api-app';
 import { mayOfferSlot, pluginHasPermission } from './permissions';
 import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, type StreamSink } from './proxy-client';
 import { checkActions, isActionSurface, setPluginActions } from './actions';
@@ -47,12 +50,13 @@ import {
   doTemplatesUpdate, doVacationGet, doVacationSet,
 } from './host-api-settings';
 import {
-  doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doMailboxesList,
+  doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doEmailSearch, doMailboxesList,
 } from './host-api-mail';
 import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } from './host-api-input';
 import { doComposeOpen, doComposeReply, doDraftsCreate } from './host-api-compose';
 import { doNotificationsShow } from './host-api-notify';
 import { setSectionTitle } from './section-titles';
+import { requestPanel } from './panel-requests';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
 
 /**
@@ -149,6 +153,12 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'user.getIdentities': 'identity:read',
   // The IANA zone the app shows times in (Settings or the browser's).
   'user.getTimeZone': null,
+  // The app's name and version: nothing about the user.
+  'app.getInfo': null,
+  // Where a setting is: the app's own texts, nothing about the user.
+  'app.searchSettings': null,
+  // The user's preferences (layout, formats, reading and sending behaviour).
+  'app.getSettings': 'settings:read',
   'user.logout': 'auth:emit',
   // admin
   'admin.getConfig': 'admin:config',
@@ -210,6 +220,9 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'ui.setDayLabels': 'ui:calendar-action',
   'ui.setPages': 'ui:app-page',
   'ui.setSectionTitle': 'ui:sidebar-widget',
+  // Open, close or toggle the panel the plugin's slot sits in; the panel's
+  // own permission is checked per call (see the slot catalogue).
+  'ui.setPanel': null,
   // sieve (delivery-time classification)
   'sieve.isSupported': 'filters:read',
   'sieve.getActiveScript': 'filters:read',
@@ -244,6 +257,7 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // reading mail: one message with its text, a page of a folder, the folders
   'email.get': 'email:read',
   'email.list': 'email:read',
+  'email.search': 'email:read',
   'mailboxes.list': 'email:read',
   // The bytes of one attachment of a given message, or of the message
   // itself. Unlike jmap.fetchBlob these only reach blobs of a message the
@@ -1639,6 +1653,20 @@ async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
   if (!res.ok) return {};
   return res.json();
 }
+/** The app a plugin runs in: product, the administrator's name for it, version, edition. */
+async function doAppGetInfo(): Promise<AppInfoView> {
+  let config: Awaited<ReturnType<typeof fetchConfig>> | null = null;
+  try { config = await fetchConfig(); } catch { config = null; }
+  return {
+    product: 'Bulwark Mail',
+    name: config?.appName || 'Webmail',
+    version: process.env.NEXT_PUBLIC_APP_VERSION || '',
+    edition: IS_LITE ? 'lite' : 'full',
+    stalwartFeatures: config?.stalwartFeaturesEnabled ?? true,
+    demoMode: config?.demoMode ?? false,
+  };
+}
+
 /** The zone the app shows times in: the user's choice, else the browser's. */
 function userTimeZone(): string {
   const setting = useSettingsStore.getState().timeZone;
@@ -1749,6 +1777,11 @@ export async function dispatchApiCall(
     case 'ui.setDayLabels': setDayLabels(plugin.id, plugin.name, checkDayLabels(args[0])); return undefined;
     case 'ui.setPages': setPluginPages(plugin.id, plugin.name, checkPages(args[0])); return undefined;
     case 'ui.setSectionTitle': setSectionTitle(plugin.id, args[0]); return undefined;
+    case 'ui.setPanel': {
+      const slot = args[0];
+      if (typeof slot !== 'string' || !mayOfferSlot(plugin, slot)) throw new Error(`Plugin "${plugin.id}" may not open the panel "${String(slot)}"`);
+      return requestPanel(plugin.id, slot, args[1], args[2]);
+    }
 
     case 'storage.get': return storageGet(plugin.id, args[0] as string);
     case 'storage.set': storageSet(plugin.id, args[0] as string, args[1]); return undefined;
@@ -1830,6 +1863,9 @@ export async function dispatchApiCall(
     case 'user.getAccounts':   return doUserGetAccounts();
     case 'user.getIdentities': return doUserGetIdentities();
     case 'user.getTimeZone': return userTimeZone();
+    case 'app.getInfo': return doAppGetInfo();
+    case 'app.searchSettings': return doAppSearchSettings(args[0], args[1]);
+    case 'app.getSettings': return doAppGetSettings();
     case 'user.logout' : return doUserLogout();
 
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);
@@ -2022,6 +2058,7 @@ export async function dispatchApiCall(
 
     case 'email.get': return doEmailGet(args[0]);
     case 'email.list': return doEmailList(args[0]);
+    case 'email.search': return doEmailSearch(args[0]);
     case 'mailboxes.list': return doMailboxesList();
     case 'email.getAttachment': return doEmailGetAttachment(args[0], args[1]);
     case 'email.getRaw': return doEmailGetRaw(args[0]);

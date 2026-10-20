@@ -13,9 +13,7 @@ import type { Email, Mailbox } from '../jmap/types';
 import type { IJMAPClient } from '../jmap/client-interface';
 import { resolveEmailBlobContext, useEmailStore } from '@/stores/email-store';
 import { emailSummary, emailToReadView } from '../plugin-projection';
-import {
-  MAX_PLUGIN_FETCH_BYTES, readId, readInteger, readObject, sessionClient, withinRate,
-} from './host-api-input';
+import { MAX_PLUGIN_FETCH_BYTES, readBoolean, readId, readInteger, readObject, readString, sessionClient, withinRate } from './host-api-input';
 
 /** Most messages one api.email.list call returns. */
 export const MAX_PLUGIN_EMAIL_PAGE = 100;
@@ -89,6 +87,50 @@ export async function doEmailList(options: unknown): Promise<EmailSummary[]> {
     accountId = mailbox.isShared ? mailbox.accountId : undefined;
   }
   const { emails } = await client.getEmails(jmapMailboxId, accountId, limit, position);
+  return emails.map(emailSummary);
+}
+
+/** Most messages one search returns. */
+export const MAX_PLUGIN_SEARCH_RESULTS = 50;
+const SEARCH_TEXT_FIELDS = ['text', 'from', 'to', 'subject'] as const;
+const SEARCH_DATE_FIELDS = ['after', 'before'] as const;
+
+/**
+ * Messages matching a JMAP filter, newest first: `text` (sender, recipients,
+ * subject and body, whole words), `from`, `to`, `subject`, `after` and
+ * `before` (dates), `hasAttachment`, in one folder with `mailboxId`. At
+ * least one condition; summaries without the body (api.email.get reads one).
+ */
+export async function doEmailSearch(options: unknown): Promise<EmailSummary[]> {
+  const method = 'email.search';
+  const opts = readObject(options, method, 'query', [...SEARCH_TEXT_FIELDS, ...SEARCH_DATE_FIELDS, 'hasAttachment', 'mailboxId', 'limit']);
+  const limit = opts.limit === undefined ? 20 : readInteger(opts.limit, method, 'limit', 1, MAX_PLUGIN_SEARCH_RESULTS);
+  const filter: Record<string, unknown> = {};
+  for (const key of SEARCH_TEXT_FIELDS) {
+    if (opts[key] === undefined) continue;
+    const value = readString(opts[key], method, key, 500).trim();
+    if (value) filter[key] = value;
+  }
+  for (const key of SEARCH_DATE_FIELDS) {
+    if (opts[key] === undefined) continue;
+    const value = readString(opts[key], method, key, 40).trim();
+    const date = new Date(value);
+    if (!value || Number.isNaN(date.getTime())) throw new Error(`${method}: ${key} must be a date like 2026-05-01`);
+    filter[key] = date.toISOString();
+  }
+  if (opts.hasAttachment !== undefined) filter.hasAttachment = readBoolean(opts.hasAttachment, method, 'hasAttachment');
+  if (Object.keys(filter).length === 0) throw new Error(`${method}: give at least one of text, from, to, subject, after, before or hasAttachment`);
+  const client = sessionClient(method);
+  let jmapMailboxId: string | undefined;
+  let accountId: string | undefined;
+  if (opts.mailboxId !== undefined) {
+    const id = readId(opts.mailboxId, method, 'mailboxId');
+    const mailbox = (await knownMailboxes(client)).find((m) => m.id === id);
+    if (!mailbox) throw new Error(`${method}: no mailbox with id "${id}"`);
+    jmapMailboxId = mailbox.originalId || mailbox.id;
+    accountId = mailbox.isShared ? mailbox.accountId : undefined;
+  }
+  const { emails } = await client.getEmails(jmapMailboxId, accountId, limit, 0, undefined, false, filter);
   return emails.map(emailSummary);
 }
 

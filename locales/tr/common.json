@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "Eklenti panelini göster",
-    "plugin_panel_hide": "Eklenti panelini gizle"
+    "plugin_panel_hide": "Eklenti panelini gizle",
+    "copy": "Kopyala"
   },
   "email_composer": {
     "select_from_directory": "Dizinden seç",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Gönderildi - ancak sonrasındaki temizleme başarısız oldu, eski bir taslak kalabilir.",
     "pop_out": "Yanıtı ayrı pencerede aç",
-    "send_guard_failed": "Gönderilmedi - iletileri göndermeden önce denetleyen bir eklenti başarısız oldu veya yanıt vermedi."
+    "send_guard_failed": "Gönderilmedi - iletileri göndermeden önce denetleyen bir eklenti başarısız oldu veya yanıt vermedi.",
+    "cut": "Kes",
+    "copy": "Kopyala"
   },
   "confirm_dialog": {
     "confirm": "Onayla",

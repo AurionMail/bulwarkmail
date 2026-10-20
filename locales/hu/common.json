@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} / {total}",
     "plugin_panel_show": "Bővítménypanel megjelenítése",
-    "plugin_panel_hide": "Bővítménypanel elrejtése"
+    "plugin_panel_hide": "Bővítménypanel elrejtése",
+    "copy": "Másolás"
   },
   "email_composer": {
     "select_from_directory": "Kiválasztás a címtárból",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Elküldve - de az utólagos rendrakás nem sikerült, egy elavult piszkozat megmaradhat.",
     "pop_out": "Válasz megnyitása külön ablakban",
-    "send_guard_failed": "Nem lett elküldve - egy bővítmény, amely küldés előtt ellenőrzi az üzeneteket, hibát jelzett vagy nem válaszolt."
+    "send_guard_failed": "Nem lett elküldve - egy bővítmény, amely küldés előtt ellenőrzi az üzeneteket, hibát jelzett vagy nem válaszolt.",
+    "cut": "Kivágás",
+    "copy": "Másolás"
   },
   "confirm_dialog": {
     "confirm": "Megerősítés",

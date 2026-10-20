@@ -21,8 +21,11 @@ export function pushPreferencesKey(origin: string): string {
 }
 
 export async function writePushPreferences(prefs: PushPreferences): Promise<void> {
-  if (typeof window === 'undefined' || typeof caches === 'undefined') return;
+  if (typeof window === 'undefined') return;
   try {
+    // A frame sandboxed without allow-same-origin (the plugin sandbox loads
+    // the settings store too) throws on any read of `caches`, typeof included.
+    if (typeof caches === 'undefined') return;
     const cache = await caches.open(PUSH_STATE_CACHE);
     await cache.put(
       pushPreferencesKey(window.location.origin),

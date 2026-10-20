@@ -102,6 +102,30 @@ describe('api.email.get', () => {
   });
 });
 
+describe('api.email.search', () => {
+  it('runs a JMAP filter across all mail, newest first, as summaries', async () => {
+    const list = await call(READER, 'email.search', { text: 'invoice', from: 'carol', after: '2026-10-01' }) as { id: string }[];
+    expect(list.map((e) => e.id)).toEqual(['a', 'b']);
+    expect(list[0]).not.toHaveProperty('text');
+    expect(client.getEmails).toHaveBeenCalledWith(undefined, undefined, 20, 0, undefined, false, { text: 'invoice', from: 'carol', after: '2026-10-01T00:00:00.000Z' });
+  });
+
+  it('searches one folder, a shared one through its owner, with a subject and attachments', async () => {
+    await call(READER, 'email.search', { subject: 'offer', hasAttachment: true, mailboxId: 'acc2:box', limit: 5 });
+    expect(client.getEmails).toHaveBeenCalledWith('box', 'acc2', 5, 0, undefined, false, { subject: 'offer', hasAttachment: true });
+  });
+
+  it('wants a condition, a real date, at most 50 results, and email:read', async () => {
+    await expect(call(READER, 'email.search', {})).rejects.toThrow(/at least one of/);
+    await expect(call(READER, 'email.search', { text: '   ' })).rejects.toThrow(/at least one of/);
+    await expect(call(READER, 'email.search', { text: 'x', before: 'yesterday' })).rejects.toThrow(/before must be a date/);
+    await expect(call(READER, 'email.search', { text: 'x', limit: 51 })).rejects.toThrow(/limit must be a whole number from 1 to 50/);
+    await expect(call(READER, 'email.search', { body: 'x' })).rejects.toThrow(/unknown property "body"/);
+    await expect(call(plugin([]), 'email.search', { text: 'x' })).rejects.toThrow(/lacks permission "email:read"/);
+    expect(client.getEmails).not.toHaveBeenCalled();
+  });
+});
+
 describe('api.email.list', () => {
   it('returns summaries of a folder page', async () => {
     const list = await call(READER, 'email.list', { mailboxId: 'inbox', limit: 2, position: 10 }) as { id: string }[];

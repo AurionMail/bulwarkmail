@@ -14,7 +14,7 @@ vi.mock('@/lib/browser-navigation', () => ({
 }));
 vi.mock('next/link', () => ({ default: () => null }));
 
-import { installVersion } from '../_tabs/marketplace';
+import { installVersion } from '../_pages/marketplace';
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } });
 const BODY = { slug: 'jitsi-meet', version: '2.0.9', type: 'plugin' as const };

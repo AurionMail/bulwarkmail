@@ -2,29 +2,32 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock } from '@/components/icons';
+import { Loader2 } from '@/components/icons';
 import { apiFetch } from '@/lib/browser-navigation';
+import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/page-header';
+import { Flash, useFlash } from '@/components/admin/flash-message';
+import { inputClass } from '@/components/admin/config-items';
+import { cn } from '@/lib/utils';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [message, setMessage] = useFlash();
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
+    setMessage(null);
 
     if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters.');
+      setMessage({ type: 'error', text: 'The new password must be at least 8 characters.' });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match.');
+      setMessage({ type: 'error', text: 'The new passwords do not match.' });
       return;
     }
 
@@ -36,81 +39,51 @@ export default function ChangePasswordPage() {
     });
 
     if (res.ok) {
-      setSuccess(true);
+      setMessage({ type: 'success', text: 'Password changed. Taking you back to the overview.' });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => router.push('/admin'), 2000);
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error || 'Failed to change password.');
+      setMessage({ type: 'error', text: data.error || 'Could not change the password.' });
     }
     setLoading(false);
   }
 
+  const fields = [
+    { id: 'current', label: 'Current password', value: currentPassword, set: setCurrentPassword, autoComplete: 'current-password' },
+    { id: 'new', label: 'New password', value: newPassword, set: setNewPassword, autoComplete: 'new-password' },
+    { id: 'confirm', label: 'Confirm new password', value: confirmPassword, set: setConfirmPassword, autoComplete: 'new-password' },
+  ] as const;
+
   return (
-    <div className="max-w-md mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Change Password</h1>
-        <p className="text-sm text-muted-foreground mt-1">Update your admin password.</p>
-      </div>
+    <div className="max-w-md">
+      <AdminPageHeader title="Change password" description="The password for this admin panel. At least 8 characters." back={{ href: '/admin', label: 'Overview' }} />
+
+      <Flash message={message} onDismiss={() => setMessage(null)} />
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Current Password</label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {fields.map((field) => (
+          <div key={field.id} className="space-y-1.5">
+            <label htmlFor={`password-${field.id}`} className="text-sm font-medium text-foreground">{field.label}</label>
             <input
+              id={`password-${field.id}`}
               type="password"
-              value={currentPassword}
-              onChange={e => setCurrentPassword(e.target.value)}
+              value={field.value}
+              onChange={(e) => field.set(e.target.value)}
               required
-              className="w-full h-9 ps-9 pe-3 rounded-md border border-input bg-background text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              autoComplete="current-password"
+              minLength={field.id === 'current' ? undefined : 8}
+              autoComplete={field.autoComplete}
+              className={cn(inputClass, 'w-full')}
             />
           </div>
-        </div>
+        ))}
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">New Password</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
-            required
-            minLength={8}
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            autoComplete="new-password"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Confirm New Password</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-            required
-            minLength={8}
-            className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            autoComplete="new-password"
-          />
-        </div>
-
-        {error && (
-          <p className="text-sm text-red-500">{error}</p>
-        )}
-        {success && (
-          <p className="text-sm text-green-600">Password changed. Redirecting...</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full h-9 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Changing...' : 'Change Password'}
-        </button>
+        <Button type="submit" size="sm" disabled={loading} className="gap-2">
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          Change password
+        </Button>
       </form>
     </div>
   );

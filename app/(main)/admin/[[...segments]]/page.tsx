@@ -1,0 +1,51 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useAdminLocation, navigateAdmin } from '@/hooks/use-admin-navigation';
+import { adminPath, isAdminPageId } from '@/lib/admin/admin-nav';
+import { DashboardPage } from '../_pages/dashboard';
+import { SettingsPage } from '../_pages/settings';
+import { BrandingPage } from '../_pages/branding';
+import { AuthPage } from '../_pages/auth';
+import { PolicyPage } from '../_pages/policy';
+import { PluginsPage } from '../_pages/plugins';
+import { ThemesPage } from '../_pages/themes';
+import { MarketplacePage } from '../_pages/marketplace';
+import { MarketplaceDetailPage } from '../_pages/marketplace-detail';
+import { ExtensionDetailPage } from '../_pages/extension-detail';
+import { VersionPage } from '../_pages/version';
+import { TelemetryPage } from '../_pages/telemetry';
+import { LogsPage } from '../_pages/logs';
+
+/**
+ * Every admin page, picked from the address bar. One route for the whole
+ * panel: the sidebar switches pages with history.pushState and this
+ * component re-renders from `usePathname()`, so there is never a route
+ * transition between pages (lib/admin/admin-nav.ts).
+ */
+export default function AdminPage() {
+  const { page, detail } = useAdminLocation();
+
+  // Links from before the pages had URLs: /admin?tab=settings.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const tab = url.searchParams.get('tab');
+    if (!isAdminPageId(tab)) return;
+    url.searchParams.delete('tab');
+    navigateAdmin(`${adminPath(tab)}${url.search}${url.hash}`, { replace: true });
+  }, []);
+
+  switch (page ?? 'dashboard') {
+    case 'dashboard': return <DashboardPage />;
+    case 'settings': return <SettingsPage />;
+    case 'branding': return <BrandingPage />;
+    case 'auth': return <AuthPage />;
+    case 'policy': return <PolicyPage />;
+    case 'plugins': return detail ? <ExtensionDetailPage key={detail} kind="plugin" id={detail} /> : <PluginsPage />;
+    case 'themes': return detail ? <ExtensionDetailPage key={detail} kind="theme" id={detail} /> : <ThemesPage />;
+    case 'marketplace': return detail ? <MarketplaceDetailPage key={detail} slug={detail} /> : <MarketplacePage />;
+    case 'version': return <VersionPage />;
+    case 'telemetry': return <TelemetryPage />;
+    case 'logs': return <LogsPage />;
+  }
+}

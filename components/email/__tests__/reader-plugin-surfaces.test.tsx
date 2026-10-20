@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import type { Email, Mailbox, ThreadGroup } from '@/lib/jmap/types';
 import { resetActions, setActionDispatcher, setPluginActions } from '@/lib/plugin-sandbox/actions';
 import { clearOffers, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
+import { requestPanel } from '@/lib/plugin-sandbox/panel-requests';
 
 // Plugin surfaces of the open message: frames above the subject, under the
 // sender, between new text and quote, above a conversation; buttons in the
@@ -126,6 +127,54 @@ describe('email-detail-sidebar', () => {
     expect(panel.className).toContain('absolute');
   });
 
+  it('opens, closes and toggles on a plugin\'s request, and tells the slot to focus', () => {
+    stubWidth(584);
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi'));
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+
+    let open: boolean | null = false;
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'open', undefined); });
+    expect(open).toBe(true);
+    const panel = screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!;
+    expect(panel.getAttribute('data-plugin-detail-panel')).toBe('overlay');
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).focusRequest).toBe(1);
+
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'toggle', undefined); });
+    expect(open).toBe(false);
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'toggle', undefined); });
+    expect(open).toBe(true);
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).focusRequest).toBe(2);
+
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'close', undefined); });
+    expect(open).toBe(false);
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+  });
+
+  it('answers no request on phones, where there is no panel', () => {
+    device.isMobile = true;
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi'));
+    let open: boolean | null = true;
+    act(() => { open = requestPanel('p1', 'email-detail-sidebar', 'open', undefined); });
+    expect(open).toBeNull();
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+  });
+
+  it('starts folded when the plugin asks for it, and remembers the user opening it', () => {
+    stubWidth(1000);
+    offerSlots('p1', ['email-detail-sidebar'], { startFolded: ['email-detail-sidebar'] });
+    const { unmount } = viewer(textMail('Hi'));
+    expect(screen.queryByTestId('slot-email-detail-sidebar')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_show' }));
+    expect(screen.getByTestId('slot-email-detail-sidebar').closest('[data-plugin-detail-panel]')!.getAttribute('data-plugin-detail-panel')).toBe('docked');
+    unmount();
+    viewer(textMail('Hi'));
+    expect(screen.getByTestId('slot-email-detail-sidebar')).toBeInTheDocument();
+  });
+
   it('docks next to the message when there is room', () => {
     stubWidth(1000);
     offerSlots('p1', ['email-detail-sidebar']);
@@ -136,7 +185,77 @@ describe('email-detail-sidebar', () => {
   });
 });
 
+describe('reader-selection-menu and the side panel\'s selection', () => {
+  const SURFACE = 'reader-selection-menu';
+  const plainBody = () => document.querySelector<HTMLElement>('[data-plugin-source="email-body"]')!;
+  const selectBody = () => {
+    const range = document.createRange();
+    range.selectNodeContents(plainBody());
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+  const rightClick = () => {
+    const event = createEvent.contextMenu(plainBody(), { clientX: 30, clientY: 40 });
+    fireEvent(plainBody(), event);
+    return event;
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+    window.getSelection()?.removeAllRanges();
+  });
+
+  it('leaves the browser menu alone without plugin entries, and without a selection', () => {
+    viewer(textMail('Hi there'));
+    selectBody();
+    expect(rightClick().defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    act(() => { setPluginActions('p1', 'P1', SURFACE, [{ id: 'explain', label: 'Explain' }]); });
+    window.getSelection()!.removeAllRanges();
+    expect(rightClick().defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('offers Copy and the plugin entries on selected text, and hands the click the message and the text', async () => {
+    act(() => { setPluginActions('p1', 'P1', SURFACE, [{ id: 'explain', label: 'Explain', icon: 'sparkles' }]); });
+    viewer(textMail('Hi there'));
+    selectBody();
+
+    expect(rightClick().defaultPrevented).toBe(true);
+    expect(screen.getByRole('menu')).toHaveTextContent('copy');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Explain' }));
+    await act(async () => {});
+    expect(dispatch).toHaveBeenCalledWith('p1', SURFACE, 'explain', { emailId: 'e1', selection: { text: 'Hi there' } });
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('sends the side panel the selected text a moment after it changes', () => {
+    offerSlots('p1', ['email-detail-sidebar']);
+    viewer(textMail('Hi there'));
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).selection).toEqual({ text: '' });
+
+    vi.useFakeTimers();
+    selectBody();
+    act(() => { document.dispatchEvent(new Event('selectionchange')); });
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).selection).toEqual({ text: '' });
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(slotProps(screen.getByTestId('slot-email-detail-sidebar')).selection).toEqual({ text: 'Hi there' });
+  });
+});
+
 describe('reader-header and reader-below-subject', () => {
+  it('tell the frames which layout they are in', () => {
+    offerSlots('p1', ['email-banner']);
+    const { unmount } = viewer(textMail('Hi'));
+    expect(slotProps(screen.getByTestId('slot-email-banner')).deviceType).toBe('desktop');
+    unmount();
+    device.isMobile = true;
+    viewer(textMail('Hi'));
+    expect(slotProps(screen.getByTestId('slot-email-banner')).deviceType).toBe('mobile');
+  });
+
   it('put the frames above the subject and under the sender, with the message', () => {
     offerSlots('p1', ['reader-header', 'reader-below-subject']);
     const { container } = viewer(textMail('Hi'));
@@ -235,12 +354,13 @@ describe('thread-summary', () => {
   ];
 
   it('sits above the messages of the phone conversation view', () => {
+    device.isMobile = true;
     offerSlots('p1', ['thread-summary']);
     const thread = { threadKey: 't1', latestEmail: conversation[1], emails: conversation, emailCount: 2 } as unknown as ThreadGroup;
     render(<ThreadConversationView thread={thread} emails={[conversation[1], conversation[0]]} onBack={() => {}} />);
 
     const frame = screen.getByTestId('slot-thread-summary');
-    expect(slotProps(frame)).toEqual({ threadId: 't1', emailIds: ['m2', 'm1'] });
+    expect(slotProps(frame)).toEqual({ threadId: 't1', emailIds: ['m2', 'm1'], deviceType: 'mobile' });
     expect(follows(frame, screen.getAllByText('Alice')[0])).toBe(true);
   });
 
@@ -249,7 +369,7 @@ describe('thread-summary', () => {
     useSettingsStore.setState({ interfaceLayout: 'mountain-view', markAsReadDelay: 0 });
     viewer(conversation[1], { mvConversation: conversation });
 
-    expect(slotProps(screen.getByTestId('slot-thread-summary'))).toEqual({ threadId: 't1', emailIds: ['m1', 'm2'] });
+    expect(slotProps(screen.getByTestId('slot-thread-summary'))).toEqual({ threadId: 't1', emailIds: ['m1', 'm2'], deviceType: 'desktop' });
   });
 
   it('draws nothing without a plugin, and nothing for a single message', () => {

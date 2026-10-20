@@ -640,7 +640,8 @@
     },
     "mv_position": "第 {index} 封，共 {total} 封",
     "plugin_panel_show": "显示插件面板",
-    "plugin_panel_hide": "隐藏插件面板"
+    "plugin_panel_hide": "隐藏插件面板",
+    "copy": "复制"
   },
   "email_composer": {
     "select_from_directory": "从目录中选择",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "已发送，但发送后的清理失败，可能会残留旧草稿。",
     "pop_out": "在单独窗口中打开回复",
-    "send_guard_failed": "未发送 - 发送前检查邮件的插件出错或没有响应。"
+    "send_guard_failed": "未发送 - 发送前检查邮件的插件出错或没有响应。",
+    "cut": "剪切",
+    "copy": "复制"
   },
   "confirm_dialog": {
     "confirm": "确认",

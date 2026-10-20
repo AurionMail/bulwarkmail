@@ -605,7 +605,8 @@
     },
     "mv_position": "{index} מתוך {total}",
     "plugin_panel_show": "הצגת חלונית התוסף",
-    "plugin_panel_hide": "הסתרת חלונית התוסף"
+    "plugin_panel_hide": "הסתרת חלונית התוסף",
+    "copy": "העתק"
   },
   "email_composer": {
     "select_from_directory": "בחירה מהספרייה",
@@ -808,7 +809,9 @@
     },
     "send_filing_warning": "נשלח - אך הניקוי שלאחר השליחה נכשל, ייתכן שתישאר טיוטה ישנה.",
     "pop_out": "פתיחת התשובה בחלון נפרד",
-    "send_guard_failed": "לא נשלח - תוסף שבודק הודעות לפני השליחה נכשל או לא הגיב."
+    "send_guard_failed": "לא נשלח - תוסף שבודק הודעות לפני השליחה נכשל או לא הגיב.",
+    "cut": "גזור",
+    "copy": "העתק"
   },
   "confirm_dialog": {
     "confirm": "אשר",

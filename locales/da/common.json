@@ -640,7 +640,8 @@
     },
     "mv_position": "{index} af {total}",
     "plugin_panel_show": "Vis pluginpanel",
-    "plugin_panel_hide": "Skjul pluginpanel"
+    "plugin_panel_hide": "Skjul pluginpanel",
+    "copy": "Kopiér"
   },
   "email_composer": {
     "select_from_directory": "Vælg fra adressefortegnelse",
@@ -843,7 +844,9 @@
     },
     "send_filing_warning": "Sendt - men oprydningen bagefter mislykkedes, en forældet kladde kan blive stående.",
     "pop_out": "Åbn svaret i et vindue",
-    "send_guard_failed": "Ikke sendt - et plugin, der kontrollerer beskeder før afsendelse, fejlede eller svarede ikke."
+    "send_guard_failed": "Ikke sendt - et plugin, der kontrollerer beskeder før afsendelse, fejlede eller svarede ikke.",
+    "cut": "Klip",
+    "copy": "Kopiér"
   },
   "confirm_dialog": {
     "confirm": "Bekræft",
