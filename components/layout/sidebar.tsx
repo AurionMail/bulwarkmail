@@ -69,6 +69,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { unifiedLoadProgress } from "@/lib/unified-mailbox";
 import { useVacationStore } from "@/stores/vacation-store";
 import { useSettingsStore, getKeywordVisibility } from "@/stores/settings-store";
+import { usePolicyStore } from "@/stores/policy-store";
 import { useEmailStore } from "@/stores/email-store";
 import { toast } from "@/stores/toast-store";
 import { debug } from "@/lib/debug";
@@ -1010,6 +1011,7 @@ function SidebarImpl({
   });
   const emailKeywords = useSettingsStore(s => s.emailKeywords);
   const nestedTags = useSettingsStore(s => s.nestedTags);
+  const tagsAboveShared = usePolicyStore(s => s.isFeatureEnabled('tagsAboveSharedEnabled'));
   const isEmbedded = useIsEmbedded();
   // The Pro shell owns the global chrome (rail + tab bar), so the sidebar's
   // own AccountSwitcher would be a redundant second account UI in the same
@@ -1281,6 +1283,53 @@ function SidebarImpl({
             dragAccountId={dragAccountId}
           />
         ))}
+      </div>
+    );
+  };
+
+  // The Tags section. It follows the shared mailboxes unless the admin policy
+  // lists it above them, so a long list of shared mailboxes does not push the
+  // tags out of sight.
+  const renderTags = () => {
+    if (!(showSecondary || mvFlat) || emailKeywords.length === 0) return null;
+    return (
+      <div data-tour="keyword-tags">
+        {/* Under Mountain View the tags continue the "Labels" list. */}
+        {!mvFlat && (
+          <SidebarSectionHeader
+            label={t("tags")}
+            expanded={tagsExpanded}
+            onToggle={toggleTags}
+            onSettings={openKeywordSettings}
+            settingsTitle={t('settings')}
+            isCollapsed={isCollapsed}
+          />
+        )}
+        {((tagsExpanded && !isCollapsed) || isCollapsed || mvFlat) && (
+          <>
+            {visibleTagTree.map((node) => (
+              <TagItem
+                key={node.id}
+                node={node}
+                selectedKeyword={selectedKeyword}
+                expandedTags={expandedTags}
+                isCollapsed={isCollapsed}
+                onTagSelect={onTagSelect}
+                onToggleExpand={handleToggleTagExpand}
+                tagCounts={tagCounts}
+                colorful={colorfulSidebarIcons}
+              />
+            ))}
+            {(hiddenTagCount > 0 || showAllTags) && (
+              <ShowAllTagsRow
+                hiddenCount={hiddenTagCount}
+                showAll={showAllTags}
+                onToggle={() => setShowAllTags((prev) => !prev)}
+                isCollapsed={isCollapsed}
+              />
+            )}
+          </>
+        )}
       </div>
     );
   };
@@ -1781,6 +1830,8 @@ function SidebarImpl({
           </div>
         )}
 
+        {tagsAboveShared && renderTags()}
+
         {!useMultiAccount && showSecondary && sharedAccounts.length > 0 && (
           <div>
             <SidebarSectionHeader
@@ -1840,46 +1891,7 @@ function SidebarImpl({
           </div>
         )}
 
-        {(showSecondary || mvFlat) && emailKeywords.length > 0 && (
-          <div data-tour="keyword-tags">
-            {/* Under Mountain View the tags continue the "Labels" list. */}
-            {!mvFlat && (
-              <SidebarSectionHeader
-                label={t("tags")}
-                expanded={tagsExpanded}
-                onToggle={toggleTags}
-                onSettings={openKeywordSettings}
-                settingsTitle={t('settings')}
-                isCollapsed={isCollapsed}
-              />
-            )}
-            {((tagsExpanded && !isCollapsed) || isCollapsed || mvFlat) && (
-              <>
-                {visibleTagTree.map((node) => (
-                  <TagItem
-                    key={node.id}
-                    node={node}
-                    selectedKeyword={selectedKeyword}
-                    expandedTags={expandedTags}
-                    isCollapsed={isCollapsed}
-                    onTagSelect={onTagSelect}
-                    onToggleExpand={handleToggleTagExpand}
-                    tagCounts={tagCounts}
-                    colorful={colorfulSidebarIcons}
-                  />
-                ))}
-                {(hiddenTagCount > 0 || showAllTags) && (
-                  <ShowAllTagsRow
-                    hiddenCount={hiddenTagCount}
-                    showAll={showAllTags}
-                    onToggle={() => setShowAllTags((prev) => !prev)}
-                    isCollapsed={isCollapsed}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        )}
+        {!tagsAboveShared && renderTags()}
 
         {!isCollapsed && <PluginSidebarSections mailboxId={selectedKeyword ? null : selectedMailbox || null} />}
         {!isCollapsed && <PluginSlot name="sidebar-widget" className="border-t border-border" />}
