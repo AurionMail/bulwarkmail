@@ -31,6 +31,20 @@ describe('writePushPreferences', () => {
     await expect(writePushPreferences({ sound: true })).resolves.toBeUndefined();
     expect(put).not.toHaveBeenCalled();
   });
+
+  it('does nothing where reading the Cache store throws', async () => {
+    // A plugin sandbox frame has an opaque origin: reading `caches` there,
+    // typeof included, throws a SecurityError.
+    Object.defineProperty(globalThis, 'caches', {
+      configurable: true,
+      get() {
+        throw new DOMException('Cache storage is disabled because the context is sandboxed', 'SecurityError');
+      },
+    });
+    const { writePushPreferences } = await import('../push-preferences');
+    await expect(writePushPreferences({ sound: true })).resolves.toBeUndefined();
+    expect(put).not.toHaveBeenCalled();
+  });
 });
 
 describe('settings store push preference mirror', () => {
