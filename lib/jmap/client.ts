@@ -17,8 +17,9 @@ import { decodeFileNodeName } from "./filenode-name";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
 import { PrincipalsRequestError } from "./principals-error";
+import { RescheduleRestoredError } from "./reschedule-error";
 
-export { SchedulingDeniedError };
+export { SchedulingDeniedError, RescheduleRestoredError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
 import { getEffectiveTimeZone, toLocalDateTime } from "@/lib/timezone";
 import { buildEmailSort, compareEmails, hasKeywordLevels, type KeywordSortPolarity, type SortLevel } from "@/lib/message-list-order";
@@ -5364,16 +5365,15 @@ export class JMAPClient implements IJMAPClient {
     return submission?.sendAt;
   }
 
-  private async getEmailSubmissionEnvelope(submissionId: string, accountId?: string): Promise<{ rcptTo?: Array<{ email: string }> } | undefined> {
+  private async getEmailSubmissionForReschedule(submissionId: string, accountId?: string): Promise<{ envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined> {
     const response = await this.request([
       ['EmailSubmission/get', {
         accountId: accountId ?? await this.resolveSubmissionAccountId(submissionId),
         ids: [submissionId],
-        properties: ['envelope'],
+        properties: ['envelope', 'sendAt'],
       }, '0'],
     ]);
-    const submission = response.methodResponses?.[0]?.[1]?.list?.[0] as { envelope?: { rcptTo?: Array<{ email: string }> } } | undefined;
-    return submission?.envelope;
+    return response.methodResponses?.[0]?.[1]?.list?.[0] as { envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined;
   }
 
   private getSubmissionAccountId(accountId?: string): string {
@@ -9847,49 +9847,86 @@ export class JMAPClient implements IJMAPClient {
     } catch (error) {
       console.error('Failed to get identity for reschedule:', error);
     }
-    const existingEnvelope = await this.getEmailSubmissionEnvelope(submissionId, submissionAccountId);
+    const original = await this.getEmailSubmissionForReschedule(submissionId, submissionAccountId);
+    const existingEnvelope = original?.envelope;
     const email = existingEnvelope?.rcptTo?.length ? undefined : await this.getEmail(emailId, submissionAccountId);
     const envelopeRecipients = existingEnvelope?.rcptTo?.length
       ? existingEnvelope.rcptTo
       : [...(email?.to || []), ...(email?.cc || []), ...(email?.bcc || [])];
-    const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdForSeconds, envelopeRecipients);
-    const response = await this.request([
-      ['EmailSubmission/set', {
-        accountId: submissionAccountId,
-        create: { replacement: { emailId, identityId, ...(envelope ? { envelope } : {}) } },
-        ...(draftsMailbox && sentMailbox ? {
-          onSuccessUpdateEmail: {
-            '#replacement': {
-              ...mailboxIdsReplacement(sentMailbox.id),
-              'keywords/$draft': null,
+    const fromEmail = identity?.email || this.username;
+
+    const createSubmission = async (holdFor: number | undefined): Promise<{ id: string; sendAt?: string }> => {
+      const envelope = createDelayedSubmissionEnvelope(fromEmail, holdFor, envelopeRecipients);
+      const response = await this.request([
+        ['EmailSubmission/set', {
+          accountId: submissionAccountId,
+          create: { replacement: { emailId, identityId, ...(envelope ? { envelope } : {}) } },
+          ...(draftsMailbox && sentMailbox ? {
+            onSuccessUpdateEmail: {
+              '#replacement': {
+                ...mailboxIdsReplacement(sentMailbox.id),
+                'keywords/$draft': null,
+              },
             },
-          },
-        } : {}),
-      }, '0'],
-    ]);
-    const result = response.methodResponses?.[0]?.[1];
-    const createError = result?.notCreated?.replacement;
-    if (createError) {
-      throw new Error(createError.description || createError.type || 'Failed to reschedule email');
-    }
-    const replacementId = result?.created?.replacement?.id;
-    const serverSendAt = result?.created?.replacement?.sendAt;
-    if (!replacementId) {
-      throw new Error('Server did not return a replacement scheduled send ID');
-    }
-    const finalSendAt = serverSendAt || await this.getEmailSubmissionSendAt(replacementId, submissionAccountId);
-    try {
-      await this.cancelEmailSubmission(submissionId, submissionAccountId);
-    } catch (error) {
-      try {
-        await this.cancelEmailSubmission(replacementId, submissionAccountId);
-      } catch (cleanupError) {
-        console.error('Failed to clean up replacement scheduled send after reschedule failure:', cleanupError);
+          } : {}),
+        }, '0'],
+      ]);
+      // Only the submission call counts: the implied Email/set from
+      // onSuccessUpdateEmail can fail while the submission was created.
+      const [methodName, result] = response.methodResponses?.[0] ?? [];
+      if (methodName === 'error') {
+        throw new Error(result?.description || result?.type || 'Failed to reschedule email');
       }
-      const message = error instanceof Error ? error.message : 'Failed to cancel original scheduled send';
-      throw new Error(`Reschedule created a replacement but could not cancel the original: ${message}`);
+      const createError = result?.notCreated?.replacement;
+      if (createError) {
+        throw new Error(createError.description || createError.type || 'Failed to reschedule email');
+      }
+      const id = result?.created?.replacement?.id;
+      if (!id) {
+        throw new Error('Server did not return a replacement scheduled send ID');
+      }
+      return { id, sendAt: result?.created?.replacement?.sendAt };
+    };
+
+    // Cancel first. Some servers allow only one active submission per Email
+    // and reject a second create for the same emailId, and servers that undo
+    // onSuccessUpdateEmail on cancel would pull the message back to Drafts if
+    // the original were canceled after the replacement existed (#1308).
+    // If this fails, nothing has changed and the original still goes out.
+    await this.cancelEmailSubmission(submissionId, submissionAccountId);
+
+    let replacement: { id: string; sendAt?: string };
+    try {
+      replacement = await createSubmission(holdForSeconds);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to reschedule email';
+      // Put the original back at its old time. HOLDFOR with the seconds that
+      // are left, not HOLDUNTIL: servers disagree on the HOLDUNTIL value format
+      // (RFC 3339 vs Unix seconds), every FUTURERELEASE server takes HOLDFOR.
+      const originalTime = original?.sendAt ? new Date(original.sendAt).getTime() : NaN;
+      const remainingSeconds = Number.isFinite(originalTime) ? Math.ceil((originalTime - Date.now()) / 1000) : 0;
+      let restored: { id: string; sendAt?: string } | undefined;
+      try {
+        restored = await createSubmission(remainingSeconds > 0 ? remainingSeconds : undefined);
+      } catch (restoreError) {
+        console.error('Failed to restore the original scheduled send after reschedule failure:', restoreError);
+      }
+      if (restored) {
+        throw new RescheduleRestoredError(message, restored.id, restored.sendAt || original?.sendAt);
+      }
+      // Neither went through: the message is not scheduled any more. Make sure
+      // it sits in Drafts rather than in Sent looking like it went out.
+      if (draftsMailbox) {
+        try {
+          await this.restoreEmailToDraft(emailId, draftsMailbox.id, sentMailbox?.id, submissionAccountId);
+        } catch (draftError) {
+          console.error('Failed to move the message back to Drafts after reschedule failure:', draftError);
+        }
+      }
+      throw new Error(`Reschedule failed and the message is no longer scheduled: ${message}`);
     }
-    return { scheduled: true, emailId, emailSubmissionId: replacementId, sendAt: finalSendAt };
+    const finalSendAt = replacement.sendAt || await this.getEmailSubmissionSendAt(replacement.id, submissionAccountId);
+    return { scheduled: true, emailId, emailSubmissionId: replacement.id, sendAt: finalSendAt };
   }
 
   // The third parameter is intentionally unused: this restores an undo-send /

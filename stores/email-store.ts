@@ -1,4 +1,5 @@
 import { ArchiveEmailsError } from "@/lib/jmap/archive-error";
+import { RescheduleRestoredError } from "@/lib/jmap/reschedule-error";
 import { create } from "zustand";
 import { Email, Mailbox, StateChange, ScheduledEmail, SendEmailResult, isUnifiedMailboxId, isCrossViewId } from "@/lib/jmap/types";
 import type { UnifiedMailboxRole, CrossView } from "@/lib/jmap/types";
@@ -6901,6 +6902,15 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         set({ pendingUndoSend: { ...pendingUndoSend, submissionId: result.emailSubmissionId || submissionId, sendAt: result.sendAt || delayedUntil } });
       }
       return result;
+    } catch (error) {
+      // The original was put back under a new id; Undo has to cancel that one.
+      if (error instanceof RescheduleRestoredError) {
+        const pendingUndoSend = get().pendingUndoSend;
+        if (pendingUndoSend?.submissionId === submissionId) {
+          set({ pendingUndoSend: { ...pendingUndoSend, submissionId: error.restoredSubmissionId, sendAt: error.restoredSendAt || pendingUndoSend.sendAt } });
+        }
+      }
+      throw error;
     } finally {
       await get().fetchScheduledEmails(client);
       if (result && get().selectedEmail?.id === emailId) {

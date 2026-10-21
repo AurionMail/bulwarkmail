@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { JMAPClient } from '../jmap/client';
+import { JMAPClient, RescheduleRestoredError } from '../jmap/client';
 
 function createClient(): JMAPClient {
   const client = new JMAPClient('https://jmap.example.com', 'user@example.com', 'pass');
@@ -234,34 +234,124 @@ describe('JMAPClient.sendEmail threading headers', () => {
     expect(result).toMatchObject({ scheduled: true, emailSubmissionId: 'sub-1', sendAt: '2026-05-08T18:00:00Z' });
   });
 
-  it('cleans up replacement submission if canceling the original fails during reschedule', async () => {
-    const client = createClient();
+});
+
+describe('JMAPClient.rescheduleEmailSubmission (#1308)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  type Call = { method: string; args: Record<string, unknown> };
+  type CreateArgs = {
+    create: { replacement: { emailId: string; envelope?: { mailFrom: { parameters?: Record<string, string> } } } };
+    onSuccessUpdateEmail?: Record<string, Record<string, unknown>>;
+  };
+
+  const ORIGINAL_SEND_AT_MS = 30 * 60_000;
+
+  /**
+   * Scripts the server. `creates` answers each EmailSubmission/set create in
+   * turn; 'reject' means the server refuses it with invalidProperties on
+   * emailId, like a server that allows one active submission per Email.
+   */
+  function scriptServer(client: JMAPClient, opts: { cancel?: 'ok' | 'fail'; creates: Array<'ok' | 'reject'> }) {
     enableDelayedSend(client);
     vi.spyOn(client, 'getMailboxes').mockResolvedValue([
       { id: 'mb-drafts', name: 'Drafts', role: 'drafts' },
       { id: 'mb-sent', name: 'Sent', role: 'sent' },
     ] as never);
-    vi.spyOn(client, 'getIdentities').mockResolvedValue([
-      { id: 'identity-1', name: 'User', email: 'user@example.com', mayDelete: false },
-    ]);
-    const requestSpy = vi.spyOn(client as unknown as { request: JMAPClient['request'] }, 'request')
+    const originalSendAt = new Date(Date.now() + ORIGINAL_SEND_AT_MS).toISOString();
+    const calls: Call[] = [];
+    let createCount = 0;
+    vi.spyOn(client as unknown as { request: JMAPClient['request'] }, 'request')
       .mockImplementation(async (methodCalls) => {
-        const args = methodCalls[0][1] as { create?: unknown; update?: Record<string, unknown> };
-        if (args.create) {
-          return { methodResponses: [['EmailSubmission/set', { created: { replacement: { id: 'sub-new' } } }, '0']] };
+        const [method, args] = methodCalls[0] as unknown as [string, Record<string, unknown>];
+        calls.push({ method, args });
+        if (method === 'Identity/get') {
+          return { methodResponses: [[method, { list: [{ id: 'identity-1', email: 'user@example.com' }] }, '0']] };
         }
-        if (args.update?.['sub-old']) {
-          return { methodResponses: [['EmailSubmission/set', { notUpdated: { 'sub-old': { type: 'cannotUnsend' } } }, '0']] };
+        if (method === 'EmailSubmission/get') {
+          return { methodResponses: [[method, { list: [{ id: 'sub-old', sendAt: originalSendAt, envelope: { rcptTo: [{ email: 'rcpt@example.com' }] } }] }, '0']] };
         }
-        return { methodResponses: [['EmailSubmission/set', { updated: { 'sub-new': null } }, '0']] };
+        if (method === 'EmailSubmission/set' && args.update) {
+          return opts.cancel === 'fail'
+            ? { methodResponses: [[method, { notUpdated: { 'sub-old': { type: 'cannotUnsend' } } }, '0']] }
+            : { methodResponses: [[method, { updated: { 'sub-old': null } }, '0']] };
+        }
+        if (method === 'EmailSubmission/set' && args.create) {
+          const outcome = opts.creates[createCount++];
+          if (outcome === 'reject') {
+            return { methodResponses: [[method, { notCreated: { replacement: { type: 'invalidProperties', properties: ['emailId'] } } }, '0']] };
+          }
+          return { methodResponses: [[method, { created: { replacement: { id: `sub-new-${createCount}`, sendAt: '2026-10-21T12:00:00Z' } } }, '0']] };
+        }
+        if (method === 'Email/set') {
+          return { methodResponses: [[method, { updated: { 'email-1': null } }, '0']] };
+        }
+        throw new Error(`unexpected call ${method}`);
       });
+    const submissionSets = () => calls.filter(c => c.method === 'EmailSubmission/set');
+    return { calls, submissionSets };
+  }
 
-    await expect(client.rescheduleEmailSubmission('sub-old', 'email-1', 'identity-1', new Date(Date.now() + 60_000).toISOString()))
-      .rejects.toThrow('could not cancel the original');
+  const inTenMinutes = () => new Date(Date.now() + 10 * 60_000).toISOString();
 
-    expect(requestSpy).toHaveBeenCalledWith(expect.arrayContaining([
-      expect.arrayContaining(['EmailSubmission/set', expect.objectContaining({ update: { 'sub-new': { undoStatus: 'canceled' } } })]),
-    ]));
+  it('cancels the original before creating the replacement', async () => {
+    const client = createClient();
+    const { submissionSets } = scriptServer(client, { creates: ['ok'] });
+
+    const result = await client.rescheduleEmailSubmission('sub-old', 'email-1', 'identity-1', inTenMinutes());
+
+    const sets = submissionSets();
+    expect(sets).toHaveLength(2);
+    expect(sets[0].args.update).toEqual({ 'sub-old': { undoStatus: 'canceled' } });
+    const create = sets[1].args as unknown as CreateArgs;
+    expect(create.create.replacement.emailId).toBe('email-1');
+    // The replacement files the message in Sent again: on servers that undo
+    // onSuccessUpdateEmail at cancel, the cancel just put it back in Drafts.
+    expect(create.onSuccessUpdateEmail?.['#replacement']).toEqual({ mailboxIds: { 'mb-sent': true }, 'keywords/$draft': null });
+    expect(result).toMatchObject({ scheduled: true, emailSubmissionId: 'sub-new-1' });
+  });
+
+  it('changes nothing when the original cannot be canceled', async () => {
+    const client = createClient();
+    const { submissionSets } = scriptServer(client, { cancel: 'fail', creates: ['ok'] });
+
+    await expect(client.rescheduleEmailSubmission('sub-old', 'email-1', 'identity-1', inTenMinutes()))
+      .rejects.toThrow('cannotUnsend');
+
+    expect(submissionSets().filter(c => c.args.create)).toHaveLength(0);
+  });
+
+  it('puts the original back at its old time when the replacement is rejected', async () => {
+    const client = createClient();
+    const { calls, submissionSets } = scriptServer(client, { creates: ['reject', 'ok'] });
+
+    const error = await client.rescheduleEmailSubmission('sub-old', 'email-1', 'identity-1', inTenMinutes())
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(RescheduleRestoredError);
+    expect((error as RescheduleRestoredError).restoredSubmissionId).toBe('sub-new-2');
+    const creates = submissionSets().filter(c => c.args.create).map(c => c.args as unknown as CreateArgs);
+    expect(creates).toHaveLength(2);
+    // The restore holds for the time left until the original sendAt (30 min),
+    // not the requested 10 minutes.
+    const holdFor = Number(creates[1].create.replacement.envelope?.mailFrom.parameters?.HOLDFOR);
+    expect(holdFor).toBeGreaterThan(ORIGINAL_SEND_AT_MS / 1000 - 60);
+    expect(holdFor).toBeLessThanOrEqual(ORIGINAL_SEND_AT_MS / 1000);
+    expect(creates[1].onSuccessUpdateEmail?.['#replacement']).toEqual({ mailboxIds: { 'mb-sent': true }, 'keywords/$draft': null });
+    expect(calls.some(c => c.method === 'Email/set')).toBe(false);
+  });
+
+  it('moves the message back to Drafts when neither the replacement nor the restore goes through', async () => {
+    const client = createClient();
+    const { calls } = scriptServer(client, { creates: ['reject', 'reject'] });
+
+    await expect(client.rescheduleEmailSubmission('sub-old', 'email-1', 'identity-1', inTenMinutes()))
+      .rejects.toThrow('no longer scheduled');
+
+    const draftUpdate = calls.find(c => c.method === 'Email/set')?.args.update as Record<string, Record<string, unknown>> | undefined;
+    expect(draftUpdate?.['email-1']).toMatchObject({ mailboxIds: { 'mb-drafts': true }, 'keywords/$draft': true });
   });
 });
 

@@ -39,7 +39,7 @@ import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalida
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
-import { formatRejectedRecipients, type JMAPClient } from "@/lib/jmap/client";
+import { formatRejectedRecipients, RescheduleRestoredError, type JMAPClient } from "@/lib/jmap/client";
 import { reconcilePushBindings, releasePushBindings, type PushBinding } from "@/lib/push-bindings";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
@@ -2428,6 +2428,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   if (isScheduledView) await fetchScheduledEmails(client);
                 } catch (error) {
                   console.error('Failed to send now:', error);
+                  // The original was put back under a new id: show the undo
+                  // toast again for that one so Undo still cancels it.
+                  if (error instanceof RescheduleRestoredError) {
+                    const current = useEmailStore.getState().pendingUndoSend;
+                    if (current?.submissionId === pending.submissionId) {
+                      useEmailStore.setState({ pendingUndoSend: { ...current, submissionId: error.restoredSubmissionId, sendAt: error.restoredSendAt || current.sendAt } });
+                    }
+                  }
                 }
               })();
             },
