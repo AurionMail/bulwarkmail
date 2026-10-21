@@ -75,3 +75,14 @@ describe('RecipientCardPopover', () => {
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 });
+
+describe('recipient card styling', () => {
+  // A bare `duration-*` sets transition-duration, and with no
+  // transition-property that means `all`: the card slid from the top left
+  // corner to its anchor instead of appearing there.
+  it('times only the enter animation, not a transition on its position', () => {
+    render(<RecipientCardPopover anchor={{ top: 10, bottom: 30, left: 10 }} email={address} onClose={() => {}} />);
+    const classes = screen.getByRole('dialog').className.split(/\s+/);
+    expect(classes.filter((c) => /^duration-/.test(c))).toEqual([]);
+  });
+});

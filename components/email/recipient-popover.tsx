@@ -184,7 +184,7 @@ export function placeCard(anchor: CardAnchor, height: number): { top: number; le
 }
 
 export const recipientCardClass =
-  "fixed z-50 w-[300px] max-w-[calc(100vw-16px)] bg-background rounded-lg shadow-lg border border-border animate-in fade-in-0 zoom-in-95 duration-100";
+  "fixed z-50 w-[300px] max-w-[calc(100vw-16px)] bg-background rounded-lg shadow-lg border border-border animate-in fade-in-0 zoom-in-95 animation-duration-100";
 
 interface RecipientCardPopoverProps extends RecipientCardProps {
   anchor: CardAnchor;
