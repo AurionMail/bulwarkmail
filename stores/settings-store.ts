@@ -358,6 +358,7 @@ export interface KeywordDefinition {
   label: string;  // Display name
   color: string;  // Key from KEYWORD_PALETTE
   visibility?: KeywordVisibility; // Absent on tags stored before this was configurable
+  addedBy?: string; // Id of the plugin that added it with keywords.add; only that plugin may update or remove it
 }
 
 /** Resolves the sidebar visibility of a tag, defaulting to always shown. */

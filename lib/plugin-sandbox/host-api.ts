@@ -187,6 +187,8 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // than a settings permission.
   'keywords.list': 'settings:read',
   'keywords.add': 'settings:write',
+  'keywords.update': 'settings:write',
+  'keywords.remove': 'settings:write',
   'keywords.reorder': 'settings:write',
   'keywords.discover': 'email:read',
   'keywords.getCounts': 'email:read',
@@ -1358,9 +1360,17 @@ function isValidKeywordDefinitionId(id: string): boolean {
   return true;
 }
 
-function assertKeywordDefinition(value: unknown, index: number): PluginKeywordDefinitionInput {
+/** The fields of a definition a plugin may set; keywords.update sends only the ones it changes. */
+type PluginKeywordPatch = Pick<KeywordDefinition, 'id'> &
+  Partial<Pick<KeywordDefinition, 'label' | 'color' | 'visibility'>>;
+
+function assertKeywordFields(
+  value: unknown,
+  index: number,
+  method: 'keywords.add' | 'keywords.update',
+): PluginKeywordPatch {
   if (!isPlainObject(value)) {
-    throw new Error(`keywords.add: definitions[${index}] must be an object`);
+    throw new Error(`${method}: definitions[${index}] must be an object`);
   }
 
   const id = value.id;
@@ -1369,32 +1379,48 @@ function assertKeywordDefinition(value: unknown, index: number): PluginKeywordDe
   const visibility = value.visibility;
 
   if (typeof id !== 'string' || !isValidKeywordDefinitionId(id)) {
-    throw new Error(`keywords.add: definitions[${index}].id is not a valid JMAP label id`);
+    throw new Error(`${method}: definitions[${index}].id is not a valid JMAP label id`);
   }
+  // add needs a label; update leaves an omitted one as it is.
   if (
-    typeof label !== 'string' || label.trim().length === 0 ||
-    label.length > MAX_PLUGIN_KEYWORD_LABEL_LENGTH
+    (label !== undefined || method === 'keywords.add') &&
+    (typeof label !== 'string' || label.trim().length === 0 ||
+      label.length > MAX_PLUGIN_KEYWORD_LABEL_LENGTH)
   ) {
     throw new Error(
-      `keywords.add: definitions[${index}].label must be 1-${MAX_PLUGIN_KEYWORD_LABEL_LENGTH} characters`,
+      `${method}: definitions[${index}].label must be 1-${MAX_PLUGIN_KEYWORD_LABEL_LENGTH} characters`,
     );
   }
   if (
     color !== undefined &&
     (typeof color !== 'string' || !Object.prototype.hasOwnProperty.call(KEYWORD_PALETTE, color))
   ) {
-    throw new Error(`keywords.add: definitions[${index}].color is not in the keyword palette`);
+    throw new Error(`${method}: definitions[${index}].color is not in the keyword palette`);
   }
   if (visibility !== undefined && !VALID_VISIBILITIES.has(visibility as KeywordVisibility)) {
-    throw new Error(`keywords.add: definitions[${index}].visibility is invalid`);
+    throw new Error(`${method}: definitions[${index}].visibility is invalid`);
   }
 
   return {
     id,
-    label: label.trim(),
+    ...(typeof label === 'string' ? { label: label.trim() } : {}),
     ...(color === undefined ? {} : { color }),
     ...(visibility === undefined ? {} : { visibility: visibility as KeywordVisibility }),
   };
+}
+
+function assertKeywordDefinition(value: unknown, index: number): PluginKeywordDefinitionInput {
+  const { label, ...rest } = assertKeywordFields(value, index, 'keywords.add');
+  // assertKeywordFields requires the label for add.
+  return { ...rest, label: label as string };
+}
+
+function assertKeywordPatch(value: unknown, index: number): PluginKeywordPatch {
+  const patch = assertKeywordFields(value, index, 'keywords.update');
+  if (patch.label === undefined && patch.color === undefined && patch.visibility === undefined) {
+    throw new Error(`keywords.update: definitions[${index}] changes nothing; give a label, color or visibility`);
+  }
+  return patch;
 }
 
 function assertKeywordDefinitionArray(value: unknown): PluginKeywordDefinitionInput[] {
@@ -1405,11 +1431,34 @@ function assertKeywordDefinitionArray(value: unknown): PluginKeywordDefinitionIn
   return value.map(assertKeywordDefinition);
 }
 
+function assertKeywordPatchArray(value: unknown): PluginKeywordPatch[] {
+  if (!Array.isArray(value)) throw new Error('keywords.update: definitions must be an array');
+  if (value.length > MAX_PLUGIN_KEYWORD_DEFINITIONS) {
+    throw new Error(`keywords.update: at most ${MAX_PLUGIN_KEYWORD_DEFINITIONS} definitions may be updated at once`);
+  }
+  return value.map(assertKeywordPatch);
+}
+
+function assertKeywordIdArray(value: unknown, method: string): string[] {
+  if (
+    !Array.isArray(value) || value.length > MAX_PLUGIN_KEYWORD_DEFINITIONS ||
+    value.some((id) => typeof id !== 'string')
+  ) {
+    throw new Error(`${method}: ids must be an array of at most ${MAX_PLUGIN_KEYWORD_DEFINITIONS} strings`);
+  }
+  return value;
+}
+
 function doKeywordsList(): KeywordDefinition[] {
   return useSettingsStore.getState().emailKeywords.map((keyword) => ({ ...keyword }));
 }
 
-function doKeywordsAdd(value: unknown): { added: KeywordDefinition[]; skipped: string[] } {
+/** Whether keywords.update and keywords.remove may touch this definition: only the plugin's own. */
+function isOwnKeyword(plugin: InstalledPlugin, keyword: KeywordDefinition): boolean {
+  return keyword.addedBy === plugin.id;
+}
+
+function doKeywordsAdd(plugin: InstalledPlugin, value: unknown): { added: KeywordDefinition[]; skipped: string[] } {
   const definitions = assertKeywordDefinitionArray(value);
   const existing = useSettingsStore.getState().emailKeywords;
   const known = new Set(existing.map((keyword) => keyword.id.toLowerCase()));
@@ -1426,7 +1475,7 @@ function doKeywordsAdd(value: unknown): { added: KeywordDefinition[]; skipped: s
     known.add(foldedId);
     const color = definition.color ?? suggestKeywordColor(definition.id, takenColors);
     takenColors.add(color);
-    added.push({ ...definition, color });
+    added.push({ ...definition, color, addedBy: plugin.id });
   }
 
   if (added.length > 0) {
@@ -1438,6 +1487,52 @@ function doKeywordsAdd(value: unknown): { added: KeywordDefinition[]; skipped: s
   }
 
   return { added: added.map((keyword) => ({ ...keyword })), skipped };
+}
+
+function doKeywordsUpdate(plugin: InstalledPlugin, value: unknown): { updated: KeywordDefinition[]; skipped: string[] } {
+  const patches = assertKeywordPatchArray(value);
+  const byId = new Map(patches.map((patch) => [patch.id.toLowerCase(), patch]));
+  let updated: KeywordDefinition[] = [];
+
+  // Read and write in one functional update, as reorder does, so a concurrent
+  // settings write is not overwritten by a list built from an older state.
+  useSettingsStore.setState((state) => {
+    updated = [];
+    const emailKeywords = state.emailKeywords.map((keyword) => {
+      const patch = isOwnKeyword(plugin, keyword) ? byId.get(keyword.id.toLowerCase()) : undefined;
+      if (!patch) return keyword;
+      // The id is what the messages carry, so it never changes here.
+      const next = { ...keyword, ...patch, id: keyword.id };
+      updated.push(next);
+      return next;
+    });
+    return updated.length > 0 ? { emailKeywords } : state;
+  });
+
+  const done = new Set(updated.map((keyword) => keyword.id.toLowerCase()));
+  const skipped = patches.filter((patch) => !done.has(patch.id.toLowerCase())).map((patch) => patch.id);
+  return { updated: updated.map((keyword) => ({ ...keyword })), skipped };
+}
+
+function doKeywordsRemove(plugin: InstalledPlugin, value: unknown): { removed: string[]; skipped: string[] } {
+  const ids = assertKeywordIdArray(value, 'keywords.remove');
+  const wanted = new Set(ids.map((id) => id.toLowerCase()));
+  let removed: string[] = [];
+
+  // Drops the definitions only, as Settings → Tags does; the keywords on
+  // messages stay (jmap.setKeywords removes those, with email:write).
+  useSettingsStore.setState((state) => {
+    removed = [];
+    const emailKeywords = state.emailKeywords.filter((keyword) => {
+      const drop = isOwnKeyword(plugin, keyword) && wanted.has(keyword.id.toLowerCase());
+      if (drop) removed.push(keyword.id);
+      return !drop;
+    });
+    return removed.length > 0 ? { emailKeywords } : state;
+  });
+
+  const done = new Set(removed.map((id) => id.toLowerCase()));
+  return { removed, skipped: ids.filter((id) => !done.has(id.toLowerCase())) };
 }
 
 function doKeywordsReorder(value: unknown, rawOptions?: unknown): KeywordDefinition[] {
@@ -1986,7 +2081,9 @@ export async function dispatchApiCall(
     }
 
     case 'keywords.list': return doKeywordsList();
-    case 'keywords.add': return doKeywordsAdd(args[0]);
+    case 'keywords.add': return doKeywordsAdd(plugin, args[0]);
+    case 'keywords.update': return doKeywordsUpdate(plugin, args[0]);
+    case 'keywords.remove': return doKeywordsRemove(plugin, args[0]);
     case 'keywords.reorder': return doKeywordsReorder(args[0], args[1]);
     case 'keywords.discover': return doKeywordsDiscover(args[0]);
     case 'keywords.getCounts': return doKeywordsGetCounts(args[0]);
