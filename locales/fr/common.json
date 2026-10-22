@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Applications par défaut",
-    "description": "Choisissez si les liens d'e-mail et de calendrier s'ouvrent dans Bulwark. Techniquement, Bulwark s'enregistre comme gestionnaire de protocole pour les liens mailto: et webcal:.",
+    "description": "Choisissez si les liens d'e-mail et de calendrier s'ouvrent dans {appName}. Techniquement, {appName} s'enregistre comme gestionnaire de protocole pour les liens mailto: et webcal:.",
     "unsupported": "Ce navigateur ou cette connexion ne prend pas en charge l'enregistrement manuel des gestionnaires de protocole. Vous pourrez peut-être quand même utiliser la PWA installée via les paramètres du navigateur ou du système.",
     "mailto_label": "Liens e-mail",
-    "mailto_description": "Ouvre les liens mailto: dans Bulwark avec un éditeur prérempli.",
+    "mailto_description": "Ouvre les liens mailto: dans {appName} avec un éditeur prérempli.",
     "protocol_open_mode_label": "À l’ouverture des liens de protocole",
-    "protocol_open_mode_description": "Choisissez si Bulwark ouvre les liens mailto: et webcal: dans un nouvel onglet ou réutilise une session ouverte. L’option de session active nécessite l’autorisation des notifications afin que vous puissiez cliquer sur une notification de secours pour ramener Bulwark au premier plan si le navigateur bloque le focus.",
+    "protocol_open_mode_description": "Choisissez si {appName} ouvre les liens mailto: et webcal: dans un nouvel onglet ou réutilise une session ouverte. L’option de session active nécessite l’autorisation des notifications afin que vous puissiez cliquer sur une notification de secours pour ramener {appName} au premier plan si le navigateur bloque le focus.",
     "protocol_open_mode_active_session": "Ouvrir dans la session active si possible",
     "protocol_open_mode_new_tab": "Toujours ouvrir un nouvel onglet",
-    "focus_notification_title": "Ouvrir Bulwark",
-    "focus_notification_body": "Le lien a été ouvert dans Bulwark. Cliquez pour ramener la fenêtre au premier plan.",
+    "focus_notification_title": "Ouvrir {appName}",
+    "focus_notification_body": "Le lien a été ouvert dans {appName}. Cliquez pour ramener la fenêtre au premier plan.",
     "webcal_label": "Liens de calendrier",
-    "webcal_description": "Ouvre les liens webcal: dans Bulwark avec une boîte de dialogue d'abonnement au calendrier préremplie.",
+    "webcal_description": "Ouvre les liens webcal: dans {appName} avec une boîte de dialogue d'abonnement au calendrier préremplie.",
     "register_mailto": "Enregistrer l'application e-mail",
     "register_webcal": "Enregistrer l'application de calendrier",
     "mailto_registered": "Enregistrement du gestionnaire d'e-mail demandé",
@@ -196,7 +196,7 @@
     "registration_failed": "Échec de l'enregistrement du gestionnaire de protocole",
     "opening_mailto": "Ouverture de l'éditeur...",
     "opening_webcal": "Ouverture du calendrier...",
-    "browser_note": "Votre navigateur ou système d'exploitation peut vous demander de confirmer et peut exiger que Bulwark soit installé avant de pouvoir le sélectionner comme application par défaut.",
+    "browser_note": "Votre navigateur ou système d'exploitation peut vous demander de confirmer et peut exiger que {appName} soit installé avant de pouvoir le sélectionner comme application par défaut.",
     "select_account_title": "Choisir un compte",
     "select_mailto_account": "Choisissez le compte qui doit ouvrir ce lien e-mail.",
     "select_webcal_account": "Choisissez le compte qui doit ouvrir ce lien de calendrier.",
@@ -872,9 +872,9 @@
     "app_title": "Webmail",
     "reconnecting": "Connexion perdue. Tentative de reconnexion…",
     "rate_limited_title": "L'authentification du serveur est temporairement limitee.",
-    "rate_limited_detail": "Bulwark a suspendu les requetes en arriere-plan pour eviter un blocage. Nouvelle tentative dans {seconds}s.",
+    "rate_limited_detail": "{appName} a suspendu les requetes en arriere-plan pour eviter un blocage. Nouvelle tentative dans {seconds}s.",
     "rate_limited_action_title": "Requete suspendue pour eviter le blocage.",
-    "rate_limited_action_detail": "Bulwark attend la fin du delai impose par le serveur avant d'envoyer d'autres requetes authentifiees. Reessayez dans {seconds}s.",
+    "rate_limited_action_detail": "{appName} attend la fin du delai impose par le serveur avant d'envoyer d'autres requetes authentifiees. Reessayez dans {seconds}s.",
     "pull_to_refresh": "Tirez pour actualiser",
     "release_to_refresh": "Relâchez pour actualiser",
     "refreshing": "Actualisation…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "Utiliser les comptes que vous connectez",
-        "body": "Envoyer des requêtes via le serveur de Bulwark avec un compte ou une clé configurés par vous ou votre administrateur. Le plugin ne voit jamais le mot de passe, mais il peut faire tout ce que ce compte peut faire sur son propre serveur."
+        "body": "Envoyer des requêtes via le serveur de {appName} avec un compte ou une clé configurés par vous ou votre administrateur. Le plugin ne voit jamais le mot de passe, mais il peut faire tout ce que ce compte peut faire sur son propre serveur."
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "Connecter {label}",
-      "intro_password": "{name} souhaite utiliser votre compte {label}. Bulwark garde le mot de passe sur son serveur et ne l'envoie qu'à {host}. Le plugin ne le voit jamais.",
-      "intro_password_any": "{name} souhaite utiliser votre compte {label}. Bulwark garde le mot de passe sur son serveur et ne l'envoie qu'au serveur que vous saisissez ici. Le plugin ne le voit jamais.",
-      "intro_signin": "{name} souhaite se connecter à votre compte {label}. Saisissez le serveur ici, puis connectez-vous sur sa propre page. Bulwark garde l'accès obtenu sur son serveur ; le plugin ne le voit jamais.",
+      "intro_password": "{name} souhaite utiliser votre compte {label}. {appName} garde le mot de passe sur son serveur et ne l'envoie qu'à {host}. Le plugin ne le voit jamais.",
+      "intro_password_any": "{name} souhaite utiliser votre compte {label}. {appName} garde le mot de passe sur son serveur et ne l'envoie qu'au serveur que vous saisissez ici. Le plugin ne le voit jamais.",
+      "intro_signin": "{name} souhaite se connecter à votre compte {label}. Saisissez le serveur ici, puis connectez-vous sur sa propre page. {appName} garde l'accès obtenu sur son serveur ; le plugin ne le voit jamais.",
       "server": "Adresse du serveur",
       "server_hint": "cloud.example.com",
       "username": "Nom d'utilisateur",

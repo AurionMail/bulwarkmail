@@ -6,6 +6,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { EmailList } from "@/components/email/email-list";
 import { MvComposeInline, MvComposeWindow } from "@/components/email/mv-compose-window";
 import { usePinnedPerSession } from "@/hooks/use-pinned-per-session";
+import { useConfig } from "@/hooks/use-config";
+import { productName } from "@/lib/product-name";
 import { MessageListTabs } from "@/components/email/message-list-tabs";
 import dynamic from "next/dynamic";
 import type { ComposerDraftData } from "@/components/email/email-composer";
@@ -200,6 +202,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const linkSegments = useLiteLinkSegments('mail', routeSegments);
   const t = useTranslations();
   const tCommon = useTranslations('common');
+  const appName = productName(useConfig().appName);
   const tQuote = useTranslations('quote_header');
   const mailLayout = useEffectiveMailLayout();
   const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
@@ -4494,7 +4497,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           <div className="flex items-center justify-center gap-2 bg-amber-500/10 border-b border-amber-500/30 text-amber-700 dark:text-amber-300 text-sm py-1.5 px-4 flex-shrink-0">
             <AlertTriangle className="h-3.5 w-3.5" />
             <span>{tCommon('rate_limited_title')}</span>
-            <span className="text-amber-700/80 dark:text-amber-300/80">{tCommon('rate_limited_detail', { seconds: rateLimitSecondsLeft })}</span>
+            <span className="text-amber-700/80 dark:text-amber-300/80">{tCommon('rate_limited_detail', { seconds: rateLimitSecondsLeft, appName })}</span>
           </div>
         )}
         {connectionLost && (

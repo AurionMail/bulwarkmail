@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Výchozí aplikace",
-    "description": "Zvolte, zda se mají e-mailové a kalendářové odkazy otevírat v Bulwarku. Technicky se Bulwark registruje jako obslužná aplikace protokolu pro odkazy mailto: a webcal:.",
+    "description": "Zvolte, zda se mají e-mailové a kalendářové odkazy otevírat v aplikaci {appName}. Technicky se {appName} registruje jako obslužná aplikace protokolu pro odkazy mailto: a webcal:.",
     "unsupported": "Tento prohlížeč nebo toto připojení nepodporuje ruční registraci obslužné aplikace protokolu. Nainstalovanou PWA můžete případně použít přes nastavení prohlížeče nebo systému.",
     "mailto_label": "E-mailové odkazy",
-    "mailto_description": "Otevře odkazy mailto: v Bulwarku s předvyplněným editorem zprávy.",
+    "mailto_description": "Otevře odkazy mailto: v aplikaci {appName} s předvyplněným editorem zprávy.",
     "protocol_open_mode_label": "Při otevírání odkazů protokolů",
-    "protocol_open_mode_description": "Zvolte, zda má Bulwark otevírat odkazy mailto: a webcal: v nové kartě, nebo znovu použít otevřenou relaci. Volba aktivní relace vyžaduje oprávnění k oznámením, abyste mohli kliknout na záložní oznámení a přenést Bulwark do popředí, pokud prohlížeč blokuje fokus.",
+    "protocol_open_mode_description": "Zvolte, zda má {appName} otevírat odkazy mailto: a webcal: v nové kartě, nebo znovu použít otevřenou relaci. Volba aktivní relace vyžaduje oprávnění k oznámením, abyste mohli kliknout na záložní oznámení a přenést {appName} do popředí, pokud prohlížeč blokuje fokus.",
     "protocol_open_mode_active_session": "Otevřít v aktivní relaci, pokud je to možné",
     "protocol_open_mode_new_tab": "Vždy otevřít novou kartu",
-    "focus_notification_title": "Otevřít Bulwark",
-    "focus_notification_body": "Odkaz byl otevřen v Bulwarku. Kliknutím přenesete okno do popředí.",
+    "focus_notification_title": "Otevřít {appName}",
+    "focus_notification_body": "Odkaz byl otevřen v aplikaci {appName}. Kliknutím přenesete okno do popředí.",
     "webcal_label": "Kalendářové odkazy",
-    "webcal_description": "Otevře odkazy webcal: v Bulwarku s předvyplněným dialogem pro odběr kalendáře.",
+    "webcal_description": "Otevře odkazy webcal: v aplikaci {appName} s předvyplněným dialogem pro odběr kalendáře.",
     "register_mailto": "Registrovat e-mailovou aplikaci",
     "register_webcal": "Registrovat kalendářovou aplikaci",
     "mailto_registered": "Registrace obsluhy e-mailových odkazů byla vyžádána",
@@ -196,7 +196,7 @@
     "registration_failed": "Registrace obslužné aplikace protokolu selhala",
     "opening_mailto": "Otevírá se editor...",
     "opening_webcal": "Otevírá se kalendář...",
-    "browser_note": "Prohlížeč nebo operační systém vás může požádat o potvrzení a může vyžadovat, aby byl Bulwark nainstalovaný, než jej půjde vybrat jako výchozí aplikaci.",
+    "browser_note": "Prohlížeč nebo operační systém vás může požádat o potvrzení a může vyžadovat, aby byl {appName} nainstalovaný, než jej půjde vybrat jako výchozí aplikaci.",
     "select_account_title": "Vybrat účet",
     "select_mailto_account": "Vyberte účet, ve kterém se má tento e-mailový odkaz otevřít.",
     "select_webcal_account": "Vyberte účet, ve kterém se má tento kalendářový odkaz otevřít.",
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "Používat účty, které připojíte",
-        "body": "Odesílá požadavky přes server Bulwarku pomocí účtu nebo klíče, který jste nastavili vy nebo váš správce. Plugin nikdy nevidí heslo, ale může na příslušném serveru dělat cokoli, co může tento účet."
+        "body": "Odesílá požadavky přes server aplikace {appName} pomocí účtu nebo klíče, který jste nastavili vy nebo váš správce. Plugin nikdy nevidí heslo, ale může na příslušném serveru dělat cokoli, co může tento účet."
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "Připojit {label}",
-      "intro_password": "{name} chce používat váš účet {label}. Bulwark uchovává heslo na svém serveru a posílá ho jen na {host}. Plugin ho nikdy nevidí.",
-      "intro_password_any": "{name} chce používat váš účet {label}. Bulwark uchovává heslo na svém serveru a posílá ho jen na server, který zde zadáte. Plugin ho nikdy nevidí.",
-      "intro_signin": "{name} se chce přihlásit k vašemu účtu {label}. Zadejte zde server a pak se přihlaste na jeho vlastní stránce. Bulwark uchovává získaný přístup na svém serveru; plugin ho nikdy nevidí.",
+      "intro_password": "{name} chce používat váš účet {label}. {appName} uchovává heslo na svém serveru a posílá ho jen na {host}. Plugin ho nikdy nevidí.",
+      "intro_password_any": "{name} chce používat váš účet {label}. {appName} uchovává heslo na svém serveru a posílá ho jen na server, který zde zadáte. Plugin ho nikdy nevidí.",
+      "intro_signin": "{name} se chce přihlásit k vašemu účtu {label}. Zadejte zde server a pak se přihlaste na jeho vlastní stránce. {appName} uchovává získaný přístup na svém serveru; plugin ho nikdy nevidí.",
       "server": "Adresa serveru",
       "server_hint": "cloud.example.com",
       "username": "Uživatelské jméno",

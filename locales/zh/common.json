@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "默认应用",
-    "description": "选择是否在 Bulwark 中打开电子邮件和日历链接。从技术上讲，Bulwark 会注册为 mailto: 和 webcal: 链接的协议处理程序。",
+    "description": "选择是否在 {appName} 中打开电子邮件和日历链接。从技术上讲，{appName} 会注册为 mailto: 和 webcal: 链接的协议处理程序。",
     "unsupported": "此浏览器或连接不支持手动注册协议处理程序。你仍可尝试通过浏览器或系统设置使用已安装的 PWA。",
     "mailto_label": "电子邮件链接",
-    "mailto_description": "在 Bulwark 中打开 mailto: 链接，并预先填好撰写窗口。",
+    "mailto_description": "在 {appName} 中打开 mailto: 链接，并预先填好撰写窗口。",
     "protocol_open_mode_label": "打开协议链接时",
-    "protocol_open_mode_description": "选择 Bulwark 是在新标签页中打开 mailto: 和 webcal: 链接，还是复用已打开的会话。活动会话选项需要通知权限，这样当浏览器阻止聚焦时，你可以点击备用通知将 Bulwark 窗口带到前台。",
+    "protocol_open_mode_description": "选择 {appName} 是在新标签页中打开 mailto: 和 webcal: 链接，还是复用已打开的会话。活动会话选项需要通知权限，这样当浏览器阻止聚焦时，你可以点击备用通知将 {appName} 窗口带到前台。",
     "protocol_open_mode_active_session": "尽可能在活动会话中打开",
     "protocol_open_mode_new_tab": "始终打开新标签页",
-    "focus_notification_title": "打开 Bulwark",
-    "focus_notification_body": "链接已在 Bulwark 中打开。点击可将窗口带到前台。",
+    "focus_notification_title": "打开 {appName}",
+    "focus_notification_body": "链接已在 {appName} 中打开。点击可将窗口带到前台。",
     "webcal_label": "日历链接",
-    "webcal_description": "在 Bulwark 中打开 webcal: 链接，并预先填好日历订阅对话框。",
+    "webcal_description": "在 {appName} 中打开 webcal: 链接，并预先填好日历订阅对话框。",
     "register_mailto": "注册电子邮件应用",
     "register_webcal": "注册日历应用",
     "mailto_registered": "已请求注册电子邮件处理程序",
@@ -196,7 +196,7 @@
     "registration_failed": "协议处理程序注册失败",
     "opening_mailto": "正在打开撰写窗口...",
     "opening_webcal": "正在打开日历...",
-    "browser_note": "你的浏览器或操作系统可能会要求确认，并且可能需要先安装 Bulwark，才能将其选为默认应用。",
+    "browser_note": "你的浏览器或操作系统可能会要求确认，并且可能需要先安装 {appName}，才能将其选为默认应用。",
     "select_account_title": "选择账户",
     "select_mailto_account": "选择用于打开此电子邮件链接的账户。",
     "select_webcal_account": "选择用于打开此日历链接的账户。",
@@ -872,9 +872,9 @@
     "app_title": "网页邮箱",
     "reconnecting": "连接已断开，正在尝试重连…",
     "rate_limited_title": "服务器身份验证暂时受到速率限制。",
-    "rate_limited_detail": "Bulwark 已暂停后台请求以避免账户被锁定。将在 {seconds} 秒后重试。",
+    "rate_limited_detail": "{appName} 已暂停后台请求以避免账户被锁定。将在 {seconds} 秒后重试。",
     "rate_limited_action_title": "请求已暂停以避免账户被锁定。",
-    "rate_limited_action_detail": "Bulwark 正在等待服务器冷却，然后再发送更多请求。请在 {seconds} 秒后重试。",
+    "rate_limited_action_detail": "{appName} 正在等待服务器冷却，然后再发送更多请求。请在 {seconds} 秒后重试。",
     "pull_to_refresh": "下拉刷新",
     "release_to_refresh": "松开刷新",
     "refreshing": "正在刷新…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "使用您连接的账户",
-        "body": "使用您或管理员设置的账户或密钥，通过 Bulwark 的服务器发送请求。插件永远看不到密码，但可以在该账户所属的服务器上执行该账户能做的任何操作。"
+        "body": "使用您或管理员设置的账户或密钥，通过 {appName} 的服务器发送请求。插件永远看不到密码，但可以在该账户所属的服务器上执行该账户能做的任何操作。"
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "连接 {label}",
-      "intro_password": "{name} 想使用您的 {label} 账户。Bulwark 将密码保存在自己的服务器上，只会发送给 {host}。插件永远看不到密码。",
-      "intro_password_any": "{name} 想使用您的 {label} 账户。Bulwark 将密码保存在自己的服务器上，只会发送给您在此处输入的服务器。插件永远看不到密码。",
-      "intro_signin": "{name} 想登录您的 {label} 账户。请在此处输入服务器，然后在该服务器自己的页面上登录。Bulwark 将获得的访问权限保存在自己的服务器上；插件永远看不到它。",
+      "intro_password": "{name} 想使用您的 {label} 账户。{appName} 将密码保存在自己的服务器上，只会发送给 {host}。插件永远看不到密码。",
+      "intro_password_any": "{name} 想使用您的 {label} 账户。{appName} 将密码保存在自己的服务器上，只会发送给您在此处输入的服务器。插件永远看不到密码。",
+      "intro_signin": "{name} 想登录您的 {label} 账户。请在此处输入服务器，然后在该服务器自己的页面上登录。{appName} 将获得的访问权限保存在自己的服务器上；插件永远看不到它。",
       "server": "服务器地址",
       "server_hint": "cloud.example.com",
       "username": "用户名",

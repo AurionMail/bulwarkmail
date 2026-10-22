@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "既定のアプリ",
-    "description": "メールとカレンダーのリンクを Bulwark で開くかどうかを選択します。技術的には、Bulwark は mailto: と webcal: リンクのプロトコル ハンドラーとして登録されます。",
+    "description": "メールとカレンダーのリンクを {appName} で開くかどうかを選択します。技術的には、{appName} は mailto: と webcal: リンクのプロトコル ハンドラーとして登録されます。",
     "unsupported": "このブラウザーまたは接続では、プロトコル ハンドラーの手動登録がサポートされていません。インストール済みの PWA は、ブラウザーまたはシステム設定から使用できる場合があります。",
     "mailto_label": "メールリンク",
-    "mailto_description": "mailto: リンクを、入力済みの作成画面で Bulwark に開きます。",
+    "mailto_description": "mailto: リンクを、入力済みの作成画面で {appName} に開きます。",
     "protocol_open_mode_label": "プロトコルリンクを開くとき",
-    "protocol_open_mode_description": "Bulwark が mailto: と webcal: のリンクを新しいタブで開くか、開いているセッションを再利用するかを選択します。アクティブなセッションのオプションでは通知の許可が必要です。ブラウザーがフォーカスをブロックした場合に、代替通知をクリックして Bulwark を前面に表示できます。",
+    "protocol_open_mode_description": "{appName} が mailto: と webcal: のリンクを新しいタブで開くか、開いているセッションを再利用するかを選択します。アクティブなセッションのオプションでは通知の許可が必要です。ブラウザーがフォーカスをブロックした場合に、代替通知をクリックして {appName} を前面に表示できます。",
     "protocol_open_mode_active_session": "可能な場合はアクティブなセッションで開く",
     "protocol_open_mode_new_tab": "常に新しいタブを開く",
-    "focus_notification_title": "Bulwark を開く",
-    "focus_notification_body": "リンクは Bulwark で開かれました。クリックするとウィンドウを前面に表示します。",
+    "focus_notification_title": "{appName} を開く",
+    "focus_notification_body": "リンクは {appName} で開かれました。クリックするとウィンドウを前面に表示します。",
     "webcal_label": "カレンダーリンク",
-    "webcal_description": "webcal: リンクを、入力済みのカレンダー購読ダイアログで Bulwark に開きます。",
+    "webcal_description": "webcal: リンクを、入力済みのカレンダー購読ダイアログで {appName} に開きます。",
     "register_mailto": "メールアプリを登録",
     "register_webcal": "カレンダーアプリを登録",
     "mailto_registered": "メール ハンドラーの登録を要求しました",
@@ -196,7 +196,7 @@
     "registration_failed": "プロトコル ハンドラーの登録に失敗しました",
     "opening_mailto": "作成画面を開いています...",
     "opening_webcal": "カレンダーを開いています...",
-    "browser_note": "ブラウザーまたはオペレーティング システムから確認を求められる場合があります。また、既定のアプリとして選択する前に Bulwark のインストールが必要な場合があります。",
+    "browser_note": "ブラウザーまたはオペレーティング システムから確認を求められる場合があります。また、既定のアプリとして選択する前に {appName} のインストールが必要な場合があります。",
     "select_account_title": "アカウントを選択",
     "select_mailto_account": "このメールリンクを開くアカウントを選択してください。",
     "select_webcal_account": "このカレンダーリンクを開くアカウントを選択してください。",
@@ -872,9 +872,9 @@
     "app_title": "ウェブメール",
     "reconnecting": "接続が切れました。再接続を試みています…",
     "rate_limited_title": "サーバー認証は一時的に制限されています。",
-    "rate_limited_detail": "ロックアウトを避けるため、Bulwark はバックグラウンド要求を一時停止しました。{seconds} 秒後に再試行します。",
+    "rate_limited_detail": "ロックアウトを避けるため、{appName} はバックグラウンド要求を一時停止しました。{seconds} 秒後に再試行します。",
     "rate_limited_action_title": "ロックアウトを避けるため要求を一時停止しました。",
-    "rate_limited_action_detail": "Bulwark はサーバーのクールダウンが終わるまで、追加の認証付きリクエストを送信しません。{seconds} 秒後に再試行してください。",
+    "rate_limited_action_detail": "{appName} はサーバーのクールダウンが終わるまで、追加の認証付きリクエストを送信しません。{seconds} 秒後に再試行してください。",
     "pull_to_refresh": "引っ張って更新",
     "release_to_refresh": "離して更新",
     "refreshing": "更新中…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "接続したアカウントを使用",
-        "body": "あなたまたは管理者が設定したアカウントやキーを使って、Bulwark のサーバー経由でリクエストを送信します。プラグインがパスワードを見ることはありませんが、そのアカウントがそのサーバーでできることはすべて実行できます。"
+        "body": "あなたまたは管理者が設定したアカウントやキーを使って、{appName} のサーバー経由でリクエストを送信します。プラグインがパスワードを見ることはありませんが、そのアカウントがそのサーバーでできることはすべて実行できます。"
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "{label} に接続",
-      "intro_password": "{name} が {label} アカウントを使おうとしています。Bulwark はパスワードを自身のサーバーに保存し、{host} にだけ送信します。プラグインがパスワードを見ることはありません。",
-      "intro_password_any": "{name} が {label} アカウントを使おうとしています。Bulwark はパスワードを自身のサーバーに保存し、ここで入力したサーバーにだけ送信します。プラグインがパスワードを見ることはありません。",
-      "intro_signin": "{name} が {label} アカウントにサインインしようとしています。ここでサーバーを入力し、そのサーバーのページでサインインしてください。Bulwark は取得したアクセス権を自身のサーバーに保存します。プラグインがそれを見ることはありません。",
+      "intro_password": "{name} が {label} アカウントを使おうとしています。{appName} はパスワードを自身のサーバーに保存し、{host} にだけ送信します。プラグインがパスワードを見ることはありません。",
+      "intro_password_any": "{name} が {label} アカウントを使おうとしています。{appName} はパスワードを自身のサーバーに保存し、ここで入力したサーバーにだけ送信します。プラグインがパスワードを見ることはありません。",
+      "intro_signin": "{name} が {label} アカウントにサインインしようとしています。ここでサーバーを入力し、そのサーバーのページでサインインしてください。{appName} は取得したアクセス権を自身のサーバーに保存します。プラグインがそれを見ることはありません。",
       "server": "サーバーのアドレス",
       "server_hint": "cloud.example.com",
       "username": "ユーザー名",

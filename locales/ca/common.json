@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Aplicacions predeterminades",
-    "description": "Trieu si els enllaços de correu i calendari s'obren al Bulwark. Tècnicament, el Bulwark es registra com a gestor de protocol per als enllaços mailto: i webcal:.",
+    "description": "Trieu si els enllaços de correu i calendari s'obren al {appName}. Tècnicament, el {appName} es registra com a gestor de protocol per als enllaços mailto: i webcal:.",
     "unsupported": "Aquest navegador o connexió no admet el registre manual de gestors de protocol. És possible que encara pugueu utilitzar la PWA instal·lada des de la configuració del navegador o del sistema operatiu.",
     "mailto_label": "Enllaços de correu",
-    "mailto_description": "Obre els enllaços mailto: al Bulwark amb el redactor emplenat prèviament.",
+    "mailto_description": "Obre els enllaços mailto: al {appName} amb el redactor emplenat prèviament.",
     "protocol_open_mode_label": "En obrir enllaços de protocol",
-    "protocol_open_mode_description": "Trieu si el Bulwark obre els enllaços mailto: i webcal: en una pestanya nova o reutilitza una sessió oberta. L'opció de sessió activa necessita permís de notificacions perquè pugueu prémer una notificació alternativa per portar el Bulwark al davant si el navegador bloqueja el focus.",
+    "protocol_open_mode_description": "Trieu si el {appName} obre els enllaços mailto: i webcal: en una pestanya nova o reutilitza una sessió oberta. L'opció de sessió activa necessita permís de notificacions perquè pugueu prémer una notificació alternativa per portar el {appName} al davant si el navegador bloqueja el focus.",
     "protocol_open_mode_active_session": "Obre en la sessió activa si és possible",
     "protocol_open_mode_new_tab": "Obre sempre una pestanya nova",
-    "focus_notification_title": "Obre el Bulwark",
-    "focus_notification_body": "L'enllaç s'ha obert al Bulwark. Feu clic per portar la finestra al davant.",
+    "focus_notification_title": "Obre el {appName}",
+    "focus_notification_body": "L'enllaç s'ha obert al {appName}. Feu clic per portar la finestra al davant.",
     "webcal_label": "Enllaços de calendari",
-    "webcal_description": "Obre els enllaços webcal: al Bulwark amb el diàleg de subscripció al calendari emplenat prèviament.",
+    "webcal_description": "Obre els enllaços webcal: al {appName} amb el diàleg de subscripció al calendari emplenat prèviament.",
     "register_mailto": "Registra com a aplicació de correu",
     "register_webcal": "Registra com a aplicació de calendari",
     "mailto_registered": "S'ha sol·licitat el registre del gestor de correu",
@@ -196,7 +196,7 @@
     "registration_failed": "No s'ha pogut registrar el gestor de protocol",
     "opening_mailto": "Obrint el redactor...",
     "opening_webcal": "Obrint el calendari...",
-    "browser_note": "És possible que el navegador o el sistema operatiu us demani confirmar-ho, i que calgui tenir el Bulwark instal·lat per poder seleccionar-lo com a aplicació predeterminada.",
+    "browser_note": "És possible que el navegador o el sistema operatiu us demani confirmar-ho, i que calgui tenir el {appName} instal·lat per poder seleccionar-lo com a aplicació predeterminada.",
     "select_account_title": "Trieu un compte",
     "select_mailto_account": "Trieu quin compte ha d'obrir aquest enllaç de correu.",
     "select_webcal_account": "Trieu quin compte ha d'obrir aquest enllaç de calendari.",
@@ -872,9 +872,9 @@
     "app_title": "Webmail",
     "reconnecting": "S'ha perdut la connexió. S'està intentant reconnectar…",
     "rate_limited_title": "L'autenticació al servidor està temporalment limitada.",
-    "rate_limited_detail": "El Bulwark ha aturat les sol·licituds en segon pla per evitar el bloqueig. Es tornarà a provar d'aquí a {seconds} s.",
+    "rate_limited_detail": "El {appName} ha aturat les sol·licituds en segon pla per evitar el bloqueig. Es tornarà a provar d'aquí a {seconds} s.",
     "rate_limited_action_title": "Sol·licitud aturada per evitar el bloqueig.",
-    "rate_limited_action_detail": "El Bulwark espera que acabi el temps d'espera del servidor abans d'enviar més sol·licituds autenticades. Torneu-ho a provar d'aquí a {seconds} s.",
+    "rate_limited_action_detail": "El {appName} espera que acabi el temps d'espera del servidor abans d'enviar més sol·licituds autenticades. Torneu-ho a provar d'aquí a {seconds} s.",
     "pull_to_refresh": "Estira per actualitzar",
     "release_to_refresh": "Deixa anar per actualitzar",
     "refreshing": "S'està actualitzant…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "Fer servir els comptes que connecteu",
-        "body": "Enviar peticions a través del servidor de Bulwark amb un compte o una clau que heu configurat vós o el vostre administrador. El connector no veu mai la contrasenya, però pot fer tot el que aquest compte pot fer al seu propi servidor."
+        "body": "Enviar peticions a través del servidor de {appName} amb un compte o una clau que heu configurat vós o el vostre administrador. El connector no veu mai la contrasenya, però pot fer tot el que aquest compte pot fer al seu propi servidor."
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "Connecta {label}",
-      "intro_password": "{name} vol utilitzar el vostre compte de {label}. Bulwark desa la contrasenya al seu servidor i només l'envia a {host}. El connector no la veu mai.",
-      "intro_password_any": "{name} vol utilitzar el vostre compte de {label}. Bulwark desa la contrasenya al seu servidor i només l'envia al servidor que introduïu aquí. El connector no la veu mai.",
-      "intro_signin": "{name} vol iniciar la sessió al vostre compte de {label}. Introduïu aquí el servidor i després inicieu la sessió a la seva pròpia pàgina. Bulwark desa al seu servidor l'accés que obté; el connector no el veu mai.",
+      "intro_password": "{name} vol utilitzar el vostre compte de {label}. {appName} desa la contrasenya al seu servidor i només l'envia a {host}. El connector no la veu mai.",
+      "intro_password_any": "{name} vol utilitzar el vostre compte de {label}. {appName} desa la contrasenya al seu servidor i només l'envia al servidor que introduïu aquí. El connector no la veu mai.",
+      "intro_signin": "{name} vol iniciar la sessió al vostre compte de {label}. Introduïu aquí el servidor i després inicieu la sessió a la seva pròpia pàgina. {appName} desa al seu servidor l'accés que obté; el connector no el veu mai.",
       "server": "Adreça del servidor",
       "server_hint": "cloud.example.com",
       "username": "Nom d'usuari",

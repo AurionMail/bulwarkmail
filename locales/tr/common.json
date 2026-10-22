@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Varsayılan uygulamalar",
-    "description": "E-posta ve takvim bağlantılarının Bulwark'ta açılıp açılmayacağını seçin. Teknik olarak Bulwark, mailto: ve webcal: bağlantıları için protokol işleyicisi olarak kaydolur.",
+    "description": "E-posta ve takvim bağlantılarının {appName} uygulamasında açılıp açılmayacağını seçin. Teknik olarak {appName}, mailto: ve webcal: bağlantıları için protokol işleyicisi olarak kaydolur.",
     "unsupported": "Bu tarayıcı veya bağlantı manuel protokol işleyicisi kaydını desteklemiyor. Yüklü PWA'yı yine de tarayıcı veya işletim sistemi ayarlarından kullanabilirsiniz.",
     "mailto_label": "E-posta bağlantıları",
-    "mailto_description": "mailto: bağlantılarını Bulwark'ta önceden doldurulmuş düzenleyiciyle açın.",
+    "mailto_description": "mailto: bağlantılarını {appName} uygulamasında önceden doldurulmuş düzenleyiciyle açın.",
     "protocol_open_mode_label": "Protokol bağlantıları açılırken",
-    "protocol_open_mode_description": "Bulwark'ın mailto: ve webcal: bağlantılarını yeni bir sekmede açmasını mı yoksa açık bir oturumu yeniden kullanmasını mı istediğinizi seçin. Etkin oturum seçeneği, tarayıcı odağı engellerse Bulwark'ı öne getirmek için yedek bildirime tıklayabilmeniz amacıyla bildirim izni gerektirir.",
+    "protocol_open_mode_description": "{appName} uygulamasının mailto: ve webcal: bağlantılarını yeni bir sekmede açmasını mı yoksa açık bir oturumu yeniden kullanmasını mı istediğinizi seçin. Etkin oturum seçeneği, tarayıcı odağı engellerse {appName} uygulamasını öne getirmek için yedek bildirime tıklayabilmeniz amacıyla bildirim izni gerektirir.",
     "protocol_open_mode_active_session": "Mümkünse etkin oturumda aç",
     "protocol_open_mode_new_tab": "Her zaman yeni sekme aç",
-    "focus_notification_title": "Bulwark'ı aç",
-    "focus_notification_body": "Bağlantı Bulwark'ta açıldı. Pencereyi öne getirmek için tıklayın.",
+    "focus_notification_title": "{appName} uygulamasını aç",
+    "focus_notification_body": "Bağlantı {appName} uygulamasında açıldı. Pencereyi öne getirmek için tıklayın.",
     "webcal_label": "Takvim bağlantıları",
-    "webcal_description": "webcal: bağlantılarını Bulwark'ta önceden doldurulmuş takvim aboneliği penceresiyle açın.",
+    "webcal_description": "webcal: bağlantılarını {appName} uygulamasında önceden doldurulmuş takvim aboneliği penceresiyle açın.",
     "register_mailto": "E-posta uygulaması olarak kaydet",
     "register_webcal": "Takvim uygulaması olarak kaydet",
     "mailto_registered": "E-posta işleyicisi kaydı istendi",
@@ -196,7 +196,7 @@
     "registration_failed": "Protokol işleyicisi kaydı başarısız oldu",
     "opening_mailto": "Düzenleyici açılıyor...",
     "opening_webcal": "Takvim açılıyor...",
-    "browser_note": "Tarayıcınız veya işletim sisteminiz bunu onaylamanızı isteyebilir ve Bulwark'ın varsayılan uygulama olarak seçilebilmesi için yüklenmiş olmasını gerektirebilir.",
+    "browser_note": "Tarayıcınız veya işletim sisteminiz bunu onaylamanızı isteyebilir ve {appName} uygulamasının varsayılan uygulama olarak seçilebilmesi için yüklenmiş olmasını gerektirebilir.",
     "select_account_title": "Hesap seç",
     "select_mailto_account": "Bu e-posta bağlantısını hangi hesabın açacağını seçin.",
     "select_webcal_account": "Bu takvim bağlantısını hangi hesabın açacağını seçin.",
@@ -872,9 +872,9 @@
     "app_title": "Webmail",
     "reconnecting": "Bağlantı kesildi. Yeniden bağlanılmaya çalışılıyor…",
     "rate_limited_title": "Sunucu kimlik doğrulaması geçici olarak hız sınırlamasına tabi.",
-    "rate_limited_detail": "Hesap kilitlenmesini önlemek için Bulwark arka plan isteklerini duraklattı. {seconds} saniye içinde yeniden deneniyor.",
+    "rate_limited_detail": "Hesap kilitlenmesini önlemek için {appName} arka plan isteklerini duraklattı. {seconds} saniye içinde yeniden deneniyor.",
     "rate_limited_action_title": "Kilitlenmeyi önlemek için istek duraklatıldı.",
-    "rate_limited_action_detail": "Bulwark, daha fazla kimlik doğrulama isteği göndermeden önce sunucunun soğuma süresinin bitmesini bekliyor. {seconds} saniye içinde tekrar deneyin.",
+    "rate_limited_action_detail": "{appName}, daha fazla kimlik doğrulama isteği göndermeden önce sunucunun soğuma süresinin bitmesini bekliyor. {seconds} saniye içinde tekrar deneyin.",
     "pull_to_refresh": "Yenilemek için çekin",
     "release_to_refresh": "Yenilemek için bırakın",
     "refreshing": "Yenileniyor…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "Bağladığınız hesapları kullanma",
-        "body": "Sizin veya yöneticinizin ayarladığı bir hesap ya da anahtarla Bulwark sunucusu üzerinden istek gönderme. Eklenti parolayı hiçbir zaman görmez, ancak o hesabın kendi sunucusunda yapabildiği her şeyi yapabilir."
+        "body": "Sizin veya yöneticinizin ayarladığı bir hesap ya da anahtarla {appName} sunucusu üzerinden istek gönderme. Eklenti parolayı hiçbir zaman görmez, ancak o hesabın kendi sunucusunda yapabildiği her şeyi yapabilir."
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "{label} hesabını bağla",
-      "intro_password": "{name}, {label} hesabınızı kullanmak istiyor. Bulwark parolayı kendi sunucusunda saklar ve yalnızca {host} adresine gönderir. Eklenti parolayı hiçbir zaman görmez.",
-      "intro_password_any": "{name}, {label} hesabınızı kullanmak istiyor. Bulwark parolayı kendi sunucusunda saklar ve yalnızca burada girdiğiniz sunucuya gönderir. Eklenti parolayı hiçbir zaman görmez.",
-      "intro_signin": "{name}, {label} hesabınıza giriş yapmak istiyor. Sunucuyu buraya girin, ardından sunucunun kendi sayfasında giriş yapın. Bulwark aldığı erişimi kendi sunucusunda saklar; eklenti bunu hiçbir zaman görmez.",
+      "intro_password": "{name}, {label} hesabınızı kullanmak istiyor. {appName} parolayı kendi sunucusunda saklar ve yalnızca {host} adresine gönderir. Eklenti parolayı hiçbir zaman görmez.",
+      "intro_password_any": "{name}, {label} hesabınızı kullanmak istiyor. {appName} parolayı kendi sunucusunda saklar ve yalnızca burada girdiğiniz sunucuya gönderir. Eklenti parolayı hiçbir zaman görmez.",
+      "intro_signin": "{name}, {label} hesabınıza giriş yapmak istiyor. Sunucuyu buraya girin, ardından sunucunun kendi sayfasında giriş yapın. {appName} aldığı erişimi kendi sunucusunda saklar; eklenti bunu hiçbir zaman görmez.",
       "server": "Sunucu adresi",
       "server_hint": "cloud.example.com",
       "username": "Kullanıcı adı",

@@ -7,6 +7,7 @@ import {
   flattenStrings,
   getByPath,
   tabSearchPaths,
+  withAppName,
 } from '../settings-search';
 
 function subResultsFor(tab: SettingsSearchTab): SubResult[] {
@@ -111,5 +112,45 @@ describe('settings search index (English messages)', () => {
   it('matches the calendar tab for a free-scroll query', () => {
     expect(haystackFor('calendar')).toContain('free scrolling');
     expect(haystackFor('general')).toContain('time zone');
+  });
+});
+
+describe('{appName} in the index (#1314)', () => {
+  const index = (appName: string) => {
+    const list: SubResult[] = [];
+    const strings: string[] = [];
+    for (const path of tabSearchPaths.general) {
+      const node = withAppName(getByPath(en, path), appName);
+      collectSubResults(node, list);
+      flattenStrings(node, strings);
+    }
+    return { list, haystack: strings.join(' ').toLowerCase() };
+  };
+
+  it('never keeps the raw placeholder', () => {
+    for (const tab of Object.keys(tabSearchPaths) as SettingsSearchTab[]) {
+      for (const path of tabSearchPaths[tab]) {
+        expect(JSON.stringify(withAppName(getByPath(en, path), 'Bulwark')) ?? '').not.toContain('{appName}');
+      }
+    }
+  });
+
+  it('finds Default apps by "bulwark" on a stock install', () => {
+    const { list, haystack } = index('Bulwark');
+    expect(haystack).toContain('bulwark');
+    expect(list.some((r) => r.description?.includes('Bulwark'))).toBe(true);
+  });
+
+  it('finds Default apps by the configured name', () => {
+    const { list, haystack } = index('Rath Mail');
+    expect(haystack).toContain('rath mail');
+    const links: string[] = [];
+    flattenStrings(withAppName(getByPath(en, 'protocol_handlers'), 'Rath Mail'), links);
+    expect(links.join(' ').toLowerCase()).not.toContain('bulwark');
+    expect(list.some((r) => r.description?.includes('Rath Mail'))).toBe(true);
+  });
+
+  it('leaves other values alone', () => {
+    expect(withAppName({ a: 'x {appName} y', b: ['{appName}'], c: 3 }, 'N')).toEqual({ a: 'x N y', b: ['N'], c: 3 });
   });
 });
