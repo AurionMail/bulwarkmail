@@ -4655,7 +4655,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           {/* Email List - full width on mobile, fixed width/height on tablet/desktop */}
           <div
             className={cn(
-              "relative flex flex-col bg-background",
+              "relative flex flex-col bg-background min-w-0",
               isHorizontalMailLayout
                 ? (shouldHideHorizontalViewerPane ? "md:w-full md:min-h-0" : "md:w-full md:h-auto")
                 : "h-full border-e border-border",
