@@ -31,7 +31,7 @@ const mailboxes: Mailbox[] = [
   { id: 'inbox', name: 'Inbox', role: 'inbox', parentId: null, totalEmails: 0, unreadEmails: 0, myRights: { mayAddItems: true } },
 ] as unknown as Mailbox[];
 
-function offer(id: string, name: string, slot: string) {
+function offer(id: string, name: string, slot: string, extraSlots: string[] = []) {
   const plugin: InstalledPlugin = {
     id, name, version: '1.0.0', author: '', description: '', type: 'ui-extension',
     permissions: ['ui:sidebar-widget'], grantedPermissions: ['ui:sidebar-widget'], entrypoint: 'index.js',
@@ -42,7 +42,7 @@ function offer(id: string, name: string, slot: string) {
     code: '',
     tier: 'untrusted',
     background: { evaluateShouldShow: vi.fn(async () => true) } as never,
-    slotOffers: [{ name: slot as never, order: 100, hasShouldShow: false }],
+    slotOffers: [{ name: slot as never, order: 100, hasShouldShow: false }, ...extraSlots.map((name) => ({ name: name as never, order: 100, hasShouldShow: false }))],
     hookDisposables: [],
   });
 }
@@ -82,6 +82,24 @@ describe('Sidebar plugin sections', () => {
     expect(opts.slot).toBe('sidebar-section');
     expect(opts.plugin.id).toBe('cal');
     expect(opts.extraProps).toEqual({ mailboxId: 'inbox' });
+  });
+
+  it('places inline plugin actions next to the collapsible heading, never inside its button', async () => {
+    offer('cal', 'Agenda', 'sidebar-section', ['sidebar-section-actions']);
+    const { container } = render(<Sidebar mailboxes={mailboxes} selectedMailbox="inbox" />);
+    await waitFor(() => expect(createSlotInstance).toHaveBeenCalledTimes(2));
+
+    const section = container.querySelector('[data-plugin-sidebar-section="cal"]')!;
+    const header = screen.getByRole('button', { name: 'Agenda' });
+    const actions = section.querySelector('[data-plugin-sidebar-actions="cal"]')!;
+    expect(actions).toBeInTheDocument();
+    expect(header.contains(actions)).toBe(false);
+    expect(header.parentElement).toBe(actions.parentElement);
+    expect(section.querySelector('[data-plugin-iframe-slot="cal:sidebar-section-actions"]')).toBeInTheDocument();
+
+    fireEvent.click(header);
+    expect(header).toHaveAttribute('aria-expanded', 'false');
+    expect(section.querySelector('[data-plugin-sidebar-actions="cal"]')).toBeNull();
   });
 
   it('folds a section and remembers it per plugin', async () => {
