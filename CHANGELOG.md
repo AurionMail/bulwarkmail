@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.17.2 (unreleased)
+
+### Security
+
+- **Dependencies**: Next.js 16.4.2 and DOMPurify 3.4.17 fix six published advisories, three of them critical. None of them reached Bulwark: the webmail has no `use cache` functions and no Server Actions, its image optimizer refuses SVG and runs on sharp 0.35.5, which already carries the fix, and the mail sanitizer uses none of the DOMPurify modes the bypasses need (SAFE_FOR_TEMPLATES, IN_PLACE, XHTML parsing). Updating is still recommended
+
 ## 1.17.1 (2026-10-22)
 
 1.17.1 stops the background-notifications prompt from asking you to turn push on while the app is still restoring a subscription the browser dropped, and an open tab now repairs a dropped subscription on its own. The message list stays within the screen on phones, and a browser that was already signed in hands a mobile sign-in to the app again.

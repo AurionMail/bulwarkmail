@@ -66,7 +66,7 @@
     "dompurify": "^3.4.12",
     "jalaali-js": "^2.0.0",
     "jszip": "^3.10.1",
-    "next": "^16.2.6",
+    "next": "^16.4.2",
     "next-intl": "^4.13.3",
     "otpauth": "^9.5.0",
     "pdfjs-dist": "^6.0.227",
