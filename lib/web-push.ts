@@ -861,15 +861,25 @@ export async function isWebPushEnabled(accountId: string): Promise<boolean> {
   return sub !== null && localStorage.getItem(subscriptionIdKey(accountId)) !== null;
 }
 
-// When each account was last re-synced during this page load. Once a day is
-// enough for the drift between sessions (a client update that changed what
-// we subscribe to, a recreated Junk mailbox), but not only once: Stalwart
-// clamps `expires` to 7 days, so a tab or installed app left open for a
-// week would otherwise let the subscription lapse and push stop silently.
+// When each account was last re-synced during this page load, and whether
+// that attempt worked. Once a day is enough for the drift between sessions
+// (a client update that changed what we subscribe to, a recreated Junk
+// mailbox), but not only once: Stalwart clamps `expires` to 7 days, so a tab
+// or installed app left open for a week would otherwise let the subscription
+// lapse and push stop silently.
 const RESYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // After a failed attempt: soon again, but not on every return to the tab.
 const RESYNC_RETRY_MS = 15 * 60 * 1000;
-const lastResyncAt = new Map<string, number>();
+interface ResyncAttempt {
+  at: number;
+  ok: boolean;
+}
+const lastResync = new Map<string, ResyncAttempt>();
+// Re-syncs still running, per account. One at a time per login: they share
+// the browser's single PushSubscription, and a parallel re-create would race
+// on it. Also what lets the onboarding prompt wait instead of asking the
+// user to enable push the re-sync is just restoring (#1321).
+const inFlightResync = new Map<string, Promise<boolean>>();
 
 export interface ResyncWebPushParams {
   client: IJMAPClient;
@@ -890,16 +900,30 @@ export interface ResyncWebPushParams {
  * and every failure is swallowed because the app must not care whether the
  * background touch-up worked. Returns true when a re-sync actually ran.
  */
-export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolean> {
+export function resyncWebPush(params: ResyncWebPushParams): Promise<boolean> {
   let accountId: string;
   try {
     accountId = params.client.getAccountId();
   } catch {
-    return false;
+    return Promise.resolve(false);
   }
-  if (!accountId) return false;
-  const last = lastResyncAt.get(accountId);
-  if (!params.force && last !== undefined && Date.now() - last < RESYNC_INTERVAL_MS) return false;
+  if (!accountId) return Promise.resolve(false);
+  const pending = inFlightResync.get(accountId);
+  if (pending) {
+    if (!params.force) return pending;
+    // The filter changed while a re-sync runs: send it once that one is done.
+    return pending.then(() => resyncWebPush(params));
+  }
+  // Registered before the first await, so a waiter that asks in the same
+  // tick already sees this run.
+  const run: Promise<boolean> = runResync(accountId, params).finally(() => {
+    if (inFlightResync.get(accountId) === run) inFlightResync.delete(accountId);
+  });
+  inFlightResync.set(accountId, run);
+  return run;
+}
+
+async function runResync(accountId: string, params: ResyncWebPushParams): Promise<boolean> {
   try {
     // The browser may have lost its endpoint while our saved opt-in and
     // server registration survived. Recreate it through the normal enable
@@ -907,7 +931,7 @@ export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolea
     // isWebPushEnabled (it requires a live browser subscription) would do.
     if (!isWebPushSupported() || Notification.permission !== 'granted'
       || !localStorage.getItem(subscriptionIdKey(accountId))) return false;
-    lastResyncAt.set(accountId, Date.now());
+    if (!params.force && !(await resyncDue(accountId))) return false;
     await enableWebPush({
       client: params.client,
       relayBaseUrl: params.relayBaseUrl,
@@ -915,18 +939,57 @@ export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolea
       inboxOnly: params.inboxOnly,
       mutes: params.mutes,
     });
+    lastResync.set(accountId, { at: Date.now(), ok: true });
     return true;
   } catch {
     // A failed attempt must not wait a day for the next one, nor rerun the
     // whole enable on every tab focus.
-    lastResyncAt.set(accountId, Date.now() - RESYNC_INTERVAL_MS + RESYNC_RETRY_MS);
+    lastResync.set(accountId, { at: Date.now(), ok: false });
     return false;
   }
 }
 
+async function resyncDue(accountId: string): Promise<boolean> {
+  const last = lastResync.get(accountId);
+  if (!last) return true;
+  const elapsed = Date.now() - last.at;
+  if (!last.ok) return elapsed >= RESYNC_RETRY_MS;
+  if (elapsed >= RESYNC_INTERVAL_MS) return true;
+  // Inside the daily limit, but the browser may have dropped the subscription
+  // since (Safari does when site data is cleared, Firefox when the push
+  // service expires it). A tab that stays open would otherwise go without
+  // push until it is reloaded. The check is local, so it can run on every
+  // return to the tab.
+  return browserSubscriptionLost();
+}
+
+// Whether the browser no longer holds a push subscription for our service
+// worker. A missing registration counts as lost too: enableWebPush puts it
+// back.
+async function browserSubscriptionLost(): Promise<boolean> {
+  const registration = await navigator.serviceWorker.getRegistration(SW_SCOPE).catch(() => null);
+  if (!registration) return true;
+  const sub = await registration.pushManager.getSubscription().catch(() => null);
+  return sub === null;
+}
+
+/**
+ * Settles once no re-sync is running for the account; at once when none is.
+ * isWebPushEnabled says "off" while a re-sync recreates the browser
+ * subscription, so a caller that would act on "off" - the onboarding prompt -
+ * waits for this first (#1321).
+ */
+export function waitForWebPushResync(accountId: string): Promise<void> {
+  const pending = inFlightResync.get(accountId);
+  if (!pending) return Promise.resolve();
+  // A forced update may have queued up behind this run.
+  return pending.then(() => waitForWebPushResync(accountId));
+}
+
 // Test hook: forget which accounts were re-synced during this page load.
 export function resetWebPushResyncState(): void {
-  lastResyncAt.clear();
+  lastResync.clear();
+  inFlightResync.clear();
 }
 
 export interface BulkWebPushTarget {

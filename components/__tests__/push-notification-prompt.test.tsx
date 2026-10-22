@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   enableWebPush: vi.fn(),
   isWebPushEnabled: vi.fn(),
   resyncWebPush: vi.fn(),
+  waitForWebPushResync: vi.fn(),
   authState: {
     client: { getAccountId: () => "account-1" } as {
       getAccountId: () => string;
@@ -74,6 +75,7 @@ vi.mock("@/lib/web-push", () => ({
   isWebPushSupported: () => mocks.supported,
   isWebPushEnabled: mocks.isWebPushEnabled,
   resyncWebPush: mocks.resyncWebPush,
+  waitForWebPushResync: mocks.waitForWebPushResync,
 }));
 
 function setNotificationPermission(permission: NotificationPermission) {
@@ -118,12 +120,14 @@ describe("PushNotificationPrompt", () => {
     mocks.enableWebPush.mockReset().mockResolvedValue({ subscriptionId: "sub-1" });
     mocks.isWebPushEnabled.mockReset().mockImplementation(async () => mocks.enabled);
     mocks.resyncWebPush.mockReset().mockResolvedValue(false);
+    mocks.waitForWebPushResync.mockReset().mockResolvedValue(undefined);
     setNotificationPermission("default");
   });
 
   afterEach(() => {
     vi.clearAllTimers();
     vi.useRealTimers();
+    Reflect.deleteProperty(navigator, "serviceWorker");
   });
 
   it("offers onboarding when the current account has no push subscription", async () => {
@@ -196,6 +200,68 @@ describe("PushNotificationPrompt", () => {
     await advancePromptDelay();
 
     expect(screen.queryByText("title")).not.toBeInTheDocument();
+  });
+
+  it("waits for the background pass before deciding on onboarding (#1321)", async () => {
+    // Safari dropped the browser subscription with the site data; the saved
+    // opt-in survived, so the pass on load is recreating it right now.
+    let restored!: () => void;
+    const restoring = new Promise<void>((resolve) => { restored = resolve; });
+    mocks.resyncWebPush.mockReturnValue(restoring.then(() => true));
+    mocks.waitForWebPushResync.mockReturnValue(restoring);
+
+    render(<PushNotificationPrompt />);
+    await advancePromptDelay();
+    expect(mocks.isWebPushEnabled).not.toHaveBeenCalled();
+    expect(screen.queryByText("title")).not.toBeInTheDocument();
+
+    // The subscription is back: nothing to ask the user.
+    mocks.enabled = true;
+    await act(async () => {
+      restored();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(mocks.isWebPushEnabled).toHaveBeenCalledWith("account-1");
+    expect(screen.queryByText("title")).not.toBeInTheDocument();
+  });
+
+  it("offers onboarding when push is still off after the background pass", async () => {
+    let settled!: () => void;
+    const pass = new Promise<void>((resolve) => { settled = resolve; });
+    mocks.resyncWebPush.mockReturnValue(pass.then(() => false));
+    mocks.waitForWebPushResync.mockReturnValue(pass);
+
+    render(<PushNotificationPrompt />);
+    await advancePromptDelay();
+    expect(screen.queryByText("title")).not.toBeInTheDocument();
+
+    await act(async () => {
+      settled();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByText("title")).toBeInTheDocument();
+  });
+
+  it("re-registers every login when the service worker reports a replaced subscription", async () => {
+    const serviceWorker = new EventTarget();
+    Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: serviceWorker });
+    const bob = { getAccountId: () => "account-2" };
+    mocks.authState.connected.set("bob@mail.example.com", bob);
+    render(<PushNotificationPrompt />);
+    await advancePromptDelay();
+    mocks.resyncWebPush.mockClear();
+
+    await act(async () => {
+      serviceWorker.dispatchEvent(
+        new MessageEvent("message", { data: { kind: "pushsubscriptionchange" } }),
+      );
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(mocks.resyncWebPush.mock.calls.map(([p]) => [p.client, p.force])).toEqual([
+      [mocks.authState.client, true],
+      [bob, true],
+    ]);
   });
 
   it("re-syncs an existing registration in the background on mount", async () => {

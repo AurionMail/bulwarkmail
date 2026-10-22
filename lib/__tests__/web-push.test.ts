@@ -11,6 +11,7 @@ import {
   resetWebPushResyncState,
   resyncWebPush,
   revokePushDevice,
+  waitForWebPushResync,
 } from '@/lib/web-push';
 
 const RELAY = 'https://relay.example';
@@ -372,6 +373,92 @@ describe('resyncWebPush', () => {
     expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(true);
     expect(client.listPushSubscriptions).toHaveBeenCalledTimes(2);
     now.mockRestore();
+  });
+
+  it('repairs a subscription the browser dropped while the tab stayed open, inside the daily limit (#1321)', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const { registration } = installPushBrowser();
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    installFetch({});
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(true);
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+
+    // Safari cleared the site data: the browser subscription is gone, the
+    // saved opt-in is not. The next return to the tab puts it back.
+    registration.pushManager.getSubscription.mockResolvedValue(null as never);
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(true);
+    expect(registration.pushManager.subscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry a failed repair on every return to the tab', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const { registration } = installPushBrowser();
+    registration.pushManager.getSubscription.mockResolvedValue(null as never);
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    const fetchMock = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(false);
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false })).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs one re-sync at a time per login and lets callers wait for it (#1321)', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const { registration, browserSub } = installPushBrowser();
+    registration.pushManager.getSubscription.mockResolvedValue(null as never);
+    // The browser is still talking to the push service.
+    let subscribed!: () => void;
+    registration.pushManager.subscribe.mockReturnValueOnce(
+      new Promise((resolve) => { subscribed = () => resolve(browserSub); }) as never,
+    );
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    installFetch({});
+
+    const first = resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+    // A second call meanwhile - the tab came back to the foreground - joins
+    // the running one instead of racing it on the shared subscription.
+    const second = resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+    let settled = false;
+    const waited = waitForWebPushResync(ACCOUNT_ID).then(() => { settled = true; });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await isWebPushEnabled(ACCOUNT_ID)).toBe(false);
+    expect(settled).toBe(false);
+    expect(client.listPushSubscriptions).not.toHaveBeenCalled();
+
+    registration.pushManager.getSubscription.mockResolvedValue(browserSub);
+    subscribed();
+    expect(await Promise.all([first, second])).toEqual([true, true]);
+    await waited;
+    expect(settled).toBe(true);
+    expect(client.listPushSubscriptions).toHaveBeenCalledTimes(1);
+    expect(await isWebPushEnabled(ACCOUNT_ID)).toBe(true);
+    // Nothing running: settles at once.
+    await expect(waitForWebPushResync(ACCOUNT_ID)).resolves.toBeUndefined();
+  });
+
+  it('queues a forced update behind the running re-sync instead of racing it', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const { registration, browserSub } = installPushBrowser();
+    registration.pushManager.getSubscription.mockResolvedValue(null as never);
+    let subscribed!: () => void;
+    registration.pushManager.subscribe.mockReturnValueOnce(
+      new Promise((resolve) => { subscribed = () => resolve(browserSub); }) as never,
+    );
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    installFetch({});
+
+    const running = resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false });
+    const forced = resyncWebPush({ client, relayBaseUrl: RELAY, inboxOnly: false, force: true });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(client.listPushSubscriptions).not.toHaveBeenCalled();
+
+    subscribed();
+    expect(await Promise.all([running, forced])).toEqual([true, true]);
+    expect(client.listPushSubscriptions).toHaveBeenCalledTimes(2);
   });
 
   it('swallows failures instead of surfacing them to the app', async () => {

@@ -44,6 +44,10 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(handleNotificationClick(event));
 });
 
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(handlePushSubscriptionChange(event));
+});
+
 self.addEventListener("message", (event) => {
   const data = event.data || {};
   if (data.type === "mailto-client-ready") {
@@ -320,6 +324,35 @@ async function writeNotifiedIds(accountId, ids) {
     );
   } catch (_) {
     // Best effort only.
+  }
+}
+
+// The push service dropped or replaced the browser's subscription (expiry,
+// a key rotation, revoked permission). Re-subscribe with the same relay key
+// unless the browser already did, then tell the open tabs: only a page has
+// the login needed to register the new endpoint with the relay and the mail
+// server (resyncWebPush in lib/web-push.ts). With no tab open, the next page
+// load's re-sync picks the new subscription up.
+async function handlePushSubscriptionChange(event) {
+  const old = event.oldSubscription;
+  if (!event.newSubscription && old && old.options) {
+    try {
+      await self.registration.pushManager.subscribe(old.options);
+    } catch (_) {
+      // Permission revoked or push service unreachable: the page's re-sync
+      // subscribes again itself when it can.
+    }
+  }
+  const allClients = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  for (const client of allClients) {
+    try {
+      client.postMessage({ kind: "pushsubscriptionchange" });
+    } catch (_) {
+      // Closed or detached client - ignore.
+    }
   }
 }
 
