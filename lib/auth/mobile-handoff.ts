@@ -31,3 +31,24 @@ export function mobileHandoffTarget(raw: string | null | undefined): string {
 export function buildMobileHandoffUrl(target: string, fragment: Record<string, string>): string {
   return `${target}#${new URLSearchParams(fragment).toString()}`;
 }
+
+/**
+ * What the login page does once the browser is signed in:
+ *  - `handoff`: a mobile hand-off whose sign-in just happened here; show the
+ *    consent for handing it to the app.
+ *  - `stay`: a mobile hand-off opened by a browser that was already signed
+ *    in. The app needs a sign-in of its own (the password flow hands back
+ *    what the user types here), so keep the form. Opening the mailbox would
+ *    strand the user inside the app's sign-in sheet with no way back.
+ *  - `mailbox`: a normal sign-in; go to the mailbox.
+ *  - `none`: add-account mode handles its own navigation.
+ */
+export function signedInLoginAction(opts: {
+  isMobileHandoff: boolean;
+  isAddAccountMode: boolean;
+  hasHandoffPayload: boolean;
+}): 'handoff' | 'stay' | 'mailbox' | 'none' {
+  if (opts.isAddAccountMode) return 'none';
+  if (opts.isMobileHandoff) return opts.hasHandoffPayload ? 'handoff' : 'stay';
+  return 'mailbox';
+}

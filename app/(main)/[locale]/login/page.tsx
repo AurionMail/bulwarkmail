@@ -32,7 +32,7 @@ import {
 } from "@/lib/auth/lite-oauth";
 import { toAsciiDomain } from "@/lib/idn";
 import { usePrefetchMailView } from "@/hooks/use-prefetch-mail-view";
-import { buildMobileHandoffUrl, mobileHandoffTarget } from "@/lib/auth/mobile-handoff";
+import { buildMobileHandoffUrl, mobileHandoffTarget, signedInLoginAction } from "@/lib/auth/mobile-handoff";
 import { MobileHandoffConsent } from "@/components/auth/mobile-handoff-consent";
 
 /** The domain of a complete address (`user@example.com`), or '' while it is still being typed. */
@@ -364,22 +364,39 @@ function LoginPageContent() {
     }
   }, [serverUrl]);
 
+  // Mobile handoff: hand the verified credentials back to the mobile app
+  // instead of opening the mailbox. handleSubmit captured the values needed
+  // for the fragment. Runs once per sign-in: whichever of the effect below
+  // and handleSubmit gets here first takes the payload.
+  const offerMobileHandoff = useCallback(() => {
+    const payload = mobileHandoffPayloadRef.current;
+    if (!payload) return;
+    mobileHandoffPayloadRef.current = null;
+    // Shown to the user first; the navigation happens on their confirmation.
+    setPendingHandoff({
+      url: buildMobileHandoffUrl(mobileRedirectUri, { flow: "password", ...payload, state: mobileState }),
+      username: payload.username,
+    });
+  }, [mobileRedirectUri, mobileState]);
+
   useEffect(() => {
-    if (isAuthenticated && !isAddAccountMode) {
-      // Mobile handoff: the password path completes here once the auth store
-      // flips isAuthenticated. Hand the verified credentials back to the
-      // mobile app instead of pushing to /mail. handleSubmit captured the
-      // values needed for the fragment.
-      if (isMobileHandoff && mobileHandoffPayloadRef.current) {
-        const payload = mobileHandoffPayloadRef.current;
-        mobileHandoffPayloadRef.current = null;
-        // Shown to the user first; the navigation happens on their confirmation.
-        setPendingHandoff({
-          url: buildMobileHandoffUrl(mobileRedirectUri, { flow: "password", ...payload, state: mobileState }),
-          username: payload.username,
-        });
-        return;
-      }
+    if (!isAuthenticated) return;
+    const action = signedInLoginAction({
+      isMobileHandoff,
+      isAddAccountMode,
+      hasHandoffPayload: mobileHandoffPayloadRef.current !== null,
+    });
+    if (action === "handoff") {
+      // The password path completes here once the auth store flips
+      // isAuthenticated.
+      offerMobileHandoff();
+      return;
+    }
+    // A browser that was already signed in keeps the form: the app needs a
+    // sign-in of its own, and the mailbox would strand the user in the app's
+    // sign-in sheet. handleSubmit offers the hand-off after they sign in
+    // (isAuthenticated stays true, so this effect doesn't run again).
+    if (action === "mailbox") {
       let redirectTo = '/';
       try {
         const saved = sessionStorage.getItem('redirect_after_login');
@@ -390,7 +407,7 @@ function LoginPageContent() {
       } catch { /* ignore */ }
       router.push(toRouterPath(redirectTo));
     }
-  }, [isAuthenticated, router, isAddAccountMode, isMobileHandoff, mobileRedirectUri, mobileState]);
+  }, [isAuthenticated, router, isAddAccountMode, isMobileHandoff, offerMobileHandoff]);
 
   useEffect(() => {
     clearError();
@@ -861,8 +878,11 @@ function LoginPageContent() {
       // being remembered: on a shared computer the next person sees the list.
       if (!rememberMeEnabled || persistSession) saveUsername(formData.username);
       if (isMobileHandoff) {
-        // The isAuthenticated effect handles the redirect; nothing else to
-        // do here. Don't push to / - that would race the deep link.
+        // Usually the isAuthenticated effect has offered the hand-off by
+        // now. A browser that was already signed in doesn't flip
+        // isAuthenticated, so offer it here (a no-op once taken). Don't push
+        // to / - that would race the deep link.
+        offerMobileHandoff();
         return;
       }
       router.push('/');

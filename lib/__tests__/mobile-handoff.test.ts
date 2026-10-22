@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MOBILE_HANDOFF_REDIRECT_URI, buildMobileHandoffUrl, mobileHandoffTarget } from '@/lib/auth/mobile-handoff';
+import { MOBILE_HANDOFF_REDIRECT_URI, buildMobileHandoffUrl, mobileHandoffTarget, signedInLoginAction } from '@/lib/auth/mobile-handoff';
 
 // The login page handed the typed password (and the SSO callback the tokens)
 // to any `bulwarkmobile://` URL named in the query string, with nothing on
@@ -34,5 +34,28 @@ describe('buildMobileHandoffUrl', () => {
     expect(url.startsWith('bulwarkmobile://auth/callback#')).toBe(true);
     expect(url).toContain('password=p%26ss%231');
     expect(url.split('#')).toHaveLength(2);
+  });
+});
+
+// The app's "Sign in via webmail" opens the login page in the system browser.
+// When that browser already had a webmail session (the user reads mail in
+// Safari, or signed out of the app after an earlier hand-off), the page sent
+// the session to the mailbox and the app never got a sign-in: the user was
+// left in the webmail's inbox inside the app's sign-in sheet.
+describe('signedInLoginAction', () => {
+  it('keeps the form for a hand-off opened by a signed-in browser', () => {
+    expect(signedInLoginAction({ isMobileHandoff: true, isAddAccountMode: false, hasHandoffPayload: false })).toBe('stay');
+  });
+
+  it('hands over a sign-in that just happened on the page', () => {
+    expect(signedInLoginAction({ isMobileHandoff: true, isAddAccountMode: false, hasHandoffPayload: true })).toBe('handoff');
+  });
+
+  it('opens the mailbox after a normal sign-in', () => {
+    expect(signedInLoginAction({ isMobileHandoff: false, isAddAccountMode: false, hasHandoffPayload: false })).toBe('mailbox');
+  });
+
+  it('leaves add-account mode alone', () => {
+    expect(signedInLoginAction({ isMobileHandoff: false, isAddAccountMode: true, hasHandoffPayload: false })).toBe('none');
   });
 });
