@@ -126,7 +126,9 @@ async function handlePush(event) {
   // re-buzz for that old message.
   const notified = await readNotifiedIds(accountId);
   const freshIds = emailIds.filter((id) => !notified.includes(id));
+  const groupTag = "bulwark-mail:" + (accountId || "default");
   if (emailIds.length > 0 && freshIds.length === 0) {
+    await showWithoutAlert(groupTag);
     return;
   }
 
@@ -143,16 +145,26 @@ async function handlePush(event) {
     if (freshIds.length > 0) query.set("emailId", freshIds[freshIds.length - 1]);
     const qs = query.toString();
     const previewUrl = `${BASE_PATH}/api/push/preview${qs ? `?${qs}` : ""}`;
-    const res = await fetch(previewUrl, {
-      credentials: "include",
-      cache: "no-store",
-    });
-    if (res.ok) {
-      preview = await res.json();
-      previewOk = true;
+    // A notification shown more than 30 s after the push counts as a silent
+    // push in Safari (#1322), so a slow preview gives way to the generic one.
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), PREVIEW_DEADLINE_MS) : null;
+    try {
+      const res = await fetch(previewUrl, {
+        credentials: "include",
+        cache: "no-store",
+        ...(controller ? { signal: controller.signal } : {}),
+      });
+      if (res.ok) {
+        preview = await res.json();
+        previewOk = true;
+      }
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   } catch (_) {
     preview = null;
+    previewOk = false;
   }
 
   const email = preview && preview.email ? preview.email : null;
@@ -170,6 +182,7 @@ async function handlePush(event) {
   // failed (network/auth/server down) we cannot tell, so fall through to the
   // generic "New mail" toast rather than miss a real delivery.
   if (previewOk && !email && unreadTotal === 0) {
+    await showWithoutAlert(groupTag);
     return;
   }
 
@@ -177,6 +190,7 @@ async function handlePush(event) {
   // message is one we already announced, so whatever woke us was not new
   // Inbox mail - typically a delivery into Junk or a Sieve-filed folder.
   if (emailIds.length === 0 && previewOk && email && notified.includes(email.id)) {
+    await showWithoutAlert(groupTag);
     return;
   }
 
@@ -186,7 +200,6 @@ async function handlePush(event) {
   // used to stack 50 toasts). The newest message is the headline and a
   // Gmail-style "+N more" line carries the rest, counted from the account's
   // unread total.
-  const groupTag = "bulwark-mail:" + (accountId || "default");
   let title;
   let body;
   let data = { kind: "mail-list", accountId, slot };
@@ -231,6 +244,43 @@ async function handlePush(event) {
   const announced = freshIds.length > 0 ? freshIds : (email ? [email.id] : []);
   if (announced.length > 0) {
     await writeNotifiedIds(accountId, notified.concat(announced));
+  }
+}
+
+// How long the preview may take before the generic notification is shown.
+const PREVIEW_DEADLINE_MS = 10_000;
+
+/**
+ * Every push has to end in showNotification. Safari counts a push without one
+ * as silent and drops the subscription after three (WebKit maxSilentPushCount);
+ * Firefox and Chrome spend a quota or show a notice of their own. A push with
+ * nothing new to say (a redelivery, mail already read or already announced)
+ * re-shows the account's notification as it is, without a sound. With none on
+ * screen, it shows one and takes it away again at once (#1322).
+ */
+async function showWithoutAlert(groupTag) {
+  const options = {
+    tag: groupTag,
+    icon: `${BASE_PATH}/api/pwa-icon/192`,
+    badge: `${BASE_PATH}/api/pwa-icon/192`,
+    renotify: false,
+    silent: true,
+  };
+  try {
+    const existing = (await self.registration.getNotifications({ tag: groupTag }))[0];
+    if (existing) {
+      await self.registration.showNotification(existing.title, {
+        ...options,
+        body: existing.body,
+        data: existing.data,
+      });
+      return;
+    }
+    await self.registration.showNotification("New mail", { ...options, data: { kind: "mail-list" } });
+    const shown = await self.registration.getNotifications({ tag: groupTag });
+    for (const notification of shown) notification.close();
+  } catch (_) {
+    // Nothing more a worker can do.
   }
 }
 
