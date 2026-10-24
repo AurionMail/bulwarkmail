@@ -30,6 +30,7 @@ function PluginSidebarSection({ pluginId, extraProps }: { pluginId: string; extr
   const bodyId = useId();
   const title = useSyncExternalStore(subscribeSectionTitles, () => sectionTitle(pluginId), () => undefined);
   const name = title || getActivePlugin(pluginId)?.plugin.name || pluginId;
+  const hasActions = !!getActivePlugin(pluginId)?.slotOffers.some((o) => o.name === 'sidebar-section-actions');
 
   const toggle = () => {
     setCollapsed((prev) => {
@@ -40,21 +41,29 @@ function PluginSidebarSection({ pluginId, extraProps }: { pluginId: string; extr
 
   return (
     <div data-plugin-sidebar-section={pluginId}>
-      {/* Same look as the sidebar's own section headers (Folders, Tags). */}
-      <button
-        type="button"
-        onClick={toggle}
-        aria-expanded={!collapsed}
-        aria-controls={bodyId}
-        className="group w-full flex items-center pb-1 pt-5 px-3 select-none rounded-sm hover:bg-muted/40 transition-colors"
-      >
-        {collapsed ? (
-          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 rtl:-scale-x-100" />
-        ) : (
-          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+      {/* A separate action slot keeps buttons aligned with the host-owned
+          heading. Never put interactive controls inside the collapse button. */}
+      <div className="flex w-full items-end pb-1 pt-5 px-3 min-w-0">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={!collapsed}
+          aria-controls={bodyId}
+          className="group flex flex-1 min-w-0 items-center select-none rounded-sm hover:bg-muted/40 transition-colors"
+        >
+          {collapsed ? (
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 rtl:-scale-x-100" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+          )}
+          <span className="ms-1.5 text-sm font-semibold text-foreground truncate">{name}</span>
+        </button>
+        {hasActions && !collapsed && (
+          <div data-plugin-sidebar-actions={pluginId} className="ms-auto shrink-0 ps-1 flex items-center">
+            <PluginIframeSlot pluginId={pluginId} slot="sidebar-section-actions" />
+          </div>
         )}
-        <span className="ms-1.5 text-sm font-semibold text-foreground truncate">{name}</span>
-      </button>
+      </div>
       {/* A collapsed section has no iframe at all, so it costs nothing. */}
       <div id={bodyId} hidden={collapsed}>
         {!collapsed && <PluginIframeSlot pluginId={pluginId} slot="sidebar-section" extraProps={extraProps} />}
