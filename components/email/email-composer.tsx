@@ -187,6 +187,12 @@ export interface ComposerDraftData {
   replyTo?: EmailComposerProps['replyTo'];
   draftId: string | null;
   /**
+   * The account `draftId` lives in - a group's own Drafts for a group identity
+   * (#1090). Draft ids are only unique within one account, so replacing or
+   * discarding the draft must name it. Absent: the primary account.
+   */
+  draftAccountId?: string | null;
+  /**
    * Server-side attachments of a re-opened draft (blobId references, no local
    * File). Without these the composer starts with zero attachments and the
    * next save/send rebuilds the draft without them - silent data loss (#849).
@@ -231,6 +237,8 @@ interface EmailComposerProps {
      *  account dropdown; parents should send through that account's
      *  client instead of the currently-active one. */
     localAccountId?: string;
+    /** The account `draftId` lives in (see ComposerDraftData.draftAccountId). */
+    draftAccountId?: string;
     attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>;
     inReplyTo?: string[];
     references?: string[];
@@ -256,7 +264,8 @@ interface EmailComposerProps {
    * Cancelling the dialog drops it, so the draft simply stays put.
    */
   requestCloseRef?: React.MutableRefObject<((afterClose?: () => void) => void) | null>;
-  onDiscardDraft?: (draftId: string) => void;
+  /** `draftAccountId`: where the draft lives; `localAccountId`: the login that reaches it (non-active identity). */
+  onDiscardDraft?: (draftId: string, draftAccountId?: string, localAccountId?: string) => void;
   onSaveState?: (data: ComposerDraftData) => void;
   className?: string;
   initialDraftText?: string;
@@ -830,6 +839,9 @@ export function EmailComposer({
   // setDraftId is async, so a queued saveDraft would otherwise see the old
   // value and try to destroy a draft that was just replaced.
   const draftIdRef = useRef<string | null>(initialData?.draftId ?? null);
+  // Account the draft lives in; follows the From identity (a group's own
+  // Drafts for a group identity, #1090). Read with draftIdRef.
+  const draftAccountIdRef = useRef<string | null>(initialData?.draftAccountId ?? null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedDataRef = useRef<string>("");
@@ -1575,6 +1587,7 @@ export function EmailComposer({
         const s = stateRef.current;
         onSaveState({
           ...s,
+          draftAccountId: draftAccountIdRef.current,
           mode,
           replyTo,
           priority: priorityRef.current,
@@ -2500,7 +2513,12 @@ export function EmailComposer({
 
       // Use the JMAP client and raw identity id for the *owning* account
       // - falls back to active client for single-account / same-account
-      // identities. See `composerClient` derivation above.
+      // identities. See `composerClient` derivation above. Within that login
+      // the draft goes to the account owning the From identity (a group's own
+      // Drafts), and the replaced version is destroyed where it lives (#1090).
+      const draftAccountId = composerClient.resolveSendAccountId
+        ? await composerClient.resolveSendAccountId(savedDraft.fromEmail)
+        : undefined;
       const savedDraftId = await composerClient.createDraft(
         savedDraft.to,
         savedDraft.subject,
@@ -2515,12 +2533,13 @@ export function EmailComposer({
         savedDraft.htmlBody,
         replyThreadingHeaders?.inReplyTo,
         replyThreadingHeaders?.references,
-        { priority },
+        { priority, accountId: draftAccountId, previousDraftAccountId: draftAccountIdRef.current ?? undefined },
       );
 
       // Update the ref synchronously so a queued save sees the new id and
       // doesn't try to destroy the just-replaced draft.
       draftIdRef.current = savedDraftId;
+      draftAccountIdRef.current = draftAccountId ?? null;
       setDraftId(savedDraftId);
       lastSavedDataRef.current = currentData;
       savedVersionRef.current = versionAtStart;
@@ -2535,7 +2554,7 @@ export function EmailComposer({
       const savedBlobIds = new Set(uploadedAttachments.map(att => att.blobId));
       if (savedBlobIds.size) {
         try {
-          const freshDraft = await composerClient.getEmail(savedDraftId);
+          const freshDraft = await composerClient.getEmail(savedDraftId, draftAccountId);
           const freshParts = (freshDraft?.attachments ?? []).filter(p => !!p.blobId);
           if (freshParts.length) {
             const remap = (list: ComposerAttachment[]): ComposerAttachment[] => {
@@ -3292,7 +3311,7 @@ export function EmailComposer({
           // The draft was created through the identity's owning account
           // (see saveDraft), so clean it up there too - not on the active
           // account, where the id doesn't resolve (#461).
-          composerClient?.deleteEmail(finalDraftId).catch((err) => {
+          composerClient?.deleteEmail(finalDraftId, draftAccountIdRef.current ?? undefined).catch((err) => {
             debug.warn('email', 'Plugin handled the send, but draft cleanup failed:', err);
           });
         }
@@ -3355,6 +3374,7 @@ export function EmailComposer({
           body: outgoing.textBody,
           htmlBody: outgoing.htmlBody || undefined,
           draftId: finalDraftId || undefined,
+          draftAccountId: finalDraftId ? (draftAccountIdRef.current ?? undefined) : undefined,
           fromEmail,
           fromName,
           identityId: rawId,
@@ -3392,6 +3412,7 @@ export function EmailComposer({
       setSubject("");
       setBody("");
       draftIdRef.current = null;
+      draftAccountIdRef.current = null;
       setDraftId(null);
       setSubAddressTag("");
       setValidationErrors({});
@@ -3520,7 +3541,7 @@ export function EmailComposer({
       clearTimeout(saveTimeoutRef.current);
     }
     if (draftId && onDiscardDraft) {
-      onDiscardDraft(draftId);
+      onDiscardDraft(draftId, draftAccountIdRef.current ?? undefined, currentIdentityParts.localAccountId ?? undefined);
     }
     stateRef.current = { to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false, selectedIdentityId: null, subAddressTag: '', draftId: null, fromOverrideEnabled: false, fromOverrideEmail: '', fromOverrideName: '', attachments: [], plainTextMode };
     emitClose();
