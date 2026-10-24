@@ -11,6 +11,20 @@
 import type { SlotName, PluginTier } from '../plugin-types';
 import type { ThemeSnapshot } from './host-theme';
 
+/** Resolved presentation/regional settings mirrored into plugin runtimes. */
+export interface RegionalSnapshot {
+  /** The effective UI language, e.g. 'en', 'de', 'fr'. */
+  locale: string;
+  /** Resolved BCP-47 tag for date rendering (respects dateLocale override, e.g. 'en-CA' for iso). */
+  dateLocale: string;
+  /** True for 12-hour clock (AM/PM), false for 24-hour clock. */
+  hour12: boolean;
+  /** The user's effective time zone, e.g. 'Europe/Berlin'. */
+  timeZone: string;
+  /** First day of week (0 = Sunday, 1 = Monday, 6 = Saturday). */
+  firstDayOfWeek: 0 | 1 | 6;
+}
+
 /** Initialisation payload for a background-instance iframe (one per plugin). */
 export interface BackgroundInit {
   mode: 'background';
@@ -34,6 +48,8 @@ export interface BackgroundInit {
   code: string;
   /** Initial app locale; host pushes updates via 'locale-change'. */
   locale: string;
+  /** Resolved presentation/regional preferences (time format, date locale, time zone). */
+  regional?: RegionalSnapshot;
 }
 
 /** Initialisation payload for a slot-instance iframe (one per slot mount). */
@@ -73,6 +89,8 @@ export interface SlotInit {
    */
   extraProps: Record<string, unknown>;
   locale: string;
+  /** Resolved presentation/regional preferences (time format, date locale, time zone). */
+  regional?: RegionalSnapshot;
   /**
    * Resolved host theme (colour tokens, font stack, dark flag). The sandbox
    * can't load globals.css/fonts cross-origin, so the runtime replays this as
@@ -225,7 +243,11 @@ export interface HookInvokeMsg {
   args: unknown[];
 }
 
-export interface LocaleChangeMsg { type: 'locale-change'; locale: string; }
+export interface LocaleChangeMsg {
+  type: 'locale-change';
+  locale: string;
+  regional?: RegionalSnapshot;
+}
 
 /** Host → sandbox: the resolved theme changed; re-inject the slot's theme CSS. */
 export interface ThemeChangeMsg { type: 'theme-change'; theme: ThemeSnapshot; }

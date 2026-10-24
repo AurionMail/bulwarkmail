@@ -23,7 +23,14 @@ vi.mock('../plugin-sandbox/bundle-fetch', () => ({
 }));
 vi.mock('../plugin-sandbox/host-bridge', () => ({
   createBackgroundInstance: (...args: unknown[]) => mocks.createBackgroundInstance(...args),
-  forEachInstance: (_id: string | null, fn: (i: { setLocale: (l: string) => void }) => void) => fn({ setLocale: mocks.setLocale }),
+  forEachInstance: (_id: string | null, fn: (i: { setLocale: (l: string, r?: unknown) => void }) => void) => fn({ setLocale: mocks.setLocale }),
+  snapshotRegionalSettings: vi.fn((locale: string) => ({
+    locale,
+    dateLocale: locale,
+    hour12: false,
+    timeZone: 'UTC',
+    firstDayOfWeek: 1,
+  })),
   SandboxInstance: class {},
 }));
 vi.mock('../plugin-sandbox/host-api', () => ({
@@ -216,7 +223,7 @@ describe('setSandboxLocale', () => {
 
     setSandboxLocale('de');
 
-    expect(mocks.setLocale).toHaveBeenCalledWith('de');
+    expect(mocks.setLocale).toHaveBeenCalledWith('de', expect.anything());
   });
 });
 

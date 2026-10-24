@@ -9,11 +9,16 @@
 
 import type { InstalledPlugin, SlotName, PluginTier } from '../plugin-types';
 import { dispatchApiCall } from './host-api';
-import { SANDBOX_PATH, SANDBOX_PRIVILEGED_PATH } from './protocol';
+import { SANDBOX_PATH, SANDBOX_PRIVILEGED_PATH, type RegionalSnapshot } from './protocol';
+export type { RegionalSnapshot };
 import { withBasePath } from '../browser-navigation';
 import { snapshotHostTheme, type ThemeSnapshot } from './host-theme';
 import { effectiveSettings } from '../plugin-settings';
 import { clampSlotHeight, clampSlotWidth, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
+import { resolveDateLocale } from '../utils';
+import { getEffectiveTimeZone } from '../timezone';
+import { getEffectiveLocale } from '@/i18n/detect-locale';
+import { useSettingsStore, type DateLocale } from '@/stores/settings-store';
 import type {
   SandboxToHost, HostToSandbox, InitMsg, InitPayload, StreamChunkMsg, StreamEndMsg, StreamProgressMsg,
   FloatingDropdownOpenMsg, FloatingDropdownUpdateMsg, FloatingDropdownCloseMsg,
@@ -140,12 +145,44 @@ function encodeCallbacks(
   return out;
 }
 
+// ─── Regional settings ───────────────────────────────────────
+
+/**
+ * Resolves the user's current regional formatting preferences (date locale,
+ * time format, effective time zone, first day of week) so sandboxed plugin
+ * runtimes can format dates and times consistently without needing
+ * privileged `settings:read` permissions or duplicating formatting logic.
+ */
+export function snapshotRegionalSettings(localeOverride?: string): RegionalSnapshot {
+  const appLocale = localeOverride ?? (typeof getEffectiveLocale === 'function' ? getEffectiveLocale() : 'en');
+  const settings = typeof useSettingsStore?.getState === 'function' ? useSettingsStore.getState() : ({} as Record<string, unknown>);
+  const dateLocale = resolveDateLocale(settings?.dateLocale as DateLocale | undefined, appLocale) ?? appLocale;
+  const hour12 = settings?.timeFormat === '12h';
+  const timeZone = typeof getEffectiveTimeZone === 'function'
+    ? getEffectiveTimeZone()
+    : (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' : 'UTC');
+  const rawFirstDay = settings?.firstDayOfWeek;
+  const firstDayOfWeek: 0 | 1 | 6 = (rawFirstDay === 0 || rawFirstDay === 6 || rawFirstDay === 1)
+    ? rawFirstDay
+    : 1;
+
+  return {
+    locale: appLocale,
+    dateLocale,
+    hour12,
+    timeZone,
+    firstDayOfWeek,
+  };
+}
+
 // ─── Public option types ─────────────────────────────────────
 
 export interface BackgroundOptions {
   plugin: InstalledPlugin;
   code: string;
   locale: string;
+  /** Resolved presentation/regional preferences (time format, date locale, time zone). */
+  regional?: RegionalSnapshot;
   /** Resolved execution tier (from `resolvePluginTier`). */
   tier: PluginTier;
   /** Where the hidden iframe should attach. Defaults to document.body. */
@@ -157,6 +194,8 @@ export interface SlotOptions {
   slot: SlotName;
   code: string;
   locale: string;
+  /** Resolved presentation/regional preferences (time format, date locale, time zone). */
+  regional?: RegionalSnapshot;
   /** Resolved execution tier (from `resolvePluginTier`). */
   tier: PluginTier;
   extraProps: Record<string, unknown>;
@@ -540,9 +579,9 @@ export class SandboxInstance {
     this.send(msg);
   }
 
-  setLocale(locale: string): void {
+  setLocale(locale: string, regional?: RegionalSnapshot): void {
     if (this.destroyed) return;
-    this.send({ type: 'locale-change', locale });
+    this.send({ type: 'locale-change', locale, regional: regional ?? snapshotRegionalSettings(locale) });
   }
 
   /** Push a new resolved theme so the slot iframe re-injects its theme CSS. */
@@ -642,6 +681,7 @@ export function createBackgroundInstance(opts: BackgroundOptions): SandboxInstan
     },
     code: opts.code,
     locale: opts.locale,
+    regional: opts.regional ?? snapshotRegionalSettings(opts.locale),
   };
   return new SandboxInstance(
     opts.plugin,
@@ -669,6 +709,7 @@ export function createSlotInstance(opts: SlotOptions): SandboxInstance {
     extraProps: opts.extraProps,
     ...(opts.fill ? { fill: true } : {}),
     locale: opts.locale,
+    regional: opts.regional ?? snapshotRegionalSettings(opts.locale),
     theme: snapshotHostTheme(),
   };
   return new SandboxInstance(opts.plugin, payload, opts.hostContainer, opts.onResize, opts.onFloatingDropdown);

@@ -43,6 +43,13 @@ vi.mock('@/lib/browser-navigation', () => ({
 const bridge = vi.hoisted(() => ({ setSettings: vi.fn() }));
 vi.mock('@/lib/plugin-sandbox/host-bridge', () => ({
   forEachInstance: (_id: string, fn: (i: { setSettings: typeof bridge.setSettings }) => void) => fn({ setSettings: bridge.setSettings }),
+  snapshotRegionalSettings: vi.fn((locale: string) => ({
+    locale,
+    dateLocale: locale,
+    hour12: false,
+    timeZone: 'UTC',
+    firstDayOfWeek: 1,
+  })),
 }));
 vi.mock('@/lib/plugin-sandbox/bundle-fetch', () => ({
   downloadManagedBundle: (...args: unknown[]) => mocks.downloadManagedBundle(...args),
