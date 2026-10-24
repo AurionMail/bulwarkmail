@@ -57,6 +57,25 @@ export function sanitizeEmailHtml(html: string): string {
   return sanitizeWithDataUriGuard(html, EMAIL_SANITIZE_CONFIG);
 }
 
+const COMPOSER_ISLAND_SANITIZE_CONFIG = {
+  ...EMAIL_SANITIZE_CONFIG,
+  // The composer's own markers (data-cid on inline images, the signature's
+  // data-signature-block brackets) must survive; data-* is inert.
+  ALLOW_DATA_ATTR: true,
+};
+
+/**
+ * Sanitize the verbatim HTML a composer island (quoted original, signature)
+ * picks up when the editor parses its wrapper. The islands render into the
+ * app document, not the sandboxed viewer frame, and their wrapper reaches
+ * the editor from places that never ran a sanitizer: a re-opened draft
+ * written by another client or another member of a shared mailbox, a paste.
+ */
+export function sanitizeComposerIslandHtml(html: string): string {
+  if (!html) return '';
+  return sanitizeWithDataUriGuard(html, COMPOSER_ISLAND_SANITIZE_CONFIG);
+}
+
 /**
  * Sanitize config for emails rendered inside a sandboxed iframe.
  * Allows <style> tags because CSS is scoped to the iframe document and

@@ -7,7 +7,7 @@ import type { Editor } from "@tiptap/react";
 
 import { addTrailingParagraphBreaks } from "@/components/email/paragraph-breaks";
 import { buildSignatureBlock } from "@/components/email/signature-block";
-import { parkRemoteResources, restoreRemoteResources } from "@/lib/email-sanitization";
+import { parkRemoteResources, restoreRemoteResources, sanitizeComposerIslandHtml } from "@/lib/email-sanitization";
 import { useSettingsStore } from "@/stores/settings-store";
 
 // Marker attribute that identifies the quoted-original wrapper in serialized
@@ -65,8 +65,9 @@ export const QuotedHtml = TiptapNode.create({
         default: "",
         // Capture the verbatim inner HTML when parsing. Because the node is
         // an atom, ProseMirror does NOT descend into the children, so they
-        // never hit the schema.
-        parseHTML: (el) => el.innerHTML,
+        // never hit the schema - nor its attribute allowlist, so sanitize
+        // here: a re-opened draft hands this wrapper in unsanitized.
+        parseHTML: (el) => sanitizeComposerIslandHtml(el.innerHTML),
         // Not rendered as an attribute - the real content round-trips via the
         // custom serializer. renderHTML below only needs the wrapper.
         renderHTML: () => ({}),
