@@ -297,9 +297,14 @@ interface PluginKeywordDefinition {
   label: string;
   color: string;
   visibility?: PluginKeywordVisibility;
+  /** The plugin that added it with keywords.add; absent on the user's own tags. */
+  addedBy?: string;
 }
 
-type PluginKeywordDefinitionInput = Omit<PluginKeywordDefinition, 'color'> & { color?: string };
+type PluginKeywordDefinitionInput = Omit<PluginKeywordDefinition, 'color' | 'addedBy'> & { color?: string };
+
+type PluginKeywordPatch = Pick<PluginKeywordDefinition, 'id'> &
+  Partial<Pick<PluginKeywordDefinition, 'label' | 'color' | 'visibility'>>;
 
 interface PluginKeywordCounts {
   total: number;
@@ -666,13 +671,26 @@ function buildPluginApi(manifest: PluginManifest) {
     },
     // Native sidebar tag definitions. Definition reads/writes use the existing
     // settings permissions; server discovery and message counts use email:read.
-    // add() is intentionally append-only. reorder() requires a complete
-    // permutation of existing ids. Neither method overwrites or removes tags.
+    // add() never overwrites a tag that is there. update() and remove() reach
+    // only the tags this plugin added, never the user's own or another
+    // plugin's. reorder() requires a complete permutation of existing ids.
     keywords: {
       list: () => callApi('keywords.list', []) as Promise<PluginKeywordDefinition[]>,
       add: (definitions: PluginKeywordDefinitionInput[]) =>
         callApi('keywords.add', [definitions]) as Promise<{
           added: PluginKeywordDefinition[];
+          skipped: string[];
+        }>,
+      /** Change the label, color or visibility of tags this plugin added; the id stays. */
+      update: (definitions: PluginKeywordPatch[]) =>
+        callApi('keywords.update', [definitions]) as Promise<{
+          updated: PluginKeywordDefinition[];
+          skipped: string[];
+        }>,
+      /** Delete tags this plugin added. Messages keep their keywords. */
+      remove: (ids: string[]) =>
+        callApi('keywords.remove', [ids]) as Promise<{
+          removed: string[];
           skipped: string[];
         }>,
       reorder: (ids: string[], options?: { caseSensitive?: boolean }) =>
