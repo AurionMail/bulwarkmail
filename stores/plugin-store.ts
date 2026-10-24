@@ -524,7 +524,7 @@ async function syncServerPlugins(
         // New server plugin - download bundle and install.
         const code = await downloadPluginBundle(sp.id, sp.bundleHash, sp.tier);
         if (!code) continue;
-        await pluginStorage.saveCode(sp.id, code);
+        await cacheManagedBundle(sp.id, code);
 
         const plugin: InstalledPlugin = {
           id: sp.id,
@@ -569,7 +569,7 @@ async function syncServerPlugins(
       if (needsBundle) {
         const code = await downloadPluginBundle(sp.id, sp.bundleHash, sp.tier);
         if (!code) continue;
-        await pluginStorage.saveCode(sp.id, code);
+        await cacheManagedBundle(sp.id, code);
       }
 
       // Force-enable in the same pass when the server flips it on, so the user
@@ -622,6 +622,19 @@ async function downloadPluginBundle(pluginId: string, bundleHash?: string, tier?
   } catch (err) {
     console.error(`[plugin-store] ${err instanceof Error ? err.message : String(err)}`);
     return null;
+  }
+}
+
+/**
+ * Caching is best effort. Where IndexedDB can't be written (some private
+ * windows, storage disabled) the plugin must still be listed: the loader
+ * fetches a managed bundle again when no local copy exists (#1327).
+ */
+async function cacheManagedBundle(pluginId: string, code: string): Promise<void> {
+  try {
+    await pluginStorage.saveCode(pluginId, code);
+  } catch (err) {
+    console.warn(`[plugin-store] Could not cache bundle for "${pluginId}":`, err);
   }
 }
 

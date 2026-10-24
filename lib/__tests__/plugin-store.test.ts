@@ -189,6 +189,24 @@ describe('usePluginStore', () => {
       expect(p).toMatchObject({ managed: true, enabled: true, bundleHash: 'hash-v1' });
     });
 
+    it('lists every server plugin when IndexedDB cannot be written (#1327)', async () => {
+      mocks.apiFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ plugins: [serverPlugin, { ...serverPlugin, id: 'optional-plugin', forceEnabled: false }], themes: [] }),
+      });
+      vi.mocked(pluginStorage.getCode).mockRejectedValue(new Error('IndexedDB unavailable'));
+      vi.mocked(pluginStorage.saveCode).mockRejectedValueOnce(new Error('IndexedDB unavailable'));
+      vi.mocked(pluginStorage.saveCode).mockRejectedValueOnce(new Error('IndexedDB unavailable'));
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await usePluginStore.getState().initializePlugins();
+
+      const plugins = usePluginStore.getState().plugins;
+      expect(plugins.map(p => p.id)).toEqual(['managed-plugin', 'optional-plugin']);
+      expect(plugins[0]).toMatchObject({ managed: true, enabled: true });
+      expect(plugins[1]).toMatchObject({ managed: true, enabled: false });
+    });
+
     it('re-downloads the bundle when the record is current but IndexedDB has no copy (#636)', async () => {
       usePluginStore.setState({ plugins: [syncedRecord()] });
       vi.mocked(pluginStorage.getCode).mockResolvedValue(null);
