@@ -4677,44 +4677,51 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const forceDestroy = permanent || isInTrash || (isInJunk && permanentlyDeleteJunk);
       const alsoMarkRead = useSettingsStore.getState().deleteAction === 'trash-and-read';
 
-      // Group emails by owning JMAP account (handles unified view and search results
-      // spanning accounts). Each group resolves the reaching login client via
-      // `sourceClientAccountId` and routes JMAP via `sourceAccountId`. Undecorated
-      // emails (normal single-mailbox view) fall into '__default__' = active client.
-      const accountMailboxes = get().accountMailboxes;
-      // Group the selected emails themselves: looking an id up in the list
-      // would find the first account's namesake and act on it instead.
-      const bySource = new Map<string, { clientAccountId?: string; ids: string[]; keys: string[] }>();
+      // Account ids are server-local. Match the authenticated client AND owner,
+      // as batchArchive does, so another login's namesake never joins a write.
+      // Unstamped folder rows keep the viewing client's primary/shared context.
+      const unstamped = resolveEmailActionContext({}, client);
+      const viewingLoginId = get().viewingAccountId;
+      const unstampedClient = viewingLoginId
+        ? useAuthStore.getState().getClientForAccount(viewingLoginId)
+        : unstamped.client;
+      type Group = {
+        client: IJMAPClient | undefined;
+        accountId: string | undefined;
+        stamped: boolean;
+        ids: string[];
+        keys: string[];
+      };
+      const groups: Group[] = [];
+      const sourceClients = new Map<string, IJMAPClient | undefined>();
       for (const email of selectedEmails) {
-        const key = email.sourceAccountId || '__default__';
-        if (!bySource.has(key)) bySource.set(key, { clientAccountId: email.sourceClientAccountId, ids: [], keys: [] });
-        bySource.get(key)!.ids.push(email.id);
-        bySource.get(key)!.keys.push(emailKeyFor(email));
+        const stamped = !!(email.sourceClientAccountId || email.sourceAccountId);
+        const loginId = email.sourceClientAccountId;
+        if (loginId && !sourceClients.has(loginId)) {
+          sourceClients.set(loginId, useAuthStore.getState().getClientForAccount(loginId));
+        }
+        // An explicit source must never fall back to the active client, even
+        // when only its login stamp survives or its connection is unavailable.
+        const actionClient = stamped
+          ? (loginId ? sourceClients.get(loginId) : undefined)
+          : unstampedClient;
+        const accountId = stamped ? email.sourceAccountId : unstamped.accountId;
+        let group = groups.find(g => g.client === actionClient && g.accountId === accountId);
+        if (!group) {
+          group = { client: actionClient, accountId, stamped, ids: [], keys: [] };
+          groups.push(group);
+        }
+        group.stamped ||= stamped;
+        group.ids.push(email.id);
+        group.keys.push(emailKeyFor(email));
       }
-
-      // Undecorated emails viewed in a shared/group folder directly (non-unified)
-      // are reached through the active client but must carry the owner accountId,
-      // or the move/destroy silently no-ops on the user's own account (see
-      // resolveViewAccountId). undefined for a normal own-account view.
-      const viewAccountId = currentMailbox?.isShared ? currentMailbox.accountId : undefined;
-      const getClient = (sourceAccountId: string, clientAccountId?: string) =>
-        sourceAccountId === '__default__'
-          ? resolveActionClient(client)
-          : (clientAccountId ? useAuthStore.getState().getClientForAccount(clientAccountId) : undefined);
-      const mailboxesFor = (sourceAccountId: string) =>
-        sourceAccountId === '__default__'
-          ? (viewAccountId ? (accountMailboxes[viewAccountId] ?? mailboxes) : mailboxes)
-          : (accountMailboxes[sourceAccountId] ?? mailboxes);
-      const jmapIdFor = (sourceAccountId: string) =>
-        sourceAccountId === '__default__' ? viewAccountId : sourceAccountId;
 
       // Ids the server confirmed, for onAfterEmailDelete.
       const deletedIds = new Set<string>();
       if (forceDestroy) {
-        const promises = Array.from(bySource.entries()).map(async ([sourceAccountId, { clientAccountId, ids }]) => {
-          const acctClient = getClient(sourceAccountId, clientAccountId);
+        const promises = groups.map(async ({ client: acctClient, accountId, ids }) => {
           if (!acctClient) return;
-          await acctClient.batchDeleteEmails(ids, jmapIdFor(sourceAccountId));
+          await acctClient.batchDeleteEmails(ids, accountId);
           ids.forEach(id => deletedIds.add(id));
         });
         await Promise.allSettled(promises);
@@ -4723,23 +4730,25 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         const failedAccounts: string[] = [];
         // Keys, not ids: a namesake in an account that failed must stay.
         const movedKeys = new Set<string>();
-        const promises = Array.from(bySource.entries()).map(async ([sourceAccountId, { clientAccountId, ids, keys }]) => {
-          const acctClient = getClient(sourceAccountId, clientAccountId);
+        const promises = groups.map(async ({ client: acctClient, accountId, stamped, ids, keys }) => {
           if (!acctClient) {
-            failedAccounts.push(sourceAccountId);
+            failedAccounts.push(accountId ?? '__default__');
             return;
           }
-          const trashMailbox = findTrashMailbox(mailboxesFor(sourceAccountId), {
-            accountId: jmapIdFor(sourceAccountId),
-          });
+          // The owner-only cache is ambiguous across clients/servers. Resolve
+          // stamped sources through the same client/account pair as the write.
+          const sourceMailboxes = stamped
+            ? await acctClient.getMailboxes(accountId)
+            : unstamped.mailboxes;
+          const trashMailbox = findTrashMailbox(sourceMailboxes, { accountId });
           if (!trashMailbox) {
             // No trash for this account: skip rather than silently destroying.
             // The user asked to move to trash, not permanently delete.
-            failedAccounts.push(sourceAccountId);
+            failedAccounts.push(accountId ?? '__default__');
             return;
           }
           const trashId = trashMailbox.originalId || trashMailbox.id;
-          await acctClient.batchMoveEmails(ids, trashId, jmapIdFor(sourceAccountId), alsoMarkRead);
+          await acctClient.batchMoveEmails(ids, trashId, accountId, alsoMarkRead);
           keys.forEach(key => movedKeys.add(key));
           ids.forEach(id => deletedIds.add(id));
         });
