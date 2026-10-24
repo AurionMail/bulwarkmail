@@ -275,8 +275,11 @@ export function computeTaskFireTime(
   const offsetMs = parseAlertOffset(trigger.offset);
   if (offsetMs === null) return null;
 
-  if (!task.due) return null;
-  const baseTime = new Date(task.due).getTime();
+  // RFC 8984 §4.5.2: relativeTo defaults to "start", which for a Task is its
+  // start; "end" is its due. A task without a start counts from its due (#1328).
+  const base = trigger.relativeTo !== 'end' && task.start ? task.start : task.due;
+  if (!base) return null;
+  const baseTime = new Date(base).getTime();
   if (Number.isNaN(baseTime)) return null;
   return baseTime + offsetMs;
 }
