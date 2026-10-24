@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useEmailStore } from '@/stores/email-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useUIStore } from '@/stores/ui-store';
+import { toast } from '@/stores/toast-store';
 import { useEmailDrag } from '../use-email-drag';
 
 const { startDrag, endDrag } = vi.hoisted(() => ({ startDrag: vi.fn(), endDrag: vi.fn() }));
@@ -132,6 +133,7 @@ beforeEach(async () => {
   requests = [];
   startDrag.mockClear();
   endDrag.mockClear();
+  vi.spyOn(toast, 'error').mockImplementation(() => {});
   revoke = vi.fn<(url: string) => void>();
   vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
     const url = `blob:synthetic-${objects.size}`;
@@ -390,18 +392,6 @@ describe('message drag blob routing', () => {
     expect(revoke).toHaveBeenCalledWith([...objects.keys()][1]);
   });
 
-  it('retains the existing partial-failure gap: failed/missing blobs are silently omitted', async () => {
-    const emails = [mail({ id: 'ok' }), mail({ id: 'failed' }), mail({ id: 'missing', blobId: undefined })];
-    select(emails);
-    fetchMock.mockResolvedValueOnce(blobResponse('successful entry')).mockResolvedValueOnce(new Response(null, { status: 404 }));
-    const { result } = renderHook(() => useEmailDrag({ email: emails[0], sourceMailboxId: 'inbox' }));
-    const payload = await warm(result);
-    const zip = await JSZip.loadAsync(await readBlob(payloadBlob(payload)));
-    expect(Object.keys(zip.files)).toHaveLength(1);
-    expect(await Object.values(zip.files)[0].async('string')).toBe('successful entry');
-    expect(payload.get('DownloadURL')).toMatch(/^application\/zip:emails-3.zip:blob:/);
-  });
-
   it('keeps a pending cold-drag prefetch across dragend and publishes only on the synchronous retry', async () => {
     let finish!: (response: Response) => void;
     fetchMock.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
@@ -475,6 +465,181 @@ describe('message drag blob routing', () => {
     rerender();
     expect(result.current.dragHandlers.draggable).toBe(false);
     expect(requests).toEqual([]);
+  });
+});
+
+describe('ZIP failure handling and retry', () => {
+  function pair() {
+    return [mail({ id: 'one', blobId: 'one-blob' }), mail({ id: 'two', blobId: 'two-blob' })];
+  }
+
+  function mount(emails = pair()) {
+    select(emails);
+    return renderHook(() => useEmailDrag({ email: emails[0], sourceMailboxId: 'inbox' }));
+  }
+
+  async function expectComplete(payload: Map<string, string>, owner = 'primary-a', auth = authA) {
+    const zip = await JSZip.loadAsync(await readBlob(payloadBlob(payload)));
+    expect(Object.keys(zip.files).sort()).toEqual(['Message [two].eml', 'Message.eml']);
+    expect(await zip.file('Message.eml')!.async('string')).toBe(bytes(owner, auth, 'one-blob'));
+    expect(await zip.file('Message [two].eml')!.async('string')).toBe(bytes(owner, auth, 'two-blob'));
+  }
+
+  it.each([1, 2])('publishes no partial or empty ZIP when %i members fail', async (failures) => {
+    fetchMock.mockResolvedValueOnce(failures === 1 ? blobResponse('OK') : new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }));
+    const generation = vi.spyOn(JSZip.prototype, 'generateAsync');
+    const { result } = mount();
+    const payload = drag(result.current.dragHandlers);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledExactlyOnceWith('export_email_error'));
+    expect(objects.size).toBe(0);
+    expect(generation).not.toHaveBeenCalled();
+    expect(payload.has('DownloadURL')).toBe(false);
+    expect(payload.get('application/x-email-ids')).toBe('["one","two"]');
+    expect(startDrag).toHaveBeenLastCalledWith(pair(), 'inbox');
+  });
+
+  it.each(['missing blob', 'all missing blobs', 'unavailable client', 'all unavailable clients'])('rejects the entire selection for %s', async (reason) => {
+    const emails = pair().map((email, index) => index === 1 || reason.startsWith('all')
+      ? { ...email, ...(reason.includes('blob') ? { blobId: undefined } : { sourceClientAccountId: 'offline', sourceAccountId: 'shared-offline' }) }
+      : email);
+    const { result } = mount(emails);
+    const calls = fetchMock.mock.calls.length;
+    const payload = drag(result.current.dragHandlers);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledExactlyOnceWith('export_email_error'));
+    expect(objects.size).toBe(0);
+    expect(payload.has('DownloadURL')).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(calls); // Validate before fetching any member.
+  });
+
+  it.each(['insertion', 'generation', 'object URL'])('retries after %s failure and includes every message', async (stage) => {
+    if (stage === 'insertion') vi.spyOn(JSZip.prototype, 'file').mockImplementationOnce(() => { throw new Error('synthetic insertion failure'); });
+    if (stage === 'generation') vi.spyOn(JSZip.prototype, 'generateAsync').mockRejectedValueOnce(new Error('synthetic generation failure'));
+    if (stage === 'object URL') vi.mocked(URL.createObjectURL).mockImplementationOnce(() => { throw new Error('synthetic object URL failure'); });
+    const { result } = mount();
+    const calls = fetchMock.mock.calls.length;
+    const failed = drag(result.current.dragHandlers);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledExactlyOnceWith('export_email_error'));
+    expect(objects.size).toBe(0);
+    expect(failed.has('DownloadURL')).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 2);
+    const recovered = await warm(result);
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 4);
+    await expectComplete(recovered);
+    expect(failed.has('DownloadURL')).toBe(false); // Never mutate a past DataTransfer.
+    expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([1, 2])('refetches the unchanged selection after %i transient member failures', async (failures) => {
+    fetchMock.mockResolvedValueOnce(failures === 1 ? blobResponse('OK') : new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }));
+    const { result, unmount } = mount();
+    const calls = fetchMock.mock.calls.length;
+    const failed = drag(result.current.dragHandlers);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+    expect(objects.size).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 2);
+    act(() => result.current.dragHandlers.onDragEnd({} as DragEvent<HTMLDivElement>));
+    unmount();
+    const retry = mount();
+    act(() => retry.result.current.dragHandlers.onPointerEnter?.());
+    await waitFor(() => expect(objects.size).toBe(1));
+    expect(failed.has('DownloadURL')).toBe(false);
+    await expectComplete(drag(retry.result.current.dragHandlers));
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 4);
+    // A complete bundle remains cached across another dragend and row.
+    act(() => retry.result.current.dragHandlers.onDragEnd({} as DragEvent<HTMLDivElement>));
+    const other = renderHook(() => useEmailDrag({ email: pair()[1], sourceMailboxId: 'inbox' }));
+    await expectComplete(await warm(other.result));
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 4);
+    expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['hover', 'drag'])('deduplicates a shared %s build and reports its failure once after rows drag', async (origin) => {
+    let finish!: (response: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const emails = pair();
+    const first = mount(emails);
+    const second = renderHook(() => useEmailDrag({ email: emails[1], sourceMailboxId: 'inbox' }));
+    const calls = fetchMock.mock.calls.length;
+    if (origin === 'hover') {
+      act(() => first.result.current.dragHandlers.onPointerEnter?.());
+      act(() => second.result.current.dragHandlers.onPointerEnter?.());
+    }
+    const firstPayload = drag(first.result.current.dragHandlers);
+    const secondPayload = drag(second.result.current.dragHandlers);
+    await waitFor(() => expect(finish).toBeDefined());
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 2);
+    expect(toast.error).not.toHaveBeenCalled();
+    act(() => first.result.current.dragHandlers.onDragEnd({} as DragEvent<HTMLDivElement>));
+    await act(async () => { finish(new Response(null, { status: 503 })); });
+    await waitFor(() => expect(toast.error).toHaveBeenCalledExactlyOnceWith('export_email_error'));
+    expect(objects.size).toBe(0);
+    expect(firstPayload.has('DownloadURL')).toBe(false);
+    expect(secondPayload.has('DownloadURL')).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 2); // No automatic retry.
+  });
+
+  it('keeps repeated passive hover failures silent and reports only a failed drag attempt', async () => {
+    fetchMock.mockImplementation(async () => new Response(null, { status: 503 }));
+    const { result } = mount();
+    const calls = fetchMock.mock.calls.length;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      act(() => result.current.dragHandlers.onPointerEnter?.());
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(calls + 2 * attempt));
+      await act(async () => { await Promise.resolve(); });
+      expect(toast.error).not.toHaveBeenCalled();
+      expect(objects.size).toBe(0);
+    }
+    drag(result.current.dragHandlers);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledExactlyOnceWith('export_email_error'));
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 8);
+  });
+
+  it('retries a failed hover on drag without notifying when that attempt succeeds', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    const { result } = mount();
+    const calls = fetchMock.mock.calls.length;
+    act(() => result.current.dragHandlers.onPointerEnter?.());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(calls + 2));
+    await act(async () => { await Promise.resolve(); });
+    expect(toast.error).not.toHaveBeenCalled();
+    const cold = drag(result.current.dragHandlers);
+    expect(cold.has('DownloadURL')).toBe(false);
+    await waitFor(() => expect(objects.size).toBe(1));
+    expect(fetchMock).toHaveBeenCalledTimes(calls + 4);
+    expect(cold.has('DownloadURL')).toBe(false);
+    await expectComplete(drag(result.current.dragHandlers));
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it.each(['pending', 'ready'])('does not let an old failure clear or notify over a newer %s bundle', async (status) => {
+    let finishOld!: (response: Response) => void;
+    let finishNew!: (response: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; }));
+    const { result } = mount();
+    drag(result.current.dragHandlers);
+    await waitFor(() => expect(finishOld).toBeDefined());
+    browse('next-owner', 'login-b');
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { finishNew = resolve; }));
+    drag(result.current.dragHandlers);
+    await waitFor(() => expect(finishNew).toBeDefined());
+    const calls = fetchMock.mock.calls.length;
+    if (status === 'ready') {
+      await act(async () => { finishNew(blobResponse(bytes('next-owner', authB, 'one-blob'))); });
+      await waitFor(() => expect(objects.size).toBe(1));
+    }
+    await act(async () => { finishOld(new Response(null, { status: 503 })); });
+    expect(toast.error).not.toHaveBeenCalled();
+    const payload = drag(result.current.dragHandlers);
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
+    if (status === 'pending') {
+      expect(payload.has('DownloadURL')).toBe(false);
+      await act(async () => { finishNew(blobResponse(bytes('next-owner', authB, 'one-blob'))); });
+    }
+    await expectComplete(await warm(result), 'next-owner', authB);
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });
 
