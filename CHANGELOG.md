@@ -17,6 +17,7 @@ Thank you for your donations:
 
 **Monthly**
 
+- Anonymous
 - [@superspacehosting](https://github.com/superspacehosting)
 - [@naokton](https://github.com/naokton)
 - [@yerTools](https://github.com/yerTools)
