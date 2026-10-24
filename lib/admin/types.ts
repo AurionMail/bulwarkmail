@@ -69,6 +69,8 @@ export interface FeatureGates {
   customFromEnabled: boolean;
   /** The Archive action on messages (button, menus, hover, swipe, shortcut). */
   archiveActionEnabled: boolean;
+  /** The sidebar lists the Tags above the shared mailboxes instead of below them. */
+  tagsAboveSharedEnabled: boolean;
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
@@ -100,6 +102,7 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   accountArchivePasswordsEnabled: false,
   customFromEnabled: true,
   archiveActionEnabled: true,
+  tagsAboveSharedEnabled: false,
 };
 
 export type ColorMode = 'light' | 'dark' | 'system';
