@@ -128,9 +128,12 @@ describe('impersonation handoff', () => {
     expect(method).toBe('x:AppPassword/set');
     expect(args.accountId).toBe('acc-alice');
     expect(args.create.imp.expiresAt).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/);
-    const ttl = Date.parse(args.create.imp.expiresAt) - before;
-    expect(ttl).toBeGreaterThan(7 * 3600_000);
-    expect(ttl).toBeLessThanOrEqual(8 * 3600_000);
+    // The handoff reads the clock after `before` was taken, so bound the
+    // expiry by both ends instead of measuring from `before` alone.
+    const after = Date.now();
+    const expires = Date.parse(args.create.imp.expiresAt);
+    expect(expires - before).toBeGreaterThan(7 * 3600_000);
+    expect(expires).toBeLessThanOrEqual(after + 8 * 3600_000);
   });
 
   it('refuses the handoff when Stalwart does not create the app password', async () => {
