@@ -26,6 +26,7 @@ import type {
   InitPayload,
   BackgroundInit,
   SlotInit,
+  RegionalSnapshot,
 } from './protocol';
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
 import { pluginUiKit, SlotPropsContext } from './ui-kit';
@@ -75,13 +76,31 @@ const pendingApi = new Map<string, { resolve: (v: unknown) => void; reject: (err
 // place on 'settings-change', so code that kept a reference sees new values.
 const settingsState: Record<string, unknown> = {};
 
-// The app language, pushed by the host on init and on every change.
+// The app language and regional settings, pushed by the host on init and on every change.
+let currentRegional: RegionalSnapshot = {
+  locale: 'en',
+  dateLocale: 'en',
+  hour12: false,
+  timeZone: 'UTC',
+  firstDayOfWeek: 1,
+};
+
 const localeListeners = new Set<(locale: string) => void>();
 function currentLocale(): string {
   return (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ || 'en';
 }
-function applyLocale(locale: string): void {
+
+function applyLocale(locale: string, regional?: RegionalSnapshot): void {
   (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ = locale;
+  if (regional) {
+    currentRegional = regional;
+  } else {
+    currentRegional = {
+      ...currentRegional,
+      locale,
+      dateLocale: locale,
+    };
+  }
   document.documentElement.lang = locale;
   // Slots sit inside an RTL page in Arabic, Hebrew and Persian; their own
   // document has to flip too.
@@ -89,6 +108,25 @@ function applyLocale(locale: string): void {
   for (const listener of localeListeners) {
     try { listener(locale); } catch (err) { console.error('[plugin] locale listener failed', err); }
   }
+}
+
+function formatIntl(date: Date | number | string, options: Intl.DateTimeFormatOptions): string {
+  try {
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const locale = currentRegional.dateLocale || currentRegional.locale || 'en';
+    return new Intl.DateTimeFormat(locale, { timeZone: currentRegional.timeZone, ...options }).format(d);
+  } catch {
+    return '';
+  }
+}
+
+function formatTime(date: Date | number | string, options?: Intl.DateTimeFormatOptions): string {
+  return formatIntl(date, { hour12: currentRegional.hour12, hour: 'numeric', minute: 'numeric', ...options });
+}
+
+function formatDate(date: Date | number | string, options?: Intl.DateTimeFormatOptions): string {
+  return formatIntl(date, options ?? {});
 }
 const settingsListeners = new Set<(settings: Record<string, unknown>) => void>();
 
@@ -860,6 +898,23 @@ function buildPluginApi(manifest: PluginManifest) {
         return currentLocale();
       },
       getLocale: () => currentLocale(),
+      get dateLocale(): string {
+        return currentRegional.dateLocale;
+      },
+      get timeFormat(): '12h' | '24h' {
+        return currentRegional.hour12 ? '12h' : '24h';
+      },
+      get hour12(): boolean {
+        return currentRegional.hour12;
+      },
+      get timeZone(): string {
+        return currentRegional.timeZone;
+      },
+      get firstDayOfWeek(): 0 | 1 | 6 {
+        return currentRegional.firstDayOfWeek;
+      },
+      formatTime,
+      formatDate,
       t(key: string, vars?: Record<string, string | number>): string {
         return interpolate(lookup(localeTables, currentLocale(), key) ?? key, vars);
       },
@@ -1094,7 +1149,7 @@ async function handleInit(payload: InitPayload): Promise<void> {
   mode = payload.mode;
   // Make the active locale available to plugin code (api.i18n) right away -
   // not only after the first 'locale-change' push.
-  applyLocale(payload.locale);
+  applyLocale(payload.locale, payload.regional);
   try {
     if (payload.mode === 'background') {
       await bootBackground(payload);
@@ -1176,7 +1231,7 @@ function handleHostMessage(ev: MessageEvent): void {
     }
 
     case 'locale-change':
-      applyLocale(msg.locale);
+      applyLocale(msg.locale, msg.regional);
       break;
 
     case 'theme-change':

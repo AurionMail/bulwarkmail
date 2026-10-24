@@ -52,8 +52,8 @@ export function generateUUID(): string {
  *   - `en-GB` → `en-GB`  (DD/MM/YYYY)
  *   - `en-US` → `en-US`  (MM/DD/YYYY)
  */
-function resolveDateLocale<T extends string | undefined>(
-  dateLocale: DateLocale,
+export function resolveDateLocale<T extends string | undefined>(
+  dateLocale: DateLocale | undefined,
   fallback: T,
 ): string | T {
   switch (dateLocale) {

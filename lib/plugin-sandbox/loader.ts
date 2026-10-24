@@ -18,7 +18,7 @@ import { useEmailStore } from '@/stores/email-store';
 import { emailToReadView } from '../plugin-projection';
 import { verifyBundle } from './bundle-integrity';
 import { downloadManagedBundle } from './bundle-fetch';
-import { createBackgroundInstance, forEachInstance } from './host-bridge';
+import { createBackgroundInstance, forEachInstance, snapshotRegionalSettings, type RegionalSnapshot } from './host-bridge';
 import { resolvePluginTier } from './tier';
 import { register as registerActive, deregister as deregisterActive, all as allActiveEntries, get as getActive } from './registry';
 import { cancelPluginDialogs } from './host-api';
@@ -60,13 +60,18 @@ export function setSandboxStoreAccessor(a: StoreAccessor): void { storeAccessor 
 // ─── Locale (kept in step with the app locale) ────────────────
 
 let currentLocale = 'en';
-export function setSandboxLocale(locale: string): void {
+let currentRegionalKey = '';
+
+export function setSandboxLocale(locale: string, regional?: RegionalSnapshot): void {
   // Ignore empty/falsy values so a not-yet-seeded locale store can't clobber a
   // good locale back to '' - the initial 'en' default stands until the real
   // locale arrives via the store subscription.
   if (!locale) return;
-  const changed = locale !== currentLocale;
+  const reg = regional ?? (typeof snapshotRegionalSettings === 'function' ? snapshotRegionalSettings(locale) : undefined);
+  const regKey = reg ? JSON.stringify(reg) : '';
+  const changed = locale !== currentLocale || regKey !== currentRegionalKey;
   currentLocale = locale;
+  currentRegionalKey = regKey;
   // Background instances read `currentLocale` at load time; the slot-iframe
   // component reads this global at spawn time (plugin-iframe-slot.tsx). Keep
   // both in step from one place.
@@ -74,7 +79,7 @@ export function setSandboxLocale(locale: string): void {
   if (!changed) return;
   // Running plugins switch too: their slots re-render in the new language
   // and their onLocaleChange handlers run.
-  forEachInstance(null, (instance) => instance.setLocale(locale));
+  forEachInstance(null, (instance) => instance.setLocale(locale, reg));
   void themeHooks.onLocaleChange.emit({ locale });
 }
 

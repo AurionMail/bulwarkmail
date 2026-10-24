@@ -29,6 +29,13 @@ vi.mock('../plugin-sandbox/host-bridge', () => ({
       destroy: vi.fn(),
     };
   },
+  snapshotRegionalSettings: vi.fn((locale: string) => ({
+    locale,
+    dateLocale: locale,
+    hour12: false,
+    timeZone: 'UTC',
+    firstDayOfWeek: 1,
+  })),
   SandboxInstance: class {},
 }));
 vi.mock('../plugin-sandbox/host-api', () => ({ cancelPluginDialogs: vi.fn() }));

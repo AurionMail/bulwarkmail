@@ -9,6 +9,7 @@ import { pluginStorage } from '@/lib/plugin-storage';
 import { extractPlugin } from '@/lib/plugin-validator';
 import { loadPlugin, deactivatePlugin, setPluginStoreAccessor, setupAutoDisable, setSandboxLocale } from '@/lib/plugin-loader';
 import { useLocaleStore } from '@/stores/locale-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import { getEffectiveLocale } from '@/i18n/detect-locale';
 import { removeAllPluginHooks } from '@/lib/plugin-hooks';
 import { requestConsent } from '@/lib/plugin-sandbox/consent';
@@ -26,8 +27,8 @@ import type { Permission } from '@/lib/plugin-types';
 import { IS_LITE } from '@/lib/lite';
 
 let pluginInitializationPromise: Promise<void> | null = null;
-// One-time guard so we attach the locale->sandbox subscription only once.
-let localeSubscribed = false;
+// One-time guard so we attach the locale and regional subscriptions only once.
+let regionalSubscribed = false;
 
 // ─── Store Interface ─────────────────────────────────────────
 
@@ -286,9 +287,18 @@ export const usePluginStore = create<PluginStoreState>()(
           // the visitor's browser language. Found via a plugin dev report:
           // native UI in Hungarian, plugin's own i18n stuck on English.
           setSandboxLocale(getEffectiveLocale());
-          if (!localeSubscribed) {
-            localeSubscribed = true;
+          if (!regionalSubscribed) {
+            regionalSubscribed = true;
             useLocaleStore.subscribe(() => setSandboxLocale(getEffectiveLocale()));
+
+            let lastKey = `${useSettingsStore.getState().dateLocale}|${useSettingsStore.getState().timeFormat}|${useSettingsStore.getState().timeZone}|${useSettingsStore.getState().firstDayOfWeek}`;
+            useSettingsStore.subscribe((state) => {
+              const key = `${state.dateLocale}|${state.timeFormat}|${state.timeZone}|${state.firstDayOfWeek}`;
+              if (key !== lastKey) {
+                lastKey = key;
+                setSandboxLocale(getEffectiveLocale());
+              }
+            });
           }
 
           // Sync server-managed plugins before loading

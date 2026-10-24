@@ -18,6 +18,7 @@ import { all as allActive, get as getActive } from './plugin-sandbox/registry';
 // facade, instead of importing lib/plugin-sandbox/loader directly (which would
 // also pull the hook buses into consumers' module graphs).
 export { setSandboxLocale } from './plugin-sandbox/loader';
+export { snapshotRegionalSettings, type RegionalSnapshot } from './plugin-sandbox/host-bridge';
 
 /**
  * Historically re-published React/ReactDOM on `globalThis` for the blob-import
