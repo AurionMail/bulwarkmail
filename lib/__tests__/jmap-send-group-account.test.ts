@@ -19,6 +19,7 @@ const IDENTITIES: Record<string, Array<{ id: string; email: string }>> = {
   grp: [{ id: 'b', email: 'team@example.org' }, { id: 'x', email: 'info@example.org' }],
   alice: [{ id: 'a', email: 'alice@example.org' }],
   wild: [{ id: 'w', email: '*@lists.example.org' }],
+  catchall: [{ id: 'k', email: '*@example.org' }],
 };
 
 function createClient(accounts: Record<string, string>): JMAPClient {
@@ -139,6 +140,12 @@ describe('JMAPClient.sendEmail picks the account that owns the From identity (#1
     const sub = mockServer();
     await send(createClient({ me: 'carol-renamed', grp: 'team' }), 'carol+x@example.org', 'c');
     expectAccount(sub, 'me');
+  });
+
+  it('keeps a sub-address of the member’s own address over a shared catch-all identity', async () => {
+    const rec = mockServer();
+    await send(createClient({ me: 'carol-renamed', catchall: 'catchall' }), 'carol+x@example.org', 'c');
+    expectAccount(rec, 'me');
   });
 
   it('still prefers an account named exactly like the From address', async () => {

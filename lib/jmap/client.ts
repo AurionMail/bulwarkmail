@@ -1027,18 +1027,20 @@ function identityEmailMatchesExactly(identityEmail: string | undefined, from: st
   return !!identityEmail && identityEmail.toLowerCase() === from;
 }
 
-/**
- * An identity address that covers `from` without being it: a sub-address of
- * it (team+tag@ for team@, with the common "+" / "-" delimiters) or a
- * wildcard identity for its domain (RFC 8621 §6, "*@example.com").
- */
-function identityEmailCovers(identityEmail: string | undefined, from: string): boolean {
+/** An identity address `from` is a sub-address of (team+tag@ for team@, with the common "+" / "-" delimiters). */
+function identityEmailIsSubAddressOf(identityEmail: string | undefined, from: string): boolean {
   if (!identityEmail) return false;
   const [idLocal, idDomain] = identityEmail.toLowerCase().split('@');
   const [fromLocal, fromDomain] = from.split('@');
-  if (!idDomain || !fromDomain || idDomain !== fromDomain) return false;
-  if (idLocal === '*') return true;
+  if (!idDomain || !fromDomain || idDomain !== fromDomain || idLocal === '*') return false;
   return fromLocal.startsWith(`${idLocal}+`) || fromLocal.startsWith(`${idLocal}-`);
+}
+
+/** A wildcard identity for the domain of `from` (RFC 8621 §6, "*@example.com"). */
+function identityEmailIsWildcardFor(identityEmail: string | undefined, from: string): boolean {
+  if (!identityEmail) return false;
+  const [idLocal, idDomain] = identityEmail.toLowerCase().split('@');
+  return idLocal === '*' && !!idDomain && idDomain === from.split('@')[1];
 }
 
 export class JMAPClient implements IJMAPClient {
@@ -5413,9 +5415,11 @@ export class JMAPClient implements IJMAPClient {
    * through the member's account and its Sent copy landed there.
    *
    * Order: an account named exactly `fromEmail`; then an account that owns an
-   * identity for the address - exact before sub-address/wildcard, and a
+   * identity for the address - exact, then sub-address, then wildcard, and a
    * delegated (group/shared) account before the primary one, since the
    * primary may merely mirror the group's identity; else the primary account.
+   * A sub-address of the member's own address stays theirs even when a
+   * shared catch-all account has a wildcard identity for the domain.
    */
   async resolveSendAccountId(fromEmail?: string): Promise<string> {
     if (!fromEmail) return this.accountId;
@@ -5456,7 +5460,7 @@ export class JMAPClient implements IJMAPClient {
       }
     }
 
-    for (const matches of [identityEmailMatchesExactly, identityEmailCovers]) {
+    for (const matches of [identityEmailMatchesExactly, identityEmailIsSubAddressOf, identityEmailIsWildcardFor]) {
       const hit = identitiesByAccount.find(([, list]) => list.some(identity => matches(identity.email, from)));
       if (hit) return hit[0];
     }
