@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Aplicații implicite",
-    "description": "Alegeți dacă linkurile către e-mail și calendar se deschid în Bulwark. Din punct de vedere tehnic, Bulwark se înregistrează ca gestionar de protocol pentru linkurile de tip mailto: și webcal:.",
+    "description": "Alegeți dacă linkurile către e-mail și calendar se deschid în {appName}. Din punct de vedere tehnic, {appName} se înregistrează ca gestionar de protocol pentru linkurile de tip mailto: și webcal:.",
     "unsupported": "Acest browser sau această conexiune nu acceptă înregistrarea manuală a gestionarului de protocoale. Este posibil să puteți utiliza totuși aplicația PWA instalată prin setările browserului sau ale sistemului de operare.",
     "mailto_label": "Linkuri din e-mail",
-    "mailto_description": "Deschideți linkurile „mailto:” în Bulwark cu o fereastră de redactare precompletată.",
+    "mailto_description": "Deschideți linkurile „mailto:” în {appName} cu o fereastră de redactare precompletată.",
     "protocol_open_mode_label": "La deschiderea linkurilor de protocol",
-    "protocol_open_mode_description": "Alegeți dacă Bulwark deschide linkurile mailto: și webcal: într-o filă nouă sau reutilizează o sesiune deschisă. Opțiunea „sesiune activă” necesită permisiunea de notificare, astfel încât să puteți face clic pe o notificare de rezervă pentru a aduce Bulwark în prim-plan dacă browserul blochează focalizarea.",
+    "protocol_open_mode_description": "Alegeți dacă {appName} deschide linkurile mailto: și webcal: într-o filă nouă sau reutilizează o sesiune deschisă. Opțiunea „sesiune activă” necesită permisiunea de notificare, astfel încât să puteți face clic pe o notificare de rezervă pentru a aduce {appName} în prim-plan dacă browserul blochează focalizarea.",
     "protocol_open_mode_active_session": "Deschideți într-o sesiune activă, dacă este posibil",
     "protocol_open_mode_new_tab": "Deschideți întotdeauna o filă nouă",
-    "focus_notification_title": "Deschideți Bulwark",
-    "focus_notification_body": "Linkul a fost deschis în Bulwark. Faceți clic pentru a aduce fereastra în prim-plan.",
+    "focus_notification_title": "Deschideți {appName}",
+    "focus_notification_body": "Linkul a fost deschis în {appName}. Faceți clic pentru a aduce fereastra în prim-plan.",
     "webcal_label": "Linkuri către calendar",
-    "webcal_description": "Deschideți linkurile webcal: din Bulwark cu o fereastră de dialog de abonare la calendar completată în prealabil.",
+    "webcal_description": "Deschideți linkurile webcal: din {appName} cu o fereastră de dialog de abonare la calendar completată în prealabil.",
     "register_mailto": "Înregistrați aplicația de e-mail",
     "register_webcal": "Înregistrați aplicația de calendar",
     "mailto_registered": "S-a solicitat înregistrarea unui gestionar de e-mail",
@@ -196,7 +196,7 @@
     "registration_failed": "Înregistrarea gestionarului de protocol a eșuat",
     "opening_mailto": "Se deschide fereastra de redactare...",
     "opening_webcal": "Se deschide calendarul...",
-    "browser_note": "Este posibil ca browserul sau sistemul de operare să vă solicite confirmarea acestei acțiuni și să necesite instalareBulwarkului înainte de a putea fi selectat ca aplicație implicită.",
+    "browser_note": "Este posibil ca browserul sau sistemul de operare să vă solicite confirmarea acestei acțiuni și să necesite instalarea aplicației {appName} înainte de a putea fi selectat ca aplicație implicită.",
     "select_account_title": "Alegeți contul",
     "select_mailto_account": "Alegeți contul în care să se deschidă acest link de e-mail.",
     "select_webcal_account": "Alegeți contul care ar trebui să deschidă acest link către calendar.",
@@ -872,9 +872,9 @@
     "app_title": "Webmail",
     "reconnecting": "Conexiune pierdută. Se încearcă reconectarea…",
     "rate_limited_title": "Autentificarea pe server este temporar limitată ca frecvență.",
-    "rate_limited_detail": "Bulwark A suspendat solicitările de fundal pentru a evita blocarea. Se va încerca din nou în câteva {seconds} s.",
+    "rate_limited_detail": "{appName} A suspendat solicitările de fundal pentru a evita blocarea. Se va încerca din nou în câteva {seconds} s.",
     "rate_limited_action_title": "Solicitarea a fost pusă în așteptare pentru a evita blocarea contului.",
-    "rate_limited_action_detail": "Bulwark Așteaptă încheierea perioadei de așteptare a serverului înainte de a trimite alte cereri autentificate. Încercați din nou în câteva {seconds}.",
+    "rate_limited_action_detail": "{appName} Așteaptă încheierea perioadei de așteptare a serverului înainte de a trimite alte cereri autentificate. Încercați din nou în câteva {seconds}.",
     "pull_to_refresh": "Trageți pentru a reîmprospăta",
     "release_to_refresh": "Eliberați pentru a reîmprospăta",
     "refreshing": "Se reîmprospătează…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "Folosirea conturilor pe care le conectați",
-        "body": "Trimite cereri prin serverul Bulwark cu un cont sau o cheie configurate de dvs. sau de administratorul dvs. Pluginul nu vede niciodată parola, dar poate face tot ce poate face acel cont pe serverul său."
+        "body": "Trimite cereri prin serverul {appName} cu un cont sau o cheie configurate de dvs. sau de administratorul dvs. Pluginul nu vede niciodată parola, dar poate face tot ce poate face acel cont pe serverul său."
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "Conectați {label}",
-      "intro_password": "{name} vrea să folosească contul dvs. {label}. Bulwark păstrează parola pe serverul său și o trimite doar către {host}. Pluginul nu o vede niciodată.",
-      "intro_password_any": "{name} vrea să folosească contul dvs. {label}. Bulwark păstrează parola pe serverul său și o trimite doar către serverul pe care îl introduceți aici. Pluginul nu o vede niciodată.",
-      "intro_signin": "{name} vrea să se conecteze la contul dvs. {label}. Introduceți aici serverul, apoi conectați-vă pe pagina acestuia. Bulwark păstrează pe serverul său accesul obținut; pluginul nu îl vede niciodată.",
+      "intro_password": "{name} vrea să folosească contul dvs. {label}. {appName} păstrează parola pe serverul său și o trimite doar către {host}. Pluginul nu o vede niciodată.",
+      "intro_password_any": "{name} vrea să folosească contul dvs. {label}. {appName} păstrează parola pe serverul său și o trimite doar către serverul pe care îl introduceți aici. Pluginul nu o vede niciodată.",
+      "intro_signin": "{name} vrea să se conecteze la contul dvs. {label}. Introduceți aici serverul, apoi conectați-vă pe pagina acestuia. {appName} păstrează pe serverul său accesul obținut; pluginul nu îl vede niciodată.",
       "server": "Adresa serverului",
       "server_hint": "cloud.example.com",
       "username": "Nume de utilizator",

@@ -10,6 +10,8 @@ vi.mock('@/lib/browser-navigation', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/browser-navigation')>()),
   apiFetch: (...args: unknown[]) => apiFetch(...args),
 }));
+const appName = vi.hoisted(() => ({ value: 'Webmail' }));
+vi.mock('@/hooks/use-config', () => ({ useConfig: () => ({ appName: appName.value }) }));
 
 import { PluginConnectDialog } from '../plugin-connect-dialog';
 import { originFromInput, requestConnect, type ConnectResult } from '@/lib/plugin-sandbox/connect-dialog';
@@ -17,6 +19,7 @@ import { originFromInput, requestConnect, type ConnectResult } from '@/lib/plugi
 beforeEach(() => {
   apiFetch.mockReset();
   apiFetch.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+  appName.value = 'Webmail';
 });
 
 function open(mode: 'password' | 'signin' = 'password') {
@@ -60,6 +63,19 @@ describe('connect dialog', () => {
 
     await expect(result).resolves.toEqual({ connected: false, origin: 'https://cloud.example.org' });
     expect(JSON.parse(apiFetch.mock.calls[0][1].body)).not.toHaveProperty('secret');
+  });
+
+  it('names the app as configured, and Bulwark on a stock install', async () => {
+    const first = render(<PluginConnectDialog />);
+    const result = open('signin');
+    expect(screen.getByText(/intro_signin /)).toHaveTextContent('"appName":"Bulwark"');
+    first.unmount();
+
+    appName.value = 'Acme Mail';
+    render(<PluginConnectDialog />);
+    expect(screen.getByText(/intro_signin /)).toHaveTextContent('"appName":"Acme Mail"');
+    act(() => { fireEvent.keyDown(window, { key: 'Escape' }); });
+    await expect(result).resolves.toEqual({ connected: false });
   });
 
   it('shows the server error and stays open', async () => {

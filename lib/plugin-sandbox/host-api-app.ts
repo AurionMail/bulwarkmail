@@ -12,9 +12,10 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useThemeStore } from '@/stores/theme-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePolicyStore } from '@/stores/policy-store';
-import { fetchConfig } from '@/hooks/use-config';
+import { fetchConfig, type ConfigData } from '@/hooks/use-config';
+import { productName } from '@/lib/product-name';
 import {
-  collectSubResults, getByPath, tabKeywords, tabSearchPaths, type SettingsSearchTab, type SubResult,
+  collectSubResults, getByPath, tabKeywords, tabSearchPaths, withAppName, type SettingsSearchTab, type SubResult,
 } from '@/lib/settings-search';
 import type { AppSettingsView, SettingsSearchResult } from '../plugin-types';
 
@@ -34,14 +35,13 @@ async function messagesFor(locale: string): Promise<Messages> {
 }
 
 /** The settings pages this user has: the server's support and the admin's gates, as on the settings page. */
-async function availablePages(): Promise<Set<SettingsSearchTab>> {
+function availablePages(config: ConfigData | null): Set<SettingsSearchTab> {
   const client = useAuthStore.getState().client;
   const policy = usePolicyStore.getState();
   const gate = (feature: Parameters<typeof policy.isFeatureEnabled>[0]) => {
     try { return policy.isFeatureEnabled(feature); } catch { return true; }
   };
-  let stalwart = true;
-  try { stalwart = (await fetchConfig()).stalwartFeaturesEnabled ?? true; } catch { /* keep the default */ }
+  const stalwart = config?.stalwartFeaturesEnabled ?? true;
   const pages = new Set<SettingsSearchTab>(['account', 'notifications', 'general', 'appearance', 'message_list', 'reading', 'composing', 'organize', 'backup']);
   if (stalwart) pages.add('security');
   if (client?.supportsSieve?.()) pages.add('filters');
@@ -73,7 +73,10 @@ export async function doAppSearchSettings(query: unknown, options?: unknown): Pr
   const locale = useLocaleStore.getState().locale || detectBrowserLocale('en');
   const local = await messagesFor(locale);
   const english = enMessages as Messages;
-  const pages = await availablePages();
+  // One config read for both: an unreachable /api/config keeps the defaults.
+  const config = await fetchConfig().catch(() => null);
+  const pages = availablePages(config);
+  const appName = productName(config?.appName);
 
   const scored: { score: number; order: number; result: SettingsSearchResult }[] = [];
   let order = 0;
@@ -85,8 +88,8 @@ export async function doAppSearchSettings(query: unknown, options?: unknown): Pr
       // The merged catalogue has the English one's shape, so both walks line up.
       const mine: SubResult[] = [];
       const theirs: SubResult[] = [];
-      collectSubResults(getByPath(local, path), mine);
-      collectSubResults(getByPath(english, path), theirs);
+      collectSubResults(withAppName(getByPath(local, path), appName), mine);
+      collectSubResults(withAppName(getByPath(english, path), appName), theirs);
       mine.forEach((entry, i) => {
         const en = theirs[i];
         const text = `${entry.label} ${entry.description ?? ''} ${en?.label ?? ''} ${en?.description ?? ''}`.toLowerCase();

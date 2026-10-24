@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useConfig } from '@/hooks/use-config';
 import { resolveTarget, type ResolveResult } from '@/lib/connector/registry';
 import { appPath } from '@/lib/deep-links';
 import { replaceWindowLocation } from '@/lib/browser-navigation';
+import { productName } from '@/lib/product-name';
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '';
 
@@ -25,6 +27,7 @@ const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '';
  */
 export function ConnectorClient({ target }: { target: string }) {
   const [result, setResult] = useState<ResolveResult | null>(null);
+  const name = productName(useConfig().appName);
 
   useEffect(() => {
     setResult(resolveTarget(target, new URLSearchParams(window.location.search)));
@@ -52,12 +55,12 @@ export function ConnectorClient({ target }: { target: string }) {
   if (result.kind === 'unknown-target') {
     return (
       <Shell>
-        <h1 className="text-xl font-medium text-foreground">This link is newer than this Bulwark</h1>
+        <h1 className="text-xl font-medium text-foreground">This link is newer than this {name}</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           It opens something {APP_VERSION ? `version ${APP_VERSION} ` : 'this version '}
-          does not know about. Updating Bulwark should teach it.
+          does not know about. Updating {name} should teach it.
         </p>
-        <Actions />
+        <Actions name={name} />
       </Shell>
     );
   }
@@ -71,19 +74,19 @@ export function ConnectorClient({ target }: { target: string }) {
         <code className="rounded bg-muted px-1 py-0.5">{result.param}</code> is missing or
         malformed. Nothing was opened.
       </p>
-      <Actions />
+      <Actions name={name} />
     </Shell>
   );
 }
 
-function Actions() {
+function Actions({ name }: { name: string }) {
   return (
     <p className="mt-6">
       <a
         href={appPath('/mail')}
         className="inline-flex h-9 items-center rounded-sm border border-border px-4 text-sm hover:bg-muted"
       >
-        Open Bulwark
+        Open {name}
       </a>
     </p>
   );

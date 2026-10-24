@@ -70,6 +70,22 @@ describe('api.app.searchSettings', () => {
     expect(again.some((r) => r.pageId === 'vacation')).toBe(true);
   });
 
+  it('returns texts with the configured name, never the raw placeholder (#1314)', async () => {
+    await setUp();
+    const results = await dispatchApiCall(plugin(), 'app.searchSettings', ['Rath Mail email links']) as { pageId: string; description?: string }[];
+    expect(results.some((r) => r.pageId === 'general' && r.description?.includes('Rath Mail'))).toBe(true);
+    expect(JSON.stringify(results)).not.toContain('{appName}');
+  });
+
+  it('says Bulwark when the config can not be read', async () => {
+    await setUp();
+    fetchConfig.mockRejectedValueOnce(new Error('offline'));
+    const results = await dispatchApiCall(plugin(), 'app.searchSettings', ['bulwark email links']) as { pageId: string; description?: string }[];
+    expect(fetchConfig).toHaveBeenCalledTimes(1);
+    expect(results.some((r) => r.pageId === 'general' && r.description?.includes('Bulwark'))).toBe(true);
+    expect(JSON.stringify(results)).not.toContain('{appName}');
+  });
+
   it('wants a query', async () => {
     await expect(dispatchApiCall(plugin(), 'app.searchSettings', [''])).rejects.toThrow(/non-empty string/);
   });

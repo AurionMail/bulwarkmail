@@ -71,6 +71,7 @@ import { useIsEmbedded } from '@/hooks/use-is-embedded';
 import { useIsFocusedProTab } from '@/hooks/use-pane-context';
 import { ResizeHandle } from '@/components/layout/resize-handle';
 import { useConfig } from '@/hooks/use-config';
+import { productName } from '@/lib/product-name';
 import { usePolicyStore } from '@/stores/policy-store';
 import { cn } from '@/lib/utils';
 import {
@@ -78,6 +79,7 @@ import {
   type SubResult,
   collectSubResults,
   flattenStrings,
+  withAppName,
   getByPath,
   tabKeywords,
   tabSearchPaths,
@@ -260,7 +262,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const mvShell = useMountainViewShell(isEmbedded);
   const [initialCheckDone, setInitialCheckDone] = useState(() => useAuthStore.getState().isAuthenticated && !!useAuthStore.getState().client);
   const { quota, isPushConnected } = useEmailStore();
-  const { stalwartFeaturesEnabled } = useConfig();
+  const { stalwartFeaturesEnabled, appName: configAppName } = useConfig();
+  const appName = productName(configAppName);
   const { isFeatureEnabled } = usePolicyStore();
   const archiveActionEnabled = isFeatureEnabled('archiveActionEnabled');
   // A tab in the URL wins over the persisted one; without it, nothing changes.
@@ -345,7 +348,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       const list: SubResult[] = [];
       for (const path of tabSearchPaths[tabId]) {
         if (!archiveActionEnabled && archiveActionSearchPaths.has(path)) continue;
-        const node = getByPath(messages, path);
+        const node = withAppName(getByPath(messages, path), appName);
         flattenStrings(node, strings);
         collectSubResults(node, list);
       }
@@ -401,7 +404,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       ];
     }
     return { tabSearchHaystacks: haystacks, tabSubResults: subs };
-  }, [messages, installedPlugins, installedThemes, sidebarAppsList, archiveActionEnabled]);
+  }, [messages, installedPlugins, installedThemes, sidebarAppsList, archiveActionEnabled, appName]);
 
   // Sidebar resize state
   const [settingsSidebarWidth, setSettingsSidebarWidth] = useState(() => {

@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Standaardapps",
-    "description": "Kies of e-mail- en kalenderlinks in Bulwark worden geopend. Technisch registreert Bulwark zich als protocolhandler voor mailto:- en webcal:-links.",
+    "description": "Kies of e-mail- en kalenderlinks in {appName} worden geopend. Technisch registreert {appName} zich als protocolhandler voor mailto:- en webcal:-links.",
     "unsupported": "Deze browser of verbinding ondersteunt geen handmatige registratie van protocolhandlers. Mogelijk kun je de geïnstalleerde PWA nog gebruiken via de browser- of systeeminstellingen.",
     "mailto_label": "E-maillinks",
-    "mailto_description": "Opent mailto:-links in Bulwark met een vooraf ingevulde opsteller.",
+    "mailto_description": "Opent mailto:-links in {appName} met een vooraf ingevulde opsteller.",
     "protocol_open_mode_label": "Bij het openen van protocollinks",
-    "protocol_open_mode_description": "Kies of Bulwark mailto:- en webcal:-links in een nieuw tabblad opent of een geopende sessie hergebruikt. Voor de optie actieve sessie is toestemming voor meldingen nodig, zodat je op een fallbackmelding kunt klikken om Bulwark naar voren te halen als de browser focus blokkeert.",
+    "protocol_open_mode_description": "Kies of {appName} mailto:- en webcal:-links in een nieuw tabblad opent of een geopende sessie hergebruikt. Voor de optie actieve sessie is toestemming voor meldingen nodig, zodat je op een fallbackmelding kunt klikken om {appName} naar voren te halen als de browser focus blokkeert.",
     "protocol_open_mode_active_session": "Indien mogelijk openen in actieve sessie",
     "protocol_open_mode_new_tab": "Altijd een nieuw tabblad openen",
-    "focus_notification_title": "Bulwark openen",
-    "focus_notification_body": "De link is geopend in Bulwark. Klik om het venster naar voren te halen.",
+    "focus_notification_title": "{appName} openen",
+    "focus_notification_body": "De link is geopend in {appName}. Klik om het venster naar voren te halen.",
     "webcal_label": "Kalenderlinks",
-    "webcal_description": "Opent webcal:-links in Bulwark met een vooraf ingevuld dialoogvenster voor kalenderabonnementen.",
+    "webcal_description": "Opent webcal:-links in {appName} met een vooraf ingevuld dialoogvenster voor kalenderabonnementen.",
     "register_mailto": "E-mailapp registreren",
     "register_webcal": "Kalenderapp registreren",
     "mailto_registered": "Registratie van e-mailhandler aangevraagd",
@@ -196,7 +196,7 @@
     "registration_failed": "Registratie van protocolhandler mislukt",
     "opening_mailto": "Opsteller wordt geopend...",
     "opening_webcal": "Kalender wordt geopend...",
-    "browser_note": "Je browser of besturingssysteem kan om bevestiging vragen en kan vereisen dat Bulwark is geïnstalleerd voordat het als standaardapp kan worden geselecteerd.",
+    "browser_note": "Je browser of besturingssysteem kan om bevestiging vragen en kan vereisen dat {appName} is geïnstalleerd voordat het als standaardapp kan worden geselecteerd.",
     "select_account_title": "Account kiezen",
     "select_mailto_account": "Kies welk account deze e-maillink moet openen.",
     "select_webcal_account": "Kies welk account deze kalenderlink moet openen.",
@@ -872,9 +872,9 @@
     "app_title": "Webmail",
     "reconnecting": "Verbinding verloren. Opnieuw verbinden…",
     "rate_limited_title": "Serverauthenticatie is tijdelijk beperkt.",
-    "rate_limited_detail": "Bulwark heeft achtergrondverzoeken gepauzeerd om een blokkade te voorkomen. Nieuwe poging over {seconds}s.",
+    "rate_limited_detail": "{appName} heeft achtergrondverzoeken gepauzeerd om een blokkade te voorkomen. Nieuwe poging over {seconds}s.",
     "rate_limited_action_title": "Verzoek gepauzeerd om blokkade te voorkomen.",
-    "rate_limited_action_detail": "Bulwark wacht tot de servercooldown voorbij is voordat er nieuwe geauthenticeerde verzoeken worden verzonden. Probeer het over {seconds}s opnieuw.",
+    "rate_limited_action_detail": "{appName} wacht tot de servercooldown voorbij is voordat er nieuwe geauthenticeerde verzoeken worden verzonden. Probeer het over {seconds}s opnieuw.",
     "pull_to_refresh": "Trek om te vernieuwen",
     "release_to_refresh": "Laat los om te vernieuwen",
     "refreshing": "Vernieuwen…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "Accounts gebruiken die je koppelt",
-        "body": "Verzoeken via de server van Bulwark sturen met een account of sleutel die jij of je beheerder heeft ingesteld. De plug-in ziet het wachtwoord nooit, maar kan alles doen wat dat account op zijn eigen server mag."
+        "body": "Verzoeken via de server van {appName} sturen met een account of sleutel die jij of je beheerder heeft ingesteld. De plug-in ziet het wachtwoord nooit, maar kan alles doen wat dat account op zijn eigen server mag."
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "{label} koppelen",
-      "intro_password": "{name} wil je account bij {label} gebruiken. Bulwark bewaart het wachtwoord op zijn eigen server en stuurt het alleen naar {host}. De plug-in ziet het nooit.",
-      "intro_password_any": "{name} wil je account bij {label} gebruiken. Bulwark bewaart het wachtwoord op zijn eigen server en stuurt het alleen naar de server die je hier invult. De plug-in ziet het nooit.",
-      "intro_signin": "{name} wil inloggen op je account bij {label}. Vul hier de server in en log daarna in op de eigen pagina van die server. Bulwark bewaart de toegang die het krijgt op zijn eigen server; de plug-in ziet die nooit.",
+      "intro_password": "{name} wil je account bij {label} gebruiken. {appName} bewaart het wachtwoord op zijn eigen server en stuurt het alleen naar {host}. De plug-in ziet het nooit.",
+      "intro_password_any": "{name} wil je account bij {label} gebruiken. {appName} bewaart het wachtwoord op zijn eigen server en stuurt het alleen naar de server die je hier invult. De plug-in ziet het nooit.",
+      "intro_signin": "{name} wil inloggen op je account bij {label}. Vul hier de server in en log daarna in op de eigen pagina van die server. {appName} bewaart de toegang die het krijgt op zijn eigen server; de plug-in ziet die nooit.",
       "server": "Serveradres",
       "server_hint": "cloud.example.com",
       "username": "Gebruikersnaam",

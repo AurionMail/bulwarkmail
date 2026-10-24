@@ -151,6 +151,18 @@ export const tabKeywords: Record<Tab, string> = {
   backup: 'export import storage quota privacy backup reset sync cache about version debug logs developer console diagnostic',
 };
 
+// Some settings texts name the app with {appName} (#1314). The index keeps
+// them filled in, so the search matches the name people see and a result
+// never carries the raw placeholder.
+export function withAppName(node: unknown, appName: string): unknown {
+  if (typeof node === 'string') return node.split('{appName}').join(appName);
+  if (Array.isArray(node)) return node.map((item) => withAppName(item, appName));
+  if (node && typeof node === 'object') {
+    return Object.fromEntries(Object.entries(node).map(([key, value]) => [key, withAppName(value, appName)]));
+  }
+  return node;
+}
+
 export function flattenStrings(node: unknown, sink: string[]): void {
   if (typeof node === 'string') {
     sink.push(node);

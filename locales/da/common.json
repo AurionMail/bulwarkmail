@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Standardapps",
-    "description": "Vælg om e-mail- og kalenderlinks åbnes i Bulwark. Teknisk set registrerer Bulwark sig som protokolhåndtering for mailto:- og webcal:-links.",
+    "description": "Vælg om e-mail- og kalenderlinks åbnes i {appName}. Teknisk set registrerer {appName} sig som protokolhåndtering for mailto:- og webcal:-links.",
     "unsupported": "Denne browser eller forbindelse understøtter ikke manuel registrering af protokolhåndtering. Du kan muligvis stadig bruge den installerede PWA via browser- eller OS-indstillinger.",
     "mailto_label": "E-mail-links",
-    "mailto_description": "Åbn mailto:-links i Bulwark med et forudfyldt skrivevindue.",
+    "mailto_description": "Åbn mailto:-links i {appName} med et forudfyldt skrivevindue.",
     "protocol_open_mode_label": "Ved åbning af protokollinks",
-    "protocol_open_mode_description": "Vælg om Bulwark åbner mailto:- og webcal:-links i en ny fane eller genbruger en åben session. Indstillingen \\\"aktiv session\\\" kræver notifikationstilladelse, så du kan klikke på en nødnotifikation for at bringe Bulwark frem, hvis browseren blokerer fokus.",
+    "protocol_open_mode_description": "Vælg om {appName} åbner mailto:- og webcal:-links i en ny fane eller genbruger en åben session. Indstillingen \\\"aktiv session\\\" kræver notifikationstilladelse, så du kan klikke på en nødnotifikation for at bringe {appName} frem, hvis browseren blokerer fokus.",
     "protocol_open_mode_active_session": "Åbn i aktiv session hvis muligt",
     "protocol_open_mode_new_tab": "Åbn altid ny fane",
-    "focus_notification_title": "Åbn Bulwark",
-    "focus_notification_body": "Linket blev åbnet i Bulwark. Klik for at bringe vinduet frem.",
+    "focus_notification_title": "Åbn {appName}",
+    "focus_notification_body": "Linket blev åbnet i {appName}. Klik for at bringe vinduet frem.",
     "webcal_label": "Kalenderlinks",
-    "webcal_description": "Åbn webcal:-links i Bulwark med en forudfyldt kalenderabonnementsdialog.",
+    "webcal_description": "Åbn webcal:-links i {appName} med en forudfyldt kalenderabonnementsdialog.",
     "register_mailto": "Registrer e-mail-app",
     "register_webcal": "Registrer kalender-app",
     "mailto_registered": "Registrering af e-mail-håndtering anmodet",
@@ -196,7 +196,7 @@
     "registration_failed": "Registrering af protokolhåndtering mislykkedes",
     "opening_mailto": "Åbner skrivevindue...",
     "opening_webcal": "Åbner kalender...",
-    "browser_note": "Din browser eller dit operativsystem beder dig muligvis bekræfte dette og kræver muligvis, at Bulwark er installeret, før det kan vælges som standardapp.",
+    "browser_note": "Din browser eller dit operativsystem beder dig muligvis bekræfte dette og kræver muligvis, at {appName} er installeret, før det kan vælges som standardapp.",
     "select_account_title": "Vælg konto",
     "select_mailto_account": "Vælg hvilken konto der skal åbne dette e-mail-link.",
     "select_webcal_account": "Vælg hvilken konto der skal åbne dette kalenderlink.",
@@ -872,9 +872,9 @@
     "app_title": "Webmail",
     "reconnecting": "Forbindelse mistet. Forsøger at genoprette forbindelse…",
     "rate_limited_title": "Server-godkendelse er midlertidigt hastighedsbegrænset.",
-    "rate_limited_detail": "Bulwark har sat baggrundsanmodninger på pause for at undgå udelukkelse. Prøver igen om {seconds}s.",
+    "rate_limited_detail": "{appName} har sat baggrundsanmodninger på pause for at undgå udelukkelse. Prøver igen om {seconds}s.",
     "rate_limited_action_title": "Anmodning sat på pause for at undgå udelukkelse.",
-    "rate_limited_action_detail": "Bulwark venter på, at serverens nedkølingsperiode slutter, før der sendes flere godkendte anmodninger. Prøv igen om {seconds}s.",
+    "rate_limited_action_detail": "{appName} venter på, at serverens nedkølingsperiode slutter, før der sendes flere godkendte anmodninger. Prøv igen om {seconds}s.",
     "pull_to_refresh": "Træk for at opdatere",
     "release_to_refresh": "Slip for at opdatere",
     "refreshing": "Opdaterer…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "Bruge konti, du forbinder",
-        "body": "Sende forespørgsler via Bulwarks server med en konto eller nøgle, som du eller din administrator har sat op. Pluginnet ser aldrig adgangskoden, men det kan gøre alt, hvad kontoen kan gøre på sin egen server."
+        "body": "Sende forespørgsler via {appName}s server med en konto eller nøgle, som du eller din administrator har sat op. Pluginnet ser aldrig adgangskoden, men det kan gøre alt, hvad kontoen kan gøre på sin egen server."
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "Forbind {label}",
-      "intro_password": "{name} vil bruge din konto hos {label}. Bulwark gemmer adgangskoden på sin server og sender den kun til {host}. Pluginnet ser den aldrig.",
-      "intro_password_any": "{name} vil bruge din konto hos {label}. Bulwark gemmer adgangskoden på sin server og sender den kun til den server, du angiver her. Pluginnet ser den aldrig.",
-      "intro_signin": "{name} vil logge ind på din konto hos {label}. Angiv serveren her, og log derefter ind på serverens egen side. Bulwark gemmer den adgang, det får, på sin server; pluginnet ser den aldrig.",
+      "intro_password": "{name} vil bruge din konto hos {label}. {appName} gemmer adgangskoden på sin server og sender den kun til {host}. Pluginnet ser den aldrig.",
+      "intro_password_any": "{name} vil bruge din konto hos {label}. {appName} gemmer adgangskoden på sin server og sender den kun til den server, du angiver her. Pluginnet ser den aldrig.",
+      "intro_signin": "{name} vil logge ind på din konto hos {label}. Angiv serveren her, og log derefter ind på serverens egen side. {appName} gemmer den adgang, det får, på sin server; pluginnet ser den aldrig.",
       "server": "Serveradresse",
       "server_hint": "cloud.example.com",
       "username": "Brugernavn",

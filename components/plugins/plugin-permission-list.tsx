@@ -2,6 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { AlertTriangle } from '@/components/icons';
+import { useConfig } from '@/hooks/use-config';
+import { productName } from '@/lib/product-name';
 import { cn } from '@/lib/utils';
 import { HIGH_RISK_PERMISSIONS, permissionKey, visiblePermissions } from '@/lib/plugin-sandbox/permission-text';
 
@@ -17,6 +19,7 @@ interface PluginPermissionListProps {
 /** Plain-language list of what a plugin may do, high-risk items first. */
 export function PluginPermissionList({ permissions, httpOrigins, apiPostPaths, compact }: PluginPermissionListProps) {
   const t = useTranslations('plugins.permissions');
+  const appName = productName(useConfig().appName);
   const perms = visiblePermissions(permissions);
   if (perms.length === 0) {
     return <p className="text-xs text-muted-foreground">{t('none')}</p>;
@@ -39,7 +42,7 @@ export function PluginPermissionList({ permissions, httpOrigins, apiPostPaths, c
               {risky && <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-warning" aria-label={t('high_risk')} />}
               <div className="min-w-0">
                 <div className="text-sm font-medium text-foreground">{t(`${key}.title`)}</div>
-                {!compact && <div className="text-xs text-muted-foreground">{t(`${key}.body`)}</div>}
+                {!compact && <div className="text-xs text-muted-foreground">{t(`${key}.body`, { appName })}</div>}
                 {targets && targets.length > 0 && (
                   <ul className="mt-1 space-y-0.5">
                     {targets.map((target) => (

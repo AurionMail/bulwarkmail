@@ -177,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Aplikacje domyślne",
-    "description": "Wybierz, czy linki e-mail i kalendarza mają otwierać się w Bulwark. Technicznie Bulwark rejestruje się jako obsługa protokołu dla linków mailto: i webcal:.",
+    "description": "Wybierz, czy linki e-mail i kalendarza mają otwierać się w {appName}. Technicznie {appName} rejestruje się jako obsługa protokołu dla linków mailto: i webcal:.",
     "unsupported": "Ta przeglądarka lub to połączenie nie obsługuje ręcznej rejestracji obsługi protokołu. Nadal możesz mieć możliwość użycia zainstalowanej aplikacji PWA w ustawieniach przeglądarki lub systemu.",
     "mailto_label": "Linki e-mail",
-    "mailto_description": "Otwiera linki mailto: w Bulwark z wstępnie wypełnionym edytorem wiadomości.",
+    "mailto_description": "Otwiera linki mailto: w {appName} z wstępnie wypełnionym edytorem wiadomości.",
     "protocol_open_mode_label": "Podczas otwierania linków protokołu",
-    "protocol_open_mode_description": "Wybierz, czy Bulwark ma otwierać linki mailto: i webcal: w nowej karcie, czy ponownie używać otwartej sesji. Opcja aktywnej sesji wymaga uprawnienia do powiadomień, aby można było kliknąć powiadomienie awaryjne i przenieść Bulwark na pierwszy plan, jeśli przeglądarka blokuje fokus.",
+    "protocol_open_mode_description": "Wybierz, czy {appName} ma otwierać linki mailto: i webcal: w nowej karcie, czy ponownie używać otwartej sesji. Opcja aktywnej sesji wymaga uprawnienia do powiadomień, aby można było kliknąć powiadomienie awaryjne i przenieść {appName} na pierwszy plan, jeśli przeglądarka blokuje fokus.",
     "protocol_open_mode_active_session": "Jeśli to możliwe, otwórz w aktywnej sesji",
     "protocol_open_mode_new_tab": "Zawsze otwieraj nową kartę",
-    "focus_notification_title": "Otwórz Bulwark",
-    "focus_notification_body": "Link został otwarty w Bulwark. Kliknij, aby przenieść okno na pierwszy plan.",
+    "focus_notification_title": "Otwórz {appName}",
+    "focus_notification_body": "Link został otwarty w {appName}. Kliknij, aby przenieść okno na pierwszy plan.",
     "webcal_label": "Linki kalendarza",
-    "webcal_description": "Otwiera linki webcal: w Bulwark z wstępnie wypełnionym oknem subskrypcji kalendarza.",
+    "webcal_description": "Otwiera linki webcal: w {appName} z wstępnie wypełnionym oknem subskrypcji kalendarza.",
     "register_mailto": "Zarejestruj aplikację e-mail",
     "register_webcal": "Zarejestruj aplikację kalendarza",
     "mailto_registered": "Zażądano rejestracji obsługi e-mail",
@@ -196,7 +196,7 @@
     "registration_failed": "Rejestracja obsługi protokołu nie powiodła się",
     "opening_mailto": "Otwieranie edytora...",
     "opening_webcal": "Otwieranie kalendarza...",
-    "browser_note": "Przeglądarka lub system operacyjny może poprosić o potwierdzenie i może wymagać zainstalowania Bulwark, zanim będzie można wybrać go jako aplikację domyślną.",
+    "browser_note": "Przeglądarka lub system operacyjny może poprosić o potwierdzenie i może wymagać zainstalowania {appName}, zanim będzie można wybrać go jako aplikację domyślną.",
     "select_account_title": "Wybierz konto",
     "select_mailto_account": "Wybierz konto, które ma otworzyć ten link e-mail.",
     "select_webcal_account": "Wybierz konto, które ma otworzyć ten link kalendarza.",
@@ -872,9 +872,9 @@
     "app_title": "Webmail",
     "reconnecting": "Utracono połączenie. Próba ponownego połączenia…",
     "rate_limited_title": "Uwierzytelnianie serwera jest tymczasowo ograniczone.",
-    "rate_limited_detail": "Bulwark wstrzymał żądania w tle, aby uniknąć blokady. Ponowna próba za {seconds}s.",
+    "rate_limited_detail": "{appName} wstrzymał żądania w tle, aby uniknąć blokady. Ponowna próba za {seconds}s.",
     "rate_limited_action_title": "Żądanie wstrzymane, aby uniknąć blokady.",
-    "rate_limited_action_detail": "Bulwark czeka na zakończenie okresu blokady serwera przed wysłaniem kolejnych uwierzytelnionych żądań. Spróbuj ponownie za {seconds}s.",
+    "rate_limited_action_detail": "{appName} czeka na zakończenie okresu blokady serwera przed wysłaniem kolejnych uwierzytelnionych żądań. Spróbuj ponownie za {seconds}s.",
     "pull_to_refresh": "Pociągnij, aby odświeżyć",
     "release_to_refresh": "Puść, aby odświeżyć",
     "refreshing": "Odświeżanie…"
@@ -4410,7 +4410,7 @@
       },
       "http_proxy": {
         "title": "Korzystanie z połączonych przez Ciebie kont",
-        "body": "Wysyła żądania przez serwer Bulwark z użyciem konta lub klucza skonfigurowanego przez Ciebie lub Twojego administratora. Wtyczka nigdy nie widzi hasła, ale może zrobić na tym serwerze wszystko, co może to konto."
+        "body": "Wysyła żądania przez serwer {appName} z użyciem konta lub klucza skonfigurowanego przez Ciebie lub Twojego administratora. Wtyczka nigdy nie widzi hasła, ale może zrobić na tym serwerze wszystko, co może to konto."
       }
     },
     "dialog": {
@@ -4427,9 +4427,9 @@
     },
     "connect": {
       "title": "Połącz z {label}",
-      "intro_password": "{name} chce używać Twojego konta {label}. Bulwark przechowuje hasło na swoim serwerze i wysyła je tylko do {host}. Wtyczka nigdy go nie widzi.",
-      "intro_password_any": "{name} chce używać Twojego konta {label}. Bulwark przechowuje hasło na swoim serwerze i wysyła je tylko do serwera, który tu wpiszesz. Wtyczka nigdy go nie widzi.",
-      "intro_signin": "{name} chce zalogować się na Twoje konto {label}. Wpisz tu serwer, a potem zaloguj się na jego stronie. Bulwark przechowuje uzyskany dostęp na swoim serwerze; wtyczka nigdy go nie widzi.",
+      "intro_password": "{name} chce używać Twojego konta {label}. {appName} przechowuje hasło na swoim serwerze i wysyła je tylko do {host}. Wtyczka nigdy go nie widzi.",
+      "intro_password_any": "{name} chce używać Twojego konta {label}. {appName} przechowuje hasło na swoim serwerze i wysyła je tylko do serwera, który tu wpiszesz. Wtyczka nigdy go nie widzi.",
+      "intro_signin": "{name} chce zalogować się na Twoje konto {label}. Wpisz tu serwer, a potem zaloguj się na jego stronie. {appName} przechowuje uzyskany dostęp na swoim serwerze; wtyczka nigdy go nie widzi.",
       "server": "Adres serwera",
       "server_hint": "cloud.example.com",
       "username": "Nazwa użytkownika",
