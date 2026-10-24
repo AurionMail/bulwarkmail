@@ -4819,7 +4819,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      // Ids of an account whose move failed or that no client reaches.
+      // Ids of an account group whose move failed.
       const notMoved = new Set<string>();
 
       if (target) {
@@ -4827,40 +4827,61 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // source stamps cannot route them; the caller names the account and
         // the destination's JMAP id.
         await target.client.batchMoveEmails(emailIdsArray, toMailboxId, target.accountId);
-      } else if (isAggregateListView()) {
-        // Group by owning JMAP account; dispatch through the reaching login client.
+      } else {
         const destMailbox = resolveActionMailboxes().find(mb => mb.id === toMailboxId);
         const jmapDestId = destMailbox?.originalId || toMailboxId;
-        const bySource = new Map<string, { clientAccountId?: string; ids: string[] }>();
+        const aggregate = isAggregateListView();
+        const viewingId = get().viewingAccountId;
+        const sourceClients = new Map<string, IJMAPClient>();
+        const requireClient = (loginId: string): IJMAPClient => {
+          const cached = sourceClients.get(loginId);
+          if (cached) return cached;
+          const connected = useAuthStore.getState().getClientForAccount(loginId);
+          if (!connected) throw new Error('Email account is not connected - cannot move emails');
+          sourceClients.set(loginId, connected);
+          return connected;
+        };
+        const groups: Array<{
+          client: IJMAPClient;
+          accountId: string | undefined;
+          owner: string | undefined;
+          ids: string[];
+        }> = [];
+
+        // Preflight every required login before any group is dispatched. An
+        // explicit source/viewing client must never fall back to another login.
         for (const email of selectedEmails) {
-          const key = email.sourceAccountId || '__default__';
-          if (!bySource.has(key)) bySource.set(key, { clientAccountId: email.sourceClientAccountId, ids: [] });
-          bySource.get(key)!.ids.push(email.id);
+          let actionClient: IJMAPClient;
+          let accountId: string | undefined;
+          if (email.sourceClientAccountId || email.sourceAccountId) {
+            if (!email.sourceClientAccountId) throw new Error('Email account is not connected - cannot move emails');
+            actionClient = requireClient(email.sourceClientAccountId);
+            accountId = email.sourceAccountId;
+          } else {
+            actionClient = viewingId ? requireClient(viewingId) : client;
+            accountId = resolveViewAccountId();
+          }
+          // Owner IDs are server-local; keep the effective authenticated client
+          // in the identity. Unstamped primary rows retain the default accountId.
+          const owner = accountId ?? actionClient.getAccountId?.();
+          let group = groups.find(g => g.client === actionClient && g.owner === owner);
+          if (!group) {
+            group = { client: actionClient, accountId, owner, ids: [] };
+            groups.push(group);
+          }
+          group.ids.push(email.id);
         }
 
-        const promises = Array.from(bySource.entries()).map(async ([sourceAccountId, { clientAccountId, ids }]) => {
-          const acctClient = sourceAccountId === '__default__'
-            ? resolveActionClient(client)
-            : (clientAccountId ? useAuthStore.getState().getClientForAccount(clientAccountId) : undefined);
-          if (!acctClient) {
-            ids.forEach(id => notMoved.add(id));
-            return;
-          }
-          const jmapAccountId = sourceAccountId === '__default__' ? undefined : sourceAccountId;
-          await acctClient.batchMoveEmails(ids, jmapDestId, jmapAccountId).catch((error) => {
+        const promises = groups.map(async ({ client: actionClient, accountId, ids }) => {
+          await actionClient.batchMoveEmails(ids, jmapDestId, accountId).catch((error) => {
             ids.forEach(id => notMoved.add(id));
             throw error;
           });
         });
-        await Promise.allSettled(promises);
-      } else {
-        // Non-unified: route to the viewed shared/group account (if any), reached
-        // through the active client. Resolve the destination to its bare owner id
-        // (`originalId`) since shared folders use namespaced store ids.
-        const viewAccountId = resolveViewAccountId();
-        const destMailbox = resolveActionMailboxes().find(mb => mb.id === toMailboxId);
-        const jmapDestId = destMailbox?.originalId || toMailboxId;
-        await resolveActionClient(client).batchMoveEmails(emailIdsArray, jmapDestId, viewAccountId);
+        // Preserve the existing aggregate/folder failure behavior. Per-message
+        // confirmation and partial-failure reconciliation are separate concerns.
+        if (aggregate) await Promise.allSettled(promises);
+        else await Promise.all(promises);
       }
 
       // Update local state - remove from current view since they moved
