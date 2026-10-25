@@ -22,6 +22,7 @@ import { get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
 import { coerceSetting, effectiveSettings } from '@/lib/plugin-settings';
 import { usePolicyStore } from '@/stores/policy-store';
 import { apiFetch } from '@/lib/browser-navigation';
+import { fetchServerPluginList } from '@/lib/server-plugin-list';
 import { IMPLICIT_PERMISSIONS } from '@/lib/plugin-types';
 import type { Permission } from '@/lib/plugin-types';
 import { IS_LITE } from '@/lib/lite';
@@ -569,12 +570,12 @@ async function syncServerPlugins(
   set: (partial: Partial<PluginStoreState> | ((state: PluginStoreState) => Partial<PluginStoreState>)) => void,
 ): Promise<'signed-out' | void> {
   try {
-    const res = await apiFetch('/api/plugins');
+    const res = await fetchServerPluginList();
     if (res.status === 401) return 'signed-out';
     if (!res.ok) return;
 
-    const data: { plugins: ServerPluginInfo[] } = await res.json();
-    if (!data.plugins || !Array.isArray(data.plugins)) return;
+    const data = res.data as { plugins: ServerPluginInfo[] };
+    if (!data?.plugins || !Array.isArray(data.plugins)) return;
 
     const serverPlugins = data.plugins;
     const serverPluginIds = new Set(serverPlugins.map(p => p.id));
