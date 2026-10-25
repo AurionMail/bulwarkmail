@@ -57,7 +57,7 @@ vi.mock('@/lib/plugin-sandbox/bundle-fetch', () => ({
 
 import { register as registerActive, deregister as deregisterActive, get as getActive } from '@/lib/plugin-sandbox/registry';
 // Import after mocks
-import { usePluginStore } from '@/stores/plugin-store';
+import { usePluginStore, PLUGIN_PERSIST_DELAY_MS } from '@/stores/plugin-store';
 import { pluginStorage } from '@/lib/plugin-storage';
 
 function resetStore() {
@@ -428,5 +428,56 @@ describe('plugins the admin removed', () => {
     expect(usePluginStore.getState().plugins.some((p) => p.id === 'gone')).toBe(false);
     expect(localStorage.getItem('plugin:gone:@acct:notes')).toBeNull();
     expect(pluginStorage.deletePreview).toHaveBeenCalledWith('gone');
+  });
+});
+
+describe('saving the plugin list', () => {
+  const writes = (setItem: { mock: { calls: unknown[][] } }) =>
+    setItem.mock.calls.filter(([key]) => key === 'plugin-storage') as [string, string][];
+
+  it('writes once for a burst of changes, and not again when only the status changed', () => {
+    // Write what the reset in beforeEach left pending, before counting.
+    window.dispatchEvent(new Event('pagehide'));
+    vi.useFakeTimers();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      usePluginStore.setState({ plugins: [mockPlugin({ enabled: true, status: 'enabled', locales: { de: { hello: 'Hallo' } } })] });
+      // Start-up: one status change per plugin and step.
+      for (let i = 0; i < 10; i++) usePluginStore.getState().setPluginStatus('test-plugin', i % 2 ? 'running' : 'enabled');
+      expect(writes(setItem)).toHaveLength(0);
+
+      vi.advanceTimersByTime(PLUGIN_PERSIST_DELAY_MS);
+      expect(writes(setItem)).toHaveLength(1);
+      expect(JSON.parse(writes(setItem)[0][1]).state.plugins[0]).toMatchObject({ id: 'test-plugin', status: 'enabled', locales: { de: { hello: 'Hallo' } } });
+
+      // The status is not stored, so the text is the same: nothing to write.
+      usePluginStore.getState().setPluginStatus('test-plugin', 'error', 'boom');
+      vi.advanceTimersByTime(PLUGIN_PERSIST_DELAY_MS);
+      expect(writes(setItem)).toHaveLength(1);
+
+      usePluginStore.setState((s) => ({ plugins: s.plugins.map((p) => ({ ...p, settings: { theme: 'dark' } })) }));
+      vi.advanceTimersByTime(PLUGIN_PERSIST_DELAY_MS);
+      expect(writes(setItem)).toHaveLength(2);
+      expect(JSON.parse(writes(setItem)[1][1]).state.plugins[0].settings).toEqual({ theme: 'dark' });
+    } finally {
+      setItem.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('writes a pending change right away when the page is hidden', () => {
+    window.dispatchEvent(new Event('pagehide'));
+    vi.useFakeTimers();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      usePluginStore.setState({ plugins: [mockPlugin({ id: 'hidden-test', enabled: true })] });
+      expect(writes(setItem)).toHaveLength(0);
+      window.dispatchEvent(new Event('pagehide'));
+      expect(writes(setItem)).toHaveLength(1);
+      expect(JSON.parse(writes(setItem)[0][1]).state.plugins[0].id).toBe('hidden-test');
+    } finally {
+      setItem.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });

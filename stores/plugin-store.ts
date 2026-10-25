@@ -3,7 +3,7 @@
 
 import { cancelConnectFor, forgetCredentials } from '@/lib/plugin-sandbox/connect-dialog';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, type PersistStorage, type StorageValue } from 'zustand/middleware';
 import type { InstalledPlugin, PluginStatus, PluginTier } from '@/lib/plugin-types';
 import { pluginStorage } from '@/lib/plugin-storage';
 import { extractPlugin } from '@/lib/plugin-validator';
@@ -60,6 +60,66 @@ interface PluginStoreState {
 
   // Init
   initializePlugins: () => Promise<void>;
+}
+
+// ─── Persistence ─────────────────────────────────────────────
+
+/** How long a change waits before it is written, so a burst becomes one write. */
+export const PLUGIN_PERSIST_DELAY_MS = 250;
+
+/**
+ * localStorage for the plugin list, written once per burst of changes and
+ * only when the stored text changes. The list carries every plugin's locale
+ * tables (about 1 MB with a dozen plugins), and the stock storage serialized
+ * and wrote all of it on every set(): start-up, one status change per plugin,
+ * wrote 13 MB and blocked the page for ~400 ms. Status is not even persisted
+ * (partialize resets it), so most of those writes stored the same text again.
+ * Pending changes are written when the page is hidden or unloaded.
+ */
+function batchedLocalStorage<S>(): PersistStorage<S> {
+  let pending: { name: string; value: StorageValue<S> } | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const written = new Map<string, string>();
+
+  const flush = () => {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (!pending) return;
+    const { name, value } = pending;
+    pending = null;
+    try {
+      const text = JSON.stringify(value);
+      if (written.get(name) === text) return;
+      localStorage.setItem(name, text);
+      written.set(name, text);
+    } catch {
+      // Storage full or blocked: the list is still in memory for this page.
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush();
+    });
+  }
+
+  return {
+    getItem: (name) => {
+      const text = localStorage.getItem(name);
+      if (text === null) return null;
+      written.set(name, text);
+      return JSON.parse(text) as StorageValue<S>;
+    },
+    setItem: (name, value) => {
+      pending = { name, value };
+      if (!timer) timer = setTimeout(flush, PLUGIN_PERSIST_DELAY_MS);
+    },
+    removeItem: (name) => {
+      if (pending?.name === name) pending = null;
+      written.delete(name);
+      localStorage.removeItem(name);
+    },
+  };
 }
 
 // ─── Store ───────────────────────────────────────────────────
@@ -330,6 +390,7 @@ export const usePluginStore = create<PluginStoreState>()(
     }),
     {
       name: 'plugin-storage',
+      storage: batchedLocalStorage(),
       partialize: (state) => ({
         plugins: state.plugins.map(p => ({
           ...p,
