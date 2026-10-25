@@ -244,6 +244,11 @@
     "show_on_mobile": "Afișare pe mobil"
   },
   "email_list": {
+    "sections": {
+      "unread": "Necitite",
+      "everything_else": "Toate celelalte",
+      "unread_empty": "Ai citit toate mesajele din inbox."
+    },
     "columns": {
       "from": "De la",
       "to": "Către",
@@ -1415,6 +1420,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Tipul inboxului",
+        "description": "„Întâi necitite” afișează cele mai noi 25 de mesaje necitite într-o secțiune deasupra restului inboxului",
+        "default": "Implicit",
+        "unread_first": "Întâi necitite"
+      },
       "clear_search_on_folder_change": {
         "label": "Șterge căutarea la schimbarea folderului",
         "description": "Un clic pe un folder (Inbox, Trimise…) șterge căutarea activă și afișează acel folder. Dezactivat, căutarea rămâne și se reia în folderul ales."

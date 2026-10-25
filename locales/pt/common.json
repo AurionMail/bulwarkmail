@@ -244,6 +244,11 @@
     "show_on_mobile": "Mostrar no celular"
   },
   "email_list": {
+    "sections": {
+      "unread": "Não lidas",
+      "everything_else": "Todo o resto",
+      "unread_empty": "Leu todas as mensagens da caixa de entrada."
+    },
     "columns": {
       "from": "De",
       "to": "Para",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Tipo de caixa de entrada",
+        "description": "\"Não lidas primeiro\" mostra as suas 25 mensagens não lidas mais recentes numa secção acima do resto da caixa",
+        "default": "Predefinido",
+        "unread_first": "Não lidas primeiro"
+      },
       "clear_search_on_folder_change": {
         "label": "Limpar a pesquisa ao mudar de pasta",
         "description": "Clicar numa pasta (Caixa de entrada, Enviados…) limpa a pesquisa ativa e mostra essa pasta. Se desativado, a pesquisa mantém-se e volta a ser executada na pasta para a qual mudar."

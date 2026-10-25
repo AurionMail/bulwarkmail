@@ -244,6 +244,11 @@
     "show_on_mobile": "Pokaż na telefonie"
   },
   "email_list": {
+    "sections": {
+      "unread": "Nieprzeczytane",
+      "everything_else": "Wszystkie pozostałe",
+      "unread_empty": "Przeczytano wszystkie wiadomości w odebranych."
+    },
     "columns": {
       "from": "Od",
       "to": "Do",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Typ skrzynki odbiorczej",
+        "description": "„Najpierw nieprzeczytane” pokazuje 25 najnowszych nieprzeczytanych wiadomości w sekcji nad resztą skrzynki",
+        "default": "Domyślny",
+        "unread_first": "Najpierw nieprzeczytane"
+      },
       "clear_search_on_folder_change": {
         "label": "Czyść wyszukiwanie przy zmianie folderu",
         "description": "Kliknięcie folderu (Odebrane, Wysłane…) czyści aktywne wyszukiwanie i otwiera ten folder. Gdy wyłączone, wyszukiwanie pozostaje i jest ponawiane w wybranym folderze."

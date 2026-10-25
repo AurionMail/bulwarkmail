@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useEffectiveMailLayout } from '@/hooks/use-effective-mail-layout';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import type { ArchiveMode, HoverAction, SwipeAction } from '@/stores/settings-store';
+import type { ArchiveMode, HoverAction, MvInboxType, SwipeAction } from '@/stores/settings-store';
 import { ALL_HOVER_ACTIONS } from '@/stores/settings-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useEmailStore } from '@/stores/email-store';
@@ -68,6 +68,7 @@ export function MessageListSettings() {
     listColumns,
     mailLayout,
     interfaceLayout,
+    mvInboxType,
     tintListRowsByTag,
     senderFavicons,
     showAvatarsInJunk,
@@ -173,6 +174,25 @@ export function MessageListSettings() {
           <ToggleSwitch
             checked={listColumns}
             onChange={(checked) => updateSetting('listColumns', checked)}
+          />
+        </SettingItem>
+        )}
+
+        {/* Gmail's inbox types; "Unread first" puts the newest unread mail in a section above the rest. */}
+        {mountainView && (
+        <SettingItem label={t('inbox_type.label')} description={t('inbox_type.description')}>
+          <Select
+            value={mvInboxType}
+            onChange={(value) => {
+              updateSetting('mvInboxType', value as MvInboxType);
+              const client = useAuthStore.getState().client;
+              const store = useEmailStore.getState();
+              if (client && store.selectedMailbox) void store.fetchEmails(client, store.selectedMailbox, { background: true });
+            }}
+            options={[
+              { value: 'default', label: t('inbox_type.default') },
+              { value: 'unread-first', label: t('inbox_type.unread_first') },
+            ]}
           />
         </SettingItem>
         )}

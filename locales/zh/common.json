@@ -244,6 +244,11 @@
     "show_on_mobile": "在手机上显示"
   },
   "email_list": {
+    "sections": {
+      "unread": "未读",
+      "everything_else": "其他所有邮件",
+      "unread_empty": "您已读完收件箱中的所有邮件。"
+    },
     "columns": {
       "from": "发件人",
       "to": "收件人",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "收件箱类型",
+        "description": "“未读优先”会在收件箱其余邮件上方的单独区域中显示最新的 25 封未读邮件",
+        "default": "默认",
+        "unread_first": "未读优先"
+      },
       "clear_search_on_folder_change": {
         "label": "切换文件夹时清除搜索",
         "description": "点击文件夹（收件箱、已发送等）会清除当前搜索并浏览该文件夹。关闭时，搜索会保留并在切换到的文件夹中重新运行。"

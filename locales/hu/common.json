@@ -244,6 +244,11 @@
     "show_on_mobile": "Megjelenítés mobilon"
   },
   "email_list": {
+    "sections": {
+      "unread": "Olvasatlan",
+      "everything_else": "Minden más",
+      "unread_empty": "A beérkezett üzenetek mappában minden üzenetet elolvastál."
+    },
     "columns": {
       "from": "Feladó",
       "to": "Címzett",
@@ -1415,6 +1420,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Beérkezett üzenetek típusa",
+        "description": "Az „Olvasatlanok elöl” a 25 legújabb olvasatlan üzenetet külön szakaszban mutatja a többi üzenet felett",
+        "default": "Alapértelmezett",
+        "unread_first": "Olvasatlanok elöl"
+      },
       "clear_search_on_folder_change": {
         "label": "Keresés törlése mappaváltáskor",
         "description": "Egy mappára kattintva (Beérkezett, Elküldött…) törlődik az aktív keresés, és a mappa jelenik meg. Kikapcsolva a keresés megmarad, és újra lefut a választott mappában."

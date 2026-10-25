@@ -244,6 +244,11 @@
     "show_on_mobile": "Vis på mobil"
   },
   "email_list": {
+    "sections": {
+      "unread": "Uleste",
+      "everything_else": "Alt annet",
+      "unread_empty": "Du har lest alle meldingene i innboksen."
+    },
     "columns": {
       "from": "Fra",
       "to": "Til",
@@ -1415,6 +1420,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Innbokstype",
+        "description": "«Uleste først» viser de 25 nyeste uleste meldingene i en egen del over resten av innboksen",
+        "default": "Standard",
+        "unread_first": "Uleste først"
+      },
       "clear_search_on_folder_change": {
         "label": "Tøm søket ved bytte av mappe",
         "description": "Å klikke på en mappe (Innboks, Sendt …) tømmer det aktive søket og viser mappen. Når det er av, beholdes søket og kjøres på nytt i mappen du bytter til."

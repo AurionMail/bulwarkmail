@@ -244,6 +244,11 @@
     "show_on_mobile": "在行動裝置上顯示"
   },
   "email_list": {
+    "sections": {
+      "unread": "未讀",
+      "everything_else": "其他所有郵件",
+      "unread_empty": "您已讀完收件匣中的所有郵件。"
+    },
     "columns": {
       "from": "寄件者",
       "to": "收件者",
@@ -1415,6 +1420,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "收件匣類型",
+        "description": "「未讀優先」會在收件匣其餘郵件上方的獨立區塊中顯示最新的 25 封未讀郵件",
+        "default": "預設",
+        "unread_first": "未讀優先"
+      },
       "clear_search_on_folder_change": {
         "label": "切換資料夾時清除搜尋",
         "description": "點擊資料夾（收件匣、寄件備份等）會清除目前的搜尋並瀏覽該資料夾。關閉時，搜尋會保留並在切換到的資料夾中重新執行。"

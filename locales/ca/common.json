@@ -244,6 +244,11 @@
     "show_on_mobile": "Mostra al mòbil"
   },
   "email_list": {
+    "sections": {
+      "unread": "No llegits",
+      "everything_else": "Tota la resta",
+      "unread_empty": "Has llegit tots els missatges de la safata d'entrada."
+    },
     "columns": {
       "from": "De",
       "to": "Per a",
@@ -1415,6 +1420,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Tipus de safata d'entrada",
+        "description": "«Primer els no llegits» mostra els 25 missatges no llegits més recents en una secció a sobre de la resta de la safata",
+        "default": "Per defecte",
+        "unread_first": "Primer els no llegits"
+      },
       "clear_search_on_folder_change": {
         "label": "Esborra la cerca en canviar de carpeta",
         "description": "En clicar una carpeta (Safata d'entrada, Enviats…) s'esborra la cerca activa i es mostra aquesta carpeta. Si està desactivat, la cerca es manté i es torna a executar a la carpeta triada."

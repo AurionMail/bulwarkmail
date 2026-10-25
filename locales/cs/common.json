@@ -244,6 +244,11 @@
     "show_on_mobile": "Zobrazit na mobilu"
   },
   "email_list": {
+    "sections": {
+      "unread": "Nepřečtené",
+      "everything_else": "Vše ostatní",
+      "unread_empty": "Přečetli jste všechny zprávy v doručené poště."
+    },
     "columns": {
       "from": "Od",
       "to": "Komu",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Typ doručené pošty",
+        "description": "„Nejdříve nepřečtené“ zobrazí 25 nejnovějších nepřečtených zpráv v samostatné sekci nad zbytkem doručené pošty",
+        "default": "Výchozí",
+        "unread_first": "Nejdříve nepřečtené"
+      },
       "clear_search_on_folder_change": {
         "label": "Vymazat hledání při přepnutí složky",
         "description": "Kliknutí na složku (Doručená pošta, Odeslaná…) vymaže aktivní hledání a zobrazí složku. Když je vypnuto, hledání zůstává a spustí se znovu ve zvolené složce."

@@ -244,6 +244,11 @@
     "show_on_mobile": "Show on Mobile"
   },
   "email_list": {
+    "sections": {
+      "unread": "Unread",
+      "everything_else": "Everything else",
+      "unread_empty": "You've read all the messages in your inbox."
+    },
     "columns": {
       "from": "From",
       "to": "To",
@@ -1415,6 +1420,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Inbox type",
+        "description": "Unread first shows your 25 newest unread messages in a section above the rest of the inbox",
+        "default": "Default",
+        "unread_first": "Unread first"
+      },
       "clear_search_on_folder_change": {
         "label": "Clear search when switching folders",
         "description": "Clicking a folder (Inbox, Sent, …) clears the active search and browses that folder. When off, the search stays applied and re-runs in the folder you switch to."

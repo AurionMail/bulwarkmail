@@ -244,6 +244,11 @@
     "show_on_mobile": "Weergeven op mobiel"
   },
   "email_list": {
+    "sections": {
+      "unread": "Ongelezen",
+      "everything_else": "Al het andere",
+      "unread_empty": "Je hebt alle berichten in je inbox gelezen."
+    },
     "columns": {
       "from": "Van",
       "to": "Aan",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Type inbox",
+        "description": "'Ongelezen eerst' toont je 25 nieuwste ongelezen berichten in een sectie boven de rest van de inbox",
+        "default": "Standaard",
+        "unread_first": "Ongelezen eerst"
+      },
       "clear_search_on_folder_change": {
         "label": "Zoekopdracht wissen bij wisselen van map",
         "description": "Op een map klikken (Postvak IN, Verzonden…) wist de actieve zoekopdracht en toont die map. Uitgeschakeld blijft de zoekopdracht staan en wordt opnieuw uitgevoerd in de gekozen map."

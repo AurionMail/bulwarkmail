@@ -244,6 +244,11 @@
     "show_on_mobile": "Afficher sur mobile"
   },
   "email_list": {
+    "sections": {
+      "unread": "Non lus",
+      "everything_else": "Tout le reste",
+      "unread_empty": "Vous avez lu tous les messages de votre boîte de réception."
+    },
     "columns": {
       "from": "De",
       "to": "À",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Type de boîte de réception",
+        "description": "« Non lus en premier » affiche vos 25 messages non lus les plus récents dans une section au-dessus du reste de la boîte",
+        "default": "Par défaut",
+        "unread_first": "Non lus en premier"
+      },
       "clear_search_on_folder_change": {
         "label": "Effacer la recherche lors du changement de dossier",
         "description": "Cliquer sur un dossier (Boîte de réception, Envoyés…) efface la recherche active et affiche ce dossier. Désactivé, la recherche reste appliquée et est relancée dans le dossier choisi."

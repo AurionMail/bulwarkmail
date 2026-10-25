@@ -244,6 +244,11 @@
     "show_on_mobile": "Näita mobiilis"
   },
   "email_list": {
+    "sections": {
+      "unread": "Lugemata",
+      "everything_else": "Kõik muu",
+      "unread_empty": "Oled kõik postkasti kirjad läbi lugenud."
+    },
     "columns": {
       "from": "Saatja",
       "to": "Saaja",
@@ -1415,6 +1420,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Postkasti tüüp",
+        "description": "„Lugemata ees“ näitab 25 uusimat lugemata kirja eraldi jaotises ülejäänud postkasti kohal",
+        "default": "Vaikimisi",
+        "unread_first": "Lugemata ees"
+      },
       "clear_search_on_folder_change": {
         "label": "Tühjenda otsing kausta vahetamisel",
         "description": "Kaustale (Saabunud, Saadetud, …) klõpsamine tühjendab aktiivse otsingu ja avab selle kausta. Kui see on välja lülitatud, jääb otsing kehtima ja käivitub uuesti kaustas, millele lülitud."

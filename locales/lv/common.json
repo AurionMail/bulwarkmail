@@ -244,6 +244,11 @@
     "show_on_mobile": "Rādīt mobilajā ierīcē"
   },
   "email_list": {
+    "sections": {
+      "unread": "Nelasītie",
+      "everything_else": "Viss pārējais",
+      "unread_empty": "Jūs esat izlasījis visus iesūtnes ziņojumus."
+    },
     "columns": {
       "from": "No",
       "to": "Kam",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Iesūtnes veids",
+        "description": "“Vispirms nelasītie” rāda 25 jaunākos nelasītos ziņojumus atsevišķā sadaļā virs pārējās iesūtnes",
+        "default": "Noklusējums",
+        "unread_first": "Vispirms nelasītie"
+      },
       "clear_search_on_folder_change": {
         "label": "Notīrīt meklēšanu, mainot mapi",
         "description": "Noklikšķinot uz mapes (Iesūtne, Nosūtītie…), aktīvā meklēšana tiek notīrīta un tiek atvērta šī mape. Kad izslēgts, meklēšana paliek un tiek atkārtota izvēlētajā mapē."

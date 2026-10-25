@@ -30,6 +30,10 @@ import { useAccountStore } from "@/stores/account-store";
 import { useMessageListTabsStore } from "@/stores/message-list-tabs-store";
 import type { StorageQuota } from "@/lib/quota";
 import { isArchiveActionEnabled } from "@/lib/archive-gate";
+import {
+  READ_FILTER, UNREAD_FILTER, UNREAD_SECTION_SIZE, andFilters, isUnreadFirstView, mergeUnreadSection,
+  sectionFromUnreadRows, unreadSectionRowCount, withoutReached, type UnreadSection,
+} from "@/lib/unread-first";
 
 type ScheduledSubmissionMetadata = {
   submissionId: string;
@@ -158,6 +162,9 @@ interface EmailStore {
   // category tab, unified/cross view). A push is then resolved with
   // Email/changes against this state instead of re-querying the first page.
   emailListSync: EmailListSync | null;
+  // Mountain View's "Unread first" inbox (lib/unread-first.ts): which rows of
+  // `emails` are the Unread section's. Null in every other view.
+  unreadSection: UnreadSection | null;
   // Mailbox collection state per JMAP account the sidebar list was last
   // synced at, so a Mailbox push can be resolved with Mailbox/changes.
   mailboxSyncStates: Record<string, string>;
@@ -721,6 +728,66 @@ let emailDeltaQueue: Promise<void> = Promise.resolve();
 type StoreGet = () => EmailStore;
 type StoreSet = (partial: Partial<EmailStore> | ((state: EmailStore) => Partial<EmailStore>)) => void;
 
+/** Whether this folder view is Mountain View's "Unread first" inbox. */
+function unreadFirstFor(
+  mailbox: Mailbox | undefined,
+  s: Pick<EmailStore, 'selectedKeyword' | 'searchQuery' | 'searchFilters' | 'isUnifiedView'>,
+): boolean {
+  const { interfaceLayout, mvInboxType } = useSettingsStore.getState();
+  return isUnreadFirstView({
+    interfaceLayout,
+    mvInboxType,
+    mailboxRole: mailbox?.role,
+    otherView: !!s.selectedKeyword || !!s.searchQuery || !isFilterEmpty(s.searchFilters) || s.isUnifiedView,
+  });
+}
+
+/**
+ * What a folder's query ANDs in: the open category tab's filter, and read
+ * mail only in the "Unread first" inbox, whose unread mail is the section's.
+ */
+function folderListFilter(
+  mailbox: Mailbox | undefined,
+  s: Pick<EmailStore, 'selectedKeyword' | 'searchQuery' | 'searchFilters' | 'isUnifiedView'>,
+): Record<string, unknown> | null {
+  const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
+  return andFilters(categoryFilter, unreadFirstFor(mailbox, s) ? READ_FILTER : null);
+}
+
+/** The newest unread mail of the folder, for the "Unread first" inbox. */
+async function loadUnreadSection(client: IJMAPClient, mailbox: Mailbox, get: StoreGet): Promise<{ emails: Email[]; total: number }> {
+  const effectiveClient = resolveActionClient(client);
+  const accountId = mailbox.isShared ? mailbox.accountId : undefined;
+  const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox.role);
+  const result = await effectiveClient.getEmails(
+    mailbox.originalId || mailbox.id,
+    accountId,
+    UNREAD_SECTION_SIZE,
+    0,
+    undefined,
+    true,
+    andFilters(categoryFilter, UNREAD_FILTER) ?? undefined,
+    [],
+  );
+  const emails = await emailHooks.onEmailsFetched.transform(result.emails);
+  return { emails: annotateScheduledEmails(emails, get().scheduledSubmissionByEmailId), total: result.total };
+}
+
+function notifyNewInboxMail(client: IJMAPClient, mailbox: Mailbox, email: Email, get: StoreGet) {
+  // A muted Inbox (or account) stays quiet in the app too (#1169).
+  const accountId = mailbox.accountId || resolveActionClient(client).getAccountId();
+  const muted = isMailboxMuted(
+    useSettingsStore.getState().notificationMutes, accountId, mailbox.originalId || mailbox.id,
+  );
+  if (!muted) get().handleNewEmailNotification(email);
+}
+
+function applyUnreadSection(get: StoreGet, set: StoreSet, mailboxId: string, loaded: { emails: Email[]; total: number }) {
+  const { emails, unreadSection, selectedEmail } = get();
+  const merged = mergeUnreadSection(emails, unreadSection, loaded.emails, selectedEmail ? threadKeyFor(selectedEmail) : null);
+  set({ emails: merged.emails, unreadSection: { mailboxId, ids: merged.ids, total: loaded.total } });
+}
+
 /**
  * After a local read/star/tag change: re-query a folder list sorted on one of
  * the changed keywords (#718). The change moves the row at once, possibly past
@@ -756,7 +823,7 @@ async function applyEmailDeltaNow(client: IJMAPClient, newState: string | null, 
   }
   const mailboxes = resolveActionMailboxes();
   const mailbox = mailboxes.find((mb) => mb.id === sync.mailboxId);
-  if (useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role)) return false;
+  if (folderListFilter(mailbox, s)) return false;
   const effectiveClient = resolveActionClient(client);
   if (!effectiveClient.getEmailChanges) return false;
   // The push carries the state we already hold (our own Email/set raised it,
@@ -2258,6 +2325,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   isPushConnected: false,
   lastPushUpdate: null,
   emailListSync: null,
+  unreadSection: null,
   mailboxSyncStates: {},
   newEmailNotification: null,
 
@@ -2812,8 +2880,21 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const jmapMailboxId = mailbox?.originalId || targetMailboxId;
 
       // Plugin-registered category tabs (Gmail-style) AND their resolved JMAP
-      // filter fragment into the mailbox view.
-      const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
+      // filter fragment into the mailbox view, and the "Unread first" inbox
+      // leaves its unread mail to the section above the list.
+      const categoryFilter = folderListFilter(mailbox, get());
+      const unreadFirst = unreadFirstFor(mailbox, get());
+      const sectionLoad = unreadFirst && mailbox
+        ? loadUnreadSection(client, mailbox, get).catch((error) => {
+            console.error('Failed to fetch the unread section:', error);
+            return null;
+          })
+        : null;
+      const showSection = async () => {
+        if (!sectionLoad) return;
+        const loaded = await sectionLoad;
+        if (loaded && isCurrentView()) applyUnreadSection(get, set, targetMailboxId, loaded);
+      };
 
       // The configured list order (#718).
       const order = getMessageListOrderFor(mailbox?.role);
@@ -2846,7 +2927,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           expandedThreadIds: new Set(),
           isLoadingThread: null,
           isLoading: false,
+          // The remembered page holds the section's rows too; they are its unread ones.
+          unreadSection: unreadFirst ? sectionFromUnreadRows(remembered.emails, targetMailboxId) : null,
         });
+      } else if (!unreadFirst) {
+        set({ unreadSection: null });
       }
       // Until this folder's rows are on screen, edits to the list belong to
       // whatever was showing before and must not be remembered under this key.
@@ -2869,6 +2954,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         const upToDate = await applyEmailDeltaNow(client, null, get, set);
         if (!isCurrentView()) return;
         if (upToDate) {
+          await showSection();
           rememberFolderList(listKey, folderListState(get()), emailsPerPage);
           // The boot snapshot carries no conversation sizes.
           if (get().threadEmailCounts.size === 0) void get().fetchThreadEmailCounts(client);
@@ -2914,6 +3000,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         isLoading: false
       });
       shownFolderList = { key: listKey, mailboxId: targetMailboxId, pageSize: emailsPerPage };
+      await showSection();
       rememberFolderList(listKey, folderListState(get()), emailsPerPage);
       // Only a server that did not answer the chained Thread/get needs a
       // request of its own for the conversation sizes.
@@ -3107,12 +3194,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
         // Category tabs (plugin-registered) must filter pagination the same
         // way as the initial fetch or pages would mix categories.
-        const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
+        const categoryFilter = folderListFilter(mailbox, get());
         // Rows kept out of a keyword order (the open conversation, see
         // refreshCurrentMailbox) are not part of the loaded head of the
-        // server order; counting them would skip as many rows.
+        // server order; counting them would skip as many rows. Neither are
+        // the rows of the Unread section.
         const retained = get().retainedInViewIds;
-        const outOfOrder = emails.filter(e => retained.has(e.id)).length;
+        const outOfOrder = emails.filter(e => retained.has(e.id)).length
+          + unreadSectionRowCount(emails, get().unreadSection);
         result = await effectiveClient.getEmails(
           jmapMailboxId,
           accountId,
@@ -3123,11 +3212,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           categoryFilter ?? undefined,
           getMessageListOrderFor(mailbox?.role),
         );
-        // A kept row this page reached is back in order.
+        // A kept row this page reached is back in order, and so is a row
+        // of the Unread section that was read since.
         const reached = new Set(result.emails.map(e => e.id));
         if (outOfOrder > 0 && [...retained].some(id => reached.has(id))) {
           set({ retainedInViewIds: new Set([...get().retainedInViewIds].filter(id => !reached.has(id))) });
         }
+        const unreadSection = withoutReached(get().unreadSection, reached);
+        if (unreadSection !== get().unreadSection) set({ unreadSection });
       }
 
       // Use fresh state when merging to avoid overwriting concurrent updates
@@ -5687,14 +5779,14 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
           // so the list stays the head of the server order. The rows kept
           // out of that order below are not part of the head.
           if (orderKeywords(order).length > 0) {
-            const { emails: loaded, retainedInViewIds } = get();
-            const inOrder = loaded.filter(e => !retainedInViewIds.has(e.id)).length;
+            const { emails: loaded, retainedInViewIds, unreadSection } = get();
+            const inOrder = loaded.filter(e => !retainedInViewIds.has(e.id) && !unreadSection?.ids.has(e.id)).length;
             windowSize = Math.min(Math.max(emailsPerPage, inOrder), effectiveClient.getMaxObjectsInGet());
             keepOpenThread = true;
           }
           // The open category tab filters the refresh like the first load and
           // pagination, or other tabs' mail would merge into the list (#1264).
-          const categoryFilter = useMessageListTabsStore.getState().getCategoryFilter(mailbox?.role);
+          const categoryFilter = folderListFilter(mailbox, get());
           result = await effectiveClient.getEmails(jmapMailboxId, accountId, windowSize, 0, undefined, true, categoryFilter ?? undefined, order);
           // This page is the new delta-sync baseline for the folder; the
           // search / unified paths above cannot be delta-synced, and neither
@@ -5748,12 +5840,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         !currentEmails.some(e => e.id === newFirst.id) &&
         (!keepOpenThread || insertedCount > 0)
       ) {
-        // A muted Inbox (or account) stays quiet in the app too (#1169).
-        const accountId = mailbox.accountId || resolveActionClient(client).getAccountId();
-        const muted = isMailboxMuted(
-          useSettingsStore.getState().notificationMutes, accountId, mailbox.originalId || mailbox.id,
-        );
-        if (!muted) get().handleNewEmailNotification(newFirst);
+        notifyNewInboxMail(client, mailbox, newFirst, get);
       }
 
       // Merge the refreshed first page with the existing loaded emails.
@@ -5779,8 +5866,13 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // Rows kept out of a keyword order are not part of the re-queried head
       // and are decided on below.
       const previouslyRetained = get().retainedInViewIds;
-      const inOrderEmails = keepOpenThread
-        ? currentEmails.filter(e => !previouslyRetained.has(e.id))
+      // Nor are the Unread section's; they go back in front below, until
+      // the section is loaded again. A row of it the fresh page has (read
+      // since) is the page's now.
+      const unreadSection = withoutReached(get().unreadSection, mergedIds);
+      const sectionRows = unreadSection ? currentEmails.filter(e => unreadSection.ids.has(e.id)) : [];
+      const inOrderEmails = (keepOpenThread || sectionRows.length > 0)
+        ? currentEmails.filter(e => !(keepOpenThread && previouslyRetained.has(e.id)) && !unreadSection?.ids.has(e.id))
         : currentEmails;
 
       for (const email of inOrderEmails.slice(appendFromIndex)) {
@@ -5826,6 +5918,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       // The fresh order has the held row where its new read/star/tag state
       // sorts; put it back where the list shows it (the order EmailList uses).
       merged = placeHeldRows(merged, searchQuery || crossView || hasFilters ? [] : get().listOrder, held);
+      if (sectionRows.length > 0) merged = [...sectionRows, ...merged];
 
       // Check if anything actually changed to avoid unnecessary re-renders
       const hasChanged =
@@ -5846,8 +5939,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         // shows and mis-compute hasMore.
         const effectiveTotal = (result.total || 0) + retainedAddedCount;
         // hasMore should reflect whether there are still more emails beyond
-        // what we have loaded, using the fresh total from the server.
-        const hasMore = merged.length < effectiveTotal;
+        // what we have loaded, using the fresh total from the server. The
+        // Unread section's rows are not part of that total.
+        const hasMore = merged.length - sectionRows.length < effectiveTotal;
 
         // Invalidate thread email caches for threads whose composition changed
         // so expanded threads pick up new/removed emails.
@@ -5896,6 +5990,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
             threadEmailsCache: newCache,
             ...(unifiedErrors !== undefined ? { unifiedErrors } : {}),
             ...(retainedInViewIds ? { retainedInViewIds } : {}),
+            unreadSection,
           };
         });
 
@@ -5922,6 +6017,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         void get().fetchThreadEmailCounts(client);
       } else if (retainedInViewIds) {
         set({ retainedInViewIds });
+      }
+
+      // The Unread section is loaded again too; new mail lands there.
+      if (mailbox && !selectedKeyword && unreadFirstFor(mailbox, get())) {
+        const loaded = await loadUnreadSection(client, mailbox, get);
+        if (!isCurrentView()) return;
+        const listed = new Set(get().emails.map(e => e.id));
+        const newest = loaded.emails.find(e => !e.keywords?.['$pinned']);
+        if (newest && !listed.has(newest.id) && loaded.total > (get().unreadSection?.total ?? 0)) {
+          notifyNewInboxMail(client, mailbox, newest, get);
+        }
+        applyUnreadSection(get, set, selectedMailbox, loaded);
       }
     } catch (error) {
       console.error('Failed to refresh current mailbox:', error);

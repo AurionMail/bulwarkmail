@@ -244,6 +244,11 @@
     "show_on_mobile": "Mostra su mobile"
   },
   "email_list": {
+    "sections": {
+      "unread": "Da leggere",
+      "everything_else": "Tutto il resto",
+      "unread_empty": "Hai letto tutti i messaggi della posta in arrivo."
+    },
     "columns": {
       "from": "Da",
       "to": "A",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Tipo di posta in arrivo",
+        "description": "\"Prima i non letti\" mostra i 25 messaggi non letti più recenti in una sezione sopra il resto della posta in arrivo",
+        "default": "Predefinito",
+        "unread_first": "Prima i non letti"
+      },
       "clear_search_on_folder_change": {
         "label": "Cancella la ricerca quando cambi cartella",
         "description": "Facendo clic su una cartella (Posta in arrivo, Inviati…) la ricerca attiva viene cancellata e si apre quella cartella. Se disattivato, la ricerca resta attiva e viene rieseguita nella cartella scelta."

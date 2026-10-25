@@ -36,6 +36,7 @@ import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets"
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { cn, type MailboxNode } from "@/lib/utils";
 import { PluginActions } from "@/components/plugins/plugin-actions";
+import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
 
 interface MvListToolbarProps {
   /** Loaded conversation count, for the right-hand range readout. */
@@ -217,6 +218,8 @@ export function MvListToolbar({
   // Optimistic updates and demo fixtures can briefly leave the server total
   // behind the rows already loaded. Never render an impossible "23 of 22".
   const displayedTotal = Math.max(totalCount ?? loadedCount, loadedCount);
+  // The "Unread first" inbox gives each section its own readout instead.
+  const sectioned = !!useUnreadFirstSection();
 
   const currentRole = mailboxes.find((mb) => mb.id === selectedMailbox)?.role
     ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
@@ -659,7 +662,7 @@ export function MvListToolbar({
 
       <div className="flex-1 min-w-0" />
 
-      {loadedCount > 0 && (
+      {loadedCount > 0 && !sectioned && (
         <span className="text-xs text-muted-foreground tabular-nums pe-2 shrink-0">
           {/* The range readout. The list grows as it scrolls rather than
               paging, so there are no previous/next arrows to go with it. */}

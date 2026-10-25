@@ -244,6 +244,11 @@
     "show_on_mobile": "モバイルで表示"
   },
   "email_list": {
+    "sections": {
+      "unread": "未読",
+      "everything_else": "その他すべて",
+      "unread_empty": "受信トレイのメッセージをすべて読みました。"
+    },
     "columns": {
       "from": "差出人",
       "to": "宛先",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "受信トレイの種類",
+        "description": "「未読を先頭」では、未読の最新25件を受信トレイの他のメールの上のセクションに表示します",
+        "default": "デフォルト",
+        "unread_first": "未読を先頭"
+      },
       "clear_search_on_folder_change": {
         "label": "フォルダー切り替え時に検索をクリア",
         "description": "フォルダー（受信トレイ、送信済みなど）をクリックすると、有効な検索をクリアしてそのフォルダーを表示します。オフの場合、検索は保持され、切り替え先のフォルダーで再実行されます。"

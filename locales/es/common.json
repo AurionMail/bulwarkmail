@@ -244,6 +244,11 @@
     "show_on_mobile": "Mostrar en móvil"
   },
   "email_list": {
+    "sections": {
+      "unread": "No leídos",
+      "everything_else": "Todo lo demás",
+      "unread_empty": "Has leído todos los mensajes de la bandeja de entrada."
+    },
     "columns": {
       "from": "De",
       "to": "Para",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Tipo de bandeja de entrada",
+        "description": "«No leídos primero» muestra tus 25 mensajes no leídos más recientes en una sección encima del resto de la bandeja",
+        "default": "Predeterminado",
+        "unread_first": "No leídos primero"
+      },
       "clear_search_on_folder_change": {
         "label": "Borrar la búsqueda al cambiar de carpeta",
         "description": "Al hacer clic en una carpeta (Bandeja de entrada, Enviados…) se borra la búsqueda activa y se muestra esa carpeta. Si está desactivado, la búsqueda se mantiene y se vuelve a ejecutar en la carpeta a la que cambies."

@@ -244,6 +244,11 @@
     "show_on_mobile": "Auf Mobilgerät anzeigen"
   },
   "email_list": {
+    "sections": {
+      "unread": "Ungelesen",
+      "everything_else": "Alles andere",
+      "unread_empty": "Du hast alle Nachrichten im Posteingang gelesen."
+    },
     "columns": {
       "from": "Von",
       "to": "An",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Posteingangstyp",
+        "description": "„Ungelesene zuerst“ zeigt deine 25 neuesten ungelesenen Nachrichten in einem eigenen Abschnitt über dem restlichen Posteingang",
+        "default": "Standard",
+        "unread_first": "Ungelesene zuerst"
+      },
       "clear_search_on_folder_change": {
         "label": "Suche beim Ordnerwechsel löschen",
         "description": "Ein Klick auf einen Ordner (Posteingang, Gesendet …) löscht die aktive Suche und zeigt den Ordner. Ist die Option aus, bleibt die Suche bestehen und wird im neuen Ordner erneut ausgeführt."

@@ -244,6 +244,11 @@
     "show_on_mobile": "Mobilde Göster"
   },
   "email_list": {
+    "sections": {
+      "unread": "Okunmamış",
+      "everything_else": "Diğer her şey",
+      "unread_empty": "Gelen kutusundaki tüm iletileri okudunuz."
+    },
     "columns": {
       "from": "Kimden",
       "to": "Kime",
@@ -1412,6 +1417,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Gelen kutusu türü",
+        "description": "\"Önce okunmamışlar\", en yeni 25 okunmamış iletinizi gelen kutusunun geri kalanının üstündeki bir bölümde gösterir",
+        "default": "Varsayılan",
+        "unread_first": "Önce okunmamışlar"
+      },
       "clear_search_on_folder_change": {
         "label": "Klasör değiştirirken aramayı temizle",
         "description": "Bir klasöre tıklamak (Gelen Kutusu, Gönderilenler…) etkin aramayı temizler ve o klasörü gösterir. Kapalıyken arama korunur ve geçtiğiniz klasörde yeniden çalıştırılır."
