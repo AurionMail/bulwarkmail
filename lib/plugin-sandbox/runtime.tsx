@@ -1236,6 +1236,9 @@ function handleHostMessage(ev: MessageEvent): void {
 
     case 'theme-change':
       applyHostTheme(msg.theme);
+      // The host switches the iframe element's color-scheme on this, not
+      // before: while the two differ the browser paints an opaque canvas.
+      sendToHost({ type: 'theme-applied', dark: msg.theme.dark === true });
       break;
 
     case 'settings-change':

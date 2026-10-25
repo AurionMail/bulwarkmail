@@ -350,9 +350,17 @@ export class SandboxInstance {
     this.iframe.style.border = 'none';
     // The frame's document declares the theme's color-scheme (themeSnapshotToCSS).
     // When the iframe element's own color-scheme differs, the browser paints
-    // an opaque canvas behind the frame (white in a dark theme), so the two
-    // are always set together.
-    if (initPayload.mode === 'slot') this.iframe.style.colorScheme = initPayload.theme.dark ? 'dark' : 'light';
+    // an opaque canvas behind the frame (white in a dark theme). Until init,
+    // the document is about:blank and then the bare sandbox page, neither of
+    // which declares one, so a dark-theme panel showed white for the ~0.5 s a
+    // frame takes to boot. The frame stays hidden until init-done: by then it
+    // has applied the theme, and it has nothing to show any earlier. Later
+    // theme changes switch the element when the frame confirms them
+    // (theme-applied).
+    if (initPayload.mode === 'slot') {
+      this.iframe.style.colorScheme = initPayload.theme.dark ? 'dark' : 'light';
+      this.iframe.style.visibility = 'hidden';
+    }
     this.iframe.style.display = 'block';
     if (initPayload.mode === 'background') {
       this.iframe.style.position = 'absolute';
@@ -442,7 +450,12 @@ export class SandboxInstance {
         return;
 
       case 'init-done':
+        if (this.mode === 'slot') this.iframe.style.visibility = '';
         this.resolveInit({ hooks: msg.hooks, slots: msg.slots, shortcuts: msg.shortcuts ?? [] });
+        return;
+
+      case 'theme-applied':
+        if (this.mode === 'slot') this.iframe.style.colorScheme = msg.dark === true ? 'dark' : 'light';
         return;
 
       case 'init-error':
@@ -587,7 +600,16 @@ export class SandboxInstance {
   /** Push a new resolved theme so the slot iframe re-injects its theme CSS. */
   setTheme(theme: ThemeSnapshot): void {
     if (this.destroyed) return;
-    this.iframe.style.colorScheme = theme.dark ? 'dark' : 'light';
+    // Before init the frame is not listening yet and the message was lost,
+    // so it booted with the theme of the moment it was created.
+    if (this.pendingInit?.mode === 'slot') {
+      this.pendingInit.theme = theme;
+      this.iframe.style.colorScheme = theme.dark ? 'dark' : 'light';
+      return;
+    }
+    // The element's color-scheme follows when the frame has applied the
+    // theme (theme-applied). Switching it first left a light document in a
+    // dark element for a frame or two: a white flash on every switch to dark.
     this.send({ type: 'theme-change', theme });
   }
 

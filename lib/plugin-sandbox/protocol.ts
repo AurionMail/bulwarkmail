@@ -156,6 +156,13 @@ export interface HookResultMsg {
   error?: string;
 }
 
+/**
+ * A slot frame has applied a theme-change. The host sets the iframe element's
+ * color-scheme only now, so element and document never disagree (see
+ * SandboxInstance.setTheme).
+ */
+export interface ThemeAppliedMsg { type: 'theme-applied'; dark: boolean; }
+
 export interface SlotResizeMsg {
   type: 'slot-resize';
   height: number;
@@ -219,6 +226,7 @@ export type SandboxToHost =
   | CallbackInvokeMsg
   | HookResultMsg
   | SlotResizeMsg
+  | ThemeAppliedMsg
   | SlotShouldShowResultMsg
   | FloatingDropdownOpenMsg
   | FloatingDropdownUpdateMsg

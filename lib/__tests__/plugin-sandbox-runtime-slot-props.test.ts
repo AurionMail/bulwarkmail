@@ -73,3 +73,26 @@ describe('slot props in the sandbox runtime', () => {
     await waitFor(() => expect(screen.getByText('new')).toBeInTheDocument());
   }, 30_000);
 });
+
+describe('theme changes in the sandbox runtime', () => {
+  it('applies a theme change and tells the host, which then switches the iframe element', async () => {
+    const { SandboxRuntime } = await import('@/lib/plugin-sandbox/runtime');
+    render(React.createElement(SandboxRuntime));
+    post(hostWindow, HOST_ORIGIN, {
+      type: 'init',
+      payload: {
+        mode: 'slot', pluginId: 'x', tier: 'privileged', slot: 'email-banner', locale: 'en',
+        manifest: { id: 'x', version: '1.0.0', permissions: [], settings: {} },
+        code: BUNDLE, extraProps: { label: 'x' },
+        theme: { dark: false, fontFamily: 'sans-serif', vars: {} },
+      },
+    });
+    await waitFor(() => expect(screen.getByText('x')).toBeInTheDocument());
+
+    post(hostWindow, HOST_ORIGIN, { type: 'theme-change', theme: { dark: true, fontFamily: 'sans-serif', vars: {} } });
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(hostWindow.postMessage).toHaveBeenCalledWith({ type: 'theme-applied', dark: true }, HOST_ORIGIN);
+    document.documentElement.classList.remove('dark');
+  }, 30_000);
+});

@@ -204,24 +204,73 @@ describe('plugin frame permissions', () => {
 });
 
 describe('plugin frame color scheme', () => {
-  // A frame whose document says dark while the iframe element says light gets
-  // an opaque white canvas from the browser: dark text tokens on white.
-  it('gives the iframe element the color-scheme the frame declares, at start and on a theme change', () => {
+  // A frame whose document says dark while the iframe element says light (or
+  // the other way round) gets an opaque canvas from the browser: a white
+  // panel in a dark page.
+  function slot() {
+    const inst = createSlotInstance({
+      plugin: plugin(), slot: 'plugin-dialog', code: '', locale: 'en', tier: 'untrusted', extraProps: {},
+      hostContainer: document.body, onResize: () => {},
+    });
+    instances.push(inst);
+    return inst;
+  }
+
+  it('starts with the color-scheme of the theme the frame boots with', async () => {
     document.documentElement.classList.add('dark');
     try {
-      const inst = createSlotInstance({
-        plugin: plugin(), slot: 'plugin-dialog', code: '', locale: 'en', tier: 'untrusted', extraProps: {},
-        hostContainer: document.body, onResize: () => {},
-      });
-      instances.push(inst);
-      expect(inst.iframe.style.colorScheme).toBe('dark');
-      inst.setTheme({ dark: false, fontFamily: 'sans-serif', vars: {} });
-      expect(inst.iframe.style.colorScheme).toBe('light');
-      inst.setTheme({ dark: true, fontFamily: 'sans-serif', vars: {} });
-      expect(inst.iframe.style.colorScheme).toBe('dark');
+      expect(slot().iframe.style.colorScheme).toBe('dark');
     } finally {
       document.documentElement.classList.remove('dark');
+      // Let the page-theme watcher settle before the next test's frames.
+      await new Promise((r) => setTimeout(r, 50));
     }
+  });
+
+  it('keeps a slot frame hidden until it has booted with the theme', () => {
+    // Before init the document (about:blank, then the bare sandbox page)
+    // declares no color-scheme, so a dark-theme panel showed white.
+    const inst = slot();
+    expect(inst.iframe.style.visibility).toBe('hidden');
+    post(inst.iframe.contentWindow, 'null', { type: 'sandbox-ready' });
+    expect(inst.iframe.style.visibility).toBe('hidden');
+    post(inst.iframe.contentWindow, 'null', { type: 'init-done', hooks: [], slots: [], shortcuts: [] });
+    expect(inst.iframe.style.visibility).toBe('');
+  });
+
+  it('does not hide background frames', () => {
+    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    instances.push(inst);
+    expect(inst.iframe.style.visibility).toBe('');
+  });
+
+  it('boots with a theme that changed before the frame was ready', async () => {
+    const inst = slot();
+    const sent: unknown[] = [];
+    vi.spyOn(inst.iframe.contentWindow!, 'postMessage').mockImplementation((msg: unknown) => { sent.push(msg); });
+    inst.setTheme({ dark: true, fontFamily: 'sans-serif', vars: {} });
+    expect(inst.iframe.style.colorScheme).toBe('dark');
+
+    post(inst.iframe.contentWindow, 'null', { type: 'sandbox-ready' });
+    await new Promise((r) => setTimeout(r, 0));
+    const init = sent.find((m) => (m as { type: string }).type === 'init') as { payload: { theme: { dark: boolean } } };
+    expect(init.payload.theme.dark).toBe(true);
+    expect(sent.some((m) => (m as { type: string }).type === 'theme-change')).toBe(false);
+  });
+
+  it('switches the element only once the frame has applied a theme change', async () => {
+    const inst = slot();
+    vi.spyOn(inst.iframe.contentWindow!, 'postMessage').mockImplementation(() => {});
+    post(inst.iframe.contentWindow, 'null', { type: 'sandbox-ready' });
+    await new Promise((r) => setTimeout(r, 0));
+    post(inst.iframe.contentWindow, 'null', { type: 'init-done', hooks: [], slots: [], shortcuts: [] });
+    expect(inst.iframe.style.colorScheme).toBe('light');
+
+    inst.setTheme({ dark: true, fontFamily: 'sans-serif', vars: {} });
+    // The frame's document is still light: a dark element now means white.
+    expect(inst.iframe.style.colorScheme).toBe('light');
+    post(inst.iframe.contentWindow, 'null', { type: 'theme-applied', dark: true });
+    expect(inst.iframe.style.colorScheme).toBe('dark');
   });
 });
 
