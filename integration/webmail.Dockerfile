@@ -22,6 +22,9 @@ RUN npm ci
 # App source (data-testid hooks included).
 COPY . .
 
+# The plugin sandbox document's script and stylesheet (see the script).
+RUN node scripts/build-plugin-sandbox.mjs
+
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000

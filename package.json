@@ -22,7 +22,7 @@
     "typescript"
   ],
   "scripts": {
-    "dev": "node scripts/build-plugin-sandbox.mjs && next dev --turbopack",
+    "dev": "node scripts/build-plugin-sandbox.mjs --watch -- next dev --turbopack",
     "build": "node scripts/build-plugin-sandbox.mjs && next build --turbopack",
     "build:lite": "node scripts/lite/build.mjs",
     "lite:serve": "node scripts/lite/serve.mjs out 4173",

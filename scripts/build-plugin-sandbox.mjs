@@ -8,12 +8,16 @@
 // origins, so the browser's code cache never helps: what a frame loads, it
 // parses again, on the host page's main thread.
 //
-//   node scripts/build-plugin-sandbox.mjs           (npm run build and dev run it)
+//   node scripts/build-plugin-sandbox.mjs                  (npm run build)
+//   node scripts/build-plugin-sandbox.mjs --watch -- <cmd>  (npm run dev: rebuild
+//     when one of the sandbox's sources changes, while <cmd> runs)
 
 import { build } from 'esbuild';
 import postcss from 'postcss';
 import tailwind from '@tailwindcss/postcss';
 import { createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { watch } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,8 +76,10 @@ const tablerPerIcon = {
  * Build into `outdir` (emptied first). Resolves with the file names and
  * esbuild's metafile outputs.
  */
-export async function buildPluginSandbox({ outdir = DEFAULT_OUTDIR } = {}) {
-  await rm(outdir, { recursive: true, force: true });
+export async function buildPluginSandbox({ outdir = DEFAULT_OUTDIR, clean = true } = {}) {
+  // A rebuild under `next dev` keeps the old files: the manifest, written
+  // last, switches frames over, and one loading meanwhile still finds its files.
+  if (clean) await rm(outdir, { recursive: true, force: true });
   await mkdir(outdir, { recursive: true });
 
   // ES modules so the rarely used parts (every Tabler icon, for an icon name
@@ -123,11 +129,42 @@ export async function buildPluginSandbox({ outdir = DEFAULT_OUTDIR } = {}) {
 
   const manifest = { script: path.basename(script), style, preload };
   await writeFile(path.join(outdir, 'manifest.json'), `${JSON.stringify(manifest)}\n`);
-  return { ...manifest, outputs: js.metafile.outputs, css: css.css };
+  const inputs = [...Object.keys(js.metafile.inputs).map((f) => path.resolve(root, f)), cssPath, path.join(root, 'app/theme-inline.css')];
+  return { ...manifest, outputs: js.metafile.outputs, css: css.css, inputs };
+}
+
+function report({ outputs, style, css }) {
+  const sizes = Object.entries(outputs).filter(([f]) => f.endsWith('.js')).map(([f, o]) => `${path.basename(f)} ${o.bytes}`);
+  console.log(`[build-plugin-sandbox] ${sizes.join(', ')}, ${style} ${css.length}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const { outputs, style, css } = await buildPluginSandbox();
-  const sizes = Object.entries(outputs).filter(([f]) => f.endsWith('.js')).map(([f, o]) => `${path.basename(f)} ${o.bytes}`);
-  console.log(`[build-plugin-sandbox] ${sizes.join(', ')}, ${style} ${css.length}`);
+  const args = process.argv.slice(2);
+  let built = await buildPluginSandbox();
+  report(built);
+  if (args.includes('--watch')) {
+    let timer = null;
+    let running = false;
+    const rebuild = async () => {
+      if (running) { timer = setTimeout(rebuild, 200); return; }
+      running = true;
+      try { built = await buildPluginSandbox({ clean: false }); report(built); } catch (err) { console.error('[build-plugin-sandbox]', err.message); }
+      running = false;
+    };
+    for (const dir of ['app', 'components', 'lib', 'i18n']) {
+      watch(path.join(root, dir), { recursive: true }, (_event, file) => {
+        if (!file || !built.inputs.includes(path.join(root, dir, file))) return;
+        clearTimeout(timer);
+        timer = setTimeout(rebuild, 200);
+      });
+    }
+    const dash = args.indexOf('--');
+    if (dash >= 0 && args.length > dash + 1) {
+      const [cmd, ...cmdArgs] = args.slice(dash + 1);
+      // npm puts node_modules/.bin on PATH; on Windows those are .cmd shims.
+      const child = spawn(cmd, cmdArgs, { stdio: 'inherit', shell: process.platform === 'win32' });
+      child.on('exit', (code) => process.exit(code ?? 0));
+      for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => child.kill(sig));
+    }
+  }
 }
