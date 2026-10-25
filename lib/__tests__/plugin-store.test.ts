@@ -7,6 +7,7 @@ vi.mock('@/lib/plugin-storage', () => ({
   pluginStorage: {
     saveCode: vi.fn().mockResolvedValue(undefined),
     getCode: vi.fn().mockResolvedValue(null),
+    codeIds: vi.fn().mockResolvedValue([]),
     deleteCode: vi.fn().mockResolvedValue(undefined),
     saveThemeCSS: vi.fn().mockResolvedValue(undefined),
     getThemeCSS: vi.fn().mockResolvedValue(null),
@@ -178,6 +179,7 @@ describe('usePluginStore', () => {
       });
       mocks.downloadManagedBundle.mockResolvedValue('bundle-code');
       vi.mocked(pluginStorage.getCode).mockResolvedValue(null);
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue([]);
     });
 
     it('installs a new server plugin and caches its bundle', async () => {
@@ -194,7 +196,7 @@ describe('usePluginStore', () => {
         ok: true,
         json: async () => ({ plugins: [serverPlugin, { ...serverPlugin, id: 'optional-plugin', forceEnabled: false }], themes: [] }),
       });
-      vi.mocked(pluginStorage.getCode).mockRejectedValue(new Error('IndexedDB unavailable'));
+      vi.mocked(pluginStorage.codeIds).mockRejectedValue(new Error('IndexedDB unavailable'));
       vi.mocked(pluginStorage.saveCode).mockRejectedValueOnce(new Error('IndexedDB unavailable'));
       vi.mocked(pluginStorage.saveCode).mockRejectedValueOnce(new Error('IndexedDB unavailable'));
       vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -209,7 +211,7 @@ describe('usePluginStore', () => {
 
     it('re-downloads the bundle when the record is current but IndexedDB has no copy (#636)', async () => {
       usePluginStore.setState({ plugins: [syncedRecord()] });
-      vi.mocked(pluginStorage.getCode).mockResolvedValue(null);
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue([]);
 
       await usePluginStore.getState().initializePlugins();
 
@@ -220,7 +222,7 @@ describe('usePluginStore', () => {
 
     it('leaves a current plugin alone when its bundle is cached', async () => {
       usePluginStore.setState({ plugins: [syncedRecord()] });
-      vi.mocked(pluginStorage.getCode).mockResolvedValue('cached-code');
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue(['managed-plugin']);
 
       await usePluginStore.getState().initializePlugins();
 
@@ -228,9 +230,39 @@ describe('usePluginStore', () => {
       expect(pluginStorage.saveCode).not.toHaveBeenCalled();
     });
 
+    it('checks for cached bundles without reading them', async () => {
+      // Reading each bundle in full, one after another, held up the start.
+      usePluginStore.setState({ plugins: [syncedRecord()] });
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue(['managed-plugin']);
+
+      await usePluginStore.getState().initializePlugins();
+
+      expect(pluginStorage.codeIds).toHaveBeenCalledTimes(1);
+      expect(pluginStorage.getCode).not.toHaveBeenCalled();
+    });
+
+    it('downloads the bundles of several plugins at the same time, and keeps the server order', async () => {
+      mocks.apiFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ plugins: [serverPlugin, { ...serverPlugin, id: 'second-plugin' }], themes: [] }),
+      });
+      const pending: Array<(code: string) => void> = [];
+      mocks.downloadManagedBundle.mockImplementation(() => new Promise<string>((resolve) => { pending.push(resolve); }));
+
+      const init = usePluginStore.getState().initializePlugins();
+      await vi.waitFor(() => expect(pending).toHaveLength(2));
+      // The second finishes first.
+      pending[1]('code-2');
+      pending[0]('code-1');
+      await init;
+
+      expect(usePluginStore.getState().plugins.map((p) => p.id)).toEqual(['managed-plugin', 'second-plugin']);
+      expect(pluginStorage.saveCode).toHaveBeenCalledWith('second-plugin', 'code-2');
+    });
+
     it('re-downloads when the server hash changed even though a bundle is cached', async () => {
       usePluginStore.setState({ plugins: [syncedRecord({ bundleHash: 'hash-v0' })] });
-      vi.mocked(pluginStorage.getCode).mockResolvedValue('cached-code');
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue(['managed-plugin']);
 
       await usePluginStore.getState().initializePlugins();
 

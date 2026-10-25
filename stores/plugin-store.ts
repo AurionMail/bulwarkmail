@@ -583,16 +583,60 @@ async function syncServerPlugins(
     // Track which plugins came from the server (so we can clean up stale ones)
     const prevServerIds = getServerManagedPluginIds();
 
-    // Install or update server plugins that are missing/outdated locally
-    for (const sp of serverPlugins) {
+    // Which bundles this browser has, in one IndexedDB request. The loop used
+    // to read every bundle in full, one plugin after another, only to see
+    // whether it was there; with a dozen plugins that held up the start by
+    // most of a second. A storage error counts as "none cached" (#636).
+    const cachedIds = new Set(await pluginStorage.codeIds().catch(() => [] as string[]));
+
+    // Install or update server plugins that are missing/outdated locally.
+    // Downloads run side by side; the store is updated afterwards in the
+    // server's order, so the list keeps that order.
+    const outcomes = await Promise.all(serverPlugins.map(async (sp) => {
       const local = get().plugins.find(p => p.id === sp.id);
 
       if (!local) {
         // New server plugin - download bundle and install.
         const code = await downloadPluginBundle(sp.id, sp.bundleHash, sp.tier);
-        if (!code) continue;
+        if (!code) return null;
         await cacheManagedBundle(sp.id, code);
+        return { sp, isNew: true, needsBundle: true };
+      }
 
+      // Existing plugin. Re-download the bundle only when the code actually
+      // changed or the local copy is gone, but ALWAYS re-derive server-owned
+      // metadata from one place (serverMeta) so no passthrough field is
+      // silently dropped on a metadata-only change. Only write when something
+      // differs, to avoid a needless persist/re-render on every sync.
+      //
+      // The record (persisted store) and the bundle (IndexedDB) have separate
+      // lifetimes: the bundle can be evicted, cleared, or never have been
+      // written in this browser while the record says everything is current.
+      // The loader used to strand such plugins on "No bundle in storage" with
+      // no way for a non-admin to recover (#636); a missing local copy is
+      // treated exactly like a changed one instead.
+      const needsBundle =
+        !cachedIds.has(sp.id) ||
+        local.version !== sp.version ||
+        // bundleHash mismatch covers re-uploads of the same version with new
+        // code; a falsy local hash (older installs) also forces a refresh so
+        // we capture the hash on the next sync.
+        (!!sp.bundleHash && local.bundleHash !== sp.bundleHash);
+
+      if (needsBundle) {
+        const code = await downloadPluginBundle(sp.id, sp.bundleHash, sp.tier);
+        if (!code) return null;
+        await cacheManagedBundle(sp.id, code);
+      }
+      return { sp, isNew: false, needsBundle };
+    }));
+
+    for (const outcome of outcomes) {
+      if (!outcome) continue;
+      const { sp, isNew, needsBundle } = outcome;
+      const local = get().plugins.find(p => p.id === sp.id);
+
+      if (isNew || !local) {
         const plugin: InstalledPlugin = {
           id: sp.id,
           type: sp.type as InstalledPlugin['type'],
@@ -608,35 +652,6 @@ async function syncServerPlugins(
             : { plugins: [...state.plugins, plugin] },
         );
         continue;
-      }
-
-      // Existing plugin. Re-download the bundle only when the code actually
-      // changed or the local copy is gone, but ALWAYS re-derive server-owned
-      // metadata from one place (serverMeta) so no passthrough field is
-      // silently dropped on a metadata-only change. Only write when something
-      // differs, to avoid a needless persist/re-render on every sync.
-      //
-      // The record (persisted store) and the bundle (IndexedDB) have separate
-      // lifetimes: the bundle can be evicted, cleared, or never have been
-      // written in this browser while the record says everything is current.
-      // The loader used to strand such plugins on "No bundle in storage" with
-      // no way for a non-admin to recover (#636); a missing local copy is
-      // treated exactly like a changed one instead.
-      const hasLocalBundle = await pluginStorage.getCode(sp.id)
-        .then((code) => !!code)
-        .catch(() => false);
-      const needsBundle =
-        !hasLocalBundle ||
-        local.version !== sp.version ||
-        // bundleHash mismatch covers re-uploads of the same version with new
-        // code; a falsy local hash (older installs) also forces a refresh so
-        // we capture the hash on the next sync.
-        (!!sp.bundleHash && local.bundleHash !== sp.bundleHash);
-
-      if (needsBundle) {
-        const code = await downloadPluginBundle(sp.id, sp.bundleHash, sp.tier);
-        if (!code) continue;
-        await cacheManagedBundle(sp.id, code);
       }
 
       // Force-enable in the same pass when the server flips it on, so the user
