@@ -22,6 +22,24 @@ describe('checkSearchResults', () => {
     ]).map((r) => r.key)).toEqual(['b']);
   });
 
+  it('keeps the message an entry names, with its account', () => {
+    expect(checkSearchResults('p', [
+      { key: 'a', title: 'A', email: { id: 'M1', accountId: 'group-1', extra: true } },
+      { key: 'b', title: 'B', email: { id: 'M2' } },
+    ]).map((r) => r.email)).toEqual([{ id: 'M1', accountId: 'group-1' }, { id: 'M2' }]);
+  });
+
+  it('keeps an entry whose message is not one, without it', () => {
+    const checked = checkSearchResults('p', [
+      { key: 'a', title: 'A', email: 'M1' },
+      { key: 'b', title: 'B', email: { id: '' } },
+      { key: 'c', title: 'C', email: { id: 'M3', accountId: 7 } },
+      { key: 'd', title: 'D', email: { id: 'x'.repeat(256) } },
+    ]);
+    expect(checked.map((r) => r.key)).toEqual(['a', 'b', 'c', 'd']);
+    expect(checked.every((r) => !('email' in r))).toBe(true);
+  });
+
   it('ignores an answer that is not a list', () => {
     expect(checkSearchResults('p', { key: 'a', title: 'A' })).toEqual([]);
     expect(checkSearchResults('p', undefined)).toEqual([]);

@@ -1,11 +1,12 @@
 // Results plugins add to a search through onProvideSearchResults, drawn as a
 // block above the search's message list (components/email/plugin-search-results.tsx).
 // Each plugin is asked on its own, so every entry keeps the plugin it came
-// from: a click goes back to that plugin as onAction. What a plugin returns
-// crosses from its sandbox, so it is checked and cut here, never trusted.
+// from: a click goes back to that plugin as onAction, unless the entry names a
+// message, which the click opens. What a plugin returns crosses from its
+// sandbox, so it is checked and cut here, never trusted.
 
 import { emailHooks } from './plugin-hooks';
-import type { ExternalSearchResult } from './plugin-types';
+import type { ExternalSearchResult, SearchResultEmail } from './plugin-types';
 
 /** An entry as the host keeps it: checked, with the plugin that gave it. */
 export interface ProvidedSearchResult extends ExternalSearchResult {
@@ -18,11 +19,28 @@ const MAX_KEY = 200;
 const MAX_TITLE = 200;
 const MAX_SNIPPET = 300;
 const MAX_SOURCE = 40;
+/** JMAP ids are at most 255 octets (RFC 8620 §1.2). */
+const MAX_ID = 255;
 
 function text(value: unknown, max: number): string {
   if (typeof value !== 'string') return '';
   const flat = value.replace(/\s+/g, ' ').trim();
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+
+function jmapId(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 && value.length <= MAX_ID ? value : null;
+}
+
+/** The message an entry names, or null for anything that is not one. */
+function email(value: unknown): SearchResultEmail | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const id = jmapId(raw.id);
+  if (!id) return null;
+  if (raw.accountId === undefined) return { id };
+  const accountId = jmapId(raw.accountId);
+  return accountId ? { id, accountId } : null;
 }
 
 /**
@@ -43,7 +61,12 @@ export function checkSearchResults(pluginId: string, value: unknown): ProvidedSe
     if (!key || key.length > MAX_KEY || seen.has(key) || !title) continue;
     seen.add(key);
     const source = text(entry.source, MAX_SOURCE);
-    out.push({ pluginId, key, title, snippet: text(entry.snippet, MAX_SNIPPET), ...(source ? { source } : {}) });
+    const message = email(entry.email);
+    out.push({
+      pluginId, key, title, snippet: text(entry.snippet, MAX_SNIPPET),
+      ...(source ? { source } : {}),
+      ...(message ? { email: message } : {}),
+    });
   }
   return out;
 }
