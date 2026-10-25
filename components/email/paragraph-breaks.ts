@@ -39,6 +39,39 @@ export function addTrailingParagraphBreaks(root: ParentNode): void {
   });
 }
 
+/**
+ * Paragraph spacing (#1340).
+ *
+ * The composer shows paragraphs 4px apart (`.tiptap p` in globals.css, none
+ * inside a table), but a sent `<p>` carries no style, so the Sent folder and
+ * every recipient's client fall back to the browser's 1em margins and each
+ * Enter looks like a blank line. Inline the composer's margin on the way out.
+ * Paragraphs keep their `style` in the editor, so the parse side strips the
+ * margin again (paragraphStyleWithoutSpacing) and a re-opened draft doesn't
+ * stack one more margin per save.
+ */
+const PARAGRAPH_MARGIN = "margin:4px 0;";
+const TABLE_PARAGRAPH_MARGIN = "margin:0;";
+
+export function addParagraphSpacing(root: ParentNode): void {
+  root.querySelectorAll("p").forEach((p) => {
+    if (p.hasAttribute(SIGNATURE_RANGE_MARKER)) return;
+    const margin = p.closest("table") ? TABLE_PARAGRAPH_MARGIN : PARAGRAPH_MARGIN;
+    // Ahead of any style the editor wrote, so an explicit margin still wins.
+    p.setAttribute("style", margin + (p.getAttribute("style") ?? ""));
+  });
+}
+
+/** A paragraph's `style` without the margin addParagraphSpacing put in front. */
+export function paragraphStyleWithoutSpacing(el: HTMLElement): string | null {
+  const style = el.getAttribute("style");
+  if (style === null) return null;
+  for (const margin of [PARAGRAPH_MARGIN, TABLE_PARAGRAPH_MARGIN]) {
+    if (style.startsWith(margin)) return style.slice(margin.length).trim() || null;
+  }
+  return style;
+}
+
 /** Whether `el` is the <br> a paragraph ends on, which a browser doesn't show. */
 export function isTrailingParagraphBreak(el: HTMLElement): boolean {
   if (el.parentElement?.nodeName !== "P") return false;

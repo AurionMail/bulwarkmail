@@ -5,7 +5,7 @@ import { DOMSerializer } from "@tiptap/pm/model";
 import { NodeSelection, Plugin, PluginKey, Selection, TextSelection } from "@tiptap/pm/state";
 import type { Editor } from "@tiptap/react";
 
-import { addTrailingParagraphBreaks } from "@/components/email/paragraph-breaks";
+import { addParagraphSpacing, addTrailingParagraphBreaks } from "@/components/email/paragraph-breaks";
 import { buildSignatureBlock } from "@/components/email/signature-block";
 import { parkRemoteResources, restoreRemoteResources, sanitizeComposerIslandHtml } from "@/lib/email-sanitization";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -270,6 +270,7 @@ export function serializeEditorContent(editor: Editor): string {
     const tmp = document.createElement("div");
     tmp.appendChild(fragment);
     if (index <= lastLine) addTrailingParagraphBreaks(tmp);
+    addParagraphSpacing(tmp);
     parts.push(tmp.innerHTML);
   });
   return parts.join("");

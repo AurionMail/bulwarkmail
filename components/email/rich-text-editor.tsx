@@ -23,7 +23,7 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { QuotedHtml, serializeEditorContent } from "@/components/email/quoted-html";
-import { trailingParagraphBreakRule } from "@/components/email/paragraph-breaks";
+import { paragraphStyleWithoutSpacing, trailingParagraphBreakRule } from "@/components/email/paragraph-breaks";
 import { SignatureBlock } from "@/components/email/signature-block";
 import { styledBlockAttributes } from "@/components/email/styled-block-attributes";
 import { RecipientMention, RecipientMentionList, type RecipientMentionListHandle } from "@/components/email/recipient-mention";
@@ -69,6 +69,7 @@ const StyledParagraph = Paragraph.extend({
     return {
       ...this.parent?.(),
       ...styledBlockAttributes,
+      style: { ...styledBlockAttributes.style, parseHTML: paragraphStyleWithoutSpacing },
     };
   },
   // The <br> serializeEditorContent adds to empty lines isn't a hard break.
