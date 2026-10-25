@@ -22,7 +22,7 @@ function request(nonce = 'n0nce'): Request {
 
 beforeEach(() => {
   files.clear();
-  files.set(MANIFEST, JSON.stringify({ script: 'runtime-ABC.js', style: 'kit-123.css', preload: ['chunk-ICONS.js'] }));
+  files.set(MANIFEST, JSON.stringify({ script: 'runtime-ABC.js', style: 'kit-123.css', preload: ['chunk-ICONS.js'], slotPreload: ['chunk-DOM.js'] }));
   vi.stubEnv('NODE_ENV', 'development'); // re-read the manifest for every test
 });
 
@@ -47,6 +47,14 @@ describe('plugin sandbox document', () => {
       expect(html).toContain('<div id="plugin-sandbox-root"></div>');
       expect(html).not.toContain('/_next/');
     });
+
+  it('preloads React DOM and the kit for slot frames only', async () => {
+    const slot = await (await untrusted(new Request('http://localhost:3000/plugin-sandbox?frame=slot', { headers: { 'x-nonce': 'n' } }))).text();
+    const background = await (await untrusted(request())).text();
+
+    expect(slot).toContain('href="/plugin-sandbox-assets/chunk-DOM.js"');
+    expect(background).not.toContain('chunk-DOM.js');
+  });
 
   it('serves the assets under the base path', async () => {
     vi.stubEnv('NEXT_PUBLIC_BASE_PATH', '/webmail');

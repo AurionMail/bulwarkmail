@@ -123,3 +123,24 @@ describe('translations in the sandbox runtime', () => {
     delete g.__pluginApi;
   }, 30_000);
 });
+
+describe('slot boot', () => {
+  it('shows props the host pushed while React DOM and the kit were loading', async () => {
+    const { SandboxRuntime } = await import('@/lib/plugin-sandbox/runtime');
+    render(React.createElement(SandboxRuntime));
+    post(hostWindow, HOST_ORIGIN, {
+      type: 'init',
+      payload: {
+        mode: 'slot', pluginId: 'x', tier: 'privileged', slot: 'email-banner', locale: 'en',
+        manifest: { id: 'x', version: '1.0.0', permissions: [], settings: {} },
+        code: BUNDLE, extraProps: { label: 'old' },
+        theme: { dark: false, fontFamily: 'sans-serif', vars: {} },
+      },
+    });
+    // Right away: the renderer is still loading.
+    post(hostWindow, HOST_ORIGIN, { type: 'props-update', props: { label: 'new' } });
+
+    await waitFor(() => expect(screen.getByText('new')).toBeInTheDocument());
+    expect(hostWindow.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'init-done' }), HOST_ORIGIN);
+  }, 30_000);
+});

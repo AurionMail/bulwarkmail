@@ -392,7 +392,10 @@ export class SandboxInstance {
     // "/plugin-sandbox" would hit the origin root and 404, breaking plugins.
     // Privileged plugins load the same-origin route so the CSP/allow-same-origin
     // pairing is consistent.
-    this.iframe.src = withBasePath(this.privileged ? SANDBOX_PRIVILEGED_PATH : SANDBOX_PATH);
+    // ?frame=slot: the document then loads React DOM and the UI kit with the
+    // runtime; a background frame never needs them (sandbox-document.ts).
+    this.iframe.src = withBasePath(this.privileged ? SANDBOX_PRIVILEGED_PATH : SANDBOX_PATH)
+      + (initPayload.mode === 'slot' ? '?frame=slot' : '');
 
     this.listener = (ev) => this.onMessage(ev);
     window.addEventListener('message', this.listener);
@@ -465,6 +468,9 @@ export class SandboxInstance {
         return;
 
       case 'init-error':
+        // The loader reports a background frame's failure; nobody waits on a
+        // slot frame's init, so say it here or it fails without a trace.
+        if (this.mode === 'slot') console.error(`[plugin-sandbox] "${this.pluginId}" slot failed to start: ${msg.error}`);
         this.rejectInit(new Error(msg.error));
         return;
 

@@ -19,6 +19,8 @@ interface SandboxAssets {
   style: string;
   /** Chunks the script imports statically. */
   preload: string[];
+  /** Chunks of the renderer (React DOM and the UI kit), for slot frames. */
+  slotPreload: string[];
 }
 
 let cached: Promise<SandboxAssets> | null = null;
@@ -30,8 +32,8 @@ function loadAssets(): Promise<SandboxAssets> {
     .then((text) => {
       const m = JSON.parse(text) as Partial<SandboxAssets>;
       if (typeof m.script !== 'string' || typeof m.style !== 'string') throw new Error('bad manifest');
-      const preload = Array.isArray(m.preload) ? m.preload.filter((p): p is string => typeof p === 'string') : [];
-      return { script: m.script, style: m.style, preload };
+      const names = (v: unknown) => (Array.isArray(v) ? v.filter((p): p is string => typeof p === 'string') : []);
+      return { script: m.script, style: m.style, preload: names(m.preload), slotPreload: names(m.slotPreload) };
     });
   cached.catch(() => { cached = null; });
   return cached;
@@ -51,10 +53,12 @@ export async function sandboxDocument(request: Request): Promise<Response> {
   }
   const nonce = escapeAttr(request.headers.get('x-nonce') ?? '');
   const base = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}${SANDBOX_ASSETS_PATH}`;
+  const slot = new URL(request.url).searchParams.get('frame') === 'slot';
+  const preload = slot ? [...assets.preload, ...assets.slotPreload] : assets.preload;
   const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">'
     + '<meta name="robots" content="noindex, nofollow"><title>Plugin sandbox</title>'
     + `<link rel="stylesheet" href="${escapeAttr(`${base}/${assets.style}`)}">`
-    + assets.preload.map((p) => `<link rel="modulepreload" nonce="${nonce}" href="${escapeAttr(`${base}/${p}`)}">`).join('')
+    + preload.map((p) => `<link rel="modulepreload" nonce="${nonce}" href="${escapeAttr(`${base}/${p}`)}">`).join('')
     + `<script type="module" nonce="${nonce}" src="${escapeAttr(`${base}/${assets.script}`)}"></script>`
     + '</head><body style="margin:0;padding:0;background:transparent"><div id="plugin-sandbox-root"></div></body></html>';
   return new Response(html, {

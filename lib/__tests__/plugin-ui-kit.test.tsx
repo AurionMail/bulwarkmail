@@ -149,11 +149,27 @@ describe('plugin UI kit components', () => {
   });
 
   it('is what the sandbox hands a plugin for require("@plugin-host/ui")', async () => {
-    const { makePluginRequire } = await import('../plugin-sandbox/runtime');
-    const req = makePluginRequire(null);
+    const { makePluginRequire, loadRenderer } = await import('../plugin-sandbox/runtime');
+    const req = makePluginRequire(null, await loadRenderer());
     expect(req('@plugin-host/ui')).toBe(kit.pluginUiKit);
     expect(kit.KIT_EXPORTS).toEqual(expect.arrayContaining(['Button', 'Input', 'Select', 'Combobox', 'Checkbox', 'Field', 'Tabs', 'List', 'ListRow', 'Badge', 'EmptyState', 'PageHeader', 'Spinner', 'DialogButtons', 'InfoBar', 'Chip']));
     expect(() => req('left-pad')).toThrow(/not available/);
+  });
+
+  it('has stand-ins with the same names in a background frame, which draws nothing', async () => {
+    // Loading the kit and React DOM there cost every background frame ~350 kB of parsing.
+    const { makePluginRequire } = await import('../plugin-sandbox/runtime');
+    const { KIT_NAMES } = await import('../plugin-sandbox/ui-kit/names');
+    const req = makePluginRequire(null);
+    const ui = req('@plugin-host/ui') as Record<string, unknown>;
+
+    expect([...KIT_NAMES].sort()).toEqual(kit.KIT_EXPORTS);
+    expect(Object.keys(ui).sort()).toEqual(kit.KIT_EXPORTS);
+    expect(ui.KIT_VERSION).toBe(kit.KIT_VERSION);
+    expect(() => (ui.Button as () => void)()).toThrow(/only works in a slot frame/);
+    const { createPortal } = req('react-dom') as { createPortal: () => void };
+    expect(() => createPortal()).toThrow(/only works in a slot frame/);
+    expect((req('react-dom') as { then?: unknown }).then).toBeUndefined();
   });
 });
 

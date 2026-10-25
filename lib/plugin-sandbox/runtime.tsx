@@ -18,7 +18,6 @@
 
 import { useEffect } from 'react';
 import * as React from 'react';
-import * as ReactDOM from 'react-dom/client';
 import * as ReactJSXRuntime from 'react/jsx-runtime';
 import type {
   HostToSandbox,
@@ -29,7 +28,7 @@ import type {
   RegionalSnapshot,
 } from './protocol';
 import { themeSnapshotToCSS, type ThemeSnapshot } from './host-theme';
-import { pluginUiKit, SlotPropsContext } from './ui-kit';
+import { backgroundReactDom, backgroundUiKit } from './ui-kit/background-kit';
 import { initFloatingDropdownBridge, dispatchFloatingDropdownEvent } from './ui-kit/floating-dropdown-bridge';
 import { interpolate, lookup, textDirection, type LocaleTables } from './plugin-i18n';
 import { isFillableSlot, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
@@ -956,27 +955,51 @@ function buildPluginApi(manifest: PluginManifest) {
  * The host injects the per-plugin API as `@plugin-host`, so plugin code can
  * `const api = require('@plugin-host')` in both background and slot modes.
  */
-export function makePluginRequire(api: ReturnType<typeof buildPluginApi> | null): (name: string) => unknown {
+export function makePluginRequire(api: ReturnType<typeof buildPluginApi> | null, renderer: Renderer | null = null): (name: string) => unknown {
+  const reactDom = renderer?.ReactDOM ?? backgroundReactDom;
   const known: Record<string, unknown> = {
     'react': React,
-    'react-dom': ReactDOM,
-    'react-dom/client': ReactDOM,
+    'react-dom': reactDom,
+    'react-dom/client': reactDom,
     'react/jsx-runtime': ReactJSXRuntime,
     'react/jsx-dev-runtime': ReactJSXRuntime,
   };
   if (api) known['@plugin-host'] = api;
   // The app's controls (lib/plugin-sandbox/ui-kit), so plugins draw the same
-  // buttons, fields and lists as the app without bundling their own.
-  known['@plugin-host/ui'] = pluginUiKit;
+  // buttons, fields and lists as the app without bundling their own. In a
+  // background frame, stand-ins with the same names.
+  known['@plugin-host/ui'] = renderer?.kit ?? backgroundUiKit;
   return (name: string) => {
     if (Object.prototype.hasOwnProperty.call(known, name)) return known[name];
     throw new Error(`Plugin sandbox: module "${name}" is not available. Externalise it in your bundler or ship it bundled.`);
   };
 }
 
-function evaluateBundle(code: string, api: ReturnType<typeof buildPluginApi> | null): PluginExports {
+// ─── Renderer (slot frames only) ─────────────────────────────
+
+/**
+ * React DOM and the UI kit. Only slot frames draw, so only they load these
+ * (a separate chunk, ~350 kB to parse); a background frame gets React and
+ * stand-ins. The host marks slot frames in their URL (?frame=slot) so the
+ * load starts with the document, not after init.
+ */
+export interface Renderer {
+  ReactDOM: typeof import('react-dom/client');
+  kit: unknown;
+  SlotPropsContext: React.Context<Record<string, unknown>>;
+}
+
+let rendererPromise: Promise<Renderer> | null = null;
+
+export function loadRenderer(): Promise<Renderer> {
+  rendererPromise ??= import('./slot-renderer')
+    .then((m) => ({ ReactDOM: m.ReactDOM, kit: m.pluginUiKit, SlotPropsContext: m.SlotPropsContext }));
+  return rendererPromise;
+}
+
+function evaluateBundle(code: string, api: ReturnType<typeof buildPluginApi> | null, renderer: Renderer | null = null): PluginExports {
   const mod: { exports: PluginExports } = { exports: {} };
-  const requireShim = makePluginRequire(api);
+  const requireShim = makePluginRequire(api, renderer);
   let fn: (...args: unknown[]) => void;
   try {
     fn = new Function(
@@ -987,7 +1010,7 @@ function evaluateBundle(code: string, api: ReturnType<typeof buildPluginApi> | n
     throw new Error(`Bundle parse error: ${(err as Error).message}`);
   }
   try {
-    fn(mod, mod.exports, requireShim, React, ReactDOM, ReactJSXRuntime, console);
+    fn(mod, mod.exports, requireShim, React, renderer?.ReactDOM ?? backgroundReactDom, ReactJSXRuntime, console);
   } catch (err) {
     throw new Error(`Bundle evaluation threw: ${(err as Error).message}`);
   }
@@ -1056,13 +1079,15 @@ async function bootBackground(payload: BackgroundInit): Promise<void> {
   sendToHost({ type: 'init-done', hooks: hookNames, slots: slotInfo, shortcuts: shortcutInfo });
 }
 
-function bootSlot(payload: SlotInit): void {
+async function bootSlot(payload: SlotInit): Promise<void> {
   // Replay the host theme before first paint so the slot never flashes the UA
   // default serif font or a light-on-light/dark mismatch.
   applyHostTheme(payload.theme);
 
+  const renderer = await loadRenderer();
+  const { SlotPropsContext } = renderer;
   const api = buildPluginApi(payload.manifest);
-  const exports = evaluateBundle(payload.code, api);
+  const exports = evaluateBundle(payload.code, api, renderer);
   pluginExports = exports;
   slotName = payload.slot;
 
@@ -1074,7 +1099,9 @@ function bootSlot(payload: SlotInit): void {
   const rootEl = document.getElementById('plugin-sandbox-root');
   if (!rootEl) throw new Error('Sandbox root element missing');
 
-  let currentProps = decodeCallbacks(payload.extraProps) as Record<string, unknown>;
+  // Props the host pushed while the renderer was loading replace the init ones.
+  let currentProps = decodeCallbacks(propsBeforeBoot ?? payload.extraProps) as Record<string, unknown>;
+  propsBeforeBoot = null;
   const Component = slotDef.component;
   const inline = isInlineSlot(payload.slot);
   // Filling its panel: the document is as tall as the frame and the slot's
@@ -1147,13 +1174,15 @@ function bootSlot(payload: SlotInit): void {
       React.createElement(SlotPropsContext.Provider, { value: props }, React.createElement(Component, props)));
   };
 
-  const reactRoot = ReactDOM.createRoot(rootEl);
+  const reactRoot = renderer.ReactDOM.createRoot(rootEl);
   reactRoot.render(React.createElement(SlotShell));
   sendToHost({ type: 'init-done', hooks: [], slots: [], shortcuts: [] });
 }
 
 // Populated by bootSlot - receives `props-update` messages.
 let slotPropsUpdater: ((next: Record<string, unknown>) => void) | null = null;
+/** The last props-update that arrived before bootSlot was ready for it. */
+let propsBeforeBoot: Record<string, unknown> | null = null;
 
 async function handleInit(payload: InitPayload): Promise<void> {
   if (bootDone) return;
@@ -1166,7 +1195,7 @@ async function handleInit(payload: InitPayload): Promise<void> {
     if (payload.mode === 'background') {
       await bootBackground(payload);
     } else {
-      bootSlot(payload);
+      await bootSlot(payload);
     }
   } catch (err) {
     sendToHost({ type: 'init-error', error: (err as Error).message ?? String(err) });
@@ -1259,7 +1288,8 @@ function handleHostMessage(ev: MessageEvent): void {
       break;
 
     case 'props-update':
-      slotPropsUpdater?.(msg.props ?? {});
+      if (slotPropsUpdater) slotPropsUpdater(msg.props ?? {});
+      else if (mode === 'slot') propsBeforeBoot = msg.props ?? {};
       break;
 
     case 'stream-chunk': {
@@ -1308,6 +1338,7 @@ export function startSandboxRuntime(): () => void {
   // nothing a window.open()-ing site could talk to.
   const host = resolveHost();
   if (!host) return () => {};
+  if (new URLSearchParams(window.location.search).get('frame') === 'slot') void loadRenderer();
   parentWindow = host.window;
   parentOrigin = host.origin;
   initFloatingDropdownBridge(

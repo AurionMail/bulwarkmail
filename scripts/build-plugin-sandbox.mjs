@@ -116,18 +116,27 @@ export async function buildPluginSandbox({ outdir = DEFAULT_OUTDIR, clean = true
   // The chunks the script imports statically, so the document can fetch them
   // with it instead of after it has been parsed.
   const outputs = new Map(Object.entries(js.metafile.outputs).map(([f, o]) => [path.basename(f), o]));
-  const preload = [];
-  const visit = (name) => {
+  const closure = (name, into) => {
     for (const imp of outputs.get(name)?.imports ?? []) {
       const dep = path.basename(imp.path);
-      if (imp.kind !== 'import-statement' || preload.includes(dep)) continue;
-      preload.push(dep);
-      visit(dep);
+      if (imp.kind !== 'import-statement' || into.includes(dep)) continue;
+      into.push(dep);
+      closure(dep, into);
     }
+    return into;
   };
-  visit(path.basename(script));
+  const preload = closure(path.basename(script), []);
+  // What the runtime imports on demand (React DOM and the UI kit), which a
+  // slot frame loads right away; the all-icons chunk is the kit's, not here.
+  const slotPreload = [];
+  for (const imp of outputs.get(path.basename(script))?.imports ?? []) {
+    if (imp.kind !== 'dynamic-import') continue;
+    for (const dep of [path.basename(imp.path), ...closure(path.basename(imp.path), [])]) {
+      if (!preload.includes(dep) && !slotPreload.includes(dep)) slotPreload.push(dep);
+    }
+  }
 
-  const manifest = { script: path.basename(script), style, preload };
+  const manifest = { script: path.basename(script), style, preload, slotPreload };
   await writeFile(path.join(outdir, 'manifest.json'), `${JSON.stringify(manifest)}\n`);
   const inputs = [...Object.keys(js.metafile.inputs).map((f) => path.resolve(root, f)), cssPath, path.join(root, 'app/theme-inline.css')];
   return { ...manifest, outputs: js.metafile.outputs, css: css.css, inputs };
