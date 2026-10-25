@@ -1,5 +1,5 @@
 /* Styles for the plugin UI kit (lib/plugin-sandbox/ui-kit), loaded into
-   every plugin iframe. Built from the same Tailwind classes as the app's own
+   every plugin iframe; scripts/build-plugin-sandbox.mjs compiles it. Built from the same Tailwind classes as the app's own
    components, so a kit Button is the app's Button. Only the kit's sources
    are scanned, which keeps the file small.
 

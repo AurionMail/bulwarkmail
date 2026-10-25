@@ -1296,33 +1296,41 @@ function handleHostMessage(ev: MessageEvent): void {
   }
 }
 
-// ─── React entry ─────────────────────────────────────────────
+// ─── Entry ───────────────────────────────────────────────────
 
+/**
+ * Bind to the host and tell it the frame is ready. The sandbox document
+ * (sandbox-document.ts) runs this from its script, next to an existing
+ * #plugin-sandbox-root. Returns the teardown.
+ */
+export function startSandboxRuntime(): () => void {
+  // Not framed by a same-origin host: stay inert. No listener, no ping -
+  // nothing a window.open()-ing site could talk to.
+  const host = resolveHost();
+  if (!host) return () => {};
+  parentWindow = host.window;
+  parentOrigin = host.origin;
+  initFloatingDropdownBridge(
+    (msg) => sendToHost(msg),
+    () => !!parentWindow,
+  );
+  window.addEventListener('message', handleHostMessage);
+  // Initial ping, targeted at the host origin so it can only land on the
+  // page that framed us. Guard at module scope so React strict mode's
+  // double-invoke doesn't re-post (and so a re-post can't race with the
+  // parent's init reply).
+  if (!readyPosted) {
+    readyPosted = true;
+    sendToHost({ type: 'sandbox-ready' });
+  }
+  return () => {
+    window.removeEventListener('message', handleHostMessage);
+  };
+}
+
+/** The runtime as a React component, for tests that render it. */
 export function SandboxRuntime(): React.JSX.Element {
-  useEffect(() => {
-    // Not framed by a same-origin host: stay inert. No listener, no ping -
-    // nothing a window.open()-ing site could talk to.
-    const host = resolveHost();
-    if (!host) return;
-    parentWindow = host.window;
-    parentOrigin = host.origin;
-    initFloatingDropdownBridge(
-      (msg) => sendToHost(msg),
-      () => !!parentWindow,
-    );
-    window.addEventListener('message', handleHostMessage);
-    // Initial ping, targeted at the host origin so it can only land on the
-    // page that framed us. Guard at module scope so React strict mode's
-    // double-invoke doesn't re-post (and so a re-post can't race with the
-    // parent's init reply).
-    if (!readyPosted) {
-      readyPosted = true;
-      sendToHost({ type: 'sandbox-ready' });
-    }
-    return () => {
-      window.removeEventListener('message', handleHostMessage);
-    };
-  }, []);
+  useEffect(() => startSandboxRuntime(), []);
   return <div id="plugin-sandbox-root" />;
 }
 

@@ -81,6 +81,16 @@ const nextConfig: NextConfig = {
               source: "/_next/static/:path*",
               headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
             },
+            {
+              // The plugin sandbox document's script and stylesheet
+              // (scripts/build-plugin-sandbox.mjs): module scripts, so the
+              // opaque-origin frames fetch them in CORS mode. Content-hashed.
+              source: "/plugin-sandbox-assets/:path*",
+              headers: [
+                { key: "Access-Control-Allow-Origin", value: "*" },
+                { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+              ],
+            },
           ];
         },
       }),

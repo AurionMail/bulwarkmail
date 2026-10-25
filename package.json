@@ -22,8 +22,8 @@
     "typescript"
   ],
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "node scripts/build-plugin-sandbox.mjs && next dev --turbopack",
+    "build": "node scripts/build-plugin-sandbox.mjs && next build --turbopack",
     "build:lite": "node scripts/lite/build.mjs",
     "lite:serve": "node scripts/lite/serve.mjs out 4173",
     "test:lite-smoke": "playwright test -c scripts/lite/smoke/playwright.config.ts",

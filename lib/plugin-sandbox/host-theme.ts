@@ -1,7 +1,7 @@
 // Theme bridge for plugin slot iframes.
 //
 // Slot iframes run with an opaque ("null") origin, so they can't load the
-// host's globals.css or web fonts cross-origin (see app/(sandbox)/layout.tsx).
+// host's globals.css or web fonts cross-origin (see sandbox-document.ts).
 // The result: plugin slot UIs fall back to the UA default serif font and have
 // no knowledge of the host's light/dark (or custom) theme.
 //

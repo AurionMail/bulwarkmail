@@ -325,6 +325,6 @@ export const SANDBOX_PATH = '/plugin-sandbox';
  * Path used for the privileged (same-origin) sandbox iframe `src`. A distinct
  * route so the iframe gets `allow-same-origin` (real WebCrypto + IndexedDB)
  * while keeping the same CSP relaxations as the untrusted sandbox. Matched in
- * `proxy.ts`. Renders the identical `SandboxRuntime`.
+ * `proxy.ts`. Serves the same document (sandbox-document.ts).
  */
 export const SANDBOX_PRIVILEGED_PATH = '/plugin-sandbox-privileged';

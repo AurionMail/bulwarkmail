@@ -56,13 +56,13 @@ const PROXY_SKIP_PATTERN = /^\/(?:api|_next)(?:\/|$)/;
 
 // What Next serves from public/: a single dotted segment at the root
 // (/sw.js, /favicon.ico, /manifest.webmanifest) and the branding/,
-// notification/ and demo/ asset folders. The upstream matcher treated EVERY path whose
+// notification/, demo/ and plugin-sandbox-assets/ asset folders. The upstream matcher treated EVERY path whose
 // last segment has a dot as a static file, but the [[...segments]] catch-alls
 // under /<locale>/mail, /calendar, /contacts and /files make
 // /en/mail/folder/inbox/statement.pdf a real signed-in page, and it rendered
 // without a CSP or any other security header (GHSA-xvjh-v9c6-qcvc). Only what
 // is genuinely static may skip locale routing and the headers.
-const STATIC_ASSET_PATTERN = /^\/[^/]+\.[^/]+$|^\/(?:branding|notification|demo)\//;
+const STATIC_ASSET_PATTERN = /^\/[^/]+\.[^/]+$|^\/(?:branding|notification|demo|plugin-sandbox-assets)\//;
 
 export function isStaticAssetPath(pathname: string): boolean {
   return STATIC_ASSET_PATTERN.test(pathname);

@@ -41,7 +41,7 @@ jobs:
           DEV_MOCK_JMAP: "true"
           NEXT_TELEMETRY_DISABLED: "1"
           GIT_COMMIT: ${{ github.sha }}
-        run: npx next build --webpack
+        run: node scripts/build-plugin-sandbox.mjs && npx next build --webpack
 
       - name: Run perf guard
         env:

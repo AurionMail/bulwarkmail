@@ -58,6 +58,8 @@ const STATIC_ASSETS = [
   '/branding/logo.png',
   '/notification/cheerful-527.mp3',
   '/demo/prototype-v3.png',
+  // The plugin sandbox document's script (scripts/build-plugin-sandbox.mjs).
+  '/plugin-sandbox-assets/runtime-ABC123.js',
 ];
 
 beforeEach(() => {
@@ -196,5 +198,7 @@ describe('isStaticAssetPath', () => {
     expect(isStaticAssetPath('/en')).toBe(false);
     expect(isStaticAssetPath('/en/mail')).toBe(false);
     expect(isStaticAssetPath('/brandingx/logo.png')).toBe(false);
+    // The sandbox documents themselves keep the sandbox CSP.
+    expect(isStaticAssetPath('/plugin-sandbox')).toBe(false);
   });
 });
