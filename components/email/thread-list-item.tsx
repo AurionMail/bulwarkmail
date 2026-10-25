@@ -100,19 +100,26 @@ function UnreadDot({ besideAvatar }: { besideAvatar: boolean }) {
 }
 
 /** The chip row under a row's preview: the verification code, then the attachments. */
-function RowChips({ email, loadAttachments, onOpenAttachment }: {
+function RowChips({ email, loadAttachments, onOpenAttachment, mountainView, mvRow }: {
   email: Email;
   loadAttachments?: LoadListAttachments;
   onOpenAttachment?: (attachment: Attachment) => void;
+  /** Gmail's pill chips. */
+  mountainView?: boolean;
+  /** A one-line Mountain View row: the chips start under the subject, as in Gmail. */
+  mvRow?: boolean;
 }) {
+  const variant = mountainView || mvRow ? "mountain-view" : "default";
   const code = useListVerificationCode(email);
-  const leading = code ? <VerificationCodeChip code={code} /> : undefined;
+  const leading = code ? <VerificationCodeChip code={code} variant={variant} /> : undefined;
+  // The sender column is w-32 (lg:w-40) and the row line has gap-3 after it.
+  const className = cn("mt-1.5", mvRow && "mt-0 pb-2 ps-[8.75rem] lg:ps-[10.75rem]");
   // Most rows have no attachment: no loader for them, nor an empty chip row.
   const mayHaveAttachments = email.hasAttachment || (email.attachments?.length ?? 0) > 0;
   if (onOpenAttachment && mayHaveAttachments) {
-    return <ListAttachmentChips email={email} load={loadAttachments} onOpen={onOpenAttachment} leading={leading} className="mt-1.5" />;
+    return <ListAttachmentChips email={email} load={loadAttachments} onOpen={onOpenAttachment} leading={leading} variant={variant} max={variant === "mountain-view" ? 3 : 2} className={className} />;
   }
-  return leading ? <div className="mt-1.5 flex">{leading}</div> : null;
+  return leading ? <div className={cn("flex", className)}>{leading}</div> : null;
 }
 
 /**
@@ -740,7 +747,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                 </div>
               </div>
               {mvRow && (
-                <RowChips email={email} loadAttachments={loadAttachments} onOpenAttachment={onOpenAttachment} />
+                <RowChips email={email} loadAttachments={loadAttachments} onOpenAttachment={onOpenAttachment} mvRow />
               )}
               </>
             ) : (
@@ -864,7 +871,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
                     )}
                   </div>
                 )}
-                <RowChips email={email} loadAttachments={loadAttachments} onOpenAttachment={onOpenAttachment} />
+                <RowChips email={email} loadAttachments={loadAttachments} onOpenAttachment={onOpenAttachment} mountainView={mvMobileRow} />
               </>
             )}
           </div>
@@ -1394,6 +1401,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     email={latestEmail}
                     loadAttachments={loadAttachments}
                     onOpenAttachment={onOpenAttachment ? (a) => onOpenAttachment(latestEmail, a) : undefined}
+                    mvRow
                   />
                 )}
                 </>
@@ -1525,6 +1533,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
                     email={latestEmail}
                     loadAttachments={loadAttachments}
                     onOpenAttachment={onOpenAttachment ? (a) => onOpenAttachment(latestEmail, a) : undefined}
+                    mountainView={mvMobileRow}
                   />
                 </>
               )}
