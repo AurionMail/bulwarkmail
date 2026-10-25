@@ -177,6 +177,42 @@ describe('calendar-utils all-day handling', () => {
     });
   });
 
+  it('places events by wall-clock time on DST change days', () => {
+    const tz = process.env.TZ;
+    process.env.TZ = 'Europe/Berlin';
+    try {
+      // 2026-10-25 has 25 hours in Berlin; 12:51 CET is 13h51m after midnight.
+      const fallBack = makeEvent({
+        start: '2026-10-25T12:51:00',
+        duration: 'PT25M',
+        timeZone: 'Europe/Berlin',
+        showWithoutTime: false,
+        utcStart: '2026-10-25T11:51:00Z',
+        utcEnd: '2026-10-25T12:16:00Z',
+      });
+      expect(getTimedEventBoundsForDay(fallBack, new Date(2026, 9, 25))).toMatchObject({
+        startMinutes: 12 * 60 + 51,
+        endMinutes: 13 * 60 + 16,
+      });
+
+      // 2026-03-29 has 23 hours; 09:00 CEST is 8h after midnight.
+      const springForward = makeEvent({
+        start: '2026-03-29T09:00:00',
+        duration: 'PT1H',
+        timeZone: 'Europe/Berlin',
+        showWithoutTime: false,
+        utcStart: '2026-03-29T07:00:00Z',
+        utcEnd: '2026-03-29T08:00:00Z',
+      });
+      expect(getTimedEventBoundsForDay(springForward, new Date(2026, 2, 29))).toMatchObject({
+        startMinutes: 9 * 60,
+        endMinutes: 10 * 60,
+      });
+    } finally {
+      process.env.TZ = tz;
+    }
+  });
+
   it('lays out continued timed events using clipped bounds for the active day', () => {
     const event = makeEvent({
       start: '2026-03-14T22:00:00',
