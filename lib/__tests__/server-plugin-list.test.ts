@@ -11,6 +11,7 @@ vi.mock('@/lib/plugin-loader', () => ({
   setPluginStoreAccessor: vi.fn(),
   setupAutoDisable: vi.fn(),
   setSandboxLocale: vi.fn(),
+  forgetSlotOffers: vi.fn(),
 }));
 
 import { fetchServerPluginList } from '@/lib/server-plugin-list';

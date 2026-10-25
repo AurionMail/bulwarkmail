@@ -18,9 +18,9 @@ import { useEmailStore } from '@/stores/email-store';
 import { emailToReadView } from '../plugin-projection';
 import { verifyBundle } from './bundle-integrity';
 import { downloadManagedBundle } from './bundle-fetch';
-import { createBackgroundInstance, forEachInstance, snapshotRegionalSettings, type RegionalSnapshot } from './host-bridge';
+import { createBackgroundInstance, forEachInstance, snapshotRegionalSettings, type InitDoneInfo, type RegionalSnapshot } from './host-bridge';
 import { resolvePluginTier } from './tier';
-import { register as registerActive, deregister as deregisterActive, all as allActiveEntries, get as getActive } from './registry';
+import { register as registerActive, deregister as deregisterActive, all as allActiveEntries, get as getActive, type SlotOffer } from './registry';
 import { cancelPluginDialogs } from './host-api';
 import { hasDialogFor, whenNoDialogFor } from './host-dialog';
 import { registerShortcuts } from './shortcuts';
@@ -98,7 +98,7 @@ async function readCachedBundle(plugin: InstalledPlugin): Promise<string | null>
   }
 }
 
-async function getBundleCode(plugin: InstalledPlugin): Promise<string> {
+async function getBundleCode(plugin: InstalledPlugin): Promise<{ code: string; hash: string }> {
   // IndexedDB is the fast path: the store's server sync (managed plugins) and
   // the upload flow (user plugins) both populate it. It is per-browser though,
   // while a managed plugin's record travels with the server registry to every
@@ -111,8 +111,7 @@ async function getBundleCode(plugin: InstalledPlugin): Promise<string> {
   const cached = await readCachedBundle(plugin);
   if (cached) {
     try {
-      await verifyBundle(cached, plugin.bundleHash);
-      return cached;
+      return { code: cached, hash: await verifyBundle(cached, plugin.bundleHash) };
     } catch (err) {
       if (!plugin.managed) throw err;
       // Stale (sync updated the record but not the bytes) or corrupt copy; the
@@ -127,14 +126,60 @@ async function getBundleCode(plugin: InstalledPlugin): Promise<string> {
   const code = await downloadManagedBundle(plugin.id, plugin.bundleHash, {
     requireSignature: plugin.tier === 'privileged',
   });
-  await verifyBundle(code, plugin.bundleHash);
+  const hash = await verifyBundle(code, plugin.bundleHash);
   try {
     await pluginStorage.saveCode(plugin.id, code);
   } catch (err) {
     // Caching is best effort - the plugin runs from the fetched bytes either way.
     console.warn(`[plugin-sandbox] Could not cache bundle for "${plugin.id}":`, err);
   }
-  return code;
+  return { code, hash };
+}
+
+// ─── Slot offers from the last start ─────────────────────────
+
+// A plugin's slots are fixed exports of its bundle. They used to be known
+// only once its background frame had booted and run activate(), so a slot
+// frame (a sidebar section, say) started ~1 s after the plugin did, behind
+// it. The offers are kept per bundle hash, and a plugin started with the
+// same verified bundle offers them right away; its frames then boot next to
+// the background one. The real list replaces them when init is done. The
+// record only says where to draw: the same permission filter applies and
+// the frames run the same verified code. A changed bundle has another hash.
+const SLOT_CACHE_PREFIX = 'plugin-slot-offers:';
+
+function readSlotOffers(pluginId: string, hash: string): InitDoneInfo['slots'] | null {
+  try {
+    const raw = localStorage.getItem(SLOT_CACHE_PREFIX + pluginId);
+    if (!raw) return null;
+    const rec = JSON.parse(raw) as { hash?: unknown; slots?: unknown };
+    if (rec.hash !== hash || !Array.isArray(rec.slots)) return null;
+    return rec.slots.filter((o): o is InitDoneInfo['slots'][number] =>
+      !!o && typeof o === 'object' && typeof (o as { name?: unknown }).name === 'string');
+  } catch {
+    return null;
+  }
+}
+
+function writeSlotOffers(pluginId: string, hash: string, slots: InitDoneInfo['slots']): void {
+  try {
+    localStorage.setItem(SLOT_CACHE_PREFIX + pluginId, JSON.stringify({ hash, slots }));
+  } catch {
+    // Storage blocked or full: the next start just waits for init again.
+  }
+}
+
+/** Forget a plugin's remembered slots (it was removed). */
+export function forgetSlotOffers(pluginId: string): void {
+  try { localStorage.removeItem(SLOT_CACHE_PREFIX + pluginId); } catch { /* ignore */ }
+}
+
+function permittedOffers(plugin: InstalledPlugin, slots: InitDoneInfo['slots'], warn: boolean): SlotOffer[] {
+  return slots.filter((offer) => {
+    if (mayOfferSlot(plugin, offer.name)) return true;
+    if (warn) console.warn(`[plugin-sandbox] Plugin "${plugin.id}" lacks the permission for slot "${offer.name}"; not rendered`);
+    return false;
+  });
 }
 
 // ─── Load ─────────────────────────────────────────────────────
@@ -166,9 +211,11 @@ const loading = new Map<string, Promise<void>>();
  */
 export function loadSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
-  if (getActive(plugin.id)) return Promise.resolve();
+  // Before the registry: a plugin offering remembered slots is registered
+  // while it is still starting.
   const pending = loading.get(plugin.id);
   if (pending) return pending;
+  if (getActive(plugin.id)) return Promise.resolve();
   const run = startSandboxedPlugin(plugin).finally(() => loading.delete(plugin.id));
   loading.set(plugin.id, run);
   return run;
@@ -188,13 +235,18 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
     }
     const tier = resolution.tier;
 
-    const code = await getBundleCode(plugin);
+    const { code, hash } = await getBundleCode(plugin);
     background = createBackgroundInstance({
       plugin,
       code,
       locale: currentLocale,
       tier,
     });
+
+    const remembered = readSlotOffers(plugin.id, hash);
+    if (remembered && remembered.length > 0) {
+      registerActive({ plugin, code, tier, background, slotOffers: permittedOffers(plugin, remembered, false), hookDisposables: [] });
+    }
 
     // Wait for the background runtime to evaluate the bundle, register hooks,
     // and enumerate slots. Bounded so a stuck iframe doesn't hang activation.
@@ -244,11 +296,8 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
       }
     }
 
-    const slotOffers = info.slots.filter((offer) => {
-      if (mayOfferSlot(plugin, offer.name)) return true;
-      console.warn(`[plugin-sandbox] Plugin "${plugin.id}" lacks the permission for slot "${offer.name}"; not rendered`);
-      return false;
-    });
+    const slotOffers = permittedOffers(plugin, info.slots, true);
+    writeSlotOffers(plugin.id, hash, info.slots);
 
     registerActive({
       plugin,
@@ -270,6 +319,10 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
     }
     console.info(`[plugin-sandbox] "${plugin.id}" activated (hooks=${info.hooks.length}, slots=${info.slots.length})`);
   } catch (err) {
+    // Turned off while it was starting: unload has set the status.
+    if (background?.closed && getActive(plugin.id)?.background !== background) return;
+    // Offered from the last start: take the slots back down.
+    if (background && getActive(plugin.id)?.background === background) deregisterActive(plugin.id);
     const msg = (err as Error).message ?? String(err);
     storeAccessor?.setPluginStatus(plugin.id, 'error', msg);
     console.error(`[plugin-sandbox] Failed to load "${plugin.id}":`, err);

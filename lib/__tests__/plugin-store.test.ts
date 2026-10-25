@@ -28,6 +28,7 @@ vi.mock('@/lib/plugin-loader', () => ({
   setPluginStoreAccessor: vi.fn(),
   setupAutoDisable: vi.fn(),
   setSandboxLocale: vi.fn(),
+  forgetSlotOffers: vi.fn(),
 }));
 
 vi.mock('@/lib/plugin-hooks', () => ({
@@ -60,6 +61,7 @@ import { register as registerActive, deregister as deregisterActive, get as getA
 // Import after mocks
 import { usePluginStore, PLUGIN_PERSIST_DELAY_MS } from '@/stores/plugin-store';
 import { pluginStorage } from '@/lib/plugin-storage';
+import { forgetSlotOffers } from '@/lib/plugin-loader';
 
 function resetStore() {
   usePluginStore.setState({
@@ -460,6 +462,7 @@ describe('plugins the admin removed', () => {
     expect(usePluginStore.getState().plugins.some((p) => p.id === 'gone')).toBe(false);
     expect(localStorage.getItem('plugin:gone:@acct:notes')).toBeNull();
     expect(pluginStorage.deletePreview).toHaveBeenCalledWith('gone');
+    expect(forgetSlotOffers).toHaveBeenCalledWith('gone');
   });
 });
 

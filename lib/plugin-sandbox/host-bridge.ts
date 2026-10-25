@@ -290,6 +290,8 @@ export class SandboxInstance {
   private rejectInit!: (err: Error) => void;
   private listener: (ev: MessageEvent) => void;
   private destroyed = false;
+  /** The frame has answered init-done: its hooks and slots are in place. */
+  private initialized = false;
 
   private pendingHookInvokes = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
   private pendingShouldShow = new Map<string, (show: boolean) => void>();
@@ -326,6 +328,8 @@ export class SandboxInstance {
       this.resolveInit = res;
       this.rejectInit = rej;
     });
+    // Nobody waits on a slot frame's init; its rejection is not an error.
+    this.initPromise.catch(() => {});
 
     this.iframe = document.createElement('iframe');
     // Privileged tier: same-origin in BOTH dev and prod so the iframe gets real
@@ -451,6 +455,7 @@ export class SandboxInstance {
         return;
 
       case 'init-done':
+        this.initialized = true;
         if (this.mode === 'slot') this.iframe.style.visibility = '';
         this.resolveInit({ hooks: msg.hooks, slots: msg.slots, shortcuts: msg.shortcuts ?? [] });
         return;
@@ -546,6 +551,10 @@ export class SandboxInstance {
   /** Dispatch a hook handler inside the sandbox; resolves with its return value. */
   invokeHook(hookName: string, args: unknown[]): Promise<unknown> {
     if (this.destroyed) return Promise.reject(new Error('sandbox destroyed'));
+    // A plugin offering remembered slots is in the registry before its frame
+    // has booted; a click on one of its actions waits for it (a message
+    // posted before init is lost).
+    if (!this.initialized) return this.initPromise.then(() => this.invokeHook(hookName, args));
     const id = uid();
     const p = new Promise<unknown>((resolve, reject) => {
       // The bus gives up on a slow handler, but the entry used to stay here
@@ -571,6 +580,9 @@ export class SandboxInstance {
   /** Ask the background instance whether a slot should mount for this context. */
   evaluateShouldShow(slot: SlotName, context: unknown): Promise<boolean> {
     if (this.destroyed) return Promise.resolve(false);
+    if (!this.initialized) {
+      return this.initPromise.then(() => this.evaluateShouldShow(slot, context), () => false);
+    }
     const id = uid();
     const p = new Promise<boolean>((resolve) => {
       this.pendingShouldShow.set(id, resolve);
@@ -649,9 +661,16 @@ export class SandboxInstance {
     this.send(msg);
   }
 
+  /** True once destroy() ran. */
+  get closed(): boolean {
+    return this.destroyed;
+  }
+
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    // Whoever waits for init (the loader, calls held back below) stops waiting.
+    this.rejectInit(new Error('sandbox destroyed'));
     liveInstances.delete(this);
     window.removeEventListener('message', this.listener);
     this.iframe.remove();

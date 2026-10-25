@@ -20,6 +20,12 @@ function post(source: Window | null, origin: string, data: unknown) {
 }
 
 const instances: Array<{ destroy(): void }> = [];
+
+/** The frame answers init: its hooks and slots are in place. */
+function booted<T extends { iframe: HTMLIFrameElement }>(inst: T): T {
+  post(inst.iframe.contentWindow, 'null', { type: 'init-done', hooks: [], slots: [], shortcuts: [] });
+  return inst;
+}
 afterEach(() => {
   for (const i of instances.splice(0)) i.destroy();
   vi.clearAllMocks();
@@ -131,7 +137,7 @@ describe('slot sizing', () => {
 
 describe('shouldShow context', () => {
   it('leaves host callbacks out instead of failing to post them', async () => {
-    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    const inst = booted(createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' }));
     instances.push(inst);
     const sent = vi.spyOn(inst.iframe.contentWindow!, 'postMessage');
 
@@ -144,7 +150,7 @@ describe('shouldShow context', () => {
 
 describe('host bookkeeping', () => {
   it('fails a hook call whose arguments cannot be sent, without keeping it pending', async () => {
-    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    const inst = booted(createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' }));
     instances.push(inst);
     vi.spyOn(inst.iframe.contentWindow!, 'postMessage').mockImplementation(() => { throw new DOMException('no clone', 'DataCloneError'); });
 
@@ -335,5 +341,42 @@ describe('plugin translations in frames', () => {
 
     const init = sent.find((m) => m.type === 'init') as { payload: { manifest: { locales: Record<string, unknown> } } };
     expect(Object.keys(init.payload.manifest.locales).sort()).toEqual(['en', 'ja']);
+  });
+});
+
+describe('calls before the background frame has booted', () => {
+  // A plugin offering the slots remembered from its last start is in the
+  // registry while its frame boots; a message posted before init is lost.
+  it('holds shouldShow and hook calls until init-done', async () => {
+    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    instances.push(inst);
+    const sent: Array<{ type: string; id?: string }> = [];
+    vi.spyOn(inst.iframe.contentWindow!, 'postMessage').mockImplementation((m: unknown) => { sent.push(m as { type: string }); });
+
+    const show = inst.evaluateShouldShow('email-banner', {});
+    const hook = inst.invokeHook('onAction', [{ actionId: 'x' }]);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sent.filter((m) => m.type === 'slot-should-show' || m.type === 'hook-invoke')).toEqual([]);
+
+    booted(inst);
+    await new Promise((r) => setTimeout(r, 0));
+    const ask = sent.find((m) => m.type === 'slot-should-show')!;
+    const call = sent.find((m) => m.type === 'hook-invoke')!;
+    post(inst.iframe.contentWindow, 'null', { type: 'slot-should-show-result', id: ask.id, show: true });
+    post(inst.iframe.contentWindow, 'null', { type: 'hook-result', id: call.id, ok: true, result: 'done' });
+    await expect(show).resolves.toBe(true);
+    await expect(hook).resolves.toBe('done');
+  });
+
+  it('gives up on them when the frame is destroyed first', async () => {
+    const inst = createBackgroundInstance({ plugin: plugin(), code: '', locale: 'en', tier: 'untrusted' });
+    const show = inst.evaluateShouldShow('email-banner', {});
+    const hook = inst.invokeHook('onAction', []);
+    inst.destroy();
+
+    await expect(show).resolves.toBe(false);
+    await expect(hook).rejects.toThrow(/destroyed/);
+    await expect(inst.initPromise).rejects.toThrow(/destroyed/);
+    expect(inst.closed).toBe(true);
   });
 });

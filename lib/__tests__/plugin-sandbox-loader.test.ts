@@ -41,7 +41,7 @@ vi.mock('../plugin-sandbox/shortcuts', () => ({
 }));
 
 import { loadSandboxedPlugin, unloadSandboxedPlugin, setSandboxStoreAccessor, setSandboxLocale } from '../plugin-sandbox/loader';
-import { get as getActive } from '../plugin-sandbox/registry';
+import { get as getActive, offersForSlot } from '../plugin-sandbox/registry';
 
 const CODE = 'export default { activate() {} }';
 const HASH = createHash('sha256').update(CODE, 'utf-8').digest('hex');
@@ -67,11 +67,13 @@ function plugin(overrides: Partial<InstalledPlugin> = {}): InstalledPlugin {
 }
 
 function fakeBackground() {
-  return {
-    initPromise: Promise.resolve({ hooks: [], slots: [], shortcuts: [] }),
+  const bg = {
+    initPromise: Promise.resolve({ hooks: [], slots: [], shortcuts: [] }) as Promise<unknown>,
     invokeHook: vi.fn(),
-    destroy: vi.fn(),
+    closed: false,
+    destroy: vi.fn(() => { bg.closed = true; }),
   };
+  return bg;
 }
 
 let statuses: Array<{ id: string; status: string; error?: string }>;
@@ -258,5 +260,91 @@ describe('loading the same plugin twice', () => {
     await loadSandboxedPlugin(plugin());
 
     expect(mocks.createBackgroundInstance).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('slots remembered from the last start', () => {
+  const OFFERS = [{ name: 'sidebar-section', hasShouldShow: false, order: 100 }];
+  const perms = { permissions: ['ui:sidebar-widget'], grantedPermissions: ['ui:sidebar-widget'] } as Partial<InstalledPlugin>;
+
+  function startingBackground() {
+    let finish!: (info: unknown) => void;
+    let fail!: (err: Error) => void;
+    const bg = fakeBackground();
+    bg.initPromise = new Promise((res, rej) => { finish = res; fail = rej; });
+    mocks.createBackgroundInstance.mockImplementation(() => bg);
+    return { finish, fail };
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    mocks.getCode.mockResolvedValue(CODE);
+  });
+
+  it('offers them while the background frame is still booting, then the real list', async () => {
+    // A slot frame used to start only after the plugin's own frame had booted.
+    localStorage.setItem('plugin-slot-offers:managed-plugin', JSON.stringify({ hash: HASH, slots: OFFERS }));
+    const { finish } = startingBackground();
+
+    const load = loadSandboxedPlugin(plugin(perms));
+    await vi.waitFor(() => expect(offersForSlot('sidebar-section').map((o) => o.pluginId)).toEqual(['managed-plugin']));
+    expect(lastStatus()?.status).not.toBe('running');
+
+    finish({ hooks: [], slots: [{ name: 'sidebar-section', hasShouldShow: true, order: 5 }], shortcuts: [] });
+    await load;
+    expect(offersForSlot('sidebar-section')).toEqual([{ pluginId: 'managed-plugin', order: 5, hasShouldShow: true }]);
+    expect(lastStatus()).toMatchObject({ status: 'running' });
+  });
+
+  it('remembers the list for the bundle it came from only', async () => {
+    mocks.createBackgroundInstance.mockImplementation(() => ({ ...fakeBackground(), initPromise: Promise.resolve({ hooks: [], slots: OFFERS, shortcuts: [] }) }));
+    await loadSandboxedPlugin(plugin(perms));
+    expect(JSON.parse(localStorage.getItem('plugin-slot-offers:managed-plugin')!)).toEqual({ hash: HASH, slots: OFFERS });
+    unloadSandboxedPlugin('managed-plugin');
+
+    // Another bundle: wait for its own list.
+    localStorage.setItem('plugin-slot-offers:managed-plugin', JSON.stringify({ hash: 'f'.repeat(64), slots: OFFERS }));
+    const { fail } = startingBackground();
+    const load = loadSandboxedPlugin(plugin(perms));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(offersForSlot('sidebar-section')).toEqual([]);
+    fail(new Error('done'));
+    await load;
+  });
+
+  it('does not offer a remembered slot the plugin may not use', async () => {
+    localStorage.setItem('plugin-slot-offers:managed-plugin', JSON.stringify({ hash: HASH, slots: OFFERS }));
+    const { fail } = startingBackground();
+    const load = loadSandboxedPlugin(plugin());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(offersForSlot('sidebar-section')).toEqual([]);
+    fail(new Error('done'));
+    await load;
+  });
+
+  it('takes them down when the plugin fails to start', async () => {
+    localStorage.setItem('plugin-slot-offers:managed-plugin', JSON.stringify({ hash: HASH, slots: OFFERS }));
+    const { fail } = startingBackground();
+    const load = loadSandboxedPlugin(plugin(perms));
+    await vi.waitFor(() => expect(offersForSlot('sidebar-section')).toHaveLength(1));
+
+    fail(new Error('boom'));
+    await load;
+    expect(offersForSlot('sidebar-section')).toEqual([]);
+    expect(getActive('managed-plugin')).toBeUndefined();
+    expect(lastStatus()).toMatchObject({ status: 'error' });
+  });
+
+  it('is not marked failed when it was turned off while starting', async () => {
+    localStorage.setItem('plugin-slot-offers:managed-plugin', JSON.stringify({ hash: HASH, slots: OFFERS }));
+    const { fail } = startingBackground();
+    const load = loadSandboxedPlugin(plugin(perms));
+    await vi.waitFor(() => expect(getActive('managed-plugin')).toBeDefined());
+
+    unloadSandboxedPlugin('managed-plugin');
+    // What destroy() does to a starting frame.
+    fail(new Error('sandbox destroyed'));
+    await load;
+    expect(lastStatus()).toMatchObject({ status: 'disabled' });
   });
 });

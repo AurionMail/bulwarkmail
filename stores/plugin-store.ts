@@ -7,7 +7,7 @@ import { persist, type PersistStorage, type StorageValue } from 'zustand/middlew
 import type { InstalledPlugin, PluginStatus, PluginTier } from '@/lib/plugin-types';
 import { pluginStorage } from '@/lib/plugin-storage';
 import { extractPlugin } from '@/lib/plugin-validator';
-import { loadPlugin, deactivatePlugin, setPluginStoreAccessor, setupAutoDisable, setSandboxLocale } from '@/lib/plugin-loader';
+import { loadPlugin, deactivatePlugin, setPluginStoreAccessor, setupAutoDisable, setSandboxLocale, forgetSlotOffers } from '@/lib/plugin-loader';
 import { useLocaleStore } from '@/stores/locale-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { getEffectiveLocale } from '@/i18n/detect-locale';
@@ -421,6 +421,7 @@ export const usePluginStore = create<PluginStoreState>()(
 function removePluginData(id: string): void {
   deactivatePlugin(id);
   removeAllPluginHooks(id);
+  forgetSlotOffers(id);
   void pluginStorage.deleteCode(id).catch(() => {});
   void pluginStorage.deletePreview(id).catch(() => {});
   // Accounts the user connected for it live on the server (this mail account's).
