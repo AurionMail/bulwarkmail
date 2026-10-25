@@ -48,13 +48,22 @@ export function PluginIframeSlot({ pluginId, slot, extraProps, fill = false }: P
   // null = pending, true/false = decided
   const [show, setShow] = useState<boolean | null>(null);
 
+  // A caller that builds its props inline hands over a new object on every
+  // render; each one used to cost a shouldShow round trip to the plugin and a
+  // props-update for the frame. Keep the last object while its values are
+  // the same ones.
+  const [stableProps, setStableProps] = useState(extraProps);
+  const sameValues = shallowEqual(stableProps, extraProps);
+  if (!sameValues) setStableProps(extraProps);
+  const currentProps = sameValues ? stableProps : extraProps;
+
   // What the plugin may see of the surface the slot sits on. Everything the
   // plugin receives (shouldShow context, mount props, updates) goes through
   // this, so a ui:* permission never hands over mail, events or contacts.
   const props = useMemo(() => {
     const active = getActivePlugin(pluginId);
-    return active ? slotPropsFor(active.plugin, slot, extraProps ?? {}) : {};
-  }, [pluginId, slot, extraProps]);
+    return active ? slotPropsFor(active.plugin, slot, currentProps ?? {}) : {};
+  }, [pluginId, slot, currentProps]);
 
   // Decide whether to mount based on the plugin's shouldShow (background-side).
   useEffect(() => {
@@ -190,6 +199,14 @@ export function PluginIframeSlot({ pluginId, slot, extraProps, fill = false }: P
       )}
     </>
   );
+}
+
+function shallowEqual(a: Record<string, unknown> | undefined, b: Record<string, unknown> | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && Object.is(a[k], b[k]));
 }
 
 function FloatingDropdownPortal({

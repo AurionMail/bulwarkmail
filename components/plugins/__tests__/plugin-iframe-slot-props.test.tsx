@@ -79,3 +79,34 @@ describe('PluginIframeSlot', () => {
     expect(opts.extraProps.email).toEqual(EMAIL);
   });
 });
+
+describe('PluginIframeSlot re-renders', () => {
+  it('does not ask shouldShow again or push props when a re-render brings equal props', async () => {
+    activePlugin = plugin(['ui:email-banner', 'email:read']);
+    hasShouldShow = true;
+    // Callers that build props inline, like AppTopBannerSlot.
+    const { rerender } = render(<PluginIframeSlot pluginId="p1" slot="email-banner" extraProps={{ email: EMAIL }} />);
+    await waitFor(() => expect(createSlotInstance).toHaveBeenCalledTimes(1));
+    const instance = createSlotInstance.mock.results[0].value as { updateProps: ReturnType<typeof vi.fn> };
+    const pushes = instance.updateProps.mock.calls.length;
+
+    for (let i = 0; i < 5; i++) rerender(<PluginIframeSlot pluginId="p1" slot="email-banner" extraProps={{ email: EMAIL }} />);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(evaluateShouldShow).toHaveBeenCalledTimes(1);
+    expect(instance.updateProps.mock.calls.length).toBe(pushes);
+    expect(createSlotInstance).toHaveBeenCalledTimes(1);
+  });
+
+  it('still passes on props whose values changed', async () => {
+    activePlugin = plugin(['ui:email-banner', 'email:read']);
+    const { rerender } = render(<PluginIframeSlot pluginId="p1" slot="email-banner" extraProps={{ email: EMAIL }} />);
+    await waitFor(() => expect(createSlotInstance).toHaveBeenCalledTimes(1));
+    const instance = createSlotInstance.mock.results[0].value as { updateProps: ReturnType<typeof vi.fn> };
+
+    const next = { id: 'm2', text: 'other' };
+    rerender(<PluginIframeSlot pluginId="p1" slot="email-banner" extraProps={{ email: next }} />);
+
+    await waitFor(() => expect(instance.updateProps).toHaveBeenLastCalledWith({ email: next }));
+  });
+});
