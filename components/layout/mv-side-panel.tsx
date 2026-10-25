@@ -4,14 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { addDays, endOfDay, format, isSameDay, startOfDay } from "date-fns";
 import {
-  BookUser,
-  Calendar as CalendarIcon,
+  CalendarEvent as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   ListTodo,
   Plus,
   Search,
+  Users,
   X,
 } from "@/components/icons";
 import { Link } from "@/i18n/navigation";
@@ -52,7 +52,7 @@ export function MvSidePanel() {
   const buttons: Array<{ id: MvSidePanelId; label: string; icon: typeof CalendarIcon; color: string }> = [
     ...(showCalendar ? [{ id: "calendar" as const, label: t("calendar"), icon: CalendarIcon, color: "text-[#1a73e8]" }] : []),
     ...(showTasks ? [{ id: "tasks" as const, label: t("mv_tasks"), icon: ListTodo, color: "text-[#1a73e8]" }] : []),
-    ...(showContacts ? [{ id: "contacts" as const, label: t("contacts"), icon: BookUser, color: "text-[#1a73e8]" }] : []),
+    ...(showContacts ? [{ id: "contacts" as const, label: t("contacts"), icon: Users, color: "text-[#1a73e8]" }] : []),
   ];
 
   if (buttons.length === 0) return null;
