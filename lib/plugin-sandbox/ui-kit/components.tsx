@@ -15,7 +15,7 @@
 // against.
 
 import * as React from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/cn';
 import { Button as AppButton } from '@/components/ui/button';
 import { Input as AppInput } from '@/components/ui/input';
 import { getFileIconByName, getFolderIcon } from '@/components/files/file-icons';

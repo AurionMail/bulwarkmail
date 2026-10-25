@@ -1,5 +1,3 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Mailbox } from "./jmap/types";
 import { debug } from "./debug";
 import { getEffectiveLocale } from '@/i18n/detect-locale';
@@ -7,9 +5,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import type { DateFormat, DateLocale } from "@/stores/settings-store";
 import { getEffectiveTimeZone, getWallClock } from "./timezone";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn } from "./cn";
 
 /**
  * Strip embedded Basic-auth credentials from a URL for display.

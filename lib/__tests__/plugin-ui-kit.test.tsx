@@ -221,7 +221,9 @@ describe('plugin dialog footer', () => {
     await act(async () => {});
     expect(result).toBeNull();
     vi.doUnmock('@/components/plugins/plugin-iframe-slot');
-  });
+    // The dialog host is the first import here that loads the app's stores
+    // (the kit no longer does), and transforming them takes a while.
+  }, 30_000);
 });
 
 describe('Combobox', () => {
