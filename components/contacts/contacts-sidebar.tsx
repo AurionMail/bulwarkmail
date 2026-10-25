@@ -276,7 +276,7 @@ export function ContactsSidebar({
     <div className={cn("flex flex-col h-full bg-secondary", className)}>
       {/* Header */}
       {/* Same h-14 box as the mail sidebar's account switcher, so the apps line up. */}
-      <div className="px-3 h-14 border-b border-border flex items-center justify-between flex-shrink-0">
+      <div className="px-3 h-14 box-content border-b border-border flex items-center justify-between flex-shrink-0">
         <span className="text-sm font-semibold truncate">{t("title")}</span>
         <div className="relative flex-shrink-0">
           <Button
