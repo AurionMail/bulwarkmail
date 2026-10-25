@@ -63,8 +63,10 @@ export const DARK_PENDING_CLASS = 'bulwark-dark-pending';
 /**
  * Stylesheet for the srcdoc head in dark mode. Sets the fallback colours for
  * mails that set none, and hides the body until {@link applyEmailDarkMode}
- * ran so the light original never flashes. The reveal animation is a
- * failsafe: the body shows after a moment even if the pass never runs.
+ * ran so the light original never flashes. The canvas is pinned too while
+ * pending: a mail that paints <html> itself (`html { background: #fff }`)
+ * would otherwise show as a white box until the pass. The reveal animation
+ * is a failsafe: the body shows after a moment even if the pass never runs.
  */
 export function emailDarkModeCss(): string {
   return `
@@ -72,6 +74,7 @@ export function emailDarkModeCss(): string {
       body { color: ${DARK_TEXT}; background: ${EMAIL_DARK_BACKGROUND}; }
       a { color: ${DARK_LINK}; }
       @keyframes bulwark-dark-reveal { to { visibility: visible; } }
+      html.${DARK_PENDING_CLASS} { background-color: ${EMAIL_DARK_BACKGROUND} !important; }
       html.${DARK_PENDING_CLASS} body { visibility: hidden; animation: bulwark-dark-reveal 0s 1.5s forwards; }
     `;
 }
@@ -374,8 +377,16 @@ export function applyEmailDarkMode(doc: Document, options: EmailDarkModeOptions 
   const body = doc.body;
   try {
     if (!win || !body) return;
-    const canvas = parseComputedColor(win.getComputedStyle(doc.documentElement).backgroundColor);
-    const base: Rgba = canvas && canvas.a === 1 ? canvas : parseComputedColor('rgb(20, 20, 20)')!;
+    // Un-pin the canvas to read the mail's own; nothing paints before the
+    // writes below, so the light original never shows.
+    const html = doc.documentElement;
+    html.classList.remove(DARK_PENDING_CLASS);
+    const ours = parseComputedColor('rgb(20, 20, 20)')!;
+    const canvas = parseComputedColor(win.getComputedStyle(html).backgroundColor);
+    // A mail that paints <html> itself gets that canvas darkened like any
+    // other fill; left alone it shows wherever the body doesn't cover it.
+    const mailCanvas = canvas && canvas.a === 1 && !sameColor(canvas, ours) ? canvas : null;
+    const base: Rgba = mailCanvas ? darkenBackground(mailCanvas) : ours;
 
     // Read everything first, then write: interleaving would force a style
     // recalc per element.
@@ -397,8 +408,9 @@ export function applyEmailDarkMode(doc: Document, options: EmailDarkModeOptions 
       };
     });
 
-    // The original canvas is white: that is what the light view paints.
-    const root: Surface = { bg: base, original: WHITE, onImage: false };
+    // The original canvas is the mail's own or white: that is what the light
+    // view paints.
+    const root: Surface = { bg: base, original: mailCanvas ?? WHITE, onImage: false };
     const surfaces = new Map<Element, Surface>();
     const surfaceOf = (el: Element | null): Surface => {
       for (let n = el; n; n = n.parentElement) {
@@ -409,6 +421,9 @@ export function applyEmailDarkMode(doc: Document, options: EmailDarkModeOptions 
     };
 
     const writes: Array<() => void> = [];
+    if (mailCanvas && base !== mailCanvas) {
+      writes.push(() => html.style.setProperty('background-color', formatColor(base), 'important'));
+    }
     for (const snap of snaps) {
       const { el } = snap;
       const parent = el === body ? root : surfaceOf(el.parentElement);
@@ -426,7 +441,7 @@ export function applyEmailDarkMode(doc: Document, options: EmailDarkModeOptions 
         }
         // A translucent box over a picture still shows the picture, so it
         // keeps its colours; an opaque one is a surface of its own.
-        if (el === body && snap.bg && sameColor(snap.bg, base)) {
+        if (el === body && snap.bg && sameColor(snap.bg, ours)) {
           // Our own dark canvas (emailDarkModeCss), not a fill the sender
           // chose: in the light view this is the white page.
         } else if (snap.bg && snap.bg.a > 0 && !(parent.onImage && snap.bg.a < 0.9)) {

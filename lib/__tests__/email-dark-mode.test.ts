@@ -162,6 +162,23 @@ describe('applyEmailDarkMode', () => {
     const doc = render('<p>hi</p>');
     expect(doc.documentElement.classList.contains(DARK_PENDING_CLASS)).toBe(false);
   });
+
+  // Newsletters (Lieferando) paint the canvas through `html { background }`.
+  // The pass only looked at the body, so that white stayed behind the mail
+  // and was taken for our dark canvas.
+  it('darkens a canvas the mail paints on <html>', () => {
+    const frame = document.createElement('iframe');
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument!;
+    doc.documentElement.className = DARK_PENDING_CLASS;
+    doc.documentElement.style.backgroundColor = '#ffffff';
+    doc.body.style.backgroundColor = '#ffffff';
+    doc.body.innerHTML = '<p>hi</p>';
+    applyEmailDarkMode(doc);
+    const bgOf = (el: Element) => c(doc.defaultView!.getComputedStyle(el).backgroundColor);
+    expect(lightness(bgOf(doc.documentElement))).toBeLessThan(40);
+    expect(lightness(bgOf(doc.body))).toBeLessThan(40);
+  });
 });
 
 // #693: cells coloured through the legacy bgcolor attribute stayed white in
