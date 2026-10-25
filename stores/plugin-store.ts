@@ -301,8 +301,12 @@ export const usePluginStore = create<PluginStoreState>()(
             });
           }
 
-          // Sync server-managed plugins before loading
-          await syncServerPlugins(get, set);
+          // Sync server-managed plugins before loading. The mail view starts
+          // this on mount, before the user has signed in; marking the store
+          // initialized then left every plugin off after the sign-in until
+          // the next page load. Stay uninitialized so the call that follows
+          // the sign-in (plugin-app-events) starts them.
+          if (await syncServerPlugins(get, set) === 'signed-out') return;
 
           // Load all enabled plugins in parallel. Sequential `await` made one
           // hung/slow plugin block every subsequent one; loadSandboxedPlugin
@@ -502,9 +506,10 @@ function markServerManagedPlugins(plugins: InstalledPlugin[]): InstalledPlugin[]
 async function syncServerPlugins(
   get: () => PluginStoreState,
   set: (partial: Partial<PluginStoreState> | ((state: PluginStoreState) => Partial<PluginStoreState>)) => void,
-): Promise<void> {
+): Promise<'signed-out' | void> {
   try {
     const res = await apiFetch('/api/plugins');
+    if (res.status === 401) return 'signed-out';
     if (!res.ok) return;
 
     const data: { plugins: ServerPluginInfo[] } = await res.json();
