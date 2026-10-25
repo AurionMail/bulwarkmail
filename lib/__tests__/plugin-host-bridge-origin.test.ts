@@ -296,3 +296,44 @@ describe('plugin frames follow the page theme', () => {
     expect(inst.iframe.style.colorScheme).toBe('light');
   });
 });
+
+describe('plugin translations in frames', () => {
+  const locales = {
+    en: { hello: 'Hello' },
+    de: { hello: 'Hallo' },
+    fr: { hello: 'Bonjour' },
+    ja: { hello: 'こんにちは' },
+  };
+
+  it('sends a frame only the tables of its locale, and the next ones with a locale change', async () => {
+    const inst = createSlotInstance({
+      plugin: { ...plugin(), locales }, slot: 'plugin-dialog', code: '', locale: 'de', tier: 'untrusted', extraProps: {},
+      hostContainer: document.body, onResize: () => {},
+    });
+    instances.push(inst);
+    const sent: Array<Record<string, unknown>> = [];
+    vi.spyOn(inst.iframe.contentWindow!, 'postMessage').mockImplementation((msg: unknown) => { sent.push(msg as Record<string, unknown>); });
+    post(inst.iframe.contentWindow, 'null', { type: 'sandbox-ready' });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const init = sent.find((m) => m.type === 'init') as { payload: { manifest: { locales: Record<string, unknown> } } };
+    expect(Object.keys(init.payload.manifest.locales).sort()).toEqual(['de', 'en']);
+
+    inst.setLocale('fr');
+    const change = sent.find((m) => m.type === 'locale-change') as { locale: string; locales: Record<string, unknown> };
+    expect(change.locale).toBe('fr');
+    expect(change.locales).toEqual({ fr: { hello: 'Bonjour' }, en: { hello: 'Hello' } });
+  });
+
+  it('does the same for background frames', async () => {
+    const inst = createBackgroundInstance({ plugin: { ...plugin(), locales }, code: '', locale: 'ja', tier: 'untrusted' });
+    instances.push(inst);
+    const sent: Array<Record<string, unknown>> = [];
+    vi.spyOn(inst.iframe.contentWindow!, 'postMessage').mockImplementation((msg: unknown) => { sent.push(msg as Record<string, unknown>); });
+    post(inst.iframe.contentWindow, 'null', { type: 'sandbox-ready' });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const init = sent.find((m) => m.type === 'init') as { payload: { manifest: { locales: Record<string, unknown> } } };
+    expect(Object.keys(init.payload.manifest.locales).sort()).toEqual(['en', 'ja']);
+  });
+});

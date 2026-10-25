@@ -86,6 +86,18 @@ let currentRegional: RegionalSnapshot = {
 };
 
 const localeListeners = new Set<(locale: string) => void>();
+
+// The plugin's strings. The host sends only the tables of the current locale
+// chain (plugin-i18n tablesFor) and the next ones with each locale-change.
+let localeTables: LocaleTables = {};
+
+/** Add the tables a locale-change brought; strings the plugin added itself win. */
+function mergeLocaleTables(next: LocaleTables | undefined): void {
+  if (!next) return;
+  for (const [locale, table] of Object.entries(next)) {
+    localeTables[locale] = { ...table, ...(localeTables[locale] ?? {}) };
+  }
+}
 function currentLocale(): string {
   return (globalThis as unknown as { __PLUGIN_LOCALE__?: string }).__PLUGIN_LOCALE__ || 'en';
 }
@@ -351,7 +363,7 @@ interface PluginKeywordCounts {
 
 function buildPluginApi(manifest: PluginManifest) {
   applySettings({ ...manifest.settings });
-  const localeTables: LocaleTables = JSON.parse(JSON.stringify(manifest.locales ?? {}));
+  localeTables = JSON.parse(JSON.stringify(manifest.locales ?? {}));
   return {
     plugin: {
       id: manifest.id,
@@ -1231,6 +1243,7 @@ function handleHostMessage(ev: MessageEvent): void {
     }
 
     case 'locale-change':
+      mergeLocaleTables(msg.locales);
       applyLocale(msg.locale, msg.regional);
       break;
 

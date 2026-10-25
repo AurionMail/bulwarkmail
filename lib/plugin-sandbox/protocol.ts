@@ -255,6 +255,8 @@ export interface LocaleChangeMsg {
   type: 'locale-change';
   locale: string;
   regional?: RegionalSnapshot;
+  /** The plugin's tables for the new locale (init carries only the current ones). */
+  locales?: Record<string, Record<string, string>>;
 }
 
 /** Host → sandbox: the resolved theme changed; re-inject the slot's theme CSS. */

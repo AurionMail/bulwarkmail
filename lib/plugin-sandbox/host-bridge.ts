@@ -16,6 +16,7 @@ import { snapshotHostTheme, type ThemeSnapshot } from './host-theme';
 import { effectiveSettings } from '../plugin-settings';
 import { clampSlotHeight, clampSlotWidth, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import { resolveDateLocale } from '../utils';
+import { tablesFor } from './plugin-i18n';
 import { getEffectiveTimeZone } from '../timezone';
 import { getEffectiveLocale } from '@/i18n/detect-locale';
 import { useSettingsStore, type DateLocale } from '@/stores/settings-store';
@@ -594,7 +595,12 @@ export class SandboxInstance {
 
   setLocale(locale: string, regional?: RegionalSnapshot): void {
     if (this.destroyed) return;
-    this.send({ type: 'locale-change', locale, regional: regional ?? snapshotRegionalSettings(locale) });
+    this.send({
+      type: 'locale-change',
+      locale,
+      regional: regional ?? snapshotRegionalSettings(locale),
+      locales: tablesFor(this.plugin.locales, locale),
+    });
   }
 
   /** Push a new resolved theme so the slot iframe re-injects its theme CSS. */
@@ -698,7 +704,7 @@ export function createBackgroundInstance(opts: BackgroundOptions): SandboxInstan
       version: opts.plugin.version,
       permissions: opts.plugin.permissions,
       settings: effectiveSettings(opts.plugin),
-      locales: opts.plugin.locales,
+      locales: tablesFor(opts.plugin.locales, opts.locale),
       httpOrigins: opts.plugin.httpOrigins,
     },
     code: opts.code,
@@ -725,7 +731,7 @@ export function createSlotInstance(opts: SlotOptions): SandboxInstance {
       version: opts.plugin.version,
       permissions: opts.plugin.permissions,
       settings: effectiveSettings(opts.plugin),
-      locales: opts.plugin.locales,
+      locales: tablesFor(opts.plugin.locales, opts.locale),
       httpOrigins: opts.plugin.httpOrigins,
     },
     extraProps: opts.extraProps,
