@@ -18,7 +18,7 @@ import { allowEmailMove, createMailboxWithHooks, emitEmailMove, idsFromSelection
 import { emailSummary, emailToReadView } from "@/lib/plugin-projection";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import { emailKeyFor, threadKeyFor, threadIdFromKey, KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY } from "@/lib/thread-utils";
-import type { ExternalSearchResult } from "@/lib/plugin-types";
+import { provideSearchResults, type ProvidedSearchResult } from "@/lib/plugin-search-results";
 import { positionsByAccount, fetchUnifiedEmails, fetchUnifiedMailboxCounts, searchUnifiedEmails, advancedSearchUnifiedEmails, fetchCrossViewEmails, searchCrossViewEmails, advancedSearchCrossViewEmails, fetchTagEmails, trashAndJunkIds, searchAcrossAccounts, advancedSearchAcrossAccounts, getCrossUnreadTotal, dedupeUnifiedAccounts, unifiedServerKey, type AcrossAccountsSearchOptions, type UnifiedAccountClient, type UnifiedMailboxCounts } from "@/lib/unified-mailbox";
 import { defaultSearchScopeFor, isAllFoldersSearchScope, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { useAuthStore } from "@/stores/auth-store";
@@ -197,8 +197,8 @@ interface EmailStore {
   searchScopeFollowsFolder: boolean;
   isAdvancedSearchOpen: boolean;
   searchAbortController: AbortController | null;
-  /** Plugin-contributed search results (CRM hits, Slack messages, etc.) populated by emailHooks.onProvideSearchResults. */
-  externalSearchResults: ExternalSearchResult[];
+  /** Plugins' results from elsewhere for the search running (onProvideSearchResults), drawn above its list. */
+  externalSearchResults: ProvidedSearchResult[];
 
   // Unified mailbox state
   // Bumped by any action that changes which mailbox/keyword/unified view is
@@ -2299,6 +2299,31 @@ async function pluginSearchResultIds(query: string, filters: unknown, emails: Em
     .slice(0, MAX_PLUGIN_SEARCH_IDS);
 }
 
+/**
+ * Plugins' results for the search that is running (onProvideSearchResults).
+ * Asked beside the search, not before its list is shown: a slow plugin never
+ * delays the messages, and the answer to a search that was replaced is dropped.
+ */
+let providedSearchRun: object | null = null;
+
+function startProvidedSearchResults(
+  query: string,
+  filters: unknown,
+  store: { get: () => EmailStore; set: (partial: Partial<EmailStore>) => void },
+): void {
+  const run = {};
+  providedSearchRun = run;
+  // Written only when it changes: a search without plugin results renders as before.
+  const show = (results: ProvidedSearchResult[]) => {
+    if (results.length > 0 || store.get().externalSearchResults.length > 0) store.set({ externalSearchResults: results });
+  };
+  show([]);
+  if (emailHooks.onProvideSearchResults.size === 0) return;
+  void provideSearchResults(query, filters).then((results) => {
+    if (providedSearchRun === run) show(results);
+  });
+}
+
 export const useEmailStore = create<EmailStore>((set, get) => ({
   emails: [],
   mailboxes: [],
@@ -4171,6 +4196,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       }
       const query = search.query;
       const { isUnifiedView, unifiedRole, crossView, searchMailboxId, searchFilters, selectedKeyword } = get();
+      startProvidedSearchResults(query, searchFilters, { get, set });
       const emailsPerPage = useSettingsStore.getState().emailsPerPage;
 
       let result;
@@ -4234,17 +4260,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       }
 
       if (controller.signal.aborted) return;
-
-      const externals = await emailHooks.onProvideSearchResults.transform([] as ExternalSearchResult[], {
-        query,
-        filters: searchFilters
-      });
-
-      if (controller.signal.aborted) return;
       result.emails = await emailHooks.onEmailsFetched.transform(result.emails);
       set({
         emails: annotateScheduledEmails(result.emails, get().scheduledSubmissionByEmailId),
-        externalSearchResults: externals,
         hasMoreEmails: result.hasMore,
         totalEmails: result.total,
         // Also here: a fast answer can land before the deferred loading write.
@@ -4288,6 +4306,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const { query: searchQuery, filters: searchFilters } = transformed
         ?? (emailHooks.onSearch.size > 0 ? await transformSearch(typedQuery, typedFilters) : { query: typedQuery, filters: typedFilters });
       if (controller.signal.aborted) return;
+      startProvidedSearchResults(searchQuery, searchFilters, { get, set });
       const emailsPerPage = useSettingsStore.getState().emailsPerPage;
       let result;
       let accountId;
@@ -4355,17 +4374,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       }
 
       if (controller.signal.aborted) return;
-
-      const externals = await emailHooks.onProvideSearchResults.transform([] as ExternalSearchResult[], { 
-        query: searchQuery, 
-        filters: searchFilters 
-      });
-
-      if (controller.signal.aborted) return;
       result.emails = await emailHooks.onEmailsFetched.transform(result.emails);
       set({
         emails: annotateScheduledEmails(result.emails, get().scheduledSubmissionByEmailId),
-        externalSearchResults: externals,
         hasMoreEmails: result.hasMore,
         totalEmails: result.total,
         isLoading: false,

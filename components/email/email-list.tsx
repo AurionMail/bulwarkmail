@@ -42,6 +42,7 @@ import { PluginActions } from "@/components/plugins/plugin-actions";
 import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
 import { unreadSectionRowCount } from "@/lib/unread-first";
 import { MvListSectionHeader } from "./mv-list-section-header";
+import { PluginSearchResults } from "./plugin-search-results";
 
 interface EmailListProps {
   emails: Email[];
@@ -965,6 +966,8 @@ export function EmailList({
       )}
 
       <PluginSlot name="message-list-header" className="w-full" extraProps={listSlotProps} />
+
+      <PluginSearchResults surface="search-results" />
 
       {listColumns && (
         <ListColumnsHeader density={density} selecting={hasSelection} showRecipient={showRecipientColumn} />
