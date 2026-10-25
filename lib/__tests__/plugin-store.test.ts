@@ -287,6 +287,20 @@ describe('usePluginStore', () => {
       expect(usePluginStore.getState().initialized).toBe(true);
     });
 
+    it('starts the plugins when a call made after the sign-in joined the signed-out one', async () => {
+      const { loadPlugin } = await import('@/lib/plugin-loader');
+      let answer!: (r: unknown) => void;
+      mocks.apiFetch.mockImplementationOnce(() => new Promise((r) => { answer = r; }));
+
+      const beforeSignIn = usePluginStore.getState().initializePlugins();
+      const afterSignIn = usePluginStore.getState().initializePlugins();
+      answer({ ok: false, status: 401, json: async () => ({}) });
+      await Promise.all([beforeSignIn, afterSignIn]);
+
+      expect(loadPlugin).toHaveBeenCalledWith(expect.objectContaining({ id: 'managed-plugin' }));
+      expect(usePluginStore.getState().initialized).toBe(true);
+    });
+
     it('keeps the record when the download fails so the error can surface at load time', async () => {
       usePluginStore.setState({ plugins: [syncedRecord()] });
       mocks.downloadManagedBundle.mockRejectedValue(new Error('Could not download the bundle (HTTP 503)'));

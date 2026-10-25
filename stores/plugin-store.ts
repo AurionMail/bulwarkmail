@@ -317,7 +317,11 @@ export const usePluginStore = create<PluginStoreState>()(
         if (get().initialized) return;
 
         if (pluginInitializationPromise) {
-          await pluginInitializationPromise;
+          const joined = pluginInitializationPromise;
+          await joined;
+          // The run this joined may have ended signed out (it started before
+          // the sign-in); then this call starts the plugins itself.
+          if (!get().initialized && pluginInitializationPromise !== joined) await get().initializePlugins();
           return;
         }
 
