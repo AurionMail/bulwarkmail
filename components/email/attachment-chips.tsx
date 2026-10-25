@@ -51,7 +51,7 @@ export const CHIP_BOX_CLASS = "inline-flex items-center gap-1.5 rounded-md borde
 export const CHIP_ICON_CLASS = "h-3.5 w-3.5 flex-shrink-0";
 
 // Mountain View's chips are Gmail's: a pill with a filled square in front.
-export const MV_CHIP_BOX_CLASS = "inline-flex h-7 items-center gap-2 rounded-full border border-border ps-2 pe-3 text-sm";
+export const MV_CHIP_BOX_CLASS = "inline-flex h-8 items-center gap-2 rounded-full border border-border ps-3 pe-4 text-sm";
 export const MV_CHIP_BADGE_CLASS = "inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[3px] text-white";
 export const MV_CHIP_BADGE_ICON_CLASS = "h-3 w-3";
 
@@ -108,7 +108,7 @@ export function AttachmentChips({ attachments, onOpen, max = 2, leading, variant
       {overflow > 0 && (
         <span className={cn(
           "border border-border text-muted-foreground tabular-nums",
-          mv ? "inline-flex h-7 items-center rounded-full px-2.5 text-sm" : "rounded-md px-1.5 py-0.5 text-xs",
+          mv ? "inline-flex h-8 items-center rounded-full px-3 text-sm" : "rounded-md px-1.5 py-0.5 text-xs",
         )}>
           +{overflow}
         </span>

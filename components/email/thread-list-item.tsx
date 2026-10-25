@@ -113,7 +113,7 @@ function RowChips({ email, loadAttachments, onOpenAttachment, mountainView, mvRo
   const code = useListVerificationCode(email);
   const leading = code ? <VerificationCodeChip code={code} variant={variant} /> : undefined;
   // The sender column is w-32 (lg:w-40) and the row line has gap-3 after it.
-  const className = cn("mt-1.5", mvRow && "mt-0 pb-2 ps-[8.75rem] lg:ps-[10.75rem]");
+  const className = cn(variant === "mountain-view" ? "mt-2" : "mt-1.5", mvRow && "mt-1 pb-2.5 ps-[8.75rem] lg:ps-[10.75rem]");
   // Most rows have no attachment: no loader for them, nor an empty chip row.
   const mayHaveAttachments = email.hasAttachment || (email.attachments?.length ?? 0) > 0;
   if (onOpenAttachment && mayHaveAttachments) {
