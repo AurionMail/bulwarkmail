@@ -36,7 +36,12 @@ interface ResolvedTarget {
 // ahead of the others: an account with a folder shared out is listed in the
 // session of everyone it is shared with, who sees only that folder - not its
 // Inbox, nor the message that just arrived there.
-async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarget | null> {
+//
+// The push names nothing but the account id, and ids repeat across servers
+// (and a group account is listed by each member). When that leaves more than
+// one login, answer 'ambiguous' rather than guess: a wrong guess previews
+// another login's mail and opens it there.
+async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarget | 'ambiguous' | null> {
   const cookieStore = await cookies();
   const probes: Promise<{ target: ResolvedTarget; own: boolean } | null>[] = [];
   for (let slot = 0; slot < MAX_ACCOUNT_SLOTS; slot++) {
@@ -77,8 +82,11 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
       })(),
     );
   }
-  const results = await Promise.all(probes);
-  return (results.find((r) => r?.own) ?? results.find((r) => r !== null))?.target ?? null;
+  const results = (await Promise.all(probes)).filter((r) => r !== null);
+  const owners = results.filter((r) => r.own);
+  if (owners.length === 1) return owners[0].target;
+  if (results.length === 1) return results[0].target;
+  return results.length > 1 ? 'ambiguous' : null;
 }
 
 async function resolveDefaultTarget(creds: StalwartCredentials): Promise<ResolvedTarget | null> {
@@ -124,10 +132,16 @@ export async function GET(request: NextRequest) {
     let target: ResolvedTarget | null = null;
     let authHeader: string;
     if (requestedAccountId) {
-      target = await resolveTargetForAccount(requestedAccountId);
-      if (!target) {
+      const resolved = await resolveTargetForAccount(requestedAccountId);
+      if (!resolved) {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
       }
+      // The service worker shows its generic notification, and a click opens
+      // the app without switching login.
+      if (resolved === 'ambiguous') {
+        return NextResponse.json({ error: 'Account is in more than one signed-in login' }, { status: 409 });
+      }
+      target = resolved;
       authHeader = target.authHeader;
     } else {
       const creds = await getStalwartCredentials(request);
