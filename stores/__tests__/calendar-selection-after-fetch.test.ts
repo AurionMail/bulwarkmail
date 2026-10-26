@@ -35,7 +35,7 @@ const own = [cal({ id: 'a', accountId: 'me' }), cal({ id: 'b', accountId: 'me' }
 
 describe('calendar selection after a fetch', () => {
   beforeEach(() => {
-    useCalendarStore.setState({ calendars: [], selectedCalendarIds: [], error: null });
+    useCalendarStore.setState({ calendars: [], selectedCalendarIds: [], calendarSelectionChosen: false, error: null });
   });
 
   it('leaves the list and the selection alone when the fetch fails', async () => {
@@ -103,6 +103,48 @@ describe('calendar selection after a fetch', () => {
     ]);
 
     expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['A@h::b', 'A@h::team:x']);
+  });
+});
+
+describe('a selection the user made', () => {
+  beforeEach(() => {
+    useCalendarStore.setState({ calendars: own, selectedCalendarIds: ['a', 'b'], calendarSelectionChosen: false, error: null });
+  });
+
+  it('stays empty after the user hid every calendar', async () => {
+    useCalendarStore.getState().toggleCalendarVisibility('a');
+    useCalendarStore.getState().toggleCalendarVisibility('b');
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: own }));
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual([]);
+  });
+
+  it('keeps only the birthday calendar when the user hid every other one', async () => {
+    useCalendarStore.setState({ selectedCalendarIds: ['a', 'b', BIRTHDAY_CALENDAR_ID] });
+    useCalendarStore.getState().toggleCalendarVisibility('a');
+    useCalendarStore.getState().toggleCalendarVisibility('b');
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: own }));
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual([BIRTHDAY_CALENDAR_ID]);
+  });
+
+  it('falls back to all when the calendars it named were removed', async () => {
+    useCalendarStore.getState().toggleCalendarVisibility('b');
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: [cal({ id: 'c', accountId: 'me' })] }));
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['c']);
+  });
+
+  it('does not count showing the birthday calendar as a choice', async () => {
+    useCalendarStore.setState({ selectedCalendarIds: [] });
+    useCalendarStore.getState().toggleCalendarVisibility(BIRTHDAY_CALENDAR_ID);
+
+    await useCalendarStore.getState().fetchCalendars(clientReturning({ calendars: own }));
+
+    expect(useCalendarStore.getState().selectedCalendarIds).toEqual(['a', 'b', BIRTHDAY_CALENDAR_ID]);
   });
 });
 

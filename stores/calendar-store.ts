@@ -527,6 +527,8 @@ export function reconcileSelectedIds(
  * default when no real calendar is left in it. The virtual birthday calendar
  * always survives reconciliation, so it must not count - counting it pinned
  * the selection to "birthdays only" once the real calendars had dropped out.
+ * A selection the user emptied by hiding every calendar (`chosen`) stays
+ * empty; one that named calendars which are gone now falls back.
  */
 function selectionAfterFetch(
   selectedCalendarIds: string[],
@@ -534,9 +536,11 @@ function selectionAfterFetch(
   defaultSelected: string[],
   unloadedPrefixes?: string[],
   rawOwner?: string,
+  chosen = false,
 ): string[] {
   const reconciled = reconcileSelectedIds(selectedCalendarIds, calendars, unloadedPrefixes, rawOwner);
   if (reconciled.some((id) => id !== BIRTHDAY_CALENDAR_ID)) return reconciled;
+  if (chosen && !selectedCalendarIds.some((id) => id !== BIRTHDAY_CALENDAR_ID)) return reconciled;
   return reconciled.includes(BIRTHDAY_CALENDAR_ID) ? [...defaultSelected, BIRTHDAY_CALENDAR_ID] : defaultSelected;
 }
 
@@ -770,6 +774,8 @@ interface CalendarStore {
   selectedDate: Date;
   viewMode: CalendarViewMode;
   selectedCalendarIds: string[];
+  /** The user picked the visible calendars by hand: an empty pick hides them all. */
+  calendarSelectionChosen: boolean;
   selectedEventId: string | null;
   isLoading: boolean;
   isLoadingEvents: boolean;
@@ -857,6 +863,7 @@ const initialState = {
   events: [],
   selectedDate: displayNow(),
   selectedCalendarIds: [] as string[],
+  calendarSelectionChosen: false,
   selectedEventId: null as string | null,
   isLoading: false,
   isLoadingEvents: false,
@@ -928,6 +935,8 @@ export const useCalendarStore = create<CalendarStore>()(
               defaultSelected,
               // Shared calendars' ids are `<accountId>:<id>` (getAllCalendars).
               failedAccountIds.map((accountId) => `${accountId}:`),
+              undefined,
+              get().calendarSelectionChosen,
             ),
           });
         } catch (error) {
@@ -1014,6 +1023,7 @@ export const useCalendarStore = create<CalendarStore>()(
               calendars.map(c => c.id),
               unloadedPrefixes,
               activeLocalAccountId ?? undefined,
+              get().calendarSelectionChosen,
             ),
           });
         } catch (error) {
@@ -1653,6 +1663,8 @@ export const useCalendarStore = create<CalendarStore>()(
           selectedCalendarIds: visible
             ? [...state.selectedCalendarIds, calendarId]
             : state.selectedCalendarIds.filter(id => id !== calendarId),
+          // Showing birthdays is a setting, not a pick of calendars.
+          calendarSelectionChosen: state.calendarSelectionChosen || calendarId !== BIRTHDAY_CALENDAR_ID,
         }));
         void calendarHooks.onCalendarVisibilityToggle.emit({ calendarId, visible });
       },
@@ -2060,6 +2072,7 @@ export const useCalendarStore = create<CalendarStore>()(
       },
       partialize: (state) => ({
         selectedCalendarIds: state.selectedCalendarIds,
+        calendarSelectionChosen: state.calendarSelectionChosen,
         viewMode: state.viewMode,
         icalSubscriptions: state.icalSubscriptions,
         deletedSubscriptionIds: state.deletedSubscriptionIds,

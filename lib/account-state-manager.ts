@@ -70,6 +70,7 @@ export function snapshotAccount(accountId: string): void {
       calendars: [...calendarState.calendars],
       events: [...calendarState.events],
       selectedCalendarIds: [...calendarState.selectedCalendarIds],
+      calendarSelectionChosen: calendarState.calendarSelectionChosen,
       viewMode: calendarState.viewMode,
       supportsCalendar: calendarState.supportsCalendar,
     },
