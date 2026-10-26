@@ -45,7 +45,8 @@ import { MvListSectionHeader } from "./mv-list-section-header";
 
 interface EmailListProps {
   emails: Email[];
-  selectedEmailId?: string;
+  /** emailKeyFor of the open message: ids repeat across accounts. */
+  selectedEmailKey?: string;
   onEmailSelect?: (email: Email) => void;
   /** A mouse was pressed on a row: the click that follows will open it. */
   onEmailPrefetch?: (email: Email) => void;
@@ -125,7 +126,7 @@ function LoadingSkeleton() {
 
 export function EmailList({
   emails,
-  selectedEmailId,
+  selectedEmailKey,
   onEmailSelect,
   onEmailPrefetch,
   onEmailDoubleClick,
@@ -769,10 +770,10 @@ export function EmailList({
 
   // Scroll to the thread group containing the selected email
   useEffect(() => {
-    if (!selectedEmailId) return;
+    if (!selectedEmailKey) return;
     const index = threadGroups.findIndex(thread =>
-      thread.latestEmail.id === selectedEmailId ||
-      thread.emails.some(e => e.id === selectedEmailId)
+      emailKeyFor(thread.latestEmail) === selectedEmailKey ||
+      thread.emails.some(e => emailKeyFor(e) === selectedEmailKey)
     );
     if (index < 0) return;
     // A row clicked in the list is already on screen; scrollToIndex would
@@ -785,7 +786,7 @@ export function EmailList({
     if (item && top !== null && height !== undefined && item.start >= top && item.end <= top + height) return;
     virtualizer.scrollToIndex(itemIndex, { align: 'auto' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedEmailId]);
+  }, [selectedEmailKey]);
 
   // Keep the moving end of a Shift+Arrow range on screen (#992).
   const selectionFocusKey = useEmailStore((state) => state.selectionFocus?.focus ?? null);
@@ -1070,7 +1071,7 @@ export function EmailList({
                     {thread && <MemoizedThreadListItem
                       thread={thread}
                       isExpanded={expandedThreadIds.has(thread.threadKey)}
-                      selectedEmailId={selectedEmailId}
+                      selectedEmailKey={selectedEmailKey}
                       isLoading={isLoadingThread === thread.threadKey}
                       expandedEmails={threadEmailsCache.get(thread.threadKey)}
                       onToggleExpand={toggleExpandFor(thread.threadKey)}

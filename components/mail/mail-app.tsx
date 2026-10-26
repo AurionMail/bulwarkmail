@@ -5165,7 +5165,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onFindFromSender={mvShell ? (sender) => void handleSelectContactSuggestion(sender, 'from') : undefined}
                 hideBatchToolbar={mvShell}
                 emails={activeEmails}
-                selectedEmailId={selectedEmail?.id}
+                selectedEmailKey={selectedEmail ? emailKeyFor(selectedEmail) : undefined}
                 isLoading={activeIsLoading}
                 hasMore={activeHasMore}
                 isLoadingMoreItems={isScheduledView ? isLoadingScheduled && activeEmails.length > 0 : undefined}
