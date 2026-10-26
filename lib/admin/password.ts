@@ -90,7 +90,8 @@ async function writeConfigData(data: AdminConfigData): Promise<void> {
   await ensureConfigDir();
   const target = getConfigPath(ADMIN_CONFIG_FILE);
   const tmp = target + '.tmp';
-  await writeFile(tmp, JSON.stringify(data, null, 2), 'utf-8');
+  // Owner-only, like the other files that hold secrets.
+  await writeFile(tmp, JSON.stringify(data, null, 2), { encoding: 'utf-8', mode: 0o600 });
   await rename(tmp, target);
 }
 
