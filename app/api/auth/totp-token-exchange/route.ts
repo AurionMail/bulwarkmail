@@ -38,6 +38,7 @@ async function attemptLogin(
   serverId: string | null,
   upstreamTrusted: boolean,
   clientIp: string,
+  rememberMe: boolean,
 ): Promise<NextResponse> {
   const base = upstreamUrl.replace(/\/+$/, '');
 
@@ -108,7 +109,7 @@ async function attemptLogin(
 
   logger.info('TOTP login succeeded');
   void recordLogin(username, base);
-  return await storeAndRespond(result.tokens, slot, serverId);
+  return await storeAndRespond(result.tokens, slot, serverId, rememberMe);
 }
 
 function trimUrl(url: string): string {
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
   const crossOrigin = rejectCrossOriginRequest(request);
   if (crossOrigin) return crossOrigin;
   try {
-    const { serverUrl, username, password, totp, slot: bodySlot, server_id: bodyServerId, redirectUri: bodyRedirectUri } =
+    const { serverUrl, username, password, totp, slot: bodySlot, server_id: bodyServerId, redirectUri: bodyRedirectUri, rememberMe } =
       await request.json();
 
     if (!serverUrl || !username || !password) {
@@ -187,6 +188,8 @@ export async function POST(request: NextRequest) {
       resolvedServerId,
       upstreamTrusted,
       loginClientAddress(request),
+      // Clients from before the flag remembered every sign-in.
+      rememberMe !== false,
     );
   } catch (error) {
     logger.error('TOTP login error', { error: error instanceof Error ? error.message : 'Unknown error' });
@@ -198,11 +201,14 @@ async function storeAndRespond(
   tokens: { access_token: string; expires_in?: number; refresh_token?: string },
   slot: number,
   serverId: string | null,
+  rememberMe: boolean,
 ): Promise<NextResponse> {
   const cookieStore = await cookies();
   if (tokens.refresh_token) {
     const cookieName = refreshTokenCookieName(slot);
-    cookieStore.set(cookieName, tokens.refresh_token, getCookieOptions());
+    // Without "Remember me" the sign-in ends with the browser session.
+    const { maxAge: _maxAge, ...sessionOptions } = getCookieOptions();
+    cookieStore.set(cookieName, tokens.refresh_token, rememberMe ? getCookieOptions() : sessionOptions);
   }
   const serverCookieName = refreshTokenServerCookieName(slot);
   if (serverId) {

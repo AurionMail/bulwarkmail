@@ -416,7 +416,7 @@ async function exchangePasswordForTokens(params: {
       headers: { 'Content-Type': 'application/json' },
       // server_id isn't passed - the route looks up the server entry by
       // serverUrl, so per-server OAuth still applies for password+TOTP.
-      body: JSON.stringify({ serverUrl, username, password, totp, slot, redirectUri }),
+      body: JSON.stringify({ serverUrl, username, password, totp, slot, redirectUri, rememberMe }),
     });
   }
   try {
@@ -2637,11 +2637,14 @@ export const useAuthStore = create<AuthState>()(
             // credentials. Evict silently so the login screen is shown without
             // flagging a fake error. (Lite keeps a tab-scoped session either
             // way; a missing one surfaces as a 401 from fetchSlotSession below
-            // and evicts too.)
-            if (account.authMode !== 'oauth' && !account.rememberMe && !IS_LITE) {
+            // and evicts too.) A password + TOTP login runs on tokens, but
+            // without rememberMe it ends the same way: its refresh token goes.
+            // Provider sign-ins are always remembered.
+            if (!account.rememberMe && !IS_LITE) {
               forgottenAccounts += 1;
               evictAccount(account.id);
               accountStore.removeAccount(account.id);
+              if (account.authMode === 'oauth') void clearSlotCredentials(account.cookieSlot, true);
               return;
             }
 
