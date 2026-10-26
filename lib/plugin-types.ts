@@ -397,6 +397,14 @@ export interface KeyboardShortcut {
 
 export interface EmailReadView {
   id: string;
+  /**
+   * The JMAP account the message is in. Message ids repeat across accounts
+   * (own, shared, group), so pass it to email.get / getRaw / getAttachment /
+   * setKeyword to name this very message. Always set on what email.get,
+   * list and search return; elsewhere set at least when messages of several
+   * accounts are listed together.
+   */
+  accountId?: string;
   threadId: string;
   mailboxIds: string[];
   from: { name: string; email: string }[];
@@ -462,6 +470,8 @@ export interface EmailSummary {
   keywords: string[];
   hasAttachment: boolean;
   size: number;
+  /** See EmailReadView.accountId. */
+  accountId?: string;
 }
 
 export interface DraftView {
