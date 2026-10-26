@@ -1778,6 +1778,10 @@
         "signed_in": "Bei {count, plural, one {# Konto} other {# Konten}} mit dem gespeicherten Passwort angemeldet.",
         "sign_in_failed": "{count, plural, one {# gespeichertes Passwort wurde} other {# gespeicherte Passwörter wurden}} abgelehnt: Melden Sie sich bei diesen Konten über die Kontoliste an.",
         "deleted": "Gespeicherte Liste gelöscht.",
+        "prompt_title": "Weitere Konten wiederherstellen?",
+        "prompt_description": "Für {account} ist eine Kontenliste gespeichert. Gib das Backup-Passwort ein, um die Konten in diesem Browser hinzuzufügen, oder mach es später in den Einstellungen.",
+        "prompt_not_now": "Nicht jetzt",
+        "prompt_done": "Fertig",
         "errors": {
           "mismatch": "Die Passwörter stimmen nicht überein.",
           "password_length": "Verwenden Sie mindestens 10 Zeichen.",

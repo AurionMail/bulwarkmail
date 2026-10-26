@@ -1781,6 +1781,10 @@
         "signed_in": "Salvestatud parooliga logiti sisse {count, plural, one {# kontosse} other {# kontosse}}.",
         "sign_in_failed": "{count, plural, one {# salvestatud parool lükati tagasi} other {# salvestatud parooli lükati tagasi}}: logi neisse kontodesse kontode nimekirjast sisse.",
         "deleted": "Salvestatud nimekiri kustutatud.",
+        "prompt_title": "Restore your other accounts?",
+        "prompt_description": "A list of accounts is saved for {account}. Enter its backup password to add them to this browser, or do it later from Settings.",
+        "prompt_not_now": "Not now",
+        "prompt_done": "Done",
         "errors": {
           "mismatch": "Paroolid ei kattu.",
           "password_length": "Kasuta vähemalt 10 märki.",

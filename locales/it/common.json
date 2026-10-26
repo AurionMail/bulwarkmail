@@ -1778,6 +1778,10 @@
         "signed_in": "Accesso fatto a {count, plural, one {# account} other {# account}} con la password salvata.",
         "sign_in_failed": "{count, plural, one {# password salvata è stata rifiutata} other {# password salvate sono state rifiutate}}: accedi a quegli account dall'elenco account.",
         "deleted": "Elenco salvato eliminato.",
+        "prompt_title": "Ripristinare gli altri account?",
+        "prompt_description": "Per {account} è salvato un elenco di account. Inserisci la password del backup per aggiungerli a questo browser, oppure fallo più tardi dalle Impostazioni.",
+        "prompt_not_now": "Non ora",
+        "prompt_done": "Fatto",
         "errors": {
           "mismatch": "Le password non coincidono.",
           "password_length": "Usa almeno 10 caratteri.",

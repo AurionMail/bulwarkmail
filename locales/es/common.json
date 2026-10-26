@@ -1778,6 +1778,10 @@
         "signed_in": "Sesión iniciada en {count, plural, one {# cuenta} other {# cuentas}} con la contraseña guardada.",
         "sign_in_failed": "{count, plural, one {# contraseña guardada fue rechazada} other {# contraseñas guardadas fueron rechazadas}}: inicia sesión en esas cuentas desde la lista de cuentas.",
         "deleted": "Lista guardada eliminada.",
+        "prompt_title": "¿Restaurar tus otras cuentas?",
+        "prompt_description": "Hay una lista de cuentas guardada para {account}. Introduce la contraseña de la copia para añadirlas a este navegador, o hazlo más tarde desde Ajustes.",
+        "prompt_not_now": "Ahora no",
+        "prompt_done": "Listo",
         "errors": {
           "mismatch": "Las contraseñas no coinciden.",
           "password_length": "Usa al menos 10 caracteres.",
