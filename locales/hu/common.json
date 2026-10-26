@@ -1536,6 +1536,10 @@
         "label": "Csak szöveges mód",
         "description": "Rich text szerkesztő letiltása és az összes e-mail küldése csak szöveges formátumban, beleértve a válaszokat és továbbításokat"
       },
+      "quick_reply": {
+        "label": "Gyors válasz",
+        "description": "A gyors válasz mező megjelenítése az üzenetek alatt."
+      },
       "auto_select_reply_identity": {
         "label": "Válasz a fogadott címről",
         "description": "Válaszküldéskor arról a címről küldjön, amelyre az üzenet eredetileg érkezett. Először identitásokat keres; tartományi catch-all kézbesítések esetén átírja a Feladó fejlécet az aliasra, miközben az elsődleges identitáson keresztül küld."

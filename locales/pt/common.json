@@ -1524,6 +1524,10 @@
         "label": "Apenas texto simples",
         "description": "Desativar o editor de texto formatado e enviar todos os e-mails apenas como texto simples, incluindo respostas e encaminhamentos"
       },
+      "quick_reply": {
+        "label": "Resposta rápida",
+        "description": "Mostrar a caixa de resposta rápida abaixo das mensagens."
+      },
       "auto_select_reply_identity": {
         "label": "Selecionar automaticamente o endereço de resposta",
         "description": "Ao responder, muda automaticamente o endereço do remetente para a identidade que recebeu a mensagem original"

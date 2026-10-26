@@ -1533,6 +1533,10 @@
         "label": "仅纯文本",
         "description": "禁用富文本编辑器，并将所有邮件（包括回复和转发）以纯文本发送"
       },
+      "quick_reply": {
+        "label": "快速回复",
+        "description": "在邮件下方显示快速回复框。"
+      },
       "auto_select_reply_identity": {
         "label": "自动选择回复地址",
         "description": "回复时自动将发件人地址切换为最初收到该邮件的身份"

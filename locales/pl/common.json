@@ -1533,6 +1533,10 @@
         "label": "Tylko zwykły tekst",
         "description": "Wyłącz edytor tekstu sformatowanego i wysyłaj wszystkie wiadomości e-mail tylko jako zwykły tekst, w tym odpowiedzi i przekazywanie dalej"
       },
+      "quick_reply": {
+        "label": "Szybka odpowiedź",
+        "description": "Pokazuj pole szybkiej odpowiedzi pod wiadomościami."
+      },
       "auto_select_reply_identity": {
         "label": "Automatycznie wybieraj adres odpowiedzi",
         "description": "Podczas odpowiadania automatycznie przełączaj adres nadawcy na tożsamość, która pierwotnie otrzymała wiadomość"

@@ -1524,6 +1524,10 @@
         "label": "Alleen platte tekst",
         "description": "Schakel de rich text-editor uit en verzend alle e-mails alleen als platte tekst, inclusief antwoorden en doorgestuurde berichten"
       },
+      "quick_reply": {
+        "label": "Snel antwoorden",
+        "description": "Het vak voor snel antwoorden onder berichten tonen."
+      },
       "auto_select_reply_identity": {
         "label": "Antwoordadres automatisch selecteren",
         "description": "Schakel bij het beantwoorden automatisch het Van-adres om naar de identiteit die het oorspronkelijke bericht ontving"

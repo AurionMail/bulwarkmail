@@ -1536,6 +1536,10 @@
         "label": "Numai text simplu",
         "description": "Dezactivați editorul de text formatat și trimiteți toate e-mailurile doar ca text simplu, inclusiv răspunsurile și redirecționările"
       },
+      "quick_reply": {
+        "label": "Răspuns rapid",
+        "description": "Afișează caseta de răspuns rapid sub mesaje."
+      },
       "auto_select_reply_identity": {
         "label": "Răspunde de la adresa de la care a fost primit mesajul",
         "description": "Când răspundeți, trimiteți mesajul de la adresa la care a fost trimis inițial. Se potrivesc mai întâi identitățile; pentru livrările de tip „catch-all” ale domeniului, antetul „De la” este rescris cu aliasul, în timp ce trimiterea se face prin identitatea dvs. principală."

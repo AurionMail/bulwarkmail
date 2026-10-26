@@ -1533,6 +1533,10 @@
         "label": "Pouze prostý text",
         "description": "Zakázat editor formátovaného textu a odesílat všechny e-maily pouze jako prostý text, včetně odpovědí a přeposílání"
       },
+      "quick_reply": {
+        "label": "Rychlá odpověď",
+        "description": "Zobrazit pole pro rychlou odpověď pod zprávami."
+      },
       "auto_select_reply_identity": {
         "label": "Automaticky vybírat adresu pro odpověď",
         "description": "Při odpovídání automaticky přepnout adresu odesílatele na identitu, která původně obdržela zprávu"

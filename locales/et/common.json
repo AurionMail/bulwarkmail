@@ -1536,6 +1536,10 @@
         "label": "Ainult lihttekst",
         "description": "Keela vormindatud teksti redaktor ja saada kõik kirjad ainult lihttekstina, sealhulgas vastused ja edastused"
       },
+      "quick_reply": {
+        "label": "Kiirvastus",
+        "description": "Näita kiirvastuse kasti kirjade all."
+      },
       "auto_select_reply_identity": {
         "label": "Vasta kirja saanud aadressilt",
         "description": "Vastamisel saada kiri aadressilt, millele algne kiri saadeti. Sinu seadistatud identiteedid vastavad alati; kas ka teised sinu domeenide aadressid loetakse sobivaks (catch-all), määrab allpool olev „Vastuvõetud aadressi sobitamine“."

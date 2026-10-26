@@ -1524,6 +1524,10 @@
         "label": "Tikai parasts teksts",
         "description": "Izslēgt formatētā teksta redaktoru un sūtīt vēstules tikai kā parastu tekstu"
       },
+      "quick_reply": {
+        "label": "Ātrā atbilde",
+        "description": "Rādīt ātrās atbildes lauku zem ziņojumiem."
+      },
       "auto_select_reply_identity": {
         "label": "Automātiski izvēlēties atbildes adresi",
         "description": "Atbildot automātiski izmantot to kontu, uz kuru vēstule tika saņemta"

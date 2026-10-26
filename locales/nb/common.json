@@ -1536,6 +1536,10 @@
         "label": "Kun ren tekst",
         "description": "Deaktiver redigering av formatert tekst, og send all e-post som ren tekst, også svar og videresendinger"
       },
+      "quick_reply": {
+        "label": "Hurtigsvar",
+        "description": "Vis feltet for hurtigsvar under meldinger."
+      },
       "auto_select_reply_identity": {
         "label": "Svar fra mottatt adresse",
         "description": "Når du svarer, bruker Bulwark adressen meldingen opprinnelig ble sendt til. Programmet ser først etter en samsvarende identitet. For meldinger til et oppsamlingsdomene brukes aliaset i Fra-feltet, mens sendingen går gjennom hovedidentiteten din."

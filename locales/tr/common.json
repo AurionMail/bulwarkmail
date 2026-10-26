@@ -1533,6 +1533,10 @@
         "label": "Yalnızca Düz Metin",
         "description": "Zengin metin düzenleyicisini devre dışı bırak ve yanıtlar ve iletmeler dahil tüm e-postaları yalnızca düz metin olarak gönder"
       },
+      "quick_reply": {
+        "label": "Hızlı yanıt",
+        "description": "İletilerin altında hızlı yanıt kutusunu göster."
+      },
       "auto_select_reply_identity": {
         "label": "Yanıt Adresini Otomatik Seç",
         "description": "Yanıtlarken, Kimden adresini iletiyi başlangıçta alan kimliğe otomatik olarak değiştir"

@@ -1524,6 +1524,10 @@
         "label": "Solo testo normale",
         "description": "Disabilita l'editor di testo formattato e invia tutte le email solo come testo normale, incluse risposte e inoltri"
       },
+      "quick_reply": {
+        "label": "Risposta rapida",
+        "description": "Mostra la casella di risposta rapida sotto i messaggi."
+      },
       "auto_select_reply_identity": {
         "label": "Seleziona automaticamente l'indirizzo di risposta",
         "description": "Quando rispondi, passa automaticamente l'indirizzo mittente all'identità che ha ricevuto il messaggio originale"

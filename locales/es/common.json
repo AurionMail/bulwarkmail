@@ -1524,6 +1524,10 @@
         "label": "Solo texto sin formato",
         "description": "Desactivar el editor de texto enriquecido y enviar todos los correos solo como texto sin formato, incluyendo respuestas y reenvíos"
       },
+      "quick_reply": {
+        "label": "Respuesta rápida",
+        "description": "Mostrar el cuadro de respuesta rápida debajo de los mensajes."
+      },
       "auto_select_reply_identity": {
         "label": "Seleccionar dirección de respuesta automáticamente",
         "description": "Al responder, cambia automáticamente la dirección del remitente a la identidad que recibió el mensaje original"

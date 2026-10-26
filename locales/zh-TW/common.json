@@ -1536,6 +1536,10 @@
         "label": "僅純文字",
         "description": "停用富文字編輯器，並將所有郵件（包括回覆和轉寄）以純文字傳送"
       },
+      "quick_reply": {
+        "label": "快速回覆",
+        "description": "在郵件下方顯示快速回覆框。"
+      },
       "auto_select_reply_identity": {
         "label": "使用收件地址回覆",
         "description": "回覆時，使用原始郵件的收件地址寄送。系統會先比對寄件身分；若是網域 catch-all 收件，則透過主要寄件身分傳送，但將 From 標頭改寫為別名地址。"

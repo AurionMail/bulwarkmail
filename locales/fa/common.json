@@ -1536,6 +1536,10 @@
         "label": "فقط متن ساده",
         "description": "غیرفعال کردن rich text"
       },
+      "quick_reply": {
+        "label": "پاسخ سریع",
+        "description": "نمایش کادر پاسخ سریع زیر پیام‌ها."
+      },
       "auto_select_reply_identity": {
         "label": "پاسخ از آدرس دریافتی",
         "description": "ارسال با آدرس دریافت شده"

@@ -1533,6 +1533,10 @@
         "label": "Nur Klartext",
         "description": "Rich-Text-Editor deaktivieren und alle E-Mails nur als Klartext senden, einschließlich Antworten und Weiterleitungen"
       },
+      "quick_reply": {
+        "label": "Schnellantwort",
+        "description": "Das Feld für die Schnellantwort unter Nachrichten anzeigen."
+      },
       "auto_select_reply_identity": {
         "label": "Antwortadresse automatisch wählen",
         "description": "Beim Antworten die Absenderadresse automatisch auf die Identität umstellen, die die ursprüngliche Nachricht erhalten hat"

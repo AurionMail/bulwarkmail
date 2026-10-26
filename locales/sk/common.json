@@ -1536,6 +1536,10 @@
         "label": "Iba prostý text",
         "description": "Zakázať editor formátovaného textu a odosielať všetky e-maily iba ako prostý text"
       },
+      "quick_reply": {
+        "label": "Rýchla odpoveď",
+        "description": "Zobraziť pole na rýchlu odpoveď pod správami."
+      },
       "auto_select_reply_identity": {
         "label": "Odpovedať z prijatej adresy",
         "description": "Pri odpovedaní automaticky prepnúť adresu odosielateľa na identitu, ktorá pôvodne prijala správu"
