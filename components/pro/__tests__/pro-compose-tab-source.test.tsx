@@ -6,7 +6,7 @@ import React from 'react';
 // login and account they are in. Email ids repeat across accounts and
 // servers, so the active login's client would act on its own namesake.
 
-const { activeClient, otherClient, markEmailKeyword, toastError } = vi.hoisted(() => {
+const { activeClient, otherClient, markEmailKeyword, toastError, sendResult } = vi.hoisted(() => {
   const makeClient = (label: string) => ({
     label,
     getAccountId: () => `jmap-${label}`,
@@ -18,6 +18,7 @@ const { activeClient, otherClient, markEmailKeyword, toastError } = vi.hoisted((
     otherClient: makeClient('account-2'),
     markEmailKeyword: vi.fn(async () => {}),
     toastError: vi.fn(),
+    sendResult: { scheduled: false },
   };
 });
 
@@ -51,7 +52,7 @@ vi.mock('@/stores/auth-store', () => {
 });
 vi.mock('@/stores/email-store', () => {
   const state = {
-    sendEmail: async () => ({ scheduled: false }),
+    sendEmail: async () => ({ ...sendResult }),
     markEmailKeyword,
     refreshCurrentMailbox: async () => {},
     fetchScheduledEmails: async () => {},
@@ -77,6 +78,7 @@ import { ProComposeTabBody } from '../pro-compose-tab-body';
 
 beforeEach(() => {
   markEmailKeyword.mockClear();
+  sendResult.scheduled = false;
   toastError.mockClear();
   activeClient.deleteEmail.mockClear();
   otherClient.deleteEmail.mockClear();
@@ -92,6 +94,19 @@ describe('Pro compose tab', () => {
 
     await waitFor(() => expect(markEmailKeyword).toHaveBeenCalled());
     expect(markEmailKeyword).toHaveBeenCalledWith(activeClient, 'eaaaaab', '$answered', source);
+  });
+
+  // A send delay (undo send) makes every send a held submission, so the
+  // flag has to be set before the held send returns, as in the inline composer (#985).
+  it.each([['reply', '$answered'], ['forward', '$forwarded']] as const)('flags the source of a held %s', async (mode, keyword) => {
+    sendResult.scheduled = true;
+    const source = { clientAccountId: 'local-2', accountId: 'jmap-group' };
+    render(<ProComposeTabBody tabId="t" data={{ sessionId: 1, mode, title: 'Re', sourceEmailId: 'eaaaaab', sourceEmailSource: source }} />);
+
+    fireEvent.click(screen.getByText('send'));
+
+    await waitFor(() => expect(markEmailKeyword).toHaveBeenCalled());
+    expect(markEmailKeyword).toHaveBeenCalledWith(activeClient, 'eaaaaab', keyword, source);
   });
 
   it('discards the draft through the login that saved it', async () => {

@@ -100,13 +100,10 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
       }
       announceSent(result, sendData);
 
-      if (result.scheduled) {
-        await handleScheduledSendCreated();
-        return;
-      }
-
       // Mark the original message as $answered / $forwarded so the standard
       // viewer and list reflect the action (same behaviour as inline compose).
+      // Before the scheduled return: with a send delay every send is a held
+      // submission, and the flag was never set. (#985)
       if (data.sourceEmailId && (data.mode === 'reply' || data.mode === 'replyAll')) {
         try {
           await useEmailStore.getState().markEmailKeyword(client, data.sourceEmailId, '$answered', data.sourceEmailSource ?? undefined);
@@ -119,6 +116,11 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
         } catch (e) {
           debug.error('Failed to set $forwarded keyword:', e);
         }
+      }
+
+      if (result.scheduled) {
+        await handleScheduledSendCreated();
+        return;
       }
 
       // Refresh the currently-active mail list so the new sent message /
