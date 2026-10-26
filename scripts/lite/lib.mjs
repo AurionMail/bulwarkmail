@@ -1383,7 +1383,8 @@ export function collectZipEntries(dir) {
 
 /** LITE-README.md for the Stalwart bundle. */
 export function buildStalwartReadme({ version, commit, locales, buildId, demoMode = false }) {
-  const url = `https://github.com/bulwarkmail/webmail/releases/download/v${version}/${STALWART_ZIP_NAME}`;
+  // Release tags carry no "v" prefix (since 1.3.0); a v-URL 404s.
+  const url = `https://github.com/bulwarkmail/webmail/releases/download/${version}/${STALWART_ZIP_NAME}`;
   const latestUrl = `https://github.com/bulwarkmail/webmail/releases/latest/download/${STALWART_ZIP_NAME}`;
   return `# Bulwark Lite ${version} (${commit}) for Stalwart
 
@@ -1453,11 +1454,17 @@ admin's own \`admin\` and \`account\`.
 
 The resource URL above names one release, so what Stalwart serves only
 changes when you change it: to update, point \`resourceUrl\` at the new
-release's tag and run \`UpdateApps\`, which always downloads again. Check
-that the new URL downloads first: a failed download keeps the previous
-bundle online only on 0.16.23 and later, while older 0.16 releases and the
-1.0 pre-releases unmount the Application until a download works. Every
-release also carries
+release's tag and run \`UpdateApps\`, which always downloads again.
+
+What a failed download does depends on the Stalwart version. On 0.16.23 the
+running bundle stays online. Older 0.16 releases and the 1.0 pre-releases
+unmount the Application and drop the cached copy. The next restart,
+\`UpdateApps\` or reload of the Applications (the other nodes of a cluster
+reload them after \`UpdateApps\`) downloads \`resourceUrl\` again and mounts the
+bundle once that works. On every version, a restart after the cached copy
+has expired, with \`resourceUrl\` unreachable, leaves the Application
+unmounted. So check that \`resourceUrl\` downloads before running
+\`UpdateApps\` or restarting. Every release also carries
 \`${STALWART_ZIP_NAME}.sha256\`; check a download with
 \`sha256sum -c ${STALWART_ZIP_NAME}.sha256\` before you switch.
 
