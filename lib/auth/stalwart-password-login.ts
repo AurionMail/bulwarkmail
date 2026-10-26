@@ -96,12 +96,36 @@ async function upstreamDetail(response: Response, trusted: boolean): Promise<str
   return (await response.text()).substring(0, 500);
 }
 
+/** A redirect that stays on the same origin, or upgrades the same host to https. */
+export function isAllowedLoginRedirect(from: string, to: string): boolean {
+  const a = new URL(from);
+  const b = new URL(to);
+  if (a.origin === b.origin) return true;
+  return a.hostname === b.hostname && a.protocol === 'http:' && b.protocol === 'https:';
+}
+
+/**
+ * fetch for an admin-configured server. The requests carry the password, the
+ * authorization code, the PKCE verifier and the client secret, so a redirect
+ * is followed once and only within the same host; anywhere else is an error.
+ */
+async function fetchConfiguredServer(input: string, init: RequestInit): Promise<Response> {
+  const first = await fetch(input, { ...init, redirect: 'manual' });
+  if (first.status < 300 || first.status >= 400) return first;
+  const location = first.headers.get('location');
+  const next = location ? new URL(location, input).toString() : null;
+  if (!next || !isAllowedLoginRedirect(input, next)) {
+    throw new Error(`${input} redirects to another host`);
+  }
+  return fetch(next, { ...init, redirect: 'error' });
+}
+
 export async function stalwartPasswordLogin(
   opts: StalwartPasswordLoginOptions,
 ): Promise<StalwartPasswordLoginResult> {
   const base = trimUrl(opts.serverUrl);
   const upstreamFetch: typeof fetch = opts.trusted
-    ? fetch
+    ? ((input, init) => fetchConfiguredServer(String(input), init ?? {}))
     : ((input, init) => fetchPublicUrl(String(input), init as Parameters<typeof fetchPublicUrl>[1]) as unknown as Promise<Response>);
 
   // PKCE proves the token exchange originates from the same client that
