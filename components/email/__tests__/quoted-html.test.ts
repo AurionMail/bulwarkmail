@@ -6,6 +6,30 @@ import { buildQuotedHtmlBlock, QuotedHtml, serializeEditorContent } from '../quo
 const createEditor = (content: string) => new Editor({ extensions: [StarterKit, QuotedHtml], content });
 
 describe('HTML quote borders', () => {
+  it('flattens quotes without parsing the original into the page, where its images would load', () => {
+    // A browser fetches an <img> as soon as it is parsed into an element of
+    // the live document, attached or not: that fires the tracker the remote
+    // content setting holds back.
+    const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML')!;
+    const liveParses: string[] = [];
+    Object.defineProperty(Element.prototype, 'innerHTML', {
+      ...descriptor,
+      set(this: Element, value: string) {
+        if (this.ownerDocument === document && this.tagName !== 'TEMPLATE') liveParses.push(value);
+        descriptor.set!.call(this, value);
+      },
+    });
+    let html = '';
+    try {
+      html = buildQuotedHtmlBlock('<blockquote><img src="https://tracker.example/p.png">Hi</blockquote>', { showQuoteBorder: false });
+    } finally {
+      Object.defineProperty(Element.prototype, 'innerHTML', descriptor);
+    }
+    expect(liveParses.filter((value) => value.includes('tracker.example'))).toEqual([]);
+    expect(html).toContain('<img src="https://tracker.example/p.png">');
+    expect(html).not.toContain('blockquote');
+  });
+
   it('keeps normal quote styling by default', () => {
     const original = '<blockquote>Original reply</blockquote>';
     const editor = createEditor(buildQuotedHtmlBlock(original));

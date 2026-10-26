@@ -303,14 +303,17 @@ export function buildQuotedHtmlBlock(
   if (!showQuoteBorder) {
     // Outlook-style replies flatten quote levels, including earlier replies.
     // Work on sanitized DOM so tables, links and signatures remain intact.
-    const container = document.createElement("div");
+    // A template's content is inert: parsed into a plain div, the original's
+    // remote images would load here, past the parking the island does.
+    const container = document.createElement("template");
     container.innerHTML = html;
-    container.querySelectorAll("blockquote").forEach((quote) => {
-      const block = document.createElement("div");
+    const content = container.content;
+    content.querySelectorAll("blockquote").forEach((quote) => {
+      const block = content.ownerDocument.createElement("div");
       block.append(...Array.from(quote.childNodes));
       quote.replaceWith(block);
     });
-    container.querySelectorAll<HTMLElement>(`[${QUOTED_HTML_MARKER}]`).forEach((quote) => {
+    content.querySelectorAll<HTMLElement>(`[${QUOTED_HTML_MARKER}]`).forEach((quote) => {
       quote.setAttribute("data-quote-border", "false");
       quote.style.borderLeft = "none";
       quote.style.paddingLeft = "0";
