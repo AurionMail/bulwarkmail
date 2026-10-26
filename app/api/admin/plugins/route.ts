@@ -12,8 +12,10 @@ import {
 import { listDevPlugins } from '@/lib/admin/plugin-dev';
 import { invalidateFrameOriginsCache } from '@/lib/admin/csp-frame-origins';
 import { cleanUpDeletedPlugin } from '@/lib/admin/extension-cleanup';
+import { listHistory } from '@/lib/admin/extension-history';
 import { ExtensionPackageError, readPluginPackage, suspiciousCode } from '@/lib/extension-package';
 import { MAX_PLUGIN_SIZE } from '@/lib/plugin-types';
+import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 /**
  * GET /api/admin/plugins - List all admin-managed plugins
@@ -31,10 +33,15 @@ export async function GET(request: NextRequest) {
     // Dev plugins win on id collision so admins see what users actually load.
     const devIds = new Set(devEntries.map(e => e.plugin.id));
     const merged = [
-      ...devEntries.map(e => ({ ...e.plugin, dev: true as const })),
-      ...registry.plugins
+      ...devEntries.map(e => ({ ...e.plugin, dev: true as const, previousVersions: [] as string[] })),
+      ...(await Promise.all(registry.plugins
         .filter(p => !devIds.has(p.id))
-        .map(p => ({ ...p, dev: false as const })),
+        .map(async p => ({
+          ...p,
+          dev: false as const,
+          // Versions this server still has a copy of (lib/admin/extension-history.ts).
+          previousVersions: (await listHistory('plugin', p.id).catch(() => [])).map(h => h.version),
+        })))),
     ];
     return NextResponse.json(merged, {
       headers: { 'Cache-Control': 'no-store' },
@@ -113,6 +120,7 @@ export async function POST(request: NextRequest) {
       ...(manifest.credentials ? { credentials: manifest.credentials } : {}),
       installedAt: now,
       updatedAt: now,
+      source: { kind: 'upload' },
     };
     const declaredFrameOrigins = plugin.frameOrigins ?? [];
     const declaredHttpOrigins = plugin.httpOrigins ?? [];
@@ -124,6 +132,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ plugin, warnings: pkg.warnings });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Plugin install error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -175,6 +185,8 @@ export async function PATCH(request: NextRequest) {
     await auditLog('plugin.update', { id, ...updates }, ip);
     return NextResponse.json({ plugin: updated });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Plugin update error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -206,6 +218,8 @@ export async function DELETE(request: NextRequest) {
     await auditLog('plugin.delete', { id }, ip);
     return NextResponse.json({ success: true });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Plugin delete error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

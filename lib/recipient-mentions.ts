@@ -6,7 +6,18 @@ export interface MentionCandidate {
   label: string;
   name?: string;
   email: string;
+  /** Not a recipient yet: picking them adds them to this field. */
+  addsTo?: 'to' | 'cc';
 }
+
+/** Someone from the contacts, the directory or recent recipients. */
+export interface MentionContact {
+  name?: string;
+  email: string;
+}
+
+/** How many contacts an @ offers after the recipients. */
+const CONTACT_LIMIT = 8;
 
 function letterCount(value: string): number {
   return value.match(/\p{L}/gu)?.length ?? 0;
@@ -120,15 +131,57 @@ function clashingLabels(candidates: MentionCandidate[]): Set<string> {
  * to everyone else on the message.
  */
 export function buildMentionCandidates(to: Recipient[], cc: Recipient[]): MentionCandidate[] {
-  const candidates: MentionCandidate[] = expandRecipients([...to, ...cc])
+  return distinguishLabels(expandRecipients([...to, ...cc])
     .filter((r) => r.email.lastIndexOf('@') > 0)
     .map((r) => {
       const name = usableName(r.name);
       return { label: mentionLabel(name, r.email), name, email: r.email };
-    });
-  // Two recipients who would both be "@Max" are told apart by full name, or
-  // by mailbox name where no name is known - and by mailbox name when even
-  // the full names match.
+    }));
+}
+
+/**
+ * What an @ followed by `query` offers: the matching recipients, then
+ * matching contacts who aren't on the message yet, marked with the field
+ * picking them adds them to. `contacts` must already leave out Bcc
+ * recipients, who an @ never names.
+ */
+export function mentionSuggestions(
+  recipients: MentionCandidate[],
+  contacts: MentionContact[],
+  query: string,
+  addsTo: 'to' | 'cc',
+): MentionCandidate[] {
+  const matched = filterMentionCandidates(recipients, query);
+  const seen = new Set(recipients.map((r) => r.email.toLowerCase()));
+  const extra: MentionCandidate[] = [];
+  for (const contact of contacts) {
+    if (extra.length >= CONTACT_LIMIT) break;
+    const key = contact.email.toLowerCase();
+    if (contact.email.lastIndexOf('@') <= 0 || seen.has(key)) continue;
+    seen.add(key);
+    const name = usableName(contact.name);
+    const candidate = { label: mentionLabel(name, contact.email), name, email: contact.email, addsTo };
+    if (filterMentionCandidates([candidate], query).length > 0) extra.push(candidate);
+  }
+  if (extra.length === 0) return matched;
+  // A contact who would also be "@Max" next to a recipient Max goes by full
+  // name, or mailbox name. The recipient keeps "@Max": the contact isn't on
+  // the message, so readers can't confuse the two.
+  const taken = new Set(recipients.map((r) => r.label.toLowerCase()));
+  distinguishLabels(extra);
+  for (const c of extra) {
+    if (!taken.has(c.label.toLowerCase())) continue;
+    c.label = c.name && !taken.has(naturalOrder(c.name).toLowerCase()) ? naturalOrder(c.name) : localPartOf(c.email);
+  }
+  return [...matched, ...extra];
+}
+
+/**
+ * Two candidates who would both be "@Max" are told apart by full name, or
+ * by mailbox name where no name is known - and by mailbox name when even
+ * the full names match.
+ */
+function distinguishLabels(candidates: MentionCandidate[]): MentionCandidate[] {
   const clashes = clashingLabels(candidates);
   for (const c of candidates) {
     if (clashes.has(c.label.toLowerCase())) c.label = c.name ? naturalOrder(c.name) : localPartOf(c.email);
@@ -156,4 +209,33 @@ export function filterMentionCandidates(candidates: MentionCandidate[], query: s
     [c.label, c.email, ...(c.name?.split(/\s+/) ?? []), ...localPartOf(c.email).split(/[._-]/)]
       .some((term) => fold(term).startsWith(typed)),
   );
+}
+
+/**
+ * A mailto: href for the address. Characters that would start a query or
+ * fragment (a crafted reply-all address) are escaped, so the link can only
+ * ever address this one mailbox.
+ */
+export function mentionHref(email: string): string {
+  return `mailto:${email.replace(/[%?#&\s"'<>]/g, (c) => encodeURIComponent(c))}`;
+}
+
+/**
+ * The mention a link stands for: a mailto: link whose whole text is
+ * "@Name". That is what a sent mention is, from Bulwark or from Outlook,
+ * so a reopened draft or a pasted mention becomes a chip again.
+ */
+export function mentionFromLink(element: HTMLElement): { label: string; email: string } | null {
+  const href = element.getAttribute('href')?.trim() ?? '';
+  if (!/^mailto:/i.test(href) || element.children.length > 0) return null;
+  const text = element.textContent?.trim() ?? '';
+  if (!text.startsWith('@') || text.length < 2) return null;
+  let email: string;
+  try {
+    email = decodeURIComponent(href.slice('mailto:'.length).split('?')[0]).trim();
+  } catch {
+    return null;
+  }
+  if (email.lastIndexOf('@') <= 0) return null;
+  return { label: text.slice(1), email };
 }

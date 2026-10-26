@@ -611,6 +611,52 @@ describe('oauth token route - sign-out (#905)', () => {
     expect(body.end_session_url).toBeUndefined();
   });
 
+  // Stalwart's built-in provider advertises no end_session_endpoint (#1279).
+  it('builds the provider logout from the configured URL when discovery has none', async () => {
+    seedSlot(0);
+    getMetadata.mockResolvedValue({ ...KEYCLOAK, end_session_endpoint: undefined });
+    getRequiredConfig.mockReturnValue({ clientId: 'webmail', endSessionUrl: 'https://mail.example.org/logout/' });
+    configValues.oauthPostLogoutRedirectUri = 'https://mail.example.com/en/login';
+
+    const { body } = await callRoute('DELETE', { slot: '0', end_session: 'true' });
+
+    const url = new URL(body.end_session_url as string);
+    expect(`${url.origin}${url.pathname}`).toBe('https://mail.example.org/logout/');
+    expect(url.searchParams.get('client_id')).toBe('webmail');
+    expect(url.searchParams.get('id_token_hint')).toBe(ID_TOKEN);
+    expect(url.searchParams.get('post_logout_redirect_uri')).toBe('https://mail.example.com/en/login');
+  });
+
+  it('prefers the configured logout URL over the discovered one', async () => {
+    seedSlot(0);
+    getRequiredConfig.mockReturnValue({ clientId: 'webmail', endSessionUrl: 'https://sso.example.com/logout' });
+
+    const { body } = await callRoute('DELETE', { slot: '0', end_session: 'true' });
+
+    const url = new URL(body.end_session_url as string);
+    expect(`${url.origin}${url.pathname}`).toBe('https://sso.example.com/logout');
+  });
+
+  it('does not use the configured logout URL when the admin turned provider logout off', async () => {
+    seedSlot(0);
+    getRequiredConfig.mockReturnValue({ clientId: 'webmail', endSessionUrl: 'https://sso.example.com/logout' });
+    configValues.oauthEndSession = false;
+
+    const { body } = await callRoute('DELETE', { slot: '0', end_session: 'true' });
+
+    expect(body.end_session_url).toBeUndefined();
+  });
+
+  it('does not offer a configured logout URL over plain http', async () => {
+    seedSlot(0);
+    getMetadata.mockResolvedValue({ ...KEYCLOAK, end_session_endpoint: undefined });
+    getRequiredConfig.mockReturnValue({ clientId: 'webmail', endSessionUrl: 'http://mail.example.org/logout' });
+
+    const { body } = await callRoute('DELETE', { slot: '0', end_session: 'true' });
+
+    expect(body.end_session_url).toBeUndefined();
+  });
+
   it.each([
     ['non-https', 'http://id.example.com/logout'],
     ['malformed', 'not a url'],

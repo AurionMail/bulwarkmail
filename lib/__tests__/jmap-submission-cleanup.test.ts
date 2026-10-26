@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JMAPClient, NoLongerScheduledError, RecipientsRejectedError, RequestTimeoutError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
+import { JMAPClient, NoLongerScheduledError, RecipientsRejectedError, SubmissionQuotaError, prunableSubmissionIds } from '../jmap/client';
 import { jmapErrorType } from '../jmap/jmap-error';
 
 /**
@@ -705,71 +705,63 @@ describe('overQuota on EmailSubmission/set create', () => {
     expect(server.calls('EmailSubmission/query')).toEqual([]);
   });
 
-  it('makes room for a reschedule and keeps the original on failure on Stalwart 1.0', async () => {
-    const server = fakeStalwart({ version: '1.0', quota: 2 });
-    const original = server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
-    server.add({ accountId: 'account-1', id: 'held', sendAt: utcDate(Date.now() + DAY), queued: true });
-    const client = createClient();
-
-    const error = await client.rescheduleEmailSubmission('original', 'email-x', 'identity-1', new Date(Date.now() + 2 * HOUR).toISOString(), 'account-1')
-      .catch((e: unknown) => e);
-
-    expect(error).toBeInstanceOf(SubmissionQuotaError);
-    expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(2);
-    // Nothing was canceled: the mail still goes out at its original time.
-    expect(original.canceled).toBe(false);
-    expect(server.calls('EmailSubmission/set').filter((args) => args.update)).toEqual([]);
-  });
-
-  describe('when making room takes a while', () => {
+  describe('a reschedule', () => {
     const reschedule = (client: JMAPClient, delayedUntil: string) =>
       client.rescheduleEmailSubmission('original', 'email-x', 'identity-1', delayedUntil, 'account-1');
 
-    it('stops without a replacement when the original went out meanwhile on Stalwart 1.0', async () => {
-      let original!: FakeSubmission;
-      const server = fakeStalwart({
-        version: '1.0',
-        quota: 2,
-        // Its sendAt comes while the prune looks for room.
-        intercept: ([name]) => {
-          if (name === 'EmailSubmission/query') original.queued = false;
-          return undefined;
-        },
-      });
-      original = server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + 1000), queued: true });
+    // The original is canceled, and its record destroyed, before the
+    // replacement is created (#1308), so the replacement takes its place.
+    it('needs no room at the limit on Stalwart 1.0', async () => {
+      const server = fakeStalwart({ version: '1.0', quota: 2 });
+      server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
       server.add({ accountId: 'account-1', id: 'held', sendAt: utcDate(Date.now() + DAY), queued: true });
 
-      // "Send now"
+      const result = await reschedule(createClient(), new Date(Date.now() + 2 * HOUR).toISOString());
+
+      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(1);
+      expect(server.calls('EmailSubmission/query')).toEqual([]);
+      expect(server.destroyedIds()).toEqual(['original']);
+      expect([...server.submissions.keys()].sort()).toEqual(['held', result.emailSubmissionId].sort());
+    });
+
+    it('throws SubmissionQuotaError when no room can be made, on Stalwart 1.0', async () => {
+      // Over the limit already, as after the administrator lowered it.
+      const server = fakeStalwart({ version: '1.0', quota: 2 });
+      const original = server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
+      server.add({ accountId: 'account-1', id: 'held-1', sendAt: utcDate(Date.now() + DAY), queued: true });
+      server.add({ accountId: 'account-1', id: 'held-2', sendAt: utcDate(Date.now() + 2 * DAY), queued: true });
+
+      const error = await reschedule(createClient(), new Date(Date.now() + 2 * HOUR).toISOString()).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(SubmissionQuotaError);
+      expect(original.canceled).toBe(true);
+      // The replacement and the restore of the original, each tried again after the prune.
+      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(4);
+      expect([...server.submissions.keys()].sort()).toEqual(['held-1', 'held-2']);
+    });
+
+    it('stops without a replacement when the original went out already on Stalwart 1.0', async () => {
+      const server = fakeStalwart({ version: '1.0' });
+      server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() - 1000) });
+
+      // "Send now" of a message due any moment
       const error = await reschedule(createClient(), new Date(Date.now() + 1000).toISOString()).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(NoLongerScheduledError);
       expect((error as NoLongerScheduledError).sent).toBe(true);
-      // A second create would have sent the message twice.
-      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(1);
-      expect(server.calls('EmailSubmission/set').filter((args) => args.update)).toEqual([]);
+      // A create would have sent the message twice.
+      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toEqual([]);
     });
 
-    it('stops when the original was cancelled elsewhere meanwhile on Stalwart 1.0', async () => {
-      let original!: FakeSubmission;
-      const server = fakeStalwart({
-        version: '1.0',
-        quota: 2,
-        intercept: ([name]) => {
-          if (name === 'EmailSubmission/query') {
-            original.canceled = true;
-            original.queued = false;
-          }
-          return undefined;
-        },
-      });
-      original = server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
-      server.add({ accountId: 'account-1', id: 'held', sendAt: utcDate(Date.now() + DAY), queued: true });
+    it('stops when the original was cancelled elsewhere on Stalwart 1.0', async () => {
+      const server = fakeStalwart({ version: '1.0' });
+      server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), canceled: true });
 
       const error = await reschedule(createClient(), new Date(Date.now() + 2 * HOUR).toISOString()).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(NoLongerScheduledError);
       expect((error as NoLongerScheduledError).sent).toBe(false);
-      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(1);
+      expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toEqual([]);
     });
 
     it('takes the time spent off the hold of the replacement on Stalwart 1.0', async () => {
@@ -785,7 +777,7 @@ describe('overQuota on EmailSubmission/set create', () => {
         },
       });
       server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(start + 3 * HOUR), queued: true });
-      fillWithOldRecords(server, 1);
+      fillWithOldRecords(server, 2);
 
       const result = await reschedule(createClient(), new Date(start + 2 * HOUR).toISOString());
 
@@ -857,19 +849,6 @@ describe('overQuota on EmailSubmission/set create', () => {
     });
   });
 
-  it('reschedules once the prune made room on Stalwart 1.0', async () => {
-    const server = fakeStalwart({ version: '1.0', quota: 2 });
-    server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
-    server.add({ accountId: 'account-1', id: 'delivered', sendAt: utcDate(Date.now() - HOUR) });
-
-    const result = await createClient().rescheduleEmailSubmission('original', 'email-x', 'identity-1', new Date(Date.now() + 2 * HOUR).toISOString(), 'account-1');
-
-    expect(result.emailSubmissionId).toBeDefined();
-    // The delivered record made room; the canceled original went after the cancel.
-    expect(server.destroyedIds()).toEqual(['delivered', 'original']);
-    expect([...server.submissions.keys()]).toEqual([result.emailSubmissionId]);
-  });
-
   it('submits the imported raw message again after making room on Stalwart 1.0', async () => {
     const server = fakeStalwart({ version: '1.0', quota: 1 });
     server.add({ accountId: 'account-1', id: 'delivered', sendAt: utcDate(Date.now() - HOUR) });
@@ -934,7 +913,7 @@ describe('cancelEmailSubmission', () => {
     expect(server.submissions.has('held')).toBe(true);
   });
 
-  it('destroys the canceled original of a reschedule, and the canceled replacement when the original could not be canceled, on Stalwart 1.0', async () => {
+  it('destroys the canceled original of a reschedule, and makes no replacement when the original could not be canceled, on Stalwart 1.0', async () => {
     const server = fakeStalwart({ version: '1.0' });
     server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
     const client = createClient();
@@ -942,13 +921,12 @@ describe('cancelEmailSubmission', () => {
     const result = await client.rescheduleEmailSubmission('original', 'email-x', 'identity-1', new Date(Date.now() + 2 * HOUR).toISOString(), 'account-1');
     expect(server.destroyedIds()).toEqual(['original']);
 
-    // Already sent: the original can't be canceled, so the replacement goes.
+    // Already sent: the original can't be canceled, and nothing is created.
     server.submissions.get(result.emailSubmissionId!)!.queued = false;
     await expect(client.rescheduleEmailSubmission(result.emailSubmissionId!, 'email-x', 'identity-1', new Date(Date.now() + 3 * HOUR).toISOString(), 'account-1'))
-      .rejects.toThrow('could not cancel the original');
-    expect(server.destroyedIds()).toHaveLength(2);
-    expect(server.submissions.has(result.emailSubmissionId!)).toBe(true);
-    expect(server.submissions.size).toBe(1);
+      .rejects.toBeInstanceOf(NoLongerScheduledError);
+    expect(server.destroyedIds()).toEqual(['original']);
+    expect([...server.submissions.keys()]).toEqual([result.emailSubmissionId]);
   });
 });
 
@@ -1159,10 +1137,10 @@ describe('recipients the server refuses', () => {
     expect((error as Error).message).toContain('Sending is disabled for this account.');
   });
 
-  it('keeps the original when every recipient of a reschedule is refused on Stalwart 1.0', async () => {
+  it('fails a reschedule every recipient is refused for, and leaves no dead record, on Stalwart 1.0', async () => {
     let throttled = false;
     const server = fakeStalwart({ version: '1.0', refuseRecipient: () => (throttled ? RATE_LIMITED : undefined) });
-    const original = server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
+    server.add({ accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true });
     throttled = true;
 
     const error = await createClient()
@@ -1170,15 +1148,14 @@ describe('recipients the server refuses', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(RecipientsRejectedError);
-    // Still goes at its old time; the dead replacement record is gone.
-    expect(original.canceled).toBe(false);
-    expect(server.calls('EmailSubmission/set').filter((args) => args.update)).toEqual([]);
-    expect([...server.submissions.keys()]).toEqual(['original']);
+    // The restore of the original is refused the same way; neither record stays.
+    expect(server.calls('EmailSubmission/set').filter((args) => args.create)).toHaveLength(2);
+    expect(server.submissions.size).toBe(0);
   });
 
-  // "Send now" and "Reschedule" create a replacement and then cancel the
-  // original. The server checks the recipients again for the replacement: the
-  // 25/h throttle may be used up for one of them by now.
+  // "Send now" and "Reschedule" cancel the original and then create a
+  // replacement (#1308). The server checks the recipients again for the
+  // replacement: the 25/h throttle may be used up for one of them by now.
   describe('when a reschedule\'s replacement is refused for some recipients', () => {
     // A message held for an hour, with what the server answered when it took it.
     const addOriginal = (server: ReturnType<typeof fakeStalwart>, status: Record<string, 'queued' | 'no'>) => server.add({
@@ -1192,32 +1169,15 @@ describe('recipients the server refuses', () => {
       .rescheduleEmailSubmission('original', 'email-x', 'identity-1', new Date(Date.now() + 1000).toISOString(), 'account-1');
     const throttledFor = (address: string) => (email: string) => (email === address ? RATE_LIMITED : undefined);
 
-    it.each(['1.0', '0.16.12'] as const)('keeps the original for a recipient it had taken and withdraws the replacement on Stalwart %s', async (version) => {
+    it.each(['1.0', '0.16.12'] as const)('goes ahead for the recipients taken and names the refused one on Stalwart %s', async (version) => {
       const server = fakeStalwart({ version, refuseRecipient: throttledFor('bob@example.org') });
       const original = addOriginal(server, { 'alice@example.org': 'queued', 'bob@example.org': 'queued' });
 
-      const error = await sendNow().catch((e: unknown) => e);
+      const result = await sendNow();
 
-      expect(error).toBeInstanceOf(RecipientsRejectedError);
-      expect((error as RecipientsRejectedError).recipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
-      // Bob still gets it at the old time, and alice only once: the
-      // replacement she was taken for is cancelled, not just its record.
-      expect(original.canceled).toBe(false);
-      const cancelled = server.calls('EmailSubmission/set').filter((args) => args.update).map((args) => Object.keys(args.update as object)[0]);
-      expect(cancelled).toHaveLength(1);
-      expect(cancelled).not.toContain('original');
-      expect([...server.submissions.keys()]).toEqual(['original']);
-    });
-
-    it('keeps the original when the server told nothing about whom it took on Stalwart 1.0', async () => {
-      const server = fakeStalwart({ version: '1.0', refuseRecipient: throttledFor('bob@example.org') });
-      const original = server.add({
-        accountId: 'account-1', id: 'original', emailId: 'email-x', sendAt: utcDate(Date.now() + HOUR), queued: true,
-        envelope: { mailFrom: { email: 'user@example.com' }, rcptTo: [{ email: 'alice@example.org' }, { email: 'bob@example.org' }] },
-      });
-
-      await expect(sendNow()).rejects.toBeInstanceOf(RecipientsRejectedError);
-      expect(original.canceled).toBe(false);
+      expect(result.rejectedRecipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
+      expect(original.canceled).toBe(true);
+      expect([...server.submissions.keys()]).toEqual([result.emailSubmissionId]);
     });
 
     it.each(['1.0', '0.16.12'] as const)('goes ahead when only a recipient the original was refused for is refused again, and names it, on Stalwart %s', async (version) => {
@@ -1229,46 +1189,6 @@ describe('recipients the server refuses', () => {
       expect(result.rejectedRecipients).toEqual([{ email: 'nobody@example.net', smtpReply: RELAY_DENIED }]);
       expect(original.canceled).toBe(true);
       expect([...server.submissions.keys()]).toEqual([result.emailSubmissionId]);
-    });
-
-    it('goes ahead with the replacement, naming the refused, when it can\'t be withdrawn on Stalwart 1.0', async () => {
-      // Cancelling both would leave alice with nothing; keeping both, with two copies.
-      const server = fakeStalwart({
-        version: '1.0',
-        refuseRecipient: throttledFor('bob@example.org'),
-        updateAnswer: (id, callId) => (id === 'original' ? undefined : ['error', { type: 'serverFail', description: 'Temporary failure' }, callId]),
-      });
-      const original = addOriginal(server, { 'alice@example.org': 'queued', 'bob@example.org': 'queued' });
-
-      const result = await sendNow();
-
-      expect(result.rejectedRecipients).toEqual([{ email: 'bob@example.org', smtpReply: RATE_LIMITED }]);
-      expect(original.canceled).toBe(true);
-    });
-
-    it.each(['1.0', '0.16.12'] as const)('keeps the original when the answer to withdrawing the replacement is lost, on Stalwart %s', async (version) => {
-      const server = fakeStalwart({ version, refuseRecipient: throttledFor('bob@example.org') });
-      const original = addOriginal(server, { 'alice@example.org': 'queued', 'bob@example.org': 'queued' });
-      // The server cancels the replacement, but its answer never arrives (a
-      // timeout, which the client doesn't retry).
-      const fetchMock = vi.mocked(globalThis.fetch);
-      const serve = fetchMock.getMockImplementation()!;
-      fetchMock.mockImplementation(async (url, init) => {
-        const response = await serve(url, init);
-        const { methodCalls } = JSON.parse((init as { body: string }).body) as { methodCalls: MethodCall[] };
-        if (methodCalls.some(([name, args]) => name === 'EmailSubmission/set' && args.update && !('original' in (args.update as object)))) {
-          throw new RequestTimeoutError(30_000);
-        }
-        return response;
-      });
-
-      const error = await sendNow().catch((e: unknown) => e);
-
-      // Going ahead would cancel the original as well and reach nobody: it
-      // still goes at its old time to both.
-      expect(error).toBeInstanceOf(RecipientsRejectedError);
-      expect(original.canceled).toBe(false);
-      expect([...server.submissions.values()].filter((s) => s.id !== 'original').map((s) => s.canceled)).toEqual([true]);
     });
   });
 });

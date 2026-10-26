@@ -81,6 +81,15 @@ function fromFilters(filters: VacationFilters) {
   };
 }
 
+/**
+ * Whether the account has a filters script to read and sync. A shared
+ * account goes by its own capabilities, which can lack Sieve where the
+ * session has it (#1263); the own account by the session.
+ */
+function hasSieve(client: IJMAPClient, accountId?: string): boolean {
+  return accountId ? client.accountSupports(accountId, 'urn:ietf:params:jmap:sieve') : client.supportsSieve();
+}
+
 // Each load, and each account switch (the store epoch), outdates the answers
 // of the loads before it: one for another account must not land in the card
 // on screen, where saving would write it to this account.
@@ -113,7 +122,7 @@ export const useVacationStore = create<VacationStore>()((set, get) => ({
       const vacation = await client.getVacationResponse(accountId);
       let isEnabled = vacation.isEnabled;
       let filters: VacationFilters | null = null;
-      if (client.supportsSieve()) {
+      if (hasSieve(client, accountId)) {
         filters = await readVacationFilters(client, accountId).catch(() => null);
         // Running from the filters script leaves the vacation script itself
         // inactive, so VacationResponse reports it as off.
@@ -186,7 +195,7 @@ export const useVacationStore = create<VacationStore>()((set, get) => ({
     let filtersError: VacationFiltersError | null = null;
     let filtersState: Partial<VacationStore> = {};
     const needsSync = vacationUpdates.isEnabled !== undefined || forwardSettings !== undefined || audience !== undefined;
-    if (needsSync && client.supportsSieve()) {
+    if (needsSync && hasSieve(client, accountId)) {
       let synced = false;
       try {
         await syncVacationWithFilters(

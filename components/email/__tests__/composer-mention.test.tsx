@@ -84,6 +84,9 @@ vi.mock('@/stores/email-store', () => {
 
 const updateSetting = vi.fn();
 
+// What the address autocomplete finds: contacts, directory, recent recipients.
+const addressBook = vi.hoisted(() => ({ entries: [] as Array<{ name: string; email: string; group?: unknown }> }));
+
 vi.mock('@/stores/settings-store', () => {
   const state = {
     timeFormat: '24h',
@@ -94,6 +97,7 @@ vi.mock('@/stores/settings-store', () => {
     attachmentReminderKeywords: [],
     emptySubjectWarningEnabled: true,
     recipientMentionsEnabled: true,
+    mentionAddsRecipientTo: 'to',
     sendDelaySeconds: 0,
     signaturePosition: 'above_quote',
     signatureSeparatorEnabled: false,
@@ -112,7 +116,10 @@ vi.mock('@/stores/settings-store', () => {
 vi.mock('@/stores/contact-store', () => {
   const state = {
     contacts: [],
-    getAutocomplete: async () => [],
+    // Matches anywhere, as the real one does.
+    getAutocomplete: (query: string) => addressBook.entries.filter((e) =>
+      `${e.name} ${e.email}`.toLowerCase().includes(query.toLowerCase())),
+    getGroupMembers: () => [],
     addToTrustedSendersBook: async () => {},
   };
   const hook = (sel?: (s: typeof state) => unknown) =>
@@ -202,9 +209,9 @@ const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve
 /** Lets the editor's delayed focus (and scroll to the cursor) run inside the test. */
 const nextFrame = () => act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
 
-async function renderComposer() {
+async function renderComposer(draft: Partial<typeof DRAFT> = {}) {
   const onClose = vi.fn();
-  render(<EmailComposer initialData={DRAFT} onClose={onClose} />);
+  render(<EmailComposer initialData={{ ...DRAFT, ...draft }} onClose={onClose} />);
   // An edit makes the draft dirty, so closing asks first instead of closing.
   fireEvent.change(screen.getByDisplayValue('Half-written'), { target: { value: 'Half-written more' } });
   // TipTap keeps its editor on the editable element.
@@ -371,5 +378,138 @@ describe('composer with the @ recipient list', () => {
     await nextFrame();
     expect(editor.getText()).toBe('Hallo @Bob ');
     await waitFor(() => expect(mentionList()).toBeNull());
+  });
+  describe('with contacts', () => {
+    beforeAll(() => {
+      addressBook.entries = [
+        { name: 'Dana Scully', email: 'dana@example.com' },
+        // Already on the message: in To, and blind-copied.
+        { name: 'Bob Builder', email: 'bob@example.com' },
+        { name: 'Geheim', email: 'geheim@example.com' },
+        { name: 'Devs', email: '', group: { id: 'g1', memberCount: 3 } },
+      ];
+    });
+    afterAll(() => {
+      addressBook.entries = [];
+      useSettingsStore.setState({ mentionAddsRecipientTo: 'to' } as never);
+    });
+
+    const toField = () => screen.getByTestId('composer-to');
+
+    it('offers a contact once something is typed, and adds the picked one to To', async () => {
+      const { editor } = await renderComposer();
+      await typeInto(editor, ' @');
+      // A bare @ is about the recipients only.
+      expect(within(await screen.findByRole('listbox', { name: 'mention_recipients' })).getAllByRole('option')).toHaveLength(2);
+      await typeInto(editor, 'd');
+      const options = within(await screen.findByRole('listbox', { name: 'mention_recipients' })).getAllByRole('option');
+      expect(options.map((o) => o.textContent)).toEqual(['@DanaDana Scully · dana@example.com+ to']);
+      expect(within(toField()).queryByText(/Dana/)).toBeNull();
+
+      press(editor, 'Enter');
+      await nextFrame();
+      expect(editor.getText()).toBe('Hallo @Dana ');
+      expect(within(toField()).getByText(/Dana Scully/)).toBeTruthy();
+    });
+
+    it('never offers someone in Bcc, or a contact group', async () => {
+      const { editor } = await renderComposer();
+      await typeInto(editor, ' @ge');
+      expect(mentionList()).toBeNull();
+      await typeInto(editor, ' @dev');
+      expect(mentionList()).toBeNull();
+    });
+
+    it('adds the picked contact to Cc when the settings say so', async () => {
+      useSettingsStore.setState({ mentionAddsRecipientTo: 'cc' } as never);
+      const { editor } = await renderComposer();
+      expect(screen.queryByText('cc_label')).toBeNull();
+      await typeInto(editor, ' @da');
+      const list = await screen.findByRole('listbox', { name: 'mention_recipients' });
+      expect(within(list).getByRole('option')).toHaveTextContent('+ cc');
+      press(editor, 'Tab');
+      await nextFrame();
+      const ccRow = (await screen.findByText('cc_label')).parentElement!;
+      expect(within(ccRow).getByText(/Dana Scully/)).toBeTruthy();
+      expect(within(toField()).queryByText(/Dana/)).toBeNull();
+    });
+
+    it('offers recipients only when contacts are turned off', async () => {
+      useSettingsStore.setState({ mentionAddsRecipientTo: 'off' } as never);
+      const { editor } = await renderComposer();
+      await typeInto(editor, ' @da');
+      expect(mentionList()).toBeNull();
+      await typeInto(editor, ' @b');
+      expect(await screen.findByRole('listbox', { name: 'mention_recipients' })).toBeTruthy();
+    });
+  });
+  describe('mention chips', () => {
+    beforeAll(() => { addressBook.entries = [{ name: 'Dana Scully', email: 'dana@example.com' }]; });
+    afterAll(() => { addressBook.entries = []; });
+
+    const chipPos = (editor: Editor, email: string) => {
+      let at = -1;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'mentionChip' && node.attrs.email === email) at = pos;
+      });
+      return at;
+    };
+    const card = () => screen.queryByTestId('mention-card');
+
+    it('shows who a picked mention is when it is clicked, and removes it from there', async () => {
+      const { editor } = await renderComposer();
+      await typeInto(editor, ' @b');
+      await screen.findByRole('listbox', { name: 'mention_recipients' });
+      press(editor, 'Enter');
+      await nextFrame();
+      const chip = editor.view.dom.querySelector('a.mention')!;
+      expect(chip.textContent).toBe('@Bob');
+      expect(chip.classList.contains('mention-outside')).toBe(false);
+
+      act(() => { editor.commands.setNodeSelection(chipPos(editor, 'bob@example.com')); });
+      const shown = await screen.findByTestId('mention-card');
+      expect(shown).toHaveTextContent('Bob Builder');
+      expect(shown).toHaveTextContent('bob@example.com');
+      expect(shown).toHaveTextContent('action_copy');
+      expect(shown).not.toHaveTextContent('mention_card_not_recipient');
+      expect(within(shown).queryByRole('button', { name: 'mention_card_add' })).toBeNull();
+
+      fireEvent.click(within(shown).getByRole('button', { name: 'mention_card_remove' }));
+      await waitFor(() => expect(card()).toBeNull());
+      expect(editor.view.dom.querySelector('a.mention')).toBeNull();
+      expect(editor.getText()).toBe('Hallo ');
+    });
+
+    it('waits for a click: hovering a chip opens nothing, selecting it does', async () => {
+      const { editor } = await renderComposer({ body: '<p>Hallo <a href="mailto:bob@example.com">@Bob</a></p>' });
+      const chip = editor.view.dom.querySelector('a.mention')!;
+      fireEvent.mouseOver(chip);
+      await act(() => new Promise<void>((resolve) => setTimeout(resolve, 500)));
+      expect(card()).toBeNull();
+
+      act(() => { editor.commands.setNodeSelection(chipPos(editor, 'bob@example.com')); });
+      expect(await screen.findByTestId('mention-card')).toHaveTextContent('Bob Builder');
+      // Moving the cursor off the chip closes it.
+      act(() => { editor.commands.setTextSelection(1); });
+      await waitFor(() => expect(card()).toBeNull());
+    });
+
+    it('marks a mention of someone not on the message and offers to add them', async () => {
+      const { editor } = await renderComposer({ body: '<p>Hallo <a href="mailto:dana@example.com">@Dana</a></p>' });
+      const chip = () => editor.view.dom.querySelector('a.mention')!;
+      expect(chip().classList.contains('mention-outside')).toBe(true);
+      expect(within(screen.getByTestId('composer-to')).queryByText(/dana/)).toBeNull();
+
+      act(() => { editor.commands.setNodeSelection(chipPos(editor, 'dana@example.com')); });
+      const shown = await screen.findByTestId('mention-card');
+      expect(shown).toHaveTextContent('Dana Scully');
+      expect(shown).toHaveTextContent('mention_card_not_recipient');
+      fireEvent.click(within(shown).getByRole('button', { name: 'mention_card_add' }));
+
+      // Added with the name from the contacts, not just the address.
+      expect(within(screen.getByTestId('composer-to')).getByText(/Dana Scully/)).toBeTruthy();
+      await waitFor(() => expect(chip().classList.contains('mention-outside')).toBe(false));
+      expect(card()).not.toHaveTextContent('mention_card_not_recipient');
+    });
   });
 });

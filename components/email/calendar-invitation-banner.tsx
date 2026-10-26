@@ -33,14 +33,17 @@ import {
   getInvitationActorSummary,
   getInvitationTrustAssessment,
   formatEventSummary,
-  findParticipantByEmail,
+  formatInvitationSchedule,
+  findParticipantByEmails,
   extractMethodFromRawIcs,
+  type EventSummary,
   type InvitationMethod,
   type InvitationTrustAssessment,
 } from '@/lib/calendar-invitation';
 import { participantsAskedAgain } from '@/lib/calendar-participants';
 import { isValidTimeZone, moveLocalDateTime } from '@/lib/timezone';
 import { cn } from '@/lib/utils';
+import { getEventStartDate } from '@/lib/calendar-utils';
 import { sanitizeColor } from '@/components/calendar/event-card';
 import { RecipientPopover } from './recipient-popover';
 import { useCalendarErrorMessage } from '@/hooks/use-calendar-error-message';
@@ -288,7 +291,7 @@ function buildInvitationChangeItems(
   t: ReturnType<typeof useTranslations>,
   currentEvent: Partial<CalendarEvent> | null,
   proposedEvent: Partial<CalendarEvent> | null,
-  formatDateTime: (dateStr: string | null) => string,
+  formatSchedule: (summary: EventSummary) => string,
 ): InvitationChangeItem[] {
   if (!currentEvent || !proposedEvent) {
     return [];
@@ -307,10 +310,10 @@ function buildInvitationChangeItems(
   }
 
   const currentSchedule = currentSummary.start
-    ? `${formatDateTime(currentSummary.start)}${currentSummary.end ? ` - ${formatDateTime(currentSummary.end)}` : ''}`
+    ? formatSchedule(currentSummary)
     : t('change_empty');
   const proposedSchedule = proposedSummary.start
-    ? `${formatDateTime(proposedSummary.start)}${proposedSummary.end ? ` - ${formatDateTime(proposedSummary.end)}` : ''}`
+    ? formatSchedule(proposedSummary)
     : t('change_empty');
   if (currentSchedule !== proposedSchedule && proposedSummary.start) {
     changes.push({
@@ -416,7 +419,14 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const viewedMailbox = viewMailboxes.find((m) => m.id === selectedMailboxId);
   const sharedOwnerAccountId = viewedMailbox?.isShared ? viewedMailbox.accountId : undefined;
   const blobAccountId = email.sourceAccountId ?? sharedOwnerAccountId ?? parseClient?.getAccountId();
-  const currentUserEmail = useAuthStore((s) => s.primaryIdentity?.email);
+  // Every address the user sends as, primary first: an invite may be
+  // addressed to an alias identity (#1283).
+  const identityEmails = useAuthStore(useShallow((s) => {
+    const emails = [s.primaryIdentity?.email, ...s.identities.map((identity) => identity.email)]
+      .filter((address): address is string => Boolean(address))
+      .map((address) => address.toLowerCase());
+    return Array.from(new Set(emails));
+  }));
   const calendarInvitationParsingEnabled = useSettingsStore((s) => s.calendarInvitationParsingEnabled);
   const timeFormat = useSettingsStore((s) => s.timeFormat);
   const { calendars, supportsCalendar, importEvents, rsvpEvent, updateEvent, events: storeEvents, setSelectedDate } = useCalendarStore(useShallow((state) => ({
@@ -550,12 +560,12 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     ? storeEvents.find((e) => e.uid === parsedEvent.uid)
     : null;
 
-  const currentUserParticipant = existingEvent && currentUserEmail
-    ? findParticipantByEmail(existingEvent, currentUserEmail)
+  const currentUserParticipant = existingEvent
+    ? findParticipantByEmails(existingEvent, identityEmails)
     : null;
 
-  const fallbackParsedParticipant = !currentUserParticipant && parsedEvent && currentUserEmail
-    ? findParticipantByEmail(parsedEvent, currentUserEmail)
+  const fallbackParsedParticipant = !currentUserParticipant && parsedEvent
+    ? findParticipantByEmails(parsedEvent, identityEmails)
     : null;
 
   const participantForUser = currentUserParticipant || fallbackParsedParticipant;
@@ -571,9 +581,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     || myParticipant?.participant.participationStatus
     || null;
   const userIsOrganizer = Boolean(isOnlyOrganizer);
-  const userIsSender = Boolean(
-    currentUserEmail && email.from?.[0]?.email?.toLowerCase() === currentUserEmail.toLowerCase()
-  );
+  const senderAddress = email.from?.[0]?.email?.toLowerCase();
+  const userIsSender = Boolean(senderAddress && identityEmails.includes(senderAddress));
   const bannerTitle = getBannerTitle(t, method);
   const bannerInfo = getBannerInfo(t, method, userIsOrganizer, supportsCalendar);
   const trustAssessment = parsedEvent && !userIsSender ? getInvitationTrustAssessment(parsedEvent, email, method) : null;
@@ -630,8 +639,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       const eventForRsvp = existingEvent
         ? await resolveExistingEventForRsvp()
         : null;
-      const existingEventParticipant = eventForRsvp && currentUserEmail
-        ? findParticipantByEmail(eventForRsvp, currentUserEmail)
+      const existingEventParticipant = eventForRsvp
+        ? findParticipantByEmails(eventForRsvp, identityEmails)
         : null;
       const canFallbackToParsedParticipant = Boolean(
         existingEvent
@@ -676,7 +685,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
             (e) => e.uid === parsedEvent.uid
           );
           const participant = myParticipant
-            || (newEvent && currentUserEmail ? findParticipantByEmail(newEvent, currentUserEmail) : null);
+            || (newEvent ? findParticipantByEmails(newEvent, identityEmails) : null);
           if (newEvent && participant) {
             if (!(await rsvpEvent(client, newEvent.id, participant.id, status, replyToForRsvp))) return;
             setRsvpStatus(status);
@@ -700,13 +709,14 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   };
 
   const handleViewInCalendar = () => {
-    const targetDate = existingEvent?.utcStart
-      || existingEvent?.start
-      || parsedEvent?.utcStart
-      || parsedEvent?.start;
-
-    if (targetDate) {
-      const parsedDate = new Date(targetDate);
+    const target = existingEvent?.start ? existingEvent : parsedEvent;
+    if (target?.start) {
+      const parsedDate = getEventStartDate({
+        start: target.start,
+        utcStart: target.utcStart ?? null,
+        showWithoutTime: target.showWithoutTime ?? false,
+        timeZone: target.timeZone,
+      });
       if (!Number.isNaN(parsedDate.getTime())) {
         setSelectedDate(parsedDate);
       }
@@ -741,31 +751,14 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     }
   };
 
-  const isAllDayEvent = parsedEvent?.showWithoutTime ?? false;
-
-  const formatDateTime = (dateStr: string | null) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    if (isAllDayEvent) {
-      return format.dateTime(date, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-      });
-    }
-    return format.dateTime(date, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: timeFormat === '12h',
-    });
-  };
+  const formatSchedule = (eventSummary: EventSummary) => formatInvitationSchedule(
+    eventSummary,
+    (date, options) => format.dateTime(date, options),
+    timeFormat === '12h',
+  );
 
   const proposedChanges = method === 'counter' && proposalTarget && parsedEvent
-    ? buildInvitationChangeItems(t, proposalTarget, parsedEvent, formatDateTime)
+    ? buildInvitationChangeItems(t, proposalTarget, parsedEvent, formatSchedule)
     : [];
   const canApplyProposal = Boolean(
     client
@@ -924,8 +917,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
               <span className="flex items-center gap-1.5 min-w-0">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                 <span className="truncate">
-                  {formatDateTime(summary.start)}
-                  {summary.end && ` – ${formatDateTime(summary.end)}`}
+                  {formatSchedule(summary)}
                 </span>
               </span>
             )}

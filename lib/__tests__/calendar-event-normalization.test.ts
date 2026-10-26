@@ -84,4 +84,36 @@ describe('calendar event normalization', () => {
       expect(result.excludedRecurrenceRules).toEqual([{ '@type': 'RecurrenceRule', frequency: 'daily' }]);
     });
   });
+
+  describe('zero-duration timed events (#837)', () => {
+    // Stalwart drops a DTEND equal to DTSTART and returns no duration, but a
+    // utcEnd at 23:59:59 of the start day.
+    const fromServer = {
+      start: '2026-09-30T10:00:00',
+      timeZone: 'Etc/UTC',
+      showWithoutTime: false,
+      utcStart: '2026-09-30T10:00:00Z',
+      utcEnd: '2026-09-30T23:59:59Z',
+    } as Partial<CalendarEvent>;
+
+    it('ends a server event without a duration at its start', () => {
+      expect(normalizeCalendarEventLike(fromServer)).toMatchObject({
+        duration: 'PT0S',
+        utcEnd: '2026-09-30T10:00:00Z',
+      });
+    });
+
+    it('keeps the end of a server event that has a duration', () => {
+      const event = { ...fromServer, duration: 'PT8H', utcEnd: '2026-09-30T18:00:00Z' };
+      expect(normalizeCalendarEventLike(event)).toMatchObject({
+        duration: 'PT8H',
+        utcEnd: '2026-09-30T18:00:00Z',
+      });
+    });
+
+    it('leaves update patches without a duration alone', () => {
+      const patch = { start: '2026-09-30T11:00:00' } as Partial<CalendarEvent>;
+      expect(sanitizeOutgoingCalendarEventData(patch)).not.toHaveProperty('duration');
+    });
+  });
 });

@@ -1,7 +1,7 @@
 import { addDays, differenceInCalendarDays, parseISO, startOfDay, subMilliseconds } from "date-fns";
 import { parseDuration } from "@/components/calendar/event-card";
 import type { CalendarEvent } from "@/lib/jmap/types";
-import { toDisplayDate } from "@/lib/timezone";
+import { fromWallClock, isValidTimeZone, parseLocalDateTime, toDisplayDate } from "@/lib/timezone";
 
 export interface CalendarWeekSegment {
   event: CalendarEvent;
@@ -30,7 +30,7 @@ export interface TimedEventLayout {
  * with `fromDisplayDate` before turning grid positions into instants.
  */
 export function getEventStartDate(
-  event: Pick<CalendarEvent, 'start' | 'utcStart' | 'showWithoutTime'>,
+  event: Pick<CalendarEvent, 'start' | 'utcStart' | 'showWithoutTime'> & Partial<Pick<CalendarEvent, 'timeZone'>>,
 ): Date {
   // Prefer utcStart for timed events but fall back to start if utcStart is
   // missing or unparseable - a malformed utcStart used to surface as an
@@ -38,6 +38,12 @@ export function getEventStartDate(
   if (!event.showWithoutTime && event.utcStart) {
     const utc = parseISO(event.utcStart);
     if (!isNaN(utc.getTime())) return toDisplayDate(utc);
+  }
+  // CalendarEvent/parse (.ics import, invitations) returns no utcStart: read
+  // `start` as the wall clock in the event's own zone, not the user's (#1252).
+  if (!event.showWithoutTime && event.timeZone && isValidTimeZone(event.timeZone)) {
+    const wall = event.start ? parseLocalDateTime(event.start) : null;
+    if (wall) return toDisplayDate(fromWallClock(wall, event.timeZone));
   }
   return parseISO(event.start);
 }
@@ -96,6 +102,10 @@ export function getEventDayBounds(event: CalendarEvent): { startDay: Date; endDa
   };
 }
 
+function wallClockMinutes(date: Date): number {
+  return date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60 + date.getMilliseconds() / 60000;
+}
+
 export function getTimedEventBoundsForDay(
   event: CalendarEvent,
   day: Date,
@@ -111,10 +121,13 @@ export function getTimedEventBoundsForDay(
     return null;
   }
 
-  const clippedStart = eventStart > dayStart ? eventStart : dayStart;
-  const clippedEnd = eventEnd < nextDayStart ? eventEnd : nextDayStart;
-  const startMinutes = Math.max(0, Math.floor((clippedStart.getTime() - dayStart.getTime()) / 60000));
-  const endMinutes = Math.min(1440, Math.ceil((clippedEnd.getTime() - dayStart.getTime()) / 60000));
+  // Wall-clock minutes, not elapsed time since midnight: on a DST change day
+  // the day has 23 or 25 hours, and elapsed time would shift every event
+  // after the change by an hour.
+  const startMinutes = eventStart > dayStart ? Math.floor(wallClockMinutes(eventStart)) : 0;
+  const endMinutes = eventEnd < nextDayStart
+    ? Math.max(startMinutes, Math.ceil(wallClockMinutes(eventEnd)))
+    : 1440;
 
   return {
     startMinutes,

@@ -9,6 +9,11 @@ on:
   push:
   pull_request:
 
+# The job builds and runs the checked-out code; a compromised step must not
+# hold a token that can write to the repository.
+permissions:
+  contents: read
+
 jobs:
   perf-guard:
     name: Perf guard
@@ -36,7 +41,7 @@ jobs:
           DEV_MOCK_JMAP: "true"
           NEXT_TELEMETRY_DISABLED: "1"
           GIT_COMMIT: ${{ github.sha }}
-        run: npx next build --webpack
+        run: node scripts/build-plugin-sandbox.mjs && npx next build --webpack
 
       - name: Run perf guard
         env:

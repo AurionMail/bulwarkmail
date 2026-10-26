@@ -160,7 +160,7 @@ describe('lite build helpers', () => {
     const headers = buildHeaders({ basePath: '', connectSrc: 'https://mail.example.com' });
     expect(headers).toContain("script-src 'self' 'unsafe-inline'");
     expect(headers).toContain("connect-src 'self' https://mail.example.com");
-    expect(headers).toContain("frame-ancestors 'none'");
+    expect(headers).toContain("frame-ancestors 'self'");
     expect(headers).toContain('/_next/static/*');
     expect(buildHeaders({ basePath: '/w', connectSrc: '*' })).toMatch(/^\/w\/\*/);
   });

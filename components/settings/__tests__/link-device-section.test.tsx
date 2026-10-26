@@ -461,11 +461,13 @@ describe('AccountSecuritySettings link-device visibility', () => {
     expect(screen.getByText('not_available')).toBeInTheDocument();
   });
 
-  it('shows the linker to password accounts on Stalwart, without the OAuth-only email client box', () => {
+  it('shows the linker and the mail client setup to password accounts on Stalwart', () => {
+    // The client setup used to be OAuth-only; password users ask for it just as often.
     useAccountSecurityStore.setState({ isStalwart: true, isProbing: false });
     render(<AccountSecuritySettings />);
     expect(screen.getByText('link_device.title')).toBeInTheDocument();
-    expect(screen.queryByText('email_client.title')).toBeNull();
+    expect(screen.getByText('email_client.title')).toBeInTheDocument();
+    expect(screen.getByText('password.title')).toBeInTheDocument();
   });
 
   it('mounts the linker only once the server probe has a verdict', () => {

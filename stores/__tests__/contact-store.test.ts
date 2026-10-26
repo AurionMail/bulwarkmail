@@ -12,6 +12,7 @@ import {
 import type { ContactCard, ContactMedia } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
+import { PrincipalsRequestError } from '@/lib/jmap/principals-error';
 
 vi.stubGlobal('crypto', { randomUUID: () => '00000000-0000-0000-0000-000000000000' });
 
@@ -44,7 +45,7 @@ const defaultState = {
   activeTab: 'all' as const,
   directoryPrincipals: [],
   directoryLoaded: false,
-  directoryStatus: null,
+  directoryStatus: 'idle' as const,
 };
 
 describe('contact-store', () => {
@@ -441,9 +442,10 @@ describe('contact-store', () => {
       await useContactStore.getState().fetchDirectory(client);
 
       const state = useContactStore.getState();
-      expect(state.directoryStatus).toBe('restricted');
+      // Browsing says the directory is closed, but shows who the user knows.
+      expect(state.directoryStatus).toBe('forbidden');
       expect(state.directoryLoaded).toBe(true);
-      expect(state.directoryPrincipals).toEqual([{ name: 'Sales', email: 'sales@example.com', description: 'Sales' }]);
+      expect(state.directoryPrincipals).toEqual([{ id: 'grp', name: 'Sales', email: 'sales@example.com', description: 'Sales', type: 'group' }]);
       expect(errors).not.toHaveBeenCalled();
       errors.mockRestore();
     });
@@ -456,8 +458,8 @@ describe('contact-store', () => {
 
       await useContactStore.getState().fetchDirectory(client);
 
-      expect(useContactStore.getState().directoryStatus).toBe('ok');
-      expect(useContactStore.getState().directoryPrincipals).toEqual([{ name: 'anna@example.com', email: 'anna@example.com', description: undefined }]);
+      expect(useContactStore.getState().directoryStatus).toBe('ready');
+      expect(useContactStore.getState().directoryPrincipals).toEqual([{ id: 'a', name: 'anna@example.com', email: 'anna@example.com', description: undefined, type: 'individual' }]);
     });
   });
 
@@ -1241,6 +1243,58 @@ describe('contact-store', () => {
       const persisted = partialize(state);
       expect(persisted.contacts).toEqual([]);
       expect(persisted.supportsSync).toBe(true);
+    });
+  });
+
+  describe('fetchDirectory', () => {
+    const principal = (id: string, email: string | null, description?: string) =>
+      ({ id, type: 'individual' as const, name: email ?? id, email, description });
+
+    it('maps principals with an address to entries named by their description', async () => {
+      const client = {
+        supportsPrincipals: () => true,
+        getPrincipals: vi.fn().mockResolvedValue([
+          principal('a', 'ana@example.org', 'Ana Silva'),
+          principal('b', null),
+          principal('c', 'ANA@example.org', 'Duplicate'),
+        ]),
+      } as unknown as IJMAPClient;
+      await useContactStore.getState().fetchDirectory(client);
+      const state = useContactStore.getState();
+      expect(state.directoryStatus).toBe('ready');
+      expect(state.directoryPrincipals).toEqual([
+        { id: 'a', name: 'Ana Silva', email: 'ana@example.org', description: 'Ana Silva', type: 'individual' },
+      ]);
+    });
+
+    it('marks a refused query as forbidden, not as an empty directory', async () => {
+      // JMAPClient.listPrincipals reports Principal/query's `forbidden` so.
+      const client = {
+        supportsPrincipals: () => true,
+        getPrincipals: vi.fn(),
+        listPrincipals: vi.fn().mockResolvedValue({ status: 'restricted', principals: [] }),
+      } as unknown as IJMAPClient;
+      await useContactStore.getState().fetchDirectory(client);
+      expect(useContactStore.getState().directoryStatus).toBe('forbidden');
+    });
+
+    it('keeps the last list when a refresh fails', async () => {
+      useContactStore.setState({ directoryPrincipals: [{ name: 'Ana', email: 'ana@example.org' }], directoryStatus: 'ready' });
+      const client = {
+        supportsPrincipals: () => true,
+        getPrincipals: vi.fn().mockRejectedValue(new PrincipalsRequestError(null, 'network down')),
+      } as unknown as IJMAPClient;
+      await useContactStore.getState().fetchDirectory(client);
+      expect(useContactStore.getState().directoryStatus).toBe('error');
+      expect(useContactStore.getState().directoryPrincipals).toHaveLength(1);
+    });
+
+    it('reports a server without principals as unavailable', async () => {
+      const getPrincipals = vi.fn();
+      const client = { supportsPrincipals: () => false, getPrincipals } as unknown as IJMAPClient;
+      await useContactStore.getState().fetchDirectory(client);
+      expect(useContactStore.getState().directoryStatus).toBe('unavailable');
+      expect(getPrincipals).not.toHaveBeenCalled();
     });
   });
 });

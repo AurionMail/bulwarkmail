@@ -194,7 +194,7 @@ function ManagedAppsSection() {
   if (managedApps.length === 0) return null;
 
   return (
-    <SettingsSection title={t("managed_title")} description={t("managed_description")}>
+    <SettingsSection id="managed-apps" title={t("managed_title")} description={t("managed_description")}>
       <div className="space-y-3">
         {managedApps.map((app) => {
           const AppIcon = iconForName(app.icon);
@@ -289,18 +289,7 @@ export function SidebarAppsSettings() {
 
   return (
     <>
-      <SettingsSection title={t("title")} description={t("description")}>
-        <SettingItem label={t("keep_loaded")} description={t("keep_loaded_description")}>
-          <ToggleSwitch
-            checked={keepAppsLoaded}
-            onChange={(v) => updateSetting("keepAppsLoaded", v)}
-          />
-        </SettingItem>
-      </SettingsSection>
-
-      <ManagedAppsSection />
-
-      <SettingsSection title={t("manage_title")} description={t("manage_description")}>
+      <SettingsSection id="sidebar-apps" title={t("title")} description={t("description")}>
         <div className="space-y-3">
           {sidebarApps.length === 0 && !showAddForm && (
             <p className="text-sm text-muted-foreground py-4 text-center">{tApps("no_apps_hint")}</p>
@@ -387,7 +376,16 @@ export function SidebarAppsSettings() {
             </Button>
           )}
         </div>
+
+        <SettingItem advanced label={t("keep_loaded")} description={t("keep_loaded_description")}>
+          <ToggleSwitch
+            checked={keepAppsLoaded}
+            onChange={(v) => updateSetting("keepAppsLoaded", v)}
+          />
+        </SettingItem>
       </SettingsSection>
+
+      <ManagedAppsSection />
 
       <ConfirmDialog {...confirmDialogProps} />
     </>

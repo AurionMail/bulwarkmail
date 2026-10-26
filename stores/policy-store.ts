@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SettingsPolicy, FeatureGates, SettingRestriction, ThemePolicy } from '@/lib/admin/types';
+import type { SettingsPolicy, FeatureGates, SettingRestriction, ThemePolicy, ColorMode } from '@/lib/admin/types';
 import { DEFAULT_POLICY, DEFAULT_THEME_POLICY, POLICY_SCOPE_HEADER } from '@/lib/admin/types';
 import { apiFetch } from '@/lib/browser-navigation';
 import { IS_LITE, IS_LITE_STALWART, LITE_POLICY_PATH, withLiteBuildId } from '@/lib/lite';
@@ -13,6 +13,13 @@ interface PolicyState {
    * full policy is fetched again once a session exists.
    */
   partial: boolean;
+  /**
+   * Gates the demo switches on regardless of the deployment's policy, so the
+   * demo's two accounts and shared mailbox can show the merged views. Set by
+   * the demo login only; empty everywhere else.
+   */
+  demoFeatureOverrides: Partial<FeatureGates>;
+  setDemoFeatureOverrides: (overrides: Partial<FeatureGates>) => void;
   fetchPolicy: () => Promise<void>;
   /** Fetch the full policy if only the public subset is loaded. */
   refreshIfPartial: () => Promise<void>;
@@ -22,6 +29,12 @@ interface PolicyState {
   getRestriction: (key: string) => SettingRestriction | undefined;
   getEffectiveDefault: (key: string) => unknown;
   getThemePolicy: () => ThemePolicy;
+  /**
+   * The theme policy's color mode (#1280): `mode` for users who have not
+   * picked one, and for everyone while `locked`. A lock without a valid
+   * defaultColorMode pins the built-in default, system.
+   */
+  getColorModePolicy: () => { mode: ColorMode | null; locked: boolean };
   getForcedThemeId: (availableThemeIds?: string[]) => string | null;
   isThemeDisabled: (themeId: string, isBuiltIn: boolean) => boolean;
   isPluginForceEnabled: (pluginId: string) => boolean;
@@ -30,10 +43,15 @@ interface PolicyState {
 
 let policyRequest = 0;
 
+const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system'];
+
 export const usePolicyStore = create<PolicyState>()((set, get) => ({
   policy: { ...DEFAULT_POLICY },
   loaded: false,
   partial: false,
+  demoFeatureOverrides: {},
+
+  setDemoFeatureOverrides: (overrides) => set({ demoFeatureOverrides: overrides }),
 
   fetchPolicy: async () => {
     // A fetch started before signing in may answer after the one started
@@ -78,6 +96,8 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
   },
 
   isFeatureEnabled: (feature) => {
+    const override = get().demoFeatureOverrides[feature];
+    if (override !== undefined) return override;
     return get().policy.features[feature] ?? true;
   },
 
@@ -91,6 +111,14 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
 
   getThemePolicy: () => {
     return get().policy.themePolicy || { ...DEFAULT_THEME_POLICY };
+  },
+
+  getColorModePolicy: () => {
+    const tp = get().policy.themePolicy || DEFAULT_THEME_POLICY;
+    // policy.json is written by hand: anything but the three modes is no default.
+    const mode = COLOR_MODES.find((m) => m === tp.defaultColorMode) ?? null;
+    const locked = tp.lockColorMode === true;
+    return { mode: locked ? mode ?? 'system' : mode, locked };
   },
 
   getForcedThemeId: (availableThemeIds) => {

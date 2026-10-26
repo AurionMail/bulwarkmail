@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // In-memory LRU cache: domain -> { data, contentType, fetchedAt }
 const CACHE_MAX_SIZE = 1000;
 const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
+/** Concurrent upstream icon fetches across all callers (see GET). */
+const MAX_UPSTREAM_IN_FLIGHT = 16;
+let upstreamInFlight = 0;
 
 interface CacheEntry {
   data: ArrayBuffer;
@@ -18,6 +21,9 @@ const cache = new Map<string, CacheEntry>();
 const negativeCache = new Map<string, NegativeCacheEntry>();
 const NEGATIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
 const NEGATIVE_CACHE_MAX_SIZE = 2000;
+// A refresh request (?v=<ms>) refetches a domain at most this often, so the
+// unauthenticated route can't be used to hammer the upstream icon service.
+const MIN_REFRESH_INTERVAL_MS = 60 * 1000;
 
 // 1x1 transparent PNG. Returned with HTTP 200 (instead of 404) when no
 // favicon exists for a domain, so the browser's <img> tag loads it cleanly
@@ -444,21 +450,30 @@ export async function GET(request: NextRequest) {
 
   // Resolve to root domain so subdomains share the same favicon lookup
   const normalizedDomain = getRootDomain(domain.toLowerCase());
+  const refreshAfter = parseRefreshAfter(request.nextUrl.searchParams.get('v'));
 
   // Check negative cache (domains known to have no favicon)
   const neg = negativeCache.get(normalizedDomain);
-  if (neg && Date.now() - neg.fetchedAt < NEGATIVE_CACHE_TTL_MS) {
+  if (neg && Date.now() - neg.fetchedAt < NEGATIVE_CACHE_TTL_MS && !isStale(neg.fetchedAt, refreshAfter)) {
     return new NextResponse(TRANSPARENT_PNG, { headers: MISSING_FAVICON_HEADERS });
   }
 
   // Check cache
   const cached = cache.get(normalizedDomain);
-  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS && !isStale(cached.fetchedAt, refreshAfter)) {
     return new NextResponse(cached.data, {
       headers: faviconHeaders(cached.contentType),
     });
   }
 
+  // Unauthenticated and keyed by domain, so without a ceiling on concurrent
+  // upstream fetches any visitor could have this instance open one
+  // connection per made-up domain name. Over the ceiling the icon is simply
+  // missing for now; the browser asks again later.
+  if (upstreamInFlight >= MAX_UPSTREAM_IN_FLIGHT) {
+    return new NextResponse(TRANSPARENT_PNG, { headers: MISSING_FAVICON_HEADERS });
+  }
+  upstreamInFlight++;
   try {
     const upstream = await fetch(
       `https://icons.duckduckgo.com/ip3/${encodeURIComponent(normalizedDomain)}.ico`,
@@ -490,6 +505,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Cache the result
+    negativeCache.delete(normalizedDomain);
     evictOldest();
     cache.set(normalizedDomain, { data, contentType, fetchedAt: Date.now() });
 
@@ -497,11 +513,33 @@ export async function GET(request: NextRequest) {
       headers: faviconHeaders(contentType),
     });
   } catch {
+    // A refresh that can't reach upstream keeps showing the icon we have.
+    if (cached) {
+      return new NextResponse(cached.data, { headers: faviconHeaders(cached.contentType) });
+    }
     return new NextResponse(null, {
       status: 502,
       headers: { 'Cache-Control': 'public, max-age=300' }, // 5 min
     });
+  } finally {
+    upstreamInFlight--;
   }
+}
+
+/**
+ * The time from a ?v= refresh stamp, or null. Avatars send the moment the
+ * user asked for fresh sender icons (#960); a stamp in the future is clamped
+ * to now so it can't keep a domain permanently uncached.
+ */
+function parseRefreshAfter(value: string | null): number | null {
+  if (!value || !/^\d{1,15}$/.test(value)) return null;
+  return Math.min(Number(value), Date.now());
+}
+
+/** Whether a cache entry predates the refresh the client asked for. */
+function isStale(fetchedAt: number, refreshAfter: number | null): boolean {
+  if (refreshAfter === null || fetchedAt >= refreshAfter) return false;
+  return Date.now() - fetchedAt >= MIN_REFRESH_INTERVAL_MS;
 }
 
 const RASTER_FAVICON_TYPES = new Set([

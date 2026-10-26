@@ -1,0 +1,180 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const apiFetch = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/browser-navigation', () => ({ apiFetch }));
+
+import { useSettingsStore, migrateSettings } from '../settings-store';
+import { usePolicyStore } from '../policy-store';
+import { DEFAULT_POLICY, type SettingsPolicy } from '@/lib/admin/types';
+
+// #1248: `policy.defaults` from policy.json never reached the settings store.
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+let serverFiles: Record<string, unknown> = {};
+
+function loadPolicy(patch: Partial<SettingsPolicy>) {
+  usePolicyStore.setState({ policy: { ...DEFAULT_POLICY, ...patch }, loaded: true });
+}
+
+async function signIn(username: string) {
+  const serverUrl = 'https://mail.example.com';
+  await useSettingsStore.getState().loadFromServer(username, serverUrl).finally(() => {
+    useSettingsStore.getState().enableSync(username, serverUrl);
+  });
+}
+
+const settings = () => useSettingsStore.getState();
+
+beforeEach(() => {
+  localStorage.clear();
+  serverFiles = {};
+  apiFetch.mockReset();
+  apiFetch.mockImplementation(async (_url: string, init?: RequestInit) => {
+    if (init?.method === 'POST') return json({ ok: true });
+    const username = (init?.headers as Record<string, string>)['x-settings-username'];
+    return json({ settings: serverFiles[username] ?? null });
+  });
+  usePolicyStore.setState({ policy: { ...DEFAULT_POLICY }, loaded: false });
+  useSettingsStore.getState().disableSync();
+  useSettingsStore.getState().resetToDefaults();
+});
+
+describe('admin policy defaults (#1248)', () => {
+  it('applies a default to a user who never changed the setting', () => {
+    expect(settings().showSharedMailAccounts).toBe(true);
+    loadPolicy({ defaults: { showSharedMailAccounts: false, enableUnifiedMailbox: true } });
+    expect(settings().showSharedMailAccounts).toBe(false);
+    expect(settings().enableUnifiedMailbox).toBe(true);
+  });
+
+  it('keeps a value the user chose, even the build default', () => {
+    settings().updateSetting('showSharedMailAccounts', true);
+    loadPolicy({ defaults: { showSharedMailAccounts: false } });
+    expect(settings().showSharedMailAccounts).toBe(true);
+  });
+
+  it('keeps a choice made after the default applied when the policy loads again', () => {
+    loadPolicy({ defaults: { showSharedMailAccounts: false } });
+    settings().updateSetting('showSharedMailAccounts', true);
+    loadPolicy({ defaults: { showSharedMailAccounts: false } });
+    expect(settings().showSharedMailAccounts).toBe(true);
+  });
+
+  it('follows the operator changing a default the user never touched', () => {
+    loadPolicy({ defaults: { deleteAction: 'trash-and-read' } });
+    expect(settings().deleteAction).toBe('trash-and-read');
+    loadPolicy({ defaults: { deleteAction: 'permanent' } });
+    expect(settings().deleteAction).toBe('permanent');
+  });
+
+  it('ignores keys that are not settings and values of the wrong type', () => {
+    const updateSetting = settings().updateSetting;
+    loadPolicy({
+      defaults: {
+        updateSetting: 'boom',
+        explicitSettings: 'boom',
+        notASetting: true,
+        showSharedMailAccounts: 'no',
+        emailsPerPage: '25',
+        emailKeywords: [],
+        sendDelaySeconds: 15,
+      },
+    });
+    expect(settings().updateSetting).toBe(updateSetting);
+    expect(settings().explicitSettings).toEqual([]);
+    expect('notASetting' in settings()).toBe(false);
+    expect(settings().showSharedMailAccounts).toBe(true);
+    expect(settings().emailsPerPage).toBe(50);
+    expect(settings().sendDelaySeconds).toBe(0);
+  });
+
+  it('respects the allowed values of a restriction', () => {
+    loadPolicy({
+      defaults: { emailsPerPage: 500 },
+      restrictions: { emailsPerPage: { max: 100 } },
+    });
+    expect(settings().emailsPerPage).toBe(50);
+  });
+
+  it('enforces a locked value over the user\'s choice', () => {
+    settings().updateSetting('deleteAction', 'permanent');
+    loadPolicy({ restrictions: { deleteAction: { locked: true, value: 'trash' } } });
+    expect(settings().deleteAction).toBe('trash');
+  });
+
+  it('enforces the default of a locked setting that has no value of its own', () => {
+    settings().updateSetting('showSharedMailAccounts', true);
+    loadPolicy({
+      defaults: { showSharedMailAccounts: false },
+      restrictions: { showSharedMailAccounts: { locked: true } },
+    });
+    expect(settings().showSharedMailAccounts).toBe(false);
+  });
+
+  it('lands on the operator default after a reset', () => {
+    loadPolicy({ defaults: { showSharedMailAccounts: false } });
+    settings().updateSetting('showSharedMailAccounts', true);
+    settings().resetToDefaults();
+    expect(settings().showSharedMailAccounts).toBe(false);
+    expect(settings().explicitSettings).toEqual([]);
+  });
+
+  it('syncs which settings the user chose', () => {
+    settings().updateSetting('showSharedMailAccounts', false);
+    expect(JSON.parse(settings().exportSettings()).explicitSettings).toEqual(['showSharedMailAccounts']);
+  });
+});
+
+describe('admin policy defaults and the server copy (#1248)', () => {
+  it('applies to an account signing in for the first time in a browser another account used', async () => {
+    serverFiles['a@example.com'] = { fontSize: 'large' };
+    await signIn('a@example.com');
+    loadPolicy({ defaults: { showSharedMailAccounts: false } });
+    settings().updateSetting('showSharedMailAccounts', true);
+
+    // b has no server settings yet and starts from defaults (#1185): the
+    // operator's, not the build's.
+    useSettingsStore.getState().disableSync();
+    await signIn('b@example.com');
+    expect(settings().showSharedMailAccounts).toBe(false);
+    expect(settings().fontSize).toBe('medium');
+  });
+
+  it('applies over a server copy written before the default existed', async () => {
+    loadPolicy({ defaults: { showSharedMailAccounts: false, deleteAction: 'trash-and-read' } });
+    // Written by a build without explicitSettings: the build default for
+    // showSharedMailAccounts, a choice of its own for deleteAction.
+    serverFiles['a@example.com'] = { showSharedMailAccounts: true, deleteAction: 'permanent' };
+    await signIn('a@example.com');
+    expect(settings().showSharedMailAccounts).toBe(false);
+    expect(settings().deleteAction).toBe('permanent');
+    expect(settings().explicitSettings).toEqual(['deleteAction']);
+  });
+
+  it('keeps a choice the server copy records, even the build default', async () => {
+    loadPolicy({ defaults: { showSharedMailAccounts: false } });
+    serverFiles['a@example.com'] = { showSharedMailAccounts: true, explicitSettings: ['showSharedMailAccounts'] };
+    await signIn('a@example.com');
+    expect(settings().showSharedMailAccounts).toBe(true);
+  });
+
+  it('applies when the policy arrives after the server copy', async () => {
+    serverFiles['a@example.com'] = { showSharedMailAccounts: true, explicitSettings: [] };
+    await signIn('a@example.com');
+    expect(settings().showSharedMailAccounts).toBe(true);
+    loadPolicy({ defaults: { showSharedMailAccounts: false } });
+    expect(settings().showSharedMailAccounts).toBe(false);
+  });
+});
+
+describe('settings stored before #1248', () => {
+  it('counts a value that differs from the build default as the user\'s choice', () => {
+    const migrated = migrateSettings(
+      { showSharedMailAccounts: false, deleteAction: 'trash', density: 'compact', preferredIdentityIds: {} },
+      7,
+    );
+    expect([...migrated.explicitSettings].sort()).toEqual(['density', 'showSharedMailAccounts']);
+  });
+});

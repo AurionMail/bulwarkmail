@@ -49,6 +49,7 @@ type DevicesState =
 
 export function NotificationSettings() {
   const t = useTranslations('settings.notifications');
+  const tAppearance = useTranslations('settings.appearance');
   const {
     emailNotificationsEnabled,
     emailNotificationSound,
@@ -56,7 +57,7 @@ export function NotificationSettings() {
     pushNotifyInboxOnly,
     calendarNotificationsEnabled,
     calendarNotificationSound,
-    calendarInvitationParsingEnabled,
+    faviconUnreadBadge,
     pushRelayUrl,
     updateSetting,
   } = useSettingsStore();
@@ -306,7 +307,109 @@ export function NotificationSettings() {
 
   return (
     <div className="space-y-8">
-      <SettingsSection title={t('push.title')} description={t('push.description')}>
+      <SettingsSection id="mail" title={t('email.title')} description={t('email.description')}>
+        {!isSettingHidden('emailNotificationsEnabled') && (
+        <SettingItem
+          label={t('email.enabled')}
+          description={t('email.enabled_desc')}
+          locked={isSettingLocked('emailNotificationsEnabled')}
+        >
+          <ToggleSwitch
+            checked={emailNotificationsEnabled}
+            onChange={(checked) => updateSetting('emailNotificationsEnabled', checked)}
+          />
+        </SettingItem>
+        )}
+
+        <SettingItem
+          label={t('email.sound')}
+          description={t('email.sound_desc')}
+        >
+          <ToggleSwitch
+            checked={emailNotificationSound}
+            onChange={(checked) => updateSetting('emailNotificationSound', checked)}
+            disabled={!emailNotificationsEnabled}
+          />
+        </SettingItem>
+
+        {inboxOnlyAvailable && !isSettingHidden('pushNotifyInboxOnly') && (
+        <SettingItem
+          label={t('email.inbox_only')}
+          description={t('email.inbox_only_desc')}
+          locked={isSettingLocked('pushNotifyInboxOnly')}
+        >
+          <ToggleSwitch
+            checked={pushNotifyInboxOnly}
+            onChange={(checked) => updateSetting('pushNotifyInboxOnly', checked)}
+            disabled={!emailNotificationsEnabled}
+          />
+        </SettingItem>
+        )}
+
+        {/* The tab/app icon badge is a new-mail signal too; people look for it here. */}
+        <SettingItem label={tAppearance('favicon_unread_badge.label')} description={tAppearance('favicon_unread_badge.description')}>
+          <ToggleSwitch
+            checked={faviconUnreadBadge}
+            onChange={(checked) => updateSetting('faviconUnreadBadge', checked)}
+          />
+        </SettingItem>
+      </SettingsSection>
+
+      <SettingsSection id="calendar" title={t('calendar.title')} description={t('calendar.description')}>
+        {!isSettingHidden('calendarNotificationsEnabled') && (
+        <SettingItem
+          label={t('calendar.enabled')}
+          description={t('calendar.enabled_desc')}
+          locked={isSettingLocked('calendarNotificationsEnabled')}
+        >
+          <ToggleSwitch
+            checked={calendarNotificationsEnabled}
+            onChange={(checked) => updateSetting('calendarNotificationsEnabled', checked)}
+          />
+        </SettingItem>
+        )}
+
+        <SettingItem
+          label={t('calendar.sound')}
+          description={t('calendar.sound_desc')}
+        >
+          <ToggleSwitch
+            checked={calendarNotificationSound}
+            onChange={(checked) => updateSetting('calendarNotificationSound', checked)}
+            disabled={!calendarNotificationsEnabled}
+          />
+        </SettingItem>
+      </SettingsSection>
+
+      <SettingsSection id="sound" title={t('sound_selection.title')} description={t('sound_selection.description')}>
+        <SettingItem
+          label={t('sound_selection.choose')}
+          description={t('sound_selection.choose_desc')}
+        >
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => playNotificationSound(notificationSoundChoice)}
+              title={t('test_sound')}
+            >
+              <Volume2 className="w-4 h-4" />
+            </Button>
+            <Select
+              value={notificationSoundChoice}
+              onChange={(value) => {
+                const choice = value as NotificationSoundChoice;
+                updateSetting('notificationSoundChoice', choice);
+                playNotificationSound(choice);
+              }}
+              options={soundOptions}
+            />
+          </div>
+        </SettingItem>
+      </SettingsSection>
+
+      <SettingsSection id="push" title={t('push.title')} description={t('push.description')}>
         <SettingItem label={t('push.enable')} description={statusDescription}>
           <div className="flex items-center gap-2">
             {pushEnabled && (
@@ -327,6 +430,7 @@ export function NotificationSettings() {
         )}
 
         <SettingItem
+          advanced
           label={t('push.relay_label')}
           description={pushRelayLocked ? t('push.relay_locked_desc') : t('push.relay_desc')}
           locked={pushRelayLocked}
@@ -354,7 +458,7 @@ export function NotificationSettings() {
       <MultiAccountPushSettings relayBaseUrl={activeRelayUrl} />
 
       {client && (
-        <SettingsSection title={t('push.devices_title')} description={t('push.devices_desc')}>
+        <SettingsSection id="devices" advanced title={t('push.devices_title')} description={t('push.devices_desc')}>
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               {devices.kind === 'loading' && t('push.devices_loading')}
@@ -406,110 +510,6 @@ export function NotificationSettings() {
           )}
         </SettingsSection>
       )}
-
-      <SettingsSection title={t('sound_selection.title')} description={t('sound_selection.description')}>
-        <SettingItem
-          label={t('sound_selection.choose')}
-          description={t('sound_selection.choose_desc')}
-        >
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => playNotificationSound(notificationSoundChoice)}
-              title={t('test_sound')}
-            >
-              <Volume2 className="w-4 h-4" />
-            </Button>
-            <Select
-              value={notificationSoundChoice}
-              onChange={(value) => {
-                const choice = value as NotificationSoundChoice;
-                updateSetting('notificationSoundChoice', choice);
-                playNotificationSound(choice);
-              }}
-              options={soundOptions}
-            />
-          </div>
-        </SettingItem>
-      </SettingsSection>
-
-      <SettingsSection title={t('email.title')} description={t('email.description')}>
-        {!isSettingHidden('emailNotificationsEnabled') && (
-        <SettingItem
-          label={t('email.enabled')}
-          description={t('email.enabled_desc')}
-          locked={isSettingLocked('emailNotificationsEnabled')}
-        >
-          <ToggleSwitch
-            checked={emailNotificationsEnabled}
-            onChange={(checked) => updateSetting('emailNotificationsEnabled', checked)}
-          />
-        </SettingItem>
-        )}
-
-        <SettingItem
-          label={t('email.sound')}
-          description={t('email.sound_desc')}
-        >
-          <ToggleSwitch
-            checked={emailNotificationSound}
-            onChange={(checked) => updateSetting('emailNotificationSound', checked)}
-            disabled={!emailNotificationsEnabled}
-          />
-        </SettingItem>
-
-        {inboxOnlyAvailable && !isSettingHidden('pushNotifyInboxOnly') && (
-        <SettingItem
-          label={t('email.inbox_only')}
-          description={t('email.inbox_only_desc')}
-          locked={isSettingLocked('pushNotifyInboxOnly')}
-        >
-          <ToggleSwitch
-            checked={pushNotifyInboxOnly}
-            onChange={(checked) => updateSetting('pushNotifyInboxOnly', checked)}
-            disabled={!emailNotificationsEnabled}
-          />
-        </SettingItem>
-        )}
-      </SettingsSection>
-
-      <SettingsSection title={t('calendar.title')} description={t('calendar.description')}>
-        {!isSettingHidden('calendarNotificationsEnabled') && (
-        <SettingItem
-          label={t('calendar.enabled')}
-          description={t('calendar.enabled_desc')}
-          locked={isSettingLocked('calendarNotificationsEnabled')}
-        >
-          <ToggleSwitch
-            checked={calendarNotificationsEnabled}
-            onChange={(checked) => updateSetting('calendarNotificationsEnabled', checked)}
-          />
-        </SettingItem>
-        )}
-
-        <SettingItem
-          label={t('calendar.sound')}
-          description={t('calendar.sound_desc')}
-        >
-          <ToggleSwitch
-            checked={calendarNotificationSound}
-            onChange={(checked) => updateSetting('calendarNotificationSound', checked)}
-            disabled={!calendarNotificationsEnabled}
-          />
-        </SettingItem>
-
-        <SettingItem
-          label={t('calendar.invitation_parsing')}
-          description={t('calendar.invitation_parsing_desc')}
-        >
-          <ToggleSwitch
-            checked={calendarInvitationParsingEnabled}
-            onChange={(checked) => updateSetting('calendarInvitationParsingEnabled', checked)}
-          />
-        </SettingItem>
-      </SettingsSection>
 
       <ConfirmDialog {...confirmDialogProps} />
     </div>

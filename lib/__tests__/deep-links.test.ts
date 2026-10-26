@@ -17,6 +17,7 @@ import {
   parseFilesPath,
   buildSettingsPath,
   parseSettingsPath,
+  parseSettingsSection,
   matchSurface,
   SCHEDULED_MAILBOX_ID,
 } from '@/lib/deep-links';
@@ -353,6 +354,14 @@ describe('settings paths', () => {
     expect(buildSettingsPath(null)).toBe('/settings');
     expect(parseSettingsPath(['appearance'])).toBe('appearance');
     expect(parseSettingsPath([])).toBeNull();
+  });
+
+  it('round-trips a section of a tab', () => {
+    expect(buildSettingsPath('organize', 'tags')).toBe('/settings/organize/tags');
+    expect(buildSettingsPath('organize', null)).toBe('/settings/organize');
+    expect(parseSettingsPath(['organize', 'tags'])).toBe('organize');
+    expect(parseSettingsSection(['organize', 'tags'])).toBe('tags');
+    expect(parseSettingsSection(['organize'])).toBeNull();
   });
 });
 

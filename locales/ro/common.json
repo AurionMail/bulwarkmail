@@ -60,6 +60,12 @@
     "demo_login_button": "Lansați demonstrația",
     "demo_tagline": "Descoperiți un client de e-mail cu funcționalități complete. Nu este necesar un cont.",
     "demo_no_signup": "Nu este necesară înregistrarea – explorați liber cu date de exemplu",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Se finalizează autentificarea...",
     "oauth_error": {
       "title": "Autentificare eșuată",
@@ -142,6 +148,8 @@
     "show_all_tags": "Afișează tot ({count})",
     "show_fewer_tags": "Afișează mai puține",
     "folders": "Dosare",
+    "your_folders": "Dosarele tale",
+    "create_folder": "Creează dosar",
     "show_more": "Mai multe",
     "show_fewer": "Mai puține",
     "shared": "Partajat",
@@ -169,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Aplicații implicite",
-    "description": "Alegeți dacă linkurile către e-mail și calendar se deschid în Bulwark. Din punct de vedere tehnic, Bulwark se înregistrează ca gestionar de protocol pentru linkurile de tip mailto: și webcal:.",
+    "description": "Alegeți dacă linkurile către e-mail și calendar se deschid în {appName}. Din punct de vedere tehnic, {appName} se înregistrează ca gestionar de protocol pentru linkurile de tip mailto: și webcal:.",
     "unsupported": "Acest browser sau această conexiune nu acceptă înregistrarea manuală a gestionarului de protocoale. Este posibil să puteți utiliza totuși aplicația PWA instalată prin setările browserului sau ale sistemului de operare.",
     "mailto_label": "Linkuri din e-mail",
-    "mailto_description": "Deschideți linkurile „mailto:” în Bulwark cu o fereastră de redactare precompletată.",
+    "mailto_description": "Deschideți linkurile „mailto:” în {appName} cu o fereastră de redactare precompletată.",
     "protocol_open_mode_label": "La deschiderea linkurilor de protocol",
-    "protocol_open_mode_description": "Alegeți dacă Bulwark deschide linkurile mailto: și webcal: într-o filă nouă sau reutilizează o sesiune deschisă. Opțiunea „sesiune activă” necesită permisiunea de notificare, astfel încât să puteți face clic pe o notificare de rezervă pentru a aduce Bulwark în prim-plan dacă browserul blochează focalizarea.",
+    "protocol_open_mode_description": "Alegeți dacă {appName} deschide linkurile mailto: și webcal: într-o filă nouă sau reutilizează o sesiune deschisă. Opțiunea „sesiune activă” necesită permisiunea de notificare, astfel încât să puteți face clic pe o notificare de rezervă pentru a aduce {appName} în prim-plan dacă browserul blochează focalizarea.",
     "protocol_open_mode_active_session": "Deschideți într-o sesiune activă, dacă este posibil",
     "protocol_open_mode_new_tab": "Deschideți întotdeauna o filă nouă",
-    "focus_notification_title": "Deschideți Bulwark",
-    "focus_notification_body": "Linkul a fost deschis în Bulwark. Faceți clic pentru a aduce fereastra în prim-plan.",
+    "focus_notification_title": "Deschideți {appName}",
+    "focus_notification_body": "Linkul a fost deschis în {appName}. Faceți clic pentru a aduce fereastra în prim-plan.",
     "webcal_label": "Linkuri către calendar",
-    "webcal_description": "Deschideți linkurile webcal: din Bulwark cu o fereastră de dialog de abonare la calendar completată în prealabil.",
+    "webcal_description": "Deschideți linkurile webcal: din {appName} cu o fereastră de dialog de abonare la calendar completată în prealabil.",
     "register_mailto": "Înregistrați aplicația de e-mail",
     "register_webcal": "Înregistrați aplicația de calendar",
     "mailto_registered": "S-a solicitat înregistrarea unui gestionar de e-mail",
@@ -188,7 +196,7 @@
     "registration_failed": "Înregistrarea gestionarului de protocol a eșuat",
     "opening_mailto": "Se deschide fereastra de redactare...",
     "opening_webcal": "Se deschide calendarul...",
-    "browser_note": "Este posibil ca browserul sau sistemul de operare să vă solicite confirmarea acestei acțiuni și să necesite instalareBulwarkului înainte de a putea fi selectat ca aplicație implicită.",
+    "browser_note": "Este posibil ca browserul sau sistemul de operare să vă solicite confirmarea acestei acțiuni și să necesite instalarea aplicației {appName} înainte de a putea fi selectat ca aplicație implicită.",
     "select_account_title": "Alegeți contul",
     "select_mailto_account": "Alegeți contul în care să se deschidă acest link de e-mail.",
     "select_webcal_account": "Alegeți contul care ar trebui să deschidă acest link către calendar.",
@@ -236,6 +244,18 @@
     "show_on_mobile": "Afișare pe mobil"
   },
   "email_list": {
+    "sections": {
+      "unread": "Necitite",
+      "everything_else": "Toate celelalte",
+      "unread_empty": "Ai citit toate mesajele din inbox."
+    },
+    "columns": {
+      "from": "De la",
+      "to": "Către",
+      "subject": "Subiect",
+      "date": "Dată",
+      "size": "Dimensiune"
+    },
     "no_emails": "Nu s-au găsit mesaje",
     "no_emails_description": "Această căsuță poștală este goală",
     "no_search_results": "Nu s-au găsit rezultate",
@@ -621,7 +641,9 @@
       "not_in_contacts": "Nu se află în lista dvs. de contacte",
       "add_to_contacts": "Adaugă la contacte",
       "copied": "Copiat!",
-      "copy_failed": "Copierea a eșuat"
+      "copy_failed": "Copierea a eșuat",
+      "view_contact": "Vezi contactul",
+      "view_details": "Vezi detaliile"
     },
     "send_now": "Trimite acum",
     "verification_code": {
@@ -631,9 +653,11 @@
     },
     "mv_position": "{index} din {total}",
     "plugin_panel_show": "Afișează panoul pluginului",
-    "plugin_panel_hide": "Ascunde panoul pluginului"
+    "plugin_panel_hide": "Ascunde panoul pluginului",
+    "copy": "Copiază"
   },
   "email_composer": {
+    "select_from_directory": "Selectează din director",
     "minimize": "Minimizează",
     "maximize": "Ecran complet",
     "restore": "Restabilește",
@@ -719,6 +743,10 @@
     "option_dsn_hint": "Primește un raport când serverul îl livrează",
     "option_require_tls": "Cere livrare criptată",
     "option_require_tls_hint": "Livrează doar prin TLS, altfel respinge",
+    "option_priority": "Prioritate",
+    "option_priority_high": "Ridicată",
+    "option_priority_normal": "Normală",
+    "option_priority_low": "Scăzută",
     "validation": {
       "recipient_required": "Adăugați un destinatar căruia să îi trimiteți mesajul",
       "body_required": "Scrieți un mesaj sau atașați un fișier",
@@ -792,6 +820,9 @@
     "autocomplete_search_server": "Caută pe server",
     "autocomplete_searching": "Se caută...",
     "mention_recipients": "Destinatari",
+    "mention_card_not_recipient": "Nu este în Către sau CC, deci nu va primi acest mesaj.",
+    "mention_card_add": "Adaugă la {field}",
+    "mention_card_remove": "Elimină mențiunea",
     "toolbar": {
       "bold": "Aldin",
       "italic": "Cursiv",
@@ -830,7 +861,9 @@
     },
     "send_filing_warning": "Trimis - dar curățarea ulterioară a eșuat, poate rămâne o ciornă veche.",
     "pop_out": "Deschide răspunsul într-o fereastră",
-    "send_guard_failed": "Nu s-a trimis - un plugin care verifică mesajele înainte de trimitere a eșuat sau nu a răspuns."
+    "send_guard_failed": "Nu s-a trimis - un plugin care verifică mesajele înainte de trimitere a eșuat sau nu a răspuns.",
+    "cut": "Decupează",
+    "copy": "Copiază"
   },
   "confirm_dialog": {
     "confirm": "Confirmare",
@@ -856,9 +889,9 @@
     "app_title": "Webmail",
     "reconnecting": "Conexiune pierdută. Se încearcă reconectarea…",
     "rate_limited_title": "Autentificarea pe server este temporar limitată ca frecvență.",
-    "rate_limited_detail": "Bulwark A suspendat solicitările de fundal pentru a evita blocarea. Se va încerca din nou în câteva {seconds} s.",
+    "rate_limited_detail": "{appName} A suspendat solicitările de fundal pentru a evita blocarea. Se va încerca din nou în câteva {seconds} s.",
     "rate_limited_action_title": "Solicitarea a fost pusă în așteptare pentru a evita blocarea contului.",
-    "rate_limited_action_detail": "Bulwark Așteaptă încheierea perioadei de așteptare a serverului înainte de a trimite alte cereri autentificate. Încercați din nou în câteva {seconds}.",
+    "rate_limited_action_detail": "{appName} Așteaptă încheierea perioadei de așteptare a serverului înainte de a trimite alte cereri autentificate. Încercați din nou în câteva {seconds}.",
     "pull_to_refresh": "Trageți pentru a reîmprospăta",
     "release_to_refresh": "Eliberați pentru a reîmprospăta",
     "refreshing": "Se reîmprospătează…"
@@ -887,6 +920,8 @@
     "emails_moved": "{count} e-mailuri mutate",
     "moved_to_mailbox": "Mutată la {mailbox}",
     "move_failed": "Mutarea a eșuat",
+    "removed_from_folder": "Eliminat din {mailbox}",
+    "remove_from_folder_failed": "Nu s-a putut elimina din acest dosar",
     "emails_copied": "{count} e-mailuri copiate",
     "copy_failed": "Copierea a eșuat",
     "move_error": "Nu s-au putut muta e-mailurile în folderul selectat",
@@ -1008,34 +1043,22 @@
     "search_no_results": "Nu există setări corespunzătoare",
     "tabs": {
       "appearance": "Aspect",
-      "language": "Limba, regiunea și ora",
-      "email": "Comportamentul e-mailurilor",
-      "composer": "Redactare",
-      "privacy": "Confidențialitate și securitate",
       "account": "Cont",
-      "identities": "Identități",
       "vacation": "Absență",
-      "advanced": "Nivel avansat",
       "calendar": "Calendar",
       "filters": "Filtre",
-      "templates": "Șabloane",
       "folders": "Dosare",
-      "keywords": "Etichete",
       "security": "Securitate",
       "files": "Fișiere",
       "contacts": "Contacte",
-      "encryption": "Criptare",
-      "protocol_handlers": "Aplicații implicite",
-      "sidebar_apps": "Aplicații din bara laterală",
       "notifications": "Notificări",
-      "layout": "Aspect",
-      "themes": "Teme",
       "reading": "Citire",
       "composing": "Redactarea",
-      "downloads": "Descărcări",
-      "content_senders": "Conținut și expeditori",
-      "about_data": "Despre & Date",
-      "debug": "Depanare"
+      "message_list": "Lista de mesaje",
+      "general": "General",
+      "organize": "Dosare și etichete",
+      "addons": "Suplimente",
+      "backup": "Copie de rezervă și resetare"
     },
     "themes": {
       "title": "Teme",
@@ -1047,18 +1070,13 @@
       "default_restored": "Tema implicită a fost restabilită",
       "default_name": "Implicită",
       "default_badge": "Implicită",
-      "admin_enforced": "Impusă de administrator"
+      "admin_enforced": "Impusă de administrator",
+      "show_all": "Afișează toate cele {count} teme",
+      "show_fewer": "Afișează mai puține"
     },
     "tab_groups": {
-      "general": "Generalități",
-      "account": "Cont și identitate",
-      "organization": "Organizarea e-mailurilor",
       "apps": "Aplicații",
-      "system": "Sistem",
-      "appearance": "Aspect",
-      "mail": "E-mail",
-      "privacy": "Confidențialitate și securitate",
-      "advanced": "Nivel avansat"
+      "mail": "E-mail"
     },
     "appearance": {
       "message_list_order": {
@@ -1193,10 +1211,6 @@
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
       },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
-      },
       "show_folder_total_count": {
         "label": "Afișează numărul total de mesaje",
         "description": "Afișează numărul total de mesaje lângă foldere și etichete, pe lângă numărul celor necitite. Dezactivează pentru a afișa doar mesajele necitite."
@@ -1226,6 +1240,21 @@
       "cross_all": {
         "label": "Toate conturile: Toată poșta",
         "description": "Afișează în secțiunea Toate conturile o intrare cu toată poșta din toate conturile, în toate folderele cu excepția spam, trimise, arhivă, coș și ciorne."
+      },
+      "sections": {
+        "text": "Text și animații",
+        "layout": "Aspect",
+        "sidebar": "Bară laterală",
+        "accounts": "Mai multe conturi",
+        "accounts_description": "Cum apar împreună conturile și căsuțele partajate.",
+        "experimental": "Experimental"
+      },
+      "account_marker": {
+        "label": "Deosebirea conturilor",
+        "description": "În vizualizările unificate, marchează fiecare mesaj cu culoarea contului din care provine.",
+        "dot": "Punct colorat",
+        "tint": "Rând colorat",
+        "none": "Nimic"
       }
     },
     "keywords": {
@@ -1245,6 +1274,7 @@
       "cancel": "Anulează",
       "migrating": "Actualizarea etichetei pentru e-mailurile existente…",
       "migration_error": "Nu s-a putut actualiza eticheta pentru e-mailurile existente",
+      "filters_migration_error": "Unele reguli de filtrare folosesc încă eticheta veche — actualizează-le manual",
       "nesting": {
         "label": "Etichete imbricate",
         "description": "Imbricați etichete sub alte etichete și afișați-le ca un arbore în bara laterală."
@@ -1355,9 +1385,7 @@
         "enabled": "Notificări privind evenimentele",
         "enabled_desc": "Afișați alerte pentru evenimentele viitoare din calendar",
         "sound": "Sunet de notificare",
-        "sound_desc": "Redă o alertă audio pentru mementourile din calendar",
-        "invitation_parsing": "Analizați invitațiile prin e-mail",
-        "invitation_parsing_desc": "Detectați invitațiile din calendar din atașamentele de e-mail și afișați acțiunile din calendar"
+        "sound_desc": "Redă o alertă audio pentru mementourile din calendar"
       }
     },
     "language_region": {
@@ -1407,6 +1435,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Tipul inboxului",
+        "description": "„Întâi necitite” afișează cele mai noi 25 de mesaje necitite într-o secțiune deasupra restului inboxului",
+        "default": "Implicit",
+        "unread_first": "Întâi necitite"
+      },
       "clear_search_on_folder_change": {
         "label": "Șterge căutarea la schimbarea folderului",
         "description": "Un clic pe un folder (Inbox, Trimise…) șterge căutarea activă și afișează acel folder. Dezactivat, căutarea rămâne și se reia în folderul ales."
@@ -1481,6 +1515,10 @@
         "horizontal": "Panoul de citire în partea de jos",
         "horizontal_description": "Afișați lista de mesaje în partea de sus și deschideți mesajul selectat într-un panou de citire situat sub aceasta."
       },
+      "list_columns": {
+        "label": "Afișează lista pe coloane",
+        "description": "Afișează rândurile pe o singură linie ca tabel cu coloanele De la, Subiect, Dată și Dimensiune sub un antet."
+      },
       "show_preview": {
         "label": "Afișați textul de previzualizare",
         "description": "Afișați previzualizarea e-mailurilor în listă",
@@ -1489,10 +1527,6 @@
       "show_verification_codes": {
         "label": "Afișează codurile de verificare",
         "description": "Oferă codul din e-mailurile de autentificare și confirmare pentru copiere cu un clic, în listă timp de o zi și în mesaj"
-      },
-      "disable_threading": {
-        "label": "Dezactivați gruparea conversațiilor",
-        "description": "Afișați e-mailurile ca mesaje individuale, în loc să le grupați pe conversații"
       },
       "plain_text_mode": {
         "label": "Numai text simplu",
@@ -1622,6 +1656,13 @@
         "label": "Menționează destinatarii cu @",
         "description": "Tastarea @ în mesaj propune destinatarii și inserează prenumele celui ales. Enter sau Tab alege numele evidențiat."
       },
+      "mention_adds_recipient": {
+        "label": "Contacte în mențiunile cu @",
+        "description": "Când tastezi @ sunt propuse și contactele tale și persoanele din director. Dacă alegi pe cineva care nu e încă destinatar, este adăugat la mesaj.",
+        "to": "Adaugă la Către",
+        "cc": "Adaugă la CC",
+        "off": "Doar destinatarii"
+      },
       "hide_inline_image_attachments": {
         "label": "Ascundeți imaginile încorporate din atașamente",
         "description": "Imaginile încorporate în corpul mesajului nu sunt listate ca atașamente separate"
@@ -1660,51 +1701,15 @@
       "rtl_editing": {
         "label": "Suport pentru editare de la dreapta la stânga",
         "description": "Adaugă un buton de direcție în bara de instrumente a editorului, cu care paragrafele pot fi setate de la stânga la dreapta sau de la dreapta la stânga"
-      }
-    },
-    "composer": {
-      "title": "Redactare",
-      "description": "Configurați setările de redactare a e-mailurilor",
-      "autosave": {
-        "label": "Interval de salvare automată",
-        "description": "Cât de des să se salveze automat schițele",
-        "30s": "La fiecare 30 de secunde",
-        "1m": "În fiecare minut",
-        "2m": "La fiecare 2 minute",
-        "5m": "La fiecare 5 minute"
       },
-      "send_confirmation": {
-        "label": "Confirmare trimitere",
-        "description": "Solicitați confirmarea înainte de a trimite e-mailurile"
+      "group_conversations": {
+        "label": "Grupează mesajele pe conversații",
+        "description": "Afișează răspunsurile împreună, ca o singură conversație, în loc de mesaje separate."
       },
-      "default_reply": {
-        "label": "Modul implicit de răspuns",
-        "description": "Acțiunea implicită la clic pe „Răspunde”",
-        "reply": "Răspunde",
-        "reply_all": "Răspunde tuturor"
-      }
-    },
-    "privacy": {
-      "title": "Confidențialitate și securitate",
-      "description": "Gestionați-vă setările de confidențialitate și securitate",
-      "external_images": {
-        "label": "Blocați imaginile externe",
-        "description": "Preveniți urmărirea prin intermediul imaginilor externe"
-      },
-      "session_timeout": {
-        "label": "Expirarea sesiunii",
-        "description": "Deconectare automată după o perioadă de inactivitate",
-        "never": "Niciodată",
-        "30m": "30 de minute",
-        "1h": "1 oră",
-        "4h": "4 ore"
-      },
-      "clear_cache": {
-        "label": "Golește memoria cache",
-        "description": "Ștergeți datele stocate în cache și fișierele temporare",
-        "button": "Golește memoria cache",
-        "confirm": "Sunteți sigur că doriți să goliți memoria cache?",
-        "success": "Memoria cache a fost golită cu succes"
+      "signatures_link": {
+        "label": "Semnături",
+        "description": "Fiecare adresă de e-mail are propria semnătură. Editați-le împreună cu adresele.",
+        "button": "Adrese de e-mail"
       }
     },
     "account": {
@@ -1750,6 +1755,7 @@
       "backup": {
         "title": "Account list backup",
         "description": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. Mailbox passwords are not saved: you sign in to each restored account yourself.",
+        "description_passwords": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. You can include the mailbox passwords, so the restored accounts sign in by themselves.",
         "status_none": "No list is saved for {account}.",
         "status_saved": "A list is saved for {account}.",
         "save": "Save list",
@@ -1761,9 +1767,15 @@
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
         "confirm": "Confirm password",
+        "include_passwords": "Include mailbox passwords",
+        "include_passwords_hint": "Accounts signed in here with a password will sign in by themselves after a restore. Anyone who knows the backup password gets into every mailbox in the list.",
         "saved": "List saved ({count, plural, one {# account} other {# accounts}}).",
         "restored": "Accounts added: {added}. Accounts already here and updated: {updated}. Open each new account from the account list to sign in.",
+        "restored_signed_in": "Accounts added: {added}. Accounts already here and updated: {updated}.",
         "skipped": "{count, plural, one {# account was} other {# accounts were}} not added: the account limit is reached.",
+        "saved_passwords": "Passwords included for {count, plural, one {# account} other {# accounts}}.",
+        "signed_in": "Signed in to {count, plural, one {# account} other {# accounts}} with the saved password.",
+        "sign_in_failed": "{count, plural, one {# saved password was} other {# saved passwords were}} refused: sign in to those accounts from the account list.",
         "deleted": "Saved list deleted.",
         "errors": {
           "mismatch": "The passwords do not match.",
@@ -1778,6 +1790,9 @@
         "title": "Partajat cu mine",
         "description": "Conturi de grup și conturi partajate pe care le puteți gestiona. Selectați unul pentru a-i edita filtrele, răspunsul automat de vacanță, calendarele și contactele.",
         "shared_label": "Cont partajat"
+      },
+      "sections": {
+        "addresses": "Adrese de e-mail"
       }
     },
     "scoped": {
@@ -1929,10 +1944,14 @@
         "key_label": "Cheie publică (S/MIME sau PGP în format ASCII)",
         "key_placeholder": "Lipiți aici cheia dvs. publică",
         "none": "Nicio cheie publică configurată"
+      },
+      "sections": {
+        "devices": "Alte aplicații și dispozitive",
+        "devices_description": "Folosiți-vă e-mailul în afara acestui browser.",
+        "encryption": "Criptare"
       }
     },
     "identities": {
-      "title": "Identități de expediere",
       "description": "Gestionați adresele de e-mail de la care puteți trimite mesaje",
       "identities_count": {
         "label": "Identitățile tale",
@@ -2050,6 +2069,11 @@
       "new_folder_name": "Numele folderului",
       "rename": "Redenumire",
       "change_icon": "Schimbă pictograma",
+      "count_mode": "Contor pentru {name}",
+      "count_mode_default": "Contor: implicit",
+      "count_mode_unread": "Doar necitite",
+      "count_mode_all": "Necitite și total",
+      "count_mode_none": "Fără contor",
       "delete": "Șterge",
       "confirm_delete": "Sunteți sigur că doriți să ștergeți „{name}”? E-mailurile din acest folder vor fi mutate în Coșul de gunoi.",
       "create": "Creați",
@@ -2068,8 +2092,6 @@
       "error_role": "Nu s-a putut actualiza rolul folderului"
     },
     "advanced": {
-      "title": "Nivel avansat",
-      "description": "Opțiuni avansate și setări pentru dezvoltatori",
       "debug_mode": {
         "label": "Modul de depanare",
         "description": "Activați înregistrarea detaliată a evenimentelor pentru depanare"
@@ -2099,7 +2121,11 @@
       },
       "sender_favicons": {
         "label": "Favicon-uri ale expeditorului",
-        "description": "Afișați pictogramele site-urilor web ca imagini de profil pentru expeditorii de afaceri"
+        "description": "Afișați pictogramele site-urilor web ca imagini de profil pentru expeditorii de afaceri",
+        "refresh_label": "Reîmprospătează pictogramele expeditorilor",
+        "refresh_description": "Descarcă din nou pictogramele site-urilor, de exemplu când un expeditor și-a schimbat pictograma",
+        "refresh_button": "Reîmprospătează",
+        "refresh_done": "Pictogramele expeditorilor vor fi descărcate din nou"
       },
       "show_avatars_in_junk": {
         "label": "Afișați avatarurile din folderul „Junk”",
@@ -2159,6 +2185,12 @@
           "delivered": "Livrate",
           "mistakes": "Greșeli"
         }
+      },
+      "sections": {
+        "backup": "Copie de rezervă a setărilor",
+        "backup_description": "Păstrați-vă setările între browsere și dispozitive.",
+        "fix": "Rezolvarea problemelor",
+        "fix_description": "Când o vizualizare pare învechită sau greșită, sau vreți să o luați de la capăt."
       }
     },
     "sidebar_apps": {
@@ -2489,6 +2521,41 @@
       "preview": {
         "label": "Previzualizare"
       }
+    },
+    "advanced_switch": {
+      "label": "Afișează setările avansate",
+      "show": "Afișează setările avansate",
+      "badge": "Avansat",
+      "hidden_count": "{count, plural, one {1 setare avansată este ascunsă pe această pagină.} few {# setări avansate sunt ascunse pe această pagină.} other {# de setări avansate sunt ascunse pe această pagină.}}"
+    },
+    "message_list": {
+      "title": "Lista de mesaje",
+      "description": "Ce arată lista și ce face un clic sau o glisare.",
+      "sections": {
+        "senders": "Imaginile expeditorilor",
+        "actions": "Acțiuni rapide",
+        "delete": "Ștergere și arhivare",
+        "loading": "Încărcare și căutare"
+      }
+    },
+    "reading_page": {
+      "title": "Citire",
+      "description": "Mesajul deschis.",
+      "sections": {
+        "display": "Afișarea mesajului",
+        "images": "Imagini și conținut extern",
+        "images_description": "Imaginile la distanță îi pot spune expeditorului că ați deschis mesajul.",
+        "attachments": "Atașamente"
+      }
+    },
+    "composing_page": {
+      "title": "Redactare",
+      "description": "Scriere, răspuns și trimitere.",
+      "sections": {
+        "replying": "Răspunsuri",
+        "sending": "Înainte de trimitere",
+        "receipts": "Confirmări de citire"
+      }
     }
   },
   "errors": {
@@ -2520,6 +2587,7 @@
     "unpin": "Anulează fixarea",
     "move_to": "Mergi la...",
     "copy_to_account": "Copiază în cont...",
+    "remove_from_folder": "Elimină din acest dosar",
     "archive": "Arhivează",
     "delete": "Șterge",
     "mark_as_spam": "Raportează spamul",
@@ -2617,7 +2685,9 @@
       "previous_email": "E-mailul anterior",
       "open_email": "Deschide e-mailul",
       "close_email": "Închide / Deselectează",
-      "go_to_folder": "Mergi la dosar"
+      "go_to_folder": "Mergi la dosar",
+      "next_unread": "Următorul e-mail necitit",
+      "no_more_unread": "Nu mai sunt e-mailuri necitite mai jos în listă"
     },
     "actions": {
       "reply": "Răspunde",
@@ -2636,7 +2706,8 @@
       "help": "Afișați comenzile rapide",
       "refresh": "Reîmprospătați e-mailurile",
       "select_all": "Selectează tot",
-      "global_search": "Caută în tot"
+      "global_search": "Caută în tot",
+      "extend_selection": "Extinde selecția în jos / în sus"
     },
     "threads": {
       "expand_collapse": "Extindeți/reduceți firul de discuție",
@@ -2750,11 +2821,57 @@
       "recipient_name": "Numele destinatarului",
       "company": "Numele companiei",
       "date": "Data curentă",
+      "short_date": "Data în cifre",
+      "day": "Ziua (două cifre)",
+      "month": "Luna (două cifre)",
+      "year": "Anul",
       "day_of_week": "Ziua săptămânii",
       "sender_name": "Numele dvs."
     }
   },
   "contacts": {
+    "directory": {
+      "title": "Director",
+      "search_placeholder": "Caută nume sau adresă de e-mail",
+      "refresh": "Reîmprospătează directorul",
+      "retry": "Încearcă din nou",
+      "loading": "Se încarcă directorul…",
+      "unavailable_title": "Niciun director",
+      "unavailable_hint": "Serverul de e-mail nu oferă un director al conturilor.",
+      "forbidden_title": "Director indisponibil",
+      "forbidden_hint": "Serverul de e-mail nu permite acestui cont să răsfoiască directorul. Întreabă administratorul.",
+      "error_title": "Directorul nu a putut fi încărcat",
+      "error_hint": "Verifică conexiunea și încearcă din nou.",
+      "empty_title": "Directorul este gol",
+      "empty_hint": "Serverul de e-mail nu listează niciun cont cu adresă de e-mail.",
+      "no_match": "Nimeni din director nu corespunde căutării",
+      "refresh_failed": "Directorul nu a putut fi reîmprospătat. Se afișează ultima listă încărcată.",
+      "select_page": "Selectează pe toată lumea de pe această pagină",
+      "deselect_page": "Deselectează pe toată lumea de pe această pagină",
+      "select_entry": "Selectează {name}",
+      "range": "{from}–{to} din {total}",
+      "page": "Pagina {page} din {count}",
+      "previous_page": "Pagina anterioară",
+      "next_page": "Pagina următoare",
+      "picker_title": "Selectează din director",
+      "cancel": "Anulează",
+      "selected_count": "{count} selectați",
+      "add_to": "Adaugă la Către",
+      "add_cc": "Adaugă la Cc",
+      "add_bcc": "Adaugă la Bcc",
+      "select_hint": "Selectează o persoană pentru detalii",
+      "write_email": "Scrie e-mail",
+      "add_to_contacts": "Adaugă la contacte",
+      "email": "E-mail",
+      "read_only_note": "Intrările din director provin de la serverul de e-mail și nu pot fi editate aici.",
+      "type": {
+        "individual": "Persoană",
+        "group": "Grup",
+        "resource": "Resursă",
+        "location": "Locație",
+        "other": "Altul"
+      }
+    },
     "title": "Contacte",
     "search_placeholder": "Căutare contacte...",
     "create_new": "Contact nou",
@@ -3983,7 +4100,8 @@
     "demo_banner_title": "Controale demo",
     "demo_banner_desc": "Vă aflați în modul demo – totul rămâne în browserul dvs. Apăsați „Resetare demo” oricând pentru a începe de la zero cu date de exemplu curate.",
     "quota_title": "Utilizarea spațiului de stocare",
-    "quota_desc": "Urmăriți aici dimensiunea căsuței dvs. de e-mail. Cercul se umple pe măsură ce utilizați mai mult spațiu."
+    "quota_desc": "Urmăriți aici dimensiunea căsuței dvs. de e-mail. Cercul se umple pe măsură ce utilizați mai mult spațiu.",
+    "settings_section": "Primii pași"
   },
   "unified_mailbox": {
     "search_unavailable": "Funcția de căutare nu este disponibilă în vizualizarea unificată"
@@ -4345,7 +4463,7 @@
       },
       "http_proxy": {
         "title": "Folosirea conturilor pe care le conectați",
-        "body": "Trimite cereri prin serverul Bulwark cu un cont sau o cheie configurate de dvs. sau de administratorul dvs. Pluginul nu vede niciodată parola, dar poate face tot ce poate face acel cont pe serverul său."
+        "body": "Trimite cereri prin serverul {appName} cu un cont sau o cheie configurate de dvs. sau de administratorul dvs. Pluginul nu vede niciodată parola, dar poate face tot ce poate face acel cont pe serverul său."
       }
     },
     "dialog": {
@@ -4362,9 +4480,9 @@
     },
     "connect": {
       "title": "Conectați {label}",
-      "intro_password": "{name} vrea să folosească contul dvs. {label}. Bulwark păstrează parola pe serverul său și o trimite doar către {host}. Pluginul nu o vede niciodată.",
-      "intro_password_any": "{name} vrea să folosească contul dvs. {label}. Bulwark păstrează parola pe serverul său și o trimite doar către serverul pe care îl introduceți aici. Pluginul nu o vede niciodată.",
-      "intro_signin": "{name} vrea să se conecteze la contul dvs. {label}. Introduceți aici serverul, apoi conectați-vă pe pagina acestuia. Bulwark păstrează pe serverul său accesul obținut; pluginul nu îl vede niciodată.",
+      "intro_password": "{name} vrea să folosească contul dvs. {label}. {appName} păstrează parola pe serverul său și o trimite doar către {host}. Pluginul nu o vede niciodată.",
+      "intro_password_any": "{name} vrea să folosească contul dvs. {label}. {appName} păstrează parola pe serverul său și o trimite doar către serverul pe care îl introduceți aici. Pluginul nu o vede niciodată.",
+      "intro_signin": "{name} vrea să se conecteze la contul dvs. {label}. Introduceți aici serverul, apoi conectați-vă pe pagina acestuia. {appName} păstrează pe serverul său accesul obținut; pluginul nu îl vede niciodată.",
       "server": "Adresa serverului",
       "server_hint": "cloud.example.com",
       "username": "Nume de utilizator",
@@ -4411,8 +4529,7 @@
     "loading": "Se încarcă pagina",
     "not_available_title": "Această pagină nu este disponibilă",
     "not_available_description": "Pluginul care a adăugat-o este dezactivat sau nu mai este instalat.",
-    "back_to_mail": "Înapoi la e-mail",
-    "settings_group": "Pluginuri"
+    "back_to_mail": "Înapoi la e-mail"
   },
   "command_palette": {
     "title": "Paleta de comenzi",

@@ -20,9 +20,11 @@ const SAFE = /^\/admin(?:\/[A-Za-z0-9._~-]+)*\/?$/;
  * Refuses anything that could leave this origin or this area: a scheme, a
  * protocol-relative `//host`, a backslash (which some browsers normalise to
  * `/`), an encoded separator, a `..` segment, or a path outside `/admin`.
- * A `?tab=` query is allowed, and validated by the caller against the real
- * tab list - the admin shell keeps its tab in a store, so that is how a link
- * reaches a specific panel.
+ * Two queries are allowed. `?tab=` is validated by the caller against the
+ * real tab list - the admin shell keeps its tab in a store, so that is how a
+ * link reaches a specific panel. `?version=` is the version a connector
+ * install link asked for (`/admin/marketplace/<slug>?version=1.2.0`); the
+ * marketplace page checks it again against the directory before offering it.
  */
 export function safeAdminNext(raw: string | null | undefined): string | null {
   if (!raw) return null;
@@ -44,8 +46,10 @@ export function safeAdminNext(raw: string | null | undefined): string | null {
   const [path, query = ''] = value.split('?', 2);
   if (!SAFE.test(path)) return null;
   if (path.split('/').includes('..')) return null;
-  // Only the tab hand-off, and only as a plain word.
-  if (query && !/^tab=[a-z_]{1,32}$/.test(query)) return null;
+  // Only the tab hand-off or the version pick, each as one plain value.
+  if (query && !/^tab=[a-z_]{1,32}$/.test(query) && !/^version=[0-9A-Za-z.-]{1,64}$/.test(query)) {
+    return null;
+  }
 
   return query ? `${path}?${query}` : path;
 }

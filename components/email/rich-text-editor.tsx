@@ -23,10 +23,12 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { QuotedHtml, serializeEditorContent } from "@/components/email/quoted-html";
+import { paragraphStyleWithoutSpacing, trailingParagraphBreakRule } from "@/components/email/paragraph-breaks";
 import { SignatureBlock } from "@/components/email/signature-block";
 import { styledBlockAttributes } from "@/components/email/styled-block-attributes";
 import { RecipientMention, RecipientMentionList, type RecipientMentionListHandle } from "@/components/email/recipient-mention";
-import type { MentionCandidate } from "@/lib/recipient-mentions";
+import { MentionChipCard, setMentionRecipients } from "@/components/email/mention-chip";
+import { mentionSuggestions, type MentionCandidate, type MentionContact } from "@/lib/recipient-mentions";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useTranslations } from "next-intl";
@@ -67,7 +69,12 @@ const StyledParagraph = Paragraph.extend({
     return {
       ...this.parent?.(),
       ...styledBlockAttributes,
+      style: { ...styledBlockAttributes.style, parseHTML: paragraphStyleWithoutSpacing },
     };
+  },
+  // The <br> serializeEditorContent adds to empty lines isn't a hard break.
+  parseHTML() {
+    return [...(this.parent?.() ?? []), trailingParagraphBreakRule];
   },
 });
 
@@ -90,6 +97,15 @@ interface RichTextEditorProps {
   onEditorReady?: (editor: Editor) => void;
   /** Recipients an "@" in the text offers to mention; none turns it off. */
   mentionCandidates?: MentionCandidate[];
+  /**
+   * Contacts matching what was typed after the "@", offered after the
+   * recipients. Without it, an "@" offers the recipients only.
+   */
+  findMentionContacts?: (query: string) => MentionContact[];
+  /** The field a picked contact who isn't a recipient yet is added to. */
+  mentionAddsTo?: 'to' | 'cc';
+  /** A contact was picked who isn't a recipient yet. */
+  onMentionAdd?: (candidate: MentionCandidate) => void;
   /**
    * Hide the formatting toolbar on a phone. It wraps onto two rows there and,
    * with the address fields, left little room for the text above the keyboard.
@@ -193,6 +209,9 @@ export function RichTextEditor({
   hasError,
   onEditorReady,
   mentionCandidates,
+  findMentionContacts,
+  mentionAddsTo = 'to',
+  onMentionAdd,
   collapseToolbarOnMobile = false,
   toolbarPlacement = 'top',
 }: RichTextEditorProps) {
@@ -204,6 +223,9 @@ export function RichTextEditor({
   onEditorReadyRef.current = onEditorReady;
   const mentionCandidatesRef = React.useRef<MentionCandidate[]>([]);
   mentionCandidatesRef.current = mentionCandidates ?? [];
+  // Read on every keystroke after an "@"; the editor is built only once.
+  const mentionContactsRef = React.useRef({ findMentionContacts, mentionAddsTo, onMentionAdd });
+  mentionContactsRef.current = { findMentionContacts, mentionAddsTo, onMentionAdd };
   const [mention, setMention] = useState<SuggestionProps<MentionCandidate, MentionCandidate> | null>(null);
   const mentionListRef = useRef<RecipientMentionListHandle>(null);
 
@@ -268,7 +290,14 @@ export function RichTextEditor({
       // recipient-mention.tsx). The editor is built once, so the candidates
       // and the list are reached through refs and a stable state setter.
       RecipientMention.configure({
-        getCandidates: () => mentionCandidatesRef.current,
+        getCandidates: (query) => {
+          const recipients = mentionCandidatesRef.current;
+          const { findMentionContacts: find, mentionAddsTo: addsTo } = mentionContactsRef.current;
+          return mentionSuggestions(recipients, query && find ? find(query) : [], query, addsTo);
+        },
+        onPick: (candidate) => {
+          if (candidate.addsTo) mentionContactsRef.current.onMentionAdd?.(candidate);
+        },
         render: () => ({
           onStart: (props) => setMention(props),
           // Every keystroke first reports a pending lookup with no items;
@@ -358,6 +387,12 @@ export function RichTextEditor({
   useEffect(() => {
     if (editor) onEditorReadyRef.current?.(editor);
   }, [editor]);
+
+  // Mention chips of anyone not in To or Cc are marked, so a mention
+  // doesn't quietly name someone who never gets the message.
+  useEffect(() => {
+    if (editor) setMentionRecipients(editor, mentionCandidates ? mentionCandidates.map((c) => c.email) : null);
+  }, [editor, mentionCandidates]);
 
   const addLink = useCallback(() => {
     if (!editor) return;
@@ -849,6 +884,14 @@ export function RichTextEditor({
 
       {/* Editor */}
       <EditorContent editor={editor} />
+
+      <MentionChipCard
+        editor={editor}
+        recipients={mentionCandidates}
+        findContacts={findMentionContacts}
+        addsTo={mentionAddsTo}
+        onAdd={onMentionAdd}
+      />
 
       {mention && mention.items.length > 0 && createPortal(
         <RecipientMentionList

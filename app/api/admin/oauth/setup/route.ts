@@ -4,6 +4,7 @@ import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { getStalwartCredentials, type StalwartCredentials } from '@/lib/stalwart/credentials';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { configManager } from '@/lib/admin/config-manager';
+import { isConfigReadOnly, ConfigReadOnlyError } from '@/lib/admin/paths';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
 import { locales as ALL_LOCALES } from '@/i18n/routing';
@@ -89,6 +90,16 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdminAuth(request);
     if ('error' in auth) return auth.error;
+
+    // The setup ends by saving the client secret here. Refuse before
+    // touching Stalwart, or a read-only config leaves an orphaned client
+    // (or a rotated secret nobody stored) on the server.
+    if (isConfigReadOnly()) {
+      return NextResponse.json(
+        { error: new ConfigReadOnlyError('set up OAuth').message },
+        { status: 409 },
+      );
+    }
 
     const ip = getClientIP(request);
     const creds = await getStalwartCredentials(request);
@@ -195,6 +206,7 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
     const setBody = setEntry[1] as {
+      created?: Record<string, { id?: string }>;
       notCreated?: Record<string, unknown>;
       notUpdated?: Record<string, unknown>;
     };
@@ -219,7 +231,27 @@ export async function POST(request: NextRequest) {
       oauthIssuerUrl: issuerUrl,
     };
     if (oauthOnly) updates.oauthOnly = true;
-    await configManager.setAdminConfig(updates);
+    try {
+      await configManager.setAdminConfig(updates);
+    } catch (error) {
+      // Don't leave a client behind that this install never stored. An
+      // updated client can't be restored: Stalwart doesn't hand back the
+      // old secret.
+      if (action === 'created') {
+        const createdId = setBody.created?.new?.id;
+        if (createdId) {
+          await jmapCall(creds, {
+            using: ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap'],
+            methodCalls: [['x:OAuthClient/set', { accountId, destroy: [createdId] }, '0']],
+          }).catch((rollbackError) => {
+            logger.error('Admin OAuth setup rollback failed', {
+              error: rollbackError instanceof Error ? rollbackError.message : 'Unknown error',
+            });
+          });
+        }
+      }
+      throw error;
+    }
 
     await auditLog('admin.oauth_setup', {
       action,

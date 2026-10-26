@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   extractPlaceholders,
   substitutePlaceholders,
@@ -142,6 +142,21 @@ describe('getAutoFilledPlaceholders', () => {
     expect(result).toHaveProperty('day_of_week');
   });
 
+  it('offers the date in numbers and as day, month and year (#1284)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 5, 12, 0, 0));
+    try {
+      const de = getAutoFilledPlaceholders({ locale: 'de' });
+      expect(de.short_date).toBe('05.10.2026');
+      expect(de.day).toBe('05');
+      expect(de.month).toBe('10');
+      expect(de.year).toBe('2026');
+      expect(getAutoFilledPlaceholders({ locale: 'en' }).short_date).toBe('10/05/2026');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('includes sender_name when provided', () => {
     const result = getAutoFilledPlaceholders({ senderName: 'John' });
     expect(result.sender_name).toBe('John');
@@ -219,6 +234,20 @@ describe('importTemplates', () => {
     const json = exportTemplates(original);
     const result = importTemplates(json);
     expect(result.templates[0].id).not.toBe('test-id');
+  });
+
+  it('strips script and event handlers from an imported HTML body', () => {
+    // The body reaches the composer's placeholder preview as markup in the
+    // app document; it used to be kept exactly as the file had it.
+    const json = JSON.stringify({
+      type: 'webmail-templates',
+      version: 1,
+      templates: [{ name: 'Evil', isHTML: true, body: '<p>Hi {{name}}</p><img src=x onerror="alert(1)"><script>alert(2)</script>' }],
+    });
+    const body = importTemplates(json).templates[0].body;
+    expect(body).toContain('Hi {{name}}');
+    expect(body).not.toContain('onerror');
+    expect(body).not.toContain('<script');
   });
 
   it('returns error for invalid JSON', () => {

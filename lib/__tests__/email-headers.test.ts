@@ -426,15 +426,37 @@ describe('getSenderVerification', () => {
     });
   });
 
-  it('accepts any passing SPF, DKIM or DMARC result', () => {
+  it('accepts an SPF, DKIM or DMARC pass that aligns with the From domain', () => {
     const from = 'news@shop.example';
-    expect(getSenderVerification(parseAuthenticationResults('mx; spf=pass smtp.mailfrom=bounces.esp.example'), from)).toBeNull();
-    expect(getSenderVerification(parseAuthenticationResults('mx; spf=none smtp.mailfrom=x.example; dkim=pass header.d=esp.example'), from)).toBeNull();
+    expect(getSenderVerification(parseAuthenticationResults('mx; spf=pass smtp.mailfrom=bounces.shop.example'), from)).toBeNull();
+    expect(getSenderVerification(parseAuthenticationResults('mx; spf=pass smtp.mailfrom=news@shop.example'), from)).toBeNull();
+    expect(getSenderVerification(parseAuthenticationResults('mx; spf=none smtp.mailfrom=x.example; dkim=pass header.d=mail.shop.example'), from)).toBeNull();
     expect(getSenderVerification(parseAuthenticationResults('mx; dmarc=pass header.from=shop.example'), from)).toBeNull();
   });
 
+  it('does not take a pass for an unrelated domain as verifying the From domain', () => {
+    // The sender passes SPF for their own envelope domain (or signs with
+    // their own key) and writes someone else's From; the From domain
+    // publishes no DMARC policy, so mail-auth says dmarc=none. The notice
+    // used to stay silent for exactly this message.
+    const from = 'ceo@victim.example';
+    expect(getSenderVerification(
+      parseAuthenticationResults('mx; spf=pass smtp.mailfrom=a@evil.example; dkim=none; dmarc=none header.from=victim.example'),
+      from,
+    )).toEqual({ status: 'unverified', domain: 'victim.example', sentFrom: 'evil.example' });
+    expect(getSenderVerification(
+      parseAuthenticationResults('mx; spf=none smtp.mailfrom=x@evil.example; dkim=pass header.d=evil.example; dmarc=none header.from=victim.example'),
+      from,
+    )).toMatchObject({ status: 'unverified', domain: 'victim.example' });
+    // A HELO-only pass proves nothing about the sender either.
+    expect(getSenderVerification(
+      parseAuthenticationResults('mx; spf=pass smtp.helo=victim.example; spf=none smtp.mailfrom=a@evil.example; dmarc=none header.from=victim.example'),
+      from,
+    )).toMatchObject({ status: 'unverified' });
+  });
+
   it('counts a passing signature that is not the first one', () => {
-    const auth = parseAuthenticationResults('mx; dkim=fail header.d=shop.example; dkim=pass header.d=esp.example; spf=none smtp.mailfrom=x.example');
+    const auth = parseAuthenticationResults('mx; dkim=fail header.d=esp.example; dkim=pass header.d=shop.example; spf=none smtp.mailfrom=x.example');
     expect(auth.dkim?.result).toBe('fail');
     expect(auth.dkim?.all).toHaveLength(2);
     expect(getSenderVerification(auth, 'news@shop.example')).toBeNull();

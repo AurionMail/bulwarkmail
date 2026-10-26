@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lookup, interpolate, localeChain, textDirection } from '../plugin-sandbox/plugin-i18n';
+import { lookup, interpolate, localeChain, tablesFor, textDirection } from '../plugin-sandbox/plugin-i18n';
 
 const tables = {
   en: { hello: 'Hello {name}', only_en: 'English only' },
@@ -24,6 +24,20 @@ describe('plugin translations', () => {
 
   it('builds the chain most specific first', () => {
     expect(localeChain('pt-BR')).toEqual(['pt-BR', 'pt', 'en']);
+  });
+
+  it('hands a frame only the tables its locale can reach', () => {
+    const all = { ...tables, fr: { hello: 'Bonjour {name}' }, ja: { hello: 'こんにちは' } };
+    expect(Object.keys(tablesFor(all, 'de-CH'))).toEqual(['de', 'en']);
+    expect(Object.keys(tablesFor(all, 'zh-tw'))).toEqual(['zh-TW', 'en']);
+    expect(Object.keys(tablesFor(all, 'en'))).toEqual(['en']);
+    expect(tablesFor(undefined, 'de')).toEqual({});
+    // Whatever lookup finds in all tables, it finds in the trimmed ones.
+    for (const locale of ['de-CH', 'zh-tw', 'fr', 'it']) {
+      for (const key of ['hello', 'only_en', 'missing']) {
+        expect(lookup(tablesFor(all, locale), locale, key)).toBe(lookup(all, locale, key));
+      }
+    }
   });
 
   it('fills placeholders', () => {

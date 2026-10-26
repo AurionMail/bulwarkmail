@@ -60,6 +60,12 @@
     "demo_login_button": "Демо нээх",
     "demo_tagline": "Бүрэн боломжтой имэйлийн клиентийг туршиж үзээрэй. Бүртгэл шаардлагагүй.",
     "demo_no_signup": "Бүртгүүлэх шаардлагагүй - жишээ өгөгдлөөр чөлөөтэй үзэж сонирхоно уу",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Нэвтрэлтийг дуусгаж байна...",
     "oauth_error": {
       "title": "Баталгаажуулалт амжилтгүй",
@@ -142,6 +148,8 @@
     "show_all_tags": "Бүгдийг нь харуулах ({count})",
     "show_fewer_tags": "Бага харуулах",
     "folders": "Хавтас",
+    "your_folders": "Таны хавтаснууд",
+    "create_folder": "Хавтас үүсгэх",
     "show_more": "Илүү",
     "show_fewer": "Бага",
     "shared": "Хуваалцсан",
@@ -169,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Өгөгдмөл програмууд",
-    "description": "И-мэйл болон хуанлийн холбоосууд Bulwark дээр нээгдэх эсэхийг сонгоно уу. Техникийн хувьд Bulwark нь mailto: болон webcal: холбоосуудад протокол зохицуулагчаар бүртгүүлдэг.",
+    "description": "И-мэйл болон хуанлийн холбоосууд {appName} дээр нээгдэх эсэхийг сонгоно уу. Техникийн хувьд {appName} нь mailto: болон webcal: холбоосуудад протокол зохицуулагчаар бүртгүүлдэг.",
     "unsupported": "Энэ хөтөч эсвэл холболт нь протокол зохицуулагчийн гарын авлагын бүртгэлийг дэмждэггүй. Та суулгасан PWA-г хөтөч эсвэл үйлдлийн системээр дамжуулан ашиглах боломжтой хэвээр байж магадгүй.",
     "mailto_label": "И-мэйл холбоосууд",
-    "mailto_description": "Bulwark дээр урьдчилан бөглөсөн mailto: холбоосуудыг нээнэ.",
+    "mailto_description": "{appName} дээр урьдчилан бөглөсөн mailto: холбоосуудыг нээнэ.",
     "protocol_open_mode_label": "Протоколын холбоосыг нээх үед",
-    "protocol_open_mode_description": "Bulwark нь mailto: болон webcal: холбоосыг шинэ таб дээр нээх эсвэл нээлттэй сессийг дахин ашиглах эсэхийг сонгоно уу. Идэвхтэй сессийн сонголтод мэдэгдлийн зөвшөөрөл шаардлагатай тул хэрэв хөтөч фокусыг блоклодог бол та Bulwark-г урд нь авчрахын тулд нөөц мэдэгдэл дээр дарж болно.",
+    "protocol_open_mode_description": "{appName} нь mailto: болон webcal: холбоосыг шинэ таб дээр нээх эсвэл нээлттэй сессийг дахин ашиглах эсэхийг сонгоно уу. Идэвхтэй сессийн сонголтод мэдэгдлийн зөвшөөрөл шаардлагатай тул хэрэв хөтөч фокусыг блоклодог бол та {appName}-г урд нь авчрахын тулд нөөц мэдэгдэл дээр дарж болно.",
     "protocol_open_mode_active_session": "Боломжтой бол идэвхтэй сессээр нээх",
     "protocol_open_mode_new_tab": "Үргэлж шинэ таб нээх",
     "focus_notification_title": "Холбоос нээгдлээ",
-    "focus_notification_body": "Холбоос Bulwark-д нээгдлээ. Цонхыг урд талд гаргахын тулд товшино уу.",
+    "focus_notification_body": "Холбоос {appName}-д нээгдлээ. Цонхыг урд талд гаргахын тулд товшино уу.",
     "webcal_label": "Календарийн холбоосууд",
-    "webcal_description": "Bulwark дээр урьдчилан бөглөсөн webcal: холбоосуудыг нээнэ.",
+    "webcal_description": "{appName} дээр урьдчилан бөглөсөн webcal: холбоосуудыг нээнэ.",
     "register_mailto": "Имэйл програмыг бүртгүүлэх",
     "register_webcal": "Календарийн програмыг бүртгэх",
     "mailto_registered": "И-мэйл зохицуулагчийн бүртгэл хүссэн",
@@ -188,7 +196,7 @@
     "registration_failed": "Протокол зохицуулагчийн бүртгэл амжилтгүй боллоо",
     "opening_mailto": "Бичих цонх нээж байна...",
     "opening_webcal": "Нээлтийн хуанли...",
-    "browser_note": "Таны хөтөч эсвэл үйлдлийн систем танаас үүнийг баталгаажуулахыг хүсэх ба Bulwark-ыг үндсэн програмаар сонгохын өмнө суулгахыг шаардаж магадгүй.",
+    "browser_note": "Таны хөтөч эсвэл үйлдлийн систем танаас үүнийг баталгаажуулахыг хүсэх ба {appName}-ыг үндсэн програмаар сонгохын өмнө суулгахыг шаардаж магадгүй.",
     "select_account_title": "Бүртгэл сонгох",
     "select_mailto_account": "Энэ имэйлийн холбоосыг аль бүртгэлээр нээхийг сонгоно уу.",
     "select_webcal_account": "Энэ хуанлийн холбоосыг аль данс нээхийг сонгоно уу.",
@@ -236,6 +244,18 @@
     "show_on_mobile": "Мобайл дээр харуулах"
   },
   "email_list": {
+    "sections": {
+      "unread": "Уншаагүй",
+      "everything_else": "Бусад бүх",
+      "unread_empty": "Та ирсэн хайрцгийн бүх захидлыг уншсан байна."
+    },
+    "columns": {
+      "from": "Илгээгч",
+      "to": "Хүлээн авагч",
+      "subject": "Гарчиг",
+      "date": "Огноо",
+      "size": "Хэмжээ"
+    },
     "no_emails": "Ямар ч зурвас олдсонгүй",
     "no_emails_description": "Энэ шуудангийн хайрцаг хоосон",
     "no_search_results": "Илэрц олдсонгүй",
@@ -621,7 +641,9 @@
       "not_in_contacts": "Таны харилцагчид байхгүй",
       "add_to_contacts": "Харилцагчдад нэмэх",
       "copied": "Хуулбарласан!",
-      "copy_failed": "Хуулж чадсангүй"
+      "copy_failed": "Хуулж чадсангүй",
+      "view_contact": "Харилцагчийг харах",
+      "view_details": "Дэлгэрэнгүй харах"
     },
     "send_now": "Одоо илгээх",
     "verification_code": {
@@ -631,9 +653,11 @@
     },
     "mv_position": "{total}-с {index}",
     "plugin_panel_show": "Залгаасын самбарыг харуулах",
-    "plugin_panel_hide": "Залгаасын самбарыг нуух"
+    "plugin_panel_hide": "Залгаасын самбарыг нуух",
+    "copy": "Хуулах"
   },
   "email_composer": {
+    "select_from_directory": "Лавлахаас сонгох",
     "minimize": "Багасгах",
     "maximize": "Бүтэн дэлгэц",
     "restore": "Сэргээх",
@@ -719,6 +743,10 @@
     "option_dsn_hint": "Сервер хүргэх үед тайлан авах",
     "option_require_tls": "Шифрлэгдсэн хүргэлт шаардах",
     "option_require_tls_hint": "Зөвхөн TLS-ээр хүргэх, үгүй бол буцаах",
+    "option_priority": "Чухал байдал",
+    "option_priority_high": "Өндөр",
+    "option_priority_normal": "Энгийн",
+    "option_priority_low": "Бага",
     "validation": {
       "recipient_required": "Илгээхийн тулд хүлээн авагч нэмэх",
       "body_required": "Мессеж бичих эсвэл файл хавсаргах",
@@ -792,6 +820,9 @@
     "autocomplete_search_server": "Серверээс хайх",
     "autocomplete_searching": "Хайж байна...",
     "mention_recipients": "Хүлээн авагчид",
+    "mention_card_not_recipient": "Хэнд эсвэл CC-д байхгүй тул энэ захидлыг хүлээн авахгүй.",
+    "mention_card_add": "{field}-д нэмэх",
+    "mention_card_remove": "Дурдалтыг хасах",
     "toolbar": {
       "bold": "Болд",
       "italic": "Налуу",
@@ -830,7 +861,9 @@
     },
     "send_filing_warning": "Илгээсэн - гэхдээ илгээсний дараах цэвэрлэгээ амжилтгүй болсон тул хуучирсан ноорог үлдэж болзошгүй.",
     "pop_out": "Хариуг тусдаа цонхонд нээх",
-    "send_guard_failed": "Илгээгдсэнгүй - илгээхийн өмнө мессежийг шалгадаг залгаас алдаа гаргасан эсвэл хариу өгсөнгүй."
+    "send_guard_failed": "Илгээгдсэнгүй - илгээхийн өмнө мессежийг шалгадаг залгаас алдаа гаргасан эсвэл хариу өгсөнгүй.",
+    "cut": "Таслах",
+    "copy": "Хуулах"
   },
   "confirm_dialog": {
     "confirm": "Баталгаажуулах",
@@ -856,9 +889,9 @@
     "app_title": "Вэбмэйл",
     "reconnecting": "Холболт тасарсан. Дахин холбогдохоор оролдож байна...",
     "rate_limited_title": "Сервер баталгаажуулалтын оролдлогыг түр хугацаанд хязгаарлалаа.",
-    "rate_limited_detail": "Bulwark түгжигдэхээс зайлсхийхийн тулд арын хүсэлтийг түр зогсоосон. {seconds}-р дахин оролдож байна.",
+    "rate_limited_detail": "{appName} түгжигдэхээс зайлсхийхийн тулд арын хүсэлтийг түр зогсоосон. {seconds}-р дахин оролдож байна.",
     "rate_limited_action_title": " Түгжигдэхээс зайлсхийхийн тулд хүсэлтийг түр зогсоосон.",
-    "rate_limited_action_detail": "Bulwark илүү баталгаажуулсан хүсэлт илгээхийн өмнө серверийн хөргөлт дуусахыг хүлээж байна. {seconds}-ээр дахин оролдоно уу.",
+    "rate_limited_action_detail": "{appName} илүү баталгаажуулсан хүсэлт илгээхийн өмнө серверийн хөргөлт дуусахыг хүлээж байна. {seconds}-ээр дахин оролдоно уу.",
     "pull_to_refresh": "Шинэчлэхийн тулд татна уу",
     "release_to_refresh": "Шинэчлэхийн тулд суллана уу",
     "refreshing": "Шинэчилж байна…"
@@ -887,6 +920,8 @@
     "emails_moved": "{count} имэйлийг зөөсөн",
     "moved_to_mailbox": "{mailbox}",
     "move_failed": "Зөөж чадсангүй",
+    "removed_from_folder": "{mailbox}-с хасагдлаа",
+    "remove_from_folder_failed": "Энэ хавтаснаас хасаж чадсангүй",
     "emails_copied": "{count} имэйлийг хуулсан",
     "copy_failed": "Хуулж чадсангүй",
     "move_error": "Имэйлүүдийг сонгосон хавтас руу зөөж чадсангүй",
@@ -1008,34 +1043,22 @@
     "search_no_results": "Тохирох тохиргоо байхгүй",
     "tabs": {
       "appearance": "Гадаад төрх",
-      "language": "Хэл, бүс, цаг",
-      "email": "Имэйлийн зан байдал",
-      "composer": "Бичих цонх",
-      "privacy": "Нууцлал ба аюулгүй байдал",
       "account": " Данс",
-      "identities": "Тэмдэгтүүд",
       "vacation": "Эзгүй байх",
-      "advanced": "Дэвшилтэт",
       "calendar": "Хуанли",
       "filters": "Шүүлтүүр",
-      "templates": "Загварууд",
       "folders": "Хавтас",
-      "keywords": "Тагууд",
       "security": "Аюулгүй байдал",
       "files": "Файл",
       "contacts": "Харилцах утас",
-      "encryption": "Шифрлэлт",
-      "protocol_handlers": "Өгөгдмөл програмууд",
-      "sidebar_apps": "Хажуугийн аппууд",
       "notifications": "Мэдэгдэл",
-      "layout": "Байршил",
-      "themes": "Сэдэв",
       "reading": "Унших",
       "composing": "Зохиоглох",
-      "downloads": "Татаж авах",
-      "content_senders": "Агуулга ба Илгээгчид",
-      "about_data": "Тухай & Өгөгдөл",
-      "debug": "Дабаглах"
+      "message_list": "Мессежийн жагсаалт",
+      "general": "Ерөнхий",
+      "organize": "Хавтас ба шошго",
+      "addons": "Нэмэлтүүд",
+      "backup": "Нөөцлөлт ба дахин тохируулах"
     },
     "themes": {
       "title": "Сэдэв",
@@ -1047,18 +1070,13 @@
       "default_restored": "Үндсэн сэдвийг сэргээлээ",
       "default_name": "Үндсэн",
       "default_badge": "Үндсэн",
-      "admin_enforced": "Администратор тогтоосон"
+      "admin_enforced": "Администратор тогтоосон",
+      "show_all": "Бүх {count} загварыг харуулах",
+      "show_fewer": "Цөөнийг харуулах"
     },
     "tab_groups": {
-      "general": "Ерөнхий",
-      "account": "Бүртгэл & Иргэний үнэмлэх",
-      "organization": "Шуудангийн байгууллага",
       "apps": "Програмууд",
-      "system": "Систем",
-      "appearance": "Гадаад төрх",
-      "mail": "Мэйл",
-      "privacy": "Нууцлал ба Аюулгүй байдал",
-      "advanced": "Дэвшилтэт"
+      "mail": "Мэйл"
     },
     "appearance": {
       "message_list_order": {
@@ -1193,10 +1211,6 @@
         "label": "Тагийн өнгөөр эгнээнүүдийг будах",
         "description": "Мессежийн мөр бүрийг эхний шошгоны өнгөөр сүүдэрлээрэй. Мөрүүдийг энгийн байлгахын тулд идэвхгүй болгох; шошгоны цэгүүд болон чипүүд нь өнгийг харуулсан хэвээр байна."
       },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
-      },
       "show_folder_total_count": {
         "label": "Нийт мессежийн тоог харуулах",
         "description": "Нийт мессежийн тоог хавтас, шошгоны хажууд уншаагүй тооны хажууд харуул. Зөвхөн уншаагүй тоонуудыг харуулахын тулд идэвхгүй болго."
@@ -1226,6 +1240,21 @@
       "cross_all": {
         "label": "Бүх шуудан",
         "description": "Нэгдсэн шуудангийн хайрцганд сонгогдсон фолдер дээрх бүх имэйлийг жагсаасан Бүх имэйлийн оруулгыг харуул."
+      },
+      "sections": {
+        "text": "Текст ба хөдөлгөөн",
+        "layout": "Байрлал",
+        "sidebar": "Хажуугийн самбар",
+        "accounts": "Олон бүртгэл",
+        "accounts_description": "Таны бүртгэл болон хуваалцсан шуудангийн хайрцгууд хэрхэн хамт харагдах.",
+        "experimental": "Туршилтын"
+      },
+      "account_marker": {
+        "label": "Бүртгэлүүдийг ялгах",
+        "description": "Нэгдсэн харагдацад мессеж бүрийг ирсэн бүртгэлийн өнгөөр тэмдэглэнэ.",
+        "dot": "Өнгөт цэг",
+        "tint": "Өнгөт мөр",
+        "none": "Юу ч үгүй"
       }
     },
     "keywords": {
@@ -1245,6 +1274,7 @@
       "cancel": "Цуцлах",
       "migrating": "Одоо байгаа имэйлүүд дээрх шошгыг шинэчилж байна...",
       "migration_error": "Одоо байгаа имэйлийн шошгыг шинэчилж чадсангүй",
+      "filters_migration_error": "Зарим шүүлтүүрийн дүрэм хуучин шошгыг ашигласаар байна — гараар шинэчилнэ үү",
       "nesting": {
         "label": "Оруулсан шошго",
         "description": "Тагуудыг бусад шошгоны доор байрлуулж, хажуугийн самбарт мод хэлбэрээр харуул."
@@ -1355,9 +1385,7 @@
         "enabled": "Үйл явдлын мэдэгдэл",
         "enabled_desc": "Удахгүй болох хуанлийн арга хэмжээний тухай сэрэмжлүүлэг харуулах",
         "sound": "Мэдэгдэлийн дуу",
-        "sound_desc": "Хуанли сануулагчийн аудио дохиог тоглуулах",
-        "invitation_parsing": "Имэйл урилгыг задлан шинжлэх",
-        "invitation_parsing_desc": "Имэйл хавсралтаас хуанлийн урилгыг илрүүлж, календарийн үйлдлийг харуулах"
+        "sound_desc": "Хуанли сануулагчийн аудио дохиог тоглуулах"
       }
     },
     "language_region": {
@@ -1407,6 +1435,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Ирсэн хайрцгийн төрөл",
+        "description": "\"Уншаагүйг эхэнд\" нь уншаагүй хамгийн сүүлийн 25 захидлыг бусад захидлын дээрх хэсэгт харуулна",
+        "default": "Үндсэн",
+        "unread_first": "Уншаагүйг эхэнд"
+      },
       "clear_search_on_folder_change": {
         "label": "Хавтас солих үед хайлтыг арилгах",
         "description": "Хавтас дээр дарахад (Ирсэн, Илгээсэн…) идэвхтэй хайлт арилж, тухайн хавтас нээгдэнэ. Унтраасан үед хайлт хадгалагдаж, шилжсэн хавтаст дахин ажиллана."
@@ -1481,6 +1515,10 @@
         "horizontal": "Доор талд Унших самбар",
         "horizontal_description": "Дээр талд мессежийн жагсаалтыг үзүүлж, доор нь унших хэсэгт сонгосон мессежийг нээнэ үү."
       },
+      "list_columns": {
+        "label": "Жагсаалтыг баганаар харуулах",
+        "description": "Нэг мөрт мөрүүдийг толгойн доор Илгээгч, Гарчиг, Огноо, Хэмжээ баганатай хүснэгтээр харуулна."
+      },
       "show_preview": {
         "label": "Урьдчилан үзэх текстийг харуулах",
         "description": "Жагсаалтад имэйл урьдчилан харахыг харуулах",
@@ -1489,10 +1527,6 @@
       "show_verification_codes": {
         "label": "Баталгаажуулах кодыг харуулах",
         "description": "Нэвтрэх болон баталгаажуулах имэйлийн кодыг нэг товшилтоор хуулах боломжтой болгох: жагсаалтад нэг өдөр, мессеж дотор"
-      },
-      "disable_threading": {
-        "label": "Харилцааны бүлэглэлийг идэвхгүй болгох",
-        "description": "Имэйлүүдийг харилцан яриагаар бүлэглэхийн оронд тус тусад нь мессеж хэлбэрээр харуулах"
       },
       "plain_text_mode": {
         "label": "Зөвхөн энгийн текст",
@@ -1622,6 +1656,13 @@
         "label": "Хүлээн авагчдыг @-ээр дурдах",
         "description": "Захидалд @ бичихэд хүлээн авагчдыг санал болгож, сонгосон хүний нэрийг оруулна. Enter эсвэл Tab тодруулсан нэрийг сонгоно."
       },
+      "mention_adds_recipient": {
+        "label": "@ дурдалтад харилцагчид",
+        "description": "@ бичихэд таны харилцагчид болон лавлахын хүмүүс мөн санал болгогдоно. Хүлээн авагч биш хүнийг сонговол түүнийг захидалд нэмнэ.",
+        "to": "Хэнд-д нэмэх",
+        "cc": "CC-д нэмэх",
+        "off": "Зөвхөн хүлээн авагчид"
+      },
       "hide_inline_image_attachments": {
         "label": "Хавсралтаас дотортой зургийг нуух",
         "description": "Зурвасны үндсэн хэсэгт оруулсан зургуудыг тусад нь хавсралт хэлбэрээр оруулаагүй болно"
@@ -1660,51 +1701,15 @@
       "rtl_editing": {
         "label": "Баруунаас зүүн тийш засварлах дэмжлэг",
         "description": "Бичих цонхны хэрэгслийн самбарт чиглэлийн товчлуур нэмснээр та догол мөрүүдийг зүүнээс баруун тийш эсвэл баруунаас зүүн тийш тохируулах боломжтой"
-      }
-    },
-    "composer": {
-      "title": "Бичих цонх",
-      "description": "Имэйл бичих тохиргоог тохируулах",
-      "autosave": {
-        "label": "Автоматаар хадгалах интервал",
-        "description": "Ноорог автоматаар хэр олон удаа хадгалах вэ",
-        "30s": "30 секунд тутамд",
-        "1m": "Минут тутам",
-        "2m": "2 минут тутамд",
-        "5m": "5 минут тутамд"
       },
-      "send_confirmation": {
-        "label": "Баталгаажуулах",
-        "description": "Имэйл илгээхээсээ өмнө баталгаажуулахыг хүсэх"
+      "group_conversations": {
+        "label": "Мессежийг яриагаар бүлэглэх",
+        "description": "Хариуг тусдаа мессеж биш нэг яриа болгон хамт харуулна."
       },
-      "default_reply": {
-        "label": "Өгөгдмөл хариу бичих горим",
-        "description": "Хариулах товчийг дарах үндсэн үйлдэл",
-        "reply": "Хариулах",
-        "reply_all": "Бүгдэд нь хариулах"
-      }
-    },
-    "privacy": {
-      "title": "Нууцлал ба Аюулгүй байдал",
-      "description": "Нууцлал болон аюулгүй байдлын тохиргоогоо удирдах",
-      "external_images": {
-        "label": "Гадаад зургийг блоклох",
-        "description": "Гадны зургаар мөрдөхөөс урьдчилан сэргийлэх"
-      },
-      "session_timeout": {
-        "label": "Хугацаа хэтэрсэн",
-        "description": "Идэвхгүй болсны дараа автоматаар гарах",
-        "never": "Хэзээ ч",
-        "30m": "30 минут",
-        "1h": "1 цаг",
-        "4h": "4 цаг"
-      },
-      "clear_cache": {
-        "label": "Кэшийг арилгах",
-        "description": "Кэшд хадгалагдсан өгөгдөл болон түр файлуудыг устгах",
-        "button": "Кэшийг арилгах",
-        "confirm": "Та кэшийг цэвэрлэхдээ итгэлтэй байна уу?",
-        "success": "Кэшийг амжилттай цэвэрлэв"
+      "signatures_link": {
+        "label": "Гарын үсэг",
+        "description": "Имэйл хаяг бүр өөрийн гарын үсэгтэй. Хаягуудтайгаа хамт засварлана уу.",
+        "button": "Имэйл хаягууд"
       }
     },
     "account": {
@@ -1750,6 +1755,7 @@
       "backup": {
         "title": "Account list backup",
         "description": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. Mailbox passwords are not saved: you sign in to each restored account yourself.",
+        "description_passwords": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. You can include the mailbox passwords, so the restored accounts sign in by themselves.",
         "status_none": "No list is saved for {account}.",
         "status_saved": "A list is saved for {account}.",
         "save": "Save list",
@@ -1761,9 +1767,15 @@
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
         "confirm": "Confirm password",
+        "include_passwords": "Include mailbox passwords",
+        "include_passwords_hint": "Accounts signed in here with a password will sign in by themselves after a restore. Anyone who knows the backup password gets into every mailbox in the list.",
         "saved": "List saved ({count, plural, one {# account} other {# accounts}}).",
         "restored": "Accounts added: {added}. Accounts already here and updated: {updated}. Open each new account from the account list to sign in.",
+        "restored_signed_in": "Accounts added: {added}. Accounts already here and updated: {updated}.",
         "skipped": "{count, plural, one {# account was} other {# accounts were}} not added: the account limit is reached.",
+        "saved_passwords": "Passwords included for {count, plural, one {# account} other {# accounts}}.",
+        "signed_in": "Signed in to {count, plural, one {# account} other {# accounts}} with the saved password.",
+        "sign_in_failed": "{count, plural, one {# saved password was} other {# saved passwords were}} refused: sign in to those accounts from the account list.",
         "deleted": "Saved list deleted.",
         "errors": {
           "mismatch": "The passwords do not match.",
@@ -1778,6 +1790,9 @@
         "title": "Надтай хуваалцсан",
         "description": "Бүлэг болон хуваалцсан акаунтуудыг удирдах боломжтой. Шүүлтүүр, амралтын хариулагч, хуанли, харилцагчдыг засахын тулд нэгийг нь сонгоно уу.",
         "shared_label": "Хуваалцсан бүртгэл"
+      },
+      "sections": {
+        "addresses": "Имэйл хаягууд"
       }
     },
     "scoped": {
@@ -1929,10 +1944,14 @@
         "link_another": "Өөр төхөөрөмж холбох",
         "use_sso": "Оронд нь нэгдсэн нэвтрэлт ашиглах",
         "error_insecure_server": "Гар утасны апп зөвхөн https-ээр мэйл серверт холбогддог бөгөөд энэ сервер http ашиглаж байна."
+      },
+      "sections": {
+        "devices": "Бусад апп болон төхөөрөмж",
+        "devices_description": "Энэ хөтчөөс гадуур шуудангаа ашиглах.",
+        "encryption": "Шифрлэлт"
       }
     },
     "identities": {
-      "title": "Танилцуулга илгээх",
       "description": "Таны илгээх боломжтой имэйл хаягаа удирдах",
       "identities_count": {
         "label": "Таны таних тэмдэг",
@@ -2050,6 +2069,11 @@
       "new_folder_name": "Хавтасны нэр",
       "rename": "Нэрээ өөрчлөх",
       "change_icon": " Дүрсийг өөрчлөх",
+      "count_mode": "{name}-ийн тоолуур",
+      "count_mode_default": "Тоолуур: үндсэн",
+      "count_mode_unread": "Зөвхөн уншаагүй",
+      "count_mode_all": "Уншаагүй ба нийт",
+      "count_mode_none": "Тоолуургүй",
       "delete": "Устгах",
       "confirm_delete": "Та \"{name}\"-г устгахдаа итгэлтэй байна уу? Энэ хавтсанд байгаа имэйлийг Хогийн сав руу зөөх болно.",
       "create": "Үүсгэх",
@@ -2068,8 +2092,6 @@
       "error_role": "Фолдерын үүргийг шинэчилж чадсангүй"
     },
     "advanced": {
-      "title": "Дэвшилтэт",
-      "description": "Дэвшилтэт сонголтууд болон хөгжүүлэгчийн тохиргоо",
       "debug_mode": {
         "label": "Дбаг хийх горим",
         "description": "Алдааг олж засварлахын тулд нарийвчилсан бүртгэлийг идэвхжүүлэх"
@@ -2099,7 +2121,11 @@
       },
       "sender_favicons": {
         "label": "Илгээгчийн Favicons",
-        "description": "Вэб сайтын дүрсийг бизнес илгээгчдэд профайл зураг болгон харуулах"
+        "description": "Вэб сайтын дүрсийг бизнес илгээгчдэд профайл зураг болгон харуулах",
+        "refresh_label": "Илгээгчийн дүрсийг шинэчлэх",
+        "refresh_description": "Вэбсайтын дүрсийг дахин татах, жишээ нь илгээгч дүрсээ сольсон үед",
+        "refresh_button": "Шинэчлэх",
+        "refresh_done": "Илгээгчийн дүрсийг дахин татна"
       },
       "show_avatars_in_junk": {
         "label": "Хогийн хавтас дахь аватаруудыг харуулах",
@@ -2159,6 +2185,12 @@
           "delivered": "Хүргэсэн",
           "mistakes": "Алдаа"
         }
+      },
+      "sections": {
+        "backup": "Тохиргооны нөөцлөлт",
+        "backup_description": "Хөтөч болон төхөөрөмж хооронд тохиргоогоо хадгална.",
+        "fix": "Асуудал засах",
+        "fix_description": "Харагдац хуучирсан эсвэл буруу харагдах, эсвэл шинээр эхлэхийг хүсвэл."
       }
     },
     "sidebar_apps": {
@@ -2489,6 +2521,41 @@
       "preview": {
         "label": "Урьдчилан харах"
       }
+    },
+    "advanced_switch": {
+      "label": "Нарийвчилсан тохиргоог харуулах",
+      "show": "Нарийвчилсан тохиргоог харуулах",
+      "badge": "Нарийвчилсан",
+      "hidden_count": "{count, plural, one {Энэ хуудсанд 1 нарийвчилсан тохиргоо нуугдсан байна.} other {Энэ хуудсанд # нарийвчилсан тохиргоо нуугдсан байна.}}"
+    },
+    "message_list": {
+      "title": "Мессежийн жагсаалт",
+      "description": "Жагсаалт юу харуулах, товших эсвэл шудрах нь юу хийхийг тохируулна.",
+      "sections": {
+        "senders": "Илгээгчийн зураг",
+        "actions": "Шуурхай үйлдлүүд",
+        "delete": "Устгах ба архивлах",
+        "loading": "Ачаалах ба хайх"
+      }
+    },
+    "reading_page": {
+      "title": "Унших",
+      "description": "Нээлттэй мессеж.",
+      "sections": {
+        "display": "Мессежийн харагдац",
+        "images": "Зураг ба гадаад контент",
+        "images_description": "Алсын зураг нь таныг мэйлээ нээснийг илгээгчид мэдэгдэж болно.",
+        "attachments": "Хавсралт"
+      }
+    },
+    "composing_page": {
+      "title": "Бичих",
+      "description": "Бичих, хариулах, илгээх.",
+      "sections": {
+        "replying": "Хариулах",
+        "sending": "Илгээхийн өмнө",
+        "receipts": "Уншсан баталгаа"
+      }
     }
   },
   "errors": {
@@ -2520,6 +2587,7 @@
     "unpin": "Буулгах",
     "move_to": "...",
     "copy_to_account": "Бүртгэл рүү хуулах...",
+    "remove_from_folder": "Энэ хавтаснаас хасах",
     "archive": "Архив",
     "delete": "Устгах",
     "mark_as_spam": "Спам мэдээлэх",
@@ -2617,7 +2685,9 @@
       "previous_email": "Өмнөх имэйл",
       "open_email": "Имэйл нээх",
       "close_email": "Хаах / Сонголтыг цуцлах",
-      "go_to_folder": "Хавтас руу очих"
+      "go_to_folder": "Хавтас руу очих",
+      "next_unread": "Дараагийн уншаагүй имэйл",
+      "no_more_unread": "Жагсаалтын доод хэсэгт уншаагүй имэйл алга"
     },
     "actions": {
       "reply": "Хариулах",
@@ -2636,7 +2706,8 @@
       "help": "Товчлол харуулах",
       "refresh": "Имэйл сэргээх",
       "select_all": "Бүгдийг сонго",
-      "global_search": "Бүгдийг хайх"
+      "global_search": "Бүгдийг хайх",
+      "extend_selection": "Сонголтыг доош / дээш өргөтгөх"
     },
     "threads": {
       "expand_collapse": "Хэлхээсийг дэлгэх/хумих",
@@ -2750,11 +2821,57 @@
       "recipient_name": "Хүлээн авагчийн нэр",
       "company": "Компанийн нэр",
       "date": "Одоогийн огноо",
+      "short_date": "Огноо тоогоор",
+      "day": "Өдөр (хоёр оронтой)",
+      "month": "Сар (хоёр оронтой)",
+      "year": "Жил",
       "day_of_week": "Долоо хоногийн өдөр",
       "sender_name": "Таны нэр"
     }
   },
   "contacts": {
+    "directory": {
+      "title": "Лавлах",
+      "search_placeholder": "Нэр эсвэл имэйл хаяг хайх",
+      "refresh": "Лавлахыг шинэчлэх",
+      "retry": "Дахин оролдох",
+      "loading": "Лавлахыг ачаалж байна…",
+      "unavailable_title": "Лавлах алга",
+      "unavailable_hint": "Таны шуудангийн сервер бүртгэлийн лавлах санал болгодоггүй.",
+      "forbidden_title": "Лавлах ашиглах боломжгүй",
+      "forbidden_hint": "Таны шуудангийн сервер энэ бүртгэлд лавлахыг үзэхийг зөвшөөрөхгүй байна. Админаасаа асууна уу.",
+      "error_title": "Лавлахыг ачаалж чадсангүй",
+      "error_hint": "Холболтоо шалгаад дахин оролдоно уу.",
+      "empty_title": "Лавлах хоосон байна",
+      "empty_hint": "Таны шуудангийн сервер имэйл хаягтай бүртгэл жагсаахгүй байна.",
+      "no_match": "Лавлахад хайлтад тохирох хүн алга",
+      "refresh_failed": "Лавлахыг шинэчилж чадсангүй. Сүүлд ачаалсан жагсаалтыг харуулж байна.",
+      "select_page": "Энэ хуудсан дээрх бүгдийг сонгох",
+      "deselect_page": "Энэ хуудсан дээрх сонголтыг цуцлах",
+      "select_entry": "{name}-г сонгох",
+      "range": "{total}-аас {from}–{to}",
+      "page": "{count}-аас {page}-р хуудас",
+      "previous_page": "Өмнөх хуудас",
+      "next_page": "Дараагийн хуудас",
+      "picker_title": "Лавлахаас сонгох",
+      "cancel": "Цуцлах",
+      "selected_count": "{count} сонгосон",
+      "add_to": "Хэнд-д нэмэх",
+      "add_cc": "Cc-д нэмэх",
+      "add_bcc": "Bcc-д нэмэх",
+      "select_hint": "Дэлгэрэнгүйг харахын тулд хэн нэгнийг сонгоно уу",
+      "write_email": "Имэйл бичих",
+      "add_to_contacts": "Харилцагчид нэмэх",
+      "email": "Имэйл",
+      "read_only_note": "Лавлахын бичлэгүүд таны шуудангийн серверээс ирдэг тул энд засах боломжгүй.",
+      "type": {
+        "individual": "Хүн",
+        "group": "Бүлэг",
+        "resource": "Нөөц",
+        "location": "Байршил",
+        "other": "Бусад"
+      }
+    },
     "title": "Харилцах утас",
     "search_placeholder": "Харилцагч хайх...",
     "create_new": "Шинэ холбоо барих",
@@ -3983,7 +4100,8 @@
     "demo_banner_title": "Демо удирдлага",
     "demo_banner_desc": "Та демо горимд байна. Бүх өгөгдөл зөвхөн таны хөтөч дээр хадгалагдана. Хүссэн үедээ Reset Demo дарж дахин эхлүүлж болно.",
     "quota_title": "Хадгалалтын ашиглалт",
-    "quota_desc": "Энд таны шуудангийн хайрцгийн ашиглаж буй хэмжээг харуулна. Илүү их зай ашиглах тусам тойрог дүүрнэ."
+    "quota_desc": "Энд таны шуудангийн хайрцгийн ашиглаж буй хэмжээг харуулна. Илүү их зай ашиглах тусам тойрог дүүрнэ.",
+    "settings_section": "Эхлэх"
   },
   "unified_mailbox": {
     "search_unavailable": "Нэгдсэн харагдац дээр хайлт ашиглах боломжгүй"
@@ -4345,7 +4463,7 @@
       },
       "http_proxy": {
         "title": "Таны холбосон бүртгэлүүдийг ашиглах",
-        "body": "Таны эсвэл администраторын тохируулсан бүртгэл эсвэл түлхүүрээр Bulwark-ийн серверээр дамжуулан хүсэлт илгээх. Залгаас нууц үгийг хэзээ ч харахгүй, гэхдээ тухайн бүртгэлийн өөрийн сервер дээр хийж чадах бүх зүйлийг хийж чадна."
+        "body": "Таны эсвэл администраторын тохируулсан бүртгэл эсвэл түлхүүрээр {appName}-ийн серверээр дамжуулан хүсэлт илгээх. Залгаас нууц үгийг хэзээ ч харахгүй, гэхдээ тухайн бүртгэлийн өөрийн сервер дээр хийж чадах бүх зүйлийг хийж чадна."
       }
     },
     "dialog": {
@@ -4362,9 +4480,9 @@
     },
     "connect": {
       "title": "{label} холбох",
-      "intro_password": "{name} таны {label} бүртгэлийг ашиглахыг хүсэж байна. Bulwark нууц үгийг өөрийн сервер дээр хадгалж, зөвхөн {host} руу илгээнэ. Залгаас үүнийг хэзээ ч харахгүй.",
-      "intro_password_any": "{name} таны {label} бүртгэлийг ашиглахыг хүсэж байна. Bulwark нууц үгийг өөрийн сервер дээр хадгалж, зөвхөн таны энд оруулсан сервер рүү илгээнэ. Залгаас үүнийг хэзээ ч харахгүй.",
-      "intro_signin": "{name} таны {label} бүртгэлд нэвтрэхийг хүсэж байна. Серверийг энд оруулаад, дараа нь тухайн серверийн өөрийн хуудсанд нэвтэрнэ үү. Bulwark олж авсан хандалтаа өөрийн сервер дээр хадгална; залгаас үүнийг хэзээ ч харахгүй.",
+      "intro_password": "{name} таны {label} бүртгэлийг ашиглахыг хүсэж байна. {appName} нууц үгийг өөрийн сервер дээр хадгалж, зөвхөн {host} руу илгээнэ. Залгаас үүнийг хэзээ ч харахгүй.",
+      "intro_password_any": "{name} таны {label} бүртгэлийг ашиглахыг хүсэж байна. {appName} нууц үгийг өөрийн сервер дээр хадгалж, зөвхөн таны энд оруулсан сервер рүү илгээнэ. Залгаас үүнийг хэзээ ч харахгүй.",
+      "intro_signin": "{name} таны {label} бүртгэлд нэвтрэхийг хүсэж байна. Серверийг энд оруулаад, дараа нь тухайн серверийн өөрийн хуудсанд нэвтэрнэ үү. {appName} олж авсан хандалтаа өөрийн сервер дээр хадгална; залгаас үүнийг хэзээ ч харахгүй.",
       "server": "Серверийн хаяг",
       "server_hint": "cloud.example.com",
       "username": "Хэрэглэгчийн нэр",
@@ -4411,8 +4529,7 @@
     "loading": "Хуудсыг ачаалж байна",
     "not_available_title": "Энэ хуудас боломжгүй байна",
     "not_available_description": "Үүнийг нэмсэн залгаас унтарсан эсвэл суулгаагүй болсон байна.",
-    "back_to_mail": "Мэйл рүү буцах",
-    "settings_group": "Залгаасууд"
+    "back_to_mail": "Мэйл рүү буцах"
   },
   "command_palette": {
     "title": "Командын самбар",

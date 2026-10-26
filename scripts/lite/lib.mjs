@@ -378,7 +378,9 @@ export function buildCsp({ connectSrc = "*" } = {}) {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    // 'self' because the PDF preview frames a blob: document, and Safari
+    // applies this policy to that document as well (#1301).
+    "frame-ancestors 'self'",
     "media-src 'self' blob:",
   ].join("; ");
 }
@@ -441,7 +443,7 @@ export function buildHeaders({ basePath = "", connectSrc = "*" }) {
   const csp = buildCsp({ connectSrc });
   return `${basePath || ""}/*
   X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
+  X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Content-Security-Policy: ${csp}
@@ -477,7 +479,7 @@ server {
     root ${root};
 
     add_header X-Content-Type-Options nosniff always;
-    add_header X-Frame-Options DENY always;
+    add_header X-Frame-Options SAMEORIGIN always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
     # connect-src names the JMAP server this bundle was built for. Every page
     # also carries a <meta> policy that allows only its own inline scripts.
@@ -488,7 +490,7 @@ server {
     location ${basePath}/_next/static/ {
         add_header Cache-Control "public, max-age=31536000, immutable" always;
         add_header X-Content-Type-Options nosniff always;
-        add_header X-Frame-Options DENY always;
+        add_header X-Frame-Options SAMEORIGIN always;
         add_header Referrer-Policy strict-origin-when-cross-origin always;
         add_header Content-Security-Policy "${csp}" always;
     }
@@ -534,7 +536,7 @@ export function buildNginxContainerTemplate({ surfaces = LITE_SURFACES } = {}) {
   // location with headers of its own repeats these.
   const securityHeaders = (indent) => [
     "add_header X-Content-Type-Options nosniff always;",
-    "add_header X-Frame-Options DENY always;",
+    "add_header X-Frame-Options SAMEORIGIN always;",
     "add_header Referrer-Policy strict-origin-when-cross-origin always;",
     'add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;',
     `add_header Content-Security-Policy "${csp}" always;`,
@@ -606,7 +608,7 @@ webmail.example.com {
 
     header {
         X-Content-Type-Options nosniff
-        X-Frame-Options DENY
+        X-Frame-Options SAMEORIGIN
         Referrer-Policy strict-origin-when-cross-origin
         # connect-src names the JMAP server this bundle was built for.
         Content-Security-Policy "${csp}"

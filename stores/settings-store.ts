@@ -2,13 +2,17 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useThemeStore } from './theme-store';
 import { useLocaleStore } from './locale-store';
+import { usePolicyStore } from './policy-store';
+import type { SettingsPolicy, SettingRestriction } from '@/lib/admin/types';
 import type { EmailTemplate } from '@/lib/template-types';
 import type { NotificationSoundChoice } from '@/lib/notification-sound';
 import { EMPTY_NOTIFICATION_MUTES, normalizeNotificationMutes, type NotificationMutes } from '@/lib/notification-mutes';
 import { apiFetch } from '@/lib/browser-navigation';
+import { writePushPreferences } from '@/lib/push-preferences';
 import { settingsHooks } from '@/lib/plugin-hooks';
 import { generateAccountId } from '@/lib/account-utils';
 import { subscriptionOwnerFor } from '@/lib/calendar-subscription-sync';
+import type { FolderCountMode } from '@/lib/folder-counts';
 import { orderForMailbox, sanitizeSortLevels, type MessageListOrderScope, type SortLevel } from '@/lib/message-list-order';
 import {
   DEFAULT_SUB_ADDRESS_DELIMITER,
@@ -235,12 +239,15 @@ export type Density = 'extra-compact' | 'compact' | 'regular' | 'comfortable';
  * docked compose window) that keeps the theme's icons, type and palette.
  */
 export type InterfaceLayout = 'default' | 'mountain-view';
+// Mountain View's inbox: Gmail's "Default" or "Unread first" (lib/unread-first.ts).
+export type MvInboxType = 'default' | 'unread-first';
 export type DeleteAction = 'trash' | 'trash-and-read' | 'permanent';
 export type ReplyMode = 'reply' | 'replyAll';
 export type SignaturePosition = 'above_quote' | 'below_quote';
 export type ReplyIdentityMatch = 'exact' | 'domain';
 /** How to handle an incoming Disposition-Notification-To (read-receipt) request. */
 export type ReadReceiptResponse = 'ask' | 'always' | 'never';
+export type MentionAddsRecipientTo = 'to' | 'cc' | 'off';
 export type DateFormat = 'smart' | 'relative' | 'full';
 /**
  * Regional ordering of numeric dates, independent of the `DateFormat` style.
@@ -353,6 +360,7 @@ export interface KeywordDefinition {
   label: string;  // Display name
   color: string;  // Key from KEYWORD_PALETTE
   visibility?: KeywordVisibility; // Absent on tags stored before this was configurable
+  addedBy?: string; // Id of the plugin that added it with keywords.add; only that plugin may update or remove it
 }
 
 /** Resolves the sidebar visibility of a tag, defaulting to always shown. */
@@ -475,6 +483,10 @@ interface SettingsState {
   fontSize: FontSize;
   density: Density;
   interfaceLayout: InterfaceLayout;
+  mvInboxType: MvInboxType;
+  // The folded sections of the "Unread first" inbox; per device.
+  mvUnreadSectionCollapsed: boolean;
+  mvEverythingElseCollapsed: boolean;
   animationsEnabled: boolean;
   // Message-list ordering (#718): prioritised sort levels mapped onto the JMAP
   // Email/query sort; empty = chronological. Scope: Inbox only or every folder.
@@ -498,6 +510,7 @@ interface SettingsState {
   showPreview: boolean;
   showVerificationCodes: boolean; // Offer the one-time code of a sign-in mail as a copy chip in the list and the reader
   mailLayout: MailLayout;
+  listColumns: boolean; // One-line list rows as a table: From, Subject, Date and Size columns under a header (#262)
   emailsPerPage: number;
   externalContentPolicy: ExternalContentPolicy;
   messageSpacing: MessageSpacing; // Gutter around the message body in the reader
@@ -598,6 +611,9 @@ interface SettingsState {
   hideAccountSwitcher: boolean;
   showRailAccountList: boolean;
   proInterface: boolean;
+  // Settings marked `advanced` (power-user and integrator rows) stay hidden
+  // until this is on. Synced like the rest: it is a preference, not a device.
+  showAdvancedSettings: boolean;
 
   // Unified Mailbox
   enableUnifiedMailbox: boolean;
@@ -640,6 +656,7 @@ interface SettingsState {
   colorfulSidebarIcons: boolean; // Tint folder icons by role (inbox blue, junk red, etc.)
   tintListRowsByTag: boolean; // Tint mail-list rows by the first tag color
   tintListRowsByAccount: boolean; // In the unified view, tint rows by account colour instead of showing the account dot
+  showAccountDot: boolean; // In the unified view, show the account colour dot next to the sender
   showFolderTotalCount: boolean; // Show total message count next to folders/tags (alongside unread)
   // Mail folders of shared (group/delegated) JMAP accounts in the sidebar.
   // Turning it off hides every shared account's folders; their calendars,
@@ -651,6 +668,7 @@ interface SettingsState {
 
   // Folders
   folderIcons: Record<string, string>; // mailboxId -> icon name
+  folderCountModes: Record<string, FolderCountMode>; // mailboxId -> counter override (#982)
 
   // Keywords (labels/tags)
   emailKeywords: KeywordDefinition[];
@@ -665,6 +683,9 @@ interface SettingsState {
 
   // "@" in the message body offers the recipients and inserts a first name
   recipientMentionsEnabled: boolean;
+  // Where an "@" puts a picked contact who isn't a recipient yet; 'off'
+  // offers the recipients only
+  mentionAddsRecipientTo: MentionAddsRecipientTo;
 
   // Hide inline images (images referenced by cid in the HTML body) from the
   // attachment list shown above the message body.
@@ -697,6 +718,13 @@ interface SettingsState {
   debugMode: boolean;
   debugCategories: Record<DebugCategory, boolean>;
   settingsSyncDisabled: boolean;
+  /**
+   * Keys the user changed themselves (#1248). An admin policy default
+   * (`policy.defaults`) only fills in settings that are not listed here, so a
+   * choice the user made survives the operator setting or changing a default.
+   * Synced with the rest of the settings.
+   */
+  explicitSettings: string[];
 
   // Actions
   /**
@@ -710,6 +738,13 @@ interface SettingsState {
     opts?: { internal?: boolean }
   ) => void;
   resetToDefaults: () => void;
+  /**
+   * Applies the admin policy (#1248): `policy.defaults` to every setting the
+   * user has not chosen, and a locked restriction's value to its setting
+   * whatever the user chose. Runs when the policy loads and after every
+   * import, reset and server load.
+   */
+  applyAdminPolicy: () => void;
   /** `forSync` builds the snapshot pushed to the server; it is not a user export. */
   exportSettings: (opts?: { forSync?: boolean; subscriptionOwner?: string }) => string;
   importSettings: (json: string, opts?: { serverAccountId?: string; keepCrossAccountViews?: boolean; subscriptionOwner?: string }) => boolean;
@@ -759,6 +794,9 @@ const DEFAULT_SETTINGS = {
   fontSize: 'medium' as FontSize,
   density: 'regular' as Density,
   interfaceLayout: 'default' as InterfaceLayout,
+  mvInboxType: 'unread-first' as MvInboxType,
+  mvUnreadSectionCollapsed: false,
+  mvEverythingElseCollapsed: false,
   animationsEnabled: true,
   messageListOrder: [] as SortLevel[],
   messageListOrderScope: 'inbox' as MessageListOrderScope,
@@ -780,6 +818,7 @@ const DEFAULT_SETTINGS = {
   showPreview: true,
   showVerificationCodes: true,
   mailLayout: 'split' as MailLayout,
+  listColumns: false,
   emailsPerPage: 50,
   externalContentPolicy: 'ask' as ExternalContentPolicy,
   messageSpacing: 'auto' as MessageSpacing,
@@ -864,6 +903,7 @@ const DEFAULT_SETTINGS = {
   hideAccountSwitcher: false,
   showRailAccountList: false,
   proInterface: false,
+  showAdvancedSettings: false,
 
   // Unified Mailbox
   enableUnifiedMailbox: false,
@@ -888,12 +928,14 @@ const DEFAULT_SETTINGS = {
   colorfulSidebarIcons: true,
   tintListRowsByTag: true,
   tintListRowsByAccount: false,
+  showAccountDot: true,
   showFolderTotalCount: true,
   showSharedMailAccounts: true,
   hiddenSharedMailAccounts: {} as Record<string, string[]>,
 
   // Folders
   folderIcons: {} as Record<string, string>,
+  folderCountModes: {} as Record<string, FolderCountMode>,
 
   // Keywords
   emailKeywords: USING_MOCK_SERVER ? DEV_KEYWORDS : DEFAULT_KEYWORDS,
@@ -932,6 +974,7 @@ const DEFAULT_SETTINGS = {
 
   emptySubjectWarningEnabled: true,
   recipientMentionsEnabled: true,
+  mentionAddsRecipientTo: 'to' as MentionAddsRecipientTo,
 
   hideInlineImageAttachments: true,
   attachmentImagePreviewsEnabled: true,
@@ -967,7 +1010,84 @@ const DEFAULT_SETTINGS = {
     push: true,
   } as Record<DebugCategory, boolean>,
   settingsSyncDisabled: false,
+  explicitSettings: [] as string[],
 };
+
+const hasOwn = (obj: object, key: string) => Object.prototype.hasOwnProperty.call(obj, key);
+const builtInDefault = (key: string) => (DEFAULT_SETTINGS as Record<string, unknown>)[key];
+
+/**
+ * Settings an admin policy may set (#1248): plain values (boolean, number,
+ * string). Lists and maps (tags, folder icons, per-account maps) stay the
+ * user's own.
+ */
+function isPolicySettingKey(key: string): boolean {
+  if (key === 'explicitSettings' || !hasOwn(DEFAULT_SETTINGS, key)) return false;
+  const type = typeof builtInDefault(key);
+  return type === 'boolean' || type === 'number' || type === 'string';
+}
+
+/**
+ * policy.json is written by hand, so a value only applies when it has the
+ * build default's type, passes the checks an import makes, and stays within
+ * the restriction's allowed values and bounds.
+ */
+function isAllowedPolicyValue(key: string, value: unknown, restriction?: SettingRestriction): boolean {
+  if (!isPolicySettingKey(key) || typeof value !== typeof builtInDefault(key)) return false;
+  if (typeof value === 'number' && !Number.isFinite(value)) return false;
+  if (key === 'sendDelaySeconds' && ![0, 10, 30, 60].includes(value as number)) return false;
+  if (key === 'subAddressDelimiter' && !isValidSubAddressDelimiter(value as string)) return false;
+  if (key === 'messageListOrderScope' && value !== 'inbox' && value !== 'all') return false;
+  if (restriction && typeof restriction === 'object') {
+    if (Array.isArray(restriction.allowedValues) && !restriction.allowedValues.includes(value)) return false;
+    if (typeof value === 'number') {
+      if (typeof restriction.min === 'number' && value < restriction.min) return false;
+      if (typeof restriction.max === 'number' && value > restriction.max) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Local state and server blobs from before #1248 carry no explicitSettings.
+ * There, a value that differs from the build default can only have come from
+ * the user, so it counts as their choice. One that matches it is taken as
+ * never chosen and picks up the operator's default.
+ */
+export function legacyExplicitSettings(source: Record<string, unknown>): string[] {
+  return Object.keys(source).filter(
+    (key) => isPolicySettingKey(key) && source[key] !== builtInDefault(key),
+  );
+}
+
+/**
+ * What the admin policy changes in `state` (#1248): each `policy.defaults`
+ * value for a setting the user has not chosen, then each locked
+ * restriction's value (`value`, or the default when it has none) whatever
+ * the user chose. Exported for tests.
+ */
+export function adminPolicyPatch(
+  state: Record<string, unknown>,
+  policy: Partial<Pick<SettingsPolicy, 'defaults' | 'restrictions'>>,
+): Record<string, unknown> {
+  const explicit = new Set(Array.isArray(state.explicitSettings) ? (state.explicitSettings as string[]) : []);
+  const defaults = isPlainRecord(policy.defaults) ? policy.defaults : {};
+  const restrictions: Record<string, SettingRestriction> = isPlainRecord(policy.restrictions) ? policy.restrictions : {};
+  const restrictionFor = (key: string) => (hasOwn(restrictions, key) ? restrictions[key] : undefined);
+  const patch: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(defaults)) {
+    if (explicit.has(key) || !isAllowedPolicyValue(key, value, restrictionFor(key))) continue;
+    if (state[key] !== value) patch[key] = value;
+  }
+  for (const [key, restriction] of Object.entries(restrictions)) {
+    if (!isPlainRecord(restriction) || restriction.locked !== true) continue;
+    const value = hasOwn(restriction, 'value') ? restriction.value : hasOwn(defaults, key) ? defaults[key] : undefined;
+    if (!isAllowedPolicyValue(key, value, restriction)) continue;
+    if (state[key] !== value) patch[key] = value;
+    else delete patch[key];
+  }
+  return patch;
+}
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
@@ -981,18 +1101,38 @@ export const useSettingsStore = create<SettingsState>()(
         const defaults: Record<string, unknown> = { ...DEFAULT_SETTINGS };
         for (const key of DEVICE_LOCAL_SETTING_KEYS) delete defaults[key];
         if (opts?.keepCrossAccountViews) for (const key of CROSS_ACCOUNT_VIEW_KEYS) delete defaults[key];
+        // Settings left as they are keep their "chosen by the user" mark.
+        defaults.explicitSettings = get().explicitSettings.filter((key) => !hasOwn(defaults, key));
         const wasLoading = isLoadingFromServer;
         isLoadingFromServer = true;
         try {
           set(defaults as Partial<SettingsState>);
           templateSyncBridge?.applySyncedState([], {}, { merge: false });
+          // A new account starts from this instance's defaults (#1248).
+          applyAdminPolicyPatch();
         } finally {
           isLoadingFromServer = wasLoading;
         }
-        applyFontSize(DEFAULT_SETTINGS.fontSize);
-        applyDensity(DEFAULT_SETTINGS.density, DEFAULT_SETTINGS.interfaceLayout);
-        applyInterfaceLayout(DEFAULT_SETTINGS.interfaceLayout, DEFAULT_SETTINGS.density);
-        applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
+        applyVisualSettings();
+      };
+
+      const applyVisualSettings = () => {
+        const { fontSize, density, interfaceLayout, animationsEnabled } = get();
+        applyFontSize(fontSize);
+        applyDensity(density, interfaceLayout);
+        applyInterfaceLayout(interfaceLayout, density);
+        applyAnimations(animationsEnabled);
+      };
+
+      /** Sets what the admin policy changes; true when anything changed. */
+      const applyAdminPolicyPatch = (): boolean => {
+        const patch = adminPolicyPatch(
+          get() as unknown as Record<string, unknown>,
+          usePolicyStore.getState().policy,
+        );
+        if (Object.keys(patch).length === 0) return false;
+        set(patch as Partial<SettingsState>);
+        return true;
       };
 
       const applySetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
@@ -1028,6 +1168,7 @@ export const useSettingsStore = create<SettingsState>()(
           fontSize: state.fontSize,
           density: state.density,
           interfaceLayout: state.interfaceLayout,
+          mvInboxType: state.mvInboxType,
           animationsEnabled: state.animationsEnabled,
           messageListOrder: state.messageListOrder,
           messageListOrderScope: state.messageListOrderScope,
@@ -1044,6 +1185,7 @@ export const useSettingsStore = create<SettingsState>()(
           showPreview: state.showPreview,
           showVerificationCodes: state.showVerificationCodes,
           mailLayout: state.mailLayout,
+          listColumns: state.listColumns,
           emailsPerPage: state.emailsPerPage,
           externalContentPolicy: state.externalContentPolicy,
           messageSpacing: state.messageSpacing,
@@ -1102,6 +1244,7 @@ export const useSettingsStore = create<SettingsState>()(
           toolbarPosition: state.toolbarPosition,
           hideAccountSwitcher: state.hideAccountSwitcher,
           showRailAccountList: state.showRailAccountList,
+          showAdvancedSettings: state.showAdvancedSettings,
           // proInterface is intentionally omitted - it's a per-device choice
           // (see DEVICE_LOCAL_SETTING_KEYS) and must not be synced.
           enableUnifiedMailbox: state.enableUnifiedMailbox,
@@ -1118,16 +1261,19 @@ export const useSettingsStore = create<SettingsState>()(
           colorfulSidebarIcons: state.colorfulSidebarIcons,
           tintListRowsByTag: state.tintListRowsByTag,
           tintListRowsByAccount: state.tintListRowsByAccount,
+          showAccountDot: state.showAccountDot,
           showFolderTotalCount: state.showFolderTotalCount,
           showSharedMailAccounts: state.showSharedMailAccounts,
           hiddenSharedMailAccounts: state.hiddenSharedMailAccounts,
           folderIcons: state.folderIcons,
+          folderCountModes: state.folderCountModes,
           emailKeywords: state.emailKeywords,
           nestedTags: state.nestedTags,
           attachmentReminderEnabled: state.attachmentReminderEnabled,
           attachmentReminderKeywords: state.attachmentReminderKeywords,
           emptySubjectWarningEnabled: state.emptySubjectWarningEnabled,
           recipientMentionsEnabled: state.recipientMentionsEnabled,
+          mentionAddsRecipientTo: state.mentionAddsRecipientTo,
           hideInlineImageAttachments: state.hideInlineImageAttachments,
           attachmentImagePreviewsEnabled: state.attachmentImagePreviewsEnabled,
           sidebarApps: state.sidebarApps,
@@ -1138,8 +1284,10 @@ export const useSettingsStore = create<SettingsState>()(
           debugMode: state.debugMode,
           debugCategories: state.debugCategories,
           settingsSyncDisabled: state.settingsSyncDisabled,
+          explicitSettings: state.explicitSettings,
           // Cross-store settings
           theme: useThemeStore.getState().theme,
+          themeChosen: useThemeStore.getState().themeChosen,
           locale: useLocaleStore.getState().locale,
           // Omitted entirely (rather than emitted empty) if the bridge has
           // not registered, so an importing device leaves its templates alone.
@@ -1176,15 +1324,25 @@ export const useSettingsStore = create<SettingsState>()(
           applySetting(key, value);
           return;
         }
-        changePreference(key, value, get()[key], () => applySetting(key, value));
+        changePreference(key, value, get()[key], () => {
+          applySetting(key, value);
+          // The user chose this value, so an admin default no longer replaces it.
+          const { explicitSettings } = get();
+          if (hasOwn(DEFAULT_SETTINGS, key) && key !== 'explicitSettings' && !explicitSettings.includes(key)) {
+            set({ explicitSettings: [...explicitSettings, key] });
+          }
+        });
+      },
+
+      applyAdminPolicy: () => {
+        if (applyAdminPolicyPatch()) applyVisualSettings();
       },
 
       resetToDefaults: () => {
         set(DEFAULT_SETTINGS);
-        applyFontSize(DEFAULT_SETTINGS.fontSize);
-        applyDensity(DEFAULT_SETTINGS.density, DEFAULT_SETTINGS.interfaceLayout);
-        applyInterfaceLayout(DEFAULT_SETTINGS.interfaceLayout, DEFAULT_SETTINGS.density);
-        applyAnimations(DEFAULT_SETTINGS.animationsEnabled);
+        // The defaults of this instance are the operator's, then the build's.
+        applyAdminPolicyPatch();
+        applyVisualSettings();
         void settingsHooks.onSettingsReset.emit({});
       },
 
@@ -1218,6 +1376,10 @@ export const useSettingsStore = create<SettingsState>()(
           };
           Object.keys(settings).forEach((key) => {
             if (key in DEFAULT_SETTINGS) {
+              // Merged below, once it is known which settings were taken over.
+              if (key === 'explicitSettings') {
+                return;
+              }
               if (key === 'subAddressDelimiter' && !isValidSubAddressDelimiter(settings[key])) {
                 return;
               }
@@ -1286,15 +1448,35 @@ export const useSettingsStore = create<SettingsState>()(
             }
           });
 
-          // Apply visual settings
-          applyFontSize(get().fontSize);
-          applyDensity(get().density, get().interfaceLayout);
-          applyInterfaceLayout(get().interfaceLayout, get().density);
-          applyAnimations(get().animationsEnabled);
+          // Which settings the user chose (#1248): for every setting taken
+          // over from the blob, what the blob says; for the rest, what this
+          // device knew. A blob from before explicitSettings existed counts a
+          // value that differs from the build default as chosen.
+          const takenOver = new Set(imported);
+          const blobExplicit: string[] = Array.isArray(settings.explicitSettings)
+            ? settings.explicitSettings.filter((key: unknown): key is string => typeof key === 'string')
+            : legacyExplicitSettings(settings);
+          set({
+            explicitSettings: [
+              ...new Set([
+                ...get().explicitSettings.filter((key) => !takenOver.has(key)),
+                ...blobExplicit.filter((key) => takenOver.has(key)),
+              ]),
+            ],
+          });
+          // A blob carries whatever defaults applied when it was written, so
+          // the operator's current ones go over the settings nobody chose.
+          applyAdminPolicyPatch();
+
+          applyVisualSettings();
 
           // Apply cross-store settings
           if (settings.theme) {
-            useThemeStore.getState().setTheme(settings.theme);
+            // A mode the user never chose leaves room for the operator's
+            // default (#1280). Blobs from before themeChosen count any mode
+            // but the built-in default as chosen.
+            const themeChosen = typeof settings.themeChosen === 'boolean' ? settings.themeChosen : settings.theme !== 'system';
+            useThemeStore.getState().setTheme(settings.theme, { chosen: themeChosen });
           }
           if (settings.locale) {
             useLocaleStore.getState().setLocale(settings.locale);
@@ -1569,7 +1751,7 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: 'settings-storage',
-      version: 7,
+      version: 8,
       migrate: migrateSettings,
       onRehydrateStorage: () => {
         return (state) => {
@@ -1585,6 +1767,9 @@ export const useSettingsStore = create<SettingsState>()(
             }
             if (!isPlainRecord(state.hiddenSharedMailAccounts)) {
               state.hiddenSharedMailAccounts = {};
+            }
+            if (!Array.isArray(state.explicitSettings)) {
+              state.explicitSettings = [];
             }
             state.notificationMutes = normalizeNotificationMutes(state.notificationMutes);
             state.messageListOrder = sanitizeSortLevels(state.messageListOrder);
@@ -1664,6 +1849,12 @@ export function migrateSettings(persisted: unknown, version: number): SettingsSt
         // already received it via main's v6 bump keep their populated map.
         if (version < 6 || !isPlainRecord(state.preferredIdentityIds)) {
           state.preferredIdentityIds = {};
+        }
+        // v8: admin policy defaults (#1248) skip settings the user chose.
+        // Earlier builds did not record that, so a setting that differs from
+        // the build default is taken as chosen.
+        if (version < 8 || !Array.isArray(state.explicitSettings)) {
+          state.explicitSettings = legacyExplicitSettings(state);
         }
         return state as unknown as SettingsState;
 }
@@ -1794,6 +1985,25 @@ if (typeof window !== 'undefined') {
   applyDensity(store.density, store.interfaceLayout);
   applyInterfaceLayout(store.interfaceLayout, store.density);
   applyAnimations(store.animationsEnabled);
+
+  // The service worker shows push notifications without this store, so it
+  // reads the sound preference from its own Cache store (#1289).
+  const pushSound = (s: SettingsState) => s.emailNotificationsEnabled && s.emailNotificationSound;
+  let lastPushSound = pushSound(store);
+  void writePushPreferences({ sound: lastPushSound });
+  useSettingsStore.subscribe((state) => {
+    const sound = pushSound(state);
+    if (sound === lastPushSound) return;
+    lastPushSound = sound;
+    void writePushPreferences({ sound });
+  });
+
+  // The policy arrives after this store has rehydrated (and again with the
+  // full scope once signed in), so its defaults apply whenever it changes.
+  usePolicyStore.subscribe((policyState, prev) => {
+    if (policyState.policy === prev.policy) return;
+    useSettingsStore.getState().applyAdminPolicy();
+  });
 
   const triggerSync = () => {
     if (!syncEnabled || !syncUsername || !syncServerUrl || isLoadingFromServer) return;

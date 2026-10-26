@@ -275,3 +275,19 @@ describe('importEvents hooks', () => {
     expect(after).not.toHaveBeenCalled();
   });
 });
+
+describe('importEvents zero-duration events (#837)', () => {
+  it('sends an explicit zero duration for a timed event without one', async () => {
+    const client = fakeClient();
+    // CalendarEvent/parse of DTSTART == DTEND returns no duration.
+    const parsed = [
+      { uid: 'ci', title: 'C/I', start: '2026-09-30T10:00:00', timeZone: 'Etc/UTC' },
+      { uid: 'sb', title: 'Standby', start: '2026-09-30T10:00:00', timeZone: 'Etc/UTC', duration: 'PT8H' },
+    ] as Partial<CalendarEvent>[];
+
+    await useCalendarStore.getState().importEvents(client, parsed, 'c1');
+
+    const batch = vi.mocked(client.batchCreateCalendarEvents).mock.calls[0][0];
+    expect(batch.map((e) => e.duration)).toEqual(['PT0S', 'PT8H']);
+  });
+});

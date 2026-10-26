@@ -80,6 +80,18 @@ async function getItem<T = string>(storeName: string, key: string): Promise<T | 
   });
 }
 
+async function getKeys(storeName: string): Promise<string[]> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const request = tx.objectStore(storeName).getAllKeys();
+    request.onsuccess = () => resolve((request.result ?? []).map(String));
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => db.close();
+  });
+}
+
 async function deleteItem(storeName: string, key: string): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -121,6 +133,10 @@ export const pluginStorage = {
   },
   async getCode(pluginId: string): Promise<string | null> {
     return getItem<string>(STORE_PLUGINS, pluginId);
+  },
+  /** Ids of the plugins with a stored bundle, without reading the bundles. */
+  async codeIds(): Promise<string[]> {
+    return getKeys(STORE_PLUGINS);
   },
   async deleteCode(pluginId: string): Promise<void> {
     await deleteItem(STORE_PLUGINS, pluginId);

@@ -39,6 +39,7 @@ const shared = {
 } as unknown as Mailbox;
 
 let client: Record<string, ReturnType<typeof vi.fn>>;
+const realGetClientForAccount = useAuthStore.getState().getClientForAccount;
 
 beforeEach(() => {
   client = {
@@ -53,8 +54,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  useAuthStore.setState({ client: null });
-  useEmailStore.setState({ mailboxes: [], selectedEmail: null });
+  useAuthStore.setState({ client: null, getClientForAccount: realGetClientForAccount });
+  useEmailStore.setState({ mailboxes: [], selectedEmail: null, selectedMailbox: '', emails: [] });
 });
 
 describe('api.email.get', () => {
@@ -67,6 +68,27 @@ describe('api.email.get', () => {
     expect(await call(READER, 'email.get', 'gone')).toBeNull();
   });
 
+  it('asks the owning account for a listed message of a shared folder', async () => {
+    client.getEmail.mockImplementation(async (id: string, accountId?: string) => (
+      id === 's1' && accountId === 'acc2' ? mail('s1', { subject: 'Shared' }) : null));
+    useEmailStore.setState({ selectedMailbox: 'acc2:box', emails: [mail('s1', { mailboxIds: { 'acc2:box': true } })] });
+    expect(await call(READER, 'email.get', 's1')).toEqual(expect.objectContaining({ id: 's1', subject: 'Shared' }));
+    expect(client.getEmail).toHaveBeenCalledWith('s1', 'acc2');
+  });
+
+  it('reads no listed message of another connected login', async () => {
+    // Rows can be put in the list by a plugin (onEmailsFetched), stamps included.
+    const other = { getEmail: vi.fn(async () => mail('x1', { subject: 'Other login' })) };
+    useAuthStore.setState({
+      getClientForAccount: ((id: string) => (id === 'login2' ? other : undefined)) as never,
+    });
+    useEmailStore.setState({ emails: [mail('x1', { sourceClientAccountId: 'login2', sourceAccountId: 'acc9' })] });
+    expect(await call(READER, 'email.get', 'x1')).toBeNull();
+    expect(other.getEmail).not.toHaveBeenCalled();
+    // Nor is the signed-in login asked for an id that belongs to another one.
+    expect(client.getEmail).not.toHaveBeenCalled();
+  });
+
   it('uses the open message when its body is loaded', async () => {
     useEmailStore.setState({ selectedEmail: mail('open', { bodyValues: { 1: { value: 'x' } }, textBody: [{ partId: '1' }] } as unknown as Partial<Email>) });
     expect(await call(READER, 'email.get', 'open')).toEqual(expect.objectContaining({ id: 'open', text: 'x' }));
@@ -77,6 +99,30 @@ describe('api.email.get', () => {
     await expect(call(plugin([]), 'email.get', 'm1')).rejects.toThrow(/lacks permission "email:read"/);
     await expect(call(READER, 'email.get', { id: 'm1' })).rejects.toThrow(/emailId must be a string/);
     expect(client.getEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('api.email.search', () => {
+  it('runs a JMAP filter across all mail, newest first, as summaries', async () => {
+    const list = await call(READER, 'email.search', { text: 'invoice', from: 'carol', after: '2026-10-01' }) as { id: string }[];
+    expect(list.map((e) => e.id)).toEqual(['a', 'b']);
+    expect(list[0]).not.toHaveProperty('text');
+    expect(client.getEmails).toHaveBeenCalledWith(undefined, undefined, 20, 0, undefined, false, { text: 'invoice', from: 'carol', after: '2026-10-01T00:00:00.000Z' });
+  });
+
+  it('searches one folder, a shared one through its owner, with a subject and attachments', async () => {
+    await call(READER, 'email.search', { subject: 'offer', hasAttachment: true, mailboxId: 'acc2:box', limit: 5 });
+    expect(client.getEmails).toHaveBeenCalledWith('box', 'acc2', 5, 0, undefined, false, { subject: 'offer', hasAttachment: true });
+  });
+
+  it('wants a condition, a real date, at most 50 results, and email:read', async () => {
+    await expect(call(READER, 'email.search', {})).rejects.toThrow(/at least one of/);
+    await expect(call(READER, 'email.search', { text: '   ' })).rejects.toThrow(/at least one of/);
+    await expect(call(READER, 'email.search', { text: 'x', before: 'yesterday' })).rejects.toThrow(/before must be a date/);
+    await expect(call(READER, 'email.search', { text: 'x', limit: 51 })).rejects.toThrow(/limit must be a whole number from 1 to 50/);
+    await expect(call(READER, 'email.search', { body: 'x' })).rejects.toThrow(/unknown property "body"/);
+    await expect(call(plugin([]), 'email.search', { text: 'x' })).rejects.toThrow(/lacks permission "email:read"/);
+    expect(client.getEmails).not.toHaveBeenCalled();
   });
 });
 

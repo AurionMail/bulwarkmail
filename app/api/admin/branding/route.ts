@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { configManager } from '@/lib/admin/config-manager';
-import { getConfigDir } from '@/lib/admin/paths';
+import { getConfigDir, assertWritable } from '@/lib/admin/paths';
 import {
   parseDomainBranding,
   type DomainBrandingEntry,
@@ -12,6 +12,7 @@ import { logger } from '@/lib/logger';
 import { writeFile, unlink, mkdir, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 function getBrandingDir(): string {
   return path.join(getConfigDir(), 'branding');
@@ -124,6 +125,9 @@ export async function POST(request: NextRequest) {
   try {
     const result = await requireAdminAuth(request);
     if ('error' in result) return result.error;
+    // Refuse before touching the branding dir: the config write that
+    // follows would fail only after the files had already changed.
+    assertWritable('change branding');
 
     const ip = getClientIP(request);
     const formData = await request.formData();
@@ -206,6 +210,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: servedUrl, filename: safeName });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Branding upload error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -224,6 +230,9 @@ export async function DELETE(request: NextRequest) {
   try {
     const result = await requireAdminAuth(request);
     if ('error' in result) return result.error;
+    // Refuse before touching the branding dir: the config write that
+    // follows would fail only after the files had already changed.
+    assertWritable('change branding');
 
     const ip = getClientIP(request);
     const body = await request.json().catch(() => ({})) as { slot?: string; host?: string };
@@ -271,6 +280,8 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Branding delete error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

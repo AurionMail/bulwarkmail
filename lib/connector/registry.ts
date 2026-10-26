@@ -27,17 +27,24 @@
  * is deliberately no parameter that carries a path, a URL, or a redirect.
  */
 
-import { ADMIN_TABS, type AdminTabId } from '@/stores/admin-tab-store';
+import { ADMIN_PAGE_IDS, adminPath, isAdminPageId } from '@/lib/admin/admin-nav';
 import type { SettingsSearchTab } from '@/lib/settings-search';
 import { buildSettingsPath, buildFilesPath } from '@/lib/deep-links';
+import { RELEASE_VERSION } from '@/lib/release-version';
 
-/** Mirrors `SettingsSearchTab`. Listed so an unknown tab is refused here. */
-const SETTINGS_TABS: readonly SettingsSearchTab[] = [
-  'account', 'language', 'notifications', 'appearance', 'layout', 'reading',
-  'composing', 'downloads', 'identities', 'vacation', 'filters', 'templates',
-  'folders', 'keywords', 'security', 'content_senders', 'calendar', 'contacts',
-  'files', 'protocol_handlers', 'sidebar_apps', 'about_data', 'themes',
-  'plugins', 'debug',
+/**
+ * Mirrors `SettingsSearchTab`, plus the ids of tabs that have since been
+ * folded into another page: a connector link made for an old tab still
+ * opens the page that holds the setting now (the settings page migrates
+ * the id). Listed so an unknown tab is refused here.
+ */
+const LEGACY_SETTINGS_TABS = ['layout', 'themes', 'content_senders', 'identities', 'language', 'protocol_handlers', 'templates', 'folders', 'keywords', 'downloads', 'sidebar_apps', 'about_data', 'plugins', 'debug'] as const;
+const SETTINGS_TABS: readonly (SettingsSearchTab | typeof LEGACY_SETTINGS_TABS[number])[] = [
+  'account', 'general', 'notifications', 'appearance', 'message_list', 'reading',
+  'composing', 'vacation', 'filters',
+  'organize', 'security', 'calendar', 'contacts',
+  'files', 'addons', 'backup',
+  ...LEGACY_SETTINGS_TABS,
 ];
 
 const CALENDAR_VIEWS = ['month', 'week', 'day', 'agenda', 'tasks'] as const;
@@ -48,7 +55,7 @@ const CALENDAR_VIEWS = ['month', 'week', 'day', 'agenda', 'tasks'] as const;
 // JMAP id. The connector carries the alias list purely as suggestions for its
 // link generator.
 
-export type ParamType = 'enum' | 'slug' | 'date' | 'id' | 'path';
+export type ParamType = 'enum' | 'slug' | 'date' | 'id' | 'path' | 'version';
 
 export interface ParamSpec {
   readonly type: ParamType;
@@ -56,19 +63,10 @@ export interface ParamSpec {
   readonly required?: boolean;
 }
 
-/**
- * What a resolved target asks the client to do.
- *
- * Most targets are just a path. The admin ones carry a `tab` as well, because
- * the admin shell keeps its active tab in a zustand store rather than in the
- * URL (see app/(main)/admin/layout.tsx) - so reaching a specific panel means
- * setting that store before navigating to /admin. If admin ever gains real
- * `/admin/<tab>` routes, this collapses back into a plain path.
- */
+/** What a resolved target asks the client to do: a path, and whether it needs the admin session. */
 export interface Resolution {
   /** App-relative path; feed through `appPath()` before navigating. */
   readonly path: string;
-  readonly adminTab?: AdminTabId;
   /** True when the destination requires an admin session, not a user one. */
   readonly admin?: boolean;
 }
@@ -127,19 +125,23 @@ export const TARGETS: readonly Target[] = [
   {
     name: 'admin',
     label: 'the admin area',
-    params: { tab: { type: 'enum', values: ADMIN_TABS } },
-    resolve: (p) => ({
-      path: '/admin',
-      adminTab: (p.tab as AdminTabId | undefined) ?? 'dashboard',
-      admin: true,
-    }),
+    params: { tab: { type: 'enum', values: ADMIN_PAGE_IDS } },
+    // Every admin page has its own URL (lib/admin/admin-nav.ts); a link that
+    // names no tab opens the panel's front page.
+    resolve: (p) => ({ path: isAdminPageId(p.tab) ? adminPath(p.tab) : '/admin', admin: true }),
   },
   {
     name: 'admin_extension',
     label: 'an extension in the marketplace',
-    params: { slug: { type: 'slug', required: true } },
+    // `version` picks the version the page offers to install; without it the
+    // page offers the newest one this Bulwark can run. The marketplace page
+    // reads it from the query string, and `safeAdminNext` lets exactly this
+    // query through the admin login.
+    params: { slug: { type: 'slug', required: true }, version: { type: 'version' } },
     resolve: (p) => ({
-      path: `/admin/marketplace/${encodeURIComponent(p.slug)}`,
+      path: p.version
+        ? `/admin/marketplace/${encodeURIComponent(p.slug)}?version=${encodeURIComponent(p.version)}`
+        : `/admin/marketplace/${encodeURIComponent(p.slug)}`,
       admin: true,
     }),
   },
@@ -152,7 +154,7 @@ export const TARGETS: readonly Target[] = [
   {
     name: 'admin_auth',
     label: 'authentication settings',
-    resolve: () => ({ path: '/admin', adminTab: 'auth', admin: true }),
+    resolve: () => ({ path: adminPath('auth'), admin: true }),
   },
   {
     name: 'setup',
@@ -195,6 +197,8 @@ function checkParam(spec: ParamSpec, value: string): boolean {
       return SLUG.test(value);
     case 'date':
       return isRealDate(value);
+    case 'version':
+      return RELEASE_VERSION.test(value);
     case 'id':
       // Becomes one path segment, so it must not be able to climb out of it.
       // `%` is refused along with the separators because the value is decoded

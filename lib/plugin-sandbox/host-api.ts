@@ -2,7 +2,10 @@
 // on `plugin.permissions` BEFORE doing the underlying work, and only returns
 // structured-cloneable data back to the iframe.
 
-import type { InstalledPlugin, Permission } from '../plugin-types';
+import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
+import { fetchConfig } from '@/hooks/use-config';
+import { IS_LITE } from '../lite';
+import { doAppGetSettings, doAppSearchSettings } from './host-api-app';
 import { mayOfferSlot, pluginHasPermission } from './permissions';
 import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, type StreamSink } from './proxy-client';
 import { checkActions, isActionSurface, setPluginActions } from './actions';
@@ -48,12 +51,13 @@ import {
   doTemplatesUpdate, doVacationGet, doVacationSet,
 } from './host-api-settings';
 import {
-  doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doMailboxesList,
+  doEmailArchive, doEmailGet, doEmailGetAttachment, doEmailGetRaw, doEmailList, doEmailMove, doEmailSearch, doMailboxesList,
 } from './host-api-mail';
 import { MAX_PLUGIN_FETCH_BYTES, readFileName, readMediaType, sessionClient } from './host-api-input';
 import { doComposeOpen, doComposeReply, doDraftsCreate } from './host-api-compose';
 import { doNotificationsShow } from './host-api-notify';
 import { setSectionTitle } from './section-titles';
+import { requestPanel } from './panel-requests';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
 
 /**
@@ -150,6 +154,12 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'user.getIdentities': 'identity:read',
   // The IANA zone the app shows times in (Settings or the browser's).
   'user.getTimeZone': null,
+  // The app's name and version: nothing about the user.
+  'app.getInfo': null,
+  // Where a setting is: the app's own texts, nothing about the user.
+  'app.searchSettings': null,
+  // The user's preferences (layout, formats, reading and sending behaviour).
+  'app.getSettings': 'settings:read',
   'user.logout': 'auth:emit',
   // admin
   'admin.getConfig': 'admin:config',
@@ -178,6 +188,8 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // than a settings permission.
   'keywords.list': 'settings:read',
   'keywords.add': 'settings:write',
+  'keywords.update': 'settings:write',
+  'keywords.remove': 'settings:write',
   'keywords.reorder': 'settings:write',
   'keywords.discover': 'email:read',
   'keywords.getCounts': 'email:read',
@@ -211,6 +223,9 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   'ui.setDayLabels': 'ui:calendar-action',
   'ui.setPages': 'ui:app-page',
   'ui.setSectionTitle': 'ui:sidebar-widget',
+  // Open, close or toggle the panel the plugin's slot sits in; the panel's
+  // own permission is checked per call (see the slot catalogue).
+  'ui.setPanel': null,
   // sieve (delivery-time classification)
   'sieve.isSupported': 'filters:read',
   'sieve.getActiveScript': 'filters:read',
@@ -245,6 +260,7 @@ export const PERM_PER_METHOD: Readonly<Record<string, Permission | null>> = {
   // reading mail: one message with its text, a page of a folder, the folders
   'email.get': 'email:read',
   'email.list': 'email:read',
+  'email.search': 'email:read',
   'mailboxes.list': 'email:read',
   // The bytes of one attachment of a given message, or of the message
   // itself. Unlike jmap.fetchBlob these only reach blobs of a message the
@@ -428,16 +444,27 @@ function isApiPostPathAllowed(path: string, allowlist: readonly string[]): boole
  */
 const PLUGIN_POST_DENIED_ROUTES = new Set([
   'account',
+  'account-archive',
   'admin',
   'auth',
   'caldav',
+  // The user's agenda, a server-side fetch of any URL, and a third-party
+  // relay: each is data or reach a plugin gets only through its own
+  // permission-gated API, not through a POST with the user's cookies.
+  'calendar-agenda',
   'dev-jmap',
+  'fetch-ical',
   'plugin-approval-status',
+  // Another plugin's connected accounts and admin keys: the proxy injects
+  // the credential named in the query string, whichever plugin asks.
+  'plugin-proxy',
+  'plugin-secrets',
   'plugins',
   'push',
   'settings',
   'setup',
   'system',
+  'translate',
   'webdav',
   'wopi',
 ]);
@@ -446,7 +473,7 @@ const PLUGIN_POST_DENIED_ROUTES = new Set([
  * Checked on the path the router will see: decoded once and with repeated
  * slashes collapsed, so `/api/%61dmin/...` cannot pass for something else.
  */
-function isPluginPostDenied(pathname: string): boolean {
+export function isPluginPostDenied(pathname: string): boolean {
   let routePath: string;
   try {
     routePath = decodeURIComponent(pathname);
@@ -1346,9 +1373,17 @@ function isValidKeywordDefinitionId(id: string): boolean {
   return true;
 }
 
-function assertKeywordDefinition(value: unknown, index: number): PluginKeywordDefinitionInput {
+/** The fields of a definition a plugin may set; keywords.update sends only the ones it changes. */
+type PluginKeywordPatch = Pick<KeywordDefinition, 'id'> &
+  Partial<Pick<KeywordDefinition, 'label' | 'color' | 'visibility'>>;
+
+function assertKeywordFields(
+  value: unknown,
+  index: number,
+  method: 'keywords.add' | 'keywords.update',
+): PluginKeywordPatch {
   if (!isPlainObject(value)) {
-    throw new Error(`keywords.add: definitions[${index}] must be an object`);
+    throw new Error(`${method}: definitions[${index}] must be an object`);
   }
 
   const id = value.id;
@@ -1357,32 +1392,48 @@ function assertKeywordDefinition(value: unknown, index: number): PluginKeywordDe
   const visibility = value.visibility;
 
   if (typeof id !== 'string' || !isValidKeywordDefinitionId(id)) {
-    throw new Error(`keywords.add: definitions[${index}].id is not a valid JMAP label id`);
+    throw new Error(`${method}: definitions[${index}].id is not a valid JMAP label id`);
   }
+  // add needs a label; update leaves an omitted one as it is.
   if (
-    typeof label !== 'string' || label.trim().length === 0 ||
-    label.length > MAX_PLUGIN_KEYWORD_LABEL_LENGTH
+    (label !== undefined || method === 'keywords.add') &&
+    (typeof label !== 'string' || label.trim().length === 0 ||
+      label.length > MAX_PLUGIN_KEYWORD_LABEL_LENGTH)
   ) {
     throw new Error(
-      `keywords.add: definitions[${index}].label must be 1-${MAX_PLUGIN_KEYWORD_LABEL_LENGTH} characters`,
+      `${method}: definitions[${index}].label must be 1-${MAX_PLUGIN_KEYWORD_LABEL_LENGTH} characters`,
     );
   }
   if (
     color !== undefined &&
     (typeof color !== 'string' || !Object.prototype.hasOwnProperty.call(KEYWORD_PALETTE, color))
   ) {
-    throw new Error(`keywords.add: definitions[${index}].color is not in the keyword palette`);
+    throw new Error(`${method}: definitions[${index}].color is not in the keyword palette`);
   }
   if (visibility !== undefined && !VALID_VISIBILITIES.has(visibility as KeywordVisibility)) {
-    throw new Error(`keywords.add: definitions[${index}].visibility is invalid`);
+    throw new Error(`${method}: definitions[${index}].visibility is invalid`);
   }
 
   return {
     id,
-    label: label.trim(),
+    ...(typeof label === 'string' ? { label: label.trim() } : {}),
     ...(color === undefined ? {} : { color }),
     ...(visibility === undefined ? {} : { visibility: visibility as KeywordVisibility }),
   };
+}
+
+function assertKeywordDefinition(value: unknown, index: number): PluginKeywordDefinitionInput {
+  const { label, ...rest } = assertKeywordFields(value, index, 'keywords.add');
+  // assertKeywordFields requires the label for add.
+  return { ...rest, label: label as string };
+}
+
+function assertKeywordPatch(value: unknown, index: number): PluginKeywordPatch {
+  const patch = assertKeywordFields(value, index, 'keywords.update');
+  if (patch.label === undefined && patch.color === undefined && patch.visibility === undefined) {
+    throw new Error(`keywords.update: definitions[${index}] changes nothing; give a label, color or visibility`);
+  }
+  return patch;
 }
 
 function assertKeywordDefinitionArray(value: unknown): PluginKeywordDefinitionInput[] {
@@ -1393,11 +1444,34 @@ function assertKeywordDefinitionArray(value: unknown): PluginKeywordDefinitionIn
   return value.map(assertKeywordDefinition);
 }
 
+function assertKeywordPatchArray(value: unknown): PluginKeywordPatch[] {
+  if (!Array.isArray(value)) throw new Error('keywords.update: definitions must be an array');
+  if (value.length > MAX_PLUGIN_KEYWORD_DEFINITIONS) {
+    throw new Error(`keywords.update: at most ${MAX_PLUGIN_KEYWORD_DEFINITIONS} definitions may be updated at once`);
+  }
+  return value.map(assertKeywordPatch);
+}
+
+function assertKeywordIdArray(value: unknown, method: string): string[] {
+  if (
+    !Array.isArray(value) || value.length > MAX_PLUGIN_KEYWORD_DEFINITIONS ||
+    value.some((id) => typeof id !== 'string')
+  ) {
+    throw new Error(`${method}: ids must be an array of at most ${MAX_PLUGIN_KEYWORD_DEFINITIONS} strings`);
+  }
+  return value;
+}
+
 function doKeywordsList(): KeywordDefinition[] {
   return useSettingsStore.getState().emailKeywords.map((keyword) => ({ ...keyword }));
 }
 
-function doKeywordsAdd(value: unknown): { added: KeywordDefinition[]; skipped: string[] } {
+/** Whether keywords.update and keywords.remove may touch this definition: only the plugin's own. */
+function isOwnKeyword(plugin: InstalledPlugin, keyword: KeywordDefinition): boolean {
+  return keyword.addedBy === plugin.id;
+}
+
+function doKeywordsAdd(plugin: InstalledPlugin, value: unknown): { added: KeywordDefinition[]; skipped: string[] } {
   const definitions = assertKeywordDefinitionArray(value);
   const existing = useSettingsStore.getState().emailKeywords;
   const known = new Set(existing.map((keyword) => keyword.id.toLowerCase()));
@@ -1414,7 +1488,7 @@ function doKeywordsAdd(value: unknown): { added: KeywordDefinition[]; skipped: s
     known.add(foldedId);
     const color = definition.color ?? suggestKeywordColor(definition.id, takenColors);
     takenColors.add(color);
-    added.push({ ...definition, color });
+    added.push({ ...definition, color, addedBy: plugin.id });
   }
 
   if (added.length > 0) {
@@ -1426,6 +1500,52 @@ function doKeywordsAdd(value: unknown): { added: KeywordDefinition[]; skipped: s
   }
 
   return { added: added.map((keyword) => ({ ...keyword })), skipped };
+}
+
+function doKeywordsUpdate(plugin: InstalledPlugin, value: unknown): { updated: KeywordDefinition[]; skipped: string[] } {
+  const patches = assertKeywordPatchArray(value);
+  const byId = new Map(patches.map((patch) => [patch.id.toLowerCase(), patch]));
+  let updated: KeywordDefinition[] = [];
+
+  // Read and write in one functional update, as reorder does, so a concurrent
+  // settings write is not overwritten by a list built from an older state.
+  useSettingsStore.setState((state) => {
+    updated = [];
+    const emailKeywords = state.emailKeywords.map((keyword) => {
+      const patch = isOwnKeyword(plugin, keyword) ? byId.get(keyword.id.toLowerCase()) : undefined;
+      if (!patch) return keyword;
+      // The id is what the messages carry, so it never changes here.
+      const next = { ...keyword, ...patch, id: keyword.id };
+      updated.push(next);
+      return next;
+    });
+    return updated.length > 0 ? { emailKeywords } : state;
+  });
+
+  const done = new Set(updated.map((keyword) => keyword.id.toLowerCase()));
+  const skipped = patches.filter((patch) => !done.has(patch.id.toLowerCase())).map((patch) => patch.id);
+  return { updated: updated.map((keyword) => ({ ...keyword })), skipped };
+}
+
+function doKeywordsRemove(plugin: InstalledPlugin, value: unknown): { removed: string[]; skipped: string[] } {
+  const ids = assertKeywordIdArray(value, 'keywords.remove');
+  const wanted = new Set(ids.map((id) => id.toLowerCase()));
+  let removed: string[] = [];
+
+  // Drops the definitions only, as Settings → Tags does; the keywords on
+  // messages stay (jmap.setKeywords removes those, with email:write).
+  useSettingsStore.setState((state) => {
+    removed = [];
+    const emailKeywords = state.emailKeywords.filter((keyword) => {
+      const drop = isOwnKeyword(plugin, keyword) && wanted.has(keyword.id.toLowerCase());
+      if (drop) removed.push(keyword.id);
+      return !drop;
+    });
+    return removed.length > 0 ? { emailKeywords } : state;
+  });
+
+  const done = new Set(removed.map((id) => id.toLowerCase()));
+  return { removed, skipped: ids.filter((id) => !done.has(id.toLowerCase())) };
 }
 
 function doKeywordsReorder(value: unknown, rawOptions?: unknown): KeywordDefinition[] {
@@ -1647,6 +1767,20 @@ async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
   if (!res.ok) return {};
   return res.json();
 }
+/** The app a plugin runs in: product, the administrator's name for it, version, edition. */
+async function doAppGetInfo(): Promise<AppInfoView> {
+  let config: Awaited<ReturnType<typeof fetchConfig>> | null = null;
+  try { config = await fetchConfig(); } catch { config = null; }
+  return {
+    product: 'Bulwark Mail',
+    name: config?.appName || 'Webmail',
+    version: process.env.NEXT_PUBLIC_APP_VERSION || '',
+    edition: IS_LITE ? 'lite' : 'full',
+    stalwartFeatures: config?.stalwartFeaturesEnabled ?? true,
+    demoMode: config?.demoMode ?? false,
+  };
+}
+
 /** The zone the app shows times in: the user's choice, else the browser's. */
 function userTimeZone(): string {
   const setting = useSettingsStore.getState().timeZone;
@@ -1757,6 +1891,11 @@ export async function dispatchApiCall(
     case 'ui.setDayLabels': setDayLabels(plugin.id, plugin.name, checkDayLabels(args[0])); return undefined;
     case 'ui.setPages': setPluginPages(plugin.id, plugin.name, checkPages(args[0])); return undefined;
     case 'ui.setSectionTitle': setSectionTitle(plugin.id, args[0]); return undefined;
+    case 'ui.setPanel': {
+      const slot = args[0];
+      if (typeof slot !== 'string' || !mayOfferSlot(plugin, slot)) throw new Error(`Plugin "${plugin.id}" may not open the panel "${String(slot)}"`);
+      return requestPanel(plugin.id, slot, args[1], args[2]);
+    }
 
     case 'storage.get': return storageGet(plugin.id, args[0] as string);
     case 'storage.set': storageSet(plugin.id, args[0] as string, args[1]); return undefined;
@@ -1838,6 +1977,9 @@ export async function dispatchApiCall(
     case 'user.getAccounts':   return doUserGetAccounts();
     case 'user.getIdentities': return doUserGetIdentities();
     case 'user.getTimeZone': return userTimeZone();
+    case 'app.getInfo': return doAppGetInfo();
+    case 'app.searchSettings': return doAppSearchSettings(args[0], args[1]);
+    case 'app.getSettings': return doAppGetSettings();
     case 'user.logout' : return doUserLogout();
 
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);
@@ -1958,7 +2100,9 @@ export async function dispatchApiCall(
     }
 
     case 'keywords.list': return doKeywordsList();
-    case 'keywords.add': return doKeywordsAdd(args[0]);
+    case 'keywords.add': return doKeywordsAdd(plugin, args[0]);
+    case 'keywords.update': return doKeywordsUpdate(plugin, args[0]);
+    case 'keywords.remove': return doKeywordsRemove(plugin, args[0]);
     case 'keywords.reorder': return doKeywordsReorder(args[0], args[1]);
     case 'keywords.discover': return doKeywordsDiscover(args[0]);
     case 'keywords.getCounts': return doKeywordsGetCounts(args[0]);
@@ -2030,6 +2174,7 @@ export async function dispatchApiCall(
 
     case 'email.get': return doEmailGet(args[0]);
     case 'email.list': return doEmailList(args[0]);
+    case 'email.search': return doEmailSearch(args[0]);
     case 'mailboxes.list': return doMailboxesList();
     case 'email.getAttachment': return doEmailGetAttachment(args[0], args[1]);
     case 'email.getRaw': return doEmailGetRaw(args[0]);

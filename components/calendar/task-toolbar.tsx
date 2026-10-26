@@ -37,7 +37,7 @@ export function TaskToolbar({
   const pluginContext = useMemo(() => ({ taskIds }), [taskIds]);
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b border-border flex-wrap">
+    <div className="flex items-center gap-2 px-4 min-h-14 box-content border-b border-border flex-wrap">
       <div className="flex border border-border rounded-md overflow-hidden">
         {FILTERS.map((f) => (
           <button

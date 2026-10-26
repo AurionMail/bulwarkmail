@@ -29,6 +29,22 @@ function findTable(tables: LocaleTables, locale: string): Record<string, string>
   return key ? tables[key] : undefined;
 }
 
+/**
+ * The tables `lookup` can reach for `locale`. A plugin frame gets only these
+ * (and the next ones with a locale change), not every language the plugin
+ * ships: those were most of each init message, copied again in every frame.
+ */
+export function tablesFor(tables: LocaleTables | undefined, locale: string): LocaleTables {
+  const out: LocaleTables = {};
+  if (!tables) return out;
+  for (const loc of localeChain(locale)) {
+    const lower = loc.toLowerCase();
+    const key = tables[loc] ? loc : Object.keys(tables).find((k) => k.toLowerCase() === lower);
+    if (key) out[key] = tables[key];
+  }
+  return out;
+}
+
 /** The text for `key`, or undefined when no table has it. */
 export function lookup(tables: LocaleTables, locale: string, key: string): string | undefined {
   for (const loc of localeChain(locale)) {

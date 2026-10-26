@@ -56,6 +56,7 @@ export function ContactsSettings() {
 
   return (
     <SettingsSection
+      id="contacts"
       title={tSettings("title")}
       description={tSettings("description")}
     >

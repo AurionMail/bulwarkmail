@@ -9,10 +9,12 @@ const SW_SOURCE = readFileSync(join(process.cwd(), 'public', 'sw.js'), 'utf8');
 
 type Shown = { tag: string; options: Record<string, unknown> };
 
-function loadWorker() {
+function loadWorker(seed: Record<string, unknown> = {}) {
   const listeners = new Map<string, (event: unknown) => void>();
   const shade = new Map<string, Shown>();
-  const cacheStore = new Map<string, string>();
+  const cacheStore = new Map<string, string>(
+    Object.entries(seed).map(([key, value]) => [key, JSON.stringify(value)]),
+  );
 
   const self = {
     location: { href: 'https://mail.example.com/sw.js', origin: 'https://mail.example.com' },
@@ -61,7 +63,7 @@ function loadWorker() {
     });
     await Promise.all(waits);
   }
-  return { push, shade };
+  return { push, shade, cacheStore };
 }
 
 const delivery = (accountId: string, id: string) => ({ kind: 'jmap-email-push', accountId, emailIds: [id] });
@@ -85,6 +87,23 @@ describe('service worker quiet window', () => {
     // Silent alerts do not extend the window: 31 s after the audible one it rings again.
     vi.setSystemTime(new Date('2026-09-30T10:00:31Z'));
     await push(delivery('b', 'e3'));
+    expect(shade.get('bulwark-mail:b')!.options).toMatchObject({ renotify: true, silent: false });
+  });
+
+  it('stays silent when the notification sound setting is off (#1289)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T10:00:00Z'));
+    const prefsKey = 'https://mail.example.com/__push-state/prefs';
+    const { push, shade, cacheStore } = loadWorker({ [prefsKey]: { sound: false } });
+
+    await push(delivery('a', 'e1'));
+    expect(shade.get('bulwark-mail:a')!.options).toMatchObject({ renotify: false, silent: true });
+
+    // A silent alert opens no quiet window: with the sound back on, another
+    // account's delivery seconds later rings.
+    vi.setSystemTime(new Date('2026-09-30T10:00:05Z'));
+    cacheStore.set(prefsKey, JSON.stringify({ sound: true }));
+    await push(delivery('b', 'e2'));
     expect(shade.get('bulwark-mail:b')!.options).toMatchObject({ renotify: true, silent: false });
   });
 

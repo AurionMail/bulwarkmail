@@ -462,7 +462,11 @@ export async function calendarRows(
  */
 export async function enableProInterface(page: Page): Promise<void> {
   await page.locator('a[href$="/settings"]').first().click();
-  await page.locator('[data-testid="settings-tab-layout"]').first().click();
+  await page.locator('[data-testid="settings-tab-appearance"]').first().click();
+  // The Pro interface is an advanced setting, hidden until the switch is on.
+  const advanced = page.locator('[data-testid="settings-advanced-switch"]').first();
+  await advanced.waitFor({ state: 'visible', timeout: 30000 });
+  if ((await advanced.getAttribute('aria-checked')) !== 'true') await advanced.click();
   const toggle = page.locator('[data-testid="setting-pro-interface"]').first();
   await toggle.waitFor({ state: 'visible', timeout: 30000 });
   if ((await toggle.getAttribute('aria-checked')) !== 'true') {

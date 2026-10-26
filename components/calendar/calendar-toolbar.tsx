@@ -332,7 +332,7 @@ export function CalendarToolbar({
   const currentViewLabel = t(`views.${viewMode}`);
 
   return (
-    <div className="flex items-center gap-1 px-4 border-b border-border" style={{ paddingBlock: "var(--density-header-py)" }}>
+    <div className="flex items-center gap-1 px-4 h-14 box-content border-b border-border flex-shrink-0">
       {onMenuClick && (
         <Button
           variant="ghost"

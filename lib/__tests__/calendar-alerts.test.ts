@@ -13,6 +13,7 @@ import {
   alertsToRows,
   rowsToAlerts,
   newAlertRow,
+  computeTaskFireTime,
 } from '../calendar-alerts';
 import type {
   CalendarEvent,
@@ -563,5 +564,28 @@ describe('withOwnAlertIds', () => {
     const [a, b] = [makeAlert({ trigger: { '@type': 'OffsetTrigger', offset: '-PT5M', relativeTo: 'start' } }), makeAlert()];
     expect(withOwnAlertIds([a, b], ['alert1', 'default-5'])).toEqual({ alert2: a, alert3: b });
     expect(withOwnAlertIds([], ['alert1'])).toEqual({});
+  });
+});
+
+describe('computeTaskFireTime (#1328)', () => {
+  const task = (start: string | null, due: string | null) => ({ start, due } as CalendarTask);
+  const offset = (relativeTo?: 'start' | 'end') => ({ '@type': 'OffsetTrigger' as const, offset: '-PT5M', ...(relativeTo ? { relativeTo } : {}) }) as Parameters<typeof computeTaskFireTime>[1];
+  const at = (s: string) => new Date(s).getTime();
+
+  it('counts a start-relative alert from the start', () => {
+    expect(computeTaskFireTime(task('2026-10-23T20:00:00Z', '2026-10-23T20:15:00Z'), offset('start'))).toBe(at('2026-10-23T19:55:00Z'));
+  });
+
+  it('treats a missing relativeTo as start, as Stalwart sends it', () => {
+    expect(computeTaskFireTime(task('2026-10-23T20:00:00Z', '2026-10-23T20:15:00Z'), offset())).toBe(at('2026-10-23T19:55:00Z'));
+  });
+
+  it('counts an end-relative alert from the due time', () => {
+    expect(computeTaskFireTime(task('2026-10-23T20:00:00Z', '2026-10-23T20:15:00Z'), offset('end'))).toBe(at('2026-10-23T20:10:00Z'));
+  });
+
+  it('falls back to the due time when the task has no start', () => {
+    expect(computeTaskFireTime(task(null, '2026-10-23T20:15:00Z'), offset('start'))).toBe(at('2026-10-23T20:10:00Z'));
+    expect(computeTaskFireTime(task(null, null), offset('start'))).toBeNull();
   });
 });

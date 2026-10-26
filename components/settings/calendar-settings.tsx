@@ -45,6 +45,7 @@ export function CalendarSettings() {
     calendarDayEndHour,
     calendarHideNonWorkingDays,
     calendarWorkingDays,
+    calendarInvitationParsingEnabled,
     timeFormat,
     firstDayOfWeek,
     updateSetting,
@@ -79,7 +80,7 @@ export function CalendarSettings() {
   };
 
   return (
-    <SettingsSection title={t('title')}>
+    <SettingsSection id="calendar" title={t('title')}>
       <SettingItem label={t('default_view')}>
         <Select
           value={viewMode}
@@ -112,6 +113,17 @@ export function CalendarSettings() {
           />
         </SettingItem>
       )}
+
+      {/* Not a notification: whether .ics attachments get calendar actions. Was under Notifications. */}
+      <SettingItem
+        label={t('invitation_parsing')}
+        description={t('invitation_parsing_desc')}
+      >
+        <ToggleSwitch
+          checked={calendarInvitationParsingEnabled}
+          onChange={(checked) => updateSetting('calendarInvitationParsingEnabled', checked)}
+        />
+      </SettingItem>
 
       <SettingItem
         label={t('show_time_in_month_view')}

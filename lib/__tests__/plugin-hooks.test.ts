@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HookBus, pluginErrorTracker, removeAllPluginHooks, clearAllHooks, emailHooks, calendarHooks, isExternalAttachmentResult, setHookTimeoutListener } from '../plugin-hooks';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { HookBus, pluginErrorTracker, removeAllPluginHooks, clearAllHooks, emailHooks, calendarHooks, isExternalAttachmentResult, setHookDialogGate, renderHooks } from '../plugin-hooks';
+import { awaitPrompt, hasDialogFor, head, resolveHead, whenNoDialogFor, resetDialogLimits } from '../plugin-sandbox/host-dialog';
 import type { CalendarEventFormView } from '../plugin-types';
 
 beforeEach(() => {
@@ -441,22 +442,57 @@ describe('onBeforeEmailSend fails closed', () => {
     expect(await emailHooks.onBeforeEmailSend.intercept({})).toBe(false);
     consoleSpy.mockRestore();
   });
+});
 
-  it('closes the dialogs of a plugin whose hook ran out of time', async () => {
+describe('hooks that wait on a plugin dialog (#1302)', () => {
+  beforeEach(() => {
     vi.useFakeTimers();
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const onTimeout = vi.fn();
-    setHookTimeoutListener(onTimeout);
-    try {
-      emailHooks.onBeforeReply.register('slow', () => new Promise(() => {}));
-      const result = emailHooks.onBeforeReply.intercept({});
-      await vi.advanceTimersByTimeAsync(60_000 + 100);
-      expect(await result).toBe(true);
-      expect(onTimeout).toHaveBeenCalledWith('slow');
-    } finally {
-      setHookTimeoutListener(null);
-      consoleSpy.mockRestore();
-      vi.useRealTimers();
-    }
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    setHookDialogGate({ hasOpenDialog: hasDialogFor, whenDialogsClosed: whenNoDialogFor });
+  });
+  afterEach(() => {
+    setHookDialogGate(null);
+    while (head()) resolveHead(null);
+    resetDialogLimits();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  // What the PGP plugin does: ask for the passphrase inside its render hook,
+  // then return the decrypted body.
+  function registerPassphraseRenderer() {
+    renderHooks.onRenderEmailBody.register('pgp', async (body: object) => {
+      const answer = await awaitPrompt({
+        pluginId: 'pgp', kind: 'prompt', title: 'Unlock key', message: '',
+        fields: [{ name: 'passphrase', label: 'Passphrase', type: 'password' }],
+      });
+      return answer ? { ...body, html: 'decrypted', handledBy: 'pgp' } : body;
+    });
+  }
+
+  it('keeps the passphrase prompt open while the user types and uses the answer', async () => {
+    registerPassphraseRenderer();
+    const result = renderHooks.onRenderEmailBody.transform({ html: '' });
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(head()?.title).toBe('Unlock key');
+
+    resolveHead({ passphrase: 'secret' });
+    expect(await result).toEqual({ html: 'decrypted', handledBy: 'pgp' });
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('times out again once the dialog is closed and the plugin still does not answer', async () => {
+    renderHooks.onRenderEmailBody.register('pgp', () => {
+      void awaitPrompt({ pluginId: 'pgp', kind: 'prompt', title: 'Unlock key', message: '', fields: [] });
+      return new Promise(() => {});
+    });
+    const result = renderHooks.onRenderEmailBody.transform({ html: 'raw' });
+    await vi.advanceTimersByTimeAsync(10_000);
+    resolveHead(null);
+    await vi.advanceTimersByTimeAsync(4_900);
+    expect(console.error).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(await result).toEqual({ html: 'raw' });
+    expect(console.error).toHaveBeenCalledWith('[plugin:pgp] Hook error:', expect.any(Error));
   });
 });

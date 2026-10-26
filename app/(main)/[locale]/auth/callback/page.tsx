@@ -10,6 +10,8 @@ import { LITE_OAUTH_AVAILABLE, getLiteOAuthRedirectUri } from "@/lib/auth/lite-o
 import { Loader2, AlertCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
+import { buildMobileHandoffUrl, mobileHandoffTarget } from "@/lib/auth/mobile-handoff";
+import { MobileHandoffConsent } from "@/components/auth/mobile-handoff-consent";
 
 function OAuthCallbackInner() {
   const router = useRouter();
@@ -18,6 +20,9 @@ function OAuthCallbackInner() {
   const t = useTranslations("login");
   const { loginWithOAuth, loginWithServerSso } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  // A sign-in started for the mobile app, waiting for the user to confirm
+  // the handoff (lib/auth/mobile-handoff.ts).
+  const [pendingHandoff, setPendingHandoff] = useState<{ url: string; username: string } | null>(null);
   // The authorization code is single-use. React's development double effect
   // ran this twice: the second pass no longer saw the pairing re-auth flag
   // (the first had removed it) and spent the code on the login flow instead.
@@ -135,14 +140,14 @@ function OAuthCallbackInner() {
       // Server-side SSO flow - state was stored in encrypted httpOnly cookie.
       // Branch on mobile handoff first: the login page left a marker in
       // sessionStorage if it kicked this OAuth dance off for the mobile app.
-      let mobileRedirectUri: string | null = null;
+      let mobileRedirectUri = "";
       let mobileState: string | null = null;
       try {
-        mobileRedirectUri = sessionStorage.getItem("mobile_redirect_uri");
+        mobileRedirectUri = mobileHandoffTarget(sessionStorage.getItem("mobile_redirect_uri"));
         mobileState = sessionStorage.getItem("mobile_state");
       } catch { /* sessionStorage may be unavailable */ }
 
-      if (mobileRedirectUri && mobileRedirectUri.startsWith("bulwarkmobile://")) {
+      if (mobileRedirectUri) {
         // Drive /api/auth/sso/complete directly so we can read the tokens
         // out of the response - loginWithServerSso would consume them and
         // wire up the webmail auth store, which isn't useful here. The
@@ -187,7 +192,12 @@ function OAuthCallbackInner() {
               sessionStorage.removeItem("mobile_redirect_uri");
               sessionStorage.removeItem("mobile_state");
             } catch { /* ignore */ }
-            window.location.replace(`${mobileRedirectUri}#${fragment.toString()}`);
+            // Shown to the user first; the navigation happens on their confirmation.
+            setPendingHandoff({
+              url: buildMobileHandoffUrl(mobileRedirectUri, Object.fromEntries(fragment)),
+              // The complete route names the account's server, not the user.
+              username: typeof data.username === "string" ? data.username : serverUrl,
+            });
           } catch {
             setError("token_exchange_failed");
           }
@@ -219,6 +229,21 @@ function OAuthCallbackInner() {
       setError("invalid_state");
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (pendingHandoff) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
+        <MobileHandoffConsent
+          url={pendingHandoff.url}
+          username={pendingHandoff.username}
+          onCancel={() => {
+            setPendingHandoff(null);
+            router.push(toRouterPath(`${getPathPrefix(params.locale as string)}/${params.locale}/login`));
+          }}
+        />
+      </div>
+    );
+  }
 
   if (error) {
     return (

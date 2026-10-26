@@ -8,7 +8,7 @@ import * as OTPAuth from 'otpauth';
 import { Shield, Key, Smartphone, Lock, Trash2, Plus, Eye, EyeOff, Copy, Check, CheckCircle, Loader2, Monitor, Terminal, QrCode, Unlock, RefreshCw } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SettingsSection, SettingItem, ToggleSwitch } from './settings-section';
+import { SettingsSection, SettingItem, ToggleSwitch, AdvancedOnly } from './settings-section';
 import { useAccountSecurityStore, type AppPasswordInfo, type ApiKeyInfo, type AppCredentialInput } from '@/stores/account-security-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccountStore } from '@/stores/account-store';
@@ -146,7 +146,11 @@ function PasswordChangeSection() {
   );
 }
 
-function DisplayNameSection() {
+/**
+ * Editable display name (the Stalwart principal's name). Rendered by the
+ * Account page's Profile section; the Security page no longer repeats it.
+ */
+export function DisplayNameSection() {
   const t = useTranslations('settings.security');
   const { displayName, updateDisplayName, isSaving, isLoadingPrincipal } = useAccountSecurityStore();
   const [name, setName] = useState(displayName);
@@ -1487,7 +1491,7 @@ export function AccountSecuritySettings() {
     // through t() makes next-intl try to parse the <a> tag and throw
     // INVALID_TAG.
     return (
-      <SettingsSection title={t('title')} description={t('description')}>
+      <SettingsSection id="devices" title={t('title')} description={t('description')}>
         {!IS_LITE ? (
           <div className="space-y-6">
             <LinkDeviceSection />
@@ -1502,13 +1506,13 @@ export function AccountSecuritySettings() {
   }
 
   return (
-    <SettingsSection title={t('title')} description={t('description')}>
-      <div className="space-y-6">
-        {!withoutPassword && (
-          <>
+    <div className="space-y-8">
+      {/* Sign-in: password and two-factor. OAuth and token sessions have
+          neither here, so the page opens with the apps and devices section. */}
+      {!withoutPassword && (
+        <SettingsSection id="signin" title={t('title')} description={t('description')}>
+          <div className="space-y-6">
             <PasswordChangeSection />
-            <div className="border-t border-border" />
-            <DisplayNameSection />
             <div className="border-t border-border" />
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -1517,34 +1521,37 @@ export function AccountSecuritySettings() {
               </div>
               <TotpSection />
             </div>
-            <div className="border-t border-border" />
-          </>
-        )}
+          </div>
+        </SettingsSection>
+      )}
 
-        <AppPasswordsSection />
-
-        <div className="border-t border-border" />
-        <ApiKeysSection />
-
-        {!IS_LITE && (
-          <>
+      {/* Other apps and devices: the phone app first, since it is the most
+          asked for, then a mail client, then the credentials those need. */}
+      <SettingsSection
+        id="devices"
+        title={withoutPassword ? t('title') : t('sections.devices')}
+        description={withoutPassword ? t('description') : t('sections.devices_description')}
+      >
+        <div className="space-y-6">
+          {!IS_LITE && (
+            <>
+              <LinkDeviceSection />
+              <div className="border-t border-border" />
+            </>
+          )}
+          <EmailClientSection />
+          <div className="border-t border-border" />
+          <AppPasswordsSection />
+          <AdvancedOnly>
             <div className="border-t border-border" />
-            <LinkDeviceSection />
-          </>
-        )}
+            <ApiKeysSection />
+          </AdvancedOnly>
+        </div>
+      </SettingsSection>
 
-        {withoutPassword && (
-          <>
-            <div className="border-t border-border" />
-            <EmailClientSection />
-          </>
-        )}
-            <div className="border-t border-border" />
-            <div>
-              
-              <PublicKeysSection />
-            </div>
-      </div>
-    </SettingsSection>
+      <SettingsSection id="encryption" title={t('sections.encryption')} advanced>
+        <PublicKeysSection />
+      </SettingsSection>
+    </div>
   );
 }

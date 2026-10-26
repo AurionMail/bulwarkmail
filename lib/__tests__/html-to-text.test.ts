@@ -30,6 +30,12 @@ describe('htmlToPlainText', () => {
     ).toBe('alice@example.com');
   });
 
+  it('renders an @mention as just its text', () => {
+    expect(
+      htmlToPlainText('<p>Hi <a href="mailto:dana@example.com" class="mention">@Dana</a> see <a href="mailto:info@example.com">us</a></p>')
+    ).toBe("Hi @Dana see us <mailto:info@example.com>");
+  });
+
   it('renders links as "text <href>" when they differ', () => {
     expect(htmlToPlainText('<p>Visit <a href="https://example.com">our site</a></p>')).toBe(
       'Visit our site <https://example.com>'

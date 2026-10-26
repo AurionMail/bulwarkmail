@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
 import DOMPurify from "dompurify";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
-import { EMAIL_SANITIZE_CONFIG, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
+import { EMAIL_SANITIZE_CONFIG, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizeEmailBodyForIframe, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
+import { emailDisplayDate } from "@/lib/email-date";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
 import { findVerificationCode, verificationCodeBodyText } from "@/lib/verification-code";
 import { VerificationCodeChip } from "./verification-code-chip";
-import { collectReferencedCids, isEmbeddedInBody } from "@/lib/attachment-visibility";
+import { collectReferencedCids, isEmbeddedInBody, normalizeCid } from "@/lib/attachment-visibility";
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
 import { fitEmailBodyWidth } from "@/lib/email-fit-width";
 import { DARK_PENDING_CLASS, applyEmailDarkMode, emailDarkModeCss } from "@/lib/email-dark-mode";
@@ -38,16 +39,24 @@ import {
 import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useContactStore } from "@/stores/contact-store";
+import { useEmailStore, resolveEmailBlobContext, type EmailBlobContext } from "@/stores/email-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { isFilePreviewable, toInertBlob } from "@/lib/file-preview";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { useOwnDomainAddress } from "@/hooks/use-own-domain-address";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
+import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection } from "./reader-selection-menu";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
+import { useDeviceDetection } from "@/hooks/use-media-query";
+import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
+
+export type ConversationAttachmentHandler = (
+  blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
+) => void;
 
 interface ThreadConversationViewProps {
   thread: ThreadGroup;
@@ -57,7 +66,9 @@ interface ThreadConversationViewProps {
   onReply?: (email: Email) => void;
   onReplyAll?: (email: Email) => void;
   onForward?: (email: Email) => void;
-  onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
+  onDownloadAttachment?: ConversationAttachmentHandler;
+  /** Routing captured when this conversation was opened. */
+  blobSource?: EmailBlobContext;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
   /** Role of the folder the conversation was opened from, for plugin actions limited to some folders. */
   mailboxRole?: string | null;
@@ -174,15 +185,17 @@ export function ThreadConversationView({
   onReplyAll,
   onForward,
   onDownloadAttachment,
+  blobSource,
   onMarkAsRead,
   mailboxRole,
 }: ThreadConversationViewProps) {
   const t = useTranslations();
   const externalContent = useConversationExternalContent();
   const emailIdList = emails.map((email) => email.id).join(',');
+  const { isMobile: summaryOnPhone, isTablet: summaryOnTablet } = useDeviceDetection();
   const threadSummaryProps = useMemo(
-    () => ({ threadId: thread.latestEmail.threadId ?? null, emailIds: emailIdList ? emailIdList.split(',') : [] }),
-    [thread.latestEmail.threadId, emailIdList],
+    () => ({ threadId: thread.latestEmail.threadId ?? null, emailIds: emailIdList ? emailIdList.split(',') : [], deviceType: summaryOnPhone ? 'mobile' : summaryOnTablet ? 'tablet' : 'desktop' }),
+    [thread.latestEmail.threadId, emailIdList, summaryOnPhone, summaryOnTablet],
   );
 
   // Track which emails are expanded (most recent by default)
@@ -272,6 +285,7 @@ export function ThreadConversationView({
               onReplyAll={onReplyAll ? () => onReplyAll(email) : undefined}
               onForward={onForward ? () => onForward(email) : undefined}
               onDownloadAttachment={onDownloadAttachment}
+            blobSource={blobSource}
               onMarkAsRead={onMarkAsRead}
               mailboxRole={mailboxRole}
             />
@@ -294,7 +308,9 @@ interface EmailCardProps {
   onReply?: () => void;
   onReplyAll?: () => void;
   onForward?: () => void;
-  onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
+  onDownloadAttachment?: ConversationAttachmentHandler;
+  /** Routing captured when this conversation was opened. */
+  blobSource?: EmailBlobContext;
   onMarkAsRead?: (emailId: string, read: boolean) => void;
   mailboxRole?: string | null;
 }
@@ -311,7 +327,9 @@ function useConversationPluginProps(email: Email) {
   const belowSubjectOffers = usePluginSlotOffers('reader-below-subject').length;
   const bannerOffers = usePluginSlotOffers('email-banner').length;
   const wantsView = headerOffers + belowSubjectOffers + bannerOffers > 0;
-  const emailProps = useMemo(() => ({ email: wantsView ? emailToReadView(email) : null }), [email, wantsView]);
+  const { isMobile, isTablet } = useDeviceDetection();
+  const deviceType = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
+  const emailProps = useMemo(() => ({ email: wantsView ? emailToReadView(email) : null, deviceType }), [email, wantsView, deviceType]);
   const idProps = useMemo(() => ({ emailId: email.id }), [email.id]);
   return { emailProps, idProps };
 }
@@ -328,6 +346,7 @@ function EmailCard({
   onReplyAll,
   onForward,
   onDownloadAttachment,
+  blobSource,
   onMarkAsRead,
   mailboxRole,
 }: EmailCardProps) {
@@ -382,7 +401,7 @@ function EmailCard({
             )}
           </div>
           <div className="text-sm text-muted-foreground">
-            {formatDate(email.receivedAt)}
+            {formatDate(emailDisplayDate(email))}
           </div>
           {!isExpanded && density !== 'extra-compact' && (
             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
@@ -410,6 +429,7 @@ function EmailCard({
             onAllowExternal={onAllowExternal}
             onTrustSender={onTrustSender}
             onDownloadAttachment={onDownloadAttachment}
+            blobSource={blobSource}
           />
           <PluginSlot name="email-footer" className="w-full" extraProps={plugin.idProps} />
 
@@ -477,7 +497,9 @@ interface ConversationEmailBodyProps {
   allowExternal: boolean;
   onAllowExternal: () => void;
   onTrustSender?: () => void;
-  onDownloadAttachment?: (blobId: string, name: string, type?: string) => void;
+  onDownloadAttachment?: ConversationAttachmentHandler;
+  /** Routing captured when this conversation was opened. */
+  blobSource?: EmailBlobContext;
   /** Padding around the body; the phone card's density padding by default. */
   bodyStyle?: React.CSSProperties;
   className?: string;
@@ -494,6 +516,7 @@ export function ConversationEmailBody({
   onAllowExternal,
   onTrustSender,
   onDownloadAttachment,
+  blobSource,
   bodyStyle,
   className,
 }: ConversationEmailBodyProps) {
@@ -513,11 +536,24 @@ export function ConversationEmailBody({
     [showVerificationCodes, email.id, email.subject, email.bodyValues],
   );
   const [hasBlockedContent, setHasBlockedContent] = useState(false);
-  const [cidBlobUrls, setCidBlobUrls] = useState<Record<string, string>>({});
-  const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
+  const { client } = useAuthStore(useShallow((state) => ({
+    client: state.client, revision: state.connectedAccountsRevision,
+  })));
+  const fallbackSource = useEmailStore(useShallow(() => resolveEmailBlobContext(email, client)));
+  const source = blobSource ?? fallbackSource;
+  const { client: blobClient, accountId } = source;
+  // Local CID URLs belong to a particular client/owner/message/part list.
+  // Hide the previous set during render, before the new fetch's effect runs.
+  const cidRequest = useMemo(() => ({ blobClient, accountId, emailId: email.id, attachments: email.attachments }),
+    [blobClient, accountId, email.id, email.attachments]);
+  const [cidResult, setCidResult] = useState<{ request: typeof cidRequest; urls: Record<string, string> } | null>(null);
+  const cidBlobUrls = useMemo(() => cidResult?.request === cidRequest ? cidResult.urls : {}, [cidResult, cidRequest]);
+  // A crypto plugin's decrypted body (PGP, S/MIME) replaces the message's own.
+  const pluginBody = usePluginRenderedBody(email);
   // reader-above-quote: the body the quote was collapsed in, once it is on screen.
   const [htmlBodyEl, setHtmlBodyEl] = useState<HTMLElement | null>(null);
   const [plainBodyEl, setPlainBodyEl] = useState<HTMLDivElement | null>(null);
+  const selectionMenu = useReaderSelectionMenu();
   const wantsQuoteSlot = usePluginSlotOffers('reader-above-quote').length > 0;
   const quoteSlotProps = useMemo(
     () => ({ email: wantsQuoteSlot ? emailToReadView(email) : null }),
@@ -526,14 +562,14 @@ export function ConversationEmailBody({
 
   // Fetch inline CID images with authentication to prevent browser auth dialogs
   useEffect(() => {
-    if (!client || !email?.attachments) {
-      setCidBlobUrls({});
+    if (!blobClient || !cidRequest.attachments) {
+      setCidResult(null);
       return;
     }
 
-    const cidAttachments = email.attachments.filter(att => att.cid && att.blobId);
+    const cidAttachments = cidRequest.attachments.filter(att => att.cid && att.blobId);
     if (cidAttachments.length === 0) {
-      setCidBlobUrls({});
+      setCidResult(null);
       return;
     }
 
@@ -543,11 +579,11 @@ export function ConversationEmailBody({
     async function fetchCidBlobs() {
       const urls: Record<string, string> = {};
       await Promise.all(cidAttachments.map(async (att) => {
-        const cidValue = att.cid!.replace(/^<|>$/g, '');
+        const cidValue = normalizeCid(att.cid!);
         try {
           // Re-type sender-declared script-bearing parts before they become a
           // blob: URL in our origin (GHSA-xvjh-v9c6-qcvc).
-          const objectUrl = URL.createObjectURL(toInertBlob(await client!.fetchBlob(att.blobId, att.name || 'inline', att.type)));
+          const objectUrl = URL.createObjectURL(toInertBlob(await blobClient!.fetchBlob(att.blobId, att.name || 'inline', att.type, accountId)));
           if (!cancelled) {
             urls[cidValue] = objectUrl;
             objectUrls.push(objectUrl);
@@ -559,7 +595,7 @@ export function ConversationEmailBody({
         }
       }));
       if (!cancelled) {
-        setCidBlobUrls(urls);
+        setCidResult({ request: cidRequest, urls });
       }
     }
 
@@ -569,11 +605,35 @@ export function ConversationEmailBody({
       cancelled = true;
       objectUrls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [client, email?.id, email?.attachments]);
+  }, [cidRequest, blobClient, accountId]);
 
   // Sanitize and prepare email HTML content
   const emailContent = useMemo(() => {
     if (!email) return { html: "", isHtml: false };
+
+    // Plugin-rendered bodies get the reader's sanitizer and remote-content
+    // blocking, like any other mail body (#797).
+    if (pluginBody.html) {
+      const withCids = pluginBody.html.replace(
+        /\bcid:([^"'\s)]+)/gi,
+        (_match, cidRef) => pluginBody.cidUrls[cidRef] || cidBlobUrls[cidRef] || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      );
+      const { html, blockedExternalContent } = sanitizeEmailBodyForIframe(withCids, !allowExternal);
+      if (blockedExternalContent) {
+        if (!hasBlockedContent) setHasBlockedContent(true);
+        return { html: collapseBlockedImageContainers(html), isHtml: true };
+      }
+      return { html, isHtml: true };
+    }
+    if (pluginBody.text) {
+      return {
+        html: collapsePlainTextQuotes(plainTextToSafeHtml(pluginBody.text, 'text-primary hover:underline'), {
+          show: t('email_viewer.show_quoted_text'),
+          hide: t('email_viewer.hide_quoted_text'),
+        }),
+        isHtml: false,
+      };
+    }
 
     if (email.bodyValues) {
       let htmlContent = getRenderableHtmlBody(email);
@@ -651,7 +711,7 @@ export function ConversationEmailBody({
   // `hasBlockedContent` is only read to skip a redundant setState; as a
   // dependency it would re-run the sanitizer once the banner shows.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, allowExternal, cidBlobUrls, t]);
+  }, [email, allowExternal, cidBlobUrls, pluginBody, t]);
 
   // Parts the body embeds via cid: stay out of the attachment row while the
   // user hides inline images - the desktop viewer's rule, shared through
@@ -742,11 +802,17 @@ export function ConversationEmailBody({
         a.setAttribute('target', '_blank');
         a.setAttribute('rel', 'noopener noreferrer');
       });
+      // Selected text: the onTextSelectionChange hook and the right-click
+      // menu plugins may add entries to.
+      watchBodySelection(doc, iframe, {
+        emailId: email.id,
+        onContextMenu: (point, text) => selectionMenu.openRef.current(point, { emailId: email.id, text }),
+      });
       setHtmlBodyEl(doc.body);
     } catch {
       // contentDocument may be inaccessible under stricter sandboxes; ignore.
     }
-  }, [t, isDark, allowExternal]);
+  }, [t, isDark, allowExternal, email.id, selectionMenu.openRef]);
 
   return (
     <div className={className}>
@@ -814,9 +880,13 @@ export function ConversationEmailBody({
               "[&_img]:max-w-full [&_img]:h-auto"
             )}
             style={{ whiteSpace: 'pre-wrap', ...(plainTextFont === 'mono' && { fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace' }), fontSize: '13px' }}
+            data-plugin-source="email-body"
+            data-email-id={email.id}
+            onContextMenu={(e) => selectionMenu.onElementContextMenu(e, email.id)}
             dangerouslySetInnerHTML={plainBodyHtml}
           />
         )}
+        <ReaderSelectionMenu menu={selectionMenu} />
         <ReaderAboveQuoteSlot
           root={emailContent.isHtml ? htmlBodyEl : plainBodyEl}
           frame={emailContent.isHtml ? iframeRef.current : null}
@@ -839,7 +909,7 @@ export function ConversationEmailBody({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDownloadAttachment?.(attachment.blobId, attachment.name || 'attachment', attachment.type);
+                    onDownloadAttachment?.(attachment.blobId, attachment.name || 'attachment', attachment.type, source);
                   }}
                   title={opensPreview ? t('files.preview') : t('email_viewer.download')}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm"

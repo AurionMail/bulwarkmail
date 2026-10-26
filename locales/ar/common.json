@@ -60,6 +60,12 @@
     "demo_login_button": "تشغيل النسخة التجريبية",
     "demo_tagline": "جرّب عميل بريد إلكتروني متكامل الميزات. لا حاجة إلى حساب.",
     "demo_no_signup": "لا حاجة للتسجيل - استكشف بحرية باستخدام بيانات نموذجية",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "جارٍ إتمام تسجيل الدخول...",
     "oauth_error": {
       "title": "فشلت المصادقة",
@@ -142,6 +148,8 @@
     "show_all_tags": "إظهار الكل ({count})",
     "show_fewer_tags": "إظهار أقل",
     "folders": "المجلدات",
+    "your_folders": "مجلداتك",
+    "create_folder": "إنشاء مجلد",
     "show_more": "المزيد",
     "show_fewer": "أقل",
     "shared": "مشترك",
@@ -169,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "التطبيقات الافتراضية",
-    "description": "اختر ما إذا كانت روابط البريد والتقويم تُفتح في Bulwark. من الناحية التقنية، يسجّل Bulwark نفسه كمعالج بروتوكول لروابط mailto: وwebcal:.",
+    "description": "اختر ما إذا كانت روابط البريد والتقويم تُفتح في {appName}. من الناحية التقنية، يسجّل {appName} نفسه كمعالج بروتوكول لروابط mailto: وwebcal:.",
     "unsupported": "هذا المتصفح أو الاتصال لا يدعم التسجيل اليدوي لمعالج البروتوكول. قد يمكنك مع ذلك استخدام تطبيق PWA المثبّت عبر إعدادات المتصفح أو النظام.",
     "mailto_label": "روابط البريد الإلكتروني",
-    "mailto_description": "فتح روابط mailto: في Bulwark مع نافذة إنشاء رسالة معبأة مسبقًا.",
+    "mailto_description": "فتح روابط mailto: في {appName} مع نافذة إنشاء رسالة معبأة مسبقًا.",
     "protocol_open_mode_label": "عند فتح روابط البروتوكول",
-    "protocol_open_mode_description": "اختر ما إذا كان Bulwark يفتح روابط mailto: وwebcal: في علامة تبويب جديدة أو يعيد استخدام جلسة مفتوحة. يتطلب خيار الجلسة النشطة إذن الإشعارات حتى تتمكن من النقر على إشعار احتياطي لإحضار Bulwark إلى المقدمة إذا منع المتصفح التركيز.",
+    "protocol_open_mode_description": "اختر ما إذا كان {appName} يفتح روابط mailto: وwebcal: في علامة تبويب جديدة أو يعيد استخدام جلسة مفتوحة. يتطلب خيار الجلسة النشطة إذن الإشعارات حتى تتمكن من النقر على إشعار احتياطي لإحضار {appName} إلى المقدمة إذا منع المتصفح التركيز.",
     "protocol_open_mode_active_session": "الفتح في الجلسة النشطة إن أمكن",
     "protocol_open_mode_new_tab": "فتح علامة تبويب جديدة دائمًا",
-    "focus_notification_title": "فتح Bulwark",
-    "focus_notification_body": "تم فتح الرابط في Bulwark. انقر لإحضار النافذة إلى المقدمة.",
+    "focus_notification_title": "فتح {appName}",
+    "focus_notification_body": "تم فتح الرابط في {appName}. انقر لإحضار النافذة إلى المقدمة.",
     "webcal_label": "روابط التقويم",
-    "webcal_description": "فتح روابط webcal: في Bulwark مع نافذة اشتراك تقويم معبأة مسبقًا.",
+    "webcal_description": "فتح روابط webcal: في {appName} مع نافذة اشتراك تقويم معبأة مسبقًا.",
     "register_mailto": "تسجيل تطبيق البريد",
     "register_webcal": "تسجيل تطبيق التقويم",
     "mailto_registered": "تم طلب تسجيل معالج البريد الإلكتروني",
@@ -188,7 +196,7 @@
     "registration_failed": "فشل تسجيل معالج البروتوكول",
     "opening_mailto": "جارٍ فتح نافذة الإنشاء...",
     "opening_webcal": "جارٍ فتح التقويم...",
-    "browser_note": "قد يطلب منك المتصفح أو نظام التشغيل تأكيد ذلك، وقد يتطلب تثبيت Bulwark أولًا قبل إمكانية اختياره كتطبيق افتراضي.",
+    "browser_note": "قد يطلب منك المتصفح أو نظام التشغيل تأكيد ذلك، وقد يتطلب تثبيت {appName} أولًا قبل إمكانية اختياره كتطبيق افتراضي.",
     "select_account_title": "اختر الحساب",
     "select_mailto_account": "اختر الحساب الذي سيفتح رابط البريد هذا.",
     "select_webcal_account": "اختر الحساب الذي سيفتح رابط التقويم هذا.",
@@ -236,6 +244,18 @@
     "show_on_mobile": "إظهار على الجوال"
   },
   "email_list": {
+    "sections": {
+      "unread": "غير مقروءة",
+      "everything_else": "كل الرسائل الأخرى",
+      "unread_empty": "لقد قرأت كل الرسائل في صندوق الوارد."
+    },
+    "columns": {
+      "from": "من",
+      "to": "إلى",
+      "subject": "الموضوع",
+      "date": "التاريخ",
+      "size": "الحجم"
+    },
     "no_emails": "لم يتم العثور على رسائل",
     "no_emails_description": "صندوق البريد هذا فارغ",
     "no_search_results": "لم يتم العثور على نتائج",
@@ -621,7 +641,9 @@
       "not_in_contacts": "ليست ضمن جهات اتصالك",
       "add_to_contacts": "إضافة إلى جهات الاتصال",
       "copied": "تم النسخ!",
-      "copy_failed": "فشل النسخ"
+      "copy_failed": "فشل النسخ",
+      "view_contact": "عرض جهة الاتصال",
+      "view_details": "عرض التفاصيل"
     },
     "send_now": "إرسال الآن",
     "verification_code": {
@@ -631,9 +653,11 @@
     },
     "mv_position": "{index} من {total}",
     "plugin_panel_show": "إظهار لوحة الإضافة",
-    "plugin_panel_hide": "إخفاء لوحة الإضافة"
+    "plugin_panel_hide": "إخفاء لوحة الإضافة",
+    "copy": "نسخ"
   },
   "email_composer": {
+    "select_from_directory": "الاختيار من الدليل",
     "minimize": "تصغير",
     "maximize": "ملء الشاشة",
     "restore": "استعادة",
@@ -719,6 +743,10 @@
     "option_dsn_hint": "احصل على تقرير عندما يسلّمها الخادم",
     "option_require_tls": "اشتراط التسليم المشفّر",
     "option_require_tls_hint": "التسليم عبر TLS فقط، وإلا تُرفض",
+    "option_priority": "الأهمية",
+    "option_priority_high": "عالية",
+    "option_priority_normal": "عادية",
+    "option_priority_low": "منخفضة",
     "validation": {
       "recipient_required": "أضف مستلمًا للإرسال",
       "body_required": "اكتب رسالة أو أرفق ملفًا",
@@ -792,6 +820,9 @@
     "autocomplete_search_server": "البحث في الخادم",
     "autocomplete_searching": "جارٍ البحث...",
     "mention_recipients": "المستلمون",
+    "mention_card_not_recipient": "ليس في \"إلى\" أو \"نسخة\"، لذلك لن تصله هذه الرسالة.",
+    "mention_card_add": "إضافة إلى {field}",
+    "mention_card_remove": "إزالة الإشارة",
     "toolbar": {
       "bold": "غامق",
       "italic": "مائل",
@@ -830,7 +861,9 @@
     },
     "send_filing_warning": "تم الإرسال - لكن التنظيف بعد الإرسال فشل، وقد تبقى مسودة قديمة.",
     "pop_out": "فتح الرد في نافذة منفصلة",
-    "send_guard_failed": "لم يُرسَل - فشلت إضافة تفحص الرسائل قبل الإرسال أو لم تستجب."
+    "send_guard_failed": "لم يُرسَل - فشلت إضافة تفحص الرسائل قبل الإرسال أو لم تستجب.",
+    "cut": "قص",
+    "copy": "نسخ"
   },
   "confirm_dialog": {
     "confirm": "تأكيد",
@@ -856,9 +889,9 @@
     "app_title": "البريد الإلكتروني",
     "reconnecting": "انقطع الاتصال. جارٍ محاولة إعادة الاتصال…",
     "rate_limited_title": "مصادقة الخادم مقيّدة مؤقتًا بحد المعدل.",
-    "rate_limited_detail": "أوقف Bulwark الطلبات في الخلفية مؤقتًا لتجنب الحظر. ستتم إعادة المحاولة خلال {seconds} ثانية.",
+    "rate_limited_detail": "أوقف {appName} الطلبات في الخلفية مؤقتًا لتجنب الحظر. ستتم إعادة المحاولة خلال {seconds} ثانية.",
     "rate_limited_action_title": "تم إيقاف الطلب مؤقتًا لتجنب الحظر.",
-    "rate_limited_action_detail": "ينتظر Bulwark انتهاء فترة تهدئة الخادم قبل إرسال المزيد من الطلبات الموثّقة. حاول مرة أخرى خلال {seconds} ثانية.",
+    "rate_limited_action_detail": "ينتظر {appName} انتهاء فترة تهدئة الخادم قبل إرسال المزيد من الطلبات الموثّقة. حاول مرة أخرى خلال {seconds} ثانية.",
     "pull_to_refresh": "اسحب للتحديث",
     "release_to_refresh": "أفلت للتحديث",
     "refreshing": "جارٍ التحديث…"
@@ -887,6 +920,8 @@
     "emails_moved": "تم نقل {count} رسالة",
     "moved_to_mailbox": "تم النقل إلى {mailbox}",
     "move_failed": "فشل النقل",
+    "removed_from_folder": "تمت الإزالة من {mailbox}",
+    "remove_from_folder_failed": "تعذرت الإزالة من هذا المجلد",
     "emails_copied": "تم نسخ {count} رسالة",
     "copy_failed": "فشل النسخ",
     "move_error": "تعذّر نقل الرسائل إلى المجلد المحدد",
@@ -1008,34 +1043,22 @@
     "search_no_results": "لا توجد إعدادات مطابقة",
     "tabs": {
       "appearance": "المظهر",
-      "language": "اللغة والمنطقة والوقت",
-      "email": "سلوك البريد",
-      "composer": "محرر الرسائل",
-      "privacy": "الخصوصية والأمان",
       "account": "الحساب",
-      "identities": "الهويات",
       "vacation": "الغياب",
-      "advanced": "متقدم",
       "calendar": "التقويم",
       "filters": "المرشحات",
-      "templates": "القوالب",
       "folders": "المجلدات",
-      "keywords": "الوسوم",
       "security": "الأمان",
       "files": "الملفات",
       "contacts": "جهات الاتصال",
-      "encryption": "التشفير",
-      "protocol_handlers": "التطبيقات الافتراضية",
-      "sidebar_apps": "تطبيقات الشريط الجانبي",
       "notifications": "الإشعارات",
-      "layout": "التخطيط",
-      "themes": "السمات",
       "reading": "القراءة",
       "composing": "الكتابة",
-      "downloads": "التنزيلات",
-      "content_senders": "المحتوى والمرسلون",
-      "about_data": "حول والبيانات",
-      "debug": "التصحيح"
+      "message_list": "قائمة الرسائل",
+      "general": "عام",
+      "organize": "المجلدات والوسوم",
+      "addons": "الإضافات",
+      "backup": "النسخ الاحتياطي وإعادة الضبط"
     },
     "themes": {
       "title": "السمات",
@@ -1047,18 +1070,13 @@
       "default_restored": "تمت استعادة السمة الافتراضية",
       "default_name": "الافتراضية",
       "default_badge": "افتراضية",
-      "admin_enforced": "مفروضة من المسؤول"
+      "admin_enforced": "مفروضة من المسؤول",
+      "show_all": "إظهار كل السمات ({count})",
+      "show_fewer": "إظهار أقل"
     },
     "tab_groups": {
-      "general": "عام",
-      "account": "الحساب والهوية",
-      "organization": "تنظيم البريد",
       "apps": "التطبيقات",
-      "system": "النظام",
-      "appearance": "المظهر",
-      "mail": "البريد",
-      "privacy": "الخصوصية والأمان",
-      "advanced": "متقدم"
+      "mail": "البريد"
     },
     "appearance": {
       "message_list_order": {
@@ -1193,10 +1211,6 @@
         "label": "تلوين صفوف القائمة بلون الوسم",
         "description": "تظليل كل صف رسالة بلون أول وسم فيها. عطّل هذا لإبقاء الصفوف عادية؛ ستظل نقاط الوسوم وشاراتها تظهر اللون."
       },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
-      },
       "show_folder_total_count": {
         "label": "إظهار إجمالي عدد الرسائل",
         "description": "إظهار إجمالي عدد الرسائل بجانب المجلدات والوسوم، إلى جانب عدد غير المقروء. عطّل هذا لإظهار عدد غير المقروء فقط."
@@ -1226,6 +1240,21 @@
       "cross_all": {
         "label": "كل البريد",
         "description": "إظهار عنصر \"كل البريد\" في صندوق البريد الموحّد يسرد كل البريد عبر المجلدات المحددة."
+      },
+      "sections": {
+        "text": "النص والحركة",
+        "layout": "التخطيط",
+        "sidebar": "الشريط الجانبي",
+        "accounts": "حسابات متعددة",
+        "accounts_description": "كيف تظهر حساباتك وصناديق البريد المشتركة معًا.",
+        "experimental": "تجريبي"
+      },
+      "account_marker": {
+        "label": "تمييز الحسابات",
+        "description": "في العروض الموحدة، وسم كل رسالة بلون الحساب الذي جاءت منه.",
+        "dot": "نقطة ملونة",
+        "tint": "صف ملون",
+        "none": "لا شيء"
       }
     },
     "keywords": {
@@ -1245,6 +1274,7 @@
       "cancel": "إلغاء",
       "migrating": "جارٍ تحديث الوسم على الرسائل الحالية…",
       "migration_error": "فشل تحديث الوسم على الرسائل الحالية",
+      "filters_migration_error": "لا تزال بعض قواعد التصفية تستخدم الوسم القديم — حدّثها يدويًا",
       "nesting": {
         "label": "وسوم متداخلة",
         "description": "ضع الوسوم داخل وسوم أخرى واعرضها كشجرة في الشريط الجانبي."
@@ -1355,9 +1385,7 @@
         "enabled": "إشعارات الأحداث",
         "enabled_desc": "إظهار تنبيهات لأحداث التقويم القادمة",
         "sound": "صوت الإشعار",
-        "sound_desc": "تشغيل تنبيه صوتي لتذكيرات التقويم",
-        "invitation_parsing": "تحليل دعوات البريد الإلكتروني",
-        "invitation_parsing_desc": "اكتشاف دعوات التقويم في مرفقات البريد وإظهار إجراءات التقويم"
+        "sound_desc": "تشغيل تنبيه صوتي لتذكيرات التقويم"
       }
     },
     "language_region": {
@@ -1407,6 +1435,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "نوع صندوق الوارد",
+        "description": "يعرض خيار \"غير المقروءة أولاً\" أحدث 25 رسالة غير مقروءة في قسم فوق باقي صندوق الوارد",
+        "default": "افتراضي",
+        "unread_first": "غير المقروءة أولاً"
+      },
       "clear_search_on_folder_change": {
         "label": "مسح البحث عند تبديل المجلدات",
         "description": "النقر على مجلد (البريد الوارد، المرسل…) يمسح البحث النشط ويعرض ذلك المجلد. عند الإيقاف، يبقى البحث ويُعاد تشغيله في المجلد الذي تنتقل إليه."
@@ -1481,6 +1515,10 @@
         "horizontal": "جزء القراءة أسفل",
         "horizontal_description": "إظهار قائمة الرسائل أعلى وفتح الرسالة المحددة في جزء قراءة أسفلها."
       },
+      "list_columns": {
+        "label": "عرض القائمة كأعمدة",
+        "description": "عرض الصفوف ذات السطر الواحد كجدول بأعمدة المرسل والموضوع والتاريخ والحجم أسفل ترويسة."
+      },
       "show_preview": {
         "label": "إظهار نص المعاينة",
         "description": "عرض معاينة الرسالة في القائمة",
@@ -1489,10 +1527,6 @@
       "show_verification_codes": {
         "label": "إظهار رموز التحقق",
         "description": "عرض الرمز من رسائل تسجيل الدخول والتأكيد لنسخه بنقرة واحدة، في القائمة لمدة يوم وفي الرسالة"
-      },
-      "disable_threading": {
-        "label": "تعطيل تجميع المحادثات",
-        "description": "إظهار الرسائل كرسائل منفردة بدلًا من تجميعها حسب المحادثة"
       },
       "plain_text_mode": {
         "label": "نص عادي فقط",
@@ -1622,6 +1656,13 @@
         "label": "الإشارة إلى المستلمين باستخدام @",
         "description": "تؤدي كتابة @ في الرسالة إلى اقتراح المستلمين وإدراج الاسم الأول للمستلم المختار. يختار Enter أو Tab الاسم المميز."
       },
+      "mention_adds_recipient": {
+        "label": "جهات الاتصال في الإشارات بـ @",
+        "description": "عند كتابة @ تُعرض أيضًا جهات اتصالك والأشخاص من الدليل. اختيار شخص ليس من المستلمين بعد يضيفه إلى الرسالة.",
+        "to": "إضافة إلى \"إلى\"",
+        "cc": "إضافة إلى \"نسخة\"",
+        "off": "عرض المستلمين فقط"
+      },
       "hide_inline_image_attachments": {
         "label": "إخفاء الصور المضمّنة من المرفقات",
         "description": "الصور المضمّنة في نص الرسالة لا تُدرج كمرفقات منفصلة"
@@ -1660,51 +1701,15 @@
       "rtl_editing": {
         "label": "دعم الكتابة من اليمين إلى اليسار",
         "description": "يضيف زر اتجاه إلى شريط أدوات المحرر حتى تتمكن من ضبط الفقرات من اليسار لليمين أو من اليمين لليسار"
-      }
-    },
-    "composer": {
-      "title": "محرر الرسائل",
-      "description": "إعداد خيارات كتابة البريد الإلكتروني",
-      "autosave": {
-        "label": "فاصل الحفظ التلقائي",
-        "description": "عدد مرات حفظ المسودات تلقائيًا",
-        "30s": "كل 30 ثانية",
-        "1m": "كل دقيقة",
-        "2m": "كل دقيقتين",
-        "5m": "كل 5 دقائق"
       },
-      "send_confirmation": {
-        "label": "تأكيد الإرسال",
-        "description": "طلب تأكيد قبل إرسال الرسائل"
+      "group_conversations": {
+        "label": "تجميع الرسائل حسب المحادثة",
+        "description": "عرض الردود معًا كمحادثة واحدة بدلًا من رسائل منفصلة."
       },
-      "default_reply": {
-        "label": "وضع الرد الافتراضي",
-        "description": "الإجراء الافتراضي عند النقر على رد",
-        "reply": "رد",
-        "reply_all": "الرد على الجميع"
-      }
-    },
-    "privacy": {
-      "title": "الخصوصية والأمان",
-      "description": "إدارة إعدادات الخصوصية والأمان",
-      "external_images": {
-        "label": "حظر الصور الخارجية",
-        "description": "منع التتبع عبر الصور الخارجية"
-      },
-      "session_timeout": {
-        "label": "مهلة الجلسة",
-        "description": "تسجيل الخروج تلقائيًا بعد فترة من عدم النشاط",
-        "never": "أبدًا",
-        "30m": "30 دقيقة",
-        "1h": "ساعة واحدة",
-        "4h": "4 ساعات"
-      },
-      "clear_cache": {
-        "label": "مسح ذاكرة التخزين المؤقت",
-        "description": "إزالة البيانات المخزنة مؤقتًا والملفات المؤقتة",
-        "button": "مسح ذاكرة التخزين المؤقت",
-        "confirm": "هل أنت متأكد أنك تريد مسح ذاكرة التخزين المؤقت؟",
-        "success": "تم مسح ذاكرة التخزين المؤقت بنجاح"
+      "signatures_link": {
+        "label": "التوقيعات",
+        "description": "لكل عنوان بريد توقيعه الخاص. حرّرها مع عناوينك.",
+        "button": "عناوين البريد الإلكتروني"
       }
     },
     "account": {
@@ -1750,6 +1755,7 @@
       "backup": {
         "title": "Account list backup",
         "description": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. Mailbox passwords are not saved: you sign in to each restored account yourself.",
+        "description_passwords": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. You can include the mailbox passwords, so the restored accounts sign in by themselves.",
         "status_none": "No list is saved for {account}.",
         "status_saved": "A list is saved for {account}.",
         "save": "Save list",
@@ -1761,9 +1767,15 @@
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
         "confirm": "Confirm password",
+        "include_passwords": "Include mailbox passwords",
+        "include_passwords_hint": "Accounts signed in here with a password will sign in by themselves after a restore. Anyone who knows the backup password gets into every mailbox in the list.",
         "saved": "List saved ({count, plural, one {# account} other {# accounts}}).",
         "restored": "Accounts added: {added}. Accounts already here and updated: {updated}. Open each new account from the account list to sign in.",
+        "restored_signed_in": "Accounts added: {added}. Accounts already here and updated: {updated}.",
         "skipped": "{count, plural, one {# account was} other {# accounts were}} not added: the account limit is reached.",
+        "saved_passwords": "Passwords included for {count, plural, one {# account} other {# accounts}}.",
+        "signed_in": "Signed in to {count, plural, one {# account} other {# accounts}} with the saved password.",
+        "sign_in_failed": "{count, plural, one {# saved password was} other {# saved passwords were}} refused: sign in to those accounts from the account list.",
         "deleted": "Saved list deleted.",
         "errors": {
           "mismatch": "The passwords do not match.",
@@ -1778,6 +1790,9 @@
         "title": "مشترك معي",
         "description": "الحسابات الجماعية والمشتركة التي يمكنك إدارتها. اختر واحدًا لتعديل مرشحاته، والرد التلقائي أثناء الغياب، والتقويمات، وجهات الاتصال.",
         "shared_label": "حساب مشترك"
+      },
+      "sections": {
+        "addresses": "عناوين البريد الإلكتروني"
       }
     },
     "scoped": {
@@ -1929,10 +1944,14 @@
         "key_label": "المفتاح العام (S/MIME أو PGP بترميز ASCII)",
         "key_placeholder": "الصق مفتاحك العام هنا",
         "none": "لا توجد مفاتيح عامة مُعدّة"
+      },
+      "sections": {
+        "devices": "تطبيقات وأجهزة أخرى",
+        "devices_description": "استخدم بريدك خارج هذا المتصفح.",
+        "encryption": "التشفير"
       }
     },
     "identities": {
-      "title": "هويات الإرسال",
       "description": "إدارة عناوين البريد الإلكتروني التي يمكنك الإرسال منها",
       "identities_count": {
         "label": "هوياتك",
@@ -2050,6 +2069,11 @@
       "new_folder_name": "اسم المجلد",
       "rename": "إعادة تسمية",
       "change_icon": "تغيير الأيقونة",
+      "count_mode": "العداد لـ {name}",
+      "count_mode_default": "العداد: افتراضي",
+      "count_mode_unread": "غير المقروءة فقط",
+      "count_mode_all": "غير المقروءة والإجمالي",
+      "count_mode_none": "بدون عداد",
       "delete": "حذف",
       "confirm_delete": "هل أنت متأكد أنك تريد حذف \"{name}\"؟ ستُنقل الرسائل في هذا المجلد إلى المهملات.",
       "create": "إنشاء",
@@ -2068,8 +2092,6 @@
       "error_role": "فشل تحديث دور المجلد"
     },
     "advanced": {
-      "title": "متقدم",
-      "description": "خيارات متقدمة وإعدادات المطورين",
       "debug_mode": {
         "label": "وضع التصحيح",
         "description": "تفعيل التسجيل المفصّل لاستكشاف الأخطاء وإصلاحها"
@@ -2099,7 +2121,11 @@
       },
       "sender_favicons": {
         "label": "أيقونات مواقع المرسلين",
-        "description": "إظهار أيقونات المواقع كصور شخصية للمرسلين من الشركات"
+        "description": "إظهار أيقونات المواقع كصور شخصية للمرسلين من الشركات",
+        "refresh_label": "تحديث أيقونات المرسلين",
+        "refresh_description": "جلب أيقونات المواقع مرة أخرى، مثلاً عندما يغيّر المرسل أيقونته",
+        "refresh_button": "تحديث",
+        "refresh_done": "سيتم جلب أيقونات المرسلين مرة أخرى"
       },
       "show_avatars_in_junk": {
         "label": "إظهار الصور الشخصية في مجلد البريد المزعج",
@@ -2159,6 +2185,12 @@
           "delivered": "مُسلَّمة",
           "mistakes": "أخطاء"
         }
+      },
+      "sections": {
+        "backup": "نسخة احتياطية من الإعدادات",
+        "backup_description": "احتفظ بإعداداتك عبر المتصفحات والأجهزة.",
+        "fix": "إصلاح المشكلات",
+        "fix_description": "عندما يبدو العرض قديمًا أو خاطئًا، أو عندما تريد البدء من جديد."
       }
     },
     "sidebar_apps": {
@@ -2489,6 +2521,41 @@
       "preview": {
         "label": "معاينة"
       }
+    },
+    "advanced_switch": {
+      "label": "إظهار الإعدادات المتقدمة",
+      "show": "إظهار الإعدادات المتقدمة",
+      "badge": "متقدم",
+      "hidden_count": "{count, plural, zero {لا توجد إعدادات متقدمة مخفية في هذه الصفحة.} one {إعداد متقدم واحد مخفي في هذه الصفحة.} two {إعدادان متقدمان مخفيان في هذه الصفحة.} few {# إعدادات متقدمة مخفية في هذه الصفحة.} many {# إعدادًا متقدمًا مخفيًا في هذه الصفحة.} other {# إعداد متقدم مخفي في هذه الصفحة.}}"
+    },
+    "message_list": {
+      "title": "قائمة الرسائل",
+      "description": "ما تعرضه القائمة وما يفعله النقر أو السحب.",
+      "sections": {
+        "senders": "صور المرسلين",
+        "actions": "إجراءات سريعة",
+        "delete": "الحذف والأرشفة",
+        "loading": "التحميل والبحث"
+      }
+    },
+    "reading_page": {
+      "title": "القراءة",
+      "description": "الرسالة المفتوحة.",
+      "sections": {
+        "display": "عرض الرسالة",
+        "images": "الصور والمحتوى الخارجي",
+        "images_description": "قد تكشف الصور البعيدة للمرسل أنك فتحت الرسالة.",
+        "attachments": "المرفقات"
+      }
+    },
+    "composing_page": {
+      "title": "الكتابة",
+      "description": "الكتابة والرد والإرسال.",
+      "sections": {
+        "replying": "الرد",
+        "sending": "قبل الإرسال",
+        "receipts": "إيصالات القراءة"
+      }
     }
   },
   "errors": {
@@ -2520,6 +2587,7 @@
     "unpin": "إلغاء التثبيت",
     "move_to": "نقل إلى...",
     "copy_to_account": "نسخ إلى حساب...",
+    "remove_from_folder": "إزالة من هذا المجلد",
     "archive": "أرشفة",
     "delete": "حذف",
     "mark_as_spam": "الإبلاغ عن بريد مزعج",
@@ -2617,7 +2685,9 @@
       "previous_email": "الرسالة السابقة",
       "open_email": "فتح الرسالة",
       "close_email": "إغلاق / إلغاء التحديد",
-      "go_to_folder": "الانتقال إلى المجلد"
+      "go_to_folder": "الانتقال إلى المجلد",
+      "next_unread": "الرسالة غير المقروءة التالية",
+      "no_more_unread": "لا توجد رسائل غير مقروءة أسفل القائمة"
     },
     "actions": {
       "reply": "رد",
@@ -2636,7 +2706,8 @@
       "help": "إظهار الاختصارات",
       "refresh": "تحديث الرسائل",
       "select_all": "تحديد الكل",
-      "global_search": "البحث في كل شيء"
+      "global_search": "البحث في كل شيء",
+      "extend_selection": "توسيع التحديد لأسفل / لأعلى"
     },
     "threads": {
       "expand_collapse": "توسيع/طي المحادثة",
@@ -2750,11 +2821,57 @@
       "recipient_name": "اسم المستلم",
       "company": "اسم الشركة",
       "date": "التاريخ الحالي",
+      "short_date": "التاريخ بالأرقام",
+      "day": "اليوم (رقمان)",
+      "month": "الشهر (رقمان)",
+      "year": "السنة",
       "day_of_week": "يوم الأسبوع",
       "sender_name": "اسمك"
     }
   },
   "contacts": {
+    "directory": {
+      "title": "الدليل",
+      "search_placeholder": "ابحث عن اسم أو عنوان بريد",
+      "refresh": "تحديث الدليل",
+      "retry": "إعادة المحاولة",
+      "loading": "جارٍ تحميل الدليل…",
+      "unavailable_title": "لا يوجد دليل",
+      "unavailable_hint": "لا يوفّر خادم البريد دليلًا للحسابات.",
+      "forbidden_title": "الدليل غير متاح",
+      "forbidden_hint": "لا يسمح خادم البريد لهذا الحساب بتصفّح الدليل. اسأل المسؤول.",
+      "error_title": "تعذّر تحميل الدليل",
+      "error_hint": "تحقق من الاتصال وحاول مرة أخرى.",
+      "empty_title": "الدليل فارغ",
+      "empty_hint": "لا يعرض خادم البريد أي حساب له عنوان بريد.",
+      "no_match": "لا أحد في الدليل يطابق بحثك",
+      "refresh_failed": "تعذّر تحديث الدليل. تُعرض آخر قائمة تم تحميلها.",
+      "select_page": "تحديد الجميع في هذه الصفحة",
+      "deselect_page": "إلغاء تحديد الجميع في هذه الصفحة",
+      "select_entry": "تحديد {name}",
+      "range": "{from}–{to} من {total}",
+      "page": "الصفحة {page} من {count}",
+      "previous_page": "الصفحة السابقة",
+      "next_page": "الصفحة التالية",
+      "picker_title": "الاختيار من الدليل",
+      "cancel": "إلغاء",
+      "selected_count": "تم تحديد {count}",
+      "add_to": "إضافة إلى «إلى»",
+      "add_cc": "إضافة إلى «نسخة»",
+      "add_bcc": "إضافة إلى «نسخة مخفية»",
+      "select_hint": "اختر شخصًا لعرض تفاصيله",
+      "write_email": "كتابة رسالة",
+      "add_to_contacts": "إضافة إلى جهات الاتصال",
+      "email": "البريد",
+      "read_only_note": "تأتي إدخالات الدليل من خادم البريد ولا يمكن تعديلها هنا.",
+      "type": {
+        "individual": "شخص",
+        "group": "مجموعة",
+        "resource": "مورد",
+        "location": "موقع",
+        "other": "أخرى"
+      }
+    },
     "title": "جهات الاتصال",
     "search_placeholder": "بحث في جهات الاتصال...",
     "create_new": "جهة اتصال جديدة",
@@ -3983,7 +4100,8 @@
     "demo_banner_title": "أدوات التحكم التجريبية",
     "demo_banner_desc": "أنت في الوضع التجريبي - يبقى كل شيء في متصفحك. اضغط \"إعادة تعيين التجربة\" في أي وقت للبدء من جديد ببيانات نموذجية نظيفة.",
     "quota_title": "استخدام التخزين",
-    "quota_desc": "تتبّع حجم صندوق بريدك هنا. تمتلئ الدائرة كلما استخدمت مساحة أكبر."
+    "quota_desc": "تتبّع حجم صندوق بريدك هنا. تمتلئ الدائرة كلما استخدمت مساحة أكبر.",
+    "settings_section": "البداية"
   },
   "unified_mailbox": {
     "search_unavailable": "البحث غير متاح في العرض الموحّد"
@@ -4345,7 +4463,7 @@
       },
       "http_proxy": {
         "title": "استخدام الحسابات التي تربطها",
-        "body": "إرسال طلبات عبر خادم Bulwark باستخدام حساب أو مفتاح أعددته أنت أو مسؤول النظام. لا ترى الإضافة كلمة المرور أبدًا، لكنها تستطيع فعل أي شيء يستطيعه ذلك الحساب على خادمه."
+        "body": "إرسال طلبات عبر خادم {appName} باستخدام حساب أو مفتاح أعددته أنت أو مسؤول النظام. لا ترى الإضافة كلمة المرور أبدًا، لكنها تستطيع فعل أي شيء يستطيعه ذلك الحساب على خادمه."
       }
     },
     "dialog": {
@@ -4362,9 +4480,9 @@
     },
     "connect": {
       "title": "ربط {label}",
-      "intro_password": "يريد {name} استخدام حسابك على {label}. يحتفظ Bulwark بكلمة المرور على خادمه ولا يرسلها إلا إلى {host}. لا ترى الإضافة كلمة المرور أبدًا.",
-      "intro_password_any": "يريد {name} استخدام حسابك على {label}. يحتفظ Bulwark بكلمة المرور على خادمه ولا يرسلها إلا إلى الخادم الذي تدخله هنا. لا ترى الإضافة كلمة المرور أبدًا.",
-      "intro_signin": "يريد {name} تسجيل الدخول إلى حسابك على {label}. أدخل الخادم هنا، ثم سجّل الدخول في صفحة ذلك الخادم. يحتفظ Bulwark بالوصول الذي يحصل عليه على خادمه، ولا تراه الإضافة أبدًا.",
+      "intro_password": "يريد {name} استخدام حسابك على {label}. يحتفظ {appName} بكلمة المرور على خادمه ولا يرسلها إلا إلى {host}. لا ترى الإضافة كلمة المرور أبدًا.",
+      "intro_password_any": "يريد {name} استخدام حسابك على {label}. يحتفظ {appName} بكلمة المرور على خادمه ولا يرسلها إلا إلى الخادم الذي تدخله هنا. لا ترى الإضافة كلمة المرور أبدًا.",
+      "intro_signin": "يريد {name} تسجيل الدخول إلى حسابك على {label}. أدخل الخادم هنا، ثم سجّل الدخول في صفحة ذلك الخادم. يحتفظ {appName} بالوصول الذي يحصل عليه على خادمه، ولا تراه الإضافة أبدًا.",
       "server": "عنوان الخادم",
       "server_hint": "cloud.example.com",
       "username": "اسم المستخدم",
@@ -4411,8 +4529,7 @@
     "loading": "جارٍ تحميل الصفحة",
     "not_available_title": "هذه الصفحة غير متاحة",
     "not_available_description": "الإضافة التي أضافتها متوقفة أو لم تعد مثبتة.",
-    "back_to_mail": "العودة إلى البريد",
-    "settings_group": "الإضافات"
+    "back_to_mail": "العودة إلى البريد"
   },
   "command_palette": {
     "title": "لوحة الأوامر",

@@ -110,7 +110,7 @@ export function MultiAccountPushSettings({ relayBaseUrl }: { relayBaseUrl?: stri
 
   const allChosen = connected.length > 0 && connected.every(a => chosen.has(a.id));
 
-  return <SettingsSection title={t('title')} description={t('description')}>
+  return <SettingsSection id="push-all" title={t('title')} description={t('description')}>
     <div className="space-y-3">
       <label className="flex items-center gap-2 text-sm font-medium">
         <input type="checkbox" disabled={busy} checked={allChosen}

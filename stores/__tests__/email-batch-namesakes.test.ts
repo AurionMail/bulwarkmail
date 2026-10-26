@@ -31,11 +31,11 @@ const mailbox = (overrides: Partial<Mailbox>): Mailbox => ({
   ...overrides,
 } as Mailbox);
 
-const makeClient = () => ({
+const makeClient = (mailboxes: Mailbox[]) => ({
   batchDeleteEmails: vi.fn().mockResolvedValue(undefined),
   batchMoveEmails: vi.fn().mockResolvedValue(undefined),
   batchMarkAsRead: vi.fn().mockResolvedValue(undefined),
-  getMailboxes: vi.fn().mockResolvedValue([]),
+  getMailboxes: vi.fn().mockResolvedValue(mailboxes),
 }) as unknown as IJMAPClient & Record<string, ReturnType<typeof vi.fn>>;
 
 const a = twin('account-a');
@@ -44,8 +44,10 @@ let clientA: ReturnType<typeof makeClient>;
 let clientB: ReturnType<typeof makeClient>;
 
 beforeEach(() => {
-  clientA = makeClient();
-  clientB = makeClient();
+  const trashA = mailbox({ id: 'trash-a', name: 'Trash', role: 'trash', accountId: 'account-a' });
+  const trashB = mailbox({ id: 'trash-b', name: 'Trash', role: 'trash', accountId: 'account-b' });
+  clientA = makeClient([trashA]);
+  clientB = makeClient([trashB]);
   useAuthStore.setState({
     activeAccountId: 'account-a',
     client: clientA,
@@ -62,8 +64,8 @@ beforeEach(() => {
     lastSelectedEmailKey: null,
     mailboxes: [],
     accountMailboxes: {
-      'account-a': [mailbox({ id: 'trash-a', name: 'Trash', role: 'trash', accountId: 'account-a' })],
-      'account-b': [mailbox({ id: 'trash-b', name: 'Trash', role: 'trash', accountId: 'account-b' })],
+      'account-a': [trashA],
+      'account-b': [trashB],
     },
     error: null,
   });
@@ -89,6 +91,7 @@ describe('batch actions with a namesake in another account', () => {
   });
 
   it('keeps the namesake whose account has no trash when the other one moved', async () => {
+    vi.mocked(clientA.getMailboxes).mockResolvedValue([]);
     useEmailStore.setState({
       accountMailboxes: {
         'account-a': [],

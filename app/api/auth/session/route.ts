@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger';
 import { encryptSession, decryptSession, sessionAuthHeader, type SessionCredentials } from '@/lib/auth/crypto';
 import { SESSION_COOKIE_MAX_AGE, sessionCookieName } from '@/lib/auth/session-cookie';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
-import { JmapAuthVerificationError, verifyJmapIdentity } from '@/lib/auth/verify-jmap-auth';
+import { JmapAuthVerificationError, resolveJmapIdentity } from '@/lib/auth/verify-jmap-auth';
 import {
   clearStalwartAuthContextInStore,
   setStalwartAuthContextInStore,
@@ -21,6 +21,8 @@ import { revokeImpersonationCredential } from '@/lib/impersonation/app-password'
 import { IMPERSONATION_GRANT_COOKIE, openImpersonationGrant } from '@/lib/impersonation/grant-cookie';
 import { revokeWopiTokens } from '@/lib/wopi/revocation';
 import { clearPairReauthInStore } from '@/lib/auth/pair-reauth';
+import { loginClientAddress } from '@/lib/auth/client-address';
+import { LOGIN_BUDGET_RETRY_AFTER_SECONDS, reserveLoginAttempt } from '@/lib/auth/verify-budget';
 
 function sessionCookieOptions() {
   return {
@@ -132,9 +134,34 @@ export async function POST(request: NextRequest) {
     // server, such as settings sync. Skipping the check for admin-configured
     // servers let anyone mint a cookie for any username with a made-up
     // password. `trusted` only relaxes the public-address requirement.
-    const normalizedServerUrl = await verifyJmapIdentity(upstreamUrl, authHeader, username, {
-      trusted: upstreamTrusted,
-    });
+    // Wrong credentials tried from here count against this server's address
+    // upstream, so each client gets a failure budget (lib/auth/verify-budget.ts).
+    const clientIp = loginClientAddress(request);
+    const refund = reserveLoginAttempt(clientIp);
+    if (!refund) {
+      return NextResponse.json(
+        { error: 'too_many_attempts', hint: 'Too many failed sign-in attempts. Try again later.' },
+        { status: 429, headers: { 'Retry-After': String(LOGIN_BUDGET_RETRY_AFTER_SECONDS) } },
+      );
+    }
+    // The context cookie also records which account the credential belongs
+    // to: a Bearer login may claim a bare local part (`john`) that several
+    // accounts on a multi-domain server answer to, and per-user data such as
+    // synced settings must be keyed on the account, not on the claim.
+    let normalizedServerUrl: string;
+    let accountName: string;
+    try {
+      ({ serverUrl: normalizedServerUrl, accountName } = await resolveJmapIdentity(upstreamUrl, authHeader, username, {
+        trusted: upstreamTrusted,
+        clientIp,
+      }));
+    } catch (error) {
+      // Only a credential the server rejected spends the budget; an outage
+      // or a mismatched claim says nothing about the password.
+      if (!(error instanceof JmapAuthVerificationError && error.status === 401)) refund();
+      throw error;
+    }
+    refund();
     const token = encryptSession(normalizedServerUrl, username, accessToken ? { token: accessToken } : password);
     const cookieStore = await cookies();
     cookieStore.set(cookieName, token, sessionCookieOptions());
@@ -142,6 +169,7 @@ export async function POST(request: NextRequest) {
       serverUrl: normalizedServerUrl,
       username,
       authHeader,
+      ...(accountName !== username ? { accountName } : {}),
     });
 
     void recordLogin(username, normalizedServerUrl);

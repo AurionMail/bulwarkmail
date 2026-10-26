@@ -109,6 +109,7 @@ export function mockStalwartAccount(
   const maxNumberRedirects = 'maxNumberRedirects' in options ? options.maxNumberRedirects : 1;
   const client = Object.assign(account.client, {
     supportsSieve: () => true,
+    accountSupports: () => true,
     hasAccountCapability: () => false,
     getSieveAccounts: () => [{ id: accountId, name: 'Me', isPrimary: true }],
     getSieveCapabilities: () => ({ sieveExtensions: extensions, maxNumberRedirects }) as never,

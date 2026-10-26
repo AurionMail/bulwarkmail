@@ -9,6 +9,9 @@ lite-image
 !.env.dev.example
 scripts/
 !scripts/lite/
+!scripts/build-plugin-sandbox.mjs
+# Built in the image by scripts/build-plugin-sandbox.mjs
+public/plugin-sandbox-assets/
 TODO.md
 *.md
 !README.md

@@ -327,10 +327,109 @@ describe('ThreadListItem keeping the selection when a message opens', () => {
     expect(onEmailSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'newer' }));
     expect([...useEmailStore.getState().selectedEmailKeys]).toEqual(['other']);
   });
+});
 
-  it('still clears them in the default layout', () => {
-    open('default', [makeEmail()]);
-    expect(useEmailStore.getState().selectedEmailKeys.size).toBe(0);
+// #1014: once something is ticked, a click anywhere on the row ticks it
+// instead of opening the message and dropping the selection.
+describe('ThreadListItem whole row toggles in selection mode', () => {
+  const conversation = () => [
+    makeEmail({ id: 'older', receivedAt: '2024-01-14T10:00:00Z' }),
+    makeEmail({ id: 'newer', receivedAt: '2024-01-15T10:00:00Z' }),
+  ];
+
+  function setup(
+    emails: Email[],
+    { layout = 'default', mobile = false, selected = ['other'], isExpanded = false }: {
+      layout?: 'mountain-view' | 'default'; mobile?: boolean; selected?: string[]; isExpanded?: boolean;
+    } = {},
+  ) {
+    useSettingsStore.setState({ interfaceLayout: layout, mailLayout: 'split', density: 'regular' } as never);
+    useUIStore.setState({ isMobile: mobile, isTablet: false, isDesktop: !mobile });
+    useEmailStore.setState({ selectedEmailKeys: new Set(selected), selectedMailbox: 'inbox' });
+    const onEmailSelect = vi.fn();
+    const onEmailDoubleClick = vi.fn();
+    const onOpenConversation = vi.fn();
+    const onToggleExpand = vi.fn();
+    const [thread] = groupEmailsByThread(emails);
+    const utils = render(
+      <ThreadListItem
+        thread={thread}
+        isExpanded={isExpanded}
+        expandedEmails={isExpanded ? thread.emails : undefined}
+        onToggleExpand={onToggleExpand}
+        onEmailSelect={onEmailSelect}
+        onEmailDoubleClick={onEmailDoubleClick}
+        onOpenConversation={onOpenConversation}
+      />,
+    );
+    return { ...utils, onEmailSelect, onEmailDoubleClick, onOpenConversation, onToggleExpand };
+  }
+  const selection = () => [...useEmailStore.getState().selectedEmailKeys].sort();
+
+  it('ticks a message row instead of opening it', () => {
+    const { onEmailSelect } = setup([makeEmail()]);
+    fireEvent.click(screen.getByText('Test Subject'));
+    expect(onEmailSelect).not.toHaveBeenCalled();
+    expect(selection()).toEqual(['email-1', 'other']);
+  });
+
+  it('unticks it on the next click', () => {
+    const { onEmailSelect } = setup([makeEmail()], { selected: ['email-1', 'other'] });
+    fireEvent.click(screen.getByText('Test Subject'));
+    expect(onEmailSelect).not.toHaveBeenCalled();
+    expect(selection()).toEqual(['other']);
+  });
+
+  it('opens the message as before when nothing is ticked', () => {
+    const { onEmailSelect } = setup([makeEmail()], { selected: [] });
+    fireEvent.click(screen.getByText('Test Subject'));
+    expect(onEmailSelect).toHaveBeenCalledTimes(1);
+    expect(selection()).toEqual([]);
+  });
+
+  it('does not open the message on a double click', () => {
+    const { onEmailDoubleClick } = setup([makeEmail()]);
+    fireEvent.doubleClick(screen.getByText('Test Subject'));
+    expect(onEmailDoubleClick).not.toHaveBeenCalled();
+  });
+
+  it('ticks every message of a thread row without unfolding it', () => {
+    const { onEmailSelect, onToggleExpand } = setup(conversation());
+    fireEvent.click(screen.getByText('Test Subject'));
+    expect(onEmailSelect).not.toHaveBeenCalled();
+    expect(onToggleExpand).not.toHaveBeenCalled();
+    expect(selection()).toEqual(['newer', 'older', 'other']);
+  });
+
+  it('still unfolds the thread from its chevron', () => {
+    const { container, onToggleExpand } = setup(conversation());
+    fireEvent.click(container.querySelector('[data-expand-toggle]')!);
+    expect(onToggleExpand).toHaveBeenCalledTimes(1);
+    expect(selection()).toEqual(['other']);
+  });
+
+  it('ticks a thread on the phone instead of opening the thread view', () => {
+    const { onOpenConversation, onEmailSelect } = setup(conversation(), { mobile: true });
+    fireEvent.click(screen.getByText('Test Subject'));
+    expect(onOpenConversation).not.toHaveBeenCalled();
+    expect(onEmailSelect).not.toHaveBeenCalled();
+    expect(selection()).toEqual(['newer', 'older', 'other']);
+  });
+
+  it('ticks a Mountain View phone row', () => {
+    const { onEmailSelect } = setup([makeEmail()], { layout: 'mountain-view', mobile: true });
+    fireEvent.click(screen.getByText('Test Subject'));
+    expect(onEmailSelect).not.toHaveBeenCalled();
+    expect(selection()).toEqual(['email-1', 'other']);
+  });
+
+  it('ticks a message inside an unfolded thread', () => {
+    const { onEmailSelect } = setup(conversation(), { isExpanded: true });
+    // The unfolded messages show the sender; the header shows the subject.
+    const older = screen.getAllByText('Alice').find((el) => el.closest('.ps-12'))!;
+    fireEvent.click(older);
+    expect(onEmailSelect).not.toHaveBeenCalled();
+    expect(selection().filter((k) => k !== 'other')).toHaveLength(1);
   });
 });
 
@@ -644,5 +743,69 @@ describe('ThreadListItem prefetch on mouse press', () => {
     expect(control).not.toBeNull();
     fireEvent.pointerDown(control!, { pointerType: 'mouse', button: 0 });
     expect(onPrefetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('ThreadListItem date (#891)', () => {
+  // A migrated mailbox: the server stamped every message with the import day,
+  // but the Date header still carries when the mail was really sent.
+  const imported = { receivedAt: '2024-01-15T10:00:00Z', sentAt: '2019-03-05T08:30:00Z' };
+
+  beforeEach(() => {
+    useSettingsStore.setState({
+      emailKeywords: [...DEFAULT_KEYWORDS],
+      showPreview: false,
+      mailLayout: 'split',
+      interfaceLayout: 'default',
+      dateFormat: 'full',
+    });
+    useEmailStore.setState({ selectedEmailKeys: new Set<string>(), selectedMailbox: 'inbox' });
+  });
+
+  it('shows the Date header, not the import time, on a single-message row', () => {
+    const { container } = renderRow(makeEmail(imported));
+    expect(container.textContent).toMatch(/2019/);
+    expect(container.textContent).not.toMatch(/2024/);
+  });
+
+  it('shows the Date header of the latest message on a thread row', () => {
+    const emails = [
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T09:00:00Z', sentAt: '2019-03-04T08:30:00Z' }),
+      makeEmail({ id: 'b', ...imported }),
+    ];
+    const [thread] = groupEmailsByThread(emails);
+    const { container } = render(
+      <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} />,
+    );
+    expect(container.textContent).toMatch(/2019/);
+    expect(container.textContent).not.toMatch(/2024/);
+  });
+});
+
+describe('ThreadListItem hover actions', () => {
+  // When the row above is deleted from its hover actions, the next row slides
+  // under the resting pointer. The browser then reports a pointerover whose
+  // relatedTarget is the list around the row, and React builds no
+  // onPointerEnter from that, so the row has to arm its actions on pointerover.
+  const renderInList = (thread: ReturnType<typeof groupEmailsByThread>[number]) =>
+    render(
+      <div data-testid="list">
+        <ThreadListItem thread={thread} isExpanded={false} onToggleExpand={() => {}} onEmailSelect={() => {}} onDelete={() => {}} />
+      </div>,
+    );
+
+  it.each([
+    ['a single message', () => groupEmailsByThread([makeEmail()])[0]],
+    ['a conversation', () => groupEmailsByThread([
+      makeEmail({ id: 'a', receivedAt: '2024-01-15T10:00:00Z' }),
+      makeEmail({ id: 'b', receivedAt: '2024-01-15T11:00:00Z' }),
+    ])[0]],
+  ])('mounts them for %s that slides under a resting pointer', (_name, makeThread) => {
+    const { container } = renderInList(makeThread());
+    expect(screen.queryByTestId('hover-action-delete')).toBeNull();
+    const row = screen.queryByTestId('email-list-item') ?? container.querySelector('[data-unread]');
+    expect(row).not.toBeNull();
+    fireEvent.pointerOver(row!, { relatedTarget: screen.getByTestId('list') });
+    expect(screen.getByTestId('hover-action-delete')).toBeTruthy();
   });
 });

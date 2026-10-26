@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
@@ -7,6 +7,7 @@ import { checkActions, resetActions, setActionDispatcher, setPluginActions } fro
 import { clearOffers, lastSlotProps, offerSlots, slotProps } from '@/components/plugins/__tests__/fake-plugin-offer';
 import { useSettingsStore } from '@/stores/settings-store';
 import { SLOT_CATALOG } from '@/lib/plugin-slot-catalog';
+import { requestPanel, resetPanelRequests } from '@/lib/plugin-sandbox/panel-requests';
 
 // Plugin surfaces of the composer: frames above and below the message text
 // (fed the draft, at most every 2 seconds), and entries in the Send and
@@ -220,6 +221,7 @@ beforeEach(() => {
 afterEach(() => {
   clearOffers();
   setActionDispatcher(null);
+  resetPanelRequests();
   vi.useRealTimers();
 });
 
@@ -413,6 +415,66 @@ describe('composer-attach-menu', () => {
   });
 });
 
+describe('composer-selection-menu', () => {
+  const SURFACE = 'composer-selection-menu';
+  const rightClick = (el: HTMLElement) => {
+    const event = createEvent.contextMenu(el, { clientX: 40, clientY: 50 });
+    fireEvent(el, event);
+    return event;
+  };
+
+  beforeEach(() => { useSettingsStore.setState({ plainTextMode: true }); });
+  afterEach(() => { useSettingsStore.setState({ plainTextMode: false }); });
+
+  it('leaves the browser menu alone without plugin entries, and without a selection', () => {
+    const { container } = render(<EmailComposer initialData={{ ...DRAFT, body: 'Hello there' }} onClose={vi.fn()} />);
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.setSelectionRange(0, 5);
+    expect(rightClick(textarea).defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    act(() => { setPluginActions('p1', 'P1', SURFACE, checkActions([{ id: 'improve', label: 'Improve' }])); });
+    textarea.setSelectionRange(3, 3);
+    expect(rightClick(textarea).defaultPrevented).toBe(false);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('offers Cut, Copy and the plugin entries on selected text, and hands the click the selection', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    try {
+      act(() => { setPluginActions('p1', 'P1', SURFACE, checkActions([{ id: 'improve', label: 'Improve', icon: 'sparkles' }])); });
+      const { container } = render(<EmailComposer initialData={{ ...DRAFT, body: 'Hello there' }} onClose={vi.fn()} />);
+      const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+      textarea.setSelectionRange(0, 5);
+
+      expect(rightClick(textarea).defaultPrevented).toBe(true);
+      const menu = screen.getByRole('menu');
+      expect(menu).toHaveTextContent('cut');
+      expect(menu).toHaveTextContent('copy');
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Improve' }));
+      await act(async () => {});
+      expect(dispatch).toHaveBeenCalledWith('p1', SURFACE, 'improve', expect.objectContaining({ selection: { text: 'Hello' } }));
+      expect(typeof dispatch.mock.calls[0][3].composerId).toBe('string');
+      expect(screen.queryByRole('menu')).toBeNull();
+
+      textarea.setSelectionRange(0, 5);
+      rightClick(textarea);
+      fireEvent.click(screen.getByTestId('composer-selection-copy'));
+      expect(writeText).toHaveBeenCalledWith('Hello');
+      expect(textarea.value).toBe('Hello there');
+
+      textarea.setSelectionRange(0, 6);
+      rightClick(textarea);
+      fireEvent.click(screen.getByTestId('composer-selection-cut'));
+      expect(writeText).toHaveBeenLastCalledWith('Hello ');
+      expect(textarea.value).toBe('there');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe('composer-sidebar and composer-sidebar-right', () => {
   function stubWidth(width: number) {
     class FixedWidthObserver {
@@ -433,6 +495,8 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     try {
       localStorage.removeItem('composerPluginSidebarCollapsed:left');
       localStorage.removeItem('composerPluginSidebarCollapsed:right');
+      localStorage.removeItem('composerPluginSidebarWidth:left');
+      localStorage.removeItem('composerPluginSidebarWidth:right');
     } catch { /* ignore */ }
   });
 
@@ -447,6 +511,45 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     }
     expect(panel('left')).toContainElement(screen.getByTestId('slot-composer-sidebar'));
     expect(panel('right')).toContainElement(screen.getByTestId('slot-composer-sidebar-right'));
+  });
+
+  it('let the user drag a panel wider or narrower, within limits, and remember it', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar', 'composer-sidebar-right']);
+    const { unmount } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    // A mouse drag, as pointer events with the button held (the handle follows pointers).
+    const drag = (handle: HTMLElement, from: number, to: number) => {
+      fireEvent.pointerDown(handle, { pointerId: 1, button: 0, buttons: 1, pointerType: 'mouse', clientX: from, clientY: 10 });
+      fireEvent.pointerMove(document, { pointerId: 1, buttons: 1, pointerType: 'mouse', clientX: to, clientY: 10 });
+      fireEvent.pointerUp(document, { pointerId: 1, button: 0, buttons: 0, pointerType: 'mouse' });
+    };
+    // The right panel's handle is on its left edge: dragging left widens it.
+    const right = screen.getByTestId('composer-sidebar-resize-right');
+    drag(right, 1000, 900);
+    expect(panel('right').style.width).toBe('360px');
+    // The left panel's handle is on its right edge: dragging left narrows it, down to the minimum.
+    const left = screen.getByTestId('composer-sidebar-resize-left');
+    drag(left, 300, 100);
+    expect(panel('left').style.width).toBe('220px');
+    fireEvent.keyDown(left, { key: 'ArrowRight' });
+    expect(panel('left').style.width).toBe('230px');
+    fireEvent.doubleClick(left);
+    expect(panel('left').style.width).toBe('260px');
+    expect(localStorage.getItem('composerPluginSidebarWidth:right')).toBe('360');
+    unmount();
+
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').style.width).toBe('360px');
+  });
+
+  it('folds a widened panel sooner, since it needs the room', () => {
+    localStorage.setItem('composerPluginSidebarWidth:right', '480');
+    stubWidth(1000);
+    offerSlots('p1', ['composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+    expect(screen.queryByTestId('composer-sidebar-resize-right')).toBeNull();
   });
 
   it('fold the right panel, then both, when the composer would get too narrow', () => {
@@ -464,6 +567,117 @@ describe('composer-sidebar and composer-sidebar-right', () => {
     render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
     expect(panel('left').dataset.composerSidebarMode).toBe('folded');
     expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+  });
+
+  it('let a plugin frame fill the panel, so it can pin a chat input at the bottom', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar-right'], { fill: ['composer-sidebar-right'] });
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const frame = screen.getByTestId('slot-composer-sidebar-right');
+    expect(frame.dataset.fill).toBe('true');
+    expect(frame.closest('[data-plugin-slot]')!.className).toContain('h-full');
+  });
+
+  it('hand the panels the composer id, the draft and the selection', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+
+    const props = slotProps(screen.getByTestId('slot-composer-sidebar-right'));
+    expect(typeof props.composerId).toBe('string');
+    expect((props.draft as { subject: string }).subject).toBe('Lunch');
+    expect(props.selection).toEqual({ text: '', empty: true });
+  });
+
+  it('send the panels the selected text a moment after it changes', () => {
+    useSettingsStore.setState({ plainTextMode: true });
+    try {
+      stubWidth(1400);
+      offerSlots('p1', ['composer-sidebar-right']);
+      const { container } = render(<EmailComposer initialData={{ ...DRAFT, body: 'Hello there' }} onClose={vi.fn()} />);
+      vi.useFakeTimers();
+      const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+
+      textarea.focus();
+      textarea.setSelectionRange(0, 5);
+      act(() => { document.dispatchEvent(new Event('selectionchange')); });
+      expect(slotProps(screen.getByTestId('slot-composer-sidebar-right')).selection).toEqual({ text: '', empty: true });
+
+      act(() => { vi.advanceTimersByTime(200); });
+      expect(slotProps(screen.getByTestId('slot-composer-sidebar-right')).selection).toEqual({ text: 'Hello', empty: false });
+
+      textarea.setSelectionRange(2, 2);
+      act(() => { document.dispatchEvent(new Event('selectionchange')); vi.advanceTimersByTime(200); });
+      expect(slotProps(screen.getByTestId('slot-composer-sidebar-right')).selection).toEqual({ text: '', empty: true });
+    } finally {
+      useSettingsStore.setState({ plainTextMode: false });
+    }
+  });
+
+  it('open, close and toggle on a plugin\'s request, for that composer only, and tell the slot to focus', () => {
+    stubWidth(600);
+    offerSlots('p1', ['composer-sidebar-right']);
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+
+    let open: boolean | null = false;
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'open', { composerId: 'someone-else' }); });
+    expect(open).toBeNull();
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'open', undefined); });
+    expect(open).toBe(true);
+    expect(panel('right').dataset.composerSidebarMode).toBe('overlay');
+    const props = slotProps(screen.getByTestId('slot-composer-sidebar-right'));
+    expect(props.focusRequest).toBe(1);
+    const composerId = props.composerId as string;
+
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'toggle', { composerId }); });
+    expect(open).toBe(false);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'toggle', { composerId }); });
+    expect(open).toBe(true);
+    expect(slotProps(screen.getByTestId('slot-composer-sidebar-right')).focusRequest).toBe(2);
+
+    act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'close', { composerId }); });
+    expect(open).toBe(false);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+    // The left panel is not on this composer: nobody answers.
+    act(() => { open = requestPanel('p1', 'composer-sidebar', 'open', { composerId }); });
+    expect(open).toBeNull();
+  });
+
+  it('start folded when the plugin asks for it, until the user or the plugin opens it', () => {
+    stubWidth(1400);
+    offerSlots('p1', ['composer-sidebar-right'], { startFolded: ['composer-sidebar-right'] });
+    const { unmount } = render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+    act(() => { requestPanel('p1', 'composer-sidebar-right', 'open', undefined); });
+    expect(panel('right').dataset.composerSidebarMode).toBe('docked');
+    unmount();
+
+    // Opened once: it stays open for the next composer.
+    render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+    expect(panel('right').dataset.composerSidebarMode).toBe('docked');
+    fireEvent.click(screen.getByRole('button', { name: 'plugin_panel_hide' }));
+    expect(panel('right').dataset.composerSidebarMode).toBe('folded');
+  });
+
+  it('answer no request on a phone, where the panels are not shown', () => {
+    const width = window.innerWidth;
+    window.innerWidth = 390;
+    try {
+      stubWidth(390);
+      offerSlots('p1', ['composer-sidebar-right']);
+      render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+      let open: boolean | null = true;
+      act(() => { open = requestPanel('p1', 'composer-sidebar-right', 'open', undefined); });
+      expect(open).toBeNull();
+    } finally {
+      window.innerWidth = width;
+    }
   });
 
   it('open a folded panel over the composer when there is no room beside it', () => {

@@ -77,8 +77,8 @@ export function TemplateSettings() {
   };
 
   return (
-    <div className="space-y-6">
-      <SettingsSection title={t('title')} description={t('description')}>
+    <div className="space-y-8">
+      <SettingsSection id="templates" title={t('title')} description={t('description')}>
         <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <FileText className="w-4 h-4" />
@@ -96,7 +96,7 @@ export function TemplateSettings() {
         </div>
       </SettingsSection>
 
-      <SettingsSection title={t('export_import')} description={t('export_import_description')}>
+      <SettingsSection id="templates-export" advanced title={t('export_import')} description={t('export_import_description')}>
         <div className="flex items-center gap-3 py-3">
           <Button
             variant="outline"

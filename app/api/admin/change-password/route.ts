@@ -3,6 +3,7 @@ import { changeAdminPassword } from '@/lib/admin/password';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
+import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
 /**
  * POST /api/admin/change-password - Change admin password
@@ -31,6 +32,8 @@ export async function POST(request: NextRequest) {
     await auditLog('admin.change-password', {}, ip);
     return NextResponse.json({ ok: true });
   } catch (error) {
+    const readOnly = configReadOnlyResponse(error);
+    if (readOnly) return readOnly;
     logger.error('Admin change password error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

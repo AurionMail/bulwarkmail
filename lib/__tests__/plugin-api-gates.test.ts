@@ -154,6 +154,123 @@ describe('native keyword extension API', () => {
     expect(useSettingsStore.getState().emailKeywords).toEqual(before);
   });
 
+  it('uses settings:write for updating and removing definitions', async () => {
+    expect(await gateError(plugin(), 'keywords.update', [[]]))
+      .toMatch(/lacks permission "settings:write"/);
+    expect(await gateError(plugin(), 'keywords.remove', [[]]))
+      .toMatch(/lacks permission "settings:write"/);
+  });
+
+  it('records the plugin that added a definition, whatever the input says', async () => {
+    useSettingsStore.setState({ emailKeywords: [] });
+    const writer = plugin({ permissions: ['settings:write'], grantedPermissions: ['settings:write'] });
+
+    const result = await dispatchApiCall(writer, 'keywords.add', [[
+      { id: 'fairs', label: 'Fairs', color: 'blue', addedBy: 'someone-else' },
+    ]]) as { added: Array<{ addedBy?: string }> };
+
+    expect(result.added[0].addedBy).toBe('p1');
+    expect(useSettingsStore.getState().emailKeywords).toEqual([
+      { id: 'fairs', label: 'Fairs', color: 'blue', addedBy: 'p1' },
+    ]);
+  });
+
+  it('updates only the definitions the plugin added, never their id', async () => {
+    useSettingsStore.setState({
+      emailKeywords: [
+        { id: 'fairs/vison-2026', label: 'Vison 2026', color: 'blue', visibility: 'show', addedBy: 'p1' },
+        { id: 'work', label: 'My Work', color: 'purple' },
+        { id: 'other', label: 'Other', color: 'green', addedBy: 'p2' },
+      ],
+    });
+    const writer = plugin({ permissions: ['settings:write'], grantedPermissions: ['settings:write'] });
+
+    const result = await dispatchApiCall(writer, 'keywords.update', [[
+      { id: 'FAIRS/VISON-2026', label: ' Vision 2026 ', visibility: 'unread' },
+      { id: 'work', label: 'Plugin Work' },
+      { id: 'other', color: 'red' },
+      { id: 'missing', label: 'Missing' },
+    ]]);
+
+    expect(result).toEqual({
+      updated: [
+        { id: 'fairs/vison-2026', label: 'Vision 2026', color: 'blue', visibility: 'unread', addedBy: 'p1' },
+      ],
+      skipped: ['work', 'other', 'missing'],
+    });
+    expect(useSettingsStore.getState().emailKeywords).toEqual([
+      { id: 'fairs/vison-2026', label: 'Vision 2026', color: 'blue', visibility: 'unread', addedBy: 'p1' },
+      { id: 'work', label: 'My Work', color: 'purple' },
+      { id: 'other', label: 'Other', color: 'green', addedBy: 'p2' },
+    ]);
+  });
+
+  it('rejects invalid updates without partially updating settings', async () => {
+    const original = [
+      { id: 'a', label: 'A', color: 'blue', addedBy: 'p1' },
+      { id: 'b', label: 'B', color: 'green', addedBy: 'p1' },
+    ];
+    useSettingsStore.setState({ emailKeywords: original });
+    const writer = plugin({ permissions: ['settings:write'], grantedPermissions: ['settings:write'] });
+
+    for (const [patches, error] of [
+      ['a', /must be an array/],
+      [[{ id: 'a', label: 'A2' }, { id: 'b', color: 'not-a-color' }], /not in the keyword palette/],
+      [[{ id: 'a', label: '  ' }], /label must be/],
+      [[{ id: 'a', visibility: 'sometimes' }], /visibility is invalid/],
+      [[{ id: 'a' }], /changes nothing/],
+      [[{ id: 'not valid', label: 'X' }], /not a valid JMAP label id/],
+    ] as const) {
+      await expect(dispatchApiCall(writer, 'keywords.update', [patches])).rejects.toThrow(error);
+      expect(useSettingsStore.getState().emailKeywords).toEqual(original);
+    }
+  });
+
+  it('removes only the definitions the plugin added', async () => {
+    useSettingsStore.setState({
+      emailKeywords: [
+        { id: 'fairs/laser-2025', label: 'Laser 2025', color: 'blue', addedBy: 'p1' },
+        { id: 'work', label: 'My Work', color: 'purple' },
+        { id: 'other', label: 'Other', color: 'green', addedBy: 'p2' },
+        { id: 'fairs/vision-2026', label: 'Vision 2026', color: 'red', addedBy: 'p1' },
+      ],
+    });
+    const writer = plugin({ permissions: ['settings:write'], grantedPermissions: ['settings:write'] });
+
+    const result = await dispatchApiCall(writer, 'keywords.remove', [[
+      'FAIRS/LASER-2025', 'work', 'other', 'missing',
+    ]]);
+
+    expect(result).toEqual({ removed: ['fairs/laser-2025'], skipped: ['work', 'other', 'missing'] });
+    expect(useSettingsStore.getState().emailKeywords).toEqual([
+      { id: 'work', label: 'My Work', color: 'purple' },
+      { id: 'other', label: 'Other', color: 'green', addedBy: 'p2' },
+      { id: 'fairs/vision-2026', label: 'Vision 2026', color: 'red', addedBy: 'p1' },
+    ]);
+  });
+
+  it('rejects invalid remove ids without changing settings', async () => {
+    const original = [{ id: 'a', label: 'A', color: 'blue', addedBy: 'p1' }];
+    useSettingsStore.setState({ emailKeywords: original });
+    const writer = plugin({ permissions: ['settings:write'], grantedPermissions: ['settings:write'] });
+
+    for (const ids of ['a', ['a', 1], Array.from({ length: 501 }, (_, i) => `t${i}`)]) {
+      await expect(dispatchApiCall(writer, 'keywords.remove', [ids])).rejects.toThrow(/ids must be an array/);
+      expect(useSettingsStore.getState().emailKeywords).toEqual(original);
+    }
+  });
+
+  it('leaves the settings untouched when nothing matches', async () => {
+    const original = [{ id: 'work', label: 'My Work', color: 'purple' }];
+    useSettingsStore.setState({ emailKeywords: original });
+    const writer = plugin({ permissions: ['settings:write'], grantedPermissions: ['settings:write'] });
+
+    await dispatchApiCall(writer, 'keywords.update', [[{ id: 'work', label: 'X' }]]);
+    await dispatchApiCall(writer, 'keywords.remove', [['work']]);
+
+    expect(useSettingsStore.getState().emailKeywords).toBe(original);
+  });
+
   it('reorders complete label sets without changing user metadata', async () => {
     useSettingsStore.setState({
       emailKeywords: [

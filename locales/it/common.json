@@ -60,6 +60,12 @@
     "demo_login_button": "Avvia demo",
     "demo_tagline": "Scopri un client di posta completo. Nessun account richiesto.",
     "demo_no_signup": "Nessuna registrazione - esplora liberamente con dati di esempio",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Completamento dell'accesso...",
     "oauth_error": {
       "title": "Autenticazione non riuscita",
@@ -142,6 +148,8 @@
     "show_all_tags": "Mostra tutto ({count})",
     "show_fewer_tags": "Mostra meno",
     "folders": "Cartelle",
+    "your_folders": "Le tue cartelle",
+    "create_folder": "Crea cartella",
     "show_more": "Altro",
     "show_fewer": "Riduci",
     "mail": "Posta",
@@ -169,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "App predefinite",
-    "description": "Scegli se i link e-mail e calendario devono aprirsi in Bulwark. Tecnicamente, Bulwark si registra come gestore di protocollo per i link mailto: e webcal:.",
+    "description": "Scegli se i link e-mail e calendario devono aprirsi in {appName}. Tecnicamente, {appName} si registra come gestore di protocollo per i link mailto: e webcal:.",
     "unsupported": "Questo browser o questa connessione non supporta la registrazione manuale dei gestori di protocollo. Potresti comunque poter usare la PWA installata tramite le impostazioni del browser o del sistema.",
     "mailto_label": "Link e-mail",
-    "mailto_description": "Apre i link mailto: in Bulwark con l'editor precompilato.",
+    "mailto_description": "Apre i link mailto: in {appName} con l'editor precompilato.",
     "protocol_open_mode_label": "All'apertura dei link di protocollo",
-    "protocol_open_mode_description": "Scegli se Bulwark deve aprire i link mailto: e webcal: in una nuova scheda o riutilizzare una sessione aperta. L'opzione sessione attiva richiede l'autorizzazione alle notifiche, così puoi fare clic su una notifica di fallback per portare Bulwark in primo piano se il browser blocca il focus.",
+    "protocol_open_mode_description": "Scegli se {appName} deve aprire i link mailto: e webcal: in una nuova scheda o riutilizzare una sessione aperta. L'opzione sessione attiva richiede l'autorizzazione alle notifiche, così puoi fare clic su una notifica di fallback per portare {appName} in primo piano se il browser blocca il focus.",
     "protocol_open_mode_active_session": "Apri nella sessione attiva se possibile",
     "protocol_open_mode_new_tab": "Apri sempre una nuova scheda",
-    "focus_notification_title": "Apri Bulwark",
-    "focus_notification_body": "Il link è stato aperto in Bulwark. Fai clic per portare la finestra in primo piano.",
+    "focus_notification_title": "Apri {appName}",
+    "focus_notification_body": "Il link è stato aperto in {appName}. Fai clic per portare la finestra in primo piano.",
     "webcal_label": "Link calendario",
-    "webcal_description": "Apre i link webcal: in Bulwark con una finestra di dialogo di sottoscrizione al calendario precompilata.",
+    "webcal_description": "Apre i link webcal: in {appName} con una finestra di dialogo di sottoscrizione al calendario precompilata.",
     "register_mailto": "Registra app e-mail",
     "register_webcal": "Registra app calendario",
     "mailto_registered": "Registrazione del gestore e-mail richiesta",
@@ -188,7 +196,7 @@
     "registration_failed": "Registrazione del gestore di protocollo non riuscita",
     "opening_mailto": "Apertura editor...",
     "opening_webcal": "Apertura calendario...",
-    "browser_note": "Il browser o il sistema operativo potrebbe chiederti di confermare e potrebbe richiedere che Bulwark sia installato prima di poterlo selezionare come app predefinita.",
+    "browser_note": "Il browser o il sistema operativo potrebbe chiederti di confermare e potrebbe richiedere che {appName} sia installato prima di poterlo selezionare come app predefinita.",
     "select_account_title": "Scegli account",
     "select_mailto_account": "Scegli quale account deve aprire questo link e-mail.",
     "select_webcal_account": "Scegli quale account deve aprire questo link calendario.",
@@ -236,6 +244,18 @@
     "show_on_mobile": "Mostra su mobile"
   },
   "email_list": {
+    "sections": {
+      "unread": "Da leggere",
+      "everything_else": "Tutto il resto",
+      "unread_empty": "Hai letto tutti i messaggi della posta in arrivo."
+    },
+    "columns": {
+      "from": "Da",
+      "to": "A",
+      "subject": "Oggetto",
+      "date": "Data",
+      "size": "Dimensione"
+    },
     "no_emails": "Nessun messaggio trovato",
     "no_emails_description": "Questa casella è vuota",
     "no_search_results": "Nessun risultato trovato",
@@ -621,7 +641,9 @@
       "not_in_contacts": "Non è nei tuoi contatti",
       "add_to_contacts": "Aggiungi ai contatti",
       "copied": "Copiato!",
-      "copy_failed": "Copia non riuscita"
+      "copy_failed": "Copia non riuscita",
+      "view_contact": "Visualizza contatto",
+      "view_details": "Visualizza dettagli"
     },
     "send_now": "Invia ora",
     "verification_code": {
@@ -631,9 +653,11 @@
     },
     "mv_position": "{index} di {total}",
     "plugin_panel_show": "Mostra il pannello del plugin",
-    "plugin_panel_hide": "Nascondi il pannello del plugin"
+    "plugin_panel_hide": "Nascondi il pannello del plugin",
+    "copy": "Copia"
   },
   "email_composer": {
+    "select_from_directory": "Seleziona dalla rubrica aziendale",
     "minimize": "Riduci a icona",
     "maximize": "Schermo intero",
     "restore": "Ripristina",
@@ -716,6 +740,10 @@
     "option_dsn_hint": "Ricevi un rapporto quando il server lo consegna",
     "option_require_tls": "Richiedi consegna cifrata",
     "option_require_tls_hint": "Consegna solo tramite TLS, altrimenti respingi",
+    "option_priority": "Priorità",
+    "option_priority_high": "Alta",
+    "option_priority_normal": "Normale",
+    "option_priority_low": "Bassa",
     "validation": {
       "recipient_required": "Aggiungi un destinatario per inviare",
       "body_required": "Scrivi un messaggio o allega un file",
@@ -792,6 +820,9 @@
     "autocomplete_search_server": "Cerca nel server",
     "autocomplete_searching": "Ricerca in corso...",
     "mention_recipients": "Destinatari",
+    "mention_card_not_recipient": "Non è in A o CC, quindi non riceverà questo messaggio.",
+    "mention_card_add": "Aggiungi in {field}",
+    "mention_card_remove": "Rimuovi menzione",
     "toolbar": {
       "bold": "Grassetto",
       "italic": "Corsivo",
@@ -830,7 +861,9 @@
     },
     "send_filing_warning": "Inviato - ma la pulizia successiva non è riuscita, potrebbe restare una bozza obsoleta.",
     "pop_out": "Apri la risposta in una finestra",
-    "send_guard_failed": "Non inviato - un plugin che controlla i messaggi prima dell'invio non è riuscito o non ha risposto."
+    "send_guard_failed": "Non inviato - un plugin che controlla i messaggi prima dell'invio non è riuscito o non ha risposto.",
+    "cut": "Taglia",
+    "copy": "Copia"
   },
   "confirm_dialog": {
     "confirm": "Conferma",
@@ -856,9 +889,9 @@
     "app_title": "Webmail",
     "reconnecting": "Connessione persa. Tentativo di riconnessione…",
     "rate_limited_title": "L'autenticazione del server e temporaneamente limitata.",
-    "rate_limited_detail": "Bulwark ha sospeso le richieste in background per evitare il blocco. Nuovo tentativo tra {seconds}s.",
+    "rate_limited_detail": "{appName} ha sospeso le richieste in background per evitare il blocco. Nuovo tentativo tra {seconds}s.",
     "rate_limited_action_title": "Richiesta sospesa per evitare il blocco.",
-    "rate_limited_action_detail": "Bulwark attende che termini il cooldown del server prima di inviare altre richieste autenticate. Riprova tra {seconds}s.",
+    "rate_limited_action_detail": "{appName} attende che termini il cooldown del server prima di inviare altre richieste autenticate. Riprova tra {seconds}s.",
     "pull_to_refresh": "Trascina per aggiornare",
     "release_to_refresh": "Rilascia per aggiornare",
     "refreshing": "Aggiornamento…"
@@ -887,6 +920,8 @@
     "emails_moved": "{count} messaggi spostati",
     "moved_to_mailbox": "Spostato in {mailbox}",
     "move_failed": "Spostamento non riuscito",
+    "removed_from_folder": "Rimosso da {mailbox}",
+    "remove_from_folder_failed": "Impossibile rimuovere da questa cartella",
     "emails_copied": "{count} messaggi copiati",
     "copy_failed": "Copia non riuscita",
     "move_error": "Impossibile spostare i messaggi nella cartella selezionata",
@@ -1005,34 +1040,22 @@
     "keep_editing": "Continua a modificare",
     "tabs": {
       "appearance": "Aspetto",
-      "language": "Lingua, regione e ora",
-      "email": "Comportamento email",
-      "composer": "Editor",
-      "privacy": "Privacy e sicurezza",
       "account": "Account",
-      "identities": "Identità",
       "vacation": "Assenza",
-      "advanced": "Avanzate",
       "calendar": "Calendario",
       "filters": "Filtri",
-      "templates": "Modelli",
       "folders": "Cartelle",
-      "keywords": "Etichette",
       "security": "Sicurezza",
-      "encryption": "Cifratura",
       "files": "File",
       "contacts": "Contatti",
-      "protocol_handlers": "App predefinite",
-      "sidebar_apps": "App nella barra laterale",
       "notifications": "Notifiche",
-      "layout": "Layout",
-      "themes": "Temi",
       "reading": "Lettura",
       "composing": "Composizione",
-      "downloads": "Download",
-      "content_senders": "Contenuto e mittenti",
-      "about_data": "Informazioni e dati",
-      "debug": "Debug"
+      "message_list": "Elenco messaggi",
+      "general": "Generale",
+      "organize": "Cartelle ed etichette",
+      "addons": "Componenti aggiuntivi",
+      "backup": "Backup e ripristino"
     },
     "themes": {
       "title": "Temi",
@@ -1044,18 +1067,13 @@
       "default_restored": "Tema predefinito ripristinato",
       "default_name": "Predefinito",
       "default_badge": "Predefinito",
-      "admin_enforced": "Imposto dall'amministratore"
+      "admin_enforced": "Imposto dall'amministratore",
+      "show_all": "Mostra tutti i {count} temi",
+      "show_fewer": "Mostra meno"
     },
     "tab_groups": {
-      "general": "Generale",
-      "account": "Account e identità",
-      "organization": "Organizzazione e-mail",
       "apps": "Applicazioni",
-      "system": "Sistema",
-      "appearance": "Aspetto",
-      "mail": "Posta",
-      "privacy": "Privacy e sicurezza",
-      "advanced": "Avanzate"
+      "mail": "Posta"
     },
     "appearance": {
       "message_list_order": {
@@ -1190,10 +1208,6 @@
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
       },
-      "tint_list_rows_by_account": {
-        "label": "Colora le righe in base all'account",
-        "description": "Nella vista unificata, colora ogni riga con il colore del suo account invece di mostrare il pallino. Ha la precedenza sulla tinta del tag; i tag mantengono il loro colore sulle etichette."
-      },
       "show_folder_total_count": {
         "label": "Mostra il numero totale di messaggi",
         "description": "Mostra il numero totale di messaggi accanto a cartelle ed etichette, insieme al conteggio dei non letti. Disattiva per mostrare solo i non letti."
@@ -1223,6 +1237,21 @@
       "cross_all": {
         "label": "Tutti gli account: Tutta la posta",
         "description": "Mostra una voce nella sezione Tutti gli account che elenca tutta la posta di tutti gli account, in tutte le cartelle tranne posta indesiderata, inviata, archivio, cestino e bozze."
+      },
+      "sections": {
+        "text": "Testo e animazioni",
+        "layout": "Layout",
+        "sidebar": "Barra laterale",
+        "accounts": "Più account",
+        "accounts_description": "Come appaiono insieme i tuoi account e le caselle condivise.",
+        "experimental": "Sperimentale"
+      },
+      "account_marker": {
+        "label": "Distinguere gli account",
+        "description": "Nelle viste unificate, contrassegna ogni messaggio con il colore dell'account da cui proviene.",
+        "dot": "Punto colorato",
+        "tint": "Riga colorata",
+        "none": "Niente"
       }
     },
     "keywords": {
@@ -1242,6 +1271,7 @@
       "cancel": "Annulla",
       "migrating": "Aggiornamento dell'etichetta nelle e-mail esistenti…",
       "migration_error": "Impossibile aggiornare l'etichetta nelle e-mail esistenti",
+      "filters_migration_error": "Alcune regole dei filtri usano ancora il vecchio tag: aggiornale manualmente",
       "nesting": {
         "label": "Etichette nidificate",
         "description": "Nidifica le etichette sotto altre etichette e mostrale come un albero nella barra laterale."
@@ -1313,9 +1343,7 @@
         "enabled": "Notifiche eventi",
         "enabled_desc": "Mostra avvisi per i prossimi eventi del calendario",
         "sound": "Suono di notifica",
-        "sound_desc": "Riproduci un suono per i promemoria del calendario",
-        "invitation_parsing": "Analizza inviti via e-mail",
-        "invitation_parsing_desc": "Rileva inviti calendario negli allegati e mostra azioni calendario"
+        "sound_desc": "Riproduci un suono per i promemoria del calendario"
       },
       "push": {
         "confirm_disable_message": "Questo dispositivo non riceverà più avvisi quando il sito è chiuso.",
@@ -1404,6 +1432,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Tipo di posta in arrivo",
+        "description": "\"Prima i non letti\" mostra i 25 messaggi non letti più recenti in una sezione sopra il resto della posta in arrivo",
+        "default": "Predefinito",
+        "unread_first": "Prima i non letti"
+      },
       "clear_search_on_folder_change": {
         "label": "Cancella la ricerca quando cambi cartella",
         "description": "Facendo clic su una cartella (Posta in arrivo, Inviati…) la ricerca attiva viene cancellata e si apre quella cartella. Se disattivato, la ricerca resta attiva e viene rieseguita nella cartella scelta."
@@ -1478,9 +1512,9 @@
         "horizontal": "Riquadro di lettura in basso",
         "horizontal_description": "Mostra l'elenco dei messaggi in alto e apri il messaggio selezionato in un riquadro di lettura sotto."
       },
-      "disable_threading": {
-        "label": "Disabilita raggruppamento conversazioni",
-        "description": "Mostra le email come messaggi singoli anziché raggruppati per conversazione"
+      "list_columns": {
+        "label": "Mostra l'elenco in colonne",
+        "description": "Mostra le righe su una sola riga come tabella con le colonne Da, Oggetto, Data e Dimensione sotto un'intestazione."
       },
       "plain_text_mode": {
         "label": "Solo testo normale",
@@ -1619,6 +1653,13 @@
         "label": "Menziona i destinatari con @",
         "description": "Digitando @ nel messaggio vengono proposti i destinatari e viene inserito il nome di quello scelto. Invio o Tab seleziona il nome evidenziato."
       },
+      "mention_adds_recipient": {
+        "label": "Contatti nelle menzioni con @",
+        "description": "Digitando @ vengono proposti anche i tuoi contatti e le persone della rubrica aziendale. Se scegli qualcuno che non è ancora destinatario, viene aggiunto al messaggio.",
+        "to": "Aggiungi in A",
+        "cc": "Aggiungi in CC",
+        "off": "Solo destinatari"
+      },
       "hide_inline_image_attachments": {
         "label": "Nascondi le immagini inline dagli allegati",
         "description": "Le immagini incorporate nel corpo del messaggio non vengono elencate come allegati separati"
@@ -1657,51 +1698,15 @@
       "rtl_editing": {
         "label": "Supporto alla scrittura da destra a sinistra",
         "description": "Aggiunge un pulsante di direzione alla barra degli strumenti dell'editor per impostare i paragrafi da sinistra a destra o da destra a sinistra"
-      }
-    },
-    "composer": {
-      "title": "Editor",
-      "description": "Configura le impostazioni di composizione email",
-      "autosave": {
-        "label": "Intervallo di salvataggio automatico",
-        "description": "Con quale frequenza salvare automaticamente le bozze",
-        "30s": "Ogni 30 secondi",
-        "1m": "Ogni minuto",
-        "2m": "Ogni 2 minuti",
-        "5m": "Ogni 5 minuti"
       },
-      "send_confirmation": {
-        "label": "Conferma invio",
-        "description": "Chiedi conferma prima di inviare messaggi"
+      "group_conversations": {
+        "label": "Raggruppa i messaggi per conversazione",
+        "description": "Mostra le risposte insieme come un'unica conversazione invece che come messaggi separati."
       },
-      "default_reply": {
-        "label": "Modalità risposta predefinita",
-        "description": "Azione predefinita quando si fa clic su rispondi",
-        "reply": "Rispondi",
-        "reply_all": "Rispondi a tutti"
-      }
-    },
-    "privacy": {
-      "title": "Privacy e sicurezza",
-      "description": "Gestisci le tue impostazioni di privacy e sicurezza",
-      "external_images": {
-        "label": "Blocca immagini esterne",
-        "description": "Impedisci il tracciamento attraverso immagini esterne"
-      },
-      "session_timeout": {
-        "label": "Timeout sessione",
-        "description": "Disconnetti automaticamente dopo inattività",
-        "never": "Mai",
-        "30m": "30 minuti",
-        "1h": "1 ora",
-        "4h": "4 ore"
-      },
-      "clear_cache": {
-        "label": "Cancella cache",
-        "description": "Rimuovi dati memorizzati nella cache e file temporanei",
-        "button": "Cancella cache",
-        "confirm": "Sei sicuro di voler cancellare la cache?",
-        "success": "Cache cancellata con successo"
+      "signatures_link": {
+        "label": "Firme",
+        "description": "Ogni indirizzo email ha la propria firma. Modificale insieme ai tuoi indirizzi.",
+        "button": "Indirizzi email"
       }
     },
     "account": {
@@ -1747,6 +1752,7 @@
       "backup": {
         "title": "Backup dell'elenco account",
         "description": "Conserva sul server l'elenco degli account di questo browser, cifrato con una password che conosci solo tu, e ripristinalo su un altro dispositivo. Le password delle caselle non vengono salvate: accedi tu a ogni account ripristinato.",
+        "description_passwords": "Conserva sul server l'elenco degli account di questo browser, cifrato con una password che conosci solo tu, e ripristinalo su un altro dispositivo. Puoi includere le password delle caselle, così gli account ripristinati accedono da soli.",
         "status_none": "Nessun elenco salvato per {account}.",
         "status_saved": "C'è un elenco salvato per {account}.",
         "save": "Salva elenco",
@@ -1758,9 +1764,15 @@
         "password_hint": "Almeno 10 caratteri. Non si può recuperare: se la dimentichi, salva di nuovo l'elenco con una nuova password.",
         "restore_hint": "La password scelta quando l'elenco è stato salvato.",
         "confirm": "Conferma password",
+        "include_passwords": "Includi le password delle caselle",
+        "include_passwords_hint": "Gli account collegati qui con una password accederanno da soli dopo il ripristino. Chi conosce la password del backup entra in tutte le caselle dell'elenco.",
         "saved": "Elenco salvato ({count, plural, one {# account} other {# account}}).",
         "restored": "Account aggiunti: {added}. Account già presenti e aggiornati: {updated}. Apri ogni nuovo account dall'elenco account per accedere.",
+        "restored_signed_in": "Account aggiunti: {added}. Account già presenti e aggiornati: {updated}.",
         "skipped": "{count, plural, one {# account non è stato aggiunto} other {# account non sono stati aggiunti}}: è stato raggiunto il limite di account.",
+        "saved_passwords": "Password incluse per {count, plural, one {# account} other {# account}}.",
+        "signed_in": "Accesso fatto a {count, plural, one {# account} other {# account}} con la password salvata.",
+        "sign_in_failed": "{count, plural, one {# password salvata è stata rifiutata} other {# password salvate sono state rifiutate}}: accedi a quegli account dall'elenco account.",
         "deleted": "Elenco salvato eliminato.",
         "errors": {
           "mismatch": "Le password non coincidono.",
@@ -1775,6 +1787,9 @@
         "title": "Condivisi con me",
         "description": "Account di gruppo e condivisi che puoi gestire. Selezionane uno per modificarne filtri, risponditore automatico, calendari e contatti.",
         "shared_label": "Account condiviso"
+      },
+      "sections": {
+        "addresses": "Indirizzi email"
       }
     },
     "security": {
@@ -1922,10 +1937,14 @@
         "key_label": "Chiave pubblica (S/MIME o PGP in formato ASCII)",
         "key_placeholder": "Incolla qui la tua chiave pubblica",
         "none": "Nessuna chiave pubblica configurata"
+      },
+      "sections": {
+        "devices": "Altre app e dispositivi",
+        "devices_description": "Usa la tua posta al di fuori di questo browser.",
+        "encryption": "Crittografia"
       }
     },
     "identities": {
-      "title": "Identità di invio",
       "description": "Gestisci gli indirizzi email da cui puoi inviare",
       "identities_count": {
         "label": "Le tue identità",
@@ -2043,6 +2062,11 @@
       "new_folder_name": "Nome della cartella",
       "rename": "Rinomina",
       "change_icon": "Cambia icona",
+      "count_mode": "Contatore per {name}",
+      "count_mode_default": "Contatore: predefinito",
+      "count_mode_unread": "Solo non letti",
+      "count_mode_all": "Non letti e totale",
+      "count_mode_none": "Nessun contatore",
       "delete": "Elimina",
       "confirm_delete": "Sei sicuro di voler eliminare \"{name}\"? Le e-mail in questa cartella verranno spostate nel Cestino.",
       "create": "Crea",
@@ -2061,8 +2085,6 @@
       "error_role": "Impossibile aggiornare il ruolo della cartella"
     },
     "advanced": {
-      "title": "Avanzate",
-      "description": "Opzioni avanzate e impostazioni per sviluppatori",
       "debug_mode": {
         "label": "Modalità debug",
         "description": "Abilita registrazione dettagliata per la risoluzione dei problemi"
@@ -2092,7 +2114,11 @@
       },
       "sender_favicons": {
         "label": "Favicon dei mittenti",
-        "description": "Mostra le icone dei siti web come immagini profilo per i mittenti aziendali"
+        "description": "Mostra le icone dei siti web come immagini profilo per i mittenti aziendali",
+        "refresh_label": "Aggiorna icone dei mittenti",
+        "refresh_description": "Scarica di nuovo le icone dei siti web, ad esempio quando un mittente ha cambiato la sua",
+        "refresh_button": "Aggiorna",
+        "refresh_done": "Le icone dei mittenti verranno scaricate di nuovo"
       },
       "show_avatars_in_junk": {
         "label": "Mostra avatar nella cartella spam",
@@ -2152,6 +2178,12 @@
           "delivered": "Consegnati",
           "mistakes": "Errori"
         }
+      },
+      "sections": {
+        "backup": "Backup delle impostazioni",
+        "backup_description": "Conserva le impostazioni tra browser e dispositivi.",
+        "fix": "Risolvere i problemi",
+        "fix_description": "Quando una vista sembra obsoleta o sbagliata, o vuoi ricominciare da capo."
       }
     },
     "sidebar_apps": {
@@ -2489,6 +2521,41 @@
     "scoped": {
       "back": "Torna al mio account",
       "managing": "Gestione: {name}"
+    },
+    "advanced_switch": {
+      "label": "Mostra impostazioni avanzate",
+      "show": "Mostra impostazioni avanzate",
+      "badge": "Avanzato",
+      "hidden_count": "{count, plural, one {1 impostazione avanzata è nascosta in questa pagina.} other {# impostazioni avanzate sono nascoste in questa pagina.}}"
+    },
+    "message_list": {
+      "title": "Elenco messaggi",
+      "description": "Cosa mostra l'elenco e cosa fa un clic o uno scorrimento.",
+      "sections": {
+        "senders": "Immagini dei mittenti",
+        "actions": "Azioni rapide",
+        "delete": "Eliminazione e archiviazione",
+        "loading": "Caricamento e ricerca"
+      }
+    },
+    "reading_page": {
+      "title": "Lettura",
+      "description": "Il messaggio aperto.",
+      "sections": {
+        "display": "Visualizzazione del messaggio",
+        "images": "Immagini e contenuti esterni",
+        "images_description": "Le immagini remote possono rivelare al mittente che hai aperto il messaggio.",
+        "attachments": "Allegati"
+      }
+    },
+    "composing_page": {
+      "title": "Scrittura",
+      "description": "Scrivere, rispondere e inviare.",
+      "sections": {
+        "replying": "Risposte",
+        "sending": "Prima dell'invio",
+        "receipts": "Conferme di lettura"
+      }
     }
   },
   "errors": {
@@ -2520,6 +2587,7 @@
     "unpin": "Non fissare più",
     "move_to": "Sposta in...",
     "copy_to_account": "Copia in account...",
+    "remove_from_folder": "Rimuovi da questa cartella",
     "archive": "Archivia",
     "delete": "Elimina",
     "mark_as_spam": "Segnala come spam",
@@ -2617,7 +2685,9 @@
       "previous_email": "Messaggio precedente",
       "open_email": "Apri messaggio",
       "close_email": "Chiudi / Deseleziona",
-      "go_to_folder": "Vai alla cartella"
+      "go_to_folder": "Vai alla cartella",
+      "next_unread": "Prossima email non letta",
+      "no_more_unread": "Nessuna email non letta più in basso nell'elenco"
     },
     "actions": {
       "reply": "Rispondi",
@@ -2636,7 +2706,8 @@
       "help": "Mostra scorciatoie",
       "refresh": "Aggiorna messaggi",
       "select_all": "Seleziona tutto",
-      "global_search": "Cerca ovunque"
+      "global_search": "Cerca ovunque",
+      "extend_selection": "Estendi la selezione in basso / in alto"
     },
     "threads": {
       "expand_collapse": "Espandi/comprimi conversazione",
@@ -2750,11 +2821,57 @@
       "recipient_name": "Nome del destinatario",
       "company": "Nome dell'azienda",
       "date": "Data odierna",
+      "short_date": "Data in cifre",
+      "day": "Giorno (due cifre)",
+      "month": "Mese (due cifre)",
+      "year": "Anno",
       "day_of_week": "Giorno della settimana",
       "sender_name": "Il tuo nome"
     }
   },
   "contacts": {
+    "directory": {
+      "title": "Rubrica aziendale",
+      "search_placeholder": "Cerca nome o indirizzo email",
+      "refresh": "Aggiorna rubrica aziendale",
+      "retry": "Riprova",
+      "loading": "Caricamento della rubrica aziendale…",
+      "unavailable_title": "Nessuna rubrica aziendale",
+      "unavailable_hint": "Il tuo server di posta non offre un elenco degli account.",
+      "forbidden_title": "Rubrica aziendale non disponibile",
+      "forbidden_hint": "Il tuo server di posta non consente a questo account di consultare l'elenco. Chiedi all'amministratore.",
+      "error_title": "Impossibile caricare la rubrica aziendale",
+      "error_hint": "Controlla la connessione e riprova.",
+      "empty_title": "La rubrica aziendale è vuota",
+      "empty_hint": "Il tuo server di posta non elenca account con un indirizzo email.",
+      "no_match": "Nessuno nella rubrica aziendale corrisponde alla ricerca",
+      "refresh_failed": "Impossibile aggiornare la rubrica aziendale. Viene mostrato l'ultimo elenco caricato.",
+      "select_page": "Seleziona tutti in questa pagina",
+      "deselect_page": "Deseleziona tutti in questa pagina",
+      "select_entry": "Seleziona {name}",
+      "range": "{from}–{to} di {total}",
+      "page": "Pagina {page} di {count}",
+      "previous_page": "Pagina precedente",
+      "next_page": "Pagina successiva",
+      "picker_title": "Seleziona dalla rubrica aziendale",
+      "cancel": "Annulla",
+      "selected_count": "{count} selezionati",
+      "add_to": "Aggiungi ad A",
+      "add_cc": "Aggiungi a Cc",
+      "add_bcc": "Aggiungi a Ccn",
+      "select_hint": "Seleziona una persona per vederne i dettagli",
+      "write_email": "Scrivi email",
+      "add_to_contacts": "Aggiungi ai contatti",
+      "email": "Email",
+      "read_only_note": "Le voci provengono dal tuo server di posta e non possono essere modificate qui.",
+      "type": {
+        "individual": "Persona",
+        "group": "Gruppo",
+        "resource": "Risorsa",
+        "location": "Luogo",
+        "other": "Altro"
+      }
+    },
     "title": "Contatti",
     "search_placeholder": "Cerca contatti...",
     "create_new": "Nuovo contatto",
@@ -3937,7 +4054,8 @@
     "demo_banner_title": "Controlli demo",
     "demo_banner_desc": "Sei in modalità demo - tutto rimane nel tuo browser. Premi 'Reimposta Demo' in qualsiasi momento per ricominciare con dati puliti.",
     "quota_title": "Utilizzo dello spazio",
-    "quota_desc": "Monitora le dimensioni della tua casella qui. Il cerchio si riempie man mano che utilizzi più spazio."
+    "quota_desc": "Monitora le dimensioni della tua casella qui. Il cerchio si riempie man mano che utilizzi più spazio.",
+    "settings_section": "Per iniziare"
   },
   "unified_mailbox": {
     "search_unavailable": "La ricerca non è disponibile nella vista unificata"
@@ -4345,7 +4463,7 @@
       },
       "http_proxy": {
         "title": "Usare gli account che colleghi",
-        "body": "Inviare richieste tramite il server di Bulwark con un account o una chiave configurati da te o dal tuo amministratore. Il plugin non vede mai la password, ma può fare tutto ciò che quell'account può fare sul proprio server."
+        "body": "Inviare richieste tramite il server di {appName} con un account o una chiave configurati da te o dal tuo amministratore. Il plugin non vede mai la password, ma può fare tutto ciò che quell'account può fare sul proprio server."
       }
     },
     "dialog": {
@@ -4362,9 +4480,9 @@
     },
     "connect": {
       "title": "Connetti {label}",
-      "intro_password": "{name} vuole usare il tuo account {label}. Bulwark conserva la password sul proprio server e la invia solo a {host}. Il plugin non la vede mai.",
-      "intro_password_any": "{name} vuole usare il tuo account {label}. Bulwark conserva la password sul proprio server e la invia solo al server che inserisci qui. Il plugin non la vede mai.",
-      "intro_signin": "{name} vuole accedere al tuo account {label}. Inserisci qui il server, poi accedi sulla sua pagina. Bulwark conserva sul proprio server l'accesso ottenuto; il plugin non lo vede mai.",
+      "intro_password": "{name} vuole usare il tuo account {label}. {appName} conserva la password sul proprio server e la invia solo a {host}. Il plugin non la vede mai.",
+      "intro_password_any": "{name} vuole usare il tuo account {label}. {appName} conserva la password sul proprio server e la invia solo al server che inserisci qui. Il plugin non la vede mai.",
+      "intro_signin": "{name} vuole accedere al tuo account {label}. Inserisci qui il server, poi accedi sulla sua pagina. {appName} conserva sul proprio server l'accesso ottenuto; il plugin non lo vede mai.",
       "server": "Indirizzo del server",
       "server_hint": "cloud.example.com",
       "username": "Nome utente",
@@ -4411,8 +4529,7 @@
     "loading": "Caricamento della pagina",
     "not_available_title": "Questa pagina non è disponibile",
     "not_available_description": "Il plugin che l'ha aggiunta è disattivato o non è più installato.",
-    "back_to_mail": "Torna alla posta",
-    "settings_group": "Plugin"
+    "back_to_mail": "Torna alla posta"
   },
   "command_palette": {
     "title": "Tavolozza comandi",

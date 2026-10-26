@@ -6,6 +6,7 @@ import {
   CheckSquare,
   Folder,
   FolderInput,
+  FolderX,
   Loader2,
   Mail,
   MailOpen,
@@ -21,11 +22,13 @@ import {
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth-store";
 import { useShallow } from "zustand/react/shallow";
-import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete } from "@/stores/email-store";
+import { useEmailStore, ArchiveMailboxNotFoundError, resolveSelectedEmails, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { toast } from "@/stores/toast-store";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useMenuNavigation } from "@/hooks/use-menu-navigation";
+import { useArchiveActionEnabled } from "@/lib/archive-gate";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TagPicker } from "@/components/email/tag-picker";
 import { localizeMailboxName } from "@/lib/mailbox-label";
@@ -33,6 +36,7 @@ import { buildMoveTargets, resolveMoveOwnerAccountId } from "@/lib/move-targets"
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { cn, type MailboxNode } from "@/lib/utils";
 import { PluginActions } from "@/components/plugins/plugin-actions";
+import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
 
 interface MvListToolbarProps {
   /** Loaded conversation count, for the right-hand range readout. */
@@ -105,6 +109,7 @@ export function MvListToolbar({
   const t = useTranslations("email_list");
   const tBatch = useTranslations("email_list.batch_actions");
   const tActions = useTranslations("settings.email_behavior.hover_actions");
+  const archiveActionEnabled = useArchiveActionEnabled();
   const tFolder = useTranslations("mailbox_context_menu");
   const tMenu = useTranslations("context_menu");
   const tSidebar = useTranslations("sidebar");
@@ -213,6 +218,8 @@ export function MvListToolbar({
   // Optimistic updates and demo fixtures can briefly leave the server total
   // behind the rows already loaded. Never render an impossible "23 of 22".
   const displayedTotal = Math.max(totalCount ?? loadedCount, loadedCount);
+  // The "Unread first" inbox gives each section its own readout instead.
+  const sectioned = !!useUnreadFirstSection();
 
   const currentRole = mailboxes.find((mb) => mb.id === selectedMailbox)?.role
     ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
@@ -279,6 +286,12 @@ export function MvListToolbar({
     });
 
   const selectedEmails = resolveSelectedEmails(useEmailStore.getState());
+  // "Remove from this folder" (#615), when every selected message is also in
+  // another folder.
+  const removeFromFolder = useRemoveFromFolder();
+  const folderToLeave = useEmailStore(removalFolder);
+  const selectionCanLeaveFolder = selectedEmails.length > 0
+    && selectedEmails.every((email) => canRemoveFromFolder(email, folderToLeave));
 
   // The same targets the row's own context menu offers, with the account of
   // the selection leading (#1149).
@@ -491,24 +504,34 @@ export function MvListToolbar({
       {hasSelection && !disabled && (
         <>
           <div className="w-px h-6 bg-border mx-1 shrink-0" />
-          <ToolbarButton
-            icon={Archive}
-            label={tActions("archive")}
-            onClick={() => run(async () => { if (client) await batchArchive(client); }, {
-              success: tNotifications("emails_archived", { count: selectionCount }),
-              error: tNotifications("error_archiving"),
-              describeError: (error) => error instanceof ArchiveMailboxNotFoundError
-                ? tViewer("archive_mailbox_not_found")
-                : undefined,
-            })}
-            disabled={isProcessing}
-            busy={isProcessing}
-          />
+          {archiveActionEnabled && (
+            <ToolbarButton
+              icon={Archive}
+              label={tActions("archive")}
+              onClick={() => run(async () => { if (client) await batchArchive(client); }, {
+                success: tNotifications("emails_archived", { count: selectionCount }),
+                error: tNotifications("error_archiving"),
+                describeError: (error) => error instanceof ArchiveMailboxNotFoundError
+                  ? tViewer("archive_mailbox_not_found")
+                  : undefined,
+              })}
+              disabled={isProcessing}
+              busy={isProcessing}
+            />
+          )}
           {spamApplicable && (
             <ToolbarButton
               icon={isInJunk ? ShieldCheck : ShieldAlert}
               label={isInJunk ? tActions("not_spam") : tActions("spam")}
               onClick={handleSpam}
+              disabled={isProcessing}
+            />
+          )}
+          {selectionCanLeaveFolder && (
+            <ToolbarButton
+              icon={FolderX}
+              label={tMenu("remove_from_folder")}
+              onClick={() => run(() => removeFromFolder(resolveSelectedEmails(useEmailStore.getState())))}
               disabled={isProcessing}
             />
           )}
@@ -639,7 +662,7 @@ export function MvListToolbar({
 
       <div className="flex-1 min-w-0" />
 
-      {loadedCount > 0 && (
+      {loadedCount > 0 && !sectioned && (
         <span className="text-xs text-muted-foreground tabular-nums pe-2 shrink-0">
           {/* The range readout. The list grows as it scrolls rather than
               paging, so there are no previous/next arrows to go with it. */}

@@ -6,6 +6,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { EmailList } from "@/components/email/email-list";
 import { MvComposeInline, MvComposeWindow } from "@/components/email/mv-compose-window";
 import { usePinnedPerSession } from "@/hooks/use-pinned-per-session";
+import { useConfig } from "@/hooks/use-config";
+import { productName } from "@/lib/product-name";
 import { MessageListTabs } from "@/components/email/message-list-tabs";
 import dynamic from "next/dynamic";
 import type { ComposerDraftData } from "@/components/email/email-composer";
@@ -30,15 +32,18 @@ import { ThreadGroup, Email, Mailbox, type StateChange, isUnifiedMailboxId, UNIF
 import { useAccountStore, waitForConnectedAccount } from "@/stores/account-store";
 import { useShallow } from "zustand/react/shallow";
 import { usePolicyStore } from "@/stores/policy-store";
+import { isArchiveActionEnabled, useArchiveActionEnabled } from "@/lib/archive-gate";
 import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
+import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
 import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
+import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
 import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from "@/lib/send-failure-message";
-import { formatRejectedRecipients, type JMAPClient } from "@/lib/jmap/client";
+import { formatRejectedRecipients, RescheduleRestoredError, type JMAPClient } from "@/lib/jmap/client";
 import { reconcilePushBindings, releasePushBindings, type PushBinding } from "@/lib/push-bindings";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import { MailboxShareDialog } from "@/components/layout/mailbox-share-dialog";
@@ -55,6 +60,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePaneSize } from "@/hooks/use-pane-size";
 import { usePaneId } from "@/hooks/use-pane-context";
 import { useKeyboardShortcuts, type GoToMailboxTarget } from "@/hooks/use-keyboard-shortcuts";
+import { findNextUnreadIndex } from "@/lib/next-unread-email";
 import { useRefreshGesture } from "@/hooks/use-refresh-gesture";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { usePromptDialog } from "@/hooks/use-prompt-dialog";
@@ -63,7 +69,7 @@ import { debug } from "@/lib/debug";
 import { playNotificationSound } from "@/lib/notification-sound";
 import { cn, formatDateTime, getMailboxPath } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
-import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, groupEmailsByThread, threadKeyFor } from "@/lib/thread-utils";
+import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, emailKeyFor, groupEmailsByThread, threadKeyFor } from "@/lib/thread-utils";
 import { resolveThreadRoute } from "@/lib/thread-routing";
 import {
   ErrorBoundary,
@@ -199,6 +205,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const linkSegments = useLiteLinkSegments('mail', routeSegments);
   const t = useTranslations();
   const tCommon = useTranslations('common');
+  const appName = productName(useConfig().appName);
   const tQuote = useTranslations('quote_header');
   const tComposer = useTranslations('email_composer');
   const tViewer = useTranslations('email_viewer');
@@ -234,6 +241,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const [isResizing, setIsResizing] = useState(false);
   const dragStartWidth = useRef(0);
   // Mobile conversation view state
+  const [conversationBlobSource, setConversationBlobSource] = useState<EmailBlobContext | undefined>();
+  const conversationOpenSeqRef = useRef(0);
   const [conversationThread, setConversationThread] = useState<ThreadGroup | null>(null);
   // Mountain View writes replies in place under the conversation until the
   // user pops one out into the docked window.
@@ -243,11 +252,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   }, [showComposer]);
   const handleMvPopOut = useCallback(() => setMvReplyPoppedOut(true), []);
   // Mountain View: the open message's whole conversation, light properties only.
-  const [mvConversation, setMvConversation] = useState<Email[] | null>(null);
+  const [mvConversationResult, setMvConversationResult] = useState<{
+    emails: Email[]; source: EmailBlobContext; threadId: string;
+  } | null>(null);
   // The thread whose conversation is being fetched, so the viewer waits for it
   // instead of showing the message alone first. (#1223)
   const [mvConversationLoading, setMvConversationLoading] = useState<string | null>(null);
-  const mvConversationLoadRef = useRef<{ key: string; startedAt: number; promise: Promise<Email[] | null> } | null>(null);
+  const mvConversationLoadRef = useRef<{
+    client: NonNullable<EmailBlobContext['client']>; accountId?: string;
+    threadId: string; emailId: string; startedAt: number; promise: Promise<Email[] | null>;
+  } | null>(null);
+  const mvConversationOpenSeqRef = useRef(0);
   const [conversationEmails, setConversationEmails] = useState<Email[]>([]);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number | null>(null);
@@ -643,6 +658,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const includeGroupInUnified = useSettingsStore((s) => s.includeGroupInUnified);
   const unifiedCrossAccount = useSettingsStore((s) => s.unifiedCrossAccount);
   const unifiedCrossAccountGate = usePolicyStore((s) => s.isFeatureEnabled('unifiedCrossAccountEnabled'));
+  const archiveActionEnabled = useArchiveActionEnabled();
   const accounts = useAccountStore((s) => s.accounts);
   const connectedAccountsSignature = useMemo(
     () => accounts.filter((a) => a.isConnected).map((a) => a.id).sort().join(","),
@@ -768,6 +784,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // to return to a thread, we silently skip - back navigation always works.
     if ((state.threadId ?? null) !== ctx.conversationThreadId) {
       if (state.threadId === null) {
+        ++conversationOpenSeqRef.current;
+        setConversationBlobSource(undefined);
         setConversationThread(null);
         setConversationEmails([]);
       }
@@ -845,7 +863,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const keyboardHandlers = useMemo(() => ({
     onNextEmail: () => {
       if (activeEmails.length === 0) return;
-      const currentIndex = selectedEmail ? activeEmails.findIndex(e => e.id === selectedEmail.id) : -1;
+      const currentIndex = selectedEmail ? activeEmails.findIndex(e => emailKeyFor(e) === emailKeyFor(selectedEmail)) : -1;
       const nextIndex = currentIndex < activeEmails.length - 1 ? currentIndex + 1 : currentIndex;
       if (nextIndex >= 0 && nextIndex < activeEmails.length) {
         void handleEmailSelect(activeEmails[nextIndex]);
@@ -854,12 +872,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     onPreviousEmail: () => {
       if (activeEmails.length === 0) return;
-      const currentIndex = selectedEmail ? activeEmails.findIndex(e => e.id === selectedEmail.id) : activeEmails.length;
+      const currentIndex = selectedEmail ? activeEmails.findIndex(e => emailKeyFor(e) === emailKeyFor(selectedEmail)) : activeEmails.length;
       const prevIndex = currentIndex > 0 ? currentIndex - 1 : 0;
       if (prevIndex >= 0 && prevIndex < activeEmails.length) {
         void handleEmailSelect(activeEmails[prevIndex]);
         if (mvShell) setCursorOnly(true);
       }
+    },
+    // `n`: open the next unread message below the current one, in the order
+    // the list has loaded. Only the loaded rows count; say so when none is
+    // left instead of wrapping to the top. (#514)
+    onNextUnread: () => {
+      const nextIndex = findNextUnreadIndex(activeEmails, selectedEmail?.id);
+      if (nextIndex === -1) {
+        toast.info(t('shortcuts.navigation.no_more_unread'));
+        return;
+      }
+      void handleEmailSelect(activeEmails[nextIndex]);
     },
     onOpenEmail: () => {
       // Outside Mountain View the email is already open by virtue of being
@@ -892,7 +921,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (isScheduledView) return;
       if (selectedEmail) handleToggleStar();
     },
-    onArchive: async () => {
+    onArchive: archiveActionEnabled ? async () => {
       if (isScheduledView) return;
       if (shortcutsTargetSelection && client) {
         const count = selectedEmailKeys.size;
@@ -906,7 +935,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       } else if (selectedEmail) {
         handleArchive();
       }
-    },
+    } : undefined,
     onDelete: async () => {
       if (isScheduledView) return;
       if (shortcutsTargetSelection && client) {
@@ -942,7 +971,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (shortcutsTargetSelection) {
         await runBatchEmailAction(() => batchMarkAsRead(client, false), { error: t('notifications.error_updating') });
       } else if (selectedEmail) {
-        await markAsRead(client, selectedEmail.id, false).catch(toastUpdateFailure);
+        await markAsRead(client, selectedEmail.id, false, emailKeyFor(selectedEmail)).catch(toastUpdateFailure);
       }
     },
     onMarkAsRead: async () => {
@@ -951,7 +980,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (shortcutsTargetSelection) {
         await runBatchEmailAction(() => batchMarkAsRead(client, true), { error: t('notifications.error_updating') });
       } else if (selectedEmail) {
-        await markAsRead(client, selectedEmail.id, true).catch(toastUpdateFailure);
+        await markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail)).catch(toastUpdateFailure);
       }
     },
     onToggleSpam: async () => {
@@ -1022,6 +1051,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     onDeselectAll: () => {
       clearSelection();
     },
+    // Shift + ↓/↑ (and Shift + j/k): grow or shrink the ticked range from the
+    // open message without opening each row on the way. (#992)
+    onExtendSelection: (direction: 1 | -1) => {
+      if (isScheduledView) return;
+      useEmailStore.getState().extendSelection(direction);
+    },
     // `x` under Mountain View: put the focused conversation in or out of the
     // selection. Only reachable there, where `x` is handed over from thread
     // expansion.
@@ -1056,7 +1091,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     // `x` in the help modal: expand/collapse the selected email's thread. Same
     // steps as EmailList.handleToggleThreadExpansion - expanding pulls the
-    // thread's messages and marks them read, collapsing only toggles. (#683)
+    // thread's messages and marks them read (following markAsReadDelay),
+    // collapsing only toggles. (#683)
     onToggleThreadExpansion: () => {
       if (isScheduledView || !client) return;
       if (!selectedEmail?.threadId) return;
@@ -1069,14 +1105,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (!wasExpanded) {
         void store.fetchThreadEmails(client, threadKey).then(() => {
           emitThreadExpand(threadKey, members(), true);
-          void useEmailStore.getState().markThreadAsRead(client, threadKey);
+          useEmailStore.getState().autoMarkExpandedThreadAsRead(client, threadKey);
         });
       } else {
         emitThreadExpand(threadKey, members(), false);
       }
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailKeys, mailboxes, isScheduledView, mvShell, showCrossStarred, isUnifiedView, unifiedRole]);
+  }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailKeys, mailboxes, isScheduledView, mvShell, showCrossStarred, isUnifiedView, unifiedRole, archiveActionEnabled]);
 
   // Initialize keyboard shortcuts
   // Mountain View keeps the ticked rows while a message is read (#1231). The
@@ -1776,9 +1812,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // Conversation. One fetch serves both layouts: mobile opens the dedicated
     // conversation view, desktop opens the newest message of the thread (which
     // is what clicking a thread in the list does there).
+    const openSeq = ++conversationOpenSeqRef.current;
+    const source: EmailBlobContext = {
+      client: activeClient, clientAccountId: useAuthStore.getState().activeAccountId ?? undefined,
+    };
     setLoadingEmail(true);
     try {
       const threadEmails = await activeClient.getThreadEmails(link.id);
+      if (openSeq !== conversationOpenSeqRef.current) return;
       const [group] = groupEmailsByThread(threadEmails);
       if (!group) {
         toast.error(t('deep_link.thread_not_found'));
@@ -1786,6 +1827,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
       if (isMobile) {
         setConversationThread(group);
+        setConversationBlobSource(source);
         setConversationEmails(threadEmails);
         setActiveView('viewer');
       } else {
@@ -1941,7 +1983,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     // The server may refuse (a shared folder without the right to set seen);
     // the message then just stays unread.
-    const markRead = () => markAsRead(client, selectedEmail.id, true).catch((error) => {
+    const markRead = () => markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail)).catch((error) => {
       debug.warn('email', '[Mark as Read] Failed:', error);
     });
 
@@ -2055,6 +2097,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     requestReadReceipt?: boolean;
     requestDsn?: boolean;
     requireTls?: boolean;
+    priority?: MessagePriority;
   }) => {
     // Nothing is sent: the composer keeps what only goes once the mail is out.
     if (!client) return false;
@@ -2078,7 +2121,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const effectiveMode = pendingDraft?.mode ?? composerMode;
       const originalEmailId = composerSourceEmail?.id;
 
-      const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, localAccountId: data.localAccountId, draftAccountId: data.draftAccountId });
+      const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, priority: data.priority, localAccountId: data.localAccountId, draftAccountId: data.draftAccountId });
       submitted = true;
       announceSent(result, data);
       setShowComposer(false);
@@ -2310,7 +2353,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!draft.bodyValues) {
       const fullDraft = await draftClient.getEmail(draft.id, accountId);
       if (!fullDraft) return;
-      draft = fullDraft;
+      draft = { ...fullDraft, sourceClientAccountId: draft.sourceClientAccountId, sourceAccountId: draft.sourceAccountId };
     }
 
     draft = await emailHooks.onBeforeEditDraft.transform(draft);
@@ -2373,6 +2416,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // come along or the reply leaves its thread.
       inReplyTo: draft.inReplyTo ?? undefined,
       references: draft.references ?? undefined,
+      priority: messagePriorityFromHeaders(draft.headers),
       // Existing server-side attachments must ride along, or the composer
       // starts empty and the next save/send silently rebuilds the draft
       // without them (#849).
@@ -2474,6 +2518,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   if (isScheduledView) await fetchScheduledEmails(client);
                 } catch (error) {
                   console.error('Failed to send now:', error);
+                  // The original was put back under a new id: show the undo
+                  // toast again for that one so Undo still cancels it.
+                  if (error instanceof RescheduleRestoredError) {
+                    const current = useEmailStore.getState().pendingUndoSend;
+                    if (current?.submissionId === pending.submissionId) {
+                      useEmailStore.setState({ pendingUndoSend: { ...current, submissionId: error.restoredSubmissionId, sendAt: error.restoredSendAt || current.sendAt } });
+                    }
+                  }
                   const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(pending.sendAt));
                   toast.error(title, message ? { message } : undefined);
                 }
@@ -2791,7 +2843,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
       try {
         // false: a plugin stopped it and said why, so no "deleted" here.
-        if (await deleteEmail(client, emailToDelete.id, true)) toast.success(t('notifications.email_deleted'));
+        if (await deleteEmail(client, emailToDelete.id, true, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
       } catch (error) {
         console.error("Failed to permanently delete email:", error);
         toast.error(t('notifications.error_deleting'), error instanceof Error ? error.message : undefined);
@@ -2813,7 +2865,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         });
       if (trashMailbox) {
         try {
-          if (await moveToMailbox(client, emailToDelete.id, trashMailbox.id)) toast.success(t('notifications.email_deleted'));
+          if (await moveToMailbox(client, emailToDelete.id, trashMailbox.id, emailKeyFor(emailToDelete))) toast.success(t('notifications.email_deleted'));
         } catch (error) {
           console.error("Failed to move email to trash:", error);
           toast.error(error instanceof Error ? error.message : 'Failed to move email to trash');
@@ -2825,7 +2877,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   };
 
   const handleArchive = async (emailToArchive: Email | null = selectedEmail) => {
-    if (!client || !emailToArchive) return;
+    if (!client || !emailToArchive || !isArchiveActionEnabled()) return;
 
     // In unified view the archive folder (and any year/month subfolders we
     // create) must live in the email's own account, reached through the login it
@@ -2872,7 +2924,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
       let archived: boolean;
       if (archiveMode === 'single') {
-        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id);
+        archived = await moveThreadToMailbox(client, emailToArchive.id, archiveMailbox.id, emailKeyFor(emailToArchive));
       } else {
         const emailDate = new Date(emailToArchive.receivedAt);
         const year = emailDate.getFullYear().toString();
@@ -2889,7 +2941,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         }
 
         if (archiveMode === 'year') {
-          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id);
+          archived = await moveThreadToMailbox(client, emailToArchive.id, yearMailbox.id, emailKeyFor(emailToArchive));
         } else {
           const yearId = yearMailbox.originalId || yearMailbox.id;
           const afterYear = readMailboxes();
@@ -2901,12 +2953,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             if (!monthMailbox) return; // a plugin refused the folder
             await refreshMailboxes();
           }
-          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id);
+          archived = await moveThreadToMailbox(client, emailToArchive.id, monthMailbox.id, emailKeyFor(emailToArchive));
         }
       }
       if (!archived) return;
 
       if (conversationThread && conversationThread.threadKey === threadKeyFor(emailToArchive)) {
+        ++conversationOpenSeqRef.current;
+        setConversationBlobSource(undefined);
         setConversationThread(null);
         setConversationEmails([]);
       }
@@ -2923,13 +2977,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
-  const handleMoveToMailbox = async (emailId: string, mailboxId: string) => {
+  // "Remove from this folder" for the open message (#615): only when it is
+  // in the folder the list shows and in another one too.
+  const removeFromFolder = useRemoveFromFolder();
+  const folderToLeave = useEmailStore(removalFolder);
+  const openEmailCanLeaveFolder = !!selectedEmail && canRemoveFromFolder(selectedEmail, folderToLeave);
+
+  const handleMoveToMailbox = async (emailId: string, mailboxId: string, emailKey?: string) => {
     if (!client) return;
     const destinationList = [mailboxes, ...Object.values(accountMailboxes)]
       .find(list => list.some(m => m.id === mailboxId));
     const destination = destinationList?.find(m => m.id === mailboxId);
     try {
-      if (!(await moveToMailboxCrossAware(client, emailId, mailboxId))) return;
+      if (!(await moveToMailboxCrossAware(client, emailId, mailboxId, emailKey))) return;
       toast.success(
         t('notifications.email_moved'),
         destination && destinationList
@@ -2946,7 +3006,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || !selectedEmail) return;
 
     try {
-      await toggleStar(client, selectedEmail.id);
+      await toggleStar(client, selectedEmail.id, emailKeyFor(selectedEmail));
     } catch (error) {
       console.error("Failed to toggle star:", error);
       toast.error(t('notifications.error_updating'));
@@ -2959,14 +3019,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const emailId = emailToMark.id;
 
     try {
-      if (!(await markAsSpam(client, emailId))) return;
+      if (!(await markAsSpam(client, emailId, emailKeyFor(emailToMark)))) return;
 
       toast.success(t('email_viewer.spam.toast_success'), {
         action: {
           label: t('email_viewer.spam.toast_undo'),
           onClick: async () => {
             try {
-              if (await undoSpam(client, emailId)) toast.success(t('notifications.email_moved'));
+              if (await undoSpam(client, emailId, emailKeyFor(emailToMark))) toast.success(t('notifications.email_moved'));
             } catch (_error) {
               console.error("Failed to undo spam:", _error);
               toast.error(t('email_viewer.spam.error'));
@@ -2985,7 +3045,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || !emailToRestore) return;
 
     try {
-      if (!(await undoSpam(client, emailToRestore.id))) return;
+      if (!(await undoSpam(client, emailToRestore.id, emailKeyFor(emailToRestore)))) return;
 
       toast.success(t('email_viewer.spam.toast_not_spam_success'));
     } catch (_error) {
@@ -2998,7 +3058,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client) return;
 
     try {
-      const email = emails.find(e => e.id === emailToPin.id) ?? emailToPin;
+      const email = emails.find(e => emailKeyFor(e) === emailKeyFor(emailToPin)) ?? emailToPin;
       const isPinned = email.keywords?.['$pinned'] === true;
 
       // Same routing as tags: the write goes to the email's own account, and
@@ -3008,7 +3068,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // would replace a tag-filtered list (refreshCurrentMailbox fetches by
       // folder only). (#281)
       // Only $pinned changes; the row's other keywords may be stale.
-      await patchEmailKeywords(client, email.id, { $pinned: !isPinned });
+      await patchEmailKeywords(client, email.id, { $pinned: !isPinned }, emailKeyFor(email));
       if (!isUnifiedView && !useEmailStore.getState().selectedKeyword) {
         void refreshCurrentMailbox(client);
       }
@@ -3018,11 +3078,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
-  const handleSetTag = async (emailId: string, tagId: string | null) => {
+  const handleSetTag = async (emailId: string, tagId: string | null, emailKey?: string) => {
     if (!client) return;
 
     try {
-      const email = emails.find(e => e.id === emailId);
+      // Remove any existing tag keywords. By the row's key when given: the bare
+      // id can also be another account's message in a merged view.
+      const email = emailKey ? emails.find(e => emailKeyFor(e) === emailKey) : emails.find(e => e.id === emailId);
       if (!email) return;
 
       // Only the tag keywords change: writing the whole set from this row
@@ -3058,7 +3120,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // call site covered only the unified view, so a tag set on a directly
       // selected shared folder was written to the reaching account and silently
       // dropped by the server. (#281)
-      await patchEmailKeywords(client, emailId, changes);
+      await patchEmailKeywords(client, emailId, changes, emailKeyFor(email));
 
       // Refresh tag counts
       fetchTagCounts(client);
@@ -3551,9 +3613,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
       let imported = 0;
       let failed = 0;
-      for (const { blob } of emails) {
+      for (const { blob, receivedAt } of emails) {
         try {
-          await client.importRawEmail(blob, { [targetMailboxId]: true }, { '$seen': true });
+          await client.importRawEmail(blob, { [targetMailboxId]: true }, { '$seen': true }, undefined, receivedAt);
           imported++;
         } catch {
           failed++;
@@ -3754,8 +3816,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     return load;
   }, []);
 
-  const handleDownloadAttachment = async (blobId: string, name: string, type?: string, forceDownload?: boolean) => {
-    const { blobClient, accountId, clientAccountId } = resolveBlobSource(selectedEmail);
+  const handleDownloadAttachment = async (blobId: string, name: string, type?: string, forceDownload?: boolean, source?: EmailBlobContext) => {
+    const { client: blobClient, accountId, clientAccountId } = source ?? resolveEmailBlobContext(selectedEmail, client);
     if (!blobClient) return;
 
     try {
@@ -3774,6 +3836,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       console.error("Failed to download attachment:", error);
     }
   };
+
+  const handleDownloadConversationAttachment = (blobId: string, name: string, type: string | undefined, source: EmailBlobContext) =>
+    handleDownloadAttachment(blobId, name, type, false, source);
 
   const handlePreviewAttachmentDownload = useCallback(async () => {
     const c = previewAttachment?.client;
@@ -3970,26 +4035,31 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const mvConversationThreadId = mvConversationView && !cursorOnly ? (selectedEmail?.threadId ?? null) : null;
   const mvConversationRef = mvConversationView && !cursorOnly ? selectedEmail : null;
   const mvConversationRoute = (ref: Email, fallback: NonNullable<typeof client>) => {
-    const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
-    const threadClient = route.clientAccountId
-      ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? fallback)
-      : fallback;
-    return { threadClient, accountId: route.accountId };
+    const source = resolveEmailBlobContext(ref, fallback);
+    return { threadClient: source.client, accountId: source.accountId };
   };
+  const mvBlobSource = resolveEmailBlobContext(mvConversationRef, client);
+  // Do not render the previous owner's cards while the replacement loads.
+  const mvConversation = mvConversationResult?.source.client === mvBlobSource.client
+    && mvConversationResult?.source.accountId === mvBlobSource.accountId
+    && mvConversationResult?.threadId === mvConversationThreadId
+    ? mvConversationResult.emails : null;
   // Fetches the conversation around `ref`, oldest first. Opening a message
   // starts this next to the message fetch, and the effect below picks up that
   // same request rather than sending a second one.
   const loadMvConversation = (ref: Email, fallback: NonNullable<typeof client>): Promise<Email[] | null> => {
-    const key = `${ref.sourceClientAccountId ?? ''}:${ref.sourceAccountId ?? ''}:${ref.threadId}:${ref.id}`;
+    const { threadClient, accountId } = mvConversationRoute(ref, fallback);
+    if (!threadClient) return Promise.resolve(null);
     const pending = mvConversationLoadRef.current;
-    if (pending?.key === key && Date.now() - pending.startedAt < 10_000) return pending.promise;
-    const route = mvConversationRoute(ref, fallback);
-    const threadClient = route.threadClient;
+    // Bare ids overlap across shared owners and across connected clients.
+    if (pending?.client === threadClient && pending.accountId === accountId
+      && pending.threadId === ref.threadId && pending.emailId === ref.id
+      && Date.now() - pending.startedAt < 10_000) return pending.promise;
     const promise = (async () => {
-      const thread = await threadClient.getThread(ref.threadId, route.accountId);
+      const thread = await threadClient.getThread(ref.threadId, accountId);
       const ids = thread?.emailIds ?? [];
       if (ids.length < 2) return null;
-      const emails = await threadClient.getSomeEmails(ids, route.accountId);
+      const emails = await threadClient.getSomeEmails(ids, accountId);
       for (const e of emails) {
         // Carry the open message's source stamps, so opening one of these
         // in a merged view reaches the right account.
@@ -4002,37 +4072,45 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         .filter((e) => e.id === ref.id || !e.keywords?.$draft)
         .sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
     })().catch(() => null);
-    mvConversationLoadRef.current = { key, startedAt: Date.now(), promise };
+    mvConversationLoadRef.current = { client: threadClient, accountId, threadId: ref.threadId, emailId: ref.id, startedAt: Date.now(), promise };
     return promise;
   };
 
   useEffect(() => {
+    ++mvConversationOpenSeqRef.current;
     if (!mvConversationThreadId || !client || !mvConversationRef) {
-      setMvConversation(null);
+      setMvConversationResult(null);
       setMvConversationLoading(null);
       return;
     }
     let cancelled = false;
+    setMvConversationResult(null);
     setMvConversationLoading(mvConversationThreadId);
     void loadMvConversation(mvConversationRef, client).then((conversation) => {
       if (cancelled) return;
-      setMvConversation(conversation);
+      setMvConversationResult(conversation ? {
+        emails: conversation, source: mvBlobSource, threadId: mvConversationThreadId,
+      } : null);
       setMvConversationLoading(null);
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; ++mvConversationOpenSeqRef.current; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the open message, not on every list refresh
-  }, [mvConversationThreadId, mvConversationRef?.id, client]);
+  }, [mvConversationThreadId, mvConversationRef?.id, mvBlobSource.client, mvBlobSource.accountId, client]);
 
   const patchMvConversation = (id: string, patch: (e: Email) => Email) =>
-    setMvConversation((prev) => prev?.map((e) => (e.id === id ? patch(e) : e)) ?? prev);
+    setMvConversationResult(prev => prev ? {
+      ...prev, emails: prev.emails.map(e => e.id === id ? patch(e) : e),
+    } : null);
 
   // An unfolded conversation message needs its body: the thread fetch above
   // only carries list properties.
   const handleLoadConversationEmail = async (target: Email): Promise<Email | null> => {
     if (!client) return null;
     const { threadClient, accountId } = mvConversationRoute(target, client);
+    if (!threadClient) return null;
+    const openSeq = mvConversationOpenSeqRef.current;
     const fetched = await threadClient.getEmail(target.id, accountId);
-    if (!fetched) return null;
+    if (!fetched || openSeq !== mvConversationOpenSeqRef.current) return null;
     const full: Email = {
       ...fetched,
       accountId: target.accountId,
@@ -4052,9 +4130,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!client || target.keywords?.$seen) return;
     try {
       if (useEmailStore.getState().emails.some((e) => e.id === target.id)) {
-        await markAsRead(client, target.id, true);
+        await markAsRead(client, target.id, true, emailKeyFor(target));
         // Still unread: a plugin stopped it, so the copy here stays unread too.
-        if (!useEmailStore.getState().emails.find((e) => e.id === target.id)?.keywords?.$seen) return;
+        if (!useEmailStore.getState().emails.find((e) => emailKeyFor(e) === emailKeyFor(target))?.keywords?.$seen) return;
       } else {
         // Not in the store's list, so the store action can't ask plugins.
         if (emailHooks.onBeforeEmailReadStateChange.size > 0
@@ -4062,6 +4140,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           return;
         }
         const { threadClient, accountId } = mvConversationRoute(target, client);
+        if (!threadClient) return;
         await threadClient.markAsRead(target.id, true, accountId);
         void emailHooks.onEmailReadStateChange.emit({ emailIds: [target.id], read: true });
       }
@@ -4177,6 +4256,19 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         && (email.sourceAccountId === undefined || e.sourceAccountId === email.sourceAccountId))
       ?? (email.sourceClientAccountId ? email : undefined);
 
+    // Expanding a conversation may have scheduled a delayed "mark read" for
+    // it (markAsReadDelay). Moving on to a message outside that conversation
+    // (j/k, a click) drops it, as the reading pane drops its own pending
+    // mark; the conversation stays expanded.
+    const openRef = (listEmail ?? email) as Partial<Email>;
+    if (openRef.threadId) {
+      const openThreadKey = threadKeyFor(openRef as Email);
+      const emailStore = useEmailStore.getState();
+      for (const key of emailStore.expandedThreadIds) {
+        if (key !== openThreadKey) emailStore.cancelAutoMarkThreadAsRead(key);
+      }
+    }
+
     // Only the newest open may touch the viewer: a slow fetch for a message
     // the user has already clicked away from must neither replace the one
     // they are looking at nor end its loading state.
@@ -4205,7 +4297,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     // Fetch the full content
     try {
-      const { client: fetchClient, accountId } = resolveEmailBlobContext(listEmail ?? null, client);
+      const source = resolveEmailBlobContext(listEmail ?? null, client);
+      const { client: fetchClient, accountId } = source;
       if (!fetchClient) {
         console.warn('[mail-app] No connected client for email source');
         if (openSeq === emailOpenSeqRef.current) abandonOpenEmail(previousEmail);
@@ -4247,8 +4340,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             conversationPrefetch,
             new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), MV_CONVERSATION_WAIT_MS)),
           ]);
-          if (conversation !== undefined) setMvConversation(conversation);
           if (openSeq !== emailOpenSeqRef.current) return;
+          if (conversation !== undefined) setMvConversationResult(conversation ? {
+            emails: conversation, source, threadId: fullEmail.threadId,
+          } : null);
         }
         // One write: the message, and the end of its loading state.
         finishOpenEmail(fullEmail);
@@ -4269,6 +4364,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // The OS / hardware back button is still wired through popstate → handleNavRestore.
   const handleMobileBack = () => {
     if (conversationThread) {
+      ++conversationOpenSeqRef.current;
+      setConversationBlobSource(undefined);
       setConversationThread(null);
       setConversationEmails([]);
     }
@@ -4280,7 +4377,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   };
 
   // Navigate to next/previous email in the list
-  const selectedEmailIndex = selectedEmail ? activeEmails.findIndex(e => e.id === selectedEmail.id) : -1;
+  const selectedEmailIndex = selectedEmail ? activeEmails.findIndex(e => emailKeyFor(e) === emailKeyFor(selectedEmail)) : -1;
 
   const handleNavigateNext = selectedEmailIndex >= 0 && selectedEmailIndex < activeEmails.length - 1
     ? () => handleEmailSelect(activeEmails[selectedEmailIndex + 1])
@@ -4293,42 +4390,36 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   // Handle opening conversation view on mobile
   const handleOpenConversation = async (thread: ThreadGroup) => {
     if (!client) return;
+    const source = resolveEmailBlobContext(thread.latestEmail, client);
+    // Never fetch a stamped thread through an unrelated login.
+    if (!source.client) return;
+    const openSeq = ++conversationOpenSeqRef.current;
 
-    // The view marks the thread read; keep its row where it was tapped.
     useEmailStore.getState().holdListRow(thread.threadKey);
     setConversationThread(thread);
+    setConversationBlobSource(source);
+    setConversationEmails([]);
     setIsLoadingConversation(true);
     setActiveView("viewer");
 
     try {
-      // The thread may belong to another account: in unified/aggregate views via
-      // the email's own source stamp (#281), and in a directly-browsed shared
-      // folder via the selected mailbox's owner (#814). Either way the fetch has
-      // to name that account - thread ids are per-account, so an unscoped fetch
-      // resolves to an unrelated thread in the active one.
-      const ref = thread.emails?.[0];
-      const route = resolveThreadRoute({ isUnifiedView, ref, mailboxes: viewMailboxes, selectedMailbox });
-      const threadClient = route.clientAccountId
-        ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
-        : client;
-      const emails = await threadClient.getThreadEmails(thread.threadId, route.accountId);
-      // Re-stamp the source reference so conversation actions (reply/move/…)
-      // resolve to the right account; the fetched objects don't carry it.
-      if (isUnifiedView && ref) {
-        for (const e of emails) {
-          e.accountId = ref.accountId;
-          e.accountLabel = ref.accountLabel;
-          e.sourceClientAccountId = ref.sourceClientAccountId;
-          e.sourceAccountId = ref.sourceAccountId;
-        }
-      }
-      setConversationEmails(emails);
+      const emails = await source.client.getThreadEmails(thread.threadId, source.accountId);
+      if (openSeq !== conversationOpenSeqRef.current) return;
+      // Preserve UI identity stamps; direct-folder messages stay unstamped.
+      const ref = thread.latestEmail;
+      setConversationEmails(emails.map(e => ({
+        ...e,
+        accountId: ref.accountId,
+        accountLabel: ref.accountLabel,
+        sourceClientAccountId: ref.sourceClientAccountId,
+        sourceAccountId: ref.sourceAccountId,
+      })));
     } catch (error) {
+      if (openSeq !== conversationOpenSeqRef.current) return;
       console.error('Failed to fetch thread emails:', error);
-      // Fall back to thread.emails
       setConversationEmails(thread.emails);
     } finally {
-      setIsLoadingConversation(false);
+      if (openSeq === conversationOpenSeqRef.current) setIsLoadingConversation(false);
     }
   };
 
@@ -4520,7 +4611,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           <div className="flex items-center justify-center gap-2 bg-amber-500/10 border-b border-amber-500/30 text-amber-700 dark:text-amber-300 text-sm py-1.5 px-4 flex-shrink-0">
             <AlertTriangle className="h-3.5 w-3.5" />
             <span>{tCommon('rate_limited_title')}</span>
-            <span className="text-amber-700/80 dark:text-amber-300/80">{tCommon('rate_limited_detail', { seconds: rateLimitSecondsLeft })}</span>
+            <span className="text-amber-700/80 dark:text-amber-300/80">{tCommon('rate_limited_detail', { seconds: rateLimitSecondsLeft, appName })}</span>
           </div>
         )}
         {connectionLost && (
@@ -4681,7 +4772,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           {/* Email List - full width on mobile, fixed width/height on tablet/desktop */}
           <div
             className={cn(
-              "relative flex flex-col bg-background",
+              "relative flex flex-col bg-background min-w-0",
               isHorizontalMailLayout
                 ? (shouldHideHorizontalViewerPane ? "md:w-full md:min-h-0" : "md:w-full md:h-auto")
                 : "h-full border-e border-border",
@@ -4778,9 +4869,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                         // The open message when it is in this list, else the
                         // first row - as an email, so the selection is keyed by
                         // its owning account and not by a colliding id.
-                        const target = (selectedEmail && activeEmails.some((e) => e.id === selectedEmail.id)
-                          ? activeEmails.find((e) => e.id === selectedEmail.id)
-                          : activeEmails[0])!;
+                        const openKey = selectedEmail ? emailKeyFor(selectedEmail) : null;
+                        const target = activeEmails.find((e) => emailKeyFor(e) === openKey) ?? activeEmails[0];
                         toggleEmailSelection(target);
                       }
                     }}
@@ -5155,12 +5245,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 }}
                 onMarkAsRead={async (email, read) => {
                   if (client) {
-                    await markAsRead(client, email.id, read).catch(toastUpdateFailure);
+                    await markAsRead(client, email.id, read, emailKeyFor(email)).catch(toastUpdateFailure);
                   }
                 }}
                 onToggleStar={async (email) => {
                   if (client) {
-                    await toggleStar(client, email.id).catch(toastUpdateFailure);
+                    await toggleStar(client, email.id, emailKeyFor(email)).catch(toastUpdateFailure);
                   }
                 }}
                 onTogglePinned={async (email) => {
@@ -5169,11 +5259,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onDelete={async (email) => {
                   await handleDelete(email);
                 }}
-                onArchive={async (email) => {
+                onArchive={archiveActionEnabled ? async (email) => {
                   await handleArchive(email);
-                }}
-                onSetTag={(emailId, color) => {
-                  handleSetTag(emailId, color);
+                } : undefined}
+                onSetTag={(emailId, color, emailKey) => {
+                  handleSetTag(emailId, color, emailKey);
                 }}
                 onMoveToMailbox={handleMoveToMailbox}
                 onMarkAsSpam={async (email) => {
@@ -5306,12 +5396,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onReply={handleConversationReply}
                 onReplyAll={handleConversationReplyAll}
                 onForward={handleConversationForward}
-                onDownloadAttachment={handleDownloadAttachment}
+                blobSource={conversationBlobSource}
+                onDownloadAttachment={handleDownloadConversationAttachment}
                 onMarkAsRead={async (emailId, read) => {
                   // Only ever the mark-as-read on expanding a message: a refusal
                   // (a read-only shared folder) just leaves it unread.
                   if (client) {
-                    await markAsRead(client, emailId, read).catch((error) => {
+                    const target = conversationEmails.find((e) => e.id === emailId);
+                    await markAsRead(client, emailId, read, target ? emailKeyFor(target) : undefined).catch((error) => {
                       debug.warn('email', '[Mark as Read] Failed:', error);
                     });
                   }
@@ -5340,15 +5432,16 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       }
                       handleDelete(target);
                     }}
-                    onArchive={() => handleArchive()}
+                    onArchive={archiveActionEnabled ? () => handleArchive() : undefined}
                     onToggleStar={handleToggleStar}
                     onSetTag={handleSetTag}
                     onMarkAsSpam={() => handleMarkAsSpam()}
                     onUndoSpam={() => handleUndoSpam()}
                     onMarkAsRead={async (emailId, read, opts) => {
                       if (client) {
+                        const emailKey = selectedEmail?.id === emailId ? emailKeyFor(selectedEmail) : undefined;
                         try {
-                          await markAsRead(client, emailId, read);
+                          await markAsRead(client, emailId, read, emailKey);
                         } catch (error) {
                           // Refused: the message stays as it was, and open.
                           // Opening it is no request to report back on.
@@ -5356,7 +5449,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                           else toastUpdateFailure(error);
                           return;
                         }
-                        const nowRead = !!useEmailStore.getState().emails.find((e) => e.id === emailId)?.keywords?.$seen;
+                        const nowRead = !!useEmailStore.getState().emails
+                          .find((e) => (emailKey ? emailKeyFor(e) === emailKey : e.id === emailId))?.keywords?.$seen;
                         if (nowRead !== read) return; // a plugin stopped it
                         // Marking the open message unread returns to the list
                         // (Gmail-style, gated on returnToListAfterAction). Staying
@@ -5425,6 +5519,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onMoveToMailbox={async (mailboxId) => {
                       if (selectedEmail) await handleMoveToMailbox(selectedEmail.id, mailboxId);
                     }}
+                    onRemoveFromFolder={openEmailCanLeaveFolder ? () => {
+                      if (selectedEmail) void removeFromFolder([selectedEmail]);
+                    } : undefined}
                     className={isMobile ? "flex-1" : undefined}
                   />
                 </ErrorBoundary>

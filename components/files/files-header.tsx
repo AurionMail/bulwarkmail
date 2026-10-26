@@ -110,12 +110,11 @@ export function FilesHeader({
   const [searchOpen, setSearchOpen] = useState(false);
   const [dropCrumb, setDropCrumb] = useState<string | null>(null);
 
-  const headerClass = "flex items-center gap-1 px-3 border-b border-border min-w-0 flex-shrink-0";
-  const headerStyle = { paddingBlock: "var(--density-header-py)" };
+  const headerClass = "flex items-center gap-1 px-3 h-14 box-content border-b border-border min-w-0 flex-shrink-0";
 
   if (selection) {
     return (
-      <div role="toolbar" aria-label={t("selection_actions")} className={cn(headerClass, "bg-accent/40")} style={headerStyle}>
+      <div role="toolbar" aria-label={t("selection_actions")} className={cn(headerClass, "bg-accent/40")}>
         <Button variant="ghost" size="icon" className="h-8 w-8 -ms-1" onClick={selection.onClear} aria-label={t("clear_selection")} title={t("clear_selection")}>
           <X className="w-4 h-4" />
         </Button>
@@ -226,14 +225,14 @@ export function FilesHeader({
 
   if (compact && searchOpen && !toolsHidden) {
     return (
-      <div className={headerClass} style={headerStyle}>
+      <div className={headerClass}>
         {searchField}
       </div>
     );
   }
 
   return (
-    <div role="toolbar" aria-label={t("toolbar")} className={headerClass} style={headerStyle}>
+    <div role="toolbar" aria-label={t("toolbar")} className={headerClass}>
       {onMenuClick && (
         <Button
           variant="ghost"

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Avatar } from '../avatar';
 import { useAuthStore } from '@/stores/auth-store';
 import { useContactStore } from '@/stores/contact-store';
+import { useFaviconRefreshStore } from '@/stores/favicon-refresh-store';
 import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
 import type { ContactCard } from '@/lib/jmap/types';
 
@@ -211,5 +212,22 @@ describe('Avatar', () => {
       render(<Avatar name="Ann" contactPhoto={{ blobId: 'dbcAnn' }} disableImages />);
       expect(fetchBlob).not.toHaveBeenCalled();
     });
+  });
+
+  // #960: a refresh must reach past the browser's two-week cache of the old
+  // icon and retry domains whose favicon failed before.
+  it('requests the sender favicon again after a refresh', () => {
+    useFaviconRefreshStore.setState({ refreshedAt: 0 });
+    const { container } = render(<Avatar name="Jan" email="jan@example.cz" />);
+    const img = () => container.querySelector('img');
+    expect(img()?.getAttribute('src')).toBe('/api/favicon?domain=example.cz');
+
+    fireEvent.error(img()!);
+    expect(img()).toBeNull();
+
+    act(() => useFaviconRefreshStore.getState().refresh());
+    const stamp = useFaviconRefreshStore.getState().refreshedAt;
+    expect(stamp).toBeGreaterThan(0);
+    expect(img()?.getAttribute('src')).toBe(`/api/favicon?domain=example.cz&v=${stamp}`);
   });
 });

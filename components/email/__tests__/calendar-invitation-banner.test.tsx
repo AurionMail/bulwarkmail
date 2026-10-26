@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
   const authState = {
     client: clientMock,
     primaryIdentity: { email: 'user@example.com' },
+    identities: [{ email: 'user@example.com' }] as Array<{ email: string }>,
     getClientForAccount: vi.fn((id: string) => (id === 'login-b' ? sourceClientMock : undefined)),
   };
 
@@ -190,6 +191,7 @@ describe('CalendarInvitationBanner', () => {
     mocks.sourceClientMock.fetchBlob.mockReset();
     mocks.sourceClientMock.fetchBlob.mockRejectedValue(new Error('no blob'));
     mocks.authState.getClientForAccount.mockClear();
+    mocks.authState.identities = [{ email: 'user@example.com' }];
     mocks.emailState.viewingAccountId = null;
     mocks.emailState.selectedMailbox = 'inbox';
     mocks.emailState.mailboxes = [];
@@ -545,6 +547,41 @@ describe('CalendarInvitationBanner', () => {
       'accepted',
       null,
     );
+    expect(await screen.findByText('Response sent')).toBeInTheDocument();
+  });
+
+  it('finds the user under an alias identity the invite was sent to (#1283)', async () => {
+    mocks.authState.identities = [{ email: 'user@example.com' }, { email: 'Alias@example.com' }];
+    const participants = {
+      aliasAttendee: {
+        '@type': 'Participant',
+        email: 'alias@example.com',
+        name: 'User',
+        roles: { attendee: true },
+        participationStatus: 'needs-action',
+      },
+    };
+    mocks.calendarState.events = [
+      { id: 'event-8', uid: 'uid-8', start: '2026-03-30T09:00:00Z', participants },
+    ];
+    mocks.clientMock.parseCalendarEvents.mockResolvedValue([
+      { uid: 'uid-8', title: 'Alias Event', start: '2026-03-30T09:00:00Z', participants },
+    ]);
+    mocks.calendarState.rsvpEvent.mockResolvedValue(true);
+
+    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-8' })} />);
+
+    fireEvent.click(await screen.findByText('Accept'));
+
+    await waitFor(() => {
+      expect(mocks.calendarState.rsvpEvent).toHaveBeenCalledWith(
+        mocks.clientMock,
+        'event-8',
+        'aliasAttendee',
+        'accepted',
+        null,
+      );
+    });
     expect(await screen.findByText('Response sent')).toBeInTheDocument();
   });
 

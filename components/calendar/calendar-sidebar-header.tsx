@@ -18,10 +18,9 @@ export function CalendarSidebarHeader({ onCreateEvent, tourTarget = true }: Cale
   const t = useTranslations("calendar");
 
   return (
-    <div
-      className="px-3 border-b border-border flex items-center justify-between flex-shrink-0"
-      style={{ paddingBlock: "var(--density-header-py)" }}
-    >
+    // Same h-14 box as the mail sidebar's account switcher, so the apps line up;
+    // box-content keeps the border outside it, as in mail.
+    <div className="px-3 h-14 box-content border-b border-border flex items-center justify-between flex-shrink-0">
       <span className="text-sm font-semibold truncate">{t("title")}</span>
       <Button
         size="icon"

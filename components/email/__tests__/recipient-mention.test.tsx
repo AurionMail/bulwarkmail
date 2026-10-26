@@ -11,7 +11,7 @@ import type { SuggestionProps } from '@tiptap/suggestion';
 
 import { RichTextEditor } from '../rich-text-editor';
 import { RecipientMention, insertMention } from '../recipient-mention';
-import { buildMentionCandidates, type MentionCandidate } from '@/lib/recipient-mentions';
+import { buildMentionCandidates, filterMentionCandidates, type MentionCandidate } from '@/lib/recipient-mentions';
 
 // The avatar resolves app config and favicons; neither matters here.
 vi.mock('@/components/ui/avatar', () => ({ Avatar: () => null }));
@@ -45,7 +45,7 @@ function setup(content: string, candidates: MentionCandidate[] = PEOPLE, extensi
     extensions: [
       ...extensions,
       RecipientMention.configure({
-        getCandidates: () => candidates,
+        getCandidates: (query) => filterMentionCandidates(candidates, query),
         render: () => ({
           onStart: (props) => { suggestion.props = props; },
           onUpdate: (props) => { if (!props.loading) suggestion.props = props; },
@@ -144,11 +144,11 @@ describe('RecipientMention insertion', () => {
     await settle();
     const enter = press(editor, 'Enter');
     expect(enter.defaultPrevented).toBe(true);
-    expect(editor.getHTML()).toBe('<p>Hallo @Max </p>');
+    expect(editor.getHTML()).toBe('<p>Hallo <a href="mailto:max.mustermann@dornig.de" class="mention">@Max</a> </p>');
     expect(suggestion.props).toBeNull();
     // The cursor sits after the space, ready to go on typing.
     await type(editor, 'bitte');
-    expect(editor.getHTML()).toBe('<p>Hallo @Max bitte</p>');
+    expect(editor.getHTML()).toBe('<p>Hallo <a href="mailto:max.mustermann@dornig.de" class="mention">@Max</a> bitte</p>');
     editor.destroy();
   });
 
@@ -158,14 +158,62 @@ describe('RecipientMention insertion', () => {
     await settle();
     expect(labels(suggestion)).toEqual(['Max']);
     press(editor, 'Enter');
-    expect(editor.getHTML()).toBe('<p>Hallo @Max welt</p>');
+    expect(editor.getHTML()).toBe('<p>Hallo <a href="mailto:max.mustermann@dornig.de" class="mention">@Max</a> welt</p>');
     editor.destroy();
   });
 
   it('inserts the label as text, never as markup', () => {
     const { editor } = setup('<p></p>');
-    insertMention(editor, { from: 1, to: 1 }, '<img src=x onerror=alert(1)>');
-    expect(editor.getHTML()).toBe('<p>@&lt;img src=x onerror=alert(1)&gt; </p>');
+    insertMention(editor, { from: 1, to: 1 }, { label: '<img src=x onerror=alert(1)>', email: 'x@dornig.de' });
+    expect(editor.getHTML()).toBe('<p><a href="mailto:x@dornig.de" class="mention">@&lt;img src=x onerror=alert(1)&gt;</a> </p>');
+    editor.destroy();
+  });
+
+  it('inserts one chip carrying the name and the address', async () => {
+    const { editor } = setup('<p>Hallo</p>');
+    await type(editor, ' @ma');
+    await settle();
+    press(editor, 'Enter');
+    const chips: string[] = [];
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === 'mentionChip') chips.push(`${node.attrs.label} ${node.attrs.email}`);
+    });
+    expect(chips).toEqual(['Max max.mustermann@dornig.de']);
+    editor.destroy();
+  });
+
+  it('keeps a mailto query or fragment out of the link', () => {
+    const { editor } = setup('<p></p>');
+    insertMention(editor, { from: 1, to: 1 }, { label: 'X', email: 'x@dornig.de?cc=evil@example.com' });
+    expect(editor.getHTML()).toContain('href="mailto:x@dornig.de%3Fcc=evil@example.com"');
+    editor.destroy();
+  });
+
+  it('never lets a click on a chip follow its mailto link', () => {
+    // Firefox follows a link in a non-editable island of the editor.
+    const { editor } = setup('<p>Hi <a href="mailto:eva.weber@dornig.de">@Eva</a> and <a href="mailto:info@dornig.de">us</a></p>');
+    document.body.appendChild(editor.view.dom);
+    const chip = editor.view.dom.querySelector('a.mention')!;
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    chip.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(true);
+    const middle = new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 });
+    chip.dispatchEvent(middle);
+    expect(middle.defaultPrevented).toBe(true);
+    editor.view.dom.remove();
+    editor.destroy();
+  });
+
+  it('turns a sent mention back into a chip, and leaves other mailto links alone', () => {
+    const { editor } = setup(
+      '<p>Hi <a href="mailto:eva.weber@dornig.de">@Eva</a> and <a href="mailto:info@dornig.de">write us</a></p>',
+    );
+    const chips: string[] = [];
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === 'mentionChip') chips.push(`${node.attrs.label} ${node.attrs.email}`);
+    });
+    expect(chips).toEqual(['Eva eva.weber@dornig.de']);
+    expect(editor.getText()).toBe('Hi @Eva and write us');
     editor.destroy();
   });
 
@@ -176,7 +224,7 @@ describe('RecipientMention insertion', () => {
     press(list.editor, 'Enter');
     // Still one item: the Enter did not split it. (StarterKit's trailing
     // node adds an empty paragraph after the list.)
-    expect(list.editor.getHTML()).toContain('<ul><li><p>Hallo @Max </p></li></ul>');
+    expect(list.editor.getHTML()).toContain('<ul><li><p>Hallo <a href="mailto:max.mustermann@dornig.de" class="mention">@Max</a> </p></li></ul>');
     list.editor.destroy();
 
     const table = setup(
@@ -191,7 +239,8 @@ describe('RecipientMention insertion', () => {
     expect(labels(table.suggestion)).toEqual(['Eva']);
     press(table.editor, 'Tab');
     expect(table.editor.getText()).toContain('x @Eva ');
-    expect(table.editor.state.selection.$from.parent.textContent).toBe('x @Eva ');
+    const cell = table.editor.state.selection.$from.parent;
+    expect(cell.textBetween(0, cell.content.size, '', (leaf) => `@${leaf.attrs.label}`)).toBe('x @Eva ');
     table.editor.destroy();
   });
 
@@ -256,7 +305,7 @@ describe('RichTextEditor recipient list', () => {
     press(editor, 'Enter');
     await nextFrame();
     expect(editor.getText()).toBe('@Eva ');
-    expect(onChange.mock.lastCall?.[0]).toContain('>@Eva </p>');
+    expect(onChange.mock.lastCall?.[0]).toContain('<a href="mailto:eva.weber@dornig.de" class="mention">@Eva</a> </p>');
     await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
   });
 

@@ -70,6 +70,21 @@ describe('fetchJmapServer', () => {
     expect(guardedFetch).not.toHaveBeenCalled();
   });
 
+  it('gives every request a deadline unless the caller brought one', async () => {
+    // A slow or silent server (with custom endpoints on, one the user chose)
+    // used to be able to hold the connection open for as long as it liked.
+    await fetchJmapServer('http://10.0.0.5/jmap/', { method: 'POST', body: '{}' }, true);
+    expect(plainFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+
+    guardedFetch.mockResolvedValueOnce(response(200, {}, 'guarded'));
+    await fetchJmapServer('https://custom.example/jmap/', { method: 'GET' }, false);
+    expect(guardedFetch.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+
+    const own = new AbortController().signal;
+    await fetchJmapServer('http://10.0.0.5/jmap/', { method: 'GET', signal: own }, true);
+    expect(plainFetch.mock.calls[1][1].signal).toBe(own);
+  });
+
   it('routes untrusted servers through fetchPublicUrl', async () => {
     guardedFetch.mockResolvedValueOnce(response(200, {}, 'guarded'));
     const res = await fetchJmapServer(

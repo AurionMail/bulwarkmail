@@ -1,6 +1,6 @@
 {
   "name": "bulwark-webmail",
-  "version": "1.15.0",
+  "version": "1.17.2",
   "description": "Bulwark Webmail - a modern webmail client built for Stalwart Mail Server",
   "author": "Bulwark Mail <dev@bulwarkmail.org>",
   "license": "AGPL-3.0-only",
@@ -22,8 +22,8 @@
     "typescript"
   ],
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "node scripts/build-plugin-sandbox.mjs --watch -- next dev --turbopack",
+    "build": "node scripts/build-plugin-sandbox.mjs && next build --turbopack",
     "build:lite": "node scripts/lite/build.mjs",
     "lite:serve": "node scripts/lite/serve.mjs out 4173",
     "test:lite-smoke": "playwright test -c scripts/lite/smoke/playwright.config.ts",
@@ -66,7 +66,7 @@
     "dompurify": "^3.4.12",
     "jalaali-js": "^2.0.0",
     "jszip": "^3.10.1",
-    "next": "^16.2.6",
+    "next": "^16.4.2",
     "next-intl": "^4.13.3",
     "otpauth": "^9.5.0",
     "pdfjs-dist": "^6.0.227",
@@ -93,7 +93,7 @@
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.59.0",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/ui": "^4.1.11",
+    "@vitest/ui": "^4.1.12",
     "esbuild": "^0.28.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
@@ -105,7 +105,7 @@
     "tailwindcss": "^4.2.4",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "flatted": "^3.4.2",

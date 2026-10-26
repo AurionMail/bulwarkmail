@@ -1,5 +1,317 @@
 # Changelog
 
+## 1.17.2 (2026-10-24)
+
+1.17.2 fixes a cross-site scripting hole in re-opened drafts and keeps Safari from dropping push subscriptions after pushes that had nothing new to show. Drafts written as a group identity now stay in the group's Drafts, and bulk delete, trash and move with several accounts on different servers act on the right server. Plugins can update and remove their own tags, format dates in the user's regional settings and put buttons beside a sidebar section's title. User-facing texts use the configured app name instead of "Bulwark".
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- [@bultester](https://github.com/bultester)
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- Anonymous
+- [@superspacehosting](https://github.com/superspacehosting)
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Security
+
+- **Composer**: The quoted original and the signature in a re-opened draft are sanitized before they render. A draft written by another client, or by another member of a shared mailbox, could carry markup that ran script in the webmail when you opened it (GHSA-g35q-3gpc-x2rr, thanks @muhammad-zeeshan1337)
+
+### Features
+
+- **Plugins**: Plugins can change the label, colour and visibility of the tags they added and remove them again with `keywords.update` and `keywords.remove`. Both need `settings:write` and never touch the user's own tags or another plugin's (#1333, thanks @HOLOEYE-JZ)
+- **Plugins**: Plugin frames get the user's date locale, 12/24-hour setting, time zone and first day of the week, and can format with `api.i18n.formatDate` and `api.i18n.formatTime`, without asking for `settings:read` (#1335, thanks @tobiasge)
+- **Plugins**: A new `sidebar-section-actions` slot puts a plugin's buttons beside its sidebar section's title instead of in a row below it (#1317, thanks @LeonardNJU)
+- **Admin**: A policy switch lists the Tags above the shared mailboxes in the sidebar, so they stay in sight when many shared mailboxes are expanded. It is off by default (#1334, thanks @HOLOEYE-JZ)
+- **Branding**: Default apps in Settings, the "Open Bulwark" notification, the rate-limit banner, the plugin connect dialog and the connector page use the configured `APP_NAME`, and the settings search finds them by it (#1314, thanks @ghozty)
+
+### Fixes
+
+- **Push**: Every push ends with a notification, also one that brings nothing new (a redelivery, mail already read or already announced), and a slow preview gives way to the generic notification after 10 seconds. Safari treats a push without a notification as silent and drops the subscription after three (#1322, thanks @oguzyilmaznet)
+- **Mail**: A draft written as a group identity is saved in the group account's Drafts, where its Sent copy also goes, instead of in your own (#1090, thanks @hildebrandttk)
+- **Mail**: A sub-address of your own address (you+tag@) sends from your account, even when a shared catch-all account has a wildcard identity for the domain
+- **Mail**: Bulk delete, trash and move send each message through the login that owns it. With accounts on two servers that use the same account id, they went through the first login and could hit an unselected message on the other server (#1307, #1326, thanks @VasilisNtovolos)
+- **Mail**: Dragging several messages out as a ZIP fails with a message when one of them can't be fetched, instead of leaving it out, and the same selection can be tried again (#1306, thanks @VasilisNtovolos)
+- **Tasks**: A task alert relative to the start fires from the task's start instead of its due date. A task without a start still counts from its due date (#1328, thanks @ClapsAndJiggles)
+- **Plugins**: Plugins installed by the admin are listed in browsers that can't cache their code, such as some private windows (#1327, thanks @ovizii)
+- **i18n**: The Ukrainian "Forward" and "Move to" are translated as the actions, not as "ahead" and "go to" (#1311, thanks @vladonv)
+
+## 1.17.1 (2026-10-22)
+
+### Security
+
+- **Dependencies**: Next.js 16.4.2 and DOMPurify 3.4.17 fix six published advisories, three of them critical. None of them reached Bulwark: the webmail has no `use cache` functions and no Server Actions, its image optimizer refuses SVG and runs on sharp 0.35.5, which already carries the fix, and the mail sanitizer uses none of the DOMPurify modes the bypasses need (SAFE_FOR_TEMPLATES, IN_PLACE, XHTML parsing). Updating is still recommended
+
+1.17.1 stops the background-notifications prompt from asking you to turn push on while the app is still restoring a subscription the browser dropped, and an open tab now repairs a dropped subscription on its own. The message list stays within the screen on phones, and a browser that was already signed in hands a mobile sign-in to the app again.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- [@bultester](https://github.com/bultester)
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@superspacehosting](https://github.com/superspacehosting)
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Changes
+
+- **Dependencies**: vitest 4.1.12 and vite 8.3.5 (npm audit)
+
+### Fixes
+
+- **Push**: The background-notifications prompt waits for the background re-sync and only asks if push is still off afterwards, instead of appearing while the app is restoring a subscription Safari dropped (#1321, thanks @oguzyilmaznet)
+- **Push**: A tab that stays open notices when the browser drops or replaces its push subscription and registers the new one at once, and coming back to the tab recreates a lost subscription instead of waiting for the next reload (#1321)
+- **Mobile**: On phones, the message list is never wider than the screen, so the header's buttons, each row's date and the subject's ellipsis stay on screen and the selection toolbar compacts its buttons
+- **Login**: A mobile sign-in opened in a browser that was already signed in keeps the sign-in form and hands the sign-in to the app, instead of opening the mailbox and leaving the app stuck in its sign-in sheet
+
+## 1.17.0 (2026-10-21)
+
+1.17.0 gives plugins real panels: a panel next to the message you write or read can fill its height, start folded, be opened by the plugin, and be dragged wider, and plugins get right-click menus on selected text in the composer and in a message. Plugins can also search mail and the settings, read the user's preferences and the app's version. The AI Writing Assistant in the marketplace builds on this and needs this release. The reader's side panel stays open from message to message, and the admin panel is reworked around a settings-style sidebar with one URL per page. The Docker images move to Node.js 24.22.1 for a Node.js security fix.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- [@bultester](https://github.com/bultester)
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@superspacehosting](https://github.com/superspacehosting)
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Security
+
+- **Server**: The Docker images are built on Node.js 24.22.1, which fixes an out-of-bounds write in the Brotli decoder (CVE-2026-111497). The server decodes Brotli responses when it fetches a calendar subscription, a WebDAV share or a plugin request, so a signed-in user could point it at a host that sends a crafted response and run code on the server. The same Node.js release fixes TLS hostname checks for servers addressed by IP. Standalone installs run on the system's Node.js: update it to 22.23.4, 24.22.1 or 26.12.1
+
+### Features
+
+- **Plugins**: A panel slot (`composer-sidebar`, `composer-sidebar-right`, `email-detail-sidebar`) can fill its panel and scroll inside (`fill`), start folded until the user or the plugin opens it (`startFolded`), and be opened, closed and toggled by the plugin with `api.ui.openPanel`, `closePanel` and `togglePanel`, which answer null where no panel is on screen (phones), so a plugin can fall back to a dialog. A panel opened this way gets a `focusRequest` prop
+- **Plugins**: The composer's plugin panels get the composer id, the draft and the selected text as it changes; the reader's side panel gets the selected text; reader frames learn whether they are on a phone, a tablet or a desktop (`deviceType`)
+- **Plugins**: Right-click menus on selected text: `composer-selection-menu` in the message being written and `reader-selection-menu` in an open message. The browser's own menu stays until a plugin adds entries; the webmail then draws Cut and Copy and the plugin's entries, and the click carries the selected text
+- **Plugins**: Text selected inside a message's body (an HTML mail in its frame) now reaches `onTextSelectionChange`
+- **Plugins**: Plugins can search mail with `api.email.search`, search the settings and read the user's preferences, and read the app's name and version with `api.app.getInfo`
+- **Mail**: The reader's side panel stays open when you move to another message, and its toggle sits in the reader toolbar, which now runs over the side panels to the right edge
+- **Composer**: The plugin panels beside the composer can be dragged wider or narrower, and keep their width
+- **Admin**: The admin panel is reworked around a settings-style sidebar with one URL per page, the real navigation rail and extension icons
+
+### Fixes
+
+- **Mail**: Rescheduling a scheduled message cancels the original send before creating the new one, so it works on servers that allow one active submission per message (#1308)
+- **Mail**: Dragging messages out of the list and downloading attachments, inline images and the raw message in the Pro view use the account that owns the message, so shared and secondary-account messages no longer fail (#1299, #1300, thanks @VasilisNtovolos)
+- **Mail**: Deleting a message from its hover actions shows the actions on the next row that slides under the pointer, so you can delete one after another from the same spot (#1297, thanks @dealerweb)
+- **Mail**: PDF attachment previews open in Safari (#1301)
+- **Mail**: The contact card for a sender or recipient opens in place instead of sliding in from the top left
+- **Plugins**: A plugin's passphrase dialog stays open while you type (#1302)
+- **Plugins**: The push preference mirror no longer throws in sandboxed plugin frames (#1298, thanks @dealerweb)
+- **Layout**: A pane divider stops following the mouse when the button is released over a frame
+- **i18n**: The German dialog that hands a sign-in to the mobile app is translated (#1296, thanks @dealerweb)
+
+## 1.16.0 (2026-10-19)
+
+1.16.0 regroups the settings into fewer pages with an Advanced switch for the power-user options, shows the message list as columns on request, turns @mentions into contact chips, and opens the company directory in contacts and the composer. The marketplace can install any version of an extension and roll back to a replaced one, admins get policies for the colour mode, archiving and the provider sign-out, and the Estonian locale arrives. A security audit of the whole app fixed cross-account actions on repeated message ids and about thirty smaller findings.
+
+Thank you for your donations:
+
+- _You? [Become a sponsor!](https://github.com/sponsors/bulwarkmail)_
+
+**One-time**
+
+- [@bultester](https://github.com/bultester)
+- Anonymous
+- Anonymous
+- Anonymous
+
+**Monthly**
+
+- [@superspacehosting](https://github.com/superspacehosting)
+- [@naokton](https://github.com/naokton)
+- [@yerTools](https://github.com/yerTools)
+- [@jsaathof](https://github.com/jsaathof)
+- [@berkersal](https://github.com/berkersal)
+- [@NABarnes](https://github.com/NABarnes)
+- [@felixzieger](https://github.com/felixzieger)
+- [@pr0ton11](https://github.com/pr0ton11)
+- [@fpauser](https://github.com/fpauser)
+- [@proxforge](https://github.com/proxforge)
+- [@spss20](https://github.com/spss20)
+- [@elgringoYan](https://github.com/elgringoYan)
+- [@pauladams8](https://github.com/pauladams8)
+- [@djpriest](https://github.com/djpriest)
+- [@umakers](https://github.com/umakers)
+- [@zplizzi](https://github.com/zplizzi)
+- [@jeremiah](https://github.com/jeremiah)
+- [@Theoretisch1337](https://github.com/Theoretisch1337)
+- [@svandive](https://github.com/svandive)
+- [@HiltMundell](https://github.com/HiltMundell)
+
+### Security
+
+- **Mail**: Delete, move and drag in merged views and cross-account search act on the clicked message. When two accounts had messages with the same id, the action could hit the other account's message, which also made sent mail vanish from the Sent folder (#857, GHSA-8x23-qw3w-mhrx, thanks @FeliceBalsamo and @knittingcode)
+- **Mail**: HTML attachments preview as sanitised text in a locked frame. The preview used to open the sender's HTML as a same-origin document that could run script in the webmail origin
+- **Mail**: A crafted style attribute, read-receipt header, mail body or subject no longer freezes the reader or the message list
+- **Mail**: Only an SPF or DKIM pass aligned with the From domain counts as sender verification, and oversized winmail.dat and embedded message parts stay attachments instead of being decoded on open
+- **Mail**: Attachment names show without directional override characters, and imported and synced HTML templates are sanitised before the composer previews them
+- **Login**: The login page asks before handing a sign-in to the mobile app, and only hands it to the app's own callback link
+- **Login**: Failed sign-ins are capped per client at 5 in 15 minutes, and the client address is forwarded to the mail server as X-Forwarded-For so the server's own limits hit the client instead of the webmail. Add the webmail to Stalwart's server.proxy.trusted-networks for that to take effect
+- **Login**: Synced settings are keyed on the account a token login resolves to, not on the claimed name, so two users can no longer share a settings blob
+- **Admin**: OAuth client secrets and the session secret stay out of the admin audit log, the config API and dashboard writes
+- **Admin**: OAuth discovery no longer follows a redirect to another host, the extension directory URL cannot point at a private address, a directory keyring older than the newest one seen is refused, marketplace versions are validated and a silent downgrade on update is refused, and the installer writes its env file readable by its owner only
+- **Plugins**: Plugin POSTs stay off the plugin proxy, secrets, agenda, ical and translate routes, only a plugin known to the server can connect and use credentials, plugin-authored HTML drops remote images, and a plugin frame that navigated to another document gets no more host messages
+- **Server**: TLS responses carry HSTS and the X-Powered-By header is gone. Upstream mail server requests get a deadline, CalDAV discovery probes and concurrent favicon fetches are bounded, and calendar feeds, synced settings blobs and the settings route have size caps
+
+### Features
+
+- **Settings**: The settings are regrouped into Account, Security, Notifications, General and Appearance, the mail pages Message list, Reading, Composing, Folders & tags, Filters and Out of office, then Calendar, Contacts, Files and Add-ons with the plugin pages under it, and Backup & reset. Every page has a jump row to its sections, settings links can name a section, and old settings links keep working
+- **Settings**: An Advanced switch hides power-user settings until turned on. Search results and section links that point at a hidden setting turn it on
+- **Settings**: Themes show as one row with a Show all button, and the settings search box looks like the mail search box
+- **UI**: The message list can show as columns with one-line conversation rows (#262, thanks @fdisamuel)
+- **Composer**: Typing @ offers contacts and adds the picked one as a recipient. Mentions become chips with a contact card on hover, in the composer and in received mail
+- **Contacts**: The company directory can be browsed in contacts and the composer (#1253, thanks @diegonix)
+- **Mail**: "Remove from this folder" takes a message out of just the open folder when it is in several (#615, thanks @arnauda-gh)
+- **Mail**: n jumps to the next unread message (#514, thanks @muelli)
+- **Mail**: Shift+arrow keys extend the selection (#992, thanks @IntExCZ), and while selecting, a click anywhere on a row ticks it (#1014, thanks @mmomjian)
+- **Mail**: Search results from all folders show the folder (#1172, thanks @PoltoS)
+- **Mail**: Your own folders are listed in a separate section of the sidebar (#1205, thanks @roedy-dev)
+- **Mail**: The counter can be set per folder, e.g. keep the Drafts count with totals off (#982, thanks @mbjboon-netizen)
+- **Mail**: The account dot in the unified view can be hidden (#912, thanks @mmomjian)
+- **Mail**: Sender icons are refreshed when they changed on the sender's website (#960, thanks @IntExCZ)
+- **Composer**: Message priority can be set in the composer (#970, thanks @douwezijlstra-frl)
+- **Composer**: Templates get numeric date, day, month and year placeholders (#1284, thanks @Yahatix)
+- **Accounts**: When the admin turns on "Account List Backup: Passwords", saving the account list offers to include the passwords of accounts signed in with a plain password, encrypted in the browser. Restoring signs those accounts in in the background (#1247, thanks @lucamzanon)
+- **Admin**: The theme policy can set and lock the colour mode (#1280, thanks @chodid)
+- **Admin**: A configured logout URL ends the provider session for providers whose discovery has no end_session_endpoint (#1279, thanks @chodid)
+- **Admin**: A policy gate turns archiving off (#1257, #1258, thanks @HOLOEYE-JZ)
+- **Admin**: The admin panel asks before leaving with unsaved changes (#1255, thanks @passibe15)
+- **Admin**: The version is hidden from the connector probe when the login page hides it (#896, thanks @x86dev)
+- **Marketplace**: Any version of an extension can be installed. The detail page lists every version, previews the picked one and warns about withdrawn versions, advisories, deprecations and suspensions, the listing can be sorted and filtered to installed extensions with an updates strip, and an install link can name the version to offer
+- **Marketplace**: Replaced plugin and theme versions are kept and can be rolled back to
+- **Plugins**: The UI kit gets a Combobox (#1251, thanks @tobiasge)
+- **Translations**: Estonian is a new locale, including the company directory and the strings added since (#1254, thanks @raudraido)
+- **Demo**: The demo follows one persona with a work account, a personal account and a shared Support mailbox, with real headers, an invitation, mentions, tags, templates and files
+
+### Changes
+
+- **Marketplace**: The marketplace talks to the extension directory's v2 API only. A self-hosted directory older than 2026-10-14 no longer works with it
+- **Plugins**: A user credential now exists only for a registry plugin or an admin-approved upload whose manifest declares it. Approvals made before this version need a fresh approval request before the plugin can use credentials
+- **UI**: The whole app uses the theme's sans font (#1278, thanks @chodid)
+- **UI**: The app switcher uses simpler calendar, contacts and files icons, and the calendar, contacts, files and settings sidebar headers have the mail header's height
+- **Performance**: Starting a search no longer re-renders every row
+
+### Fixes
+
+- **Mail**: Push notifications can be enabled for an account with access to a shared folder (#1050, thanks @magnetic6)
+- **Mail**: The list shows the mail's own date and keeps it on .eml import (#891, thanks @johnnyq)
+- **Mail**: PGP and S/MIME messages inside conversations are decrypted (#902, thanks @rajil)
+- **Mail**: Attachments preview in the installed app instead of opening a blank window (#865, thanks @navidrast)
+- **Mail**: Message previews drop plain-text emphasis markers (#1260, thanks @mmomjian)
+- **Mail**: Today's and yesterday's mail are told apart by the time zone setting in the list and the sender line (#1259, #1262, thanks @mmomjian and @balabommablock-cpu)
+- **Mail**: The category tab filter is kept when the mailbox refreshes, and the whole folder comes back after a restart when a category tab was open (#1264, #1265, thanks @alyyousuf7)
+- **Mail**: Shared folders from other servers are kept when they reuse an account id, and a shared folder reachable through two logins is listed once in cross views (#1108, thanks @hildebrandttk)
+- **Mail**: Renaming a tag follows it into the filter rules that name it, and keeps vacation forwarding and plugin vetoes while doing so (#854, thanks @dev-hive-kazniisa)
+- **Mail**: Bulk archive across accounts is routed by the owning account, and Archive is only created where the account allows it (#1178, thanks @VasilisNtovolos)
+- **Mail**: Conversation blobs are fetched from the message they belong to, and file previews stay open in development Strict Mode (#1287, #1288, thanks @VasilisNtovolos)
+- **Mail**: A shared conversation is marked read on the owner account, and the mark-as-read delay is followed when expanding a conversation or opening a Pro folder row (#1272, thanks @Peterka35)
+- **Mail**: The reader's Move, Tag and Rules flyouts open on the side with room (#1261, thanks @beja19)
+- **Mail**: Vacation filter rules are skipped on shared accounts without Sieve (#1263, thanks @somus)
+- **Mail**: Nextcloud filter markers inside rule text are ignored
+- **Composer**: A reply to a message from another connected account is sent from that account to the right recipient (#703, #1270, thanks @jesperordrup and @vixh)
+- **Composer**: Replies whose From is picked after the composer opens are signed (#842, thanks @mmomjian)
+- **Composer**: A contact group whose member is not an address is no longer sent (#795, thanks @brambuijs)
+- **Composer**: Your own address stays out of reply-all before your identities have loaded (#803, thanks @lucletoffe)
+- **Composer**: Sent mail keeps blank lines instead of collapsing them (#1015, thanks @mbjboon-netizen)
+- **Composer**: Inline images in replies and forwards are attached once (#1125, thanks @guisea)
+- **Composer**: The quote containment styles stay in the editor and out of the sent mail, and a quoted original can no longer paint over the composer
+- **Composer**: The composer opens when the mail client can't report directory support
+- **Composer**: A click on a mention chip opens the contact card instead of the mailto handler in Firefox
+- **Calendar**: Zero-length events end at their start instead of midnight (#837, thanks @Flying-Bas)
+- **Calendar**: Invitation times show in your time zone (#1252, thanks @TomekCodeWave)
+- **Calendar**: Answering an invite sent to a non-primary identity works (#1283, thanks @taranasus)
+- **Calendar**: The visible range is refetched after creating a recurring event (#1268, thanks @sanitz)
+- **Calendar**: Month view day columns align with the header (#1286, thanks @tobiasge)
+- **Tasks**: An all-day task's due and start are sent as a LocalDateTime (#1256, thanks @sanitz)
+- **Notifications**: Push notifications stay silent when the notification sound is off (#1289, thanks @chreds)
+- **Admin**: The admin panel loads when the config is read-only, policy defaults are applied to user settings, and OAuth auto-setup is refused before touching Stalwart when the config is read-only (#1248, #1249, #1250, thanks @chodid)
+- **Accounts**: Restored sign-ins are remembered only when the restoring account is remembered, and contact and calendar data that arrives after switching accounts is dropped instead of landing in the other account
+- **Plugins**: api.email.get reads a listed message of a shared account and no longer reads mail of other connected logins (#1273, #1274, thanks @alyyousuf7)
+- **Plugins**: A plugin slot's callbacks keep working when its props change while it loads (#1266, thanks @dedoitalia)
+- **Plugins**: Plugin dropdown messages are checked before the host draws them
+- **Lite**: Demo portraits load from the mount prefix so a bundle under a subpath stays self-contained, and the dev server stays inside its export directory
+- **Translations**: German strings that still showed in English (#1285, thanks @dealerweb), contact field types and more French strings
+
 ## 1.15.0 (2026-10-15)
 
 1.15.0 opens the plugin system up: plugins can add UI in most places of the app, hear and stop most actions, and use accounts and API keys through the server without seeing them, and users can install their own plugins once an admin has reviewed the code. Opening folders and messages is faster, with far fewer re-renders and requests. Calendars get default reminders, notifications can be muted per folder or account, and every sign-in is now remembered unless the admin shows the Remember me box.

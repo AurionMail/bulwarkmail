@@ -1,0 +1,38 @@
+import { useSettingsStore, effectiveMailLayout } from '@/stores/settings-store';
+import { useUIStore } from '@/stores/ui-store';
+
+export interface ListRowShape {
+  /** Sender, subject and date on one line instead of stacked. */
+  oneLine: boolean;
+  /** One-line rows laid out in fixed From / Subject / Date / Size columns. */
+  columns: boolean;
+}
+
+/**
+ * How the message list draws its rows.
+ *
+ * The focused list and the bottom reading pane both give the list the full
+ * width, so their rows run on one line. Phones fall back to stacked rows, and
+ * so do tablets under the bottom pane, which they draw as the split layout.
+ * Columns are a table on top of the one-line rows (#262); Mountain View rows
+ * are shaped after Gmail and never take them.
+ */
+export function useListRowShape(): ListRowShape {
+  const mailLayout = useSettingsStore((state) => effectiveMailLayout(state.mailLayout, state.interfaceLayout));
+  const mountainView = useSettingsStore((state) => state.interfaceLayout === 'mountain-view');
+  const listColumns = useSettingsStore((state) => state.listColumns);
+  const isMobile = useUIStore((state) => state.isMobile);
+  const isTablet = useUIStore((state) => state.isTablet);
+  const oneLine = !isMobile && (mailLayout === 'focus' || (mailLayout === 'horizontal' && !isTablet));
+  return { oneLine, columns: oneLine && listColumns && !mountainView };
+}
+
+/**
+ * Column widths, shared by the rows and the header above them so the two
+ * line up. The subject column takes whatever is left.
+ */
+export const LIST_COLUMN_CLASS = {
+  from: 'w-40 shrink-0 lg:w-56',
+  date: 'w-28 shrink-0 text-end',
+  size: 'w-16 shrink-0 text-end',
+} as const;

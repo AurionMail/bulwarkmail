@@ -1,20 +1,20 @@
 import type { ContactCard, AddressBook } from '@/lib/jmap/types';
+import {
+  type Person, portraitUri,
+  NORA, ALICE, BOB, PRIYA, AHMED, JAMES, MICHAEL, RACHEL, WEI, MARIA, LISA,
+  SARAH, OLIVIA, JENNIFER, KENJI, SOFIA, ANNA, ELIAS, CARLOS, MARCUS, EMMA, DAVID, DANIEL,
+  TOMAS, LENA, YUSUF,
+} from './people';
 
-// randomuser.me serves stable portrait URLs at
-//   https://randomuser.me/api/portraits/{men|women}/{0..99}.jpg
-// See https://randomuser.me/documentation#howto - we use these directly
-// rather than hitting the JSON API so the demo works offline.
-const portrait = (gender: 'men' | 'women', n: number): string =>
-  `https://randomuser.me/api/portraits/${gender}/${n}.jpg`;
-
-const photo = (gender: 'men' | 'women', n: number) => ({
-  photo1: { kind: 'photo' as const, uri: portrait(gender, n), mediaType: 'image/jpeg' },
-});
+export const AB = {
+  personal: 'demo-addressbook-personal',
+  work: 'demo-addressbook-work',
+} as const;
 
 export function createDemoAddressBooks(): AddressBook[] {
   return [
     {
-      id: 'demo-addressbook-personal',
+      id: AB.personal,
       name: 'Personal',
       isDefault: true,
       isSubscribed: true,
@@ -22,8 +22,8 @@ export function createDemoAddressBooks(): AddressBook[] {
       myRights: { mayRead: true, mayWrite: true, mayShare: true, mayDelete: false },
     },
     {
-      id: 'demo-addressbook-work',
-      name: 'Work',
+      id: AB.work,
+      name: 'Meridian Labs',
       isDefault: false,
       isSubscribed: true,
       sortOrder: 2,
@@ -32,239 +32,182 @@ export function createDemoAddressBooks(): AddressBook[] {
   ];
 }
 
+type Extra = Partial<Omit<ContactCard, 'id' | 'addressBookIds' | 'kind' | 'name' | 'emails' | 'media'>> & {
+  /** Further addresses: [address, context]. */
+  moreEmails?: Array<[string, 'work' | 'private']>;
+};
+
+function person(id: string, book: string, p: Person, context: 'work' | 'private', extra: Extra = {}): ContactCard {
+  const { moreEmails, ...rest } = extra;
+  const photo = portraitUri(p);
+  const emails: ContactCard['emails'] = { e1: { address: p.email, contexts: { [context]: true }, pref: 1 } };
+  moreEmails?.forEach(([address, ctx], i) => { emails[`e${i + 2}`] = { address, contexts: { [ctx]: true } }; });
+  return {
+    id,
+    addressBookIds: { [book]: true },
+    kind: 'individual',
+    name: { components: [{ kind: 'given', value: p.given }, { kind: 'surname', value: p.surname }] },
+    emails,
+    ...(photo ? { media: { photo1: { kind: 'photo', uri: photo, mediaType: 'image/jpeg' } } } : {}),
+    ...rest,
+  };
+}
+
+const meridian = (unit: string, title: string) => ({
+  organizations: { o1: { name: 'Meridian Labs', units: [{ name: unit }] } },
+  titles: { t1: { name: title, kind: 'title' as const } },
+});
+const phone = (number: string, feature: 'voice' | 'cell' = 'cell', context: 'work' | 'private' = 'work') =>
+  ({ p1: { number, features: { [feature]: true }, contexts: { [context]: true } } });
+
 export function createDemoContacts(): ContactCard[] {
   return [
-    // ── Personal address book ──────────────────────────────────
-    {
-      id: 'demo-contact-1',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Alice' }, { kind: 'surname', value: 'Johnson' }] },
-      emails: { e1: { address: 'alice.johnson@example.com', contexts: { work: true }, pref: 1 } },
-      phones: { p1: { number: '+1-555-0101', features: { voice: true }, contexts: { work: true } } },
-      organizations: { o1: { name: 'Acme Corp', units: [{ name: 'Engineering' }] } },
-      titles: { t1: { name: 'Senior Engineer', kind: 'title' } },
-      anniversaries: { a1: { kind: 'birth', date: { year: 1990, month: 3, day: 15 } } },
-      media: photo('women', 44),
-    },
-    {
-      id: 'demo-contact-2',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Bob' }, { kind: 'surname', value: 'Chen' }] },
-      emails: {
-        e1: { address: 'bob.chen@example.com', contexts: { work: true }, pref: 1 },
-        e2: { address: 'bob.personal@email.example', contexts: { private: true } },
-      },
-      phones: {
-        p1: { number: '+1-555-0102', features: { voice: true }, contexts: { work: true } },
-        p2: { number: '+1-555-0103', features: { cell: true }, contexts: { private: true } },
-      },
-      organizations: { o1: { name: 'Acme Corp', units: [{ name: 'Backend Team' }] } },
-      titles: { t1: { name: 'Staff Engineer', kind: 'title' } },
-      media: photo('men', 32),
-    },
-    {
-      id: 'demo-contact-3',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Sarah' }, { kind: 'surname', value: 'Kim' }] },
-      emails: { e1: { address: 'sarah.kim@example.com', pref: 1 } },
-      phones: { p1: { number: '+1-555-0104', features: { voice: true } } },
-      organizations: { o1: { name: 'DesignCo' } },
+    // ── Meridian Labs ──────────────────────────────────────────
+    // Nora's own card: it gives her avatar a photo and her @mention a hover card.
+    person('demo-contact-nora', AB.work, NORA, 'work', {
+      ...meridian('Engineering', 'Engineering Lead'),
+      moreEmails: [['nora@lindqvist.example', 'private']],
+      phones: phone('+49 30 555 0199', 'voice'),
+      anniversaries: { a1: { kind: 'birth', date: { year: 1990, month: 6, day: 2 } } },
+    }),
+    person('demo-contact-alice', AB.work, ALICE, 'work', {
+      ...meridian('Engineering', 'Engineering Manager'),
+      phones: phone('+49 30 555 0101', 'voice'),
+      anniversaries: { a1: { kind: 'birth', date: { year: 1988, month: 3, day: 15 } } },
+      notes: { n1: { note: 'My manager. Prefers written proposals to meetings.' } },
+    }),
+    person('demo-contact-bob', AB.work, BOB, 'work', {
+      ...meridian('Platform', 'Staff Engineer'),
+      moreEmails: [['bob.personal@email.example', 'private']],
+      phones: { p1: { number: '+49 30 555 0102', features: { voice: true }, contexts: { work: true } }, p2: { number: '+49 171 555 0103', features: { cell: true }, contexts: { private: true } } },
+    }),
+    person('demo-contact-priya', AB.work, PRIYA, 'work', { ...meridian('Quality', 'QA Lead'), phones: phone('+49 30 555 0104', 'voice') }),
+    person('demo-contact-ahmed', AB.work, AHMED, 'work', { ...meridian('Platform', 'Site Reliability Engineer'), phones: phone('+49 171 555 0105') }),
+    person('demo-contact-james', AB.work, JAMES, 'work', { ...meridian('Leadership', 'CTO'), phones: phone('+49 30 555 0100', 'voice') }),
+    person('demo-contact-michael', AB.work, MICHAEL, 'work', { ...meridian('Product', 'Product Manager, Beacon'), phones: phone('+49 171 555 0106') }),
+    person('demo-contact-rachel', AB.work, RACHEL, 'work', { ...meridian('Marketing', 'Marketing Lead') }),
+    person('demo-contact-wei', AB.work, WEI, 'work', { ...meridian('Data', 'Data Scientist') }),
+    person('demo-contact-maria', AB.work, MARIA, 'work', { ...meridian('People Ops', 'People Partner'), phones: phone('+49 30 555 0108', 'voice') }),
+    person('demo-contact-lisa', AB.work, LISA, 'work', { ...meridian('Engineering', 'Frontend Engineer') }),
+
+    // ── Work, outside the company ──────────────────────────────
+    person('demo-contact-sarah', AB.work, SARAH, 'work', {
+      organizations: { o1: { name: 'DesignCo Studio' } },
       titles: { t1: { name: 'UX Designer', kind: 'title' } },
-      media: photo('women', 68),
-    },
-    {
-      id: 'demo-contact-4',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Carlos' }, { kind: 'surname', value: 'Rivera' }] },
-      emails: { e1: { address: 'carlos.rivera@example.com', pref: 1 } },
-      phones: { p1: { number: '+1-555-0105', features: { cell: true } } },
-      notes: { n1: { note: 'Met at the DevConf 2024 conference' } },
-      media: photo('men', 15),
-    },
-    {
-      id: 'demo-contact-5',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Emma' }, { kind: 'surname', value: 'Wilson' }] },
-      emails: { e1: { address: 'emma.wilson@example.com', pref: 1 } },
-      addresses: {
-        a1: {
-          components: [
-            { kind: 'number', value: '456' },
-            { kind: 'name', value: 'Elm Street' },
-            { kind: 'locality', value: 'Springfield' },
-            { kind: 'region', value: 'IL' },
-            { kind: 'postcode', value: '62701' },
-          ],
-          contexts: { private: true },
-        },
-      },
-      anniversaries: { a1: { kind: 'birth', date: { month: 7, day: 22 } } },
-      media: photo('women', 22),
-    },
-    {
-      id: 'demo-contact-6',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'David' }, { kind: 'surname', value: 'Park' }] },
-      emails: { e1: { address: 'david.park@example.com', pref: 1 } },
-      phones: { p1: { number: '+82-10-1234-5678', features: { cell: true } } },
-      media: photo('men', 67),
-    },
-    {
-      id: 'demo-contact-7',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'org',
-      name: { components: [{ kind: 'surname', value: 'Local Coffee Shop' }] },
-      emails: { e1: { address: 'hello@localcoffee.example', pref: 1 } },
-      phones: { p1: { number: '+1-555-0200', features: { voice: true } } },
-      addresses: {
-        a1: {
-          components: [
-            { kind: 'number', value: '789' },
-            { kind: 'name', value: 'Main Street' },
-            { kind: 'locality', value: 'Anytown' },
-            { kind: 'region', value: 'CA' },
-            { kind: 'postcode', value: '90210' },
-          ],
-        },
-      },
-    },
-    {
-      id: 'demo-contact-8',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Lisa' }, { kind: 'surname', value: 'Tanaka' }] },
-      emails: { e1: { address: 'lisa.tanaka@example.com', pref: 1 } },
-      media: photo('women', 85),
-    },
-    {
-      id: 'demo-contact-16',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Sofia' }, { kind: 'surname', value: 'Russo' }] },
-      emails: { e1: { address: 'sofia.russo@example.com', contexts: { private: true }, pref: 1 } },
-      phones: { p1: { number: '+39-340-555-0111', features: { cell: true }, contexts: { private: true } } },
-      notes: { n1: { note: 'Mom' } },
-      anniversaries: { a1: { kind: 'birth', date: { year: 1962, month: 5, day: 9 } } },
-      media: photo('women', 3),
-    },
-    {
-      id: 'demo-contact-17',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Anna' }, { kind: 'surname', value: 'Kowalski' }] },
-      emails: { e1: { address: 'anna.kowalski@example.com', contexts: { private: true }, pref: 1 } },
-      phones: { p1: { number: '+48-602-555-0144', features: { cell: true } } },
-      notes: { n1: { note: 'Sister - lives in Kraków' } },
-      anniversaries: { a1: { kind: 'birth', date: { month: 11, day: 4 } } },
-      media: photo('women', 47),
-    },
-    {
-      id: 'demo-contact-18',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Marcus' }, { kind: 'surname', value: 'Hughes' }] },
-      emails: { e1: { address: 'marcus.hughes@example.com', pref: 1 } },
-      notes: { n1: { note: 'College friend - book club organiser' } },
-      media: photo('men', 96),
-    },
-    {
-      id: 'demo-contact-19',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Olivia' }, { kind: 'surname', value: 'Bennett' }] },
-      emails: { e1: { address: 'olivia.bennett@example.com', contexts: { work: true }, pref: 1 } },
+      phones: phone('+49 30 555 0204', 'voice'),
+      addresses: { a1: { components: [{ kind: 'name', value: 'Torstraße' }, { kind: 'number', value: '112' }, { kind: 'postcode', value: '10119' }, { kind: 'locality', value: 'Berlin' }], contexts: { work: true } } },
+      notes: { n1: { note: 'Website redesign. Invoices monthly, net 14.' } },
+    }),
+    person('demo-contact-olivia', AB.work, OLIVIA, 'work', {
       organizations: { o1: { name: 'Northwind Studio' } },
       titles: { t1: { name: 'Product Designer', kind: 'title' } },
-      media: photo('women', 91),
+    }),
+    person('demo-contact-kenji', AB.work, KENJI, 'work', {
+      organizations: { o1: { name: 'Infra Summit' } },
+      titles: { t1: { name: 'Programme chair', kind: 'title' } },
+      phones: phone('+351 21 555 0170', 'voice'),
+    }),
+    person('demo-contact-jennifer', AB.work, JENNIFER, 'work', {
+      organizations: { o1: { name: 'Talent Partners' } },
+      titles: { t1: { name: 'Principal Recruiter', kind: 'title' } },
+    }),
+    person('demo-contact-tomas', AB.work, TOMAS, 'work', {
+      organizations: { o1: { name: 'Lumen Logistics', units: [{ name: 'Operations' }] } },
+      titles: { t1: { name: 'Head of Operations', kind: 'title' } },
+      phones: phone('+351 21 555 0188', 'voice'),
+      addresses: { a1: { components: [{ kind: 'name', value: 'Av. da Liberdade' }, { kind: 'number', value: '110' }, { kind: 'postcode', value: '1250-146' }, { kind: 'locality', value: 'Lisboa' }, { kind: 'country', value: 'Portugal' }], contexts: { work: true } } },
+      notes: { n1: { note: 'Design partner. Wants Lumen on the Beacon canary.' } },
+    }),
+    person('demo-contact-lena', AB.work, LENA, 'work', { organizations: { o1: { name: 'Hoffmann & Partner' } }, titles: { t1: { name: 'Partner', kind: 'title' } } }),
+    person('demo-contact-yusuf', AB.work, YUSUF, 'work', { organizations: { o1: { name: 'Demir Retail' } }, titles: { t1: { name: 'Lead Developer', kind: 'title' } } }),
+
+    // ── Personal ───────────────────────────────────────────────
+    person('demo-contact-sofia', AB.personal, SOFIA, 'private', {
+      phones: phone('+39 051 555 0111', 'voice', 'private'),
+      addresses: { a1: { components: [{ kind: 'name', value: 'Via Zamboni' }, { kind: 'number', value: '18' }, { kind: 'postcode', value: '40126' }, { kind: 'locality', value: 'Bologna' }, { kind: 'country', value: 'Italy' }], contexts: { private: true } } },
+      anniversaries: { a1: { kind: 'birth', date: { year: 1962, month: 5, day: 9 } } },
+      notes: { n1: { note: 'Mom. Writing a memoir, "The Lemon Tree Year".' } },
+      relatedTo: { [ANNA.email]: { relation: { child: true } } },
+    }),
+    person('demo-contact-anna', AB.personal, ANNA, 'private', {
+      phones: phone('+48 602 555 0144', 'cell', 'private'),
+      addresses: { a1: { components: [{ kind: 'name', value: 'ul. Floriańska' }, { kind: 'number', value: '22' }, { kind: 'postcode', value: '31-021' }, { kind: 'locality', value: 'Kraków' }, { kind: 'country', value: 'Poland' }], contexts: { private: true } } },
+      anniversaries: { a1: { kind: 'birth', date: { year: 1992, month: 11, day: 4 } } },
+      notes: { n1: { note: 'Sister.' } },
+    }),
+    person('demo-contact-elias', AB.personal, ELIAS, 'private', {
+      phones: phone('+46 70 555 0122', 'cell', 'private'),
+      addresses: { a1: { components: [{ kind: 'name', value: 'Linnégatan' }, { kind: 'number', value: '41' }, { kind: 'postcode', value: '413 08' }, { kind: 'locality', value: 'Göteborg' }, { kind: 'country', value: 'Sweden' }], contexts: { private: true } } },
+      anniversaries: { a1: { kind: 'birth', date: { year: 1986, month: 8, day: 23 } } },
+      notes: { n1: { note: 'Brother.' } },
+    }),
+    person('demo-contact-carlos', AB.personal, CARLOS, 'private', {
+      phones: phone('+49 176 555 0105', 'cell', 'private'),
+      anniversaries: { a1: { kind: 'birth', date: { month: 10, day: 15 } } },
+      notes: { n1: { note: 'Met at DevConf 2024. Organises the Friday dinners.' } },
+    }),
+    person('demo-contact-marcus', AB.personal, MARCUS, 'private', { notes: { n1: { note: 'Book club host, every other week.' } } }),
+    person('demo-contact-emma', AB.personal, EMMA, 'private', {
+      addresses: { a1: { components: [{ kind: 'name', value: 'Schönhauser Allee' }, { kind: 'number', value: '56' }, { kind: 'postcode', value: '10437' }, { kind: 'locality', value: 'Berlin' }], contexts: { private: true } } },
+      anniversaries: { a1: { kind: 'birth', date: { month: 7, day: 22 } } },
+    }),
+    person('demo-contact-david', AB.personal, DAVID, 'private', { phones: phone('+82 10 1234 5678', 'cell', 'private') }),
+    person('demo-contact-daniel', AB.personal, DANIEL, 'private', {
+      organizations: { o1: { name: 'Cooper Creative' } },
+      titles: { t1: { name: 'Illustrator', kind: 'title' } },
+      notes: { n1: { note: 'Doing the cover for Mom\'s book.' } },
+    }),
+    {
+      id: 'demo-contact-dentist',
+      addressBookIds: { [AB.personal]: true },
+      kind: 'org',
+      name: { components: [{ kind: 'surname', value: 'Zahnarztpraxis Dr. Weber' }] },
+      emails: { e1: { address: 'termine@dr-weber.example', pref: 1 } },
+      phones: { p1: { number: '+49 30 555 0142', features: { voice: true } } },
+      addresses: { a1: { components: [{ kind: 'name', value: 'Kastanienallee' }, { kind: 'number', value: '21' }, { kind: 'postcode', value: '10435' }, { kind: 'locality', value: 'Berlin' }] } },
     },
     {
-      id: 'demo-contact-20',
-      addressBookIds: { 'demo-addressbook-personal': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Daniel' }, { kind: 'surname', value: 'Cooper' }] },
-      emails: { e1: { address: 'daniel.cooper@example.com', pref: 1 } },
-      organizations: { o1: { name: 'Freelance' } },
-      titles: { t1: { name: 'Illustrator', kind: 'title' } },
-      media: photo('men', 76),
+      id: 'demo-contact-cafe',
+      addressBookIds: { [AB.personal]: true },
+      kind: 'org',
+      name: { components: [{ kind: 'surname', value: 'Café Kranzler' }] },
+      emails: { e1: { address: 'hello@kranzler.example', pref: 1 } },
+      phones: { p1: { number: '+49 30 555 0200', features: { voice: true } } },
+      addresses: { a1: { components: [{ kind: 'name', value: 'Rosenthaler Straße' }, { kind: 'number', value: '38' }, { kind: 'postcode', value: '10178' }, { kind: 'locality', value: 'Berlin' }] } },
+      notes: { n1: { note: 'Coffee downstairs from the office.' } },
     },
 
-    // ── Work address book ──────────────────────────────────────
+    // ── Groups ─────────────────────────────────────────────────
     {
-      id: 'demo-contact-9',
-      addressBookIds: { 'demo-addressbook-work': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Michael' }, { kind: 'surname', value: 'Torres' }] },
-      emails: { e1: { address: 'michael.torres@company.example', contexts: { work: true }, pref: 1 } },
-      phones: { p1: { number: '+1-555-0301', features: { voice: true }, contexts: { work: true } } },
-      organizations: { o1: { name: 'Company Inc', units: [{ name: 'Product' }] } },
-      titles: { t1: { name: 'Product Manager', kind: 'title' } },
-      media: photo('men', 41),
+      id: 'demo-group-beacon',
+      addressBookIds: { [AB.work]: true },
+      kind: 'group',
+      name: { components: [{ kind: 'surname', value: 'Beacon team' }] },
+      members: { 'demo-contact-alice': true, 'demo-contact-bob': true, 'demo-contact-priya': true, 'demo-contact-ahmed': true, 'demo-contact-lisa': true },
     },
     {
-      id: 'demo-contact-10',
-      addressBookIds: { 'demo-addressbook-work': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Rachel' }, { kind: 'surname', value: 'Green' }] },
-      emails: { e1: { address: 'rachel.green@company.example', contexts: { work: true }, pref: 1 } },
-      organizations: { o1: { name: 'Company Inc', units: [{ name: 'Marketing' }] } },
-      titles: { t1: { name: 'Marketing Lead', kind: 'title' } },
-      media: photo('women', 12),
+      id: 'demo-group-leadership',
+      addressBookIds: { [AB.work]: true },
+      kind: 'group',
+      name: { components: [{ kind: 'surname', value: 'Leadership' }] },
+      members: { 'demo-contact-james': true, 'demo-contact-michael': true, 'demo-contact-alice': true },
     },
     {
-      id: 'demo-contact-11',
-      addressBookIds: { 'demo-addressbook-work': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'James' }, { kind: 'surname', value: 'Miller' }] },
-      emails: { e1: { address: 'james.miller@company.example', contexts: { work: true }, pref: 1 } },
-      organizations: { o1: { name: 'Company Inc', units: [{ name: 'Engineering' }] } },
-      titles: { t1: { name: 'CTO', kind: 'title' } },
-      media: photo('men', 52),
+      id: 'demo-group-family',
+      addressBookIds: { [AB.personal]: true },
+      kind: 'group',
+      name: { components: [{ kind: 'surname', value: 'Family' }] },
+      members: { 'demo-contact-sofia': true, 'demo-contact-anna': true, 'demo-contact-elias': true },
     },
     {
-      id: 'demo-contact-12',
-      addressBookIds: { 'demo-addressbook-work': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Priya' }, { kind: 'surname', value: 'Sharma' }] },
-      emails: { e1: { address: 'priya.sharma@company.example', contexts: { work: true }, pref: 1 } },
-      organizations: { o1: { name: 'Company Inc', units: [{ name: 'QA' }] } },
-      titles: { t1: { name: 'QA Engineer', kind: 'title' } },
-      media: photo('women', 77),
-    },
-    {
-      id: 'demo-contact-13',
-      addressBookIds: { 'demo-addressbook-work': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Ahmed' }, { kind: 'surname', value: 'Hassan' }] },
-      emails: { e1: { address: 'ahmed.hassan@company.example', contexts: { work: true }, pref: 1 } },
-      organizations: { o1: { name: 'Company Inc', units: [{ name: 'DevOps' }] } },
-      titles: { t1: { name: 'DevOps Engineer', kind: 'title' } },
-      media: photo('men', 89),
-    },
-    {
-      id: 'demo-contact-14',
-      addressBookIds: { 'demo-addressbook-work': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Maria' }, { kind: 'surname', value: 'Lopez' }] },
-      emails: { e1: { address: 'maria.lopez@company.example', contexts: { work: true }, pref: 1 } },
-      organizations: { o1: { name: 'Company Inc', units: [{ name: 'HR' }] } },
-      titles: { t1: { name: 'HR Business Partner', kind: 'title' } },
-      media: photo('women', 55),
-    },
-    {
-      id: 'demo-contact-15',
-      addressBookIds: { 'demo-addressbook-work': true },
-      kind: 'individual',
-      name: { components: [{ kind: 'given', value: 'Wei' }, { kind: 'surname', value: 'Zhang' }] },
-      emails: { e1: { address: 'wei.zhang@company.example', contexts: { work: true }, pref: 1 } },
-      organizations: { o1: { name: 'Company Inc', units: [{ name: 'Data Science' }] } },
-      titles: { t1: { name: 'Data Scientist', kind: 'title' } },
-      media: photo('men', 8),
+      id: 'demo-group-bookclub',
+      addressBookIds: { [AB.personal]: true },
+      kind: 'group',
+      name: { components: [{ kind: 'surname', value: 'Book club' }] },
+      members: { 'demo-contact-marcus': true, 'demo-contact-emma': true, 'demo-contact-david': true },
     },
   ];
 }
+
+/** The persona as a contact card, for the hover card on her own @mention. */
+export const SELF_CONTACT_EMAIL = NORA.email;

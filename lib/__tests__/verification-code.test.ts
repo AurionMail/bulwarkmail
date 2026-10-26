@@ -179,3 +179,47 @@ describe('verificationCodeBodyText', () => {
     expect(findVerificationCode('', text)).toBe('811083');
   });
 });
+
+// A sender's bytes drive these regexes on the UI thread, for every opened
+// mail and every list row. Each of these inputs took seconds to minutes
+// before the patterns were anchored; all must stay linear.
+describe('crafted mail cannot stall the code search', () => {
+  const BUDGET_MS = 250;
+  const part = (partId: string, type: string) => ({ partId, blobId: `blob-${partId}`, size: 1, type });
+  const value = (v: string) => ({ value: v, isEncodingProblem: false, isTruncated: false });
+  function timed(fn: () => unknown): number {
+    const started = performance.now();
+    fn();
+    return performance.now() - started;
+  }
+  const htmlMail = (body: string) => ({
+    htmlBody: [part('1', 'text/html')],
+    textBody: [],
+    bodyValues: { 1: value(body) },
+  });
+
+  it('a megabyte of unclosed <style> tags', () => {
+    const mail = htmlMail('<style>'.repeat(150_000));
+    expect(timed(() => verificationCodeBodyText(mail))).toBeLessThan(BUDGET_MS);
+  });
+
+  it('a body of < without >', () => {
+    const mail = htmlMail('code '.concat('<'.repeat(200_000)));
+    expect(timed(() => verificationCodeBodyText(mail))).toBeLessThan(BUDGET_MS);
+    expect(timed(() => htmlMayNameACode('<'.repeat(200_000)))).toBeLessThan(BUDGET_MS);
+  });
+
+  it('one long word, glued digit groups, and a long subject', () => {
+    expect(timed(() => findVerificationCode('', 'code ' + 'a'.repeat(50_000)))).toBeLessThan(BUDGET_MS);
+    expect(timed(() => findVerificationCode('', 'code ' + 'a1234'.repeat(10_000)))).toBeLessThan(BUDGET_MS);
+    expect(timed(() => findVerificationCode('code ' + 'a'.repeat(200_000), ''))).toBeLessThan(BUDGET_MS);
+    expect(timed(() => findVerificationCode('', 'code ' + 'a'.repeat(20_000) + '...'))).toBeLessThan(BUDGET_MS);
+  });
+
+  it('still finds the code after the trims', () => {
+    expect(findVerificationCode('Your code is 177945 ' + 'x'.repeat(2_000), '')).toBe('177945');
+    expect(findVerificationCode('', 'Claude.ai177945Copy this code')).toBe('177945');
+    expect(findVerificationCode('', 'Your code: 482910 reply to noreply@example.com')).toBe('482910');
+    expect(findVerificationCode('', 'Your code: 48291...')).toBeNull();
+  });
+});

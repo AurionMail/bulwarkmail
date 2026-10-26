@@ -9,6 +9,7 @@ import { useContactPhotoSrc } from "@/hooks/use-contact-photo";
 import { avatarHooks } from "@/lib/plugin-hooks";
 import { withBasePath } from "@/lib/browser-navigation";
 import { IS_LITE } from "@/lib/lite";
+import { useFaviconRefreshStore, failedFaviconDomains } from "@/stores/favicon-refresh-store";
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
@@ -64,9 +65,6 @@ function getRootDomain(domain: string): string {
   return parts.slice(-2).join(".");
 }
 
-// Module-level cache of domains whose favicons failed to load.
-// Shared across all Avatar instances to avoid re-requesting known-bad domains.
-const failedFaviconDomains = new Set<string>();
 // Personal email domains where the favicon is the mail provider logo, not the sender
 const PERSONAL_DOMAINS = new Set([
   "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com",
@@ -164,6 +162,7 @@ export function Avatar({ name, email, contactPhoto, size = "md", className, disa
   // corrupt bytes) falls through to the next source instead of an empty circle.
   const [failedContactPhoto, setFailedContactPhoto] = useState<string | null>(null);
   const senderFavicons = useSettingsStore((s) => s.senderFavicons);
+  const faviconRefreshedAt = useFaviconRefreshStore((s) => s.refreshedAt);
   const contacts = useContactStore((s) => s.contacts);
   const { devMode } = useConfig();
 
@@ -189,6 +188,11 @@ export function Avatar({ name, email, contactPhoto, size = "md", className, disa
   }, [disableImages, contactPhoto, email, contacts]);
   const { src: contactPhotoSrc, observe } = useContactPhotoSrc(photoRef);
   const resolvedContactPhoto = contactPhotoSrc && contactPhotoSrc !== failedContactPhoto ? contactPhotoSrc : undefined;
+
+  // A refresh of the sender icons gives a failed favicon another chance.
+  useEffect(() => {
+    setImgError(false);
+  }, [faviconRefreshedAt]);
 
   const domain = email?.split("@")[1]?.toLowerCase();
   // Use root domain for favicon lookups (e.g. newsletter.example.com → example.com)
@@ -241,7 +245,7 @@ export function Avatar({ name, email, contactPhoto, size = "md", className, disa
   const customAvatar = devMode && email ? CUSTOM_AVATARS[email.toLowerCase()] : null;
   const pluginAvatar = pluginAvatarFailed ? null : pluginAvatarUrl;
   const photoSrc = resolvedContactPhoto || pluginAvatar || customAvatar || profilePic || null;
-  const faviconSrc = !imgError && !domainFailed && showFavicon ? withBasePath(`/api/favicon?domain=${encodeURIComponent(faviconDomain!)}`) : null;
+  const faviconSrc = !imgError && !domainFailed && showFavicon ? withBasePath(`/api/favicon?domain=${encodeURIComponent(faviconDomain!)}${faviconRefreshedAt ? `&v=${faviconRefreshedAt}` : ""}`) : null;
   const imgSrc = disableImages ? null : (photoSrc || faviconSrc);
   const isFavicon = imgSrc !== null && imgSrc === faviconSrc;
 

@@ -1,5 +1,3 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Mailbox } from "./jmap/types";
 import { debug } from "./debug";
 import { getEffectiveLocale } from '@/i18n/detect-locale';
@@ -7,9 +5,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import type { DateFormat, DateLocale } from "@/stores/settings-store";
 import { getEffectiveTimeZone, getWallClock } from "./timezone";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+export { cn } from "./cn";
 
 /**
  * Strip embedded Basic-auth credentials from a URL for display.
@@ -52,8 +48,8 @@ export function generateUUID(): string {
  *   - `en-GB` → `en-GB`  (DD/MM/YYYY)
  *   - `en-US` → `en-US`  (MM/DD/YYYY)
  */
-function resolveDateLocale<T extends string | undefined>(
-  dateLocale: DateLocale,
+export function resolveDateLocale<T extends string | undefined>(
+  dateLocale: DateLocale | undefined,
   fallback: T,
 ): string | T {
   switch (dateLocale) {
@@ -258,6 +254,10 @@ export function formatDateTime(
  * How long ago `date` was, in words ("3 minutes ago", "2 days ago"), for the
  * parenthesis Gmail puts after a message's time. Empty once it is a month
  * old, where the date alone says enough.
+ *
+ * Days are calendar days in the user's effective time zone, so a mail from
+ * the day before yesterday is never called "yesterday" just because fewer
+ * than 48 hours have passed. (#1259)
  */
 export function formatRelativeAgo(date: Date | string, now: Date = new Date()): string {
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -265,13 +265,19 @@ export function formatRelativeAgo(date: Date | string, now: Date = new Date()): 
   const diff = Math.max(0, now.getTime() - d.getTime());
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
+  const timeZone = getEffectiveTimeZone();
+  const dayNumber = (x: Date) => {
+    const w = getWallClock(x, timeZone);
+    return Date.UTC(w.year, w.month - 1, w.day) / 86400000;
+  };
+  const days = dayNumber(now) - dayNumber(d);
   if (days >= 30) return '';
   const locale = getEffectiveLocale();
   const rtf = new Intl.RelativeTimeFormat(locale === 'en' ? 'en-US' : locale, { numeric: 'auto' });
   if (minutes < 1) return rtf.format(0, 'second');
   if (minutes < 60) return rtf.format(-minutes, 'minute');
-  if (hours < 24) return rtf.format(-hours, 'hour');
+  // The day the clocks go back has 25 hours: 24 of them can still be today.
+  if (hours < 24 || days < 1) return rtf.format(-hours, 'hour');
   return rtf.format(-days, 'day');
 }
 
@@ -339,9 +345,23 @@ export function stripLeadingCss(text: string): string {
   return rest;
 }
 
-/** A message preview ready to show: no leading padding, no leading style sheet. */
+// Plain-text emphasis: "*bold*", "**bold**", "_italic_", "__bold__". The
+// markers sit at word edges, so "2 * 3 * 4", "a*b*c", "snake_case_name" and
+// "__init__.py" are left alone.
+const EMPHASIS_RE = /(^|[\s([{"'])(\*\*|__|\*|_)([^\s*_]|[^\s*_].*?[^\s])\2(?=$|[\s)\]}"']|[.,;:!?](?!\w))/g;
+
+/**
+ * Drops plain-text emphasis markers. The server builds the preview from the
+ * text/plain part, where senders like GitHub write "*@user* mentioned you"
+ * while the HTML part shows it in bold.
+ */
+export function stripEmphasisMarkers(text: string): string {
+  return text.replace(EMPHASIS_RE, '$1$3');
+}
+
+/** A message preview ready to show: no leading padding, style sheet or emphasis markers. */
 export function cleanPreview(text: string | null | undefined): string {
-  return stripInvisibleLeading(stripLeadingCss(stripInvisibleLeading(text ?? '')));
+  return stripEmphasisMarkers(stripInvisibleLeading(stripLeadingCss(stripInvisibleLeading(text ?? ''))));
 }
 
 /**

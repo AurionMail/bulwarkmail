@@ -7,6 +7,7 @@ vi.mock('@/lib/plugin-storage', () => ({
   pluginStorage: {
     saveCode: vi.fn().mockResolvedValue(undefined),
     getCode: vi.fn().mockResolvedValue(null),
+    codeIds: vi.fn().mockResolvedValue([]),
     deleteCode: vi.fn().mockResolvedValue(undefined),
     saveThemeCSS: vi.fn().mockResolvedValue(undefined),
     getThemeCSS: vi.fn().mockResolvedValue(null),
@@ -27,6 +28,7 @@ vi.mock('@/lib/plugin-loader', () => ({
   setPluginStoreAccessor: vi.fn(),
   setupAutoDisable: vi.fn(),
   setSandboxLocale: vi.fn(),
+  forgetSlotOffers: vi.fn(),
 }));
 
 vi.mock('@/lib/plugin-hooks', () => ({
@@ -43,6 +45,13 @@ vi.mock('@/lib/browser-navigation', () => ({
 const bridge = vi.hoisted(() => ({ setSettings: vi.fn() }));
 vi.mock('@/lib/plugin-sandbox/host-bridge', () => ({
   forEachInstance: (_id: string, fn: (i: { setSettings: typeof bridge.setSettings }) => void) => fn({ setSettings: bridge.setSettings }),
+  snapshotRegionalSettings: vi.fn((locale: string) => ({
+    locale,
+    dateLocale: locale,
+    hour12: false,
+    timeZone: 'UTC',
+    firstDayOfWeek: 1,
+  })),
 }));
 vi.mock('@/lib/plugin-sandbox/bundle-fetch', () => ({
   downloadManagedBundle: (...args: unknown[]) => mocks.downloadManagedBundle(...args),
@@ -50,8 +59,9 @@ vi.mock('@/lib/plugin-sandbox/bundle-fetch', () => ({
 
 import { register as registerActive, deregister as deregisterActive, get as getActive } from '@/lib/plugin-sandbox/registry';
 // Import after mocks
-import { usePluginStore } from '@/stores/plugin-store';
+import { usePluginStore, PLUGIN_PERSIST_DELAY_MS } from '@/stores/plugin-store';
 import { pluginStorage } from '@/lib/plugin-storage';
+import { forgetSlotOffers } from '@/lib/plugin-loader';
 
 function resetStore() {
   usePluginStore.setState({
@@ -171,6 +181,7 @@ describe('usePluginStore', () => {
       });
       mocks.downloadManagedBundle.mockResolvedValue('bundle-code');
       vi.mocked(pluginStorage.getCode).mockResolvedValue(null);
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue([]);
     });
 
     it('installs a new server plugin and caches its bundle', async () => {
@@ -182,9 +193,27 @@ describe('usePluginStore', () => {
       expect(p).toMatchObject({ managed: true, enabled: true, bundleHash: 'hash-v1' });
     });
 
+    it('lists every server plugin when IndexedDB cannot be written (#1327)', async () => {
+      mocks.apiFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ plugins: [serverPlugin, { ...serverPlugin, id: 'optional-plugin', forceEnabled: false }], themes: [] }),
+      });
+      vi.mocked(pluginStorage.codeIds).mockRejectedValue(new Error('IndexedDB unavailable'));
+      vi.mocked(pluginStorage.saveCode).mockRejectedValueOnce(new Error('IndexedDB unavailable'));
+      vi.mocked(pluginStorage.saveCode).mockRejectedValueOnce(new Error('IndexedDB unavailable'));
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await usePluginStore.getState().initializePlugins();
+
+      const plugins = usePluginStore.getState().plugins;
+      expect(plugins.map(p => p.id)).toEqual(['managed-plugin', 'optional-plugin']);
+      expect(plugins[0]).toMatchObject({ managed: true, enabled: true });
+      expect(plugins[1]).toMatchObject({ managed: true, enabled: false });
+    });
+
     it('re-downloads the bundle when the record is current but IndexedDB has no copy (#636)', async () => {
       usePluginStore.setState({ plugins: [syncedRecord()] });
-      vi.mocked(pluginStorage.getCode).mockResolvedValue(null);
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue([]);
 
       await usePluginStore.getState().initializePlugins();
 
@@ -195,7 +224,7 @@ describe('usePluginStore', () => {
 
     it('leaves a current plugin alone when its bundle is cached', async () => {
       usePluginStore.setState({ plugins: [syncedRecord()] });
-      vi.mocked(pluginStorage.getCode).mockResolvedValue('cached-code');
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue(['managed-plugin']);
 
       await usePluginStore.getState().initializePlugins();
 
@@ -203,14 +232,73 @@ describe('usePluginStore', () => {
       expect(pluginStorage.saveCode).not.toHaveBeenCalled();
     });
 
+    it('checks for cached bundles without reading them', async () => {
+      // Reading each bundle in full, one after another, held up the start.
+      usePluginStore.setState({ plugins: [syncedRecord()] });
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue(['managed-plugin']);
+
+      await usePluginStore.getState().initializePlugins();
+
+      expect(pluginStorage.codeIds).toHaveBeenCalledTimes(1);
+      expect(pluginStorage.getCode).not.toHaveBeenCalled();
+    });
+
+    it('downloads the bundles of several plugins at the same time, and keeps the server order', async () => {
+      mocks.apiFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ plugins: [serverPlugin, { ...serverPlugin, id: 'second-plugin' }], themes: [] }),
+      });
+      const pending: Array<(code: string) => void> = [];
+      mocks.downloadManagedBundle.mockImplementation(() => new Promise<string>((resolve) => { pending.push(resolve); }));
+
+      const init = usePluginStore.getState().initializePlugins();
+      await vi.waitFor(() => expect(pending).toHaveLength(2));
+      // The second finishes first.
+      pending[1]('code-2');
+      pending[0]('code-1');
+      await init;
+
+      expect(usePluginStore.getState().plugins.map((p) => p.id)).toEqual(['managed-plugin', 'second-plugin']);
+      expect(pluginStorage.saveCode).toHaveBeenCalledWith('second-plugin', 'code-2');
+    });
+
     it('re-downloads when the server hash changed even though a bundle is cached', async () => {
       usePluginStore.setState({ plugins: [syncedRecord({ bundleHash: 'hash-v0' })] });
-      vi.mocked(pluginStorage.getCode).mockResolvedValue('cached-code');
+      vi.mocked(pluginStorage.codeIds).mockResolvedValue(['managed-plugin']);
 
       await usePluginStore.getState().initializePlugins();
 
       expect(mocks.downloadManagedBundle).toHaveBeenCalledWith('managed-plugin', 'hash-v1', { requireSignature: false });
       expect(usePluginStore.getState().plugins[0].bundleHash).toBe('hash-v1');
+    });
+
+    it('starts the plugins after a sign-in when the first call ran signed out', async () => {
+      const { loadPlugin } = await import('@/lib/plugin-loader');
+      // The mail view mounts before the user has signed in.
+      mocks.apiFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: 'Not authenticated' }) });
+
+      await usePluginStore.getState().initializePlugins();
+      expect(usePluginStore.getState().initialized).toBe(false);
+      expect(loadPlugin).not.toHaveBeenCalled();
+
+      // plugin-app-events calls again once the user is signed in.
+      await usePluginStore.getState().initializePlugins();
+      expect(loadPlugin).toHaveBeenCalledWith(expect.objectContaining({ id: 'managed-plugin' }));
+      expect(usePluginStore.getState().initialized).toBe(true);
+    });
+
+    it('starts the plugins when a call made after the sign-in joined the signed-out one', async () => {
+      const { loadPlugin } = await import('@/lib/plugin-loader');
+      let answer!: (r: unknown) => void;
+      mocks.apiFetch.mockImplementationOnce(() => new Promise((r) => { answer = r; }));
+
+      const beforeSignIn = usePluginStore.getState().initializePlugins();
+      const afterSignIn = usePluginStore.getState().initializePlugins();
+      answer({ ok: false, status: 401, json: async () => ({}) });
+      await Promise.all([beforeSignIn, afterSignIn]);
+
+      expect(loadPlugin).toHaveBeenCalledWith(expect.objectContaining({ id: 'managed-plugin' }));
+      expect(usePluginStore.getState().initialized).toBe(true);
     });
 
     it('keeps the record when the download fails so the error can surface at load time', async () => {
@@ -388,5 +476,57 @@ describe('plugins the admin removed', () => {
     expect(usePluginStore.getState().plugins.some((p) => p.id === 'gone')).toBe(false);
     expect(localStorage.getItem('plugin:gone:@acct:notes')).toBeNull();
     expect(pluginStorage.deletePreview).toHaveBeenCalledWith('gone');
+    expect(forgetSlotOffers).toHaveBeenCalledWith('gone');
+  });
+});
+
+describe('saving the plugin list', () => {
+  const writes = (setItem: { mock: { calls: unknown[][] } }) =>
+    setItem.mock.calls.filter(([key]) => key === 'plugin-storage') as [string, string][];
+
+  it('writes once for a burst of changes, and not again when only the status changed', () => {
+    // Write what the reset in beforeEach left pending, before counting.
+    window.dispatchEvent(new Event('pagehide'));
+    vi.useFakeTimers();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      usePluginStore.setState({ plugins: [mockPlugin({ enabled: true, status: 'enabled', locales: { de: { hello: 'Hallo' } } })] });
+      // Start-up: one status change per plugin and step.
+      for (let i = 0; i < 10; i++) usePluginStore.getState().setPluginStatus('test-plugin', i % 2 ? 'running' : 'enabled');
+      expect(writes(setItem)).toHaveLength(0);
+
+      vi.advanceTimersByTime(PLUGIN_PERSIST_DELAY_MS);
+      expect(writes(setItem)).toHaveLength(1);
+      expect(JSON.parse(writes(setItem)[0][1]).state.plugins[0]).toMatchObject({ id: 'test-plugin', status: 'enabled', locales: { de: { hello: 'Hallo' } } });
+
+      // The status is not stored, so the text is the same: nothing to write.
+      usePluginStore.getState().setPluginStatus('test-plugin', 'error', 'boom');
+      vi.advanceTimersByTime(PLUGIN_PERSIST_DELAY_MS);
+      expect(writes(setItem)).toHaveLength(1);
+
+      usePluginStore.setState((s) => ({ plugins: s.plugins.map((p) => ({ ...p, settings: { theme: 'dark' } })) }));
+      vi.advanceTimersByTime(PLUGIN_PERSIST_DELAY_MS);
+      expect(writes(setItem)).toHaveLength(2);
+      expect(JSON.parse(writes(setItem)[1][1]).state.plugins[0].settings).toEqual({ theme: 'dark' });
+    } finally {
+      setItem.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('writes a pending change right away when the page is hidden', () => {
+    window.dispatchEvent(new Event('pagehide'));
+    vi.useFakeTimers();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      usePluginStore.setState({ plugins: [mockPlugin({ id: 'hidden-test', enabled: true })] });
+      expect(writes(setItem)).toHaveLength(0);
+      window.dispatchEvent(new Event('pagehide'));
+      expect(writes(setItem)).toHaveLength(1);
+      expect(JSON.parse(writes(setItem)[0][1]).state.plugins[0].id).toBe('hidden-test');
+    } finally {
+      setItem.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useAuthStore, consumeSignedOut } from "@/stores/auth-store";
 import { useAccountStore } from "@/stores/account-store";
 import { useThemeStore } from "@/stores/theme-store";
+import { usePolicyStore } from "@/stores/policy-store";
 import { useShallow } from "zustand/react/shallow";
 import { useConfig } from "@/hooks/use-config";
 import { useMenuNavigation } from "@/hooks/use-menu-navigation";
@@ -31,6 +32,8 @@ import {
 } from "@/lib/auth/lite-oauth";
 import { toAsciiDomain } from "@/lib/idn";
 import { usePrefetchMailView } from "@/hooks/use-prefetch-mail-view";
+import { buildMobileHandoffUrl, mobileHandoffTarget, signedInLoginAction } from "@/lib/auth/mobile-handoff";
+import { MobileHandoffConsent } from "@/components/auth/mobile-handoff-consent";
 
 /** The domain of a complete address (`user@example.com`), or '' while it is still being typed. */
 function completeAddressDomain(username: string): string {
@@ -133,11 +136,6 @@ function VersionBadge() {
   );
 }
 
-// Only redirect targets matching this scheme are honored by the mobile
-// handoff path. Without the check the login page becomes an open redirector
-// that funnels password and token material to any caller-supplied URL.
-const MOBILE_REDIRECT_SCHEME = "bulwarkmobile://";
-
 function LoginPageContent() {
   const router = useRouter();
   const t = useTranslations("login");
@@ -149,18 +147,19 @@ function LoginPageContent() {
   // these params. We grab them once at mount and stash them in a ref so any
   // login path that completes (password or OAuth) can hand control back to
   // the app instead of routing into /mail.
-  const rawMobileRedirectUri = searchParams.get("mobile_redirect_uri") ?? "";
+  // Only the app's own callback link is a handoff target, and nothing is
+  // handed over before the user confirms it (lib/auth/mobile-handoff.ts).
   const rawMobileState = searchParams.get("mobile_state") ?? "";
-  const mobileRedirectUri = rawMobileRedirectUri.startsWith(MOBILE_REDIRECT_SCHEME)
-    ? rawMobileRedirectUri
-    : "";
+  const mobileRedirectUri = mobileHandoffTarget(searchParams.get("mobile_redirect_uri"));
   const mobileState = mobileRedirectUri ? rawMobileState : "";
   const isMobileHandoff = Boolean(mobileRedirectUri);
+  const [pendingHandoff, setPendingHandoff] = useState<{ url: string; username: string } | null>(null);
   usePrefetchMailView(!isMobileHandoff);
   const { login, loginWithToken, loginDemo, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const { theme, setTheme, initializeTheme } = useThemeStore(useShallow((s) => ({ theme: s.theme, setTheme: s.setTheme, initializeTheme: s.initializeTheme })));
   const { appName, jmapServerUrl: configuredServerUrl, oauthEnabled, oauthOnly, oauthClientId: globalOauthClientId, oauthIssuerUrl: globalOauthIssuerUrl, oauthScopes, rememberMeEnabled, devMode, demoMode, loginLogoLightUrl, loginLogoDarkUrl, loginCompanyName, loginImprintUrl, loginPrivacyPolicyUrl, loginWebsiteUrl, loginLogoMaxHeight, loginLogoMaxWidth, loginShowHeading, loginShowSubtitle, loginShowTotp, loginShowTokenLogin, loginShowRememberMe, loginShowVersion, isLoading: configLoading, error: configError, autoSsoEnabled, embeddedMode: _embeddedMode, allowCustomJmapEndpoint, jmapServers, jmapServerAutoPickByDomain } = useConfig();
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
+  const colorModeLocked = usePolicyStore((s) => s.getColorModePolicy().locked);
 
   // Login logo sizing: when a max height/width is configured, drop the fixed
   // 64×64 box so the logo (e.g. a wide wordmark) can render at its true size.
@@ -365,21 +364,39 @@ function LoginPageContent() {
     }
   }, [serverUrl]);
 
+  // Mobile handoff: hand the verified credentials back to the mobile app
+  // instead of opening the mailbox. handleSubmit captured the values needed
+  // for the fragment. Runs once per sign-in: whichever of the effect below
+  // and handleSubmit gets here first takes the payload.
+  const offerMobileHandoff = useCallback(() => {
+    const payload = mobileHandoffPayloadRef.current;
+    if (!payload) return;
+    mobileHandoffPayloadRef.current = null;
+    // Shown to the user first; the navigation happens on their confirmation.
+    setPendingHandoff({
+      url: buildMobileHandoffUrl(mobileRedirectUri, { flow: "password", ...payload, state: mobileState }),
+      username: payload.username,
+    });
+  }, [mobileRedirectUri, mobileState]);
+
   useEffect(() => {
-    if (isAuthenticated && !isAddAccountMode) {
-      // Mobile handoff: the password path completes here once the auth store
-      // flips isAuthenticated. Hand the verified credentials back to the
-      // mobile app instead of pushing to /mail. handleSubmit captured the
-      // values needed for the fragment.
-      if (isMobileHandoff && mobileHandoffPayloadRef.current) {
-        const fragment = new URLSearchParams({
-          flow: "password",
-          ...mobileHandoffPayloadRef.current,
-          state: mobileState,
-        });
-        window.location.replace(`${mobileRedirectUri}#${fragment.toString()}`);
-        return;
-      }
+    if (!isAuthenticated) return;
+    const action = signedInLoginAction({
+      isMobileHandoff,
+      isAddAccountMode,
+      hasHandoffPayload: mobileHandoffPayloadRef.current !== null,
+    });
+    if (action === "handoff") {
+      // The password path completes here once the auth store flips
+      // isAuthenticated.
+      offerMobileHandoff();
+      return;
+    }
+    // A browser that was already signed in keeps the form: the app needs a
+    // sign-in of its own, and the mailbox would strand the user in the app's
+    // sign-in sheet. handleSubmit offers the hand-off after they sign in
+    // (isAuthenticated stays true, so this effect doesn't run again).
+    if (action === "mailbox") {
       let redirectTo = '/';
       try {
         const saved = sessionStorage.getItem('redirect_after_login');
@@ -390,7 +407,7 @@ function LoginPageContent() {
       } catch { /* ignore */ }
       router.push(toRouterPath(redirectTo));
     }
-  }, [isAuthenticated, router, isAddAccountMode, isMobileHandoff, mobileRedirectUri, mobileState]);
+  }, [isAuthenticated, router, isAddAccountMode, isMobileHandoff, offerMobileHandoff]);
 
   useEffect(() => {
     clearError();
@@ -861,8 +878,11 @@ function LoginPageContent() {
       // being remembered: on a shared computer the next person sees the list.
       if (!rememberMeEnabled || persistSession) saveUsername(formData.username);
       if (isMobileHandoff) {
-        // The isAuthenticated effect handles the redirect; nothing else to
-        // do here. Don't push to / - that would race the deep link.
+        // Usually the isAuthenticated effect has offered the hand-off by
+        // now. A browser that was already signed in doesn't flip
+        // isAuthenticated, so offer it here (a no-op once taken). Don't push
+        // to / - that would race the deep link.
+        offerMobileHandoff();
         return;
       }
       router.push('/');
@@ -956,8 +976,8 @@ function LoginPageContent() {
   if (demoMode && !isAddAccountMode) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-muted/10 to-muted/30 relative px-4">
-        {/* Theme toggle */}
-        <div className="absolute top-5 right-5" ref={themeMenuRef} suppressHydrationWarning>
+        {/* Theme toggle, hidden while the theme policy locks the mode (#1280) */}
+        <div className="absolute top-5 right-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
           <button
             type="button"
             ref={themeButtonRef}
@@ -1108,8 +1128,16 @@ function LoginPageContent() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-muted/10 to-muted/30 relative px-4">
-      {/* Theme toggle - top right, dropdown style */}
-      <div className="absolute top-5 right-5" ref={themeMenuRef} suppressHydrationWarning>
+      <MobileHandoffConsent
+        url={pendingHandoff?.url ?? null}
+        username={pendingHandoff?.username ?? ""}
+        onCancel={() => {
+          setPendingHandoff(null);
+          router.push('/');
+        }}
+      />
+      {/* Theme toggle - top right, dropdown style; hidden while the theme policy locks the mode (#1280) */}
+      <div className="absolute top-5 right-5" ref={themeMenuRef} hidden={colorModeLocked} suppressHydrationWarning>
         <button
           type="button"
           ref={themeButtonRef}

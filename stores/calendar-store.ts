@@ -45,6 +45,7 @@ import {
   subscriptionOwnerFor,
 } from '@/lib/calendar-subscription-sync';
 import { registerCalendarSubscriptionSyncBridge } from './settings-store';
+import { currentStoreEpoch } from '@/lib/store-epoch';
 
 /**
  * When the Pro shell aggregates calendars/events from every connected
@@ -890,7 +891,12 @@ export const useCalendarStore = create<CalendarStore>()(
         }));
       },
 
+      // Every fetch below captures the store epoch before awaiting the server
+      // and drops its result once the stores were cleared for another account
+      // (lib/store-epoch.ts): a slow answer for account A must not become
+      // account B's calendar list or month view.
       fetchCalendars: async (client) => {
+        const epoch = currentStoreEpoch();
         set({ isLoading: true, error: null });
         // Identities are independent of the calendar list; load them
         // alongside without blocking the grid.
@@ -899,6 +905,7 @@ export const useCalendarStore = create<CalendarStore>()(
           // Throws when the primary account fails, so a failed fetch leaves the
           // list and the selection as they were.
           const { calendars: fetched, failedAccountIds } = await client.getAllCalendarsWithFailures();
+          if (currentStoreEpoch() !== epoch) return;
           const calendars = sortCalendars(fetched);
           // Default the visible selection to event calendars only - tasks-only
           // calendars stay out of the event grid.
@@ -915,12 +922,14 @@ export const useCalendarStore = create<CalendarStore>()(
             ),
           });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch calendars:', error);
           set({ error: 'Failed to load calendars', isLoading: false });
         }
       },
 
       fetchEvents: async (client, start, end, options) => {
+        const epoch = currentStoreEpoch();
         refetchVisibleRange = () => get().fetchEvents(client, start, end, { silent: true });
         const seq = ++rangeLoadSeq;
         set(options?.silent ? { error: null } : { isLoadingEvents: true, error: null });
@@ -929,7 +938,7 @@ export const useCalendarStore = create<CalendarStore>()(
             after: start,
             before: end,
           });
-          if (seq !== rangeLoadSeq) return;
+          if (seq !== rangeLoadSeq || currentStoreEpoch() !== epoch) return;
           // Filter out malformed events missing required 'start' field, or
           // whose start string fails to parse (would otherwise crash format()
           // calls in the rendering path - #316).
@@ -955,6 +964,7 @@ export const useCalendarStore = create<CalendarStore>()(
           }
           set({ events, isLoadingEvents: false, eventsLoadError: false, dateRange: { start, end } });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch events:', error);
           if (seq !== rangeLoadSeq) return;
           // Keep the events already on screen - an empty grid would read as
@@ -965,6 +975,7 @@ export const useCalendarStore = create<CalendarStore>()(
       },
 
       fetchAllAccountsCalendars: async (accounts) => {
+        const epoch = currentStoreEpoch();
         set({ isLoading: true, error: null });
         try {
           // Id prefixes of the calendars that could not be loaded this time.
@@ -983,6 +994,7 @@ export const useCalendarStore = create<CalendarStore>()(
               }
             }),
           );
+          if (currentStoreEpoch() !== epoch) return;
           const calendars = sortCalendars(results.flat());
           set({
             calendars,
@@ -995,12 +1007,14 @@ export const useCalendarStore = create<CalendarStore>()(
             ),
           });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch all-account calendars:', error);
           set({ error: 'Failed to load calendars', isLoading: false });
         }
       },
 
       fetchAllAccountsEvents: async (accounts, start, end, options) => {
+        const epoch = currentStoreEpoch();
         refetchVisibleRange = () => get().fetchAllAccountsEvents(accounts, start, end, { silent: true });
         const seq = ++rangeLoadSeq;
         set(options?.silent ? { error: null } : { isLoadingEvents: true, error: null });
@@ -1023,7 +1037,7 @@ export const useCalendarStore = create<CalendarStore>()(
               }
             }),
           );
-          if (seq !== rangeLoadSeq) return;
+          if (seq !== rangeLoadSeq || currentStoreEpoch() !== epoch) return;
           set({
             events: results.flat(),
             isLoadingEvents: false,
@@ -1031,6 +1045,7 @@ export const useCalendarStore = create<CalendarStore>()(
             dateRange: { start, end },
           });
         } catch (error) {
+          if (currentStoreEpoch() !== epoch) return;
           debug.error('Failed to fetch all-account events:', error);
           if (seq !== rangeLoadSeq) return;
           set({ eventsLoadError: true, isLoadingEvents: false, dateRange: { start, end } });
@@ -1125,6 +1140,9 @@ export const useCalendarStore = create<CalendarStore>()(
             await refetchAfterOccurrenceMutation();
           }
           void calendarHooks.onAfterEventCreate.emit(eventToView(mappedCreated));
+          if (mappedCreated.recurrenceRules && mappedCreated.recurrenceRules.length > 0) {
+            await refetchAfterOccurrenceMutation();
+          }
           // Invitation emails are sent by the server: `sendSchedulingMessages`
           // on CalendarEvent/set makes Stalwart queue the iTIP REQUEST itself.
           // Sending a client-side iMIP copy here produced duplicate emails.
@@ -2161,7 +2179,10 @@ async function importEventsUnhooked(
       description: src.description,
       descriptionContentType: src.descriptionContentType,
       start: src.start,
-      duration: src.showWithoutTime ? normalizeAllDayDuration(src.duration) : src.duration,
+      // CalendarEvent/parse drops a DTEND equal to DTSTART; without an
+      // explicit zero duration Stalwart stores the event ending at
+      // 23:59:59 of its start day. (#837)
+      duration: src.showWithoutTime ? normalizeAllDayDuration(src.duration) : (src.duration || 'PT0S'),
       timeZone: src.showWithoutTime ? null : src.timeZone,
       showWithoutTime: src.showWithoutTime,
       status: src.status,

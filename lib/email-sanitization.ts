@@ -57,6 +57,25 @@ export function sanitizeEmailHtml(html: string): string {
   return sanitizeWithDataUriGuard(html, EMAIL_SANITIZE_CONFIG);
 }
 
+const COMPOSER_ISLAND_SANITIZE_CONFIG = {
+  ...EMAIL_SANITIZE_CONFIG,
+  // The composer's own markers (data-cid on inline images, the signature's
+  // data-signature-block brackets) must survive; data-* is inert.
+  ALLOW_DATA_ATTR: true,
+};
+
+/**
+ * Sanitize the verbatim HTML a composer island (quoted original, signature)
+ * picks up when the editor parses its wrapper. The islands render into the
+ * app document, not the sandboxed viewer frame, and their wrapper reaches
+ * the editor from places that never ran a sanitizer: a re-opened draft
+ * written by another client or another member of a shared mailbox, a paste.
+ */
+export function sanitizeComposerIslandHtml(html: string): string {
+  if (!html) return '';
+  return sanitizeWithDataUriGuard(html, COMPOSER_ISLAND_SANITIZE_CONFIG);
+}
+
 /**
  * Sanitize config for emails rendered inside a sandboxed iframe.
  * Allows <style> tags because CSS is scoped to the iframe document and
@@ -262,9 +281,25 @@ const PLUGIN_BODY_SANITIZE_CONFIG = {
   ALLOWED_TAGS: [...SIGNATURE_SANITIZE_CONFIG.ALLOWED_TAGS, 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'pre', 'code', 's', 'hr'],
 };
 
+/**
+ * Drop images in plugin-authored HTML unless they are embedded. A plugin's
+ * network reach is its manifest's `httpOrigins`, enforced by the sandbox
+ * CSP; an `https:` image the host page then loads for it is a request to
+ * any origin, carrying whatever the plugin put in the URL. A user's own
+ * signature may keep remote images (restrictSignatureImages); a plugin's
+ * text may not.
+ */
+function restrictPluginImages(node: Element): void {
+  if (node.tagName !== 'IMG') return;
+  const src = node.getAttribute('src');
+  if (!src || !/^(?:cid:|data:image\/(?:png|jpe?g|gif|webp);base64,)/i.test(src)) {
+    node.remove();
+  }
+}
+
 export function sanitizePluginBodyHtml(html: string): string {
   if (!html?.trim()) return '';
-  DOMPurify.addHook('afterSanitizeAttributes', restrictSignatureImages);
+  DOMPurify.addHook('afterSanitizeAttributes', restrictPluginImages);
   try {
     return DOMPurify.sanitize(html, PLUGIN_BODY_SANITIZE_CONFIG);
   } finally {

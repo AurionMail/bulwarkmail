@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Folder, Loader2, Paperclip, RefreshCw, Star } from "@/components/icons";
 import { cn, cleanPreview, formatDate } from "@/lib/utils";
+import { emailDisplayDate } from "@/lib/email-date";
 import { localizeMailboxName } from "@/lib/mailbox-label";
 import { EmailViewer } from "@/components/email/email-viewer";
 import { ProEmailView } from "@/components/pro/pro-email-tab-body";
@@ -15,6 +16,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePaneId } from "@/hooks/use-pane-context";
 import type { Email, Mailbox } from "@/lib/jmap/types";
 import { emailHooks } from "@/lib/plugin-hooks";
+import { scheduleAutoMarkAsRead } from "@/lib/mark-as-read-delay";
 
 interface ProFolderTabBodyProps {
   tabId: string;
@@ -157,8 +159,18 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
     );
   }, [jmapAccountId, clientLogin, data.mailboxId, paneId, t]);
 
+  // Opening a row marks it read on the user's markAsReadDelay, like the
+  // reading pane does; a pending delayed mark is dropped when another row is
+  // opened or the tab goes away.
+  const cancelRowReadRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => cancelRowReadRef.current?.(), []);
+
   const handleRowClick = useCallback((email: Email) => {
-    void markRowAsRead(email);
+    cancelRowReadRef.current?.();
+    cancelRowReadRef.current = scheduleAutoMarkAsRead(
+      useSettingsStore.getState().markAsReadDelay,
+      () => void markRowAsRead(email),
+    );
     if (isMobile) {
       // No room for a reading pane - promote to a dedicated email tab.
       openAsEmailTab(email, true);
@@ -241,7 +253,7 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
                       {who}
                     </span>
                     <span className="flex-shrink-0 text-xs text-muted-foreground">
-                      {formatDate(email.receivedAt)}
+                      {formatDate(emailDisplayDate(email))}
                     </span>
                   </div>
                   <div className="mt-0.5 flex items-center gap-1.5">

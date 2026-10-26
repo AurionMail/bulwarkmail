@@ -35,11 +35,16 @@ function acct(user: string): TestAccount {
   return { user, email: `${user}@${DOMAIN}`, password: ACCOUNT_PASSWORD };
 }
 
-/** The mailboxes provisioned by the Stalwart bootstrap plan. */
+/**
+ * The mailboxes provisioned by the Stalwart bootstrap plan. IT_ACCOUNT_USERS
+ * renames the three local parts (in this order) for a stack with other users,
+ * such as the shared test servers.
+ */
+const USERS = (process.env.IT_ACCOUNT_USERS ?? 'alice,bob,carol').split(',');
 export const ACCOUNTS = {
-  alice: acct('alice'),
-  bob: acct('bob'),
-  carol: acct('carol'),
+  alice: acct(USERS[0]),
+  bob: acct(USERS[1]),
+  carol: acct(USERS[2]),
 } as const;
 
 export type AccountKey = keyof typeof ACCOUNTS;

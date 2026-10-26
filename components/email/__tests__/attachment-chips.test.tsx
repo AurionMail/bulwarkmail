@@ -54,6 +54,18 @@ describe("ListAttachmentChips", () => {
     expect(load).not.toHaveBeenCalled();
   });
 
+  it("draws Gmail's pill with a filled type badge in Mountain View", () => {
+    const attachments = [att({ name: "invoice.pdf" })];
+    const { rerender } = render(<ListAttachmentChips email={row({ attachments })} onOpen={vi.fn()} variant="mountain-view" />);
+    const chip = screen.getByTitle("invoice.pdf");
+    expect(chip.className).toContain("rounded-full");
+    expect(chip.querySelector(".bg-red-600 svg")).toBeTruthy();
+
+    rerender(<ListAttachmentChips email={row({ attachments })} onOpen={vi.fn()} />);
+    expect(screen.getByTitle("invoice.pdf").className).not.toContain("rounded-full");
+    expect(screen.getByTitle("invoice.pdf").querySelector(".bg-red-600")).toBeNull();
+  });
+
   it("does not load for a row without a paperclip", () => {
     const load = vi.fn(() => () => {});
     render(<ListAttachmentChips email={row({ hasAttachment: false })} load={load} onOpen={vi.fn()} />);

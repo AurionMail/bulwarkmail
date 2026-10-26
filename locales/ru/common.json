@@ -60,6 +60,12 @@
     "demo_login_button": "Запустить демо",
     "demo_tagline": "Попробуйте полнофункциональный почтовый клиент. Аккаунт не нужен.",
     "demo_no_signup": "Регистрация не требуется - исследуйте свободно с примерными данными",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Завершение входа...",
     "oauth_error": {
       "title": "Ошибка аутентификации",
@@ -142,6 +148,8 @@
     "show_all_tags": "Показать все ({count})",
     "show_fewer_tags": "Показать меньше",
     "folders": "Папки",
+    "your_folders": "Ваши папки",
+    "create_folder": "Создать папку",
     "show_more": "Ещё",
     "show_fewer": "Свернуть",
     "mail": "Почта",
@@ -169,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Приложения по умолчанию",
-    "description": "Выберите, должны ли ссылки электронной почты и календаря открываться в Bulwark. Технически Bulwark регистрируется как обработчик протокола для ссылок mailto: и webcal:.",
+    "description": "Выберите, должны ли ссылки электронной почты и календаря открываться в {appName}. Технически {appName} регистрируется как обработчик протокола для ссылок mailto: и webcal:.",
     "unsupported": "Этот браузер или это соединение не поддерживает ручную регистрацию обработчиков протоколов. Возможно, установленное PWA всё же можно использовать через настройки браузера или системы.",
     "mailto_label": "Ссылки электронной почты",
-    "mailto_description": "Открывает ссылки mailto: в Bulwark с предварительно заполненным редактором письма.",
+    "mailto_description": "Открывает ссылки mailto: в {appName} с предварительно заполненным редактором письма.",
     "protocol_open_mode_label": "При открытии ссылок протоколов",
-    "protocol_open_mode_description": "Выберите, будет ли Bulwark открывать ссылки mailto: и webcal: в новой вкладке или повторно использовать открытую сессию. Для варианта с активной сессией нужно разрешение на уведомления, чтобы можно было нажать на резервное уведомление и вывести Bulwark на передний план, если браузер блокирует фокус.",
+    "protocol_open_mode_description": "Выберите, будет ли {appName} открывать ссылки mailto: и webcal: в новой вкладке или повторно использовать открытую сессию. Для варианта с активной сессией нужно разрешение на уведомления, чтобы можно было нажать на резервное уведомление и вывести {appName} на передний план, если браузер блокирует фокус.",
     "protocol_open_mode_active_session": "Открывать в активной сессии, если возможно",
     "protocol_open_mode_new_tab": "Всегда открывать новую вкладку",
-    "focus_notification_title": "Открыть Bulwark",
-    "focus_notification_body": "Ссылка была открыта в Bulwark. Нажмите, чтобы вывести окно на передний план.",
+    "focus_notification_title": "Открыть {appName}",
+    "focus_notification_body": "Ссылка была открыта в {appName}. Нажмите, чтобы вывести окно на передний план.",
     "webcal_label": "Ссылки календаря",
-    "webcal_description": "Открывает ссылки webcal: в Bulwark с предварительно заполненным диалогом подписки на календарь.",
+    "webcal_description": "Открывает ссылки webcal: в {appName} с предварительно заполненным диалогом подписки на календарь.",
     "register_mailto": "Зарегистрировать почтовое приложение",
     "register_webcal": "Зарегистрировать приложение календаря",
     "mailto_registered": "Запрошена регистрация обработчика электронной почты",
@@ -188,7 +196,7 @@
     "registration_failed": "Не удалось зарегистрировать обработчик протокола",
     "opening_mailto": "Открытие редактора...",
     "opening_webcal": "Открытие календаря...",
-    "browser_note": "Браузер или операционная система может запросить подтверждение и может потребовать, чтобы Bulwark был установлен, прежде чем его можно будет выбрать приложением по умолчанию.",
+    "browser_note": "Браузер или операционная система может запросить подтверждение и может потребовать, чтобы {appName} был установлен, прежде чем его можно будет выбрать приложением по умолчанию.",
     "select_account_title": "Выберите аккаунт",
     "select_mailto_account": "Выберите, в каком аккаунте открыть эту ссылку электронной почты.",
     "select_webcal_account": "Выберите, в каком аккаунте открыть эту ссылку календаря.",
@@ -236,6 +244,18 @@
     "show_on_mobile": "Показывать на мобильном"
   },
   "email_list": {
+    "sections": {
+      "unread": "Непрочитанные",
+      "everything_else": "Все остальное",
+      "unread_empty": "Вы прочитали все письма во входящих."
+    },
+    "columns": {
+      "from": "От",
+      "to": "Кому",
+      "subject": "Тема",
+      "date": "Дата",
+      "size": "Размер"
+    },
     "no_emails": "Сообщений не найдено",
     "no_emails_description": "Папка пуста",
     "no_search_results": "Результатов не найдено",
@@ -621,7 +641,9 @@
       "not_in_contacts": "Нет в ваших контактах",
       "add_to_contacts": "Добавить в контакты",
       "copied": "Скопировано!",
-      "copy_failed": "Не удалось скопировать"
+      "copy_failed": "Не удалось скопировать",
+      "view_contact": "Открыть контакт",
+      "view_details": "Подробнее"
     },
     "send_now": "Отправить сейчас",
     "verification_code": {
@@ -631,9 +653,11 @@
     },
     "mv_position": "{index} из {total}",
     "plugin_panel_show": "Показать панель плагина",
-    "plugin_panel_hide": "Скрыть панель плагина"
+    "plugin_panel_hide": "Скрыть панель плагина",
+    "copy": "Копировать"
   },
   "email_composer": {
+    "select_from_directory": "Выбрать из справочника",
     "minimize": "Свернуть",
     "maximize": "Во весь экран",
     "restore": "Восстановить",
@@ -716,6 +740,10 @@
     "option_dsn_hint": "Получить отчёт, когда сервер доставит письмо",
     "option_require_tls": "Требовать шифрованную доставку",
     "option_require_tls_hint": "Доставлять только через TLS, иначе вернуть",
+    "option_priority": "Важность",
+    "option_priority_high": "Высокая",
+    "option_priority_normal": "Обычная",
+    "option_priority_low": "Низкая",
     "validation": {
       "recipient_required": "Укажите получателя для отправки",
       "body_required": "Напишите сообщение или прикрепите файл",
@@ -792,6 +820,9 @@
     "autocomplete_search_server": "Искать на сервере",
     "autocomplete_searching": "Поиск...",
     "mention_recipients": "Получатели",
+    "mention_card_not_recipient": "Нет в полях «Кому» и «Копия», поэтому письмо не получит.",
+    "mention_card_add": "Добавить в {field}",
+    "mention_card_remove": "Убрать упоминание",
     "toolbar": {
       "bold": "Жирный",
       "italic": "Курсив",
@@ -830,7 +861,9 @@
     },
     "send_filing_warning": "Отправлено - но последующая очистка не удалась, может остаться устаревший черновик.",
     "pop_out": "Открыть ответ в отдельном окне",
-    "send_guard_failed": "Не отправлено: плагин, проверяющий письма перед отправкой, завершился с ошибкой или не ответил."
+    "send_guard_failed": "Не отправлено: плагин, проверяющий письма перед отправкой, завершился с ошибкой или не ответил.",
+    "cut": "Вырезать",
+    "copy": "Копировать"
   },
   "confirm_dialog": {
     "confirm": "Подтвердить",
@@ -856,9 +889,9 @@
     "app_title": "Веб-почта",
     "reconnecting": "Соединение потеряно. Попытка переподключения…",
     "rate_limited_title": "Аутентификация на сервере временно ограничена.",
-    "rate_limited_detail": "Bulwark приостановил фоновые запросы, чтобы избежать блокировки. Повтор через {seconds}с.",
+    "rate_limited_detail": "{appName} приостановил фоновые запросы, чтобы избежать блокировки. Повтор через {seconds}с.",
     "rate_limited_action_title": "Запрос приостановлен, чтобы избежать блокировки.",
-    "rate_limited_action_detail": "Bulwark ждет окончания серверного тайм-аута перед отправкой новых аутентифицированных запросов. Повторите через {seconds}с.",
+    "rate_limited_action_detail": "{appName} ждет окончания серверного тайм-аута перед отправкой новых аутентифицированных запросов. Повторите через {seconds}с.",
     "pull_to_refresh": "Потяните, чтобы обновить",
     "release_to_refresh": "Отпустите, чтобы обновить",
     "refreshing": "Обновление…"
@@ -887,6 +920,8 @@
     "emails_moved": "{count} писем перемещено",
     "moved_to_mailbox": "Перемещено в {mailbox}",
     "move_failed": "Ошибка перемещения",
+    "removed_from_folder": "Убрано из папки {mailbox}",
+    "remove_from_folder_failed": "Не удалось убрать из этой папки",
     "emails_copied": "{count} писем скопировано",
     "copy_failed": "Ошибка копирования",
     "move_error": "Не удалось переместить письма в выбранную папку",
@@ -1005,34 +1040,22 @@
     "keep_editing": "Продолжить редактирование",
     "tabs": {
       "appearance": "Внешний вид",
-      "language": "Язык, регион и время",
-      "email": "Поведение почты",
-      "composer": "Редактор",
-      "privacy": "Конфиденциальность и безопасность",
       "account": "Аккаунт",
-      "identities": "Удостоверения",
       "vacation": "Отсутствие",
-      "advanced": "Дополнительно",
       "calendar": "Календарь",
       "filters": "Фильтры",
-      "templates": "Шаблоны",
       "folders": "Папки",
-      "keywords": "Теги",
       "security": "Безопасность",
       "files": "Файлы",
       "contacts": "Контакты",
-      "encryption": "Шифрование",
-      "protocol_handlers": "Приложения по умолчанию",
-      "sidebar_apps": "Приложения боковой панели",
       "notifications": "Уведомления",
-      "layout": "Макет",
-      "themes": "Темы",
       "reading": "Чтение",
       "composing": "Написание",
-      "downloads": "Загрузки",
-      "content_senders": "Содержимое и отправители",
-      "about_data": "О программе и данные",
-      "debug": "Отладка"
+      "message_list": "Список писем",
+      "general": "Общие",
+      "organize": "Папки и метки",
+      "addons": "Дополнения",
+      "backup": "Резервная копия и сброс"
     },
     "themes": {
       "title": "Темы",
@@ -1044,18 +1067,13 @@
       "default_restored": "Тема по умолчанию восстановлена",
       "default_name": "По умолчанию",
       "default_badge": "По умолчанию",
-      "admin_enforced": "Задано администратором"
+      "admin_enforced": "Задано администратором",
+      "show_all": "Показать все темы ({count})",
+      "show_fewer": "Показать меньше"
     },
     "tab_groups": {
-      "general": "Общие",
-      "account": "Аккаунт и удостоверение",
-      "organization": "Организация почты",
       "apps": "Приложения",
-      "system": "Система",
-      "appearance": "Внешний вид",
-      "mail": "Почта",
-      "privacy": "Конфиденциальность и безопасность",
-      "advanced": "Дополнительно"
+      "mail": "Почта"
     },
     "appearance": {
       "message_list_order": {
@@ -1190,10 +1208,6 @@
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
       },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
-      },
       "show_folder_total_count": {
         "label": "Показывать общее количество сообщений",
         "description": "Показывает общее количество сообщений рядом с папками и метками, наряду с количеством непрочитанных. Отключите, чтобы показывать только непрочитанные."
@@ -1223,6 +1237,21 @@
       "cross_all": {
         "label": "Все аккаунты: Вся почта",
         "description": "Показывает в разделе «Все аккаунты» запись со всеми письмами из всех аккаунтов, по всем папкам, кроме спама, отправленных, архива, корзины и черновиков."
+      },
+      "sections": {
+        "text": "Текст и анимация",
+        "layout": "Расположение",
+        "sidebar": "Боковая панель",
+        "accounts": "Несколько учётных записей",
+        "accounts_description": "Как ваши учётные записи и общие ящики отображаются вместе.",
+        "experimental": "Экспериментальное"
+      },
+      "account_marker": {
+        "label": "Различать учётные записи",
+        "description": "В объединённых представлениях отмечать каждое письмо цветом учётной записи, из которой оно пришло.",
+        "dot": "Цветная точка",
+        "tint": "Подкрашенная строка",
+        "none": "Ничего"
       }
     },
     "keywords": {
@@ -1242,6 +1271,7 @@
       "cancel": "Отмена",
       "migrating": "Обновление тега в существующих письмах…",
       "migration_error": "Не удалось обновить тег в существующих письмах",
+      "filters_migration_error": "Некоторые правила фильтров всё ещё используют старый тег — обновите их вручную",
       "nesting": {
         "label": "Вложенные теги",
         "description": "Вкладывайте теги в другие теги и показывайте их в боковой панели в виде дерева."
@@ -1313,9 +1343,7 @@
         "enabled": "Уведомления о событиях",
         "enabled_desc": "Показывать оповещения о предстоящих событиях календаря",
         "sound": "Звук уведомления",
-        "sound_desc": "Воспроизводить звуковой сигнал для напоминаний календаря",
-        "invitation_parsing": "Распознавать приглашения по почте",
-        "invitation_parsing_desc": "Обнаруживать приглашения календаря во вложениях писем и показывать действия календаря"
+        "sound_desc": "Воспроизводить звуковой сигнал для напоминаний календаря"
       },
       "push": {
         "confirm_disable_message": "Это устройство перестанет получать оповещения, когда сайт закрыт.",
@@ -1404,6 +1432,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Тип папки «Входящие»",
+        "description": "«Сначала непрочитанные» показывает 25 последних непрочитанных писем в отдельном разделе над остальными входящими",
+        "default": "По умолчанию",
+        "unread_first": "Сначала непрочитанные"
+      },
       "clear_search_on_folder_change": {
         "label": "Очищать поиск при переходе между папками",
         "description": "Щелчок по папке («Входящие», «Отправленные»…) очищает активный поиск и открывает эту папку. Если выключено, поиск сохраняется и выполняется заново в выбранной папке."
@@ -1478,9 +1512,9 @@
         "horizontal": "Область чтения снизу",
         "horizontal_description": "Показывать список сообщений сверху и открывать выбранное сообщение в области чтения под ним."
       },
-      "disable_threading": {
-        "label": "Отключить группировку по беседам",
-        "description": "Отображать письма как отдельные сообщения, а не сгруппированные по беседам"
+      "list_columns": {
+        "label": "Показывать список в виде столбцов",
+        "description": "Показывает однострочные строки в виде таблицы со столбцами «От», «Тема», «Дата» и «Размер» под заголовком."
       },
       "plain_text_mode": {
         "label": "Только простой текст",
@@ -1619,6 +1653,13 @@
         "label": "Упоминать получателей через @",
         "description": "При вводе @ в тексте письма предлагаются его получатели, и вставляется имя выбранного. Enter или Tab выбирает выделенное имя."
       },
+      "mention_adds_recipient": {
+        "label": "Контакты в упоминаниях через @",
+        "description": "При вводе @ также предлагаются ваши контакты и люди из каталога. Если выбрать того, кого ещё нет среди получателей, он будет добавлен в письмо.",
+        "to": "Добавить в «Кому»",
+        "cc": "Добавить в «Копия»",
+        "off": "Только получатели"
+      },
       "hide_inline_image_attachments": {
         "label": "Скрывать встроенные изображения из вложений",
         "description": "Изображения, встроенные в тело сообщения, не отображаются как отдельные вложения"
@@ -1657,51 +1698,15 @@
       "rtl_editing": {
         "label": "Поддержка редактирования справа налево",
         "description": "Добавляет кнопку направления текста на панель инструментов редактора, позволяя задавать абзацам направление слева направо или справа налево"
-      }
-    },
-    "composer": {
-      "title": "Редактор",
-      "description": "Настройте параметры написания писем",
-      "autosave": {
-        "label": "Интервал автосохранения",
-        "description": "Как часто автоматически сохранять черновики",
-        "30s": "Каждые 30 секунд",
-        "1m": "Каждую минуту",
-        "2m": "Каждые 2 минуты",
-        "5m": "Каждые 5 минут"
       },
-      "send_confirmation": {
-        "label": "Подтверждение отправки",
-        "description": "Запрашивать подтверждение перед отправкой писем"
+      "group_conversations": {
+        "label": "Группировать письма по беседам",
+        "description": "Показывать ответы вместе как одну беседу, а не отдельными письмами."
       },
-      "default_reply": {
-        "label": "Режим ответа по умолчанию",
-        "description": "Действие по умолчанию при нажатии «Ответить»",
-        "reply": "Ответить",
-        "reply_all": "Ответить всем"
-      }
-    },
-    "privacy": {
-      "title": "Конфиденциальность и безопасность",
-      "description": "Управляйте настройками конфиденциальности и безопасности",
-      "external_images": {
-        "label": "Блокировать внешние изображения",
-        "description": "Предотвращать отслеживание через внешние изображения"
-      },
-      "session_timeout": {
-        "label": "Тайм-аут сессии",
-        "description": "Автоматически выходить после бездействия",
-        "never": "Никогда",
-        "30m": "30 минут",
-        "1h": "1 час",
-        "4h": "4 часа"
-      },
-      "clear_cache": {
-        "label": "Очистить кэш",
-        "description": "Удалить кэшированные данные и временные файлы",
-        "button": "Очистить кэш",
-        "confirm": "Вы уверены, что хотите очистить кэш?",
-        "success": "Кэш успешно очищен"
+      "signatures_link": {
+        "label": "Подписи",
+        "description": "У каждого адреса своя подпись. Редактируйте их вместе с адресами.",
+        "button": "Адреса электронной почты"
       }
     },
     "account": {
@@ -1747,6 +1752,7 @@
       "backup": {
         "title": "Account list backup",
         "description": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. Mailbox passwords are not saved: you sign in to each restored account yourself.",
+        "description_passwords": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. You can include the mailbox passwords, so the restored accounts sign in by themselves.",
         "status_none": "No list is saved for {account}.",
         "status_saved": "A list is saved for {account}.",
         "save": "Save list",
@@ -1758,9 +1764,15 @@
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
         "confirm": "Confirm password",
+        "include_passwords": "Include mailbox passwords",
+        "include_passwords_hint": "Accounts signed in here with a password will sign in by themselves after a restore. Anyone who knows the backup password gets into every mailbox in the list.",
         "saved": "List saved ({count, plural, one {# account} other {# accounts}}).",
         "restored": "Accounts added: {added}. Accounts already here and updated: {updated}. Open each new account from the account list to sign in.",
+        "restored_signed_in": "Accounts added: {added}. Accounts already here and updated: {updated}.",
         "skipped": "{count, plural, one {# account was} other {# accounts were}} not added: the account limit is reached.",
+        "saved_passwords": "Passwords included for {count, plural, one {# account} other {# accounts}}.",
+        "signed_in": "Signed in to {count, plural, one {# account} other {# accounts}} with the saved password.",
+        "sign_in_failed": "{count, plural, one {# saved password was} other {# saved passwords were}} refused: sign in to those accounts from the account list.",
         "deleted": "Saved list deleted.",
         "errors": {
           "mismatch": "The passwords do not match.",
@@ -1775,6 +1787,9 @@
         "title": "Доступные мне",
         "description": "Групповые и общие учётные записи, которыми вы можете управлять. Выберите одну, чтобы изменить её фильтры, автоответчик, календари и контакты.",
         "shared_label": "Общая учётная запись"
+      },
+      "sections": {
+        "addresses": "Адреса электронной почты"
       }
     },
     "security": {
@@ -1922,10 +1937,14 @@
         "key_label": "Открытый ключ (S/MIME или PGP в формате ASCII)",
         "key_placeholder": "Вставьте сюда свой открытый ключ",
         "none": "Открытые ключи не настроены"
+      },
+      "sections": {
+        "devices": "Другие приложения и устройства",
+        "devices_description": "Используйте почту за пределами этого браузера.",
+        "encryption": "Шифрование"
       }
     },
     "identities": {
-      "title": "Удостоверения отправителя",
       "description": "Управляйте email-адресами, с которых можно отправлять письма",
       "identities_count": {
         "label": "Ваши удостоверения",
@@ -2043,6 +2062,11 @@
       "new_folder_name": "Название папки",
       "rename": "Переименовать",
       "change_icon": "Изменить значок",
+      "count_mode": "Счётчик для {name}",
+      "count_mode_default": "Счётчик: по умолчанию",
+      "count_mode_unread": "Только непрочитанные",
+      "count_mode_all": "Непрочитанные и всего",
+      "count_mode_none": "Без счётчика",
       "delete": "Удалить",
       "confirm_delete": "Вы уверены, что хотите удалить \"{name}\"? Письма в этой папке будут перемещены в корзину.",
       "create": "Создать",
@@ -2061,8 +2085,6 @@
       "error_role": "Не удалось обновить роль папки"
     },
     "advanced": {
-      "title": "Дополнительно",
-      "description": "Расширенные параметры и настройки разработчика",
       "debug_mode": {
         "label": "Режим отладки",
         "description": "Включить подробное журналирование для диагностики"
@@ -2092,7 +2114,11 @@
       },
       "sender_favicons": {
         "label": "Фавиконы отправителей",
-        "description": "Показывать иконки сайтов как аватары для корпоративных отправителей"
+        "description": "Показывать иконки сайтов как аватары для корпоративных отправителей",
+        "refresh_label": "Обновить значки отправителей",
+        "refresh_description": "Заново загрузить значки сайтов, например если отправитель сменил свой",
+        "refresh_button": "Обновить",
+        "refresh_done": "Значки отправителей будут загружены заново"
       },
       "show_avatars_in_junk": {
         "label": "Показывать аватары в папке «Спам»",
@@ -2152,6 +2178,12 @@
           "delivered": "Доставлено",
           "mistakes": "Ошибки"
         }
+      },
+      "sections": {
+        "backup": "Резервная копия настроек",
+        "backup_description": "Сохраняйте настройки в разных браузерах и на разных устройствах.",
+        "fix": "Устранение проблем",
+        "fix_description": "Если данные выглядят устаревшими или неверными, или вы хотите начать заново."
       }
     },
     "sidebar_apps": {
@@ -2489,6 +2521,41 @@
     "scoped": {
       "back": "Назад к моей учётной записи",
       "managing": "Управление: {name}"
+    },
+    "advanced_switch": {
+      "label": "Показывать расширенные настройки",
+      "show": "Показать расширенные настройки",
+      "badge": "Расширенное",
+      "hidden_count": "{count, plural, one {# расширенная настройка скрыта на этой странице.} few {# расширенные настройки скрыты на этой странице.} many {# расширенных настроек скрыто на этой странице.} other {# расширенной настройки скрыто на этой странице.}}"
+    },
+    "message_list": {
+      "title": "Список писем",
+      "description": "Что показывает список и что делает щелчок или свайп.",
+      "sections": {
+        "senders": "Изображения отправителей",
+        "actions": "Быстрые действия",
+        "delete": "Удаление и архивация",
+        "loading": "Загрузка и поиск"
+      }
+    },
+    "reading_page": {
+      "title": "Чтение",
+      "description": "Открытое письмо.",
+      "sections": {
+        "display": "Отображение письма",
+        "images": "Изображения и внешнее содержимое",
+        "images_description": "Удалённые изображения могут сообщить отправителю, что вы открыли письмо.",
+        "attachments": "Вложения"
+      }
+    },
+    "composing_page": {
+      "title": "Написание",
+      "description": "Написание, ответы и отправка.",
+      "sections": {
+        "replying": "Ответы",
+        "sending": "Перед отправкой",
+        "receipts": "Уведомления о прочтении"
+      }
     }
   },
   "errors": {
@@ -2520,6 +2587,7 @@
     "unpin": "Открепить",
     "move_to": "Переместить в...",
     "copy_to_account": "Копировать в аккаунт...",
+    "remove_from_folder": "Убрать из этой папки",
     "archive": "В архив",
     "delete": "Удалить",
     "mark_as_spam": "Отметить как спам",
@@ -2617,7 +2685,9 @@
       "previous_email": "Предыдущее письмо",
       "open_email": "Открыть письмо",
       "close_email": "Закрыть / Отменить выбор",
-      "go_to_folder": "Перейти к папке"
+      "go_to_folder": "Перейти к папке",
+      "next_unread": "Следующее непрочитанное письмо",
+      "no_more_unread": "Ниже в списке больше нет непрочитанных писем"
     },
     "actions": {
       "reply": "Ответить",
@@ -2636,7 +2706,8 @@
       "help": "Показать сочетания клавиш",
       "refresh": "Обновить письма",
       "select_all": "Выбрать все",
-      "global_search": "Искать везде"
+      "global_search": "Искать везде",
+      "extend_selection": "Расширить выделение вниз / вверх"
     },
     "threads": {
       "expand_collapse": "Развернуть/свернуть цепочку",
@@ -2750,11 +2821,57 @@
       "recipient_name": "Имя получателя",
       "company": "Название компании",
       "date": "Текущая дата",
+      "short_date": "Дата цифрами",
+      "day": "День (две цифры)",
+      "month": "Месяц (две цифры)",
+      "year": "Год",
       "day_of_week": "День недели",
       "sender_name": "Ваше имя"
     }
   },
   "contacts": {
+    "directory": {
+      "title": "Справочник",
+      "search_placeholder": "Поиск по имени или адресу",
+      "refresh": "Обновить справочник",
+      "retry": "Повторить",
+      "loading": "Загрузка справочника…",
+      "unavailable_title": "Нет справочника",
+      "unavailable_hint": "Ваш почтовый сервер не предоставляет справочник учётных записей.",
+      "forbidden_title": "Справочник недоступен",
+      "forbidden_hint": "Ваш почтовый сервер не разрешает этой учётной записи просматривать справочник. Обратитесь к администратору.",
+      "error_title": "Не удалось загрузить справочник",
+      "error_hint": "Проверьте подключение и повторите попытку.",
+      "empty_title": "Справочник пуст",
+      "empty_hint": "Ваш почтовый сервер не возвращает учётных записей с адресом электронной почты.",
+      "no_match": "В справочнике никто не соответствует запросу",
+      "refresh_failed": "Не удалось обновить справочник. Показан последний загруженный список.",
+      "select_page": "Выбрать всех на этой странице",
+      "deselect_page": "Снять выбор на этой странице",
+      "select_entry": "Выбрать {name}",
+      "range": "{from}–{to} из {total}",
+      "page": "Страница {page} из {count}",
+      "previous_page": "Предыдущая страница",
+      "next_page": "Следующая страница",
+      "picker_title": "Выбрать из справочника",
+      "cancel": "Отмена",
+      "selected_count": "Выбрано: {count}",
+      "add_to": "Добавить в «Кому»",
+      "add_cc": "Добавить в «Копия»",
+      "add_bcc": "Добавить в «Скрытая копия»",
+      "select_hint": "Выберите человека, чтобы увидеть подробности",
+      "write_email": "Написать письмо",
+      "add_to_contacts": "Добавить в контакты",
+      "email": "Эл. почта",
+      "read_only_note": "Записи справочника приходят с вашего почтового сервера, здесь их нельзя изменить.",
+      "type": {
+        "individual": "Человек",
+        "group": "Группа",
+        "resource": "Ресурс",
+        "location": "Место",
+        "other": "Другое"
+      }
+    },
     "title": "Контакты",
     "search_placeholder": "Поиск контактов...",
     "create_new": "Новый контакт",
@@ -3937,7 +4054,8 @@
     "demo_banner_title": "Элементы управления демо",
     "demo_banner_desc": "Вы в демо-режиме - всё остаётся в вашем браузере. Нажмите «Сбросить демо» в любое время, чтобы начать заново с чистыми данными.",
     "quota_title": "Использование хранилища",
-    "quota_desc": "Отслеживайте размер вашего почтового ящика здесь. Круг заполняется по мере использования пространства."
+    "quota_desc": "Отслеживайте размер вашего почтового ящика здесь. Круг заполняется по мере использования пространства.",
+    "settings_section": "Начало работы"
   },
   "unified_mailbox": {
     "search_unavailable": "Поиск недоступен в объединённом представлении"
@@ -4345,7 +4463,7 @@
       },
       "http_proxy": {
         "title": "Использовать подключённые вами аккаунты",
-        "body": "Отправлять запросы через сервер Bulwark с аккаунтом или ключом, который настроили вы или ваш администратор. Плагин никогда не видит пароль, но может делать на этом сервере всё, что может этот аккаунт."
+        "body": "Отправлять запросы через сервер {appName} с аккаунтом или ключом, который настроили вы или ваш администратор. Плагин никогда не видит пароль, но может делать на этом сервере всё, что может этот аккаунт."
       }
     },
     "dialog": {
@@ -4362,9 +4480,9 @@
     },
     "connect": {
       "title": "Подключить {label}",
-      "intro_password": "{name} хочет использовать ваш аккаунт {label}. Bulwark хранит пароль на своём сервере и отправляет его только на {host}. Плагин его никогда не видит.",
-      "intro_password_any": "{name} хочет использовать ваш аккаунт {label}. Bulwark хранит пароль на своём сервере и отправляет его только на сервер, который вы укажете здесь. Плагин его никогда не видит.",
-      "intro_signin": "{name} хочет войти в ваш аккаунт {label}. Укажите здесь сервер, затем войдите на его собственной странице. Bulwark хранит полученный доступ на своём сервере; плагин его никогда не видит.",
+      "intro_password": "{name} хочет использовать ваш аккаунт {label}. {appName} хранит пароль на своём сервере и отправляет его только на {host}. Плагин его никогда не видит.",
+      "intro_password_any": "{name} хочет использовать ваш аккаунт {label}. {appName} хранит пароль на своём сервере и отправляет его только на сервер, который вы укажете здесь. Плагин его никогда не видит.",
+      "intro_signin": "{name} хочет войти в ваш аккаунт {label}. Укажите здесь сервер, затем войдите на его собственной странице. {appName} хранит полученный доступ на своём сервере; плагин его никогда не видит.",
       "server": "Адрес сервера",
       "server_hint": "cloud.example.com",
       "username": "Имя пользователя",
@@ -4411,8 +4529,7 @@
     "loading": "Загрузка страницы",
     "not_available_title": "Эта страница недоступна",
     "not_available_description": "Плагин, который её добавил, выключен или больше не установлен.",
-    "back_to_mail": "Вернуться к почте",
-    "settings_group": "Плагины"
+    "back_to_mail": "Вернуться к почте"
   },
   "command_palette": {
     "title": "Палитра команд",

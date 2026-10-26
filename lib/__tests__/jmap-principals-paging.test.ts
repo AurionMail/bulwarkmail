@@ -63,6 +63,32 @@ describe('getPrincipals', () => {
     expect(principals).toHaveLength(1203);
     expect(queries.map((q) => [q.position, q.limit])).toEqual([[0, 500], [500, 500], [1000, 500]]);
   });
+
+  function forbiddenClient() {
+    const client = new JMAPClient('https://jmap.example.com', 'user@example.com', 'pass');
+    Object.assign(client, {
+      accountId: 'me',
+      capabilities: { 'urn:ietf:params:jmap:core': { maxObjectsInGet: 500 }, 'urn:ietf:params:jmap:principals': {} },
+    });
+    vi.spyOn(client as unknown as { supportsPrincipals: () => boolean }, 'supportsPrincipals').mockReturnValue(true);
+    vi.spyOn(client as unknown as { request: () => Promise<unknown> }, 'request').mockResolvedValue({
+      methodResponses: [
+        ['error', { type: 'forbidden', description: 'Directory queries are disabled' }, '0'],
+        ['error', { type: 'forbidden' }, '1'],
+      ],
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    return client;
+  }
+
+  it('reports a refused directory query when asked to', async () => {
+    await expect(forbiddenClient().getPrincipals(undefined, { throwOnError: true }))
+      .rejects.toMatchObject({ name: 'PrincipalsRequestError', type: 'forbidden' });
+  });
+
+  it('still answers an empty list to callers that did not ask', async () => {
+    await expect(forbiddenClient().getPrincipals()).resolves.toEqual([]);
+  });
 });
 
 describe('listPrincipals', () => {

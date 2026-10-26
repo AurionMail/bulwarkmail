@@ -114,7 +114,7 @@ describe('draft replace lifecycle (#849)', () => {
 
     await client.createDraft(
       ['bob@example.com'], 'Re: Subject', 'body',
-      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
       ['<parent@example.com>'], ['root@example.com', 'parent@example.com'],
     );
 
@@ -309,15 +309,15 @@ describe('a draft that lives in a group account', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  it('createDraft saves the new version in the own account and removes the old one in the group account', async () => {
+  it('createDraft from the own identity saves the new version in the own account and removes the old one in the group account', async () => {
     const client = groupClient();
     const captured = mockFlow();
 
     const id = await client.createDraft(
       ['bob@example.com'], 'Subject', 'body',
-      undefined, undefined, undefined, 'team@example.org',
+      undefined, undefined, undefined, 'user@example.com',
       'eaaaaab', undefined, undefined, undefined,
-      'c',
+      undefined, undefined, { previousDraftAccountId: 'c' },
     );
 
     expect(id).toBe('email-new-1');

@@ -4,6 +4,8 @@ import { useEffect, useId, useState, useSyncExternalStore } from 'react';
 import { useTranslations } from 'next-intl';
 import { KeyRound } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import { useConfig } from '@/hooks/use-config';
+import { productName } from '@/lib/product-name';
 import {
   currentConnect,
   originFromInput,
@@ -19,6 +21,7 @@ import {
 export function PluginConnectDialog() {
   const request = useSyncExternalStore(subscribeConnect, currentConnect, () => null);
   const t = useTranslations('plugins.connect');
+  const appName = productName(useConfig().appName);
   const titleId = useId();
   const [server, setServer] = useState('');
   const [username, setUsername] = useState('');
@@ -78,10 +81,10 @@ export function PluginConnectDialog() {
 
   const host = origin ? new URL(origin).host : null;
   const intro = mode === 'signin'
-    ? t('intro_signin', { name: pluginName, label: spec.label })
+    ? t('intro_signin', { name: pluginName, label: spec.label, appName })
     : host
-      ? t('intro_password', { name: pluginName, label: spec.label, host })
-      : t('intro_password_any', { name: pluginName, label: spec.label });
+      ? t('intro_password', { name: pluginName, label: spec.label, host, appName })
+      : t('intro_password_any', { name: pluginName, label: spec.label, appName });
 
   return (
     <div

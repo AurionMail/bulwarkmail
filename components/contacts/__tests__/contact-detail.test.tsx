@@ -50,6 +50,21 @@ describe('ContactDetail', () => {
     expect(screen.getByText('+33612345678')).toBeInTheDocument();
   });
 
+  it('labels phones, emails and addresses with translated contexts and phone types', () => {
+    const typed: ContactCard = {
+      ...contact,
+      emails: { e0: { address: 'alice@work.example', contexts: { work: true } } },
+      phones: { p0: { number: '+4930123', contexts: { private: true }, features: { cell: true, 'x-sat': true } } },
+      addresses: { a0: { street: '1 Office Rd', contexts: { work: true, 'x-hq': true } } },
+    };
+    render(<ContactDetail contact={typed} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    // The test translator returns the key, so a translated label shows up as its key.
+    expect(screen.getByText('form.context_work')).toBeInTheDocument();
+    expect(screen.getByText('form.context_private · form.phone_cell, x-sat')).toBeInTheDocument();
+    // Custom vCard types are shown as stored.
+    expect(screen.getByText('form.context_work, x-hq')).toBeInTheDocument();
+  });
+
   it('displays organization name', () => {
     render(<ContactDetail contact={contact} onEdit={vi.fn()} onDelete={vi.fn()} />);
     const matches = screen.getAllByText('Acme Corp');

@@ -133,8 +133,18 @@ describe('previewBlobType', () => {
     expect(previewBlobType('drawing.svg', 'application/x-as400attachment', '')).toBe('application/x-as400attachment');
   });
 
+  it('types a document attachment so that a blob: URL of it would never render as the webmail', () => {
+    // HTML, .eml, text and markdown are previewed from their text in a srcdoc
+    // frame; a text/html blob: URL of the sender's bytes was a document of
+    // the webmail origin (GHSA-xvjh-v9c6-qcvc, on the attachment preview).
+    expect(previewBlobType('invoice.html', 'text/html', 'text/html')).toBe('application/octet-stream');
+    expect(previewBlobType('page.htm', 'application/octet-stream', '')).toBe('application/octet-stream');
+    expect(previewBlobType('page', 'application/xhtml+xml', '')).toBe('application/octet-stream');
+    expect(previewBlobType('bounce.eml', 'message/rfc822', '')).toBe('application/octet-stream');
+    expect(previewBlobType('notes.txt', 'text/plain', '')).toBe('application/octet-stream');
+  });
+
   it('leaves previews that do not render a blob by type as before', () => {
-    expect(previewBlobType('page.html', 'text/html; charset=utf-8', '')).toBe('text/html; charset=utf-8');
     expect(previewBlobType('archive.zip', 'application/zip', '')).toBe('application/zip');
     expect(previewBlobType('archive.zip', 'application/octet-stream', 'application/octet-stream')).toBe('application/octet-stream');
   });

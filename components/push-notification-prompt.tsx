@@ -13,6 +13,7 @@ import {
   isWebPushEnabled,
   isWebPushSupported,
   resyncWebPush,
+  waitForWebPushResync,
 } from "@/lib/web-push";
 import { resolveActiveRelayUrl } from "@/lib/push-relays";
 import { jmapErrorType } from "@/lib/jmap/jmap-error";
@@ -157,11 +158,12 @@ export function PushNotificationPrompt() {
   // delivery filter installed or repaired (older registrations predate it and
   // would keep waking the device for spam). Deliberately independent of the
   // prompt gating below - dismissing the onboarding prompt must not leave a
-  // live registration stale.
+  // live registration stale. The prompt in turn waits for this pass, since
+  // push reads as "off" while a dropped browser subscription is recreated.
   useEffect(() => {
     if (!policyLoaded || !isAuthenticated || !client || !accountId || isDemoMode) return;
     let cancelled = false;
-    const resync = async () => {
+    const resync = async (force = false) => {
       // One login at a time: they share the browser's single
       // PushSubscription, and a parallel re-create would race on it.
       for (const target of resyncTargets(client, username ?? undefined)) {
@@ -172,17 +174,28 @@ export function PushNotificationPrompt() {
           accountLabel: target.accountLabel,
           inboxOnly: pushNotifyInboxOnly,
           mutes: useSettingsStore.getState().notificationMutes,
+          force,
         });
       }
     };
     void resync();
     // A long-open tab comes back to the foreground: renew the subscription
-    // before the server's 7-day expiry (resyncWebPush runs at most daily).
+    // before the server's 7-day expiry (resyncWebPush runs at most daily) and
+    // recreate one the browser dropped in the meantime.
     const onVisible = () => { if (document.visibilityState === 'visible') void resync(); };
     document.addEventListener('visibilitychange', onVisible);
+    // The service worker saw the push service drop or replace the browser
+    // subscription (pushsubscriptionchange in public/sw.js): the relay has to
+    // learn the new endpoint now, not at the next daily pass.
+    const onSwMessage = (event: MessageEvent) => {
+      const kind = (event.data as { kind?: unknown } | null)?.kind;
+      if (kind === 'pushsubscriptionchange') void resync(true);
+    };
+    navigator.serviceWorker?.addEventListener('message', onSwMessage);
     return () => {
       cancelled = true;
       document.removeEventListener('visibilitychange', onVisible);
+      navigator.serviceWorker?.removeEventListener('message', onSwMessage);
     };
   }, [accountId, client, connectedAccountsRevision, isAuthenticated, isDemoMode, policyLoaded, pushNotifyInboxOnly, relayBaseUrl, username]);
 
@@ -244,7 +257,11 @@ export function PushNotificationPrompt() {
     }
 
     timer = setTimeout(() => {
-      void isWebPushEnabled(accountId)
+      // Push can read as "off" only because the background pass above is
+      // still recreating a browser subscription Safari dropped (#1321): wait
+      // for it, and offer onboarding only if push is still off afterwards.
+      void waitForWebPushResync(accountId)
+        .then(() => isWebPushEnabled(accountId))
         .then((enabled) => {
           if (!cancelled && !enabled) setShowPrompt(true);
         })

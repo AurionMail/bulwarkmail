@@ -60,9 +60,13 @@ describe('FolderSettings role dropdown order (#984)', () => {
   it('lists options in folder-tree order, children under their parent', () => {
     render(<FolderSettings />);
 
-    const selects = screen.getAllByRole('combobox');
-    expect(selects.length).toBeGreaterThan(0);
-    const values = within(selects[0] as HTMLElement)
+    // The role dropdowns list folder ids; the per-folder counter dropdowns
+    // (#982) sit on the folder rows and list modes instead.
+    const roleSelect = screen
+      .getAllByRole('combobox')
+      .find((s) => within(s).queryAllByRole('option').some((o) => (o as HTMLOptionElement).value === 'inbox'));
+    expect(roleSelect).toBeDefined();
+    const values = within(roleSelect as HTMLElement)
       .getAllByRole('option')
       .map((o) => (o as HTMLOptionElement).value)
       .filter((v) => v !== '');

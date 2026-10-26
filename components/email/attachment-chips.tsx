@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { FileText, FileSpreadsheet, FileImage, FileArchive, File as FileIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { stripBidiControls } from "@/lib/bidi";
 import type { Attachment, Email } from "@/lib/jmap/types";
 import type { LoadListAttachments } from "@/lib/list-attachments";
 
@@ -20,17 +21,18 @@ export function realAttachments(attachments?: Attachment[]): Attachment[] {
   );
 }
 
-const ICON_BY_TYPE: { match: RegExp; icon: typeof FileIcon; className: string }[] = [
-  { match: /^image\//, icon: FileImage, className: "text-violet-600 dark:text-violet-400" },
-  { match: /pdf/, icon: FileText, className: "text-red-600 dark:text-red-400" },
-  { match: /sheet|excel|csv/, icon: FileSpreadsheet, className: "text-emerald-600 dark:text-emerald-400" },
-  { match: /zip|compress|tar|rar|7z/, icon: FileArchive, className: "text-amber-600 dark:text-amber-400" },
-  { match: /word|document|rtf|text\//, icon: FileText, className: "text-sky-600 dark:text-sky-400" },
+// `badge` fills the square Mountain View draws behind a white glyph, as Gmail does.
+const ICON_BY_TYPE: { match: RegExp; icon: typeof FileIcon; className: string; badge: string }[] = [
+  { match: /^image\//, icon: FileImage, className: "text-violet-600 dark:text-violet-400", badge: "bg-red-600" },
+  { match: /pdf/, icon: FileText, className: "text-red-600 dark:text-red-400", badge: "bg-red-600" },
+  { match: /sheet|excel|csv/, icon: FileSpreadsheet, className: "text-emerald-600 dark:text-emerald-400", badge: "bg-emerald-600" },
+  { match: /zip|compress|tar|rar|7z/, icon: FileArchive, className: "text-amber-600 dark:text-amber-400", badge: "bg-zinc-500" },
+  { match: /word|document|rtf|text\//, icon: FileText, className: "text-sky-600 dark:text-sky-400", badge: "bg-blue-600" },
 ];
 
 function iconFor(type: string, name: string) {
   const probe = `${type || ""} ${name || ""}`.toLowerCase();
-  return ICON_BY_TYPE.find((e) => e.match.test(probe)) ?? { icon: FileIcon, className: "text-muted-foreground" };
+  return ICON_BY_TYPE.find((e) => e.match.test(probe)) ?? { icon: FileIcon, className: "text-muted-foreground", badge: "bg-zinc-500" };
 }
 
 /** Long names are unreadable truncated at the tail — the extension is the
@@ -48,6 +50,13 @@ function shortName(name: string, max = 18): string {
 export const CHIP_BOX_CLASS = "inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-xs";
 export const CHIP_ICON_CLASS = "h-3.5 w-3.5 flex-shrink-0";
 
+// Mountain View's chips are Gmail's: a pill with a filled square in front.
+export const MV_CHIP_BOX_CLASS = "inline-flex h-8 items-center gap-2 rounded-full border border-border ps-3 pe-4 text-sm";
+export const MV_CHIP_BADGE_CLASS = "inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[3px] text-white";
+export const MV_CHIP_BADGE_ICON_CLASS = "h-3 w-3";
+
+export type ChipVariant = "default" | "mountain-view";
+
 interface AttachmentChipsProps {
   attachments?: Attachment[];
   onOpen: (attachment: Attachment) => void;
@@ -55,10 +64,12 @@ interface AttachmentChipsProps {
   max?: number;
   /** A chip drawn ahead of the attachments in the same row (the verification code). */
   leading?: ReactNode;
+  variant?: ChipVariant;
   className?: string;
 }
 
-export function AttachmentChips({ attachments, onOpen, max = 2, leading, className }: AttachmentChipsProps) {
+export function AttachmentChips({ attachments, onOpen, max = 2, leading, variant = "default", className }: AttachmentChipsProps) {
+  const mv = variant === "mountain-view";
   const real = realAttachments(attachments);
   if (!real.length && !leading) return null;
 
@@ -67,10 +78,10 @@ export function AttachmentChips({ attachments, onOpen, max = 2, leading, classNa
   const overflow = real.length - shown.length;
 
   return (
-    <div className={cn("flex items-center gap-1.5 flex-wrap", className)}>
+    <div className={cn("flex items-center flex-wrap", mv ? "gap-2" : "gap-1.5", className)}>
       {leading}
       {shown.map((a) => {
-        const { icon: Icon, className: iconClass } = iconFor(a.type, a.name ?? "");
+        const { icon: Icon, className: iconClass, badge } = iconFor(a.type, a.name ?? "");
         return (
           <button
             key={a.blobId + a.partId}
@@ -78,16 +89,27 @@ export function AttachmentChips({ attachments, onOpen, max = 2, leading, classNa
             // The row itself opens the message; a chip must not do both.
             onClick={(e) => { e.stopPropagation(); onOpen(a); }}
             onDoubleClick={(e) => e.stopPropagation()}
-            title={a.name}
-            className={cn(CHIP_BOX_CLASS, "max-w-[12rem] bg-background/60 text-foreground/80 hover:bg-muted hover:text-foreground")}
+            title={stripBidiControls(a.name ?? "")}
+            className={mv
+              ? cn(MV_CHIP_BOX_CLASS, "max-w-[14rem] bg-transparent text-foreground/80 hover:bg-muted")
+              : cn(CHIP_BOX_CLASS, "max-w-[12rem] bg-background/60 text-foreground/80 hover:bg-muted hover:text-foreground")}
           >
-            <Icon className={cn(CHIP_ICON_CLASS, iconClass)} />
-            <span className="truncate">{shortName(a.name ?? "")}</span>
+            {mv ? (
+              <span className={cn(MV_CHIP_BADGE_CLASS, badge)}>
+                <Icon className={MV_CHIP_BADGE_ICON_CLASS} />
+              </span>
+            ) : (
+              <Icon className={cn(CHIP_ICON_CLASS, iconClass)} />
+            )}
+            <span className="truncate">{shortName(stripBidiControls(a.name ?? ""))}</span>
           </button>
         );
       })}
       {overflow > 0 && (
-        <span className="rounded-md border border-border px-1.5 py-0.5 text-xs text-muted-foreground tabular-nums">
+        <span className={cn(
+          "border border-border text-muted-foreground tabular-nums",
+          mv ? "inline-flex h-8 items-center rounded-full px-3 text-sm" : "rounded-md px-1.5 py-0.5 text-xs",
+        )}>
           +{overflow}
         </span>
       )}
@@ -171,8 +193,8 @@ export function ListAttachmentChips({ email, load, ...chipProps }: ListAttachmen
     }
     return (
       <div aria-hidden className={cn("flex", chipProps.className)}>
-        <span className={cn(CHIP_BOX_CLASS, "invisible")}>
-          <span className={CHIP_ICON_CLASS} />
+        <span className={cn(chipProps.variant === "mountain-view" ? MV_CHIP_BOX_CLASS : CHIP_BOX_CLASS, "invisible")}>
+          <span className={chipProps.variant === "mountain-view" ? MV_CHIP_BADGE_CLASS : CHIP_ICON_CLASS} />
           <span>&nbsp;</span>
         </span>
       </div>

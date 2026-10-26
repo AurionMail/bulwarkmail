@@ -8,6 +8,15 @@ import path from 'node:path';
 
 vi.mock('@/lib/admin/plugin-registry', () => ({ getPlugin: vi.fn(async () => null) }));
 vi.mock('@/lib/admin/plugin-config', () => ({ getPluginConfig: vi.fn(async () => ({})) }));
+// A user credential exists only for a plugin the server knows declares it
+// (lib/plugin-secrets/known-plugins.ts): the Nextcloud plugin of these tests
+// is an admin-approved upload.
+vi.mock('@/lib/admin/plugin-approvals', () => ({
+  listApprovals: async () => [{
+    pluginId: 'nextcloud', status: 'approved',
+    manifest: { credentials: { cloud: { scope: 'user', label: 'Nextcloud', inject: { type: 'basic' } } } },
+  }],
+}));
 const auditLines: Record<string, unknown>[] = [];
 vi.mock('@/lib/logger', () => ({
   logger: {

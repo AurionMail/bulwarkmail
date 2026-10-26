@@ -63,8 +63,14 @@ export interface FeatureGates {
   unifiedCrossAccountEnabled: boolean;
   /** Encrypted account list kept on the server, restorable on another device. */
   accountArchiveEnabled: boolean;
+  /** Lets that list carry mailbox passwords, so a restore signs in by itself. */
+  accountArchivePasswordsEnabled: boolean;
   /** Composer "Custom" From: free-text sender address instead of an identity. */
   customFromEnabled: boolean;
+  /** The Archive action on messages (button, menus, hover, swipe, shortcut). */
+  archiveActionEnabled: boolean;
+  /** The sidebar lists the Tags above the shared mailboxes instead of below them. */
+  tagsAboveSharedEnabled: boolean;
 }
 
 export const DEFAULT_FEATURE_GATES: FeatureGates = {
@@ -93,8 +99,13 @@ export const DEFAULT_FEATURE_GATES: FeatureGates = {
   crossAllViewEnabled: false,
   unifiedCrossAccountEnabled: false,
   accountArchiveEnabled: false,
+  accountArchivePasswordsEnabled: false,
   customFromEnabled: true,
+  archiveActionEnabled: true,
+  tagsAboveSharedEnabled: false,
 };
+
+export type ColorMode = 'light' | 'dark' | 'system';
 
 export interface ThemePolicy {
   /** Built-in theme IDs that are disabled (hidden from users) */
@@ -103,12 +114,18 @@ export interface ThemePolicy {
   disabledThemes: string[];
   /** Default theme ID for new users (null = system default) */
   defaultThemeId: string | null;
+  /** Color mode for users who have not picked one (null = system) */
+  defaultColorMode: ColorMode | null;
+  /** Every user gets defaultColorMode (system when unset) and cannot switch it */
+  lockColorMode: boolean;
 }
 
 export const DEFAULT_THEME_POLICY: ThemePolicy = {
   disabledBuiltinThemes: [],
   disabledThemes: [],
   defaultThemeId: null,
+  defaultColorMode: null,
+  lockColorMode: false,
 };
 
 /** One entry of the Web Push relay list users can pick from. */
@@ -266,6 +283,11 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   // through its end_session_endpoint (#905). Off keeps the provider signed in,
   // for providers shared with other apps that should stay signed in.
   oauthEndSession: { envVar: 'OAUTH_END_SESSION', type: 'boolean', defaultValue: true },
+  // The provider's logout URL, for providers whose discovery document has no
+  // end_session_endpoint (#1279). Used instead of the discovered one when set.
+  // Applies to the global provider only; JMAP_SERVERS entries set their own
+  // oauth.endSessionUrl.
+  oauthEndSessionUrl: { envVar: 'OAUTH_END_SESSION_URL', type: 'url', defaultValue: '' },
   // Where the provider sends the browser after ending its session. Must be
   // registered with the provider as a post-logout redirect URI. Empty = none
   // is sent and the provider shows its own signed-out page.

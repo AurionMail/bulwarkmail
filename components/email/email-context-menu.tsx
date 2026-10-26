@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
+import { useEmailStore, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
 import { Email, Mailbox } from "@/lib/jmap/types";
 import {
   ContextMenu,
@@ -25,6 +26,7 @@ import {
   Trash2,
   Archive,
   FolderInput,
+  FolderX,
   Tag,
   Inbox,
   Send,
@@ -48,6 +50,7 @@ import { localizeMailboxName } from "@/lib/mailbox-label";
 import { getEmailTagIds } from "@/lib/thread-utils";
 import { TagPicker } from "./tag-picker";
 import { RulesContextSubMenu } from "./rules-menu";
+import { useArchiveActionEnabled } from "@/lib/archive-gate";
 
 interface Position {
   x: number;
@@ -94,6 +97,11 @@ interface EmailContextMenuProps {
   onArchive?: () => void;
   onSetTag?: (tagId: string | null) => void;
   onMoveToMailbox?: (mailboxId: string) => void;
+  /**
+   * Take the message out of the open folder only (#615). Offered when the
+   * message is also in another folder and the list shows a single folder.
+   */
+  onRemoveFromFolder?: () => void;
   onMarkAsSpam?: () => void;
   onUndoSpam?: () => void;
   onEditDraft?: () => void;
@@ -109,6 +117,9 @@ interface EmailContextMenuProps {
   onBatchDelete?: () => void;
   onBatchArchive?: () => void;
   onBatchMoveToMailbox?: (mailboxId: string) => void;
+  /** The selected messages, for the batch "Remove from this folder". */
+  batchEmails?: Email[];
+  onBatchRemoveFromFolder?: () => void;
   onBatchMarkAsSpam?: () => void;
   onBatchUndoSpam?: () => void;
   /**
@@ -162,6 +173,7 @@ export function EmailContextMenu({
   onArchive,
   onSetTag,
   onMoveToMailbox,
+  onRemoveFromFolder,
   onMarkAsSpam,
   onUndoSpam,
   onBatchMarkAsRead,
@@ -171,6 +183,8 @@ export function EmailContextMenu({
   onBatchDelete,
   onBatchArchive,
   onBatchMoveToMailbox,
+  batchEmails,
+  onBatchRemoveFromFolder,
   onBatchMarkAsSpam,
   onBatchUndoSpam,
   onBatchForwardAsAttachment,
@@ -181,6 +195,7 @@ export function EmailContextMenu({
   onCopyToAccount,
 }: EmailContextMenuProps) {
   const t = useTranslations("context_menu");
+  const archiveActionEnabled = useArchiveActionEnabled();
   const mountainView = useSettingsStore((state) => state.interfaceLayout === "mountain-view");
   const tSidebar = useTranslations("sidebar");
   const tEmailViewer = useTranslations("email_viewer");
@@ -198,6 +213,12 @@ export function EmailContextMenu({
   const spamApplicable = !['sent', 'drafts', 'scheduled'].includes(currentMailboxRole || '');
   const isScheduled = email.isScheduled === true;
   const canCancelScheduled = isScheduled && email.scheduledUndoStatus === 'pending';
+  // "Remove from this folder" needs one open folder and messages that are
+  // also in another one; for a selection, every selected message must be.
+  const folderToLeave = useEmailStore(removalFolder);
+  const canRemove = showBatchActions
+    ? !!onBatchRemoveFromFolder && !!batchEmails?.length && batchEmails.every((e) => canRemoveFromFolder(e, folderToLeave))
+    : !!onRemoveFromFolder && canRemoveFromFolder(email, folderToLeave);
 
   // Move-to submenu: the message's own account first (#1149)
   const { tree: moveTree, targetIds: moveTargetIds } = buildMoveTargets(mailboxes, {
@@ -349,7 +370,7 @@ export function EmailContextMenu({
         )}
     </>
   );
-  const archiveItem = (
+  const archiveItem = archiveActionEnabled && (
     <>
         {/* Archive */}
         <ContextMenuItem
@@ -405,6 +426,14 @@ export function EmailContextMenu({
                 : onMoveToMailbox?.(mailboxId)
             )}
           </ContextMenuSubMenu>
+        )}
+        {canRemove && (
+          <ContextMenuItem
+            icon={FolderX}
+            label={t("remove_from_folder")}
+            testId="ctx-remove-from-folder"
+            onClick={() => handleAction(showBatchActions ? onBatchRemoveFromFolder! : onRemoveFromFolder!)}
+          />
         )}
     </>
   );

@@ -1,427 +1,201 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSettingsStore } from '@/stores/settings-store';
-import { useEffectiveMailLayout } from '@/hooks/use-effective-mail-layout';
-import type { ArchiveMode, HoverAction } from '@/stores/settings-store';
-import { ALL_HOVER_ACTIONS } from '@/stores/settings-store';
-import { useAuthStore } from '@/stores/auth-store';
-import { useEmailStore } from '@/stores/email-store';
-import { cn } from '@/lib/utils';
 import { SettingsSection, SettingItem, Select, ToggleSwitch } from './settings-section';
-import { AlertTriangle, FolderSync, Loader2 } from '@/components/icons';
+import { DownloadsSettings } from './downloads-settings';
+import { TrustedSendersModal } from '@/components/trusted-senders-modal';
+import { ChevronRight } from '@/components/icons';
 import { usePolicyStore } from '@/stores/policy-store';
-import { allowEmailMove, createMailboxWithHooks, emitEmailMove } from '@/lib/plugin-mail-hooks';
-import type { Mailbox } from '@/lib/jmap/types';
+import { useContactStore } from '@/stores/contact-store';
+import { useAuthStore } from '@/stores/auth-store';
 
+/**
+ * The Reading page: the open message. Opening it, how its body is drawn,
+ * remote images and trusted senders (the former Content & Senders tab), and
+ * attachments, and (Advanced) how downloads are named, the former Downloads
+ * tab. List, delete and swipe rows live on the Message list page.
+ */
 export function ReadingSettings() {
   const t = useTranslations('settings.email_behavior');
-  const [isReorganizing, setIsReorganizing] = useState(false);
-  const [reorganizeResult, setReorganizeResult] = useState<string | null>(null);
+  const tPage = useTranslations('settings.reading_page');
+  const [showTrustedModal, setShowTrustedModal] = useState(false);
   const { isSettingLocked, isSettingHidden, isFeatureEnabled } = usePolicyStore();
 
   const {
     markAsReadDelay,
-    deleteAction,
-    permanentlyDeleteJunk,
-    confirmBulkDelete,
     returnToListAfterAction,
-    swipeRightAction,
-    swipeLeftAction,
-    clearSearchOnFolderChange,
-    showPreview,
-    showVerificationCodes,
-    disableThreading,
-    emailsPerPage,
     mailAttachmentAction,
     attachmentPosition,
-    archiveMode,
-    hoverActions,
-    hoverActionsMode,
-    hoverActionsCorner,
     hideInlineImageAttachments,
     attachmentImagePreviewsEnabled,
     messageSpacing,
     plainTextFont,
+    externalContentPolicy,
+    emailAlwaysLightMode,
+    trustedSenders,
+    trustedSendersAddressBook,
     updateSetting,
   } = useSettingsStore();
+  const { trustedSenderEmails, trustedSendersLoaded, loadTrustedSendersBook } = useContactStore();
+  const client = useAuthStore((state) => state.client);
 
-  const isFocusedLayout = useEffectiveMailLayout() === 'focus';
-
-  const handleReorganizeArchive = async () => {
-    const { client } = useAuthStore.getState();
-    const { mailboxes, fetchMailboxes } = useEmailStore.getState();
-    if (!client) return;
-
-    const archiveMailbox = mailboxes.find(m => m.role === 'archive' || m.name.toLowerCase() === 'archive');
-    if (!archiveMailbox) return;
-
-    setIsReorganizing(true);
-    setReorganizeResult(null);
-
-    try {
-      const archiveId = archiveMailbox.originalId || archiveMailbox.id;
-      const emails = await client.getEmailsInMailbox(archiveId);
-
-      // One group per destination ("2024" or "2024/03"): plugins are asked
-      // once per folder and move, and can refuse either; the groups they
-      // refuse stay where they are.
-      const groups = new Map<string, { year: string; month: string; ids: string[] }>();
-      for (const email of emails) {
-        const emailDate = new Date(email.receivedAt);
-        const year = emailDate.getFullYear().toString();
-        const month = (emailDate.getMonth() + 1).toString().padStart(2, '0');
-        const key = archiveMode === 'year' ? year : `${year}/${month}`;
-        const group = groups.get(key) ?? { year, month, ids: [] };
-        group.ids.push(email.id);
-        groups.set(key, group);
-      }
-
-      // An existing folder, or a new one; null when a plugin refused it.
-      const folder = async (name: string, parentId: string): Promise<Mailbox | null> => {
-        const existing = useEmailStore.getState().mailboxes.find(m => m.name === name && m.parentId === parentId);
-        if (existing) return existing;
-        const created = await createMailboxWithHooks(client, name, parentId);
-        if (created) await fetchMailboxes(client);
-        return useEmailStore.getState().mailboxes.find(m => m.name === name && m.parentId === parentId) ?? created;
-      };
-
-      let movedCount = 0;
-      for (const { year, month, ids } of groups.values()) {
-        const yearMailbox = await folder(year, archiveId);
-        if (!yearMailbox) continue;
-        const destination = archiveMode === 'year'
-          ? yearMailbox
-          : await folder(month, yearMailbox.originalId || yearMailbox.id);
-        if (!destination) continue;
-
-        const known = useEmailStore.getState().mailboxes;
-        const move = { emailIds: ids, fromMailboxId: archiveMailbox.id, toMailboxId: destination.id };
-        if (!(await allowEmailMove(move, known))) continue;
-        await client.batchMoveEmails(ids, destination.originalId || destination.id);
-        emitEmailMove(move, known);
-        movedCount += ids.length;
-      }
-
-      setReorganizeResult(t('archive_mode.reorganize_success', { count: movedCount }));
-    } catch (error) {
-      console.error('Failed to reorganize archive:', error);
-      setReorganizeResult(t('archive_mode.reorganize_error'));
-    } finally {
-      setIsReorganizing(false);
+  // Load the address book so the count reflects the synced senders, not 0.
+  useEffect(() => {
+    if (trustedSendersAddressBook && client && !trustedSendersLoaded) {
+      loadTrustedSendersBook(client);
     }
+  }, [trustedSendersAddressBook, client, trustedSendersLoaded, loadTrustedSendersBook]);
+
+  const getTrustedSendersCount = () => {
+    const count = trustedSendersAddressBook ? trustedSenderEmails.length : trustedSenders.length;
+    if (count === 0) return t('trusted_senders.count_zero');
+    if (count === 1) return t('trusted_senders.count_one');
+    return t('trusted_senders.count_other', { count });
   };
 
   return (
-    <SettingsSection title={t('title')} description={t('description')}>
-      {!isSettingHidden('markAsReadDelay') && (
-      <SettingItem label={t('mark_read.label')} description={t('mark_read.description')} locked={isSettingLocked('markAsReadDelay')}>
-        <Select
-          value={markAsReadDelay.toString()}
-          onChange={(value) => updateSetting('markAsReadDelay', parseInt(value))}
-          options={[
-            { value: '0', label: t('mark_read.instant') },
-            { value: '3000', label: t('mark_read.delay_3s') },
-            { value: '5000', label: t('mark_read.delay_5s') },
-            { value: '-1', label: t('mark_read.never') },
-          ]}
-        />
-      </SettingItem>
-      )}
-
-      {!isSettingHidden('messageSpacing') && (
-      <SettingItem label={t('message_spacing.label')} description={t('message_spacing.description')} locked={isSettingLocked('messageSpacing')}>
-        <Select
-          value={messageSpacing}
-          onChange={(value) => updateSetting('messageSpacing', value as typeof messageSpacing)}
-          options={[
-            { value: 'auto', label: t('message_spacing.auto') },
-            { value: 'always', label: t('message_spacing.always') },
-            { value: 'edge', label: t('message_spacing.edge') },
-          ]}
-        />
-      </SettingItem>
-      )}
-
-      {!isSettingHidden('plainTextFont') && (
-      <SettingItem label={t('plain_text_font.label')} description={t('plain_text_font.description')} locked={isSettingLocked('plainTextFont')}>
-        <Select
-          value={plainTextFont}
-          onChange={(value) => updateSetting('plainTextFont', value as typeof plainTextFont)}
-          options={[
-            { value: 'mono', label: t('plain_text_font.mono') },
-            { value: 'sans', label: t('plain_text_font.sans') },
-          ]}
-        />
-      </SettingItem>
-      )}
-
-      {!isSettingHidden('deleteAction') && (
-      <SettingItem label={t('delete_action.label')} description={t('delete_action.description')} locked={isSettingLocked('deleteAction')}>
-        <div className="flex flex-col gap-2">
+    <div className="space-y-8">
+      <SettingsSection id="opening" title={tPage('title')} description={tPage('description')}>
+        {!isSettingHidden('markAsReadDelay') && (
+        <SettingItem label={t('mark_read.label')} description={t('mark_read.description')} locked={isSettingLocked('markAsReadDelay')}>
           <Select
-            value={deleteAction}
-            onChange={(value) => updateSetting('deleteAction', value as 'trash' | 'trash-and-read' | 'permanent')}
+            value={markAsReadDelay.toString()}
+            onChange={(value) => updateSetting('markAsReadDelay', parseInt(value))}
             options={[
-              { value: 'trash', label: t('delete_action.trash') },
-              { value: 'trash-and-read', label: t('delete_action.trash_and_read') },
-              { value: 'permanent', label: t('delete_action.permanent') },
+              { value: '0', label: t('mark_read.instant') },
+              { value: '3000', label: t('mark_read.delay_3s') },
+              { value: '5000', label: t('mark_read.delay_5s') },
+              { value: '-1', label: t('mark_read.never') },
             ]}
           />
-          {deleteAction === 'permanent' && (
-            <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-xs">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{t('delete_action.warning')}</span>
-            </div>
-          )}
-        </div>
-      </SettingItem>
-      )}
-
-      <SettingItem label={t('archive_mode.label')} description={t('archive_mode.description')}>
-        <div className="flex flex-col gap-2">
-          <Select
-            value={archiveMode}
-            onChange={(value) => updateSetting('archiveMode', value as ArchiveMode)}
-            options={[
-              { value: 'single', label: t('archive_mode.single') },
-              { value: 'year', label: t('archive_mode.year') },
-              { value: 'month', label: t('archive_mode.month') },
-            ]}
-          />
-          {archiveMode !== 'single' && (
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleReorganizeArchive}
-                disabled={isReorganizing}
-                className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-accent rounded-md transition-colors text-sm disabled:opacity-50"
-              >
-                {isReorganizing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <FolderSync className="w-4 h-4" />
-                )}
-                <span>{t('archive_mode.reorganize')}</span>
-              </button>
-              {reorganizeResult && (
-                <p className="text-xs text-muted-foreground">{reorganizeResult}</p>
-              )}
-            </div>
-          )}
-        </div>
-      </SettingItem>
-
-      <SettingItem label={t('permanently_delete_junk.label')} description={t('permanently_delete_junk.description')}>
-        <ToggleSwitch
-          checked={permanentlyDeleteJunk}
-          onChange={(checked) => updateSetting('permanentlyDeleteJunk', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('confirm_bulk_delete.label')} description={t('confirm_bulk_delete.description')}>
-        <ToggleSwitch
-          checked={confirmBulkDelete}
-          onChange={(checked) => updateSetting('confirmBulkDelete', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('return_to_list_after_action.label')} description={t('return_to_list_after_action.description')}>
-        <ToggleSwitch
-          checked={returnToListAfterAction}
-          onChange={(checked) => updateSetting('returnToListAfterAction', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('swipe_right_action.label')} description={t('swipe_right_action.description')}>
-        <Select
-          value={swipeRightAction}
-          onChange={(value) => updateSetting('swipeRightAction', value as typeof swipeRightAction)}
-          options={[
-            { value: 'none', label: t('swipe_actions.none') },
-            { value: 'archive', label: t('swipe_actions.archive') },
-            { value: 'delete', label: t('swipe_actions.delete') },
-            { value: 'markRead', label: t('swipe_actions.mark_read') },
-            { value: 'star', label: t('swipe_actions.star') },
-            { value: 'spam', label: t('swipe_actions.spam') },
-          ]}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('swipe_left_action.label')} description={t('swipe_left_action.description')}>
-        <Select
-          value={swipeLeftAction}
-          onChange={(value) => updateSetting('swipeLeftAction', value as typeof swipeLeftAction)}
-          options={[
-            { value: 'none', label: t('swipe_actions.none') },
-            { value: 'archive', label: t('swipe_actions.archive') },
-            { value: 'delete', label: t('swipe_actions.delete') },
-            { value: 'markRead', label: t('swipe_actions.mark_read') },
-            { value: 'star', label: t('swipe_actions.star') },
-            { value: 'spam', label: t('swipe_actions.spam') },
-          ]}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('clear_search_on_folder_change.label')} description={t('clear_search_on_folder_change.description')}>
-        <ToggleSwitch
-          checked={clearSearchOnFolderChange}
-          onChange={(checked) => updateSetting('clearSearchOnFolderChange', checked)}
-        />
-      </SettingItem>
-
-      {!isSettingHidden('showPreview') && (
-      <SettingItem
-        label={t('show_preview.label')}
-        description={isFocusedLayout ? t('show_preview.focus_description') : t('show_preview.description')}
-        locked={isSettingLocked('showPreview')}
-      >
-        <ToggleSwitch checked={showPreview} onChange={(checked) => updateSetting('showPreview', checked)} />
-      </SettingItem>
-      )}
-
-      <SettingItem label={t('show_verification_codes.label')} description={t('show_verification_codes.description')}>
-        <ToggleSwitch
-          checked={showVerificationCodes}
-          onChange={(checked) => updateSetting('showVerificationCodes', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('disable_threading.label')} description={t('disable_threading.description')}>
-        <ToggleSwitch
-          checked={disableThreading}
-          onChange={(checked) => updateSetting('disableThreading', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('hide_inline_image_attachments.label')} description={t('hide_inline_image_attachments.description')}>
-        <ToggleSwitch
-          checked={hideInlineImageAttachments}
-          onChange={(checked) => updateSetting('hideInlineImageAttachments', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('attachment_image_previews.label')} description={t('attachment_image_previews.description')}>
-        <ToggleSwitch
-          checked={attachmentImagePreviewsEnabled}
-          onChange={(checked) => updateSetting('attachmentImagePreviewsEnabled', checked)}
-        />
-      </SettingItem>
-
-      {isFeatureEnabled('hoverActionsConfigEnabled') && (
-      <div className="py-3 border-b border-border space-y-3">
-        <div>
-          <label className="text-sm font-medium text-foreground">{t('hover_actions.label')}</label>
-          <p className="text-xs text-muted-foreground mt-1">{t('hover_actions.description')}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {ALL_HOVER_ACTIONS.map((action) => {
-            const isEnabled = hoverActions.includes(action.id);
-            return (
-              <button
-                key={action.id}
-                type="button"
-                onClick={() => {
-                  const newActions = isEnabled
-                    ? hoverActions.filter((a: HoverAction) => a !== action.id)
-                    : [...hoverActions, action.id];
-                  updateSetting('hoverActions', newActions);
-                }}
-                className={cn(
-                  'px-3 py-1.5 text-xs rounded-md transition-colors duration-150',
-                  isEnabled
-                    ? 'bg-primary text-primary-foreground font-medium'
-                    : 'bg-muted hover:bg-accent text-foreground'
-                )}
-              >
-                {t(`hover_actions.${action.labelKey}`)}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="pt-2 space-y-2">
-          <label className="text-xs font-medium text-foreground">{t('hover_actions.mode_label')}</label>
-          <div className="flex gap-2">
-            {(['inline', 'floating'] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => updateSetting('hoverActionsMode', mode)}
-                className={cn(
-                  'px-3 py-1.5 text-xs rounded-md transition-colors duration-150',
-                  hoverActionsMode === mode
-                    ? 'bg-primary text-primary-foreground font-medium'
-                    : 'bg-muted hover:bg-accent text-foreground'
-                )}
-              >
-                {t(`hover_actions.mode_${mode}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {hoverActionsMode === 'floating' && (
-          <div className="pt-1 space-y-2">
-            <label className="text-xs font-medium text-foreground">{t('hover_actions.corner_label')}</label>
-            <div className="grid grid-cols-2 gap-2 w-48">
-              {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((corner) => (
-                <button
-                  key={corner}
-                  type="button"
-                  onClick={() => updateSetting('hoverActionsCorner', corner)}
-                  className={cn(
-                    'px-2 py-1.5 text-xs rounded-md transition-colors duration-150 text-center',
-                    hoverActionsCorner === corner
-                      ? 'bg-primary text-primary-foreground font-medium'
-                      : 'bg-muted hover:bg-accent text-foreground'
-                  )}
-                >
-                  {t(`hover_actions.corner_${corner}`)}
-                </button>
-              ))}
-            </div>
-          </div>
+        </SettingItem>
         )}
-      </div>
-      )}
 
-      <SettingItem label={t('attachment_click_action.label')} description={t('attachment_click_action.description')}>
-        <Select
-          value={mailAttachmentAction}
-          onChange={(value) => updateSetting('mailAttachmentAction', value as 'preview' | 'download')}
-          options={[
-            { value: 'preview', label: t('attachment_click_action.preview') },
-            { value: 'download', label: t('attachment_click_action.download') },
-          ]}
-        />
-      </SettingItem>
+        <SettingItem label={t('return_to_list_after_action.label')} description={t('return_to_list_after_action.description')}>
+          <ToggleSwitch
+            checked={returnToListAfterAction}
+            onChange={(checked) => updateSetting('returnToListAfterAction', checked)}
+          />
+        </SettingItem>
+      </SettingsSection>
 
-      <SettingItem label={t('attachment_position.label')} description={t('attachment_position.description')}>
-        <Select
-          value={attachmentPosition}
-          onChange={(value) => updateSetting('attachmentPosition', value as 'beside-sender' | 'below-header')}
-          options={[
-            { value: 'beside-sender', label: t('attachment_position.beside-sender') },
-            { value: 'below-header', label: t('attachment_position.below-header') },
-          ]}
-        />
-      </SettingItem>
+      <SettingsSection id="display" title={tPage('sections.display')}>
+        {!isSettingHidden('messageSpacing') && (
+        <SettingItem label={t('message_spacing.label')} description={t('message_spacing.description')} locked={isSettingLocked('messageSpacing')}>
+          <Select
+            value={messageSpacing}
+            onChange={(value) => updateSetting('messageSpacing', value as typeof messageSpacing)}
+            options={[
+              { value: 'auto', label: t('message_spacing.auto') },
+              { value: 'always', label: t('message_spacing.always') },
+              { value: 'edge', label: t('message_spacing.edge') },
+            ]}
+          />
+        </SettingItem>
+        )}
 
-      {!isSettingHidden('emailsPerPage') && (
-      <SettingItem label={t('emails_per_page.label')} description={t('emails_per_page.description')} locked={isSettingLocked('emailsPerPage')}>
-        <Select
-          value={emailsPerPage.toString()}
-          onChange={(value) => updateSetting('emailsPerPage', parseInt(value))}
-          options={[
-            { value: '10', label: t('emails_per_page.10') },
-            { value: '25', label: t('emails_per_page.25') },
-            { value: '50', label: t('emails_per_page.50') },
-            { value: '100', label: t('emails_per_page.100') },
-          ]}
+        {!isSettingHidden('plainTextFont') && (
+        <SettingItem label={t('plain_text_font.label')} description={t('plain_text_font.description')} locked={isSettingLocked('plainTextFont')}>
+          <Select
+            value={plainTextFont}
+            onChange={(value) => updateSetting('plainTextFont', value as typeof plainTextFont)}
+            options={[
+              { value: 'mono', label: t('plain_text_font.mono') },
+              { value: 'sans', label: t('plain_text_font.sans') },
+            ]}
+          />
+        </SettingItem>
+        )}
+
+        <SettingItem label={t('always_light_mode.label')} description={t('always_light_mode.description')}>
+          <ToggleSwitch
+            checked={emailAlwaysLightMode}
+            onChange={(checked) => updateSetting('emailAlwaysLightMode', checked)}
+          />
+        </SettingItem>
+      </SettingsSection>
+
+      <SettingsSection id="images" title={tPage('sections.images')} description={tPage('sections.images_description')}>
+        {isFeatureEnabled('externalContentEnabled') && !isSettingHidden('externalContentPolicy') && (
+        <SettingItem label={t('external_content.label')} description={t('external_content.description')} locked={isSettingLocked('externalContentPolicy')}>
+          <Select
+            value={externalContentPolicy}
+            onChange={(value) =>
+              updateSetting('externalContentPolicy', value as 'ask' | 'block' | 'allow')
+            }
+            options={[
+              { value: 'ask', label: t('external_content.ask') },
+              { value: 'block', label: t('external_content.block') },
+              { value: 'allow', label: t('external_content.allow') },
+            ]}
+          />
+        </SettingItem>
+        )}
+
+        <SettingItem label={t('trusted_senders.label')} description={t('trusted_senders.description')}>
+          <button
+            onClick={() => setShowTrustedModal(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-accent rounded-md transition-colors"
+          >
+            <span className="text-sm text-foreground">{getTrustedSendersCount()}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </SettingItem>
+
+        <SettingItem nested label={t('trusted_senders.use_address_book_label')} description={t('trusted_senders.use_address_book_description')}>
+          <ToggleSwitch
+            checked={!!trustedSendersAddressBook}
+            onChange={(checked) => updateSetting('trustedSendersAddressBook', checked)}
+          />
+        </SettingItem>
+
+        <TrustedSendersModal
+          isOpen={showTrustedModal}
+          onClose={() => setShowTrustedModal(false)}
         />
-      </SettingItem>
-      )}
-    </SettingsSection>
+      </SettingsSection>
+
+      <SettingsSection id="attachments" title={tPage('sections.attachments')}>
+        <SettingItem label={t('attachment_position.label')} description={t('attachment_position.description')}>
+          <Select
+            value={attachmentPosition}
+            onChange={(value) => updateSetting('attachmentPosition', value as 'beside-sender' | 'below-header')}
+            options={[
+              { value: 'beside-sender', label: t('attachment_position.beside-sender') },
+              { value: 'below-header', label: t('attachment_position.below-header') },
+            ]}
+          />
+        </SettingItem>
+
+        <SettingItem label={t('attachment_click_action.label')} description={t('attachment_click_action.description')}>
+          <Select
+            value={mailAttachmentAction}
+            onChange={(value) => updateSetting('mailAttachmentAction', value as 'preview' | 'download')}
+            options={[
+              { value: 'preview', label: t('attachment_click_action.preview') },
+              { value: 'download', label: t('attachment_click_action.download') },
+            ]}
+          />
+        </SettingItem>
+
+        <SettingItem label={t('attachment_image_previews.label')} description={t('attachment_image_previews.description')}>
+          <ToggleSwitch
+            checked={attachmentImagePreviewsEnabled}
+            onChange={(checked) => updateSetting('attachmentImagePreviewsEnabled', checked)}
+          />
+        </SettingItem>
+
+        <SettingItem label={t('hide_inline_image_attachments.label')} description={t('hide_inline_image_attachments.description')}>
+          <ToggleSwitch
+            checked={hideInlineImageAttachments}
+            onChange={(checked) => updateSetting('hideInlineImageAttachments', checked)}
+          />
+        </SettingItem>
+      </SettingsSection>
+
+      <DownloadsSettings />
+    </div>
   );
 }

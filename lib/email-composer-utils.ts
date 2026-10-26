@@ -383,9 +383,9 @@ export function parseRecipient(s: string): Recipient {
       const members = splitRecipients(trimmed.slice(colon + 1, -1))
         .map(parseRecipient)
         .filter((m) => m.email && !m.group);
-      // Only accept the group form when it actually carries members - typed
-      // garbage like "Subject: hello;" stays a plain (invalid) recipient.
-      if (members.length > 0) {
+      // Only accept the group form when at least one member is an address -
+      // typed garbage like "Subject: hello;" stays a plain (invalid) recipient.
+      if (members.some((m) => isValidEmail(m.email))) {
         return { name: unquoteName(trimmed.slice(0, colon)), email: '', group: { members } };
       }
     }
@@ -460,6 +460,18 @@ export function expandRecipients(recipients: Recipient[]): Recipient[] {
     }
   }
   return out;
+}
+
+/**
+ * The entries of `recipients` that are not email addresses, group members
+ * included. Sending any of them puts a malformed mailbox into the header,
+ * which relays reject only after the whole message went through (#795).
+ */
+export function invalidRecipientAddresses(recipients: Recipient[]): string[] {
+  return recipients
+    .flatMap((r) => (r.group ? r.group.members : [r]))
+    .filter((r) => !isValidEmail(r.email))
+    .map((r) => r.email);
 }
 
 /**

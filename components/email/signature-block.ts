@@ -3,7 +3,7 @@
 import { Node as TiptapNode, mergeAttributes, type Editor } from "@tiptap/core";
 import { TextSelection } from "@tiptap/pm/state";
 import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
-import { parseHtmlSafely } from "@/lib/email-sanitization";
+import { parseHtmlSafely, sanitizeComposerIslandHtml } from "@/lib/email-sanitization";
 
 // Marker attribute that identifies the signature wrapper in serialized HTML,
 // so parseHTML can recognise it on the way back in (initial content, drafts).
@@ -80,7 +80,8 @@ export const SignatureBlock = TiptapNode.create({
         // Capture the verbatim inner HTML when parsing. Because the node is an
         // atom, ProseMirror does NOT descend into the children, so the rich
         // signature markup never hits (and is never mangled by) the schema.
-        parseHTML: (el) => el.innerHTML,
+        // Sanitized here, since a re-opened draft hands it in unsanitized.
+        parseHTML: (el) => sanitizeComposerIslandHtml(el.innerHTML),
         // The real content round-trips via the custom serializer
         // (serializeEditorContent); renderHTML below only needs the wrapper.
         renderHTML: () => ({}),

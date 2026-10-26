@@ -118,7 +118,12 @@ export function getRequiredConfig(serverId?: string | null, options?: ClientConf
   if (issuerUrl !== undefined && issuerUrl !== '' && !issuerUrl.trim()) {
     logger.warn('OAUTH_ISSUER_URL is set but empty, falling back to JMAP_SERVER_URL for discovery');
   }
-  return { clientId, serverUrl, discoveryUrl, serverId: entry?.id };
+  // Belongs to the same provider as the issuer, so the same rule applies:
+  // the global OAUTH_END_SESSION_URL only without a server entry (#1279).
+  const endSessionUrl = entry
+    ? entry.oauth?.endSessionUrl
+    : (configManager.get<string>('oauthEndSessionUrl', '') || process.env.OAUTH_END_SESSION_URL)?.trim() || undefined;
+  return { clientId, serverUrl, discoveryUrl, serverId: entry?.id, endSessionUrl };
 }
 
 export function getClientSecret(serverId?: string | null): string {

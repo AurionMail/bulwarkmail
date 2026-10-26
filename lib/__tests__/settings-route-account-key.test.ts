@@ -84,6 +84,40 @@ describe('settings route keys on the account the credential belongs to', () => {
     expect(await res.json()).toEqual({ settings: null });
   });
 
+  it('keys on the canonical account even when a remember-me session cookie carries the bare claim', async () => {
+    // /api/auth/session writes both cookies for a token login; the session
+    // cookie only knows the claim, the context the account it resolved to.
+    store.set(`john|${SERVER}`, { signature: 'john@a.example private' });
+    await signIn({ username: 'john', accountName: 'john@b.example' });
+    const { encryptSession } = await import('@/lib/auth/crypto');
+    const { sessionCookieName } = await import('@/lib/auth/session-cookie');
+    jar.set(sessionCookieName(0), encryptSession(SERVER, 'john', { token: 't' }));
+    const { GET, POST } = await import('@/app/api/settings/route');
+    const read = await GET(new NextRequest('https://webmail.example/api/settings', {
+      headers: { 'x-settings-username': 'john', 'x-settings-server': SERVER },
+    }));
+    expect(await read.json()).toEqual({ settings: null });
+    await POST(new NextRequest('https://webmail.example/api/settings', {
+      method: 'POST',
+      headers: SAME_ORIGIN,
+      body: JSON.stringify({ username: 'john', serverUrl: SERVER, settings: { theme: 'dark' } }),
+    }));
+    expect(store.get(`john|${SERVER}`)).toEqual({ signature: 'john@a.example private' });
+    expect(store.get(`john@b.example|${SERVER}`)).toEqual({ theme: 'dark' });
+  });
+
+  it('refuses to key on a bare token-login claim when no context cookie resolves it', async () => {
+    jar.clear();
+    const { encryptSession } = await import('@/lib/auth/crypto');
+    const { sessionCookieName } = await import('@/lib/auth/session-cookie');
+    jar.set(sessionCookieName(0), encryptSession(SERVER, 'john', { token: 't' }));
+    const { GET } = await import('@/app/api/settings/route');
+    const res = await GET(new NextRequest('https://webmail.example/api/settings', {
+      headers: { 'x-settings-username': 'john', 'x-settings-server': SERVER },
+    }));
+    expect(res.status).toBe(403);
+  });
+
   it('keeps keying on the login name when the context names no other account', async () => {
     await signIn({ username: 'alice@example.org' });
     const { POST } = await import('@/app/api/settings/route');
@@ -93,5 +127,21 @@ describe('settings route keys on the account the credential belongs to', () => {
       body: JSON.stringify({ username: 'alice@example.org', serverUrl: SERVER, settings: { theme: 'light' } }),
     }));
     expect([...store.keys()]).toEqual([`alice@example.org|${SERVER}`]);
+  });
+
+  it('refuses a settings blob over the size cap before parsing it', async () => {
+    // One blob per account, re-read on every sync: it was accepted at any size.
+    await signIn({ username: 'alice@example.org' });
+    const { POST } = await import('@/app/api/settings/route');
+    const big = JSON.stringify({ username: 'alice@example.org', serverUrl: SERVER, settings: { signature: 'x'.repeat(2 * 1024 * 1024 + 10) } });
+    const res = await POST(new NextRequest('https://webmail.example/api/settings', { method: 'POST', headers: SAME_ORIGIN, body: big }));
+    expect(res.status).toBe(413);
+    expect(store.size).toBe(0);
+    const claimed = await POST(new NextRequest('https://webmail.example/api/settings', {
+      method: 'POST',
+      headers: { ...SAME_ORIGIN, 'content-length': String(3 * 1024 * 1024) },
+      body: JSON.stringify({ username: 'alice@example.org', serverUrl: SERVER, settings: { theme: 'dark' } }),
+    }));
+    expect(claimed.status).toBe(413);
   });
 });

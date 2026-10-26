@@ -5,6 +5,7 @@ import { Email } from "@/lib/jmap/types";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { keyboardHooks } from "@/lib/plugin-hooks";
 import type { InterfaceLayout } from "@/stores/settings-store";
+import type { FeatureGates } from "@/lib/admin/types";
 
 export interface KeyboardShortcutHandlers {
   // Navigation
@@ -12,6 +13,8 @@ export interface KeyboardShortcutHandlers {
   onPreviousEmail?: () => void;
   onOpenEmail?: () => void;
   onCloseEmail?: () => void;
+  /** `n`: open the next unread message below the current one (#514). */
+  onNextUnread?: () => void;
 
   // Email actions
   onReply?: () => void;
@@ -33,6 +36,8 @@ export interface KeyboardShortcutHandlers {
   // Selection
   onSelectAll?: () => void;
   onDeselectAll?: () => void;
+  /** Shift + ↓/j and Shift + ↑/k: grow or shrink the selection by one row. */
+  onExtendSelection?: (direction: 1 | -1) => void;
 
   // Thread actions
   onToggleThreadExpansion?: () => void;
@@ -174,13 +179,23 @@ export function useKeyboardShortcuts({
         case "j":
         case "arrowdown":
           event.preventDefault();
-          run("next-email", h.onNextEmail);
+          if (event.shiftKey && h.onExtendSelection) {
+            const extend = h.onExtendSelection;
+            run("extend-selection-down", () => extend(1));
+          } else {
+            run("next-email", h.onNextEmail);
+          }
           break;
 
         case "k":
         case "arrowup":
           event.preventDefault();
-          run("previous-email", h.onPreviousEmail);
+          if (event.shiftKey && h.onExtendSelection) {
+            const extend = h.onExtendSelection;
+            run("extend-selection-up", () => extend(-1));
+          } else {
+            run("previous-email", h.onPreviousEmail);
+          }
           break;
 
         case "enter":
@@ -307,6 +322,14 @@ export function useKeyboardShortcuts({
             run("toggle-thread-expansion", h.onToggleThreadExpansion);
           }
           break;
+
+        // Navigation: next unread, as in Thunderbird (#514)
+        case "n":
+          if (!event.shiftKey) {
+            event.preventDefault();
+            run("next-unread", h.onNextUnread);
+          }
+          break;
       }
     },
     [selectedEmailId, selectionCount, mountainViewKeys]
@@ -366,6 +389,8 @@ export interface ShortcutEntry {
   readonly layout?: InterfaceLayout;
   /** Listed only in the Pro shell, or only outside it. */
   readonly shell?: "pro" | "standard";
+  /** Listed only while this admin policy feature gate is on. */
+  readonly feature?: keyof FeatureGates;
 }
 
 // Shortcut definitions for the help modal
@@ -375,6 +400,7 @@ export const KEYBOARD_SHORTCUTS = {
     { key: "k / ↑", description: "shortcuts.navigation.previous_email" },
     { key: "Enter / o", description: "shortcuts.navigation.open_email" },
     { key: "Esc", description: "shortcuts.navigation.close_email" },
+    { key: "n", description: "shortcuts.navigation.next_unread" },
     { key: "g → i / s / t / d / a", description: "shortcuts.navigation.go_to_folder", layout: "mountain-view" },
   ],
   actions: [
@@ -382,7 +408,7 @@ export const KEYBOARD_SHORTCUTS = {
     { key: "R / a", description: "shortcuts.actions.reply_all" },
     { key: "f", description: "shortcuts.actions.forward" },
     { key: "s", description: "shortcuts.actions.star" },
-    { key: "e", description: "shortcuts.actions.archive" },
+    { key: "e", description: "shortcuts.actions.archive", feature: "archiveActionEnabled" },
     { key: "# / Del", description: "shortcuts.actions.delete" },
     { key: "u", description: "shortcuts.actions.mark_unread" },
     { key: "Shift + I", description: "shortcuts.actions.mark_read" },
@@ -396,6 +422,7 @@ export const KEYBOARD_SHORTCUTS = {
     { key: "?", description: "shortcuts.global.help" },
     { key: "Shift + G", description: "shortcuts.global.refresh" },
     { key: "Ctrl + A", description: "shortcuts.global.select_all" },
+    { key: "Shift + ↓ / ↑", description: "shortcuts.global.extend_selection" },
   ],
   threads: [
     { key: "x", description: "shortcuts.threads.expand_collapse", layout: "default" },

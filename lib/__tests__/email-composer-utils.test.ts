@@ -16,6 +16,7 @@ import {
   extractUserAuthoredText,
   formatRecipientEntry,
   expandRecipients,
+  invalidRecipientAddresses,
   getQuoteBodies,
 } from '../email-composer-utils';
 
@@ -592,6 +593,16 @@ describe('contact group recipients (RFC 5322 group syntax)', () => {
     const parsed = parseRecipientList('first@x.de, Team: a@x.de, b@x.de;, last@x.de');
     expect(parsed.map(r => r.email || r.name)).toEqual(['first@x.de', 'Team', 'last@x.de']);
     expect(parsed[1].group?.members).toHaveLength(2);
+  });
+
+  it('keeps typed text with a colon as a plain recipient when no member is an address', () => {
+    expect(parseRecipient('Subject: hello;')).toEqual({ email: 'Subject: hello;' });
+  });
+
+  it('lists group members that are not addresses as invalid', () => {
+    const parsed = parseRecipientList('ok@x.de, Team: a@x.de, junk;, nope');
+    expect(invalidRecipientAddresses(parsed)).toEqual(['junk', 'nope']);
+    expect(invalidRecipientAddresses([group])).toEqual([]);
   });
 
   it('expandRecipients flattens groups and dedupes against individuals', () => {

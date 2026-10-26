@@ -2,7 +2,59 @@ import { appendFile, stat, rename, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { logger } from '@/lib/logger';
 import { ensureStateDir, getStatePath } from './paths';
-import type { AuditEntry } from './types';
+import { SENSITIVE_CONFIG_KEYS, type AuditEntry } from './types';
+
+const REDACTED = '[redacted]';
+
+/**
+ * A config value as it may appear in the audit log. The dashboard hides the
+ * session secret and the OAuth client secrets behind `hasValue` flags so a
+ * stolen admin session cannot read them, so the log of a change must not
+ * hand them out either (and must not keep them on disk past a rotation).
+ */
+export function redactConfigValueForAudit(key: string, value: unknown): unknown {
+  if (SENSITIVE_CONFIG_KEYS.has(key)) {
+    return typeof value === 'string' && value.length > 0 ? REDACTED : value;
+  }
+  if (key === 'jmapServers' && Array.isArray(value)) {
+    return value.map((entry) => {
+      if (!entry || typeof entry !== 'object') return entry;
+      const e = entry as Record<string, unknown>;
+      if (!e.oauth || typeof e.oauth !== 'object') return entry;
+      const o = e.oauth as Record<string, unknown>;
+      if (typeof o.clientSecret !== 'string' || o.clientSecret.length === 0) return entry;
+      return { ...e, oauth: { ...o, clientSecret: REDACTED } };
+    });
+  }
+  return value;
+}
+
+/**
+ * Apply {@link redactConfigValueForAudit} to the detail of a config change,
+ * whatever shape wrote it. Entries written before the redaction existed are
+ * cleaned on the way out as well.
+ */
+export function redactAuditDetail(action: string, detail: Record<string, unknown>): Record<string, unknown> {
+  if (action === 'config.update' && Array.isArray(detail.changes)) {
+    return {
+      ...detail,
+      changes: detail.changes.map((change) => {
+        if (!change || typeof change !== 'object') return change;
+        const c = change as Record<string, unknown>;
+        if (typeof c.key !== 'string') return change;
+        return {
+          ...c,
+          ...('old' in c ? { old: redactConfigValueForAudit(c.key, c.old) } : {}),
+          ...('new' in c ? { new: redactConfigValueForAudit(c.key, c.new) } : {}),
+        };
+      }),
+    };
+  }
+  if (action === 'config.revert' && typeof detail.key === 'string' && 'oldValue' in detail) {
+    return { ...detail, oldValue: redactConfigValueForAudit(detail.key, detail.oldValue) };
+  }
+  return detail;
+}
 
 const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_ROTATIONS = 3;
@@ -22,7 +74,7 @@ export async function auditLog(action: string, detail: Record<string, unknown>, 
   const entry: AuditEntry = {
     ts: new Date().toISOString(),
     action,
-    detail,
+    detail: redactAuditDetail(action, detail),
     ip,
   };
 
@@ -64,7 +116,8 @@ export async function readAuditLog(page: number = 1, limit: number = 50, actionF
 
     let entries: AuditEntry[] = lines.map(line => {
       try { return JSON.parse(line); } catch { return null; }
-    }).filter((e): e is AuditEntry => e !== null);
+    }).filter((e): e is AuditEntry => e !== null && typeof e === 'object')
+      .map((e) => (e.detail && typeof e.detail === 'object' ? { ...e, detail: redactAuditDetail(e.action, e.detail) } : e));
 
     if (actionFilter) {
       entries = entries.filter(e => e.action === actionFilter);

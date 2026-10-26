@@ -2,6 +2,7 @@ import { apiFetch } from '@/lib/browser-navigation';
 import { IS_LITE } from '@/lib/lite';
 import { generateAccountId, getMaxAccounts } from '@/lib/account-utils';
 import { useAccountStore } from '@/stores/account-store';
+import { useAuthStore } from '@/stores/auth-store';
 import type { ArchiveEnvelope, ArchiveOwner, ArchivedAccount } from './account-archive';
 
 async function request(owner: ArchiveOwner, init: RequestInit = {}): Promise<{ envelope?: ArchiveEnvelope | null }> {
@@ -29,11 +30,19 @@ export async function removeArchive(owner: ArchiveOwner): Promise<void> {
   await request(owner, { method: 'DELETE' });
 }
 
-/** This browser's accounts as the archive keeps them: no credentials of any kind. */
-export function collectAccounts(): ArchivedAccount[] {
-  return useAccountStore.getState().accounts.map(a => ({
-    username: a.username, serverUrl: a.serverUrl, label: a.label, avatarColor: a.avatarColor,
-  }));
+/**
+ * This browser's accounts as the archive keeps them. With `includePasswords`,
+ * an account signed in here with a plain password carries it; tokens and
+ * accounts not signed in carry nothing.
+ */
+export function collectAccounts(includePasswords = false): ArchivedAccount[] {
+  const auth = useAuthStore.getState();
+  return useAccountStore.getState().accounts.map(a => {
+    const entry: ArchivedAccount = { username: a.username, serverUrl: a.serverUrl, label: a.label, avatarColor: a.avatarColor };
+    const password = includePasswords && a.authMode === 'basic' ? auth.getClientForAccount(a.id)?.getBasicPassword() : null;
+    if (password) entry.password = password;
+    return entry;
+  });
 }
 
 /**
@@ -60,4 +69,32 @@ export function restoreAccounts(archived: ArchivedAccount[]): { added: number; u
     added++;
   }
   return { added, updated, skipped };
+}
+
+/**
+ * Restores the list, then signs in one by one to the accounts saved with a
+ * password that are not signed in here yet. An account whose password no
+ * longer works keeps waiting for a sign-in by hand.
+ *
+ * A restored sign-in is remembered only when the server allows it and the
+ * account doing the restore was itself signed in with "Remember me": on a
+ * shared computer, restoring must not leave long-lived sessions behind.
+ */
+export async function restoreArchive(archived: ArchivedAccount[], rememberMeAllowed: boolean) {
+  const accounts = useAccountStore.getState();
+  const active = accounts.accounts.find(a => a.id === accounts.activeAccountId);
+  const rememberMe = rememberMeAllowed && !!active?.rememberMe;
+  const result = restoreAccounts(archived);
+  let signedIn = 0, signInFailed = 0;
+  for (const entry of archived) {
+    if (!entry.password) continue;
+    const id = generateAccountId(entry.username, entry.serverUrl);
+    const account = useAccountStore.getState().getAccountById(id);
+    if (!account || account.authMode !== 'basic' || useAuthStore.getState().getClientForAccount(id)) continue;
+    if (await useAuthStore.getState().signInRestoredAccount(id, entry.password, rememberMe)) signedIn++;
+    else signInFailed++;
+  }
+  const waiting = archived.filter(e => useAccountStore.getState()
+    .getAccountById(generateAccountId(e.username, e.serverUrl))?.awaitingSignIn).length;
+  return { ...result, signedIn, signInFailed, waiting };
 }

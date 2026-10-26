@@ -56,13 +56,13 @@ const PROXY_SKIP_PATTERN = /^\/(?:api|_next)(?:\/|$)/;
 
 // What Next serves from public/: a single dotted segment at the root
 // (/sw.js, /favicon.ico, /manifest.webmanifest) and the branding/,
-// notification/ and demo/ asset folders. The upstream matcher treated EVERY path whose
+// notification/, demo/ and plugin-sandbox-assets/ asset folders. The upstream matcher treated EVERY path whose
 // last segment has a dot as a static file, but the [[...segments]] catch-alls
 // under /<locale>/mail, /calendar, /contacts and /files make
 // /en/mail/folder/inbox/statement.pdf a real signed-in page, and it rendered
 // without a CSP or any other security header (GHSA-xvjh-v9c6-qcvc). Only what
 // is genuinely static may skip locale routing and the headers.
-const STATIC_ASSET_PATTERN = /^\/[^/]+\.[^/]+$|^\/(?:branding|notification|demo)\//;
+const STATIC_ASSET_PATTERN = /^\/[^/]+\.[^/]+$|^\/(?:branding|notification|demo|plugin-sandbox-assets)\//;
 
 export function isStaticAssetPath(pathname: string): boolean {
   return STATIC_ASSET_PATTERN.test(pathname);
@@ -137,6 +137,18 @@ export function routePathOf(pathname: string): string {
  */
 function isOriginGateExempt(routePath: string): boolean {
   return routePath.startsWith("/api/wopi/files/");
+}
+
+/**
+ * frame-ancestors for the mail UI. It always includes 'self': the PDF preview
+ * frames a blob: document, and Safari enforces the page's frame-ancestors on
+ * that document too, so without 'self' the preview stays blank (#1301).
+ * 'none' in ALLOWED_FRAME_ANCESTORS means "no other site" here.
+ */
+export function mailFrameAncestors(allowed: string | undefined): string {
+  const sources = (allowed ?? "").trim().split(/\s+/).filter((s) => s && s.toLowerCase() !== "'none'");
+  if (!sources.some((s) => s.toLowerCase() === "'self'")) sources.unshift("'self'");
+  return sources.join(" ");
 }
 
 function isSetupPath(pathname: string): boolean {
@@ -280,7 +292,7 @@ export async function proxy(request: NextRequest) {
     ? `'self'`
     : isAdminOrSetupPath
     ? "'none'"
-    : process.env.ALLOWED_FRAME_ANCESTORS?.trim() || "'none'";
+    : mailFrameAncestors(process.env.ALLOWED_FRAME_ANCESTORS);
 
   // Plugins may declare iframe origins they need (e.g. for embedded video).
   // Each origin is validated at install time and re-validated here.
@@ -394,10 +406,19 @@ export async function proxy(request: NextRequest) {
   // specifies explicit origins, we rely solely on the CSP header.
   if (frameAncestors === "'none'") {
     response.headers.set("X-Frame-Options", "DENY");
+  } else if (frameAncestors === "'self'") {
+    response.headers.set("X-Frame-Options", "SAMEORIGIN");
   }
 
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("X-XSS-Protection", "0");
+  // Only on a request that arrived over TLS (directly or via the reverse
+  // proxy's X-Forwarded-Proto): a plain-http dev or LAN install must not be
+  // pinned to https by a header it cannot honour. No includeSubDomains, which
+  // would speak for the operator's other hosts.
+  if (request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https") {
+    response.headers.set("Strict-Transport-Security", "max-age=63072000");
+  }
   response.headers.set(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(), payment=()"

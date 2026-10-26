@@ -1,3 +1,4 @@
+import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, DeliveryStatus, EmailSubmission, RejectedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
@@ -5,7 +6,7 @@ import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileN
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { textConditions, textFilter } from "./search-utils";
 import { batched, batchedBySize, itemsPerRequest } from "./request-limits";
-import { keywordPointer } from "./patch-pointer";
+import { keywordPointer, pointerToken } from "./patch-pointer";
 import { FirstTouchGate } from "./first-touch-gate";
 import { debug } from "@/lib/debug";
 import { normalizeCalendarEventLike, parseDurationSeconds } from "@/lib/calendar-event-normalization";
@@ -20,8 +21,10 @@ import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
 import { jmapError, jmapErrorFailedIds, jmapErrorType, jmapSetError, type JmapError, type JmapErrorInfo } from "./jmap-error";
 import { isServerSetKeyword } from "./server-keywords";
+import { PrincipalsRequestError } from "./principals-error";
+import { RescheduleRestoredError } from "./reschedule-error";
 
-export { SchedulingDeniedError };
+export { SchedulingDeniedError, RescheduleRestoredError };
 import { acceptedFileName, fileNameRulesFrom, type FileNameRules } from "@/lib/file-name-rules";
 import { folderDepthError, partialCopyError } from "@/lib/file-errors";
 import { mediaTypeEssence, OCTET_STREAM } from "@/lib/media-type";
@@ -32,6 +35,7 @@ import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
 import { toInertBlob } from "@/lib/file-preview";
 import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
+import { messagePriorityHeaders, type MessagePriority } from "@/lib/message-priority";
 
 // Cap for the follow-up Email/get issued when a displayed body part comes
 // back truncated at the normal 256000-byte limit (see refetchTruncatedBodyValues
@@ -698,6 +702,20 @@ function getUserTimeZone(): string | undefined {
   }
 }
 
+const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * A task's `due` and `start` are LocalDateTimes (RFC 8984). Stalwart accepts a
+ * bare date and echoes it over JMAP, but stores no DUE in the iCalendar, so
+ * CalDAV clients lose the date. Completes a bare date to midnight.
+ */
+function completeBareTaskDates<T extends Partial<CalendarTask>>(task: T): T {
+  const result = { ...task };
+  if (typeof result.due === 'string' && BARE_DATE.test(result.due)) result.due = `${result.due}T00:00:00`;
+  if (typeof result.start === 'string' && BARE_DATE.test(result.start)) result.start = `${result.start}T00:00:00`;
+  return result;
+}
+
 /**
  * Stalwart's calcard crate uses singular property names ("recurrenceRule")
  * instead of the RFC 8984 plural forms ("recurrenceRules").
@@ -1349,6 +1367,10 @@ export interface SubmissionSendOptions {
   requestReadReceipt?: boolean;
   requestDsn?: boolean;
   requireTls?: boolean;
+  /** Importance / X-Priority headers (#970); see lib/message-priority.ts. */
+  priority?: MessagePriority;
+  /** The account the replaced draft (`draftId`) lives in; default the primary. */
+  draftAccountId?: string;
 }
 
 /** The MAIL FROM / RCPT TO parameters the options translate to. */
@@ -1391,6 +1413,27 @@ type SubmissionCapability = {
   maxDelayedSend?: number;
   submissionExtensions?: unknown;
 };
+
+/** An identity address that is exactly `from` (both lower-cased by the caller or here). */
+function identityEmailMatchesExactly(identityEmail: string | undefined, from: string): boolean {
+  return !!identityEmail && identityEmail.toLowerCase() === from;
+}
+
+/** An identity address `from` is a sub-address of (team+tag@ for team@, with the common "+" / "-" delimiters). */
+function identityEmailIsSubAddressOf(identityEmail: string | undefined, from: string): boolean {
+  if (!identityEmail) return false;
+  const [idLocal, idDomain] = identityEmail.toLowerCase().split('@');
+  const [fromLocal, fromDomain] = from.split('@');
+  if (!idDomain || !fromDomain || idDomain !== fromDomain || idLocal === '*') return false;
+  return fromLocal.startsWith(`${idLocal}+`) || fromLocal.startsWith(`${idLocal}-`);
+}
+
+/** A wildcard identity for the domain of `from` (RFC 8621 §6, "*@example.com"). */
+function identityEmailIsWildcardFor(identityEmail: string | undefined, from: string): boolean {
+  if (!identityEmail) return false;
+  const [idLocal, idDomain] = identityEmail.toLowerCase().split('@');
+  return idLocal === '*' && !!idDomain && idDomain === from.split('@')[1];
+}
 
 export class JMAPClient implements IJMAPClient {
   private static readonly RATE_LIMIT_TOAST_THROTTLE_MS = 10_000;
@@ -1443,6 +1486,8 @@ export class JMAPClient implements IJMAPClient {
   private pingFailureCount = 0;
   private pingSkipRemaining = 0;
   private accounts: Record<string, JMAPAccount> = {};
+  /** Identities per candidate account for resolveSendAccountId, briefly cached. */
+  private sendIdentitiesCache: { key: string; identitiesByAccount: Array<[string, Identity[]]>; expires: number } | null = null;
   private eventSource: EventSource | null = null;
   private stateChangeCallback: ((change: StateChange) => void) | null = null;
   private lastStates: AccountStates = {};
@@ -1579,6 +1624,15 @@ export class JMAPClient implements IJMAPClient {
 
   getAuthHeader(): string {
     return this.authHeader;
+  }
+
+  /**
+   * The password of a plain Basic session, or null for a bearer session and
+   * for one that appends a TOTP code (that code expires; the password alone
+   * would not sign in).
+   */
+  getBasicPassword(): string | null {
+    return this.authHeader.startsWith('Basic ') && !this.onTotpRequired ? this.password : null;
   }
 
   getServerUrl(): string {
@@ -3305,11 +3359,56 @@ export class JMAPClient implements IJMAPClient {
     existingMailboxes: Mailbox[],
     accountId?: string,
   ): Promise<void> {
+    const updatedIds: string[] = [];
+    try {
+      await this.archiveEmails(emails, archiveMailboxId, mode, existingMailboxes, accountId, updatedIds);
+    } catch (error) {
+      throw new ArchiveEmailsError(
+        error instanceof Error ? error.message : 'Failed to archive emails',
+        updatedIds,
+        { cause: error },
+      );
+    }
+  }
+
+  private confirmArchivedEmails(
+    entry: JMAPResponse['methodResponses'][number] | undefined,
+    requestedIds: string[],
+    updatedIds: string[],
+  ): void {
+    const [name, result] = entry ?? [];
+    if (name === 'Email/set') {
+      updatedIds.push(...requestedIds.filter(id =>
+        Object.prototype.hasOwnProperty.call(result?.updated ?? {}, id) && !result?.notUpdated?.[id],
+      ));
+    }
+    this.assertEmailSetSucceeded({ methodResponses: entry ? [entry] : [] } as JMAPResponse, 'archive emails');
+    if (requestedIds.some(id => !updatedIds.includes(id))) {
+      throw new Error('Failed to archive emails: update was not confirmed');
+    }
+  }
+
+  private async archiveEmails(
+    emails: Array<{ id: string; receivedAt: string }>,
+    archiveMailboxId: string,
+    mode: 'single' | 'year' | 'month',
+    existingMailboxes: Mailbox[],
+    accountId: string | undefined,
+    updatedIds: string[],
+  ): Promise<void> {
     if (emails.length === 0) return;
     const targetAccountId = accountId || this.accountId;
 
     if (mode === 'single') {
-      await this.batchMoveEmails(emails.map(e => e.id), archiveMailboxId, targetAccountId);
+      for (const batch of batched(emails, this.getMaxObjectsInSet())) {
+        const response = await this.request([
+          ['Email/set', {
+            accountId: targetAccountId,
+            update: Object.fromEntries(batch.map(e => [e.id, { mailboxIds: { [archiveMailboxId]: true } }])),
+          }, '0'],
+        ]);
+        this.confirmArchivedEmails(response.methodResponses?.[0], batch.map(e => e.id), updatedIds);
+      }
       return;
     }
 
@@ -3399,7 +3498,18 @@ export class JMAPClient implements IJMAPClient {
 
       const response = await this.request(methodCalls);
 
+      let emailError: unknown;
+      try {
+        this.confirmArchivedEmails(response.methodResponses?.[withCreates ? 1 : 0], batch.map(([id]) => id), updatedIds);
+      } catch (error) {
+        emailError = error;
+      }
+
       if (withCreates) {
+        if (response.methodResponses?.[0]?.[0] === 'error') {
+          const error = response.methodResponses[0][1];
+          throw new Error(`Failed to create archive folders: ${error?.description || error?.type || 'unknown error'}`);
+        }
         const mailboxResult = response.methodResponses?.[0]?.[1];
         const notCreated = mailboxResult?.notCreated as Record<string, { type?: string; properties?: string[]; description?: string }> | undefined;
         const failures = notCreated ? Object.entries(notCreated) : [];
@@ -3417,15 +3527,7 @@ export class JMAPClient implements IJMAPClient {
             .map(([cid, mailbox]) => [`#${cid}`, mailbox.id!]),
         );
       }
-
-      const emailIdx = withCreates ? 1 : 0;
-      const emailResult = response.methodResponses?.[emailIdx]?.[1];
-      const notUpdated = emailResult?.notUpdated as Record<string, { type?: string; description?: string }> | undefined;
-      const emailFailures = notUpdated ? Object.entries(notUpdated) : [];
-      if (emailFailures.length > 0) {
-        const [id, err] = emailFailures[0];
-        throw new Error(`Failed to move ${emailFailures.length} email(s), first: ${id} – ${err.type || 'unknown'}${err.description ? ` (${err.description})` : ''}`);
-      }
+      if (emailError) throw emailError;
     }
   }
 
@@ -3445,6 +3547,21 @@ export class JMAPClient implements IJMAPClient {
     const result = response.methodResponses?.[0]?.[1];
     if (result?.notUpdated?.[emailId]) {
       throw new Error(`Failed to move email: ${result.notUpdated[emailId].type || 'unknown error'}`);
+    }
+  }
+
+  async removeEmailsFromMailbox(emailIds: string[], mailboxId: string, accountId?: string): Promise<void> {
+    if (emailIds.length === 0) return;
+    // A pointer patch, not a full mailboxIds replacement: the other mailboxes
+    // the message is in stay as the server has them, even when the copy the
+    // client holds is out of date.
+    const patch = { [`mailboxIds/${pointerToken(mailboxId)}`]: null };
+    for (const batch of batched(emailIds, this.getMaxObjectsInSet())) {
+      const update = Object.fromEntries(batch.map(id => [id, { ...patch }]));
+      const response = await this.request([
+        ["Email/set", { accountId: accountId || this.accountId, update }, "0"],
+      ]);
+      assertSetSucceeded(response, 'Failed to remove from folder');
     }
   }
 
@@ -4390,14 +4507,15 @@ export class JMAPClient implements IJMAPClient {
     attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>,
     fromName?: string,
     htmlBody?: string,
-    // Account the previous version (`draftId`) lives in, when it is not this
-    // one: a send undone from a group or shared identity goes back to that
-    // account's Drafts. The new version is saved here, as every draft is.
-    draftAccountId?: string,
     inReplyTo?: string[],
     references?: string[],
+    options?: { priority?: MessagePriority; accountId?: string; previousDraftAccountId?: string },
   ): Promise<string> {
-    const mailboxes = await this.getMailboxes();
+    // A draft for a group identity belongs in the group's Drafts, like its
+    // Sent copy (#1090).
+    const draftAccountId = options?.accountId ?? await this.resolveSendAccountId(fromEmail);
+    const mailboxResponse = await this.request([["Mailbox/get", { accountId: draftAccountId }, "0"]]);
+    const mailboxes = (mailboxResponse.methodResponses?.[0]?.[1]?.list || []) as Mailbox[];
     const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
     if (!draftsMailbox) {
       throw new Error('No drafts mailbox found');
@@ -4419,6 +4537,7 @@ export class JMAPClient implements IJMAPClient {
       attachments?: { blobId: string; type: string; name: string; disposition: string; cid?: string }[];
       inReplyTo?: string[];
       references?: string[];
+      [header: `header:${string}`]: string;
     }
 
     const sanitizedFromName = sanitizeIdentityDisplayName(fromName);
@@ -4446,6 +4565,8 @@ export class JMAPClient implements IJMAPClient {
       ...(htmlBody ? { htmlBody: [{ partId: "html", type: "text/html" }] } : {}),
       ...(draftInReplyTo?.length ? { inReplyTo: draftInReplyTo } : {}),
       ...(draftReferences?.length ? { references: draftReferences } : {}),
+      // A re-opened draft reads its priority back from these (#970).
+      ...messagePriorityHeaders(options?.priority),
     };
 
     if (attachments?.length) {
@@ -4466,7 +4587,7 @@ export class JMAPClient implements IJMAPClient {
     // copy of the draft. Worst case now is an orphaned old version.
     const response = await this.request([
       ["Email/set", {
-        accountId: this.accountId,
+        accountId: draftAccountId,
         create: { [emailId]: emailData },
       }, "0"],
     ]);
@@ -4488,7 +4609,7 @@ export class JMAPClient implements IJMAPClient {
         if (draftId) {
           try {
             const destroyResponse = await this.request([
-              ["Email/set", { accountId: draftAccountId || this.accountId, destroy: [draftId] }, "0"],
+              ["Email/set", { accountId: options?.previousDraftAccountId || this.accountId, destroy: [draftId] }, "0"],
             ]);
             const destroyResult = destroyResponse.methodResponses?.[0]?.[1];
             if (destroyResult?.notDestroyed) {
@@ -4529,9 +4650,7 @@ export class JMAPClient implements IJMAPClient {
   ): Promise<SendEmailResult> {
     const holdForSeconds = delayedUntil ? this.validateDelayedUntil(delayedUntil) : undefined;
     const emailId = `send-${Date.now()}`;
-    const targetAccountId = (fromEmail && Object.keys(this.accounts).find(id =>
-      this.accounts[id]?.name?.toLowerCase() === fromEmail.toLowerCase()
-    )) || this.accountId;
+    const targetAccountId = await this.resolveSendAccountId(fromEmail);
     const mboxResp = await this.request([
       ["Mailbox/get", { accountId: targetAccountId, properties: ["id", "role"] }, "0"]
     ]);
@@ -4624,6 +4743,8 @@ export class JMAPClient implements IJMAPClient {
       // via the "header:<Name>:asText" property form.
       emailCreate["header:Disposition-Notification-To:asText"] = fromEmail || this.username;
     }
+
+    Object.assign(emailCreate, messagePriorityHeaders(options?.priority));
 
     if (htmlBody) {
       // Send as multipart/alternative with both text and HTML
@@ -5957,26 +6078,79 @@ export class JMAPClient implements IJMAPClient {
     return submission?.sendAt;
   }
 
-  /**
-   * The envelope of a submission, and what the server answered for each of
-   * its recipients (`deliveryStatus`): `no` for one it refused, `queued` for
-   * one it took and holds (Stalwart 0.16 and 1.0).
-   */
-  private async getEmailSubmissionEnvelope(submissionId: string, accountId?: string): Promise<{
-    envelope?: { rcptTo?: Array<{ email: string }> };
-    deliveryStatus?: Record<string, { delivered?: string }>;
-  } | undefined> {
+  private async getEmailSubmissionForReschedule(submissionId: string, accountId?: string): Promise<{ envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined> {
     const response = await this.request([
       ['EmailSubmission/get', {
         accountId: accountId ?? await this.resolveSubmissionAccountId(submissionId),
         ids: [submissionId],
-        properties: ['envelope', 'deliveryStatus'],
+        properties: ['envelope', 'sendAt'],
       }, '0'],
     ]);
-    return response.methodResponses?.[0]?.[1]?.list?.[0] as {
-      envelope?: { rcptTo?: Array<{ email: string }> };
-      deliveryStatus?: Record<string, { delivered?: string }>;
-    } | undefined;
+    return response.methodResponses?.[0]?.[1]?.list?.[0] as { envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined;
+  }
+
+  /**
+   * The account a message sent From `fromEmail` belongs to: where it is
+   * created, submitted and filed in Sent (#1090).
+   *
+   * Matching the session account *name* against the address alone misses a
+   * group mailbox whose account name is not that address (a bare principal
+   * name such as "team", a display name), an alias identity of the group, and
+   * a sub-addressed From (team+tag@). Stalwart also lists a group's send-as
+   * identity among the member's own identities, so the send then silently went
+   * through the member's account and its Sent copy landed there.
+   *
+   * Order: an account named exactly `fromEmail`; then an account that owns an
+   * identity for the address - exact, then sub-address, then wildcard, and a
+   * delegated (group/shared) account before the primary one, since the
+   * primary may merely mirror the group's identity; else the primary account.
+   * A sub-address of the member's own address stays theirs even when a
+   * shared catch-all account has a wildcard identity for the domain.
+   */
+  async resolveSendAccountId(fromEmail?: string): Promise<string> {
+    if (!fromEmail) return this.accountId;
+    const from = parseRecipientString(fromEmail).email.toLowerCase();
+    const named = Object.keys(this.accounts).find(id => this.accounts[id]?.name?.toLowerCase() === from);
+    if (named) return named;
+
+    const delegated = Object.keys(this.accounts).filter(id =>
+      id !== this.accountId
+      && !!this.session?.accounts?.[id]?.accountCapabilities?.['urn:ietf:params:jmap:submission'],
+    );
+    if (delegated.length === 0) return this.accountId;
+
+    const candidates = [...delegated, this.accountId];
+    let identitiesByAccount: Array<[string, Identity[]]>;
+    const cached = this.sendIdentitiesCache;
+    if (cached && cached.expires > Date.now() && cached.key === candidates.join('\u0000')) {
+      identitiesByAccount = cached.identitiesByAccount;
+    } else {
+      try {
+        const response = await this.request(
+          candidates.map((id, i) => ["Identity/get", { accountId: id }, String(i)] as JMAPMethodCall),
+          ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:submission"],
+        );
+        identitiesByAccount = candidates.map((id, i) => {
+          const [name, result] = response.methodResponses?.[i] ?? [];
+          return [id, name === "Identity/get" ? ((result?.list ?? []) as Identity[]) : []];
+        });
+        // Draft autosave resolves on every save; identities rarely change.
+        this.sendIdentitiesCache = {
+          key: candidates.join('\u0000'),
+          identitiesByAccount,
+          expires: Date.now() + 60_000,
+        };
+      } catch (err) {
+        debug.warn('email', '[sendEmail] could not load identities to pick the sending account', err);
+        return this.accountId;
+      }
+    }
+
+    for (const matches of [identityEmailMatchesExactly, identityEmailIsSubAddressOf, identityEmailIsWildcardFor]) {
+      const hit = identitiesByAccount.find(([, list]) => list.some(identity => matches(identity.email, from)));
+      if (hit) return hit[0];
+    }
+    return this.accountId;
   }
 
   private getSubmissionAccountId(accountId?: string): string {
@@ -6645,7 +6819,7 @@ export class JMAPClient implements IJMAPClient {
    * ids still returns: on 1.0 the principals the user knows, on 0.16
    * everyone, unless the role may not read principals either.
    */
-  async listPrincipals(targetAccountId?: string): Promise<PrincipalListing> {
+  async listPrincipals(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<PrincipalListing> {
     if (!this.supportsPrincipals()) return { principals: [], status: "ok" };
     const accountId = targetAccountId || this.accountId;
     const pageSize = this.getMaxObjectsInGet();
@@ -6667,6 +6841,7 @@ export class JMAPClient implements IJMAPClient {
         const getResp = responses.find((r) => r[0] === "Principal/get");
         if (!queryResp || !getResp) {
           const error = responses.find((r) => r[0] === "error")?.[1] as JmapErrorInfo | undefined;
+          if (options?.throwOnError) throw new PrincipalsRequestError(error?.type ?? null, error?.description);
           if (error?.type === "forbidden") {
             return {
               principals: await this.getKnownPrincipals(accountId),
@@ -6685,14 +6860,19 @@ export class JMAPClient implements IJMAPClient {
       }
       return { principals: all, status: "ok" };
     } catch (error) {
+      if (options?.throwOnError) {
+        throw error instanceof PrincipalsRequestError
+          ? error
+          : new PrincipalsRequestError(null, error instanceof Error ? error.message : undefined);
+      }
       console.error("Failed to fetch principals:", error);
       return { principals: all, status: "error" };
     }
   }
 
   /** The principals of {@link listPrincipals}, without the status. */
-  async getPrincipals(targetAccountId?: string): Promise<Principal[]> {
-    return (await this.listPrincipals(targetAccountId)).principals;
+  async getPrincipals(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<Principal[]> {
+    return (await this.listPrincipals(targetAccountId, options)).principals;
   }
 
   /**
@@ -8777,7 +8957,7 @@ export class JMAPClient implements IJMAPClient {
       accountId = resolved.accountId;
       taskData.calendarIds = resolved.calendarIds;
     }
-    const cleanTask = { ...taskData, '@type': 'Task' };
+    const cleanTask = { ...completeBareTaskDates(taskData), '@type': 'Task' };
 
     debug.group('CalendarTask/create', 'tasks');
     debug.log('tasks', 'CalendarTask/create accountId', accountId);
@@ -8857,10 +9037,10 @@ export class JMAPClient implements IJMAPClient {
    */
   async updateCalendarTask(taskId: string, updates: Partial<CalendarTask>, targetAccountId?: string): Promise<string> {
     const source = targetAccountId ? { accountId: targetAccountId, id: taskId } : this.splitCalendarObjectId(taskId);
-    let patch = updates;
-    if (!targetAccountId && updates.calendarIds) {
-      const dest = this.resolveTaskCalendarIds(updates.calendarIds);
-      patch = { ...updates, calendarIds: dest.calendarIds };
+    let patch = completeBareTaskDates(updates);
+    if (!targetAccountId && patch.calendarIds) {
+      const dest = this.resolveTaskCalendarIds(patch.calendarIds);
+      patch = { ...patch, calendarIds: dest.calendarIds };
       if (dest.accountId !== source.accountId) {
         return this.moveCalendarTaskToAccount(source, dest.accountId, patch);
       }
@@ -10874,6 +11054,7 @@ export class JMAPClient implements IJMAPClient {
     // in the wrong account (and the original left running). See #874.
     const submissionAccountId = accountId ?? await this.resolveSubmissionAccountId(submissionId);
     const holdForSeconds = this.validateDelayedUntil(delayedUntil, submissionAccountId);
+    const holdUntil = Date.now() + holdForSeconds * 1000;
     const mailboxes = await this.getMailboxes(submissionAccountId);
     const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
     const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
@@ -10891,110 +11072,128 @@ export class JMAPClient implements IJMAPClient {
     } catch (error) {
       console.error('Failed to get identity for reschedule:', error);
     }
-    const original = await this.getEmailSubmissionEnvelope(submissionId, submissionAccountId);
+    const original = await this.getEmailSubmissionForReschedule(submissionId, submissionAccountId);
     const existingEnvelope = original?.envelope;
     const email = existingEnvelope?.rcptTo?.length ? undefined : await this.getEmail(emailId, submissionAccountId);
     const envelopeRecipients = existingEnvelope?.rcptTo?.length
       ? existingEnvelope.rcptTo
       : [...(email?.to || []), ...(email?.cc || []), ...(email?.bcc || [])];
-    const createReplacement = (holdFor: number) => {
-      const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdFor, envelopeRecipients);
-      return this.request([
-        ['EmailSubmission/set', {
-          accountId: submissionAccountId,
-          create: { replacement: { emailId, identityId, ...(envelope ? { envelope } : {}) } },
-          ...(draftsMailbox && sentMailbox ? {
-            onSuccessUpdateEmail: {
-              '#replacement': {
-                ...mailboxIdsReplacement(sentMailbox.id),
-                'keywords/$draft': null,
+    const fromEmail = identity?.email || this.username;
+
+    type Created = { id: string; sendAt?: string; deliveryStatus?: Record<string, DeliveryStatus> };
+    // `until`: when the submission goes out (ms); absent, at once.
+    const createSubmission = async (until: number | undefined): Promise<Created> => {
+      // HOLDFOR counts from when the server takes the request, so a retry
+      // after making room takes the time spent off it.
+      const holdFor = () => until === undefined ? undefined : Math.max(1, Math.ceil((until - Date.now()) / 1000));
+      const send = () => {
+        const envelope = createDelayedSubmissionEnvelope(fromEmail, holdFor(), envelopeRecipients);
+        return this.request([
+          ['EmailSubmission/set', {
+            accountId: submissionAccountId,
+            create: { replacement: { emailId, identityId, ...(envelope ? { envelope } : {}) } },
+            ...(draftsMailbox && sentMailbox ? {
+              onSuccessUpdateEmail: {
+                '#replacement': {
+                  ...mailboxIdsReplacement(sentMailbox.id),
+                  'keywords/$draft': null,
+                },
               },
-            },
-          } : {}),
-        }, '0'],
-        deliveryStatusCall(submissionAccountId, 'replacement'),
-      ]);
-    };
-    let response = await createReplacement(holdForSeconds);
-    // The original is still pending, so a prune can't touch it.
-    if (submissionCreateError(response, 'replacement')?.type === 'overQuota') {
-      await this.makeRoomForSubmission(submissionAccountId);
-      // Making room can take a while - a prune, a walk through the change
-      // log - and meanwhile the original may have gone out: its sendAt came,
-      // or it was "Send now" of a message due any moment. A replacement then
-      // would send it a second time.
-      const original = await this.getSubmissionStatus(submissionId, submissionAccountId);
-      if (original !== 'pending') throw new NoLongerScheduledError(original === 'final');
-      // HOLDFOR counts from when the server takes the request, so take the
-      // time spent off it; a moment already past goes out at once.
-      response = await createReplacement(Math.max(1, Math.ceil((Date.parse(delayedUntil) - Date.now()) / 1000)));
-    }
-    const statusReadBack = takeDeliveryStatus(response);
-    const result = statusReadBack.response.methodResponses?.[0]?.[1];
-    const createError = result?.notCreated?.replacement;
-    if (createError) {
-      if (createError.type === 'overQuota') throw this.submissionQuotaError(createError.description, submissionAccountId);
-      throw jmapError(createError.description || createError.type || 'Failed to reschedule email', createError);
-    }
-    const replacementId = result?.created?.replacement?.id;
-    const serverSendAt = result?.created?.replacement?.sendAt;
-    if (!replacementId) {
-      throw new Error('Server did not return a replacement scheduled send ID');
-    }
-    // The recipients are checked again for the replacement, and a throttle
-    // used up since the original was taken can refuse some or all of them.
-    // Cancelling the original would lose the message for a recipient it took
-    // and the replacement didn't, so the original is kept then - it still
-    // goes at its old time to everyone it took - and the replacement goes:
-    // its record when it took nobody, else the replacement itself, which
-    // would send the others a second copy. A recipient the original refused
-    // too loses nothing (without a delivery status of the original, every
-    // one counts as taken). Should the replacement refuse to be cancelled,
-    // the reschedule goes on, and the caller names the refused recipients.
-    // A cancel whose answer got lost is read back: when it went through,
-    // going on would cancel the original too and reach nobody.
-    const delivery = rejectedRecipients(statusReadBack.deliveryStatus);
-    const refusedBefore = new Set(Object.entries(original?.deliveryStatus ?? {})
-      .filter(([, status]) => status?.delivered === 'no')
-      .map(([address]) => address.toLowerCase()));
-    const lost = delivery.rejected.filter((recipient) => !refusedBefore.has(recipient.email.toLowerCase()));
-    if (lost.length > 0) {
-      let withdrawn = true;
-      if (delivery.all) {
-        if (this.hasAccountCapability('urn:stalwart:jmap', submissionAccountId)) {
-          await this.destroyEmailSubmissions([replacementId], submissionAccountId);
-        }
-      } else {
-        try {
-          await this.cancelEmailSubmission(replacementId, submissionAccountId);
-        } catch (error) {
-          // 0.16 and 1.0 report `canceled` for a cancelled submission.
-          const status = await this.getSubmissionStatus(replacementId, submissionAccountId).catch(() => undefined);
-          if (status !== 'canceled') {
-            console.error('Failed to cancel a replacement some recipients were refused for:', error);
-            withdrawn = false;
-          }
-        }
+            } : {}),
+          }, '0'],
+          deliveryStatusCall(submissionAccountId, 'replacement'),
+        ]);
+      };
+      let response = await send();
+      if (submissionCreateError(response, 'replacement')?.type === 'overQuota') {
+        await this.makeRoomForSubmission(submissionAccountId);
+        response = await send();
       }
-      if (withdrawn) throw new RecipientsRejectedError(lost);
-    }
-    const finalSendAt = serverSendAt || await this.getEmailSubmissionSendAt(replacementId, submissionAccountId);
-    // Either cancel also destroys the record it canceled, so a reschedule
-    // leaves only the replacement behind.
+      const statusReadBack = takeDeliveryStatus(response);
+      // Only the submission call counts: the implied Email/set from
+      // onSuccessUpdateEmail can fail while the submission was created.
+      const [methodName, result] = statusReadBack.response.methodResponses?.[0] ?? [];
+      if (methodName === 'error') {
+        throw jmapError(result?.description || result?.type || 'Failed to reschedule email', result);
+      }
+      const createError = result?.notCreated?.replacement;
+      if (createError) {
+        if (createError.type === 'overQuota') throw this.submissionQuotaError(createError.description, submissionAccountId);
+        throw jmapError(createError.description || createError.type || 'Failed to reschedule email', createError);
+      }
+      const id = result?.created?.replacement?.id;
+      if (!id) {
+        throw new Error('Server did not return a replacement scheduled send ID');
+      }
+      return { id, sendAt: result?.created?.replacement?.sendAt, deliveryStatus: statusReadBack.deliveryStatus };
+    };
+
+    // Cancel first. Some servers allow only one active submission per Email
+    // and reject a second create for the same emailId, and servers that undo
+    // onSuccessUpdateEmail on cancel would pull the message back to Drafts if
+    // the original were canceled after the replacement existed (#1308).
+    // If this fails, nothing has changed and the original still goes out -
+    // unless it went out already ("Send now" of a message due any moment).
     try {
       await this.cancelEmailSubmission(submissionId, submissionAccountId);
     } catch (error) {
-      try {
-        await this.cancelEmailSubmission(replacementId, submissionAccountId);
-      } catch (cleanupError) {
-        console.error('Failed to clean up replacement scheduled send after reschedule failure:', cleanupError);
-      }
-      const message = error instanceof Error ? error.message : 'Failed to cancel original scheduled send';
-      throw new Error(`Reschedule created a replacement but could not cancel the original: ${message}`);
+      const status = await this.getSubmissionStatus(submissionId, submissionAccountId).catch(() => undefined);
+      if (status === 'final' || status === 'canceled') throw new NoLongerScheduledError(status === 'final');
+      throw error;
     }
+
+    // A submission that took no recipient goes nowhere; its record only
+    // counts against the limit.
+    const withdrawIfDead = async (created: Created): Promise<RejectedRecipient[] | null> => {
+      const delivery = rejectedRecipients(created.deliveryStatus);
+      if (!delivery.all) return null;
+      if (this.hasAccountCapability('urn:stalwart:jmap', submissionAccountId)) {
+        await this.destroyEmailSubmissions([created.id], submissionAccountId);
+      }
+      return delivery.rejected;
+    };
+
+    let replacement: Created;
+    try {
+      replacement = await createSubmission(holdUntil);
+      // The recipients are checked again for the replacement, and a throttle
+      // used up since the original was taken can refuse some or all of them.
+      // When it took nobody the reschedule counts as failed; when it took
+      // some, the caller names the refused ones.
+      const refused = await withdrawIfDead(replacement);
+      if (refused) throw new RecipientsRejectedError(refused);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to reschedule email';
+      // Put the original back at its old time. HOLDFOR with the seconds that
+      // are left, not HOLDUNTIL: servers disagree on the HOLDUNTIL value format
+      // (RFC 3339 vs Unix seconds), every FUTURERELEASE server takes HOLDFOR.
+      const originalTime = original?.sendAt ? new Date(original.sendAt).getTime() : NaN;
+      let restored: Created | undefined;
+      try {
+        restored = await createSubmission(Number.isFinite(originalTime) && originalTime > Date.now() ? originalTime : undefined);
+      } catch (restoreError) {
+        console.error('Failed to restore the original scheduled send after reschedule failure:', restoreError);
+      }
+      if (restored && !(await withdrawIfDead(restored).catch(() => null))) {
+        throw new RescheduleRestoredError(message, restored.id, restored.sendAt || original?.sendAt);
+      }
+      // Neither went through: the message is not scheduled any more. Make sure
+      // it sits in Drafts rather than in Sent looking like it went out.
+      if (draftsMailbox) {
+        try {
+          await this.restoreEmailToDraft(emailId, draftsMailbox.id, sentMailbox?.id, submissionAccountId);
+        } catch (draftError) {
+          console.error('Failed to move the message back to Drafts after reschedule failure:', draftError);
+        }
+      }
+      if (error instanceof RecipientsRejectedError || error instanceof SubmissionQuotaError) throw error;
+      throw new Error(`Reschedule failed and the message is no longer scheduled: ${message}`);
+    }
+    const rejected = rejectedRecipients(replacement.deliveryStatus).rejected;
+    const finalSendAt = replacement.sendAt || await this.getEmailSubmissionSendAt(replacement.id, submissionAccountId);
     return {
-      scheduled: true, emailId, emailSubmissionId: replacementId, sendAt: finalSendAt,
-      ...(delivery.rejected.length > 0 ? { rejectedRecipients: delivery.rejected } : {}),
+      scheduled: true, emailId, emailSubmissionId: replacement.id, sendAt: finalSendAt,
+      ...(rejected.length > 0 ? { rejectedRecipients: rejected } : {}),
     };
   }
 

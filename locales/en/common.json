@@ -60,6 +60,12 @@
     "demo_login_button": "Launch Demo",
     "demo_tagline": "Experience a full-featured email client. No account required.",
     "demo_no_signup": "No signup needed - explore freely with sample data",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Completing sign in...",
     "oauth_error": {
       "title": "Authentication Failed",
@@ -142,6 +148,8 @@
     "show_all_tags": "Show all ({count})",
     "show_fewer_tags": "Show less",
     "folders": "Folders",
+    "your_folders": "Your folders",
+    "create_folder": "Create folder",
     "show_more": "More",
     "show_fewer": "Less",
     "shared": "Shared",
@@ -169,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Default apps",
-    "description": "Choose whether email and calendar links open in Bulwark. Technically, Bulwark registers as a protocol handler for mailto: and webcal: links.",
+    "description": "Choose whether email and calendar links open in {appName}. Technically, {appName} registers as a protocol handler for mailto: and webcal: links.",
     "unsupported": "This browser or connection does not support manual protocol-handler registration. You may still be able to use the installed PWA via browser or OS settings.",
     "mailto_label": "Email links",
-    "mailto_description": "Open mailto: links in Bulwark with a prefilled composer.",
+    "mailto_description": "Open mailto: links in {appName} with a prefilled composer.",
     "protocol_open_mode_label": "When opening protocol links",
-    "protocol_open_mode_description": "Choose whether Bulwark opens mailto: and webcal: links in a new tab or reuses an open session. The active-session option needs notification permission so you can click a fallback notification to bring Bulwark to the front if the browser blocks focus.",
+    "protocol_open_mode_description": "Choose whether {appName} opens mailto: and webcal: links in a new tab or reuses an open session. The active-session option needs notification permission so you can click a fallback notification to bring {appName} to the front if the browser blocks focus.",
     "protocol_open_mode_active_session": "Open in active session if possible",
     "protocol_open_mode_new_tab": "Always open a new tab",
-    "focus_notification_title": "Open Bulwark",
-    "focus_notification_body": "The link was opened in Bulwark. Click to bring the window to the front.",
+    "focus_notification_title": "Open {appName}",
+    "focus_notification_body": "The link was opened in {appName}. Click to bring the window to the front.",
     "webcal_label": "Calendar links",
-    "webcal_description": "Open webcal: links in Bulwark with a prefilled calendar subscription dialog.",
+    "webcal_description": "Open webcal: links in {appName} with a prefilled calendar subscription dialog.",
     "register_mailto": "Register email app",
     "register_webcal": "Register calendar app",
     "mailto_registered": "Email handler registration requested",
@@ -188,7 +196,7 @@
     "registration_failed": "Protocol handler registration failed",
     "opening_mailto": "Opening composer...",
     "opening_webcal": "Opening calendar...",
-    "browser_note": "Your browser or operating system may ask you to confirm this and may require Bulwark to be installed before it can be selected as the default app.",
+    "browser_note": "Your browser or operating system may ask you to confirm this and may require {appName} to be installed before it can be selected as the default app.",
     "select_account_title": "Choose account",
     "select_mailto_account": "Choose which account should open this email link.",
     "select_webcal_account": "Choose which account should open this calendar link.",
@@ -236,6 +244,18 @@
     "show_on_mobile": "Show on Mobile"
   },
   "email_list": {
+    "sections": {
+      "unread": "Unread",
+      "everything_else": "Everything else",
+      "unread_empty": "You've read all the messages in your inbox."
+    },
+    "columns": {
+      "from": "From",
+      "to": "To",
+      "subject": "Subject",
+      "date": "Date",
+      "size": "Size"
+    },
     "no_emails": "No messages found",
     "no_emails_description": "This mailbox is empty",
     "no_search_results": "No results found",
@@ -621,7 +641,9 @@
       "not_in_contacts": "Not in your contacts",
       "add_to_contacts": "Add to contacts",
       "copied": "Copied!",
-      "copy_failed": "Failed to copy"
+      "copy_failed": "Failed to copy",
+      "view_contact": "View contact",
+      "view_details": "View details"
     },
     "send_now": "Send now",
     "verification_code": {
@@ -630,10 +652,12 @@
       "copy_failed": "Could not copy the code"
     },
     "mv_position": "{index} of {total}",
+    "copy": "Copy",
     "plugin_panel_show": "Show plugin panel",
     "plugin_panel_hide": "Hide plugin panel"
   },
   "email_composer": {
+    "select_from_directory": "Select from directory",
     "minimize": "Minimize",
     "maximize": "Full screen",
     "restore": "Restore",
@@ -720,6 +744,10 @@
     "option_dsn_hint": "Get a report when the server delivers it",
     "option_require_tls": "Require encrypted delivery",
     "option_require_tls_hint": "Only deliver over TLS, otherwise bounce",
+    "option_priority": "Priority",
+    "option_priority_high": "High",
+    "option_priority_normal": "Normal",
+    "option_priority_low": "Low",
     "validation": {
       "recipient_required": "Add a recipient to send",
       "body_required": "Write a message or attach a file",
@@ -742,6 +770,8 @@
     "recipients_refused": "Not sent: the server refused {recipients}.",
     "recipients_partly_refused": "The server refused {recipients}. The other recipients get the message.",
     "send_recipients_rejected": "Not sent - the server rejected every recipient.",
+    "cut": "Cut",
+    "copy": "Copy",
     "send_plugin_failed": "Not sent - a plugin that handles sending failed or took too long. Check your Sent folder before sending again.",
     "send_some_recipients_rejected": "Sent, but not to these recipients - the server rejected them.",
     "continue_draft": "Continue draft",
@@ -792,6 +822,9 @@
     "autocomplete_search_server": "Search the server",
     "autocomplete_searching": "Searching...",
     "mention_recipients": "Recipients",
+    "mention_card_not_recipient": "Not in To or Cc, so they won't get this message.",
+    "mention_card_add": "Add to {field}",
+    "mention_card_remove": "Remove mention",
     "toolbar": {
       "bold": "Bold",
       "italic": "Italic",
@@ -856,9 +889,9 @@
     "app_title": "Webmail",
     "reconnecting": "Connection lost. Attempting to reconnect…",
     "rate_limited_title": "Server authentication is temporarily rate limited.",
-    "rate_limited_detail": "Bulwark has paused background requests to avoid lockout. Retrying in {seconds}s.",
+    "rate_limited_detail": "{appName} has paused background requests to avoid lockout. Retrying in {seconds}s.",
     "rate_limited_action_title": "Request paused to avoid lockout.",
-    "rate_limited_action_detail": "Bulwark is waiting for the server cooldown to end before sending more authenticated requests. Try again in {seconds}s.",
+    "rate_limited_action_detail": "{appName} is waiting for the server cooldown to end before sending more authenticated requests. Try again in {seconds}s.",
     "pull_to_refresh": "Pull to refresh",
     "release_to_refresh": "Release to refresh",
     "refreshing": "Refreshing…"
@@ -887,6 +920,8 @@
     "emails_moved": "{count} emails moved",
     "moved_to_mailbox": "Moved to {mailbox}",
     "move_failed": "Move failed",
+    "removed_from_folder": "Removed from {mailbox}",
+    "remove_from_folder_failed": "Could not remove from this folder",
     "emails_copied": "{count} emails copied",
     "copy_failed": "Copy failed",
     "move_error": "Could not move emails to the selected folder",
@@ -1008,34 +1043,22 @@
     "search_no_results": "No matching settings",
     "tabs": {
       "appearance": "Appearance",
-      "language": "Language, Region & Time",
-      "email": "Email Behavior",
-      "composer": "Composer",
-      "privacy": "Privacy & Security",
       "account": "Account",
-      "identities": "Identities",
       "vacation": "Out of Office",
-      "advanced": "Advanced",
       "calendar": "Calendar",
       "filters": "Filters",
-      "templates": "Templates",
       "folders": "Folders",
-      "keywords": "Tags",
       "security": "Security",
       "files": "Files",
       "contacts": "Contacts",
-      "encryption": "Encryption",
-      "protocol_handlers": "Default apps",
-      "sidebar_apps": "Sidebar Apps",
       "notifications": "Notifications",
-      "layout": "Layout",
-      "themes": "Themes",
       "reading": "Reading",
       "composing": "Composing",
-      "downloads": "Downloads",
-      "content_senders": "Content & Senders",
-      "about_data": "About & Data",
-      "debug": "Debug"
+      "message_list": "Message list",
+      "general": "General",
+      "organize": "Folders & tags",
+      "addons": "Add-ons",
+      "backup": "Backup & reset"
     },
     "themes": {
       "title": "Themes",
@@ -1047,18 +1070,13 @@
       "default_restored": "Default theme restored",
       "default_name": "Default",
       "default_badge": "Default",
-      "admin_enforced": "Admin enforced"
+      "admin_enforced": "Admin enforced",
+      "show_all": "Show all {count} themes",
+      "show_fewer": "Show fewer"
     },
     "tab_groups": {
-      "general": "General",
-      "account": "Account & Identity",
-      "organization": "Mail Organization",
       "apps": "Apps",
-      "system": "System",
-      "appearance": "Appearance",
-      "mail": "Mail",
-      "privacy": "Privacy & Security",
-      "advanced": "Advanced"
+      "mail": "Mail"
     },
     "appearance": {
       "message_list_order": {
@@ -1193,10 +1211,6 @@
         "label": "Tint List Rows by Tag Color",
         "description": "Shade each message row with its first tag color. Disable to keep rows plain; tag dots and chips still show the color."
       },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
-      },
       "show_folder_total_count": {
         "label": "Show Total Message Count",
         "description": "Show the total message count next to folders and tags, alongside the unread count. Disable to show only unread counts."
@@ -1226,6 +1240,21 @@
       "cross_all": {
         "label": "All mail",
         "description": "Show an All mail entry in the Unified Mailbox listing all mail across the selected folders."
+      },
+      "sections": {
+        "text": "Text & motion",
+        "layout": "Layout",
+        "sidebar": "Sidebar",
+        "accounts": "Multiple accounts",
+        "accounts_description": "How your accounts and shared mailboxes appear together.",
+        "experimental": "Experimental"
+      },
+      "account_marker": {
+        "label": "Tell accounts apart",
+        "description": "In the unified views, mark each message with the color of the account it came from.",
+        "dot": "Colored dot",
+        "tint": "Tinted row",
+        "none": "Nothing"
       }
     },
     "keywords": {
@@ -1245,6 +1274,7 @@
       "cancel": "Cancel",
       "migrating": "Updating tag on existing emails…",
       "migration_error": "Failed to update tag on existing emails",
+      "filters_migration_error": "Some filter rules still use the old tag — update them manually",
       "nesting": {
         "label": "Nested Tags",
         "description": "Nest tags underneath other tags and show them as a tree in the sidebar."
@@ -1322,17 +1352,17 @@
         "error_over_quota": "This account has too many push registrations on the mail server (the limit is usually 15). Revoke devices you no longer use in the notification settings, then try again."
       },
       "push_all": {
-          "title": "All accounts",
-          "description": "Turn push on or off for several accounts at once. One browser subscription serves them all.",
-          "select_all": "Select every connected account",
-          "state_on": "notifications on",
-          "state_off": "notifications off",
-          "enable_selected": "Enable for selected",
-          "disable_selected": "Disable for selected",
-          "result_enabled": "Notifications enabled for {count} accounts.",
-          "result_partial": "Enabled for {enabled} accounts; {failed} could not be enabled.",
-          "result_disabled": "Notifications disabled for {count} accounts."
-        },
+        "title": "All accounts",
+        "description": "Turn push on or off for several accounts at once. One browser subscription serves them all.",
+        "select_all": "Select every connected account",
+        "state_on": "notifications on",
+        "state_off": "notifications off",
+        "enable_selected": "Enable for selected",
+        "disable_selected": "Disable for selected",
+        "result_enabled": "Notifications enabled for {count} accounts.",
+        "result_partial": "Enabled for {enabled} accounts; {failed} could not be enabled.",
+        "result_disabled": "Notifications disabled for {count} accounts."
+      },
       "sound_selection": {
         "title": "Notification Sound",
         "description": "Choose which sound to play for notifications",
@@ -1355,9 +1385,7 @@
         "enabled": "Event notifications",
         "enabled_desc": "Show alerts for upcoming calendar events",
         "sound": "Notification sound",
-        "sound_desc": "Play an audio alert for calendar reminders",
-        "invitation_parsing": "Parse email invitations",
-        "invitation_parsing_desc": "Detect calendar invitations in email attachments and show calendar actions"
+        "sound_desc": "Play an audio alert for calendar reminders"
       }
     },
     "language_region": {
@@ -1407,6 +1435,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Inbox type",
+        "description": "Unread first shows your 25 newest unread messages in a section above the rest of the inbox",
+        "default": "Default",
+        "unread_first": "Unread first"
+      },
       "clear_search_on_folder_change": {
         "label": "Clear search when switching folders",
         "description": "Clicking a folder (Inbox, Sent, …) clears the active search and browses that folder. When off, the search stays applied and re-runs in the folder you switch to."
@@ -1481,6 +1515,10 @@
         "horizontal": "Reading pane at bottom",
         "horizontal_description": "Show the message list on top and open the selected message in a reading pane below it."
       },
+      "list_columns": {
+        "label": "Show the list as columns",
+        "description": "Draw one-line rows as a table with From, Subject, Date and Size columns under a header."
+      },
       "show_preview": {
         "label": "Show Preview Text",
         "description": "Display email preview in the list",
@@ -1489,10 +1527,6 @@
       "show_verification_codes": {
         "label": "Show Verification Codes",
         "description": "Offer the code from sign-in and confirmation emails for one-click copying, in the list for a day and in the message"
-      },
-      "disable_threading": {
-        "label": "Disable Conversation Grouping",
-        "description": "Show emails as individual messages instead of grouped by conversation"
       },
       "plain_text_mode": {
         "label": "Plain Text Only",
@@ -1622,6 +1656,13 @@
         "label": "Mention recipients with @",
         "description": "Typing @ in the message offers its recipients and inserts the chosen one's first name. Enter or Tab picks the highlighted name."
       },
+      "mention_adds_recipient": {
+        "label": "Contacts in @ mentions",
+        "description": "Typing @ also offers your contacts and people from the directory. Picking someone who isn't a recipient yet adds them to the message.",
+        "to": "Add to To",
+        "cc": "Add to Cc",
+        "off": "Only offer recipients"
+      },
       "hide_inline_image_attachments": {
         "label": "Hide inline images from attachments",
         "description": "Images embedded in the message body are not listed as separate attachments"
@@ -1660,51 +1701,15 @@
       "rtl_editing": {
         "label": "Right-to-left editing support",
         "description": "Adds a direction button to the composer toolbar so you can set paragraphs left-to-right or right-to-left"
-      }
-    },
-    "composer": {
-      "title": "Composer",
-      "description": "Configure email composition settings",
-      "autosave": {
-        "label": "Auto-save Interval",
-        "description": "How often to save drafts automatically",
-        "30s": "Every 30 seconds",
-        "1m": "Every minute",
-        "2m": "Every 2 minutes",
-        "5m": "Every 5 minutes"
       },
-      "send_confirmation": {
-        "label": "Send Confirmation",
-        "description": "Ask for confirmation before sending emails"
+      "group_conversations": {
+        "label": "Group messages by conversation",
+        "description": "Show replies together as one conversation instead of as separate messages."
       },
-      "default_reply": {
-        "label": "Default Reply Mode",
-        "description": "Default action when clicking reply",
-        "reply": "Reply",
-        "reply_all": "Reply All"
-      }
-    },
-    "privacy": {
-      "title": "Privacy & Security",
-      "description": "Manage your privacy and security settings",
-      "external_images": {
-        "label": "Block External Images",
-        "description": "Prevent tracking through external images"
-      },
-      "session_timeout": {
-        "label": "Session Timeout",
-        "description": "Automatically log out after inactivity",
-        "never": "Never",
-        "30m": "30 minutes",
-        "1h": "1 hour",
-        "4h": "4 hours"
-      },
-      "clear_cache": {
-        "label": "Clear Cache",
-        "description": "Remove cached data and temporary files",
-        "button": "Clear Cache",
-        "confirm": "Are you sure you want to clear the cache?",
-        "success": "Cache cleared successfully"
+      "signatures_link": {
+        "label": "Signatures",
+        "description": "Each email address has its own signature. Edit them together with your addresses.",
+        "button": "Email addresses"
       }
     },
     "account": {
@@ -1750,6 +1755,7 @@
       "backup": {
         "title": "Account list backup",
         "description": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. Mailbox passwords are not saved: you sign in to each restored account yourself.",
+        "description_passwords": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. You can include the mailbox passwords, so the restored accounts sign in by themselves.",
         "status_none": "No list is saved for {account}.",
         "status_saved": "A list is saved for {account}.",
         "save": "Save list",
@@ -1761,9 +1767,15 @@
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
         "confirm": "Confirm password",
+        "include_passwords": "Include mailbox passwords",
+        "include_passwords_hint": "Accounts signed in here with a password will sign in by themselves after a restore. Anyone who knows the backup password gets into every mailbox in the list.",
         "saved": "List saved ({count, plural, one {# account} other {# accounts}}).",
         "restored": "Accounts added: {added}. Accounts already here and updated: {updated}. Open each new account from the account list to sign in.",
+        "restored_signed_in": "Accounts added: {added}. Accounts already here and updated: {updated}.",
         "skipped": "{count, plural, one {# account was} other {# accounts were}} not added: the account limit is reached.",
+        "saved_passwords": "Passwords included for {count, plural, one {# account} other {# accounts}}.",
+        "signed_in": "Signed in to {count, plural, one {# account} other {# accounts}} with the saved password.",
+        "sign_in_failed": "{count, plural, one {# saved password was} other {# saved passwords were}} refused: sign in to those accounts from the account list.",
         "deleted": "Saved list deleted.",
         "errors": {
           "mismatch": "The passwords do not match.",
@@ -1778,6 +1790,9 @@
         "title": "Shared with me",
         "description": "Group and shared accounts you can manage. Select one to edit its filters, vacation responder, calendars, and contacts.",
         "shared_label": "Shared account"
+      },
+      "sections": {
+        "addresses": "Email addresses"
       }
     },
     "scoped": {
@@ -1929,10 +1944,14 @@
         "link_another": "Link another device",
         "use_sso": "Use single sign-on instead",
         "error_insecure_server": "The mobile app only connects to mail servers over https, and this one uses http."
+      },
+      "sections": {
+        "devices": "Other apps and devices",
+        "devices_description": "Use your mail outside this browser.",
+        "encryption": "Encryption"
       }
     },
     "identities": {
-      "title": "Sending Identities",
       "description": "Manage email addresses you can send from",
       "identities_count": {
         "label": "Your Identities",
@@ -2050,6 +2069,11 @@
       "new_folder_name": "Folder name",
       "rename": "Rename",
       "change_icon": "Change icon",
+      "count_mode": "Counter for {name}",
+      "count_mode_default": "Counter: default",
+      "count_mode_unread": "Unread only",
+      "count_mode_all": "Unread and total",
+      "count_mode_none": "No counter",
       "delete": "Delete",
       "confirm_delete": "Are you sure you want to delete \"{name}\"? Emails in this folder will be moved to Trash.",
       "create": "Create",
@@ -2068,8 +2092,6 @@
       "error_role": "Failed to update folder role"
     },
     "advanced": {
-      "title": "Advanced",
-      "description": "Advanced options and developer settings",
       "debug_mode": {
         "label": "Debug Mode",
         "description": "Enable detailed logging for troubleshooting"
@@ -2099,7 +2121,11 @@
       },
       "sender_favicons": {
         "label": "Sender Favicons",
-        "description": "Show website icons as profile pictures for business senders"
+        "description": "Show website icons as profile pictures for business senders",
+        "refresh_label": "Refresh Sender Icons",
+        "refresh_description": "Fetch the website icons again, for example when a sender changed theirs",
+        "refresh_button": "Refresh",
+        "refresh_done": "Sender icons will be fetched again"
       },
       "show_avatars_in_junk": {
         "label": "Show Avatars in Junk Folder",
@@ -2159,6 +2185,12 @@
           "delivered": "Delivered",
           "mistakes": "Mistakes"
         }
+      },
+      "sections": {
+        "backup": "Settings backup",
+        "backup_description": "Keep your settings across browsers and devices.",
+        "fix": "Fix problems",
+        "fix_description": "When a view looks stale or wrong, or you want to start over."
       }
     },
     "sidebar_apps": {
@@ -2489,6 +2521,41 @@
       "preview": {
         "label": "Preview"
       }
+    },
+    "advanced_switch": {
+      "label": "Show advanced settings",
+      "badge": "Advanced",
+      "hidden_count": "{count, plural, one {1 advanced setting is hidden on this page.} other {# advanced settings are hidden on this page.}}",
+      "show": "Show advanced settings"
+    },
+    "message_list": {
+      "title": "Message list",
+      "description": "What the list shows, and what a click or swipe does.",
+      "sections": {
+        "senders": "Sender pictures",
+        "actions": "Quick actions",
+        "delete": "Deleting & archiving",
+        "loading": "Loading & search"
+      }
+    },
+    "reading_page": {
+      "title": "Reading",
+      "description": "The open message.",
+      "sections": {
+        "display": "Message display",
+        "images": "Images & external content",
+        "images_description": "Remote images can tell the sender that you opened the mail.",
+        "attachments": "Attachments"
+      }
+    },
+    "composing_page": {
+      "title": "Composing",
+      "description": "Writing, replying and sending.",
+      "sections": {
+        "replying": "Replying",
+        "sending": "Before sending",
+        "receipts": "Read receipts"
+      }
     }
   },
   "errors": {
@@ -2520,6 +2587,7 @@
     "unpin": "Unpin",
     "move_to": "Move to...",
     "copy_to_account": "Copy to account...",
+    "remove_from_folder": "Remove from this folder",
     "archive": "Archive",
     "delete": "Delete",
     "mark_as_spam": "Report spam",
@@ -2617,7 +2685,9 @@
       "previous_email": "Previous email",
       "open_email": "Open email",
       "close_email": "Close / Deselect",
-      "go_to_folder": "Go to folder"
+      "go_to_folder": "Go to folder",
+      "next_unread": "Next unread email",
+      "no_more_unread": "No unread email further down the list"
     },
     "actions": {
       "reply": "Reply",
@@ -2636,7 +2706,8 @@
       "help": "Show shortcuts",
       "refresh": "Refresh emails",
       "select_all": "Select all",
-      "global_search": "Search everything"
+      "global_search": "Search everything",
+      "extend_selection": "Extend selection down / up"
     },
     "threads": {
       "expand_collapse": "Expand/collapse thread",
@@ -2750,11 +2821,57 @@
       "recipient_name": "Recipient name",
       "company": "Company name",
       "date": "Current date",
+      "short_date": "Date in numbers",
+      "day": "Day (two digits)",
+      "month": "Month (two digits)",
+      "year": "Year",
       "day_of_week": "Day of the week",
       "sender_name": "Your name"
     }
   },
   "contacts": {
+    "directory": {
+      "title": "Directory",
+      "search_placeholder": "Search name or email address",
+      "refresh": "Refresh directory",
+      "retry": "Try again",
+      "loading": "Loading directory…",
+      "unavailable_title": "No directory",
+      "unavailable_hint": "Your mail server doesn't offer a directory of accounts.",
+      "forbidden_title": "Directory not available",
+      "forbidden_hint": "Your mail server doesn't allow this account to browse the directory. Ask your administrator.",
+      "error_title": "Couldn't load the directory",
+      "error_hint": "Check your connection and try again.",
+      "empty_title": "The directory is empty",
+      "empty_hint": "Your mail server lists no accounts with an email address.",
+      "no_match": "No one in the directory matches your search",
+      "refresh_failed": "Couldn't refresh the directory. Showing the last loaded list.",
+      "select_page": "Select everyone on this page",
+      "deselect_page": "Deselect everyone on this page",
+      "select_entry": "Select {name}",
+      "range": "{from}–{to} of {total}",
+      "page": "Page {page} of {count}",
+      "previous_page": "Previous page",
+      "next_page": "Next page",
+      "picker_title": "Select from directory",
+      "cancel": "Cancel",
+      "selected_count": "{count} selected",
+      "add_to": "Add to To",
+      "add_cc": "Add to Cc",
+      "add_bcc": "Add to Bcc",
+      "select_hint": "Select someone to see their details",
+      "write_email": "Write email",
+      "add_to_contacts": "Add to contacts",
+      "email": "Email",
+      "read_only_note": "Directory entries come from your mail server and can't be edited here.",
+      "type": {
+        "individual": "Person",
+        "group": "Group",
+        "resource": "Resource",
+        "location": "Location",
+        "other": "Other"
+      }
+    },
     "title": "Contacts",
     "search_placeholder": "Search contacts...",
     "create_new": "New Contact",
@@ -3983,7 +4100,8 @@
     "demo_banner_title": "Demo controls",
     "demo_banner_desc": "You're in demo mode - everything stays in your browser. Hit 'Reset Demo' anytime to start fresh with clean sample data.",
     "quota_title": "Storage usage",
-    "quota_desc": "Track your mailbox size here. The circle fills up as you use more space."
+    "quota_desc": "Track your mailbox size here. The circle fills up as you use more space.",
+    "settings_section": "Getting started"
   },
   "unified_mailbox": {
     "search_unavailable": "Search is not available in the unified view"
@@ -4329,7 +4447,7 @@
       },
       "http_proxy": {
         "title": "Use accounts you connect",
-        "body": "Send requests through Bulwark's server with an account or key that you or your administrator set up. The plugin never sees the password, but it can do anything that account can do on its own server."
+        "body": "Send requests through {appName}'s server with an account or key that you or your administrator set up. The plugin never sees the password, but it can do anything that account can do on its own server."
       },
       "compose_open": {
         "title": "Open the composer for you",
@@ -4362,9 +4480,9 @@
     },
     "connect": {
       "title": "Connect {label}",
-      "intro_password": "{name} wants to use your {label} account. Bulwark keeps the password on its server and only sends it to {host}. The plugin never sees it.",
-      "intro_password_any": "{name} wants to use your {label} account. Bulwark keeps the password on its server and only sends it to the server you enter here. The plugin never sees it.",
-      "intro_signin": "{name} wants to sign in to your {label} account. Enter the server here, then sign in on its own page. Bulwark keeps the access it gets on its server; the plugin never sees it.",
+      "intro_password": "{name} wants to use your {label} account. {appName} keeps the password on its server and only sends it to {host}. The plugin never sees it.",
+      "intro_password_any": "{name} wants to use your {label} account. {appName} keeps the password on its server and only sends it to the server you enter here. The plugin never sees it.",
+      "intro_signin": "{name} wants to sign in to your {label} account. Enter the server here, then sign in on its own page. {appName} keeps the access it gets on its server; the plugin never sees it.",
       "server": "Server address",
       "server_hint": "cloud.example.com",
       "username": "User name",
@@ -4411,8 +4529,7 @@
     "loading": "Loading page",
     "not_available_title": "This page is not available",
     "not_available_description": "The plugin that added it is turned off or no longer installed.",
-    "back_to_mail": "Back to Mail",
-    "settings_group": "Plugins"
+    "back_to_mail": "Back to Mail"
   },
   "command_palette": {
     "title": "Command palette",

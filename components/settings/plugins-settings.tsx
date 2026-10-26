@@ -112,6 +112,7 @@ export function PluginsSettings() {
 
   return (
     <SettingsSection
+      id="plugins"
       title={t('title')}
       description={demoMode ? t('description_demo') : uploadsAllowed ? t('description_uploads') : t('description')}
     >

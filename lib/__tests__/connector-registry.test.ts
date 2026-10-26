@@ -66,15 +66,15 @@ describe('resolving to app paths', () => {
     expect(path('files')).toBe('/files');
   });
 
-  it('marks the admin targets, and carries the tab the shell keeps in a store', () => {
+  it('marks the admin targets and resolves a tab to that page\'s URL', () => {
     const admin = resolve('admin', { tab: 'policy' });
     expect(admin.kind).toBe('ok');
     if (admin.kind === 'ok') {
-      expect(admin.resolution).toEqual({ path: '/admin', adminTab: 'policy', admin: true });
+      expect(admin.resolution).toEqual({ path: '/admin/policy', admin: true });
     }
 
     const auth = resolve('admin_auth');
-    if (auth.kind === 'ok') expect(auth.resolution.adminTab).toBe('auth');
+    if (auth.kind === 'ok') expect(auth.resolution).toEqual({ path: '/admin/auth', admin: true });
 
     const ext = resolve('admin_extension', { slug: 'quick-reply' });
     if (ext.kind === 'ok') {
@@ -82,9 +82,28 @@ describe('resolving to app paths', () => {
     }
   });
 
-  it('defaults the admin tab when the link named none', () => {
+  it('carries the version an install link asked for into the marketplace page', () => {
+    expect(path('admin_extension', { slug: 'quick-reply', version: '1.2.0' })).toBe(
+      '/admin/marketplace/quick-reply?version=1.2.0',
+    );
+    expect(path('admin_extension', { slug: 'quick-reply', version: '2.0.0-beta.1' })).toBe(
+      '/admin/marketplace/quick-reply?version=2.0.0-beta.1',
+    );
+  });
+
+  it('survives the admin login round-trip as a whole', () => {
+    // The admin layout parks the resolved path in ?next=; the gate there must
+    // let exactly what the registry produces through, or a versioned install
+    // link would drop its version (or the whole path) on the way.
+    const versioned = path('admin_extension', { slug: 'quick-reply', version: '1.2.0' });
+    expect(safeAdminNext(versioned)).toBe(versioned);
+    expect(safeAdminNext(encodeURIComponent(versioned))).toBe(versioned);
+  });
+
+  it('opens the panel front page when the link named no tab', () => {
     const admin = resolve('admin');
-    if (admin.kind === 'ok') expect(admin.resolution.adminTab).toBe('dashboard');
+    expect(admin.kind).toBe('ok');
+    if (admin.kind === 'ok') expect(admin.resolution).toEqual({ path: '/admin', admin: true });
   });
 
   it('leaves the user targets unmarked, so they take the normal login path', () => {
@@ -122,6 +141,15 @@ describe('parameter validation', () => {
     'refuses the mailbox ref %j',
     (ref) => {
       expect(resolve('mail_folder', { ref }).kind).toBe('bad-param');
+    },
+  );
+
+  it.each(['1.2', 'v1.2.3', '1.2.3+build.5', 'latest', '1.2.3/..', '1.2.3?x', '1.2.3-'])(
+    'refuses the extension version %j',
+    (version) => {
+      const result = resolve('admin_extension', { slug: 'quick-reply', version });
+      expect(result.kind).toBe('bad-param');
+      if (result.kind === 'bad-param') expect(result.param).toBe('version');
     },
   );
 
@@ -167,6 +195,8 @@ describe('safeAdminNext', () => {
     ['/admin/', '/admin/'],
     ['/admin/marketplace/quick-reply', '/admin/marketplace/quick-reply'],
     ['/admin?tab=policy', '/admin?tab=policy'],
+    ['/admin/marketplace/quick-reply?version=1.2.0', '/admin/marketplace/quick-reply?version=1.2.0'],
+    ['/admin/marketplace/quick-reply?version=2.0.0-beta.1', '/admin/marketplace/quick-reply?version=2.0.0-beta.1'],
     ['%2Fadmin%2Fplugins%2Fx', '/admin/plugins/x'],
   ])('accepts %j', (raw, expected) => {
     expect(safeAdminNext(raw)).toBe(expected);
@@ -185,6 +215,9 @@ describe('safeAdminNext', () => {
     '/admin/../mail',
     '/adminfoo',
     '/admin?tab=policy&x=1',
+    '/admin/marketplace/x?version=1.2.0&tab=policy',
+    '/admin/marketplace/x?version=../../etc',
+    '/admin/marketplace/x?version=' + '1'.repeat(70),
     '/admin?next=https://evil.example',
     '%2f%2fevil.example',
     '/admin/' + 'a'.repeat(600),

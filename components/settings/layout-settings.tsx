@@ -116,10 +116,129 @@ function MailLayoutPreview({
   );
 }
 
-export function LayoutSettings() {
+/**
+ * The Appearance page's Layout section: where the interface, the reading
+ * pane and the toolbars sit.
+ */
+export function LayoutSection() {
   const t = useTranslations('settings.appearance');
   const tEmail = useTranslations('settings.email_behavior');
-  const { toolbarPosition, showToolbarLabels, hideAccountSwitcher, showRailAccountList, enableUnifiedMailbox, includeGroupInUnified, unifiedCrossAccount, allMailFolderIds, enableCrossUnreadView, enableCrossStarredView, enableCrossAllView, colorfulSidebarIcons, tintListRowsByTag, tintListRowsByAccount, showFolderTotalCount, faviconUnreadBadge, mailLayout, proInterface, interfaceLayout, updateSetting } = useSettingsStore();
+  const { toolbarPosition, showToolbarLabels, mailLayout, interfaceLayout, updateSetting } = useSettingsStore();
+  const { isSettingLocked, isSettingHidden } = usePolicyStore();
+  const mountainView = interfaceLayout === 'mountain-view';
+
+  return (
+    <SettingsSection id="layout" title={t('sections.layout')}>
+      {/* The interface layout decides where search, navigation and toolbars
+          go - a layout choice, so it leads the section. */}
+      {!isSettingHidden('interfaceLayout') && (
+      <SettingItem label={t('interface_layout.label')} description={t('interface_layout.description')} locked={isSettingLocked('interfaceLayout')}>
+        <RadioGroup
+          value={interfaceLayout}
+          onChange={(value) => updateSetting('interfaceLayout', value as InterfaceLayout)}
+          options={[
+            { value: 'default', label: t('interface_layout.default') },
+            { value: 'mountain-view', label: t('interface_layout.mountain_view') },
+          ]}
+        />
+      </SettingItem>
+      )}
+      {/* Mountain View always shows the list and then the conversation, and
+          its toolbars are icon-only, so these two would change nothing there.
+          Their saved values stay and apply again under the default layout. */}
+      {!isSettingHidden('mailLayout') && !mountainView && (
+      <SettingItem label={tEmail('mail_layout.label')} description={tEmail('mail_layout.description')} locked={isSettingLocked('mailLayout')}>
+        <div className="w-[22rem] max-w-full">
+          <RadioGroup
+            value={mailLayout}
+            onChange={(value) => updateSetting('mailLayout', value as MailLayout)}
+            options={[
+              { value: 'split', label: tEmail('mail_layout.split') },
+              { value: 'focus', label: tEmail('mail_layout.focus') },
+              { value: 'horizontal', label: tEmail('mail_layout.horizontal') },
+            ]}
+          />
+          <MailLayoutPreview value={mailLayout} t={tEmail} />
+        </div>
+      </SettingItem>
+      )}
+      <SettingItem label={t('toolbar_position.label')} description={t('toolbar_position.description')}>
+        <RadioGroup
+          value={toolbarPosition}
+          onChange={(value) => updateSetting('toolbarPosition', value as ToolbarPosition)}
+          options={[
+            { value: 'top', label: t('toolbar_position.top') },
+            { value: 'below-subject', label: t('toolbar_position.below_subject') },
+          ]}
+        />
+      </SettingItem>
+
+      {!mountainView && (
+      <SettingItem label={t('toolbar_labels.label')} description={t('toolbar_labels.description')}>
+        <ToggleSwitch
+          checked={showToolbarLabels}
+          onChange={(checked) => updateSetting('showToolbarLabels', checked)}
+        />
+      </SettingItem>
+      )}
+    </SettingsSection>
+  );
+}
+
+/** The Appearance page's Sidebar section: what the folder sidebar and rail show. */
+export function SidebarSection() {
+  const t = useTranslations('settings.appearance');
+  const { hideAccountSwitcher, showRailAccountList, colorfulSidebarIcons, showFolderTotalCount, updateSetting } = useSettingsStore();
+  const accounts = useAccountStore(s => s.accounts);
+  const multiAccount = accounts.length > 1;
+
+  return (
+    <SettingsSection id="sidebar" title={t('sections.sidebar')}>
+      <SettingItem label={t('colorful_sidebar_icons.label')} description={t('colorful_sidebar_icons.description')}>
+        <ToggleSwitch
+          checked={colorfulSidebarIcons}
+          onChange={(checked) => updateSetting('colorfulSidebarIcons', checked)}
+        />
+      </SettingItem>
+
+      <SettingItem label={t('show_folder_total_count.label')} description={t('show_folder_total_count.description')}>
+        <ToggleSwitch
+          checked={showFolderTotalCount}
+          onChange={(checked) => updateSetting('showFolderTotalCount', checked)}
+        />
+      </SettingItem>
+
+      {/* The account switcher and the rail avatars only mean something with
+          a second account; a single-account user never sees either. */}
+      {multiAccount && (
+        <SettingItem label={t('hide_account_switcher.label')} description={t('hide_account_switcher.description')}>
+          <ToggleSwitch
+            checked={hideAccountSwitcher}
+            onChange={(checked) => updateSetting('hideAccountSwitcher', checked)}
+          />
+        </SettingItem>
+      )}
+
+      {multiAccount && (
+        <SettingItem label={t('show_rail_account_list.label')} description={t('show_rail_account_list.description')}>
+          <ToggleSwitch
+            checked={showRailAccountList}
+            onChange={(checked) => updateSetting('showRailAccountList', checked)}
+          />
+        </SettingItem>
+      )}
+    </SettingsSection>
+  );
+}
+
+/**
+ * How several accounts and shared mailboxes appear together: the unified
+ * mailbox and its entries, shared mailboxes, and how rows tell accounts
+ * apart. Only rendered once there is something to combine.
+ */
+export function MultipleAccountsSection() {
+  const t = useTranslations('settings.appearance');
+  const { enableUnifiedMailbox, includeGroupInUnified, unifiedCrossAccount, allMailFolderIds, enableCrossUnreadView, enableCrossStarredView, enableCrossAllView, tintListRowsByAccount, showAccountDot, updateSetting } = useSettingsStore();
   const { isSettingLocked, isSettingHidden, isFeatureEnabled } = usePolicyStore();
   const accounts = useAccountStore(s => s.accounts);
   const activeAccountId = useAccountStore(s => s.activeAccountId);
@@ -139,7 +258,7 @@ export function LayoutSettings() {
   const unifiedCrossAccountAllowed = isFeatureEnabled('unifiedCrossAccountEnabled');
   // Unified Mailbox entries (All mail / Unread / Starred), each gated independently
   // by the admin. Scope (single account vs. cross-account) is governed by
-  // `unifiedCrossAccount`; the folder picker below narrows which own folders feed them.
+  // unifiedCrossAccount; the folder picker below narrows which own folders feed them.
   const crossViews = [
     { setting: 'enableCrossUnreadView', value: enableCrossUnreadView, allowed: isFeatureEnabled('crossUnreadViewEnabled'), labelKey: 'cross_unread.label', descKey: 'cross_unread.description' },
     { setting: 'enableCrossStarredView', value: enableCrossStarredView, allowed: isFeatureEnabled('crossStarredViewEnabled'), labelKey: 'cross_starred.label', descKey: 'cross_starred.description' },
@@ -177,142 +296,11 @@ export function LayoutSettings() {
     ? t('all_mail.account_hint', { account: activeAccount.displayName || activeAccount.email })
     : null;
 
-  const mountainView = interfaceLayout === 'mountain-view';
+  // Nothing to combine: one account, no shared mailboxes, no group inboxes.
+  if (connectedAccountCount < 2 && sharedMailAccounts.length === 0 && !hasGroupInboxes) return null;
 
   return (
-    <SettingsSection title={t('title')} description={t('description')}>
-      {/* The interface layout decides where search, navigation and toolbars
-          go - a layout choice, so it leads the Layout tab. */}
-      {!isSettingHidden('interfaceLayout') && (
-      <SettingItem label={t('interface_layout.label')} description={t('interface_layout.description')} locked={isSettingLocked('interfaceLayout')}>
-        <RadioGroup
-          value={interfaceLayout}
-          onChange={(value) => updateSetting('interfaceLayout', value as InterfaceLayout)}
-          options={[
-            { value: 'default', label: t('interface_layout.default') },
-            { value: 'mountain-view', label: t('interface_layout.mountain_view') },
-          ]}
-        />
-      </SettingItem>
-      )}
-      {/* Mountain View always shows the list and then the conversation, and
-          its toolbars are icon-only, so these two would change nothing there.
-          Their saved values stay and apply again under the default layout. */}
-      {!isSettingHidden('mailLayout') && !mountainView && (
-      <SettingItem label={tEmail('mail_layout.label')} description={tEmail('mail_layout.description')} locked={isSettingLocked('mailLayout')}>
-        <div className="w-[22rem] max-w-full">
-          <RadioGroup
-            value={mailLayout}
-            onChange={(value) => updateSetting('mailLayout', value as MailLayout)}
-            options={[
-              { value: 'split', label: tEmail('mail_layout.split') },
-              { value: 'focus', label: tEmail('mail_layout.focus') },
-              { value: 'horizontal', label: tEmail('mail_layout.horizontal') },
-            ]}
-          />
-          <MailLayoutPreview value={mailLayout} t={tEmail} />
-        </div>
-      </SettingItem>
-      )}
-
-      <SettingItem label={t('toolbar_position.label')} description={t('toolbar_position.description')}>
-        <RadioGroup
-          value={toolbarPosition}
-          onChange={(value) => updateSetting('toolbarPosition', value as ToolbarPosition)}
-          options={[
-            { value: 'top', label: t('toolbar_position.top') },
-            { value: 'below-subject', label: t('toolbar_position.below_subject') },
-          ]}
-        />
-      </SettingItem>
-
-      {!mountainView && (
-      <SettingItem label={t('toolbar_labels.label')} description={t('toolbar_labels.description')}>
-        <ToggleSwitch
-          checked={showToolbarLabels}
-          onChange={(checked) => updateSetting('showToolbarLabels', checked)}
-        />
-      </SettingItem>
-      )}
-
-      <SettingItem label={t('hide_account_switcher.label')} description={t('hide_account_switcher.description')}>
-        <ToggleSwitch
-          checked={hideAccountSwitcher}
-          onChange={(checked) => updateSetting('hideAccountSwitcher', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('show_rail_account_list.label')} description={t('show_rail_account_list.description')}>
-        <ToggleSwitch
-          checked={showRailAccountList}
-          onChange={(checked) => updateSetting('showRailAccountList', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('colorful_sidebar_icons.label')} description={t('colorful_sidebar_icons.description')}>
-        <ToggleSwitch
-          checked={colorfulSidebarIcons}
-          onChange={(checked) => updateSetting('colorfulSidebarIcons', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('tint_list_rows.label')} description={t('tint_list_rows.description')}>
-        <ToggleSwitch
-          checked={tintListRowsByTag}
-          onChange={(checked) => updateSetting('tintListRowsByTag', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('tint_list_rows_by_account.label')} description={t('tint_list_rows_by_account.description')}>
-        <ToggleSwitch
-          checked={tintListRowsByAccount}
-          onChange={(checked) => updateSetting('tintListRowsByAccount', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('show_folder_total_count.label')} description={t('show_folder_total_count.description')}>
-        <ToggleSwitch
-          checked={showFolderTotalCount}
-          onChange={(checked) => updateSetting('showFolderTotalCount', checked)}
-        />
-      </SettingItem>
-
-      <SettingItem label={t('favicon_unread_badge.label')} description={t('favicon_unread_badge.description')}>
-        <ToggleSwitch
-          checked={faviconUnreadBadge}
-          onChange={(checked) => updateSetting('faviconUnreadBadge', checked)}
-        />
-      </SettingItem>
-
-      {sharedMailAccounts.length > 0 && !isSettingHidden('showSharedMailAccounts') && (
-        <SettingItem
-          label={t('show_shared_mail_accounts.label')}
-          description={t('show_shared_mail_accounts.description')}
-          locked={isSettingLocked('showSharedMailAccounts')}
-        >
-          <ToggleSwitch
-            checked={showSharedMailAccounts}
-            onChange={(v) => updateSetting('showSharedMailAccounts', v)}
-          />
-        </SettingItem>
-      )}
-
-      {sharedMailAccounts.length > 0 && showSharedMailAccounts && activeAccountId && !isSettingHidden('showSharedMailAccounts') && (
-        <div className="ms-4 border-s-2 border-border ps-4 -mt-2" data-testid="shared-mail-account-list">
-          {sharedMailAccounts.map(({ id, name }) => (
-            <SettingItem key={id} label={name}>
-              <ToggleSwitch
-                checked={!hiddenSharedIds.includes(id)}
-                onChange={(v) => updateSetting(
-                  'hiddenSharedMailAccounts',
-                  setSharedMailAccountHidden(hiddenSharedMailAccounts, activeAccountId, id, !v),
-                )}
-              />
-            </SettingItem>
-          ))}
-        </div>
-      )}
-
+    <SettingsSection id="accounts" title={t('sections.accounts')} description={t('sections.accounts_description')}>
       {!isSettingHidden('enableUnifiedMailbox') && (
         <SettingItem
           label={t('unified_mailbox.label')}
@@ -327,59 +315,52 @@ export function LayoutSettings() {
       )}
 
       {enableUnifiedMailbox && connectedAccountCount > 1 && unifiedCrossAccountAllowed && !isSettingHidden('unifiedCrossAccount') && (
-        <div className="ml-4 border-l-2 border-border pl-4 -mt-2">
-          <SettingItem
-            label={t('unified_mailbox.cross_account.label')}
-            description={t('unified_mailbox.cross_account.description')}
-            locked={isSettingLocked('unifiedCrossAccount')}
-          >
-            <ToggleSwitch
-              checked={unifiedCrossAccount}
-              onChange={(v) => updateSetting('unifiedCrossAccount', v)}
-            />
-          </SettingItem>
-        </div>
+        <SettingItem
+          nested
+          label={t('unified_mailbox.cross_account.label')}
+          description={t('unified_mailbox.cross_account.description')}
+          locked={isSettingLocked('unifiedCrossAccount')}
+        >
+          <ToggleSwitch
+            checked={unifiedCrossAccount}
+            onChange={(v) => updateSetting('unifiedCrossAccount', v)}
+          />
+        </SettingItem>
       )}
 
       {enableUnifiedMailbox && hasGroupInboxes && !isSettingHidden('includeGroupInUnified') && (
-        <div className="ms-4 border-s-2 border-border ps-4 -mt-2">
+        <SettingItem
+          nested
+          label={t('unified_mailbox.include_group.label')}
+          description={t('unified_mailbox.include_group.description')}
+          locked={isSettingLocked('includeGroupInUnified')}
+        >
+          <ToggleSwitch
+            checked={includeGroupInUnified}
+            onChange={(v) => updateSetting('includeGroupInUnified', v)}
+          />
+        </SettingItem>
+      )}
+
+      {enableUnifiedMailbox && anyCrossAllowed && crossViews.map(({ setting, value, allowed, labelKey, descKey }) => (
+        allowed && !isSettingHidden(setting) && (
           <SettingItem
-            label={t('unified_mailbox.include_group.label')}
-            description={t('unified_mailbox.include_group.description')}
-            locked={isSettingLocked('includeGroupInUnified')}
+            key={setting}
+            nested
+            label={t(labelKey)}
+            description={t(descKey)}
+            locked={isSettingLocked(setting)}
           >
             <ToggleSwitch
-              checked={includeGroupInUnified}
-              onChange={(v) => updateSetting('includeGroupInUnified', v)}
+              checked={value}
+              onChange={(v) => updateSetting(setting, v)}
             />
           </SettingItem>
-        </div>
-      )}
-
-      {enableUnifiedMailbox && anyCrossAllowed && (
-        <div className="ms-4 border-s-2 border-border ps-4 -mt-2 space-y-2">
-
-          {crossViews.map(({ setting, value, allowed, labelKey, descKey }) => (
-            allowed && !isSettingHidden(setting) && (
-              <SettingItem
-                key={setting}
-                label={t(labelKey)}
-                description={t(descKey)}
-                locked={isSettingLocked(setting)}
-              >
-                <ToggleSwitch
-                  checked={value}
-                  onChange={(v) => updateSetting(setting, v)}
-                />
-              </SettingItem>
-            )
-          ))}
-        </div>
-      )}
+        )
+      ))}
 
       {enableUnifiedMailbox && anyCrossAllowed && anyCrossEnabled && (
-        <div className="ms-4 border-s-2 border-border ps-4 -mt-2 space-y-2">
-
+        <div className="ms-4 border-s-2 border-border ps-3 space-y-2 py-2">
           <div>
             <div className="text-sm font-medium text-foreground">{t('all_mail.folders_label')}</div>
             <div className="text-xs text-muted-foreground">{t('all_mail.folders_description')}</div>
@@ -418,7 +399,65 @@ export function LayoutSettings() {
         </div>
       )}
 
-      <SettingItem label={t('pro_interface.label')} description={t('pro_interface.description')}>
+      {/* In unified views a row needs to say which account it came from:
+          a coloured dot, or the whole row tinted. One choice, not two
+          toggles that override each other. */}
+      {connectedAccountCount > 1 && (
+        <SettingItem label={t('account_marker.label')} description={t('account_marker.description')}>
+          <RadioGroup
+            value={tintListRowsByAccount ? 'tint' : showAccountDot ? 'dot' : 'none'}
+            onChange={(value) => {
+              updateSetting('tintListRowsByAccount', value === 'tint');
+              updateSetting('showAccountDot', value === 'dot');
+            }}
+            options={[
+              { value: 'dot', label: t('account_marker.dot') },
+              { value: 'tint', label: t('account_marker.tint') },
+              { value: 'none', label: t('account_marker.none') },
+            ]}
+          />
+        </SettingItem>
+      )}
+
+      {sharedMailAccounts.length > 0 && !isSettingHidden('showSharedMailAccounts') && (
+        <SettingItem
+          label={t('show_shared_mail_accounts.label')}
+          description={t('show_shared_mail_accounts.description')}
+          locked={isSettingLocked('showSharedMailAccounts')}
+        >
+          <ToggleSwitch
+            checked={showSharedMailAccounts}
+            onChange={(v) => updateSetting('showSharedMailAccounts', v)}
+          />
+        </SettingItem>
+      )}
+
+      {sharedMailAccounts.length > 0 && showSharedMailAccounts && activeAccountId && !isSettingHidden('showSharedMailAccounts') && (
+        <div data-testid="shared-mail-account-list">
+          {sharedMailAccounts.map(({ id, name }) => (
+            <SettingItem key={id} nested label={name}>
+              <ToggleSwitch
+                checked={!hiddenSharedIds.includes(id)}
+                onChange={(v) => updateSetting(
+                  'hiddenSharedMailAccounts',
+                  setSharedMailAccountHidden(hiddenSharedMailAccounts, activeAccountId, id, !v),
+                )}
+              />
+            </SettingItem>
+          ))}
+        </div>
+      )}
+    </SettingsSection>
+  );
+}
+
+/** Experimental: the Pro interface. Advanced, since it swaps the whole shell. */
+export function ExperimentalSection() {
+  const t = useTranslations('settings.appearance');
+  const { proInterface, updateSetting } = useSettingsStore();
+  return (
+    <SettingsSection id="experimental" title={t('sections.experimental')} advanced>
+      <SettingItem label={t('pro_interface.label')} description={t('pro_interface.description')} advanced>
         <ToggleSwitch
           checked={proInterface}
           onChange={(v) => updateSetting('proInterface', v)}

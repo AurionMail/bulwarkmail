@@ -120,15 +120,25 @@ export function stripEmbeddedSignature(html: string): { html: string; hadSignatu
  * The HTML body with its embedded signature swapped for `signatureHtml` (from
  * buildEmbeddedSignatureHtml; empty for an identity without a signature).
  * The new signature goes where the old one was. A body without one - the
- * previous identity had none - gets it before the quote, or at the end when
- * there is no quote, which is where getInitialBody would have put it.
+ * previous identity had none - gets it where getInitialBody would have put
+ * it: above the quote header of a reply or forward (`quoteHeader`, the
+ * header's first line, e.g. "On ... wrote:"), else before the quote, else at
+ * the end.
  */
-export function replaceEmbeddedSignature(html: string, signatureHtml: string): string {
+export function replaceEmbeddedSignature(
+  html: string,
+  signatureHtml: string,
+  options: { quoteHeader?: string } = {},
+): string {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   let removed = removeSignatureRange(doc);
   if (!removed) {
     if (!signatureHtml) return html;
-    const quote = Array.from(doc.body.childNodes).find(isQuoteBoundary) ?? null;
+    const children = Array.from(doc.body.childNodes);
+    const header = options.quoteHeader
+      ? children.find((node) => node.textContent?.includes(options.quoteHeader!))
+      : undefined;
+    const quote = header ?? children.find(isQuoteBoundary) ?? null;
     removed = { parent: doc.body, insertBefore: quote };
   }
   const host = doc.createElement('div');
@@ -155,6 +165,25 @@ export function replacePlainTextSignature(
   if (!hadSignature && (previous?.htmlSignature || previous?.textSignature)) return body;
   const bare = hadSignature ? plainTextBodyWithoutSignature(body, previous) : body;
   return appendPlainTextSignature(bare, next, options);
+}
+
+/**
+ * replacePlainTextSignature for a plain-text reply or forward with the
+ * signature above the quote: the signature ends the part before the quote
+ * header (`quoteHeader`, its first line). A body whose header can't be found
+ * is returned unchanged.
+ */
+export function replacePlainTextSignatureAboveQuote(
+  body: string,
+  quoteHeader: string,
+  previous: SignatureIdentityLike,
+  next: SignatureIdentityLike,
+  options: { separator: boolean },
+): string {
+  const at = quoteHeader ? body.indexOf(quoteHeader) : -1;
+  if (at < 0) return body;
+  const head = body.slice(0, at).replace(/\n+$/, '');
+  return `${replacePlainTextSignature(head, previous, next, options)}\n\n${body.slice(at)}`;
 }
 
 /**

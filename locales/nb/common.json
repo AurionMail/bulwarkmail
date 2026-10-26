@@ -60,6 +60,12 @@
     "demo_login_button": "Start demoen",
     "demo_tagline": "Prøv en fullverdig e-postklient. Du trenger ingen konto.",
     "demo_no_signup": "Ingen registrering nødvendig – utforsk fritt med eksempeldata",
+    "mobile_handoff": {
+      "title": "Open the Bulwark mobile app?",
+      "description": "This sign-in page was opened by an app on this device. Your sign-in for {username} will be handed to the app that registered the Bulwark link. Continue only if you started this from the Bulwark mobile app.",
+      "confirm": "Hand over to the app",
+      "cancel": "Stay in the webmail"
+    },
     "oauth_completing": "Fullfører pålogging...",
     "oauth_error": {
       "title": "Autentisering mislyktes",
@@ -142,6 +148,8 @@
     "show_all_tags": "Vis alle ({count})",
     "show_fewer_tags": "Vis færre",
     "folders": "Mapper",
+    "your_folders": "Dine mapper",
+    "create_folder": "Opprett mappe",
     "show_more": "Mer",
     "show_fewer": "Mindre",
     "shared": "Delt",
@@ -169,18 +177,18 @@
   },
   "protocol_handlers": {
     "title": "Standardapper",
-    "description": "Velg om e-post- og kalenderlenker skal åpnes i Bulwark. Teknisk sett registrerer Bulwark seg som protokollbehandler for mailto:- og webcal:-lenker.",
+    "description": "Velg om e-post- og kalenderlenker skal åpnes i {appName}. Teknisk sett registrerer {appName} seg som protokollbehandler for mailto:- og webcal:-lenker.",
     "unsupported": "Denne nettleseren eller tilkoblingen støtter ikke manuell registrering av protokollbehandlere. Det kan hende du likevel kan velge den installerte PWA-en i innstillingene for nettleseren eller operativsystemet.",
     "mailto_label": "E-postlenker",
-    "mailto_description": "Åpne mailto:-lenker i Bulwark med et forhåndsutfylt meldingsvindu.",
+    "mailto_description": "Åpne mailto:-lenker i {appName} med et forhåndsutfylt meldingsvindu.",
     "protocol_open_mode_label": "Når mailto:- og webcal:-lenker åpnes",
-    "protocol_open_mode_description": "Velg om Bulwark skal åpne mailto:- og webcal:-lenker i en ny fane eller bruke en økt som allerede er åpen. Alternativet for aktiv økt krever tillatelse til varsler. Hvis nettleseren hindrer Bulwark i å få fokus, kan du klikke på et varsel for å vise vinduet.",
+    "protocol_open_mode_description": "Velg om {appName} skal åpne mailto:- og webcal:-lenker i en ny fane eller bruke en økt som allerede er åpen. Alternativet for aktiv økt krever tillatelse til varsler. Hvis nettleseren hindrer {appName} i å få fokus, kan du klikke på et varsel for å vise vinduet.",
     "protocol_open_mode_active_session": "Åpne i aktiv økt hvis mulig",
     "protocol_open_mode_new_tab": "Åpne alltid en ny fane",
-    "focus_notification_title": "Åpne Bulwark",
-    "focus_notification_body": "Lenken ble åpnet i Bulwark. Klikk for å vise vinduet.",
+    "focus_notification_title": "Åpne {appName}",
+    "focus_notification_body": "Lenken ble åpnet i {appName}. Klikk for å vise vinduet.",
     "webcal_label": "Kalenderlenker",
-    "webcal_description": "Åpne webcal:-lenker i Bulwark med en forhåndsutfylt dialog for kalenderabonnement.",
+    "webcal_description": "Åpne webcal:-lenker i {appName} med en forhåndsutfylt dialog for kalenderabonnement.",
     "register_mailto": "Registrer e-postprogram",
     "register_webcal": "Registrer kalenderprogram",
     "mailto_registered": "Forespørsel om registrering av e-postprogram er sendt",
@@ -188,7 +196,7 @@
     "registration_failed": "Registrering av protokollbehandler mislyktes",
     "opening_mailto": "Åpner meldingsvinduet...",
     "opening_webcal": "Åpner kalenderen...",
-    "browser_note": "Nettleseren eller operativsystemet kan be deg bekrefte dette. Det kan også hende at Bulwark må installeres før programmet kan velges som standardapp.",
+    "browser_note": "Nettleseren eller operativsystemet kan be deg bekrefte dette. Det kan også hende at {appName} må installeres før programmet kan velges som standardapp.",
     "select_account_title": "Velg konto",
     "select_mailto_account": "Velg hvilken konto som skal åpne denne e-postlenken.",
     "select_webcal_account": "Velg hvilken konto som skal åpne denne kalenderlenken.",
@@ -236,6 +244,18 @@
     "show_on_mobile": "Vis på mobil"
   },
   "email_list": {
+    "sections": {
+      "unread": "Uleste",
+      "everything_else": "Alt annet",
+      "unread_empty": "Du har lest alle meldingene i innboksen."
+    },
+    "columns": {
+      "from": "Fra",
+      "to": "Til",
+      "subject": "Emne",
+      "date": "Dato",
+      "size": "Størrelse"
+    },
     "no_emails": "Ingen meldinger funnet",
     "no_emails_description": "Denne postkassen er tom",
     "no_search_results": "Ingen resultater funnet",
@@ -621,7 +641,9 @@
       "not_in_contacts": "Ikke i kontaktene dine",
       "add_to_contacts": "Legg til som kontakt",
       "copied": "Kopiert!",
-      "copy_failed": "Kunne ikke kopiere"
+      "copy_failed": "Kunne ikke kopiere",
+      "view_contact": "Vis kontakt",
+      "view_details": "Vis detaljer"
     },
     "send_now": "Send nå",
     "verification_code": {
@@ -631,9 +653,11 @@
     },
     "mv_position": "{index} av {total}",
     "plugin_panel_show": "Vis tilleggspanel",
-    "plugin_panel_hide": "Skjul tilleggspanel"
+    "plugin_panel_hide": "Skjul tilleggspanel",
+    "copy": "Kopier"
   },
   "email_composer": {
+    "select_from_directory": "Velg fra katalog",
     "minimize": "Minimer",
     "maximize": "Fullskjerm",
     "restore": "Gjenopprett",
@@ -719,6 +743,10 @@
     "option_dsn_hint": "Få en rapport når serveren leverer den",
     "option_require_tls": "Krev kryptert levering",
     "option_require_tls_hint": "Lever bare over TLS, ellers avvis",
+    "option_priority": "Prioritet",
+    "option_priority_high": "Høy",
+    "option_priority_normal": "Normal",
+    "option_priority_low": "Lav",
     "validation": {
       "recipient_required": "Legg til minst én mottaker før du sender",
       "body_required": "Skriv en melding eller legg ved en fil",
@@ -792,6 +820,9 @@
     "autocomplete_search_server": "Søk på serveren",
     "autocomplete_searching": "Søker...",
     "mention_recipients": "Mottakere",
+    "mention_card_not_recipient": "Ikke i Til eller Kopi, så de får ikke denne meldingen.",
+    "mention_card_add": "Legg til i {field}",
+    "mention_card_remove": "Fjern omtale",
     "toolbar": {
       "bold": "Fet skrift",
       "italic": "Kursiv",
@@ -830,7 +861,9 @@
     },
     "send_filing_warning": "Meldingen ble sendt, men oppryddingen etterpå mislyktes. Et gammelt utkast kan bli liggende.",
     "pop_out": "Åpne svaret i et eget vindu",
-    "send_guard_failed": "Ikke sendt - et tillegg som sjekker meldinger før sending, feilet eller svarte ikke."
+    "send_guard_failed": "Ikke sendt - et tillegg som sjekker meldinger før sending, feilet eller svarte ikke.",
+    "cut": "Klipp ut",
+    "copy": "Kopier"
   },
   "confirm_dialog": {
     "confirm": "Bekreft",
@@ -856,9 +889,9 @@
     "app_title": "Nettpost",
     "reconnecting": "Tilkoblingen ble brutt. Forsøker å koble til på nytt...",
     "rate_limited_title": "Serveren begrenser midlertidig antall autentiseringsforsøk.",
-    "rate_limited_detail": "Bulwark har satt bakgrunnsforespørsler på pause for å unngå at kontoen blir låst. Prøver på nytt om {seconds} sekunder.",
+    "rate_limited_detail": "{appName} har satt bakgrunnsforespørsler på pause for å unngå at kontoen blir låst. Prøver på nytt om {seconds} sekunder.",
     "rate_limited_action_title": "Forespørselen er satt på pause for å unngå at kontoen blir låst.",
-    "rate_limited_action_detail": "Bulwark venter til sperreperioden på serveren er over før flere autentiserte forespørsler sendes. Prøv igjen om {seconds} sekunder.",
+    "rate_limited_action_detail": "{appName} venter til sperreperioden på serveren er over før flere autentiserte forespørsler sendes. Prøv igjen om {seconds} sekunder.",
     "pull_to_refresh": "Dra ned for å oppdatere",
     "release_to_refresh": "Slipp for å oppdatere",
     "refreshing": "Oppdaterer..."
@@ -887,6 +920,8 @@
     "emails_moved": "{count} e-poster er flyttet",
     "moved_to_mailbox": "Flyttet til {mailbox}",
     "move_failed": "Kunne ikke flytte e-posten",
+    "removed_from_folder": "Fjernet fra {mailbox}",
+    "remove_from_folder_failed": "Kunne ikke fjerne fra denne mappen",
     "emails_copied": "{count} e-poster er kopiert",
     "copy_failed": "Kunne ikke kopiere",
     "move_error": "Kunne ikke flytte e-poster til den valgte mappen",
@@ -1008,34 +1043,22 @@
     "search_no_results": "Ingen innstillinger passer med søket",
     "tabs": {
       "appearance": "Utseende",
-      "language": "Språk, region og tid",
-      "email": "E-posthåndtering",
-      "composer": "Skriving",
-      "privacy": "Personvern og sikkerhet",
       "account": "Konto",
-      "identities": "Identiteter",
       "vacation": "Fravær",
-      "advanced": "Avansert",
       "calendar": "Kalender",
       "filters": "Filtre",
-      "templates": "Maler",
       "folders": "Mapper",
-      "keywords": "Etiketter",
       "security": "Sikkerhet",
       "files": "Filer",
       "contacts": "Kontakter",
-      "encryption": "Kryptering",
-      "protocol_handlers": "Standardapper",
-      "sidebar_apps": "Apper i sidefeltet",
       "notifications": "Varsler",
-      "layout": "Oppsett",
-      "themes": "Temaer",
       "reading": "Lesing",
       "composing": "Skriving",
-      "downloads": "Nedlastinger",
-      "content_senders": "Innhold og avsendere",
-      "about_data": "Om programmet og data",
-      "debug": "Feilsøking"
+      "message_list": "Meldingsliste",
+      "general": "Generelt",
+      "organize": "Mapper og etiketter",
+      "addons": "Tillegg",
+      "backup": "Sikkerhetskopi og tilbakestilling"
     },
     "themes": {
       "title": "Temaer",
@@ -1047,18 +1070,13 @@
       "default_restored": "Standardtema gjenopprettet",
       "default_name": "Standard",
       "default_badge": "Standard",
-      "admin_enforced": "Påtvunget av administrator"
+      "admin_enforced": "Påtvunget av administrator",
+      "show_all": "Vis alle {count} temaer",
+      "show_fewer": "Vis færre"
     },
     "tab_groups": {
-      "general": "Generelt",
-      "account": "Konto og identitet",
-      "organization": "Organisering av e-post",
       "apps": "Apper",
-      "system": "System",
-      "appearance": "Utseende",
-      "mail": "E-post",
-      "privacy": "Personvern og sikkerhet",
-      "advanced": "Avansert"
+      "mail": "E-post"
     },
     "appearance": {
       "message_list_order": {
@@ -1193,10 +1211,6 @@
         "label": "Fargelegg meldingsrader etter etikett",
         "description": "Gi hver meldingsrad en svak bakgrunnsfarge basert på den første etiketten. Deaktiver dette for nøytrale rader; etikettmarkørene viser fortsatt fargen."
       },
-      "tint_list_rows_by_account": {
-        "label": "Tint List Rows by Account Color",
-        "description": "In the unified view, shade each row with its account color instead of showing the account dot. Takes precedence over the tag tint; tags keep their color on their chips."
-      },
       "show_folder_total_count": {
         "label": "Vis totalt antall meldinger",
         "description": "Vis totalt antall meldinger ved siden av mapper og etiketter, sammen med antall uleste. Deaktiver for å vise bare antall uleste."
@@ -1226,6 +1240,21 @@
       "cross_all": {
         "label": "All e-post",
         "description": "Vis All e-post i den samlede postkassen, med all e-post fra de valgte mappene."
+      },
+      "sections": {
+        "text": "Tekst og animasjon",
+        "layout": "Oppsett",
+        "sidebar": "Sidepanel",
+        "accounts": "Flere kontoer",
+        "accounts_description": "Hvordan kontoene og de delte postkassene dine vises sammen.",
+        "experimental": "Eksperimentelt"
+      },
+      "account_marker": {
+        "label": "Skill kontoene fra hverandre",
+        "description": "Marker hver melding i de samlede visningene med fargen til kontoen den kom fra.",
+        "dot": "Farget prikk",
+        "tint": "Farget rad",
+        "none": "Ingenting"
       }
     },
     "keywords": {
@@ -1245,6 +1274,7 @@
       "cancel": "Avbryt",
       "migrating": "Oppdaterer etiketten på eksisterende e-poster...",
       "migration_error": "Kunne ikke oppdatere etiketten på eksisterende e-poster",
+      "filters_migration_error": "Noen filterregler bruker fortsatt den gamle etiketten – oppdater dem manuelt",
       "nesting": {
         "label": "Nestede etiketter",
         "description": "Plasser etiketter under hverandre og vis dem som et hierarki i sidefeltet."
@@ -1355,9 +1385,7 @@
         "enabled": "Hendelsesvarsler",
         "enabled_desc": "Vis varsler for kommende kalenderhendelser",
         "sound": "Varslingslyd",
-        "sound_desc": "Spill av et lydvarsel for kalenderpåminnelser",
-        "invitation_parsing": "Les kalenderinvitasjoner i e-post",
-        "invitation_parsing_desc": "Finn kalenderinvitasjoner i e-postvedlegg og vis tilgjengelige kalenderhandlinger"
+        "sound_desc": "Spill av et lydvarsel for kalenderpåminnelser"
       }
     },
     "language_region": {
@@ -1407,6 +1435,12 @@
       }
     },
     "email_behavior": {
+      "inbox_type": {
+        "label": "Innbokstype",
+        "description": "«Uleste først» viser de 25 nyeste uleste meldingene i en egen del over resten av innboksen",
+        "default": "Standard",
+        "unread_first": "Uleste først"
+      },
       "clear_search_on_folder_change": {
         "label": "Tøm søket ved bytte av mappe",
         "description": "Å klikke på en mappe (Innboks, Sendt …) tømmer det aktive søket og viser mappen. Når det er av, beholdes søket og kjøres på nytt i mappen du bytter til."
@@ -1481,6 +1515,10 @@
         "horizontal": "Leseruten nederst",
         "horizontal_description": "Vis meldingslisten øverst og åpne den valgte meldingen i en leserute under den."
       },
+      "list_columns": {
+        "label": "Vis listen som kolonner",
+        "description": "Vis enlinjesrader som en tabell med kolonnene Fra, Emne, Dato og Størrelse under en overskrift."
+      },
       "show_preview": {
         "label": "Vis forhåndsvisningstekst",
         "description": "Vis forhåndsvisning av e-post i listen",
@@ -1489,10 +1527,6 @@
       "show_verification_codes": {
         "label": "Vis bekreftelseskoder",
         "description": "Tilby koden fra innloggings- og bekreftelses-e-poster for kopiering med ett klikk, i listen i ett døgn og i meldingen"
-      },
-      "disable_threading": {
-        "label": "Deaktiver samtalegruppering",
-        "description": "Vis e-poster som individuelle meldinger i stedet for gruppert etter samtale"
       },
       "plain_text_mode": {
         "label": "Kun ren tekst",
@@ -1622,6 +1656,13 @@
         "label": "Nevn mottakere med @",
         "description": "Når du skriver @ i meldingen, foreslås mottakerne, og fornavnet til den valgte settes inn. Enter eller Tab velger det uthevede navnet."
       },
+      "mention_adds_recipient": {
+        "label": "Kontakter i @-omtaler",
+        "description": "Når du skriver @, foreslås også kontaktene dine og personer fra katalogen. Velger du noen som ennå ikke er mottaker, legges de til i meldingen.",
+        "to": "Legg til i Til",
+        "cc": "Legg til i Kopi",
+        "off": "Bare foreslå mottakere"
+      },
       "hide_inline_image_attachments": {
         "label": "Skjul innebygde bilder i vedleggslisten",
         "description": "Bilder som er innebygd i meldingsteksten, er ikke oppført som separate vedlegg"
@@ -1660,51 +1701,15 @@
       "rtl_editing": {
         "label": "Støtte for redigering fra høyre mot venstre",
         "description": "Legger til en retningsknapp på verktøylinjen for å angi avsnitt fra venstre mot høyre eller høyre mot venstre"
-      }
-    },
-    "composer": {
-      "title": "Skriving",
-      "description": "Velg innstillinger for skriving av e-post",
-      "autosave": {
-        "label": "Intervall for automatisk lagring",
-        "description": "Hvor ofte utkast skal lagres automatisk",
-        "30s": "Hvert 30. sekund",
-        "1m": "Hvert minutt",
-        "2m": "Hvert 2. minutt",
-        "5m": "Hvert 5. minutt"
       },
-      "send_confirmation": {
-        "label": "Bekreft før sending",
-        "description": "Be om bekreftelse før du sender e-post"
+      "group_conversations": {
+        "label": "Grupper meldinger etter samtale",
+        "description": "Vis svar samlet som én samtale i stedet for som separate meldinger."
       },
-      "default_reply": {
-        "label": "Standardhandling for svar",
-        "description": "Handlingen som brukes når du klikker på «Svar»",
-        "reply": "Svar",
-        "reply_all": "Svar alle"
-      }
-    },
-    "privacy": {
-      "title": "Personvern og sikkerhet",
-      "description": "Velg innstillinger for personvern og sikkerhet",
-      "external_images": {
-        "label": "Blokker eksterne bilder",
-        "description": "Forhindre sporing gjennom eksterne bilder"
-      },
-      "session_timeout": {
-        "label": "Tidsavbrudd for økten",
-        "description": "Logg ut automatisk etter inaktivitet",
-        "never": "Aldri",
-        "30m": "30 minutter",
-        "1h": "1 time",
-        "4h": "4 timer"
-      },
-      "clear_cache": {
-        "label": "Tøm hurtigbuffer",
-        "description": "Fjern data i hurtigbufferen og midlertidige filer",
-        "button": "Tøm hurtigbuffer",
-        "confirm": "Er du sikker på at du vil tømme hurtigbufferen?",
-        "success": "Hurtigbufferen er tømt"
+      "signatures_link": {
+        "label": "Signaturer",
+        "description": "Hver e-postadresse har sin egen signatur. Rediger dem sammen med adressene dine.",
+        "button": "E-postadresser"
       }
     },
     "account": {
@@ -1750,6 +1755,7 @@
       "backup": {
         "title": "Account list backup",
         "description": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. Mailbox passwords are not saved: you sign in to each restored account yourself.",
+        "description_passwords": "Keep the list of accounts in this browser on the server, encrypted with a password only you know, and bring it back on another device. You can include the mailbox passwords, so the restored accounts sign in by themselves.",
         "status_none": "No list is saved for {account}.",
         "status_saved": "A list is saved for {account}.",
         "save": "Save list",
@@ -1761,9 +1767,15 @@
         "password_hint": "At least 10 characters. It cannot be recovered: if you forget it, save the list again with a new one.",
         "restore_hint": "The password chosen when the list was saved.",
         "confirm": "Confirm password",
+        "include_passwords": "Include mailbox passwords",
+        "include_passwords_hint": "Accounts signed in here with a password will sign in by themselves after a restore. Anyone who knows the backup password gets into every mailbox in the list.",
         "saved": "List saved ({count, plural, one {# account} other {# accounts}}).",
         "restored": "Accounts added: {added}. Accounts already here and updated: {updated}. Open each new account from the account list to sign in.",
+        "restored_signed_in": "Accounts added: {added}. Accounts already here and updated: {updated}.",
         "skipped": "{count, plural, one {# account was} other {# accounts were}} not added: the account limit is reached.",
+        "saved_passwords": "Passwords included for {count, plural, one {# account} other {# accounts}}.",
+        "signed_in": "Signed in to {count, plural, one {# account} other {# accounts}} with the saved password.",
+        "sign_in_failed": "{count, plural, one {# saved password was} other {# saved passwords were}} refused: sign in to those accounts from the account list.",
         "deleted": "Saved list deleted.",
         "errors": {
           "mismatch": "The passwords do not match.",
@@ -1778,6 +1790,9 @@
         "title": "Delt med meg",
         "description": "Gruppekontoer og delte kontoer du kan administrere. Velg en konto for å redigere filtre, feriesvar, kalendere og kontakter.",
         "shared_label": "Delt konto"
+      },
+      "sections": {
+        "addresses": "E-postadresser"
       }
     },
     "scoped": {
@@ -1929,10 +1944,14 @@
         "link_another": "Koble til en annen enhet",
         "use_sso": "Bruk enkel pålogging i stedet",
         "error_insecure_server": "Mobilappen kobler bare til e-postservere over https, og denne bruker http."
+      },
+      "sections": {
+        "devices": "Andre apper og enheter",
+        "devices_description": "Bruk e-posten din utenfor denne nettleseren.",
+        "encryption": "Kryptering"
       }
     },
     "identities": {
-      "title": "Avsenderidentiteter",
       "description": "Administrer e-postadresser du kan sende fra",
       "identities_count": {
         "label": "Dine identiteter",
@@ -2050,6 +2069,11 @@
       "new_folder_name": "Mappenavn",
       "rename": "Gi nytt navn",
       "change_icon": "Endre ikon",
+      "count_mode": "Teller for {name}",
+      "count_mode_default": "Teller: standard",
+      "count_mode_unread": "Bare uleste",
+      "count_mode_all": "Uleste og totalt",
+      "count_mode_none": "Ingen teller",
       "delete": "Slett",
       "confirm_delete": "Er du sikker på at du vil slette «{name}»? E-postene i denne mappen flyttes til papirkurven.",
       "create": "Opprett",
@@ -2068,8 +2092,6 @@
       "error_role": "Kunne ikke oppdatere mapperollen"
     },
     "advanced": {
-      "title": "Avansert",
-      "description": "Avanserte alternativer og utviklerinnstillinger",
       "debug_mode": {
         "label": "Feilsøkingsmodus",
         "description": "Aktiver detaljert logging for feilsøking"
@@ -2099,7 +2121,11 @@
       },
       "sender_favicons": {
         "label": "Nettstedsikoner for avsendere",
-        "description": "Vis nettstedsikoner som profilbilder for bedriftsavsendere"
+        "description": "Vis nettstedsikoner som profilbilder for bedriftsavsendere",
+        "refresh_label": "Oppdater avsenderikoner",
+        "refresh_description": "Hent nettstedikonene på nytt, for eksempel når en avsender har byttet ikon",
+        "refresh_button": "Oppdater",
+        "refresh_done": "Avsenderikonene hentes på nytt"
       },
       "show_avatars_in_junk": {
         "label": "Vis profilbilder i søppelpostmappen",
@@ -2159,6 +2185,12 @@
           "delivered": "Levert",
           "mistakes": "Feil"
         }
+      },
+      "sections": {
+        "backup": "Sikkerhetskopi av innstillinger",
+        "backup_description": "Behold innstillingene dine på tvers av nettlesere og enheter.",
+        "fix": "Løs problemer",
+        "fix_description": "Når en visning ser utdatert eller feil ut, eller du vil starte på nytt."
       }
     },
     "sidebar_apps": {
@@ -2489,6 +2521,41 @@
       "preview": {
         "label": "Forhåndsvisning"
       }
+    },
+    "advanced_switch": {
+      "label": "Vis avanserte innstillinger",
+      "show": "Vis avanserte innstillinger",
+      "badge": "Avansert",
+      "hidden_count": "{count, plural, one {1 avansert innstilling er skjult på denne siden.} other {# avanserte innstillinger er skjult på denne siden.}}"
+    },
+    "message_list": {
+      "title": "Meldingsliste",
+      "description": "Hva listen viser, og hva et klikk eller sveip gjør.",
+      "sections": {
+        "senders": "Avsenderbilder",
+        "actions": "Hurtighandlinger",
+        "delete": "Sletting og arkivering",
+        "loading": "Lasting og søk"
+      }
+    },
+    "reading_page": {
+      "title": "Lesing",
+      "description": "Den åpne meldingen.",
+      "sections": {
+        "display": "Meldingsvisning",
+        "images": "Bilder og eksternt innhold",
+        "images_description": "Eksterne bilder kan fortelle avsenderen at du åpnet e-posten.",
+        "attachments": "Vedlegg"
+      }
+    },
+    "composing_page": {
+      "title": "Skriving",
+      "description": "Skrive, svare og sende.",
+      "sections": {
+        "replying": "Svar",
+        "sending": "Før sending",
+        "receipts": "Lesebekreftelser"
+      }
     }
   },
   "errors": {
@@ -2520,6 +2587,7 @@
     "unpin": "Løsne",
     "move_to": "Flytt til...",
     "copy_to_account": "Kopier til konto...",
+    "remove_from_folder": "Fjern fra denne mappen",
     "archive": "Arkiver",
     "delete": "Slett",
     "mark_as_spam": "Rapporter som søppelpost",
@@ -2617,7 +2685,9 @@
       "previous_email": "Forrige e-post",
       "open_email": "Åpne e-post",
       "close_email": "Lukk / fjern valget",
-      "go_to_folder": "Gå til mappe"
+      "go_to_folder": "Gå til mappe",
+      "next_unread": "Neste uleste e-post",
+      "no_more_unread": "Det er ingen flere uleste e-poster lenger ned i listen"
     },
     "actions": {
       "reply": "Svar",
@@ -2636,7 +2706,8 @@
       "help": "Vis tastatursnarveier",
       "refresh": "Oppdater e-poster",
       "select_all": "Velg alle",
-      "global_search": "Søk i alt"
+      "global_search": "Søk i alt",
+      "extend_selection": "Utvid markeringen ned / opp"
     },
     "threads": {
       "expand_collapse": "Utvid eller fold sammen tråden",
@@ -2750,11 +2821,57 @@
       "recipient_name": "Mottakerens navn",
       "company": "Selskapsnavn",
       "date": "Gjeldende dato",
+      "short_date": "Dato med tall",
+      "day": "Dag (to sifre)",
+      "month": "Måned (to sifre)",
+      "year": "År",
       "day_of_week": "Ukedag",
       "sender_name": "Navnet ditt"
     }
   },
   "contacts": {
+    "directory": {
+      "title": "Katalog",
+      "search_placeholder": "Søk etter navn eller e-postadresse",
+      "refresh": "Oppdater katalog",
+      "retry": "Prøv igjen",
+      "loading": "Laster katalog…",
+      "unavailable_title": "Ingen katalog",
+      "unavailable_hint": "E-postserveren din tilbyr ikke en katalog over kontoer.",
+      "forbidden_title": "Katalog ikke tilgjengelig",
+      "forbidden_hint": "E-postserveren din lar ikke denne kontoen bla gjennom katalogen. Spør administratoren.",
+      "error_title": "Kunne ikke laste katalogen",
+      "error_hint": "Sjekk tilkoblingen og prøv igjen.",
+      "empty_title": "Katalogen er tom",
+      "empty_hint": "E-postserveren din viser ingen kontoer med e-postadresse.",
+      "no_match": "Ingen i katalogen samsvarer med søket",
+      "refresh_failed": "Kunne ikke oppdatere katalogen. Viser sist lastede liste.",
+      "select_page": "Velg alle på denne siden",
+      "deselect_page": "Fjern valg på denne siden",
+      "select_entry": "Velg {name}",
+      "range": "{from}–{to} av {total}",
+      "page": "Side {page} av {count}",
+      "previous_page": "Forrige side",
+      "next_page": "Neste side",
+      "picker_title": "Velg fra katalog",
+      "cancel": "Avbryt",
+      "selected_count": "{count} valgt",
+      "add_to": "Legg til i Til",
+      "add_cc": "Legg til i Kopi",
+      "add_bcc": "Legg til i Blindkopi",
+      "select_hint": "Velg en person for å se detaljer",
+      "write_email": "Skriv e-post",
+      "add_to_contacts": "Legg til i kontakter",
+      "email": "E-post",
+      "read_only_note": "Oppføringene kommer fra e-postserveren din og kan ikke redigeres her.",
+      "type": {
+        "individual": "Person",
+        "group": "Gruppe",
+        "resource": "Ressurs",
+        "location": "Sted",
+        "other": "Annet"
+      }
+    },
     "title": "Kontakter",
     "search_placeholder": "Søk etter kontakter...",
     "create_new": "Ny kontakt",
@@ -3983,7 +4100,8 @@
     "demo_banner_title": "Demokontroller",
     "demo_banner_desc": "Du er i demomodus – alt forblir i nettleseren. Trykk på «Tilbakestill demo» når som helst for å begynne på nytt med nye eksempeldata.",
     "quota_title": "Lagringsbruk",
-    "quota_desc": "Følg med på størrelsen på postkassen her. Sirkelen fylles opp etter hvert som du bruker mer plass."
+    "quota_desc": "Følg med på størrelsen på postkassen her. Sirkelen fylles opp etter hvert som du bruker mer plass.",
+    "settings_section": "Kom i gang"
   },
   "unified_mailbox": {
     "search_unavailable": "Søk er ikke tilgjengelig i den samlede visningen"
@@ -4345,7 +4463,7 @@
       },
       "http_proxy": {
         "title": "Bruke kontoer du kobler til",
-        "body": "Sende forespørsler via Bulwarks server med en konto eller nøkkel som du eller administratoren din har satt opp. Tillegget ser aldri passordet, men det kan gjøre alt den kontoen kan gjøre på sin egen server."
+        "body": "Sende forespørsler via {appName}s server med en konto eller nøkkel som du eller administratoren din har satt opp. Tillegget ser aldri passordet, men det kan gjøre alt den kontoen kan gjøre på sin egen server."
       }
     },
     "dialog": {
@@ -4362,9 +4480,9 @@
     },
     "connect": {
       "title": "Koble til {label}",
-      "intro_password": "{name} vil bruke kontoen din hos {label}. Bulwark lagrer passordet på sin server og sender det bare til {host}. Tillegget ser det aldri.",
-      "intro_password_any": "{name} vil bruke kontoen din hos {label}. Bulwark lagrer passordet på sin server og sender det bare til serveren du skriver inn her. Tillegget ser det aldri.",
-      "intro_signin": "{name} vil logge på kontoen din hos {label}. Skriv inn serveren her, og logg deretter på via serverens egen side. Bulwark lagrer tilgangen det får, på sin server; tillegget ser den aldri.",
+      "intro_password": "{name} vil bruke kontoen din hos {label}. {appName} lagrer passordet på sin server og sender det bare til {host}. Tillegget ser det aldri.",
+      "intro_password_any": "{name} vil bruke kontoen din hos {label}. {appName} lagrer passordet på sin server og sender det bare til serveren du skriver inn her. Tillegget ser det aldri.",
+      "intro_signin": "{name} vil logge på kontoen din hos {label}. Skriv inn serveren her, og logg deretter på via serverens egen side. {appName} lagrer tilgangen det får, på sin server; tillegget ser den aldri.",
       "server": "Serveradresse",
       "server_hint": "cloud.example.com",
       "username": "Brukernavn",
@@ -4411,8 +4529,7 @@
     "loading": "Laster inn siden",
     "not_available_title": "Denne siden er ikke tilgjengelig",
     "not_available_description": "Tillegget som la den til, er slått av eller ikke lenger installert.",
-    "back_to_mail": "Tilbake til e-post",
-    "settings_group": "Tillegg"
+    "back_to_mail": "Tilbake til e-post"
   },
   "command_palette": {
     "title": "Kommandopalett",

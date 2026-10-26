@@ -4,6 +4,7 @@ import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { CREDENTIAL_ID_RE, checkInject, credentialOrigin } from '@/lib/plugin-secrets/credentials';
 import { adminCredentialOrigins, adminCredentialStatus } from '@/lib/plugin-secrets/proxy';
+import { declaredUserCredential } from '@/lib/plugin-secrets/known-plugins';
 import {
   VaultFullError,
   deleteUserCredentials,
@@ -76,9 +77,17 @@ export async function POST(request: NextRequest) {
   if (username !== undefined && (typeof username !== 'string' || username.length > 256 || /[\r\n]/.test(username))) return bad('Invalid username');
   if (secret !== undefined && (typeof secret !== 'string' || !secret || secret.length > MAX_SECRET_LENGTH || /[\r\n]/.test(secret))) return bad('Invalid secret');
 
+  // A credential belongs to a plugin this server knows declares it: without
+  // that, any signed-in user could park a secret under a made-up plugin id
+  // and use the proxy as a relay to any server. The manifest's own inject
+  // and, when fixed, its origin are what count, not what the browser sent.
+  const spec = await declaredUserCredential(pluginId, credentialId);
+  if (!spec) return NextResponse.json({ error: 'No such plugin credential' }, { status: 404 });
+  if (spec.origin && credentialOrigin(spec.origin) !== origin) return bad('This credential is only for the server its plugin names');
+
   try {
     await putUserCredential(user, pluginId, credentialId, {
-      origin, inject, label: label.trim(),
+      origin, inject: spec.inject, label: label.trim(),
       ...(typeof username === 'string' && username ? { username } : {}),
       ...(typeof secret === 'string' ? { secret } : {}),
     });

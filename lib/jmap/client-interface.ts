@@ -5,6 +5,7 @@ import type { SortLevel } from "@/lib/message-list-order";
 import type { AccountInfo } from "./types";
 import type { SearchSnippetResult } from "@/lib/search-snippet";
 import type { StorageQuota } from "@/lib/quota";
+import type { MessagePriority } from "@/lib/message-priority";
 
 /** What `migrateKeyword` managed to do. */
 export interface KeywordMigration {
@@ -108,11 +109,15 @@ export interface IJMAPClient {
 
   // ── Capabilities ──────────────────────────────────────────────
   getCapabilities(): Record<string, unknown>;
+  /** Account-scoped session capability data; primary account by default. */
+  getAccountCapability?(capability: string, accountId?: string): unknown;
   hasAccountCapability(capability: string, accountId?: string): boolean;
   /** How the session describes an account; null when it doesn't list the id. */
   getAccountInfo(accountId: string): AccountInfo | null;
   /** Whether sender and subject sorted lists of the account keep the server's order (Stalwart 1.0). */
   keepsServerTextOrder?(accountId?: string): boolean;
+  /** The value of an account capability (primary account by default). */
+  getAccountCapability?(capability: string, accountId?: string): unknown;
   /** FileNode naming rules the server publishes (Stalwart 0.16.6+), if any. */
   getFileNameRules?(accountId?: string): FileNameRules | null;
   /** How deep a FileNode may sit (Stalwart 1.0: 64), or null for no limit. */
@@ -133,6 +138,8 @@ export interface IJMAPClient {
   supportsEmailSubmission(): boolean;
   supportsQuota(): boolean;
   supportsVacationResponse(): boolean;
+  /** Whether the user may use a capability's methods with an account (its accountCapabilities). */
+  accountSupports(accountId: string, capability: string): boolean;
   supportsContacts(): boolean;
   supportsCalendars(): boolean;
   supportsSieve(): boolean;
@@ -346,6 +353,12 @@ export interface IJMAPClient {
     accountId?: string,
   ): Promise<void>;
   moveEmail(emailId: string, toMailboxId: string, accountId?: string): Promise<void>;
+  /**
+   * Take messages out of one mailbox and leave every other mailbox they are
+   * in alone (a `mailboxIds/<id>: null` patch). A message must stay in at
+   * least one mailbox, so the server refuses this for a message only in it.
+   */
+  removeEmailsFromMailbox(emailIds: string[], mailboxId: string, accountId?: string): Promise<void>;
   emptyMailbox(mailboxId: string, accountId?: string): Promise<number>;
   moveMailboxContents(fromMailboxId: string, toMailboxId: string, accountId?: string, markAsRead?: boolean): Promise<number>;
   markMailboxAsRead(mailboxId: string, accountId?: string): Promise<number>;
@@ -371,12 +384,26 @@ export interface IJMAPClient {
     attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>,
     fromName?: string,
     htmlBody?: string,
-    // The account the previous version (`draftId`) lives in, when it is not
-    // the client's own; the new version is always saved in the own account.
-    draftAccountId?: string,
     inReplyTo?: string[],
     references?: string[],
+    /**
+     * `priority`: Importance / X-Priority headers, so a re-opened draft keeps
+     * its priority (#970). `accountId`: the account to save the draft in
+     * (default: the account that owns the From identity, see
+     * resolveSendAccountId). `previousDraftAccountId`: where `draftId` lives,
+     * so the replaced version is destroyed there (default: the primary
+     * account). Draft ids are only unique within one account.
+     */
+    options?: { priority?: MessagePriority; accountId?: string; previousDraftAccountId?: string },
   ): Promise<string>;
+
+  /**
+   * The account a message From `fromEmail` is created, submitted and filed in:
+   * a group/shared account that owns an identity for the address, else the
+   * primary account (#1090). Optional: without it drafts stay in the primary
+   * account.
+   */
+  resolveSendAccountId?(fromEmail?: string): Promise<string>;
 
   sendEmail(
     to: string[],
@@ -399,9 +426,10 @@ export interface IJMAPClient {
     envelopeMailFrom?: string,
     // requestDsn / requireTls map to RFC 3461 / RFC 8689 envelope parameters
     // and need the matching `submissionExtensions` entry (see
-    // supportsSubmissionExtension). `draftAccountId` is the account `draftId`
-    // lives in, when it is not the client's own (see createDraft).
-    options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; draftAccountId?: string },
+    // supportsSubmissionExtension).
+    // `draftAccountId`: the account `draftId` lives in, so the sent draft is
+    // destroyed there (default: the primary account).
+    options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority; draftAccountId?: string },
   ): Promise<SendEmailResult>;
   /** Whether the submission account advertises an SMTP extension ("DSN", "REQUIRETLS", …). */
   supportsSubmissionExtension?(extension: string, accountId?: string): boolean;
@@ -575,9 +603,10 @@ export interface IJMAPClient {
 
   // ── Sharing (RFC 9670 Principals) ─────────────────────────────
   supportsPrincipals(): boolean;
-  getPrincipals(targetAccountId?: string): Promise<Principal[]>;
+  /** Errors are logged and yield [] unless `throwOnError` (PrincipalsRequestError). */
+  getPrincipals(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<Principal[]>;
   // The same list with how complete it is. Optional (demo client).
-  listPrincipals?(targetAccountId?: string): Promise<PrincipalListing>;
+  listPrincipals?(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<PrincipalListing>;
   setCalendarShare(calendarId: string, principalId: string, rights: CalendarRights | null, targetAccountId?: string): Promise<void>;
   setAddressBookShare(addressBookId: string, principalId: string, rights: AddressBookRights | null, targetAccountId?: string): Promise<void>;
   setFileNodeShare(fileNodeId: string, principalId: string, rights: FileNodeRights | null, targetAccountId?: string): Promise<void>;

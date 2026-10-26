@@ -256,6 +256,19 @@ describe('composer recipient validation', () => {
     expect(toastError).toHaveBeenCalledWith('validation.invalid_recipients');
   });
 
+  it('does not send a group whose member is not an address and names the member', async () => {
+    const onSend = vi.fn();
+    render(<EmailComposer initialData={{ ...DRAFT, to: 'Team: bob@example.com, junk;' }} onSend={onSend} />);
+
+    expect(screen.getByText('Team (2)').closest('[data-invalid]')).not.toBeNull();
+
+    fireEvent.click(sendButton());
+    await act(async () => {});
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(toastError).toHaveBeenCalledWith('validation.invalid_recipients');
+  });
+
   it('sends when every recipient is an address', async () => {
     const onSend = vi.fn();
     render(<EmailComposer initialData={{ ...DRAFT, to: 'bob@example.com' }} onSend={onSend} />);

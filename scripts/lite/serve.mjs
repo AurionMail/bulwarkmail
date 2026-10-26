@@ -23,7 +23,7 @@
 import { createServer, request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
-import { extname, join, normalize, resolve } from "node:path";
+import { extname, join, normalize, resolve, sep } from "node:path";
 import { LITE_SURFACES, collectZipEntries, emulateStalwartRequest, isReservedStalwartSegment, listZipEntries, readZipEntry } from "./lib.mjs";
 
 const flags = process.argv.slice(2).filter((a) => a.startsWith("--"));
@@ -61,9 +61,17 @@ function send(res, file, status = 200) {
 }
 
 function fileFor(pathname) {
-  const rel = normalize(decodeURIComponent(pathname)).replace(/^[/\\]+/, "");
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null; // a malformed escape is a 404, not an uncaught URIError
+  }
+  const rel = normalize(decoded).replace(/^[/\\]+/, "");
   const direct = join(root, rel);
-  if (!direct.startsWith(root)) return null;
+  // Inside the export directory itself, not a sibling that shares its name
+  // as a prefix (`out` vs `out-old`).
+  if (direct !== root && !direct.startsWith(root + sep)) return null;
   if (existsSync(direct) && statSync(direct).isFile()) return direct;
   const index = join(direct, "index.html");
   if (existsSync(index)) return index;

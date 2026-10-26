@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  BookUser,
-  Calendar,
+  CalendarEvent,
+  Folder,
   Grid3x3,
-  HardDrive,
+  Users,
   HelpCircle,
   Mail,
   Menu,
@@ -150,13 +150,13 @@ export function MvTopBar({
   const apps: Array<{ id: string; icon: AppIconType; label: string; href: string }> = [
     { id: "mail", icon: Mail, label: t("mail"), href: "/" },
     ...(supportsCalendar && calendarEnabled
-      ? [{ id: "calendar", icon: Calendar, label: t("calendar"), href: "/calendar" }]
+      ? [{ id: "calendar", icon: CalendarEvent, label: t("calendar"), href: "/calendar" }]
       : []),
     ...((client?.supportsContacts() ?? false) && contactsEnabled
-      ? [{ id: "contacts", icon: BookUser, label: t("contacts"), href: "/contacts" }]
+      ? [{ id: "contacts", icon: Users, label: t("contacts"), href: "/contacts" }]
       : []),
     ...((client?.supportsFiles() ?? false) && filesEnabled
-      ? [{ id: "files", icon: HardDrive, label: t("files"), href: "/files" }]
+      ? [{ id: "files", icon: Folder, label: t("files"), href: "/files" }]
       : []),
     { id: "settings", icon: Settings, label: t("settings"), href: "/settings" },
   ];

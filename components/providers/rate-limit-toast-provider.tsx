@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useConfig } from '@/hooks/use-config';
+import { productName } from '@/lib/product-name';
 import { toast } from '@/stores/toast-store';
 
 type RateLimitBlockedDetail = {
@@ -10,6 +12,7 @@ type RateLimitBlockedDetail = {
 
 export function RateLimitToastProvider({ children }: { children: React.ReactNode }) {
   const tCommon = useTranslations('common');
+  const appName = productName(useConfig().appName);
 
   useEffect(() => {
     const onRateLimitBlocked = (event: Event) => {
@@ -18,13 +21,13 @@ export function RateLimitToastProvider({ children }: { children: React.ReactNode
 
       toast.warning(
         tCommon('rate_limited_action_title'),
-        tCommon('rate_limited_action_detail', { seconds }),
+        tCommon('rate_limited_action_detail', { seconds, appName }),
       );
     };
 
     window.addEventListener('bulwark:rate-limit-blocked', onRateLimitBlocked);
     return () => window.removeEventListener('bulwark:rate-limit-blocked', onRateLimitBlocked);
-  }, [tCommon]);
+  }, [tCommon, appName]);
 
   return <>{children}</>;
 }

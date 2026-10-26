@@ -207,6 +207,8 @@ function isSafeEntrypoint(value: string): boolean {
 }
 
 const VERSION_RE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+/** What an extension version looks like, for callers that take one from a request. */
+export const EXTENSION_VERSION_RE = /^(?=.{1,64}$)\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
 /** Compare dotted versions numerically; pre-release tags are ignored. */
 export function compareVersions(a: string, b: string): number {

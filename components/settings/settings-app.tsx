@@ -12,28 +12,18 @@ import {
   Search,
   User,
   Shield,
-  UserPen,
   PalmtreeIcon,
   Calendar,
   Filter,
-  FileText,
   FolderOpen,
-  Tags,
   HardDrive,
   BookUser,
-  PanelLeftClose,
   Bell,
   Puzzle,
-  LayoutGrid,
-  Link as LinkIcon,
   BookOpen,
   PenLine,
-  EyeOff,
-  Languages,
-  Info,
-  Bug,
-  SwatchBook,
-  Download,
+  LayoutList,
+  Database,
   X,
   type AppIcon,
 } from '@/components/icons';
@@ -41,35 +31,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppearanceSettings } from '@/components/settings/appearance-settings';
 import { AppTopBannerSlot } from '@/components/plugins/app-top-banner-slot';
-import { LayoutSettings } from '@/components/settings/layout-settings';
-import { LanguageSettings } from '@/components/settings/language-settings';
+import { GeneralSettings } from '@/components/settings/general-settings';
 import { ReadingSettings } from '@/components/settings/reading-settings';
+import { MessageListSettings } from '@/components/settings/message-list-settings';
 import { ComposingSettings } from '@/components/settings/composing-settings';
-import { ContentSendersSettings } from '@/components/settings/content-senders-settings';
 import { AccountSettings } from '@/components/settings/account-settings';
-import { IdentitySettings } from '@/components/settings/identity-settings';
 import { VacationSettings } from '@/components/settings/vacation-settings';
 import { CalendarSettings } from '@/components/settings/calendar-settings';
 import { CalendarManagementSettings } from '@/components/settings/calendar-management-settings';
 import { AddressBookManagementSettings } from '@/components/settings/address-book-management-settings';
 import { FilterSettings } from '@/components/settings/filter-settings';
-import { TemplateSettings } from '@/components/settings/template-settings';
-import { AboutDataSettings } from '@/components/settings/about-data-settings';
-import { DebugSettings } from '@/components/settings/debug-settings';
-import { FolderSettings } from '@/components/settings/folder-settings';
-import { KeywordSettings } from '@/components/settings/keyword-settings';
+import { AboutDataSettings, AboutFooter } from '@/components/settings/about-data-settings';
+import { OrganizeSettings } from '@/components/settings/organize-settings';
 import { AccountSecuritySettings } from '@/components/settings/account-security-settings';
 import { FilesSettingsComponent } from '@/components/settings/files-settings';
-import { DownloadsSettings } from '@/components/settings/downloads-settings';
 import { ContactsSettings } from '@/components/settings/contacts-settings';
-import { SidebarAppsSettings } from '@/components/settings/sidebar-apps-settings';
+import { AddonsSettings } from '@/components/settings/addons-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
-import { ThemesSettings } from '@/components/settings/themes-settings';
-import { PluginsSettings } from '@/components/settings/plugins-settings';
 import { PluginIframeSlot } from '@/components/plugins/plugin-iframe-slot';
 import { offersForSlot as pluginOffersForSlot, subscribe as pluginRegistrySubscribe, get as getActivePlugin } from '@/lib/plugin-sandbox/registry';
-import { ProtocolHandlerSettings } from '@/components/settings/protocol-handler-settings';
-import { appPath, buildSettingsPath, parseSettingsPath } from '@/lib/deep-links';
+import { AdvancedSettingsProvider, AdvancedSettingsSwitch, SectionNav, scrollToSettingsSection } from '@/components/settings/settings-section';
+import { appPath, buildSettingsPath, parseSettingsPath, parseSettingsSection } from '@/lib/deep-links';
 import { consumePendingDeepLink, subscribePendingDeepLink } from '@/lib/deep-link-handoff';
 import { useDeepLinkUrl } from '@/hooks/use-deep-link-url';
 import { useProInterfaceActive } from '@/components/pro/pro-interface-redirect';
@@ -89,7 +71,7 @@ import { useIsEmbedded } from '@/hooks/use-is-embedded';
 import { useIsFocusedProTab } from '@/hooks/use-pane-context';
 import { ResizeHandle } from '@/components/layout/resize-handle';
 import { useConfig } from '@/hooks/use-config';
-import { IS_LITE } from '@/lib/lite';
+import { productName } from '@/lib/product-name';
 import { usePolicyStore } from '@/stores/policy-store';
 import { cn } from '@/lib/utils';
 import {
@@ -97,9 +79,11 @@ import {
   type SubResult,
   collectSubResults,
   flattenStrings,
+  withAppName,
   getByPath,
   tabKeywords,
   tabSearchPaths,
+  archiveActionSearchPaths,
 } from '@/lib/settings-search';
 import { useLiteLinkSegments } from '@/hooks/use-lite-link-segments';
 import { useDocumentTitle } from '@/hooks/use-document-title';
@@ -108,7 +92,9 @@ import { useMountainViewShell } from "@/hooks/use-mountain-view-shell";
 
 type Tab = SettingsSearchTab;
 
-type TabGroup = 'general' | 'appearance' | 'mail' | 'privacy' | 'apps' | 'plugins' | 'advanced';
+// `top` and `bottom` have no heading: the first five pages, and Backup & reset
+// after a rule at the end.
+type TabGroup = 'top' | 'mail' | 'apps' | 'bottom';
 
 // A plugin that exposes a `settings-section` slot gets its own first-class
 // Settings entry, keyed `plugin:<id>`, so its UI (e.g. S/MIME key import) is
@@ -125,43 +111,86 @@ interface TabDef {
   label: string;
   icon: AppIcon;
   group: TabGroup;
+  /** Indented under the entry before it (plugin pages under Add-ons). */
+  sub?: boolean;
 }
 
 const tabIcons: Record<Tab, AppIcon> = {
   account: User,
-  language: Languages,
+  general: SettingsIcon,
   notifications: Bell,
   appearance: Palette,
-  layout: LayoutGrid,
+  message_list: LayoutList,
   reading: BookOpen,
   composing: PenLine,
-  downloads: Download,
-  identities: UserPen,
   vacation: PalmtreeIcon,
   filters: Filter,
-  templates: FileText,
-  folders: FolderOpen,
-  keywords: Tags,
+  organize: FolderOpen,
   security: Shield,
-  content_senders: EyeOff,
   calendar: Calendar,
   contacts: BookUser,
   files: HardDrive,
-  protocol_handlers: LinkIcon,
-  sidebar_apps: PanelLeftClose,
-  about_data: Info,
-  themes: SwatchBook,
-  plugins: Puzzle,
-  debug: Bug,
+  addons: Puzzle,
+  backup: Database,
 };
 
-const tabGroupOrder: TabGroup[] = ['general', 'appearance', 'mail', 'privacy', 'apps', 'plugins', 'advanced'];
+const tabGroupOrder: TabGroup[] = ['top', 'mail', 'apps', 'bottom'];
 
-// Map legacy tab IDs to current ones; runs once on read of localStorage.
-const LEGACY_TAB_MAP: Record<string, Tab> = {
+// Map legacy tab IDs to current ones; runs once on read of localStorage and
+// for every deep link, so old bookmarks, connector links and sidebar gears
+// land on the page that now holds the setting.
+export const LEGACY_TAB_MAP: Record<string, Tab> = {
   email: 'reading',
-  advanced: 'about_data',
+  advanced: 'backup',
+  layout: 'appearance',
+  themes: 'appearance',
+  content_senders: 'reading',
+  identities: 'account',
+  language: 'general',
+  protocol_handlers: 'general',
+  templates: 'composing',
+  folders: 'organize',
+  keywords: 'organize',
+  downloads: 'reading',
+  sidebar_apps: 'addons',
+  plugins: 'addons',
+  about_data: 'backup',
+  debug: 'backup',
 };
+
+// Where on the new page a legacy tab's settings now sit, so an old link
+// lands on that section rather than at the top of the page.
+const LEGACY_SECTION_MAP: Record<string, string> = {
+  layout: 'layout',
+  themes: 'theme',
+  content_senders: 'images',
+  identities: 'addresses',
+  language: 'language',
+  protocol_handlers: 'links',
+  templates: 'templates',
+  folders: 'folders',
+  keywords: 'tags',
+  downloads: 'downloads',
+  sidebar_apps: 'sidebar-apps',
+  plugins: 'plugins',
+  about_data: 'backup',
+  debug: 'debug',
+};
+
+/** A tab and, optionally, the section of it a link or event names. */
+interface SettingsTarget {
+  tab: SettingsTabId;
+  section: string | null;
+}
+
+/**
+ * Migrates a legacy tab id to the page and section that hold it now. An
+ * explicit section wins over the legacy one.
+ */
+function migrateTarget(raw: string, section: string | null = null): { tab: string; section: string | null } {
+  const tab = raw in LEGACY_TAB_MAP ? LEGACY_TAB_MAP[raw] : raw;
+  return { tab, section: section ?? (raw in LEGACY_SECTION_MAP ? LEGACY_SECTION_MAP[raw] : null) };
+}
 
 function readPersistedTab(): SettingsTabId {
   try {
@@ -192,13 +221,13 @@ function readPersistedTab(): SettingsTabId {
  * renamed falls back to the persisted tab rather than rendering an empty pane.
  * Legacy ids are migrated the same way the stored value is.
  */
-function tabFromDeepLink(segments: string[] | null | undefined): SettingsTabId | null {
+function targetFromDeepLink(segments: string[] | null | undefined): SettingsTarget | null {
   const raw = parseSettingsPath(segments ?? []);
   if (!raw) return null;
-  const migrated = raw in LEGACY_TAB_MAP ? LEGACY_TAB_MAP[raw] : raw;
-  if (migrated in tabIcons) return migrated as SettingsTabId;
-  if (migrated.startsWith('plugin:')) return migrated as SettingsTabId;
-  if (migrated.startsWith(PLUGIN_PAGE_PREFIX)) return migrated as SettingsTabId;
+  const { tab, section } = migrateTarget(raw, parseSettingsSection(segments ?? []));
+  if (tab in tabIcons || tab.startsWith('plugin:') || tab.startsWith(PLUGIN_PAGE_PREFIX)) {
+    return { tab: tab as SettingsTabId, section };
+  }
   return null;
 }
 
@@ -233,12 +262,23 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const mvShell = useMountainViewShell(isEmbedded);
   const [initialCheckDone, setInitialCheckDone] = useState(() => useAuthStore.getState().isAuthenticated && !!useAuthStore.getState().client);
   const { quota, isPushConnected } = useEmailStore();
-  const { stalwartFeaturesEnabled } = useConfig();
+  const { stalwartFeaturesEnabled, appName: configAppName } = useConfig();
+  const appName = productName(configAppName);
   const { isFeatureEnabled } = usePolicyStore();
+  const archiveActionEnabled = isFeatureEnabled('archiveActionEnabled');
   // A tab in the URL wins over the persisted one; without it, nothing changes.
   const [activeTab, setActiveTab] = useState<SettingsTabId>(
-    () => tabFromDeepLink(linkSegments) ?? readPersistedTab(),
+    () => targetFromDeepLink(linkSegments)?.tab ?? readPersistedTab(),
   );
+  // The section a link or event asked for; scrolled to once the page shows it.
+  const [pendingSection, setPendingSection] = useState<{ tab: SettingsTabId; id: string } | null>(() => {
+    const target = targetFromDeepLink(linkSegments);
+    return target?.section ? { tab: target.tab, id: target.section } : null;
+  });
+  const goTo = useCallback((target: SettingsTarget) => {
+    setActiveTab(target.tab);
+    setPendingSection(target.section ? { tab: target.tab, id: target.section } : null);
+  }, []);
   // Active plugins that expose a `settings-section` slot — each becomes its own
   // Settings menu entry. Referentially stable per registry mutation, so it is
   // safe to feed useSyncExternalStore directly.
@@ -253,7 +293,6 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     () => pluginOffersForSlot('settings-page'),
     () => pluginOffersForSlot('settings-page'),
   );
-  const tPluginPages = useTranslations('plugin_pages');
   const pluginPageIds = useMemo(() => new Set(pluginPageOffers.map((offer) => offer.pluginId)), [pluginPageOffers]);
   const pluginSectionIds = useMemo(() => new Set(pluginSettingsOffers.map((offer) => offer.pluginId)), [pluginSettingsOffers]);
   // Consume the one-shot deep-link key so a section gear only steers this one
@@ -265,19 +304,19 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   // through the handoff the redirect parked (#733).
   useEffect(() => {
     if (linkSegments) return;
-    const tab = tabFromDeepLink(consumePendingDeepLink('settings'));
-    if (tab) setActiveTab(tab);
-  }, [linkSegments]);
+    const target = targetFromDeepLink(consumePendingDeepLink('settings'));
+    if (target) goTo(target);
+  }, [linkSegments, goTo]);
   // Pro shell only: this surface stays mounted for the whole session, so links
   // arriving later (e.g. the sidebar's folder-settings gear) are delivered
   // live instead of being parked for a mount that already happened.
   useEffect(() => {
     if (!isEmbedded) return;
     return subscribePendingDeepLink('settings', (segments) => {
-      const tab = tabFromDeepLink(segments);
-      if (tab) setActiveTab(tab);
+      const target = targetFromDeepLink(segments);
+      if (target) goTo(target);
     });
-  }, [isEmbedded]);
+  }, [isEmbedded, goTo]);
   const [mobileShowContent, setMobileShowContent] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingHighlight, setPendingHighlight] = useState<{ tab: SettingsTabId; label: string; pluginId?: string } | null>(null);
@@ -308,7 +347,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       const strings: string[] = [tabId.replace(/_/g, ' '), tabKeywords[tabId] ?? ''];
       const list: SubResult[] = [];
       for (const path of tabSearchPaths[tabId]) {
-        const node = getByPath(messages, path);
+        if (!archiveActionEnabled && archiveActionSearchPaths.has(path)) continue;
+        const node = withAppName(getByPath(messages, path), appName);
         flattenStrings(node, strings);
         collectSubResults(node, list);
       }
@@ -330,7 +370,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           : '';
         return `${p.name} ${p.description} ${p.author} ${fieldText}`;
       }).join(' ');
-      haystacks.plugins = `${haystacks.plugins ?? ''} ${haystackText}`.toLowerCase();
+      haystacks.addons = `${haystacks.addons ?? ''} ${haystackText}`.toLowerCase();
       const pluginSubs: SubResult[] = installedPlugins.flatMap((p) => {
         const items: SubResult[] = [{ label: p.name, description: p.description }];
         if (p.settingsSchema) {
@@ -344,26 +384,27 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         }
         return items;
       });
-      subs.plugins = [...(subs.plugins ?? []), ...pluginSubs];
+      subs.addons = [...(subs.addons ?? []), ...pluginSubs];
     }
+    // Themes are a section of Appearance now, so installed themes match there.
     if (installedThemes.length) {
       const text = installedThemes.map((th) => `${th.name} ${th.description} ${th.author}`).join(' ');
-      haystacks.themes = `${haystacks.themes ?? ''} ${text}`.toLowerCase();
-      subs.themes = [
-        ...(subs.themes ?? []),
+      haystacks.appearance = `${haystacks.appearance ?? ''} ${text}`.toLowerCase();
+      subs.appearance = [
+        ...(subs.appearance ?? []),
         ...installedThemes.map((th) => ({ label: th.name, description: th.description })),
       ];
     }
     if (sidebarAppsList.length) {
       const text = sidebarAppsList.map((a) => `${a.name} ${a.url}`).join(' ');
-      haystacks.sidebar_apps = `${haystacks.sidebar_apps ?? ''} ${text}`.toLowerCase();
-      subs.sidebar_apps = [
-        ...(subs.sidebar_apps ?? []),
+      haystacks.addons = `${haystacks.addons ?? ''} ${text}`.toLowerCase();
+      subs.addons = [
+        ...(subs.addons ?? []),
         ...sidebarAppsList.map((a) => ({ label: a.name, description: a.url })),
       ];
     }
     return { tabSearchHaystacks: haystacks, tabSubResults: subs };
-  }, [messages, installedPlugins, installedThemes, sidebarAppsList]);
+  }, [messages, installedPlugins, installedThemes, sidebarAppsList, archiveActionEnabled, appName]);
 
   // Sidebar resize state
   const [settingsSidebarWidth, setSettingsSidebarWidth] = useState(() => {
@@ -386,18 +427,50 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     });
   }, [checkAuth]);
 
-  // Listen for tab change events from child components (with legacy migration)
+  // Listen for tab change events from child components (with legacy
+  // migration). The detail is a tab id, or `{ tab, section }` to land on one
+  // section of the page.
   useEffect(() => {
     const handler = (e: Event) => {
-      const raw = (e as CustomEvent).detail as string;
+      const detail = (e as CustomEvent).detail as string | { tab?: string; section?: string } | null;
+      const raw = typeof detail === 'string' ? detail : detail?.tab;
       if (!raw) return;
-      const tab = (LEGACY_TAB_MAP[raw] ?? raw) as Tab;
-      setActiveTab(tab);
+      const { tab, section } = migrateTarget(raw, typeof detail === 'object' && detail?.section ? detail.section : null);
+      goTo({ tab: tab as SettingsTabId, section });
       try { localStorage.setItem('settings-active-tab', tab); } catch { /* ignore */ }
     };
     window.addEventListener('settings-tab-change', handler);
     return () => window.removeEventListener('settings-tab-change', handler);
-  }, []);
+  }, [goTo]);
+
+  // Scroll to the section a link or event asked for once the page has it.
+  // Pages fetch and render their sections after a loading state, so retry;
+  // an advanced section stays hidden until the switch is on, so after a
+  // short wait turn it on rather than give up.
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+  useEffect(() => {
+    if (!pendingSection || pendingSection.tab !== activeTab) return;
+    if (typeof window === 'undefined') return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const started = Date.now();
+    const deadline = started + 2000;
+    const attempt = () => {
+      if (cancelled) return;
+      if (scrollToSettingsSection(pendingSection.id)) { setPendingSection(null); return; }
+      if (Date.now() - started > 400 && !useSettingsStore.getState().showAdvancedSettings) {
+        updateSetting('showAdvancedSettings', true);
+      }
+      if (Date.now() < deadline) timer = setTimeout(attempt, 80);
+      else setPendingSection(null);
+    };
+    const raf = window.requestAnimationFrame(attempt);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf);
+      if (timer) clearTimeout(timer);
+    };
+  }, [pendingSection, activeTab, updateSetting]);
 
   // Leaving the settings panel drops any shared-account scope so it never
   // leaks into the next visit or another session.
@@ -446,6 +519,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         new CustomEvent('settings-plugin-expand', { detail: { pluginId: pendingHighlight.pluginId } })
       );
     }
+    // Collapsed lists (the theme gallery) open when the result is inside them.
+    window.dispatchEvent(new CustomEvent('settings-reveal', { detail: { label: pendingHighlight.label } }));
 
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -460,6 +535,10 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
       if (cancelled) return;
       const el = document.querySelector<HTMLElement>(selector);
       if (!el) {
+        // The row may be an advanced one the switch hides: reveal, then keep looking.
+        if (Date.now() > deadline - 1600 && !useSettingsStore.getState().showAdvancedSettings) {
+          useSettingsStore.getState().updateSetting('showAdvancedSettings', true);
+        }
         if (Date.now() < deadline) {
           retryTimer = setTimeout(tryHighlight, 80);
         }
@@ -552,61 +631,47 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const supportsFiles = client?.supportsFiles() ?? false;
 
   const tabs: TabDef[] = [
-    // General
-    { id: 'account', label: t('tabs.account'), icon: tabIcons.account, group: 'general' },
-    { id: 'language', label: t('tabs.language'), icon: tabIcons.language, group: 'general' },
-    { id: 'notifications', label: t('tabs.notifications'), icon: tabIcons.notifications, group: 'general' },
-    // The handler URLs point at /protocol/*, server routes the static Lite export does not ship.
-    ...(IS_LITE ? [] : [{ id: 'protocol_handlers' as Tab, label: t('tabs.protocol_handlers'), icon: tabIcons.protocol_handlers, group: 'general' as TabGroup }]),
-
-    // Appearance
-    { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'appearance' },
-    { id: 'layout', label: t('tabs.layout'), icon: tabIcons.layout, group: 'appearance' },
-    ...(isFeatureEnabled('themesEnabled') ? [{ id: 'themes' as Tab, label: t('tabs.themes'), icon: tabIcons.themes, group: 'appearance' as TabGroup }] : []),
+    // You and the app
+    { id: 'account', label: t('tabs.account'), icon: tabIcons.account, group: 'top' },
+    ...(stalwartFeaturesEnabled ? [{ id: 'security' as Tab, label: t('tabs.security'), icon: tabIcons.security, group: 'top' as TabGroup }] : []),
+    { id: 'notifications', label: t('tabs.notifications'), icon: tabIcons.notifications, group: 'top' },
+    { id: 'general', label: t('tabs.general'), icon: tabIcons.general, group: 'top' },
+    { id: 'appearance', label: t('tabs.appearance'), icon: tabIcons.appearance, group: 'top' },
 
     // Mail
+    { id: 'message_list', label: t('tabs.message_list'), icon: tabIcons.message_list, group: 'mail' },
     { id: 'reading', label: t('tabs.reading'), icon: tabIcons.reading, group: 'mail' },
     { id: 'composing', label: t('tabs.composing'), icon: tabIcons.composing, group: 'mail' },
-    { id: 'downloads', label: t('tabs.downloads'), icon: tabIcons.downloads, group: 'mail' },
-    { id: 'identities', label: t('tabs.identities'), icon: tabIcons.identities, group: 'mail' },
-    ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
+    { id: 'organize', label: isFeatureEnabled('customKeywordsEnabled') ? t('tabs.organize') : t('tabs.folders'), icon: tabIcons.organize, group: 'mail' },
     ...(supportsSieve ? [{ id: 'filters' as Tab, label: t('tabs.filters'), icon: tabIcons.filters, group: 'mail' as TabGroup }] : []),
-    ...(isFeatureEnabled('templatesEnabled') ? [{ id: 'templates' as Tab, label: t('tabs.templates'), icon: tabIcons.templates, group: 'mail' as TabGroup }] : []),
-    { id: 'folders', label: t('tabs.folders'), icon: tabIcons.folders, group: 'mail' },
-    ...(isFeatureEnabled('customKeywordsEnabled') ? [{ id: 'keywords' as Tab, label: t('tabs.keywords'), icon: tabIcons.keywords, group: 'mail' as TabGroup }] : []),
-
-    // Privacy & Security
-    ...(stalwartFeaturesEnabled ? [{ id: 'security' as Tab, label: t('tabs.security'), icon: tabIcons.security, group: 'privacy' as TabGroup }] : []),
-    { id: 'content_senders', label: t('tabs.content_senders'), icon: tabIcons.content_senders, group: 'privacy' },
+    ...(supportsVacation ? [{ id: 'vacation' as Tab, label: t('tabs.vacation'), icon: tabIcons.vacation, group: 'mail' as TabGroup }] : []),
 
     // Apps
     ...(supportsCalendar && isFeatureEnabled('calendarEnabled') ? [{ id: 'calendar' as Tab, label: t('tabs.calendar'), icon: tabIcons.calendar, group: 'apps' as TabGroup }] : []),
     ...(isFeatureEnabled('contactsEnabled') ? [{ id: 'contacts' as Tab, label: t('tabs.contacts'), icon: tabIcons.contacts, group: 'apps' as TabGroup }] : []),
     ...(supportsFiles && isFeatureEnabled('filesEnabled') ? [{ id: 'files' as Tab, label: t('tabs.files'), icon: tabIcons.files, group: 'apps' as TabGroup }] : []),
-    ...(isFeatureEnabled('sidebarAppsEnabled') ? [{ id: 'sidebar_apps' as Tab, label: t('tabs.sidebar_apps'), icon: tabIcons.sidebar_apps, group: 'apps' as TabGroup }] : []),
-    // Plugin-contributed settings pages: one entry per active plugin that
-    // offers a `settings-section` slot (e.g. S/MIME key & certificate manager).
-    // A plugin that also has a page of its own gets that entry only, with the
-    // section on its page, instead of two entries with the same name.
+    ...(isFeatureEnabled('sidebarAppsEnabled') || isFeatureEnabled('pluginsEnabled') ? [{ id: 'addons' as Tab, label: t('tabs.addons'), icon: tabIcons.addons, group: 'apps' as TabGroup }] : []),
+    // Plugin-contributed pages nest under Add-ons: a page of its own for each
+    // plugin that offers one, and an entry for each plugin that offers only a
+    // `settings-section` slot (e.g. S/MIME key & certificate manager). A plugin
+    // with both gets the page entry only, with the section on its page.
+    ...pluginPageOffers.map((offer): TabDef => ({
+      id: `${PLUGIN_PAGE_PREFIX}${offer.pluginId}` as PluginPageTabId,
+      label: getActivePlugin(offer.pluginId)?.plugin.name || offer.pluginId,
+      icon: Puzzle,
+      group: 'apps',
+      sub: true,
+    })),
     ...pluginSettingsOffers.filter((offer) => !pluginPageIds.has(offer.pluginId)).map((offer): TabDef => ({
       id: `plugin:${offer.pluginId}` as PluginTabId,
       label: getActivePlugin(offer.pluginId)?.plugin.name ?? offer.pluginId,
       icon: Puzzle,
       group: 'apps',
+      sub: true,
     })),
 
-    // Plugins: a page of its own for each plugin that offers one.
-    ...pluginPageOffers.map((offer): TabDef => ({
-      id: `${PLUGIN_PAGE_PREFIX}${offer.pluginId}` as PluginPageTabId,
-      label: getActivePlugin(offer.pluginId)?.plugin.name || offer.pluginId,
-      icon: Puzzle,
-      group: 'plugins',
-    })),
-
-    // Advanced
-    { id: 'about_data', label: t('tabs.about_data'), icon: tabIcons.about_data, group: 'advanced' },
-    ...(isFeatureEnabled('pluginsEnabled') ? [{ id: 'plugins' as Tab, label: 'Plugins', icon: tabIcons.plugins, group: 'advanced' as TabGroup }] : []),
-    ...(isFeatureEnabled('debugModeEnabled') ? [{ id: 'debug' as Tab, label: t('tabs.debug'), icon: tabIcons.debug, group: 'advanced' as TabGroup }] : []),
+    // After a rule at the end, with no heading.
+    { id: 'backup', label: t('tabs.backup'), icon: tabIcons.backup, group: 'bottom' },
   ];
 
   // In scoped (shared-account) mode, restrict to the account-relevant tabs the
@@ -625,11 +690,11 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
     ? tabs.filter((tab) => scopedTabIds.includes(tab.id as Tab))
     : tabs;
 
-  // Group tabs by category
+  // Group tabs by category. Only Mail and Apps carry a heading.
   const groupedTabs = tabGroupOrder
     .map((group) => ({
       group,
-      label: group === 'plugins' ? tPluginPages('settings_group') : t(`tab_groups.${group}`),
+      label: group === 'mail' || group === 'apps' ? t(`tab_groups.${group}`) : null,
       items: visibleTabs.filter((tab) => tab.group === group),
     }))
     .filter((g) => g.items.length > 0);
@@ -674,6 +739,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
 
   const handleTabSelect = (tabId: SettingsTabId) => {
     setActiveTab(tabId);
+    setPendingSection(null);
     try { localStorage.setItem('settings-active-tab', tabId); } catch { /* ignore */ }
     if (!isDesktop) {
       setMobileShowContent(true);
@@ -688,7 +754,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
   const activeTabLabel = visibleTabs.find((tab) => tab.id === effectiveActiveTab)?.label ?? '';
 
   const renderTabContent = () => (
-    <>
+    <AdvancedSettingsProvider key={effectiveActiveTab}>
+      <SectionNav />
       {managedAccountId && managedAccount && (
         <button
           type="button"
@@ -706,21 +773,16 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         </button>
       )}
       {effectiveActiveTab === 'account' && <AccountSettings />}
-      {effectiveActiveTab === 'language' && <LanguageSettings />}
+      {effectiveActiveTab === 'general' && <GeneralSettings supportsCalendar={supportsCalendar} />}
       {effectiveActiveTab === 'notifications' && <NotificationSettings />}
       {effectiveActiveTab === 'appearance' && <AppearanceSettings />}
-      {effectiveActiveTab === 'layout' && <LayoutSettings />}
+      {effectiveActiveTab === 'message_list' && <MessageListSettings />}
       {effectiveActiveTab === 'reading' && <ReadingSettings />}
       {effectiveActiveTab === 'composing' && <ComposingSettings />}
-      {effectiveActiveTab === 'downloads' && <DownloadsSettings />}
-      {effectiveActiveTab === 'identities' && <IdentitySettings />}
       {effectiveActiveTab === 'vacation' && <VacationSettings />}
       {effectiveActiveTab === 'filters' && <FilterSettings />}
-      {effectiveActiveTab === 'templates' && <TemplateSettings />}
-      {effectiveActiveTab === 'folders' && <FolderSettings />}
-      {effectiveActiveTab === 'keywords' && <KeywordSettings />}
+      {effectiveActiveTab === 'organize' && <OrganizeSettings />}
       {effectiveActiveTab === 'security' && <AccountSecuritySettings />}
-      {effectiveActiveTab === 'content_senders' && <ContentSendersSettings />}
       {effectiveActiveTab === 'calendar' && (
         managedAccountId
           ? <CalendarManagementSettings />
@@ -732,12 +794,8 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           : <><ContactsSettings /><div className="mt-8"><AddressBookManagementSettings /></div></>
       )}
       {effectiveActiveTab === 'files' && <FilesSettingsComponent />}
-      {effectiveActiveTab === 'protocol_handlers' && <ProtocolHandlerSettings supportsCalendar={supportsCalendar} />}
-      {effectiveActiveTab === 'sidebar_apps' && <SidebarAppsSettings />}
-      {effectiveActiveTab === 'about_data' && <AboutDataSettings />}
-      {effectiveActiveTab === 'themes' && <ThemesSettings />}
-      {effectiveActiveTab === 'plugins' && <PluginsSettings />}
-      {effectiveActiveTab === 'debug' && <DebugSettings />}
+      {effectiveActiveTab === 'addons' && <AddonsSettings />}
+      {effectiveActiveTab === 'backup' && <AboutDataSettings />}
       {effectiveActiveTab.startsWith('plugin:') && (
         <PluginIframeSlot
           key={effectiveActiveTab}
@@ -767,7 +825,7 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
           </div>
         </>
       )}
-    </>
+    </AdvancedSettingsProvider>
   );
 
   // Mobile layout
@@ -827,20 +885,20 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         <div className="flex-1 overflow-y-auto">
           <div className="px-4 pt-3 pb-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('search_placeholder')}
-                className="ps-9 pe-9 h-10"
+                className={cn("ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", searchQuery && "pe-8")}
                 aria-label={t('search_placeholder')}
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:bg-muted"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={t('search_clear')}
                 >
                   <X className="w-4 h-4" />
@@ -857,11 +915,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
             {filteredGroupedTabs.map((group, groupIndex) => (
               <div key={group.group}>
                 {groupIndex > 0 && <div className="mx-5 my-2 border-t border-border" />}
-                <div className="px-5 pt-3 pb-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {group.label}
-                  </span>
-                </div>
+                {group.label && (
+                  <div className="px-5 pt-3 pb-1.5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </span>
+                  </div>
+                )}
                 {group.items.map((tab) => {
                   const Icon = tab.icon;
                   const subs = subResultsForTab(tab.id);
@@ -870,7 +930,10 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                       <button
                         data-testid={`settings-tab-${tab.id}`}
                         onClick={() => handleTabSelect(tab.id)}
-                        className="w-full flex items-center justify-between px-5 py-3.5 text-sm text-foreground hover:bg-muted transition-colors duration-150"
+                        className={cn(
+                          'w-full flex items-center justify-between py-3.5 pe-5 text-sm text-foreground hover:bg-muted transition-colors duration-150',
+                          tab.sub ? 'ps-12' : 'ps-5',
+                        )}
                       >
                         <span className="flex items-center gap-3">
                           <Icon className="w-4 h-4 text-muted-foreground" />
@@ -894,6 +957,10 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
             ))}
           </div>
 
+          <div className="border-t border-border px-2 py-2">
+            <AdvancedSettingsSwitch />
+            <AboutFooter />
+          </div>
           <div className="border-t border-border px-5 py-3">
             <button
               onClick={() => logout()}
@@ -961,39 +1028,42 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
         style={{ width: `${settingsSidebarWidth}px` }}
       >
         {!proInterface && (
-          <div className="p-4 border-b border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/')}
-              className="w-full justify-start"
-            >
-              <ArrowLeft className="w-4 h-4 me-2" />
-              {t('back_to_mail')}
-            </Button>
+          // Same h-14 box as the mail sidebar's account switcher, so the apps line up.
+          <div className="border-b border-border">
+            <div className="flex items-center h-14 px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/')}
+                className="w-full justify-start"
+              >
+                <ArrowLeft className="w-4 h-4 me-2" />
+                {t('back_to_mail')}
+              </Button>
+            </div>
           </div>
         )}
 
         <div className="flex-1 overflow-y-auto py-2" data-tour="settings-tabs">
           <div className="px-3 pt-1 pb-1">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('search_placeholder')}
-                className="ps-8 pe-8 h-9 text-sm"
+                className={cn("ps-9 h-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none", searchQuery && "pe-8")}
                 aria-label={t('search_placeholder')}
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-muted-foreground hover:bg-muted"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={t('search_clear')}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -1007,11 +1077,13 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
             {filteredGroupedTabs.map((group, groupIndex) => (
               <div key={group.group}>
                 {groupIndex > 0 && <div className="mx-1 my-2 border-t border-border" />}
-                <div className="px-3 pt-2.5 pb-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {group.label}
-                  </span>
-                </div>
+                {group.label && (
+                  <div className="px-3 pt-2.5 pb-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </span>
+                  </div>
+                )}
                 {group.items.map((tab) => {
                   const Icon = tab.icon;
                   const subs = subResultsForTab(tab.id);
@@ -1019,9 +1091,11 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
                     <div key={tab.id}>
                       <button
                         data-testid={`settings-tab-${tab.id}`}
+                        aria-current={effectiveActiveTab === tab.id ? 'page' : undefined}
                         onClick={() => handleTabSelect(tab.id)}
                         className={cn(
-                          'w-full text-start px-3 py-2 rounded-md text-sm transition-colors duration-150 flex items-center gap-2.5',
+                          'w-full text-start py-2 pe-3 rounded-md text-sm transition-colors duration-150 flex items-center gap-2.5',
+                          tab.sub ? 'ps-9' : 'ps-3',
                           effectiveActiveTab === tab.id
                             ? 'bg-accent text-accent-foreground font-medium'
                             : 'hover:bg-muted text-foreground'
@@ -1048,6 +1122,10 @@ export function SettingsApp({ linkSegments: routeSegments }: SettingsAppProps = 
               </div>
             ))}
           </div>
+        </div>
+        <div className="border-t border-border px-1 py-1">
+          <AdvancedSettingsSwitch />
+          <AboutFooter />
         </div>
       </div>
 

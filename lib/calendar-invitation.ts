@@ -1,6 +1,7 @@
-import { parseISO } from 'date-fns';
 import type { Email, Attachment, CalendarEvent, CalendarParticipant, EmailBodyPart } from '@/lib/jmap/types';
 import { normalizeCalendarEventLike } from '@/lib/calendar-event-normalization';
+import { hasAlignedAuthenticationPass } from '@/lib/email-headers';
+import { fromWallClock, isValidTimeZone, parseLocalDateTime, type WallClock } from '@/lib/timezone';
 
 export type InvitationMethod =
   | 'publish'
@@ -200,13 +201,15 @@ function getOrganizerEmail(event: Partial<CalendarEvent>): string | null {
   return null;
 }
 
-function hasVerifiedAuthentication(email?: Pick<Email, 'authenticationResults'>): boolean {
-  const authenticationResults = email?.authenticationResults;
-  return Boolean(
-    authenticationResults?.dmarc?.result === 'pass'
-    || authenticationResults?.dkim?.result === 'pass'
-    || authenticationResults?.spf?.result === 'pass'
-  );
+/**
+ * Whether the server's checks tie the message to its From domain. Only an
+ * aligned pass counts: a sender passes SPF for their own envelope domain, or
+ * signs with their own DKIM key, and still writes the organizer's address in
+ * From. With no DMARC policy on that domain the verdict is `dmarc=none`, and
+ * the bare `spf=pass` made the forged invitation look trusted.
+ */
+function hasVerifiedAuthentication(email?: Pick<Email, 'from' | 'authenticationResults'>): boolean {
+  return hasAlignedAuthenticationPass(email?.authenticationResults, getPrimaryAddressEmail(email?.from) ?? undefined);
 }
 
 function hasAuthenticationFailure(email?: Pick<Email, 'authenticationResults'>): boolean {
@@ -450,6 +453,8 @@ export interface EventSummary {
   start: string | null;
   end: string | null;
   isAllDay: boolean;
+  /** Timed event without a usable time zone: start/end are wall-clock times to show as they are. */
+  isFloating: boolean;
   location: string | null;
   organizer: string | null;
   organizerEmail: string | null;
@@ -498,25 +503,14 @@ export function formatEventSummary(event: Partial<CalendarEvent>): EventSummary 
   }
 
   const isAllDay = normalizedEvent.showWithoutTime ?? false;
-
-  let end: string | null = null;
-  if (normalizedEvent.utcEnd) {
-    end = normalizedEvent.utcEnd;
-  } else if (normalizedEvent.start && normalizedEvent.duration) {
-    end = addDurationToDate(normalizedEvent.start, normalizedEvent.duration, normalizedEvent.timeZone);
-  }
-
-  // For all-day events, prefer the local start (no timezone) to avoid
-  // UTC conversion shifting the displayed date in non-UTC timezones.
-  const start = isAllDay
-    ? (normalizedEvent.start || null)
-    : (normalizedEvent.utcStart || normalizedEvent.start || null);
+  const { start, end, isFloating } = resolveSummaryTimes(normalizedEvent, isAllDay);
 
   return {
     title: normalizedEvent.title || '',
     start,
     end,
     isAllDay,
+    isFloating,
     location,
     organizer,
     organizerEmail,
@@ -524,41 +518,204 @@ export function formatEventSummary(event: Partial<CalendarEvent>): EventSummary 
   };
 }
 
-function addDurationToDate(start: string, duration: string, _timeZone?: string | null): string | null {
+const HAS_UTC_OFFSET = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+/** Wall-clock arithmetic on plain fields, independent of any zone. */
+function shiftWallClock(w: WallClock, days: number, seconds: number): WallClock {
+  const d = new Date(0);
+  d.setUTCFullYear(w.year, w.month - 1, w.day + days);
+  d.setUTCHours(w.hour, w.minute, w.second + seconds, 0);
+  return {
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate(),
+    hour: d.getUTCHours(),
+    minute: d.getUTCMinutes(),
+    second: d.getUTCSeconds(),
+  };
+}
+
+function formatLocalDateTime(w: WallClock): string {
+  const pad = (n: number, len = 2) => String(n).padStart(len, '0');
+  return `${pad(w.year, 4)}-${pad(w.month)}-${pad(w.day)}T${pad(w.hour)}:${pad(w.minute)}:${pad(w.second)}`;
+}
+
+/** Days (nominal) and seconds (exact) of an ISO 8601 / JSCalendar duration. */
+function parseDurationParts(duration: string): { days: number; seconds: number } | null {
   const match = duration.match(/^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
   if (!match) return null;
+  return {
+    days: Number(match[1] || 0) * 7 + Number(match[2] || 0),
+    seconds: Number(match[3] || 0) * 3600 + Number(match[4] || 0) * 60 + Number(match[5] || 0),
+  };
+}
 
-  const weeks = parseInt(match[1] || '0');
-  const days = parseInt(match[2] || '0') + weeks * 7;
-  const hours = parseInt(match[3] || '0');
-  const minutes = parseInt(match[4] || '0');
-  const seconds = parseInt(match[5] || '0');
+function isValidInstant(value: string | null | undefined): value is string {
+  return typeof value === 'string' && HAS_UTC_OFFSET.test(value) && !Number.isNaN(new Date(value).getTime());
+}
 
-  const date = parseISO(start);
-  if (isNaN(date.getTime())) return null;
+/**
+ * Start and end of an event for display. Timed events come back as UTC
+ * instants (ISO strings ending in `Z`) so they can be shown in the user's
+ * zone; all-day and floating events come back as LocalDateTime strings that
+ * must be shown as the wall clock they are (#1252).
+ *
+ * CalendarEvent/parse returns `start` as a LocalDateTime in `timeZone` and
+ * no `utcStart`, so reading `start` as an instant showed the organizer's
+ * wall clock as if it were the user's.
+ */
+function resolveSummaryTimes(
+  event: Partial<CalendarEvent>,
+  isAllDay: boolean,
+): { start: string | null; end: string | null; isFloating: boolean } {
+  const duration = event.duration ? parseDurationParts(event.duration) : null;
+  const localStart = event.start ? parseLocalDateTime(event.start) : null;
 
-  const isUTC = start.endsWith('Z') || start.includes('+');
-
-  if (isUTC) {
-    date.setUTCDate(date.getUTCDate() + days);
-    date.setUTCHours(date.getUTCHours() + hours);
-    date.setUTCMinutes(date.getUTCMinutes() + minutes);
-    date.setUTCSeconds(date.getUTCSeconds() + seconds);
-    return date.toISOString();
+  if (isAllDay) {
+    // The date is the same everywhere: never convert it through a zone.
+    if (!localStart) return { start: event.start || null, end: null, isFloating: false };
+    let end: string | null = null;
+    if (duration) {
+      end = formatLocalDateTime(shiftWallClock(localStart, duration.days, duration.seconds));
+    } else if (event.utcEnd) {
+      const endDate = parseLocalDateTime(event.utcEnd.slice(0, 10));
+      if (endDate) end = formatLocalDateTime(endDate);
+    }
+    return { start: formatLocalDateTime(localStart), end, isFloating: false };
   }
 
-  date.setDate(date.getDate() + days);
-  date.setHours(date.getHours() + hours);
-  date.setMinutes(date.getMinutes() + minutes);
-  date.setSeconds(date.getSeconds() + seconds);
+  const addExact = (instant: Date, days: number, seconds: number) =>
+    new Date(instant.getTime() + (days * 86400 + seconds) * 1000).toISOString();
 
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  return `${y}-${m}-${d}T${h}:${min}:${s}`;
+  if (isValidInstant(event.utcStart)) {
+    const end = isValidInstant(event.utcEnd)
+      ? event.utcEnd
+      : duration ? addExact(new Date(event.utcStart), duration.days, duration.seconds) : null;
+    return { start: event.utcStart, end, isFloating: false };
+  }
+
+  if (isValidInstant(event.start)) {
+    const end = isValidInstant(event.utcEnd)
+      ? event.utcEnd
+      : duration ? addExact(new Date(event.start), duration.days, duration.seconds) : null;
+    return { start: new Date(event.start).toISOString(), end, isFloating: false };
+  }
+
+  if (!localStart) return { start: event.start || null, end: null, isFloating: false };
+
+  if (event.timeZone && isValidTimeZone(event.timeZone)) {
+    const timeZone = event.timeZone;
+    const startInstant = fromWallClock(localStart, timeZone);
+    let end: string | null = null;
+    if (isValidInstant(event.utcEnd)) {
+      end = event.utcEnd;
+    } else if (duration) {
+      // Days are nominal (same wall clock N days later in the event's zone),
+      // hours/minutes/seconds are exact.
+      const dayShifted = fromWallClock(shiftWallClock(localStart, duration.days, 0), timeZone);
+      end = addExact(dayShifted, 0, duration.seconds);
+    }
+    return { start: startInstant.toISOString(), end, isFloating: false };
+  }
+
+  // Floating time (no zone, or one we can't resolve): same wall clock everywhere.
+  const end = duration
+    ? formatLocalDateTime(shiftWallClock(localStart, duration.days, duration.seconds))
+    : null;
+  return { start: formatLocalDateTime(localStart), end, isFloating: true };
+}
+
+export interface InvitationDisplayTime {
+  date: Date;
+  /**
+   * True when `date` carries a wall clock in its UTC fields (all-day or
+   * floating). Format it with `timeZone: 'UTC'` so it is not converted.
+   */
+  wallClock: boolean;
+}
+
+function toInvitationDisplayTime(value: string | null): InvitationDisplayTime | null {
+  if (!value) return null;
+  if (HAS_UTC_OFFSET.test(value)) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : { date, wallClock: false };
+  }
+  const w = parseLocalDateTime(value);
+  if (!w) return null;
+  const date = new Date(0);
+  date.setUTCFullYear(w.year, w.month - 1, w.day);
+  date.setUTCHours(w.hour, w.minute, w.second, 0);
+  return { date, wallClock: true };
+}
+
+/**
+ * What the invitation banner shows for an event summary. All-day events get
+ * their last day (the stored end is exclusive), or no end for a single day.
+ */
+export function getInvitationDisplayRange(
+  summary: Pick<EventSummary, 'start' | 'end' | 'isAllDay'>,
+): { start: InvitationDisplayTime; end: InvitationDisplayTime | null } | null {
+  const start = toInvitationDisplayTime(summary.start);
+  if (!start) return null;
+  let end = toInvitationDisplayTime(summary.end);
+  if (end && summary.isAllDay) {
+    const lastDay = new Date(end.date.getTime());
+    lastDay.setUTCDate(lastDay.getUTCDate() - 1);
+    end = lastDay.getTime() > start.date.getTime() ? { date: lastDay, wallClock: true } : null;
+  } else if (end && end.date.getTime() <= start.date.getTime()) {
+    // Zero-duration event (utcEnd == utcStart): no separate end to show.
+    end = null;
+  }
+  return { start, end };
+}
+
+/** Intl options limited to what next-intl's format.dateTime accepts. */
+export type InvitationDateFormatOptions = Pick<
+  Intl.DateTimeFormatOptions,
+  'weekday' | 'month' | 'day' | 'hour' | 'minute' | 'hour12' | 'timeZone'
+> & {
+  timeZoneName?: 'short' | 'long';
+};
+
+/**
+ * The banner's "when" line. `formatDate` is next-intl's `format.dateTime`
+ * (which formats in the user's display zone) or an Intl equivalent. Timed
+ * events with a real zone get a zone label so it is clear which clock the
+ * time is on.
+ */
+export function formatInvitationSchedule(
+  summary: Pick<EventSummary, 'start' | 'end' | 'isAllDay'>,
+  formatDate: (date: Date, options: InvitationDateFormatOptions) => string,
+  hour12: boolean,
+): string {
+  const range = getInvitationDisplayRange(summary);
+  if (!range) return summary.start ?? '';
+  const base: InvitationDateFormatOptions = summary.isAllDay
+    ? { weekday: 'short', month: 'short', day: 'numeric' }
+    : { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12 };
+  const formatPoint = (point: InvitationDisplayTime, last: boolean) => formatDate(point.date, {
+    ...base,
+    ...(point.wallClock ? { timeZone: 'UTC' } : {}),
+    ...(last && !point.wallClock && !summary.isAllDay ? { timeZoneName: 'short' } : {}),
+  });
+  const start = formatPoint(range.start, !range.end);
+  return range.end ? `${start} – ${formatPoint(range.end, true)}` : start;
+}
+
+/**
+ * The participant matching the first of `emails` found in the event. The
+ * user's identities, primary first: an invite may be addressed to an alias
+ * identity rather than the primary address (#1283).
+ */
+export function findParticipantByEmails(
+  event: Partial<CalendarEvent>,
+  emails: readonly string[]
+): { id: string; participant: CalendarParticipant } | null {
+  for (const email of emails) {
+    const found = findParticipantByEmail(event, email);
+    if (found) return found;
+  }
+  return null;
 }
 
 export function findParticipantByEmail(
