@@ -5,6 +5,7 @@ import DOMPurify from "dompurify";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { EMAIL_SANITIZE_CONFIG, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, isOpenableLinkHref, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizeEmailBodyForIframe, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { resolveExternalLink } from "@/lib/plugin-hook-result";
+import { stripBidiControls } from "@/lib/bidi";
 import { requestInternalMailto } from "@/lib/protocol-handlers/mailto";
 import { emailDisplayDate } from "@/lib/email-date";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
@@ -936,7 +937,7 @@ export function ConversationEmailBody({
                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm"
                 >
                   <Icon className="w-4 h-4 text-muted-foreground" />
-                  <span className="truncate max-w-[150px]">{attachment.name || 'Attachment'}</span>
+                  <span className="truncate max-w-[150px]">{attachment.name ? stripBidiControls(attachment.name) : 'Attachment'}</span>
                   <span className="text-muted-foreground text-xs">
                     {formatFileSize(attachment.size)}
                   </span>
