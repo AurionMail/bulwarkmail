@@ -92,13 +92,13 @@ interface AuthState {
   loginWithServerSso: (code: string, state: string) => Promise<boolean>;
   loginDemo: () => Promise<boolean>;
   /**
-   * Obtain a usable access token for the active account.
+   * Obtain a usable access token for `accountId`, or the active account.
    *
    * Renews against the IdP by default. `allowCached` lets a session restore
    * reuse the token the server still holds for this slot - IdPs that gate
    * refresh tokens behind an `nbf` claim reject an early renewal outright.
    */
-  refreshAccessToken: (options?: { allowCached?: boolean }) => Promise<string | null>;
+  refreshAccessToken: (options?: { allowCached?: boolean; accountId?: string }) => Promise<string | null>;
   /**
    * Sign out of the active account. Switches to the next signed-in account
    * when there is one; otherwise ends the identity provider's session too
@@ -1383,7 +1383,7 @@ export const useAuthStore = create<AuthState>()(
             }
 
             if (bearerToken) {
-              client = JMAPClient.withBearer(serverUrl, bearerToken, username, () => get().refreshAccessToken());
+              client = JMAPClient.withBearer(serverUrl, bearerToken, username, () => get().refreshAccessToken({ accountId }));
               await client.connect();
               oauthAccessToken = bearerToken;
               upgradedToOAuth = true;
@@ -1517,7 +1517,7 @@ export const useAuthStore = create<AuthState>()(
 
           // Schedule token refresh for TOTP-upgraded sessions
           if (upgradedToOAuth && oauthExpiresIn > 0) {
-            scheduleRefresh(oauthExpiresIn, get().refreshAccessToken, accountId);
+            scheduleRefresh(oauthExpiresIn, () => get().refreshAccessToken({ accountId }), accountId);
           }
 
           // Sync settings from server (only if enabled)
@@ -1775,8 +1775,10 @@ export const useAuthStore = create<AuthState>()(
 
           const { access_token, expires_in } = await tokenRes.json();
 
-          const refreshFn = get().refreshAccessToken;
-          const client = JMAPClient.withBearer(serverUrl, access_token, '', () => refreshFn());
+          // The account id comes from the session, so the refresh hook reads
+          // it once it is known below.
+          let boundAccountId: string | undefined;
+          const client = JMAPClient.withBearer(serverUrl, access_token, '', () => get().refreshAccessToken({ accountId: boundAccountId }));
           await client.connect();
 
           const jmapUsername = client.getUsername();
@@ -1793,6 +1795,7 @@ export const useAuthStore = create<AuthState>()(
 
           // Register in account store
           const accountId = generateAccountId(username, serverUrl);
+          boundAccountId = accountId;
 
           // Snapshot current account if switching away and clear stores so
           // the new account starts with a clean email/contact/calendar state.
@@ -1852,7 +1855,7 @@ export const useAuthStore = create<AuthState>()(
             });
           }).catch(() => {});
 
-          scheduleRefresh(expires_in, get().refreshAccessToken, accountId);
+          scheduleRefresh(expires_in, () => get().refreshAccessToken({ accountId }), accountId);
 
           notifyParent('sso:auth-success', { username });
 
@@ -1928,8 +1931,8 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Server URL not configured');
           }
 
-          const refreshFn = get().refreshAccessToken;
-          const client = JMAPClient.withBearer(ssoServerUrl, access_token, '', () => refreshFn());
+          let boundAccountId: string | undefined;
+          const client = JMAPClient.withBearer(ssoServerUrl, access_token, '', () => get().refreshAccessToken({ accountId: boundAccountId }));
           await client.connect();
 
           const jmapUsername = client.getUsername();
@@ -1941,6 +1944,7 @@ export const useAuthStore = create<AuthState>()(
           initializeFeatureStores(client);
 
           const accountId = generateAccountId(username, ssoServerUrl);
+          boundAccountId = accountId;
 
           const prevAccountId = get().activeAccountId;
           if (prevAccountId && prevAccountId !== accountId) {
@@ -1996,7 +2000,7 @@ export const useAuthStore = create<AuthState>()(
             });
           }).catch(() => {});
 
-          scheduleRefresh(expires_in, get().refreshAccessToken, accountId);
+          scheduleRefresh(expires_in, () => get().refreshAccessToken({ accountId }), accountId);
 
           notifyParent('sso:auth-success', { username });
 
@@ -2027,15 +2031,20 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refreshAccessToken: async (options) => {
-        if (refreshPromise) return refreshPromise;
-
-        const accountId = get().activeAccountId;
-        if (accountId && refreshPromises.has(accountId)) {
-          return refreshPromises.get(accountId)!;
+        // Every multi-account client and timer passes its own account: renewing
+        // the active slot on a background account's behalf would hand that
+        // client another account's token (#989).
+        const accountId = options?.accountId ?? get().activeAccountId;
+        if (accountId) {
+          const inFlight = refreshPromises.get(accountId);
+          if (inFlight) return inFlight;
+        } else if (refreshPromise) {
+          return refreshPromise;
         }
 
         const account = accountId ? useAccountStore.getState().getAccountById(accountId) : null;
         const slot = account?.cookieSlot ?? 0;
+        const isActive = !accountId || accountId === get().activeAccountId;
         // The account is being signed out: a renewal now would only undo that.
         if (closingSlots.has(slot)) return null;
 
@@ -2054,6 +2063,11 @@ export const useAuthStore = create<AuthState>()(
               // maintenance windows and offline spells.
               if (res.status === 401) {
                 resetRefreshBackoff(accountId ?? undefined);
+                // Only this login's refresh token was refused.
+                if (accountId && !isActive) {
+                  get().removeAccount(accountId);
+                  return null;
+                }
                 notifyParent('sso:session-expired');
                 markSessionExpired();
                 get().logout({ endProviderSession: false });
@@ -2075,7 +2089,7 @@ export const useAuthStore = create<AuthState>()(
               if (shouldRetryRefresh(slot, accountId ?? undefined)) {
                 const retryIn = nextRefreshRetrySeconds(accountId ?? undefined);
                 debug.error(`Token refresh unavailable (${res.status}), retrying with backoff`);
-                scheduleRefresh(retryIn, get().refreshAccessToken, accountId ?? undefined);
+                scheduleRefresh(retryIn, () => get().refreshAccessToken({ accountId: accountId ?? undefined }), accountId ?? undefined);
               }
               return null;
             }
@@ -2085,7 +2099,8 @@ export const useAuthStore = create<AuthState>()(
             // Signed out while the renewal was in flight: nothing to keep alive.
             if (closingSlots.has(slot)) return null;
 
-            get().client?.updateAccessToken(access_token);
+            const owner = (accountId ? clients.get(accountId) : undefined) ?? (isActive ? get().client : null);
+            owner?.updateAccessToken(access_token);
 
             if (account) {
               await syncStalwartAuthContext(
@@ -2096,13 +2111,15 @@ export const useAuthStore = create<AuthState>()(
               );
             }
 
-            set({
-              accessToken: access_token,
-              tokenExpiresAt: Date.now() + expires_in * 1000,
-            });
+            if (isActive) {
+              set({
+                accessToken: access_token,
+                tokenExpiresAt: Date.now() + expires_in * 1000,
+              });
+            }
 
             resetRefreshBackoff(accountId ?? undefined);
-            scheduleRefresh(expires_in, get().refreshAccessToken, accountId ?? undefined);
+            scheduleRefresh(expires_in, () => get().refreshAccessToken({ accountId: accountId ?? undefined }), accountId ?? undefined);
             if (accountId) void authHooks.onTokenRefresh.emit({ accountId });
             return access_token;
           } catch (error) {
@@ -2110,17 +2127,17 @@ export const useAuthStore = create<AuthState>()(
             // not a rejection. Keep the session and retry with backoff.
             debug.error('Token refresh failed, retrying with backoff:', error);
             if (shouldRetryRefresh(slot, accountId ?? undefined)) {
-              scheduleRefresh(nextRefreshRetrySeconds(accountId ?? undefined), get().refreshAccessToken, accountId ?? undefined);
+              scheduleRefresh(nextRefreshRetrySeconds(accountId ?? undefined), () => get().refreshAccessToken({ accountId: accountId ?? undefined }), accountId ?? undefined);
             }
             return null;
           } finally {
-            refreshPromise = null;
             if (accountId) refreshPromises.delete(accountId);
+            else refreshPromise = null;
           }
         })();
 
-        refreshPromise = promise;
         if (accountId) refreshPromises.set(accountId, promise);
+        else refreshPromise = promise;
 
         return promise;
       },
@@ -2371,12 +2388,11 @@ export const useAuthStore = create<AuthState>()(
               const res = await fetchSlotAccessToken(targetAccount.cookieSlot);
               if (res.ok) {
                 const { access_token, expires_in } = await res.json();
-                const refreshFn = get().refreshAccessToken;
-                targetClient = JMAPClient.withBearer(targetAccount.serverUrl, access_token, targetAccount.username, () => refreshFn());
+                targetClient = JMAPClient.withBearer(targetAccount.serverUrl, access_token, targetAccount.username, () => get().refreshAccessToken({ accountId }));
                 bindClientStatusHandlers(targetClient, set, get, accountId);
                 await targetClient.connect();
                 clients.set(accountId, targetClient);
-                scheduleRefresh(expires_in, get().refreshAccessToken, accountId);
+                scheduleRefresh(expires_in, () => get().refreshAccessToken({ accountId }), accountId);
                 await syncStalwartAuthContext(
                   targetAccount.serverUrl,
                   targetAccount.username,
@@ -2654,13 +2670,12 @@ export const useAuthStore = create<AuthState>()(
                 const res = await fetchSlotAccessToken(account.cookieSlot);
                 if (res.ok) {
                   const { access_token, expires_in } = await res.json();
-                  const refreshFn = get().refreshAccessToken;
-                  const client = JMAPClient.withBearer(account.serverUrl, access_token, account.username, () => refreshFn());
+                  const client = JMAPClient.withBearer(account.serverUrl, access_token, account.username, () => get().refreshAccessToken({ accountId: account.id }));
                   bindClientStatusHandlers(client, set, get, account.id);
                   const contextSync = syncStalwartAuthContext(account.serverUrl, account.username, client.getAuthHeader(), account.cookieSlot);
                   await client.connect();
                   clients.set(account.id, client);
-                  scheduleRefresh(expires_in, get().refreshAccessToken, account.id);
+                  scheduleRefresh(expires_in, () => get().refreshAccessToken({ accountId: account.id }), account.id);
                   await contextSync;
                   accountStore.updateAccount(account.id, { isConnected: true, hasError: false });
                   void syncAccountDisplayName(account.id, client);
