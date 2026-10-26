@@ -81,6 +81,18 @@ describe('api.email.move and archive', () => {
     expect(moveEmail).not.toHaveBeenCalled();
   });
 
+  // An auto-filer moves new mail while the user looks at another folder.
+  it('moves a single message that is not in the open list', async () => {
+    const batchMoveEmails = vi.fn(async () => {});
+    const moveEmail = vi.fn(async () => {});
+    useAuthStore.setState({ client: { batchMoveEmails, moveEmail } as unknown as IJMAPClient });
+    useEmailStore.setState({ moveEmailsToMailbox: storeMove, emails: [] } as never);
+
+    await call(WRITER, 'email.move', ['m9'], 'arch');
+
+    expect([...batchMoveEmails.mock.calls, ...moveEmail.mock.calls]).toEqual([[['m9'], 'arch', undefined]]);
+  });
+
   it('says when there is no Archive folder', async () => {
     useEmailStore.setState({ mailboxes: [inbox] });
     await expect(call(WRITER, 'email.archive', ['m1'])).rejects.toThrow(/no Archive folder/);

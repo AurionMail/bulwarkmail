@@ -4214,7 +4214,9 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       }
       return true;
     }
-    if (emailIds.length === 1) {
+    // moveToMailbox acts on a listed row only; an id from elsewhere (a
+    // plugin moving new mail) takes the batch path, or it was dropped.
+    if (emailIds.length === 1 && get().emails.some(e => e.id === emailIds[0])) {
       return await get().moveToMailbox(client, emailIds[0], destinationMailboxId);
     }
 
