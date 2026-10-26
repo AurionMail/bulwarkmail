@@ -2948,12 +2948,20 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         const year = emailDate.getFullYear().toString();
         const month = (emailDate.getMonth() + 1).toString().padStart(2, '0');
         const archiveId = archiveMailbox.originalId || archiveMailbox.id;
+        // By the server's ids: the list names a shared account's folders and
+        // their parents `account:id`, so a group's year folder was never
+        // found again. The folders go in the Archive's own account, and only
+        // that account's are looked at: the own folders have server ids too.
+        const parentOf = (m: Mailbox) => (m.parentId && m.accountId && m.parentId.startsWith(`${m.accountId}:`)
+          ? m.parentId.slice(m.accountId.length + 1)
+          : m.parentId);
+        const folderAccountId = archiveMailbox.accountId ?? archiveAccountId;
+        const isFolder = (m: Mailbox, name: string, parentId: string) =>
+          m.name === name && parentOf(m) === parentId && (!folderAccountId || m.accountId === folderAccountId);
 
-        let yearMailbox = currentMailboxes.find(
-          m => m.name === year && m.parentId === archiveId
-        ) ?? null;
+        let yearMailbox = currentMailboxes.find(m => isFolder(m, year, archiveId)) ?? null;
         if (!yearMailbox) {
-          yearMailbox = await createMailboxWithHooks(archiveClient, year, archiveId, archiveAccountId);
+          yearMailbox = await createMailboxWithHooks(archiveClient, year, archiveId, folderAccountId);
           if (!yearMailbox) return; // a plugin refused the folder
           await refreshMailboxes();
         }
@@ -2963,11 +2971,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         } else {
           const yearId = yearMailbox.originalId || yearMailbox.id;
           const afterYear = readMailboxes();
-          let monthMailbox = afterYear.find(
-            m => m.name === month && m.parentId === yearId
-          ) ?? null;
+          let monthMailbox = afterYear.find(m => isFolder(m, month, yearId)) ?? null;
           if (!monthMailbox) {
-            monthMailbox = await createMailboxWithHooks(archiveClient, month, yearId, archiveAccountId);
+            monthMailbox = await createMailboxWithHooks(archiveClient, month, yearId, folderAccountId);
             if (!monthMailbox) return; // a plugin refused the folder
             await refreshMailboxes();
           }

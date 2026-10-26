@@ -195,3 +195,63 @@ describe('the open message of a group account in a tag view', () => {
     expect(moveToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:b', 'login-a/ce:eaaaaab');
   });
 });
+
+describe('archiving a group message by month', () => {
+  // The group's Archive `k` already holds 2026/10, as the list names them:
+  // store ids and parents namespaced `ce:...`, the server's ids bare.
+  const year = { ...mailbox('y1', undefined, 'ce', true), name: '2026', parentId: 'ce:k' };
+  const month = { ...mailbox('m1', undefined, 'ce', true), name: '10', parentId: 'ce:y1' };
+  const withMonth = [...folders, year, month] as Mailbox[];
+
+  beforeEach(() => {
+    useSettingsStore.setState({ archiveMode: 'month' } as never);
+    client.createMailbox = vi.fn();
+  });
+
+  it('reuses the year and month folders in a tag view', async () => {
+    useEmailStore.setState({ mailboxes: withMonth } as never);
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub archive', {}, { timeout: 5000 }));
+    await waitFor(() => expect(moveThreadToMailbox).toHaveBeenCalled());
+    expect(client.createMailbox).not.toHaveBeenCalled();
+    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'login-a/ce:eaaaaab');
+  });
+
+  it('reuses them with the group\'s Inbox open', async () => {
+    const unstamped = { ...groupMessage, sourceClientAccountId: undefined, sourceAccountId: undefined } as Email;
+    useEmailStore.setState({ mailboxes: withMonth, selectedMailbox: 'ce:a', selectedKeyword: null, emails: [unstamped], selectedEmail: unstamped } as never);
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub archive', {}, { timeout: 5000 }));
+    await waitFor(() => expect(moveThreadToMailbox).toHaveBeenCalled());
+    expect(client.createMailbox).not.toHaveBeenCalled();
+    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'eaaaaab');
+  });
+
+  // The own account has a folder with the server id of the group's Archive,
+  // with 2026/10 below it (live on 0.16: a's "Shared" folder is `h`, and so
+  // was the group's Archive).
+  it('does not take the own account\'s namesake folders', async () => {
+    const unstamped = { ...groupMessage, sourceClientAccountId: undefined, sourceAccountId: undefined } as Email;
+    const ownNamesakes = [
+      { ...mailbox('k', undefined, 'cf'), name: 'Shared' },
+      { ...mailbox('oy', undefined, 'cf'), name: '2026', parentId: 'k' },
+      { ...mailbox('om', undefined, 'cf'), name: '10', parentId: 'oy' },
+    ];
+    useEmailStore.setState({ mailboxes: [...ownNamesakes, ...withMonth], selectedMailbox: 'ce:a', selectedKeyword: null, emails: [unstamped], selectedEmail: unstamped } as never);
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub archive', {}, { timeout: 5000 }));
+    await waitFor(() => expect(moveThreadToMailbox).toHaveBeenCalled());
+    expect(moveThreadToMailbox).toHaveBeenCalledWith(client, 'eaaaaab', 'ce:m1', 'eaaaaab');
+  });
+
+  it('creates a missing year folder in the group account with the group\'s Inbox open', async () => {
+    const unstamped = { ...groupMessage, sourceClientAccountId: undefined, sourceAccountId: undefined } as Email;
+    useSettingsStore.setState({ archiveMode: 'year' } as never);
+    (client.createMailbox as ReturnType<typeof vi.fn>).mockResolvedValue({ ...mailbox('y2', undefined, 'ce', true), id: 'y2', name: '2026' });
+    useEmailStore.setState({ selectedMailbox: 'ce:a', selectedKeyword: null, emails: [unstamped], selectedEmail: unstamped } as never);
+    render(<MailApp />);
+    fireEvent.click(await screen.findByText('stub archive', {}, { timeout: 5000 }));
+    await waitFor(() => expect(client.createMailbox).toHaveBeenCalled());
+    expect(client.createMailbox).toHaveBeenCalledWith('2026', 'k', 'ce', undefined);
+  });
+});
