@@ -49,11 +49,26 @@ function withMatchedChineseAcceptLanguage(request: NextRequest): NextRequest {
   return new NextRequest(request, { headers, nextConfig: basePath ? { basePath } : undefined });
 }
 
-// Next 16's Proxy always runs on Node.js runtime and route-segment config
-// (e.g. `export const config = { matcher }`) is no longer allowed in the
-// proxy file. We replicate the previous matcher inline by short-circuiting
-// requests for API routes, Next internals and static assets.
+// Next 16's Proxy always runs on Node.js runtime (a `runtime` in the config
+// below is refused). The matcher only leaves out the upload routes; API
+// routes, Next internals and static assets still pass through here and are
+// short-circuited inline after the setup and CSRF gates.
 const PROXY_SKIP_PATTERN = /^\/(?:api|_next)(?:\/|$)/;
+
+/**
+ * Routes the proxy does not run for: the ones that take uploads over 10 MB.
+ * For every request it runs for, Next first copies the body for it, up to
+ * proxyClientMaxBodySize (10 MB) and silently cutting off the rest; raising
+ * that limit made any unauthenticated POST hold up to it in memory. These
+ * handlers gate cross-origin requests themselves (the WOPI file routes are
+ * token-authed) and cap what they read. Next tests the raw and the decoded
+ * path; the proxy is skipped only when both are one of these exactly.
+ * next.config.ts gives them the headers the proxy would have set.
+ * A literal: Next reads it at build time.
+ */
+export const config = {
+  matcher: ["/((?!api/webdav$|api/plugin-proxy$|api/wopi/files/[^/]+/contents$).*)"],
+};
 
 // What Next serves from public/: a single dotted segment at the root
 // (/sw.js, /favicon.ico, /manifest.webmanifest) and the branding/,

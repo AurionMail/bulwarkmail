@@ -44,6 +44,7 @@ import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { fetchJmapSession, postJmap } from '@/lib/stalwart/jmap-api';
 import { shareeSavesNeedRename, updateFileNodeBlob } from '@/lib/wopi/files';
 import { mintWopiToken, wopiDocumentId } from '@/lib/wopi/token';
+import { endlessResponse } from './helpers/endless-body';
 
 process.env.ADMIN_STATE_DIR = mkdtempSync(path.join(tmpdir(), 'bw-wopi-files-'));
 
@@ -259,6 +260,22 @@ describe('WOPI PutFile for a Files node', () => {
 
     const res = await save(call, LOADED);
     expect(res).toEqual({ status: 409, data: { COOLStatusCode: 1010 } });
+    expect(uploads()).toEqual([]);
+    expect(setCalls()).toEqual([]);
+  });
+
+  it('refuses a document over the size limit instead of saving part of it', async () => {
+    const { data } = await launchFile({ fileId: 'f1' });
+    const call = editorCall(data);
+    const big = endlessResponse(200);
+    const req = {
+      ...request(`/api/wopi/files/${call.documentId}/contents?${call.token}`, { headers: { 'X-WOPI-Override': 'PUT' } }),
+      body: big.response.body,
+    } as unknown as Parameters<typeof putFile>[0];
+
+    const res = await putFile(req, params(call.documentId));
+    expect(res.status).toBe(413);
+    expect(big.pulled()).toBeLessThan(110);
     expect(uploads()).toEqual([]);
     expect(setCalls()).toEqual([]);
   });

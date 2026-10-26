@@ -21,10 +21,10 @@ export class UpstreamBodyTooLargeError extends Error {
 
 /**
  * The body as bytes, or null once it exceeds `maxBytes`, in which case the
- * upstream connection is aborted rather than drained.
+ * upstream connection is aborted rather than drained. Takes a request too.
  */
 export async function readBodyCapped(
-  response: PublicFetchResponse | Response,
+  response: PublicFetchResponse | Response | Request,
   maxBytes: number,
   controller?: AbortController,
 ): Promise<ArrayBuffer | null> {

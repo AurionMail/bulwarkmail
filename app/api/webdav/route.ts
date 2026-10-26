@@ -4,10 +4,12 @@ import { logger } from '@/lib/logger';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
-import { UpstreamBodyTooLargeError, readTextCapped } from '@/lib/security/capped-body';
+import { UpstreamBodyTooLargeError, readBodyCapped, readTextCapped } from '@/lib/security/capped-body';
 
 /** A PROPFIND listing of a folder with many thousand entries still fits. */
 const MAX_PROPFIND_RESPONSE_BYTES = 50 * 1024 * 1024;
+/** PROPFIND and MKCALENDAR bodies are a few lines of XML; proxy.ts doesn't run here to cap them. */
+const MAX_XML_REQUEST_BYTES = 1024 * 1024;
 
 const ALLOWED_METHODS = new Set(['PROPFIND', 'MKCOL', 'MKCALENDAR', 'GET', 'PUT', 'DELETE', 'MOVE', 'COPY']);
 
@@ -106,7 +108,8 @@ export async function POST(request: NextRequest) {
     // PROPFIND and MKCALENDAR bodies are small XML and are read fully.
     let body: ArrayBuffer | ReadableStream<Uint8Array> | null = null;
     if (method === 'PROPFIND' || method === 'MKCALENDAR') {
-      body = await request.arrayBuffer();
+      body = await readBodyCapped(request, MAX_XML_REQUEST_BYTES);
+      if (!body) return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
     } else if (method === 'PUT') {
       body = request.body;
     }

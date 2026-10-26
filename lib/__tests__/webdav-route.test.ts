@@ -114,6 +114,15 @@ describe('POST /api/webdav — proxying', () => {
     expect(res.headers!.get('Content-Type')).toBe('application/xml; charset=utf-8');
   });
 
+  it('PROPFIND refuses a request body over 1 MB without sending it on', async () => {
+    const big = endlessResponse(50);
+    const req = { ...makeReq({ 'X-WebDAV-Method': 'PROPFIND', 'X-WebDAV-Path': 'dir' }), body: big.response.body };
+    const res = read(await POST(req as unknown as Parameters<typeof POST>[0]));
+    expect(res.status).toBe(413);
+    expect(big.pulled()).toBeLessThan(5);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('PROPFIND answers 502 instead of buffering a listing that never ends', async () => {
     const { response, pulled } = endlessResponse(500, { status: 207 });
     fetchSpy.mockResolvedValueOnce(response);
