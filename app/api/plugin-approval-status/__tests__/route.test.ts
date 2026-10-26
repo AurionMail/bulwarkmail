@@ -11,6 +11,11 @@ vi.mock('@/lib/stalwart/auth-context', () => ({
 }));
 vi.mock('@/lib/security/same-origin', () => ({ rejectCrossOriginRequest: () => null }));
 
+let features: Record<string, boolean> = {};
+vi.mock('@/lib/admin/config-manager', () => ({
+  configManager: { ensureLoaded: async () => {}, getPolicy: () => ({ features }) },
+}));
+
 let currentUser = 'alice@example.org';
 const entries: Array<Record<string, unknown>> = [];
 const bundles = new Map<string, Uint8Array>();
@@ -55,6 +60,7 @@ beforeEach(() => {
   entries.length = 0;
   bundles.clear();
   currentUser = 'alice@example.org';
+  features = { pluginsEnabled: true, pluginsUploadEnabled: true, requirePluginApproval: true };
 });
 
 describe('POST /api/plugin-approval-status', () => {
@@ -85,6 +91,19 @@ describe('POST /api/plugin-approval-status', () => {
 
     expect(res.status).toBe(400);
     expect(entries).toHaveLength(0);
+  });
+
+  it.each([
+    ['plugins are off', { pluginsEnabled: false }],
+    ['user plugins are off', { pluginsUploadEnabled: false }],
+    ['approval is not required', { requirePluginApproval: false }],
+  ])('takes no package while %s', async (_label, off) => {
+    features = { ...features, ...off };
+    const res = await submit(await zipOf(MANIFEST));
+
+    expect(res.status).toBe(403);
+    expect(entries).toHaveLength(0);
+    expect(bundles.size).toBe(0);
   });
 
   it('limits how many requests one user can have open', async () => {

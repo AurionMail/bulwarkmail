@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
+import { configManager } from '@/lib/admin/config-manager';
 import { cookies } from 'next/headers';
 import { decryptSession } from '@/lib/auth/crypto';
 import { sessionCookieName } from '@/lib/auth/session-cookie';
@@ -74,6 +75,15 @@ export async function POST(request: NextRequest) {
   try {
     const username = await resolveUsername();
     if (!username) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+
+    // Only take packages while users may install their own plugins and
+    // those need review (GHSA-qc44-275p-gqw9): otherwise nobody asked for
+    // the queue, and every request still stores a ZIP on disk.
+    await configManager.ensureLoaded();
+    const { features } = configManager.getPolicy();
+    if (!features.pluginsEnabled || !features.pluginsUploadEnabled || !features.requirePluginApproval) {
+      return NextResponse.json({ error: 'Plugin approval requests are turned off' }, { status: 403 });
+    }
 
     // The request carries the package itself. The admin reviews the code
     // and manifest the server read from it, and the approval is pinned to
