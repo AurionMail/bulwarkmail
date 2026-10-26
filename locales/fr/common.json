@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-mail planifié pour envoi",
     "sending_in": "Envoi dans {seconds} s",
     "undo_send_failed": "Impossible d'annuler. Le message a peut-être déjà été envoyé.",
+    "undo_send_signed_out": "Impossible d'annuler : le compte depuis lequel le message a été envoyé n'est plus connecté.",
     "cancel_scheduled_send": "Annuler l’envoi",
     "reschedule_send": "Replanifier",
     "cancel_and_edit": "Annuler et modifier",

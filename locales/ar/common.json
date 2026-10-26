@@ -611,6 +611,7 @@
     "scheduled_send_created": "تمت جدولة الرسالة للإرسال",
     "sending_in": "الإرسال خلال {seconds} ث",
     "undo_send_failed": "تعذّر التراجع. ربما أُرسلت الرسالة بالفعل.",
+    "undo_send_signed_out": "تعذّر التراجع: الحساب الذي أُرسلت منه الرسالة لم يعد مسجّل الدخول.",
     "cancel_scheduled_send": "إلغاء الإرسال",
     "reschedule_send": "إعادة الجدولة",
     "cancel_and_edit": "إلغاء والتعديل",

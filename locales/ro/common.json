@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-mail programat pentru trimitere",
     "sending_in": "Se trimite în {seconds} s",
     "undo_send_failed": "Anularea nu a reușit. Este posibil ca mesajul să fi fost deja trimis.",
+    "undo_send_signed_out": "Nu se poate anula: contul din care a fost trimis mesajul nu mai este conectat.",
     "cancel_scheduled_send": "Anulează trimiterea",
     "reschedule_send": "Reprogramare",
     "cancel_and_edit": "Anulează și editează",

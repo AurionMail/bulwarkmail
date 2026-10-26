@@ -611,6 +611,7 @@
     "scheduled_send_created": "메일 보내기가 예약되었습니다",
     "sending_in": "{seconds}초 후 전송",
     "undo_send_failed": "실행 취소할 수 없습니다. 메시지가 이미 전송되었을 수 있습니다.",
+    "undo_send_signed_out": "실행을 취소할 수 없습니다: 메시지를 보낸 계정이 더 이상 로그인되어 있지 않습니다.",
     "cancel_scheduled_send": "보내기 취소",
     "reschedule_send": "다시 예약",
     "cancel_and_edit": "취소하고 편집",

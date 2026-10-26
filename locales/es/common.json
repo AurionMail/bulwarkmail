@@ -611,6 +611,7 @@
     "scheduled_send_created": "Correo programado para envío",
     "sending_in": "Enviando en {seconds} s",
     "undo_send_failed": "No se pudo deshacer. Puede que el mensaje ya se haya enviado.",
+    "undo_send_signed_out": "No se pudo deshacer: la cuenta desde la que se envió el mensaje ya no tiene la sesión iniciada.",
     "cancel_scheduled_send": "Cancelar envío",
     "reschedule_send": "Reprogramar",
     "cancel_and_edit": "Cancelar y editar",

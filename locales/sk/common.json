@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-mail bol naplánovaný na odoslanie",
     "sending_in": "Odoslanie o {seconds} s",
     "undo_send_failed": "Odoslanie sa nedá vrátiť. Správa už možno bola odoslaná.",
+    "undo_send_signed_out": "Nedá sa vrátiť späť: účet, z ktorého bola správa odoslaná, už nie je prihlásený.",
     "cancel_scheduled_send": "Zrušiť odoslanie",
     "reschedule_send": "Prenaplánovať",
     "cancel_and_edit": "Zrušiť a upraviť",

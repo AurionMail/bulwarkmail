@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-mail agendado para envio",
     "sending_in": "Enviando em {seconds} s",
     "undo_send_failed": "Não foi possível desfazer. A mensagem pode já ter sido enviada.",
+    "undo_send_signed_out": "Não foi possível desfazer: a conta a partir da qual a mensagem foi enviada já não tem sessão iniciada.",
     "cancel_scheduled_send": "Cancelar envio",
     "reschedule_send": "Reagendar",
     "cancel_and_edit": "Cancelar e editar",

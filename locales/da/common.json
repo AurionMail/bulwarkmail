@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-mail planlagt til afsendelse",
     "sending_in": "Sendes om {seconds} s",
     "undo_send_failed": "Kunne ikke fortrydes. Beskeden er måske allerede sendt.",
+    "undo_send_signed_out": "Kunne ikke fortrydes: kontoen, beskeden blev sendt fra, er ikke længere logget ind.",
     "cancel_scheduled_send": "Annuller afsendelse",
     "reschedule_send": "Planlæg om",
     "cancel_and_edit": "Annuller og redigér",

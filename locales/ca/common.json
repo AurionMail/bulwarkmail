@@ -611,6 +611,7 @@
     "scheduled_send_created": "Correu programat per enviar-se",
     "sending_in": "S'enviarà d'aquí a {seconds} s",
     "undo_send_failed": "No s'ha pogut desfer. Potser el missatge ja s'ha enviat.",
+    "undo_send_signed_out": "No s'ha pogut desfer: el compte des del qual s'ha enviat el missatge ja no té la sessió iniciada.",
     "cancel_scheduled_send": "Cancel·la l'enviament",
     "reschedule_send": "Reprograma",
     "cancel_and_edit": "Cancel·la i edita",

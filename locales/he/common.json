@@ -576,6 +576,7 @@
     "scheduled_send_created": "דוא״ל תוכנן לשליחה",
     "sending_in": "שליחה בעוד {seconds} שנ'",
     "undo_send_failed": "לא ניתן לבטל. ייתכן שההודעה כבר נשלחה.",
+    "undo_send_signed_out": "לא ניתן לבטל: החשבון שממנו נשלחה ההודעה כבר אינו מחובר.",
     "cancel_scheduled_send": "ביטול שליחה",
     "reschedule_send": "תזמן מחדש",
     "cancel_and_edit": "בטל וערוך",

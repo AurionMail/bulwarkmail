@@ -611,6 +611,7 @@
     "scheduled_send_created": "ایمیل برای ارسال زمان‌بندی شد",
     "sending_in": "ارسال تا {seconds} ثانیه دیگر",
     "undo_send_failed": "لغو ممکن نشد. شاید پیام ارسال شده باشد.",
+    "undo_send_signed_out": "لغو ممکن نشد: حسابی که پیام از آن ارسال شده دیگر وارد نشده است.",
     "cancel_scheduled_send": "لغو ارسال",
     "reschedule_send": "باززمان‌بندی",
     "cancel_and_edit": "لغو و ویرایش",

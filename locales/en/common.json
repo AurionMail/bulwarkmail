@@ -611,6 +611,7 @@
     "scheduled_send_created": "Email scheduled for sending",
     "sending_in": "Sending in {seconds, plural, one {# second} other {# seconds}}",
     "undo_send_failed": "Could not undo. The message may already have been sent.",
+    "undo_send_signed_out": "Could not undo: the account the message was sent from is no longer signed in.",
     "cancel_scheduled_send": "Cancel send",
     "reschedule_send": "Reschedule",
     "cancel_and_edit": "Cancel and edit",

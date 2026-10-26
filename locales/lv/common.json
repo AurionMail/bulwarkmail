@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-pasts ieplānots nosūtīšanai",
     "sending_in": "Sūtīšana pēc {seconds} s",
     "undo_send_failed": "Nevarēja atsaukt. Ziņojums, iespējams, jau ir nosūtīts.",
+    "undo_send_signed_out": "Nevar atsaukt: konts, no kura ziņojums tika nosūtīts, vairs nav pieteicies.",
     "cancel_scheduled_send": "Atcelt sūtīšanu",
     "reschedule_send": "Pārplānot",
     "cancel_and_edit": "Atcelt un rediģēt",

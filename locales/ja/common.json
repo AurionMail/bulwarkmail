@@ -611,6 +611,7 @@
     "scheduled_send_created": "メールを送信予約しました",
     "sending_in": "{seconds} 秒後に送信",
     "undo_send_failed": "取り消せませんでした。メッセージはすでに送信された可能性があります。",
+    "undo_send_signed_out": "取り消せませんでした: メッセージを送信したアカウントはサインアウトされています。",
     "cancel_scheduled_send": "送信をキャンセル",
     "reschedule_send": "再予約",
     "cancel_and_edit": "キャンセルして編集",

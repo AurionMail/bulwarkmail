@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-mail zaplanowany do wysłania",
     "sending_in": "Wysyłka za {seconds} s",
     "undo_send_failed": "Nie udało się cofnąć. Wiadomość mogła już zostać wysłana.",
+    "undo_send_signed_out": "Nie można cofnąć: konto, z którego wysłano wiadomość, nie jest już zalogowane.",
     "cancel_scheduled_send": "Anuluj wysyłkę",
     "reschedule_send": "Przełóż",
     "cancel_and_edit": "Anuluj i edytuj",

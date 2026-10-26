@@ -2483,9 +2483,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const pending = pendingUndoSend;
     // The submission lives on the account that owns the sending identity,
     // which is not always the active one in the multi-account shell (#461).
+    // Never another login, also not once that one is gone: the submission id
+    // names another submission there.
     const undoClient = pending.localAccountId
-      ? (useAuthStore.getState().getClientForAccount(pending.localAccountId) ?? client)
+      ? useAuthStore.getState().getClientForAccount(pending.localAccountId)
       : client;
+    const refuseSignedOut = () => toast.error(t('email_viewer.undo_send_signed_out'));
     // The login the draft is restored through. The classic shell leaves
     // `localAccountId` unset, and the user may switch logins before clicking
     // Undo: without this, the draft's next save would run through the new
@@ -2509,6 +2512,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         ? {
             label: t('email_viewer.send_now'),
             onClick: () => {
+              if (!undoClient) return refuseSignedOut();
               void (async () => {
                 try {
                   const result = await undoClient.rescheduleEmailSubmission(
@@ -2545,6 +2549,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       action: {
         label: t('email_viewer.undo_send'),
         onClick: () => {
+          if (!undoClient) return refuseSignedOut();
           void (async () => {
             let restored: Awaited<ReturnType<typeof cancelUndoSend>>;
             try {

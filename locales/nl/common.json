@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-mail gepland voor verzending",
     "sending_in": "Wordt over {seconds} s verzonden",
     "undo_send_failed": "Ongedaan maken lukte niet. Het bericht is misschien al verzonden.",
+    "undo_send_signed_out": "Ongedaan maken mislukt: het account waarvanaf het bericht is verzonden, is niet meer aangemeld.",
     "cancel_scheduled_send": "Verzenden annuleren",
     "reschedule_send": "Opnieuw plannen",
     "cancel_and_edit": "Annuleren en bewerken",

@@ -611,6 +611,7 @@
     "scheduled_send_created": "Sendingen er planlagt",
     "sending_in": "Sendes om {seconds} s",
     "undo_send_failed": "Kunne ikke angres. Meldingen kan allerede være sendt.",
+    "undo_send_signed_out": "Kunne ikke angres: kontoen meldingen ble sendt fra, er ikke lenger logget på.",
     "cancel_scheduled_send": "Avbryt sending",
     "reschedule_send": "Planlegg på nytt",
     "cancel_and_edit": "Avbryt og rediger",

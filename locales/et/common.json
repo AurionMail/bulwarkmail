@@ -611,6 +611,7 @@
     "scheduled_send_created": "Kiri ajastatud saatmiseks",
     "sending_in": "Saatmine {seconds, plural, one {# sekundi} other {# sekundi}} pärast",
     "undo_send_failed": "Tagasivõtmine ei õnnestunud. Kiri võib juba olla saadetud.",
+    "undo_send_signed_out": "Tagasivõtmine ebaõnnestus: konto, millelt sõnum saadeti, pole enam sisse logitud.",
     "cancel_scheduled_send": "Tühista saatmine",
     "reschedule_send": "Ajasta uuesti",
     "cancel_and_edit": "Tühista ja muuda",

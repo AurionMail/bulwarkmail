@@ -611,6 +611,7 @@
     "scheduled_send_created": "郵件已排程寄送",
     "sending_in": "{seconds} 秒後寄出",
     "undo_send_failed": "無法復原。郵件可能已經寄出。",
+    "undo_send_signed_out": "無法復原：寄出此郵件的帳戶已登出。",
     "cancel_scheduled_send": "取消傳送",
     "reschedule_send": "重新排程",
     "cancel_and_edit": "取消並編輯",

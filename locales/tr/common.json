@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-posta gönderim için zamanlandı",
     "sending_in": "{seconds} sn içinde gönderilecek",
     "undo_send_failed": "Geri alınamadı. İleti zaten gönderilmiş olabilir.",
+    "undo_send_signed_out": "Geri alınamadı: iletinin gönderildiği hesabın oturumu artık açık değil.",
     "cancel_scheduled_send": "Göndermeyi iptal et",
     "reschedule_send": "Yeniden zamanla",
     "cancel_and_edit": "İptal et ve düzenle",

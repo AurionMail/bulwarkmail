@@ -611,6 +611,7 @@
     "scheduled_send_created": "E-mail ütemezve a küldéshez",
     "sending_in": "Küldés {seconds} mp múlva",
     "undo_send_failed": "Nem vonható vissza. Lehet, hogy az üzenet már elment.",
+    "undo_send_signed_out": "Nem vonható vissza: az a fiók, amelyről az üzenetet elküldték, már nincs bejelentkezve.",
     "cancel_scheduled_send": "Küldés megszakítása",
     "reschedule_send": "Átütemezés",
     "cancel_and_edit": "Mégse és szerkesztés",
