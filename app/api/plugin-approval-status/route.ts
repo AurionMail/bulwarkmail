@@ -31,13 +31,15 @@ import { ExtensionPackageError, packageHash, readPluginPackage } from '@/lib/ext
 async function resolveUsername(): Promise<string | null> {
   const cookieStore = await cookies();
   for (let slot = 0; slot < MAX_ACCOUNT_SLOTS; slot++) {
+    // The context first: a token sign-in may have claimed a bare name, and
+    // only the context knows the account it resolved to.
+    const ctx = readStalwartAuthContextFromStore(cookieStore, slot);
+    if (ctx?.username) return ctx.accountName ?? ctx.username;
     const token = cookieStore.get(sessionCookieName(slot))?.value;
     if (token) {
       const sess = decryptSession(token);
       if (sess?.username) return sess.username;
     }
-    const ctx = readStalwartAuthContextFromStore(cookieStore, slot);
-    if (ctx?.username) return ctx.username;
   }
   return null;
 }
