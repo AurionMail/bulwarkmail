@@ -7,6 +7,7 @@ import { normalizeCalendarEventLike } from '@/lib/calendar-event-normalization';
 import { RECURRENCE_BASE_PROPERTIES, hydrateRecurrenceInstances, isServerRecurrenceInstance } from '@/lib/recurrence-instances';
 import { parseISO } from 'date-fns';
 import type { CalendarEvent } from '@/lib/jmap/types';
+import { UpstreamBodyTooLargeError, readJsonCapped } from '@/lib/security/capped-body';
 
 /**
  * POST /api/calendar-agenda
@@ -45,6 +46,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const GET_BATCH = 100;
 // Stalwart's default maxCallsInRequest, for a session that names none.
 const MAX_CALLS_FALLBACK = 16;
+// One answer holds at most maxCallsInRequest x GET_BATCH slim events.
+const MAX_RESPONSE_BYTES = 20 * 1024 * 1024;
 
 interface AgendaEvent {
   /** Unique across accounts: `<accountId>:<event id>`. */
@@ -346,6 +349,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ events: agenda, generatedAt: now.toISOString() });
   } catch (error) {
+    if (error instanceof UpstreamBodyTooLargeError) {
+      logger.warn('Calendar agenda: JMAP response too large', { maxBytes: error.maxBytes });
+      return NextResponse.json({ error: 'JMAP server response is too large' }, { status: 502 });
+    }
     // `fetch failed` from undici is too generic to debug — the real reason
     // (ENOTFOUND, ECONNREFUSED, self-signed TLS, …) lives on `error.cause`.
     const err = error as Error & { cause?: { code?: string; message?: string } };
@@ -412,7 +419,7 @@ async function jmapPost(
   if (!res.ok) {
     throw new Error(`JMAP request failed (${res.status})`);
   }
-  return res.json();
+  return readJsonCapped(res, MAX_RESPONSE_BYTES);
 }
 
 function findResponse(

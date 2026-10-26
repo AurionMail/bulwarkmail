@@ -4,6 +4,10 @@ import { logger } from '@/lib/logger';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
+import { UpstreamBodyTooLargeError, readTextCapped } from '@/lib/security/capped-body';
+
+/** A PROPFIND listing of a folder with many thousand entries still fits. */
+const MAX_PROPFIND_RESPONSE_BYTES = 50 * 1024 * 1024;
 
 const ALLOWED_METHODS = new Set(['PROPFIND', 'MKCOL', 'MKCALENDAR', 'GET', 'PUT', 'DELETE', 'MOVE', 'COPY']);
 
@@ -134,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     // For PROPFIND, return XML with the actual request URI for href comparison
     if (method === 'PROPFIND') {
-      const text = await response.text();
+      const text = await readTextCapped(response, MAX_PROPFIND_RESPONSE_BYTES);
       const headers = new Headers();
       headers.set('Content-Type', 'application/xml; charset=utf-8');
       headers.set('X-WebDAV-Request-URI', targetUrl);
@@ -156,6 +160,10 @@ export async function POST(request: NextRequest) {
     if (error instanceof DisallowedUrlError) {
       logger.warn('WebDAV proxy refused non-public server address', { error: error.message });
       return NextResponse.json({ error: 'JMAP server address is not allowed' }, { status: 502 });
+    }
+    if (error instanceof UpstreamBodyTooLargeError) {
+      logger.warn('WebDAV proxy response too large', { maxBytes: error.maxBytes });
+      return NextResponse.json({ error: 'WebDAV response is too large' }, { status: 502 });
     }
 
     logger.error('WebDAV proxy error', { error: error instanceof Error ? error.message : 'Unknown' });

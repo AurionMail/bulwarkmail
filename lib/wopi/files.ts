@@ -1,5 +1,6 @@
 import { postJmap, fetchJmapSession, rebaseApiUrl, type JmapSessionDocument } from '@/lib/stalwart/jmap-api';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
+import { UPSTREAM_JSON_MAX_BYTES, readJsonCapped } from '@/lib/security/capped-body';
 import { jmapError, type JmapErrorInfo } from '@/lib/jmap/jmap-error';
 import type { FileNode } from '@/lib/jmap/types';
 
@@ -48,7 +49,7 @@ async function callJmap(ctx: WopiJmapContext, methodCalls: unknown[]): Promise<J
   if (!response.ok) {
     throw new Error(`JMAP request failed (${response.status})`);
   }
-  const json = (await response.json()) as { methodResponses?: JmapMethodResponse[] };
+  const json = await readJsonCapped<{ methodResponses?: JmapMethodResponse[] }>(response, UPSTREAM_JSON_MAX_BYTES);
   return json.methodResponses ?? [];
 }
 
@@ -200,7 +201,7 @@ export async function uploadFileBlob(
   if (!response.ok) {
     throw new Error(`Blob upload failed (${response.status})`);
   }
-  const json = (await response.json()) as { blobId?: string; size?: number; type?: string };
+  const json = await readJsonCapped<{ blobId?: string; size?: number; type?: string }>(response, UPSTREAM_JSON_MAX_BYTES);
   if (!json.blobId) throw new Error('Blob upload returned no blobId');
   return { blobId: json.blobId, size: json.size ?? body.byteLength, type: json.type ?? contentType };
 }

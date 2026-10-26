@@ -5,6 +5,10 @@ import { configManager } from '@/lib/admin/config-manager';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { JmapRedirectError, fetchJmapSession, postJmap, rebaseApiUrl } from '@/lib/stalwart/jmap-api';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
+import { UpstreamBodyTooLargeError, readTextCapped } from '@/lib/security/capped-body';
+
+/** Large JMAP answers pass through (logs, principal lists); a server streaming without end does not. */
+const MAX_RESPONSE_BYTES = 50 * 1024 * 1024;
 
 /**
  * POST /api/account/stalwart/jmap
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const responseText = await response.text();
+    const responseText = await readTextCapped(response, MAX_RESPONSE_BYTES);
     return new NextResponse(responseText, {
       status: response.status,
       headers: { 'Content-Type': response.headers.get('Content-Type') || 'application/json' },
@@ -78,6 +82,10 @@ export async function POST(request: NextRequest) {
     if (error instanceof DisallowedUrlError) {
       logger.warn('Stalwart JMAP passthrough refused non-public server address', { error: error.message });
       return NextResponse.json({ error: 'JMAP server address is not allowed' }, { status: 502 });
+    }
+    if (error instanceof UpstreamBodyTooLargeError) {
+      logger.warn('Stalwart JMAP passthrough response too large', { maxBytes: error.maxBytes });
+      return NextResponse.json({ error: 'JMAP server response is too large' }, { status: 502 });
     }
     // `fetch failed` from undici is too generic to debug — the real reason
     // (ENOTFOUND, ECONNREFUSED, self-signed TLS, …) lives on `error.cause`.

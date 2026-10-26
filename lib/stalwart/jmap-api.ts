@@ -18,6 +18,7 @@
  */
 
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
+import { UPSTREAM_JSON_MAX_BYTES, readJsonCapped } from '@/lib/security/capped-body';
 
 const MAX_REDIRECTS = 3;
 
@@ -113,7 +114,8 @@ export async function fetchJmapSession(
         redirect: 'follow',
       }, options.trusted);
       if (!res.ok) continue;
-      const session = (await res.json()) as JmapSessionDocument;
+      // An oversized session throws here, and the next candidate is tried.
+      const session = await readJsonCapped<JmapSessionDocument>(res, UPSTREAM_JSON_MAX_BYTES);
       if (session && typeof session === 'object' && session.primaryAccounts) {
         return session;
       }

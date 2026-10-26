@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { postJmap, rebaseApiUrl, fetchJmapSession, JmapRedirectError } from '@/lib/stalwart/jmap-api';
+import { endlessResponse } from './helpers/endless-body';
 
 const realFetch = global.fetch;
 const mockedFetch = vi.fn();
@@ -132,5 +133,16 @@ describe('fetchJmapSession', () => {
   it('returns null when no candidate yields a session', async () => {
     mockedFetch.mockResolvedValue(response(404));
     expect(await fetchJmapSession('https://mail.example.com', 'Basic abc')).toBeNull();
+  });
+});
+
+describe('fetchJmapSession (response size)', () => {
+  it('stops reading a session document that never ends', async () => {
+    const first = endlessResponse(500);
+    const second = endlessResponse(500);
+    mockedFetch.mockResolvedValueOnce(first.response).mockResolvedValueOnce(second.response);
+
+    expect(await fetchJmapSession('https://mail.example.com', 'Basic abc')).toBeNull();
+    expect(first.pulled() + second.pulled()).toBeLessThan(20);
   });
 });

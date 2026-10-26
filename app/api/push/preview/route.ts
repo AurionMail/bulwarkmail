@@ -11,6 +11,7 @@ import {
 import { fetchJmapServer, isTrustedJmapServerUrl } from '@/lib/stalwart/server-fetch';
 import { rebaseApiUrl } from '@/lib/stalwart/jmap-api';
 import { DisallowedUrlError } from '@/lib/security/url-guard';
+import { UPSTREAM_JSON_MAX_BYTES, UpstreamBodyTooLargeError, readJsonCapped } from '@/lib/security/capped-body';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -56,7 +57,7 @@ async function resolveTargetForAccount(accountId: string): Promise<ResolvedTarge
             headers: { Authorization: ctx.authHeader },
           }, trusted);
           if (!res.ok) return null;
-          const session = (await res.json()) as {
+          const session = (await readJsonCapped(res, UPSTREAM_JSON_MAX_BYTES)) as {
             apiUrl?: string;
             primaryAccounts?: Record<string, string>;
             accounts?: Record<string, unknown>;
@@ -94,7 +95,7 @@ async function resolveDefaultTarget(creds: StalwartCredentials): Promise<Resolve
     headers: { Authorization: creds.authHeader },
   }, creds.trusted);
   if (!sessionRes.ok) return null;
-  const session = (await sessionRes.json()) as {
+  const session = (await readJsonCapped(sessionRes, UPSTREAM_JSON_MAX_BYTES)) as {
     apiUrl?: string;
     primaryAccounts?: Record<string, string>;
   };
@@ -179,7 +180,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'JMAP mailbox query failed' }, { status: 502 });
     }
 
-    const inboxData = (await inboxRes.json()) as {
+    const inboxData = (await readJsonCapped(inboxRes, UPSTREAM_JSON_MAX_BYTES)) as {
       methodResponses: [string, Record<string, unknown>, string][];
     };
 
@@ -264,7 +265,7 @@ export async function GET(request: NextRequest) {
     if (!jmapRes.ok) {
       return NextResponse.json({ error: 'JMAP request failed' }, { status: 502 });
     }
-    const data = (await jmapRes.json()) as {
+    const data = (await readJsonCapped(jmapRes, UPSTREAM_JSON_MAX_BYTES)) as {
       methodResponses: [string, Record<string, unknown>, string][];
     };
 
@@ -344,6 +345,10 @@ export async function GET(request: NextRequest) {
     if (error instanceof DisallowedUrlError) {
       logger.warn('push preview refused non-public server address', { error: error.message });
       return NextResponse.json({ error: 'JMAP server address is not allowed' }, { status: 502 });
+    }
+    if (error instanceof UpstreamBodyTooLargeError) {
+      logger.warn('push preview: JMAP response too large', { maxBytes: error.maxBytes });
+      return NextResponse.json({ error: 'JMAP server response is too large' }, { status: 502 });
     }
     // `fetch failed` from undici is too generic to debug - the real reason
     // (ENOTFOUND, ECONNREFUSED, TLS error, …) is on `error.cause`.

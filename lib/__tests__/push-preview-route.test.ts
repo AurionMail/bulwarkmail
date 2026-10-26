@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { endlessResponse } from './helpers/endless-body';
 
 vi.mock('next/server', () => ({
   NextResponse: {
@@ -228,4 +229,16 @@ it('sends the method calls to the server address it was configured with, not the
   expect((await callRoute('a')).status).toBe(200);
   const posted = fetchJmapServer.mock.calls.map(([url]) => url).filter((url) => !url.endsWith('/.well-known/jmap'));
   expect(posted).toEqual(['https://mail.example.com/jmap/', 'https://mail.example.com/jmap/']);
+});
+
+it('answers 502 instead of buffering a mailbox answer that never ends', async () => {
+  fetchJmapServer.mockReset();
+  mockJmap();
+  const reply = fetchJmapServer.getMockImplementation()!;
+  const endless = endlessResponse(500);
+  fetchJmapServer.mockImplementation(async (url: string, init?: { body?: string }) =>
+    url.endsWith('/.well-known/jmap') ? reply(url, init) : endless.response);
+
+  expect((await callRoute('a')).status).toBe(502);
+  expect(endless.pulled()).toBeLessThan(10);
 });

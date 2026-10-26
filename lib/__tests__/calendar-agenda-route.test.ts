@@ -5,6 +5,7 @@ import {
   asksForOverridesWithUtc,
   type StalwartVersion,
 } from './helpers/stalwart-calendar';
+import { endlessResponse } from './helpers/endless-body';
 
 // ── module mocks (hoisted) ───────────────────────────────────────────────────
 vi.mock('next/server', () => {
@@ -15,7 +16,7 @@ vi.mock('next/server', () => {
   }
   return { NextResponse, NextRequest: class {} };
 });
-vi.mock('@/lib/logger', () => ({ logger: { error: () => {}, debug: () => {} } }));
+vi.mock('@/lib/logger', () => ({ logger: { error: () => {}, warn: () => {}, debug: () => {} } }));
 vi.mock('@/lib/stalwart/credentials', () => ({ getStalwartCredentials: vi.fn() }));
 vi.mock('@/lib/stalwart/jmap-api', () => ({
   fetchJmapSession: vi.fn(),
@@ -418,5 +419,19 @@ describe('calendar-agenda route (shared and group accounts)', () => {
 
     const res = await POST(makeReq());
     expect(res.status).toBe(502);
+  });
+});
+
+describe('calendar-agenda route (response size)', () => {
+  it('answers 502 instead of buffering an answer that never ends', async () => {
+    vi.clearAllMocks();
+    mockCreds.mockResolvedValue({ serverUrl: 'https://mail.example.com', username: 'user@example.com', authHeader: 'Basic abc' });
+    mockSession.mockResolvedValue(makeSession(BASE_CAPS));
+    const endless = endlessResponse(500);
+    mockPost.mockResolvedValue(endless.response);
+
+    const res = await POST(makeReq());
+    expect(res.status).toBe(502);
+    expect(endless.pulled()).toBeLessThan(30);
   });
 });
