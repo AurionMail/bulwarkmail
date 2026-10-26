@@ -243,6 +243,7 @@ interface EmailStore {
   // Scheduled send state
   scheduledEmails: ScheduledEmail[];
   scheduledEmailIds: Set<string>;
+  /** By login, account and email id (scheduledEmailKey). */
   scheduledSubmissionByEmailId: Map<string, ScheduledSubmissionMetadata>;
   scheduledTotal: number;
   scheduledHasMore: boolean;
@@ -603,11 +604,36 @@ function annotateScheduledEmails(
   return emails.map(email => annotateScheduledEmail(email, scheduledSubmissionByEmailId));
 }
 
+/**
+ * Key of a scheduled send in `scheduledSubmissionByEmailId`: the login and the
+ * JMAP account of the message, and its id. Email ids repeat across accounts,
+ * so by the bare id a row of another account got the badge, and its Send now,
+ * Reschedule and Cancel acted on this message's submission.
+ */
+function scheduledEmailKey(clientAccountId: string | undefined, accountId: string | undefined, emailId: string): string {
+  return `${clientAccountId ?? ''}|${accountId ?? ''}|${emailId}`;
+}
+
+/** The scheduled sends `client` listed, by scheduledEmailKey. */
+function scheduledSubmissionMap(client: IJMAPClient, emails: ScheduledEmail[]): Map<string, ScheduledSubmissionMetadata> {
+  const auth = useAuthStore.getState();
+  const login = [...auth.getAllConnectedClients()].find(([, c]) => c === client)?.[0] ?? auth.activeAccountId ?? undefined;
+  return new Map(emails.map(email => [scheduledEmailKey(login, email.scheduledAccountId ?? client.getAccountId(), email.id), {
+    submissionId: email.emailSubmissionId,
+    sendAt: email.scheduledSendAt,
+    identityId: email.scheduledIdentityId,
+    undoStatus: email.scheduledUndoStatus,
+    accountId: email.scheduledAccountId,
+  }]));
+}
+
 function annotateScheduledEmail(
   email: Email,
   scheduledSubmissionByEmailId: Map<string, ScheduledSubmissionMetadata>
 ): Email {
-  const scheduled = scheduledSubmissionByEmailId.get(email.id);
+  // The row's login and account: its stamps, else the folder on screen.
+  const { client, clientAccountId, accountId } = resolveEmailBlobContext(email, useAuthStore.getState().client);
+  const scheduled = scheduledSubmissionByEmailId.get(scheduledEmailKey(clientAccountId, accountId ?? client?.getAccountId(), email.id));
   if (!scheduled) return email;
   return {
     ...email,
@@ -3778,16 +3804,18 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const email = await actionClient.getEmail(emailId, accountId);
 
       if (email) {
-        const annotatedEmail = annotateScheduledEmail(email, get().scheduledSubmissionByEmailId);
         // Email/get does not return client-only source metadata. Keep the source
         // captured before the await, including automatic selection after actions.
+        // Only carry stamps the list row has. A direct-folder row stays
+        // unstamped, since threadKeyFor scopes keys by these stamps.
+        const annotatedEmail = annotateScheduledEmail({
+          ...email,
+          sourceClientAccountId: listEmail?.sourceClientAccountId,
+          sourceAccountId: listEmail?.sourceAccountId,
+        }, get().scheduledSubmissionByEmailId);
         annotatedEmail.accountId = listEmail?.accountId;
         annotatedEmail.accountLabel = listEmail?.accountLabel;
         annotatedEmail.sourceFolder = listEmail?.sourceFolder;
-        // Only carry stamps the list row has. A direct-folder row stays
-        // unstamped, since threadKeyFor scopes keys by these stamps.
-        annotatedEmail.sourceClientAccountId = listEmail?.sourceClientAccountId;
-        annotatedEmail.sourceAccountId = listEmail?.sourceAccountId;
         set({ selectedEmail: annotatedEmail });
         return annotatedEmail;
       }
@@ -7396,13 +7424,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const result = await client.getScheduledEmails(emailsPerPage, 0);
       result.emails = await emailHooks.onEmailsFetched.transform(result.emails);
       const scheduledEmailIds = new Set(result.emails.map(email => email.id));
-      const scheduledSubmissionByEmailId = new Map(result.emails.map(email => [email.id, {
-        submissionId: email.emailSubmissionId,
-        sendAt: email.scheduledSendAt,
-        identityId: email.scheduledIdentityId,
-        undoStatus: email.scheduledUndoStatus,
-        accountId: email.scheduledAccountId,
-      }]));
+      const scheduledSubmissionByEmailId = scheduledSubmissionMap(client, result.emails);
       const pendingUndoSend = get().pendingUndoSend;
       set({
         scheduledEmails: result.emails,
@@ -7443,13 +7465,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       set({
         scheduledEmails: merged,
         scheduledEmailIds: new Set(merged.map(email => email.id)),
-        scheduledSubmissionByEmailId: new Map(merged.map(email => [email.id, {
-          submissionId: email.emailSubmissionId,
-          sendAt: email.scheduledSendAt,
-          identityId: email.scheduledIdentityId,
-          undoStatus: email.scheduledUndoStatus,
-          accountId: email.scheduledAccountId,
-        }])),
+        scheduledSubmissionByEmailId: scheduledSubmissionMap(client, merged),
         scheduledTotal: result.total,
         scheduledTotalByAccount: result.totalByAccount ?? {},
         scheduledHasMore: result.hasMore,
@@ -7484,13 +7500,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         position = page.nextPosition;
       }
       const pendingUndoSend = get().pendingUndoSend;
-      const scheduledSubmissionByEmailId = new Map(allEmails.map(email => [email.id, {
-        submissionId: email.emailSubmissionId,
-        sendAt: email.scheduledSendAt,
-        identityId: email.scheduledIdentityId,
-        undoStatus: email.scheduledUndoStatus,
-        accountId: email.scheduledAccountId,
-      }]));
+      const scheduledSubmissionByEmailId = scheduledSubmissionMap(client, allEmails);
       set({
         scheduledEmails: get().isScheduledView ? allEmails : get().scheduledEmails,
         scheduledEmailIds: new Set(allEmails.map(email => email.id)),
