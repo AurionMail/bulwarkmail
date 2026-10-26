@@ -837,7 +837,7 @@ describe('CalendarInvitationBanner', () => {
       },
     ]);
 
-    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-5', attachments: [{ partId: '1', blobId: 'blob-5', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
+    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-5', from: [{ email: 'alice@example.com' }], attachments: [{ partId: '1', blobId: 'blob-5', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
 
     await waitFor(() => {
       expect(screen.getByText('Proposed changes')).toBeInTheDocument();
@@ -862,6 +862,57 @@ describe('CalendarInvitationBanner', () => {
     expect(send).toBe(true);
   });
 
+  // Applying a proposal sends its changes to every attendee. One from an
+  // address that is no participant of the meeting (anyone who learned its
+  // uid) is shown, but can't be applied.
+  it('does not let a proposal from outside the meeting be applied', async () => {
+    mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(true);
+    const event = (location: string) => ({
+      uid: 'uid-12', title: 'Board meeting', start: '2026-03-27T09:00:00Z', duration: 'PT1H',
+      virtualLocations: { call: { '@type': 'VirtualLocation', uri: location } },
+      participants: {
+        organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+        attendee: { '@type': 'Participant', email: 'alice@example.com', name: 'Alice', roles: { attendee: true }, participationStatus: 'accepted' },
+      },
+    });
+    mocks.calendarState.events = [{ id: 'event-12', ...event('https://meet.example.com/board') }];
+    // Names Alice as the attendee proposing, but comes from someone else.
+    mocks.clientMock.parseCalendarEvents.mockResolvedValue([event('https://evil.example/board')]);
+
+    render(<CalendarInvitationBanner email={makeEmail({
+      id: 'email-12',
+      from: [{ email: 'mallory@evil.example' }],
+      attachments: [{ partId: '1', blobId: 'blob-12', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }],
+    })} />);
+    await waitFor(() => expect(screen.getByText('Review proposal')).toBeInTheDocument());
+
+    expect(screen.queryByText('Apply proposed changes')).toBeNull();
+    expect(mocks.calendarState.updateEvent).not.toHaveBeenCalled();
+  });
+
+  it('lets a proposal from an attendee Stalwart lists by calendar address be applied', async () => {
+    mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(true);
+    // As 0.16 and 1.0 store and parse them: mailto: calendar addresses, no email.
+    const event = (room: string) => ({
+      uid: 'uid-13', title: 'Sync', start: '2026-03-27T09:00:00Z', duration: 'PT1H',
+      locations: { room: { '@type': 'Location', name: room } },
+      organizerCalendarAddress: 'mailto:user@example.com',
+      participants: {
+        a: { '@type': 'Participant', calendarAddress: 'mailto:user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+        b: { '@type': 'Participant', calendarAddress: 'mailto:alice@example.com', participationStatus: 'accepted' },
+      },
+    });
+    mocks.calendarState.events = [{ id: 'event-13', ...event('Room A') }];
+    mocks.clientMock.parseCalendarEvents.mockResolvedValue([event('Room B')]);
+
+    render(<CalendarInvitationBanner email={makeEmail({
+      id: 'email-13',
+      from: [{ email: 'Alice@Example.com' }],
+      attachments: [{ partId: '1', blobId: 'blob-13', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }],
+    })} />);
+    await waitFor(() => expect(screen.getByText('Apply proposed changes')).toBeInTheDocument());
+  });
+
   // A proposal for one occurrence of a recurring meeting names it by its
   // recurrence id; it went to the first event with the uid, any occurrence
   // in view.
@@ -880,7 +931,7 @@ describe('CalendarInvitationBanner', () => {
       uid: 'uid-7', title: 'Weekly', start: '2026-03-27T10:00:00', duration: 'PT1H', timeZone: 'Europe/Berlin', participants, ...extra,
     });
     const openCounter = async (id: string) => {
-      render(<CalendarInvitationBanner email={makeEmail({ id, attachments: [{ partId: '1', blobId: `blob-${id}`, size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
+      render(<CalendarInvitationBanner email={makeEmail({ id, from: [{ email: 'alice@example.com' }], attachments: [{ partId: '1', blobId: `blob-${id}`, size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
       await waitFor(() => expect(screen.getByText('Review proposal')).toBeInTheDocument());
     };
 
@@ -925,7 +976,7 @@ describe('CalendarInvitationBanner', () => {
     mocks.calendarState.events = [{ id: 'event-6', ...event('Room A') }];
     mocks.clientMock.parseCalendarEvents.mockResolvedValue([event('Room B')]);
 
-    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-6', attachments: [{ partId: '1', blobId: 'blob-6', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
+    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-6', from: [{ email: 'alice@example.com' }], attachments: [{ partId: '1', blobId: 'blob-6', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
     await waitFor(() => expect(screen.getByText('Proposed changes')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Apply proposed changes'));
     await waitFor(() => expect(mocks.calendarState.updateEvent).toHaveBeenCalledTimes(1));
@@ -1004,6 +1055,7 @@ describe('CalendarInvitationBanner', () => {
       }]);
       render(<CalendarInvitationBanner email={makeEmail({
         id: 'email-11',
+        from: [{ email: 'alice@example.com' }],
         attachments: [{ partId: '1', blobId: 'blob-11', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }],
       })} />);
       await waitFor(() => expect(screen.getByText('Apply proposed changes')).toBeInTheDocument());
