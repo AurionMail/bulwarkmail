@@ -18,8 +18,9 @@ interface DiscoveryResult {
 const MAX_ACCOUNTS = 10;
 const MAX_CANDIDATES_PER_ACCOUNT = 10;
 
+/** Appends to the server address, keeping a path prefix (Stalwart behind https://host/stalwart), like /api/webdav. */
 function buildPublicUrl(serverUrl: string, path: string): string {
-  return new URL(path, serverUrl).toString();
+  return new URL(`${serverUrl.replace(/\/+$/, '')}${path}`).toString();
 }
 
 async function probeCalendarHome(
