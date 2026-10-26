@@ -6171,7 +6171,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const tagViewChanged = !!get().selectedKeyword && anyEmailChanged;
       // So does an "All folders" search (#1082).
       const unscopedSearchChanged = isUnscopedSearchActive(get()) && anyEmailChanged;
-      if (accountChanges?.Email || syncedAccountEmailState || tagViewChanged || unscopedSearchChanged) {
+      // And the unified and cross-account views, which include group and
+      // shared accounts (#1350).
+      const unifiedViewChanged = get().isUnifiedView && anyEmailChanged;
+      if (accountChanges?.Email || syncedAccountEmailState || tagViewChanged || unscopedSearchChanged || unifiedViewChanged) {
         // A delta that could not be read falls back to the full refresh.
         const applied = syncedAccountEmailState
           ? await get().applyEmailDelta(client, syncedAccountEmailState).catch(() => false)
