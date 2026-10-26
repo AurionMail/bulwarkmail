@@ -33,6 +33,7 @@ import { buildEmailSort, compareEmails, hasKeywordLevels, hasTextLevels, type Ke
 import { emailMatchesLogin, sortIdentities } from "@/lib/identity-order";
 import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
+import { downloadNameSegment } from "./download-name";
 import { toInertBlob } from "@/lib/file-preview";
 import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
 import { messagePriorityHeaders, type MessagePriority } from "@/lib/message-priority";
@@ -5826,7 +5827,7 @@ export class JMAPClient implements IJMAPClient {
     return this.downloadUrl
       .replace('{accountId}', encodeURIComponent(accountId || this.accountId))
       .replace('{blobId}', encodeURIComponent(blobId))
-      .replace('{name}', encodeURIComponent(name || 'download'))
+      .replace('{name}', encodeURIComponent(downloadNameSegment(name)))
       .replace('{type}', encodeURIComponent(type || 'application/octet-stream'));
   }
 

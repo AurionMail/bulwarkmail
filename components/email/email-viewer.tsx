@@ -2307,8 +2307,9 @@ export function EmailViewer({
           } else {
             URL.revokeObjectURL(objectUrl);
           }
-        } catch {
-          // Failed to fetch inline image, will show placeholder
+        } catch (err) {
+          // The image shows as the placeholder; say why, or the failure is invisible.
+          console.warn(`Failed to fetch inline image cid:${cidValue}:`, err);
         }
       }));
       if (!cancelled) {
