@@ -1,5 +1,13 @@
-import { isIP } from 'node:net';
+import { BlockList, isIP } from 'node:net';
 import { getClientIP } from '@/lib/admin/session';
+
+/** Addresses that name no client: loopback and unspecified. */
+const NOT_A_CLIENT = new BlockList();
+NOT_A_CLIENT.addSubnet('127.0.0.0', 8, 'ipv4');
+NOT_A_CLIENT.addAddress('0.0.0.0', 'ipv4');
+NOT_A_CLIENT.addAddress('::1', 'ipv6');
+NOT_A_CLIENT.addAddress('::', 'ipv6');
+NOT_A_CLIENT.addSubnet('::ffff:127.0.0.0', 104, 'ipv6');
 
 /**
  * Every credential the sign-in routes check reaches the mail server from this
@@ -20,9 +28,14 @@ import { getClientIP } from '@/lib/admin/session';
  * comes from the request's own `X-Forwarded-For` when no reverse proxy
  * rewrites it, and anything else would be a stranger's text in an upstream
  * header.
+ *
+ * Nor is a loopback or unspecified address: it says nothing about the client,
+ * and Stalwart 1.0 set to read `X-Forwarded-For` (what stalwart-migrate makes
+ * of a 0.16 server behind a proxy) answers 400 to a request naming one.
  */
 export function forwardedClientHeaders(clientIp: string | undefined): Record<string, string> {
-  if (!clientIp || clientIp === '0.0.0.0' || isIP(clientIp) === 0) return {};
+  const family = clientIp ? isIP(clientIp) : 0;
+  if (!clientIp || family === 0 || NOT_A_CLIENT.check(clientIp, family === 4 ? 'ipv4' : 'ipv6')) return {};
   return { 'X-Forwarded-For': clientIp };
 }
 
