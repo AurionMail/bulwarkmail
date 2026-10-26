@@ -1536,6 +1536,10 @@
         "label": "Plain Text Only",
         "description": "Disable the rich text editor and send all emails as plain text only, including replies and forwards"
       },
+      "quick_reply": {
+        "label": "Quick Reply",
+        "description": "Show the quick reply box below messages."
+      },
       "auto_select_reply_identity": {
         "label": "Reply From Received Address",
         "description": "When replying, send from the address the message was originally sent to. Your configured identities always match; whether other addresses on your domains count too (catch-all) is set by “Received Address Matching” below."

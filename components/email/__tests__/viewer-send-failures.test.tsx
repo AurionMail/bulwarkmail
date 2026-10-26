@@ -76,6 +76,7 @@ function makeEmail(overrides: Record<string, unknown> = {}): Email {
 let toastError: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
+  useSettingsStore.setState({ quickReplyEnabled: true });
   toastError = vi.spyOn(toast, 'error').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -85,6 +86,15 @@ afterEach(() => {
 });
 
 describe('viewer send failures', () => {
+  it('hides quick reply when disabled and restores it when enabled', () => {
+    useSettingsStore.setState({ quickReplyEnabled: false });
+    render(<EmailViewer email={makeEmail()} mailboxes={mailboxes} selectedMailbox="inbox" currentMailboxRole="inbox" />);
+
+    expect(screen.queryByPlaceholderText('quick_reply_placeholder')).not.toBeInTheDocument();
+    act(() => useSettingsStore.getState().updateSetting('quickReplyEnabled', true));
+    expect(screen.getByPlaceholderText('quick_reply_placeholder')).toBeInTheDocument();
+  });
+
   it('reports a failed quick reply and keeps the text on Stalwart 1.0', async () => {
     const onQuickReply = vi.fn().mockRejectedValue(new SubmissionQuotaError(QUOTA, true));
     render(
