@@ -1105,7 +1105,8 @@ export interface QuoteHeader {
   text: string;
   /**
    * When false, the composer skips its default blockquote wrapping around the
-   * quoted body (HTML mode only). Use this for the Outlook style where the
+   * quoted body, including HTML islands and nested blockquotes (HTML mode only).
+   * This preference persists when saving/reopening drafts. Use this for the Outlook style where the
    * quoted message is intended to follow the header without indentation.
    * Defaults to true (preserve the existing blockquote wrapping).
    */
