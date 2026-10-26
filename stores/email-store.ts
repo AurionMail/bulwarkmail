@@ -2078,40 +2078,63 @@ async function moveRowsToMailbox(rows: Email[], destination: MoveDestination, pa
  * archives into its own Archive. One Archive for the whole selection moved
  * every message by its id in that Archive's account, where the ids of the
  * other accounts' messages name unrelated messages - or none. The rows that
- * were archived leave the list and the selection, the others stay and the
- * failure is reported through `error`, `notFound` selection keys
- * (resolveSelectionRows) included. Throws when nothing was archived.
+ * were archived leave the list, the selection, the viewer and expanded
+ * threads; the others stay and the failure is reported through `error`,
+ * `notFound` selection keys (resolveSelectionRows) included. Throws when
+ * nothing was archived; resolves false when a plugin stopped a group.
+ *
+ * Each group reads its folders through its own login and creates its Archive
+ * when the account has none, as the folder view does (Stalwart makes no
+ * Archive). Plugins are asked per group, each about its own Archive.
  */
 async function archiveAggregateSelection(passedClient: IJMAPClient, selected: Email[], notFound: string[] = []): Promise<boolean> {
   if (selected.length === 0 && notFound.length === 0) return true;
   const mode = useSettingsStore.getState().archiveMode;
-
-  const batches = groupBySource(selected).map((batch) => {
-    const mailboxes = sourceBatchMailboxes(batch);
-    const archive = batch.accountId
-      ? findArchiveMailbox(mailboxes, undefined, batch.accountId)
-      : findArchiveMailbox(mailboxes, useEmailStore.getState().selectedMailbox);
-    return { batch, mailboxes, archive };
-  });
-  // Plugins are asked once for the whole selection, though each group goes
-  // to its own account's Archive.
-  const firstArchive = batches.find(({ archive }) => archive)?.archive;
-  const hookMailboxes = [...resolveActionMailboxes(), ...batches.flatMap(({ archive }) => (archive ? [archive] : []))];
-  const move = firstArchive ? {
-    emailIds: [...new Set(selected.map(e => e.id))],
-    fromMailboxId: moveSourceMailboxId(selected, hookMailboxes),
-    toMailboxId: firstArchive.id,
-  } : null;
-  if (move && !(await allowEmailMove(move, hookMailboxes))) return false;
+  const { selectedMailbox } = useEmailStore.getState();
   useEmailStore.setState({ isLoading: true, error: null });
 
   const archived: Email[] = [];
   const failures: BatchFailure[] = [];
-  await Promise.all(batches.map(async ({ batch, mailboxes, archive }) => {
+  let stoppedByPlugin = false;
+  await Promise.all(groupBySource(selected).map(async (batch) => {
     const client = sourceBatchClient(batch, passedClient);
+    let move: Parameters<typeof allowEmailMove>[0] | null = null;
+    let hookMailboxes: Mailbox[] = [];
     try {
       if (!client) throw new Error('Not connected');
-      if (!archive) throw new ArchiveMailboxNotFoundError();
+      // The source's folders as its login reads them now, by the server's own
+      // ids: batchArchiveEmails finds year/month folders by their parent's id
+      // there, not by the store's namespaced one.
+      const folders = async (refresh: boolean): Promise<Mailbox[]> => {
+        if (!batch.accountId) {
+          if (refresh) await refreshMailboxesForViewingAccount(passedClient);
+          return resolveActionMailboxes();
+        }
+        return (await client.getMailboxes(batch.accountId)).map((m) => (m.originalId && m.accountId ? {
+          ...m, id: m.originalId,
+          parentId: m.parentId?.startsWith(`${m.accountId}:`) ? m.parentId.slice(m.accountId.length + 1) : m.parentId,
+        } : m));
+      };
+      let mailboxes = await folders(false);
+      const archive = await ensureArchiveMailbox({
+        client, mailboxes, selectedMailboxId: selectedMailbox, accountId: batch.accountId,
+        refresh: async () => (mailboxes = await folders(true)),
+      });
+      if (!archive) {
+        stoppedByPlugin = true;
+        return;
+      }
+      if (archive.myRights?.mayAddItems === false) throw new ArchiveMailboxNotFoundError();
+      hookMailboxes = [...mailboxes, archive];
+      move = {
+        emailIds: [...new Set(batch.ids)],
+        fromMailboxId: moveSourceMailboxId(batch.messages, hookMailboxes),
+        toMailboxId: archive.id,
+      };
+      if (!(await allowEmailMove(move, hookMailboxes))) {
+        stoppedByPlugin = true;
+        return;
+      }
       await client.batchArchiveEmails(
         batch.messages.map(e => ({ id: e.id, receivedAt: e.receivedAt })),
         archive.originalId || archive.id,
@@ -2120,8 +2143,13 @@ async function archiveAggregateSelection(passedClient: IJMAPClient, selected: Em
         archive.accountId,
       );
       archived.push(...batch.messages);
+      emitEmailMove(move, hookMailboxes);
     } catch (error) {
-      failures.push({ ids: batch.ids, error });
+      // An archive that failed part way names the messages it did move.
+      const moved = new Set(error instanceof ArchiveEmailsError ? error.updatedIds : []);
+      archived.push(...batch.messages.filter(e => moved.has(e.id)));
+      failures.push({ ids: batch.ids.filter(id => !moved.has(id)), error });
+      if (move && moved.size > 0) emitEmailMove({ ...move, emailIds: move.emailIds.filter(id => moved.has(id)) }, hookMailboxes);
     }
   }));
   failures.push(...notFoundFailures(notFound));
@@ -2129,25 +2157,39 @@ async function archiveAggregateSelection(passedClient: IJMAPClient, selected: Em
   const error = failures.length > 0 ? batchFailureMessage(failures, 'archive') : null;
   if (archived.length === 0) {
     useEmailStore.setState({ error, isLoading: false });
-    throw failures[0].error;
+    if (failures.length > 0) throw failures[0].error;
+    return false;
   }
   const archivedKeys = new Set(archived.map(sourceRowKey));
   useEmailStore.setState((state) => {
     const selectedEmailKeys = new Set(state.selectedEmailKeys);
     for (const email of archived) selectedEmailKeys.delete(emailKeyFor(email));
+    const threadEmailsCache = new Map(state.threadEmailsCache);
+    const expandedThreadIds = new Set(state.expandedThreadIds);
+    for (const [key, members] of threadEmailsCache) {
+      const kept = members.filter(e => !archivedKeys.has(sourceRowKey(e)));
+      if (kept.length === members.length) continue;
+      if (kept.length > 0) threadEmailsCache.set(key, kept);
+      else {
+        threadEmailsCache.delete(key);
+        expandedThreadIds.delete(key);
+      }
+    }
     return {
       emails: state.emails.filter(e => !archivedKeys.has(sourceRowKey(e))),
+      selectedEmail: isOneOfRows(state.selectedEmail, archivedKeys) ? null : state.selectedEmail,
       selectedEmailKeys,
+      threadEmailsCache,
+      expandedThreadIds,
       isLoading: false,
       error,
     };
   });
-  if (move) emitEmailMove({ ...move, emailIds: [...new Set(archived.map(e => e.id))] }, hookMailboxes);
 
   // A year/month archive can create new sub-folders.
   await refreshMailboxesForViewingAccount(passedClient);
   await useEmailStore.getState().refreshCurrentMailbox(passedClient);
-  return true;
+  return !stoppedByPlugin;
 }
 
 /**
