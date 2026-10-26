@@ -196,6 +196,11 @@ export function setActionDispatcher(next: ActionDispatcher | null): void {
 }
 
 export async function runAction(action: RegisteredAction, surface: string, context: Record<string, unknown>): Promise<void> {
+  await runPluginAction(action.pluginId, surface, action.id, context);
+}
+
+/** A click on something a plugin gave as data elsewhere (a search result's entry). */
+export async function runPluginAction(pluginId: string, surface: string, actionId: string, context: Record<string, unknown>): Promise<void> {
   if (!dispatcher) return;
-  await dispatcher(action.pluginId, surface, action.id, context);
+  await dispatcher(pluginId, surface, actionId, context);
 }

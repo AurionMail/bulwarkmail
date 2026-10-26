@@ -42,12 +42,15 @@ import { PluginActions } from "@/components/plugins/plugin-actions";
 import { useUnreadFirstSection } from "@/hooks/use-unread-first-section";
 import { unreadSectionRowCount } from "@/lib/unread-first";
 import { MvListSectionHeader } from "./mv-list-section-header";
+import { type OpenableEmail, PluginSearchResults } from "./plugin-search-results";
 
 interface EmailListProps {
   emails: Email[];
   /** emailKeyFor of the open message: ids repeat across accounts. */
   selectedEmailKey?: string;
   onEmailSelect?: (email: Email) => void;
+  /** Opens a message a plugin's search result names (PluginSearchResults). */
+  onOpenSearchResult?: (email: OpenableEmail) => void;
   /** A mouse was pressed on a row: the click that follows will open it. */
   onEmailPrefetch?: (email: Email) => void;
   onEmailDoubleClick?: (email: Email) => void;
@@ -128,6 +131,7 @@ export function EmailList({
   emails,
   selectedEmailKey,
   onEmailSelect,
+  onOpenSearchResult,
   onEmailPrefetch,
   onEmailDoubleClick,
   onFindFromSender,
@@ -973,6 +977,8 @@ export function EmailList({
       )}
 
       <PluginSlot name="message-list-header" className="w-full" extraProps={listSlotProps} />
+
+      <PluginSearchResults surface="search-results" onOpenEmail={onOpenSearchResult} />
 
       {listColumns && (
         <ListColumnsHeader density={density} selecting={hasSelection} showRecipient={showRecipientColumn} />
