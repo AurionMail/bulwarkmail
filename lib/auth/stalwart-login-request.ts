@@ -122,3 +122,32 @@ export function readStalwartLoginResponse(body: unknown, state: string): Stalwar
       return { kind: 'invalid_credentials' };
   }
 }
+
+/**
+ * Redirect URI of the client Bulwark registers at a Stalwart 1.0 that knows
+ * none of its own (see {@link stalwartClientRegistration}). No browser is ever
+ * sent there: /api/auth hands the redirect location back in its answer and
+ * the code is read from it. 1.0 lets a public client register only a loopback
+ * or private-use redirect URI.
+ */
+export const STALWART_LOOPBACK_REDIRECT_URI = 'http://127.0.0.1/bulwark-webmail/callback';
+
+/**
+ * Body of the RFC 7591 registration (POST /auth/register) of Bulwark as a
+ * public client, which Stalwart 1.0 accepts without credentials. Its client
+ * ids are stateless, sealed with the server's key: the same metadata registers
+ * to the same id again, so nothing has to be stored or cleaned up. Tokens for
+ * it reach mail, contacts, calendars and files (the scopes it registers), but
+ * not the account's Stalwart settings (password, TOTP, app passwords): only a
+ * first-party client gets those.
+ */
+export function stalwartClientRegistration(): Record<string, unknown> {
+  return {
+    client_name: 'Bulwark Webmail',
+    redirect_uris: [STALWART_LOOPBACK_REDIRECT_URI],
+    token_endpoint_auth_method: 'none',
+    grant_types: ['authorization_code', 'refresh_token'],
+    response_types: ['code'],
+    scope: STALWART_LOGIN_SCOPE,
+  };
+}

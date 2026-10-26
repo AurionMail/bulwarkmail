@@ -656,7 +656,7 @@ describe('Stalwart target: the entry document', () => {
 
   it('states the Stalwart floor and what a failed download does on each version', () => {
     const readme = buildStalwartReadme({ version: '1.10.0', commit: 'abc1234', locales: ['en'], buildId: 'b' });
-    expect(readme).toContain('Requires: Stalwart 0.16.6 or later (0.16.19 for `oauthClientId`).');
+    expect(readme).toContain('Requires: Stalwart 0.16.6 or later (0.16.19 for `oauthClientId`), or 1.0.');
     // Only 0.16.23 keeps the running bundle; 0.16.0-0.16.22 and the 1.0
     // pre-releases unmount the Application and delete the cached zip, so any
     // later unpack downloads again: a restart, UpdateApps, or a reload of the

@@ -3,10 +3,13 @@ import { DisallowedUrlError, fetchPublicUrl } from '@/lib/security/url-guard';
 import { generateCodeVerifier, generateCodeChallenge, generateState } from '@/lib/oauth/pkce';
 import { forwardedClientHeaders } from '@/lib/auth/client-address';
 import {
-  STALWART_LOGIN_SCOPE,
+  STALWART_LOOPBACK_REDIRECT_URI,
   readStalwartLoginResponse,
+  stalwartClientRegistration,
   stalwartLoginBody,
 } from '@/lib/auth/stalwart-login-request';
+
+export { STALWART_LOOPBACK_REDIRECT_URI };
 
 /**
  * Exchange a password + (optional) TOTP code for OAuth tokens at Stalwart.
@@ -134,14 +137,6 @@ function upstreamFetchFor(trusted: boolean): typeof fetch {
     : ((input, init) => fetchPublicUrl(String(input), init as Parameters<typeof fetchPublicUrl>[1]) as unknown as Promise<Response>);
 }
 
-/**
- * Redirect URI of the client the login registers at Stalwart 1.0 (below). No
- * browser is ever sent there: /api/auth hands the redirect location back in
- * its answer and the code is read from it. 1.0 lets a public client register
- * only a loopback or private-use redirect URI.
- */
-export const STALWART_LOOPBACK_REDIRECT_URI = 'http://127.0.0.1/bulwark-webmail/callback';
-
 interface LoginClient {
   clientId: string;
   /** Set for the registered client, which may only use this one. */
@@ -175,28 +170,14 @@ export function resetStalwartDefaultClients(): void {
   defaultClients.clear();
 }
 
-/**
- * Registers Bulwark as a public client (RFC 7591), which Stalwart 1.0 allows
- * without credentials. Its client ids are stateless, sealed with the server's
- * key: the same metadata registers to the same id again, so nothing has to be
- * stored or cleaned up. Tokens for it reach mail, contacts, calendars and
- * files (the scopes it registers), but not the account's Stalwart settings
- * (password, TOTP, app passwords): only a first-party client gets those.
- */
+/** Registers Bulwark as a public client at Stalwart 1.0 (see stalwartClientRegistration). */
 async function registerPublicClient(base: string, upstreamFetch: typeof fetch): Promise<LoginClient | null> {
   try {
     const response = await upstreamFetch(`${base}/auth/register`, {
       method: 'POST',
       signal: AbortSignal.timeout(CLIENT_CHECK_TIMEOUT_MS),
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_name: 'Bulwark Webmail',
-        redirect_uris: [STALWART_LOOPBACK_REDIRECT_URI],
-        token_endpoint_auth_method: 'none',
-        grant_types: ['authorization_code', 'refresh_token'],
-        response_types: ['code'],
-        scope: STALWART_LOGIN_SCOPE,
-      }),
+      body: JSON.stringify(stalwartClientRegistration()),
     });
     if (!response.ok) {
       logger.warn('Stalwart password login: client registration refused', { status: response.status });

@@ -682,7 +682,7 @@ ${demoMode ? "Demo mode is ON: the login page offers a built-in demo account and
 
    A reverse-proxy rule works too if it allows your Lite origin with the
    \`Authorization\` and \`Content-Type\` headers on \`/.well-known/jmap\`, \`/jmap/*\`,
-   \`/api/auth\` and \`/auth/token\`.
+   \`/api/auth\`, \`/auth/token\` and, for Stalwart 1.0, \`/auth/register\`.
 
 ## Host configuration
 
@@ -1395,8 +1395,7 @@ no server URL, no CORS, no second web server.
 
 Build: ${buildId}
 Locales: ${locales.join(", ")}
-Requires: Stalwart 0.16.6 or later (0.16.19 for \`oauthClientId\`). Stalwart 1.0
-pre-releases work too.
+Requires: Stalwart 0.16.6 or later (0.16.19 for \`oauthClientId\`), or 1.0.
 ${demoMode ? "\nDemo mode is ON in this build: the login page offers the built-in demo account.\n" : ""}
 ## Install
 
@@ -1457,8 +1456,9 @@ changes when you change it: to update, point \`resourceUrl\` at the new
 release's tag and run \`UpdateApps\`, which always downloads again.
 
 What a failed download does depends on the Stalwart version. On 0.16.23 the
-running bundle stays online. Older 0.16 releases and the 1.0 pre-releases
-unmount the Application and drop the cached copy. The next restart,
+running bundle stays online, as on later 0.16 releases and on 1.0. Older 0.16
+releases and the 1.0 pre-releases unmount the Application and drop the cached
+copy. The next restart,
 \`UpdateApps\` or reload of the Applications (the other nodes of a cluster
 reload them after \`UpdateApps\`) downloads \`resourceUrl\` again and mounts the
 bundle once that works. On every version, a restart after the cached copy
@@ -1471,8 +1471,8 @@ unmounted. So check that \`resourceUrl\` downloads before running
 The bundle runs as script on your Stalwart origin, next to the web admin.
 Stalwart checks no hash or signature when it downloads, so a floating URL
 such as \`${latestUrl}\` would run whatever the newest release holds, at the
-next restart or \`UpdateApps\` after \`autoUpdateFrequency\` (default 90
-days). Use it only if you accept that in exchange for automatic updates.
+next restart or \`UpdateApps\` after \`autoUpdateFrequency\` (on 1.0
+\`autoUpdateInterval\`, default 90 days). Use it only if you accept that in exchange for automatic updates.
 
 Open tabs move to the new build on their next navigation (one full page
 load); a freshly opened tab gets it immediately. Nothing stays stuck on old
@@ -1497,6 +1497,14 @@ into index.html) or \`bulwark-webmail\` when that field is empty. If your
 server requires registered OAuth clients, register that client id with the
 redirect URI \`https://<your stalwart host>/<prefix>/\` (for example
 \`https://mail.example.com/webmail/\`), once per prefix you mount.
+
+Stalwart 1.0 always requires registered clients. When it knows no client by
+the default name, the app registers one of its own and signs in with that:
+mail, contacts, calendars and files work, but the account's Stalwart
+settings (password, two-factor authentication, app passwords) do not, since
+1.0 only lets a first-party client manage those. For them, create an
+\`OAuthClient\` with client id \`bulwark-webmail\` (or the \`oauthClientId\`
+you set), \`firstParty\` on, and the redirect URI above.
 
 ### Single sign-on (OpenID Connect)
 

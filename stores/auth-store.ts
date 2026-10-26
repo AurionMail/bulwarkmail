@@ -424,7 +424,7 @@ async function exchangePasswordForTokens(params: {
     // "Remember me" keeps the refresh token across browser restarts
     // (localStorage); otherwise it lives with the tab (sessionStorage).
     if (tokens.refreshToken) {
-      saveLiteRefreshToken(slot, { serverUrl, username, refreshToken: tokens.refreshToken, clientId: getLiteClientId() }, rememberMe);
+      saveLiteRefreshToken(slot, { serverUrl, username, refreshToken: tokens.refreshToken, clientId: tokens.clientId ?? getLiteClientId() }, rememberMe);
     } else {
       clearLiteRefreshToken(slot);
     }
