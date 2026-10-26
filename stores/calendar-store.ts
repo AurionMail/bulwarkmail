@@ -7,6 +7,7 @@ import { getEventStartDate, normalizeAllDayDuration } from '@/lib/calendar-utils
 import { displayNow } from '@/lib/timezone';
 import { parseDuration } from '@/components/calendar/event-card';
 import { sanitizeOutgoingCalendarEventData } from '@/lib/calendar-event-normalization';
+import { feedChanged, feedFields } from '@/lib/calendar-feed-diff';
 import { expandRecurringEvents } from '@/lib/recurrence-expansion';
 import { SchedulingDeniedError } from '@/lib/jmap/scheduling-error';
 import { hasAnsweredAttendees, participantLimitOf } from '@/lib/calendar-participants';
@@ -1922,6 +1923,26 @@ export const useCalendarStore = create<CalendarStore>()(
               await client.updateCalendarEvent(id, { calendarIds } as Partial<CalendarEvent>);
             } catch (err) {
               debug.warn('calendar', 'Failed to unlink stale event from subscription calendar:', err);
+            }
+          }
+
+          // Events still in the feed take what the feed changed (time, title,
+          // place, recurrence, ...). Only those in the subscription calendar
+          // alone: one also linked to another calendar is the user's own
+          // event with the same UID (see importEventsUnhooked) and stays.
+          const keptUids = new Set(parsedEvents.map(e => e.uid).filter((uid): uid is string =>
+            !!uid && !!existingByUid.get(uid)?.some(e => Object.keys(e.calendarIds || {}).length === 1)));
+          if (keptUids.size > 0) {
+            const stored = await client.queryCalendarEvents({ inCalendar: sub.calendarId });
+            for (const incoming of parsedEvents) {
+              if (!incoming.uid || !keptUids.delete(incoming.uid)) continue;
+              const current = stored.find(e => e.uid === incoming.uid && Object.keys(e.calendarIds || {}).length === 1);
+              if (!current || !feedChanged(incoming, current)) continue;
+              try {
+                await client.updateCalendarEvent(current.originalId || current.id, feedFields(incoming), false);
+              } catch (err) {
+                debug.warn('calendar', 'Failed to apply a feed change to a subscribed event:', err);
+              }
             }
           }
 
