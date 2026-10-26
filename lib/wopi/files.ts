@@ -2,6 +2,7 @@ import { postJmap, fetchJmapSession, rebaseApiUrl, type JmapSessionDocument } fr
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { jmapError, type JmapErrorInfo } from '@/lib/jmap/jmap-error';
 import type { FileNode } from '@/lib/jmap/types';
+import { downloadNameSegment } from '@/lib/jmap/download-name';
 
 /**
  * Server-side JMAP FileNode content I/O for the WOPI host (#425).
@@ -148,7 +149,7 @@ export async function downloadFileBlob(
   const url = expandTemplate(downloadUrl, {
     accountId,
     blobId,
-    name,
+    name: downloadNameSegment(name),
     type: type || 'application/octet-stream',
   });
   return fetchJmapServer(url, {
