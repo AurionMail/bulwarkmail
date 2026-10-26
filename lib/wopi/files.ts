@@ -2,6 +2,7 @@ import { postJmap, fetchJmapSession, rebaseApiUrl, type JmapSessionDocument } fr
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { UPSTREAM_JSON_MAX_BYTES, readJsonCapped } from '@/lib/security/capped-body';
 import { jmapError, type JmapErrorInfo } from '@/lib/jmap/jmap-error';
+import { fromDraftFileNode } from '@/lib/jmap/filenode-kind';
 import type { FileNode } from '@/lib/jmap/types';
 import { downloadNameSegment } from '@/lib/jmap/download-name';
 
@@ -27,6 +28,8 @@ const USING = ['urn:ietf:params:jmap:core', 'urn:ietf:params:jmap:filenode'];
 
 export const WOPI_FILE_NODE_PROPERTIES = [
   'id', 'parentId', 'name', 'type', 'blobId', 'size', 'modified', 'myRights',
+  // `type` as Stalwart 1.0.0 names it (see fromDraftFileNode).
+  'mediaType',
 ];
 
 type JmapMethodResponse = [string, Record<string, unknown>, string];
@@ -85,7 +88,7 @@ export async function getWopiFileNode(
   const [name, payload] = responses[0] ?? [];
   if (name !== 'FileNode/get') return null;
   const list = (payload?.list as FileNode[] | undefined) ?? [];
-  return list[0] ?? null;
+  return list[0] ? fromDraftFileNode(list[0]) : null;
 }
 
 // The session's download/upload templates advertise the server's public

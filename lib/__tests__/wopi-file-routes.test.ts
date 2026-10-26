@@ -230,6 +230,19 @@ describe('WOPI PutFile for a Files node', () => {
     expect(drives[OWN].f1.modified).toBe(SAVED);
   });
 
+  it('uploads the save with the media type Stalwart 1.0.0 lists as mediaType', async () => {
+    // 1.0.0 (File Storage draft 18) has no `type`; 0.16 has no `mediaType`.
+    const { type, ...rest } = drives[OWN].f1;
+    drives[OWN].f1 = { ...rest, '@type': 'File', mediaType: type } as unknown as FakeNode;
+    const { data } = await launchFile({ fileId: 'f1' });
+    await save(editorCall(data));
+
+    const upload = (fetchJmapServer as Mock).mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === 'POST');
+    expect((upload?.[1] as RequestInit).headers).toMatchObject({ 'Content-Type': DOCX });
+    const get = sent.find(([method]) => method === 'FileNode/get');
+    expect(get?.[1].properties).toEqual(expect.arrayContaining(['type', 'mediaType']));
+  });
+
   it('reads the new `modified` back when the server answers `updated: null` on 0.16', async () => {
     version = '0.16';
     const { data } = await launchFile({ fileId: 'f1' });

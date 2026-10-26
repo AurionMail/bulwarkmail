@@ -15,7 +15,7 @@ import { isTaskLikeObject, type ScannedCalendarObject } from "@/lib/calendar-com
 import { DEFAULT_CALENDAR_COMPONENTS, mkCalendarCollection, newCalendarCollectionName } from "@/lib/webdav/calendar-collection";
 import { sanitizeDisplayName, splitMailbox } from "@/lib/rfc5322-mailbox";
 import { decodeFileNodeName } from "./filenode-name";
-import { fileNodeKind } from "./filenode-kind";
+import { fileNodeKind, fromDraftFileNode, toDraftFileNodeCreate } from "./filenode-kind";
 import { fileNodeDepth } from "./filenode-depth";
 import { contactFromWire, contactToWire } from "./contact-wire";
 import { SchedulingDeniedError } from "./scheduling-error";
@@ -87,7 +87,7 @@ function toLegacyRights(rights: FileNodeRights): LegacyFileNodeRights {
 
 /** A FileNode as the server sent it, normalized for the UI. */
 function fromWireFileNode(node: FileNode): FileNode {
-  const decoded = withDecodedName(node);
+  const decoded = withDecodedName(fromDraftFileNode(node));
   if (!decoded.myRights && !decoded.shareWith) return decoded;
   return {
     ...decoded,
@@ -9141,6 +9141,8 @@ export class JMAPClient implements IJMAPClient {
     "id", "parentId", "name", "type", "blobId", "size", "created", "modified",
     // Tells 1.0's symlinks from folders (see fileNodeKind).
     "nodeType",
+    // `nodeType` and `type` as Stalwart 1.0.0 names them (see fromDraftFileNode).
+    "@type", "mediaType",
     // Stalwart omits shareWith/myRights from FileNode/get unless requested
     // explicitly, so the share dialog and indicators can't see existing
     // shares without naming them here (same as CALENDAR_PROPERTIES).
@@ -9240,7 +9242,7 @@ export class JMAPClient implements IJMAPClient {
       console.error('[Files] FileNode/get error:', getResult?.[1]);
       throw new Error(getResult?.[1]?.description || "FileNode list failed");
     }
-    const firstPage = (getResult[1].list || []) as FileNode[];
+    const firstPage = ((getResult[1].list || []) as FileNode[]).map(fromDraftFileNode);
     const maxObjects = this.getMaxObjectsInGet();
     if (firstPage.length < maxObjects) return firstPage;
 
@@ -9257,7 +9259,7 @@ export class JMAPClient implements IJMAPClient {
           if (result[0] !== "FileNode/get") {
             throw new Error(result[1]?.description || "FileNode/get failed");
           }
-          for (const node of (result[1].list || []) as FileNode[]) known.set(node.id, node);
+          for (const node of (result[1].list || []) as FileNode[]) known.set(node.id, fromDraftFileNode(node));
         }
       }
     };
@@ -9423,6 +9425,16 @@ export class JMAPClient implements IJMAPClient {
     return !!cap && !("forbiddenNameChars" in cap);
   }
 
+  /**
+   * Stalwart 1.0 implements File Storage draft 18, which wants `@type` and
+   * `mediaType` in a create (see toDraftFileNodeCreate). Of the drafts
+   * Stalwart has shipped, only that one lists `supportedNodeTypes`.
+   */
+  private usesDraftFileNodeCreate(accountId: string): boolean {
+    const limits = this.fileNodeLimits(accountId);
+    return !!limits && "supportedNodeTypes" in limits;
+  }
+
   /** Naming rules for new FileNodes in `accountId`, if the server publishes any. */
   getFileNameRules(accountId?: string): FileNameRules | null {
     return fileNameRulesFrom(this.fileNodeLimits(accountId));
@@ -9482,8 +9494,11 @@ export class JMAPClient implements IJMAPClient {
     const baseName = acceptedFileName(String(props.name ?? ''), this.getFileNameRules(accountId));
     for (let attempt = 1; ; attempt++) {
       const name = attempt === 1 ? baseName : numberedFileName(baseName, attempt);
+      const wire = this.usesDraftFileNodeCreate(accountId)
+        ? toDraftFileNodeCreate({ ...props, name })
+        : { ...props, name };
       const response = await this.request(
-        [["FileNode/set", { accountId, onExists: "rename", create: { n0: { ...props, name } } }, "fns0"]],
+        [["FileNode/set", { accountId, onExists: "rename", create: { n0: wire } }, "fns0"]],
         this.fileUsing(),
       );
       const result = response.methodResponses?.[0];
@@ -9494,7 +9509,7 @@ export class JMAPClient implements IJMAPClient {
       if (created) {
         // The create response carries only server-set properties; keep the
         // ones sent so callers can rely on name/parentId/type.
-        return withDecodedName({ ...props, name, ...created } as FileNode);
+        return withDecodedName(fromDraftFileNode({ ...wire, ...created } as FileNode));
       }
       const err = result[1].notCreated?.n0;
       // Servers before 0.16.6 ignore onExists and refuse the clash instead.
