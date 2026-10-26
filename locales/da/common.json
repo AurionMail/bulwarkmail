@@ -617,6 +617,14 @@
     "scheduled_actions_only": "Planlagt-visningen understøtter kun planlagte handlinger",
     "undo_send_scheduled": "Besked planlagt til afsendelse",
     "undo_send": "Fortryd afsendelse",
+    "send_cancelled_restore_failed": "Afsendelsen blev annulleret, men beskeden kunne ikke lægges tilbage i Kladder. Den ligger stadig i Sendt.",
+    "send_cancelled_remove_failed": "Afsendelsen blev annulleret, men den ikke-sendte besked kunne ikke fjernes fra Sendt.",
+    "cancel_scheduled_failed": "Den planlagte afsendelse kunne ikke annulleres",
+    "still_scheduled_at": "Beskeden er stadig planlagt til {date}.",
+    "still_scheduled": "Beskeden er stadig planlagt.",
+    "already_sent": "Denne besked er allerede sendt.",
+    "no_longer_scheduled": "Denne besked er ikke længere planlagt.",
+    "reschedule_recipients_refused": "Intet blev ændret: serveren afviste {recipients}.",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Luk sidepanel",
@@ -754,6 +762,10 @@
     "show_less": "Vis mindre",
     "send_failed": "Kunne ikke sende e-mail",
     "send_timeout": "Serveren holdt op med at svare. Tjek mappen Sendt, før du sender igen — beskeden er måske allerede afsendt.",
+    "submission_quota": "Serveren har for mange registreringer af sendte beskeder for denne konto. Bulwark har fjernet dem, den kunne; hvis det bliver ved med at ske, så bed din administrator om at hæve grænsen for afsendelse af e-mails.",
+    "submission_limit": "Serveren afviste at sende beskeden, fordi en grænse er nået: {reason}",
+    "recipients_refused": "Ikke sendt: serveren afviste {recipients}.",
+    "recipients_partly_refused": "Serveren afviste {recipients}. De øvrige modtagere får beskeden.",
     "send_offline": "Du ser ud til at være offline. Beskeden er her stadig, send den igen, når du er online.",
     "formatting": "Formatering",
     "send_recipients_rejected": "Ikke sendt - serveren afviste alle modtagere.",
@@ -1334,7 +1346,10 @@
         "revoke": "Tilbagekald",
         "confirm_revoke_title": "Tilbagekald denne enhed?",
         "confirm_revoke_message": "Den stopper med at modtage baggrundsnotifikationer med det samme. Slår du push til igen på enheden, registreres den på ny.",
-        "confirm_revoke_message_this": "Denne enhed stopper med at modtage baggrundsnotifikationer med det samme."
+        "confirm_revoke_message_this": "Denne enhed stopper med at modtage baggrundsnotifikationer med det samme.",
+        "shared_mailboxes_no_push": "Postkasser, som andre deler med dig, sender ikke baggrundsnotifikationer.",
+        "error_forbidden": "Mailserveren tillader ikke baggrundsnotifikationer for denne konto.",
+        "error_over_quota": "Denne konto har for mange push-registreringer på mailserveren (grænsen er normalt 15). Tilbagekald enheder, du ikke længere bruger, i notifikationsindstillingerne, og prøv igen."
       },
       "push_all": {
           "title": "All accounts",
@@ -2360,6 +2375,7 @@
       "validation_empty_name": "Regelnavn er påkrævet",
       "validation_empty_conditions": "Mindst én betingelse med en værdi er påkrævet",
       "validation_empty_actions": "Mindst én handling er påkrævet",
+      "validation_header_name": "Headernavne må kun indeholde bogstaverne A-Z, cifre, bindestreger og understregninger",
       "templates_section": "Start fra skabelon",
       "template_newsletters": "Flyt nyhedsbreve til mappe",
       "template_receipts": "Auto-arkiver kvitteringer",
@@ -3136,7 +3152,8 @@
     },
     "export": {
       "title": "Eksportér kontakter",
-      "success": "{count, plural, one {1 kontakt eksporteret} other {# kontakter eksporteret}}"
+      "success": "{count, plural, one {1 kontakt eksporteret} other {# kontakter eksporteret}}",
+      "exporting": "Eksporterer..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 valgt} other {# valgte}}",
@@ -3280,8 +3297,11 @@
         "free": "Ledig",
         "busy": "Optaget",
         "tentative": "Foreløbig",
+        "no_busy_times": "Ingen delte optagede tider",
         "unknown": "Ikke en bruger på denne server",
-        "checking": "Kontrollerer…"
+        "error": "Kunne ikke kontrollere",
+        "checking": "Kontrollerer…",
+        "unavailable_on_server": "Ledig/optaget-oplysninger er ikke tilgængelige på denne server"
       },
       "title": "Deltagere",
       "add": "Tilføj deltager",
@@ -3303,6 +3323,7 @@
       "you_organizer": "Du er arrangøren",
       "you_attendee": "Du er deltager",
       "no_participants": "Ingen deltagere",
+      "limit_warning": "Mere end {max, plural, one {# deltager} other {# deltagere}}, arrangøren medregnet: serveren kan afvise at gemme denne begivenhed. En administrator kan hæve grænsen.",
       "count": "{count, plural, one {# deltager} other {# deltagere}}"
     },
     "recurrence": {
@@ -3493,6 +3514,7 @@
       "save_without_invitations": "Gem uden invitationer",
       "rsvp_updated": "Svar opdateret",
       "rsvp_error": "Kunne ikke opdatere svar",
+      "participant_limit": "Serveren tillader højst {max, plural, one {# deltager} other {# deltagere}} pr. begivenhed, arrangøren medregnet, så ændringen blev afvist. En administrator kan hæve grænsen.",
       "event_duplicated": "Begivenhed duplikeret",
       "event_error": "Kunne ikke gemme begivenhed",
       "task_due": "Opgave forfalder",
@@ -3502,7 +3524,10 @@
     },
     "status": {
       "loading_calendars": "Indlæser kalendere...",
-      "loading_events": "Indlæser begivenheder..."
+      "loading_events": "Indlæser begivenheder...",
+      "events_load_failed": "Begivenhederne kunne ikke indlæses. Kalenderen er muligvis ikke opdateret.",
+      "tasks_load_failed": "Opgaverne kunne ikke indlæses. Listen er muligvis ikke opdateret.",
+      "retry": "Prøv igen"
     },
     "quick_create": {
       "placeholder": "Ny begivenhedstitel",
@@ -3713,8 +3738,12 @@
     "loading_principals": "Indlæser brugere…",
     "no_principals": "Ingen andre brugere eller grupper fundet.",
     "no_match": "Ingen match.",
+    "directory_restricted": "Din server tillader ikke, at brugerkataloget gennemses, så kun dine grupper og personer, der har delt noget med dig, vises. En administrator kan slå katalogforespørgsler til i Stalwarts delingsindstillinger.",
+    "directory_not_browsable": "Din server lader dig ikke gennemse brugerkataloget.",
+    "directory_failed": "Kunne ikke indlæse listen over brugere og grupper.",
     "remove": "Fjern adgang",
     "group": "Gruppe",
+    "unknown_user": "Ukendt bruger",
     "share_added": "Adgang givet",
     "share_updated": "Adgang opdateret",
     "share_removed": "Adgang fjernet",
@@ -3810,6 +3839,8 @@
     "new_name": "Nyt navn",
     "name_forbidden_chars": "Serveren tillader ikke disse tegn i navne: {chars}",
     "name_reserved": "Dette navn er reserveret på serveren.",
+    "name_control_chars": "Navne må ikke indeholde kontroltegn.",
+    "name_too_long": "Dette navn er for langt til serveren.",
     "delete": "Slet",
     "delete_confirm_title": "Slet ressource",
     "delete_confirm_message": "Er du sikker på, at du vil slette \"{name}\"? Dette kan ikke fortrydes.",
@@ -3820,11 +3851,21 @@
     "type": "Type",
     "folder": "Mappe",
     "file": "Fil",
+    "symlink": "Symbolsk link",
+    "parent_directory": "Overordnet mappe",
+    "breadcrumb_root": "Hjem",
     "uploading": "Uploader...",
     "upload_success": "{count, plural, one {1 fil uploadet} other {# filer uploadet}}",
     "upload_canceled": "Upload annulleret",
     "upload_canceled_partial": "{count, plural, one {1 fil blev} other {# filer blev}} uploadet, før du annullerede",
     "upload_error": "Kunne ikke uploade fil",
+    "upload_failed": "{count, plural, one {1 fil kunne ikke uploades} other {# filer kunne ikke uploades}}",
+    "error_over_quota": "Du har nået grænsen for filer eller mapper. Slet nogle, og prøv igen.",
+    "error_too_deep": "Mapper kan ikke indlejres så dybt.",
+    "error_invalid_name": "Serveren accepterer ikke dette navn.",
+    "error_forbidden": "Du har ikke tilladelse til at gøre dette her.",
+    "error_too_large": "Denne fil er for stor til serveren.",
+    "error_partial_copy": "En del af kopien blev liggende.",
     "create_folder_success": "Mappe oprettet",
     "create_folder_error": "Kunne ikke oprette mappe",
     "delete_success": "Slettet",
@@ -3863,6 +3904,7 @@
     "shared": "Shared",
     "shared_with_me": "Shared with me",
     "shared_by": "Shared by {name}",
+    "shared_files_from": "Filer fra {name}",
     "create_file_success": "Fil oprettet",
     "create_file_error": "Kunne ikke oprette fil",
     "favorites": "Favoritter",

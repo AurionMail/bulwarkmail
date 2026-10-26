@@ -1,7 +1,8 @@
-import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
+import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { FileNameRules } from "@/lib/file-name-rules";
 import type { SortLevel } from "@/lib/message-list-order";
+import type { AccountInfo } from "./types";
 import type { SearchSnippetResult } from "@/lib/search-snippet";
 import type { StorageQuota } from "@/lib/quota";
 import type { MessagePriority } from "@/lib/message-priority";
@@ -35,6 +36,14 @@ export interface KeywordDiscoveryResult {
   complete: boolean;
 }
 
+/** What `getBlobsAsBase64` brought back. */
+export interface BlobBatch {
+  /** Contents as base64 by blobId, for every blob the server returned. */
+  data: Map<string, string>;
+  /** Blobs left unfetched because a request failed; they can still be downloaded one by one. */
+  failed: string[];
+}
+
 /**
  * Interface defining the public JMAP client contract.
  *
@@ -46,11 +55,23 @@ export interface CalendarEventUpdateOptions {
   /**
    * Send `sequence` instead of stripping it with the other server-managed
    * fields. Only for a patch that creates a recurrence override and must carry
-   * the series' sequence (see buildOccurrenceRsvpPatch).
+   * the series' sequence (see buildOccurrenceRsvpPatch), or a change of a
+   * whole series that raises it (see withRaisedSequences).
    */
   keepSequence?: boolean;
 }
 
+export interface CalendarQueryOptions {
+  /** Stops a query of several requests (a long range, several accounts) between them. */
+  signal?: AbortSignal;
+}
+
+/**
+ * FileNode trees by account, shared by the copies of one paste so that each
+ * account is read once rather than once per pasted item (see copyFileNode).
+ * Start each paste with an empty map.
+ */
+export type FileNodeListings = Map<string, Promise<FileNode[]>>;
 /** How a search request fetches its SearchSnippet/get highlights. */
 export interface SearchRequestOptions {
   /**
@@ -91,16 +112,26 @@ export interface IJMAPClient {
   /** Account-scoped session capability data; primary account by default. */
   getAccountCapability?(capability: string, accountId?: string): unknown;
   hasAccountCapability(capability: string, accountId?: string): boolean;
+  /** How the session describes an account; null when it doesn't list the id. */
+  getAccountInfo(accountId: string): AccountInfo | null;
+  /** Whether sender and subject sorted lists of the account keep the server's order (Stalwart 1.0). */
+  keepsServerTextOrder?(accountId?: string): boolean;
   /** The value of an account capability (primary account by default). */
   getAccountCapability?(capability: string, accountId?: string): unknown;
   /** FileNode naming rules the server publishes (Stalwart 0.16.6+), if any. */
   getFileNameRules?(accountId?: string): FileNameRules | null;
+  /** How deep a FileNode may sit (Stalwart 1.0: 64), or null for no limit. */
+  getMaxFileNodeDepth?(accountId?: string): number | null;
   getMaxSizeUpload(): number;
   /** RFC 8621 maxSizeAttachmentsPerEmail of the mail account (0 = unknown). */
   getMaxSizeAttachmentsPerEmail?(): number;
+  /** Calendars capability maxParticipantsPerEvent of the account (null = not advertised). */
+  getMaxParticipantsPerEvent?(accountId?: string): number | null;
   getMaxCallsInRequest(): number;
   getMaxObjectsInGet(): number;
   getMaxObjectsInSet(): number;
+  /** RFC 8620 maxConcurrentRequests: API calls and downloads the server runs at once for the user. */
+  getMaxConcurrentRequests?(): number;
   getMaxDelayedSend(accountId?: string): number;
   hasDelayedSend(accountId?: string): boolean;
   getEventSourceUrl(): string | null;
@@ -128,6 +159,10 @@ export interface IJMAPClient {
   // ── PushSubscription (RFC 8620 §7.2) ───────────────────────────
   // Browser-driven Web Push setup: register a relay URL the JMAP server can
   // forward StateChange events to. Mobile uses the same primitives.
+  // A refused object throws a jmapSetError carrying the SetError type
+  // (`forbidden`, `overQuota`, `notFound`...); a refused method call throws a
+  // plain jmapError, so callers can tell the two apart (isJmapSetError).
+  /** Throws when the server can't be asked - never an empty list instead. */
   listPushSubscriptions(): Promise<PushSubscription[]>;
   createPushSubscription(params: {
     deviceClientId: string;
@@ -142,7 +177,7 @@ export interface IJMAPClient {
   updatePushSubscription(
     id: string,
     patch: { expires?: string; types?: string[]; emailPush?: Record<string, EmailPushConfig> | null },
-  ): Promise<boolean>;
+  ): Promise<void>;
   destroyPushSubscription(id: string): Promise<void>;
 
   // ── Quota ─────────────────────────────────────────────────────
@@ -182,7 +217,9 @@ export interface IJMAPClient {
   setDefaultParticipantIdentity?(id: string): Promise<void>;
   // Free/busy (Principal/getAvailability, principals:availability). Optional.
   supportsAvailability?(): boolean;
+  mayGetAvailability?(): Promise<boolean>;
   getPrincipalAvailability?(principalId: string, utcStart: Date, utcEnd: Date): Promise<BusyPeriod[]>;
+  getPrincipalsAvailability?(principalIds: string[], utcStart: Date, utcEnd: Date): Promise<Record<string, PrincipalAvailability>>;
   // ShareNotification (RFC 9670 §3): who shared what with this user. Optional
   // (demo client).
   supportsShareNotifications?(): boolean;
@@ -421,9 +458,27 @@ export interface IJMAPClient {
   sendRawEmail(blob: Blob, identityId: string, sentMailboxId: string, draftMailboxId?: string, delayedUntil?: string, envelopeRecipients?: string[]): Promise<SendEmailResult>;
   submitRawEmail(blob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[]): Promise<SendEmailResult>;
   getScheduledEmails(limit?: number, position?: number): Promise<{ emails: ScheduledEmail[]; hasMore: boolean; total: number; totalByAccount?: Record<string, number>; nextPosition: number }>;
+  /** Cancels a pending submission, then destroys its record. */
   cancelEmailSubmission(submissionId: string, accountId?: string): Promise<void>;
   rescheduleEmailSubmission(submissionId: string, emailId: string, identityId: string, delayedUntil: string, accountId?: string): Promise<SendEmailResult>;
-  /** `sentMailboxId` is accepted for backwards compatibility but ignored: the message is placed in Drafts only. */
+  /**
+   * Destroys EmailSubmission records, which never stops their delivery - but
+   * a pending one could no longer be cancelled, so only pass records that
+   * can't be. Resolves with the ids destroyed; never rejects.
+   */
+  destroyEmailSubmissions(ids: string[], accountId?: string): Promise<string[]>;
+  /**
+   * Destroys the canceled and delivered submission records of every
+   * submission account, at most once per account every few minutes unless
+   * `force` is set. Resolves with the number destroyed; never rejects.
+   */
+  pruneEmailSubmissions(options?: { force?: boolean }): Promise<number>;
+  /**
+   * `sentMailboxId` is accepted for backwards compatibility but ignored: the
+   * message is placed in Drafts only. `accountId` is the account the message
+   * lives in (a group or shared one for mail sent from its identity), and
+   * `draftMailboxId` must be that account's Drafts.
+   */
   restoreEmailToDraft(emailId: string, draftMailboxId: string, sentMailboxId?: string, accountId?: string): Promise<void>;
 
   sendImipReply(opts: {
@@ -460,6 +515,11 @@ export interface IJMAPClient {
   fetchBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<Blob>;
   fetchBlobAsObjectUrl(blobId: string, name?: string, type?: string, accountId?: string): Promise<string>;
   fetchBlobArrayBuffer(blobId: string, name?: string, type?: string, accountId?: string, rangeHeader?: number): Promise<ArrayBuffer>;
+  /**
+   * Many blobs at once through Blob/get (RFC 9404), for exports; null when
+   * the session doesn't advertise the blob capability.
+   */
+  getBlobsAsBase64?(blobIds: string[], accountId?: string): Promise<BlobBatch | null>;
   downloadBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<void>;
 
   // ── Identities ────────────────────────────────────────────────
@@ -502,6 +562,10 @@ export interface IJMAPClient {
   createContact(contact: Partial<ContactCard>, targetAccountId?: string): Promise<ContactCard>;
   updateContact(contactId: string, updates: Partial<ContactCard>, targetAccountId?: string): Promise<void>;
   deleteContact(contactId: string, targetAccountId?: string): Promise<void>;
+  /** Whether ContactCard/set in the account takes media entries that carry a blobId (Stalwart 1.0). */
+  supportsContactBlobMedia?(accountId?: string): boolean;
+  /** The account refused a blobId in media: supportsContactBlobMedia answers false from now on. */
+  rejectContactBlobMedia?(accountId?: string): void;
   searchContacts(query: string): Promise<ContactCard[]>;
 
   // ── Calendars ─────────────────────────────────────────────────
@@ -526,8 +590,8 @@ export interface IJMAPClient {
   ): Promise<void>;
   deleteCalendarEvent(eventId: string, sendSchedulingMessages?: boolean, targetAccountId?: string): Promise<void>;
   batchDeleteCalendarEvents(eventIds: string[], targetAccountId?: string): Promise<{ destroyed: string[]; notDestroyed: Record<string, { type?: string; description?: string }> }>;
-  queryCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number, targetAccountId?: string): Promise<CalendarEvent[]>;
-  queryAllCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number): Promise<CalendarEvent[]>;
+  queryCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number, targetAccountId?: string, options?: CalendarQueryOptions): Promise<CalendarEvent[]>;
+  queryAllCalendarEvents(filter: CalendarEventFilter, sort?: Array<{ property: string; isAscending: boolean }>, limit?: number, options?: CalendarQueryOptions): Promise<CalendarEvent[]>;
   parseCalendarEvents(accountId: string, blobId: string): Promise<Partial<CalendarEvent>[]>;
 
   // ── Calendar Tasks ────────────────────────────────────────────
@@ -541,6 +605,8 @@ export interface IJMAPClient {
   supportsPrincipals(): boolean;
   /** Errors are logged and yield [] unless `throwOnError` (PrincipalsRequestError). */
   getPrincipals(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<Principal[]>;
+  // The same list with how complete it is. Optional (demo client).
+  listPrincipals?(targetAccountId?: string, options?: { throwOnError?: boolean }): Promise<PrincipalListing>;
   setCalendarShare(calendarId: string, principalId: string, rights: CalendarRights | null, targetAccountId?: string): Promise<void>;
   setAddressBookShare(addressBookId: string, principalId: string, rights: AddressBookRights | null, targetAccountId?: string): Promise<void>;
   setFileNodeShare(fileNodeId: string, principalId: string, rights: FileNodeRights | null, targetAccountId?: string): Promise<void>;
@@ -574,7 +640,7 @@ export interface IJMAPClient {
   updateFileNode(id: string, updates: Partial<Pick<FileNode, 'name' | 'parentId'>>): Promise<void>;
   updateFileNodes(updates: Record<string, Partial<Pick<FileNode, 'name' | 'parentId'>>>): Promise<{ updated: string[]; notUpdated: Record<string, string> }>;
   destroyFileNodes(ids: string[]): Promise<{ destroyed: string[]; notDestroyed: string[] }>;
-  copyFileNode(id: string, newName: string, parentId: string | null): Promise<FileNode>;
+  copyFileNode(id: string, newName: string, parentId: string | null, listings?: FileNodeListings): Promise<FileNode>;
 
   // ── S/MIME raw-email helpers ──────────────────────────────────
   /**

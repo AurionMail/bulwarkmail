@@ -1,5 +1,10 @@
 import type { ContactCard, PartialDate } from "@/lib/jmap/types";
-import { getContactDisplayName, getContactPhotoUri } from "@/stores/contact-store";
+import { getContactDisplayName, getContactPhotoRef } from "@/stores/contact-store";
+import { loadContactMediaBlob } from "@/lib/contact-media";
+import { blobToDataUri } from "@/lib/data-uri";
+import { getContactPhotoClient } from "@/hooks/use-contact-photo";
+
+const PHOTO_TIMEOUT_MS = 5000;
 
 function escapeHtml(value: string): string {
   return value
@@ -10,12 +15,37 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export function printContact(contact: ContactCard, displayName?: string): void {
+/**
+ * The photo as something the print window shows on its own: a blob photo
+ * (Stalwart 1.0) is downloaded into a data: URI, and left out when that
+ * fails or takes too long.
+ */
+async function printablePhotoUri(contact: ContactCard): Promise<string | undefined> {
+  const photo = getContactPhotoRef(contact);
+  if (!photo) return undefined;
+  if ("uri" in photo) return photo.uri;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const blob = await Promise.race([
+    loadContactMediaBlob({ kind: "photo", blobId: photo.blobId, mediaType: photo.mediaType }, {
+      client: getContactPhotoClient(photo.localAccountId),
+      accountId: photo.accountId,
+      localAccountId: photo.localAccountId,
+    }),
+    new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), PHOTO_TIMEOUT_MS); }),
+  ]);
+  clearTimeout(timer);
+  return blob ? blobToDataUri(blob, photo.mediaType).catch(() => undefined) : undefined;
+}
+
+export async function printContact(contact: ContactCard, displayName?: string): Promise<void> {
+  // Open the window before anything is awaited: browsers allow the popup only
+  // while the click that asked for it is being handled.
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
 
   const name = displayName || getContactDisplayName(contact);
-  const photoUri = getContactPhotoUri(contact);
+  const photoUri = await printablePhotoUri(contact);
+  if (printWindow.closed) return;
   const emails = contact.emails ? Object.values(contact.emails) : [];
   const phones = contact.phones ? Object.values(contact.phones) : [];
   const orgs = contact.organizations ? Object.values(contact.organizations) : [];

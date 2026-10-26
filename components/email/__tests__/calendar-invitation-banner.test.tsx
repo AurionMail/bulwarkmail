@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CalendarInvitationBanner } from '../calendar-invitation-banner';
 import type { Email } from '@/lib/jmap/types';
+import { jmapSetError } from '@/lib/jmap/jmap-error';
 
 const mocks = vi.hoisted(() => {
   const pushMock = vi.fn();
@@ -114,6 +115,7 @@ vi.mock('next-intl', () => ({
       maybe: 'Maybe',
       decline: 'Decline',
       select_calendar: 'Select calendar',
+      participant_limit: 'The server allows at most {max} participants per event.',
     };
 
     let message = strings[key] ?? key;
@@ -851,5 +853,166 @@ describe('CalendarInvitationBanner', () => {
     });
 
     expect(screen.getByText('Proposed changes applied.')).toBeInTheDocument();
+    // Another time: the attendees are asked again, as for any move by the
+    // organizer; the organizer keeps their answer.
+    const [, , patch, send] = mocks.calendarState.updateEvent.mock.calls[0];
+    expect(patch).toMatchObject({ start: '2026-03-27T10:00:00Z' });
+    expect(patch.participants.organizer.participationStatus).toBe('accepted');
+    expect(patch.participants.attendee.participationStatus).toBe('needs-action');
+    expect(send).toBe(true);
+  });
+
+  // A proposal for one occurrence of a recurring meeting names it by its
+  // recurrence id; it went to the first event with the uid, any occurrence
+  // in view.
+  describe('a proposal for a recurring meeting', () => {
+    const participants = {
+      organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+      attendee: { '@type': 'Participant', email: 'alice@example.com', roles: { attendee: true }, participationStatus: 'accepted' },
+    };
+    // Two occurrences of a weekly meeting at 09:00 in Berlin, as the server expands them.
+    const occurrence = (id: string, day: string) => ({
+      id, uid: 'uid-7', title: 'Weekly', start: `2026-03-${day}T09:00:00`, duration: 'PT1H', timeZone: 'Europe/Berlin',
+      recurrenceId: `2026-03-${day}T09:00:00`, recurrenceIdTimeZone: 'Europe/Berlin',
+      recurrenceRules: [{ '@type': 'RecurrenceRule', frequency: 'weekly' }], participants,
+    });
+    const counter = (extra: Record<string, unknown>) => ({
+      uid: 'uid-7', title: 'Weekly', start: '2026-03-27T10:00:00', duration: 'PT1H', timeZone: 'Europe/Berlin', participants, ...extra,
+    });
+    const openCounter = async (id: string) => {
+      render(<CalendarInvitationBanner email={makeEmail({ id, attachments: [{ partId: '1', blobId: `blob-${id}`, size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
+      await waitFor(() => expect(screen.getByText('Review proposal')).toBeInTheDocument());
+    };
+
+    beforeEach(() => {
+      mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(undefined);
+      mocks.calendarState.events = [occurrence('occ-20', '20'), occurrence('occ-27', '27')];
+    });
+
+    it('applies a proposal for one occurrence to that occurrence', async () => {
+      // Named in UTC: 08:00Z is 09:00 in Berlin in March.
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([counter({ recurrenceId: '2026-03-27T08:00:00', recurrenceIdTimeZone: 'Etc/UTC' })]);
+
+      await openCounter('email-7');
+      fireEvent.click(screen.getByText('Apply proposed changes'));
+      await waitFor(() => expect(mocks.calendarState.updateEvent).toHaveBeenCalledTimes(1));
+
+      const [, id, patch] = mocks.calendarState.updateEvent.mock.calls[0];
+      expect(id).toBe('occ-27');
+      expect(patch).toMatchObject({ start: '2026-03-27T10:00:00' });
+    });
+
+    it('does not apply a proposal for the whole meeting to one of its occurrences', async () => {
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([counter({})]);
+
+      await openCounter('email-8');
+
+      expect(screen.queryByText('Apply proposed changes')).toBeNull();
+      expect(mocks.calendarState.updateEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  it('keeps the answers when an applied proposal does not change the time', async () => {
+    mocks.calendarState.updateEvent = vi.fn().mockResolvedValue(undefined);
+    const event = (room: string) => ({
+      uid: 'uid-6', title: 'Sync', start: '2026-03-27T09:00:00Z', duration: 'PT1H',
+      locations: { room: { '@type': 'Location', name: room } },
+      participants: {
+        organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+        attendee: { '@type': 'Participant', email: 'alice@example.com', roles: { attendee: true }, participationStatus: 'accepted' },
+      },
+    });
+    mocks.calendarState.events = [{ id: 'event-6', ...event('Room A') }];
+    mocks.clientMock.parseCalendarEvents.mockResolvedValue([event('Room B')]);
+
+    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-6', attachments: [{ partId: '1', blobId: 'blob-6', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }] })} />);
+    await waitFor(() => expect(screen.getByText('Proposed changes')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Apply proposed changes'));
+    await waitFor(() => expect(mocks.calendarState.updateEvent).toHaveBeenCalledTimes(1));
+
+    const [, , patch] = mocks.calendarState.updateEvent.mock.calls[0];
+    expect(patch).toEqual({ locations: { room: { '@type': 'Location', name: 'Room B' } } });
+  });
+
+  // Stalwart 1.0 refuses an event with more participants than
+  // maxParticipantsPerEvent; the banner says so instead of "could not
+  // complete".
+  describe('when Stalwart 1.0 refuses the participant count', () => {
+    const LIMIT = jmapSetError('An event cannot have more than 20 participants.', {
+      type: 'invalidProperties', properties: ['participants'],
+    });
+    const invitation = {
+      uid: 'uid-9',
+      title: 'All hands',
+      start: '2026-03-28T10:00:00Z',
+      participants: {
+        attendee: {
+          '@type': 'Participant', email: 'user@example.com', name: 'User',
+          roles: { attendee: true }, participationStatus: 'needs-action',
+        },
+      },
+    };
+
+    it('says so when adding the invitation to the calendar', async () => {
+      mocks.calendarState.importEvents.mockRejectedValue(LIMIT);
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([invitation]);
+      render(<CalendarInvitationBanner email={makeEmail({ id: 'email-9' })} />);
+      await waitFor(() => expect(screen.getByRole('heading', { name: 'All hands' })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Add to calendar'));
+
+      await waitFor(() => {
+        expect(screen.getByText('The server allows at most 20 participants per event.')).toBeInTheDocument();
+      });
+      expect(mocks.calendarState.importEvents).toHaveBeenCalledWith(
+        expect.anything(), [expect.objectContaining({ uid: 'uid-9' })], 'cal-1', { throwIfNoneImported: true },
+      );
+    });
+
+    it('says so when answering an invitation that is not in the calendar yet', async () => {
+      mocks.calendarState.importEvents.mockRejectedValue(LIMIT);
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([invitation]);
+      render(<CalendarInvitationBanner email={makeEmail({ id: 'email-10' })} />);
+      await waitFor(() => expect(screen.getByText('Accept')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Accept'));
+
+      await waitFor(() => {
+        expect(screen.getByText('The server allows at most 20 participants per event.')).toBeInTheDocument();
+      });
+      // Asked to reject: it used to resolve to 0 and say nothing more.
+      expect(mocks.calendarState.importEvents).toHaveBeenCalledWith(
+        expect.anything(), [expect.objectContaining({ uid: 'uid-9' })], 'cal-1', { throwIfNoneImported: true },
+      );
+    });
+
+    it('says so when applying a proposal', async () => {
+      mocks.calendarState.updateEvent = vi.fn().mockRejectedValue(LIMIT);
+      mocks.calendarState.events = [{
+        id: 'event-11', uid: 'uid-11', title: 'Sync', start: '2026-03-27T09:00:00Z', duration: 'PT1H',
+        participants: {
+          organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+          attendee: { '@type': 'Participant', email: 'alice@example.com', roles: { attendee: true }, participationStatus: 'tentative' },
+        },
+      }];
+      mocks.clientMock.parseCalendarEvents.mockResolvedValue([{
+        uid: 'uid-11', title: 'Sync', start: '2026-03-27T10:00:00Z', duration: 'PT1H',
+        participants: {
+          organizer: { '@type': 'Participant', email: 'user@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+          attendee: { '@type': 'Participant', email: 'alice@example.com', roles: { attendee: true }, participationStatus: 'tentative' },
+        },
+      }]);
+      render(<CalendarInvitationBanner email={makeEmail({
+        id: 'email-11',
+        attachments: [{ partId: '1', blobId: 'blob-11', size: 256, type: 'text/calendar; method=COUNTER', name: 'counter.ics' }],
+      })} />);
+      await waitFor(() => expect(screen.getByText('Apply proposed changes')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Apply proposed changes'));
+
+      await waitFor(() => {
+        expect(screen.getByText('The server allows at most 20 participants per event.')).toBeInTheDocument();
+      });
+    });
   });
 });

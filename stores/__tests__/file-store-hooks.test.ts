@@ -99,7 +99,7 @@ describe('file-store plugin hooks: changing files', () => {
       await useFileStore.getState().uploadFile(new File(['x'], 'x.txt'));
       const result = await useFileStore.getState().uploadFiles([new File(['y'], 'y.txt')]);
 
-      expect(result).toEqual({ uploaded: 0, canceled: false });
+      expect(result).toEqual({ uploaded: 0, failed: [], canceled: false });
       expect(client.uploadBlob).not.toHaveBeenCalled();
       expect(client.createFileNode).not.toHaveBeenCalled();
     });
@@ -127,8 +127,10 @@ describe('file-store plugin hooks: changing files', () => {
       const after = vi.fn();
       fileHooks.onAfterFileUpload.register('test', after);
 
-      await expect(useFileStore.getState().uploadFiles([new File(['x'], 'x.txt')])).rejects.toThrow('quota');
+      const report = await useFileStore.getState().uploadFiles([new File(['x'], 'x.txt')]);
       await flush();
+      expect(report.uploaded).toBe(0);
+      expect(report.failed.map((f) => f.name)).toEqual(['x.txt']);
       expect(after).not.toHaveBeenCalled();
     });
 

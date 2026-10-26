@@ -1,6 +1,10 @@
 import { create } from 'zustand';
-import type { IJMAPClient } from '@/lib/jmap/client-interface';
+import type { FileNodeListings, IJMAPClient } from '@/lib/jmap/client-interface';
 import type { FileNode, FileNodeRights } from '@/lib/jmap/types';
+import { fileNodeKind } from '@/lib/jmap/filenode-kind';
+import { fileNodeDepth } from '@/lib/jmap/filenode-depth';
+import { jmapError } from '@/lib/jmap/jmap-error';
+import { folderDepthError } from '@/lib/file-errors';
 import { imageBlobUrl } from '@/lib/file-preview';
 import { fileHooks } from '@/lib/plugin-hooks';
 import { fileToView } from '@/lib/plugin-projection';
@@ -11,6 +15,9 @@ export interface FileResource {
   name: string;
   serverName: string;
   isDirectory: boolean;
+  // A symbolic link (Stalwart 1.0). Shown, renamed, moved and deleted like
+  // any node, but it has no content and holds nothing, so it can't be opened.
+  isSymlink?: boolean;
   contentType: string;
   contentLength: number;
   lastModified: string;
@@ -34,21 +41,32 @@ interface UploadProgress {
   totalFiles: number;
 }
 
+/**
+ * What an upload batch did. A file the server refuses doesn't stop the rest;
+ * it is listed here (by its path inside an uploaded folder) with the error.
+ * `canceled` is set when the user stopped the batch.
+ */
+export interface UploadReport {
+  uploaded: number;
+  failed: { name: string; error: unknown }[];
+  canceled: boolean;
+}
+
 interface ClipboardState {
   mode: 'cut' | 'copy';
   ids: string[];
   names: string[];
   serverNames: string[];
   sourceParentId: string | null;
+  /**
+   * Cut: the folder each node was in, which an undo of the paste moves it
+   * back to. Not always `sourceParentId`: a "Files from" page lists nodes of
+   * folders the user can't open, and its own id names no folder.
+   */
+  sourceParentIds?: (string | null)[];
   sourcePath: string;
   /** The cut or copied items as plugins see them, taken when they were picked. */
   files: FileResourceView[];
-}
-
-/** How a batch upload ended: files that made it, and whether the user cancelled. */
-export interface UploadResult {
-  uploaded: number;
-  canceled: boolean;
 }
 
 interface UndoAction {
@@ -106,8 +124,8 @@ interface FileState {
   refresh: () => Promise<void>;
   createDirectory: (name: string) => Promise<void>;
   uploadFile: (file: File) => Promise<void>;
-  uploadFiles: (files: File[]) => Promise<UploadResult>;
-  uploadFolder: (files: File[]) => Promise<UploadResult>;
+  uploadFiles: (files: File[]) => Promise<UploadReport>;
+  uploadFolder: (files: File[]) => Promise<UploadReport>;
   cancelUpload: () => void;
   // Deletes, renames and moves resolve to false when a plugin stopped them
   // (onBeforeFileDelete / Rename / Move); nothing changed then.
@@ -150,6 +168,13 @@ interface FileState {
   shareResource: (id: string, principalId: string, rights: FileNodeRights | null) => Promise<void>;
   /** Load the top-level nodes shared with the user by other principals. */
   loadSharedRoots: () => Promise<void>;
+  /**
+   * Open a node of a drive shared with the user, by the id the listings give
+   * it ("<owner>:<id>"), or a shared-files page: a folder opens itself,
+   * anything else the folder it is listed in. `sharedFilesName` titles an
+   * owner's shared-files page. False when the node is gone or not shared.
+   */
+  openSharedNode: (id: string, sharedFilesName: (ownerName: string) => string) => Promise<boolean>;
 }
 
 const DIRECTORY_TYPES = new Set(['d', 'application/x-directory', 'text/directory', 'httpd/unix-directory', 'inode/directory']);
@@ -178,12 +203,11 @@ function isDirectoryType(type: string | undefined): boolean {
   return DIRECTORY_TYPES.has(type) || type.includes('directory');
 }
 
-// A FileNode is a folder iff it has no content blob. This is the authoritative
-// signal in the JMAP FileNode spec and in Stalwart (a node is a container when
-// its `file`/`blobId` is null); a `type` of "d" is not — older builds created
-// "folders" as blob-backed files, which can't hold children (#379).
-function isFolder(node: Pick<FileNode, 'blobId'>): boolean {
-  return node.blobId == null;
+// Whether a FileNode is a folder, by `nodeType` or else by having no content
+// blob (see fileNodeKind). A `type` of "d" doesn't make one: older builds
+// created "folders" as blob-backed files, which can't hold children (#379).
+function isFolder(node: Pick<FileNode, 'nodeType' | 'blobId'>): boolean {
+  return fileNodeKind(node) === 'directory';
 }
 
 // Direct children of a given parent in the FileNode hierarchy.
@@ -196,6 +220,123 @@ function childrenOf(nodes: FileNode[], parentId: string | null): FileNode[] {
 // separator unambiguously marks a node we're browsing inside a shared account.
 function isCrossAccountId(id: string | null): boolean {
   return id != null && id.includes(':');
+}
+
+// Files shared with the user on their own, outside any folder shared with
+// them, have no folder to be listed in. Each owner's are listed on one page,
+// "<owner>:*": JMAP ids never contain "*", so the page can't be taken for a
+// node, and like the owner's nodes it counts as cross-account.
+const SHARED_FILES = ':*';
+
+/** The page listing the files `accountId` shares with the user outside any shared folder. */
+export function sharedFilesLocation(accountId: string): string {
+  return `${accountId}${SHARED_FILES}`;
+}
+
+function sharedFilesOwner(id: string | null): string | null {
+  return id !== null && id.endsWith(SHARED_FILES) ? id.slice(0, -SHARED_FILES.length) : null;
+}
+
+/**
+ * One page per owner who shares files on their own (outside any folder
+ * shared with the user), from the shared roots, sorted by owner name.
+ */
+export function sharedFilePages(sharedRoots: FileResource[]): { id: string; ownerName: string }[] {
+  const owners = new Map<string, string>();
+  for (const r of sharedRoots) {
+    if (!r.isDirectory && r.ownerAccountId) owners.set(r.ownerAccountId, r.ownerName || r.ownerAccountId);
+  }
+  return [...owners]
+    .sort(([, a], [, b]) => a.localeCompare(b))
+    .map(([accountId, ownerName]) => ({ id: sharedFilesLocation(accountId), ownerName }));
+}
+
+/** Whether a listing id is a page of files shared on their own, which takes no new items. */
+export function isSharedFilesPage(id: string | null): boolean {
+  return sharedFilesOwner(id) !== null;
+}
+
+/**
+ * Whether a listing id is in a drive shared with the user: one of its
+ * folders or a shared-files page. Those have no path under the user's own
+ * root, so links name them by id.
+ */
+export function isSharedLocation(id: string | null): id is string {
+  return isCrossAccountId(id);
+}
+
+/**
+ * The listed file a deep link asks to preview. A link into a shared drive
+ * that names the file itself by id (`?shared=<id>&preview=<name>`, from
+ * search) is matched by that id: the "Files from" page listing it may hold
+ * another file of the same name, and lists the two under numbered names. A
+ * link that names the folder or page instead (`sharedId` is the listing on
+ * screen, a permalink) and one into the own drive match the name the file has
+ * in the listing.
+ */
+export function linkedPreviewResource(
+  resources: FileResource[],
+  link: { name: string; sharedId?: string },
+  currentParentId: string | null,
+): FileResource | undefined {
+  return link.sharedId !== undefined && link.sharedId !== currentParentId
+    ? resources.find(r => r.id === link.sharedId)
+    : resources.find(r => r.name === link.name);
+}
+
+// A shared-files page lists files; nothing can be put into it.
+function assertCanAddTo(parentId: string | null): void {
+  if (sharedFilesOwner(parentId) !== null) {
+    throw jmapError('Nothing can be added to a list of shared files', { type: 'forbidden' });
+  }
+}
+
+// The top of what other accounts share with the user: shared nodes whose
+// parent the user can't open (none, or a folder not shared with them).
+// Stalwart 1.0 also lists the owner's folders above a shared node
+// (discoverableOnly); left in, the owner's top folder became the root and the
+// shared folder sat somewhere below it.
+function sharedRootsOf(nodes: FileNode[]): FileNode[] {
+  const visible = nodes.filter(n => !n.discoverableOnly);
+  const ids = new Set(visible.map(n => n.id));
+  return visible.filter(n => n.isShared && (n.parentId == null || !ids.has(n.parentId)));
+}
+
+/**
+ * Where a node of a shared drive is opened, as the breadcrumb trail from its
+ * shared root: a folder or shared-files page opens itself, anything else its
+ * folder, or its owner's shared-files page when that folder isn't shared
+ * with the user. A shared-files page has no name of its own (null); the
+ * caller words it.
+ */
+function findSharedPlace(
+  nodes: FileNode[],
+  id: string,
+): { trail: { id: string; name: string | null }[]; ownerName: string } | null {
+  const pageOwner = sharedFilesOwner(id);
+  if (pageOwner !== null) {
+    const files = sharedRootsOf(nodes).filter(n => n.accountId === pageOwner && !isFolder(n));
+    if (files.length === 0) return null;
+    return { trail: [{ id, name: null }], ownerName: files[0].accountName || pageOwner };
+  }
+
+  const visible = new Map(nodes.filter(n => !n.discoverableOnly).map(n => [n.id, n]));
+  const node = visible.get(id);
+  if (!node?.isShared || !node.accountId) return null;
+  const ownerName = node.accountName || node.accountId;
+  const folder = isFolder(node) ? node : node.parentId != null ? visible.get(node.parentId) : undefined;
+  if (!folder || !isFolder(folder)) {
+    return { trail: [{ id: sharedFilesLocation(node.accountId), name: null }], ownerName };
+  }
+  const trail: { id: string; name: string | null }[] = [];
+  const seen = new Set<string>();
+  let at: FileNode | undefined = folder;
+  while (at && !seen.has(at.id)) {
+    seen.add(at.id);
+    trail.unshift({ id: at.id, name: at.name });
+    at = at.parentId != null ? visible.get(at.parentId) : undefined;
+  }
+  return { trail, ownerName };
 }
 
 /**
@@ -215,13 +356,14 @@ export function resourceServerRef(
 }
 
 function nodeToResource(node: FileNode): FileResource {
-  const isDir = isFolder(node);
+  const kind = fileNodeKind(node);
   return {
     id: node.id,
     name: node.name,
     serverName: node.name,
-    isDirectory: isDir,
-    contentType: isDir ? '' : node.type,
+    isDirectory: kind === 'directory',
+    isSymlink: kind === 'symlink',
+    contentType: kind === 'file' ? node.type : '',
     contentLength: node.size,
     lastModified: node.modified || node.created,
     blobId: node.blobId,
@@ -265,6 +407,18 @@ function getUniqueName(name: string, existingNames: Set<string>): string {
   let counter = 1;
   while (existingNames.has(`${base} (${counter})${ext}`)) counter++;
   return `${base} (${counter})${ext}`;
+}
+
+// The files on a shared-files page come from any of the owner's folders, so
+// two may have the same name, while the Files view tells rows apart by name.
+// Later ones are numbered the way uploads are; serverName keeps the real name.
+function withUniqueNames(resources: FileResource[]): FileResource[] {
+  const used = new Set<string>();
+  return resources.map(r => {
+    const name = getUniqueName(r.name, used);
+    used.add(name);
+    return name === r.name ? r : { ...r, name };
+  });
 }
 
 // Display path of a folder ("/A/B") from the folder list, or null if unknown.
@@ -499,7 +653,7 @@ export const useFileStore = create<FileState>((set, get) => ({
       // Safety net: a real folder has no content blob. If the server (or a stale
       // build of createFileDirectory) hands back a blob-backed node, it is NOT a
       // folder - abort before we delete anything irreversible (see below).
-      if (created.blobId != null) {
+      if (!isFolder(created)) {
         creationBroken = true;
         throw new Error('createFileDirectory returned a non-folder (has a blobId)');
       }
@@ -633,6 +787,9 @@ export const useFileStore = create<FileState>((set, get) => ({
     let newStack: { id: string | null; name: string }[];
     if (parentId === null) {
       newStack = [{ id: null, name: '' }];
+    } else if (sharedFilesOwner(parentId) !== null) {
+      // A shared-files page sits right below Home, whatever was open before.
+      newStack = [{ id: null, name: '' }, { id: parentId, name: name || parentId }];
     } else {
       // Check if navigating to a parent in the stack
       const existingIdx = pathStack.findIndex(s => s.id === parentId);
@@ -658,8 +815,16 @@ export const useFileStore = create<FileState>((set, get) => ({
       const allNodes = isCrossAccountId(parentId)
         ? await client.listAllFileNodesAcrossAccounts()
         : await client.listAllFileNodes();
-      const resources = sortResources(childrenOf(allNodes, parentId).map(nodeToResource));
-      const allFolders = allNodes.filter(isFolder).map(nodeToResource);
+      const owner = sharedFilesOwner(parentId);
+      const resources = owner !== null
+        ? withUniqueNames(sortResources(
+          sharedRootsOf(allNodes).filter(n => n.accountId === owner && !isFolder(n)).map(nodeToResource),
+        ))
+        // The owner's folders on the way down to a shared node aren't shown
+        // (see sharedRootsOf); the user can do nothing in them.
+        : sortResources(childrenOf(allNodes, parentId).filter(n => !n.discoverableOnly).map(nodeToResource));
+      // The owner's folders above a shared one stay out of the tree as well.
+      const allFolders = allNodes.filter(n => isFolder(n) && !n.discoverableOnly).map(nodeToResource);
 
       // Prune recent files whose backing node no longer exists on the server
       const { recentFiles } = get();
@@ -731,6 +896,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   createDirectory: async (name: string) => {
     const { client, currentParentId, currentPath, refresh } = get();
     if (!client) return;
+    assertCanAddTo(currentParentId);
 
     const created = await client.createFileDirectory(name, currentParentId);
     void fileHooks.onDirectoryCreate.emit(fileToView(created, currentPath));
@@ -740,6 +906,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   uploadFile: async (file: File) => {
     const { client, currentParentId, currentPath } = get();
     if (!client) return;
+    assertCanAddTo(currentParentId);
     if (!(await fileHooks.onBeforeFileUpload.intercept({ name: file.name, size: file.size, type: file.type, path: currentPath }))) return;
 
     const abortController = new AbortController();
@@ -765,8 +932,9 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   uploadFiles: async (allFiles: File[]) => {
     const { client, currentParentId, currentPath, resources } = get();
-    if (!client) return { uploaded: 0, canceled: false };
-    let uploaded = 0;
+    const report: UploadReport = { uploaded: 0, failed: [], canceled: false };
+    if (!client) return report;
+    assertCanAddTo(currentParentId);
 
     // Plugins may hold back single files; the rest go up.
     const files: File[] = [];
@@ -775,7 +943,7 @@ export const useFileStore = create<FileState>((set, get) => ({
         files.push(file);
       }
     }
-    if (files.length === 0) return { uploaded: 0, canceled: false };
+    if (files.length === 0) return report;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -800,17 +968,17 @@ export const useFileStore = create<FileState>((set, get) => ({
         if (abortController.signal.aborted) break;
         set({ uploadProgress: { name: file.name, loaded: file.size, total: file.size, current: i + 1, totalFiles } });
         const node = await client.createFileNode(uniqueName, blobId, type || file.type || 'application/octet-stream', file.size, currentParentId);
-        uploaded++;
+        report.uploaded++;
         void fileHooks.onAfterFileUpload.emit(fileToView(node, currentPath));
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') break;
-        set({ uploadProgress: null, uploadAbortController: null });
-        throw err;
+        report.failed.push({ name: file.name, error: err });
       }
     }
     set({ uploadProgress: null, uploadAbortController: null });
     await get().refresh();
-    return { uploaded, canceled: abortController.signal.aborted };
+    report.canceled = abortController.signal.aborted;
+    return report;
   },
 
   cancelUpload: () => {
@@ -824,25 +992,27 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   uploadFolder: async (allFiles: File[]) => {
     const { client, currentParentId, currentPath } = get();
-    if (!client || allFiles.length === 0) return { uploaded: 0, canceled: false };
-    let uploaded = 0;
+    const report: UploadReport = { uploaded: 0, failed: [], canceled: false };
+    if (!client || allFiles.length === 0) return report;
+    assertCanAddTo(currentParentId);
 
-    const relativeOf = (file: File) => (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+    const relativePathOf = (file: File) => (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
     const dirOf = (relativePath: string) => {
       const slash = relativePath.lastIndexOf('/');
       return slash >= 0 ? relativePath.slice(0, slash) : '';
     };
+    const levelsOf = (path: string) => (path ? path.split('/').length : 0);
 
     // Ask plugins about every file before anything is created, so a folder
     // that only held refused files is not created either.
     const files: File[] = [];
     for (const file of allFiles) {
-      const path = joinPath(currentPath, dirOf(relativeOf(file)));
+      const path = joinPath(currentPath, dirOf(relativePathOf(file)));
       if (await fileHooks.onBeforeFileUpload.intercept({ name: file.name, size: file.size, type: file.type, path })) {
         files.push(file);
       }
     }
-    if (files.length === 0) return { uploaded: 0, canceled: false };
+    if (files.length === 0) return report;
 
     const abortController = new AbortController();
     set({ uploadAbortController: abortController });
@@ -852,32 +1022,56 @@ export const useFileStore = create<FileState>((set, get) => ({
     // create them as real nested directories, mapping each path to its node id.
     const dirs = new Set<string>();
     for (const file of files) {
-      const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-      const parts = relativePath.split('/');
+      const parts = relativePathOf(file).split('/');
       for (let i = 1; i < parts.length; i++) {
         dirs.add(parts.slice(0, i).join('/'));
       }
     }
 
-    // Map a directory path to its created node id. Root ('') maps to the
-    // current folder we are uploading into.
-    const dirIds = new Map<string, string | null>();
-    dirIds.set('', currentParentId);
+    // Stalwart 1.0 refuses nodes deeper than maxFileNodeDepth (64). Find out
+    // up front what won't fit below the current folder.
+    const maxDepth = client.getMaxFileNodeDepth?.() ?? null;
+    let baseDepth = 0;
+    if (maxDepth !== null && currentParentId !== null) {
+      try {
+        const nodes = isCrossAccountId(currentParentId)
+          ? await client.listAllFileNodesAcrossAccounts()
+          : await client.listAllFileNodes();
+        baseDepth = fileNodeDepth(nodes, currentParentId);
+      } catch {
+        // The server still refuses what doesn't fit.
+      }
+    }
+    const tooDeep = (levels: number) => maxDepth !== null && baseDepth + levels > maxDepth;
 
-    const sortedDirs = [...dirs].sort((a, b) => a.split('/').length - b.split('/').length);
+    // Map a directory path to its created node id. Root ('') maps to the
+    // current folder we are uploading into. A folder that can't be created
+    // keeps its error, and everything inside it is skipped with that error
+    // instead of landing in the folder the upload started in.
+    const dirIds = new Map<string, string | null>([['', currentParentId]]);
+    const dirErrors = new Map<string, unknown>();
+
+    const sortedDirs = [...dirs].sort((a, b) => levelsOf(a) - levelsOf(b));
     for (const dir of sortedDirs) {
       if (abortController.signal.aborted) break;
       const slash = dir.lastIndexOf('/');
       const parentPath = slash >= 0 ? dir.slice(0, slash) : '';
       const dirName = slash >= 0 ? dir.slice(slash + 1) : dir;
-      const parentId = dirIds.get(parentPath) ?? currentParentId;
+      const parentId = dirIds.get(parentPath);
+      if (parentId === undefined) {
+        dirErrors.set(dir, dirErrors.get(parentPath));
+        continue;
+      }
+      if (tooDeep(levelsOf(dir))) {
+        dirErrors.set(dir, folderDepthError());
+        continue;
+      }
       try {
         const created = await client.createFileDirectory(dirName, parentId);
         dirIds.set(dir, created.id);
         void fileHooks.onDirectoryCreate.emit(fileToView(created, joinPath(currentPath, parentPath)));
-      } catch {
-        // Directory may already exist - leave it unmapped; files fall back to
-        // the closest known parent below.
+      } catch (err) {
+        dirErrors.set(dir, err);
       }
     }
 
@@ -885,9 +1079,17 @@ export const useFileStore = create<FileState>((set, get) => ({
     for (let i = 0; i < files.length; i++) {
       if (abortController.signal.aborted) break;
       const file = files[i];
-      const relativePath = relativeOf(file);
+      const relativePath = relativePathOf(file);
       const dirPath = dirOf(relativePath);
-      const parentId = dirIds.get(dirPath) ?? currentParentId;
+      const parentId = dirIds.get(dirPath);
+      if (parentId === undefined) {
+        report.failed.push({ name: relativePath, error: dirErrors.get(dirPath) });
+        continue;
+      }
+      if (tooDeep(levelsOf(dirPath) + 1)) {
+        report.failed.push({ name: relativePath, error: folderDepthError() });
+        continue;
+      }
 
       set({ uploadProgress: { name: relativePath, loaded: 0, total: file.size, current: i + 1, totalFiles } });
 
@@ -902,19 +1104,17 @@ export const useFileStore = create<FileState>((set, get) => ({
         if (abortController.signal.aborted) break;
         set({ uploadProgress: { name: relativePath, loaded: file.size, total: file.size, current: i + 1, totalFiles } });
         const node = await client.createFileNode(file.name, blobId, type || file.type || 'application/octet-stream', file.size, parentId);
-        uploaded++;
-        // A file whose folder could not be created lands in the closest known one.
-        const landedIn = dirIds.has(dirPath) ? joinPath(currentPath, dirPath) : currentPath;
-        void fileHooks.onAfterFileUpload.emit(fileToView(node, landedIn));
+        report.uploaded++;
+        void fileHooks.onAfterFileUpload.emit(fileToView(node, joinPath(currentPath, dirPath)));
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') break;
-        set({ uploadProgress: null, uploadAbortController: null });
-        throw err;
+        report.failed.push({ name: relativePath, error: err });
       }
     }
     set({ uploadProgress: null, uploadAbortController: null });
     await get().refresh();
-    return { uploaded, canceled: abortController.signal.aborted };
+    report.canceled = abortController.signal.aborted;
+    return report;
   },
 
   deleteResource: async (name: string) => {
@@ -1039,6 +1239,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   createTextFile: async (name: string) => {
     const { client, currentParentId, refresh } = get();
     if (!client) return;
+    assertCanAddTo(currentParentId);
 
     const emptyBlob = new File([''], name, { type: 'text/plain' });
     const { blobId } = await client.uploadBlob(emptyBlob);
@@ -1051,7 +1252,8 @@ export const useFileStore = create<FileState>((set, get) => ({
     if (!client) return;
 
     const resource = resources.find(r => r.name === name);
-    if (!resource) return;
+    if (!resource || resource.isSymlink) return;
+    assertCanAddTo(currentParentId);
 
     const dotIdx = name.lastIndexOf('.');
     const copyName = dotIdx > 0
@@ -1119,6 +1321,7 @@ export const useFileStore = create<FileState>((set, get) => ({
   moveToFolderId: async (names: string[], targetId: string | null) => {
     const { client, resources, currentParentId, currentPath, allFolders, refresh } = get();
     if (!client || targetId === currentParentId) return false;
+    assertCanAddTo(targetId);
 
     // A folder must not move into itself or anything below it.
     const parentOf = new Map(allFolders.map(f => [f.id, f.parentId ?? null]));
@@ -1150,23 +1353,52 @@ export const useFileStore = create<FileState>((set, get) => ({
 
   cutResources: (names: string[]) => {
     const { currentPath, currentParentId, resources } = get();
-    const ids = names.map(n => resources.find(r => r.name === n)?.id).filter(Boolean) as string[];
-    const serverNames = names.map(n => resources.find(r => r.name === n)?.serverName).filter(Boolean) as string[];
-    const files = resources.filter(r => names.includes(r.name)).map(r => resourceToView(r, currentPath));
-    set({ clipboard: { mode: 'cut', ids, names, serverNames, sourceParentId: currentParentId, sourcePath: currentPath, files } });
+    const picked = names
+      .map(n => resources.find(r => r.name === n))
+      .filter((r): r is FileResource => !!r);
+    set({
+      clipboard: {
+        mode: 'cut',
+        ids: picked.map(r => r.id),
+        names: picked.map(r => r.name),
+        serverNames: picked.map(r => r.serverName),
+        sourceParentId: currentParentId,
+        sourceParentIds: picked.map(r => r.parentId ?? null),
+        sourcePath: currentPath,
+        files: picked.map(r => resourceToView(r, currentPath)),
+      },
+    });
   },
 
   copyResources: (names: string[]) => {
     const { currentPath, currentParentId, resources } = get();
-    const ids = names.map(n => resources.find(r => r.name === n)?.id).filter(Boolean) as string[];
-    const serverNames = names.map(n => resources.find(r => r.name === n)?.serverName).filter(Boolean) as string[];
-    const files = resources.filter(r => names.includes(r.name)).map(r => resourceToView(r, currentPath));
-    set({ clipboard: { mode: 'copy', ids, names, serverNames, sourceParentId: currentParentId, sourcePath: currentPath, files } });
+    // A symlink has nothing to copy (see copyFileNode), so it stays behind.
+    const picked = names
+      .map(n => resources.find(r => r.name === n))
+      .filter((r): r is FileResource => !!r && !r.isSymlink);
+    if (picked.length === 0) {
+      // Nothing to copy replaces the clipboard too, instead of leaving an
+      // earlier cut or copy for the next paste.
+      set({ clipboard: null });
+      return;
+    }
+    set({
+      clipboard: {
+        mode: 'copy',
+        ids: picked.map(r => r.id),
+        names: picked.map(r => r.name),
+        serverNames: picked.map(r => r.serverName),
+        sourceParentId: currentParentId,
+        sourcePath: currentPath,
+        files: picked.map(r => resourceToView(r, currentPath)),
+      },
+    });
   },
 
   pasteResources: async () => {
     const { client, currentParentId, currentPath, clipboard, refresh } = get();
     if (!client || !clipboard) return false;
+    assertCanAddTo(currentParentId);
 
     const viewOf = (id: string) => clipboard.files?.find(f => f.id === id);
     if (clipboard.mode === 'cut') {
@@ -1176,6 +1408,8 @@ export const useFileStore = create<FileState>((set, get) => ({
 
     const entries: UndoAction['entries'] = [];
     const done: FileResourceView[] = [];
+    // Each copy reads the source and target trees; read them once per paste.
+    const listings: FileNodeListings = new Map();
 
     try {
       for (let i = 0; i < clipboard.ids.length; i++) {
@@ -1184,11 +1418,12 @@ export const useFileStore = create<FileState>((set, get) => ({
 
         if (clipboard.mode === 'cut') {
           await client.updateFileNode(id, { parentId: currentParentId });
-          entries.push({ id, from: { parentId: clipboard.sourceParentId }, to: { parentId: currentParentId } });
+          const from = clipboard.sourceParentIds ? clipboard.sourceParentIds[i] : clipboard.sourceParentId;
+          entries.push({ id, from: { parentId: from }, to: { parentId: currentParentId } });
           const view = viewOf(id);
           if (view) done.push({ ...view, path: currentPath });
         } else {
-          const copy = await client.copyFileNode(id, displayName, currentParentId);
+          const copy = await client.copyFileNode(id, displayName, currentParentId, listings);
           done.push(fileToView(copy, currentPath));
         }
       }
@@ -1435,19 +1670,31 @@ export const useFileStore = create<FileState>((set, get) => ({
       return;
     }
     try {
-      const all = await client.listAllFileNodesAcrossAccounts();
-      const idSet = new Set(all.map(n => n.id));
-      // A shared node is a "root" of the shared-with-me tree when its parent is
-      // not among the nodes the user can see (either null, or owned by a
-      // principal whose ancestor folders weren't shared).
-      const roots = all.filter(n =>
-        n.isShared && (n.parentId == null || !idSet.has(n.parentId)),
-      );
+      const roots = sharedRootsOf(await client.listAllFileNodesAcrossAccounts());
       set({ sharedRoots: sortResources(roots.map(nodeToResource)) });
     } catch (error) {
       console.error('[Files] Failed to load shared roots:', error);
       set({ sharedRoots: [] });
     }
+  },
+
+  openSharedNode: async (id: string, sharedFilesName: (ownerName: string) => string) => {
+    const { client, navigate } = get();
+    if (!client) return false;
+    let nodes: FileNode[];
+    try {
+      nodes = await client.listAllFileNodesAcrossAccounts();
+    } catch {
+      return false;
+    }
+    const place = findSharedPlace(nodes, id);
+    if (!place) return false;
+    const trail = place.trail.map(step => ({ id: step.id, name: step.name ?? sharedFilesName(place.ownerName) }));
+    const target = trail[trail.length - 1];
+    // The breadcrumb starts at the shared root, not below whatever was open.
+    set({ pathStack: [{ id: null, name: '' }, ...trail.slice(0, -1)] });
+    await navigate(target.id, target.name);
+    return true;
   },
 }));
 

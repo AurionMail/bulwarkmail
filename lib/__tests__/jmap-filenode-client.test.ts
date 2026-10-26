@@ -155,6 +155,17 @@ describe('JMAPClient FileNode listing past maxObjectsInGet (#1069)', () => {
     const nodes = await client.listAllFileNodesAcrossAccounts();
     expect(sortedIds(nodes)).toEqual(['f0', 'f1', 'f2', 'f3']);
   });
+
+  it('asks for nodeType, which tells Stalwart 1.0 symlinks from folders', async () => {
+    const all = [folder('d1'), file('f0'), file('f1'), file('f2')];
+    const client = createLimitedClient({ maxObjectsInGet: 2 });
+    const sent = fakeFilesServer(all, { maxObjectsInGet: 2 });
+
+    await client.listAllFileNodes();
+    const gets = sent.flat().filter(([method]) => method === 'FileNode/get');
+    expect(gets.length).toBeGreaterThan(1);
+    for (const [, args] of gets) expect(args.properties).toContain('nodeType');
+  });
 });
 
 describe('JMAPClient FileNode name decoding (#869)', () => {
@@ -187,5 +198,66 @@ describe('JMAPClient FileNode name decoding (#869)', () => {
     const nodes = await client.listAllFileNodesAcrossAccounts();
     expect(nodes.map(n => n.name)).toEqual(['Spares Catalog عربي', '100% done.txt']);
     expect(nodes[0]).toMatchObject({ id: 'f1', accountId: 'account-1', isShared: false });
+  });
+});
+
+describe('JMAPClient folders listed only on the way to a shared node', () => {
+  const NO_RIGHTS = { mayRead: false, mayAddChildren: false, mayRename: false, mayDelete: false, mayModifyContent: false, mayShare: false };
+  const READ = { ...NO_RIGHTS, mayRead: true };
+  const T = '2026-09-01T08:00:00Z';
+  // What Stalwart 1.0 returns for an ancestor the user may not read
+  // (`discoverable_only`): name and place in the tree, nothing else.
+  const placeholder = { blobId: null, type: null, size: null, created: null, modified: null, shareWith: null, myRights: NO_RIGHTS };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** The user's own drive plus another user's, answered per account. */
+  function sharingClient(drives: Record<string, object[]>): JMAPClient {
+    const client = createClient();
+    const fileCap = { 'urn:ietf:params:jmap:filenode': {} };
+    Object.assign(client, {
+      accounts: {
+        'account-1': { name: 'user', isPersonal: true, isReadOnly: false, accountCapabilities: fileCap },
+        owner: { name: 'owner@example.com', isPersonal: false, isReadOnly: false, accountCapabilities: fileCap },
+      },
+    });
+    vi.spyOn(globalThis, 'fetch').mockImplementation((async (_url: string, init: RequestInit) => {
+      const { methodCalls } = JSON.parse(init.body as string) as { methodCalls: MethodCall[] };
+      const methodResponses = methodCalls.map(([method, args, callId]) =>
+        [method, { list: drives[args.accountId as string] ?? [], notFound: [] }, callId]);
+      const body = JSON.stringify({ methodResponses });
+      return { ok: true, status: 200, text: () => Promise.resolve(body) } as Response;
+    }) as never);
+    return client;
+  }
+
+  it('marks the owner\'s folders above a shared folder on Stalwart 1.0', async () => {
+    const client = sharingClient({
+      // Not a real shape for an own node; only other accounts are marked.
+      'account-1': [{ id: 'mine', parentId: null, name: 'Mine', ...placeholder }],
+      owner: [
+        { id: 'a', parentId: null, name: 'Documents', ...placeholder },
+        { id: 'b', parentId: 'a', name: 'Projects', ...placeholder },
+        { id: 'c', parentId: 'b', name: 'Project X', blobId: null, type: null, size: null, created: T, modified: T, shareWith: null, myRights: READ },
+      ],
+    });
+
+    const nodes = await client.listAllFileNodesAcrossAccounts();
+    expect(nodes.filter(n => n.discoverableOnly).map(n => n.id)).toEqual(['owner:a', 'owner:b']);
+  });
+
+  it('marks nothing on 0.16, where a child the share predates has no rights but has dates', async () => {
+    const client = sharingClient({
+      owner: [
+        { id: 'f', parentId: 'hidden', name: 'Shared', blobId: null, type: null, size: null, created: T, modified: T, myRights: READ },
+        { id: 'g', parentId: 'f', name: 'old.txt', blobId: 'b1', type: 'text/plain', size: 3, created: T, modified: T, myRights: NO_RIGHTS },
+      ],
+    });
+
+    const nodes = await client.listAllFileNodesAcrossAccounts();
+    expect(nodes).toHaveLength(2);
+    expect(nodes.some(n => n.discoverableOnly)).toBe(false);
   });
 });

@@ -149,6 +149,23 @@ export function hasKeywordLevels(levels: SortLevel[], pinnedFirst = false): bool
   return pinnedFirst || levels.some(l => levelKeyword(l) !== null);
 }
 
+// Sender and subject orders are collated by the server, and the versions
+// differ. Stalwart 1.0 compares byte-order sort keys: the lowercased name and
+// address, the thread name for the subject. 0.16 compares the raw bytes of the
+// same values, so capitals come before lowercase ("Eve" before "bea"). Both
+// put a message without a sender or subject last in either direction.
+// `compareEmails` sorts case-insensitively and puts those last too.
+const TEXT_CRITERIA: ReadonlySet<SortCriterion> = new Set(['from', 'subject']);
+
+/**
+ * True when the order compares text. A list from a server whose collation the
+ * client keeps (see JMAPClient.keepsServerTextOrder) stays in the order the
+ * server returned; any other list is re-sorted with `compareEmails`.
+ */
+export function hasTextLevels(levels: SortLevel[]): boolean {
+  return levels.some(l => TEXT_CRITERIA.has(l.criterion));
+}
+
 /** A "chronological" order: nothing configured, or only newest-first. */
 export function isDefaultOrder(levels: SortLevel[]): boolean {
   return levels.length === 0
@@ -252,8 +269,10 @@ export type HeldKeywords = ReadonlyMap<string, Email['keywords']>;
  * Client-side mirror of `buildEmailSort` for the same level list. Used as the
  * within-page safety net (some servers ignore the sort on unfiltered queries),
  * for merging per-account pages in the unified view, for the demo client, and
- * to keep thread grouping from undoing the server order. `held` rows sort by
- * their held keywords.
+ * to keep thread grouping from undoing the server order. Sender and subject
+ * levels only approximate the server's collation (see `hasTextLevels`), so a
+ * list from a server that collates them itself keeps the server's order.
+ * `held` rows sort by their held keywords.
  */
 export function compareEmails(
   levels: SortLevel[],
@@ -270,7 +289,15 @@ export function compareEmails(
     const ka = held?.get(a.id) ?? a.keywords;
     const kb = held?.get(b.id) ?? b.keywords;
     for (const level of levels) {
-      const diff = compareValues(levelValue(level, a, ka), levelValue(level, b, kb));
+      const va = levelValue(level, a, ka);
+      const vb = levelValue(level, b, kb);
+      // No sender or subject: last whatever the direction, as both Stalwart
+      // versions order it. Only the text criteria yield ''.
+      if (va === '' || vb === '') {
+        if (va !== vb) return va === '' ? 1 : -1;
+        continue;
+      }
+      const diff = compareValues(va, vb);
       if (diff !== 0) return level.direction === 'asc' ? diff : -diff;
     }
     if (!hasDateLevel) {

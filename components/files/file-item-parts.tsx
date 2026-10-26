@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Share2, Users } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { getEffectiveTimeZone } from "@/lib/timezone";
 import type { FileResource } from "@/stores/file-store";
-import { getFileIconByName, getFolderIcon, isImageFile, type FileIconSize } from "@/components/files/file-icons";
+import { getFileIconByName, getFolderIcon, getSymlinkIcon, isImageFile, type FileIconSize } from "@/components/files/file-icons";
 
 /** How list and grid items draw their icon, from Settings > Files. */
 export interface IconOptions {
@@ -24,6 +25,7 @@ const thumbnailCache = new Map<string, Promise<string>>();
 export function canShowThumbnail(resource: FileResource, options: IconOptions): boolean {
   return options.showThumbnails
     && !resource.isDirectory
+    && !resource.isSymlink
     && !!resource.blobId
     && isImageFile(resource.name)
     && resource.contentLength <= MAX_THUMBNAIL_BYTES;
@@ -83,16 +85,17 @@ export function Thumbnail({ resource, getImageUrl, className, wrapperClassName, 
   );
 }
 
-/** A folder or file icon, or nothing when icons are turned off. */
+/** A folder, symlink or file icon, or nothing when icons are turned off. */
 export function ResourceIcon({ resource, size, options }: {
   resource: FileResource;
   size: FileIconSize;
   options: Pick<IconOptions, "showIcons" | "coloredIcons">;
 }) {
+  const t = useTranslations("files");
   if (!options.showIcons) return null;
-  return resource.isDirectory
-    ? getFolderIcon(size, options.coloredIcons)
-    : getFileIconByName(resource.name, size, options.coloredIcons);
+  if (resource.isDirectory) return getFolderIcon(size, options.coloredIcons);
+  if (resource.isSymlink) return getSymlinkIcon(size, t("symlink"));
+  return getFileIconByName(resource.name, size, options.coloredIcons);
 }
 
 // A node shared out by the user (shareWith has entries) or a node shared

@@ -8,6 +8,7 @@ import { X, Trash2, CalendarDays, Bell, Flag } from "@/components/icons";
 import { format, parseISO } from "date-fns";
 
 import type { CalendarTask, Calendar, CalendarEventAlert } from "@/lib/jmap/types";
+import { withOwnAlertIds } from "@/lib/calendar-alerts";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { taskToView } from "@/lib/plugin-projection";
 
@@ -139,7 +140,14 @@ export function TaskModal({
             relatedTo: null,
           };
         }
-        data.alerts = Object.keys(merged).length > 0 ? merged : null;
+        // A task that uses its calendar's default alerts turns them off:
+        // Stalwart 1.0 shows the defaults in `alerts` instead of the task's
+        // own while they are on, and drops alerts under the default ids.
+        const alerts = task?.useDefaultAlerts
+          ? withOwnAlertIds(Object.values(merged), Object.keys(task.alerts ?? {}))
+          : merged;
+        if (task?.useDefaultAlerts) data.useDefaultAlerts = false;
+        data.alerts = Object.keys(alerts).length > 0 ? alerts : null;
       }
 
       if (isEdit && task) {

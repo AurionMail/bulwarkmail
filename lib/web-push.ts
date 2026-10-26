@@ -5,7 +5,8 @@
 // register endpoint we hit on the relay.
 
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
-import type { EmailPushConfig, Mailbox } from '@/lib/jmap/types';
+import type { AccountInfo, EmailPushConfig, Mailbox } from '@/lib/jmap/types';
+import { isJmapSetError, jmapErrorType } from '@/lib/jmap/jmap-error';
 import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
 import { IS_LITE } from '@/lib/lite';
 import {
@@ -23,6 +24,10 @@ import {
 // so a globally-shared key meant re-registering account B overwrote A.
 const DEVICE_CLIENT_ID_PREFIX = 'bulwark.push.deviceClientId.v1.';
 const SUBSCRIPTION_ID_PREFIX = 'bulwark.push.subscriptionId.v1.';
+// JMAP account ids the server refused in this account's emailPush map (see
+// emailPushFallbacks). Left out of the map from then on, so a refusal isn't
+// provoked again on every page load. Re-register and disable clear it.
+const EMAIL_PUSH_REFUSED_PREFIX = 'bulwark.push.emailPushRefused.v1.';
 
 function deviceClientIdKey(accountId: string): string {
   return DEVICE_CLIENT_ID_PREFIX + accountId;
@@ -30,6 +35,10 @@ function deviceClientIdKey(accountId: string): string {
 
 function subscriptionIdKey(accountId: string): string {
   return SUBSCRIPTION_ID_PREFIX + accountId;
+}
+
+function emailPushRefusedKey(accountId: string): string {
+  return EMAIL_PUSH_REFUSED_PREFIX + accountId;
 }
 
 const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? '').replace(/\/+$/, '');
@@ -89,10 +98,17 @@ export function serverSupportsEmailPush(client: IJMAPClient): boolean {
  *
  * Inbox-only mode: same `$junk` keyword guard, but the mailbox condition
  * requires the message to be IN the account's Inbox rather than merely NOT
- * in Junk - mail a Sieve rule files into any other folder stays silent. An
- * account with no Inbox we can see (someone shared a single folder with us)
- * gets a filter that never matches: leaving it out of the map would make the
- * server fall back to unfiltered pushes for that account.
+ * in Junk - mail a Sieve rule files into any other folder stays silent. A
+ * group account with no Inbox we can see gets a filter that never matches:
+ * leaving it out of the map would make the server fall back to unfiltered
+ * pushes for that account.
+ *
+ * Only the primary account and the accounts that list emailpush in their
+ * accountCapabilities go in the map. Stalwart fans a subscription out to the
+ * user's own account and their groups only, and refuses the whole map as
+ * `forbidden` when it names a mailbox shared by ACL. 1.0 lists emailpush on
+ * exactly those accounts; 0.16.16 to 0.16.23 list it on every account, and
+ * enableWebPush narrows the map when the server refuses it.
  *
  * Muted accounts and folders (#1169) are cut out of the same filter. In the
  * default mode a muted folder joins Junk in the "not only in" list; a muted
@@ -105,7 +121,7 @@ export async function buildEmailPushConfig(
   mutes: NotificationMutes = EMPTY_NOTIFICATION_MUTES,
 ): Promise<Record<string, EmailPushConfig>> {
   const primary = client.getAccountId();
-  // Every account that has any mailbox gets a filter entry - a secondary/shared
+  // Every such account that has any mailbox gets a filter entry - a group
   // account without a Junk-role mailbox still needs one so its subscription
   // isn't left unfiltered.
   const accountIds = new Set<string>([primary]);
@@ -122,6 +138,7 @@ export async function buildEmailPushConfig(
     : await client.getAllMailboxes().catch(() => [] as Mailbox[]);
   for (const m of mailboxes) {
     const accountId = m.accountId || primary;
+    if (accountId !== primary && !client.hasAccountCapability(EMAIL_PUSH_CAPABILITY, accountId)) continue;
     accountIds.add(accountId);
     // Shared-account mailboxes carry a client-side "<account>:<id>" id;
     // the server only knows the original.
@@ -202,97 +219,175 @@ function sameEmailPush(
   return normalizeEmailPush(a) === normalizeEmailPush(b);
 }
 
-function pickAccounts(
-  config: Record<string, EmailPushConfig>,
-  accountIds: readonly string[],
-): Record<string, EmailPushConfig> {
-  const out: Record<string, EmailPushConfig> = {};
-  for (const id of accountIds) if (config[id]) out[id] = config[id];
-  return out;
-}
-
-// A stored filter that the fallback below narrowed down still counts as up to
-// date: same entries for the accounts it covers, and it covers the primary.
-// Without this every resync would retry the full map and get refused again.
-function coveredByEmailPush(
-  stored: Record<string, EmailPushConfig> | null | undefined,
-  desired: Record<string, EmailPushConfig>,
-  primary: string,
-): boolean {
-  if (!stored || !stored[primary]) return false;
-  const keys = Object.keys(stored);
-  if (!keys.every((id) => desired[id])) return false;
-  return sameEmailPush(stored, pickAccounts(desired, keys));
-}
-
-function isForbiddenError(err: unknown): boolean {
-  return err instanceof Error && err.message.includes('"type":"forbidden"');
-}
+// RFC 9670. Stalwart 1.0 lists it in every account's accountCapabilities,
+// 0.16 in none.
+const PRINCIPALS_OWNER_CAPABILITY = 'urn:ietf:params:jmap:principals:owner';
 
 /**
- * Smaller emailPush maps to retry with after the server refused the full one.
- *
- * Stalwart only accepts emailPush entries for the user's own account and the
- * groups they belong to. An entry for an account that merely shared a folder
- * with them fails the whole PushSubscription/set with `forbidden` (#1050).
- * Those accounts never push to this subscription anyway - Stalwart fans out
- * to member accounts only - so leaving their entries out loses nothing. The
- * session lists both kinds alike, so first keep the accounts that look owned
- * (see OWNERSHIP_FLAGS), then fall back to the primary account alone. The
- * native app does the same (repos/react-native emailPushFallbacks).
+ * Whether the account capabilities name the accounts a subscription reaches:
+ * Stalwart 1.0 lists emailpush on the user's own account and their groups
+ * only. 0.16.16 to 0.16.23 list it on every account, ACL shares included, and
+ * 0.16.6 to 0.16.15 on none, so there the client has to work it out.
  */
-function narrowedEmailPushConfigs(
-  client: IJMAPClient,
-  config: Record<string, EmailPushConfig>,
-): Record<string, EmailPushConfig>[] {
-  const primary = client.getAccountId();
-  const others = Object.keys(config).filter((id) => id !== primary);
-  if (others.length === 0) return [];
-  const candidates: Record<string, EmailPushConfig>[] = [];
-  const owned = others.filter((id) => looksOwned(client, id));
-  if (owned.length > 0 && owned.length < others.length) {
-    candidates.push(pickAccounts(config, [primary, ...owned]));
-  }
-  candidates.push(pickAccounts(config, [primary]));
-  return candidates;
+function emailPushCapabilityIsExact(client: IJMAPClient): boolean {
+  return client.hasAccountCapability(PRINCIPALS_OWNER_CAPABILITY, client.getAccountId());
 }
 
 // Stalwart marks the accounts a user owns - their own and the groups they
 // belong to - through the create flags of its per-account collection
-// capabilities: true there, false on accounts shared with them by ACL.
+// capabilities: true there, false on accounts shared with them by ACL. A user
+// without calendars, contacts or files has none of the flags, so their groups
+// don't look owned either; ownGroupAccounts finds those on 0.16.
 const OWNERSHIP_FLAGS: ReadonlyArray<readonly [string, string]> = [
   ['urn:ietf:params:jmap:calendars', 'mayCreateCalendar'],
   ['urn:ietf:params:jmap:contacts', 'mayCreateAddressBook'],
   ['urn:ietf:params:jmap:filenode', 'mayCreateTopLevelFileNode'],
 ];
 
-function looksOwned(client: IJMAPClient, accountId: string): boolean {
+function looksOwned(info: AccountInfo | null): boolean {
+  if (!info) return false;
+  if (info.isPersonal) return true;
+  if (info.isReadOnly) return false;
   return OWNERSHIP_FLAGS.some(([urn, flag]) => {
-    const capability = client.getAccountCapability?.(urn, accountId) as Record<string, unknown> | undefined;
+    const capability = info.accountCapabilities[urn] as Record<string, unknown> | undefined;
     return capability?.[flag] === true;
   });
 }
 
-async function createPushSubscriptionWithEmailPush(
+/**
+ * Which of `accountIds` are groups the user belongs to, as far as Stalwart
+ * 0.16 shows it: it gives a group's members an identity for each of the
+ * group's addresses and names the group's account after its address. An
+ * account shared by ACL has neither. A group whose identity the member
+ * deleted goes unrecognised.
+ */
+function ownGroupAccounts(client: IJMAPClient, accountIds: Iterable<string>, identityEmails: Iterable<string>): Set<string> {
+  const addresses = new Set(Array.from(identityEmails, (email) => email.trim().toLowerCase()));
+  return new Set(Array.from(accountIds).filter((id) => {
+    const info = client.getAccountInfo(id);
+    return !!info && !info.isPersonal && addresses.has(info.name.trim().toLowerCase());
+  }));
+}
+
+/**
+ * The emailPush maps to try, widest first. Stalwart refuses the whole map as
+ * `forbidden` when it names an account the user neither owns nor belongs to
+ * as a group member - a mailbox shared by ACL - and only fans a subscription
+ * out to owned accounts anyway, so dropping the others loses nothing.
+ *
+ * On 1.0 the map already holds only the accounts the capabilities allow, so
+ * the only fallback is the primary account, which is always accepted. 0.16
+ * lists both kinds of account as isPersonal:false, isReadOnly:false, so its
+ * first fallback keeps the groups the user's identities reveal and the
+ * accounts that look owned (see OWNERSHIP_FLAGS), and its last the primary
+ * account alone.
+ */
+async function emailPushFallbacks(
   client: IJMAPClient,
-  params: Omit<Parameters<IJMAPClient['createPushSubscription']>[0], 'emailPush'>,
-  emailPush: Record<string, EmailPushConfig> | null,
-): Promise<string> {
-  try {
-    return await client.createPushSubscription({ ...params, ...(emailPush ? { emailPush } : {}) });
-  } catch (err) {
-    if (!emailPush || !isForbiddenError(err)) throw err;
-    let lastError = err;
-    for (const narrowed of narrowedEmailPushConfigs(client, emailPush)) {
-      try {
-        return await client.createPushSubscription({ ...params, emailPush: narrowed });
-      } catch (retryErr) {
-        if (!isForbiddenError(retryErr)) throw retryErr;
-        lastError = retryErr;
-      }
-    }
-    throw lastError;
+  desired: Record<string, EmailPushConfig>,
+): Promise<Record<string, EmailPushConfig>[]> {
+  const primary = client.getAccountId();
+  const keep = (predicate: (id: string) => boolean) =>
+    Object.fromEntries(Object.entries(desired).filter(([id]) => id === primary || predicate(id)));
+  const steps = [keep(() => false)];
+  if (!emailPushCapabilityIsExact(client)) {
+    // Without the identities no group is recognised, as before.
+    const identities = await client.getIdentities().catch(() => []);
+    const groups = ownGroupAccounts(client, Object.keys(desired), identities.map((identity) => identity.email));
+    steps.unshift(keep((id) => groups.has(id) || looksOwned(client.getAccountInfo(id))));
   }
+  const out = [desired];
+  for (const next of steps) {
+    // Only steps that actually drop an account are worth another round-trip.
+    if (Object.keys(next).length < Object.keys(out[out.length - 1]).length) out.push(next);
+  }
+  return out;
+}
+
+/**
+ * Run a subscription write that carries `emailPush`, narrowing the map along
+ * emailPushFallbacks while the server refuses it with a `forbidden` SetError.
+ * Anything else - a method-level error, overQuota, a failed request - would
+ * fail the same way with a narrower map, so it is thrown as is. Resolves to
+ * the write's result and the map the server took.
+ */
+async function writeWithEmailPush<T>(
+  client: IJMAPClient,
+  emailPush: Record<string, EmailPushConfig> | null,
+  write: (emailPush: Record<string, EmailPushConfig> | null) => Promise<T>,
+): Promise<{ result: T; emailPush: Record<string, EmailPushConfig> | null }> {
+  let attempts: (Record<string, EmailPushConfig> | null)[] = [emailPush];
+  for (let i = 0; ; i++) {
+    try {
+      return { result: await write(attempts[i]), emailPush: attempts[i] };
+    } catch (err) {
+      // Only a refused map is worth retrying with a narrower one.
+      if (!emailPush || !isJmapSetError(err) || jmapErrorType(err) !== 'forbidden') throw err;
+      // The narrower maps are worked out only once the server refused one.
+      if (i === 0) attempts = await emailPushFallbacks(client, emailPush);
+      if (i === attempts.length - 1) throw err;
+    }
+  }
+}
+
+function readRefusedEmailPushAccounts(accountId: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(emailPushRefusedKey(accountId)) ?? '[]');
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Add the accounts the server dropped from `wanted` to reach `accepted`. */
+function rememberRefusedEmailPushAccounts(
+  accountId: string,
+  refusedBefore: string[],
+  wanted: Record<string, EmailPushConfig> | null,
+  accepted: Record<string, EmailPushConfig> | null,
+): void {
+  if (!wanted || !accepted) return;
+  const refusedNow = Object.keys(wanted).filter((id) => !(id in accepted));
+  if (refusedNow.length === 0) return;
+  localStorage.setItem(
+    emailPushRefusedKey(accountId),
+    JSON.stringify(Array.from(new Set([...refusedBefore, ...refusedNow]))),
+  );
+}
+
+function withoutAccounts(
+  config: Record<string, EmailPushConfig>,
+  accountIds: string[],
+): Record<string, EmailPushConfig> {
+  return Object.fromEntries(Object.entries(config).filter(([id]) => !accountIds.includes(id)));
+}
+
+/**
+ * Which of `accountIds` (accounts the user sees mailboxes in) background
+ * notifications don't reach: mailboxes others share with the user by ACL.
+ * Stalwart only fans a subscription out to the user's own account and their
+ * groups, whatever the emailPush map says, on every version.
+ *
+ * 1.0 leaves emailpush out of exactly those accounts' capabilities, and that
+ * settles it. 0.16 doesn't say, so there it is the accounts the server refused
+ * in the map and the ones that don't look owned, minus the groups the user's
+ * identities (`identityEmails`) reveal: a group member without calendars,
+ * contacts or files has no create flag to go by.
+ */
+export function mailAccountsWithoutPush(
+  client: IJMAPClient,
+  accountIds: Iterable<string>,
+  identityEmails: Iterable<string> = [],
+): string[] {
+  const primary = client.getAccountId();
+  const others = Array.from(new Set(accountIds)).filter((id) => id && id !== primary);
+  if (others.length === 0) return [];
+  if (emailPushCapabilityIsExact(client)) {
+    return others.filter((id) => !client.hasAccountCapability(EMAIL_PUSH_CAPABILITY, id));
+  }
+  const groups = ownGroupAccounts(client, others, identityEmails);
+  const refused = readRefusedEmailPushAccounts(primary);
+  return others.filter((id) => !groups.has(id) && (refused.includes(id) || !looksOwned(client.getAccountInfo(id))));
 }
 
 export interface EnableWebPushParams {
@@ -539,6 +634,13 @@ async function pollVerificationCode(
   throw new Error('Timed out waiting for PushVerification from the JMAP server');
 }
 
+// Push the subscription's expiry forward and re-sync `types` / the delivery
+// filter when they drift. Resolves to false when the server refused the
+// update with a SetError (the subscription is gone, or no narrower map is
+// accepted), which the caller answers with a replacement; otherwise to the
+// emailPush map the update installed (null when it left the filter alone).
+// Every other failure - the network, a timeout, rate limiting, a method-level
+// error - says nothing about the subscription and is thrown.
 async function refreshSubscriptionExpires(
   client: IJMAPClient,
   sub: {
@@ -549,7 +651,7 @@ async function refreshSubscriptionExpires(
   },
   // null when the server has no emailPush support - leave the property alone.
   desiredEmailPush: Record<string, EmailPushConfig> | null,
-): Promise<boolean> {
+): Promise<false | { emailPush: Record<string, EmailPushConfig> | null }> {
   const typesNeedUpdate = !sameTypes(sub.types, PUSH_TYPES);
   // Also re-sync the delivery filter: a subscription created before this
   // client learned about emailPush has none, and the Junk mailbox id can
@@ -558,32 +660,22 @@ async function refreshSubscriptionExpires(
   if (!typesNeedUpdate && !emailPushNeedsUpdate && sub.expires) {
     const remainingMs = new Date(sub.expires).getTime() - Date.now();
     const thresholdMs = SUBSCRIPTION_REFRESH_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
-    if (Number.isFinite(remainingMs) && remainingMs > thresholdMs) return true;
+    if (Number.isFinite(remainingMs) && remainingMs > thresholdMs) return { emailPush: null };
   }
+  const patch: { expires?: string; types?: string[] } = {
+    expires: expiresFromNow(SUBSCRIPTION_EXPIRES_DAYS),
+  };
+  if (typesNeedUpdate) patch.types = [...PUSH_TYPES];
   try {
-    const patch: { expires?: string; types?: string[]; emailPush?: Record<string, EmailPushConfig> } = {
-      expires: expiresFromNow(SUBSCRIPTION_EXPIRES_DAYS),
-    };
-    if (typesNeedUpdate) patch.types = [...PUSH_TYPES];
-    if (emailPushNeedsUpdate && desiredEmailPush) patch.emailPush = desiredEmailPush;
-    if (await client.updatePushSubscription(sub.id, patch)) return true;
-    if (!patch.emailPush) return false;
-    // The server may refuse entries for accounts that only shared a folder
-    // with us (#1050). Retry with the accounts it accepted last time, then
-    // with the same smaller maps a fresh create would fall back to.
-    const desired = patch.emailPush;
-    const candidates: Record<string, EmailPushConfig>[] = [];
-    if (coveredByEmailPush(sub.emailPush, desired, client.getAccountId())) {
-      candidates.push(pickAccounts(desired, Object.keys(sub.emailPush ?? {})));
-    } else {
-      candidates.push(...narrowedEmailPushConfigs(client, desired));
-    }
-    for (const narrowed of candidates) {
-      if (await client.updatePushSubscription(sub.id, { ...patch, emailPush: narrowed })) return true;
-    }
-    return false;
-  } catch {
-    return false;
+    const { emailPush } = await writeWithEmailPush(
+      client,
+      emailPushNeedsUpdate ? desiredEmailPush : null,
+      (filter) => client.updatePushSubscription(sub.id, filter ? { ...patch, emailPush: filter } : patch),
+    );
+    return { emailPush };
+  } catch (err) {
+    if (isJmapSetError(err)) return false;
+    throw err;
   }
 }
 
@@ -654,35 +746,57 @@ export async function enableWebPush(
 
   // Reuse the JMAP-side PushSubscription if the server still has it, just
   // refreshing the expiry so it doesn't time out between sessions. With
-  // forceRecreate we skip the reuse and destroy it instead: the account set a
-  // Stalwart subscription fans out to is fixed at creation time, so refreshing
+  // forceRecreate we replace it instead: the account set a Stalwart
+  // subscription fans out to is fixed at creation time, so refreshing
   // `expires` carries stale permissions forward and only a new record picks up
-  // revoked shared-mailbox access (#841).
-  const existingSubs = await params.client.listPushSubscriptions().catch(() => []);
+  // revoked shared-mailbox access (#841). Either way the old record keeps
+  // delivering until its replacement is verified, so a replacement the server
+  // refuses never leaves the browser without push.
+  //
+  // A failed listing ends the run here: taken for "the server has no
+  // subscription", it would drop the key of a working registration and push
+  // would read as off from then on.
+  const existingSubs = await params.client.listPushSubscriptions();
+  // A forced re-registration re-learns which accounts the server accepts in
+  // the emailPush map.
+  if (params.forceRecreate) localStorage.removeItem(emailPushRefusedKey(accountId));
+  // On 1.0 the capabilities the map is built from already leave out every
+  // account the server refuses; a list remembered under 0.16 could only keep
+  // a group out.
+  const refusedBefore = emailPushCapabilityIsExact(params.client) ? [] : readRefusedEmailPushAccounts(accountId);
   const emailPush = serverSupportsEmailPush(params.client)
-    ? await buildEmailPushConfig(params.client, params.inboxOnly, params.mutes)
+    ? withoutAccounts(await buildEmailPushConfig(params.client, params.inboxOnly, params.mutes), refusedBefore)
     : null;
   const subIdKey = subscriptionIdKey(accountId);
   const storedServerId = localStorage.getItem(subIdKey);
+  let replacedServerId: string | null = null;
   if (storedServerId) {
     const match = existingSubs.find((s) => s.id === storedServerId);
     if (match) {
       if (!params.forceRecreate) {
         const refreshed = await refreshSubscriptionExpires(params.client, match, emailPush);
-        if (refreshed) return { subscriptionId: storedServerId };
+        if (refreshed) {
+          rememberRefusedEmailPushAccounts(accountId, refusedBefore, emailPush, refreshed.emailPush);
+          return { subscriptionId: storedServerId };
+        }
       }
-      await params.client.destroyPushSubscription(storedServerId).catch(() => undefined);
+      // The server refused the refresh, or the caller asked for a fresh
+      // record: create a replacement below and destroy this one once the
+      // replacement is verified.
+      replacedServerId = storedServerId;
     }
-    // The stored id stays until the replacement is verified below: it is
+    // When the server no longer has it (expired, or revoked elsewhere), the
+    // stored id stays until the replacement is verified below: it is
     // what tells resyncWebPush this account opted in, so dropping it here
     // would end recovery for good after one interrupted attempt.
   }
 
   // Reap leftover subscriptions that would otherwise starve the new one's
-  // verification. Stalwart emits only one PushVerification per account per ~60s
-  // and picks the oldest unverified subscription, so a single stale straggler
-  // blocks every fresh attempt - the symptom is the confusing "Timed out
-  // waiting for PushVerification" error. We can't read a subscription's
+  // verification. Stalwart emits only one PushVerification per account per
+  // ~60s; up to 0.16.13 it picks the first unverified subscription it stores,
+  // usually the oldest, so a single stale straggler blocks every fresh attempt
+  // - the symptom is the confusing "Timed out waiting for PushVerification"
+  // error (0.16.14 and later pick the newest). We can't read a subscription's
   // verified state or URL over JMAP (Stalwart hides both), only its
   // deviceClientId, so we decide what's safe to remove like this:
   //   - same deviceClientId as ours: a previous attempt from THIS browser,
@@ -703,16 +817,39 @@ export async function enableWebPush(
     }
   }
 
-  const serverAssignedId = await createPushSubscriptionWithEmailPush(params.client, {
-    deviceClientId,
-    url: buildRelayUrl(relayBaseUrl, `/api/push/jmap/${encodeURIComponent(deviceClientId)}`),
-    types: [...PUSH_TYPES],
-    expires: expiresFromNow(SUBSCRIPTION_EXPIRES_DAYS),
-  }, emailPush);
+  const create = () => writeWithEmailPush(params.client, emailPush, (filter) =>
+    params.client.createPushSubscription({
+      deviceClientId,
+      url: buildRelayUrl(relayBaseUrl, `/api/push/jmap/${encodeURIComponent(deviceClientId)}`),
+      types: [...PUSH_TYPES],
+      expires: expiresFromNow(SUBSCRIPTION_EXPIRES_DAYS),
+      ...(filter ? { emailPush: filter } : {}),
+    }),
+  );
+  let created: Awaited<ReturnType<typeof create>>;
+  try {
+    created = await create();
+  } catch (err) {
+    // Stalwart caps the subscriptions of an account (15 by default) and counts
+    // the one being replaced, so at the cap Re-register could never create
+    // its replacement. The user asked for a new record: free the old one's
+    // place and try once more. Should that fail too, push is off and the
+    // error says why.
+    if (!params.forceRecreate || !replacedServerId || jmapErrorType(err) !== 'overQuota') throw err;
+    await params.client.destroyPushSubscription(replacedServerId);
+    localStorage.removeItem(subIdKey);
+    replacedServerId = null;
+    created = await create();
+  }
+  const serverAssignedId = created.result;
+  rememberRefusedEmailPushAccounts(accountId, refusedBefore, emailPush, created.emailPush);
 
   const verificationCode = await pollVerificationCode(relayBaseUrl, deviceClientId);
   await params.client.verifyPushSubscription(serverAssignedId, verificationCode);
   localStorage.setItem(subIdKey, serverAssignedId);
+  if (replacedServerId) {
+    await params.client.destroyPushSubscription(replacedServerId).catch(() => undefined);
+  }
 
   return { subscriptionId: serverAssignedId };
 }
@@ -753,6 +890,8 @@ export async function disableWebPush(params: DisableWebPushParams): Promise<void
     await params.client.destroyPushSubscription(id).catch(() => undefined);
   }
   localStorage.removeItem(subIdKey);
+  // Enabling again starts from the full emailPush map.
+  localStorage.removeItem(emailPushRefusedKey(accountId));
 
   if (deviceClientId && relayBaseUrl) {
     await fetch(
@@ -898,7 +1037,8 @@ export interface ResyncWebPushParams {
  * action: refresh its expiry and install/repair the delivery filter. Nothing
  * here can prompt - it requires a saved opt-in and granted permission -
  * and every failure is swallowed because the app must not care whether the
- * background touch-up worked. Returns true when a re-sync actually ran.
+ * background touch-up worked. A failed re-sync leaves the registration and
+ * its key as they were. Returns true when a re-sync actually ran.
  */
 export function resyncWebPush(params: ResyncWebPushParams): Promise<boolean> {
   let accountId: string;

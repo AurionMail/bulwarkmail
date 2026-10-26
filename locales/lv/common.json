@@ -617,6 +617,14 @@
     "scheduled_actions_only": "Ieplānoto skatā ir pieejamas tikai ieplānošanas darbības",
     "undo_send_scheduled": "Ziņojums ir ieplānots nosūtīšanai",
     "undo_send": "Atsaukt sūtīšanu",
+    "send_cancelled_restore_failed": "Sūtīšana tika atcelta, bet ziņojumu neizdevās atgriezt Melnrakstos. Tas joprojām ir Nosūtītajos.",
+    "send_cancelled_remove_failed": "Sūtīšana tika atcelta, bet nenosūtīto ziņojumu neizdevās noņemt no Nosūtītajiem.",
+    "cancel_scheduled_failed": "Ieplānoto sūtīšanu neizdevās atcelt",
+    "still_scheduled_at": "Ziņojums joprojām ir ieplānots uz {date}.",
+    "still_scheduled": "Ziņojums joprojām ir ieplānots.",
+    "already_sent": "Šis ziņojums jau ir nosūtīts.",
+    "no_longer_scheduled": "Šis ziņojums vairs nav ieplānots.",
+    "reschedule_recipients_refused": "Nekas netika mainīts: serveris noraidīja {recipients}.",
     "contact_sidebar": {
       "title": "Kontaktpersona",
       "close": "Aizvērt sānjoslu",
@@ -752,6 +760,10 @@
     "show_less": "Rādīt mazāk",
     "send_failed": "Neizdevās nosūtīt vēstuli",
     "send_timeout": "Serveris pārstāja atbildēt. Pirms sūtīt vēlreiz, pārbaudiet mapi Nosūtītie — ziņojums, iespējams, jau ir aizsūtīts.",
+    "submission_quota": "Serverī šim kontam ir pārāk daudz nosūtīto ziņojumu ierakstu. Bulwark noņēma tos, ko varēja; ja tas atkārtojas, lūdziet administratoram palielināt e-pasta sūtījumu ierobežojumu.",
+    "submission_limit": "Serveris atteicās nosūtīt ziņojumu, jo ir sasniegts ierobežojums: {reason}",
+    "recipients_refused": "Nav nosūtīts: serveris noraidīja {recipients}.",
+    "recipients_partly_refused": "Serveris noraidīja {recipients}. Pārējie adresāti saņem ziņojumu.",
     "send_offline": "Šķiet, esat bezsaistē. Ziņojums joprojām ir šeit, nosūtiet to vēlreiz, kad būsiet tiešsaistē.",
     "formatting": "Formatējums",
     "send_recipients_rejected": "Nav nosūtīts — serveris noraidīja visus adresātus.",
@@ -1367,7 +1379,10 @@
         "revoke": "Atsaukt",
         "confirm_revoke_title": "Atsaukt šo ierīci?",
         "confirm_revoke_message": "Tā nekavējoties pārstās saņemt fona paziņojumus. Atkārtoti ieslēdzot push šajā ierīcē, tā tiks reģistrēta no jauna.",
-        "confirm_revoke_message_this": "Šī ierīce nekavējoties pārstās saņemt fona paziņojumus."
+        "confirm_revoke_message_this": "Šī ierīce nekavējoties pārstās saņemt fona paziņojumus.",
+        "shared_mailboxes_no_push": "Pastkastes, ko ar jums kopīgo citi, nesūta fona paziņojumus.",
+        "error_forbidden": "Pasta serveris šim kontam neatļauj fona paziņojumus.",
+        "error_over_quota": "Šim kontam pasta serverī ir pārāk daudz push reģistrāciju (ierobežojums parasti ir 15). Paziņojumu iestatījumos atsauciet ierīces, kuras vairs neizmantojat, un mēģiniet vēlreiz."
       }
     },
     "language_region": {
@@ -2357,6 +2372,7 @@
       "validation_empty_name": "Nepieciešams noteikuma nosaukums",
       "validation_empty_conditions": "Nepieciešams vismaz viens nosacījums ar vērtību",
       "validation_empty_actions": "Nepieciešama vismaz viena darbība",
+      "validation_header_name": "Galvenes nosaukumā drīkst būt tikai burti A-Z, cipari, defises un pasvītras",
       "templates_section": "Sākt no veidnes",
       "template_newsletters": "Pārvietot ziņu izdevumus uz mapi",
       "template_receipts": "Automātiski arhivēt rēķinus",
@@ -3132,7 +3148,8 @@
     },
     "export": {
       "title": "Kontaktu eksports",
-      "success": "Eksportēts {count, plural, one {1 kontakts} other {# kontakti}}"
+      "success": "Eksportēts {count, plural, one {1 kontakts} other {# kontakti}}",
+      "exporting": "Eksportē..."
     },
     "bulk": {
       "selected": "Atlasīts {count, plural, one {1 kontakts} other {# kontakti}}",
@@ -3279,8 +3296,11 @@
         "free": "Pieejams",
         "busy": "Aizņemts",
         "tentative": "Provizoriski",
+        "no_busy_times": "Nav kopīgotu aizņemto laiku",
         "unknown": "Nav šī servera lietotājs",
-        "checking": "Pārbauda…"
+        "error": "Neizdevās pārbaudīt",
+        "checking": "Pārbauda…",
+        "unavailable_on_server": "Informācija par brīvo/aizņemto laiku šajā serverī nav pieejama"
       },
       "title": "Dalībnieki",
       "add": "Pievienot dalībnieku",
@@ -3302,6 +3322,7 @@
       "you_organizer": "Jūs esat organizators",
       "you_attendee": "Jūs esat dalībnieks",
       "no_participants": "Nav dalībnieku",
+      "limit_warning": "Vairāk nekā {max, plural, one {# dalībnieks} other {# dalībnieki}}, ieskaitot organizatoru: serveris var atteikties saglabāt šo pasākumu. Administrators var palielināt ierobežojumu.",
       "count": "{count, plural, one {# dalībnieks} other {# dalībnieki}}"
     },
     "recurrence": {
@@ -3466,6 +3487,7 @@
       "save_without_invitations": "Saglabāt bez ielūgumiem",
       "rsvp_updated": "Atbilde atjaunināta",
       "rsvp_error": "Neizdevās atjaunināt atbildi",
+      "participant_limit": "Serveris atļauj ne vairāk kā {max, plural, one {# dalībnieku} other {# dalībniekus}} vienam pasākumam, ieskaitot organizatoru, tāpēc šīs izmaiņas tika noraidītas. Administrators var palielināt ierobežojumu.",
       "event_duplicated": "Pasākums dublēts",
       "event_error": "Neizdevās saglabāt pasākumu",
       "task_due": "Uzdevuma termiņš",
@@ -3475,7 +3497,10 @@
     },
     "status": {
       "loading_calendars": "Ielādē kalendārus...",
-      "loading_events": "Ielādē pasākumus..."
+      "loading_events": "Ielādē pasākumus...",
+      "events_load_failed": "Neizdevās ielādēt pasākumus. Kalendārs var nebūt aktuāls.",
+      "tasks_load_failed": "Neizdevās ielādēt uzdevumus. Saraksts var nebūt aktuāls.",
+      "retry": "Mēģināt vēlreiz"
     },
     "quick_create": {
       "placeholder": "Jauna pasākuma nosaukums",
@@ -3768,6 +3793,8 @@
     "new_name": "Jauns nosaukums",
     "name_forbidden_chars": "Serveris neatļauj šīs rakstzīmes nosaukumos: {chars}",
     "name_reserved": "Šis nosaukums serverī ir rezervēts.",
+    "name_control_chars": "Nosaukumos nedrīkst būt vadības rakstzīmes.",
+    "name_too_long": "Šis nosaukums serverim ir pārāk garš.",
     "delete": "Dzēst",
     "delete_confirm_title": "Dzēst resursu",
     "delete_confirm_message": "Vai tiešām vēlaties dzēst «{name}»? Šo darbību nevar atcelt.",
@@ -3778,11 +3805,21 @@
     "type": "Veids",
     "folder": "Mape",
     "file": "Fails",
+    "symlink": "Simboliskā saite",
+    "parent_directory": "Augstāka līmeņa mape",
+    "breadcrumb_root": "Sākums",
     "uploading": "Augšupielādē...",
     "upload_success": "Augšupielādēts {count, plural, one {1 fails} other {# faili}}",
     "upload_canceled": "Augšupielāde atcelta",
     "upload_canceled_partial": "{count, plural, zero {# faili tika augšupielādēti} one {# fails tika augšupielādēts} other {# faili tika augšupielādēti}} pirms atcelšanas",
     "upload_error": "Neizdevās augšupielādēt failu",
+    "upload_failed": "{count, plural, one {Neizdevās augšupielādēt # failu} other {Neizdevās augšupielādēt # failus}}",
+    "error_over_quota": "Ir sasniegts failu vai mapju skaita ierobežojums. Izdzēsiet dažus un mēģiniet vēlreiz.",
+    "error_too_deep": "Mapes nevar ievietot tik dziļi citu citā.",
+    "error_invalid_name": "Serveris nepieņem šo nosaukumu.",
+    "error_forbidden": "Jums šeit nav atļaujas to darīt.",
+    "error_too_large": "Šis fails serverim ir pārāk liels.",
+    "error_partial_copy": "Daļa kopijas palika savā vietā.",
     "create_folder_success": "Mape izveidota",
     "create_folder_error": "Neizdevās izveidot mapi",
     "delete_success": "Sekmīgi izdzēsts",
@@ -3821,6 +3858,7 @@
     "shared": "Shared",
     "shared_with_me": "Shared with me",
     "shared_by": "Shared by {name}",
+    "shared_files_from": "Faili no {name}",
     "create_file_success": "Fails izveidots",
     "create_file_error": "Neizdevās izveidot failu",
     "favorites": "Izlase",
@@ -4050,8 +4088,12 @@
     "loading_principals": "Ielādē lietotājus…",
     "no_principals": "Citi lietotāji vai grupas nav atrastas.",
     "no_match": "Nav atbilstību.",
+    "directory_restricted": "Jūsu serveris neļauj pārlūkot tā lietotāju direktoriju, tāpēc tiek parādītas tikai jūsu grupas un personas, kas ar jums kaut ko kopīgojušas. Administrators var ieslēgt direktorija vaicājumus Stalwart kopīgošanas iestatījumos.",
+    "directory_not_browsable": "Jūsu serveris neļauj jums pārlūkot tā lietotāju direktoriju.",
+    "directory_failed": "Neizdevās ielādēt lietotāju un grupu sarakstu.",
     "remove": "Noņemt piekļuvi",
     "group": "Grupa",
+    "unknown_user": "Nezināms lietotājs",
     "share_added": "Piekļuve piešķirta",
     "share_updated": "Piekļuve atjaunināta",
     "share_removed": "Piekļuve noņemta",

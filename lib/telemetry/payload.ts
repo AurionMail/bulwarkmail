@@ -1,8 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { configManager } from '@/lib/admin/config-manager';
-import { logger } from '@/lib/logger';
-import { fetchTelemetryTarget, resolveEndpointAllowed } from './endpoint-guard';
 import { getInstanceId } from './state';
 import { getLoginCounts } from './login-tracker';
 import type {
@@ -74,51 +72,13 @@ async function readFeatures(): Promise<TelemetryFeatures> {
   };
 }
 
-const STALWART_VERSION_TTL_MS = 24 * 60 * 60 * 1000;
-let stalwartVersionCache: { version: string | null; fetchedAt: number } | null = null;
-
-// Stalwart returns the version in the Server response header
-// (e.g. "Stalwart Mail Server v0.16.0"). The /.well-known/jmap endpoint
-// requires auth, but the header is on the 401 response too, so an
-// unauthenticated GET is enough. Cached for a day to avoid hammering
-// the JMAP server on every payload preview.
-async function detectStalwartVersion(): Promise<string | null> {
-  if (process.env.STALWART_VERSION) return process.env.STALWART_VERSION;
-  if (stalwartVersionCache &&
-      Date.now() - stalwartVersionCache.fetchedAt < STALWART_VERSION_TTL_MS) {
-    return stalwartVersionCache.version;
-  }
-  await configManager.ensureLoaded();
-  const serverUrl = configManager.get<string>('jmapServerUrl', '').trim();
-  if (!serverUrl) {
-    stalwartVersionCache = { version: null, fetchedAt: Date.now() };
-    return null;
-  }
-  const wellKnown = `${serverUrl.replace(/\/+$/, '')}/.well-known/jmap`;
-  // Reuse the SSRF guard so a misconfigured JMAP_SERVER_URL pointing at an
-  // internal host doesn't get probed from telemetry context either.
-  const guard = await resolveEndpointAllowed(wellKnown);
-  if (!guard.ok) {
-    stalwartVersionCache = { version: null, fetchedAt: Date.now() };
-    return null;
-  }
-  try {
-    const res = await fetchTelemetryTarget(wellKnown, {
-      method: 'GET',
-      signal: AbortSignal.timeout(3000),
-    });
-    const server = res.headers.get('server') ?? '';
-    const m = server.match(/(\d+\.\d+\.\d+(?:-[\w.]+)?)/);
-    const version = m?.[1] ?? null;
-    stalwartVersionCache = { version, fetchedAt: Date.now() };
-    return version;
-  } catch (err) {
-    logger.debug?.('telemetry: stalwart version probe failed', {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    stalwartVersionCache = { version: null, fetchedAt: Date.now() };
-    return null;
-  }
+// Only what the admin sets in STALWART_VERSION. Stalwart publishes no version
+// a client could read: it sends no Server header (0.16.0 through 1.0), and
+// the version it names elsewhere is a fixed "1.0.0" even on 0.16. Reading the
+// Server header of /.well-known/jmap reported null, or whatever version a
+// reverse proxy in front of Stalwart put there.
+function stalwartVersion(): string | null {
+  return process.env.STALWART_VERSION?.trim() || null;
 }
 
 // Account counts come from the local login tracker, which records a per-
@@ -145,7 +105,7 @@ export async function buildPayload(): Promise<TelemetryPayload> {
   const features = await readFeatures();
   const accounts = await getLoginCounts();
   const exts = await countExtensions();
-  const stalwart_version = await detectStalwartVersion();
+  const stalwart_version = stalwartVersion();
   const uptime_days = Math.min(
     365,
     Math.floor((Date.now() - processStartedAt) / 86_400_000),

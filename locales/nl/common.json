@@ -617,6 +617,14 @@
     "scheduled_actions_only": "De geplande weergave ondersteunt alleen geplande acties",
     "undo_send_scheduled": "Bericht gepland voor verzending",
     "undo_send": "Verzenden ongedaan maken",
+    "send_cancelled_restore_failed": "Het verzenden is geannuleerd, maar het bericht kon niet terug naar Concepten. Het staat nog in Verzonden.",
+    "send_cancelled_remove_failed": "Het verzenden is geannuleerd, maar het niet-verzonden bericht kon niet uit Verzonden worden verwijderd.",
+    "cancel_scheduled_failed": "De geplande verzending kon niet worden geannuleerd",
+    "still_scheduled_at": "Het bericht staat nog steeds gepland voor {date}.",
+    "still_scheduled": "Het bericht staat nog steeds gepland.",
+    "already_sent": "Dit bericht is al verzonden.",
+    "no_longer_scheduled": "Dit bericht staat niet meer gepland.",
+    "reschedule_recipients_refused": "Er is niets gewijzigd: de server heeft {recipients} geweigerd.",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Zijbalk sluiten",
@@ -759,6 +767,10 @@
     "smime_unlock_button": "Ontgrendelen",
     "smime_passphrase_placeholder": "S/MIME-wachtwoordzin",
     "send_timeout": "De server reageert niet meer. Controleer de map Verzonden voordat u opnieuw verstuurt — het bericht is mogelijk al verzonden.",
+    "submission_quota": "De server bewaart te veel records van verzonden berichten voor dit account. Bulwark heeft verwijderd wat kon; blijft dit gebeuren, vraag uw beheerder dan de limiet voor e-mailverzendingen te verhogen.",
+    "submission_limit": "De server weigerde het bericht te verzenden omdat een limiet is bereikt: {reason}",
+    "recipients_refused": "Niet verzonden: de server heeft {recipients} geweigerd.",
+    "recipients_partly_refused": "De server heeft {recipients} geweigerd. De andere ontvangers krijgen het bericht.",
     "send_offline": "Je lijkt offline te zijn. Het bericht staat er nog; verstuur het opnieuw zodra je weer online bent.",
     "formatting": "Opmaak",
     "send_recipients_rejected": "Niet verzonden - de server heeft alle ontvangers geweigerd.",
@@ -1367,7 +1379,10 @@
         "revoke": "Intrekken",
         "confirm_revoke_title": "Dit apparaat intrekken?",
         "confirm_revoke_message": "Het ontvangt meteen geen achtergrondmeldingen meer. Push opnieuw inschakelen op dat apparaat registreert het opnieuw.",
-        "confirm_revoke_message_this": "Dit apparaat ontvangt meteen geen achtergrondmeldingen meer."
+        "confirm_revoke_message_this": "Dit apparaat ontvangt meteen geen achtergrondmeldingen meer.",
+        "shared_mailboxes_no_push": "Mailboxen die anderen met u delen, sturen geen achtergrondmeldingen.",
+        "error_forbidden": "De mailserver staat voor dit account geen achtergrondmeldingen toe.",
+        "error_over_quota": "Dit account heeft te veel pushregistraties op de mailserver (de limiet is meestal 15). Trek in de meldingsinstellingen apparaten in die u niet meer gebruikt en probeer het opnieuw."
       }
     },
     "language_region": {
@@ -2357,6 +2372,7 @@
       "validation_empty_name": "Regelnaam is verplicht",
       "validation_empty_conditions": "Minstens één voorwaarde met een waarde is vereist",
       "validation_empty_actions": "Minstens één actie is vereist",
+      "validation_header_name": "Headernamen mogen alleen de letters A-Z, cijfers, koppeltekens en underscores bevatten",
       "templates_section": "Starten vanuit sjabloon",
       "template_newsletters": "Nieuwsbrieven naar map verplaatsen",
       "template_receipts": "Bonnen automatisch archiveren",
@@ -3136,7 +3152,8 @@
     },
     "export": {
       "title": "Contacten exporteren",
-      "success": "{count, plural, one {1 contact geëxporteerd} other {# contacten geëxporteerd}}"
+      "success": "{count, plural, one {1 contact geëxporteerd} other {# contacten geëxporteerd}}",
+      "exporting": "Exporteren..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 geselecteerd} other {# geselecteerd}}",
@@ -3280,8 +3297,11 @@
         "free": "Beschikbaar",
         "busy": "Bezet",
         "tentative": "Voorlopig",
+        "no_busy_times": "Geen bezette tijden gedeeld",
         "unknown": "Geen gebruiker op deze server",
-        "checking": "Controleren…"
+        "error": "Kon niet controleren",
+        "checking": "Controleren…",
+        "unavailable_on_server": "Vrij/bezet-informatie is niet beschikbaar op deze server"
       },
       "title": "Deelnemers",
       "add": "Deelnemer toevoegen",
@@ -3303,6 +3323,7 @@
       "you_organizer": "Je bent de organisator",
       "you_attendee": "Je bent een deelnemer",
       "no_participants": "Geen deelnemers",
+      "limit_warning": "Meer dan {max, plural, one {# deelnemer} other {# deelnemers}}, de organisator meegeteld: de server kan weigeren dit evenement op te slaan. Een beheerder kan de limiet verhogen.",
       "count": "{count, plural, one {# deelnemer} other {# deelnemers}}"
     },
     "recurrence": {
@@ -3467,6 +3488,7 @@
       "save_without_invitations": "Opslaan zonder uitnodigingen",
       "rsvp_updated": "Reactie bijgewerkt",
       "rsvp_error": "Reactie kon niet worden bijgewerkt",
+      "participant_limit": "De server staat maximaal {max, plural, one {# deelnemer} other {# deelnemers}} per evenement toe, de organisator meegeteld, en heeft deze wijziging daarom geweigerd. Een beheerder kan de limiet verhogen.",
       "event_duplicated": "Evenement gedupliceerd",
       "event_error": "Evenement opslaan mislukt",
       "task_due": "Taak vervalt",
@@ -3476,7 +3498,10 @@
     },
     "status": {
       "loading_calendars": "Agenda's laden...",
-      "loading_events": "Evenementen laden..."
+      "loading_events": "Evenementen laden...",
+      "events_load_failed": "Evenementen konden niet worden geladen. De agenda is mogelijk niet actueel.",
+      "tasks_load_failed": "Taken konden niet worden geladen. De lijst is mogelijk niet actueel.",
+      "retry": "Opnieuw proberen"
     },
     "quick_create": {
       "placeholder": "Titel nieuw evenement",
@@ -3768,6 +3793,8 @@
     "new_name": "Nieuwe naam",
     "name_forbidden_chars": "De server staat deze tekens niet toe in namen: {chars}",
     "name_reserved": "Deze naam is gereserveerd op de server.",
+    "name_control_chars": "Namen mogen geen besturingstekens bevatten.",
+    "name_too_long": "Deze naam is te lang voor de server.",
     "delete": "Verwijderen",
     "delete_confirm_title": "Bron verwijderen",
     "delete_confirm_message": "Weet u zeker dat u \"{name}\" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
@@ -3778,11 +3805,21 @@
     "type": "Type",
     "folder": "Map",
     "file": "Bestand",
+    "symlink": "Symbolische koppeling",
+    "parent_directory": "Bovenliggende map",
+    "breadcrumb_root": "Start",
     "uploading": "Uploaden...",
     "upload_success": "{count, plural, one {1 bestand geüpload} other {# bestanden geüpload}}",
     "upload_canceled": "Uploaden geannuleerd",
     "upload_canceled_partial": "{count, plural, one {1 bestand was} other {# bestanden waren}} al geüpload voordat u annuleerde",
     "upload_error": "Bestand uploaden mislukt",
+    "upload_failed": "{count, plural, one {1 bestand kon niet worden geüpload} other {# bestanden konden niet worden geüpload}}",
+    "error_over_quota": "Het maximumaantal bestanden of mappen is bereikt. Verwijder er enkele en probeer het opnieuw.",
+    "error_too_deep": "Mappen kunnen niet zo diep worden genest.",
+    "error_invalid_name": "De server accepteert deze naam niet.",
+    "error_forbidden": "U hebt hier geen toestemming voor.",
+    "error_too_large": "Dit bestand is te groot voor de server.",
+    "error_partial_copy": "Een deel van de kopie is blijven staan.",
     "create_folder_success": "Map aangemaakt",
     "create_folder_error": "Map aanmaken mislukt",
     "delete_success": "Succesvol verwijderd",
@@ -3821,6 +3858,7 @@
     "shared": "Shared",
     "shared_with_me": "Shared with me",
     "shared_by": "Shared by {name}",
+    "shared_files_from": "Bestanden van {name}",
     "create_file_success": "Bestand aangemaakt",
     "create_file_error": "Bestand aanmaken mislukt",
     "favorites": "Favorieten",
@@ -4050,8 +4088,12 @@
     "loading_principals": "Gebruikers laden…",
     "no_principals": "Geen andere gebruikers of groepen gevonden.",
     "no_match": "Geen overeenkomsten.",
+    "directory_restricted": "Uw server staat het doorbladeren van de gebruikersdirectory niet toe, daarom worden alleen uw groepen en personen die iets met u hebben gedeeld weergegeven. Een beheerder kan directoryquery's inschakelen in de instellingen voor delen van Stalwart.",
+    "directory_not_browsable": "Uw server staat u niet toe de gebruikersdirectory te doorbladeren.",
+    "directory_failed": "Kan de lijst met gebruikers en groepen niet laden.",
     "remove": "Toegang intrekken",
     "group": "Groep",
+    "unknown_user": "Onbekende gebruiker",
     "share_added": "Toegang verleend",
     "share_updated": "Toegang bijgewerkt",
     "share_removed": "Toegang ingetrokken",

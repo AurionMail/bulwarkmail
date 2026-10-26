@@ -69,9 +69,35 @@ describe('snippetFilterFor', () => {
     });
   });
 
-  it('leaves a lone wildcard and quoted phrases alone', () => {
+  it('leaves a lone wildcard alone', () => {
     expect(snippetFilterFor({ text: '*' })).toEqual({ text: '*' });
-    expect(snippetFilterFor({ subject: '"exact phrase"' })).toEqual({ subject: '"exact phrase"' });
+  });
+
+  it('unquotes phrases: one quoted term puts the whole request in exact mode on Stalwart 0.16 and 1.0', () => {
+    expect(
+      snippetFilterFor({
+        operator: 'AND',
+        conditions: [
+          { text: '"annual report"' },
+          { text: '2024' },
+          { subject: "'draft'" },
+          { from: '"Anna Muster"' },
+          { inMailbox: 'x' },
+        ],
+      }),
+    ).toEqual({
+      operator: 'AND',
+      conditions: [
+        { text: 'annual report' },
+        { text: '2024' },
+        { subject: 'draft' },
+        { from: '"Anna Muster"' },
+        { inMailbox: 'x' },
+      ],
+    });
+    expect(snippetFilterFor({ body: '"exact phrase"' })).toEqual({ body: 'exact phrase' });
+    // Only a value wrapped in quotes is a phrase.
+    expect(snippetFilterFor({ text: 'say "hi" twice' })).toEqual({ text: 'say "hi" twice' });
   });
 });
 

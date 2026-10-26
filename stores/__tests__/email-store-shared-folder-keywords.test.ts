@@ -3,6 +3,7 @@ import { useEmailStore } from '../email-store';
 import { useAuthStore } from '../auth-store';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
+import { jmapError } from '@/lib/jmap/jmap-error';
 
 // Regression coverage for keyword writes (tags, $pinned, $answered/$forwarded,
 // $mdnsent) performed while viewing a shared/group mailbox DIRECTLY from the
@@ -114,6 +115,19 @@ describe('non-unified shared-folder keyword routing', () => {
       { 'keywords/$label:work': true },
       'owner-x',
     );
+  });
+
+  it('setEmailKeywords keeps the old tags when Stalwart 1.0 refuses the keyword', async () => {
+    // What batchUpdateKeywords throws for a `notUpdated` entry on 1.0 (0.16
+    // accepts the write and cuts the keyword to 128 characters instead).
+    const refusal = jmapError('Failed to update keywords: Keywords cannot be longer than 128 bytes.', {
+      type: 'invalidProperties', properties: ['keywords'],
+    });
+    vi.mocked(activeClient.batchUpdateKeywords).mockRejectedValueOnce(refusal);
+
+    await expect(useEmailStore.getState().setEmailKeywords(activeClient, 'e1', { [`$label:${'x'.repeat(130)}`]: true }))
+      .rejects.toBe(refusal);
+    expect(useEmailStore.getState().emails.find(e => e.id === 'e1')?.keywords).toEqual({});
   });
 
   it('writes only the keywords that change, not the whole set from the row', async () => {

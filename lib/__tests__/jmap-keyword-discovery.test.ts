@@ -273,4 +273,17 @@ describe('JMAPClient.discoverKeywords', () => {
     ]);
     expect(result).toMatchObject({ scanned: 1, total: 1, complete: true });
   });
+
+  it('leaves the attachment keywords Stalwart 1.0 sets on every message out of the fallback labels', async () => {
+    const client = await connectedClient();
+    recordRequests(() => page(['m1', 'm2'], [
+      { '$label:work': true, $hasattachment: true },
+      { $seen: true, $hasnoattachment: true },
+    ], 2));
+
+    const result = await client.getKeywords();
+
+    expect(result.keywords).toEqual({ '$label:work': 1, $seen: 1 });
+    expect(result.labels.map((label) => label.id)).toEqual(['$label:work', '$seen']);
+  });
 });

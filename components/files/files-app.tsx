@@ -7,7 +7,8 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
 import { useAccountStore } from "@/stores/account-store";
 import { useEmailStore } from "@/stores/email-store";
-import { useFileStore, resourceServerRef, resourceToView, type UploadResult } from "@/stores/file-store";
+import { useFileStore, isSharedLocation, linkedPreviewResource, resourceServerRef, resourceToView, type UploadReport } from "@/stores/file-store";
+import { fileErrorKind, isPartialCopy } from "@/lib/file-errors";
 import { toast } from "@/stores/toast-store";
 import { cn, formatFileSize } from "@/lib/utils";
 import { NavigationRail } from "@/components/layout/navigation-rail";
@@ -29,7 +30,7 @@ import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { AlertTriangle, Loader2 } from "@/components/icons";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { isImageFile } from "@/components/files/file-icons";
-import { appPath, buildFilesPath, parseFilesPath, type FilesDeepLink } from "@/lib/deep-links";
+import { appPath, buildFilesPath, buildSharedFilesPath, parseFilesPath, type FilesDeepLink } from "@/lib/deep-links";
 import { consumePendingDeepLinkEntry, subscribePendingDeepLink } from "@/lib/deep-link-handoff";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
 import { useProInterfaceActive } from "@/components/pro/pro-interface-redirect";
@@ -107,6 +108,7 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     undoLastAction,
     lastAction,
     shareResource,
+    openSharedNode,
   } = useFileStore();
 
   const isMobile = useIsMobile();
@@ -189,7 +191,10 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   // bootstrap that runs after a capability check on a cold load, or the effect
   // for when the store already knows files are supported.
   const filesLinkRef = useRef<FilesDeepLink | null>(null);
-  const pendingPreviewRef = useRef<string | null>(null);
+  // The file to preview once its listing arrives: `name`, and for a link
+  // into a shared drive the id the link names (`?shared=`), see the preview
+  // effect below.
+  const pendingPreviewRef = useRef<{ name: string; sharedId?: string } | null>(null);
   useEffect(() => {
     // Inside the Pro shell the route is /pro, so the segments arrive through
     // the handoff the redirect parked rather than as route params.
@@ -204,27 +209,44 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   const takeFilesLink = useCallback(() => {
     const link = filesLinkRef.current;
     filesLinkRef.current = null;
-    if (link?.preview) pendingPreviewRef.current = link.preview;
+    if (link?.preview) pendingPreviewRef.current = { name: link.preview, sharedId: link.shared };
     return link;
   }, []);
 
-  // Pro shell only: this surface stays mounted for the whole session, so links
-  // arriving after mount are delivered live instead of being parked forever.
-  // The bootstrap has already run by then - walk the drive directly and let
-  // the preview effect below claim `pendingPreviewRef` once the listing lands.
-  // Embedded-only: during a cold-load redirect the standard instance renders
-  // briefly and must not steal the link parked for the Pro one.
+  // A node of a drive shared with the user has no path under the user's own
+  // root, so its link names it by id and the store opens where it is listed.
+  // False when it is gone or no longer shared.
+  const openSharedLink = useCallback(async (id: string): Promise<boolean> => {
+    if (await openSharedNode(id, (name) => t("shared_files_from", { name }))) return true;
+    toast.error(tDeepLink(pendingPreviewRef.current !== null ? "file_not_found" : "folder_not_found"));
+    // Not a file of the same name in whatever folder is open instead.
+    pendingPreviewRef.current = null;
+    return false;
+  }, [openSharedNode, t, tDeepLink]);
+  const openSharedLinkRef = useRef(openSharedLink);
+  openSharedLinkRef.current = openSharedLink;
+
+  // Links arriving after mount are delivered live. The Pro shell keeps this
+  // surface mounted for the whole session, and so does Next for the standard
+  // page when a link changes only the query (`?shared=`), while the route is
+  // read on mount only. The bootstrap has already run by then - walk the
+  // drive directly and let the preview effect below claim `pendingPreviewRef`
+  // once the listing lands. While the Pro interface is on, the standard
+  // instance renders only during a cold-load redirect and must not steal the
+  // link parked for the Pro one.
+  const proInterfaceActive = useProInterfaceActive();
   const navigateByPathRef = useRef(navigateByPath);
   navigateByPathRef.current = navigateByPath;
   useEffect(() => {
-    if (!isEmbedded) return;
+    if (!isEmbedded && proInterfaceActive) return;
     return subscribePendingDeepLink('files', (segments, search) => {
       const link = parseFilesPath(segments, new URLSearchParams(search ?? window.location.search));
       if (!link) return;
-      if (link.preview) pendingPreviewRef.current = link.preview;
-      void navigateByPathRef.current(link.path);
+      if (link.preview) pendingPreviewRef.current = { name: link.preview, sharedId: link.shared };
+      if (link.shared) void openSharedLinkRef.current(link.shared);
+      else void navigateByPathRef.current(link.path);
     });
-  }, [isEmbedded]);
+  }, [isEmbedded, proInterfaceActive]);
 
   // Check support and load the first listing after the client is initialized.
   // One effect, run once: `checkSupport` publishes `supportsFiles` before it
@@ -252,21 +274,23 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       // listing the root first would strand the user there and rewrite the
       // URL they arrived on.
       const link = takeFilesLink();
-      if (link && link.path !== '/') await navigateByPath(link.path);
+      if (link?.shared && await openSharedLinkRef.current(link.shared)) return;
+      if (link && !link.shared && link.path !== '/') await navigateByPath(link.path);
       else if (firstCheck) await navigate(null);
     })();
   }, [storeClient, supportsFiles, checkSupport, migrateLegacyFlatNodes, navigate, navigateByPath, takeFilesLink]);
 
   // The preview waits for the folder listing: the modal is keyed by file name
-  // and can only render once that name is in `resources`.
+  // and can only render once the file is in `resources` - found by the id a
+  // link into a shared drive names it by (linkedPreviewResource).
   useEffect(() => {
     const pending = pendingPreviewRef.current;
     if (!pending) return;
-    const resource = resources.find((r) => r.name === pending);
+    const resource = linkedPreviewResource(resources, pending, useFileStore.getState().currentParentId);
     if (!resource) return;
     pendingPreviewRef.current = null;
-    if (isFilePreviewable(pending)) {
-      setPreviewFile(pending);
+    if (!resource.isSymlink && isFilePreviewable(resource.name)) {
+      setPreviewFile(resource.name);
     } else {
       toast.error(tDeepLink('file_not_found'));
     }
@@ -293,25 +317,51 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
   }, [navigate, navigateByPath, isEmbedded]);
 
+  // What the server said went wrong, as the second line under an action's
+  // own error message; undefined when it said nothing specific.
+  const serverReason = useCallback((err: unknown): string | undefined => {
+    switch (fileErrorKind(err)) {
+      case "overQuota": return t("error_over_quota");
+      case "tooDeep": return t("error_too_deep");
+      case "invalidName": return t("error_invalid_name");
+      case "forbidden": return t("error_forbidden");
+      case "tooLarge": return t("error_too_large");
+      default: return undefined;
+    }
+  }, [t]);
+  // A copy that stopped part-way and could not all be taken back says so too.
+  const failureReason = useCallback((err: unknown): string | undefined => {
+    const reason = serverReason(err);
+    if (!isPartialCopy(err)) return reason;
+    return reason ? `${reason} ${t("error_partial_copy")}` : t("error_partial_copy");
+  }, [serverReason, t]);
+
+  // An upload goes on past a file the server refuses; the refused ones are
+  // reported once it is done.
+  const showUploadReport = useCallback((report: UploadReport) => {
+    if (report.canceled) {
+      toast.info(t("upload_canceled"), report.uploaded > 0 ? t("upload_canceled_partial", { count: report.uploaded }) : undefined);
+    } else if (report.uploaded > 0) {
+      toast.success(t("upload_success", { count: report.uploaded }));
+    }
+    if (report.failed.length === 0) return;
+    const names = report.failed.slice(0, 3).map((f) => f.name).join(", ")
+      + (report.failed.length > 3 ? ", …" : "");
+    const reason = failureReason(report.failed[0].error);
+    toast.error(t("upload_failed", { count: report.failed.length }), reason ? `${names}: ${reason}` : names);
+  }, [t, failureReason]);
+
   const handleCreateFolder = useCallback(async (name: string) => {
     try {
       await createDirectory(name);
       toast.success(t("create_folder_success"));
     } catch (err) {
       console.error("Failed to create folder:", err);
-      toast.error(t("create_folder_error"));
+      toast.error(t("create_folder_error"), failureReason(err));
     }
-  }, [createDirectory, t]);
+  }, [createDirectory, t, failureReason]);
 
   const maxSizeUpload = client?.getMaxSizeUpload() || 0;
-
-  const showUploadResult = useCallback(({ uploaded, canceled }: UploadResult) => {
-    if (canceled) {
-      toast.info(t("upload_canceled"), uploaded > 0 ? t("upload_canceled_partial", { count: uploaded }) : undefined);
-    } else if (uploaded > 0) {
-      toast.success(t("upload_success", { count: uploaded }));
-    }
-  }, [t]);
 
   const handleUploadFiles = useCallback(async (files: File[]) => {
     if (maxSizeUpload > 0) {
@@ -323,12 +373,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
     if (files.length === 0) return;
     try {
-      showUploadResult(await uploadFiles(files));
+      showUploadReport(await uploadFiles(files));
     } catch (err) {
       console.error("Failed to upload files:", err);
-      toast.error(t("upload_error"));
+      toast.error(t("upload_error"), failureReason(err));
     }
-  }, [uploadFiles, t, maxSizeUpload, showUploadResult]);
+  }, [uploadFiles, t, maxSizeUpload, showUploadReport, failureReason]);
 
   const handleUploadFolder = useCallback(async (files: File[]) => {
     if (maxSizeUpload > 0) {
@@ -340,12 +390,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
     }
     if (files.length === 0) return;
     try {
-      showUploadResult(await uploadFolder(files));
+      showUploadReport(await uploadFolder(files));
     } catch (err) {
       console.error("Failed to upload folder:", err);
-      toast.error(t("upload_error"));
+      toast.error(t("upload_error"), failureReason(err));
     }
-  }, [uploadFolder, t, maxSizeUpload, showUploadResult]);
+  }, [uploadFolder, t, maxSizeUpload, showUploadReport, failureReason]);
 
   const handleDelete = useCallback(async (name: string) => {
     const confirmed = await confirmDialog({
@@ -361,9 +411,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("delete_success"));
     } catch (err) {
       console.error("Failed to delete:", err);
-      toast.error(t("delete_error"));
+      toast.error(t("delete_error"), failureReason(err));
     }
-  }, [deleteResource, confirmDialog, t]);
+  }, [deleteResource, confirmDialog, t, failureReason]);
 
   const handleBatchDelete = useCallback(async (names: string[]) => {
     const confirmed = await confirmDialog({
@@ -379,9 +429,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("batch_delete_success", { count: names.length }));
     } catch (err) {
       console.error("Failed to batch delete:", err);
-      toast.error(t("delete_error"));
+      toast.error(t("delete_error"), failureReason(err));
     }
-  }, [deleteResources, confirmDialog, t]);
+  }, [deleteResources, confirmDialog, t, failureReason]);
 
   const handleUndo = useCallback(async () => {
     try {
@@ -389,9 +439,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("undo_success"));
     } catch (err) {
       console.error("Failed to undo:", err);
-      toast.error(t("undo_error"));
+      toast.error(t("undo_error"), failureReason(err));
     }
-  }, [undoLastAction, t]);
+  }, [undoLastAction, t, failureReason]);
 
   const handleRename = useCallback(async (oldName: string, newName: string) => {
     try {
@@ -401,9 +451,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to rename:", err);
-      toast.error(t("rename_error"));
+      toast.error(t("rename_error"), failureReason(err));
     }
-  }, [renameResource, t, handleUndo]);
+  }, [renameResource, t, handleUndo, failureReason]);
 
   const findResourceId = useCallback((name: string) => {
     const r = resources.find(res => res.name === name);
@@ -435,9 +485,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("create_file_success"));
     } catch (err) {
       console.error("Failed to create file:", err);
-      toast.error(t("create_file_error"));
+      toast.error(t("create_file_error"), failureReason(err));
     }
-  }, [createTextFile, t]);
+  }, [createTextFile, t, failureReason]);
 
   const handleDuplicate = useCallback(async (name: string) => {
     try {
@@ -445,9 +495,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       toast.success(t("duplicate_success"));
     } catch (err) {
       console.error("Failed to duplicate:", err);
-      toast.error(t("duplicate_error"));
+      toast.error(t("duplicate_error"), failureReason(err));
     }
-  }, [duplicateResource, t]);
+  }, [duplicateResource, t, failureReason]);
 
   const handleMoveTo = useCallback(async (names: string[], targetId: string | null) => {
     try {
@@ -457,9 +507,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to move:", err);
-      toast.error(t("move_error"));
+      toast.error(t("move_error"), failureReason(err));
     }
-  }, [moveToFolderId, t, handleUndo]);
+  }, [moveToFolderId, t, handleUndo, failureReason]);
 
   const handlePaste = useCallback(async () => {
     try {
@@ -469,9 +519,9 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       });
     } catch (err) {
       console.error("Failed to paste:", err);
-      toast.error(t("paste_error"));
+      toast.error(t("paste_error"), failureReason(err));
     }
-  }, [pasteResources, t, lastAction, handleUndo]);
+  }, [pasteResources, t, lastAction, handleUndo, failureReason]);
 
   const handlePreviewImage = useCallback((name: string) => {
     setPreviewImage(name);
@@ -541,9 +591,12 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
   // The permalink for the folder on screen. In the Pro shell only the focused
   // tab writes the address bar; the standard instance that renders while Pro
   // takes over a route stays silent.
-  const proInterfaceActive = useProInterfaceActive();
   const isFocusedProTab = useIsFocusedProTab();
-  const filesLinkPath = appPath(buildFilesPath(currentPath, previewFile));
+  // A shared drive's folders and pages are linked by id (see openSharedLink).
+  const currentParentId = useFileStore((s) => s.currentParentId);
+  const filesLinkPath = appPath(isSharedLocation(currentParentId)
+    ? buildSharedFilesPath(currentParentId, previewFile)
+    : buildFilesPath(currentPath, previewFile));
 
   // The previewed file as plugins see it (file-preview-section).
   const previewedName = previewFile ?? previewImage;
@@ -741,12 +794,18 @@ export function FilesApp({ linkSegments: routeSegments }: FilesAppProps = {}) {
       {editFile && (() => {
         const editResource = resources.find(r => r.name === editFile);
         if (!editResource) return null;
-        // A file shared with the user lives in the owner's account (#1094).
+        // A node shared with the user opens in its owner's account, by its
+        // own id (#1094).
         const node = resourceServerRef(editResource);
+        // The Pro shell may be browsing a login other than the active one.
+        const slot = currentFilesAccountId
+          ? accounts.find((a) => a.id === currentFilesAccountId)?.cookieSlot
+          : undefined;
         return (
           <WopiEditor
             target={{ kind: "file", id: node.id, name: editResource.name }}
             accountId={node.accountId ?? filesAccountId}
+            slot={slot}
             onClose={() => {
               setEditFile(null);
               // The editor may have saved new content - pick up size/mtime.

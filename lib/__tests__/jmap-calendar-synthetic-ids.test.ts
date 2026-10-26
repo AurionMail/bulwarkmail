@@ -103,8 +103,8 @@ describe('server-side recurrence expansion with synthetic ids', () => {
       if (method === 'CalendarEvent/get') {
         const ids = args.ids as string[];
         const byId: Record<string, unknown> = { maaaaab: OCCURRENCE, eaaaaad: SINGLE, d: { ...SINGLE, id: 'd' } };
-        // The base-event hydration get asks only for recurrence properties.
-        byId.b = (args.properties as string[]).includes('title') ? MASTER : BASE;
+        // The base-event hydration get asks for the series context, no utc*.
+        byId.b = (args.properties as string[]).includes('utcStart') ? MASTER : BASE;
         return ['CalendarEvent/get', { list: ids.map((id) => byId[id]).filter(Boolean) }];
       }
       return ['Calendar/get', { list: [] }];
@@ -139,11 +139,12 @@ describe('server-side recurrence expansion with synthetic ids', () => {
     await client.getAllCalendars();
     const events = await client.queryCalendarEvents(RANGE);
 
-    // One request carried both Calendar/get and the probe; the range query
-    // then already knew the verdict and asked for server-side expansion.
+    // One request carried both Calendar/get and the probe (and the time
+    // zone check, unless the zone is UTC); the range query then already knew
+    // the verdict and asked for server-side expansion.
     expect(probes()).toHaveLength(1);
     const firstRequest = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
-    expect(firstRequest.methodCalls.map((c: unknown[]) => c[0])).toEqual(['Calendar/get', 'CalendarEvent/set']);
+    expect(firstRequest.methodCalls.map((c: unknown[]) => c[0]).slice(0, 2)).toEqual(['Calendar/get', 'CalendarEvent/set']);
     expect(queries()[0].args.expandRecurrences).toBe(true);
     expect(events.map((e) => e.id)).toEqual(['maaaaab', 'eaaaaad']);
   });
@@ -152,12 +153,13 @@ describe('server-side recurrence expansion with synthetic ids', () => {
     const events = await client.queryCalendarEvents(RANGE);
 
     // One extra get for the distinct base ids of recurring occurrences only
-    // (the non-recurring one needs nothing), asking for recurrence data only.
+    // (the non-recurring one needs nothing), asking for the series context.
     const baseGet = gets().find((g) => (g.args.ids as string[]).includes('b'));
     expect(baseGet).toBeDefined();
     expect(baseGet!.args.ids).toEqual(['b']);
     expect(baseGet!.args.properties).toEqual(expect.arrayContaining(['recurrenceRule', 'recurrenceOverrides', 'showWithoutTime']));
-    expect(baseGet!.args.properties).not.toContain('title');
+    expect(baseGet!.args.properties).toEqual(expect.arrayContaining(['title', 'locations', 'description']));
+    expect(baseGet!.args.properties).not.toContain('utcStart');
 
     const occurrence = events.find((e) => e.id === 'maaaaab')!;
     expect(occurrence.baseEventId).toBe('b');
@@ -171,7 +173,7 @@ describe('server-side recurrence expansion with synthetic ids', () => {
     expect(single.recurrenceRules ?? null).toBeNull();
   });
 
-  it('keeps client-side expansion (no expandRecurrences) when the server rejects synthetic ids', async () => {
+  it('keeps client-side expansion (no expandRecurrences) when the server rejects synthetic ids on 0.16.19', async () => {
     serverSupportsSyntheticIds = false;
     const events = await client.queryCalendarEvents(RANGE);
     await client.queryCalendarEvents(RANGE);
@@ -181,13 +183,16 @@ describe('server-side recurrence expansion with synthetic ids', () => {
       expect(query.args.expandRecurrences).toBeUndefined();
     }
     // Raw base events with real ids come back for the browser to expand -
-    // one full get per query, no base-event hydration get.
+    // per query one full get plus a get of the overrides in the same
+    // request (Stalwart 1.0 refuses both in one get), no hydration get.
     expect(events.map((e) => e.id)).toEqual(['b', 'd']);
     expect(events[0].recurrenceRules).toEqual([{ frequency: 'daily', count: 5 }]);
-    expect(gets()).toHaveLength(2);
-    for (const get of gets()) {
-      expect(get.args.properties).toContain('title');
-    }
+    expect(events[0].recurrenceOverrides).toEqual({ '2026-09-10T10:00:00': { excluded: true } });
+    expect(gets().map((g) => g.args.properties)).toEqual([
+      expect.arrayContaining(['title', 'utcStart']), ['id', 'recurrenceOverrides'],
+      expect.arrayContaining(['title', 'utcStart']), ['id', 'recurrenceOverrides'],
+    ]);
+    expect(gets()[0].args.properties).not.toContain('recurrenceOverrides');
   });
 
   it('treats a failed probe as unsupported', async () => {

@@ -11,21 +11,25 @@
 
 import { create } from 'zustand';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
-import type { Email } from '@/lib/jmap/types';
 import type { MessageListTab, MessageListTabsConfig } from '@/lib/plugin-types';
 import { MAX_MESSAGE_LIST_TABS } from '@/lib/plugin-types';
 import { messageListTabHooks } from '@/lib/plugin-hooks';
 import { keywordPointer } from '@/lib/jmap/patch-pointer';
+import { jmapErrorFailedIds } from '@/lib/jmap/jmap-error';
+import { SERVER_SET_KEYWORDS } from '@/lib/jmap/server-keywords';
 import { normalizePluginFilter } from '@/lib/jmap/search-utils';
-import { useEmailStore } from './email-store';
+import { resolveKeywordActionContext, useEmailStore } from './email-store';
 
 // ─── Validation ──────────────────────────────────────────────
 
 // System keywords a tab may never claim: filtering the inbox by these would
-// hijack read/star/pin semantics, and `$label:` keywords belong to user tags.
+// hijack read/star/pin semantics, moving mail between tabs would add and
+// remove the server's own attachment keywords (flipping `hasAttachment`), and
+// `$label:` keywords belong to user tags.
 const RESERVED_KEYWORDS = new Set([
   '$seen', '$flagged', '$draft', '$answered', '$forwarded',
   '$recent', '$junk', '$notjunk', '$phishing', '$pinned',
+  ...SERVER_SET_KEYWORDS,
 ]);
 
 const TAB_ID_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/i;
@@ -283,40 +287,62 @@ export const useMessageListTabsStore = create<MessageListTabsStore>()((set, get)
     for (const k of keywordsRemoved) patch[keywordPointer(k)] = null;
     if (keywordAdded) patch[keywordPointer(keywordAdded)] = true;
 
-    // Group by owning account so shared-mailbox messages patch correctly.
-    const byAccount = new Map<string | undefined, string[]>();
+    // Group by the client and JMAP account that own each message, the way the
+    // email store routes its keyword writes: a listed message's `accountId`
+    // is only a display reference, and a write without the owner's account id
+    // lands in the login's own account (a group inbox with tabs, the unified
+    // views).
+    const groups = new Map<IJMAPClient, Map<string | undefined, string[]>>();
     for (const id of emailIds) {
-      const email = affected.find((e) => e.id === id) as (Email & { accountId?: string }) | undefined;
-      const acct = email?.accountId;
-      const list = byAccount.get(acct) ?? [];
-      list.push(id);
-      byAccount.set(acct, list);
+      const { client: writeClient, accountId } = resolveKeywordActionContext(id, client);
+      const byAccount = groups.get(writeClient) ?? new Map<string | undefined, string[]>();
+      byAccount.set(accountId, [...(byAccount.get(accountId) ?? []), id]);
+      groups.set(writeClient, byAccount);
     }
-    for (const [acct, ids] of byAccount) {
-      await client.batchUpdateKeywords(ids, patch, acct);
+    // A refused write (a read-only shared folder; Stalwart 1.0 also refuses a
+    // 101st keyword on a message) fails the move: the plugin's promise rejects
+    // with the server's reason and the categorize hooks stay quiet. What the
+    // server did accept still moves locally: the other accounts, and the rest
+    // of a batch it refused only some messages of.
+    const written: string[] = [];
+    let failure: unknown = null;
+    for (const [writeClient, byAccount] of groups) {
+      for (const [accountId, ids] of byAccount) {
+        try {
+          await writeClient.batchUpdateKeywords(ids, patch, accountId);
+          written.push(...ids);
+        } catch (err) {
+          failure ??= err;
+          const refused = jmapErrorFailedIds(err);
+          if (refused) written.push(...ids.filter((id) => !refused.includes(id)));
+        }
+      }
     }
 
     // Optimistic local update: fix keywords in place, and drop moved messages
     // from a keyword-filtered view they no longer belong to. (Query-based
     // active tabs are left as-is — membership there is server-derived.)
-    const idSet = new Set(emailIds);
+    const idSet = new Set(written);
     const activeTab = tabs.find((t) => t.id === get().activeTabId);
     const shouldDrop = !!activeTab && !activeTab.query && activeTab.id !== toTabId
       && get().isEnabledForRole(
         emailState.mailboxes.find((mb) => mb.id === emailState.selectedMailbox)?.role ?? null,
       );
-    useEmailStore.setState((state) => ({
-      emails: state.emails
-        .map((e) => {
-          if (!idSet.has(e.id)) return e;
-          const keywords = { ...e.keywords };
-          for (const k of keywordsRemoved) delete keywords[k];
-          if (keywordAdded) keywords[keywordAdded] = true;
-          return { ...e, keywords };
-        })
-        .filter((e) => !shouldDrop || !idSet.has(e.id)),
-    }));
+    if (idSet.size > 0) {
+      useEmailStore.setState((state) => ({
+        emails: state.emails
+          .map((e) => {
+            if (!idSet.has(e.id)) return e;
+            const keywords = { ...e.keywords };
+            for (const k of keywordsRemoved) delete keywords[k];
+            if (keywordAdded) keywords[keywordAdded] = true;
+            return { ...e, keywords };
+          })
+          .filter((e) => !shouldDrop || !idSet.has(e.id)),
+      }));
+    }
 
+    if (failure) throw failure;
     void messageListTabHooks.onEmailCategorize.emit(ctx);
     return true;
   },

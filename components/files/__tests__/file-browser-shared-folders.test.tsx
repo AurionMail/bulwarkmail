@@ -51,9 +51,9 @@ const SHARED = node('e:f-team', 'Team', null, { isShared: true, accountId: 'e', 
 
 type Overrides = Partial<React.ComponentProps<typeof FileBrowser>>;
 
-function renderBrowser(opts: { resources?: FileResource[]; allFolders?: FileResource[]; props?: Overrides; hasListed?: boolean } = {}) {
+function renderBrowser(opts: { resources?: FileResource[]; allFolders?: FileResource[]; props?: Overrides; hasListed?: boolean; shared?: FileNode[] } = {}) {
   const client = {
-    listAllFileNodesAcrossAccounts: vi.fn(async () => [...OWN, SHARED]),
+    listAllFileNodesAcrossAccounts: vi.fn(async () => [...OWN, ...(opts.shared ?? [SHARED])]),
   } as unknown as IJMAPClient;
   act(() => {
     useFileStore.setState({
@@ -144,6 +144,27 @@ describe('FileBrowser', () => {
     fireEvent.click(within(section).getByText('Team'));
     expect(onNavigate).toHaveBeenCalledWith('/Team', 'e:f-team');
     expect(within(tree()).getByText('Team')).toBeInTheDocument();
+  });
+
+  it('lists files shared on their own on a page per owner, at the root and in the sidebar', async () => {
+    const lone = node('e:f-plan', 'plan.pdf', 'e:f-private', {
+      blobId: 'b-plan', type: 'application/pdf', size: 5, isShared: true, accountId: 'e', accountName: 'userb@example.org',
+    });
+    const { onNavigate } = renderBrowser({ shared: [SHARED, lone] });
+    const section = await screen.findByRole('region', { name: 'shared_with_me' });
+    fireEvent.click(await within(section).findByText('shared_files_from'));
+    expect(onNavigate).toHaveBeenCalledWith('/shared_files_from', 'e:*');
+    fireEvent.click(within(tree()).getByText('shared_files_from'));
+    expect(onNavigate).toHaveBeenLastCalledWith('/shared_files_from', 'e:*');
+  });
+
+  it('offers no download for a symlink', () => {
+    const link = { ...resource(node('f-link', 'shortcut.txt', null, { blobId: null, nodeType: 'symlink' } as Partial<FileNode>)), isDirectory: false, isSymlink: true };
+    renderBrowser({ resources: [...OWN.map(resource), link] });
+    const row = within(list()).getByText('shortcut.txt').closest('[role="row"]') as HTMLElement;
+    expect(within(row).queryByRole('button', { name: 'download' })).toBeNull();
+    const notes = within(list()).getByText('notes.txt').closest('[role="row"]') as HTMLElement;
+    expect(within(notes).getByRole('button', { name: 'download' })).toBeInTheDocument();
   });
 
   it('shows shared folders instead of the empty state when the own root is empty', async () => {

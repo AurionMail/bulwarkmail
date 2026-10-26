@@ -4,9 +4,9 @@ import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { logger } from '@/lib/logger';
 import { configManager } from '@/lib/admin/config-manager';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
-import { fetchJmapSession } from '@/lib/stalwart/jmap-api';
+import { fetchJmapSession, type JmapSessionDocument } from '@/lib/stalwart/jmap-api';
 import { getWopiActions, buildWopiActionUrl } from '@/lib/wopi/discovery';
-import { getWopiFileNode, probeBlob } from '@/lib/wopi/files';
+import { getWopiFileNode, probeBlob, shareeSavesNeedRename } from '@/lib/wopi/files';
 import { mintWopiToken, wopiDocumentId, type WopiTokenPayload } from '@/lib/wopi/token';
 import { wopiBrowserBinding } from '@/lib/wopi/revocation';
 import { wopiBrowserOrigin, wopiHostBase } from '@/lib/wopi/origin';
@@ -18,7 +18,8 @@ import { wopiBrowserOrigin, wopiHostBase } from '@/lib/wopi/origin';
  * plus an optional `lang`, the webmail's locale, for the editor's own UI.
  *
  * Mints a WOPI access token scoped to one document and returns the editor
- * URL to POST it to (#425). Attachments always open read-only (#1047).
+ * URL to POST it to (#425). Attachments always open read-only (#1047). A
+ * node in a shared drive is named by its owner's accountId and its own id.
  * Session-authenticated - this is the only WOPI route the browser calls;
  * everything under /api/wopi/files is called by the editor server-to-server
  * with the token minted here.
@@ -59,17 +60,23 @@ export async function POST(request: NextRequest) {
     const trusted = creds.trusted || new URL(serverUrl).origin === request.nextUrl.origin;
     const ctx = { serverUrl, authHeader: creds.authHeader, trusted };
 
+    // The account holding the document: the one the client names (a shared
+    // drive's owner, a shared mailbox), else the user's own. A file also
+    // needs the user's own account, where PutFile uploads (uploadAccountId).
     let accountId = str('accountId');
-    const capability = blobId ? 'urn:ietf:params:jmap:mail' : 'urn:ietf:params:jmap:filenode';
+    let ownAccountId = '';
+    let session: JmapSessionDocument | null = null;
     // Files need the session even with an explicit account: PutFile uploads
     // into the login's own account, which is not the one holding a node
     // shared with the user (#1094).
-    const session = !accountId || !blobId
-      ? await fetchJmapSession(serverUrl, creds.authHeader, { trusted })
-      : null;
-    const ownAccountId = session?.primaryAccounts?.[capability] || '';
-    if (!accountId) {
-      accountId = ownAccountId || Object.keys(session?.accounts ?? {})[0] || '';
+    if (!accountId || !blobId) {
+      session = await fetchJmapSession(serverUrl, creds.authHeader, { trusted });
+      const capability = blobId ? 'urn:ietf:params:jmap:mail' : 'urn:ietf:params:jmap:filenode';
+      ownAccountId =
+        session?.primaryAccounts?.[capability] ||
+        Object.keys(session?.accounts ?? {})[0] ||
+        '';
+      accountId ||= ownAccountId;
     }
     if (!accountId) {
       return NextResponse.json({ error: blobId ? 'No mail account' : 'No files account' }, { status: 404 });
@@ -96,7 +103,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'File not found' }, { status: 404 });
       }
       name = node.name;
-      canWrite = node.myRights ? !!node.myRights.mayModifyContent : true;
+      // Editable only with the rights a save needs, or every save fails:
+      // Stalwart 0.16 also wants the Modify right (mayRename) from a sharee.
+      const rights = node.myRights;
+      const needsRename = accountId !== ownAccountId && shareeSavesNeedRename(session, accountId, ownAccountId);
+      canWrite = !rights || (!!rights.mayModifyContent && (!needsRename || !!rights.mayRename));
       document = { kind: 'file', fileId, uploadAccountId: ownAccountId || accountId };
     }
 

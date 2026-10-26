@@ -617,6 +617,14 @@
     "scheduled_actions_only": "Zamanlandı görünümü yalnızca zamanlama işlemlerini destekler",
     "undo_send_scheduled": "İleti gönderim için zamanlandı",
     "undo_send": "Göndermeyi geri al",
+    "send_cancelled_restore_failed": "Gönderim iptal edildi, ancak ileti Taslaklar'a geri taşınamadı. Hâlâ Gönderilenler'de.",
+    "send_cancelled_remove_failed": "Gönderim iptal edildi, ancak gönderilmemiş ileti Gönderilenler'den kaldırılamadı.",
+    "cancel_scheduled_failed": "Zamanlanmış gönderim iptal edilemedi",
+    "still_scheduled_at": "İleti hâlâ {date} için zamanlanmış durumda.",
+    "still_scheduled": "İleti hâlâ zamanlanmış durumda.",
+    "already_sent": "Bu ileti zaten gönderildi.",
+    "no_longer_scheduled": "Bu ileti artık zamanlanmış değil.",
+    "reschedule_recipients_refused": "Hiçbir şey değiştirilmedi: sunucu şu alıcıları reddetti: {recipients}.",
     "contact_sidebar": {
       "title": "Kişi",
       "close": "Kenar çubuğunu kapat",
@@ -755,6 +763,10 @@
     "show_less": "Daha az göster",
     "send_failed": "E-posta gönderilemedi",
     "send_timeout": "Sunucu yanıt vermeyi bıraktı. Yeniden göndermeden önce Gönderilenler klasörünü kontrol edin — ileti gönderilmiş olabilir.",
+    "submission_quota": "Sunucuda bu hesap için çok fazla gönderilmiş ileti kaydı var. Bulwark kaldırabildiklerini kaldırdı; bu durum sürerse yöneticinizden e-posta gönderim sınırını yükseltmesini isteyin.",
+    "submission_limit": "Bir sınıra ulaşıldığı için sunucu iletiyi göndermeyi reddetti: {reason}",
+    "recipients_refused": "Gönderilmedi: sunucu şu alıcıları reddetti: {recipients}.",
+    "recipients_partly_refused": "Sunucu şu alıcıları reddetti: {recipients}. Diğer alıcılar iletiyi alır.",
     "send_offline": "Çevrimdışı görünüyorsunuz. İleti hâlâ burada; yeniden çevrimiçi olduğunuzda tekrar gönderin.",
     "formatting": "Biçimlendirme",
     "send_recipients_rejected": "Gönderilmedi - sunucu tüm alıcıları reddetti.",
@@ -1367,7 +1379,10 @@
         "revoke": "İptal et",
         "confirm_revoke_title": "Bu cihaz iptal edilsin mi?",
         "confirm_revoke_message": "Arka plan bildirimlerini almayı hemen bırakacak. O cihazda push’u yeniden açarsanız yeniden kaydedilir.",
-        "confirm_revoke_message_this": "Bu cihaz arka plan bildirimlerini almayı hemen bırakacak."
+        "confirm_revoke_message_this": "Bu cihaz arka plan bildirimlerini almayı hemen bırakacak.",
+        "shared_mailboxes_no_push": "Başkalarının sizinle paylaştığı posta kutuları arka plan bildirimi göndermez.",
+        "error_forbidden": "Posta sunucusu bu hesap için arka plan bildirimlerine izin vermiyor.",
+        "error_over_quota": "Bu hesabın posta sunucusunda çok fazla push kaydı var (sınır genellikle 15'tir). Artık kullanmadığınız cihazları bildirim ayarlarından iptal edip yeniden deneyin."
       }
     },
     "language_region": {
@@ -2357,6 +2372,7 @@
       "validation_empty_name": "Kural adı gerekli",
       "validation_empty_conditions": "En az bir değeri olan koşul gerekli",
       "validation_empty_actions": "En az bir işlem gerekli",
+      "validation_header_name": "Başlık adları yalnızca A-Z harflerini, rakamları, kısa çizgileri ve alt çizgileri içerebilir",
       "templates_section": "Şablondan başla",
       "template_newsletters": "Bültenleri klasöre taşı",
       "template_receipts": "Makbuzları otomatik arşivle",
@@ -3136,7 +3152,8 @@
     },
     "export": {
       "title": "Kişileri Dışa Aktar",
-      "success": "{count, plural, one {1 kişi dışa aktarıldı} other {# kişi dışa aktarıldı}}"
+      "success": "{count, plural, one {1 kişi dışa aktarıldı} other {# kişi dışa aktarıldı}}",
+      "exporting": "Dışa aktarılıyor..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 seçildi} other {# seçildi}}",
@@ -3280,8 +3297,11 @@
         "free": "Uygun",
         "busy": "Meşgul",
         "tentative": "Geçici",
+        "no_busy_times": "Paylaşılan meşgul zaman yok",
         "unknown": "Bu sunucuda kullanıcı değil",
-        "checking": "Kontrol ediliyor…"
+        "error": "Kontrol edilemedi",
+        "checking": "Kontrol ediliyor…",
+        "unavailable_on_server": "Müsait/meşgul bilgisi bu sunucuda kullanılamıyor"
       },
       "title": "Katılımcılar",
       "add": "Katılımcı ekle",
@@ -3303,6 +3323,7 @@
       "you_organizer": "Siz organizatörsünüz",
       "you_attendee": "Siz bir katılımcısınız",
       "no_participants": "Katılımcı yok",
+      "limit_warning": "Organizatör dahil {max, plural, one {# katılımcıdan} other {# katılımcıdan}} fazla: sunucu bu etkinliği kaydetmeyi reddedebilir. Bir yönetici bu sınırı yükseltebilir.",
       "count": "{count, plural, one {# katılımcı} other {# katılımcı}}"
     },
     "recurrence": {
@@ -3493,6 +3514,7 @@
       "save_without_invitations": "Davetsiz kaydet",
       "rsvp_updated": "Yanıt güncellendi",
       "rsvp_error": "Yanıt güncellenemedi",
+      "participant_limit": "Sunucu etkinlik başına organizatör dahil en fazla {max, plural, one {# katılımcıya} other {# katılımcıya}} izin verdiği için bu değişikliği reddetti. Bir yönetici bu sınırı yükseltebilir.",
       "event_duplicated": "Etkinlik çoğaltıldı",
       "event_error": "Etkinlik kaydedilemedi",
       "task_due": "Görev süresi doldu",
@@ -3502,7 +3524,10 @@
     },
     "status": {
       "loading_calendars": "Takvimler yükleniyor...",
-      "loading_events": "Etkinlikler yükleniyor..."
+      "loading_events": "Etkinlikler yükleniyor...",
+      "events_load_failed": "Etkinlikler yüklenemedi. Takvim güncel olmayabilir.",
+      "tasks_load_failed": "Görevler yüklenemedi. Liste güncel olmayabilir.",
+      "retry": "Tekrar dene"
     },
     "quick_create": {
       "placeholder": "Yeni etkinlik başlığı",
@@ -3713,8 +3738,12 @@
     "loading_principals": "Kullanıcılar yükleniyor…",
     "no_principals": "Başka kullanıcı veya grup bulunamadı.",
     "no_match": "Eşleşme yok.",
+    "directory_restricted": "Sunucunuz kullanıcı dizinine göz atılmasına izin vermiyor, bu nedenle yalnızca gruplarınız ve sizinle bir şey paylaşmış kişiler listeleniyor. Bir yönetici, Stalwart'ın paylaşım ayarlarından dizin sorgularını açabilir.",
+    "directory_not_browsable": "Sunucunuz kullanıcı dizinine göz atmanıza izin vermiyor.",
+    "directory_failed": "Kullanıcı ve grup listesi yüklenemedi.",
     "remove": "Erişimi kaldır",
     "group": "Grup",
+    "unknown_user": "Bilinmeyen kullanıcı",
     "share_added": "Erişim verildi",
     "share_updated": "Erişim güncellendi",
     "share_removed": "Erişim kaldırıldı",
@@ -3810,6 +3839,8 @@
     "new_name": "Yeni ad",
     "name_forbidden_chars": "Sunucu adlarda şu karakterlere izin vermiyor: {chars}",
     "name_reserved": "Bu ad sunucuda ayrılmış.",
+    "name_control_chars": "Adlar denetim karakterleri içeremez.",
+    "name_too_long": "Bu ad sunucu için çok uzun.",
     "delete": "Sil",
     "delete_confirm_title": "Kaynağı sil",
     "delete_confirm_message": "\"{name}\" silinsin mi? Bu geri alınamaz.",
@@ -3820,11 +3851,21 @@
     "type": "Tür",
     "folder": "Klasör",
     "file": "Dosya",
+    "symlink": "Sembolik bağlantı",
+    "parent_directory": "Üst dizin",
+    "breadcrumb_root": "Ana Sayfa",
     "uploading": "Yükleniyor...",
     "upload_success": "{count, plural, one {1 dosya yüklendi} other {# dosya yüklendi}}",
     "upload_canceled": "Yükleme iptal edildi",
     "upload_canceled_partial": "İptal etmeden önce {count, plural, one {1 dosya} other {# dosya}} yüklendi",
     "upload_error": "Dosya yüklenemedi",
+    "upload_failed": "{count, plural, one {1 dosya yüklenemedi} other {# dosya yüklenemedi}}",
+    "error_over_quota": "Dosya veya klasör sınırına ulaştınız. Bazılarını silip yeniden deneyin.",
+    "error_too_deep": "Klasörler bu kadar derin iç içe yerleştirilemez.",
+    "error_invalid_name": "Sunucu bu adı kabul etmiyor.",
+    "error_forbidden": "Burada bunu yapma izniniz yok.",
+    "error_too_large": "Bu dosya sunucu için çok büyük.",
+    "error_partial_copy": "Kopyanın bir kısmı yerinde kaldı.",
     "create_folder_success": "Klasör oluşturuldu",
     "create_folder_error": "Klasör oluşturulamadı",
     "delete_success": "Başarıyla silindi",
@@ -3863,6 +3904,7 @@
     "shared": "Shared",
     "shared_with_me": "Shared with me",
     "shared_by": "Shared by {name}",
+    "shared_files_from": "{name} tarafından paylaşılan dosyalar",
     "create_file_success": "Dosya oluşturuldu",
     "create_file_error": "Dosya oluşturulamadı",
     "favorites": "Favoriler",

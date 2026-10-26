@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
+import { jmapErrorProperties, jmapErrorType } from '../jmap/jmap-error';
 
 const mockContact = {
   id: 'contact-1',
@@ -587,6 +588,115 @@ describe('JMAPClient contact methods', () => {
       await expect(client.updateContact('contact-1', { name: mockContact.name }))
         .rejects.toThrow('Failed to update contact');
     });
+
+    it.each(['1.0', '0.16'] as const)('leaves a cleared id, uid and addressBookIds out of the update on Stalwart %s', async (version) => {
+      const client = createClient();
+      // What ContactCard/set answers to those keys set to null (1.0 contact/set.rs:
+      // 229-249, 602-607, 669-671; 0.16.23 set.rs:187-199, 524-529, 591-593).
+      const answer = (update: Record<string, unknown>) => {
+        const refuse = (property: string, description: string) =>
+          ({ notUpdated: { 'contact-1': { type: 'invalidProperties', properties: [property], description } } });
+        if ('id' in update) return refuse('id', 'The id property is immutable.');
+        if (update.addressBookIds === null) return refuse('addressBookIds', 'Invalid patch operation for addressBookIds.');
+        // 0.16 takes a null uid and drops the card's UID without a word.
+        if (update.uid === null && version === '1.0') return refuse('uid', 'You cannot change the UID of a contact.');
+        return { updated: { 'contact-1': null } };
+      };
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+        const update = JSON.parse(String(init?.body)).methodCalls[0][1].update['contact-1'];
+        const body = { methodResponses: [['ContactCard/set', answer(update), '0']] };
+        return { ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(body)) } as Response;
+      });
+
+      // A plugin passes the card back with the keys it did not set.
+      await client.updateContact('contact-1', {
+        id: undefined, uid: undefined, addressBookIds: undefined, name: mockContact.name,
+      } as never);
+
+      const sent = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string).methodCalls[0][1].update['contact-1'];
+      expect(sent).toEqual({ name: mockContact.name });
+    });
+
+    it('passes a Stalwart 1.0 blob photo through unchanged', async () => {
+      const client = createClient();
+      const fetchSpy = mockFetch({
+        methodResponses: [['ContactCard/set', { updated: { 'contact-1': null } }, '0']],
+      });
+      const media = {
+        photo: { kind: 'photo' as const, blobId: 'dbcX', mediaType: 'image/jpeg' },
+        logo: { kind: 'logo' as const, blobId: 'dbcLogo', mediaType: 'image/png' },
+      };
+
+      await client.updateContact('contact-1', { media });
+
+      const body = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
+      expect(body.methodCalls[0][1].update['contact-1'].media).toEqual(media);
+    });
+
+    it('keeps the error type and properties when 0.16 refuses a blobId in media', async () => {
+      const client = createClient();
+      mockFetch({
+        methodResponses: [['ContactCard/set', {
+          notUpdated: { 'contact-1': { type: 'invalidProperties', properties: ['media'], description: 'blobIds in media is not supported.' } },
+        }, '0']],
+      });
+
+      const error = await client.updateContact('contact-1', {
+        media: { photo: { kind: 'photo', blobId: 'Gupload1', mediaType: 'image/jpeg' } },
+      }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe('blobIds in media is not supported.');
+      expect(jmapErrorType(error)).toBe('invalidProperties');
+      expect(jmapErrorProperties(error)).toEqual(['media']);
+    });
+  });
+
+  describe('supportsContactBlobMedia', () => {
+    function withBlobCapability(client: JMAPClient, supportedTypeNames?: string[]) {
+      Object.assign(client, {
+        session: {
+          primaryAccounts: { 'urn:ietf:params:jmap:contacts': 'account-1' },
+          accounts: {
+            'account-1': {
+              name: 'test',
+              isPersonal: true,
+              accountCapabilities: supportedTypeNames
+                ? { 'urn:ietf:params:jmap:blob': { supportedTypeNames, supportedDigestAlgorithms: ['sha'] } }
+                : {},
+            },
+          },
+        },
+      });
+    }
+
+    it('is true on Stalwart 1.0, whose blob capability lists ContactCard', () => {
+      const client = createClient();
+      withBlobCapability(client, ['Email', 'Thread', 'SieveScript', 'CalendarEvent', 'ContactCard']);
+      expect(client.supportsContactBlobMedia()).toBe(true);
+      expect(client.supportsContactBlobMedia('account-1')).toBe(true);
+    });
+
+    it('is false on Stalwart 0.16, which lists only Email, Thread and SieveScript', () => {
+      const client = createClient();
+      withBlobCapability(client, ['Email', 'Thread', 'SieveScript']);
+      expect(client.supportsContactBlobMedia()).toBe(false);
+    });
+
+    it('is false without the blob capability or for an unknown account', () => {
+      const client = createClient();
+      withBlobCapability(client);
+      expect(client.supportsContactBlobMedia()).toBe(false);
+      withBlobCapability(client, ['ContactCard']);
+      expect(client.supportsContactBlobMedia('other')).toBe(false);
+    });
+
+    it('is false for an account that refused a blobId, for the rest of the session', () => {
+      const client = createClient();
+      withBlobCapability(client, ['ContactCard']);
+      client.rejectContactBlobMedia('account-1');
+      expect(client.supportsContactBlobMedia()).toBe(false);
+    });
   });
 
   describe('deleteContact', () => {
@@ -674,6 +784,24 @@ describe('JMAPClient contact methods', () => {
 
       const body = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
       expect(body.methodCalls[0][1].filter).toEqual({ text: 'Jane' });
+    });
+
+    it('should AND quoted phrases and prefixes as separate text conditions', async () => {
+      const client = createClient();
+      const fetchSpy = mockFetch({
+        methodResponses: [
+          ['ContactCard/query', { ids: [] }, '0'],
+          ['ContactCard/get', { list: [] }, '1'],
+        ],
+      });
+
+      await client.searchContacts('"Anna Muster" firm*');
+
+      const body = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
+      expect(body.methodCalls[0][1].filter).toEqual({
+        operator: 'AND',
+        conditions: [{ text: '"Anna Muster"' }, { text: 'firm*' }],
+      });
     });
 
     it('should return empty array when no results', async () => {

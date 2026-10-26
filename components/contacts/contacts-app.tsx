@@ -21,6 +21,8 @@ import { RenameDialog } from "@/components/files/rename-dialog";
 import { exportContacts } from "@/components/contacts/contact-export";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail, type DirectoryEntry } from "@/stores/contact-store";
+import { inlineContactMedia, type ContactSaveOptions } from "@/lib/contact-media";
+import { getContactPhotoClient } from "@/hooks/use-contact-photo";
 import { savePendingMailto } from "@/lib/protocol-handlers/session";
 import { formatRecipient, formatRecipientEntry, type Recipient } from "@/lib/email-composer-utils";
 import { useAuthStore, redirectToLogin, saveRedirectAfterLogin } from '@/stores/auth-store';
@@ -89,6 +91,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     fetchContacts,
     createContact,
     updateContact,
+    fetchContactFromServer,
     deleteContact,
     addLocalContact,
     updateLocalContact,
@@ -482,6 +485,15 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     const { id: _id, uid: _uid, created: _created, updated: _updated, ...rest } = source;
     void _id; void _uid; void _created; void _updated;
     const data: Partial<ContactCard> = JSON.parse(JSON.stringify(rest));
+    if (supportsSync && client && source.media) {
+      // A blobId names the bytes embedded in the source card; the copy gets
+      // the bytes themselves.
+      data.media = await inlineContactMedia(source.media, {
+        client: getContactPhotoClient(source.localAccountId),
+        accountId: source.accountId,
+        localAccountId: source.localAccountId,
+      }, "keep");
+    }
     const created = supportsSync && client
       ? await createContact(client, data)
       : await addLocalContact({
@@ -492,9 +504,9 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     if (created) toast.success(t("toast.created"));
   }, [supportsSync, client, createContact, addLocalContact, t]);
 
-  const handleSaveNew = useCallback(async (data: Partial<ContactCard>) => {
+  const handleSaveNew = useCallback(async (data: Partial<ContactCard>, options?: ContactSaveOptions) => {
     const created = supportsSync && client
-      ? await createContact(client, data)
+      ? await createContact(client, data, options)
       : await addLocalContact({
         id: `local-${generateUUID()}`,
         addressBookIds: {},
@@ -513,11 +525,11 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     setView("list");
   }, [supportsSync, client, createContact, addLocalContact, t, returnToEmail, router]);
 
-  const handleSaveEdit = useCallback(async (data: Partial<ContactCard>) => {
+  const handleSaveEdit = useCallback(async (data: Partial<ContactCard>, options?: ContactSaveOptions) => {
     if (!selectedContact) return;
 
     const updated = supportsSync && client
-      ? await updateContact(client, selectedContact.id, data)
+      ? await updateContact(client, selectedContact.id, data, options)
       : await updateLocalContact(selectedContact.id, data);
     if (!updated) return;
     toast.success(t("toast.updated"));
@@ -742,10 +754,9 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
     setView("bulk-add-to-group");
   };
 
-  const handleBulkExport = () => {
+  const handleBulkExport = async () => {
     const toExport = contacts.filter(c => selectedContactIds.has(c.id));
-    if (toExport.length > 0) {
-      exportContacts(toExport);
+    if (toExport.length > 0 && await exportContacts(toExport)) {
       toast.success(t("export.success", { count: toExport.length }));
       clearSelection();
     }
@@ -792,6 +803,7 @@ function ContactsAppContent({ linkSegments: routeSegments }: ContactsAppProps = 
             allKeywords={allKeywords}
             onSave={handleSaveEdit}
             onCancel={handleCancel}
+            loadCurrentMedia={supportsSync && client ? () => fetchContactFromServer(client, selectedContact.id) : undefined}
           />
         );
 

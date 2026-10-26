@@ -66,6 +66,8 @@ function makeClient() {
     batchDeleteEmails: vi.fn().mockResolvedValue(undefined),
     batchMoveEmails: vi.fn().mockResolvedValue(undefined),
     batchArchiveEmails: vi.fn().mockResolvedValue(undefined),
+    markAsSpam: vi.fn().mockResolvedValue(undefined),
+    undoSpam: vi.fn().mockResolvedValue(undefined),
     getEmails: vi.fn().mockResolvedValue({ emails: [], hasMore: false, total: 0 }),
     getMailboxes: vi.fn().mockResolvedValue([]),
   } as unknown as IJMAPClient;
@@ -169,6 +171,27 @@ describe('non-unified shared-folder batch action routing', () => {
       expect.anything(),
       'owner-x',
     );
+  });
+
+  it('batchMarkAsSpam moves shared emails to junk on the owner account', async () => {
+    await useEmailStore.getState().batchMarkAsSpam(activeClient, ['e1', 'e2']);
+
+    expect((activeClient.markAsSpam as ReturnType<typeof vi.fn>).mock.calls).toEqual([['e1', 'owner-x', false], ['e2', 'owner-x', false]]);
+    expect(useEmailStore.getState().emails).toEqual([]);
+  });
+
+  it('batchMarkAsSpam rejects, instead of letting the caller report a move, when the viewed folder is unknown', async () => {
+    useEmailStore.setState({ selectedMailbox: 'owner-x:gone' });
+
+    await expect(useEmailStore.getState().batchMarkAsSpam(activeClient, ['e1'])).rejects.toThrow('Mailbox not found');
+    expect(activeClient.markAsSpam).not.toHaveBeenCalled();
+    expect(useEmailStore.getState().emails.map((e) => e.id)).toEqual(['e1', 'e2']);
+  });
+
+  it('batchUndoSpam puts shared emails back in the owner account Inbox', async () => {
+    await useEmailStore.getState().batchUndoSpam(activeClient, ['e1', 'e2']);
+
+    expect((activeClient.undoSpam as ReturnType<typeof vi.fn>).mock.calls).toEqual([['e1', 'x-inbox', 'owner-x'], ['e2', 'x-inbox', 'owner-x']]);
   });
 
   it('single-email archive resolves the SHARED archive when a shared inbox is selected (#889)', async () => {

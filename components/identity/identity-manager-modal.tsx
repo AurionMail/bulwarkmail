@@ -27,12 +27,7 @@ import { toast } from '@/stores/toast-store';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { toUnicodeEmail } from '@/lib/idn';
-
-function emailMatchesUsername(email: string, username: string): boolean {
-  if (email === username) return true;
-  if (!username.includes('@') && email.split('@')[0] === username) return true;
-  return false;
-}
+import { sortIdentities } from '@/lib/identity-order';
 
 interface IdentityFormData {
   name: string;
@@ -79,17 +74,7 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
       const serverIdentities = await client.getIdentities();
       const username = useAuthStore.getState().username;
       const preferredPrimaryId = useIdentityStore.getState().preferredPrimaryId;
-      const sorted = [...serverIdentities].sort((a, b) => {
-        const aMatch = emailMatchesUsername(a.email, username || '');
-        const bMatch = emailMatchesUsername(b.email, username || '');
-        if (aMatch && !bMatch) return -1;
-        if (!aMatch && bMatch) return 1;
-        if (aMatch && bMatch) {
-          if (!a.mayDelete && b.mayDelete) return -1;
-          if (a.mayDelete && !b.mayDelete) return 1;
-        }
-        return 0;
-      });
+      const sorted = sortIdentities(serverIdentities, username || '');
       // Move preferred primary to front if set
       if (preferredPrimaryId) {
         const idx = sorted.findIndex((id) => id.id === preferredPrimaryId);

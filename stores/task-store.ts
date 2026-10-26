@@ -7,6 +7,12 @@ import { taskToView } from '@/lib/plugin-projection';
 
 export type TaskViewFilter = 'all' | 'pending' | 'completed' | 'overdue';
 
+/**
+ * The `error` a failed task load leaves. The tasks loaded before stay; the
+ * task list shows a notice for it.
+ */
+export const TASKS_LOAD_ERROR = 'Failed to fetch tasks';
+
 interface TaskStore {
   tasks: CalendarTask[];
   selectedTaskId: string | null;
@@ -65,7 +71,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       if (taskHooks.onTasksLoaded.size > 0) void taskHooks.onTasksLoaded.emit(tasks.map(taskToView));
     } catch (error) {
       debug.error('TaskStore/fetchTasks failed', error);
-      set({ isLoading: false, error: 'Failed to fetch tasks' });
+      set({ isLoading: false, error: TASKS_LOAD_ERROR });
     }
   },
 

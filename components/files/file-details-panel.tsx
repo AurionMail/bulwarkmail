@@ -40,13 +40,14 @@ interface FileDetailsPanelProps {
 
 function kindOf(resource: FileResource, t: (key: string, values?: Record<string, string>) => string): string {
   if (resource.isDirectory) return t("folder");
+  if (resource.isSymlink) return t("symlink");
   const dot = resource.name.lastIndexOf(".");
   const ext = dot > 0 ? resource.name.slice(dot + 1).toUpperCase() : "";
   return ext ? t("file_kind", { ext }) : (resource.contentType || t("file"));
 }
 
 function totalSize(items: FileResource[]): number {
-  return items.reduce((sum, r) => sum + (r.isDirectory ? 0 : r.contentLength), 0);
+  return items.reduce((sum, r) => sum + (r.isDirectory || r.isSymlink ? 0 : r.contentLength), 0);
 }
 
 export function FileDetailsPanel({
@@ -137,7 +138,7 @@ export function FileDetailsPanel({
             <Eye className="w-4 h-4" />{t("preview")}
           </Button>
         ) : null}
-        {!resource.isDirectory && (
+        {!resource.isDirectory && !resource.isSymlink && (
           <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={onDownload}>
             <Download className="w-4 h-4" />{t("download")}
           </Button>
@@ -155,8 +156,11 @@ export function FileDetailsPanel({
         )}
       </div>
       <dl className="space-y-3 text-sm">
-        <Row label={t("type")} value={resource.isDirectory ? t("folder") : (resource.contentType || kindOf(resource, t))} />
-        {!resource.isDirectory && <Row label={t("size")} value={formatFileSize(resource.contentLength)} />}
+        <Row
+          label={t("type")}
+          value={resource.isDirectory || resource.isSymlink ? kindOf(resource, t) : (resource.contentType || kindOf(resource, t))}
+        />
+        {!resource.isDirectory && !resource.isSymlink && <Row label={t("size")} value={formatFileSize(resource.contentLength)} />}
         {resource.lastModified && <Row label={t("modified")} value={formatFullDate(resource.lastModified)} />}
         <Row label={t("sharing")} value={sharing} />
         <Row label={t("path")} value={path} mono />

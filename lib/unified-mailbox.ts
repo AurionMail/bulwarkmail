@@ -2,7 +2,7 @@ import type { Email, Mailbox, UnifiedMailboxRole, CrossView } from '@/lib/jmap/t
 import { CROSS_EXCLUDED_ROLES } from '@/lib/jmap/types';
 import type { IJMAPClient, SearchEmailsResult, SearchRequestOptions } from '@/lib/jmap/client-interface';
 import type { DeferredSnippetBatch } from '@/lib/search-snippet';
-import { andFilters } from '@/lib/jmap/search-utils';
+import { andFilters, textConditions, textFilter } from '@/lib/jmap/search-utils';
 import { compareEmails, type SortLevel } from '@/lib/message-list-order';
 
 export interface UnifiedAccountClient {
@@ -497,8 +497,9 @@ export async function fetchCrossViewEmails(
 }
 
 /**
- * Text search within a cross-account view: the view filter AND a free-text
- * condition, fanned out across accounts.
+ * Text search within a cross-account view: the view filter AND the free-text
+ * conditions (one per quoted phrase or `word*` part, see splitSearchText),
+ * fanned out across accounts.
  *
  * Searching from "All mail" is the exception: it searches every folder of
  * every account except Trash and Junk, the standard search panel's default
@@ -518,7 +519,7 @@ export async function searchCrossViewEmails(
   }
   return fanOutCrossQuery(accounts, (account, jmapAccountId, ids) =>
     account.client.advancedSearchEmails(
-      { operator: 'AND', conditions: [buildCrossFilter(view, ids), { text: query }] },
+      { operator: 'AND', conditions: [buildCrossFilter(view, ids), ...textConditions(query)] },
       jmapAccountId,
       limit,
       positionFor(position, account),
@@ -626,7 +627,7 @@ export async function searchAcrossAccounts(
       const exclusion = options.excludeTrashAndJunk ? trashAndJunkExclusion(account) : null;
       return exclusion
         ? account.client.advancedSearchEmails(
-            andFilters({ text: query.trim() }, exclusion), jmapAccountId, limit, positionFor(position, account),
+            andFilters(textFilter(query), exclusion), jmapAccountId, limit, positionFor(position, account),
             ...searchRequestOptions(options),
           )
         : account.client.searchEmails(query, undefined, jmapAccountId, limit, positionFor(position, account), ...searchRequestOptions(options));

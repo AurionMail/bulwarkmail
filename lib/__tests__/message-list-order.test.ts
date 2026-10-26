@@ -4,6 +4,7 @@ import {
   compareEmails,
   detectPreset,
   hasKeywordLevels,
+  hasTextLevels,
   isDefaultOrder,
   keywordFirst,
   levelKeyword,
@@ -104,6 +105,21 @@ describe('keyword semantics', () => {
   });
 });
 
+describe('hasTextLevels', () => {
+  // Only the server knows the collation of a sender or subject order.
+  it('is true for any order with a sender or subject level', () => {
+    expect(hasTextLevels([{ criterion: 'from', direction: 'asc' }])).toBe(true);
+    expect(hasTextLevels([{ criterion: 'subject', direction: 'desc' }])).toBe(true);
+    expect(hasTextLevels([...UNREAD_FIRST, { criterion: 'from', direction: 'asc' }])).toBe(true);
+  });
+
+  it('is false for date, size and keyword orders', () => {
+    expect(hasTextLevels([])).toBe(false);
+    expect(hasTextLevels([...UNREAD_FIRST, ...STARRED_FIRST, { criterion: 'size', direction: 'desc' }])).toBe(false);
+    expect(hasTextLevels([{ criterion: 'receivedAt', direction: 'asc' }, { criterion: 'sentAt', direction: 'desc' }])).toBe(false);
+  });
+});
+
 describe('buildEmailSort', () => {
   it('is plain newest-first with no levels', () => {
     expect(buildEmailSort([])).toEqual([{ property: 'receivedAt', isAscending: false }]);
@@ -198,6 +214,21 @@ describe('compareEmails', () => {
     expect([a, b, c].sort(compareEmails([{ criterion: 'from', direction: 'asc' }])).map(e => e.id)).toEqual(['b', 'c', 'a']);
     expect([a, b, c].sort(compareEmails([{ criterion: 'subject', direction: 'asc' }])).map(e => e.id)).toEqual(['b', 'a', 'c']);
     expect([a, b, c].sort(compareEmails([{ criterion: 'size', direction: 'desc' }])).map(e => e.id)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('puts a message without a sender or subject last in both directions, as Stalwart 0.16 and 1.0 do', () => {
+    const named = makeEmail({ id: 'named', from: [{ name: 'Eve', email: 'eve@x.test' }], subject: 'Mango' });
+    const lower = makeEmail({ id: 'lower', from: [{ name: 'bea', email: 'bea@x.test' }], subject: 'apple pie' });
+    const bare = makeEmail({ id: 'bare', from: [], subject: undefined });
+    // A subject that is nothing but a reply prefix has an empty thread name.
+    const onlyPrefix = makeEmail({ id: 'only-prefix', from: [{ name: '', email: '' }], subject: 'Re:', receivedAt: '2025-01-01T00:00:00Z' });
+
+    for (const criterion of ['from', 'subject'] as const) {
+      expect([bare, named, onlyPrefix, lower].sort(compareEmails([{ criterion, direction: 'asc' }])).map(e => e.id))
+        .toEqual(['lower', 'named', 'bare', 'only-prefix']);
+      expect([bare, lower, onlyPrefix, named].sort(compareEmails([{ criterion, direction: 'desc' }])).map(e => e.id))
+        .toEqual(['named', 'lower', 'bare', 'only-prefix']);
+    }
   });
 
   it('applies levels in priority order', () => {

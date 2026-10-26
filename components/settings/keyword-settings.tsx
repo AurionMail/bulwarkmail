@@ -186,7 +186,10 @@ function KeywordEditForm({
 
   const normalizedId = isLocked && initial ? initial.id : composeKeywordId(parentId || null, label);
   const isDuplicate = normalizedId.length > 0 && existingIds.includes(normalizedId);
-  const isTooLong = normalizedId.length > MAX_KEYWORD_ID_LENGTH;
+  // Only a new or changed id has to fit: a longer one that predates the limit
+  // is already on the messages, and an edit that keeps it, such as a colour
+  // change, leaves it as it is.
+  const isTooLong = normalizedId.length > MAX_KEYWORD_ID_LENGTH && normalizedId !== initial?.id;
   const isValid = normalizedId.length > 0 && label.trim().length > 0 && !isDuplicate && !isTooLong;
 
   // Every tag is a candidate parent except the one being edited and anything

@@ -11,7 +11,8 @@
  * RFC 8621 section 4.1.1 allows a keyword of 1-255 characters from the ASCII
  * range %x21-%x7e minus `( ) { ] % * " \`, so the separator is legal but the
  * length of a deep id is not free - `MAX_KEYWORD_ID_LENGTH` is the budget a
- * composed id has to stay within.
+ * composed id has to stay within. Stalwart caps keywords well below the RFC
+ * (see `MAX_KEYWORD_LENGTH`).
  *
  * Turning any of this into text for the screen lives in `keyword-format`.
  */
@@ -21,8 +22,13 @@ import { KEYWORD_PREFIX } from "./thread-utils";
 /** Separates parent from child inside a tag id. */
 export const KEYWORD_SEPARATOR = "/";
 
-/** Longest keyword a JMAP server has to accept (RFC 8621, section 4.1.1). */
-export const MAX_KEYWORD_LENGTH = 255;
+/**
+ * Longest keyword Stalwart keeps, in bytes (the RFC allows 255). 1.0 refuses a
+ * longer new keyword ("Keywords cannot be longer than 128 bytes.") and 0.16
+ * cuts it to 128 characters, which silently detaches it from its tag. Tag
+ * keywords are ASCII, so bytes and characters are the same count.
+ */
+export const MAX_KEYWORD_LENGTH = 128;
 
 /** What is left for the id once the `$label:` prefix is spent. */
 export const MAX_KEYWORD_ID_LENGTH = MAX_KEYWORD_LENGTH - KEYWORD_PREFIX.length;

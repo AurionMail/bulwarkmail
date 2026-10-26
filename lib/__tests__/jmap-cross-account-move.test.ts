@@ -3,7 +3,7 @@ import { JMAPClient } from '../jmap/client';
 
 type Call = [string, Record<string, unknown>, string];
 
-function clientWithCopyResult(copyResult: Record<string, unknown>) {
+function clientWithCopyResult(copyResult: Record<string, unknown>, keywords: Record<string, boolean> = { $seen: true }) {
   const client = new JMAPClient('https://jmap.example.com', 'user@example.com', 'pass');
   Object.assign(client, { accountId: 'me' });
   const calls: Call[] = [];
@@ -11,7 +11,7 @@ function clientWithCopyResult(copyResult: Record<string, unknown>) {
     .mockImplementation(async (reqCalls: Call[]) => {
       const [method, args, id] = reqCalls[0];
       calls.push(reqCalls[0]);
-      if (method === 'Email/get') return { methodResponses: [['Email/get', { list: [{ id: 'm1', keywords: { $seen: true } }] }, id]] };
+      if (method === 'Email/get') return { methodResponses: [['Email/get', { list: [{ id: 'm1', keywords }] }, id]] };
       if (method === 'Email/copy') return { methodResponses: [['Email/copy', copyResult, id]] };
       if (method === 'Email/set') return { methodResponses: [['Email/set', { destroyed: args.destroy }, id]] };
       throw new Error(`unexpected ${method}`);
@@ -40,6 +40,19 @@ describe('copyEmailAcrossAccounts', () => {
     const { client, calls } = clientWithCopyResult({ notCreated: { c: { type: 'overQuota' } } });
     await expect(client.copyEmailAcrossAccounts('m1', 'me', 'grp', 'inbox')).rejects.toThrow('overQuota');
     expect(calls.some(([m]) => m === 'Email/set')).toBe(false);
+  });
+
+  // Stalwart 1.0 builds the copy's keywords, and from them its hasAttachment,
+  // only from what the create sends.
+  it('carries the attachment keyword over to the copy on Stalwart 1.0', async () => {
+    const { client, calls } = clientWithCopyResult(
+      { created: { c: { id: 'new1' } } },
+      { $seen: true, '$label:work': true, $hasattachment: true },
+    );
+    await client.copyEmailAcrossAccounts('m1', 'me', 'grp', 'inbox');
+
+    const create = (calls.find(([m]) => m === 'Email/copy')![1].create as Record<string, Record<string, unknown>>).c;
+    expect(create.keywords).toEqual({ $seen: true, '$label:work': true, $hasattachment: true });
   });
 });
 

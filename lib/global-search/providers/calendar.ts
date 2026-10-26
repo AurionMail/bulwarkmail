@@ -1,6 +1,7 @@
 import { matchesTerms, type ParsedQuery } from '@/lib/global-search/query-parser';
 import { getActiveLocalAccountId, indexAccounts } from '@/lib/global-search/accounts';
 import type { CalendarHit, SearchAccount, SearchProvider } from '@/lib/global-search/types';
+import { textConditions } from '@/lib/jmap/search-utils';
 import type { Calendar, CalendarEvent, CalendarEventFilter } from '@/lib/jmap/types';
 import { useCalendarStore } from '@/stores/calendar-store';
 
@@ -50,12 +51,26 @@ function toHit(event: CalendarEvent, account: SearchAccount, source: 'local' | '
   };
 }
 
-/** `after:`/`before:` are calendar days; the server compares against instants. */
+/**
+ * `after:`/`before:` are calendar days; the server compares against instants.
+ * Several text parts (see splitSearchText) go out as an AND of single-key
+ * conditions, the bounds included: when it expands recurrences, 1.0 accepts
+ * only one AND group, and a condition with several keys is a group itself.
+ */
 export function calendarFilterFor(parsed: ParsedQuery): CalendarEventFilter {
-  const filter: CalendarEventFilter = { text: parsed.text };
-  if (parsed.after) filter.after = `${parsed.after}T00:00:00Z`;
-  if (parsed.before) filter.before = `${parsed.before}T23:59:59Z`;
-  return filter;
+  const after = parsed.after ? `${parsed.after}T00:00:00Z` : undefined;
+  const before = parsed.before ? `${parsed.before}T23:59:59Z` : undefined;
+  const texts = textConditions(parsed.text).map(({ text }): CalendarEventFilter => ({ text }));
+  if (texts.length === 1) {
+    const filter = texts[0];
+    if (after) filter.after = after;
+    if (before) filter.before = before;
+    return filter;
+  }
+  const bounds: CalendarEventFilter[] = [];
+  if (after) bounds.push({ after });
+  if (before) bounds.push({ before });
+  return { operator: 'AND', conditions: [...bounds, ...texts] };
 }
 
 export const calendarProvider: SearchProvider = {
@@ -95,6 +110,7 @@ export const calendarProvider: SearchProvider = {
       calendarFilterFor(parsed),
       [{ property: 'start', isAscending: false }],
       limit,
+      { signal },
     );
     if (signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
     const { calendars } = useCalendarStore.getState();

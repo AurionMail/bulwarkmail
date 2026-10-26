@@ -8,7 +8,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useEmailStore, resolveEmailBlobContext, type EmailBlobContext } from "@/stores/email-store";
 import { useIdentityStore } from "@/stores/identity-store";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
-import { findDraftIdentityId } from "@/lib/reply-identity";
+import { findDraftIdentityIdForLogin } from "@/lib/draft-source";
 import { useSettingsStore } from "@/stores/settings-store";
 import { toast } from "@/stores/toast-store";
 import { useProTabStore, type ProComposeTabData, type ProEmailTabData, type ProReplyContext } from "@/stores/pro-tab-store";
@@ -37,6 +37,13 @@ interface ProEmailViewProps {
    * Folder tabs of another connected account pass that account's client.
    */
   client?: IJMAPClient | null;
+  /**
+   * The connected account `client` belongs to. Given, the message is read
+   * through `client` and a draft reopened from here is saved over and removed
+   * through that login. Absent, nothing says which login the message came
+   * through, and the composer goes by the draft's From.
+   */
+  clientAccountId?: string;
   /**
    * Owner JMAP accountId for messages in shared/group folders. When set, the
    * message is fetched via `getEmail(emailId, accountId)` directly -
@@ -80,13 +87,17 @@ function buildReplyContext(email: Email): ProReplyContext {
  * Hosted by `ProEmailTabBody` (a dedicated email tab) and by the folder tab's
  * reading pane.
  */
-export function ProEmailView({ emailId, client: clientOverride, accountId, onLoaded, onClose, className }: ProEmailViewProps) {
+export function ProEmailView({ emailId, client: clientOverride, clientAccountId, accountId, onLoaded, onClose, className }: ProEmailViewProps) {
   const t = useTranslations();
   const tNotifications = useTranslations('notifications');
   const archiveActionEnabled = useArchiveActionEnabled();
 
   const activeClient = useAuthStore((s) => s.client);
   const client = clientOverride ?? activeClient;
+  // Only a login the host names: without one the message is read through
+  // fetchEmailContent, which routes by the main list (the login browsed
+  // there, a row with the same id) - not necessarily the active login.
+  const localAccountId = clientOverride ? clientAccountId : undefined;
   const fetchEmailContent = useEmailStore((s) => s.fetchEmailContent);
   const deleteEmail = useEmailStore((s) => s.deleteEmail);
   const markAsRead = useEmailStore((s) => s.markAsRead);
@@ -309,10 +320,11 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
       } : prev);
     } catch (err) {
       console.error('Toggle star failed:', err);
+      toast.error(tNotifications('error_updating'));
     }
-  }, [client, email, toggleStar]);
+  }, [client, email, toggleStar, tNotifications]);
 
-  const handleMarkAsRead = useCallback(async (emailIdToMark: string, read: boolean) => {
+  const handleMarkAsRead = useCallback(async (emailIdToMark: string, read: boolean, opts?: { automatic?: boolean }) => {
     if (!client) return;
     try {
       if (!(await markAsRead(client, emailIdToMark, read))) return;
@@ -322,8 +334,10 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
       } : prev);
     } catch (err) {
       console.error('Mark as read failed:', err);
+      // A refused mark-as-read on opening needs no notice (see EmailViewer).
+      if (!opts?.automatic) toast.error(tNotifications('error_updating'));
     }
-  }, [client, markAsRead]);
+  }, [client, markAsRead, tNotifications]);
 
   const handleSetTag = useCallback((emailIdToTag: string, tagId: string | null) => {
     if (!email || email.id !== emailIdToTag) return;
@@ -390,11 +404,12 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
       : undefined;
 
     // Preserve the identity the draft was composed with — match name + address
-    // against the same list the composer renders (see findDraftIdentityId).
+    // against the same list the composer renders, this login's identities
+    // first (see findDraftIdentityIdForLogin).
     const composerIdentities = multiAccountIdentities.enabled
       ? multiAccountIdentities.allIdentities
       : identities;
-    const matchedIdentityId = findDraftIdentityId(composerIdentities, email.from?.[0]);
+    const matchedIdentityId = findDraftIdentityIdForLogin(composerIdentities, email.from?.[0], localAccountId);
 
     const draftSubject = email.subject && email.subject !== t('email_composer.no_subject') ? email.subject : '';
     const addresses = (list: Email['to']) => (list ?? []).map((a) => a.email).filter(Boolean);
@@ -415,6 +430,11 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
         subAddressTag: '',
         mode: 'compose',
         draftId: email.id,
+        // A draft in a shared or group folder is removed there when the
+        // composer replaces, sends or discards it, through the login this
+        // view names (see ComposerDraftData).
+        draftAccountId: accountId,
+        draftLocalAccountId: localAccountId,
         // The draft's already-uploaded parts - the classic path carries them
         // since #849; without this the Pro draft tab still opened the
         // composer without its files and the next save stripped them.
@@ -422,7 +442,7 @@ export function ProEmailView({ emailId, client: clientOverride, accountId, onLoa
         priority: messagePriorityFromHeaders(email.headers),
       },
     }, { to: addresses(email.to), cc: addresses(email.cc), subject: draftSubject, body: bodyText }, onClose);
-  }, [email, identities, multiAccountIdentities, openComposeTab, onClose, t]);
+  }, [email, accountId, localAccountId, identities, multiAccountIdentities, openComposeTab, onClose, t]);
 
   return (
     <div className={cn("flex h-full flex-col bg-background", className)}>
@@ -480,15 +500,17 @@ export function ProEmailTabBody({ tabId, data }: ProEmailTabBodyProps) {
     return mb?.isShared ? mb.accountId : undefined;
   }, [mailboxes, data.mailboxId]);
 
-  // A hit opened from another login (global search) is fetched through that
-  // login's client, targeting the owner accountId stamped on the hit (#847).
+  // A message opened with its login (a list row, a search hit of another
+  // login) is fetched through that login's client, targeting the owner
+  // accountId it came with (#847).
   const clientOverride = data.clientAccountId ? getClientForAccount(data.clientAccountId) ?? null : null;
 
   return (
     <ProEmailView
       emailId={data.emailId}
       client={clientOverride ?? undefined}
-      accountId={clientOverride ? data.accountId : ownerAccountId}
+      clientAccountId={clientOverride ? data.clientAccountId : undefined}
+      accountId={clientOverride ? (data.accountId || undefined) : ownerAccountId}
       onLoaded={handleLoaded}
       onClose={handleClose}
       className="w-full"

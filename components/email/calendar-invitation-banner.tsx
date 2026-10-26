@@ -40,10 +40,13 @@ import {
   type InvitationMethod,
   type InvitationTrustAssessment,
 } from '@/lib/calendar-invitation';
+import { participantsAskedAgain } from '@/lib/calendar-participants';
+import { isValidTimeZone, moveLocalDateTime } from '@/lib/timezone';
 import { cn } from '@/lib/utils';
 import { getEventStartDate } from '@/lib/calendar-utils';
 import { sanitizeColor } from '@/components/calendar/event-card';
 import { RecipientPopover } from './recipient-popover';
+import { useCalendarErrorMessage } from '@/hooks/use-calendar-error-message';
 
 interface InvitationChangeItem {
   label: string;
@@ -210,6 +213,31 @@ function getViewActionLabel(
   return t('view_in_calendar');
 }
 
+/** Whether two events name the same occurrence: their recurrence ids at the same moment, each in its own zone. */
+function sameRecurrenceId(a: Partial<CalendarEvent>, b: Partial<CalendarEvent>): boolean {
+  if (!a.recurrenceId || !b.recurrenceId) return false;
+  const zoneA = a.recurrenceIdTimeZone ?? a.timeZone ?? null;
+  const zoneB = b.recurrenceIdTimeZone ?? b.timeZone ?? null;
+  const bInA = zoneA && zoneB && isValidTimeZone(zoneA) && isValidTimeZone(zoneB)
+    ? moveLocalDateTime(b.recurrenceId.slice(0, 19), zoneB, zoneA)
+    : b.recurrenceId;
+  return a.recurrenceId.slice(0, 19) === bInA.slice(0, 19);
+}
+
+/**
+ * The event in the calendar a counter proposal is about. An attendee's
+ * proposal for one occurrence of a recurring meeting names that occurrence
+ * by its recurrence id, one for the whole meeting names none. Matched on the
+ * uid alone, the first event with it got the proposal - any occurrence in
+ * view. A proposal for a whole series of which only occurrences are in view
+ * has no event here, and is not applied to one of them.
+ */
+function counterTarget(events: CalendarEvent[], proposal: Partial<CalendarEvent>): CalendarEvent | null {
+  const sameUid = events.filter((event) => event.uid === proposal.uid);
+  if (!proposal.recurrenceId) return sameUid.find((event) => !event.recurrenceId) ?? null;
+  return sameUid.find((event) => sameRecurrenceId(event, proposal)) ?? null;
+}
+
 function buildProposalPatch(
   currentEvent: Partial<CalendarEvent> | null,
   proposedEvent: Partial<CalendarEvent> | null,
@@ -365,6 +393,7 @@ type BannerState = 'loading' | 'parsed' | 'rsvp-sent' | 'imported' | 'error';
 
 export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProps) {
   const t = useTranslations('email_viewer.calendar_invitation');
+  const describeError = useCalendarErrorMessage();
   const format = useFormatter();
   const router = useRouter();
   const client = useAuthStore((s) => s.client);
@@ -568,7 +597,9 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   // the import-then-find-participant flow for this case.
   const canRespond = supportsCalendar && allowsRsvp && !isResponseOnly && !userIsOrganizer
     && (Boolean(myParticipant) || method === 'request');
-  const proposalPatch = existingEvent && parsedEvent ? buildProposalPatch(existingEvent, parsedEvent) : null;
+  // A counter proposal applies to the occurrence it names, or to the meeting itself.
+  const proposalTarget = method === 'counter' && parsedEvent ? counterTarget(storeEvents, parsedEvent) : existingEvent;
+  const proposalPatch = proposalTarget && parsedEvent ? buildProposalPatch(proposalTarget, parsedEvent) : null;
 
   const resolveExistingEventForRsvp = async () => {
     if (!client || !existingEvent) {
@@ -645,7 +676,9 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       } else if (eventForRsvp) {
         setActionError(t('action_failed'));
       } else if (calId) {
-        const imported = await importEvents(client, [parsedEvent], calId);
+        // A refusal (Stalwart 1.0's participant limit, say) lands in the
+        // catch below and is said as it is.
+        const imported = await importEvents(client, [parsedEvent], calId, { throwIfNoneImported: true });
         if (imported === null) return;
         if (imported > 0) {
           const newEvent = useCalendarStore.getState().events.find(
@@ -669,7 +702,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       }
     } catch (err) {
       console.error('[CalendarInvitation] RSVP failed:', err);
-      setActionError(t('action_failed'));
+      setActionError(describeError(err, t('action_failed')));
     } finally {
       setIsProcessing(false);
     }
@@ -703,7 +736,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     setActionError(null);
     setIsProcessing(true);
     try {
-      const count = await importEvents(client, [parsedEvent], calId);
+      const count = await importEvents(client, [parsedEvent], calId, { throwIfNoneImported: true });
       if (count === null) return;
       if (count > 0) {
         setActionNotice(t('added'));
@@ -711,8 +744,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       } else {
         setActionError(t('action_failed'));
       }
-    } catch {
-      setActionError(t('action_failed'));
+    } catch (err) {
+      setActionError(describeError(err, t('action_failed')));
     } finally {
       setIsProcessing(false);
     }
@@ -724,12 +757,12 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     timeFormat === '12h',
   );
 
-  const proposedChanges = method === 'counter' && existingEvent && parsedEvent
-    ? buildInvitationChangeItems(t, existingEvent, parsedEvent, formatSchedule)
+  const proposedChanges = method === 'counter' && proposalTarget && parsedEvent
+    ? buildInvitationChangeItems(t, proposalTarget, parsedEvent, formatSchedule)
     : [];
   const canApplyProposal = Boolean(
     client
-    && existingEvent?.id
+    && proposalTarget?.id
     && userIsOrganizer
     && method === 'counter'
     && proposalPatch
@@ -737,7 +770,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const viewActionLabel = getViewActionLabel(t, method, userIsOrganizer);
 
   const handleApplyProposal = async () => {
-    if (!client || !existingEvent?.id || !proposalPatch || isProcessing) {
+    if (!client || !proposalTarget?.id || !proposalPatch || isProcessing) {
       return;
     }
 
@@ -746,12 +779,16 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     setIsProcessing(true);
 
     try {
-      if (!(await updateEvent(client, existingEvent.id, proposalPatch, true))) return;
+      // A proposal for another time moves the event: its attendees are asked
+      // again, as the editor and a drag ask them (participantsAskedAgain).
+      const moves = (['start', 'duration', 'timeZone', 'showWithoutTime'] as const).some((key) => key in proposalPatch);
+      const participants = moves ? participantsAskedAgain(proposalTarget) : null;
+      if (!(await updateEvent(client, proposalTarget.id, participants ? { ...proposalPatch, participants } : proposalPatch, true))) return;
       setActionNotice(t('proposal_applied'));
       setState('parsed');
       setRsvpStatus(null);
-    } catch {
-      setActionError(t('action_failed'));
+    } catch (err) {
+      setActionError(describeError(err, t('action_failed')));
     } finally {
       setIsProcessing(false);
     }

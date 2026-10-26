@@ -415,11 +415,21 @@ export function CalendarManagementSettings() {
     }
   };
 
-  const handleUpdate = async (calendarId: string, data: { name: string; color: string }) => {
+  const handleUpdate = async (
+    calendarId: string,
+    data: { name: string; color: string },
+    shownColor: string,
+  ) => {
     if (!client) return;
     setIsLoading(true);
     try {
-      await updateCalendar(client, calendarId, { name: data.name, color: data.color });
+      // The colour only when the user changed it: Stalwart 1.0 accepts only
+      // #rgb, #rrggbb or a CSS colour name, so sending back one another
+      // client stored (an 8-digit hex from Apple Calendar) failed the rename.
+      await updateCalendar(client, calendarId, {
+        name: data.name,
+        ...(data.color !== shownColor ? { color: data.color } : {}),
+      });
       setEditingId(null);
       toast.success(t('calendar_updated'));
     } catch {
@@ -547,7 +557,7 @@ export function CalendarManagementSettings() {
               <CalendarEditForm
                 key={cal.id}
                 initial={{ name: cal.name, color }}
-                onSave={(data) => handleUpdate(cal.id, data)}
+                onSave={(data) => handleUpdate(cal.id, data, color)}
                 onCancel={() => setEditingId(null)}
                 isLoading={isLoading}
               />

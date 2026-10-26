@@ -69,9 +69,10 @@ export interface ProEmailTabData {
   mailboxId: string | null;
   title: string;
   /**
-   * Connected-account id (login) whose client fetches this email; unset = the
-   * active account. Set when a hit from another login is opened (global
-   * search) - bare email ids are ambiguous across logins (#847).
+   * Connected-account id (login) whose client fetches this email, with
+   * `accountId` the JMAP account there; unset = the active account. Set for
+   * a list row and a hit from another login (global search) - bare email ids
+   * are ambiguous across logins (#847).
    */
   clientAccountId?: string;
 }
@@ -417,10 +418,12 @@ export const useProTabStore = create<ProTabState>()(
           const state = core(get());
 
           // Same email already open anywhere: focus it, never open twice.
+          // Of the same login: ids and account ids repeat across servers.
           const existing = state.tabs.find(
             (tab) => tab.kind === 'email'
               && tab.emailData?.emailId === data.emailId
               && tab.emailData?.accountId === data.accountId
+              && tab.emailData?.clientAccountId === data.clientAccountId
           );
           if (existing) {
             commit((s) => withTabActivated(s, existing));

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   MAX_KEYWORD_ID_LENGTH,
+  MAX_KEYWORD_LENGTH,
   buildKeywordTree,
   composeKeywordId,
   countKeywordNodes,
@@ -96,9 +97,17 @@ describe("hasChildKeywords", () => {
 });
 
 describe("MAX_KEYWORD_ID_LENGTH", () => {
-  it("leaves room for the `$label:` prefix within the 255-character keyword limit", () => {
-    expect(MAX_KEYWORD_ID_LENGTH).toBe(248);
-    expect("$label:".length + MAX_KEYWORD_ID_LENGTH).toBe(255);
+  // Stalwart 1.0 refuses a keyword over 128 bytes; 0.16 cuts it to 128
+  // characters, which detaches it from its tag.
+  it("leaves room for the `$label:` prefix within Stalwart's 128-byte keyword limit", () => {
+    expect(MAX_KEYWORD_LENGTH).toBe(128);
+    expect(MAX_KEYWORD_ID_LENGTH).toBe(121);
+    expect("$label:".length + MAX_KEYWORD_ID_LENGTH).toBe(128);
+  });
+
+  it("counts bytes, which a composed id always has as many of as characters", () => {
+    const id = composeKeywordId("work/clients", "Ärger & Überstunden");
+    expect(new TextEncoder().encode(`$label:${id}`).length).toBe(`$label:${id}`.length);
   });
 });
 

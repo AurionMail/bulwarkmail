@@ -261,7 +261,7 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
           {touch && (
             <div className="text-xs text-muted-foreground truncate">
               {formatShortDate(resource.lastModified)}
-              {!resource.isDirectory && <> · {formatFileSize(resource.contentLength)}</>}
+              {!resource.isDirectory && !resource.isSymlink && <> · {formatFileSize(resource.contentLength)}</>}
             </div>
           )}
         </div>
@@ -270,10 +270,10 @@ function FileListRow({ resource, isSelected, isFocused, isDropTarget, isCut, isS
         {!touch && formatShortDate(resource.lastModified)}
       </div>
       <div role="gridcell" className="hidden sm:block text-muted-foreground tabular-nums text-end">
-        {!touch && (resource.isDirectory ? "—" : formatFileSize(resource.contentLength))}
+        {!touch && (resource.isDirectory || resource.isSymlink ? "—" : formatFileSize(resource.contentLength))}
       </div>
       <div role="gridcell" className="flex items-center justify-end gap-0.5 w-[4.75rem]">
-        {!touch && !resource.isDirectory && (
+        {!touch && !resource.isDirectory && !resource.isSymlink && (
           <RowAction icon={Download} label={t("download")} onClick={() => handlers.onDownload(resource)} />
         )}
         {!touch && handlers.canShare(resource) && (
@@ -475,7 +475,9 @@ function FileTile({ resource, isSelected, isFocused, isCut, selecting, touch, ic
             {resource.name}
           </button>
           <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
-            <span className="truncate">{formatFileSize(resource.contentLength)} · {formatShortDate(resource.lastModified)}</span>
+            <span className="truncate">
+              {resource.isSymlink ? "" : `${formatFileSize(resource.contentLength)} · `}{formatShortDate(resource.lastModified)}
+            </span>
             <ShareBadge resource={resource} t={t} className="w-3 h-3" />
           </div>
         </div>

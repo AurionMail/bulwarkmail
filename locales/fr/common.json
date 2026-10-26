@@ -617,6 +617,14 @@
     "scheduled_actions_only": "La vue Planifiés prend uniquement en charge les actions de planification",
     "undo_send_scheduled": "Message planifié pour envoi",
     "undo_send": "Annuler l’envoi",
+    "send_cancelled_restore_failed": "L’envoi a été annulé, mais le message n’a pas pu être remis dans Brouillons. Il est toujours dans Envoyés.",
+    "send_cancelled_remove_failed": "L’envoi a été annulé, mais le message non envoyé n’a pas pu être retiré d’Envoyés.",
+    "cancel_scheduled_failed": "Impossible d’annuler l’envoi planifié",
+    "still_scheduled_at": "Le message reste planifié pour le {date}.",
+    "still_scheduled": "Le message reste planifié.",
+    "already_sent": "Ce message a déjà été envoyé.",
+    "no_longer_scheduled": "Ce message n’est plus planifié.",
+    "reschedule_recipients_refused": "Rien n’a été modifié : le serveur a refusé {recipients}.",
     "contact_sidebar": {
       "title": "Contact",
       "close": "Fermer le panneau",
@@ -759,6 +767,10 @@
     "smime_unlock_button": "Déverrouiller",
     "smime_passphrase_placeholder": "Phrase secrète S/MIME",
     "send_timeout": "Le serveur ne répond plus. Vérifiez le dossier Envoyés avant de renvoyer : le message est peut-être déjà parti.",
+    "submission_quota": "Le serveur conserve trop d’enregistrements de messages envoyés pour ce compte. Bulwark a supprimé ceux qu’il pouvait ; si cela se reproduit, demandez à votre administrateur de relever la limite d’envois de courriels.",
+    "submission_limit": "Le serveur a refusé d’envoyer le message, car une limite est atteinte : {reason}",
+    "recipients_refused": "Non envoyé : le serveur a refusé {recipients}.",
+    "recipients_partly_refused": "Le serveur a refusé {recipients}. Les autres destinataires reçoivent le message.",
     "send_offline": "Vous semblez hors ligne. Le message est toujours là ; renvoyez-le une fois de nouveau en ligne.",
     "formatting": "Mise en forme",
     "send_recipients_rejected": "Non envoyé : le serveur a refusé tous les destinataires.",
@@ -1367,7 +1379,10 @@
         "revoke": "Révoquer",
         "confirm_revoke_title": "Révoquer cet appareil ?",
         "confirm_revoke_message": "Il cessera immédiatement de recevoir les notifications en arrière-plan. Réactiver les notifications push sur cet appareil l’enregistrera à nouveau.",
-        "confirm_revoke_message_this": "Cet appareil cessera immédiatement de recevoir les notifications en arrière-plan."
+        "confirm_revoke_message_this": "Cet appareil cessera immédiatement de recevoir les notifications en arrière-plan.",
+        "shared_mailboxes_no_push": "Les boîtes aux lettres que d'autres personnes partagent avec vous n'envoient pas de notifications en arrière-plan.",
+        "error_forbidden": "Le serveur de messagerie n'autorise pas les notifications en arrière-plan pour ce compte.",
+        "error_over_quota": "Ce compte a trop d'enregistrements push sur le serveur de messagerie (la limite est généralement de 15). Révoquez les appareils que vous n'utilisez plus dans les paramètres de notification, puis réessayez."
       }
     },
     "language_region": {
@@ -2357,6 +2372,7 @@
       "validation_empty_name": "Le nom de la règle est requis",
       "validation_empty_conditions": "Au moins une condition avec une valeur est requise",
       "validation_empty_actions": "Au moins une action est requise",
+      "validation_header_name": "Les noms d'en-tête ne peuvent contenir que les lettres A-Z, des chiffres, des traits d'union et des tirets bas",
       "templates_section": "Partir d'un modèle",
       "template_newsletters": "Déplacer les newsletters dans un dossier",
       "template_receipts": "Archiver les reçus automatiquement",
@@ -3136,7 +3152,8 @@
     },
     "export": {
       "title": "Exporter les contacts",
-      "success": "{count, plural, one {1 contact exporté} other {# contacts exportés}}"
+      "success": "{count, plural, one {1 contact exporté} other {# contacts exportés}}",
+      "exporting": "Exportation..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 sélectionné} other {# sélectionnés}}",
@@ -3280,8 +3297,11 @@
         "free": "Disponible",
         "busy": "Occupé",
         "tentative": "Provisoire",
+        "no_busy_times": "Aucune plage occupée partagée",
         "unknown": "Pas un utilisateur de ce serveur",
-        "checking": "Vérification…"
+        "error": "Vérification impossible",
+        "checking": "Vérification…",
+        "unavailable_on_server": "Les informations libre/occupé ne sont pas disponibles sur ce serveur"
       },
       "title": "Participants",
       "add": "Ajouter un participant",
@@ -3303,6 +3323,7 @@
       "you_organizer": "Vous êtes l'organisateur",
       "you_attendee": "Vous êtes un participant",
       "no_participants": "Aucun participant",
+      "limit_warning": "Plus de {max, plural, one {# participant} other {# participants}}, organisateur compris : le serveur risque de refuser d'enregistrer cet événement. Un administrateur peut relever la limite.",
       "count": "{count, plural, one {# participant} other {# participants}}"
     },
     "recurrence": {
@@ -3493,6 +3514,7 @@
       "save_without_invitations": "Enregistrer sans invitations",
       "rsvp_updated": "Réponse mise à jour",
       "rsvp_error": "Échec de la mise à jour de la réponse",
+      "participant_limit": "Le serveur autorise au plus {max, plural, one {# participant} other {# participants}} par événement, organisateur compris, il a donc refusé cette modification. Un administrateur peut relever la limite.",
       "event_duplicated": "Événement dupliqué",
       "event_error": "Échec de l'enregistrement de l'événement",
       "task_due": "Tâche à échéance",
@@ -3502,7 +3524,10 @@
     },
     "status": {
       "loading_calendars": "Chargement des calendriers...",
-      "loading_events": "Chargement des événements..."
+      "loading_events": "Chargement des événements...",
+      "events_load_failed": "Impossible de charger les événements. Le calendrier n'est peut-être pas à jour.",
+      "tasks_load_failed": "Impossible de charger les tâches. La liste n'est peut-être pas à jour.",
+      "retry": "Réessayer"
     },
     "quick_create": {
       "placeholder": "Titre du nouvel événement",
@@ -3768,6 +3793,8 @@
     "new_name": "Nouveau nom",
     "name_forbidden_chars": "Le serveur n'autorise pas ces caractères dans les noms : {chars}",
     "name_reserved": "Ce nom est réservé sur le serveur.",
+    "name_control_chars": "Les noms ne peuvent pas contenir de caractères de contrôle.",
+    "name_too_long": "Ce nom est trop long pour le serveur.",
     "delete": "Supprimer",
     "delete_confirm_title": "Supprimer la ressource",
     "delete_confirm_message": "Êtes-vous sûr de vouloir supprimer \"{name}\" ? Cette action est irréversible.",
@@ -3778,11 +3805,21 @@
     "type": "Type",
     "folder": "Dossier",
     "file": "Fichier",
+    "symlink": "Lien symbolique",
+    "parent_directory": "Répertoire parent",
+    "breadcrumb_root": "Accueil",
     "uploading": "Téléversement en cours...",
     "upload_success": "{count, plural, one {1 fichier téléversé} other {# fichiers téléversés}}",
     "upload_canceled": "Téléversement annulé",
     "upload_canceled_partial": "{count, plural, one {1 fichier a été téléversé} other {# fichiers ont été téléversés}} avant l'annulation",
     "upload_error": "Échec du téléversement du fichier",
+    "upload_failed": "{count, plural, one {1 fichier n'a pas pu être téléversé} other {# fichiers n'ont pas pu être téléversés}}",
+    "error_over_quota": "Vous avez atteint la limite de fichiers ou de dossiers. Supprimez-en quelques-uns et réessayez.",
+    "error_too_deep": "Les dossiers ne peuvent pas être imbriqués aussi profondément.",
+    "error_invalid_name": "Le serveur n'accepte pas ce nom.",
+    "error_forbidden": "Vous n'avez pas l'autorisation de faire cela ici.",
+    "error_too_large": "Ce fichier est trop volumineux pour le serveur.",
+    "error_partial_copy": "Une partie de la copie est restée en place.",
     "create_folder_success": "Dossier créé",
     "create_folder_error": "Échec de la création du dossier",
     "delete_success": "Supprimé avec succès",
@@ -3821,6 +3858,7 @@
     "shared": "Shared",
     "shared_with_me": "Shared with me",
     "shared_by": "Shared by {name}",
+    "shared_files_from": "Fichiers de {name}",
     "create_file_success": "Fichier créé",
     "create_file_error": "Échec de la création du fichier",
     "favorites": "Favoris",
@@ -4050,8 +4088,12 @@
     "loading_principals": "Chargement des utilisateurs…",
     "no_principals": "Aucun autre utilisateur ou groupe trouvé.",
     "no_match": "Aucun résultat.",
+    "directory_restricted": "Votre serveur ne permet pas de parcourir son annuaire d'utilisateurs, seuls vos groupes et les personnes ayant partagé quelque chose avec vous sont donc listés. Un administrateur peut activer les requêtes d'annuaire dans les paramètres de partage de Stalwart.",
+    "directory_not_browsable": "Votre serveur ne vous permet pas de parcourir son annuaire d'utilisateurs.",
+    "directory_failed": "Impossible de charger la liste des utilisateurs et des groupes.",
     "remove": "Révoquer l'accès",
     "group": "Groupe",
+    "unknown_user": "Utilisateur inconnu",
     "share_added": "Accès accordé",
     "share_updated": "Accès mis à jour",
     "share_removed": "Accès révoqué",

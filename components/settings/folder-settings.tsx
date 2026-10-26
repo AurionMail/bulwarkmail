@@ -17,6 +17,7 @@ import {
   type AppIcon,
 } from '@/components/icons';
 import { cn, buildMailboxTree, flattenMailboxTree, type MailboxNode } from '@/lib/utils';
+import { jmapErrorType } from '@/lib/jmap/jmap-error';
 import {
   flattenVisibleTree, removeSubtree, getProjection, getDropPlan,
   type FlatFolder,
@@ -450,8 +451,7 @@ export function FolderSettings() {
       setDeletingId(null);
       toast.success(t('folder_deleted'));
     } catch (err: unknown) {
-      const jmapType = (err as Error & { jmapType?: string })?.jmapType;
-      switch (jmapType) {
+      switch (jmapErrorType(err)) {
         case 'mailboxHasChild':
           toast.error(t('error_delete_has_children'));
           break;

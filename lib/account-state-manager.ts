@@ -12,6 +12,7 @@ import { DEFAULT_SEARCH_FILTERS } from '@/lib/jmap/search-utils';
 import { useIdentityStore } from '@/stores/identity-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { useFileStore } from '@/stores/file-store';
+import { clearContactPhotoCache } from '@/lib/contact-photo-cache';
 import { bumpStoreEpoch } from '@/lib/store-epoch';
 import { useAccountSecurityStore } from '@/stores/account-security-store';
 
@@ -146,6 +147,9 @@ export function clearAllStores(): void {
   });
   useIdentityStore.getState().clearIdentities();
   useContactStore.getState().clearContacts();
+  // Downloaded contact photos are object URLs keyed by blobId; revoke them
+  // with the contacts they belong to.
+  clearContactPhotoCache();
   useVacationStore.getState().clearState();
   useCalendarStore.getState().clearState();
   useFilterStore.getState().clearState();

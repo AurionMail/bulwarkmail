@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import type { ContactCard, AnniversaryDate, PartialDate } from "@/lib/jmap/types";
-import { getContactDisplayName, getContactPrimaryEmail, getContactPhotoUri } from "@/stores/contact-store";
+import { getContactDisplayName, getContactPrimaryEmail, getContactPhotoRef } from "@/stores/contact-store";
 import { ContactActivity } from "./contact-activity";
 import { toast } from "@/stores/toast-store";
-import { exportContact } from "./contact-export";
+import { exportContact, useContactExportBusy } from "./contact-export";
 import { printContact } from "./contact-print";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
@@ -25,6 +25,7 @@ type MoreItem =
       label: string;
       onClick: () => void;
       destructive?: boolean;
+      disabled?: boolean;
       separator?: false;
     }
   | { separator: true };
@@ -144,6 +145,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   const cryptoKeys = contact?.cryptoKeys ? Object.values(contact.cryptoKeys) : [];
   const hasCryptoKeysSlotOffers = usePluginSlotOffers('contact-cryptokeys').length > 0;
+  const exporting = useContactExportBusy();
   const pluginContactProps = useMemo(() => (contact ? { contact: contactToView(contact) } : null), [contact]);
 
   // Tell plugins once per contact shown here, not on every edit of that card.
@@ -167,16 +169,15 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   const name = getContactDisplayName(contact);
   const email = getContactPrimaryEmail(contact);
-  const photoUri = getContactPhotoUri(contact);
+  const photo = getContactPhotoRef(contact) ?? null;
   const phone = contact.phones ? Object.values(contact.phones)[0]?.number : undefined;
 
-  const handleExport = () => {
-    exportContact(contact);
-    toast.success(t("export.success", { count: 1 }));
+  const handleExport = async () => {
+    if (await exportContact(contact)) toast.success(t("export.success", { count: 1 }));
   };
 
   const handlePrint = () => {
-    printContact(contact, name);
+    void printContact(contact, name);
   };
 
   const moreItems: MoreItem[] = [];
@@ -186,7 +187,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
   if (onDuplicate) {
     moreItems.push({ icon: Copy, label: t("context_menu.duplicate"), onClick: onDuplicate });
   }
-  moreItems.push({ icon: Download, label: t("context_menu.export_vcard"), onClick: handleExport });
+  moreItems.push({ icon: Download, label: t("context_menu.export_vcard"), onClick: handleExport, disabled: exporting });
   moreItems.push({ icon: Printer, label: t("context_menu.print"), onClick: handlePrint });
   moreItems.push({ separator: true });
   moreItems.push({ icon: Trash2, label: t("context_menu.delete"), onClick: onDelete, destructive: true });
@@ -221,7 +222,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
       <div className={cn("border-b border-border", isMobile ? "px-4 py-4" : "px-6 py-6")}>
         <div className={cn("flex gap-4", isMobile ? "flex-col" : "flex-wrap items-start justify-between")}>
           <div className="flex items-center gap-4 min-w-0 flex-1 basis-60">
-            <Avatar name={name} email={email} contactPhotoUri={photoUri} size={isMobile ? "md" : "lg"} />
+            <Avatar name={name} email={email} contactPhoto={photo} size={isMobile ? "md" : "lg"} />
             <div className="min-w-0 flex-1">
               <h2 className={cn("font-semibold truncate", isMobile ? "text-lg" : "text-xl")}>{name || "-"}</h2>
               {hasNickname && (
@@ -631,6 +632,7 @@ function MoreActionsMenu({ items, label }: { items: MoreItem[]; label: string })
                 icon={item.icon}
                 label={item.label}
                 destructive={item.destructive}
+                disabled={item.disabled}
                 onClick={() => {
                   item.onClick();
                   setOpen(false);

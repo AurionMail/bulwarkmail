@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateScript } from '../generator';
+import { generateScript, isValidSieveHeaderName } from '../generator';
 import { parseScript } from '../parser';
 import type { FilterRule } from '@/lib/jmap/sieve-types';
 
@@ -42,6 +42,40 @@ describe('generateScript', () => {
     expect(script).toContain('fileinto "Archive";');
   });
 
+  describe('text that could break out of a comment', () => {
+    it('escapes */ inside the metadata comment so the JSON cannot end it early', () => {
+      const script = generateScript(
+        [makeRule({
+          name: 'Invoices */ keep',
+          conditions: [{ field: 'subject', comparator: 'contains', value: ['a*/b', '*/'] }],
+          actions: [{ type: 'move', value: 'Bills*/2026' }],
+        })],
+        { isEnabled: true, subject: 'Away */', textBody: 'Back soon */ promise' },
+      );
+      const comment = script.slice(script.indexOf('/* @metadata:begin'), script.indexOf('@metadata:end */'));
+      expect(comment).not.toContain('*/');
+      expect(comment).toContain('Invoices *\\/ keep');
+      // `\/` is a JSON escape, so the JSON reads back exactly as written.
+      const json = script.match(/@metadata:begin\n(.*)\n@metadata:end/)![1];
+      const metadata = JSON.parse(json);
+      expect(metadata.rules[0].name).toBe('Invoices */ keep');
+      expect(metadata.rules[0].conditions[0].value).toEqual(['a*/b', '*/']);
+      expect(metadata.vacation.textBody).toBe('Back soon */ promise');
+    });
+
+    it('keeps the metadata byte-identical when nothing needs escaping', () => {
+      const rules = [makeRule({ name: 'Plain / slash and * star' })];
+      const json = generateScript(rules).match(/@metadata:begin\n(.*)\n@metadata:end/)![1];
+      expect(json).toBe(JSON.stringify({ version: 1, rules }));
+    });
+
+    it('keeps a line break in the rule name out of the # Rule: line', () => {
+      const script = generateScript([makeRule({ name: 'Line one\r\ndiscard;\nstop' })]);
+      expect(script).toContain('# Rule: Line one discard; stop\n');
+      expect(script).not.toMatch(/^discard;$/m);
+    });
+  });
+
   describe('condition fields', () => {
     it('maps to field to "To" header', () => {
       const script = generateScript([makeRule({
@@ -69,6 +103,39 @@ describe('generateScript', () => {
         conditions: [{ field: 'header', comparator: 'contains', value: 'test', headerName: 'X-Custom' }],
       })]);
       expect(script).toContain('header :contains "X-Custom" "test"');
+    });
+
+    // sieve-rs (Stalwart 0.16 and 1.0) accepts only [A-Za-z0-9_-]+ and refuses
+    // the whole script otherwise, taking every other rule down with it.
+    it.each(['X-Spam Flag', 'X-Foo.Bar', 'X-Foo:', 'X-"Quoted"', 'Überschrift'])(
+      'skips a rule whose header name %j Stalwart would refuse, keeping the others',
+      (headerName) => {
+        const script = generateScript([
+          makeRule({ id: 'bad', name: 'Bad header', conditions: [{ field: 'header', comparator: 'contains', value: 'yes', headerName }] }),
+          makeRule({ id: 'good', name: 'Good rule' }),
+        ]);
+        const code = script.slice(script.indexOf('@metadata:end */'));
+        expect(code).not.toContain('Bad header');
+        expect(code).not.toContain('"yes"');
+        expect(code).toContain('# Rule: Good rule');
+        // Kept in the metadata, so the rule can still be corrected in the UI.
+        expect(parseScript(script).rules.map((r) => r.id)).toEqual(['bad', 'good']);
+      },
+    );
+
+    it('accepts letters, digits, hyphens and underscores, trimming stray spaces', () => {
+      const script = generateScript([makeRule({
+        conditions: [{ field: 'header', comparator: 'is', value: 'yes', headerName: ' X-Spam_Flag-2 ' }],
+      })]);
+      expect(script).toContain('header :is "X-Spam_Flag-2" "yes"');
+    });
+
+    it('validates header names with the same rule the server applies', () => {
+      expect(isValidSieveHeaderName('X-Spam-Flag')).toBe(true);
+      expect(isValidSieveHeaderName('x_custom_2')).toBe(true);
+      expect(isValidSieveHeaderName('')).toBe(false);
+      expect(isValidSieveHeaderName('X-Spam Flag')).toBe(false);
+      expect(isValidSieveHeaderName('X-Foo.Bar')).toBe(false);
     });
 
     it('handles size greater_than', () => {

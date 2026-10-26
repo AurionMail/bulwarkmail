@@ -243,6 +243,7 @@ export function EmailList({
   // grouping mirrors the server order instead of re-sorting the page by date.
   // Search results and cross-account views are always chronological.
   const fetchedListOrder = useEmailStore((state) => state.listOrder);
+  const keepServerTextOrder = useEmailStore((state) => state.listKeepsServerTextOrder);
   const crossView = useEmailStore((state) => state.crossView);
   // The row opened last stays where it was clicked while that order would
   // move it (e.g. read in "unread first").
@@ -256,8 +257,8 @@ export function EmailList({
   const allThreadGroups = useMemo(() => {
     const listOrder = searchQuery || crossView || !isFilterEmpty(searchFilters) ? [] : fetchedListOrder;
     const groups = groupEmailsByThread(emails, disableThreading || isScheduledView, threadEmailCounts);
-    return sortThreadGroups(groups, listOrder, listHold?.keywords);
-  }, [emails, disableThreading, isScheduledView, threadEmailCounts, fetchedListOrder, searchQuery, crossView, searchFilters, listHold]);
+    return sortThreadGroups(groups, listOrder, { keepServerTextOrder, held: listHold?.keywords });
+  }, [emails, disableThreading, isScheduledView, threadEmailCounts, fetchedListOrder, keepServerTextOrder, searchQuery, crossView, searchFilters, listHold]);
 
   // Mountain View's "Unread first" inbox: the Unread section's conversations
   // go first, under a header each section has, and a folded section's rows
@@ -552,11 +553,17 @@ export function EmailList({
   const isSearching = !!searchQuery || !isFilterEmpty(searchFilters);
   const emptySlotProps = useMemo(() => ({ ...listSlotProps, searching: isSearching }), [listSlotProps, isSearching]);
 
+  // The store reports a refused message (a read-only shared folder) through
+  // its error; the rest of the selection is marked.
+  const markSelectionRead = (read: boolean) => client
+    ? runBatchEmailAction(() => batchMarkAsRead(client, read), { error: tNotifications('error_updating') })
+    : Promise.resolve();
+
   const handleBatchMarkAsRead = async (read: boolean) => {
     if (!client || isProcessing) return;
     setIsProcessing(true);
     try {
-      await batchMarkAsRead(client, read);
+      await markSelectionRead(read);
     } finally {
       setTimeout(() => setIsProcessing(false), 500);
     }
@@ -1153,7 +1160,7 @@ export function EmailList({
               error: tNotifications('copy_failed'),
             });
           }}
-          onBatchMarkAsRead={(read) => client && batchMarkAsRead(client, read)}
+          onBatchMarkAsRead={(read) => markSelectionRead(read)}
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}
           onBatchToggleTag={handleBatchToggleTag}

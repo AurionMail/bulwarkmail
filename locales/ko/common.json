@@ -617,6 +617,14 @@
     "scheduled_actions_only": "예약됨 보기에서는 예약 작업만 사용할 수 있습니다",
     "undo_send_scheduled": "메시지가 보내기로 예약되었습니다",
     "undo_send": "보내기 실행 취소",
+    "send_cancelled_restore_failed": "보내기가 취소되었지만 메시지를 임시보관함으로 되돌리지 못했습니다. 메시지는 아직 보낸편지함에 있습니다.",
+    "send_cancelled_remove_failed": "보내기가 취소되었지만 보내지 않은 메시지를 보낸편지함에서 제거하지 못했습니다.",
+    "cancel_scheduled_failed": "예약된 보내기를 취소하지 못했습니다",
+    "still_scheduled_at": "메시지는 여전히 {date}에 보내도록 예약되어 있습니다.",
+    "still_scheduled": "메시지는 여전히 예약되어 있습니다.",
+    "already_sent": "이 메시지는 이미 보냈습니다.",
+    "no_longer_scheduled": "이 메시지는 더 이상 예약되어 있지 않습니다.",
+    "reschedule_recipients_refused": "변경된 내용이 없습니다: 서버가 {recipients}을(를) 거부했습니다.",
     "contact_sidebar": {
       "title": "연락처",
       "close": "사이드바 닫기",
@@ -752,6 +760,10 @@
     "show_less": "간략히 보기",
     "send_failed": "메일 전송에 실패했어요",
     "send_timeout": "서버가 응답을 멈췄습니다. 다시 보내기 전에 보낸 편지함을 확인하세요. 메시지가 이미 발송되었을 수 있습니다.",
+    "submission_quota": "서버에 이 계정의 보낸 메시지 기록이 너무 많습니다. Bulwark가 삭제할 수 있는 기록은 삭제했습니다. 이 문제가 계속되면 관리자에게 메일 발송 한도를 늘려 달라고 요청하세요.",
+    "submission_limit": "한도에 도달하여 서버가 메시지 전송을 거부했습니다: {reason}",
+    "recipients_refused": "보내지 못했습니다: 서버가 {recipients}을(를) 거부했습니다.",
+    "recipients_partly_refused": "서버가 {recipients}을(를) 거부했습니다. 다른 받는 사람에게는 메시지가 전달됩니다.",
     "send_offline": "오프라인 상태인 것 같습니다. 메시지는 그대로 있으니 다시 연결되면 보내세요.",
     "formatting": "서식",
     "send_recipients_rejected": "보내지 못했습니다. 서버가 모든 수신자를 거부했습니다.",
@@ -1367,7 +1379,10 @@
         "revoke": "해지",
         "confirm_revoke_title": "이 기기를 해지할까요?",
         "confirm_revoke_message": "즉시 백그라운드 알림 수신을 멈추게 됩니다. 해당 기기에서 푸시를 다시 켜면 새로 등록됩니다.",
-        "confirm_revoke_message_this": "이 기기는 즉시 백그라운드 알림 수신을 멈추게 됩니다."
+        "confirm_revoke_message_this": "이 기기는 즉시 백그라운드 알림 수신을 멈추게 됩니다.",
+        "shared_mailboxes_no_push": "다른 사람이 공유한 메일함은 백그라운드 알림을 보내지 않습니다.",
+        "error_forbidden": "메일 서버에서 이 계정의 백그라운드 알림을 허용하지 않습니다.",
+        "error_over_quota": "이 계정은 메일 서버에 푸시 등록이 너무 많습니다(한도는 보통 15개). 알림 설정에서 더 이상 사용하지 않는 기기를 해지한 후 다시 시도하세요."
       }
     },
     "language_region": {
@@ -2357,6 +2372,7 @@
       "validation_empty_name": "규칙 이름을 입력해 주세요",
       "validation_empty_conditions": "값을 포함한 조건이 하나 이상 필요해요",
       "validation_empty_actions": "동작이 하나 이상 필요해요",
+      "validation_header_name": "헤더 이름에는 영문자(A-Z), 숫자, 하이픈, 밑줄만 쓸 수 있어요",
       "templates_section": "템플릿으로 시작하기",
       "template_newsletters": "뉴스레터를 특정 폴더로 이동",
       "template_receipts": "영수증 자동 보관",
@@ -3136,7 +3152,8 @@
     },
     "export": {
       "title": "연락처 내보내기",
-      "success": "{count}개의 연락처를 성공적으로 내보냈어요"
+      "success": "{count}개의 연락처를 성공적으로 내보냈어요",
+      "exporting": "내보내는 중..."
     },
     "bulk": {
       "selected": "{count}개 선택됨",
@@ -3280,8 +3297,11 @@
         "free": "가능",
         "busy": "바쁨",
         "tentative": "미정",
+        "no_busy_times": "공유된 바쁜 시간 없음",
         "unknown": "이 서버의 사용자가 아님",
-        "checking": "확인 중…"
+        "error": "확인할 수 없음",
+        "checking": "확인 중…",
+        "unavailable_on_server": "이 서버에서는 한가함/바쁨 정보를 사용할 수 없습니다"
       },
       "title": "참석자",
       "add": "참석자 추가",
@@ -3303,6 +3323,7 @@
       "you_organizer": "내가 주최자예요",
       "you_attendee": "나는 참석자예요",
       "no_participants": "참석자가 없어요",
+      "limit_warning": "참석자가 주최자를 포함해 {max, plural, other {#명}}을 넘어요. 서버가 이 일정의 저장을 거부할 수 있어요. 관리자가 한도를 늘릴 수 있어요.",
       "count": "참석자 {count}명"
     },
     "recurrence": {
@@ -3467,6 +3488,7 @@
       "save_without_invitations": "초대장 없이 저장",
       "rsvp_updated": "응답이 업데이트되었어요",
       "rsvp_error": "응답을 업데이트하지 못했어요",
+      "participant_limit": "서버에서 일정당 참석자를 주최자를 포함해 최대 {max, plural, other {#명}}까지만 허용해서 이 변경을 거부했어요. 관리자가 한도를 늘릴 수 있어요.",
       "event_duplicated": "일정이 복제되었어요",
       "event_error": "일정을 저장하지 못했어요",
       "task_due": "할 일 기한이 다가와요",
@@ -3476,7 +3498,10 @@
     },
     "status": {
       "loading_calendars": "캘린더를 불러오는 중...",
-      "loading_events": "일정을 불러오는 중..."
+      "loading_events": "일정을 불러오는 중...",
+      "events_load_failed": "일정을 불러오지 못했어요. 캘린더가 최신 상태가 아닐 수 있어요.",
+      "tasks_load_failed": "할 일을 불러오지 못했어요. 목록이 최신 상태가 아닐 수 있어요.",
+      "retry": "다시 시도"
     },
     "quick_create": {
       "placeholder": "새 일정 제목",
@@ -3768,6 +3793,8 @@
     "new_name": "새 이름",
     "name_forbidden_chars": "서버에서 이름에 다음 문자를 허용하지 않습니다: {chars}",
     "name_reserved": "이 이름은 서버에서 예약되어 있습니다.",
+    "name_control_chars": "이름에 제어 문자를 사용할 수 없습니다.",
+    "name_too_long": "이 이름은 서버에서 사용하기에 너무 깁니다.",
     "delete": "삭제",
     "delete_confirm_title": "항목 삭제",
     "delete_confirm_message": "정말 \"{name}\"을(를) 삭제할까요? 이 작업은 되돌릴 수 없어요.",
@@ -3778,11 +3805,21 @@
     "type": "유형",
     "folder": "폴더",
     "file": "파일",
+    "symlink": "심볼릭 링크",
+    "parent_directory": "상위 폴더",
+    "breadcrumb_root": "홈",
     "uploading": "업로드 중...",
     "upload_success": "{count}개의 파일이 업로드되었어요",
     "upload_canceled": "업로드가 취소되었어요",
     "upload_canceled_partial": "취소하기 전에 {count, plural, other {#개의 파일}}이 업로드되었어요",
     "upload_error": "파일 업로드에 실패했어요",
+    "upload_failed": "{count}개의 파일을 업로드하지 못했습니다",
+    "error_over_quota": "파일 또는 폴더 수 한도에 도달했습니다. 일부를 삭제한 후 다시 시도하세요.",
+    "error_too_deep": "폴더를 이렇게 깊이 중첩할 수 없습니다.",
+    "error_invalid_name": "서버에서 이 이름을 허용하지 않습니다.",
+    "error_forbidden": "여기에서 이 작업을 수행할 권한이 없습니다.",
+    "error_too_large": "이 파일은 서버에서 처리하기에 너무 큽니다.",
+    "error_partial_copy": "복사본의 일부가 그대로 남아 있어요.",
     "create_folder_success": "폴더가 만들어졌어요",
     "create_folder_error": "폴더를 만들지 못했어요",
     "delete_success": "성공적으로 삭제되었어요",
@@ -3821,6 +3858,7 @@
     "shared": "Shared",
     "shared_with_me": "Shared with me",
     "shared_by": "Shared by {name}",
+    "shared_files_from": "{name}님의 파일",
     "create_file_success": "파일이 만들어졌어요",
     "create_file_error": "파일을 만들지 못했어요",
     "favorites": "즐겨찾기",
@@ -4050,8 +4088,12 @@
     "loading_principals": "사용자 불러오는 중…",
     "no_principals": "다른 사용자나 그룹을 찾을 수 없습니다.",
     "no_match": "일치하는 항목이 없습니다.",
+    "directory_restricted": "서버에서 사용자 디렉터리 탐색을 허용하지 않아 내 그룹과 나와 공유한 사람만 표시됩니다. 관리자는 Stalwart의 공유 설정에서 디렉터리 쿼리를 켤 수 있습니다.",
+    "directory_not_browsable": "서버에서 사용자 디렉터리를 탐색할 수 없습니다.",
+    "directory_failed": "사용자 및 그룹 목록을 불러오지 못했습니다.",
     "remove": "액세스 권한 제거",
     "group": "그룹",
+    "unknown_user": "알 수 없는 사용자",
     "share_added": "액세스 권한이 부여되었습니다",
     "share_updated": "액세스 권한이 업데이트되었습니다",
     "share_removed": "액세스 권한이 제거되었습니다",

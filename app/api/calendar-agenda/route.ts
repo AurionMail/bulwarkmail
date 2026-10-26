@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { fetchJmapSession, postJmap, rebaseApiUrl } from '@/lib/stalwart/jmap-api';
 import { normalizeCalendarEventLike } from '@/lib/calendar-event-normalization';
-import { expandRecurringEvents } from '@/lib/recurrence-expansion';
+import { RECURRENCE_BASE_PROPERTIES, hydrateRecurrenceInstances, isServerRecurrenceInstance } from '@/lib/recurrence-instances';
 import { parseISO } from 'date-fns';
 import type { CalendarEvent } from '@/lib/jmap/types';
 
@@ -13,8 +13,9 @@ import type { CalendarEvent } from '@/lib/jmap/types';
  *
  * Sidecar for the "Calendar Agenda" plugin. Resolves the caller's calendar
  * accounts from the stored Stalwart auth context, queries upcoming
- * CalendarEvents over JMAP, expands recurring series server-side, and returns
- * a slim, structured-cloneable agenda the plugin can render directly.
+ * CalendarEvents over JMAP with Stalwart expanding recurring series into
+ * occurrences, and returns a slim, structured-cloneable agenda the plugin
+ * can render directly.
  *
  * Events come from every account that has calendars: the primary calendar
  * account plus shared and group accounts (a family or team calendar), the
@@ -31,13 +32,19 @@ const CALENDAR_CAP = 'urn:ietf:params:jmap:calendars';
 const PRINCIPALS_OWNER_CAP = 'urn:ietf:params:jmap:principals:owner';
 
 // Mirror of lib/jmap/client.ts CALENDAR_EVENT_PROPERTIES, trimmed to what the
-// agenda actually needs (start/recurrence/display fields).
+// agenda shows of an occurrence. The server expands the series, so no rule or
+// overrides are needed - and Stalwart 1.0 refuses a get that asks for
+// `recurrenceOverrides` together with utcStart/utcEnd.
 const EVENT_PROPERTIES = [
   'id', '@type', 'uid', 'calendarIds', 'title', 'start', 'duration', 'timeZone',
   'showWithoutTime', 'utcStart', 'utcEnd', 'status', 'freeBusyStatus', 'color',
-  'locations', 'recurrenceId', 'recurrenceIdTimeZone', 'recurrenceRule',
-  'recurrenceOverrides', 'excludedRecurrenceRule',
+  'locations', 'recurrenceId', 'recurrenceIdTimeZone', 'baseEventId',
 ] as const;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const GET_BATCH = 100;
+// Stalwart's default maxCallsInRequest, for a session that names none.
+const MAX_CALLS_FALLBACK = 16;
 
 interface AgendaEvent {
   /** Unique across accounts: `<accountId>:<event id>`. */
@@ -154,57 +161,99 @@ export async function POST(request: NextRequest) {
     const apiUrl = rebaseApiUrl(session, creds.serverUrl) ?? `${creds.serverUrl}/jmap/`;
 
     const now = new Date();
-    const horizon = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    let horizon = new Date(now.getTime() + days * DAY_MS);
     // Expand from the start of today so all-day / already-running events still
     // show in the agenda.
     const windowStart = new Date(now);
     windowStart.setHours(0, 0, 0, 0);
 
-    // ── 1–3) Per account: query ids in range, load calendars (colours),
-    // fetch the events, normalize and expand recurrences server-side ──
+    // ── 1–3) Per account: query the occurrences in range, load calendars
+    // (colours), fetch the occurrences and hydrate them from their bases ──
+    // expandRecurrences returns one id per occurrence (it needs both bounds),
+    // the earliest first so the limit keeps the next ones. A range the server
+    // will not expand - more occurrences than it allows in one query, or
+    // longer than its maxExpandedQueryDuration - is refused; the agenda then
+    // looks less far ahead instead of failing.
     const calColors = new Map<string, { name: string; color: string | null }>();
     const expanded: Array<CalendarEvent & { accountId: string }> = [];
 
-    for (const accountId of accountIds) {
-      const queryReq = {
-        using,
-        methodCalls: [
-          [
-            'CalendarEvent/query',
-            {
-              accountId,
-              // Mirror the app's calendar store: an { after, before } window lets
-              // Stalwart evaluate recurrence so masters with occurrences in range
-              // are returned (a `before`-only filter can drop unbounded series).
-              filter: { after: windowStart.toISOString(), before: horizon.toISOString() },
-              limit: 1000,
-            },
-            '0',
-          ],
-          [
-            'Calendar/get',
-            { accountId, ids: null, properties: ['id', 'name', 'color'] },
-            'c',
-          ],
-        ],
-      };
+    const coreCapability = session.capabilities?.['urn:ietf:params:jmap:core'] as { maxCallsInRequest?: unknown } | undefined;
+    const maxCalls = typeof coreCapability?.maxCallsInRequest === 'number' && coreCapability.maxCallsInRequest > 0
+      ? coreCapability.maxCallsInRequest
+      : MAX_CALLS_FALLBACK;
+    // Batched, several gets per request.
+    const getEvents = async (accountId: string, eventIds: string[], properties: readonly string[]) => {
+      const list: Array<Record<string, unknown>> = [];
+      const batches: string[][] = [];
+      for (let i = 0; i < eventIds.length; i += GET_BATCH) batches.push(eventIds.slice(i, i + GET_BATCH));
+      for (let first = 0; first < batches.length; first += maxCalls) {
+        const group = batches.slice(first, first + maxCalls);
+        const getRes = await jmapPost(apiUrl, creds.authHeader, {
+          using,
+          methodCalls: group.map((ids, i) => ['CalendarEvent/get', { accountId, ids, properties }, String(i)]),
+        }, fetchOptions);
+        for (const [i] of group.entries()) {
+          const getResp = findResponse(getRes, 'CalendarEvent/get', String(i));
+          if (!getResp) {
+            const err = findResponse(getRes, 'error', String(i));
+            throw new AgendaFetchError((err?.description as string) || 'CalendarEvent/get failed');
+          }
+          list.push(...((getResp.list as Array<Record<string, unknown>>) || []));
+        }
+      }
+      return list;
+    };
 
-      const queryRes = await jmapPost(apiUrl, creds.authHeader, queryReq, fetchOptions);
-      const queryResp = findResponse(queryRes, 'CalendarEvent/query', '0');
+    for (const accountId of accountIds) {
+      const isPrimary = accountId === accountIds[0];
+      let queryRes: unknown;
+      let queryResp: Record<string, unknown> | null;
+      let queryErr: Record<string, unknown> | null = null;
+      for (;;) {
+        queryRes = await jmapPost(apiUrl, creds.authHeader, {
+          using,
+          methodCalls: [
+            [
+              'CalendarEvent/query',
+              {
+                accountId,
+                filter: { after: windowStart.toISOString(), before: horizon.toISOString() },
+                expandRecurrences: true,
+                sort: [{ property: 'start', isAscending: true }],
+                limit: 1000,
+              },
+              '0',
+            ],
+            [
+              'Calendar/get',
+              { accountId, ids: null, properties: ['id', 'name', 'color'] },
+              'c',
+            ],
+          ],
+        }, fetchOptions);
+        queryResp = findResponse(queryRes, 'CalendarEvent/query', '0');
+        if (queryResp) break;
+        queryErr = findResponse(queryRes, 'error', '0');
+        const span = horizon.getTime() - now.getTime();
+        if ((isOccurrenceLimit(queryErr) || queryErr?.type === 'expandDurationTooLarge') && span > DAY_MS) {
+          horizon = new Date(now.getTime() + Math.max(DAY_MS, Math.floor(span / 2)));
+          continue;
+        }
+        break;
+      }
       if (!queryResp) {
-        const err = findResponse(queryRes, 'error', '0');
-        if (accountId !== accountIds[0]) {
+        if (!isPrimary) {
           // A shared account the caller can see but not read calendars from
           // (Stalwart answers forbidden/accountNotSupported) must not empty
           // the agenda for the accounts that do work.
           logger.debug('Calendar agenda: skipping account', {
             accountId,
-            error: (err?.type as string) || 'CalendarEvent/query failed',
+            error: (queryErr?.type as string) || 'CalendarEvent/query failed',
           });
           continue;
         }
         return NextResponse.json(
-          { error: (err?.description as string) || 'CalendarEvent/query failed' },
+          { error: (queryErr?.description as string) || 'CalendarEvent/query failed' },
           { status: 502 },
         );
       }
@@ -222,32 +271,40 @@ export async function POST(request: NextRequest) {
 
       if (ids.length === 0) continue;
 
-      const raw: Array<Record<string, unknown>> = [];
-      const BATCH = 100;
-      for (let i = 0; i < ids.length; i += BATCH) {
-        const batch = ids.slice(i, i + BATCH);
-        const getRes = await jmapPost(apiUrl, creds.authHeader, {
-          using,
-          methodCalls: [
-            ['CalendarEvent/get', { accountId, ids: batch, properties: EVENT_PROPERTIES }, '0'],
-          ],
-        }, fetchOptions);
-        const getResp = findResponse(getRes, 'CalendarEvent/get', '0');
-        if (getResp?.list) raw.push(...(getResp.list as Array<Record<string, unknown>>));
+      let occurrences: Partial<CalendarEvent>[];
+      const bases = new Map<string, Partial<CalendarEvent>>();
+      try {
+        occurrences = (await getEvents(accountId, ids, EVENT_PROPERTIES))
+          .map((e) => normalizeCalendarEventLike(e as Partial<CalendarEvent>));
+
+        // Hydrate occurrences from their base events: an expanded all-day
+        // occurrence comes back without showWithoutTime, and the base event
+        // has the duration an override leaves out.
+        const baseIds = Array.from(new Set(occurrences
+          .filter((e) => isServerRecurrenceInstance(e as CalendarEvent) && e.recurrenceId)
+          .map((e) => e.baseEventId as string)));
+        for (const base of await getEvents(accountId, baseIds, RECURRENCE_BASE_PROPERTIES)) {
+          if (typeof base.id === 'string') bases.set(base.id, normalizeCalendarEventLike(base as Partial<CalendarEvent>));
+        }
+      } catch (error) {
+        if (!(error instanceof AgendaFetchError)) throw error;
+        if (!isPrimary) {
+          logger.debug('Calendar agenda: skipping account', { accountId, error: error.message });
+          continue;
+        }
+        return NextResponse.json({ error: error.message }, { status: 502 });
       }
 
-      const normalized = raw
-        .map((e) => normalizeCalendarEventLike(e as Partial<CalendarEvent>))
+      const valid = occurrences
         .filter((e) => (e['@type'] ?? 'Event') === 'Event')
         // Drop malformed events without a parseable start (would crash format()/
         // parseISO downstream) — mirrors the calendar store guard (#316).
         .filter((e) => typeof e.start === 'string' && e.start && !isNaN(parseISO(e.start).getTime())) as CalendarEvent[];
 
-      for (const e of expandRecurringEvents(normalized, windowStart.toISOString(), horizon.toISOString())) {
+      for (const e of hydrateRecurrenceInstances(valid, bases)) {
         expanded.push({ ...e, accountId });
       }
     }
-
     // ── 4) Keep ongoing/upcoming, sort, slice, map to DTOs ──
     const agenda: AgendaEvent[] = expanded
       .filter((e) => eventEnd(e).getTime() >= now.getTime())
@@ -283,6 +340,19 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+/** A method error on one of the agenda's gets: 502 on the primary account. */
+class AgendaFetchError extends Error {}
+
+/**
+ * Whether the query failed on the server's cap on expanded occurrences:
+ * `cannotCalculateOccurrences` on Stalwart 1.0, `invalidArguments` ("The
+ * number of expanded recurrences exceeds the server limit") on 0.16.
+ */
+function isOccurrenceLimit(err: Record<string, unknown> | null): boolean {
+  if (err?.type === 'cannotCalculateOccurrences') return true;
+  return err?.type === 'invalidArguments' && /exceeds/i.test(String(err.description ?? ''));
 }
 
 /**

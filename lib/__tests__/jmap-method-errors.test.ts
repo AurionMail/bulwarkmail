@@ -66,3 +66,15 @@ describe('search method errors', () => {
     await expect(client.advancedSearchEmails({ text: 'x' })).rejects.toThrow('Search failed: Unsupported filter');
   });
 });
+
+describe('submission method errors', () => {
+  it('cancelEmailSubmission reports a failed call instead of a cancel, and destroys nothing', async () => {
+    const client = clientResponding([['error', { type: 'serverFail', description: 'Temporary failure' }, '0']]);
+
+    await expect(client.cancelEmailSubmission('sub-1', 'a1')).rejects.toThrow('Temporary failure');
+
+    // The mail may still be queued, and its record is the only way to cancel it.
+    const request = (client as unknown as { request: ReturnType<typeof vi.fn> }).request;
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+});

@@ -1,5 +1,5 @@
 import type { IJMAPClient, KeywordDiscoveryResult, KeywordMigration } from '@/lib/jmap/client-interface';
-import type { Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, VacationResponse, Calendar, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, ScheduledEmail, SendEmailResult, SharedAccount } from '@/lib/jmap/types';
+import type { AccountInfo, Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, VacationResponse, Calendar, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, ScheduledEmail, SendEmailResult, SharedAccount } from '@/lib/jmap/types';
 import type { SieveScript, SieveCapabilities } from '@/lib/jmap/sieve-types';
 import { getDemoData, demoSharedAccounts, type DemoData, type DemoProfile } from './demo-data';
 import { generateDemoId } from './demo-utils';
@@ -114,6 +114,16 @@ export class DemoJMAPClient implements IJMAPClient {
     return capability === 'urn:ietf:params:jmap:submission';
   }
 
+  getAccountInfo(accountId: string): AccountInfo | null {
+    if (accountId !== this.getAccountId()) return null;
+    return {
+      name: this.getUsername(),
+      isPersonal: true,
+      isReadOnly: false,
+      accountCapabilities: { 'urn:ietf:params:jmap:submission': {} },
+    };
+  }
+
   getCapabilities(): Record<string, unknown> {
     return {
       'urn:ietf:params:jmap:core': { maxSizeUpload: 50_000_000, maxCallsInRequest: 16, maxObjectsInGet: 500, maxObjectsInSet: 500 },
@@ -171,7 +181,9 @@ export class DemoJMAPClient implements IJMAPClient {
   async verifyPushSubscription(): Promise<void> {
     throw new Error('Push subscriptions are not available in demo mode');
   }
-  async updatePushSubscription(): Promise<boolean> { return false; }
+  async updatePushSubscription(): Promise<void> {
+    throw new Error('Push subscriptions are not available in demo mode');
+  }
   async destroyPushSubscription(): Promise<void> { /* no-op */ }
 
   // ── Quota ─────────────────────────────────────────────────────
@@ -1178,17 +1190,29 @@ export class DemoJMAPClient implements IJMAPClient {
   }
 
   async queryCalendarEvents(filter: CalendarEventFilter): Promise<CalendarEvent[]> {
-    return this.data.calendarEvents.filter(e => {
-      if (filter.uid && e.uid !== filter.uid) return false;
-      if (filter.after && e.start < filter.after) return false;
-      if (filter.before && e.start > filter.before) return false;
-      const q = (filter.text ?? filter.title)?.toLowerCase();
-      if (q) {
-        const locations = Object.values(e.locations ?? {}).map(l => l?.name ?? '').join(' ');
-        if (!(e.title + ' ' + e.description + ' ' + locations).toLowerCase().includes(q)) return false;
+    return this.data.calendarEvents.filter(e => this.eventMatchesFilter(e, filter));
+  }
+
+  private eventMatchesFilter(e: CalendarEvent, filter: CalendarEventFilter): boolean {
+    if (filter.operator) {
+      const conditions = filter.conditions ?? [];
+      switch (filter.operator) {
+        case 'AND': return conditions.every(c => this.eventMatchesFilter(e, c));
+        case 'OR': return conditions.some(c => this.eventMatchesFilter(e, c));
+        case 'NOT': return !conditions.some(c => this.eventMatchesFilter(e, c));
       }
-      return true;
-    });
+    }
+    if (filter.uid && e.uid !== filter.uid) return false;
+    if (filter.after && e.start < filter.after) return false;
+    if (filter.before && e.start > filter.before) return false;
+    // Global search sends a quoted phrase or a `word*` prefix as a text
+    // condition of its own.
+    const q = (filter.text ?? filter.title)?.replace(/^"([\s\S]*)"$/, '$1').replace(/\*$/, '').toLowerCase();
+    if (q) {
+      const locations = Object.values(e.locations ?? {}).map(l => l?.name ?? '').join(' ');
+      if (!(e.title + ' ' + e.description + ' ' + locations).toLowerCase().includes(q)) return false;
+    }
+    return true;
   }
 
   async queryAllCalendarEvents(filter: CalendarEventFilter): Promise<CalendarEvent[]> {
@@ -1472,6 +1496,10 @@ export class DemoJMAPClient implements IJMAPClient {
     this.scheduledSubmissions.set(replacement, { id: replacement, emailId, identityId, sendAt: delayedUntil, undoStatus: 'pending', isSmime: false });
     return { scheduled: true, emailId, emailSubmissionId: replacement, sendAt: delayedUntil };
   }
+
+  // The demo has no submission limit to keep under.
+  async destroyEmailSubmissions(): Promise<string[]> { return []; }
+  async pruneEmailSubmissions(): Promise<number> { return 0; }
 
   // Mirrors JMAPClient.restoreEmailToDraft: the third parameter is ignored and
   // the message ends up in Drafts only (full mailboxIds replacement).

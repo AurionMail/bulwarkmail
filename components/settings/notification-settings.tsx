@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useEmailStore } from '@/stores/email-store';
+import { useIdentityStore } from '@/stores/identity-store';
+import { jmapErrorType } from '@/lib/jmap/jmap-error';
 import { SettingsSection, SettingItem, ToggleSwitch, Select } from './settings-section';
 import { playNotificationSound, NOTIFICATION_SOUNDS } from '@/lib/notification-sound';
 import type { NotificationSoundChoice } from '@/lib/notification-sound';
@@ -20,6 +23,7 @@ import {
   isWebPushEnabled,
   isWebPushSupported,
   listPushDevices,
+  mailAccountsWithoutPush,
   revokePushDevice,
   serverSupportsEmailPush,
 } from '@/lib/web-push';
@@ -142,6 +146,33 @@ export function NotificationSettings() {
         ? t('push.status_active')
         : t('push.status_inactive');
 
+  // Stalwart pushes only the user's own mailboxes and their groups', so
+  // mailboxes shared by other users stay silent in the background (they still
+  // update while the app is open). Say so instead of leaving users to wonder.
+  const mailboxes = useEmailStore((s) => s.mailboxes);
+  // On 0.16 the user's identities tell their groups from mailboxes shared by
+  // ACL (see mailAccountsWithoutPush).
+  const identities = useIdentityStore((s) => s.identities);
+  const sharedMailboxesWithoutPush = useMemo(() => {
+    // Re-read after each enable run too: it may have added refused accounts.
+    if (!client || pushStatus.kind === 'unsupported') return false;
+    const accountIds = mailboxes.flatMap((m) => (m.isShared && m.accountId ? [m.accountId] : []));
+    return mailAccountsWithoutPush(client, accountIds, identities.map((identity) => identity.email)).length > 0;
+  }, [client, mailboxes, identities, pushStatus.kind]);
+
+  // The refusals a user can do something about get readable text; anything
+  // else keeps the error's own message.
+  const pushErrorMessage = (err: unknown, fallback: string) => {
+    switch (jmapErrorType(err)) {
+      case 'forbidden':
+        return t('push.error_forbidden');
+      case 'overQuota':
+        return t('push.error_over_quota');
+      default:
+        return err instanceof Error ? err.message : fallback;
+    }
+  };
+
   // `forceRecreate` is what the Re-register button is for: without it the enable
   // path just refreshes the existing subscription's expiry, so a registration
   // holding stale shared-mailbox access survives the round trip (#841).
@@ -166,10 +197,7 @@ export function NotificationSettings() {
         setPushStatus({ kind: 'unsupported' });
         return;
       }
-      setPushStatus({
-        kind: 'error',
-        message: err instanceof Error ? err.message : 'Failed to enable push',
-      });
+      setPushStatus({ kind: 'error', message: pushErrorMessage(err, 'Failed to enable push') });
     } finally {
       await refreshDevices();
     }
@@ -204,10 +232,7 @@ export function NotificationSettings() {
           setPushStatus({ kind: 'unsupported' });
           return;
         }
-        setPushStatus({
-          kind: 'error',
-          message: err instanceof Error ? err.message : 'Failed to update push filter',
-        });
+        setPushStatus({ kind: 'error', message: pushErrorMessage(err, 'Failed to update push filter') });
       })
       .finally(() => { if (!cancelled) void refreshDevices(); });
     return () => { cancelled = true; };
@@ -399,6 +424,10 @@ export function NotificationSettings() {
             />
           </div>
         </SettingItem>
+
+        {sharedMailboxesWithoutPush && (
+          <p className="text-xs text-muted-foreground">{t('push.shared_mailboxes_no_push')}</p>
+        )}
 
         <SettingItem
           advanced

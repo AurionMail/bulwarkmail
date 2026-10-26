@@ -72,7 +72,7 @@ function editorCall(data: { url: string; accessToken: string }) {
 
 // The shared node as Stalwart 0.16.23 reports it to the user it is shared with.
 let node: { id: string; name: string; type: string; blobId: string; size: number; modified: string; myRights: Record<string, boolean> };
-let setCalls: Array<{ accountId: string; update: Record<string, { blobId: string }> }>;
+let setCalls: Array<{ accountId: string; update: Record<string, { blobId: string; modified?: null }> }>;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -175,7 +175,7 @@ describe('WOPI on a file shared with the user (#1094)', () => {
     const [uploadUrl, uploadInit] = (fetchJmapServer as Mock).mock.calls[0];
     expect(uploadInit.method).toBe('POST');
     expect(uploadUrl).toContain(`/jmap/upload/${OWN}/`);
-    expect(setCalls).toEqual([{ accountId: OWNER, update: { b: { blobId: `upload-${OWN}-1` } } }]);
+    expect(setCalls).toEqual([{ accountId: OWNER, update: { b: { blobId: `upload-${OWN}-1`, modified: null } } }]);
   });
 
   it('shares one editor session with the owner opening the same file', async () => {

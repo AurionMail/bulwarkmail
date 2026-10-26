@@ -12,12 +12,14 @@ import { isDeclinedByUser } from "@/lib/calendar-participants";
 import type { CalendarEvent, Calendar, CalendarTask } from "@/lib/jmap/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useCalendarStore } from "@/stores/calendar-store";
+import { movedEventUpdates } from "@/lib/calendar-participants";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { PendingEventPreview } from "./event-modal";
 import { toast } from "@/stores/toast-store";
 import { useCalendarLocale } from "@/hooks/use-calendar-locale";
 import { useScrollWindow } from "@/hooks/use-scroll-window";
 import { dayKey, parseDayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
+import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 import { PluginDayLabel } from "./plugin-day-label";
 
 interface CalendarMonthViewProps extends ScrollWindowViewProps {
@@ -39,7 +41,10 @@ interface CalendarMonthViewProps extends ScrollWindowViewProps {
   tasks?: CalendarTask[];
   onToggleTaskComplete?: (task: CalendarTask) => void;
   onSelectTask?: (task: CalendarTask) => void;
-  /** The user's calendar addresses, to mark events they declined (#1110). */
+  /**
+   * The user's calendar addresses, to mark events they declined (#1110).
+   * Moving an event they organize also asks its attendees again.
+   */
   currentUserEmails?: string[];
 }
 
@@ -74,6 +79,7 @@ export function CalendarMonthView({
   currentUserEmails,
 }: CalendarMonthViewProps) {
   const t = useTranslations("calendar");
+  const describeError = useCalendarErrorMessage();
   const showTimeInMonthView = useSettingsStore((state) => state.showTimeInMonthView);
   // On mobile the month view collapses events to dots unless the user opted
   // into full entries via "Show time in month view" (#666).
@@ -280,12 +286,12 @@ export function CalendarMonthView({
       if (newStartISO === data.originalStart) return;
       const client = useAuthStore.getState().client;
       if (!client) return;
-      const hasParticipants = event?.participants && Object.keys(event.participants).length > 0;
-      await useCalendarStore.getState().updateEvent(client, data.eventId, { start: newStartISO }, hasParticipants || undefined);
-    } catch {
-      toast.error(t("notifications.event_move_error"));
+      const moved = movedEventUpdates(event, { start: newStartISO }, currentUserEmails ?? []);
+      await useCalendarStore.getState().updateEvent(client, data.eventId, moved.updates, moved.sendSchedulingMessages);
+    } catch (error) {
+      toast.error(describeError(error, t("notifications.event_move_error")));
     }
-  }, [t]);
+  }, [t, describeError, currentUserEmails]);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden" role="grid" aria-label={formatFullDate(selectedDate)}>

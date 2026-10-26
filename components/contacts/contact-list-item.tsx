@@ -4,7 +4,7 @@ import { useCallback, type DragEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { ContactCard } from "@/lib/jmap/types";
-import { getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
+import { getContactDisplayName, getContactPhotoRef, getContactPrimaryEmail } from "@/stores/contact-store";
 import { CheckSquare, Square } from "@/components/icons";
 import type { Density } from "@/stores/settings-store";
 
@@ -87,7 +87,7 @@ export function ContactListItem({ contact, isSelected, isChecked, hasSelection, 
       )}
 
       {density !== 'extra-compact' && (
-        <Avatar name={name} email={email} size="sm" className="flex-shrink-0" />
+        <Avatar name={name} email={email} contactPhoto={getContactPhotoRef(contact) ?? null} size="sm" className="flex-shrink-0" />
       )}
 
       <div className="flex-1 min-w-0">

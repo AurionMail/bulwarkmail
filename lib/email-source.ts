@@ -4,6 +4,7 @@
 // exact same text the UI shows. Pure: depends only on the passed `email`.
 
 import type { Email } from '@/lib/jmap/types';
+import { isServerSetKeyword } from '@/lib/jmap/server-keywords';
 import { formatFileSize } from '@/lib/utils';
 
 export function generateEmailSource(email: Email): string {
@@ -66,8 +67,9 @@ export function generateEmailSource(email: Email): string {
   source += `Size: ${formatFileSize(email.size)}\n`;
   source += `Has Attachment: ${email.hasAttachment ? 'Yes' : 'No'}\n`;
   if (email.keywords) {
+    // Stalwart 1.0's attachment keywords only restate the line above.
     const keywords = Object.entries(email.keywords)
-      .filter(([_, v]) => v)
+      .filter(([k, v]) => v && !isServerSetKeyword(k))
       .map(([k]) => k)
       .join(', ');
     if (keywords) source += `Keywords: ${keywords}\n`;

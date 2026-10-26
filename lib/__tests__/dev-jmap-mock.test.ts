@@ -141,6 +141,45 @@ describe('dev-jmap mock server', () => {
     });
   });
 
+  describe('POST /api - text conditions as the app sends them', () => {
+    // Search sends each quoted phrase and each `word*` as its own condition.
+    async function queryIds(method: string, filter: Record<string, unknown>): Promise<string[]> {
+      const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+        body: JSON.stringify({ methodCalls: [[method, { accountId: 'dev-account-001', filter }, 'c0']] }),
+      });
+      const res = await POST(req, { params: Promise.resolve({ path: ['api'] }) });
+      const data = await res.json();
+      return data.methodResponses[0][1].ids;
+    }
+
+    it('matches a quoted phrase ANDed with a prefix in Email/query', async () => {
+      const found = await queryIds('Email/query', { operator: 'AND', conditions: [{ text: '"sprint priorities"' }, { text: 'wee*' }] });
+      expect(found.length).toBeGreaterThan(0);
+      expect(await queryIds('Email/query', { operator: 'AND', conditions: [{ text: '"priorities sprint"' }, { text: 'wee*' }] })).toEqual([]);
+    });
+
+    it('resolves an AND of bounds and text parts in CalendarEvent/query', async () => {
+      expect(await queryIds('CalendarEvent/query', {
+        operator: 'AND',
+        conditions: [
+          { after: '2000-01-01T00:00:00Z' },
+          { before: '2100-01-01T23:59:59Z' },
+          { text: '"sprint planning"' },
+          { text: 'plan*' },
+        ],
+      })).toEqual(['evt-002']);
+    });
+
+    it('resolves an AND of text parts in ContactCard/query', async () => {
+      expect(await queryIds('ContactCard/query', {
+        operator: 'AND',
+        conditions: [{ text: '"sophie müller"' }, { text: 'euro*' }],
+      })).toEqual(['contact-001']);
+    });
+  });
+
   describe('POST /api - Email/get', () => {
     it('should return emails by ids', async () => {
       const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {
@@ -298,6 +337,34 @@ describe('dev-jmap mock server', () => {
     });
   });
 
+  describe('POST /api - EmailSubmission destroy', () => {
+    async function call(methodCalls: unknown[]) {
+      const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+        body: JSON.stringify({ methodCalls }),
+      });
+      const res = await POST(req, { params: Promise.resolve({ path: ['api'] }) });
+      return (await res.json()).methodResponses;
+    }
+
+    it('removes a canceled scheduled submission and reports unknown ids as notFound', async () => {
+      const [[, created]] = await call([['EmailSubmission/set', {
+        accountId: 'dev-account-001',
+        create: { s1: { emailId: 'email-001', identityId: 'identity-001', envelope: { mailFrom: { email: 'me@example.com', parameters: { HOLDFOR: '3600' } }, rcptTo: [] } } },
+      }, 'c0']]);
+      const id = created.created.s1.id as string;
+      await call([['EmailSubmission/set', { accountId: 'dev-account-001', update: { [id]: { undoStatus: 'canceled' } } }, 'u0']]);
+
+      const [[, result]] = await call([['EmailSubmission/set', { accountId: 'dev-account-001', destroy: [id, 'submission-unknown'] }, 'd0']]);
+
+      expect(result.destroyed).toEqual([id]);
+      expect(result.notDestroyed).toEqual({ 'submission-unknown': { type: 'notFound' } });
+      const [[, got]] = await call([['EmailSubmission/get', { accountId: 'dev-account-001', ids: [id] }, 'g0']]);
+      expect(got.list).toEqual([]);
+    });
+  });
+
   describe('POST /api - back-references', () => {
     it('should resolve #ids from Email/query result', async () => {
       const req = makeRequest('http://localhost:3000/api/dev-jmap/api', {
@@ -390,6 +457,52 @@ describe('dev-jmap mock server', () => {
       expect(data.accountId).toBe('dev-account-001');
       expect(data.blobId).toBeDefined();
       expect(data.type).toBe('image/png');
+    });
+  });
+
+  describe('POST /api - FileNode/set', () => {
+    it('reads the size of a new file off its blob, like a real server', async () => {
+      const upload = await POST(makeRequest('http://localhost:3000/api/dev-jmap/upload/dev-account-001/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain', host: 'localhost:3000' },
+        body: 'hello',
+      }), { params: Promise.resolve({ path: ['upload', 'dev-account-001'] }) });
+      const { blobId } = await upload.json();
+
+      const res = await POST(makeRequest('http://localhost:3000/api/dev-jmap/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+        body: JSON.stringify({
+          methodCalls: [['FileNode/set', {
+            accountId: 'dev-account-001',
+            create: {
+              uploaded: { name: 'hello.txt', type: 'text/plain', blobId },
+              // A copy points at the blob of a seeded node.
+              copied: { name: 'copy.pdf', type: 'application/pdf', blobId: 'demo-blob-file-2' },
+            },
+          }, '0']],
+        }),
+      }), { params: Promise.resolve({ path: ['api'] }) });
+      const { created } = (await res.json()).methodResponses[0][1];
+      expect(created.uploaded.size).toBe(5);
+      expect(created.copied.size).toBe(148480);
+    });
+
+    it('keeps a folder that still holds something unless onDestroyRemoveChildren is set, like a real server', async () => {
+      const fileNodeSet = async (args: Record<string, unknown>) => {
+        const res = await POST(makeRequest('http://localhost:3000/api/dev-jmap/api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', host: 'localhost:3000' },
+          body: JSON.stringify({ methodCalls: [['FileNode/set', { accountId: 'dev-account-001', ...args }, '0']] }),
+        }), { params: Promise.resolve({ path: ['api'] }) });
+        return (await res.json()).methodResponses[0][1];
+      };
+      const folder = (await fileNodeSet({ create: { f: { name: 'Rollback test' } } })).created.f.id;
+      const inside = (await fileNodeSet({ create: { x: { name: 'x.pdf', type: 'application/pdf', blobId: 'demo-blob-file-2', parentId: folder } } })).created.x.id;
+
+      expect((await fileNodeSet({ destroy: [folder] })).notDestroyed[folder].type).toBe('nodeHasChildren');
+      expect((await fileNodeSet({ destroy: [inside] })).destroyed).toEqual([inside]);
+      expect((await fileNodeSet({ destroy: [folder] })).destroyed).toEqual([folder]);
     });
   });
 });

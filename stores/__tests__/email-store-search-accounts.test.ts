@@ -145,6 +145,24 @@ describe('"All folders" search across the own and group accounts (#1082)', () =>
     expect(useEmailStore.getState().emails.map(e => e.id)).toEqual(['grp-1', 'grp-2']);
   });
 
+  it('sends a quoted phrase to every account as a condition of its own', async () => {
+    useEmailStore.setState({
+      searchQuery: '"acesso negado" 2026',
+      searchFilters: { ...DEFAULT_SEARCH_FILTERS, from: 'sender@example.com' },
+    });
+
+    await useEmailStore.getState().advancedSearch(client);
+
+    const calls = client.advancedSearchEmails.mock.calls;
+    expect(calls.map(([, accountId]) => accountId)).toEqual([undefined, 'group']);
+    for (const [filter] of calls) {
+      expect(filter).toEqual({
+        operator: 'AND',
+        conditions: [{ text: '"acesso negado"' }, { text: '2026' }, { from: 'sender@example.com' }],
+      });
+    }
+  });
+
   it('still asks only the chosen account when the search is scoped to a group folder', async () => {
     useEmailStore.getState().setSearchMailboxId(groupInbox.id);
 

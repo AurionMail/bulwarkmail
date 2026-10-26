@@ -662,14 +662,25 @@ ${demoMode ? "Demo mode is ON: the login page offers a built-in demo account and
    - \`rememberMeEnabled\`: \`false\` never remembers a sign-in (sessions then end with the tab).
      Sign-ins are otherwise remembered; \`loginShowRememberMe: true\` lets people choose.
    Optional keys: \`demoMode\`, \`jmapServers\`, \`jmapServerAutoPickByDomain\`, the login logo/company/link keys and \`loginShow*\` toggles (same names as the Docker env vars, camelCased).
-3. Allow the browser to talk to the mail server (CORS). In Stalwart:
+3. Allow the browser to talk to the mail server (CORS). In Stalwart, turn on
+   the \`usePermissiveCors\` setting of the \`Http\` object: in the web admin
+   under **Settings > Network > HTTP > Security** ("Permissive CORS policy"),
+   or with
 
-   \`\`\`toml
-   [http]
-   permissive-cors = true
+   \`\`\`bash
+   stalwart-cli update Http --field usePermissiveCors=true
+   stalwart-cli create Action/ReloadSettings
    \`\`\`
 
-   or an equivalent reverse-proxy rule that allows your Lite origin with the
+   or over JMAP as an administrator: \`x:Http/set\` with
+   \`{"update": {"singleton": {"usePermissiveCors": true}}}\`. It applies once
+   the settings are reloaded (the \`ReloadSettings\` action) or Stalwart
+   restarts. On the current 1.0 pre-releases \`ReloadSettings\` fails while the
+   stock spam-filter rules are loaded, so restart Stalwart there instead.
+   Stalwart 0.16 and later ignore the \`[http] permissive-cors\` key of the old
+   TOML configuration.
+
+   A reverse-proxy rule works too if it allows your Lite origin with the
    \`Authorization\` and \`Content-Type\` headers on \`/.well-known/jmap\`, \`/jmap/*\`,
    \`/api/auth\` and \`/auth/token\`.
 
@@ -1383,7 +1394,8 @@ no server URL, no CORS, no second web server.
 
 Build: ${buildId}
 Locales: ${locales.join(", ")}
-Requires: Stalwart 0.16.0 or later (0.16.19 or later to use \`oauthClientId\`).
+Requires: Stalwart 0.16.6 or later (0.16.19 for \`oauthClientId\`). Stalwart 1.0
+pre-releases work too.
 ${demoMode ? "\nDemo mode is ON in this build: the login page offers the built-in demo account.\n" : ""}
 ## Install
 
@@ -1396,7 +1408,7 @@ it) and \`actionUpdateApps\`. Any of these is equivalent:
 
 - Web admin: **Settings > Web Applications > Create**, description
   \`Bulwark Webmail\`, resource URL \`${url}\`, URL prefix \`/webmail\`; then run
-  the update-applications action (or restart Stalwart).
+  **Actions > Update applications** (or restart Stalwart).
 - CLI:
 
   \`\`\`bash
@@ -1441,8 +1453,11 @@ admin's own \`admin\` and \`account\`.
 
 The resource URL above names one release, so what Stalwart serves only
 changes when you change it: to update, point \`resourceUrl\` at the new
-release's tag and run \`UpdateApps\` (it always downloads again; a failed
-download keeps the previous bundle online). Every release also carries
+release's tag and run \`UpdateApps\`, which always downloads again. Check
+that the new URL downloads first: a failed download keeps the previous
+bundle online only on 0.16.23 and later, while older 0.16 releases and the
+1.0 pre-releases unmount the Application until a download works. Every
+release also carries
 \`${STALWART_ZIP_NAME}.sha256\`; check a download with
 \`sha256sum -c ${STALWART_ZIP_NAME}.sha256\` before you switch.
 
@@ -1464,6 +1479,11 @@ Passwords (and TOTP codes) go to Stalwart's \`/api/auth\` and are exchanged at
 \`/auth/token\` for an access token and a refresh token, all on the same
 origin. "Remember me" keeps the refresh token in localStorage, otherwise it
 lives with the tab.
+
+Serve Stalwart over HTTPS. On a plain \`http://\` address other than
+\`localhost\`, browsers withhold the Web Crypto API this sign-in needs, so the
+webmail falls back to a password sign-in that lasts only as long as the tab:
+"Remember me" has no effect and single sign-on does not work.
 
 The OAuth client id is the Application's \`oauthClientId\` (Stalwart writes it
 into index.html) or \`bulwark-webmail\` when that field is empty. If your
@@ -1503,8 +1523,8 @@ for every account.
 
 The bundle is read-only once Stalwart has unpacked it. To change the app
 name, turn "remember me" off or build any other variant, run the
-**Build Static Lite** workflow (or \`npm run build:lite -- --target=stalwart\`)
-with your settings, publish the resulting \`${STALWART_ZIP_NAME}\` at a URL
+**Build Static Lite** workflow (or, in a throwaway checkout,
+\`npm run build:lite -- --in-place --target=stalwart\`) with your settings, publish the resulting \`${STALWART_ZIP_NAME}\` at a URL
 you control, and use that URL as \`resourceUrl\`. \`config.json\` and
 \`policy.json\` inside the zip take the same keys as in the static-host build.
 
@@ -1519,9 +1539,10 @@ you control, and use that URL as \`resourceUrl\`. \`config.json\` and
 - \`manifest.json\` replaces \`manifest.webmanifest\` (Stalwart would serve the
   latter as \`application/octet-stream\`).
 
-Everything the static-host build leaves out (admin console, plugins,
-settings sync, OAuth/SSO via an external identity provider, web push, office
-editing, ICS subscriptions) is also missing here.
+Everything else the static-host build leaves out (admin console, plugins,
+settings sync, web push, office editing, ICS subscriptions) is also missing
+here. Single sign-on is the exception: it works in this bundle, as described
+above.
 `;
 }
 

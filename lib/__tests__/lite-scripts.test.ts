@@ -228,7 +228,16 @@ describe('lite build helpers', () => {
     const readme = buildReadme({ version: '1.10.0', commit: 'abc1234', basePath: '/w', locales: ['en'], jmapServerUrl: 'https://m.example', demoMode: true });
     expect(readme).toContain('# Bulwark Lite 1.10.0 (abc1234)');
     expect(readme).toContain('Demo mode is ON');
-    expect(readme).toContain('permissive-cors = true');
+    // Since 0.16 CORS is the registry setting Http.usePermissiveCors (the same
+    // on 1.0); the old TOML key is not read.
+    expect(readme).toContain('Settings > Network > HTTP > Security');
+    expect(readme).toContain('stalwart-cli update Http --field usePermissiveCors=true');
+    expect(readme).toContain('{"update": {"singleton": {"usePermissiveCors": true}}}');
+    expect(readme).toContain('ReloadSettings');
+    // The 1.0 pre-releases can't reload settings while the stock spam-filter
+    // rules use a function 1.0 removed; a restart applies the change there.
+    expect(readme).toMatch(/On the current 1\.0 pre-releases `ReloadSettings` fails while the\s+stock spam-filter rules are loaded, so restart Stalwart there instead\./);
+    expect(readme).not.toContain('permissive-cors = true');
     expect(readme).toContain('currently `https://m.example`');
   });
 
@@ -638,9 +647,39 @@ describe('Stalwart target: the entry document', () => {
     expect(readme).toContain('sysApplicationCreate');
     expect(readme).toContain('actionUpdateApps');
     expect(readme).toContain('autoUpdateFrequency');
-    expect(readme).toContain(`releases/download/v1.10.0/${STALWART_ZIP_NAME}`);
+    // Release tags carry no "v" prefix (since 1.3.0); the v-URL 404s.
+    expect(readme).toContain(`releases/download/1.10.0/${STALWART_ZIP_NAME}`);
+    expect(readme).not.toContain('releases/download/v1.10.0/');
     expect(readme).toContain('https://mail.example.com/webmail/');
     for (const segment of ['`mail`', '`calendar`', '`admin`', '`account`']) expect(readme).toContain(segment);
+  });
+
+  it('states the Stalwart floor and what a failed download does on each version', () => {
+    const readme = buildStalwartReadme({ version: '1.10.0', commit: 'abc1234', locales: ['en'], buildId: 'b' });
+    expect(readme).toContain('Requires: Stalwart 0.16.6 or later (0.16.19 for `oauthClientId`).');
+    // Only 0.16.23 keeps the running bundle; 0.16.0-0.16.22 and the 1.0
+    // pre-releases unmount the Application and delete the cached zip, so any
+    // later unpack downloads again: a restart, UpdateApps, or a reload of the
+    // Applications (cluster peers run one after UpdateApps). A restart with an
+    // expired cache and an unreachable URL leaves it unmounted everywhere.
+    expect(readme).not.toContain('A failed download keeps the previous bundle online');
+    expect(readme).toMatch(/On 0\.16\.23 the\s+running bundle stays online/);
+    expect(readme).not.toContain('until a later `UpdateApps` succeeds');
+    expect(readme).toMatch(/Older 0\.16 releases and the 1\.0 pre-releases\s+unmount the Application and drop the cached copy\./);
+    expect(readme).toMatch(/The next restart,\s+`UpdateApps` or reload of the Applications \(the other nodes of a cluster\s+reload them after `UpdateApps`\) downloads `resourceUrl` again and mounts the\s+bundle once that works\./);
+    expect(readme).toMatch(/On every version, a restart after the cached copy\s+has expired/);
+    expect(readme).toMatch(/check that `resourceUrl` downloads before running\s+`UpdateApps`/);
+  });
+
+  it('names the web admin action, asks for HTTPS and keeps single sign-on off the missing list', () => {
+    const readme = buildStalwartReadme({ version: '1.10.0', commit: 'abc1234', locales: ['en'], buildId: 'b' });
+    expect(readme).toContain('**Actions > Update applications**');
+    // Without a secure context there is no crypto.subtle for PKCE, so the
+    // sign-in falls back to a tab-scoped password session.
+    expect(readme).toMatch(/Serve Stalwart over HTTPS\./);
+    // Outside CI the build refuses to delete files unless told the tree is throwaway.
+    expect(readme).toContain('npm run build:lite -- --in-place --target=stalwart');
+    expect(readme).not.toContain('OAuth/SSO via an external identity provider');
   });
 });
 

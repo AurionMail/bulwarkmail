@@ -32,8 +32,31 @@ describe('contactToWire', () => {
     expect(contactToWire(cleared, 'create')).toEqual({});
   });
 
+  it('never clears id, uid or addressBookIds on update', () => {
+    const wire = contactToWire({
+      id: undefined, uid: undefined, addressBookIds: undefined, nicknames: undefined,
+    } as Partial<ContactCard>, 'update');
+    expect(wire).toEqual({ nicknames: null });
+
+    const nulls = contactToWire({ id: null, uid: null, addressBookIds: null } as unknown as Partial<ContactCard>, 'update');
+    expect(nulls).toEqual({});
+  });
+
+  it('still sends a uid or addressBookIds that has a value', () => {
+    expect(contactToWire({ uid: 'urn:uuid:1', addressBookIds: { ab: true } }, 'update'))
+      .toEqual({ uid: 'urn:uuid:1', addressBookIds: { ab: true } });
+  });
+
   it('leaves calendar links alone when the update does not mention them', () => {
     expect(contactToWire({ keywords: { vip: true } }, 'update')).toEqual({ keywords: { vip: true } });
+  });
+
+  it('leaves media out of an update that does not mention it, which keeps the photos on both versions', () => {
+    // An omitted property keeps its value; `media: null` would delete every
+    // photo, logo and sound (1.0 contact/set.rs:609-611, same on 0.16).
+    const wire = contactToWire({ phones: { p0: { number: '+33612345678' } } }, 'update');
+    expect(wire).toEqual({ phones: { p0: { number: '+33612345678' } } });
+    expect('media' in wire).toBe(false);
   });
 
   it('converts flat vCard addresses to components and SOURCE to a directory entry', () => {

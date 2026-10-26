@@ -37,10 +37,12 @@ import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
 import { messagePriorityFromHeaders, type MessagePriority } from "@/lib/message-priority";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
-import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { useEmailStore, pendingInitialData, buildUnifiedAccountClients, invalidateUnifiedMailboxes, captureViewToken, ArchiveMailboxNotFoundError, ensureArchiveMailbox, resolveSelectedEmails, resolveUnstampedEmailAccountId, resolveEmailBlobContext, type EmailBlobContext, emptyFolderMovesToTrash, bulkDeleteIsPermanent, shouldConfirmBulkDelete, isAggregateListView, removalFolder, canRemoveFromFolder } from "@/stores/email-store";
+import { findDraftIdentityIdForLogin, listRowSource, resolveDraftSource, type DraftSource } from "@/lib/draft-source";
 import { useRemoveFromFolder } from "@/hooks/use-remove-from-folder";
 import { groupSearchScopeFolders, SEARCH_SCOPE_ALL_FOLDERS } from "@/lib/search-scope-folders";
 import { toast } from "@/stores/toast-store";
+import { cancelFailureToast, partlyRefusedWarning, rescheduleFailureToast } from "@/lib/send-failure-message";
 import { formatRejectedRecipients, RescheduleRestoredError, type JMAPClient } from "@/lib/jmap/client";
 import { reconcilePushBindings, releasePushBindings, type PushBinding } from "@/lib/push-bindings";
 import { runBatchEmailAction } from "@/lib/email-action-toast";
@@ -65,7 +67,7 @@ import { usePromptDialog } from "@/hooks/use-prompt-dialog";
 import { useBrowserNavigation, type NavSnapshot } from "@/hooks/use-browser-navigation";
 import { debug } from "@/lib/debug";
 import { playNotificationSound } from "@/lib/notification-sound";
-import { cn, getMailboxPath } from "@/lib/utils";
+import { cn, formatDateTime, getMailboxPath } from "@/lib/utils";
 import { localizeMailboxName } from "@/lib/mailbox-label";
 import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, emailKeyFor, groupEmailsByThread, threadKeyFor } from "@/lib/thread-utils";
 import { resolveThreadRoute } from "@/lib/thread-routing";
@@ -80,6 +82,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { DragDropProvider } from "@/contexts/drag-drop-context";
+import { jmapErrorType } from "@/lib/jmap/jmap-error";
 import { isFilterEmpty, activeFilterCount, DEFAULT_SEARCH_FILTERS } from "@/lib/jmap/search-utils";
 import { SearchBox, type ContactSearchField } from "@/components/search/search-box";
 import { FilterPanelHost } from "@/components/search/filter-panel-host";
@@ -204,6 +207,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const tCommon = useTranslations('common');
   const appName = productName(useConfig().appName);
   const tQuote = useTranslations('quote_header');
+  const tComposer = useTranslations('email_composer');
+  const tViewer = useTranslations('email_viewer');
   const mailLayout = useEffectiveMailLayout();
   const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
   // Phones present search full-screen from the header field rather than
@@ -847,6 +852,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     buildUrl: buildMailUrl,
   });
 
+  // A read or star change the server refused (a read-only shared folder)
+  // leaves the message as it was; say so rather than fail silently.
+  const toastUpdateFailure = (error: unknown) => {
+    console.error("Failed to update email:", error);
+    toast.error(t('notifications.error_updating'));
+  };
+
   // Keyboard shortcuts handlers
   const keyboardHandlers = useMemo(() => ({
     onNextEmail: () => {
@@ -957,28 +969,31 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       if (isScheduledView) return;
       if (!client) return;
       if (shortcutsTargetSelection) {
-        await batchMarkAsRead(client, false);
+        await runBatchEmailAction(() => batchMarkAsRead(client, false), { error: t('notifications.error_updating') });
       } else if (selectedEmail) {
-        await markAsRead(client, selectedEmail.id, false, emailKeyFor(selectedEmail));
+        await markAsRead(client, selectedEmail.id, false, emailKeyFor(selectedEmail)).catch(toastUpdateFailure);
       }
     },
     onMarkAsRead: async () => {
       if (isScheduledView) return;
       if (!client) return;
       if (shortcutsTargetSelection) {
-        await batchMarkAsRead(client, true);
+        await runBatchEmailAction(() => batchMarkAsRead(client, true), { error: t('notifications.error_updating') });
       } else if (selectedEmail) {
-        await markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail));
+        await markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail)).catch(toastUpdateFailure);
       }
     },
     onToggleSpam: async () => {
       if (isScheduledView) return;
-      const currentMailbox = mailboxes.find(m => m.id === selectedMailbox);
+      // An aggregate role view ("All Junk") selects a virtual folder: its
+      // role decides, as for the list's batch actions.
+      const currentRole = mailboxes.find(m => m.id === selectedMailbox)?.role
+        ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined);
       // Marking your own outgoing mail as spam makes no sense - the toolbar
       // and menus hide the action in Sent/Drafts/Scheduled, so the shortcut
       // is a no-op there too.
-      if (['sent', 'drafts', 'scheduled'].includes(currentMailbox?.role || '')) return;
-      const isInJunk = currentMailbox?.role === 'junk';
+      if (['sent', 'drafts', 'scheduled'].includes(currentRole || '')) return;
+      const isInJunk = currentRole === 'junk';
       if (shortcutsTargetSelection && client) {
         // The spam actions take bare ids of the viewed account: resolve the
         // selection keys through the loaded rows and thread members.
@@ -1097,7 +1112,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailKeys, mailboxes, isScheduledView, mvShell, showCrossStarred, archiveActionEnabled]);
+  }), [activeEmails, selectedEmail, client, selectedMailbox, isMobile, isTablet, selectedEmailKeys, mailboxes, isScheduledView, mvShell, showCrossStarred, isUnifiedView, unifiedRole, archiveActionEnabled]);
 
   // Initialize keyboard shortcuts
   // Mountain View keeps the ticked rows while a message is read (#1231). The
@@ -1966,19 +1981,25 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const markAsReadDelay = useSettingsStore.getState().markAsReadDelay;
     debug.log('email', '[Mark as Read] Delay setting:', markAsReadDelay, 'ms for email:', selectedEmail.id);
 
+    // The server may refuse (a shared folder without the right to set seen);
+    // the message then just stays unread.
+    const markRead = () => markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail)).catch((error) => {
+      debug.warn('email', '[Mark as Read] Failed:', error);
+    });
+
     if (markAsReadDelay === -1) {
       // Never mark as read automatically
       debug.log('email', '[Mark as Read] Never mode - email will stay unread');
     } else if (markAsReadDelay === 0) {
       // Mark as read instantly
       debug.log('email', '[Mark as Read] Instant mode - marking as read now');
-      markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail));
+      void markRead();
     } else {
       // Mark as read after delay
       debug.log('email', '[Mark as Read] Delayed mode - will mark as read in', markAsReadDelay, 'ms');
       markAsReadTimeoutRef.current = setTimeout(() => {
         debug.log('email', '[Mark as Read] Timeout fired - marking as read now');
-        markAsRead(client, selectedEmail.id, true, emailKeyFor(selectedEmail));
+        void markRead();
         markAsReadTimeoutRef.current = null;
       }, markAsReadDelay);
     }
@@ -2060,14 +2081,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     body: string;
     htmlBody?: string;
     draftId?: string;
+    /** JMAP account `draftId` lives in, when not the own one. */
+    draftAccountId?: string;
     fromEmail?: string;
     fromName?: string;
     identityId?: string;
     /** Local account owning the selected identity, when it came from the
      *  cross-account From dropdown (more than one connected account). */
     localAccountId?: string;
-    /** Account the draft lives in (a group's own Drafts for a group identity). */
-    draftAccountId?: string;
     envelopeMailFrom?: string;
     attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>;
     inReplyTo?: string[];
@@ -2078,7 +2099,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     requireTls?: boolean;
     priority?: MessagePriority;
   }) => {
-    if (!client) return;
+    // Nothing is sent: the composer keeps what only goes once the mail is out.
+    if (!client) return false;
 
     // Sending from an identity that belongs to another connected account has
     // to go through that account's own client: the identity id is only valid
@@ -2196,17 +2218,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
-  // The draft lives where the composer saved it: the account owning the From
-  // identity (a group's own Drafts, #1090), reached through that identity's
-  // login when it isn't the active one.
-  const handleDiscardDraft = async (draftId: string, draftAccountId?: string, localAccountId?: string) => {
+  const handleDiscardDraft = async (draftId: string, draft?: { accountId?: string; localAccountId?: string }) => {
     if (!client) return;
-    const draftClient = localAccountId
-      ? (useAuthStore.getState().getClientForAccount(localAccountId) ?? client)
+    // Through the login the draft was saved with, as a send is (#461), and in
+    // the account it lives in: a draft back from an undone group send is in
+    // the group's Drafts, and the own account may hold another message under
+    // the same id.
+    const draftClient = draft?.localAccountId
+      ? (useAuthStore.getState().getClientForAccount(draft.localAccountId) ?? client)
       : client;
 
     try {
-      await draftClient.deleteEmail(draftId, draftAccountId);
+      await draftClient.deleteEmail(draftId, draft?.accountId);
     } catch (error) {
       console.error("Failed to discard draft:", error);
     }
@@ -2299,7 +2322,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     });
   };
 
-  const handleEditDraft = async (email?: Email) => {
+  /**
+   * `source`: where the draft lives, given for a message whose send was just
+   * undone or cancelled - the account it was sent from (a group or shared one
+   * for mail sent from its identity) and the login that sent it.
+   */
+  const handleEditDraft = async (email?: Email, source?: DraftSource) => {
     if (!client) return;
     const draftCandidate = email && typeof email === 'object' && typeof email.id === 'string'
       ? email
@@ -2307,20 +2335,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     let draft = draftCandidate;
     if (!draft) return;
 
-    // Where the draft lives: a group/shared Drafts folder browsed directly, or
-    // the source stamp in an aggregate view (e.g. unified Drafts). Saving it
-    // again replaces it there, and the fetch has to name that account.
-    const draftMailbox = mailboxes.find(mb => mb.id === selectedMailbox);
-    const draftAccountId = draft.sourceAccountId
-      ?? (draftMailbox?.isShared ? draftMailbox.accountId : undefined);
-    const draftClient = draft.sourceClientAccountId
-      ? (useAuthStore.getState().getClientForAccount(draft.sourceClientAccountId) ?? client)
-      : client;
+    // The login and account the draft lives in (resolveDraftSource). The
+    // composer removes the old version there when it saves, sends or
+    // discards: email ids repeat across accounts and servers, so another
+    // account may hold an unrelated message under the same id.
+    const { localAccountId, accountId } = resolveDraftSource(draft, {
+      source,
+      aggregate: isAggregateListView(),
+      mailbox: viewMailboxes.find(mb => mb.id === selectedMailbox),
+      viewingAccountId,
+      activeAccountId,
+    });
+    const draftClient = (localAccountId ? useAuthStore.getState().getClientForAccount(localAccountId) : undefined) ?? client;
 
     // The email list only fetches limited properties (no bodyValues/htmlBody/bcc).
     // Fetch the full email so the composer gets all draft content.
     if (!draft.bodyValues) {
-      const fullDraft = await draftClient.getEmail(draft.id, draftAccountId);
+      const fullDraft = await draftClient.getEmail(draft.id, accountId);
       if (!fullDraft) return;
       draft = { ...fullDraft, sourceClientAccountId: draft.sourceClientAccountId, sourceAccountId: draft.sourceAccountId };
     }
@@ -2347,7 +2378,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const composerIdentities = multiAccountIdentities.enabled
       ? multiAccountIdentities.allIdentities
       : identities;
-    const matchedIdentityId = findDraftIdentityId(composerIdentities, draft.from?.[0]);
+    const matchedIdentityId = findDraftIdentityIdForLogin(composerIdentities, draft.from?.[0], localAccountId);
 
     const draftRecipients = (list: typeof draft.to) => (list ?? []).map(a => a.email).filter(Boolean);
     if (!(await withComposeGate('compose', {
@@ -2379,12 +2410,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       subAddressTag: '',
       mode: 'compose',
       draftId: draft.id,
+      draftAccountId: accountId,
+      draftLocalAccountId: localAccountId,
       // A reply draft re-opens in compose mode; its threading headers must
       // come along or the reply leaves its thread.
       inReplyTo: draft.inReplyTo ?? undefined,
       references: draft.references ?? undefined,
       priority: messagePriorityFromHeaders(draft.headers),
-      draftAccountId: draftAccountId ?? null,
       // Existing server-side attachments must ride along, or the composer
       // starts empty and the next save/send silently rebuilds the draft
       // without them (#849).
@@ -2404,6 +2436,36 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (isMobile) setActiveView('viewer');
   };
 
+  /** When a scheduled message goes out, as the user reads times, if known. */
+  const scheduledTime = (sendAt: string | undefined) =>
+    sendAt ? formatDateTime(sendAt, useSettingsStore.getState().timeFormat) : undefined;
+
+  const toastCancelFailure = (error: unknown, cancelFailedTitle: string) => {
+    const { title, message } = cancelFailureToast(error, tViewer, cancelFailedTitle);
+    toast.error(title, message ? { message } : undefined);
+  };
+
+  // The send is cancelled and the message back in Drafts by then.
+  const reportDraftOpenFailure = (error: unknown) => {
+    console.error('Cancelled the scheduled send, but opening the draft failed:', error);
+  };
+
+  /**
+   * "Cancel and edit" from the list or the viewer, neither of which waits for
+   * it: the draft to open (null for S/MIME, which is composed again), or
+   * undefined once a failure is reported.
+   */
+  const cancelScheduledForEdit = async (email: Email): Promise<Email | null | undefined> => {
+    if (!client) return undefined;
+    try {
+      return await cancelScheduledEmailForEdit(client, email);
+    } catch (error) {
+      console.error('Failed to cancel the scheduled send for editing:', error);
+      toastCancelFailure(error, tViewer('cancel_scheduled_failed'));
+      return undefined;
+    }
+  };
+
   useEffect(() => {
     if (!pendingUndoSend || !client) return;
     if (lastUndoToastSubmissionRef.current === pendingUndoSend.submissionId) return;
@@ -2415,6 +2477,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const undoClient = pending.localAccountId
       ? (useAuthStore.getState().getClientForAccount(pending.localAccountId) ?? client)
       : client;
+    // The login the draft is restored through. The classic shell leaves
+    // `localAccountId` unset, and the user may switch logins before clicking
+    // Undo: without this, the draft's next save would run through the new
+    // active login and remove its old version by id in the wrong account.
+    const undoLogin = pending.localAccountId ?? useAuthStore.getState().activeAccountId ?? undefined;
     // A send-delay window (seconds away) closes the toast a second before the
     // server releases the message, so Undo is never offered once it is too
     // late. A message scheduled for later keeps the toast up a short while.
@@ -2435,7 +2502,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             onClick: () => {
               void (async () => {
                 try {
-                  await undoClient.rescheduleEmailSubmission(
+                  const result = await undoClient.rescheduleEmailSubmission(
                     pending.submissionId,
                     pending.emailId!,
                     pending.identityId!,
@@ -2444,6 +2511,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     pending.submissionAccountId,
                   );
                   clearPendingUndoSend();
+                  // The recipients are checked again for the release.
+                  const refused = partlyRefusedWarning(result, tComposer);
+                  if (refused) toast.warning(refused);
                   releaseAnnouncedSend(pending.submissionId);
                   if (isScheduledView) await fetchScheduledEmails(client);
                 } catch (error) {
@@ -2456,6 +2526,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                       useEmailStore.setState({ pendingUndoSend: { ...current, submissionId: error.restoredSubmissionId, sendAt: error.restoredSendAt || current.sendAt } });
                     }
                   }
+                  const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(pending.sendAt));
+                  toast.error(title, message ? { message } : undefined);
                 }
               })();
             },
@@ -2465,17 +2537,27 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         label: t('email_viewer.undo_send'),
         onClick: () => {
           void (async () => {
+            let restored: Awaited<ReturnType<typeof cancelUndoSend>>;
             try {
-              const restored = await cancelUndoSend(undoClient, pending);
+              restored = await cancelUndoSend(undoClient, pending);
+            } catch (error) {
+              console.error('Failed to undo scheduled send:', error);
+              toastCancelFailure(error, t('email_viewer.undo_send_failed'));
+              return;
+            }
+            // The send is undone; opening the draft or refreshing the list
+            // failing is no reason to say otherwise.
+            try {
               // Never left the server: plugins don't hear about it.
               cancelAnnouncedSend(pending.submissionId);
               if (restored && !pending.isSmime) {
-                await handleEditDraft(restored);
+                // Back in the Drafts of the account it was sent from, through
+                // the login that sent it.
+                await handleEditDraft(restored, { accountId: pending.submissionAccountId, localAccountId: undoLogin });
               }
               if (isScheduledView) await fetchScheduledEmails(client);
             } catch (error) {
-              console.error('Failed to undo scheduled send:', error);
-              toast.error(t('email_viewer.undo_send_failed'));
+              console.error('Undid the send, but reopening it failed:', error);
             }
           })();
         },
@@ -2497,7 +2579,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cancelUndoSend, clearPendingUndoSend, client, fetchScheduledEmails, isScheduledView, pendingUndoSend?.submissionId, sendDelaySeconds, t]);
+  }, [cancelUndoSend, clearPendingUndoSend, client, fetchScheduledEmails, isScheduledView, pendingUndoSend?.submissionId, sendDelaySeconds, t, tComposer, tViewer]);
 
   const handleReplyAll = async (draftText?: string) => {
     if (selectedEmail) {
@@ -3043,7 +3125,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // Refresh tag counts
       fetchTagCounts(client);
     } catch (error) {
+      // The message keeps its old tags. Stalwart 1.0 refuses keywords over
+      // 128 bytes and more than 100 on one message.
       console.error("Failed to set tag:", error);
+      toast.error(t('notifications.tag_failed'));
     }
   };
 
@@ -3479,7 +3564,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     try {
       if (await deleteMailbox(client, mailboxId)) toast.success(tCtxMenu('mailbox_context_menu.toast_folder_deleted'));
     } catch (err: unknown) {
-      const jmapType = (err as Error & { jmapType?: string })?.jmapType;
+      const jmapType = jmapErrorType(err);
       if (jmapType === 'mailboxHasChild') {
         toast.error(tCtxMenu('mailbox_context_menu.toast_error_delete_has_children'));
       } else if (jmapType === 'mailboxHasEmail') {
@@ -3882,6 +3967,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       delayedUntil,
       undefined,
     );
+    // As after the composer's send: the server refused some recipients, held
+    // reply or not, and nothing else would say they never get it.
+    const refused = partlyRefusedWarning(result, tComposer);
+    if (refused) toast.warning(refused);
 
     // Mark the original email as answered. Route the write to the email's own
     // account so the flag lands on shared/group-mailbox messages instead of
@@ -3900,37 +3989,44 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       return;
     }
 
-    toast.success(t('notifications.email_sent'));
+    if (!refused) toast.success(t('notifications.email_sent'));
 
-    // Refresh emails to show the sent reply
-    await refreshCurrentMailbox(client);
-    // Re-fetch the replied thread's cross-folder data so the expanded
-    // view shows the newly sent reply without collapsing.
-    const emailState = useEmailStore.getState();
-    const repliedEmail = emailState.emails.find(e => e.id === originalEmailId);
-    if (repliedEmail?.threadId && emailState.expandedThreadIds.has(threadKeyFor(repliedEmail))) {
-      // Route to the email's own account so shared/group threads refresh from
-      // the right server, not the active one. (#281, #814)
-      const route = resolveThreadRoute({
-        isUnifiedView: emailState.isUnifiedView,
-        ref: repliedEmail,
-        mailboxes: viewMailboxes,
-        selectedMailbox: emailState.selectedMailbox,
-      });
-      const threadClient = route.clientAccountId
-        ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
-        : client;
-      const fullEmails = await threadClient.getThreadEmails(
-        repliedEmail.threadId,
-        route.accountId ?? client.getAccountId(),
-      );
-      if (fullEmails.length > 0) {
-        useEmailStore.setState((state) => {
-          const c = new Map(state.threadEmailsCache);
-          c.set(threadKeyFor(repliedEmail), fullEmails);
-          return { threadEmailsCache: c };
+    // The reply is out: a failed refresh from here on must not reach the
+    // quick-reply box, which would report the send as failed and invite a
+    // duplicate.
+    try {
+      // Refresh emails to show the sent reply
+      await refreshCurrentMailbox(client);
+      // Re-fetch the replied thread's cross-folder data so the expanded
+      // view shows the newly sent reply without collapsing.
+      const emailState = useEmailStore.getState();
+      const repliedEmail = emailState.emails.find(e => e.id === originalEmailId);
+      if (repliedEmail?.threadId && emailState.expandedThreadIds.has(threadKeyFor(repliedEmail))) {
+        // Route to the email's own account so shared/group threads refresh from
+        // the right server, not the active one. (#281, #814)
+        const route = resolveThreadRoute({
+          isUnifiedView: emailState.isUnifiedView,
+          ref: repliedEmail,
+          mailboxes: viewMailboxes,
+          selectedMailbox: emailState.selectedMailbox,
         });
+        const threadClient = route.clientAccountId
+          ? (useAuthStore.getState().getClientForAccount(route.clientAccountId) ?? client)
+          : client;
+        const fullEmails = await threadClient.getThreadEmails(
+          repliedEmail.threadId,
+          route.accountId ?? client.getAccountId(),
+        );
+        if (fullEmails.length > 0) {
+          useEmailStore.setState((state) => {
+            const c = new Map(state.threadEmailsCache);
+            c.set(threadKeyFor(repliedEmail), fullEmails);
+            return { threadEmailsCache: c };
+          });
+        }
       }
+    } catch (error) {
+      console.error('Quick reply sent, but refreshing the view failed:', error);
     }
   };
 
@@ -4468,9 +4564,10 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           setPendingDraft(data);
         }}
         onSend={async (data) => {
-          await handleEmailSend(data);
+          const outcome = await handleEmailSend(data);
           setPendingDraft(null);
           setComposerPrefill(null);
+          return outcome;
         }}
         onScheduledSendCreated={async () => {
           if (client) {
@@ -4493,8 +4590,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           }
         }}
         requestCloseRef={composerRequestCloseRef}
-        onDiscardDraft={(draftId, draftAccountId, localAccountId) => {
-          handleDiscardDraft(draftId, draftAccountId, localAccountId);
+        onDiscardDraft={(draftId, draft) => {
+          handleDiscardDraft(draftId, draft);
           setPendingDraft(null);
         }}
       />
@@ -5061,12 +5158,16 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onLoadMoreScheduled={() => client && loadMoreScheduledEmails(client)}
                 onCancelScheduledForEdit={async (email) => {
                   if (!client) return;
-                  const restored = await cancelScheduledEmailForEdit(client, email);
+                  // The context menu does not wait for this; report here.
+                  const restored = await cancelScheduledForEdit(email);
+                  if (restored === undefined) return;
                   if (email.isSmimeScheduled) {
                     setComposerMode('compose');
                     setPendingDraft(null);
                   } else if (restored) {
-                    await handleEditDraft(restored);
+                    // Restored through the active login's client, the one
+                    // Scheduled lists - not a login browsed before.
+                    await handleEditDraft(restored, { accountId: email.scheduledAccountId, localAccountId: activeAccountId ?? undefined }).catch(reportDraftOpenFailure);
                     return;
                   }
                   setShowComposer(true);
@@ -5075,7 +5176,16 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 onRescheduleScheduled={async (email) => {
                   const delayedUntil = promptForRescheduleDelayedUntil();
                   if (delayedUntil && client && email.emailSubmissionId && email.scheduledIdentityId) {
-                    await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil);
+                    // The context menu does not wait for this; report here.
+                    try {
+                      const result = await rescheduleScheduledEmail(client, email.emailSubmissionId, email.id, email.scheduledIdentityId, delayedUntil);
+                      const refused = partlyRefusedWarning(result, tComposer);
+                      if (refused) toast.warning(refused);
+                    } catch (error) {
+                      console.error('Failed to reschedule the scheduled send:', error);
+                      const { title, message } = rescheduleFailureToast(error, tViewer, tComposer, scheduledTime(email.scheduledSendAt));
+                      toast.error(title, message ? { message } : undefined);
+                    }
                   }
                 }}
                 onEmailSelect={handleEmailSelect}
@@ -5090,8 +5200,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                   const targetPane = hasSplit
                     ? (sourcePane === 'main' ? 'split' : 'main')
                     : sourcePane;
+                  // The tab reads the row again through the login and account
+                  // it was listed from, and a draft reopened there is saved
+                  // over and removed through them.
+                  const source = listRowSource(email, {
+                    isScheduledView,
+                    viewingAccountId,
+                    activeAccountId,
+                    accountId: resolveUnstampedEmailAccountId({
+                      mailboxes: viewMailboxes,
+                      selectedMailbox,
+                      searchActive: !!searchQuery || !isFilterEmpty(searchFilters),
+                      searchMailboxId,
+                    }),
+                  });
                   store.openEmailTab({
-                    accountId: email.accountId ?? '',
+                    accountId: source.accountId ?? '',
+                    clientAccountId: source.localAccountId,
                     emailId: email.id,
                     mailboxId: selectedMailbox,
                     title: email.subject?.trim() || t('email_composer.new_message'),
@@ -5120,12 +5245,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 }}
                 onMarkAsRead={async (email, read) => {
                   if (client) {
-                    await markAsRead(client, email.id, read, emailKeyFor(email));
+                    await markAsRead(client, email.id, read, emailKeyFor(email)).catch(toastUpdateFailure);
                   }
                 }}
                 onToggleStar={async (email) => {
                   if (client) {
-                    await toggleStar(client, email.id, emailKeyFor(email));
+                    await toggleStar(client, email.id, emailKeyFor(email)).catch(toastUpdateFailure);
                   }
                 }}
                 onTogglePinned={async (email) => {
@@ -5274,9 +5399,13 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                 blobSource={conversationBlobSource}
                 onDownloadAttachment={handleDownloadConversationAttachment}
                 onMarkAsRead={async (emailId, read) => {
+                  // Only ever the mark-as-read on expanding a message: a refusal
+                  // (a read-only shared folder) just leaves it unread.
                   if (client) {
                     const target = conversationEmails.find((e) => e.id === emailId);
-                    await markAsRead(client, emailId, read, target ? emailKeyFor(target) : undefined);
+                    await markAsRead(client, emailId, read, target ? emailKeyFor(target) : undefined).catch((error) => {
+                      debug.warn('email', '[Mark as Read] Failed:', error);
+                    });
                   }
                 }}
                 mailboxRole={mailboxes.find(m => m.id === selectedMailbox)?.role ?? (isUnifiedView ? (unifiedRole ?? undefined) : undefined)}
@@ -5308,10 +5437,18 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onSetTag={handleSetTag}
                     onMarkAsSpam={() => handleMarkAsSpam()}
                     onUndoSpam={() => handleUndoSpam()}
-                    onMarkAsRead={async (emailId, read) => {
+                    onMarkAsRead={async (emailId, read, opts) => {
                       if (client) {
                         const emailKey = selectedEmail?.id === emailId ? emailKeyFor(selectedEmail) : undefined;
-                        await markAsRead(client, emailId, read, emailKey);
+                        try {
+                          await markAsRead(client, emailId, read, emailKey);
+                        } catch (error) {
+                          // Refused: the message stays as it was, and open.
+                          // Opening it is no request to report back on.
+                          if (opts?.automatic) debug.warn('email', '[Mark as Read] Failed:', error);
+                          else toastUpdateFailure(error);
+                          return;
+                        }
                         const nowRead = !!useEmailStore.getState().emails
                           .find((e) => (emailKey ? emailKeyFor(e) === emailKey : e.id === emailId))?.keywords?.$seen;
                         if (nowRead !== read) return; // a plugin stopped it
@@ -5349,17 +5486,22 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
                     onEditDraft={handleEditDraft}
                     onCancelScheduledForEdit={async () => {
                       if (!client || !selectedEmail) return;
-                      const restored = await cancelScheduledEmailForEdit(client, selectedEmail);
+                      // The button does not wait for this; report here.
+                      const restored = await cancelScheduledForEdit(selectedEmail);
+                      if (restored === undefined) return;
                       if (selectedEmail.isSmimeScheduled) {
                         setComposerMode('compose');
                         setShowComposer(true);
                         return;
                       }
-                      if (restored) await handleEditDraft(restored);
+                      // Restored through the active login's client (see the list's Cancel and edit).
+                      if (restored) await handleEditDraft(restored, { accountId: selectedEmail.scheduledAccountId, localAccountId: activeAccountId ?? undefined }).catch(reportDraftOpenFailure);
                     }}
                     onRescheduleScheduled={async (delayedUntil) => {
                       if (client && selectedEmail?.emailSubmissionId && selectedEmail.scheduledIdentityId) {
-                        await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil);
+                        const result = await rescheduleScheduledEmail(client, selectedEmail.emailSubmissionId, selectedEmail.id, selectedEmail.scheduledIdentityId, delayedUntil);
+                        const refused = partlyRefusedWarning(result, tComposer);
+                        if (refused) toast.warning(refused);
                       }
                     }}
                     onCompose={() => {

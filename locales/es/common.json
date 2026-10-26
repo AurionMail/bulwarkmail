@@ -617,6 +617,14 @@
     "scheduled_actions_only": "La vista Programados solo admite acciones de programación",
     "undo_send_scheduled": "Mensaje programado para envío",
     "undo_send": "Deshacer envío",
+    "send_cancelled_restore_failed": "Se canceló el envío, pero el mensaje no se pudo devolver a Borradores. Sigue en Enviados.",
+    "send_cancelled_remove_failed": "Se canceló el envío, pero el mensaje no enviado no se pudo quitar de Enviados.",
+    "cancel_scheduled_failed": "No se pudo cancelar el envío programado",
+    "still_scheduled_at": "El mensaje sigue programado para el {date}.",
+    "still_scheduled": "El mensaje sigue programado.",
+    "already_sent": "Este mensaje ya se envió.",
+    "no_longer_scheduled": "Este mensaje ya no está programado.",
+    "reschedule_recipients_refused": "No se cambió nada: el servidor rechazó {recipients}.",
     "contact_sidebar": {
       "title": "Contacto",
       "close": "Cerrar panel",
@@ -759,6 +767,10 @@
     "smime_unlock_button": "Desbloquear",
     "smime_passphrase_placeholder": "Contraseña S/MIME",
     "send_timeout": "El servidor dejó de responder. Compruebe la carpeta Enviados antes de volver a enviar: el mensaje puede haber salido.",
+    "submission_quota": "El servidor tiene demasiados registros de mensajes enviados para esta cuenta. Bulwark eliminó los que pudo; si esto sigue ocurriendo, pida a su administrador que aumente el límite de envíos de correo.",
+    "submission_limit": "El servidor se negó a enviar el mensaje porque se alcanzó un límite: {reason}",
+    "recipients_refused": "No enviado: el servidor rechazó {recipients}.",
+    "recipients_partly_refused": "El servidor rechazó {recipients}. Los demás destinatarios reciben el mensaje.",
     "send_offline": "Parece que no tienes conexión. El mensaje sigue aquí; vuelve a enviarlo cuando tengas conexión.",
     "formatting": "Formato",
     "send_recipients_rejected": "No enviado: el servidor rechazó a todos los destinatarios.",
@@ -1367,7 +1379,10 @@
         "revoke": "Revocar",
         "confirm_revoke_title": "¿Revocar este dispositivo?",
         "confirm_revoke_message": "Dejará de recibir notificaciones en segundo plano de inmediato. Si vuelves a activar las notificaciones push en ese dispositivo, se registrará de nuevo.",
-        "confirm_revoke_message_this": "Este dispositivo dejará de recibir notificaciones en segundo plano de inmediato."
+        "confirm_revoke_message_this": "Este dispositivo dejará de recibir notificaciones en segundo plano de inmediato.",
+        "shared_mailboxes_no_push": "Los buzones que otras personas comparten contigo no envían notificaciones en segundo plano.",
+        "error_forbidden": "El servidor de correo no permite notificaciones en segundo plano para esta cuenta.",
+        "error_over_quota": "Esta cuenta tiene demasiados registros push en el servidor de correo (el límite suele ser 15). Revoca los dispositivos que ya no uses en la configuración de notificaciones e inténtalo de nuevo."
       }
     },
     "language_region": {
@@ -2357,6 +2372,7 @@
       "validation_empty_name": "El nombre de la regla es obligatorio",
       "validation_empty_conditions": "Se requiere al menos una condición con un valor",
       "validation_empty_actions": "Se requiere al menos una acción",
+      "validation_header_name": "Los nombres de encabezado solo pueden contener las letras A-Z, dígitos, guiones y guiones bajos",
       "templates_section": "Usar una plantilla",
       "template_newsletters": "Mover newsletters a carpeta",
       "template_receipts": "Archivar recibos automáticamente",
@@ -3136,7 +3152,8 @@
     },
     "export": {
       "title": "Exportar contactos",
-      "success": "{count, plural, one {1 contacto exportado} other {# contactos exportados}}"
+      "success": "{count, plural, one {1 contacto exportado} other {# contactos exportados}}",
+      "exporting": "Exportando..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 seleccionado} other {# seleccionados}}",
@@ -3280,8 +3297,11 @@
         "free": "Disponible",
         "busy": "Ocupado",
         "tentative": "Provisional",
+        "no_busy_times": "No hay horas ocupadas compartidas",
         "unknown": "No es un usuario de este servidor",
-        "checking": "Comprobando…"
+        "error": "No se pudo comprobar",
+        "checking": "Comprobando…",
+        "unavailable_on_server": "La información de libre/ocupado no está disponible en este servidor"
       },
       "title": "Participantes",
       "add": "Agregar participante",
@@ -3303,6 +3323,7 @@
       "you_organizer": "Eres el organizador",
       "you_attendee": "Eres un participante",
       "no_participants": "Sin participantes",
+      "limit_warning": "Más de {max, plural, one {# participante} other {# participantes}}, incluido el organizador: es posible que el servidor se niegue a guardar este evento. Un administrador puede aumentar el límite.",
       "count": "{count, plural, one {# participante} other {# participantes}}"
     },
     "recurrence": {
@@ -3467,6 +3488,7 @@
       "save_without_invitations": "Guardar sin invitaciones",
       "rsvp_updated": "Respuesta actualizada",
       "rsvp_error": "Error al actualizar la respuesta",
+      "participant_limit": "El servidor permite como máximo {max, plural, one {# participante} other {# participantes}} por evento, incluido el organizador, por lo que rechazó este cambio. Un administrador puede aumentar el límite.",
       "event_duplicated": "Evento duplicado",
       "event_error": "Error al guardar el evento",
       "task_due": "Tarea vencida",
@@ -3476,7 +3498,10 @@
     },
     "status": {
       "loading_calendars": "Cargando calendarios...",
-      "loading_events": "Cargando eventos..."
+      "loading_events": "Cargando eventos...",
+      "events_load_failed": "No se pudieron cargar los eventos. Es posible que el calendario no esté actualizado.",
+      "tasks_load_failed": "No se pudieron cargar las tareas. Es posible que la lista no esté actualizada.",
+      "retry": "Intentar de nuevo"
     },
     "quick_create": {
       "placeholder": "Título del nuevo evento",
@@ -3768,6 +3793,8 @@
     "new_name": "Nuevo nombre",
     "name_forbidden_chars": "El servidor no permite estos caracteres en los nombres: {chars}",
     "name_reserved": "Este nombre está reservado en el servidor.",
+    "name_control_chars": "Los nombres no pueden contener caracteres de control.",
+    "name_too_long": "Este nombre es demasiado largo para el servidor.",
     "delete": "Eliminar",
     "delete_confirm_title": "Eliminar recurso",
     "delete_confirm_message": "¿Está seguro de que desea eliminar \"{name}\"? Esta acción no se puede deshacer.",
@@ -3778,11 +3805,21 @@
     "type": "Tipo",
     "folder": "Carpeta",
     "file": "Archivo",
+    "symlink": "Enlace simbólico",
+    "parent_directory": "Directorio superior",
+    "breadcrumb_root": "Inicio",
     "uploading": "Subiendo...",
     "upload_success": "{count, plural, one {1 archivo subido} other {# archivos subidos}}",
     "upload_canceled": "Subida cancelada",
     "upload_canceled_partial": "{count, plural, one {Se subió 1 archivo} other {Se subieron # archivos}} antes de cancelar",
     "upload_error": "Error al subir el archivo",
+    "upload_failed": "{count, plural, one {No se pudo subir 1 archivo} other {No se pudieron subir # archivos}}",
+    "error_over_quota": "Se alcanzó el límite de archivos o carpetas. Elimine algunos e inténtelo de nuevo.",
+    "error_too_deep": "Las carpetas no se pueden anidar a tanta profundidad.",
+    "error_invalid_name": "El servidor no acepta este nombre.",
+    "error_forbidden": "No tiene permiso para hacer esto aquí.",
+    "error_too_large": "Este archivo es demasiado grande para el servidor.",
+    "error_partial_copy": "Una parte de la copia se ha quedado en su lugar.",
     "create_folder_success": "Carpeta creada",
     "create_folder_error": "Error al crear la carpeta",
     "delete_success": "Eliminado correctamente",
@@ -3821,6 +3858,7 @@
     "shared": "Shared",
     "shared_with_me": "Shared with me",
     "shared_by": "Shared by {name}",
+    "shared_files_from": "Archivos de {name}",
     "create_file_success": "Archivo creado",
     "create_file_error": "Error al crear el archivo",
     "favorites": "Favoritos",
@@ -4050,8 +4088,12 @@
     "loading_principals": "Cargando usuarios…",
     "no_principals": "No se han encontrado otros usuarios ni grupos.",
     "no_match": "Sin resultados.",
+    "directory_restricted": "Tu servidor no permite explorar su directorio de usuarios, así que solo se muestran tus grupos y las personas que han compartido algo contigo. Un administrador puede activar las consultas al directorio en los ajustes de uso compartido de Stalwart.",
+    "directory_not_browsable": "Tu servidor no te permite explorar su directorio de usuarios.",
+    "directory_failed": "No se pudo cargar la lista de usuarios y grupos.",
     "remove": "Quitar acceso",
     "group": "Grupo",
+    "unknown_user": "Usuario desconocido",
     "share_added": "Acceso concedido",
     "share_updated": "Acceso actualizado",
     "share_removed": "Acceso retirado",

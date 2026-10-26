@@ -2,16 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ } from "@/components/icons";
+import { Search, BookUser, Trash2, Users, Download, X, UserPlus, CheckSquare, Square, Filter, Mail, Phone, Image as ImageIcon, RotateCcw, Menu, ArrowDownAZ, Loader2 } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ContactListItem } from "./contact-list-item";
 import { ContactContextMenu } from "./contact-context-menu";
+import { useContactExportBusy } from "./contact-export";
 import { PluginActions } from "@/components/plugins/plugin-actions";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { cn } from "@/lib/utils";
 import type { AnniversaryDate, ContactCard } from "@/lib/jmap/types";
-import { getContactDisplayName, getContactPhotoUri, getContactSortName } from "@/stores/contact-store";
+import { getContactDisplayName, getContactSortName, hasContactPhoto } from "@/stores/contact-store";
 import { useSettingsStore } from "@/stores/settings-store";
 
 type TriState = boolean | null;
@@ -151,6 +152,7 @@ export function ContactList({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<ListFilters>(EMPTY_FILTERS);
   const activeFilters = countActiveFilters(filters);
+  const exporting = useContactExportBusy();
 
   const monthNames = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(locale, { month: "long" });
@@ -174,7 +176,7 @@ export function ContactList({
 
       if (!matchTri(emails.length > 0, filters.hasEmail)) return false;
       if (!matchTri(phones.length > 0, filters.hasPhone)) return false;
-      if (!matchTri(!!getContactPhotoUri(c), filters.hasPhoto)) return false;
+      if (!matchTri(hasContactPhoto(c), filters.hasPhoto)) return false;
 
       if (orgLower) {
         const match = orgs.some((o) => {
@@ -510,9 +512,11 @@ export function ContactList({
             <Users className="w-3.5 h-3.5 me-1" />
             {t("bulk.add_to_group")}
           </Button>
-          <Button variant="ghost" size="sm" onClick={onBulkExport} className="h-7 text-xs">
-            <Download className="w-3.5 h-3.5 me-1" />
-            {t("bulk.export")}
+          <Button variant="ghost" size="sm" onClick={onBulkExport} disabled={exporting} aria-busy={exporting} className="h-7 text-xs">
+            {exporting
+              ? <Loader2 className="w-3.5 h-3.5 me-1 animate-spin" />
+              : <Download className="w-3.5 h-3.5 me-1" />}
+            {exporting ? t("export.exporting") : t("bulk.export")}
           </Button>
           <Button
             variant="ghost"

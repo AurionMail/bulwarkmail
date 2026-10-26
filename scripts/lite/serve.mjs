@@ -138,7 +138,8 @@ if (stalwartPrefixes !== undefined) {
         loadedAt = Date.now();
       }
     } catch {
-      // keep the previous bundle, as Stalwart does on a failed refresh
+      // Keep the previous bundle, as Stalwart 0.16.23 does on a failed
+      // refresh; older 0.16 releases and the 1.0 pre-releases unmount it.
     }
     if (upstream && isReservedStalwartSegment(url.pathname.split("/")[1] ?? "")) return proxy(req, res, upstream);
     const { status, headers, body } = emulateStalwartRequest({ pathname: url.pathname, entries, prefixes, oauthClientId, legacy });

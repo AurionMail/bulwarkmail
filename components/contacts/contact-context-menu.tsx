@@ -21,7 +21,7 @@ import {
 } from "@/components/icons";
 import type { ContactCard } from "@/lib/jmap/types";
 import { getContactPrimaryEmail } from "@/stores/contact-store";
-import { exportContact } from "./contact-export";
+import { exportContact, useContactExportBusy } from "./contact-export";
 import { printContact } from "./contact-print";
 import { toast } from "@/stores/toast-store";
 
@@ -74,6 +74,7 @@ export function ContactContextMenu({
   const email = getContactPrimaryEmail(contact);
   const phone = getContactPrimaryPhone(contact);
   const showBatchActions = isMultiSelect && selectedCount > 1;
+  const exporting = useContactExportBusy();
 
   const handle = (fn: () => void) => () => {
     fn();
@@ -101,12 +102,13 @@ export function ContactContextMenu({
   };
 
   const handleExport = () => {
-    exportContact(contact);
-    toast.success(t("export.success", { count: 1 }));
+    void exportContact(contact).then((exported) => {
+      if (exported) toast.success(t("export.success", { count: 1 }));
+    });
   };
 
   const handlePrint = () => {
-    printContact(contact);
+    void printContact(contact);
   };
 
   if (showBatchActions) {
@@ -125,7 +127,7 @@ export function ContactContextMenu({
           icon={Download}
           label={t("bulk.export")}
           onClick={handle(() => onBatchExport?.())}
-          disabled={!onBatchExport}
+          disabled={!onBatchExport || exporting}
         />
         <ContextMenuSeparator />
         <ContextMenuItem
@@ -189,6 +191,7 @@ export function ContactContextMenu({
         icon={Download}
         label={t("context_menu.export_vcard")}
         onClick={handle(handleExport)}
+        disabled={exporting}
       />
       <ContextMenuItem
         icon={Printer}

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/avatar";
 import { ProEmailView } from "@/components/pro/pro-email-tab-body";
 import type { CalendarHit, ContactHit, FileHit, GlobalSearchHit } from "@/lib/global-search/types";
-import { getContactDisplayName, getContactPhotoUri, getContactPrimaryEmail } from "@/stores/contact-store";
+import { getContactDisplayName, getContactPhotoRef, getContactPrimaryEmail } from "@/stores/contact-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { cn, formatFileSize } from "@/lib/utils";
 
@@ -81,7 +81,7 @@ function ContactPreview({ hit, onOpen, openLabel }: { hit: ContactHit; onOpen: (
   return (
     <div className="p-4 flex flex-col gap-4">
       <PreviewHeader
-        visual={<Avatar name={name} email={getContactPrimaryEmail(contact) || undefined} contactPhotoUri={getContactPhotoUri(contact)} size="lg" className="shrink-0" />}
+        visual={<Avatar name={name} email={getContactPrimaryEmail(contact) || undefined} contactPhoto={getContactPhotoRef(contact) ?? null} size="lg" className="shrink-0" />}
         title={name}
         subtitle={[hit.accountLabel, hit.subtitle].filter(Boolean).join(' · ')}
         action={<OpenButton hit={hit} onOpen={onOpen} label={openLabel} />}
@@ -158,7 +158,6 @@ export interface SearchPreviewProps {
 export function SearchPreview({ hit, onOpen, onClose }: SearchPreviewProps) {
   const t = useTranslations('global_search');
   const getClientForAccount = useAuthStore((s) => s.getClientForAccount);
-  const activeAccountId = useAuthStore((s) => s.activeAccountId);
 
   if (!hit) {
     return (
@@ -169,12 +168,15 @@ export function SearchPreview({ hit, onOpen, onClose }: SearchPreviewProps) {
   }
 
   if (hit.kind === 'mail') {
-    const clientOverride = hit.localAccountId !== activeAccountId ? getClientForAccount(hit.localAccountId) ?? undefined : undefined;
+    // The hit's own login, the active one too: the view names it, so a draft
+    // reopened from here is saved over and removed through it.
+    const clientOverride = getClientForAccount(hit.localAccountId) ?? undefined;
     return (
       <ProEmailView
         key={`${hit.localAccountId}-${hit.id}`}
         emailId={hit.id}
         client={clientOverride}
+        clientAccountId={clientOverride ? hit.localAccountId : undefined}
         accountId={hit.jmapAccountId}
         onClose={onClose}
         className="w-full"

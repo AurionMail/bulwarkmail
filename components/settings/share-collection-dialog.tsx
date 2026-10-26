@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { X, Loader2, UserPlus, Trash2, Users, ChevronDown } from "@/components/icons";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
-import type { Principal, CalendarRights, AddressBookRights, FileNodeRights, MailboxRights } from "@/lib/jmap/types";
+import type { Principal, PrincipalDirectoryStatus, CalendarRights, AddressBookRights, FileNodeRights, MailboxRights } from "@/lib/jmap/types";
+import { loadPrincipalDirectory } from "@/lib/jmap/principal-directory";
 import { toast } from "@/stores/toast-store";
 
 type ShareKind = "calendar" | "addressBook" | "file" | "mailbox";
@@ -152,6 +153,8 @@ export function ShareCollectionDialog({
   const tCommon = useTranslations("common");
   const modalRef = useRef<HTMLDivElement>(null);
   const [allPrincipals, setAllPrincipals] = useState<Principal[]>([]);
+  const [directoryStatus, setDirectoryStatus] = useState<PrincipalDirectoryStatus>("ok");
+  const [directoryQueriesOff, setDirectoryQueriesOff] = useState(false);
   const [loadingPrincipals, setLoadingPrincipals] = useState(true);
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -161,12 +164,12 @@ export function ShareCollectionDialog({
   useEffect(() => {
     let cancelled = false;
     setLoadingPrincipals(true);
-    client.getPrincipals().then((list) => {
+    void loadPrincipalDirectory(client).then(({ principals, status, directoryQueriesOff }) => {
       if (cancelled) return;
-      setAllPrincipals(list);
+      setAllPrincipals(principals);
+      setDirectoryStatus(status);
+      setDirectoryQueriesOff(!!directoryQueriesOff);
       setLoadingPrincipals(false);
-    }).catch(() => {
-      if (!cancelled) setLoadingPrincipals(false);
     });
     return () => { cancelled = true; };
   }, [client]);
@@ -293,6 +296,9 @@ export function ShareCollectionDialog({
             <ul className="divide-y divide-border rounded-md border border-border overflow-hidden">
               {sharedEntries.map(([principalId, rights]) => {
                 const principal = allPrincipalsById.get(principalId);
+                // Stalwart 1.0 with directory queries off hides every principal
+                // the user has no relationship with, so a sharee may have no name.
+                const unresolved = !principal && !loadingPrincipals;
                 const preset = detectPreset(kind, rights);
                 return (
                   <li key={principalId} className="flex items-center gap-3 px-3 py-2.5">
@@ -304,8 +310,11 @@ export function ShareCollectionDialog({
                     />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">
-                        {principal?.name || principal?.email || principalId}
+                        {principal?.name || principal?.email || (unresolved ? t("unknown_user") : principalId)}
                       </div>
+                      {unresolved && (
+                        <div className="text-xs text-muted-foreground truncate">{principalId}</div>
+                      )}
                       {principal?.description && (
                         <div className="text-xs text-muted-foreground truncate">
                           {principal.description}
@@ -366,6 +375,18 @@ export function ShareCollectionDialog({
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 autoFocus
               />
+              {/* The list below is partial or empty for a reason the user
+                  can't see otherwise; say so instead of "no users found". Only
+                  Stalwart 1.0's own refusal says who is still listed and what
+                  an administrator can do: a 0.16 role without the permission
+                  gets another refusal, and a list of everyone after it. */}
+              {!loadingPrincipals && directoryStatus !== "ok" && (
+                <p className="text-xs text-muted-foreground" role="status">
+                  {directoryStatus === "error"
+                    ? t("directory_failed")
+                    : directoryQueriesOff ? t("directory_restricted") : t("directory_not_browsable")}
+                </p>
+              )}
               <div className="max-h-48 overflow-y-auto -mx-1">
                 {loadingPrincipals && (
                   <div className="flex items-center justify-center py-4 text-muted-foreground">
@@ -373,7 +394,7 @@ export function ShareCollectionDialog({
                     {t("loading_principals")}
                   </div>
                 )}
-                {!loadingPrincipals && filteredPrincipals.length === 0 && (
+                {!loadingPrincipals && filteredPrincipals.length === 0 && (search.trim() || directoryStatus === "ok") && (
                   <div className="text-xs text-muted-foreground text-center py-3">
                     {search.trim() ? t("no_match") : t("no_principals")}
                   </div>

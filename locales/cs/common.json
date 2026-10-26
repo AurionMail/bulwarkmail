@@ -617,6 +617,14 @@
     "scheduled_actions_only": "Zobrazení Naplánováno podporuje pouze akce plánování",
     "undo_send_scheduled": "Zpráva je naplánována k odeslání",
     "undo_send": "Vrátit odeslání",
+    "send_cancelled_restore_failed": "Odeslání bylo zrušeno, ale zprávu se nepodařilo vrátit do Konceptů. Je stále v Odeslaných.",
+    "send_cancelled_remove_failed": "Odeslání bylo zrušeno, ale neodeslanou zprávu se nepodařilo odstranit z Odeslaných.",
+    "cancel_scheduled_failed": "Naplánované odeslání se nepodařilo zrušit",
+    "still_scheduled_at": "Zpráva je stále naplánována na {date}.",
+    "still_scheduled": "Zpráva je stále naplánována.",
+    "already_sent": "Tato zpráva již byla odeslána.",
+    "no_longer_scheduled": "Tato zpráva už není naplánována.",
+    "reschedule_recipients_refused": "Nic se nezměnilo: server odmítl {recipients}.",
     "contact_sidebar": {
       "title": "Kontakt",
       "close": "Zavřít postranní panel",
@@ -752,6 +760,10 @@
     "show_less": "Zobrazit méně",
     "send_failed": "Odeslání zprávy selhalo",
     "send_timeout": "Server přestal odpovídat. Než odešlete znovu, zkontrolujte složku Odeslané – zpráva už mohla odejít.",
+    "submission_quota": "Server má pro tento účet příliš mnoho záznamů o odeslaných zprávách. Bulwark odstranil ty, které mohl; pokud se to bude opakovat, požádejte správce o zvýšení limitu odesílání e-mailů.",
+    "submission_limit": "Server odmítl zprávu odeslat, protože byl dosažen limit: {reason}",
+    "recipients_refused": "Neodesláno: server odmítl {recipients}.",
+    "recipients_partly_refused": "Server odmítl {recipients}. Ostatní příjemci zprávu dostanou.",
     "send_offline": "Zdá se, že jste offline. Zpráva tu zůstává, odešlete ji znovu, až budete online.",
     "formatting": "Formátování",
     "send_recipients_rejected": "Neodesláno – server odmítl všechny příjemce.",
@@ -1367,7 +1379,10 @@
         "revoke": "Odvolat",
         "confirm_revoke_title": "Odvolat toto zařízení?",
         "confirm_revoke_message": "Okamžitě přestane přijímat oznámení na pozadí. Opětovné zapnutí push na tom zařízení jej zaregistruje znovu.",
-        "confirm_revoke_message_this": "Toto zařízení okamžitě přestane přijímat oznámení na pozadí."
+        "confirm_revoke_message_this": "Toto zařízení okamžitě přestane přijímat oznámení na pozadí.",
+        "shared_mailboxes_no_push": "Poštovní schránky, které s vámi sdílejí ostatní, neodesílají oznámení na pozadí.",
+        "error_forbidden": "Poštovní server pro tento účet nepovoluje oznámení na pozadí.",
+        "error_over_quota": "Tento účet má na poštovním serveru příliš mnoho registrací push (limit je obvykle 15). V nastavení oznámení odvolejte zařízení, která už nepoužíváte, a zkuste to znovu."
       }
     },
     "language_region": {
@@ -2357,6 +2372,7 @@
       "validation_empty_name": "Název pravidla je vyžadován",
       "validation_empty_conditions": "Je vyžadována alespoň jedna podmínka s hodnotou",
       "validation_empty_actions": "Je vyžadována alespoň jedna akce",
+      "validation_header_name": "Názvy hlaviček smí obsahovat jen písmena A-Z, číslice, pomlčky a podtržítka",
       "templates_section": "Začít ze šablony",
       "template_newsletters": "Přesunout newslettery do složky",
       "template_receipts": "Automaticky archivovat účtenky",
@@ -3136,7 +3152,8 @@
     },
     "export": {
       "title": "Exportovat kontakty",
-      "success": "{count, plural, one {Exportován 1 kontakt} few {Exportovány # kontakty} other {Exportováno # kontaktů}}"
+      "success": "{count, plural, one {Exportován 1 kontakt} few {Exportovány # kontakty} other {Exportováno # kontaktů}}",
+      "exporting": "Exportování..."
     },
     "bulk": {
       "selected": "{count, plural, one {1 vybrán} few {# vybrány} other {# vybráno}}",
@@ -3280,8 +3297,11 @@
         "free": "Volný",
         "busy": "Zaneprázdněn",
         "tentative": "Předběžně",
+        "no_busy_times": "Žádné sdílené obsazené časy",
         "unknown": "Není uživatelem tohoto serveru",
-        "checking": "Ověřuje se…"
+        "error": "Nepodařilo se ověřit",
+        "checking": "Ověřuje se…",
+        "unavailable_on_server": "Informace o volném/obsazeném čase nejsou na tomto serveru dostupné"
       },
       "title": "Účastníci",
       "add": "Přidat účastníka",
@@ -3303,6 +3323,7 @@
       "you_organizer": "Jste organizátorem",
       "you_attendee": "Jste účastníkem",
       "no_participants": "Žádní účastníci",
+      "limit_warning": "Více než {max, plural, one {# účastník} few {# účastníci} many {# účastníka} other {# účastníků}} včetně organizátora: server může uložení této události odmítnout. Správce může limit zvýšit.",
       "count": "{count, plural, one {1 účastník} few {# účastníci} other {# účastníků}}"
     },
     "recurrence": {
@@ -3467,6 +3488,7 @@
       "save_without_invitations": "Uložit bez pozvánek",
       "rsvp_updated": "Odpověď byla aktualizována",
       "rsvp_error": "Aktualizace odpovědi selhala",
+      "participant_limit": "Server povoluje nejvýše {max, plural, one {# účastníka} few {# účastníky} many {# účastníka} other {# účastníků}} na událost včetně organizátora, proto tuto změnu odmítl. Správce může limit zvýšit.",
       "event_duplicated": "Událost byla duplikována",
       "event_error": "Uložení události selhalo",
       "task_due": "Termín úkolu",
@@ -3476,7 +3498,10 @@
     },
     "status": {
       "loading_calendars": "Načítání kalendářů...",
-      "loading_events": "Načítání událostí..."
+      "loading_events": "Načítání událostí...",
+      "events_load_failed": "Události se nepodařilo načíst. Kalendář nemusí být aktuální.",
+      "tasks_load_failed": "Úkoly se nepodařilo načíst. Seznam nemusí být aktuální.",
+      "retry": "Zkusit znovu"
     },
     "quick_create": {
       "placeholder": "Název nové události",
@@ -3768,6 +3793,8 @@
     "new_name": "Nový název",
     "name_forbidden_chars": "Server nepovoluje v názvech tyto znaky: {chars}",
     "name_reserved": "Tento název je na serveru vyhrazen.",
+    "name_control_chars": "Názvy nesmí obsahovat řídicí znaky.",
+    "name_too_long": "Tento název je pro server příliš dlouhý.",
     "delete": "Odstranit",
     "delete_confirm_title": "Odstranit položku",
     "delete_confirm_message": "Opravdu chcete odstranit \"{name}\"? Tuto akci nelze vrátit zpět.",
@@ -3778,11 +3805,21 @@
     "type": "Typ",
     "folder": "Složka",
     "file": "Soubor",
+    "symlink": "Symbolický odkaz",
+    "parent_directory": "Nadřazený adresář",
+    "breadcrumb_root": "Domů",
     "uploading": "Nahrávání...",
     "upload_success": "{count, plural, one {Nahrán 1 soubor} few {Nahrány # soubory} other {Nahráno # souborů}}",
     "upload_canceled": "Nahrávání zrušeno",
     "upload_canceled_partial": "Před zrušením {count, plural, one {byl nahrán 1 soubor} few {byly nahrány # soubory} many {bylo nahráno # souboru} other {bylo nahráno # souborů}}",
     "upload_error": "Nahrání souboru selhalo",
+    "upload_failed": "{count, plural, one {1 soubor se nepodařilo nahrát} few {# soubory se nepodařilo nahrát} other {# souborů se nepodařilo nahrát}}",
+    "error_over_quota": "Dosáhli jste limitu počtu souborů nebo složek. Některé smažte a zkuste to znovu.",
+    "error_too_deep": "Složky nelze vnořit tak hluboko.",
+    "error_invalid_name": "Server tento název nepřijímá.",
+    "error_forbidden": "K této akci zde nemáte oprávnění.",
+    "error_too_large": "Tento soubor je pro server příliš velký.",
+    "error_partial_copy": "Část kopie zůstala na místě.",
     "create_folder_success": "Složka byla vytvořena",
     "create_folder_error": "Vytvoření složky selhalo",
     "delete_success": "Úspěšně odstraněno",
@@ -3817,6 +3854,7 @@
     "duplicate": "Duplikovat",
     "duplicate_success": "Úspěšně duplikováno",
     "duplicate_error": "Duplikování selhalo",
+    "shared_files_from": "Soubory od {name}",
     "share": "Sdílet",
     "shared": "Sdíleno",
     "shared_with_me": "Sdíleno se mnou",
@@ -4050,8 +4088,12 @@
     "loading_principals": "Načítání uživatelů…",
     "no_principals": "Nenalezeni žádní další uživatelé ani skupiny.",
     "no_match": "Žádné výsledky.",
+    "directory_restricted": "Váš server neumožňuje procházet adresář uživatelů, proto se zobrazují jen vaše skupiny a lidé, kteří s vámi něco sdíleli. Správce může dotazy na adresář zapnout v nastavení sdílení serveru Stalwart.",
+    "directory_not_browsable": "Váš server vám neumožňuje procházet adresář uživatelů.",
+    "directory_failed": "Seznam uživatelů a skupin se nepodařilo načíst.",
     "remove": "Odebrat přístup",
     "group": "Skupina",
+    "unknown_user": "Neznámý uživatel",
     "share_added": "Přístup udělen",
     "share_updated": "Přístup aktualizován",
     "share_removed": "Přístup odebrán",

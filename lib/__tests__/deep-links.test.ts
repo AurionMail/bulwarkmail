@@ -13,6 +13,7 @@ import {
   buildContactsPath,
   parseContactsPath,
   buildFilesPath,
+  buildSharedFilesPath,
   parseFilesPath,
   buildSettingsPath,
   parseSettingsPath,
@@ -333,6 +334,17 @@ describe('files paths', () => {
     expect(buildFilesPath('/Documents', 'report.pdf')).toBe('/files/Documents?preview=report.pdf');
     expect(parseFilesPath(['Documents'], new URLSearchParams('preview=report.pdf')))
       .toEqual({ path: '/Documents', preview: 'report.pdf' });
+  });
+
+  it('names a node of a shared drive by id, since it has no path under the user\'s root', () => {
+    const link = buildSharedFilesPath('owner1:n5', 'Q3 plan.pdf');
+    expect(link).toBe('/files?shared=owner1%3An5&preview=Q3%20plan.pdf');
+    const [, query] = link.split('?');
+    expect(parseFilesPath([], new URLSearchParams(query)))
+      .toEqual({ path: '/', preview: 'Q3 plan.pdf', shared: 'owner1:n5' });
+    // An owner's page of files shared on their own.
+    expect(parseFilesPath([], new URLSearchParams(buildSharedFilesPath('owner1:*').split('?')[1])))
+      .toEqual({ path: '/', preview: undefined, shared: 'owner1:*' });
   });
 });
 

@@ -11,7 +11,10 @@
 # global-setup / integration runner). This keeps the build offline-friendly and
 # avoids the base image's apt sources, which are unreachable in sandboxed CI.
 
-FROM stalwartlabs/stalwart:v0.16
+# The Stalwart release under test. docker-compose.yml passes STALWART_IMAGE
+# through (see run-tests.sh), e.g. a locally built 1.0 image.
+ARG STALWART_IMAGE=stalwartlabs/stalwart:v0.16
+FROM ${STALWART_IMAGE}
 
 USER root
 

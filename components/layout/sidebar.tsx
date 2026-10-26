@@ -597,7 +597,7 @@ function MailboxTreeItem({
   onContextMenu?: (e: React.MouseEvent, node: MailboxNode) => void;
   /** Connected-account id this folder is listed under; null = active account.
    *  Travels in the folder-drag payload so a folder tab fetches through the
-   *  right client. */
+   *  right client, and tells a message drop which login the folder is in. */
   dragAccountId?: string | null;
 }) {
   const tNotifications = useTranslations('notifications');
@@ -633,6 +633,7 @@ function MailboxTreeItem({
   const { isDragging: globalDragging } = useDragDropContext();
   const { dropHandlers, isValidDropTarget, isInvalidDropTarget } = useMailboxDrop({
     mailbox: node,
+    accountId: dragAccountId ?? undefined,
     onSuccess: (count, mailboxName) => {
       if (count === 1) {
         toast.success(

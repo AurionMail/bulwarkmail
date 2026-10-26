@@ -111,7 +111,8 @@ describe('EventModal reminder actions', () => {
     expect(screen.queryByLabelText('alerts.unit')).toBeNull();
     const data = await savedData(onSave);
 
-    expect(data.alerts).toEqual({ after });
+    // Untouched alerts are not sent: the server keeps them as they are.
+    expect(data).not.toHaveProperty('alerts');
   });
 });
 

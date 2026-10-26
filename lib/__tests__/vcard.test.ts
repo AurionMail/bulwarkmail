@@ -446,6 +446,42 @@ describe("generateVCard", () => {
     expect(vcf).toContain("SOURCE:https://example.com/jane.vcf");
   });
 
+  it("exports photos whose data: URI names no media type (Stalwart 0.16)", () => {
+    const contact: ContactCard = {
+      id: "c-photo",
+      addressBookIds: {},
+      name: { full: "Ann" },
+      media: {
+        // 0.16.23 (calcard 0.3.14) with the type in mediaType, 0.16.0 (calcard 0.3.2) with none.
+        a: { kind: "photo", uri: "data:;base64,/9j/", mediaType: "image/jpeg" },
+        b: { kind: "photo", uri: "data:base64,iVBO" },
+        c: { kind: "logo", uri: "data:image/png;base64,iVBO", mediaType: "image/png" },
+      },
+    };
+
+    const lines = generateVCard([contact]).split("\r\n");
+    expect(lines).toContain("PHOTO;ENCODING=b;TYPE=image/jpeg:/9j/");
+    expect(lines).toContain("PHOTO;ENCODING=b:iVBO");
+    expect(lines).toContain("LOGO;ENCODING=b;TYPE=image/png:iVBO");
+
+    const [reparsed] = parseVCard(generateVCard([contact]));
+    expect(Object.values(reparsed.media ?? {}).map(m => m.uri)).toEqual([
+      "data:image/jpeg;base64,/9j/",
+      "data:image/jpeg;base64,iVBO",
+      "data:image/png;base64,iVBO",
+    ]);
+  });
+
+  it("writes nothing for a blob photo that was not downloaded first (Stalwart 1.0)", () => {
+    const contact: ContactCard = {
+      id: "c-blob",
+      addressBookIds: {},
+      name: { full: "Ann" },
+      media: { photo: { kind: "photo", blobId: "dbcX", mediaType: "image/jpeg" } },
+    };
+    expect(generateVCard([contact])).not.toContain("PHOTO");
+  });
+
   it("encodes special characters in values", () => {
     const contact: ContactCard = {
       id: "c3",
@@ -501,6 +537,46 @@ describe("organization-only cards (issue #701)", () => {
     expect(parsed).toHaveLength(1);
     expect(parsed[0].kind).toBe("org");
     expect(parsed[0].organizations?.o0.name).toBe("Acme Corp");
+  });
+});
+
+describe("MEMBER export", () => {
+  const group = (members: Record<string, boolean>): ContactCard => ({
+    id: "g1",
+    addressBookIds: {},
+    kind: "group",
+    name: { full: "Team" },
+    members,
+  });
+
+  it("writes a member key that is already a URI as it is", () => {
+    // Groups made in Bulwark key members by uid (urn:uuid:); CardDAV groups
+    // keep whatever MEMBER value the client sent.
+    const vcf = generateVCard([group({ "urn:uuid:0f3c9d2e": true, "mailto:ann@example.com": true })]);
+    const lines = vcf.split("\r\n");
+    expect(lines).toContain("MEMBER:urn:uuid:0f3c9d2e");
+    expect(lines).toContain("MEMBER:mailto:ann@example.com");
+    expect(vcf).not.toContain("urn:uuid:urn:uuid:");
+  });
+
+  it("prefixes a bare key with urn:uuid:", () => {
+    expect(generateVCard([group({ "0f3c9d2e": true, gone: false })]).split("\r\n").filter(l => l.startsWith("MEMBER:")))
+      .toEqual(["MEMBER:urn:uuid:0f3c9d2e"]);
+  });
+
+  it("round-trips members through import and export", () => {
+    const [parsed] = parseVCard([
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      "FN:Team",
+      "KIND:group",
+      "MEMBER:urn:uuid:member-1",
+      "MEMBER:mailto:ann@example.com",
+      "END:VCARD",
+    ].join("\r\n"));
+    const [reparsed] = parseVCard(generateVCard([parsed]));
+    expect(reparsed.members).toEqual(parsed.members);
+    expect(generateVCard([parsed])).toContain("MEMBER:urn:uuid:member-1");
   });
 });
 

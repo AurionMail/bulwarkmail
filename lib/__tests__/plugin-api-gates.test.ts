@@ -421,6 +421,68 @@ describe('native keyword extension API', () => {
       expect(error).toMatch(/No active session/);
     }
   });
+
+  // Stalwart 1.0 derives hasAttachment from these, so a plugin adding or
+  // removing one would misreport the message.
+  it('keeps plugins off the attachment keywords Stalwart 1.0 sets itself', async () => {
+    const setKeyword = vi.fn();
+    const removeKeyword = vi.fn();
+    const updateEmailKeywords = vi.fn();
+    useAuthStore.setState({ client: { setKeyword, removeKeyword, updateEmailKeywords } as never });
+    const writer = plugin({ permissions: ['email:write'], grantedPermissions: ['email:write'] });
+
+    for (const method of ['jmap.setKeyword', 'jmap.removeKeyword', 'email.setKeyword', 'email.removeKeyword']) {
+      for (const keyword of ['$hasattachment', '$hasnoattachment', '$HasAttachment']) {
+        expect(await gateError(writer, method, ['email-1', keyword])).toMatch(/is set by the server/);
+      }
+    }
+    expect(await gateError(writer, 'jmap.setKeywords', ['email-1', { '$seen': true, '$hasattachment': true }]))
+      .toMatch(/"\$hasattachment" is set by the server/);
+
+    expect(setKeyword).not.toHaveBeenCalled();
+    expect(removeKeyword).not.toHaveBeenCalled();
+    expect(updateEmailKeywords).not.toHaveBeenCalled();
+
+    // Other keywords still go through.
+    await dispatchApiCall(writer, 'jmap.setKeyword', ['email-1', '$label:work']);
+    expect(setKeyword).toHaveBeenCalledWith('email-1', '$label:work', undefined);
+  });
+
+  it('leaves the attachment keywords out of a plugin import', async () => {
+    // Stalwart 1.0 adds the right one itself and keeps whatever else the
+    // import names, so a stray `$hasattachment` would stick.
+    const importRawEmail = vi.fn().mockResolvedValue('email-9');
+    const getMailboxes = vi.fn().mockResolvedValue([{ id: 'mb-inbox', role: 'inbox' }]);
+    useAuthStore.setState({ client: { importRawEmail, getMailboxes } as never });
+    const importer = plugin({ permissions: ['email:raw-send'], grantedPermissions: ['email:raw-send'] });
+
+    await dispatchApiCall(
+      importer,
+      'jmap.importRaw',
+      [new Uint8Array([1, 2, 3]), ['inbox'], { keywords: { $seen: true, $hasattachment: true, $HasNoAttachment: true } }],
+      { privileged: true },
+    );
+
+    expect(importRawEmail).toHaveBeenCalledWith(expect.any(Blob), { 'mb-inbox': true }, { $seen: true }, undefined);
+  });
+
+  it('hides the attachment keywords Stalwart 1.0 puts on every message from keywords.discover', async () => {
+    const discoverKeywords = vi.fn().mockResolvedValue({
+      keywords: { $seen: 5, $hasattachment: 2, $hasnoattachment: 3, '$label:work': 1 },
+      scanned: 5,
+      total: 5,
+      complete: true,
+    });
+    useAuthStore.setState({ client: { discoverKeywords } as never });
+    const reader = plugin({ permissions: ['email:read'], grantedPermissions: ['email:read'] });
+
+    await expect(dispatchApiCall(reader, 'keywords.discover', [])).resolves.toEqual({
+      keywords: { $seen: 5, '$label:work': 1 },
+      scanned: 5,
+      total: 5,
+      complete: true,
+    });
+  });
 });
 
 describe('jmap.uploadBlob', () => {

@@ -20,6 +20,7 @@ export interface WopiTokenPayload {
   serverUrl: string;
   authHeader: string;
   username: string;
+  /** Account holding the document: the owner's, for a node in a shared drive. */
   accountId: string;
   /** FileNode id for 'file', blobId for 'attachment'. */
   fileId: string;

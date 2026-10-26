@@ -19,6 +19,19 @@ export interface SharedAccount {
   };
 }
 
+/**
+ * One account as the JMAP session describes it (RFC 8620 §2), unflattened:
+ * the raw per-account capability objects rather than SharedAccount's
+ * booleans, for callers that need a capability's fields.
+ */
+export interface AccountInfo {
+  /** Stalwart names an account after its principal's address, a group's too. */
+  name: string;
+  isPersonal: boolean;
+  isReadOnly: boolean;
+  accountCapabilities: Record<string, unknown>;
+}
+
 export interface Email {
   id: string;
   threadId: string;
@@ -119,6 +132,8 @@ export interface SendEmailResult {
    * Recipients the server refused while accepting the submission (its
    * deliveryStatus says delivered "no"). The message went out to the others
    * only - callers should name these instead of reporting a plain success.
+   * When it refused every one, the send throws RecipientsRejectedError
+   * instead.
    */
   rejectedRecipients?: RejectedRecipient[];
 }
@@ -126,6 +141,7 @@ export interface SendEmailResult {
 /** A recipient refused at submission, with the SMTP reply the server gave. */
 export interface RejectedRecipient {
   email: string;
+  /** The server's SMTP reply, e.g. "550 5.1.2 Relay not allowed."; empty when it gave none. */
   smtpReply: string;
 }
 
@@ -437,10 +453,17 @@ export interface ContactNote {
   author?: { name?: string; uri?: string };
 }
 
+// RFC 9553 Media. The bytes are either at `uri` (an https or data: URI) or in
+// a blob: Stalwart 1.0 returns every embedded PHOTO, LOGO and SOUND as a
+// `blobId` without `uri`, while 0.16 returns them as data: URIs.
 export interface ContactMedia {
   kind: 'photo' | 'sound' | 'logo';
-  uri: string;
+  uri?: string;
+  blobId?: string;
   mediaType?: string;
+  label?: string;
+  pref?: number;
+  contexts?: Record<string, boolean>;
 }
 
 // RFC 9553 PartialDate
@@ -535,6 +558,28 @@ export interface Principal {
 }
 
 /**
+ * How complete a principal listing is:
+ * - `ok`: the whole directory;
+ * - `restricted`: the server refused to list its directory (Stalwart 1.0 with
+ *   directory queries off, or a role without the permission). The principals
+ *   are what Principal/get without ids still returns, on 1.0 the user's own
+ *   account, their groups and the accounts that shared something with them;
+ * - `error`: the listing failed part-way; the principals are what arrived.
+ */
+export type PrincipalDirectoryStatus = 'ok' | 'restricted' | 'error';
+
+export interface PrincipalListing {
+  principals: Principal[];
+  status: PrincipalDirectoryStatus;
+  /**
+   * With `restricted`: the administrator turned directory queries off, as
+   * Stalwart 1.0 says in its refusal, rather than the user's role lacking
+   * the permission. 0.16 has no such refusal over JMAP.
+   */
+  directoryQueriesOff?: boolean;
+}
+
+/**
  * One busy interval from Principal/getAvailability (RFC 9670 §2.5 /
  * draft-ietf-jmap-calendars). `busyStatus` null means the server did not
  * classify the period (treated as busy).
@@ -544,6 +589,13 @@ export interface BusyPeriod {
   utcEnd: string;
   busyStatus: 'confirmed' | 'tentative' | 'unavailable' | null;
 }
+
+/**
+ * One principal's answer to Principal/getAvailability: its busy periods, or
+ * the JMAP error type the call was refused with (`forbidden`, `rateLimit`,
+ * `notFound`, ...).
+ */
+export type PrincipalAvailability = { periods: BusyPeriod[] } | { error: string };
 
 export interface VacationResponse {
   id: string;
@@ -825,6 +877,8 @@ export interface CalendarTask {
   created: string | null;
   updated: string;
   recurrenceRules: CalendarRecurrenceRule[] | null;
+  // While on, Stalwart 1.0 fills the calendar's default alerts into `alerts`.
+  useDefaultAlerts?: boolean;
   alerts: Record<string, CalendarEventAlert> | null;
   relatedTo: Record<string, CalendarRelation> | null;
   // Client-only, set on tasks from a shared calendar account. Their `id` and
@@ -866,6 +920,12 @@ export interface CalendarEventNotification {
 }
 
 export interface CalendarEventFilter {
+  /**
+   * A FilterOperator (RFC 8620 §5.5) sets these and no property keys:
+   * Stalwart rejects a filter that mixes the two.
+   */
+  operator?: 'AND' | 'OR' | 'NOT';
+  conditions?: CalendarEventFilter[];
   inCalendars?: string[];
   after?: string;
   before?: string;
@@ -973,11 +1033,16 @@ export interface AccountStates {
 
 // JMAP FileNode types (draft-ietf-jmap-filenode / Stalwart implementation)
 
+export type FileNodeType = 'file' | 'directory' | 'symlink';
+
 export interface FileNode {
   id: string;
   parentId: string | null;
   name: string;
   type: string; // "d" for directory, MIME type for files
+  // Returned by Stalwart 0.16.6+; 1.0 adds symlinks. Read it through
+  // fileNodeKind(), and never send it in FileNode/set.
+  nodeType?: FileNodeType;
   blobId: string | null;
   size: number;
   created: string;
@@ -995,6 +1060,10 @@ export interface FileNode {
   // True when this node was fetched from another principal's account that was
   // shared with the logged-in user (mirrors Calendar.isShared / AddressBook.isShared).
   isShared?: boolean;
+  // A folder of another account that is listed only because something below
+  // it was shared with the user (Stalwart 1.0): name and place in the tree,
+  // no dates, no rights. It leads to the shared node but is not shown itself.
+  discoverableOnly?: boolean;
   // Owning account's JMAP id and display name, set when aggregating nodes
   // across connected/shared accounts so mutations route to the right account.
   accountId?: string;

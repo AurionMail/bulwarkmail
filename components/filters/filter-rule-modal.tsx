@@ -16,6 +16,7 @@ import type {
   FilterActionType,
 } from "@/lib/jmap/sieve-types";
 import type { Mailbox } from "@/lib/jmap/types";
+import { isValidSieveHeaderName } from "@/lib/sieve/generator";
 import { buildMailboxTree, flattenMailboxTree, type MailboxNode, generateUUID, cn } from "@/lib/utils";
 import type { RuleSuggestion } from "@/lib/filters/quick-rules";
 import { retroactiveSupport } from "@/lib/filters/retroactive";
@@ -244,7 +245,8 @@ export function FilterRuleModal({
       if (typeof c.value !== "string") return c; // already structured
       const parsed = inputStringToValue(c.value);
       return { ...c, value: parsed };
-    }), [conditions]);
+    })
+    .map((c) => (c.field === "header" ? { ...c, headerName: (c.headerName ?? "").trim() } : c)), [conditions]);
 
   const validActions = useMemo(() => actions
     .map((a) => {
@@ -278,6 +280,12 @@ export function FilterRuleModal({
 
     if (validConditions.length === 0) {
       toast.error(t("validation_empty_conditions"));
+      return;
+    }
+    // Stalwart's Sieve compiler refuses any other header name, and with it
+    // the whole script, so every other rule would stop working too.
+    if (validConditions.some((c) => c.field === "header" && !isValidSieveHeaderName(c.headerName ?? ""))) {
+      toast.error(t("validation_header_name"));
       return;
     }
 

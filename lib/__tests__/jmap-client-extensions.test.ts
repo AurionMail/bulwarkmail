@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { JMAPClient, submissionEnvelopeParameters } from '../jmap/client';
+import { isJmapSetError, jmapErrorType } from '../jmap/jmap-error';
+import { stalwartExactState, stalwartIntermediateState } from './helpers/stalwart-state';
 
 describe('submissionEnvelopeParameters', () => {
   it('is empty without options', () => {
@@ -141,6 +143,79 @@ describe('JMAP client extensions', () => {
       expect(page.state).toBe('e9');
       expect(page.emails).toHaveLength(1);
     });
+
+    // Stalwart lists urn:stalwart:jmap on every account (0.16.6 through 1.0).
+    const STALWART = { 'urn:stalwart:jmap': {} };
+    const changes = (type: string, oldState: string, newState: string) => ({
+      methodResponses: [[
+        `${type}/changes`,
+        { accountId: 'acct-1', oldState, newState, hasMoreChanges: false, created: [], updated: [], destroyed: [] },
+        '0',
+      ]],
+    });
+
+    it.each(['Email', 'Mailbox'])(
+      'falls back to a full fetch when Stalwart answers %s/changes with a lower state (upgrade with restarted counters)',
+      async (type) => {
+        await setup(STALWART);
+        // The old change log survived with its ids, the counter restarted
+        // lower: Stalwart accepts the old state and reports nothing since.
+        const since = stalwartExactState(12_345_678);
+        answer(() => changes(type, since, stalwartExactState(16_384)));
+
+        const delta = type === 'Email' ? await client.getEmailChanges(since) : await client.getMailboxChanges(since);
+
+        expect(delta).toBeNull();
+      },
+    );
+
+    it('trips on the states Stalwart 0.16.23 and 1.0 actually return', async () => {
+      await setup(STALWART);
+      // `sba` (8) from 0.16.23 answered with `sau` (5) from 1.0.
+      answer(() => changes('Email', 'sba', 'sau'));
+      expect(await client.getEmailChanges('sba')).toBeNull();
+
+      answer(() => changes('Email', 'sau', 'sba'));
+      expect(await client.getEmailChanges('sau')).toMatchObject({ oldState: 'sau', newState: 'sba' });
+    });
+
+    it('never trips while Stalwart states go up or stay put', async () => {
+      await setup(STALWART);
+      const big = (n: number | string) => BigInt(n);
+      // Every LEB128 byte boundary, and ids past 2^53.
+      const ids = [
+        big(0), big(1), big(126), big(127), big(128), big(129), big(16_383), big(16_384),
+        big(2_097_151), big(2_097_152), big(2) ** big(32) - big(1), big(2) ** big(32),
+        big(2) ** big(53), big(2) ** big(53) + big(1), big(2) ** big(64) - big(2), big(2) ** big(64) - big(1),
+      ];
+      for (let i = 0; i < ids.length; i++) {
+        for (const next of [ids[i], ids[i + 1]]) {
+          if (next === undefined) continue;
+          const since = stalwartExactState(ids[i]);
+          const newState = stalwartExactState(next);
+          answer(() => changes('Email', since, newState));
+          expect(await client.getEmailChanges(since)).toMatchObject({ oldState: since, newState });
+        }
+      }
+    });
+
+    it('leaves states in any other format alone', async () => {
+      await setup(STALWART);
+      // An intermediate state (a delta cut short by maxChanges) on either side.
+      const intermediate = stalwartIntermediateState(1024, 2048, 100);
+      answer(() => changes('Email', stalwartExactState(5000), intermediate));
+      expect(await client.getEmailChanges(stalwartExactState(5000))).toMatchObject({ newState: intermediate });
+
+      answer(() => changes('Email', intermediate, stalwartExactState(1)));
+      expect(await client.getEmailChanges(intermediate)).toMatchObject({ newState: stalwartExactState(1) });
+    });
+
+    it('does not read states of servers other than Stalwart', async () => {
+      await setup();
+      // Same strings, but the session doesn't list urn:stalwart:jmap.
+      answer(() => changes('Email', 'sba', 'sau'));
+      expect(await client.getEmailChanges('sba')).toMatchObject({ newState: 'sau' });
+    });
   });
 
   describe('search snippets', () => {
@@ -166,12 +241,42 @@ describe('JMAP client extensions', () => {
       expect(snippetCall[0]).toBe('SearchSnippet/get');
       expect(snippetCall[1]).toEqual({
         accountId: 'acct-1',
-        // The wildcard the search adds for prefix matching is stripped again.
+        // A plain query goes to the snippets as it went to Email/query.
         filter: { operator: 'AND', conditions: [{ inMailbox: 'inbox' }, { text: 'invoice' }] },
         '#emailIds': { resultOf: '0', name: 'Email/query', path: '/ids' },
       });
       expect(result.emails[0].searchSnippet).toEqual({ subject: '<mark>Invoice</mark>', preview: 'your <mark>invoice</mark> is attached' });
       expect(result.emails[1].searchSnippet).toBeUndefined();
+    });
+
+    it('sends quoted phrases as conditions of their own and unquotes them for the snippets', async () => {
+      await setup();
+      answer(() => ({
+        methodResponses: [
+          ['Email/query', { ids: [], total: 0 }, '0'],
+          ['Email/get', { list: [] }, '1'],
+          ['SearchSnippet/get', { list: [] }, 'snippets'],
+        ],
+      }));
+
+      await client.searchEmails('"annual report" 2024 "draft"', 'inbox');
+      const [query, , snippets] = requests[0].methodCalls;
+      // One joined value would be one phrase on Stalwart 1.0.
+      expect(query[1].filter).toEqual({
+        operator: 'AND',
+        conditions: [{ inMailbox: 'inbox' }, { text: '"annual report"' }, { text: '2024' }, { text: '"draft"' }],
+      });
+      // A quoted term switches the whole snippet request to exact mode.
+      expect(snippets[1].filter).toEqual({
+        operator: 'AND',
+        conditions: [{ inMailbox: 'inbox' }, { text: 'annual report' }, { text: '2024' }, { text: 'draft' }],
+      });
+
+      await client.searchEmails('project budg*');
+      expect(requests[1].methodCalls[0][1].filter).toEqual({
+        operator: 'AND',
+        conditions: [{ text: 'project' }, { text: 'budg*' }],
+      });
     });
 
     it('sends a no-op instead of SearchSnippet/get for a structural filter', async () => {
@@ -362,6 +467,118 @@ describe('JMAP client extensions', () => {
         { utcStart: '2026-09-01T12:00:00Z', utcEnd: '2026-09-01T13:00:00Z', busyStatus: null },
       ]);
     });
+
+    async function setupAvailability() {
+      client?.disconnect();
+      vi.restoreAllMocks();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const session = makeSession({ 'urn:ietf:params:jmap:principals': { currentUserPrincipalId: 'p-me' } });
+      (session.capabilities as Record<string, unknown>)['urn:ietf:params:jmap:principals'] = {};
+      (session.capabilities as Record<string, unknown>)['urn:ietf:params:jmap:principals:availability'] = { maxAvailabilityDuration: 'P365D' };
+      fetchSpy.mockResolvedValueOnce(jsonResponse(session));
+      client = new JMAPClient('https://mail.example.com', 'user@test.com', 'pass123');
+      await client.connect();
+      fetchSpy.mockReset();
+      requests = [];
+    }
+
+    it('reads mayGetAvailability from the own principal and is false on Stalwart 1.0 with directory queries off', async () => {
+      await setupAvailability();
+      answer(() => ({
+        methodResponses: [['Principal/get', { accountId: 'acct-1', state: 'n', list: [{
+          id: 'p-me',
+          capabilities: {
+            'urn:ietf:params:jmap:mail': {},
+            'urn:ietf:params:jmap:contacts': {},
+            'urn:ietf:params:jmap:filenode': {},
+            'urn:ietf:params:jmap:principals': {},
+            'urn:ietf:params:jmap:calendars': { accountId: 'p-me', mayGetAvailability: false, mayShareWith: false, calendarAddress: 'mailto:user@test.com' },
+          },
+        }], notFound: [] }, '0']],
+      }));
+
+      expect(await client.mayGetAvailability()).toBe(false);
+      // currentUserPrincipalId, not the account id, names the own principal.
+      expect(requests[0].methodCalls[0]).toEqual(['Principal/get', { accountId: 'acct-1', ids: ['p-me'], properties: ['id', 'capabilities'] }, '0']);
+    });
+
+    it('goes ahead on Stalwart 0.16, whose principal capabilities are empty objects', async () => {
+      await setupAvailability();
+      answer(() => ({
+        methodResponses: [['Principal/get', { accountId: 'acct-1', state: 'n', list: [{
+          id: 'p-me',
+          capabilities: {
+            'urn:ietf:params:jmap:mail': {},
+            'urn:ietf:params:jmap:contacts': {},
+            'urn:ietf:params:jmap:calendars': {},
+            'urn:ietf:params:jmap:filenode': {},
+            'urn:ietf:params:jmap:principals': {},
+          },
+        }], notFound: [] }, '0']],
+      }));
+
+      expect(await client.mayGetAvailability()).toBe(true);
+    });
+
+    it('says no when the role may not read principals and throws on other failures', async () => {
+      await setupAvailability();
+      answer(() => ({
+        methodResponses: [['error', { type: 'forbidden', description: 'You are not authorized to perform this action' }, '0']],
+      }));
+      expect(await client.mayGetAvailability()).toBe(false);
+
+      answer(() => ({
+        methodResponses: [['error', { type: 'serverUnavailable', description: 'This server is temporarily unavailable.' }, '0']],
+      }));
+      await expect(client.mayGetAvailability()).rejects.toMatchObject({ jmapType: 'serverUnavailable' });
+    });
+
+    it('throws getAvailability refusals with their JMAP type', async () => {
+      await setupAvailability();
+      const window = [new Date('2026-09-01T09:00:00Z'), new Date('2026-09-01T17:00:00Z')] as const;
+
+      answer(() => ({
+        methodResponses: [['error', { type: 'forbidden', description: 'The administrator has disabled directory queries.' }, '0']],
+      }));
+      await expect(client.getPrincipalAvailability('p1', ...window)).rejects.toMatchObject({
+        jmapType: 'forbidden',
+        message: 'The administrator has disabled directory queries.',
+      });
+
+      answer(() => ({
+        methodResponses: [['error', { type: 'rateLimit', description: 'Too many availability requests, please try again later' }, '0']],
+      }));
+      await expect(client.getPrincipalAvailability('p1', ...window)).rejects.toMatchObject({ jmapType: 'rateLimit' });
+    });
+
+    it('batches several principals per request up to maxCallsInRequest and keeps each answer apart', async () => {
+      await setupAvailability();
+      (client as unknown as { capabilities: Record<string, unknown> }).capabilities['urn:ietf:params:jmap:core'] = { maxCallsInRequest: 2 };
+      answer((body) => ({
+        methodResponses: body.methodCalls.map(([, args, callId]) => (args.id === 'p2'
+          // Stalwart 1.0 past 100 calls a minute; the calls before it still answer.
+          ? ['error', { type: 'rateLimit', description: 'Too many availability requests, please try again later' }, callId]
+          : ['Principal/getAvailability', { list: args.id === 'p1'
+            ? [{ utcStart: '2026-09-01T10:00:00Z', utcEnd: '2026-09-01T11:00:00Z', busyStatus: 'confirmed' }]
+            : [] }, callId])),
+      }));
+
+      const answers = await client.getPrincipalsAvailability(['p1', 'p2', 'p3'], new Date('2026-09-01T00:00:00Z'), new Date('2026-09-02T00:00:00Z'));
+
+      expect(requests.map((r) => r.methodCalls.map(([method, args, callId]) => [method, args.id, callId]))).toEqual([
+        [['Principal/getAvailability', 'p1', '0'], ['Principal/getAvailability', 'p2', '1']],
+        [['Principal/getAvailability', 'p3', '0']],
+      ]);
+      expect(requests[0].methodCalls[0][1]).toEqual({
+        accountId: 'acct-1', id: 'p1', utcStart: '2026-09-01T00:00:00Z', utcEnd: '2026-09-02T00:00:00Z', showDetails: false,
+      });
+      expect(answers).toEqual({
+        p1: { periods: [{ utcStart: '2026-09-01T10:00:00Z', utcEnd: '2026-09-01T11:00:00Z', busyStatus: 'confirmed' }] },
+        p2: { error: 'rateLimit' },
+        p3: { periods: [] },
+      });
+    });
   });
 
   describe('mailbox sharing', () => {
@@ -397,5 +614,193 @@ describe('JMAP client extensions', () => {
       answer(() => ({ methodResponses: [['Mailbox/set', { notUpdated: { f1: { type: 'forbidden', description: 'no' } } }, '0']] }));
       await expect(client.setMailboxShare('f1', 'p1', null)).rejects.toThrow('no');
     });
+  });
+});
+
+/**
+ * PushSubscription/set refusals reach web-push as typed errors: a SetError
+ * (jmapSetError, the server refused this subscription) apart from a refused
+ * method call (plain jmapError). Bodies are Stalwart's (jmap/src/push/set.rs,
+ * identical on 0.16.16 to 0.16.23 and 1.0).
+ */
+describe('JMAP client push subscriptions', () => {
+  const EMAIL_PUSH = 'urn:ietf:params:jmap:emailpush';
+  const FORBIDDEN_MAP = { type: 'forbidden', description: 'No access to one of the accounts in the emailPush map.' };
+  const OVER_QUOTA = {
+    type: 'overQuota',
+    description: 'There are too many subscriptions, please delete some before adding a new one.',
+  };
+  const EMAIL_PUSH_MAP = {
+    'acct-1': { filter: { operator: 'AND', conditions: [{ notKeyword: '$junk' }] }, properties: ['id', 'threadId'] },
+    b: { filter: { operator: 'AND', conditions: [{ notKeyword: '$junk' }] }, properties: ['id', 'threadId'] },
+  };
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let client: JMAPClient;
+  let requests: RequestBody[];
+
+  // 0.16.16 to 0.16.23 and 1.0 advertise emailpush in the session; 0.16.6
+  // to 0.16.15 don't. `b` is a mailbox shared by ACL as 1.0 lists it:
+  // read-only, without emailpush and the other owner-only capabilities.
+  async function setup(withEmailPush: boolean) {
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const session = makeSession(withEmailPush ? { [EMAIL_PUSH]: {} } : {});
+    if (withEmailPush) (session.capabilities as Record<string, unknown>)[EMAIL_PUSH] = {};
+    (session.accounts as Record<string, unknown>).b = {
+      name: 'userb',
+      isPersonal: false,
+      isReadOnly: true,
+      accountCapabilities: {
+        'urn:ietf:params:jmap:mail': {},
+        'urn:ietf:params:jmap:calendars': { mayCreateCalendar: false },
+      },
+    };
+    fetchSpy.mockResolvedValueOnce(jsonResponse(session));
+    client = new JMAPClient('https://mail.example.com', 'user@test.com', 'pass123');
+    await client.connect();
+    fetchSpy.mockReset();
+    requests = [];
+  }
+
+  function answer(handler: (body: RequestBody) => unknown) {
+    fetchSpy.mockImplementation(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? '{}')) as RequestBody;
+      requests.push(body);
+      return jsonResponse(handler(body));
+    });
+  }
+
+  const newSubscription = {
+    deviceClientId: 'dcid',
+    url: 'https://relay.example/api/push/jmap/dcid',
+    types: ['EmailDelivery'],
+    emailPush: EMAIL_PUSH_MAP,
+  };
+
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    client?.disconnect();
+    vi.restoreAllMocks();
+  });
+
+  it('throws a forbidden SetError when Stalwart refuses the emailPush map on create (0.16.16+ and 1.0)', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { notCreated: { new: FORBIDDEN_MAP } }, '0']] }));
+
+    const err = await client.createPushSubscription(newSubscription).catch((e) => e);
+
+    expect(requests[0].using).toEqual(['urn:ietf:params:jmap:core', EMAIL_PUSH]);
+    expect(requests[0].methodCalls[0][1]).toEqual({ create: { new: { ...newSubscription } } });
+    expect(jmapErrorType(err)).toBe('forbidden');
+    expect(isJmapSetError(err)).toBe(true);
+    expect(err.message).toContain('No access to one of the accounts in the emailPush map.');
+    expect(err.message).not.toContain('{');
+  });
+
+  it('throws an overQuota SetError past the subscription limit', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { notCreated: { new: OVER_QUOTA } }, '0']] }));
+
+    const err = await client.createPushSubscription(newSubscription).catch((e) => e);
+
+    expect(jmapErrorType(err)).toBe('overQuota');
+    expect(isJmapSetError(err)).toBe(true);
+  });
+
+  it('returns the id Stalwart assigns', async () => {
+    await setup(true);
+    answer(() => ({
+      methodResponses: [['PushSubscription/set', {
+        created: { new: { id: 'k', keys: null, expires: '2026-10-02T15:00:00Z' } },
+      }, '0']],
+    }));
+
+    expect(await client.createPushSubscription(newSubscription)).toBe('k');
+  });
+
+  it('never puts emailpush in `using` or sends the map on 0.16.6 to 0.16.15', async () => {
+    await setup(false);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { created: { new: { id: 'k' } } }, '0']] }));
+
+    await client.createPushSubscription(newSubscription);
+
+    expect(requests[0].using).toEqual(['urn:ietf:params:jmap:core']);
+    expect(requests[0].methodCalls[0][1]).toEqual({
+      create: { new: { deviceClientId: 'dcid', url: newSubscription.url, types: ['EmailDelivery'] } },
+    });
+  });
+
+  it('throws a forbidden SetError when Stalwart refuses the emailPush map on update', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { notUpdated: { k: FORBIDDEN_MAP } }, '0']] }));
+
+    const err = await client
+      .updatePushSubscription('k', { expires: '2026-12-01T00:00:00Z', emailPush: EMAIL_PUSH_MAP })
+      .catch((e) => e);
+
+    expect(requests[0].methodCalls[0][1]).toEqual({
+      update: { k: { expires: '2026-12-01T00:00:00Z', emailPush: EMAIL_PUSH_MAP } },
+    });
+    expect(jmapErrorType(err)).toBe('forbidden');
+    expect(isJmapSetError(err)).toBe(true);
+  });
+
+  it('throws a notFound SetError for a subscription the server no longer has', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { notUpdated: { k: { type: 'notFound' } } }, '0']] }));
+
+    const err = await client.updatePushSubscription('k', { expires: '2026-12-01T00:00:00Z' }).catch((e) => e);
+
+    expect(jmapErrorType(err)).toBe('notFound');
+    expect(isJmapSetError(err)).toBe(true);
+  });
+
+  it('resolves when the update is applied', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['PushSubscription/set', { updated: { k: null } }, '0']] }));
+
+    await expect(client.updatePushSubscription('k', { expires: '2026-12-01T00:00:00Z' })).resolves.toBeUndefined();
+  });
+
+  it('throws a plain error, not a SetError, when the whole method call is refused', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['error', { type: 'forbidden', description: 'Not allowed' }, '0']] }));
+
+    const createErr = await client.createPushSubscription(newSubscription).catch((e) => e);
+    const updateErr = await client.updatePushSubscription('k', { expires: '2026-12-01T00:00:00Z' }).catch((e) => e);
+    const verifyErr = await client.verifyPushSubscription('k', 'code').catch((e) => e);
+
+    for (const err of [createErr, updateErr, verifyErr]) {
+      expect(jmapErrorType(err)).toBe('forbidden');
+      expect(isJmapSetError(err)).toBe(false);
+    }
+  });
+
+  it('throws instead of listing nothing when PushSubscription/get fails', async () => {
+    await setup(true);
+    answer(() => ({ methodResponses: [['error', { type: 'serverFail' }, '0']] }));
+
+    const err = await client.listPushSubscriptions().catch((e) => e);
+
+    expect(err).toBeInstanceOf(Error);
+    expect(jmapErrorType(err)).toBe('serverFail');
+  });
+
+  it('describes each session account without flattening its capabilities', async () => {
+    await setup(true);
+
+    expect(client.getAccountInfo('b')).toEqual({
+      name: 'userb',
+      isPersonal: false,
+      isReadOnly: true,
+      accountCapabilities: {
+        'urn:ietf:params:jmap:mail': {},
+        'urn:ietf:params:jmap:calendars': { mayCreateCalendar: false },
+      },
+    });
+    expect(client.getAccountInfo('acct-1')?.isPersonal).toBe(true);
+    expect(client.getAccountInfo('nope')).toBeNull();
   });
 });

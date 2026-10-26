@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEmailStore } from '../email-store';
 import { useAuthStore } from '../auth-store';
 import { threadKeyFor } from '@/lib/thread-utils';
+import { jmapError } from '@/lib/jmap/jmap-error';
 import { CROSS_ALL } from '@/lib/jmap/types';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
@@ -141,17 +142,58 @@ describe('thread identity across accounts (#1012)', () => {
     expect(byId.get('b1')?.keywords?.$seen).toBeUndefined();
   });
 
-  it('marks a shared source\'s conversation read on the owner account, not the login\'s own', async () => {
-    // A shared (group) account in the unified view is reached through login-a
-    // but owns its ids; login-a's own account may hold a different "s1".
-    const shared = inAccount('a', 's1', { sourceAccountId: 'acct-shared' });
+  it('marks a thread of a shared account read in that account, through the login that reaches it', async () => {
+    // A group's mailbox in the unified view: reached through login a, owned
+    // by the group's JMAP account. Without the account id the write lands in
+    // the login's own account, where Stalwart answers notFound or marks an
+    // unrelated message with the same id.
+    const shared = inAccount('a', 'g1', { threadId: 'c', sourceAccountId: 'acct-team' });
     useEmailStore.setState({ emails: [a1, b1, shared] });
 
     await useEmailStore.getState().markThreadAsRead(clientA, threadKeyFor(shared));
 
     expect(clientA.batchMarkAsRead).toHaveBeenCalledTimes(1);
-    expect(clientA.batchMarkAsRead).toHaveBeenCalledWith(['s1'], true, 'acct-shared');
-    expect(clientB.batchMarkAsRead).not.toHaveBeenCalled();
+    expect(clientA.batchMarkAsRead).toHaveBeenCalledWith(['g1'], true, 'acct-team');
+    expect(useEmailStore.getState().emails.find((e) => e.id === 'g1')?.keywords?.$seen).toBe(true);
+  });
+
+  it('marks a thread read in the group account whose folder is open, outside the unified view', async () => {
+    // The sidebar's shared section lists a group folder's mail without source
+    // stamps; the open folder names the account.
+    const groupInbox = makeMailbox({ id: 'acct-team:inbox', originalId: 'inbox', accountId: 'acct-team', isShared: true });
+    const plain = (id: string) => inAccount('a', id, {
+      threadId: 't7', sourceClientAccountId: undefined, sourceAccountId: undefined, accountId: undefined,
+    });
+    useEmailStore.setState({
+      isUnifiedView: false,
+      crossView: null,
+      selectedMailbox: groupInbox.id,
+      mailboxes: [makeMailbox(), groupInbox],
+      emails: [plain('m1'), plain('m2')],
+    });
+
+    await useEmailStore.getState().markThreadAsRead(clientA, threadKeyFor(plain('m1')));
+
+    expect(clientA.batchMarkAsRead).toHaveBeenCalledWith(['m1', 'm2'], true, 'acct-team');
+  });
+
+  it('marks the messages of a thread the server accepted when it refuses some (Stalwart 0.16 and 1.0)', async () => {
+    // A message the user may not mark in a shared folder stays unread; the
+    // error names it, the rest of the batch was written.
+    const g1 = inAccount('a', 'g1', { threadId: 'c', sourceAccountId: 'acct-team' });
+    const g2 = inAccount('a', 'g2', { threadId: 'c', sourceAccountId: 'acct-team' });
+    useEmailStore.setState({ emails: [a1, b1, g1, g2] });
+    const refusal = jmapError('Failed to mark as read: forbidden', { type: 'forbidden' });
+    refusal.jmapFailedIds = ['g2'];
+    clientA.batchMarkAsRead.mockRejectedValueOnce(refusal);
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await useEmailStore.getState().markThreadAsRead(clientA, threadKeyFor(g1));
+
+    const byId = new Map(useEmailStore.getState().emails.map((e) => [e.id, e]));
+    expect(byId.get('g1')?.keywords?.$seen).toBe(true);
+    expect(byId.get('g2')?.keywords?.$seen).toBeUndefined();
+    logged.mockRestore();
   });
 
   it('keeps expansion state apart for same-id threads of different accounts', () => {

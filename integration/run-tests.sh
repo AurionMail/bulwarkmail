@@ -17,17 +17,25 @@
 #   IT_VIDEO=on   record a video.webm for every test (not just failures);
 #                 also: off | retain-on-failure (default) | on-first-retry.
 #                 e.g. IT_VIDEO=on integration/run-tests.sh 01-login
+#   STALWART_IMAGE=<image>
+#                 the Stalwart image the test server is built on (default
+#                 stalwartlabs/stalwart:v0.16), e.g. one built from the 1.0
+#                 branch. Switching releases needs fresh volumes: run
+#                 `docker compose down -v` in integration/ first (1.0 cannot
+#                 open a 0.16 data directory).
 #   CI            passed through, so a CI run gets the config's one retry.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 INTEGRATION_DIR="${REPO_ROOT}/integration"
 PW_IMAGE="mcr.microsoft.com/playwright:v1.59.1-noble"
+# Read by docker-compose.yml as the stalwart build argument.
+export STALWART_IMAGE="${STALWART_IMAGE:-stalwartlabs/stalwart:v0.16}"
 
 cd "${INTEGRATION_DIR}"
 [ -f .env ] || cp .env.example .env
 
-echo "== bringing up stack =="
+echo "== bringing up stack (Stalwart image ${STALWART_IMAGE}) =="
 bash stalwart/prepare-stalwart-cli.sh
 docker compose --env-file .env up -d --build --wait --wait-timeout 300
 

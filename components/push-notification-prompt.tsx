@@ -16,6 +16,7 @@ import {
   waitForWebPushResync,
 } from "@/lib/web-push";
 import { resolveActiveRelayUrl } from "@/lib/push-relays";
+import { jmapErrorType } from "@/lib/jmap/jmap-error";
 import {
   isPWAInstallPromptVisible,
   PWA_INSTALL_PROMPT_VISIBILITY_EVENT,
@@ -300,7 +301,11 @@ export function PushNotificationPrompt() {
       });
       setShowPrompt(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to enable push");
+      // Readable text for the server refusals a user can act on.
+      const type = jmapErrorType(err);
+      if (type === "forbidden") setError(tPush("error_forbidden"));
+      else if (type === "overQuota") setError(tPush("error_over_quota"));
+      else setError(err instanceof Error ? err.message : "Failed to enable push");
     } finally {
       setIsEnabling(false);
     }

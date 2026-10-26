@@ -12,6 +12,7 @@ import { toast } from "@/stores/toast-store";
 import { useProTabStore, registerProTabCloseInterceptor, type ProComposeTabData } from "@/stores/pro-tab-store";
 import { debug } from "@/lib/debug";
 import { threadKeyFor } from "@/lib/thread-utils";
+import { formatRejectedRecipients } from "@/lib/jmap/client";
 import { announceSent } from "@/lib/plugin-after-send";
 
 interface ProComposeTabBodyProps {
@@ -55,7 +56,8 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
   }, [client, refreshScheduledMetadata, isScheduledView, fetchScheduledEmails, closeTab]);
 
   const handleSend = useCallback(async (sendData: Parameters<NonNullable<React.ComponentProps<typeof EmailComposer>['onSend']>>[0]) => {
-    if (!client) return;
+    // Nothing is sent: the composer keeps what only goes once the mail is out.
+    if (!client) return false;
     // The Pro From dropdown lists identities from every connected account, so
     // the chosen identity may belong to a different account than the active
     // one. Submit through that account's own client - the identity id is only
@@ -90,6 +92,12 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
         { localAccountId: sendData.localAccountId, draftAccountId: sendData.draftAccountId },
       );
       submitted = true;
+      if (result.rejectedRecipients?.length) {
+        // As in the inline composer: nothing else would say who never gets it.
+        toast.warning(t('email_composer.recipients_partly_refused', {
+          recipients: formatRejectedRecipients(result.rejectedRecipients),
+        }));
+      }
       announceSent(result, sendData);
 
       if (result.scheduled) {
@@ -160,13 +168,15 @@ export function ProComposeTabBody({ tabId, data }: ProComposeTabBodyProps) {
     });
   }, [closeTab]);
 
-  const handleDiscardDraft = useCallback(async (draftId: string, draftAccountId?: string, localAccountId?: string) => {
+  const handleDiscardDraft = useCallback(async (draftId: string, draft?: { accountId?: string; localAccountId?: string }) => {
     if (!client) return;
-    const draftClient = localAccountId
-      ? (useAuthStore.getState().getClientForAccount(localAccountId) ?? client)
+    // Same routing as the inline composer's discard: the login the draft was
+    // saved with, and the account it lives in (see ComposerDraftData).
+    const draftClient = draft?.localAccountId
+      ? (useAuthStore.getState().getClientForAccount(draft.localAccountId) ?? client)
       : client;
     try {
-      await draftClient.deleteEmail(draftId, draftAccountId);
+      await draftClient.deleteEmail(draftId, draft?.accountId);
     } catch (error) {
       console.error('Failed to discard draft:', error);
     }

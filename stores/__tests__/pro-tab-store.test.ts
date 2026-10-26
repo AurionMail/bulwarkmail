@@ -164,6 +164,21 @@ describe('openEmailTab', () => {
     assertInvariants();
   });
 
+  // userb is account `e` on the 0.16.23 and the 1.0 test server, and message
+  // ids repeat across both: the same id and account on two logins are two
+  // messages.
+  it('opens the same id and account of another login in a tab of its own', () => {
+    const open = (clientAccountId: string) => useProTabStore.getState().openEmailTab({
+      accountId: 'e', clientAccountId, emailId: 'eaaaaab', mailboxId: null, title: clientAccountId,
+    });
+    const first = open('userb@v016');
+    const second = open('userb@v10');
+
+    expect(second).not.toBe(first);
+    expect(open('userb@v016')).toBe(first);
+    assertInvariants();
+  });
+
   it("pane: 'split' with no split creates one", () => {
     const id = useProTabStore.getState().openEmailTab(data(2), { pane: 'split' });
     const s = useProTabStore.getState();

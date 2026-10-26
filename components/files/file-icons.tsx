@@ -1,7 +1,7 @@
 import {
   File, Folder, Image as ImageIcon, FileText, FileAudio, FileVideo, FileArchive,
   FileSpreadsheet, Presentation, FileCode, Box, PenTool,
-  Terminal as TerminalIcon, Database, Type as TypeIcon,
+  Terminal as TerminalIcon, Database, Type as TypeIcon, Link,
 } from "@/components/icons";
 
 // File types by extension and the icon for each, shared by the Files app
@@ -141,6 +141,18 @@ function fileIconFor(name: string): [typeof File, string] {
 export function getFileIconByName(name: string, size: FileIconSize, colored = true) {
   const [Icon, color] = fileIconFor(name);
   return <Icon className={`${ICON_SIZE_CLASSES[size]} shrink-0 ${colored ? color : "text-muted-foreground"}`} />;
+}
+
+/**
+ * A symlink's icon, whatever its name suggests: it has no content to open
+ * (Stalwart 1.0).
+ */
+export function getSymlinkIcon(size: FileIconSize, label: string) {
+  return (
+    <Link className={`${ICON_SIZE_CLASSES[size]} shrink-0 text-muted-foreground`} aria-label={label}>
+      <title>{label}</title>
+    </Link>
+  );
 }
 
 export function getFolderIcon(size: FileIconSize, colored = true) {

@@ -7,3 +7,4 @@
 {"@type":"update","object":"MtaStageAuth","value":{"saslMechanisms":{"match":{"0":{"if":"local_port != 25","then":"[plain, login, oauthbearer, xoauth2]"}},"else":"false"}}}
 {"@type":"update","object":"Imap","value":{"allowPlainTextAuth":true}}
 {"@type":"update","object":"Http","value":{"usePermissiveCors":true}}
+{"@type":"update","object":"Sharing","value":{"allowDirectoryQueries":true}}

@@ -10,7 +10,14 @@ import {
   getStatusCounts,
   getParticipantCount,
   buildParticipantMap,
+  participantFieldsToSave,
+  participantLimitOf,
+  participantsAskedAgain,
+  hasAnsweredAttendees,
+  movedEventUpdates,
+  userOrganizes,
 } from '@/lib/calendar-participants';
+import { jmapError, jmapSetError } from '@/lib/jmap/jmap-error';
 
 function makeEvent(
   participants: Record<string, Partial<CalendarParticipant>> | null = null,
@@ -680,5 +687,355 @@ describe('buildParticipantMap', () => {
     );
     expect(Object.keys(map)).toHaveLength(2);
     expect(Object.values(map).some(p => p.name === 'Nobody')).toBe(false);
+  });
+
+  it('keeps the id and answer of an address the event already lists, whatever its case', () => {
+    const map = buildParticipantMap(
+      { name: 'Alice', email: 'alice@example.com' },
+      [{ name: 'Bob', email: 'bob@example.com' }, { name: 'Carol', email: 'carol@example.com' }],
+      {
+        org: { '@type': 'Participant', calendarAddress: 'mailto:alice@example.com' },
+        b1: { '@type': 'Participant', calendarAddress: 'mailto:BOB@Example.com', participationStatus: 'declined' },
+      } as unknown as Record<string, CalendarParticipant>,
+    );
+
+    // The organizer, listed without an answer, stays accepted.
+    expect(map.org).toMatchObject({ calendarAddress: 'mailto:alice@example.com', participationStatus: 'accepted' });
+    expect(map.b1).toMatchObject({ email: 'bob@example.com', participationStatus: 'declined' });
+    const carol = Object.entries(map).find(([, p]) => p.email === 'carol@example.com')!;
+    expect(['org', 'b1']).not.toContain(carol[0]);
+    expect(carol[1].participationStatus).toBe('needs-action');
+  });
+
+  it('takes the real answer of an address listed twice', () => {
+    const map = buildParticipantMap(
+      { name: 'Alice', email: 'alice@example.com' },
+      [{ name: 'Bob', email: 'bob@example.com' }],
+      {
+        first: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.com', participationStatus: 'needs-action' },
+        second: { '@type': 'Participant', email: 'bob@example.com', participationStatus: 'tentative' },
+      } as unknown as Record<string, CalendarParticipant>,
+    );
+    expect(map.first.participationStatus).toBe('tentative');
+    expect(map).not.toHaveProperty('second');
+  });
+});
+
+// The editor rewrote the organizer on every save of an event with attendees:
+// participants rebuilt around the user's first address, organizerCalendarAddress
+// set to it, and every attendee back to needs-action. On an invitation that
+// made the user its organizer; on a series organized under another address or
+// letter case it gave one occurrence another owner (Stalwart 1.0 refuses the
+// organizerCalendarAddress there: "This property cannot be modified on a
+// single occurrence."), and every save dropped the answers.
+describe('participantFieldsToSave', () => {
+  const me = { userEmail: 'me@example.com', resolveName: (email: string) => (email === 'me@example.com' ? 'Me Myself' : undefined) };
+  const rows = (...emails: string[]) => emails.map((email) => ({ name: '', email }));
+
+  it('keeps the sender of an invitation as its organizer and everyone\'s answer', () => {
+    const invitation = makeEvent({
+      boss: { '@type': 'Participant', calendarAddress: 'mailto:boss@example.org' },
+      mine: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { attendee: true }, participationStatus: 'accepted' },
+      bob: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.org', roles: { attendee: true }, participationStatus: 'declined' },
+    }, { organizerCalendarAddress: 'mailto:boss@example.org' });
+
+    const fields = participantFieldsToSave(invitation, rows('me@example.com', 'bob@example.org'), me);
+
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+    expect(Object.keys(fields.participants!).sort()).toEqual(['bob', 'boss', 'mine']);
+    expect(fields.participants!.boss).toMatchObject({ calendarAddress: 'mailto:boss@example.org', roles: { owner: true } });
+    expect(fields.participants!.mine.participationStatus).toBe('accepted');
+    expect(fields.participants!.bob.participationStatus).toBe('declined');
+  });
+
+  it('keeps the address a series is organized under, letter case included (Stalwart 1.0 checks it on one occurrence)', () => {
+    const series = makeEvent({
+      org: { '@type': 'Participant', calendarAddress: 'mailto:ME@Example.com', roles: { owner: true }, participationStatus: 'accepted' },
+      guest: { '@type': 'Participant', calendarAddress: 'mailto:guest@example.net', roles: { attendee: true }, participationStatus: 'accepted' },
+    }, { organizerCalendarAddress: 'mailto:ME@Example.com' });
+
+    const fields = participantFieldsToSave(series, rows('guest@example.net'), me);
+
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+    expect(fields.participants!.org).toMatchObject({ calendarAddress: 'mailto:ME@Example.com', roles: { owner: true } });
+    expect(fields.participants!.guest.participationStatus).toBe('accepted');
+  });
+
+  it('takes the organizer from organizerCalendarAddress when no participant is marked as one', () => {
+    const event = makeEvent({
+      guest: { '@type': 'Participant', calendarAddress: 'mailto:guest@example.net', roles: { attendee: true } },
+    }, { organizerCalendarAddress: 'mailto:alias@example.com' });
+
+    const fields = participantFieldsToSave(event, rows('guest@example.net'), me);
+
+    const organizer = Object.values(fields.participants!).find((p) => p.roles?.owner);
+    expect(organizer?.calendarAddress).toBe('mailto:alias@example.com');
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+  });
+
+  it('makes the user the organizer of an event that has none', () => {
+    for (const event of [null, makeEvent(null)]) {
+      const fields = participantFieldsToSave(event, rows('guest@example.net'), me);
+
+      expect(fields.organizerCalendarAddress).toBe('mailto:me@example.com');
+      const organizer = Object.values(fields.participants!).find((p) => p.roles?.owner);
+      expect(organizer).toMatchObject({ name: 'Me Myself', calendarAddress: 'mailto:me@example.com', participationStatus: 'accepted' });
+    }
+  });
+
+  it('removes the participants, the organizer and replyTo with the last attendee', () => {
+    const event = makeEvent({
+      org: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { owner: true } },
+      guest: { '@type': 'Participant', calendarAddress: 'mailto:guest@example.net', roles: { attendee: true } },
+    }, { organizerCalendarAddress: 'mailto:me@example.com', replyTo: { imip: 'mailto:me@example.com' } });
+
+    expect(participantFieldsToSave(event, [], me)).toEqual({ participants: null, organizerCalendarAddress: null, replyTo: null });
+    expect(participantFieldsToSave(makeEvent(null), [], me)).toEqual({});
+  });
+});
+
+// RFC 5546: an organizer who moves an event asks the attendees again, and
+// Stalwart's update to them carries each attendee's stored answer (it adds
+// needs-action only where there is none). So when the user, as organizer,
+// changes when an event happens, the other attendees go back to
+// needs-action; every other save keeps the answers.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('participantFieldsToSave for a moved event on Stalwart %s', (version) => {
+  // As each version stores them: 0.16.23 drops an attendee's roles, 1.0 keeps them.
+  const attendee = (address: string, participationStatus: CalendarParticipant['participationStatus']) => ({
+    '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address, participationStatus,
+    ...(version === '1.0' ? { roles: { attendee: true } } : {}),
+  }) as Partial<CalendarParticipant>;
+  const organizer = (address: string) => ({
+    '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address, roles: { owner: true }, participationStatus: 'accepted',
+  }) as Partial<CalendarParticipant>;
+  const rows = (...emails: string[]) => emails.map((email) => ({ name: '', email }));
+  const me = { userEmail: 'me@example.com', userEmails: ['me@example.com', 'me-alias@example.com'] };
+
+  // Organized under the user's alias, in another letter case.
+  const own = () => makeEvent({
+    org: organizer('Me-Alias@Example.com'),
+    bob: attendee('bob@example.org', 'accepted'),
+    carol: attendee('carol@example.org', 'declined'),
+  }, { organizerCalendarAddress: 'mailto:Me-Alias@Example.com' });
+
+  it('asks the other attendees again when the user organizes it', () => {
+    const fields = participantFieldsToSave(own(), rows('bob@example.org', 'carol@example.org'), { ...me, rescheduled: true });
+
+    expect(fields.participants!.org).toMatchObject({ calendarAddress: 'mailto:Me-Alias@Example.com', participationStatus: 'accepted' });
+    expect(fields.participants!.bob.participationStatus).toBe('needs-action');
+    expect(fields.participants!.carol.participationStatus).toBe('needs-action');
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+  });
+
+  it('keeps the answers when the event is not moved', () => {
+    const fields = participantFieldsToSave(own(), rows('bob@example.org', 'carol@example.org'), { ...me, rescheduled: false });
+
+    expect(fields.participants!.bob.participationStatus).toBe('accepted');
+    expect(fields.participants!.carol.participationStatus).toBe('declined');
+  });
+
+  it('never asks again for an event someone else organizes', () => {
+    // The user's copy of an invitation: not the organizer's (isOrigin).
+    const invitation = makeEvent({
+      boss: organizer('boss@example.org'),
+      mine: attendee('me@example.com', 'accepted'),
+      bob: attendee('bob@example.org', 'declined'),
+    }, { organizerCalendarAddress: 'mailto:boss@example.org', isOrigin: false });
+
+    const fields = participantFieldsToSave(invitation, rows('me@example.com', 'bob@example.org'), { ...me, rescheduled: true });
+
+    expect(fields.participants!.mine.participationStatus).toBe('accepted');
+    expect(fields.participants!.bob.participationStatus).toBe('declined');
+  });
+
+  // userc shares a calendar with the user (read & write): userc's meeting in
+  // it is the organizer's copy, and a move there goes out from userc. The
+  // user attends it too, and 0.16 sends the user nothing of their own change
+  // (their address counts as the account's own): reset, their answer stayed
+  // needs-action in userc's copy (live on 0.16.23).
+  it('asks the others again, not the user, when the user moves the owner\'s meeting in a calendar shared with them', () => {
+    const shared = makeEvent({
+      owner: organizer('userc@example.org'),
+      anna: attendee('usera@example.org', 'accepted'),
+      mine: attendee('me@example.com', 'tentative'),
+    }, { organizerCalendarAddress: 'mailto:userc@example.org', isOrigin: true, isShared: true, accountId: 'f' });
+
+    const fields = participantFieldsToSave(shared, rows('usera@example.org', 'me@example.com'), { ...me, rescheduled: true });
+
+    expect(fields.participants!.owner).toMatchObject({ calendarAddress: 'mailto:userc@example.org', participationStatus: 'accepted' });
+    expect(fields.participants!.anna.participationStatus).toBe('needs-action');
+    expect(fields.participants!.mine.participationStatus).toBe('tentative');
+    expect(fields).not.toHaveProperty('organizerCalendarAddress');
+  });
+
+  it('keeps the answer of an address the user attends under, whichever of theirs it is', () => {
+    const shared = makeEvent({
+      owner: organizer('userc@example.org'),
+      mine: attendee('ME-ALIAS@example.com', 'declined'),
+    }, { organizerCalendarAddress: 'mailto:userc@example.org', isOrigin: true, isShared: true, accountId: 'f' });
+
+    const fields = participantFieldsToSave(shared, rows('me-alias@example.com'), { ...me, rescheduled: true });
+
+    expect(fields.participants!.mine.participationStatus).toBe('declined');
+  });
+});
+
+// What Stalwart sends: a new event, and an occurrence that gets its own
+// override, reach only attendees without an answer (PARTSTAT absent or
+// NEEDS-ACTION); a change to an existing one reaches everyone who has not
+// declined, with the answer stored for them.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('asking the attendees again on Stalwart %s', (version) => {
+  // As each version stores them: 0.16.23 drops an attendee's roles, 1.0 keeps them.
+  const attendee = (address: string, participationStatus?: CalendarParticipant['participationStatus']) => ({
+    '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address,
+    ...(participationStatus ? { participationStatus } : {}),
+    ...(version === '1.0' ? { roles: { attendee: true } } : {}),
+  }) as Partial<CalendarParticipant>;
+  const meeting = () => makeEvent({
+    org: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+    // The organizer listed as an attendee as well, as Google writes it.
+    orgAgain: attendee('ME@example.com', 'accepted'),
+    bob: attendee('bob@example.org', 'accepted'),
+    carol: attendee('carol@example.org', 'declined'),
+    dave: attendee('dave@example.org'),
+  }, { organizerCalendarAddress: 'mailto:me@example.com' });
+
+  it('puts every attendee back to needs-action and leaves the organizer as it is', () => {
+    const asked = participantsAskedAgain(meeting())!;
+
+    expect(asked.org.participationStatus).toBe('accepted');
+    expect(asked.orgAgain.participationStatus).toBe('accepted');
+    expect(asked.bob).toEqual({ ...meeting().participants!.bob, participationStatus: 'needs-action' });
+    expect(asked.carol.participationStatus).toBe('needs-action');
+    expect(asked.dave).toEqual(meeting().participants!.dave);
+  });
+
+  it('changes nothing when no attendee has answered', () => {
+    expect(participantsAskedAgain(makeEvent({
+      org: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+      dave: attendee('dave@example.org', 'needs-action'),
+    }, { organizerCalendarAddress: 'mailto:me@example.com' }))).toBeNull();
+    expect(participantsAskedAgain(makeEvent(null))).toBeNull();
+  });
+
+  it('tells whether an attendee answered and did not decline', () => {
+    expect(hasAnsweredAttendees(meeting())).toBe(true);
+    const { bob: _bob, ...withoutBob } = meeting().participants!;
+    expect(hasAnsweredAttendees({ ...meeting(), participants: withoutBob })).toBe(false);
+    expect(hasAnsweredAttendees(makeEvent(null))).toBe(false);
+  });
+});
+
+// A drag or a resize saved the way the editor saves a move: the organizer
+// asks the attendees again and tells them; anyone else moves their own copy
+// quietly. Live on 1.0 and 0.16.23 a dragged event stayed "accepted" for
+// the new time, and a dragged occurrence reached no one who had answered.
+describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('movedEventUpdates on Stalwart %s', (version) => {
+  const attendee = (address: string, participationStatus: CalendarParticipant['participationStatus']) => ({
+    '@type': 'Participant', calendarAddress: `mailto:${address}`, email: address, participationStatus,
+    ...(version === '1.0' ? { roles: { attendee: true } } : {}),
+  }) as Partial<CalendarParticipant>;
+  // isOrigin as the server says it: whether the organizer is an address of
+  // the account the event is in.
+  const meeting = (organizer: string, extra: Partial<CalendarEvent> = {}) => makeEvent({
+    org: { '@type': 'Participant', calendarAddress: `mailto:${organizer}`, roles: { owner: true }, participationStatus: 'accepted' },
+    bob: attendee('bob@example.org', 'accepted'),
+    me: attendee('me@example.com', 'tentative'),
+  }, { organizerCalendarAddress: `mailto:${organizer}`, isOrigin: organizer.toLowerCase() === 'me@example.com', ...extra });
+  const MOVE = { start: '2026-03-01T11:00:00' };
+
+  it('asks the attendees again and tells them when the user organizes the event', () => {
+    const { updates, sendSchedulingMessages } = movedEventUpdates(meeting('ME@example.com'), MOVE, ['me@example.com']);
+
+    expect(sendSchedulingMessages).toBe(true);
+    expect(updates.start).toBe(MOVE.start);
+    expect(updates.participants!.org.participationStatus).toBe('accepted');
+    expect(updates.participants!.bob.participationStatus).toBe('needs-action');
+  });
+
+  it('moves someone else\'s event quietly, answers as they are', () => {
+    expect(movedEventUpdates(meeting('boss@example.org'), MOVE, ['me@example.com']))
+      .toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
+  });
+
+  // userc's meeting in userc's calendar, shared with the user read & write:
+  // Stalwart sends the move from userc. It went out to nobody, and the
+  // attendees kept the old time (live on 1.0 and 0.16.23). The user, who
+  // attends too, keeps their answer: 0.16 sends them nothing of their own
+  // move, and reset, it stayed needs-action in userc's copy (live on 0.16.23).
+  it('asks the other attendees again and tells them when the user moves the owner\'s meeting in a shared calendar', () => {
+    const { updates, sendSchedulingMessages } = movedEventUpdates(
+      meeting('userc@example.org', { isOrigin: true, isShared: true, accountId: 'f' }), MOVE, ['me@example.com'],
+    );
+
+    expect(sendSchedulingMessages).toBe(true);
+    expect(updates.participants!.org.participationStatus).toBe('accepted');
+    expect(updates.participants!.bob.participationStatus).toBe('needs-action');
+    expect(updates.participants!.me.participationStatus).toBe('tentative');
+  });
+
+  it('moves the owner\'s copy of someone else\'s meeting in a shared calendar quietly', () => {
+    expect(movedEventUpdates(meeting('boss@example.org', { isShared: true, accountId: 'f' }), MOVE, ['me@example.com']))
+      .toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
+  });
+
+  it('moves an event without participants quietly', () => {
+    expect(movedEventUpdates(makeEvent(null), MOVE, ['me@example.com'])).toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
+    expect(movedEventUpdates(undefined, MOVE, ['me@example.com'])).toEqual({ updates: MOVE, sendSchedulingMessages: undefined });
+  });
+
+  it('tells, and changes no answer, when nobody has answered yet', () => {
+    const fresh = makeEvent({
+      org: { '@type': 'Participant', calendarAddress: 'mailto:me@example.com', roles: { owner: true }, participationStatus: 'accepted' },
+      bob: attendee('bob@example.org', 'needs-action'),
+    }, { organizerCalendarAddress: 'mailto:me@example.com' });
+
+    expect(movedEventUpdates(fresh, MOVE, ['me@example.com'])).toEqual({ updates: MOVE, sendSchedulingMessages: true });
+  });
+});
+
+describe('userOrganizes', () => {
+  it('is the user under any of their addresses, or anyone for an event without an organizer', () => {
+    const own = makeEvent({ org: { '@type': 'Participant', calendarAddress: 'mailto:Alias@Example.com', roles: { owner: true } } }, { isOrigin: false });
+    expect(userOrganizes(own, ['me@example.com', 'alias@example.com'])).toBe(true);
+    expect(userOrganizes(own, ['me@example.com'])).toBe(false);
+    expect(userOrganizes(makeEvent({ bob: { '@type': 'Participant', calendarAddress: 'mailto:bob@example.org' } }, { isOrigin: false }), ['me@example.com'])).toBe(true);
+  });
+
+  // What userb sees in userc's calendar, shared read & write, as each version
+  // returns it (live): isOrigin is true where userc organizes, false for an
+  // invitation userc got, for the event and for each expanded occurrence.
+  describe.each<['0.16' | '1.0']>([['0.16'], ['1.0']])('in a calendar shared with the user on Stalwart %s', (version) => {
+    const inShared = (organizer: string, isOrigin: boolean) => makeEvent({
+      org: { '@type': 'Participant', calendarAddress: `mailto:${organizer}`, roles: { owner: true }, participationStatus: 'accepted' },
+      b: {
+        '@type': 'Participant', calendarAddress: 'mailto:userb@example.org', participationStatus: 'accepted',
+        ...(version === '1.0' ? { roles: { attendee: true } } : {}),
+      },
+    }, { organizerCalendarAddress: `mailto:${organizer}`, isOrigin, isShared: true, accountId: 'f' });
+
+    it('is the owner\'s meeting: the server schedules it from the owner', () => {
+      expect(userOrganizes(inShared('userc@example.org', true), ['userb@example.org'])).toBe(true);
+    });
+
+    it('is not an invitation the owner got', () => {
+      expect(userOrganizes(inShared('usera@example.org', false), ['userb@example.org'])).toBe(false);
+    });
+  });
+});
+
+describe('participantLimitOf', () => {
+  it('reads the limit from Stalwart 1.0’s refusal', () => {
+    const refusal = jmapSetError('An event cannot have more than 20 participants.', {
+      type: 'invalidProperties', properties: ['participants'],
+    });
+    expect(participantLimitOf(refusal)).toBe(20);
+  });
+
+  it('is null for any other failure', () => {
+    expect(participantLimitOf(jmapSetError('Invalid property or value.', { type: 'invalidProperties', properties: ['participants'] }))).toBeNull();
+    expect(participantLimitOf(jmapError('An event cannot have more than 20 participants.', { type: 'forbidden' }))).toBeNull();
+    expect(participantLimitOf(new Error('An event cannot have more than 20 participants.'))).toBeNull();
+    expect(participantLimitOf(undefined)).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 import type { Email, ThreadGroup } from "./jmap/types";
-import { compareEmails, type HeldKeywords, type SortLevel } from "./message-list-order";
+import { compareEmails, hasTextLevels, type HeldKeywords, type SortLevel } from "./message-list-order";
 
 /**
  * Client-side identity of a thread.
@@ -127,9 +127,26 @@ export function groupEmailsByThread(
  * (RFC 8621 §4.4.3 thread collapsing semantics) - with the default order that
  * is the latest email's receivedAt date, newest first. `held` emails sort by
  * the keywords they had when their conversation was opened.
+ *
+ * A sender or subject order the list keeps as the server collated it
+ * (`keepServerTextOrder`, Stalwart 1.0; see `hasTextLevels`) is not re-sorted.
+ * The groups arrive in fetched order - groupEmailsByThread keeps the order in
+ * which each thread first appears - so each thread already sits where its
+ * first-ranked email does, and only pinned threads move.
+ *
+ * The third argument is either the held keywords or an options object
+ * carrying them together with `keepServerTextOrder`.
  */
-export function sortThreadGroups(groups: ThreadGroup[], order: SortLevel[] = [], held?: HeldKeywords): ThreadGroup[] {
-  const compare = compareEmails(order, { held });
+export function sortThreadGroups(
+  groups: ThreadGroup[],
+  order: SortLevel[] = [],
+  heldOrOpts?: HeldKeywords | { keepServerTextOrder?: boolean; held?: HeldKeywords },
+): ThreadGroup[] {
+  const opts = heldOrOpts instanceof Map ? { held: heldOrOpts as HeldKeywords } : (heldOrOpts as { keepServerTextOrder?: boolean; held?: HeldKeywords } | undefined) ?? {};
+  if (opts.keepServerTextOrder && hasTextLevels(order)) {
+    return [...groups].sort((a, b) => (b.hasPinned ? 1 : 0) - (a.hasPinned ? 1 : 0));
+  }
+  const compare = compareEmails(order, { held: opts.held });
   const representative = new Map<ThreadGroup, Email>();
   for (const group of groups) {
     representative.set(
@@ -247,6 +264,37 @@ export function getEmailTagIds(keywords: Record<string, boolean> | undefined): s
     }
   }
   return [...tags];
+}
+
+/**
+ * The complete keyword map after toggling one tag, or after clearing every tag
+ * (`tagId` null), for writing as a whole. Every value in such a map must be
+ * true (RFC 8621 section 4.1.1), so a tag comes off by leaving its key out,
+ * and so do keywords the local copy only marks false (`$seen: false` after
+ * marking a message unread). Both prefixes name the same tag, so taking a tag
+ * off clears whichever spellings are set.
+ */
+export function toggleTagKeywords(
+  keywords: Record<string, boolean> | undefined,
+  tagId: string | null,
+): Record<string, true> {
+  const next: Record<string, true> = {};
+  for (const [key, value] of Object.entries(keywords ?? {})) {
+    if (value === true) next[key] = true;
+  }
+  if (tagId === null) {
+    for (const key of Object.keys(next)) {
+      if (key.startsWith(KEYWORD_PREFIX) || key.startsWith(KEYWORD_PREFIX_LEGACY)) delete next[key];
+    }
+    return next;
+  }
+  const activeKeys = [KEYWORD_PREFIX + tagId, KEYWORD_PREFIX_LEGACY + tagId].filter((key) => next[key]);
+  if (activeKeys.length > 0) {
+    for (const key of activeKeys) delete next[key];
+  } else {
+    next[KEYWORD_PREFIX + tagId] = true;
+  }
+  return next;
 }
 
 /**

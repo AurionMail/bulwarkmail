@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PUSH_NOTIFICATION_PROMPT_DELAY_MS, PushNotificationPrompt } from "../push-notification-prompt";
 import { PWA_INSTALL_PROMPT_VISIBILITY_EVENT } from "../pwa-install-prompt";
+import { jmapSetError } from "@/lib/jmap/jmap-error";
 
 const mocks = vi.hoisted(() => ({
   pathname: "/en",
@@ -192,6 +193,33 @@ describe("PushNotificationPrompt", () => {
         relayBaseUrl: "https://notifications.relay.bulwarkmail.org",
       }),
     );
+  });
+
+  it.each([
+    [
+      "forbidden",
+      { type: "forbidden", description: "No access to one of the accounts in the emailPush map." },
+      "error_forbidden",
+    ],
+    [
+      "overQuota",
+      { type: "overQuota", description: "There are too many subscriptions, please delete some before adding a new one." },
+      "error_over_quota",
+    ],
+  ])("explains a %s refusal instead of showing the raw server error", async (_type, setError, key) => {
+    mocks.enableWebPush.mockRejectedValue(
+      jmapSetError(`PushSubscription/set create failed: ${setError.description}`, setError),
+    );
+    render(<PushNotificationPrompt />);
+    await advancePromptDelay();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("enable"));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(key);
+    expect(screen.getByRole("alert")).not.toHaveTextContent("emailPush");
   });
 
   it("does not render when push is already enabled", async () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { JMAPClient } from '../jmap/client';
 import type { CalendarTask } from '../jmap/types';
+import { jmapErrorType } from '../jmap/jmap-error';
 import wire from './fixtures/stalwart-task-due-wire.json';
 
 function makeSession() {
@@ -146,6 +147,54 @@ describe('JMAPClient task operations (#958)', () => {
     expect(createPayload['@type']).toBe('Task');
     expect(createPayload.title).toBe('New Task');
     expect(createPayload).not.toHaveProperty('progressUpdated');
+  });
+
+  it('createCalendarTask reads the task back without utcStart/utcEnd', async () => {
+    await client.createCalendarTask({ title: 'New Task' });
+
+    const getCall = sentCalls.find((c) => c.method === 'CalendarEvent/get');
+    expect(getCall?.args.properties).toEqual(expect.arrayContaining(['due', 'progress', 'recurrenceOverrides']));
+    expect(getCall?.args.properties).not.toContain('utcStart');
+    expect(getCall?.args.properties).not.toContain('utcEnd');
+  });
+
+  it('createCalendarTask returns the created task when Stalwart 1.0 refuses the read-back, without creating it twice', async () => {
+    const answer = vi.mocked(globalThis.fetch).getMockImplementation()!;
+    vi.mocked(globalThis.fetch).mockImplementation(async (url, init) => {
+      const body = JSON.parse((init?.body as string) || '{}');
+      if (body.methodCalls?.[0]?.[0] === 'CalendarEvent/get') {
+        sentCalls.push({ method: 'CalendarEvent/get', args: body.methodCalls[0][1] });
+        return jsonResponse({ methodResponses: [['error', {
+          type: 'invalidArguments',
+          description: 'recurrenceOverrides cannot be requested together with utcStart or utcEnd',
+        }, '0']] });
+      }
+      return answer(url, init);
+    });
+
+    const created = await client.createCalendarTask({ title: 'New Task', due: '2026-09-30T00:00:00', calendarIds: { 'cal-1': true } });
+
+    expect(created).toMatchObject({ id: 'created-id-123', '@type': 'Task', title: 'New Task', due: '2026-09-30T00:00:00' });
+    expect(sentCalls.filter((c) => c.method === 'CalendarEvent/set')).toHaveLength(1);
+  });
+
+  it('getCalendarTasks fails instead of returning no tasks when the server refuses the query', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(async () => jsonResponse({
+      methodResponses: [['error', { type: 'serverFail', description: 'Store unavailable' }, '0']],
+    }));
+
+    await expect(client.getCalendarTasks()).rejects.toThrow(/Store unavailable/);
+  });
+
+  it('createCalendarTask fails with the error type when the server refuses the whole call', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(async () => jsonResponse({
+      methodResponses: [['error', { type: 'invalidArguments', description: 'Invalid calendar id' }, '0']],
+    }));
+
+    const error = await client.createCalendarTask({ title: 'New Task' }).then(() => null, (e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain('Invalid calendar id');
+    expect(jmapErrorType(error)).toBe('invalidArguments');
   });
 
   const sentTask = (kind: 'create' | 'update', key: string) => {

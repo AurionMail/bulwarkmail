@@ -10,6 +10,7 @@ import {
   getThreadTagIds,
   threadKeyFor,
   threadIdFromKey,
+  toggleTagKeywords,
 } from '../thread-utils';
 import type { Email, ThreadGroup } from '../jmap/types';
 
@@ -206,6 +207,48 @@ describe('sortThreadGroups', () => {
     ];
     expect(groupEmailsByThread(emails)[0].hasPinned).toBe(true);
   });
+
+  it('keeps the fetched order of a sender order, as Stalwart 1.0 collates it', () => {
+    // The server's byte order puts "zoe" before "émile" and the message
+    // without a sender last; a localeCompare re-sort would swap the first two.
+    const fetched = [
+      makeEmail({ id: 'z', threadId: 'tz', from: [{ name: 'Zoe', email: 'zoe@example.org' }] }),
+      makeEmail({ id: 'e1', threadId: 'te', from: [{ name: 'Émile', email: 'emile@example.org' }] }),
+      makeEmail({ id: 'n', threadId: 'tn', from: [] }),
+      makeEmail({ id: 'e2', threadId: 'te', from: [{ name: 'Émile', email: 'emile@example.org' }], receivedAt: '2024-02-01T00:00:00Z' }),
+    ];
+    const order = [{ criterion: 'from' as const, direction: 'asc' as const }];
+    expect(sortThreadGroups(groupEmailsByThread(fetched), order, { keepServerTextOrder: true }).map(g => g.threadId))
+      .toEqual(['tz', 'te', 'tn']);
+  });
+
+  it('still lifts pinned threads above a subject order on Stalwart 1.0, and otherwise keeps the fetched order', () => {
+    // Same subject everywhere: a client re-sort would fall back to newest first.
+    const groups = [
+      makeGroup('first', '2024-01-01T00:00:00Z'),
+      makeGroup('second', '2024-06-01T00:00:00Z'),
+      makeGroup('pinned', '2024-03-01T00:00:00Z', true),
+    ];
+    const sorted = sortThreadGroups(groups, [{ criterion: 'subject', direction: 'asc' }], { keepServerTextOrder: true });
+    expect(sorted.map(g => g.threadId)).toEqual(['pinned', 'first', 'second']);
+  });
+
+  it('re-sorts a sender order case-insensitively on Stalwart 0.16, the empty sender last', () => {
+    // 0.16 pages come in raw byte order, capitals first; the loaded pages are
+    // sorted as one list, as before 1.0.
+    const fetched = [
+      makeEmail({ id: 'a', threadId: 'ta', from: [{ name: 'Adam', email: 'adam@x.test' }] }),
+      makeEmail({ id: 'c', threadId: 'tc', from: [{ name: 'Carla', email: 'carla@x.test' }] }),
+      makeEmail({ id: 'n', threadId: 'tn', from: [] }),
+      makeEmail({ id: 'b', threadId: 'tb', from: [{ name: 'bea', email: 'bea@x.test' }] }),
+      makeEmail({ id: 'd', threadId: 'td', from: [{ name: 'dave', email: 'dave@x.test' }] }),
+    ];
+    const order = [{ criterion: 'from' as const, direction: 'asc' as const }];
+    expect(sortThreadGroups(groupEmailsByThread(fetched), order).map(g => g.threadId))
+      .toEqual(['ta', 'tb', 'tc', 'td', 'tn']);
+    expect(sortThreadGroups(groupEmailsByThread(fetched), [{ criterion: 'from', direction: 'desc' }]).map(g => g.threadId))
+      .toEqual(['td', 'tc', 'tb', 'ta', 'tn']);
+  });
 });
 
 describe('getThreadParticipants', () => {
@@ -317,6 +360,41 @@ describe('getEmailTagIds', () => {
   it('is empty for an untagged message or none at all', () => {
     expect(getEmailTagIds({ $seen: true })).toEqual([]);
     expect(getEmailTagIds(undefined)).toEqual([]);
+  });
+});
+
+// The result is written as the message's whole keyword map, where RFC 8621
+// allows only true values: a removed tag must be missing, not false.
+describe('toggleTagKeywords', () => {
+  it('adds a tag without disturbing the other keywords', () => {
+    expect(toggleTagKeywords({ $seen: true, '$label:red': true }, 'work'))
+      .toEqual({ $seen: true, '$label:red': true, '$label:work': true });
+  });
+
+  it('takes a set tag off by leaving its key out, under either prefix', () => {
+    const next = toggleTagKeywords({ $seen: true, '$label:red': true, '$color:red': true, '$label:work': true }, 'red');
+    expect(next).toEqual({ $seen: true, '$label:work': true });
+    expect(Object.values(next).every((value) => value === true)).toBe(true);
+  });
+
+  it('clears every tag, whatever the prefix, and keeps the rest', () => {
+    expect(toggleTagKeywords({ $flagged: true, '$label:red': true, '$color:blue': true }, null))
+      .toEqual({ $flagged: true });
+  });
+
+  it('drops keywords the local copy only marks false', () => {
+    // Marking a message unread or unstarred leaves these behind locally.
+    expect(toggleTagKeywords({ $seen: false, $flagged: false, '$label:red': false }, 'red'))
+      .toEqual({ '$label:red': true });
+  });
+
+  it('keeps the server-set attachment keyword Stalwart 1.0 reports', () => {
+    expect(toggleTagKeywords({ $hasattachment: true }, 'work')).toEqual({ $hasattachment: true, '$label:work': true });
+  });
+
+  it('starts from nothing when the message has no keywords', () => {
+    expect(toggleTagKeywords(undefined, 'work')).toEqual({ '$label:work': true });
+    expect(toggleTagKeywords(undefined, null)).toEqual({});
   });
 });
 

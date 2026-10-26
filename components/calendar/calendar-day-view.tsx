@@ -19,6 +19,7 @@ import { useTimeGridInteractions } from "@/hooks/use-time-grid-interactions";
 import { useScrollWindow, getScrollStart, setScrollStart, scrollToStart } from "@/hooks/use-scroll-window";
 import { dayKey, type ScrollWindowViewProps } from "@/lib/calendar-scroll-window";
 import type { PendingEventPreview } from "./event-modal";
+import { useCalendarErrorMessage } from "@/hooks/use-calendar-error-message";
 import { readableTextOn } from "@/lib/color-transform";
 import { PluginDayLabel } from "./plugin-day-label";
 
@@ -38,7 +39,10 @@ interface CalendarDayViewProps extends ScrollWindowViewProps {
   tasks?: CalendarTask[];
   onToggleTaskComplete?: (task: CalendarTask) => void;
   onSelectTask?: (task: CalendarTask) => void;
-  /** The user's calendar addresses, to mark events they declined (#1110). */
+  /**
+   * The user's calendar addresses, to mark events they declined (#1110).
+   * Moving an event they organize also asks its attendees again.
+   */
   currentUserEmails?: string[];
 }
 
@@ -73,6 +77,7 @@ export function CalendarDayView({
   currentUserEmails,
 }: CalendarDayViewProps) {
   const t = useTranslations("calendar");
+  const describeError = useCalendarErrorMessage();
   // Grid days / event dates are display dates (local fields = wall-clock in
   // the user's zone); the app-wide formatter would shift them again (#755).
   const intlFormatter = useDisplayDateFormatter();
@@ -269,6 +274,8 @@ export function CalendarDayView({
       created: t("notifications.event_created"),
       error: t("notifications.event_error"),
     },
+    describeError,
+    currentUserEmails,
     isMobile,
   });
 

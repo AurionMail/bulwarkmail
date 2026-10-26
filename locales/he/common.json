@@ -582,6 +582,14 @@
     "scheduled_actions_only": "תצוגה מתוכננת תומכת בפעולות מתוכננות בלבד",
     "undo_send_scheduled": "הודעה תוכננת לשליחה",
     "undo_send": "בטל שליחה",
+    "send_cancelled_restore_failed": "השליחה בוטלה, אך לא ניתן היה להחזיר את ההודעה לטיוטות. היא עדיין בנשלח.",
+    "send_cancelled_remove_failed": "השליחה בוטלה, אך לא ניתן היה להסיר את ההודעה שלא נשלחה מנשלח.",
+    "cancel_scheduled_failed": "לא ניתן היה לבטל את השליחה המתוזמנת",
+    "still_scheduled_at": "ההודעה עדיין מתוזמנת ל־{date}.",
+    "still_scheduled": "ההודעה עדיין מתוזמנת.",
+    "already_sent": "ההודעה הזו כבר נשלחה.",
+    "no_longer_scheduled": "ההודעה הזו כבר אינה מתוזמנת.",
+    "reschedule_recipients_refused": "דבר לא השתנה: השרת דחה את {recipients}.",
     "contact_sidebar": {
       "title": "איש קשר",
       "close": "סגור סרגל צד",
@@ -699,6 +707,10 @@
     "show_less": "הצג פחות",
     "send_failed": "שליחת האימייל נכשלה",
     "send_timeout": "השרת הפסיק להגיב. בדקו את תיקיית הנשלחים לפני שליחה חוזרת — ייתכן שההודעה כבר נשלחה.",
+    "submission_quota": "בשרת יש יותר מדי רשומות של הודעות שנשלחו עבור החשבון הזה. Bulwark הסיר את אלה שיכול היה; אם זה ממשיך לקרות, בקשו ממנהל המערכת להגדיל את מגבלת שליחת הדואר.",
+    "submission_limit": "השרת סירב לשלוח את ההודעה כי הושגה מגבלה: {reason}",
+    "recipients_refused": "לא נשלח: השרת דחה את {recipients}.",
+    "recipients_partly_refused": "השרת דחה את {recipients}. שאר הנמענים יקבלו את ההודעה.",
     "send_offline": "נראה שאין חיבור לרשת. ההודעה עדיין כאן, שלחו אותה שוב כשתחזרו לרשת.",
     "formatting": "עיצוב",
     "send_recipients_rejected": "לא נשלח - השרת דחה את כל הנמענים.",
@@ -1332,7 +1344,10 @@
         "revoke": "ביטול",
         "confirm_revoke_title": "לבטל את המכשיר הזה?",
         "confirm_revoke_message": "הוא יפסיק לקבל התראות ברקע מיד. הפעלה מחדש של פוש באותו מכשיר תרשום אותו מחדש.",
-        "confirm_revoke_message_this": "מכשיר זה יפסיק לקבל התראות ברקע מיד."
+        "confirm_revoke_message_this": "מכשיר זה יפסיק לקבל התראות ברקע מיד.",
+        "shared_mailboxes_no_push": "תיבות דואר שאחרים משתפים איתך אינן שולחות התראות ברקע.",
+        "error_forbidden": "שרת הדואר אינו מאפשר התראות ברקע עבור חשבון זה.",
+        "error_over_quota": "לחשבון זה יש יותר מדי רישומי פוש בשרת הדואר (המגבלה היא בדרך כלל 15). בטל בהגדרות ההתראות מכשירים שאינך משתמש בהם עוד, ונסה שוב."
       }
     },
     "language_region": {
@@ -2277,6 +2292,7 @@
       "validation_empty_name": "נדרש שם כלל",
       "validation_empty_conditions": "נדרש לפחות תנאי אחד עם ערך",
       "validation_empty_actions": "נדרשת לפחות פעולה אחת",
+      "validation_header_name": "שמות כותרות יכולים להכיל רק את האותיות A-Z, ספרות, מקפים וקווים תחתונים",
       "templates_section": "התחל מהתבנית",
       "template_newsletters": "העבר ניוזלטרים לתיקיה",
       "template_receipts": "העבר קבלות לארכיון אוטומטי",
@@ -3040,7 +3056,8 @@
     },
     "export": {
       "title": "ייצוא אנשי קשר",
-      "success": "{count, plural, one {יוצא איש קשר אחד} other {יוצאו # אנשי קשר}}"
+      "success": "{count, plural, one {יוצא איש קשר אחד} other {יוצאו # אנשי קשר}}",
+      "exporting": "מייצא..."
     },
     "bulk": {
       "selected": "{count, plural, one {נבחר אחד} other {נבחרו #}}",
@@ -3198,8 +3215,11 @@
         "free": "פנוי",
         "busy": "עסוק",
         "tentative": "טנטטיבי",
+        "no_busy_times": "לא שותפו זמנים תפוסים",
         "unknown": "לא משתמש בשרת זה",
-        "checking": "בודק…"
+        "error": "לא ניתן היה לבדוק",
+        "checking": "בודק…",
+        "unavailable_on_server": "מידע פנוי/תפוס אינו זמין בשרת זה"
       },
       "title": "משתתפים",
       "add": "הוסף משתתף",
@@ -3220,6 +3240,7 @@
       "you_organizer": "אתה המארגן",
       "you_attendee": "אתה משתתף",
       "no_participants": "אין משתתפים",
+      "limit_warning": "יותר מ-{max, plural, one {# משתתף} other {# משתתפים}}, כולל המארגן: ייתכן שהשרת יסרב לשמור את האירוע. מנהל המערכת יכול להגדיל את המגבלה.",
       "count": "{count, plural, one {משתתף אחד} other {# משתתפים}}",
       "edit": "ערוך"
     },
@@ -3385,6 +3406,7 @@
       "save_without_invitations": "שמור בלי הזמנות",
       "rsvp_updated": "התגובה עודכנה",
       "rsvp_error": "עדכון התגובה נכשל",
+      "participant_limit": "השרת מאפשר עד {max, plural, one {# משתתף} other {# משתתפים}} לאירוע, כולל המארגן, ולכן דחה את השינוי. מנהל המערכת יכול להגדיל את המגבלה.",
       "event_duplicated": "האירוע שוכפל",
       "event_error": "שמירת האירוע נכשלה",
       "task_due": "משימה בשל",
@@ -3394,7 +3416,10 @@
     },
     "status": {
       "loading_calendars": "טוען יומנים...",
-      "loading_events": "טוען אירועים..."
+      "loading_events": "טוען אירועים...",
+      "events_load_failed": "לא ניתן לטעון את האירועים. ייתכן שהיומן אינו מעודכן.",
+      "tasks_load_failed": "לא ניתן לטעון את המשימות. ייתכן שהרשימה אינה מעודכנת.",
+      "retry": "נסה שוב"
     },
     "quick_create": {
       "placeholder": "כותרת אירוע חדשה",
@@ -3685,6 +3710,8 @@
     "new_name": "שם חדש",
     "name_forbidden_chars": "השרת אינו מתיר את התווים האלה בשמות: {chars}",
     "name_reserved": "השם הזה שמור בשרת.",
+    "name_control_chars": "שמות אינם יכולים להכיל תווי בקרה.",
+    "name_too_long": "השם הזה ארוך מדי עבור השרת.",
     "delete": "לִמְחוֹק",
     "delete_confirm_title": "מחק משאב",
     "delete_confirm_message": "האם אתה בטוח שברצונך למחוק את \"{name}\"? לא ניתן לבטל זאת.",
@@ -3695,11 +3722,21 @@
     "type": "הקלד",
     "folder": "תיקיה",
     "file": "קובץ",
+    "symlink": "קישור סמלי",
+    "parent_directory": "ספריית הורים",
+    "breadcrumb_root": "בית",
     "uploading": "מעלה...",
     "upload_success": "{count, plural, one {קובץ אחד הועלה} other {# קבצים הועלו}}",
     "upload_canceled": "ההעלאה בוטלה",
     "upload_canceled_partial": "{count, plural, one {קובץ אחד הועלה} two {שני קבצים הועלו} other {# קבצים הועלו}} לפני הביטול",
     "upload_error": "העלאת הקובץ נכשלה",
+    "upload_failed": "{count, plural, one {לא ניתן היה להעלות קובץ אחד} other {לא ניתן היה להעלות # קבצים}}",
+    "error_over_quota": "הגעת למגבלת הקבצים או התיקיות. יש למחוק חלק מהם ולנסות שוב.",
+    "error_too_deep": "לא ניתן לקנן תיקיות לעומק כזה.",
+    "error_invalid_name": "השרת אינו מקבל את השם הזה.",
+    "error_forbidden": "אין לך הרשאה לבצע פעולה זו כאן.",
+    "error_too_large": "הקובץ הזה גדול מדי עבור השרת.",
+    "error_partial_copy": "חלק מההעתק נשאר במקומו.",
     "create_folder_success": "התיקיה נוצרה",
     "create_folder_error": "יצירת התיקיה נכשלה",
     "delete_success": "נמחק בהצלחה",
@@ -3758,6 +3795,7 @@
     "shared": "משותף",
     "shared_with_me": "משותף איתי",
     "shared_by": "משותף על ידי {name}",
+    "shared_files_from": "קבצים מאת {name}",
     "open_folder_tree": "פתח עץ תיקייה",
     "migration_title": "עדכון הקבצים שלך…",
     "migration_description": "ארגון תיקיות וקבצים לתוך המבנה הנכון שלהם. זה קורה רק פעם אחת.",
@@ -4048,8 +4086,12 @@
     "loading_principals": "טעינת משתמשים…",
     "no_principals": "לא נמצאו משתמשים או קבוצות אחרים.",
     "no_match": "אין התאמות.",
+    "directory_restricted": "השרת שלך אינו מאפשר לעיין בספריית המשתמשים שלו, ולכן מוצגות רק הקבוצות שלך ואנשים ששיתפו איתך משהו. מנהל מערכת יכול להפעיל שאילתות ספרייה בהגדרות השיתוף של Stalwart.",
+    "directory_not_browsable": "השרת שלך אינו מאפשר לך לעיין בספריית המשתמשים שלו.",
+    "directory_failed": "לא ניתן היה לטעון את רשימת המשתמשים והקבוצות.",
     "remove": "הסר גישה",
     "group": "קבוצה",
+    "unknown_user": "משתמש לא ידוע",
     "share_added": "גישה ניתנה",
     "share_updated": "גישה עודכנה",
     "share_removed": "גישה הוסרה",

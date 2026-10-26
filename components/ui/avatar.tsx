@@ -3,8 +3,9 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useSettingsStore } from "@/stores/settings-store";
-import { useContactStore, getContactPhotoUri } from "@/stores/contact-store";
+import { useContactStore, getContactPhotoIndex, type ContactPhotoRef } from "@/stores/contact-store";
 import { useConfig } from "@/hooks/use-config";
+import { useContactPhotoSrc } from "@/hooks/use-contact-photo";
 import { avatarHooks } from "@/lib/plugin-hooks";
 import { withBasePath } from "@/lib/browser-navigation";
 import { IS_LITE } from "@/lib/lite";
@@ -137,7 +138,12 @@ function getProfilePictureUrl(email: string, domain: string, devMode: boolean, n
 interface AvatarProps {
   name?: string;
   email?: string;
-  contactPhotoUri?: string;
+  /**
+   * The photo of the contact this avatar stands for (see getContactPhotoRef).
+   * Left undefined, the email is looked up among the contacts; null means the
+   * contact has no photo, so no other card's photo is borrowed.
+   */
+  contactPhoto?: ContactPhotoRef | null;
   size?: "sm" | "md" | "lg";
   className?: string;
   /** When true, suppress all image sources (favicons, plugin avatars, profile pics, contact photos) and render initials only. */
@@ -148,10 +154,13 @@ interface AvatarProps {
   fallbackColor?: string;
 }
 
-export function Avatar({ name, email, contactPhotoUri, size = "md", className, disableImages = false, disableFavicon = false, fallbackColor }: AvatarProps) {
+export function Avatar({ name, email, contactPhoto, size = "md", className, disableImages = false, disableFavicon = false, fallbackColor }: AvatarProps) {
   const [imgError, setImgError] = useState(false);
   const [pluginAvatarUrl, setPluginAvatarUrl] = useState<string | null>(null);
   const [pluginAvatarFailed, setPluginAvatarFailed] = useState(false);
+  // A contact photo that downloaded but would not render (an SVG made inert,
+  // corrupt bytes) falls through to the next source instead of an empty circle.
+  const [failedContactPhoto, setFailedContactPhoto] = useState<string | null>(null);
   const senderFavicons = useSettingsStore((s) => s.senderFavicons);
   const faviconRefreshedAt = useFaviconRefreshStore((s) => s.refreshedAt);
   const contacts = useContactStore((s) => s.contacts);
@@ -170,26 +179,20 @@ export function Avatar({ name, email, contactPhotoUri, size = "md", className, d
     return () => { cancelled = true; };
   }, [email, name]);
 
+  // The caller's contact photo, else the photo of a contact with this address.
+  const photoRef = useMemo(() => {
+    if (disableImages) return null;
+    if (contactPhoto !== undefined) return contactPhoto;
+    if (!email) return null;
+    return getContactPhotoIndex(contacts).get(email.toLowerCase()) ?? null;
+  }, [disableImages, contactPhoto, email, contacts]);
+  const { src: contactPhotoSrc, observe } = useContactPhotoSrc(photoRef);
+  const resolvedContactPhoto = contactPhotoSrc && contactPhotoSrc !== failedContactPhoto ? contactPhotoSrc : undefined;
+
   // A refresh of the sender icons gives a failed favicon another chance.
   useEffect(() => {
     setImgError(false);
   }, [faviconRefreshedAt]);
-
-  // Look up contact photo by email from the contact store
-  const resolvedContactPhoto = useMemo(() => {
-    if (contactPhotoUri) return contactPhotoUri;
-    if (!email) return undefined;
-    const lowerEmail = email.toLowerCase();
-    for (const contact of contacts) {
-      if (!contact.emails) continue;
-      for (const e of Object.values(contact.emails)) {
-        if (e.address.toLowerCase() === lowerEmail) {
-          return getContactPhotoUri(contact);
-        }
-      }
-    }
-    return undefined;
-  }, [contactPhotoUri, email, contacts]);
 
   const domain = email?.split("@")[1]?.toLowerCase();
   // Use root domain for favicon lookups (e.g. newsletter.example.com → example.com)
@@ -247,6 +250,10 @@ export function Avatar({ name, email, contactPhotoUri, size = "md", className, d
   const isFavicon = imgSrc !== null && imgSrc === faviconSrc;
 
   const handleImgError = useCallback(() => {
+    if (resolvedContactPhoto && imgSrc === resolvedContactPhoto) {
+      setFailedContactPhoto(resolvedContactPhoto);
+      return;
+    }
     // If the plugin avatar just failed, mark it and fall through to the next source
     if (pluginAvatar && imgSrc === pluginAvatar) {
       setPluginAvatarFailed(true);
@@ -261,6 +268,7 @@ export function Avatar({ name, email, contactPhotoUri, size = "md", className, d
 
   return (
     <div
+      ref={observe}
       className={cn(
         "rounded-full flex items-center justify-center font-semibold text-white overflow-hidden",
         sizeClasses[size],
